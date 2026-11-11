@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export type SloOverviewEmptyStateTone = "neutral" | "good" | "warning";
@@ -31,6 +33,13 @@ export interface ComponentProps {
 const SloOverviewEmptyState: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  /*
+   * The title and description are looked up like a Card's: callers hand
+   * the English text (the extractor reads both props as keys), or a
+   * sentence they have already worded in the reader's language, which has
+   * no key and is drawn as it is.
+   */
+  const translator: Translator = useTranslator();
   const tone: SloOverviewEmptyStateTone = props.tone || "neutral";
 
   return (
@@ -43,8 +52,12 @@ const SloOverviewEmptyState: FunctionComponent<ComponentProps> = (
       >
         <Icon icon={props.icon} className="h-5 w-5" />
       </div>
-      <p className="mt-3 text-sm font-semibold text-gray-900">{props.title}</p>
-      <p className="mt-1 max-w-md text-sm text-gray-500">{props.description}</p>
+      <p className="mt-3 text-sm font-semibold text-gray-900">
+        {translator.translateText(props.title)}
+      </p>
+      <p className="mt-1 max-w-md text-sm text-gray-500">
+        {translator.translateText(props.description)}
+      </p>
       {props.actions ? (
         <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
           {props.actions}

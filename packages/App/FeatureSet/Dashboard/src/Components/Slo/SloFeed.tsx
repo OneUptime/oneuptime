@@ -6,6 +6,7 @@ import ServiceLevelObjectiveFeed, {
   ServiceLevelObjectiveFeedEventType,
 } from "Common/Models/DatabaseModels/ServiceLevelObjectiveFeed";
 import ObjectID from "Common/Types/ObjectID";
+import { translationKey } from "Common/Types/Translator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -14,13 +15,16 @@ export interface ComponentProps {
   description?: string | undefined;
 }
 
-const DEFAULT_TITLE: string = "SLO Feed";
+// ResourceFeed looks each of these up in the reader's language.
+const DEFAULT_TITLE: string = translationKey("SLO Feed");
 
-const DEFAULT_DESCRIPTION: string =
-  "Everything that has happened to this SLO - how it was created, every status change, the burn-rate alerts and incidents it raised, and each change to its rules, monitors and owners.";
+const DEFAULT_DESCRIPTION: string = translationKey(
+  "Everything that has happened to this SLO - how it was created, every status change, the burn-rate alerts and incidents it raised, and each change to its rules, monitors and owners.",
+);
 
-const NO_ITEMS_MESSAGE: string =
-  "No activity has been recorded for this SLO yet.";
+const NO_ITEMS_MESSAGE: string = translationKey(
+  "No activity has been recorded for this SLO yet.",
+);
 
 export type GetSloResourceFeedPropsFunction = (
   props: ComponentProps,

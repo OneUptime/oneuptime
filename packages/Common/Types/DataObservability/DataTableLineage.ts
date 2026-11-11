@@ -55,6 +55,9 @@ export enum DataLineageEdgeKind {
 // The steps each way a drawing shows unless asked for another number.
 export const DEFAULT_DATA_LINEAGE_DEPTH: number = 3;
 
+// A pipeline's drawing: the tables it reads and the tables it writes, unless asked for more.
+export const DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH: number = 1;
+
 // The most steps each way one drawing walks: the depth a data alert's cause is looked for at.
 export const MAX_DATA_LINEAGE_DEPTH: number = 5;
 
@@ -139,9 +142,33 @@ export interface DataTableLineageEdge {
   lastSeenAt: string | null;
 }
 
+/*
+ * What a drawing picks out on a data alert's page: the way from the alert's
+ * table or pipeline up to the alert it is a consequence of, and down to
+ * each alert it caused (Server/Utils/DataObservability/DataAlertLineage).
+ * Only alerts its reader may see are on it, and none is named.
+ */
+export interface DataLineageHighlight {
+  // Every card along the ways, the drawing's own among them.
+  nodeIds: Array<string>;
+  // Every arrow along them.
+  edgeIds: Array<string>;
+  // Where the way up ends: the card of the cause's table, or of its pipeline.
+  causeNodeIds: Array<string>;
+  // Where the ways down end: the cards of the tables of the alerts it caused.
+  consequenceNodeIds: Array<string>;
+  // A cause or consequence that is a pipeline drawn only on arrows: named on its arrows along the way.
+  dataPipelineIds: Array<string>;
+}
+
 export interface DataTableLineage {
+  /*
+   * The card the drawing is about: a table ("table:<id>"), or a pipeline
+   * ("pipeline:<id>"), whose tables read are upstream and tables written
+   * downstream.
+   */
   focusNodeId: string;
-  // The steps each way this drawing walked.
+  // The steps each way this drawing walked: the more of the two, when an alert's ways reach further one way.
   depth: number;
   nodes: Array<DataTableLineageNode>;
   edges: Array<DataTableLineageEdge>;
@@ -153,11 +180,37 @@ export interface DataTableLineage {
    * counts of tables not drawn are then at least what they say.
    */
   isTruncated: boolean;
+  // On a data alert's page: the ways to its cause and to the alerts it caused.
+  highlight?: DataLineageHighlight | undefined;
 }
 
 export interface DataTableLineageRequest {
   dataAssetId: string;
   depth?: number | undefined;
+}
+
+export interface DataPipelineLineageRequest {
+  dataPipelineId: string;
+  depth?: number | undefined;
+}
+
+/*
+ * A data alert's lineage: what its table or pipeline is built from and what
+ * is built from it, with the way to the alert that caused it and to each
+ * alert it caused highlighted. Every alert counted here is one its reader
+ * may see: a reader who may not see an alert's cause is not shown the
+ * alert's data at all.
+ */
+export interface DataAlertLineageAnswer {
+  // Null for an alert about a whole database: there is no table or pipeline to draw.
+  lineage: DataTableLineage | null;
+  // A consequence of an alert upstream.
+  hasCause: boolean;
+  // Whether the way to that alert is drawn: not when it is about a whole database, or further up than a drawing walks.
+  isCauseDrawn: boolean;
+  // The alerts it caused, and how many of them the drawing reaches.
+  consequenceCount: number;
+  drawnConsequenceCount: number;
 }
 
 export function getLineageTableNodeId(dataAssetId: string): string {
@@ -172,6 +225,11 @@ export function getLineageDashboardNodeId(dataDashboardId: string): string {
   return `dashboard:${dataDashboardId}`;
 }
 
+// Whether a card is a pipeline's: on a pipeline's own drawing, the card it is about.
+export function isLineagePipelineNodeId(nodeId: string): boolean {
+  return nodeId.startsWith("pipeline:");
+}
+
 export function getLineageEdgeId(data: {
   kind: DataLineageEdgeKind;
   source: string;
@@ -182,10 +240,14 @@ export function getLineageEdgeId(data: {
 
 /*
  * The steps each way a request asks for: a whole number from 1 to the most,
- * the default when it names none or one that cannot be read. A number past
- * the most is the most, so a request for "all of it" draws what can be.
+ * the default when it names none or one that cannot be read (a table's
+ * three, unless another is given: a pipeline's one). A number past the most
+ * is the most, so a request for "all of it" draws what can be.
  */
-export function readDataLineageDepth(value: unknown): number {
+export function readDataLineageDepth(
+  value: unknown,
+  fallback: number = DEFAULT_DATA_LINEAGE_DEPTH,
+): number {
   const number: number =
     typeof value === "number"
       ? value
@@ -194,7 +256,7 @@ export function readDataLineageDepth(value: unknown): number {
         : NaN;
 
   if (!Number.isFinite(number)) {
-    return DEFAULT_DATA_LINEAGE_DEPTH;
+    return fallback;
   }
 
   return Math.min(MAX_DATA_LINEAGE_DEPTH, Math.max(1, Math.floor(number)));

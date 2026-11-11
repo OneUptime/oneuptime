@@ -44,7 +44,7 @@ Man mano che l'inattività si accumula, la **Panoramica** mostra il budget riman
 - come percentuale del totale, che decide anche lo stato dello SLO e riempie la barra. La barra ha un segno alla soglia a rischio dello SLO;
 - come durata, per esempio "31m 4s left of 43m 12s".
 
-Quando il budget è finito, il riquadro mostra **No budget left**. Quando l'inattività lo supera, il riquadro mostra **Budget exceeded** e lo sforamento come tempo, per esempio "4d 23m over budget · 5m 47s allowed": lo SLO ha usato tutti i 5 minuti e 47 secondi del suo budget, e altri 4 giorni e 23 minuti. La barra resta vuota e rossa.
+Quando il budget è finito, il riquadro mostra **Nessun budget rimasto**. Quando l'inattività lo supera, il riquadro mostra **Budget superato** e lo sforamento come tempo, per esempio "4d 23m over budget · 5m 47s allowed": lo SLO ha usato tutti i 5 minuti e 47 secondi del suo budget, e altri 4 giorni e 23 minuti. La barra resta vuota e rossa.
 
 Il budget rimanente viene conservato come numero con segno per i calcoli e i grafici della cronologia, quindi lì un budget superato appare come percentuale negativa. Una percentuale molto negativa significa che lo sforamento è grande rispetto al budget; non è la quota di tempo in cui il servizio era fuori servizio.
 
@@ -60,11 +60,11 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | Il riquadro mostra | Cosa significa |
 | --- | --- |
-| Una durata, come **~2d 5h** | Al ritmo attuale il budget finisce in circa questo tempo. In ambra, e in rosso quando manca un giorno o meno. **Under 1m** significa meno di un minuto. |
-| **Not burning** | Negli ultimi 60 minuti non è stato speso budget. |
-| **Sustainable** | Solo finestre mobili: l'autonomia è di almeno una finestra intera, quindi il budget non si spende più in fretta di quanto la vecchia inattività esca dalla finestra. A questo ritmo non può finire. |
-| **Lasts until reset** | Solo mesi di calendario: il budget si azzera all'inizio del mese successivo prima di finire. |
-| **Overspent** | Il budget è già speso. Il riquadro dice di quanto è stato superato. |
+| Una durata, come **~2d 5h** | Al ritmo attuale il budget finisce in circa questo tempo. In ambra, e in rosso quando manca un giorno o meno. **Meno di 1 min** significa meno di un minuto. |
+| **Nessun consumo** | Negli ultimi 60 minuti non è stato speso budget. |
+| **Sostenibile** | Solo finestre mobili: l'autonomia è di almeno una finestra intera, quindi il budget non si spende più in fretta di quanto la vecchia inattività esca dalla finestra. A questo ritmo non può finire. |
+| **Dura fino al ripristino** | Solo mesi di calendario: il budget si azzera all'inizio del mese successivo prima di finire. |
+| **Sforato** | Il budget è già speso. Il riquadro dice di quanto è stato superato. |
 
 Per gli SLO a mese di calendario, il riquadro dice anche quando il budget si azzera.
 
@@ -80,7 +80,7 @@ Il grafico **Burn-down del budget di errore** della **Panoramica** traccia il bu
 - A ogni valutazione, ogni 5 minuti, viene registrato un punto, quindi il grafico di un nuovo SLO resta vuoto fino alla sua prima valutazione.
 - Trascina sul grafico per ingrandire una parte della finestra. Fai doppio clic, o clic su **Reimposta lo zoom**, per tornare a vedere tutta la finestra.
 
-**Apri le metriche** apre la pagina **Metriche** dello SLO, la cui scheda **Error Budget History** risale fino a 400 giorni. Vedi [Metriche e dashboard degli SLO](/docs/slo/metrics).
+**Apri le metriche** apre la pagina **Metriche** dello SLO, la cui scheda **Cronologia del budget di errore** risale fino a 400 giorni. Vedi [Metriche e dashboard degli SLO](/docs/slo/metrics).
 
 ## Come si recupera il budget
 

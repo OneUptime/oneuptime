@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 49075,
+    "keys": 49153,
     "untranslated": 0
   },
   "sameAsEnglish": [
@@ -245,6 +245,7 @@
     "V3",
     "VIP",
     "VLAN",
+    "VLAN {{vlanId}}",
     "VM 101 · pve1",
     "VM 102 · pve2",
     "VM · esx-01",

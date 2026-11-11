@@ -5,6 +5,8 @@ import {
   SloBudgetBarGeometry,
 } from "Common/Utils/Slo/SloProjection";
 import { formatSloPercent } from "Common/Utils/Slo/SloWidgetFormat";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -50,6 +52,7 @@ export interface ComponentProps {
 const SloBudgetBar: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const geometry: SloBudgetBarGeometry = getSloBudgetBarGeometry({
     errorBudgetRemainingPercentage: props.errorBudgetRemainingPercentage,
     atRiskThresholdPercentage: props.atRiskThresholdPercentage,
@@ -62,14 +65,25 @@ const SloBudgetBar: FunctionComponent<ComponentProps> = (
   const remainingText: string =
     getSloBudgetRemainingText(props.errorBudgetRemainingPercentage) || "";
 
-  let valueText: string = "Error budget not evaluated yet";
+  let valueText: string = translator.translateTemplate(
+    "Error budget not evaluated yet",
+  );
 
   if (geometry.isOverspent) {
-    valueText = `Error budget exceeded; no budget remaining; at risk at ${thresholdText} or less`;
+    valueText = translator.translateTemplate(
+      "Error budget exceeded; no budget remaining; at risk at {{threshold}} or less",
+      { threshold: thresholdText },
+    );
   } else if (geometry.tier === SloBudgetTier.Exhausted) {
-    valueText = `No error budget remaining; at risk at ${thresholdText} or less`;
+    valueText = translator.translateTemplate(
+      "No error budget remaining; at risk at {{threshold}} or less",
+      { threshold: thresholdText },
+    );
   } else if (geometry.isEvaluated) {
-    valueText = `${remainingText} of the error budget remaining; at risk at ${thresholdText} or less`;
+    valueText = translator.translateTemplate(
+      "{{remaining}} of the error budget remaining; at risk at {{threshold}} or less",
+      { remaining: remainingText, threshold: thresholdText },
+    );
   }
 
   const trackClassName: string =
@@ -87,7 +101,7 @@ const SloBudgetBar: FunctionComponent<ComponentProps> = (
     >
       <div
         role="progressbar"
-        aria-label="Error budget remaining"
+        aria-label={translator.translateTemplate("Error budget remaining")}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={
@@ -113,7 +127,10 @@ const SloBudgetBar: FunctionComponent<ComponentProps> = (
         <span
           data-testid="slo-budget-bar-marker"
           aria-hidden="true"
-          title={`At risk at ${thresholdText} or less`}
+          title={translator.translateTemplate(
+            "At risk at {{threshold}} or less",
+            { threshold: thresholdText },
+          )}
           /*
            * The white ring cuts the tick out of whatever fill it sits on, so
            * it stays visible on green, amber and red alike (Theme.css maps

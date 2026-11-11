@@ -58,7 +58,7 @@ Vorfall- und Warnungsmetriken tragen zwei passende Attribute, `serviceLevelObjec
 
 `oneuptime.slo.*`-Metriken werden so lange aufbewahrt wie Monitormetriken: standardmäßig **30 Tage**. In einer selbst gehosteten Installation kann ein Master-Admin das mit **Monitor Metric Retention (Days)** in den Einstellungen **Datenaufbewahrung** des Admin Dashboard ändern.
 
-Das begrenzt nicht den Tab **Error Budget History** der Seite **Metriken** des SLO. Dieser Verlauf wird getrennt gespeichert und 400 Tage aufbewahrt.
+Das begrenzt nicht den Tab **Verlauf des Fehlerbudgets** der Seite **Metriken** des SLO. Dieser Verlauf wird getrennt gespeichert und 400 Tage aufbewahrt.
 
 ## Die Seite Metriken
 
@@ -66,12 +66,12 @@ Die Seite **Metriken** eines SLO hat vier Tabs:
 
 | Tab | Was er zeigt |
 | --- | --- |
-| **SLO Metrics** | Die `oneuptime.slo.*`-Reihen in drei Karten mit einem gemeinsamen Zeitraum, standardmäßig dem letzten Tag: **Ziel** (der SLI mit dem Ziel darüber und das verbleibende Budget), **Burn** (Burn-Rate und verbleibende Budgetzeit) und **Status**. |
-| **Error Budget History** | SLI, verbleibendes Budget und Burn-Rate über den langfristigen Verlauf, mit Linien beim Ziel, bei den Grenzen für gefährdet und ausgeschöpft und beim Schwellenwert jeder aktivierten Burn-Rate-Regel. |
+| **SLO-Metriken** | Die `oneuptime.slo.*`-Reihen in drei Karten mit einem gemeinsamen Zeitraum, standardmäßig dem letzten Tag: **Ziel** (der SLI mit dem Ziel darüber und das verbleibende Budget), **Burn** (Burn-Rate und verbleibende Budgetzeit) und **Status**. |
+| **Verlauf des Fehlerbudgets** | SLI, verbleibendes Budget und Burn-Rate über den langfristigen Verlauf, mit Linien beim Ziel, bei den Grenzen für gefährdet und ausgeschöpft und beim Schwellenwert jeder aktivierten Burn-Rate-Regel. |
 | **Vorfallmetriken** | Anzahl, Zeit bis zur Bestätigung, Zeit bis zur Auflösung und Dauer der Vorfälle, die dieses SLO betreffen, standardmäßig der letzten Woche. Vorfälle, die seine Burn-Rate-Regeln gemeldet haben, sind enthalten. |
 | **Warnungsmetriken** | Dasselbe für Warnungen. Warnungen, die seine Burn-Rate-Regeln ausgelöst haben, sind enthalten. |
 
-Die Tabs **SLO Metrics**, **Vorfallmetriken** und **Warnungsmetriken** lesen den Metrikspeicher, wofür die Berechtigung zum Lesen von Telemetrie nötig ist. Eine eigene Rolle, die SLOs, aber keine Telemetrie lesen darf, sieht diese Tabs leer, während **Error Budget History** weiter funktioniert.
+Die Tabs **SLO-Metriken**, **Vorfallmetriken** und **Warnungsmetriken** lesen den Metrikspeicher, wofür die Berechtigung zum Lesen von Telemetrie nötig ist. Eine eigene Rolle, die SLOs, aber keine Telemetrie lesen darf, sieht diese Tabs leer, während **Verlauf des Fehlerbudgets** weiter funktioniert.
 
 ## SLOs auf Dashboards
 
@@ -123,7 +123,7 @@ Zwei SLOs haben diesen Namen. Liste und Diagramme zeigen beide, und die Widgets 
 :::
 
 :::details Der Tab SLO Metrics ist leer
-Ihre Rolle darf keine Telemetrie lesen, oder das SLO wurde noch nicht ausgewertet. **Error Budget History** liest das SLO selbst und funktioniert weiter.
+Ihre Rolle darf keine Telemetrie lesen, oder das SLO wurde noch nicht ausgewertet. **Verlauf des Fehlerbudgets** liest das SLO selbst und funktioniert weiter.
 :::
 
 ## Nächste Schritte

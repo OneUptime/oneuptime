@@ -44,7 +44,7 @@ Un SLO par mois calendaire dispose du budget de tout le mois dès le premier jou
 - en pourcentage du total, qui décide aussi du statut du SLO et remplit la barre. La barre a un repère au seuil à risque du SLO ;
 - en durée, par exemple "31m 4s left of 43m 12s".
 
-Une fois le budget épuisé, la tuile affiche **No budget left**. Quand l'indisponibilité le dépasse, la tuile affiche **Budget exceeded** et le dépassement en durée, par exemple "4d 23m over budget · 5m 47s allowed" : le SLO a utilisé les 5 minutes et 47 secondes de son budget, plus 4 jours et 23 minutes. La barre reste vide et rouge.
+Une fois le budget épuisé, la tuile affiche **Plus de budget**. Quand l'indisponibilité le dépasse, la tuile affiche **Budget dépassé** et le dépassement en durée, par exemple "4d 23m over budget · 5m 47s allowed" : le SLO a utilisé les 5 minutes et 47 secondes de son budget, plus 4 jours et 23 minutes. La barre reste vide et rouge.
 
 Le budget restant est conservé comme un nombre signé pour les calculs et les graphiques d'historique, un budget dépassé y apparaît donc comme un pourcentage négatif. Un grand pourcentage négatif signifie que le dépassement est grand par rapport au budget ; ce n'est pas la part du temps pendant laquelle le service était indisponible.
 
@@ -60,11 +60,11 @@ runway = budget left ÷ (burn rate × (100% − target))
 
 | La tuile affiche | Signification |
 | --- | --- |
-| Une durée, comme **~2d 5h** | Le budget s'épuise dans environ ce délai au rythme actuel. En orange, et en rouge dès qu'il reste un jour ou moins. **Under 1m** signifie moins d'une minute. |
-| **Not burning** | Aucun budget n'a été consommé dans les 60 dernières minutes. |
-| **Sustainable** | Fenêtres glissantes uniquement : l'autonomie atteint au moins une fenêtre entière, le budget n'est donc pas consommé plus vite que l'ancienne indisponibilité ne sort de la fenêtre. À ce rythme, il ne peut pas s'épuiser. |
-| **Lasts until reset** | Mois calendaires uniquement : le budget est remis à zéro au début du mois suivant avant de s'épuiser. |
-| **Overspent** | Le budget est déjà consommé. La tuile indique de combien il est dépassé. |
+| Une durée, comme **~2d 5h** | Le budget s'épuise dans environ ce délai au rythme actuel. En orange, et en rouge dès qu'il reste un jour ou moins. **Moins de 1 min** signifie moins d'une minute. |
+| **Aucune consommation** | Aucun budget n'a été consommé dans les 60 dernières minutes. |
+| **Soutenable** | Fenêtres glissantes uniquement : l'autonomie atteint au moins une fenêtre entière, le budget n'est donc pas consommé plus vite que l'ancienne indisponibilité ne sort de la fenêtre. À ce rythme, il ne peut pas s'épuiser. |
+| **Tient jusqu'à la réinitialisation** | Mois calendaires uniquement : le budget est remis à zéro au début du mois suivant avant de s'épuiser. |
+| **Dépassé** | Le budget est déjà consommé. La tuile indique de combien il est dépassé. |
 
 Pour les SLO par mois calendaire, la tuile indique aussi quand le budget est remis à zéro.
 
@@ -80,7 +80,7 @@ Le graphique **Consommation du budget d'erreur** de la **Vue d'ensemble** trace 
 - Un point est enregistré à chaque évaluation, toutes les 5 minutes, le graphique d'un nouveau SLO reste donc vide jusqu'à sa première évaluation.
 - Faites glisser sur le graphique pour zoomer sur une partie de la fenêtre. Double-cliquez, ou cliquez sur **Réinitialiser le zoom**, pour revoir toute la fenêtre.
 
-**Ouvrir les métriques** ouvre la page **Métriques** du SLO, dont l'onglet **Error Budget History** remonte jusqu'à 400 jours. Voir [Métriques et tableaux de bord des SLO](/docs/slo/metrics).
+**Ouvrir les métriques** ouvre la page **Métriques** du SLO, dont l'onglet **Historique du budget d'erreur** remonte jusqu'à 400 jours. Voir [Métriques et tableaux de bord des SLO](/docs/slo/metrics).
 
 ## Comment le budget se rétablit
 

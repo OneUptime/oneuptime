@@ -385,8 +385,14 @@ const ResourceList: FunctionComponent<ComponentProps> = (
          */}
         <div className={PUBLISHED_NAME_COLUMN_CLASS_NAME}>
           {displayName && displayName !== monitorName ? (
+            /*
+             * The name reads its own way (dir="auto"): cut short on an Arabic
+             * page, an English name keeps its start in view instead of losing
+             * it past the cell's far edge.
+             */
             <p
               className="truncate text-sm text-gray-500"
+              dir="auto"
               title={displayName}
               data-testid="status-page-resource-row-display-name"
             >

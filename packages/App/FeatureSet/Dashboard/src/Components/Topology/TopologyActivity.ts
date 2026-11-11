@@ -1,4 +1,11 @@
 import InventoryItem from "Common/Models/DatabaseModels/InventoryItem";
+import {
+  formatRelativeAmount,
+  formatRelativeDate,
+  getDateDisplayLanguage,
+  isEnglishDateLanguage,
+  RelativeDateUnit,
+} from "Common/Types/DateLanguage";
 import EntitySource from "Common/Types/Telemetry/EntitySource";
 
 /*
@@ -63,32 +70,93 @@ export function partitionByActivity(
   return { active, inactive };
 }
 
-/** "just now", "12 min ago", "5 h ago", "3 days ago". */
-export function formatLastSeen(
+/*
+ * How long ago a resource last reported, in the buckets "Last seen" reads:
+ * under a minute, minutes under an hour, hours under two days, then days.
+ * Null when there is no time, or it is not one.
+ */
+interface LastSeenAge {
+  unit: RelativeDateUnit;
+  // 0 for "just now".
+  count: number;
+}
+
+function getLastSeenAge(
   lastSeenAt: Date | undefined,
-  now: Date = new Date(),
-): string {
+  now: Date,
+): LastSeenAge | null {
   if (!lastSeenAt) {
-    return "—";
+    return null;
   }
   const seconds: number = Math.max(
     0,
     Math.round((now.getTime() - new Date(lastSeenAt).getTime()) / 1000),
   );
   if (Number.isNaN(seconds)) {
-    return "—";
+    return null;
   }
   if (seconds < 60) {
-    return "just now";
+    return { unit: "second", count: 0 };
   }
   const minutes: number = Math.round(seconds / 60);
   if (minutes < 60) {
-    return `${minutes} min ago`;
+    return { unit: "minute", count: minutes };
   }
   const hours: number = Math.round(minutes / 60);
   if (hours < 48) {
-    return `${hours} h ago`;
+    return { unit: "hour", count: hours };
   }
-  const days: number = Math.round(hours / 24);
-  return `${days} days ago`;
+  return { unit: "day", count: Math.round(hours / 24) };
+}
+
+/** "just now", "12 min ago", "5 h ago", "3 days ago". */
+export function formatLastSeen(
+  lastSeenAt: Date | undefined,
+  now: Date = new Date(),
+): string {
+  const age: LastSeenAge | null = getLastSeenAge(lastSeenAt, now);
+  if (!age) {
+    return "—";
+  }
+  if (age.count === 0) {
+    return "just now";
+  }
+  if (age.unit === "minute") {
+    return `${age.count} min ago`;
+  }
+  if (age.unit === "hour") {
+    return `${age.count} h ago`;
+  }
+  return `${age.count} days ago`;
+}
+
+/*
+ * The same, in the reader's language - "vor 12 Minuten", "قبل 3 أيام",
+ * "jetzt" - counted in the same buckets. English reads exactly as
+ * formatLastSeen does; a browser with no Intl.RelativeTimeFormat falls back
+ * to it too.
+ */
+export function formatLastSeenInLanguage(
+  lastSeenAt: Date | undefined,
+  now: Date = new Date(),
+  language: string = getDateDisplayLanguage(),
+): string {
+  const english: string = formatLastSeen(lastSeenAt, now);
+  const age: LastSeenAge | null = getLastSeenAge(lastSeenAt, now);
+
+  if (!age || isEnglishDateLanguage(language)) {
+    return english;
+  }
+
+  const worded: string | null =
+    age.count === 0
+      ? formatRelativeDate({ date: now, now: now, locale: language })
+      : formatRelativeAmount({
+          count: age.count,
+          unit: age.unit,
+          isFuture: false,
+          locale: language,
+        });
+
+  return worded || english;
 }

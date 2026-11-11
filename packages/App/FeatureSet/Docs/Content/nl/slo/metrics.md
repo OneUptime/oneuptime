@@ -58,7 +58,7 @@ Incident- en waarschuwingsmetrics dragen twee bijbehorende attributen, `serviceL
 
 `oneuptime.slo.*`-metrics worden even lang bewaard als monitormetrics: standaard **30 dagen**. Op een zelfgehoste installatie kan een hoofdbeheerder dat wijzigen met **Monitor Metric Retention (Days)** in de instellingen voor **Gegevensbewaring** van het Admin Dashboard.
 
-Dit beperkt het tabblad **Error Budget History** van de pagina **Metrieken** van de SLO niet. Die geschiedenis wordt apart opgeslagen en 400 dagen bewaard.
+Dit beperkt het tabblad **Geschiedenis van het foutbudget** van de pagina **Metrieken** van de SLO niet. Die geschiedenis wordt apart opgeslagen en 400 dagen bewaard.
 
 ## De pagina Metrieken
 
@@ -66,12 +66,12 @@ De pagina **Metrieken** van een SLO heeft vier tabbladen:
 
 | Tabblad | Wat het toont |
 | --- | --- |
-| **SLO Metrics** | De `oneuptime.slo.*`-reeksen in drie kaarten die één tijdsbereik delen, standaard de afgelopen dag: **Doelstelling** (de SLI met het doel erover, en het resterende budget), **Verbruik** (verbruikssnelheid en resterende budgettijd) en **Status**. |
-| **Error Budget History** | De SLI, het resterende budget en de verbruikssnelheid over de geschiedenis op lange termijn, met lijnen op het doel, op de grenzen voor risico en uitputting, en op de drempel van elke ingeschakelde regel voor verbruikssnelheid. |
+| **SLO-metrics** | De `oneuptime.slo.*`-reeksen in drie kaarten die één tijdsbereik delen, standaard de afgelopen dag: **Doelstelling** (de SLI met het doel erover, en het resterende budget), **Verbruik** (verbruikssnelheid en resterende budgettijd) en **Status**. |
+| **Geschiedenis van het foutbudget** | De SLI, het resterende budget en de verbruikssnelheid over de geschiedenis op lange termijn, met lijnen op het doel, op de grenzen voor risico en uitputting, en op de drempel van elke ingeschakelde regel voor verbruikssnelheid. |
 | **Incidentmetrieken** | Het aantal, de tijd tot bevestiging, de tijd tot oplossing en de duur van de incidenten die deze SLO raken, standaard de afgelopen week. Incidenten die zijn regels voor verbruikssnelheid hebben gemeld, tellen mee. |
 | **Waarschuwingsmetrieken** | Hetzelfde voor waarschuwingen. Waarschuwingen die zijn regels voor verbruikssnelheid hebben gegeven, tellen mee. |
 
-De tabbladen **SLO Metrics**, **Incidentmetrieken** en **Waarschuwingsmetrieken** lezen de metricopslag, waarvoor toestemming nodig is om telemetrie te lezen. Een aangepaste rol die SLO's maar geen telemetrie mag lezen, ziet die tabbladen leeg, terwijl **Error Budget History** blijft werken.
+De tabbladen **SLO-metrics**, **Incidentmetrieken** en **Waarschuwingsmetrieken** lezen de metricopslag, waarvoor toestemming nodig is om telemetrie te lezen. Een aangepaste rol die SLO's maar geen telemetrie mag lezen, ziet die tabbladen leeg, terwijl **Geschiedenis van het foutbudget** blijft werken.
 
 ## SLO's op dashboards
 
@@ -123,7 +123,7 @@ Twee SLO's hebben die naam. De lijst en de grafieken tonen ze allebei, en de wid
 :::
 
 :::details Het tabblad SLO Metrics is leeg
-Uw rol mag geen telemetrie lezen, of de SLO is nog niet geëvalueerd. **Error Budget History** leest de SLO zelf en blijft werken.
+Uw rol mag geen telemetrie lezen, of de SLO is nog niet geëvalueerd. **Geschiedenis van het foutbudget** leest de SLO zelf en blijft werken.
 :::
 
 ## Volgende stappen

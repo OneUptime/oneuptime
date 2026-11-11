@@ -1,4 +1,10 @@
 import { JSONArray, JSONObject } from "Common/Types/JSON";
+import {
+  composedValue,
+  createTranslator,
+  translationKey,
+  Translator,
+} from "Common/Types/Translator";
 
 /*
  * The topology map's link-rule banner, computed without react.
@@ -45,7 +51,14 @@ export interface TopologyLinkRuleWarning {
  * relation without its name coming back, so this is a real state rather than
  * a defensive one.
  */
-export const UNNAMED_SITE_LABEL: string = "Unnamed site";
+export const UNNAMED_SITE_LABEL: string = translationKey("Unnamed site");
+
+/*
+ * What the sentences below are written in when the caller hands no
+ * translator: English, word for word - what the tests read. The map hands
+ * the reader's, and each sentence is looked up whole.
+ */
+const ENGLISH: Translator = createTranslator(undefined);
 
 const isFiniteNumber: (value: unknown) => value is number = (
   value: unknown,
@@ -160,8 +173,14 @@ export const parseLinkRuleWarnings: (
 };
 
 /** "3 devices" / "1 device" — the count and its noun, nothing else. */
-const devicePhrase: (count: number) => string = (count: number): string => {
-  return `${count} ${count === 1 ? "device" : "devices"}`;
+const devicePhrase: (count: number, translator: Translator) => string = (
+  count: number,
+  translator: Translator,
+): string => {
+  return translator.translatePlural(
+    { one: "{{count}} device", other: "{{count}} devices" },
+    count,
+  );
 };
 
 /**
@@ -173,15 +192,40 @@ const devicePhrase: (count: number) => string = (count: number): string => {
  */
 export const describeWarningSite: (
   site: TopologyLinkRuleWarningSite,
-) => string = (site: TopologyLinkRuleWarningSite): string => {
-  const fault: string =
-    site.reason === "ambiguousParent"
-      ? `${devicePhrase(site.matchedParentCount)} carry the parent labels`
-      : "no device carries the parent labels";
+  translator?: Translator,
+) => string = (
+  site: TopologyLinkRuleWarningSite,
+  translator: Translator = ENGLISH,
+): string => {
+  const siteName: string =
+    site.siteName || translator.translateText(UNNAMED_SITE_LABEL) || "";
 
-  return `${site.siteName || UNNAMED_SITE_LABEL} — ${fault}, so ${devicePhrase(
+  if (site.reason === "ambiguousParent") {
+    return translator.translatePlural(
+      {
+        one: "{{site}} — {{parents}} carry the parent labels, so {{count}} device has no uplink",
+        other:
+          "{{site}} — {{parents}} carry the parent labels, so {{count}} devices have no uplink",
+      },
+      site.strandedDeviceCount,
+      {
+        site: siteName,
+        parents: composedValue((sentence: Translator): string => {
+          return devicePhrase(site.matchedParentCount, sentence);
+        }),
+      },
+    );
+  }
+
+  return translator.translatePlural(
+    {
+      one: "{{site}} — no device carries the parent labels, so {{count}} device has no uplink",
+      other:
+        "{{site}} — no device carries the parent labels, so {{count}} devices have no uplink",
+    },
     site.strandedDeviceCount,
-  )} ${site.strandedDeviceCount === 1 ? "has" : "have"} no uplink`;
+    { site: siteName },
+  );
 };
 
 /**
@@ -193,15 +237,23 @@ export const describeWarningSite: (
  */
 export const describeSiteListToggle: (
   warning: TopologyLinkRuleWarning,
-) => string = (warning: TopologyLinkRuleWarning): string => {
+  translator?: Translator,
+) => string = (
+  warning: TopologyLinkRuleWarning,
+  translator: Translator = ENGLISH,
+): string => {
   const total: number = Math.max(
     warning.siteCount || 0,
     (warning.sites || []).length,
   );
 
-  return total === 1
-    ? "Show the 1 site that needs attention"
-    : `Show the ${total} sites that need attention`;
+  return translator.translatePlural(
+    {
+      one: "Show the {{count}} site that needs attention",
+      other: "Show the {{count}} sites that need attention",
+    },
+    total,
+  );
 };
 
 /**

@@ -1,4 +1,5 @@
 import AppLink from "../AppLink/AppLink";
+import AlertLineageDiagram from "./AlertLineageDiagram";
 import DataAlertExplanationCard from "./DataAlertExplanationCard";
 import TableDashboards from "./TableDashboards";
 import PageMap from "../../Utils/PageMap";
@@ -98,8 +99,9 @@ function orNothing<T>(reading: Promise<T>): Promise<T | null> {
  * it started acknowledged because that one was open first. For a table: the
  * services that write it, with the writes that failed, and their deploys
  * and other changes around the alert, which are most often why it broke.
- * And, on a cause, the alerts downstream it caused: its impact. Nothing for
- * any other alert.
+ * Then its lineage drawn, with the way to its cause and to the alerts it
+ * caused highlighted (AlertLineageDiagram). And, on a cause, the alerts
+ * downstream it caused: its impact. Nothing for any other alert.
  */
 const DataAlertLineage: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -411,6 +413,11 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             )}
           </dl>
         </Card>
+      ) : (
+        <Fragment />
+      )}
+      {own?.dataAssetId || own?.dataPipelineId ? (
+        <AlertLineageDiagram alertId={props.alertId} />
       ) : (
         <Fragment />
       )}

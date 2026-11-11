@@ -33,6 +33,8 @@ AI 代理應該在使用資料之前，先檢查資料是否新鮮。[MCP 伺服
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte 的同步 Webhook | URL 中的擷取金鑰 |
 | `POST /api/data-observability/tables/freshness` | 資料表的新鮮度，與 MCP 工具的回答相同，要求內容為 `{ "table": "public.orders" }` | API 金鑰 |
 | `POST /api/data-observability/tables/lineage` | 資料表在每個方向上幾步的血緣，以及每張資料表的目前狀態，與其 **血緣** 索引標籤所畫的相同，要求內容為 `{ "dataAssetId": "<table ID>", "depth": 3 }` | API 金鑰 |
+| `POST /api/data-observability/pipelines/lineage` | 管線讀取和寫入的資料表，以及每張資料表的目前狀態，與其頁面所畫的相同，要求內容為 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API 金鑰 |
+| `POST /api/data-observability/alerts/<alert ID>/lineage` | 資料警示的血緣，以及通往造成它的警示和它造成的警示的路徑，與其頁面所畫的相同 | API 金鑰 |
 | `POST /api/data-observability/checks/apply` | 讓專案的檢查與一個檔案一致，如同 `oneuptime data-checks apply` 所做的，要求內容為 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API 金鑰 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 資料產品的「data as of」徽章 | 徽章本身的權杖 |
 

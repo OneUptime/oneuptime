@@ -58,7 +58,7 @@ Les métriques d'incidents et d'alertes portent deux attributs correspondants, `
 
 Les métriques `oneuptime.slo.*` sont gardées aussi longtemps que les métriques de moniteurs : **30 jours** par défaut. Sur une installation auto-hébergée, un administrateur principal peut changer cela avec **Monitor Metric Retention (Days)** dans les paramètres **Rétention des données** de l'Admin Dashboard.
 
-Cela ne limite pas l'onglet **Error Budget History** de la page **Métriques** du SLO. Cet historique est stocké à part et gardé 400 jours.
+Cela ne limite pas l'onglet **Historique du budget d'erreur** de la page **Métriques** du SLO. Cet historique est stocké à part et gardé 400 jours.
 
 ## La page Métriques
 
@@ -66,12 +66,12 @@ La page **Métriques** d'un SLO a quatre onglets :
 
 | Onglet | Ce qu'il affiche |
 | --- | --- |
-| **SLO Metrics** | Les séries `oneuptime.slo.*` dans trois cartes qui partagent une même période, le dernier jour par défaut : **Objectif** (le SLI avec l'objectif tracé dessus, et le budget restant), **Consommation** (taux de consommation et temps de budget restant) et **Statut**. |
-| **Error Budget History** | Le SLI, le budget restant et le taux de consommation sur l'historique à long terme, avec des lignes à l'objectif, aux limites à risque et épuisé, et au seuil de chaque règle de taux de consommation activée. |
+| **Métriques du SLO** | Les séries `oneuptime.slo.*` dans trois cartes qui partagent une même période, le dernier jour par défaut : **Objectif** (le SLI avec l'objectif tracé dessus, et le budget restant), **Consommation** (taux de consommation et temps de budget restant) et **Statut**. |
+| **Historique du budget d'erreur** | Le SLI, le budget restant et le taux de consommation sur l'historique à long terme, avec des lignes à l'objectif, aux limites à risque et épuisé, et au seuil de chaque règle de taux de consommation activée. |
 | **Métriques d'incident** | Le nombre, le délai de prise en charge, le délai de résolution et la durée des incidents qui concernent ce SLO, la dernière semaine par défaut. Les incidents déclarés par ses règles de taux de consommation sont inclus. |
 | **Métriques d'alerte** | La même chose pour les alertes. Les alertes déclenchées par ses règles de taux de consommation sont incluses. |
 
-Les onglets **SLO Metrics**, **Métriques d'incident** et **Métriques d'alerte** lisent le stockage de métriques, ce qui demande la permission de lire la télémétrie. Un rôle personnalisé qui peut lire les SLO mais pas la télémétrie voit ces onglets vides, alors que **Error Budget History** fonctionne toujours.
+Les onglets **Métriques du SLO**, **Métriques d'incident** et **Métriques d'alerte** lisent le stockage de métriques, ce qui demande la permission de lire la télémétrie. Un rôle personnalisé qui peut lire les SLO mais pas la télémétrie voit ces onglets vides, alors que **Historique du budget d'erreur** fonctionne toujours.
 
 ## Les SLO sur les tableaux de bord
 
@@ -123,7 +123,7 @@ Deux SLO portent ce nom. La liste et les graphiques affichent les deux, et les w
 :::
 
 :::details L'onglet SLO Metrics est vide
-Votre rôle ne peut pas lire la télémétrie, ou le SLO n'a pas encore été évalué. **Error Budget History** lit le SLO lui-même et fonctionne toujours.
+Votre rôle ne peut pas lire la télémétrie, ou le SLO n'a pas encore été évalué. **Historique du budget d'erreur** lit le SLO lui-même et fonctionne toujours.
 :::
 
 ## Prochaines étapes

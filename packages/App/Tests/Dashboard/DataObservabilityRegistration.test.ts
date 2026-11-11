@@ -353,20 +353,22 @@ describe("Data Observability registry wiring", () => {
       "Common/Server/Utils/Monitor/MonitorAlert.ts",
     );
 
+    // The alert is created inside its page timing (OnCallPageTiming): wherever it is, the cause is read around it.
+    const created: number = monitorAlert.indexOf("const createdAlert: Alert =");
+
+    expect(created).toBeGreaterThan(-1);
+    expect(
+      monitorAlert.indexOf("return AlertService.create({"),
+    ).toBeGreaterThan(created);
     expect(
       monitorAlert.indexOf("await DataAlertCause.findCause({"),
-    ).toBeLessThan(
-      monitorAlert.indexOf(
-        "const createdAlert: Alert = await AlertService.create({",
-      ),
-    );
+    ).toBeGreaterThan(-1);
+    expect(
+      monitorAlert.indexOf("await DataAlertCause.findCause({"),
+    ).toBeLessThan(created);
     expect(
       monitorAlert.indexOf("await DataAlertCause.record({"),
-    ).toBeGreaterThan(
-      monitorAlert.indexOf(
-        "const createdAlert: Alert = await AlertService.create({",
-      ),
-    );
+    ).toBeGreaterThan(created);
     expect(
       readSquashed("App/FeatureSet/Dashboard/src/Pages/Alerts/View/Index.tsx"),
     ).toContain("<DataAlertLineage alertId={modelId} />");
