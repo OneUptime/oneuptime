@@ -234,6 +234,7 @@
     "Red Hat OpenStack on OpenShift",
     "RegionOne",
     "Runbook",
+    "Runbook \"{{name}}\"",
     "Runbook: {{name}}",
     "Runbooks",
     "Runner",

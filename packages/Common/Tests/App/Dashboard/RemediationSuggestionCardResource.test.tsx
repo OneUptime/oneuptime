@@ -52,8 +52,9 @@ import {
  * Podman host, a Docker Swarm, Proxmox, VMware or Ceph cluster, a database
  * server or a host, through its resource AI agent:
  *
- * - the card names the fix an infrastructure fix and its source the
- *   resource's round, never "Rule: …";
+ * - the card names the fix for the resource it works on ('Fix on Docker
+ *   host "web-1"', issue #6860), and its source OneUptime AI or the AI
+ *   rule that asked for the round - never a rule named for the round;
  * - every ResourceCommand row names the resource it runs on ("Docker host
  *   web-1") and the program it runs ("docker", "systemctl", …) as a kubectl
  *   row names "kubectl" - once: the command under it starts with the
@@ -255,10 +256,13 @@ describe("RemediationStep for a resource round", () => {
       "docker stop web",
     );
 
-    expect(screen.getByText("AI infrastructure fix")).toBeInTheDocument();
-    expect(
-      screen.getByText('AI remediation for Docker host "web-1"'),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("remediation-fix-title")).toHaveTextContent(
+      /^Fix on Docker host "web-1"$/,
+    );
+    expect(screen.getByTestId("remediation-fix-source")).toHaveTextContent(
+      /^From OneUptime AI$/,
+    );
+    expect(screen.queryByText(/AI remediation for/)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Rule:/)).not.toBeInTheDocument();
 
     expect(within(row).getByText("Docker host web-1")).toBeInTheDocument();
@@ -361,7 +365,9 @@ describe("RemediationStep for a resource round", () => {
       "kubectl rollout restart deployment/web -n web",
     );
 
-    expect(screen.getByText("AI kubectl fix")).toBeInTheDocument();
+    expect(screen.getByTestId("remediation-fix-title")).toHaveTextContent(
+      /^Fix on cluster "prod-east"$/,
+    );
     expect(within(row).getByText("cluster prod-east")).toBeInTheDocument();
     expect(
       within(row).getByText("kubectl rollout restart deployment/web -n web"),

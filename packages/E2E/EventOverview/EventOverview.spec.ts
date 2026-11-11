@@ -21755,6 +21755,14 @@ const APPROVAL_NOTE: string =
   "Approving runs exactly what is shown, under your name.";
 
 // The fix on the step whose name or buttons hold the given words.
+/*
+ * The names of the busy incident's fixes, as the step words them (issue
+ * #6860): the cluster's round by its cluster, the rule's fix through MCP
+ * servers by what it is.
+ */
+const CLUSTER_FIX_TITLE: string = 'Fix on cluster "prod-eu-west-1"';
+const MCP_FIX_TITLE: string = "Fix through MCP servers";
+
 function fixOnStep(page: Page, words: string): Locator {
   return remediationStep(page)
     .getByTestId("remediation-fix")
@@ -21845,7 +21853,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     ).toHaveCount(1);
 
     // The kubectl fix that waits: its facts, and no chip that repeats kubectl.
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
       "Waiting for approval",
     );
@@ -21871,7 +21879,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     ).toBeVisible();
 
     // The fix through MCP servers: the change that failed is said in red.
-    const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
+    const mcp: Locator = fixOnStep(page, MCP_FIX_TITLE);
     await expect(mcp.getByTestId("remediation-fix-status")).toHaveText(
       "Auto-executed",
     );
@@ -21926,7 +21934,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
 
       const body: Locator = page.getByTestId("ai-card-step-remediation-body");
       const bodyBox: Box = await documentBox(body);
-      const approve: Locator = fixOnStep(page, "AI kubectl fix").getByTestId(
+      const approve: Locator = fixOnStep(page, CLUSTER_FIX_TITLE).getByTestId(
         "remediation-approve-button",
       );
       const approveBox: Box = await documentBox(approve);
@@ -22007,7 +22015,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
     page: Page;
   }) => {
     await openManyFixes(page);
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
 
     await kubectl.getByTestId("remediation-approve-button").click();
 
@@ -22040,7 +22048,7 @@ test.describe("a busy incident's fixes on the Remediation step read as lines (?f
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openManyFixes(page, "fail=approve");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
 
     await kubectl.getByTestId("remediation-approve-button").click();
 
@@ -22104,17 +22112,17 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
   }) => {
     await openManyFixes(page, "", { isFolded: true });
     const remediation: Locator = remediationStep(page);
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
-    const mcp: Locator = fixOnStep(page, "AI fix through MCP servers");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
+    const mcp: Locator = fixOnStep(page, MCP_FIX_TITLE);
     const runbook: Locator = fixOnStep(page, "Restart checkout-api pods");
 
     // The order OneUptime AI tried them in: the oldest first.
     expect(
       await remediation.getByTestId("remediation-fix-title").allTextContents(),
     ).toEqual([
-      "Restart checkout-api pods",
-      "AI fix through MCP servers",
-      "AI kubectl fix",
+      'Runbook "Restart checkout-api pods"',
+      MCP_FIX_TITLE,
+      CLUSTER_FIX_TITLE,
     ]);
 
     expect(await stepTitles(runbook)).toEqual([
@@ -22281,7 +22289,7 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "", { isFolded: true });
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const toggle: Locator = kubectl.getByTestId(
       "remediation-fix-details-toggle",
     );
@@ -22342,7 +22350,7 @@ test.describe("a busy incident's fixes, step by step (?fixes=many)", () => {
 
     // A step's own press opens it by keyboard too, and keeps the keyboard.
     const mcpRun: Locator = fixStep(
-      fixOnStep(page, "AI fix through MCP servers"),
+      fixOnStep(page, MCP_FIX_TITLE),
       "run",
     ).getByTestId("remediation-fix-step-toggle");
     await mcpRun.focus();
@@ -22435,7 +22443,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "approvals=on");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const approve: Locator = kubectl.getByTestId("remediation-approve-button");
 
     expect(await stepTitles(kubectl)).toEqual([
@@ -22517,7 +22525,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "approvals=first");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const approve: Locator = kubectl.getByTestId("remediation-approve-button");
 
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
@@ -22568,7 +22576,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
   }) => {
     await page.setViewportSize({ width: 390, height: 1000 });
     await openManyFixes(page, "approvals=mine&theme=dark");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
 
     await expect(kubectl.getByTestId("remediation-fix-status")).toHaveText(
       "Waiting for a second approval",
@@ -22601,7 +22609,7 @@ test.describe("two people approve a riskier fix (?approvals=)", () => {
     page: Page;
   }) => {
     await openManyFixes(page, "approvals=on");
-    const kubectl: Locator = fixOnStep(page, "AI kubectl fix");
+    const kubectl: Locator = fixOnStep(page, CLUSTER_FIX_TITLE);
     const approve: Locator = kubectl.getByTestId("remediation-approve-button");
     await expect(approve).toHaveText("Approve");
 
@@ -22948,12 +22956,17 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
       title: "Stopped before it found a fix",
       summary: ROUND_TIMEOUT_CAUSE,
     });
-    await expect(fix.getByTestId("remediation-fix-status")).toHaveText(
-      "Did not finish",
-    );
+    // Its one step says it: no status beside the fix's name repeats it.
+    await expect(fix.getByTestId("remediation-fix-status")).toHaveCount(0);
     await expect(
       stepPillWords(remediationStep(page), "remediation"),
     ).toHaveText("Did not finish");
+    // The step opens with what came of it, in one sentence (#6860).
+    await expect(
+      remediationStep(page).getByTestId("remediation-step-summary"),
+    ).toHaveText(
+      "OneUptime AI stopped before it found a fix for this incident, so nothing was changed.",
+    );
     await expect(remediationStep(page)).not.toContainText("Found no safe fix");
     // What to do about it is in sight before the step opens.
     await expect(
@@ -23044,9 +23057,13 @@ test.describe("a round of an AI fix, said as it went (?fixes=unfinished | no-fix
       timeout: 30000,
     });
     await expect(roundNotice(fix)).toHaveCount(0);
-    await expect(fix.getByTestId("remediation-fix-status")).not.toHaveText(
-      "Did not finish",
-    );
+    // The step's sentence follows the round: it works again (#6860).
+    await expect(
+      remediationStep(page).getByTestId("remediation-step-summary"),
+    ).toHaveText("OneUptime AI is working out a fix for this incident.");
+    await expect(
+      stepPillWords(remediationStep(page), "remediation"),
+    ).not.toHaveText("Did not finish");
 
     const started: Array<RecordedApiRequest> = await apiRequestsTo(
       page,

@@ -308,7 +308,7 @@ describe("Try again", () => {
     // The new decision is read at once, not on the next visit.
     expect(decisionReads()).toBeGreaterThan(readsBefore);
     expect(
-      await screen.findByText("Restart the checkout pods"),
+      await screen.findByText('Runbook "Restart the checkout pods"'),
     ).toBeInTheDocument();
     expect(statusPill()).toHaveTextContent("Needs your approval");
     expect(tryAgainButton()).toBeNull();
@@ -339,7 +339,7 @@ describe("Try again", () => {
       fireEvent.click(tryAgainButton()!);
     });
     await settle();
-    await screen.findByText("Restart the checkout pods");
+    await screen.findByText('Runbook "Restart the checkout pods"');
 
     expect(tryAgainButton()).toBeNull();
     const title: HTMLElement = screen.getByRole("heading", {
@@ -546,7 +546,7 @@ describe("Try again", () => {
     serve({ suggestions: [proposedFix()], decisions: [PROPOSED] });
 
     renderStep();
-    await screen.findByText("Restart the checkout pods");
+    await screen.findByText('Runbook "Restart the checkout pods"');
     await settle();
 
     expect(screen.queryByTestId("remediation-try-again")).toBeNull();
