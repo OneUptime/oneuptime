@@ -239,6 +239,7 @@ import {
   getLineageViewport,
   layoutLineage,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
+import { LINEAGE_CARD_Z_INDEX } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraph";
 
 const ALERT: string = "55555555-5555-4555-8555-000000000001";
 const TABLE: string = "22222222-2222-4222-8222-000000000001";
@@ -581,6 +582,27 @@ describe("the ways picked out", () => {
         ),
       ).toBeInTheDocument();
     }
+  });
+
+  test("every card is drawn over every arrow, those along the ways too: an arrowhead never covers a card's count", async () => {
+    await renderDrawn();
+
+    const arrowHeights: Array<number> = (mockFlowProps?.edges || []).map(
+      (edge: FlowEdge): number => {
+        return edge.zIndex || 0;
+      },
+    );
+
+    expect(Math.max(...arrowHeights)).toBe(1);
+
+    for (const node of mockFlowProps?.nodes || []) {
+      expect({ id: node.id, zIndex: node.zIndex }).toEqual({
+        id: node.id,
+        zIndex: LINEAGE_CARD_Z_INDEX,
+      });
+    }
+
+    expect(LINEAGE_CARD_Z_INDEX).toBeGreaterThan(Math.max(...arrowHeights));
   });
 
   test("every other arrow is faint, with no halo", async () => {

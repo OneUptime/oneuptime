@@ -4,6 +4,7 @@ import LineageGraph, {
   LineageGrowth,
   LineageHighlightSwatch,
   LineageLegend,
+  isLineageFocusLost,
 } from "./LineageGraph";
 import {
   LineageColumnTrail,
@@ -33,6 +34,7 @@ import Dropdown, {
   DropdownOption,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import Icon from "Common/UI/Components/Icon/Icon";
 import ViewSwitch, {
   ViewSwitchOption,
 } from "Common/UI/Components/ViewSwitch/ViewSwitch";
@@ -46,6 +48,7 @@ import React, {
   FunctionComponent,
   MutableRefObject,
   ReactElement,
+  RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -291,9 +294,21 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
   const shownRef: MutableRefObject<DataTableLineage> =
     useRef<DataTableLineage>(lineage);
   const isExpandingRef: MutableRefObject<boolean> = useRef<boolean>(false);
+  const figureRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
 
   baseRef.current = props.lineage;
   shownRef.current = lineage;
+
+  /*
+   * Reset diagram goes once it is pressed, and the browser moves the focus
+   * it had to the page itself: the drawing takes it, so the keyboard's
+   * place is kept beside what was reset.
+   */
+  useEffect(() => {
+    if (resetCount > 0 && isLineageFocusLost()) {
+      figureRef.current?.focus({ preventScroll: true });
+    }
+  }, [resetCount]);
 
   // A new read: what was drawn on the old one, and a draw still on its way, are left behind.
   useEffect(() => {
@@ -568,6 +583,25 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
       ) : (
         <></>
       )}
+      {/*
+       * Over the drawing, where the count pressed is: under its legend it
+       * was below the fold of a tall drawing, out of sight of the press.
+       */}
+      {drawError ? (
+        <div
+          className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          role="alert"
+          data-testid="lineage-draw-error"
+        >
+          <Icon
+            icon={IconProp.ExclaimationCircle}
+            className="mt-0.5 h-4 w-4 shrink-0"
+          />
+          <span className="min-w-0 break-words">{drawError}</span>
+        </div>
+      ) : (
+        <></>
+      )}
       <LineageGraph
         lineage={lineage}
         place={props.place}
@@ -576,19 +610,9 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
         expanding={expanding}
         growth={isGrown ? grown!.growth : null}
         columnTrail={columnTrail}
+        figureRef={figureRef}
       />
       <LineageLegend />
-      {drawError ? (
-        <p
-          className="text-sm text-red-600"
-          role="alert"
-          data-testid="lineage-draw-error"
-        >
-          {drawError}
-        </p>
-      ) : (
-        <></>
-      )}
       {lineage.isTruncated || lineage.hiddenDashboardCount > 0 ? (
         <div
           className="space-y-1 text-xs text-gray-500"

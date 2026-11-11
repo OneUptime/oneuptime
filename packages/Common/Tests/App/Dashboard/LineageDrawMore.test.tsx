@@ -33,6 +33,15 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * for a drawing no longer on the screen is never added to another. The
  * view keeps the card pressed in place (getLineageViewportAfterExpanding).
  *
+ * And how it reads: a count straddles its card's edge, growing outward and
+ * never over the card's words; every card is drawn over every arrow; the
+ * cards a count drew are marked (data-lineage-drawn) and tinted a moment;
+ * a draw that failed says so over the drawing, where the count pressed
+ * is; and the keyboard keeps its place - a count pressed from it has the
+ * focus back once its tables are drawn, or its card when the count is
+ * gone, or the drawing when the card opens nothing, as Reset diagram,
+ * pressed, hands it to the drawing.
+ *
  * The API is mocked and React Flow is the stand-in of LineageFlowStandIn,
  * which draws each card with the component's own card.
  */
@@ -141,11 +150,20 @@ import {
 import TableLineageDiagram from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/TableLineageDiagram";
 import PipelineLineageDiagram from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/PipelineLineageDiagram";
 import {
+  LINEAGE_CARD_HEIGHT,
+  LINEAGE_CARD_WIDTH,
   LineageViewport,
   getLineageViewportAfterExpanding,
   layoutLineage,
   mergeLineageExpansion,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraphModel";
+import {
+  LINEAGE_CARD_Z_INDEX,
+  LINEAGE_DRAWN_ATTRIBUTE,
+  getLineageHiddenCountStyle,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraph";
+import fs from "fs";
+import path from "path";
 import {
   cardClicksSeen,
   currentViewport,
@@ -365,6 +383,57 @@ async function press(nodeId: string, side: "left" | "right"): Promise<void> {
   await act(async () => {
     fireEvent.click(countOn(nodeId, side));
   });
+}
+
+/*
+ * Presses a count from the keyboard: the count has the focus, and a
+ * browser moves it off the count to the page itself once the count turns
+ * (a disabled control cannot hold it). jsdom does not, nor blurs a
+ * disabled control: the focus is moved to a field that then goes, which
+ * leaves it on the page itself, as the browser does.
+ */
+function pressFromKeyboard(count: HTMLElement): void {
+  act(() => {
+    count.focus();
+  });
+  expect(document.activeElement).toBe(count);
+
+  fireEvent.click(count);
+
+  expect(count).toBeDisabled();
+
+  act(() => {
+    const away: HTMLInputElement = document.createElement("input");
+
+    document.body.appendChild(away);
+    away.focus();
+    away.remove();
+  });
+  expect(document.activeElement).toBe(document.body);
+}
+
+// The face of a card - what is tinted when it was just drawn - by its node.
+function cardFace(nodeId: string): HTMLElement {
+  const face: HTMLElement | undefined = Array.from(
+    card(nodeId).querySelectorAll<HTMLElement>("span"),
+  ).find((span: HTMLElement): boolean => {
+    return span.style.height === `${LINEAGE_CARD_HEIGHT}px`;
+  });
+
+  expect(face).toBeDefined();
+
+  return face!;
+}
+
+function drawnCards(): Array<string> {
+  return (flowProps()?.nodes || [])
+    .filter((node: { id: string }): boolean => {
+      return cardFace(node.id).hasAttribute(LINEAGE_DRAWN_ATTRIBUTE);
+    })
+    .map((node: { id: string }): string => {
+      return node.id;
+    })
+    .sort();
 }
 
 beforeEach(() => {
@@ -807,6 +876,395 @@ describe("a pipeline's drawing", () => {
       "title",
       "4 more tables downstream are not drawn. Open this table to center the diagram on it.",
     );
+    // A count that only says where to see them sits where a pressable one does.
+    expect(countOn(`table:${RAW}`, "right").style.left).toBe(
+      "calc(100% - 8px)",
+    );
+    expect(countOn(`table:${RAW}`, "right")).toHaveClass("whitespace-nowrap");
+  });
+
+  test("the pipeline's count, pressed from the keyboard, draws all it reads: the pipeline opens nothing here, so the drawing takes the focus", async () => {
+    const answer: ReturnType<typeof deferred<DataLineageExpansion>> =
+      deferred<DataLineageExpansion>();
+    expandLineageMock.mockReturnValueOnce(answer.promise);
+    getPipelineLineageMock.mockResolvedValue(pipelineLineage());
+    render(<PipelineLineageDiagram dataPipelineId={new ObjectID(ETL)} />);
+    await screen.findByTestId("mock-react-flow");
+
+    // The pipeline on its own page is no link.
+    expect(within(card(ETL_NODE)).queryByRole("link")).not.toBeInTheDocument();
+
+    pressFromKeyboard(countOn(ETL_NODE, "left"));
+
+    await act(async () => {
+      answer.resolve({
+        nodeId: ETL_NODE,
+        side: DataLineageSide.Upstream,
+        hiddenCount: 0,
+        nodes: [41, 42, 43].map((index: number): DataTableLineageNode => {
+          return table(more(index), DataLineageSide.Upstream, -1);
+        }),
+        edges: [41, 42, 43].map((index: number): DataTableLineageEdge => {
+          return arrow(
+            DataLineageEdgeKind.Reads,
+            `table:${more(index)}`,
+            ETL_NODE,
+          );
+        }),
+        hiddenDashboardCount: null,
+        isTruncated: false,
+      } as DataLineageExpansion);
+    });
+
+    expect(hasCount(ETL_NODE, "left")).toBe(false);
+    expect(document.activeElement).toBe(screen.getByTestId("lineage-graph"));
+
+    act(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+  });
+});
+
+describe("where a count sits on its card", () => {
+  test("across the card's edge, its inner edge 8px in: a longer count grows outward, never over the card's words, which start 13px in", () => {
+    expect(getLineageHiddenCountStyle("left")).toEqual({
+      right: "calc(100% - 8px)",
+    });
+    expect(getLineageHiddenCountStyle("right")).toEqual({
+      left: "calc(100% - 8px)",
+    });
+  });
+
+  test("each count on a card is placed so, on one line, whatever its number", async () => {
+    await renderTable();
+
+    const upstream: HTMLElement = countOn(`table:${STAGING}`, "left");
+    const downstream: HTMLElement = countOn(`table:${MART}`, "right");
+
+    expect(upstream.style.right).toBe("calc(100% - 8px)");
+    expect(upstream.style.left).toBe("");
+    expect(downstream.style.left).toBe("calc(100% - 8px)");
+    expect(downstream.style.right).toBe("");
+
+    for (const count of [upstream, downstream]) {
+      expect(count).toHaveClass("absolute", "whitespace-nowrap");
+    }
+  });
+});
+
+describe("the cards a count draws", () => {
+  function idsOf(expansion: DataLineageExpansion): Array<string> {
+    return expansion.nodes
+      .map((node: DataTableLineageNode): string => {
+        return node.id;
+      })
+      .sort();
+  }
+
+  test("are marked drawn - tinted a moment - until the next count draws others", async () => {
+    expandLineageMock
+      .mockResolvedValueOnce(stagingExpansion())
+      .mockResolvedValueOnce(martExpansion());
+    await renderTable();
+
+    expect(drawnCards()).toEqual([]);
+
+    await press(`table:${STAGING}`, "left");
+
+    expect(drawnCards()).toEqual(idsOf(stagingExpansion()));
+    // The card pressed, and a card that counted one of them, were there before.
+    expect(cardFace(`table:${STAGING}`)).not.toHaveAttribute(
+      LINEAGE_DRAWN_ATTRIBUTE,
+    );
+    expect(cardFace(`table:${SOURCE}`)).not.toHaveAttribute(
+      LINEAGE_DRAWN_ATTRIBUTE,
+    );
+
+    await press(`table:${MART}`, "right");
+
+    expect(drawnCards()).toEqual(idsOf(martExpansion()));
+  });
+
+  test("the mark is on the card's face, inside the link that opens it", async () => {
+    expandLineageMock.mockResolvedValueOnce(stagingExpansion());
+    await renderTable();
+
+    await press(`table:${STAGING}`, "left");
+
+    const face: HTMLElement = cardFace(`table:${more(1)}`);
+
+    expect(face).toHaveAttribute(LINEAGE_DRAWN_ATTRIBUTE, "true");
+    expect(face.closest("a")).toBe(
+      within(card(`table:${more(1)}`)).getByTestId("lineage-card"),
+    );
+    // Only the face: not the card's wrapper, nor its counts.
+    expect(
+      card(`table:${more(1)}`).querySelectorAll(`[${LINEAGE_DRAWN_ATTRIBUTE}]`),
+    ).toHaveLength(1);
+  });
+
+  test("Reset diagram takes the mark off with the cards it drew", async () => {
+    expandLineageMock.mockResolvedValueOnce(stagingExpansion());
+    await renderTable();
+
+    await press(`table:${STAGING}`, "left");
+    act(() => {
+      fireEvent.click(screen.getByTestId("lineage-reset"));
+    });
+
+    expect(drawnCards()).toEqual([]);
+  });
+
+  test("a draw that fails marks nothing", async () => {
+    expandLineageMock.mockRejectedValueOnce(new Error("Table not found."));
+    await renderTable();
+
+    await press(`table:${STAGING}`, "left");
+
+    expect(drawnCards()).toEqual([]);
+  });
+
+  test("Theme.css tints the face it marks and fades the tint to the card's own colour, holding it still for less motion", () => {
+    const sheet: string = fs
+      .readFileSync(
+        path.resolve(__dirname, "..", "..", "..", "UI", "Styles", "Theme.css"),
+        "utf8",
+      )
+      .split(/\s+/)
+      .join(" ");
+    const marked: string = `[${LINEAGE_DRAWN_ATTRIBUTE}]`;
+
+    expect(LINEAGE_DRAWN_ATTRIBUTE).toBe("data-lineage-drawn");
+    // From the tint to the card's own colour: no frame of its own at the end.
+    expect(sheet).toContain(
+      "@keyframes ou-lineage-drawn { from { background-color: var(--ou-lineage-drawn-tint); } }",
+    );
+    // The card's colour with the indigo mixed in, in each theme, as a row a live list read in.
+    expect(sheet).toContain(
+      `${marked} { --ou-lineage-drawn-tint: color-mix( in srgb, rgb(99 102 241) 12%, var(--ou-surface-primary) ); }`,
+    );
+    expect(sheet).toContain(
+      `html.dark ${marked} { --ou-lineage-drawn-tint: color-mix( in srgb, rgb(129 140 248) 18%, var(--ou-surface-primary) ); }`,
+    );
+    expect(sheet).toContain(
+      `@media (prefers-reduced-motion: no-preference) { ${marked} { animation: ou-lineage-drawn 2.4s ease-out; } }`,
+    );
+    // The face's colour is its own inline style: only !important is drawn over it.
+    expect(sheet).toContain(
+      `@media (prefers-reduced-motion: reduce) { ${marked} { background-color: var(--ou-lineage-drawn-tint) !important; } }`,
+    );
+  });
+});
+
+describe("cards over arrows", () => {
+  test("every card is drawn over every arrow, and has its size, so React Flow never hides it to measure it again", async () => {
+    expandLineageMock.mockResolvedValueOnce(stagingExpansion());
+    await renderTable();
+
+    await press(`table:${STAGING}`, "left");
+
+    const nodes: Array<{
+      zIndex?: number | undefined;
+      width?: number | null | undefined;
+      height?: number | null | undefined;
+    }> = flowProps()?.nodes || [];
+    const arrowHeights: Array<number> = (flowProps()?.edges || []).map(
+      (edge: { zIndex?: number | undefined }): number => {
+        return edge.zIndex || 0;
+      },
+    );
+
+    expect(nodes).toHaveLength(15);
+
+    for (const node of nodes) {
+      expect(node.zIndex).toBe(LINEAGE_CARD_Z_INDEX);
+      expect(node.width).toBe(LINEAGE_CARD_WIDTH);
+      expect(node.height).toBe(LINEAGE_CARD_HEIGHT);
+    }
+
+    expect(Math.max(...arrowHeights)).toBeLessThan(LINEAGE_CARD_Z_INDEX);
+  });
+});
+
+describe("the keyboard's place", () => {
+  afterEach(() => {
+    act(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+  });
+
+  test("a count pressed from the keyboard has the focus back once its tables are drawn, saying what is left", async () => {
+    const answer: ReturnType<typeof deferred<DataLineageExpansion>> =
+      deferred<DataLineageExpansion>();
+    expandLineageMock.mockReturnValueOnce(answer.promise);
+    await renderTable();
+
+    const count: HTMLElement = countOn(`table:${STAGING}`, "left");
+
+    pressFromKeyboard(count);
+
+    await act(async () => {
+      answer.resolve(stagingExpansion());
+    });
+
+    // The same count, which stays while two are still not drawn.
+    expect(countOn(`table:${STAGING}`, "left")).toBe(count);
+    expect(document.activeElement).toBe(count);
+    expect(count).toBeEnabled();
+    expect(count).toHaveAttribute("aria-label", "Draw 2 more tables upstream");
+  });
+
+  test("a count that drew all its tables is gone: the focus goes to its card", async () => {
+    const answer: ReturnType<typeof deferred<DataLineageExpansion>> =
+      deferred<DataLineageExpansion>();
+    expandLineageMock.mockReturnValueOnce(answer.promise);
+    await renderTable();
+
+    pressFromKeyboard(countOn(`table:${MART}`, "right"));
+
+    await act(async () => {
+      answer.resolve(martExpansion());
+    });
+
+    expect(hasCount(`table:${MART}`, "right")).toBe(false);
+    expect(document.activeElement).toBe(
+      within(card(`table:${MART}`)).getByTestId("lineage-card"),
+    );
+    expect(document.activeElement?.tagName).toBe("A");
+  });
+
+  test("a draw that fails gives the focus back to the count, to press again", async () => {
+    const answer: ReturnType<typeof deferred<DataLineageExpansion>> =
+      deferred<DataLineageExpansion>();
+    expandLineageMock.mockReturnValueOnce(answer.promise);
+    await renderTable();
+
+    const count: HTMLElement = countOn(`table:${STAGING}`, "left");
+
+    pressFromKeyboard(count);
+
+    await act(async () => {
+      answer.reject(new Error("Table not found."));
+    });
+
+    expect(screen.getByTestId("lineage-draw-error")).toBeInTheDocument();
+    expect(document.activeElement).toBe(count);
+    expect(count).toHaveAttribute(
+      "aria-label",
+      "Draw 10 of the 12 more tables upstream",
+    );
+  });
+
+  test("a reader who moved on while it was drawn keeps their place", async () => {
+    const answer: ReturnType<typeof deferred<DataLineageExpansion>> =
+      deferred<DataLineageExpansion>();
+    expandLineageMock.mockReturnValueOnce(answer.promise);
+    await renderTable();
+
+    pressFromKeyboard(countOn(`table:${STAGING}`, "left"));
+
+    const elsewhere: HTMLElement = screen.getByTestId("lineage-depth-5");
+
+    act(() => {
+      elsewhere.focus();
+    });
+
+    await act(async () => {
+      answer.resolve(stagingExpansion());
+    });
+
+    expect(document.activeElement).toBe(elsewhere);
+  });
+
+  test("a press that did not come from the keyboard's focus moves no focus", async () => {
+    const answer: ReturnType<typeof deferred<DataLineageExpansion>> =
+      deferred<DataLineageExpansion>();
+    expandLineageMock.mockReturnValueOnce(answer.promise);
+    await renderTable();
+
+    // A tap, or Safari's click, which leaves the focus where it was.
+    fireEvent.click(countOn(`table:${MART}`, "right"));
+
+    await act(async () => {
+      answer.resolve(martExpansion());
+    });
+
+    expect(hasCount(`table:${MART}`, "right")).toBe(false);
+    expect(document.activeElement).toBe(document.body);
+  });
+
+  test("Reset diagram, pressed, is gone: the drawing takes the focus, and can take it only from a script", async () => {
+    expandLineageMock.mockResolvedValueOnce(stagingExpansion());
+    await renderTable();
+
+    await press(`table:${STAGING}`, "left");
+
+    const reset: HTMLElement = screen.getByTestId("lineage-reset");
+
+    act(() => {
+      reset.focus();
+    });
+    act(() => {
+      fireEvent.click(reset);
+    });
+
+    const figure: HTMLElement = screen.getByTestId("lineage-graph");
+
+    expect(screen.queryByTestId("lineage-reset")).not.toBeInTheDocument();
+    expect(document.activeElement).toBe(figure);
+    // Never a stop of its own for Tab: Tab goes on to the cards in it.
+    expect(figure).toHaveAttribute("tabindex", "-1");
+    expect(figure).toHaveClass(
+      "focus:outline-none",
+      "focus-visible:ring-2",
+      "focus-visible:ring-indigo-500",
+    );
+  });
+
+  test("Reset diagram pressed with the focus elsewhere leaves it there", async () => {
+    expandLineageMock.mockResolvedValueOnce(stagingExpansion());
+    await renderTable();
+
+    await press(`table:${STAGING}`, "left");
+
+    const elsewhere: HTMLElement = screen.getByTestId("lineage-depth-5");
+
+    act(() => {
+      elsewhere.focus();
+    });
+    act(() => {
+      fireEvent.click(screen.getByTestId("lineage-reset"));
+    });
+
+    expect(document.activeElement).toBe(elsewhere);
+  });
+});
+
+describe("where a draw that failed says so", () => {
+  test("over the drawing, under the controls, with its mark: never under the legend, out of sight of the count pressed", async () => {
+    expandLineageMock.mockRejectedValueOnce(new Error("Table not found."));
+    await renderTable();
+
+    await press(`table:${STAGING}`, "left");
+
+    const error: HTMLElement = screen.getByTestId("lineage-draw-error");
+    const figure: HTMLElement = screen.getByTestId("lineage-graph");
+    const legend: HTMLElement = screen.getByTestId("lineage-legend");
+    const summary: HTMLElement = screen.getByTestId("lineage-summary");
+
+    expect(
+      error.compareDocumentPosition(figure) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      error.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      summary.compareDocumentPosition(error) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(error).toHaveAttribute("role", "alert");
+    expect(error).toHaveClass("border-red-200", "bg-red-50", "text-red-700");
+    expect(error.querySelector("svg")).not.toBeNull();
+    expect(error).toHaveTextContent("Table not found.");
   });
 });
 

@@ -479,6 +479,41 @@ describe("following a column", () => {
     expect(card(`table:${STAGING}`).querySelector("[data-role]")).toBeNull();
   });
 
+  test("its arrows over the faint ones, and every card over them: an arrowhead never covers a card's count", async () => {
+    await renderDrawn();
+
+    follow("amount");
+
+    const highlighted: Array<number> = (flowProps()?.edges || [])
+      .filter((edge: { data?: { isHighlighted?: boolean } }): boolean => {
+        return Boolean(edge.data?.isHighlighted);
+      })
+      .map((edge: { zIndex?: number | undefined }): number => {
+        return edge.zIndex || 0;
+      });
+    const faint: Array<number> = (flowProps()?.edges || [])
+      .filter((edge: { data?: { isHighlighted?: boolean } }): boolean => {
+        return !edge.data?.isHighlighted;
+      })
+      .map((edge: { zIndex?: number | undefined }): number => {
+        return edge.zIndex || 0;
+      });
+
+    expect(highlighted).toHaveLength(3);
+    expect(faint.length).toBeGreaterThan(0);
+    expect(Math.min(...highlighted)).toBeGreaterThan(Math.max(...faint));
+
+    for (const node of flowProps()?.nodes || []) {
+      expect({
+        id: node.id,
+        isOver: (node.zIndex || 0) > Math.max(...highlighted),
+      }).toEqual({
+        id: node.id,
+        isOver: true,
+      });
+    }
+  });
+
   test("goes all the way up, whatever case each table writes the name in", async () => {
     await renderDrawn();
 

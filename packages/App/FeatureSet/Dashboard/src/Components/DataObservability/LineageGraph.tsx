@@ -113,7 +113,8 @@ import "reactflow/dist/style.css";
  * on a card's outer side says how many more tables lie that way than are
  * drawn; pressed, it draws the next of them here (onExpand), and the view
  * keeps the card pressed where it was on the screen while the drawing is
- * laid out again around them (getLineageViewportAfterExpanding). The page
+ * laid out again around them (getLineageViewportAfterExpanding), the cards
+ * drawn tinted a moment so the eye finds them (data-lineage-drawn). The page
  * scrolls over the drawing - the wheel never zooms it - and nothing on it
  * is dragged; the controls zoom and fit it. A drawing too wide to read
  * whole opens on the table itself, at a zoom its names can be read at
@@ -243,6 +244,37 @@ const FIT_VIEW_OPTIONS: FitViewOptions = {
 
 const HANDLE_STYLE: CSSProperties = { opacity: 0, pointerEvents: "none" };
 
+/*
+ * Every card over every arrow, and a highlighted arrow over the faint ones
+ * around it: an arrowhead never covers a card's count, nor a highlighted
+ * arrow a card it passes behind. React Flow draws arrows of one height in
+ * a layer of their own, and a card over the arrows only when its height
+ * is greater.
+ */
+const HIGHLIGHTED_ARROW_Z_INDEX: number = 1;
+export const LINEAGE_CARD_Z_INDEX: number = 2;
+
+/*
+ * A card drawn here by the last count pressed: tinted a moment, the tint
+ * fading to the card's own colour (Theme.css), so the eye finds the cards
+ * drawn among the cards they were drawn beside.
+ */
+export const LINEAGE_DRAWN_ATTRIBUTE: string = "data-lineage-drawn";
+
+/*
+ * How far a count reaches into its card: its inner edge stays there, and
+ * a longer count ("+128") grows outward, never over the card's words,
+ * which start 13px in (a 1px border and 12px of padding).
+ */
+const HIDDEN_COUNT_REACH_PX: number = 8;
+
+// The focus went nowhere: a focused control was turned off or taken away.
+export function isLineageFocusLost(): boolean {
+  const active: Element | null = document.activeElement;
+
+  return !active || active === document.body;
+}
+
 // The canvas's height bounds; between them it keeps the drawing's shape.
 const CANVAS_MIN_HEIGHT: number = 360;
 const CANVAS_MAX_HEIGHT: number = 640;
@@ -364,6 +396,8 @@ interface LineageCardData {
   // Pressing a count draws its tables here.
   drawUpstream?: HiddenCountAction | undefined;
   drawDownstream?: HiddenCountAction | undefined;
+  // Drawn here by the last count pressed: tinted a moment.
+  isDrawn?: boolean | undefined;
 }
 
 /*
@@ -539,7 +573,31 @@ const CardChips: FunctionComponent<CardChipsProps> = (
 };
 
 const HIDDEN_COUNT_CLASS_NAME: string =
-  "absolute top-1/2 -translate-y-1/2 rounded-full border border-gray-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm";
+  "absolute top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full border border-gray-300 bg-white px-1.5 py-0.5 text-[10px] font-medium text-gray-600 shadow-sm";
+
+/*
+ * Where a count sits on its card's outer side: across the card's edge,
+ * its inner edge HIDDEN_COUNT_REACH_PX in, so a count of any length
+ * leaves the card's words clear.
+ */
+export function getLineageHiddenCountStyle(
+  side: "left" | "right",
+): CSSProperties {
+  const inner: string = `calc(100% - ${HIDDEN_COUNT_REACH_PX}px)`;
+
+  return side === "left" ? { right: inner } : { left: inner };
+}
+
+interface HiddenCountProps {
+  count: number;
+  side: "left" | "right";
+  tooltip: string;
+  action?: HiddenCountAction | undefined;
+  // The count's button, while it is one.
+  buttonRef?: RefObject<HTMLButtonElement> | undefined;
+  // Pressed where the keyboard's focus is: the card keeps that place while its tables are drawn.
+  onPressedFromFocus?: (() => void) | undefined;
+}
 
 /*
  * "+12" on a card's outer side: the tables that way that are not drawn.
@@ -548,23 +606,14 @@ const HIDDEN_COUNT_CLASS_NAME: string =
  * while another card's are. Without one it says, under the pointer, where
  * to see them.
  */
-const HiddenCount: FunctionComponent<{
-  count: number;
-  side: "left" | "right";
-  tooltip: string;
-  action?: HiddenCountAction | undefined;
-}> = (props: {
-  count: number;
-  side: "left" | "right";
-  tooltip: string;
-  action?: HiddenCountAction | undefined;
-}): ReactElement => {
+const HiddenCount: FunctionComponent<HiddenCountProps> = (
+  props: HiddenCountProps,
+): ReactElement => {
   const translator: Translator = useTranslator();
   const text: string = translator.translateTemplate("+{{count}}", {
     count: translator.formatNumber(props.count),
   });
-  const style: CSSProperties =
-    props.side === "left" ? { left: -14 } : { right: -14 };
+  const style: CSSProperties = getLineageHiddenCountStyle(props.side);
   const action: HiddenCountAction | undefined = props.action;
 
   if (!action) {
@@ -582,6 +631,7 @@ const HiddenCount: FunctionComponent<{
 
   return (
     <button
+      ref={props.buttonRef}
       type="button"
       className={`nodrag nopan inline-flex items-center ${HIDDEN_COUNT_CLASS_NAME} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
         {
@@ -600,6 +650,11 @@ const HiddenCount: FunctionComponent<{
         // The card under it opens its table: the count draws, and only that.
         event.stopPropagation();
         event.preventDefault();
+
+        if (document.activeElement === event.currentTarget) {
+          props.onPressedFromFocus?.();
+        }
+
         action.onPress();
       }}
       data-testid={`lineage-hidden-${props.side}`}
@@ -641,6 +696,57 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
   const isDropped: boolean = tone === LineageTone.Dropped;
   // The column followed, as this table names it: in place of the line under its name.
   const columns: string = (props.data.columns || []).join(", ");
+  const drawnMark: Record<string, string> = props.data.isDrawn
+    ? { [LINEAGE_DRAWN_ATTRIBUTE]: "true" }
+    : {};
+
+  const rootRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const upstreamCountRef: RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  const downstreamCountRef: RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+  // The count pressed where the keyboard's focus was, until its tables are drawn.
+  const pressedFromFocusRef: MutableRefObject<"left" | "right" | null> = useRef<
+    "left" | "right" | null
+  >(null);
+  const isDrawing: boolean = Boolean(
+    props.data.drawUpstream?.isBusy || props.data.drawDownstream?.isBusy,
+  );
+
+  /*
+   * A count pressed from the keyboard keeps the keyboard's place. While its
+   * tables are drawn it cannot be pressed, and the browser moves the focus
+   * off it to the page itself; once they are drawn - or could not be - the
+   * focus comes back: to the count, while some are still not drawn; to its
+   * card, when it has drawn them all and is gone; to the drawing, when the
+   * card opens nothing. Only while the focus is still lost: a reader who
+   * moved on meanwhile keeps their place.
+   */
+  useEffect(() => {
+    const side: "left" | "right" | null = pressedFromFocusRef.current;
+
+    if (isDrawing || !side) {
+      return;
+    }
+
+    pressedFromFocusRef.current = null;
+
+    if (!isLineageFocusLost()) {
+      return;
+    }
+
+    const count: HTMLButtonElement | null =
+      side === "left" ? upstreamCountRef.current : downstreamCountRef.current;
+    const root: HTMLDivElement | null = rootRef.current;
+    const place: HTMLElement | null =
+      count && !count.disabled
+        ? count
+        : root?.querySelector<HTMLElement>("a[href]") ||
+          root?.closest<HTMLElement>('[role="figure"]') ||
+          null;
+
+    place?.focus({ preventScroll: true });
+  }, [isDrawing]);
 
   const cardStyle: CSSProperties = {
     display: "flex",
@@ -715,7 +821,7 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
   );
 
   let card: ReactElement = (
-    <span style={cardStyle} data-testid="lineage-card">
+    <span style={cardStyle} data-testid="lineage-card" {...drawnMark}>
       {body}
     </span>
   );
@@ -727,7 +833,9 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         className="nodrag nopan block rounded-[10px] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         dataTestId="lineage-card"
       >
-        <span style={{ ...cardStyle, cursor: "pointer" }}>{body}</span>
+        <span style={{ ...cardStyle, cursor: "pointer" }} {...drawnMark}>
+          {body}
+        </span>
       </AppLink>
     );
   } else if (dashboardUrl) {
@@ -738,7 +846,9 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         className="nodrag nopan block rounded-[10px] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
         dataTestId="lineage-card"
       >
-        <span style={{ ...cardStyle, cursor: "pointer" }}>{body}</span>
+        <span style={{ ...cardStyle, cursor: "pointer" }} {...drawnMark}>
+          {body}
+        </span>
       </Link>
     );
   }
@@ -748,6 +858,7 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
 
   return (
     <div
+      ref={rootRef}
       style={{
         width: LINEAGE_CARD_WIDTH,
         position: "relative",
@@ -783,6 +894,10 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
             count: hiddenUpstream,
           })}
           action={props.data.drawUpstream}
+          buttonRef={upstreamCountRef}
+          onPressedFromFocus={(): void => {
+            pressedFromFocusRef.current = "left";
+          }}
         />
       ) : (
         <></>
@@ -800,6 +915,10 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
             count: hiddenDownstream,
           })}
           action={props.data.drawDownstream}
+          buttonRef={downstreamCountRef}
+          onPressedFromFocus={(): void => {
+            pressedFromFocusRef.current = "right";
+          }}
         />
       ) : (
         <></>
@@ -924,6 +1043,11 @@ export interface ComponentProps {
   growth?: LineageGrowth | null | undefined;
   // One column followed up and down, picked out with its name on each card on its way.
   columnTrail?: LineageColumnTrail | null | undefined;
+  /*
+   * The drawing itself, which can take the keyboard's focus: where it goes
+   * when the control that had it is gone (Reset diagram, once pressed).
+   */
+  figureRef?: RefObject<HTMLDivElement> | undefined;
 }
 
 const LineageGraph: FunctionComponent<ComponentProps> = (
@@ -989,6 +1113,8 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
       };
     };
 
+    const drawnIds: Set<string> = new Set(props.growth?.newNodeIds || []);
+
     return props.lineage.nodes.map(
       (node: DataTableLineageNode): Node<LineageCardData> => {
         const columns: Array<string> | undefined =
@@ -1015,7 +1141,18 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
             ...(columns && columns.length > 0 ? { columns } : {}),
             ...(drawUpstream ? { drawUpstream } : {}),
             ...(drawDownstream ? { drawDownstream } : {}),
+            ...(drawnIds.has(node.id) ? { isDrawn: true } : {}),
           },
+          zIndex: LINEAGE_CARD_Z_INDEX,
+          /*
+           * Its size, which React Flow forgets whenever the drawing
+           * changes - a count pressed, a column followed - hiding every
+           * card until it has measured them again: a count or a card that
+           * had the keyboard's focus lost it, and could not be given it
+           * back while hidden.
+           */
+          width: LINEAGE_CARD_WIDTH,
+          height: LINEAGE_CARD_HEIGHT,
           selectable: false,
           draggable: false,
           /*
@@ -1035,6 +1172,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
     props.columnTrail,
     onExpand,
     expanding,
+    props.growth,
     translator.language,
   ]);
 
@@ -1066,8 +1204,8 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         target: edge.target,
         type: "lineageArrow",
         data,
-        // Over the faint arrows around it.
-        ...(look.isHighlighted ? { zIndex: 1 } : {}),
+        // Over the faint arrows around it, under the cards.
+        ...(look.isHighlighted ? { zIndex: HIGHLIGHTED_ARROW_Z_INDEX } : {}),
         markerEnd: {
           type: MarkerType.ArrowClosed,
           color: look.color,
@@ -1095,7 +1233,8 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
     `${props.lineage.focusNodeId}:${props.lineage.depth}:${props.lineage.nodes.length}`;
 
   // The canvas's size, read before the drawing is first shown: where it is looked at from depends on it.
-  const canvasRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const ownCanvasRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const canvasRef: RefObject<HTMLDivElement> = props.figureRef || ownCanvasRef;
   const flowRef: MutableRefObject<ReactFlowInstance | null> =
     useRef<ReactFlowInstance | null>(null);
   // Once the reader pans or zooms, the view is theirs.
@@ -1239,7 +1378,13 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
       aria-label={
         translator.translateText(MAP_LABELS[place]) || MAP_LABELS[place]
       }
-      className="rounded-md border border-gray-200 bg-gray-50"
+      /*
+       * Focused by a script only - a count that drew all its tables on a
+       * card that opens nothing, Reset diagram once pressed - so the
+       * keyboard's place is kept, and Tab goes on to the cards in it.
+       */
+      tabIndex={-1}
+      className="rounded-md border border-gray-200 bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
       style={getLineageCanvasStyle(layout)}
       data-testid="lineage-graph"
     >
