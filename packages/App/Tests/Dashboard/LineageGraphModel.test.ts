@@ -1282,18 +1282,23 @@ describe("a table's Lineage tab", () => {
       ),
       "utf8",
     );
-    const diagram: number = page.indexOf(
-      "<TableLineageDiagram dataAssetId={dataAssetId} />",
+    const squashed: string = page.replace(/\s+/g, " ");
+    // With the table's columns in its own order: one of them can be followed on the diagram.
+    const diagram: number = squashed.indexOf(
+      "<TableLineageDiagram dataAssetId={dataAssetId} columnOrder={columnOrder} />",
     );
 
     expect(diagram).toBeGreaterThan(-1);
-    expect(diagram).toBeLessThan(page.indexOf("<TableDashboards"));
+    expect(diagram).toBeLessThan(squashed.indexOf("<TableDashboards"));
     expect(diagram).toBeLessThan(
-      page.indexOf('id="data-observability-table-upstream"'),
+      squashed.indexOf('id="data-observability-table-upstream"'),
+    );
+    expect(squashed).toContain(
+      "readDataAssetColumns(dataAsset?.columns).map(",
     );
   });
 
-  test("asks the table-lineage route through the Dashboard's own client", () => {
+  test("asks the table-lineage route, and the route that draws more, through the Dashboard's own client", () => {
     const api: string = fs.readFileSync(
       path.join(
         DASHBOARD_SRC,
@@ -1305,6 +1310,7 @@ describe("a table's Lineage tab", () => {
     );
 
     expect(api).toContain("DATA_OBSERVABILITY_API_ROUTES.tableLineage");
+    expect(api).toContain("DATA_OBSERVABILITY_API_ROUTES.lineageExpand");
   });
 });
 

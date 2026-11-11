@@ -17,7 +17,11 @@ A table's **Lineage** tab shows the tables it is built from, the pipelines that 
 
 At the top of the tab, a diagram draws that lineage a few steps each way (three, or pick 1, 2 or 5): what the table is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it.
 
+A card draws at most ten tables each way and counts the rest, such as **+14**. Select the count to draw up to ten more of them where they are, problems first, with every arrow between them and what is drawn already. **Reset diagram** goes back to the diagram as it was first drawn. Once a side holds as many tables as one diagram can, open a table to center the diagram on it.
+
 Where the source names columns, a table's **Columns** tab says where each column comes from and what it feeds: Snowflake's access history (Enterprise edition, which needs `IMPORTED PRIVILEGES` on the `SNOWFLAKE` database), and OpenLineage's `columnLineage` facet.
+
+On the **Lineage** tab, pick one of the table's columns in **Follow a column** to highlight where it comes from and where it goes: up the diagram to the columns it is built from, down to the columns built from it, each named on its table, even where it was renamed on the way. An arrow whose sources name no columns may carry it further than is highlighted, and the diagram says so.
 
 ## OpenLineage
 
@@ -105,7 +109,7 @@ Each job, dbt project and sync appears under **Pipelines**, with its runs: when 
 - **Pipeline Run Unusually Long**: a run has taken twice its typical time or more, checked every five minutes while it runs, so a run that hangs is seen before it ends.
 - **Pipeline Is Late**: no run has started for longer than its schedule allows.
 
-A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab.
+A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, the pipeline between them, and how each is now. Pick more steps to see what those tables are built from and what is built from them, and open any table to see its own **Lineage** tab. A count of tables not drawn, on the pipeline's card or a table's, draws more of them in place here too.
 
 ## One issue per cause
 

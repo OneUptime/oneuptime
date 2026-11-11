@@ -17,7 +17,11 @@ A aba **Linhagem** de uma tabela mostra as tabelas a partir das quais ela é con
 
 No topo da aba, um diagrama desenha essa linhagem alguns passos em cada direção (três, ou escolha 1, 2 ou 5): à esquerda, aquilo a partir do qual a tabela é construída; à direita, as tabelas e os painéis construídos a partir dela; e os pipelines que carregam dados de fora, onde eles entram. Cada cartão diz como está agora - atrasada, um alerta aberto, uma execução com falha - e uma seta fica vermelha quando a última execução do seu pipeline falhou, para que uma tabela atrasada possa ser seguida até a execução que a travou. Abra qualquer tabela para centralizar o diagrama nela.
 
+Um cartão desenha no máximo dez tabelas em cada direção e conta o restante, como **+14**. Selecione o número para desenhar até mais dez delas onde estão, primeiro as com problemas, com cada seta entre elas e o que já está desenhado. **Redefinir diagrama** volta ao diagrama como foi desenhado no início. Quando um lado tem tantas tabelas quanto um diagrama comporta, abra uma tabela para centralizar o diagrama nela.
+
 Quando a origem nomeia colunas, a aba **Colunas** de uma tabela diz de onde vem cada coluna e o que ela alimenta: o histórico de acessos do Snowflake (edição Enterprise, que exige `IMPORTED PRIVILEGES` no banco de dados `SNOWFLAKE`) e a faceta `columnLineage` do OpenLineage.
+
+Na aba **Linhagem**, escolha uma coluna da tabela em **Seguir uma coluna** para destacar de onde ela vem e para onde vai: subindo o diagrama até as colunas a partir das quais é construída, descendo até as colunas construídas a partir dela, cada uma nomeada na sua tabela, mesmo onde foi renomeada no caminho. Uma seta cujas origens não nomeiam colunas pode levá-la além do que está destacado, e o diagrama avisa.
 
 ## OpenLineage
 
@@ -105,7 +109,7 @@ Cada job, projeto dbt e sincronização aparece em **Pipelines**, com as suas ex
 - **Pipeline Run Unusually Long**: uma execução levou o dobro do tempo típico ou mais, verificado a cada cinco minutos enquanto ela roda, para que uma execução travada seja notada antes de terminar.
 - **Pipeline Is Late**: nenhuma execução começa há mais tempo do que o agendamento dele permite.
 
-A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela.
+A página de um pipeline desenha a **Linhagem** dele, o primeiro lugar para olhar quando uma execução falha ou atrasa: à esquerda, as tabelas que ele lê; à direita, as tabelas que ele escreve; no meio, o pipeline; e cada cartão diz como está agora. Escolha mais passos para ver a partir do que essas tabelas são construídas e o que é construído a partir delas, e abra qualquer tabela para ver a própria aba **Linhagem** dela. Um número de tabelas não desenhadas, no cartão do pipeline ou no de uma tabela, desenha mais delas no lugar aqui também.
 
 ## Um alerta por causa
 

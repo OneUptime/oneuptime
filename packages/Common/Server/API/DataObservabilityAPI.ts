@@ -93,6 +93,11 @@ import DataTableLineageAnswerer, {
 } from "../Utils/DataObservability/DataTableLineageAnswer";
 import DataAlertLineageReader from "../Utils/DataObservability/DataAlertLineage";
 import {
+  DataLineageExpandRequest,
+  DataLineageExpansion,
+  readDataLineageExpandRequest,
+} from "../../Types/DataObservability/DataLineageExpansion";
+import {
   DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
   DataAlertLineageAnswer,
   DataTableLineage,
@@ -590,6 +595,8 @@ export default class DataObservabilityAPI extends BaseAPI<
             depth: readDataLineageDepth(body["depth"]),
             now: OneUptimeDate.getCurrentDate(),
             reader: props,
+            // The columns each arrow carries only when asked: the Lineage tab's column picker.
+            withColumns: body["withColumns"] === true,
           });
 
         if (!lineage) {
@@ -599,6 +606,49 @@ export default class DataObservabilityAPI extends BaseAPI<
         return lineage as unknown as JSONObject;
       },
       // Read-only, so a build in CI can ask what a change reaches.
+      { allowsApiKey: true },
+    );
+
+    /*
+     * The next tables a card of a lineage diagram does not draw - a table's
+     * card, or a pipeline's own on its drawing - with the arrows between
+     * them and what is drawn: what pressing a card's count asks, so the
+     * diagram grows where it is. Their open alerts are counted as the
+     * person who asked may see them, as the drawing's own were.
+     */
+    this.post(
+      DATA_OBSERVABILITY_API_ROUTES.lineageExpand,
+      READ_PERMISSIONS,
+      async (
+        projectId: ObjectID,
+        req: ExpressRequest,
+        props: DatabaseCommonInteractionProps,
+      ) => {
+        const request: DataLineageExpandRequest | string =
+          readDataLineageExpandRequest(req.body);
+
+        if (typeof request === "string") {
+          throw new BadDataException(request);
+        }
+
+        const expansion: DataLineageExpansion | null =
+          await DataTableLineageReader.expand({
+            projectId,
+            request,
+            now: OneUptimeDate.getCurrentDate(),
+            reader: props,
+          });
+
+        if (!expansion) {
+          throw new BadDataException(
+            request.nodeId.startsWith("pipeline:")
+              ? "Pipeline not found."
+              : "Table not found.",
+          );
+        }
+
+        return expansion as unknown as JSONObject;
+      },
       { allowsApiKey: true },
     );
 

@@ -34,10 +34,11 @@ AI 代理应该在使用数据之前先检查数据是否新鲜，并在更改�
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetran 的同步 webhook | 摄取密钥，作为 Fivetran 的签名密钥 |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte 的同步 webhook | URL 中的摄取密钥 |
 | `POST /api/data-observability/tables/freshness` | 表的新鲜度，与 MCP 工具的回答相同，请求体为 `{ "table": "public.orders" }` | API 密钥 |
-| `POST /api/data-observability/tables/lineage` | 表在每个方向上几步的血缘，以及每张表的当前状态，与其 **血缘** 标签页所画的相同，请求体为 `{ "dataAssetId": "<table ID>", "depth": 3 }` | API 密钥 |
+| `POST /api/data-observability/tables/lineage` | 表在每个方向上几步的血缘，以及每张表的当前状态，与其 **血缘** 标签页所画的相同，请求体为 `{ "dataAssetId": "<table ID>", "depth": 3 }`，加上 `"withColumns": true` 还会返回每个箭头承载的列 | API 密钥 |
 | `POST /api/data-observability/tables/lineage/answer` | 用文字讲述的表的血缘，有问题的表在前，与 MCP 工具的回答相同，请求体为 `{ "table": "public.orders", "depth": 3 }` | API 密钥 |
 | `POST /api/data-observability/pipelines/lineage` | 管道读取和写入的表，以及每张表的当前状态，与其页面所画的相同，请求体为 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | API 密钥 |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | 数据警报的血缘，以及通往导致它的警报和它导致的警报的路径，与其页面所画的相同 | API 密钥 |
+| `POST /api/data-observability/lineage/expand` | 血缘图中某张卡片未绘制的下一批表，与选择其数字时画出的相同：用 `nodeId` 及其 `side` 指明卡片，用 `focusNodeId`、`tables` 和 `dataDashboardIds` 指明已画的内容 | API 密钥 |
 | `POST /api/data-observability/checks/apply` | 让项目的检查与一个文件一致，与 `oneuptime data-checks apply` 的作用相同，请求体为 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | API 密钥 |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | 数据产品的“data as of”徽章 | 徽章自己的令牌 |
 

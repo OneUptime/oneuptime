@@ -39,6 +39,10 @@ import {
   DataTableLineage,
   DataTableLineageRequest,
 } from "Common/Types/DataObservability/DataTableLineage";
+import {
+  DataLineageExpandRequest,
+  DataLineageExpansion,
+} from "Common/Types/DataObservability/DataLineageExpansion";
 import { APP_API_URL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -258,14 +262,19 @@ export default class DataObservabilityApi {
       : []) as unknown as Array<DataObservabilityTableDashboard>;
   }
 
-  // A table's lineage several steps each way, with how each table on it is now.
+  /*
+   * A table's lineage several steps each way, with how each table on it is
+   * now - and, asked for, the columns each arrow between two tables carries.
+   */
   public static async getTableLineage(
     dataAssetId: ObjectID,
     depth: number,
+    withColumns: boolean = false,
   ): Promise<DataTableLineage> {
     const request: DataTableLineageRequest = {
       dataAssetId: dataAssetId.toString(),
       depth,
+      ...(withColumns ? { withColumns: true } : {}),
     };
 
     return (await post(
@@ -288,6 +297,16 @@ export default class DataObservabilityApi {
       DATA_OBSERVABILITY_API_ROUTES.pipelineLineage,
       request as unknown as JSONObject,
     )) as unknown as DataTableLineage;
+  }
+
+  // The next tables a card of a lineage diagram does not draw: what pressing its count asks.
+  public static async expandLineage(
+    request: DataLineageExpandRequest,
+  ): Promise<DataLineageExpansion> {
+    return (await post(
+      DATA_OBSERVABILITY_API_ROUTES.lineageExpand,
+      request as unknown as JSONObject,
+    )) as unknown as DataLineageExpansion;
   }
 
   // A data alert's lineage, with the ways to its cause and to the alerts it caused.

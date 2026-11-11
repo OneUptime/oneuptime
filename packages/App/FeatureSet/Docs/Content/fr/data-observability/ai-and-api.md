@@ -34,10 +34,11 @@ Ils fonctionnent avec une connexion en lecture seule, et répondent au nom de la
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Les webhooks de synchronisation de Fivetran | La clé d'ingestion, comme secret de signature de Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Les webhooks de synchronisation d'Airbyte | La clé d'ingestion dans l'URL |
 | `POST /api/data-observability/tables/freshness` | La fraîcheur d'une table, telle que l'outil MCP la donne, avec `{ "table": "public.orders" }` | Une clé API |
-| `POST /api/data-observability/tables/lineage` | Le lignage d'une table sur quelques étapes de chaque côté, avec l'état de chaque table, tel que son onglet **Lignage** le dessine, avec `{ "dataAssetId": "<table ID>", "depth": 3 }` | Une clé API |
+| `POST /api/data-observability/tables/lineage` | Le lignage d'une table sur quelques étapes de chaque côté, avec l'état de chaque table, tel que son onglet **Lignage** le dessine, avec `{ "dataAssetId": "<table ID>", "depth": 3 }`, et avec `"withColumns": true` les colonnes que porte chaque flèche | Une clé API |
 | `POST /api/data-observability/tables/lineage/answer` | Le lignage d'une table raconté en mots, les tables qui ont un problème d'abord, tel que l'outil MCP le donne, avec `{ "table": "public.orders", "depth": 3 }` | Une clé API |
 | `POST /api/data-observability/pipelines/lineage` | Les tables qu'un pipeline lit et écrit, avec l'état de chacune, telles que sa page les dessine, avec `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | Une clé API |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | Le lignage d'une alerte de données, tel que sa page le dessine, avec le chemin vers l'alerte qui l'a causée et vers les alertes qu'elle a causées | Une clé API |
+| `POST /api/data-observability/lineage/expand` | Les tables suivantes qu'une carte d'un diagramme de lignage ne dessine pas, comme les dessine la sélection de son nombre : la carte en `nodeId` avec son `side`, et ce qui est dessiné en `focusNodeId`, `tables` et `dataDashboardIds` | Une clé API |
 | `POST /api/data-observability/checks/apply` | Faire correspondre les contrôles du projet à un fichier, comme le fait `oneuptime data-checks apply`, avec `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Une clé API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Le badge « data as of » d'un produit de données | Le jeton propre au badge |
 
