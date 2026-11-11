@@ -119,6 +119,8 @@ Farverne på historikdiagrammets søjler angives under **Yderligere indstillinge
 
 Hver søjle er én dag. Peg på en søjle, eller klik på den (tryk på den på en telefon, eller tryk Enter med tastaturet), for at læse dagen: dens oppetid, hvor længe hver status varede, de hændelser, der blev erklæret den dag, og den planlagte vedligeholdelse, der kørte på den, hver med et link til sin egen side. En dag med planlagt vedligeholdelse har et blåt bånd øverst på sin søjle, og mens en begivenhed er i gang, står der "Under vedligeholdelse" ved navnet på hver ressource for dens monitorer. Vedligeholdelse ændrer hverken en søjles farve eller oppetiden, som kommer fra monitorens statusser: for at holde planlagt arbejde ude af oppetiden skal du vælge en **Skift overvågningsstatus til** for begivenheden, der ikke er en af sidens statusser under **Tæller som nedetid**. Se [Hvad en begivenhed påvirker](/docs/scheduled-maintenance/index#hvad-en-begivenhed-påvirker).
 
+Hver søjle er en dag i læserens egen tidszone, den samme som siden viser alle andre tidspunkter i, så den sidste søjle er læserens i dag. En monitorgruppes søjle viser, hvor længe gruppen selv var i hver status den dag: i hvert øjeblik har gruppen den værste status blandt sine monitorer, så en dags statusser lægges sammen til den tid, hvor mindst én af dens monitorer blev tjekket, og aldrig til mere end dagen.
+
 ## Grupper
 
 De fleste grupper behøver kun et navn.

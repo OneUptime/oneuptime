@@ -1,6 +1,6 @@
 # Monitorgrupper
 
-En monitorgrupp samlar flera monitorer i en status. Gruppera de monitorer som tillsammans utgör en tjänst, som Checkout: dess API, dess betaltjänst och dess webbapp. Gruppen visar den värsta statusen bland dem, har en egen tillgänglighet, och en statussida kan visa hela gruppen som en rad.
+En monitorgrupp samlar flera monitorer i en status. Gruppera de monitorer som tillsammans utgör en tjänst, som Checkout: dess API, dess betaltjänst och dess webbapp. Gruppen visar den värsta statusen bland dem, har en egen tillgänglighet, och en statussida kan visa hela gruppen som en rad. För att välja mellan en monitorgrupp, en tjänst och en etikett, se [Vilken ska jag använda?](/docs/introduction/which-one#monitorgrupp-tjänst-eller-etikett).
 
 :::cards
 - [Hur en grupps status beräknas](#hur-en-grupps-status-beräknas): Den värsta statusen bland dess monitorer.
@@ -90,6 +90,8 @@ För att ta bort en monitor från gruppen klickar du på **Ta bort** på dess ra
 | **Ta bort grupp** | Tar bort gruppen, också under **Avancerad**. |
 
 Tillgängligheten på **Översikt** räknar varje status utom den fungerande som driftstopp. En statussida räknar bara statusarna i sin egen lista **Räknas som driftstopp**: se [Välj vad sidan visar](/docs/status-pages/index#välja-vad-som-visas-på-sidan).
+
+Varje stapel i drifttidsgrafen, här och på en statussida, visar hur länge gruppen själv var i varje status den dagen: i varje ögonblick har den den sämsta statusen bland sina monitorer, så en timme då två av dem är offline samtidigt är en timme för gruppen, och en dag blir aldrig mer än en dag. Dagarna är dina egna: instrumentpanelen ritar dem i tidszonen från dina användarinställningar, och en statussida i varje besökares.
 
 Listan **Monitorgrupper** kan filtrera grupper efter ägare och etikett, sätta etiketter och ägare på många grupper på en gång och exportera eller importera grupper som JSON.
 

@@ -1,6 +1,6 @@
 # Dashboards Overview
 
-A dashboard is one page of widgets that you arrange yourself: charts of your metrics, logs and traces, lists of incidents, alerts and monitors, your SLOs and your infrastructure, even data from systems outside OneUptime. Build one for the on-call screen, a team's morning check or a page for your customers, and share it with your project or with anyone who has the link.
+A dashboard is one page of widgets that you arrange yourself: charts of your metrics, logs and traces, lists of incidents, alerts and monitors, your SLOs and your infrastructure, even data from systems outside OneUptime. Build one for the on-call screen, a team's morning check or a page for your customers, and share it with your project or with anyone who has the link. To choose between a dashboard, a public dashboard and a status page, see [Which One Do I Use?](/docs/introduction/which-one#dashboard-public-dashboard-or-status-page).
 
 :::cards
 - [How a dashboard works](#how-a-dashboard-works): Where its data comes from, and who sees it.

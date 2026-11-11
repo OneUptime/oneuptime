@@ -141,6 +141,7 @@ Apri il monitor e controlla cosa hanno ricevuto le sonde. Vedi la sezione sulla 
 
 :::cards
 - [Concetti fondamentali](/docs/introduction/core-concepts): Le idee dietro ciò che hai appena configurato.
+- [Glossario](/docs/introduction/glossary): Ogni parola che hai incontrato lungo il percorso, in una o due frasi.
 - [Pianificazioni di reperibilità](/docs/on-call/schedules): Condividere la reperibilità con il tuo team.
 - [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains): Rendere tua la pagina di stato.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Inviare log, metriche e tracce dalle tue applicazioni.

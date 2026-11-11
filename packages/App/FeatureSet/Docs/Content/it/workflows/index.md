@@ -1,6 +1,6 @@
 # Panoramica dei workflow
 
-I workflow automatizzano il lavoro in OneUptime senza codice. Metti dei blocchi su una tela, li colleghi, e il workflow parte da solo ogni volta che scatta il suo trigger: viene creato un incidente, arriva l'ora di una pianificazione, un altro strumento chiama un URL o arriva un'email. Usali per collegare OneUptime al resto del tuo stack e per occuparti dei passaggi di routine mentre lavori al problema vero e proprio.
+I workflow automatizzano il lavoro in OneUptime senza codice. Metti dei blocchi su una tela, li colleghi, e il workflow parte da solo ogni volta che scatta il suo trigger: viene creato un incidente, arriva l'ora di una pianificazione, un altro strumento chiama un URL o arriva un'email. Usali per collegare OneUptime al resto del tuo stack e per occuparti dei passaggi di routine mentre lavori al problema vero e proprio. Per scegliere tra un workflow, un runbook, un playbook e una regola IA, vedi [Quale usare?](/docs/introduction/which-one#workflow-runbook-playbook-o-regola-ia).
 
 :::cards
 - [Creare un workflow](/docs/workflows/authoring): Crea un workflow, poi aggiungi, collega e configura i suoi blocchi sulla tela.
@@ -47,6 +47,8 @@ Costruisci tutto questo in modo visivo, su una tela. La maggior parte dei workfl
 - **Riutilizzare automazioni comuni** — costruiscila una volta e avviala da qualsiasi altro workflow con un blocco **Execute Workflow**.
 
 ## Termini chiave
+
+Le parole usate in tutto OneUptime sono nel [Glossario](/docs/introduction/glossary).
 
 | Termine                | Cosa significa                                                                                                     |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |

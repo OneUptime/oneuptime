@@ -1,6 +1,6 @@
 # Statusseiten – Übersicht
 
-Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: eine einzige URL, die Ihre Kunden aufrufen können, statt Ihnen zu schreiben und zu fragen, ob es nur bei ihnen klemmt. Sie zeigt den aktuellen Zustand der Dienste, die Sie sichtbar machen, die Vorfälle, an denen Sie gerade arbeiten, die Wartungen, die Sie geplant haben, und jede Ankündigung, die Sie oben anheften möchten.
+Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: eine einzige URL, die Ihre Kunden aufrufen können, statt Ihnen zu schreiben und zu fragen, ob es nur bei ihnen klemmt. Sie zeigt den aktuellen Zustand der Dienste, die Sie sichtbar machen, die Vorfälle, an denen Sie gerade arbeiten, die Wartungen, die Sie geplant haben, und jede Ankündigung, die Sie oben anheften möchten. Um zwischen einer Statusseite und einem Dashboard zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#dashboard-öffentliches-dashboard-oder-statusseite).
 
 Wenn um 2 Uhr nachts etwas kaputtgeht, ist die Statusseite das Erste, was Ihre Support-Warteschlange verlinkt. Und sie ist die Quelle, aus der Ihre Abonnenten benachrichtigt werden – es lohnt sich also, sie einzurichten, bevor Sie sie brauchen, und nicht mitten im Ausfall.
 
@@ -41,6 +41,8 @@ Die Seite zeigt die Monitore, die Sie darauf setzen, als ihre Ressourcen, und Vo
 - **Abonnenten werden automatisch informiert.** Abonnenten per E-Mail, SMS, Slack, Microsoft Teams und Webhook können einer Seite folgen, jeder Kanal hinter einem eigenen Schalter.
 
 ## Zentrale Begriffe
+
+Die Wörter, die in ganz OneUptime verwendet werden, stehen im [Glossar](/docs/introduction/glossary).
 
 | Begriff | Was er bedeutet |
 | --- | --- |

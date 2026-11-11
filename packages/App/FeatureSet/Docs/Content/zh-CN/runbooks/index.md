@@ -1,6 +1,6 @@
 # Runbook 概览
 
-Runbook 是可重复使用的响应流程：一份由手动步骤和自动步骤组成的有序列表，你可以在事件、警报或计划维护事件上运行它。它把“现在该怎么办？”的讨论变成一份清单，任何值班人员都能在凌晨 3 点照着执行，脚本、API 调用和审批都已事先写好。Runbook 面向处理事件的值班工程师，以及将这种响应自动化的平台团队。
+Runbook 是可重复使用的响应流程：一份由手动步骤和自动步骤组成的有序列表，你可以在事件、警报或计划维护事件上运行它。它把“现在该怎么办？”的讨论变成一份清单，任何值班人员都能在凌晨 3 点照着执行，脚本、API 调用和审批都已事先写好。Runbook 面向处理事件的值班工程师，以及将这种响应自动化的平台团队。如需在 Runbook、工作流、剧本和 AI 规则之间做选择，请参阅 [该用哪一个？](/docs/introduction/which-one#工作流运行手册剧本还是-ai-规则)。
 
 :::cards
 - [编写 Runbook](/docs/runbooks/authoring): 创建 Runbook 并编写其步骤。
@@ -39,6 +39,8 @@ flowchart TB
 HTTP 和 AI 步骤在 OneUptime Worker 上运行。Bash、SSH 和 kubectl 步骤在你安装于自己基础设施中的 [Runner](/docs/runbooks/agents) 上运行，因此这些脚本永远不会在 OneUptime 的服务器上运行。JavaScript 步骤也可以在你的某个 Runner 上运行；如果它未选择任何 Runner，且项目没有 [默认 Runner](/docs/runbooks/agents#项目默认-runner) ，则在 [全局 Runner](/docs/runbooks/agents#全局-runner) 上、在只能访问互联网的沙箱中运行。每个步骤的状态、输出和错误消息都会记录在执行中，执行会一直保留在它所针对的事件、警报或计划维护事件上。
 
 ## 核心概念
+
+OneUptime 各处使用的词都收录在 [术语表](/docs/introduction/glossary) 中。
 
 | 概念 | 含义 |
 | --- | --- |

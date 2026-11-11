@@ -74,6 +74,8 @@ flowchart TB
 
 概要は、ページ全体を 1 回で取得するリクエストです。ステータスページが描画するのと同じデータで、古くても 15 秒前のものです。
 
+稼働率バーの日は、タイムゾーンを指定しない限り UTC の日です。`GET` に `?timezone=Asia/Shanghai` を付けるか、`POST` の本文として `{"timezone": "Asia/Shanghai"}` を送ると、ステータスページが訪問者ごとに求めるのと同じように、`uptimeDailyAggregate` と `monitorGroupUptimeDailyAggregate` がそのタイムゾーンの日で区切られます。サーバーが知らないタイムゾーンは UTC になり、どちらも区切りに使ったタイムゾーンを `timezone` で示します。
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | グループ。入れ子のグループには `parentStatusPageGroupId` が付きます。 |
 | `monitorStatuses` | プロジェクトのすべてのモニターのステータス。優先度の低いものから高いものの順。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | ページ上の各モニターグループの現在のステータスと、そのグループ内のモニター。 |
-| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 稼働率バーを描く元データと、ページのバーの色ルール。 |
+| `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 稼働率バーを描く元データと、ページのバーの色ルール。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | ページが表示する未解決のインシデント、その公開メモと状態の変化、そしてプロジェクトのインシデントの状態。 |
 | `timelineIncidents` | 稼働率バーの期間内のインシデント (解決済みを含む)。バーのツールチップ用です。 |
 | `activeEpisodes`、`episodePublicNotes`、`episodeStateTimelines` | インシデントのエピソードについての同じもの。 |

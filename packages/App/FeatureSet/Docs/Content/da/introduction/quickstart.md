@@ -141,6 +141,7 @@ En statusside viser en hændelse, når en af hændelsens monitorer er på siden.
 
 :::cards
 - [Grundbegreber](/docs/introduction/core-concepts): Idéerne bag det, du lige har sat op.
+- [Ordliste](/docs/introduction/glossary): Hvert ord, du mødte undervejs, forklaret med en sætning eller to.
 - [Vagtplaner](/docs/on-call/schedules): Del vagterne med dit team.
 - [Statusside – branding og domæner](/docs/status-pages/branding-and-domains): Gør statussiden til din egen.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrikker og traces fra dine applikationer.

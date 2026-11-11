@@ -10,6 +10,8 @@ import WhatsAppLog from "Common/Models/DatabaseModels/WhatsAppLog";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import WhatsAppStatus from "Common/Types/WhatsAppStatus";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import { rowMatchesWhere } from "Common/Tests/Server/TestingUtils/InMemoryRepository";
 import {
   afterEach,
   beforeEach,
@@ -19,6 +21,9 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "./Fixtures/OnCallTimelineRows";
 
 /*
  * POST /notification/whatsapp/webhook - HOW A WHATSAPP MESSAGE ENDED, AS
@@ -35,14 +40,28 @@ import type { Mock } from "jest-mock";
  * The log is the record of truth: the moment it moves into a final status
  * is when the message is counted, once - notification.delivery.count,
  * delivered (a read message was delivered) or failed - and timed from the
- * log, written as Meta accepted the message (notification.delivery.duration).
+ * log, written just before the message was handed to Meta
+ * (notification.delivery.duration).
  * On the installation's own WhatsApp Business account, as every message
  * is, and as an on-call page when its log names the page it was sent for,
  * as notification.send.count said it.
  *
+ * The log is written just before the message is handed to Meta - Queued,
+ * with no message id - and gets the id with Meta's answer (WhatsAppService).
+ * A status that comes in between names an id no log has yet: while a
+ * message is being sent, and the status is recent, Meta is asked to send it
+ * again (503), and it lands once the id is there - counted once, as every
+ * write is a compare-and-set (issue #6684). The webhook's log lines name a
+ * message's id and status, never the payload, which holds the recipient's
+ * phone number.
+ *
+ * A page Meta reports failed says so on the person's on-call timeline, with
+ * Meta's words: once, by the webhook that moved the log into Failed, and
+ * only while the page still says Sent or Sending (issue #6683).
+ *
  * The database is stood in for by rows the route reads and writes the way
- * Postgres would. The metrics SDK is stood in for, and keeps what it is
- * given.
+ * Postgres would, the page's notification likewise (OnCallTimelineRows).
+ * The metrics SDK is stood in for, and keeps what it is given.
  */
 
 interface RecordedCall {
@@ -150,15 +169,27 @@ jest.mock("Common/Server/Services/WhatsAppLogService", () => {
   };
 });
 
+jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
+  return {
+    __esModule: true,
+    default: { findOneById: jest.fn(), updateOneBy: jest.fn() },
+  };
+});
+
 jest.mock("../../FeatureSet/Notification/Services/WhatsAppService", () => {
   return { __esModule: true, default: { sendWhatsApp: jest.fn() } };
 });
 
 import WhatsAppAuthorization from "Common/Server/Middleware/WhatsAppAuthorization";
 import WhatsAppLogService from "Common/Server/Services/WhatsAppLogService";
+import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
 import {
+  buildFailedDeliveryMessage,
+  isRecentStatus,
   isStaleWhatsAppStatus,
   MAX_STATUS_WRITE_ATTEMPTS,
+  SEND_ON_ITS_WAY_FOR_MS,
+  STATUS_SENT_AGAIN_WITHIN_MS,
   WHATSAPP_LOG_STATUS_WEBHOOK_SELECT,
 } from "../../FeatureSet/Notification/API/WhatsApp";
 
@@ -208,6 +239,15 @@ interface StoredLog {
 
 let stored: Map<string, StoredLog>;
 
+// Logs of messages being sent: written Queued, with no message id yet.
+let onTheirWay: Array<StoredLog>;
+
+// What the route answered with a status of its own: 503 asks Meta to send again.
+let sendStatusCalls: Array<number>;
+
+// The page's notification, as the person's on-call timeline holds it.
+let timeline: OnCallTimelineRows;
+
 const findByMessageId: jest.Mock = WhatsAppLogService.findOneBy as jest.Mock;
 const findById: jest.Mock = WhatsAppLogService.findOneById as jest.Mock;
 const writeLog: jest.Mock =
@@ -215,11 +255,41 @@ const writeLog: jest.Mock =
 const sendEmptySuccess: jest.Mock =
   Response.sendEmptySuccessResponse as jest.Mock;
 const warn: jest.Mock = logger.warn as jest.Mock;
+const findTimeline: jest.Mock =
+  UserOnCallLogTimelineService.findOneById as jest.Mock;
+const updateTimeline: jest.Mock =
+  UserOnCallLogTimelineService.updateOneBy as jest.Mock;
 
 function rowById(id: ObjectID): StoredLog | undefined {
-  return Array.from(stored.values()).find((row: StoredLog): boolean => {
-    return row.id.toString() === id.toString();
-  });
+  return [...Array.from(stored.values()), ...onTheirWay].find(
+    (row: StoredLog): boolean => {
+      return row.id.toString() === id.toString();
+    },
+  );
+}
+
+// Every log as the table holds it, with its message id - none while being sent.
+function tableRows(): Array<Record<string, unknown>> {
+  return [
+    ...Array.from(stored.entries()).map(
+      ([messageId, row]: [string, StoredLog]): Record<string, unknown> => {
+        return {
+          _id: row.id.toString(),
+          whatsAppMessageId: messageId,
+          status: row.status,
+          createdAt: row.createdAt,
+        };
+      },
+    ),
+    ...onTheirWay.map((row: StoredLog): Record<string, unknown> => {
+      return {
+        _id: row.id.toString(),
+        whatsAppMessageId: null,
+        status: row.status,
+        createdAt: row.createdAt,
+      };
+    }),
+  ];
 }
 
 // A read: the row as it is now, as the route's select returns it.
@@ -263,7 +333,9 @@ async function webhook(body: JSONObject): Promise<Mock> {
     send: jest.fn(),
     json: jest.fn(),
     status: jest.fn(),
-    sendStatus: jest.fn(),
+    sendStatus: (code: number): void => {
+      sendStatusCalls.push(code);
+    },
   } as unknown as ExpressResponse;
 
   const next: Mock = jest.fn();
@@ -360,7 +432,7 @@ beforeEach(() => {
   });
   jest.setSystemTime(NOW);
 
-  // An on-call page's message, logged Sent as Meta accepted it (WhatsAppService).
+  // An on-call page's message, logged Sent with Meta's id once Meta accepted it (WhatsAppService).
   stored = new Map<string, StoredLog>([
     [
       MESSAGE_ID,
@@ -373,10 +445,22 @@ beforeEach(() => {
     ],
   ]);
 
+  onTheirWay = [];
+  sendStatusCalls = [];
+
+  // A read by query - Meta's id, or a send on its way - as Postgres runs it.
   findByMessageId.mockImplementation(((input: {
-    query: { whatsAppMessageId: string };
+    query: Record<string, unknown>;
   }) => {
-    return Promise.resolve(snapshot(stored.get(input.query.whatsAppMessageId)));
+    const found: Record<string, unknown> | undefined = tableRows().find(
+      (row: Record<string, unknown>): boolean => {
+        return rowMatchesWhere(row, input.query);
+      },
+    );
+
+    return Promise.resolve(
+      found ? snapshot(rowById(new ObjectID(found["_id"] as string))) : null,
+    );
   }) as never);
   findById.mockImplementation(((input: { id: ObjectID }) => {
     return Promise.resolve(snapshot(rowById(input.id)));
@@ -396,6 +480,13 @@ beforeEach(() => {
 
     return Promise.resolve(true);
   }) as never);
+});
+
+beforeEach(() => {
+  // The page the message was sent for, still only sent.
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sent);
+  timeline.standIn(UserOnCallLogTimelineService);
 });
 
 afterEach(() => {
@@ -685,6 +776,10 @@ describe("each message is counted once - on its log's move into a final status",
     expect(writeLog).not.toHaveBeenCalled();
     expectNothingCounted();
     expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${OTHER_MESSAGE_ID} (status: delivered).`,
+      {},
+    );
   });
 
   test("a status with no message id: nothing read, written or counted", async () => {
@@ -720,7 +815,596 @@ describe("each message is counted once - on its log's move into a final status",
     expect(storedStatus(OTHER_MESSAGE_ID)).toBe(WhatsAppStatus.Delivered);
     expect(onlyDelivery()["notification.on_call_page"]).toBe("false");
     expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    expect(sendStatusCalls).toEqual([]);
+    expect(logger.error).toHaveBeenCalledTimes(1);
   });
+});
+
+describe("a status that comes before its message's log has the message's id (issue #6684)", () => {
+  /*
+   * WhatsAppService writes the log Queued, with no message id, just before
+   * it hands the message to Meta, and writes the id with Meta's answer. A
+   * status Meta reports in between names an id no log has yet.
+   */
+  const EARLY_LOG_ID: ObjectID = new ObjectID(
+    "3a3a0000-0000-4000-8000-0000000000a4",
+  );
+
+  function sendOnItsWay(writtenAgoMs: number = 2000): StoredLog {
+    const row: StoredLog = {
+      id: EARLY_LOG_ID,
+      status: WhatsAppStatus.Queued,
+      userOnCallLogTimelineId: TIMELINE_ID,
+      createdAt: new Date(NOW - writtenAgoMs),
+    };
+
+    onTheirWay.push(row);
+
+    return row;
+  }
+
+  // The send's result lands: the log has the message's id, and says Sent.
+  function sendsResultWritten(row: StoredLog): void {
+    onTheirWay.splice(onTheirWay.indexOf(row), 1);
+    row.status = WhatsAppStatus.Sent;
+    stored.set(OTHER_MESSAGE_ID, row);
+  }
+
+  // Meta's time of a status, `agoMs` before now, in its seconds.
+  function at(agoMs: number): JSONObject {
+    return { timestamp: String(Math.floor((NOW - agoMs) / 1000)) };
+  }
+
+  test("a recent status while a message is being sent: Meta is asked to send it again (503) - nothing written or counted", async () => {
+    sendOnItsWay();
+
+    const next: Mock = await webhook(
+      statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)),
+    );
+
+    expect(sendStatusCalls).toEqual([503]);
+    expect(sendEmptySuccess).not.toHaveBeenCalled();
+    expect(next).not.toHaveBeenCalled();
+    expect(writeLog).not.toHaveBeenCalled();
+    expectNothingCounted();
+  });
+
+  test("asks whether a send is on its way: a log Queued, with no message id, written in the last five minutes", async () => {
+    sendOnItsWay();
+
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(SEND_ON_ITS_WAY_FOR_MS).toBe(5 * 60 * 1000);
+
+    const asked: { query: Record<string, unknown> } = findByMessageId.mock
+      .calls[1]![0] as { query: Record<string, unknown> };
+
+    expect(Object.keys(asked.query).sort()).toEqual([
+      "createdAt",
+      "status",
+      "whatsAppMessageId",
+    ]);
+    expect(asked.query["status"]).toBe(WhatsAppStatus.Queued);
+    expect(asked).toMatchObject({ props: { isRoot: true } });
+  });
+
+  test("sent again once the log has the id: written, and counted once - timed from the log written before the send", async () => {
+    const row: StoredLog = sendOnItsWay(3000);
+
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+    expectNothingCounted();
+
+    sendsResultWritten(row);
+
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(sendStatusCalls).toEqual([503]);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    expect(storedStatus(OTHER_MESSAGE_ID)).toBe(WhatsAppStatus.Delivered);
+    expect(onlyDelivery()["outcome"]).toBe("delivered");
+    expect(onlyDeliveryTime()).toBe(3000);
+  });
+
+  test("sent again, and again: still counted once", async () => {
+    const row: StoredLog = sendOnItsWay();
+
+    await webhook(statuses(status("failed", at(1000), OTHER_MESSAGE_ID)));
+    sendsResultWritten(row);
+    await webhook(statuses(status("failed", at(1000), OTHER_MESSAGE_ID)));
+    await webhook(statuses(status("failed", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(storedStatus(OTHER_MESSAGE_ID)).toBe(WhatsAppStatus.Failed);
+    expect(onlyDelivery()["outcome"]).toBe("failed");
+    // The page it was sent for is corrected once.
+    expect(timeline.writes).toHaveLength(1);
+  });
+
+  test("the statuses of other messages in the same request are handled now; sent again with it, they change nothing", async () => {
+    const row: StoredLog = sendOnItsWay();
+    const body: JSONObject = statuses(
+      status("delivered"),
+      status("read", at(1000), OTHER_MESSAGE_ID),
+    );
+
+    await webhook(body);
+
+    expect(sendStatusCalls).toEqual([503]);
+    expect(storedStatus()).toBe(WhatsAppStatus.Delivered);
+    expect(deliveryCounterCalls).toHaveLength(1);
+
+    sendsResultWritten(row);
+    await webhook(body);
+
+    expect(storedStatus()).toBe(WhatsAppStatus.Delivered);
+    expect(storedStatus(OTHER_MESSAGE_ID)).toBe(WhatsAppStatus.Read);
+    expect(
+      deliveryCounterCalls.map((call: RecordedCall) => {
+        return call.attributes["outcome"];
+      }),
+    ).toEqual(["delivered", "delivered"]);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+  });
+
+  test("the id written between the first look and the check for a send on its way: found on a second look, written and counted", async () => {
+    const row: StoredLog = sendOnItsWay();
+    const find: (input: { query: Record<string, unknown> }) => unknown =
+      findByMessageId.getMockImplementation() as (input: {
+        query: Record<string, unknown>;
+      }) => unknown;
+
+    findByMessageId.mockImplementationOnce(((input: {
+      query: Record<string, unknown>;
+    }) => {
+      const found: unknown = find(input);
+      // The send's result lands right after the first look.
+      sendsResultWritten(row);
+      return found;
+    }) as never);
+
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(sendStatusCalls).toEqual([]);
+    expect(findByMessageId).toHaveBeenCalledTimes(3);
+    expect(storedStatus(OTHER_MESSAGE_ID)).toBe(WhatsAppStatus.Delivered);
+    expect(onlyDelivery()["outcome"]).toBe("delivered");
+  });
+
+  test("an old status - by Meta's time - is not asked for again, even while a message is being sent: answered 200, with a warning", async () => {
+    sendOnItsWay();
+
+    expect(STATUS_SENT_AGAIN_WITHIN_MS).toBe(10 * 60 * 1000);
+
+    await webhook(
+      statuses(
+        status(
+          "delivered",
+          at(STATUS_SENT_AGAIN_WITHIN_MS + 1000),
+          OTHER_MESSAGE_ID,
+        ),
+      ),
+    );
+
+    expect(sendStatusCalls).toEqual([]);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${OTHER_MESSAGE_ID} (status: delivered).`,
+      {},
+    );
+    expectNothingCounted();
+  });
+
+  test.each([
+    ["no time", { timestamp: undefined }],
+    ["a time that cannot be read", { timestamp: "yesterday" }],
+    ["an empty time", { timestamp: " " }],
+  ])(
+    "a status with %s is not asked for again: answered 200",
+    async (_name: string, more: JSONObject) => {
+      sendOnItsWay();
+
+      await webhook(statuses(status("delivered", more, OTHER_MESSAGE_ID)));
+
+      expect(sendStatusCalls).toEqual([]);
+      expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  test("a recent status while nothing is being sent - another app's message, a test from the Admin Dashboard: answered 200, with a warning", async () => {
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(sendStatusCalls).toEqual([]);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith(
+      `[Meta WhatsApp Webhook] No WhatsApp log found for message id ${OTHER_MESSAGE_ID} (status: delivered).`,
+      {},
+    );
+  });
+
+  test("a send on its way for longer than five minutes never finished: not waited for", async () => {
+    sendOnItsWay(SEND_ON_ITS_WAY_FOR_MS + 1000);
+
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(sendStatusCalls).toEqual([]);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+  });
+
+  test("a log Queued that has its message's id - Meta said queued - is no send on its way", async () => {
+    stored.set(MESSAGE_ID, {
+      id: LOG_ID,
+      status: WhatsAppStatus.Queued,
+      createdAt: new Date(NOW - 1000),
+    });
+
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(sendStatusCalls).toEqual([]);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+  });
+
+  test("a log of a send that failed - Error, no id - is no send on its way", async () => {
+    sendOnItsWay().status = WhatsAppStatus.Error;
+
+    await webhook(statuses(status("delivered", at(1000), OTHER_MESSAGE_ID)));
+
+    expect(sendStatusCalls).toEqual([]);
+  });
+});
+
+describe("what the webhook's log lines say: a message's id and status, never its recipient's number (issue #6684)", () => {
+  function everyLogLine(): string {
+    return JSON.stringify([
+      warn.mock.calls,
+      (logger.debug as unknown as jest.Mock).mock.calls,
+      (logger.error as unknown as jest.Mock).mock.calls,
+      (logger.info as unknown as jest.Mock).mock.calls,
+    ]);
+  }
+
+  test("a status of a message no log has", async () => {
+    await webhook(statuses(status("failed", {}, OTHER_MESSAGE_ID)));
+
+    expect(everyLogLine()).toContain(OTHER_MESSAGE_ID);
+    expect(everyLogLine()).not.toContain(RECIPIENT);
+    expect(everyLogLine()).not.toContain(CONVERSATION_ID);
+  });
+
+  test("a status asked for again", async () => {
+    onTheirWay.push({
+      id: OTHER_LOG_ID,
+      status: WhatsAppStatus.Queued,
+      createdAt: new Date(NOW - 1000),
+    });
+
+    await webhook(
+      statuses(
+        status(
+          "delivered",
+          { timestamp: String(Math.floor(NOW / 1000)) },
+          OTHER_MESSAGE_ID,
+        ),
+      ),
+    );
+
+    expect(sendStatusCalls).toEqual([503]);
+    expect(everyLogLine()).toContain(OTHER_MESSAGE_ID);
+    expect(everyLogLine()).not.toContain(RECIPIENT);
+  });
+
+  test("a status with no message id: a warning with its status only", async () => {
+    await webhook(statuses({ status: "delivered", recipient_id: RECIPIENT }));
+
+    expect(warn).toHaveBeenCalledWith(
+      "[Meta WhatsApp Webhook] Received a status without a message id (status: delivered).",
+      {},
+    );
+    expect(everyLogLine()).not.toContain(RECIPIENT);
+  });
+
+  test("an event of another kind of account: its kind only", async () => {
+    await webhook({
+      ...statuses(status("delivered")),
+      object: "page",
+    });
+
+    expect(everyLogLine()).toContain("page");
+    expect(everyLogLine()).not.toContain(RECIPIENT);
+  });
+
+  test("a body with no entries: no body in the line", async () => {
+    await webhook({
+      object: "whatsapp_business_account",
+      contacts: [{ wa_id: RECIPIENT }],
+    });
+
+    expect(warn).toHaveBeenCalledWith(
+      "[Meta WhatsApp Webhook] Payload did not include entries array.",
+      {},
+    );
+    expect(everyLogLine()).not.toContain(RECIPIENT);
+  });
+
+  test("a status that could not be handled: its message's id and the error", async () => {
+    findByMessageId.mockImplementationOnce((() => {
+      return Promise.reject(new Error("connection reset"));
+    }) as never);
+
+    await webhook(statuses(status("delivered")));
+
+    expect(logger.error).toHaveBeenCalledWith(
+      `[Meta WhatsApp Webhook] Could not handle the status of message id ${MESSAGE_ID}: Error: connection reset`,
+      {},
+    );
+    expect(everyLogLine()).not.toContain(RECIPIENT);
+  });
+});
+
+describe("the on-call page Meta could not deliver (issue #6683)", () => {
+  const UNDELIVERABLE: JSONObject = {
+    errors: [
+      {
+        code: 131026,
+        title: "Message undeliverable",
+        message: "Message undeliverable",
+        error_data: { details: "Message Undeliverable." },
+      },
+    ],
+  };
+
+  test("a failed page: Sent becomes Error, with Meta's words - after the message is counted", async () => {
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(onlyDelivery()["outcome"]).toBe("failed");
+    expect(timeline.writes).toEqual([
+      {
+        id: TIMELINE_ID.toString(),
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: `Delivery status: Failed. Message ID: ${MESSAGE_ID}. Provider error: Message undeliverable (code 131026).`,
+        },
+      },
+    ]);
+  });
+
+  test("written only while the page still says what was read: at its status and version", async () => {
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(updateTimeline.mock.calls[0]![0]).toMatchObject({
+      query: {
+        _id: TIMELINE_ID.toString(),
+        status: UserNotificationStatus.Sent,
+        version: 1,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("a page still going out (Sending) is corrected too: Meta's report can land before the send's own write", async () => {
+    timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Sending;
+
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Error,
+    );
+  });
+
+  test.each([
+    UserNotificationStatus.Acknowledged,
+    UserNotificationStatus.Skipped,
+    UserNotificationStatus.PassedOn,
+    UserNotificationStatus.Error,
+  ])(
+    "a page that is %s stays as it is",
+    async (pageStatus: UserNotificationStatus) => {
+      timeline.get(TIMELINE_ID)!.status = pageStatus;
+
+      await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+      expect(onlyDelivery()["outcome"]).toBe("failed");
+      expect(updateTimeline).not.toHaveBeenCalled();
+      expect(timeline.get(TIMELINE_ID)!.status).toBe(pageStatus);
+    },
+  );
+
+  test("a page acknowledged between the read and the write stays acknowledged", async () => {
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.status = UserNotificationStatus.Acknowledged;
+    });
+
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(timeline.writes).toEqual([]);
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Acknowledged,
+    );
+  });
+
+  test("Meta's webhook sent twice: the page is written once", async () => {
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(timeline.writes).toHaveLength(1);
+    expect(onlyDelivery()["outcome"]).toBe("failed");
+  });
+
+  test("failed twice in one request, handled at once: the page is written once", async () => {
+    await webhook(
+      statuses(
+        status("failed", UNDELIVERABLE),
+        status("failed", UNDELIVERABLE),
+      ),
+    );
+
+    expect(timeline.writes).toHaveLength(1);
+    expect(onlyDelivery()["outcome"]).toBe("failed");
+  });
+
+  test("the page written back to Sent after the correction - no news since - is not corrected again by a repeat", async () => {
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+    timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Sent;
+
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    // Only the move into Failed corrects the page.
+    expect(timeline.writes).toHaveLength(1);
+  });
+
+  test.each(["delivered", "read", "sent", "queued", "warning", "deleted"])(
+    "'%s' changes no page",
+    async (metaStatus: string) => {
+      await webhook(statuses(status(metaStatus)));
+
+      expect(findTimeline).not.toHaveBeenCalled();
+      expect(timeline.writes).toEqual([]);
+    },
+  );
+
+  test("failed after delivered - a stale status - changes no page", async () => {
+    await webhook(statuses(status("delivered")));
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(storedStatus()).toBe(WhatsAppStatus.Delivered);
+    expect(findTimeline).not.toHaveBeenCalled();
+  });
+
+  test("a message that was not a page touches no timeline", async () => {
+    delete stored.get(MESSAGE_ID)!.userOnCallLogTimelineId;
+
+    await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(onlyDelivery()["notification.on_call_page"]).toBe("false");
+    expect(findTimeline).not.toHaveBeenCalled();
+  });
+
+  test("a page that cannot be written leaves the message counted, the error logged, and the request answered", async () => {
+    updateTimeline.mockRejectedValue(new Error("connection reset") as never);
+
+    const next: Mock = await webhook(statuses(status("failed", UNDELIVERABLE)));
+
+    expect(next).not.toHaveBeenCalled();
+    expect(storedStatus()).toBe(WhatsAppStatus.Failed);
+    expect(onlyDelivery()["outcome"]).toBe("failed");
+    expect(logger.error).toHaveBeenCalledTimes(1);
+    expect(sendEmptySuccess).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("buildFailedDeliveryMessage: Meta's words for a failed page", () => {
+  function words(more: JSONObject): string {
+    return buildFailedDeliveryMessage({
+      messageId: MESSAGE_ID,
+      statusPayload: status("failed", more),
+    });
+  }
+
+  const STATUS_PART: string = `Delivery status: Failed. Message ID: ${MESSAGE_ID}.`;
+
+  test("no error given: the status and the message's id", () => {
+    expect(words({})).toBe(STATUS_PART);
+    expect(words({ errors: [] })).toBe(STATUS_PART);
+  });
+
+  test("a title and a code", () => {
+    expect(
+      words({
+        errors: [{ code: 131049, title: "Message not delivered" }],
+      }),
+    ).toBe(
+      `${STATUS_PART} Provider error: Message not delivered (code 131049).`,
+    );
+  });
+
+  test("details that say more than the title follow it", () => {
+    expect(
+      words({
+        errors: [
+          {
+            code: 131047,
+            title: "Re-engagement message",
+            error_data: {
+              details:
+                "Message failed to send because more than 24 hours have passed since the customer last replied.",
+            },
+          },
+        ],
+      }),
+    ).toBe(
+      `${STATUS_PART} Provider error: Re-engagement message (code 131047): Message failed to send because more than 24 hours have passed since the customer last replied.`,
+    );
+  });
+
+  test("details that only say the title again are left out", () => {
+    expect(
+      words({
+        errors: [
+          {
+            code: 131026,
+            title: "Message undeliverable",
+            error_data: { details: "Message Undeliverable." },
+          },
+        ],
+      }),
+    ).toBe(
+      `${STATUS_PART} Provider error: Message undeliverable (code 131026).`,
+    );
+  });
+
+  test("Meta's older payload - a detail, no error_data - and a message where there is no title", () => {
+    expect(
+      words({
+        errors: [{ code: 470, message: "Message failed", detail: "Expired" }],
+      }),
+    ).toBe(
+      `${STATUS_PART} Provider error: Message failed (code 470): Expired.`,
+    );
+  });
+
+  test("a code alone", () => {
+    expect(words({ errors: [{ code: 1 }] })).toBe(
+      `${STATUS_PART} Provider error: code 1.`,
+    );
+  });
+
+  test("names no recipient: the payload's number is not part of it", () => {
+    expect(words({ errors: [{ code: 1, title: "x" }] })).not.toContain(
+      RECIPIENT,
+    );
+  });
+});
+
+describe("isRecentStatus", () => {
+  function at(seconds: unknown): JSONObject {
+    return {
+      id: MESSAGE_ID,
+      status: "delivered",
+      timestamp: seconds as JSONObject["timestamp"],
+    };
+  }
+
+  const NOW_IN_SECONDS: number = Math.floor(NOW / 1000);
+
+  test.each([
+    ["now", NOW_IN_SECONDS, true],
+    ["a minute ago", NOW_IN_SECONDS - 60, true],
+    ["ten minutes ago", NOW_IN_SECONDS - 600, true],
+    ["ten minutes and a second ago", NOW_IN_SECONDS - 601, false],
+    ["a day ago", NOW_IN_SECONDS - 86400, false],
+    ["a minute ahead - two clocks", NOW_IN_SECONDS + 60, true],
+    ["as text", String(NOW_IN_SECONDS - 60), true],
+  ])(
+    "%s: %p is recent - %p",
+    (_name: string, value: unknown, recent: boolean) => {
+      expect(isRecentStatus(at(value))).toBe(recent);
+    },
+  );
+
+  test.each([[undefined], [null], [""], ["  "], ["soon"], [Number.NaN]])(
+    "%p cannot be read: not recent",
+    (value: unknown) => {
+      expect(isRecentStatus(at(value))).toBe(false);
+    },
+  );
 });
 
 describe("isStaleWhatsAppStatus", () => {

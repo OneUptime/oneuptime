@@ -1,6 +1,6 @@
 # Visión general de las páginas de estado
 
-Una página de estado es la cara pública de todo lo que monitorizas: una única URL que tus clientes pueden abrir en lugar de escribirte para preguntar si el problema es solo suyo. Muestra el estado actual de los servicios que eliges exponer, los incidentes en los que estás trabajando, el mantenimiento que tienes planificado y cualquier anuncio que quieras fijar arriba.
+Una página de estado es la cara pública de todo lo que monitorizas: una única URL que tus clientes pueden abrir en lugar de escribirte para preguntar si el problema es solo suyo. Muestra el estado actual de los servicios que eliges exponer, los incidentes en los que estás trabajando, el mantenimiento que tienes planificado y cualquier anuncio que quieras fijar arriba. Para elegir entre una página de estado y un panel, consulta [¿Cuál uso?](/docs/introduction/which-one#panel-panel-público-o-página-de-estado).
 
 Cuando algo se rompe a las 2 de la madrugada, la página de estado es lo primero que enlaza tu cola de soporte. También es desde donde se notifica a tus suscriptores, así que merece la pena configurarla antes de necesitarla, no en mitad de la caída.
 
@@ -41,6 +41,8 @@ La página muestra como recursos los monitores que colocas en ella, y los incide
 - **Los suscriptores reciben aviso automáticamente.** Suscriptores por correo electrónico, SMS, Slack, Microsoft Teams y webhook pueden seguir una página, cada canal tras su propio interruptor.
 
 ## Términos clave
+
+Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introduction/glossary).
 
 | Término | Qué significa |
 | --- | --- |

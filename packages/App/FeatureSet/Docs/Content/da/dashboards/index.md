@@ -1,6 +1,6 @@
 # Dashboards – Oversigt
 
-Et dashboard er én side med widgets, som du selv arrangerer: diagrammer over dine metrikker, logs og traces, lister over hændelser, advarsler og overvågninger, dine SLO'er og din infrastruktur, ja endda data fra systemer uden for OneUptime. Byg et til vagtskærmen, til et teams morgentjek eller som en side til dine kunder, og del det med dit projekt eller med alle, der har linket.
+Et dashboard er én side med widgets, som du selv arrangerer: diagrammer over dine metrikker, logs og traces, lister over hændelser, advarsler og overvågninger, dine SLO'er og din infrastruktur, ja endda data fra systemer uden for OneUptime. Byg et til vagtskærmen, til et teams morgentjek eller som en side til dine kunder, og del det med dit projekt eller med alle, der har linket. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#dashboard-offentligt-dashboard-eller-statusside) for at vælge mellem et dashboard, et offentligt dashboard og en statusside.
 
 :::cards
 - [Sådan fungerer et dashboard](#sådan-fungerer-et-dashboard): Hvor dataene kommer fra, og hvem der ser dem.
