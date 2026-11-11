@@ -7,7 +7,6 @@ import {
   NextFunction,
 } from "Common/Server/Utils/Express";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
-import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import SmsStatus from "Common/Types/SmsStatus";
@@ -21,6 +20,9 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "./Fixtures/OnCallTimelineRows";
 
 /*
  * POST /notification/sms/status-callback/:smsLogId/:token - HOW AN SMS
@@ -40,10 +42,17 @@ import type { Mock } from "jest-mock";
  * went out on (the callback's ?providerConfig) and as an on-call page when
  * its log names one, as notification.send.count said them.
  *
+ * An on-call page's SMS that Twilio could not deliver says so on the
+ * person's on-call timeline: its notification becomes an Error, with
+ * Twilio's words - only while it still says Sent or Sending, checked in the
+ * same statement as the write (OnCallNotificationStatus), so an
+ * acknowledgement or a skip is never written over (issue #6683).
+ *
  * The database is stood in for by one row the route reads and writes the
  * way Postgres would: a read is a snapshot, a write only lands while the
- * row still holds what it expects. The metrics SDK is stood in for, and
- * keeps what it is given.
+ * row still holds what it expects. The page's notification likewise
+ * (OnCallTimelineRows). The metrics SDK is stood in for, and keeps what it
+ * is given.
  */
 
 interface RecordedCall {
@@ -149,7 +158,7 @@ jest.mock("Common/Server/Services/SmsLogService", () => {
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), updateOneById: jest.fn() },
+    default: { findOneById: jest.fn(), updateOneBy: jest.fn() },
   };
 });
 
@@ -214,12 +223,13 @@ const writeSmsLog: jest.Mock =
 const findTimeline: jest.Mock =
   UserOnCallLogTimelineService.findOneById as jest.Mock;
 const updateTimeline: jest.Mock =
-  UserOnCallLogTimelineService.updateOneById as jest.Mock;
+  UserOnCallLogTimelineService.updateOneBy as jest.Mock;
 const sendEmptySuccess: jest.Mock =
   Response.sendEmptySuccessResponse as jest.Mock;
 const warn: jest.Mock = logger.warn as jest.Mock;
 
-let timeline: UserOnCallLogTimeline | null;
+// The page's notification, as the person's on-call timeline holds it.
+let timeline: OnCallTimelineRows;
 
 // A read: the row as it is now, as the route's select returns it.
 function snapshot(): SmsLog | null {
@@ -368,9 +378,8 @@ beforeEach(() => {
     createdAt: new Date(NOW - WRITTEN_AGO_MS),
   };
 
-  timeline = new UserOnCallLogTimeline();
-  timeline.id = TIMELINE_ID;
-  timeline.status = UserNotificationStatus.Sent;
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sent);
 
   findSmsLog.mockImplementation((() => {
     return Promise.resolve(snapshot());
@@ -382,10 +391,7 @@ beforeEach(() => {
   }) => {
     return Promise.resolve(compareAndSet(input));
   }) as never);
-  findTimeline.mockImplementation((() => {
-    return Promise.resolve(timeline);
-  }) as never);
-  updateTimeline.mockResolvedValue(undefined as never);
+  timeline.standIn(UserOnCallLogTimelineService);
 });
 
 afterEach(() => {
@@ -717,23 +723,131 @@ describe("the on-call page an SMS was not delivered for", () => {
     await callback(twilio("undelivered", { ErrorCode: "30003" }));
 
     expect(onlyDelivery()["outcome"]).toBe("undelivered");
-    expect(updateTimeline).toHaveBeenCalledWith({
+    expect(timeline.writes).toEqual([
+      {
+        id: TIMELINE_ID.toString(),
+        data: {
+          status: UserNotificationStatus.Error,
+          statusMessage: `Delivery status: ${SmsStatus.Undelivered}. Message ID: ${MESSAGE_SID}. Provider error code: 30003.`,
+        },
+      },
+    ]);
+  });
+
+  test("written only while the page still says what was read: at its status and version", async () => {
+    await callback(twilio("failed"));
+
+    expect(findTimeline).toHaveBeenCalledWith({
       id: TIMELINE_ID,
+      select: { _id: true, status: true, version: true },
+      props: { isRoot: true },
+    });
+    expect(updateTimeline).toHaveBeenCalledTimes(1);
+    expect(updateTimeline.mock.calls[0]![0]).toEqual({
+      query: {
+        _id: TIMELINE_ID.toString(),
+        status: UserNotificationStatus.Sent,
+        version: 1,
+      },
       data: {
         status: UserNotificationStatus.Error,
-        statusMessage: `Delivery status: ${SmsStatus.Undelivered}. Message ID: ${MESSAGE_SID}. Provider error code: 30003.`,
+        statusMessage: `Delivery status: ${SmsStatus.Failed}. Message ID: ${MESSAGE_SID}.`,
       },
       props: { isRoot: true },
     });
   });
 
-  test("a page acknowledged meanwhile is never written over", async () => {
-    timeline!.status = UserNotificationStatus.Acknowledged;
+  test("a page still going out (Sending) is corrected too: the callback can land before the send's own write", async () => {
+    timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Sending;
 
     await callback(twilio("failed"));
 
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Error,
+    );
+  });
+
+  test.each([
+    UserNotificationStatus.Acknowledged,
+    UserNotificationStatus.Skipped,
+    UserNotificationStatus.PassedOn,
+    UserNotificationStatus.Error,
+  ])(
+    "a page that is %s is never written over",
+    async (status: UserNotificationStatus) => {
+      timeline.get(TIMELINE_ID)!.status = status;
+
+      await callback(twilio("failed"));
+
+      expect(onlyDelivery()["outcome"]).toBe("failed");
+      expect(updateTimeline).not.toHaveBeenCalled();
+      expect(timeline.get(TIMELINE_ID)!.status).toBe(status);
+    },
+  );
+
+  test("a page acknowledged between the read and the write stays acknowledged", async () => {
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.status = UserNotificationStatus.Acknowledged;
+    });
+
+    await callback(twilio("undelivered"));
+
+    expect(timeline.writes).toEqual([]);
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Acknowledged,
+    );
+    // It read the page again, found the acknowledgement, and stopped.
+    expect(findTimeline).toHaveBeenCalledTimes(2);
+  });
+
+  test("a page written meanwhile with no news - its version moved, its status not - is read again and corrected", async () => {
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.statusMessage = "Sent again.";
+    });
+
+    await callback(twilio("undelivered"));
+
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Error,
+    );
+    expect(updateTimeline).toHaveBeenCalledTimes(2);
+  });
+
+  test("Twilio's failed callback sent twice: the page is written once", async () => {
+    await callback(twilio("failed"));
+    await callback(twilio("failed"));
+
+    expect(timeline.writes).toHaveLength(1);
     expect(onlyDelivery()["outcome"]).toBe("failed");
-    expect(updateTimeline).not.toHaveBeenCalled();
+  });
+
+  test("undelivered, then failed: the page is written once, with the first", async () => {
+    await callback(twilio("undelivered"));
+    await callback(twilio("failed"));
+
+    expect(timeline.writes).toHaveLength(1);
+    expect(timeline.get(TIMELINE_ID)!.statusMessage).toBe(
+      `Delivery status: ${SmsStatus.Undelivered}. Message ID: ${MESSAGE_SID}.`,
+    );
+  });
+
+  test.each(["delivered", "sent", "queued"])(
+    "'%s' changes no page",
+    async (twilioStatus: string) => {
+      await callback(twilio(twilioStatus));
+
+      expect(findTimeline).not.toHaveBeenCalled();
+      expect(timeline.writes).toEqual([]);
+    },
+  );
+
+  test("an SMS of no page touches no notification", async () => {
+    delete stored!.userOnCallLogTimelineId;
+
+    await callback(twilio("failed"));
+
+    expect(onlyDelivery()["notification.on_call_page"]).toBe("false");
+    expect(findTimeline).not.toHaveBeenCalled();
   });
 
   test("a stale status the log refused leaves the page as it is", async () => {
@@ -743,6 +857,15 @@ describe("the on-call page an SMS was not delivered for", () => {
 
     expect(findTimeline).not.toHaveBeenCalled();
     expect(updateTimeline).not.toHaveBeenCalled();
+  });
+
+  test("a page that cannot be written fails the callback after the SMS is counted", async () => {
+    updateTimeline.mockRejectedValue(new Error("connection reset") as never);
+
+    const answer: Answer = await callback(twilio("failed"));
+
+    expect(onlyDelivery()["outcome"]).toBe("failed");
+    expect(answer.next).toHaveBeenCalledTimes(1);
   });
 });
 

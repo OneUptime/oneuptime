@@ -1,6 +1,6 @@
 # Panoramica degli avvisi
 
-Un avviso segnala al vostro team un problema da esaminare prima che gli utenti se ne accorgano: un disco che si sta riempiendo, un certificato in scadenza, un tasso di errori che cresce piano piano. Può chiamare chi è reperibile e notificare i suoi proprietari, ma non compare mai su una pagina di stato e non avvisa mai i vostri iscritti. Questa pagina spiega da dove arrivano gli avvisi, dove si trovano nella dashboard e come il vostro team li gestisce.
+Un avviso segnala al vostro team un problema da esaminare prima che gli utenti se ne accorgano: un disco che si sta riempiendo, un certificato in scadenza, un tasso di errori che cresce piano piano. Può chiamare chi è reperibile e notificare i suoi proprietari, ma non compare mai su una pagina di stato e non avvisa mai i vostri iscritti. Questa pagina spiega da dove arrivano gli avvisi, dove si trovano nella dashboard e come il vostro team li gestisce. Non siete sicuri se un problema sia un avviso o un incidente? [Quale usare?](/docs/introduction/which-one#incidente-avviso-o-un-altro-tipo-di-problema) li mette a confronto.
 
 :::cards
 - [Avvisi e incidenti](#avvisi-e-incidenti): Che cosa dovrebbe essere un problema, e come i due si collegano.

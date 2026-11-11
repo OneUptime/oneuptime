@@ -1,6 +1,6 @@
 # Anpassade probes
 
-En anpassad sond är en liten agent som du kör i ditt eget nätverk. Den kontrollerar de övervakare du lägger till den i, till exempel interna webbplatser, API:er och servrar bakom din brandvägg, och skickar resultaten till OneUptime. Den öppnar bara utgående anslutningar över HTTPS, så ingenting i ditt nätverk behöver ta emot anslutningar från internet.
+En anpassad sond är en liten agent som du kör i ditt eget nätverk. Den kontrollerar de övervakare du lägger till den i, till exempel interna webbplatser, API:er och servrar bakom din brandvägg, och skickar resultaten till OneUptime. Den öppnar bara utgående anslutningar över HTTPS, så ingenting i ditt nätverk behöver ta emot anslutningar från internet. För att välja mellan en sond, en agent, en collector och en Runner, se [Vilken ska jag använda?](/docs/introduction/which-one#sond-agent-collector-eller-runner).
 
 :::cards
 - [Så fungerar det](#så-fungerar-det): Vad sonden gör och hur OneUptime vet att den körs.

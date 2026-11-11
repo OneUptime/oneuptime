@@ -29,7 +29,6 @@ import {
   MAX_SMS_LENGTH,
   TRUNCATED_TEXT_NOTE_PLAIN,
 } from "Common/Utils/MessageFit";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import {
   Host,
   HttpProtocol,
@@ -64,6 +63,7 @@ import {
 } from "Common/Utils/Project/TwilioAccount";
 import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import { withProviderConfig } from "../Utils/StatusCallbackProviderConfig";
+import { recordSendResult } from "../Utils/OnCallNotificationStatus";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";
@@ -687,16 +687,42 @@ export default class SmsService {
          * audit/realtime decorators or service update hooks, so the full
          * update pipeline (re-SELECT + save transaction) is pure overhead —
          * a single hookless UPDATE is equivalent.
+         *
+         * Only while the log still says Sending, in the same statement:
+         * Twilio's delivery callback (API/SMS.ts) can land first - within
+         * milliseconds of the send - and what it wrote, Delivered say, says
+         * more than the send's Sent. Putting Sent back would show a
+         * delivered SMS as only sent, and count it again when Twilio
+         * repeats the callback.
          */
-        await SmsLogService.updateColumnsByIdWithoutHooks({
-          id: smsLogId,
-          data: {
-            status: smsLog.status!,
-            statusMessage: smsLog.statusMessage!,
-            smsCostInUSDCents: smsLog.smsCostInUSDCents!,
-            ...(smsLog.errorCode ? { errorCode: smsLog.errorCode } : {}),
-          },
-        });
+        const isSendResultWritten: boolean =
+          await SmsLogService.compareAndSetColumnsByIdWithoutHooks({
+            id: smsLogId,
+            data: {
+              status: smsLog.status!,
+              statusMessage: smsLog.statusMessage!,
+              smsCostInUSDCents: smsLog.smsCostInUSDCents!,
+              ...(smsLog.errorCode ? { errorCode: smsLog.errorCode } : {}),
+            },
+            expectedData: {
+              status: SmsStatus.Sending,
+            },
+          });
+
+        if (!isSendResultWritten) {
+          /*
+           * The callback was first: its status, its message - which names
+           * the message's id, as Twilio's callback always carries it - and
+           * its error code stay, as they would after a callback that came
+           * second. What the SMS cost is the send's alone.
+           */
+          await SmsLogService.updateColumnsByIdWithoutHooks({
+            id: smsLogId,
+            data: {
+              smsCostInUSDCents: smsLog.smsCostInUSDCents!,
+            },
+          });
+        }
       } else {
         // Send failed before the row could be inserted (e.g. missing Twilio config).
         await SmsLogService.create({
@@ -709,22 +735,17 @@ export default class SmsService {
     }
 
     if (options.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        data: {
-          /*
-           * Delivery is confirmed asynchronously via the status callback, so at this
-           * point a successful submit is "Sending"/"Sent". Only the synchronous failure
-           * states count as an error here.
-           */
-          status: SmsService.isFailureStatus(smsLog.status)
-            ? UserNotificationStatus.Error
-            : UserNotificationStatus.Sent,
-          statusMessage: smsLog.statusMessage!,
-        },
-        id: options.userOnCallLogTimelineId,
-        props: {
-          isRoot: true,
-        },
+      /*
+       * Delivery is confirmed asynchronously via the status callback, so at this
+       * point a successful submit is "Sent". Only the synchronous failure states
+       * count as an error here. Written only while the page's timeline entry still
+       * says Sending (OnCallNotificationStatus): a callback that already wrote a
+       * failed delivery there, or the person's acknowledgement, stays.
+       */
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: !SmsService.isFailureStatus(smsLog.status),
+        statusMessage: smsLog.statusMessage!,
       });
     }
 

@@ -1,6 +1,6 @@
 # Présentation des tableaux de bord
 
-Un tableau de bord est une page de widgets que vous disposez vous-même : des graphiques de vos métriques, journaux et traces, des listes d'incidents, d'alertes et de moniteurs, vos SLO et votre infrastructure, et même des données de systèmes extérieurs à OneUptime. Créez-en un pour l'écran d'astreinte, le point du matin d'une équipe ou une page pour vos clients, et partagez-le avec votre projet ou avec toute personne qui a le lien.
+Un tableau de bord est une page de widgets que vous disposez vous-même : des graphiques de vos métriques, journaux et traces, des listes d'incidents, d'alertes et de moniteurs, vos SLO et votre infrastructure, et même des données de systèmes extérieurs à OneUptime. Créez-en un pour l'écran d'astreinte, le point du matin d'une équipe ou une page pour vos clients, et partagez-le avec votre projet ou avec toute personne qui a le lien. Pour choisir entre un tableau de bord, un tableau de bord public et une page de statut, consultez [Lequel choisir ?](/docs/introduction/which-one#tableau-de-bord-tableau-de-bord-public-ou-page-de-statut).
 
 :::cards
 - [Fonctionnement d'un tableau de bord](#fonctionnement-dun-tableau-de-bord): D'où viennent ses données et qui le voit.

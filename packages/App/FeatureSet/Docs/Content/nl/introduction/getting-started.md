@@ -7,6 +7,8 @@ Begin hier:
 :::cards
 - [Snelstart](/docs/introduction/quickstart): Een website bewaken, opgeroepen worden als die uitvalt en een statuspagina publiceren.
 - [Kernbegrippen](/docs/introduction/core-concepts): De paar ideeën waarop al het andere rust, en hoe ze samenhangen.
+- [Woordenlijst](/docs/introduction/glossary): Elk woord dat OneUptime gebruikt, in een zin of twee, met de andere namen die het heeft.
+- [Welke gebruik ik?](/docs/introduction/which-one): Incident of waarschuwing, workflow of runbook, en de andere dingen die op elkaar lijken, naast elkaar.
 - [Startpagina en sneltoetsen](/docs/introduction/home): Uw weg vinden in het dashboard, en de toetsen die u klikken besparen.
 - [Uw account](/docs/introduction/your-account): Uw profiel, wachtwoord, passkeys en tweestapsverificatie.
 :::

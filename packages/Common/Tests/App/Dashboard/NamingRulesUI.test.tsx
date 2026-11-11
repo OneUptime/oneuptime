@@ -29,13 +29,17 @@ import NamePatternInput, {
   insertToken,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/NamePatternInput";
 import NamingLookupTableEditor, {
+  EMPTY_LOOKUP_TABLE_SENTENCES,
+  LOOKUP_BUTTON_ROW_CLASS_NAME,
   LOOKUP_ROWS_PER_PAGE,
   getExampleLookupValue,
   mergePastedRows,
   readLookupRows,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/NamingLookupTableEditor";
 import ApplyNamingRulesModal, {
+  getCloseButtonText,
   groupPlanItems,
+  hasRenameCandidates,
   NamingPlanGroups,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/Naming/ApplyNamingRulesModal";
 import NamingPreviewSummary, {
@@ -184,6 +188,46 @@ describe("the name pattern field", () => {
     expect(screen.queryByTestId("name-pattern-problem")).toBeNull();
   });
 
+  /*
+   * The problem's and the example's lines hold an Icon, which draws a div:
+   * in a paragraph that is markup a browser rewrites, and React says so on
+   * the console (validateDOMNesting) every time the field is drawn.
+   */
+  // React's console warning for markup a browser would rewrite.
+  const NESTING_WARNING: RegExp =
+    /validateDOMNesting|descendant of <p>|cannot contain a nested/;
+
+  test.each([
+    ["the example", "UN{site.code}{lookup}", "name-pattern-example"],
+    ["a problem", "UN{unit}", "name-pattern-problem"],
+  ])(
+    "%s is a line a browser draws as it is written",
+    (_line: string, pattern: string, testId: string) => {
+      const errors: Array<string> = [];
+      const spy: jest.SpiedFunction<typeof console.error> = jest
+        .spyOn(console, "error")
+        .mockImplementation((...args: Array<unknown>) => {
+          errors.push(args.map(String).join(" "));
+        });
+
+      try {
+        render(<PatternHarness initial={pattern} />);
+
+        const line: HTMLElement = screen.getByTestId(testId);
+
+        expect(line.tagName).toBe("DIV");
+        expect(line.closest("p")).toBeNull();
+        expect(
+          errors.filter((error: string) => {
+            return NESTING_WARNING.test(error);
+          }),
+        ).toEqual([]);
+      } finally {
+        spy.mockRestore();
+      }
+    },
+  );
+
   test("offers a button for each common placeholder and the number", () => {
     render(<PatternHarness initial="" />);
 
@@ -198,6 +242,10 @@ describe("the name pattern field", () => {
     expect(
       screen.getByTestId(`name-pattern-chip-${COUNTER_TOKEN}`),
     ).toBeInTheDocument();
+
+    // The label keeps its gap before the buttons on a page read either way.
+    expect(screen.getByText("Insert:").className).toContain("me-0.5");
+    expect(screen.getByText("Insert:").className).not.toMatch(/\bm[lr]-/);
   });
 
   test("a button puts its placeholder where the cursor is", () => {
@@ -273,6 +321,127 @@ describe("the lookup table", () => {
     expect(screen.getByTestId("naming-lookup-empty")).toHaveTextContent(
       "paste two columns from a spreadsheet",
     );
+  });
+
+  /*
+   * In a whole sentence for each kind of key (#6686): the one sentence it
+   * replaced put the key's title in it lowercased - "the last part of the
+   * ip address", "the mac address".
+   */
+  const emptySentences: Array<[NamingLookupKey, string]> = [
+    [
+      NamingLookupKey.LastIpOctet,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: the last part of each IP address and the value it stands for.",
+    ],
+    [
+      NamingLookupKey.IpAddress,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: each IP address and the value it stands for.",
+    ],
+    [
+      NamingLookupKey.MacAddress,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: each MAC address and the value it stands for.",
+    ],
+    [
+      NamingLookupKey.DiscoveredName,
+      "No rows yet. Add one, or paste two columns from a spreadsheet: each discovered name and the value it stands for.",
+    ],
+  ];
+
+  test.each(emptySentences)(
+    "an empty %s table asks for its own rows",
+    (kind: NamingLookupKey, sentence: string) => {
+      render(<TableHarness initial={[]} kind={kind} />);
+
+      const shown: string =
+        screen.getByTestId("naming-lookup-empty").textContent || "";
+
+      expect(shown).toBe(sentence);
+      expect(EMPTY_LOOKUP_TABLE_SENTENCES[kind]).toBe(sentence);
+      expect(shown).not.toMatch(/\bip\b|\bmac\b/);
+    },
+  );
+
+  test("the table's columns and buttons sit at the reading start and end, on a page read either way", () => {
+    render(<TableHarness initial={[{ key: "51", value: "MNUPLR01" }]} />);
+
+    // The key's column and the value's; the remove buttons' is read out only.
+    const titled: Array<HTMLElement> = [
+      screen.getByRole("columnheader", {
+        name: "Last part of the IP address",
+      }),
+      screen.getByRole("columnheader", { name: "Value" }),
+    ];
+
+    for (const header of screen.getAllByRole("columnheader")) {
+      expect(header.className).not.toMatch(/\btext-(left|right)\b/);
+    }
+
+    for (const header of titled) {
+      expect(header.className).toContain("text-start");
+    }
+
+    const removeCell: HTMLElement = screen
+      .getByTestId("naming-lookup-remove-row")
+      .closest("td") as HTMLElement;
+
+    expect(removeCell.className).toContain("text-end");
+    expect(removeCell.className).not.toMatch(/\btext-(left|right)\b/);
+    expect(screen.getByText("1 row").className).toContain("ms-auto");
+  });
+
+  /*
+   * A Button keeps a dialog footer's margin (md:ml-3): in a row of its own
+   * the first one sat in from the table's edge and the rest spread apart.
+   * The row takes it off each button it holds, which the row's classes
+   * reach only as its children or grandchildren.
+   */
+  const DIALOG_FOOTER_MARGIN: RegExp = /(^|\s)md:ml-3(\s|$)/;
+
+  test("the table's buttons line up with the table, without a dialog footer's margin", () => {
+    render(<TableHarness initial={[{ key: "51", value: "MNUPLR01" }]} />);
+
+    fireEvent.click(screen.getByTestId("naming-lookup-paste"));
+
+    const rows: Array<HTMLElement> = [
+      screen.getByTestId("naming-lookup-buttons"),
+      screen.getByTestId("naming-lookup-paste-buttons"),
+    ];
+
+    for (const row of rows) {
+      expect(row.className).toBe(LOOKUP_BUTTON_ROW_CLASS_NAME);
+
+      const buttons: Array<HTMLElement> = within(row).getAllByRole("button");
+
+      expect(buttons.length).toBeGreaterThanOrEqual(2);
+
+      for (const button of buttons) {
+        const isReached: boolean =
+          button.parentElement === row ||
+          button.parentElement?.parentElement === row;
+
+        expect({ button: button.textContent, isReached }).toEqual({
+          button: button.textContent,
+          isReached: true,
+        });
+      }
+
+      // What the row takes off is what a Button puts on.
+      expect(
+        buttons.some((button: HTMLElement) => {
+          return DIALOG_FOOTER_MARGIN.test(button.className);
+        }),
+      ).toBe(true);
+    }
+
+    for (const reset of [
+      "[&>button]:ml-0",
+      "[&>button]:md:ml-0",
+      "[&>*>button]:ml-0",
+      "[&>*>button]:md:ml-0",
+      "gap-2",
+    ]) {
+      expect(LOOKUP_BUTTON_ROW_CLASS_NAME.split(" ")).toContain(reset);
+    }
   });
 
   test("rows are added, typed into and removed", () => {
@@ -661,9 +830,9 @@ describe("the Apply Naming Rules dialog", () => {
         "Rename the 2 selected devices to follow your naming rules. Nothing changes until you confirm.",
       ),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Rename 0 devices" }),
-    ).toBeDisabled();
+    // Both already follow the rules: nothing to rename, so nothing offered.
+    expect(screen.queryByRole("button", { name: /^Rename/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
   });
 
   test("a project with no rules is told where to add one", async () => {
@@ -688,6 +857,228 @@ describe("the Apply Naming Rules dialog", () => {
     renderApply();
 
     expect(await screen.findByRole("alert")).toBeInTheDocument();
+  });
+
+  /*
+   * The footer offers a rename only when the plan names a device to rename
+   * (#6686 review): "Rename 0 devices", greyed out beside Cancel, read as
+   * a step the person had yet to take on a dialog with nothing to do.
+   */
+  describe("the dialog's footer", () => {
+    function renameButton(): HTMLElement | null {
+      return screen.queryByRole("button", { name: /^Rename \d+ devices?$/ });
+    }
+
+    test("while the plan loads: Cancel, and no rename yet", async () => {
+      let resolvePlan: (plan: DeviceNamingPlan) => void = () => {};
+
+      planMock.mockReturnValue(
+        new Promise<DeviceNamingPlan>(
+          (resolve: (plan: DeviceNamingPlan) => void) => {
+            resolvePlan = resolve;
+          },
+        ),
+      );
+
+      renderApply();
+
+      expect(screen.getByText("Loading plan")).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Cancel" }),
+      ).toBeInTheDocument();
+      expect(renameButton()).toBeNull();
+
+      await act(async () => {
+        resolvePlan(PLAN);
+      });
+
+      expect(
+        screen.getByRole("button", { name: "Rename 1 device" }),
+      ).toBeEnabled();
+      expect(
+        screen.getByRole("button", { name: "Cancel" }),
+      ).toBeInTheDocument();
+    });
+
+    const nothingToRename: Array<[string, () => void, string]> = [
+      [
+        "every device already follows the rules",
+        () => {
+          planMock.mockResolvedValue({
+            ...PLAN,
+            items: [],
+            devicesChecked: 4,
+            followingCount: 4,
+          });
+        },
+        "naming-plan-all-good",
+      ],
+      [
+        "no rule is enabled",
+        () => {
+          planMock.mockResolvedValue({
+            hasRules: false,
+            devicesChecked: 0,
+            items: [],
+            followingCount: 0,
+            isTruncated: false,
+          });
+        },
+        "naming-plan-no-rules",
+      ],
+      [
+        "the devices a rule covers need attention, and the rest no rule covers",
+        () => {
+          planMock.mockResolvedValue({
+            ...PLAN,
+            items: PLAN.items.filter(
+              (item: DeviceNamingPlan["items"][number]) => {
+                return item.outcome !== DeviceNamingOutcome.Named;
+              },
+            ),
+          });
+        },
+        "naming-plan",
+      ],
+    ];
+
+    test.each(nothingToRename)(
+      "%s: Close, and no rename button",
+      async (_case: string, arrange: () => void, shown: string) => {
+        arrange();
+
+        renderApply();
+
+        await screen.findByTestId(shown);
+
+        expect(renameButton()).toBeNull();
+        expect(
+          screen.getByRole("button", { name: "Close" }),
+        ).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+      },
+    );
+
+    test("a plan that cannot be read: its error, then Close", async () => {
+      planMock.mockRejectedValue(new Error("refused"));
+
+      renderApply();
+
+      await screen.findByRole("alert");
+
+      expect(renameButton()).toBeNull();
+      expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    });
+
+    test("only devices a person named: the rename is offered, at 0 until one is ticked", async () => {
+      planMock.mockResolvedValue({
+        ...PLAN,
+        items: PLAN.items.filter((item: DeviceNamingPlan["items"][number]) => {
+          return (
+            item.isNamedByPerson && item.outcome === DeviceNamingOutcome.Named
+          );
+        }),
+      });
+
+      renderApply();
+
+      await screen.findByTestId("naming-plan-named-by-person");
+
+      expect(
+        screen.getByRole("button", { name: "Rename 0 devices" }),
+      ).toBeDisabled();
+      expect(
+        screen.getByRole("button", { name: "Cancel" }),
+      ).toBeInTheDocument();
+
+      fireEvent.click(
+        within(screen.getByTestId("naming-plan-named-by-person")).getByRole(
+          "checkbox",
+        ),
+      );
+
+      expect(
+        screen.getByRole("button", { name: "Rename 1 device" }),
+      ).toBeEnabled();
+    });
+
+    test("once renamed: Done, and no rename button", async () => {
+      planMock.mockResolvedValue(PLAN);
+      applyMock.mockResolvedValue({
+        renamed: 1,
+        skipped: [],
+      } as DeviceNamingApplyResult);
+
+      renderApply();
+
+      await screen.findByTestId("naming-plan");
+
+      await act(async () => {
+        fireEvent.click(
+          screen.getByRole("button", { name: "Rename 1 device" }),
+        );
+      });
+
+      await screen.findByTestId("naming-apply-result");
+
+      expect(renameButton()).toBeNull();
+      expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
+    });
+
+    test("getCloseButtonText and hasRenameCandidates", () => {
+      expect(
+        getCloseButtonText({
+          isDone: true,
+          isLoading: false,
+          offersRename: false,
+        }),
+      ).toBe("Done");
+      expect(
+        getCloseButtonText({
+          isDone: false,
+          isLoading: true,
+          offersRename: false,
+        }),
+      ).toBe("Cancel");
+      expect(
+        getCloseButtonText({
+          isDone: false,
+          isLoading: false,
+          offersRename: true,
+        }),
+      ).toBe("Cancel");
+      expect(
+        getCloseButtonText({
+          isDone: false,
+          isLoading: false,
+          offersRename: false,
+        }),
+      ).toBe("Close");
+
+      expect(hasRenameCandidates(groupPlanItems(PLAN.items))).toBe(true);
+      expect(hasRenameCandidates(groupPlanItems([]))).toBe(false);
+      expect(
+        hasRenameCandidates(
+          groupPlanItems(
+            PLAN.items.filter((item: DeviceNamingPlan["items"][number]) => {
+              return (
+                item.isNamedByPerson &&
+                item.outcome === DeviceNamingOutcome.Named
+              );
+            }),
+          ),
+        ),
+      ).toBe(true);
+      expect(
+        hasRenameCandidates(
+          groupPlanItems(
+            PLAN.items.filter((item: DeviceNamingPlan["items"][number]) => {
+              return item.outcome !== DeviceNamingOutcome.Named;
+            }),
+          ),
+        ),
+      ).toBe(false);
+    });
   });
 
   test("groupPlanItems", () => {

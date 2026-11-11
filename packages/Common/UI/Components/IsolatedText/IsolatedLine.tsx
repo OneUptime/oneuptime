@@ -26,6 +26,38 @@ export interface ComponentProps {
 const LINE_CLAMP_CLASS_NAME_PATTERN: RegExp = /(?:^|\s)line-clamp-\d+(?:\s|$)/;
 
 /*
+ * A box whose words may run onto more lines: its white-space lets them
+ * wrap (whitespace-normal and the like, text-wrap, text-balance,
+ * text-pretty) or it breaks a word too long for it (break-words,
+ * break-all, [overflow-wrap:anywhere]).
+ */
+const WRAPPING_CLASS_NAME_PATTERN: RegExp =
+  /(?:^|\s)(?:whitespace-(?:normal|pre-wrap|pre-line|break-spaces)|text-(?:wrap|balance|pretty)|break-(?:words|all)|\[overflow-wrap:(?:anywhere|break-word)\]|\[word-break:break-(?:all|word)\])(?=\s|$)/;
+
+// A box kept to one line, whatever else it says.
+const ONE_LINE_CLASS_NAME_PATTERN: RegExp =
+  /(?:^|\s)(?:truncate|whitespace-nowrap|text-nowrap)(?=\s|$)/;
+
+/*
+ * Whether a box of these classes says its words wrap (and nothing keeps
+ * them to one line). Such a box aligned to its end, as a one-line box is,
+ * lines up every one of its lines by its end: an English paragraph on an
+ * Arabic page ragged on its left, where it starts. Exported for its tests.
+ */
+export const isWrappingLineClassName: (
+  className: string | null | undefined,
+) => boolean = (className: string | null | undefined): boolean => {
+  if (!className) {
+    return false;
+  }
+
+  return (
+    WRAPPING_CLASS_NAME_PATTERN.test(className) &&
+    !ONE_LINE_CLASS_NAME_PATTERN.test(className)
+  );
+};
+
+/*
  * The classes a line of `text` takes on a page in `pageLanguage`, and the
  * dir it reads in: none of either when its words read the page's way.
  */
@@ -50,12 +82,16 @@ export const getIsolatedLine: (data: {
 
   /*
    * Lined up as the page's lines are: by its end, which is the page's
-   * start - or, cut short to a few lines, by its width (text-end would
-   * drop a clamped line's "...").
+   * start - or, cut short to a few lines or wrapping onto them, by its
+   * width (text-end would drop a clamped line's "...", and line up each
+   * wrapped line by its end): as wide as its words, at the page's start,
+   * each of its lines from its own start.
    */
-  const alignClassName: string = LINE_CLAMP_CLASS_NAME_PATTERN.test(className)
-    ? CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME
-    : LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME;
+  const alignClassName: string =
+    LINE_CLAMP_CLASS_NAME_PATTERN.test(className) ||
+    isWrappingLineClassName(className)
+      ? CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME
+      : LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME;
 
   return {
     dir: dir,

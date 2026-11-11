@@ -1,6 +1,6 @@
 # Groupes de moniteurs
 
-Un groupe de moniteurs réunit plusieurs moniteurs en un seul statut. Regroupez les moniteurs qui forment ensemble un service, comme Checkout : son API, son service de paiement et son application web. Le groupe affiche le pire statut parmi eux, a sa propre disponibilité, et une page de statut peut afficher tout le groupe sur une seule ligne.
+Un groupe de moniteurs réunit plusieurs moniteurs en un seul statut. Regroupez les moniteurs qui forment ensemble un service, comme Checkout : son API, son service de paiement et son application web. Le groupe affiche le pire statut parmi eux, a sa propre disponibilité, et une page de statut peut afficher tout le groupe sur une seule ligne. Pour choisir entre un groupe de moniteurs, un service et une étiquette, consultez [Lequel choisir ?](/docs/introduction/which-one#groupe-de-moniteurs-service-ou-étiquette).
 
 :::cards
 - [Comment le statut d'un groupe est calculé](#comment-le-statut-dun-groupe-est-calculé): Le pire statut parmi ses moniteurs.

@@ -1,6 +1,6 @@
 # Gruppi di monitor
 
-Un gruppo di monitor riunisce più monitor in un unico stato. Raggruppate i monitor che insieme formano un servizio, come Checkout: la sua API, il suo servizio di pagamento e la sua app web. Il gruppo mostra lo stato peggiore tra loro, ha una propria disponibilità, e una pagina di stato può mostrare l'intero gruppo come una sola riga.
+Un gruppo di monitor riunisce più monitor in un unico stato. Raggruppate i monitor che insieme formano un servizio, come Checkout: la sua API, il suo servizio di pagamento e la sua app web. Il gruppo mostra lo stato peggiore tra loro, ha una propria disponibilità, e una pagina di stato può mostrare l'intero gruppo come una sola riga. Per scegliere tra un gruppo di monitor, un servizio e un'etichetta, consultate [Quale usare?](/docs/introduction/which-one#gruppo-di-monitor-servizio-o-etichetta).
 
 :::cards
 - [Come si calcola lo stato di un gruppo](#come-si-calcola-lo-stato-di-un-gruppo): Lo stato peggiore tra i suoi monitor.

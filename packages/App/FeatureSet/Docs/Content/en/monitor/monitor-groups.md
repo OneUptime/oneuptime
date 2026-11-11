@@ -1,6 +1,6 @@
 # Monitor Groups
 
-A monitor group rolls several monitors up into one status. Group the monitors that together make up one service, such as Checkout: its API, its payment service and its web app. The group shows the worst status among them, keeps its own uptime, and a status page can show the whole group as one row.
+A monitor group rolls several monitors up into one status. Group the monitors that together make up one service, such as Checkout: its API, its payment service and its web app. The group shows the worst status among them, keeps its own uptime, and a status page can show the whole group as one row. To choose between a monitor group, a service and a label, see [Which One Do I Use?](/docs/introduction/which-one#monitor-group-service-or-label).
 
 :::cards
 - [How a group's status is worked out](#how-a-groups-status-is-worked-out): The worst status among its monitors.

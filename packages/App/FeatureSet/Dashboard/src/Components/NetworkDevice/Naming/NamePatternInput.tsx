@@ -187,7 +187,7 @@ const NamePatternInput: FunctionComponent<NamePatternInputProps> = (
         aria-label={translator.translateText("Insert into the name pattern")}
         data-testid="name-pattern-chips"
       >
-        <span className="mr-0.5 text-xs font-medium text-gray-500">
+        <span className="me-0.5 text-xs font-medium text-gray-500">
           {translator.translateText("Insert:")}
         </span>
         {chips.map(
@@ -215,8 +215,12 @@ const NamePatternInput: FunctionComponent<NamePatternInputProps> = (
         )}
       </div>
 
+      {/*
+       * Divs, not paragraphs: an Icon draws a div, which a paragraph cannot
+       * hold.
+       */}
       {problem ? (
-        <p
+        <div
           className="flex items-start gap-1.5 text-sm text-red-600"
           role="alert"
           data-testid="name-pattern-problem"
@@ -228,9 +232,9 @@ const NamePatternInput: FunctionComponent<NamePatternInputProps> = (
           <span>
             {translator.translateTemplate(problem.template, problem.values)}
           </span>
-        </p>
+        </div>
       ) : example ? (
-        <p
+        <div
           className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-600"
           data-testid="name-pattern-example"
         >
@@ -250,7 +254,7 @@ const NamePatternInput: FunctionComponent<NamePatternInputProps> = (
               "for a device at 10.48.145.51 in the site coded 1216",
             )}
           </span>
-        </p>
+        </div>
       ) : null}
     </div>
   );

@@ -63,6 +63,29 @@ export function isColumnCheckType(type: DataCheckType): boolean {
   return COLUMN_CHECK_TYPES.includes(type);
 }
 
+/*
+ * The column a check reads, when it reads one: a check on one column, or
+ * a dbt test of one (dbt names it). Null for a check on the whole table -
+ * its rows, a query - even one that kept the column of a type it was
+ * before: that name is no longer what it reads.
+ */
+export function getDataCheckColumn(check: {
+  checkType?: DataCheckType | string | null | undefined;
+  columnName?: string | null | undefined;
+}): string | null {
+  const column: string = (check.columnName || "").trim();
+
+  if (!column) {
+    return null;
+  }
+
+  const type: DataCheckType = check.checkType as DataCheckType;
+
+  return isColumnCheckType(type) || type === DataCheckType.DbtTest
+    ? column
+    : null;
+}
+
 // The checks a person writes the query of.
 export function isQueryCheckType(type: DataCheckType): boolean {
   return type === DataCheckType.CustomSql || type === DataCheckType.FailingRows;

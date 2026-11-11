@@ -1,6 +1,6 @@
 # Monitorgrupper
 
-En monitorgruppe samler flere monitorer i én status. Gruppér de monitorer, der tilsammen udgør én tjeneste, som Checkout: dens API, dens betalingstjeneste og dens webapp. Gruppen viser den værste status blandt dem, har sin egen oppetid, og en statusside kan vise hele gruppen som én række.
+En monitorgruppe samler flere monitorer i én status. Gruppér de monitorer, der tilsammen udgør én tjeneste, som Checkout: dens API, dens betalingstjeneste og dens webapp. Gruppen viser den værste status blandt dem, har sin egen oppetid, og en statusside kan vise hele gruppen som én række. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#monitorgruppe-tjeneste-eller-etiket) for at vælge mellem en monitorgruppe, en tjeneste og en etiket.
 
 :::cards
 - [Sådan beregnes en gruppes status](#sådan-beregnes-en-gruppes-status): Den værste status blandt dens monitorer.

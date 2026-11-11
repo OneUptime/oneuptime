@@ -1,6 +1,6 @@
 # Grupos de monitores
 
-Um grupo de monitores reúne vários monitores em um único status. Agrupe os monitores que juntos formam um serviço, como Checkout: a API, o serviço de pagamentos e o app web dele. O grupo mostra o pior status entre eles, tem a sua própria disponibilidade, e uma página de status pode mostrar o grupo inteiro como uma única linha.
+Um grupo de monitores reúne vários monitores em um único status. Agrupe os monitores que juntos formam um serviço, como Checkout: a API, o serviço de pagamentos e o app web dele. O grupo mostra o pior status entre eles, tem a sua própria disponibilidade, e uma página de status pode mostrar o grupo inteiro como uma única linha. Para escolher entre um grupo de monitores, um serviço e um rótulo, veja [Qual devo usar?](/docs/introduction/which-one#grupo-de-monitores-serviço-ou-rótulo).
 
 :::cards
 - [Como o status de um grupo é calculado](#como-o-status-de-um-grupo-é-calculado): O pior status entre os seus monitores.

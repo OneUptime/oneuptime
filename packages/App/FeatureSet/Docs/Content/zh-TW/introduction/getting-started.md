@@ -7,6 +7,8 @@ OneUptime 是一個開源的可觀測性平台。它檢查你的網站、API 和
 :::cards
 - [快速開始](/docs/introduction/quickstart): 監控一個網站，在它故障時收到呼叫，並發布一個狀態頁面。
 - [核心概念](/docs/introduction/core-concepts): 其他一切所依據的幾個概念，以及它們之間的關聯。
+- [詞彙表](/docs/introduction/glossary): OneUptime 使用的每個詞彙，用一兩句話說明，並附上它的其他名稱。
+- [該用哪一個？](/docs/introduction/which-one): 事件還是警示、工作流程還是操作手冊，以及其他相似項目的並排比較。
 - [首頁與快捷鍵](/docs/introduction/home): 在儀表板中找到方向，以及幫你少點幾下的按鍵。
 - [您的帳戶](/docs/introduction/your-account): 你的個人資料、密碼、通行密鑰和雙重驗證。
 :::

@@ -1,6 +1,6 @@
 # Vagt – Oversigt
 
-Vagt er den måde, OneUptime får en person sat på et problem, på alle tider af døgnet. Når en hændelse, en advarsel eller en episode har brug for nogen, tilkalder dens vagtpolitikker folk niveau for niveau, indtil nogen kvitterer, og hver person nås på den måde, de har valgt: en pushnotifikation, en sms, et opkald, en e-mail eller en chatbesked. Denne side viser, hvordan delene hænger sammen, og hvor hver del findes.
+Vagt er den måde, OneUptime får en person sat på et problem, på alle tider af døgnet. Når en hændelse, en advarsel eller en episode har brug for nogen, tilkalder dens vagtpolitikker folk niveau for niveau, indtil nogen kvitterer, og hver person nås på den måde, de har valgt: en pushnotifikation, en sms, et opkald, en e-mail eller en chatbesked. Denne side viser, hvordan delene hænger sammen, og hvor hver del findes. Hvert ord, der bruges om vagt, er forklaret med en sætning eller to i [Ordliste](/docs/introduction/glossary#vagtpolitik).
 
 :::cards
 - [Sådan når et tilkald frem](#sådan-når-et-tilkald-frem): Fra en ny hændelse til den person, der svarer.
@@ -36,6 +36,8 @@ Første gang et tilkald når frem til nogen, registrerer OneUptime det på hænd
 > En hændelse, advarsel eller episode, der oprettes allerede bekræftet eller løst, kører ingen af sine politikker, og dens feed siger det. Se [Oprettet allerede bekræftet eller løst](/docs/alerts/index#oprettet-allerede-bekræftet-eller-løst).
 
 ## Byggestenene
+
+Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af OneUptime.
 
 | Del | Hvad den afgør | Læs mere |
 | --- | --- | --- |

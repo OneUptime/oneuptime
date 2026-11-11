@@ -14,7 +14,10 @@ import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPa
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
+import {
+  getOnCallPolicyRunEndedWhileWaitingMessage,
+  isOnCallPolicyRunWaitOver,
+} from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import {
   getOnCallEscalationDueAt,
   getOnCallEscalationWaitInMinutes,
@@ -409,7 +412,9 @@ const getResolvedRecordKind: GetResolvedRecordKindFunction = async (
  * - its record was acknowledged or resolved: nobody needs paging, so it
  *   ends, having paged nobody;
  * - its moment came: it pages its first escalation rule, and from then on
- *   is a run like any other (executeOnCallPolicy).
+ *   is a run like any other (executeOnCallPolicy). Its page is timed from
+ *   that moment, not from the tick that got to it, so a tick that came late
+ *   shows in its time to send (OnCallPageTiming, issue #6708).
  *
  * A run OneUptime AI held (OnCallPolicyAiHold) says how its hold ended, in
  * the same claim: how its record came to be handled (classifyEndedHold), or
@@ -467,13 +472,16 @@ const startOrEndWaitingRun: StartOrEndWaitingRunFunction = async (
 
     const now: Date = OneUptimeDate.getCurrentDate();
 
-    // Not yet: it goes on waiting.
+    /*
+     * Not yet: it goes on waiting. Read as its page's start reads it
+     * (getOnCallPolicyRunPagingDueAt, in startWaitingRun): a run started
+     * late is timed from its moment, not from this tick.
+     */
     if (
-      executionLog.pagingStartsAt &&
-      OneUptimeDate.isAfter(
-        OneUptimeDate.fromString(executionLog.pagingStartsAt),
-        now,
-      )
+      !isOnCallPolicyRunWaitOver({
+        pagingStartsAt: executionLog.pagingStartsAt,
+        now: now,
+      })
     ) {
       return;
     }

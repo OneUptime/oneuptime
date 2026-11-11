@@ -15,6 +15,12 @@ import {
 } from "../../../../UI/Utils/LineDirection";
 import { TABLE_FOLDED_MAIN_ATTRIBUTE } from "../../../../UI/Components/Table/FullValueTitle";
 import { TABLE_FOLDED_VALUE_TEST_ID } from "../../../../UI/Components/Table/TableFoldedValues";
+import { DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME } from "../../../../UI/Components/Table/CellClassName";
+import {
+  TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+  TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
+  TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME,
+} from "../../../../UI/Components/Table/TableLayout";
 
 /*
  * A table's plain value is cut short with "..." at its cell's edge, and a
@@ -387,5 +393,260 @@ describe("a row's name that reads the other way", () => {
 
     expect(box).not.toHaveAttribute("dir");
     expect(box).not.toHaveClass("[text-align-last:end]");
+  });
+});
+
+/*
+ * A COLUMN OF PROSE (Column.wrapContent) READ THE OTHER WAY (#6742).
+ *
+ * A column of prose wraps its value rather than cut it short. Aligned to
+ * its end, as a one-line value is, every wrapped line of an English
+ * description on a Persian page lined up on the right, ragged on its left
+ * where an English paragraph starts. The cell's own box keeps the page's
+ * way and its width (its cap, its floor); the value reads its own way in a
+ * box inside it as wide as its words - at the page's start, each of its
+ * lines from its own start (TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME).
+ */
+describe("a column of prose", () => {
+  const PROSE: Columns<Row> = [
+    { title: "Owner", type: FieldType.Text, key: "owner" },
+    {
+      title: "Last Poll Summary",
+      type: FieldType.Text,
+      key: "summary",
+      wrapContent: true,
+    },
+  ];
+
+  // The cell's own box, the <td>'s direct child, which holds the cap.
+  const proseBoxOf: (text: string) => HTMLElement = (
+    text: string,
+  ): HTMLElement => {
+    const cell: HTMLElement = screen
+      .getByText(text)
+      .closest("td") as HTMLElement;
+
+    return cell.firstElementChild as HTMLElement;
+  };
+
+  test("on a Persian page, an English value reads left to right in a box as wide as its words, its lines from its own start", () => {
+    drawRow({ language: "fa", columns: PROSE });
+
+    const box: HTMLElement = proseBoxOf(ROW.summary);
+
+    // The cell's box keeps the page's way, its cap and its floor...
+    expect(box).not.toHaveAttribute("dir");
+    expect(box).toHaveClass(
+      DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME,
+      TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME,
+    );
+    // ...and no alignment of a one-line value: none of its lines by its end.
+    expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(box).not.toHaveClass("[text-align-last:end]");
+
+    // The value reads its own way inside it, as wide as its words.
+    expect(box.children).toHaveLength(1);
+
+    const line: HTMLElement = box.firstElementChild as HTMLElement;
+
+    expect(line.tagName).toBe("DIV");
+    expect(line).toHaveAttribute("dir", "ltr");
+    expect(line.getAttribute("class")).toBe(
+      TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME,
+    );
+    expect(line).toHaveClass(
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
+    expect(line).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(line).toHaveTextContent(ROW.summary);
+  });
+
+  test("the box inside keeps what it holds at the top of its line, as the cell's box does", () => {
+    expect(TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME.split(" ")).toEqual([
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+      TABLE_CELL_CONTENT_ALIGN_CLASS_NAME,
+    ]);
+    // No cap of its own: max-w-full under the cell's cap, not over it.
+    expect(TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME).not.toContain(
+      DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME,
+    );
+    expect(TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME).not.toContain(
+      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+    );
+  });
+
+  test("a column that names its own cap keeps it on the cell's box", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        {
+          title: "Last Poll Summary",
+          type: FieldType.Text,
+          key: "summary",
+          wrapContent: true,
+          wrapMaxWidthClassName: "max-w-xs",
+        },
+      ],
+    });
+
+    const box: HTMLElement = proseBoxOf(ROW.summary);
+
+    expect(box).toHaveClass("max-w-xs");
+    expect(box).not.toHaveClass(DEFAULT_WRAP_MAX_WIDTH_CLASS_NAME);
+    expect(box).not.toHaveAttribute("dir");
+    expect(box.firstElementChild).toHaveAttribute("dir", "ltr");
+  });
+
+  test("a Persian value on a Persian page is drawn as it always was", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        {
+          title: "Owner",
+          type: FieldType.Text,
+          key: "owner",
+          wrapContent: true,
+        },
+      ],
+    });
+
+    const box: HTMLElement = proseBoxOf(ROW.owner);
+
+    expect(box).not.toHaveAttribute("dir");
+    expect(box.querySelector("[dir]:not(bdi)")).toBe(null);
+    expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("an English value on an English page is drawn as it always was", () => {
+    drawRow({ language: "en", columns: PROSE });
+
+    const box: HTMLElement = proseBoxOf(ROW.summary);
+
+    expect(box).not.toHaveAttribute("dir");
+    expect(box.querySelector("[dir]:not(bdi)")).toBe(null);
+    expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("a Persian value on an English page reads right to left, its lines from its own start", () => {
+    drawRow({
+      language: "en",
+      columns: [
+        {
+          title: "Owner",
+          type: FieldType.Text,
+          key: "owner",
+          wrapContent: true,
+        },
+      ],
+    });
+
+    const box: HTMLElement = proseBoxOf(ROW.owner);
+
+    expect(box).not.toHaveAttribute("dir");
+    expect(box).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(box.firstElementChild).toHaveAttribute("dir", "rtl");
+    expect(box.firstElementChild).toHaveClass(
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
+  });
+
+  test("an element whose column names its words (getLineText) reads their way the same", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        {
+          title: "Last Poll Summary",
+          type: FieldType.Element,
+          key: "summary",
+          wrapContent: true,
+          getElement: (row: Row): ReactElement => {
+            return <p className="text-sm">{row.summary}</p>;
+          },
+          getLineText: (row: Row): string => {
+            return row.summary;
+          },
+        },
+      ],
+    });
+
+    const box: HTMLElement = proseBoxOf(ROW.summary);
+    const line: HTMLElement = box.firstElementChild as HTMLElement;
+
+    expect(box).not.toHaveAttribute("dir");
+    expect(line).toHaveAttribute("dir", "ltr");
+    expect(line.firstElementChild?.tagName).toBe("P");
+  });
+
+  test("an element that says nothing of its words keeps the page's way", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        {
+          title: "Last Poll Summary",
+          type: FieldType.Element,
+          key: "summary",
+          wrapContent: true,
+          getElement: (row: Row): ReactElement => {
+            return <p className="text-sm">{row.summary}</p>;
+          },
+        },
+      ],
+    });
+
+    const box: HTMLElement = proseBoxOf(ROW.summary);
+
+    expect(box).not.toHaveAttribute("dir");
+    expect(box.firstElementChild?.tagName).toBe("P");
+  });
+
+  test("with values folded under it, the cell keeps the page's way and its own value's line reads its way, as wide as its words", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        {
+          title: "Last Poll Summary",
+          type: FieldType.Text,
+          key: "summary",
+          wrapContent: true,
+        },
+      ],
+      foldedColumns: [
+        {
+          title: "Owner",
+          type: FieldType.Text,
+          key: "owner",
+          hideBelowLargeScreen: true,
+          foldInto: "summary",
+        },
+      ],
+    });
+
+    const box: HTMLElement = proseBoxOf(ROW.summary);
+    const main: HTMLElement = box.querySelector(
+      `[${TABLE_FOLDED_MAIN_ATTRIBUTE}]`,
+    ) as HTMLElement;
+
+    expect(box).not.toHaveAttribute("dir");
+    expect(main).toHaveAttribute("dir", "ltr");
+    expect(main).toHaveClass(
+      ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+    );
+    expect(main).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  });
+
+  test("a one-line column beside it is drawn as it always was", () => {
+    drawRow({
+      language: "fa",
+      columns: [
+        { title: "Owner", type: FieldType.Text, key: "owner" },
+        { title: "Last Poll Summary", type: FieldType.Text, key: "summary" },
+      ],
+    });
+
+    const box: HTMLElement = proseBoxOf(ROW.summary);
+
+    // Its box itself reads the value's way, cut short at its own end.
+    expect(box).toHaveAttribute("dir", "ltr");
+    expect(box.firstElementChild?.tagName).not.toBe("DIV");
   });
 });

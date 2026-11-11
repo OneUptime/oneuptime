@@ -26,6 +26,9 @@ import OnCallEscalationAdvance, {
   OnCallEscalationAdvanceResult,
 } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
+import OnCallPageTiming, {
+  OnCallPageStartMoment,
+} from "../../../../Server/Utils/OnCall/OnCallPageTiming";
 import ProjectMembership from "../../../../Server/Utils/TeamMember/ProjectMembership";
 import OnCallPolicyRunMessage from "../../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import OneUptimeDate from "../../../../Types/Date";
@@ -106,11 +109,17 @@ export interface RuleSetup {
   escalateAfterInMinutes?: number | undefined;
 }
 
-// One person paged, as the world saw it.
+/*
+ * One person paged, as the world saw it: when, and the start of the page
+ * their notifications are timed from (OnCallPageTiming) - null when they
+ * were not paged as a page started.
+ */
 export interface PageEvent {
   userId: string;
   ruleId: string | null;
+  runId: string;
   at: Date;
+  pageStart: OnCallPageStartMoment | null;
 }
 
 let idCounter: number = 0;
@@ -432,10 +441,20 @@ export default class PassOnWorld {
         log.createdAt = new Date(this.clock);
         this.logs.push(log);
 
+        const pageStart: OnCallPageStartMoment | null =
+          OnCallPageTiming.getPageStart();
+
         this.pages.push({
           userId: userId.toString(),
           ruleId: options.onCallPolicyEscalationRuleId?.toString() || null,
+          runId: options.onCallPolicyExecutionLogId.toString(),
           at: new Date(this.clock),
+          pageStart: pageStart
+            ? {
+                startedAt: new Date(pageStart.startedAt),
+                start: pageStart.start,
+              }
+            : null,
         });
       },
     );
@@ -871,6 +890,28 @@ export default class PassOnWorld {
     return this.pages.map((page: PageEvent) => {
       return NAMES[page.userId] || page.userId;
     });
+  }
+
+  /*
+   * Everybody a run paged, in order: by name, when, and the page start
+   * their notifications are timed from (null: none).
+   */
+  public pageStartsIn(runId: ObjectID | string): Array<{
+    name: string;
+    at: Date;
+    pageStart: OnCallPageStartMoment | null;
+  }> {
+    return this.pages
+      .filter((page: PageEvent) => {
+        return sameKey(page.runId, runId);
+      })
+      .map((page: PageEvent) => {
+        return {
+          name: NAMES[page.userId] || page.userId,
+          at: page.at,
+          pageStart: page.pageStart,
+        };
+      });
   }
 
   // A person's lines on the run's timeline: status and message.

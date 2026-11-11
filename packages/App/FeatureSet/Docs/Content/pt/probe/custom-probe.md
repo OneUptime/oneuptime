@@ -1,6 +1,6 @@
 # Sondas personalizadas
 
-Uma sonda personalizada é um pequeno agente que você executa dentro da sua própria rede. Ela verifica os monitores aos quais você a adiciona, como sites internos, APIs e servidores atrás do seu firewall, e envia os resultados ao OneUptime. Ela só abre conexões de saída, por HTTPS, então nada na sua rede precisa aceitar conexões vindas da internet.
+Uma sonda personalizada é um pequeno agente que você executa dentro da sua própria rede. Ela verifica os monitores aos quais você a adiciona, como sites internos, APIs e servidores atrás do seu firewall, e envia os resultados ao OneUptime. Ela só abre conexões de saída, por HTTPS, então nada na sua rede precisa aceitar conexões vindas da internet. Para escolher entre uma sonda, um agente, um coletor e um Runner, veja [Qual devo usar?](/docs/introduction/which-one#sonda-agente-coletor-ou-runner).
 
 :::cards
 - [Como funciona](#como-funciona): O que a sonda faz e como o OneUptime sabe que ela está rodando.

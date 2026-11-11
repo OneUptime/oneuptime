@@ -230,6 +230,71 @@ export function useProductAnalyticsWidgetPeriod(
   }, [props.dashboardStartAndEndDate, props.refreshTick]);
 }
 
+/*
+ * Whether a widget links to its page: once its saved one is read, and not
+ * while the board is edited (a navigation would drop the edit) nor on a
+ * playlist's screen, which nobody drives. A public dashboard reads no
+ * saved one, so never there either.
+ */
+export function isProductAnalyticsWidgetLinked(data: {
+  state: ProductAnalyticsWidgetState;
+  hasView: boolean;
+  isEditMode: boolean;
+  isPlayback: boolean;
+}): boolean {
+  return (
+    data.hasView &&
+    data.state === ProductAnalyticsWidgetState.Ready &&
+    !data.isEditMode &&
+    !data.isPlayback
+  );
+}
+
+export interface ProductAnalyticsWidgetPageLinkProps<
+  T extends ProductAnalyticsSavedViewType,
+> {
+  view: ProductAnalyticsSavedView<T>;
+  viewType: T;
+  dashboardStartAndEndDate: RangeStartAndEndDateTime;
+  // Under the pointer: where it goes ("Open in User Retention").
+  title: string;
+  className: string;
+  dataTestId: string;
+  children: ReactElement | Array<ReactElement> | string;
+}
+
+/*
+ * A link to the saved one on its page, in the dashboard's range: the
+ * title's icon, and a retention table's "2 more weeks" under it. A link,
+ * so it opens in a new tab too; not also a click on the widget under it.
+ */
+export function ProductAnalyticsWidgetPageLink<
+  T extends ProductAnalyticsSavedViewType,
+>(props: ProductAnalyticsWidgetPageLinkProps<T>): ReactElement {
+  return (
+    <span
+      className="flex flex-none"
+      onClick={(event: React.MouseEvent<HTMLSpanElement>): void => {
+        event.stopPropagation();
+      }}
+    >
+      <AppLink
+        to={getProductAnalyticsSavedViewRoute({
+          rumApplicationId: props.view.rumApplicationId,
+          viewType: props.viewType,
+          savedViewId: props.view.id,
+          timeRange: props.dashboardStartAndEndDate,
+        })}
+        title={props.title}
+        dataTestId={props.dataTestId}
+        className={props.className}
+      >
+        {props.children}
+      </AppLink>
+    </span>
+  );
+}
+
 export interface ProductAnalyticsWidgetFrameProps<
   T extends ProductAnalyticsSavedViewType,
 > {
@@ -259,12 +324,12 @@ export function ProductAnalyticsWidgetFrame<
     PRODUCT_ANALYTICS_WIDGET_WORDS[props.viewType];
   const view: ProductAnalyticsSavedView<T> | null = props.saved.view;
   const title: string = props.title?.trim() || view?.name || "";
-  const isLinked: boolean = Boolean(
-    view &&
-      props.saved.state === ProductAnalyticsWidgetState.Ready &&
-      !props.isEditMode &&
-      !props.isPlayback,
-  );
+  const isLinked: boolean = isProductAnalyticsWidgetLinked({
+    state: props.saved.state,
+    hasView: Boolean(view),
+    isEditMode: props.isEditMode,
+    isPlayback: props.isPlayback,
+  });
 
   let body: ReactNode;
 
@@ -321,32 +386,21 @@ export function ProductAnalyticsWidgetFrame<
              * title's end, its words on hover and to assistive tech, so the
              * title keeps the widget's width - the words beside it cut
              * "Weekly return visits" to "Weekly retur..." on a phone, and
-             * German's longer ones cut more. A link, so it opens in a new
-             * tab too; not also a click on the widget under it.
+             * German's longer ones cut more.
              */
-            <span
-              className="flex flex-none"
-              onClick={(event: React.MouseEvent<HTMLSpanElement>): void => {
-                event.stopPropagation();
-              }}
+            <ProductAnalyticsWidgetPageLink
+              view={view}
+              viewType={props.viewType}
+              dashboardStartAndEndDate={props.dashboardStartAndEndDate}
+              title={translator.translateText(words.open) || words.open}
+              dataTestId={`${props.dataTestId}-open`}
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
             >
-              <AppLink
-                to={getProductAnalyticsSavedViewRoute({
-                  rumApplicationId: view.rumApplicationId,
-                  viewType: props.viewType,
-                  savedViewId: view.id,
-                  timeRange: props.dashboardStartAndEndDate,
-                })}
-                title={translator.translateText(words.open)}
-                dataTestId={`${props.dataTestId}-open`}
-                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              >
-                <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-                <span className="sr-only">
-                  {translator.translateText(words.open)}
-                </span>
-              </AppLink>
-            </span>
+              <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+              <span className="sr-only">
+                {translator.translateText(words.open)}
+              </span>
+            </ProductAnalyticsWidgetPageLink>
           ) : (
             <></>
           )}

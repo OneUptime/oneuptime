@@ -375,6 +375,7 @@ describe("an answer at every limit a drawing has", () => {
         isCauseDrawn: false,
         consequenceCount: 0,
         drawnConsequenceCount: 0,
+        column: null,
       },
       NOW,
     );

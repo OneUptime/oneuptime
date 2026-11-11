@@ -178,7 +178,7 @@ node ModelTables/Fixture/server.js
 Then open
 `http://127.0.0.1:4319/dashboard/10000000-0000-4000-8000-000000000001/incidents`
 (or any page above), adding `?data=rich`, `?data=long`, `?data=labels` or
-`?data=empty`,
+`?data=empty`, `?services=1` (the first alert is linked to a service too),
 `?rows=<n>` (n more rows on every list), `?role=viewer`, `?delay=<ms>` (each
 list read takes this long), `?fail=<table>` (`Incident`, `Monitor`, ... or
 `all`), `?lang=de|ja|fa` or `?theme=dark`. `--watch` rebuilds the bundle as
