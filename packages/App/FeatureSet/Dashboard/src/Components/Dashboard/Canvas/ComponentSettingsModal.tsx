@@ -35,6 +35,7 @@ import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { isDashboardComponentType } from "Common/Types/Dashboard/DashboardComponentType";
+import { getWidgetTypeBadgeText } from "../Toolbar/WidgetCatalog";
 import ContainedErrorBoundary from "Common/UI/Components/ContainedErrorBoundary/ContainedErrorBoundary";
 
 /*
@@ -70,6 +71,9 @@ export const getWidgetDisplayName: (
 
   return "";
 };
+
+export const WIDGET_SETTINGS_TYPE_BADGE_TEST_ID: string =
+  "widget-settings-type";
 
 export interface ComponentProps {
   title: string;
@@ -225,6 +229,17 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
     component.componentType,
   );
 
+  /*
+   * The badge beside the size: the widget's name as the catalog gives it
+   * (issue #6720), in the reader's language - "Funnel", "Docker Hosts" -
+   * never its stored type, unless that is a type OneUptime has no widget
+   * of; none when the widget names no type at all.
+   */
+  const typeBadgeText: string = getWidgetTypeBadgeText(
+    component.componentType,
+    translator,
+  );
+
   const aspectRatio: number =
     (component.widthInDashboardUnits || 1) /
     (component.heightInDashboardUnits || 1);
@@ -269,10 +284,22 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
       }
       rightElement={
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 capitalize">
-            {translator.translateText(component.componentType)}
-          </span>
-          <span className="text-xs text-gray-400">
+          {typeBadgeText ? (
+            /*
+             * Cut at its end when a long name in a long language meets a
+             * phone's header; whole on hover.
+             */
+            <span
+              className="inline-block max-w-[11rem] truncate rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700"
+              title={typeBadgeText}
+              data-testid={WIDGET_SETTINGS_TYPE_BADGE_TEST_ID}
+            >
+              {typeBadgeText}
+            </span>
+          ) : (
+            <></>
+          )}
+          <span className="whitespace-nowrap text-xs text-gray-400">
             {translator.translateTemplate("{{width}} x {{height}} units", {
               width: component.widthInDashboardUnits,
               height: component.heightInDashboardUnits,
