@@ -140,5 +140,5 @@ Quando um pull request altera uma tabela observada, o [Production Review](/docs/
 
 :::cards
 - [Produtos de dados](/docs/data-observability/data-products): SLAs de atualização sobre as tabelas que as pessoas usam.
-- [OneUptime AI e a API](/docs/data-observability/ai-and-api): Investigações que partem de quem escreve em uma tabela e das execuções dela.
+- [OneUptime AI e a API](/docs/data-observability/ai-and-api): Investigações que partem de quem escreve em uma tabela e das execuções dela. Pelo Pergunte à IA e por agentes de IA, é possível perguntar a partir do que uma tabela é construída.
 :::

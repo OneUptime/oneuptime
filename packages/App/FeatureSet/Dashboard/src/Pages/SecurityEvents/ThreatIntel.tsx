@@ -87,6 +87,7 @@ import SecurityListNameCell, {
 } from "../../Components/SecurityEvents/SecurityListNameCell";
 import { guideToMarkdown } from "../../Components/SecurityEvents/HowItWorks/SecurityEventsGuide";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * The description, the poll interval, the confidence floor and the
@@ -771,6 +772,8 @@ const ThreatIntelPage: FunctionComponent<PageComponentProps> = (
             wrapContent: true,
             wrapMaxWidthClassName:
               SECURITY_LIST_NAME_COLUMN_MAX_WIDTH_CLASS_NAME,
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: ThreatIntelFeed): ReactElement => {
               return (
                 <SecurityListNameCell

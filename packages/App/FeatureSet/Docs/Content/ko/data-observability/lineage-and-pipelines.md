@@ -140,5 +140,5 @@ Power BI 도구를 추가하거나 편집할 때 **Alert on Failed Refreshes**�
 
 :::cards
 - [데이터 제품](/docs/data-observability/data-products): 사람들이 사용하는 테이블에 대한 최신성 SLA.
-- [OneUptime AI와 API](/docs/data-observability/ai-and-api): 테이블에 쓰는 주체와 실행에서 시작하는 조사.
+- [OneUptime AI와 API](/docs/data-observability/ai-and-api): 테이블에 쓰는 주체와 실행에서 시작하는 조사. AI에게 질문과 AI 에이전트에서 테이블이 무엇으로 만들어지는지도 물어볼 수 있습니다.
 :::

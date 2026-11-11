@@ -37,7 +37,7 @@ flowchart TB
 - **테이블마다 설정할 것이 없습니다.** 리듬, 일정, 평소 실행 시간은 각 테이블과 파이프라인이 실제로 하는 일에서 학습하며, 데이터베이스에 권장된 모니터는 나중에 만들어지는 테이블까지 포함해 그 안의 모든 테이블을 다룹니다.
 - **원인 하나에 경고 하나.** 업스트림 테이블, 파이프라인 또는 데이터베이스에 이미 열린 경고가 있으면, 새 경고는 그 결과로서 그 경고에 합류하고 처음부터 인지된 상태가 되므로, 깨진 적재 하나는 한 번만 호출합니다.
 - **모든 경고가 스스로를 설명합니다.** 가능성 높은 원인의 순위를 매기고, 테이블에 의존하는 대상과 소유자를 알려 주며, 경고에 대해 말한 내용에서 학습합니다. 하나를 **문제 아님** 으로 표시하면 같은 일은 다음에 조용히 지나갑니다.
-- **OneUptime AI가 데이터를 압니다.** 데이터 경고 조사는 테이블에 쓰는 주체, 실행, 업스트림 테이블에서 시작하고, AI에게 질문, Slack, Microsoft Teams, AI 에이전트에서 테이블이 최신인지 물어볼 수 있으며, 검사를 문장 하나로 작성할 수 있습니다. [OneUptime AI와 API](/docs/data-observability/ai-and-api)를 참고하세요.
+- **OneUptime AI가 데이터를 압니다.** 데이터 경고 조사는 테이블에 쓰는 주체, 실행, 계보에서 시작하고, AI에게 질문, Slack, Microsoft Teams, AI 에이전트에서 테이블이 최신인지, 무엇으로 만들어지는지 물어볼 수 있으며, 검사를 문장 하나로 작성할 수 있습니다. [OneUptime AI와 API](/docs/data-observability/ai-and-api)를 참고하세요.
 
 ## 시작하기 전에
 
@@ -80,5 +80,5 @@ OneUptime Cloud에서는 프로젝트의 처음 100개 테이블이 무료입니
 - [검사 및 대사](/docs/data-observability/checks): 테이블 값에 대한 규칙, 테이블과 그 복사본의 비교, 그리고 dbt의 테스트.
 - [리니지와 파이프라인](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran, Airbyte, 그리고 원인 하나에 경고 하나.
 - [데이터 제품](/docs/data-observability/data-products): 데이터를 쓰는 사람들을 위한 최신성 SLA를 상태 페이지에 표시하고 SLO로 추적합니다.
-- [OneUptime AI와 API](/docs/data-observability/ai-and-api): 조사, 문장으로 만드는 검사, AI 에이전트를 위한 최신성, 그리고 모든 엔드포인트.
+- [OneUptime AI와 API](/docs/data-observability/ai-and-api): 조사, 문장으로 만드는 검사, AI 에이전트를 위한 최신성과 계보, 그리고 모든 엔드포인트.
 :::

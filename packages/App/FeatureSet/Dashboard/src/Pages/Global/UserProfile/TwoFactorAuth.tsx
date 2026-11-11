@@ -29,6 +29,8 @@ import {
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 const TwoFactorAuth: FunctionComponent<
   PageComponentProps
@@ -296,6 +298,8 @@ const TwoFactorAuth: FunctionComponent<
             title: "Name",
             type: FieldType.Text,
             wrapContent: true,
+            // A mark beside the name: the name reads its own way, the cell the page's.
+            getLineText: drawsItsOwnLines,
             getElement: (item: UserTotpAuth): ReactElement => {
               return (
                 <div className="flex items-center gap-3">
@@ -305,7 +309,9 @@ const TwoFactorAuth: FunctionComponent<
                       className="h-5 w-5"
                     />
                   </span>
-                  <span className="font-medium text-gray-900">{item.name}</span>
+                  <span className="font-medium text-gray-900">
+                    <IsolatedText text={item.name || ""} />
+                  </span>
                 </div>
               );
             },

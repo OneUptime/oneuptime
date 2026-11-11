@@ -26,7 +26,14 @@ const MonitorStepMetricPreview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
-  const rollingTime: RollingTime = props.rollingTime || RollingTime.Past1Minute;
+  /*
+   * The window the monitor's checks read: a rolling time written another
+   * way ("15 minutes") is the one it means, and one that means none the
+   * default - never a window of no length, which charted nothing.
+   */
+  const rollingTime: RollingTime = RollingTimeUtil.fromValueOrDefault(
+    props.rollingTime,
+  );
 
   /*
    * Held in state, not derived on every render: MetricView refetches

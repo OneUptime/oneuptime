@@ -51,10 +51,12 @@ import OnCallEscalationAdvance, {
 } from "./OnCallEscalationAdvance";
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
+  OnCallTimeoutRecordStanding,
   OnCallTimeoutRecordState,
 } from "./OnCallAcknowledgementTimeout";
 import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
 
 /*
  * PASSING A PAGE ON - THE SERVER SIDE OF "CAN'T TAKE IT? ESCALATE."
@@ -119,6 +121,12 @@ const RUN_SELECT: Select<OnCallDutyPolicyExecutionLog> = {
   // A page again is taken when it is acknowledged, not its record.
   pageAgainNumber: true,
   acknowledgedAt: true,
+  /*
+   * So is a page a person asked for (OnCallPersonPage), told apart by these
+   * two with onCallDutyPolicyId above: all three, as isOnCallPersonPage asks.
+   */
+  triggeredByUserId: true,
+  triggeredByWorkflowId: true,
   // An observer's page says so in the open pages (OnCallObserverPage).
   isObserverPage: true,
   onCallDutyPolicy: {
@@ -202,7 +210,11 @@ export default class OnCallPagePassOn {
     userId: ObjectID;
     executionLogId: ObjectID;
   }): Promise<OnCallPassOnAnswer> {
-    const read: ReadStateResult = await this.readState(data);
+    const read: ReadStateResult = await this.readState({
+      userId: data.userId,
+      executionLogId: data.executionLogId,
+      nameWhoTookIt: true,
+    });
 
     if (!read.state) {
       return read.answer;
@@ -236,7 +248,11 @@ export default class OnCallPagePassOn {
      */
     toEscalationRuleId?: ObjectID | undefined;
   }): Promise<OnCallPassOnAnswer> {
-    const read: ReadStateResult = await this.readState(data);
+    const read: ReadStateResult = await this.readState({
+      userId: data.userId,
+      executionLogId: data.executionLogId,
+      nameWhoTookIt: true,
+    });
 
     if (!read.state) {
       return read.answer;
@@ -582,10 +598,16 @@ export default class OnCallPagePassOn {
    * The run and the person's pages in it, or why there is nothing to pass
    * on: they are not paged in it, the record was taken, they passed it on
    * already, or it is over.
+   *
+   * `nameWhoTookIt`: a refusal the person reads names who acknowledged the
+   * record even when no page was answered (readRecordAcknowledgerName). The
+   * Dashboard's list of the person's pages, read on every visit of a record,
+   * shows no refusal and leaves it off.
    */
   private static async readState(data: {
     userId: ObjectID;
     executionLogId: ObjectID;
+    nameWhoTookIt?: boolean | undefined;
   }): Promise<ReadStateResult> {
     const run: OnCallDutyPolicyExecutionLog | null =
       await OnCallDutyPolicyExecutionLogService.findOneById({
@@ -637,12 +659,24 @@ export default class OnCallPagePassOn {
       }) || (await this.isRecordAcknowledged(run));
 
     if (isTaken) {
+      /*
+       * Who took it: who answered a page of the run, as the run records it;
+       * else, for a refusal the person reads, who acknowledged the record -
+       * in the Dashboard, the app, Slack or Microsoft Teams, answering no
+       * page - by its state timeline.
+       */
+      const acknowledgedByName: string | undefined = run.acknowledgedByUserId
+        ? this.getPersonName(run.acknowledgedByUser)
+        : data.nameWhoTookIt
+          ? await this.readRecordAcknowledgerName(run)
+          : undefined;
+
       return {
         answer: {
           passedOn: false,
           refusal: OnCallPassOnRefusal.RecordAcknowledged,
-          ...(run.acknowledgedByUserId
-            ? { acknowledgedByName: this.getPersonName(run.acknowledgedByUser) }
+          ...(acknowledgedByName
+            ? { acknowledgedByName: acknowledgedByName }
             : {}),
         },
       };
@@ -707,6 +741,67 @@ export default class OnCallPagePassOn {
   }
 
   /*
+   * Who acknowledged the record a run pages about, by its state timeline
+   * (OnCallAcknowledgementTimeout.readRecordStanding): somebody who
+   * acknowledged it in the Dashboard, the app, Slack or Microsoft Teams
+   * answered no page, so the run does not name them - and the refusal said
+   * only "already acknowledged" (https://github.com/OneUptime/oneuptime/issues/6711).
+   * A page again and a person's page are taken by an answer to the page,
+   * which the run names, so none is read for them. Best effort: undefined
+   * when nobody did by name, or it cannot be read.
+   */
+  private static async readRecordAcknowledgerName(
+    run: OnCallDutyPolicyExecutionLog,
+  ): Promise<string | undefined> {
+    if (isOnCallPageAgainRun(run) || isOnCallPersonPage(run)) {
+      return undefined;
+    }
+
+    const record: {
+      kind: OnCallTimeoutRecordKind;
+      recordId: ObjectID;
+    } | null = OnCallAcknowledgementTimeout.getRunRecord(run);
+
+    if (!record) {
+      return undefined;
+    }
+
+    try {
+      const standing: OnCallTimeoutRecordStanding | null =
+        await OnCallAcknowledgementTimeout.readRecordStanding(record);
+
+      const userId: ObjectID | null | undefined =
+        standing?.acknowledgement?.createdByUserId;
+
+      if (!userId) {
+        return undefined;
+      }
+
+      const user: User | null = await UserService.findOneById({
+        id: userId,
+        select: {
+          name: true,
+          email: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      return user ? this.getPersonName(user) : undefined;
+    } catch (err) {
+      logger.error(
+        `Could not read who acknowledged ${record.kind} ${record.recordId.toString()}; refusing to escalate without naming them.`,
+        {
+          projectId: run.projectId?.toString(),
+        } as LogAttributes,
+      );
+      logger.error(err as Error);
+      return undefined;
+    }
+  }
+
+  /*
    * Whether the record a run pages about is acknowledged or resolved:
    * somebody has taken it, and the run stops at its next tick.
    *
@@ -714,11 +809,21 @@ export default class OnCallPagePassOn {
    * was acknowledged all along: it is taken once somebody acknowledges the
    * page again itself, or the record is resolved (or gone). Until then its
    * people can escalate it like any page.
+   *
+   * So is a page a person asked for from Slack or Microsoft Teams
+   * (OnCallPersonPage): it is mostly a page into an incident somebody is on
+   * already, and the workers keep paging its people until one of them
+   * answers it or the record is resolved (endsWhenAnsweredOrResolved).
+   * Read as taken because the record was acknowledged, its people were
+   * refused "already acknowledged, so there is nothing to escalate" while
+   * it went on calling them (https://github.com/OneUptime/oneuptime/issues/6710).
+   * An observer's page is left as it was: observers are told, not asked to
+   * take it, and are offered nothing to escalate.
    */
   private static async isRecordAcknowledged(
     run: OnCallDutyPolicyExecutionLog,
   ): Promise<boolean> {
-    if (isOnCallPageAgainRun(run)) {
+    if (isOnCallPageAgainRun(run) || isOnCallPersonPage(run)) {
       if (run.acknowledgedAt) {
         return true;
       }

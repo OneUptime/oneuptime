@@ -282,6 +282,10 @@ const CloudMonitoredResources: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: CloudResource): string | undefined => {
+              return item.name;
+            },
             getElement: (item: CloudResource): ReactElement => {
               const name: string = (item.name as string) || "";
               const route: Route = RouteUtil.populateRouteParams(

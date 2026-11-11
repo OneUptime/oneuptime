@@ -10,10 +10,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * adds them without rewriting a row. A tool added before keeps not alerting
  * until someone turns it on.
  */
-export class AddDataBiConnectionRefreshAlerts1809100612300
+export class AddDataBiConnectionRefreshAlerts1809110200000
   implements MigrationInterface
 {
-  public name: string = "AddDataBiConnectionRefreshAlerts1809100612300";
+  public name: string = "AddDataBiConnectionRefreshAlerts1809110200000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

@@ -140,5 +140,5 @@ Cuando una pull request cambia una tabla vigilada, [Production Review](/docs/ai/
 
 :::cards
 - [Productos de datos](/docs/data-observability/data-products): SLA de frescura sobre las tablas que usa la gente.
-- [OneUptime AI y la API](/docs/data-observability/ai-and-api): Investigaciones que parten de quienes escriben en una tabla y de sus ejecuciones.
+- [OneUptime AI y la API](/docs/data-observability/ai-and-api): Investigaciones que parten de quienes escriben en una tabla y de sus ejecuciones. En Preguntar a la IA y desde agentes de IA se puede preguntar a partir de qué se construye una tabla.
 :::

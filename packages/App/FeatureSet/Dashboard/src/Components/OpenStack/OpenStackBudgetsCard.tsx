@@ -26,6 +26,7 @@ import {
   getAlertAtProblem,
 } from "../../Pages/Cloud/Budgets";
 import { formatOpenStackSpendMoney } from "../../Pages/OpenStack/Utils/OpenStackSpendView";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 
 /*
  * WHAT A PROJECT MAY COME TO IN A MONTH.
@@ -147,6 +148,8 @@ const OpenStackBudgetsCard: FunctionComponent<ComponentProps> = (
             type: FieldType.Element,
             isNotCustomizable: true,
             wrapContent: true,
+            // Each of its lines already reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: OpenStackBudget): ReactElement => {
               return (
                 <div className="min-w-0">

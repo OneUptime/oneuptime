@@ -37,7 +37,7 @@ flowchart TB
 - **Inget att konfigurera per tabell.** Rytmer, körscheman och vanliga körtider lärs in från vad varje tabell och pipeline gör, och en monitor som rekommenderas för en databas täcker varje tabell i den, även tabeller som skapas senare.
 - **Ett larm per orsak.** Ett larm vars uppströms tabell, pipeline eller databas redan har ett öppet larm ansluter sig till det larmet som dess följd, redan bekräftat, så att en trasig laddning bara når jouren en gång.
 - **Varje larm förklarar sig självt.** Det rangordnar den troliga orsaken, säger vad som beror på tabellen och vem som äger den, och lär sig av vad du säger om det: markera ett som **Inte ett problem** så förblir samma sak tyst nästa gång.
-- **OneUptime AI känner dina data.** Utredningar av datalarm utgår från tabellens skrivare, körningar och uppströms tabeller; i Fråga AI, Slack, Microsoft Teams och via AI-agenter kan du fråga om en tabell är aktuell; och en kontroll kan skrivas utifrån en mening. Se [OneUptime AI och API:t](/docs/data-observability/ai-and-api).
+- **OneUptime AI känner dina data.** Utredningar av datalarm utgår från tabellens skrivare, körningar och härkomst; i Fråga AI, Slack, Microsoft Teams och via AI-agenter kan du fråga om en tabell är aktuell och vad den byggs av; och en kontroll kan skrivas utifrån en mening. Se [OneUptime AI och API:t](/docs/data-observability/ai-and-api).
 
 ## Innan du börjar
 
@@ -80,5 +80,5 @@ En egenhostad OneUptime betalar ingenting för tabeller.
 - [Kontroller och avstämningar](/docs/data-observability/checks): Regler för en tabells värden, att jämföra en tabell med dess kopia, och dbt:s tester.
 - [Härkomst och pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran och Airbyte, och ett larm per orsak.
 - [Dataprodukter](/docs/data-observability/data-products): Aktualitets-SLA:er för dem som använder data, på statussidor och som SLO:er.
-- [OneUptime AI och API:t](/docs/data-observability/ai-and-api): Utredningar, en kontroll utifrån en mening, aktualitet för AI-agenter, och varje endpoint.
+- [OneUptime AI och API:t](/docs/data-observability/ai-and-api): Utredningar, en kontroll utifrån en mening, aktualitet och härkomst för AI-agenter, och varje endpoint.
 :::

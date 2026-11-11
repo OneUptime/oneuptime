@@ -6,6 +6,10 @@ import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
 import { ProductAnalyticsEventKind } from "Common/Types/Rum/ProductAnalyticsEvents";
+import {
+  ProductAnalyticsFunnelDefinition,
+  ProductAnalyticsSavedViewType,
+} from "Common/Types/Rum/ProductAnalyticsSavedViews";
 import Button, {
   ButtonSize,
   ButtonStyleType,
@@ -76,12 +80,25 @@ import {
   ProductAnalyticsNothingKept,
   useProductAnalyticsEventsSwitch,
 } from "../../../Components/ProductAnalytics/ProductAnalyticsEventsGate";
+import {
+  ProductAnalyticsSavedView,
+  applyProductAnalyticsFunnelDefinition,
+  toProductAnalyticsFunnelDefinition,
+  writeProductAnalyticsSavedViewId,
+} from "../../../Components/ProductAnalytics/ProductAnalyticsSavedViews";
+import ProductAnalyticsSavedViewsMenu, {
+  ProductAnalyticsSavedViewNotice,
+  ProductAnalyticsSavedViewState,
+  useProductAnalyticsSavedViewState,
+} from "../../../Components/ProductAnalytics/ProductAnalyticsSavedViewsMenu";
 
 /*
  * Product Analytics > Funnels (issue #6444, part two): of the people who
  * did a first event in the range, how many then did each next one, in
  * order, within a time of their first - where they went on, where they
- * dropped off, and how long the ones who went on took.
+ * dropped off, and how long the ones who went on took. A funnel is saved
+ * under a name from the toolbar, to open again here or show on a
+ * dashboard (issue #6630).
  */
 
 /*
@@ -176,23 +193,28 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
   const [reloadToken, setReloadToken] = useState<number>(0);
   const analytics: ProductAnalyticsEventsSwitchState =
     useProductAnalyticsEventsSwitch(modelId);
+  const saved: ProductAnalyticsSavedViewState =
+    useProductAnalyticsSavedViewState(ProductAnalyticsSavedViewType.Funnel);
 
   useEffect((): void => {
     window.history.replaceState(
       window.history.state,
       "",
-      writeProductAnalyticsEventsUrlState(
-        buildProductAnalyticsUrl(window.location.href, {
-          timeRange: range.timeRange,
-        }),
-        {
-          steps: state.steps,
-          windowMs: state.windowMs,
-          filters: state.filters,
-        },
+      writeProductAnalyticsSavedViewId(
+        writeProductAnalyticsEventsUrlState(
+          buildProductAnalyticsUrl(window.location.href, {
+            timeRange: range.timeRange,
+          }),
+          {
+            steps: state.steps,
+            windowMs: state.windowMs,
+            filters: state.filters,
+          },
+        ),
+        saved.savedViewId,
       ),
     );
-  }, [range.timeRange, state]);
+  }, [range.timeRange, state, saved.savedViewId]);
 
   /* The window, fixed when the range is picked or refreshed, so "now" does not drift. */
   const period: InBetween<Date> = useMemo((): InBetween<Date> => {
@@ -217,14 +239,18 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
   /* Nothing kept at all: the page says why, and reads nothing more. */
   const isEmpty: boolean = Boolean(names.data && dataStartedAt === null);
 
-  /* The steps the address names, else the default once the events are known. */
-  const steps: Array<ProductAnalyticsEventRef> | null = isEmpty
-    ? null
-    : state.steps.length >= PRODUCT_ANALYTICS_FUNNEL_MIN_STEPS
-      ? state.steps
-      : names.data
-        ? pickDefaultProductAnalyticsFunnelSteps(names.data.events)
-        : null;
+  /*
+   * The steps the address names, else the default once the events are
+   * known - none while a saved funnel the address named is being opened.
+   */
+  const steps: Array<ProductAnalyticsEventRef> | null =
+    isEmpty || saved.isOpening
+      ? null
+      : state.steps.length >= PRODUCT_ANALYTICS_FUNNEL_MIN_STEPS
+        ? state.steps
+        : names.data
+          ? pickDefaultProductAnalyticsFunnelSteps(names.data.events)
+          : null;
   const stepsKey: string = steps
     ? steps.map(encodeProductAnalyticsEvent).join("|")
     : "";
@@ -261,6 +287,14 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
           : Promise.resolve(null);
       },
     );
+
+  // What is on screen, as the saved funnels keep it.
+  const definition: ProductAnalyticsFunnelDefinition | null =
+    toProductAnalyticsFunnelDefinition({
+      steps: steps,
+      windowMs: state.windowMs,
+      filters: state.filters,
+    });
 
   const refresh: () => void = (): void => {
     setReloadToken((token: number): number => {
@@ -549,10 +583,48 @@ const RumApplicationProductAnalyticsFunnels: FunctionComponent<
             });
           }}
           onRefresh={refresh}
+          savedViews={
+            <ProductAnalyticsSavedViewsMenu
+              rumApplicationId={modelId}
+              viewType={ProductAnalyticsSavedViewType.Funnel}
+              definition={definition}
+              savedViewId={saved.savedViewId}
+              isDefinitionInAddress={saved.address.isDefinitionInAddress}
+              isSettled={saved.isSettled}
+              onOpen={(
+                view: ProductAnalyticsSavedView<ProductAnalyticsSavedViewType.Funnel>,
+              ): void => {
+                const opened: ProductAnalyticsFunnelDefinition | null =
+                  view.definition;
+
+                if (opened) {
+                  setState((previous: ProductAnalyticsEventsUrlState) => {
+                    return applyProductAnalyticsFunnelDefinition(
+                      previous,
+                      opened,
+                    );
+                  });
+                  saved.setSavedViewId(view.id);
+                }
+              }}
+              onSelect={saved.setSavedViewId}
+              onNotice={saved.setNotice}
+              onSettled={saved.settle}
+              dataTestId="product-analytics-funnels-saved"
+            />
+          }
         />,
       ]}
     >
-      <Fragment>{body}</Fragment>
+      <Fragment>
+        <ProductAnalyticsSavedViewNotice
+          notice={saved.notice}
+          onClose={(): void => {
+            saved.setNotice(null);
+          }}
+        />
+        {body}
+      </Fragment>
     </Card>
   );
 };

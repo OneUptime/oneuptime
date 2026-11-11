@@ -140,5 +140,5 @@ Hightouch و Census ابزارهای reverse ETL هستند: همگام‌ساز
 
 :::cards
 - [محصولات داده](/docs/data-observability/data-products): SLAهای تازگی روی جدول‌هایی که مردم از آن‌ها استفاده می‌کنند.
-- [OneUptime AI و API](/docs/data-observability/ai-and-api): واکاوی‌هایی که از نویسندگان و اجراهای یک جدول آغاز می‌شوند.
+- [OneUptime AI و API](/docs/data-observability/ai-and-api): واکاوی‌هایی که از نویسندگان و اجراهای یک جدول آغاز می‌شوند. در پرسش از هوش مصنوعی و از راه عامل‌های هوش مصنوعی هم می‌توان پرسید که یک جدول از چه ساخته می‌شود.
 :::

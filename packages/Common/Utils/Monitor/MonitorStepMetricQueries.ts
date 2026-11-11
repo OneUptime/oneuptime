@@ -899,7 +899,8 @@ export default class MonitorStepMetricQueries {
           return Boolean(formulaConfig && typeof formulaConfig === "object");
         },
       ),
-      rollingTime: settings.rollingTime || RollingTime.Past1Minute,
+      // Written another way ("15 minutes") or not at all, as the worker reads it.
+      rollingTime: RollingTimeUtil.fromValueOrDefault(settings.rollingTime),
       aggregatesWholeWindow:
         MonitorStepMetricMonitorUtil.aggregatesWholeWindow(metricMonitor),
       telemetryServiceIds: MonitorStepMetricQueries.getReadServiceIds({

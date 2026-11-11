@@ -13,7 +13,11 @@ import useComponentOutsideClick from "../../../Types/UseComponentOutsideClick";
 import SavedViewsSearchInput from "../../SavedViews/SavedViewsSearchInput";
 import SavedViewsShowMoreButton from "../../SavedViews/SavedViewsShowMoreButton";
 import {
+  SAVED_VIEW_ROW_ACTIONS_CLASS_NAME,
+  SAVED_VIEW_ROW_ACTION_CLASS_NAME,
+  SAVED_VIEW_ROW_NAME_CLASS_NAME,
   VisibleSavedViews,
+  getSavedViewRowClassName,
   getVisibleSavedViews,
   shouldShowSavedViewsSearch,
 } from "../../SavedViews/SavedViewsList";
@@ -248,13 +252,11 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
               return (
                 <div
                   key={view.id}
-                  className={`group flex items-center justify-between gap-2 px-3 py-1.5 ${
-                    isSelected ? "bg-indigo-50" : "hover:bg-gray-50"
-                  }`}
+                  className={getSavedViewRowClassName(isSelected)}
                 >
                   <button
                     type="button"
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    className={SAVED_VIEW_ROW_NAME_CLASS_NAME}
                     /*
                      * Spelled out so the row announces as its own name: the
                      * ✓ is aria-hidden, and the "default" tag reads as a word
@@ -310,12 +312,15 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                     )}
                   </button>
 
-                  {/* Actions — visible on hover */}
-                  <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                  {/*
+                   * Shown while the row is hovered or focused, under the name
+                   * on a touch screen (SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).
+                   */}
+                  <div className={SAVED_VIEW_ROW_ACTIONS_CLASS_NAME}>
                     {isSelected && props.onUpdateCurrent && (
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-[11px] text-indigo-600 transition-colors hover:bg-indigo-100"
+                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-indigo-600 hover:bg-indigo-100`}
                         onClick={(
                           event: React.MouseEvent<HTMLButtonElement>,
                         ) => {
@@ -330,7 +335,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                     {props.onEdit && (
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-[11px] text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-gray-500 hover:bg-gray-100 hover:text-gray-700`}
                         onClick={(
                           event: React.MouseEvent<HTMLButtonElement>,
                         ) => {
@@ -345,7 +350,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                     {props.onDelete && (
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-[11px] text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-red-500 hover:bg-red-50 hover:text-red-600`}
                         onClick={(
                           event: React.MouseEvent<HTMLButtonElement>,
                         ) => {

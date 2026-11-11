@@ -148,22 +148,77 @@ const LETTER_REGEX: RegExp = /^\p{L}$/u;
  * right, their full stop at their end. A tie goes to the first letter.
  * Null when there is no letter, so the text follows the page; only the
  * first TEXT_DIRECTION_SCAN_LENGTH characters are read.
+ *
+ * What reads as it is written in any language decides nothing about the
+ * words round it: what a text sets apart in a Unicode isolate (LRI, RLI or
+ * FSI ... PDI) - the Unicode bidi algorithm itself skips an isolate when it
+ * looks for a paragraph's first letter - and a web address. An Arabic
+ * sentence that names a path, set apart to read as written
+ * (Types/CodeInSentence), and an address has more Latin letters than
+ * Arabic ones: counted, they turned the whole sentence round, laid out
+ * from the left with its words in the wrong order. A text that is nothing
+ * but isolates and addresses is read by the letters in them.
  */
-export const getTextReadingDirectionByMostLetters: (
-  text: string | null | undefined,
-) => ReadingDirection | null = (
-  text: string | null | undefined,
+interface LetterCount {
+  rightToLeft: number;
+  leftToRight: number;
+  first: ReadingDirection | null;
+}
+
+// Each isolate's opening mark: LRI, RLI, FSI.
+const ISOLATE_INITIATOR_REGEX: RegExp = /^[\u{2066}-\u{2068}]$/u;
+
+/*
+ * A web address: a scheme from the start of a word ("https://",
+ * "s3://"), up to the next space or isolate mark.
+ */
+const WEB_ADDRESS_REGEX: RegExp =
+  /(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/[^\s\u{2066}-\u{2069}]*/gu;
+
+const getDirectionByCount: (count: LetterCount) => ReadingDirection | null = (
+  count: LetterCount,
 ): ReadingDirection | null => {
-  if (!text) {
-    return null;
+  if (count.rightToLeft === count.leftToRight) {
+    return count.first;
   }
 
-  let rightToLeftLetters: number = 0;
-  let leftToRightLetters: number = 0;
-  let firstLetterDirection: ReadingDirection | null = null;
+  return count.rightToLeft > count.leftToRight ? RIGHT_TO_LEFT : LEFT_TO_RIGHT;
+};
+
+interface LetterCounts {
+  // The text's own words: its letters outside isolates and addresses.
+  outside: LetterCount;
+  // The letters inside them.
+  inside: LetterCount;
+}
+
+const countLetters: (text: string) => LetterCounts = (
+  text: string,
+): LetterCounts => {
+  const outside: LetterCount = { rightToLeft: 0, leftToRight: 0, first: null };
+  const inside: LetterCount = { rightToLeft: 0, leftToRight: 0, first: null };
+  // How many isolates the scan is in.
+  let depth: number = 0;
+  // Each address counted as if it were set apart.
+  const scanned: string = text
+    .slice(0, TEXT_DIRECTION_SCAN_LENGTH)
+    .replace(WEB_ADDRESS_REGEX, (address: string): string => {
+      return `${FIRST_STRONG_ISOLATE}${address}${POP_DIRECTIONAL_ISOLATE}`;
+    });
 
   // By code point, so a letter outside the Basic Multilingual Plane counts once.
-  for (const character of text.slice(0, TEXT_DIRECTION_SCAN_LENGTH)) {
+  for (const character of scanned) {
+    if (ISOLATE_INITIATOR_REGEX.test(character)) {
+      depth++;
+      continue;
+    }
+
+    // A PDI with no isolate open closes nothing.
+    if (character === POP_DIRECTIONAL_ISOLATE) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+
     if (!LETTER_REGEX.test(character)) {
       continue;
     }
@@ -173,23 +228,242 @@ export const getTextReadingDirectionByMostLetters: (
     )
       ? RIGHT_TO_LEFT
       : LEFT_TO_RIGHT;
+    const count: LetterCount = depth > 0 ? inside : outside;
 
     if (direction === RIGHT_TO_LEFT) {
-      rightToLeftLetters++;
+      count.rightToLeft++;
     } else {
-      leftToRightLetters++;
+      count.leftToRight++;
     }
 
-    firstLetterDirection = firstLetterDirection || direction;
+    count.first = count.first || direction;
   }
 
-  if (rightToLeftLetters === leftToRightLetters) {
-    return firstLetterDirection;
+  return { outside, inside };
+};
+
+export const getTextReadingDirectionByMostLetters: (
+  text: string | null | undefined,
+) => ReadingDirection | null = (
+  text: string | null | undefined,
+): ReadingDirection | null => {
+  if (!text) {
+    return null;
   }
 
-  return rightToLeftLetters > leftToRightLetters
-    ? RIGHT_TO_LEFT
-    : LEFT_TO_RIGHT;
+  const counts: LetterCounts = countLetters(text);
+
+  return (
+    getDirectionByCount(counts.outside) || getDirectionByCount(counts.inside)
+  );
+};
+
+/*
+ * WHETHER A TEXT HAS WORDS OF A RIGHT-TO-LEFT SCRIPT OF ITS OWN: a letter
+ * of one outside what it sets apart - an isolate, a web address - counted
+ * as getTextReadingDirectionByMostLetters counts. An Arabic or Persian
+ * sentence has, however many names, paths and commands it gives in Latin
+ * letters ("Microsoft Teams غير متصل بعد!"); an English sentence has not,
+ * nor one that sets a Persian name apart. Only the first
+ * TEXT_DIRECTION_SCAN_LENGTH characters are read.
+ */
+export const hasRightToLeftWords: (
+  text: string | null | undefined,
+) => boolean = (text: string | null | undefined): boolean => {
+  return Boolean(text) && countLetters(text as string).outside.rightToLeft > 0;
+};
+
+/*
+ * WHETHER A TEXT HAS ENGLISH WORDS OF ITS OWN: whether it is an English
+ * sentence, not a name or a label in Latin letters. An answer from the
+ * server is English, and it may quote a name someone typed in Arabic or
+ * Persian ("A custom channel named قناة الطوارئ already exists."), so it
+ * has right-to-left letters of its own too (hasRightToLeftWords). What
+ * tells it from an Arabic sentence that names products ("Microsoft Teams
+ * غير متصل بعد!") are the small words an English sentence is made of: "is",
+ * "the", "already", "not" (ENGLISH_SENTENCE_WORDS). One counts when it is
+ * written in lower case outside what the text sets apart in an isolate,
+ * quotes, marks as code or in bold, or leaves to a value ({{name}}), and
+ * is not inside a name written in Title Case ("Red Hat OpenStack Services
+ * on OpenShift", "Add an Integration"). Only the first
+ * TEXT_DIRECTION_SCAN_LENGTH characters are read.
+ */
+const ENGLISH_SENTENCE_WORDS: ReadonlySet<string> = new Set<string>([
+  "already",
+  "also",
+  "an",
+  "and",
+  "another",
+  "any",
+  "are",
+  "aren't",
+  "as",
+  "at",
+  "be",
+  "been",
+  "but",
+  "by",
+  "can",
+  "can't",
+  "cannot",
+  "could",
+  "couldn't",
+  "did",
+  "do",
+  "does",
+  "doesn't",
+  "don't",
+  "each",
+  "every",
+  "for",
+  "from",
+  "had",
+  "has",
+  "have",
+  "here",
+  "how",
+  "if",
+  "in",
+  "into",
+  "is",
+  "isn't",
+  "it",
+  "it's",
+  "its",
+  "may",
+  "must",
+  "no",
+  "not",
+  "of",
+  "on",
+  "only",
+  "or",
+  "other",
+  "our",
+  "please",
+  "should",
+  "so",
+  "some",
+  "than",
+  "that",
+  "the",
+  "their",
+  "then",
+  "there",
+  "these",
+  "they",
+  "this",
+  "those",
+  "to",
+  "too",
+  "was",
+  "wasn't",
+  "we",
+  "were",
+  "what",
+  "when",
+  "where",
+  "which",
+  "who",
+  "will",
+  "with",
+  "won't",
+  "would",
+  "yet",
+  "you",
+  "your",
+]);
+
+/*
+ * What a text quotes, marks as code or in bold, or leaves to a value: not
+ * its own words. Each kind opens with its own sign and is read no further
+ * than 256 characters for its close.
+ */
+const QUOTED_OR_CODE_REGEX: RegExp =
+  /\{\{[^{}]{0,256}\}\}|`[^`]{0,256}`|\*\*[^*]{0,256}\*\*|\u{00AB}[^\u{00AB}\u{00BB}]{0,256}\u{00BB}|\u{201C}[^\u{201C}\u{201D}]{0,256}\u{201D}|"[^"]{0,256}"/gu;
+
+const SPACES_REGEX: RegExp = /\s+/u;
+
+const CURLY_APOSTROPHE_REGEX: RegExp = /\u{2019}/gu;
+
+// A Latin letter, or an apostrophe inside a word ("isn't", "it’s").
+const isWordCharacter: (character: string) => boolean = (
+  character: string,
+): boolean => {
+  return (
+    (character >= "a" && character <= "z") ||
+    (character >= "A" && character <= "Z") ||
+    character === "'" ||
+    character === "\u{2019}"
+  );
+};
+
+// A piece of text between spaces without the signs round it: "exists." is "exists".
+const getWordOf: (piece: string) => string = (piece: string): string => {
+  let start: number = 0;
+  let end: number = piece.length;
+
+  while (start < end && !isWordCharacter(piece.charAt(start))) {
+    start++;
+  }
+
+  while (end > start && !isWordCharacter(piece.charAt(end - 1))) {
+    end--;
+  }
+
+  return piece.slice(start, end).replace(CURLY_APOSTROPHE_REGEX, "'");
+};
+
+const isTitleCaseWord: (word: string | undefined) => boolean = (
+  word: string | undefined,
+): boolean => {
+  const first: string = word ? word.charAt(0) : "";
+
+  return first >= "A" && first <= "Z";
+};
+
+export const hasEnglishWords: (text: string | null | undefined) => boolean = (
+  text: string | null | undefined,
+): boolean => {
+  if (!text) {
+    return false;
+  }
+
+  /*
+   * The text outside its isolates, with a space where each was. A web
+   * address holds no word of its own: it runs to the next space.
+   */
+  let ownText: string = "";
+  let depth: number = 0;
+
+  for (const character of text.slice(0, TEXT_DIRECTION_SCAN_LENGTH)) {
+    if (ISOLATE_INITIATOR_REGEX.test(character)) {
+      ownText += depth === 0 ? " " : "";
+      depth++;
+      continue;
+    }
+
+    if (character === POP_DIRECTIONAL_ISOLATE) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+
+    if (depth === 0) {
+      ownText += character;
+    }
+  }
+
+  const words: Array<string> = ownText
+    .replace(QUOTED_OR_CODE_REGEX, " ")
+    .split(SPACES_REGEX)
+    .map(getWordOf);
+
+  return words.some((word: string, index: number): boolean => {
+    return (
+      ENGLISH_SENTENCE_WORDS.has(word) &&
+      !(isTitleCaseWord(words[index - 1]) && isTitleCaseWord(words[index + 1]))
+    );
+  });
 };
 
 /*

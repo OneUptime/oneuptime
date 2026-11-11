@@ -587,9 +587,16 @@ describe("the acknowledge route", () => {
 
     const variables: JSONObject = renderedVariables();
 
+    /*
+     * In the words the acknowledge page itself now says it with
+     * (OnCallAcknowledgePage, issue #6706): whose answer it was, not that
+     * "this notification" was acknowledged.
+     */
     expect(variables["title"]).toBe(
-      "Notification Already Acknowledged - CPU above 90% on prod-web-1",
+      "Already acknowledged - CPU above 90% on prod-web-1",
     );
+    expect(variables["message"]).toBe("You already acknowledged this alert.");
+    expect(variables["statusIcon"]).toBe("check");
     expect(variables["viewDetailsText"]).toBe("View Alert");
     expect(detailValue(variables, "Severity")).toBe("Critical");
   });

@@ -289,16 +289,16 @@ describe("Data Observability registry wiring", () => {
     );
 
     expect(migrations).toContain(
-      'import { AddDataBiConnectionRefreshAlerts1809100612300 } from "./1809100612300-AddDataBiConnectionRefreshAlerts";',
+      'import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-AddDataBiConnectionRefreshAlerts";',
     );
     expect(
-      migrations.indexOf("AddDataBiConnectionRefreshAlerts1809100612300,"),
+      migrations.indexOf("AddDataBiConnectionRefreshAlerts1809110200000,"),
     ).toBeGreaterThan(
       migrations.indexOf("AddDataDashboardUsageAndRefreshes1809100612000,"),
     );
 
     const migration: string = readSquashed(
-      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809100612300-AddDataBiConnectionRefreshAlerts.ts",
+      "Common/Server/Infrastructure/Postgres/SchemaMigrations/1809110200000-AddDataBiConnectionRefreshAlerts.ts",
     );
 
     expect(migration).toContain(

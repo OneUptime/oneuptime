@@ -555,11 +555,16 @@ describe("RequestGate", () => {
       },
     );
 
-    it("needs read for oneuptime_whoami, the one workflow tool that only reads", () => {
-      expect(RequestGate.getToolAccess("oneuptime_whoami", TOOLS)).toBe(
-        McpToolAccess.Read,
-      );
-    });
+    it.each([
+      "oneuptime_whoami",
+      "get_data_table_freshness",
+      "get_data_table_lineage",
+    ])(
+      "needs read for the workflow tool %s, which only reads",
+      (name: string) => {
+        expect(RequestGate.getToolAccess(name, TOOLS)).toBe(McpToolAccess.Read);
+      },
+    );
 
     it.each([
       "acknowledge_incident",

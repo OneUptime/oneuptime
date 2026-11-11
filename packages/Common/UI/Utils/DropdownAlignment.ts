@@ -131,6 +131,23 @@ export function getDropdownAnchorEdges(data: {
   };
 }
 
+/*
+ * The width a popup has to stay inside: the page's (the root element's
+ * client width), and the window's only where the page reads none (jsdom).
+ * On a phone the window's grows with whatever runs past the screen: a panel
+ * first drawn past the edge of a 390px phone made innerWidth 500, which had
+ * room for it there, and the panel stayed off the screen with the page
+ * scrolling sideways under it. The page's width leaves a scrollbar out too.
+ */
+export function getDropdownViewportWidth(data: {
+  pageWidth: number;
+  windowWidth: number;
+}): number {
+  return Number.isFinite(data.pageWidth) && data.pageWidth > 0
+    ? data.pageWidth
+    : data.windowWidth;
+}
+
 // Whether the page lays the element out right to left (a Persian page).
 function isRightToLeftElement(element: HTMLElement): boolean {
   try {
@@ -196,11 +213,15 @@ export function useDropdownHorizontalAlignment(
 
       const anchorRect: DOMRect = anchor.getBoundingClientRect();
       const measuredWidth: number = dropdownRef?.current?.offsetWidth || 0;
+      const viewportWidth: number = getDropdownViewportWidth({
+        pageWidth: document.documentElement?.clientWidth || 0,
+        windowWidth: window.innerWidth,
+      });
       const edges: { anchorLeft: number; anchorRight: number } =
         getDropdownAnchorEdges({
           anchorLeft: anchorRect.left,
           anchorRight: anchorRect.right,
-          viewportWidth: window.innerWidth,
+          viewportWidth: viewportWidth,
           isRightToLeft: isRightToLeftElement(anchor),
         });
 
@@ -212,7 +233,7 @@ export function useDropdownHorizontalAlignment(
             measuredWidthInPx: measuredWidth,
             dropdownWidthInPx: dropdownWidthInPx,
           }),
-          viewportWidth: window.innerWidth,
+          viewportWidth: viewportWidth,
           viewportMargin: viewportMargin,
         }),
       );

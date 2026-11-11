@@ -140,5 +140,5 @@ Når en pull request endrer en overvåket tabell, sier [Production Review](/docs
 
 :::cards
 - [Dataprodukter](/docs/data-observability/data-products): Aktualitets-SLA-er for tabellene folk bruker.
-- [OneUptime AI og API-et](/docs/data-observability/ai-and-api): Undersøkelser som starter fra skriverne og kjøringene til en tabell.
+- [OneUptime AI og API-et](/docs/data-observability/ai-and-api): Undersøkelser som starter fra skriverne og kjøringene til en tabell. I Spør AI og via AI-agenter kan du spørre hva en tabell er bygget fra.
 :::

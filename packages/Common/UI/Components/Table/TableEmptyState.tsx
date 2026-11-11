@@ -2,7 +2,7 @@ import Button, { ButtonStyleType } from "../Button/Button";
 import Icon from "../Icon/Icon";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import IconProp from "../../../Types/Icon/IconProp";
-import { getLineDirection } from "../../Utils/LineDirection";
+import { getTranslatedLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslateValue, { TranslatableValue } from "../../Utils/Translation";
 import useTranslator from "../../Utils/UseTranslator";
@@ -151,7 +151,7 @@ const TableEmptyState: FunctionComponent<ComponentProps> = (
     : undefined;
   const description: TranslatableValue =
     typeof translatedDescription === "string" &&
-    getLineDirection(translatedDescription, translator.language) ? (
+    getTranslatedLineDirection(translatedDescription, translator.language) ? (
       <IsolatedText text={translatedDescription} />
     ) : (
       translatedDescription

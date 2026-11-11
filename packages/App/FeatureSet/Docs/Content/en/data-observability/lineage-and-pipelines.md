@@ -140,5 +140,5 @@ When a pull request changes a watched table, [Production Review](/docs/ai/ai-age
 
 :::cards
 - [Data Products](/docs/data-observability/data-products): Freshness SLAs over the tables people use.
-- [OneUptime AI and the API](/docs/data-observability/ai-and-api): Investigations that start from a table's writers and runs.
+- [OneUptime AI and the API](/docs/data-observability/ai-and-api): Investigations that start from a table's writers and runs. Ask AI and AI agents can ask what a table is built from.
 :::

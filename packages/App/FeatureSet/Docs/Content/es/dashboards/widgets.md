@@ -24,6 +24,7 @@ Parte de la pregunta que tiene que responder la casilla:
 | ¿Qué está pasando ahora mismo? | **Flujo de registros**, **Lista de trazas**, **Lista de incidentes** o **Lista de alertas** |
 | ¿Están todos nuestros sitios en funcionamiento? | **Lista de monitores** |
 | ¿Mantenemos la fiabilidad que prometimos? | **SLO** o **Lista de SLO** |
+| ¿La gente completa un flujo, y vuelve? | **Embudo** o **Retención de usuarios** |
 | ¿En qué estado están nuestros clústeres y hosts? | Un widget del grupo Infraestructura |
 | ¿Dónde está nuestra red en el mundo, y qué está caído? | **Mapa de red** |
 | ¿Un encabezado, una nota, la hora en otra oficina? | **Texto** o **Reloj** |
@@ -170,6 +171,15 @@ El widget SLO funciona en los [paneles públicos](/docs/dashboards/sharing). Lo 
 
 Cada SLO con su estado, su SLI, su presupuesto de errores y su tasa de consumo, primero los que tienen menos presupuesto. Fíltrala por estado o etiquetas, o por una **Variable de etiqueta** que los espectadores eligen en la barra de herramientas. [Métricas y paneles de SLO](/docs/slo/metrics) muestra los dos widgets de SLO en acción.
 
+## Analítica de producto
+
+| Widget | Qué muestra |
+| --- | --- |
+| **Embudo** | Un embudo guardado en la página **Embudos** de una aplicación RUM: de las personas que hicieron su primer paso en el intervalo de tiempo del panel, cuántas pasaron a cada paso siguiente. |
+| **Retención de usuarios** | Una tabla de retención guardada en su página **Retención de usuarios**: personas agrupadas según cuándo hicieron por primera vez su evento inicial, y la proporción de cada grupo que volvió en cada periodo posterior, con **Todas las cohortes** encima. |
+
+Guarda primero el embudo o la tabla de retención en su página (consulta [Embudos y tablas de retención guardados](/docs/rum/product-analytics#embudos-y-tablas-de-retención-guardados)) y luego elígelo en los ajustes del widget. El widget toma su nombre como título salvo que le des uno, y lo vuelve a leer en cada actualización, de modo que un cambio guardado en la página se ve en el panel. **Abrir en Embudos** o **Abrir en Retención de usuarios** lo abre en su página, en el intervalo de tiempo del panel. Verlo requiere lo mismo que ver la página.
+
 ## Infraestructura
 
 Cada uno de estos widgets lista los recursos que un agente o un colector comunica a OneUptime. Acótalos por clúster, host o espacio de nombres en sus filtros, y muéstralos como una lista o como un panal.
@@ -235,7 +245,7 @@ Mediante la API y Terraform, el orden es el `arguments.sort` del widget: una col
 
 Un [panel público](/docs/dashboards/sharing) dibuja la mayoría de los widgets para sus visitantes, y cada uno muestra solo lo que se configuró para mostrar. Algunos no pueden mostrarse sin una sesión iniciada:
 
-- **Gráfico de registros**, **Gráfico de trazas**, **Tabla de trazas**, **Eventos de seguridad** y **Flujo de eventos de seguridad** indican en su lugar que no están disponibles en los paneles públicos.
+- **Gráfico de registros**, **Gráfico de trazas**, **Tabla de trazas**, **Eventos de seguridad**, **Flujo de eventos de seguridad**, **Embudo** y **Retención de usuarios** indican en su lugar que no están disponibles en los paneles públicos.
 - Los widgets de Fuentes de datos externas se quedan totalmente fuera de un panel público, porque sus ajustes son la propia consulta.
 
 ## Cuando un widget no se puede mostrar

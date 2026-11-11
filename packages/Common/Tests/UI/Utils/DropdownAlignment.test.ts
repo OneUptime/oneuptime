@@ -4,6 +4,7 @@ import {
   getDropdownAlignmentClassName,
   getDropdownAnchorEdges,
   getDropdownHorizontalAlignment,
+  getDropdownViewportWidth,
 } from "../../../UI/Utils/DropdownAlignment";
 import { describe, expect, test } from "@jest/globals";
 
@@ -370,6 +371,60 @@ describe("getDropdownAnchorEdges", () => {
         ...edges,
         dropdownWidth: DROPDOWN_WIDTH,
         viewportWidth: 1280,
+      }),
+    ).toBe(DropdownHorizontalAlignment.Left);
+  });
+});
+
+/*
+ * The width a popup stays inside is the page's, not the window's: on a
+ * phone the window grows with whatever runs past the screen, and a panel
+ * first drawn past the edge of a 390px phone (innerWidth 900 then) found
+ * room there and stayed off the screen.
+ */
+describe("getDropdownViewportWidth", () => {
+  test("the page's width, where the window grew past it", () => {
+    expect(getDropdownViewportWidth({ pageWidth: 390, windowWidth: 900 })).toBe(
+      390,
+    );
+  });
+
+  test("the page's width on a desktop too: a scrollbar is no room", () => {
+    expect(
+      getDropdownViewportWidth({ pageWidth: 1265, windowWidth: 1280 }),
+    ).toBe(1265);
+  });
+
+  test("the window's, where the page reads no width (jsdom)", () => {
+    expect(getDropdownViewportWidth({ pageWidth: 0, windowWidth: 768 })).toBe(
+      768,
+    );
+    expect(
+      getDropdownViewportWidth({ pageWidth: Number.NaN, windowWidth: 768 }),
+    ).toBe(768);
+  });
+
+  test("a phone's trigger at its toolbar's end opens toward the page by the page's width", () => {
+    const viewportWidth: number = getDropdownViewportWidth({
+      pageWidth: 390,
+      windowWidth: 900,
+    });
+
+    expect(
+      getDropdownHorizontalAlignment({
+        anchorLeft: 211,
+        anchorRight: 353,
+        dropdownWidth: DROPDOWN_WIDTH,
+        viewportWidth: viewportWidth,
+      }),
+    ).toBe(DropdownHorizontalAlignment.Right);
+    // By the grown window's, it opened off the screen.
+    expect(
+      getDropdownHorizontalAlignment({
+        anchorLeft: 211,
+        anchorRight: 353,
+        dropdownWidth: DROPDOWN_WIDTH,
+        viewportWidth: 900,
       }),
     ).toBe(DropdownHorizontalAlignment.Left);
   });

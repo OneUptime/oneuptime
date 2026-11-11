@@ -18,9 +18,12 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  *
  *   - Add Host: the one command for each system, with the project's key;
  *     the last step waits for the host and says when it connected.
- *   - Collector Configs: the list, OneUptime's defaults, a new config.
- *   - A config's page: config.yaml, a save the server refuses and one it
- *     takes, the versions with Put back, the hosts that run it, deleting.
+ *   - Collector Configs, in the side menu's Configuration section: how a
+ *     host gets its config, how many hosts run each config and each of
+ *     OneUptime's defaults, a new config from scratch or from a default.
+ *   - A config's page: who it is for and how many hosts run it, then its
+ *     tabs - config.yaml (a save the server refuses and one it takes), the
+ *     hosts that run it, the versions with Put back - and deleting it.
  *   - A host's Collector page: running, failed (Try again), a collector
  *     error, Change config, and a host set up by hand.
  *   - On a phone, in the dark, as a Project Member.
@@ -78,6 +81,7 @@ interface FixtureState {
   }>;
   deletes: Array<{ modelName: string; id: string }>;
   listRequests: Array<{ modelName: string; query: unknown }>;
+  countRequests: Array<{ modelName: string; query: unknown }>;
   unhandled: Array<Record<string, unknown>>;
 }
 
@@ -256,6 +260,32 @@ function versionRow(scope: Locator, versionNumber: number): Locator {
 
 function footerClose(page: Page): Locator {
   return dialog(page).getByTestId("modal-footer-close-button");
+}
+
+/*
+ * A tab of a config's page, opened: only the open tab's card is drawn. Its
+ * test id is its English name, in every language.
+ */
+async function openTab(page: Page, name: string): Promise<void> {
+  const tab: Locator = page.getByTestId(`tab-${name}`);
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
+// The side menu's Configuration section: its header, which folds and opens it.
+function configurationSection(page: Page, title: string): Locator {
+  return page.getByRole("button", { name: title, exact: true });
+}
+
+// The counts the Collector Configs page asked the server for, of hosts.
+async function hostCountQueries(page: Page): Promise<Array<string>> {
+  return (await fixture(page)).countRequests
+    .filter((request: { modelName: string }): boolean => {
+      return request.modelName === "Host";
+    })
+    .map((request: { query: unknown }): string => {
+      return JSON.stringify(request.query);
+    });
 }
 
 async function screenshot(page: Page, name: string): Promise<void> {
@@ -558,7 +588,38 @@ test("Hosts > Documentation: the one command first, the manual guide one card do
  * ---------------------------------------------------------------------------
  */
 
-test("Collector Configs lists who each config is for, and OneUptime's defaults", async ({
+test("Collector Configs has a side menu section of its own, Configuration, folded until it is the page", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, HOSTS);
+
+  // Set up once, revisited rarely: folded on the hosts' list, like Settings.
+  const section: Locator = configurationSection(page, "Configuration");
+  await expect(section).toHaveAttribute("aria-expanded", "false");
+  await section.click();
+  await expect(section).toHaveAttribute("aria-expanded", "true");
+  await page
+    .getByRole("link", { name: "Collector Configs", exact: true })
+    .click();
+  await expect(page).toHaveURL(new RegExp(`${CONFIGS}$`));
+  await expect(card(page, "Collector Configs")).toBeVisible();
+
+  // Open by itself on its own pages: the list, and each config's page.
+  await open(page, CONFIGS);
+  await expect(configurationSection(page, "Configuration")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await open(page, configPage(WEB_SERVERS_ID));
+  await expect(configurationSection(page, "Configuration")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+});
+
+test("Collector Configs says how a host gets its config, who each config is for and how many hosts run it", async ({
   page,
 }: {
   page: Page;
@@ -566,22 +627,134 @@ test("Collector Configs lists who each config is for, and OneUptime's defaults",
   await open(page, CONFIGS);
 
   const configs: Locator = card(page, "Collector Configs");
-  // Who each config is for; the hosts that run it are on its own page.
+
+  // How a host gets its config, in the order the server tries: over the rows.
+  const order: Locator = configs.getByTestId("host-collector-config-order");
+  await expect(order).toContainText("How a host gets its config");
+  for (const [step, title, description] of [
+    [
+      1,
+      "Picked for the host",
+      "A config someone picked on the host's Collector page.",
+    ],
+    [
+      2,
+      "The first config that applies",
+      "Checked from the top of this list, by the host's system and labels.",
+    ],
+    [
+      3,
+      "OneUptime's default",
+      "For the host's system, when no config applies.",
+    ],
+  ] as Array<[number, string, string]>) {
+    const item: Locator = order.getByTestId(
+      `host-collector-config-order-step-${step}`,
+    );
+    await expect(item).toContainText(String(step));
+    await expect(item).toContainText(title);
+    await expect(item).toContainText(description);
+  }
+  // Read left to right on a laptop, a chevron between each two.
+  const firstStep: { x: number; y: number } = (await order
+    .getByTestId("host-collector-config-order-step-1")
+    .boundingBox())!;
+  const lastStep: { x: number; y: number } = (await order
+    .getByTestId("host-collector-config-order-step-3")
+    .boundingBox())!;
+  expect(lastStep.x).toBeGreaterThan(firstStep.x);
+  expect(Math.abs(lastStep.y - firstStep.y)).toBeLessThanOrEqual(1);
+  await expect(
+    order.getByTestId("host-collector-config-order-then"),
+  ).toHaveCount(2);
+
+  // Who each config is for, and how many hosts run it: not its version.
   await expect(
     configs.getByRole("columnheader", { name: "Applies to" }),
   ).toBeVisible();
+  await expect(
+    configs.getByRole("columnheader", { name: "Hosts", exact: true }),
+  ).toBeVisible();
+  await expect(
+    configs.getByRole("columnheader", { name: "Version" }),
+  ).toHaveCount(0);
+
   const web: Locator = row(configs, "Web servers");
   await expect(web).toContainText("Linux hosts with env:production");
-  await expect(web).toContainText("Version 2");
+  const webHosts: Locator = web.getByTestId(
+    `host-collector-config-hosts-${WEB_SERVERS_ID}`,
+  );
+  await expect(webHosts).toContainText("2 hosts");
+  await expect(webHosts).toHaveAttribute("data-hosts", "2");
+  // db-01 did not start it: in red, beside the count.
+  await expect(
+    web.getByTestId(`host-collector-config-hosts-${WEB_SERVERS_ID}-failed`),
+  ).toContainText("1 failed");
+
   const windows: Locator = row(configs, "Windows servers");
   await expect(windows).toContainText("Windows hosts");
-  await expect(windows).toContainText("Version 1");
+  // No host runs it: "0 hosts", quietly, and nothing failed.
+  await expect(
+    windows.getByTestId(`host-collector-config-hosts-${WINDOWS_SERVERS_ID}`),
+  ).toHaveText("0 hosts");
+  await expect(
+    windows.getByTestId(
+      `host-collector-config-hosts-${WINDOWS_SERVERS_ID}-failed`,
+    ),
+  ).toHaveCount(0);
 
+  // OneUptime's defaults: what each collects, and how many hosts run it.
   const defaults: Locator = card(page, "OneUptime defaults");
-  await expect(defaults).toContainText("OneUptime default for Linux");
-  await expect(defaults).toContainText("OneUptime default for Windows");
-  await expect(defaults).toContainText("OneUptime default for macOS");
+  await expect(defaults).toContainText(
+    "When no config above applies to a host, it runs the default for its system. The defaults follow OneUptime's releases.",
+  );
+  for (const [osType, name, summary, hosts] of [
+    [
+      "linux",
+      "OneUptime default for Linux",
+      "Host metrics, the journal and systemd units",
+      "0 hosts",
+    ],
+    [
+      "windows",
+      "OneUptime default for Windows",
+      "Host metrics, event logs and Windows services",
+      "1 host",
+    ],
+    [
+      "darwin",
+      "OneUptime default for macOS",
+      "Host metrics and the install and Wi-Fi logs",
+      "0 hosts",
+    ],
+  ] as Array<[string, string, string, string]>) {
+    await expect(
+      page.getByTestId(`host-collector-default-row-${osType}`),
+    ).toContainText(name);
+    await expect(
+      page.getByTestId(`host-collector-default-summary-${osType}`),
+    ).toHaveText(summary);
+    await expect(
+      page.getByTestId(`host-collector-default-hosts-${osType}`),
+    ).toHaveText(hosts);
+  }
   await screenshot(page, "collector-configs");
+
+  /*
+   * Counted by the server, one count a config and one a system. Whether a
+   * config failed anywhere is only asked of a config some host runs.
+   */
+  const queries: Array<string> = await hostCountQueries(page);
+  const failedQueries: Array<string> = queries.filter(
+    (query: string): boolean => {
+      return query.includes('"failed"');
+    },
+  );
+  expect(failedQueries.length).toBeGreaterThan(0);
+  for (const query of failedQueries) {
+    expect(query).toContain(WEB_SERVERS_ID);
+    expect(query).not.toContain(WINDOWS_SERVERS_ID);
+  }
 
   await page.getByTestId("host-collector-default-linux").click();
   const view: Locator = dialog(page);
@@ -592,8 +765,101 @@ test("Collector Configs lists who each config is for, and OneUptime's defaults",
   await expect(page.getByTestId("host-collector-default-yaml")).toContainText(
     "x-oneuptime-token: ${env:ONEUPTIME_INGESTION_KEY}",
   );
+  // Where a change to what these hosts collect starts.
+  await expect(
+    view.getByRole("button", { name: "Create a config from it" }),
+  ).toBeVisible();
   await footerClose(page).click();
   await expect(dialog(page)).toHaveCount(0);
+});
+
+test("with no Collector Config, the list says every host runs a default, and the defaults count them", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, CONFIGS, "configs=none");
+
+  const configs: Locator = card(page, "Collector Configs");
+  await expect(configs).toContainText("No Collector Configs yet");
+  await expect(configs).toContainText(
+    "Every host runs OneUptime's default for its system, shown below.",
+  );
+  // Nothing to order yet: the steps come with the first config.
+  await expect(page.getByTestId("host-collector-config-order")).toHaveCount(0);
+
+  // web-01 and db-01 on Linux, win-01 on Windows; legacy-01 was set up by hand.
+  await expect(
+    page.getByTestId("host-collector-default-hosts-linux"),
+  ).toHaveText("2 hosts");
+  await expect(
+    page.getByTestId("host-collector-default-hosts-windows"),
+  ).toHaveText("1 host");
+  await expect(
+    page.getByTestId("host-collector-default-hosts-darwin"),
+  ).toHaveText("0 hosts");
+  await screenshot(page, "collector-configs-empty");
+});
+
+test("a default's Create a config from it opens Create on its system; the card's own Create starts on Linux", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, CONFIGS);
+
+  // Asked, then left: the form closes and nothing is created.
+  await page.getByTestId("host-collector-default-darwin").click();
+  await dialog(page)
+    .getByRole("button", { name: "Create a config from it" })
+    .click();
+  await expect(
+    dialog(page).getByRole("radio", { name: /^macOS/ }),
+  ).toBeChecked();
+  await dialog(page).getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+
+  // The card's own Create is not left on macOS.
+  await headerButton(
+    card(page, "Collector Configs"),
+    "Create Collector Config",
+  ).click();
+  await expect(
+    dialog(page).getByRole("radio", { name: /^Linux/ }),
+  ).toBeChecked();
+  await dialog(page).getByRole("button", { name: "Cancel" }).click();
+  await expect(dialog(page)).toHaveCount(0);
+
+  // From Windows' default, a second time: it opens again, on Windows.
+  await page.getByTestId("host-collector-default-windows").click();
+  await dialog(page)
+    .getByRole("button", { name: "Create a config from it" })
+    .click();
+  const form: Locator = dialog(page);
+  await expect(
+    form.getByText(
+      "Its config.yaml starts as OneUptime's default for this system. Edit it on the config's page.",
+    ),
+  ).toBeVisible();
+  await expect(form.getByRole("radio", { name: /^Windows/ })).toBeChecked();
+  await form.getByRole("textbox", { name: /^Name/ }).fill("Windows desktops");
+  await form.getByRole("button", { name: "Create" }).click();
+
+  await expect(page).toHaveURL(
+    new RegExp(`${CONFIGS}/${uuid("50000000", 12)}$`),
+  );
+  await expect(page.getByTestId("host-collector-config-target")).toHaveText(
+    "Windows hosts",
+  );
+  // It starts as OneUptime's default for Windows.
+  await expect(page.getByTestId("host-collector-config-yaml")).toContainText(
+    "windows_event_log/system",
+  );
+
+  const created: FixtureState["creates"] = (await fixture(page)).creates;
+  expect(created).toHaveLength(1);
+  expect(created[0]!.data["name"]).toBe("Windows desktops");
+  expect(created[0]!.data["osType"]).toBe("windows");
 });
 
 test("a new Collector Config asks for a name, a system and labels, then opens on its own page", async ({
@@ -647,7 +913,7 @@ test("a new Collector Config asks for a name, a system and labels, then opens on
  * ---------------------------------------------------------------------------
  */
 
-test("a config's page: who it is for, its config.yaml, every version and the hosts that run it", async ({
+test("a config's page: who it is for and how many hosts run it, then config.yaml, its hosts and its versions in tabs", async ({
   page,
 }: {
   page: Page;
@@ -664,6 +930,17 @@ test("a config's page: who it is for, its config.yaml, every version and the hos
   await expect(details.getByText("Host Labels", { exact: true })).toHaveCount(
     0,
   );
+  // How many hosts run it, and that it failed on one: before any tab opens.
+  const hostCount: Locator = details.getByTestId(
+    "host-collector-config-host-count",
+  );
+  await expect(hostCount).toContainText("2 hosts");
+  await expect(
+    details.getByTestId("host-collector-config-host-count-failed"),
+  ).toContainText("1 failed");
+  await expect(details.getByTestId("host-collector-config-version")).toHaveText(
+    "2",
+  );
 
   // Editing it: changing the system leaves its config.yaml as it is.
   await headerButton(details, "Edit Collector Config").click();
@@ -673,13 +950,29 @@ test("a config's page: who it is for, its config.yaml, every version and the hos
   await dialog(page).getByRole("button", { name: "Cancel" }).click();
   await expect(dialog(page)).toHaveCount(0);
 
-  await expect(page.getByTestId("host-collector-config-version")).toHaveText(
-    "2",
+  // The tabs, in order: the config itself first.
+  await expect(page.getByRole("tab")).toHaveCount(3);
+  await expect(page.getByRole("tab").nth(0)).toHaveText("config.yaml");
+  await expect(page.getByRole("tab").nth(1)).toContainText("Hosts");
+  await expect(page.getByRole("tab").nth(2)).toHaveText("Versions");
+  await expect(page.getByTestId("tab-config.yaml")).toHaveAttribute(
+    "aria-selected",
+    "true",
   );
+  // Hosts says how many, in red: the config failed on one of them.
+  const hostsTab: Locator = page.getByTestId("tab-Hosts");
+  await expect(hostsTab).toContainText("2");
+  await expect(hostsTab.locator(".bg-red-500")).toHaveCount(1);
+
   await expect(page.getByTestId("host-collector-config-yaml")).toContainText(
     "collection_interval: 60s",
   );
+  // One tab at a time: the hosts and the versions wait in theirs.
+  await expect(card(page, "Hosts")).toHaveCount(0);
+  await expect(card(page, "Versions")).toHaveCount(0);
+  await screenshot(page, "collector-config");
 
+  await openTab(page, "Versions");
   const versions: Locator = card(page, "Versions");
   const second: Locator = versionRow(versions, 2);
   await expect(second).toContainText("Current");
@@ -687,7 +980,9 @@ test("a config's page: who it is for, its config.yaml, every version and the hos
   const first: Locator = versionRow(versions, 1);
   await expect(first).toContainText("Created");
   await expect(first).not.toContainText("Current");
+  await expect(card(page, "config.yaml")).toHaveCount(0);
 
+  await openTab(page, "Hosts");
   const hosts: Locator = card(page, "Hosts");
   await expect(
     row(hosts, "web-01").getByTestId("host-collector-state-running"),
@@ -696,7 +991,35 @@ test("a config's page: who it is for, its config.yaml, every version and the hos
     row(hosts, "db-01").getByTestId("host-collector-state-failed"),
   ).toBeVisible();
   await expect(row(hosts, "win-01")).toHaveCount(0);
-  await screenshot(page, "collector-config");
+  await screenshot(page, "collector-config-hosts");
+
+  // Back to the config: as it was.
+  await openTab(page, "config.yaml");
+  await expect(page.getByTestId("host-collector-config-yaml")).toContainText(
+    "collection_interval: 60s",
+  );
+});
+
+test("a config no host runs says 0 hosts, and its Hosts tab has no badge", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, configPage(WINDOWS_SERVERS_ID));
+
+  const details: Locator = card(page, "Collector Config");
+  await expect(
+    details.getByTestId("host-collector-config-host-count"),
+  ).toHaveText("0 hosts");
+  await expect(
+    details.getByTestId("host-collector-config-host-count-failed"),
+  ).toHaveCount(0);
+  await expect(page.getByTestId("tab-Hosts")).toHaveText("Hosts");
+
+  await openTab(page, "Hosts");
+  await expect(card(page, "Hosts")).toContainText(
+    "No host runs this config yet",
+  );
 });
 
 test("a save the server refuses says why and keeps the dialog; a good one is the next version", async ({
@@ -739,6 +1062,8 @@ test("a save the server refuses says why and keeps the dialog; a good one is the
   await expect(page.getByTestId("host-collector-config-yaml")).toContainText(
     "collection_interval: 15s",
   );
+  // The new version is in the Versions tab, current.
+  await openTab(page, "Versions");
   const versions: Locator = card(page, "Versions");
   await expect(versionRow(versions, 3)).toContainText("Current");
   await expect(versionRow(versions, 3)).toContainText("Changed");
@@ -757,6 +1082,7 @@ test("Put back sends an older version again, as the next version", async ({
   page: Page;
 }) => {
   await open(page, configPage(WEB_SERVERS_ID));
+  await openTab(page, "Versions");
   const versions: Locator = card(page, "Versions");
 
   // Read it first: the version's own dialog puts it back.
@@ -788,11 +1114,9 @@ test("Put back sends an older version again, as the next version", async ({
   await confirm.getByRole("button", { name: "Put back" }).click();
   await expect(dialog(page)).toHaveCount(0);
 
+  // The card at the top follows at once, from the Versions tab.
   await expect(page.getByTestId("host-collector-config-version")).toHaveText(
     "3",
-  );
-  await expect(page.getByTestId("host-collector-config-yaml")).toContainText(
-    "collection_interval: 30s",
   );
   await expect(versionRow(versions, 3)).toContainText("Put version 1 back");
   await expect(versionRow(versions, 3)).toContainText("Current");
@@ -802,6 +1126,12 @@ test("Put back sends an older version again, as the next version", async ({
     dialog(page).getByRole("button", { name: "Put back" }),
   ).toHaveCount(0);
   await footerClose(page).click();
+
+  // The config.yaml tab reads it again: version 1's YAML.
+  await openTab(page, "config.yaml");
+  await expect(page.getByTestId("host-collector-config-yaml")).toContainText(
+    "collection_interval: 30s",
+  );
 
   const kept: Array<StoredVersion> = await storedVersions(page, "Web servers");
   expect(kept[2]!.changeNote).toBe("Put version 1 back");
@@ -1134,11 +1464,21 @@ test("a Project Member reads configs but cannot change them", async ({
   await expect(editConfig).toBeVisible();
   await expect(editConfig).toBeDisabled();
 
+  await openTab(page, "Versions");
   await versionRow(card(page, "Versions"), 1)
     .getByRole("button", { name: "View" })
     .click();
   await expect(
     dialog(page).getByRole("button", { name: "Put back" }),
+  ).toHaveCount(0);
+  await footerClose(page).click();
+
+  // A default's dialog only shows it: creating a config is not theirs to do.
+  await open(page, CONFIGS, "role=member");
+  await page.getByTestId("host-collector-default-linux").click();
+  await expect(page.getByTestId("host-collector-default-yaml")).toBeVisible();
+  await expect(
+    dialog(page).getByRole("button", { name: "Create a config from it" }),
   ).toHaveCount(0);
   await footerClose(page).click();
 });
@@ -1161,9 +1501,33 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
   await expect(page.getByTestId("host-collector-config-yaml")).toBeVisible();
   await expectNoSidewaysScroll(page, { tolerance: 1 });
   await screenshot(page, "collector-config-phone");
+  // Every tab on screen, the last one too: the row wraps, it never scrolls away.
+  const versionsTab: { x: number; width: number } = (await page
+    .getByTestId("tab-Versions")
+    .boundingBox())!;
+  expect(versionsTab.x + versionsTab.width).toBeLessThanOrEqual(390);
+  await openTab(page, "Versions");
+  await expect(card(page, "Versions")).toBeVisible();
+  await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+  await open(page, CONFIGS);
+  // How a host gets its config: the steps one under another, no chevrons.
+  const order: Locator = page.getByTestId("host-collector-config-order");
+  const firstStep: { x: number; y: number; height: number } = (await order
+    .getByTestId("host-collector-config-order-step-1")
+    .boundingBox())!;
+  const secondStep: { x: number; y: number } = (await order
+    .getByTestId("host-collector-config-order-step-2")
+    .boundingBox())!;
+  expect(secondStep.y).toBeGreaterThanOrEqual(
+    firstStep.y + firstStep.height - 1,
+  );
+  expect(Math.abs(secondStep.x - firstStep.x)).toBeLessThanOrEqual(1);
+  await expect(
+    order.getByTestId("host-collector-config-order-then").first(),
+  ).toBeHidden();
 
   // OneUptime's defaults: each View config under its name, not beside it.
-  await open(page, CONFIGS);
   const linuxDefault: Locator = page.getByTestId(
     "host-collector-default-row-linux",
   );
@@ -1175,6 +1539,7 @@ test("on a phone the pages fit", async ({ page }: { page: Page }) => {
     .boundingBox())!;
   expect(viewBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height - 1);
   await expectNoSidewaysScroll(page, { tolerance: 1 });
+  await screenshot(page, "collector-configs-phone");
 
   await open(page, HOSTS);
   // A failed config is the one thing in a row that asks for action: its Status says so on a phone too.
@@ -1312,9 +1677,61 @@ test("in German, the Collector page and a config's versions are translated", asy
   await expect(page.getByTestId("host-collector-config-target")).toHaveText(
     "Linux-Hosts mit env:production",
   );
+  await expect(
+    page.getByTestId("host-collector-config-host-count"),
+  ).toContainText("2 Hosts");
+  await expect(
+    page.getByTestId("host-collector-config-host-count-failed"),
+  ).toContainText("1 fehlgeschlagen");
+  // The tabs in German; config.yaml is a file's name, as it is.
+  await expect(page.getByTestId("tab-config.yaml")).toHaveText("config.yaml");
+  await expect(page.getByTestId("tab-Versions")).toHaveText("Versionen");
+  await openTab(page, "Versions");
   await expect(versionRow(card(page, "Versionen"), 1)).toContainText(
     "Erstellt",
   );
+});
+
+test("in German, Collector Configs says how a host gets its config", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await open(page, CONFIGS, "lang=de");
+
+  await expect(configurationSection(page, "Konfiguration")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  const order: Locator = page.getByTestId("host-collector-config-order");
+  await expect(order).toContainText("Wie ein Host seine Konfiguration erhält");
+  await expect(
+    order.getByTestId("host-collector-config-order-step-1"),
+  ).toContainText("Für den Host ausgewählt");
+  await expect(
+    order.getByTestId("host-collector-config-order-step-2"),
+  ).toContainText("Die erste Konfiguration, die gilt");
+  await expect(
+    order.getByTestId("host-collector-config-order-step-3"),
+  ).toContainText("OneUptime-Standard");
+  await expect(
+    page.getByTestId(`host-collector-config-hosts-${WEB_SERVERS_ID}`),
+  ).toContainText("2 Hosts");
+  await expect(
+    page.getByTestId("host-collector-default-summary-windows"),
+  ).toHaveText("Host-Metriken, Ereignisprotokolle und Windows-Dienste");
+  await expect(
+    page.getByTestId("host-collector-default-hosts-windows"),
+  ).toHaveText("1 Host");
+  await screenshot(page, "collector-configs-de");
+
+  await page.getByTestId("host-collector-default-linux").click();
+  await expect(
+    dialog(page).getByRole("button", {
+      name: "Konfiguration daraus erstellen",
+    }),
+  ).toBeVisible();
+  await footerClose(page).click();
 });
 
 test("in the dark theme", async ({ page }: { page: Page }) => {
@@ -1324,5 +1741,15 @@ test("in the dark theme", async ({ page }: { page: Page }) => {
 
   await open(page, configPage(WEB_SERVERS_ID), "theme=dark");
   await expect(page.getByTestId("host-collector-config-yaml")).toBeVisible();
+  await expect(
+    page.getByTestId("host-collector-config-host-count-failed"),
+  ).toBeVisible();
   await screenshot(page, "collector-config-dark");
+
+  await open(page, CONFIGS, "theme=dark");
+  await expect(page.getByTestId("host-collector-config-order")).toBeVisible();
+  await expect(
+    page.getByTestId("host-collector-default-hosts-windows"),
+  ).toHaveText("1 host");
+  await screenshot(page, "collector-configs-dark");
 });

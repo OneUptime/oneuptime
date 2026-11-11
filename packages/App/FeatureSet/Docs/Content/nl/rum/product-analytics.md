@@ -111,6 +111,17 @@ Het segment van een trechter, en dat van een retentietabel, neemt de velden die 
 
 Elke rij is een cohort en hoeveel mensen het bevat, en elke cel het aandeel van hen dat in dat tijdvak terugkwam, donkerder naarmate het er meer waren. Een tijdvak dat nog niet is begonnen, blijft leeg.
 
+**Alle cohorten**, erboven, telt de cohorten als één: in elk tijdvak de mensen die terugkwamen, gedeeld door de mensen van de cohorten die het hebben bereikt, zodat een cohort van 200 mensen vier keer zo zwaar weegt als een van 50. De rij verschijnt zodra twee cohorten iemand bevatten.
+
+## Opgeslagen trechters en retentietabellen
+
+**Opgeslagen trechters**, op de pagina **Trechters**, en **Opgeslagen retentietabellen**, op **Gebruikersretentie**, tonen wat je team voor de applicatie heeft opgeslagen, om het opnieuw te openen of op een dashboard te tonen. Een opgeslagen trechter bewaart zijn stappen, zijn tijd om ze af te ronden en zijn segment, en een opgeslagen retentietabel haar twee gebeurtenissen, haar tijdvak en haar segment. Geen van beide bewaart de periode: de pagina houdt haar eigen periode, en een dashboard leest zijn eigen.
+
+- **+ Trechter opslaan** of **+ Retentietabel opslaan** slaat op wat de pagina toont, onder een naam. Een applicatie bewaart er hoogstens 100 van elk.
+- Kies er een om hem te openen. Het adres van de pagina noemt hem, zodat een link hem opent voor iedereen die hem mag zien. Zodra je verandert wat hij toont, zegt zijn naam dat, en **Bijwerken** slaat de wijziging op.
+- **Bewerken** geeft er een een andere naam, en **Verwijderen** verwijdert hem voor iedereen. **Weergave wissen** sluit de geopende en houdt wat de pagina toont.
+- Een link naar een die is verwijderd, of die je niet mag zien, zegt dat, en de pagina opent zonder hem.
+
 ## Dashboards en waarschuwingen
 
 Elke gebeurtenis wordt ook, minuut voor minuut, geteld als een metriek van de applicatie, en elke aanroep van `metric()` is een punt van een eigen metriek, onder de naam die hij opgeeft. Teken ze op de pagina **Metrieken** van de applicatie, voeg ze toe aan een dashboard, of laat een Metrics-monitor erop waarschuwen; **Metrieken openen**, onder **Alle gebeurtenissen**, opent de pagina.
@@ -123,6 +134,8 @@ Elke gebeurtenis wordt ook, minuut voor minuut, geteld als een metriek van de ap
 
 Deze drie worden niet gefactureerd, en `metric()` weigert een naam die met `oneuptime.` begint, zodat niets wat je pagina verzendt voor een van hen doorgaat. Je `metric()`-punten worden bewaard en gefactureerd zoals de andere metrieken van de applicatie.
 
+Een opgeslagen trechter of retentietabel kan ook op een dashboard: de widgets **Trechter** en **Gebruikersretentie**, in de groep **Productanalyse** van de widgetcatalogus, tonen er een in het tijdsbereik van het dashboard, en **Openen in Trechters** of **Openen in Gebruikersretentie** opent hem op zijn pagina (zie [Dashboard-widgets](/docs/dashboards/widgets#productanalyse)).
+
 ## Privacy en bewaring
 
 - **13 maanden.** De cijfers van een maand worden verwijderd op de eerste dag van de 13e maand erna, zodat de laatste 12 volle maanden er altijd zijn, wat de eigen bewaartermijn van de opnamen ook is (standaard 7 dagen). Gebeurtenissen worden op dezelfde manier bewaard.
@@ -132,6 +145,8 @@ Deze drie worden niet gefactureerd, en `metric()` weigert een naam die met `oneu
 ## Wie het kan zien
 
 Deze pagina's lezen vraagt wat de sessielijst lezen vraagt: `ReadRumSessionReplay` (_List Session Replays_) of `ReadRumSessionReplayPayload` (_Watch Session Replays_), die projecteigenaren en beheerders hebben. Zien wie een aangemelde gebruiker is, en mensen op naam zoeken, vraagt de identiteitsrechten die [Wie een opname kan bekijken](/docs/telemetry/session-replay#wie-een-opname-kan-bekijken) beschrijft.
+
+Opgeslagen trechters en retentietabellen opslaan, hernoemen en verwijderen vraagt dezelfde rechten als deze pagina's lezen, en een dashboardwidget toont er een alleen aan een lezer die ze heeft.
 
 De gebeurtenissen aan- of uitzetten vraagt `EditRumApplication` (_Edit RUM Application_) of de rol van projecteigenaar, beheerder of lid. Gebruikerseigenschappen opgeven vraagt `EditRumApplication` of de rol van eigenaar of beheerder, omdat het bepaalt wat er over aangemelde mensen wordt bewaard.
 

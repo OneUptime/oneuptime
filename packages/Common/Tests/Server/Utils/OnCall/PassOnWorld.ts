@@ -19,6 +19,9 @@ import UserOnCallLogService from "../../../../Server/Services/UserOnCallLogServi
 import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
 import UserService from "../../../../Server/Services/UserService";
 import logger from "../../../../Server/Utils/Logger";
+import OnCallAcknowledgementTimeout, {
+  OnCallTimeoutRecordStanding,
+} from "../../../../Server/Utils/OnCall/OnCallAcknowledgementTimeout";
 import OnCallEscalationAdvance, {
   OnCallEscalationAdvanceResult,
 } from "../../../../Server/Utils/OnCall/OnCallEscalationAdvance";
@@ -184,6 +187,11 @@ export default class PassOnWorld {
   public errors: Array<string> = [];
   public acknowledgedBy: ObjectID | null = null;
   public isRecordAcknowledged: boolean = false;
+  /*
+   * Where the incident stands and who took it there, by its state timeline
+   * (readRecordStanding): nothing known, unless a test says.
+   */
+  public recordStanding: OnCallTimeoutRecordStanding | null = null;
   public clock: Date = new Date(START);
   public repeatsAllowed: number = 0;
 
@@ -664,6 +672,10 @@ export default class PassOnWorld {
 
     this.spy(IncidentService, "isIncidentAcknowledged", async () => {
       return this.isRecordAcknowledged;
+    });
+
+    this.spy(OnCallAcknowledgementTimeout, "readRecordStanding", async () => {
+      return this.recordStanding;
     });
 
     this.spy(

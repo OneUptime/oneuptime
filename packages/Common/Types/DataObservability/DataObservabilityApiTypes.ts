@@ -40,6 +40,7 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   biRefreshAlert: (dataBiConnectionId: string) => string;
   tableDashboards: string;
   tableLineage: string;
+  tableLineageAnswer: string;
   pipelineLineage: string;
   tableSensitivity: string;
   tableErrors: string;
@@ -124,6 +125,8 @@ export const DATA_OBSERVABILITY_API_ROUTES: {
   tableDashboards: "/data-observability/tables/dashboards",
   // A table's lineage several steps each way, with how each table is now: what its Lineage tab draws.
   tableLineage: "/data-observability/tables/lineage",
+  // A table's lineage told in words, problems first, by its name: what the MCP server's lineage tool asks.
+  tableLineageAnswer: "/data-observability/tables/lineage/answer",
   // A pipeline's lineage: the tables it reads and writes, with how each is now: what its page draws.
   pipelineLineage: "/data-observability/pipelines/lineage",
   // What Data Security knows each of a table's columns holds.

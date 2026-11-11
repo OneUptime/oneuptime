@@ -111,6 +111,17 @@ Le segment d'un entonnoir, comme celui d'un tableau de rétention, prend les cha
 
 Chaque ligne est une cohorte et le nombre de personnes qu'elle contient, et chaque cellule la part d'entre elles revenues pendant cette période, plus foncée quand elles sont plus nombreuses. Une période qui n'a pas encore commencé reste vide.
 
+**Toutes les cohortes**, au-dessus d'elles, compte les cohortes comme une seule : à chaque période, les personnes revenues rapportées aux personnes des cohortes qui l'ont atteinte, si bien qu'une cohorte de 200 personnes pèse quatre fois plus qu'une de 50. Elle s'affiche dès que deux cohortes comptent quelqu'un.
+
+## Entonnoirs et tableaux de rétention enregistrés
+
+**Entonnoirs enregistrés**, sur la page **Entonnoirs**, et **Tableaux de rétention enregistrés**, sur **Rétention des utilisateurs**, listent ce que votre équipe a enregistré pour l'application, pour le rouvrir ou l'afficher sur un tableau de bord. Un entonnoir enregistré garde ses étapes, son délai pour les franchir et son segment, et un tableau de rétention enregistré ses deux événements, sa période et son segment. Aucun ne garde la plage temporelle : la page garde la sienne, et un tableau de bord lit la sienne.
+
+- **+ Enregistrer l'entonnoir** ou **+ Enregistrer le tableau de rétention** enregistre ce que montre la page, sous un nom. Une application en garde au plus 100 de chaque sorte.
+- Choisissez-en un pour l'ouvrir. L'adresse de la page le nomme, si bien qu'un lien l'ouvre pour tous ceux qui peuvent le voir. Dès que vous changez ce qu'il montre, son nom l'indique, et **Mettre à jour** enregistre la modification.
+- **Modifier** en renomme un, et **Supprimer** le supprime pour tout le monde. **Effacer la vue** ferme celui qui est ouvert et garde ce que montre la page.
+- Un lien vers un élément supprimé, ou que vous ne pouvez pas voir, le signale, et la page s'ouvre sans lui.
+
 ## Tableaux de bord et alertes
 
 Chaque événement est aussi compté, minute par minute, comme une métrique de l'application, et chaque appel à `metric()` est un point d'une métrique à part, sous le nom qu'il donne. Tracez-les sur la page **Métriques** de l'application, ajoutez-les à un tableau de bord, ou déclenchez des alertes dessus avec un moniteur de métriques ; **Ouvrir Métriques**, sous **Tous les événements**, ouvre la page.
@@ -123,6 +134,8 @@ Chaque événement est aussi compté, minute par minute, comme une métrique de 
 
 Ces trois-là ne sont pas facturées, et `metric()` refuse un nom qui commence par `oneuptime.`, si bien que rien de ce qu'envoie votre page ne passe pour elles. Vos points `metric()` sont conservés et facturés comme les autres métriques de l'application.
 
+Un entonnoir ou un tableau de rétention enregistré va aussi sur un tableau de bord : les widgets **Entonnoir** et **Rétention des utilisateurs**, dans le groupe **Analyse produit** du catalogue de widgets, en affichent un sur la plage temporelle du tableau de bord, et **Ouvrir dans Entonnoirs** ou **Ouvrir dans Rétention des utilisateurs** l'ouvre sur sa page (voir [Widgets de tableau de bord](/docs/dashboards/widgets#analyse-produit)).
+
 ## Confidentialité et conservation
 
 - **13 mois.** Les chiffres d'un mois sont supprimés le premier jour du 13e mois qui suit, si bien que les 12 derniers mois complets sont toujours là, quelle que soit la conservation propre des enregistrements (7 jours par défaut). Les événements sont conservés de la même façon.
@@ -132,6 +145,8 @@ Ces trois-là ne sont pas facturées, et `metric()` refuse un nom qui commence p
 ## Qui peut la voir
 
 Lire ces pages demande ce que demande la liste des sessions : `ReadRumSessionReplay` (_List Session Replays_) ou `ReadRumSessionReplayPayload` (_Watch Session Replays_), que les propriétaires et les administrateurs du projet détiennent. Voir qui est un utilisateur connecté, et rechercher des personnes par leur nom, demande la permission d'identité décrite dans [Qui peut regarder un enregistrement](/docs/telemetry/session-replay#qui-peut-regarder-un-enregistrement).
+
+Enregistrer, renommer et supprimer des entonnoirs et des tableaux de rétention enregistrés demande les mêmes permissions que lire ces pages, et un widget de tableau de bord n'en montre un qu'à un lecteur qui les détient.
 
 Activer ou désactiver les événements demande `EditRumApplication` (_Edit RUM Application_) ou le rôle de propriétaire, d'administrateur ou de membre du projet. Lister des propriétés utilisateur demande `EditRumApplication` ou le rôle de propriétaire ou d'administrateur, car cela décide de ce qui est conservé sur les personnes connectées.
 

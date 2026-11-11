@@ -37,7 +37,7 @@ flowchart TB
 - **Nothing to configure per table.** Rhythms, schedules and usual run times are learned from what each table and pipeline does, and a monitor recommended for a database covers every table in it, including ones created later.
 - **One issue per cause.** An alert whose upstream table, pipeline or database already has an alert open joins that alert as its consequence, already acknowledged, so a broken load pages once.
 - **Every alert explains itself.** It ranks the likely cause, says what depends on the table and who owns it, and learns from what you say about it: mark one **Not an Issue** and the same thing stays quiet next time.
-- **OneUptime AI knows your data.** Investigations of data alerts start from the table's writers, runs and upstream tables; Ask AI, Slack, Microsoft Teams and AI agents can ask whether a table is fresh; and a check can be written from a sentence. See [OneUptime AI and the API](/docs/data-observability/ai-and-api).
+- **OneUptime AI knows your data.** Investigations of data alerts start from the table's writers, runs and lineage; Ask AI, Slack, Microsoft Teams and AI agents can ask whether a table is fresh and what it is built from; and a check can be written from a sentence. See [OneUptime AI and the API](/docs/data-observability/ai-and-api).
 
 ## Before you begin
 
@@ -80,5 +80,5 @@ A self-hosted OneUptime pays nothing for tables.
 - [Checks and Reconciliations](/docs/data-observability/checks): Rules on a table's values, comparing a table with its copy, and dbt's tests.
 - [Lineage and Pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran and Airbyte, and one issue per cause.
 - [Data Products](/docs/data-observability/data-products): Freshness SLAs for the people who use data, on status pages and as SLOs.
-- [OneUptime AI and the API](/docs/data-observability/ai-and-api): Investigations, a check from a sentence, freshness for AI agents, and every endpoint.
+- [OneUptime AI and the API](/docs/data-observability/ai-and-api): Investigations, a check from a sentence, freshness and lineage for AI agents, and every endpoint.
 :::

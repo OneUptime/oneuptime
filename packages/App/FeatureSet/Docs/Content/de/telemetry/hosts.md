@@ -126,7 +126,7 @@ Aus `env=production` wird die Beschriftung `env:production`. Beschriftungen werd
 :::steps
 ### Eine Collector-Konfiguration erstellen
 
-Öffnen Sie **Produkte → Infrastruktur → Hosts → Collector-Konfigurationen** und wählen Sie **Collector-Konfiguration erstellen**. Geben Sie ihr einen Namen, das System der Hosts, für die sie gilt, und, um nur einige davon zu erreichen, deren Beschriftungen. Ihre Konfiguration beginnt als OneUptime-Standard für dieses System.
+Öffnen Sie **Produkte → Infrastruktur → Hosts → Konfiguration → Collector-Konfigurationen** und wählen Sie **Collector-Konfiguration erstellen**. Geben Sie ihr einen Namen, das System der Hosts, für die sie gilt, und, um nur einige davon zu erreichen, deren Beschriftungen. Ihre Konfiguration beginnt als OneUptime-Standard für dieses System.
 
 ### Ihre config.yaml bearbeiten
 
@@ -134,14 +134,14 @@ Wählen Sie auf der Seite der Konfiguration **Konfiguration bearbeiten**, änder
 
 ### Zusehen, wie sie die Hosts erreicht
 
-Jede gespeicherte Änderung ist eine neue Version, und die Hosts, für die sie gilt, erhalten sie innerhalb einer Minute. Die Liste **Hosts** der Konfiguration zeigt jeden Host, den Zustand seines Collectors und die Version, die er ausführt.
+Jede gespeicherte Änderung ist eine neue Version, und die Hosts, für die sie gilt, erhalten sie innerhalb einer Minute. Der Tab **Hosts** der Konfiguration zeigt jeden Host, den Zustand seines Collectors und die Version, die er ausführt.
 :::
 
-Ein Host führt die erste Konfiguration der Liste aus, die für ihn gilt: Ziehen Sie die Zeilen unter **Collector-Konfigurationen**, um die Reihenfolge zu ändern. Setzen Sie die engsten Konfigurationen nach oben, etwa eine für Webserver mit `env:production`, und breite, etwa eine für jeden Linux-Host, darunter. Die Karte **OneUptime-Standards** unter der Liste zeigt, was ein Host ausführt, wenn keine Konfiguration gilt.
+Ein Host führt die erste Konfiguration der Liste aus, die für ihn gilt: Ziehen Sie die Zeilen unter **Collector-Konfigurationen**, um die Reihenfolge zu ändern. Setzen Sie die engsten Konfigurationen nach oben, etwa eine für Webserver mit `env:production`, und breite, etwa eine für jeden Linux-Host, darunter. Jede Zeile zeigt, wie viele Hosts die Konfiguration ausführen und auf wie vielen sie fehlgeschlagen ist. Die Karte **OneUptime-Standards** unter der Liste zeigt, was ein Host ausführt, wenn keine Konfiguration gilt, und wie viele Hosts das tun. Um das für ein System zu ändern, wählen Sie bei seinem Standard **Konfiguration anzeigen** und dann **Konfiguration daraus erstellen**.
 
 ### Versionen und Wiederherstellen
 
-Die Liste **Versionen** einer Konfiguration bewahrt jede gespeicherte Änderung auf, die neueste zuerst, mit wer sie gespeichert hat und wann. Wählen Sie **Anzeigen**, um eine Version zu lesen, und **Wiederherstellen**, um sie erneut an die Hosts zu senden: Sie wird als neue Version gespeichert, die sagt, welche sie wiederhergestellt hat, sodass die Liste immer zeigt, was jeder Host erhalten hat.
+Der Tab **Versionen** einer Konfiguration bewahrt jede gespeicherte Änderung auf, die neueste zuerst, mit wer sie gespeichert hat und wann. Wählen Sie **Anzeigen**, um eine Version zu lesen, und **Wiederherstellen**, um sie erneut an die Hosts zu senden: Sie wird als neue Version gespeichert, die sagt, welche sie wiederhergestellt hat, sodass die Liste immer zeigt, was jeder Host erhalten hat.
 
 ### Eine Konfiguration für einen Host wählen
 
