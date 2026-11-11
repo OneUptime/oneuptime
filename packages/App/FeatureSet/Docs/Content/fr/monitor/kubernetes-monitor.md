@@ -107,10 +107,10 @@ Ces moniteurs évaluent toujours la **Valeur de la métrique** – la valeur de 
 | --- | --- |
 | Moyenne | Valeur moyenne sur la fenêtre de temps |
 | Somme | Somme de toutes les valeurs |
-| Maximum Value | Valeur la plus élevée de la fenêtre de temps |
-| Minimum Value | Valeur la plus basse de la fenêtre de temps |
-| All Values | Toutes les valeurs doivent correspondre au critère et couvrir toute la fenêtre de temps |
-| Any Value | Au moins une valeur doit correspondre |
+| Valeur maximale | Valeur la plus élevée de la fenêtre de temps |
+| Valeur minimale | Valeur la plus basse de la fenêtre de temps |
+| Toutes les valeurs | Toutes les valeurs doivent correspondre au critère et couvrir toute la fenêtre de temps |
+| Au moins une valeur | Au moins une valeur doit correspondre |
 
 ### Conditions
 

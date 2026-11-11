@@ -384,8 +384,14 @@ const OWN_READ_OR_DELETE_PERMISSION: RegExp = /^(Read|Delete)/;
 // A kind's own read permission (Read Monitor).
 const OWN_READ_PERMISSION: RegExp = /^Read/;
 
-// An owner table's own permissions to add, read and remove owners.
-const OWN_OWNER_PERMISSION: RegExp = /^(Create|Read|Delete)/;
+/*
+ * An owner table's own permissions to add, read and remove owners: Create,
+ * Read and Delete <Kind>Owner<User|Team>. A team's owner tables have none of
+ * their own - whoever may edit a team adds and removes its owners (Edit
+ * Team), and whoever may read it reads them (Read Team) - so Edit counts
+ * too, which no other owner table's create, read or delete names.
+ */
+const OWN_OWNER_PERMISSION: RegExp = /^(Create|Read|Delete|Edit)/;
 
 // A kind's own read and edit permissions (Read Monitor, Edit Monitor).
 const OWN_READ_OR_EDIT_PERMISSION: RegExp = /^(Read|Edit)/;
@@ -3977,8 +3983,11 @@ describePostgres(
           });
 
           expect(reads.length).toBeGreaterThan(0);
-          // Add, read and remove, for people and for teams.
-          expect(ownerPermissions).toHaveLength(6);
+          /*
+           * Add, read and remove, for people and for teams - or, for a team,
+           * Edit Team and Read Team, which guard both of its owner tables.
+           */
+          expect(ownerPermissions).toHaveLength(kind.name === "Team" ? 2 : 6);
 
           await setGrants([
             ...reads.map((permission: Permission): PermissionRow => {

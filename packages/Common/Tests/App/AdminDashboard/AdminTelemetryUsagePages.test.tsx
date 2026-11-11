@@ -445,7 +445,9 @@ describe("Admin Dashboard > Telemetry Usage, exceptions apart", () => {
     expect(tile).toHaveTextContent("Exceptions");
     expect(tile).toHaveTextContent("8 GB");
     expect(
-      screen.getByTestId(`telemetry-usage-instance-signal-${ProductType.Traces}`),
+      screen.getByTestId(
+        `telemetry-usage-instance-signal-${ProductType.Traces}`,
+      ),
     ).toHaveTextContent("4 GB");
 
     await screen.findAllByTestId("telemetry-usage-project-link");

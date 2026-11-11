@@ -29,7 +29,7 @@ En tovejsintegration som Jira eller Dynamics 365 bruger begge retninger: ét wor
 | --- | --- | --- |
 | En indbygget forbindelse | Værktøjer, som OneUptime selv forbinder til. Du udfylder en formular, og der er intet at bygge. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), forbindelserne til [Sikkerhedshændelser](/docs/telemetry/security-events) |
 | En workflowskabelon | Sagsværktøjer, holdt i takt begge veje, overvågningsproblemer, sikkerhedshændelsesrapporter og chatbeskeder. Du vælger en skabelon og udfylder nogle få indstillinger. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| En Incoming Request-monitor | Alarmeringsværktøjer, der sender en webhook. Du får én hændelse pr. alarm, sendt til vagten og løst, når alarmen er overstået, uden workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| En monitor for indgående anmodninger | Alarmeringsværktøjer, der sender en webhook. Du får én hændelse pr. alarm, sendt til vagten og løst, når alarmen er overstået, uden workflow. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Et workflow, du selv bygger | Ethvert værktøj med en webhook eller et REST API, og al din egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Start fra toppen af tabellen: jo højere en måde står, jo mindre er der at vedligeholde.
@@ -112,7 +112,7 @@ Et værktøj uden vejledning passer stadig ind i et af to mønstre. Kan det send
 
 ### Indgående: et andet værktøj sender data til OneUptime
 
-Til et alarmeringsværktøj starter du med en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system): den opretter én hændelse pr. alarm og løser den, når alarmen er overstået, uden at du skal bygge noget. Byg et workflow, når du har brug for din egen logik:
+Til et alarmeringsværktøj starter du med en [monitor for indgående anmodninger](/docs/monitor/incoming-request-monitor#modtagelse-af-advarsler-fra-et-andet-system): den opretter én hændelse pr. alarm og løser den, når alarmen er overstået, uden at du skal bygge noget. Byg et workflow, når du har brug for din egen logik:
 
 :::steps
 1. Åbn **Arbejdsgange**, klik på **Opret arbejdsgang** og derefter på **Start fra bunden**. Giv workflowet et navn, og klik på **Opret arbejdsgang**.

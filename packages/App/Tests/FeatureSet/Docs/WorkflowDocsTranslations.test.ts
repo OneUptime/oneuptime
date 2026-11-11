@@ -152,10 +152,14 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
     "Channel",
     "Port",
     "Username",
-    // Send Email.
+    /*
+     * Send Email. Email Body is a Dashboard label too since 31eadaee92e
+     * (the Incoming Email monitor's check): here it is the step's setting.
+     */
     "From Email",
     "To Email",
     "Subject",
+    "Email Body",
     "SMTP Port",
     "SMTP Username",
     "SMTP Password",

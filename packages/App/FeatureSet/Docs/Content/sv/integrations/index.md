@@ -29,7 +29,7 @@ En dubbelriktad integration, som Jira eller Dynamics 365, använder båda riktni
 | --- | --- | --- |
 | En inbyggd anslutning | Verktyg som OneUptime ansluter till själv. Du fyller i ett formulär, och det finns inget att bygga. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), anslutningarna för [Säkerhetshändelser](/docs/telemetry/security-events) |
 | En arbetsflödesmall | Ärendeverktyg, synkade åt båda hållen, övervakningsproblem, säkerhetsincidentrapporter och chattmeddelanden. Du väljer en mall och fyller i några inställningar. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| En Incoming Request-monitor | Larmverktyg som skickar en webhook. Du får en incident per larm, skickad till jouren och löst när larmet återhämtar sig, utan arbetsflöde. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| En monitor för inkommande förfrågningar | Larmverktyg som skickar en webhook. Du får en incident per larm, skickad till jouren och löst när larmet återhämtar sig, utan arbetsflöde. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Ett arbetsflöde som du bygger | Alla verktyg med en webhook eller ett REST API, och all egen logik. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Börja från toppen av tabellen: ju högre upp ett sätt står, desto mindre finns det att underhålla.
@@ -112,7 +112,7 @@ Ett verktyg utan guide passar ändå in i ett av två mönster. Kan det skicka e
 
 ### Inkommande: ett annat verktyg skickar data till OneUptime
 
-För ett larmverktyg börjar du med en [Incoming Request-monitor](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system): den skapar en incident per larm och löser den vid återhämtning, utan att du behöver bygga något. Bygg ett arbetsflöde när du behöver egen logik:
+För ett larmverktyg börjar du med en [monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor#ta-emot-larm-från-ett-annat-system): den skapar en incident per larm och löser den vid återhämtning, utan att du behöver bygga något. Bygg ett arbetsflöde när du behöver egen logik:
 
 :::steps
 1. Öppna **Arbetsflöden**, klicka på **Skapa arbetsflöde** och sedan på **Börja från grunden**. Namnge arbetsflödet och klicka på **Skapa arbetsflöde**.

@@ -3,7 +3,7 @@
 Send [Zabbix](https://www.zabbix.com)-problemer til OneUptime, slik at hvert problem blir en hendelse som varsler vaktteamet ditt og løses når Zabbix er gjenopprettet. Ferdige arbeidsflytmaler holder begge sider i takt: det folk gjør i Zabbix, noteres på hendelsen, og å bekrefte eller løse hendelsen bekrefter eller lukker problemet i Zabbix. Zabbix sender hvert problem via en webhook-medietype, så det er ingenting å installere på noen av sidene.
 
 :::cards
-- [Velg hvordan OneUptime mottar problemer](#velg-hvordan-oneuptime-mottar-problemer): Arbeidsflytmaler eller en Incoming Request-monitor.
+- [Velg hvordan OneUptime mottar problemer](#velg-hvordan-oneuptime-mottar-problemer): Arbeidsflytmaler eller en monitor for innkommende forespørsler.
 - [Start med malene](#start-med-malene): Seks maler, hva de gjør og hva de ber om.
 - [Konfigurer Zabbix](#konfigurer-zabbix): En medietype, en bruker og en handling.
 - [Feilsøking](#feilsøking): Når problemer ikke kommer frem, eller hendelser blir stående åpne.
@@ -37,7 +37,7 @@ Sett opp OneUptime først: det gir deg URL-en som Zabbix sender til.
 | Måte | Bruk den når |
 | --- | --- |
 | Arbeidsflytmalene (anbefalt) | Du vil ha hvert problem som en hendelse eller et varsel med Zabbix-alvorlighetsgraden, med vakten varslet for High og Disaster, løst ved gjenoppretting, med det folk gjør i Zabbix notert på den, og Zabbix bekreftet eller lukket fra OneUptime. |
-| En Incoming Request-monitor | Du vil ha hendelser uten en arbeidsflyt, på hvilken som helst plan, og en monitor hvis status følger Zabbix. Ingenting går tilbake til Zabbix. |
+| En monitor for innkommende forespørsler | Du vil ha hendelser uten en arbeidsflyt, på hvilken som helst plan, og en monitor hvis status følger Zabbix. Ingenting går tilbake til Zabbix. |
 
 Begge får den samme JSON-en fra den samme medietypen, så du kan starte med den ene og bytte senere ved å endre én URL i Zabbix.
 
@@ -130,7 +130,7 @@ Zabbix 6.0 leser API-tokenet fra forespørselens brødtekst, ikke fra headeren `
 
 ## Motta problemer med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene bestemmer hva hver forespørsel gjør.
+En [monitor for innkommende forespørsler](/docs/monitor/incoming-request-monitor) gir deg en URL, og kriteriene bestemmer hva hver forespørsel gjør.
 
 :::steps
 ### Opprett monitoren

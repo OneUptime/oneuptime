@@ -1269,7 +1269,10 @@ describe("An SLO rule's conditions", () => {
     await clickAddCondition();
     await openDropdown(2);
 
-    expect(listedOptions()).toEqual(["Checkout availability", "Search latency"]);
+    expect(listedOptions()).toEqual([
+      "Checkout availability",
+      "Search latency",
+    ]);
 
     await userEvent.setup().click(screen.getByText("Search latency"));
 

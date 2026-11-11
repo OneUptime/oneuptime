@@ -116,7 +116,7 @@ Jede Statusänderung wird mit ihrem Grund in der **Status-Zeitachse** des Monito
 
 ## Kriterien
 
-Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exception Count**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **New Exceptions**, **Erneut aufgetretene Ausnahmen** und **Anstieg der Ausnahmen (in %)**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
+Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Anzahl der Ausnahmen**, die Anzahl der Ausnahmen, die im Fenster gepasst haben, sowie **Neue Ausnahmen**, **Erneut aufgetretene Ausnahmen** und **Anstieg der Ausnahmen (in %)**, die unten beschrieben sind. **Wann alarmieren** richtet ein Kriterium ein, dessen **Bedingung** **Mehr als**, **Mindestens**, **Weniger als**, **Höchstens**, **Genau**, **Ungewöhnlich hoch**, **Ungewöhnlich niedrig** oder **Ungewöhnlich hoch oder niedrig** lautet. Für mehrere Kriterien oder eines mit mehr als einem Filter klicken Sie in **Was passiert** unter **Weitere Felder** auf **Als eigene Kriterien bearbeiten**: Jedes Kriterium dort hat eine **Filterbedingung** und einen **Wert**.
 
 | Filterbedingung | Passt, wenn die Anzahl der Ausnahmen … |
 | --- | --- |
@@ -130,7 +130,7 @@ Die Kriterien eines Ausnahmen-Monitors haben vier Arten von **Filtertyp**: **Exc
 | **Anomal niedrig** | unter diesem Bereich liegt |
 | **Anomal** | außerhalb dieses Bereichs liegt, in die eine oder andere Richtung |
 
-Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. Nur **Exception Count** hat sie: siehe [Sprünge gegenüber dem Normalen](#sprünge-gegenüber-dem-normalen).
+Die Anomaliebedingungen haben keinen **Wert**. Wählen Sie eine **Empfindlichkeit** – Niedrig, Mittel (der Standard) oder Hoch – und, in den eigenen Kriterien, ein **Baseline-Fenster** von 14 (der Standard), 28, 60 oder 90 Tagen. Nur **Anzahl der Ausnahmen** hat sie: siehe [Sprünge gegenüber dem Normalen](#sprünge-gegenüber-dem-normalen).
 
 Ein in „Monitor erstellen“ angelegter Ausnahmen-Monitor beginnt mit der Regel dessen, was Sie unter **Worüber soll dieser Monitor Sie informieren?** gewählt haben:
 
@@ -146,8 +146,8 @@ Ein über die API oder Terraform ohne Kriterien angelegter Ausnahmen-Monitor beg
 
 | Kriterium | Filter | Wirkung |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Größer als** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
-| Check if … has no exceptions | **Exception Count** **Gleich** `0` | Setzt den Monitor auf online |
+| Check if … has exceptions | **Anzahl der Ausnahmen** **Größer als** `0` | Setzt den Monitor auf offline und eröffnet einen Vorfall, der automatisch behoben wird |
+| Check if … has no exceptions | **Anzahl der Ausnahmen** **Gleich** `0` | Setzt den Monitor auf online |
 
 ## Neue, zurückgekommene und sprunghaft steigende Ausnahmen
 
@@ -155,7 +155,7 @@ Neben der Anzahl der Ausnahmen kann ein Ausnahmen-Monitor bei dem alarmieren, wo
 
 | Filtertyp | Was es im Fenster zählt |
 | --- | --- |
-| **New Exceptions** | Passende Ausnahmen, die zum ersten Mal gesehen wurden und weder behoben noch archiviert sind. |
+| **Neue Ausnahmen** | Passende Ausnahmen, die zum ersten Mal gesehen wurden und weder behoben noch archiviert sind. |
 | **Erneut aufgetretene Ausnahmen** | Passende Ausnahmen, die Sie behoben haben, die zurückkamen und noch offen sind. |
 | **Anstieg der Ausnahmen (in %)** | Wie weit die Anzahl passender Ausnahmen über der üblichen liegt: der Tag vor dem Fenster, je Fenster seiner Länge, mindestens eine. Zehn Ausnahmen nach einem ruhigen Tag ergeben 900 %. |
 
@@ -188,7 +188,7 @@ Sie wollen einen Vorfall, wann immer die API in der Produktion eine Ausnahme wir
 | `TimeoutError` × 2 | keine | Aktiv | Nein: keine Umgebung |
 | `NullReferenceException` × 4 | `production` | Nach ihrem Auftreten behoben | Nein: behoben |
 
-Der **Exception Count** ist 3, also passt **Mehr als** `0`: Der Monitor geht offline, und ein Vorfall wird eröffnet. Sobald fünf Minuten ohne aktive Produktionsausnahme vergangen sind, trifft die Regel nicht mehr zu, der Monitor kehrt zu seinem Standardstatus zurück und der Vorfall behebt sich selbst.
+Die **Anzahl der Ausnahmen** ist 3, also passt **Mehr als** `0`: Der Monitor geht offline, und ein Vorfall wird eröffnet. Sobald fünf Minuten ohne aktive Produktionsausnahme vergangen sind, trifft die Regel nicht mehr zu, der Monitor kehrt zu seinem Standardstatus zurück und der Vorfall behebt sich selbst.
 
 ## Fehlerbehebung
 

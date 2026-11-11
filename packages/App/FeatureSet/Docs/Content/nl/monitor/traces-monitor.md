@@ -101,7 +101,7 @@ Elke statuswijziging wordt, met de reden ervan, vastgelegd op de **Statustijdlij
 
 ## Criteria
 
-De criteria van een traces-monitor hebben één **Filtertype**: **Span Count**, het aantal spans dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
+De criteria van een traces-monitor hebben één **Filtertype**: **Aantal spans**, het aantal spans dat in het venster overeenkwam. **Wanneer waarschuwen** stelt één criterium in, met als **Voorwaarde** **Meer dan**, **Minstens**, **Minder dan**, **Hoogstens**, **Precies**, **Ongewoon hoog**, **Ongewoon laag** of **Ongewoon hoog of laag**. Voor meerdere criteria, of één met meer dan één filter, klikt u op **Bewerken als eigen criteria** onder **Meer velden** in **Wat er gebeurt**: elk criterium daar heeft een **Filtervoorwaarde** en, bij een drempelvoorwaarde, een **Waarde**.
 
 | Filtervoorwaarde | Komt overeen wanneer het aantal spans… |
 | --- | --- |
@@ -127,8 +127,8 @@ Een traces-monitor die via de API of Terraform zonder criteria is aangemaakt, be
 
 | Criterium | Filter | Effect |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
-| Check if … is online | **Span Count** **Groter dan** `0` | Zet de monitor online |
+| Check if … is offline | **Aantal spans** **Gelijk aan** `0` | Zet de monitor offline en meldt een incident, dat automatisch wordt opgelost |
+| Check if … is online | **Aantal spans** **Groter dan** `0` | Zet de monitor online |
 
 ## Uitgewerkt voorbeeld: mislukte checkout-verzoeken
 

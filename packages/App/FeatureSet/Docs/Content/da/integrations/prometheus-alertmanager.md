@@ -3,7 +3,7 @@
 Send advarsler fra [Prometheus Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) til OneUptime, så hver advarsel, der udløses, bliver en hændelse, der kalder dit vagthold op og løses, når advarslen er kommet sig. Alertmanager poster sine notifikationer til en webhook-modtager, så der er intet at installere på nogen af siderne.
 
 :::cards
-- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En Incoming Request-monitor eller dit eget workflow.
+- [Vælg, hvordan OneUptime modtager advarsler](#vælg-hvordan-oneuptime-modtager-advarsler): En monitor for indgående anmodninger eller dit eget workflow.
 - [Modtag advarsler med en monitor](#modtag-advarsler-med-en-monitor): Én hændelse pr. advarsel, løst ved genopretning.
 - [Konfigurer Alertmanager](#konfigurer-alertmanager): En webhook-modtager og den rute, der bruger den.
 - [Fejlfinding](#fejlfinding): Når advarsler ikke kommer frem, eller hændelser bliver ved med at være åbne.
@@ -33,14 +33,14 @@ Sæt OneUptime op først: det giver dig den URL, Alertmanager sender til.
 
 | Vej | Brug den, når |
 | --- | --- |
-| En Incoming Request-monitor (anbefalet) | Du vil have, at hver advarsel bliver en hændelse, der kalder vagten op og løses, når advarslen er kommet sig. Der er intet at bygge. |
+| En monitor for indgående anmodninger (anbefalet) | Du vil have, at hver advarsel bliver en hændelse, der kalder vagten op og løses, når advarslen er kommet sig. Der er intet at bygge. |
 | Et workflow med en Webhook-trigger | Du har brug for din egen logik: filtrere advarsler, omforme dem eller kalde andre systemer først. Et workflow åbner én hændelse pr. notifikation, ikke pr. advarsel, og løser den ikke ved genopretning. |
 
 Begge får den samme JSON fra den samme modtager, så du kan begynde med den ene og skifte senere ved at ændre én URL i `alertmanager.yml`.
 
 ## Modtag advarsler med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver notifikation gør.
+En [monitor for indgående anmodninger](/docs/monitor/incoming-request-monitor) giver dig en URL, og dens kriterier afgør, hvad hver notifikation gør.
 
 :::steps
 ### Opret monitoren
@@ -86,7 +86,7 @@ En selvhostet installation har sin egen vært i stedet for `oneuptime.com`.
 > [!WARNING]
 > Gruppér efter en værdi, der er forskellig fra advarsel til advarsel inden for én notifikation. Alertmanagers `fingerprint` er en hash af en advarsels samlede etiketsæt, så den er altid forskellig. En etiket i din rutes `group_by` er aldrig forskellig: det er netop den, der samler advarslerne i én notifikation. Gruppering efter `requestBody.alerts[*].labels.alertname` med ruten nedenfor folder hver advarsel i en notifikation sammen til én hændelse, som får den første advarsels status.
 
-På en OpenStack-cloud knytter du også monitoren til cloudens side. En Incoming Request-monitors egne indstillinger nævner ingen cloud, så dens hændelser ville nå **Hændelser** og ikke clouden. Åbn monitorens **Oversigt → Tilknyttede ressourcer** og tilføj OpenStack-clouden: hver hændelse er så også på cloudens **Hændelser**-side. [OpenStack efter udrulningsværktøj](/docs/telemetry/openstack-deployment-tools) har modtageren for hvert værktøj, der kører en Alertmanager, det sted, værktøjet læser den fra.
+På en OpenStack-cloud knytter du også monitoren til cloudens side. En monitor for indgående anmodninger nævner ingen cloud i sine egne indstillinger, så dens hændelser ville nå **Hændelser** og ikke clouden. Åbn monitorens **Oversigt → Tilknyttede ressourcer** og tilføj OpenStack-clouden: hver hændelse er så også på cloudens **Hændelser**-side. [OpenStack efter udrulningsværktøj](/docs/telemetry/openstack-deployment-tools) har modtageren for hvert værktøj, der kører en Alertmanager, det sted, værktøjet læser den fra.
 
 ## Navngiv hændelserne
 
@@ -222,7 +222,7 @@ Ingen af vejene opdager, når Prometheus eller Alertmanager holder op med at vir
 :::steps
 ### Opret watchdog-monitoren
 
-Opret en anden Incoming Request-monitor, ved navn `Alertmanager watchdog`. Sæt filteret for dens første kriterium, det, der markerer monitoren som offline, til **Indgående anmodning**, **Ikke modtaget inden for minutter**, `10`, og filteret for dens andet kriterium til **Indgående anmodning**, **Modtaget inden for minutter**, `10`. Dashboardet staver begge sådan. Kopiér den nye monitors **Heartbeat URL**.
+Opret en anden monitor for indgående anmodninger, ved navn `Alertmanager watchdog`. Sæt filteret for dens første kriterium, det, der markerer monitoren som offline, til **Indgående anmodning**, **Ikke modtaget inden for minutter**, `10`, og filteret for dens andet kriterium til **Indgående anmodning**, **Modtaget inden for minutter**, `10`. Dashboardet staver begge sådan. Kopiér den nye monitors **Heartbeat URL**.
 
 ### Send watchdog-advarslen dertil
 

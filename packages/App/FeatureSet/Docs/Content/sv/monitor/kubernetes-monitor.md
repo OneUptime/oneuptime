@@ -99,7 +99,7 @@ Fliken **Custom Metric** erbjuder de här mätvärdena, grupperade efter resurst
 
 ### Vad som utvärderas
 
-De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfigurerade måttfrågan eller formeln. Kriterieformuläret har ingen väljare för filtertyp; det visar **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**.
+De här monitorerna utvärderar alltid **Mätvärde** – värdet av den konfigurerade måttfrågan eller formeln. Kriterieformuläret har ingen väljare för filtertyp; det visar **Mätvärde**, **Aggregering**, **Villkor** och **Tröskel**.
 
 ### Aggregeringstyper
 
@@ -107,10 +107,10 @@ De här monitorerna utvärderar alltid **Metric Value** – värdet av den konfi
 | --- | --- |
 | Genomsnitt | Genomsnittligt värde över tidsfönstret |
 | Summa | Summan av alla värden |
-| Maximum Value | Högsta värdet i tidsfönstret |
-| Minimum Value | Lägsta värdet i tidsfönstret |
-| All Values | Alla värden måste matcha kriteriet och täcka hela tidsfönstret |
-| Any Value | Minst ett värde måste matcha |
+| Maxvärde | Högsta värdet i tidsfönstret |
+| Minvärde | Lägsta värdet i tidsfönstret |
+| Alla värden | Alla värden måste matcha kriteriet och täcka hela tidsfönstret |
+| Minst ett värde | Minst ett värde måste matcha |
 
 ### Villkor
 

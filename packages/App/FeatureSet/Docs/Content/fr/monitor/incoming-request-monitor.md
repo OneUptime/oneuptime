@@ -213,9 +213,9 @@ Remplacez la valeur par ce que votre expéditeur émet réellement (`"status":"f
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | Requête entrante | Si une requête a été reçue dans une fenêtre de temps | La seule vérification qui peut se déclencher quand rien n'arrive |
 | Corps de la requête | Le corps de la requête | Correspondance de sous-chaîne. Les corps objets sont comparés en JSON compact |
-| Request Header | Les noms des en-têtes de la requête | Correspondance exacte avec un nom d'en-tête entier, sans tenir compte de la casse |
-| Request Header Value | Les valeurs des en-têtes de la requête | Correspondance exacte avec une valeur d'en-tête entière, sans tenir compte de la casse |
-| JavaScript Expression | Toute expression sur `requestBody` et `requestHeaders` | L'option la plus souple — voir [Expressions JavaScript](/docs/monitor/javascript-expression) |
+| En-tête de la requête | Les noms des en-têtes de la requête | Correspondance exacte avec un nom d'en-tête entier, sans tenir compte de la casse |
+| Valeur de l'en-tête de la requête | Les valeurs des en-têtes de la requête | Correspondance exacte avec une valeur d'en-tête entière, sans tenir compte de la casse |
+| Expression JavaScript | Toute expression sur `requestBody` et `requestHeaders` | L'option la plus souple — voir [Expressions JavaScript](/docs/monitor/javascript-expression) |
 
 ### Conditions de filtre
 
@@ -223,7 +223,7 @@ Chaque type de filtre propose ses propres conditions :
 
 | Type de filtre | Conditions |
 | --- | --- |
-| **Requête entrante** | **Reçu dans le délai (minutes)** — une requête a été reçue dans le nombre de minutes indiqué. **Non reçu dans le délai (minutes)** — aucune requête n'a été reçue dans le nombre de minutes indiqué. (Le tableau de bord les écrit ainsi.) |
+| **Requête entrante** | **Reçu dans le délai (minutes)** — une requête a été reçue dans le nombre de minutes indiqué. **Non reçu dans le délai (minutes)** — aucune requête n'a été reçue dans le nombre de minutes indiqué. |
 | **Corps de la requête**, **En-tête de la requête**, **Valeur de l'en-tête de la requête** | **Contient** et **Ne contient pas** |
 | **Expression JavaScript** | **S'évalue à vrai** |
 
@@ -254,7 +254,7 @@ Les corps objets sont comparés en JSON compact, sans espaces : un filtre **Corp
 > Placez l'interrupteur de l'homme mort **au-dessus** des critères par défaut. Les critères sont vérifiés depuis le haut, et le premier qui correspond décide. La vérification en arrière-plan relit la dernière requête : le critère en ligne par défaut — "Corps de la requête Ne contient pas `error`" — continue donc d'y correspondre, et un critère placé en dessous n'a jamais son tour. **Ajouter un critère** ajoute un critère en bas : faites-le remonter.
 
 > [!WARNING]
-> Un moniteur n'est réévalué en arrière-plan que si au moins un de ses critères vérifie **Requête entrante**. Un moniteur dont les critères ne vérifient que le corps de la requête, Request Header ou une expression JavaScript est évalué à l'arrivée d'une requête et jamais à un autre moment — il ne peut donc jamais passer hors ligne de lui-même. Si vous voulez une alarme sur heartbeat manquant, il vous faut un critère **Requête entrante**.
+> Un moniteur n'est réévalué en arrière-plan que si au moins un de ses critères vérifie **Requête entrante**. Un moniteur dont les critères ne vérifient que le corps de la requête, En-tête de la requête ou une expression JavaScript est évalué à l'arrivée d'une requête et jamais à un autre moment — il ne peut donc jamais passer hors ligne de lui-même. Si vous voulez une alarme sur heartbeat manquant, il vous faut un critère **Requête entrante**.
 
 La vérification en arrière-plan compte des minutes entières et se déclenche une fois que *plus* que la valeur s'est écoulée : "Non reçu dans le délai (minutes): 10" se déclenche environ 11 minutes après la dernière requête (la vérification tourne toutes les 30 secondes). Un moniteur qui n'a jamais reçu de requête est traité comme si son heure de création était la dernière requête : le même critère sur un moniteur tout neuf se déclenche donc environ 11 minutes après sa création, même si l'expéditeur n'a jamais été branché. Seules comptent les minutes où OneUptime recevait : les minutes pendant lesquelles OneUptime lui-même redémarre, est mis à jour ou rattrape son retard ne comptent pas, comme l'explique [Quand OneUptime ne reçoit pas de données](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -367,7 +367,7 @@ Seul un critère **Requête entrante** (**Non reçu dans le délai (minutes)**) 
 Envoyez `Content-Type: application/json`, et écrivez la valeur en JSON compact — `"status":"firing"`, sans espace après les deux-points. Sans type de contenu JSON ou formulaire, le corps n'est pas analysé.
 :::
 
-:::details Un filtre Request Header ne correspond jamais
+:::details Un filtre En-tête de la requête ne correspond jamais
 Les noms et valeurs d'en-tête sont comparés en entier. Donnez la valeur complète, comme `application/json; charset=utf-8`, plutôt qu'une partie.
 :::
 

@@ -86,7 +86,7 @@ Los criterios deciden cuándo la dirección cuenta como en línea, degradada o s
 
 | Filtro | Condiciones | Qué comprueba |
 | --- | --- | --- |
-| **Is Online** | **Verdadero**, **Falso** | Si al menos una solicitud de eco recibió respuesta. |
+| **En línea** | **Verdadero**, **Falso** | Si al menos una solicitud de eco recibió respuesta. |
 | **Tiempo de respuesta (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | El tiempo medio de ida y vuelta de las respuestas. |
 | **Pérdida de paquetes (en %)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | La parte de las cinco solicitudes de eco que no recibió respuesta. |
 | **Jitter (en ms)** | **Mayor que**, **Menor que**, **Mayor o igual que**, **Menor o igual que** | La desviación estándar de los tiempos de ida y vuelta entre los paquetes enviados en una comprobación. |
@@ -105,7 +105,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 
 ### Evaluar durante un periodo de tiempo
 
-**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **Is Online**, **Tiempo de respuesta (en ms)**, **Pérdida de paquetes (en %)**, **Jitter (en ms)** y **Tiempo de espera de la solicitud agotado**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
+**Evaluar estos criterios durante un periodo de tiempo** es una casilla debajo de un filtro, disponible para **En línea**, **Tiempo de respuesta (en ms)**, **Pérdida de paquetes (en %)**, **Jitter (en ms)** y **Tiempo de espera de la solicitud agotado**. Actívela para juzgar una ventana de comprobaciones anteriores en lugar de la última: elija una agregación en **Evaluar** y una ventana, de 2 a 60 minutos, en **Durante los últimos (en minutos)**.
 
 | Agregación | Coincide cuando |
 | --- | --- |
@@ -113,7 +113,7 @@ Los criterios se comprueban de arriba abajo, y el primero que coincide decide qu
 | **Todos los valores** | Cada comprobación de la ventana cumple la condición. |
 | **Cualquier valor** | Al menos una comprobación de la ventana cumple la condición. |
 
-**Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
+La opción **Todos los valores** solo coincide cuando la ventana está realmente cubierta por datos. Un monitor recién creado, o uno cuyas comprobaciones dejaron de registrarse, no tiene historial suficiente para decir nada de los últimos N minutos, así que el criterio espera en lugar de coincidir con la única lectura que tiene. **Cualquier valor** es el ajuste para «avísame en cuanto una sola comprobación supere el umbral» y sigue disparándose de inmediato.
 
 **Tiempo de espera de la solicitud agotado** no es un número que OneUptime registre, así que registra si el filtro coincidió en cada comprobación, y juzga la ventana a partir de ese registro con **Todos los valores** o **Cualquier valor**.
 
@@ -131,7 +131,7 @@ Elija una ventana más larga que el intervalo de supervisión, para que contenga
 
 | Objetivo | Filtro | Condición | Valor |
 | --- | --- | --- | --- |
-| Sin conexión cuando la dirección no es accesible | **Is Online** | **Falso** | — |
+| Sin conexión cuando la dirección no es accesible | **En línea** | **Falso** | — |
 | Alertar cuando la latencia es alta | **Tiempo de respuesta (en ms)** | **Mayor que** | `100` |
 | Marcar la dirección como degradada en un enlace con pérdidas | **Pérdida de paquetes (en %)** | **Mayor que** | `20` |
 | Alertar ante una conexión inestable | **Jitter (en ms)** | **Mayor que** | `30` |

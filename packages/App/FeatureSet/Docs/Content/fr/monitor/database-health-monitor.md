@@ -377,7 +377,7 @@ Les compteurs qui se terminent par `total` sont cumulés depuis le démarrage du
 
 Les seuils sont des nombres entiers. Écrivez `90`, pas `90.5` — les pourcentages et les secondes sont comparés comme des entiers.
 
-**Base de données en ligne** et **Métrique de base de données** peuvent être vérifiés dans la durée : cochez **Évaluer ce critère sur une période donnée**, puis choisissez comment **Évaluer** les valeurs (par exemple **Toutes les valeurs**) et **Pour les dernières (en minutes)**. Dans la durée, le réglage **En l'absence de données** du filtre décide de ce que signifie une valeur manquante ; laissez-le sur **Ignore** pour qu'un droit manquant ne puisse toujours appeler personne.
+**Base de données en ligne** et **Métrique de base de données** peuvent être vérifiées dans la durée : cochez **Évaluer ce critère sur une période donnée**, puis choisissez comment **Évaluer** les valeurs (par exemple **Toutes les valeurs**) et **Pour les dernières (en minutes)**. Dans la durée, le réglage **En l'absence de données** du filtre décide de ce que signifie une valeur manquante ; laissez-le sur **Ignore** pour qu'un droit manquant ne puisse toujours appeler personne.
 
 ### Variables des expressions JavaScript
 
@@ -402,7 +402,7 @@ Pour lire une métrique dans une expression, écrivez le nom de la série, point
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Pour un seuil sur une seule métrique, préférez **Métrique de base de données** à une expression : il résout la série pour vous, ne propose que ce que votre moteur peut produire, et ignore la vérification quand la valeur n'a pas été collectée au lieu de comparer avec rien.
+Pour un seuil sur une seule métrique, préférez **Métrique de base de données** à une expression : elle résout la série pour vous, ne propose que ce que votre moteur peut produire, et ignore la vérification quand la valeur n'a pas été collectée au lieu de comparer avec rien.
 
 ### Exemple : un primaire PostgreSQL
 

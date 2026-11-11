@@ -213,9 +213,9 @@ Cambie el valor por lo que su emisor envía de verdad (`"status":"firing"`, `FAI
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
 | Solicitud entrante | Si se recibió una solicitud dentro de una ventana de tiempo | La única comprobación que puede activarse cuando no llega nada |
 | Cuerpo de la solicitud | El cuerpo de la solicitud | Coincidencia de subcadena. Los cuerpos de objeto se comparan como JSON compacto |
-| Request Header | Los nombres de las cabeceras de la solicitud | Coincidencia exacta con un nombre de cabecera completo, sin distinguir mayúsculas y minúsculas |
-| Request Header Value | Los valores de las cabeceras de la solicitud | Coincidencia exacta con un valor de cabecera completo, sin distinguir mayúsculas y minúsculas |
-| JavaScript Expression | Cualquier expresión sobre `requestBody` y `requestHeaders` | La opción más flexible; consulte [Expresiones JavaScript](/docs/monitor/javascript-expression) |
+| Encabezado de la solicitud | Los nombres de las cabeceras de la solicitud | Coincidencia exacta con un nombre de cabecera completo, sin distinguir mayúsculas y minúsculas |
+| Valor del encabezado de la solicitud | Los valores de las cabeceras de la solicitud | Coincidencia exacta con un valor de cabecera completo, sin distinguir mayúsculas y minúsculas |
+| Expresión de JavaScript | Cualquier expresión sobre `requestBody` y `requestHeaders` | La opción más flexible; consulte [Expresiones JavaScript](/docs/monitor/javascript-expression) |
 
 ### Condiciones de filtro
 
@@ -223,7 +223,7 @@ Cada tipo de filtro ofrece sus propias condiciones:
 
 | Tipo de filtro | Condiciones |
 | --- | --- |
-| **Solicitud entrante** | **Recibido en minutos**: se recibió una solicitud dentro del número de minutos indicado. **No recibido en minutos**: no se recibió ninguna solicitud dentro del número de minutos indicado. (El panel las escribe así.) |
+| **Solicitud entrante** | **Recibido en minutos**: se recibió una solicitud dentro del número de minutos indicado. **No recibido en minutos**: no se recibió ninguna solicitud dentro del número de minutos indicado. |
 | **Cuerpo de la solicitud**, **Encabezado de la solicitud**, **Valor del encabezado de la solicitud** | **Contiene** y **No contiene** |
 | **Expresión de JavaScript** | **Se evalúa como verdadero** |
 
@@ -254,7 +254,7 @@ Los cuerpos de objeto se comparan como JSON compacto sin espacios, así que un f
 > Coloque el interruptor de hombre muerto **por encima** de los criterios predeterminados. Los criterios se comprueban desde arriba, y el primero que coincide decide. La comprobación en segundo plano vuelve a leer la última solicitud, así que el criterio en línea predeterminado —"Cuerpo de la solicitud No contiene `error`"— sigue coincidiendo con ella, y un criterio que esté debajo nunca llega a evaluarse. **Añadir criterios** añade un criterio al final: arrástrelo hacia arriba.
 
 > [!WARNING]
-> Un monitor solo se vuelve a evaluar en segundo plano si al menos uno de sus criterios comprueba **Solicitud entrante**. Un monitor cuyos criterios solo comprueban el cuerpo de la solicitud, Request Header o una expresión JavaScript se evalúa cuando llega una solicitud y en ningún otro momento, así que nunca puede quedar sin conexión por sí solo. Si quiere una alarma por latido ausente, necesita un criterio **Solicitud entrante**.
+> Un monitor solo se vuelve a evaluar en segundo plano si al menos uno de sus criterios comprueba **Solicitud entrante**. Un monitor cuyos criterios solo comprueban el cuerpo de la solicitud, Encabezado de la solicitud o una expresión JavaScript se evalúa cuando llega una solicitud y en ningún otro momento, así que nunca puede quedar sin conexión por sí solo. Si quiere una alarma por latido ausente, necesita un criterio **Solicitud entrante**.
 
 La comprobación en segundo plano cuenta minutos completos y se activa cuando ha pasado *más* que el valor: "No recibido en minutos: 10" se activa unos 11 minutos después de la última solicitud (la comprobación se ejecuta cada 30 segundos). Un monitor que nunca ha recibido una solicitud se trata como si su hora de creación fuera la última solicitud, así que el mismo criterio en un monitor recién creado se activa unos 11 minutos después de crearlo, aunque el emisor nunca se haya conectado. Solo cuentan los minutos en los que OneUptime estaba recibiendo: los minutos en los que el propio OneUptime se reinicia, se actualiza o se pone al día no cuentan, como explica [Cuando OneUptime no recibe datos](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -367,7 +367,7 @@ Solo un criterio **Solicitud entrante** (**No recibido en minutos**) puede notar
 Envíe `Content-Type: application/json`, y escriba el valor como JSON compacto: `"status":"firing"`, sin espacio después de los dos puntos. Sin un tipo de contenido JSON o de formulario, el cuerpo no se analiza.
 :::
 
-:::details Un filtro Request Header nunca coincide
+:::details Un filtro Encabezado de la solicitud nunca coincide
 Los nombres y valores de las cabeceras se comparan completos. Indique el valor entero, como `application/json; charset=utf-8`, en lugar de una parte.
 :::
 

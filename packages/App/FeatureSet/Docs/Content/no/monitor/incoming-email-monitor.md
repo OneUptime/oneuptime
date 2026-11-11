@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Lagre den på monitoren
     O->>O: Sjekk kriteriene
     O->>T: Varsel eller hendelse,<br/>hvis et samsvarer
-    Note over O: Hvert 30. sekund, sjekk<br/>kriterier med Email Received
+    Note over O: Hvert 30. sekund, sjekk<br/>kriterier med «E-post mottatt»
 ```
 
 1. Når du oppretter en monitor for innkommende e-post, gir OneUptime den en unik e-postadresse.
@@ -143,8 +143,8 @@ En ny monitor for innkommende e-post opprettes med to kriterier som leser innhol
 
 | Kriterium | Filtertype | Filtervilkår | Verdi | Virkning |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
-| Online   | Email Body  | Inneholder ikke | `error` | Markerer monitoren som online |
+| Offline  | E-postinnhold  | Inneholder | `error` | Markerer monitoren som frakoblet, åpner en hendelse |
+| Online   | E-postinnhold  | Inneholder ikke | `error` | Markerer monitoren som online |
 
 Dette passer for det vanlige tilfellet der en jobb eller et verktøy fra en tredjepart sender sitt eget resultat på e-post: en melding der innholdet nevner `error`, tar monitoren ned, og den neste meldingen uten ordet får monitoren opp igjen og løser hendelsen. Sammenligningen av innholdet skiller ikke mellom store og små bokstaver, så `Error` og `ERROR` samsvarer også.
 
@@ -185,9 +185,7 @@ Monitorens egen adresse maskeres før noe kriterium leser e-posten, så i **Mott
 
 Ingen av disse sammenligningene skiller mellom store og små bokstaver. Et filter med tom verdi samsvarer aldri.
 
-### Tidsbaserte filtre (Email Received)
-
-Dashbordet staver disse vilkårene "Recieved".
+### Tidsbaserte filtre (E-post mottatt)
 
 | Filtervilkår | Beskrivelse | Eksempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ Dashbordet staver disse vilkårene "Recieved".
 
 En monitor som aldri har mottatt en e-post, regner opprettelsestidspunktet som den siste e-posten.
 
-### JavaScript Expression
+### JavaScript-uttrykk
 
 | Filtervilkår | Beskrivelse |
 | --------------------- | ------------------------------------- |

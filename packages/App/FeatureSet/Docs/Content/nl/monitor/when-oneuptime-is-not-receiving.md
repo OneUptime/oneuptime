@@ -23,7 +23,7 @@ Een herstart die korter duurt dan 90 seconden is geen onderbreking: collectors s
 
 | Waar | Wat OneUptime doet |
 | --- | --- |
-| Server- / VM-monitoren | **Is online** telt alleen de minuten waarin OneUptime ontving: standaard is een server offline na 3 minuten stilte die OneUptime had kunnen horen. |
+| Server- / VM-monitoren | Het filter **Is online** telt alleen de minuten waarin OneUptime ontving: standaard is een server offline na 3 minuten stilte die OneUptime had kunnen horen. |
 | Monitoren voor inkomende verzoeken en inkomende e-mail | **Ontvangen in minuten** en **Niet ontvangen in minuten** tellen alleen de minuten waarin OneUptime ontving. Wanneer zo'n criterium is vervuld, vermeldt de reden hoeveel van die minuten buiten beschouwing bleven. |
 | Host-, Kubernetes-, Docker-, metriek-, log- en trace-monitoren en de andere monitoren die telemetrie lezen | Een controle waarvan het venster tijd zonder ontvangst bevat, wacht tot die tijd het venster heeft verlaten, en nooit langer dan 15 minuten nadat die eindigde. Tot dan verandert er niets: geen statuswijziging, en geen incident of waarschuwing wordt geopend of opgelost. Zolang de wachtrij achterloopt, leest een controle tot waar de wachtrij is in plaats van tot nu. |
 | Hosts, clusters en de rest van de inventaris | Een resource krijgt pas **Verbinding verbroken** nadat de stiltedrempel, voor de meeste 15 minuten, is verstreken terwijl OneUptime ontving. |

@@ -104,7 +104,7 @@ Hver statusændring registreres med sin årsag på monitorens **Statustidslinje*
 
 ## Kriterier
 
-En log-monitors kriterier har én **Filtertype**: **Log Count**, antallet af logs, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
+En log-monitors kriterier har én **Filtertype**: **Antal logs**, antallet af logs, der matchede i vinduet. **Hvornår der advares** opretter ét kriterium, hvis **Betingelse** er **Mere end**, **Mindst**, **Færre end**, **Højst**, **Præcis**, **Usædvanligt høj**, **Usædvanligt lav** eller **Usædvanligt høj eller lav**. For flere kriterier, eller ét med mere end ét filter, klikker du på **Rediger som egne kriterier** under **Flere felter** i **Hvad der sker**: hvert kriterium der har en **Filterbetingelse** og, for en tærskelbetingelse, en **Værdi**.
 
 | Filterbetingelse | Matcher, når antallet af logs er… |
 | --- | --- |
@@ -131,8 +131,8 @@ En log-monitor, der er oprettet via API'et eller Terraform uden kriterier, start
 
 | Kriterium | Filter | Effekt |
 | --- | --- | --- |
-| Check if … is offline | **Log Count** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
-| Check if … is online | **Log Count** **Større end** `0` | Sætter monitoren online |
+| Check if … is offline | **Antal logs** **Lig med** `0` | Sætter monitoren offline og erklærer en hændelse, der løses automatisk |
+| Check if … is online | **Antal logs** **Større end** `0` | Sætter monitoren online |
 
 ## Gennemgået eksempel: en stigning i fejl
 
@@ -244,7 +244,7 @@ Antallet var 0, så filtrene matcher ingen af de logs, tjenesten sender. Åbn mo
 :::
 
 :::details Der var en stigning, men ingen advarsel
-Kriterierne tjekkes fra top til bund, og det første match afgør det. Et bredt kriterium over det, du forventede, såsom **Log Count** **Større end** `0`, matcher først og stopper resten. Sæt det alvorligste kriterium øverst.
+Kriterierne tjekkes fra top til bund, og det første match afgør det. Et bredt kriterium over det, du forventede, såsom **Antal logs** **Større end** `0`, matcher først og stopper resten. Sæt det alvorligste kriterium øverst.
 :::
 
 :::details Et anomalikriterium udløses aldrig

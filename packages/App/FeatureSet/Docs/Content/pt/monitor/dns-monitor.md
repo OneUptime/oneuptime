@@ -17,8 +17,8 @@ A cada verificação, uma sonda pede a um servidor DNS um tipo de registro de um
 flowchart TB
     query["Consultar o tipo de registro"] --> answer{"Registros retornados?"}
     answer -->|"Não, com tentativas restantes"| query
-    answer -->|"Não, sem tentativas"| offline["DNS Is Online: False"]
-    answer -->|"Sim"| online["DNS Is Online: True"]
+    answer -->|"Não, sem tentativas"| offline["DNS online: Falso"]
+    answer -->|"Sim"| online["DNS online: Verdadeiro"]
     online --> ad["Verificar a flag AD"]
     ad --> criteria["Verificar os critérios"]
     offline --> criteria
@@ -126,7 +126,7 @@ Os critérios são verificados de cima para baixo, e o primeiro que corresponde 
 | **Todos os valores** | Toda verificação da janela atende à condição. |
 | **Qualquer valor** | Pelo menos uma verificação da janela atende à condição. |
 
-**Todos os valores** só corresponde quando a janela está de fato coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise assim que uma única verificação ultrapassar o limite" e continua disparando na hora.
+A opção **Todos os valores** só corresponde quando a janela está de fato coberta por dados. Um monitor recém-criado, ou um cujas verificações deixaram de ser registradas, não tem histórico suficiente para dizer algo sobre os últimos N minutos, então o critério espera em vez de corresponder com a única leitura que tem. **Qualquer valor** é a configuração para "me avise assim que uma única verificação ultrapassar o limite" e continua disparando na hora.
 
 **Se não houver dados** decide o que acontece enquanto a janela não consegue sustentar o critério:
 
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Abaixo desse, adicione um critério com **DNS online** / **Verdadeiro**, que marque o monitor como **Offline** e declare um incidente. Ele só corresponde a respostas que não têm o valor.
 :::
 
-:::details DNSSEC Is Valid nunca corresponde
+:::details DNSSEC válido nunca corresponde
 O servidor em **Servidor DNS (Opcional)** não valida DNSSEC, então nunca coloca a flag AD, ou a sonda não conseguiu fazer a verificação. Deixe o campo vazio para validar com `8.8.8.8`, ou use um [monitor de DNSSEC](/docs/monitor/dnssec-monitor).
 :::
 

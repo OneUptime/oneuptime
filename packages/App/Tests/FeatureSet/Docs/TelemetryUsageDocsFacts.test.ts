@@ -442,7 +442,9 @@ describe("exceptions, apart from traces", () => {
       "A day counted before exceptions were shown apart still has them inside **Traces**, as it did.",
     );
     // Such a row has no part: the reads take none out of its Traces.
-    expect(READS).toContain(`COALESCE(\${alias}"exceptionDataIngestedInGB", 0)`);
+    expect(READS).toContain(
+      `COALESCE(\${alias}"exceptionDataIngestedInGB", 0)`,
+    );
     expect(ENGLISH).toContain(
       ":::details Traces went down on the day Exceptions appeared",
     );
@@ -490,9 +492,11 @@ describe("exceptions, apart from traces", () => {
       ]) {
         const drawn: string = drawnDashboardLabel(language, label);
 
-        expect({ language, label, named: page.includes(`**${drawn}**`) }).toEqual(
-          { language, label, named: true },
-        );
+        expect({
+          language,
+          label,
+          named: page.includes(`**${drawn}**`),
+        }).toEqual({ language, label, named: true });
       }
 
       // The answer's keys are code, in English in every language.

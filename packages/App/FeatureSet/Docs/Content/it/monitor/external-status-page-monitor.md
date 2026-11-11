@@ -102,7 +102,7 @@ Selezionate le **Sonde** e un **Intervallo di monitoraggio** (parte da **Ogni 5 
 
 ### Componenti
 
-Scegliete i componenti da cui dipendete e il monitor controlla solo quelli: **Stato del componente della pagina di stato esterna** confronta solo i loro stati, lo stato generale è il peggiore dei loro e **Incidenti attivi della pagina di stato esterna** conta solo gli incidenti che ne riguardano almeno uno. Resta un solo controllo della pagina, quanti che ne scegliate.
+Scegliete i componenti da cui dipendete e il monitor controlla solo quelli: **Stato del componente della pagina di stato esterna** confronta solo i loro stati, lo stato generale è il peggiore dei loro e il filtro **Incidenti attivi della pagina di stato esterna** conta solo gli incidenti che ne riguardano almeno uno. Resta un solo controllo della pagina, quanti che ne scegliate.
 
 Quando aprite **Componenti**, il vostro browser legge l'elenco della pagina da una Atlassian Statuspage, una pagina incident.io o una pagina di stato OneUptime, e lo mostra nei gruppi della pagina; ogni componente non operativo dice come sta. Un nome scelto controlla il componente con esattamente quel nome, senza distinguere maiuscole e minuscole: `Copilot` sulla pagina di GitHub non è `Copilot AI Model Providers`.
 

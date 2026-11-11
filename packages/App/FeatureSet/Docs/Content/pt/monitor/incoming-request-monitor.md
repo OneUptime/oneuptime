@@ -47,7 +47,7 @@ Use-o para:
 
 Vá para **Monitores** e clique em **Criar monitor**.
 
-### Escolher Incoming Request
+### Escolher Requisição recebida
 
 Em **Tipo de monitor**, escolha **Requisição recebida**: ele é um dos tipos comuns no topo. Digite um **Nome** e clique em **Próximo**.
 
@@ -211,11 +211,11 @@ Troque o valor pelo que seu remetente realmente emite (`"status":"firing"`, `FAI
 
 | Tipo de filtro | Verifica | Observações |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Se uma requisição foi recebida dentro de uma janela de tempo | A única verificação que pode disparar quando nada chega |
+| Requisição recebida | Se uma requisição foi recebida dentro de uma janela de tempo | A única verificação que pode disparar quando nada chega |
 | Corpo da Requisição | O corpo da requisição | Busca de substring. Corpos de objeto são comparados como JSON compacto |
-| Request Header | Os nomes dos cabeçalhos da requisição | Correspondência exata com um nome de cabeçalho inteiro, sem diferenciar maiúsculas de minúsculas |
-| Request Header Value | Os valores dos cabeçalhos da requisição | Correspondência exata com um valor de cabeçalho inteiro, sem diferenciar maiúsculas de minúsculas |
-| JavaScript Expression | Qualquer expressão sobre `requestBody` e `requestHeaders` | A opção mais flexível: veja [Expressões JavaScript](/docs/monitor/javascript-expression) |
+| Cabeçalho da requisição | Os nomes dos cabeçalhos da requisição | Correspondência exata com um nome de cabeçalho inteiro, sem diferenciar maiúsculas de minúsculas |
+| Valor do cabeçalho da requisição | Os valores dos cabeçalhos da requisição | Correspondência exata com um valor de cabeçalho inteiro, sem diferenciar maiúsculas de minúsculas |
+| Expressão JavaScript | Qualquer expressão sobre `requestBody` e `requestHeaders` | A opção mais flexível: veja [Expressões JavaScript](/docs/monitor/javascript-expression) |
 
 ### Condições do filtro
 
@@ -223,7 +223,7 @@ Cada tipo de filtro oferece suas próprias condições:
 
 | Tipo de filtro | Condições |
 | --- | --- |
-| **Requisição recebida** | **Recebido em minutos**: uma requisição foi recebida dentro do número de minutos informado. **Não recebido em minutos**: nenhuma requisição foi recebida dentro do número de minutos informado. (O dashboard as escreve assim.) |
+| **Requisição recebida** | **Recebido em minutos**: uma requisição foi recebida dentro do número de minutos informado. **Não recebido em minutos**: nenhuma requisição foi recebida dentro do número de minutos informado. |
 | **Corpo da Requisição**, **Cabeçalho da requisição**, **Valor do cabeçalho da requisição** | **Contém** e **Não contém** |
 | **Expressão JavaScript** | **Resulta em verdadeiro** |
 
@@ -238,7 +238,7 @@ Corpos de objeto são comparados como JSON compacto sem espaços, então um filt
 
 | Campo | Valor |
 | --- | --- |
-| **Tipo de filtro** | Incoming Request |
+| **Tipo de filtro** | Requisição recebida |
 | **Condição do filtro** | Não recebido em minutos |
 | **Valor** | `10` |
 
@@ -254,7 +254,7 @@ Corpos de objeto são comparados como JSON compacto sem espaços, então um filt
 > Coloque o interruptor de homem morto **acima** dos critérios padrão. Os critérios são verificados de cima para baixo, e o primeiro que corresponde decide. A verificação em segundo plano relê a última requisição, então o critério online padrão ("Corpo da Requisição Não contém `error`") continua correspondendo a ela, e um critério abaixo dele nunca tem sua vez. **Adicionar critérios** adiciona um critério no final: arraste-o para cima.
 
 > [!WARNING]
-> Um monitor só é reavaliado em segundo plano se pelo menos um dos seus critérios verificar **Requisição recebida**. Um monitor cujos critérios só verificam o corpo da requisição, Request Header ou uma expressão JavaScript é avaliado quando uma requisição chega e em nenhum outro momento, então nunca pode ficar offline sozinho. Se você quer um alarme de heartbeat ausente, precisa de um critério **Requisição recebida**.
+> Um monitor só é reavaliado em segundo plano se pelo menos um dos seus critérios verificar **Requisição recebida**. Um monitor cujos critérios só verificam o corpo da requisição, Cabeçalho da requisição ou uma expressão JavaScript é avaliado quando uma requisição chega e em nenhum outro momento, então nunca pode ficar offline sozinho. Se você quer um alarme de heartbeat ausente, precisa de um critério **Requisição recebida**.
 
 A verificação em segundo plano conta minutos inteiros e dispara quando passou *mais* que o valor: "Não recebido em minutos: 10" dispara cerca de 11 minutos depois da última requisição (a verificação roda a cada 30 segundos). Um monitor que nunca recebeu uma requisição é tratado como se a hora de criação fosse a última requisição, então o mesmo critério em um monitor recém-criado dispara cerca de 11 minutos depois da criação, mesmo que o remetente nunca tenha sido configurado. Só contam os minutos em que o OneUptime estava recebendo: os minutos em que o próprio OneUptime reinicia, é atualizado ou se recupera de atrasos não contam, como explica [Quando o OneUptime não recebe dados](/docs/monitor/when-oneuptime-is-not-receiving).
 
@@ -367,7 +367,7 @@ Só um critério **Requisição recebida** (**Não recebido em minutos**) conseg
 Envie `Content-Type: application/json`, e escreva o valor como JSON compacto: `"status":"firing"`, sem espaço depois dos dois-pontos. Sem um tipo de conteúdo JSON ou de formulário, o corpo não é analisado.
 :::
 
-:::details Um filtro Request Header nunca corresponde
+:::details Um filtro Cabeçalho da requisição nunca corresponde
 Nomes e valores de cabeçalhos são comparados inteiros. Informe o valor completo, como `application/json; charset=utf-8`, em vez de parte dele.
 :::
 

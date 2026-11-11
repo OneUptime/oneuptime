@@ -24,7 +24,7 @@ flowchart TB
 
 Como os marcadores são substituídos como texto, `{{responseBody.item}}` vira o valor bruto. Uma string precisa estar entre aspas para ser uma string JavaScript; um número ou um booleano não — veja [Regras de aspas](#regras-de-aspas). As expressões são executadas no servidor do OneUptime, num sandbox isolado.
 
-## Adicionar um filtro JavaScript Expression
+## Adicionar um filtro Expressão JavaScript
 
 :::steps
 ### Abrir os critérios
@@ -46,7 +46,7 @@ Salve o monitor. O filtro é avaliado na próxima verificação do monitor.
 
 ## Variáveis por tipo de monitor
 
-As expressões JavaScript são oferecidas para monitores do tipo Site, API, Incoming Request, Incoming Email, SQL Query e Database Health.
+As expressões JavaScript são oferecidas para monitores do tipo Site, API, Requisição recebida, Incoming Email, SQL Query e Database Health.
 
 ### Monitores de site e de API
 

@@ -61,12 +61,9 @@ describe("joinDateAndTime", () => {
     ["۱۴ سپتامبر", "۱۸:۰۱", "۱۴ سپتامبر، ۱۸:۰۱"],
     ["Today", "3:25 PM", "Today, 3:25 PM"],
     ["اليوم", "3:25 م", "اليوم، 3:25 م"],
-  ])(
-    "%p and %p read %p",
-    (date: string, time: string, joined: string) => {
-      expect(OneUptimeDate.joinDateAndTime(date, time)).toBe(joined);
-    },
-  );
+  ])("%p and %p read %p", (date: string, time: string, joined: string) => {
+    expect(OneUptimeDate.joinDateAndTime(date, time)).toBe(joined);
+  });
 
   test("never writes English's comma after an Arabic-script date", () => {
     for (const language of ["ar", "fa"]) {

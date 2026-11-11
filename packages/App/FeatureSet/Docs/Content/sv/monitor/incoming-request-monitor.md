@@ -47,7 +47,7 @@ Använd den för att:
 
 Gå till **Monitorer** och klicka på **Skapa monitor**.
 
-### Välj Incoming Request
+### Välj Inkommande begäran
 
 Under **Monitortyp** väljer du **Inkommande begäran** — den är en av de vanliga typerna överst. Ange ett **Namn** och klicka sedan på **Nästa**.
 
@@ -211,11 +211,11 @@ Det passar det vanliga fallet där avsändaren rapporterar sin egen hälsa i nyt
 
 | Filtertyp | Kontrollerar | Anteckningar |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Om en förfrågan har tagits emot inom ett tidsfönster | Den enda kontrollen som kan utlösas när ingenting kommer |
+| Inkommande begäran | Om en förfrågan har tagits emot inom ett tidsfönster | Den enda kontrollen som kan utlösas när ingenting kommer |
 | Begärandekropp | Förfrågans kropp | Sökning efter en delsträng. Objekt som kropp jämförs som kompakt JSON |
-| Request Header | Namnen på förfrågans headers | Exakt jämförelse med ett helt headernamn, utan hänsyn till versaler och gemener |
-| Request Header Value | Värdena i förfrågans headers | Exakt jämförelse med ett helt headervärde, utan hänsyn till versaler och gemener |
-| JavaScript Expression | Alla uttryck över `requestBody` och `requestHeaders` | Det flexiblaste alternativet — se [JavaScript-uttryck](/docs/monitor/javascript-expression) |
+| Begärandehuvud | Namnen på förfrågans headers | Exakt jämförelse med ett helt headernamn, utan hänsyn till versaler och gemener |
+| Värde för begärandehuvud | Värdena i förfrågans headers | Exakt jämförelse med ett helt headervärde, utan hänsyn till versaler och gemener |
+| JavaScript-uttryck | Alla uttryck över `requestBody` och `requestHeaders` | Det flexiblaste alternativet — se [JavaScript-uttryck](/docs/monitor/javascript-expression) |
 
 ### Filtervillkor
 
@@ -223,7 +223,7 @@ Varje filtertyp har sina egna villkor:
 
 | Filtertyp | Villkor |
 | --- | --- |
-| **Inkommande begäran** | **Mottaget inom (minuter)** — en förfrågan har tagits emot inom det angivna antalet minuter. **Inte mottaget inom (minuter)** — ingen förfrågan har tagits emot inom det angivna antalet minuter. (Instrumentpanelen stavar dem så.) |
+| **Inkommande begäran** | **Mottaget inom (minuter)** — en förfrågan har tagits emot inom det angivna antalet minuter. **Inte mottaget inom (minuter)** — ingen förfrågan har tagits emot inom det angivna antalet minuter. |
 | **Begärandekropp**, **Begärandehuvud**, **Värde för begärandehuvud** | **Innehåller** och **Innehåller inte** |
 | **JavaScript-uttryck** | **Utvärderas till sant** |
 
@@ -238,7 +238,7 @@ Objekt som kropp jämförs som kompakt JSON utan mellanslag, så ett filter **Be
 
 | Fält | Värde |
 | --- | --- |
-| **Filtertyp** | Incoming Request |
+| **Filtertyp** | Inkommande begäran |
 | **Filtervillkor** | Inte mottaget inom (minuter) |
 | **Värde** | `10` |
 
@@ -254,7 +254,7 @@ Objekt som kropp jämförs som kompakt JSON utan mellanslag, så ett filter **Be
 > Lägg dödmansgreppet **ovanför** standardkriterierna. Kriterierna kontrolleras uppifrån, och det första som matchar avgör. Bakgrundskontrollen läser den senaste förfrågan igen, så standardkriteriet för online — "Begärandekropp Innehåller inte `error`" — fortsätter att matcha den, och ett kriterium under det kommer aldrig till tals. **Lägg till kriterier** lägger till ett kriterium längst ned: dra upp det.
 
 > [!WARNING]
-> En monitor utvärderas bara på nytt i bakgrunden om minst ett av dess kriterier kontrollerar **Inkommande begäran**. En monitor vars kriterier bara kontrollerar kroppen, Request Header eller ett JavaScript-uttryck utvärderas när en förfrågan kommer och vid ingen annan tidpunkt — så den kan aldrig bli offline av sig själv. Om du vill ha ett larm för uteblivna heartbeats behöver du ett kriterium med **Inkommande begäran**.
+> En monitor utvärderas bara på nytt i bakgrunden om minst ett av dess kriterier kontrollerar **Inkommande begäran**. En monitor vars kriterier bara kontrollerar kroppen, Begärandehuvud eller ett JavaScript-uttryck utvärderas när en förfrågan kommer och vid ingen annan tidpunkt — så den kan aldrig bli offline av sig själv. Om du vill ha ett larm för uteblivna heartbeats behöver du ett kriterium med **Inkommande begäran**.
 
 Bakgrundskontrollen räknar hela minuter och utlöses så fort *mer* än värdet har gått: "Inte mottaget inom (minuter): 10" utlöses ungefär 11 minuter efter den senaste förfrågan (kontrollen körs var 30:e sekund). En monitor som aldrig har tagit emot en förfrågan behandlas som om tidpunkten då den skapades var den senaste förfrågan, så samma kriterium på en helt ny monitor utlöses ungefär 11 minuter efter att du skapat den, även om avsändaren aldrig kopplades in. Bara minuter då OneUptime tog emot räknas: minuter då OneUptime själv startar om, uppgraderas eller hämtar ikapp räknas inte, som [När OneUptime inte tar emot data](/docs/monitor/when-oneuptime-is-not-receiving) förklarar.
 
@@ -367,7 +367,7 @@ Bara ett kriterium med **Inkommande begäran** (**Inte mottaget inom (minuter)**
 Skicka `Content-Type: application/json`, och skriv värdet som kompakt JSON — `"status":"firing"`, utan mellanslag efter kolonet. Utan en innehållstyp för JSON eller formulär tolkas kroppen inte.
 :::
 
-:::details Ett filter på Request Header matchar aldrig
+:::details Ett filter på Begärandehuvud matchar aldrig
 Headernamn och headervärden jämförs i sin helhet. Ange hela värdet, som `application/json; charset=utf-8`, i stället för en del av det.
 :::
 

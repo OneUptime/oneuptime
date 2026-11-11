@@ -43,6 +43,10 @@ import TelemetryUsageBillingService, {
 import TelemetryUsageBilling from "../../../Models/DatabaseModels/TelemetryUsageBilling";
 import ProductType from "../../../Types/MeteredPlan/ProductType";
 import ObjectID from "../../../Types/ObjectID";
+import {
+  ProductAnalyticsDerivedMetric,
+  isProductAnalyticsDerivedMetricName,
+} from "../../../Types/Rum/ProductAnalyticsEvents";
 import SessionReplayBudgetMetricType from "../../../Types/Rum/SessionReplayBudgetMetricType";
 import ServiceType from "../../../Types/Telemetry/ServiceType";
 import SessionReplayBudgetMetricTypeUtil from "../../../Utils/SessionReplay/SessionReplayBudgetMetricType";
@@ -338,12 +342,23 @@ const RUM_APPLICATION_ID: string = "88888888-8888-4888-8888-888888888888";
 const EVERY_BUDGET_METRIC_NAME: Array<string> = [
   ...(Object.values(SessionReplayBudgetMetricType) as Array<string>),
   ...(Object.values(TelemetryIngestionBudgetMetricType) as Array<string>),
+];
+
+/*
+ * And, since #6444, the product analytics event counts: the event pipeline
+ * counts them from events the project already sent, and OTLP ingest refuses
+ * their prefix as it refuses the budget ones (isProductAnalyticsDerivedMetricName),
+ * so they cost the project nothing either.
+ */
+const EVERY_EXCLUDED_METRIC_NAME: Array<string> = [
+  ...EVERY_BUDGET_METRIC_NAME,
+  ...(Object.values(ProductAnalyticsDerivedMetric) as Array<string>),
 ].sort();
 
 describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
-  test("is exactly the session replay and ingestion budget series, every one of them", () => {
+  test("is exactly the session replay and ingestion budget series and the product analytics event counts, every one of them", () => {
     expect([...TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES].sort()).toEqual(
-      EVERY_BUDGET_METRIC_NAME,
+      EVERY_EXCLUDED_METRIC_NAME,
     );
   });
 
@@ -351,7 +366,8 @@ describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
     for (const name of TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES) {
       expect(
         SessionReplayBudgetMetricTypeUtil.isReservedMetricName(name) ||
-          TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name),
+          TelemetryIngestionBudgetMetricTypeUtil.isReservedMetricName(name) ||
+          isProductAnalyticsDerivedMetricName(name),
       ).toBe(true);
     }
   });
@@ -366,7 +382,7 @@ describe("TELEMETRY_BILLING_EXCLUDED_METRIC_NAMES", () => {
   });
 });
 
-describe("stageTelemetryUsageForProject excludes the budget series from the Metrics scan only", () => {
+describe("stageTelemetryUsageForProject excludes the budget and product analytics series from the Metrics scan only", () => {
   interface StagedRumUsage {
     primaryEntityId: ObjectID;
     primaryEntityType?: ServiceType | undefined;
@@ -459,7 +475,7 @@ describe("stageTelemetryUsageForProject excludes the budget series from the Metr
     jest.restoreAllMocks();
   });
 
-  test("the Metrics scan is told to leave out every budget metric name", async () => {
+  test("the Metrics scan is told to leave out every metric name billing leaves out", async () => {
     await TelemetryUsageBillingService.stageTelemetryUsageForProject({
       projectId: PROJECT_ID,
       productType: ProductType.Metrics,
@@ -474,7 +490,7 @@ describe("stageTelemetryUsageForProject excludes the budget series from the Metr
     } = scans.metrics.mock.calls[0]![0];
 
     expect([...(scanArguments.excludeNames || [])].sort()).toEqual(
-      EVERY_BUDGET_METRIC_NAME,
+      EVERY_EXCLUDED_METRIC_NAME,
     );
     // Nothing else about the scan changed.
     expect(scanArguments.projectId).toBe(PROJECT_ID);

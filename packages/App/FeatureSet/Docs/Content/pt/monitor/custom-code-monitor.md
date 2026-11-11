@@ -185,9 +185,9 @@ Os critérios padrão marcam o monitor como online quando **Erro** está vazio, 
 
 ### Alertar sobre os dados retornados
 
-O que o script retorna como `data` é o **Valor do resultado** do monitor, e um critério pode compará-lo: por exemplo, _Result Value é Igual a `UP`_.
+O que o script retorna como `data` é o **Valor do resultado** do monitor, e um critério pode compará-lo: por exemplo, _Valor do resultado é Igual a `UP`_.
 
-Quando `data` é um objeto ou um array, preencha **Caminho do campo (opcional)** no filtro Result Value para comparar um campo dele em vez do valor inteiro. Use pontos para campos aninhados e `[n]` para itens de array:
+Quando `data` é um objeto ou um array, preencha **Caminho do campo (opcional)** no filtro Valor do resultado para comparar um campo dele em vez do valor inteiro. Use pontos para campos aninhados e `[n]` para itens de array:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Am Monitor speichern
     O->>O: Die Kriterien prüfen
     O->>T: Warnung oder Vorfall,<br/>wenn eines zutrifft
-    Note over O: Alle 30 Sekunden Kriterien<br/>mit Email Received prüfen
+    Note over O: Alle 30 Sekunden Kriterien<br/>mit „E-Mail empfangen“ prüfen
 ```
 
 1. Wenn Sie einen Monitor für eingehende E-Mails erstellen, gibt OneUptime ihm eine eindeutige E-Mail-Adresse.
@@ -143,8 +143,8 @@ Ein neuer Monitor für eingehende E-Mails wird mit zwei Kriterien erstellt, die 
 
 | Kriterium | Filtertyp | Filterbedingung | Wert | Wirkung |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Enthält | `error` | Markiert den Monitor als offline, eröffnet einen Vorfall |
-| Online   | Email Body  | Enthält nicht | `error` | Markiert den Monitor als online |
+| Offline  | E-Mail-Text  | Enthält | `error` | Markiert den Monitor als offline, eröffnet einen Vorfall |
+| Online   | E-Mail-Text  | Enthält nicht | `error` | Markiert den Monitor als online |
 
 Das passt zum häufigen Fall, dass ein Job oder ein Werkzeug eines Drittanbieters sein eigenes Ergebnis per E-Mail meldet: Eine Nachricht, deren Text `error` erwähnt, nimmt den Monitor offline, und die nächste Nachricht ohne das Wort bringt ihn wieder online und behebt den Vorfall. Der Textvergleich beachtet die Groß- und Kleinschreibung nicht, `Error` und `ERROR` treffen also ebenfalls zu.
 
@@ -185,9 +185,7 @@ Die eigene Adresse des Monitors wird maskiert, bevor ein Kriterium die E-Mail li
 
 Alle diese Vergleiche beachten die Groß- und Kleinschreibung nicht. Ein Filter mit leerem Wert trifft nie zu.
 
-### Zeitbasierte Filter (Email Received)
-
-Das Dashboard schreibt diese Bedingungen "Recieved".
+### Zeitbasierte Filter (E-Mail empfangen)
 
 | Filterbedingung | Beschreibung | Beispiel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ Das Dashboard schreibt diese Bedingungen "Recieved".
 
 Ein Monitor, der noch nie eine E-Mail erhalten hat, zählt seine Erstellungszeit als letzte E-Mail.
 
-### JavaScript Expression
+### JavaScript-Ausdruck
 
 | Filterbedingung | Beschreibung |
 | --------------------- | ------------------------------------- |

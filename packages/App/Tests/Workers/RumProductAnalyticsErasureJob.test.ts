@@ -15,6 +15,7 @@ import RumSessionChunkService from "Common/Server/Services/RumSessionChunkServic
 import RumSessionService from "Common/Server/Services/RumSessionService";
 import RumProductAnalyticsSessionService from "Common/Server/Services/RumProductAnalyticsSessionService";
 import RumProductAnalyticsUserService from "Common/Server/Services/RumProductAnalyticsUserService";
+import RumProductAnalyticsEventService from "Common/Server/Services/RumProductAnalyticsEventService";
 import {
   ClickhouseExecuteOptions,
   MigrationExecuteOptions,
@@ -36,10 +37,12 @@ import {
  * most recordings, so the job erases it twice over: by id with every batch
  * of recordings (the anonymous first row of a session somebody signed in
  * during included), and - once a request has erased every recording it
- * will - by subject, for what only product analytics still holds. These
- * tests drive the job with every ClickHouse call answered in memory and
- * pin which tables each request type reaches, in what order, and when a
- * request comes back for another run.
+ * will - by subject, for what only product analytics still holds. The
+ * events every session sent (part two), recorded or not, go wherever the
+ * summaries go, and a user's events by key too. These tests drive the job
+ * with every ClickHouse call answered in memory and pin which tables each
+ * request type reaches, in what order, and when a request comes back for
+ * another run.
  */
 
 jest.mock("../../FeatureSet/Workers/Utils/Cron", () => {
@@ -123,6 +126,8 @@ const userKey: string = "c".repeat(64);
 const sessionA: string = "1f0c9a4b6d2e47f8a1b3c5d7e9f00112";
 const sessionB: string = "2a1d0b5c7e3f48a9b2c4d6e8f0a11223";
 const expiredSession: string = "3b2e1c6d8f4059b0c3d5e7f9a1b22334";
+/* A session the replay sample left out: only its events name it. */
+const unrecordedSession: string = "4c3f2d7e9a5160c1d4e6f8a0b2c33445";
 
 type TableLabel =
   | "chunks"
@@ -131,7 +136,8 @@ type TableLabel =
   | "spans"
   | "exceptions"
   | "analyticsSessions"
-  | "analyticsUsers";
+  | "analyticsUsers"
+  | "analyticsEvents";
 
 interface Delete {
   label: TableLabel;
@@ -143,7 +149,10 @@ interface Delete {
 
 interface Harness {
   deletes: Array<Delete>;
-  /* Lookups that read product analytics' session table. */
+  /*
+   * Lookups that read product analytics, in the order they were asked:
+   * its session table, then its events table.
+   */
   analyticsLookups: Array<Statement>;
 }
 
@@ -170,11 +179,14 @@ function hexIds(count: number, seed: string): Array<string> {
 /*
  * Every ClickHouse call the job makes, answered in memory: the header
  * lookup finds `headerSessions`, product analytics' own lookup finds
- * `analyticsSessions`, and every delete is recorded instead of run.
+ * `analyticsSessions` in its session table and `eventSessions` (none,
+ * unless given) in its events table, and every delete is recorded instead
+ * of run.
  */
 function installHarness(data: {
   headerSessions: Array<string>;
   analyticsSessions: Array<string>;
+  eventSessions?: Array<string> | undefined;
   failAnalyticsDelete?: boolean | undefined;
 }): Harness {
   const harness: Harness = { deletes: [], analyticsLookups: [] };
@@ -214,6 +226,20 @@ function installHarness(data: {
       );
     }) as never);
 
+  jest
+    .spyOn(RumProductAnalyticsEventService, "executeQuery")
+    .mockImplementation(((statement: Statement): Promise<unknown> => {
+      harness.analyticsLookups.push(statement);
+
+      return Promise.resolve(
+        resultSetOf(
+          (data.eventSessions || []).map((sessionId: string): JSONObject => {
+            return { paSessionId: sessionId };
+          }),
+        ),
+      );
+    }) as never);
+
   const services: Array<{ label: TableLabel; service: unknown }> = [
     { label: "chunks", service: RumSessionChunkService },
     { label: "headers", service: RumSessionService },
@@ -222,6 +248,7 @@ function installHarness(data: {
     { label: "exceptions", service: ExceptionInstanceService },
     { label: "analyticsSessions", service: RumProductAnalyticsSessionService },
     { label: "analyticsUsers", service: RumProductAnalyticsUserService },
+    { label: "analyticsEvents", service: RumProductAnalyticsEventService },
   ];
 
   for (const entry of services) {
@@ -357,7 +384,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe("each batch takes product analytics' summaries of its sessions", () => {
+describe("each batch takes product analytics' summaries and events of its sessions", () => {
   test("by id, before the header, in the batch's own mutation shape", async () => {
     const harness: Harness = installHarness({
       headerSessions: [],
@@ -379,27 +406,33 @@ describe("each batch takes product analytics' summaries of its sessions", () => 
       "spans",
       "exceptions",
       "analyticsSessions",
+      "analyticsEvents",
       "headers",
     ]);
 
-    const summaries: Delete = harness.deletes[4]!;
+    /* The summaries, then the events those sessions sent. */
+    const byId: Array<[Delete, AnalyticsTableName]> = [
+      [harness.deletes[4]!, AnalyticsTableName.RumProductAnalyticsSession],
+      [harness.deletes[5]!, AnalyticsTableName.RumProductAnalyticsEvent],
+    ];
 
-    expect(summaries.statement.query).toContain("ALTER TABLE");
-    expect(summaries.statement.query).toContain("ON CLUSTER");
-    expect(summaries.statement.query).toContain("sessionId IN");
-    expect(summaries.values).toContain(
-      `${AnalyticsTableName.RumProductAnalyticsSession}Local`,
-    );
-    expect(summaries.values).toEqual(
-      expect.arrayContaining([projectId.toString(), sessionA, sessionB]),
-    );
-    expect(summaries.options).toBe(MigrationExecuteOptions);
+    for (const [entry, tableName] of byId) {
+      expect(entry.statement.query).toContain("ALTER TABLE");
+      expect(entry.statement.query).toContain("ON CLUSTER");
+      expect(entry.statement.query).toContain("sessionId IN");
+      expect(entry.values).toContain(`${tableName}Local`);
+      expect(entry.values).toEqual(
+        expect.arrayContaining([projectId.toString(), sessionA, sessionB]),
+      );
+      expect(entry.options).toBe(MigrationExecuteOptions);
+    }
   });
 
   test("an id list needs nothing more: no lookup, no subject delete", async () => {
     const harness: Harness = installHarness({
       headerSessions: [],
       analyticsSessions: [sessionA],
+      eventSessions: [sessionA],
     });
     const requests: RequestHarness = installRequestHarness();
 
@@ -412,7 +445,11 @@ describe("each batch takes product analytics' summaries of its sessions", () => 
     });
 
     expect(harness.analyticsLookups).toEqual([]);
-    expect(analyticsDeletes(harness.deletes)).toHaveLength(1);
+    /* The batch's own two, by id. */
+    expect(labels(analyticsDeletes(harness.deletes))).toEqual([
+      "analyticsSessions",
+      "analyticsEvents",
+    ]);
     expect(requests.markCompleted).toHaveBeenCalledTimes(1);
   });
 });
@@ -423,6 +460,8 @@ describe("a user's erasure reaches what only product analytics still holds", () 
       headerSessions: [sessionA],
       /* sessionA was just queued for deletion; expiredSession's recording is long gone. */
       analyticsSessions: [sessionA, expiredSession],
+      /* The events name the sessions the replay sample left out too. */
+      eventSessions: [sessionA, unrecordedSession],
     });
     const requests: RequestHarness = installRequestHarness();
 
@@ -434,31 +473,57 @@ describe("a user's erasure reaches what only product analytics still holds", () 
       }),
     });
 
-    expect(harness.analyticsLookups).toHaveLength(1);
+    /* Asked of the session summaries and of the events, each capped like a run. */
+    expect(harness.analyticsLookups).toHaveLength(2);
 
-    const lookup: Statement = harness.analyticsLookups[0]!;
+    const lookedUpIn: Array<AnalyticsTableName> = [
+      AnalyticsTableName.RumProductAnalyticsSession,
+      AnalyticsTableName.RumProductAnalyticsEvent,
+    ];
 
-    expect(lookup.query).toContain("identifiedUserKey = ");
-    expect(Object.values(lookup.query_params)).toContain(userKey);
-    expect(Object.values(lookup.query_params)).toContain(
-      MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
-    );
+    harness.analyticsLookups.forEach((lookup: Statement, index: number) => {
+      expect(lookup.query).toContain("identifiedUserKey = ");
+      expect(Object.values(lookup.query_params)).toContain(lookedUpIn[index]);
+      expect(Object.values(lookup.query_params)).toContain(userKey);
+      expect(Object.values(lookup.query_params)).toContain(
+        MAX_SESSION_IDS_PER_REQUEST_PER_RUN,
+      );
+    });
 
-    /* The batch's own delete, then the subject's: summaries by id, months by key. */
+    /*
+     * The batch's own deletes, then the subject's: summaries and events by
+     * id, months by key, and the events that named the user by key.
+     */
     expect(labels(analyticsDeletes(harness.deletes))).toEqual([
       "analyticsSessions",
+      "analyticsEvents",
       "analyticsSessions",
+      "analyticsEvents",
       "analyticsUsers",
+      "analyticsEvents",
     ]);
 
-    const subjectSessions: Delete = analyticsDeletes(harness.deletes)[1]!;
+    const subjectSessions: Delete = analyticsDeletes(harness.deletes)[2]!;
+    const subjectEvents: Delete = analyticsDeletes(harness.deletes)[3]!;
 
-    expect(subjectSessions.values).toEqual(
-      expect.arrayContaining([sessionA, expiredSession]),
+    for (const entry of [subjectSessions, subjectEvents]) {
+      /* Every session either lookup found, each once. */
+      expect(entry.values).toEqual(
+        expect.arrayContaining([sessionA, expiredSession, unrecordedSession]),
+      );
+      expect(
+        entry.values.filter((value: unknown): boolean => {
+          return value === sessionA;
+        }),
+      ).toHaveLength(1);
+      expect(entry.options).toBe(MigrationExecuteOptions);
+    }
+
+    expect(subjectEvents.values).toContain(
+      `${AnalyticsTableName.RumProductAnalyticsEvent}Local`,
     );
-    expect(subjectSessions.options).toBe(MigrationExecuteOptions);
 
-    const months: Delete = analyticsDeletes(harness.deletes)[2]!;
+    const months: Delete = analyticsDeletes(harness.deletes)[4]!;
 
     expect(months.statement.query).toContain("personKey = ");
     expect(months.values).toContain(`u:${userKey}`);
@@ -466,6 +531,16 @@ describe("a user's erasure reaches what only product analytics still holds", () 
       `${AnalyticsTableName.RumProductAnalyticsUser}Local`,
     );
     expect(months.options).toBe(MigrationExecuteOptions);
+
+    const userEvents: Delete = analyticsDeletes(harness.deletes)[5]!;
+
+    expect(userEvents.statement.query).toContain("identifiedUserKey = ");
+    expect(userEvents.statement.query).not.toContain("sessionId");
+    expect(userEvents.values).toContain(userKey);
+    expect(userEvents.values).toContain(
+      `${AnalyticsTableName.RumProductAnalyticsEvent}Local`,
+    );
+    expect(userEvents.options).toBe(MigrationExecuteOptions);
 
     /* The subject's deletes come after every recording's. */
     expect(labels(harness.deletes).indexOf("headers")).toBeLessThan(
@@ -493,9 +568,12 @@ describe("a user's erasure reaches what only product analytics still holds", () 
 
     expect(labels(harness.deletes)).toEqual([
       "analyticsSessions",
+      "analyticsEvents",
       "analyticsUsers",
+      "analyticsEvents",
     ]);
     expect(harness.deletes[0]!.values).toContain(expiredSession);
+    expect(harness.deletes[1]!.values).toContain(expiredSession);
     expect(requests.markCompleted).toHaveBeenCalledTimes(1);
   });
 
@@ -515,12 +593,18 @@ describe("a user's erasure reaches what only product analytics still holds", () 
       }),
     });
 
-    expect(harness.analyticsLookups[0]!.query).toContain(
-      "AND rumApplicationId = ",
-    );
-    expect(Object.values(harness.analyticsLookups[0]!.query_params)).toContain(
-      applicationId.toString(),
-    );
+    /* Both lookups: the session summaries and the events. */
+    expect(harness.analyticsLookups).toHaveLength(2);
+
+    for (const lookup of harness.analyticsLookups) {
+      expect(lookup.query).toContain("AND rumApplicationId = ");
+      expect(Object.values(lookup.query_params)).toContain(
+        applicationId.toString(),
+      );
+    }
+
+    /* Summaries and events by id, months, and the user's events by key. */
+    expect(analyticsDeletes(harness.deletes)).toHaveLength(4);
 
     for (const entry of analyticsDeletes(harness.deletes)) {
       expect(entry.statement.query).toContain("AND rumApplicationId = ");
@@ -544,8 +628,40 @@ describe("a user's erasure reaches what only product analytics still holds", () 
       }),
     });
 
-    /* Ten mutations of a thousand ids, and the monthly rows. */
-    expect(analyticsDeletes(harness.deletes)).toHaveLength(11);
+    /*
+     * Ten mutations of a thousand ids on the summaries and ten on the
+     * events, the monthly rows and the user's events by key.
+     */
+    expect(analyticsDeletes(harness.deletes)).toHaveLength(22);
+
+    expect(requests.markCompleted).not.toHaveBeenCalled();
+    expect(requests.updateOneById).toHaveBeenCalledTimes(1);
+
+    const update: { data: Record<string, unknown> } = requests.updateOneById
+      .mock.calls[0]![0] as never;
+
+    expect(update.data["status"]).toBe(RumSessionErasureRequestStatus.Pending);
+    expect(update.data["attempts"]).toBeUndefined();
+  });
+
+  test("a full page of the user's sessions in the events alone brings the request back too", async () => {
+    const ids: Array<string> = hexIds(MAX_SESSION_IDS_PER_REQUEST_PER_RUN, "d");
+    const harness: Harness = installHarness({
+      headerSessions: [],
+      analyticsSessions: [],
+      eventSessions: ids,
+    });
+    const requests: RequestHarness = installRequestHarness();
+
+    await processErasureRequest({
+      databaseName: databaseName,
+      request: requestOf({
+        requestType: RumSessionErasureRequestType.ByIdentifiedUserKey,
+        targetValue: userKey,
+      }),
+    });
+
+    expect(analyticsDeletes(harness.deletes)).toHaveLength(22);
 
     expect(requests.markCompleted).not.toHaveBeenCalled();
     expect(requests.updateOneById).toHaveBeenCalledTimes(1);
@@ -614,7 +730,7 @@ describe("a user's erasure reaches what only product analytics still holds", () 
 });
 
 describe("an application's and a date range's erasure", () => {
-  test("an application loses every row of it in both tables, without a lookup", async () => {
+  test("an application loses every row of it in every table, without a lookup", async () => {
     const harness: Harness = installHarness({
       headerSessions: [sessionA],
       analyticsSessions: [],
@@ -631,9 +747,19 @@ describe("an application's and a date range's erasure", () => {
 
     expect(harness.analyticsLookups).toEqual([]);
 
-    const subject: Array<Delete> = analyticsDeletes(harness.deletes).slice(1);
+    /* The batch's summaries and events by id, then the application's rows. */
+    expect(labels(analyticsDeletes(harness.deletes).slice(0, 2))).toEqual([
+      "analyticsSessions",
+      "analyticsEvents",
+    ]);
 
-    expect(labels(subject)).toEqual(["analyticsSessions", "analyticsUsers"]);
+    const subject: Array<Delete> = analyticsDeletes(harness.deletes).slice(2);
+
+    expect(labels(subject)).toEqual([
+      "analyticsSessions",
+      "analyticsUsers",
+      "analyticsEvents",
+    ]);
 
     for (const entry of subject) {
       expect(entry.statement.query).toContain("AND rumApplicationId = ");
@@ -645,14 +771,14 @@ describe("an application's and a date range's erasure", () => {
     expect(requests.markCompleted).toHaveBeenCalledTimes(1);
   });
 
-  test("a date range loses the summaries of sessions that started in it, and keeps the monthly rows", async () => {
+  test("a date range loses the summaries of sessions that started in it and the events that happened in it, and keeps the monthly rows", async () => {
     const startDate: Date = new Date("2026-01-01T00:00:00.000Z");
     const endDate: Date = new Date("2026-02-01T00:00:00.000Z");
     const harness: Harness = installHarness({
       headerSessions: [],
       analyticsSessions: [],
     });
-    installRequestHarness();
+    const requests: RequestHarness = installRequestHarness();
 
     await processErasureRequest({
       databaseName: databaseName,
@@ -663,9 +789,16 @@ describe("an application's and a date range's erasure", () => {
       }),
     });
 
-    expect(labels(harness.deletes)).toEqual(["analyticsSessions"]);
+    expect(labels(harness.deletes)).toEqual([
+      "analyticsSessions",
+      "analyticsEvents",
+    ]);
     expect(harness.deletes[0]!.statement.query).toContain("startTime >= ");
     expect(harness.deletes[0]!.statement.query).toContain("startTime <= ");
+    expect(harness.deletes[1]!.statement.query).toContain(" AND time >= ");
+    expect(harness.deletes[1]!.statement.query).toContain(" AND time <= ");
+    expect(harness.deletes[1]!.statement.query).not.toContain("startTime");
+    expect(requests.markCompleted).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -674,6 +807,7 @@ describe("eraseProductAnalyticsSubject", () => {
     installHarness({
       headerSessions: [],
       analyticsSessions: [sessionA, sessionB],
+      eventSessions: [sessionB, unrecordedSession],
     });
 
     const result: ProductAnalyticsErasureResult =
@@ -685,9 +819,13 @@ describe("eraseProductAnalyticsSubject", () => {
         }),
       });
 
+    /*
+     * Summaries and events by id, months and events by key; the sessions
+     * either lookup found, each counted once.
+     */
     expect(result).toEqual({
-      deletesSubmitted: 2,
-      userSessionsFound: 2,
+      deletesSubmitted: 4,
+      userSessionsFound: 3,
       moreMayRemain: false,
     });
   });

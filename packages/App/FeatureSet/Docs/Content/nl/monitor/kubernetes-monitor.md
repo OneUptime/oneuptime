@@ -107,10 +107,10 @@ Deze monitors evalueren altijd de **Metriekwaarde** – de waarde van de geconfi
 | --- | --- |
 | Gemiddelde | Gemiddelde waarde over het tijdvenster |
 | Som | Som van alle waarden |
-| Maximum Value | Hoogste waarde in het tijdvenster |
-| Minimum Value | Laagste waarde in het tijdvenster |
-| All Values | Alle waarden moeten aan het criterium voldoen en het hele tijdvenster dekken |
-| Any Value | Ten minste één waarde moet overeenkomen |
+| Maximale waarde | Hoogste waarde in het tijdvenster |
+| Minimale waarde | Laagste waarde in het tijdvenster |
+| Alle waarden | Alle waarden moeten aan het criterium voldoen en het hele tijdvenster dekken |
+| Willekeurige waarde | Ten minste één waarde moet overeenkomen |
 
 ### Voorwaarden
 

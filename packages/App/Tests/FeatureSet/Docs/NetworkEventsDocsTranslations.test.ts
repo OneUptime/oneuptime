@@ -65,8 +65,8 @@ import { describe, expect, it } from "@jest/globals";
  *     the Dashboard's too: the Events page lists events under those words.
  *   - What other products' consoles show in English stays English: the
  *     Sophos Firewall's, UniFi Network's and cnMaestro's labels
- *     (OTHER_CONSOLES), and a name the Dashboard has no locale key for
- *     (SHOWN_IN_ENGLISH, empty now).
+ *     (OTHER_CONSOLES), and any label the Dashboard has no locale key for
+ *     (SHOWN_IN_ENGLISH).
  *
  * The page's own bold leads are PROSE_LEADS, which a translation words
  * freely. A new bold word on the English page fails "know every bold word"
@@ -104,10 +104,10 @@ const OTHER_CONSOLE_LABELS: Array<string> =
   Object.values(OTHER_CONSOLES).flat();
 
 /*
- * Names every Dashboard shows in English. The one criteria name the page
- * bolds, SNMP Trap Received (Trap OID), left this list on 2026-11-10: #6575
- * keyed the criteria form's Filter Type options in every language, so every
- * translation names it as its criteria form draws it.
+ * Bold names every Dashboard shows in English, because its locales have no
+ * key for them: none on this page. Its criteria name, "SNMP Trap Received
+ * (Trap OID)", is one of the criteria form's Filter Type options, which have
+ * keys since 31eadaee92e, so it is drawn like any other label.
  */
 const SHOWN_IN_ENGLISH: Array<string> = [];
 
