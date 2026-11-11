@@ -107,6 +107,9 @@ import {
 } from "./MattermostActionTypes";
 import MattermostConnection from "./MattermostConnection";
 import MattermostPublicNoteApprovalActions from "./MattermostPublicNoteApprovalActions";
+import MattermostTeams, {
+  MattermostTeamsOfConnection,
+} from "./MattermostTeams";
 
 /*
  * ACTING ON A PRESS IN MATTERMOST.
@@ -346,6 +349,8 @@ export default class MattermostActions {
             : "",
         modalBlock: modalBlock,
         directMessageChannelId: press.channelId,
+        // Its submission comes from the team the press did.
+        teamId: press.teamId,
       });
 
       return {};
@@ -503,8 +508,10 @@ export default class MattermostActions {
    * connected to in `projectId` - the project of the record a press is
    * about, or the one a public note's approval message was signed for -
    * refused (MattermostRefusal) with what they are told when there is no
-   * such member. The project must be connected to the Mattermost team the
-   * press's context was signed for.
+   * such member. The Mattermost team the press's context was signed for
+   * must be one the project's connection works in (MattermostTeams): the
+   * team it was connected to, its default team, or another team its bot is
+   * a member of (isTeamOfProject).
    */
   public static async getRequesterInProject(data: {
     body: JSONObject;
@@ -522,24 +529,32 @@ export default class MattermostActions {
       throw new MattermostRefusal(MattermostActions.UNVERIFIED_PRESS_MESSAGE);
     }
 
-    // The record's project must be connected to the team the press came from.
+    // The record's project must work in the team the press came from.
     const projectAuth: WorkspaceProjectAuthToken | null =
       await WorkspaceProjectAuthTokenService.findOneBy({
         query: {
           projectId: projectId,
           workspaceType: WorkspaceType.Mattermost,
-          workspaceProjectId: data.teamId,
         },
         select: {
           _id: true,
           authToken: true,
+          workspaceProjectId: true,
+          miscData: true,
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (!projectAuth?.authToken) {
+    if (
+      !projectAuth?.authToken ||
+      !(await MattermostActions.isTeamOfProject({
+        projectId: projectId,
+        projectAuth: projectAuth,
+        teamId: data.teamId,
+      }))
+    ) {
       throw new MattermostRefusal(
         "This Mattermost team is no longer connected to the OneUptime project this message is from.",
       );
@@ -565,6 +580,7 @@ export default class MattermostActions {
         await MattermostActions.getConnectPromptMarkdown({
           projectId: projectId,
           teamId: data.teamId,
+          connectedTeamId: projectAuth.workspaceProjectId,
           purpose: data.purpose,
           isForm: data.isForm,
         }),
@@ -592,6 +608,55 @@ export default class MattermostActions {
         ? (data.body["channel_id"] as string)
         : undefined,
     };
+  }
+
+  /*
+   * Whether a team is one a project's Mattermost connection works in. The
+   * team it was connected to, and its default team, always are, as the one
+   * team was before teams were told apart. Another team is one its bot is
+   * a member of: as listed in the last few minutes
+   * (MattermostTeams.isFresh), else as the server lists the bot's teams
+   * now - a team the bot was added to since, or taken out of, so the
+   * buttons in a team it left stop working. Asked of the server only for a
+   * team a press OneUptime signed came from.
+   */
+  private static async isTeamOfProject(data: {
+    projectId: ObjectID;
+    projectAuth: WorkspaceProjectAuthToken;
+    teamId: string;
+  }): Promise<boolean> {
+    const stored: MattermostTeamsOfConnection | null =
+      MattermostTeams.readConnection(data.projectAuth);
+
+    if (!stored) {
+      return false;
+    }
+
+    if (
+      data.teamId === stored.connectedTeamId ||
+      data.teamId === stored.defaultTeam.id
+    ) {
+      return true;
+    }
+
+    if (
+      MattermostTeams.isFresh(stored) &&
+      MattermostTeams.isTeamOfConnection({
+        connection: stored,
+        teamId: data.teamId,
+      })
+    ) {
+      return true;
+    }
+
+    return MattermostTeams.isTeamOfConnection({
+      connection: await MattermostTeams.getOfConnection({
+        projectId: data.projectId,
+        projectAuth: data.projectAuth,
+        refresh: true,
+      }),
+      teamId: data.teamId,
+    });
   }
 
   /*
@@ -642,13 +707,16 @@ export default class MattermostActions {
   /*
    * What somebody whose Mattermost account is not connected is told: to
    * connect it, with a link to where they do - their User Settings in the
-   * project - and, in a team connected to more than one project, which
-   * project. The press itself is not kept: they press it again once they
-   * are connected.
+   * project - and, in a team connected to more than one project, or one the
+   * project works in beside the team it was connected to (another project
+   * may be connected to it), which project. The press itself is not kept:
+   * they press it again once they are connected.
    */
   public static async getConnectPromptMarkdown(data: {
     projectId: ObjectID;
     teamId: string;
+    // The team the project was connected to (MattermostTeams).
+    connectedTeamId?: string | undefined;
     purpose: string;
     isForm: boolean;
   }): Promise<string> {
@@ -668,7 +736,10 @@ export default class MattermostActions {
       })
     ).toNumber();
 
-    if (connectionCount > 1) {
+    if (
+      connectionCount > 1 ||
+      (data.connectedTeamId && data.connectedTeamId !== data.teamId)
+    ) {
       const project: Project | null = await ProjectService.findOneById({
         id: data.projectId,
         select: { name: true },

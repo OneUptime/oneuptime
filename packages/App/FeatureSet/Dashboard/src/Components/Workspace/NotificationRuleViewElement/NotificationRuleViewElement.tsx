@@ -22,6 +22,7 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import {
+  MattermostConnectionTeam,
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
   SlackOrganizationWorkspace,
@@ -142,6 +143,8 @@ export interface NotificationRuleThenProps {
    * those. Undefined for any other connection.
    */
   slackOrganization?: SlackRuleWorkspaces | undefined;
+  // The Mattermost teams the project's bot is in, to name the one a rule picks.
+  mattermostTeams?: Array<MattermostConnectionTeam> | undefined;
   // For the example of the name of the channel the rule creates.
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   exampleRecordName?: string | undefined;
@@ -178,6 +181,7 @@ export const NotificationRuleThen: FunctionComponent<
         microsoftTeamsTeams={props.microsoftTeamsTeams}
         microsoftTeamsChats={props.microsoftTeamsChats}
         slackWorkspaces={props.slackWorkspaces}
+        mattermostTeams={props.mattermostTeams}
         numberPrefixes={props.numberPrefixes}
         exampleRecordName={props.exampleRecordName}
         showWhenEmpty={true}
@@ -307,6 +311,7 @@ export function getNotificationRuleCardColumns(
             microsoftTeamsChats={data.microsoftTeamsChats}
             slackWorkspaces={data.slackWorkspaces}
             slackOrganization={data.slackOrganization}
+            mattermostTeams={data.mattermostTeams}
             numberPrefixes={data.numberPrefixes}
             exampleRecordName={data.exampleRecordName}
           />

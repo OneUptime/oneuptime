@@ -9,7 +9,12 @@ export default interface BaseNotificationRule {
 
   shouldPostToExistingChannel: boolean;
   existingChannelNames: string; // separate by comma
-  existingTeam?: string; // team to post to (for MS Teams only)
+  /*
+   * Where the existing channels are: a Microsoft Teams team, a workspace of
+   * a Slack Enterprise organization, or a team of the Mattermost server.
+   * Slack and Mattermost rules may leave it empty for the default one.
+   */
+  existingTeam?: string;
 
   // Post to group / personal chats (for MS Teams only).
   shouldPostToExistingChat?: boolean;

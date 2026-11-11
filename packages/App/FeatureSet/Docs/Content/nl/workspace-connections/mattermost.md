@@ -25,7 +25,7 @@ flowchart TB
 
 Twee koppelingen maken dit mogelijk:
 
-- **De koppeling van het project**, één keer gemaakt: een botaccount op je Mattermost-server, in het team waarin OneUptime plaatst. Die plaatst de berichten, maakt de kanalen aan en voegt er mensen aan toe.
+- **De koppeling van het project**, één keer gemaakt: een botaccount op je Mattermost-server, in de teams waarin OneUptime plaatst. Die plaatst de berichten, maakt de kanalen aan en voegt er mensen aan toe.
 - **De eigen koppeling van elke persoon**: hun Mattermost-account gekoppeld aan hun OneUptime-account. Knoppen handelen als die persoon, met diens rechten in het project.
 
 Eén Mattermost-team kan aan meer dan één project gekoppeld zijn, zoals productie en staging. Een knop handelt in het project van het record waar zijn bericht over gaat.
@@ -47,20 +47,32 @@ Open in Mattermost **System Console** > **Integrations** > **Bot Accounts** en c
 
 ### De bot aan je team toevoegen
 
-Voeg de bot toe aan het team waarin OneUptime moet plaatsen, zoals je een persoon zou toevoegen: **Main Menu** > **Invite People**, en nodig `@oneuptime` uit. OneUptime maakt alleen in dat team kanalen aan en plaatst alleen daar.
+Voeg de bot toe aan elk team waarin OneUptime moet plaatsen, zoals je een persoon zou toevoegen: **Main Menu** > **Invite People**, en nodig `@oneuptime` uit. OneUptime maakt alleen kanalen aan en plaatst alleen in de teams waarvan de bot lid is.
 
 ### Het project koppelen
 
-Ga in OneUptime naar **Projectinstellingen** > **Werkruimte** > **Mattermost** en klik op **Koppelen met Mattermost**. Vul het adres van je server in, zoals `https://chat.example.com`, en het toegangstoken van de bot. OneUptime controleert het token bij je server voordat het iets bewaart. Zit de bot in meer dan één team, dan vraagt OneUptime in welk team het moet plaatsen. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
+Ga in OneUptime naar **Projectinstellingen** > **Werkruimte** > **Mattermost** en klik op **Koppelen met Mattermost**. Vul het adres van je server in, zoals `https://chat.example.com`, en het toegangstoken van de bot. OneUptime controleert het token bij je server voordat het iets bewaart. Zit de bot in meer dan één team, dan vraagt OneUptime welk team het standaardteam is: het team waarin een meldingsregel die geen team noemt zijn kanalen aanmaakt. Zolang er geen workspace is gekoppeld, bevat de sectie **Werkruimte** van de menu's Incidenten, Waarschuwingen, Gepland onderhoud, Monitoren en Bereikbaarheidsdienst **Werkruimte koppelen**, dat ook hierheen leidt.
 
 ### Een meldingsregel toevoegen
 
 Ga naar **Incidenten** > **Werkruimte** > **Mattermost** en maak een regel aan. Bijvoorbeeld een die voor elk nieuw incident een Mattermost-kanaal aanmaakt met iedereen die eraan werkt. Zie [Meldingsregels](#meldingsregels).
 :::
 
-Het toegangstoken van de bot wordt alleen op de OneUptime-server bewaard, versleuteld samen met de andere geheimen van het project, en wordt nooit meer getoond. Het serveradres, het team en de gebruikersnaam van de bot zijn voor iedereen in het project zichtbaar, op de instellingenpagina van Mattermost.
+Het toegangstoken van de bot wordt alleen op de OneUptime-server bewaard, versleuteld samen met de andere geheimen van het project, en wordt nooit meer getoond. Het serveradres, de teams en de gebruikersnaam van de bot zijn voor iedereen in het project zichtbaar, op de instellingenpagina van Mattermost.
 
-Een project is aan één Mattermost-team gekoppeld. Om het naar een ander team of een andere server te verplaatsen, ontkoppel je het eerst: **Projectinstellingen** > **Werkruimte** > **Mattermost**, daarna **⋯** > **Mattermost ontkoppelen**. Ontkoppelen ontkoppelt ook het eigen Mattermost-account van elk lid, en verwijdert diens Mattermost-meldingsmethode en de bereikbaarheidsregels die die gebruiken. Je meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
+Een project is aan één Mattermost-server gekoppeld. Om het naar een andere server te verplaatsen, ontkoppel je het eerst: **Projectinstellingen** > **Werkruimte** > **Mattermost**, daarna **⋯** > **Mattermost ontkoppelen**. Ontkoppelen ontkoppelt ook het eigen Mattermost-account van elk lid, en verwijdert diens Mattermost-meldingsmethode en de bereikbaarheidsregels die die gebruiken. Je meldingsregels en samenvattingen blijven bewaard voor als je opnieuw koppelt.
+
+## Meer dan één team
+
+OneUptime werkt in elk team van je Mattermost-server waarvan zijn bot lid is:
+
+1. Voeg in Mattermost de bot toe aan elk team dat OneUptime moet gebruiken, zoals je een persoon zou toevoegen: open het team, daarna **Main Menu** > **Invite People**.
+2. De kaart **Mattermost-teams** onder **Projectinstellingen** > **Werkruimte** > **Mattermost** toont die teams, het standaardteam eerst. Klik op **Vernieuwen** nadat je de bot aan een ander team hebt toegevoegd.
+
+- **Welk team een regel gebruikt.** Meldingsregels kiezen het **Mattermost-team** waarin hun kanalen staan. Blijft het veld leeg, dan maakt een regel zijn kanaal aan in het standaardteam, en zoekt hij de kanalen die hij noemt eerst daar en daarna in de andere teams van de bot.
+- **Het standaardteam.** Dat is het team waaraan je het project hebt gekoppeld. **Als standaard instellen** op de kaart maakt een ander team de standaard, voor een rol die het project mag koppelen.
+- **Waar OneUptime werkt.** De knoppen in de berichten van OneUptime, en de formulieren die ze openen, werken in elk van die teams. In een team waaruit de bot is verwijderd, meldt een knop alleen dat het team niet meer gekoppeld is.
+- **Een standaardteam waaruit de bot is verwijderd.** De kaart meldt dat. Voeg de bot in Mattermost weer toe, of maak een ander team de standaard.
 
 ## Je eigen Mattermost-account koppelen
 
@@ -94,7 +106,7 @@ Een meldingsregel bepaalt welke gebeurtenissen in Mattermost worden geplaatst, e
 
 Een kanaal dat een regel aanmaakt, krijgt de naam van zijn record: incident INC-42 krijgt `inc-42`. Mattermost neemt kleine letters, cijfers, `-` en `_`, tot 64 tekens, beginnend en eindigend met een letter of een cijfer, en het regelformulier toont de naam terwijl je typt. Bestaat er al een kanaal met die naam, zoals een gearchiveerd kanaal, dan voegt OneUptime `-2`, `-3` enzovoort toe. Een privé-incident, -waarschuwing of -episode krijgt een privékanaal.
 
-Om in een bestaand kanaal te plaatsen, vul je de naam in zoals die in het adres van het kanaal staat, zoals `incidents` voor `chat.example.com/team/channels/incidents`, of de weergavenaam. OneUptime treedt zelf toe tot een openbaar kanaal de eerste keer dat het daar plaatst. Voeg de bot in Mattermost toe aan een privékanaal voordat een regel erin plaatst.
+Om in een bestaand kanaal te plaatsen, vul je de naam in zoals die in het adres van het kanaal staat, zoals `incidents` voor `chat.example.com/team/channels/incidents`, of de weergavenaam. OneUptime treedt zelf toe tot een openbaar kanaal de eerste keer dat het daar plaatst. Voeg de bot in Mattermost toe aan een privékanaal voordat een regel erin plaatst. Zit de bot in meer dan één team, dan kiest een regel ook het team waarin zijn kanalen staan: zie [Meer dan één team](#meer-dan-één-team).
 
 Mensen worden lid van het kanaal van een regel via het Mattermost-account dat ze hebben gekoppeld, of anders via het Mattermost-account met hun e-mailadres, als je server e-mailadressen aan de bot toont (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime noemt wie het niet kon toevoegen in één bericht in het kanaal, met een link om hun account te koppelen.
 
@@ -114,7 +126,7 @@ Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een ei
 De bot van OneUptime voegt ze toe, zoals hij de mensen van het kanaal van een regel toevoegt. De bot blijft in de kanalen die hij aanmaakt, dus dit werkt ook voor een privékanaal dat iedereen heeft verlaten. Een record dat ook kanalen in Slack of Microsoft Teams heeft, toont ze allemaal op één kaart **Chatkanalen**.
 
 - **Wie mensen mag toevoegen.** Wie het record mag bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Incidentbeheerder** en **Incidentlid** voor een incident, of **Edit Incident** in een aangepaste rol, en dezelfde toestemming voor een waarschuwing, een episode of een gebeurtenis (bijvoorbeeld **Edit Alert**). Ieder ander ziet wie er in het kanaal zit, en hoe je erin komt.
-- **Wie kan worden toegevoegd.** Iemand die OneUptime in Mattermost vindt, via het account dat diegene heeft gekoppeld of anders via het e-mailadres, als je server e-mailadressen aan de bot toont, en die in het team zit waaraan het project is gekoppeld. Ook een gastaccount in dat team kan worden toegevoegd: Mattermost laat de leden van een kanaal gasten toevoegen. De kaart noemt wie hij niet kon toevoegen, en waarom.
+- **Wie kan worden toegevoegd.** Iemand die OneUptime in Mattermost vindt, via het account dat diegene heeft gekoppeld of anders via het e-mailadres, als je server e-mailadressen aan de bot toont, en die in het team van het kanaal zit. Ook een gastaccount in dat team kan worden toegevoegd: Mattermost laat de leden van een kanaal gasten toevoegen. De kaart noemt wie hij niet kon toevoegen, en waarom.
 - **Wat wordt vastgelegd.** Wie is toegevoegd, en door wie, in de feed van het record (**Kanaallid toegevoegd**) en in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**.
 - **Een gearchiveerd kanaal.** De kaart toont nog steeds wie erin zit, en voegt niemand toe totdat het kanaal in Mattermost uit het archief is gehaald.
 - **Een kanaal waaruit de bot is verwijderd.** Mattermost toont de mensen van een kanaal alleen aan iemand die erin zit, ook bij een openbaar kanaal, dus de kaart zegt dat hij het kanaal niet kan zien. Iemand in het kanaal kan de bot weer toevoegen in Mattermost. OneUptime gaat ook vanzelf weer in een openbaar kanaal zitten zodra het daar weer iets plaatst.
@@ -156,9 +168,12 @@ Elke knop die OneUptime plaatst, draagt een handtekening, die wordt gecontroleer
 | --- | --- |
 | **Mattermost did not accept the access token** | Kopieer het token van de bot opnieuw. Mattermost toont het maar één keer: maak zo nodig een nieuw aan onder **Integrations** > **Bot Accounts**. |
 | **The bot account is not a member of any team** | Voeg de bot in Mattermost toe aan je team en koppel daarna opnieuw. |
+| Een team waaraan je de bot hebt toegevoegd, staat niet op de kaart **Mattermost-teams** | Klik op **Vernieuwen** op de kaart. |
+| **OneUptime's bot is not a member of this Mattermost team** | Je hebt een team gekozen dat de bot heeft verlaten. Voeg de bot in Mattermost toe aan dat team en klik daarna op **Vernieuwen**. |
+| **OneUptime's bot may not create channels in the Mattermost team this rule names** | Voeg de bot in Mattermost toe aan dat team, of kies een ander team in de regel. |
 | **OneUptime could not reach the Mattermost server** | Controleer het adres, en of OneUptime het kan bereiken. Zie [Netwerk en zelf hosten](#netwerk-en-zelf-hosten). |
 | **The bot is not a member of the private Mattermost channel** | Voeg de bot in Mattermost toe aan het kanaal. |
 | Een knop doet niets, of Mattermost zegt dat het de actie niet kon voltooien | Mattermost kan OneUptime niet bereiken. Zie [Netwerk en zelf hosten](#netwerk-en-zelf-hosten). |
 | Er komt geen direct bericht met je link aan | Controleer de gebruikersnaam, en of de bot in een team zit waarin jij ook zit. |
 | De kanaalkaart zegt dat OneUptime het kanaal niet kan zien | Het kanaal is verwijderd, of de bot is eruit verwijderd. Als het nog bestaat, kan iemand in het kanaal de bot weer toevoegen in Mattermost. |
-| De kanaalkaart zegt dat iemand niet in het Mattermost-team zit | Voeg diegene in Mattermost toe aan het team waaraan het project is gekoppeld, en voeg diegene daarna opnieuw toe. |
+| De kanaalkaart zegt dat iemand niet in het Mattermost-team zit | Voeg diegene in Mattermost toe aan het team van het kanaal, en voeg diegene daarna opnieuw toe. |

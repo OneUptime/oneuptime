@@ -91,8 +91,12 @@ describe("the Mattermost page describes the channel card", () => {
 
     expect(section.split("\n")[0]).toBe("## Who is in a record's channel");
     expect(section).toContain("on your Mattermost server");
-    // Mattermost lets a guest be added, and keeps out whoever is not in the team.
-    expect(section).toContain("in the team the project is connected to");
+    /*
+     * Mattermost lets a guest be added, and keeps out whoever is not in the
+     * channel's team - one of the teams the project's bot is in.
+     */
+    expect(section).toContain("in the channel's team");
+    expect(section).not.toContain("the team the project is connected to");
     expect(section).toContain("A guest account in that team can be added");
     // It would take people into an archived channel: OneUptime does not ask it.
     expect(section).toContain("unarchived in Mattermost");

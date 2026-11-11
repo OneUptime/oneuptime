@@ -271,6 +271,8 @@ function mattermostId(name: string): string {
 
 export const MATTERMOST_SERVER: string = "https://chat.acme.test";
 export const MATTERMOST_TEAM_ID: string = mattermostId("teamacme");
+// Another team of the server the bot is a member of (MattermostTeams).
+export const MATTERMOST_SUPPORT_TEAM_ID: string = mattermostId("teamsupport");
 export const MATTERMOST_TEAM_NAME: string = "acme";
 export const MATTERMOST_BOT_ID: string = mattermostId("botoneuptime");
 
@@ -364,6 +366,8 @@ export interface MattermostChannelState {
   type: string;
   isArchived: boolean;
   members: Array<string>;
+  // The team it is in; the one the project was connected to when unset.
+  teamId?: string | undefined;
 }
 
 export interface MattermostRequest {
@@ -606,6 +610,8 @@ export default class ChannelMembersWorld {
   public mattermostRepeatsItsFirstPage: boolean = false;
   // The team's name in addresses, as the connection keeps it.
   public mattermostTeamName: string = MATTERMOST_TEAM_NAME;
+  // The teams the server listed the bot in, as the connection keeps them; none listed when unset.
+  public mattermostTeams: Array<JSONObject> | undefined = undefined;
 
   public mattermostRequests: Array<MattermostRequest> = [];
 
@@ -796,7 +802,7 @@ export default class ChannelMembersWorld {
         name: channel.name,
         display_name: channel.name,
         type: channel.type,
-        team_id: MATTERMOST_TEAM_ID,
+        team_id: channel.teamId || MATTERMOST_TEAM_ID,
         delete_at: channel.isArchived ? 1700000000000 : 0,
       });
     }
@@ -1050,6 +1056,12 @@ export default class ChannelMembersWorld {
         teamDisplayName: "Acme",
         botUserId: MATTERMOST_BOT_ID,
         botUsername: "oneuptime",
+        ...(this.mattermostTeams
+          ? {
+              teams: this.mattermostTeams,
+              teamsReadAt: new Date().toISOString(),
+            }
+          : {}),
       } as never;
     } else if (workspaceType === WorkspaceType.Slack) {
       auth.authToken = "xoxb-acme";

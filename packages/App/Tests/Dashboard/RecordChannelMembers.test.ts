@@ -998,7 +998,7 @@ describe("the problems of one pick", () => {
         translator: translator,
       }),
     ).toEqual([
-      "Bob und Carol sind nicht in dem Mattermost-Team, mit dem dieses Projekt verbunden ist, daher kann OneUptime diese Personen nicht hinzufügen.",
+      "Bob und Carol sind nicht in dem Mattermost-Team, in dem sich dieser Kanal befindet, daher kann OneUptime diese Personen nicht hinzufügen.",
     ]);
 
     expect(
@@ -1044,7 +1044,7 @@ describe("what adding people to a Mattermost channel says", () => {
       },
       {
         template:
-          "{{name}} isn't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+          "{{name}} isn't in the Mattermost team this channel is in, so OneUptime can't add them.",
         name: "Bob",
         isProblem: true,
       },
@@ -1100,7 +1100,7 @@ describe("what adding people to a Mattermost channel says", () => {
       }),
     ).toEqual([
       "OneUptime can't find Bob Jones and Carol Lee in Mattermost: their accounts aren't connected, and OneUptime can't see Mattermost accounts with their email addresses. Ask them to connect Mattermost in User Settings.",
-      "Dan Brown isn't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+      "Dan Brown isn't in the Mattermost team this channel is in, so OneUptime can't add them.",
       "Mattermost didn't let OneUptime add Eve Stone.",
       "Mattermost didn't answer for Fay Moon. Try again in a minute.",
     ]);
@@ -1119,8 +1119,8 @@ describe("what adding people to a Mattermost channel says", () => {
         translator: ENGLISH,
       }),
     ).toEqual([
-      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
-      "Bob and Carol aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+      "You're not in the Mattermost team this channel is in, so OneUptime can't add you.",
+      "Bob and Carol aren't in the Mattermost team this channel is in, so OneUptime can't add them.",
     ]);
   });
 

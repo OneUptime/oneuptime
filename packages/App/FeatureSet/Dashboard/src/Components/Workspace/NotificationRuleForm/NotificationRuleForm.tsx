@@ -44,6 +44,7 @@ import AlertNotificationRule from "Common/Types/Workspace/NotificationRules/Noti
 import ScheduledMaintenanceNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/ScheduledMaintenanceNotificationRule";
 import MonitorNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/MonitorNotificationRule";
 import {
+  MattermostConnectionTeam,
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
   SlackOrganizationWorkspace,
@@ -67,6 +68,7 @@ import {
   CREATE_CHANNEL_TITLES,
   EXISTING_CHANNEL_NAMES_DESCRIPTIONS,
   EXISTING_CHANNEL_NAMES_TITLE,
+  EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION,
   EXISTING_CHANNELS_SLACK_WORKSPACE_DESCRIPTION,
   EXISTING_CHANNELS_TEAM_DESCRIPTION,
   INCIDENT_ROLES_DESCRIPTION,
@@ -76,6 +78,9 @@ import {
   MENTION_ON_CALL_EMPTY_TEXT,
   MENTION_ON_CALL_SEARCH_PLACEHOLDER,
   MENTION_ON_CALL_TITLE,
+  MATTERMOST_TEAM_PLACEHOLDER,
+  MATTERMOST_TEAM_TITLE,
+  NEW_CHANNEL_MATTERMOST_TEAM_DESCRIPTION,
   NEW_CHANNEL_SLACK_WORKSPACE_DESCRIPTION,
   NEW_CHANNEL_TEAM_DESCRIPTION,
   NO_CHATS_DESCRIPTION,
@@ -186,6 +191,12 @@ export interface ComponentProps {
    * connection.
    */
   slackOrganization?: SlackRuleWorkspaces | undefined;
+  /*
+   * Mattermost: the teams of the server the project's bot is a member of,
+   * the default first. With two or more, a rule picks the team of its
+   * channels (MattermostTeams).
+   */
+  mattermostTeams?: Array<MattermostConnectionTeam> | undefined;
   users: Array<User>;
   // For the summary to name the schedules whose on-call person joins.
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
@@ -406,8 +417,21 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
     props.workspaceType === WorkspaceType.Slack &&
     ((props.slackWorkspaces || []).length > 1 || workspacesNotAdded.length > 0);
 
-  // Where the rule's channels are: a Microsoft Teams team, or a Slack workspace.
-  const hasPlacePicker: boolean = isTeams || isSlackOrganization;
+  /*
+   * Mattermost, whose bot is a member of two or more teams of the server: a
+   * rule says which team its channels are in, or leaves it to the default
+   * one.
+   */
+  const isMattermostTeams: boolean =
+    props.workspaceType === WorkspaceType.Mattermost &&
+    (props.mattermostTeams || []).length > 1;
+
+  /*
+   * Where the rule's channels are: a Microsoft Teams team, a Slack
+   * workspace, or a Mattermost team.
+   */
+  const hasPlacePicker: boolean =
+    isTeams || isSlackOrganization || isMattermostTeams;
 
   const teamOptions: Array<{ label: string; value: string }> = isTeams
     ? (props.microsoftTeamsTeams || []).map((team: MicrosoftTeamsTeam) => {
@@ -436,7 +460,41 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             };
           }),
         ]
-      : [];
+      : isMattermostTeams
+        ? (props.mattermostTeams || []).map(
+            (team: MattermostConnectionTeam) => {
+              return {
+                label: team.displayName || team.name,
+                value: team.id,
+              };
+            },
+          )
+        : [];
+
+  // What the picker of the place is called, and what it says.
+  const placeTitle: string = isTeams
+    ? TEAM_TITLE
+    : isMattermostTeams
+      ? MATTERMOST_TEAM_TITLE
+      : SLACK_WORKSPACE_TITLE;
+
+  const placePlaceholder: string = isTeams
+    ? TEAM_PLACEHOLDER
+    : isMattermostTeams
+      ? MATTERMOST_TEAM_PLACEHOLDER
+      : SLACK_WORKSPACE_PLACEHOLDER;
+
+  const existingChannelsPlaceDescription: string = isTeams
+    ? EXISTING_CHANNELS_TEAM_DESCRIPTION
+    : isMattermostTeams
+      ? EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION
+      : EXISTING_CHANNELS_SLACK_WORKSPACE_DESCRIPTION;
+
+  const newChannelPlaceDescription: string = isTeams
+    ? NEW_CHANNEL_TEAM_DESCRIPTION
+    : isMattermostTeams
+      ? NEW_CHANNEL_MATTERMOST_TEAM_DESCRIPTION
+      : NEW_CHANNEL_SLACK_WORKSPACE_DESCRIPTION;
 
   /*
    * Where it posts, and the channel it creates. Posting to channels people
@@ -459,13 +517,14 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
       field: {
         existingTeam: true,
       },
-      title: isTeams ? TEAM_TITLE : SLACK_WORKSPACE_TITLE,
-      description: isTeams
-        ? EXISTING_CHANNELS_TEAM_DESCRIPTION
-        : EXISTING_CHANNELS_SLACK_WORKSPACE_DESCRIPTION,
+      title: placeTitle,
+      description: existingChannelsPlaceDescription,
       fieldType: FormFieldSchemaType.Dropdown,
-      placeholder: isTeams ? TEAM_PLACEHOLDER : SLACK_WORKSPACE_PLACEHOLDER,
-      // A Slack organization's rule may leave it to the default workspace.
+      placeholder: placePlaceholder,
+      /*
+       * A Slack organization's rule may leave it to the default workspace,
+       * and a Mattermost rule to the default team.
+       */
       required: isTeams,
       showIf: (formValue: FormValues<BaseNotificationRule>) => {
         return Boolean(formValue.shouldPostToExistingChannel) && hasPlacePicker;
@@ -701,12 +760,10 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         field: {
           teamToCreateChannelIn: true,
         },
-        title: isTeams ? TEAM_TITLE : SLACK_WORKSPACE_TITLE,
-        description: isTeams
-          ? NEW_CHANNEL_TEAM_DESCRIPTION
-          : NEW_CHANNEL_SLACK_WORKSPACE_DESCRIPTION,
+        title: placeTitle,
+        description: newChannelPlaceDescription,
         fieldType: FormFieldSchemaType.Dropdown,
-        placeholder: isTeams ? TEAM_PLACEHOLDER : SLACK_WORKSPACE_PLACEHOLDER,
+        placeholder: placePlaceholder,
         required: isTeams,
         showIf: (formValue: FormValues<NotificationRulesType>) => {
           return createsChannel(formValue) && hasPlacePicker;
@@ -827,6 +884,7 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
             microsoftTeamsTeams={props.microsoftTeamsTeams}
             microsoftTeamsChats={props.microsoftTeamsChats}
             slackWorkspaces={props.slackWorkspaces}
+            mattermostTeams={props.mattermostTeams}
             numberPrefixes={props.numberPrefixes}
             exampleRecordName={props.exampleRecordName}
             showWhenEmpty={true}

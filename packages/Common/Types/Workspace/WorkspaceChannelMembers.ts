@@ -132,8 +132,8 @@ export enum WorkspaceChannelAddOutcome {
   // Not a member of the project: OneUptime adds only its members.
   NotProjectMember = "not-project-member",
   /*
-   * Mattermost: an account outside the team the project is connected to, and
-   * only the team's people can be in its channels.
+   * Mattermost: an account outside the team the channel is in, and only the
+   * team's people can be in its channels.
    */
   NotInTeam = "not-in-team",
   /*
