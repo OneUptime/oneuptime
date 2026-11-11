@@ -50001,12 +50001,12 @@
   "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "\"{{settingName}}\" estava definido como 0, o que pausa o trabalho automático de IA, então nenhuma investigação foi iniciada.",
   "Alert on Failed Refreshes": "Alert on Failed Refreshes",
   "Failed Refreshes": "Failed Refreshes",
-  "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.": "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
   "Refresh Monitor ID": "Refresh Monitor ID",
   "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
   "In the {{workspace}} workspace": "No espaço de trabalho {{workspace}}",
   "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.": "O OneUptime não está mais adicionado ao espaço de trabalho {{workspace}} de {{organization}}. Adicione-o de novo nas configurações da organização do Slack ou escolha outro espaço de trabalho na regra.",
   "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.": "As pessoas mencionam o grupo neste espaço de trabalho. Só aparecem os espaços de trabalho aos quais o OneUptime foi adicionado.",
   "{{workspace}} (OneUptime no longer added)": "{{workspace}} (OneUptime não está mais adicionado)",
-  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "O OneUptime não está mais adicionado ao espaço de trabalho do Slack deste canal. Adicione-o de novo nas configurações da organização do Slack."
+  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "O OneUptime não está mais adicionado ao espaço de trabalho do Slack deste canal. Adicione-o de novo nas configurações da organização do Slack.",
+  "Open an alert for each dataset whose refresh fails, until a later one completes. OneUptime keeps one monitor for it, named after this tool.": "Open an alert for each dataset whose refresh fails, until a later one completes. OneUptime keeps one monitor for it, named after this tool."
 }
