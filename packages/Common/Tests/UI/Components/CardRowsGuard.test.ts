@@ -50,13 +50,15 @@ const DASHBOARD: string = "packages/App/FeatureSet/Dashboard/src";
  * The rows of cards the overview pages draw, by file, and how many: the
  * Security Events Overview's three, and the same rows on the product's other
  * overview pages. A page that goes back to a grid of its own fails here by
- * name, as well as in the scan.
+ * name, as well as in the scan. (An exception's Overview drew its details
+ * and its latest occurrence side by side until #6923 drew the latest
+ * occurrence as wide as the page, under a card of where it happened: no row
+ * of cards is left there, and the scan still reads the page.)
  */
 const CARD_GRID_ROWS: Array<[string, number]> = [
   [`${DASHBOARD}/Pages/SecurityEvents/Overview.tsx`, 3],
   [`${DASHBOARD}/Pages/NetworkDevice/Overview.tsx`, 1],
   [`${DASHBOARD}/Pages/MessageQueue/View/Overview.tsx`, 1],
-  [`${DASHBOARD}/Components/Exceptions/ExceptionExplorer.tsx`, 1],
   [`${DASHBOARD}/Components/AI/ActivityInsights/AiActivityInsightsView.tsx`, 1],
   [`${DASHBOARD}/Pages/Ceph/View/Index.tsx`, 1],
   [`${DASHBOARD}/Pages/Docker/View/Overview.tsx`, 1],
