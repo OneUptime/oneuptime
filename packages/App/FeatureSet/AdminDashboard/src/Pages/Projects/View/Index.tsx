@@ -14,6 +14,7 @@ import ModelPage from "Common/UI/Components/Page/ModelPage";
 import SideMenuComponent from "./SideMenu";
 import { BILLING_ENABLED } from "Common/UI/Config";
 import DataResidencyUtil from "Common/Utils/Project/DataResidency";
+import ProjectMilestonesCard from "../../../Components/ProjectMilestones/ProjectMilestonesCard";
 
 const Projects: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
@@ -90,6 +91,16 @@ const Projects: FunctionComponent = (): ReactElement => {
             ],
             modelId: modelId,
           }}
+        />
+
+        {/*
+         * What the project has done in its first hour (issue #6830): its
+         * activation milestones, from this server's own data.
+         */}
+        <ProjectMilestonesCard
+          projectId={modelId}
+          title={t("pages.projectView.milestonesCardTitle")}
+          description={t("pages.projectView.milestonesCardDescription")}
         />
 
         {/*

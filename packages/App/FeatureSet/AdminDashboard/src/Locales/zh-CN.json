@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "表示此项目数据托管位置的标签，例如 \"EU (Frankfurt)\"。留空则不向项目用户显示。",
       "dataResidencyFieldPlaceholder": "EU (Frankfurt)",
       "dataResidencyNotSet": "未设置",
+      "milestonesCardTitle": "设置进度",
+      "milestonesCardDescription": "此项目自创建以来完成了什么，以及卡在了哪一步。读取自本服务器自己的数据，不会发送到任何地方。",
       "ingestionBudgets": {
         "dailyCardTitle": "此项目的每日预算",
         "dailyCardDescription": "此项目自己的每个信号的每日预算，用于替代实例默认值。信号留空则使用实例默认值，输入 0 则表示无限制。项目的管理员可以看到这些预算，但无法更改。",

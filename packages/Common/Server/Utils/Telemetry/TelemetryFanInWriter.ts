@@ -5,6 +5,9 @@ import { JSONObject } from "../../../Types/JSON";
 import GracefulShutdown, { ShutdownPriority } from "../GracefulShutdown";
 import Telemetry from "../Telemetry";
 import { nextInsertDedupToken } from "../AnalyticsDatabase/InsertDedupContext";
+import TelemetryMilestones, {
+  PendingTelemetryMilestones,
+} from "../Activation/TelemetryMilestones";
 import { ClickHouseError, type ClickHouseSettings } from "@clickhouse/client";
 import OpenTelemetryAPI, {
   Link,
@@ -461,6 +464,15 @@ export class TelemetryFanInWriter {
     const dedupToken: string | undefined =
       options?.dedupToken ?? nextInsertDedupToken(tableName);
 
+    /*
+     * Which projects' first telemetry of this kind the rows may be (issue
+     * #6830): read now, while the rows are the submitter's as handed over,
+     * and kept only once ClickHouse accepts them (below). Null - and free -
+     * for a table that is no telemetry kind, or projects known to have it.
+     */
+    const pendingMilestones: PendingTelemetryMilestones | null =
+      TelemetryMilestones.collect(tableName, rows);
+
     // Started before the capacity wait, so the span shows that wait too.
     const span: Span | undefined = startSubmissionSpan(tableName, rows.length);
 
@@ -495,6 +507,20 @@ export class TelemetryFanInWriter {
           };
         },
       );
+
+      if (pendingMilestones) {
+        flushed.then(
+          (): void => {
+            TelemetryMilestones.markReached(pendingMilestones);
+          },
+          (): void => {
+            /*
+             * Refused or failed: no milestone. The submitter hears of the
+             * failure through its own ack.
+             */
+          },
+        );
+      }
 
       buffer.submissions.push({
         rows,

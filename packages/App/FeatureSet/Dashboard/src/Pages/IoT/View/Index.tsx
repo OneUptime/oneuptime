@@ -609,7 +609,8 @@ const IoTFleetOverview: FunctionComponent<
             other: "{{online}}/{{count}} devices online",
           },
           totalDevices,
-          { online: onlineDevices },
+          // In the reader's digits, as the count beside it is.
+          { online: translator.formatNumber(onlineDevices) },
         ),
       });
     }
