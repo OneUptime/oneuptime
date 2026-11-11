@@ -41,6 +41,9 @@ import SlackProjectChoice, {
   SlackProjectChoiceKind,
 } from "../SlackProjectChoice";
 import WorkspacePublicNoteApproval from "../../WorkspacePublicNoteApproval";
+import SlackRequestWorkspaceUtil, {
+  SlackRequestWorkspace,
+} from "../SlackRequestWorkspace";
 
 // The forms whose value is the channel they were opened in.
 const NEW_RECORD_FORMS: ReadonlyArray<SlackActionType> = [
@@ -109,6 +112,12 @@ export interface SlackRequest {
   botUserId?: string | undefined;
   // The Slack workspace the press was made in.
   slackTeamId?: string | undefined;
+  /*
+   * The workspace and, in a Slack Enterprise organization, the organization
+   * (SlackRequestWorkspace): what the projects it can be about are connected
+   * under.
+   */
+  slackWorkspace?: SlackRequestWorkspace | undefined;
   /*
    * The channel the press was made in - for a form's submission, the one
    * the form was opened from (SlackModalMetadata).
@@ -295,9 +304,17 @@ export default class SlackAuthAction {
     let slackUserId: string | undefined = (
       (payload as JSONObject)["user"] as JSONObject
     )?.["id"] as string;
-    let slackTeamId: string | undefined = (
-      (payload as JSONObject)["team"] as JSONObject
-    )?.["id"] as string;
+
+    /*
+     * The workspace it was made in and, in a Slack Enterprise organization,
+     * the organization: a project connected to the whole organization is
+     * connected under the organization's id, and Slack leaves `team` empty
+     * on a press made for that installation (SlackRequestWorkspace).
+     */
+    const slackWorkspace: SlackRequestWorkspace =
+      SlackRequestWorkspaceUtil.read(payload);
+
+    const slackTeamId: string | undefined = slackWorkspace.teamId || undefined;
 
     /*
      * if there are no actions then return. A form's select that asks for
@@ -409,10 +426,6 @@ export default class SlackAuthAction {
 
     if (payload["user_name"]) {
       slackUsername = payload["user_name"] as string;
-    }
-
-    if (payload["team_id"]) {
-      slackTeamId = payload["team_id"] as string;
     }
 
     const triggerId: string | undefined = payload?.["trigger_id"] as string;
@@ -556,7 +569,7 @@ export default class SlackAuthAction {
     const resolution: WorkspaceProjectResolution =
       await WorkspaceProjectResolver.resolve({
         workspaceType: WorkspaceType.Slack,
-        workspaceId: slackTeamId || "",
+        workspaceId: SlackRequestWorkspaceUtil.getConnectionIds(slackWorkspace),
         clues: {
           recordIds: actions.map((action: SlackAction): string | undefined => {
             return action.actionValue;
@@ -593,6 +606,7 @@ export default class SlackAuthAction {
             : undefined,
         projectAuthToken: firstConnection.authToken || undefined,
         slackTeamId: slackTeamId,
+        slackWorkspace: slackWorkspace,
         slackChannelId: slackChannelId,
         slackThreadTs: slackThreadTs,
         slackUsername: slackUsername,
@@ -703,6 +717,7 @@ export default class SlackAuthAction {
       userAuthToken: userId ? userAuth?.authToken : undefined,
       botUserId: botUserId,
       slackTeamId: slackTeamId,
+      slackWorkspace: slackWorkspace,
       slackChannelId: slackChannelId,
       slackThreadTs: slackThreadTs,
       slackUsername: slackUsername,
@@ -849,6 +864,7 @@ export default class SlackAuthAction {
         projectId: refusal.projectId,
         place: place,
         slackTeamId: slackRequest.slackTeamId,
+        slackWorkspace: slackRequest.slackWorkspace,
         description: SlackConnectPrompt.describe({
           actionType: refusal.action.actionType,
           actionValue: refusal.action.actionValue,
