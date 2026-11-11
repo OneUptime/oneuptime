@@ -76,6 +76,14 @@ const DocsNav: NavGroup[] = [
         url: "/docs/introduction/core-concepts",
       },
       {
+        title: "Glossary",
+        url: "/docs/introduction/glossary",
+      },
+      {
+        title: "Which One Do I Use?",
+        url: "/docs/introduction/which-one",
+      },
+      {
         title: "Home Page & Shortcuts",
         url: "/docs/introduction/home",
       },

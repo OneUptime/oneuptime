@@ -1,6 +1,6 @@
 # Custom Probes
 
-A custom probe is a small agent you run inside your own network. It checks the monitors you add it to, such as internal websites, APIs and servers behind your firewall, and sends the results to OneUptime. It only connects out, over HTTPS, so nothing in your network has to accept connections from the internet.
+A custom probe is a small agent you run inside your own network. It checks the monitors you add it to, such as internal websites, APIs and servers behind your firewall, and sends the results to OneUptime. It only connects out, over HTTPS, so nothing in your network has to accept connections from the internet. To choose between a probe, an agent, a collector and a Runner, see [Which One Do I Use?](/docs/introduction/which-one#probe-agent-collector-or-runner).
 
 :::cards
 - [How it works](#how-it-works): What the probe does, and how OneUptime knows it is running.

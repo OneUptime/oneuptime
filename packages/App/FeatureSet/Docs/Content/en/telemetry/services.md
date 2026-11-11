@@ -1,6 +1,6 @@
 # Service Catalog
 
-The Service Catalog lists the applications and microservices you run. OneUptime adds a service the first time its telemetry arrives, then brings its logs, traces, metrics, exceptions, incidents and owners together on one page, so anyone can find what a service does, who owns it and how it is doing.
+The Service Catalog lists the applications and microservices you run. OneUptime adds a service the first time its telemetry arrives, then brings its logs, traces, metrics, exceptions, incidents and owners together on one page, so anyone can find what a service does, who owns it and how it is doing. To choose between a service, a monitor group and a label, see [Which One Do I Use?](/docs/introduction/which-one#monitor-group-service-or-label).
 
 :::cards
 - [How a service gets into the catalog](#how-a-service-gets-into-the-catalog): Its `service.name`, on its first telemetry.
