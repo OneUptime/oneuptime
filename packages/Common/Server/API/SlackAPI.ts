@@ -43,6 +43,7 @@ import SlackOnCallDutyActions from "../Utils/Workspace/Slack/Actions/OnCallDutyP
 import WorkspaceProjectAuthToken, {
   SlackChannelCache,
   SlackMiscData,
+  SlackOrganizationWorkspace,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import UserMiddleware from "../Middleware/UserAuthorization";
 import CommonAPI from "./CommonAPI";
@@ -124,6 +125,13 @@ import SlackAiConversations, {
 import WorkspaceAiAnswerSources from "../Utils/Workspace/WorkspaceAiAnswerSources";
 import WorkspaceAiRefusal from "../Utils/Workspace/WorkspaceAiRefusal";
 import SlackHome from "../Utils/Workspace/Slack/SlackHome";
+import SlackOrganization, {
+  SlackInstallation,
+  SlackOrganizationConnection,
+} from "../Utils/Workspace/Slack/SlackOrganization";
+import SlackRequestWorkspaceUtil, {
+  SlackRequestWorkspace,
+} from "../Utils/Workspace/Slack/SlackRequestWorkspace";
 import SlackDirectMessageHelp from "../Utils/Workspace/Slack/SlackDirectMessageHelp";
 import SlackMessagesWelcome from "../Utils/Workspace/Slack/SlackMessagesWelcome";
 import SlackWelcome from "../Utils/Workspace/Slack/SlackWelcome";
@@ -812,17 +820,17 @@ export default class SlackAPI {
            * is linked with an empty token (WorkspaceUserAuthTokenService).
            * An app created from an older manifest still gets one; it is kept
            * as before, and used for nothing.
+           *
+           * An org admin of a Slack Enterprise organization can install it
+           * for the whole organization instead: then `team` is null,
+           * `is_enterprise_install` is true, and the connection is the
+           * organization's (SlackOrganization).
            */
 
-          const team: JSONObject | undefined = responseBody["team"] as
-            | JSONObject
-            | undefined;
           const authedUser: JSONObject | undefined = responseBody[
             "authed_user"
           ] as JSONObject | undefined;
 
-          const slackTeamId: string | undefined = team?.["id"]?.toString();
-          const slackTeamName: string | undefined = team?.["name"]?.toString();
           const slackBotAccessToken: string | undefined =
             responseBody["access_token"]?.toString();
           const botUserId: string | undefined =
@@ -832,16 +840,33 @@ export default class SlackAPI {
           const slackUserAccessToken: string | undefined =
             authedUser?.["access_token"]?.toString();
 
+          const installation: SlackInstallation | null =
+            SlackOrganization.readInstallation(responseBody);
+
+          if (!installation) {
+            throw new ConnectCallbackRefusal(
+              ConnectCallbackError.CouldNotFinish,
+              "Slack named no workspace or organization for the installation.",
+            );
+          }
+
+          const connection: {
+            miscData: SlackMiscData;
+            replacesWorkspaceProjectId: string | undefined;
+          } = await SlackAPI.getInstalledConnection({
+            projectId: record.projectId,
+            installation: installation,
+            botAccessToken: slackBotAccessToken || "",
+            botUserId: botUserId || "",
+          });
+
           await WorkspaceProjectAuthTokenService.refreshAuthToken({
             projectId: record.projectId,
             workspaceType: WorkspaceType.Slack,
             authToken: slackBotAccessToken || "",
-            workspaceProjectId: slackTeamId || "",
-            miscData: {
-              teamId: slackTeamId || "",
-              teamName: slackTeamName || "",
-              botUserId: botUserId || "",
-            },
+            workspaceProjectId: installation.workspaceProjectId,
+            miscData: connection.miscData,
+            replacesWorkspaceProjectId: connection.replacesWorkspaceProjectId,
           });
 
           await WorkspaceUserAuthTokenService.refreshAuthToken({
@@ -979,8 +1004,13 @@ export default class SlackAPI {
           }
 
           if (
-            projectAuth.workspaceProjectId?.toString() !==
-            idToken["https://slack.com/team_id"]?.toString()
+            !(await SlackAPI.isAccountOfConnection({
+              projectId: record.projectId,
+              projectAuth: projectAuth,
+              teamId: idToken["https://slack.com/team_id"]?.toString(),
+              enterpriseId:
+                idToken["https://slack.com/enterprise_id"]?.toString(),
+            }))
           ) {
             throw new ConnectCallbackRefusal(
               ConnectCallbackError.SlackOtherWorkspace,
@@ -1172,6 +1202,11 @@ export default class SlackAPI {
 
             await SlackHome.switchProject({
               teamId: authResult.slackTeamId,
+              ...(authResult.slackWorkspace
+                ? SlackRequestWorkspaceUtil.getEnterprise(
+                    authResult.slackWorkspace,
+                  )
+                : {}),
               slackUserId: authResult.slackUserId,
               projectId: SlackHome.readProjectSwitch(authResult.payload),
             });
@@ -1376,23 +1411,58 @@ export default class SlackAPI {
             );
           }
 
+          /*
+           * A project connected to a whole Slack Enterprise organization:
+           * the channels of every workspace OneUptime was added to, each
+           * saying its workspace (SlackOrganization).
+           */
+          const organization: SlackOrganizationConnection | null =
+            await SlackOrganization.getOfConnection({
+              projectId: projectId,
+              projectAuth: projectAuth,
+            });
+
           const channels: Dictionary<WorkspaceChannel> =
             await SlackUtil.getAllWorkspaceChannels({
               authToken: projectAuth.authToken,
               projectId: projectId,
+              organization: organization,
             });
+
+          const workspaceNameOf: (channel: WorkspaceChannel) => string = (
+            channel: WorkspaceChannel,
+          ): string => {
+            return organization && channel.teamId
+              ? SlackOrganization.getWorkspaceName({
+                  organization: organization,
+                  teamId: channel.teamId,
+                })
+              : "";
+          };
 
           return Response.sendJsonObjectResponse(req, res, {
             channels: Object.values(channels)
               .sort((a: WorkspaceChannel, b: WorkspaceChannel) => {
-                return (a.name || "").localeCompare(b.name || "");
+                return (
+                  (a.name || "").localeCompare(b.name || "") ||
+                  workspaceNameOf(a).localeCompare(workspaceNameOf(b))
+                );
               })
               .map((channel: WorkspaceChannel) => {
                 return {
                   id: channel.id,
                   name: channel.name,
+                  ...(organization && channel.teamId
+                    ? {
+                        teamId: channel.teamId,
+                        workspaceName: workspaceNameOf(channel),
+                      }
+                    : {}),
                 };
               }),
+            ...(organization
+              ? { organizationName: organization.enterpriseName }
+              : {}),
           });
         } catch (err) {
           return Response.sendErrorResponse(req, res, err as Exception);
@@ -1495,6 +1565,10 @@ export default class SlackAPI {
           await SlackUtil.getAllWorkspaceChannels({
             authToken: projectAuth.authToken,
             projectId: props.tenantId,
+            organization: await SlackOrganization.getOfConnection({
+              projectId: props.tenantId,
+              projectAuth: projectAuth,
+            }),
           });
 
           // Re-fetch to return the latest cached object
@@ -1566,6 +1640,166 @@ export default class SlackAPI {
       },
     );
 
+    /*
+     * The project's Slack connection, as Project Settings and the rule form
+     * show it: a whole Slack Enterprise organization's installation, with
+     * the workspaces OneUptime was added to (listed again from Slack when
+     * those listed last are older than a few minutes, or with ?refresh=true)
+     * and the default one; or one workspace, and whether it is part of an
+     * Enterprise organization - which could install OneUptime for all of
+     * its workspaces instead (SlackOrganization).
+     */
+    router.get(
+      "/slack/workspaces",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: projectId,
+              workspaceType: WorkspaceType.Slack,
+            });
+
+          if (!projectAuth || !projectAuth.authToken) {
+            throw new BadRequestException(
+              "Slack is not connected for this project. Please connect Slack first.",
+            );
+          }
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            await SlackAPI.describeConnection({
+              projectId: projectId,
+              projectAuth: projectAuth,
+              refresh: req.query["refresh"]?.toString() === "true",
+            }),
+          );
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
+    /*
+     * The default workspace of a project connected to a whole Slack
+     * Enterprise organization: where a rule that names no workspace creates
+     * its channel, and looked in first for a channel it names. Body:
+     * `{ workspaceId }`, one of the workspaces OneUptime was added to. For a
+     * member allowed to manage the project's workspace connections.
+     */
+    router.put(
+      "/slack/default-workspace",
+      UserMiddleware.getUserMiddleware,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        try {
+          const props: DatabaseCommonInteractionProps =
+            await CommonAPI.getDatabaseCommonInteractionProps(req);
+
+          const projectId: ObjectID =
+            CommonAPI.assertAuthenticatedProjectMember(props);
+
+          CommonAPI.assertPermittedInProject({
+            databaseProps: props,
+            allowedPermissions:
+              WorkspaceOAuthState.MANAGE_CONNECTION_PERMISSIONS,
+            errorMessage:
+              "You do not have permission to change this project's Slack settings.",
+          });
+
+          const workspaceId: string =
+            typeof (req.body as JSONObject | undefined)?.["workspaceId"] ===
+            "string"
+              ? ((req.body as JSONObject)["workspaceId"] as string).trim()
+              : "";
+
+          if (!workspaceId) {
+            throw new BadRequestException("Choose a Slack workspace.");
+          }
+
+          const projectAuth: WorkspaceProjectAuthToken | null =
+            await WorkspaceProjectAuthTokenService.getProjectAuth({
+              projectId: projectId,
+              workspaceType: WorkspaceType.Slack,
+            });
+
+          if (!projectAuth || !projectAuth.authToken) {
+            throw new BadRequestException(
+              "Slack is not connected for this project. Please connect Slack first.",
+            );
+          }
+
+          let organization: SlackOrganizationConnection | null =
+            await SlackOrganization.getOfConnection({
+              projectId: projectId,
+              projectAuth: projectAuth,
+            });
+
+          if (!organization) {
+            throw new BadRequestException(
+              "This project is connected to one Slack workspace. A default workspace is for OneUptime installed for a whole Slack Enterprise organization.",
+            );
+          }
+
+          const isListed: (
+            connection: SlackOrganizationConnection | null,
+          ) => boolean = (
+            connection: SlackOrganizationConnection | null,
+          ): boolean => {
+            return Boolean(
+              connection?.workspaces.some(
+                (workspace: SlackOrganizationWorkspace): boolean => {
+                  return workspace.id === workspaceId;
+                },
+              ),
+            );
+          };
+
+          // Added to it since Slack listed them: asked again, once.
+          if (!isListed(organization)) {
+            organization = await SlackOrganization.getOfConnection({
+              projectId: projectId,
+              projectAuth: projectAuth,
+              refresh: true,
+            });
+          }
+
+          if (!isListed(organization)) {
+            throw new BadRequestException(
+              "OneUptime is not added to this Slack workspace. Add it to the workspace in Slack's organization settings first.",
+            );
+          }
+
+          await WorkspaceProjectAuthTokenService.updateSlackOrganization({
+            projectId: projectId,
+            workspaceProjectId: projectAuth.workspaceProjectId || "",
+            defaultWorkspaceId: workspaceId,
+          });
+
+          return Response.sendJsonObjectResponse(
+            req,
+            res,
+            await SlackAPI.describeConnection({
+              projectId: projectId,
+              projectAuth:
+                await WorkspaceProjectAuthTokenService.getProjectAuth({
+                  projectId: projectId,
+                  workspaceType: WorkspaceType.Slack,
+                }),
+            }),
+          );
+        } catch (err) {
+          return Response.sendErrorResponse(req, res, err as Exception);
+        }
+      },
+    );
+
     // Slack Events API endpoint for handling events like emoji reactions
     router.post(
       "/slack/events",
@@ -1602,6 +1836,19 @@ export default class SlackAPI {
           }
 
           /*
+           * In a Slack Enterprise organization, the organization the event
+           * came from, and whether to OneUptime's installation in all of it:
+           * a project connected to the whole organization is found by it
+           * (SlackRequestWorkspace).
+           */
+          const eventEnterprise: {
+            enterpriseId?: string;
+            isEnterpriseInstall?: boolean;
+          } = SlackRequestWorkspaceUtil.getEnterprise(
+            SlackRequestWorkspaceUtil.read(payload),
+          );
+
+          /*
            * The OneUptime app's Home tab was opened: it is drawn for whoever
            * opened it (SlackHome) - their on-call shifts, the open incidents
            * and alerts, and what they can do. Its Messages tab: whoever
@@ -1614,6 +1861,7 @@ export default class SlackAPI {
             if (event["tab"] === "messages") {
               await SlackMessagesWelcome.handleMessagesTabOpened({
                 teamId: (payload["team_id"] as string) || "",
+                ...eventEnterprise,
                 slackUserId: (event["user"] as string) || "",
               });
 
@@ -1622,6 +1870,7 @@ export default class SlackAPI {
 
             await SlackHome.handleHomeOpened({
               teamId: (payload["team_id"] as string) || "",
+              ...eventEnterprise,
               slackUserId: (event["user"] as string) || "",
               tab: event["tab"] as string | undefined,
               // The Home as Slack had it: drawn over only if nothing drew it since.
@@ -1648,6 +1897,7 @@ export default class SlackAPI {
                 (event["team"] as string) ||
                 (payload["team_id"] as string) ||
                 "",
+              ...eventEnterprise,
               joinedUserId: (event["user"] as string) || "",
               channelId: (event["channel"] as string) || "",
               inviterUserId: (event["inviter"] as string) || undefined,
@@ -1704,14 +1954,9 @@ export default class SlackAPI {
              */
             Response.sendTextResponse(req, res, "ok");
 
-            const reactionData: {
-              teamId: string;
-              reaction: string;
-              userId: string;
-              channelId: string;
-              messageTs: string;
-            } = {
+            const reactionData: SlackReactionData = {
               teamId: payload["team_id"] as string,
+              ...eventEnterprise,
               reaction: event["reaction"] as string,
               userId: event["user"] as string,
               channelId: (event["item"] as JSONObject)?.["channel"] as string,
@@ -1920,7 +2165,7 @@ export default class SlackAPI {
     const record: SlackProjectChoiceRecord | null = press
       ? await SlackProjectChoice.take({
           press: press,
-          teamId: slackRequest.slackTeamId,
+          teamId: SlackRequestWorkspaceUtil.getScopeIdOf(slackRequest),
           slackUserId: slackRequest.slackUserId,
         })
       : null;
@@ -2016,6 +2261,253 @@ export default class SlackAPI {
   }
 
   /*
+   * What GET /slack/workspaces answers (see it): for a whole organization's
+   * installation, its name, the workspaces OneUptime was added to - the
+   * default first - and the default; for one workspace, whether it is part
+   * of an Enterprise organization, as the install recorded it or, for a
+   * connection made before installs recorded it, as Slack says now.
+   */
+  private static async describeConnection(data: {
+    projectId: ObjectID;
+    projectAuth: WorkspaceProjectAuthToken | null;
+    refresh?: boolean | undefined;
+  }): Promise<JSONObject> {
+    const organization: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfConnection({
+        projectId: data.projectId,
+        projectAuth: data.projectAuth,
+        refresh: data.refresh,
+      });
+
+    if (organization) {
+      return {
+        isOrganization: true,
+        isInOrganization: true,
+        organizationName: organization.enterpriseName,
+        workspaces: organization.workspaces.map(
+          (workspace: SlackOrganizationWorkspace): JSONObject => {
+            return { id: workspace.id, name: workspace.name };
+          },
+        ),
+        defaultWorkspaceId: organization.defaultWorkspaceId || null,
+      };
+    }
+
+    const miscData: SlackMiscData | undefined = data.projectAuth?.miscData as
+      | SlackMiscData
+      | undefined;
+
+    let enterpriseId: string = miscData?.enterpriseId || "";
+
+    if (!enterpriseId && miscData?.enterpriseId === undefined) {
+      enterpriseId = await SlackOrganization.getEnterpriseIdOfWorkspace({
+        projectId: data.projectId,
+        projectAuth: data.projectAuth,
+      });
+    }
+
+    return {
+      isOrganization: false,
+      isInOrganization: Boolean(enterpriseId),
+      organizationName: miscData?.enterpriseName || "",
+      workspaces: [],
+      defaultWorkspaceId: null,
+    };
+  }
+
+  /*
+   * Whether a Slack account signed in with Slack is one of the project's
+   * Slack: of its workspace - or, for a project connected to a whole Slack
+   * Enterprise organization, of the organization, which the ID token can
+   * say, or of one of the workspaces OneUptime was added to, listed again
+   * from Slack once when it is not among those listed last
+   * (SlackOrganization).
+   */
+  private static async isAccountOfConnection(data: {
+    projectId: ObjectID;
+    projectAuth: WorkspaceProjectAuthToken;
+    // The workspace the account signed in from (the ID token's team_id).
+    teamId: string | undefined;
+    // The organization it is part of, when the ID token says.
+    enterpriseId?: string | undefined;
+  }): Promise<boolean> {
+    const teamId: string = (data.teamId || "").trim();
+
+    if (!teamId) {
+      return false;
+    }
+
+    if (data.projectAuth.workspaceProjectId?.toString() === teamId) {
+      return true;
+    }
+
+    const organization: SlackOrganizationConnection | null =
+      SlackOrganization.readConnection(data.projectAuth);
+
+    if (!organization) {
+      return false;
+    }
+
+    if (data.enterpriseId && data.enterpriseId === organization.enterpriseId) {
+      return true;
+    }
+
+    const isListed: (
+      connection: SlackOrganizationConnection | null,
+    ) => boolean = (
+      connection: SlackOrganizationConnection | null,
+    ): boolean => {
+      return Boolean(
+        connection?.workspaces.some(
+          (workspace: SlackOrganizationWorkspace): boolean => {
+            return workspace.id === teamId;
+          },
+        ),
+      );
+    };
+
+    if (isListed(organization)) {
+      return true;
+    }
+
+    // Added to a workspace since Slack listed them: asked again, once.
+    return isListed(
+      await SlackOrganization.getOfConnection({
+        projectId: data.projectId,
+        projectAuth: data.projectAuth,
+        refresh: true,
+      }),
+    );
+  }
+
+  /*
+   * What an installation is stored as, for a project (refreshAuthToken):
+   *
+   * - one workspace: its id and name, the bot, and its Enterprise
+   *   organization when it is part of one;
+   * - a whole organization: the organization's id and name, and the
+   *   workspaces Slack lists OneUptime as added to - an admin may add it to
+   *   more later, which are read when needed (SlackOrganization).
+   *
+   * A project connected to one workspace of the organization moves to the
+   * organization's installation - or back - without being disconnected
+   * first (`replacesWorkspaceProjectId`): the organization's channels and
+   * people are the workspace's, so its rules and linked accounts stay, and
+   * the workspace stays the default its channels are created in. Installed
+   * again for the same organization, the default chosen and the channels
+   * known are kept.
+   */
+  private static async getInstalledConnection(data: {
+    projectId: ObjectID;
+    installation: SlackInstallation;
+    botAccessToken: string;
+    botUserId: string;
+  }): Promise<{
+    miscData: SlackMiscData;
+    replacesWorkspaceProjectId: string | undefined;
+  }> {
+    const { installation } = data;
+
+    const miscData: SlackMiscData = {
+      teamId: installation.teamId,
+      teamName: installation.teamName,
+      botUserId: data.botUserId,
+    };
+
+    if (installation.enterpriseId) {
+      miscData.enterpriseId = installation.enterpriseId;
+      miscData.enterpriseName = installation.enterpriseName || "";
+    }
+
+    if (installation.isEnterpriseInstall) {
+      miscData.isEnterpriseInstall = true;
+
+      try {
+        miscData.workspaces = await SlackOrganization.listWorkspaces(
+          data.botAccessToken,
+        );
+        miscData.workspacesReadAt = OneUptimeDate.toString(
+          OneUptimeDate.getCurrentDate(),
+        );
+      } catch (err) {
+        // Read again when they are needed.
+        logger.debug(
+          "Slack did not list the workspaces of an organization's installation yet.",
+        );
+        logger.debug(err);
+      }
+    }
+
+    const existing: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.Slack,
+      });
+
+    if (!existing || !existing.workspaceProjectId) {
+      return { miscData: miscData, replacesWorkspaceProjectId: undefined };
+    }
+
+    const existingMiscData: SlackMiscData | undefined = existing.miscData as
+      | SlackMiscData
+      | undefined;
+
+    // The same organization installed again: its default and channels stay.
+    if (existing.workspaceProjectId === installation.workspaceProjectId) {
+      if (installation.isEnterpriseInstall) {
+        if (existingMiscData?.defaultWorkspaceId) {
+          miscData.defaultWorkspaceId = existingMiscData.defaultWorkspaceId;
+        }
+
+        if (existingMiscData?.channelCache) {
+          miscData.channelCache = existingMiscData.channelCache;
+        }
+      }
+
+      return { miscData: miscData, replacesWorkspaceProjectId: undefined };
+    }
+
+    if (
+      !(await SlackOrganization.isSameOrganization({
+        existing: existing,
+        installation: installation,
+        workspaces: miscData.workspaces,
+      }))
+    ) {
+      // Refused by refreshAuthToken, as any other workspace is.
+      return { miscData: miscData, replacesWorkspaceProjectId: undefined };
+    }
+
+    if (installation.isEnterpriseInstall) {
+      // The workspace it was connected to: where its channels are created still.
+      miscData.defaultWorkspaceId = existing.workspaceProjectId;
+
+      if (existingMiscData?.channelCache) {
+        miscData.channelCache = {};
+
+        for (const [name, entry] of Object.entries(
+          existingMiscData.channelCache,
+        )) {
+          miscData.channelCache[name] = {
+            ...entry,
+            teamId: entry.teamId || existing.workspaceProjectId,
+          };
+        }
+      }
+    }
+
+    logger.info(
+      `Slack connection of project ${data.projectId.toString()} moves from ${existing.workspaceProjectId} to ${installation.workspaceProjectId}, of the same Enterprise organization.`,
+      { projectId: data.projectId.toString() },
+    );
+
+    return {
+      miscData: miscData,
+      replacesWorkspaceProjectId: existing.workspaceProjectId,
+    };
+  }
+
+  /*
    * `/oneuptime ask <question>`, or `/oneuptime <question>`: acknowledged at
    * once with a message only the asker sees, then answered by the
    * assistant, detached, at the command's response_url - in the channel
@@ -2044,6 +2536,9 @@ export default class SlackAPI {
       question: {
         question: data.question,
         teamId: (body["team_id"] as string) || "",
+        ...SlackRequestWorkspaceUtil.getEnterprise(
+          SlackRequestWorkspaceUtil.read(body),
+        ),
         slackUserId: (body["user_id"] as string) || "",
         channelId: (body["channel_id"] as string) || undefined,
         responseUrl: (body["response_url"] as string) || "",
@@ -2084,7 +2579,7 @@ export default class SlackAPI {
 
     const context: SlackAiOpsContext | undefined =
       await SlackAPI.resolveSlackAiOpsContext({
-        slackTeamId: slackTeamId,
+        slackWorkspace: data.question,
         slackUserId: slackUserId,
         slackChannelId: slackChannelId,
         chosenProjectId: data.chosenProjectId,
@@ -2124,7 +2619,7 @@ export default class SlackAPI {
             slackChannelId: slackChannelId,
             responseUrl: responseUrl,
           },
-          teamId: slackTeamId,
+          teamId: SlackRequestWorkspaceUtil.getScopeId(data.question),
           slackUserId: slackUserId,
           resolution: context.ambiguousResolution,
           request: {
@@ -2160,6 +2655,7 @@ export default class SlackAPI {
       await SlackConnectPrompt.prompt({
         projectId: context.projectId,
         slackTeamId: slackTeamId,
+        slackWorkspace: data.question,
         place: {
           projectAuthToken: context.projectAuthToken,
           slackUserId: slackUserId,
@@ -2301,7 +2797,7 @@ export default class SlackAPI {
 
     const context: SlackAiOpsContext | undefined =
       await SlackAPI.resolveSlackAiOpsContext({
-        slackTeamId: message.teamId,
+        slackWorkspace: message,
         slackUserId: message.userId,
         slackChannelId: message.channelId,
         chosenProjectId: data.chosenProjectId,
@@ -2375,7 +2871,7 @@ export default class SlackAPI {
         context.ambiguousResolution &&
         (await SlackProjectChoice.offer({
           place: place,
-          teamId: message.teamId,
+          teamId: SlackRequestWorkspaceUtil.getScopeId(message),
           slackUserId: message.userId,
           resolution: context.ambiguousResolution,
           request: {
@@ -2433,6 +2929,7 @@ export default class SlackAPI {
         await SlackConnectPrompt.promptOnce({
           projectId: context.projectId,
           slackTeamId: message.teamId,
+          slackWorkspace: message,
           place: SlackAiConversations.getConnectPromptPlace({
             message: message,
             projectAuthToken: context.projectAuthToken,
@@ -2710,22 +3207,28 @@ export default class SlackAPI {
    * else tells which.
    */
   private static async resolveSlackAiOpsContext(data: {
-    slackTeamId: string;
+    /*
+     * Where it was asked: the workspace and, in a Slack Enterprise
+     * organization, the organization (SlackRequestWorkspace).
+     */
+    slackWorkspace: SlackRequestWorkspace;
     slackUserId: string;
     slackChannelId?: string | undefined;
     chosenProjectId?: ObjectID | undefined;
     conversation?: SlackConversationOfPerson | undefined;
   }): Promise<SlackAiOpsContext | undefined> {
-    const { slackTeamId, slackUserId } = data;
+    const { slackUserId } = data;
 
-    if (!slackTeamId) {
+    if (!data.slackWorkspace.teamId) {
       return undefined;
     }
 
     let resolution: WorkspaceProjectResolution =
       await WorkspaceProjectResolver.resolve({
         workspaceType: WorkspaceType.Slack,
-        workspaceId: slackTeamId,
+        workspaceId: SlackRequestWorkspaceUtil.getConnectionIds(
+          data.slackWorkspace,
+        ),
         clues: {
           channelId: data.slackChannelId,
           workspaceUserId: slackUserId,

@@ -1,7 +1,6 @@
 import DatabaseBaseModel from "../../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import WorkspaceProjectAuthToken from "../../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceUserAuthToken from "../../../../../Models/DatabaseModels/WorkspaceUserAuthToken";
-import LIMIT_MAX from "../../../../../Types/Database/LimitMax";
 import DatabaseCommonInteractionProps from "../../../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../../../../Types/ObjectID";
 import { JSONObject } from "../../../../../Types/JSON";
@@ -13,9 +12,9 @@ import WorkspaceType from "../../../../../Types/Workspace/WorkspaceType";
 import ChatMessageMarkdown from "../../../../../Utils/Markdown/ChatMessageMarkdown";
 import { MarkdownText } from "../../../../../Utils/Markdown/FeedMarkdown";
 import DatabaseService from "../../../../Services/DatabaseService";
-import WorkspaceProjectAuthTokenService from "../../../../Services/WorkspaceProjectAuthTokenService";
 import WorkspaceUserAuthTokenService from "../../../../Services/WorkspaceUserAuthTokenService";
 import logger from "../../../Logger";
+import SlackRequestWorkspaceUtil from "../SlackRequestWorkspace";
 import CaptureSpan from "../../../Telemetry/CaptureSpan";
 import WorkspaceReactionNote, {
   WorkspaceMessageNoteOutcome,
@@ -24,6 +23,7 @@ import WorkspaceReactionNote, {
   WorkspaceNoteResourceType,
   WorkspaceNoteSaveResult,
 } from "../../WorkspaceReactionNote";
+import WorkspaceProjectResolver from "../../WorkspaceProjectResolution";
 import SlackUtil from "../Slack";
 import SlackSavedMessage, { SlackMessageToSave } from "../SlackSavedMessage";
 import SlackActionAuthorization, {
@@ -45,6 +45,13 @@ import PaymentRequiredException from "../../../../../Types/Exception/PaymentRequ
 export interface SlackReactionData {
   // Slack workspace (team) id.
   teamId: string;
+  /*
+   * In a Slack Enterprise organization: the organization, and whether it
+   * came to OneUptime's installation in the whole organization
+   * (SlackRequestWorkspace) - what finds a project connected to it.
+   */
+  enterpriseId?: string | undefined;
+  isEnterpriseInstall?: boolean | undefined;
   // Emoji name, e.g. "pushpin".
   reaction: string;
   // Slack user who reacted.
@@ -117,6 +124,9 @@ export default class SlackReactionNoteActions {
 
     return {
       teamId: teamId,
+      ...SlackRequestWorkspaceUtil.getEnterprise(
+        SlackRequestWorkspaceUtil.read(data.payload),
+      ),
       reaction: PrivateNoteReactionNames[0]!,
       userId: userId,
       channelId: channelId,
@@ -199,23 +209,14 @@ export default class SlackReactionNoteActions {
     /*
      * One Slack workspace can be connected to several OneUptime projects, so
      * the channel is looked up in all of them — not in whichever connection a
-     * findOne happened to return.
+     * findOne happened to return. In a Slack Enterprise organization, the
+     * projects connected to the whole organization are among them
+     * (SlackRequestWorkspace).
      */
     const projectAuths: Array<WorkspaceProjectAuthToken> = (
-      await WorkspaceProjectAuthTokenService.findBy({
-        query: {
-          workspaceProjectId: teamId,
-          workspaceType: WorkspaceType.Slack,
-        },
-        select: {
-          projectId: true,
-          authToken: true,
-        },
-        limit: LIMIT_MAX,
-        skip: 0,
-        props: {
-          isRoot: true,
-        },
+      await WorkspaceProjectResolver.findConnections({
+        workspaceType: WorkspaceType.Slack,
+        workspaceId: SlackRequestWorkspaceUtil.getConnectionIds(data),
       })
     ).filter((projectAuth: WorkspaceProjectAuthToken) => {
       return Boolean(projectAuth.projectId && projectAuth.authToken);
@@ -303,6 +304,7 @@ export default class SlackReactionNoteActions {
           slackChannelId: channelId,
         },
         slackTeamId: teamId,
+        slackWorkspace: data,
         description: SlackReactionNoteActions.describe({
           resource: resource,
           noteType: noteType,

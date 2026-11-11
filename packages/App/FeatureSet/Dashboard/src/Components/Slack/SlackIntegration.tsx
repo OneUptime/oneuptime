@@ -36,6 +36,7 @@ import SlackIntegrationDocumentation from "./SlackIntegrationDocumentation";
 import Link from "Common/UI/Components/Link/Link";
 import SlackChannelCacheModal from "./SlackChannelCacheModal";
 import SlackChannelsCard from "./SlackChannelsCard";
+import SlackOrganizationCard from "./SlackOrganizationCard";
 import ConnectedWorkspaces from "../../Utils/Workspace/ConnectedWorkspaces";
 import ConnectCallbackNotice, {
   ConnectCallbackNoticeState,
@@ -75,6 +76,16 @@ export const SLACK_INSTALLED_IN_WORKSPACE_TITLE: string = translationKey(
 export const SLACK_INSTALLED_TITLE: string = translationKey(
   "OneUptime is installed in Slack",
 );
+
+// Installed for a whole Slack Enterprise organization (SlackOrganizationCard).
+export const SLACK_INSTALLED_IN_ORGANIZATION_TITLE: string = translationKey(
+  "OneUptime is installed in the {{organization}} Slack organization",
+);
+
+export const CONNECT_YOUR_SLACK_ACCOUNT_IN_ORGANIZATION_DESCRIPTION: string =
+  translationKey(
+    "OneUptime is installed in the {{organization}} Slack organization. Connect your account from any of its workspaces to acknowledge incidents and get messages as yourself, in Slack.",
+  );
 
 export const SLACK_INSTALLED_DESCRIPTION: string = translationKey(
   "It posts what your notification rules send, creates a channel for each incident and invites its people. Each member connects their own Slack account to act as themselves.",
@@ -146,6 +157,13 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
     React.useState<boolean>(false);
   const [isButtonLoading, setIsButtonLoading] = React.useState<boolean>(false);
   const [slackTeamName, setSlackTeamName] = React.useState<string | null>(null);
+  /*
+   * OneUptime installed for a whole Slack Enterprise organization: its name
+   * (null for a connection to one workspace).
+   */
+  const [slackOrganizationName, setSlackOrganizationName] = React.useState<
+    string | null
+  >(null);
   const [showChannelsModal, setShowChannelsModal] =
     React.useState<boolean>(false);
 
@@ -189,11 +207,19 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
 
       if (projectAuth.data.length > 0) {
         setIsProjectAccountConnected(true);
-        const slackTeamName: string | undefined = (
-          projectAuth.data[0]!.miscData! as SlackMiscData
-        ).teamName;
+        const slackMiscData: SlackMiscData | undefined = projectAuth.data[0]!
+          .miscData as SlackMiscData | undefined;
         setWorkspaceProjectAuthTokenId(projectAuth.data[0]!.id);
-        setSlackTeamName(slackTeamName);
+
+        if (slackMiscData?.isEnterpriseInstall === true) {
+          setSlackOrganizationName(
+            slackMiscData.enterpriseName || slackMiscData.teamName || "",
+          );
+          setSlackTeamName(null);
+        } else {
+          setSlackOrganizationName(null);
+          setSlackTeamName(slackMiscData?.teamName || null);
+        }
       }
 
       // fetch user auth token.
@@ -552,12 +578,17 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
    */
   if (!isUserAccountConnected && isProjectAccountConnected) {
     cardTitle = "Connect your Slack account";
-    cardDescription = slackTeamName
+    cardDescription = slackOrganizationName
       ? translator.translateTemplate(
-          "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.",
-          { team: slackTeamName },
+          CONNECT_YOUR_SLACK_ACCOUNT_IN_ORGANIZATION_DESCRIPTION,
+          { organization: slackOrganizationName },
         )
-      : "Acknowledge incidents and get messages from OneUptime as yourself, in Slack.";
+      : slackTeamName
+        ? translator.translateTemplate(
+            "OneUptime is installed in the {{team}} Slack workspace. Connect your account there to acknowledge incidents and get messages as yourself, in Slack.",
+            { team: slackTeamName },
+          )
+        : "Acknowledge incidents and get messages from OneUptime as yourself, in Slack.";
     cardButtons = [
       // connect with slack button.
       getConnectWithSlackButton(`Connect my account with Slack`),
@@ -689,12 +720,17 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         <div data-testid="slack-project-connection">
           <Card
             title={
-              slackTeamName
+              slackOrganizationName
                 ? translator.translateTemplate(
-                    SLACK_INSTALLED_IN_WORKSPACE_TITLE,
-                    { team: slackTeamName },
+                    SLACK_INSTALLED_IN_ORGANIZATION_TITLE,
+                    { organization: slackOrganizationName },
                   )
-                : SLACK_INSTALLED_TITLE
+                : slackTeamName
+                  ? translator.translateTemplate(
+                      SLACK_INSTALLED_IN_WORKSPACE_TITLE,
+                      { team: slackTeamName },
+                    )
+                  : SLACK_INSTALLED_TITLE
             }
             description={SLACK_INSTALLED_DESCRIPTION}
             buttons={projectCardActions}
@@ -719,6 +755,25 @@ const SlackIntegration: FunctionComponent<ComponentProps> = (
         <div className="mt-6">
           <AskToConnectCard workspaceType={WorkspaceType.Slack} />
         </div>
+      )}
+
+      {/*
+       * The workspaces of a Slack Enterprise organization OneUptime is
+       * installed for - or, for one workspace of such an organization, how
+       * to install it for all of them. Nothing for any other project.
+       */}
+      {isProjectAccountConnected && !props.hideProjectCards && (
+        <SlackOrganizationCard
+          className="mt-6"
+          teamName={slackTeamName || undefined}
+          onInstallForOrganization={() => {
+            navigateToAuthorizationUrl("/slack/install-url").catch(
+              (error: Exception) => {
+                setError(<div>{API.getFriendlyErrorMessage(error)}</div>);
+              },
+            );
+          }}
+        />
       )}
 
       {isProjectAccountConnected && !props.hideProjectCards && (

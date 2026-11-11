@@ -112,6 +112,58 @@ export default class SlackRequestWorkspaceUtil {
     return connectionIds;
   }
 
+  /*
+   * The one id a request is told apart by, for what is kept of it between
+   * Slack's requests (a project choice, SlackProjectChoice): the
+   * organization's for the organization's installation - whose presses can
+   * name the workspace of the person rather than the channel's - the
+   * workspace's otherwise.
+   */
+  public static getScopeId(workspace: SlackRequestWorkspace): string {
+    return SlackRequestWorkspaceUtil.getConnectionIds(workspace)[0] || "";
+  }
+
+  /*
+   * The organization part of where a request was made, with only what it
+   * says: what handlers that already take the workspace are passed too.
+   */
+  public static getEnterprise(workspace: SlackRequestWorkspace): {
+    enterpriseId?: string;
+    isEnterpriseInstall?: boolean;
+  } {
+    const enterprise: { enterpriseId?: string; isEnterpriseInstall?: boolean } =
+      {};
+
+    const enterpriseId: string = SlackRequestWorkspaceUtil.textOf(
+      workspace.enterpriseId,
+    );
+
+    if (enterpriseId) {
+      enterprise.enterpriseId = enterpriseId;
+    }
+
+    if (workspace.isEnterpriseInstall) {
+      enterprise.isEnterpriseInstall = true;
+    }
+
+    return enterprise;
+  }
+
+  /*
+   * getScopeId of a request that may have said only its workspace: what is
+   * passed where older callers built a request without the organization.
+   */
+  public static getScopeIdOf(data: {
+    slackWorkspace?: SlackRequestWorkspace | undefined;
+    slackTeamId?: string | undefined;
+  }): string | undefined {
+    const scopeId: string = data.slackWorkspace
+      ? SlackRequestWorkspaceUtil.getScopeId(data.slackWorkspace)
+      : SlackRequestWorkspaceUtil.textOf(data.slackTeamId);
+
+    return scopeId || undefined;
+  }
+
   // A workspace with no organization: what callers that only knew a team id pass.
   public static ofTeam(teamId: string | undefined): SlackRequestWorkspace {
     return { teamId: SlackRequestWorkspaceUtil.textOf(teamId) };

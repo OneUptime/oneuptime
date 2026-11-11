@@ -441,7 +441,13 @@ export default class SlackUserGroups {
     request: WorkspaceUserGroupSyncRequest,
   ): Promise<WorkspaceUserGroupProviderResult> {
     const { target, previous, cache } = request;
-    const teamId: string = target.workspaceProjectId;
+
+    /*
+     * The workspace the group is in: for Slack installed for a whole
+     * Enterprise organization, the one the group was picked in
+     * (workspaceTeamId); otherwise the project's own workspace.
+     */
+    const teamId: string = target.workspaceTeamId || target.workspaceProjectId;
 
     const cacheKey: string = `slack-usergroups:${teamId}`;
     let groups: Array<SlackUserGroupInfo> | undefined = cache.get(cacheKey) as

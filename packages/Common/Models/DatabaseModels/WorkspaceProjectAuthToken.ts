@@ -100,6 +100,11 @@ export interface SlackChannelCacheEntry {
   id: string;
   name: string;
   lastUpdated: string;
+  /*
+   * A project connected to a whole Slack Enterprise organization: the
+   * workspace (T...) the channel is in. A workspace's channels have none.
+   */
+  teamId?: string | undefined;
 }
 
 // Keyed by the lower-cased channel name.
@@ -107,11 +112,47 @@ export interface SlackChannelCache {
   [channelName: string]: SlackChannelCacheEntry;
 }
 
+// A workspace of a Slack Enterprise organization (Enterprise Grid).
+export interface SlackOrganizationWorkspace {
+  // Slack's team id: T...
+  id: string;
+  name: string;
+}
+
+/*
+ * A project's Slack connection. Most are to one workspace: teamId and
+ * teamName are the workspace's, as is the row's workspaceProjectId. A Slack
+ * Enterprise organization can instead install OneUptime for the whole
+ * organization (isEnterpriseInstall): then teamId, teamName and
+ * workspaceProjectId are the organization's (E...), and the workspaces it
+ * was added to are read from Slack (SlackOrganization). Nothing here is a
+ * credential: the bot token is the row's server-only authToken.
+ */
 export interface SlackMiscData extends MiscData {
   teamId: string;
   teamName: string;
   botUserId: string;
   channelCache?: SlackChannelCache;
+  // Installed for the whole Slack Enterprise organization, not one workspace.
+  isEnterpriseInstall?: boolean | undefined;
+  /*
+   * The Enterprise organization the installation is for, or the workspace
+   * it is in is part of - set by installs since organizations were
+   * supported; an older connection to a workspace has none.
+   */
+  enterpriseId?: string | undefined;
+  enterpriseName?: string | undefined;
+  /*
+   * A whole organization's installation: the workspaces OneUptime has been
+   * added to, as Slack last listed them (auth.teams.list), and when.
+   */
+  workspaces?: Array<SlackOrganizationWorkspace> | undefined;
+  workspacesReadAt?: string | undefined;
+  /*
+   * A whole organization's installation: the workspace channels are created
+   * in, and looked for first, when a rule names none.
+   */
+  defaultWorkspaceId?: string | undefined;
 }
 
 /*

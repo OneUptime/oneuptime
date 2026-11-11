@@ -58,6 +58,19 @@ Allez dans **Incidents** > **Espace de travail** > **Slack**. La section **Espac
 Cliquez sur **Tester la règle** sur la ligne de la règle. Un message de test arrive dans les canaux que la règle nomme. Voir [Tester une règle](#tester-une-règle).
 :::
 
+## Organisations Slack Enterprise
+
+Avec Slack Enterprise Grid, un projet peut fonctionner dans plusieurs espaces de travail de votre organisation. Installez OneUptime pour toute l'organisation plutôt que pour un seul espace de travail :
+
+1. Un administrateur ou propriétaire de l'organisation clique sur **Se connecter avec Slack** dans **Paramètres du projet** > **Espace de travail** > **Slack**, choisit l'organisation plutôt que l'un de ses espaces de travail sur la page d'installation de Slack, et autorise OneUptime.
+2. Dans les paramètres de l'organisation Slack, un administrateur ajoute OneUptime à chaque espace de travail qui doit l'utiliser.
+3. La carte **Espaces de travail Slack** liste ces espaces de travail. Cliquez sur **Actualiser** après avoir ajouté OneUptime à un autre espace de travail.
+
+- **L'espace de travail qu'une règle utilise.** Les règles de notification choisissent l'**Espace de travail Slack** de leurs canaux. S'il est laissé vide, une règle utilise l'espace de travail par défaut et y cherche d'abord les canaux qu'elle nomme. **Définir par défaut** sur la carte change l'espace par défaut.
+- **Où OneUptime fonctionne.** Les boutons, les commandes, l'onglet Home et OneUptime AI fonctionnent dans chacun de ces espaces de travail, et les membres connectent leur propre compte Slack depuis n'importe lequel d'entre eux.
+- **Un projet connecté à un seul espace de travail.** Si cet espace de travail fait partie de l'organisation, le projet conserve ses règles, ses canaux et ses comptes connectés lorsqu'il est installé pour toute l'organisation avec **Installer pour l'organisation** sur la même page. Cet espace de travail devient l'espace par défaut.
+- **Sur un serveur auto-hébergé,** une application Slack créée à partir du manifeste de OneUptime le permet déjà : le manifeste définit `org_deploy_enabled`.
+
 ## Demander à chacun de connecter son compte
 
 Personne ne peut connecter le compte Slack de quelqu'un d'autre, pas même un administrateur : chacun se connecte avec son propre compte. Pour faire venir toute une équipe, un **Propriétaire du projet** ou un **Administrateur du projet** demande à tout le monde à la fois de connecter son compte, dans **Paramètres du projet** > **Espace de travail** > **Slack**. La carte **Members' Slack accounts** indique combien de membres ont connecté leur compte. **Ask everyone to connect** envoie à chaque membre qui ne l'a pas encore fait un message direct de OneUptime dans Slack, avec un bouton **Connect Slack account** qui connecte son compte en un clic.

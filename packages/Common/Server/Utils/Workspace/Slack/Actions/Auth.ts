@@ -817,7 +817,7 @@ export default class SlackAuthAction {
           const delivery: SlackAnswerDelivery | null =
             await SlackProjectChoice.offer({
               place: place,
-              teamId: slackRequest.slackTeamId,
+              teamId: SlackRequestWorkspaceUtil.getScopeIdOf(slackRequest),
               slackUserId: slackRequest.slackUserId,
               resolution: refusal.resolution,
               request: {
