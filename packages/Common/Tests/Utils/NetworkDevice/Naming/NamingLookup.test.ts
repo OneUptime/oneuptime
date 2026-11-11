@@ -514,6 +514,13 @@ describe("pasted and uploaded tables", () => {
     const random: SeededRandom = seededRandom(1216);
     const alphabet: string = 'ab,c";d e-1\t';
 
+    // One character of the alphabet; its tab, which no cell holds, adds nothing.
+    const draw: () => string = (): string => {
+      const character: string = alphabet[random(alphabet.length)]!;
+
+      return character === "\t" ? "" : character;
+    };
+
     for (let attempt: number = 0; attempt < 200; attempt++) {
       const rows: Array<NamingLookupEntry> = [];
       const count: number = 1 + random(8);
@@ -523,8 +530,8 @@ describe("pasted and uploaded tables", () => {
         let value: string = "";
 
         for (let length: number = 1 + random(10); length > 0; length--) {
-          key += alphabet[random(alphabet.length)]!.replace("\t", "");
-          value += alphabet[random(alphabet.length)]!.replace("\t", "");
+          key += draw();
+          value += draw();
         }
 
         rows.push({ key: key.trim(), value: `v${value}`.trim() });
