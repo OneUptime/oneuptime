@@ -74,6 +74,21 @@ export const UNKNOWN_SERVICE_NAME_PREFIX: string = "unknown_service";
 
 export const ECS_CLUSTER_ARN_ATTRIBUTE: string = "aws.ecs.cluster.arn";
 
+/*
+ * The provider's own id for what the resource runs as, in the OpenTelemetry
+ * semantic conventions: the Node.js and .NET Azure App Service detectors
+ * set it to the site's resource id
+ * (/subscriptions/.../providers/Microsoft.Web/sites/<site>). It links the
+ * app to the Cloud Resource Azure Monitor reports it as.
+ */
+export const CLOUD_RESOURCE_ID_ATTRIBUTE: string = "cloud.resource_id";
+
+/*
+ * The longest cloud.resource_id kept. Resource ids, ARNs and full resource
+ * names all fit; a longer one is not an id, and is not kept.
+ */
+export const CLOUD_APP_PROVIDER_RESOURCE_ID_MAX_LENGTH: number = 1024;
+
 export interface CloudAppIdentity {
   // "checkout": the app as its platform names it.
   name: string;
@@ -100,6 +115,11 @@ export interface CloudAppIdentity {
   serviceVersion: string | null;
   // "registry/checkout:1.4.2": the image the resource was started from.
   image: string | null;
+  /*
+   * The provider's id for the app (cloud.resource_id), when the resource
+   * reports one: an App Service app's resource id.
+   */
+  providerResourceId: string | null;
 }
 
 function clean(value: string | null | undefined): string {
@@ -170,6 +190,19 @@ function readImage(getAttribute: CloudAppAttributeGetter): string | null {
   const image: string = tag ? `${name}:${tag}` : name;
 
   return image.slice(0, CLOUD_APP_IMAGE_MAX_LENGTH);
+}
+
+// cloud.resource_id as sent, trimmed; null when absent or too long to be one.
+function readProviderResourceId(
+  getAttribute: CloudAppAttributeGetter,
+): string | null {
+  const value: string = clean(getAttribute(CLOUD_RESOURCE_ID_ATTRIBUTE));
+
+  if (!value || value.length > CLOUD_APP_PROVIDER_RESOURCE_ID_MAX_LENGTH) {
+    return null;
+  }
+
+  return value;
 }
 
 /*
@@ -264,5 +297,6 @@ export function resolveCloudAppIdentity(data: {
     revisionAttribute: revisioned ? revisioned[0] : null,
     serviceVersion: isTrackableRevision(serviceVersion) ? serviceVersion : null,
     image: readImage(data.getAttribute),
+    providerResourceId: readProviderResourceId(data.getAttribute),
   };
 }

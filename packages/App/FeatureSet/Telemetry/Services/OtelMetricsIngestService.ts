@@ -223,6 +223,7 @@ import TelemetryIngestionBudgetMetricTypeUtil, {
   TELEMETRY_INGESTION_BUDGET_METRIC_NAME_PREFIX,
 } from "Common/Utils/Telemetry/TelemetryIngestionBudgetMetricType";
 import ContainerStatsPercentUnit from "Common/Utils/Metrics/ContainerStatsPercentUnit";
+import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 type MetricTimestamp = {
   nano: string;
@@ -1471,6 +1472,7 @@ export default class OtelMetricsIngestService extends OtelIngestBaseService {
             await this.autoDiscoverCloudResource({
               projectId,
               attributes: resourceAttributes_raw,
+              signal: CloudAppTelemetrySignal.Metrics,
             });
 
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({
