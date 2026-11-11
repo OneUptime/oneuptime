@@ -10,7 +10,11 @@ import {
 } from "Common/Types/Cloud/CloudPlatform";
 import OneUptimeDate from "Common/Types/Date";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
-import { getCloudAppRevisionNoun } from "./CloudApps";
+import {
+  CLOUD_APP_STATE_LABELS,
+  CloudAppState,
+  getCloudAppRevisionNoun,
+} from "./CloudApps";
 import { isCloudInstanceLive } from "./CloudResourceTelemetryScope";
 
 /*
@@ -71,6 +75,9 @@ export const CLOUD_APP_ROW_NONE: string = translationKey("Not set up");
 export const CLOUD_APP_ROW_REPORTED: string = translationKey("Reported");
 export const CLOUD_APP_ROW_NOT_REPORTED: string =
   translationKey("Not reported");
+// An app that is not running, as its state pill says it.
+export const CLOUD_APP_ROW_NOT_REPORTING: string =
+  CLOUD_APP_STATE_LABELS[CloudAppState.NotReporting];
 export const CLOUD_APP_ROW_CHECKING: string = translationKey("Checking…");
 export const CLOUD_APP_ROW_CONNECTED: string = translationKey("Connected");
 export const CLOUD_APP_ROW_NOT_CONNECTED: string =
@@ -294,6 +301,31 @@ export function getCloudAppUsageTileNote(data: {
 }
 
 /*
+ * Whether the app's CPU and Memory tiles are shown. They give way only on a
+ * platform that gives an app no CPU or memory of its own
+ * (CLOUD_APP_PLATFORMS_WITHOUT_USAGE), once the platform's own section -
+ * Azure Monitor's, for an App Service site - shows the site's CPU time and
+ * memory below them: tiles that would only say "Not on Azure App Service"
+ * above those numbers read as a contradiction. A tile with a number is
+ * always shown.
+ */
+export function showsCloudAppUsageTiles(data: {
+  cloudPlatform: string | null | undefined;
+  hasCpuReading: boolean;
+  hasMemoryReading: boolean;
+  hasPlatformSection: boolean;
+}): boolean {
+  if (!data.hasPlatformSection || data.hasCpuReading || data.hasMemoryReading) {
+    return true;
+  }
+
+  return !(
+    data.cloudPlatform &&
+    CLOUD_APP_PLATFORMS_WITHOUT_USAGE.has(data.cloudPlatform)
+  );
+}
+
+/*
  * What the Instances tile says in place of its count: "Not reported" for an
  * app that runs and has never named an instance - its zero would read as
  * none running. An app not running reads 0.
@@ -490,17 +522,28 @@ export function getCloudAppSetupRows(
     }),
   ];
 
-  // An app that is not running names no instance now, and is not asked to.
+  /*
+   * A running app that has named no instance is asked to. One that is not
+   * running names none now - its instances are swept once they stop
+   * reporting - so it is not reporting, as its state says, and is not
+   * asked for anything.
+   */
   const instancesMissing: boolean =
     input.isRunning && !input.hasReportedInstances;
+  const instancesIdle: boolean =
+    !input.isRunning && !input.hasReportedInstances;
 
   rows.push({
     key: CloudAppSetupRowKey.Instances,
     label: translate(translator, CLOUD_APP_ROW_LABELS["instances"] as string),
-    tone: instancesMissing ? "warning" : "ok",
+    tone: instancesMissing ? "warning" : instancesIdle ? "off" : "ok",
     text: translate(
       translator,
-      instancesMissing ? CLOUD_APP_ROW_NOT_REPORTED : CLOUD_APP_ROW_REPORTED,
+      instancesMissing
+        ? CLOUD_APP_ROW_NOT_REPORTED
+        : instancesIdle
+          ? CLOUD_APP_ROW_NOT_REPORTING
+          : CLOUD_APP_ROW_REPORTED,
     ),
     hint: instancesMissing
       ? translate(translator, CLOUD_APP_INSTANCES_HINT)

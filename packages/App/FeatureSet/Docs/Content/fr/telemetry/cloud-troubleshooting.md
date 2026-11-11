@@ -67,10 +67,11 @@ L'environnement est là, mais son onglet **Instances** ne liste rien : la télé
 2. `aws.ecs.task.arn` (raccourci à l'ID de la tâche)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 L'identité propre de la plateforme passe avant `service.instance.id`, pour qu'un ID que le SDK invente pour chaque processus (le SDK Node.js le fait par défaut) ne puisse pas séparer une tâche du CPU et de la mémoire de son sidecar. Ce qui définit l'identité sur chaque plateforme :
 
@@ -80,7 +81,7 @@ L'identité propre de la plateforme passe avant `service.instance.id`, pour qu'u
 | Cloud Run, App Engine | Le détecteur `gcp` définit `faas.instance` |
 | Container Apps | Le détecteur `azurecontainerapps` du Collector définit l'ID du réplica ; ou définissez `service.instance.id` à partir de `CONTAINER_APP_REPLICA_NAME`, ou exécutez le détecteur d'hôte |
 | App Runner, Container Instances | Le `host.name` du détecteur d'hôte |
-| App Service, Elastic Beanstalk | Le détecteur de la plateforme définit `service.instance.id` ; sur Beanstalk, supprimez-le pour que `host.id` nomme chaque instance |
+| App Service, Elastic Beanstalk | Le détecteur de la plateforme définit `service.instance.id` (sur App Service, celui du Collector définit `azure.app_service.instance.id`) ; sur Beanstalk, supprimez `service.instance.id` pour que `host.id` nomme chaque instance |
 
 Une instance apparaît dans la minute qui suit le premier signal qui porte l'attribut.
 
@@ -89,7 +90,7 @@ Une instance apparaît dans la minute qui suit le premier signal qui porte l'att
 Les instances sont listées, mais les tuiles **CPU** et **Mémoire** de la vue d'ensemble, et les colonnes CPU et mémoire de **Instances**, sont vides. Elles viennent de métriques, pas de traces : des points de données `container.cpu.utilization` et `container.memory.usage` (ou `container.memory.usage.total`) dont la ressource porte la même identité d'instance que les traces, et `cloud.platform`.
 
 - **Sur ECS,** le récepteur `awsecscontainermetrics` d'un collecteur sidecar les fournit sous la forme `ecs.task.cpu.utilized` et `ecs.task.memory.utilized`. Gardez-le dans le pipeline `metrics`, et gardez aussi `resourcedetection` dans ce pipeline, sinon les métriques arrivent sans `cloud.platform` et sont classées ailleurs.
-- **Sur Cloud Run, Container Apps et les autres plateformes,** la plateforme ne montre pas l'utilisation des conteneurs à un sidecar. Les tuiles restent vides sauf si vous envoyez ces métriques vous-même : lisez plutôt les tuiles de requêtes.
+- **Sur Cloud Run, Container Apps et les autres plateformes,** la plateforme ne montre pas l'utilisation des conteneurs à un sidecar. Les tuiles restent vides sauf si vous envoyez ces métriques vous-même : lisez plutôt les tuiles de requêtes. Sur App Service, connectez l'abonnement sous **Cloud → Connecter** : la page de l'application montre alors le temps CPU et la mémoire de son site, depuis **Azure Monitor**.
 - **Avec SDK direct,** rien n'envoie de métriques de conteneur, des tuiles vides sont donc normales.
 
 ## L'environnement affiche Déconnecté

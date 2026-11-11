@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | rilevatore di risorse | `faas.instance` | [Altre piattaforme cloud](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | rilevatore di risorse | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | a mano | `host.name` | [Altre piattaforme cloud](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | rilevatore di risorse | `host.id` | [Altre piattaforme cloud](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | rilevatore di risorse | `azure.app_service.instance.id` | [Altre piattaforme cloud](/docs/telemetry/cloud-other-platforms) |
 
 - **Rilevatore di risorse:** un rilevatore di risorse OpenTelemetry, nell'SDK o nel processore `resourcedetection` del Collector, imposta per te gli attributi `cloud.*`.
 - **A mano:** non esiste un rilevatore, quindi metti gli attributi in `OTEL_RESOURCE_ATTRIBUTES`. La pagina della piattaforma mostra la riga esatta.
-- **I rilevatori Azure sanno meno.** I rilevatori di Container Apps non conoscono né la regione né la sottoscrizione, e quelli di App Service non conoscono la sottoscrizione: imposta tu ciò che manca.
+- **I rilevatori Azure sanno meno.** I rilevatori di Container Apps non conoscono né la regione né la sottoscrizione, e quelli di App Service per Node.js e .NET non conoscono la sottoscrizione (quello del Collector sì): imposta tu ciò che manca.
 - **Le grafie Azure con il punto funzionano.** I rilevatori Azure per Node.js e .NET scrivono `azure.container_apps` e `azure.app_service`. OneUptime li riscrive nei valori con il trattino basso indicati sopra quando li riceve.
 
 ## Come OneUptime identifica un ambiente
@@ -88,10 +88,11 @@ All'interno di un ambiente, ogni task, istanza o replica in esecuzione ottiene u
 2. `aws.ecs.task.arn` (abbreviato all'ID del task)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 L'identità propria della piattaforma viene prima di proposito. Un collector sidecar e l'SDK dell'applicazione la vedono entrambi, e sopravvive ai riavvii. Un SDK di solito inventa un nuovo `service.instance.id` per ogni processo (l'SDK Node.js lo fa per impostazione predefinita), quindi usarlo come chiave dividerebbe un task ECS in due righe. `service.instance.id` si usa quando la piattaforma non imposta un'identità propria. La colonna **Identità dell'istanza** in [Piattaforme supportate](#piattaforme-supportate) indica l'attributo usato da una configurazione tipica su ogni piattaforma.
 
@@ -122,6 +123,8 @@ Il primo attributo che la telemetria porta dà il nome all'app, quindi anche un'
 - **Per ogni app si registrano al massimo 12 nuove revisioni in un'ora.** Altrimenti una `service.version` che cambia a ogni build sarebbe una distribuzione al minuto.
 
 La pagina di un'app ha una **Panoramica** con le sue richieste, gli errori, la latenza, le istanze e le revisioni in esecuzione ora, una scheda **Revisioni** con i numeri di ogni revisione, le schede **Istanze**, **Registri** e **Tracce** filtrate sull'app, e una scheda **Raccomandazioni** con i monitor che OneUptime consiglia per l'app: operazioni non riuscite, raffiche di errori, traffico che si ferma e richieste lente, letti dagli span dell'app e dalla sua `http.server.request.duration`, ciascuno collegato all'ambiente dell'app. **Configura gli avvisi** la apre; per un'app il cui nome è troppo lungo per filtrarne la telemetria, apre invece i monitor consigliati del servizio dell'app, in **Servizi**.
+
+Un numero che l'app non ha mai inviato non viene mostrato come 0. I riquadri di richieste, tasso di errore e latenza di un'app che non ha inviato tracce mostrano **Nessuna traccia ricevuta**, e il riquadro **Istanze** di un'app in esecuzione la cui telemetria non nomina alcuna istanza mostra **Non segnalato**. Finché l'app non invia tracce, un'istanza e una versione, la sua **Panoramica** si apre con una **Verifica della configurazione**: ogni tipo di telemetria, se arriva, e cosa aggiungere.
 
 Un'app che non invia nulla per 30 giorni viene rimossa con le sue revisioni, così come una revisione che nessuna istanza segnala per 30 giorni, a meno che l'app la esegua ancora. Su un OneUptime self-hosted, `CLOUD_APP_RETENTION_DAYS` imposta i 30.
 

@@ -67,10 +67,11 @@ Node.js와 .NET용 Azure 감지기는 `azure.container_apps`, `azure.app_service
 2. `aws.ecs.task.arn`(태스크 ID로 줄임)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 플랫폼 자체의 식별자가 `service.instance.id`보다 먼저 오므로, SDK가 프로세스마다 만들어 내는 ID(Node.js SDK는 기본적으로 그렇게 합니다) 때문에 태스크가 사이드카의 CPU, 메모리와 갈라지는 일은 없습니다. 플랫폼별로 식별자를 설정하는 주체는 다음과 같습니다:
 
@@ -80,7 +81,7 @@ Node.js와 .NET용 Azure 감지기는 `azure.container_apps`, `azure.app_service
 | Cloud Run, App Engine | `gcp` 감지기가 `faas.instance`를 설정합니다 |
 | Container Apps | Collector의 `azurecontainerapps` 감지기가 복제본 ID를 설정합니다. 또는 `CONTAINER_APP_REPLICA_NAME`에서 `service.instance.id`를 설정하거나 호스트 감지기를 실행합니다 |
 | App Runner, Container Instances | 호스트 감지기의 `host.name` |
-| App Service, Elastic Beanstalk | 플랫폼의 감지기가 `service.instance.id`를 설정합니다. Beanstalk에서는 `host.id`로 각 인스턴스의 이름이 정해지도록 이를 제거하세요 |
+| App Service, Elastic Beanstalk | 플랫폼의 감지기가 `service.instance.id`를 설정합니다(App Service에서는 Collector의 감지기가 `azure.app_service.instance.id`를 설정합니다). Beanstalk에서는 `service.instance.id`를 제거해 `host.id`로 각 인스턴스의 이름이 정해지게 하세요 |
 
 인스턴스는 그 속성을 가진 첫 신호가 오고 1분 안에 나타납니다.
 
@@ -89,7 +90,7 @@ Node.js와 .NET용 Azure 감지기는 `azure.container_apps`, `azure.app_service
 인스턴스는 나열되는데 개요의 **CPU**와 **메모리** 타일, 그리고 **인스턴스**의 CPU와 메모리 열이 비어 있습니다. 이 값은 트레이스가 아니라 메트릭에서 나옵니다. 트레이스와 같은 인스턴스 식별자와 `cloud.platform`을 리소스에 가진 `container.cpu.utilization`과 `container.memory.usage`(또는 `container.memory.usage.total`) 데이터 포인트입니다.
 
 - **ECS에서는** 사이드카 Collector의 `awsecscontainermetrics` 수신기가 이를 `ecs.task.cpu.utilized`와 `ecs.task.memory.utilized`로 제공합니다. 이 수신기를 `metrics` 파이프라인에 두고, 같은 파이프라인에 `resourcedetection`도 남겨 두세요. 그렇지 않으면 메트릭이 `cloud.platform` 없이 도착해 다른 곳에 기록됩니다.
-- **Cloud Run, Container Apps와 그 밖의 플랫폼에서는** 플랫폼이 컨테이너 사용량을 사이드카에 보여 주지 않습니다. 그 메트릭을 직접 보내지 않으면 타일은 비어 있으니, 대신 요청 타일을 보세요.
+- **Cloud Run, Container Apps와 그 밖의 플랫폼에서는** 플랫폼이 컨테이너 사용량을 사이드카에 보여 주지 않습니다. 그 메트릭을 직접 보내지 않으면 타일은 비어 있으니, 대신 요청 타일을 보세요. App Service에서는 **클라우드 → 연결**에서 구독을 연결하면 앱 페이지에 **Azure Monitor**에서 읽은 사이트의 CPU 시간과 메모리가 표시됩니다.
 - **SDK direct에서는** 컨테이너 메트릭을 보내는 것이 없으므로 타일이 비어 있는 것이 정상입니다.
 
 ## 환경이 연결 끊김으로 표시됨

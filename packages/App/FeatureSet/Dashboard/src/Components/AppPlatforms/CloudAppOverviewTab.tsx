@@ -64,6 +64,7 @@ import {
   getCloudAppTraceTileNote,
   getCloudAppUsageTileNote,
   isCloudAppSetupIncomplete,
+  showsCloudAppUsageTiles,
 } from "../../Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
 import {
   fetchCloudAppPlatformResource,
@@ -194,6 +195,9 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   const [platformResource, setPlatformResource] = useState<
     CloudResource | null | undefined
   >(undefined);
+  // The look-up failed (no access to Cloud resources, or the read did).
+  const [platformResourceCheckFailed, setPlatformResourceCheckFailed] =
+    useState<boolean>(false);
 
   const filters: Record<string, string> = getCloudAppTelemetryFilters({
     environment: props.environment,
@@ -260,6 +264,7 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
   useEffect(() => {
     if (!looksUpPlatformResource) {
       setPlatformResource(null);
+      setPlatformResourceCheckFailed(false);
       return;
     }
 
@@ -269,12 +274,17 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       .then((resource: CloudResource | null): void => {
         if (!ignore) {
           setPlatformResource(resource);
+          setPlatformResourceCheckFailed(false);
         }
       })
       .catch((): void => {
-        // No access to Cloud resources, or the read failed: no section.
+        /*
+         * No access to Cloud resources, or the read failed: no section, and
+         * no Setup check row - it cannot say whether one is connected.
+         */
         if (!ignore) {
           setPlatformResource(null);
+          setPlatformResourceCheckFailed(true);
         }
       });
 
@@ -416,6 +426,9 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
           }),
       description: CLOUD_APP_METRIC_DESCRIPTIONS.instances,
     },
+  ];
+
+  const usageTiles: Array<ResourceOverviewTile> = [
     {
       title: "CPU",
       value: formatPercent(avgCpu),
@@ -436,6 +449,22 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       description: CLOUD_APP_METRIC_DESCRIPTIONS.memory,
     },
   ];
+
+  /*
+   * An App Service app has no CPU or memory of its own: once the Azure
+   * Monitor section below shows its site's, the two tiles that would only
+   * say "Not on Azure App Service" above those numbers give way, and the
+   * other four fill one row.
+   */
+  const showsUsageTiles: boolean = showsCloudAppUsageTiles({
+    cloudPlatform: props.app.cloudPlatform,
+    hasCpuReading: avgCpu !== null,
+    hasMemoryReading: hasMemory,
+    hasPlatformSection: Boolean(platformResource),
+  });
+  const shownTiles: Array<ResourceOverviewTile> = showsUsageTiles
+    ? [...tiles, ...usageTiles]
+    : tiles;
 
   /*
    * The Setup check leads the tab while a number on it waits for something
@@ -460,13 +489,15 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
           app: props.app,
           isRunning,
           hasReportedInstances,
-          platformResource: looksUpPlatformResource
-            ? platformResource === undefined
-              ? CloudAppPlatformResourceState.Checking
-              : platformResource
-                ? CloudAppPlatformResourceState.Found
-                : CloudAppPlatformResourceState.NotFound
-            : undefined,
+          // A look-up that failed says nothing: it is not "not connected".
+          platformResource:
+            looksUpPlatformResource && !platformResourceCheckFailed
+              ? platformResource === undefined
+                ? CloudAppPlatformResourceState.Checking
+                : platformResource
+                  ? CloudAppPlatformResourceState.Found
+                  : CloudAppPlatformResourceState.NotFound
+              : undefined,
           now,
           translator,
         })}
@@ -611,10 +642,12 @@ const CloudAppOverviewTab: FunctionComponent<ComponentProps> = (
       {setupCheck}
 
       <div
-        className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-3"
+        className={`mb-6 grid grid-cols-2 gap-4 ${
+          showsUsageTiles ? "lg:grid-cols-3" : "lg:grid-cols-4"
+        }`}
         data-testid="cloud-app-tiles"
       >
-        {tiles.map((tile: ResourceOverviewTile): ReactElement => {
+        {shownTiles.map((tile: ResourceOverviewTile): ReactElement => {
           return <ResourceOverviewTileCard key={tile.title} {...tile} />;
         })}
       </div>

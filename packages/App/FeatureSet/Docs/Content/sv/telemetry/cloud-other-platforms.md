@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Collectorns detektorer `elastic_beanstalk` och `ec2`; `aws` i Node.js | `host.id` (ta bort distributionens `service.instance.id`) |
 | AWS App Runner | `aws_app_runner` | Du (ingen detektor) | `host.name` |
 | Google App Engine | `gcp_app_engine` | Detektorn `gcp` (Collectorns och varje SDK:s) | `faas.instance` |
-| Azure App Service | `azure_app_service` | Collectorns `azureappservice`, detektorerna `azure` för Node.js och .NET; `cloud.account.id` av dig | `service.instance.id`, sedan `host.id` |
+| Azure App Service | `azure_app_service` | Collectorns `azureappservice`, detektorerna `azure` för Node.js och .NET; med SDK:erna `cloud.account.id` av dig | `azure.app_service.instance.id`, annars `service.instance.id`, sedan `host.id` |
 | Azure Container Instances | `azure_container_instances` | Du (ingen detektor) | `host.name` |
 
 Varje avsnitt nedan behöver en intagningsnyckel av typen **Server** från **Projektinställningar → Telemetri och APM → Intagningsnycklar**, och en applikation som är instrumenterad med ett OpenTelemetry-SDK. Om du driftar OneUptime själv byter du ut `https://oneuptime.com/otlp` mot `https://YOUR-ONEUPTIME-HOST/otlp`.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. Azure-detektorerna för Node.js och .NET, och Collectorns detektor `azureappservice`, läser de variabler `WEBSITE_*` som App Service sätter. De fyller i `cloud.platform`, `cloud.region`, `service.instance.id` (från `WEBSITE_INSTANCE_ID`), `deployment.environment` (facket) och `host.id`. Ingen av dem sätter `cloud.account.id`: lägg till prenumerations-ID:t själv, annars får miljönyckeln ett tomt kontosegment.
+`cloud.platform`: `azure_app_service`. Azure-detektorerna för Node.js och .NET läser de variabler `WEBSITE_*` som App Service sätter, och fyller i `cloud.platform`, `cloud.region`, `service.instance.id` (från `WEBSITE_INSTANCE_ID`), `deployment.environment` (facket) och `host.id`, men inte `cloud.account.id`: lägg till prenumerations-ID:t själv, annars får miljönyckeln ett tomt kontosegment. Collectorns detektor `azureappservice` läser samma variabler, sätter även `cloud.account.id` och namnger instansen i `azure.app_service.instance.id`.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ SDK-detektorerna stavar plattformen `azure.app_service`, med punkt; OneUptime sk
 :::
 
 **Nätverk:** App Service når internet direkt om inte **VNet integration** med **Route All** är påslaget. Då behöver VNet:et en NAT-gateway, eller en väg till en brandvägg som tillåter TCP 443 till OneUptime-värden.
+
+**Vad appens sida visar:** begäranden, felfrekvens och latens kommer från appens spår, så en app som bara skickar loggar eller mätvärden visar **Inga spår mottagna** där, och dess **Konfigurationskontroll** säger vad som ska läggas till. App Service ger inte en app egen CPU eller eget minne, och dess rutor för CPU och minne säger det. Anslut prenumerationen under **Moln → Anslut**, så får appens **Översikt** ett avsnitt **Azure Monitor**: webbplatsens begäranden, serverfel, svarstid, CPU-tid och minne, så som Azure mäter dem, oavsett vad appen skickar.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Key Vault-referensen löstes inte upp, så App Service skickade vidare den bokst
 :::
 
 :::details En App Service-miljö har ett tomt kontosegment
-Ingen av App Service-detektorerna sätter `cloud.account.id`. Lägg till prenumerations-ID:t i `OTEL_RESOURCE_ATTRIBUTES` på varje app: telemetri med och utan det hamnar i två miljöer.
+App Service-detektorerna för Node.js och .NET sätter inte `cloud.account.id`. Lägg till prenumerations-ID:t i `OTEL_RESOURCE_ATTRIBUTES` på varje app: telemetri med och utan det hamnar i två miljöer.
+:::
+
+:::details En App Service-app visar inga begäranden eller instanser
+Begäranden, felfrekvens och latens kommer från spår, så en app som bara skickar loggar eller mätvärden har inga: dess **Konfigurationskontroll** säger vad som ska läggas till. Instanser kommer från `azure.app_service.instance.id` eller `service.instance.id`, som Azure-detektorerna sätter: utan något av dem visar rutan **Instanser** värdet **Ej rapporterat**. För att se webbplatsens begäranden oavsett vad appen skickar ansluter du prenumerationen: appens sida får ett avsnitt **Azure Monitor**.
 :::
 
 :::details En ändrad Container Instances-variabel har ingen effekt

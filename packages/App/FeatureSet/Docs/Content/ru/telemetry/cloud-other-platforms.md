@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Детекторы `elastic_beanstalk` и `ec2` в Collector; `aws` в Node.js | `host.id` (удалите `service.instance.id` развёртывания) |
 | AWS App Runner | `aws_app_runner` | Вы (детектора нет) | `host.name` |
 | Google App Engine | `gcp_app_engine` | Детектор `gcp` (в Collector и в каждом SDK) | `faas.instance` |
-| Azure App Service | `azure_app_service` | `azureappservice` в Collector, детекторы `azure` для Node.js и .NET; `cloud.account.id` задаёте вы | `service.instance.id`, затем `host.id` |
+| Azure App Service | `azure_app_service` | `azureappservice` в Collector, детекторы `azure` для Node.js и .NET; с SDK `cloud.account.id` задаёте вы | `azure.app_service.instance.id`, иначе `service.instance.id`, затем `host.id` |
 | Azure Container Instances | `azure_container_instances` | Вы (детектора нет) | `host.name` |
 
 Для каждого раздела ниже нужен ключ приёма типа **Сервер** из раздела **Настройки проекта → Телеметрия и APM → Ключи приема** и приложение, инструментированное OpenTelemetry SDK. Если вы размещаете OneUptime самостоятельно, замените `https://oneuptime.com/otlp` на `https://YOUR-ONEUPTIME-HOST/otlp`.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. Детекторы Azure для Node.js и .NET, а также детектор `azureappservice` в Collector читают переменные `WEBSITE_*`, которые задаёт App Service. Они заполняют `cloud.platform`, `cloud.region`, `service.instance.id` (из `WEBSITE_INSTANCE_ID`), `deployment.environment` (слот) и `host.id`. Ни один из них не задаёт `cloud.account.id`: добавьте ID подписки сами, иначе в ключе среды будет пустой сегмент учётной записи.
+`cloud.platform`: `azure_app_service`. Детекторы Azure для Node.js и .NET читают переменные `WEBSITE_*`, которые задаёт App Service, и заполняют `cloud.platform`, `cloud.region`, `service.instance.id` (из `WEBSITE_INSTANCE_ID`), `deployment.environment` (слот) и `host.id`, но не `cloud.account.id`: добавьте ID подписки сами, иначе в ключе среды будет пустой сегмент учётной записи. Детектор `azureappservice` в Collector читает те же переменные, задаёт также `cloud.account.id` и называет экземпляр в `azure.app_service.instance.id`.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 :::
 
 **Сеть:** App Service выходит в интернет напрямую, если не включена **VNet integration** с **Route All**. Тогда виртуальной сети нужен NAT-шлюз или маршрут к брандмауэру, который разрешает TCP 443 к хосту OneUptime.
+
+**Что показывает страница приложения:** запросы, доля ошибок и задержка берутся из трассировок приложения, поэтому у приложения, которое отправляет только журналы или метрики, там стоит **Трассировки не получены**, а его блок **Проверка настройки** говорит, что добавить. App Service не даёт приложению собственных CPU и памяти, и его плитки CPU и памяти говорят об этом. Подключите подписку в разделе **Облако → Подключить**, и на вкладке **Обзор** приложения появится раздел **Azure Monitor**: запросы, ошибки сервера, время ответа, время CPU и память сайта, как их измеряет Azure, что бы ни отправляло приложение.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 :::details У среды App Service пустой сегмент учётной записи
-Ни один из детекторов App Service не задаёт `cloud.account.id`. Добавьте ID подписки в `OTEL_RESOURCE_ATTRIBUTES` в каждом приложении: телеметрия с ним и без него попадает в две разные среды.
+Детекторы App Service для Node.js и .NET не задают `cloud.account.id`. Добавьте ID подписки в `OTEL_RESOURCE_ATTRIBUTES` в каждом приложении: телеметрия с ним и без него попадает в две разные среды.
+:::
+
+:::details Приложение App Service не показывает запросов и экземпляров
+Запросы, доля ошибок и задержка берутся из трассировок, поэтому у приложения, которое отправляет только журналы или метрики, их нет: его блок **Проверка настройки** говорит, что добавить. Экземпляры берутся из `azure.app_service.instance.id` или `service.instance.id`, которые задают детекторы Azure: без них плитка **Экземпляры** показывает **Не сообщено**. Чтобы видеть запросы сайта, что бы ни отправляло приложение, подключите подписку: на странице приложения появится раздел **Azure Monitor**.
 :::
 
 :::details Изменённая переменная Container Instances не действует

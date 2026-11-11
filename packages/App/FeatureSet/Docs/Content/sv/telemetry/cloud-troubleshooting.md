@@ -67,10 +67,11 @@ Miljön finns, men dess flik **Instanser** listar inget: telemetrin bär ingen i
 2. `aws.ecs.task.arn` (förkortat till uppgifts-ID:t)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 Plattformens egen identitet kommer före `service.instance.id`, så att ett ID som SDK:t hittar på för varje process (Node.js-SDK:t gör det som standard) inte kan skilja en uppgift från dess sidecars CPU och minne. Vad som sätter identiteten på varje plattform:
 
@@ -80,7 +81,7 @@ Plattformens egen identitet kommer före `service.instance.id`, så att ett ID s
 | Cloud Run, App Engine | Detektorn `gcp` sätter `faas.instance` |
 | Container Apps | Collectorns detektor `azurecontainerapps` sätter replik-ID:t; eller sätt `service.instance.id` från `CONTAINER_APP_REPLICA_NAME`, eller kör värddetektorn |
 | App Runner, Container Instances | Värddetektorns `host.name` |
-| App Service, Elastic Beanstalk | Plattformens detektor sätter `service.instance.id`; på Beanstalk tar du bort den så att `host.id` namnger varje instans |
+| App Service, Elastic Beanstalk | Plattformens detektor sätter `service.instance.id` (på App Service sätter Collectorns `azure.app_service.instance.id`); på Beanstalk tar du bort `service.instance.id` så att `host.id` namnger varje instans |
 
 En instans visas inom en minut efter den första signalen som bär attributet.
 
@@ -89,7 +90,7 @@ En instans visas inom en minut efter den första signalen som bär attributet.
 Instanserna listas, men översiktens rutor **CPU** och **Minne**, och kolumnerna för CPU och minne i **Instanser**, är tomma. De kommer från mätvärden, inte spår: datapunkter från `container.cpu.utilization` och `container.memory.usage` (eller `container.memory.usage.total`) vars resurs bär samma instansidentitet som spåren, och `cloud.platform`.
 
 - **På ECS** levererar receivern `awsecscontainermetrics` i en sidecar-collector dem som `ecs.task.cpu.utilized` och `ecs.task.memory.utilized`. Behåll den i pipelinen `metrics`, och behåll också `resourcedetection` i den pipelinen, annars kommer mätvärdena utan `cloud.platform` och arkiveras någon annanstans.
-- **På Cloud Run, Container Apps och de andra plattformarna** visar plattformen inte containeranvändningen för en sidecar. Rutorna förblir tomma om du inte skickar de mätvärdena själv: läs rutorna för begäranden i stället.
+- **På Cloud Run, Container Apps och de andra plattformarna** visar plattformen inte containeranvändningen för en sidecar. Rutorna förblir tomma om du inte skickar de mätvärdena själv: läs rutorna för begäranden i stället. På App Service ansluter du prenumerationen under **Moln → Anslut**: appens sida visar då webbplatsens CPU-tid och minne från **Azure Monitor**.
 - **Med SDK direct** skickar inget containermätvärden, så tomma rutor är väntat.
 
 ## Miljön visar Frånkopplad

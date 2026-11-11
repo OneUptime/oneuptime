@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | تشخیص‌دهنده‌های `elastic_beanstalk` و `ec2` در Collector؛ `aws` در Node.js | `host.id` (`service.instance.id` استقرار را حذف کنید) |
 | AWS App Runner | `aws_app_runner` | شما (بدون تشخیص‌دهنده) | `host.name` |
 | Google App Engine | `gcp_app_engine` | تشخیص‌دهندهٔ `gcp` (در Collector و در هر SDK) | `faas.instance` |
-| Azure App Service | `azure_app_service` | `azureappservice` در Collector، تشخیص‌دهنده‌های `azure` در Node.js و .NET؛ `cloud.account.id` با شما | `service.instance.id`، سپس `host.id` |
+| Azure App Service | `azure_app_service` | `azureappservice` در Collector، تشخیص‌دهنده‌های `azure` در Node.js و .NET؛ با SDKها `cloud.account.id` با شما | `azure.app_service.instance.id`، وگرنه `service.instance.id`، سپس `host.id` |
 | Azure Container Instances | `azure_container_instances` | شما (بدون تشخیص‌دهنده) | `host.name` |
 
 هر بخش زیر به یک کلید دریافت دادهٔ **سرور** از **تنظیمات پروژه** > **تله‌متری و APM** > **کلیدهای دریافت داده** نیاز دارد، و به برنامه‌ای که با یک SDK اپن‌تلمتری ابزارگذاری شده باشد. اگر OneUptime را خودتان میزبانی می‌کنید، `https://oneuptime.com/otlp` را با `https://YOUR-ONEUPTIME-HOST/otlp` جایگزین کنید.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. تشخیص‌دهنده‌های Azure در Node.js و .NET، و تشخیص‌دهندهٔ `azureappservice` در Collector، متغیرهای `WEBSITE_*` را که App Service تنظیم می‌کند می‌خوانند. این‌ها `cloud.platform`، `cloud.region`، `service.instance.id` (از `WEBSITE_INSTANCE_ID`)، `deployment.environment` (اسلات) و `host.id` را پر می‌کنند. هیچ‌کدام `cloud.account.id` را تنظیم نمی‌کند: شناسهٔ اشتراک را خودتان اضافه کنید، وگرنه کلید محیط یک بخش حساب خالی می‌گیرد.
+`cloud.platform`: `azure_app_service`. تشخیص‌دهنده‌های Azure در Node.js و .NET متغیرهای `WEBSITE_*` را که App Service تنظیم می‌کند می‌خوانند و `cloud.platform`، `cloud.region`، `service.instance.id` (از `WEBSITE_INSTANCE_ID`)، `deployment.environment` (اسلات) و `host.id` را پر می‌کنند، اما `cloud.account.id` را نه: شناسهٔ اشتراک را خودتان اضافه کنید، وگرنه کلید محیط یک بخش حساب خالی می‌گیرد. تشخیص‌دهندهٔ `azureappservice` در Collector همان متغیرها را می‌خواند، `cloud.account.id` را هم تنظیم می‌کند و نمونه را در `azure.app_service.instance.id` نام می‌برد.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure
 :::
 
 **شبکه:** App Service مستقیم به اینترنت می‌رسد، مگر آن‌که **VNet integration** همراه با **Route All** روشن باشد. در آن صورت VNet به یک NAT gateway نیاز دارد، یا به مسیری به فایروالی که TCP ۴۴۳ به میزبان OneUptime را اجازه دهد.
+
+**آنچه صفحهٔ برنامه نشان می‌دهد:** درخواست‌ها، نرخ خطا و تأخیر از ترِیس‌های برنامه می‌آیند، پس برنامه‌ای که فقط لاگ یا متریک می‌فرستد آنجا **هیچ ترِیسی دریافت نشده** را نشان می‌دهد، و **بررسی راه‌اندازی** آن می‌گوید چه باید افزود. App Service به برنامه CPU یا حافظهٔ جداگانه‌ای نمی‌دهد، و کاشی‌های CPU و حافظهٔ آن همین را می‌گویند. اشتراک را در **ابر** > **اتصال** وصل کنید تا **نمای کلی** برنامه یک بخش **Azure Monitor** بگیرد: درخواست‌ها، خطاهای سرور، زمان پاسخ، زمان CPU و حافظهٔ سایت، آن‌طور که Azure اندازه می‌گیرد، هرچه برنامه بفرستد.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 :::
 
 :::details یک محیط App Service بخش حساب خالی دارد
-هیچ‌کدام از تشخیص‌دهنده‌های App Service، `cloud.account.id` را تنظیم نمی‌کند. شناسهٔ اشتراک را روی هر برنامه به `OTEL_RESOURCE_ATTRIBUTES` اضافه کنید: تله‌متری با آن و بدون آن در دو محیط قرار می‌گیرد.
+تشخیص‌دهنده‌های App Service در Node.js و .NET، `cloud.account.id` را تنظیم نمی‌کنند. شناسهٔ اشتراک را روی هر برنامه به `OTEL_RESOURCE_ATTRIBUTES` اضافه کنید: تله‌متری با آن و بدون آن در دو محیط قرار می‌گیرد.
+:::
+
+:::details یک برنامهٔ App Service هیچ درخواست یا نمونه‌ای نشان نمی‌دهد
+درخواست‌ها، نرخ خطا و تأخیر از ترِیس‌ها می‌آیند، پس برنامه‌ای که فقط لاگ یا متریک می‌فرستد هیچ‌کدام را ندارد: **بررسی راه‌اندازی** آن می‌گوید چه باید افزود. نمونه‌ها از `azure.app_service.instance.id` یا `service.instance.id` می‌آیند که تشخیص‌دهنده‌های Azure تنظیم می‌کنند: بدون هیچ‌کدام، کاشی **نمونه‌ها** مقدار **گزارش نشده** را نشان می‌دهد. برای دیدن درخواست‌های سایت، هرچه برنامه بفرستد، اشتراک را وصل کنید: صفحهٔ برنامه یک بخش **Azure Monitor** می‌گیرد.
 :::
 
 :::details تغییر یک متغیر Container Instances اثری ندارد

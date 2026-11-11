@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | De detectors `elastic_beanstalk` en `ec2` van de Collector; `aws` in Node.js | `host.id` (verwijder de `service.instance.id` van de deployment) |
 | AWS App Runner | `aws_app_runner` | Jij (geen detector) | `host.name` |
 | Google App Engine | `gcp_app_engine` | De detector `gcp` (die van de Collector en van elke SDK) | `faas.instance` |
-| Azure App Service | `azure_app_service` | `azureappservice` van de Collector, de detectors `azure` voor Node.js en .NET; `cloud.account.id` door jou | `service.instance.id`, daarna `host.id` |
+| Azure App Service | `azure_app_service` | `azureappservice` van de Collector, de detectors `azure` voor Node.js en .NET; met de SDK's `cloud.account.id` door jou | `azure.app_service.instance.id`, anders `service.instance.id`, daarna `host.id` |
 | Azure Container Instances | `azure_container_instances` | Jij (geen detector) | `host.name` |
 
 Elke sectie hieronder heeft een ingestiesleutel van het type **Server** nodig uit **Projectinstellingen → Telemetrie & APM → Ingestiesleutels**, en een applicatie die is geïnstrumenteerd met een OpenTelemetry-SDK. Als je OneUptime zelf host, vervang dan `https://oneuptime.com/otlp` door `https://YOUR-ONEUPTIME-HOST/otlp`.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. De Azure-detectors voor Node.js en .NET, en de detector `azureappservice` van de Collector, lezen de variabelen `WEBSITE_*` die App Service instelt. Ze vullen `cloud.platform`, `cloud.region`, `service.instance.id` (uit `WEBSITE_INSTANCE_ID`), `deployment.environment` (de slot) en `host.id` in. Geen van hen stelt `cloud.account.id` in: voeg het abonnements-ID zelf toe, anders krijgt de omgevingssleutel een leeg accountsegment.
+`cloud.platform`: `azure_app_service`. De Azure-detectors voor Node.js en .NET lezen de variabelen `WEBSITE_*` die App Service instelt, en vullen `cloud.platform`, `cloud.region`, `service.instance.id` (uit `WEBSITE_INSTANCE_ID`), `deployment.environment` (de slot) en `host.id` in, maar niet `cloud.account.id`: voeg het abonnements-ID zelf toe, anders krijgt de omgevingssleutel een leeg accountsegment. De detector `azureappservice` van de Collector leest dezelfde variabelen, stelt ook `cloud.account.id` in en noemt de instantie in `azure.app_service.instance.id`.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ De SDK-detectors schrijven het platform als `azure.app_service`, met een punt; O
 :::
 
 **Netwerk:** App Service bereikt internet rechtstreeks, tenzij **VNet integration** met **Route All** aan staat. Dan heeft het VNet een NAT-gateway nodig, of een route naar een firewall die TCP 443 naar de OneUptime-host toestaat.
+
+**Wat de pagina van de app toont:** aanvragen, foutpercentage en latentie komen uit de traces van de app, dus een app die alleen logboeken of metrieken stuurt, toont daar **Geen traces ontvangen**, en zijn **Configuratiecontrole** zegt wat erbij moet. App Service geeft een app geen eigen CPU of geheugen, en de tegels voor CPU en geheugen zeggen dat. Koppel het abonnement onder **Cloud → Koppelen**, en het **Overzicht** van de app krijgt een sectie **Azure Monitor**: de aanvragen, serverfouten, responstijd, CPU-tijd en het geheugen van de site, zoals Azure ze meet, wat de app ook stuurt.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ De Key Vault-verwijzing is niet opgelost, dus App Service gaf de letterlijke tek
 :::
 
 :::details Een App Service-omgeving heeft een leeg accountsegment
-Geen van de App Service-detectors stelt `cloud.account.id` in. Voeg het abonnements-ID op elke app toe aan `OTEL_RESOURCE_ATTRIBUTES`: telemetrie met en zonder komt in twee omgevingen terecht.
+De App Service-detectors voor Node.js en .NET stellen `cloud.account.id` niet in. Voeg het abonnements-ID op elke app toe aan `OTEL_RESOURCE_ATTRIBUTES`: telemetrie met en zonder komt in twee omgevingen terecht.
+:::
+
+:::details Een App Service-app toont geen aanvragen of instanties
+Aanvragen, foutpercentage en latentie komen uit traces, dus een app die alleen logboeken of metrieken stuurt, heeft ze niet: zijn **Configuratiecontrole** zegt wat erbij moet. Instanties komen uit `azure.app_service.instance.id` of `service.instance.id`, die de Azure-detectors instellen: zonder een van beide toont de tegel **Instanties** de waarde **Niet gerapporteerd**. Om de aanvragen van de site te zien, wat de app ook stuurt, koppel je het abonnement: de pagina van de app krijgt een sectie **Azure Monitor**.
 :::
 
 :::details Een gewijzigde Container Instances-variabele heeft geen effect

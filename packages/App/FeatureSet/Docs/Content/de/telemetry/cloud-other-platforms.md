@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Die Detektoren `elastic_beanstalk` und `ec2` des Collectors; Node.js `aws` | `host.id` (die `service.instance.id` des Deployments verwerfen) |
 | AWS App Runner | `aws_app_runner` | Sie (kein Detektor) | `host.name` |
 | Google App Engine | `gcp_app_engine` | Der `gcp`-Detektor (der des Collectors und jedes SDK) | `faas.instance` |
-| Azure App Service | `azure_app_service` | `azureappservice` des Collectors, die `azure`-Detektoren für Node.js und .NET; `cloud.account.id` durch Sie | `service.instance.id`, dann `host.id` |
+| Azure App Service | `azure_app_service` | `azureappservice` des Collectors, die `azure`-Detektoren für Node.js und .NET; mit den SDKs `cloud.account.id` durch Sie | `azure.app_service.instance.id`, sonst `service.instance.id`, dann `host.id` |
 | Azure Container Instances | `azure_container_instances` | Sie (kein Detektor) | `host.name` |
 
 Jeder Abschnitt unten braucht einen **Server**-Ingestion-Schlüssel aus **Projekteinstellungen → Telemetrie & APM → Ingestion-Schlüssel** und eine mit einem OpenTelemetry SDK instrumentierte Anwendung. Wenn Sie OneUptime selbst hosten, ersetzen Sie `https://oneuptime.com/otlp` durch `https://YOUR-ONEUPTIME-HOST/otlp`.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. Die Azure-Detektoren für Node.js und .NET und der `azureappservice`-Detektor des Collectors lesen die `WEBSITE_*`-Variablen, die App Service setzt. Sie füllen `cloud.platform`, `cloud.region`, `service.instance.id` (aus `WEBSITE_INSTANCE_ID`), `deployment.environment` (den Slot) und `host.id`. Keiner von ihnen setzt `cloud.account.id`: Fügen Sie die Abonnement-ID selbst hinzu, sonst bekommt der Umgebungsschlüssel ein leeres Kontosegment.
+`cloud.platform`: `azure_app_service`. Die Azure-Detektoren für Node.js und .NET lesen die `WEBSITE_*`-Variablen, die App Service setzt, und füllen `cloud.platform`, `cloud.region`, `service.instance.id` (aus `WEBSITE_INSTANCE_ID`), `deployment.environment` (den Slot) und `host.id`, aber nicht `cloud.account.id`: Fügen Sie die Abonnement-ID selbst hinzu, sonst bekommt der Umgebungsschlüssel ein leeres Kontosegment. Der `azureappservice`-Detektor des Collectors liest dieselben Variablen, setzt auch `cloud.account.id` und benennt die Instanz in `azure.app_service.instance.id`.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ Die SDK-Detektoren schreiben die Plattform `azure.app_service`, mit einem Punkt;
 :::
 
 **Netzwerk:** App Service erreicht das Internet direkt, es sei denn, **VNet integration** mit **Route All** ist eingeschaltet. Dann braucht das VNet ein NAT-Gateway oder eine Route zu einer Firewall, die TCP 443 zum OneUptime-Host erlaubt.
+
+**Was die Seite der App zeigt:** Anfragen, Fehlerrate und Latenz kommen aus den Traces der App, daher zeigt eine App, die nur Logs oder Metriken sendet, dort **Keine Traces empfangen**, und ihre **Einrichtungsprüfung** sagt, was hinzuzufügen ist. App Service gibt einer App weder eigene CPU noch eigenen Speicher, und ihre Kacheln für CPU und Speicher sagen das. Verbinden Sie das Abonnement unter **Cloud → Verbinden**, und die **Übersicht** der App erhält einen Abschnitt **Azure Monitor**: die Anfragen, Serverfehler, Antwortzeit, CPU-Zeit und den Speicher der Site, wie Azure sie misst, unabhängig davon, was die App sendet.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Der Key-Vault-Verweis wurde nicht aufgelöst, daher hat App Service den wörtlic
 :::
 
 :::details Eine App-Service-Umgebung hat ein leeres Kontosegment
-Keiner der App-Service-Detektoren setzt `cloud.account.id`. Fügen Sie die Abonnement-ID in `OTEL_RESOURCE_ATTRIBUTES` an jeder App hinzu: Telemetrie mit und ohne sie landet in zwei Umgebungen.
+Die App-Service-Detektoren für Node.js und .NET setzen `cloud.account.id` nicht. Fügen Sie die Abonnement-ID in `OTEL_RESOURCE_ATTRIBUTES` an jeder App hinzu: Telemetrie mit und ohne sie landet in zwei Umgebungen.
+:::
+
+:::details Eine App-Service-App zeigt keine Anfragen oder Instanzen
+Anfragen, Fehlerrate und Latenz kommen aus Traces, daher hat eine App, die nur Logs oder Metriken sendet, keine, und ihre **Einrichtungsprüfung** sagt, was hinzuzufügen ist. Instanzen kommen aus `azure.app_service.instance.id` oder `service.instance.id`, die die Azure-Detektoren setzen: Ohne beide zeigt die Kachel **Instanzen** den Wert **Nicht gemeldet**. Um die Anfragen der Site zu sehen, unabhängig davon, was die App sendet, verbinden Sie das Abonnement: Die Seite der App erhält einen Abschnitt **Azure Monitor**.
 :::
 
 :::details Eine geänderte Variable von Container Instances wirkt nicht

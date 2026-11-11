@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Collector の `elastic_beanstalk` 検出器と `ec2` 検出器、Node.js の `aws` | `host.id` (デプロイの `service.instance.id` は削除) |
 | AWS App Runner | `aws_app_runner` | 自分 (検出器なし) | `host.name` |
 | Google App Engine | `gcp_app_engine` | `gcp` 検出器 (Collector とすべての SDK) | `faas.instance` |
-| Azure App Service | `azure_app_service` | Collector の `azureappservice`、Node.js と .NET の `azure` 検出器。`cloud.account.id` は自分で設定 | `service.instance.id`、次に `host.id` |
+| Azure App Service | `azure_app_service` | Collector の `azureappservice`、Node.js と .NET の `azure` 検出器。SDK では `cloud.account.id` は自分で設定 | `azure.app_service.instance.id`、なければ `service.instance.id`、次に `host.id` |
 | Azure Container Instances | `azure_container_instances` | 自分 (検出器なし) | `host.name` |
 
 以下のどのセクションでも、**プロジェクト設定 → テレメトリと APM → 取り込みキー** の **サーバー** 取り込みキーと、OpenTelemetry SDK で計装したアプリケーションが必要です。OneUptime をセルフホストしている場合は、`https://oneuptime.com/otlp` を `https://YOUR-ONEUPTIME-HOST/otlp` に置き換えてください。
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`。Node.js と .NET の Azure 検出器、および Collector の `azureappservice` 検出器は、App Service が設定する `WEBSITE_*` 変数を読み取ります。そして `cloud.platform`、`cloud.region`、`service.instance.id` (`WEBSITE_INSTANCE_ID` から)、`deployment.environment` (スロット)、`host.id` を設定します。どれも `cloud.account.id` は設定しません。サブスクリプション ID を自分で追加しないと、環境キーのアカウント部分が空になります。
+`cloud.platform`: `azure_app_service`。Node.js と .NET の Azure 検出器は、App Service が設定する `WEBSITE_*` 変数を読み取り、`cloud.platform`、`cloud.region`、`service.instance.id` (`WEBSITE_INSTANCE_ID` から)、`deployment.environment` (スロット)、`host.id` を設定しますが、`cloud.account.id` は設定しません。サブスクリプション ID を自分で追加しないと、環境キーのアカウント部分が空になります。Collector の `azureappservice` 検出器は同じ変数を読み取り、`cloud.account.id` も設定し、インスタンスを `azure.app_service.instance.id` に入れます。
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ SDK の検出器はプラットフォームをドット付きの `azure.app_serv
 :::
 
 **ネットワーク:** **VNet integration** で **Route All** を有効にしていない限り、App Service はインターネットに直接接続します。有効にしている場合、VNet には NAT ゲートウェイ、または OneUptime ホストへの TCP 443 を許可するファイアウォールへのルートが必要です。
+
+**アプリのページに表示されるもの:** リクエスト、エラー率、レイテンシはアプリのトレースから得られるため、ログやメトリクスしか送らないアプリではそこに **トレースを受信していません** と表示され、その **セットアップ チェック** が何を追加すればよいかを示します。App Service はアプリに独自の CPU やメモリを与えないため、CPU とメモリのタイルはそのことを示します。**クラウド → 接続** でサブスクリプションを接続すると、アプリの **概要** に **Azure Monitor** セクションが加わり、アプリが何を送っていても、Azure が測定したサイトのリクエスト、サーバー エラー、応答時間、CPU 時間、メモリが表示されます。
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Key Vault 参照が解決されず、App Service が `@Microsoft.KeyVault(...)` 
 :::
 
 :::details App Service の環境でアカウント部分が空になっている
-App Service のどの検出器も `cloud.account.id` を設定しません。すべてのアプリで `OTEL_RESOURCE_ATTRIBUTES` にサブスクリプション ID を追加してください。これがあるテレメトリとないテレメトリは、二つの環境に分かれます。
+Node.js と .NET の App Service 検出器は `cloud.account.id` を設定しません。すべてのアプリで `OTEL_RESOURCE_ATTRIBUTES` にサブスクリプション ID を追加してください。これがあるテレメトリとないテレメトリは、二つの環境に分かれます。
+:::
+
+:::details App Service のアプリにリクエストもインスタンスも表示されない
+リクエスト、エラー率、レイテンシはトレースから得られるため、ログやメトリクスしか送らないアプリにはありません。その **セットアップ チェック** が何を追加すればよいかを示します。インスタンスは Azure の検出器が設定する `azure.app_service.instance.id` または `service.instance.id` から得られ、どちらもない場合、**インスタンス** タイルには **報告されていません** と表示されます。アプリが何を送っていてもサイトのリクエストを見るには、サブスクリプションを接続してください。アプリのページに **Azure Monitor** セクションが加わります。
 :::
 
 :::details Container Instances の変数を変更しても反映されない

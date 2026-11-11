@@ -1,5 +1,4 @@
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
-import Includes from "Common/Types/BaseDatabase/Includes";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import StartsWith from "Common/Types/BaseDatabase/StartsWith";
 import { getAzureStoredMetricName } from "Common/Types/Cloud/CloudKeyMetrics";
@@ -18,6 +17,8 @@ import {
 } from "Common/Types/Cloud/CloudResourceHealth";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
+import { formatDurationMs } from "../../../Components/TelemetryResource/telemetryFormat";
 
 /*
  * THE CLOUD RESOURCE AN APP RUNS AS, IN ITS PROVIDER'S MONITORING (issue
@@ -36,16 +37,19 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
  * Which site is the app's:
  *
  *   1. the one whose id is the app's cloud.resource_id (providerResourceId),
- *      which the Node.js and .NET App Service detectors set - ARM ids are
- *      matched without regard to case, as ARM does;
+ *      which the App Service detectors set (the Collector's too) - ARM ids
+ *      are matched without regard to case, as ARM does;
  *   2. else the site named as the app is: an App Service app's name is its
  *      service.name, which the detectors read from WEBSITE_SITE_NAME, and a
  *      site's name is unique across Azure (it is its azurewebsites.net
- *      host name);
- *   3. an app kept apart by a deployment slot other than production
- *      (its group, from WEBSITE_SLOT_NAME) is that slot's resource,
- *      Microsoft.Web/sites/slots named "<site>/<slot>" - never the site,
- *      whose id the detectors write for every slot.
+ *      host name).
+ *
+ * An app kept apart by a deployment slot other than production (its group,
+ * from WEBSITE_SLOT_NAME) has none: Azure Monitor measures each slot as a
+ * resource of its own (Microsoft.Web/sites/slots), whose metrics a
+ * connection does not read, and the site's are the production slot's alone
+ * - never another slot's, though the detectors write the site's id for
+ * every slot.
  *
  * Read with a name prefix (a stored name may carry a qualifier: "checkout
  * (Web App)" beside its plan "checkout"), then confirmed from each row's
@@ -53,7 +57,6 @@ import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
  */
 
 export const APP_SERVICE_SITE_TYPE: string = "Microsoft.Web/sites";
-export const APP_SERVICE_SLOT_TYPE: string = "Microsoft.Web/sites/slots";
 // The slot every site has, which IS the site.
 export const APP_SERVICE_PRODUCTION_SLOT: string = "production";
 
@@ -74,13 +77,17 @@ export interface CloudPlatformResourceCandidate {
   lastSeenAt?: Date | string | null | undefined;
 }
 
-// Whether the app's platform has a resource to look up. App Service only, for now.
+/*
+ * Whether the app has a resource to look up: an App Service app's site, for
+ * its production slot (see the top of this file). App Service only, for now.
+ */
 export function hasCloudAppPlatformResource(
   app: CloudAppPlatformResourceSource,
 ): boolean {
   return (
     app.cloudPlatform === ManagedCloudPlatform.AzureAppService &&
-    Boolean(getCloudAppSiteName(app))
+    Boolean(getCloudAppSiteName(app)) &&
+    getCloudAppSlotName(app) === null
   );
 }
 
@@ -120,10 +127,10 @@ export function getCloudAppSlotName(
 }
 
 /*
- * The app's resource among `candidates`: its id's, else its site's or
- * slot's by name (see the top of this file). When two rows name it - a
- * listing and a metrics row of one site in two spellings - the one seen
- * last wins. Null when none does.
+ * The app's site among `candidates`: its id's, else the site's by name
+ * (see the top of this file). When two rows name it - a listing and a
+ * metrics row of one site in two spellings - the one seen last wins. Null
+ * when none does, and for an app of another slot than production.
  */
 export function matchCloudAppPlatformResource<
   T extends CloudPlatformResourceCandidate,
@@ -132,9 +139,8 @@ export function matchCloudAppPlatformResource<
   candidates: ReadonlyArray<T>;
 }): T | null {
   const site: string = getCloudAppSiteName(data.app).toLowerCase();
-  const slot: string | null = getCloudAppSlotName(data.app);
 
-  if (!site) {
+  if (!site || getCloudAppSlotName(data.app) !== null) {
     return null;
   }
 
@@ -157,24 +163,6 @@ export function matchCloudAppPlatformResource<
 
     return sorted[0] || null;
   };
-
-  if (slot) {
-    const wanted: string = `${site}/${slot.toLowerCase()}`;
-
-    return latest(
-      parsedCandidates
-        .filter((candidate: { row: T; parsed: ParsedAzureResourceId }) => {
-          return (
-            candidate.parsed.type.toLowerCase() ===
-              APP_SERVICE_SLOT_TYPE.toLowerCase() &&
-            candidate.parsed.name.toLowerCase() === wanted
-          );
-        })
-        .map((candidate: { row: T; parsed: ParsedAzureResourceId }): T => {
-          return candidate.row;
-        }),
-    );
-  }
 
   const ownId: string = (data.app.providerResourceId || "")
     .trim()
@@ -225,10 +213,10 @@ function timeOf(value: Date | string | null | undefined): number {
 }
 
 /*
- * Read the app's resource: the Azure rows of the site's (or slot's) type
- * whose name starts with the site's, matched as above. Null when the app's
- * platform has none, or none is found. Rejects when the read fails, so the
- * page can tell "not found" from "could not check".
+ * Read the app's resource: the Azure site rows whose name starts with the
+ * site's, matched as above. Null when the app has none to look up, or none
+ * is found. Rejects when the read fails, so the page can tell "not found"
+ * from "could not check".
  */
 export async function fetchCloudAppPlatformResource(
   app: CloudAppPlatformResourceSource,
@@ -243,10 +231,7 @@ export async function fetchCloudAppPlatformResource(
       query: {
         cloudResourceKind: CloudResourceKind.Resource,
         cloudProvider: CloudProvider.Azure,
-        cloudResourceType: new Includes([
-          APP_SERVICE_SITE_TYPE,
-          APP_SERVICE_SLOT_TYPE,
-        ]),
+        cloudResourceType: APP_SERVICE_SITE_TYPE,
         name: new StartsWith(getCloudAppSiteName(app)),
       },
       select: {
@@ -360,24 +345,40 @@ export interface AppServiceSummary {
   memoryBytes: number | null;
 }
 
+// The points' values that are numbers: a bucket that read none is skipped.
+function finiteValues(
+  points: ReadonlyArray<AppServiceSeriesPoint>,
+): Array<number> {
+  return points
+    .map((point: AppServiceSeriesPoint): number => {
+      return point.y;
+    })
+    .filter((value: number): boolean => {
+      return Number.isFinite(value);
+    });
+}
+
 function sumPoints(
   points: ReadonlyArray<AppServiceSeriesPoint>,
 ): number | null {
-  if (points.length === 0) {
+  const values: Array<number> = finiteValues(points);
+
+  if (values.length === 0) {
     return null;
   }
 
-  return points.reduce((sum: number, point: AppServiceSeriesPoint): number => {
-    return sum + (Number.isFinite(point.y) ? point.y : 0);
+  return values.reduce((sum: number, value: number): number => {
+    return sum + value;
   }, 0);
 }
 
 function meanPoints(
   points: ReadonlyArray<AppServiceSeriesPoint>,
 ): number | null {
+  const values: Array<number> = finiteValues(points);
   const sum: number | null = sumPoints(points);
 
-  return sum === null ? null : sum / points.length;
+  return sum === null ? null : sum / values.length;
 }
 
 export function summarizeAppServiceSeries(
@@ -392,13 +393,36 @@ export function summarizeAppServiceSeries(
   return {
     requests,
     serverErrors,
+    /*
+     * Azure Monitor counts a site's 5xx answers as 0 in an interval with
+     * none, so a range with requests and no 5xx point at all was not read:
+     * its rate is unknown, not 0%.
+     */
     serverErrorRatePercent:
-      requests !== null && requests > 0
-        ? ((serverErrors || 0) / requests) * 100
+      requests !== null && requests > 0 && serverErrors !== null
+        ? (serverErrors / requests) * 100
         : null,
     responseTimeMs:
       responseTimeSeconds === null ? null : responseTimeSeconds * 1000,
     cpuTimeSeconds: sumPoints(series.cpuTimeSeconds),
     memoryBytes: meanPoints(series.memoryBytes),
   };
+}
+
+/*
+ * The site's CPU time over the range, as a reader says a duration: the
+ * response time's units under a minute ("450 ms", "12.50 s"), then the
+ * two largest whole units in the reader's language ("1m 30s", "2h 5m";
+ * "1 Min., 30 Sek." in German) - never "5400.00 s". A busy site spends
+ * hours of CPU in a day.
+ */
+export function formatAppServiceCpuTime(
+  seconds: number | null,
+  language?: string | undefined,
+): string {
+  if (seconds === null || !Number.isFinite(seconds) || seconds < 60) {
+    return formatDurationMs(seconds === null ? null : seconds * 1000);
+  }
+
+  return formatDurationCompactInLanguage(seconds, language);
 }

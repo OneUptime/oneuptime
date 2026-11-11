@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | resursdetektor | `faas.instance` | [Andra molnplattformar](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | resursdetektor | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | anges för hand | `host.name` | [Andra molnplattformar](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | resursdetektor | `host.id` | [Andra molnplattformar](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | resursdetektor | `azure.app_service.instance.id` | [Andra molnplattformar](/docs/telemetry/cloud-other-platforms) |
 
 - **Resursdetektor:** en OpenTelemetry-resursdetektor, i SDK:t eller i Collectorns processor `resourcedetection`, sätter attributen `cloud.*` åt dig.
 - **Anges för hand:** det finns ingen detektor, så du lägger attributen i `OTEL_RESOURCE_ATTRIBUTES`. Plattformens sida visar den exakta raden.
-- **Azure-detektorerna vet mindre.** Detektorerna för Container Apps känner varken till regionen eller prenumerationen, och detektorerna för App Service känner inte till prenumerationen: ange själv det som saknas.
+- **Azure-detektorerna vet mindre.** Detektorerna för Container Apps känner varken till regionen eller prenumerationen, och App Service-detektorerna för Node.js och .NET känner inte till prenumerationen (Collectorns gör det): ange själv det som saknas.
 - **Azure-stavningar med punkt fungerar.** Azure-detektorerna för Node.js och .NET skriver `azure.container_apps` och `azure.app_service`. OneUptime skriver om dem till värdena med understreck ovan när de tas emot.
 
 ## Så identifierar OneUptime en miljö
@@ -88,10 +88,11 @@ Inom en miljö får varje uppgift, instans eller replik som körs en rad under *
 2. `aws.ecs.task.arn` (förkortat till uppgifts-ID:t)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 Plattformens egen identitet kommer först med avsikt. En sidecar-collector och applikationens SDK ser den båda, och den överlever omstarter. Ett SDK hittar oftast på ett nytt `service.instance.id` för varje process (Node.js-SDK:t gör det som standard), så om det vore nyckeln först skulle en ECS-uppgift delas upp på två rader. `service.instance.id` används när plattformen inte sätter någon egen identitet. Kolumnen **Instansidentitet** i [Plattformar som stöds](#plattformar-som-stöds) anger det attribut som en typisk konfiguration använder på varje plattform.
 
@@ -122,6 +123,8 @@ Det första attributet som telemetrin bär namnger appen, så en app på en plat
 - **Högst 12 nya revisioner av en app registreras per timme.** En `service.version` som ändras med varje bygge skulle annars vara en distribution i minuten.
 
 En apps sida har en **Översikt** med dess begäranden, fel, latens, instanser och de revisioner som körs nu, en flik **Revisioner** med varje revisions siffror, flikarna **Instanser**, **Loggar** och **Spår**, filtrerade till appen, och en flik **Rekommendationer** med de monitorer som OneUptime rekommenderar för den: misslyckade åtgärder, felskurar, trafik som upphör och långsamma begäranden, lästa från appens egna spans och dess `http.server.request.duration`, var och en länkad till appens miljö. **Konfigurera larm** öppnar den; för en app vars namn är för långt för att filtrera dess telemetri på öppnar den i stället de rekommenderade monitorerna för appens tjänst under **Tjänster**.
+
+Ett tal som appen aldrig har skickat visas inte som 0. Rutorna för begäranden, felfrekvens och latens för en app som inte har skickat några spår visar **Inga spår mottagna**, och rutan **Instanser** för en app som körs och vars telemetri inte namnger någon instans visar **Ej rapporterat**. Tills appen skickar spår, en instans och en version börjar dess **Översikt** med en **Konfigurationskontroll**: varje typ av telemetri, om den kommer fram, och vad som ska läggas till.
 
 En app som inte skickar något på 30 dagar tas bort med sina revisioner, och det gör även en revision som ingen instans rapporterar på 30 dagar, om inte appen fortfarande kör den. På en egenhostad OneUptime anger `CLOUD_APP_RETENTION_DAYS` de 30.
 

@@ -41,6 +41,7 @@ import {
   AppServiceMetric,
   AppServiceSeries,
   AppServiceSummary,
+  formatAppServiceCpuTime,
   getAppServiceStoredMetricName,
   summarizeAppServiceSeries,
 } from "../../Pages/AppPlatforms/Utils/CloudAppPlatformResource";
@@ -232,10 +233,9 @@ const CloudAppAzureMonitorCard: FunctionComponent<ComponentProps> = (
     },
     {
       title: "CPU time",
-      value: formatDurationMs(
-        summary && summary.cpuTimeSeconds !== null
-          ? summary.cpuTimeSeconds * 1000
-          : null,
+      value: formatAppServiceCpuTime(
+        summary ? summary.cpuTimeSeconds : null,
+        translator.language,
       ),
       icon: IconProp.ChartBar,
       iconColor: "blue",
