@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Hjælp",
+    "quickstart": "Hurtigstart",
     "documentation": "Dokumentation",
+    "glossary": "Ordliste",
+    "howOneUptimeWorks": "Sådan virker OneUptime",
     "supportEmail": "Support-e-mail",
     "chatSlack": "Chat på Slack",
     "requestDemo": "Anmod om demo"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "Widgets til layout og præsentation, der ikke behøver en datakilde.",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "Læs om dynamiske skabeloner",
-  "Learn more": "Learn more",
+  "Learn more": "Få mere at vide",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "Lært fra FDB",
@@ -50675,5 +50678,13 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} bekræftede den i Mattermost efter {{time}}.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} bekræftede den i Microsoft Teams efter {{time}}.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} bekræftede den i Slack efter {{time}}.",
-  "{{name}} acknowledged it.": "{{name}} bekræftede den."
+  "{{name}} acknowledged it.": "{{name}} bekræftede den.",
+  "Core Concepts": "Grundbegreber",
+  "Glossary": "Ordliste",
+  "Loading the definition…": "Indlæser definitionen…",
+  "Read more": "Læs mere",
+  "Read what this means in the glossary": "Læs i ordlisten, hvad det betyder",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} er til problemer, dine kunder mærker, og kan vises på en statusside. {{alerts}} er til dit team og vises aldrig der.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} afgør for hver alvorlighed, hvilken notifikationsmetode en tilkaldelse prøver, og efter hvor lang tid.",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} og {{infrastructure}} fodrer kredsløbet: regler for dine logs, metrikker og traces eller for dine hosts, klynger og clouds åbner også hændelser og advarsler."
 }

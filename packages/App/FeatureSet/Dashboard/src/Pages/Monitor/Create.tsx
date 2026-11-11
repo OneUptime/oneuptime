@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -1959,6 +1960,7 @@ const MonitorCreate: FunctionComponent<
                    */
                   description:
                     "Probes are the machines that run this monitor's checks. Your project's default probes start selected. A monitor with no probes is never checked.",
+                  glossaryTerm: GlossaryTerm.Probe,
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   /*
                    * So the form will not create a monitor that is never

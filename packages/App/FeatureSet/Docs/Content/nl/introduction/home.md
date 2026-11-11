@@ -74,7 +74,7 @@ De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abon
 
 Als je vanuit een stap een monitor, een statuspagina of een bereikbaarheidsbeleid maakt, zegt de pagina waarop je terechtkomt wat er volgt, met **Terug naar de inrichting**.
 
-Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen.
+Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
 
 ```mermaid title="Wanneer de welkomstchecklist verschijnt"
 flowchart TB
@@ -87,7 +87,7 @@ flowchart TB
     done -->|"Nee"| shown["De checklist, met<br/>de resterende stappen"]
 ```
 
-De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te verbergen, klik je op **Verbergen**: hij is dan alleen voor jou verborgen, op elk apparaat, en er blijft een regel met **Tonen** en **Hoe OneUptime werkt**. Wie als lid in het project is uitgenodigd, ziet de checklist niet.
+De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te verbergen, klik je op **Verbergen**: hij is dan alleen voor jou verborgen, op elk apparaat, en er blijft een regel met **Tonen** en **Hoe OneUptime werkt**. Wie als lid in het project is uitgenodigd, ziet de checklist niet. **Hoe OneUptime werkt** blijft in elk project één klik verwijderd: open het via **Hulp** of met de knop naast **Verken OneUptime**.
 
 ### Vraagt aandacht
 
@@ -136,7 +136,9 @@ Twee balken lopen bovenaan over elke pagina.
 | Rechtsboven | **Zoeken** en **AI vragen**, de meldingenbel met wat u nu nodig heeft (actieve incidenten en waarschuwingen, het bereikbaarheidsbeleid waarin u dienst hebt, openstaande uitnodigingen), **Hulp**, en uw foto, die het menu van uw [account](/docs/introduction/your-account) opent. |
 | Daaronder | **Start** en **Producten** links, **Gebruikersinstellingen** rechts: hoe OneUptime u in dit project bereikt. |
 
-**Hulp** opent deze documentatie (**Documentatie**) en de lijst **Keyboard shortcuts**, en biedt ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+**Hulp** begint met wat u helpt leren: **Snelstart**, **Hoe OneUptime werkt**, **Woordenlijst** en deze documentatie (**Documentatie**). Daaronder staan de lijst **Keyboard shortcuts** en ondersteuning per e-mail en op Slack. Op een smal scherm, zoals een telefoon, verdwijnen **Zoeken**, **AI vragen** en **Hulp** om ruimte te besparen; de bel en uw foto blijven.
+
+Een woord met een stippellijn eronder, zoals **Sondes** in het formulier van een nieuwe monitor, zegt wat het betekent als u ernaar wijst, er met Tab naartoe gaat of erop tikt. Met **Lees meer** opent u het woord in de [Woordenlijst](/docs/introduction/glossary).
 
 ### Pagina's en lijsten
 

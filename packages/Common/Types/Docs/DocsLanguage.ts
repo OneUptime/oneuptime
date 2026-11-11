@@ -123,3 +123,30 @@ export const getDocsLanguageDirection: (
   );
   return language ? language.direction : "ltr";
 };
+
+/*
+ * The docs language for a reader's language: the same code when the docs
+ * are written in it ("de", "zh-CN"), else English. A code is matched as it
+ * is written, so a Dashboard language the docs have no copy in (Arabic)
+ * reads the English docs.
+ */
+export const getDocsLanguageFor: (language?: string | undefined) => string = (
+  language?: string | undefined,
+): string => {
+  return language && isSupportedDocsLanguage(language)
+    ? language
+    : DEFAULT_DOCS_LANGUAGE;
+};
+
+/*
+ * A docs page's address in the reader's language, from its address under
+ * /docs/<lang>/: getDocsPagePath("introduction/quickstart", "de") is
+ * "/docs/de/introduction/quickstart". The product opens the docs in the
+ * language the reader picked in it, not the one their browser asks for.
+ */
+export const getDocsPagePath: (
+  page: string,
+  language?: string | undefined,
+) => string = (page: string, language?: string | undefined): string => {
+  return `/docs/${getDocsLanguageFor(language)}/${page}`;
+};

@@ -123,6 +123,9 @@ const NAV_DESCRIPTION_KEYS: Array<string> = [
 const COGNATE_KEYS: Array<string> = [
   "navbar.categories.infrastructure",
   "help.documentation",
+  "help.quickstart",
+  "help.glossary",
+  "help.howOneUptimeWorks",
 ];
 
 // The core list pages and the file holding each one's card description.
@@ -371,16 +374,33 @@ describe("Help menu", () => {
     expect(source).not.toContain("oneuptime.com/docs");
   });
 
-  test("the Documentation entry comes before every other entry", () => {
-    const docs: number = source.indexOf('t("help.documentation"');
-    expect(docs).toBeGreaterThan(-1);
+  test("the ways to learn come first: Quickstart, How OneUptime works, Glossary, Documentation", () => {
+    const learn: Array<number> = [
+      't("help.quickstart"',
+      't("help.howOneUptimeWorks"',
+      't("help.glossary"',
+      't("help.documentation"',
+    ].map((call: string): number => {
+      return source.indexOf(call);
+    });
+
+    for (const index of learn) {
+      expect(index).toBeGreaterThan(-1);
+    }
+    expect(
+      [...learn].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(learn);
+
+    const lastLearn: number = learn[learn.length - 1]!;
     for (const other of [
       't("keyboardShortcuts.title"',
       't("help.supportEmail")',
       't("help.chatSlack")',
       't("help.requestDemo")',
     ]) {
-      expect(source.indexOf(other)).toBeGreaterThan(docs);
+      expect(source.indexOf(other)).toBeGreaterThan(lastLearn);
     }
   });
 });

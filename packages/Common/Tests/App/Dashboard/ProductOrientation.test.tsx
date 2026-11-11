@@ -770,6 +770,9 @@ describe("How OneUptime works (Home)", () => {
       "how-it-works-step-incident",
       "how-it-works-step-on-call",
       "how-it-works-step-status-page",
+      // What feeds the loop: Telemetry and Infrastructure, each defined.
+      "defined-term",
+      "defined-term",
     ]);
   });
 
@@ -944,26 +947,24 @@ describe("Help menu", () => {
     expect(docs).toHaveAttribute("target", "_blank");
   });
 
-  test("Documentation is the first entry", () => {
-    const entries: Array<HTMLElement> = openHelp();
+  test("the ways to learn come first, Documentation last among them", () => {
+    openHelp();
 
-    const texts: Array<string> = entries.map((entry: HTMLElement) => {
-      return entry.textContent || "";
+    // In document order: the four ways to learn, then the ways to ask.
+    const order: Array<string> = [
+      "Quickstart",
+      "How OneUptime works",
+      "Glossary",
+      "Documentation",
+      "Keyboard shortcuts",
+    ];
+    const entries: Array<HTMLElement> = order.map((text: string) => {
+      return screen.getByText(text).closest("a")!;
     });
-    const docsIndex: number = texts.findIndex((text: string) => {
-      return text.includes("Documentation");
-    });
-    const firstEntry: HTMLElement = screen
-      .getByText("Documentation")
-      .closest("a")!;
-    expect(docsIndex).toBeGreaterThanOrEqual(0);
-    // Nothing precedes it in document order.
-    for (const entry of entries) {
-      if (entry === firstEntry) {
-        continue;
-      }
+
+    for (let i: number = 1; i < entries.length; i++) {
       expect(
-        firstEntry.compareDocumentPosition(entry) &
+        entries[i - 1]!.compareDocumentPosition(entries[i]!) &
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
     }

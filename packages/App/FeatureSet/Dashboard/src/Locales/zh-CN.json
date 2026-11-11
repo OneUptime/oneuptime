@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "帮助",
+    "quickstart": "快速开始",
     "documentation": "文档",
+    "glossary": "术语表",
+    "howOneUptimeWorks": "OneUptime 如何运作",
     "supportEmail": "支持邮箱",
     "chatSlack": "在 Slack 上聊天",
     "requestDemo": "请求演示"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "无需数据源的布局和展示小部件。",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "了解动态模板",
-  "Learn more": "Learn more",
+  "Learn more": "了解更多",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "从 FDB 学习",
@@ -50675,5 +50678,13 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} 在 {{time}} 后在 Mattermost 中确认。",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} 在 {{time}} 后在 Microsoft Teams 中确认。",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} 在 {{time}} 后在 Slack 中确认。",
-  "{{name}} acknowledged it.": "{{name}} 已确认。"
+  "{{name}} acknowledged it.": "{{name}} 已确认。",
+  "Core Concepts": "核心概念",
+  "Glossary": "术语表",
+  "Loading the definition…": "正在加载定义…",
+  "Read more": "阅读更多",
+  "Read what this means in the glossary": "在术语表中查看含义",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}用于客户能感受到的问题，可以显示在状态页上。{{alerts}}用于你的团队，永远不会显示在状态页上。",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}决定每个严重程度下，呼叫会尝试哪种通知方式，以及等待多久。",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}和{{infrastructure}}也会汇入这一流程：针对日志、指标和链路追踪，或针对主机、集群和云的规则，同样会创建事件和警报。"
 }

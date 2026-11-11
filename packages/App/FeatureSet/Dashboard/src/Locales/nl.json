@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Hulp",
+    "quickstart": "Snelstart",
     "documentation": "Documentatie",
+    "glossary": "Woordenlijst",
+    "howOneUptimeWorks": "Hoe OneUptime werkt",
     "supportEmail": "Support-e-mail",
     "chatSlack": "Chat op Slack",
     "requestDemo": "Demo aanvragen"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "Widgets voor indeling en presentatie die geen gegevensbron nodig hebben.",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "Meer over dynamische sjablonen",
-  "Learn more": "Learn more",
+  "Learn more": "Meer informatie",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "Geleerd uit FDB",
@@ -50675,5 +50678,13 @@
   "{{name}} acknowledged it in Mattermost after {{time}}.": "{{name}} heeft hem na {{time}} in Mattermost bevestigd.",
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} heeft hem na {{time}} in Microsoft Teams bevestigd.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} heeft hem na {{time}} in Slack bevestigd.",
-  "{{name}} acknowledged it.": "{{name}} heeft hem bevestigd."
+  "{{name}} acknowledged it.": "{{name}} heeft hem bevestigd.",
+  "Core Concepts": "Kernbegrippen",
+  "Glossary": "Woordenlijst",
+  "Loading the definition…": "Definitie laden…",
+  "Read more": "Lees meer",
+  "Read what this means in the glossary": "Lees in de woordenlijst wat dit betekent",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} zijn voor problemen die je klanten merken, en kunnen op een statuspagina verschijnen. {{alerts}} zijn voor je team, en verschijnen daar nooit.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} bepalen per ernst welke meldingsmethode een oproep probeert, en na hoeveel tijd.",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} en {{infrastructure}} voeden de kringloop: regels op je logs, metrics en traces, of op je hosts, clusters en clouds, openen ook incidenten en waarschuwingen."
 }
