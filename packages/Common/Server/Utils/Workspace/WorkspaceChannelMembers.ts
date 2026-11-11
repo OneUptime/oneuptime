@@ -791,7 +791,10 @@ export default class WorkspaceChannelMembers {
             });
           } catch (err) {
             return SlackChannelMembersError.isNotConnected(err)
-              ? { channelState: WorkspaceChannelState.NotConnected }
+              ? {
+                  channelState:
+                    WorkspaceChannelMembers.getChannelStateOfError(err),
+                }
               : { outcome: WorkspaceChannelAddOutcome.TryAgain };
           }
 
@@ -1395,6 +1398,15 @@ export default class WorkspaceChannelMembers {
   private static getChannelStateOfError(err: unknown): WorkspaceChannelState {
     if (SlackChannelMembersError.isChannelGone(err)) {
       return WorkspaceChannelState.Unreachable;
+    }
+
+    /*
+     * The channel's workspace no longer has OneUptime - an Enterprise
+     * organization's installation removed from it - not the project's whole
+     * connection gone: its other workspaces still work.
+     */
+    if (SlackChannelMembersError.isWorkspaceNotAdded(err)) {
+      return WorkspaceChannelState.WorkspaceNotAdded;
     }
 
     if (SlackChannelMembersError.isNotConnected(err)) {

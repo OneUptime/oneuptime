@@ -559,6 +559,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "On a self-hosted server,",
     // Slack Enterprise organizations: one project in several workspaces.
     "Which workspace a rule uses.",
+    "A workspace OneUptime was removed from.",
     "Where OneUptime works.",
     "A project connected to a single workspace.",
     // Asking everyone to connect.
@@ -597,6 +598,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     "Paging it.",
     "What Slack needs.",
     "Who may connect one.",
+    "In a Slack Enterprise organization.",
     "Disconnecting.",
     // The app's Home.
     "Your on-call.",

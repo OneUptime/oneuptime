@@ -89,28 +89,31 @@ export interface SlackConnectionDescription {
   organizationName: string;
   workspaces: Array<SlackOrganizationWorkspace>;
   defaultWorkspaceId: string | null;
+  // The workspaces OneUptime was removed from, by the names they had.
+  removedWorkspaces: Array<SlackOrganizationWorkspace>;
 }
+
+// Workspaces as the route lists them: each with an id, and its name.
+const readWorkspaces: (value: unknown) => Array<SlackOrganizationWorkspace> = (
+  value: unknown,
+): Array<SlackOrganizationWorkspace> => {
+  return (Array.isArray(value) ? (value as Array<JSONObject>) : [])
+    .map((workspace: JSONObject): SlackOrganizationWorkspace => {
+      return {
+        id: typeof workspace?.["id"] === "string" ? workspace["id"] : "",
+        name: typeof workspace?.["name"] === "string" ? workspace["name"] : "",
+      };
+    })
+    .filter((workspace: SlackOrganizationWorkspace): boolean => {
+      return Boolean(workspace.id);
+    });
+};
 
 export const readSlackConnectionDescription: (
   data: JSONObject | undefined,
 ) => SlackConnectionDescription = (
   data: JSONObject | undefined,
 ): SlackConnectionDescription => {
-  const workspaces: Array<SlackOrganizationWorkspace> = (
-    Array.isArray(data?.["workspaces"])
-      ? (data?.["workspaces"] as Array<JSONObject>)
-      : []
-  )
-    .map((workspace: JSONObject): SlackOrganizationWorkspace => {
-      return {
-        id: typeof workspace["id"] === "string" ? workspace["id"] : "",
-        name: typeof workspace["name"] === "string" ? workspace["name"] : "",
-      };
-    })
-    .filter((workspace: SlackOrganizationWorkspace): boolean => {
-      return Boolean(workspace.id);
-    });
-
   return {
     isOrganization: data?.["isOrganization"] === true,
     isInOrganization: data?.["isInOrganization"] === true,
@@ -118,11 +121,12 @@ export const readSlackConnectionDescription: (
       typeof data?.["organizationName"] === "string"
         ? (data["organizationName"] as string)
         : "",
-    workspaces: workspaces,
+    workspaces: readWorkspaces(data?.["workspaces"]),
     defaultWorkspaceId:
       typeof data?.["defaultWorkspaceId"] === "string"
         ? (data["defaultWorkspaceId"] as string)
         : null,
+    removedWorkspaces: readWorkspaces(data?.["removedWorkspaces"]),
   };
 };
 
