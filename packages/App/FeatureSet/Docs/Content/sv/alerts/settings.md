@@ -6,7 +6,7 @@ Konfigurationen av larm finns i **Larm**, inte i **Projektinställningar**: regl
 - [Reglerna som ett nytt larm passerar](#reglerna-som-ett-nytt-larm-passerar): I ordning, och vad var och en gör.
 - [Jourregler](#jourregler): Larma rätt personer utan att välja en policy varje gång.
 - [Påminnelseregler](#påminnelseregler): Påminn ägare så länge ett larm är öppet.
-- [Inställningar](#inställningar): Anteckningsmallar, anpassade fält, mätningar, medlemskap i episoder och numrering.
+- [Inställningar](#inställningar): Anteckningsmallar, anpassade fält, mätningar, medlemskap i episoder, numrering och datalagring.
 :::
 
 ## Var larminställningarna finns
@@ -24,7 +24,7 @@ Konfigurationen av larm finns i **Larm**, inte i **Projektinställningar**: regl
 | **Etikettregler**     | Lägger till etiketter på matchande larm och episoder.                                          |
 | **Påminnelseregler**    | Påminner ägare med ett intervall så länge ett larm är öppet.                                   |
 
-Avsnittet **Inställningar** innehåller **Larmstatus** och **Larmallvar**, som beskrivs på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder** och **Numrering**, som beskrivs nedan.
+Avsnittet **Inställningar** innehåller **Larmstatus** och **Larmallvar**, som beskrivs på [Larmstatusar och allvarlighetsgrader](/docs/alerts/states-and-severities), och sedan **Anteckningsmallar**, **Anpassade fält**, **Mätningar**, **Medlemskap i episoder**, **Numrering** och **Datalagring**, som beskrivs nedan.
 
 Två avsnitt till verkar på larm. **Larm → AI → Inställningar** avgör vad OneUptime AI gör på egen hand: **Utred nya larm**, påslaget för nya projekt, och **Åtgärda nya larm automatiskt**, avslaget tills du slår på det. Se [AI SRE](/docs/ai/ai-sre). **Larm → Arbetsyta** innehåller Slack- och Microsoft Teams-reglerna som publicerar larm och episoder i kanaler, och dess flik **Sammanfattning**. Se [Slack](/docs/workspace-connections/slack).
 
@@ -168,6 +168,10 @@ I **Påminnelser** ställer du in **Påminnelseintervall (minuter)**, hur ofta �
 **Larm → Inställningar → Numrering** anger texten framför larm- och episodnummer: `ALT-` och `AE-` i ett nytt projekt, eller `#` utan prefix. **Uppdatera** öppnar **Larmnummerprefix** och **Nummerprefix för larmepisod**, med en förhandsvisning medan du skriver. Bara larm och episoder som skapas efteråt får det nya prefixet. Reglerna för ett prefix finns under [Nummerprefix](/docs/incidents/settings#nummerprefix).
 
 Kortet **Nästa nummer** under det anger numret som nästa larm och nästa episod får, för att fortsätta ett annat verktygs nummer: **Uppdatera** öppnar **Nästa larmnummer** och **Nästa nummer för larmepisod**, vart och ett högre än det högsta hittills. Se [Nästa nummer](/docs/incidents/settings#nästa-nummer).
+
+### Datalagring
+
+**Larm → Inställningar → Datalagring** tar bort larm när de har varit lösta tillräckligt länge, som [Datalagring](/docs/incidents/settings#datalagring) gör för incidenter. Kortet **Lösta larm** frågar efter **Ta bort efter**, **Aldrig** tills du väljer en tid, och ber om bekräftelse innan mer tas bort, med **Ta bort gamla larm**. Ett larm finns kvar så länge det inte är löst, så länge det ingår i en episod som fortfarande är öppen eller löstes för kortare tid sedan, och så länge en incident som det är länkat till finns kvar. Bara Project Owners och Project Admins kan ändra den; i API:t är det projektets `alertRetentionInDays`.
 
 > [!NOTE]
 > På OneUptime Cloud kräver anteckningsmallar och anpassade fält planen **Growth** eller högre.

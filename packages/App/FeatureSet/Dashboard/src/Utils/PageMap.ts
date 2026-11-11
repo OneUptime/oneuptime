@@ -334,6 +334,8 @@ enum PageMap {
   // Whether an incident can be in only one episode.
   INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP = "INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP",
   INCIDENTS_SETTINGS_NUMBERING = "INCIDENTS_SETTINGS_NUMBERING",
+  // How long a resolved incident is kept (issue #6903).
+  INCIDENTS_SETTINGS_RETENTION = "INCIDENTS_SETTINGS_RETENTION",
   /*
    * The Incidents menu's AI section: Insights, Logs, then
    * INCIDENTS_SETTINGS_AI (its Settings), whose key kept its name when the
@@ -410,6 +412,8 @@ enum PageMap {
   // Whether an alert can be in only one episode.
   ALERTS_SETTINGS_EPISODE_MEMBERSHIP = "ALERTS_SETTINGS_EPISODE_MEMBERSHIP",
   ALERTS_SETTINGS_NUMBERING = "ALERTS_SETTINGS_NUMBERING",
+  // How long a resolved alert is kept (issue #6903).
+  ALERTS_SETTINGS_RETENTION = "ALERTS_SETTINGS_RETENTION",
   /*
    * The Alerts menu's AI section: Insights, Logs, then ALERTS_SETTINGS_AI
    * (its Settings), whose key kept its name when the page moved there from

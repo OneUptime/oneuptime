@@ -61,7 +61,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De lijst
 | **AI**            | **Inzichten**, **Logboeken** en **Instellingen**: wat OneUptime AI van je waarschuwingen heeft geleerd, alles wat het heeft gedaan en wat het mag doen. |
 | **Werkruimte**    | **Slack**, **Microsoft Teams** en **Mattermost**, afhankelijk van wat het project heeft gekoppeld, of **Werkruimte koppelen** als het er geen heeft. |
 | **Regels**        | **Groeperingsregels**, **Bereikbaarheidsregels**, **Incidentregels**, **Eigenaarsregels**, **Runbook-regels**, **Privacyregels**, **Labelregels**, **Herinneringsregels**. |
-| **Instellingen**  | **Status waarschuwing**, **Ernst van waarschuwing**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes**, **Nummering**. |
+| **Instellingen**  | **Status waarschuwing**, **Ernst van waarschuwing**, **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes**, **Nummering**, **Gegevensbewaring**. |
 
 **Waarschuwingen** en **Episoden** zijn open; **AI**, **Werkruimte**, **Regels**, **Instellingen** en **Ontwikkelaars** beginnen ingeklapt, en een sectie gaat vanzelf open wanneer je op een van haar pagina's bent. De configuratie van waarschuwingen staat hier, niet in **Projectinstellingen**.
 

@@ -1395,6 +1395,7 @@ export const IncidentsRoutePath: Dictionary<string> = {
   [PageMap.INCIDENTS_SETTINGS_EPISODE_MEMBERSHIP]:
     "settings/episode-membership",
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: "settings/numbering",
+  [PageMap.INCIDENTS_SETTINGS_RETENTION]: "settings/data-retention",
 
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
@@ -1474,6 +1475,7 @@ export const AlertsRoutePath: Dictionary<string> = {
   [PageMap.ALERTS_SETTINGS_MEASUREMENTS]: "settings/measurements",
   [PageMap.ALERTS_SETTINGS_EPISODE_MEMBERSHIP]: "settings/episode-membership",
   [PageMap.ALERTS_SETTINGS_NUMBERING]: "settings/numbering",
+  [PageMap.ALERTS_SETTINGS_RETENTION]: "settings/data-retention",
 
   /*
    * The AI section. Settings and Auto Remediation Rules were at settings/ai
@@ -2265,6 +2267,12 @@ const RouteMap: Dictionary<Route> = {
     }`,
   ),
 
+  [PageMap.ALERTS_SETTINGS_RETENTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/alerts/${
+      AlertsRoutePath[PageMap.ALERTS_SETTINGS_RETENTION]
+    }`,
+  ),
+
   [PageMap.ALERTS_SETTINGS_AI]: new Route(
     `/dashboard/${RouteParams.ProjectID}/alerts/${
       AlertsRoutePath[PageMap.ALERTS_SETTINGS_AI]
@@ -2857,6 +2865,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.INCIDENTS_SETTINGS_NUMBERING]: new Route(
     `/dashboard/${RouteParams.ProjectID}/incidents/${
       IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_NUMBERING]
+    }`,
+  ),
+
+  [PageMap.INCIDENTS_SETTINGS_RETENTION]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/incidents/${
+      IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RETENTION]
     }`,
   ),
 
