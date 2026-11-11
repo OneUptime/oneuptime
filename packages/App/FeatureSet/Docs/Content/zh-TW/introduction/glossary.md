@@ -152,7 +152,7 @@ OneUptime 在專案中可以聯絡到你的位址：電子郵件地址、用於�
 
 選單中彙集你所執行的機器和平台的一組項目：主機、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、Ceph、儲存陣列、網路和 IoT。每一項都由代理程式或連線填入，並顯示其中每台機器、每個叢集或每台裝置的運作狀況。
 
-參閱 [入門指南](/docs/introduction/getting-started#可觀測性)。
+參閱 [主機](/docs/telemetry/hosts)。
 
 ### 網路
 

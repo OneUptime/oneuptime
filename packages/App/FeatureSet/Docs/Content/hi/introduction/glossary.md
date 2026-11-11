@@ -152,7 +152,7 @@ OneUptime में इस्तेमाल होने वाला हर �
 
 मेन्यू का वह समूह जिसमें आपकी चलाई मशीनें और प्लेटफ़ॉर्म हैं: होस्ट, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, स्टोरेज ऐरे, नेटवर्क और IoT। हर एक को कोई एजेंट या कनेक्शन भरता है, और हर एक बताता है कि उसमें हर मशीन, क्लस्टर या डिवाइस कैसा चल रहा है।
 
-[शुरू करना](/docs/introduction/getting-started#ऑब्ज़र्वेबिलिटी) देखें।
+[होस्ट](/docs/telemetry/hosts) देखें।
 
 ### नेटवर्क
 

@@ -152,7 +152,7 @@ Consulta [Agente de Kubernetes](/docs/telemetry/kubernetes-agent).
 
 El grupo del menú con las máquinas y plataformas que ejecutas: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Cabinas de almacenamiento, Red e IoT. Un agente o una conexión rellena cada una, y cada una indica cómo está cada máquina, clúster o dispositivo que contiene.
 
-Consulta [Primeros pasos](/docs/introduction/getting-started#observabilidad).
+Consulta [Hosts](/docs/telemetry/hosts).
 
 ### Red
 

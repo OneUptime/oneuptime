@@ -152,7 +152,7 @@ See [Kubernetes Agent](/docs/telemetry/kubernetes-agent).
 
 The menu's group of the machines and platforms you run: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Storage Arrays, Network and IoT. An agent or a connection fills each one, and each says how every machine, cluster or device in it is doing.
 
-See [Getting Started](/docs/introduction/getting-started#observability).
+See [Hosts](/docs/telemetry/hosts).
 
 ### Network
 

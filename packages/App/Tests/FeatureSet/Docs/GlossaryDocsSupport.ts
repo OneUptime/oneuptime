@@ -59,7 +59,8 @@ export function glossaryTerms(markdown: string): Array<GlossaryTermBlock> {
 
     const last: string =
       current.paragraphs[current.paragraphs.length - 1] || "";
-    const named: boolean = current.paragraphs.length > 1 && last.includes("](/docs/");
+    const named: boolean =
+      current.paragraphs.length > 1 && last.includes("](/docs/");
 
     current.block.definition = named
       ? current.paragraphs.slice(0, -1)
@@ -108,7 +109,10 @@ export function glossaryTerms(markdown: string): Array<GlossaryTermBlock> {
 
 // The bold and code names on a names line, in the order they are written.
 export function namesOf(namesLine: string): Array<string> {
-  return [...Array.from(namesLine.matchAll(BOLD)), ...Array.from(namesLine.matchAll(CODE))]
+  return [
+    ...Array.from(namesLine.matchAll(BOLD)),
+    ...Array.from(namesLine.matchAll(CODE)),
+  ]
     .sort((a: RegExpMatchArray, b: RegExpMatchArray): number => {
       return (a.index || 0) - (b.index || 0);
     })
@@ -213,11 +217,9 @@ export function sectionUnder(markdown: string, heading: string): string {
 
 // The "## " headings of a page, in order, as written.
 export function sectionHeadings(markdown: string): Array<string> {
-  return markdown
-    .split("\n")
-    .filter((line: string): boolean => {
-      return line.startsWith("## ");
-    });
+  return markdown.split("\n").filter((line: string): boolean => {
+    return line.startsWith("## ");
+  });
 }
 
 const TABLE_SEPARATOR: RegExp = /^:?-+:?$/;

@@ -152,7 +152,7 @@ Kubernetes クラスターと、そのノード、Pod、ワークロード、イ
 
 運用しているマシンとプラットフォームをまとめたメニューのグループです。ホスト、Kubernetes、Docker、Docker Swarm、Podman、Proxmox、OpenStack、VMware、Ceph、ストレージアレイ、ネットワーク、IoT があります。それぞれをエージェントや接続が埋め、その中のマシン、クラスター、デバイスがそれぞれどんな状態かを示します。
 
-[はじめに](/docs/introduction/getting-started#オブザーバビリティ) を参照してください。
+[ホスト](/docs/telemetry/hosts) を参照してください。
 
 ### ネットワーク
 

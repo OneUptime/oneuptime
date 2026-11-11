@@ -197,8 +197,7 @@ export const parseGlossary: (
      * a term without one is all definition.
      */
     const last: string = read.paragraphs[read.paragraphs.length - 1] || "";
-    const named: boolean =
-      read.paragraphs.length > 1 && DOCS_LINK.test(last);
+    const named: boolean = read.paragraphs.length > 1 && DOCS_LINK.test(last);
     const names: string = named ? last : "";
     const definition: Array<string> = named
       ? read.paragraphs.slice(0, -1)

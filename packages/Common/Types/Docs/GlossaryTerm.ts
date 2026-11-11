@@ -1,4 +1,7 @@
-import { DEFAULT_DOCS_LANGUAGE, SUPPORTED_DOCS_LANGUAGES } from "./DocsLanguage";
+import {
+  DEFAULT_DOCS_LANGUAGE,
+  SUPPORTED_DOCS_LANGUAGES,
+} from "./DocsLanguage";
 
 /*
  * The terms of the docs' Glossary (/docs/<lang>/introduction/glossary), by

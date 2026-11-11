@@ -152,7 +152,7 @@ OneUptime에서 쓰는 모든 단어를 한두 문장으로 설명하고, 그 �
 
 여러분이 운영하는 머신과 플랫폼을 모은 메뉴 그룹입니다. 호스트, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, 스토리지 어레이, 네트워크, IoT가 있습니다. 각각은 에이전트나 연결로 채워지고, 그 안의 모든 머신, 클러스터, 장치가 어떤 상태인지 보여 줍니다.
 
-[시작하기](/docs/introduction/getting-started#옵저버빌리티)를 참고하세요.
+[호스트](/docs/telemetry/hosts)를 참고하세요.
 
 ### 네트워크
 

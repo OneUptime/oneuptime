@@ -845,7 +845,9 @@ describe("Core Concepts", () => {
     );
     expect(
       sectionOf(CORE_CONCEPTS, "## What you install, and the keys"),
-    ).toContain("(/docs/introduction/which-one#probe-agent-collector-or-runner)");
+    ).toContain(
+      "(/docs/introduction/which-one#probe-agent-collector-or-runner)",
+    );
   });
 
   it("names the products of the menu's first three categories", () => {
@@ -889,12 +891,16 @@ describe("Core Concepts", () => {
       },
     );
 
-    expect(positions.every((position: number): boolean => {
-      return position >= 0;
-    })).toBe(true);
-    expect([...positions].sort((a: number, b: number): number => {
-      return a - b;
-    })).toEqual(positions);
+    expect(
+      positions.every((position: number): boolean => {
+        return position >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...positions].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(positions);
 
     const telemetry: string = sectionOf(CORE_CONCEPTS, "## Telemetry");
     const named: Array<string> = boldSpans(
@@ -966,7 +972,9 @@ describe("Core Concepts", () => {
 
     const watch: string = sectionOf(CORE_CONCEPTS, "## What you watch");
 
-    expect(watch).toContain('title="One service, what watches it, and where it shows"');
+    expect(watch).toContain(
+      'title="One service, what watches it, and where it shows"',
+    );
 
     for (const page of [
       "/docs/monitor/monitor-groups",

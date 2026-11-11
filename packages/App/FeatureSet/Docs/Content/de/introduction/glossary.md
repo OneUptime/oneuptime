@@ -152,7 +152,7 @@ Siehe [Kubernetes-Agent](/docs/telemetry/kubernetes-agent).
 
 Die Menügruppe der Rechner und Plattformen, die Sie betreiben: Hosts, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Speicher-Arrays, Netzwerk und IoT. Ein Agent oder eine Verbindung füllt jeden Eintrag, und jeder zeigt, wie es jedem Rechner, Cluster oder Gerät darin geht.
 
-Siehe [Erste Schritte](/docs/introduction/getting-started#observability).
+Siehe [Hosts](/docs/telemetry/hosts).
 
 ### Netzwerk
 

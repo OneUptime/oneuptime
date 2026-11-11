@@ -2,7 +2,11 @@ import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
 import { anchorsOf, hasPage, readPage } from "./DocsContentSupport";
 import { drawnActionLabel, isActionLabel } from "./DocsDashboardLabels";
-import { menuSections, readDashboardSource, sectionByTitle } from "./DocsDashboardMenus";
+import {
+  menuSections,
+  readDashboardSource,
+  sectionByTitle,
+} from "./DocsDashboardMenus";
 import {
   CARD_LINE,
   anchorProblems,
@@ -180,7 +184,9 @@ describe("Which One Do I Use?, in English", () => {
     expect(
       cardTargets(
         cardLines(
-          readPage("en", "introduction/getting-started").split("## ")[0] as string,
+          readPage("en", "introduction/getting-started").split(
+            "## ",
+          )[0] as string,
         ),
       ),
     ).toContain(`/docs/${WHICH_ONE}`);
@@ -220,9 +226,10 @@ describe("Which One Do I Use?, in English", () => {
         });
       }
 
-      expect({ set: set.heading, tables: tables.length >= 1 && tables.length <= 2 }).toEqual(
-        { set: set.heading, tables: true },
-      );
+      expect({
+        set: set.heading,
+        tables: tables.length >= 1 && tables.length <= 2,
+      }).toEqual({ set: set.heading, tables: true });
       expect({ set: set.heading, words: words, short: words <= 330 }).toEqual({
         set: set.heading,
         words: words,
@@ -252,12 +259,17 @@ describe("Which One Do I Use?, in English", () => {
         });
 
         // The cell is the link, and nothing else.
-        expect({ cell: row[0], one: links.length === 1 && row[0] === `[${links[0]?.text}](${links[0]?.target})` }).toEqual(
-          { cell: row[0], one: true },
-        );
-        expect({ cell: row[0], term: id, glossary: glossaryTargets.includes(links[0]?.target as string) }).toEqual(
-          { cell: row[0], term: id, glossary: true },
-        );
+        expect({
+          cell: row[0],
+          one:
+            links.length === 1 &&
+            row[0] === `[${links[0]?.text}](${links[0]?.target})`,
+        }).toEqual({ cell: row[0], one: true });
+        expect({
+          cell: row[0],
+          term: id,
+          glossary: glossaryTargets.includes(links[0]?.target as string),
+        }).toEqual({ cell: row[0], term: id, glossary: true });
       });
     }
   });
@@ -316,7 +328,9 @@ describe("Which One Do I Use?, in English", () => {
         ) as { defaultValue?: unknown }
       ).defaultValue,
     ).toBe(false);
-    expect(sectionUnder(ENGLISH, "## Monitor group, service or label?")).toContain(
+    expect(
+      sectionUnder(ENGLISH, "## Monitor group, service or label?"),
+    ).toContain(
       "Monitor groups start turned off: turn them on under **Project Settings → Advanced → Feature Flags**.",
     );
   });
@@ -339,9 +353,10 @@ describe("Which One Do I Use?, in English", () => {
         string,
       ];
 
-      expect({ target: target, heading: anchorsOf("en", linked).has(anchor) }).toEqual(
-        { target: target, heading: true },
-      );
+      expect({
+        target: target,
+        heading: anchorsOf("en", linked).has(anchor),
+      }).toEqual({ target: target, heading: true });
     }
   });
 });
@@ -429,9 +444,9 @@ describe.each(LANGUAGES)("Which One Do I Use? in %s", (language: string) => {
         return `#${slugifyMarkdownHeading(heading.slice(3))}`;
       });
 
-    expect(cardLinkTargets(lines).slice(0, SETS.length).map(decodeURIComponent)).toEqual(
-      headings,
-    );
+    expect(
+      cardLinkTargets(lines).slice(0, SETS.length).map(decodeURIComponent),
+    ).toEqual(headings);
     expect(cardTargets(lines).slice(SETS.length)).toEqual(
       cardTargets(cardLines(ENGLISH)).slice(SETS.length),
     );

@@ -48,6 +48,9 @@ const ENGLISH: string = readPage("en", GLOSSARY);
  */
 const ON_HEADING: RegExp = /(<h3|<h3 [^>]*><span)$/;
 
+// Bold, a link or code: Markdown a plain definition no longer has.
+const MARKDOWN_LEFT: RegExp = /\*\*|\]\(|`/;
+
 const SAMPLE_ENGLISH: string = [
   "# Glossary",
   "",
@@ -124,7 +127,9 @@ describe("parseGlossary", () => {
         group: "Start here",
         definition: "Decides who is paged, and who is next. Uses escalation.",
         alsoCalled: ["On-Call Duty", "OnCallDutyPolicy"],
-        links: [{ title: "On-Call Policies", url: "/docs/en/on-call/policies" }],
+        links: [
+          { title: "On-Call Policies", url: "/docs/en/on-call/policies" },
+        ],
         url: "/docs/en/introduction/glossary#on-call-policy",
       },
       {
@@ -156,9 +161,11 @@ describe("parseGlossary", () => {
       "de",
     ) as Array<DocsGlossaryEntry>;
 
-    expect(entries.map((entry: DocsGlossaryEntry): string => {
-      return entry.id;
-    })).toEqual(["on-call-policy", "monitor"]);
+    expect(
+      entries.map((entry: DocsGlossaryEntry): string => {
+        return entry.id;
+      }),
+    ).toEqual(["on-call-policy", "monitor"]);
     expect(entries[0]).toEqual({
       id: "on-call-policy",
       term: "Bereitschaftsrichtlinie",
@@ -235,9 +242,11 @@ describe("parseGlossary", () => {
       "en",
     ) as Array<DocsGlossaryEntry>;
 
-    expect(entries.map((entry: DocsGlossaryEntry): string => {
-      return entry.id;
-    })).toEqual([...ALL_GLOSSARY_TERMS]);
+    expect(
+      entries.map((entry: DocsGlossaryEntry): string => {
+        return entry.id;
+      }),
+    ).toEqual([...ALL_GLOSSARY_TERMS]);
 
     for (const entry of entries) {
       expect({ id: entry.id, defined: entry.definition.length > 20 }).toEqual({
@@ -249,9 +258,10 @@ describe("parseGlossary", () => {
         linked: true,
       });
       // Plain text: no Markdown left for the Dashboard to draw.
-      expect({ id: entry.id, plain: /\*\*|\]\(|`/.test(entry.definition) }).toEqual(
-        { id: entry.id, plain: false },
-      );
+      expect({
+        id: entry.id,
+        markdown: MARKDOWN_LEFT.test(entry.definition),
+      }).toEqual({ id: entry.id, markdown: false });
     }
 
     const service: DocsGlossaryEntry = entries.find(
@@ -260,7 +270,10 @@ describe("parseGlossary", () => {
       },
     ) as DocsGlossaryEntry;
 
-    expect(service.alsoCalled).toEqual(["Service Catalog", "Telemetry Service"]);
+    expect(service.alsoCalled).toEqual([
+      "Service Catalog",
+      "Telemetry Service",
+    ]);
     expect(service.links).toEqual([
       { title: "Service Catalog", url: "/docs/en/telemetry/services" },
     ]);
@@ -273,12 +286,15 @@ describe("DocsGlossaryData", () => {
     async (language: string) => {
       DocsGlossaryData.clearCache();
 
-      const glossary: DocsGlossary = await DocsGlossaryData.getGlossary(language);
+      const glossary: DocsGlossary =
+        await DocsGlossaryData.getGlossary(language);
 
       expect(glossary.lang).toBe(language);
-      expect(glossary.entries.map((entry: DocsGlossaryEntry): string => {
-        return entry.id;
-      })).toEqual([...ALL_GLOSSARY_TERMS]);
+      expect(
+        glossary.entries.map((entry: DocsGlossaryEntry): string => {
+          return entry.id;
+        }),
+      ).toEqual([...ALL_GLOSSARY_TERMS]);
 
       for (const entry of glossary.entries) {
         expect(entry.url).toBe(
@@ -361,9 +377,11 @@ describe("/docs/glossary/<lang>.json", () => {
       const glossary: DocsGlossary = (await response.json()) as DocsGlossary;
 
       expect(glossary.lang).toBe(language);
-      expect(glossary.entries.map((entry: DocsGlossaryEntry): string => {
-        return entry.id;
-      })).toEqual([...ALL_GLOSSARY_TERMS]);
+      expect(
+        glossary.entries.map((entry: DocsGlossaryEntry): string => {
+          return entry.id;
+        }),
+      ).toEqual([...ALL_GLOSSARY_TERMS]);
     },
   );
 

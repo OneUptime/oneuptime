@@ -152,7 +152,7 @@ Se [Kubernetes-agent](/docs/telemetry/kubernetes-agent).
 
 Menyns grupp med maskinerna och plattformarna som du kör: Värdar, Kubernetes, Docker, Docker Swarm, Podman, Proxmox, OpenStack, VMware, Ceph, Lagringsarrayer, Nätverk och IoT. En agent eller en anslutning fyller var och en, och var och en visar hur varje maskin, kluster eller enhet i den mår.
 
-Se [Kom igång](/docs/introduction/getting-started#observerbarhet).
+Se [Värdar](/docs/telemetry/hosts).
 
 ### Nätverk
 

@@ -21,7 +21,12 @@ import {
   prose,
   strayMarkers,
 } from "./DocsTranslationChecks";
-import { menuSections, readCommonSource, readDashboardSource, sectionByTitle } from "./DocsDashboardMenus";
+import {
+  menuSections,
+  readCommonSource,
+  readDashboardSource,
+  sectionByTitle,
+} from "./DocsDashboardMenus";
 import {
   GLOSSARY,
   cardLinkTargets,
@@ -30,7 +35,6 @@ import {
   codeNamesOf,
   englishNavTitle,
   glossaryTerms,
-  glossaryTermsIn,
   linkedPage,
   linksOf,
   namesOf,
@@ -217,30 +221,29 @@ const MENU_PRODUCTS: Record<string, GlossaryTerm> = {
  * other names - are pinned here, so renaming one in either place without
  * the other fails.
  */
-const TERM_LISTS: Record<string, { heading: string; shared: Array<string> }> =
-  {
-    "incidents/index": {
-      heading: "## Key terms",
-      shared: ["Incident", "Incident state", "Incident severity", "Owner"],
-    },
-    "status-pages/index": {
-      heading: "## Key terms",
-      shared: ["Status page", "Resource", "Subscriber"],
-    },
-    "workflows/index": { heading: "## Key terms", shared: ["Workflow"] },
-    "runbooks/index": {
-      heading: "## Key concepts",
-      shared: ["Runbook", "Runner"],
-    },
-    "slo/introduction": {
-      heading: "## Key concepts",
-      shared: ["SLO", "Error budget"],
-    },
-    "on-call/index": {
-      heading: "## The building blocks",
-      shared: ["On-call policy", "Escalation rule", "On-call schedule"],
-    },
-  };
+const TERM_LISTS: Record<string, { heading: string; shared: Array<string> }> = {
+  "incidents/index": {
+    heading: "## Key terms",
+    shared: ["Incident", "Incident state", "Incident severity", "Owner"],
+  },
+  "status-pages/index": {
+    heading: "## Key terms",
+    shared: ["Status page", "Resource", "Subscriber"],
+  },
+  "workflows/index": { heading: "## Key terms", shared: ["Workflow"] },
+  "runbooks/index": {
+    heading: "## Key concepts",
+    shared: ["Runbook", "Runner"],
+  },
+  "slo/introduction": {
+    heading: "## Key concepts",
+    shared: ["SLO", "Error budget"],
+  },
+  "on-call/index": {
+    heading: "## The building blocks",
+    shared: ["On-call policy", "Escalation rule", "On-call schedule"],
+  },
+};
 
 // A list's words: the first cell of each row, without bold or a "(...)" note.
 function listWords(page: string, heading: string): Array<string> {
@@ -345,14 +348,16 @@ describe("the Glossary, in English", () => {
   it("is linked from Getting Started's first screen, from Core Concepts and from the Quickstart's next steps", () => {
     const startHere: Array<string> = cardTargets(
       cardLines(
-        readPage("en", "introduction/getting-started").split("## ")[0] as string,
+        readPage("en", "introduction/getting-started").split(
+          "## ",
+        )[0] as string,
       ),
     );
 
     expect(startHere).toContain(`/docs/${GLOSSARY}`);
-    expect(readPage("en", "introduction/core-concepts").split("\n")[2]).toContain(
-      `[Glossary](/docs/${GLOSSARY})`,
-    );
+    expect(
+      readPage("en", "introduction/core-concepts").split("\n")[2],
+    ).toContain(`[Glossary](/docs/${GLOSSARY})`);
 
     const quickstartNext: string = readPage(
       "en",
@@ -444,9 +449,11 @@ describe("the Glossary, in English", () => {
         const page: string = linkedPage(link.target);
         const title: string | null = englishNavTitle(page);
 
-        expect({ term: block.term, link: link.target, title: link.text }).toEqual(
-          { term: block.term, link: link.target, title: title },
-        );
+        expect({
+          term: block.term,
+          link: link.target,
+          title: link.text,
+        }).toEqual({ term: block.term, link: link.target, title: title });
 
         const anchor: string | undefined = link.target.split("#")[1];
 
@@ -463,9 +470,10 @@ describe("the Glossary, in English", () => {
 
   it("links nothing from a definition: every link is on the names line", () => {
     for (const block of TERMS) {
-      expect({ term: block.term, links: linksOf(block.definition.join(" ")) }).toEqual(
-        { term: block.term, links: [] },
-      );
+      expect({
+        term: block.term,
+        links: linksOf(block.definition.join(" ")),
+      }).toEqual({ term: block.term, links: [] });
     }
   });
 
@@ -477,9 +485,11 @@ describe("the Glossary, in English", () => {
 
     for (const block of TERMS) {
       for (const name of boldNamesOf(block.names)) {
-        expect({ term: block.term, name: name, used: productNames.has(name) }).toEqual(
-          { term: block.term, name: name, used: true },
-        );
+        expect({
+          term: block.term,
+          name: name,
+          used: productNames.has(name),
+        }).toEqual({ term: block.term, name: name, used: true });
       }
 
       for (const name of codeNamesOf(block.names)) {
@@ -491,9 +501,11 @@ describe("the Glossary, in English", () => {
       }
 
       for (const name of namesOf(block.names)) {
-        expect({ term: block.term, name: name, own: name.toLowerCase() === block.term.toLowerCase() }).toEqual(
-          { term: block.term, name: name, own: false },
-        );
+        expect({
+          term: block.term,
+          name: name,
+          own: name.toLowerCase() === block.term.toLowerCase(),
+        }).toEqual({ term: block.term, name: name, own: false });
 
         // One name, one term: a name that two terms claimed would find neither.
         expect({ name: name, twice: seen.has(name.toLowerCase()) }).toEqual({
@@ -561,9 +573,11 @@ describe("the Glossary, in English", () => {
       const said: string = wholeTerm(term(id)).toLowerCase();
       const singular: string = product.replace(/s$/, "").toLowerCase();
 
-      expect({ product: product, term: id, named: said.includes(product.toLowerCase()) || said.includes(singular) }).toEqual(
-        { product: product, term: id, named: true },
-      );
+      expect({
+        product: product,
+        term: id,
+        named: said.includes(product.toLowerCase()) || said.includes(singular),
+      }).toEqual({ product: product, term: id, named: true });
     }
   });
 
@@ -585,9 +599,10 @@ describe("the Glossary, in English", () => {
         .slice(lines.indexOf(list.heading) + 1, lines.indexOf(list.heading) + 4)
         .join("\n");
 
-      expect({ page: page, links: intro.includes(`(/docs/${GLOSSARY})`) }).toEqual(
-        { page: page, links: true },
-      );
+      expect({
+        page: page,
+        links: intro.includes(`(/docs/${GLOSSARY})`),
+      }).toEqual({ page: page, links: true });
     }
   });
 
@@ -618,7 +633,9 @@ describe("the Glossary, in English", () => {
     expect(term(GlossaryTerm.Severity).definition.join(" ")).toContain(
       `starts with ${seeded("criticalIncident")}, ${seeded("majorIncident")} and ${seeded("minorIncident")} for incidents, and **${seeded("highSeverity")}** and **${seeded("lowSeverity")}** for alerts`,
     );
-    expect(term(GlossaryTerm.ScheduledMaintenance).definition.join(" ")).toContain(
+    expect(
+      term(GlossaryTerm.ScheduledMaintenance).definition.join(" "),
+    ).toContain(
       `moves through **${seeded("createdScheduledMaintenanceState")}**, **${seeded("ongoingScheduledMaintenanceState")}**, **${seeded("endedScheduledMaintenanceState")}** and **${seeded("completedScheduledMaintenanceState")}**`,
     );
   });
@@ -637,9 +654,10 @@ describe("the Glossary, in English", () => {
       "**Project Settings → Advanced → API Keys**",
     );
 
-    const flag: { defaultValue?: unknown } = new Project().getTableColumnMetadata(
-      "isFeatureFlagMonitorGroupsEnabled",
-    ) as { defaultValue?: unknown };
+    const flag: { defaultValue?: unknown } =
+      new Project().getTableColumnMetadata(
+        "isFeatureFlagMonitorGroupsEnabled",
+      ) as { defaultValue?: unknown };
 
     expect(flag.defaultValue).toBe(false);
 
@@ -654,9 +672,9 @@ describe("the Glossary, in English", () => {
   });
 
   it("names the Server / VM monitor's agent by its command, and the header an ingestion key goes in", () => {
-    expect(term(GlossaryTerm.InfrastructureAgent).definition.join(" ")).toContain(
-      "`oneuptime-infrastructure-agent`",
-    );
+    expect(
+      term(GlossaryTerm.InfrastructureAgent).definition.join(" "),
+    ).toContain("`oneuptime-infrastructure-agent`");
     expect(readPage("en", "monitor/server-monitor")).toContain(
       "`oneuptime-infrastructure-agent`",
     );
@@ -776,13 +794,17 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
     translatedTerms.forEach((block: GlossaryTermBlock, index: number) => {
       const english: GlossaryTermBlock = TERMS[index]!;
 
-      expect({ term: english.term, paragraphs: block.definition.length }).toEqual({
+      expect({
+        term: english.term,
+        paragraphs: block.definition.length,
+      }).toEqual({
         term: english.term,
         paragraphs: 1,
       });
-      expect({ term: english.term, same: block.definition[0] === english.definition[0] }).toEqual(
-        { term: english.term, same: false },
-      );
+      expect({
+        term: english.term,
+        same: block.definition[0] === english.definition[0],
+      }).toEqual({ term: english.term, same: false });
       expect({ term: english.term, names: block.names !== "" }).toEqual({
         term: english.term,
         names: true,
@@ -800,7 +822,9 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
         JSON.stringify(codeNamesOf(block.names)) !==
         JSON.stringify(codeNamesOf(english.names))
       ) {
-        problems.push(`${english.term}: code ${codeNamesOf(block.names).join(", ")}`);
+        problems.push(
+          `${english.term}: code ${codeNamesOf(block.names).join(", ")}`,
+        );
       }
 
       const bold: Array<string> = boldNamesOf(block.names);
@@ -867,10 +891,14 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
 
     translatedTerms.forEach((block: GlossaryTermBlock, index: number) => {
       const english: GlossaryTermBlock = TERMS[index]!;
-      const links: Array<{ text: string; target: string }> = linksOf(block.names);
-      const pages: Array<string> = links.map((link: { target: string }): string => {
-        return linkedPage(link.target);
-      });
+      const links: Array<{ text: string; target: string }> = linksOf(
+        block.names,
+      );
+      const pages: Array<string> = links.map(
+        (link: { target: string }): string => {
+          return linkedPage(link.target);
+        },
+      );
       const englishPages: Array<string> = linksOf(english.names).map(
         (link: { target: string }): string => {
           return linkedPage(link.target);
@@ -937,7 +965,9 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
   it("writes its cards with an ASCII ': ' after the link, to the English cards' places", () => {
     const lines: Array<string> = cardLines(translated);
 
-    expect(cardTargets(lines).length).toBe(cardTargets(cardLines(ENGLISH)).length);
+    expect(cardTargets(lines).length).toBe(
+      cardTargets(cardLines(ENGLISH)).length,
+    );
 
     for (const line of lines) {
       expect({ line: line, ascii: CARD_LINE.test(line) }).toEqual({
@@ -953,9 +983,9 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
         return `#${anchorOfHeading(heading.slice(3))}`;
       });
 
-    expect(cardLinkTargets(lines).slice(0, GROUPS.length).map(decodeURIComponent)).toEqual(
-      groupAnchors,
-    );
+    expect(
+      cardLinkTargets(lines).slice(0, GROUPS.length).map(decodeURIComponent),
+    ).toEqual(groupAnchors);
     expect(cardTargets(lines).slice(GROUPS.length)).toEqual(
       cardTargets(cardLines(ENGLISH)).slice(GROUPS.length),
     );
@@ -1002,9 +1032,11 @@ describe("the helpers, on the Glossary's shape", () => {
   it("read each term with its group, definition and names line", () => {
     const terms: Array<GlossaryTermBlock> = glossaryTerms(sample);
 
-    expect(terms.map((block: GlossaryTermBlock): string => {
-      return block.anchor;
-    })).toEqual(["monitor", "probe"]);
+    expect(
+      terms.map((block: GlossaryTermBlock): string => {
+        return block.anchor;
+      }),
+    ).toEqual(["monitor", "probe"]);
     expect(terms[0]!.group).toBe("Start here");
     expect(terms[0]!.definition).toEqual(["Checks one thing. It has `code`."]);
     expect(namesOf(terms[0]!.names)).toEqual(["Check", "MonitorModel"]);
