@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "راهنما",
+    "quickstart": "شروع سریع",
     "documentation": "مستندات",
+    "glossary": "واژه‌نامه",
+    "howOneUptimeWorks": "OneUptime چگونه کار می‌کند",
     "supportEmail": "ایمیل پشتیبانی",
     "chatSlack": "گفتگو در Slack",
     "requestDemo": "درخواست دمو"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "ویجت‌های چیدمان و نمایش که به منبع داده نیاز ندارند.",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "دربارهٔ قالب‌های پویا بیشتر بدانید",
-  "Learn more": "Learn more",
+  "Learn more": "بیشتر بدانید",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "آموخته‌شده از FDB",
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "سطر {{row}}: \"{{key}}\" نام کشف‌شده نیست، مانند {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "سطر {{row}}: \"{{key}}\" آدرس IP نیست، مانند {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "سطر {{row}}: \"{{key}}\" بخش آخر یک آدرس IP نیست، مانند {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "هیچ پیکانی در این نمودار نمی‌گوید {{column}} از کجا می‌آید یا به کجا می‌رود."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "هیچ پیکانی در این نمودار نمی‌گوید {{column}} از کجا می‌آید یا به کجا می‌رود.",
+  "Loading the definition…": "در حال بارگذاری تعریف…",
+  "Read more": "بیشتر بخوانید",
+  "Read what this means in the glossary": "معنای آن را در واژه‌نامه بخوانید",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} برای مشکلاتی است که مشتریان شما حس می‌کنند و می‌توانند در صفحه وضعیت نمایش داده شوند. {{alerts}} برای تیم شماست و هرگز آنجا نمایش داده نمی‌شوند.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} برای هر شدت تعیین می‌کنند که فراخوان کدام روش اعلان را و پس از چه مدت امتحان کند.",
+  "Core Concepts": "مفاهیم اصلی",
+  "Glossary": "واژه‌نامه",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} و {{infrastructure}} هم این چرخه را تغذیه می‌کنند: قواعدی روی لاگ‌ها، متریک‌ها و تریس‌ها، یا روی میزبان‌ها، خوشه‌ها و ابرهای شما هم حادثه و هشدار باز می‌کنند."
 }

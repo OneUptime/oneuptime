@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -101,9 +103,11 @@ const AlertRulesTable: FunctionComponent = (): ReactElement => {
       createEditModalWidth={ModalWidth.Large}
       cardProps={{
         title: "Alert On-Call Rules",
+        titleGlossaryTerm: GlossaryTerm.OnCallRules,
         description:
           "Page on-call policies automatically for new alerts that match.",
       }}
+      documentationLink={Route.fromString("/docs/alerts/settings#on-call-rules")}
       helpContent={{
         title: "How Alert On-Call Rules Work",
         description: "Which new alerts page which on-call policies.",

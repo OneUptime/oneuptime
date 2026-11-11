@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import CurrentStatusElement from "../../Components/MonitorGroup/CurrentStatus";
 import PageComponentProps from "../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
@@ -75,6 +76,7 @@ const MonitorGroupPage: FunctionComponent<
         }}
         cardProps={{
           title: "Monitor Groups",
+          titleGlossaryTerm: GlossaryTerm.MonitorGroup,
           description:
             "Monitors that together make up one service, such as Checkout. A group shows the worst status among its monitors, and a status page can show the whole group as one resource.",
         }}

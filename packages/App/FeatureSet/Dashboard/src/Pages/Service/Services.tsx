@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import ServiceElement from "../../Components/Service/ServiceElement";
 import PageComponentProps from "../PageComponentProps";
@@ -172,6 +173,7 @@ const ServicesPage: FunctionComponent<
         isViewable={true}
         cardProps={{
           title: "Services",
+          titleGlossaryTerm: GlossaryTerm.Service,
           description:
             "The applications and microservices you run. Each service brings together its logs, traces, metrics, exceptions, incidents and owners in one place.",
         }}

@@ -92,6 +92,12 @@ Hvem som har vakt til enhver tid: folk bytter på, og hver av dem overlater til 
 
 Også kalt: **Rotation**. Se [Vaktplaner](/docs/on-call/schedules).
 
+### Lag
+
+Én rotasjon i en vaktplan: hvem som bytter på, hvor ofte vakten overleveres, og hvilke timer laget dekker. Det øverste laget der noen har vakt, er det som varsler, så hovedrotasjonen legges øverst og reservedekningen under.
+
+Se [Vaktplaner](/docs/on-call/schedules#lag).
+
 ### Varselmetode
 
 En adresse OneUptime kan nå deg på i et prosjekt: en e-postadresse, et telefonnummer for SMS eller anrop, Slack- eller Microsoft Teams-kontoen din eller OneUptime-appen på telefonen din. Hver person legger til sine egne under **Brukerinnstillinger**.

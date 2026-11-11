@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Ajuda",
+    "quickstart": "Início rápido",
     "documentation": "Documentação",
+    "glossary": "Glossário",
+    "howOneUptimeWorks": "Como o OneUptime funciona",
     "supportEmail": "E-mail de suporte",
     "chatSlack": "Chat no Slack",
     "requestDemo": "Solicitar demo"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "Widgets de layout e apresentação que não precisam de fonte de dados.",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "Saiba mais sobre modelos dinâmicos",
-  "Learn more": "Learn more",
+  "Learn more": "Saiba mais",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "Aprendido da FDB",
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Linha {{row}}: \"{{key}}\" não é um nome descoberto, como {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Linha {{row}}: \"{{key}}\" não é um endereço IP, como {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Linha {{row}}: \"{{key}}\" não é a última parte de um endereço IP, como {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Nenhuma seta deste diagrama indica de onde {{column}} vem nem para onde vai."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Nenhuma seta deste diagrama indica de onde {{column}} vem nem para onde vai.",
+  "Loading the definition…": "Carregando a definição…",
+  "Read more": "Ler mais",
+  "Read what this means in the glossary": "Veja no glossário o que isso significa",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}: para problemas que seus clientes sentem; podem aparecer em uma página de status. {{alerts}}: para sua equipe; nunca aparecem nela.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}: para cada severidade, qual método de notificação um acionamento tenta e depois de quanto tempo.",
+  "Core Concepts": "Conceitos básicos",
+  "Glossary": "Glossário",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} e {{infrastructure}} alimentam o ciclo: regras sobre seus logs, métricas e traces, ou sobre seus hosts, clusters e nuvens, também abrem incidentes e alertas."
 }

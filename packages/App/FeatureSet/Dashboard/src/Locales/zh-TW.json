@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "說明",
+    "quickstart": "快速開始",
     "documentation": "文件",
+    "glossary": "詞彙表",
+    "howOneUptimeWorks": "OneUptime 如何運作",
     "supportEmail": "支援信箱",
     "chatSlack": "在 Slack 上聊天",
     "requestDemo": "請求示範"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "無需資料來源的版面配置和呈現小工具。",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "了解動態範本",
-  "Learn more": "Learn more",
+  "Learn more": "了解更多",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "從 FDB 學習",
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "第 {{row}} 列：「{{key}}」不是探索到的名稱，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "第 {{row}} 列：「{{key}}」不是 IP 位址，例如 {{example}}。",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "第 {{row}} 列：「{{key}}」不是 IP 位址的最後一部分，例如 {{example}}。",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "此圖中沒有箭頭說明 {{column}} 的來源與去向。"
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "此圖中沒有箭頭說明 {{column}} 的來源與去向。",
+  "Loading the definition…": "正在載入定義…",
+  "Read more": "閱讀更多",
+  "Read what this means in the glossary": "在詞彙表中查看含義",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}用於客戶感受得到的問題，可以顯示在狀態頁面上。{{alerts}}用於你的團隊，永遠不會顯示在狀態頁面上。",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}決定每個嚴重程度下，呼叫會嘗試哪種通知方式，以及等待多久。",
+  "Core Concepts": "核心概念",
+  "Glossary": "詞彙表",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}和{{infrastructure}}也會匯入這個流程：針對日誌、指標和追蹤，或針對主機、叢集和雲端的規則，同樣會建立事件和警示。"
 }

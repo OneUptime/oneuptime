@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import IncidentEpisodeElement from "./IncidentEpisode";
 import { Black } from "Common/Types/BrandColors";
@@ -253,6 +254,7 @@ const IncidentEpisodesTable: FunctionComponent<ComponentProps> = (
         isViewable={true}
         cardProps={{
           title: props.title || "Incident Episodes",
+          titleGlossaryTerm: GlossaryTerm.Episode,
           buttons: cardbuttons,
           description:
             props.description ||

@@ -429,7 +429,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
         {/*
          * The checklist says what to do; this says how the pieces connect.
          * It lives in the same card so it goes away with the checklist once
-         * the project is set up (or the user dismisses it).
+         * the project is set up (or the user dismisses it). The way to it
+         * stays: Help and Home's Explore OneUptime open it in a dialog
+         * (HowOneUptimeWorksDialog) at any time.
          */}
         <div className="mt-6">
           <HowOneUptimeWorks projectId={props.projectId.toString()} />

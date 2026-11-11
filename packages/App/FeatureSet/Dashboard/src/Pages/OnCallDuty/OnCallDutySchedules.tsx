@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import UserElement from "../../Components/User/User";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -150,6 +151,7 @@ const OnCallDutyPage: FunctionComponent<
         }}
         cardProps={{
           title: "On-Call Duty Schedules",
+          titleGlossaryTerm: GlossaryTerm.OnCallSchedule,
           description:
             "Rotations that decide who is on call at any moment. Add a schedule to an on-call policy's escalation rules to page whoever is on call.",
           buttons: [

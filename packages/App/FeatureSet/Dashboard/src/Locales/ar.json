@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "المساعدة",
+    "quickstart": "البدء السريع",
     "documentation": "التوثيق",
+    "glossary": "مسرد المصطلحات",
+    "howOneUptimeWorks": "كيف يعمل OneUptime",
     "supportEmail": "البريد الإلكتروني للدعم",
     "chatSlack": "الدردشة على Slack",
     "requestDemo": "طلب عرض توضيحي"
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس اسمًا مكتشفًا، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس عنوان IP، مثل {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "الصف {{row}}: \"{{key}}\" ليس الجزء الأخير من عنوان IP، مثل {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "لا يذكر أي سهم في هذا المخطط مصدر العمود {{column}} أو وجهته."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "لا يذكر أي سهم في هذا المخطط مصدر العمود {{column}} أو وجهته.",
+  "Loading the definition…": "جارٍ تحميل التعريف…",
+  "Read more": "اقرأ المزيد",
+  "Read what this means in the glossary": "اقرأ معناها في مسرد المصطلحات",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} للمشكلات التي يشعر بها عملاؤك، ويمكن أن تظهر على صفحة الحالة. {{alerts}} لفريقك، ولا تظهر هناك أبدًا.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} تحدد لكل درجة خطورة طريقة الإشعار التي يجربها الاستدعاء، وبعد كم من الوقت.",
+  "Core Concepts": "المفاهيم الأساسية",
+  "Glossary": "مسرد المصطلحات",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} و{{infrastructure}} يغذيان هذه الحلقة أيضًا: القواعد على سجلاتك ومقاييسك وتتبعاتك، أو على مضيفيك وعناقيدك وسحاباتك، تفتح حوادث وتنبيهات كذلك."
 }

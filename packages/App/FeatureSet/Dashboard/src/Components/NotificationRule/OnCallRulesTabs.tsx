@@ -11,12 +11,23 @@ import OnCallRuleKind, {
   readOnCallRuleKind,
 } from "Common/Types/NotificationRule/OnCallRuleKind";
 import ObjectID from "Common/Types/ObjectID";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
+import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import { Tab } from "Common/UI/Components/Tabs/Tab";
 import Tabs from "Common/UI/Components/Tabs/Tabs";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import Navigation from "Common/UI/Utils/Navigation";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+
+// The line over the tabs, and the words it defines.
+export const ON_CALL_RULES_INTRO: string = translationKey(
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.",
+);
+export const ON_CALL_RULES_INTRO_TERM: string = translationKey("On-call rules");
+export const ON_CALL_RULES_INTRO_TEST_ID: string = "on-call-rules-intro";
 
 /*
  * Somebody's on-call notification rules, on one page with a tab per kind:
@@ -143,6 +154,30 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
 
   return (
     <div data-testid="on-call-rules-tabs">
+      {/*
+       * What these rules are, in a line, with the word defined - "on-call
+       * rules" is also the name of the rules under Incidents and Alerts that
+       * pick a policy, and the definition says both - and the docs page.
+       */}
+      <p
+        className="mb-4 text-sm text-gray-500"
+        data-testid={ON_CALL_RULES_INTRO_TEST_ID}
+      >
+        <TranslatedSentence
+          template={ON_CALL_RULES_INTRO}
+          slots={{
+            onCallRules: (
+              <DefinedTerm term={GlossaryTerm.OnCallRules}>
+                {translator.translateText(ON_CALL_RULES_INTRO_TERM)}
+              </DefinedTerm>
+            ),
+          }}
+        />{" "}
+        <LearnMoreLink
+          docsPath="/docs/notifications/on-call-rules"
+          dataTestId="on-call-rules-learn-more"
+        />
+      </p>
       <Tabs
         tabs={tabs}
         initialTabName={getOnCallRuleKindDefinition(requestedKind).tabName}

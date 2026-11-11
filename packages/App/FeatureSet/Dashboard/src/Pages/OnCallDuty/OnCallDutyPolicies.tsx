@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -173,6 +174,7 @@ const OnCallDutyPage: FunctionComponent<
         }}
         cardProps={{
           title: "On-Call Duty Policies",
+          titleGlossaryTerm: GlossaryTerm.OnCallPolicy,
           description:
             "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
         }}

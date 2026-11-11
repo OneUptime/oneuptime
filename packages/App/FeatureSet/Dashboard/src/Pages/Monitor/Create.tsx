@@ -1,4 +1,5 @@
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -1938,6 +1939,7 @@ const MonitorCreate: FunctionComponent<
                   showEvenIfPermissionDoesNotExist: true,
                   stepId: "monitoring-interval",
                   title: "Probes",
+                  glossaryTerm: GlossaryTerm.Probe,
                   /*
                    * It used to say an empty selection meant "use the
                    * defaults". It does not: an explicit empty selection

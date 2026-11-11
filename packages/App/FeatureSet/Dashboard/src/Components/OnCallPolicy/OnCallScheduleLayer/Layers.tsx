@@ -31,6 +31,9 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
+import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import { LayerProps } from "Common/Types/OnCallDutyPolicy/Layer";
 import ScheduleResolution from "Common/Types/OnCallDutyPolicy/ScheduleResolution";
 import {
@@ -887,6 +890,24 @@ const Layers: FunctionComponent<ComponentProps> = (
     setIsSavingTimezone(false);
   };
 
+  /*
+   * "Rotation layers", said with what a layer is (DefinedTerm), and the docs
+   * page that explains them: the same words over the first layer's empty
+   * card and over the list of layers.
+   */
+  const rotationLayersTitle: ReactElement = (
+    <DefinedTerm term={GlossaryTerm.Layer}>
+      {translator.translateText("Rotation layers")}
+    </DefinedTerm>
+  );
+
+  const layersLearnMore: ReactElement = (
+    <LearnMoreLink
+      docsPath="/docs/on-call/schedules#layers"
+      dataTestId="schedule-layers-learn-more"
+    />
+  );
+
   const timezoneCard: GetReactElementFunction = (): ReactElement => {
     return (
       <div className="mb-5">
@@ -946,7 +967,11 @@ const Layers: FunctionComponent<ComponentProps> = (
     return (
       <div>
         {timezoneCard()}
-        <Card title="Rotation layers">
+        <Card
+          title={rotationLayersTitle}
+          titleText="Rotation layers"
+          rightElement={layersLearnMore}
+        >
           <EmptyState
             footer={
               /*
@@ -976,12 +1001,13 @@ const Layers: FunctionComponent<ComponentProps> = (
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-lg font-semibold leading-6 text-gray-900">
-            {translator.translateText("Rotation layers")}
+            {rotationLayersTitle}
           </h2>
           <p className="mt-1.5 max-w-2xl text-sm text-gray-500">
             {translator.translateText(
               "The highest layer with someone on call is the one that pages. Put the main rotation on top, and fall-back cover below it.",
-            )}
+            )}{" "}
+            {layersLearnMore}
           </p>
         </div>
         {/*

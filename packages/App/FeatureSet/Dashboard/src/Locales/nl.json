@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Hulp",
+    "quickstart": "Snelstart",
     "documentation": "Documentatie",
+    "glossary": "Woordenlijst",
+    "howOneUptimeWorks": "Hoe OneUptime werkt",
     "supportEmail": "Support-e-mail",
     "chatSlack": "Chat op Slack",
     "requestDemo": "Demo aanvragen"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "Widgets voor indeling en presentatie die geen gegevensbron nodig hebben.",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "Meer over dynamische sjablonen",
-  "Learn more": "Learn more",
+  "Learn more": "Meer informatie",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "Geleerd uit FDB",
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Rij {{row}}: \"{{key}}\" is geen ontdekte naam, zoals {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Rij {{row}}: \"{{key}}\" is geen IP-adres, zoals {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Rij {{row}}: \"{{key}}\" is niet het laatste deel van een IP-adres, zoals {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Geen enkele pijl in dit diagram zegt waar {{column}} vandaan komt of waar de kolom naartoe gaat."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Geen enkele pijl in dit diagram zegt waar {{column}} vandaan komt of waar de kolom naartoe gaat.",
+  "Loading the definition…": "Definitie laden…",
+  "Read more": "Lees meer",
+  "Read what this means in the glossary": "Lees in de woordenlijst wat dit betekent",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} zijn voor problemen die je klanten merken, en kunnen op een statuspagina verschijnen. {{alerts}} zijn voor je team, en verschijnen daar nooit.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} bepalen per ernst welke meldingsmethode een oproep probeert, en na hoeveel tijd.",
+  "Core Concepts": "Kernbegrippen",
+  "Glossary": "Woordenlijst",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} en {{infrastructure}} voeden de kringloop: regels op je logs, metrics en traces, of op je hosts, clusters en clouds, openen ook incidenten en waarschuwingen."
 }

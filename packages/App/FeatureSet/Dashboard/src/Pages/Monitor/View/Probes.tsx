@@ -8,6 +8,7 @@ import ProbeStatusElement from "../../../Components/Probe/ProbeStatus";
 import ProbeUtil from "../../../Utils/Probe";
 import PageComponentProps from "../../PageComponentProps";
 import BadDataException from "Common/Types/Exception/BadDataException";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import MonitorType, {
@@ -201,6 +202,7 @@ const MonitorProbes: FunctionComponent<
         isCreateable={true}
         cardProps={{
           title: "Probes",
+          titleGlossaryTerm: GlossaryTerm.Probe,
           description:
             "The probes that check this monitor. Add one to check it from another location.",
         }}

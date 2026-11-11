@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Aide",
+    "quickstart": "Démarrage rapide",
     "documentation": "Documentation",
+    "glossary": "Glossaire",
+    "howOneUptimeWorks": "Comment fonctionne OneUptime",
     "supportEmail": "E-mail de support",
     "chatSlack": "Discuter sur Slack",
     "requestDemo": "Demander une démo"
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas un nom découvert, comme {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas une adresse IP, comme {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Ligne {{row}} : « {{key}} » n'est pas la dernière partie d'une adresse IP, comme {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Aucune flèche de ce diagramme n'indique d'où vient {{column}} ni où elle va."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Aucune flèche de ce diagramme n'indique d'où vient {{column}} ni où elle va.",
+  "Loading the definition…": "Chargement de la définition…",
+  "Read more": "Lire la suite",
+  "Read what this means in the glossary": "Lire ce que cela signifie dans le glossaire",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} : pour les problèmes que vos clients ressentent ; ils peuvent apparaître sur une page de statut. {{alerts}} : pour votre équipe ; elles n'y apparaissent jamais.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} : pour chaque gravité, la méthode de notification qu'un appel essaie, et au bout de combien de temps.",
+  "Core Concepts": "Concepts clés",
+  "Glossary": "Glossaire",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} et {{infrastructure}} alimentent la boucle : des règles sur vos journaux, métriques et traces, ou sur vos hôtes, clusters et clouds, ouvrent aussi des incidents et des alertes."
 }

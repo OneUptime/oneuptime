@@ -494,6 +494,7 @@ const MonitorCriteriaElement: FunctionComponent<ComponentProps> = (
                                       props.incidentRoleOptions
                                     }
                                     value={i}
+                                    isFirstCriteria={index === 0}
                                     onDelete={() => {
                                       if (
                                         monitorCriteria.data

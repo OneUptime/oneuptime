@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import { ARCHIVE_INSTEAD_OF_DELETE } from "../../Components/Archive/ResourceArchiveCopy";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -527,6 +528,7 @@ const Slos: FunctionComponent<PageComponentProps> = (): ReactElement => {
         sortOrder={SortOrder.Ascending}
         cardProps={{
           title: "Service Level Objectives",
+          titleGlossaryTerm: GlossaryTerm.SLO,
           description:
             "Reliability targets measured from monitor uptime. Each SLO tracks its error budget and alerts you before the budget runs out.",
         }}

@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Помощь",
+    "quickstart": "Быстрый старт",
     "documentation": "Документация",
+    "glossary": "Глоссарий",
+    "howOneUptimeWorks": "Как работает OneUptime",
     "supportEmail": "Email поддержки",
     "chatSlack": "Чат в Slack",
     "requestDemo": "Запросить демо"
@@ -12013,7 +12016,7 @@
   "Layout and presentation widgets that do not need a data source.": "Виджеты оформления и макета, которым не нужен источник данных.",
   "Leaf Level": "Leaf Level",
   "Learn about dynamic templates": "Подробнее о динамических шаблонах",
-  "Learn more": "Learn more",
+  "Learn more": "Подробнее",
   "Learn more about secrets.": "Learn more about secrets.",
   "Learn more.": "Learn more.",
   "Learned from FDB": "Получено из FDB",
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "Строка {{row}}: «{{key}}» — не обнаруженное имя, например {{example}}.",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "Строка {{row}}: «{{key}}» — не IP-адрес, например {{example}}.",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "Строка {{row}}: «{{key}}» — не последняя часть IP-адреса, например {{example}}.",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Ни одна стрелка на этой диаграмме не указывает, откуда берётся столбец {{column}} и куда он идёт."
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "Ни одна стрелка на этой диаграмме не указывает, откуда берётся столбец {{column}} и куда он идёт.",
+  "Loading the definition…": "Загрузка определения…",
+  "Read more": "Читать дальше",
+  "Read what this means in the glossary": "Прочитать значение в глоссарии",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} — для проблем, которые замечают ваши клиенты; они могут появляться на статус-странице. {{alerts}} — для вашей команды; там они не появляются никогда.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} определяют для каждой серьёзности, какой способ уведомления пробует вызов и через сколько времени.",
+  "Core Concepts": "Основные понятия",
+  "Glossary": "Глоссарий",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} и {{infrastructure}} питают этот цикл: правила для ваших логов, метрик и трассировок или для хостов, кластеров и облаков тоже открывают инциденты и оповещения."
 }

@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "ヘルプ",
+    "quickstart": "クイックスタート",
     "documentation": "ドキュメント",
+    "glossary": "用語集",
+    "howOneUptimeWorks": "OneUptime のしくみ",
     "supportEmail": "サポートメール",
     "chatSlack": "Slack でチャット",
     "requestDemo": "デモをリクエスト"
@@ -50378,5 +50381,13 @@
   "Row {{row}}: \"{{key}}\" is not a discovered name, such as {{example}}.": "行 {{row}}: 「{{key}}」は検出された名前ではありません (例: {{example}})。",
   "Row {{row}}: \"{{key}}\" is not an IP address, such as {{example}}.": "行 {{row}}: 「{{key}}」は IP アドレスではありません (例: {{example}})。",
   "Row {{row}}: \"{{key}}\" is not the last part of an IP address, such as {{example}}.": "行 {{row}}: 「{{key}}」は IP アドレスの最後の部分ではありません (例: {{example}})。",
-  "No arrow on this diagram says where {{column}} comes from or where it goes.": "この図の矢印はどれも、{{column}} の取得元と行き先を示していません。"
+  "No arrow on this diagram says where {{column}} comes from or where it goes.": "この図の矢印はどれも、{{column}} の取得元と行き先を示していません。",
+  "Loading the definition…": "定義を読み込んでいます…",
+  "Read more": "続きを読む",
+  "Read what this means in the glossary": "用語集で意味を確認する",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}}は顧客が影響を受ける問題のためのもので、ステータスページに表示できます。{{alerts}}はチーム向けで、ステータスページには表示されません。",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}}は、重大度ごとに、呼び出しがどの通知方法をどれだけ待ってから試すかを決めます。",
+  "Core Concepts": "基本概念",
+  "Glossary": "用語集",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}}と{{infrastructure}}もこの流れにつながります。ログ、メトリクス、トレース、またはホスト、クラスター、クラウドに対するルールも、インシデントやアラートを作成します。"
 }

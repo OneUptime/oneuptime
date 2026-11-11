@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -91,6 +92,7 @@ const TelemetryIngestionKeys: FunctionComponent<
         userPreferencesKey="telemetry-ingestion-keys-table"
         cardProps={{
           title: "Telemetry Ingestion Keys",
+          titleGlossaryTerm: GlossaryTerm.IngestionKey,
           description:
             "These keys are used to ingest telemetry data like Logs, Traces and Metrics for your project.",
         }}

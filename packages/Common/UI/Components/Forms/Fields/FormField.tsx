@@ -606,6 +606,7 @@ const FormField: <T extends GenericObject>(
             description={getFieldDescription()}
             descriptionId={describedBy}
             sideLink={props.field.sideLink}
+            glossaryTerm={props.field.glossaryTerm}
             required={required}
             hideOptionalLabel={props.field.hideOptionalLabel}
             isHeading={props.field.styleType === FormFieldStyleType.Heading}

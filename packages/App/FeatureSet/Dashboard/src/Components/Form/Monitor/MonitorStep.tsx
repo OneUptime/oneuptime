@@ -1,4 +1,6 @@
 import MonitorCriteriaElement from "./MonitorCriteria";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
+import LearnMoreLink from "Common/UI/Components/Link/LearnMoreLink";
 import TelemetryRuleEditor from "./TelemetryRule/TelemetryRuleEditor";
 import TelemetryRuleRecipePicker from "./TelemetryRule/TelemetryRuleRecipePicker";
 import TelemetryAlertRuleUtil from "Common/Types/Monitor/TelemetryAlertRule";
@@ -2604,7 +2606,14 @@ return {
       ) : (
         <Card
           title="Monitor Criteria"
+          titleGlossaryTerm={GlossaryTerm.Criteria}
           description="When this monitor changes status, declares an incident or creates an alert. They are checked from top to bottom, and the first one that matches decides."
+          rightElement={
+            <LearnMoreLink
+              docsPath="/docs/monitor/criteria-and-statuses"
+              dataTestId="monitor-criteria-learn-more"
+            />
+          }
         >
           {criteriaElement}
         </Card>
