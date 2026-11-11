@@ -98,12 +98,17 @@ describe("the Dashboard's behaviour events", () => {
 
   test("the importer opened: from ?from= on its address, else Project Settings", () => {
     const source: string = read("Pages/Settings/ImportFromTool.tsx");
+    // The links to the importer and the page share the names (#6809).
+    const links: string = read("Components/ToolImport/ToolImportLinks.ts");
 
-    expect(source).toContain(
+    expect(links).toContain(
       'export const IMPORTER_OPENED_FROM_QUERY_PARAM: string = "from";',
     );
-    expect(source).toContain(
+    expect(links).toContain(
       'export const IMPORTER_OPENED_FROM_SETTINGS: string = "settings";',
+    );
+    expect(source).toContain(
+      'from "../../Components/ToolImport/ToolImportLinks";',
     );
     expect(source).toMatch(
       /ProductEvents\.send\(ProductEventName\.ImporterOpened, \{\s*from:\s*Navigation\.getQueryStringByName\(IMPORTER_OPENED_FROM_QUERY_PARAM\) \|\|\s*IMPORTER_OPENED_FROM_SETTINGS,\s*\}\);/,

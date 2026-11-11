@@ -31,6 +31,15 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import IconProp from "Common/Types/Icon/IconProp";
 import EmailProviderSettingsCard from "./EmailProviderSettingsCard";
+import ServerTestCard, {
+  SERVER_TEST_CARD_COPY,
+} from "../../../Components/ServerSetup/ServerTestCard";
+import { ServerSendingChannel } from "Common/Types/ServerSending/ServerSendingStatus";
+import { ServerSetupCheckId } from "Common/Types/ServerSetup/ServerSetupChecklist";
+import {
+  useServerSetupChecklist,
+  UseServerSetupChecklistResult,
+} from "Common/UI/Utils/ServerSetupChecklist";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import GlobalConfig, {
   EmailServerType,
@@ -125,6 +134,13 @@ export const getSmtpAuthTypeTitle: (value: unknown) => string = (
 
 const Settings: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  // Where email stands, for the test card, read again after a save.
+  const checklist: UseServerSetupChecklistResult = useServerSetupChecklist();
+
+  const onSettingsSaved: () => void = (): void => {
+    // Saving the settings starts email again at "not tested yet".
+    void checklist.reload();
+  };
   const [emailServerType, setemailServerType] = React.useState<EmailServerType>(
     EmailServerType.CustomSMTP,
   );
@@ -192,7 +208,17 @@ const Settings: FunctionComponent = (): ReactElement => {
       ]}
       sideMenu={<DashboardSideMenu />}
     >
-      {/* Project Settings View  */}
+      {/*
+       * Does it work? Where email stands and its test send, first: it is
+       * what the admin came here to make true.
+       */}
+      <ServerTestCard
+        check={ServerSetupCheckId.Email}
+        title={t(SERVER_TEST_CARD_COPY.emailTitle)}
+        description={t(SERVER_TEST_CARD_COPY.emailDescription)}
+        channels={[ServerSendingChannel.Email]}
+        checklist={checklist}
+      />
 
       <CardModelDetail
         name="Admin Notification Email"
@@ -314,6 +340,7 @@ const Settings: FunctionComponent = (): ReactElement => {
           editButtonText={t("pages.settings.email.smtpEditButton")}
           // Titled like the button that opens it, not "Edit Global Config".
           editModalTitle={t("pages.settings.email.smtpEditButton")}
+          onSaveSuccess={onSettingsSaved}
           formSteps={SMTP_HOST_FORM_STEPS}
           formFields={SMTP_HOST_FORM_FIELDS}
           modelDetailProps={{
@@ -490,6 +517,7 @@ const Settings: FunctionComponent = (): ReactElement => {
           editButtonText={t("pages.settings.email.sendgridEditButton")}
           // Titled like the button that opens it, not "Edit Global Config".
           editModalTitle={t("pages.settings.email.sendgridEditButton")}
+          onSaveSuccess={onSettingsSaved}
           formFields={[
             {
               field: {
@@ -596,6 +624,7 @@ const Settings: FunctionComponent = (): ReactElement => {
 
             return (
               <EmailProviderSettingsCard
+                onSaveSuccess={onSettingsSaved}
                 key={provider.transport}
                 transport={provider.transport}
               />

@@ -55,27 +55,26 @@ Standaard wordt een formulier aangeboden op zijn link, op het eigen adres van On
 
 Het formulier op je eigen domein zetten kost drie stappen, en alleen de eerste twee zijn voor jou:
 
-1. **Het domein toevoegen**: een subdomein en een van je geverifieerde domeinen.
-2. **Het CNAME-record ervan toevoegen** bij je DNS-provider. Het dialoogvenster **DNS-instelling** opent met het record zodra je het domein toevoegt.
+1. **Het domein toevoegen**: typ het adres dat mensen gaan openen, zoals `report.acme.com`.
+2. **De DNS-records ervan toevoegen** bij je DNS-provider. Het dialoogvenster **DNS-instelling** toont ze: een CNAME-record voor het adres en, de eerste keer dat het project een domein gebruikt, een TXT-record dat laat zien dat het domein van het project is.
 3. **Het gratis SSL-certificaat wordt automatisch uitgegeven** zodra het record is gevonden. Er is geen knop om op te drukken.
 
 Zodra het domein live is, toont de kaart **Deellink** het boven de link van het formulier. Beide openen hetzelfde formulier.
 
 ### Een domein toevoegen
 
-Klik op **Formulierdomein aanmaken**. Het dialoogvenster is één pagina:
+Klik op **Aangepast domein toevoegen**. Het dialoogvenster vraagt om één ding:
 
-- **Subdomein**: alleen het label, met de voorbeeldtekst `report (leave blank for root)`. Vul alleen `report` in, niet de hele hostnaam. Laat het leeg of vul `@` in om het hoofddomein te gebruiken.
-- **Domein**: een van de domeinen die zijn geverifieerd onder **Projectinstellingen** > **Geavanceerd** > **Domeinen**, waar je met een TXT-record bewijst dat een domein van jou is. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
+- **Domein**: het volledige adres dat mensen gaan openen, met de voorbeeldtekst `report.example.com`. Een geplakte link werkt ook: alleen de hostnaam ervan wordt bewaard. Om het hoofddomein te gebruiken, typ je gewoon het domein zelf.
 - **Meer velden**: ingeklapt. Open het alleen om een eigen certificaat te gebruiken: zet **Aangepast certificaat uploaden** aan en plak het **Certificaat** en de **Privésleutel van certificaat** ervan.
 
-Klik nogmaals op **Formulierdomein aanmaken** om het toe te voegen. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent. De naam van een domein en zijn formulier liggen vast zodra het is toegevoegd, dus **Bewerken** wijzigt alleen het certificaat: om een van beide te wijzigen, voeg je het nieuwe domein toe en verwijder je het oude.
+Klik op **Doorgaan**. Als het project het domein waarop het adres staat heeft geverifieerd, onder **Projectinstellingen** > **Geavanceerd** > **Domeinen**, wordt het domein toegevoegd en opent de **DNS-instelling** ervan. Zo niet, dan voegt OneUptime dat domein toe aan het project en opent de **DNS-instelling** ook met het TXT-record ervan, zodat je het meteen daar verifieert. De naam van een domein en zijn formulier liggen vast zodra het is toegevoegd, dus **Bewerken** wijzigt alleen het certificaat: om een van beide te wijzigen, voeg je het nieuwe domein toe en verwijder je het oude.
 
 Een domein toont één statuspagina, één dashboard of één formulier, dus een naam die een van die al heeft, in welk project ook, wordt geweigerd: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### DNS-instelling en Nu controleren
 
-Het dialoogvenster **DNS-instelling** toont het record dat je bij je DNS-provider toevoegt, elk veld met een kopieerknop: **Type** `CNAME`, **Naam** het volledige domein dat je hebt toegevoegd, en **Waarde** het CNAME-record van je installatie. Voor een hoofddomein staan veel DNS-providers geen CNAME-record toe: gebruik dan het ALIAS-, ANAME- of CNAME-flattening-record van je provider, met dezelfde waarde.
+Het dialoogvenster **DNS-instelling** toont elk record dat je bij je DNS-provider toevoegt, elk veld met een kopieerknop: **Type** `CNAME`, **Naam** het volledige domein dat je hebt toegevoegd, en **Waarde** het CNAME-record van je installatie, na het TXT-record van het domein zolang het project dat niet heeft geverifieerd. Onder elk record zegt **Nu controleren** wat OneUptime heeft opgezocht en wat er terugkwam. Voor een hoofddomein staan veel DNS-providers geen CNAME-record toe: gebruik dan het ALIAS-, ANAME- of CNAME-flattening-record van je provider, met dezelfde waarde.
 
 OneUptime controleert elk niet-geverifieerd domein elke 15 minuten, en als het het record vindt, bestelt het in dezelfde controle het gratis Let's Encrypt-certificaat van het domein. Klik op **Nu controleren** om meteen te controleren. Zolang een domein niet live is, heeft de rij een actie **DNS-instelling** die hetzelfde dialoogvenster opent, waar **Nu controleren** ook een mislukt of verlopen certificaat opnieuw bestelt, hooguit één keer per domein per 15 minuten. Vernieuwen gaat automatisch, ruim voordat het certificaat verloopt.
 

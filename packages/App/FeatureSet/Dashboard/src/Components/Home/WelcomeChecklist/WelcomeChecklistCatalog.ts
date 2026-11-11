@@ -1,6 +1,9 @@
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
-import { SERVER_EMAIL_COPY } from "../../../Utils/ServerEmail";
+import {
+  ADMIN_SERVER_SETUP_ROUTE as SERVER_SETUP_ROUTE,
+  SERVER_EMAIL_COPY,
+} from "../../../Utils/ServerEmail";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -214,12 +217,11 @@ export interface WelcomeStepEntry {
 }
 
 /*
- * The server setup page of the Admin Dashboard, where a master admin sets
- * email up. #6824 is building its own page for this (/admin/setup); until
- * it lands, the Admin Dashboard's setup checklist is on its first page,
- * Users. Change this one line when it does.
+ * The server setup page of the Admin Dashboard (/admin/setup, #6824),
+ * where a master admin sets email up and tests it: the same route the
+ * Dashboard's server setup card opens (Utils/ServerEmail).
  */
-export const ADMIN_SERVER_SETUP_ROUTE: string = "/users";
+export const ADMIN_SERVER_SETUP_ROUTE: string = SERVER_SETUP_ROUTE;
 
 export const getAdminServerSetupUrl: () => URL = (): URL => {
   return URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(

@@ -73,6 +73,16 @@ jest.mock("../../../UI/Config", () => {
     },
   });
 
+  /*
+   * OneUptime Cloud: a self-hosted server's readiness, read when DNS Setup
+   * or Add Custom Domain opens, is AddCustomDomainModal.test.tsx's.
+   */
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return true;
+    },
+  });
+
   return mocked;
 });
 
@@ -178,7 +188,7 @@ const KINDS: Array<KindCase> = [
     customDomainsRoute: `/dashboard/${PROJECT_ID}/status-pages/${PARENT_ID}/domains`,
     example: "status.example.com",
     certificatesPath: `/status-page-domain/certificates/${PARENT_ID}`,
-    verifyPath: "/status-page-domain/verify-cname/",
+    verifyPath: "/status-page-domain/check-dns/",
   },
   {
     name: "a dashboard",
@@ -188,7 +198,7 @@ const KINDS: Array<KindCase> = [
     customDomainsRoute: `/dashboard/${PROJECT_ID}/dashboards/${PARENT_ID}/custom-domains`,
     example: "dashboard.example.com",
     certificatesPath: `/dashboard-domain/certificates/${PARENT_ID}`,
-    verifyPath: "/dashboard-domain/verify-cname/",
+    verifyPath: "/dashboard-domain/check-dns/",
   },
   {
     name: "a form",
@@ -199,7 +209,7 @@ const KINDS: Array<KindCase> = [
     customDomainsRoute: `/dashboard/${PROJECT_ID}/forms/${PARENT_ID}/custom-domains`,
     example: "report.example.com",
     certificatesPath: `/form-domain/certificates/${PARENT_ID}`,
-    verifyPath: "/form-domain/verify-cname/",
+    verifyPath: "/form-domain/check-dns/",
   },
 ];
 
@@ -333,8 +343,12 @@ beforeEach(() => {
       args[0] as { url: { toString: () => string } }
     ).url.toString();
 
-    if (url.includes("/verify-cname/")) {
-      return response({ certificateStatus: "Issuing" });
+    if (url.includes("/check-dns/")) {
+      return response({
+        isVerified: true,
+        records: [],
+        certificate: { certificateStatus: "Issuing" },
+      });
     }
 
     if (certificatesAnswer === "throws") {

@@ -33,6 +33,8 @@ export default class FormDomainAPI extends BaseAPI<
         return FormCNameRecord;
       },
       parentColumn: "formId",
+      cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD",
+      cnameRecordHelmValue: "statusPage.cnameRecord",
     });
   }
 }

@@ -1,6 +1,6 @@
 # Branding e domini della pagina di stato
 
-La vostra pagina di stato è l'unica schermata di OneUptime che guardano i vostri clienti, quindi dovrebbe somigliarvi e stare sul vostro dominio, come `status.yourcompany.com`. Questa pagina percorre la pagina **Branding** scheda per scheda, poi porta la pagina di stato sul vostro dominio: aggiungete il dominio, aggiungete un record DNS e il certificato SSL gratuito arriva da solo.
+La vostra pagina di stato è l'unica schermata di OneUptime che guardano i vostri clienti, quindi dovrebbe somigliarvi e stare sul vostro dominio, come `status.yourcompany.com`. Questa pagina percorre la pagina **Branding** scheda per scheda, poi porta la pagina di stato sul vostro dominio: aggiungete il dominio, aggiungete i suoi record DNS e il certificato SSL gratuito arriva da solo.
 
 :::cards
 - [La pagina Branding](#la-pagina-branding): Logo, tema, titolo, favicon, link, footer, colori e lingue.
@@ -155,20 +155,20 @@ Su OneUptime Cloud, aggiungerne o modificarne uno richiede il piano **Growth**. 
 
 Per impostazione predefinita, una pagina di stato è raggiungibile all'URL di anteprima mostrato nella sua schermata **Panoramica**. Per portarla sul vostro nome host, andate in **Pagine di stato → la vostra pagina → Branding → Domini personalizzati** (`{id}/domains`).
 
-La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Crea: Dominio della pagina di stato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
+La scheda **Domini personalizzati** dice cosa fare: fate puntare il record CNAME di ogni dominio al record CNAME delle pagine di stato della vostra installazione, e OneUptime emette il certificato SSL del dominio e lo rinnova per voi. Quando non c'è nulla di configurato, la tabella dice **Nessun dominio personalizzato trovato**, con **Aggiungi dominio personalizzato** sotto. La tabella ha due colonne, **Dominio** e **Stato**, e filtri per **Dominio**, **CNAME valido** e **SSL provisionato**.
 
-Portare la pagina sul vostro dominio richiede tre passaggi, e solo i primi due spettano a voi:
+Portare la pagina sul vostro dominio richiede tre passaggi, tutti su questa pagina, e solo i primi due spettano a voi:
 
-1. **Aggiungere il dominio**: un sottodominio e uno dei vostri domini verificati.
-2. **Aggiungere il suo record CNAME** presso il vostro provider DNS. La finestra di dialogo **Configurazione DNS** mostra il record appena aggiungete il dominio.
-3. **Il certificato SSL gratuito viene emesso automaticamente** non appena il record viene trovato. Non c'è nessun pulsante da premere.
+1. **Aggiungere il dominio**: digitate l'indirizzo che le persone apriranno, come `status.yourcompany.com`.
+2. **Aggiungere i suoi record DNS** presso il vostro provider DNS. La finestra di dialogo **Configurazione DNS** li mostra: un record CNAME per l'indirizzo e, la prima volta che il progetto usa un dominio, un record TXT che dimostra che il dominio appartiene al progetto.
+3. **Il certificato SSL gratuito viene emesso automaticamente** non appena i record vengono trovati. Non c'è nessun pulsante da premere.
 
 ```mermaid title="Da un nuovo dominio personalizzato a HTTPS"
 flowchart TB
-    A["Aggiungere il dominio"] --> B["Configurazione DNS mostra il record CNAME"]
-    B --> C["Aggiungere il record presso il provider DNS"]
-    C --> D{"Record trovato?"}
-    D -->|"Non ancora"| E["Verifica ora, o il controllo ogni 15 minuti"]
+    A["Digitare l'indirizzo"] --> B["Configurazione DNS mostra i record"]
+    B --> C["Aggiungerli presso il provider DNS"]
+    C --> D{"Record trovati?"}
+    D -->|"Non ancora"| E["Verifica ora dice cosa ha trovato"]
     E --> D
     D -->|"Sì"| F["Dominio verificato"]
     F --> G["Certificato gratuito ordinato a Let's Encrypt"]
@@ -177,8 +177,8 @@ flowchart TB
 
 ### Prima di iniziare
 
-- **Il dominio padre deve essere verificato.** L'elenco **Dominio** mostra solo i domini verificati in **Impostazioni del progetto → Avanzato → Domini**, dove dimostrate con un record TXT che un dominio è vostro. Il link **Aggiungi un dominio** accanto al campo apre quella pagina in una nuova scheda.
-- **La vostra installazione ha bisogno di un record CNAME per le pagine di stato.** OneUptime Cloud ne ha uno. In un'installazione self-hosted, impostatelo su un nome host che punta al vostro server OneUptime (un record A), e assicuratevi che il server risponda sulla porta 80, dove Let's Encrypt lo verifica. Senza di esso, la scheda e la finestra di dialogo **Configurazione DNS** dicono «Custom Domains not enabled for this OneUptime installation» invece di mostrare un record.
+- **La vostra installazione ha bisogno di un record CNAME per le pagine di stato.** OneUptime Cloud ne ha uno. In un'installazione self-hosted, impostatelo su un nome host che punta al vostro server OneUptime (un record A), e assicuratevi che il server risponda sulle porte 80 e 443: è lì che i visitatori e Let's Encrypt raggiungono ogni dominio personalizzato. Senza di esso, la scheda e la finestra di dialogo **Configurazione DNS** dicono «Custom Domains not enabled for this OneUptime installation» invece di mostrare un record.
+- **Un server self-hosted viene controllato per primo.** **Aggiungi dominio personalizzato** e **Configurazione DNS** dicono cosa manca ancora al server prima che qualsiasi dominio personalizzato possa funzionare, sotto «This server is not ready for custom domains yet»: se l'impostazione del record CNAME è definita, se il suo nome host si risolve, se raggiunge questa installazione di OneUptime sulla porta 80 e accetta connessioni sulla porta 443, e se il server emette certificati gratuiti. Ogni riga dice cosa cambiare e dove. I controlli partono dal server stesso, quindi le persone fuori dalla vostra rete devono raggiungere il nome host sulle stesse porte.
 
 :::tabs
 @tab Docker Compose
@@ -195,48 +195,52 @@ statusPage:
 ### Aggiungere il dominio
 
 :::steps
-#### Aprire Crea: Pagina di stato Dominio
+#### Aprire Aggiungi dominio personalizzato
 
-In **Domini personalizzati**, fate clic su **Crea: Dominio della pagina di stato**. La finestra di dialogo è una sola pagina.
+In **Domini personalizzati**, fate clic su **Aggiungi dominio personalizzato**. La finestra di dialogo chiede una sola cosa.
 
-#### Inserire il sottodominio
+#### Digitare l'indirizzo
 
-In **Sottodominio** (segnaposto `status (leave blank for root)`), inserite solo l'etichetta, come `status`, non il nome host completo. Lasciatelo vuoto, o inserite `@`, per usare il dominio radice (apex).
-
-#### Scegliere il dominio
-
-In **Dominio** (segnaposto `Select domain`), scegliete uno dei vostri domini verificati. Un dominio che non avete verificato non compare, perché verrebbe rifiutato.
+In **Dominio** (segnaposto `status.example.com`), digitate l'indirizzo completo che le persone apriranno, come `status.yourcompany.com`. Funziona anche un link incollato: viene tenuto solo il suo nome host. Per usare la radice di un dominio, digitate il dominio stesso.
 
 #### Tenere il certificato gratuito o caricare il vostro
 
 **Altri campi** è chiuso, e la sua intestazione dice quale certificato userà il dominio: «Emettiamo un certificato SSL gratuito per questo dominio e lo rinnoviamo automaticamente.» Apritelo solo per usare un certificato vostro: attivate **Carica certificato personalizzato**, poi incollate il **Certificato** e la **Chiave privata del certificato** in formato PEM. Entrambi diventano allora obbligatori.
 
-#### Creare il dominio
+#### Continuare
 
-Fate clic su **Crea: Dominio della pagina di stato**. La finestra di dialogo si chiude e si apre la **Configurazione DNS** del nuovo dominio, con il record da aggiungere.
+Fate clic su **Continua**. Se il progetto ha verificato il dominio su cui si trova l'indirizzo, il dominio viene aggiunto e si apre la sua **Configurazione DNS**, con il record CNAME da aggiungere. Altrimenti, OneUptime aggiunge quel dominio a **Impostazioni del progetto → Avanzato → Domini**, e la **Configurazione DNS** si apre con entrambi i record, così verificate il dominio lì stesso, senza lasciare la pagina.
 :::
 
-Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro sottodominio, aggiungete quel dominio ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
+Il nome completo di un dominio viene fissato quando lo aggiungete, quindi **Modifica** cambia solo il suo certificato. Per usare un altro indirizzo, aggiungete quello ed eliminate quello vecchio. Un nome che una dashboard o un modulo usa già, in qualsiasi progetto, viene rifiutato: un dominio mostra una sola pagina di stato, una sola dashboard o un solo modulo.
+
+Aggiungere un dominio al progetto richiede il permesso di creare domini di progetto (**Create Domain**, oppure Project Owner o Project Admin), e verificarlo richiede **Edit Domain**. Senza questi permessi, la finestra di dialogo dice chi può farlo.
 
 ### Configurazione DNS e verifica
 
-La finestra di dialogo **Configurazione DNS** mostra il record da aggiungere presso il vostro provider DNS, un campo per riga, ciascuno con un pulsante per copiarlo:
+La finestra di dialogo **Configurazione DNS** mostra ogni record ancora necessario presso il vostro provider DNS, un campo per riga, ciascuno con un pulsante per copiarlo:
 
-| Campo | Cosa inserire |
-| ----- | ------------- |
-| **Tipo** | `CNAME` |
-| **Nome** | Il dominio completo che avete aggiunto, per esempio `status.yourcompany.com` |
-| **Valore** | Il record CNAME delle pagine di stato della vostra installazione |
+| Record | **Tipo** | **Nome** | **Valore** |
+| ------ | -------- | -------- | --------- |
+| Dimostra che il dominio appartiene al progetto, finché non è verificato | `TXT` | Il dominio, per esempio `yourcompany.com` | Il suo testo di verifica, `oneuptime-verification-…` |
+| Fa puntare l'indirizzo a OneUptime | `CNAME` | L'indirizzo completo, per esempio `status.yourcompany.com` | Il record CNAME delle pagine di stato della vostra installazione |
+
+Il record TXT si aggiunge una volta per dominio: ogni indirizzo successivo su quel dominio ha bisogno solo del suo record CNAME. Per un indirizzo sotto il dominio i due stanno su nomi diversi, perché un nome con un record CNAME non può avere nessun altro record; per la radice del dominio, il record ALIAS o di appiattimento del CNAME sta accanto al record TXT.
 
 > [!NOTE]
 > Per un dominio radice, senza sottodominio, la finestra di dialogo aggiunge una nota: molti provider DNS non consentono lì un record CNAME. Usate invece il record ALIAS, ANAME o di appiattimento del CNAME del vostro provider, con lo stesso valore.
 
-OneUptime controlla ogni dominio non verificato ogni 15 minuti e verifica il vostro non appena il suo record è attivo, che torniate o no. Per controllare subito, fate clic su **Verifica ora**:
+Fate clic su **Verifica ora** per cercare subito i record. Controlla prima il record TXT e, non appena lo trova, aggiunge il dominio alla pagina di stato e controlla il suo record CNAME. Ogni record mostra poi il proprio stato, **Trovato**, **Valore errato**, **Non ancora trovato** o **Impossibile verificare**, e sotto cosa ha cercato OneUptime e cosa ha ottenuto, con cosa cambiare:
 
-- **Il record non è ancora stato trovato.** La finestra di dialogo resta aperta e dice quale record ha cercato. Un nuovo record DNS può metterci un po' a comparire: fate di nuovo clic su **Verifica ora** più tardi, oppure lasciate fare al controllo ogni 15 minuti.
-- **Il record è stato trovato.** La finestra di dialogo dice «Il tuo record CNAME è verificato.» e cosa succede poi al certificato. Il certificato gratuito viene ordinato in quel momento.
+- «Abbiamo cercato il record CNAME di status.yourcompany.com e non abbiamo ottenuto nulla.» Il record non c'è ancora, o non è ancora visibile: un nuovo record può metterci un po' a comparire.
+- «Abbiamo cercato il record CNAME di status.yourcompany.com e abbiamo ottenuto other.example.net, ma ci aspettavamo oneuptime.yourcompany.com.» Il record punta altrove: cambiatene il valore.
+- «Abbiamo cercato il record CNAME di status.yourcompany.com e non abbiamo ottenuto nulla, ma il nome risponde con l'indirizzo 203.0.113.10.» Il nome ha un record A, oppure il suo provider DNS lo fa passare da un proxy o lo appiattisce (la nuvola arancione di Cloudflare lo fa), il che nasconde il record CNAME a tutti: sostituite il record A, o impostate il nome su DNS only.
 
-Finché un dominio non è verificato e il suo certificato non è pronto, la sua riga ha un'azione **Configurazione DNS** che apre la stessa finestra di dialogo. Su un dominio verificato il cui ordine di certificato continua a fallire, o il cui certificato è scaduto, **Verifica ora** lì ordina di nuovo e mostra perché l'ultimo ordine è fallito. Ordina al massimo una volta per dominio ogni 15 minuti; nel frattempo, OneUptime continua a riprovare da solo.
+OneUptime segue l'intera catena di CNAME, quindi conta anche un record che punta a un vostro nome, che a sua volta punta al record della vostra installazione. Lo stesso vale per un nome le cui richieste raggiungono OneUptime, anche quando il suo provider DNS nasconde il record CNAME.
+
+Una volta trovato il record CNAME, la finestra di dialogo dice «Il tuo record CNAME è verificato.» e cosa succede poi al certificato. Il certificato gratuito viene ordinato in quel momento. Se le richieste all'indirizzo continuano a non raggiungere OneUptime, per esempio perché un proxy davanti a un server self-hosted non inoltra l'indirizzo, la finestra di dialogo lo dice: il certificato non può essere emesso finché non lo raggiungono.
+
+OneUptime controlla il record CNAME di ogni dominio non verificato ogni 15 minuti e verifica il vostro non appena è attivo, che torniate o no. Finché un dominio non è verificato e il suo certificato non è pronto, la sua riga ha un'azione **Configurazione DNS** che apre la stessa finestra di dialogo. Su un dominio verificato il cui ordine di certificato continua a fallire, o il cui certificato è scaduto, **Verifica ora** lì ordina di nuovo e mostra perché l'ultimo ordine è fallito. Ordina al massimo una volta per dominio ogni 15 minuti; nel frattempo, OneUptime continua a riprovare da solo.
 
 ### Certificati SSL
 
@@ -285,7 +289,7 @@ La colonna **Stato** dice a che punto è ogni dominio sulla strada verso HTTPS, 
 | Verificato. Usa l'HTTPS del tuo proxy. | Su un'installazione self-hosted senza chiave dell'account Let's Encrypt, il record è verificato e il dominio è attivo. Il suo HTTPS spetta al vostro proxy, a meno che non carichiate un certificato. |
 
 :::details Un dominio resta su «In attesa del DNS» molto dopo l'aggiunta del record
-Controllate che il nome del record sia il dominio completo, come `status.yourcompany.com`, e che il suo valore corrisponda esattamente al record CNAME della vostra installazione. Su un dominio radice, usate un record ALIAS, ANAME o CNAME appiattito. Poi fate clic su **Verifica ora** in **Configurazione DNS**.
+Aprite **Configurazione DNS** e fate clic su **Verifica ora**: sotto il record, dice cosa ha cercato OneUptime e cosa ha ottenuto. Controllate che il nome del record sia il dominio completo, come `status.yourcompany.com`, e che il suo valore corrisponda al record CNAME della vostra installazione. Se dice che il nome risponde con un indirizzo, il nome ha un record A o passa dal proxy del suo provider DNS: sostituite il record A, o impostate il nome su DNS only. Su un dominio radice, usate un record ALIAS, ANAME o CNAME appiattito.
 :::
 
 :::details La colonna Stato dice che non è stato possibile emettere un certificato gratuito
@@ -298,7 +302,7 @@ Cercate sul vostro dominio un record CAA che escluda `letsencrypt.org` e, in un'
 
 Chi può solo leggere il dominio, come un Viewer o uno Status Page Viewer, vede comunque la colonna **Stato** e il record da aggiungere in **Configurazione DNS**. Per loro **Verifica ora** e **Reissue SSL** sono bloccati e indicano quale permesso serve. OneUptime continua comunque a controllare ogni dominio e a ordinarne il certificato da solo.
 
-Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini delle pagine di stato non può chiamare `verify-cname`, `order-ssl` o `reissue-ssl` su `/status-page-domain`. Datele **Read Status Page Domain** e **Edit Status Page Domain** se le servono.
+Lo stesso vale per le chiavi API. Una chiave che può solo leggere i domini delle pagine di stato non può chiamare `verify-cname`, `check-dns`, `order-ssl` o `reissue-ssl` su `/status-page-domain`. Datele **Read Status Page Domain** e **Edit Status Page Domain** se le servono. Quando il record non viene trovato, `verify-cname` rifiuta indicando cosa ha cercato e cosa ha ottenuto, con le stesse parole che mostra **Configurazione DNS**; `check-dns` risponde in ogni caso per ogni record che ha cercato.
 
 ## Powered by OneUptime
 

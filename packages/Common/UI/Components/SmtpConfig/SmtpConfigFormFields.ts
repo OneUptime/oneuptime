@@ -1734,11 +1734,34 @@ export const getGlobalEmailProviderFormFields: (
   ];
 };
 
-// The instance's mail server (GlobalConfig): the shared fields as they are.
+/*
+ * The instance's mail server (GlobalConfig): the shared fields, with the
+ * port starting on 587 when the instance has none (#6875). The form edits
+ * the one settings row, so nothing else is filled in; a fresh server's
+ * empty port showed 587 as its placeholder, looked filled in, and refused
+ * Next. An instance with a port of its own keeps it.
+ */
 export const getGlobalSmtpConfigFormFields: () => Array<
   Field<GlobalConfig>
 > = (): Array<Field<GlobalConfig>> => {
-  return getSmtpConfigFormFields<GlobalConfig>(GLOBAL_SMTP_CONFIG_FORM_COLUMNS);
+  return getSmtpConfigFormFields<GlobalConfig>(
+    GLOBAL_SMTP_CONFIG_FORM_COLUMNS,
+  ).map((field: Field<GlobalConfig>): Field<GlobalConfig> => {
+    const isPort: boolean = Boolean(
+      field.field &&
+        (field.field as Record<string, unknown>)[
+          GLOBAL_SMTP_CONFIG_FORM_COLUMNS.port
+        ],
+    );
+
+    return isPort
+      ? {
+          ...field,
+          defaultValue: DEFAULT_SMTP_PORT,
+          startsOnDefaultWhenEmpty: true,
+        }
+      : field;
+  });
 };
 
 /*

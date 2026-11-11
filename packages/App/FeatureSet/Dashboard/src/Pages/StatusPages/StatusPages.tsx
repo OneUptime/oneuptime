@@ -1,4 +1,10 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import {
+  STATUS_PAGES_IMPORT_OFFER,
+  withToolImportOffer,
+} from "../../Components/ToolImport/ToolImportOffer";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import PageComponentProps from "../PageComponentProps";
 import URL from "Common/Types/API/URL";
 import Route from "Common/Types/API/Route";
@@ -36,6 +42,7 @@ import ProductShowcase from "../../Components/ProductOnboarding/ProductShowcase"
 import { ProductKey } from "../../Components/ProductOnboarding/ProductOnboarding";
 
 const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
+  const translator: Translator = useTranslator();
   // Until the first one, the page explains the product under the empty table.
   const firstRun: ProductFirstRun = useProductFirstRun<StatusPage>({
     modelType: StatusPage,
@@ -103,7 +110,16 @@ const StatusPages: FunctionComponent<PageComponentProps> = (): ReactElement => {
     <div>
       <ModelTable<StatusPage>
         topContent={firstRun.getTopContent(filterBar)}
-        emptyState={firstRun.getEmptyState(facetEmptyState)}
+        /*
+         * Beside the empty list's Create, a link to bring the pages over
+         * from Atlassian Statuspage, UptimeRobot or Better Stack
+         * (ToolImportOffer).
+         */
+        emptyState={withToolImportOffer({
+          emptyState: firstRun.getEmptyState(facetEmptyState),
+          offer: STATUS_PAGES_IMPORT_OFFER,
+          translator: translator,
+        })}
         currentFacetState={facetSaveState}
         onFacetStateRestored={restoreFacetState}
         query={mergeFiltersIntoQuery({ isArchived: false })}

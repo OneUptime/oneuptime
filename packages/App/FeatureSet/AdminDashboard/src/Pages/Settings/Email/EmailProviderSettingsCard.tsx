@@ -34,6 +34,8 @@ import { useTranslation } from "react-i18next";
 
 export interface ComponentProps {
   transport: GlobalEmailProviderTransport;
+  // The settings were saved: the page reads again where email stands.
+  onSaveSuccess?: (() => void) | undefined;
 }
 
 interface ProviderCardCopy {
@@ -178,6 +180,9 @@ const EmailProviderSettingsCard: FunctionComponent<ComponentProps> = (
       editButtonText={t(copy.editButtonKey)}
       // Titled like the button that opens it, not "Edit Global Config".
       editModalTitle={t(copy.editButtonKey)}
+      onSaveSuccess={() => {
+        props.onSaveSuccess?.();
+      }}
       formSteps={getGlobalEmailProviderFormSteps(props.transport)}
       formFields={getGlobalEmailProviderFormFields(props.transport)}
       modelDetailProps={{

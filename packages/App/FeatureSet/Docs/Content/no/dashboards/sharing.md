@@ -86,29 +86,28 @@ Kortet heter **Egendefinerte domener** og sier hva du skal gjøre: pek hvert dom
 
 Å legge dashbordet på ditt eget domene tar tre steg, og bare de to første er dine:
 
-1. **Legg til domenet**: et underdomene og ett av de bekreftede domenene dine.
-2. **Legg til CNAME-posten** hos DNS-leverandøren din. Dialogen **DNS-oppsett** åpnes med posten så snart du legger til domenet.
+1. **Legg til domenet**: skriv inn adressen folk skal åpne, som `dashboard.acme.com`.
+2. **Legg til DNS-postene** hos DNS-leverandøren din. Dialogen **DNS-oppsett** viser dem: en CNAME-post for adressen og, første gang prosjektet bruker et domene, en TXT-post som viser at prosjektet eier det.
 3. **Det gratis SSL-sertifikatet utstedes automatisk** så snart posten er funnet. Det er ingen knapp å trykke på.
 
 Når det er bekreftet, kan dashbordet nås både på det egendefinerte domenet ditt og på den opprinnelige URL-en.
 
 ### Legg til domenet
 
-Klikk på **Opprett Dashboard Domene**. Dialogen er én side:
+Klikk på **Legg til egendefinert domene**. Dialogen ber om én ting:
 
-- **Underdomene**: bare etiketten, med plassholderen `dashboard (leave blank for root)`. Skriv bare `dashboard`, ikke hele vertsnavnet. La det stå tomt eller skriv `@` for å bruke rotdomenet (apex).
-- **Domene**: domenene som er bekreftet under **Prosjektinnstillinger → Avansert → Domener**, der du beviser med en TXT-post at et domene er ditt. Et domene du ikke har bekreftet, står ikke på listen, fordi det ville blitt avvist. Lenken **Legg til et domene** ved siden av feltet åpner den siden i en ny fane.
+- **Domene**: hele adressen folk skal åpne, med plassholderen `dashboard.example.com`. En innlimt lenke fungerer også: bare vertsnavnet beholdes. For å bruke roten av et domene skriver du selve domenet.
 - **Flere felt**: sammenslått. Så lenge det er sammenslått, sier overskriften hvilket sertifikat domenet skal bruke: "Vi utsteder et gratis SSL-sertifikat for dette domenet og fornyer det automatisk." Åpne det bare for å bruke ditt eget sertifikat (se nedenfor).
 
-Klikk på **Opprett Dashboard Domene**. Dialogen lukkes, og **DNS-oppsett** for det nye domenet åpnes. Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke et annet underdomene legger du til det domenet og sletter det gamle.
+Klikk på **Fortsett**. Hvis prosjektet har bekreftet domenet adressen ligger på, under **Prosjektinnstillinger → Avansert → Domener**, legges domenet til, og **DNS-oppsett** for det åpnes. Hvis ikke, legger OneUptime til det domenet i prosjektet, og **DNS-oppsett** åpnes også med TXT-posten, så du bekrefter det der og da. Et domenes fulle navn ligger fast når du legger det til, så **Rediger** endrer bare sertifikatet. For å bruke en annen adresse legger du til den og sletter den gamle.
 
 ### DNS-oppsett og Sjekk nå
 
-Dialogen **DNS-oppsett** viser posten du skal legge til hos DNS-leverandøren din, ett felt per rad, hvert med en kopieringsknapp: **Type** `CNAME`, **Navn** det fulle domenet du la til, og **Verdi** installasjonens CNAME-post for dashbord. For et rotdomene, uten underdomene, legger dialogen til en merknad: mange DNS-leverandører tillater ikke en CNAME-post der, så bruk i stedet leverandørens ALIAS-, ANAME- eller CNAME-flattening-post med samme verdi.
+Dialogen **DNS-oppsett** viser hver post du skal legge til hos DNS-leverandøren din, ett felt per rad, hvert med en kopieringsknapp: **Type** `CNAME`, **Navn** det fulle domenet du la til, og **Verdi** installasjonens CNAME-post for dashbord, etter domenets TXT-post så lenge prosjektet ikke har bekreftet det. For et rotdomene, uten underdomene, legger dialogen til en merknad: mange DNS-leverandører tillater ikke en CNAME-post der, så bruk i stedet leverandørens ALIAS-, ANAME- eller CNAME-flattening-post med samme verdi.
 
 OneUptime sjekker hvert ubekreftede domene hvert 15. minutt, og når sjekken finner posten, bestiller det domenets gratis Let's Encrypt-sertifikat i samme sjekk, enten du kommer tilbake eller ikke. For å sjekke med en gang klikker du på **Sjekk nå**:
 
-- **Posten er ikke funnet ennå.** Dialogen forblir åpen og sier hvilken post den lette etter. En ny DNS-post kan bruke litt tid på å dukke opp. Klikk på **Sjekk nå** igjen senere, eller overlat det til sjekken hvert 15. minutt.
+- **Posten er ikke funnet ennå.** Dialogen forblir åpen og sier under hver post hva OneUptime slo opp og hva som kom tilbake: ingenting, en annen verdi eller en adresse der det var ventet en CNAME-post. En ny DNS-post kan bruke litt tid på å dukke opp. Klikk på **Sjekk nå** igjen senere, eller overlat det til sjekken hvert 15. minutt.
 - **Posten er funnet.** Dialogen sier "CNAME-posten din er verifisert." og hva som skjer med sertifikatet videre. Det gratis sertifikatet bestilles i det øyeblikket, og er vanligvis aktivt innen 15 minutter.
 
 Til et domene er bekreftet og sertifikatet er på plass, har raden en handling **DNS-oppsett** som åpner den samme dialogen. På et bekreftet domene der sertifikatbestillingen fortsetter å feile, eller der sertifikatet har utløpt, bestiller **Sjekk nå** der på nytt og viser hvorfor den siste bestillingen feilet. Den bestiller høyst én gang per domene hvert 15. minutt; innimellom fortsetter OneUptime å prøve på egen hånd, og venter litt lenger etter hver feil på rad. Fornyelse skjer automatisk, i god tid før sertifikatet utløper, og en mislykket DNS-sjekk fjerner aldri et sertifikat som fortsatt er gyldig.

@@ -42,27 +42,35 @@ jest.mock("../../../Server/Middleware/MasterAdminAuthorization", () => {
     }
   ).default;
 
+  const isMasterAdmin: (
+    req: { headers: Record<string, unknown> },
+    res: unknown,
+    next: () => void,
+  ) => void = (
+    req: { headers: Record<string, unknown> },
+    res: unknown,
+    next: () => void,
+  ): void => {
+    if (req.headers["x-test-master-admin"] === "true") {
+      next();
+      return;
+    }
+
+    ResponseType.sendErrorResponse(
+      req,
+      res,
+      new NotAuthorizedExceptionType(
+        "You do not have permission to access this resource.",
+      ),
+    );
+  };
+
   return {
     __esModule: true,
     default: {
-      isAuthorizedMasterAdminMiddleware: (
-        req: { headers: Record<string, unknown> },
-        res: unknown,
-        next: () => void,
-      ): void => {
-        if (req.headers["x-test-master-admin"] === "true") {
-          next();
-          return;
-        }
-
-        ResponseType.sendErrorResponse(
-          req,
-          res,
-          new NotAuthorizedExceptionType(
-            "You do not have permission to access this resource.",
-          ),
-        );
-      },
+      isAuthorizedMasterAdminMiddleware: isMasterAdmin,
+      // The setup checklist's read route (#6824) takes the master API key too.
+      isAuthorizedMasterAdminOrMasterApiKeyMiddleware: isMasterAdmin,
     },
   };
 });
