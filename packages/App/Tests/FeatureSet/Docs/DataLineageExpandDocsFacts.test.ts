@@ -156,11 +156,9 @@ describe("Data Observability docs: drawing more of a lineage diagram, and follow
 
     it("lists the route that draws more, after the alert's lineage, and the table lineage's withColumns", () => {
       const lines: Array<string> = linesOf(lang, API_PAGE);
-      const expand: { line: string; index: number } = lineWith(
-        lang,
-        API_PAGE,
-        [`| \`${EXPAND_ROUTE}\` |`],
-      );
+      const expand: { line: string; index: number } = lineWith(lang, API_PAGE, [
+        `| \`${EXPAND_ROUTE}\` |`,
+      ]);
 
       expect(lines[expand.index - 1]).toContain(
         "| `POST /api/data-observability/alerts/<alert ID>/lineage` |",

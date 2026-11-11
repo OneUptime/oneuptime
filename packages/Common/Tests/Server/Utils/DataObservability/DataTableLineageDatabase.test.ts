@@ -18,7 +18,10 @@ import DataTableLineageReader, {
   DataLineageDirection,
   DataLineageEdgeRow,
   DataLineageReader,
+  MAX_DATA_LINEAGE_EDGE_ROWS,
+  getLineageTablePairKey,
 } from "../../../../Server/Utils/DataObservability/DataTableLineage";
+import QueryHelper from "../../../../Server/Types/Database/QueryHelper";
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import DataAlert from "../../../../Models/DatabaseModels/DataAlert";
 import DataAsset from "../../../../Models/DatabaseModels/DataAsset";
@@ -613,6 +616,177 @@ describe("the dashboards", () => {
         null,
       ).readDashboards({ dataAssetIds: [], limit: 25 }),
     ).toEqual({ dashboards: [], total: 0 });
+    expect(findBy).not.toHaveBeenCalled();
+  });
+
+  test("drawing more: looked up by the tables drawn now, each saying which drawn tables it reads too", async () => {
+    const dashboard: DataDashboard = new DataDashboard();
+    dashboard._id = id(50);
+    dashboard.name = "Revenue";
+    dashboard.dataAssets = [id(1), id(3), id(77)].map(
+      (assetId: string): DataAsset => {
+        const asset: DataAsset = new DataAsset();
+        asset._id = assetId;
+
+        return asset;
+      },
+    );
+
+    const lookedUp: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      QueryHelper,
+      "anyOfEntitiesInManyToMany",
+    );
+
+    jest
+      .spyOn(DataDashboardService, "findBy")
+      .mockResolvedValue([dashboard] as never);
+    jest
+      .spyOn(DataDashboardService, "countBy")
+      .mockResolvedValue(new PositiveNumber(1) as never);
+
+    const found: Awaited<ReturnType<DataLineageReader["readDashboards"]>> =
+      await DataTableLineageReader.getDatabaseReader(
+        PROJECT_ID,
+        null,
+      ).readDashboards({
+        dataAssetIds: [id(1)],
+        limit: 27,
+        drawnDataAssetIds: [id(3), id(4)],
+      });
+
+    // The table drawn now and the one drawn before; never one not drawn.
+    expect(found.dashboards[0]?.dataAssetIds).toEqual([id(1), id(3)]);
+    // Looked up by the tables drawn now alone.
+    expect(
+      (lookedUp.mock.calls[0]![0] as { values: Array<ObjectID> }).values.map(
+        (value: ObjectID): string => {
+          return value.toString();
+        },
+      ),
+    ).toEqual([id(1)]);
+  });
+});
+
+describe("the columns each arrow carries", () => {
+  function row(
+    upstream: string | null,
+    downstream: string | null,
+    columnMappings: unknown,
+  ): DataAssetLineage {
+    const lineage: DataAssetLineage = new DataAssetLineage();
+
+    if (upstream) {
+      lineage.upstreamDataAssetId = new ObjectID(upstream);
+    }
+
+    if (downstream) {
+      lineage.downstreamDataAssetId = new ObjectID(downstream);
+    }
+
+    lineage.columnMappings = columnMappings as never;
+
+    return lineage;
+  }
+
+  test("read for the arrows asked about, the project's own rows that name columns, as OneUptime", async () => {
+    const findBy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(DataAssetLineageService, "findBy")
+      .mockResolvedValue([] as never);
+
+    await DataTableLineageReader.getDatabaseReader(
+      PROJECT_ID,
+      person(OTHER_USER, Permission.ProjectMember),
+    ).readColumnMappings([
+      { upstreamDataAssetId: id(1), downstreamDataAssetId: id(2) },
+      { upstreamDataAssetId: id(3), downstreamDataAssetId: id(2) },
+    ]);
+
+    expect(findBy).toHaveBeenCalledTimes(1);
+
+    const call: FindByCall = calls(findBy)[0]!;
+
+    expect(call.query["projectId"]).toBe(PROJECT_ID);
+    expect(idsOf(call.query["upstreamDataAssetId"])).toEqual([id(1), id(3)]);
+    // Each table once.
+    expect(idsOf(call.query["downstreamDataAssetId"])).toEqual([id(2)]);
+    // Only the rows that name columns.
+    expect(call.query["columnMappings"]).toBeInstanceOf(FindOperator);
+    expect(call.select).toEqual({
+      upstreamDataAssetId: true,
+      downstreamDataAssetId: true,
+      columnMappings: true,
+    });
+    expect(call.sort).toEqual({ lastSeenAt: SortOrder.Descending });
+    expect(call.limit).toBe(MAX_DATA_LINEAGE_EDGE_ROWS);
+    // Column names, never alerts: nothing private to leave out.
+    expect(call.props).toEqual({ isRoot: true });
+  });
+
+  test("every row of an arrow together, each pair once; rows of arrows not asked about left out", async () => {
+    jest.spyOn(DataAssetLineageService, "findBy").mockResolvedValue([
+      row(id(1), id(2), [
+        { upstreamColumn: "id", downstreamColumn: "order_id" },
+        { upstreamColumn: "amount_cents", downstreamColumn: "amount" },
+      ]),
+      // Another source names one more, and one again.
+      row(id(1), id(2), [
+        { upstreamColumn: "id", downstreamColumn: "order_id" },
+        { upstreamColumn: "tax_cents", downstreamColumn: "amount" },
+      ]),
+      // Asked about upstream and downstream, but not as one arrow.
+      row(id(3), id(4), [{ upstreamColumn: "x", downstreamColumn: "y" }]),
+      row(id(1), id(4), [{ upstreamColumn: "a", downstreamColumn: "b" }]),
+      // Names nothing a column can be.
+      row(id(5), id(4), [{ upstreamColumn: "", downstreamColumn: "b" }]),
+      row(null, id(2), [{ upstreamColumn: "a", downstreamColumn: "b" }]),
+    ] as never);
+
+    const found: Map<
+      string,
+      Array<{ upstreamColumn: string; downstreamColumn: string }>
+    > = await DataTableLineageReader.getDatabaseReader(
+      PROJECT_ID,
+      null,
+    ).readColumnMappings([
+      { upstreamDataAssetId: id(1), downstreamDataAssetId: id(2) },
+      { upstreamDataAssetId: id(3), downstreamDataAssetId: id(2) },
+      { upstreamDataAssetId: id(5), downstreamDataAssetId: id(4) },
+    ]);
+
+    expect(Array.from(found.keys())).toEqual([
+      getLineageTablePairKey({
+        upstreamDataAssetId: id(1),
+        downstreamDataAssetId: id(2),
+      }),
+    ]);
+    expect(
+      found.get(
+        getLineageTablePairKey({
+          upstreamDataAssetId: id(1),
+          downstreamDataAssetId: id(2),
+        }),
+      ),
+    ).toEqual([
+      { upstreamColumn: "amount_cents", downstreamColumn: "amount" },
+      { upstreamColumn: "id", downstreamColumn: "order_id" },
+      { upstreamColumn: "tax_cents", downstreamColumn: "amount" },
+    ]);
+  });
+
+  test("no arrows to ask about: nothing is read", async () => {
+    const findBy: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      DataAssetLineageService,
+      "findBy",
+    );
+
+    expect(
+      (
+        await DataTableLineageReader.getDatabaseReader(
+          PROJECT_ID,
+          null,
+        ).readColumnMappings([])
+      ).size,
+    ).toBe(0);
     expect(findBy).not.toHaveBeenCalled();
   });
 });

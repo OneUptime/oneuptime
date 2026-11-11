@@ -377,6 +377,108 @@ describe("the tables it reads and writes", () => {
     expect(focusOf(lineage).hiddenUpstreamCount).toBe(0);
   });
 
+  /*
+   * Its card's count is a button that draws what it counts (#6667): a
+   * table it reads past the most next to it, drawn all the same through
+   * another table it reads, is joined to it and not counted.
+   */
+  test("a table it reads past its most, reached through another it reads, is joined to it and not counted", async () => {
+    const graph: MemoryGraph = newGraph();
+    pipeline(graph, FOCUS);
+
+    for (let index: number = 0; index < 12; index++) {
+      table(graph, t(index));
+      runs(graph, FOCUS, {
+        reads: [t(index)],
+        writes: [t(50)],
+        lastSeenAt: new Date(NOW.getTime() - (index + 1) * HOUR),
+      });
+    }
+
+    table(graph, t(50));
+    // The oldest it reads - one of the two its card cannot hold - feeds the newest.
+    feeds(graph, t(11), t(0));
+
+    const oneStep: DataTableLineage = await build(graph, 1);
+
+    // A step only: not reached, so counted.
+    expect(nodeOf(oneStep, getLineageTableNodeId(t(11)))).toBeUndefined();
+    expect(focusOf(oneStep).hiddenUpstreamCount).toBe(2);
+
+    const lineage: DataTableLineage = await build(graph, 2);
+
+    expect(nodeOf(lineage, getLineageTableNodeId(t(11)))).toMatchObject({
+      side: DataLineageSide.Upstream,
+      depth: -2,
+    });
+    // Only t(10) is left to draw.
+    expect(focusOf(lineage).hiddenUpstreamCount).toBe(1);
+    expect(
+      edgeBetween(lineage, getLineageTableNodeId(t(11)), FOCUS_NODE)?.kind,
+    ).toBe(DataLineageEdgeKind.Reads);
+    expect(
+      edgeBetween(lineage, getLineageTableNodeId(t(10)), FOCUS_NODE),
+    ).toBeUndefined();
+  });
+
+  test("a table it writes past its most, reached through another it writes, is joined to it and not counted", async () => {
+    const graph: MemoryGraph = newGraph();
+    pipeline(graph, FOCUS);
+    table(graph, t(0));
+
+    for (let index: number = 50; index < 62; index++) {
+      table(graph, t(index));
+      runs(graph, FOCUS, {
+        reads: [t(0)],
+        writes: [t(index)],
+        lastSeenAt: new Date(NOW.getTime() - (index + 1) * HOUR),
+      });
+    }
+
+    // The oldest it writes is also built from the newest.
+    feeds(graph, t(50), t(61));
+
+    const lineage: DataTableLineage = await build(graph, 2);
+
+    expect(nodeOf(lineage, getLineageTableNodeId(t(61)))).toMatchObject({
+      side: DataLineageSide.Downstream,
+      depth: 2,
+    });
+    expect(focusOf(lineage).hiddenDownstreamCount).toBe(1);
+    expect(
+      edgeBetween(lineage, FOCUS_NODE, getLineageTableNodeId(t(61)))?.kind,
+    ).toBe(DataLineageEdgeKind.Writes);
+  });
+
+  test("a table it reads drawn downstream, round a circle through a table it writes, is joined to it and not counted", async () => {
+    const graph: MemoryGraph = newGraph();
+    pipeline(graph, FOCUS);
+
+    for (let index: number = 0; index < 11; index++) {
+      table(graph, t(index));
+      runs(graph, FOCUS, {
+        reads: [t(index)],
+        writes: [t(50)],
+        lastSeenAt: new Date(NOW.getTime() - (index + 1) * HOUR),
+      });
+    }
+
+    table(graph, t(50));
+    // What it writes feeds the oldest table it reads: round in a circle.
+    feeds(graph, t(50), t(10));
+
+    const lineage: DataTableLineage = await build(graph, 2);
+
+    expect(nodeOf(lineage, getLineageTableNodeId(t(10)))).toMatchObject({
+      side: DataLineageSide.Downstream,
+      depth: 2,
+    });
+    expect(focusOf(lineage).hiddenUpstreamCount).toBe(0);
+    expect(
+      edgeBetween(lineage, getLineageTableNodeId(t(10)), FOCUS_NODE)?.kind,
+    ).toBe(DataLineageEdgeKind.Reads);
+  });
+
   test("another pipeline's rows are never its own", async () => {
     const graph: MemoryGraph = newGraph();
     pipeline(graph, FOCUS);
@@ -703,41 +805,82 @@ describe("any pipeline's lineage", () => {
         expect(ids.has(edge.source)).toBe(true);
         expect(ids.has(edge.target)).toBe(true);
 
-        // Its own arrows: read tables in at -1, written tables out at 1.
+        /*
+         * Its own arrows: from tables it reads - next to it, further out
+         * when reached through another table, or round a circle - and to
+         * tables it writes.
+         */
         if (edge.target === FOCUS_NODE) {
           expect(edge.kind).toBe(DataLineageEdgeKind.Reads);
-          expect(nodeOf(lineage, edge.source)).toMatchObject({
-            side: DataLineageSide.Upstream,
-            depth: -1,
-          });
+          expect(readSet.has(edge.source.slice("table:".length))).toBe(true);
         }
 
         if (edge.source === FOCUS_NODE) {
           expect(edge.kind).toBe(DataLineageEdgeKind.Writes);
-          expect(nodeOf(lineage, edge.target)).toMatchObject({
-            side: DataLineageSide.Downstream,
-            depth: 1,
-          });
+          expect(writeSet.has(edge.target.slice("table:".length))).toBe(true);
         }
       }
 
-      // Every table it reads or writes is drawn on its side, or counted on its card.
-      const drawnReads: number = lineage.edges.filter(
-        (edge: DataTableLineageEdge): boolean => {
-          return edge.target === FOCUS_NODE;
-        },
-      ).length;
-      const drawnWrites: number = lineage.edges.filter(
-        (edge: DataTableLineageEdge): boolean => {
-          return edge.source === FOCUS_NODE;
-        },
-      ).length;
+      /*
+       * Every table it reads or writes is drawn - and joined to it - or
+       * counted on its card: pressing the count draws as many as it says.
+       */
       const focus: DataTableLineageNode = focusOf(lineage);
+      const ways: Array<{
+        tables: Set<string>;
+        // The side the tables next to it are drawn on.
+        side: DataLineageSide;
+        hidden: number;
+        isOwnArrow: (edge: DataTableLineageEdge) => boolean;
+      }> = [
+        {
+          tables: readSet,
+          side: DataLineageSide.Upstream,
+          hidden: focus.hiddenUpstreamCount!,
+          isOwnArrow: (edge: DataTableLineageEdge): boolean => {
+            return edge.target === FOCUS_NODE;
+          },
+        },
+        {
+          tables: writeSet,
+          side: DataLineageSide.Downstream,
+          hidden: focus.hiddenDownstreamCount!,
+          isOwnArrow: (edge: DataTableLineageEdge): boolean => {
+            return edge.source === FOCUS_NODE;
+          },
+        },
+      ];
 
-      expect(drawnReads + focus.hiddenUpstreamCount!).toBe(readSet.size);
-      expect(drawnWrites + focus.hiddenDownstreamCount!).toBe(writeSet.size);
-      expect(drawnReads).toBeLessThanOrEqual(MAX_DATA_LINEAGE_NEIGHBORS);
-      expect(drawnWrites).toBeLessThanOrEqual(MAX_DATA_LINEAGE_NEIGHBORS);
+      for (const way of ways) {
+        let drawn: number = 0;
+        let nextToIt: number = 0;
+
+        for (const id of way.tables) {
+          const node: DataTableLineageNode | undefined = nodeOf(
+            lineage,
+            getLineageTableNodeId(id),
+          );
+
+          if (!node) {
+            continue;
+          }
+
+          drawn++;
+
+          if (node.side === way.side && Math.abs(node.depth) === 1) {
+            nextToIt++;
+          }
+
+          expect(
+            lineage.edges.some((edge: DataTableLineageEdge): boolean => {
+              return way.isOwnArrow(edge) && edge.id.includes(node.id);
+            }),
+          ).toBe(true);
+        }
+
+        expect(drawn + way.hidden).toBe(way.tables.size);
+        expect(nextToIt).toBeLessThanOrEqual(MAX_DATA_LINEAGE_NEIGHBORS);
+      }
 
       for (const id of writeSet) {
         const node: DataTableLineageNode | undefined = nodeOf(

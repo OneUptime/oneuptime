@@ -218,6 +218,30 @@ describe("POST /data-observability/tables/lineage", () => {
   });
 
   test.each([
+    [true, true],
+    [undefined, false],
+    [false, false],
+    ["true", false],
+    [1, false],
+    [{ yes: true }, false],
+  ])(
+    "asked for the columns as %p: each arrow's columns read %p",
+    async (withColumns: unknown, read: boolean) => {
+      const asked: Asked = await ask(withPermission(Permission.ProjectMember), {
+        dataAssetId: TABLE_ID,
+        ...(withColumns === undefined
+          ? {}
+          : { withColumns: withColumns as boolean }),
+      });
+
+      expect(asked.next).not.toHaveBeenCalled();
+      expect(
+        (asked.read.mock.calls[0]![0] as { withColumns: boolean }).withColumns,
+      ).toBe(read);
+    },
+  );
+
+  test.each([
     ["Read Data Asset", Permission.ReadDataAsset],
     ["Viewer", Permission.Viewer],
     ["Telemetry Viewer", Permission.TelemetryViewer],

@@ -1293,9 +1293,7 @@ describe("a table's Lineage tab", () => {
     expect(diagram).toBeLessThan(
       squashed.indexOf('id="data-observability-table-upstream"'),
     );
-    expect(squashed).toContain(
-      "readDataAssetColumns(dataAsset?.columns).map(",
-    );
+    expect(squashed).toContain("readDataAssetColumns(dataAsset?.columns).map(");
   });
 
   test("asks the table-lineage route, and the route that draws more, through the Dashboard's own client", () => {

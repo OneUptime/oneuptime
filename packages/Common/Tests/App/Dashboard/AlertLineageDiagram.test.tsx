@@ -32,6 +32,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const getAlertLineageMock: MockFunction = getJestMockFunction();
+const expandLineageMock: MockFunction = getJestMockFunction();
 
 let mockFlowProps: ReactFlowProps | null = null;
 
@@ -43,6 +44,9 @@ jest.mock(
       default: {
         getAlertLineage: (...args: Array<any>) => {
           return getAlertLineageMock(...args);
+        },
+        expandLineage: (...args: Array<any>) => {
+          return expandLineageMock(...args);
         },
       },
     };
@@ -207,6 +211,11 @@ import {
   DataTableLineageNode,
   getLineageEdgeId,
 } from "../../../Types/DataObservability/DataTableLineage";
+import {
+  DataLineageExpandRequest,
+  DataLineageExpansion,
+  readDataLineageExpandRequest,
+} from "../../../Types/DataObservability/DataLineageExpansion";
 import Navigation from "../../../UI/Utils/Navigation";
 import {
   Translator,
@@ -439,6 +448,7 @@ let navigateSpy: ReturnType<typeof jest.spyOn>;
 
 beforeEach(() => {
   getAlertLineageMock.mockReset();
+  expandLineageMock.mockReset();
   mockFlowProps = null;
   navigateSpy = jest.spyOn(Navigation, "navigate").mockImplementation(() => {
     return undefined;
@@ -1196,5 +1206,133 @@ describe("where the drawing opens", () => {
 
     expect(onCanvas(focus.x)).toBeGreaterThanOrEqual(0);
     expect(onCanvas(focus.x + LINEAGE_CARD_WIDTH)).toBeLessThanOrEqual(320);
+  });
+});
+
+/*
+ * The alert's drawing is the shared diagram, so a card's count draws its
+ * next tables here as on a table's Lineage tab (LineageDrawMore.test.tsx):
+ * what is drawn now is off the alert's ways, so it is faint, and the ways
+ * stay picked out. The alert's drawing is read without its columns, so
+ * there is no column to follow and none is asked for.
+ */
+describe("drawing more on an alert's drawing", () => {
+  const ARCHIVE: string = "22222222-2222-4222-8222-000000000008";
+
+  // legacy.orders, off the ways upstream, does not draw two tables built into it.
+  function withTwoMoreUpstream(): DataAlertLineageAnswer {
+    const lineage: DataTableLineage = aLineage();
+
+    lineage.nodes = lineage.nodes.map(
+      (node: DataTableLineageNode): DataTableLineageNode => {
+        return node.id === `table:${OTHER}`
+          ? { ...node, hiddenUpstreamCount: 2 }
+          : node;
+      },
+    );
+
+    return anAnswer({ lineage });
+  }
+
+  function archiveExpansion(): DataLineageExpansion {
+    return {
+      nodeId: `table:${OTHER}`,
+      side: DataLineageSide.Upstream,
+      hiddenCount: 1,
+      nodes: [
+        table(ARCHIVE, DataLineageSide.Upstream, -2, {
+          name: "legacy.archive",
+        }),
+      ],
+      edges: [
+        arrow(DataLineageEdgeKind.Feeds, `table:${ARCHIVE}`, `table:${OTHER}`),
+      ],
+      hiddenDashboardCount: null,
+      isTruncated: false,
+    };
+  }
+
+  function legacyCount(): HTMLElement {
+    return within(card(`table:${OTHER}`)).getByTestId("lineage-hidden-left");
+  }
+
+  test("a card's count asks for its next tables, naming every table drawn, without columns", async () => {
+    expandLineageMock.mockResolvedValue(archiveExpansion());
+    await renderDrawn(withTwoMoreUpstream());
+
+    expect(legacyCount().tagName).toBe("BUTTON");
+    expect(legacyCount()).toHaveAccessibleName("Draw 2 more tables upstream");
+
+    await act(async () => {
+      fireEvent.click(legacyCount());
+    });
+
+    expect(expandLineageMock).toHaveBeenCalledTimes(1);
+
+    const request: DataLineageExpandRequest = expandLineageMock.mock
+      .calls[0]![0] as DataLineageExpandRequest;
+
+    expect(request).toEqual({
+      focusNodeId: `table:${TABLE}`,
+      nodeId: `table:${OTHER}`,
+      side: DataLineageSide.Upstream,
+      tables: [
+        { dataAssetId: TABLE, side: DataLineageSide.Focus, depth: 0 },
+        { dataAssetId: STAGING, side: DataLineageSide.Upstream, depth: -1 },
+        { dataAssetId: SOURCE, side: DataLineageSide.Upstream, depth: -2 },
+        { dataAssetId: OTHER, side: DataLineageSide.Upstream, depth: -1 },
+        { dataAssetId: MART, side: DataLineageSide.Downstream, depth: 1 },
+        { dataAssetId: REPORT, side: DataLineageSide.Downstream, depth: 1 },
+        { dataAssetId: SIDE, side: DataLineageSide.Downstream, depth: 1 },
+      ],
+      dataDashboardIds: [],
+    });
+    // One the route takes as it is sent.
+    expect(
+      readDataLineageExpandRequest(JSON.parse(JSON.stringify(request))),
+    ).toEqual({ ...request, withColumns: false });
+    // The alert's page has no column to follow.
+    expect(screen.queryByTestId("lineage-column")).not.toBeInTheDocument();
+  });
+
+  test("what is drawn now is faint, off the alert's ways, which stay picked out; Reset goes back without reading again", async () => {
+    expandLineageMock.mockResolvedValue(archiveExpansion());
+    await renderDrawn(withTwoMoreUpstream());
+
+    await act(async () => {
+      fireEvent.click(legacyCount());
+    });
+
+    expect(card(`table:${ARCHIVE}`)).toHaveTextContent("legacy.archive");
+    expect(cardBox(`table:${ARCHIVE}`)).toHaveAttribute("data-dimmed", "true");
+    expect(flowEdge(feeds(ARCHIVE, OTHER)).style?.opacity).toBe(
+      LINEAGE_DIMMED_OPACITY,
+    );
+    // The pressed card counts what it still does not draw.
+    expect(legacyCount()).toHaveTextContent("+1");
+    expect(legacyCount()).toHaveAccessibleName("Draw one more table upstream");
+
+    // The ways are as they were: the cause and the alert it caused, in indigo.
+    expect(cardBox(`table:${SOURCE}`)).toHaveAttribute("data-role", "Cause");
+    expect(cardBox(`table:${MART}`)).toHaveAttribute(
+      "data-role",
+      "Consequence",
+    );
+    expect(flowEdge(feeds(SOURCE, STAGING)).style?.stroke).toBe(
+      LINEAGE_HIGHLIGHT_COLOR,
+    );
+    expect(screen.getByTestId("lineage-graph")).toHaveAttribute(
+      "aria-label",
+      "The lineage around this alert, with the way to the alert that caused it and to the alerts it caused",
+    );
+
+    fireEvent.click(screen.getByTestId("lineage-reset"));
+
+    expect(
+      screen.queryByTestId(`flow-node-table:${ARCHIVE}`),
+    ).not.toBeInTheDocument();
+    expect(legacyCount()).toHaveTextContent("+2");
+    expect(screen.queryByTestId("lineage-reset")).not.toBeInTheDocument();
+    expect(getAlertLineageMock).toHaveBeenCalledTimes(1);
   });
 });

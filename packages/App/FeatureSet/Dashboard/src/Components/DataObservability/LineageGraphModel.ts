@@ -1287,9 +1287,7 @@ export function mergeLineageExpansion(
     }
   }
 
-  const pressed: DataTableLineageNode | undefined = byId.get(
-    expansion.nodeId,
-  );
+  const pressed: DataTableLineageNode | undefined = byId.get(expansion.nodeId);
 
   if (pressed) {
     if (isUpstream) {
@@ -1629,7 +1627,9 @@ export function followLineageColumn(
 
           const next: { nodeId: string; name: string } = {
             nodeId: isUpstream ? edge.source : edge.target,
-            name: isUpstream ? mapping.upstreamColumn : mapping.downstreamColumn,
+            name: isUpstream
+              ? mapping.upstreamColumn
+              : mapping.downstreamColumn,
           };
           const key: string = `${next.nodeId}\u0000${getColumnKey(next.name)}`;
 

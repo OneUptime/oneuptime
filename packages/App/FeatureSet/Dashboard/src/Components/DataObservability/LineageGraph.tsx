@@ -583,7 +583,7 @@ const HiddenCount: FunctionComponent<{
   return (
     <button
       type="button"
-      className={`nodrag nopan inline-flex items-center gap-0.5 ${HIDDEN_COUNT_CLASS_NAME} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
+      className={`nodrag nopan inline-flex items-center ${HIDDEN_COUNT_CLASS_NAME} focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${getHandDrawnButtonStateClassName(
         {
           isLocked: action.isLocked,
           isBusy: action.isBusy,
@@ -604,15 +604,21 @@ const HiddenCount: FunctionComponent<{
       }}
       data-testid={`lineage-hidden-${props.side}`}
     >
+      {/*
+       * While they are read the spinner turns over the number, which stays
+       * (unseen) so the count keeps its size and does not grow over the card.
+       */}
+      <span className={action.isBusy ? "invisible" : ""}>{text}</span>
       {action.isBusy ? (
-        <Icon
-          icon={IconProp.Spinner}
-          className="h-2.5 w-2.5 shrink-0 animate-spin"
-        />
+        <span
+          className="absolute inset-0 flex items-center justify-center"
+          data-testid={`lineage-hidden-${props.side}-spinner`}
+        >
+          <Icon icon={IconProp.Spinner} className="h-2.5 w-2.5 animate-spin" />
+        </span>
       ) : (
         <></>
       )}
-      <span>{text}</span>
     </button>
   );
 };
@@ -940,8 +946,9 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
         ? getLineageColumnHighlightSets(props.columnTrail)
         : alertHighlight;
     }, [props.columnTrail, alertHighlight]);
-  const onExpand: ((nodeId: string, side: DataLineageSide) => void) | undefined =
-    props.onExpand;
+  const onExpand:
+    | ((nodeId: string, side: DataLineageSide) => void)
+    | undefined = props.onExpand;
   const expanding: LineageExpanding | null = props.expanding || null;
 
   const nodes: Array<Node<LineageCardData>> = useMemo((): Array<

@@ -177,7 +177,10 @@ export function readDataLineageExpandRequest(
 
   const side: DataLineageSide | null = readSide(data["side"]);
 
-  if (side !== DataLineageSide.Upstream && side !== DataLineageSide.Downstream) {
+  if (
+    side !== DataLineageSide.Upstream &&
+    side !== DataLineageSide.Downstream
+  ) {
     return "Say which way to draw more: side, Upstream or Downstream.";
   }
 
@@ -212,7 +215,11 @@ export function readDataLineageExpandRequest(
       tables.set(
         table.dataAssetId,
         isFocus
-          ? { dataAssetId: table.dataAssetId, side: DataLineageSide.Focus, depth: 0 }
+          ? {
+              dataAssetId: table.dataAssetId,
+              side: DataLineageSide.Focus,
+              depth: 0,
+            }
           : table,
       );
     }
