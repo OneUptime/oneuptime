@@ -501,13 +501,34 @@ describe("a widget's saved id", () => {
   test.each([
     [FUNNEL_ID, FUNNEL_ID],
     ["", null],
+    ["   ", null],
     [undefined, null],
     [null, null],
     [42, null],
+    [[FUNNEL_ID], null],
     ["pricing-to-purchase", null],
     [{ id: FUNNEL_ID }, null],
+    [{ _type: "ObjectID", value: "pricing-to-purchase" }, null],
+    [{ _type: "Includes", value: [FUNNEL_ID] }, null],
   ])("%p is read as %p", (value: unknown, expected: string | null) => {
     expect(readProductAnalyticsWidgetSavedViewId(value)).toBe(expected);
+  });
+
+  /*
+   * As every board reads a widget's ids (DashboardWidgetIds): the API,
+   * Terraform or a script may store the id as an ObjectID's JSON, and a
+   * board that could not revive the rest of the widget hands it on as that.
+   */
+  test("an ObjectID, or its JSON, is read as the id it names", () => {
+    expect(readProductAnalyticsWidgetSavedViewId(new ObjectID(FUNNEL_ID))).toBe(
+      FUNNEL_ID,
+    );
+    expect(
+      readProductAnalyticsWidgetSavedViewId({
+        _type: "ObjectID",
+        value: RETENTION_ID,
+      }),
+    ).toBe(RETENTION_ID);
   });
 });
 

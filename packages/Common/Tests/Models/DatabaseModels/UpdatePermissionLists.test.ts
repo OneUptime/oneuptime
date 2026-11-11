@@ -120,6 +120,25 @@ const DELIBERATE: Array<{
     reason:
       "There is no Edit permission for session replay pins: a pin is created or removed, and the one field changed after the fact (its reason) is changed by whoever may pin.",
   },
+  /*
+   * Product analytics has no permissions of its own: its pages read with
+   * the session list's (TelemetryAPI's SESSION_REPLAY_LIST_PERMISSIONS),
+   * and a saved funnel or retention table is kept, renamed and deleted by
+   * whoever reads them, as a log saved view is by whoever may write one
+   * (issue #6630). RumProductAnalyticsSavedViewModel holds the lists to it.
+   */
+  {
+    tableName: "RumProductAnalyticsSavedView",
+    permission: Permission.ReadRumSessionReplay,
+    reason:
+      "Whoever reads an application's funnels and retention tables (List Session Replays) saves, renames and deletes the team's saved ones: product analytics has no Edit permission.",
+  },
+  {
+    tableName: "RumProductAnalyticsSavedView",
+    permission: Permission.ReadRumSessionReplayPayload,
+    reason:
+      "Whoever reads an application's funnels and retention tables (Watch Session Replays) saves, renames and deletes the team's saved ones: product analytics has no Edit permission.",
+  },
 ];
 
 function isDeliberate(

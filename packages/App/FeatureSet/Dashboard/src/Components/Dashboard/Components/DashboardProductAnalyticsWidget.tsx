@@ -5,6 +5,7 @@ import IconProp from "Common/Types/Icon/IconProp";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
 import { ProductAnalyticsSavedViewType } from "Common/Types/Rum/ProductAnalyticsSavedViews";
+import DashboardWidgetIds from "Common/Utils/Dashboard/DashboardWidgetIds";
 import RangeStartAndEndDateTime, {
   RangeStartAndEndDateTimeUtil,
 } from "Common/Types/Time/RangeStartAndEndDateTime";
@@ -100,13 +101,17 @@ export interface ProductAnalyticsWidgetSavedView<
   error: string;
 }
 
-/* A widget's saved id as one to read: an id, or none. */
+/*
+ * A widget's saved id as one to read: an id, or none. Read as every board
+ * reads a widget's ids (DashboardWidgetIds): text, an ObjectID, or the
+ * ObjectID JSON the API, Terraform or a script may store.
+ */
 export function readProductAnalyticsWidgetSavedViewId(
   value: unknown,
 ): string | null {
-  return typeof value === "string" && ObjectID.isValidUUID(value)
-    ? value
-    : null;
+  const id: string | null = DashboardWidgetIds.readId(value);
+
+  return id !== null && ObjectID.isValidUUID(id) ? id : null;
 }
 
 /* What a widget makes of what it read of its saved one. */
