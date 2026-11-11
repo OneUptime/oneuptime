@@ -141,6 +141,13 @@ const CHOICE_RESPONSE_URL: string =
 const CHOICE_TRIGGER_ID: string = "1762800001.choice-trigger";
 const HOME_TRIGGER_ID: string = "1762800002.home-trigger";
 
+// An incident's channel OneUptime created in Acme East, and a message of it.
+const INCIDENT_CHANNEL_ID: string = "C0EASTINC42";
+const INCIDENT_MESSAGE_TS: string = "1762800003.000100";
+const INCIDENT_ID: string = "e3000000-0000-4000-8000-0000000000c1";
+const PRESS_RESPONSE_URL: string =
+  "https://hooks.slack.com/actions/T0EAST/1762800003/pressGhi789";
+
 // Slack's own: a zero-width space around a bold span it draws.
 const ZERO_WIDTH_SPACE: string = String.fromCharCode(0x200b);
 
@@ -606,8 +613,11 @@ describe("requests from the workspaces of a Slack Enterprise organization", () =
     jest.restoreAllMocks();
   });
 
-  // The project of the whole organization, as its install stored it.
-  function connectEverywhere(): void {
+  /*
+   * The project of the whole organization, as its install stored it - with
+   * what it has stored since (`more`), such as the channels it created.
+   */
+  function connectEverywhere(more?: JSONObject): void {
     connections.add({
       projectId: EVERYWHERE,
       workspaceProjectId: ORG_ID,
@@ -622,6 +632,7 @@ describe("requests from the workspaces of a Slack Enterprise organization", () =
         workspaces: [EAST, LAB, WEST],
         workspacesReadAt: new Date().toISOString(),
         defaultWorkspaceId: EAST.id,
+        ...(more || {}),
       },
     });
   }
@@ -1081,6 +1092,113 @@ describe("requests from the workspaces of a Slack Enterprise organization", () =
 
       expect(opened()).toEqual([]);
       expect(WorkspaceActionAuthorization.authorize).not.toHaveBeenCalled();
+    });
+  });
+
+  /*
+   * #6749: a press names the person's own workspace (user.team_id), not the
+   * channel's - Slack's press payload names no workspace for the channel.
+   * Somebody of Acme West, who has not connected their Slack account,
+   * presses Acknowledge in an incident's channel OneUptime created in Acme
+   * East: once connected, the settings page's "Back to Slack" opens that
+   * channel in Acme East, the workspace OneUptime stored for the channel it
+   * created (channelCache).
+   */
+  describe("a button on a message, pressed by somebody who has not connected their Slack account", () => {
+    function pressAcknowledge(): Promise<RouteAnswer> {
+      return press(
+        pressFrom({
+          slackUserId: NOBODY,
+          personWorkspaceId: WEST.id,
+          origin: IN_EAST,
+          rest: {
+            container: {
+              type: "message",
+              message_ts: INCIDENT_MESSAGE_TS,
+              channel_id: INCIDENT_CHANNEL_ID,
+              is_ephemeral: false,
+            },
+            channel: { id: INCIDENT_CHANNEL_ID, name: "incident-42" },
+            message: {
+              type: "message",
+              ts: INCIDENT_MESSAGE_TS,
+              text: "Incident #42: Checkout is down",
+            },
+            response_url: PRESS_RESPONSE_URL,
+            trigger_id: "1762800003.press-trigger",
+            actions: [
+              {
+                action_id: "AcknowledgeIncident",
+                value: INCIDENT_ID,
+                type: "button",
+              },
+            ],
+          },
+        }),
+      );
+    }
+
+    // The press kept behind the Connect button they were answered with.
+    async function keptPress(): Promise<WorkspaceConnectRequestRecord | null> {
+      await until((): boolean => {
+        return slack.callsOf(PRESS_RESPONSE_URL).length === 1;
+      }, "the answer");
+
+      const blocks: Array<JSONObject> = slack.callsOf(PRESS_RESPONSE_URL)[0]!
+        .data["blocks"] as Array<JSONObject>;
+      const button: JSONObject = (
+        blocks.find((block: JSONObject): boolean => {
+          return block["type"] === "actions";
+        })!["elements"] as Array<JSONObject>
+      )[0]!;
+
+      return await WorkspaceConnectRequest.peek(
+        new globalThis.URL(button["url"] as string).searchParams.get("connect"),
+      );
+    }
+
+    test("in a channel OneUptime created in Acme East: asked to connect - and taken back to the channel in Acme East, not to their own workspace", async () => {
+      connectEverywhere({
+        channelCache: {
+          "incident-42": {
+            id: INCIDENT_CHANNEL_ID,
+            name: "incident-42",
+            lastUpdated: new Date().toISOString(),
+            teamId: EAST.id,
+          },
+        },
+      });
+
+      const answer: RouteAnswer = await pressAcknowledge();
+
+      expect(answer.status).toBe(200);
+
+      const request: WorkspaceConnectRequestRecord | null = await keptPress();
+
+      expect(request).toMatchObject({
+        workspaceUserId: NOBODY,
+        purpose: "acknowledge this incident",
+        slack: {
+          teamId: EAST.id,
+          channelId: INCIDENT_CHANNEL_ID,
+          responseUrl: PRESS_RESPONSE_URL,
+        },
+      });
+      expect(request!.projectId.toString()).toBe(EVERYWHERE.toString());
+      expect(opened()).toEqual([]);
+    });
+
+    test("in a channel OneUptime does not know the workspace of: the person's own, as before", async () => {
+      connectEverywhere();
+
+      await pressAcknowledge();
+
+      const request: WorkspaceConnectRequestRecord | null = await keptPress();
+
+      expect(request!.slack).toMatchObject({
+        teamId: WEST.id,
+        channelId: INCIDENT_CHANNEL_ID,
+      });
     });
   });
 

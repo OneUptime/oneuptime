@@ -88,8 +88,11 @@ import {
   POST_TO_EXISTING_CHANNELS_DESCRIPTION,
   POST_TO_EXISTING_CHANNELS_TITLE,
   RULE_SUMMARY_TITLE,
+  getRuleWorkspacesNotAdded,
+  SLACK_WORKSPACE_NOT_ADDED_OPTION,
   SLACK_WORKSPACE_PLACEHOLDER,
   SLACK_WORKSPACE_TITLE,
+  SlackRuleWorkspaces,
   TEAM_PLACEHOLDER,
   TEAM_TITLE,
   TEAMS_WHO_JOINS_NOTE,
@@ -176,6 +179,13 @@ export interface ComponentProps {
    * its channels (SlackOrganization).
    */
   slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
+  /*
+   * The same organization, with the workspaces OneUptime was removed from:
+   * a rule that still picks one shows its pick - so it can be changed -
+   * whatever the workspaces left to pick from. Undefined for any other
+   * connection.
+   */
+  slackOrganization?: SlackRuleWorkspaces | undefined;
   users: Array<User>;
   // For the summary to name the schedules whose on-call person joins.
   onCallSchedules?: Array<OnCallDutyPolicySchedule> | undefined;
@@ -354,13 +364,47 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
   ];
 
   /*
+   * The workspaces this rule picks that OneUptime is no longer added to:
+   * still offered, said to be so, so the pick shows as it is and can be
+   * changed - the rule posts nowhere else instead. Once offered, kept while
+   * the form is open: changing the pick does not take the picker away from
+   * under the person changing it.
+   */
+  const workspacesNotAddedOffered: MutableRefObject<
+    Array<SlackOrganizationWorkspace>
+  > = useRef<Array<SlackOrganizationWorkspace>>([]);
+
+  for (const workspace of getRuleWorkspacesNotAdded({
+    rule: props.value,
+    workspaceType: props.workspaceType,
+    organization: props.slackOrganization,
+  })) {
+    if (
+      !workspacesNotAddedOffered.current.some(
+        (offered: SlackOrganizationWorkspace): boolean => {
+          return offered.id === workspace.id;
+        },
+      )
+    ) {
+      workspacesNotAddedOffered.current = [
+        ...workspacesNotAddedOffered.current,
+        workspace,
+      ];
+    }
+  }
+
+  const workspacesNotAdded: Array<SlackOrganizationWorkspace> =
+    workspacesNotAddedOffered.current;
+
+  /*
    * Slack installed for a whole Enterprise organization and added to two or
-   * more of its workspaces: a rule says which workspace its channels are
-   * in, or leaves it to the default one.
+   * more of its workspaces - or with a pick OneUptime is no longer added
+   * to: a rule says which workspace its channels are in, or leaves it to
+   * the default one.
    */
   const isSlackOrganization: boolean =
     props.workspaceType === WorkspaceType.Slack &&
-    (props.slackWorkspaces || []).length > 1;
+    ((props.slackWorkspaces || []).length > 1 || workspacesNotAdded.length > 0);
 
   // Where the rule's channels are: a Microsoft Teams team, or a Slack workspace.
   const hasPlacePicker: boolean = isTeams || isSlackOrganization;
@@ -373,14 +417,25 @@ const NotificationRuleForm: FunctionComponent<ComponentProps> = (
         };
       })
     : isSlackOrganization
-      ? (props.slackWorkspaces || []).map(
-          (workspace: SlackOrganizationWorkspace) => {
+      ? [
+          ...(props.slackWorkspaces || []).map(
+            (workspace: SlackOrganizationWorkspace) => {
+              return {
+                label: workspace.name,
+                value: workspace.id,
+              };
+            },
+          ),
+          ...workspacesNotAdded.map((workspace: SlackOrganizationWorkspace) => {
             return {
-              label: workspace.name,
+              label: translator.translateTemplate(
+                SLACK_WORKSPACE_NOT_ADDED_OPTION,
+                { workspace: workspace.name },
+              ),
               value: workspace.id,
             };
-          },
-        )
+          }),
+        ]
       : [];
 
   /*

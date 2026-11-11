@@ -67,6 +67,7 @@ On Slack Enterprise Grid, one project can work in several workspaces of your org
 3. The **Slack workspaces** card lists those workspaces. Click **Refresh** after adding OneUptime to another one.
 
 - **Which workspace a rule uses.** Notification rules pick the **Slack workspace** their channels are in. Left empty, a rule uses the default workspace, and looks for the channels it names there first. **Make default** on the card changes the default.
+- **A workspace OneUptime was removed from.** A rule that picks it does not post in another workspace instead: the rule's card, **Test Rule** and the Notification Logs say that OneUptime is no longer added to it. A record's **Slack Channel** card says so too when its channel is in that workspace. Add OneUptime to that workspace again in Slack's organization settings, or pick another workspace on the rule.
 - **Where OneUptime works.** Buttons, commands, the Home tab and OneUptime AI work in each of those workspaces, and members connect their own Slack account from any of them.
 - **A project connected to a single workspace.** If that workspace is part of the organization, the project keeps its rules, channels and connected accounts when it is installed for the whole organization with **Install for the organization** on the same page. That workspace becomes the default.
 - **On a self-hosted server,** a Slack app created from OneUptime's manifest allows this already: the manifest sets `org_deploy_enabled`.
@@ -268,6 +269,7 @@ For a group that holds the primary and the secondary on call, connect the same g
 - **Paging it.** `/oneuptime page @payments-oncall The checkout API is down` pages whoever is on call in the schedules the group follows. See [Paging someone from Slack](#paging-someone-from-slack).
 - **What Slack needs.** User groups are on Slack's paid plans, and a workspace can let only its owners and admins change them: the card says which, and what to do. If Slack was connected before OneUptime could keep user groups, connect it again once under **Project Settings** > **Workspace** > **Slack**.
 - **Who may connect one.** The roles that may edit schedules: **Project Owner**, **Project Admin**, **Project Member**, **On-Call Admin** and **On-Call Member**, or **Edit On-Call Duty Policy Schedule** in a custom role. On OneUptime Cloud, connecting one needs the **Growth** plan.
+- **In a Slack Enterprise organization.** When OneUptime is added to two or more of its workspaces, **Connect user group** asks first which **Slack workspace** the group is in, then lists that workspace's user groups. The card names each group's workspace, and OneUptime keeps the group up to date there.
 - **Disconnecting.** OneUptime stops changing the group. The group, and the people in it, stay in Slack as they are.
 
 ## Managing an incident from Slack

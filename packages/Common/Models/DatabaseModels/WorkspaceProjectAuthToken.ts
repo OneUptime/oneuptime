@@ -153,6 +153,12 @@ export interface SlackMiscData extends MiscData {
    * in, and looked for first, when a rule names none.
    */
   defaultWorkspaceId?: string | undefined;
+  /*
+   * A whole organization's installation: the workspaces Slack listed once
+   * and lists no more - OneUptime was removed from them - by the names they
+   * had, the latest first, so a rule that still picks one can say which.
+   */
+  removedWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
 }
 
 /*
