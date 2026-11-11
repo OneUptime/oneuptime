@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import PodmanHost from "Common/Models/DatabaseModels/PodmanHost";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 
 export interface ComponentProps {
   podmanHost: PodmanHost;
@@ -29,14 +29,10 @@ const PodmanHostElement: FunctionComponent<ComponentProps> = (
         )}
         onNavigateComplete={props.onNavigateComplete}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.Podman} className="w-5 h-5 mr-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.podmanHost.name}
-        </span>
+        <RecordLinkName
+          name={props.podmanHost.name}
+          icon={props.showIcon ? IconProp.Podman : undefined}
+        />
       </AppLink>
     );
   }

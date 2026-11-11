@@ -369,9 +369,50 @@ describe("a value too long for its column", () => {
 
   test("an item of a list in a cell keeps to its line, with the same link layout", () => {
     expect(tokens(TABLE_LIST_ITEM_CLASS_NAME)).toEqual([
-      "truncate",
+      "flow-root",
+      "overflow-x-clip",
+      "text-ellipsis",
+      "whitespace-nowrap",
       ...tokens(TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES),
     ]);
+  });
+
+  /*
+   * truncate clips an item all round (overflow-hidden). A resource's link
+   * with its icon (the Dashboard's RecordLinkName) is a box as tall as the
+   * item's line, and its focus ring - drawn just outside it - would be
+   * clipped away whole: a keyboard on a row's Affected Resources could not
+   * see which resource it was on. Clipped across only, as a cell's own
+   * value is, the ring shows above and below it. overflow-hidden also made
+   * the item a box of its own for what it holds, which a clip does not:
+   * flow-root keeps that, so a block's margins inside an item stay in it.
+   */
+  test("an item of a list in a cell clips across only, so a link's focus ring above and below it shows", () => {
+    const itemTokens: Array<string> = tokens(TABLE_LIST_ITEM_CLASS_NAME);
+
+    for (const clipsAllRound of [
+      "truncate",
+      "overflow-hidden",
+      "overflow-clip",
+      "overflow-y-hidden",
+      "overflow-y-clip",
+      "overflow-y-auto",
+    ]) {
+      expect(itemTokens).not.toContain(clipsAllRound);
+    }
+
+    // Still cut at the column's edge, in "...", on one line.
+    expect(itemTokens).toContain("overflow-x-clip");
+    expect(itemTokens).toContain("text-ellipsis");
+    expect(itemTokens).toContain("whitespace-nowrap");
+
+    // Still a box of its own, as overflow-hidden made it.
+    expect(itemTokens).toContain("flow-root");
+
+    // As a cell's own value is clipped.
+    expect(tokens(TABLE_CELL_TRUNCATE_CLASS_NAMES)).toContain(
+      "overflow-x-clip",
+    );
   });
 
   test("what a cell holds sits at the top of its line, and a column of prose is never squeezed below 10rem", () => {
@@ -511,7 +552,8 @@ describe("a row on a phone", () => {
     }
 
     // A row's cell still keeps each item to its line.
-    expect(tokens(TABLE_LIST_ITEM_CLASS_NAME)).toContain("truncate");
+    expect(tokens(TABLE_LIST_ITEM_CLASS_NAME)).toContain("whitespace-nowrap");
+    expect(tokens(TABLE_LIST_ITEM_CLASS_NAME)).toContain("text-ellipsis");
   });
 });
 

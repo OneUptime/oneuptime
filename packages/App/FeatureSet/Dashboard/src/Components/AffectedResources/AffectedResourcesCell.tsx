@@ -46,6 +46,13 @@ import SloElement from "../Slo/SloElement";
  * resource's type icon (Server / Globe / Kubernetes / Docker / Service)
  * so the user can still tell types apart at a glance.
  *
+ * Each name is a line of its own beside its icon (RecordLinkName; a
+ * service's colour takes an icon's room), read the way it is written: on
+ * an Arabic or Persian page an English name too long for the column ends
+ * in "..." at its own end, not at its start ("...lNodesInEuWest1"), and on
+ * a phone's card its wrapped lines start on its own side. Every name starts
+ * in one place, and every link is as wide as its icon and name.
+ *
  * Keep this in sync with AffectedResourcesPicker: if a new resource type is
  * added there, mirror it here so the picker, detail display, and table
  * column all stay aligned.
@@ -415,9 +422,15 @@ const AffectedResourcesCell: FunctionComponent<ComponentProps> = (
          * instead of a mislabelled row.
          */
         if (item.type === "Service") {
+          /*
+           * Its colour where the others' icons are, its name beside it as
+           * theirs are: it starts, shrinks and ends in "..." where its
+           * row's other names do.
+           */
           return (
             <ServiceElement
               service={item.model}
+              alignWithIcons={true}
               onNavigateComplete={props.onNavigateComplete}
             />
           );
