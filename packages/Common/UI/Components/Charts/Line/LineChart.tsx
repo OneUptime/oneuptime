@@ -245,7 +245,10 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
 
   /*
    * Lines named in the legend under the chart are drawn on the plot without
-   * their labels; the legend carries them.
+   * their labels; the legend carries them. A named line always reaches the
+   * value axis (extendsDomain), so the legend never names a line that is off
+   * the plot: an error budget's "Budget exhausted" at 0% while the budget is
+   * still high, or a burn rate rule's 14.4× while the burn is low.
    */
   const hasLabelLegend: boolean =
     props.referenceLineLabelPlacement === ReferenceLineLabelPlacement.Legend &&
@@ -259,7 +262,9 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
     hasLabelLegend
       ? (props.referenceLines || []).map(
           (line: ChartReferenceLineProps): ChartReferenceLineProps => {
-            return { ...line, label: undefined };
+            return line.label?.trim()
+              ? { ...line, label: undefined, extendsDomain: true }
+              : { ...line, label: undefined };
           },
         )
       : props.referenceLines;

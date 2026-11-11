@@ -190,14 +190,39 @@ describe("ReferenceLineLabelPlacement.Legend", () => {
     }
   });
 
-  test("the lines are drawn without their labels, everything else as given", () => {
+  test("the lines are drawn without their labels, each named one reaching the value axis, everything else as given", () => {
     renderChart(ReferenceLineLabelPlacement.Legend);
 
-    expect(lastLibraryProps().referenceLines).toEqual(
-      LINES.map((line: ChartReferenceLineProps) => {
-        return { ...line, label: undefined };
-      }),
-    );
+    expect(lastLibraryProps().referenceLines).toEqual([
+      // A line the legend names is on the plot: the axis reaches it.
+      { value: 0, color: "#ef4444", extendsDomain: true },
+      {
+        value: 25,
+        color: "#f59e0b",
+        strokeDasharray: "4 4",
+        extendsDomain: true,
+      },
+      {
+        value: 50,
+        color: "#8b5cf6",
+        strokeDasharray: "2 3",
+        extendsDomain: true,
+      },
+      // A line the legend does not name keeps the axis as it was.
+      { value: 75, color: "#64748b" },
+    ]);
+    expect(
+      (lastLibraryProps().referenceLines as Array<ChartReferenceLineProps>).map(
+        (line: ChartReferenceLineProps) => {
+          return [line.label, line.extendsDomain];
+        },
+      ),
+    ).toEqual([
+      [undefined, true],
+      [undefined, true],
+      [undefined, true],
+      [undefined, undefined],
+    ]);
   });
 
   test("the legend sits under the plot, outside the plot's own height", () => {

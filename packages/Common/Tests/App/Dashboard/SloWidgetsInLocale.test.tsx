@@ -145,7 +145,9 @@ jest.mock(
   },
 );
 
-import DashboardSloComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloComponent";
+import DashboardSloComponentElement, {
+  SLO_WIDGET_LEGEND_ROW_IN_PX,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloComponent";
 import DashboardSloListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloListComponent";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
@@ -159,6 +161,7 @@ import DashboardSloListComponent from "../../../Types/Dashboard/DashboardCompone
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import { getNumberLocale } from "../../../Types/DateLanguage";
 import { ObjectType } from "../../../Types/JSON";
+import { ReferenceLineLabelPlacement } from "../../../UI/Components/Charts/Types/ReferenceLineProps";
 import ObjectID from "../../../Types/ObjectID";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
@@ -584,7 +587,12 @@ describe("the SLO widget's chart in the reader's figures", () => {
     data: Array<{ seriesName: string }>;
     yAxis: { options: { formatter: (value: number) => string } };
     referenceLines?: Array<{ value: number; label?: string }> | undefined;
+    referenceLineLabelPlacement?: ReferenceLineLabelPlacement | undefined;
+    heightInPx?: number | undefined;
   };
+
+  // The widget's height, less its title and status rows (renderWidget's 320 px).
+  const PLOT_HEIGHT_IN_PX: number = 320 - 58;
 
   function lastChart(): ChartProps {
     const calls: Array<Array<unknown>> = lineChartMock.mock.calls;
@@ -618,6 +626,38 @@ describe("the SLO widget's chart in the reader's figures", () => {
       worded(DE, "Target {{target}}", { target: germanPercent("99,9") }),
     );
     expect(chart.data[0]?.seriesName).toBe("SLI");
+  });
+
+  test("the target's line is named in a legend under the plot, which gives the legend its row (#6694)", async () => {
+    await renderWidget({
+      metric: SloWidgetMetric.Sli,
+      displayType: SloWidgetDisplayType.Chart,
+      slo: buildSlo(),
+    });
+    await screen.findByTestId("line-chart");
+
+    const chart: ChartProps = lastChart();
+
+    // At the end of its line, the label sat on an SLI running near the target.
+    expect(chart.referenceLineLabelPlacement).toBe(
+      ReferenceLineLabelPlacement.Legend,
+    );
+    // The legend's row comes out of the plot, so the tile never overflows.
+    expect(chart.heightInPx).toBe(
+      PLOT_HEIGHT_IN_PX - SLO_WIDGET_LEGEND_ROW_IN_PX,
+    );
+  });
+
+  test("a chart with no target's line keeps the whole height: no legend row", async () => {
+    await renderWidget({
+      metric: SloWidgetMetric.ErrorBudgetRemaining,
+      displayType: SloWidgetDisplayType.Chart,
+      slo: buildSlo(),
+    });
+    await screen.findByTestId("line-chart");
+
+    expect(lastChart().referenceLines).toBeUndefined();
+    expect(lastChart().heightInPx).toBe(PLOT_HEIGHT_IN_PX);
   });
 
   test("German: the burn rate's axis and the budget's series name", async () => {

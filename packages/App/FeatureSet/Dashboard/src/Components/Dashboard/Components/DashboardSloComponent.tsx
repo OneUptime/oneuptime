@@ -65,7 +65,9 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
-import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ChartReferenceLineProps, {
+  ReferenceLineLabelPlacement,
+} from "Common/UI/Components/Charts/Types/ReferenceLineProps";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import {
   XAxis as ChartXAxis,
@@ -82,6 +84,13 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSloComponent;
 }
+
+/*
+ * The row under an SLI chart that names the target's line (#6694): the
+ * legend's gap above it (mt-2) and one line of text-xs. The chart gives it
+ * this much of its height, so the tile never overflows.
+ */
+export const SLO_WIDGET_LEGEND_ROW_IN_PX: number = 24;
 
 /*
  * Chrome shared by the "nothing to render" states so the setup, error and
@@ -641,10 +650,13 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
     /*
      * Reserve the title row and the status row out of the widget height so
-     * the chart never overflows its tile at small sizes.
+     * the chart never overflows its tile at small sizes - and, under an SLI
+     * chart, the legend's row that names the target's line.
      */
     const chartHeightInPx: number = Math.max(
-      props.dashboardComponentHeightInPx - 58,
+      props.dashboardComponentHeightInPx -
+        58 -
+        (referenceLines ? SLO_WIDGET_LEGEND_ROW_IN_PX : 0),
       80,
     );
 
@@ -673,6 +685,12 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
             sync={false}
             syncid={`slo-widget-${props.componentId.toString()}`}
             referenceLines={referenceLines}
+            /*
+             * The target's name in a legend under the plot, as on the SLO
+             * pages' charts: at the end of its line it sat on the SLI
+             * whenever the SLI ran near the target.
+             */
+            referenceLineLabelPlacement={ReferenceLineLabelPlacement.Legend}
             onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
             onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
             /*
@@ -702,8 +720,10 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // ── Tile ───────────────────────────────────────────────────────────────
-  // The figure, the line under it and "Not evaluated yet", the reader's way.
+  /*
+   * ── Tile ─────────────────────────────────────────────────────────────
+   * The figure, the line under it and "Not evaluated yet", the reader's way.
+   */
   const tile: SloWidgetTileDisplay = getSloWidgetTileDisplay({
     sloMetric: sloMetric,
     slo: slo,
