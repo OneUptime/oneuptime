@@ -41,7 +41,8 @@ import WhatsAppStatus from "../../../Types/WhatsAppStatus";
  *
  * Slack, Microsoft Teams and Mattermost messages also say where they went
  * (notification.destination): to a person, into a channel, or to an incoming
- * webhook (issue #6645).
+ * webhook (issue #6645). So does a post to a status page subscriber's own
+ * webhook, apart from a person's (issue #6685).
  *
  * Every sender records through this file, so a channel, a provider or an
  * outcome is spelled one way everywhere, and every attribute keeps to a
@@ -145,8 +146,10 @@ export enum NotificationTriggerSource {
  * in a queue before it is evaluated (issue #6647) - or else the record's
  * creation, the moment a telemetry monitor's evaluation or a person opened
  * it. For a page started later - by a person, a workflow, a rule that now
- * matches, a page again, or after a hold the on-call rules ask for - the
- * moment it started.
+ * matches, a direct page - the moment it started; and for one a
+ * once-a-minute worker starts when it is due - a run held by its on-call
+ * rule or by OneUptime AI, a page again - the moment it was due, so a
+ * worker that fell behind shows (issue #6708).
  */
 export enum OnCallPageStart {
   MonitorDataReceived = "monitor_data_received",
@@ -171,9 +174,10 @@ export enum NotificationSchedule {
 }
 
 /*
- * Where a Slack, Microsoft Teams or Mattermost message went (issue #6645).
- * Only those three channels carry it: every message of the others goes to
- * one person.
+ * Where a Slack, Microsoft Teams or Mattermost message went (issue #6645),
+ * and which webhook messages went to a status page subscriber (issue
+ * #6685). Only those carry it: every other message - a person's webhook
+ * among them - goes to one person, or to a project's own endpoint.
  */
 export enum NotificationDestination {
   // To one person: the notification methods' own (WorkspaceUserNotificationService).
@@ -185,6 +189,13 @@ export enum NotificationDestination {
   Channel = "channel",
   // To an incoming webhook somebody made: a status page subscriber's.
   IncomingWebhook = "incoming_webhook",
+  /*
+   * A webhook message to a status page subscriber's own endpoint: the JSON
+   * of an incident, an announcement, a scheduled maintenance or their
+   * notes (StatusPageSubscriberWebhookUtil). A person's webhook carries no
+   * destination.
+   */
+  StatusPageSubscriber = "status_page_subscriber",
 }
 
 /*
@@ -241,7 +252,10 @@ export interface NotificationDispatchStart {
   // A notification of an on-call page (it has an on-call timeline row).
   isOnCallPage?: boolean | undefined;
   customChannel?: NotificationCustomChannelIdentity | undefined;
-  // Where a Slack, Microsoft Teams or Mattermost message went.
+  /*
+   * Where a Slack, Microsoft Teams or Mattermost message went, or that a
+   * webhook message went to a status page subscriber.
+   */
   destination?: NotificationDestination | undefined;
 }
 

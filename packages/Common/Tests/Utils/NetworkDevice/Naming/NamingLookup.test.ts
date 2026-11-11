@@ -6,6 +6,9 @@ import {
   NamingLookupKey,
 } from "../../../../Types/NetworkDevice/DeviceNaming";
 import {
+  NAMING_LOOKUP_BAD_KEY_PROBLEMS,
+  NAMING_LOOKUP_KEY_EXAMPLES,
+  NAMING_LOOKUP_KEY_TITLES,
   NAMING_LOOKUP_PROBLEMS,
   NamingLookupProblem,
   NamingLookupTable,
@@ -286,7 +289,25 @@ describe("validateNamingLookupEntries", () => {
       "a key of another kind",
       NamingLookupKey.LastIpOctet,
       [{ key: "10.48.145.51", value: "MNUPLR01" }],
-      NAMING_LOOKUP_PROBLEMS.badKey,
+      NAMING_LOOKUP_BAD_KEY_PROBLEMS[NamingLookupKey.LastIpOctet],
+    ],
+    [
+      "a key that is not an IP address",
+      NamingLookupKey.IpAddress,
+      [{ key: "10.48.145", value: "MNUPLR01" }],
+      NAMING_LOOKUP_BAD_KEY_PROBLEMS[NamingLookupKey.IpAddress],
+    ],
+    [
+      "a key that is not a MAC address",
+      NamingLookupKey.MacAddress,
+      [{ key: "00:05:0b", value: "MNUPLR01" }],
+      NAMING_LOOKUP_BAD_KEY_PROBLEMS[NamingLookupKey.MacAddress],
+    ],
+    [
+      "an empty key of a discovered name table",
+      NamingLookupKey.DiscoveredName,
+      [{ key: "  ", value: "MNUPLR01" }],
+      NAMING_LOOKUP_BAD_KEY_PROBLEMS[NamingLookupKey.DiscoveredName],
     ],
     [
       "a row without a value",
@@ -349,7 +370,7 @@ describe("validateNamingLookupEntries", () => {
           }),
         ),
       ),
-    ).toBe('Row 2: "300" is not a last part of the ip address, such as 51.');
+    ).toBe('Row 2: "300" is not the last part of an IP address, such as 51.');
 
     expect(
       formatNamingLookupProblem(
@@ -365,6 +386,93 @@ describe("validateNamingLookupEntries", () => {
         ),
       ),
     ).toBe('Rows 1 and 3 both have the key "051". Keep one of them.');
+  });
+
+  /*
+   * A key of the wrong kind is said in a whole sentence for each kind (#6686):
+   * the one sentence it replaced put the kind's title in the middle of it,
+   * lowercased - "is not a last part of the ip address" - and so left the
+   * title English, or wrongly cased, in every other language.
+   */
+  const badKeys: Array<[NamingLookupKey, string, string]> = [
+    [
+      NamingLookupKey.LastIpOctet,
+      "300",
+      'Row 1: "300" is not the last part of an IP address, such as 51.',
+    ],
+    [
+      NamingLookupKey.IpAddress,
+      "10.48.145",
+      'Row 1: "10.48.145" is not an IP address, such as 10.48.145.51.',
+    ],
+    [
+      NamingLookupKey.MacAddress,
+      "00:05:0b",
+      'Row 1: "00:05:0b" is not a MAC address, such as 00:05:0b:b0:7f:fc.',
+    ],
+    [
+      NamingLookupKey.DiscoveredName,
+      "",
+      'Row 1: "" is not a discovered name, such as dmb-5.',
+    ],
+  ];
+
+  test.each(badKeys)(
+    "a %s table's key of the wrong kind reads as a whole sentence",
+    (kind: NamingLookupKey, key: string, sentence: string) => {
+      const problem: NamingLookupProblem = problemOf(
+        validateNamingLookupEntries({
+          kind: kind,
+          entries: [{ key: key, value: "MNUPLR01" }],
+        }),
+      );
+
+      expect(problem.template).toBe(NAMING_LOOKUP_BAD_KEY_PROBLEMS[kind]);
+      // The kind is in the sentence, not a value filled into it.
+      expect(Object.keys(problem.values).sort()).toEqual([
+        "example",
+        "key",
+        "row",
+      ]);
+      expect(problem.values["example"]).toBe(NAMING_LOOKUP_KEY_EXAMPLES[kind]);
+      expect(formatNamingLookupProblem(problem)).toBe(sentence);
+    },
+  );
+
+  test("every kind of key has its own sentence, and no sentence leaves the kind to a value", () => {
+    const kinds: Array<NamingLookupKey> = Object.values(NamingLookupKey);
+
+    expect(Object.keys(NAMING_LOOKUP_BAD_KEY_PROBLEMS).sort()).toEqual(
+      [...kinds].sort(),
+    );
+    expect(new Set(Object.values(NAMING_LOOKUP_BAD_KEY_PROBLEMS)).size).toBe(
+      kinds.length,
+    );
+
+    for (const kind of kinds) {
+      const sentence: string = NAMING_LOOKUP_BAD_KEY_PROBLEMS[kind];
+
+      expect(sentence).not.toContain("{{kind}}");
+      expect(sentence.match(/\{\{[a-z]+\}\}/gi)?.sort()).toEqual([
+        "{{example}}",
+        "{{key}}",
+        "{{row}}",
+      ]);
+      // It names the kind the way the rule form's choice titles it.
+      expect(sentence.toLowerCase()).toContain(
+        NAMING_LOOKUP_KEY_TITLES[kind]
+          .toLowerCase()
+          .replace("of the ip address", "of an ip address"),
+      );
+      // Written as a sentence, with the address words in capitals.
+      expect(sentence).not.toMatch(/\bip\b|\bmac\b/);
+    }
+
+    // The single sentence with the kind filled in is gone.
+    expect(Object.values(NAMING_LOOKUP_PROBLEMS)).not.toContain(
+      'Row {{row}}: "{{key}}" is not a {{kind}}, such as {{example}}.',
+    );
+    expect(Object.keys(NAMING_LOOKUP_PROBLEMS)).not.toContain("badKey");
   });
 
   test("a table can hold the most rows allowed, and no more", () => {

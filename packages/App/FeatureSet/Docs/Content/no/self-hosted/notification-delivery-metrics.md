@@ -109,14 +109,14 @@ Hver attributt har én av noen få faste verdier, aldri et prosjekt, en person, 
 | `notification.provider.config` | `global` for installasjonens egen konto og innstillinger; `project` for et prosjekts egen Twilio-konto, SMTP-server, webhook eller arbeidsområdetilkobling, der det er prosjektets sak å rette feilene |
 | `notification.on_call_page` | `true` for et varsel fra en vakttilkalling, ellers `false` |
 | `outcome` | `success`, `failure` eller `not_sent`, som nedenfor |
-| `notification.destination` | Bare Slack, Microsoft Teams og Mattermost: `direct_message` til én person, `channel` for et innlegg i en kanal eller en Teams-gruppechat, `incoming_webhook` for en innkommende webhook, for eksempel en statussideabonnents |
+| `notification.destination` | Slack, Microsoft Teams og Mattermost: `direct_message` til én person, `channel` for et innlegg i en kanal eller en Teams-gruppechat, `incoming_webhook` for en innkommende webhook, for eksempel en statussideabonnents. Webhooks: `status_page_subscriber` for en statussideabonnents egen webhook. Utelatt for en persons webhook og for alle andre kanaler |
 | `notification.custom_channel.id`, `notification.custom_channel.name` | Bare egendefinerte kanaler: kanalens ID, og navnet dens kuttet til 100 tegn |
 
 - `success`: leverandøren tok imot meldingen.
 - `failure`: leverandøren avviste den eller kunne ikke nås, eller sendingen mislyktes. En chatkanal som ikke ble funnet, er en feil uten varighet.
 - `not_sent`: med vilje ikke sendt. Prosjektet har slått av kanalen, har for lite saldo eller er blokkert, push er slått av på denne serveren, eller en egendefinert kanal er slått av, slettet eller ikke dekket av lisensen. En suksessrate utelater disse: det er innstillinger som virker, ikke plattformen som svikter.
 
-Vanlige webhooks fra statussideabonnenter telles ikke ennå.
+En melding til en statussideabonnents egen webhook telles én gang, uansett hvor mange ganger den ble forsøkt: `success` når endepunktet svarte med en 2xx-status, og `failure` når det svarte med en annen status, ikke kunne nås, eller adressen ikke er tillatt.
 
 ### Hva som nådde telefonen
 
@@ -155,7 +155,7 @@ Statuser kommer bare der leverandøren kan melde dem:
 | --- | --- |
 | `monitor_data_received` | Da OneUptime mottok dataene som utløste monitoren: en innkommende forespørsel, rapporten fra en serveragent, en innkommende e-post, en probes sjekk, en SNMP-trap eller en avspørring av en nettverksenhet. Det inkluderer tiden dataene ventet i køen på å bli vurdert. |
 | `record_created` | Da hendelsen, varselet eller episoden ble opprettet: av en telemetrimonitor, en regel eller en person, og ved en sjekk for fravær, for eksempel et heartbeat som stoppet. |
-| `page_started` | Da en tilkalling startet senere: en person, en arbeidsflyt eller en regel som nå passer startet den, en ny tilkalling, en direkte tilkalling, eller en tilkalling som ventet ut en pause vaktregelen dens ba om. |
+| `page_started` | Da en tilkalling startet senere: en person, en arbeidsflyt eller en regel som nå passer startet den, eller det er en direkte tilkalling. For en tilkalling som vaktregelen dens eller OneUptime AI holdt igjen, da pausen løp ut, eller da den startet hvis det var tidligere. For en ny tilkalling, da tidsavbruddet etter bekreftelse løp ut. Slik vises en worker som kom for sent til en av dem, i tiden. |
 
 For en innkommende forespørsel løper tiden fra den siste forespørselen endepunktet mottok, så den kan bli litt for kort.
 
@@ -170,7 +170,7 @@ For en innkommende forespørsel løper tiden fra den siste forespørselen endepu
 | `escalation` | Et senere eskaleringsnivå: når nivået før har fullført ventetiden sin, eller med en gang når en person gir tilkallingen videre. |
 | `policy_repeat` | Retningslinjen som starter på nytt fra første nivå: når ventetiden på det siste nivået har løpt ut. |
 
-Den bærer også `notification.channel`, `notification.trigger.type` og, for egendefinerte kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. Et varsel som forfaller når tilkallingen starter, er aldri med i den: det er i tid til sending.
+Den bærer også `notification.channel`, `notification.trigger.type` og, for egendefinerte kanaler, `notification.custom_channel.id` og `notification.custom_channel.name`. Et varsel som forfaller når tilkallingen starter, er aldri med i den, heller ikke når en worker startet tilkallingen for sent, etter en pause eller som en ny tilkalling: det er i tid til sending.
 
 ### Histogrammenes buckets
 
@@ -220,7 +220,7 @@ Formelen `$b / $a * 100` er andelen som feilet, og målet holder så lenge den h
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-Målet holder så lenge `a` holder seg på eller under 30000. Tilkallinger som startes senere, måles fra starten, ikke fra en utløser, så de er utelatt. Grupper etter `notification.page.start` for å se monitorenes kø (`monitor_data_received`) atskilt fra resten, eller etter `notification.channel` for å finne en treg kanal.
+Målet holder så lenge `a` holder seg på eller under 30000. Tilkallinger som startes senere, måles fra starten eller fra da de forfalt, ikke fra en utløser, så de er utelatt. Grupper etter `notification.page.start` for å se monitorenes kø (`monitor_data_received`) atskilt fra resten, eller etter `notification.channel` for å finne en treg kanal.
 
 ### Senere sendte varsler går ut innen 90 sekunder
 

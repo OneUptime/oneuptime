@@ -16,7 +16,8 @@ import {
  * with - and that recording a metric never fails a send.
  *
  * And what they record since: where a Slack, Microsoft Teams or Mattermost
- * message went (notification.destination, issue #6645), how a message a
+ * message went (notification.destination, issue #6645) - and that a webhook
+ * message went to a status page subscriber (issue #6685) - how a message a
  * provider accepted ended, when the provider tells it later
  * (notification.delivery.count and .duration, issue #6648), and how late an
  * on-call notification sent later went out (notification.send.lag, issue
@@ -1086,7 +1087,7 @@ describe("where a chat message went (issue #6645)", () => {
     });
   });
 
-  test("a send that does not - every channel but the three chats - carries no destination at all", () => {
+  test("a send that does not - every channel but the three chats and a subscriber's webhook - carries no destination at all", () => {
     expect(
       NotificationDeliveryMetrics.getDispatchAttributes({
         channel: NotificationDeliveryChannel.Email,
@@ -1096,6 +1097,36 @@ describe("where a chat message went (issue #6645)", () => {
         outcome: NotificationDeliveryOutcome.Success,
       }),
     ).not.toHaveProperty("notification.destination");
+    // A person's webhook says none: only a subscriber's is told apart.
+    expect(
+      NotificationDeliveryMetrics.getDispatchAttributes({
+        channel: NotificationDeliveryChannel.Webhook,
+        provider: NotificationDeliveryProvider.Webhook,
+        providerConfig: NotificationProviderConfig.Project,
+        isOnCallPage: true,
+        outcome: NotificationDeliveryOutcome.Success,
+      }),
+    ).not.toHaveProperty("notification.destination");
+  });
+
+  test("a webhook message to a status page subscriber says so (issue #6685)", () => {
+    NotificationDeliveryMetrics.startDispatch({
+      channel: NotificationDeliveryChannel.Webhook,
+      provider: NotificationDeliveryProvider.Webhook,
+      providerConfig: NotificationProviderConfig.Project,
+      isOnCallPage: false,
+      destination: NotificationDestination.StatusPageSubscriber,
+    }).end(NotificationDeliveryOutcome.Success);
+
+    expect(lastSendAttributes()).toEqual({
+      "notification.channel": "webhook",
+      "notification.provider": "webhook",
+      "notification.provider.config": "project",
+      "notification.on_call_page": "false",
+      "notification.destination": "status_page_subscriber",
+      outcome: "success",
+    });
+    expect(sendDurationCalls[0]!.attributes).toEqual(lastSendAttributes());
   });
 
   test("a dispatch started with a destination records it on its send and its duration", () => {
@@ -1462,6 +1493,7 @@ describe("the spelling of the destination and the final statuses", () => {
       "channel",
       "direct_message",
       "incoming_webhook",
+      "status_page_subscriber",
     ]);
   });
 

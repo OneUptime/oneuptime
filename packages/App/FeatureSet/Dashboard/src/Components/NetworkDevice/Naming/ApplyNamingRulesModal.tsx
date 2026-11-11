@@ -12,6 +12,7 @@ import {
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
@@ -102,6 +103,32 @@ export function groupPlanItems(
   return groups;
 }
 
+// Whether the plan names a device that could be renamed, ticked or not.
+export function hasRenameCandidates(groups: NamingPlanGroups): boolean {
+  return groups.toRename.length + groups.namedByPerson.length > 0;
+}
+
+/*
+ * The dialog's closing button: Done once devices were renamed, Cancel
+ * beside the rename button or while the plan loads, and Close when there
+ * is nothing to rename - the dialog's only way out then, not a step back.
+ */
+export function getCloseButtonText(data: {
+  isDone: boolean;
+  isLoading: boolean;
+  offersRename: boolean;
+}): string {
+  if (data.isDone) {
+    return translationKey("Done");
+  }
+
+  if (data.isLoading || data.offersRename) {
+    return translationKey("Cancel");
+  }
+
+  return translationKey("Close");
+}
+
 const RenameRow: FunctionComponent<{
   item: DeviceNamingPlanItem;
   isSelected: boolean;
@@ -164,12 +191,15 @@ const AttentionRow: FunctionComponent<{
 
   return (
     <li className="px-3 py-2.5" data-testid="naming-plan-attention">
-      <span
-        dir="auto"
+      {/*
+       * A line of its own: an English name on an Arabic or Persian page
+       * reads its own way and lines up with the page's lines.
+       */}
+      <IsolatedLine
+        as="span"
+        text={props.item.currentName}
         className="block break-all text-sm font-medium text-gray-900"
-      >
-        {props.item.currentName}
-      </span>
+      />
       <span className="mt-0.5 flex items-start gap-1.5 text-xs text-amber-700">
         <Icon
           icon={IconProp.Alert}
@@ -434,12 +464,11 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
               (skip: { deviceId: string; reason: string }): ReactElement => {
                 return (
                   <li key={skip.deviceId} className="px-3 py-2.5">
-                    <span
-                      dir="auto"
+                    <IsolatedLine
+                      as="span"
+                      text={nameById.get(skip.deviceId) || skip.deviceId}
                       className="block break-all text-sm font-medium text-gray-900"
-                    >
-                      {nameById.get(skip.deviceId) || skip.deviceId}
-                    </span>
+                    />
                     <span className="mt-0.5 block text-xs text-gray-600">
                       {translator.translateText(skip.reason)}
                     </span>
@@ -631,6 +660,15 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
 
   const isDone: boolean = Boolean(result);
 
+  /*
+   * The rename button only where there is something to rename: a project
+   * whose devices all follow the rules, one with no rules, or a plan that
+   * could not be read closes the dialog instead of offering "Rename 0
+   * devices", greyed out.
+   */
+  const offersRename: boolean =
+    !isDone && Boolean(plan) && hasRenameCandidates(groups);
+
   return (
     <Modal
       title={APPLY_NAMING_RULES_TITLE}
@@ -654,12 +692,14 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
       isLoading={isApplying}
       error={error || undefined}
       onClose={props.onClose}
-      closeButtonText={
-        isDone ? translationKey("Done") : translationKey("Cancel")
-      }
-      {...(isDone
-        ? { closeButtonStyleType: ButtonStyleType.PRIMARY }
-        : {
+      closeButtonText={getCloseButtonText({
+        isDone: isDone,
+        isLoading: isLoading,
+        offersRename: offersRename,
+      })}
+      {...(isDone ? { closeButtonStyleType: ButtonStyleType.PRIMARY } : {})}
+      {...(offersRename
+        ? {
             submitButtonText: translator.translatePlural(
               {
                 one: "Rename {{count}} device",
@@ -671,7 +711,8 @@ const ApplyNamingRulesModal: FunctionComponent<ApplyNamingRulesModalProps> = (
             onSubmit: (): void => {
               void apply();
             },
-          })}
+          }
+        : {})}
       disableSubmitButton={renames.length === 0 || isLoading}
       submitButtonStyleType={ButtonStyleType.PRIMARY}
     >
