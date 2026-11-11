@@ -22,6 +22,7 @@ import {
   CriteriaFilterUtil,
 } from "./CriteriaFilter";
 import { CriteriaIncident } from "./CriteriaIncident";
+import CriteriaFilterValues from "./CriteriaFilterValues";
 import IncidentGroupingConfig from "./IncomingMonitor/IncidentGroupingConfig";
 import MonitorType, { MonitorTypeHelper } from "./MonitorType";
 import { DEFAULT_NTP_MAX_CLOCK_OFFSET_IN_MS } from "./NtpMonitor/NtpMonitorUtil";
@@ -2868,6 +2869,21 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
     }
 
     /*
+     * A value no check reads - a condition "GreaterThn", an aggregation
+     * "Mean value" - makes a filter that can never match, or reads its
+     * window as nothing (CriteriaFilterValues).
+     */
+    const unreadable: Array<string> = CriteriaFilterValues.getUnreadableErrors({
+      criteriaName: value.data.name,
+      filterCondition: value.data.filterCondition,
+      filters: value.data.filters,
+    });
+
+    if (unreadable.length > 0) {
+      return unreadable[0]!;
+    }
+
+    /*
      * Each "when filters match, ..." action is validated only while its own
      * switch is on.
      *
@@ -3219,16 +3235,25 @@ export default class MonitorCriteriaInstance extends DatabaseProperty {
       );
     }
 
-    const filterCondition: FilterCondition = json[
-      "filterCondition"
-    ] as FilterCondition;
+    /*
+     * A value written another way - "any", "GreaterThan", ">" - is read as
+     * the one it means; one that means none is kept as written, for a
+     * write to refuse (CriteriaFilterValues).
+     */
+    const filterCondition: FilterCondition =
+      (CriteriaFilterValues.readFilterCondition(json["filterCondition"]) ||
+        json["filterCondition"]) as FilterCondition;
 
     const filters: Array<CriteriaFilter> = [];
 
     const incidents: Array<CriteriaIncident> = [];
 
     for (const filter of json["filters"]) {
-      filters.push({ ...(filter as any) });
+      filters.push(
+        CriteriaFilterValues.readFilter({
+          ...(filter as JSONObject),
+        }) as unknown as CriteriaFilter,
+      );
     }
 
     for (const incident of json["incidents"]) {

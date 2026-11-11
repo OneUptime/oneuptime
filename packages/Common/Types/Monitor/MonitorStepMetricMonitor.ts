@@ -4,6 +4,7 @@ import MetricQueryConfigData from "../Metrics/MetricQueryConfigData";
 import MetricsViewConfig from "../Metrics/MetricsViewConfig";
 import ObjectID from "../ObjectID";
 import RollingTime from "../RollingTime/RollingTime";
+import MonitorStepRollingTime from "./MonitorStepRollingTime";
 
 export default interface MonitorStepMetricMonitor {
   metricViewConfig: MetricsViewConfig;
@@ -86,8 +87,14 @@ export class MonitorStepMetricMonitorUtil {
   }
 
   public static fromJSON(json: JSONObject): MonitorStepMetricMonitor {
+    /*
+     * A rolling time written another way ("15 minutes") is read as the one
+     * it means (MonitorStepRollingTime).
+     */
     const monitorStepMetricMonitor: MonitorStepMetricMonitor =
-      json as any as MonitorStepMetricMonitor;
+      MonitorStepRollingTime.readSettings(
+        json,
+      ) as any as MonitorStepMetricMonitor;
 
     /*
      * Normalize on the way in so no consumer ever receives a half-built

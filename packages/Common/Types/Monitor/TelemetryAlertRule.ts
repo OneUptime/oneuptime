@@ -3,6 +3,7 @@ import FilterCondition from "../Filter/FilterCondition";
 import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
 import ObjectID from "../ObjectID";
 import RollingTime from "../RollingTime/RollingTime";
+import RollingTimeUtil from "../RollingTime/RollingTimeUtil";
 import { CriteriaAlert } from "./CriteriaAlert";
 import {
   CheckOn,
@@ -388,9 +389,14 @@ export default class TelemetryAlertRuleUtil {
     }
   }
 
+  /*
+   * The window the step's checks read: one written another way ("15
+   * minutes") is the one it means, and one that means none - or none at
+   * all - the default, as the worker reads it.
+   */
   public static getRollingTime(monitorStep: MonitorStep): RollingTime {
-    return (
-      monitorStep.data?.metricMonitor?.rollingTime || RollingTime.Past1Minute
+    return RollingTimeUtil.fromValueOrDefault(
+      monitorStep.data?.metricMonitor?.rollingTime,
     );
   }
 

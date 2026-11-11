@@ -122,6 +122,7 @@ import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAgg
 import InfrastructureResourceBinding from "../Utils/Monitor/InfrastructureResourceBinding";
 import OpenStackMonitorDependencies from "../Utils/OpenStack/OpenStackMonitorDependencies";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
+import MonitorStepsValuesUtil from "../../Utils/Monitor/MonitorStepsValuesUtil";
 import ProbeStatusMonitorEvaluator from "../Utils/Monitor/ProbeStatusMonitorEvaluator";
 import MonitorTurnedOff from "../Utils/Monitor/MonitorTurnedOff";
 import LatestIncomingRequest, {
@@ -952,6 +953,25 @@ export class Service extends ProjectReferencesService<Model> {
         }
 
         if (isMonitorStepsWritten) {
+          /*
+           * A value no check reads - a rolling time or a filter's condition
+           * that means none - in the steps this write leaves, under the
+           * type it leaves (MonitorStepsValuesUtil). Steps stored that way
+           * before are refused too once they are written: their checks read
+           * nothing, which no write should keep.
+           */
+          MonitorStepsValuesUtil.assertValuesReadable({
+            monitorType:
+              (isMonitorTypeWritten
+                ? (updateBy.data.monitorType as MonitorType | undefined)
+                : undefined) || monitor.monitorType,
+            monitorSteps: updateBy.data.monitorSteps as
+              | MonitorSteps
+              | JSONObject
+              | null
+              | undefined,
+          });
+
           if (updateBy.data.monitorSteps) {
             await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject(
               {
@@ -2114,6 +2134,16 @@ export class Service extends ProjectReferencesService<Model> {
 
     // A Synthetic step with no browser or no screen size would run nothing.
     SyntheticMonitorStepsUtil.assertRunsSomewhere({
+      monitorType: createBy.data.monitorType,
+      monitorSteps: createBy.data.monitorSteps,
+    });
+
+    /*
+     * Nor a value no check reads: a rolling time that means none reads a
+     * window of no length, and a filter condition that means none never
+     * matches (MonitorStepsValuesUtil).
+     */
+    MonitorStepsValuesUtil.assertValuesReadable({
       monitorType: createBy.data.monitorType,
       monitorSteps: createBy.data.monitorSteps,
     });
