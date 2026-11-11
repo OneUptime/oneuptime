@@ -8,7 +8,8 @@ import type { ReactElement } from "react";
  * What a list hands a row action as it runs it, for an action that changes
  * the row it was taken on - its state, a switch, an owner - and wants the
  * list to show the change: `refresh` reads the list's rows again, keeping
- * its page, sort and filters. ModelTable passes it; a list that does not
+ * its page, sort and filters, and asks the page's side-menu counts to count
+ * again (SideMenuCountRefresh). ModelTable passes it; a list that does not
  * passes nothing, and the action carries on without it.
  */
 export interface RowActionContext {
