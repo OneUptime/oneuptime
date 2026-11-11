@@ -49999,9 +49999,9 @@
   "“{{settingName}}” is set to 0, which pauses automatic AI work.": "قيمة «{{settingName}}» هي 0، وهذا يوقف عمل الذكاء الاصطناعي التلقائي مؤقتًا.",
   "“{{settingName}}” was off, so no investigation started.": "كان «{{settingName}}» متوقفًا، لذا لم يبدأ أي تحقيق.",
   "“{{settingName}}” was set to 0, which pauses automatic AI work, so no investigation started.": "كانت قيمة «{{settingName}}» هي 0، وهذا يوقف عمل الذكاء الاصطناعي التلقائي مؤقتًا، لذا لم يبدأ أي تحقيق.",
-  "Alert on Failed Refreshes": "Alert on Failed Refreshes",
-  "Failed Refreshes": "Failed Refreshes",
-  "Refresh Monitor ID": "Refresh Monitor ID",
-  "The alert on failed refreshes was not saved: {{error}}": "The alert on failed refreshes was not saved: {{error}}",
-  "Open an alert for each dataset whose refresh fails, until a later one completes. OneUptime keeps one monitor for it, named after this tool.": "Open an alert for each dataset whose refresh fails, until a later one completes. OneUptime keeps one monitor for it, named after this tool."
+  "Alert on Failed Refreshes": "التنبيه عند فشل عمليات التحديث",
+  "Failed Refreshes": "عمليات التحديث الفاشلة",
+  "Refresh Monitor ID": "معرّف مراقبة التحديث",
+  "The alert on failed refreshes was not saved: {{error}}": "لم يُحفظ التنبيه عند فشل عمليات التحديث: {{error}}",
+  "Open an alert for each dataset whose refresh fails, until a later one completes. OneUptime keeps one monitor for it, named after this tool.": "فتح تنبيه لكل مجموعة بيانات يفشل تحديثها، حتى يكتمل تحديث لاحق. يحتفظ OneUptime لذلك بمراقبة واحدة مسمّاة باسم هذه الأداة."
 }
