@@ -6,7 +6,7 @@ De configuratie van waarschuwingen staat binnen **Waarschuwingen**, niet in **Pr
 - [De regels die een nieuwe waarschuwing doorloopt](#de-regels-die-een-nieuwe-waarschuwing-doorloopt): Op volgorde, en wat elk doet.
 - [Bereikbaarheidsregels](#bereikbaarheidsregels): De juiste mensen oproepen zonder elke keer een beleid te kiezen.
 - [Herinneringsregels](#herinneringsregels): Eigenaren herinneren zolang een waarschuwing open blijft.
-- [Instellingen](#instellingen): Notitie-sjablonen, aangepaste velden, metingen, lidmaatschap van episodes en nummering.
+- [Instellingen](#instellingen): Notitie-sjablonen, aangepaste velden, metingen, lidmaatschap van episodes, nummering en gegevensbewaring.
 :::
 
 ## Waar de instellingen voor waarschuwingen staan
@@ -24,7 +24,7 @@ Open **Waarschuwingen** via het menu **Producten** in de bovenste balk. De secti
 | **Labelregels**             | Voegt labels toe aan overeenkomende waarschuwingen en episodes.                                |
 | **Herinneringsregels**          | Herinnert eigenaren met een interval zolang een waarschuwing open is.                          |
 
-De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes** en **Nummering**, hieronder beschreven.
+De sectie **Instellingen** bevat **Status waarschuwing** en **Ernst van waarschuwing**, beschreven op [Waarschuwingsstatussen en ernstniveaus](/docs/alerts/states-and-severities), en daarna **Notitie-sjablonen**, **Aangepaste velden**, **Metingen**, **Lidmaatschap van episodes**, **Nummering** en **Gegevensbewaring**, hieronder beschreven.
 
 Nog twee secties werken op waarschuwingen. **Waarschuwingen → AI → Instellingen** bepaalt wat OneUptime AI zelf doet: **Nieuwe waarschuwingen onderzoeken**, aan voor nieuwe projecten, en **Nieuwe waarschuwingen automatisch herstellen**, uit tot je het aanzet. Zie [AI SRE](/docs/ai/ai-sre). **Waarschuwingen → Werkruimte** bevat de Slack- en Microsoft Teams-regels die waarschuwingen en episodes in kanalen plaatsen, en het tabblad **Samenvatting**. Zie [Slack](/docs/workspace-connections/slack).
 
@@ -168,6 +168,10 @@ Eigenaren krijgen elke herinnering als **Waarschuwingsherinnering**, dat standaa
 **Waarschuwingen → Instellingen → Nummering** stelt de tekst voor waarschuwings- en episodenummers in: `ALT-` en `AE-` in een nieuw project, of `#` zonder voorvoegsel. **Bijwerken** opent **Nummervoorvoegsel voor waarschuwing** en **Nummervoorvoegsel voor waarschuwingsepisode**, met een voorbeeld terwijl je typt. Alleen waarschuwingen en episodes die daarna worden aangemaakt, krijgen het nieuwe voorvoegsel. De regels voor een voorvoegsel staan op [Nummervoorvoegsels](/docs/incidents/settings#nummervoorvoegsels).
 
 De kaart **Volgend nummer** eronder stelt het nummer in dat de volgende waarschuwing en de volgende episode krijgen, om de nummers van een andere tool voort te zetten: **Bijwerken** opent **Volgend waarschuwingsnummer** en **Volgend waarschuwingsepisodenummer**, elk hoger dan het hoogste tot nu toe. Zie [Volgende nummers](/docs/incidents/settings#volgende-nummers).
+
+### Gegevensbewaring
+
+**Waarschuwingen → Instellingen → Gegevensbewaring** verwijdert waarschuwingen zodra ze lang genoeg zijn opgelost, zoals [Gegevensbewaring](/docs/incidents/settings#gegevensbewaring) dat voor incidenten doet. De kaart **Opgeloste waarschuwingen** vraagt om **Verwijderen na**, **Nooit** tot je een periode kiest, en vraagt om bevestiging voordat er meer wordt verwijderd, met **Oude waarschuwingen verwijderen**. Een waarschuwing blijft zolang ze niet is opgelost, zolang ze in een episode zit die nog open is of korter geleden is opgelost, en zolang een incident waaraan ze is gekoppeld blijft. Alleen Project Owners en Project Admins kunnen dit wijzigen; in de API is het `alertRetentionInDays` van het project.
 
 > [!NOTE]
 > In OneUptime Cloud vragen notitie-sjablonen en aangepaste velden het abonnement **Growth** of hoger.

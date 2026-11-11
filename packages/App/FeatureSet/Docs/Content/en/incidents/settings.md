@@ -28,6 +28,7 @@ Open **Incidents** from the **Products** menu in the top bar, then expand **Sett
 | **Linked Alerts**        | Choose whether the alerts linked to an incident are acknowledged and resolved along with it. Both are on for new projects. |
 | **Episode Membership**   | Choose whether an incident can be in only one episode. Off by default. |
 | **Numbering**            | The text in front of incident and episode numbers, such as `INC-` in `INC-42`, and the number the next one gets. |
+| **Data Retention**       | How long resolved incidents are kept before they are deleted. All are kept until you choose a length. |
 
 What OneUptime AI does on its own is not set here: it has a section of its own, **Incidents → AI**, at routes beginning `/dashboard/{projectId}/incidents/ai/`. Its **Settings** page switches investigating new incidents, fixing them automatically (off until you turn it on), and drafting postmortems on or off, each saving as soon as you flip it; the AI rules that narrow which incidents are investigated and fixed, and with which code repositories and pull requests, the postmortem rules that choose which resolved incidents get a draft and the templates it follows, and the optional limits AI works under, are folded under **More settings**, and none apply until you set them. **Insights** and **Logs** are next to it: what AI learned from your incidents, and everything it did. See [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Both are on for new projects; a project created before they were on by default k
 ## Episode membership
 
 An incident can be in several episodes at once. **Incidents → Settings → Episode Membership** (`/dashboard/{projectId}/incidents/settings/episode-membership`) has one switch, **An incident can be in only one episode**: while it is on, an incident that is in an episode is not added to another one, from the dashboard, the API, a workflow or a grouping rule, until it is removed from that episode. It is off until you turn it on, and it saves as soon as you flip it. Only Project Owners and Project Admins can change it; for everyone else the switch is locked and says which permission it needs. Turning it on takes no incident out of an episode. [One episode per incident](/docs/incidents/episodes#one-episode-per-incident) has what each way of adding does while it is on.
+
+## Data retention
+
+Resolved incidents stay until someone deletes them, each with its state timeline, notes, feed and notification logs, so a busy project's database keeps growing. **Incidents → Settings → Data Retention** (`/dashboard/{projectId}/incidents/settings/data-retention`) deletes them once they have been resolved for long enough. Its **Resolved Incidents** card asks **Delete after**: **Never**, where every project starts, or a length from 30 days to 3 years. It saves as soon as you pick, and a length that deletes more than before asks first, with **Delete old incidents**.
+
+Every hour, each incident resolved for longer than that is deleted with everything attached to it: its state timeline, notes, feed, owners, notification logs and on-call runs. The length counts from the incident's last state change, so one that was open for a year and resolved last week stays the whole length. An episode is deleted once it has been resolved as long and none of its incidents are left. Status pages stop showing deleted incidents, nothing deleted can be brought back, and incident numbers are never given out again. A project with years of resolved incidents catches up over a few hourly runs.
+
+However long ago it was resolved, an incident stays:
+
+- while it is not resolved;
+- while its postmortem is **Completed** and **Keep incidents with a completed postmortem** is on. That switch is on the same card, is on by default, and asks before it is turned off. While it is on, an episode with a postmortem written stays too;
+- while it is in an episode that is still open, or was resolved more recently than the length.
+
+Only Project Owners and Project Admins can change these settings. Over the API they are the project's `incidentRetentionInDays`, `0` for **Never**, and `keepIncidentsWithCompletedPostmortem`. Alerts have a setting of their own: see [Alert Rules & Settings](/docs/alerts/settings#data-retention).
+
+> [!NOTE]
+> On a self-hosted install, PostgreSQL reuses the space deleted rows leave, but does not give it back to the disk. To shrink the database after a large first purge, run `VACUUM FULL` on the biggest tables in a maintenance window, as it locks each table while it rewrites it, or use `pg_repack`, which does not.
 
 ## Rules that run when an incident is created
 

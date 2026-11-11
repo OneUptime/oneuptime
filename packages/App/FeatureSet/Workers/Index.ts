@@ -6,6 +6,7 @@ import "./Jobs/HardDelete/HardDeleteItemsInDatabase";
 import "./Jobs/Incident/SendNotificationToSubscribers";
 import "./Jobs/Incident/SendPostmortemNotificationToSubscribers";
 import "./Jobs/Incident/KeepCurrentStateConsistent";
+import "./Jobs/Incident/DeleteResolvedIncidents";
 
 // Incident Owners
 import "./Jobs/IncidentOwners/SendCreatedResourceNotification";
@@ -37,6 +38,7 @@ import "./Jobs/AlertOwners/SendOwnerAddedNotification";
 import "./Jobs/AlertOwners/SendStateChangeNotification";
 import "./Jobs/AlertOwners/SendUnresolvedReminderNotification";
 import "./Jobs/Alert/KeepCurrentStateConsistent";
+import "./Jobs/Alert/DeleteResolvedAlerts";
 
 // Alert Incident Rules
 import "./Jobs/AlertIncidentRules/DeclareIncidentsWhenWaitIsUp";
