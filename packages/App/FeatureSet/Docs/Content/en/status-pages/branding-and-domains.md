@@ -155,20 +155,20 @@ On OneUptime Cloud, adding or changing any of them needs the **Growth** plan. Em
 
 By default a status page is reachable at the preview URL on its **Overview** screen. To put it on your own hostname, go to **Status Pages → your page → Branding → Custom Domains** (`{id}/domains`).
 
-The **Custom Domains** card says what to do: point each domain's CNAME record to your installation's status page CNAME record, and OneUptime issues the domain's SSL certificate and renews it for you. With nothing set up, the table says **No custom domains found**, with **Create Status Page Domain** under it. The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
+The **Custom Domains** card says what to do: point each domain's CNAME record to your installation's status page CNAME record, and OneUptime issues the domain's SSL certificate and renews it for you. With nothing set up, the table says **No custom domains found**, with **Add Custom Domain** under it. The table has two columns, **Domain** and **Status**, and filters for **Domain**, **CNAME Valid** and **SSL Provisioned**.
 
-Putting the page on your domain takes three steps, and only the first two are yours:
+Putting the page on your domain takes three steps, all on this page, and only the first two are yours:
 
-1. **Add the domain**: a subdomain and one of your verified domains.
-2. **Add its CNAME record** at your DNS provider. The **DNS Setup** dialog shows the record as soon as you add the domain.
-3. **The free SSL certificate is issued automatically** once the record is found. There is no button to press.
+1. **Add the domain**: type the address people will open, such as `status.yourcompany.com`.
+2. **Add its DNS records** at your DNS provider. The **DNS Setup** dialog shows them: a CNAME record for the address and, the first time the project uses a domain, a TXT record that shows the project owns it.
+3. **The free SSL certificate is issued automatically** once the records are found. There is no button to press.
 
 ```mermaid title="From a new custom domain to HTTPS"
 flowchart TB
-    A["Add the domain"] --> B["DNS Setup shows the CNAME record"]
-    B --> C["Add the record at your DNS provider"]
-    C --> D{"Record found?"}
-    D -->|"Not yet"| E["Check now, or the check every 15 minutes"]
+    A["Type the address"] --> B["DNS Setup shows the records"]
+    B --> C["Add them at your DNS provider"]
+    C --> D{"Records found?"}
+    D -->|"Not yet"| E["Check now says what it found"]
     E --> D
     D -->|"Yes"| F["Domain verified"]
     F --> G["Free certificate ordered from Let's Encrypt"]
@@ -177,8 +177,8 @@ flowchart TB
 
 ### Before you start
 
-- **The parent domain must be verified.** The **Domain** dropdown lists only the domains verified under **Project Settings → Advanced → Domains**, where you prove you own a domain with a TXT record. The **Add a domain** link beside the field opens that page in a new tab.
-- **Your installation needs a status page CNAME record.** OneUptime Cloud has one. On a self-hosted installation, set it to a hostname that points at your OneUptime server (an A record), and make sure the server answers on port 80, where Let's Encrypt checks it. Without it, the card and the **DNS Setup** dialog say "Custom Domains not enabled for this OneUptime installation" instead of showing a record.
+- **Your installation needs a status page CNAME record.** OneUptime Cloud has one. On a self-hosted installation, set it to a hostname that points at your OneUptime server (an A record), and make sure the server answers on ports 80 and 443: visitors and Let's Encrypt reach every custom domain there. Without it, the card and the **DNS Setup** dialog say "Custom Domains not enabled for this OneUptime installation" instead of showing a record.
+- **A self-hosted server is checked first.** **Add Custom Domain** and **DNS Setup** say what the server still needs before any custom domain can work, under "This server is not ready for custom domains yet": whether the CNAME record setting is set, whether its hostname resolves, whether it reaches this OneUptime on port 80 and accepts connections on port 443, and whether the server issues free certificates. Each line says what to change and where. The checks run from the server itself, so people outside your network must reach the hostname on the same ports.
 
 :::tabs
 @tab Docker Compose
@@ -195,48 +195,52 @@ statusPage:
 ### Adding the domain
 
 :::steps
-#### Open Create Status Page Domain
+#### Open Add Custom Domain
 
-On **Custom Domains**, click **Create Status Page Domain**. The dialog is one page.
+On **Custom Domains**, click **Add Custom Domain**. The dialog asks for one thing.
 
-#### Enter the subdomain
+#### Type the address
 
-In **Subdomain** (placeholder `status (leave blank for root)`), enter only the label, such as `status`, not the whole hostname. Leave it blank, or enter `@`, to use the root (apex) domain.
-
-#### Pick the domain
-
-In **Domain** (placeholder `Select domain`), pick one of your verified domains. A domain you have not verified is not listed, because it would be refused.
+In **Domain** (placeholder `status.example.com`), type the whole address people will open, such as `status.yourcompany.com`. A pasted link works too: only its hostname is kept. To use the root of a domain, type the domain itself.
 
 #### Keep the free certificate, or upload your own
 
 **More fields** is folded, and its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own: switch **Upload Custom Certificate** on, then paste the **Certificate** and the **Certificate Private Key** in PEM format. Both are then required.
 
-#### Create the domain
+#### Continue
 
-Click **Create Status Page Domain**. The dialog closes and the new domain's **DNS Setup** opens, with the record to add.
+Click **Continue**. If the project has verified the domain the address is on, the domain is added and its **DNS Setup** opens, with the CNAME record to add. If it has not, OneUptime adds that domain to **Project Settings → Advanced → Domains**, and **DNS Setup** opens with both records, so you verify the domain right there, without leaving the page.
 :::
 
-A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one. A name a dashboard or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
+A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different address, add that one and delete the old one. A name a dashboard or a form already uses, in any project, is refused: one domain shows one status page, dashboard or form.
+
+Adding a domain to the project takes permission to create project domains (**Create Project Domain**, or Project Owner or Project Admin), and verifying it takes **Edit Project Domain**. Without them, the dialog says who can do it.
 
 ### DNS Setup and verification
 
-The **DNS Setup** dialog shows the record to add at your DNS provider, one field per row, each with a copy button:
+The **DNS Setup** dialog shows each record still needed at your DNS provider, one field per row, each with a copy button:
 
-| Field | What to enter |
-| ----- | ------------- |
-| **Type** | `CNAME` |
-| **Name** | The full domain you added, for example `status.yourcompany.com` |
-| **Value** | Your installation's status page CNAME record |
+| Record | **Type** | **Name** | **Value** |
+| ------ | -------- | -------- | --------- |
+| Shows the project owns the domain, until it is verified | `TXT` | The domain, for example `yourcompany.com` | Its verification text, `oneuptime-verification-…` |
+| Points the address to OneUptime | `CNAME` | The full address, for example `status.yourcompany.com` | Your installation's status page CNAME record |
+
+You add the TXT record once per domain: every later address on it needs only its CNAME record. The two are never on the same name, because a name with a CNAME record can have no other record.
 
 > [!NOTE]
 > For a root domain, one with no subdomain, the dialog adds a note: many DNS providers do not allow a CNAME record there. Use your provider's ALIAS, ANAME or CNAME flattening record with the same value instead.
 
-OneUptime checks every unverified domain every 15 minutes and verifies yours as soon as its record is live, whether or not you come back. To check right away, click **Check now**:
+Click **Check now** to look the records up at once. It checks the TXT record first, and as soon as that is found, adds the domain to the status page and checks its CNAME record. Each record then shows its own status, **Found**, **Wrong value**, **Not found yet** or **Could not check**, and under it what OneUptime looked up and what came back, with what to change:
 
-- **The record is not found yet.** The dialog stays open and says which record it looked for. A new DNS record can take a while to show up: click **Check now** again later, or leave it to the 15-minute check.
-- **The record is found.** The dialog says "Your CNAME record is verified." and what happens to the certificate next. The free certificate is ordered at that moment.
+- "We looked up the CNAME record of status.yourcompany.com and got nothing." The record is not there yet, or not yet visible: a new record can take a while to show up.
+- "We looked up the CNAME record of status.yourcompany.com and got other.example.net, but expected oneuptime.yourcompany.com." The record points somewhere else: change its value.
+- "We looked up the CNAME record of status.yourcompany.com and got nothing, but the name answers with the address 203.0.113.10." The name has an A record, or its DNS provider proxies or flattens it (Cloudflare's orange cloud does), which hides the CNAME record from everyone: replace the A record, or set the name to DNS only.
 
-Until a domain is verified and its certificate is in place, its row has a **DNS Setup** action that opens the same dialog. On a verified domain whose certificate order keeps failing, or whose certificate has expired, **Check now** there orders again and shows why the last order failed. It orders at most once per domain every 15 minutes; in between, OneUptime keeps retrying on its own.
+OneUptime follows the whole CNAME chain, so a record that points at a name of your own, which points at your installation's record, counts. So does a name whose requests reach OneUptime, even when its DNS provider hides the CNAME record.
+
+Once the CNAME record is found, the dialog says "Your CNAME record is verified." and what happens to the certificate next. The free certificate is ordered at that moment. If requests to the address still do not reach OneUptime, for example because a proxy in front of a self-hosted server does not pass the address on, the dialog says so: the certificate cannot be issued until they do.
+
+OneUptime checks the CNAME record of every unverified domain every 15 minutes and verifies yours as soon as it is live, whether or not you come back. Until a domain is verified and its certificate is in place, its row has a **DNS Setup** action that opens the same dialog. On a verified domain whose certificate order keeps failing, or whose certificate has expired, **Check now** there orders again and shows why the last order failed. It orders at most once per domain every 15 minutes; in between, OneUptime keeps retrying on its own.
 
 ### SSL certificates
 
@@ -285,7 +289,7 @@ The **Status** column says where each domain is on its way to HTTPS, in one of e
 | Verified. Uses your own proxy's HTTPS. | On a self-hosted installation without a Let's Encrypt account key, the record is verified and the domain is live. Its HTTPS is up to your own proxy, unless you upload a certificate. |
 
 :::details A domain stays on "Waiting for DNS" long after I added the record
-Check that the record's name is the full domain, such as `status.yourcompany.com`, and that its value matches your installation's CNAME record exactly. On a root domain, use an ALIAS, ANAME or flattened CNAME record. Then click **Check now** in **DNS Setup**.
+Open **DNS Setup** and click **Check now**: under the record, it says what OneUptime looked up and what came back. Check that the record's name is the full domain, such as `status.yourcompany.com`, and that its value matches your installation's CNAME record. If it says the name answers with an address, the name has an A record or is proxied by its DNS provider: replace the A record, or set the name to DNS only. On a root domain, use an ALIAS, ANAME or flattened CNAME record.
 :::
 
 :::details The Status column says it could not issue a free certificate
@@ -298,7 +302,7 @@ Look for a CAA record on your domain that leaves out `letsencrypt.org`, and, on 
 
 Someone who can only read the domain, such as a Viewer or a Status Page Viewer, still sees the **Status** column and the record to add in **DNS Setup**. For them **Check now** and **Reissue SSL** are locked, and say which permission they need. OneUptime keeps checking every domain and ordering its certificate on its own either way.
 
-The same goes for API keys. A key that can only read status page domains can't call `verify-cname`, `order-ssl` or `reissue-ssl` on `/status-page-domain`. Give it **Read Status Page Domain** and **Edit Status Page Domain** if it needs to.
+The same goes for API keys. A key that can only read status page domains can't call `verify-cname`, `check-dns`, `order-ssl` or `reissue-ssl` on `/status-page-domain`. Give it **Read Status Page Domain** and **Edit Status Page Domain** if it needs to. When the record is not found, `verify-cname` refuses with what it looked up and what came back, in the words **DNS Setup** shows; `check-dns` answers every record it looked up either way.
 
 ## Powered by OneUptime
 

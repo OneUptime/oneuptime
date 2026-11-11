@@ -25,6 +25,7 @@ import ScheduledMaintenanceStateService from "../Services/ScheduledMaintenanceSt
 import ScheduledMaintenanceStateTimelineService from "../Services/ScheduledMaintenanceStateTimelineService";
 import StatusPageAnnouncementService from "../Services/StatusPageAnnouncementService";
 import StatusPageDomainService from "../Services/StatusPageDomainService";
+import CustomDomainServerReadiness from "../Utils/CustomDomain/CustomDomainServerReadiness";
 import StatusPageFooterLinkService from "../Services/StatusPageFooterLinkService";
 import StatusPageGroupService from "../Services/StatusPageGroupService";
 import StatusPageHeaderLinkService from "../Services/StatusPageHeaderLinkService";
@@ -1042,6 +1043,33 @@ export default class StatusPageAPI extends BaseAPI<
         }
 
         return Response.sendEmptySuccessResponse(req, res);
+      },
+    );
+
+    /*
+     * The custom domain readiness proof: answers 200 only to a proof signed
+     * with this installation's secret (CustomDomainServerReadiness), so the
+     * readiness check can tell a request that reached this OneUptime from
+     * one a proxy in front of it answered itself. Reads and writes nothing.
+     */
+    this.router.get(
+      `${new this.entityType()
+        .getCrudApiPath()
+        ?.toString()}/custom-domain-readiness/:proof`,
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const proof: string = (req.params["proof"] as string) || "";
+
+        if (!CustomDomainServerReadiness.isValidProof(proof)) {
+          return Response.sendErrorResponse(
+            req,
+            res,
+            new BadDataException("Invalid proof."),
+          );
+        }
+
+        Response.setNoCacheHeaders(res);
+
+        return Response.sendJsonObjectResponse(req, res, { proof: proof });
       },
     );
 

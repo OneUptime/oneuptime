@@ -11,37 +11,26 @@ import {
   getCustomDomainInstallation,
 } from "./CustomDomainKinds";
 import CustomDomainDnsSetupModal from "./CustomDomainDnsSetupModal";
+import AddCustomDomainModal from "./AddCustomDomainModal";
 import CustomDomainName from "./CustomDomainName";
-import {
-  isDomainServerError,
-  isSubdomainServerError,
-} from "./CustomDomainServerErrors";
 import CustomDomainStatus from "./CustomDomainStatus";
-import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import CustomDomainCertificates, {
   CustomDomainCertificate,
 } from "Common/Types/CustomDomain/CustomDomainCertificates";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import Query from "Common/Types/BaseDatabase/Query";
-import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import OneUptimeDate from "Common/Types/Date";
-import BadDataException from "Common/Types/Exception/BadDataException";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import { FormFieldCollapsibleSection } from "Common/UI/Components/Forms/Types/Field";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import FormValues from "Common/UI/Components/Forms/Types/FormValues";
-import { getAdvancedFormSection } from "Common/UI/Components/Forms/Utils/AdvancedFormSection";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
-import { ModalType } from "Common/UI/Components/ModelTable/BaseModelTable";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { APP_API_URL } from "Common/UI/Config";
@@ -56,7 +45,6 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import CertificateReissueUtil from "Common/Utils/CertificateReissue";
-import Domain from "Common/Models/DatabaseModels/Domain";
 import Project from "Common/Models/DatabaseModels/Project";
 import React, {
   Fragment,
@@ -73,12 +61,13 @@ import React, {
  * wording after the status page lost them, because each page had its own
  * copy of this.
  *
- *   - Adding a domain is one page: the subdomain and one of the project's
- *     verified domains, with the certificate options folded under
- *     Advanced. The new domain's DNS Setup opens as soon as it is added.
- *     A refusal about the subdomain or the domain - a name another status
- *     page, dashboard or form has already - is said under that field
- *     (CustomDomainServerErrors), not over the whole form.
+ *   - Adding a domain asks for one thing, the address people will open
+ *     (AddCustomDomainModal), with the certificate options folded under
+ *     Advanced. On a domain the project has verified, the new domain's DNS
+ *     Setup opens as soon as it is added; on one it has not, the dialog
+ *     becomes DNS Setup with both records - the domain's TXT and the
+ *     address's CNAME - and adds the custom domain once the TXT is found.
+ *     Nobody leaves the page to verify a domain in Project Settings.
  *   - Editing a domain can change only its certificate, so Edit shows the
  *     certificate options at once: folded, they left an Edit dialog with
  *     nothing in it but a fold.
@@ -94,28 +83,6 @@ import React, {
  *     may edit it, as the server holds it; anyone else sees them locked, with
  *     the permission they need.
  */
-
-/*
- * The certificate options, folded: nearly every domain runs on the free
- * certificate we issue and renew, and the folded header says so. Built once,
- * so the fields in it are one section (FormStepsScan reads them that way).
- */
-const certificateSection: FormFieldCollapsibleSection<CustomDomainModel> =
-  getAdvancedFormSection<CustomDomainModel>({
-    getSummary: (values: FormValues<CustomDomainModel>): Array<string> => {
-      /*
-       * An installation without a Let's Encrypt account key issues no free
-       * certificate, so the folded header does not promise one.
-       */
-      return [
-        values.isCustomCertificate
-          ? CustomDomainCopy.advancedSummaryUploadedCertificate
-          : getCustomDomainInstallation().issuesFreeCertificates
-            ? CustomDomainCopy.advancedSummaryFreeCertificate
-            : CustomDomainCopy.advancedSummaryWithoutFreeCertificate,
-      ];
-    },
-  });
 
 export interface ComponentProps {
   // Whose domains: a status page's, a dashboard's or a form's.
@@ -142,6 +109,9 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
   // The domain whose DNS Setup dialog is open.
   const [dnsSetupDomain, setDnsSetupDomain] =
     useState<CustomDomainModel | null>(null);
+
+  // Whether Add Custom Domain is open.
+  const [showAddDomain, setShowAddDomain] = useState<boolean>(false);
 
   const [selectedDomain, setSelectedDomain] =
     useState<CustomDomainModel | null>(null);
@@ -305,28 +275,16 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
         onFetchSuccess={() => {
           void loadCertificates();
         }}
-        onBeforeCreate={(
-          item: CustomDomainModel,
-        ): Promise<CustomDomainModel> => {
-          if (!props.currentProject || !props.currentProject._id) {
-            throw new BadDataException("Project ID cannot be null");
-          }
-
-          (item as unknown as Record<string, unknown>)[kind.parentColumn] =
-            props.parentId;
-          item.projectId = new ObjectID(props.currentProject._id);
-          return Promise.resolve(item);
+        /*
+         * Add Custom Domain is a dialog of its own: one field, and the
+         * project domain verified in place when it is not yet.
+         */
+        onCreateClick={() => {
+          setShowAddDomain(true);
         }}
-        onCreateSuccess={async (
-          item: CustomDomainModel,
-          modalType?: ModalType,
-        ): Promise<CustomDomainModel> => {
-          if (modalType === ModalType.Create) {
-            await openDnsSetupForNewDomain(item);
-          }
-
-          return item;
-        }}
+        createVerb="Add"
+        singularName="Custom Domain"
+        pluralName="Custom Domains"
         actionButtons={[
           {
             title: CustomDomainCopy.dnsSetupTitle,
@@ -439,130 +397,10 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
           certificateReissueRequestedAt: true,
         }}
         formFields={[
-          {
-            field: {
-              subdomain: true,
-            },
-            title: "Subdomain",
-            fieldType: FormFieldSchemaType.Text,
-            required: false,
-            placeholder: kind.copy.subdomainPlaceholder,
-            description: kind.copy.subdomainDescription,
-            disableSpellCheck: true,
-            /*
-             * The full domain is worked out when the domain is added and
-             * never again, so a subdomain changed afterwards would change
-             * nothing. A different subdomain is a different domain: add it.
-             */
-            doNotShowWhenEditing: true,
-            /*
-             * A name another status page, dashboard or form has already,
-             * or a subdomain that is not a plain label: said under the
-             * subdomain, which is what to change.
-             */
-            ownsServerError: isSubdomainServerError,
-          },
-          {
-            field: {
-              domain: true,
-            },
-            title: "Domain",
-            description: CustomDomainCopy.domainFieldDescription,
-            // A domain that stopped being verified while the dialog was open.
-            ownsServerError: isDomainServerError,
-            /*
-             * Fixed once the domain is added, as the subdomain is: its
-             * column takes no update, so Edit never offered it.
-             */
-            doNotShowWhenEditing: true,
-            sideLink: {
-              text: CustomDomainCopy.domainFieldSideLink,
-              url: RouteUtil.populateRouteParams(
-                RouteMap[PageMap.SETTINGS_DOMAINS] as Route,
-              ),
-              openLinkInNewTab: true,
-            },
-            fieldType: FormFieldSchemaType.Dropdown,
-            /*
-             * Verified domains only: the server refuses any other, so
-             * listing them only led to "This domain is not verified" after
-             * the form was filled in.
-             */
-            dropdownModal: {
-              type: Domain,
-              labelField: "domain",
-              valueField: "_id",
-              query: {
-                isVerified: true,
-              },
-              sort: {
-                domain: SortOrder.Ascending,
-              },
-            },
-            required: true,
-            placeholder: "Select domain",
-          },
           /*
-           * The certificate options, on Create: folded under More fields,
-           * whose line says which certificate the domain will use.
+           * Adding a domain is AddCustomDomainModal's: the table's form is
+           * Edit's alone.
            */
-          {
-            field: {
-              isCustomCertificate: true,
-            },
-            title: "Upload Custom Certificate",
-            fieldType: FormFieldSchemaType.Toggle,
-            required: false,
-            defaultValue: false,
-            description:
-              "If you have a custom certificate, you can upload it here. If you do not have a certificate, we will order a free SSL certificate for you.",
-            collapsibleSection: certificateSection,
-            doNotShowWhenEditing: true,
-          },
-          {
-            field: {
-              customCertificate: true,
-            },
-            title: "Certificate",
-            fieldType: FormFieldSchemaType.LongText,
-            required: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            placeholder:
-              "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
-            disableSpellCheck: true,
-            /*
-             * A form domain's column describes it for the API reference
-             * ("... while isCustomCertificate is on"), in English: the
-             * title and the PEM placeholder say what goes here, as on a
-             * status page's and a dashboard's, whose columns have none.
-             */
-            hideColumnDescription: true,
-            showIf: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            collapsibleSection: certificateSection,
-            doNotShowWhenEditing: true,
-          },
-          {
-            field: {
-              customCertificateKey: true,
-            },
-            title: "Certificate Private Key",
-            fieldType: FormFieldSchemaType.LongText,
-            required: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            placeholder:
-              "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
-            disableSpellCheck: true,
-            hideColumnDescription: true,
-            showIf: (item: FormValues<CustomDomainModel>): boolean => {
-              return Boolean(item.isCustomCertificate);
-            },
-            collapsibleSection: certificateSection,
-            doNotShowWhenEditing: true,
-          },
           /*
            * The same options, on Edit: the certificate is all an edit can
            * change - the name is fixed once the domain is added - so they
@@ -689,6 +527,24 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
           },
         ]}
       />
+
+      {showAddDomain && props.currentProject?._id ? (
+        <AddCustomDomainModal
+          kind={kind}
+          parentId={props.parentId}
+          projectId={new ObjectID(props.currentProject._id)}
+          onClose={() => {
+            setShowAddDomain(false);
+          }}
+          onChanged={refreshTable}
+          onAdded={(domain: CustomDomainModel) => {
+            setShowAddDomain(false);
+            void openDnsSetupForNewDomain(domain);
+          }}
+        />
+      ) : (
+        <></>
+      )}
 
       {dnsSetupDomain ? (
         <CustomDomainDnsSetupModal

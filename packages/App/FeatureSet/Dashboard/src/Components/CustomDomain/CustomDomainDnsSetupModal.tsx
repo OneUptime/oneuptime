@@ -9,17 +9,31 @@ import {
   CustomDomainKind,
   getCustomDomainInstallation,
 } from "./CustomDomainKinds";
+import CustomDomainRecords, { CustomDomainRecord } from "./CustomDomainRecords";
+import CustomDomainServerReadinessNotice from "./CustomDomainServerReadinessNotice";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import URL from "Common/Types/API/URL";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import CustomDomainVerification, {
+import OneUptimeDate from "Common/Types/Date";
+import {
   CustomDomainCertificateStatus,
   CustomDomainVerificationResult,
 } from "Common/Types/CustomDomain/CustomDomainVerification";
+import CustomDomainDnsCheckResultJSON, {
+  CustomDomainDnsCheckResult,
+} from "Common/Types/CustomDomain/CustomDomainDnsCheckResult";
+import {
+  DnsRecordCheck,
+  DnsRecordCheckOutcome,
+  DnsRecordType,
+} from "Common/Types/CustomDomain/DnsRecordCheck";
+import {
+  DnsRecordCheckDescription,
+  describeDnsRecordCheck,
+} from "Common/Types/CustomDomain/DnsRecordCheckWords";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
 import Modal from "Common/UI/Components/Modal/Modal";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { APP_API_URL } from "Common/UI/Config";
@@ -31,22 +45,36 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
- * DNS Setup: the one thing only a custom domain's owner can do - add the
- * CNAME record - and a way to say it is done. The same dialog for a status
- * page's custom domains and a dashboard's.
+ * DNS Setup: the records only a custom domain's owner can add, each with its
+ * own status, and one Check now for all of them. The same dialog for a
+ * status page's custom domains, a dashboard's and a form's.
  *
  * It opens by itself on a domain that was just added, and from the domain's
- * DNS Setup row action until the record is verified. The record is shown
+ * DNS Setup row action until the record is verified. Each record is shown
  * field by field, the way DNS providers ask for it, each with a copy
- * button. Check now verifies the record at once (the sweeps check every 15
- * minutes anyway), and the server orders the domain's free certificate the
- * moment the record is found; the dialog then says what happens to the
- * certificate next instead of closing on a guess.
+ * button.
+ *
+ * Two records, while the project has not verified the custom domain's
+ * domain yet (Add Custom Domain opens it that way): the TXT record that
+ * proves the project owns example.com, then the CNAME record that points
+ * status.example.com here. Check now checks the TXT first (the domain's
+ * check-txt); once it is found, adds the custom domain and checks its CNAME.
+ * Nobody leaves the status page to verify a domain in Project Settings.
+ *
+ * Check now looks the records up at once (the sweeps check every 15 minutes
+ * anyway) and says, record by record, what it looked up and what came back
+ * (DnsRecordCheck): "We looked up the CNAME record of status.example.com
+ * and got other.example.net, but expected ...". The server orders the
+ * domain's free certificate the moment its CNAME is found; the dialog then
+ * says what happens to the certificate next instead of closing on a guess.
  *
  * Check now changes the domain - it verifies it and orders its
  * certificate - so it is for whoever may edit the domain, as the server
- * holds it. Anyone else who opens the dialog still gets the record to add,
+ * holds it. Anyone else who opens the dialog still gets the records to add,
  * with Check now locked and the reason under it.
+ *
+ * On a self-hosted server, what the server still needs before any custom
+ * domain can work is said above the records (CustomDomainServerReadiness).
  */
 
 // What the dialog reads of the domain's row.
@@ -58,9 +86,22 @@ export interface CustomDomainDnsSetupDomain {
   isCnameVerified?: boolean | undefined;
 }
 
+// The project's domain whose TXT record is still to be found.
+export interface CustomDomainDnsSetupProjectDomain {
+  id: ObjectID;
+  // Its name: example.com.
+  domain: string;
+  // The TXT record's value that verifies it.
+  verificationText: string;
+}
+
 export interface ComponentProps {
-  // Whose domain: a status page's or a dashboard's.
+  // Whose domain: a status page's, a dashboard's or a form's.
   kind: CustomDomainKind;
+  /*
+   * The custom domain. Without an id it is not added yet: it is added by
+   * createCustomDomain once projectDomain is verified.
+   */
   domain: CustomDomainDnsSetupDomain;
   // The domain's free certificate has expired: its renewals keep failing.
   hasExpiredCertificate?: boolean | undefined;
@@ -70,17 +111,38 @@ export interface ComponentProps {
    * arrived) there is no Check now at all rather than a locked one.
    */
   checkNowGate: PermissionGateResult;
+  /*
+   * The project's domain, while it is not verified: its TXT record is
+   * shown first, and checked first.
+   */
+  projectDomain?: CustomDomainDnsSetupProjectDomain | undefined;
+  // Whether the viewer may verify the project's domain, and if not, why.
+  verifyDomainGate?: PermissionGateResult | undefined;
+  // Adds the custom domain once its project domain is verified.
+  createCustomDomain?:
+    | (() => Promise<CustomDomainDnsSetupDomain>)
+    | undefined;
   onClose: () => void;
   // Check now found the record: what shows the domain's status is stale.
   onVerified: () => void;
+  // The custom domain was added from this dialog: the table is stale.
+  onCreated?: ((domain: CustomDomainDnsSetupDomain) => void) | undefined;
 }
 
-interface RecordRow {
-  label: string;
-  value: string;
-  copyTitle: string;
-  testId: string;
-}
+// A CNAME that waits for the TXT before it: what its status says.
+const cnameNotCheckedYet: (name: string, target: string) => DnsRecordCheck = (
+  name: string,
+  target: string,
+): DnsRecordCheck => {
+  return {
+    type: DnsRecordType.CNAME,
+    name: name,
+    expectedValue: target,
+    foundValues: [],
+    outcome: DnsRecordCheckOutcome.NotCheckedYet,
+    checkedAt: OneUptimeDate.getCurrentDate(),
+  };
+};
 
 const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -92,6 +154,21 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   const [result, setResult] = useState<CustomDomainVerificationResult | null>(
     null,
   );
+
+  // The custom domain, once it is added (from this dialog, or before it).
+  const [customDomain, setCustomDomain] =
+    useState<CustomDomainDnsSetupDomain>(props.domain);
+
+  // What the last Check now found, record by record.
+  const [txtCheck, setTxtCheck] = useState<DnsRecordCheck | undefined>(
+    undefined,
+  );
+  const [cnameCheck, setCnameCheck] = useState<DnsRecordCheck | undefined>(
+    undefined,
+  );
+
+  const [isProjectDomainVerified, setIsProjectDomainVerified] =
+    useState<boolean>(!props.projectDomain);
 
   const cnameRecord: string = props.kind.getCnameRecord();
 
@@ -113,8 +190,10 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
    * failing, or a certificate that has expired - and Check now tries again
    * and says why.
    */
-  const whatHappensNext: string = props.domain.isCustomCertificate
-    ? CustomDomainCopy.dnsSetupWhatHappensNextUploaded
+  const whatHappensNext: string = !customDomain.id
+    ? CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords
+    : props.domain.isCustomCertificate
+      ? CustomDomainCopy.dnsSetupWhatHappensNextUploaded
     : !installation.issuesFreeCertificates
       ? CustomDomainCopy.dnsSetupWhatHappensNextWithoutFreeCertificate
       : props.domain.isCnameVerified
@@ -128,13 +207,40 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     typeof props.domain.subdomain === "string" &&
     props.domain.subdomain.trim() === "";
 
-  const canCheckNow: boolean = props.checkNowGate.isAllowed;
+  /*
+   * Check now's gate: while the project's domain waits for its TXT record,
+   * verifying it comes first, and takes what editing project domains takes.
+   */
+  const gate: PermissionGateResult =
+    props.projectDomain && !isProjectDomainVerified && props.verifyDomainGate
+      ? props.verifyDomainGate
+      : props.checkNowGate;
+
+  const canCheckNow: boolean = gate.isAllowed;
 
   const checkNowLockedReason: string | undefined = canCheckNow
     ? undefined
-    : props.checkNowGate.disabledReason;
+    : gate.disabledReason;
 
   const showsCheckNow: boolean = canCheckNow || Boolean(checkNowLockedReason);
+
+  const getCheckResult: (route: string) => Promise<CustomDomainDnsCheckResult> =
+    async (route: string): Promise<CustomDomainDnsCheckResult> => {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get<JSONObject>({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(route),
+          data: {},
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (response.isFailure()) {
+        throw response;
+      }
+
+      return CustomDomainDnsCheckResultJSON.fromJSON(
+        response.data as JSONObject,
+      );
+    };
 
   const checkNow: () => Promise<void> = async (): Promise<void> => {
     if (!canCheckNow) {
@@ -145,26 +251,53 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
-      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
-        await API.get<JSONObject>({
-          url: URL.fromString(APP_API_URL.toString()).addRoute(
-            `/${new props.kind.modelType().crudApiPath}/verify-cname/${props.domain.id?.toString()}`,
-          ),
-          data: {},
-          headers: ModelAPI.getCommonHeaders(),
-        });
+      // The project's domain first: the custom domain cannot be added before.
+      if (props.projectDomain && !isProjectDomainVerified) {
+        const txt: CustomDomainDnsCheckResult = await getCheckResult(
+          `/domain/check-txt/${props.projectDomain.id.toString()}`,
+        );
 
-      if (response.isFailure()) {
-        throw response;
+        setTxtCheck(txt.records[0]);
+
+        if (!txt.isVerified) {
+          setCnameCheck(cnameNotCheckedYet(fullDomain, cnameRecord));
+          return;
+        }
+
+        setIsProjectDomainVerified(true);
       }
 
-      setResult(CustomDomainVerification.fromJSON(response.data as JSONObject));
-      props.onVerified();
+      let domainToCheck: CustomDomainDnsSetupDomain = customDomain;
+
+      if (!domainToCheck.id) {
+        if (!props.createCustomDomain) {
+          return;
+        }
+
+        domainToCheck = await props.createCustomDomain();
+        setCustomDomain(domainToCheck);
+        props.onCreated?.(domainToCheck);
+      }
+
+      const dns: CustomDomainDnsCheckResult = await getCheckResult(
+        `/${new props.kind.modelType().crudApiPath}/check-dns/${domainToCheck.id?.toString()}`,
+      );
+
+      setCnameCheck(dns.records[0]);
+
+      if (dns.isVerified) {
+        setResult(
+          dns.certificate || {
+            certificateStatus: CustomDomainCertificateStatus.Issuing,
+          },
+        );
+        props.onVerified();
+      }
     } catch (err) {
       setError(API.getFriendlyMessage(err));
+    } finally {
+      setIsChecking(false);
     }
-
-    setIsChecking(false);
   };
 
   // An installation without this kind's CNAME record cannot verify any.
@@ -175,18 +308,21 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
         onClose={props.onClose}
         closeButtonText={CustomDomainCopy.dnsSetupClose}
       >
-        <p className="text-sm leading-6 text-gray-600">
-          <TranslatedSentence
-            template={props.kind.copy.dnsSetupNotEnabled}
-            slots={{
-              variable: (
-                <span className="font-semibold">
-                  {props.kind.cnameRecordVariable}
-                </span>
-              ),
-            }}
-          />
-        </p>
+        <div className="space-y-4">
+          <CustomDomainServerReadinessNotice kind={props.kind} />
+          <p className="text-sm leading-6 text-gray-600">
+            <TranslatedSentence
+              template={props.kind.copy.dnsSetupNotEnabled}
+              slots={{
+                variable: (
+                  <span className="font-semibold">
+                    {props.kind.cnameRecordVariable}
+                  </span>
+                ),
+              }}
+            />
+          </p>
+        </div>
       </Modal>
     );
   }
@@ -203,6 +339,16 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
   );
 
   if (result) {
+    /*
+     * A CNAME that is right, whose requests do not reach OneUptime yet - a
+     * proxy in front of a self-hosted server that does not pass the name
+     * on (#1521): verified, and its certificate cannot be issued until the
+     * proxy is fixed. Said here, before the order fails.
+     */
+    const cnameDescription: DnsRecordCheckDescription | undefined = cnameCheck
+      ? describeDnsRecordCheck(cnameCheck)
+      : undefined;
+
     return (
       <Modal
         title={CustomDomainCopy.dnsSetupTitle}
@@ -226,6 +372,18 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
               />
             )}
           </p>
+          {cnameDescription?.warning ? (
+            <Alert
+              type={AlertType.WARNING}
+              title={translator.translateTemplate(
+                cnameDescription.warning.template,
+                cnameDescription.warning.values,
+              )}
+              dataTestId={DNS_SETUP_TEST_IDS.cnameLookedUp}
+            />
+          ) : (
+            <></>
+          )}
           {!isWithoutFreeCertificate &&
           result.certificateStatus === CustomDomainCertificateStatus.Failed &&
           result.certificateError ? (
@@ -242,26 +400,43 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const records: Array<RecordRow> = [
-    {
-      label: CustomDomainCopy.dnsSetupRecordType,
-      value: CUSTOM_DOMAIN_RECORD_TYPE,
-      copyTitle: CustomDomainCopy.dnsSetupCopyRecordType,
-      testId: DNS_SETUP_TEST_IDS.recordType,
+  const records: Array<CustomDomainRecord> = [];
+
+  if (props.projectDomain) {
+    records.push({
+      type: DnsRecordType.TXT,
+      name: props.projectDomain.domain,
+      value: props.projectDomain.verificationText,
+      purpose: CustomDomainCopy.dnsSetupTxtPurpose,
+      purposeDomain: props.projectDomain.domain,
+      check: txtCheck,
+      testIds: {
+        record: DNS_SETUP_TEST_IDS.txtRecord,
+        type: DNS_SETUP_TEST_IDS.txtRecordType,
+        name: DNS_SETUP_TEST_IDS.txtRecordName,
+        value: DNS_SETUP_TEST_IDS.txtRecordValue,
+        status: DNS_SETUP_TEST_IDS.txtStatus,
+        lookedUp: DNS_SETUP_TEST_IDS.txtLookedUp,
+      },
+    });
+  }
+
+  records.push({
+    type: CUSTOM_DOMAIN_RECORD_TYPE,
+    name: fullDomain,
+    value: cnameRecord,
+    purpose: CustomDomainCopy.dnsSetupCnamePurpose,
+    purposeDomain: fullDomain,
+    check: cnameCheck,
+    testIds: {
+      record: DNS_SETUP_TEST_IDS.record,
+      type: DNS_SETUP_TEST_IDS.recordType,
+      name: DNS_SETUP_TEST_IDS.recordName,
+      value: DNS_SETUP_TEST_IDS.recordValue,
+      status: DNS_SETUP_TEST_IDS.cnameStatus,
+      lookedUp: DNS_SETUP_TEST_IDS.cnameLookedUp,
     },
-    {
-      label: CustomDomainCopy.dnsSetupRecordName,
-      value: fullDomain,
-      copyTitle: CustomDomainCopy.dnsSetupCopyRecordName,
-      testId: DNS_SETUP_TEST_IDS.recordName,
-    },
-    {
-      label: CustomDomainCopy.dnsSetupRecordValue,
-      value: cnameRecord,
-      copyTitle: CustomDomainCopy.dnsSetupCopyRecordValue,
-      testId: DNS_SETUP_TEST_IDS.recordValue,
-    },
-  ];
+  });
 
   return (
     <Modal
@@ -277,46 +452,20 @@ const CustomDomainDnsSetupModal: FunctionComponent<ComponentProps> = (
       error={error}
     >
       <div className="space-y-4">
+        <CustomDomainServerReadinessNotice kind={props.kind} />
+
         <p className="text-sm leading-6 text-gray-600">
           <TranslatedSentence
-            template={props.kind.copy.dnsSetupIntro}
+            template={
+              props.projectDomain
+                ? props.kind.copy.dnsSetupIntroTwoRecords
+                : props.kind.copy.dnsSetupIntro
+            }
             slots={{ domain: domainSlot }}
           />
         </p>
 
-        <dl
-          className="divide-y divide-gray-200 rounded-md border border-gray-200"
-          data-testid={DNS_SETUP_TEST_IDS.record}
-        >
-          {records.map((record: RecordRow): ReactElement => {
-            return (
-              <div
-                key={record.testId}
-                className="flex items-center justify-between gap-3 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <dt className="text-xs font-medium text-gray-500">
-                    {translator.translateText(record.label)}
-                  </dt>
-                  <dd
-                    className="mt-0.5 break-all font-mono text-sm text-gray-900"
-                    data-testid={record.testId}
-                  >
-                    {record.value}
-                  </dd>
-                </div>
-                <CopyTextButton
-                  textToBeCopied={record.value}
-                  title={record.copyTitle}
-                  size="sm"
-                  variant="ghost"
-                  iconOnly={true}
-                  className="shrink-0"
-                />
-              </div>
-            );
-          })}
-        </dl>
+        <CustomDomainRecords records={records} />
 
         {isRootDomain ? (
           <p

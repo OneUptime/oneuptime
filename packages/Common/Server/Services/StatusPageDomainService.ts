@@ -28,6 +28,12 @@ import Telemetry, { Span } from "../Utils/Telemetry";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import { StatusPageCNameRecord } from "../EnvironmentConfig";
 import Domain from "../Types/Domain";
+import CustomDomainDnsCheck from "../Utils/CustomDomain/CustomDomainDnsCheck";
+import {
+  DnsRecordCheck,
+  DnsRecordCheckOutcome,
+  isDnsRecordFound,
+} from "../../Types/CustomDomain/DnsRecordCheck";
 import ArrayUtil from "../../Utils/Array";
 import OneUptimeDate from "../../Types/Date";
 import CertificateReissueUtil from "../../Utils/CertificateReissue";
@@ -796,8 +802,15 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
     }
   }
 
+  /*
+   * Whether the domain's CNAME record points at this installation, as a
+   * DnsRecordCheck: what was looked up, and what came back
+   * (CustomDomainDnsCheck, which status page, dashboard and form domains
+   * share). Check now shows it; the sweeps decide on it through
+   * isCnameValid.
+   */
   @CaptureSpan()
-  public async isCnameValid(
+  public async checkCname(
     fullDomain: string,
     options?: {
       /*
@@ -808,8 +821,10 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
        * record that is really gone.
        */
       recordResult?: boolean | undefined;
+      // Look the record up even when the domain answers: Check now.
+      lookUpDnsEvenWhenReached?: boolean | undefined;
     },
-  ): Promise<boolean> {
+  ): Promise<DnsRecordCheck> {
     const recordResult: (cnameStatus: boolean) => Promise<void> = async (
       cnameStatus: boolean,
     ): Promise<void> => {
@@ -824,13 +839,11 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
     };
 
     try {
-      // get the token from the domain.
-
       logger.debug("Checking for CNAME " + fullDomain, {
         fullDomain,
       } as LogAttributes);
 
-      const statusPageDomain: StatusPageDomain | null = await this.findOneBy({
+      const customDomain: StatusPageDomain | null = await this.findOneBy({
         query: {
           fullDomain: fullDomain,
         },
@@ -843,127 +856,34 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
         },
       });
 
-      if (!statusPageDomain) {
-        return false;
+      if (!customDomain) {
+        return CustomDomainDnsCheck.unchecked({
+          fullDomain: fullDomain,
+          expectedTarget: StatusPageCNameRecord,
+          outcome: DnsRecordCheckOutcome.NotFound,
+        });
       }
 
-      const token: string = statusPageDomain.cnameVerificationToken!;
+      const token: string = customDomain.cnameVerificationToken!;
+
+      const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname({
+        fullDomain: fullDomain,
+        expectedTarget: StatusPageCNameRecord,
+        getVerificationUrl: (protocol: "http" | "https"): string => {
+          return `${protocol}://${fullDomain}/status-page-api/cname-verification/${token}`;
+        },
+        targetLabel: STATUS_PAGE_DOMAIN_EGRESS_LABEL,
+        lookUpDnsEvenWhenReached: options?.lookUpDnsEvenWhenReached,
+      });
 
       logger.debug(
-        "Checking for CNAME " + fullDomain + " with token " + token,
+        `CNAME check of ${fullDomain}: ${check.outcome}`,
         { fullDomain } as LogAttributes,
       );
 
-      try {
-        const result: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await Domain.getForDomainVerification({
-            url:
-              "http://" +
-              fullDomain +
-              "/status-page-api/cname-verification/" +
-              token,
-            targetLabel: STATUS_PAGE_DOMAIN_EGRESS_LABEL,
-          });
+      await recordResult(isDnsRecordFound(check));
 
-        logger.debug("CNAME verification result", {
-          fullDomain,
-        } as LogAttributes);
-        logger.debug(result, { fullDomain } as LogAttributes);
-
-        if (result.isSuccess()) {
-          await recordResult(true);
-
-          return true;
-        }
-      } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain, {
-          fullDomain,
-        } as LogAttributes);
-        logger.debug(err, { fullDomain } as LogAttributes);
-      }
-
-      // try with https
-
-      try {
-        const resultHttps: HTTPErrorResponse | HTTPResponse<JSONObject> =
-          await Domain.getForDomainVerification({
-            url:
-              "https://" +
-              fullDomain +
-              "/status-page-api/cname-verification/" +
-              token,
-            targetLabel: STATUS_PAGE_DOMAIN_EGRESS_LABEL,
-          });
-
-        logger.debug("CNAME verification result for https", {
-          fullDomain,
-        } as LogAttributes);
-        logger.debug(resultHttps, { fullDomain } as LogAttributes);
-
-        if (resultHttps.isSuccess()) {
-          await recordResult(true);
-
-          return true;
-        }
-      } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain, {
-          fullDomain,
-        } as LogAttributes);
-        logger.debug(err, { fullDomain } as LogAttributes);
-      }
-
-      try {
-        if (StatusPageCNameRecord) {
-          // check if cname record is set and if it matches StatusPageCNameRecord
-
-          const cnameRecords: Array<string> = await Domain.getCnameRecords({
-            domain: fullDomain,
-          });
-
-          let cnameRecord: string | undefined = undefined;
-          if (cnameRecords.length > 0) {
-            cnameRecord = cnameRecords[0]; // take the first record.
-          }
-
-          if (!cnameRecord) {
-            logger.debug(
-              `No CNAME record found for ${fullDomain}. Expected record: ${StatusPageCNameRecord}`,
-              { fullDomain } as LogAttributes,
-            );
-            await recordResult(false);
-            return false;
-          }
-
-          if (
-            cnameRecord &&
-            cnameRecord.trim().toLocaleLowerCase() ===
-              StatusPageCNameRecord.trim().toLocaleLowerCase()
-          ) {
-            logger.debug(
-              `CNAME record for ${fullDomain} matches the expected record: ${StatusPageCNameRecord}`,
-              { fullDomain } as LogAttributes,
-            );
-
-            await recordResult(true);
-
-            return true;
-          }
-
-          logger.debug(
-            `CNAME record for ${fullDomain} is ${cnameRecord} and it does not match the expected record: ${StatusPageCNameRecord}`,
-            { fullDomain } as LogAttributes,
-          );
-        }
-      } catch (err) {
-        logger.debug("Failed checking for CNAME " + fullDomain, {
-          fullDomain,
-        } as LogAttributes);
-        logger.debug(err, { fullDomain } as LogAttributes);
-      }
-
-      await recordResult(false);
-
-      return false;
+      return check;
     } catch (err) {
       logger.debug("Failed checking for CNAME " + fullDomain, {
         fullDomain,
@@ -972,8 +892,23 @@ export class Service extends ProjectReferencesService<StatusPageDomain> {
 
       await recordResult(false);
 
-      return false;
+      return CustomDomainDnsCheck.unchecked({
+        fullDomain: fullDomain,
+        expectedTarget: StatusPageCNameRecord,
+        outcome: DnsRecordCheckOutcome.LookupFailed,
+      });
     }
+  }
+
+  @CaptureSpan()
+  public async isCnameValid(
+    fullDomain: string,
+    options?: {
+      // Whether the answer is written to the domain row (see checkCname).
+      recordResult?: boolean | undefined;
+    },
+  ): Promise<boolean> {
+    return isDnsRecordFound(await this.checkCname(fullDomain, options));
   }
 
   /*
