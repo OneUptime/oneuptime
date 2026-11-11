@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50460,
-    "untranslated": 9988
+    "keys": 50637,
+    "untranslated": 9738
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -99,6 +99,7 @@
     "HA: {{state}}",
     "HAProxy",
     "HTTP {{status}}",
+    "Hash",
     "Hertz",
     "Histogram",
     "Hunt",
@@ -234,8 +235,10 @@
     "TTL",
     "TX",
     "Team",
+    "Team {{name}}",
     "Test",
     "Test {{name}}",
+    "Test {{policy}}",
     "Token",
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
@@ -365,6 +368,7 @@
     "{{count}} Kubernetes",
     "{{count}} MB",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} alarm",
     "{{count}} app",

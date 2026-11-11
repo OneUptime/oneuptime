@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50460,
-    "untranslated": 9980
+    "keys": 50637,
+    "untranslated": 9728
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -101,6 +101,7 @@
     "HA: {{state}}",
     "HAProxy",
     "HTTP {{status}}",
+    "Hash",
     "Hello world",
     "Hertz",
     "Histogram",
@@ -147,6 +148,7 @@
     "MTU",
     "Managers",
     "Markdown",
+    "Mask",
     "Max",
     "Maximum",
     "Median (P50)",
@@ -267,6 +269,7 @@
     "TTL",
     "TX",
     "Team",
+    "Team {{name}}",
     "Tenancy",
     "Text",
     "Token",

@@ -20,6 +20,10 @@ import { MemoryRouter } from "react-router-dom";
 import ExceptionIssueBadges from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionIssueBadges";
 import ExceptionRow from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionRow";
 import ExceptionSettings from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionSettings";
+import ExceptionMoreActions, {
+  EXCEPTION_MORE_ACTIONS_TEST_IDS,
+  hasExceptionMoreActions,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionMoreActions";
 import ExceptionSummary from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionSummary";
 import ExceptionTriageActions from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionTriageActions";
 import { ExceptionTriageAction } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionDetailPresentation";
@@ -34,9 +38,10 @@ import Permission from "../../../Types/Permission";
  *   - The list row and the exception's header say Regressed when it came
  *     back after it was resolved, New when it was first seen in the last day,
  *     and Unhandled - so a person triaging sees what to open first.
- *   - Resolve has a small menu beside it, while a release is known, with
- *     Resolve in next release: occurrences from that release do not reopen
- *     it. Settings offers it as a second button, and says when an exception
+ *   - The header's ⋯ offers Resolve in next release while a release is
+ *     known: occurrences from that release do not reopen it. The buttons
+ *     stay Resolve and Archive. Settings offers it as a second button, and
+ *     says when an exception
  *     came back, or which release it waits out.
  */
 
@@ -225,10 +230,19 @@ describe("the exception's header", () => {
   });
 });
 
-describe("Resolve in next release beside Resolve", () => {
-  test("opens from the menu beside Resolve, and reports the release it waits out", () => {
+describe("Resolve in next release in the header's ⋯", () => {
+  function openMore(): HTMLElement {
+    const trigger: HTMLElement = screen.getByTestId("exception-more-actions");
+
+    expect(trigger).toHaveAttribute("aria-label", "More actions");
+    fireEvent.click(trigger);
+
+    return screen.getByRole("menu");
+  }
+
+  test("opens from the ⋯, and reports the release it waits out", () => {
     render(
-      <ExceptionTriageActions
+      <ExceptionMoreActions
         isResolved={false}
         isArchived={false}
         lastSeenInRelease="v1.4.0"
@@ -236,17 +250,15 @@ describe("Resolve in next release beside Resolve", () => {
       />,
     );
 
-    const trigger: HTMLElement = screen.getByTestId(
-      "exception-triage-resolve-menu",
-    );
-    expect(trigger).toHaveAttribute("aria-label", "More ways to resolve");
+    const item: HTMLElement = within(openMore()).getByRole("menuitem", {
+      name: /Resolve in next release/,
+    });
 
-    fireEvent.click(trigger);
-
-    const item: HTMLElement = within(screen.getByRole("menu")).getByRole(
-      "menuitem",
-      { name: /Resolve in next release/ },
+    expect(item).toHaveAttribute(
+      "data-testid",
+      "exception-triage-resolve-next-release",
     );
+
     fireEvent.click(item);
 
     expect(onAction).toHaveBeenCalledTimes(1);
@@ -258,15 +270,22 @@ describe("Resolve in next release beside Resolve", () => {
     });
   });
 
-  test("Resolve itself still resolves in one click", () => {
+  test("Resolve itself still resolves in one click, and the buttons are only Resolve and Archive", () => {
     render(
       <ExceptionTriageActions
         isResolved={false}
         isArchived={false}
-        lastSeenInRelease="v1.4.0"
         onAction={onAction}
       />,
     );
+
+    expect(
+      screen.getAllByRole("button").map((button: HTMLElement) => {
+        return button.textContent;
+      }),
+    ).toEqual(["Resolve", "Archive"]);
+    // No split menu beside Resolve any more: the ⋯ holds the rest.
+    expect(screen.queryByTestId("exception-triage-resolve-menu")).toBeNull();
 
     fireEvent.click(screen.getByTestId("exception-triage-resolve"));
 
@@ -274,38 +293,41 @@ describe("Resolve in next release beside Resolve", () => {
   });
 
   test("is not offered once resolved, or when no release is known", () => {
-    const { rerender } = render(
-      <ExceptionTriageActions
+    render(
+      <ExceptionMoreActions
         isResolved={true}
         isArchived={false}
         lastSeenInRelease="v1.4.0"
         onAction={onAction}
+        onCreateMonitor={() => {}}
       />,
     );
 
-    expect(screen.queryByTestId("exception-triage-resolve-menu")).toBeNull();
+    expect(
+      within(openMore()).queryByTestId("exception-triage-resolve-next-release"),
+    ).toBeNull();
 
-    rerender(
-      <ExceptionTriageActions
+    cleanup();
+
+    render(
+      <ExceptionMoreActions
         isResolved={false}
         isArchived={false}
         onAction={onAction}
+        onCreateMonitor={() => {}}
       />,
     );
 
-    expect(screen.queryByTestId("exception-triage-resolve-menu")).toBeNull();
     expect(
-      screen.getAllByRole("button").map((button: HTMLElement) => {
-        return button.textContent;
-      }),
-    ).toEqual(["Resolve", "Archive"]);
+      within(openMore()).queryByTestId("exception-triage-resolve-next-release"),
+    ).toBeNull();
   });
 
-  test("a read-only viewer finds the menu locked too", () => {
+  test("a read-only viewer finds it locked, and told why", () => {
     permissions = [Permission.ReadTelemetryException];
 
     render(
-      <ExceptionTriageActions
+      <ExceptionMoreActions
         isResolved={false}
         isArchived={false}
         lastSeenInRelease="v1.4.0"
@@ -313,7 +335,45 @@ describe("Resolve in next release beside Resolve", () => {
       />,
     );
 
-    expect(screen.getByTestId("exception-triage-resolve-menu")).toBeDisabled();
+    const item: HTMLElement = within(openMore()).getByTestId(
+      "exception-triage-resolve-next-release",
+    );
+
+    expect(item).toHaveAttribute("aria-disabled", "true");
+
+    // The reason the permission gate gives, read with the item.
+    const reasonId: string | null = item.getAttribute("aria-describedby");
+
+    expect(reasonId).toBeTruthy();
+    expect(document.getElementById(reasonId!)?.textContent).toMatch(
+      /permission/i,
+    );
+
+    fireEvent.click(item);
+
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  test("while a triage move saves, it waits", () => {
+    render(
+      <ExceptionMoreActions
+        isResolved={false}
+        isArchived={false}
+        lastSeenInRelease="v1.4.0"
+        pendingActionId="resolve"
+        onAction={onAction}
+      />,
+    );
+
+    const item: HTMLElement = within(openMore()).getByTestId(
+      "exception-triage-resolve-next-release",
+    );
+
+    expect(item).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(item);
+
+    expect(onAction).not.toHaveBeenCalled();
   });
 
   test("while it is saving, Resolve shows the work and Archive waits", () => {
@@ -321,7 +381,6 @@ describe("Resolve in next release beside Resolve", () => {
       <ExceptionTriageActions
         isResolved={false}
         isArchived={false}
-        lastSeenInRelease="v1.4.0"
         pendingActionId="resolve-next-release"
         onAction={onAction}
       />,
@@ -329,6 +388,242 @@ describe("Resolve in next release beside Resolve", () => {
 
     expect(screen.getByTestId("exception-triage-archive")).toBeDisabled();
     expect(screen.getByTestId("exception-triage-resolve")).toBeDisabled();
+    expect(screen.getByTestId("exception-triage-resolve")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+  });
+});
+
+/*
+ * The header's ⋯ holds what an exception takes now and then: Resolve in
+ * next release and Create monitor. The header's buttons are Resolve and
+ * Archive, and the ⋯ is never an empty menu.
+ */
+describe("the header's ⋯", () => {
+  function openMore(): HTMLElement {
+    fireEvent.click(
+      screen.getByTestId(EXCEPTION_MORE_ACTIONS_TEST_IDS.trigger),
+    );
+
+    return screen.getByRole("menu");
+  }
+
+  function itemNames(menu: HTMLElement): Array<string> {
+    return within(menu)
+      .getAllByRole("menuitem")
+      .map((item: HTMLElement): string => {
+        return (item.textContent || "").trim();
+      });
+  }
+
+  test("offers Create monitor, which opens a new monitor for the exception", () => {
+    const onCreateMonitor: Mock<() => void> = jest.fn<() => void>();
+
+    render(
+      <ExceptionMoreActions
+        isResolved={false}
+        isArchived={false}
+        onAction={onAction}
+        onCreateMonitor={onCreateMonitor}
+      />,
+    );
+
+    const item: HTMLElement = within(openMore()).getByTestId(
+      EXCEPTION_MORE_ACTIONS_TEST_IDS.createMonitor,
+    );
+
+    expect(item).toHaveTextContent("Create monitor");
+    expect(item).not.toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(item);
+
+    expect(onCreateMonitor).toHaveBeenCalledTimes(1);
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
+  test("lists Resolve in next release, then Create monitor", () => {
+    render(
+      <ExceptionMoreActions
+        isResolved={false}
+        isArchived={false}
+        lastSeenInRelease="v1.4.0"
+        onAction={onAction}
+        onCreateMonitor={() => {}}
+      />,
+    );
+
+    expect(itemNames(openMore())).toEqual([
+      "Resolve in next release",
+      "Create monitor",
+    ]);
+  });
+
+  test("a reader who may not create monitors is not offered it", () => {
+    render(
+      <ExceptionMoreActions
+        isResolved={false}
+        isArchived={false}
+        lastSeenInRelease="v1.4.0"
+        onAction={onAction}
+      />,
+    );
+
+    expect(
+      within(openMore()).queryByTestId(
+        EXCEPTION_MORE_ACTIONS_TEST_IDS.createMonitor,
+      ),
+    ).toBeNull();
+    expect(itemNames(screen.getByRole("menu"))).toEqual([
+      "Resolve in next release",
+    ]);
+  });
+
+  test("once resolved, the ⋯ holds Create monitor alone", () => {
+    render(
+      <ExceptionMoreActions
+        isResolved={true}
+        isArchived={false}
+        lastSeenInRelease="v1.4.0"
+        onAction={onAction}
+        onCreateMonitor={() => {}}
+      />,
+    );
+
+    expect(itemNames(openMore())).toEqual(["Create monitor"]);
+  });
+
+  test("archived but unresolved, it can still be resolved in the next release, and stays archived", () => {
+    render(
+      <ExceptionMoreActions
+        isResolved={false}
+        isArchived={true}
+        lastSeenInRelease="v1.4.0"
+        onAction={onAction}
+        onCreateMonitor={() => {}}
+      />,
+    );
+
+    const menu: HTMLElement = openMore();
+
+    expect(itemNames(menu)).toEqual([
+      "Resolve in next release",
+      "Create monitor",
+    ]);
+
+    fireEvent.click(
+      within(menu).getByTestId(
+        EXCEPTION_MORE_ACTIONS_TEST_IDS.resolveInNextRelease,
+      ),
+    );
+
+    expect(onAction.mock.calls[0]![0]).toMatchObject({
+      id: "resolve-next-release",
+      nextState: { isResolved: true, isArchived: true },
+    });
+  });
+
+  test("with nothing to offer, draws no ⋯ at all", () => {
+    const { container } = render(
+      <ExceptionMoreActions
+        isResolved={true}
+        isArchived={false}
+        lastSeenInRelease="v1.4.0"
+        onAction={onAction}
+      />,
+    );
+
+    expect(container).toBeEmptyDOMElement();
+    expect(
+      screen.queryByTestId(EXCEPTION_MORE_ACTIONS_TEST_IDS.trigger),
+    ).toBeNull();
+
+    cleanup();
+
+    const { container: noRelease } = render(
+      <ExceptionMoreActions
+        isResolved={false}
+        isArchived={false}
+        onAction={onAction}
+      />,
+    );
+
+    expect(noRelease).toBeEmptyDOMElement();
+  });
+
+  test.each([
+    [
+      { isResolved: false, isArchived: false, lastSeenInRelease: "v1.4.0" },
+      true,
+    ],
+    [{ isResolved: false, isArchived: false }, false],
+    [{ isResolved: false, isArchived: false, lastSeenInRelease: "" }, false],
+    [
+      { isResolved: true, isArchived: false, lastSeenInRelease: "v1.4.0" },
+      false,
+    ],
+    [
+      { isResolved: false, isArchived: true, lastSeenInRelease: "v1.4.0" },
+      true,
+    ],
+  ] as Array<
+    [
+      { isResolved: boolean; isArchived: boolean; lastSeenInRelease?: string },
+      boolean,
+    ]
+  >)(
+    "hasExceptionMoreActions, without Create monitor, for %j is %s",
+    (
+      state: {
+        isResolved: boolean;
+        isArchived: boolean;
+        lastSeenInRelease?: string;
+      },
+      expected: boolean,
+    ) => {
+      expect(hasExceptionMoreActions(state)).toBe(expected);
+      // Create monitor alone is something to offer, whatever the state.
+      expect(
+        hasExceptionMoreActions({ ...state, onCreateMonitor: () => {} }),
+      ).toBe(true);
+    },
+  );
+
+  test("hasExceptionMoreActions says the ⋯ draws, exactly when it does", () => {
+    const states: Array<{
+      isResolved: boolean;
+      isArchived: boolean;
+      lastSeenInRelease?: string;
+      onCreateMonitor?: () => void;
+    }> = [];
+
+    for (const isResolved of [false, true]) {
+      for (const isArchived of [false, true]) {
+        for (const lastSeenInRelease of [undefined, "v1.4.0"]) {
+          for (const onCreateMonitor of [undefined, () => {}]) {
+            states.push({
+              isResolved,
+              isArchived,
+              ...(lastSeenInRelease ? { lastSeenInRelease } : {}),
+              ...(onCreateMonitor ? { onCreateMonitor } : {}),
+            });
+          }
+        }
+      }
+    }
+
+    for (const state of states) {
+      const { container } = render(
+        <ExceptionMoreActions {...state} onAction={onAction} />,
+      );
+
+      expect([state, container.childElementCount > 0]).toEqual([
+        state,
+        hasExceptionMoreActions(state),
+      ]);
+
+      cleanup();
+    }
   });
 });
 

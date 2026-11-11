@@ -19,6 +19,7 @@ import {
 import { Mock } from "jest-mock";
 import * as React from "react";
 import { MemoryRouter } from "react-router-dom";
+import { EXCEPTION_AI_HOW_IT_WORKS_STEPS } from "../../../../App/FeatureSet/Dashboard/src/Utils/ExceptionAIAssistance";
 import ExceptionAIAssistance, {
   AI_TASK_POLL_INTERVAL_MS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Exceptions/ExceptionAIAssistance";
@@ -32,9 +33,11 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import User from "../../../UI/Utils/User";
 
 /*
- * The AI Assistance page reads the setup checklist and the latest task of
- * each type, then offers one card per task type. These tests drive it through
- * the API boundary only.
+ * The Fix with AI page reads the setup checklist and the latest task of each
+ * type, then leads with one task - Fix with AI, a fix of the code or better
+ * handling of an expected error, by OneUptime AI's triage verdict - and folds
+ * the others under Other AI tasks. These tests drive it through the API
+ * boundary only.
  */
 
 const EXCEPTION_ID: string = "50000000-0000-4000-8000-000000000001";
@@ -242,7 +245,11 @@ function grant(permissions: Array<Permission> | null): void {
 }
 
 async function renderAssistance(
-  props: { isResolved?: boolean; isArchived?: boolean } = {},
+  props: {
+    isResolved?: boolean;
+    isArchived?: boolean;
+    errorClass?: string;
+  } = {},
 ): Promise<void> {
   render(
     <MemoryRouter>
@@ -250,6 +257,7 @@ async function renderAssistance(
         telemetryExceptionId={new ObjectID(EXCEPTION_ID)}
         isResolved={Boolean(props.isResolved)}
         isArchived={Boolean(props.isArchived)}
+        errorClass={props.errorClass}
       />
     </MemoryRouter>,
   );
@@ -257,8 +265,22 @@ async function renderAssistance(
   await screen.findByTestId("exception-ai-assistance");
 }
 
+// A task, by its type: Fix with AI's section, or a row of Other AI tasks.
 function card(taskType: string): HTMLElement {
   return screen.getByTestId(`exception-ai-task-${taskType}`);
+}
+
+function otherTasks(): HTMLElement {
+  return screen.getByTestId("exception-ai-other-tasks");
+}
+
+// Opens Other AI tasks, as a reader does, when it is folded.
+function openOtherTasks(): void {
+  if (otherTasks().getAttribute("data-collapsed") === "true") {
+    fireEvent.click(within(otherTasks()).getByTestId("folded-section-header"));
+  }
+
+  expect(otherTasks()).toHaveAttribute("data-collapsed", "false");
 }
 
 describe("ExceptionAIAssistance", () => {
@@ -323,50 +345,188 @@ describe("ExceptionAIAssistance", () => {
     });
   });
 
-  test("shows one card per task type, ready to start", async () => {
+  /*
+   * One task, not three (#6855): "Fix with AI", with what it will do and
+   * how it works said right there, and the other tasks folded under it.
+   */
+  test("leads with one task, Fix with AI, ready to start, and says how it works", async () => {
     await renderAssistance();
 
-    expect(screen.getByTestId("exception-ai-ready")).toHaveTextContent(
-      "AI is ready to work on this exception",
+    const fix: HTMLElement = card("FixException");
+
+    expect(fix).toHaveAttribute("data-primary", "true");
+    expect(fix.tagName).toBe("SECTION");
+    expect(fix).toHaveAttribute("aria-label", "Fix with AI");
+    expect(
+      within(fix).getByRole("heading", { level: 2, name: "Fix with AI" }),
+    ).toBeInTheDocument();
+    expect(
+      within(fix).getByTestId("exception-ai-task-status"),
+    ).toHaveTextContent("Not started");
+    expect(
+      within(fix).getByTestId("exception-ai-task-description"),
+    ).toHaveTextContent(
+      "OneUptime AI finds the root cause of this exception in your code, fixes it, and opens a pull request for you to review.",
     );
 
-    for (const [taskType, title, action] of [
-      ["FixException", "Fix this exception with AI", "Fix with AI"],
-      [
-        "WriteRegressionTest",
-        "Generate Regression Test",
-        "Generate Regression Test",
-      ],
-      [
-        "ImproveExceptionHandling",
-        "Improve Error Handling",
-        "Improve Error Handling",
-      ],
-    ] as Array<[string, string, string]>) {
-      const taskCard: HTMLElement = card(taskType);
+    const start: HTMLElement = within(fix).getByTestId(
+      "exception-ai-task-start",
+    );
 
-      expect(
-        within(taskCard).getByRole("heading", { name: title }),
-      ).toBeInTheDocument();
-      expect(
-        within(taskCard).getByTestId("exception-ai-task-status"),
-      ).toHaveTextContent("Not started");
-      expect(
-        within(taskCard).getByTestId("exception-ai-task-start"),
-      ).toHaveTextContent(action);
-      expect(
-        within(taskCard).getByTestId("exception-ai-task-start"),
-      ).not.toBeDisabled();
-      expect(
-        within(taskCard).queryByTestId("exception-ai-task-view"),
-      ).not.toBeInTheDocument();
-    }
+    expect(start).toHaveTextContent("Fix with AI");
+    expect(start).not.toBeDisabled();
+    expect(
+      within(fix).queryByTestId("exception-ai-task-view"),
+    ).not.toBeInTheDocument();
+
+    // How it works: three steps, in order, under the task.
+    const howItWorks: HTMLElement = within(fix).getByTestId(
+      "exception-ai-how-it-works",
+    );
+
+    const steps: HTMLElement = howItWorks.querySelector("ol") as HTMLElement;
+
+    expect(
+      within(steps)
+        .getAllByRole("listitem")
+        .map((step: HTMLElement) => {
+          return step.textContent;
+        }),
+    ).toEqual(
+      EXCEPTION_AI_HOW_IT_WORKS_STEPS.map((step: string, index: number) => {
+        return `${index + 1}${step}`;
+      }),
+    );
+    // Everything set up: one quiet line under it, not a card of its own.
+    expect(
+      within(howItWorks).getByTestId("exception-ai-ready"),
+    ).toHaveTextContent("AI is ready to work on this exception");
+
+    // Only one task leads: one primary button on the page.
+    expect(screen.getAllByTestId("exception-ai-task-start")).toHaveLength(3);
+    expect(
+      screen
+        .queryAllByTestId(/^exception-ai-task-/)
+        .filter((element: HTMLElement) => {
+          return element.getAttribute("data-primary") === "true";
+        }),
+    ).toEqual([fix]);
 
     expect(getMock).toHaveBeenCalledTimes(2);
   });
 
+  test("the other tasks wait, folded, under Other AI tasks, each with a plain Start", async () => {
+    await renderAssistance();
+
+    expect(otherTasks()).toHaveAttribute("data-collapsed", "true");
+    expect(
+      within(otherTasks()).getByTestId("folded-section-title"),
+    ).toHaveTextContent("Other AI tasks");
+
+    openOtherTasks();
+
+    for (const [taskType, title] of [
+      ["ImproveExceptionHandling", "Handle the error better"],
+      ["WriteRegressionTest", "Write a regression test"],
+    ] as Array<[string, string]>) {
+      const row: HTMLElement = card(taskType);
+
+      expect(otherTasks()).toContainElement(row);
+      expect(row).not.toHaveAttribute("data-primary");
+      expect(
+        within(row).getByRole("heading", { level: 3, name: title }),
+      ).toBeInTheDocument();
+      // Not started: no pill for a task that never ran.
+      expect(within(row).queryByTestId("exception-ai-task-status")).toBeNull();
+      expect(
+        within(row).getByTestId("exception-ai-task-start"),
+      ).toHaveTextContent("Start");
+    }
+
+    // The other fix first, then the test.
+    expect(
+      within(otherTasks())
+        .getAllByRole("listitem")
+        .map((row: HTMLElement) => {
+          return row.getAttribute("data-testid");
+        }),
+    ).toEqual([
+      "exception-ai-task-ImproveExceptionHandling",
+      "exception-ai-task-WriteRegressionTest",
+    ]);
+  });
+
+  test.each([
+    ["user-error", "an expected error"],
+    ["expected-denial", "an intentional denial"],
+  ])(
+    "for %s (%s) Fix with AI handles the error better, and fixing the code waits in the fold",
+    async (errorClass: string) => {
+      await renderAssistance({ errorClass });
+
+      const fix: HTMLElement = card("ImproveExceptionHandling");
+
+      expect(fix).toHaveAttribute("data-primary", "true");
+      expect(
+        within(fix).getByRole("heading", { level: 2, name: "Fix with AI" }),
+      ).toBeInTheDocument();
+      expect(
+        within(fix).getByTestId("exception-ai-task-description"),
+      ).toHaveTextContent(/expected error/);
+      expect(
+        within(fix).getByTestId("exception-ai-task-start"),
+      ).toHaveTextContent("Fix with AI");
+
+      openOtherTasks();
+
+      expect(otherTasks()).toContainElement(card("FixException"));
+      expect(
+        within(card("FixException")).getByRole("heading", {
+          name: "Fix the code",
+        }),
+      ).toBeInTheDocument();
+    },
+  );
+
+  test.each([["code-fault"], ["infrastructure"], ["unknown"], [""]])(
+    "for any other verdict (%j) Fix with AI fixes the code",
+    async (errorClass: string) => {
+      await renderAssistance({ errorClass });
+
+      expect(card("FixException")).toHaveAttribute("data-primary", "true");
+      expect(card("ImproveExceptionHandling")).not.toHaveAttribute(
+        "data-primary",
+      );
+    },
+  );
+
+  test("Fix with AI's confirmation says what it will do, and starts it", async () => {
+    await renderAssistance();
+
+    fireEvent.click(
+      within(card("FixException")).getByTestId("exception-ai-task-start"),
+    );
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent("Fix with AI");
+    expect(screen.getByTestId("confirm-modal-description")).toHaveTextContent(
+      "OneUptime AI finds the root cause of this exception in your code",
+    );
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Fix with AI",
+    );
+
+    fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+
+    await waitFor(() => {
+      expect(navigateMock).toHaveBeenCalledTimes(1);
+    });
+    expect(postMock.mock.calls[0]![0].data).toEqual({});
+  });
+
   test("starting a task asks for confirmation, sends the task type and opens the task", async () => {
     await renderAssistance();
+
+    openOtherTasks();
 
     fireEvent.click(
       within(card("WriteRegressionTest")).getByTestId(
@@ -374,9 +534,12 @@ describe("ExceptionAIAssistance", () => {
       ),
     );
 
-    expect(
-      screen.getByRole("heading", { name: "Confirm Generate Regression Test" }),
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "Write a regression test",
+    );
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "Start",
+    );
     expect(postMock).not.toHaveBeenCalled();
 
     fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
@@ -418,7 +581,7 @@ describe("ExceptionAIAssistance", () => {
 
     expect(postMock).not.toHaveBeenCalled();
     expect(
-      screen.queryByRole("heading", { name: "Confirm Fix with AI" }),
+      screen.queryByTestId("modal-footer-submit-button"),
     ).not.toBeInTheDocument();
   });
 
@@ -522,7 +685,7 @@ describe("ExceptionAIAssistance", () => {
     ).not.toBeDisabled();
   });
 
-  test("a failed task offers a retry and a link to the task", async () => {
+  test("a failed task offers a retry and a link to the task, its fold open by itself", async () => {
     state.tasks = [
       task(
         "ImproveExceptionHandling",
@@ -531,6 +694,9 @@ describe("ExceptionAIAssistance", () => {
       ),
     ];
     await renderAssistance();
+
+    // A task of the fold ran: the fold is open, and says how it went.
+    expect(otherTasks()).toHaveAttribute("data-collapsed", "false");
 
     const taskCard: HTMLElement = card("ImproveExceptionHandling");
     expect(
@@ -544,7 +710,7 @@ describe("ExceptionAIAssistance", () => {
     ).toHaveTextContent("Latest task started 18 minutes ago");
     expect(
       within(taskCard).getByTestId("exception-ai-task-start"),
-    ).toHaveTextContent("Retry Error Handling");
+    ).toHaveTextContent("Try again");
 
     fireEvent.click(within(taskCard).getByTestId("exception-ai-task-view"));
     expect(navigateMock.mock.calls[0]![0].toString()).toContain(TASK_ID);
@@ -560,10 +726,31 @@ describe("ExceptionAIAssistance", () => {
     ).toHaveTextContent("Completed");
     expect(
       within(taskCard).getByTestId("exception-ai-task-start"),
-    ).toHaveTextContent("Fix Again");
+    ).toHaveTextContent("Fix again");
     expect(
       within(taskCard).getByTestId("exception-ai-task-view"),
     ).toBeInTheDocument();
+    // Its own task does not open the fold: the others never ran.
+    expect(otherTasks()).toHaveAttribute("data-collapsed", "true");
+  });
+
+  test("a fold whose task ran names its status while it is folded", async () => {
+    state.tasks = [
+      { ...task("WriteRegressionTest", "Completed"), _id: TASK_ID },
+    ];
+    await renderAssistance();
+
+    // Open by itself, so fold it to read what it says folded.
+    fireEvent.click(within(otherTasks()).getByTestId("folded-section-header"));
+
+    expect(otherTasks()).toHaveAttribute("data-collapsed", "true");
+
+    const header: HTMLElement = within(otherTasks()).getByTestId(
+      "folded-section-header",
+    );
+
+    expect(header).toHaveTextContent("Write a regression test");
+    expect(header).toHaveTextContent("Completed");
   });
 
   /*

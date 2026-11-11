@@ -572,6 +572,18 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
                 },
                 title: "Grant Type",
                 description: "Fixed once the variable is saved.",
+                /*
+                 * A field's value is shown as stored; the grant is named as
+                 * the Grant Type dropdown names it in the reader's language.
+                 */
+                fieldType: FieldType.Element,
+                getElement: (item: WorkflowVariable): ReactElement => {
+                  const grant: string = String(item.oauthGrantType || "");
+
+                  return (
+                    <span>{translator.translateText(grant) || grant}</span>
+                  );
+                },
               },
               {
                 field: {
@@ -599,14 +611,15 @@ const WorkflowVariableView: FunctionComponent<ComponentProps> = (
                 title: "Client Authentication",
                 fieldType: FieldType.Element,
                 getElement: (item: WorkflowVariable): ReactElement => {
+                  // As the Client Authentication dropdown names it.
+                  const label: string = getClientAuthenticationLabel(
+                    item.oauthClientAuthenticationMethod as
+                      | OAuth2ClientAuthenticationMethod
+                      | undefined,
+                  );
+
                   return (
-                    <span>
-                      {getClientAuthenticationLabel(
-                        item.oauthClientAuthenticationMethod as
-                          | OAuth2ClientAuthenticationMethod
-                          | undefined,
-                      )}
-                    </span>
+                    <span>{translator.translateText(label) || label}</span>
                   );
                 },
               },

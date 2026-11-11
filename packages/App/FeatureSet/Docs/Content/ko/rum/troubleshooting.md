@@ -146,9 +146,9 @@ setTimeout(() => {
 - **Safari와 Firefox.** `browserDetector`는 UA Client Hints API를 읽는데, 이 API는 Chromium 계열 브라우저에만 있습니다. 다른 브라우저에서는 `browser.language`를 설정하며, 텔레메트리를 RUM으로 저장하기에는 충분하지만 `browser.platform`은 설정하지 않습니다. 이런 클라이언트도 나열하려면 `browser.platform`을 직접 설정하세요.
 - **`device.manufacturer`만 설정하는 모바일 SDK.** 텔레메트리는 모바일 RUM으로 저장되지만, **클라이언트** 페이지에는 `device.model.identifier`가 필요합니다.
 
-## Core Web Vitals에 "No web vitals reported yet"가 표시됨
+## Core Web Vitals에 "아직 보고된 Web Vitals가 없습니다"가 표시됨
 
-이 카드는 앱이 보내는 메트릭으로만 채워지므로, 트레이스만으로는 채워지지 않습니다. 메트릭을 내보내고 있는지, 메트릭 이름이 OneUptime이 읽는 이름인지, 그리고 애플리케이션의 **메트릭** 페이지에 나타나는지 확인하세요. [카드에 "No web vitals reported yet"가 표시됨](/docs/rum/web-vitals#문제-해결)에서 다음 내보내기 전에 방문자가 탭을 닫아 값이 사라지는 경우를 포함해 각 확인을 설명합니다.
+이 카드는 앱이 보내는 메트릭으로만 채워지므로, 트레이스만으로는 채워지지 않습니다. 메트릭을 내보내고 있는지, 메트릭 이름이 OneUptime이 읽는 이름인지, 그리고 애플리케이션의 **메트릭** 페이지에 나타나는지 확인하세요. [카드에 "아직 보고된 Web Vitals가 없습니다"가 표시됨](/docs/rum/web-vitals#문제-해결)에서 다음 내보내기 전에 방문자가 탭을 닫아 값이 사라지는 경우를 포함해 각 확인을 설명합니다.
 
 ## 사람들이 앱을 사용하는데도 상태가 최근 트래픽 없음
 

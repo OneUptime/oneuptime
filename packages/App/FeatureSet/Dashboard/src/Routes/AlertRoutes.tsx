@@ -78,6 +78,7 @@ import AlertSettingsMeasurements from "../Pages/Alerts/Settings/AlertMeasurement
 import AlertSettingsEpisodeMembership from "../Pages/Alerts/Settings/AlertEpisodeMembershipSettings";
 
 import AlertSettingsNumbering from "../Pages/Alerts/Settings/AlertNumbering";
+import AlertSettingsRetention from "../Pages/Alerts/Settings/AlertRetentionSettings";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import {
   MORE_SETTINGS_PATH,
@@ -576,6 +577,16 @@ const AlertsRoutes: FunctionComponent<ComponentProps> = (
             <AlertSettingsNumbering
               {...props}
               pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_NUMBERING] as Route}
+            />
+          }
+        />
+
+        <PageRoute
+          path={AlertsRoutePath[PageMap.ALERTS_SETTINGS_RETENTION] || ""}
+          element={
+            <AlertSettingsRetention
+              {...props}
+              pageRoute={RouteMap[PageMap.ALERTS_SETTINGS_RETENTION] as Route}
             />
           }
         />

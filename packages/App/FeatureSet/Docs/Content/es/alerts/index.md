@@ -61,7 +61,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. La lista de 
 | **IA**                 | **Análisis**, **Registros** y **Ajustes**: lo que OneUptime AI ha aprendido de tus alertas, todo lo que ha hecho y lo que puede hacer. |
 | **Espacio de trabajo** | **Slack**, **Microsoft Teams** y **Mattermost**, según lo que haya conectado el proyecto, o **Conectar un espacio de trabajo** si no tiene ninguno. |
 | **Reglas**             | **Reglas de agrupación**, **Reglas de guardia**, **Reglas de incidentes**, **Reglas del propietario**, **Reglas de runbook**, **Reglas de privacidad**, **Reglas de etiquetas**, **Reglas de recordatorio**. |
-| **Ajustes**            | **Estado de la alerta**, **Gravedad de la alerta**, **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Pertenencia a episodios**, **Numeración**. |
+| **Ajustes**            | **Estado de la alerta**, **Gravedad de la alerta**, **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Pertenencia a episodios**, **Numeración**, **Retención de datos**. |
 
 **Alertas** y **Episodios** están abiertas; **IA**, **Espacio de trabajo**, **Reglas**, **Ajustes** y **Desarrolladores** empiezan plegadas, y una sección se abre sola cuando estás en una de sus páginas. La configuración de las alertas está aquí, no en **Ajustes del proyecto**.
 

@@ -8,7 +8,6 @@ import IncidentService from "Common/Server/Services/IncidentService";
 import UserNotificationRuleService from "Common/Server/Services/UserNotificationRuleService";
 import UserOnCallLogService, {
   NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
-  notOptOutRuleQuery,
 } from "Common/Server/Services/UserOnCallLogService";
 import logger from "Common/Server/Utils/Logger";
 import ProjectMembership, {
@@ -34,6 +33,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
 } from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
@@ -172,6 +172,27 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           data: {
             status: UserNotificationExecutionStatus.Completed,
             statusMessage: NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
+
+      /*
+       * A test page (OnCallTestPage) runs every one of a person's rules at
+       * once, as its log is written, and none of them repeats: there is
+       * nothing left to send, and no record to read. A test log still
+       * paging - its verified methods were paged for a severity with no
+       * rule - is complete.
+       */
+      if (isOnCallTestPage(pendingNotificationLog)) {
+        await UserOnCallLogService.updateOneById({
+          id: pendingNotificationLog.id!,
+          data: {
+            status: UserNotificationExecutionStatus.Completed,
           },
           props: {
             isRoot: true,
@@ -392,20 +413,33 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
         }
       }
 
+      /*
+       * The rules a page runs for the person (UserOnCallLogService
+       * .getPagingRulesQuery) - the same read a test page runs its rules
+       * with, so a test reaches exactly what a real page reaches over time:
+       *
+       *   - the person's rules, and only while they are a member of the
+       *     project: the condition rides on this read, so a log run without
+       *     the tick's membership check (it could not be read) still
+       *     reaches nobody who is not a member (ProjectMembership);
+       *   - of the page's kind and severity;
+       *   - opt-out rows left out. They carry exactly the columns this
+       *     query filters on and no notification method at all, so without
+       *     the predicate one would be selected here, handed to
+       *     executeNotificationRuleItem, and "executed" - sending nothing
+       *     while its timeline row reports a notification. It would also
+       *     count as an outstanding rule for `isAllExecuted`, so the log
+       *     stays Executing for an extra tick and burns its claim on a
+       *     delivery that never happens. notOptOutRuleQuery is NULL-safe on
+       *     purpose; isOptOut is nullable and is NULL on every rule written
+       *     before the column existed, so a plain `false` would exclude
+       *     every real rule and stop all escalation.
+       */
       const notificationRules: Array<UserNotificationRule> =
         await UserNotificationRuleService.findBy({
-          query: {
+          query: UserOnCallLogService.getPagingRulesQuery({
+            userId: pendingNotificationLog.userId!,
             projectId: pendingNotificationLog.projectId!,
-            /*
-             * The person's rules, and only while they are a member of the
-             * project: the condition rides on this read, so a log run
-             * without the tick's membership check (it could not be read)
-             * still reaches nobody who is not a member (ProjectMembership).
-             */
-            userId: ProjectMembership.userIdWhileMember({
-              userId: pendingNotificationLog.userId!,
-              projectId: pendingNotificationLog.projectId!,
-            }),
             ruleType: ruleType,
             incidentSeverityId:
               incident?.incidentSeverityId ||
@@ -415,21 +449,7 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
               alert?.alertSeverityId ||
               alertEpisode?.alertSeverityId ||
               undefined,
-            /*
-             * Opt-out rows are not rules. They carry exactly the columns this
-             * query filters on and no notification method at all, so without
-             * this predicate one would be selected here, handed to
-             * executeNotificationRuleItem, and "executed" - sending nothing
-             * while its timeline row reports a notification. It would also
-             * count as an outstanding rule for `isAllExecuted`, so the log
-             * stays Executing for an extra tick and burns its claim on a
-             * delivery that never happens. notOptOutRuleQuery is NULL-safe on
-             * purpose; isOptOut is nullable and is NULL on every rule written
-             * before the column existed, so a plain `false` here would exclude
-             * every real rule and stop all escalation.
-             */
-            isOptOut: notOptOutRuleQuery(),
-          },
+          }),
           select: {
             _id: true,
             notifyAfterMinutes: true,

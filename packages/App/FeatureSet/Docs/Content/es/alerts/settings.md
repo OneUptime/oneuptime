@@ -6,7 +6,7 @@ La configuración de las alertas está dentro de **Alertas**, no en **Ajustes de
 - [Las reglas por las que pasa una nueva alerta](#las-reglas-por-las-que-pasa-una-nueva-alerta): En orden, y qué hace cada una.
 - [Reglas de guardia](#reglas-de-guardia): Avisa a las personas adecuadas sin elegir una política cada vez.
 - [Reglas de recordatorio](#reglas-de-recordatorio): Recuerda a los propietarios mientras una alerta sigue abierta.
-- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones, pertenencia a episodios y numeración.
+- [Ajustes](#ajustes): Plantillas de notas, campos personalizados, mediciones, pertenencia a episodios, numeración y retención de datos.
 :::
 
 ## Dónde están los ajustes de las alertas
@@ -24,7 +24,7 @@ Abre **Alertas** desde el menú **Productos** de la barra superior. Las seccione
 | **Reglas de etiquetas**       | Añade etiquetas a las alertas y los episodios que coinciden.                                   |
 | **Reglas de recordatorio**    | Recuerda a los propietarios a intervalos mientras una alerta está abierta.                     |
 
-La sección **Ajustes** contiene **Estado de la alerta** y **Gravedad de la alerta**, que se tratan en [Estados y severidades de alertas](/docs/alerts/states-and-severities), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Pertenencia a episodios** y **Numeración**, que se tratan más abajo.
+La sección **Ajustes** contiene **Estado de la alerta** y **Gravedad de la alerta**, que se tratan en [Estados y severidades de alertas](/docs/alerts/states-and-severities), y después **Plantillas de notas**, **Campos personalizados**, **Mediciones**, **Pertenencia a episodios**, **Numeración** y **Retención de datos**, que se tratan más abajo.
 
 Otras dos secciones actúan sobre las alertas. **Alertas → IA → Ajustes** decide lo que OneUptime AI hace por su cuenta: **Investigar las alertas nuevas**, activado en los proyectos nuevos, y **Corregir automáticamente las alertas nuevas**, desactivado hasta que lo actives. Consulta [AI SRE](/docs/ai/ai-sre). **Alertas → Espacio de trabajo** contiene las reglas de Slack y Microsoft Teams que publican alertas y episodios en canales, y su pestaña **Resumen**. Consulta [Slack](/docs/workspace-connections/slack).
 
@@ -168,6 +168,10 @@ La medición **Tiempo hasta el reconocimiento tras el aviso** cuenta desde **Se 
 **Alertas → Ajustes → Numeración** fija el texto delante de los números de alerta y de episodio: `ALT-` y `AE-` en un proyecto nuevo, o `#` sin ninguno. **Actualizar** abre **Prefijo de número de alerta** y **Prefijo de número del episodio de alerta**, con una vista previa mientras escribes. Solo las alertas y los episodios creados después reciben el nuevo prefijo. Las reglas de un prefijo están en [Prefijos de número](/docs/incidents/settings#prefijos-de-número).
 
 La tarjeta **Próximo número** de debajo fija el número que reciben la próxima alerta y el próximo episodio, para continuar los números de otra herramienta: **Actualizar** abre **Próximo número de alerta** y **Próximo número de episodio de alerta**, cada uno mayor que el más alto usado hasta ahora. Consulta [Próximos números](/docs/incidents/settings#próximos-números).
+
+### Retención de datos
+
+**Alertas → Ajustes → Retención de datos** elimina las alertas cuando llevan resueltas el tiempo suficiente, como hace [Retención de datos](/docs/incidents/settings#retención-de-datos) con los incidentes. Su tarjeta **Alertas resueltas** pregunta **Eliminar después de**, **Nunca** hasta que eliges una duración, y pide confirmación antes de eliminar más, con **Eliminar alertas antiguas**. Una alerta se queda mientras no esté resuelta, mientras esté en un episodio que sigue abierto o se resolvió más recientemente, y mientras se quede un incidente al que está vinculada. Solo los Project Owners y los Project Admins pueden cambiarlo; en la API es `alertRetentionInDays` del proyecto.
 
 > [!NOTE]
 > En OneUptime Cloud, las plantillas de notas y los campos personalizados requieren el plan **Growth** o superior.

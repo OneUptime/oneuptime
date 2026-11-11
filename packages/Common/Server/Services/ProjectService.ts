@@ -117,6 +117,11 @@ import {
   getDiscoveredDeviceRetentionProblem,
   toDiscoveredDeviceRetentionInDays,
 } from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
+import {
+  ResolvedRecordKind,
+  getResolvedRecordRetentionProblem,
+  toResolvedRecordRetentionInDays,
+} from "../../Types/Retention/ResolvedRecordRetention";
 import { NetworkTopologyLayoutUtil } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { DefaultTableColumnsUtil } from "../../Types/Table/DefaultTableColumns";
 import { coerceNumericColumnValue } from "../../Types/Database/NumericColumnValue";
@@ -806,6 +811,44 @@ export class ProjectService extends ProjectReferencesService<Model> {
   }
 
   /*
+   * How long a resolved incident and a resolved alert stay (issue #6903):
+   * each one of the choices in Types/Retention/ResolvedRecordRetention, or 0
+   * to keep every one, stored as a number. Anything else is refused with the
+   * choices - null too, since the columns always hold a value, and a number
+   * that is not a choice, which must never delete more than was meant. A
+   * write that leaves a column out is not judged on it.
+   */
+  public applyResolvedRecordRetentionRules(data: {
+    incidentRetentionInDays?: unknown;
+    alertRetentionInDays?: unknown;
+  }): void {
+    const columns: Array<{
+      column: "incidentRetentionInDays" | "alertRetentionInDays";
+      kind: ResolvedRecordKind;
+    }> = [
+      { column: "incidentRetentionInDays", kind: ResolvedRecordKind.Incident },
+      { column: "alertRetentionInDays", kind: ResolvedRecordKind.Alert },
+    ];
+
+    for (const { column, kind } of columns) {
+      if (data[column] === undefined) {
+        continue;
+      }
+
+      const problem: string | null = getResolvedRecordRetentionProblem(
+        data[column],
+        kind,
+      );
+
+      if (problem) {
+        throw new BadDataException(problem);
+      }
+
+      data[column] = toResolvedRecordRetentionInDays(data[column]);
+    }
+  }
+
+  /*
    * The columns the project's lists show everyone who has not chosen their
    * own (Project.defaultTableColumns): lists' keys to layouts of column ids,
    * within DefaultTableColumnsUtil's limits, stored tidied (each id once, no
@@ -890,6 +933,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDiscoveredDeviceRetentionRules(
       data.data as { discoveredDeviceRetentionInDays?: unknown },
+    );
+    this.applyResolvedRecordRetentionRules(
+      data.data as {
+        incidentRetentionInDays?: unknown;
+        alertRetentionInDays?: unknown;
+      },
     );
     this.applyDefaultTableColumnsRules(
       data.data as { defaultTableColumns?: unknown },
@@ -1602,6 +1651,12 @@ export class ProjectService extends ProjectReferencesService<Model> {
     );
     this.applyDiscoveredDeviceRetentionRules(
       updateBy.data as { discoveredDeviceRetentionInDays?: unknown },
+    );
+    this.applyResolvedRecordRetentionRules(
+      updateBy.data as {
+        incidentRetentionInDays?: unknown;
+        alertRetentionInDays?: unknown;
+      },
     );
     this.applyDefaultTableColumnsRules(
       updateBy.data as { defaultTableColumns?: unknown },

@@ -391,6 +391,12 @@ export default class UserOnCallLog extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered By Incident ID",
@@ -437,6 +443,12 @@ export default class UserOnCallLog extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered By Alert ID",
@@ -484,6 +496,12 @@ export default class UserOnCallLog extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered By Alert Episode ID",
@@ -531,6 +549,12 @@ export default class UserOnCallLog extends BaseModel {
     read: [Permission.CurrentUser],
     update: [],
   })
+  /*
+   * Indexed: deleting the record it points at finds these rows by it
+   * (the foreign key's ON DELETE), as the purge of resolved incidents
+   * and alerts does in batches (#6903), without reading the whole table.
+   */
+  @Index()
   @TableColumn({
     type: TableColumnType.ObjectID,
     title: "Triggered By Incident Episode ID",

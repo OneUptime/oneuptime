@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50460,
-    "untranslated": 2306
+    "keys": 50637,
+    "untranslated": 2305
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -71,7 +71,6 @@
     "Austria (+43)",
     "Auth, No Priv",
     "Auth, Priv",
-    "Auth0",
     "Azure AKS",
     "Azure CLI",
     "Azure Functions",
@@ -471,7 +470,6 @@
     "amd64",
     "amphora",
     "amphorae",
-    "api.read api.write",
     "arm",
     "arm64",
     "aws_lambda · us-east-1 · nodejs 20",
@@ -606,16 +604,6 @@
     "vCenter",
     "vCenters",
     "vSphere Client",
-    "var(--ou-danger-text, #b91c1c)",
-    "var(--ou-link, #1d4ed8)",
-    "var(--ou-link, #4338ca)",
-    "var(--ou-success-text, #047857)",
-    "var(--ou-success-text, #166534)",
-    "var(--ou-text-muted, #6b7280)",
-    "var(--ou-text-secondary, #374151)",
-    "var(--ou-text-secondary, #4b5563)",
-    "var(--ou-tool-text, #0e7490)",
-    "var(--ou-warning-text, #b45309)",
     "vertical pod autoscaler",
     "warn",
     "web-.*",
@@ -634,6 +622,7 @@
     "{{count}} OID",
     "{{count}} Podman",
     "{{count}} SLO",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} app",
     "{{count}} appliance",

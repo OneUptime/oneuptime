@@ -49,12 +49,13 @@ import {
 } from "Common/Utils/Slo/SloStatusColor";
 import {
   formatSloChartValue,
+  formatSloPercent,
   getSloChartAggregationInterval,
   getSloHistoryMetricName,
   getSloMetricLabel,
   getSloWidgetTileDisplay,
   getSloWidgetTitle,
-  SLO_NOT_EVALUATED_TEXT,
+  SLI_DECIMALS,
   SloWidgetTileDisplay,
 } from "Common/Utils/Slo/SloWidgetFormat";
 import API from "Common/UI/Utils/API/API";
@@ -64,7 +65,9 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
-import ChartReferenceLineProps from "Common/UI/Components/Charts/Types/ReferenceLineProps";
+import ChartReferenceLineProps, {
+  ReferenceLineLabelPlacement,
+} from "Common/UI/Components/Charts/Types/ReferenceLineProps";
 import SeriesPoint from "Common/UI/Components/Charts/Types/SeriesPoints";
 import {
   XAxis as ChartXAxis,
@@ -81,6 +84,13 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSloComponent;
 }
+
+/*
+ * The row under an SLI chart that names the target's line (#6694): the
+ * legend's gap above it (mt-2) and one line of text-xs. The chart gives it
+ * this much of its height, so the tile never overflows.
+ */
+export const SLO_WIDGET_LEGEND_ROW_IN_PX: number = 24;
 
 /*
  * Chrome shared by the "nothing to render" states so the setup, error and
@@ -424,12 +434,18 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
     DashboardWidgetTimeRangeZoom.getHandlers(props);
 
-  const metricLabel: string = getSloMetricLabel(sloMetric);
+  /*
+   * In the reader's words: the metric's label, and the title around the
+   * SLO's name, which stays as written - set apart where it reads the other
+   * way, as an English name on an Arabic dashboard does.
+   */
+  const metricLabel: string = getSloMetricLabel(sloMetric, translator);
   const title: string = getSloWidgetTitle({
     widgetTitle: props.component.arguments.widgetTitle,
     sloName: slo?.name,
     sloMetric: sloMetric,
     followsSelection: isFollowingSelection,
+    translator: translator,
   });
   const placeholderTitle: string =
     props.component.arguments.widgetTitle || metricLabel;
@@ -539,8 +555,16 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     />
   );
 
+  /*
+   * A long title is cut to the tile ("Checkout availability ·
+   * Verbleibendes Fehlerbudget" on a narrow German one): hovering it reads
+   * it whole.
+   */
   const titleElement: ReactElement = (
-    <div className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center">
+    <div
+      className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
+      title={title}
+    >
       {title}
     </div>
   );
@@ -586,8 +610,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         ? [
             {
               value: target,
-              label: translator.translateTemplate("Target {{target}}%", {
-                target: target,
+              label: translator.translateTemplate("Target {{target}}", {
+                target:
+                  formatSloPercent(target, SLI_DECIMALS, translator) || "",
               }),
               color: "#f59e0b",
               strokeDasharray: "4 4",
@@ -617,8 +642,9 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         min: sloMetric === SloWidgetMetric.BurnRate ? 0 : "auto",
         max: sloMetric === SloWidgetMetric.BurnRate ? "auto" : 100,
         precision: YAxisPrecision.TwoDecimals,
+        // The axis and the tooltip in the reader's figures: "99,874 %".
         formatter: (value: number): string => {
-          return formatSloChartValue(sloMetric, value);
+          return formatSloChartValue(sloMetric, value, translator);
         },
       },
     };
@@ -632,10 +658,13 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
 
     /*
      * Reserve the title row and the status row out of the widget height so
-     * the chart never overflows its tile at small sizes.
+     * the chart never overflows its tile at small sizes - and, under an SLI
+     * chart, the legend's row that names the target's line.
      */
     const chartHeightInPx: number = Math.max(
-      props.dashboardComponentHeightInPx - 58,
+      props.dashboardComponentHeightInPx -
+        58 -
+        (referenceLines ? SLO_WIDGET_LEGEND_ROW_IN_PX : 0),
       80,
     );
 
@@ -664,6 +693,14 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
             sync={false}
             syncid={`slo-widget-${props.componentId.toString()}`}
             referenceLines={referenceLines}
+            /*
+             * The target's name in a legend under the plot, as on the SLO
+             * pages' charts: at the end of its line it sat on the SLI
+             * whenever the SLI ran near the target.
+             */
+            referenceLineLabelPlacement={ReferenceLineLabelPlacement.Legend}
+            // Centred, like the title above it and the status pill below.
+            isReferenceLineLegendCentered={true}
             onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
             onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
             /*
@@ -693,10 +730,14 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
     );
   }
 
-  // ── Tile ───────────────────────────────────────────────────────────────
+  /*
+   * ── Tile ─────────────────────────────────────────────────────────────
+   * The figure, the line under it and "Not evaluated yet", the reader's way.
+   */
   const tile: SloWidgetTileDisplay = getSloWidgetTileDisplay({
     sloMetric: sloMetric,
     slo: slo,
+    translator: translator,
   });
 
   /*
@@ -735,9 +776,7 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
           {tile.value}
         </div>
       ) : (
-        <div className="text-sm text-gray-400 text-center">
-          {SLO_NOT_EVALUATED_TEXT}
-        </div>
+        <div className="text-sm text-gray-400 text-center">{tile.value}</div>
       )}
 
       {tile.subline ? (
@@ -748,7 +787,15 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      <div className="pt-0.5">{statusPill}</div>
+      {/*
+       * An SLO with no status yet has not been evaluated: the line above
+       * says so, and a grey "Unknown" pill under it would only say it again.
+       */}
+      {tile.isEvaluated || sloStatus ? (
+        <div className="pt-0.5">{statusPill}</div>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

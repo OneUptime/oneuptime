@@ -12,10 +12,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * project that existed before has null in both, which the checklist reads
  * as "never answered" and "look at the checklist before this one once".
  */
-export class AddProjectGoalsAndWelcomeChecklist1809110600000
+export class AddProjectGoalsAndWelcomeChecklist1809110900000
   implements MigrationInterface
 {
-  public name: string = "AddProjectGoalsAndWelcomeChecklist1809110600000";
+  public name: string = "AddProjectGoalsAndWelcomeChecklist1809110900000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "Project" ADD "goals" jsonb`);

@@ -962,7 +962,10 @@ import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-A
 import { AddCloudAppSignalArrivals1809110300000 } from "./1809110300000-AddCloudAppSignalArrivals";
 import { AddServerSendingHealth1809110400000 } from "./1809110400000-AddServerSendingHealth";
 import { AddProjectMilestones1809110500000 } from "./1809110500000-AddProjectMilestones";
-import { AddProjectGoalsAndWelcomeChecklist1809110600000 } from "./1809110600000-AddProjectGoalsAndWelcomeChecklist";
+import { AddResolvedRecordRetention1809110600000 } from "./1809110600000-AddResolvedRecordRetention";
+import { AddIndexesForIncidentAndAlertDeletes1809110700000 } from "./1809110700000-AddIndexesForIncidentAndAlertDeletes";
+import { AddOnCallTestPages1809110800000 } from "./1809110800000-AddOnCallTestPages";
+import { AddProjectGoalsAndWelcomeChecklist1809110900000 } from "./1809110900000-AddProjectGoalsAndWelcomeChecklist";
 
 export default [
   InitialMigration,
@@ -1929,5 +1932,8 @@ export default [
   AddCloudAppSignalArrivals1809110300000,
   AddServerSendingHealth1809110400000,
   AddProjectMilestones1809110500000,
-  AddProjectGoalsAndWelcomeChecklist1809110600000,
+  AddResolvedRecordRetention1809110600000,
+  AddIndexesForIncidentAndAlertDeletes1809110700000,
+  AddOnCallTestPages1809110800000,
+  AddProjectGoalsAndWelcomeChecklist1809110900000,
 ];

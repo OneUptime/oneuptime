@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import SloMultiMonitorMode from "Common/Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloWindowType from "Common/Types/ServiceLevelObjective/SloWindowType";
+import { getNumberLocale } from "Common/Types/DateLanguage";
 import {
   FIRST_STRONG_ISOLATE,
   POP_DIRECTIONAL_ISOLATE,
@@ -106,6 +107,30 @@ const ISOLATE_MARKS: RegExp = new RegExp(
   `[${FIRST_STRONG_ISOLATE}${POP_DIRECTIONAL_ISOLATE}]`,
   "g",
 );
+
+/*
+ * A figure is written the way the reader's language writes it (#6695):
+ * German "99,9 %", with a no-break space before its sign; Arabic Latin
+ * digits and a decimal point, its percent sign held beside the figure by
+ * Intl's own left-to-right marks.
+ */
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+const LEFT_TO_RIGHT_MARK: string = String.fromCharCode(0x200e);
+
+function percentIn(language: string, value: number): string {
+  return new Intl.NumberFormat(getNumberLocale(language), {
+    style: "percent",
+    maximumFractionDigits: 3,
+  }).format(value / 100);
+}
+
+// A figure with an English decimal point: "99.9".
+const ENGLISH_DECIMAL_POINT: RegExp = /\d\.\d/;
+
+// The text as it reads on screen: no isolates, no direction marks.
+function asRead(text: string): string {
+  return text.replace(ISOLATE_MARKS, "").split(LEFT_TO_RIGHT_MARK).join("");
+}
 
 // Latin letters outside the placeholders' values: English left in a sentence.
 function englishWordsIn(text: string, allowed: Array<string>): Array<string> {
@@ -387,31 +412,57 @@ describe("the KPI strip's words without a translator read as Common's English", 
 });
 
 describe("the KPI strip's words in the reader's language", () => {
-  test("the SLI against its target reads in German, Arabic and Japanese", () => {
+  test("the SLI against its target reads in German, Arabic and Japanese, its figures written the language's way (#6695)", () => {
+    // German writes a decimal comma, and a no-break space before "%".
     expect(
       getSliDeltaTextInLanguage(
         { currentSliPercentage: 99.874, targetPercentage: 99.9 },
         DE,
       ),
-    ).toBe("0.026 Prozentpunkte unter dem Ziel von 99.9%");
+    ).toBe(`0,026 Prozentpunkte unter dem Ziel von 99,9${NO_BREAK_SPACE}%`);
     expect(
       getSliDeltaTextInLanguage(
         { currentSliPercentage: 99.9, targetPercentage: 99.9 },
         DE,
       ),
-    ).toBe("Genau auf dem Ziel von 99.9%");
-    expect(
-      getSliDeltaTextInLanguage(
-        { currentSliPercentage: 99.95, targetPercentage: 99.9 },
-        AR,
-      ),
-    ).toBe("أعلى من الهدف 99.9% بمقدار 0.05 نقطة مئوية");
+    ).toBe(`Genau auf dem Ziel von 99,9${NO_BREAK_SPACE}%`);
+
+    const arabic: string = getSliDeltaTextInLanguage(
+      { currentSliPercentage: 99.95, targetPercentage: 99.9 },
+      AR,
+    )!;
+
+    expect(arabic).toBe(
+      `أعلى من الهدف ${percentIn("ar", 99.9)} بمقدار 0.05 نقطة مئوية`,
+    );
+    // On screen: Latin digits, a decimal point, the sign after the figure.
+    expect(asRead(arabic)).toBe("أعلى من الهدف 99.9% بمقدار 0.05 نقطة مئوية");
     expect(
       getSliDeltaTextInLanguage(
         { currentSliPercentage: 99.89999, targetPercentage: 99.9 },
         JA,
       ),
     ).toBe("目標 99.9% をわずかに下回っています");
+  });
+
+  test("no SLI sentence in German writes the English decimal point (#6695)", () => {
+    for (const input of SLI_INPUTS) {
+      const text: string | null = getSliDeltaTextInLanguage(input, DE);
+
+      if (text === null) {
+        continue;
+      }
+
+      expect({
+        input,
+        text,
+        englishDecimal: ENGLISH_DECIMAL_POINT.test(text),
+      }).toEqual({
+        input,
+        text,
+        englishDecimal: false,
+      });
+    }
   });
 
   test("a value in a note is set apart from the words, when asked", () => {
@@ -421,10 +472,10 @@ describe("the KPI strip's words in the reader's language", () => {
       { setsValuesApart: true },
     );
 
-    expect(text).toContain(`${FIRST_STRONG_ISOLATE}99.9%`);
-    expect(text!.replace(ISOLATE_MARKS, "")).toBe(
-      "أدنى من الهدف 99.9% بمقدار 0.026 نقطة مئوية",
+    expect(text).toContain(
+      `${FIRST_STRONG_ISOLATE}${percentIn("ar", 99.9)}${POP_DIRECTIONAL_ISOLATE}`,
     );
+    expect(asRead(text!)).toBe("أدنى من الهدف 99.9% بمقدار 0.026 نقطة مئوية");
   });
 
   test("the error budget left of its total, durations in the language's own units", () => {

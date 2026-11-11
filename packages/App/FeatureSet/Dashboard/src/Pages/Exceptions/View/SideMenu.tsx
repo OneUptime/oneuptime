@@ -23,9 +23,10 @@ const ExceptionViewSideMenu: FunctionComponent<ComponentProps> = (
   };
 
   /*
-   * AI Assistance is an AI action: with the project's AI switched off there
+   * Fix with AI is an AI action: with the project's AI switched off there
    * is nothing on it anyone can start, so it is not in the menu
-   * (Common/Utils/Suggestions/AiSuggestion).
+   * (Common/Utils/Suggestions/AiSuggestion). It keeps the page's old
+   * address (/ai-assistance), so links to it still work.
    */
   const isAiOffered: boolean = useAiOffered();
 
@@ -70,10 +71,10 @@ const ExceptionViewSideMenu: FunctionComponent<ComponentProps> = (
         <SideMenuSection title="Resolve">
           <SideMenuItem
             link={{
-              title: "AI Assistance",
+              title: "Fix with AI",
               to: getRoute(PageMap.EXCEPTIONS_VIEW_AI_ASSISTANCE),
             }}
-            icon={IconProp.Bolt}
+            icon={IconProp.Sparkles}
           />
         </SideMenuSection>
       ) : (

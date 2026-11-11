@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50460,
+    "keys": 50637,
     "untranslated": 1275
   },
   "sameAsEnglish": [
@@ -51,7 +51,6 @@
     "Apache Kafka · kafka-1:9092",
     "App Store",
     "Atmosphere",
-    "Auth0",
     "Azure AKS",
     "Azure CLI",
     "Azure Functions",
@@ -265,7 +264,6 @@
     "alice@example.com",
     "amd64",
     "amphora",
-    "api.read api.write",
     "arm",
     "arm64",
     "aws_lambda · us-east-1 · nodejs 20",
@@ -353,16 +351,6 @@
     "vCenter",
     "vCenter ID",
     "vSphere Client",
-    "var(--ou-danger-text, #b91c1c)",
-    "var(--ou-link, #1d4ed8)",
-    "var(--ou-link, #4338ca)",
-    "var(--ou-success-text, #047857)",
-    "var(--ou-success-text, #166534)",
-    "var(--ou-text-muted, #6b7280)",
-    "var(--ou-text-secondary, #374151)",
-    "var(--ou-text-secondary, #4b5563)",
-    "var(--ou-tool-text, #0e7490)",
-    "var(--ou-warning-text, #b45309)",
     "warn",
     "web-.*",
     "weekend-.*",

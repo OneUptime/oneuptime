@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50460,
-    "untranslated": 9947
+    "keys": 50637,
+    "untranslated": 9697
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -28,6 +28,7 @@
     "Canonical Sunbeam",
     "ClickHouse",
     "Client ID",
+    "Client Secret",
     "CloudKitty",
     "CloudWatch Metric Streams",
     "CrowdStrike",
@@ -192,6 +193,7 @@
     "{\"version\": \"...\", \"records\": [...]}",
     "{{count}} CPU",
     "{{count}} Kubernetes",
+    "{{count}} SMS",
     "{{in}} in"
   ]
 }
