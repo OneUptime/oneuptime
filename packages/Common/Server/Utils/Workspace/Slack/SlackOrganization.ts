@@ -10,6 +10,7 @@ import OneUptimeDate from "../../../../Types/Date";
 import BadRequestException from "../../../../Types/Exception/BadRequestException";
 import { JSONObject } from "../../../../Types/JSON";
 import ObjectID from "../../../../Types/ObjectID";
+import { SLACK_ID_PATTERN } from "../../../../Types/Workspace/ConnectCallback";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import API from "../../../../Utils/API";
 import WorkspaceProjectAuthTokenService from "../../../Services/WorkspaceProjectAuthTokenService";
@@ -52,6 +53,13 @@ import { SLACK_WORKSPACE_NOT_ADDED_ERROR } from "./SlackChannelMembers";
  * (isSameOrganization): its notification rules, linked accounts and
  * channels stay - the organization's channel and user ids are the
  * workspace's. Any other change of workspace is refused, as before.
+ *
+ * Slack's press of the organization's installation names no workspace for
+ * the channel it was made in (team is null), only the person's own
+ * (user.team_id). So once somebody who pressed has connected their Slack
+ * account, "Back to Slack" opens the channel in the workspace OneUptime
+ * knows it is in, or else the one Slack names for it
+ * (getWorkspaceIdToOpenChannelIn).
  */
 
 // What a finished install says it was for (readInstallation).
@@ -118,6 +126,14 @@ export default class SlackOrganization {
   // What Slack answers a call made in a workspace OneUptime is not added to.
   public static readonly NOT_ADDED_ERROR: string =
     SLACK_WORKSPACE_NOT_ADDED_ERROR;
+
+  /*
+   * How long "Back to Slack" waits for Slack to say which workspace a
+   * channel is in (getWorkspaceIdToOpenChannelIn). The person's browser
+   * waits on the answer as it comes back from connecting their Slack
+   * account; past this, the link opens the workspace the press kept.
+   */
+  public static readonly CHANNEL_WORKSPACE_TIMEOUT_IN_MS: number = 2000;
 
   // Whether a connection's miscData is a whole organization's installation.
   public static isOrganization(miscData: unknown): boolean {
@@ -927,6 +943,228 @@ export default class SlackOrganization {
   }
 
   /*
+   * The workspace "Back to Slack" opens a channel in, once the person who
+   * pressed a button there has connected their Slack account
+   * (SlackAPI.finishConnectRequest). `keptTeamId` is the workspace the press
+   * kept: the channel's when OneUptime knew it then, else the person's own
+   * (user.team_id), which need not be the channel's.
+   *
+   * - A project connected to one workspace: `keptTeamId`, which is the
+   *   channel's. Nothing is asked of Slack.
+   * - A direct message: `keptTeamId`, the person's own workspace.
+   * - A channel the project's channel cache knows: its workspace there
+   *   (getWorkspaceIdOfKnownChannel).
+   * - Any other channel: the workspace Slack names for it, asked once with
+   *   the organization's token and waited for at most `timeoutInMs`
+   *   (askWorkspaceIdsOfChannel, pickWorkspaceOfChannel). Slack refusing,
+   *   answering late, or naming no workspace OneUptime is added to leaves
+   *   `keptTeamId` - as does a connection Slack has listed no workspaces
+   *   of yet, without asking.
+   *
+   * Never throws.
+   */
+  @CaptureSpan()
+  public static async getWorkspaceIdToOpenChannelIn(data: {
+    projectAuth:
+      | Pick<
+          WorkspaceProjectAuthToken,
+          "miscData" | "workspaceProjectId" | "authToken"
+        >
+      | null
+      | undefined;
+    channelId: string | undefined;
+    keptTeamId: string | undefined;
+    timeoutInMs?: number | undefined;
+  }): Promise<string | undefined> {
+    const keptTeamId: string | undefined =
+      SlackOrganization.textOf(data.keptTeamId) || undefined;
+    const channelId: string = SlackOrganization.textOf(data.channelId);
+
+    // The caller waits on this after finishing the press: nothing here may reject.
+    try {
+      const organization: SlackOrganizationConnection | null =
+        SlackOrganization.readConnection(data.projectAuth);
+
+      // Only a channel's id is asked about: a direct message's (D...) is the person's own.
+      if (
+        !organization ||
+        !SLACK_ID_PATTERN.test(channelId) ||
+        channelId.startsWith("D")
+      ) {
+        return keptTeamId;
+      }
+
+      const knownTeamId: string | undefined =
+        SlackOrganization.getWorkspaceIdOfKnownChannel({
+          projectAuth: data.projectAuth,
+          channelId: channelId,
+        });
+
+      if (knownTeamId) {
+        return knownTeamId;
+      }
+
+      const authToken: string = SlackOrganization.textOf(
+        data.projectAuth?.authToken,
+      );
+
+      // Before Slack has listed any workspace, nothing it names could be taken.
+      if (!authToken || organization.workspaces.length === 0) {
+        return keptTeamId;
+      }
+
+      const channelWorkspaceIds: Array<string> =
+        await SlackOrganization.askWorkspaceIdsOfChannel({
+          authToken: authToken,
+          channelId: channelId,
+          timeoutInMs:
+            data.timeoutInMs ??
+            SlackOrganization.CHANNEL_WORKSPACE_TIMEOUT_IN_MS,
+        });
+
+      return (
+        SlackOrganization.pickWorkspaceOfChannel({
+          channelWorkspaceIds: channelWorkspaceIds,
+          addedWorkspaceIds: organization.workspaces.map(
+            (workspace: SlackOrganizationWorkspace): string => {
+              return workspace.id;
+            },
+          ),
+          keptTeamId: keptTeamId,
+        }) || keptTeamId
+      );
+    } catch (err) {
+      logger.debug(
+        `Slack did not say which workspace channel ${channelId} is in (${err instanceof Error ? err.message : "no_answer"}); Back to Slack opens the workspace the press kept.`,
+      );
+      return keptTeamId;
+    }
+  }
+
+  /*
+   * conversations.info, asked with a whole organization's token, which
+   * Slack takes without a team_id: the workspaces the channel is in
+   * (readWorkspaceIdsOfChannel). One try, waited for at most `timeoutInMs`.
+   * Throws an error naming Slack's refusal - channel_not_found for a
+   * private channel OneUptime is not in, team_access_not_granted for a
+   * workspace it is not added to - or no_answer. The error never carries
+   * the token, nor what the request was sent with.
+   */
+  @CaptureSpan()
+  public static async askWorkspaceIdsOfChannel(data: {
+    authToken: string;
+    channelId: string;
+    timeoutInMs: number;
+  }): Promise<Array<string>> {
+    let response: HTTPErrorResponse | HTTPResponse<JSONObject>;
+
+    try {
+      response = await SlackOrganization.answeredWithin({
+        promise: API.post<JSONObject>({
+          url: URL.fromString("https://slack.com/api/conversations.info"),
+          data: { channel: data.channelId },
+          headers: {
+            Authorization: `Bearer ${data.authToken}`,
+            ["Content-Type"]: "application/x-www-form-urlencoded",
+          },
+          options: {
+            timeout: data.timeoutInMs,
+          },
+        }),
+        timeoutInMs: data.timeoutInMs,
+      });
+    } catch {
+      throw new BadRequestException("Error from Slack no_answer");
+    }
+
+    if (response instanceof HTTPErrorResponse) {
+      throw new BadRequestException(
+        `Error from Slack http_${response.statusCode}`,
+      );
+    }
+
+    const json: JSONObject = (response.jsonData || {}) as JSONObject;
+
+    if (json["ok"] !== true) {
+      throw new BadRequestException(
+        "Error from Slack " +
+          (SlackOrganization.textOf(json["error"]) || "unknown_error"),
+      );
+    }
+
+    return SlackOrganization.readWorkspaceIdsOfChannel(json["channel"]);
+  }
+
+  /*
+   * The workspaces a channel object of conversations.info names, each once,
+   * in this order:
+   *
+   * - context_team_id: "the ID of the workspace the conversation is
+   *   within";
+   * - conversation_host_id: the host of a shared channel, a workspace or the
+   *   organization itself (E...);
+   * - internal_team_ids: the organization's workspaces a shared channel is
+   *   in;
+   * - shared_team_ids: the workspaces it is shared with - for a channel of
+   *   one workspace, that one.
+   *
+   * Only values shaped like Slack's ids. None for a direct message, which
+   * names no workspace.
+   */
+  public static readWorkspaceIdsOfChannel(channel: unknown): Array<string> {
+    const fields: JSONObject | undefined = SlackOrganization.objectOf(channel);
+
+    if (!fields) {
+      return [];
+    }
+
+    const listOf: (value: unknown) => Array<unknown> = (
+      value: unknown,
+    ): Array<unknown> => {
+      return Array.isArray(value) ? (value as Array<unknown>) : [];
+    };
+
+    const ids: Array<string> = [];
+
+    for (const value of [
+      fields["context_team_id"],
+      fields["conversation_host_id"],
+      ...listOf(fields["internal_team_ids"]),
+      ...listOf(fields["shared_team_ids"]),
+    ]) {
+      const id: string = SlackOrganization.textOf(value);
+
+      if (SLACK_ID_PATTERN.test(id) && !ids.includes(id)) {
+        ids.push(id);
+      }
+    }
+
+    return ids;
+  }
+
+  /*
+   * Of the workspaces Slack names for a channel, the one "Back to Slack"
+   * opens it in: the workspace the press kept when the channel is in it too
+   * - the person's own, for a channel shared between the organization's
+   * workspaces - else the first that OneUptime is added to. Undefined when
+   * Slack names none OneUptime is added to: Slack's answer moves the link to
+   * those only.
+   */
+  public static pickWorkspaceOfChannel(data: {
+    channelWorkspaceIds: Array<string>;
+    addedWorkspaceIds: Array<string>;
+    keptTeamId: string | undefined;
+  }): string | undefined {
+    if (data.keptTeamId && data.channelWorkspaceIds.includes(data.keptTeamId)) {
+      return data.keptTeamId;
+    }
+
+    return data.channelWorkspaceIds.find((id: string): boolean => {
+      return data.addedWorkspaceIds.includes(id);
+    });
+  }
+
+  /*
    * A workspace's name, by its id: as listed, else as it was named when
    * OneUptime was removed from it - the id when it is neither.
    */
@@ -1037,6 +1275,36 @@ export default class SlackOrganization {
     }
 
     return workspaces;
+  }
+
+  /*
+   * What `promise` settles with, or a rejection once `timeoutInMs` has
+   * passed without it - whatever the request under it still waits for.
+   */
+  private static answeredWithin<T>(data: {
+    promise: Promise<T>;
+    timeoutInMs: number;
+  }): Promise<T> {
+    return new Promise<T>(
+      (resolve: (value: T) => void, reject: (reason: Error) => void) => {
+        const timer: ReturnType<typeof setTimeout> = setTimeout(() => {
+          reject(new Error("no_answer"));
+        }, data.timeoutInMs);
+
+        timer.unref?.();
+
+        data.promise.then(
+          (value: T) => {
+            clearTimeout(timer);
+            resolve(value);
+          },
+          (err: unknown) => {
+            clearTimeout(timer);
+            reject(err instanceof Error ? err : new Error("no_answer"));
+          },
+        );
+      },
+    );
   }
 
   private static objectOf(value: unknown): JSONObject | undefined {
