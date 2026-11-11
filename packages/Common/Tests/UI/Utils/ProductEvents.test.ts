@@ -8,26 +8,6 @@ import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globa
  * words of a search only on Cloud - and never an error on the page.
  */
 
-let mockIsCloud: boolean = true;
-let mockIsEnterprise: boolean = false;
-
-jest.mock("../../../UI/Config", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../UI/Config",
-  ) as Record<string, unknown>;
-
-  return {
-    __esModule: true,
-    ...actual,
-    get BILLING_ENABLED(): boolean {
-      return mockIsCloud;
-    },
-    get IS_ENTERPRISE_EDITION(): boolean {
-      return mockIsEnterprise;
-    },
-  };
-});
-
 const captureMock: jest.Mock<(name: string, data?: unknown) => void> = jest.fn();
 
 jest.mock("../../../UI/Utils/Analytics", () => {
@@ -55,6 +35,10 @@ import ObjectID from "../../../Types/ObjectID";
 const PROJECT_ID: string = "6d1f6a37-6a2c-4c8c-9a1f-6f1e2a3b4c5d";
 const USER_ID: string = "0a0b0c0d-1111-4222-8333-944455556666";
 
+// OneUptime Cloud, or a self-hosted edition, as each test says.
+let isCloud: boolean = true;
+let isEnterprise: boolean = false;
+
 const lastEvent: () => { name: string; data: JSONObject } = (): {
   name: string;
   data: JSONObject;
@@ -74,8 +58,8 @@ const eventNames: () => Array<string> = (): Array<string> => {
 
 describe("ProductEvents", () => {
   beforeEach(() => {
-    mockIsCloud = true;
-    mockIsEnterprise = false;
+    isCloud = true;
+    isEnterprise = false;
     captureMock.mockReset();
     localStorage.clear();
     document.documentElement.lang = "de";
@@ -89,6 +73,14 @@ describe("ProductEvents", () => {
     jest.spyOn(ProjectUtil, "getCurrentPlan").mockReturnValue(PlanType.Growth);
     jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(project);
     jest.spyOn(UserUtil, "getUserId").mockReturnValue(new ObjectID(USER_ID));
+    jest.spyOn(ProductEvents, "isCloud").mockImplementation((): boolean => {
+      return isCloud;
+    });
+    jest
+      .spyOn(ProductEvents, "isEnterpriseEdition")
+      .mockImplementation((): boolean => {
+        return isEnterprise;
+      });
   });
 
   afterEach(() => {
@@ -128,7 +120,7 @@ describe("ProductEvents", () => {
       expect(lastEvent().data["query"]).toBe(words.slice(0, 40));
       expect(lastEvent().data["query_length"]).toBe(words.length);
 
-      mockIsCloud = false;
+      isCloud = false;
 
       ProductEvents.send(ProductEventName.SearchFoundNothing, {
         source: "command_palette",
@@ -144,11 +136,11 @@ describe("ProductEvents", () => {
     test("the edition is cloud, enterprise or community", () => {
       expect(ProductEvents.getEdition()).toBe("cloud");
 
-      mockIsCloud = false;
-      mockIsEnterprise = true;
+      isCloud = false;
+      isEnterprise = true;
       expect(ProductEvents.getEdition()).toBe("enterprise");
 
-      mockIsEnterprise = false;
+      isEnterprise = false;
       expect(ProductEvents.getEdition()).toBe("community");
     });
 

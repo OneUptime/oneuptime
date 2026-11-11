@@ -34,7 +34,7 @@ export default class ProductEvents {
         ...toProductEventProperties({
           name: name,
           properties: properties,
-          isCloud: BILLING_ENABLED,
+          isCloud: ProductEvents.isCloud(),
         }),
       });
     } catch {
@@ -42,12 +42,21 @@ export default class ProductEvents {
     }
   }
 
+  // OneUptime Cloud: billing is on.
+  public static isCloud(): boolean {
+    return BILLING_ENABLED;
+  }
+
+  public static isEnterpriseEdition(): boolean {
+    return IS_ENTERPRISE_EDITION;
+  }
+
   public static getEdition(): string {
-    if (BILLING_ENABLED) {
+    if (ProductEvents.isCloud()) {
       return "cloud";
     }
 
-    return IS_ENTERPRISE_EDITION ? "enterprise" : "community";
+    return ProductEvents.isEnterpriseEdition() ? "enterprise" : "community";
   }
 
   // What every Dashboard event carries (COMMON_PRODUCT_EVENT_PROPERTIES).

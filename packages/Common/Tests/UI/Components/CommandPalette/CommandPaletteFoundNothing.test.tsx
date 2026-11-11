@@ -157,6 +157,8 @@ describe("CommandPalette: a search that found nothing", () => {
     );
 
     typeQuery("database outage");
+    // The provider starts searching once the debounce runs out.
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS + 10);
     await advance(SETTLED * 2);
     expect(foundNothing).not.toHaveBeenCalled();
 
@@ -191,6 +193,7 @@ describe("CommandPalette: a search that found nothing", () => {
     );
 
     typeQuery("nothing like this");
+    await advance(PROVIDER_SEARCH_DEBOUNCE_MS + 10);
     await advance(SETTLED);
 
     expect(foundNothing.mock.calls).toEqual([["nothing like this"]]);
