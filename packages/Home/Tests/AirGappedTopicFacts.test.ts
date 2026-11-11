@@ -1600,7 +1600,7 @@ const EVIDENCE: Record<string, Array<Evidence>> = {
     fact(
       "Let's Encrypt, which checks your server on port 80",
       BRANDING,
-      "make sure the server answers on port 80, where Let's Encrypt checks it",
+      "make sure the server answers on ports 80 and 443: visitors and Let's Encrypt reach every custom domain there",
     ),
     fact(
       "a domain is live as soon as its CNAME record is verified",
