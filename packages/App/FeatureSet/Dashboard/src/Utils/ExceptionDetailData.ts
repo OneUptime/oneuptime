@@ -15,6 +15,11 @@ import { getGroupFingerprints } from "./ExceptionGroupFingerprints";
 export interface ExceptionDetailDataPlan {
   // The group's Service, for the header's Service cell (every page).
   loadServices: boolean;
+  /*
+   * The stack trace, the latest occurrence's structured frames and their
+   * source-mapped locations: for the Stack Trace page, and for the
+   * Overview's Where it happened card.
+   */
   loadStackTrace: boolean;
   loadLatestOccurrence: boolean;
   resolveStackFrames: boolean;
@@ -36,13 +41,17 @@ export function getExceptionDetailDataPlan(
 ): ExceptionDetailDataPlan {
   return {
     loadServices: true,
-    loadStackTrace: section === ExceptionDetailSection.StackTrace,
+    loadStackTrace:
+      section === ExceptionDetailSection.StackTrace ||
+      section === ExceptionDetailSection.Overview,
     loadLatestOccurrence:
       section === ExceptionDetailSection.Overview ||
       section === ExceptionDetailSection.StackTrace ||
       section === ExceptionDetailSection.Context ||
       section === ExceptionDetailSection.Logs,
-    resolveStackFrames: section === ExceptionDetailSection.StackTrace,
+    resolveStackFrames:
+      section === ExceptionDetailSection.StackTrace ||
+      section === ExceptionDetailSection.Overview,
     loadTraceBreadcrumbs: section === ExceptionDetailSection.Context,
     loadOccurrenceAttributes: section === ExceptionDetailSection.Context,
     loadAIAssistance: section === ExceptionDetailSection.AIAssistance,

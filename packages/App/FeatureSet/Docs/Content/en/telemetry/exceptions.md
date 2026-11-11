@@ -71,22 +71,26 @@ Click a row to open the exception's page.
 
 ## An exception's page
 
+Every page of an exception opens under the same header: its type and message, its status, whether it was handled, its error class and environment, and its facts: how many times it happened, when it was first and last seen, its service and who it is assigned to. On every page but **Settings**, which has buttons of its own, **Resolve** and **Archive** sit beside them, and the ⋯ beside those holds **Resolve in next release** and **Create monitor**.
+
 The page's side menu groups what you do with an exception:
 
 | Page | What it shows |
 | --- | --- |
-| **Overview** | The message, the service, how often it happened and when it was first and last seen, its trend over time, and its latest occurrence: the release, environment, span, trace and user session. At the top, OneUptime AI's explanation of what happened, when AI is on. |
+| **Overview** | **Where it happened**: the line of your code it was raised from. Its trend over time, and its latest occurrence: the release, environment, fingerprint, span, trace and user session. At the top, OneUptime AI's explanation of what happened, when AI is on. |
 | **Stack Trace** | The frames of the stack. For browser code, the original files and lines, once you upload [Source Maps](/docs/telemetry/source-maps) for the release. |
 | **Occurrences** | Every occurrence, with its time, its message and the trace it happened in. |
 | **Context** | The latest occurrence's attributes, its session replay when one was recorded, and the steps that led up to it. |
 | **Logs** | The logs written around the latest occurrence. |
-| **AI Assistance** | AI tasks that fix the exception or test it. |
+| **Fix with AI** | One AI task that fixes the exception with a pull request, and the others folded under it. |
 | **Settings** | Resolve or archive the exception. It is under **Manage**, which starts collapsed. |
 | **Audit Logs** | Who resolved, archived, assigned or merged the exception, and when. It is under **Manage** too. |
 
+**Where it happened** shows the first frame of your own code, the most likely place the error was raised: its original file and line once a source map resolved it, the code around it when the map carried it, and up to three frames of your code that called it. With no frame in your own code, it shows the innermost frame of the stack trace. **View full stack trace** opens every frame on **Stack Trace**. When the latest occurrence recorded no structured frames, the card shows the first lines of the stack trace as they are (the last lines of a Python traceback, where the error is), and an exception without a stack trace has no card.
+
 ## Resolve, reopen and archive
 
-The buttons at the top of the exception's page, its **Settings** page and the ⋯ menu on its row in the list change its status:
+The buttons at the top of the exception's page and the ⋯ beside them, its **Settings** page and the ⋯ menu on its row in the list change its status:
 
 | Action | When to use it | What happens next |
 | --- | --- | --- |
@@ -96,13 +100,15 @@ The buttons at the top of the exception's page, its **Settings** page and the �
 | **Archive** | It is noise you do not plan to fix. | It leaves the list. New occurrences are counted but stop notifying. |
 | **Unarchive** | You want to hear about it again. | It is back in the list it belongs to. |
 
-**Resolve in next release** is in the menu beside **Resolve**, in the row's ⋯ menu, under **Bulk Actions** and on **Settings**, while the exception's occurrences name their release: the `service.version` resource attribute.
+**Resolve in next release** is in the ⋯ at the top of the exception's page, in the row's ⋯ menu, under **Bulk Actions** and on **Settings**, while the exception's occurrences name their release: the `service.version` resource attribute.
 
 **Settings** shows who last resolved or archived the exception, and when. Its buttons read **Mark as Resolved** or **Mark as Unresolved**, and **Archive** or **Unarchive**.
 
 To change several at once, tick their rows in the list, or the box above the rows for every exception on the page, and use the same actions under **Bulk Actions**. Once every exception on the page is ticked, the line above the rows offers to select every exception that matches the list's search and filters, on every page, up to 10,000 at a time; an action on them then asks before it changes them. It says which exceptions it changed, which it left as they were, and why.
 
-**Assign** in the exception's header gives it to one person or one team, and removing them unassigns it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once. The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.
+**Assign**, under **Assignee** in the exception's header, gives it to one person or one team; click their name to give it to someone else, and the × beside it to unassign it. Each row shows who owns it, its ⋯ menu offers **Assign to me**, and **Assign to…** under **Bulk Actions** assigns several at once. The person it is assigned to, or each member of the team, gets a notification as the **Exception assigned to me** row of their [Notification Settings](/docs/notifications/notification-settings) says; whoever assigned it does not.
+
+**Create monitor**, in the ⋯ at the top of the exception's page, opens a new [Exceptions monitor](/docs/monitor/exceptions-monitor) for this exception's type in its service, to alert you when it happens again. It is offered to those who may create monitors.
 
 **Activity**, at the bottom of the exception's **Overview**, says who changed it and when, newest first: who resolved, reopened, archived or assigned it, merged another exception into it or unmerged one, and when it came back after it was resolved. Every change is there, made on the exception's page, in the list, under **Bulk Actions**, through the API or by OneUptime itself, and a change made with an API key carries the key's name.
 
@@ -132,7 +138,7 @@ At the top of an exception's **Overview**, **Explain with OneUptime AI** asks On
 | **Where to look** | The frames of the stack trace to open first. |
 | **Next steps** | At most three steps to confirm or fix it. |
 
-The explanation is kept on the exception, so the next person who opens it reads it at once, and **Explain again** asks for a new one. **Open a fix pull request** opens the exception's **AI Assistance** page, and **Ask a follow-up** opens Ask AI on the exception.
+The explanation is kept on the exception, so the next person who opens it reads it at once, and **Explain again** asks for a new one. **Fix with AI** opens the exception's **Fix with AI** page, and **Ask a follow-up** opens Ask AI on the exception.
 
 IDs, email and IP addresses and tokens are taken out of everything that is sent, and of a span's attributes only a few, such as its route and status code, are sent. The explanation uses the project's LLM provider and AI credits, and is not offered while **Enable AI** is off. Anyone who can read the exception can ask for one.
 
@@ -142,13 +148,22 @@ Merge one that OneUptime AI calls **Likely the same bug**, in the same service, 
 
 ## Fix it with AI
 
-The **AI Assistance** page offers three tasks. Each runs as an AI task that opens a pull request in your code repository:
+The **Fix with AI** page leads with one task, started with **Fix with AI**. It runs as an AI task that opens a pull request in your code repository, and what the pull request does depends on the exception's [error class](#error-classes):
+
+| Error class | What the pull request does |
+| --- | --- |
+| `user-error` or `expected-denial` | Handles the error better, without changing what the code does: checks the input earlier with a clear message, keeps user data out of the message, and marks the error as handled. |
+| Any other, or not classified yet | Finds the root cause in your code and fixes it. |
+
+Three steps under it say how it works: it reads the stack trace and finds the code that threw it, changes that code in your repository on a branch of its own, and opens a pull request for you to review. Nothing changes until you merge it. Once it has run, its button reads **Fix again**, or **Try again** when the attempt failed or found no fix.
+
+**Other AI tasks**, folded under it, opens the other pull requests with **Start**:
 
 | Task | What the pull request does |
 | --- | --- |
-| **Fix this exception with AI** | Fixes the root cause. Start it with **Fix with AI**. |
-| **Generate Regression Test** | Adds a test that fails until the bug is fixed. |
-| **Improve Error Handling** | For expected errors: validates input earlier, keeps user data out of messages, and marks the error as handled. |
+| **Fix the code** | Fixes the root cause. It is listed when **Fix with AI** handles an expected error. |
+| **Handle the error better** | Handles an expected error better, as above. It is listed when **Fix with AI** fixes the code. |
+| **Write a regression test** | Adds a test that reproduces the exception and fails until the bug is fixed. It does not fix the bug. |
 
 AI needs three things first: an LLM provider, a connected repository (on GitHub, GitLab, Forgejo or Gitea, or any Git server), and an AI agent online to run the task. The page checks each one and links to what is missing. The tasks pause while the exception is resolved or archived. See [Code](/docs/ai/ai-agent). Starting a task takes permission to edit the repository it works in: someone who can only read the exception sees its tasks but cannot start one.
 
@@ -162,7 +177,7 @@ Every 15 minutes OneUptime looks through your exceptions for new ones, ones that
 | **Exception Spike** | An exception that happened 10 or more times in the last hour, at 5 or more times its hourly rate over the 24 hours before. | Fixes the exception, or handles it better. |
 | **Missing Stack Trace** | The exceptions a service recorded in the last day carry no stack trace, and together happened 20 or more times. | Makes the service record a stack trace with each exception. |
 
-A new or rising exception's pull request is the exception's own AI task, the one its **AI Assistance** page starts, and it waits for OneUptime AI to look into the finding. When it finds the code at fault (`code-fault`), the pull request fixes it, as **Fix this exception with AI** does. When it finds an expected error (`user-error` or `expected-denial`), the pull request handles the error better, as **Improve Error Handling** does. Any other verdict opens no pull request on its own. With **Archive exceptions that are expected** on, an expected denial is archived instead, and gets no pull request.
+A new or rising exception's pull request is the exception's own AI task, the one its **Fix with AI** page starts, and it waits for OneUptime AI to look into the finding. When it finds the code at fault (`code-fault`), the pull request fixes it, as **Fix the code** does. When it finds an expected error (`user-error` or `expected-denial`), the pull request handles the error better, as **Handle the error better** does. Any other verdict opens no pull request on its own. With **Archive exceptions that are expected** on, an expected denial is archived instead, and gets no pull request.
 
 OneUptime AI opens one on its own only for an exception raised in your own code: one whose stack trace has a frame of your code, not only frames of libraries or the runtime. A pull request someone closed without merging pauses the automatic ones for that exception. Anyone can still ask for any of them with **Fix with AI** on the finding.
 
@@ -188,7 +203,7 @@ Under **More fields** a rule picks the code repositories, the MCP servers and th
 
 - **Exceptions → AI → Insights** lists what OneUptime found, each finding with its evidence, the frames of your code in its stack trace included. **View Exception Group** opens the exception, and on a service's missing stack traces, **Open in Exceptions** opens its unresolved exceptions from the last day.
 - **Exceptions → AI → Logs** lists every investigation and pull request, newest first, with how each one stands and what each investigation found.
-- The pull request says why it was opened, with a link to its finding. A new or rising exception's also links the exception, and shows on the exception's **AI Assistance** page. In Code, its task names the exception it fixes, or the finding it came from.
+- The pull request says why it was opened, with a link to its finding. A new or rising exception's also links the exception, and shows on the exception's **Fix with AI** page. In Code, its task names the exception it fixes, or the finding it came from.
 
 ## Exceptions Insights
 

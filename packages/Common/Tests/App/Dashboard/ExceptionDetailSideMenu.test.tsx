@@ -62,7 +62,7 @@ const DETAIL_PAGES: ReadonlyArray<DetailPage> = [
     path: `${EXCEPTION_PATH}/logs`,
   },
   {
-    title: "AI Assistance",
+    title: "Fix with AI",
     section: "Resolve",
     path: `${EXCEPTION_PATH}/ai-assistance`,
   },
@@ -94,7 +94,7 @@ describe("exception detail side menu", () => {
     cleanup();
   });
 
-  test("with the project's AI switched off, AI Assistance is not in the menu (nothing on it could start)", async () => {
+  test("with the project's AI switched off, Fix with AI is not in the menu (nothing on it could start)", async () => {
     const spy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ProjectUtil, "getCurrentProject")
       .mockReturnValue(
@@ -105,14 +105,14 @@ describe("exception detail side menu", () => {
       await renderExceptionMenu();
 
       expect(sectionTitlesInOrder()).toEqual(["Investigate", "Manage"]);
-      expect(titlesInMenu()).not.toContain("AI Assistance");
+      expect(titlesInMenu()).not.toContain("Fix with AI");
       expect(hrefsInMenu()).not.toContain(`${EXCEPTION_PATH}/ai-assistance`);
     } finally {
       spy.mockRestore();
     }
   });
 
-  test("with AI on, AI Assistance is under Resolve", async () => {
+  test("with AI on, Fix with AI is under Resolve", async () => {
     const spy: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ProjectUtil, "getCurrentProject")
       .mockReturnValue(
@@ -124,7 +124,7 @@ describe("exception detail side menu", () => {
 
       expect(linksIn("Resolve")).toEqual([
         {
-          title: "AI Assistance",
+          title: "Fix with AI",
           href: `${EXCEPTION_PATH}/ai-assistance`,
         },
       ]);
@@ -155,7 +155,7 @@ describe("exception detail side menu", () => {
     ]);
     expect(linksIn("Resolve")).toEqual([
       {
-        title: "AI Assistance",
+        title: "Fix with AI",
         href: `${EXCEPTION_PATH}/ai-assistance`,
       },
     ]);
