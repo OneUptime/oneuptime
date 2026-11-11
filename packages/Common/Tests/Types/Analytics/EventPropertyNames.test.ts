@@ -39,6 +39,14 @@ const SOURCE_ROOTS: Array<string> = [
   path.join(REPOSITORY_ROOT, "ee/Server"),
 ];
 
+const TYPESCRIPT_FILE: RegExp = /\.(ts|tsx)$/;
+const DECLARATION_FILE: RegExp = /\.d\.ts$/;
+// A file that may send an event: it calls one of the sending methods.
+const SENDS_EVENTS: RegExp =
+  /\.(capture|captureForUser|captureRevenueEvent|send)\(/;
+// UiAnalytics, Analytics: what the browser sends events through.
+const ANALYTICS_RECEIVER: RegExp = /Analytics$/;
+
 const SKIPPED_DIRECTORIES: Set<string> = new Set<string>([
   "node_modules",
   "build",
@@ -125,7 +133,10 @@ const sourceFiles: (root: string) => Array<string> = (
         if (!SKIPPED_DIRECTORIES.has(entry.name)) {
           walk(path.join(directory, entry.name));
         }
-      } else if (/\.(ts|tsx)$/.test(entry.name) && !/\.d\.ts$/.test(entry.name)) {
+      } else if (
+        TYPESCRIPT_FILE.test(entry.name) &&
+        !DECLARATION_FILE.test(entry.name)
+      ) {
         files.push(path.join(directory, entry.name));
       }
     }
@@ -156,7 +167,7 @@ const scanSource: (file: string, text: string) => Array<CaptureCall> = (
   file: string,
   text: string,
 ): Array<CaptureCall> => {
-  if (!/\.(capture|captureForUser|captureRevenueEvent|send)\(/.test(text)) {
+  if (!SENDS_EVENTS.test(text)) {
     return [];
   }
 
@@ -236,7 +247,10 @@ const scanSource: (file: string, text: string) => Array<CaptureCall> = (
     seen: Set<string>,
     unreadable: Array<string>,
   ): Array<string> => {
-    if (ts.isParenthesizedExpression(expression) || ts.isAsExpression(expression)) {
+    if (
+      ts.isParenthesizedExpression(expression) ||
+      ts.isAsExpression(expression)
+    ) {
       return keysOf(expression.expression, seen, unreadable);
     }
 
@@ -372,7 +386,7 @@ const scanSource: (file: string, text: string) => Array<CaptureCall> = (
                 : null;
         }
       } else if (
-        (/Analytics$/.test(receiver) || receiver === "ProductEvents") &&
+        (ANALYTICS_RECEIVER.test(receiver) || receiver === "ProductEvents") &&
         receiver !== "ProductAnalytics" &&
         BROWSER_CAPTURES.has(method) &&
         !(receiver === "ProductEvents" && method !== "send")
@@ -389,7 +403,8 @@ const scanSource: (file: string, text: string) => Array<CaptureCall> = (
         calls.push({
           file: path.relative(REPOSITORY_ROOT, file),
           line:
-            source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+            1,
           keys: keys,
           unreadable: unreadable,
         });

@@ -175,7 +175,10 @@ export class Service extends DatabaseService<Model> {
    * Costs a memo lookup once the milestone is known.
    */
   public reachInBackground(data: ReachMilestoneData): void {
-    if (!data.projectId || this.isKnownReached(data.projectId, data.milestone)) {
+    if (
+      !data.projectId ||
+      this.isKnownReached(data.projectId, data.milestone)
+    ) {
       return;
     }
 

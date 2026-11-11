@@ -104,7 +104,10 @@ export const MILESTONE_BACKFILL_SOURCES: ReadonlyArray<MilestoneBackfillSource> 
       sql: `SELECT "projectId", MIN("createdAt") AS "reachedAt" FROM "OnCallDutyPolicyExecutionLog" WHERE "projectId" = ANY($1::uuid[]) AND "onCallDutyPolicyId" IS NOT NULL AND "statusMessage" IS DISTINCT FROM $2 GROUP BY "projectId"`,
       parameters: [ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE],
     },
-    telemetryUsageSource(ActivationMilestone.FirstLogsReceived, ProductType.Logs),
+    telemetryUsageSource(
+      ActivationMilestone.FirstLogsReceived,
+      ProductType.Logs,
+    ),
     telemetryUsageSource(
       ActivationMilestone.FirstTracesReceived,
       ProductType.Traces,
@@ -137,7 +140,9 @@ type QueryFunction = (
 const readRows: (result: unknown) => Array<Record<string, unknown>> = (
   result: unknown,
 ): Array<Record<string, unknown>> => {
-  return Array.isArray(result) ? (result as Array<Record<string, unknown>>) : [];
+  return Array.isArray(result)
+    ? (result as Array<Record<string, unknown>>)
+    : [];
 };
 
 export default class ProjectMilestoneBackfill {

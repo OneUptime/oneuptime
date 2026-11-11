@@ -283,8 +283,7 @@ export const ACTIVATION_MILESTONE_OF_TELEMETRY_KIND: Readonly<
   [ActivationTelemetryKind.Metrics]: ActivationMilestone.FirstMetricsReceived,
   [ActivationTelemetryKind.Exceptions]:
     ActivationMilestone.FirstExceptionsReceived,
-  [ActivationTelemetryKind.Profiles]:
-    ActivationMilestone.FirstProfilesReceived,
+  [ActivationTelemetryKind.Profiles]: ActivationMilestone.FirstProfilesReceived,
 };
 
 /*

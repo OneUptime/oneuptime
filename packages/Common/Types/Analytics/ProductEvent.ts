@@ -161,7 +161,7 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
     name: ProductEventName.HowItWorksOpened,
     description:
-      'A product\'s "How it works" explanation was opened from beside the page\'s title.',
+      "A product's \"How it works\" explanation was opened from beside the page's title.",
     properties: [token("product")],
   },
   {
@@ -216,7 +216,8 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   },
   {
     name: ProductEventName.GuidedSetupFinished,
-    description: "A guided setup reached its end: the thing works and was tested.",
+    description:
+      "A guided setup reached its end: the thing works and was tested.",
     properties: [token("setup"), { name: "seconds_taken" }],
     reservedFor: "#6804",
   },

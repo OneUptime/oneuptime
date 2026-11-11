@@ -348,10 +348,7 @@ export class Service extends DatabaseService<Model> {
    * one still on its way (isNotificationDeliveredStatus). Any channel.
    */
   private noteDelivered(status: unknown, deliveries: Array<Model>): void {
-    if (
-      typeof status !== "string" ||
-      !isNotificationDeliveredStatus(status)
-    ) {
+    if (typeof status !== "string" || !isNotificationDeliveredStatus(status)) {
       return;
     }
 

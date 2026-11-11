@@ -50,7 +50,7 @@ describe("BackfillProjectMilestones", () => {
     expect(new BackfillProjectMilestones().name).toBe(MIGRATION_NAME);
   });
 
-  test("is registered once, before the slot AddAuditLogMcpClientColumns keeps last", () => {
+  test("is registered once, above the runbook migrations that keep their places before the last slot", () => {
     const registered: Array<string> = registeredMigrations();
 
     expect(
@@ -58,6 +58,9 @@ describe("BackfillProjectMilestones", () => {
         return name === MIGRATION_NAME;
       }),
     ).toHaveLength(1);
+    expect(registered.indexOf(MIGRATION_NAME)).toBeLessThan(
+      registered.indexOf("MoveRunbookApprovalsBeforeTheirSteps"),
+    );
     expect(registered[registered.length - 1]).toBe(
       "AddAuditLogMcpClientColumns",
     );
@@ -73,8 +76,11 @@ describe("BackfillProjectMilestones", () => {
       },
     };
 
-    const backfill: jest.SpiedFunction<typeof ProjectMilestoneBackfill.backfill> =
-      jest.spyOn(ProjectMilestoneBackfill, "backfill").mockResolvedValue(result);
+    const backfill: jest.SpiedFunction<
+      typeof ProjectMilestoneBackfill.backfill
+    > = jest
+      .spyOn(ProjectMilestoneBackfill, "backfill")
+      .mockResolvedValue(result);
     const info: Array<string> = [];
 
     jest.spyOn(logger, "info").mockImplementation(((message: unknown): void => {

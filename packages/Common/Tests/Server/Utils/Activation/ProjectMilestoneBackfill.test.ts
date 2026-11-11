@@ -38,43 +38,45 @@ const runWith: (data: {
   projects: Array<string>;
   batchSize: number;
   keptPerStatement?: number;
-}) => Promise<{ result: ProjectMilestoneBackfillResult; calls: Array<Call> }> =
-  async (data: {
-    projects: Array<string>;
-    batchSize: number;
-    keptPerStatement?: number;
-  }): Promise<{ result: ProjectMilestoneBackfillResult; calls: Array<Call> }> => {
-    const calls: Array<Call> = [];
+}) => Promise<{
+  result: ProjectMilestoneBackfillResult;
+  calls: Array<Call>;
+}> = async (data: {
+  projects: Array<string>;
+  batchSize: number;
+  keptPerStatement?: number;
+}): Promise<{ result: ProjectMilestoneBackfillResult; calls: Array<Call> }> => {
+  const calls: Array<Call> = [];
 
-    const result: ProjectMilestoneBackfillResult =
-      await ProjectMilestoneBackfill.backfill({
-        batchSize: data.batchSize,
-        query: async (
-          sql: string,
-          parameters: Array<unknown>,
-        ): Promise<unknown> => {
-          calls.push({ sql, parameters });
+  const result: ProjectMilestoneBackfillResult =
+    await ProjectMilestoneBackfill.backfill({
+      batchSize: data.batchSize,
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<unknown> => {
+        calls.push({ sql, parameters });
 
-          if (sql.startsWith(`SELECT "_id"::text AS "_id" FROM "Project"`)) {
-            const limit: number = parameters[0] as number;
-            const after: string | null = parameters[1] as string | null;
+        if (sql.startsWith(`SELECT "_id"::text AS "_id" FROM "Project"`)) {
+          const limit: number = parameters[0] as number;
+          const after: string | null = parameters[1] as string | null;
 
-            return data.projects
-              .filter((id: string): boolean => {
-                return after === null || id > after;
-              })
-              .slice(0, limit)
-              .map((id: string) => {
-                return { _id: id };
-              });
-          }
+          return data.projects
+            .filter((id: string): boolean => {
+              return after === null || id > after;
+            })
+            .slice(0, limit)
+            .map((id: string) => {
+              return { _id: id };
+            });
+        }
 
-          return new Array(data.keptPerStatement || 0).fill({ _id: "x" });
-        },
-      });
+        return new Array(data.keptPerStatement || 0).fill({ _id: "x" });
+      },
+    });
 
-    return { result, calls };
-  };
+  return { result, calls };
+};
 
 describe("ProjectMilestoneBackfill", () => {
   test("has a source for every milestone old data can show - all but the test page, which is new", () => {
@@ -110,7 +112,11 @@ describe("ProjectMilestoneBackfill", () => {
       return call.sql.startsWith(`SELECT "_id"::text AS "_id" FROM "Project"`);
     });
 
-    expect(pageReads.map((call: Call) => call.parameters)).toEqual([
+    expect(
+      pageReads.map((call: Call) => {
+        return call.parameters;
+      }),
+    ).toEqual([
       [2, null],
       [2, projects[1]],
       [2, projects[3]],

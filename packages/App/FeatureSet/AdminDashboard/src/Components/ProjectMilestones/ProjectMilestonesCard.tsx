@@ -115,9 +115,7 @@ const ProjectMilestonesCard: FunctionComponent<ComponentProps> = (
                       icon={row ? IconProp.CheckCircle : IconProp.Circle}
                       className={`h-4 w-4 flex-shrink-0 ${row ? "text-green-600" : "text-gray-300"}`}
                     />
-                    <span
-                      className={row ? "text-gray-900" : "text-gray-500"}
-                    >
+                    <span className={row ? "text-gray-900" : "text-gray-500"}>
                       {detail.title}
                     </span>
                   </span>

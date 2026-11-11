@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import fs from "fs";
 import path from "path";
 
@@ -35,8 +43,12 @@ import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import ObjectID from "../../../Types/ObjectID";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 
-const PROJECT_A: ObjectID = new ObjectID("aaaaaaaa-1111-4111-8111-111111111111");
-const PROJECT_B: ObjectID = new ObjectID("bbbbbbbb-2222-4222-8222-222222222222");
+const PROJECT_A: ObjectID = new ObjectID(
+  "aaaaaaaa-1111-4111-8111-111111111111",
+);
+const PROJECT_B: ObjectID = new ObjectID(
+  "bbbbbbbb-2222-4222-8222-222222222222",
+);
 
 const SERVER: string = path.join(__dirname, "../../../Server");
 
@@ -92,7 +104,9 @@ describe("where each activation milestone is set", () => {
       .mockImplementation((data: ReachMilestoneData): void => {
         reached.push(data);
       });
-    jest.spyOn(ProjectMilestoneService, "isKnownReached").mockReturnValue(false);
+    jest
+      .spyOn(ProjectMilestoneService, "isKnownReached")
+      .mockReturnValue(false);
     jest.spyOn(logger, "error").mockImplementation((() => {
       return undefined;
     }) as never);
@@ -238,12 +252,14 @@ describe("where each activation milestone is set", () => {
     };
 
     test("subscribers who confirm reach it for each of their projects, read as confirmed and subscribed", async () => {
-      const findBySpy: jest.SpiedFunction<
+      const findBySpy: SpyInstance<
         typeof StatusPageSubscriberService.findBy
-      > = jest.spyOn(StatusPageSubscriberService, "findBy").mockResolvedValue([
-        Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_A }),
-        Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_B }),
-      ]);
+      > = jest
+        .spyOn(StatusPageSubscriberService, "findBy")
+        .mockResolvedValue([
+          Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_A }),
+          Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_B }),
+        ]);
 
       await noteConfirmed([ObjectID.generate(), ObjectID.generate()]);
 
@@ -270,13 +286,17 @@ describe("where each activation milestone is set", () => {
         .spyOn(StatusPageSubscriberService, "findBy")
         .mockRejectedValue(new Error("database is down"));
 
-      await expect(noteConfirmed([ObjectID.generate()])).resolves.toBeUndefined();
+      await expect(
+        noteConfirmed([ObjectID.generate()]),
+      ).resolves.toBeUndefined();
       expect(reached).toEqual([]);
       expect(logger.error).toHaveBeenCalled();
     });
 
     test("only a confirmed, subscribed subscriber reaches it on create, and a confirmation reaches it on update", () => {
-      const source: string = readSource("Services/StatusPageSubscriberService.ts");
+      const source: string = readSource(
+        "Services/StatusPageSubscriberService.ts",
+      );
       const onCreate: string = methodBody(
         source,
         "protected override async onCreateSuccess(",
@@ -361,7 +381,9 @@ describe("where each activation milestone is set", () => {
     });
 
     test("both a page written as delivered and one updated to it are noted", () => {
-      const source: string = readSource("Services/UserOnCallLogTimelineService.ts");
+      const source: string = readSource(
+        "Services/UserOnCallLogTimelineService.ts",
+      );
       const onCreate: string = methodBody(
         source,
         "protected override async onCreateSuccess(",
@@ -414,7 +436,7 @@ describe("where each activation milestone is set", () => {
     });
 
     test("each project is counted once however many of its rows changed, and not at all once it has the milestone", async () => {
-      const countSpy: jest.SpiedFunction<
+      const countSpy: SpyInstance<
         typeof TeamMemberService.hasTwoAcceptedMembers
       > = jest
         .spyOn(TeamMemberService, "hasTwoAcceptedMembers")
@@ -425,9 +447,9 @@ describe("where each activation milestone is set", () => {
 
       expect(countSpy).toHaveBeenCalledTimes(1);
 
-      (
-        ProjectMilestoneService.isKnownReached as jest.Mock
-      ).mockReturnValue(true);
+      (ProjectMilestoneService.isKnownReached as jest.Mock).mockReturnValue(
+        true,
+      );
       countSpy.mockClear();
 
       noteJoined([PROJECT_A]);
@@ -482,7 +504,9 @@ describe("where each activation milestone is set", () => {
 
       expect(reach).toBeGreaterThan(0);
       expect(reach).toBeGreaterThan(
-        body.indexOf('throw new BadDataException("currentMonitorStatusId is required")'),
+        body.indexOf(
+          'throw new BadDataException("currentMonitorStatusId is required")',
+        ),
       );
     });
 
@@ -517,7 +541,9 @@ describe("where each activation milestone is set", () => {
 
       expect(reach).toBeGreaterThan(0);
       expect(reach).toBeGreaterThan(body.indexOf("?.isPolicyArchived"));
-      expect(reach).toBeGreaterThan(body.indexOf("isOnCallDirectPage(createdItem)"));
+      expect(reach).toBeGreaterThan(
+        body.indexOf("isOnCallDirectPage(createdItem)"),
+      );
     });
 
     test("first status page monitor: after the resource is created, under its monitor or group", () => {
@@ -537,9 +563,7 @@ describe("where each activation milestone is set", () => {
         "public async submit(",
       );
 
-      expect(body).toContain(
-        "TelemetryMilestones.collect(tableName, rows);",
-      );
+      expect(body).toContain("TelemetryMilestones.collect(tableName, rows);");
       expect(body).toMatch(
         /flushed\.then\(\s*\(\): void => \{\s*TelemetryMilestones\.markReached\(pendingMilestones\);\s*\},\s*\(\): void => \{/,
       );

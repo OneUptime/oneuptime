@@ -67,7 +67,9 @@ export const getChecklistProgressChange: (data: {
   return {
     completedSteps: completedSteps,
     isFinished:
-      isDoneIn(data.current) && !isDoneIn(previouslySeen) && completedSteps.length > 0,
+      isDoneIn(data.current) &&
+      !isDoneIn(previouslySeen) &&
+      completedSteps.length > 0,
     seen: seen,
   };
 };

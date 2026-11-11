@@ -213,9 +213,9 @@ describe("property names no event may carry", () => {
       expect(isForbiddenPropertyName(name)).toBe(false);
     }
 
-    expect(Object.keys(ALLOWED_PROPERTY_NAMES_WITH_FORBIDDEN_WORDS).sort()).toEqual(
-      ["has_password", "query", "utmContent", "utm_content"].sort(),
-    );
+    expect(
+      Object.keys(ALLOWED_PROPERTY_NAMES_WITH_FORBIDDEN_WORDS).sort(),
+    ).toEqual(["has_password", "query", "utmContent", "utm_content"].sort());
   });
 });
 
@@ -262,7 +262,8 @@ describe("toProductEventProperties", () => {
   });
 
   test("the words of a search leave only from Cloud, cut to their length", () => {
-    const longQuery: string = "how do I page the person on call by phone at night";
+    const longQuery: string =
+      "how do I page the person on call by phone at night";
 
     const onCloud: JSONObject = toProductEventProperties({
       name: ProductEventName.SearchFoundNothing,

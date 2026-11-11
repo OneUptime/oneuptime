@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 /*
  * The first telemetry of each kind (issue #6830): marked by the fan-in
@@ -115,12 +122,12 @@ describe("TelemetryMilestones", () => {
 
   describe("which tables are which kind", () => {
     test("logs, spans, metrics, exceptions and both profile tables each have their milestone", () => {
-      expect(TelemetryMilestones.getMilestoneOfTable(AnalyticsTableName.Log)).toBe(
-        ActivationMilestone.FirstLogsReceived,
-      );
-      expect(TelemetryMilestones.getMilestoneOfTable(AnalyticsTableName.Span)).toBe(
-        ActivationMilestone.FirstTracesReceived,
-      );
+      expect(
+        TelemetryMilestones.getMilestoneOfTable(AnalyticsTableName.Log),
+      ).toBe(ActivationMilestone.FirstLogsReceived);
+      expect(
+        TelemetryMilestones.getMilestoneOfTable(AnalyticsTableName.Span),
+      ).toBe(ActivationMilestone.FirstTracesReceived);
       expect(
         TelemetryMilestones.getMilestoneOfTable(AnalyticsTableName.Metric),
       ).toBe(ActivationMilestone.FirstMetricsReceived);
@@ -133,7 +140,9 @@ describe("TelemetryMilestones", () => {
         TelemetryMilestones.getMilestoneOfTable(AnalyticsTableName.Profile),
       ).toBe(ActivationMilestone.FirstProfilesReceived);
       expect(
-        TelemetryMilestones.getMilestoneOfTable(AnalyticsTableName.ProfileSample),
+        TelemetryMilestones.getMilestoneOfTable(
+          AnalyticsTableName.ProfileSample,
+        ),
       ).toBe(ActivationMilestone.FirstProfilesReceived);
       expect(Object.keys(TELEMETRY_KIND_OF_TABLE)).toHaveLength(6);
     });
@@ -201,7 +210,9 @@ describe("TelemetryMilestones", () => {
     });
 
     test("rows without a project, no rows, and rows that are not objects are no project", () => {
-      expect(TelemetryMilestones.collect(AnalyticsTableName.Log, [])).toBeNull();
+      expect(
+        TelemetryMilestones.collect(AnalyticsTableName.Log, []),
+      ).toBeNull();
       expect(
         TelemetryMilestones.collect(AnalyticsTableName.Log, [
           { body: "no project" },
@@ -248,8 +259,14 @@ describe("TelemetryMilestones", () => {
       await flush();
 
       expect(reached).toEqual([
-        { projectId: PROJECT_A, milestone: ActivationMilestone.FirstLogsReceived },
-        { projectId: PROJECT_B, milestone: ActivationMilestone.FirstLogsReceived },
+        {
+          projectId: PROJECT_A,
+          milestone: ActivationMilestone.FirstLogsReceived,
+        },
+        {
+          projectId: PROJECT_B,
+          milestone: ActivationMilestone.FirstLogsReceived,
+        },
       ]);
     });
 

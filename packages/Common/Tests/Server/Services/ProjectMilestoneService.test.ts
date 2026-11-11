@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { JSONObject } from "../../../Types/JSON";
 
 /*
@@ -15,7 +23,10 @@ import { JSONObject } from "../../../Types/JSON";
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
     __esModule: true,
-    ...(jest.requireActual("../../../Server/EnvironmentConfig") as object),
+    ...(jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
     IsBillingEnabled: true,
     IsEnterpriseEdition: false,
   };
@@ -48,7 +59,7 @@ let failNextInserts: number = 0;
 let foreignKeyMissing: boolean = false;
 let insertGate: Promise<void> | null = null;
 
-const queryMock: jest.Mock<
+const queryMock: Mock<
   (sql: string, parameters: Array<unknown>) => Promise<unknown>
 > = jest.fn(
   async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
@@ -107,8 +118,8 @@ const flush: () => Promise<void> = async (): Promise<void> => {
 };
 
 describe("ProjectMilestoneService", () => {
-  let captureSpy: jest.SpiedFunction<typeof ProductAnalytics.capture>;
-  let isConfiguredSpy: jest.SpiedFunction<typeof ProductAnalytics.isConfigured>;
+  let captureSpy: SpyInstance<typeof ProductAnalytics.capture>;
+  let isConfiguredSpy: SpyInstance<typeof ProductAnalytics.isConfigured>;
 
   beforeEach(() => {
     queryCalls = [];
@@ -158,7 +169,9 @@ describe("ProjectMilestoneService", () => {
       expect(insert.sql).toContain(
         `ON CONFLICT ("projectId", "milestone") DO NOTHING RETURNING "_id"`,
       );
-      expect(insert.sql).toContain(`"wasBackfilled", "version") VALUES ($1, $2, $3, false, 1)`);
+      expect(insert.sql).toContain(
+        `"wasBackfilled", "version") VALUES ($1, $2, $3, false, 1)`,
+      );
       expect(insert.parameters[0]).toBe(PROJECT_ID);
       expect(insert.parameters[1]).toBe("first_monitor_created");
       expect(insert.parameters[2]).toBeInstanceOf(Date);
@@ -417,7 +430,13 @@ describe("ProjectMilestoneService", () => {
       queryMock.mockImplementationOnce(
         async (sql: string, parameters: Array<unknown>): Promise<unknown> => {
           queryCalls.push({ sql, parameters });
-          return [{ createdAt: PROJECT_CREATED_AT, planName: null, createdOwnerEmail: null }];
+          return [
+            {
+              createdAt: PROJECT_CREATED_AT,
+              planName: null,
+              createdOwnerEmail: null,
+            },
+          ];
         },
       );
 
@@ -507,7 +526,7 @@ describe("ProjectMilestoneService", () => {
         milestone: ActivationMilestone.FirstMonitorCreated,
       });
 
-      const reachSpy: jest.SpiedFunction<typeof ProjectMilestoneService.reach> =
+      const reachSpy: SpyInstance<typeof ProjectMilestoneService.reach> =
         jest.spyOn(ProjectMilestoneService, "reach");
 
       ProjectMilestoneService.reachInBackground({

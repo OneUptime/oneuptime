@@ -100,7 +100,9 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
     return id;
   };
 
-  const milestonesOf: (projectId: string) => Promise<
+  const milestonesOf: (
+    projectId: string,
+  ) => Promise<
     Array<{ milestone: string; reachedAt: Date; wasBackfilled: boolean }>
   > = async (
     projectId: string,
@@ -116,8 +118,7 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
   beforeAll(async () => {
     database = new DataSource({
       type: "postgres",
-      host:
-        process.env["PROJECT_MILESTONE_TEST_DATABASE_HOST"] || "localhost",
+      host: process.env["PROJECT_MILESTONE_TEST_DATABASE_HOST"] || "localhost",
       port: Number(
         process.env["PROJECT_MILESTONE_TEST_DATABASE_PORT"] || "5400",
       ),
@@ -319,13 +320,18 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
     const first: string = ObjectID.generate().toString();
     const second: string = ObjectID.generate().toString();
 
-    const addMember: (userId: string, accepted: boolean) => Promise<void> =
-      async (userId: string, accepted: boolean): Promise<void> => {
-        await database.query(
-          `INSERT INTO "TeamMember" ("version", "projectId", "userId", "teamId", "hasAcceptedInvitation") VALUES (1, $1, $2, $3, $4)`,
-          [projectId, userId, ObjectID.generate().toString(), accepted],
-        );
-      };
+    const addMember: (
+      userId: string,
+      accepted: boolean,
+    ) => Promise<void> = async (
+      userId: string,
+      accepted: boolean,
+    ): Promise<void> => {
+      await database.query(
+        `INSERT INTO "TeamMember" ("version", "projectId", "userId", "teamId", "hasAcceptedInvitation") VALUES (1, $1, $2, $3, $4)`,
+        [projectId, userId, ObjectID.generate().toString(), accepted],
+      );
+    };
 
     await addMember(first, true);
     await addMember(first, true);
@@ -385,7 +391,13 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
       ] as Array<[string, number]>) {
         await database.query(
           `INSERT INTO "UserOnCallLogTimeline" ("version", "userId", "projectId", "userNotificationLogId", "onCallDutyPolicyExecutionLogId", "onCallDutyPolicyExecutionLogTimelineId", "userNotificationEventType", "statusMessage", "status", "createdAt") VALUES (1, $1, $2, $3, $3, $3, 'Incident Created', '', $4, $5)`,
-          [user, seeded, ObjectID.generate().toString(), statusText, at(minutes)],
+          [
+            user,
+            seeded,
+            ObjectID.generate().toString(),
+            statusText,
+            at(minutes),
+          ],
         );
       }
 
@@ -436,7 +448,13 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
       // Status page resources: one showing a monitor counts.
       await database.query(
         `INSERT INTO "StatusPageResource" ("version", "projectId", "statusPageId", "displayName", "order", "monitorId", "createdAt") VALUES (1, $1, $2, 'Text', 1, NULL, $3), (1, $1, $2, 'Website', 2, $4, $5)`,
-        [seeded, ObjectID.generate().toString(), at(69), ObjectID.generate().toString(), at(70)],
+        [
+          seeded,
+          ObjectID.generate().toString(),
+          at(69),
+          ObjectID.generate().toString(),
+          at(70),
+        ],
       );
 
       // Subscribers: an unconfirmed one does not count, a confirmed one does.
@@ -450,13 +468,27 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
 
       await database.query(
         `INSERT INTO "OnCallDutyPolicyExecutionLog" ("version", "projectId", "onCallDutyPolicyId", "status", "statusMessage", "userNotificationEventType", "createdAt") VALUES (1, $1, NULL, 'Executing', 'Paging', 'Incident Created', $3), (1, $1, $2, 'Error', $4, 'Incident Created', $5), (1, $1, $2, 'Executing', 'Running', 'Incident Created', $6)`,
-        [seeded, policy, at(85), ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE, at(86), at(90)],
+        [
+          seeded,
+          policy,
+          at(85),
+          ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE,
+          at(86),
+          at(90),
+        ],
       );
 
       // Telemetry as metered: logs, traces with exceptions in them.
       await database.query(
         `INSERT INTO "TelemetryUsageBilling" ("version", "projectId", "day", "productType", "dataIngestedInGB", "totalCostInUSD", "primaryEntityId", "exceptionDataIngestedInGB", "createdAt") VALUES (1, $1, '2026-10-01', $2, 1, 0, $4, 0, $5), (1, $1, '2026-10-01', $3, 1, 0, $4, 0.5, $6)`,
-        [seeded, ProductType.Logs, ProductType.Traces, ObjectID.generate().toString(), at(100), at(110)],
+        [
+          seeded,
+          ProductType.Logs,
+          ProductType.Traces,
+          ObjectID.generate().toString(),
+          at(100),
+          at(110),
+        ],
       );
 
       // A project whose first monitor was kept live since the upgrade.
@@ -508,10 +540,7 @@ describePostgres("activation milestones, on a migrated Postgres", () => {
             };
           })
           .sort(
-            (
-              a: { milestone: string },
-              b: { milestone: string },
-            ): number => {
+            (a: { milestone: string }, b: { milestone: string }): number => {
               return a.milestone.localeCompare(b.milestone);
             },
           ),

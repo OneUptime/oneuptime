@@ -59,6 +59,9 @@ const SOURCE_ROOTS: Array<string> = [
   path.join(REPOSITORY_ROOT, "ee/Server"),
 ];
 
+const TYPESCRIPT_FILE: RegExp = /\.(ts|tsx)$/;
+const DECLARATION_FILE: RegExp = /\.d\.ts$/;
+
 const SKIPPED_DIRECTORIES: Set<string> = new Set<string>([
   "node_modules",
   "build",
@@ -82,7 +85,10 @@ const sourceFiles: (root: string) => Array<string> = (
         if (!SKIPPED_DIRECTORIES.has(entry.name)) {
           walk(path.join(directory, entry.name));
         }
-      } else if (/\.(ts|tsx)$/.test(entry.name) && !/\.d\.ts$/.test(entry.name)) {
+      } else if (
+        TYPESCRIPT_FILE.test(entry.name) &&
+        !DECLARATION_FILE.test(entry.name)
+      ) {
         files.push(path.join(directory, entry.name));
       }
     }

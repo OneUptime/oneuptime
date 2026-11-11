@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * The Dashboard's behaviour events (issue #6830): ProductEvents.send, the
@@ -8,7 +16,9 @@ import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globa
  * words of a search only on Cloud - and never an error on the page.
  */
 
-const captureMock: jest.Mock<(name: string, data?: unknown) => void> = jest.fn();
+const captureMock: Mock<(name: string, data?: unknown) => void> = jest.fn<
+  (name: string, data?: unknown) => void
+>();
 
 jest.mock("../../../UI/Utils/Analytics", () => {
   return {
@@ -109,7 +119,8 @@ describe("ProductEvents", () => {
     });
 
     test("the words of a search go only from Cloud, cut short; the count goes everywhere", () => {
-      const words: string = "how do I page the person on call by phone at night";
+      const words: string =
+        "how do I page the person on call by phone at night";
 
       ProductEvents.send(ProductEventName.SearchFoundNothing, {
         source: "command_palette",
@@ -155,9 +166,9 @@ describe("ProductEvents", () => {
 
       jest.spyOn(ProjectUtil, "getCurrentProject").mockReturnValue(null);
 
-      expect(
-        "is_project_creator" in ProductEvents.getCommonProperties(),
-      ).toBe(false);
+      expect("is_project_creator" in ProductEvents.getCommonProperties()).toBe(
+        false,
+      );
     });
 
     test("no plan reads as empty, no project leaves the project out, and no language reads as English", () => {
@@ -307,7 +318,11 @@ describe("ProductEvents", () => {
           return call[1] as JSONObject;
         });
 
-      expect(steps.map((step: JSONObject) => [step["step"], step["step_number"]])).toEqual([
+      expect(
+        steps.map((step: JSONObject) => {
+          return [step["step"], step["step_number"]];
+        }),
+      ).toEqual([
         ["address", 1],
         ["who_to_tell", 2],
       ]);

@@ -46,9 +46,7 @@ describe("the Dashboard's behaviour events", () => {
       "Components/CommandPalette/DashboardCommandPalette.tsx",
     );
 
-    expect(source).toContain(
-      "onSearchFoundNothing={recordSearchFoundNothing}",
-    );
+    expect(source).toContain("onSearchFoundNothing={recordSearchFoundNothing}");
     expect(source).toMatch(
       /ProductEvents\.send\(ProductEventName\.SearchFoundNothing, \{\s*source: "command_palette",\s*query_length: searchedQuery\.length,\s*query: searchedQuery,\s*\}\);/,
     );
@@ -121,7 +119,9 @@ describe("the Dashboard's behaviour events", () => {
     );
 
     expect(noted).toBeGreaterThan(emptyReturn);
-    expect(noted).toBeLessThan(source.indexOf("setTaskCompletion(completion);"));
+    expect(noted).toBeLessThan(
+      source.indexOf("setTaskCompletion(completion);"),
+    );
     expect(source).toMatch(
       /ChecklistEvents\.noteProgress\(\{\s*projectId: props\.projectId\.toString\(\),\s*current: completion,\s*stepKeys: gettingStartedTasks\.map\(/,
     );

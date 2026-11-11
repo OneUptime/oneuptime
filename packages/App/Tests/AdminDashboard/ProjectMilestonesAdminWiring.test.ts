@@ -39,9 +39,13 @@ const LOCALES_DIR: string = nodePath.join(ADMIN_SRC, "Locales");
 
 describe("project milestones in the Admin Dashboard", () => {
   test("the milestones are read through AdminModelAPI, a page of projects in one request", () => {
-    const source: string = read("Components/ProjectMilestones/ProjectMilestones.ts");
+    const source: string = read(
+      "Components/ProjectMilestones/ProjectMilestones.ts",
+    );
 
-    expect(source).toContain('import AdminModelAPI from "../../Utils/ModelAPI";');
+    expect(source).toContain(
+      'import AdminModelAPI from "../../Utils/ModelAPI";',
+    );
     expect(source).not.toMatch(/from "Common\/UI\/Utils\/ModelAPI\/ModelAPI"/);
     expect(source).toMatch(
       /AdminModelAPI\.getList<ProjectMilestone>\(\{\s*modelType: ProjectMilestone,\s*query: \{ projectId: new Includes\(projectIds\) \},/,

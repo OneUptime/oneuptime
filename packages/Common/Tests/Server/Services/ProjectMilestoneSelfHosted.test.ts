@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * A self-hosted server keeps its activation milestones to itself (issue
@@ -13,14 +21,17 @@ import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globa
 jest.mock("../../../Server/EnvironmentConfig", () => {
   return {
     __esModule: true,
-    ...(jest.requireActual("../../../Server/EnvironmentConfig") as object),
+    ...(jest.requireActual("../../../Server/EnvironmentConfig") as Record<
+      string,
+      unknown
+    >),
     AnalyticsKey: "",
     AnalyticsHost: "",
   };
 });
 
-const postMock: jest.Mock<(...args: Array<unknown>) => Promise<unknown>> =
-  jest.fn(async (): Promise<unknown> => {
+const postMock: Mock<(...args: Array<unknown>) => Promise<unknown>> = jest.fn(
+  async (..._args: Array<unknown>): Promise<unknown> => {
     return undefined;
   });
 

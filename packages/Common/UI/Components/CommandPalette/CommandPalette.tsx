@@ -471,9 +471,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
 
   const onSearchFoundNothingRef: React.MutableRefObject<
     ((query: string) => void) | undefined
-  > = useRef<((query: string) => void) | undefined>(
-    props.onSearchFoundNothing,
-  );
+  > = useRef<((query: string) => void) | undefined>(props.onSearchFoundNothing);
 
   useEffect(() => {
     onSearchFoundNothingRef.current = props.onSearchFoundNothing;
