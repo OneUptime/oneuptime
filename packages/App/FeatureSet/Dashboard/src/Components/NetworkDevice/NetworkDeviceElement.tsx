@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 
 /*
  * A network device as a link to its page - the chip the Incident and Alert
@@ -36,14 +36,10 @@ const NetworkDeviceElement: FunctionComponent<ComponentProps> = (
         )}
         onNavigateComplete={props.onNavigateComplete}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.Signal} className="w-5 h-5 me-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.networkDevice.name}
-        </span>
+        <RecordLinkName
+          name={props.networkDevice.name}
+          icon={props.showIcon ? IconProp.Signal : undefined}
+        />
       </AppLink>
     );
   }

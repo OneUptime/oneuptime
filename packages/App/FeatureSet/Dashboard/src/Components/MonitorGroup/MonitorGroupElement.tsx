@@ -3,8 +3,8 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 import MonitorGroup from "Common/Models/DatabaseModels/MonitorGroup";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -29,14 +29,10 @@ const MonitorGroupElement: FunctionComponent<ComponentProps> = (
           },
         )}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.Squares} className="w-5 h-5 mr-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.monitorGroup.name}
-        </span>
+        <RecordLinkName
+          name={props.monitorGroup.name}
+          icon={props.showIcon ? IconProp.Squares : undefined}
+        />
       </AppLink>
     );
   }

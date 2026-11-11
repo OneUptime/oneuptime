@@ -561,6 +561,9 @@ describe("how a column's way is picked out", () => {
     expect(sets.causeNodeIds.size).toBe(0);
     expect(sets.consequenceNodeIds.size).toBe(0);
     expect(sets.dataPipelineIds.size).toBe(0);
+    // No arrow on it says Cause.
+    expect(sets.causeDataPipelineIds.size).toBe(0);
+    expect(sets.causeEdgeIds.size).toBe(0);
   });
 
   test("a table off it is faint and named nothing; one on it is neither", () => {
