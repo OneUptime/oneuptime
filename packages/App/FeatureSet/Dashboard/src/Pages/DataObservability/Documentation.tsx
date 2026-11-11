@@ -325,7 +325,7 @@ They read these metrics, each tagged with \`oneuptime.data.pipeline.id\` and \`o
 - \`oneuptime.data.pipeline.run_duration_ratio\`: the run's time over the typical run's (counted as at least a minute), as each run ends and every five minutes while it runs.
 - \`oneuptime.data.pipeline.overdue_seconds\`: how long past its schedule the next run is, every five minutes; 0 while on time.
 
-A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, and how each is now. Pick more steps to see what those tables are built from and what is built from them. The same lineage is at \`POST /api/data-observability/pipelines/lineage\`, for your own tools.
+A pipeline's page draws its **Lineage**, the first place to look when a run fails or is late: the tables it reads on the left, the tables it writes on the right, and how each is now. Pick more steps to see what those tables are built from and what is built from them; a count of tables not drawn, on the pipeline's card or a table's, draws more of them in place. The same lineage is at \`POST /api/data-observability/pipelines/lineage\`, for your own tools.
 
 
 
@@ -372,7 +372,7 @@ Lineage is read once an hour, back to the last read, and a week back at a databa
 
 Each edge on a table's **Lineage** tab says where it was seen: a pipeline's run, the query history (with a login whose queries moved the data), or a view's definition. Lineage from every source counts for **One issue per cause**.
 
-At the top of a table's **Lineage** tab, a diagram draws its lineage a few steps each way (three, or pick 1, 2 or 5): what it is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it. The same lineage is at \`POST /api/data-observability/tables/lineage\`, for your own tools.
+At the top of a table's **Lineage** tab, a diagram draws its lineage a few steps each way (three, or pick 1, 2 or 5): what it is built from on the left, the tables and dashboards built from it on the right, and the pipelines that load data from outside where it comes in. Each card says how it is now - late, an open alert, a failed run - and an arrow turns red when its pipeline's latest run failed, so a late table can be followed up to the run that broke it. Open any table to center the diagram on it. A card draws at most ten tables each way and counts the rest, such as **+14**: select the count to draw the next of them where they are, and **Reset diagram** to go back. Where the sources name columns, pick one of the table's columns in **Follow a column** to highlight where it comes from and where it goes, even where it is renamed on the way. The same lineage is at \`POST /api/data-observability/tables/lineage\`, for your own tools: send \`"withColumns": true\` for each arrow's columns, and ask \`POST /api/data-observability/lineage/expand\` for a card's next tables.
 
 ## dbt
 

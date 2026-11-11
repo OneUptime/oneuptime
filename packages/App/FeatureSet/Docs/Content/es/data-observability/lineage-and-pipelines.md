@@ -17,7 +17,11 @@ La pestaña **Linaje** de una tabla muestra las tablas a partir de las que se co
 
 En la parte superior de la pestaña, un diagrama dibuja ese linaje unos pasos en cada dirección (tres, o elige 1, 2 o 5): a la izquierda, aquello a partir de lo que se construye la tabla; a la derecha, las tablas y los paneles construidos a partir de ella; y los pipelines que cargan datos desde fuera, donde estos entran. Cada tarjeta dice cómo está ahora - retrasada, una alerta abierta, una ejecución fallida - y una flecha se vuelve roja cuando la última ejecución de su pipeline falló, así que una tabla retrasada puede seguirse hasta la ejecución que la detuvo. Abre cualquier tabla para centrar el diagrama en ella.
 
+Una tarjeta dibuja como máximo diez tablas en cada dirección y cuenta el resto, por ejemplo **+14**. Selecciona el número para dibujar hasta diez más donde están, primero las que tienen problemas, con cada flecha entre ellas y lo que ya está dibujado. **Restablecer diagrama** vuelve al diagrama tal como se dibujó al principio. Cuando un lado tiene tantas tablas como caben en un diagrama, abre una tabla para centrar el diagrama en ella.
+
 Cuando la fuente nombra columnas, la pestaña **Columnas** de una tabla indica de dónde viene cada columna y qué alimenta: el historial de acceso de Snowflake (edición Enterprise, que necesita `IMPORTED PRIVILEGES` sobre la base de datos `SNOWFLAKE`) y la faceta `columnLineage` de OpenLineage.
+
+En la pestaña **Linaje**, elige una columna de la tabla en **Seguir una columna** para resaltar de dónde viene y adónde va: hacia arriba en el diagrama, hasta las columnas a partir de las que se construye; hacia abajo, hasta las columnas que se construyen a partir de ella, cada una nombrada en su tabla, incluso donde se renombró por el camino. Una flecha cuyas fuentes no nombran columnas puede llevarla más lejos de lo resaltado, y el diagrama lo indica.
 
 ## OpenLineage
 
@@ -117,7 +121,7 @@ Cada job, proyecto de dbt y sincronización aparece en **Canalizaciones**, con s
 - **Pipeline Run Unusually Long**: una ejecución ha tardado el doble de lo habitual o más, comprobado cada cinco minutos mientras se ejecuta, de modo que una ejecución que se cuelga se detecta antes de que termine.
 - **Pipeline Is Late**: no ha empezado ninguna ejecución en más tiempo del que permite su programación.
 
-La página de un pipeline dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o se retrasa: a la izquierda, las tablas que lee; a la derecha, las tablas que escribe; en medio, el pipeline; y cada tarjeta dice cómo está ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas, y abre cualquier tabla para ver su propia pestaña **Linaje**.
+La página de un pipeline dibuja su **Linaje**, el primer sitio donde mirar cuando una ejecución falla o se retrasa: a la izquierda, las tablas que lee; a la derecha, las tablas que escribe; en medio, el pipeline; y cada tarjeta dice cómo está ahora. Elige más pasos para ver a partir de qué se construyen esas tablas y qué se construye a partir de ellas, y abre cualquier tabla para ver su propia pestaña **Linaje**. Un número de tablas sin dibujar, en la tarjeta del pipeline o en la de una tabla, dibuja más en su sitio aquí también.
 
 ## Una incidencia por causa
 

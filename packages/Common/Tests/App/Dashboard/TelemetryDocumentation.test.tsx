@@ -701,4 +701,69 @@ describe("TelemetryDocumentation", () => {
       ).not.toBeInTheDocument();
     });
   });
+
+  /*
+   * A step's title beside its number (the UI review of #6658 part 3): the
+   * title was one 36px line (leading-9), the number circle's height, so a
+   * title that wraps - "Ihre Ingestion-Zugangsdaten abrufen" in a phone's
+   * column - put its second line 36px under the first, a gap that read as
+   * two headings. One line is still as tall as the number; further lines
+   * come at the text's own line height. SetupGuideSteps does the same.
+   */
+  describe("a step's title beside its number", () => {
+    const SPACING_STEP: RegExp = /^\d+$/;
+
+    // Tailwind's spacing scale: 1 unit is 4px; "h-9" -> 36.
+    const pixelsOf: (classes: Array<string>, prefix: string) => number = (
+      classes: Array<string>,
+      prefix: string,
+    ): number => {
+      const found: string | undefined = classes.find(
+        (name: string): boolean => {
+          return (
+            name.startsWith(prefix) &&
+            SPACING_STEP.test(name.slice(prefix.length))
+          );
+        },
+      );
+
+      expect({ prefix, found: Boolean(found) }).toEqual({
+        prefix,
+        found: true,
+      });
+
+      return Number(found!.substring(prefix.length)) * 4;
+    };
+
+    test.each(["logs", "traces", "profiles"] as Array<TelemetryType>)(
+      "%s: one line is as tall as the number; a wrapped line is not 36px down",
+      (telemetryType: TelemetryType) => {
+        renderGuide(telemetryType);
+
+        const titles: Array<HTMLElement> = screen.getAllByRole("heading", {
+          level: 4,
+        });
+
+        expect(titles.length).toBeGreaterThan(1);
+
+        for (const title of titles) {
+          const classes: Array<string> = (title.getAttribute("class") || "")
+            .split(" ")
+            .filter(Boolean);
+          // The step's circle, in the column beside the title's.
+          const number: HTMLElement = title.parentElement!
+            .previousElementSibling!.firstElementChild as HTMLElement;
+          const numberClasses: Array<string> = (
+            number.getAttribute("class") || ""
+          ).split(" ");
+
+          expect(number.textContent).toMatch(/^\d+$/);
+          expect(
+            pixelsOf(classes, "py-") * 2 + pixelsOf(classes, "leading-"),
+          ).toBe(pixelsOf(numberClasses, "h-"));
+          expect(classes).not.toContain("leading-9");
+        }
+      },
+    );
+  });
 });

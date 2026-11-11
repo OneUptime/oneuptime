@@ -13,6 +13,7 @@ import React, {
 import Route from "Common/Types/API/Route";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getTranslatedLineDirection } from "Common/UI/Utils/LineDirection";
 import {
   PluralTemplate,
   translatableTerm,
@@ -760,7 +761,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       const route: Route | null = links.traceView(traceId);
 
       if (route) {
-        byId.set(row.signal.id, { route: route, label: "trace" });
+        byId.set(row.signal.id, {
+          route: route,
+          label: translationKey("trace"),
+        });
       }
     }
 
@@ -1463,6 +1467,18 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       return null;
     }
 
+    /*
+     * The detail in the reader's language. A line that is still English
+     * on a page read from the right (the server's own failure text) reads
+     * from the left, so its full stop is not drawn first.
+     */
+    const emptyDetail: string = emptyCopy.isDetailAsWritten
+      ? emptyCopy.detail
+      : translator.translateTemplate(
+          emptyCopy.detail,
+          emptyCopy.detailValues || {},
+        );
+
     return (
       <div
         className="px-3 py-4 text-xs"
@@ -1470,9 +1486,15 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         data-tab={activeTab}
       >
         <div className="text-sm font-medium text-gray-800">
-          {emptyCopy.title}
+          {translator.translateText(emptyCopy.title) || emptyCopy.title}
         </div>
-        <div className="mt-1 text-gray-500">{emptyCopy.detail}</div>
+        <div
+          className="mt-1 text-gray-500"
+          data-testid="rail-empty-detail"
+          dir={getTranslatedLineDirection(emptyDetail, translator.language)}
+        >
+          {emptyDetail}
+        </div>
         {emptyCopy.snippet && (
           <pre className="mt-2 overflow-x-auto rounded-lg bg-gray-50 p-2 font-mono text-[10px] leading-4 text-gray-700 ring-1 ring-inset ring-gray-100">
             {emptyCopy.snippet}
@@ -1593,9 +1615,11 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           }
           counterpartNote={
             counterpartId
-              ? row.signal.kind === "client-error"
-                ? "also reported server-side"
-                : "also seen in the browser"
+              ? translator.translateText(
+                  row.signal.kind === "client-error"
+                    ? "also reported server-side"
+                    : "also seen in the browser",
+                )
               : null
           }
           link={rowLinks.get(row.signal.id) ?? null}

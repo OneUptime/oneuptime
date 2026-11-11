@@ -9,6 +9,7 @@ import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import UserModel from "Common/Models/DatabaseModels/User";
 import useAsyncEffect from "use-async-effect";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
   const [showConfirmModal, setShowConfirmModal] =
@@ -101,9 +102,12 @@ const UseTimezoneInitElement: FunctionComponent = (): ReactElement => {
         description={
           <div>
             <p>
-              We have detected that your timezone is different from the timezone
-              you have saved in your profile. Would you like to update your
-              timezone to <strong>{timezoneToSave?.toString()}</strong>?
+              <TranslatedSentence
+                template="We have detected that your timezone is different from the timezone you have saved in your profile. Would you like to update your timezone to {{timezone}}?"
+                slots={{
+                  timezone: <strong>{timezoneToSave?.toString()}</strong>,
+                }}
+              />
             </p>
           </div>
         }

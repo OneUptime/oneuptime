@@ -738,7 +738,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
           </div>
           <div className={MESSAGE_BYLINE_CLASS_NAME}>
             <span className="text-sm font-semibold text-gray-900">
-              OneUptime
+              {translator.translateText("OneUptime")}
             </span>
             {/* What kind of task it is, the header already says. */}
             <CodeTimeAgo
@@ -804,7 +804,7 @@ const CodeTaskTurn: FunctionComponent<ComponentProps> = (
         </div>
         <div className={MESSAGE_BYLINE_CLASS_NAME}>
           <span className="text-sm font-semibold text-gray-900">
-            OneUptime AI
+            {translator.translateText("OneUptime AI")}
           </span>
           {/* Done is what a turn usually ends as: its reply says so. */}
           {turn.state === CodeTaskState.Done ? (

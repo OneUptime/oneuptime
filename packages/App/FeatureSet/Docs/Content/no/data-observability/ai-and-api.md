@@ -34,10 +34,11 @@ Begge fungerer med en skrivebeskyttet innlogging, og svarer som personen eller A
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Synkroniseringswebhookene fra Fivetran | Inntaksnøkkelen, som signeringshemmeligheten til Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Synkroniseringswebhookene fra Airbyte | Inntaksnøkkelen i URL-en |
 | `POST /api/data-observability/tables/freshness` | Aktualiteten til en tabell, slik MCP-verktøyet svarer, med `{ "table": "public.orders" }` | En API-nøkkel |
-| `POST /api/data-observability/tables/lineage` | Opphavet til en tabell noen trinn i hver retning, med hvordan hver tabell står nå, slik fanen **Opphav** tegner det, med `{ "dataAssetId": "<table ID>", "depth": 3 }` | En API-nøkkel |
+| `POST /api/data-observability/tables/lineage` | Opphavet til en tabell noen trinn i hver retning, med hvordan hver tabell står nå, slik fanen **Opphav** tegner det, med `{ "dataAssetId": "<table ID>", "depth": 3 }`, og med `"withColumns": true` kolonnene hver pil bærer | En API-nøkkel |
 | `POST /api/data-observability/tables/lineage/answer` | Opphavet til en tabell fortalt med ord, tabellene med et problem først, slik MCP-verktøyet svarer, med `{ "table": "public.orders", "depth": 3 }` | En API-nøkkel |
 | `POST /api/data-observability/pipelines/lineage` | Tabellene en pipeline leser og skriver, med hvordan hver tabell står nå, slik siden dens tegner dem, med `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | En API-nøkkel |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | Opphavet til et datavarsel, slik siden dets tegner det, med veien til varselet som forårsaket det, og til varslene det forårsaket | En API-nøkkel |
+| `POST /api/data-observability/lineage/expand` | De neste tabellene et kort i et opphavsdiagram ikke tegner, slik et valg av tallet tegner dem: kortet som `nodeId` med sin `side`, og det som er tegnet som `focusNodeId`, `tables` og `dataDashboardIds` | En API-nøkkel |
 | `POST /api/data-observability/checks/apply` | Få prosjektets sjekker til å samsvare med en fil, slik `oneuptime data-checks apply` gjør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøkkel |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | «data as of»-merket til et dataprodukt | Merkets eget token |
 

@@ -2,7 +2,12 @@ import { describe, expect, jest, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import React, { ReactElement } from "react";
-import { DataAlertLineageAnswer } from "../../../Types/DataObservability/DataTableLineage";
+import {
+  DataAlertLineageAnswer,
+  DataLineageNodeKind,
+  DataLineageSide,
+  DataTableLineageNode,
+} from "../../../Types/DataObservability/DataTableLineage";
 import { PluralTemplate } from "../../../Types/Translator";
 import {
   createTranslator,
@@ -13,6 +18,7 @@ import {
   getAlertLineageSentences,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/AlertLineageDiagram";
 import { LINEAGE_DEPTH_OPTIONS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageDiagram";
+import { getLineageDrawLabel } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/LineageGraph";
 import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 
 /*
@@ -116,6 +122,13 @@ const TEXTS: ReadonlyArray<string> = [
   "Where this table's data comes from and where it goes, a few steps each way, with how each table and pipeline is now. Open a table to center the diagram on it.",
   "The tables this pipeline reads and the tables it writes, with how each is now. Pick more steps to see what they are built from and what is built from them.",
   "Where this alert's data comes from and where it goes, with how each table and pipeline is now.",
+  // Drawing more where it is (#6667), and following a column (#6665).
+  "Reset diagram",
+  "Could not draw more of this lineage.",
+  "Follow a column",
+  "Column to follow",
+  "{{column}} is highlighted where it comes from and where it goes.",
+  "Some arrows on its way do not say which columns they carry, so it may go further than is highlighted.",
 ];
 
 // Each count, by its general form: the key whose "_one" key is the one form.
@@ -136,6 +149,15 @@ const COUNTS: ReadonlyArray<string> = [
   "The ways down to the {{count}} alerts this one caused are highlighted.",
   "The ways down to {{drawn}} of the {{count}} alerts this one caused are highlighted. The rest are further down than the diagram reaches.",
   "The {{count}} alerts this one caused are further down than the diagram reaches.",
+  // What pressing a card's count draws: all of them, or the next of them.
+  "Draw {{count}} more tables upstream",
+  "Draw {{count}} more tables downstream",
+  "Draw {{count}} more tables this pipeline reads",
+  "Draw {{count}} more tables this pipeline writes",
+  "Draw {{batch}} of the {{count}} more tables upstream",
+  "Draw {{batch}} of the {{count}} more tables downstream",
+  "Draw {{batch}} of the {{count}} more tables this pipeline reads",
+  "Draw {{batch}} of the {{count}} more tables this pipeline writes",
 ];
 
 const UPSTREAM_TABLES: PluralTemplate = {
@@ -493,4 +515,109 @@ describe("what lies each way, and the steps switch", () => {
     ]);
     expect(labels("fa")).toEqual(["۱ گام", "۲ گام", "۳ گام", "۵ گام"]);
   });
+});
+
+describe("what pressing a card's count draws, in words", () => {
+  const TABLE: DataTableLineageNode = {
+    id: "table:t",
+    kind: DataLineageNodeKind.Table,
+    side: DataLineageSide.Upstream,
+    depth: -1,
+    name: "raw.orders",
+  };
+  const PIPELINE: DataTableLineageNode = {
+    id: "pipeline:p",
+    kind: DataLineageNodeKind.Pipeline,
+    side: DataLineageSide.Focus,
+    depth: 0,
+    name: "load_orders",
+  };
+  const label: (
+    language: string,
+    node: DataTableLineageNode,
+    isUpstream: boolean,
+    count: number,
+  ) => string = (
+    language: string,
+    node: DataTableLineageNode,
+    isUpstream: boolean,
+    count: number,
+  ): string => {
+    return getLineageDrawLabel({
+      translator: translatorFor(language),
+      node,
+      isUpstream,
+      count,
+    });
+  };
+
+  test("German says one table, a few, and ten of more than a card draws at once", () => {
+    expect(label("de", TABLE, true, 1)).toBe(
+      "Eine weitere vorgelagerte Tabelle zeichnen",
+    );
+    expect(label("de", TABLE, false, 4)).toBe(
+      "4 weitere nachgelagerte Tabellen zeichnen",
+    );
+    expect(label("de", TABLE, true, 14)).toBe(
+      "10 der 14 weiteren vorgelagerten Tabellen zeichnen",
+    );
+    expect(label("de", PIPELINE, true, 3)).toBe(
+      "3 weitere Tabellen zeichnen, die diese Pipeline liest",
+    );
+    expect(label("de", PIPELINE, false, 30)).toBe(
+      "10 der 30 weiteren Tabellen zeichnen, die diese Pipeline schreibt",
+    );
+  });
+
+  test("Russian takes its one form for 21 of more than a card draws, and its other form for 22", () => {
+    expect(label("ru", TABLE, true, 21)).toBe(
+      "Показать 10 из 21 другой таблицы выше по потоку",
+    );
+    expect(label("ru", TABLE, true, 22)).toBe(
+      "Показать 10 из 22 других таблиц выше по потоку",
+    );
+    expect(label("ru", TABLE, false, 1)).toBe(
+      "Показать ещё одну таблицу ниже по потоку",
+    );
+    expect(label("ru", TABLE, false, 3)).toBe(
+      "Показать другие таблицы ниже по потоку: 3",
+    );
+  });
+
+  test("Arabic words two or more as a count, and Persian writes its own digits", () => {
+    expect(label("ar", TABLE, true, 2)).toBe(
+      "رسم جداول أخرى في المصدر (العدد: 2)",
+    );
+    expect(label("ar", TABLE, true, 1)).toBe("رسم جدول آخر في المصدر");
+
+    const persian: string = label("fa", TABLE, true, 14);
+
+    expect(persian).toContain("۱۰");
+    expect(persian).toContain("۱۴");
+    expect(persian).not.toMatch(/[0-9]/);
+  });
+
+  test("Japanese counts tables with its counter whatever the count", () => {
+    expect(label("ja", TABLE, false, 1)).toBe(
+      "下流のテーブルをさらに 1 個描画",
+    );
+    expect(label("ja", PIPELINE, true, 25)).toBe(
+      "このパイプラインが読み取るほかの 25 個のテーブルのうち 10 個を描画",
+    );
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "%s words the column a reader follows into its sentence, the column's name kept whole",
+    (language: string) => {
+      const sentence: string = translatorFor(language).translateTemplate(
+        "{{column}} is highlighted where it comes from and where it goes.",
+        { column: "customer_id" },
+      );
+
+      expect({ language, named: sentence.includes("customer_id") }).toEqual({
+        language,
+        named: true,
+      });
+    },
+  );
 });

@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -425,25 +426,19 @@ test.describe("an alert's Lineage card", () => {
     ).toBeVisible();
 
     // The drawing opens with the cause's card in view, and the alert's own.
-    const canvas: { x: number; width: number } | null = await card
-      .getByTestId("lineage-graph")
-      .boundingBox();
+    const [canvas, ...nodeBoxes] = await boxesInOneFrame([
+      card.getByTestId("lineage-graph"),
+      lineageNode(card, CAUSE_TABLE_CARD),
+      lineageNode(card, TABLE_CARD),
+    ]);
 
-    for (const nodeId of [CAUSE_TABLE_CARD, TABLE_CARD]) {
-      const box: { x: number; width: number } | null = await lineageNode(
-        card,
-        nodeId,
-      ).boundingBox();
-
-      expect(box!.x).toBeGreaterThanOrEqual(canvas!.x);
-      expect(box!.x + box!.width).toBeLessThanOrEqual(
-        canvas!.x + canvas!.width,
-      );
+    for (const box of nodeBoxes) {
+      expect(box.x).toBeGreaterThanOrEqual(canvas!.x);
+      expect(box.x + box.width).toBeLessThanOrEqual(canvas!.x + canvas!.width);
     }
 
     // Under the Data card, asked for once.
-    const dataBox: { y: number } | null = await dataCard(page).boundingBox();
-    const lineageBox: { y: number } | null = await card.boundingBox();
+    const [dataBox, lineageBox] = await boxesInOneFrame([dataCard(page), card]);
     expect(lineageBox!.y).toBeGreaterThan(dataBox!.y);
     expect(await lineageReads(page, ALERT_ID)).toBe(1);
 

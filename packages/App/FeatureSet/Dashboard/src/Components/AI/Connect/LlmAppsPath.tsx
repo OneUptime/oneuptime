@@ -111,9 +111,11 @@ const LlmAppsPath: FunctionComponent = (): ReactElement => {
   return (
     <div className="space-y-5" data-testid="llm-connect-apps">
       <IngestionKeySelector
-        endpointLabel="OTLP endpoint"
+        endpointLabel={translationKey("OTLP endpoint")}
         endpointValue={otlpUrl}
-        endpointHint="Send the key in the x-oneuptime-token header."
+        endpointHint={translationKey(
+          "Send the key in the x-oneuptime-token header.",
+        )}
         keyTypeFilter={TelemetryIngestionKeyType.Server}
         newKeyName={translationKey("AI calls key")}
         onSelectedKeyChange={setSelectedKey}

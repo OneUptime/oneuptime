@@ -32,6 +32,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  */
 
 const getTableLineageMock: MockFunction = getJestMockFunction();
+const expandLineageMock: MockFunction = getJestMockFunction();
 
 // The props of the latest React Flow drawing: its cards and arrows.
 let mockFlowProps: ReactFlowProps | null = null;
@@ -47,6 +48,9 @@ jest.mock(
       default: {
         getTableLineage: (...args: Array<any>) => {
           return getTableLineageMock(...args);
+        },
+        expandLineage: (...args: Array<any>) => {
+          return expandLineageMock(...args);
         },
       },
     };
@@ -231,6 +235,7 @@ import {
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
+  MAX_DATA_LINEAGE_TABLES_PER_SIDE,
   getLineageEdgeId,
 } from "../../../Types/DataObservability/DataTableLineage";
 import TableLineageDiagram from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/TableLineageDiagram";
@@ -441,6 +446,7 @@ async function renderDrawn(
 
 beforeEach(() => {
   getTableLineageMock.mockReset();
+  expandLineageMock.mockReset();
   setViewportMock.mockReset();
   mockFlowProps = null;
 });
@@ -450,7 +456,7 @@ afterEach(() => {
 });
 
 describe("reading the lineage", () => {
-  test("asks for the table, three steps each way, and shows a loader until the answer comes", async () => {
+  test("asks for the table, three steps each way, with the columns its arrows carry, and shows a loader until the answer comes", async () => {
     const answer: ReturnType<typeof deferred<DataTableLineage>> =
       deferred<DataTableLineage>();
     getTableLineageMock.mockReturnValue(answer.promise);
@@ -465,6 +471,8 @@ describe("reading the lineage", () => {
     expect(getTableLineageMock.mock.calls[0]![1]).toBe(
       DEFAULT_DATA_LINEAGE_DEPTH,
     );
+    // A column of the table can be followed: its arrows come with their columns.
+    expect(getTableLineageMock.mock.calls[0]![2]).toBe(true);
 
     await act(async () => {
       answer.resolve(aLineage());
@@ -646,7 +654,7 @@ describe("the cards", () => {
     expect(dropped).not.toHaveTextContent("Fresh");
   });
 
-  test("tables a card does not draw are counted on its outer side, with what to do", async () => {
+  test("tables a card does not draw are counted on its outer side, a button that draws them", async () => {
     await renderDrawn();
 
     const hidden: HTMLElement = within(card(`table:${STAGING}`)).getByTestId(
@@ -654,28 +662,68 @@ describe("the cards", () => {
     );
 
     expect(hidden).toHaveTextContent("+5");
-    expect(hidden.getAttribute("title")).toBe(
-      "5 more tables upstream are not drawn. Open this table to center the diagram on it.",
-    );
+    expect(hidden.tagName).toBe("BUTTON");
+    expect(hidden).toHaveAttribute("title", "Draw 5 more tables upstream");
+    expect(hidden).toHaveAttribute("aria-label", "Draw 5 more tables upstream");
+    expect(hidden).toBeEnabled();
     expect(
       within(card(`table:${MART}`)).queryByTestId("lineage-hidden-right"),
     ).not.toBeInTheDocument();
   });
 
-  test("on the table itself, the tables not drawn are in the lists below", async () => {
+  test("on the table itself, a count draws the tables not drawn too", async () => {
     const lineage: DataTableLineage = aLineage();
     lineage.nodes[0] = table(TABLE, DataLineageSide.Focus, 0, {
       hiddenDownstreamCount: 1,
     });
     await renderDrawn(lineage);
 
-    expect(
-      within(card(`table:${TABLE}`))
-        .getByTestId("lineage-hidden-right")
-        .getAttribute("title"),
-    ).toBe(
+    const hidden: HTMLElement = within(card(`table:${TABLE}`)).getByTestId(
+      "lineage-hidden-right",
+    );
+
+    expect(hidden.tagName).toBe("BUTTON");
+    expect(hidden).toHaveAttribute("title", "Draw one more table downstream");
+  });
+
+  test("a side that holds its most tables draws no more: its counts say where to see the rest", async () => {
+    const lineage: DataTableLineage = aLineage();
+    lineage.nodes[0] = table(TABLE, DataLineageSide.Focus, 0, {
+      hiddenDownstreamCount: 1,
+    });
+
+    // The most tables a side holds, downstream: the mart and as many more.
+    for (
+      let index: number = 1;
+      index < MAX_DATA_LINEAGE_TABLES_PER_SIDE;
+      index++
+    ) {
+      lineage.nodes.push(
+        table(
+          `66666666-6666-4666-8666-${index.toString().padStart(12, "0")}`,
+          DataLineageSide.Downstream,
+          1,
+        ),
+      );
+    }
+
+    await renderDrawn(lineage);
+
+    const ownCount: HTMLElement = within(card(`table:${TABLE}`)).getByTestId(
+      "lineage-hidden-right",
+    );
+
+    expect(ownCount.tagName).toBe("SPAN");
+    expect(ownCount).toHaveAttribute(
+      "title",
       "1 more table built from this one is not drawn. Feeds below lists them all.",
     );
+
+    // Upstream still has room: its counts still draw.
+    expect(
+      within(card(`table:${STAGING}`)).getByTestId("lineage-hidden-left")
+        .tagName,
+    ).toBe("BUTTON");
   });
 
   test("a pipeline says how its latest run went and opens its page", async () => {
