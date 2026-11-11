@@ -47,6 +47,8 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplaySignalTypes";
 import {
   REPLAY_CLICK_EVENTS_CAPABILITY,
+  REPLAY_RAIL_CROSS_ORIGIN_STEP,
+  REPLAY_RAIL_MOBILE_NO_AUTO_LINK,
   REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT,
   getRailEmptyCopy,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SessionReplay/Rail/ReplayRailEmptyCopy";
@@ -1740,6 +1742,103 @@ describe("ReplayRail empty copy", () => {
       );
     });
   }
+
+  /*
+   * #6658 part 3 UI review: each detail is now one whole sentence (a
+   * translation keys it by its English, and orders its clauses its own
+   * way), so the shared steps are written out inside each one. They must
+   * still say the steps word for word, or the four details drift apart.
+   */
+  it("says the shared steps word for word inside each whole-sentence detail", () => {
+    const readySlot: Parameters<typeof getRailEmptyCopy>[0]["slot"] = {
+      status: "ready",
+      rowCount: 0,
+      isTruncated: false,
+      fetchedAtUnixMs: START_UNIX_MS,
+    };
+
+    for (const tabId of ["logs", "traces"] as Array<ReplayRailTabId>) {
+      const web: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+        tabId: tabId,
+        isFiltering: false,
+        hadRowsBeforeFilter: false,
+        slot: readySlot,
+        isExpiredFootage: false,
+        recorderCapabilities: null,
+        hasLoadedFootage: true,
+      });
+      const mobile: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+        tabId: tabId,
+        isFiltering: false,
+        hadRowsBeforeFilter: false,
+        slot: readySlot,
+        isExpiredFootage: false,
+        recorderCapabilities: null,
+        hasLoadedFootage: true,
+        isMobileReplay: true,
+      });
+
+      expect(web.detail).toContain(
+        `, ${REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT}, so`,
+      );
+      expect(web.detail.endsWith(` ${REPLAY_RAIL_CROSS_ORIGIN_STEP}`)).toBe(
+        true,
+      );
+      expect(web.detailValues).toBeUndefined();
+      expect(
+        mobile.detail.startsWith(`${REPLAY_RAIL_MOBILE_NO_AUTO_LINK} `),
+      ).toBe(true);
+      expect(mobile.detail).not.toContain(REPLAY_RAIL_CROSS_ORIGIN_STEP);
+    }
+  });
+
+  /*
+   * A locked tab's detail keeps the permission out of the sentence, as a
+   * value the translation places; the store's own failure line is drawn as
+   * the store worded it.
+   */
+  it("passes the missing permission as a value, and the store's failure line as written", () => {
+    const locked: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+      tabId: "logs",
+      isFiltering: false,
+      hadRowsBeforeFilter: false,
+      slot: {
+        status: "locked",
+        rowCount: null,
+        isTruncated: false,
+        fetchedAtUnixMs: null,
+        lockedPermission: "Read Logs",
+      } as Parameters<typeof getRailEmptyCopy>[0]["slot"],
+      isExpiredFootage: false,
+      recorderCapabilities: null,
+      hasLoadedFootage: true,
+    });
+
+    expect(locked.detail).toBe(
+      'Your role lacks "{{permission}}". Ask a project admin for that permission to see these rows.',
+    );
+    expect(locked.detailValues).toEqual({ permission: "Read Logs" });
+    expect(locked.isDetailAsWritten).toBeFalsy();
+
+    const failed: ReturnType<typeof getRailEmptyCopy> = getRailEmptyCopy({
+      tabId: "traces",
+      isFiltering: false,
+      hadRowsBeforeFilter: false,
+      slot: {
+        status: "error",
+        rowCount: null,
+        isTruncated: false,
+        fetchedAtUnixMs: null,
+        errorMessage: "Fehler beim Laden der Traces (HTTP 502).",
+      } as Parameters<typeof getRailEmptyCopy>[0]["slot"],
+      isExpiredFootage: false,
+      recorderCapabilities: null,
+      hasLoadedFootage: true,
+    });
+
+    expect(failed.detail).toBe("Fehler beim Laden der Traces (HTTP 502).");
+    expect(failed.isDetailAsWritten).toBe(true);
+  });
 
   /*
    * Review round 2: the React Native SDK patches no fetch or XHR and
