@@ -84,6 +84,9 @@ const Y_AXIS: YAxis = {
     min: "auto",
     max: 100,
     precision: YAxisPrecision.OneDecimal,
+    formatter: (value: number): string => {
+      return `${value}%`;
+    },
   },
 };
 
