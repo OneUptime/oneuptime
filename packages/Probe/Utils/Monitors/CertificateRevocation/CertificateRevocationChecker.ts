@@ -12,6 +12,7 @@ import Signature from "./Signature";
 import CertificateRevocationCheckMethod from "Common/Types/Monitor/SSLMonitor/CertificateRevocationCheckMethod";
 import CertificateRevocationStatus from "Common/Types/Monitor/SSLMonitor/CertificateRevocationStatus";
 import logger from "Common/Server/Utils/Logger";
+import OldestKeyMap from "Common/Utils/OldestKeyMap";
 import { X509Certificate } from "crypto";
 
 /*
@@ -95,12 +96,18 @@ const CRL_REDIRECTS_FOLLOWED: number = 3;
 /*
  * A small map whose entries expire, holding at most maxEntries: the oldest
  * entry goes when a new one would not fit.
+ *
+ * The entries are an OldestKeyMap, which answers the oldest key in constant
+ * time however many have been evicted (Common/Utils/OldestKeyMap): a probe
+ * that checks many certificates fills the OCSP cache and then evicts on
+ * every write, where map.keys().next() would walk past every slot evicted
+ * since V8 last compacted the map. Exported for its tests only.
  */
-class ExpiringCache<T> {
-  private readonly entries: Map<
+export class ExpiringCache<T> {
+  private readonly entries: OldestKeyMap<
     string,
     { value: T; expiresAt: number; size: number }
-  > = new Map<string, { value: T; expiresAt: number; size: number }>();
+  > = new OldestKeyMap<string, { value: T; expiresAt: number; size: number }>();
 
   private totalSize: number = 0;
 
@@ -142,7 +149,7 @@ class ExpiringCache<T> {
       (this.entries.size >= this.maxEntries ||
         this.totalSize + size > this.maxTotalSize)
     ) {
-      const oldestKey: string | undefined = this.entries.keys().next().value;
+      const oldestKey: string | undefined = this.entries.oldestKey();
 
       if (oldestKey === undefined) {
         break;
