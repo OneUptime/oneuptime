@@ -1328,20 +1328,21 @@ describe("the node boot suite's placeholders follow the loader's list", () => {
       baseOptions({ enterpriseDirectory: fixture("DefaultExport") }),
     );
 
-    const registered: Array<string> =
+    // The placeholders the loader registered: the names the fixture left out.
+    const placeholders: Array<string> =
       await EnterpriseLoader.registerWorkerJobs();
     const ownedNames: Array<string> = [
       ...loaderModule.ENTERPRISE_OWNED_JOB_NAMES,
     ];
     const registeredByFixture: Array<string> = ownedNames.filter(
       (name: string): boolean => {
-        return !registered.includes(name);
+        return !placeholders.includes(name);
       },
     );
 
     // Both halves are real: the fixture registers some names itself.
     expect(registeredByFixture.length).toBeGreaterThan(0);
-    expect(registered.length).toBeGreaterThan(0);
+    expect(placeholders.length).toBeGreaterThan(0);
 
     for (const name of ownedNames) {
       expect(JobDictionary.has(name)).toBe(true);
@@ -1358,7 +1359,7 @@ describe("the node boot suite's placeholders follow the loader's list", () => {
      */
     expect({ file: NODE_BOOT_TEST_NAME, placeholders: listed }).toEqual({
       file: NODE_BOOT_TEST_NAME,
-      placeholders: registered,
+      placeholders: placeholders,
     });
   });
 });

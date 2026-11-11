@@ -359,8 +359,10 @@ describe("Cloud Environment overview", () => {
    * environment that runs but never named an instance reads "Not reported"
    * on its Instances tile, not a 0 that reads as nothing running; one that
    * is not running reads its 0. The helper's answers are held in Common's
-   * Tests/App/Dashboard/CloudAppTelemetrySetup; these hold the page to
-   * asking it, with what it asks, and to drawing what it answers.
+   * Tests/App/Dashboard/CloudAppTelemetrySetup, and the page as drawn in
+   * Common's Tests/App/Dashboard/CloudEnvironmentOverviewNotes; these hold
+   * the page's code to asking it, with what it asks, and to drawing what it
+   * answers.
    */
   test("the Instances tile says Not reported in place of a count no instance gave", () => {
     expect(code).toContain("getCloudAppInstancesTileNote");
