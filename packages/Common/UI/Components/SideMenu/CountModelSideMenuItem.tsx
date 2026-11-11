@@ -1,23 +1,32 @@
-import API from "../../Utils/API/API";
 import Query from "../../../Types/BaseDatabase/Query";
 import ModelAPI, { RequestOptions } from "../../Utils/ModelAPI/ModelAPI";
+import ProjectUtil from "../../Utils/Project";
 import { BadgeType } from "../Badge/Badge";
 import SideMenuItem from "./SideMenuItem";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import IconProp from "../../../Types/Icon/IconProp";
 import Link from "../../../Types/Link";
+import ObjectID from "../../../Types/ObjectID";
 import React, {
   MutableRefObject,
   ReactElement,
+  useCallback,
   useEffect,
   useRef,
   useState,
-  useCallback,
 } from "react";
 import GlobalEvents from "../../Utils/GlobalEvents";
+import {
+  REFRESH_SIDEBAR_COUNT_EVENT,
+  refreshSideMenuCounts,
+} from "./SideMenuCountRefresh";
+import useLiveCount from "./UseLiveCount";
 
-export const REFRESH_SIDEBAR_COUNT_EVENT: string = "REFRESH_SIDEBAR_COUNTS";
+/*
+ * Where every change that can move a count asks for it (SideMenuCountRefresh).
+ * Exported from here too: the pages that ask import them from this file.
+ */
+export { REFRESH_SIDEBAR_COUNT_EVENT, refreshSideMenuCounts };
 
 export interface ComponentProps<TBaseModel extends BaseModel> {
   link: Link;
@@ -31,114 +40,175 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   onCountFetchInit?: (() => void) | undefined;
 }
 
+/*
+ * A SIDE-MENU ENTRY WITH THE COUNT OF WHAT ITS LIST HOLDS.
+ *
+ * The count is read when the entry is drawn, and again:
+ *
+ *   - when the question changes by value (countQuery, requestOptions) -
+ *     not on every render: side menus rebuild those as fresh object literals
+ *     on every parent render, which happens on every in-section navigation;
+ *   - when the page asks every count to count again, as each change made
+ *     from a list does (SideMenuCountRefresh);
+ *   - when the server announces a change to a record of its kind, for a kind
+ *     it announces (UseLiveCount).
+ *
+ * Counting the same question again keeps the count on show until the new
+ * one arrives: a count that blinked out and back on every change would
+ * flicker through a bulk action. A new question shows nothing until it is
+ * answered - the old count is not its answer.
+ *
+ * Reads can finish out of order - a slow one started before a change can
+ * land after a quick one started after it - so every read is numbered and
+ * only the latest one's answer is shown. A recount that fails keeps the count
+ * on show; the next change counts again. A first read that fails shows no
+ * count: a side-menu entry with a red error where a number should be is a
+ * worse outcome than a missing count, and the page behind it works either
+ * way.
+ */
 const CountModelSideMenuItem: <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ) => ReactElement = <TBaseModel extends BaseModel>(
   props: ComponentProps<TBaseModel>,
 ): ReactElement => {
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
-  const [count, setCount] = useState<number>(0);
+  // The count on show; undefined draws none.
+  const [count, setCount] = useState<number | undefined>(undefined);
 
-  const fetchCount: PromiseVoidFunction =
-    useCallback(async (): Promise<void> => {
-      if (!props.modelType) {
+  // The props of the moment: a read started later counts what is asked then.
+  const propsRef: MutableRefObject<ComponentProps<TBaseModel>> =
+    useRef<ComponentProps<TBaseModel>>(props);
+  propsRef.current = props;
+
+  // The number of the latest read; only its answer is shown.
+  const latestReadRef: MutableRefObject<number> = useRef<number>(0);
+
+  type ReadCountFunction = (options: { isRecount: boolean }) => Promise<void>;
+
+  const readCount: ReadCountFunction = useCallback(
+    async (options: { isRecount: boolean }): Promise<void> => {
+      const current: ComponentProps<TBaseModel> = propsRef.current;
+
+      if (!current.modelType || !current.countQuery) {
         return;
       }
 
-      if (!props.countQuery) {
-        return;
+      latestReadRef.current += 1;
+      const readNumber: number = latestReadRef.current;
+
+      if (!options.isRecount) {
+        // A new question: the count on show is not its answer.
+        setCount(undefined);
       }
 
-      setError("");
-      setIsLoading(true);
-
-      if (props.onCountFetchInit) {
-        props.onCountFetchInit();
+      if (current.onCountFetchInit) {
+        current.onCountFetchInit();
       }
 
       try {
-        const count: number = await ModelAPI.count<BaseModel>({
-          modelType: props.modelType,
-          query: props.countQuery,
-          requestOptions: props.requestOptions,
+        const value: number = await ModelAPI.count<BaseModel>({
+          modelType: current.modelType,
+          query: current.countQuery,
+          requestOptions: current.requestOptions,
         });
 
-        setCount(count);
-        setError("");
-      } catch (err) {
-        setError(API.getFriendlyMessage(err));
-      }
+        // A later read is on its way, or the entry has gone.
+        if (readNumber !== latestReadRef.current) {
+          return;
+        }
 
-      setIsLoading(false);
-    }, [
-      props.modelType,
-      props.countQuery,
-      props.requestOptions,
-      props.onCountFetchInit,
-    ]);
+        setCount(value);
+      } catch {
+        if (readNumber !== latestReadRef.current) {
+          return;
+        }
+
+        /*
+         * A first read that failed has nothing to show; a recount that
+         * failed keeps the count it had.
+         */
+        if (!options.isRecount) {
+          setCount(undefined);
+        }
+      }
+    },
+    [],
+  );
 
   /*
-   * Side menus rebuild `countQuery` / `requestOptions` as fresh object
-   * literals on every render, so their identity changes on every parent
-   * re-render (which happens on every in-section navigation). Guard the fetch
-   * with a value-level compare - the same JSON.stringify-in-a-ref pattern
-   * BaseModelTable uses for its `props.query` - so only a real change
-   * re-issues the count request. The global refresh event below still forces
-   * a refetch regardless of this guard.
+   * Read only when the question changed by value (or on first mount) - the
+   * same JSON.stringify-in-a-ref pattern BaseModelTable uses for its
+   * `props.query`. Recounts (below) count whatever is asked when they run.
    */
-  const lastFetchedModelTypeRef: MutableRefObject<
+  const lastReadModelTypeRef: MutableRefObject<
     { new (): TBaseModel } | undefined
   > = useRef<{ new (): TBaseModel } | undefined>(undefined);
-  const lastFetchedQueryJsonRef: MutableRefObject<string | null> = useRef<
+  const lastReadQueryJsonRef: MutableRefObject<string | null> = useRef<
     string | null
   >(null);
 
-  useEffect(() => {
-    const queryJson: string = JSON.stringify({
-      countQuery: props.countQuery || null,
-      requestOptions: props.requestOptions || null,
-    });
+  const queryJson: string = JSON.stringify({
+    countQuery: props.countQuery || null,
+    requestOptions: props.requestOptions || null,
+  });
 
-    // only fetch if the query has changed by value (or on first mount).
+  useEffect(() => {
     if (
-      lastFetchedModelTypeRef.current === props.modelType &&
-      lastFetchedQueryJsonRef.current === queryJson
+      lastReadModelTypeRef.current === props.modelType &&
+      lastReadQueryJsonRef.current === queryJson
     ) {
       return;
     }
 
-    lastFetchedModelTypeRef.current = props.modelType;
-    lastFetchedQueryJsonRef.current = queryJson;
+    lastReadModelTypeRef.current = props.modelType;
+    lastReadQueryJsonRef.current = queryJson;
 
-    fetchCount().catch((err: Error) => {
-      setError(API.getFriendlyMessage(err));
-    });
-  }, [fetchCount]);
+    if (!props.modelType || !props.countQuery) {
+      // Nothing to count any more: no count, and no read still on its way.
+      latestReadRef.current += 1;
+      setCount(undefined);
+      return;
+    }
 
-  // Listen for global refresh events
+    void readCount({ isRecount: false });
+  }, [props.modelType, queryJson, readCount]);
+
+  // Whatever is on its way when the entry goes is not shown.
   useEffect(() => {
-    const handleRefresh: () => void = (): void => {
-      fetchCount().catch((err: Error) => {
-        setError(API.getFriendlyMessage(err));
-      });
+    return () => {
+      latestReadRef.current += 1;
+    };
+  }, []);
+
+  // The page asks every count to count again.
+  useEffect(() => {
+    const onRefresh: () => void = (): void => {
+      void readCount({ isRecount: true });
     };
 
-    GlobalEvents.addEventListener(REFRESH_SIDEBAR_COUNT_EVENT, handleRefresh);
+    GlobalEvents.addEventListener(REFRESH_SIDEBAR_COUNT_EVENT, onRefresh);
 
     return () => {
-      GlobalEvents.removeEventListener(
-        REFRESH_SIDEBAR_COUNT_EVENT,
-        handleRefresh,
-      );
+      GlobalEvents.removeEventListener(REFRESH_SIDEBAR_COUNT_EVENT, onRefresh);
     };
-  }, [fetchCount]);
+  }, [readCount]);
+
+  // A record of its kind changed, here or anywhere else.
+  useLiveCount({
+    modelType: props.modelType as { new (): BaseModel } | undefined,
+    isEnabled: Boolean(props.modelType && props.countQuery),
+    getTenantId: (): ObjectID | null => {
+      return ProjectUtil.getCurrentProjectId();
+    },
+    recount: (): Promise<void> => {
+      return readCount({ isRecount: true });
+    },
+  });
 
   return (
     <SideMenuItem
       link={props.link}
       activeRoute={props.activeRoute}
-      badge={!isLoading && !error ? count : undefined}
+      badge={count}
       badgeType={props.badgeType}
       icon={props.icon}
       className={props.className}
