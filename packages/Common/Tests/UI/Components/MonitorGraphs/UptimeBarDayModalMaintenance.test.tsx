@@ -129,8 +129,20 @@ describe("UptimeBarDayModal - a day of maintenance and no incidents", () => {
     ).toBeInTheDocument();
   });
 
-  test("gives each event's window on the reader's clock, and its state", () => {
+  test("on a UTC day gives each event's window on the UTC clock, named (issue #6697)", () => {
     renderDialog({ maintenanceEvents: [maintenance()] });
+
+    expect(
+      screen.getByTestId("uptime-day-maintenance-window"),
+    ).toHaveTextContent("Oct 21, 16:00 – Oct 22, 00:00 UTC");
+  });
+
+  test("gives each event's window on the reader's clock, and its state", () => {
+    // a day drawn in the reader's own zone, as the status page now asks for.
+    renderDialog({
+      timezone: "Europe/Paris",
+      maintenanceEvents: [maintenance()],
+    });
 
     expect(
       screen.getByTestId("uptime-day-maintenance-window"),

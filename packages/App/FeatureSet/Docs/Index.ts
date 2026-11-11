@@ -4,6 +4,7 @@ import {
   getEnglishAnchorAliases,
 } from "./Utils/AnchorAliases";
 import LlmsTxtUtil from "./Utils/LlmsTxt";
+import DocsGlossaryData, { DocsGlossary } from "./Utils/Glossary";
 import DocsNav, { NavGroup, NavLink } from "./Utils/Nav";
 import DocsRender from "./Utils/Render";
 import DocsSearchIndex, {
@@ -301,6 +302,34 @@ const DocsFeatureSet: FeatureSet = {
             await DocsSearchIndex.getIndex(lang);
           res.setHeader("Cache-Control", "public, max-age=600");
           return res.json(index);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * The Glossary as data, for one language: each term with its id (its
+     * English anchor, the same in every language), its definition, the other
+     * names it goes by and the pages that cover it (Utils/Glossary.ts). The
+     * Dashboard shows a term's definition where the word is used, and Ask AI
+     * reads it. Registered before the two-segment legacy redirect below,
+     * like the search index.
+     */
+    app.get(
+      "/docs/glossary/:lang.json",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const lang: string = req.params["lang"] || "";
+          if (!isSupportedDocsLanguage(lang)) {
+            res.status(404);
+            return res.json({ lang: lang, entries: [] });
+          }
+          const glossary: DocsGlossary =
+            await DocsGlossaryData.getGlossary(lang);
+          res.setHeader("Cache-Control", "public, max-age=600");
+          return res.json(glossary);
         } catch (err) {
           logger.error(err);
           return next(err);

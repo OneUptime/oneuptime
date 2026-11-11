@@ -1,6 +1,6 @@
 # Oversikt over arbeidsflyter
 
-Arbeidsflyter automatiserer arbeid i OneUptime uten kode. Du setter blokker på et lerret, kobler dem sammen, og arbeidsflyten kjører av seg selv hver gang triggeren utløses: en hendelse opprettes, en tidsplan forfaller, et annet verktøy kaller en URL, eller det kommer en e-post. Bruk dem til å koble OneUptime til resten av stakken din og til å ta seg av den rutinemessige oppfølgingen mens du jobber med selve problemet.
+Arbeidsflyter automatiserer arbeid i OneUptime uten kode. Du setter blokker på et lerret, kobler dem sammen, og arbeidsflyten kjører av seg selv hver gang triggeren utløses: en hendelse opprettes, en tidsplan forfaller, et annet verktøy kaller en URL, eller det kommer en e-post. Bruk dem til å koble OneUptime til resten av stakken din og til å ta seg av den rutinemessige oppfølgingen mens du jobber med selve problemet. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#arbeidsflyt-runbook-playbook-eller-ai-regel) for å velge mellom en arbeidsflyt, et runbook, en playbook og en AI-regel.
 
 :::cards
 - [Opprette en arbeidsflyt](/docs/workflows/authoring): Opprett en arbeidsflyt, og legg deretter til, koble sammen og sett opp blokkene på lerretet.
@@ -47,6 +47,8 @@ Du bygger alt dette visuelt på et lerret. De fleste arbeidsflyter trenger ingen
 - **Gjenbruk felles automatisering** — bygg den én gang, og start den fra en hvilken som helst annen arbeidsflyt med en **Execute Workflow**-blokk.
 
 ## Sentrale begreper
+
+Se [Ordliste](/docs/introduction/glossary) for ordene som brukes på tvers av OneUptime.
 
 | Begrep              | Hva det betyr                                                                                                  |
 | ------------------- | -------------------------------------------------------------------------------------------------------------- |

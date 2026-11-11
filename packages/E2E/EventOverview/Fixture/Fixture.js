@@ -66,8 +66,8 @@
  *            #1042). "none": no number at all.
  *   ?dir=    auto: <html> takes its language's reading direction as the
  *            Dashboard sets it (Common/UI/Utils/PageLanguage), right to
- *            left for Persian. Left out, every language is laid out left to
- *            right, as the header specs measure it.
+ *            left for Arabic and Persian. Left out, every language is laid
+ *            out left to right, as the header specs measure it.
  *   ?verdict= none (default) | confirmed | rejected
  *            A responder's verdict already saved on the completed runs of
  *            Incident #1042 and Alert #311, as if rated before the page
@@ -582,6 +582,7 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 const params = new URLSearchParams(window.location.search);
 // Every language the Dashboard has besides English (Dashboard/src/Locales).
 const LANGUAGES = [
+  "ar",
   "da",
   "de",
   "es",
@@ -742,6 +743,30 @@ const securityMode = ["declared", "naming", "both"].includes(
  * by a data monitor.
  */
 const dataMode = params.get("data") === "table" ? "table" : "";
+/*
+ * ?data=table&check=column: #311 came from a check on one column of its
+ * table, payments.ledger_entries.provider_reference, which the arrow from
+ * payments.provider_callbacks says callback_reference feeds.
+ */
+const dataCheckColumn =
+  dataMode === "table" && params.get("check") === "column"
+    ? "provider_reference"
+    : null;
+/*
+ * ?data=table&cause=pipeline: on #311's page, its cause is on the pipeline
+ * that moves payments.provider_callbacks into payments.ledger_entries,
+ * drawn on that arrow, its name longer than the arrow's label holds.
+ * &run=failed: that pipeline's latest run failed - FAIL, as OpenLineage
+ * names the run state (isFailedLineageRunState).
+ */
+const dataCausePipeline =
+  dataMode === "table" && params.get("cause") === "pipeline"
+    ? {
+        dataPipelineId: uuid("8e000000", 1),
+        name: "payments_callbacks_hourly_sync",
+        lastRunState: params.get("run") === "failed" ? "FAIL" : "COMPLETE",
+      }
+    : null;
 /*
  * ?ai=off-*: not investigated because something was off for the record;
  * ?fixing=: what auto-remediation recorded beside it; ?switches=: the
@@ -2616,7 +2641,11 @@ const DATA_ALERT_REFUSAL = "You do not have permission to read data alerts.";
  * ?data=table, #311's table payments.ledger_entries drawn with the table it
  * is built from, payments.provider_callbacks, the way up to its cause #310
  * picked out; on #310's page, the way down to #311. Both tables have their
- * alert open. Any other alert has nothing to draw.
+ * alert open. Any other alert has nothing to draw. With &check=column,
+ * #311's drawing comes with the columns its arrow carries and the column
+ * its check reads, as for a check on one column. With &cause=pipeline,
+ * #311's cause is the pipeline drawn on its arrow, not the table it comes
+ * from: the arrow names it and says Cause.
  */
 function dataAlertLineage(url) {
   const isCause = url.includes(`/alerts/${ID.alert(DATA_CAUSE_ALERT_NUMBER)}/`);
@@ -2629,8 +2658,12 @@ function dataAlertLineage(url) {
       isCauseDrawn: false,
       consequenceCount: 0,
       drawnConsequenceCount: 0,
+      column: null,
     };
   }
+
+  const column = isConsequence ? dataCheckColumn : null;
+  const causePipeline = isConsequence ? dataCausePipeline : null;
 
   const callbacks = `table:${ID.dataAsset(1)}`;
   const ledger = `table:${ID.dataAsset(2)}`;
@@ -2674,8 +2707,22 @@ function dataAlertLineage(url) {
           target: ledger,
           kind: "Feeds",
           seenIn: ["Pipeline"],
-          pipelines: [],
+          pipelines: causePipeline ? [causePipeline] : [],
           lastSeenAt: at("18:05").toISOString(),
+          ...(column
+            ? {
+                columnMappings: [
+                  {
+                    upstreamColumn: "amount",
+                    downstreamColumn: "amount_minor",
+                  },
+                  {
+                    upstreamColumn: "callback_reference",
+                    downstreamColumn: "provider_reference",
+                  },
+                ],
+              }
+            : {}),
         },
       ],
       hiddenDashboardCount: 0,
@@ -2683,15 +2730,19 @@ function dataAlertLineage(url) {
       highlight: {
         nodeIds: isCause ? [callbacks, ledger] : [ledger, callbacks],
         edgeIds: [feeds],
-        causeNodeIds: isCause ? [] : [callbacks],
+        causeNodeIds: isCause || causePipeline ? [] : [callbacks],
         consequenceNodeIds: isCause ? [ledger] : [],
-        dataPipelineIds: [],
+        dataPipelineIds: causePipeline ? [causePipeline.dataPipelineId] : [],
+        causeDataPipelineIds: causePipeline
+          ? [causePipeline.dataPipelineId]
+          : [],
       },
     },
     hasCause: !isCause,
     isCauseDrawn: !isCause,
     consequenceCount: isCause ? 1 : 0,
     drawnConsequenceCount: isCause ? 1 : 0,
+    column,
   };
 }
 const DATA_WRITERS_FAILURE =

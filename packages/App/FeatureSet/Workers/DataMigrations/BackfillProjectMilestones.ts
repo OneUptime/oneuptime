@@ -13,7 +13,7 @@ import logger from "Common/Server/Utils/Logger";
  * analytics event is sent for any.
  *
  * Not in the schema migration that added the table
- * (1809110400000-AddProjectMilestones): that runs in one transaction, and
+ * (1809110500000-AddProjectMilestones): that runs in one transaction, and
  * this reads every project's monitors, timelines and members. Here the
  * projects are walked a batch at a time.
  *

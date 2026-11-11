@@ -1,6 +1,6 @@
 # Monitorgroepen
 
-Een monitorgroep voegt meerdere monitoren samen tot één status. Groepeer de monitoren die samen één dienst vormen, zoals Checkout: de API, de betaaldienst en de webapp ervan. De groep toont de slechtste status onder hen, heeft een eigen beschikbaarheid, en een statuspagina kan de hele groep als één rij tonen.
+Een monitorgroep voegt meerdere monitoren samen tot één status. Groepeer de monitoren die samen één dienst vormen, zoals Checkout: de API, de betaaldienst en de webapp ervan. De groep toont de slechtste status onder hen, heeft een eigen beschikbaarheid, en een statuspagina kan de hele groep als één rij tonen. Om te kiezen tussen een monitorgroep, een service en een label, zie [Welke gebruik ik?](/docs/introduction/which-one#monitorgroep-service-of-label).
 
 :::cards
 - [Hoe de status van een groep wordt bepaald](#hoe-de-status-van-een-groep-wordt-bepaald): De slechtste status onder haar monitoren.
@@ -90,6 +90,8 @@ Open een groep om haar pagina's in het zijmenu te zien:
 | **Groep verwijderen** | Verwijdert de groep, ook onder **Geavanceerd**. |
 
 De beschikbaarheid in het **Overzicht** telt elke status behalve de operationele als downtime. Een statuspagina telt alleen de statussen in haar eigen lijst **Telt als downtime**: zie [Kiezen wat de pagina toont](/docs/status-pages/index#kiezen-wat-er-op-de-pagina-komt).
+
+Elke balk van de uptime grafiek, hier en op een statuspagina, laat zien hoe lang de groep zelf die dag in elke status was: op elk moment heeft ze de slechtste status van haar monitoren, zodat een uur waarin twee ervan tegelijk offline zijn één uur van de groep is, en een dag nooit meer dan een dag wordt. De dagen zijn uw eigen dagen: het dashboard tekent ze in de tijdzone van uw gebruikersinstellingen, en een statuspagina in die van elke bezoeker.
 
 De lijst **Monitorgroepen** kan groepen filteren op eigenaar en label, labels en eigenaren voor veel groepen tegelijk instellen, en groepen als JSON exporteren of importeren.
 

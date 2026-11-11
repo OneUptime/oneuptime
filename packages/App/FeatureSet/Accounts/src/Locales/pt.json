@@ -157,7 +157,8 @@
     "successMessage": "Enviamos o link de redefinição de senha para o seu e-mail. Não esqueça de verificar a pasta de spam.",
     "submitButton": "Enviar link de redefinição",
     "rememberPasswordPrompt": "Lembra da sua senha?",
-    "loginLink": "Entrar."
+    "loginLink": "Entrar.",
+    "cannotEmail": "Este servidor ainda não consegue enviar e-mails, por isso não pode enviar-lhe um link para redefinir a sua senha. Peça ao administrador do servidor para redefinir a sua senha."
   },
   "magicLink": {
     "title": "Entrar com um link",
@@ -168,7 +169,8 @@
     "notReceived": "Não está na caixa de entrada? Verifique a pasta de spam ou confira se digitou o endereço com que se cadastrou.",
     "sendAnother": "Enviar outro link",
     "knowPasswordPrompt": "Sabe sua senha?",
-    "loginLink": "Entrar."
+    "loginLink": "Entrar.",
+    "cannotEmail": "Este servidor ainda não consegue enviar e-mails, por isso não pode enviar-lhe um link de login. Entre com a sua senha ou peça ao administrador do servidor para lhe dar acesso."
   },
   "resetPassword": {
     "title": "Redefina sua senha",

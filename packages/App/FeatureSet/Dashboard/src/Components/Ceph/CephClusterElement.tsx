@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import CephCluster from "Common/Models/DatabaseModels/CephCluster";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 
 export interface ComponentProps {
   cephCluster: CephCluster;
@@ -29,14 +29,10 @@ const CephClusterElement: FunctionComponent<ComponentProps> = (
         )}
         onNavigateComplete={props.onNavigateComplete}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.Ceph} className="w-5 h-5 mr-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.cephCluster.name}
-        </span>
+        <RecordLinkName
+          name={props.cephCluster.name}
+          icon={props.showIcon ? IconProp.Ceph : undefined}
+        />
       </AppLink>
     );
   }

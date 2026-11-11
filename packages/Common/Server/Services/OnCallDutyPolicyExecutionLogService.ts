@@ -48,6 +48,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import { ON_CALL_POLICY_ARCHIVED_NOT_EXECUTED_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyArchive";
 import {
   ON_CALL_POLICY_RUN_STARTED_EARLY_REASON_MAX_LENGTH,
+  getOnCallPolicyRunPagingDueAt,
   getOnCallPolicyRunWaitingMessage,
 } from "../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import { IsNull, UpdateResult } from "typeorm";
@@ -514,6 +515,12 @@ export class Service extends ProjectReferencesService<Model> {
     startAtRuleId?: ObjectID | undefined;
     // Who acknowledged the record last: paged first.
     acknowledgedByUserId?: ObjectID | undefined;
+    /*
+     * When the timeout ran out: the page again is timed from then
+     * (OnCallPageTiming.startPage), however late the worker got to it.
+     * Now without one.
+     */
+    dueAt?: Date | undefined;
   }): Promise<ObjectID | null> {
     const log: Model = new Model();
 
@@ -619,8 +626,13 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
-      // A page again starts now (OnCallPageTiming).
-      const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage();
+      /*
+       * A page again starts when its timeout ran out (dueAt), or now
+       * without one (OnCallPageTiming).
+       */
+      const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage({
+        dueAt: data.dueAt,
+      });
 
       const firstRuleOutcome: OnCallRuleExecutionOutcome =
         await OnCallPageTiming.runInPageStart(
@@ -1107,7 +1119,18 @@ export class Service extends ProjectReferencesService<Model> {
       logger.error(err as Error);
     }
 
-    await this.startFirstEscalationRule(run, { isStarted: true });
+    /*
+     * Its page is due when its hold ended: at its moment - however late the
+     * worker got to it, as `run` was read before the claim moved the moment
+     * - or now, for a run started before its moment (OnCallPageTiming).
+     */
+    await this.startFirstEscalationRule(run, {
+      isStarted: true,
+      dueAt: getOnCallPolicyRunPagingDueAt({
+        pagingStartsAt: run.pagingStartsAt,
+        now: data.now,
+      }),
+    });
 
     return true;
   }
@@ -1205,11 +1228,20 @@ export class Service extends ProjectReferencesService<Model> {
    * pages, and the run is executing - or, with no escalation rules in its
    * policy, it ends with an error that says so. A run does this as it is
    * created, and a run that waited once its moment came (startWaitingRun),
-   * which is started already.
+   * which is started already and names when its page was due (dueAt).
    */
   private async startFirstEscalationRule(
     run: Model,
-    options?: { isStarted?: boolean | undefined } | undefined,
+    options?:
+      | {
+          isStarted?: boolean | undefined;
+          /*
+           * When the page was due, for a run that waited: its page is timed
+           * from then (OnCallPageTiming.startPage). Now without one.
+           */
+          dueAt?: Date | undefined;
+        }
+      | undefined,
   ): Promise<void> {
     // get execution rules in this policy adn execute the first rule.
     const executionRule: OnCallDutyPolicyEscalationRule | null =
@@ -1281,10 +1313,13 @@ export class Service extends ProjectReferencesService<Model> {
 
     /*
      * The page starts now - or, for a run started as its record was
-     * created, when the record was - and every notification its first rule
-     * sends at once is due then (OnCallPageTiming).
+     * created, when the record was, and for a run that waited, when its
+     * hold ended (dueAt) - and every notification its first rule sends at
+     * once is due then (OnCallPageTiming).
      */
-    const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage();
+    const pageStart: OnCallPageStartMoment = OnCallPageTiming.startPage({
+      dueAt: options?.dueAt,
+    });
 
     const firstRuleOutcome: OnCallRuleExecutionOutcome =
       await OnCallPageTiming.runInPageStart(

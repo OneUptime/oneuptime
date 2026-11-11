@@ -7,6 +7,8 @@ Inizia da qui:
 :::cards
 - [Guida rapida](/docs/introduction/quickstart): Monitorare un sito web, essere avvisati quando si guasta e pubblicare una pagina di stato.
 - [Concetti fondamentali](/docs/introduction/core-concepts): Le poche idee su cui si basa tutto il resto, e come si collegano.
+- [Glossario](/docs/introduction/glossary): Ogni parola che OneUptime usa, in una o due frasi, con i suoi altri nomi.
+- [Quale usare?](/docs/introduction/which-one): Incidente o avviso, workflow o runbook, e gli altri elementi simili fianco a fianco.
 - [Home page e scorciatoie](/docs/introduction/home): Orientarsi nella dashboard, e i tasti che ti risparmiano clic.
 - [Il tuo account](/docs/introduction/your-account): Il tuo profilo, la password, le passkey e l'autenticazione a due fattori.
 :::

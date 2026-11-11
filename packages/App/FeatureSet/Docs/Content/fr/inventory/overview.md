@@ -1,6 +1,6 @@
 # Vue d'ensemble de l'inventaire
 
-L'inventaire est une liste unique de tout ce que OneUptime sait de votre parc : services, hôtes, objets Kubernetes, machines virtuelles, équipements réseau, ressources cloud, appareils IoT, fonctions serverless, et même ce qui n'envoie aucune télémétrie. L'essentiel se remplit tout seul à partir de ce que OneUptime surveille déjà. Vous ajoutez ce que la surveillance ne peut pas lui dire : à quoi sert une chose, à qui elle appartient, quand sa garantie expire.
+L'inventaire est une liste unique de tout ce que OneUptime sait de votre parc : services, hôtes, objets Kubernetes, machines virtuelles, équipements réseau, ressources cloud, appareils IoT, fonctions serverless, et même ce qui n'envoie aucune télémétrie. L'essentiel se remplit tout seul à partir de ce que OneUptime surveille déjà. Vous ajoutez ce que la surveillance ne peut pas lui dire : à quoi sert une chose, à qui elle appartient, quand sa garantie expire. Le [Glossaire](/docs/introduction/glossary#ce-que-vous-surveillez) explique ce qu'est chaque type d'enregistrement qu'il contient.
 
 :::cards
 - [Comment les éléments arrivent dans l'inventaire](#comment-les-éléments-arrivent-dans-linventaire): Découverts, répliqués ou ajoutés par vous.

@@ -157,7 +157,8 @@
     "successMessage": "Nous vous avons envoyé le lien de réinitialisation du mot de passe par e-mail. N'oubliez pas de vérifier le dossier spam.",
     "submitButton": "Envoyer le lien de réinitialisation",
     "rememberPasswordPrompt": "Vous vous souvenez de votre mot de passe ?",
-    "loginLink": "Connexion."
+    "loginLink": "Connexion.",
+    "cannotEmail": "Ce serveur ne peut pas encore envoyer d’e-mails : il ne peut donc pas vous envoyer de lien pour réinitialiser votre mot de passe. Demandez à l’administrateur de votre serveur de réinitialiser votre mot de passe."
   },
   "magicLink": {
     "title": "Se connecter avec un lien",
@@ -168,7 +169,8 @@
     "notReceived": "Pas dans votre boîte de réception ? Vérifiez vos spams ou assurez-vous d'avoir saisi l'adresse utilisée lors de votre inscription.",
     "sendAnother": "Envoyer un autre lien",
     "knowPasswordPrompt": "Vous connaissez votre mot de passe ?",
-    "loginLink": "Connexion."
+    "loginLink": "Connexion.",
+    "cannotEmail": "Ce serveur ne peut pas encore envoyer d’e-mails : il ne peut donc pas vous envoyer de lien de connexion. Connectez-vous avec votre mot de passe, ou demandez à l’administrateur de votre serveur de vous donner accès."
   },
   "resetPassword": {
     "title": "Réinitialisez votre mot de passe",

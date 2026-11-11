@@ -74,6 +74,8 @@ flowchart TB
 
 개요는 페이지 전체를 위한 요청 하나입니다. 상태 페이지가 그리는 것과 같은 데이터이며, 길어야 15초 전 데이터입니다.
 
+가동률 막대의 날짜는 시간대를 지정하지 않으면 UTC 기준 날짜입니다. `GET`에 `?timezone=Asia/Shanghai`를 붙이거나 `POST`의 본문으로 `{"timezone": "Asia/Shanghai"}`를 보내면, 상태 페이지가 방문자마다 요청하는 것처럼 `uptimeDailyAggregate`와 `monitorGroupUptimeDailyAggregate`가 그 시간대의 날짜로 나뉩니다. 서버가 모르는 시간대는 UTC가 되며, 둘 다 어느 시간대로 나뉘었는지를 `timezone`에 표시합니다.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | 그룹. 중첩된 그룹에는 `parentStatusPageGroupId`가 있습니다. |
 | `monitorStatuses` | 프로젝트의 모든 모니터 상태. 우선순위가 낮은 것부터 높은 것 순. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | 페이지에 있는 각 모니터 그룹의 현재 상태와 그 안의 모니터. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | 가동률 막대를 그리는 데이터와 페이지의 막대 색상 규칙. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | 가동률 막대를 그리는 데이터와 페이지의 막대 색상 규칙. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | 페이지가 보여 주는 해결되지 않은 인시던트, 그 공개 메모와 상태 변경, 프로젝트의 인시던트 상태. |
 | `timelineIncidents` | 가동률 막대 기간 안의 인시던트(해결된 것 포함). 막대의 툴팁에 쓰입니다. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | 인시던트 에피소드에 대한 같은 데이터. |

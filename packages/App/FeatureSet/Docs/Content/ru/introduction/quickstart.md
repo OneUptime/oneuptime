@@ -141,6 +141,7 @@ flowchart TB
 
 :::cards
 - [Основные понятия](/docs/introduction/core-concepts): Идеи, на которых держится то, что вы только что настроили.
+- [Глоссарий](/docs/introduction/glossary): Каждое слово, которое встретилось вам по пути, в одном-двух предложениях.
 - [Расписания дежурств](/docs/on-call/schedules): Распределить дежурства по команде.
 - [Оформление и домены страницы статуса](/docs/status-pages/branding-and-domains): Сделать страницу статуса своей.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Отправлять логи, метрики и трассировки из ваших приложений.

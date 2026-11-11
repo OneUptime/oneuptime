@@ -1,10 +1,10 @@
 import { getCloudResourceViewRoute } from "../../Utils/CloudResourceViewPages";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 
 /*
  * A cloud resource as a link to its page - the chip the Incident and Alert
@@ -37,14 +37,10 @@ const CloudResourceElement: FunctionComponent<ComponentProps> = (
         })}
         onNavigateComplete={props.onNavigateComplete}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.Cloud} className="w-5 h-5 mr-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.cloudResource.name}
-        </span>
+        <RecordLinkName
+          name={props.cloudResource.name}
+          icon={props.showIcon ? IconProp.Cloud : undefined}
+        />
       </AppLink>
     );
   }

@@ -141,6 +141,7 @@ Ouvrez le moniteur et regardez ce que les sondes ont reçu. Consultez la section
 
 :::cards
 - [Concepts clés](/docs/introduction/core-concepts): Les idées derrière ce que vous venez de configurer.
+- [Glossaire](/docs/introduction/glossary): Chaque mot rencontré en chemin, en une phrase ou deux.
 - [Plannings d'astreinte](/docs/on-call/schedules): Partager l'astreinte avec votre équipe.
 - [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains): Faire de la page de statut la vôtre.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Envoyer les journaux, les métriques et les traces de vos applications.

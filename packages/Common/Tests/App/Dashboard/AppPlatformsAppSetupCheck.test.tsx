@@ -472,7 +472,7 @@ describe("the issue's app: an App Service app that sends only metrics", () => {
     expect(query["cloudResourceType"]).toBe(APP_SERVICE_SITE_TYPE);
     expect(query["cloudProvider"]).toBe("azure");
     expect(query["name"]).toBeInstanceOf(StartsWith);
-    expect((query["name"] as StartsWith).toString()).toBe(SITE);
+    expect((query["name"] as StartsWith<string>).toString()).toBe(SITE);
   });
 });
 

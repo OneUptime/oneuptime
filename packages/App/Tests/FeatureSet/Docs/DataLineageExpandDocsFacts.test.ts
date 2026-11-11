@@ -6,8 +6,10 @@ import { MAX_DATA_LINEAGE_NEIGHBORS } from "Common/Types/DataObservability/DataT
 
 /*
  * What the Lineage and Pipelines page and the AI and API page say about
- * drawing more of a lineage diagram where it is (#6667) and following one
- * column up and down it (#6665).
+ * drawing more of a lineage diagram where it is (#6667), following one
+ * column up and down it (#6665), and, on an alert's page, the column a
+ * column check's alert opens with followed (#6783) and the Cause its
+ * cause's pipeline says on its arrow (#6687).
  *
  * The English page says how many tables a card draws each way - the
  * number the diagram draws, MAX_DATA_LINEAGE_NEIGHBORS - and names the
@@ -16,13 +18,20 @@ import { MAX_DATA_LINEAGE_NEIGHBORS } from "Common/Types/DataObservability/DataT
  * English, so a reader finds the same words on the page and in the
  * product. The API page lists the route the diagram asks, at the address
  * it is served at, and the table-lineage route's withColumns, in every
- * language.
+ * language. The alert's Lineage paragraph says, in every language and on
+ * the English line, that a cause on a pipeline says Cause - the word the
+ * cause's card says - on its arrow, and that an alert from a check on one
+ * column opens with it followed; the alert-lineage route's row names the
+ * `column` it answers with, and the investigations bullet that the column
+ * is followed through the lineage.
  */
 
 const LINEAGE_PAGE: string = "data-observability/lineage-and-pipelines";
 const API_PAGE: string = "data-observability/ai-and-api";
 const EXPAND_ROUTE: string = `POST /api${DATA_OBSERVABILITY_API_ROUTES.lineageExpand}`;
 const TABLE_LINEAGE_ROUTE: string = `POST /api${DATA_OBSERVABILITY_API_ROUTES.tableLineage}`;
+const ALERT_LINEAGE_ROUTE: string = `POST /api${DATA_OBSERVABILITY_API_ROUTES.alertLineage("<alert ID>")}`;
+const AI_SRE_LINK: string = "(/docs/ai/ai-sre)";
 
 const NUMBER_WORDS: Readonly<Record<number, string>> = {
   5: "five",
@@ -94,6 +103,35 @@ describe("Data Observability docs: drawing more of a lineage diagram, and follow
     );
   });
 
+  it("the English alert paragraph says the cause's pipeline says Cause on its arrow, and a column check's alert opens with its column followed", () => {
+    const line: string = lineWith("en", LINEAGE_PAGE, [
+      "**Explore Lineage**",
+    ]).line;
+
+    expect(line).toContain(
+      "When the cause is on a pipeline drawn on an arrow, the arrow says **Cause** under the pipeline's name.",
+    );
+    expect(line).toContain(
+      "An alert from a check on one column, such as a Null Percent check on `customer_id`, opens with that column followed beside these ways, as on the table's **Lineage** tab",
+    );
+    expect(line).toContain(
+      "Pick another of the table's columns there, or clear it to see the ways alone.",
+    );
+    // The picker is named once on the page, where the table's Lineage tab is.
+    expect(line).not.toContain("**Follow a column**");
+  });
+
+  it("the English AI page says what the route and an investigation tell of a column check's column", () => {
+    expect(
+      lineWith("en", API_PAGE, [`| \`${ALERT_LINEAGE_ROUTE}\` |`]).line,
+    ).toContain(
+      "and for an alert from a check on one column, its `column` and the columns each arrow carries",
+    );
+    expect(lineWith("en", API_PAGE, [AI_SRE_LINK]).line).toContain(
+      "For an alert from a check on one column, it also follows that column through the lineage: the columns it is built from upstream and the columns built from it downstream, table by table",
+    );
+  });
+
   it("the in-product documentation says the same, with both routes", () => {
     const page: string = readRepoFile(
       "App/FeatureSet/Dashboard/src/Pages/DataObservability/Documentation.tsx",
@@ -106,6 +144,19 @@ describe("Data Observability docs: drawing more of a lineage diagram, and follow
     expect(page).toContain("**Follow a column**");
     expect(page).toContain(`\\\`${EXPAND_ROUTE}\\\``);
     expect(page).toContain('\\`"withColumns": true\\`');
+    // An alert's page: the cause's pipeline on its arrow, and a column check's column followed.
+    expect(page).toContain(
+      "When the cause is on a pipeline drawn on an arrow, the arrow says **Cause** under the pipeline's name.",
+    );
+    expect(page).toContain(
+      "An alert from a check on one column, such as a Null Percent check on \\`customer_id\\`, opens with that column followed",
+    );
+    expect(page).toContain(
+      "with the \\`column\\` a column check's alert reads and the columns each arrow carries",
+    );
+    expect(page).toContain(
+      "For an alert from a check on one column, it also follows that column through the lineage",
+    );
   });
 
   it("the Dashboard draws the button and the picker the pages name", () => {
@@ -115,6 +166,12 @@ describe("Data Observability docs: drawing more of a lineage diagram, and follow
 
     expect(shell).toContain('title="Reset diagram"');
     expect(shell).toContain('placeholder={translationKey("Follow a column")}');
+    // And the alert's card the Explore Lineage the paragraph names.
+    expect(
+      readRepoFile(
+        "App/FeatureSet/Dashboard/src/Components/DataObservability/AlertLineageDiagram.tsx",
+      ),
+    ).toContain('title: "Explore Lineage",');
   });
 
   describe.each(DOCS_LANGUAGES)("%s", (lang: string) => {
@@ -152,6 +209,68 @@ describe("Data Observability docs: drawing more of a lineage diagram, and follow
           `**${drawnDashboardLabel(lang, "Lineage")}**`,
         ),
       }).toEqual({ lang, index: english, namesLineageTab: true });
+    });
+
+    it("says on the English line that the cause's pipeline says Cause on its arrow, in the card's word, and that a column check's alert opens with its column followed", () => {
+      const english: number = lineWith("en", LINEAGE_PAGE, [
+        "**Explore Lineage**",
+      ]).index;
+      const own: { line: string; index: number } = lineWith(
+        lang,
+        LINEAGE_PAGE,
+        [`**${drawnDashboardLabel(lang, "Explore Lineage")}**`],
+      );
+      const cause: string = `**${drawnDashboardLabel(lang, "Cause")}**`;
+
+      expect({
+        lang,
+        index: own.index,
+        // Once for the cause's card, once for its pipeline's arrow.
+        causeNamed: own.line.split(cause).length - 1,
+        namesLineageTab: own.line.includes(
+          `**${drawnDashboardLabel(lang, "Lineage")}**`,
+        ),
+        namesTheColumn: own.line.includes("`customer_id`"),
+        namesTheCheck: own.line.includes("Null Percent"),
+        namesThePicker: own.line.includes(
+          `**${drawnDashboardLabel(lang, "Follow a column")}**`,
+        ),
+      }).toEqual({
+        lang,
+        index: english,
+        causeNamed: 2,
+        namesLineageTab: true,
+        namesTheColumn: true,
+        namesTheCheck: true,
+        namesThePicker: false,
+      });
+    });
+
+    it("names the column the alert-lineage route answers with, and an investigation's column, on the English lines", () => {
+      const route: { line: string; index: number } = lineWith(lang, API_PAGE, [
+        `| \`${ALERT_LINEAGE_ROUTE}\` |`,
+      ]);
+      const investigations: { line: string; index: number } = lineWith(
+        lang,
+        API_PAGE,
+        [AI_SRE_LINK],
+      );
+      const englishInvestigations: string = lineWith("en", API_PAGE, [
+        AI_SRE_LINK,
+      ]).line;
+
+      expect({
+        lang,
+        namesColumn: route.line.includes("`column`"),
+        investigationsLine: investigations.index,
+        // The investigations bullet grew by its sentence, as the English one did.
+        isLonger: investigations.line.length > englishInvestigations.length / 3,
+      }).toEqual({
+        lang,
+        namesColumn: true,
+        investigationsLine: lineWith("en", API_PAGE, [AI_SRE_LINK]).index,
+        isLonger: true,
+      });
     });
 
     it("lists the route that draws more, after the alert's lineage, and the table lineage's withColumns", () => {

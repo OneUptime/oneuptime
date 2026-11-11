@@ -1,6 +1,6 @@
 # Monitorgrupper
 
-En monitorgruppe samler flere monitorer i én status. Grupper monitorene som til sammen utgjør én tjeneste, som Checkout: API-et, betalingstjenesten og nettappen. Gruppen viser den verste statusen blant dem, har sin egen oppetid, og en statusside kan vise hele gruppen som én rad.
+En monitorgruppe samler flere monitorer i én status. Grupper monitorene som til sammen utgjør én tjeneste, som Checkout: API-et, betalingstjenesten og nettappen. Gruppen viser den verste statusen blant dem, har sin egen oppetid, og en statusside kan vise hele gruppen som én rad. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#monitorgruppe-tjeneste-eller-etikett) for å velge mellom en monitorgruppe, en tjeneste og en etikett.
 
 :::cards
 - [Slik beregnes en gruppes status](#slik-beregnes-en-gruppes-status): Den verste statusen blant monitorene.
@@ -90,6 +90,8 @@ For å ta en monitor ut av gruppen klikker du på **Fjern** i raden i **Overvåk
 | **Slett gruppe** | Sletter gruppen, også under **Avansert**. |
 
 Oppetiden på **Oversikt** teller alle statuser unntatt den driftsklare som nedetid. En statusside teller bare statusene i sin egen liste **Teller som nedetid**: se [Velg hva siden viser](/docs/status-pages/index#å-velge-hva-som-vises-på-siden).
+
+Hver stolpe i oppetidsgrafen, her og på en statusside, viser hvor lenge gruppen selv var i hver status den dagen: i hvert øyeblikk har den den verste statusen blant monitorene sine, så en time da to av dem er offline samtidig, er én time for gruppen, og en dag blir aldri mer enn en dag. Dagene er dine egne: dashbordet tegner dem i tidssonen fra brukerinnstillingene dine, og en statusside i hver besøkendes.
 
 Listen **Monitorgrupper** kan filtrere grupper etter eier og etikett, sette etiketter og eiere på mange grupper samtidig, og eksportere eller importere grupper som JSON.
 

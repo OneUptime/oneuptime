@@ -141,6 +141,7 @@ Open the monitor and check what the probes received. See the troubleshooting sec
 
 :::cards
 - [Core Concepts](/docs/introduction/core-concepts): The ideas behind what you just set up.
+- [Glossary](/docs/introduction/glossary): Every word you met on the way, in a sentence or two.
 - [On-Call Schedules](/docs/on-call/schedules): Share being on call with your team.
 - [Status Page Branding & Domains](/docs/status-pages/branding-and-domains): Make the status page your own.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logs, metrics and traces from your apps.

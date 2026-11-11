@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import DatabaseServer from "Common/Models/DatabaseModels/DatabaseServer";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 
 /*
  * A database as a link to its page — the chip the Incident / Alert /
@@ -36,14 +36,10 @@ const DatabaseServerElement: FunctionComponent<ComponentProps> = (
         )}
         onNavigateComplete={props.onNavigateComplete}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.Database} className="w-5 h-5 mr-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.databaseServer.name}
-        </span>
+        <RecordLinkName
+          name={props.databaseServer.name}
+          icon={props.showIcon ? IconProp.Database : undefined}
+        />
       </AppLink>
     );
   }

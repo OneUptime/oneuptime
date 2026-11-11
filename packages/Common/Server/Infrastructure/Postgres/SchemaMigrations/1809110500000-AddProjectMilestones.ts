@@ -14,8 +14,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * exist are filled afterwards, outside this transaction, by the data
  * migration BackfillProjectMilestones.
  */
-export class AddProjectMilestones1809110400000 implements MigrationInterface {
-  public name: string = "AddProjectMilestones1809110400000";
+export class AddProjectMilestones1809110500000 implements MigrationInterface {
+  public name: string = "AddProjectMilestones1809110500000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

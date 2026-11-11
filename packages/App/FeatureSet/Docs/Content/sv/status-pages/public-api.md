@@ -74,6 +74,8 @@ Endpoints följer sidans egna inställningar, i kortet **Vad din statussida visa
 
 Översikten är en enda request för hela sidan. Det är samma data som statussidan ritar, och den är högst 15 sekunder gammal.
 
+Dagarna i drifttidsstaplarna är UTC-dagar om du inte anger en tidszon: lägg till `?timezone=Asia/Shanghai` i en `GET`, eller skicka `{"timezone": "Asia/Shanghai"}` som body i en `POST`, så delas `uptimeDailyAggregate` och `monitorGroupUptimeDailyAggregate` upp i den zonens dagar, så som statussidan ber om för varje besökare. En zon som servern inte känner till är UTC, och båda anger i sin `timezone` vilken zon de delades upp i.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ Den samlade statusen är den sämsta aktuella statusen bland monitorerna och mon
 | `resourceGroups` | Grupperna, med `parentStatusPageGroupId` för nästlade grupper. |
 | `monitorStatuses` | Alla monitorstatusar i projektet, från lägst prioritet till högst. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Aktuell status för varje monitorgrupp på sidan, och monitorerna i den. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det som drifttidsstaplarna ritas utifrån, och sidans färgregler för staplarna. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Det som drifttidsstaplarna ritas utifrån, och sidans färgregler för staplarna. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De olösta incidenter som sidan visar, deras offentliga anteckningar och tillståndsändringar, och projektets incidenttillstånd. |
 | `timelineIncidents` | Incidenterna i drifttidsstaplarnas tidsfönster, lösta inräknade, för staplarnas verktygstips. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Samma sak för incidentepisoder. |

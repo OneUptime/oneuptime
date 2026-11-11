@@ -19,6 +19,7 @@ import EmailServer from "Common/Types/Email/EmailServer";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
+import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "Common/Types/ServerSending/ServerSendingWords";
 import MailService from "../../FeatureSet/Notification/Services/MailService";
 import SendGridMailProvider from "../../FeatureSet/Notification/Services/MailProviders/SendGridMailProvider";
 import "../../FeatureSet/Notification/Utils/Handlebars";
@@ -314,7 +315,7 @@ describe("an email", () => {
     );
 
     await expect(MailService.send(message())).rejects.toThrow(
-      "Sendgrid Config not found",
+      SERVER_EMAIL_NOT_SET_UP_MESSAGE,
     );
 
     expect(onlySend()).toMatchObject({
@@ -329,7 +330,7 @@ describe("an email", () => {
     );
 
     await expect(MailService.send(message())).rejects.toThrow(
-      "Global SMTP Config not found",
+      SERVER_EMAIL_NOT_SET_UP_MESSAGE,
     );
 
     expect(onlySend()).toMatchObject({

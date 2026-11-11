@@ -6,6 +6,9 @@ import ObjectID from "../../Types/ObjectID";
 import MonitorStatus from "../../Models/DatabaseModels/MonitorStatus";
 import MonitorStatusTimeline from "../../Models/DatabaseModels/MonitorStatusTimeline";
 import UptimePrecision from "../../Types/StatusPage/UptimePrecision";
+import WorstStatusTimeline, {
+  WorstStatusTimelineOptions,
+} from "./WorstStatusTimeline";
 
 /**
  * The time period an uptime calculation is reported over. When this is supplied, events are
@@ -207,94 +210,25 @@ export default class UptimeUtil {
     );
   }
 
+  /**
+   * One timeline out of the rows of one or more monitors: at every instant,
+   * the worst status among the monitors recorded then, and nothing where
+   * none was. See WorstStatusTimeline.merge.
+   *
+   * Pass the downtime statuses when the result is measured for uptime: they
+   * then outrank every other status, so the time it counts as down is
+   * exactly the time at least one of the monitors was down - what a monitor
+   * group's uptime percentage is measured from on the server
+   * (MonitorStatusTimelineService.getMergedDowntimeSeconds).
+   */
   public static getNonOverlappingMonitorEvents(
     items: Array<MonitorStatusTimeline>,
     window?: UptimeWindow | undefined,
+    options?: WorstStatusTimelineOptions | undefined,
   ): Array<Event> {
-    const monitorEventList: Array<MonitorEvent> = this.getMonitorEvents(
-      items,
-      window,
-    );
-
-    const eventList: Array<Event> = [];
-
-    for (let i: number = 0; i < monitorEventList.length; i++) {
-      // if this event starts after the last event, then add it to the list directly.
-
-      const monitorEvent: MonitorEvent = monitorEventList[i]!;
-
-      if (
-        eventList.length === 0 ||
-        OneUptimeDate.isAfter(
-          monitorEvent.startDate,
-          eventList[eventList.length - 1]!.endDate,
-        ) ||
-        OneUptimeDate.isEqualBySeconds(
-          monitorEvent.startDate,
-          eventList[eventList.length - 1]!.endDate,
-        )
-      ) {
-        eventList.push(monitorEvent);
-        continue;
-      }
-
-      // if this event starts before the last event, then we need to check if it ends before the last event. If it does, then we can skip this event if the monitrEvent is of lower priority than the last event. If it is of higher priority, then we need to add it to the list and remove the last event from the list.
-      if (
-        OneUptimeDate.isBefore(
-          monitorEvent.startDate,
-          eventList[eventList.length - 1]!.endDate,
-        )
-      ) {
-        let isEndDateOfCurrenteventAfterLastEvent: boolean = false;
-        if (
-          eventList[eventList.length - 1] &&
-          eventList[eventList.length - 1]?.endDate
-        ) {
-          isEndDateOfCurrenteventAfterLastEvent =
-            OneUptimeDate.isAfter(
-              monitorEvent.endDate,
-              eventList[eventList.length - 1]!.endDate,
-            ) ||
-            OneUptimeDate.isEqualBySeconds(
-              monitorEvent.endDate,
-              eventList[eventList.length - 1]!.endDate,
-            );
-        }
-
-        if (
-          monitorEvent.priority > eventList[eventList.length - 1]!.priority ||
-          isEndDateOfCurrenteventAfterLastEvent
-        ) {
-          // end the last event at the start of this event.
-
-          const tempLastEvent: Event = {
-            ...eventList[eventList.length - 1],
-          } as Event;
-
-          eventList[eventList.length - 1]!.endDate = monitorEvent.startDate;
-          eventList.push(monitorEvent);
-
-          // if the monitorEvent endDate is before the end of the last event, then we need to add the end of the last event to the list.
-
-          if (
-            OneUptimeDate.isBefore(monitorEvent.endDate, tempLastEvent.endDate)
-          ) {
-            eventList.push({
-              startDate: monitorEvent.endDate,
-              endDate: tempLastEvent.endDate,
-              label: tempLastEvent.label,
-              priority: tempLastEvent.priority,
-              color: tempLastEvent.color,
-              eventStatusId: tempLastEvent.eventStatusId,
-            });
-          }
-        }
-
-        continue;
-      }
-    }
-
-    return eventList;
+    return WorstStatusTimeline.merge(this.getMonitorEvents(items, window), {
+      downtimeMonitorStatusIds: options?.downtimeMonitorStatusIds,
+    });
   }
 
   public static getMonitorEvents(
@@ -359,6 +293,13 @@ export default class UptimeUtil {
     const monitorEvents: Array<Event> = this.getNonOverlappingMonitorEvents(
       monitorStatusTimelines,
       window,
+      {
+        downtimeMonitorStatusIds: (downtimeMonitorStatuses || [])
+          .map((status: MonitorStatus): string => {
+            return status.id?.toString() || "";
+          })
+          .filter(Boolean),
+      },
     );
 
     // sort these by start date, to the millisecond.

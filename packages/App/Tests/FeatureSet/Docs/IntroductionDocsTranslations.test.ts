@@ -128,6 +128,10 @@ const PROSE: Record<string, Array<string>> = {
      * line.
      */
     "account",
+    // "A **service** is an application or microservice you run" (What you watch).
+    "service",
+    // "An **API key** is the other kind" (What you install, and the keys).
+    "API key",
   ],
   /*
    * "**Language**: the dashboard starts in your browser's language" - a list

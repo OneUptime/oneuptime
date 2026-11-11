@@ -7,6 +7,12 @@ import React, { CSSProperties, FunctionComponent, ReactElement } from "react";
 export interface ComponentProps {
   startsAt: Date;
   endsAt: Date;
+  /*
+   * The zone of the bar's day the window is listed on: a day drawn in
+   * another zone than the reader's lists it on that zone's clock
+   * (UptimeMaintenanceUtil.getWindowText). The reader's clock without one.
+   */
+  timezone?: string | undefined;
   dataTestId?: string | undefined;
   style?: CSSProperties | undefined;
 }
@@ -28,6 +34,7 @@ const MaintenanceWindow: FunctionComponent<ComponentProps> = (
     UptimeMaintenanceUtil.getWindowText({
       startsAt: props.startsAt,
       endsAt: props.endsAt,
+      timezone: props.timezone,
     });
 
   if (!text) {

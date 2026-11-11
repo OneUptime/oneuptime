@@ -419,9 +419,12 @@ describe("the Create On-Call Policy form", () => {
       within(modal).getByText(FIELD_TITLE).closest("label")?.textContent,
     ).toContain("(Optional)");
 
-    // One picker for schedules, teams and people.
+    /*
+     * One picker for schedules, teams and people. It loads on its own
+     * (LazyPeoplePicker), so the form draws its placeholder until it does.
+     */
     expect(
-      within(modal).getByRole("button", { name: "Add responder" }),
+      await within(modal).findByRole("button", { name: "Add responder" }),
     ).toBeInTheDocument();
 
     // No wizard.

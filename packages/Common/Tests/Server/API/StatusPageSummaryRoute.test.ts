@@ -2,6 +2,7 @@ import StatusPage from "../../../Models/DatabaseModels/StatusPage";
 import StatusPageAnnouncement from "../../../Models/DatabaseModels/StatusPageAnnouncement";
 import StatusPageDomain from "../../../Models/DatabaseModels/StatusPageDomain";
 import StatusPageAPI from "../../../Server/API/StatusPageAPI";
+import { StatusPageOverviewBase } from "../../../Server/Utils/StatusPage/StatusPageOverviewCache";
 import UserMiddleware from "../../../Server/Middleware/UserAuthorization";
 import MonitorGroupService from "../../../Server/Services/MonitorGroupService";
 import StatusPageAnnouncementService from "../../../Server/Services/StatusPageAnnouncementService";
@@ -128,7 +129,8 @@ interface PageAccess {
 }
 
 let pageAccess: PageAccess = { isPublicStatusPage: true };
-let buildSpy: SpyInstance<StatusPageAPI["buildOverviewResponse"]>;
+let buildSpy: SpyInstance<StatusPageAPI["buildOverviewBase"]>;
+let historySpy: SpyInstance<StatusPageAPI["buildUptimeHistory"]>;
 
 function mockPage(): void {
   pageAccess = { isPublicStatusPage: true };
@@ -156,11 +158,30 @@ function mockPage(): void {
       return Promise.resolve(page as never);
     });
 
-  // The overview the page draws, built as buildOverviewResponse builds it.
+  /*
+   * The overview the page draws, built as buildOverviewBase builds what
+   * every visitor shares: the summary reads that, and the overview adds the
+   * visitor's uptime history to it.
+   */
   buildSpy = jest
-    .spyOn(StatusPageAPI.prototype, "buildOverviewResponse")
-    .mockImplementation((): Promise<JSONObject> => {
-      return Promise.resolve(buildFakeOverview(PAGE));
+    .spyOn(StatusPageAPI.prototype, "buildOverviewBase")
+    .mockImplementation((): Promise<StatusPageOverviewBase> => {
+      return Promise.resolve({
+        response: buildFakeOverview(PAGE),
+        uptimeHistory: {
+          monitorIds: [],
+          monitorGroups: [],
+          rankedMonitorStatusIds: [],
+          startDate: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+          endDate: new Date(),
+        },
+      });
+    });
+
+  historySpy = jest
+    .spyOn(StatusPageAPI.prototype, "buildUptimeHistory")
+    .mockImplementation((): Promise<{ json: JSONObject; cutIn: string }> => {
+      return Promise.resolve({ json: {}, cutIn: "UTC" });
     });
 }
 
@@ -404,6 +425,19 @@ describe("the status page summary route", () => {
     await ask({ method: "post", statusPageIdOrDomain: pageId });
 
     expect(buildSpy).toHaveBeenCalledTimes(1);
+
+    // the overview cut its uptime history; the summary, which leaves it out, never does.
+    expect(historySpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("never builds an uptime history: a summary leaves the history out", async () => {
+    await ask({
+      method: "get",
+      statusPageIdOrDomain: ObjectID.generate().toString(),
+    });
+
+    expect(buildSpy).toHaveBeenCalledTimes(1);
+    expect(historySpy).not.toHaveBeenCalled();
   });
 
   it("asks who is reading on every request: a page gone private is refused from a warm cache", async () => {

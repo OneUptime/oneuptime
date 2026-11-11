@@ -1,6 +1,6 @@
 # Visión general de los paneles
 
-Un panel es una página de widgets que tú mismo organizas: gráficos de tus métricas, registros y trazas, listas de incidentes, alertas y monitores, tus SLO y tu infraestructura, e incluso datos de sistemas ajenos a OneUptime. Crea uno para la pantalla de guardia, la revisión matinal de un equipo o una página para tus clientes, y compártelo con tu proyecto o con cualquiera que tenga el enlace.
+Un panel es una página de widgets que tú mismo organizas: gráficos de tus métricas, registros y trazas, listas de incidentes, alertas y monitores, tus SLO y tu infraestructura, e incluso datos de sistemas ajenos a OneUptime. Crea uno para la pantalla de guardia, la revisión matinal de un equipo o una página para tus clientes, y compártelo con tu proyecto o con cualquiera que tenga el enlace. Para elegir entre un panel, un panel público y una página de estado, consulta [¿Cuál uso?](/docs/introduction/which-one#panel-panel-público-o-página-de-estado).
 
 :::cards
 - [Cómo funciona un panel](#cómo-funciona-un-panel): De dónde vienen sus datos y quién lo ve.

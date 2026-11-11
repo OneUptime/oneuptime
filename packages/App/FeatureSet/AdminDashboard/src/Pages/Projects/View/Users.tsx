@@ -29,6 +29,10 @@ import ModelPage from "Common/UI/Components/Page/ModelPage";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
+import InvitationLinkModal, {
+  INVITATION_LINK_COPY,
+} from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import React, {
   Fragment,
   FunctionComponent,
@@ -45,6 +49,17 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
   const [showInviteUserModal, setShowInviteUserModal] =
     useState<boolean>(false);
   const [isFilterApplied, setIsFilterApplied] = useState<boolean>(false);
+
+  /*
+   * A server that cannot send email sends no invitation (#6825): the dialog
+   * says so, and once the invitation is made this master admin is handed
+   * the link to send - then goes on to the person's page.
+   */
+  const cannotSendEmail: boolean = useServerCanSendEmail() === false;
+  const [invitationLinkFor, setInvitationLinkFor] = useState<{
+    teamMemberId: ObjectID;
+    userPage: Route | null;
+  } | null>(null);
 
   /*
    * The team Invite User starts on: the project's members team, found by the
@@ -332,7 +347,17 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 if (item.hasAcceptedInvitation) {
                   return <Pill text="Member" color={Green} />;
                 }
-                return <Pill text="Invitation Sent" color={Yellow} />;
+                // Nothing was sent by a server that cannot send email.
+                return (
+                  <Pill
+                    text={
+                      cannotSendEmail
+                        ? INVITATION_LINK_COPY.invitedPill
+                        : "Invitation Sent"
+                    }
+                    color={Yellow}
+                  />
+                );
               },
             },
           ]}
@@ -359,16 +384,24 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 teamMember.user?.id?.toString() ||
                 teamMember.userId?.toString() ||
                 "";
-              if (userId) {
-                Navigation.navigate(
-                  RouteUtil.populateRouteParams(
+              const userPage: Route | null = userId
+                ? RouteUtil.populateRouteParams(
                     RouteMap[PageMap.PROJECT_USER_VIEW] as Route,
                     {
                       modelId: projectId,
                       subModelId: new ObjectID(userId),
                     },
-                  ),
-                );
+                  )
+                : null;
+
+              // No email went out: the link to send first, then the page.
+              if (cannotSendEmail && teamMember.id) {
+                setInvitationLinkFor({
+                  teamMemberId: teamMember.id,
+                  userPage: userPage,
+                });
+              } else if (userPage) {
+                Navigation.navigate(userPage);
               }
               setShowInviteUserModal(false);
             }}
@@ -391,8 +424,9 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                     user: true,
                   },
                   title: "Email",
-                  description:
-                    "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",
+                  description: cannotSendEmail
+                    ? INVITATION_LINK_COPY.inviteDescriptionForAdmin
+                    : "Enter the email of the user you would like to invite. We will send them an email letting them know they have been invited to the team you selected.",
                   fieldType: FormFieldSchemaType.Email,
                   required: true,
                   placeholder: "member@company.com",
@@ -472,6 +506,20 @@ const ProjectUsers: FunctionComponent = (): ReactElement => {
                 },
               ],
               formType: FormType.Create,
+            }}
+          />
+        )}
+
+        {invitationLinkFor && (
+          <InvitationLinkModal
+            teamMemberId={invitationLinkFor.teamMemberId}
+            onClose={() => {
+              const userPage: Route | null = invitationLinkFor.userPage;
+              setInvitationLinkFor(null);
+
+              if (userPage) {
+                Navigation.navigate(userPage);
+              }
             }}
           />
         )}

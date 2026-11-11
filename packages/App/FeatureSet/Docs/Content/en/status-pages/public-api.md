@@ -74,6 +74,8 @@ The endpoints follow the page's own settings, in the **What your status page sho
 
 The overview is one request for the whole page. It is the same data the status page draws, and it is at most 15 seconds old.
 
+The uptime bars' days are UTC days unless you name a time zone: add `?timezone=Asia/Shanghai` to a `GET`, or send `{"timezone": "Asia/Shanghai"}` as the body of a `POST`, and `uptimeDailyAggregate` and `monitorGroupUptimeDailyAggregate` are cut into that zone's days, as the status page asks for each visitor's. A zone the server does not know is UTC, and both say which zone they were cut in, in their `timezone`.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ The overall status is the worst current status of the monitors and monitor group
 | `resourceGroups` | The groups, with `parentStatusPageGroupId` for nested groups. |
 | `monitorStatuses` | Every monitor status of the project, from the lowest priority to the highest. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | The current status of each monitor group on the page, and the monitors in it. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | What the uptime bars are drawn from, and the page's bar color rules. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | What the uptime bars are drawn from, and the page's bar color rules. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | The unresolved incidents the page shows, their public notes and state changes, and the project's incident states. |
 | `timelineIncidents` | The incidents in the uptime bars' window, resolved ones included, for the bars' tooltips. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | The same for incident episodes. |

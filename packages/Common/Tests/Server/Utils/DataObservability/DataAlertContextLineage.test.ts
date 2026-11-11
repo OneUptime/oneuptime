@@ -13,6 +13,13 @@ import DataAssetLineageService from "../../../../Server/Services/DataAssetLineag
 import DataAssetUsageService from "../../../../Server/Services/DataAssetUsageService";
 import DataPipelineRunService from "../../../../Server/Services/DataPipelineRunService";
 import DataPipelineService from "../../../../Server/Services/DataPipelineService";
+import {
+  MAX_DATA_ALERT_COLUMNS_TOLD_PER_TABLE,
+  MAX_DATA_ALERT_COLUMN_NAME_LENGTH,
+  MAX_DATA_ALERT_COLUMN_TABLES_TOLD,
+  MAX_DATA_ALERT_COLUMN_TABLE_NAME_LENGTH,
+  describeDataAlertColumn,
+} from "../../../../Server/Utils/DataObservability/DataAlertColumnLineage";
 import DataAlertContext from "../../../../Server/Utils/DataObservability/DataAlertContext";
 import DataAlertLineageReader, {
   DataAlertLineageRow,
@@ -27,12 +34,18 @@ import { describeDataAlertLineage } from "../../../../Server/Utils/DataObservabi
 import Alert from "../../../../Models/DatabaseModels/Alert";
 import DataAlert from "../../../../Models/DatabaseModels/DataAlert";
 import DataPipeline from "../../../../Models/DatabaseModels/DataPipeline";
-import { DataAlertLineageAnswer } from "../../../../Types/DataObservability/DataTableLineage";
+import {
+  DataAlertLineageAnswer,
+  DataLineageSide,
+  DataTableLineageNode,
+  MAX_DATA_LINEAGE_NEIGHBORS,
+} from "../../../../Types/DataObservability/DataTableLineage";
 import ObjectID from "../../../../Types/ObjectID";
 import {
   HOUR,
   MemoryGraph,
   NOW,
+  columns,
   feeds,
   lateTable,
   memoryReader,
@@ -57,6 +70,8 @@ import {
  * everyone who may see the alert reads it, so every other alert in it is
  * one nobody in particular may see: a private one is neither counted nor
  * placed. The alert itself is the one investigated, read as OneUptime.
+ * An alert from a check on one column is then told where that column
+ * comes from and where it goes, table by table (describeDataAlertColumn).
  *
  * The lineage and the alerts are held in memory (LineageMemoryGraph); the
  * context's other reads are stubbed to nothing.
@@ -75,12 +90,14 @@ interface MemoryAlerts {
   rows: Map<string, DataAlertLineageRow>;
   // The private alerts: nobody in particular may see them.
   hidden: Set<string>;
-  // Every read, in order: "alert:<id>", "subject:<id>", "consequences:<id>".
+  // By alert: the column its check reads, for an alert from a check on one column.
+  columns: Map<string, string>;
+  // Every read, in order: "alert:<id>", "subject:<id>", "consequences:<id>", "column:<id>".
   reads: Array<string>;
 }
 
 function newAlerts(): MemoryAlerts {
-  return { rows: new Map(), hidden: new Set(), reads: [] };
+  return { rows: new Map(), hidden: new Set(), columns: new Map(), reads: [] };
 }
 
 function alertOn(
@@ -149,6 +166,11 @@ function alertReader(alerts: MemoryAlerts): DataAlertRowReader {
 
       return { rows: rows.slice(0, data.limit), total: rows.length };
     },
+    readCheckColumn: async (alertId: string): Promise<string | null> => {
+      alerts.reads.push(`column:${alertId}`);
+
+      return alerts.columns.get(alertId) || null;
+    },
   };
 }
 
@@ -180,11 +202,11 @@ function warehouse(): MemoryGraph {
   return graph;
 }
 
-async function linesFor(
+async function answerFor(
   graph: MemoryGraph,
   alerts: MemoryAlerts,
   alertId: string,
-): Promise<Array<string>> {
+): Promise<DataAlertLineageAnswer> {
   const answer: DataAlertLineageAnswer | null =
     await DataAlertLineageReader.build({
       alertId,
@@ -195,7 +217,50 @@ async function linesFor(
 
   expect(answer).not.toBeNull();
 
-  return describeDataAlertLineage(answer!, NOW);
+  return answer!;
+}
+
+async function linesFor(
+  graph: MemoryGraph,
+  alerts: MemoryAlerts,
+  alertId: string,
+): Promise<Array<string>> {
+  return describeDataAlertLineage(await answerFor(graph, alerts, alertId), NOW);
+}
+
+// What an investigation is told of the column the alert's check reads.
+async function columnLinesFor(
+  graph: MemoryGraph,
+  alerts: MemoryAlerts,
+  alertId: string,
+): Promise<Array<string>> {
+  return describeDataAlertColumn(await answerFor(graph, alerts, alertId));
+}
+
+/*
+ * The warehouse, with the columns its sources name: raw.orders.cust_id ->
+ * staging.orders.customer_id -[dbt_build]-> analytics.daily_revenue
+ * .customer_id -> marts.revenue.buyer_id -> marts.kpis.buyers, and the
+ * amounts beside them.
+ */
+function warehouseWithColumns(): MemoryGraph {
+  const graph: MemoryGraph = warehouse();
+
+  columns(graph, t(3), t(2), [
+    ["cust_id", "customer_id"],
+    ["amount", "amount"],
+  ]);
+  columns(graph, t(2), t(1), [
+    ["customer_id", "customer_id"],
+    ["amount", "revenue"],
+  ]);
+  columns(graph, t(1), t(5), [
+    ["customer_id", "buyer_id"],
+    ["revenue", "revenue"],
+  ]);
+  columns(graph, t(5), t(6), [["buyer_id", "buyers"]]);
+
+  return graph;
 }
 
 describe("an alert's lineage, as an investigation is told it", () => {
@@ -471,6 +536,368 @@ describe("an alert's lineage, as an investigation is told it", () => {
   });
 });
 
+describe("the column a column check's alert reads, as an investigation is told it", () => {
+  test("where it comes from and where it goes, table by table, nearest first, after the lineage", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "customer_id");
+
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([
+      "- The check behind this alert reads the column customer_id. Followed up and down its lineage, as the lineage's sources name its columns:",
+      "  Where it comes from: customer_id of staging.orders, 1 step up; cust_id of raw.orders, 2 steps up.",
+      "  Where it goes: buyer_id of marts.revenue, 1 step down; buyers of marts.kpis, 2 steps down.",
+    ]);
+    // The lineage's own lines are told as for any table's alert.
+    expect((await linesFor(graph, alerts, a(1)))[0]).toBe(
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+    );
+    // The alert's check was asked, and the drawing read with its arrows' columns.
+    expect(alerts.reads).toContain(`column:${a(1)}`);
+    expect(graph.columnReads.length).toBeGreaterThan(0);
+  });
+
+  test("the column as its check names it, matched whatever its case", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "CUSTOMER_ID");
+
+    const lines: Array<string> = await columnLinesFor(graph, alerts, a(1));
+
+    expect(lines[0]).toBe(
+      "- The check behind this alert reads the column CUSTOMER_ID. Followed up and down its lineage, as the lineage's sources name its columns:",
+    );
+    expect(lines[1]).toBe(
+      "  Where it comes from: customer_id of staging.orders, 1 step up; cust_id of raw.orders, 2 steps up.",
+    );
+  });
+
+  test("another of the table's columns: only its own way, and no other column named", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "revenue");
+
+    const lines: Array<string> = await columnLinesFor(graph, alerts, a(1));
+
+    expect(lines).toEqual([
+      "- The check behind this alert reads the column revenue. Followed up and down its lineage, as the lineage's sources name its columns:",
+      "  Where it comes from: amount of staging.orders, 1 step up; amount of raw.orders, 2 steps up.",
+      "  Where it goes: revenue of marts.revenue, 1 step down.",
+    ]);
+    expect(lines.join("\n")).not.toContain("customer_id");
+    expect(lines.join("\n")).not.toContain("marts.kpis");
+  });
+
+  test("an arrow on its way that names no columns: told the column may go further", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    // marts.kpis is fed by marts.revenue, its source naming no columns.
+    graph.columnRows = graph.columnRows.filter(
+      (row: { downstreamDataAssetId: string }): boolean => {
+        return row.downstreamDataAssetId !== t(6);
+      },
+    );
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "customer_id");
+
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([
+      "- The check behind this alert reads the column customer_id. Followed up and down its lineage, as the lineage's sources name its columns:",
+      "  Where it comes from: customer_id of staging.orders, 1 step up; cust_id of raw.orders, 2 steps up.",
+      "  Where it goes: buyer_id of marts.revenue, 1 step down.",
+      "  Some arrows on its way do not say which columns they carry, so it may come from or go further than this.",
+    ]);
+  });
+
+  test("built only one way: the other way is not told", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    graph.columnRows = graph.columnRows.filter(
+      (row: { upstreamDataAssetId: string }): boolean => {
+        return (
+          row.upstreamDataAssetId !== t(1) && row.upstreamDataAssetId !== t(5)
+        );
+      },
+    );
+    // What it feeds is named, without the column: it goes nowhere told.
+    columns(graph, t(1), t(5), [["revenue", "revenue"]]);
+    columns(graph, t(5), t(6), [["revenue", "total"]]);
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "customer_id");
+
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([
+      "- The check behind this alert reads the column customer_id. Followed up and down its lineage, as the lineage's sources name its columns:",
+      "  Where it comes from: customer_id of staging.orders, 1 step up; cust_id of raw.orders, 2 steps up.",
+    ]);
+  });
+
+  test("a column no source names: one line, and whether an arrow next to its table says nothing of its columns", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "status");
+
+    // Every arrow next to it names its columns, none of them this one.
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([
+      "- The check behind this alert reads the column status: no lineage source names the columns it is built from or the columns built from it.",
+    ]);
+
+    // An arrow into its table that names none: it may come along that one.
+    graph.columnRows = graph.columnRows.filter(
+      (row: { downstreamDataAssetId: string }): boolean => {
+        return row.downstreamDataAssetId !== t(1);
+      },
+    );
+
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([
+      "- The check behind this alert reads the column status: no lineage source names the columns it is built from or the columns built from it, and some arrows into or out of its table do not say which columns they carry.",
+    ]);
+  });
+
+  test("a table with no lineage at all: told the same, in one line", async () => {
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.lonely" });
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 0 });
+    alerts.columns.set(a(1), "customer_id");
+
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([
+      "- The check behind this alert reads the column customer_id: no lineage source names the columns it is built from or the columns built from it.",
+    ]);
+  });
+
+  test("a check on the whole table: nothing of a column told, and its lineage read without columns", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([]);
+    expect(graph.columnReads).toEqual([]);
+    // The lineage is told as before.
+    expect((await linesFor(graph, alerts, a(1)))[0]).toBe(
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+    );
+  });
+
+  test("a pipeline's alert: its check is never asked, and nothing of a column told", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { pipeline: 1 });
+    alerts.columns.set(a(1), "customer_id");
+
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([]);
+    expect(alerts.reads).not.toContain(`column:${a(1)}`);
+    expect(graph.columnReads).toEqual([]);
+  });
+
+  test("a table in another database is named with it", async () => {
+    const graph: MemoryGraph = warehouseWithColumns();
+    graph.tables.get(t(3))!.database = "Lake";
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "customer_id");
+
+    expect((await columnLinesFor(graph, alerts, a(1)))[1]).toBe(
+      "  Where it comes from: customer_id of staging.orders, 1 step up; cust_id of raw.orders, in Lake, 2 steps up.",
+    );
+  });
+
+  test("the five nearest tables each way, the rest counted; five columns on one table, the rest counted", async () => {
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.orders" });
+
+    // Seven tables a step up, each with the column under its own name.
+    for (let index: number = 1; index <= 7; index++) {
+      table(graph, t(10 + index), { assetKey: `raw.u${index}` });
+      feeds(graph, t(10 + index), t(0));
+      columns(graph, t(10 + index), t(0), [[`id_${index}`, "customer_id"]]);
+    }
+
+    // One table a step down built from it seven times over.
+    table(graph, t(30), { assetKey: "marts.wide" });
+    feeds(graph, t(0), t(30));
+    columns(
+      graph,
+      t(0),
+      t(30),
+      [1, 2, 3, 4, 5, 6, 7].map((index: number): [string, string] => {
+        return ["customer_id", `c${index}`];
+      }),
+    );
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 0 });
+    alerts.columns.set(a(1), "customer_id");
+
+    expect(MAX_DATA_ALERT_COLUMN_TABLES_TOLD).toBe(5);
+    expect(MAX_DATA_ALERT_COLUMNS_TOLD_PER_TABLE).toBe(5);
+    expect(await columnLinesFor(graph, alerts, a(1))).toEqual([
+      "- The check behind this alert reads the column customer_id. Followed up and down its lineage, as the lineage's sources name its columns:",
+      "  Where it comes from: id_1 of raw.u1, 1 step up; id_2 of raw.u2, 1 step up; id_3 of raw.u3, 1 step up; id_4 of raw.u4, 1 step up; id_5 of raw.u5, 1 step up; and 2 more tables further up.",
+      "  Where it goes: c1, c2, c3, c4, c5 and 2 more columns of marts.wide, 1 step down.",
+    ]);
+  });
+
+  test("a long column or table name is cut short, never the line's sense", async () => {
+    const graph: MemoryGraph = newGraph();
+    const longTable: string = `raw.${"t".repeat(400)}`;
+    const longColumn: string = "c".repeat(240);
+
+    table(graph, t(0), { assetKey: "public.orders" });
+    table(graph, t(1), { assetKey: longTable });
+    feeds(graph, t(1), t(0));
+    columns(graph, t(1), t(0), [[longColumn, "customer_id"]]);
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 0 });
+    alerts.columns.set(a(1), "customer_id");
+
+    const lines: Array<string> = await columnLinesFor(graph, alerts, a(1));
+    const clippedColumn: string = `${"c".repeat(MAX_DATA_ALERT_COLUMN_NAME_LENGTH - 1)}…`;
+
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain(`Where it comes from: ${clippedColumn} of raw.`);
+    expect(lines[1]).not.toContain(
+      "c".repeat(MAX_DATA_ALERT_COLUMN_NAME_LENGTH),
+    );
+    expect(lines[1]).toMatch(/…, 1 step up\.$/);
+
+    const tableTold: string = lines[1]!.slice(
+      lines[1]!.indexOf(" of ") + 4,
+      lines[1]!.indexOf(", 1 step up"),
+    );
+
+    expect(tableTold.length).toBeLessThanOrEqual(
+      MAX_DATA_ALERT_COLUMN_TABLE_NAME_LENGTH,
+    );
+    expect(tableTold.endsWith("…")).toBe(true);
+  });
+
+  test("however wide the lineage, the column's lines stay a few: a few kilobytes at most", async () => {
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.orders" });
+
+    // Eight long columns of one table, each the column under another long name.
+    const eight: (name: string) => Array<string> = (
+      name: string,
+    ): Array<string> => {
+      return [1, 2, 3, 4, 5, 6, 7, 8].map((column: number): string => {
+        return `${name.repeat(230)}${column}`;
+      });
+    };
+
+    /*
+     * As many tables a step each way as a drawing holds, each built from
+     * as many more a step further: every one with eight columns that are
+     * the column, under the longest names a source may give.
+     */
+    for (let index: number = 1; index <= MAX_DATA_LINEAGE_NEIGHBORS; index++) {
+      const up: string = t(100 + index);
+      const down: string = t(200 + index);
+
+      table(graph, up, {
+        assetKey: `raw.${"u".repeat(300)}${index}`,
+        database: "Lake",
+      });
+      table(graph, down, {
+        assetKey: `marts.${"d".repeat(300)}${index}`,
+        database: "Mart",
+      });
+      feeds(graph, up, t(0));
+      feeds(graph, t(0), down);
+      columns(
+        graph,
+        up,
+        t(0),
+        eight("x").map((column: string): [string, string] => {
+          return [column, "customer_id"];
+        }),
+      );
+      columns(
+        graph,
+        t(0),
+        down,
+        eight("y").map((column: string): [string, string] => {
+          return ["customer_id", column];
+        }),
+      );
+
+      for (
+        let further: number = 1;
+        further <= MAX_DATA_LINEAGE_NEIGHBORS;
+        further++
+      ) {
+        const upAgain: string = t(1000 + index * 100 + further);
+        const downAgain: string = t(5000 + index * 100 + further);
+
+        table(graph, upAgain, { assetKey: `raw.second_${index}_${further}` });
+        table(graph, downAgain, {
+          assetKey: `marts.second_${index}_${further}`,
+        });
+        feeds(graph, upAgain, up);
+        feeds(graph, down, downAgain);
+        columns(
+          graph,
+          upAgain,
+          up,
+          eight("x").map((column: string): [string, string] => {
+            return [`source_${column}`, column];
+          }),
+        );
+        columns(
+          graph,
+          down,
+          downAgain,
+          eight("y").map((column: string): [string, string] => {
+            return [column, `built_${column}`];
+          }),
+        );
+      }
+    }
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(1), { table: 0 });
+    alerts.columns.set(a(1), "customer_id");
+
+    const answer: DataAlertLineageAnswer = await answerFor(graph, alerts, a(1));
+    const drawn: (side: DataLineageSide) => number = (
+      side: DataLineageSide,
+    ): number => {
+      return answer.lineage!.nodes.filter(
+        (node: DataTableLineageNode): boolean => {
+          return node.side === side;
+        },
+      ).length;
+    };
+    const lines: Array<string> = describeDataAlertColumn(answer);
+    const told: string = lines.join("\n");
+
+    // Every table drawn each way is on the column's way: dozens of them.
+    expect(drawn(DataLineageSide.Upstream)).toBeGreaterThan(30);
+    expect(drawn(DataLineageSide.Downstream)).toBeGreaterThan(30);
+    expect(lines).toHaveLength(3);
+    // The nearest five each way told, the rest counted.
+    expect(lines[1]).toContain(
+      `; and ${drawn(DataLineageSide.Upstream) - MAX_DATA_ALERT_COLUMN_TABLES_TOLD} more tables further up.`,
+    );
+    expect(lines[2]).toContain(
+      `; and ${drawn(DataLineageSide.Downstream) - MAX_DATA_ALERT_COLUMN_TABLES_TOLD} more tables further down.`,
+    );
+    expect(told).not.toContain("raw.second_");
+    expect(told).not.toContain("marts.second_");
+    // Five columns of each told table, the rest of its eight counted.
+    expect((told.match(/ and 3 more columns of /g) || []).length).toBe(
+      2 * MAX_DATA_ALERT_COLUMN_TABLES_TOLD,
+    );
+    expect(Buffer.byteLength(told, "utf8")).toBeLessThan(12 * 1024);
+  });
+});
+
 describe("an investigation's context section", () => {
   let graph: MemoryGraph;
   let alerts: MemoryAlerts;
@@ -633,6 +1060,77 @@ describe("an investigation's context section", () => {
     expect(section).not.toContain("lineage");
     expect(alertReaderFor).not.toHaveBeenCalled();
     expect(lineageReaderFor).not.toHaveBeenCalled();
+  });
+
+  test("a column check's alert: where its column comes from and goes, after its lineage, read for nobody in particular", async () => {
+    graph = warehouseWithColumns();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "customer_id");
+    stubDataAlert({ table: 1 });
+
+    const section: string = await sectionFor(a(1));
+    const lineage: number = section.indexOf(
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+    );
+    const column: number = section.indexOf(
+      "- The check behind this alert reads the column customer_id. Followed up and down its lineage, as the lineage's sources name its columns:\n  Where it comes from: customer_id of staging.orders, 1 step up; cust_id of raw.orders, 2 steps up.\n  Where it goes: buyer_id of marts.revenue, 1 step down; buyers of marts.kpis, 2 steps down.",
+    );
+
+    expect(lineage).toBeGreaterThan(-1);
+    expect(column).toBeGreaterThan(lineage);
+    // Its check read through the reader for nobody in particular, the drawing with its arrows' columns.
+    expect(alertReaderFor).toHaveBeenCalledWith(PROJECT_ID, null);
+    expect(alerts.reads).toContain(`column:${a(1)}`);
+    expect(graph.columnReads.length).toBeGreaterThan(0);
+  });
+
+  test("a private column check's alert under investigation is still told its column: its report's readers may see it", async () => {
+    graph = warehouseWithColumns();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "customer_id");
+    alerts.hidden.add(a(1));
+    stubDataAlert({ table: 1 });
+
+    expect(await sectionFor(a(1))).toContain(
+      "- The check behind this alert reads the column customer_id. Followed up and down its lineage",
+    );
+  });
+
+  test("a table check's alert: no column told, and its lineage read without columns", async () => {
+    graph = warehouseWithColumns();
+    alertOn(alerts, a(1), { table: 1 });
+    stubDataAlert({ table: 1 });
+
+    const section: string = await sectionFor(a(1));
+
+    expect(section).toContain("- Its lineage (the tables it is built from");
+    expect(section).not.toContain("The check behind this alert");
+    expect(alerts.reads).toContain(`column:${a(1)}`);
+    expect(graph.columnReads).toEqual([]);
+  });
+
+  test("a check that cannot be read leaves only the column out: the lineage is still told", async () => {
+    graph = warehouseWithColumns();
+    alertOn(alerts, a(1), { table: 1 });
+    alerts.columns.set(a(1), "customer_id");
+    stubDataAlert({ table: 1 });
+
+    alertReaderFor.mockImplementation(((): DataAlertRowReader => {
+      return {
+        ...alertReader(alerts),
+        readCheckColumn: async (): Promise<string | null> => {
+          throw new Error("the database is away");
+        },
+      };
+    }) as never);
+
+    const section: string = await sectionFor(a(1));
+
+    expect(section).toContain(
+      "- Its lineage (the tables it is built from, and the tables built from it), 3 steps each way:",
+    );
+    expect(section).not.toContain("The check behind this alert");
+    expect(graph.columnReads).toEqual([]);
   });
 
   test("a lineage that cannot be read leaves only itself out", async () => {

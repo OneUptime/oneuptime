@@ -1,6 +1,6 @@
 # Catalogue de services
 
-Le catalogue de services liste les applications et les microservices que vous exploitez. OneUptime ajoute un service dès que sa télémétrie arrive pour la première fois, puis réunit ses journaux, ses traces, ses métriques, ses exceptions, ses incidents et ses propriétaires sur une seule page, pour que chacun sache ce que fait un service, à qui il appartient et comment il se porte.
+Le catalogue de services liste les applications et les microservices que vous exploitez. OneUptime ajoute un service dès que sa télémétrie arrive pour la première fois, puis réunit ses journaux, ses traces, ses métriques, ses exceptions, ses incidents et ses propriétaires sur une seule page, pour que chacun sache ce que fait un service, à qui il appartient et comment il se porte. Pour choisir entre un service, un groupe de moniteurs et une étiquette, consultez [Lequel choisir ?](/docs/introduction/which-one#groupe-de-moniteurs-service-ou-étiquette).
 
 :::cards
 - [Comment un service entre dans le catalogue](#comment-un-service-entre-dans-le-catalogue): Son `service.name`, dès sa première télémétrie.

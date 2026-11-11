@@ -157,7 +157,8 @@
     "successMessage": "Vi har skickat länken för återställning av lösenord till din e-post. Glöm inte att kontrollera skräpposten.",
     "submitButton": "Skicka länk för återställning",
     "rememberPasswordPrompt": "Kommer du ihåg ditt lösenord?",
-    "loginLink": "Logga in."
+    "loginLink": "Logga in.",
+    "cannotEmail": "Den här servern kan inte skicka e-post ännu, så den kan inte skicka en länk för att återställa ditt lösenord. Be serveradministratören att återställa ditt lösenord."
   },
   "magicLink": {
     "title": "Logga in med en länk",
@@ -168,7 +169,8 @@
     "notReceived": "Inte i inkorgen? Kolla skräppostmappen eller se till att du skrev adressen du registrerade dig med.",
     "sendAnother": "Skicka en ny länk",
     "knowPasswordPrompt": "Kan du ditt lösenord?",
-    "loginLink": "Logga in."
+    "loginLink": "Logga in.",
+    "cannotEmail": "Den här servern kan inte skicka e-post ännu, så den kan inte skicka en inloggningslänk. Logga in med ditt lösenord, eller be serveradministratören att ge dig åtkomst."
   },
   "resetPassword": {
     "title": "Återställ ditt lösenord",

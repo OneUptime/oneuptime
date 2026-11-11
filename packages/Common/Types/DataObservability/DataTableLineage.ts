@@ -181,6 +181,12 @@ export interface DataLineageHighlight {
   consequenceNodeIds: Array<string>;
   // A cause or consequence that is a pipeline drawn only on arrows: named on its arrows along the way.
   dataPipelineIds: Array<string>;
+  /*
+   * Of those, the cause's: the way up ends on the arrows it moves data
+   * along, and each of them says Cause by its name, as a cause drawn as a
+   * card does on the card.
+   */
+  causeDataPipelineIds: Array<string>;
 }
 
 export interface DataTableLineage {
@@ -235,6 +241,13 @@ export interface DataAlertLineageAnswer {
   // The alerts it caused, and how many of them the drawing reaches.
   consequenceCount: number;
   drawnConsequenceCount: number;
+  /*
+   * The column its check reads, when it comes from a check on one column
+   * of the table drawn: the drawing is then read with the columns each
+   * arrow carries (as a table's withColumns), so the diagram opens with
+   * that column followed. Null for any other alert.
+   */
+  column: string | null;
 }
 
 export function getLineageTableNodeId(dataAssetId: string): string {
