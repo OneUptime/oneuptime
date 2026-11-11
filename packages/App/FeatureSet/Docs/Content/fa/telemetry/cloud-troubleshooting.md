@@ -67,10 +67,11 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 2. `aws.ecs.task.arn` (کوتاه‌شده به شناسهٔ وظیفه)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 شناسهٔ خودِ بستر پیش از `service.instance.id` می‌آید، پس شناسه‌ای که SDK برای هر فرایند می‌سازد (SDK در Node.js به‌طور پیش‌فرض همین کار را می‌کند) نمی‌تواند یک وظیفه را از CPU و حافظهٔ sidecar آن جدا کند. چه چیزی شناسه را روی هر بستر تنظیم می‌کند:
 
@@ -80,7 +81,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 | Cloud Run, App Engine | تشخیص‌دهندهٔ `gcp` مقدار `faas.instance` را تنظیم می‌کند |
 | Container Apps | تشخیص‌دهندهٔ `azurecontainerapps` در Collector شناسهٔ رپلیکا را تنظیم می‌کند؛ یا `service.instance.id` را از `CONTAINER_APP_REPLICA_NAME` تنظیم کنید، یا تشخیص‌دهندهٔ میزبان را اجرا کنید |
 | App Runner, Container Instances | `host.name` تشخیص‌دهندهٔ میزبان |
-| App Service, Elastic Beanstalk | تشخیص‌دهندهٔ بستر `service.instance.id` را تنظیم می‌کند؛ روی Beanstalk آن را حذف کنید تا `host.id` هر نمونه را نام‌گذاری کند |
+| App Service, Elastic Beanstalk | تشخیص‌دهندهٔ بستر `service.instance.id` را تنظیم می‌کند (روی App Service، تشخیص‌دهندهٔ Collector `azure.app_service.instance.id` را تنظیم می‌کند)؛ روی Beanstalk، `service.instance.id` را حذف کنید تا `host.id` هر نمونه را نام‌گذاری کند |
 
 یک نمونه ظرف یک دقیقه پس از نخستین سیگنالی که این ویژگی را دارد نمایش داده می‌شود.
 
@@ -89,7 +90,7 @@ curl -i https://oneuptime.com/otlp/v1/validate \
 نمونه‌ها فهرست شده‌اند، اما کاشی‌های **CPU** و **حافظه** در نمای کلی، و ستون‌های CPU و حافظه در **نمونه‌ها**، خالی‌اند. این‌ها از متریک‌ها می‌آیند، نه از ترِیس‌ها: نقطه‌های دادهٔ `container.cpu.utilization` و `container.memory.usage` (یا `container.memory.usage.total`) که منبعشان همان شناسهٔ نمونهٔ ترِیس‌ها و `cloud.platform` را دارد.
 
 - **روی ECS،** گیرندهٔ `awsecscontainermetrics` در یک کالکتور sidecar آن‌ها را به‌صورت `ecs.task.cpu.utilized` و `ecs.task.memory.utilized` فراهم می‌کند. آن را در خط لولهٔ `metrics` نگه دارید، و `resourcedetection` را هم در همان خط لوله نگه دارید، وگرنه متریک‌ها بدون `cloud.platform` می‌رسند و جای دیگری بایگانی می‌شوند.
-- **روی Cloud Run، Container Apps و بسترهای دیگر،** بستر مصرف کانتینر را به sidecar نشان نمی‌دهد. کاشی‌ها خالی می‌مانند مگر آن‌که خودتان این متریک‌ها را بفرستید: به‌جای آن کاشی‌های درخواست را بخوانید.
+- **روی Cloud Run، Container Apps و بسترهای دیگر،** بستر مصرف کانتینر را به sidecar نشان نمی‌دهد. کاشی‌ها خالی می‌مانند مگر آن‌که خودتان این متریک‌ها را بفرستید: به‌جای آن کاشی‌های درخواست را بخوانید. روی App Service، اشتراک را در **ابر** > **اتصال** وصل کنید: آنگاه صفحهٔ برنامه زمان CPU و حافظهٔ سایتش را از **Azure Monitor** نشان می‌دهد.
 - **با SDK direct،** هیچ‌چیز متریک کانتینر نمی‌فرستد، پس کاشی‌های خالی طبیعی‌اند.
 
 ## محیط قطع‌شده نشان داده می‌شود

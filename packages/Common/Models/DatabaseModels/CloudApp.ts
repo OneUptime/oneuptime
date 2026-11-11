@@ -329,6 +329,111 @@ export default class CloudApp extends BaseModel {
   })
   public lastSeenAt?: Date = undefined;
 
+  /*
+   * When each kind of telemetry was last received for this app (issue
+   * #6770), as a RUM application keeps them (RumApplication's
+   * <signal>LastReceivedAt): an app's page reads them to tell what it
+   * measured from what it never received. Its requests, error rate and
+   * latency come from its traces, so an app that sends only metrics says
+   * "No traces received" where it said "0 requests", and its setup card
+   * says what to add.
+   *
+   * Written by the ingest of each kind as root, at most once per kind per
+   * maintenance-fence window (CloudAppService.recordApp, from
+   * OtelIngestBaseService), so each trails live traffic by the same few
+   * minutes lastSeenAt does. No create/update ACL: nobody sets them by hand.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Traces Last Received At",
+    description: "When spans last arrived from this app.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public tracesLastReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Logs Last Received At",
+    description: "When logs last arrived from this app.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public logsLastReceivedAt?: Date = undefined;
+
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Metrics Last Received At",
+    description: "When metrics last arrived from this app.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+  })
+  public metricsLastReceivedAt?: Date = undefined;
+
+  /*
+   * Since when the three columns above are kept: when the app was created,
+   * or - for an app that existed before they were - when this install
+   * started keeping them (the migration gives every existing row that
+   * moment). A column that is still empty means "nothing of that kind since
+   * this date", never "nothing ever": an app that sent traces only before
+   * the upgrade has no tracesLastReceivedAt, and its page says "no traces
+   * received since <this date>", which stays true.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.Date,
+    canReadOnRelationQuery: true,
+    title: "Signal Arrivals Tracked Since",
+    description:
+      "Since when OneUptime has recorded when traces, logs and metrics last arrived from this app.",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.Date,
+    default: () => {
+      return "now()";
+    },
+  })
+  public signalArrivalsTrackedSince?: Date = undefined;
+
+  /*
+   * The cloud provider's own id for the app, when its telemetry carries
+   * cloud.resource_id - the Azure App Service detectors set it to the
+   * site's resource id. It is what links the app to the Cloud Resource
+   * Azure Monitor reports it as, whose platform metrics its page shows.
+   */
+  @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.VeryLongText,
+    title: "Provider Resource ID",
+    description:
+      "The cloud provider's id for the app (cloud.resource_id), such as an Azure App Service app's resource id.",
+    example:
+      "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/rg-prod/providers/Microsoft.Web/sites/checkout",
+  })
+  @Column({
+    nullable: true,
+    type: ColumnType.VeryLongText,
+  })
+  public providerResourceId?: string = undefined;
+
   @ColumnAccessControl({ create: [], read: READ_PERMISSIONS, update: [] })
   @TableColumn({
     type: TableColumnType.ObjectID,

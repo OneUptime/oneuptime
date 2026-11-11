@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Collector의 `elastic_beanstalk` 및 `ec2` 감지기, Node.js의 `aws` | `host.id`(배포의 `service.instance.id`는 제거) |
 | AWS App Runner | `aws_app_runner` | 직접 설정(감지기 없음) | `host.name` |
 | Google App Engine | `gcp_app_engine` | `gcp` 감지기(Collector와 모든 SDK) | `faas.instance` |
-| Azure App Service | `azure_app_service` | Collector의 `azureappservice`, Node.js와 .NET의 `azure` 감지기. `cloud.account.id`는 직접 설정 | `service.instance.id`, 그다음 `host.id` |
+| Azure App Service | `azure_app_service` | Collector의 `azureappservice`, Node.js와 .NET의 `azure` 감지기. SDK에서는 `cloud.account.id`를 직접 설정 | `azure.app_service.instance.id`, 없으면 `service.instance.id`, 그다음 `host.id` |
 | Azure Container Instances | `azure_container_instances` | 직접 설정(감지기 없음) | `host.name` |
 
 아래의 모든 섹션에는 **프로젝트 설정 → 텔레메트리 및 APM → 수집 키**에서 만든 **서버** 수집 키와, OpenTelemetry SDK로 계측한 애플리케이션이 필요합니다. OneUptime을 자체 호스팅한다면 `https://oneuptime.com/otlp`를 `https://YOUR-ONEUPTIME-HOST/otlp`로 바꾸세요.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. Node.js와 .NET용 Azure 감지기, 그리고 Collector의 `azureappservice` 감지기는 App Service가 설정하는 `WEBSITE_*` 변수를 읽습니다. 그리고 `cloud.platform`, `cloud.region`, `service.instance.id`(`WEBSITE_INSTANCE_ID`에서), `deployment.environment`(슬롯), `host.id`를 채웁니다. 어느 것도 `cloud.account.id`는 설정하지 않으므로 구독 ID를 직접 추가하세요. 그렇지 않으면 환경 키의 계정 부분이 비게 됩니다.
+`cloud.platform`: `azure_app_service`. Node.js와 .NET용 Azure 감지기는 App Service가 설정하는 `WEBSITE_*` 변수를 읽고 `cloud.platform`, `cloud.region`, `service.instance.id`(`WEBSITE_INSTANCE_ID`에서), `deployment.environment`(슬롯), `host.id`를 채우지만 `cloud.account.id`는 설정하지 않으므로 구독 ID를 직접 추가하세요. 그렇지 않으면 환경 키의 계정 부분이 비게 됩니다. Collector의 `azureappservice` 감지기는 같은 변수를 읽고 `cloud.account.id`도 설정하며, 인스턴스를 `azure.app_service.instance.id`에 넣습니다.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ SDK 감지기는 플랫폼을 점이 들어간 `azure.app_service`로 씁니다.
 :::
 
 **네트워킹:** **VNet integration**과 **Route All**을 켜지 않았다면 App Service는 인터넷에 바로 닿습니다. 켰다면 VNet에 NAT 게이트웨이나, OneUptime 호스트로 가는 TCP 443을 허용하는 방화벽으로의 경로가 필요합니다.
+
+**앱 페이지에 표시되는 내용:** 요청, 오류율, 지연 시간은 앱의 트레이스에서 나오므로, 로그나 메트릭만 보내는 앱에는 그곳에 **수신된 트레이스 없음**이 표시되고 앱의 **설정 점검**이 무엇을 추가해야 하는지 알려 줍니다. App Service는 앱에 자체 CPU나 메모리를 주지 않으며, CPU와 메모리 타일이 그렇다고 알려 줍니다. **클라우드 → 연결**에서 구독을 연결하면 앱의 **개요**에 **Azure Monitor** 섹션이 추가되어, 앱이 무엇을 보내든 Azure가 측정한 사이트의 요청, 서버 오류, 응답 시간, CPU 시간, 메모리를 보여 줍니다.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Key Vault 참조가 확인되지 않아 App Service가 `@Microsoft.KeyVault(...)
 :::
 
 :::details App Service 환경의 계정 부분이 비어 있음
-App Service 감지기 중 어느 것도 `cloud.account.id`를 설정하지 않습니다. 모든 앱의 `OTEL_RESOURCE_ATTRIBUTES`에 구독 ID를 추가하세요. 이 값이 있는 텔레메트리와 없는 텔레메트리는 두 환경으로 나뉩니다.
+Node.js와 .NET의 App Service 감지기는 `cloud.account.id`를 설정하지 않습니다. 모든 앱의 `OTEL_RESOURCE_ATTRIBUTES`에 구독 ID를 추가하세요. 이 값이 있는 텔레메트리와 없는 텔레메트리는 두 환경으로 나뉩니다.
+:::
+
+:::details App Service 앱에 요청이나 인스턴스가 표시되지 않음
+요청, 오류율, 지연 시간은 트레이스에서 나오므로 로그나 메트릭만 보내는 앱에는 없습니다. 앱의 **설정 점검**이 무엇을 추가해야 하는지 알려 줍니다. 인스턴스는 Azure 감지기가 설정하는 `azure.app_service.instance.id` 또는 `service.instance.id`에서 나오며, 둘 다 없으면 **인스턴스** 타일에 **보고되지 않음**이 표시됩니다. 앱이 무엇을 보내든 사이트의 요청을 보려면 구독을 연결하세요. 앱 페이지에 **Azure Monitor** 섹션이 추가됩니다.
 :::
 
 :::details Container Instances 변수를 바꿔도 반영되지 않음

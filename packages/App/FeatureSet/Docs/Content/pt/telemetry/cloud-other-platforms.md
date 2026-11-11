@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | Os detectores `elastic_beanstalk` e `ec2` do Collector; `aws` no Node.js | `host.id` (remova o `service.instance.id` da implantação) |
 | AWS App Runner | `aws_app_runner` | Você (nenhum detector) | `host.name` |
 | Google App Engine | `gcp_app_engine` | O detector `gcp` (o do Collector e o de cada SDK) | `faas.instance` |
-| Azure App Service | `azure_app_service` | O `azureappservice` do Collector, os detectores `azure` de Node.js e .NET; `cloud.account.id` por você | `service.instance.id`, depois `host.id` |
+| Azure App Service | `azure_app_service` | O `azureappservice` do Collector, os detectores `azure` de Node.js e .NET; com os SDKs, `cloud.account.id` por você | `azure.app_service.instance.id`, senão `service.instance.id`, depois `host.id` |
 | Azure Container Instances | `azure_container_instances` | Você (nenhum detector) | `host.name` |
 
 Cada seção abaixo precisa de uma chave de ingestão **Servidor** de **Configurações do projeto → Telemetria e APM → Chaves de ingestão**, e de uma aplicação instrumentada com um SDK do OpenTelemetry. Se você hospeda o OneUptime por conta própria, substitua `https://oneuptime.com/otlp` por `https://YOUR-ONEUPTIME-HOST/otlp`.
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`. Os detectores do Azure de Node.js e .NET, e o detector `azureappservice` do Collector, leem as variáveis `WEBSITE_*` que o App Service define. Eles preenchem `cloud.platform`, `cloud.region`, `service.instance.id` (a partir de `WEBSITE_INSTANCE_ID`), `deployment.environment` (o slot) e `host.id`. Nenhum deles define `cloud.account.id`: adicione você mesmo o ID da assinatura, ou a chave do ambiente recebe um segmento de conta vazio.
+`cloud.platform`: `azure_app_service`. Os detectores do Azure de Node.js e .NET leem as variáveis `WEBSITE_*` que o App Service define, e preenchem `cloud.platform`, `cloud.region`, `service.instance.id` (a partir de `WEBSITE_INSTANCE_ID`), `deployment.environment` (o slot) e `host.id`, mas não `cloud.account.id`: adicione você mesmo o ID da assinatura, ou a chave do ambiente recebe um segmento de conta vazio. O detector `azureappservice` do Collector lê as mesmas variáveis, também define `cloud.account.id` e nomeia a instância em `azure.app_service.instance.id`.
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ Os detectores dos SDKs escrevem a plataforma como `azure.app_service`, com um po
 :::
 
 **Rede:** o App Service alcança a internet diretamente, a menos que a **VNet integration** com **Route All** esteja ativada. Nesse caso a VNet precisa de um gateway NAT, ou de uma rota para um firewall que permita TCP 443 até o host do OneUptime.
+
+**O que a página do app mostra:** requisições, taxa de erros e latência vêm dos traços do app, então um app que envia só registros ou métricas mostra ali **Nenhum traço recebido**, e a sua **Verificação da configuração** diz o que adicionar. O App Service não dá a um app CPU nem memória próprias, e os blocos de CPU e memória dele dizem isso. Conecte a assinatura em **Nuvem → Conectar**, e a **Visão geral** do app ganha uma seção **Azure Monitor**: as requisições, os erros de servidor, o tempo de resposta, o tempo de CPU e a memória do site, como o Azure os mede, seja o que for que o app envie.
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ A referência ao Key Vault não foi resolvida, então o App Service repassou o t
 :::
 
 :::details Um ambiente do App Service tem um segmento de conta vazio
-Nenhum dos detectores do App Service define `cloud.account.id`. Adicione o ID da assinatura a `OTEL_RESOURCE_ATTRIBUTES` em todos os apps: telemetria com e sem ele cai em dois ambientes.
+Os detectores do App Service de Node.js e .NET não definem `cloud.account.id`. Adicione o ID da assinatura a `OTEL_RESOURCE_ATTRIBUTES` em todos os apps: telemetria com e sem ele cai em dois ambientes.
+:::
+
+:::details Um app do App Service não mostra requisições nem instâncias
+Requisições, taxa de erros e latência vêm dos traços, então um app que envia só registros ou métricas não tem nenhuma: a sua **Verificação da configuração** diz o que adicionar. As instâncias vêm de `azure.app_service.instance.id` ou de `service.instance.id`, que os detectores do Azure definem: sem nenhum dos dois, o bloco **Instâncias** mostra **Não reportado**. Para ver as requisições do site, seja o que for que o app envie, conecte a assinatura: a página do app ganha uma seção **Azure Monitor**.
 :::
 
 :::details Uma variável alterada do Container Instances não tem efeito

@@ -115,6 +115,50 @@ export const CLOUD_APP_METRIC_DESCRIPTIONS: Record<CloudAppMetric, string> = {
 };
 
 /*
+ * What each number of an App Service app's Azure Monitor card means
+ * (Components/AppPlatforms/CloudAppAzureMonitorCard): the site's own
+ * metrics, as Azure measures them at the App Service front end, whatever
+ * the app sends - so they fill even for an app that sends no traces, and
+ * CPU and memory, which App Service gives an app no other way (issue
+ * #6770). Each follows the selected range.
+ */
+export type CloudAppAzureMonitorMetric =
+  | "requests"
+  | "serverErrors"
+  | "responseTime"
+  | "cpuTime"
+  | "memory"
+  | "requestsChart"
+  | "responseTimeChart";
+
+export const CLOUD_APP_AZURE_MONITOR_DESCRIPTIONS: Record<
+  CloudAppAzureMonitorMetric,
+  string
+> = {
+  requests: translationKey(
+    "Requests to this app's site in the selected range, as Azure Monitor counts them at the App Service front end. It counts every request, whether or not the app sends traces.",
+  ),
+  serverErrors: translationKey(
+    "The share of the site's requests in the selected range that it answered with a 5xx status, as Azure Monitor counts them. The line below is how many.",
+  ),
+  responseTime: translationKey(
+    "How long the site took to answer a request, averaged over the selected range, as Azure Monitor measures it.",
+  ),
+  cpuTime: translationKey(
+    "CPU time the site used in the selected range, added up across its instances, as Azure Monitor measures it.",
+  ),
+  memory: translationKey(
+    "Memory the site uses (its working set), averaged over the selected range, as Azure Monitor measures it.",
+  ),
+  requestsChart: translationKey(
+    "The site's requests in each interval, with those answered with a 5xx status as a second line, as Azure Monitor counts them. A dashed line marks each deploy.",
+  ),
+  responseTimeChart: translationKey(
+    "The site's average response time in each interval, as Azure Monitor measures it. A dashed line marks each deploy.",
+  ),
+};
+
+/*
  * The stat strip above the Cloud Environments list (Pages/Cloud/Utils/
  * CloudFleetSummary.ts). Counts of rows, not telemetry, so none of them has
  * a time range.

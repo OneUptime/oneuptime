@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | 리소스 감지기 | `faas.instance` | [기타 클라우드 플랫폼](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | 리소스 감지기 | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | 직접 설정 | `host.name` | [기타 클라우드 플랫폼](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | 리소스 감지기 | `host.id` | [기타 클라우드 플랫폼](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | 리소스 감지기 | `azure.app_service.instance.id` | [기타 클라우드 플랫폼](/docs/telemetry/cloud-other-platforms) |
 
 - **리소스 감지기:** SDK 또는 Collector의 `resourcedetection` 프로세서에 있는 OpenTelemetry 리소스 감지기가 `cloud.*` 속성을 대신 설정합니다.
 - **직접 설정:** 감지기가 없으므로 `OTEL_RESOURCE_ATTRIBUTES`에 속성을 넣습니다. 정확한 줄은 해당 플랫폼 페이지에 있습니다.
-- **Azure 감지기는 아는 것이 적습니다.** Container Apps 감지기는 리전도 구독도 모르고, App Service 감지기는 구독을 모릅니다. 빠진 값은 직접 설정하세요.
+- **Azure 감지기는 아는 것이 적습니다.** Container Apps 감지기는 리전도 구독도 모르고, Node.js와 .NET의 App Service 감지기는 구독을 모릅니다(Collector의 감지기는 압니다). 빠진 값은 직접 설정하세요.
 - **점으로 구분된 Azure 표기도 동작합니다.** Node.js와 .NET용 Azure 감지기는 `azure.container_apps`와 `azure.app_service`로 씁니다. OneUptime은 이를 받을 때 위의 밑줄 값으로 바꿉니다.
 
 ## OneUptime이 환경을 식별하는 방법
@@ -88,10 +88,11 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 2. `aws.ecs.task.arn`(태스크 ID로 줄임)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 플랫폼 자체의 식별자를 의도적으로 먼저 사용합니다. 사이드카 Collector와 애플리케이션의 SDK가 모두 볼 수 있고, 재시작해도 유지되기 때문입니다. SDK는 보통 프로세스마다 새 `service.instance.id`를 만들어 냅니다(Node.js SDK는 기본적으로 그렇게 합니다). 그래서 이것을 먼저 키로 쓰면 ECS 태스크 하나가 두 행으로 나뉩니다. `service.instance.id`는 플랫폼이 자체 식별자를 설정하지 않을 때 사용됩니다. [지원되는 플랫폼](#지원되는-플랫폼)의 **인스턴스 식별자** 열에는 각 플랫폼의 일반적인 구성에서 쓰는 속성이 나와 있습니다.
 
@@ -122,6 +123,8 @@ azure_container_apps|00000000-0000-0000-0000-000000000000|eastus
 - **앱 하나에 대해 한 시간에 기록되는 새 리비전은 최대 12개입니다.** 그렇지 않으면 빌드마다 바뀌는 `service.version`이 매분 배포가 됩니다.
 
 앱 페이지에는 요청, 오류, 지연 시간, 인스턴스와 지금 실행 중인 리비전을 보여 주는 **개요**, 리비전별 수치를 보여 주는 **리비전** 탭, 앱으로 필터링된 **인스턴스**, **로그**, **트레이스** 탭, 그리고 OneUptime이 앱에 권장하는 모니터를 보여 주는 **권장 사항** 탭이 있습니다. 권장 모니터는 실패한 작업, 오류 급증, 끊긴 트래픽, 느린 요청을 앱 자체의 스팬과 `http.server.request.duration`에서 읽으며, 각각 앱의 환경에 연결됩니다. **경고 설정**은 이 탭을 엽니다. 이름이 너무 길어 텔레메트리를 필터링할 수 없는 앱에서는 대신 **서비스**에 있는 앱 서비스의 권장 모니터를 엽니다.
+
+앱이 한 번도 보내지 않은 숫자는 0으로 표시되지 않습니다. 트레이스를 보내지 않은 앱의 요청, 오류율, 지연 시간 타일에는 **수신된 트레이스 없음**이 표시되고, 텔레메트리가 인스턴스를 밝히지 않는 실행 중인 앱의 **인스턴스** 타일에는 **보고되지 않음**이 표시됩니다. 앱이 트레이스, 인스턴스, 버전을 보낼 때까지 앱의 **개요** 맨 위에는 **설정 점검**이 표시되어, 텔레메트리 종류별로 도착하는지와 무엇을 추가해야 하는지 알려 줍니다.
 
 30일 동안 아무것도 보내지 않은 앱은 리비전과 함께 삭제되며, 30일 동안 어떤 인스턴스도 보고하지 않은 리비전도 앱이 아직 실행하고 있지 않다면 삭제됩니다. 자체 호스팅 OneUptime에서는 `CLOUD_APP_RETENTION_DAYS`로 이 30을 설정합니다.
 

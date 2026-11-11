@@ -43,6 +43,15 @@ export const APP_ROLLED_BACK: string = translationKey("Rolled back {{time}}");
 export const APP_SIGNALS_UNKNOWN: string = translationKey(
   "Could not load requests",
 );
+/*
+ * An app that has sent no trace since its arrivals are kept (issue #6770):
+ * its requests, errors and latency come from traces, so its "0 requests"
+ * was never measured.
+ */
+export const APP_NO_TRACES: string = translationKey("No traces");
+export const APP_NO_TRACES_HINT: string = translationKey(
+  "No traces received from this app, so its requests, errors and latency are unknown.",
+);
 
 // The dot before an app's state, by state.
 const STATE_DOT_CLASS_NAMES: Readonly<Record<CloudAppState, string>> = {
@@ -178,6 +187,11 @@ export interface CloudAppSignalCellProps {
   // Undefined while the signals load; null when they could not be read.
   signals: CloudAppSignals | null | undefined;
   isLoading?: boolean | undefined;
+  /*
+   * False for an app that has sent no trace: a count of none it served is
+   * a dash, saying why on hover, not a 0. Unset: not known, as before.
+   */
+  hasTraces?: boolean | undefined;
 }
 
 // One of an app's numbers over the last hour, or a dash.
@@ -185,6 +199,22 @@ export const CloudAppSignalCell: FunctionComponent<CloudAppSignalCellProps> = (
   props: CloudAppSignalCellProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+
+  if (
+    props.hasTraces === false &&
+    props.signals &&
+    props.signals.requests <= 0
+  ) {
+    return (
+      <span
+        className="text-sm text-gray-400"
+        title={translator.translateText(APP_NO_TRACES_HINT)}
+        data-testid="cloud-app-signal-no-traces"
+      >
+        —
+      </span>
+    );
+  }
 
   if (props.signals === undefined) {
     return props.isLoading ? (
@@ -258,12 +288,19 @@ export interface CloudAppSignalsSummaryCellProps {
   // Undefined while the signals load; null when they could not be read.
   signals: CloudAppSignals | null | undefined;
   isLoading?: boolean | undefined;
+  /*
+   * False for an app that has sent no trace since its arrivals are kept
+   * (CloudApp.tracesLastReceivedAt): it reads "No traces", not "No
+   * requests". Unset: not known, as before.
+   */
+  hasTraces?: boolean | undefined;
 }
 
 /*
  * An app's last hour in one cell, the way a list has room for it: its error
  * rate first - in amber from 1% and red from 5% - and its requests and p95
- * under it. An app that served no request says so.
+ * under it. An app that served no request says so - and one that sends no
+ * traces says that instead, its requests never having been counted.
  */
 export const CloudAppSignalsSummaryCell: FunctionComponent<
   CloudAppSignalsSummaryCellProps
@@ -281,6 +318,18 @@ export const CloudAppSignalsSummaryCell: FunctionComponent<
   }
 
   const signals: CloudAppSignals = props.signals;
+
+  if (signals.requests <= 0 && props.hasTraces === false) {
+    return (
+      <span
+        className="text-sm text-gray-400"
+        title={translator.translateText(APP_NO_TRACES_HINT)}
+        data-testid="cloud-app-no-traces"
+      >
+        {translator.translateText(APP_NO_TRACES)}
+      </span>
+    );
+  }
 
   if (signals.requests <= 0) {
     return (

@@ -1643,7 +1643,7 @@ const buildAzureAppServiceGuide: CloudGuideBuilder = (
             "OTEL_NODE_RESOURCE_DETECTORS=env,host,os,azure",
           ]),
           tx(
-            "Replace the subscription id with your own — no detector sets `cloud.account.id`. `OTEL_NODE_RESOURCE_DETECTORS` is for Node.js; on .NET use `OpenTelemetry.Resources.Azure` with `AddAzureAppServiceDetector()`. Other languages add `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` to `OTEL_RESOURCE_ATTRIBUTES` and set `service.instance.id` from `WEBSITE_INSTANCE_ID` in code.",
+            "Replace the subscription id with your own — the Node.js and .NET detectors do not set `cloud.account.id`. `OTEL_NODE_RESOURCE_DETECTORS` is for Node.js; on .NET use `OpenTelemetry.Resources.Azure` with `AddAzureAppServiceDetector()`. Other languages add `cloud.provider=azure,cloud.platform=azure_app_service,cloud.region=<region>` to `OTEL_RESOURCE_ATTRIBUTES` and set `service.instance.id` from `WEBSITE_INSTANCE_ID` in code.",
           ),
         ]),
       },
@@ -1664,12 +1664,18 @@ const buildAzureAppServiceGuide: CloudGuideBuilder = (
           ),
         ],
       ),
+      /*
+       * The Collector's (and the Go SDK's) `azureappservice` detector sets
+       * the subscription and names the instance azure.app_service.instance.id;
+       * the Node.js and .NET ones set service.instance.id and host.id, and no
+       * subscription (issue #6770).
+       */
       identificationTopic(
         translationKey(
-          "The Azure detectors fill in the platform, region and instance, but not the subscription.",
+          "The Azure detectors fill in the platform, region and instance; only the Collector's fills in the subscription.",
         ),
         tx(
-          "The Node and .NET Azure detectors (and the Collector's `azureappservice` detector) read the `WEBSITE_*` variables and set `cloud.platform`, `cloud.region`, `service.instance.id` (`WEBSITE_INSTANCE_ID`) and `host.id`. The SDK detectors spell the platform `azure.app_service`; OneUptime rewrites it to `azure_app_service` on ingest. None of them sets `cloud.account.id`, so add the subscription id by hand or the environment key gets an empty account segment.",
+          "The Node and .NET Azure detectors read the `WEBSITE_*` variables and set `cloud.platform`, `cloud.region`, `service.instance.id` (`WEBSITE_INSTANCE_ID`) and `host.id`, but not `cloud.account.id`: add the subscription id by hand, or the environment key gets an empty account segment. The Collector's `azureappservice` detector sets `cloud.account.id` too, and puts `WEBSITE_INSTANCE_ID` in `azure.app_service.instance.id`. The SDK detectors spell the platform `azure.app_service`; OneUptime rewrites it to `azure_app_service` on ingest.",
         ),
       ),
       environmentShowsTopic(context, {
@@ -1677,10 +1683,10 @@ const buildAzureAppServiceGuide: CloudGuideBuilder = (
           "Requests, errors and latency, and one row per instance.",
         ),
         instances: tx(
-          "**Instances** — one row per instance, named from `service.instance.id` — `WEBSITE_INSTANCE_ID`, which the Azure detectors set — otherwise from `host.id`.",
+          "**Instances** — one row per instance, named from `azure.app_service.instance.id` — `WEBSITE_INSTANCE_ID`, as the Collector's detector sets it — or from `service.instance.id`, where the Node.js and .NET detectors put the same id, otherwise from `host.id`.",
         ),
         cpuMemory: tx(
-          "**CPU / Memory** tiles — App Service exposes no container stats to the application; the tiles stay empty and the Requests tiles are the ones to read.",
+          "**CPU / Memory** tiles — App Service gives an app no CPU or memory of its own, so the tiles say so. Connect the app's Azure subscription, and each app's page shows its site's CPU time and memory as Azure Monitor measures them.",
         ),
       }),
     ],
@@ -1693,7 +1699,7 @@ const buildAzureAppServiceGuide: CloudGuideBuilder = (
       {
         title: "The environment key has an empty account segment",
         markdown: tx(
-          "None of the App Service detectors sets `cloud.account.id`. Add the subscription id to `OTEL_RESOURCE_ATTRIBUTES` (step 3) on every app: telemetry with and without it lands in two different environments, and the one without stops receiving telemetry once every app sends it.",
+          "The Node.js and .NET App Service detectors do not set `cloud.account.id`. Add the subscription id to `OTEL_RESOURCE_ATTRIBUTES` (step 3) on every app: telemetry with and without it lands in two different environments, and the one without stops receiving telemetry once every app sends it.",
         ),
       },
       environmentMissingTopic(context),

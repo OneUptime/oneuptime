@@ -67,10 +67,11 @@ The environment is there, but its **Instances** tab lists nothing: the telemetry
 2. `aws.ecs.task.arn` (shortened to the task ID)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 The platform's own identity comes before `service.instance.id`, so an ID the SDK makes up for each process (the Node.js SDK does by default) cannot split a task from its sidecar's CPU and memory. What sets the identity on each platform:
 
@@ -80,7 +81,7 @@ The platform's own identity comes before `service.instance.id`, so an ID the SDK
 | Cloud Run, App Engine                     | The `gcp` detector sets `faas.instance`                                                                                                          |
 | Container Apps                            | The Collector's `azurecontainerapps` detector sets the replica ID; or set `service.instance.id` from `CONTAINER_APP_REPLICA_NAME`, or run the host detector |
 | App Runner, Container Instances           | The host detector's `host.name`                                                                                                                  |
-| App Service, Elastic Beanstalk            | The platform's detector sets `service.instance.id`; on Beanstalk, delete it so `host.id` names each instance                                    |
+| App Service, Elastic Beanstalk            | The platform's detector sets `service.instance.id` (on App Service, the Collector's sets `azure.app_service.instance.id`); on Beanstalk, delete `service.instance.id` so `host.id` names each instance |
 
 An instance appears within a minute of the first signal that carries the attribute.
 
@@ -89,7 +90,7 @@ An instance appears within a minute of the first signal that carries the attribu
 The instances are listed, but the overview's **CPU** and **Memory** tiles, and the CPU and memory columns of **Instances**, are empty. These come from metrics, not traces: `container.cpu.utilization` and `container.memory.usage` (or `container.memory.usage.total`) data points whose resource carries the same instance identity as the traces, and `cloud.platform`.
 
 - **On ECS,** the `awsecscontainermetrics` receiver in a sidecar collector supplies them as `ecs.task.cpu.utilized` and `ecs.task.memory.utilized`. Keep it in the `metrics` pipeline, and keep `resourcedetection` in that pipeline too, or the metrics arrive without `cloud.platform` and are filed elsewhere.
-- **On Cloud Run, Container Apps and the other platforms,** the platform does not show container usage to a sidecar. The tiles stay empty unless you send those metrics yourself: read the requests tiles instead.
+- **On Cloud Run, Container Apps and the other platforms,** the platform does not show container usage to a sidecar. The tiles stay empty unless you send those metrics yourself: read the requests tiles instead. On App Service, connect the subscription under **Cloud → Connect**: the app's page then shows its site's CPU time and memory from **Azure Monitor**.
 - **With SDK direct,** nothing sends container metrics, so empty tiles are expected.
 
 ## The environment shows Disconnected

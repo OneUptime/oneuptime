@@ -105,6 +105,8 @@ interface AppFixture {
   requests?: number;
   errors?: number;
   liveInstances?: number;
+  // When the app last sent a trace; never, when unset.
+  tracesMinutesAgo?: number;
 }
 
 /*
@@ -171,6 +173,10 @@ function toApp(fixture: AppFixture): CloudApp {
     },
     currentRevision: fixture.revision,
     lastSeenAt: minutesAgo(fixture.lastSeenMinutesAgo),
+    tracesLastReceivedAt:
+      fixture.tracesMinutesAgo === undefined
+        ? undefined
+        : minutesAgo(fixture.tracesMinutesAgo),
   });
 }
 
@@ -291,6 +297,75 @@ function appRows(): Array<HTMLElement> {
 }
 
 describe("an environment's Apps card", () => {
+  test("an app that has sent no trace reads No traces, never No requests: its requests were never counted (#6770)", async () => {
+    apps = [
+      { index: 1, name: "metrics-only", lastSeenMinutesAgo: 1 },
+      {
+        index: 2,
+        name: "idle-api",
+        lastSeenMinutesAgo: 1,
+        tracesMinutesAgo: 90,
+      },
+      {
+        index: 3,
+        name: "busy-api",
+        lastSeenMinutesAgo: 1,
+        requests: 100,
+        errors: 0,
+        tracesMinutesAgo: 1,
+      },
+    ];
+
+    await renderAppsCard();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("cloud-app-no-traces")).toBeInTheDocument();
+    });
+
+    const rowOf: (name: string) => HTMLElement = (
+      name: string,
+    ): HTMLElement => {
+      const row: HTMLElement | undefined = appRows().find(
+        (candidate: HTMLElement): boolean => {
+          return within(candidate).getByRole("link").textContent === name;
+        },
+      );
+
+      expect({ name, found: Boolean(row) }).toEqual({ name, found: true });
+
+      return row as HTMLElement;
+    };
+
+    const noTraces: HTMLElement = within(rowOf("metrics-only")).getByTestId(
+      "cloud-app-no-traces",
+    );
+
+    expect(noTraces).toHaveTextContent("No traces");
+    // Why, on hover.
+    expect(noTraces).toHaveAttribute(
+      "title",
+      "No traces received from this app, so its requests, errors and latency are unknown.",
+    );
+    // An app whose traces arrive and that served nothing in the hour: No requests, as before.
+    expect(
+      within(rowOf("idle-api")).getByTestId("cloud-app-no-requests"),
+    ).toHaveTextContent("No requests");
+    expect(
+      within(rowOf("idle-api")).queryByTestId("cloud-app-no-traces"),
+    ).toBeNull();
+    expect(
+      within(rowOf("busy-api")).getByTestId("cloud-app-signals"),
+    ).toHaveTextContent("0.0% errors");
+
+    // The apps are read with when each last sent a trace.
+    const appRead: { select: Record<string, unknown> } | undefined =
+      listCalls.find((call: { modelType: string }): boolean => {
+        return call.modelType === "CloudApp";
+      });
+
+    expect(appRead?.select["tracesLastReceivedAt"]).toBe(true);
+  });
+
   test("lists the apps that need a look first: not reporting, then by error rate, then by name", async () => {
     await renderAppsCard();
 
@@ -689,6 +764,26 @@ describe("an app's header", () => {
     expect(screen.getByTestId("cloud-app-header-revision")).toHaveAttribute(
       "data-change",
       "deployed",
+    );
+  });
+
+  test("a running app with no instance reported reads Running, never Running · 0 instances (#6770)", () => {
+    renderHeader({ app: { lastSeenAt: minutesAgo(1) }, liveInstances: 0 });
+
+    expect(screen.getByTestId("cloud-app-header-state")).toHaveTextContent(
+      "Running",
+    );
+    // The state's words run into its detail's in the text: no \b before the 0.
+    expect(screen.getByTestId("cloud-app-header")).not.toHaveTextContent(
+      /0 instances?/,
+    );
+    cleanup();
+
+    // With instances reported, it says how many.
+    renderHeader({ app: { lastSeenAt: minutesAgo(1) }, liveInstances: 2 });
+
+    expect(screen.getByTestId("cloud-app-header")).toHaveTextContent(
+      "2 instances",
     );
   });
 

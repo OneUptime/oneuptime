@@ -42,6 +42,7 @@ import {
   getCloudAppState,
   getShortRevision,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
+import { hasCloudAppSentTraces } from "../../Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
 import {
   CloudAppSignalResult,
   fetchCloudAppInstances,
@@ -171,6 +172,8 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
         currentRevision: true,
         currentRevisionSince: true,
         lastSeenAt: true,
+        // An app that sends no traces reads "No traces", not "No requests".
+        tracesLastReceivedAt: true,
       },
       sort: { name: SortOrder.Ascending },
       skip: 0,
@@ -358,6 +361,7 @@ const EnvironmentAppsCard: FunctionComponent<ComponentProps> = (
                     (signalsFailed && !signalsLoading ? null : undefined)
                   }
                   isLoading={signalsLoading}
+                  hasTraces={hasCloudAppSentTraces(app)}
                 />
               </div>
             </li>

@@ -121,6 +121,7 @@ import DiscoveredResourceIdCache, {
 } from "Common/Server/Utils/Telemetry/DiscoveredResourceIdCache";
 import { ResourceHeartbeatResult } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
 import OldestKeyMap from "Common/Utils/OldestKeyMap";
+import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 /*
  * A maintenance fence that one autoDiscover* attempt armed, recorded so
@@ -3467,11 +3468,14 @@ export default abstract class OtelIngestBaseService {
    * every workload running on that platform/account/region (per-service
    * breakdown lives under Services). This deliberately avoids the
    * service.name overlap that would otherwise mirror a Service row. Runs on
-   * every ingest path so the environment's telemetry tabs stay populated.
+   * every ingest path so the environment's telemetry tabs stay populated,
+   * and each path names the kind of telemetry it reads (`signal`), which the
+   * app it finds is marked as sending (CloudAppService.recordApp).
    */
   protected static async autoDiscoverCloudResource(data: {
     projectId: ObjectID;
     attributes: JSONArray;
+    signal: CloudAppTelemetrySignal;
   }): Promise<ObjectID | null> {
     const cloudPlatform: string | null = this.readDiscoveryMatch({
       resource: "Cloud resource",
@@ -3500,6 +3504,7 @@ export default abstract class OtelIngestBaseService {
       projectId: data.projectId,
       attributes: data.attributes,
       cloudPlatform: cloudPlatform,
+      signal: data.signal,
     });
   }
 
@@ -3508,6 +3513,7 @@ export default abstract class OtelIngestBaseService {
     projectId: ObjectID;
     attributes: JSONArray;
     cloudPlatform: string;
+    signal: CloudAppTelemetrySignal;
   }): Promise<ObjectID | null> {
     /*
      * Fences armed below, released by the catch block. See
@@ -3637,6 +3643,7 @@ export default abstract class OtelIngestBaseService {
           cloudAccountId,
           cloudRegion,
           identity: appIdentity,
+          signal: data.signal,
         });
         liveIdStr = keptApp.environmentId;
         cloudAppId = keptApp.appId;
@@ -3681,6 +3688,7 @@ export default abstract class OtelIngestBaseService {
                   cloudResourceId,
                   cloudPlatform,
                   identity: appIdentity,
+                  signal: data.signal,
                 }))
               : null;
 
@@ -3712,6 +3720,11 @@ export default abstract class OtelIngestBaseService {
    * row, which the next window writes again. Returns the environment's id
    * as it stands after the writes (a gone environment is resolved again)
    * and the app's id, when this window learned it.
+   *
+   * The app's fence is one per kind of telemetry (`signal`): an app that
+   * sends traces, logs and metrics is marked as sending each within its
+   * window, not only the kind whose batch came first - at most three writes
+   * of its row a window, where there was one.
    */
   private static async keepCloudAppAndRevision(data: {
     projectId: ObjectID;
@@ -3721,6 +3734,7 @@ export default abstract class OtelIngestBaseService {
     cloudAccountId: string | null;
     cloudRegion: string | null;
     identity: CloudAppIdentity;
+    signal: CloudAppTelemetrySignal;
   }): Promise<KeptCloudApp> {
     const armedFences: Array<MaintenanceFence> = [];
     const kept: KeptCloudApp = {
@@ -3729,7 +3743,7 @@ export default abstract class OtelIngestBaseService {
     };
 
     try {
-      const appFenceId: string = `${kept.environmentId}:${data.identity.appKey}`;
+      const appFenceId: string = `${kept.environmentId}:${data.identity.appKey}:${data.signal}`;
 
       if (await this.shouldRunMaintenance("cloud-app", appFenceId)) {
         armedFences.push({ scope: "cloud-app", id: appFenceId });
@@ -3742,6 +3756,7 @@ export default abstract class OtelIngestBaseService {
               cloudResourceId,
               cloudPlatform: data.cloudPlatform,
               identity: data.identity,
+              signal: data.signal,
             });
             this.cloudAppIdMemo.set(
               `${cloudResourceId.toString()}:${data.identity.appKey}`,
@@ -3779,6 +3794,7 @@ export default abstract class OtelIngestBaseService {
           cloudResourceId: environmentId,
           cloudPlatform: data.cloudPlatform,
           identity: data.identity,
+          signal: data.signal,
         }));
       kept.appId = appId;
 
@@ -3830,6 +3846,7 @@ export default abstract class OtelIngestBaseService {
     cloudResourceId: ObjectID;
     cloudPlatform: string;
     identity: CloudAppIdentity;
+    signal: CloudAppTelemetrySignal;
   }): Promise<ObjectID | null> {
     try {
       return await this.resolveCloudAppId(data);
@@ -3855,12 +3872,16 @@ export default abstract class OtelIngestBaseService {
       maxEntries: 10_000,
     });
 
-  // An app's id: from the memo, else its row (found by key, or created).
+  /*
+   * An app's id: from the memo, else its row (found by key, or created -
+   * marked as sending `signal`, as a kept app is).
+   */
   protected static async resolveCloudAppId(data: {
     projectId: ObjectID;
     cloudResourceId: ObjectID;
     cloudPlatform: string;
     identity: CloudAppIdentity;
+    signal: CloudAppTelemetrySignal;
   }): Promise<ObjectID> {
     const memoKey: string = `${data.cloudResourceId.toString()}:${data.identity.appKey}`;
     const remembered: string | undefined = this.cloudAppIdMemo.get(memoKey);
@@ -3880,6 +3901,7 @@ export default abstract class OtelIngestBaseService {
         cloudResourceId: data.cloudResourceId,
         cloudPlatform: data.cloudPlatform,
         identity: data.identity,
+        signal: data.signal,
       }));
 
     this.cloudAppIdMemo.set(memoKey, appId.toString());

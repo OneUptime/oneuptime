@@ -102,6 +102,7 @@ import TelemetryFanInWriter, {
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import { isEntrySpan } from "Common/Utils/Telemetry/EntrySpan";
 import { readExceptionUserId } from "Common/Utils/Exceptions/ExceptionUserId";
+import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 type CompiledTraceScrubRule = {
   rule: TraceScrubRule;
@@ -553,6 +554,7 @@ export default class OtelTracesIngestService extends OtelIngestBaseService {
             await this.autoDiscoverCloudResource({
               projectId,
               attributes: resourceAttributes_raw,
+              signal: CloudAppTelemetrySignal.Traces,
             });
 
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({

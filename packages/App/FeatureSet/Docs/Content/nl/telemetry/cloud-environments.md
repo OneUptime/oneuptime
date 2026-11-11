@@ -52,11 +52,11 @@ flowchart TB
 | Google App Engine | `gcp_app_engine` | resource-detector | `faas.instance` | [Andere cloudplatforms](/docs/telemetry/cloud-other-platforms) |
 | Azure Container Apps | `azure_container_apps` | resource-detector | `azure.container_app.instance.id` | [Azure Container Apps](/docs/telemetry/cloud-azure-container-apps) |
 | Azure Container Instances | `azure_container_instances` | met de hand | `host.name` | [Andere cloudplatforms](/docs/telemetry/cloud-other-platforms) |
-| Azure App Service | `azure_app_service` | resource-detector | `host.id` | [Andere cloudplatforms](/docs/telemetry/cloud-other-platforms) |
+| Azure App Service | `azure_app_service` | resource-detector | `azure.app_service.instance.id` | [Andere cloudplatforms](/docs/telemetry/cloud-other-platforms) |
 
 - **Resource-detector:** een OpenTelemetry-resource-detector, in de SDK of in de processor `resourcedetection` van de Collector, stelt de attributen `cloud.*` voor je in.
 - **Met de hand:** er bestaat geen detector, dus je zet de attributen in `OTEL_RESOURCE_ATTRIBUTES`. De pagina van het platform toont de exacte regel.
-- **Azure-detectors weten minder.** De detectors van Container Apps kennen de regio noch het abonnement, en die van App Service kennen het abonnement niet: stel zelf in wat ontbreekt.
+- **Azure-detectors weten minder.** De detectors van Container Apps kennen de regio noch het abonnement, en die van App Service voor Node.js en .NET kennen het abonnement niet (die van de Collector wel): stel zelf in wat ontbreekt.
 - **Azure-spellingen met een punt werken.** De Azure-detectors voor Node.js en .NET schrijven `azure.container_apps` en `azure.app_service`. OneUptime herschrijft ze bij ontvangst naar de bovenstaande waarden met een underscore.
 
 ## Hoe OneUptime een omgeving herkent
@@ -88,10 +88,11 @@ Binnen een omgeving krijgt elke draaiende taak, instantie of replica één rij o
 2. `aws.ecs.task.arn` (ingekort tot het taak-ID)
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 De eigen identiteit van het platform komt bewust eerst. Een sidecar-collector en de SDK van de applicatie zien die allebei, en ze overleeft herstarts. Een SDK verzint meestal een nieuwe `service.instance.id` voor elk proces (de Node.js-SDK doet dat standaard), dus als die als eerste sleutel diende, zou één ECS-taak in twee rijen uiteenvallen. `service.instance.id` wordt gebruikt als het platform zelf geen identiteit instelt. De kolom **Instantie-identiteit** in [Ondersteunde platforms](#ondersteunde-platforms) noemt het attribuut dat een gangbare opzet op elk platform gebruikt.
 
@@ -122,6 +123,8 @@ Het eerste attribuut dat de telemetrie draagt, geeft de app zijn naam, dus een a
 - **Per app worden hoogstens 12 nieuwe revisies per uur vastgelegd.** Een `service.version` die bij elke build verandert, zou anders elke minuut een implementatie zijn.
 
 De pagina van een app heeft een **Overzicht** met zijn aanvragen, fouten, latentie, instanties en de revisies die nu draaien, een tabblad **Revisies** met de cijfers van elke revisie, de tabbladen **Instanties**, **Logboeken** en **Traces**, gefilterd op de app, en een tabblad **Aanbevelingen** met de monitors die OneUptime ervoor aanbeveelt: mislukte bewerkingen, foutpieken, verkeer dat stopt en trage aanvragen, gelezen uit de eigen spans van de app en zijn `http.server.request.duration`, elk gekoppeld aan de omgeving van de app. **Waarschuwingen instellen** opent dat tabblad; voor een app waarvan de naam te lang is om zijn telemetrie op te filteren, opent het in plaats daarvan de aanbevolen monitors van de service van de app, onder **Services**.
+
+Een getal dat de app nooit heeft gestuurd, wordt niet als 0 getoond. De tegels voor aanvragen, foutpercentage en latentie van een app die geen traces heeft gestuurd, tonen **Geen traces ontvangen**, en de tegel **Instanties** van een draaiende app waarvan de telemetrie geen instantie noemt, toont **Niet gerapporteerd**. Tot de app traces, een instantie en een versie stuurt, opent zijn **Overzicht** met een **Configuratiecontrole**: elke soort telemetrie, of die binnenkomt, en wat er nog bij moet.
 
 Een app die 30 dagen niets stuurt, wordt met zijn revisies verwijderd, net als een revisie die 30 dagen door geen instantie wordt gemeld, tenzij de app hem nog draait. Bij een zelf gehoste OneUptime stelt `CLOUD_APP_RETENTION_DAYS` die 30 in.
 

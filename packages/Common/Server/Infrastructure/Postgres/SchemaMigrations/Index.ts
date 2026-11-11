@@ -959,6 +959,7 @@ import { AddOnCallTimelineToWhatsAppLog1809100612200 } from "./1809100612200-Add
 import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210 } from "./1809100612210-AddOnCallTimelineToWhatsAppLogIndexAndKey";
 import { AddRumProductAnalyticsSavedViews1809110100000 } from "./1809110100000-AddRumProductAnalyticsSavedViews";
 import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-AddDataBiConnectionRefreshAlerts";
+import { AddCloudAppSignalArrivals1809110300000 } from "./1809110300000-AddCloudAppSignalArrivals";
 
 export default [
   InitialMigration,
@@ -1922,4 +1923,5 @@ export default [
   AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210,
   AddRumProductAnalyticsSavedViews1809110100000,
   AddDataBiConnectionRefreshAlerts1809110200000,
+  AddCloudAppSignalArrivals1809110300000,
 ];

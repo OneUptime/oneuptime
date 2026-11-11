@@ -32,6 +32,7 @@ import {
   getShortRevision,
   isCloudAppRolledBack,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
+import { hasCloudAppSentTraces } from "../../Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
 import {
   buildCloudAppSignalRequest,
   fetchCloudAppSignalRows,
@@ -221,6 +222,12 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * An app that sends no traces has no request of any revision counted: its
+   * cells are dashes that say why on hover, not zeros (issue #6770).
+   */
+  const hasTraces: boolean = hasCloudAppSentTraces(props.app);
+
   const revisionNoun: string = getCloudAppRevisionNoun(props.app.cloudPlatform);
 
   /*
@@ -392,6 +399,7 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
                 kind={CloudAppSignalKind.Requests}
                 signals={signalsOf(row)}
                 isLoading={signalsState === "loading"}
+                hasTraces={hasTraces}
               />
             );
           },
@@ -408,6 +416,7 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
                 kind={CloudAppSignalKind.ErrorRate}
                 signals={signalsOf(row)}
                 isLoading={signalsState === "loading"}
+                hasTraces={hasTraces}
               />
             );
           },
@@ -425,6 +434,7 @@ const CloudAppRevisionsTab: FunctionComponent<ComponentProps> = (
                 kind={CloudAppSignalKind.P95}
                 signals={signalsOf(row)}
                 isLoading={signalsState === "loading"}
+                hasTraces={hasTraces}
               />
             );
           },

@@ -47,6 +47,7 @@ import TelemetryFanInWriter, {
   pushObservedAck,
 } from "Common/Server/Utils/Telemetry/TelemetryFanInWriter";
 import crypto from "crypto";
+import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 
 type ParsedUnixNano = {
   /*
@@ -361,6 +362,7 @@ export default class OtelProfilesIngestService extends OtelIngestBaseService {
             await this.autoDiscoverCloudResource({
               projectId: (req as TelemetryRequest).projectId,
               attributes: resourceAttributes_raw,
+              signal: CloudAppTelemetrySignal.Profiles,
             });
 
           const rumApplicationId: ObjectID | null = await this.autoDiscoverRum({

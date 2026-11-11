@@ -26,7 +26,7 @@ flowchart TB
 | AWS Elastic Beanstalk | `aws_elastic_beanstalk` | कलेक्टर के `elastic_beanstalk` और `ec2` डिटेक्टर; Node.js में `aws` | `host.id` (डिप्लॉयमेंट का `service.instance.id` हटाएं) |
 | AWS App Runner | `aws_app_runner` | आप (कोई डिटेक्टर नहीं) | `host.name` |
 | Google App Engine | `gcp_app_engine` | `gcp` डिटेक्टर (कलेक्टर का और हर SDK का) | `faas.instance` |
-| Azure App Service | `azure_app_service` | कलेक्टर का `azureappservice`, Node.js और .NET के `azure` डिटेक्टर; `cloud.account.id` आप सेट करते हैं | `service.instance.id`, फिर `host.id` |
+| Azure App Service | `azure_app_service` | कलेक्टर का `azureappservice`, Node.js और .NET के `azure` डिटेक्टर; SDK के साथ `cloud.account.id` आप सेट करते हैं | `azure.app_service.instance.id`, नहीं तो `service.instance.id`, फिर `host.id` |
 | Azure Container Instances | `azure_container_instances` | आप (कोई डिटेक्टर नहीं) | `host.name` |
 
 नीचे हर सेक्शन के लिए **प्रोजेक्ट सेटिंग्स → टेलीमेट्री और APM → इंजेशन कुंजियाँ** से एक **सर्वर** इंजेशन कुंजी चाहिए, और OpenTelemetry SDK से इंस्ट्रूमेंट किया गया एक एप्लिकेशन। अगर आप OneUptime को खुद होस्ट करते हैं, तो `https://oneuptime.com/otlp` की जगह `https://YOUR-ONEUPTIME-HOST/otlp` इस्तेमाल करें।
@@ -158,7 +158,7 @@ env_variables:
 
 ## Azure App Service
 
-`cloud.platform`: `azure_app_service`। Node.js और .NET के Azure डिटेक्टर, और कलेक्टर का `azureappservice` डिटेक्टर, App Service द्वारा सेट किए गए `WEBSITE_*` वेरिएबल पढ़ते हैं। ये `cloud.platform`, `cloud.region`, `service.instance.id` (`WEBSITE_INSTANCE_ID` से), `deployment.environment` (स्लॉट) और `host.id` भरते हैं। इनमें से कोई भी `cloud.account.id` सेट नहीं करता: सब्सक्रिप्शन ID खुद जोड़ें, वरना एनवायरनमेंट कुंजी में खाते वाला सेगमेंट खाली रहेगा।
+`cloud.platform`: `azure_app_service`। Node.js और .NET के Azure डिटेक्टर App Service द्वारा सेट किए गए `WEBSITE_*` वेरिएबल पढ़ते हैं, और `cloud.platform`, `cloud.region`, `service.instance.id` (`WEBSITE_INSTANCE_ID` से), `deployment.environment` (स्लॉट) और `host.id` भरते हैं, पर `cloud.account.id` नहीं: सब्सक्रिप्शन ID खुद जोड़ें, वरना एनवायरनमेंट कुंजी में खाते वाला सेगमेंट खाली रहेगा। कलेक्टर का `azureappservice` डिटेक्टर वही वेरिएबल पढ़ता है, `cloud.account.id` भी सेट करता है, और इंस्टेंस का नाम `azure.app_service.instance.id` में रखता है।
 
 ```bash
 OTEL_SERVICE_NAME=checkout-api
@@ -181,6 +181,8 @@ SDK डिटेक्टर प्लेटफ़ॉर्म को बिं�
 :::
 
 **नेटवर्किंग:** जब तक **VNet integration** के साथ **Route All** चालू न हो, App Service सीधे इंटरनेट तक पहुँचता है। तब VNet को NAT गेटवे चाहिए, या किसी ऐसे फ़ायरवॉल तक रूट जो OneUptime होस्ट के लिए TCP 443 की अनुमति देता हो।
+
+**ऐप के पेज पर क्या दिखता है:** अनुरोध, त्रुटि दर और लेटेंसी ऐप के ट्रेस से आते हैं, इसलिए जो ऐप सिर्फ़ लॉग या मेट्रिक्स भेजता है, उसमें वहाँ **कोई ट्रेस प्राप्त नहीं हुआ** दिखता है, और उसकी **सेटअप जाँच** बताती है कि क्या जोड़ना है। App Service किसी ऐप को उसका अपना CPU या मेमोरी नहीं देता, और उसकी CPU और मेमोरी वाली टाइलें यही बताती हैं। **क्लाउड → कनेक्ट करें** में सब्सक्रिप्शन कनेक्ट करें, तो ऐप के **अवलोकन** में एक **Azure Monitor** सेक्शन जुड़ जाता है: साइट के अनुरोध, सर्वर त्रुटियाँ, रिस्पॉन्स टाइम, CPU टाइम और मेमोरी, जैसे Azure उन्हें मापता है, चाहे ऐप कुछ भी भेजे।
 
 ## Azure Container Instances
 
@@ -238,7 +240,11 @@ Key Vault संदर्भ रिज़ॉल्व नहीं हुआ, �
 :::
 
 :::details किसी App Service परिवेश में खाते वाला सेगमेंट खाली है
-App Service का कोई भी डिटेक्टर `cloud.account.id` सेट नहीं करता। हर ऐप पर `OTEL_RESOURCE_ATTRIBUTES` में सब्सक्रिप्शन ID जोड़ें: इसके साथ और इसके बिना वाली टेलीमेट्री दो परिवेशों में जाती है।
+Node.js और .NET के App Service डिटेक्टर `cloud.account.id` सेट नहीं करते। हर ऐप पर `OTEL_RESOURCE_ATTRIBUTES` में सब्सक्रिप्शन ID जोड़ें: इसके साथ और इसके बिना वाली टेलीमेट्री दो परिवेशों में जाती है।
+:::
+
+:::details किसी App Service ऐप में न अनुरोध दिखते हैं न इंस्टेंस
+अनुरोध, त्रुटि दर और लेटेंसी ट्रेस से आते हैं, इसलिए जो ऐप सिर्फ़ लॉग या मेट्रिक्स भेजता है, उसके पास ये नहीं होते: उसकी **सेटअप जाँच** बताती है कि क्या जोड़ना है। इंस्टेंस `azure.app_service.instance.id` या `service.instance.id` से आते हैं, जिन्हें Azure डिटेक्टर सेट करते हैं: दोनों न हों, तो **इंस्टेंस** टाइल **रिपोर्ट नहीं किया गया** दिखाती है। ऐप कुछ भी भेजे, साइट के अनुरोध देखने के लिए सब्सक्रिप्शन कनेक्ट करें: ऐप के पेज में एक **Azure Monitor** सेक्शन जुड़ जाता है।
 :::
 
 :::details Container Instances का बदला हुआ वेरिएबल असर नहीं करता

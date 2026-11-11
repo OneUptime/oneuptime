@@ -67,10 +67,11 @@ Node.js 與 .NET 的 Azure 偵測器寫入的是 `azure.container_apps`、`azure
 2. `aws.ecs.task.arn`（縮短為任務 ID）
 3. `faas.instance`
 4. `azure.container_app.instance.id`
-5. `service.instance.id`
-6. `container.id`
-7. `host.id`
-8. `host.name`
+5. `azure.app_service.instance.id`
+6. `service.instance.id`
+7. `container.id`
+8. `host.id`
+9. `host.name`
 
 平台自己的識別排在 `service.instance.id` 之前，因此 SDK 為每個程序產生的 ID（Node.js SDK 預設就是如此）不會把任務與它的 sidecar 的 CPU 與記憶體拆開。各平台由誰設定識別：
 
@@ -80,7 +81,7 @@ Node.js 與 .NET 的 Azure 偵測器寫入的是 `azure.container_apps`、`azure
 | Cloud Run, App Engine | `gcp` 偵測器設定 `faas.instance` |
 | Container Apps | Collector 的 `azurecontainerapps` 偵測器設定複本 ID；或根據 `CONTAINER_APP_REPLICA_NAME` 設定 `service.instance.id`，或執行主機偵測器 |
 | App Runner, Container Instances | 主機偵測器的 `host.name` |
-| App Service, Elastic Beanstalk | 平台的偵測器設定 `service.instance.id`；在 Beanstalk 上請刪除它，讓 `host.id` 為每個執行個體命名 |
+| App Service, Elastic Beanstalk | 平台的偵測器設定 `service.instance.id`（在 App Service 上，Collector 的偵測器設定 `azure.app_service.instance.id`）；在 Beanstalk 上請刪除 `service.instance.id`，讓 `host.id` 為每個執行個體命名 |
 
 在第一個帶有該屬性的訊號送達後的 1 分鐘內，執行個體就會出現。
 
@@ -89,7 +90,7 @@ Node.js 與 .NET 的 Azure 偵測器寫入的是 `azure.container_apps`、`azure
 執行個體已經列出，但概覽中的 **CPU** 與 **記憶體** 圖格，以及 **執行個體** 中的 CPU 與記憶體欄位都是空的。這些資料來自指標而不是追蹤：也就是 `container.cpu.utilization` 與 `container.memory.usage`（或 `container.memory.usage.total`）資料點，其資源帶有與追蹤相同的執行個體識別以及 `cloud.platform`。
 
 - **在 ECS 上**，sidecar Collector 中的 `awsecscontainermetrics` 接收器會以 `ecs.task.cpu.utilized` 與 `ecs.task.memory.utilized` 的形式提供它們。請把它保留在 `metrics` 管線中，並在同一個管線中保留 `resourcedetection`，否則指標送達時不會帶有 `cloud.platform`，而會被歸檔到別處。
-- **在 Cloud Run、Container Apps 與其他平台上**，平台不會向 sidecar 公開容器的使用量。除非你自己傳送這些指標，否則圖格會保持空白：請改為查看請求圖格。
+- **在 Cloud Run、Container Apps 與其他平台上**，平台不會向 sidecar 公開容器的使用量。除非你自己傳送這些指標，否則圖格會保持空白：請改為查看請求圖格。在 App Service 上，在 **雲端 → 連線** 中連線訂用帳戶後，應用程式頁面會顯示來自 **Azure Monitor** 的網站 CPU 時間與記憶體。
 - **使用 SDK direct 時**，沒有任何東西會傳送容器指標，因此圖格是空的屬於正常現象。
 
 ## 環境顯示已中斷

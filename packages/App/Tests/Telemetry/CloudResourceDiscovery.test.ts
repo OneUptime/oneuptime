@@ -60,6 +60,7 @@ import LabelService from "Common/Server/Services/LabelService";
 import CloudResource from "Common/Models/DatabaseModels/CloudResource";
 import ObjectID from "Common/Types/ObjectID";
 import { HEARTBEAT_ROW_PRESENT } from "Common/Server/Utils/Telemetry/ResourceHeartbeat";
+import { CloudAppTelemetrySignal } from "Common/Types/Cloud/CloudAppTelemetrySignal";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import {
   FAAS_CLOUD_PLATFORM_VALUES,
@@ -182,10 +183,18 @@ function appKeyOf(values: Record<string, string>): string {
   return appIdentityOf(values).appKey;
 }
 
-async function discover(values: Record<string, string>): Promise<unknown> {
+/*
+ * One resource as the ingest of `signal` reads it - traces unless a test
+ * says otherwise: each kind marks the app as sending it, under its fence.
+ */
+async function discover(
+  values: Record<string, string>,
+  signal: CloudAppTelemetrySignal = CloudAppTelemetrySignal.Traces,
+): Promise<unknown> {
   return baseService["autoDiscoverCloudResource"]({
     projectId: PROJECT_ID,
     attributes: attributes(values),
+    signal,
   });
 }
 
@@ -562,7 +571,7 @@ describe("autoDiscoverCloudResource instance identity", () => {
      */
     expect([...heldFences]).toEqual([
       `cloud-resource:${RESOURCE_ID}`,
-      `cloud-app:${RESOURCE_ID}:${appKeyOf(ECS_ATTRIBUTES)}`,
+      `cloud-app:${RESOURCE_ID}:${appKeyOf(ECS_ATTRIBUTES)}:traces`,
     ]);
   });
 
@@ -652,7 +661,7 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
 
     // Each under a fence of its own: the app's, and the app's revision's.
     const key: string = appKeyOf(TASK);
-    expect(heldFences.has(`cloud-app:${RESOURCE_ID}:${key}`)).toBe(true);
+    expect(heldFences.has(`cloud-app:${RESOURCE_ID}:${key}:traces`)).toBe(true);
     expect(heldFences.has(`cloud-app-revision:${RESOURCE_ID}:${key}:43`)).toBe(
       true,
     );
@@ -736,7 +745,7 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
 
   test("with the app's and the revision's fences held, neither is written, and the instance still names its app", async () => {
     const key: string = appKeyOf(TASK);
-    heldFences.add(`cloud-app:${RESOURCE_ID}:${key}`);
+    heldFences.add(`cloud-app:${RESOURCE_ID}:${key}:traces`);
     heldFences.add(`cloud-app-revision:${RESOURCE_ID}:${key}:43`);
     findAppId.mockResolvedValue(new ObjectID(APP_ID));
 
@@ -757,7 +766,7 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
   });
 
   test("a revision of an app found earlier in the minute reads no row for the app", async () => {
-    heldFences.add(`cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}`);
+    heldFences.add(`cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}:traces`);
     findAppId.mockResolvedValue(new ObjectID(APP_ID));
 
     await discover({ ...TASK, "aws.ecs.task.arn": `${TASK_ARN}1` });
@@ -787,7 +796,7 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
     expect(recordRevision).not.toHaveBeenCalled();
     expect(deleteKey).toHaveBeenCalledWith(
       FENCE_NAMESPACE,
-      `cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}`,
+      `cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}:traces`,
     );
     // The environment's own fence is kept: its heartbeat was written.
     expect(deleteKey).not.toHaveBeenCalledWith(
@@ -818,7 +827,7 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
     );
     expect(deleteKey).toHaveBeenCalledWith(
       FENCE_NAMESPACE,
-      `cloud-app:${RESOURCE_ID}:${key}`,
+      `cloud-app:${RESOURCE_ID}:${key}:traces`,
     );
     const [instanceCall] = recordInstance.mock.calls[0]! as [
       { cloudAppId: ObjectID },
@@ -853,6 +862,117 @@ describe("autoDiscoverCloudResource apps and their revisions", () => {
     expect(recordRevision).not.toHaveBeenCalled();
     expect(recordInstance).toHaveBeenCalledWith(
       expect.objectContaining({ revision: undefined }),
+    );
+  });
+
+  /*
+   * Issue #6770: an app's page tells what it never received from what it
+   * measured as zero by the kind of telemetry each ingest marks it as
+   * sending. One fence per kind, so an app that sends three kinds is marked
+   * with each in the same window, not only with the kind that came first.
+   */
+  test("each kind of telemetry marks the app as sending it, each under a fence of its own", async () => {
+    await discover(TASK, CloudAppTelemetrySignal.Traces);
+    await discover(
+      { ...TASK, "aws.ecs.task.arn": `${TASK_ARN}1` },
+      CloudAppTelemetrySignal.Metrics,
+    );
+    await discover(
+      { ...TASK, "aws.ecs.task.arn": `${TASK_ARN}2` },
+      CloudAppTelemetrySignal.Logs,
+    );
+
+    expect(
+      recordApp.mock.calls.map((call: Array<unknown>): unknown => {
+        return (call[0] as { signal?: CloudAppTelemetrySignal }).signal;
+      }),
+    ).toEqual([
+      CloudAppTelemetrySignal.Traces,
+      CloudAppTelemetrySignal.Metrics,
+      CloudAppTelemetrySignal.Logs,
+    ]);
+
+    const key: string = appKeyOf(TASK);
+    for (const signal of ["traces", "metrics", "logs"]) {
+      expect(heldFences.has(`cloud-app:${RESOURCE_ID}:${key}:${signal}`)).toBe(
+        true,
+      );
+    }
+  });
+
+  test("a second batch of one kind in the window does not write the app's row again", async () => {
+    await discover(TASK, CloudAppTelemetrySignal.Metrics);
+    await discover(
+      { ...TASK, "aws.ecs.task.arn": `${TASK_ARN}1` },
+      CloudAppTelemetrySignal.Metrics,
+    );
+
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: CloudAppTelemetrySignal.Metrics }),
+    );
+    // Its second instance is still recorded, naming the app.
+    expect(recordInstance).toHaveBeenCalledTimes(2);
+  });
+
+  test("profiles keep the app seen, as every kind does", async () => {
+    await discover(TASK, CloudAppTelemetrySignal.Profiles);
+
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: CloudAppTelemetrySignal.Profiles }),
+    );
+    expect(
+      heldFences.has(`cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}:profiles`),
+    ).toBe(true);
+  });
+
+  test("an app first met through its revision's write is created marked as sending the kind", async () => {
+    // Another worker holds the app's fence for metrics; no row exists yet.
+    heldFences.add(`cloud-app:${RESOURCE_ID}:${appKeyOf(TASK)}:metrics`);
+    findAppId.mockResolvedValue(null);
+
+    await discover(TASK, CloudAppTelemetrySignal.Metrics);
+
+    expect(findAppId).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledWith(
+      expect.objectContaining({ signal: CloudAppTelemetrySignal.Metrics }),
+    );
+    expect(recordRevision).toHaveBeenCalledWith(
+      expect.objectContaining({ revision: "43" }),
+    );
+  });
+
+  test("an App Service app's cloud.resource_id reaches its row as the provider's id for it", async () => {
+    const SITE_ID: string =
+      "/subscriptions/3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13/resourceGroups/rg-web/providers/Microsoft.Web/sites/storefront";
+    const APP_SERVICE: Record<string, string> = {
+      "cloud.platform": "azure.app_service",
+      "cloud.provider": "azure",
+      "cloud.region": "northcentralus",
+      "cloud.account.id": "3f1c9a52-7d4e-4b8a-9e21-6c5d0b7a2f13",
+      "service.name": "storefront",
+      "deployment.environment": "Production",
+      "service.instance.id": "a1b2c3",
+      "cloud.resource_id": SITE_ID,
+    };
+
+    await discover(APP_SERVICE, CloudAppTelemetrySignal.Metrics);
+
+    expect(recordApp).toHaveBeenCalledTimes(1);
+    expect(recordApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cloudPlatform: "azure_app_service",
+        signal: CloudAppTelemetrySignal.Metrics,
+        identity: expect.objectContaining({
+          name: "storefront",
+          providerResourceId: SITE_ID,
+        }),
+      }),
+    );
+    expect(recordInstance).toHaveBeenCalledWith(
+      expect.objectContaining({ instanceName: "a1b2c3" }),
     );
   });
 });

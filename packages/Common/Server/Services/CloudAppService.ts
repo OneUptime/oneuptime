@@ -8,6 +8,11 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import PostgresErrorTranslator from "../Utils/Database/PostgresErrorTranslator";
 import { CloudAppIdentity } from "../Utils/Telemetry/CloudAppIdentity";
+import {
+  CloudAppSignalColumn,
+  CloudAppTelemetrySignal,
+  getCloudAppSignalColumn,
+} from "../../Types/Cloud/CloudAppTelemetrySignal";
 
 /*
  * The apps of App Platforms environments (CloudApp): written by the
@@ -26,8 +31,11 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * Find the app an identity names in an environment, or create it, and
-   * mark it seen. Called at most once per app per ingest fence window, so
-   * the update is cheap at fleet scale. Returns the app's id.
+   * mark it seen - and seen sending `signal`, the kind of telemetry the
+   * ingest that called is reading (CloudAppTelemetrySignal): its page tells
+   * what it never received from what it measured as zero by them. Called at
+   * most once per app and kind per ingest fence window, so the update is
+   * cheap at fleet scale. Returns the app's id.
    */
   @CaptureSpan()
   public async recordApp(data: {
@@ -35,9 +43,13 @@ export class Service extends DatabaseService<Model> {
     cloudResourceId: ObjectID;
     cloudPlatform: string;
     identity: CloudAppIdentity;
+    signal?: CloudAppTelemetrySignal | undefined;
     now?: Date | undefined;
   }): Promise<ObjectID> {
     const now: Date = data.now || OneUptimeDate.getCurrentDate();
+    const signalColumn: CloudAppSignalColumn | null = getCloudAppSignalColumn(
+      data.signal,
+    );
     const existingId: ObjectID | null = await this.findAppId({
       projectId: data.projectId,
       cloudResourceId: data.cloudResourceId,
@@ -60,6 +72,18 @@ export class Service extends DatabaseService<Model> {
 
     if (data.identity.revisionAttribute) {
       seen["revisionAttribute"] = data.identity.revisionAttribute;
+    }
+
+    /*
+     * Kept once sent: what a sidecar's metrics leave out is not taken off the
+     * app the app's own spans named.
+     */
+    if (data.identity.providerResourceId) {
+      seen["providerResourceId"] = data.identity.providerResourceId;
+    }
+
+    if (signalColumn) {
+      seen[signalColumn] = now;
     }
 
     if (existingId) {
@@ -95,6 +119,14 @@ export class Service extends DatabaseService<Model> {
 
     if (data.identity.revisionAttribute) {
       app.revisionAttribute = data.identity.revisionAttribute;
+    }
+
+    if (data.identity.providerResourceId) {
+      app.providerResourceId = data.identity.providerResourceId;
+    }
+
+    if (signalColumn) {
+      app[signalColumn] = now;
     }
 
     try {

@@ -34,6 +34,7 @@ import {
   countLiveInstancesByApp,
   getCloudAppGroupLabel,
 } from "../../Pages/AppPlatforms/Utils/CloudApps";
+import { hasCloudAppSentTraces } from "../../Pages/AppPlatforms/Utils/CloudAppTelemetrySetup";
 import {
   CLOUD_APP_SIGNAL_WINDOW_MINUTES,
   CloudAppSignalResult,
@@ -332,6 +333,8 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
         telemetryAttributes: true,
         currentRevisionSince: true,
         lastSeenAt: true,
+        // An app that sends no traces reads "No traces", not "No requests".
+        tracesLastReceivedAt: true,
       }}
       searchableFields={["name", "serviceName"]}
       cardProps={{
@@ -462,6 +465,7 @@ const CloudAppsTable: FunctionComponent<ComponentProps> = (
               <CloudAppSignalsSummaryCell
                 signals={signalsOf(app)}
                 isLoading={isLoadingSignals}
+                hasTraces={hasCloudAppSentTraces(app)}
               />
             );
           },

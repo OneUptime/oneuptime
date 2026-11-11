@@ -304,7 +304,7 @@ export const PROSE_LEADS: Readonly<Record<string, Array<string>>> = {
     "A self-hosted OneUptime inside the VNet",
     "No Azure role is needed for telemetry.",
   ],
-  [CLOUD_OTHER_PLATFORMS]: ["Networking:"],
+  [CLOUD_OTHER_PLATFORMS]: ["Networking:", "What the app's page shows:"],
   [CLOUD_TROUBLESHOOTING]: [
     "`cloud.platform` is missing, or is not a managed value.",
     "The token is wrong.",
