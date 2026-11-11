@@ -92,6 +92,12 @@ Wie er op elk moment dienst heeft: mensen wisselen elkaar af, en ieder draagt ov
 
 Ook wel: **Rotation**. Zie [Bereikbaarheidsschema's](/docs/on-call/schedules).
 
+### Laag
+
+Eén rotatie binnen een bereikbaarheidsschema: wie elkaar afwisselen, hoe vaak de dienst wordt overgedragen en welke uren de laag dekt. De hoogste laag waarin iemand dienst heeft, roept op, dus de hoofdrotatie komt bovenaan en de reservedekking eronder.
+
+Zie [Bereikbaarheidsschema's](/docs/on-call/schedules#lagen).
+
 ### Meldingsmethode
 
 Een adres waarop OneUptime u in een project mag bereiken: een e-mailadres, een telefoonnummer voor sms of oproepen, uw Slack- of Microsoft Teams-account, of de OneUptime-app op uw telefoon. Ieder voegt zijn eigen adressen toe onder **Gebruikersinstellingen**.

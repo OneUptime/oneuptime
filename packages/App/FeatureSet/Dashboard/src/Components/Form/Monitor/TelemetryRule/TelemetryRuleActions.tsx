@@ -1,3 +1,4 @@
+import IncidentOrAlertNote from "../IncidentOrAlertNote";
 import MonitorCriteriaAlertForm from "../MonitorCriteriaAlertForm";
 import MonitorCriteriaIncidentForm, {
   IncidentRoleOption,
@@ -144,6 +145,16 @@ const TelemetryRuleActions: FunctionComponent<ComponentProps> = (
         id={actionLabelId}
         title="When the rule matches"
         hideOptionalLabel={true}
+        /*
+         * The difference between an alert and an incident, beside the
+         * choice, with both words defined.
+         */
+        description={
+          <IncidentOrAlertNote
+            marksTerms={true}
+            className="text-sm leading-5 text-gray-500"
+          />
+        }
       />
       <Radio
         ariaLabelledby={actionLabelId}

@@ -155,7 +155,10 @@
   },
   "help": {
     "label": "Hilfe",
+    "quickstart": "Schnellstart",
     "documentation": "Dokumentation",
+    "glossary": "Glossar",
+    "howOneUptimeWorks": "So funktioniert OneUptime",
     "supportEmail": "Support-E-Mail",
     "chatSlack": "Chat auf Slack",
     "requestDemo": "Demo anfordern"
@@ -50676,6 +50679,14 @@
   "{{name}} acknowledged it in Microsoft Teams after {{time}}.": "{{name}} hat sie nach {{time}} in Microsoft Teams bestätigt.",
   "{{name}} acknowledged it in Slack after {{time}}.": "{{name}} hat sie nach {{time}} in Slack bestätigt.",
   "{{name}} acknowledged it.": "{{name}} hat sie bestätigt.",
+  "Core Concepts": "Grundkonzepte",
+  "Glossary": "Glossar",
+  "Loading the definition…": "Definition wird geladen…",
+  "Read more": "Mehr lesen",
+  "Read what this means in the glossary": "Im Glossar nachlesen, was das bedeutet",
+  "{{incidents}} are for problems your customers feel, and can show on a status page. {{alerts}} are for your team, and never do.": "{{incidents}} sind für Probleme, die Ihre Kunden spüren, und können auf einer Statusseite erscheinen. {{alerts}} sind für Ihr Team und erscheinen dort nie.",
+  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.": "{{onCallRules}} legen für jeden Schweregrad fest, welche Benachrichtigungsmethode eine Alarmierung versucht und nach welcher Wartezeit.",
+  "{{telemetry}} and {{infrastructure}} feed the loop: rules on your logs, metrics and traces, or on your hosts, clusters and clouds, open incidents and alerts too.": "{{telemetry}} und {{infrastructure}} speisen den Kreislauf: Regeln für Ihre Logs, Metriken und Traces oder für Ihre Hosts, Cluster und Clouds öffnen ebenfalls Vorfälle und Warnungen.",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Fasse den zuletzt gemeldeten Status dieses Monitors und seine Statuszeitachse bis zum Ausschalten seiner Überwachung zusammen.",
   "Was it flapping?": "Hat er geflattert?",
   "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Hat dieser Monitor geflattert, bevor seine Überwachung ausgeschaltet wurde? Analysiere seine Statusänderungen bis dahin."
