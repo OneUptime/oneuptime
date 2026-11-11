@@ -299,6 +299,11 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     reason: "A key of a JSON body, typed as it is.",
   },
   {
+    english: 'a bare array, or { "events": [...] }',
+    words: ["events"],
+    reason: "A key of a JSON body, typed as it is.",
+  },
+  {
     english: 'narrow the collector\'s "process" scraper',
     words: ["process"],
     reason: "The collector's scraper, by the name its configuration gives it.",
