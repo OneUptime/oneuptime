@@ -4,7 +4,14 @@ import BadDataException from "./Exception/BadDataException";
 import BadOperationException from "./Exception/BadOperationException";
 import { JSONObject, ObjectType } from "./JSON";
 import ObjectID from "./ObjectID";
-import CryptoJS from "crypto-js";
+/*
+ * SHA-256 alone, not crypto-js's index: every page loads this class before
+ * it draws - JSON is deserialized through it, and the User model and forms
+ * use it - and the index brings AES, Triple DES, Blowfish, RC4, Rabbit,
+ * SHA-3 and the rest: about 24 KiB gzipped of the sign-in and status pages'
+ * first load that nothing on them uses (issue #5608).
+ */
+import SHA256 from "crypto-js/sha256";
 import { FindOperator } from "typeorm";
 
 /*
@@ -136,7 +143,7 @@ export default class HashedString extends DatabaseProperty {
       return "";
     }
 
-    return CryptoJS.SHA256(
+    return SHA256(
       HashedString.buildValueToHash(value, encryptionSecret, salt || null),
     ).toString();
   }

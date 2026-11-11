@@ -27,6 +27,14 @@ import { getConfiguredOneUptimeUrl } from "../../../../App/FeatureSet/Dashboard/
 import { SETUP_GUIDE_API_KEY_PLACEHOLDER } from "../../../../App/FeatureSet/Dashboard/src/Components/SetupGuide/SetupGuide";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "../../../UI/Utils/Project";
+import {
+  codeReadsAsWrittenPostProcessor,
+  getTranslationPostProcess,
+  withoutIsolates,
+} from "../../../UI/Utils/CodeReadsAsWritten";
+import { productNamePostProcessor } from "../../../UI/Utils/ProductNameTranslation";
+import { LEFT_TO_RIGHT_ISOLATE } from "../../../Types/CodeInSentence";
+import { drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
 import TelemetryIngestionKey from "../../../Models/DatabaseModels/TelemetryIngestionKey";
 import TelemetryIngestionKeyType from "../../../Types/Telemetry/TelemetryIngestionKeyType";
 import ObjectID from "../../../Types/ObjectID";
@@ -278,6 +286,11 @@ describe("in the reader's language", () => {
   const INSTALL_STEP: string =
     "The OpenTelemetry logs API, its SDK and the OTLP log exporter.";
 
+  /*
+   * Each language's i18next is set up as the Dashboard's is (Utils/i18n.ts):
+   * with the product-name and code-reads-as-written post-processors, which
+   * set code in a Persian sentence apart as it reaches the dialog.
+   */
   beforeAll(async () => {
     for (const [language, locale] of [
       ["en", englishLocale],
@@ -286,17 +299,21 @@ describe("in the reader's language", () => {
     ] as Array<[string, Record<string, unknown>]>) {
       const instance: i18n = createInstance();
 
-      await instance.init({
-        lng: language,
-        fallbackLng: "en",
-        resources: {
-          en: { translation: englishLocale },
-          [language]: { translation: locale },
-        },
-        interpolation: { escapeValue: false },
-        keySeparator: false,
-        nsSeparator: false,
-      });
+      await instance
+        .use(productNamePostProcessor)
+        .use(codeReadsAsWrittenPostProcessor)
+        .init({
+          lng: language,
+          fallbackLng: "en",
+          postProcess: getTranslationPostProcess(),
+          resources: {
+            en: { translation: englishLocale },
+            [language]: { translation: locale },
+          },
+          interpolation: { escapeValue: false },
+          keySeparator: false,
+          nsSeparator: false,
+        });
 
       instances[language] = instance;
     }
@@ -426,14 +443,36 @@ describe("in the reader's language", () => {
       expect(dialog.textContent).toContain(
         `شناسه‌های پذیرفته: ${FIRST_STRONG_ISOLATE}${ORIGIN}${POP_DIRECTIONAL_ISOLATE}.`,
       );
-      /*
-       * The locale writes app:// as en.json does: the Dashboard's i18next
-       * sets code apart as it hands a right-to-left sentence to the page
-       * (Common/UI/Utils/CodeReadsAsWritten, guarded by
-       * CodeInRightToLeftSentences), which this test's i18next does not.
-       */
-      expect(dialog.textContent).toContain("شناسه‌های app:// فقط");
       expect(dialog.textContent).not.toContain("client distribution");
+
+      /*
+       * A left-to-right isolate keeps "://" with "app", or it is drawn
+       * "//:app": fa.json writes app:// as en.json does, and the sentence is
+       * set apart as it reaches the dialog (CodeReadsAsWritten). Laid out on
+       * a line read from the right, app:// is drawn as it is written; as the
+       * locale file holds it, it is not.
+       */
+      const caution: string =
+        within(dialog).getByText(/app:\/\//).textContent || "";
+      const isAppDrawnAsWritten: (sentence: string) => boolean = (
+        sentence: string,
+      ): boolean => {
+        const start: number = sentence.indexOf("app://");
+
+        expect(start).toBeGreaterThanOrEqual(0);
+
+        return isDrawnAsWritten(
+          drawLine(sentence, "rtl"),
+          start,
+          start + "app://".length,
+        );
+      };
+
+      expect(caution).toContain(
+        `شناسه‌های ${LEFT_TO_RIGHT_ISOLATE}app://${POP_DIRECTIONAL_ISOLATE} فقط`,
+      );
+      expect(isAppDrawnAsWritten(caution)).toBe(true);
+      expect(isAppDrawnAsWritten(withoutIsolates(caution))).toBe(false);
     });
 
     test("a key with no origins says every request is refused, naming the menu as the German Dashboard draws it", async () => {
