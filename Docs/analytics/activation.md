@@ -146,9 +146,9 @@ WITH "projects" AS (
 SELECT
   "milestone",
   COUNT(*) AS "projects_reached",
-  ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM "projects"), 1) AS "percent_of_new_projects",
-  ROUND(100.0 * COUNT(*) FILTER (WHERE "seconds" <= 86400) / (SELECT COUNT(*) FROM "projects"), 1) AS "percent_within_a_day",
-  ROUND(100.0 * COUNT(*) FILTER (WHERE "seconds" <= 604800) / (SELECT COUNT(*) FROM "projects"), 1) AS "percent_within_a_week",
+  ROUND(100.0 * COUNT(*) / NULLIF((SELECT COUNT(*) FROM "projects"), 0), 1) AS "percent_of_new_projects",
+  ROUND(100.0 * COUNT(*) FILTER (WHERE "seconds" <= 86400) / NULLIF((SELECT COUNT(*) FROM "projects"), 0), 1) AS "percent_within_a_day",
+  ROUND(100.0 * COUNT(*) FILTER (WHERE "seconds" <= 604800) / NULLIF((SELECT COUNT(*) FROM "projects"), 0), 1) AS "percent_within_a_week",
   percentile_cont(0.5) WITHIN GROUP (ORDER BY "seconds") AS "median_seconds",
   percentile_cont(0.9) WITHIN GROUP (ORDER BY "seconds") AS "p90_seconds"
 FROM "reached"
