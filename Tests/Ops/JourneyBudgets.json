@@ -114,7 +114,7 @@
     "server-email": {
       "title": "As a self-hosted admin, make the server able to send email",
       "path": "manual",
-      "startsAt": "Admin Dashboard > Users, where the first admin lands",
+      "startsAt": "the Admin Dashboard, where the first admin lands (Server setup, /admin/setup)",
       "endsWhen": "the SMTP server is saved and a test email has gone out",
       "budget": {
         "screens": 3,

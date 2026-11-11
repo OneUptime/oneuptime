@@ -10715,7 +10715,7 @@
   "Finger Print": "Finger Print",
   "Finish reason": "Причина завершения",
   "Finish setting up AI": "Finish setting up AI",
-  "Finish setup": "Finish setup",
+  "Finish setup": "Завершить настройку",
   "Finland": "Finland",
   "Fire when a group's count reaches this number within one evaluation window. 1 fires on any match.": "Срабатывать, когда счётчик группы достигает этого числа в пределах одного окна оценки. 1 — срабатывание при любом совпадении.",
   "Capture a session when a successful request takes at least this many milliseconds. 0 (default) turns it off.": "Записывать сеанс, когда успешный запрос длится не меньше указанного числа миллисекунд. 0 (по умолчанию) — выключено.",
