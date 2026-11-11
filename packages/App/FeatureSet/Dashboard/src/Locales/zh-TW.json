@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "此伺服器無法傳送電子郵件，因此未寄送郵件給 {{email}}。請複製此連結並自行傳送給對方。此連結僅限此地址使用一次，有效期 7 天。",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "此伺服器無法傳送電子郵件，因此未寄送郵件給 {{email}}。對方已有帳號：請傳送此連結讓其登入，並在那裡接受邀請。",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "此伺服器未設定電子郵件，因此這封郵件未寄出。請聯絡伺服器管理員設定電子郵件。",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "OneUptime 的機器人已不再是 {{team}} 團隊的成員。請在 Mattermost 中將機器人重新加入該團隊，或在規則中選擇其他團隊。",
+  "{{team}} (bot no longer a member)": "{{team}}（機器人已不再是成員）",
   "Create connection": "建立連線",
   "Fetched the first time a workflow uses it": "在工作流程首次使用時擷取",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "擷取於 {{date}}。提供者未說明它何時到期，因此每次執行都會擷取新的權杖",

@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "روی این سرور ایمیلی راه‌اندازی نشده است، پس این ایمیل فرستاده نشد. از مدیر سرور بخواهید ایمیل را راه‌اندازی کند.",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "ربات OneUptime دیگر عضو تیم {{team}} نیست. ربات را در Mattermost دوباره به تیم اضافه کنید، یا در قاعده تیم دیگری انتخاب کنید.",
+  "{{team}} (bot no longer a member)": "{{team}} (ربات دیگر عضو آن نیست)",
   "Create connection": "ایجاد اتصال",
   "Fetched the first time a workflow uses it": "نخستین باری که یک گردش کاری از آن استفاده کند دریافت می‌شود",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "دریافت‌شده در {{date}}. ارائه‌دهنده نگفته است چه زمانی منقضی می‌شود، پس هر اجرا یک توکن تازه دریافت می‌کند",

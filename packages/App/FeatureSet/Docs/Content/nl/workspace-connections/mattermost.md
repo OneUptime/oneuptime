@@ -73,6 +73,7 @@ OneUptime werkt in elk team van je Mattermost-server waarvan zijn bot lid is:
 - **Het standaardteam.** Dat is het team waaraan je het project hebt gekoppeld. **Als standaard instellen** op de kaart maakt een ander team de standaard, voor een rol die het project mag koppelen.
 - **Waar OneUptime werkt.** De knoppen in de berichten van OneUptime, en de formulieren die ze openen, werken in elk van die teams. In een team waaruit de bot is verwijderd, meldt een knop alleen dat het team niet meer gekoppeld is.
 - **Een standaardteam waaruit de bot is verwijderd.** De kaart meldt dat. Voeg de bot in Mattermost weer toe, of maak een ander team de standaard.
+- **Een team dat een regel noemt en waaruit de bot is verwijderd.** De kaart van de regel meldt dat, en de regel gebruikt niet in plaats daarvan een ander team. Voeg de bot in Mattermost weer toe aan het team, of kies een ander team in de regel: het formulier toont de oude keuze nog, zodat je die kunt wijzigen.
 
 ## Je eigen Mattermost-account koppelen
 
@@ -171,6 +172,8 @@ Elke knop die OneUptime plaatst, draagt een handtekening, die wordt gecontroleer
 | Een team waaraan je de bot hebt toegevoegd, staat niet op de kaart **Mattermost-teams** | Klik op **Vernieuwen** op de kaart. |
 | **OneUptime's bot is not a member of this Mattermost team** | Je hebt een team gekozen dat de bot heeft verlaten. Voeg de bot in Mattermost toe aan dat team en klik daarna op **Vernieuwen**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Voeg de bot in Mattermost toe aan dat team, of kies een ander team in de regel. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Voeg de bot in Mattermost toe aan dat team, of kies een ander team in de regel. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Voeg de bot in Mattermost weer toe aan dat team, of maak een ander team de standaard. |
 | **OneUptime could not reach the Mattermost server** | Controleer het adres, en of OneUptime het kan bereiken. Zie [Netwerk en zelf hosten](#netwerk-en-zelf-hosten). |
 | **The bot is not a member of the private Mattermost channel** | Voeg de bot in Mattermost toe aan het kanaal. |
 | Een knop doet niets, of Mattermost zegt dat het de actie niet kon voltooien | Mattermost kan OneUptime niet bereiken. Zie [Netwerk en zelf hosten](#netwerk-en-zelf-hosten). |

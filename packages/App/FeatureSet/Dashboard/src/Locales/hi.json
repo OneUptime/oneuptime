@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "यह सर्वर ईमेल नहीं भेज सकता, इसलिए {{email}} को ईमेल नहीं भेजा गया। यह लिंक कॉपी करें और खुद उन्हें भेजें। यह केवल इसी पते के लिए, 7 दिनों तक, एक बार काम करता है।",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "यह सर्वर ईमेल नहीं भेज सकता, इसलिए {{email}} को ईमेल नहीं भेजा गया। उनका पहले से खाता है: साइन इन करने के लिए उन्हें यह लिंक भेजें, वहीं से वे निमंत्रण स्वीकार करेंगे।",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "इस सर्वर पर कोई ईमेल सेट अप नहीं है, इसलिए यह ईमेल नहीं भेजा गया। अपने सर्वर एडमिन से ईमेल सेट अप करने के लिए कहें।",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "OneUptime का बॉट अब {{team}} टीम का सदस्य नहीं है। बॉट को Mattermost में टीम में वापस जोड़ें, या नियम में कोई दूसरी टीम चुनें।",
+  "{{team}} (bot no longer a member)": "{{team}} (बॉट अब सदस्य नहीं है)",
   "Create connection": "कनेक्शन बनाएँ",
   "Fetched the first time a workflow uses it": "पहली बार कोई वर्कफ़्लो इसका उपयोग करेगा, तब लाया जाएगा",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "{{date}} को लाया गया। प्रदाता ने नहीं बताया कि यह कब समाप्त होगा, इसलिए हर रन एक नया टोकन लाता है",

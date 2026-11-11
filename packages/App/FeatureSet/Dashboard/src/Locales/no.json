@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Denne serveren kan ikke sende e-post, så {{email}} har ikke fått noen e-post. Kopier denne lenken og send den til dem selv. Den virker én gang, bare for denne adressen, i 7 dager.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Denne serveren kan ikke sende e-post, så {{email}} har ikke fått noen e-post. De har allerede en konto: send dem denne lenken for å logge på, så godtar de invitasjonen derfra.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Denne serveren har ikke satt opp e-post, så denne e-posten ble ikke sendt. Be serveradministratoren om å sette opp e-post.",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "OneUptime-boten er ikke lenger medlem av teamet {{team}}. Legg boten til i teamet igjen i Mattermost, eller velg et annet team i regelen.",
+  "{{team}} (bot no longer a member)": "{{team}} (boten er ikke lenger medlem)",
   "Create connection": "Opprett tilkobling",
   "Fetched the first time a workflow uses it": "Hentes første gang en arbeidsflyt bruker det",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "Hentet {{date}}. Leverandøren oppga ikke når det utløper, så hver kjøring henter et nytt",

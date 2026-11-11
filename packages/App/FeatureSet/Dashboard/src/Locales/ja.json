@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。このリンクをコピーして、ご自身で送ってください。このアドレス専用で、7 日以内に 1 回だけ使えます。",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "このサーバーはメールを送信できないため、{{email}} にメールは送られていません。すでにアカウントをお持ちです。このリンクを送ってサインインしてもらうと、そこから招待を承諾できます。",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "このサーバーではメールが設定されていないため、このメールは送信されませんでした。サーバー管理者にメールの設定を依頼してください。",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "OneUptime のボットは、チーム {{team}} のメンバーではなくなりました。Mattermost でボットをチームに追加し直すか、ルールで別のチームを選んでください。",
+  "{{team}} (bot no longer a member)": "{{team}}（ボットはもうメンバーではありません）",
   "Create connection": "接続を作成",
   "Fetched the first time a workflow uses it": "ワークフローが初めて使用するときに取得されます",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "{{date}} に取得しました。プロバイダーが有効期限を示さなかったため、実行のたびに新しいトークンを取得します",

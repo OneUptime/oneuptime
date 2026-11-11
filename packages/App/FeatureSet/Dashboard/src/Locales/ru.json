@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. Скопируйте эту ссылку и отправьте её сами. Она работает один раз, только для этого адреса, в течение 7 дней.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Этот сервер не может отправлять почту, поэтому на {{email}} письмо не отправлено. У этого человека уже есть учётная запись: отправьте ему эту ссылку для входа, и там он примет приглашение.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "На этом сервере не настроена почта, поэтому это письмо не отправлено. Попросите администратора сервера настроить почту.",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "Бот OneUptime больше не состоит в команде {{team}}. Верните бота в команду в Mattermost или выберите в правиле другую команду.",
+  "{{team}} (bot no longer a member)": "{{team}} (бот больше не состоит в команде)",
   "Create connection": "Создать подключение",
   "Fetched the first time a workflow uses it": "Будет получен, когда рабочий процесс впервые его использует",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "Получен {{date}}. Поставщик не сообщил срок его действия, поэтому каждый запуск получает новый",

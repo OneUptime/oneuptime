@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Este servidor no puede enviar correos electrónicos, así que no se envió ningún correo a {{email}}. Copia este enlace y envíaselo tú. Funciona una sola vez, solo para esta dirección, durante 7 días.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Este servidor no puede enviar correos electrónicos, así que no se envió ningún correo a {{email}}. Ya tiene una cuenta: envíale este enlace para iniciar sesión y desde ahí aceptará la invitación.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "Este servidor no tiene correo electrónico configurado, así que este correo no se envió. Pide al administrador del servidor que configure el correo.",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "El bot de OneUptime ya no es miembro del equipo {{team}}. Vuelve a añadir el bot al equipo en Mattermost o elige otro equipo en la regla.",
+  "{{team}} (bot no longer a member)": "{{team}} (el bot ya no es miembro)",
   "Create connection": "Crear conexión",
   "Fetched the first time a workflow uses it": "Se obtiene la primera vez que un flujo de trabajo lo usa",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "Obtenido el {{date}}. El proveedor no indicó cuándo caduca, así que cada ejecución obtiene uno nuevo",

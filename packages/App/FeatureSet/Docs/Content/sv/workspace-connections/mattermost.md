@@ -73,6 +73,7 @@ OneUptime fungerar i varje team på din Mattermost-server som boten är medlem i
 - **Standardteamet.** Det är det team som du anslöt projektet till. **Gör till standard** på kortet gör ett annat team till standard, för en roll som får ansluta projektet.
 - **Var OneUptime fungerar.** Knapparna i OneUptimes meddelanden, och formulären de öppnar, fungerar i vart och ett av de teamen. I ett team som boten har tagits bort från säger en knapp bara att teamet inte längre är anslutet.
 - **Ett standardteam som boten har tagits bort från.** Kortet säger det. Lägg till boten igen i Mattermost, eller gör ett annat team till standard.
+- **Ett team som en regel nämner och som boten har tagits bort från.** Regelns kort säger det, och regeln använder inte ett annat team i stället. Lägg till boten i teamet igen i Mattermost, eller välj ett annat team i regeln: formuläret visar fortfarande det gamla valet, så att du kan ändra det.
 
 ## Anslut ditt eget Mattermost-konto
 
@@ -171,6 +172,8 @@ Varje knapp som OneUptime publicerar bär en signatur, som kontrolleras när kna
 | Ett team som du har lagt till boten i finns inte på kortet **Mattermost-team** | Klicka på **Uppdatera** på kortet. |
 | **OneUptime's bot is not a member of this Mattermost team** | Du valde ett team som boten har lämnat. Lägg till boten i teamet i Mattermost och klicka sedan på **Uppdatera**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Lägg till boten i det teamet i Mattermost, eller välj ett annat team i regeln. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Lägg till boten i det teamet i Mattermost, eller välj ett annat team i regeln. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Lägg till boten i det teamet igen i Mattermost, eller gör ett annat team till standard. |
 | **OneUptime could not reach the Mattermost server** | Kontrollera adressen, och att OneUptime kan nå den. Se [Nätverk och egen drift](#nätverk-och-egen-drift). |
 | **The bot is not a member of the private Mattermost channel** | Lägg till boten i kanalen i Mattermost. |
 | En knapp gör ingenting, eller Mattermost säger att åtgärden inte kunde slutföras | Mattermost kan inte nå OneUptime. Se [Nätverk och egen drift](#nätverk-och-egen-drift). |

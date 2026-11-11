@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني، لذا لم تُرسَل رسالة إلى {{email}}. انسخ هذا الرابط وأرسله إليهم بنفسك. يعمل مرة واحدة، لهذا العنوان فقط، لمدة 7 أيام.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "لا يستطيع هذا الخادم إرسال البريد الإلكتروني، لذا لم تُرسَل رسالة إلى {{email}}. لديهم حساب بالفعل: أرسل إليهم هذا الرابط لتسجيل الدخول، ومن هناك يقبلون الدعوة.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "لم يُعَدّ بريد إلكتروني على هذا الخادم، لذا لم تُرسَل هذه الرسالة. اطلب من مسؤول الخادم إعداد البريد الإلكتروني.",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "لم يعد روبوت OneUptime عضوًا في الفريق «{{team}}». أعد إضافة الروبوت إلى الفريق في Mattermost، أو اختر فريقًا آخر في القاعدة.",
+  "{{team}} (bot no longer a member)": "{{team}} (لم يعد الروبوت عضوًا فيه)",
   "Create connection": "إنشاء الاتصال",
   "Fetched the first time a workflow uses it": "يُجلب في أول مرة يستخدمه فيها سير عمل",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "جُلب في {{date}}. لم يذكر الموفّر موعد انتهاء صلاحيته، لذا يجلب كل تشغيل رمزًا جديدًا",

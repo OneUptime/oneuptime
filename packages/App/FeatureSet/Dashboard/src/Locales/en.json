@@ -50455,6 +50455,8 @@
   "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.",
   "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.",
   "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.": "This server has no email set up, so this email was not sent. Ask your server's admin to set up email.",
+  "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.": "OneUptime's bot is no longer a member of the {{team}} team. Add the bot back to the team in Mattermost, or pick another team on the rule.",
+  "{{team}} (bot no longer a member)": "{{team}} (bot no longer a member)",
   "Create connection": "Create connection",
   "Fetched the first time a workflow uses it": "Fetched the first time a workflow uses it",
   "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one": "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one",
