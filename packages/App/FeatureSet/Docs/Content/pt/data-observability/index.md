@@ -37,7 +37,7 @@ flowchart TB
 - **Nada para configurar por tabela.** Ritmos, agendamentos e durações habituais de execução são aprendidos a partir do que cada tabela e cada pipeline fazem, e um monitor recomendado para um banco de dados cobre todas as tabelas dele, inclusive as criadas depois.
 - **Um alerta por causa.** Um alerta cuja tabela a montante, pipeline ou banco de dados já tem um alerta aberto entra nesse alerta como consequência dele, já confirmado, para que uma carga com falha acione alguém uma única vez.
 - **Cada alerta se explica.** Ele classifica a causa provável, diz o que depende da tabela e quem é o proprietário dela, e aprende com o que você diz sobre ele: marque um como **Não é um problema** e a mesma coisa fica em silêncio da próxima vez.
-- **O OneUptime AI conhece os seus dados.** As investigações de alertas de dados partem de quem escreve na tabela, das execuções e das tabelas a montante; pelo Pergunte à IA, pelo Slack, pelo Microsoft Teams e por agentes de IA, é possível perguntar se uma tabela está atualizada; e uma verificação pode ser escrita a partir de uma frase. Veja [OneUptime AI e a API](/docs/data-observability/ai-and-api).
+- **O OneUptime AI conhece os seus dados.** As investigações de alertas de dados partem de quem escreve na tabela, das execuções e da linhagem; pelo Pergunte à IA, pelo Slack, pelo Microsoft Teams e por agentes de IA, é possível perguntar se uma tabela está atualizada e a partir do que ela é construída; e uma verificação pode ser escrita a partir de uma frase. Veja [OneUptime AI e a API](/docs/data-observability/ai-and-api).
 
 ## Antes de começar
 
@@ -80,5 +80,5 @@ Uma instalação auto-hospedada do OneUptime não paga nada pelas tabelas.
 - [Verificações e reconciliações](/docs/data-observability/checks): Regras sobre os valores de uma tabela, a comparação de uma tabela com a sua cópia, e os testes do dbt.
 - [Linhagem e pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran e Airbyte, e um alerta por causa.
 - [Produtos de dados](/docs/data-observability/data-products): SLAs de atualização para as pessoas que usam os dados, em páginas de status e como SLOs.
-- [OneUptime AI e a API](/docs/data-observability/ai-and-api): Investigações, uma verificação a partir de uma frase, a atualidade para agentes de IA, e cada endpoint.
+- [OneUptime AI e a API](/docs/data-observability/ai-and-api): Investigações, uma verificação a partir de uma frase, a atualidade e a linhagem para agentes de IA, e cada endpoint.
 :::

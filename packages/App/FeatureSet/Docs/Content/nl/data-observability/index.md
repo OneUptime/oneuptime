@@ -37,7 +37,7 @@ flowchart TB
 - **Niets in te stellen per tabel.** Ritmes, planningen en gebruikelijke looptijden worden geleerd uit wat elke tabel en pipeline doet, en een monitor die voor een database wordt aanbevolen, dekt elke tabel erin, ook tabellen die later worden aangemaakt.
 - **Eén waarschuwing per oorzaak.** Een waarschuwing waarvan de stroomopwaartse tabel, pipeline of database al een openstaande waarschuwing heeft, sluit zich als gevolg bij die waarschuwing aan, al bevestigd, zodat een mislukt laadproces maar één keer iemand oproept.
 - **Elke waarschuwing legt zichzelf uit.** Ze rangschikt de waarschijnlijke oorzaak, zegt wat van de tabel afhangt en wie ze beheert, en leert van wat je erover zegt: markeer er een als **Geen probleem** en hetzelfde blijft de volgende keer stil.
-- **OneUptime AI kent je gegevens.** Onderzoeken van gegevenswaarschuwingen beginnen bij de schrijvers, uitvoeringen en stroomopwaartse tabellen van de tabel; via AI vragen, Slack, Microsoft Teams en AI-agents kun je vragen of een tabel actueel is; en een controle kan vanuit een zin worden geschreven. Zie [OneUptime AI en de API](/docs/data-observability/ai-and-api).
+- **OneUptime AI kent je gegevens.** Onderzoeken van gegevenswaarschuwingen beginnen bij de schrijvers, uitvoeringen en herkomst van de tabel; via AI vragen, Slack, Microsoft Teams en AI-agents kun je vragen of een tabel actueel is en waaruit ze is opgebouwd; en een controle kan vanuit een zin worden geschreven. Zie [OneUptime AI en de API](/docs/data-observability/ai-and-api).
 
 ## Voordat je begint
 
@@ -80,5 +80,5 @@ Een zelf gehoste OneUptime betaalt niets voor tabellen.
 - [Controles en reconciliaties](/docs/data-observability/checks): Regels voor de waarden van een tabel, een tabel vergelijken met haar kopie, en de tests van dbt.
 - [Lineage en pipelines](/docs/data-observability/lineage-and-pipelines): OpenLineage, dbt, Fivetran en Airbyte, en één waarschuwing per oorzaak.
 - [Dataproducten](/docs/data-observability/data-products): Actualiteits-SLA's voor de mensen die gegevens gebruiken, op statuspagina's en als SLO's.
-- [OneUptime AI en de API](/docs/data-observability/ai-and-api): Onderzoeken, een controle vanuit een zin, actualiteit voor AI-agents, en elk endpoint.
+- [OneUptime AI en de API](/docs/data-observability/ai-and-api): Onderzoeken, een controle vanuit een zin, actualiteit en herkomst voor AI-agents, en elk endpoint.
 :::
