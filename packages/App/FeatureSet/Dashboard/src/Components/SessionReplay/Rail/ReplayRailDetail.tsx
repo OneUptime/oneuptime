@@ -47,6 +47,13 @@ import {
   showsVitalView,
 } from "./ReplaySignals";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import {
+  getInlineSeparator,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The inline detail under a selected rail row, rendered by kind.
@@ -100,14 +107,27 @@ const Fact: FunctionComponent<{
   label: string;
   children: React.ReactNode;
   mono?: boolean | undefined;
+  /* The label is the page's own data (a property's key, a tag): as written. */
+  isLabelAsWritten?: boolean | undefined;
 }> = (props: {
   label: string;
   children: React.ReactNode;
   mono?: boolean | undefined;
+  isLabelAsWritten?: boolean | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const label: string = props.isLabelAsWritten
+    ? props.label
+    : translator.translateText(props.label) || props.label;
+
   return (
     <div className="flex gap-2 text-[11px] leading-5">
-      <dt className="w-20 shrink-0 text-gray-400">{props.label}</dt>
+      <dt
+        className="w-20 shrink-0 text-gray-400"
+        dir={props.isLabelAsWritten ? "auto" : undefined}
+      >
+        {label}
+      </dt>
       {/* text-pretty: a value that wraps never leaves one word alone. */}
       <dd
         className={`min-w-0 flex-1 text-pretty break-words text-gray-700 ${
@@ -129,6 +149,8 @@ const LinkOut: FunctionComponent<{
   label: string;
   testId?: string | undefined;
 }): ReactElement | null => {
+  const translator: Translator = useTranslator();
+
   if (!props.route) {
     return null;
   }
@@ -138,7 +160,9 @@ const LinkOut: FunctionComponent<{
       to={props.route}
       className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[11px] font-medium text-indigo-700 hover:bg-indigo-50"
     >
-      <span data-testid={props.testId}>{props.label}</span>
+      <span data-testid={props.testId}>
+        {translator.translateText(props.label) || props.label}
+      </span>
       <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
     </AppLink>
   );
@@ -155,6 +179,8 @@ const ActionButton: FunctionComponent<{
   testId?: string | undefined;
   icon?: IconProp | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <button
       type="button"
@@ -163,7 +189,7 @@ const ActionButton: FunctionComponent<{
       onClick={props.onClick}
     >
       {props.icon && <Icon icon={props.icon} className="h-3 w-3" />}
-      {props.label}
+      {translator.translateText(props.label) || props.label}
     </button>
   );
 };
@@ -182,21 +208,51 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+/*
+ * The spans of a trace and how many failed, as one phrase: "ok", or
+ * "error in 2 of 7 spans".
+ */
+function describeTraceStatus(
+  translator: Translator,
+  trace: { hasError: boolean; errorSpanCount: number; spanCount: number },
+): string {
+  if (!trace.hasError) {
+    return translator.translateText("ok") || "ok";
+  }
+
+  return translator.translatePlural(
+    {
+      one: "error in {{errors}} of {{count}} span",
+      other: "error in {{errors}} of {{count}} spans",
+    },
+    trace.spanCount,
+    { errors: translator.formatNumber(trace.errorSpanCount) },
+  );
+}
+
+/* The console method a line without a level was written with: as written. */
+const CONSOLE_DEFAULT_LEVEL: string = "log";
+
 /* ---- Per-kind bodies. ---- */
 
 const ConsoleDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
   signal: ReplaySignal;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplayConsoleSignalDetail = props.signal
     .detail as ReplayConsoleSignalDetail;
 
   return (
     <div className="space-y-2">
       <dl>
-        <Fact label="Level">{detail.level || "log"}</Fact>
+        <Fact label="Level">{detail.level || CONSOLE_DEFAULT_LEVEL}</Fact>
       </dl>
       <CodeBlock
-        code={detail.message || "(empty message)"}
+        code={
+          detail.message ||
+          translator.translateText("(empty message)") ||
+          "(empty message)"
+        }
         language="plaintext"
         maxHeight="12rem"
       />
@@ -217,6 +273,7 @@ const BackendForRequest: FunctionComponent<{
   onLoadBackend: ((kind: ReplayBackendSignalKind) => void) | undefined;
   onSelectSignal: (signalId: string) => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const traceSignal: ReplaySignal | undefined = useMemo(() => {
     return indexTraceSignalsByTraceId(props.signals).get(props.traceId);
   }, [props.signals, props.traceId]);
@@ -241,21 +298,17 @@ const BackendForRequest: FunctionComponent<{
         </Fact>
         {trace.serviceName && <Fact label="Service">{trace.serviceName}</Fact>}
         <Fact label="Duration">{formatSignalDuration(trace.durationMs)}</Fact>
-        <Fact label="Status">
-          {trace.hasError
-            ? `error in ${trace.errorSpanCount} of ${trace.spanCount} spans`
-            : "ok"}
-        </Fact>
+        <Fact label="Status">{describeTraceStatus(translator, trace)}</Fact>
         <Fact label="Spans">
-          {trace.spanCount}
+          {translator.formatNumber(trace.spanCount)}
           <button
             type="button"
-            className="ml-2 text-indigo-600 hover:underline"
+            className="ms-2 text-indigo-600 hover:underline"
             onClick={(): void => {
               props.onSelectSignal(traceSignal.id);
             }}
           >
-            open the waterfall
+            {translator.translateText("open the waterfall")}
           </button>
         </Fact>
         {errorLogs.length > 0 && (
@@ -266,7 +319,7 @@ const BackendForRequest: FunctionComponent<{
                   <li key={log.id}>
                     <button
                       type="button"
-                      className="truncate text-left text-rose-700 hover:underline"
+                      className="truncate text-start text-rose-700 hover:underline"
                       title={log.title}
                       onClick={(): void => {
                         props.onSelectSignal(log.id);
@@ -279,7 +332,13 @@ const BackendForRequest: FunctionComponent<{
               })}
               {errorLogs.length > 5 && (
                 <li className="text-gray-400">
-                  and {errorLogs.length - 5} more on this trace
+                  {translator.translatePlural(
+                    {
+                      one: "and {{count}} more on this trace",
+                      other: "and {{count}} more on this trace",
+                    },
+                    errorLogs.length - 5,
+                  )}
                 </li>
               )}
             </ul>
@@ -290,7 +349,9 @@ const BackendForRequest: FunctionComponent<{
   } else if (status === "idle" || status === "unknown") {
     body = (
       <div className="flex items-center gap-2">
-        <Note>Backend traces are not loaded yet.</Note>
+        <Note>
+          {translator.translateText("Backend traces are not loaded yet.")}
+        </Note>
         {props.onLoadBackend && (
           <ActionButton
             label="Load backend traces"
@@ -303,21 +364,27 @@ const BackendForRequest: FunctionComponent<{
       </div>
     );
   } else if (status === "loading") {
-    body = <Note>Loading backend traces for this session.</Note>;
+    body = (
+      <Note>
+        {translator.translateText("Loading backend traces for this session.")}
+      </Note>
+    );
   } else if (status === "locked") {
     body = (
       <Note>
-        Backend traces are locked
         {props.spanSlot?.lockedPermission
-          ? `: your role lacks "${props.spanSlot.lockedPermission}"`
-          : ""}
-        .
+          ? translator.translateTemplate(
+              'Backend traces are locked: your role lacks "{{permission}}".',
+              { permission: props.spanSlot.lockedPermission },
+            )
+          : translator.translateText("Backend traces are locked.")}
       </Note>
     );
   } else if (status === "error") {
     body = (
       <Note>
-        {props.spanSlot?.errorMessage || "Backend traces did not load."}
+        {props.spanSlot?.errorMessage ||
+          translator.translateText("Backend traces did not load.")}
       </Note>
     );
   } else if (props.spanSlot?.isTruncated) {
@@ -328,20 +395,29 @@ const BackendForRequest: FunctionComponent<{
      */
     body = (
       <Note>
-        No span in the loaded traces carries trace {shortId(props.traceId)}.{" "}
         {props.spanSlot.isTraceIdSetCapped
-          ? "This session has more traces than one fetch names, so this may be one of the traces whose rows were not fetched"
-          : `Only the first ${props.spanSlot.rowCount ?? 0} spans were fetched, so this trace's spans may be among the rows left out`}
-        . If it is not, the backend either did not receive the traceparent or
-        has not exported the span yet.
+          ? translator.translateTemplate(
+              "No span in the loaded traces carries trace {{trace}}. This session has more traces than one fetch names, so this may be one of the traces whose rows were not fetched. If it is not, the backend either did not receive the traceparent or has not exported the span yet.",
+              { trace: shortId(props.traceId) },
+            )
+          : translator.translatePlural(
+              {
+                one: "No span in the loaded traces carries trace {{trace}}. Only the first {{count}} span was fetched, so this trace's spans may be among the rows left out. If it is not, the backend either did not receive the traceparent or has not exported the span yet.",
+                other:
+                  "No span in the loaded traces carries trace {{trace}}. Only the first {{count}} spans were fetched, so this trace's spans may be among the rows left out. If it is not, the backend either did not receive the traceparent or has not exported the span yet.",
+              },
+              props.spanSlot.rowCount ?? 0,
+              { trace: shortId(props.traceId) },
+            )}
       </Note>
     );
   } else {
     body = (
       <Note>
-        No span in the loaded traces carries trace {shortId(props.traceId)}; the
-        backend either did not receive the traceparent or has not exported the
-        span yet.
+        {translator.translateTemplate(
+          "No span in the loaded traces carries trace {{trace}}; the backend either did not receive the traceparent or has not exported the span yet.",
+          { trace: shortId(props.traceId) },
+        )}
       </Note>
     );
   }
@@ -349,12 +425,55 @@ const BackendForRequest: FunctionComponent<{
   return (
     <div className="rounded border border-gray-200 bg-gray-50 p-2">
       <div className="mb-1 text-[11px] font-semibold text-gray-700">
-        Backend for this request
+        {translator.translateText("Backend for this request")}
       </div>
       {body}
     </div>
   );
 };
+
+/*
+ * How much a request moved, both ways, as one phrase: "4.1 KB response,
+ * 120 B request". A size the browser did not measure says so.
+ */
+function describeRequestBytes(
+  translator: Translator,
+  detail: ReplayNetworkSignalDetail,
+): string {
+  const hasResponse: boolean = isFiniteNumber(detail.responseBytes);
+  const hasRequest: boolean = isFiniteNumber(detail.requestBytes);
+  const response: string = hasResponse
+    ? formatSignalBytes(detail.responseBytes as number)
+    : "";
+  const request: string = hasRequest
+    ? formatSignalBytes(detail.requestBytes as number)
+    : "";
+
+  if (hasResponse && hasRequest) {
+    return translator.translateTemplate(
+      "{{response}} response, {{request}} request",
+      { response: response, request: request },
+    );
+  }
+
+  if (hasResponse) {
+    return translator.translateTemplate("{{response}} response", {
+      response: response,
+    });
+  }
+
+  if (hasRequest) {
+    return translator.translateTemplate(
+      "response size not measured, {{request}} request",
+      { request: request },
+    );
+  }
+
+  return (
+    translator.translateText("response size not measured") ||
+    "response size not measured"
+  );
+}
 
 const NetworkDetail: FunctionComponent<{
   signal: ReplaySignal;
@@ -371,6 +490,7 @@ const NetworkDetail: FunctionComponent<{
   onLoadBackend: ((kind: ReplayBackendSignalKind) => void) | undefined;
   onSelectSignal: (signalId: string) => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplayNetworkSignalDetail = props.signal
     .detail as ReplayNetworkSignalDetail;
 
@@ -381,9 +501,10 @@ const NetworkDetail: FunctionComponent<{
   if (detail.isCapMarker) {
     return (
       <Note>
-        The recorder records at most {REPLAY_NETWORK_CAPTURE_CAP} requests per
-        session. It reached that here, so requests after this moment are missing
-        from the Network tab - the page kept making them.
+        {translator.translateTemplate(
+          "The recorder records at most {{count}} requests per session. It reached that here, so requests after this moment are missing from the Network tab - the page kept making them.",
+          { count: translator.formatNumber(REPLAY_NETWORK_CAPTURE_CAP) },
+        )}
       </Note>
     );
   }
@@ -421,10 +542,16 @@ const NetworkDetail: FunctionComponent<{
         </Fact>
         <Fact label="Status">
           {detail.aborted
-            ? "cancelled by the page before a response (AbortController, or navigating away) - not a failure"
+            ? translator.translateText(
+                "cancelled by the page before a response (AbortController, or navigating away) - not a failure",
+              )
             : detail.failedBeforeResponse
-              ? "failed before a response (offline, DNS or blocked by CORS)"
-              : `HTTP ${detail.status}`}
+              ? translator.translateText(
+                  "failed before a response (offline, DNS or blocked by CORS)",
+                )
+              : translator.translateTemplate("HTTP {{status}}", {
+                  status: String(detail.status),
+                })}
         </Fact>
         <Fact label="Timing">
           {barPercent !== null && isFiniteNumber(detail.durationMs) ? (
@@ -439,22 +566,18 @@ const NetworkDetail: FunctionComponent<{
                 />
               </div>
               <span>
-                {formatSignalDuration(detail.durationMs)}
-                {detail.isSlow ? " (slow)" : ""}
+                {detail.isSlow
+                  ? translator.translateTemplate("{{duration}} (slow)", {
+                      duration: formatSignalDuration(detail.durationMs),
+                    })
+                  : formatSignalDuration(detail.durationMs)}
               </span>
             </div>
           ) : (
-            "not measured"
+            translator.translateText("not measured")
           )}
         </Fact>
-        <Fact label="Bytes">
-          {isFiniteNumber(detail.responseBytes)
-            ? `${formatSignalBytes(detail.responseBytes)} response`
-            : "response size not measured"}
-          {isFiniteNumber(detail.requestBytes)
-            ? `, ${formatSignalBytes(detail.requestBytes)} request`
-            : ""}
-        </Fact>
+        <Fact label="Bytes">{describeRequestBytes(translator, detail)}</Fact>
         {detail.initiator && <Fact label="Initiator">{detail.initiator}</Fact>}
         {detail.traceId && (
           <Fact label="Trace" mono={true}>
@@ -463,7 +586,9 @@ const NetworkDetail: FunctionComponent<{
         )}
       </dl>
 
-      <Note>Bodies and headers are never recorded.</Note>
+      <Note>
+        {translator.translateText("Bodies and headers are never recorded.")}
+      </Note>
 
       {detail.traceId && (
         <div className="flex flex-wrap gap-1.5">
@@ -497,6 +622,7 @@ const NavigationDetail: FunctionComponent<{
   signals: Array<ReplaySignal>;
   onSelectSignal: (signalId: string) => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplayNavigationSignalDetail = props.signal
     .detail as ReplayNavigationSignalDetail;
 
@@ -543,14 +669,17 @@ const NavigationDetail: FunctionComponent<{
     return ids;
   }, [props.signals, vitals]);
 
+  /* "history push": the History API call's own name, as written. */
   const kindLabel: string =
     detail.kind === "full-load"
-      ? "full page load"
+      ? translator.translateText("full page load") || "full page load"
       : detail.kind === "popstate"
-        ? "back / forward"
+        ? translator.translateText("back / forward") || "back / forward"
         : detail.kind === "hashchange"
-          ? "hash change"
-          : `history ${detail.kind}`;
+          ? translator.translateText("hash change") || "hash change"
+          : translator.translateTemplate("history {{kind}}", {
+              kind: detail.kind,
+            });
 
   return (
     <dl>
@@ -571,7 +700,7 @@ const NavigationDetail: FunctionComponent<{
         )}
       <Fact label="Vitals">
         {vitals.length === 0 ? (
-          "none reported for this page yet"
+          translator.translateText("none reported for this page yet")
         ) : (
           <ul className="space-y-0.5">
             {vitals.map((vital: ReplaySignal): ReactElement => {
@@ -579,7 +708,7 @@ const NavigationDetail: FunctionComponent<{
                 <li key={vital.id}>
                   <button
                     type="button"
-                    className="text-left hover:underline"
+                    className="text-start hover:underline"
                     onClick={(): void => {
                       props.onSelectSignal(vital.id);
                     }}
@@ -589,7 +718,7 @@ const NavigationDetail: FunctionComponent<{
                     {updatedVitalIds.has(vital.id) && (
                       <span className="text-gray-400">
                         <InlineSeparator />
-                        updated later
+                        {translator.translateText("updated later")}
                       </span>
                     )}
                   </button>
@@ -603,6 +732,65 @@ const NavigationDetail: FunctionComponent<{
   );
 };
 
+/*
+ * One of the application's own signals and what set it off: "checkout
+ * failed (click)". The signal's name is the application's own.
+ */
+function describeOwnSignal(
+  translator: Translator,
+  name: string,
+  trigger: SessionReplayCustomSignalTrigger,
+): string {
+  return translator.translateTemplate("{{name}} ({{trigger}})", {
+    name: name,
+    trigger: translatableTerm(CUSTOM_SIGNAL_TRIGGER_SUBTITLES[trigger], {
+      inSentence: true,
+    }),
+  });
+}
+
+/* A frustration the recorder detected, in words: "rage click, 5 clicks". */
+function describeFrustrationKind(
+  translator: Translator,
+  frustration: ReplayFrustrationSignalDetail,
+): string {
+  switch (frustration.kind) {
+    case "rage-click":
+      return isFiniteNumber(frustration.clickCount)
+        ? translator.translatePlural(
+            {
+              one: "rage click, {{count}} click",
+              other: "rage click, {{count}} clicks",
+            },
+            frustration.clickCount,
+          )
+        : translator.translateText("rage click") || "rage click";
+    case "dead-click":
+      return (
+        translator.translateText("dead click: nothing changed after it") ||
+        "dead click: nothing changed after it"
+      );
+    case "error-click":
+      return (
+        translator.translateText("error click: an error followed it") ||
+        "error click: an error followed it"
+      );
+    case "refresh-rage":
+      return isFiniteNumber(frustration.reloadCount)
+        ? translator.translatePlural(
+            {
+              one: "refresh rage, {{count}} reload",
+              other: "refresh rage, {{count}} reloads",
+            },
+            frustration.reloadCount,
+          )
+        : translator.translateText("refresh rage") || "refresh rage";
+    default:
+      // A kind this Dashboard does not know yet: its wire value, as written.
+      return frustration.kind;
+  }
+}
+
 const InteractionDetail: FunctionComponent<{
   signal: ReplaySignal;
   signals: Array<ReplaySignal>;
@@ -614,6 +802,7 @@ const InteractionDetail: FunctionComponent<{
   onSelectSignal: (signalId: string) => void;
   onShowOnStage: ((x: number, y: number) => void) | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const isFrustration: boolean = props.signal.kind === "frustration";
   const interaction: ReplayInteractionSignalDetail = props.signal
     .detail as ReplayInteractionSignalDetail;
@@ -636,35 +825,23 @@ const InteractionDetail: FunctionComponent<{
         {isFrustration && frustration.customSignalName && (
           <Fact label="Signal">
             {frustration.customSignalTrigger
-              ? `${frustration.customSignalName} (${CUSTOM_SIGNAL_TRIGGER_SUBTITLES[
-                  frustration.customSignalTrigger
-                ].toLowerCase()})`
+              ? describeOwnSignal(
+                  translator,
+                  frustration.customSignalName,
+                  frustration.customSignalTrigger,
+                )
               : frustration.customSignalName}
           </Fact>
         )}
         {/* As a marker's detail says what it counted as (OwnSignalMarkerDetail). */}
         {isFrustration && frustration.customSignalName && (
-          <Fact label="Counts as">frustration</Fact>
+          <Fact label="Counts as">
+            {translator.translateText("frustration")}
+          </Fact>
         )}
         {isFrustration && !frustration.customSignalName && (
           <Fact label="Signal">
-            {frustration.kind === "rage-click"
-              ? `rage click${
-                  isFiniteNumber(frustration.clickCount)
-                    ? `, ${frustration.clickCount} clicks`
-                    : ""
-                }`
-              : frustration.kind === "dead-click"
-                ? "dead click: nothing changed after it"
-                : frustration.kind === "error-click"
-                  ? "error click: an error followed it"
-                  : frustration.kind === "refresh-rage"
-                    ? `refresh rage${
-                        isFiniteNumber(frustration.reloadCount)
-                          ? `, ${frustration.reloadCount} reloads`
-                          : ""
-                      }`
-                    : frustration.kind}
+            {describeFrustrationKind(translator, frustration)}
           </Fact>
         )}
         {!isFrustration && interaction.selector && (
@@ -682,25 +859,30 @@ const InteractionDetail: FunctionComponent<{
         )}
         {!isFrustration && interaction.isCoordinateOnly && (
           <Fact label="Note">
-            This recording predates click labels; only the coordinates were
-            captured.
+            {translator.translateText(
+              "This recording predates click labels; only the coordinates were captured.",
+            )}
           </Fact>
         )}
         {errorAfter && (
           <Fact label="Then">
             <button
               type="button"
-              className="text-left text-rose-700 hover:underline"
+              className="text-start text-rose-700 hover:underline"
               data-testid="rail-error-after-click"
               onClick={(): void => {
                 props.onSelectSignal(errorAfter.id);
               }}
             >
-              error{" "}
-              {formatSignalDuration(
-                errorAfter.offsetMs - props.signal.offsetMs,
-              )}{" "}
-              after this click: {errorAfter.title}
+              {translator.translateTemplate(
+                "error {{duration}} after this click: {{title}}",
+                {
+                  duration: formatSignalDuration(
+                    errorAfter.offsetMs - props.signal.offsetMs,
+                  ),
+                  title: errorAfter.title,
+                },
+              )}
             </button>
           </Fact>
         )}
@@ -733,16 +915,21 @@ const VitalReportLink: FunctionComponent<{
   testId: string;
   onSelectSignal: (signalId: string) => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
   return (
     <button
       type="button"
-      className="text-left text-indigo-700 hover:underline"
+      className="text-start text-indigo-700 hover:underline"
       data-testid={props.testId}
       onClick={(): void => {
         props.onSelectSignal(props.report.id);
       }}
     >
-      {props.report.title} at {formatReplayOffsetPrecise(props.report.offsetMs)}
+      {translator.translateTemplate("{{title}} at {{time}}", {
+        title: props.report.title,
+        time: formatReplayOffsetPrecise(props.report.offsetMs),
+      })}
     </button>
   );
 };
@@ -756,6 +943,7 @@ const PerformanceDetail: FunctionComponent<{
   signals: Array<ReplaySignal>;
   onSelectSignal: (signalId: string) => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplayPerformanceSignalDetail = props.signal
     .detail as ReplayPerformanceSignalDetail;
 
@@ -784,8 +972,12 @@ const PerformanceDetail: FunctionComponent<{
       )}
       {isFiniteNumber(detail.budgetMs) && (
         <Fact label="Budget">
-          {formatSignalDuration(detail.budgetMs)}
-          {detail.isOverBudget ? " (over)" : " (within)"}
+          {translator.translateTemplate(
+            detail.isOverBudget
+              ? "{{duration}} (over)"
+              : "{{duration}} (within)",
+            { duration: formatSignalDuration(detail.budgetMs) },
+          )}
         </Fact>
       )}
       {detail.rating && (
@@ -822,18 +1014,22 @@ const PerformanceDetail: FunctionComponent<{
        */}
       {showsVitalView(detail) && (
         <Fact label="View">
-          {detail.navigationType === "soft"
-            ? "Route change (single-page app)"
-            : detail.navigationType === "prerender"
-              ? "Prerendered page load (measured from when it was opened)"
-              : detail.navigationType === "back-forward-cache"
-                ? "Restored from back/forward cache"
-                : "Page load"}
+          {translator.translateText(
+            detail.navigationType === "soft"
+              ? "Route change (single-page app)"
+              : detail.navigationType === "prerender"
+                ? "Prerendered page load (measured from when it was opened)"
+                : detail.navigationType === "back-forward-cache"
+                  ? "Restored from back/forward cache"
+                  : "Page load",
+          )}
         </Fact>
       )}
       {detail.interactionType && (
         <Fact label="Input">
-          {detail.interactionType === "keyboard" ? "Keyboard" : "Pointer"}
+          {translator.translateText(
+            detail.interactionType === "keyboard" ? "Keyboard" : "Pointer",
+          )}
         </Fact>
       )}
       {detail.interactionTarget && (
@@ -869,10 +1065,10 @@ const CLIENT_ERROR_KIND_COPY: Record<
   ReplayClientErrorSignalDetail["kind"],
   string
 > = {
-  error: "uncaught error",
-  unhandledrejection: "unhandled promise rejection",
-  resource: "resource failed to load",
-  unknown: "error",
+  error: translationKey("uncaught error"),
+  unhandledrejection: translationKey("unhandled promise rejection"),
+  resource: translationKey("resource failed to load"),
+  unknown: translationKey("error"),
 };
 
 const ErrorDetail: FunctionComponent<{
@@ -886,6 +1082,7 @@ const ErrorDetail: FunctionComponent<{
   links: ReplayRailLinks;
   onSelectSignal: (signalId: string) => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const isClient: boolean = props.signal.kind === "client-error";
   const client: ReplayClientErrorSignalDetail = props.signal
     .detail as ReplayClientErrorSignalDetail;
@@ -925,10 +1122,14 @@ const ErrorDetail: FunctionComponent<{
     <div className="space-y-2">
       <dl>
         {isClient && client.kind && !client.isCapMarker && (
-          <Fact label="Kind">{CLIENT_ERROR_KIND_COPY[client.kind]}</Fact>
+          <Fact label="Kind">
+            {translator.translateText(CLIENT_ERROR_KIND_COPY[client.kind])}
+          </Fact>
         )}
         {isClient && client.isCapMarker && (
-          <Fact label="Kind">recorder notice</Fact>
+          <Fact label="Kind">
+            {translator.translateText("recorder notice")}
+          </Fact>
         )}
         {!isClient && server.exceptionType && (
           <Fact label="Type" mono={true}>
@@ -946,8 +1147,16 @@ const ErrorDetail: FunctionComponent<{
         {isClient && client.isRepeat && (
           <Fact label="Repeats">
             {client.occurrences !== null
-              ? `seen ${client.occurrences} times so far this session`
-              : "seen again after its first occurrence"}
+              ? translator.translatePlural(
+                  {
+                    one: "seen {{count}} time so far this session",
+                    other: "seen {{count}} times so far this session",
+                  },
+                  client.occurrences,
+                )
+              : translator.translateText(
+                  "seen again after its first occurrence",
+                )}
           </Fact>
         )}
         {isClient && client.location && (
@@ -972,16 +1181,18 @@ const ErrorDetail: FunctionComponent<{
           <Fact label="Also">
             <button
               type="button"
-              className="text-left text-indigo-700 hover:underline"
+              className="text-start text-indigo-700 hover:underline"
               data-testid="rail-error-counterpart"
               onClick={(): void => {
                 props.onSelectSignal(counterpart.id);
               }}
             >
-              {isClient
-                ? "also reported server-side"
-                : "also seen in the browser"}{" "}
-              at {formatReplayOffsetPrecise(counterpart.offsetMs)}
+              {translator.translateTemplate(
+                isClient
+                  ? "also reported server-side at {{time}}"
+                  : "also seen in the browser at {{time}}",
+                { time: formatReplayOffsetPrecise(counterpart.offsetMs) },
+              )}
             </button>
           </Fact>
         )}
@@ -989,19 +1200,21 @@ const ErrorDetail: FunctionComponent<{
 
       {isClient && client.isCapMarker ? (
         <Note>
-          The recorder stopped recording new errors at its per-session cap;
-          errors after this point are missing from this tab, and this row marks
-          where that happened.
+          {translator.translateText(
+            "The recorder stopped recording new errors at its per-session cap; errors after this point are missing from this tab, and this row marks where that happened.",
+          )}
         </Note>
       ) : stack ? (
         <CodeBlock code={stack} language="plaintext" maxHeight="14rem" />
       ) : (
         <Note>
-          {!isClient
-            ? "No stack trace was reported with this exception."
-            : client.kind === "resource"
-              ? "A failed resource load has no stack: the element and its URL are all the browser reports. It is not counted as an error, so Next error steps past it."
-              : "No stack trace reached the recorder for this error (cross-origin scripts hide theirs)."}
+          {translator.translateText(
+            !isClient
+              ? "No stack trace was reported with this exception."
+              : client.kind === "resource"
+                ? "A failed resource load has no stack: the element and its URL are all the browser reports. It is not counted as an error, so Next error steps past it."
+                : "No stack trace reached the recorder for this error (cross-origin scripts hide theirs).",
+          )}
         </Note>
       )}
 
@@ -1034,13 +1247,18 @@ const LogDetail: FunctionComponent<{
   links: ReplayRailLinks;
   onFilterLogsByTrace: ((traceId: string) => void) | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplayLogSignalDetail = props.signal
     .detail as ReplayLogSignalDetail;
 
   return (
     <div className="space-y-2">
       <CodeBlock
-        code={detail.body || "(empty log line)"}
+        code={
+          detail.body ||
+          translator.translateText("(empty log line)") ||
+          "(empty log line)"
+        }
         language="plaintext"
         maxHeight="12rem"
       />
@@ -1105,6 +1323,7 @@ const TraceDetail: FunctionComponent<{
   onSeek: (offsetMs: number) => void;
   onFilterLogsByTrace: ((traceId: string) => void) | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplaySpanSignalDetail = props.signal
     .detail as ReplaySpanSignalDetail;
   const totalMs: number = Math.max(
@@ -1122,11 +1341,7 @@ const TraceDetail: FunctionComponent<{
           <Fact label="Service">{detail.serviceName}</Fact>
         )}
         <Fact label="Duration">{formatSignalDuration(detail.durationMs)}</Fact>
-        <Fact label="Status">
-          {detail.hasError
-            ? `error in ${detail.errorSpanCount} of ${detail.spanCount} spans`
-            : "ok"}
-        </Fact>
+        <Fact label="Status">{describeTraceStatus(translator, detail)}</Fact>
         <Fact label="Trace" mono={true}>
           {detail.traceId}
         </Fact>
@@ -1135,7 +1350,7 @@ const TraceDetail: FunctionComponent<{
       <div
         className="space-y-px"
         role="list"
-        aria-label="Trace waterfall"
+        aria-label={translator.translateText("Trace waterfall")}
         data-testid="rail-waterfall"
       >
         {detail.spans.map((span: ReplayTraceWaterfallSpan): ReactElement => {
@@ -1159,13 +1374,19 @@ const TraceDetail: FunctionComponent<{
             >
               <button
                 type="button"
-                className={`min-w-0 flex-1 truncate text-left font-mono text-[11px] ${
+                className={`min-w-0 flex-1 truncate text-start font-mono text-[11px] ${
                   span.hasError ? "text-rose-700" : "text-gray-700"
                 }`}
-                title={`Seek to ${formatReplayOffsetPrecise(span.sessionOffsetMs)}`}
-                aria-label={`Seek to span ${span.name} at ${formatReplayOffsetPrecise(
-                  span.sessionOffsetMs,
-                )}`}
+                title={translator.translateTemplate("Seek to {{time}}", {
+                  time: formatReplayOffsetPrecise(span.sessionOffsetMs),
+                })}
+                aria-label={translator.translateTemplate(
+                  "Seek to span {{name}} at {{time}}",
+                  {
+                    name: span.name,
+                    time: formatReplayOffsetPrecise(span.sessionOffsetMs),
+                  },
+                )}
                 onClick={(): void => {
                   props.onSeek(span.sessionOffsetMs);
                 }}
@@ -1186,7 +1407,7 @@ const TraceDetail: FunctionComponent<{
                   style={{ left: `${leftPercent}%`, width: `${widthPercent}%` }}
                 />
               </div>
-              <span className="w-12 shrink-0 text-right font-mono text-[10px] text-gray-400">
+              <span className="w-12 shrink-0 text-end font-mono text-[10px] text-gray-400">
                 {formatSignalDuration(span.durationMs)}
               </span>
               <LinkOut
@@ -1200,8 +1421,13 @@ const TraceDetail: FunctionComponent<{
 
       {detail.isWaterfallTruncated && (
         <Note>
-          Showing the first {detail.spans.length} of {detail.spanCount} spans;
-          open the trace for the rest.
+          {translator.translateTemplate(
+            "Showing the first {{shown}} of {{total}} spans; open the trace for the rest.",
+            {
+              shown: translator.formatNumber(detail.spans.length),
+              total: translator.formatNumber(detail.spanCount),
+            },
+          )}
         </Note>
       )}
 
@@ -1242,6 +1468,7 @@ const OwnSignalMarkerDetail: FunctionComponent<{
   trigger: SessionReplayCustomSignalTrigger;
   onShowOnStage: ((x: number, y: number) => void) | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const x: number | null = isFiniteNumber(props.detail.x)
     ? props.detail.x
     : null;
@@ -1253,11 +1480,11 @@ const OwnSignalMarkerDetail: FunctionComponent<{
     <div className="space-y-2">
       <dl>
         <Fact label="Signal">
-          {`${props.detail.name} (${CUSTOM_SIGNAL_TRIGGER_SUBTITLES[
-            props.trigger
-          ].toLowerCase()})`}
+          {describeOwnSignal(translator, props.detail.name, props.trigger)}
         </Fact>
-        <Fact label="Counts as">a marker, not frustration</Fact>
+        <Fact label="Counts as">
+          {translator.translateText("a marker, not frustration")}
+        </Fact>
         {x !== null && y !== null && (
           <Fact label="Position">
             {x}, {y}
@@ -1286,6 +1513,7 @@ const CustomDetail: FunctionComponent<{
   signal: ReplaySignal;
   onShowOnStage: ((x: number, y: number) => void) | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplayCustomSignalDetail = props.signal
     .detail as ReplayCustomSignalDetail;
   const keys: Array<string> = Object.keys(detail.properties || {});
@@ -1306,11 +1534,11 @@ const CustomDetail: FunctionComponent<{
         {detail.name}
       </Fact>
       {keys.length === 0 ? (
-        <Fact label="Properties">none</Fact>
+        <Fact label="Properties">{translator.translateText("none")}</Fact>
       ) : (
         keys.map((key: string): ReactElement => {
           return (
-            <Fact key={key} label={key} mono={true}>
+            <Fact key={key} label={key} mono={true} isLabelAsWritten={true}>
               {detail.properties[key]}
             </Fact>
           );
@@ -1318,8 +1546,14 @@ const CustomDetail: FunctionComponent<{
       )}
       {detail.propertyCount > keys.length && (
         <Fact label="Note">
-          {detail.propertyCount - keys.length} more properties were not captured
-          (per-event cap).
+          {translator.translatePlural(
+            {
+              one: "{{count}} more property was not captured (per-event cap).",
+              other:
+                "{{count}} more properties were not captured (per-event cap).",
+            },
+            detail.propertyCount - keys.length,
+          )}
         </Fact>
       )}
     </dl>
@@ -1329,6 +1563,7 @@ const CustomDetail: FunctionComponent<{
 const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
   signal: ReplaySignal;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
   const detail: ReplayMarkerSignalDetail = props.signal
     .detail as ReplayMarkerSignalDetail;
 
@@ -1336,15 +1571,23 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
     case "visibility":
       return (
         <Note>
-          The tab went {detail.visibilityState || "to another state"}; nothing
-          is drawn while it is in the background.
+          {translator.translateText(
+            detail.visibilityState === "hidden"
+              ? "The tab went hidden; nothing is drawn while it is in the background."
+              : detail.visibilityState === "visible"
+                ? "The tab went visible; nothing is drawn while it is in the background."
+                : "The tab went to another state; nothing is drawn while it is in the background.",
+          )}
         </Note>
       );
     case "identify":
       return (
         <Note>
-          The page identified its user here
-          {detail.hasTraits ? " with traits" : ""}; see Details for the label.
+          {translator.translateText(
+            detail.hasTraits
+              ? "The page identified its user here with traits; see Details for the label."
+              : "The page identified its user here; see Details for the label.",
+          )}
         </Note>
       );
     case "tags":
@@ -1352,7 +1595,7 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
         <dl>
           {Object.keys(detail.tags || {}).map((key: string): ReactElement => {
             return (
-              <Fact key={key} label={key} mono={true}>
+              <Fact key={key} label={key} mono={true} isLabelAsWritten={true}>
                 {(detail.tags as Record<string, string>)[key]}
               </Fact>
             );
@@ -1362,35 +1605,59 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
     case "click-dropped":
       return (
         <Note>
-          {detail.droppedCount ?? "Some"} clicks in this chunk were not
-          labelled: the per-chunk click cap was reached.
+          {typeof detail.droppedCount === "number"
+            ? translator.translatePlural(
+                {
+                  one: "{{count}} click in this chunk was not labelled: the per-chunk click cap was reached.",
+                  other:
+                    "{{count}} clicks in this chunk were not labelled: the per-chunk click cap was reached.",
+                },
+                detail.droppedCount,
+              )
+            : translator.translateText(
+                "Some clicks in this chunk were not labelled: the per-chunk click cap was reached.",
+              )}
         </Note>
       );
     case "custom-dropped":
       return (
         <Note>
-          {detail.droppedCount ?? "Some"} custom events in this chunk were
-          dropped: the per-chunk cap was reached.
+          {typeof detail.droppedCount === "number"
+            ? translator.translatePlural(
+                {
+                  one: "{{count}} custom event in this chunk was dropped: the per-chunk cap was reached.",
+                  other:
+                    "{{count}} custom events in this chunk were dropped: the per-chunk cap was reached.",
+                },
+                detail.droppedCount,
+              )
+            : translator.translateText(
+                "Some custom events in this chunk were dropped: the per-chunk cap was reached.",
+              )}
         </Note>
       );
     case "idle-pause":
       return detail.idlePauseEdge === "resumed" ? (
         <Note>
-          Input came back
           {typeof detail.pausedForMs === "number"
-            ? ` after ${formatReplayDuration(detail.pausedForMs)}`
-            : ""}{" "}
-          and the recorder started again here, on a fresh snapshot of the page.
-          Nothing was recorded during the pause, so playback skips it.
+            ? translator.translateTemplate(
+                "Input came back after {{duration}} and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+                { duration: formatReplayDuration(detail.pausedForMs) },
+              )
+            : translator.translateText(
+                "Input came back and the recorder started again here, on a fresh snapshot of the page. Nothing was recorded during the pause, so playback skips it.",
+              )}
         </Note>
       ) : (
         <Note>
-          Nobody touched the page
           {typeof detail.idleForMs === "number"
-            ? ` for ${formatReplayDuration(detail.idleForMs)}`
-            : ""}
-          , so the recorder stopped capturing here. Nothing the page did on its
-          own is recorded until the next input.
+            ? translator.translateTemplate(
+                "Nobody touched the page for {{duration}}, so the recorder stopped capturing here. Nothing the page did on its own is recorded until the next input.",
+                { duration: formatReplayDuration(detail.idleForMs) },
+              )
+            : translator.translateText(
+                "Nobody touched the page, so the recorder stopped capturing here. Nothing the page did on its own is recorded until the next input.",
+              )}
         </Note>
       );
     default:
@@ -1400,9 +1667,58 @@ const MarkerDetail: FunctionComponent<{ signal: ReplaySignal }> = (props: {
 
 /* ---- The detail shell. ---- */
 
+/*
+ * The line above a detail: when it happened on the session clock (and on
+ * the wall clock), how its time was placed when the server stamped it, and
+ * how often it repeated.
+ */
+function describeDetailMoment(
+  translator: Translator,
+  input: {
+    signal: ReplaySignal;
+    wallClock: string | null;
+    repeat: { count: number; lastOffsetMs: number } | null | undefined;
+  },
+): string {
+  const at: string = translator.translateTemplate("at {{time}}", {
+    time: formatReplayOffsetPrecise(input.signal.offsetMs),
+  });
+  const parts: Array<string> = [
+    input.wallClock ? `${at} (${input.wallClock})` : at,
+  ];
+
+  if (input.signal.alignment === "unanchored") {
+    parts.push(
+      translator.translateText("server-stamped, unanchored") ||
+        "server-stamped, unanchored",
+    );
+  } else if (input.signal.alignment === "anchored") {
+    parts.push(
+      translator.translateText("anchored to the recording via traces") ||
+        "anchored to the recording via traces",
+    );
+  }
+
+  if (input.repeat && input.repeat.count > 1) {
+    parts.push(
+      translator.translatePlural(
+        {
+          one: "repeated {{count}} time until {{time}}",
+          other: "repeated {{count}} times until {{time}}",
+        },
+        input.repeat.count,
+        { time: formatReplayOffset(input.repeat.lastOffsetMs) },
+      ),
+    );
+  }
+
+  return parts.join(getInlineSeparator(translator.language));
+}
+
 const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
   props: ReplayRailDetailProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const signal: ReplaySignal = props.signal;
   const wallClock: string | null = formatReplayWallClock(
     props.startTimeUnixMs,
@@ -1500,23 +1816,16 @@ const ReplayRailDetail: FunctionComponent<ReplayRailDetailProps> = (
     <div data-testid="rail-detail" data-signal-kind={signal.kind}>
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <div className="text-[11px] text-gray-500">
-          at {formatReplayOffsetPrecise(signal.offsetMs)}
-          {wallClock ? ` (${wallClock})` : ""}
-          {signal.alignment === "unanchored"
-            ? " · server-stamped, unanchored"
-            : signal.alignment === "anchored"
-              ? " · anchored to the recording via traces"
-              : ""}
-          {props.repeat && props.repeat.count > 1
-            ? ` · repeated ${props.repeat.count} times until ${formatReplayOffset(
-                props.repeat.lastOffsetMs,
-              )}`
-            : ""}
+          {describeDetailMoment(translator, {
+            signal: signal,
+            wallClock: wallClock,
+            repeat: props.repeat,
+          })}
         </div>
         <button
           type="button"
           className="rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-          aria-label="Close detail"
+          aria-label={translator.translateText("Close detail")}
           onClick={props.onClose}
         >
           <Icon icon={IconProp.Close} className="h-3.5 w-3.5" />

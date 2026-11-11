@@ -20,6 +20,8 @@ import { JSONObject } from "Common/Types/JSON";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import SendTestNotificationButton from "../Workspace/SendTestNotificationButton";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 interface ChannelItem {
   id: string;
@@ -27,6 +29,7 @@ interface ChannelItem {
 }
 
 const SlackChannelsCard: FunctionComponent = (): ReactElement => {
+  const translator: Translator = useTranslator();
   const [channels, setChannels] = useState<Array<ChannelItem>>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
@@ -131,11 +134,12 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
               />
             </div>
             <h3 className="mt-4 text-sm font-semibold text-gray-900">
-              No channels found
+              {translator.translateText("No channels found")}
             </h3>
             <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
-              Create a channel in Slack and click Refresh Channels. Private
-              channels appear once the OneUptime app is invited to them.
+              {translator.translateText(
+                "Create a channel in Slack and click Refresh Channels. Private channels appear once the OneUptime app is invited to them.",
+              )}
             </p>
           </div>
         )}
@@ -143,7 +147,9 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
         {!isLoading && !error && channels.length > 0 && (
           <div className="space-y-2">
             <div className="text-sm text-gray-600">
-              Channels ({channels.length})
+              {translator.translateTemplate("Channels ({{count}})", {
+                count: translator.formatNumber(channels.length),
+              })}
             </div>
             <div className="max-h-96 overflow-y-auto pr-1">
               <ul className="divide-y divide-gray-200 rounded-md border border-gray-200 overflow-hidden bg-white">
@@ -185,8 +191,9 @@ const SlackChannelsCard: FunctionComponent = (): ReactElement => {
               </ul>
             </div>
             <p className="text-xs text-gray-500">
-              Private channels appear only after the OneUptime app is invited to
-              them in Slack.
+              {translator.translateText(
+                "Private channels appear only after the OneUptime app is invited to them in Slack.",
+              )}
             </p>
           </div>
         )}

@@ -760,7 +760,10 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
       const route: Route | null = links.traceView(traceId);
 
       if (route) {
-        byId.set(row.signal.id, { route: route, label: "trace" });
+        byId.set(row.signal.id, {
+          route: route,
+          label: translationKey("trace"),
+        });
       }
     }
 
@@ -1470,7 +1473,7 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
         data-tab={activeTab}
       >
         <div className="text-sm font-medium text-gray-800">
-          {emptyCopy.title}
+          {translator.translateText(emptyCopy.title) || emptyCopy.title}
         </div>
         <div className="mt-1 text-gray-500">{emptyCopy.detail}</div>
         {emptyCopy.snippet && (
@@ -1593,9 +1596,11 @@ const ReplayRailComponent: React.ForwardRefRenderFunction<
           }
           counterpartNote={
             counterpartId
-              ? row.signal.kind === "client-error"
-                ? "also reported server-side"
-                : "also seen in the browser"
+              ? translator.translateText(
+                  row.signal.kind === "client-error"
+                    ? "also reported server-side"
+                    : "also seen in the browser",
+                )
               : null
           }
           link={rowLinks.get(row.signal.id) ?? null}

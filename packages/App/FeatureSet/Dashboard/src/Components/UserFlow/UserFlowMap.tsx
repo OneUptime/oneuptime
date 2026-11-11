@@ -14,6 +14,7 @@ import {
   UserFlowNode,
 } from "Common/Utils/Rum/UserFlow";
 import {
+  describeUserFlowColumn,
   layoutUserFlow,
   UserFlowBand,
   UserFlowLayout,
@@ -26,6 +27,11 @@ import {
   pluralizeSessions,
   truncateUserFlowLabel,
 } from "./UserFlowFormat";
+import {
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * The flow map itself: an SVG Sankey drawn from UserFlowLayout.
@@ -106,6 +112,19 @@ function activate(
 const UserFlowMap: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
+  const separator: string = getInlineSeparator(translator.language);
+  // "Other pages" is the map's own name for a fold; a page's path is its own.
+  const labelOf: (node: UserFlowNode) => string = (
+    node: UserFlowNode,
+  ): string => {
+    return node.isOther
+      ? translator.translateText(node.label) || node.label
+      : node.label;
+  };
+  const sessionsText: (count: number) => string = (count: number): string => {
+    return pluralizeSessions(count, translator);
+  };
   const [hoverNodeId, setHoverNodeId] = useState<string | null>(null);
   const [hoverLinkId, setHoverLinkId] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -257,37 +276,60 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
   ): Array<string> => {
     const columnTotal: number = columnTotals.get(node.step) || 0;
     const lines: Array<string> = [
-      `${pluralizeSessions(node.sessions)} · ${formatUserFlowShare(
-        columnTotal > 0 ? node.sessions / columnTotal : 0,
-      )} of this step`,
+      `${sessionsText(node.sessions)}${separator}${translator.translateTemplate(
+        "{{share}} of this step",
+        {
+          share: formatUserFlowShare(
+            columnTotal > 0 ? node.sessions / columnTotal : 0,
+          ),
+        },
+      )}`,
     ];
 
     if (node.terminal > 0) {
       lines.push(
         props.graph.direction === "backward"
-          ? `${formatUserFlowCount(node.terminal)} started their session here`
-          : `${formatUserFlowCount(node.terminal)} left here (${formatUserFlowShare(
-              node.terminal / node.sessions,
-            )})`,
+          ? translator.translateTemplate(
+              "{{count}} started their session here",
+              { count: formatUserFlowCount(node.terminal, translator) },
+            )
+          : translator.translateTemplate("{{count}} left here ({{share}})", {
+              count: formatUserFlowCount(node.terminal, translator),
+              share: formatUserFlowShare(node.terminal / node.sessions),
+            }),
       );
     }
 
     if (node.continued > 0) {
       lines.push(
         props.graph.direction === "backward"
-          ? `${formatUserFlowCount(node.continued)} came from further back`
-          : `${formatUserFlowCount(node.continued)} kept going`,
+          ? translator.translateTemplate("{{count}} came from further back", {
+              count: formatUserFlowCount(node.continued, translator),
+            })
+          : translator.translateTemplate("{{count}} kept going", {
+              count: formatUserFlowCount(node.continued, translator),
+            }),
       );
     }
 
     if (node.errorSessions > 0) {
       lines.push(
-        `${formatUserFlowCount(node.errorSessions)} hit an error on this page`,
+        translator.translateTemplate("{{count}} hit an error on this page", {
+          count: formatUserFlowCount(node.errorSessions, translator),
+        }),
       );
     }
 
     if (node.isOther) {
-      lines.push(`${node.otherPages.length} pages folded together`);
+      lines.push(
+        translator.translatePlural(
+          {
+            one: "{{count}} page folded together",
+            other: "{{count}} pages folded together",
+          },
+          node.otherPages.length,
+        ),
+      );
     }
 
     return lines;
@@ -298,20 +340,29 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
   ): Array<string> => {
     const source: UserFlowNodeBox | undefined = nodesById.get(link.sourceId);
     const lines: Array<string> = [
-      `${pluralizeSessions(link.sessions)}${
+      `${sessionsText(link.sessions)}${
         source
-          ? ` · ${formatUserFlowShare(
-              link.sessions / source.node.sessions,
-            )} of ${source.node.label}`
+          ? `${separator}${translator.translateTemplate(
+              "{{share}} of {{page}}",
+              {
+                share: formatUserFlowShare(
+                  link.sessions / source.node.sessions,
+                ),
+                page: labelOf(source.node),
+              },
+            )}`
           : ""
       }`,
     ];
 
     if (link.revisitSessions > 0) {
       lines.push(
-        `${formatUserFlowShare(
-          link.revisitSessions / link.sessions,
-        )} were returning to a page they had already seen`,
+        translator.translateTemplate(
+          "{{share}} were returning to a page they had already seen",
+          {
+            share: formatUserFlowShare(link.revisitSessions / link.sessions),
+          },
+        ),
       );
     }
 
@@ -358,9 +409,14 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
           height={layout.height}
           viewBox={`0 0 ${layout.width} ${layout.height}`}
           role="img"
-          aria-label={`User flow map with ${props.graph.steps} steps across ${pluralizeSessions(
-            props.graph.sessions,
-          )}`}
+          aria-label={translator.translatePlural(
+            {
+              one: "User flow map with {{count}} step across {{sessions}}",
+              other: "User flow map with {{count}} steps across {{sessions}}",
+            },
+            props.graph.steps,
+            { sessions: sessionsText(props.graph.sessions) },
+          )}
           className="select-none"
           data-node-width={Math.round(layout.nodeWidth)}
           onMouseMove={(event: MouseEvent<SVGSVGElement>): void => {
@@ -418,7 +474,11 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     fill={COLORS.mutedText}
                     style={{ textTransform: "uppercase", letterSpacing: 0.4 }}
                   >
-                    {column.label}
+                    {describeUserFlowColumn(
+                      column.step,
+                      props.graph,
+                      translator,
+                    )}
                   </text>
                   <text
                     x={column.x}
@@ -426,7 +486,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     fontSize={11}
                     fill={COLORS.mutedText}
                   >
-                    {pluralizeSessions(column.sessions)}
+                    {sessionsText(column.sessions)}
                   </text>
                 </g>
               );
@@ -463,9 +523,14 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                   className="cursor-pointer outline-none transition-[fill-opacity] duration-150 focus-visible:[stroke:#4f46e5] focus-visible:[stroke-width:2]"
                   tabIndex={0}
                   role="button"
-                  aria-label={`${source?.node.label || ""} to ${
-                    target?.node.label || ""
-                  }: ${pluralizeSessions(band.link.sessions)}`}
+                  aria-label={translator.translateTemplate(
+                    "{{from}} to {{to}}: {{sessions}}",
+                    {
+                      from: source ? labelOf(source.node) : "",
+                      to: target ? labelOf(target.node) : "",
+                      sessions: sessionsText(band.link.sessions),
+                    },
+                  )}
                   data-testid="user-flow-link"
                   data-from={band.link.fromPage}
                   data-to={band.link.toPage}
@@ -478,7 +543,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     setTooltip({
                       x: at.x,
                       y: at.y,
-                      title: `${source?.node.label || ""} → ${
+                      title: `${source ? labelOf(source.node) : ""} → ${
                         target?.node.label || ""
                       }`,
                       lines: describeLink(band.link),
@@ -559,7 +624,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                   tabIndex={0}
                   role="button"
                   aria-pressed={selected}
-                  aria-label={`${node.label}, ${pluralizeSessions(
+                  aria-label={`${labelOf(node)}, ${sessionsText(
                     node.sessions,
                   )}`}
                   data-testid="user-flow-node"
@@ -574,7 +639,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     setTooltip({
                       x: at.x,
                       y: at.y,
-                      title: node.label,
+                      title: labelOf(node),
                       lines: describeNode(node),
                     });
                   }}
@@ -617,8 +682,8 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     fill={node.isOther ? COLORS.mutedText : COLORS.text}
                     fontStyle={node.isOther ? "italic" : "normal"}
                   >
-                    {truncateUserFlowLabel(node.label, labelChars)}
-                    <title>{node.label}</title>
+                    {truncateUserFlowLabel(labelOf(node), labelChars)}
+                    <title>{labelOf(node)}</title>
                   </text>
                   <text
                     x={box.x + 14}
@@ -626,7 +691,8 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     fontSize={11}
                     fill={COLORS.mutedText}
                   >
-                    {formatUserFlowCount(node.sessions)} ·{" "}
+                    {formatUserFlowCount(node.sessions, translator)}
+                    {separator}
                     {formatUserFlowShare(
                       columnTotal > 0 ? node.sessions / columnTotal : 0,
                     )}
@@ -640,9 +706,14 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                         fill={COLORS.error}
                       />
                       <title>
-                        {`${pluralizeSessions(
+                        {translator.translatePlural(
+                          {
+                            one: "{{count}} session hit an error on this page",
+                            other:
+                              "{{count}} sessions hit an error on this page",
+                          },
                           node.errorSessions,
-                        )} hit an error on this page`}
+                        )}
                       </title>
                     </g>
                   ) : (
@@ -684,14 +755,16 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
             className="inline-block h-2.5 w-5 rounded-sm"
             style={{ backgroundColor: COLORS.band, opacity: 0.6 }}
           />
-          Sessions moving between pages (thickness = sessions)
+          {translator.translateText(
+            "Sessions moving between pages (thickness = sessions)",
+          )}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span
             className="inline-block h-2.5 w-5 rounded-sm"
             style={{ backgroundColor: COLORS.bandRevisit, opacity: 0.6 }}
           />
-          Mostly returning to a page already seen
+          {translator.translateText("Mostly returning to a page already seen")}
         </span>
         {props.graph.direction === "backward" ? (
           <span className="inline-flex items-center gap-1.5">
@@ -699,7 +772,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
               className="inline-block h-2.5 w-5 rounded-sm"
               style={{ backgroundColor: COLORS.entry, opacity: 0.6 }}
             />
-            Session started here
+            {translator.translateText("Session started here")}
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5">
@@ -707,7 +780,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
               className="inline-block h-2.5 w-5 rounded-sm"
               style={{ backgroundColor: COLORS.exit, opacity: 0.6 }}
             />
-            Left the application here
+            {translator.translateText("Left the application here")}
           </span>
         )}
         <span className="inline-flex items-center gap-1.5">
@@ -715,14 +788,14 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
             className="inline-block h-2.5 w-5 rounded-sm"
             style={{ backgroundColor: COLORS.continued, opacity: 0.6 }}
           />
-          Journey continues beyond the map
+          {translator.translateText("Journey continues beyond the map")}
         </span>
         <span className="inline-flex items-center gap-1.5">
           <span
             className="inline-block h-2 w-2 rounded-full"
             style={{ backgroundColor: COLORS.error }}
           />
-          Errors on this page
+          {translator.translateText("Errors on this page")}
         </span>
       </div>
     </div>

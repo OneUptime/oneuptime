@@ -1,4 +1,5 @@
 import { ReplayBackendSignalsSlot, ReplayRailTabId } from "./ReplaySignalTypes";
+import { translationKey } from "Common/Types/Translator";
 
 /*
  * What an empty rail tab says, and why. Every empty state names its cause
@@ -65,16 +66,65 @@ export const REPLAY_RAIL_SAME_ORIGIN_SWITCH_CAVEAT: string =
 export const REPLAY_RAIL_MOBILE_NO_AUTO_LINK: string =
   "The React Native SDK adds nothing to your app's requests, so nothing links on its own.";
 
-const TAB_NOUNS: Record<ReplayRailTabId, string> = {
-  all: "signals",
-  console: "console output",
-  network: "requests",
-  navigation: "navigations",
-  interactions: "interactions",
-  performance: "performance measurements",
-  errors: "errors",
-  logs: "backend logs",
-  traces: "backend traces",
+/*
+ * Each tab's titles, whole sentences per tab (a translation keys them by
+ * their English): the rail draws a title in the reader's language.
+ */
+const FILTERED_TITLES: Record<ReplayRailTabId, string> = {
+  all: translationKey("No signals match this filter"),
+  console: translationKey("No console output match this filter"),
+  network: translationKey("No requests match this filter"),
+  navigation: translationKey("No navigations match this filter"),
+  interactions: translationKey("No interactions match this filter"),
+  performance: translationKey("No performance measurements match this filter"),
+  errors: translationKey("No errors match this filter"),
+  logs: translationKey("No backend logs match this filter"),
+  traces: translationKey("No backend traces match this filter"),
+};
+
+type TelemetryTabId = "logs" | "traces" | "errors";
+
+const SLOT_TITLES: Record<
+  TelemetryTabId,
+  { loading: string; locked: string; failed: string }
+> = {
+  logs: {
+    loading: translationKey("Loading backend logs"),
+    locked: translationKey("Backend logs are locked"),
+    failed: translationKey("Backend logs did not load"),
+  },
+  traces: {
+    loading: translationKey("Loading backend traces"),
+    locked: translationKey("Backend traces are locked"),
+    failed: translationKey("Backend traces did not load"),
+  },
+  errors: {
+    loading: translationKey("Loading errors"),
+    locked: translationKey("Errors are locked"),
+    failed: translationKey("Errors did not load"),
+  },
+};
+
+type RecordingTabId = Exclude<ReplayRailTabId, TelemetryTabId>;
+
+const EXPIRED_TITLES: Record<RecordingTabId, string> = {
+  all: translationKey("Signals expired with the footage"),
+  console: translationKey("Console output expired with the footage"),
+  network: translationKey("Requests expired with the footage"),
+  navigation: translationKey("Navigations expired with the footage"),
+  interactions: translationKey("Interactions expired with the footage"),
+  performance: translationKey(
+    "Performance measurements expired with the footage",
+  ),
+};
+
+const NO_ROWS_YET_TITLES: Record<RecordingTabId, string> = {
+  all: translationKey("No signals yet"),
+  console: translationKey("No console output yet"),
+  network: translationKey("No requests yet"),
+  navigation: translationKey("No navigations yet"),
+  interactions: translationKey("No interactions yet"),
+  performance: translationKey("No performance measurements yet"),
 };
 
 /*
@@ -87,7 +137,7 @@ const TAB_NOUNS: Record<ReplayRailTabId, string> = {
  */
 export const REPLAY_CLICK_EVENTS_CAPABILITY: string = "click-events";
 
-function isTelemetryTab(tabId: ReplayRailTabId): boolean {
+function isTelemetryTab(tabId: ReplayRailTabId): tabId is TelemetryTabId {
   return tabId === "logs" || tabId === "traces" || tabId === "errors";
 }
 
@@ -100,39 +150,40 @@ function hasCapability(
 
 function filteredCopy(tabId: ReplayRailTabId): ReplayRailEmptyCopy {
   return {
-    title: `No ${TAB_NOUNS[tabId]} match this filter`,
+    title: FILTERED_TITLES[tabId],
     detail:
       "Clear the search, the chips or the ±30s scope to see every row on this tab.",
   };
 }
 
 function slotCopy(
-  tabId: ReplayRailTabId,
+  tabId: TelemetryTabId,
   slot: ReplayBackendSignalsSlot,
 ): ReplayRailEmptyCopy | null {
-  const noun: string = TAB_NOUNS[tabId];
+  const titles: { loading: string; locked: string; failed: string } =
+    SLOT_TITLES[tabId];
 
   switch (slot.status) {
     case "idle":
       return {
-        title: `Loading ${noun}`,
+        title: titles.loading,
         detail: "Fetching the rows linked to this session.",
       };
     case "loading":
       return {
-        title: `Loading ${noun}`,
+        title: titles.loading,
         detail: "Fetching the rows linked to this session.",
       };
     case "locked":
       return {
-        title: `${capitalise(noun)} are locked`,
+        title: titles.locked,
         detail: slot.lockedPermission
           ? `Your role lacks "${slot.lockedPermission}". Ask a project admin for that permission to see these rows.`
           : "Your role lacks the read permission for these rows. Ask a project admin to grant it.",
       };
     case "error":
       return {
-        title: `${capitalise(noun)} did not load`,
+        title: titles.failed,
         detail:
           slot.errorMessage ||
           "The request failed before the server answered. Retry.",
@@ -140,12 +191,6 @@ function slotCopy(
     default:
       return null;
   }
-}
-
-function capitalise(text: string): string {
-  return text.length === 0
-    ? text
-    : text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 /*
@@ -230,13 +275,11 @@ export function getRailEmptyCopy(
 
   if (args.isExpiredFootage) {
     return {
-      title: `${capitalise(TAB_NOUNS[args.tabId])} expired with the footage`,
+      title: EXPIRED_TITLES[args.tabId as RecordingTabId],
       detail:
         "Rows lifted from the recording are gone with its chunks per your retention. Logs, Traces and Errors still load from the backend.",
     };
   }
-
-  const noun: string = TAB_NOUNS[args.tabId];
 
   /*
    * Nothing has decoded yet, so nothing is known about what the recording
@@ -246,7 +289,7 @@ export function getRailEmptyCopy(
    */
   if (!args.hasLoadedFootage) {
     return {
-      title: `No ${noun} yet`,
+      title: NO_ROWS_YET_TITLES[args.tabId as RecordingTabId],
       detail: "Rows appear as the first chunk of footage decodes.",
     };
   }

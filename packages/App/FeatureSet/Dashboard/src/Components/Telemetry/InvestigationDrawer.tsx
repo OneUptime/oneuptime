@@ -77,6 +77,8 @@ import TimeRangeZoomUtil from "Common/UI/Components/Charts/TimeRangeZoom/TimeRan
 import ResetTimeRangeZoomButton from "Common/UI/Components/Charts/TimeRangeZoom/ResetTimeRangeZoomButton";
 import { computeBucketSizeInMinutes } from "../Dashboard/Components/LogChartData";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   /** What the user is investigating, e.g. `CPU by host · 12:01–12:14`. */
@@ -130,6 +132,7 @@ interface DrawerQueries {
 const InvestigationDrawer: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   // "Explain with AI" opens Ask AI, so it is drawn only where AI can run.
   const isAiOffered: boolean = useAiOffered();
   const pinnedStartMs: number = props.window.startValue.getTime();
@@ -460,6 +463,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
 
   const droppedHint: string = formatDroppedScopeHint(
     extraction.droppedFilterKeys,
+    translator,
   );
 
   // -- Findings: deterministic "explain this spike" over the evidence --
@@ -607,7 +611,9 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
       })
       .catch(() => {
         setSaveNoteError(
-          "Could not save the note — the incident note API rejected the request.",
+          translator.translateText(
+            "Could not save the note — the incident note API rejected the request.",
+          ) || "",
         );
       })
       .finally(() => {
@@ -682,13 +688,15 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
               })
             ) : (
               <span className="text-xs text-gray-500">
-                Scoped by time window only — results cover the whole project.
+                {translator.translateText(
+                  "Scoped by time window only — results cover the whole project.",
+                )}
               </span>
             )}
             {droppedHint ? (
               <HintChip variant="amber">{droppedHint}</HintChip>
             ) : null}
-            <div className="ml-auto flex items-center gap-1.5">
+            <div className="ms-auto flex items-center gap-1.5">
               {/*
                * The way back to the pinned window from anywhere in the
                * drawer — including the companion tabs, where no chart of the
@@ -702,7 +710,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                 onClick={openInExplorer}
               >
                 <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
-                Open in Metric Explorer
+                {translator.translateText("Open in Metric Explorer")}
               </button>
             </div>
           </div>
@@ -717,22 +725,26 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                   <button
                     type="button"
                     className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                    title="Open Ask AI with this evidence as an editable prompt"
+                    title={translator.translateText(
+                      "Open Ask AI with this evidence as an editable prompt",
+                    )}
                     data-testid="investigation-explain-with-ai"
                     onClick={explainWithAi}
                   >
                     <Icon icon={IconProp.Sparkles} className="h-3.5 w-3.5" />
-                    Explain with AI
+                    {translator.translateText("Explain with AI")}
                   </button>
                 )}
                 <button
                   type="button"
                   className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                  title="Pin this investigation to an incident as a private note"
+                  title={translator.translateText(
+                    "Pin this investigation to an incident as a private note",
+                  )}
                   onClick={openIncidentPicker}
                 >
                   <Icon icon={IconProp.MapPin} className="h-3.5 w-3.5" />
-                  Save to incident
+                  {translator.translateText("Save to incident")}
                 </button>
               </div>
             }
@@ -766,11 +778,13 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                 <div className="flex flex-wrap items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
                   {recentIncidents === null ? (
                     <span className="text-xs text-gray-500">
-                      Loading incidents…
+                      {translator.translateText("Loading incidents…")}
                     </span>
                   ) : recentIncidents.length === 0 ? (
                     <span className="text-xs text-gray-500">
-                      No incidents found in this project.
+                      {translator.translateText(
+                        "No incidents found in this project.",
+                      )}
                     </span>
                   ) : (
                     <>
@@ -778,7 +792,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                         htmlFor="investigation-incident-picker"
                         className="text-xs font-medium text-gray-700"
                       >
-                        Pin to
+                        {translator.translateText("Pin to")}
                       </label>
                       <select
                         id="investigation-incident-picker"
@@ -815,7 +829,9 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                         )}`}
                         onClick={saveNoteToIncident}
                       >
-                        {isSavingNote ? "Saving…" : "Save note"}
+                        {isSavingNote
+                          ? translator.translateText("Saving…")
+                          : translator.translateText("Save note")}
                       </button>
                     </>
                   )}
@@ -826,7 +842,7 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                       setIsIncidentPickerOpen(false);
                     }}
                   >
-                    Cancel
+                    {translator.translateText("Cancel")}
                   </button>
                   {saveNoteError ? (
                     <p
@@ -850,13 +866,13 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
               <div className="grid grid-cols-3 gap-3">
                 {[
                   {
-                    label: "Log lines",
+                    label: translator.translateText("Log lines") || "",
                     value: logVolume
                       ? logVolume.total.toLocaleString(getReaderNumberLocale())
                       : "…",
                   },
                   {
-                    label: "Errors",
+                    label: translator.translateText("Errors") || "",
                     value: logVolume
                       ? logVolume.errorCount.toLocaleString(
                           getReaderNumberLocale(),
@@ -864,9 +880,15 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                       : "…",
                   },
                   {
-                    label: "Error rate",
+                    label: translator.translateText("Error rate") || "",
                     value: logVolume
-                      ? `${logVolume.errorRatePercent.toFixed(1)}%`
+                      ? `${logVolume.errorRatePercent.toLocaleString(
+                          getReaderNumberLocale(),
+                          {
+                            minimumFractionDigits: 1,
+                            maximumFractionDigits: 1,
+                          },
+                        )}%`
                       : "…",
                   },
                 ].map((stat: { label: string; value: string }) => {
@@ -896,13 +918,17 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
 
               <div>
                 <p className="text-xs font-medium text-gray-700">
-                  Top error patterns
+                  {translator.translateText("Top error patterns")}
                 </p>
                 {errorPatterns === null ? (
-                  <p className="mt-1 text-xs text-gray-400">Loading…</p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    {translator.translateText("Loading…")}
+                  </p>
                 ) : errorPatterns.length === 0 ? (
                   <p className="mt-1 text-xs text-gray-500">
-                    No error-severity logs in this window.
+                    {translator.translateText(
+                      "No error-severity logs in this window.",
+                    )}
                   </p>
                 ) : (
                   <ul className="mt-1.5 space-y-1">
@@ -911,8 +937,10 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                         <li key={pattern.pattern}>
                           <button
                             type="button"
-                            className="group flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-                            title="Open these logs in the explorer"
+                            className="group flex w-full items-baseline gap-2 rounded-md px-2 py-1.5 text-start transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+                            title={translator.translateText(
+                              "Open these logs in the explorer",
+                            )}
                             onClick={() => {
                               openPattern(pattern);
                             }}
@@ -940,8 +968,9 @@ const InvestigationDrawer: FunctionComponent<ComponentProps> = (
                 {scopeChipsForEvidence.length > 0 &&
                 Object.keys(extraction.attributes).length > 0 ? (
                   <p className="mt-1.5 text-[11px] text-gray-400">
-                    Patterns are scoped by service and window; attribute filters
-                    apply to the volume chart above.
+                    {translator.translateText(
+                      "Patterns are scoped by service and window; attribute filters apply to the volume chart above.",
+                    )}
                   </p>
                 ) : null}
               </div>

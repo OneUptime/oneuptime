@@ -8,6 +8,9 @@ import Card from "Common/UI/Components/Card/Card";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { WebVital, WebVitalByRoute, WebVitalRoute } from "./telemetryMetrics";
 import { formatVital, ratingClasses, ratingLabel } from "./WebVitalsCard";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * One web vital, per route, slowest first. On the RUM overview this is
@@ -30,7 +33,12 @@ export interface WebVitalRouteBreakdownCardProps {
 const WebVitalRouteBreakdownCard: FunctionComponent<
   WebVitalRouteBreakdownCardProps
 > = (props: WebVitalRouteBreakdownCardProps): ReactElement => {
-  const title: string = `${props.vital.key.toUpperCase()} by route`;
+  const translator: Translator = useTranslator();
+  // The vital's short name ("INP") is its own in every language.
+  const vitalName: string = props.vital.key.toUpperCase();
+  const title: string = translator.translateTemplate("{{vital}} by route", {
+    vital: vitalName,
+  });
   const routes: Array<WebVitalRoute> = props.breakdown?.routes || [];
 
   /*
@@ -65,7 +73,9 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
     if (props.breakdown?.failed) {
       return (
         <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600">
-          Could not load {props.vital.key.toUpperCase()} by route.
+          {translator.translateTemplate("Could not load {{vital}} by route.", {
+            vital: vitalName,
+          })}
         </div>
       );
     }
@@ -74,19 +84,29 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
       return (
         <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
           <div className="text-sm font-medium text-gray-700">
-            {props.vital.key.toUpperCase()} is reported, but not per route
+            {translator.translateTemplate(
+              "{{vital}} is reported, but not per route",
+              { vital: vitalName },
+            )}
           </div>
           <div className="mt-1 text-xs text-gray-500">
-            Record <code>{props.vital.metricName || "web_vital.inp"}</code> with
-            an <code>app.route</code> attribute holding the route pattern (for
-            example <code>/products/:id</code>) to see which view is slow.{" "}
+            <TranslatedSentence
+              template="Record {{metric}} with an {{attribute}} attribute holding the route pattern (for example {{example}}) to see which view is slow."
+              slots={{
+                metric: (
+                  <code>{props.vital.metricName || "web_vital.inp"}</code>
+                ),
+                attribute: <code>app.route</code>,
+                example: <code>/products/:id</code>,
+              }}
+            />{" "}
             <a
               className="font-medium text-indigo-600 hover:underline"
               href={WEB_VITALS_DOCS_URL}
               target="_blank"
               rel="noopener noreferrer"
             >
-              How to measure INP per route
+              {translator.translateText("How to measure INP per route")}
             </a>
           </div>
         </div>
@@ -111,12 +131,12 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                 className="py-2 pr-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={routeColumns.getResize(
                   "route",
-                  "Route",
+                  translator.translateText("Route") || "Route",
                   ColumnWidthKind.Name,
                 )}
               >
                 <span>
-                  Route
+                  {translator.translateText("Route")}
                   {props.breakdown?.routeAttribute ? (
                     <span className="ml-1 font-mono normal-case tracking-normal text-gray-400">
                       ({props.breakdown.routeAttribute})
@@ -128,21 +148,21 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
                 className="py-2 pr-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={routeColumns.getResize(
                   "average",
-                  "Average",
+                  translator.translateText("Average") || "Average",
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Average</span>
+                <span>{translator.translateText("Average")}</span>
               </ResizableHeaderCell>
               <ResizableHeaderCell
                 className="py-2 text-right text-xs font-medium uppercase tracking-wider text-gray-500"
                 resize={routeColumns.getResize(
                   "rating",
-                  "Rating",
+                  translator.translateText("Rating") || "Rating",
                   ColumnWidthKind.Whole,
                 )}
               >
-                <span>Rating</span>
+                <span>{translator.translateText("Rating")}</span>
               </ResizableHeaderCell>
             </tr>
           </thead>
@@ -180,8 +200,15 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
         </table>
         {!shownAll && (
           <div className="mt-2 text-xs text-gray-500">
-            The {routes.length} slowest of {props.breakdown?.totalRoutes}{" "}
-            routes.
+            {translator.translateTemplate(
+              "The {{shown}} slowest of {{total}} routes.",
+              {
+                shown: translator.formatNumber(routes.length),
+                total: translator.formatNumber(
+                  props.breakdown?.totalRoutes || 0,
+                ),
+              },
+            )}
           </div>
         )}
       </div>
@@ -205,7 +232,10 @@ const WebVitalRouteBreakdownCard: FunctionComponent<
             title
           )
         }
-        description={`${props.vital.label} averaged over the selected range for each route, slowest first.`}
+        description={translator.translateTemplate(
+          "{{vital}} averaged over the selected range for each route, slowest first.",
+          { vital: props.vital.label },
+        )}
       >
         <div className="-mt-2">{body()}</div>
       </Card>

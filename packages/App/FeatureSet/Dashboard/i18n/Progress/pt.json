@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 10301
+    "keys": 50088,
+    "untranslated": 10300
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -108,6 +108,7 @@
     "HA: {{state}}",
     "HAProxy",
     "HH",
+    "HTTP {{status}}",
     "Hardware",
     "Hertz",
     "Hong Kong (+852)",
@@ -341,6 +342,7 @@
     "flavors",
     "goroutines",
     "govc",
+    "history {{kind}}",
     "horizontal pod autoscaler",
     "host",
     "hosts",

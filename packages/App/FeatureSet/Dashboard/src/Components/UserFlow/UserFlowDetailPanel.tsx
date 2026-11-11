@@ -31,6 +31,12 @@ import {
 } from "./UserFlowFormat";
 import { UserFlowSelection } from "./UserFlowMap";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
+import {
+  composedValue,
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 /*
  * What the map says about the page or transition that was clicked, and the
@@ -58,6 +64,8 @@ function Stat(props: {
   tone?: "neutral" | "danger" | "warning" | undefined;
   testId?: string | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+  const label: string = translator.translateText(props.label) || props.label;
   const toneClass: string =
     props.tone === "danger"
       ? "text-rose-700"
@@ -68,10 +76,8 @@ function Stat(props: {
   return (
     <div className="rounded-lg bg-gray-50 px-3 py-2" data-testid={props.testId}>
       <div className="flex items-center gap-1">
-        <p className="min-w-0 text-xs font-medium text-gray-500">
-          {props.label}
-        </p>
-        <InfoTooltip label={props.label} text={props.tooltip} />
+        <p className="min-w-0 text-xs font-medium text-gray-500">{label}</p>
+        <InfoTooltip label={label} text={props.tooltip} />
       </div>
       <p className={`text-lg font-semibold ${toneClass}`}>{props.value}</p>
       {props.hint ? (
@@ -87,6 +93,8 @@ function SampleSessions(props: {
   sessionIds: Array<string>;
   rumApplicationId: ObjectID;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+
   if (props.sessionIds.length === 0) {
     return <></>;
   }
@@ -94,7 +102,7 @@ function SampleSessions(props: {
   return (
     <div data-testid="user-flow-sample-sessions">
       <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-        Watch sessions that took this route
+        {translator.translateText("Watch sessions that took this route")}
       </p>
       <ul className="flex flex-wrap gap-2">
         {props.sessionIds.map((sessionId: string): ReactElement => {
@@ -133,6 +141,9 @@ function NeighbourList(props: {
   onPick: (page: string) => void;
   testId: string;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+  const title: string = translator.translateText(props.title) || props.title;
+
   return (
     <div data-testid={props.testId}>
       {/*
@@ -141,17 +152,19 @@ function NeighbourList(props: {
        */}
       <div className="mb-1.5 flex items-center gap-1">
         <p className="min-w-0 text-xs font-semibold uppercase tracking-wide text-gray-500">
-          {props.title}
+          {title}
         </p>
         <InfoTooltip
-          label={props.title}
+          label={title}
           text={props.tooltip}
           className="font-normal normal-case"
           dataTestId={`${props.testId}-info`}
         />
       </div>
       {props.items.length === 0 ? (
-        <p className="text-sm text-gray-400">None in this range.</p>
+        <p className="text-sm text-gray-400">
+          {translator.translateText("None in this range.")}
+        </p>
       ) : (
         <ul className="space-y-1">
           {props.items.map((item: UserFlowPageCount): ReactElement => {
@@ -162,14 +175,17 @@ function NeighbourList(props: {
               <li key={item.page}>
                 <button
                   type="button"
-                  className="group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-md px-2 py-1 text-left text-sm hover:bg-indigo-50"
-                  title={`Show paths from ${item.page}`}
+                  className="group relative flex w-full items-center justify-between gap-3 overflow-hidden rounded-md px-2 py-1 text-start text-sm hover:bg-indigo-50"
+                  title={translator.translateTemplate(
+                    "Show paths from {{page}}",
+                    { page: item.page },
+                  )}
                   onClick={(): void => {
                     props.onPick(item.page);
                   }}
                 >
                   <span
-                    className="absolute inset-y-0 left-0 bg-indigo-100/70"
+                    className="absolute inset-y-0 start-0 bg-indigo-100/70"
                     style={{ width: `${Math.min(100, share * 100)}%` }}
                     aria-hidden="true"
                   />
@@ -177,7 +193,8 @@ function NeighbourList(props: {
                     {item.page}
                   </span>
                   <span className="relative shrink-0 text-xs text-gray-500">
-                    {formatUserFlowCount(item.sessions)} ·{" "}
+                    {formatUserFlowCount(item.sessions, translator)}
+                    {getInlineSeparator(translator.language)}
                     {formatUserFlowShare(share)}
                   </span>
                 </button>
@@ -199,6 +216,7 @@ function findNode(graph: UserFlowGraph, id: string): UserFlowNode | undefined {
 const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const graph: UserFlowGraph = props.analysis.graph;
 
   if (!props.selection) {
@@ -238,7 +256,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         <button
           type="button"
           className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-          aria-label="Close details"
+          aria-label={translator.translateText("Close details")}
           onClick={props.onClose}
         >
           <Icon icon={IconProp.Close} className="h-4 w-4" />
@@ -261,8 +279,13 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
 
     const source: UserFlowNode | undefined = findNode(graph, link.sourceId);
     const target: UserFlowNode | undefined = findNode(graph, link.targetId);
-    const sourceLabel: string = source?.label || link.fromPage;
-    const targetLabel: string = target?.label || link.toPage;
+    // "Other pages" is the map's own name for a fold; a path is its own.
+    const sourceLabel: string = source?.isOther
+      ? translator.translateText(source.label) || source.label
+      : source?.label || link.fromPage;
+    const targetLabel: string = target?.isOther
+      ? translator.translateText(target.label) || target.label
+      : target?.label || link.toPage;
 
     return (
       <div
@@ -270,16 +293,21 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         data-testid="user-flow-detail"
         data-kind="link"
       >
-        {header(`${sourceLabel} → ${targetLabel}`, "Transition")}
+        {header(
+          `${sourceLabel} → ${targetLabel}`,
+          translator.translateText("Transition") || "Transition",
+        )}
         <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
           <Stat
             label="Sessions"
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailTransitionSessions}
-            value={formatUserFlowCount(link.sessions)}
+            value={formatUserFlowCount(link.sessions, translator)}
             testId="user-flow-detail-sessions"
           />
           <Stat
-            label={`Share of ${sourceLabel}`}
+            label={translator.translateTemplate("Share of {{page}}", {
+              page: sourceLabel,
+            })}
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource}
             value={formatUserFlowShare(
               source && source.sessions > 0
@@ -288,7 +316,9 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             )}
           />
           <Stat
-            label={`Share of ${targetLabel}`}
+            label={translator.translateTemplate("Share of {{page}}", {
+              page: targetLabel,
+            })}
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget}
             value={formatUserFlowShare(
               target && target.sessions > 0
@@ -317,7 +347,9 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           <div className="flex flex-wrap gap-2">
             {link.toPage !== OTHER_PAGES_KEY ? (
               <Button
-                title={`Paths after ${targetLabel}`}
+                title={translator.translateTemplate("Paths after {{page}}", {
+                  page: targetLabel,
+                })}
                 icon={IconProp.ArrowRight}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}
@@ -330,7 +362,9 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             )}
             {link.fromPage !== OTHER_PAGES_KEY ? (
               <Button
-                title={`Paths before ${sourceLabel}`}
+                title={translator.translateTemplate("Paths before {{page}}", {
+                  page: sourceLabel,
+                })}
                 icon={IconProp.ArrowLeft}
                 buttonSize={ButtonSize.Small}
                 buttonStyle={ButtonStyleType.OUTLINE}
@@ -370,8 +404,21 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         data-kind="other"
       >
         {header(
-          `${node.otherPages.length} less visited pages`,
-          `Other pages at this step · ${pluralizeSessions(node.sessions)}`,
+          translator.translatePlural(
+            {
+              one: "{{count}} less visited page",
+              other: "{{count}} less visited pages",
+            },
+            node.otherPages.length,
+          ),
+          translator.translateTemplate(
+            "Other pages at this step · {{sessions}}",
+            {
+              sessions: composedValue((sentence: Translator): string => {
+                return pluralizeSessions(node.sessions, sentence);
+              }),
+            },
+          ),
         )}
         <NeighbourList
           title="Pages folded together (click to follow one)"
@@ -406,22 +453,36 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
       {header(
         node.label,
         graph.anchorPage && node.step === 0
-          ? "Selected page"
+          ? translator.translateText("Selected page") || "Selected page"
           : graph.anchorPage
-            ? `${node.step} ${node.step === 1 ? "page" : "pages"} ${
-                isBackward ? "before" : "after"
-              } ${graph.anchorPage}`
-            : `Page ${node.step + 1} of the journey`,
+            ? translator.translatePlural(
+                isBackward
+                  ? {
+                      one: "{{count}} page before {{page}}",
+                      other: "{{count}} pages before {{page}}",
+                    }
+                  : {
+                      one: "{{count}} page after {{page}}",
+                      other: "{{count}} pages after {{page}}",
+                    },
+                node.step,
+                { page: graph.anchorPage },
+              )
+            : translator.translateTemplate("Page {{number}} of the journey", {
+                number: translator.formatNumber(node.step + 1),
+              }),
       )}
 
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         <Stat
           label="Sessions at this step"
           tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailStepSessions}
-          value={formatUserFlowCount(node.sessions)}
-          hint={`${formatUserFlowShare(
-            columnTotal > 0 ? node.sessions / columnTotal : 0,
-          )} of the step`}
+          value={formatUserFlowCount(node.sessions, translator)}
+          hint={translator.translateTemplate("{{share}} of the step", {
+            share: formatUserFlowShare(
+              columnTotal > 0 ? node.sessions / columnTotal : 0,
+            ),
+          })}
           testId="user-flow-detail-sessions"
         />
         <Stat
@@ -430,17 +491,17 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           value={formatUserFlowShare(reachShare)}
           hint={
             node.step === 0
-              ? "start of the map"
+              ? translator.translateText("start of the map")
               : isBackward
-                ? "came through here"
-                : "reached this point"
+                ? translator.translateText("came through here")
+                : translator.translateText("reached this point")
           }
         />
         {isBackward ? (
           <Stat
             label="Started their session here"
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailStartedHere}
-            value={formatUserFlowCount(node.terminal)}
+            value={formatUserFlowCount(node.terminal, translator)}
             hint={formatUserFlowShare(
               node.sessions > 0 ? node.terminal / node.sessions : 0,
             )}
@@ -449,10 +510,12 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           <Stat
             label="Left the application here"
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailLeftHere}
-            value={formatUserFlowCount(node.terminal)}
-            hint={`${formatUserFlowShare(
-              node.sessions > 0 ? node.terminal / node.sessions : 0,
-            )} drop-off`}
+            value={formatUserFlowCount(node.terminal, translator)}
+            hint={translator.translateTemplate("{{share}} drop-off", {
+              share: formatUserFlowShare(
+                node.sessions > 0 ? node.terminal / node.sessions : 0,
+              ),
+            })}
             tone={
               node.sessions > 0 && node.terminal / node.sessions >= 0.5
                 ? "danger"
@@ -464,10 +527,13 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         <Stat
           label="Hit an error here"
           tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailErrorsHere}
-          value={formatUserFlowCount(node.errorSessions)}
-          hint={`${formatUserFlowCount(
-            node.frustrationSessions,
-          )} frustrated (rage, dead clicks)`}
+          value={formatUserFlowCount(node.errorSessions, translator)}
+          hint={translator.translateTemplate(
+            "{{count}} frustrated (rage, dead clicks)",
+            {
+              count: formatUserFlowCount(node.frustrationSessions, translator),
+            },
+          )}
           tone={node.errorSessions > 0 ? "danger" : "neutral"}
         />
       </div>
@@ -545,7 +611,11 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
               className="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
             >
               <Icon icon={IconProp.Film} className="h-4 w-4" />
-              <span>All sessions that visited this page</span>
+              <span>
+                {translator.translateText(
+                  "All sessions that visited this page",
+                )}
+              </span>
             </AppLink>
           ) : (
             <></>

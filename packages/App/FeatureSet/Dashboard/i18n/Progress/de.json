@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 3265
+    "keys": 50088,
+    "untranslated": 3199
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -56,6 +56,7 @@
     "Agenda",
     "Agent",
     "Aggregation",
+    "Airbyte",
     "Alarm",
     "Alias",
     "Amazon EKS",
@@ -225,6 +226,7 @@
     "Filter:",
     "Filter: {{expression}}",
     "First Contentful Paint",
+    "Fivetran",
     "Flags",
     "Flavor",
     "Flavors",
@@ -265,6 +267,7 @@
     "HA: {{state}}",
     "HAProxy",
     "HH",
+    "HTTP {{status}}",
     "HackerBay, Inc.",
     "Haiti",
     "Handle",
@@ -311,6 +314,7 @@
     "Job",
     "Jobs",
     "Journey",
+    "Journeys",
     "Kelvin",
     "Kernel",
     "Keystone",

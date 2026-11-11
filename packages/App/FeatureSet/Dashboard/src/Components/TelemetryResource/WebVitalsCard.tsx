@@ -3,6 +3,8 @@ import Card from "Common/UI/Components/Card/Card";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { describeWebVitalThresholds } from "Common/Types/Rum/WebVitals";
 import { WebVital, formatDurationMs } from "./telemetryMetrics";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface WebVitalsCardProps {
   vitals: Array<WebVital>;
@@ -81,6 +83,7 @@ export const ratingLabel: (v: RatedValue) => string = (
 const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
   props: WebVitalsCardProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const anyReported: boolean = props.vitals.some((v: WebVital): boolean => {
     return v.value !== null && Number.isFinite(v.value);
   });
@@ -91,7 +94,7 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
         title={
           props.description ? (
             <span className="inline-flex items-center gap-1.5">
-              Core Web Vitals
+              {translator.translateText("Core Web Vitals")}
               <InfoTooltip
                 label="Core Web Vitals"
                 text={props.description}
@@ -121,11 +124,12 @@ const WebVitalsCard: FunctionComponent<WebVitalsCardProps> = (
         ) : !anyReported ? (
           <div className="-mt-2 rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
             <div className="text-sm font-medium text-gray-700">
-              No web vitals reported yet
+              {translator.translateText("No web vitals reported yet")}
             </div>
             <div className="mt-1 text-xs text-gray-500">
-              Instrument your browser app to emit LCP / INP / CLS / FCP / TTFB
-              as OpenTelemetry metrics and they will appear here automatically.
+              {translator.translateText(
+                "Instrument your browser app to emit LCP / INP / CLS / FCP / TTFB as OpenTelemetry metrics and they will appear here automatically.",
+              )}
             </div>
           </div>
         ) : (

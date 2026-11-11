@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 2588
+    "keys": 50088,
+    "untranslated": 2522
   },
   "sameAsEnglish": [
     "\"/health\"",
@@ -46,6 +46,7 @@
     "Active + Clean",
     "Actor",
     "Agenda",
+    "Airbyte",
     "Albania",
     "Alias",
     "Amazon EKS",
@@ -164,6 +165,7 @@
     "Favicon",
     "Feed",
     "First Contentful Paint",
+    "Fivetran",
     "Flavor",
     "Flavors",
     "Fluent Bit",
@@ -202,6 +204,7 @@
     "HA: {{state}}",
     "HAProxy",
     "HH",
+    "HTTP {{status}}",
     "HackerBay, Inc.",
     "Hardware",
     "Hash",
@@ -501,6 +504,7 @@
     "gpt-4o",
     "gpt-5.1, claude-sonnet-5, llama-3.3-70b-versatile",
     "hh",
+    "history {{kind}}",
     "horizontal pod autoscaler",
     "host",
     "hosts",

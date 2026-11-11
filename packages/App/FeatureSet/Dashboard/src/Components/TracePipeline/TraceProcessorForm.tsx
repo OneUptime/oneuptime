@@ -20,6 +20,9 @@ import TraceFilterConfig from "../FilterQueryBuilder/TraceFilterConfig";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import TracePipelineProcessorType from "Common/Types/Trace/TracePipelineProcessorType";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   pipelineId: ObjectID;
@@ -129,6 +132,7 @@ const asArray: (value: JSONValue | undefined) => Array<JSONObject> = (
 const TraceProcessorForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const isEditMode: boolean = Boolean(props.existingProcessor);
   const existingConfig: JSONObject =
     (props.existingProcessor?.configuration as JSONObject) || {};
@@ -325,24 +329,24 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
 
   const validate: () => string | null = (): string | null => {
     if (!name.trim()) {
-      return "Name is required.";
+      return translationKey("Name is required.");
     }
     if (!processorType) {
-      return "Please select a processor type.";
+      return translationKey("Please select a processor type.");
     }
 
     switch (processorType) {
       case TracePipelineProcessorType.AttributeRemapper:
         if (!attrSourceKey.trim()) {
-          return "Source key is required.";
+          return translationKey("Source key is required.");
         }
         if (!attrTargetKey.trim()) {
-          return "Target key is required.";
+          return translationKey("Target key is required.");
         }
         break;
       case TracePipelineProcessorType.SpanNameRemapper: {
         if (!spanNameSourceKey.trim()) {
-          return "Source key is required.";
+          return translationKey("Source key is required.");
         }
         const valid: Array<SpanNameMapping> = spanNameMappings.filter(
           (m: SpanNameMapping) => {
@@ -350,13 +354,15 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
           },
         );
         if (valid.length === 0) {
-          return "Add at least one mapping (match value → new span name).";
+          return translationKey(
+            "Add at least one mapping (match value → new span name).",
+          );
         }
         break;
       }
       case TracePipelineProcessorType.StatusRemapper: {
         if (!statusSourceKey.trim()) {
-          return "Source key is required.";
+          return translationKey("Source key is required.");
         }
         const valid: Array<StatusMapping> = statusMappings.filter(
           (m: StatusMapping) => {
@@ -364,13 +370,15 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
           },
         );
         if (valid.length === 0) {
-          return "Add at least one mapping (match value → status).";
+          return translationKey(
+            "Add at least one mapping (match value → status).",
+          );
         }
         break;
       }
       case TracePipelineProcessorType.SpanKindRemapper: {
         if (!spanKindSourceKey.trim()) {
-          return "Source key is required.";
+          return translationKey("Source key is required.");
         }
         const valid: Array<SpanKindMapping> = spanKindMappings.filter(
           (m: SpanKindMapping) => {
@@ -378,13 +386,15 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
           },
         );
         if (valid.length === 0) {
-          return "Add at least one mapping (match value → span kind).";
+          return translationKey(
+            "Add at least one mapping (match value → span kind).",
+          );
         }
         break;
       }
       case TracePipelineProcessorType.CategoryProcessor: {
         if (!categoryTargetKey.trim()) {
-          return "Target key is required.";
+          return translationKey("Target key is required.");
         }
         const valid: Array<CategoryRule> = categories.filter(
           (c: CategoryRule) => {
@@ -392,7 +402,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
           },
         );
         if (valid.length === 0) {
-          return "Add at least one category rule.";
+          return translationKey("Add at least one category rule.");
         }
         break;
       }
@@ -519,38 +529,54 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === TracePipelineProcessorType.AttributeRemapper && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Attribute Remapper Configuration
+              {translator.translateText("Attribute Remapper Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Copies or renames a key inside the span&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object. Useful for standardizing attribute names across services.
+              <TranslatedSentence
+                template="Copies or renames a key inside the span's {{attributes}} object. Useful for standardizing attribute names across services."
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the value from{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[sourceKey]
-                  </code>
-                  .
+                  <TranslatedSentence
+                    template="1. Reads the value from {{key}}."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[sourceKey]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. Writes that value to{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[targetKey]
-                  </code>
-                  .
+                  <TranslatedSentence
+                    template="2. Writes that value to {{key}}."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[targetKey]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  3. Optionally removes the original source key (if Preserve
-                  Source is off).
+                  {translator.translateText(
+                    "3. Optionally removes the original source key (if Preserve Source is off).",
+                  )}
                 </p>
               </div>
             </div>
@@ -607,37 +633,54 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === TracePipelineProcessorType.SpanNameRemapper && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Span Name Remapper Configuration
+              {translator.translateText("Span Name Remapper Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Overrides the span name when a source value matches one of the
-              mappings below. Use{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                name
-              </code>{" "}
-              as the Source Key to match on the current span name, or any
-              attribute key to match on an attribute value.
+              <TranslatedSentence
+                template="Overrides the span name when a source value matches one of the mappings below. Use {{name}} as the Source Key to match on the current span name, or any attribute key to match on an attribute value."
+                slots={{
+                  name: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      name
+                    </code>
+                  ),
+                }}
+              />
             </p>
 
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the value from the Source Key (e.g.{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    http.route
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Reads the value from the Source Key (e.g. {{example}})."
+                    slots={{
+                      example: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          http.route
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
-                <p>2. Looks up the value in your mappings below.</p>
                 <p>
-                  3. If a match is found, the span&apos;s{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    name
-                  </code>{" "}
-                  is updated to the new name.
+                  {translator.translateText(
+                    "2. Looks up the value in your mappings below.",
+                  )}
+                </p>
+                <p>
+                  <TranslatedSentence
+                    template="3. If a match is found, the span's {{name}} is updated to the new name."
+                    slots={{
+                      name: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          name
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
               </div>
             </div>
@@ -750,36 +793,52 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === TracePipelineProcessorType.StatusRemapper && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Status Remapper Configuration
+              {translator.translateText("Status Remapper Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Overrides the span&apos;s status code and (optionally) status
-              message based on an attribute value.
+              {translator.translateText(
+                "Overrides the span's status code and (optionally) status message based on an attribute value.",
+              )}
             </p>
 
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the value from the Source Key (e.g.{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    http.status_code
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Reads the value from the Source Key (e.g. {{example}})."
+                    slots={{
+                      example: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          http.status_code
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
-                <p>2. Looks up the value in your mappings below.</p>
                 <p>
-                  3. If a match is found, sets the span&apos;s{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    statusCode
-                  </code>{" "}
-                  (Unset=0, Ok=1, Error=2) and optional{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    statusMessage
-                  </code>
-                  .
+                  {translator.translateText(
+                    "2. Looks up the value in your mappings below.",
+                  )}
+                </p>
+                <p>
+                  <TranslatedSentence
+                    template="3. If a match is found, sets the span's {{statusCode}} (Unset=0, Ok=1, Error=2) and optional {{statusMessage}}."
+                    slots={{
+                      statusCode: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          statusCode
+                        </code>
+                      ),
+                      statusMessage: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          statusMessage
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
               </div>
             </div>
@@ -915,32 +974,47 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === TracePipelineProcessorType.SpanKindRemapper && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Span Kind Remapper Configuration
+              {translator.translateText("Span Kind Remapper Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Overrides the span kind (Server / Client / Producer / Consumer /
-              Internal) based on an attribute value.
+              {translator.translateText(
+                "Overrides the span kind (Server / Client / Producer / Consumer / Internal) based on an attribute value.",
+              )}
             </p>
 
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Reads the value from the Source Key (e.g.{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    messaging.operation
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Reads the value from the Source Key (e.g. {{example}})."
+                    slots={{
+                      example: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          messaging.operation
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
-                <p>2. Looks up the value in your mappings below.</p>
                 <p>
-                  3. If a match is found, sets the span&apos;s{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    kind
-                  </code>{" "}
-                  to the selected span kind.
+                  {translator.translateText(
+                    "2. Looks up the value in your mappings below.",
+                  )}
+                </p>
+                <p>
+                  <TranslatedSentence
+                    template="3. If a match is found, sets the span's {{kind}} to the selected span kind."
+                    slots={{
+                      kind: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          kind
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
               </div>
             </div>
@@ -1063,40 +1137,59 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
         {processorType === TracePipelineProcessorType.CategoryProcessor && (
           <div className="border border-indigo-200 rounded-lg p-4 bg-indigo-50/30">
             <h4 className="text-sm font-semibold text-gray-700 mb-1">
-              Category Processor Configuration
+              {translator.translateText("Category Processor Configuration")}
             </h4>
             <p className="text-xs text-gray-500 mb-3">
-              Tags each span with a category name based on filter rules. The
-              category value is stored in the span&apos;s{" "}
-              <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
-                attributes
-              </code>{" "}
-              object under the Target Key. Rules are evaluated in order —{" "}
-              <strong>first match wins</strong>.
+              <TranslatedSentence
+                template="Tags each span with a category name based on filter rules. The category value is stored in the span's {{attributes}} object under the Target Key. Rules are evaluated in order — {{firstMatch}}."
+                slots={{
+                  attributes: (
+                    <code className="px-1 py-0.5 bg-indigo-100 rounded text-indigo-700 text-[11px]">
+                      attributes
+                    </code>
+                  ),
+                  firstMatch: (
+                    <strong>
+                      {translator.translateText("first match wins")}
+                    </strong>
+                  ),
+                }}
+              />
             </p>
 
             <div className="mb-4 p-3 bg-white rounded-md border border-indigo-100">
               <p className="text-xs font-semibold text-gray-600 mb-1.5">
-                How it works
+                {translator.translateText("How it works")}
               </p>
               <div className="text-xs text-gray-500 space-y-1">
                 <p>
-                  1. Each category rule has a filter condition (e.g.{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    durationUnixNano &gt; 1000000000
-                  </code>
-                  ).
+                  <TranslatedSentence
+                    template="1. Each category rule has a filter condition (e.g. {{example}})."
+                    slots={{
+                      example: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          durationUnixNano &gt; 1000000000
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
                 <p>
-                  2. Rules are evaluated top to bottom. The first rule that
-                  matches the span is applied.
+                  {translator.translateText(
+                    "2. Rules are evaluated top to bottom. The first rule that matches the span is applied.",
+                  )}
                 </p>
                 <p>
-                  3. The category name is stored at{" "}
-                  <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
-                    attributes[targetKey]
-                  </code>{" "}
-                  on the span.
+                  <TranslatedSentence
+                    template="3. The category name is stored at {{key}} on the span."
+                    slots={{
+                      key: (
+                        <code className="px-1 py-0.5 bg-gray-100 rounded text-gray-600 text-[11px]">
+                          attributes[targetKey]
+                        </code>
+                      ),
+                    }}
+                  />
                 </p>
               </div>
             </div>
@@ -1115,11 +1208,16 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                 />
               </div>
               <p className="mt-1 text-[11px] text-gray-400">
-                The category will be accessible as{" "}
-                <code className="text-gray-500">
-                  attributes.{categoryTargetKey || "span_category"}
-                </code>{" "}
-                on spans.
+                <TranslatedSentence
+                  template="The category will be accessible as {{key}} on spans."
+                  slots={{
+                    key: (
+                      <code className="text-gray-500">
+                        attributes.{categoryTargetKey || "span_category"}
+                      </code>
+                    ),
+                  }}
+                />
               </p>
             </div>
 
@@ -1138,7 +1236,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                       <div className="flex items-start gap-3">
                         <div className="flex-1">
                           <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                            Category name
+                            {translator.translateText("Category name")}
                           </label>
                           <Input
                             type={InputType.TEXT}
@@ -1172,7 +1270,7 @@ const TraceProcessorForm: FunctionComponent<ComponentProps> = (
                       </div>
                       <div>
                         <label className="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1">
-                          When spans match
+                          {translator.translateText("When spans match")}
                         </label>
                         <FilterQueryBuilderField
                           initialValue={cat.filterQuery || ""}

@@ -957,8 +957,9 @@ describe("ReplayRailDetail recorder notices", () => {
       }),
     );
 
+    // The count is written as the reader's language writes numbers.
     expect(
-      screen.getByText("seen 2400 times so far this session"),
+      screen.getByText("seen 2,400 times so far this session"),
     ).toBeInTheDocument();
   });
 

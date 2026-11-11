@@ -13,6 +13,7 @@ import TelemetryIngestionKeyType from "Common/Types/Telemetry/TelemetryIngestion
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import { APP_API_URL, HOST, HTTP_PROTOCOL } from "Common/UI/Config";
 import API from "Common/UI/Utils/API/API";
@@ -1245,6 +1246,14 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   /*
+   * A step's title and description, the ways to send and the guide's own
+   * heading are English keys (translationKey), drawn in the reader's
+   * language here.
+   */
+  const translate: (text: string) => string = (text: string): string => {
+    return translator.translateText(text) || text;
+  };
+  /*
    * The captions above the language buttons and the ways to send: each
    * names its buttons as a group, so a screen reader announces "Select
    * Language" as it reaches the first one.
@@ -1400,24 +1409,27 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
       return [
         {
           key: "alloy" as IntegrationMethod,
-          label: "Grafana Alloy (eBPF)",
+          label: translationKey("Grafana Alloy (eBPF)"),
           logo: ProviderLogo.Grafana,
-          description:
+          description: translationKey(
             "Recommended. Zero-code profiling for all languages on Linux using eBPF.",
+          ),
         },
         {
           key: "kubernetes" as IntegrationMethod,
-          label: "Kubernetes agent (eBPF)",
+          label: translationKey("Kubernetes agent (eBPF)"),
           logo: ProviderLogo.Kubernetes,
-          description:
+          description: translationKey(
             "Already run the OneUptime Kubernetes agent? Turn on its profiler: every pod, no code changes.",
+          ),
         },
         {
           key: "opentelemetry" as IntegrationMethod,
-          label: "Language SDK",
+          label: translationKey("Language SDK"),
           icon: IconProp.Code,
-          description:
+          description: translationKey(
             "In-process profiling with Pyroscope SDKs: Go, Node.js, .NET, Python, Ruby, Rust.",
+          ),
         },
       ];
     }
@@ -1426,7 +1438,9 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
       {
         key: "opentelemetry",
         label: "OpenTelemetry",
-        description: "Recommended. Auto-instrumentation for most frameworks.",
+        description: translationKey(
+          "Recommended. Auto-instrumentation for most frameworks.",
+        ),
         logo: ProviderLogo.OpenTelemetry,
       },
     ];
@@ -1435,13 +1449,17 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
       methods.push({
         key: "fluentbit",
         label: "FluentBit",
-        description: "Lightweight log processor with minimal resource usage.",
+        description: translationKey(
+          "Lightweight log processor with minimal resource usage.",
+        ),
         logo: ProviderLogo.FluentBit,
       });
       methods.push({
         key: "fluentd",
         label: "Fluentd",
-        description: "Mature data collector with rich plugin ecosystem.",
+        description: translationKey(
+          "Mature data collector with rich plugin ecosystem.",
+        ),
         logo: ProviderLogo.Fluentd,
       });
     }
@@ -1450,23 +1468,29 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   }, [showLogCollectors, isProfiles]);
 
   const titleForType: Record<TelemetryType, string> = {
-    logs: "Log Ingestion Setup",
-    metrics: "Metrics Ingestion Setup",
-    traces: "Trace Ingestion Setup",
-    exceptions: "Exception Tracking Setup",
-    profiles: "Profiles Ingestion Setup",
+    logs: translationKey("Log Ingestion Setup"),
+    metrics: translationKey("Metrics Ingestion Setup"),
+    traces: translationKey("Trace Ingestion Setup"),
+    exceptions: translationKey("Exception Tracking Setup"),
+    profiles: translationKey("Profiles Ingestion Setup"),
   };
 
   const descriptionForType: Record<TelemetryType, string> = {
-    logs: "Send logs from your application to OneUptime using OpenTelemetry, FluentBit, or Fluentd.",
-    metrics:
+    logs: translationKey(
+      "Send logs from your application to OneUptime using OpenTelemetry, FluentBit, or Fluentd.",
+    ),
+    metrics: translationKey(
       "Send metrics from your application to OneUptime using OpenTelemetry SDKs.",
-    traces:
+    ),
+    traces: translationKey(
       "Send distributed traces from your application to OneUptime using OpenTelemetry SDKs.",
-    exceptions:
+    ),
+    exceptions: translationKey(
       "Capture and track exceptions from your application using OpenTelemetry SDKs.",
-    profiles:
+    ),
+    profiles: translationKey(
       "Send continuous profiling data to OneUptime using Grafana Alloy (eBPF), the OneUptime Kubernetes agent or Pyroscope language SDKs.",
+    ),
   };
 
   const installSnippet: { code: string; language: string } = useMemo(() => {
@@ -1516,10 +1540,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         {/* Step content */}
         <div className={`flex-1 min-w-0 ${isLast ? "pb-0" : "pb-8"}`}>
           <h4 className="text-sm font-semibold text-gray-900 leading-9">
-            {title}
+            {translate(title)}
           </h4>
           <p className="text-sm text-gray-500 mt-0.5 mb-3 leading-relaxed">
-            {description}
+            {translate(description)}
           </p>
           {content}
         </div>
@@ -1531,7 +1555,11 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
   const renderTokenStepContent: () => ReactElement = (): ReactElement => {
     return (
       <IngestionKeySelector
-        endpointLabel={isProfiles ? "Profiling Endpoint" : "OTLP Endpoint"}
+        endpointLabel={
+          isProfiles
+            ? translationKey("Profiling Endpoint")
+            : translationKey("OTLP Endpoint")
+        }
         /*
          * Profiles are ingested over the Pyroscope-compatible API, not
          * OTLP — showing the OTLP URL here would point the user's
@@ -1540,7 +1568,9 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         endpointValue={isProfiles ? pyroscopeUrl : otlpUrlValue}
         endpointHint={
           isProfiles
-            ? "Use this as the Pyroscope server address. SDKs and Grafana Alloy append the ingest path to it automatically."
+            ? translationKey(
+                "Use this as the Pyroscope server address. SDKs and Grafana Alloy append the ingest path to it automatically.",
+              )
             : undefined
         }
         /*
@@ -1580,14 +1610,21 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5"
           />
           <p className="text-sm text-amber-800 leading-relaxed">
-            This file is bundled and served to your users, so the token in it is
-            public — anyone who views source can read it. Use a{" "}
-            <span className="font-semibold">Browser</span> ingestion key here,
-            with the origins your site is served from listed on it. Never paste
-            a <span className="font-semibold">Server</span> ingestion key into
-            browser code: it has full ingest access from anywhere, so whoever
-            finds it can write forged telemetry into this project until you
-            notice and rotate it.
+            <TranslatedSentence
+              template="This file is bundled and served to your users, so the token in it is public — anyone who views source can read it. Use a {{browser}} ingestion key here, with the origins your site is served from listed on it. Never paste a {{server}} ingestion key into browser code: it has full ingest access from anywhere, so whoever finds it can write forged telemetry into this project until you notice and rotate it."
+              slots={{
+                browser: (
+                  <span className="font-semibold">
+                    {translator.translateText("Browser")}
+                  </span>
+                ),
+                server: (
+                  <span className="font-semibold">
+                    {translator.translateText("Server")}
+                  </span>
+                ),
+              }}
+            />
           </p>
         </div>
       </div>
@@ -1686,7 +1723,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 onClick={() => {
                   setSelectedMethod(method.key);
                 }}
-                className={`text-left px-4 py-3 rounded-lg border-2 transition-all ${
+                className={`text-start px-4 py-3 rounded-lg border-2 transition-all ${
                   isSelected
                     ? "border-indigo-500 bg-indigo-50"
                     : "border-gray-200 bg-white hover:border-gray-300"
@@ -1715,10 +1752,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                     <></>
                   )}
                   {/* The label stays the line's own text, as before the logo. */}
-                  {method.label}
+                  {translate(method.label)}
                 </div>
                 <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                  {method.description}
+                  {translate(method.description)}
                 </div>
               </button>
             );
@@ -1743,8 +1780,13 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-green-800">
-                Profiles are flowing! {profileSourceCount}{" "}
-                {profileSourceCount === 1 ? "source" : "sources"} reporting.
+                {translator.translatePlural(
+                  {
+                    one: "Profiles are flowing! {{count}} source reporting.",
+                    other: "Profiles are flowing! {{count}} sources reporting.",
+                  },
+                  profileSourceCount,
+                )}
               </p>
               <AppLink
                 className="mt-3 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-sm"
@@ -1752,7 +1794,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   RouteMap[PageMap.PROFILES] as Route,
                 )}
               >
-                Open the Profiler
+                {translator.translateText("Open the Profiler")}
               </AppLink>
             </div>
           </div>
@@ -1785,14 +1827,16 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             ></path>
           </svg>
           <p className="text-sm text-gray-500">
-            Listening for your first profile… data usually appears within a
-            minute of the agent starting.
+            {translator.translateText(
+              "Listening for your first profile… data usually appears within a minute of the agent starting.",
+            )}
           </p>
         </div>
         {hasProfileVerifyError && (
           <p className="text-xs text-gray-400 mt-2">
-            Couldn&apos;t reach the server on the last check — retrying
-            automatically.
+            {translator.translateText(
+              "Couldn't reach the server on the last check — retrying automatically.",
+            )}
           </p>
         )}
       </div>
@@ -1808,27 +1852,31 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="mt-2">
           {renderStep(
             1,
-            "Get Your Ingestion Credentials",
+            translationKey("Get Your Ingestion Credentials"),
             isBrowserSdkGuide
-              ? "Pick a browser ingestion key, or create one. Only browser keys are listed here — they are the ones safe to publish in a page, because the server accepts them only from the origins you list on them."
-              : "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+              ? translationKey(
+                  "Pick a browser ingestion key, or create one. Only browser keys are listed here — they are the ones safe to publish in a page, because the server accepts them only from the origins you list on them.",
+                )
+              : translationKey(
+                  "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+                ),
             renderTokenStepContent(),
           )}
 
           {renderStep(
             2,
-            "Install Dependencies",
-            isProfiles
-              ? `Install the Pyroscope profiling SDK for ${
+            translationKey("Install Dependencies"),
+            translator.translateTemplate(
+              isProfiles
+                ? "Install the Pyroscope profiling SDK for {{language}}."
+                : "Install the OpenTelemetry SDK and exporters for {{language}}.",
+              {
+                language:
                   languages.find((l: LanguageOption) => {
                     return l.key === selectedLanguage;
-                  })?.label || selectedLanguage
-                }.`
-              : `Install the OpenTelemetry SDK and exporters for ${
-                  languages.find((l: LanguageOption) => {
-                    return l.key === selectedLanguage;
-                  })?.label || selectedLanguage
-                }.`,
+                  })?.label || selectedLanguage,
+              },
+            ),
             <CodeBlock
               code={installSnippet.code}
               language={installSnippet.language}
@@ -1837,10 +1885,16 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            isProfiles ? "Configure the Profiler" : "Configure the SDK",
             isProfiles
-              ? "Initialize the Pyroscope profiling SDK and point it to your OneUptime instance. Profiles will be continuously captured and sent."
-              : "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
+              ? translationKey("Configure the Profiler")
+              : translationKey("Configure the SDK"),
+            isProfiles
+              ? translationKey(
+                  "Initialize the Pyroscope profiling SDK and point it to your OneUptime instance. Profiles will be continuously captured and sent.",
+                )
+              : translationKey(
+                  "Initialize OpenTelemetry with the OTLP exporter pointing to your OneUptime instance.",
+                ),
             <div>
               {renderBrowserKeyWarning()}
               <CodeBlock
@@ -1863,8 +1917,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           {isProfiles &&
             renderStep(
               4,
-              "Verify It Is Working",
-              "Leave this page open while your service starts — incoming profiles are detected automatically.",
+              translationKey("Verify It Is Working"),
+              translationKey(
+                "Leave this page open while your service starts — incoming profiles are detected automatically.",
+              ),
               renderProfileVerifyContent(),
               true,
             )}
@@ -1873,20 +1929,26 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         {!isProfiles && (
           <div className="mt-8">
             <SetupGuideTopics
-              title="Advanced"
-              description="Configure with environment variables · Tag this service with project labels"
+              title={translate("Advanced")}
+              description={translate(
+                "Configure with environment variables · Tag this service with project labels",
+              )}
               icon={IconProp.AdjustmentHorizontal}
               testId="telemetry-guide-advanced"
               topics={[
                 {
-                  title: "Configure with environment variables instead",
-                  summary:
+                  title: translate(
+                    "Configure with environment variables instead",
+                  ),
+                  summary: translate(
                     "Point any OpenTelemetry SDK at OneUptime without changing code.",
+                  ),
                   content: (
                     <div>
                       <p className="mb-3 text-sm leading-relaxed text-gray-500">
-                        Every OpenTelemetry SDK reads these variables, so you
-                        can configure the exporter without touching code.
+                        {translator.translateText(
+                          "Every OpenTelemetry SDK reads these variables, so you can configure the exporter without touching code.",
+                        )}
                       </p>
                       <CodeBlock
                         code={withServiceName(
@@ -1905,19 +1967,23 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   ),
                 },
                 {
-                  title: "Tag this service with project labels",
-                  summary:
+                  title: translate("Tag this service with project labels"),
+                  summary: translate(
                     "Attach labels such as team, environment or region to this service automatically.",
+                  ),
                   content: (
                     <div>
                       <p className="mb-3 text-sm leading-relaxed text-gray-500">
-                        Any resource attribute prefixed{" "}
-                        <code className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800">
-                          oneuptime.label.
-                        </code>{" "}
-                        becomes a project label on this service. Use it to tag
-                        services with team, environment, region, or any other
-                        dimension you organize by.
+                        <TranslatedSentence
+                          template="Any resource attribute prefixed {{prefix}} becomes a project label on this service. Use it to tag services with team, environment, region, or any other dimension you organize by."
+                          slots={{
+                            prefix: (
+                              <code className="rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 font-mono text-xs text-gray-800">
+                                oneuptime.label.
+                              </code>
+                            ),
+                          }}
+                        />
                       </p>
                       <CodeBlock
                         code={withServiceName(
@@ -1950,15 +2016,19 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="mt-2">
           {renderStep(
             1,
-            "Get Your Ingestion Credentials",
-            "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            translationKey("Get Your Ingestion Credentials"),
+            translationKey(
+              "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            ),
             renderTokenStepContent(),
           )}
 
           {renderStep(
             2,
-            "Create FluentBit Configuration",
-            "Create a fluent-bit.conf file that reads logs and forwards them to OneUptime via the OpenTelemetry output plugin.",
+            translationKey("Create FluentBit Configuration"),
+            translationKey(
+              "Create a fluent-bit.conf file that reads logs and forwards them to OneUptime via the OpenTelemetry output plugin.",
+            ),
             <CodeBlock
               code={withServiceName(
                 replacePlaceholders(
@@ -1976,12 +2046,14 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            "Run FluentBit",
-            "Start FluentBit with your configuration file, on the host or as a Docker container alongside your application.",
+            translationKey("Run FluentBit"),
+            translationKey(
+              "Start FluentBit with your configuration file, on the host or as a Docker container alongside your application.",
+            ),
             <SetupGuideStepVariants
               variants={[
                 {
-                  label: "On the host",
+                  label: translate("On the host"),
                   content: (
                     <CodeBlock
                       code="fluent-bit -c fluent-bit.conf"
@@ -1990,7 +2062,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   ),
                 },
                 {
-                  label: "Docker Compose",
+                  label: translate("Docker Compose"),
                   content: (
                     <CodeBlock
                       code={withServiceName(
@@ -2023,15 +2095,19 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="mt-2">
           {renderStep(
             1,
-            "Get Your Ingestion Credentials",
-            "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            translationKey("Get Your Ingestion Credentials"),
+            translationKey(
+              "Select an existing ingestion key or create a new one. These credentials authenticate your telemetry data.",
+            ),
             renderTokenStepContent(),
           )}
 
           {renderStep(
             2,
-            "Create Fluentd Configuration",
-            "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
+            translationKey("Create Fluentd Configuration"),
+            translationKey(
+              "Create a fluentd.conf file that collects logs and sends them to OneUptime over HTTP.",
+            ),
             <CodeBlock
               code={withServiceName(
                 replacePlaceholders(
@@ -2049,18 +2125,20 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            "Run Fluentd",
-            "Start Fluentd with your configuration, on the host or as a Docker container.",
+            translationKey("Run Fluentd"),
+            translationKey(
+              "Start Fluentd with your configuration, on the host or as a Docker container.",
+            ),
             <SetupGuideStepVariants
               variants={[
                 {
-                  label: "On the host",
+                  label: translate("On the host"),
                   content: (
                     <CodeBlock code="fluentd -c fluentd.conf" language="bash" />
                   ),
                 },
                 {
-                  label: "Docker Compose",
+                  label: translate("Docker Compose"),
                   content: (
                     <CodeBlock
                       code={withServiceName(
@@ -2093,15 +2171,19 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
         <div className="mt-2">
           {renderStep(
             1,
-            "Get Your Ingestion Credentials",
-            "Select an existing ingestion key or create a new one. These credentials authenticate your profiling data.",
+            translationKey("Get Your Ingestion Credentials"),
+            translationKey(
+              "Select an existing ingestion key or create a new one. These credentials authenticate your profiling data.",
+            ),
             renderTokenStepContent(),
           )}
 
           {renderStep(
             2,
-            "Create Alloy Configuration",
-            "Create an Alloy configuration file that uses eBPF to collect CPU profiles from all processes on your Linux host — no code changes required. Supports Go, Rust, C/C++, Java, Python, Ruby, PHP, Node.js, and .NET.",
+            translationKey("Create Alloy Configuration"),
+            translationKey(
+              "Create an Alloy configuration file that uses eBPF to collect CPU profiles from all processes on your Linux host — no code changes required. Supports Go, Rust, C/C++, Java, Python, Ruby, PHP, Node.js, and .NET.",
+            ),
             <CodeBlock
               code={withServiceName(
                 replacePlaceholders(
@@ -2119,12 +2201,14 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             3,
-            "Run Alloy",
-            "Run Grafana Alloy as a privileged Docker container with access to the host PID namespace, or directly on the host.",
+            translationKey("Run Alloy"),
+            translationKey(
+              "Run Grafana Alloy as a privileged Docker container with access to the host PID namespace, or directly on the host.",
+            ),
             <SetupGuideStepVariants
               variants={[
                 {
-                  label: "Docker Compose",
+                  label: translate("Docker Compose"),
                   content: (
                     <CodeBlock
                       code={withServiceName(
@@ -2142,7 +2226,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   ),
                 },
                 {
-                  label: "On the host",
+                  label: translate("On the host"),
                   content: (
                     <CodeBlock
                       code="alloy run alloy-config.alloy"
@@ -2156,8 +2240,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
           {renderStep(
             4,
-            "Verify It Is Working",
-            "Leave this page open while Alloy starts — incoming profiles are detected automatically.",
+            translationKey("Verify It Is Working"),
+            translationKey(
+              "Leave this page open while Alloy starts — incoming profiles are detected automatically.",
+            ),
             renderProfileVerifyContent(),
             true,
           )}
@@ -2178,8 +2264,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
           <div className="mt-2">
             {renderStep(
               1,
-              "Turn On the Agent's Profiler",
-              "It profiles every container on every Linux node, in any language, with no code changes. It needs privileged pods, so it is not available on GKE Autopilot or EKS Fargate.",
+              translationKey("Turn On the Agent's Profiler"),
+              translationKey(
+                "It profiles every container on every Linux node, in any language, with no code changes. It needs privileged pods, so it is not available on GKE Autopilot or EKS Fargate.",
+              ),
               <div>
                 <CodeBlock
                   code={KUBERNETES_AGENT_PROFILING_COMMAND}
@@ -2189,14 +2277,16 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                   className="mt-3 text-sm text-gray-500"
                   data-testid="profiles-setup-kubernetes-agent-install"
                 >
-                  No agent in the cluster yet?{" "}
+                  {translator.translateText("No agent in the cluster yet?")}{" "}
                   <AppLink
                     className="font-medium text-indigo-600 hover:text-indigo-500"
                     to={RouteUtil.populateRouteParams(
                       RouteMap[PageMap.KUBERNETES_DOCUMENTATION] as Route,
                     )}
                   >
-                    Install it with the Kubernetes setup guide
+                    {translator.translateText(
+                      "Install it with the Kubernetes setup guide",
+                    )}
                   </AppLink>
                 </p>
               </div>,
@@ -2204,8 +2294,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
 
             {renderStep(
               2,
-              "Verify It Is Working",
-              "Leave this page open while the profiler pods start — incoming profiles are detected automatically.",
+              translationKey("Verify It Is Working"),
+              translationKey(
+                "Leave this page open while the profiler pods start — incoming profiles are detected automatically.",
+              ),
               renderProfileVerifyContent(),
               true,
             )}
@@ -2261,10 +2353,10 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
             </div>
             <div className="flex-1">
               <h2 className="text-lg font-semibold text-gray-900">
-                {titleForType[telemetryType]}
+                {translate(titleForType[telemetryType])}
               </h2>
               <p className="text-sm text-gray-500 mt-0.5 leading-relaxed">
-                {descriptionForType[telemetryType]}
+                {translate(descriptionForType[telemetryType])}
               </p>
             </div>
             {props.onClose && (
@@ -2272,7 +2364,7 @@ const TelemetryDocumentation: FunctionComponent<ComponentProps> = (
                 type="button"
                 onClick={props.onClose}
                 className="flex-shrink-0 rounded-lg p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-                title="Close documentation"
+                title={translator.translateText("Close documentation")}
               >
                 <svg
                   className="w-5 h-5"
