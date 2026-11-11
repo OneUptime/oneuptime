@@ -1,18 +1,17 @@
-import { SERVER_EMAIL_COPY } from "../../Utils/ServerEmail";
-import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
-import HTTPMethod from "Common/Types/API/HTTPMethod";
-import HTTPResponse from "Common/Types/API/HTTPResponse";
-import Route from "Common/Types/API/Route";
-import URL from "Common/Types/API/URL";
-import { JSONObject } from "Common/Types/JSON";
-import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import CopyTextButton from "Common/UI/Components/CopyTextButton/CopyTextButton";
-import Modal from "Common/UI/Components/Modal/Modal";
-import { APP_API_URL } from "Common/UI/Config";
-import API from "Common/UI/Utils/API/API";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import useTranslator from "Common/UI/Utils/UseTranslator";
+import { ButtonStyleType } from "../Button/Button";
+import CopyTextButton from "../CopyTextButton/CopyTextButton";
+import Modal from "../Modal/Modal";
+import { APP_API_URL } from "../../Config";
+import API from "../../Utils/API/API";
+import { translationKey, Translator } from "../../Utils/TranslateTemplate";
+import useTranslator from "../../Utils/UseTranslator";
+import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
+import HTTPMethod from "../../../Types/API/HTTPMethod";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
+import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
+import { JSONObject } from "../../../Types/JSON";
+import ObjectID from "../../../Types/ObjectID";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -23,15 +22,45 @@ import React, {
 /*
  * THE INVITATION LINK, HANDED TO A MASTER ADMIN WHO JUST INVITED SOMEONE.
  *
- * On a server that cannot send email (Utils/ServerEmail), an invitation is
- * created and nobody hears of it. A master admin - on a fresh self-hosted
- * server, the person who made it - is shown the link the email would have
- * carried, to send by chat (POST /team-member/invitation-link): for someone
- * new, the sign-up link with its registration token, which works once, for
- * that address only, for a week; for someone with an account, the sign-in
- * page. Anybody else is never handed one (InvitationLink says why), and the
- * invite dialog told them to ask the server's admin.
+ * On a server that cannot send email (#6825), an invitation is created and
+ * nobody hears of it. A master admin - on a fresh self-hosted server, the
+ * person who made it - is shown the link the email would have carried, to
+ * send by chat (POST /team-member/invitation-link): for someone new, the
+ * sign-up link with its registration token, which works once, for that
+ * address only, for a week; for someone with an account, the sign-in page.
+ * Anybody else is never handed one (Server/Utils/InvitationLink says why),
+ * and the invite dialog told them to ask the server's admin.
+ *
+ * The Dashboard's invite dialogs and the Admin Dashboard's draw it alike.
  */
+
+export const INVITATION_LINK_COPY: {
+  inviteDescriptionForAdmin: string;
+  invitedPill: string;
+  title: string;
+  description: string;
+  registeredDescription: string;
+  failed: string;
+  done: string;
+} = {
+  // What a master admin's invite dialog says before Invite is pressed.
+  inviteDescriptionForAdmin: translationKey(
+    "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.",
+  ),
+  // A pending member's pill, where "Invitation Sent" would not be true.
+  invitedPill: translationKey("Invited"),
+  title: translationKey("Send them their invitation link"),
+  description: translationKey(
+    "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.",
+  ),
+  registeredDescription: translationKey(
+    "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.",
+  ),
+  failed: translationKey(
+    "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.",
+  ),
+  done: translationKey("Done"),
+};
 
 export interface InvitationLink {
   link: string;
@@ -112,19 +141,19 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
 
   return (
     <Modal
-      title={SERVER_EMAIL_COPY.invitationLinkTitle}
+      title={INVITATION_LINK_COPY.title}
       description={
         invitation
           ? translator.translateTemplate(
               invitation.isRegistered
-                ? SERVER_EMAIL_COPY.invitationLinkRegisteredDescription
-                : SERVER_EMAIL_COPY.invitationLinkDescription,
+                ? INVITATION_LINK_COPY.registeredDescription
+                : INVITATION_LINK_COPY.description,
               { email: invitation.email },
             )
           : undefined
       }
       isBodyLoading={isLoading}
-      submitButtonText={SERVER_EMAIL_COPY.done}
+      submitButtonText={INVITATION_LINK_COPY.done}
       submitButtonStyleType={ButtonStyleType.PRIMARY}
       onSubmit={props.onClose}
       onClose={props.onClose}
@@ -151,7 +180,7 @@ const InvitationLinkModal: FunctionComponent<ComponentProps> = (
           className="text-sm text-gray-600 text-pretty"
           data-testid="invitation-link-failed"
         >
-          {translator.translateText(SERVER_EMAIL_COPY.invitationLinkFailed)}
+          {translator.translateText(INVITATION_LINK_COPY.failed)}
         </p>
       )}
     </Modal>

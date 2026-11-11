@@ -35,7 +35,7 @@ import {
   cannotSendEmail,
   useServerEmail,
 } from "../../../Utils/ServerEmail";
-import InvitationLinkModal from "../../../Components/Team/InvitationLinkModal";
+import InvitationLinkModal from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";

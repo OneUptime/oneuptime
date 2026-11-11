@@ -2005,6 +2005,12 @@
   "Monitors that run on global probes are not being checked.": "مانیتورهایی که روی پراب‌های سراسری اجرا می‌شوند بررسی نمی‌شوند.",
   "No global probe is reporting": "هیچ پراب سراسری گزارش نمی‌دهد",
   "See global probes": "دیدن پراب‌های سراسری",
+  "Send them their invitation link": "پیوند دعوتشان را بفرستید",
+  "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "دعوت ایجاد شد، اما پیوندش خوانده نشد. به‌جای آن داشبورد مدیریت را باز کنید و برایشان گذرواژه تعیین کنید.",
+  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "این سرور هنوز نمی‌تواند ایمیل بفرستد، پس ایمیل دعوت به دستشان نمی‌رسد. دعوت با این حال ایجاد می‌شود و پیوندی می‌گیرید تا خودتان برایشان بفرستید.",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. این پیوند را کپی کنید و خودتان برایشان بفرستید. فقط یک بار، فقط برای همین نشانی و تا ۷ روز کار می‌کند.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "این سرور نمی‌تواند ایمیل بفرستد، پس به {{email}} ایمیلی فرستاده نشد. آن‌ها از قبل حساب دارند: این پیوند را برای ورود برایشان بفرستید تا دعوت را از همان‌جا بپذیرند.",
+  "Invited": "دعوت‌شده",
   "markdownCallouts": {
     "caution": "احتیاط",
     "danger": "خطر",

@@ -4,6 +4,7 @@ import path from "path";
 import { SERVER_EMAIL_COPY } from "../../../../App/FeatureSet/Dashboard/src/Utils/ServerEmail";
 import { SERVER_SENDING_ALERT_COPY } from "../../../UI/Components/ServerSending/ServerSendingTopAlert";
 import { SERVER_EMAIL_NOT_SET_UP_MESSAGE } from "../../../Types/ServerSending/ServerSendingWords";
+import { INVITATION_LINK_COPY } from "../../../UI/Components/InvitationLink/InvitationLinkModal";
 
 /*
  * WHAT THE DASHBOARD AND THE ADMIN DASHBOARD SAY WHEN THE SERVER CANNOT
@@ -88,6 +89,13 @@ const BANNER_SENTENCES: Array<string> = Object.values(
   SERVER_SENDING_ALERT_COPY,
 );
 
+// What the Admin Dashboard's invite dialogs say too, as the Dashboard's do ("Done" was there before).
+const ADMIN_INVITE_SENTENCES: Array<string> = Object.values(
+  INVITATION_LINK_COPY,
+).filter((sentence: string): boolean => {
+  return sentence !== INVITATION_LINK_COPY.done;
+});
+
 const NON_ENGLISH_DASHBOARD: Array<string> = Object.keys(DASHBOARD_LOCALES)
   .filter((code: string): boolean => {
     return code !== "en";
@@ -127,8 +135,8 @@ describe("in every language", () => {
     },
   );
 
-  test.each(BANNER_SENTENCES)(
-    "the Admin Dashboard says the banner's %p in every language",
+  test.each([...BANNER_SENTENCES, ...ADMIN_INVITE_SENTENCES])(
+    "the Admin Dashboard says %p in every language",
     (sentence: string) => {
       expect(ADMIN_LOCALES["en"]![sentence]).toBe(sentence);
 
@@ -259,6 +267,35 @@ describe("where the pages say them", () => {
     expect(source).toContain(
       "translator.translateText(SERVER_EMAIL_NOT_SET_UP_MESSAGE)",
     );
+  });
+
+  test("the Admin Dashboard's invite dialogs say it too, and hand over the link", () => {
+    const adminPage: (file: string) => string = (file: string): string => {
+      return fs.readFileSync(
+        path.join(
+          FEATURE_SET,
+          "AdminDashboard",
+          "src",
+          "Pages",
+          "Projects",
+          "View",
+          file,
+        ),
+        "utf8",
+      );
+    };
+
+    for (const file of ["Users.tsx", "TeamView.tsx"]) {
+      const source: string = adminPage(file);
+
+      expect(source).toContain("INVITATION_LINK_COPY.inviteDescriptionForAdmin");
+      expect(source).toContain("<InvitationLinkModal");
+      expect(source).toContain("useServerCanSendEmail() === false");
+    }
+
+    for (const file of ["Users.tsx", "TeamView.tsx", "UserView.tsx"]) {
+      expect(adminPage(file)).toContain("INVITATION_LINK_COPY.invitedPill");
+    }
   });
 
   test("both dashboards draw the banner above every page", () => {

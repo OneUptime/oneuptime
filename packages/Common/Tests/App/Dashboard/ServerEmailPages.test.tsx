@@ -12,7 +12,7 @@ import React from "react";
 import InvitationLinkModal, {
   fetchInvitationLink,
   INVITATION_LINK_ROUTE,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Team/InvitationLinkModal";
+} from "../../../UI/Components/InvitationLink/InvitationLinkModal";
 import { getGettingStartedTaskDescription } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import {
   ADMIN_EMAIL_SETTINGS_ROUTE,

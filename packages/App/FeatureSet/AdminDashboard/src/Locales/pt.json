@@ -2005,6 +2005,12 @@
   "Monitors that run on global probes are not being checked.": "Os monitores que rodam em sondas globais não estão sendo verificados.",
   "No global probe is reporting": "Nenhuma sonda global está enviando dados",
   "See global probes": "Ver sondas globais",
+  "Send them their invitation link": "Envie o link de convite",
+  "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "O convite foi criado, mas não foi possível ler o link. Abra o painel do administrador para definir a senha da pessoa.",
+  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "Este servidor ainda não consegue enviar e-mails, então a pessoa não receberá um e-mail de convite. O convite é criado mesmo assim, e você recebe um link para enviar a ela.",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. Copie este link e envie você mesmo. Ele funciona uma vez, só para este endereço, por 7 dias.",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "Este servidor não consegue enviar e-mails, então {{email}} não recebeu nenhum e-mail. A pessoa já tem uma conta: envie este link para ela entrar, e ela aceita o convite por lá.",
+  "Invited": "Convidado",
   "markdownCallouts": {
     "caution": "Cuidado",
     "danger": "Perigo",

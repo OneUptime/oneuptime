@@ -1,3 +1,4 @@
+import { INVITATION_LINK_COPY } from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import { useServerCanSendEmail } from "Common/UI/Utils/ServerSending";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -57,21 +58,15 @@ export const SERVER_EMAIL_COPY: {
   inviteEmailDescription: translationKey(
     "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.",
   ),
-  inviteEmailDescriptionForAdmin: translationKey(
-    "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.",
-  ),
-  invitedPill: translationKey("Invited"),
-  invitationLinkTitle: translationKey("Send them their invitation link"),
-  invitationLinkDescription: translationKey(
-    "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.",
-  ),
-  invitationLinkRegisteredDescription: translationKey(
-    "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.",
-  ),
-  invitationLinkFailed: translationKey(
-    "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.",
-  ),
-  done: translationKey("Done"),
+  inviteEmailDescriptionForAdmin: INVITATION_LINK_COPY.inviteDescriptionForAdmin,
+  invitedPill: INVITATION_LINK_COPY.invitedPill,
+  // The invitation link's dialog, which the Admin Dashboard draws too.
+  invitationLinkTitle: INVITATION_LINK_COPY.title,
+  invitationLinkDescription: INVITATION_LINK_COPY.description,
+  invitationLinkRegisteredDescription:
+    INVITATION_LINK_COPY.registeredDescription,
+  invitationLinkFailed: INVITATION_LINK_COPY.failed,
+  done: INVITATION_LINK_COPY.done,
 };
 
 export interface ServerEmail {

@@ -68,7 +68,7 @@ import {
   cannotSendEmail,
   useServerEmail,
 } from "../../Utils/ServerEmail";
-import InvitationLinkModal from "../../Components/Team/InvitationLinkModal";
+import InvitationLinkModal from "Common/UI/Components/InvitationLink/InvitationLinkModal";
 
 const Users: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,

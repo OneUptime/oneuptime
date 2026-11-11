@@ -2005,6 +2005,12 @@
   "Monitors that run on global probes are not being checked.": "在全域探針上執行的監測器沒有被檢查。",
   "No global probe is reporting": "沒有全域探針在回報",
   "See global probes": "查看全域探針",
+  "Send them their invitation link": "傳送邀請連結",
+  "The invitation was created, but its link could not be read. Open the Admin Dashboard to set their password instead.": "邀請已建立，但無法讀取其連結。請改為在管理員儀表板中為其設定密碼。",
+  "This server cannot send email yet, so they will not get an invitation email. The invitation is still created, and you get a link to send them yourself.": "此伺服器尚無法傳送電子郵件，因此對方不會收到邀請郵件。邀請仍會建立，您會取得一個可自行傳送給對方的連結。",
+  "This server cannot send email, so {{email}} was not emailed. Copy this link and send it to them yourself. It works once, only for this address, for 7 days.": "此伺服器無法傳送電子郵件，因此未寄送郵件給 {{email}}。請複製此連結並自行傳送給對方。此連結僅限此地址使用一次，有效期 7 天。",
+  "This server cannot send email, so {{email}} was not emailed. They already have an account: send them this link to sign in, and they accept the invitation from there.": "此伺服器無法傳送電子郵件，因此未寄送郵件給 {{email}}。對方已有帳號：請傳送此連結讓其登入，並在那裡接受邀請。",
+  "Invited": "已邀請",
   "markdownCallouts": {
     "caution": "小心",
     "danger": "危險",
