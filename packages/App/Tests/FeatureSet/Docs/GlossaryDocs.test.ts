@@ -804,10 +804,13 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
       }
 
       const bold: Array<string> = boldNamesOf(block.names);
-
-      if (bold.length !== boldNamesOf(english.names).length) {
-        problems.push(`${english.term}: ${bold.length} names, English has ${boldNamesOf(english.names).length}`);
-      }
+      /*
+       * What each English name is in this language: the Dashboard's word,
+       * a docs page's title, or the translator's own (null). Two English
+       * names this language says alike are one name here, and a name that
+       * is the term itself in this language is no other name.
+       */
+      const expected: Array<string | null> = [];
 
       for (const name of boldNamesOf(english.names)) {
         const docsTitle: string | null = (DocsNav as Array<NavGroup>)
@@ -819,13 +822,40 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
           })
           ? navTitle(language, name)
           : null;
-        const expected: string | null = isActionLabel(name)
+        const drawn: string | null = isActionLabel(name)
           ? drawnActionLabel(language, name)
           : docsTitle;
 
-        if (expected !== null && !bold.includes(expected)) {
-          problems.push(`${english.term}: "${name}" should be **${expected}**`);
+        if (
+          drawn !== null &&
+          (drawn.toLowerCase() === block.term.toLowerCase() ||
+            expected.includes(drawn))
+        ) {
+          continue;
         }
+
+        expected.push(drawn);
+
+        if (drawn !== null && !bold.includes(drawn)) {
+          problems.push(`${english.term}: "${name}" should be **${drawn}**`);
+        }
+      }
+
+      if (bold.length !== expected.length) {
+        problems.push(
+          `${english.term}: ${bold.length} names, ${expected.length} expected`,
+        );
+      }
+
+      const lower: Array<string> = bold.map((name: string): string => {
+        return name.toLowerCase();
+      });
+
+      if (
+        new Set(lower).size !== lower.length ||
+        lower.includes(block.term.toLowerCase())
+      ) {
+        problems.push(`${english.term}: a name twice, or the term's own`);
       }
     });
 
@@ -891,7 +921,14 @@ describe.each(LANGUAGES)("the Glossary in %s", (language: string) => {
         return isActionLabel(span) ? drawnActionLabel(language, span) : null;
       })
       .filter((drawn: string | null): drawn is string => {
-        return drawn !== null && !translated.includes(`**${drawn}**`);
+        // A word that is a term's heading in this language is named there.
+        return (
+          drawn !== null &&
+          !translated.includes(`**${drawn}**`) &&
+          !translatedTerms.some((block: GlossaryTermBlock): boolean => {
+            return block.term === drawn;
+          })
+        );
       });
 
     expect(missing).toEqual([]);

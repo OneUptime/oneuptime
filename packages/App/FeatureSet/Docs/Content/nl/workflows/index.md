@@ -1,6 +1,6 @@
 # Workflows – Overzicht
 
-Met workflows automatiseer je werk in OneUptime zonder code. Je zet blokken op een canvas, verbindt ze, en de workflow draait vanzelf zodra de trigger afgaat: er wordt een incident aangemaakt, een schema is aan de beurt, een andere tool roept een URL aan of er komt een e-mail binnen. Gebruik ze om OneUptime aan de rest van je stack te koppelen en om routinematige opvolging af te handelen terwijl jij aan het probleem zelf werkt.
+Met workflows automatiseer je werk in OneUptime zonder code. Je zet blokken op een canvas, verbindt ze, en de workflow draait vanzelf zodra de trigger afgaat: er wordt een incident aangemaakt, een schema is aan de beurt, een andere tool roept een URL aan of er komt een e-mail binnen. Gebruik ze om OneUptime aan de rest van je stack te koppelen en om routinematige opvolging af te handelen terwijl jij aan het probleem zelf werkt. Om te kiezen tussen een workflow, een runbook, een playbook en een AI-regel, zie [Welke gebruik ik?](/docs/introduction/which-one#workflow-runbook-playbook-of-ai-regel).
 
 :::cards
 - [Een workflow maken](/docs/workflows/authoring): Maak een workflow en voeg daarna blokken toe op het canvas, verbind ze en stel ze in.
@@ -47,6 +47,8 @@ Je bouwt dit allemaal visueel, op een canvas. De meeste workflows hebben helemaa
 - **Veelgebruikte automatisering hergebruiken** — één keer bouwen en vanuit elke andere workflow starten met een **Execute Workflow**-blok.
 
 ## Belangrijke begrippen
+
+De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/docs/introduction/glossary).
 
 | Begrip                 | Wat het betekent                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |

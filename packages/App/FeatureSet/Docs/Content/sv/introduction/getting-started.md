@@ -7,6 +7,8 @@ Börja här:
 :::cards
 - [Snabbstart](/docs/introduction/quickstart): Övervaka en webbplats, bli larmad när den går ner och publicera en statussida.
 - [Grundbegrepp](/docs/introduction/core-concepts): De få idéer som allt annat bygger på, och hur de hänger ihop.
+- [Ordlista](/docs/introduction/glossary): Varje ord som OneUptime använder, med en eller två meningar, och de andra namn det går under.
+- [Vilken ska jag använda?](/docs/introduction/which-one): Incident eller larm, arbetsflöde eller runbook, och de andra sakerna som liknar varandra, sida vid sida.
 - [Startsida och kortkommandon](/docs/introduction/home): Hitta rätt i instrumentpanelen, och tangenterna som sparar dig klick.
 - [Ditt konto](/docs/introduction/your-account): Din profil, ditt lösenord, passnycklar och tvåfaktorsautentisering.
 :::

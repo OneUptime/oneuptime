@@ -7,6 +7,8 @@ OneUptime은 오픈 소스 옵저버빌리티 플랫폼입니다. 웹사이트, 
 :::cards
 - [빠른 시작](/docs/introduction/quickstart): 웹사이트를 모니터링하고, 장애가 나면 호출을 받고, 상태 페이지를 게시합니다.
 - [핵심 개념](/docs/introduction/core-concepts): 다른 모든 것의 바탕이 되는 몇 가지 개념과 그 연결 방식.
+- [용어집](/docs/introduction/glossary): OneUptime에서 쓰는 모든 단어를 다른 이름과 함께 한두 문장으로.
+- [무엇을 써야 할까요?](/docs/introduction/which-one): 인시던트와 경고, 워크플로와 런북 등 비슷해 보이는 것들을 나란히 비교합니다.
 - [홈 화면과 단축키](/docs/introduction/home): 대시보드를 둘러보는 방법과 클릭을 줄여 주는 키.
 - [내 계정](/docs/introduction/your-account): 프로필, 비밀번호, 패스키, 2단계 인증.
 :::

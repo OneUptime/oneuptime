@@ -1,6 +1,6 @@
 # Grunnbegreper
 
-OneUptime har mange produkter, men de hviler på en håndfull ideer: prosjekter, monitorer, hendelser og varsler, vakt, statussider og telemetri. Denne siden forklarer hver idé med noen få setninger, viser hvordan de henger sammen, og lenker til sidene som dekker dem i detalj. Les den én gang, så blir alle de andre sidene i dokumentasjonen lettere å lese.
+OneUptime har mange produkter, men de hviler på en håndfull ideer: prosjekter, monitorer, hendelser og varsler, vakt, statussider og telemetri. Rundt dem finnes det du overvåker, det du installerer, og reglene som handler for deg. Denne siden forklarer hver idé med noen få setninger, viser hvordan de henger sammen, og lenker til sidene som dekker dem i detalj. Les den én gang, så blir alle de andre sidene i dokumentasjonen lettere å lese. Se [Ordliste](/docs/introduction/glossary) for ett ord om gangen, og [Hvilken skal jeg bruke?](/docs/introduction/which-one) for å velge mellom to ting som ligner på hverandre.
 
 :::cards
 - [Prosjekter og personer](#prosjekter-og-personer): Hvor alt ligger, og hvem som kan gjøre hva.
@@ -47,6 +47,41 @@ En monitors **kriterier** avgjør hva hvert resultat betyr. De sjekkes i rekkef�
 :::cards
 - [Opprett en monitor](/docs/monitor/create-monitor): Velg en type, si hva som skal sjekkes, og hvor ofte.
 - [Egendefinerte probes](/docs/probe/custom-probe): Sjekk det bare ditt eget nettverk kan nå.
+:::
+
+## Det du overvåker
+
+En monitor sjekker én ting. Rundt monitorene dine fører OneUptime en oversikt over det du kjører, og du møter disse postene i menyen:
+
+- En **monitorgruppe** samler flere monitorer i én status, slik at en statusside kan vise noe som består av mange deler, for eksempel Checkout, som én rad.
+- En **tjeneste** er en applikasjon eller mikrotjeneste du kjører. OneUptime legger den til første gang telemetrien dens kommer inn, og samler loggene, sporene, metrikkene, unntakene og hendelsene dens på én side.
+- **Verter**, klynger i **Kubernetes** og resten av **Infrastruktur** er maskinene og plattformene du kjører, fylt ut av agentene du installerer.
+- **Inventar** er én liste over alt sammen: tjenester, verter, klynger, enheter, skyressurser og de tingene som ikke sender telemetri i det hele tatt.
+
+De møtes der et problem viser seg. Monitorene til en tjeneste kan samles i en monitorgruppe, et SLO måler dem, og når én av dem feiler, erklærer den en hendelse. Hendelsen oppgir tjenesten blant ressursene den påvirker, og statussiden viser gruppen og hendelsen.
+
+```mermaid title="Én tjeneste, hva som overvåker den, og hvor den vises"
+flowchart TB
+    service["Tjeneste: Checkout"] -->|"overvåkes av"| monitors["Monitorene dens"]
+    monitors --> group["Monitorgruppe"]
+    monitors --> slo["SLO"]
+    monitors -->|"erklærer"| incident["Hendelse"]
+    group --> statuspage["Statusside"]
+    incident --> statuspage
+```
+
+:::cards
+- [Monitorgrupper](/docs/monitor/monitor-groups): Samle flere monitorer i én status.
+- [Tjenestekatalog](/docs/telemetry/services): Hver applikasjon du kjører, med en egen side.
+- [Inventar – Oversikt](/docs/inventory/overview): Alt OneUptime vet om miljøet ditt.
+:::
+
+## Pålitelighetsmål
+
+Et **SLO** (service level objective) er et pålitelighetsmål for det du overvåker, for eksempel tilgjengelig 99,9 % av tiden over 30 dager. OneUptime måler det ut fra monitorene sine hvert 5. minutt. Nedetiden målet tillater, er feilbudsjettet: med mye igjen kan du ta sjanser, og med lite igjen senker du tempoet og investerer i stabilitet.
+
+:::cards
+- [SLO-er – Oversikt](/docs/slo/introduction): Sett et mål, og se hvor mye av budsjettet som er igjen.
 :::
 
 ## Hendelser og varsler
@@ -97,11 +132,35 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 
 ## Telemetri
 
-**Telemetri** er det systemene dine sender til OneUptime: logger, metrikker, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, Kubernetes-klynger, Docker-verter og resten av infrastrukturen. Hver avsender bruker en **inntaksnøkkel**, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. Du søker i telemetrien, viser den på dashbord og følger med på den med telemetrimonitorer, som åpner hendelser og varsler som alle andre monitorer.
+**Telemetri** er det systemene dine sender til OneUptime: logger, metrikker, spor, unntak og profiler. Apper sender den med OpenTelemetry, og agentene til OneUptime sender den fra verter, Kubernetes-klynger, Docker-verter og resten av infrastrukturen. Hver avsender bruker en **inntaksnøkkel**, opprettet under **Prosjektinnstillinger → Telemetri og APM → Inntaksnøkler**. Du søker i telemetrien, viser den på dashbord og følger med på den med telemetrimonitorer, som åpner hendelser og varsler som alle andre monitorer. I menyen åpner **Logger**, **Målinger**, **Spor**, **Ytelsesprofiler** og **Unntak** hver sin type; **AI / LLM** følger samtalene til AI-en din, **Dataobserverbarhet** følger med på tabellene i databasene dine, og **Topologi** kartlegger hvordan alt henger sammen.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Send logger, metrikker og spor fra appene dine.
 - [Logg-overvåking](/docs/monitor/logs-monitor): Få beskjed når et mønster dukker opp i loggene dine.
+:::
+
+## Sikkerhet
+
+**Sikkerhetshendelser** lagrer sikkerhetshendelsene fra loggene dine, sikkerhetsverktøyene dine og alt annet du sender. Deteksjonsreglene gjør det de finner, om til sikkerhetssaker, som teamet ditt behandler i en kø, og som playbooks reagerer på. **Datasikkerhet** finner de sensitive dataene i bøttene, databasene og telemetrien din, og hva som er galt med måten de oppbevares på.
+
+:::cards
+- [Kom i gang med sikkerhet](/docs/telemetry/security-getting-started): Finn trusler i dataene du allerede har.
+- [Oversikt over Datasikkerhet](/docs/data-security/index): Finn de sensitive dataene dine, og rett opp måten de oppbevares på.
+:::
+
+## Det du installerer, og nøklene
+
+Det meste av OneUptime trenger ingen installasjon. Du installerer noe bare for å nå det OneUptime ikke kan se utenfra, og hver del kobler seg ut til OneUptime med en nøkkel:
+
+- En egendefinert sonde kjører monitorenes sjekker inne i nettverket ditt, med egen sonde-ID og nøkkel.
+- **OpenTelemetry Collector**, Kubernetes-agenten og Docker-agenten sender telemetri med en **inntaksnøkkel**. Infrastrukturagenten bak en Server / VM-monitor sender med den monitorens hemmelige nøkkel.
+- En **Runner** kjører runbook-trinn inne i infrastrukturen din, med egen Runner-ID og nøkkel.
+
+En inntaksnøkkel sender bare telemetri inn. En **API-nøkkel** er den andre typen: den lar et skript, CLI-en, Terraform eller en AI-assistent lese og endre prosjektet ditt, med tillatelsene du gir den. Ingen av dem virker i stedet for den andre.
+
+:::cards
+- [Hvilken skal jeg bruke?](/docs/introduction/which-one#sonde-agent-collector-eller-runner): Hva du skal installere, og nøkkelen hver av dem bruker.
+- [Inntaksnøkler](/docs/telemetry/ingestion-keys): Opprett, avgrens og roter nøklene som sender telemetri.
 :::
 
 ## Automatisering og AI
@@ -123,11 +182,30 @@ En **statusside** viser kundene dine om tjenestene virker. Du velger hvilke moni
 - [Etikett- og eierregler](/docs/configuration/label-and-owner-rules): Gi nye ressurser etiketter og eiere automatisk.
 :::
 
+## Typer regler
+
+Mange ting i OneUptime kalles en regel. Hver av dem tar én avgjørelse for deg når noe nytt kommer inn, og de finnes i noen få familier. De fleste av dem ligger under **Regler** i sidemenyene til **Hendelser** og **Varsler**.
+
+| Hva den avgjør | Regler |
+| --- | --- |
+| Hvem som tilkalles | **Vaktregler** velger vaktpolicyene en ny hendelse eller et nytt varsel kjører, og **Eskaleringsregler** i en policy tilkaller nivå for nivå |
+| Hvem som eier den, og hvordan den merkes | **Eierregler**, **Etikettregler** og **Personvernregler** |
+| Hva som hører sammen | **Grupperingsregler** åpner episoder og legger til i dem |
+| Hva som kjører på den | **Runbook-regler** starter runbooks, og **AI-regler** avgjør hva OneUptime AI undersøker og retter |
+| Når det skal følges opp | **SLA-regler** følger svar- og løsningstider, og **Påminnelsesregler** minner eierne på den mens den er åpen |
+
+En monitors egne regler er kriteriene dens. Vaktreglene under **Brukerinnstillinger** er noe helt annet: de er hver persons egne og avgjør hvordan en tilkalling når frem til den personen.
+
+:::cards
+- [Hendelsesinnstillinger og automatisering](/docs/incidents/settings#regler-som-kjører-når-en-hendelse-opprettes): Reglene som kjører når en hendelse opprettes, i rekkefølge.
+- [Personlige vaktregler](/docs/notifications/on-call-rules): Hvordan en tilkalling når frem til deg.
+:::
+
 ## Neste steg
 
 :::cards
 - [Hurtigstart](/docs/introduction/quickstart): Ta ideene i bruk på femten minutter.
-- [Startside og snarveier](/docs/introduction/home): Finn hvert produkt i dashbordet.
-- [Opprett en monitor](/docs/monitor/create-monitor): Din første monitor, felt for felt.
+- [Ordliste](/docs/introduction/glossary): Hvert ord OneUptime bruker, forklart med en setning eller to.
+- [Hvilken skal jeg bruke?](/docs/introduction/which-one): Hendelse eller varsel, arbeidsflyt eller runbook, og de andre som ligner hverandre.
 - [Hendelser – Oversikt](/docs/incidents/index): Hva som skjer etter at en monitor erklærer en hendelse.
 :::

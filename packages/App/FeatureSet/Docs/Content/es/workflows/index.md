@@ -1,6 +1,6 @@
 # Visión general de los flujos de trabajo
 
-Los flujos de trabajo automatizan el trabajo en OneUptime sin código. Colocas bloques en un lienzo, los conectas, y el flujo de trabajo se ejecuta solo cada vez que salta su disparador: se crea un incidente, vence una programación, otra herramienta llama a una URL o llega un correo electrónico. Úsalos para conectar OneUptime con el resto de tu stack y para encargarte del seguimiento rutinario mientras trabajas en el problema en sí.
+Los flujos de trabajo automatizan el trabajo en OneUptime sin código. Colocas bloques en un lienzo, los conectas, y el flujo de trabajo se ejecuta solo cada vez que salta su disparador: se crea un incidente, vence una programación, otra herramienta llama a una URL o llega un correo electrónico. Úsalos para conectar OneUptime con el resto de tu stack y para encargarte del seguimiento rutinario mientras trabajas en el problema en sí. Para elegir entre un flujo de trabajo, un runbook, un playbook y una regla de IA, consulta [¿Cuál uso?](/docs/introduction/which-one#flujo-de-trabajo-runbook-playbook-o-regla-de-ia).
 
 :::cards
 - [Crear un flujo de trabajo](/docs/workflows/authoring): Crea un flujo de trabajo y, luego, añade, conecta y configura sus bloques en el lienzo.
@@ -47,6 +47,8 @@ Todo esto lo construyes visualmente en un lienzo. La mayoría de los flujos de t
 - **Reutilizar automatizaciones comunes** — constrúyela una vez e iníciala desde cualquier otro flujo de trabajo con un bloque **Execute Workflow**.
 
 ## Términos clave
+
+Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introduction/glossary).
 
 | Término                | Qué significa                                                                                                      |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |

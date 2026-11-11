@@ -1,6 +1,6 @@
 # Runbooks – Oversigt
 
-Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og automatiserede trin, som du kører på en hændelse, en advarsel eller en planlagt vedligeholdelsesbegivenhed. Det gør tråden "hvad gør vi nu?" til en tjekliste, som alle med vagt kan følge klokken 3 om natten, med scripts, API-kald og godkendelser allerede skrevet. Runbooks er til vagthavende ingeniører, der reagerer på hændelser, og til platformteams, der automatiserer den respons.
+Et runbook er en genbrugelig responsprocedure: en ordnet liste af manuelle og automatiserede trin, som du kører på en hændelse, en advarsel eller en planlagt vedligeholdelsesbegivenhed. Det gør tråden "hvad gør vi nu?" til en tjekliste, som alle med vagt kan følge klokken 3 om natten, med scripts, API-kald og godkendelser allerede skrevet. Runbooks er til vagthavende ingeniører, der reagerer på hændelser, og til platformteams, der automatiserer den respons. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#arbejdsgang-runbook-playbook-eller-ai-regel) for at vælge mellem et runbook, et workflow, en playbook og en AI-regel.
 
 :::cards
 - [Skriv et runbook](/docs/runbooks/authoring): Opret et runbook, og skriv dets trin.
@@ -39,6 +39,8 @@ Hver kørsel er en **udførelse**. Når den starter, kopieres runbookets trin ov
 HTTP- og AI-trin kører på OneUptime Worker. Bash-, SSH- og kubectl-trin kører på en [Runner](/docs/runbooks/agents), som du installerer i din egen infrastruktur, så de scripts aldrig kører på OneUptimes servere. Et JavaScript-trin kører også på en af dine Runnere eller, hvis det ikke vælger nogen, og projektet ikke har nogen [standard-Runner](/docs/runbooks/agents#projektets-standard-runner), på en [global Runner](/docs/runbooks/agents#globale-runnere), i en sandkasse, der kun når internettet. Hvert trins status, output og fejlmeddelelse registreres på udførelsen, som bliver ved den hændelse, advarsel eller begivenhed, den kørte for.
 
 ## Centrale begreber
+
+Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af OneUptime.
 
 | Begreb | Betydning |
 | --- | --- |

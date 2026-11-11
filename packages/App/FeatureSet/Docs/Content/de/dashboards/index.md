@@ -1,6 +1,6 @@
 # Dashboards – Übersicht
 
-Ein Dashboard ist eine Seite mit Widgets, die Sie selbst anordnen: Diagramme Ihrer Metriken, Logs und Traces, Listen von Vorfällen, Warnungen und Monitoren, Ihre SLOs und Ihre Infrastruktur, sogar Daten aus Systemen außerhalb von OneUptime. Bauen Sie eines für den Bildschirm der Rufbereitschaft, den Morgencheck eines Teams oder eine Seite für Ihre Kunden, und teilen Sie es mit Ihrem Projekt oder mit allen, die den Link haben.
+Ein Dashboard ist eine Seite mit Widgets, die Sie selbst anordnen: Diagramme Ihrer Metriken, Logs und Traces, Listen von Vorfällen, Warnungen und Monitoren, Ihre SLOs und Ihre Infrastruktur, sogar Daten aus Systemen außerhalb von OneUptime. Bauen Sie eines für den Bildschirm der Rufbereitschaft, den Morgencheck eines Teams oder eine Seite für Ihre Kunden, und teilen Sie es mit Ihrem Projekt oder mit allen, die den Link haben. Um zwischen einem Dashboard, einem öffentlichen Dashboard und einer Statusseite zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#dashboard-öffentliches-dashboard-oder-statusseite).
 
 :::cards
 - [Wie ein Dashboard funktioniert](#wie-ein-dashboard-funktioniert): Woher seine Daten kommen und wer es sieht.
