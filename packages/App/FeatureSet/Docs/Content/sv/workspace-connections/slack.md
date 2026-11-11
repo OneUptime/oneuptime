@@ -43,7 +43,7 @@ En Slack-arbetsyta kan vara ansluten till mer än ett projekt, till exempel prod
 :::steps
 ### Installera OneUptime i din Slack-arbetsyta
 
-Gå till **Projektinställningar** > **Arbetsyta** > **Slack** och klicka på **Connect with Slack**. Välj arbetsytan och tillåt OneUptime. Slack skickar dig tillbaka till samma sida, som nu visar vilken arbetsyta projektet är anslutet till. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut en arbetsyta**, som också leder hit.
+Gå till **Projektinställningar** > **Arbetsyta** > **Slack** och klicka på **Anslut med Slack**. Välj arbetsytan och tillåt OneUptime. Slack skickar dig tillbaka till samma sida, som nu visar vilken arbetsyta projektet är anslutet till. Tills en arbetsyta är ansluten innehåller avsnittet **Arbetsyta** i menyerna Incidenter, Larm, Schemalagt underhåll, Monitorer och Jourtjänst **Anslut en arbetsyta**, som också leder hit.
 
 ### Anslut ditt eget Slack-konto
 
@@ -62,11 +62,11 @@ Klicka på **Testregel** på regelns rad. Ett testmeddelande kommer i de kanaler
 
 Med Slack Enterprise Grid kan ett projekt arbeta i flera arbetsytor i din organisation. Installera OneUptime för hela organisationen i stället för en arbetsyta:
 
-1. En administratör eller ägare av organisationen klickar på **Connect with Slack** under **Projektinställningar** > **Arbetsyta** > **Slack**, väljer organisationen i stället för en av dess arbetsytor på Slacks installationssida och ger OneUptime åtkomst.
+1. En administratör eller ägare av organisationen klickar på **Anslut med Slack** under **Projektinställningar** > **Arbetsyta** > **Slack**, väljer organisationen i stället för en av dess arbetsytor på Slacks installationssida och ger OneUptime åtkomst.
 2. I Slacks organisationsinställningar lägger en administratör till OneUptime i varje arbetsyta som ska använda det.
 3. Kortet **Slack-arbetsytor** listar de arbetsytorna. Klicka på **Uppdatera** när OneUptime har lagts till i en ny arbetsyta.
 
-- **Vilken arbetsyta en regel använder.** Aviseringsregler väljer den **Slack-arbetsyta** som deras kanaler finns i. Lämnas fältet tomt använder regeln standardarbetsytan och letar först där efter kanalerna den anger. **Gör till standard** på kortet ändrar standarden.
+- **Vilken arbetsyta en regel använder.** Aviseringsregler väljer den **Slack-arbetsyta** som deras kanaler finns i. Lämnas fältet tomt använder regeln standardarbetsytan och letar först där efter kanalerna den anger. **Gör till standard** på kortet ändrar standarden. Tas OneUptime bort från standardarbetsytan blir den av de återstående arbetsytorna som kommer först i bokstavsordning standard. Den förblir standard när OneUptime läggs till i den gamla arbetsytan igen.
 - **En arbetsyta som OneUptime har tagits bort från.** En regel som väljer den postar inte i en annan arbetsyta i stället: regelns kort, **Testregel** och aviseringsloggarna säger att OneUptime inte längre är tillagt i den. Kortet **Slack-kanal** säger det också när kanalen ligger i den arbetsytan. Lägg till OneUptime i den arbetsytan igen i Slacks organisationsinställningar, eller välj en annan arbetsyta i regeln.
 - **Var OneUptime fungerar.** Knappar, kommandon, fliken Home och OneUptime AI fungerar i var och en av de arbetsytorna, och medlemmar ansluter sitt eget Slack-konto från vilken som helst av dem.
 - **Ett projekt som är anslutet till en enda arbetsyta.** Hör den arbetsytan till organisationen behåller projektet sina regler, kanaler och anslutna konton när det installeras för hela organisationen med **Installera för organisationen** på samma sida. Den arbetsytan blir standard.
@@ -313,7 +313,7 @@ När projektets offentliga anteckningar behöver godkännas och du slår på Sla
 ## Koppla från
 
 - **Koppla från** kopplar bara från ditt eget Slack-konto och tar samtidigt bort din aviseringsmetod för Slack.
-- **Uninstall OneUptime from Slack**, på **Projektinställningar** > **Arbetsyta** > **Slack**, kopplar från projektet. OneUptime slutar publicera i Slack, och menyerna **Arbetsyta** slutar visa det. Aviseringsreglerna och sammanfattningarna sparas tills du ansluter igen.
+- **Avinstallera OneUptime från Slack**, på **Projektinställningar** > **Arbetsyta** > **Slack**, kopplar från projektet. OneUptime slutar publicera i Slack, och menyerna **Arbetsyta** slutar visa det. Aviseringsreglerna och sammanfattningarna sparas tills du ansluter igen.
 
 > [!WARNING]
 > Att avinstallera kopplar också från varje medlems eget Slack-konto i projektet, och tar bort aviseringsmetoderna för Slack och de jourregler som använde dem. De som larmades i Slack larmas via sina andra aviseringsmetoder tills de lägger till Slack igen.

@@ -1,3 +1,5 @@
+import ProjectMilestoneService from "./ProjectMilestoneService";
+import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import CreateBy from "../Types/Database/CreateBy";
 import AlertMeasurementValueService from "./AlertMeasurementValueService";
 import DeleteBy from "../Types/Database/DeleteBy";
@@ -468,6 +470,21 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
         projectId: createdItem.projectId!,
         alertStateId: createdItem.alertStateId,
       });
+
+    /*
+     * The project's first incident or alert a person answered (issue
+     * #6830): acknowledged by the rule above, on a row a person made. Not a
+     * monitor, a workflow or a linked incident carrying its state over.
+     */
+    if (
+      isAcknowledged &&
+      (createdItem.createdByUserId || onCreate.createBy.props.userId)
+    ) {
+      ProjectMilestoneService.reachInBackground({
+        projectId: createdItem.projectId,
+        milestone: ActivationMilestone.FirstIncidentOrAlertAcknowledged,
+      });
+    }
 
     /*
      * The state's name is plain text, placed into the feed item's Markdown

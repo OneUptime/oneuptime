@@ -66,6 +66,14 @@ describe("a character's bidi class", () => {
     ["\u{2066}", "LRI"],
     ["\u{2068}", "FSI"],
     ["\u{2069}", "PDI"],
+    // The Arabic letter mark, semicolon, question mark and Tatweel: N'Ko and Adlam use some too.
+    ["\u{061C}", "AL"],
+    ["\u{061B}", "AL"],
+    ["\u{061F}", "AL"],
+    ["\u{0640}", "AL"],
+    // N'Ko's and Adlam's own letters are right-to-left ones.
+    ["\u{07CA}", "R"],
+    ["\u{1E900}", "R"],
   ])("%s is %s", (character: string, bidiClass: string) => {
     expect(getBidiClass(character)).toBe(bidiClass);
   });
@@ -129,6 +137,32 @@ describe("a line read from the right", () => {
     expect(
       readsAsWritten("البطاقة Visa 4111-1111-1111 هنا", "Visa 4111-1111-1111"),
     ).toBe(true);
+  });
+
+  test("after a Tatweel or an Arabic question mark too: they are Arabic letters to the algorithm", () => {
+    expect(readsAsWritten("الـ 99.9% منها", "99.9%")).toBe(false);
+    expect(readsAsWritten("لماذا؟ 99.9% منها", "99.9%")).toBe(false);
+    expect(readsAsWritten("انتبه؛ 99.9% منها", "99.9%")).toBe(false);
+  });
+
+  test("two numbers with one separator between them are one number (W4), drawn as written", () => {
+    // After Arabic letters they are Arabic numbers, and one slash or colon still joins them.
+    expect(readsAsWritten("الأجهزة المتصلة: 3/5", "3/5")).toBe(true);
+    expect(readsAsWritten("يبدأ عند 09:30 صباحًا", "09:30")).toBe(true);
+    expect(readsAsWritten("دستگاه‌های متصل: ۳/۵", "۳/۵")).toBe(true);
+    // A number sign joins a European number: after a right-to-left mark it stays one.
+    expect(readsAsWritten("حادثه \u{200F}#۴۲", "#۴۲")).toBe(true);
+    // After Arabic letters it does not: the sign is the sentence's, drawn after the number.
+    expect(getDrawnText(drawLine("الحادثة #42", "rtl"))).toBe("42# ةثداحلا");
+  });
+
+  test("but each number set apart in an isolate of its own is cut off from its sign", () => {
+    expect(
+      getDrawnText(drawLine(`المتصلة: ${FSI}3${PDI}/${FSI}5${PDI}`, "rtl")),
+    ).toBe("5/3 :ةلصتملا");
+    expect(getDrawnText(drawLine(`حادثه \u{200F}#${FSI}۴۲${PDI}`, "rtl"))).toBe(
+      "۴۲# هثداح",
+    );
   });
 
   test("a left-to-right isolate draws what it holds as written", () => {

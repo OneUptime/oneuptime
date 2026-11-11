@@ -73,6 +73,7 @@ O OneUptime funciona em cada equipe do seu servidor do Mattermost da qual o bot 
 - **A equipe padrão.** É a equipe à qual você conectou o projeto. **Tornar padrão** no cartão torna outra equipe a padrão, para uma função que possa conectar o projeto.
 - **Onde o OneUptime funciona.** Os botões das mensagens do OneUptime, e os formulários que eles abrem, funcionam em cada uma dessas equipes. Em uma equipe da qual o bot foi removido, um botão apenas informa que a equipe não está mais conectada.
 - **Uma equipe padrão da qual o bot foi removido.** O cartão avisa. Adicione o bot de novo no Mattermost, ou torne outra equipe a padrão.
+- **Uma equipe que uma regra indica e da qual o bot foi removido.** O cartão da regra avisa, e a regra não usa outra equipe no lugar. Adicione o bot de novo à equipe no Mattermost, ou escolha outra equipe na regra: o formulário dela ainda mostra a escolha antiga, para que você possa mudá-la.
 
 ## Conectar a sua própria conta do Mattermost
 
@@ -171,6 +172,8 @@ Todo botão que o OneUptime publica leva uma assinatura, verificada quando ele �
 | Uma equipe à qual você adicionou o bot não aparece no cartão **Equipes do Mattermost** | Clique em **Atualizar** no cartão. |
 | **OneUptime's bot is not a member of this Mattermost team** | Você escolheu uma equipe da qual o bot saiu. Adicione o bot a ela no Mattermost e depois clique em **Atualizar**. |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Adicione o bot a essa equipe no Mattermost, ou escolha outra equipe na regra. |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Adicione o bot a essa equipe no Mattermost, ou escolha outra equipe na regra. |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Adicione o bot de novo a essa equipe no Mattermost, ou torne outra equipe a padrão. |
 | **OneUptime could not reach the Mattermost server** | Verifique o endereço, e se o OneUptime consegue alcançá-lo. Consulte [Rede e auto-hospedagem](#rede-e-auto-hospedagem). |
 | **The bot is not a member of the private Mattermost channel** | Adicione o bot ao canal no Mattermost. |
 | Um botão não faz nada, ou o Mattermost diz que não conseguiu concluir a ação | O Mattermost não consegue alcançar o OneUptime. Consulte [Rede e auto-hospedagem](#rede-e-auto-hospedagem). |

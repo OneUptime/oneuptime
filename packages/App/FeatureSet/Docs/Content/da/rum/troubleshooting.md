@@ -146,9 +146,9 @@ Siden **Klienter** viser `browser.platform` på web og `device.model.identifier`
 - **Safari og Firefox.** `browserDetector` læser UA Client Hints-API'et, som kun Chromium-browsere har. På de andre sætter den `browser.language`, hvilket er nok til at arkivere telemetrien som RUM, men ikke `browser.platform`. Sæt selv `browser.platform` for at få de klienter med.
 - **Et mobil-SDK, der kun sætter `device.manufacturer`.** Det arkiverer telemetrien som mobil-RUM, men siden **Klienter** har brug for `device.model.identifier`.
 
-## Core Web Vitals viser «No web vitals reported yet»
+## Core Web Vitals viser «Ingen web vitals rapporteret endnu»
 
-Kortet fyldes kun med de metrikker, din app sender, så spor alene fylder det aldrig. Tjek, at du eksporterer metrikker, at deres navne er blandt dem, OneUptime læser, og at de vises på applikationens side **Metrikker**. [Kortet siger «No web vitals reported yet»](/docs/rum/web-vitals#fejlfinding) gennemgår hvert tjek, herunder værdier, der går tabt, når en besøgende lukker fanen før næste eksport.
+Kortet fyldes kun med de metrikker, din app sender, så spor alene fylder det aldrig. Tjek, at du eksporterer metrikker, at deres navne er blandt dem, OneUptime læser, og at de vises på applikationens side **Metrikker**. [Kortet siger «Ingen web vitals rapporteret endnu»](/docs/rum/web-vitals#fejlfinding) gennemgår hvert tjek, herunder værdier, der går tabt, når en besøgende lukker fanen før næste eksport.
 
 ## Status siger Ingen nylig trafik, mens folk bruger appen
 

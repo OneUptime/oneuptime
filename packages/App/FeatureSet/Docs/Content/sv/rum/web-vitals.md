@@ -306,7 +306,7 @@ De här övervakarna läser bara namnen `web_vital.*`. Om din app skickar en vit
 
 ## Felsökning
 
-:::details Kortet säger ”No web vitals reported yet”
+:::details Kortet säger ”Inga web vitals rapporterade än”
 Kortet fylls bara från mätvärden som din app skickar. Kontrollera i ordning:
 
 1. Att du alls har en mätvärdespipeline: Spår ensamma fyller aldrig det här kortet.

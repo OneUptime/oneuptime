@@ -46,6 +46,14 @@ const PROJECT_SHARED_MODELS: Array<string> = [
    */
   "TeamOwnerTeam",
   "TeamOwnerUser",
+  /*
+   * A project's activation milestones (issue #6830): which first-hour steps
+   * it has reached, and when - a monitor, a check result, an on-call page
+   * delivered. The Welcome checklist on Home, which every member sees
+   * whatever their role, and Setup health read them. Nothing in a row says
+   * who did it or what it was about, and nobody writes one through the API.
+   */
+  "ProjectMilestone",
 ];
 
 /*

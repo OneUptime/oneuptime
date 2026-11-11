@@ -146,9 +146,9 @@ La page **Clients** liste `browser.platform` sur le web et `device.model.identif
 - **Safari et Firefox.** `browserDetector` lit l'API UA Client Hints, que seuls les navigateurs Chromium possèdent. Ailleurs, il définit `browser.language`, ce qui suffit pour ranger la télémétrie comme RUM, mais pas `browser.platform`. Définissez `browser.platform` vous-même pour lister ces clients.
 - **Un SDK mobile qui ne définit que `device.manufacturer`.** Cela range la télémétrie comme RUM mobile, mais la page **Clients** a besoin de `device.model.identifier`.
 
-## Les Core Web Vitals affichent « No web vitals reported yet »
+## Les Core Web Vitals affichent « Aucun web vital signalé pour le moment »
 
-La carte ne se remplit qu'à partir des métriques que votre application envoie : les traces seules ne la remplissent jamais. Vérifiez que vous exportez bien des métriques, que leurs noms sont de ceux que OneUptime lit, et qu'elles figurent sur la page **Métriques** de l'application. [La carte affiche « No web vitals reported yet »](/docs/rum/web-vitals#dépannage) passe en revue chaque vérification, y compris les valeurs perdues quand un visiteur ferme l'onglet avant l'export suivant.
+La carte ne se remplit qu'à partir des métriques que votre application envoie : les traces seules ne la remplissent jamais. Vérifiez que vous exportez bien des métriques, que leurs noms sont de ceux que OneUptime lit, et qu'elles figurent sur la page **Métriques** de l'application. [La carte affiche « Aucun web vital signalé pour le moment »](/docs/rum/web-vitals#dépannage) passe en revue chaque vérification, y compris les valeurs perdues quand un visiteur ferme l'onglet avant l'export suivant.
 
 ## L'état indique Aucun trafic récent alors que des gens utilisent l'application
 

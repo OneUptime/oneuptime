@@ -10,6 +10,7 @@ import {
 } from "@testing-library/react";
 import React, { ReactElement, ReactNode } from "react";
 import {
+  afterAll,
   afterEach,
   beforeEach,
   describe,
@@ -17,6 +18,10 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
 
 /*
  * A workflow variable's own page (Workflows > Global Variables > View, and
@@ -3275,5 +3280,71 @@ describe("the page wrappers", () => {
         expect(screen.getByTestId("model-delete")).toBeInTheDocument();
       });
     });
+  });
+});
+
+/*
+ * A field's value is shown as stored, in English. The grant and the client
+ * authentication are the dropdowns' words, so the card names them as the
+ * dropdowns do in the reader's language (#6752). Last in the file: it turns
+ * the translator on for the page it renders.
+ */
+describe("the OAuth 2.0 Settings card in the reader's language", () => {
+  afterAll(async () => {
+    await i18next.changeLanguage("en");
+  });
+
+  test("Italian: the grant and the client authentication are named as the dropdowns name them", async () => {
+    const localesDirectory: string = path.resolve(
+      __dirname,
+      "../../../../App/FeatureSet/Dashboard/src/Locales",
+    );
+    const readLocale: (language: string) => Record<string, string> = (
+      language: string,
+    ): Record<string, string> => {
+      return JSON.parse(
+        fs.readFileSync(
+          path.join(localesDirectory, `${language}.json`),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+    };
+    const italian: Record<string, string> = readLocale("it");
+
+    await i18next.use(initReactI18next).init({
+      lng: "it",
+      fallbackLng: "en",
+      resources: {
+        en: { translation: readLocale("en") },
+        it: { translation: italian },
+      },
+      interpolation: { escapeValue: false },
+    });
+
+    const variable: WorkflowVariable = oauthVariable({
+      oauthGrantType: OAuth2GrantType.RefreshToken,
+      oauthClientAuthenticationMethod:
+        OAuth2ClientAuthenticationMethod.RequestBody,
+    });
+
+    await renderLoaded(variable);
+
+    const grant: HTMLElement = renderDetailElement(
+      OAUTH_SETTINGS_CARD,
+      "Grant Type",
+      variable,
+    );
+    const clientAuthentication: HTMLElement = renderDetailElement(
+      OAUTH_SETTINGS_CARD,
+      "Client Authentication",
+      variable,
+    );
+
+    expect(italian["Refresh Token"]).not.toBe("Refresh Token");
+    expect(grant).toHaveTextContent(italian["Refresh Token"]!);
+    expect(clientAuthentication).toHaveTextContent(
+      italian["Request body (client_secret_post)"]!,
+    );
+    expect(clientAuthentication).not.toHaveTextContent("Request body");
   });
 });

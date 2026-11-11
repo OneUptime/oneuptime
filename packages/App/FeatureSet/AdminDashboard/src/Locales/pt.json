@@ -312,6 +312,8 @@
       "dataResidencyFieldDescription": "Um rótulo que indica onde os dados deste projeto estão hospedados, por exemplo \"UE (Frankfurt)\". Deixe em branco para ocultá-la dos usuários do projeto.",
       "dataResidencyFieldPlaceholder": "UE (Frankfurt)",
       "dataResidencyNotSet": "Não definida",
+      "milestonesCardTitle": "Progresso da configuração",
+      "milestonesCardDescription": "O que este projeto fez desde que foi criado e onde está parado. Lido a partir dos dados deste servidor; nada é enviado para lugar nenhum.",
       "ingestionBudgets": {
         "dailyCardTitle": "Orçamentos diários deste projeto",
         "dailyCardDescription": "O orçamento diário próprio deste projeto para cada sinal, no lugar do padrão da instância. Deixe um sinal vazio para usar o padrão da instância, ou informe 0 para não ter limite. Os administradores do projeto veem estes valores, mas não podem alterá-los.",

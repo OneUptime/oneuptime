@@ -1,4 +1,4 @@
-import { markdownToPlainText } from "../AI/InvestigationReport/InvestigationReportData";
+import { getRemediationReasoningPreview } from "./RemediationReasoning";
 import AutoRemediationSuggestion from "Common/Models/DatabaseModels/AutoRemediationSuggestion";
 import {
   AiRemediationCommand,
@@ -418,14 +418,11 @@ function getPersonName(
 
 /*
  * What a fix's reasoning says, as one line of words under its first step:
- * the start of why it was planned, read in full once the step is opened.
+ * the answer's summary, read in full once the step is opened - without the
+ * report's heading and footer the round posted it in (issue #6860).
  */
 function getReasoningPreview(markdown: string | undefined): string | null {
-  if (!markdown) {
-    return null;
-  }
-
-  return markdownToPlainText(markdown) || null;
+  return getRemediationReasoningPreview(markdown);
 }
 
 // How an approval reads, by where it was made: who approved it, and alone.

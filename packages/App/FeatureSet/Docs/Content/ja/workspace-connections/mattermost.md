@@ -73,6 +73,7 @@ OneUptime は、Mattermost サーバーのチームのうち、ボットがメ�
 - **デフォルトのチーム。** プロジェクトを接続したチームです。プロジェクトを接続できるロールなら、カードの **デフォルトにする** で別のチームをデフォルトにできます。
 - **OneUptime が動作する場所。** OneUptime のメッセージにあるボタンと、ボタンが開くフォームは、それらの各チームで動作します。ボットが外されたチームでは、ボタンはそのチームがもう接続されていないことを伝えるだけです。
 - **ボットが外されたデフォルトのチーム。** カードにそのことが表示されます。Mattermost でボットを追加し直すか、別のチームをデフォルトにしてください。
+- **ルールが指定する、ボットが外されたチーム。** ルールのカードにそのことが表示され、ルールは代わりに別のチームを使いません。Mattermost でボットをそのチームに追加し直すか、ルールで別のチームを選んでください。ルールのフォームには以前の選択がそのまま表示されるので、変更できます。
 
 ## 自分の Mattermost アカウントを接続する
 
@@ -171,6 +172,8 @@ OneUptime が投稿するすべてのボタンには、投稿先の Mattermost �
 | ボットを追加したチームが **Mattermost チーム一覧** カードに表示されない | カードの **更新** をクリックします。 |
 | **OneUptime's bot is not a member of this Mattermost team** | 選んだチームにボットがもういません。Mattermost でボットをそのチームに追加してから、 **更新** をクリックします。 |
 | **OneUptime's bot may not create channels in the Mattermost team this rule names** | Mattermost でボットをそのチームに追加するか、ルールで別のチームを選びます。 |
+| **OneUptime's bot is not a member of the Mattermost team chosen for the channel** | Mattermost でボットをそのチームに追加するか、ルールで別のチームを選びます。 |
+| **OneUptime's bot is no longer a member of the project's default Mattermost team** | Mattermost でボットをそのチームに追加し直すか、別のチームをデフォルトにします。 |
 | **OneUptime could not reach the Mattermost server** | アドレスと、OneUptime がそのアドレスに到達できることを確認します。[ネットワークとセルフホスティング](#ネットワークとセルフホスティング) を参照してください。 |
 | **The bot is not a member of the private Mattermost channel** | Mattermost でボットをそのチャネルに追加します。 |
 | ボタンが何もしない、または Mattermost が操作を完了できなかったと表示する | Mattermost から OneUptime に到達できません。[ネットワークとセルフホスティング](#ネットワークとセルフホスティング) を参照してください。 |

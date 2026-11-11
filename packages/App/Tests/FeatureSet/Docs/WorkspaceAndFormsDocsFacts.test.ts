@@ -145,6 +145,8 @@ const SOURCES: Record<string, string> = {
   accountsLocale: "App/FeatureSet/Accounts/src/Locales/en.json",
   oauthState: `${WORKSPACE_UTILS}/WorkspaceOAuthState.ts`,
   slackManifest: `${WORKSPACE_UTILS}/Slack/app-manifest.json`,
+  slackOrganization: `${WORKSPACE_UTILS}/Slack/SlackOrganization.ts`,
+  slackApi: "Common/Server/API/SlackAPI.ts",
   teamsReplies: `${WORKSPACE_UTILS}/MicrosoftTeams/MicrosoftTeamsReplies.ts`,
   teamsIncidentActions: `${WORKSPACE_UTILS}/MicrosoftTeams/Actions/Incident.ts`,
   teamsOnCallActions: `${WORKSPACE_UTILS}/MicrosoftTeams/Actions/OnCallDutyPolicy.ts`,
@@ -1931,6 +1933,45 @@ describe("Slack and Microsoft Teams, against the Dashboard and the server", () =
     // A Microsoft Teams channel's card, by its title.
     expect(englishPage(TEAMS)).toContain(
       `**${RECORD_CHANNEL_TEXT.teamsChannel}** card, which says who can open the channel`,
+    );
+  });
+
+  /*
+   * #6784: a Slack Enterprise organization's default workspace, when
+   * OneUptime is removed from it. The one left that comes first
+   * alphabetically takes over (pickDefaultWorkspaceId, by
+   * orderWorkspaces), and it is stored whenever it is not the one stored
+   * (getOfConnection) - so OneUptime added to the old workspace again does
+   * not move it back. Installs store the first workspace by name, so a
+   * default nobody chose is stored too.
+   */
+  it("says where a Slack organization's default workspace goes when OneUptime is removed from it, as the server moves and stores it", () => {
+    const organization: string = readSource("slackOrganization");
+    const install: string = readSource("slackApi");
+
+    // A default no longer listed gives way to the first left, by name.
+    expect(organization).toMatch(
+      /public static pickDefaultWorkspaceId\([\s\S]*?return SlackOrganization\.orderWorkspaces\(\{\s*workspaces: data\.workspaces,\s*defaultWorkspaceId: undefined,\s*\}\)\[0\]\?\.id;/,
+    );
+    expect(organization).toContain(
+      "return a.name.localeCompare(b.name) || a.id.localeCompare(b.id);",
+    );
+
+    // Stored wherever it is not the one stored, so it does not move back.
+    expect(organization).toContain(
+      "const isDefaultToStore: boolean =\n      Boolean(defaultWorkspaceId) && defaultWorkspaceId !== storedDefaultId;",
+    );
+    expect(organization).toContain(
+      "...(isDefaultToStore ? { defaultWorkspaceId: defaultWorkspaceId } : {}),",
+    );
+    expect(install).toMatch(
+      /const firstWorkspaceId: string \| undefined =\s*SlackOrganization\.pickDefaultWorkspaceId\(\{\s*workspaces: miscData\.workspaces \|\| \[\],\s*\}\);\s*if \(firstWorkspaceId\) \{\s*miscData\.defaultWorkspaceId = firstWorkspaceId;\s*\}/,
+    );
+
+    expect(
+      section(englishPage(SLACK), 2, "Slack Enterprise organizations"),
+    ).toContain(
+      "If OneUptime is removed from the default workspace, the remaining workspace that comes first alphabetically becomes the default. It stays the default when OneUptime is added to the old workspace again.",
     );
   });
 });
