@@ -32,7 +32,7 @@ Voer een **Projectnaam** in, bijvoorbeeld de naam van uw bedrijf. Bij OneUptime 
 
 ### Het project aanmaken
 
-Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de checklist **Welkom bij OneUptime 👋**.
+Klik op **Project maken**. De startpagina van uw project opent, met bovenaan de checklist **Welkom bij OneUptime 👋**. Eerst vraagt het **Wat wil je eerst doen?**: vink **Weten wanneer mijn website of API plat ligt**, **De juiste persoon oproepen als er iets kapotgaat** en **Mijn klanten informeren met een statuspagina** aan, en klik op **Doorgaan**.
 :::
 
 ## Uw website bewaken

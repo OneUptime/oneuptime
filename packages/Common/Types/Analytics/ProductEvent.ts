@@ -1,4 +1,5 @@
 import { JSONObject, JSONValue } from "../JSON";
+import { GOALS_EVENT_VALUE_MAX_LENGTH } from "../WelcomeChecklist/ProjectGoal";
 
 /*
  * The behaviour events the Dashboard sends to product analytics (issue
@@ -51,9 +52,12 @@ import { JSONObject, JSONValue } from "../JSON";
  */
 
 export enum ProductEventName {
-  // The Welcome checklist on Home (#6803 keeps it on the server).
+  // The Welcome checklist on Home, kept on the server (#6803).
+  GoalsChosen = "home/goals_chosen",
+  ChecklistStepStarted = "home/checklist_step_started",
   ChecklistStepCompleted = "home/checklist_step_completed",
   ChecklistFinished = "home/checklist_finished",
+  ChecklistDismissed = "home/checklist_dismissed",
 
   // A product's "How it works" explanation was opened.
   HowItWorksOpened = "how_it_works/opened",
@@ -135,28 +139,61 @@ const token: (name: string) => ProductEventPropertySpec = (
 
 const TOKEN_UNSAFE_CHARACTERS: RegExp = /[^a-z0-9_./-]/g;
 
-// A value as a token property carries it (ProductEventPropertySpec.isToken).
-export const toProductEventToken: (value: string) => string = (
+/*
+ * A value as a token property carries it (ProductEventPropertySpec.isToken):
+ * cut to the property's own length, or PRODUCT_EVENT_TOKEN_MAX_LENGTH.
+ */
+export const toProductEventToken: (
   value: string,
-): string => {
+  maxLength?: number | undefined,
+) => string = (value: string, maxLength?: number | undefined): string => {
   return value
     .toLowerCase()
     .replace(TOKEN_UNSAFE_CHARACTERS, "_")
-    .slice(0, PRODUCT_EVENT_TOKEN_MAX_LENGTH);
+    .slice(0, maxLength ?? PRODUCT_EVENT_TOKEN_MAX_LENGTH);
+};
+
+/*
+ * The goals a project chose (ProjectGoal values joined by ".", in order:
+ * toGoalsEventValue), on the checklist's events, so the funnel splits by
+ * goal. Long enough for every goal.
+ */
+const goalsProperty: ProductEventPropertySpec = {
+  name: "goals",
+  isToken: true,
+  maxLength: GOALS_EVENT_VALUE_MAX_LENGTH,
 };
 
 export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   {
+    name: ProductEventName.GoalsChosen,
+    description:
+      'The project\'s goals were chosen on Home ("What do you want to do first?"), skipped (no goals), or changed.',
+    properties: [goalsProperty, { name: "goal_count" }, { name: "is_change" }],
+  },
+  {
+    name: ProductEventName.ChecklistStepStarted,
+    description:
+      "A step of the Welcome checklist on Home was opened: its page, its guided setup, or Billing when the plan holds it back.",
+    properties: [token("step"), goalsProperty, token("needs_plan")],
+  },
+  {
     name: ProductEventName.ChecklistStepCompleted,
     description:
       "A step of the Welcome checklist on Home was seen done for the first time.",
-    properties: [token("step")],
+    properties: [token("step"), goalsProperty],
   },
   {
     name: ProductEventName.ChecklistFinished,
     description:
       "Every step of the Welcome checklist on Home was seen done for the first time.",
-    properties: [{ name: "step_count" }],
+    properties: [{ name: "step_count" }, goalsProperty],
+  },
+  {
+    name: ProductEventName.ChecklistDismissed,
+    description:
+      "Somebody hid the Welcome checklist on Home for themselves, and how far it was.",
+    properties: [{ name: "done_count" }, { name: "step_count" }, goalsProperty],
   },
   {
     name: ProductEventName.HowItWorksOpened,
@@ -347,7 +384,9 @@ export const toProductEventProperties: (data: {
     const value: JSONValue | undefined = data.properties[spec.name];
 
     if (typeof value === "string") {
-      const text: string = spec.isToken ? toProductEventToken(value) : value;
+      const text: string = spec.isToken
+        ? toProductEventToken(value, spec.maxLength)
+        : value;
 
       allowed[spec.name] =
         spec.maxLength !== undefined ? text.slice(0, spec.maxLength) : text;

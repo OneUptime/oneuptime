@@ -45,7 +45,14 @@ ProductEvents.send(ProductEventName.ImporterOpened, { from: "home" });
 - Every event and every property it may carry is listed in `PRODUCT_EVENTS` (`Common/Types/Analytics/ProductEvent.ts`). A property that is not listed is dropped. A Cloud-only property is dropped everywhere except Cloud. A token property (a key the code chose) is lower-cased and sanitized.
 - The common properties (`project_id`, `plan`, `edition`, `language`, `is_project_creator`) are added for you.
 - For guided setups, use `useGuidedSetupEvents("<setup_key>")` from `Common/UI/Utils/GuidedSetupEvents.ts`. It sends `started` on mount and `left` (with the step) on unmount or when the tab closes. Call `reachStep("<step_key>")` as the setup moves on, and `finish()` at its end. Then remove the event's `reservedFor` in `PRODUCT_EVENTS`.
-- For a checklist, call `ChecklistEvents.noteProgress({ projectId, current, stepKeys })` each time the steps are checked.
+- For a checklist, call `ChecklistEvents.noteProgress({ projectId, current, stepKeys, goals })` each time the steps are checked.
+
+## The Welcome checklist (#6803)
+
+Home's Welcome checklist ticks its steps on these milestones. `Common/Types/WelcomeChecklist/WelcomeChecklist.ts` holds the rules: `STEPS_OF_GOAL` (which steps each goal brings), `STEP_DONE_BY_MILESTONES` and `isWelcomeStepDone` (when a step is done), `getWelcomeStepPlanNeed` (what the plan holds back) and `shouldAskForGoals`. `WelcomeChecklistService.getAnswer` (`Common/Server/Services`) reads the milestones and works out the answer Home draws, served at `GET /api/welcome-checklist`.
+
+- The goals a project chose are in `Project.goals`. Read them with `parseProjectGoals` (`Common/Types/WelcomeChecklist/ProjectGoal.ts`): null means never answered, an empty list means skipped.
+- A new milestone that finishes a step goes in `STEP_DONE_BY_MILESTONES`, and in the step table of `Docs/analytics/activation.md`.
 - To add an event:
   1. Add a value to `ProductEventName`.
   2. Add its entry to `PRODUCT_EVENTS`.

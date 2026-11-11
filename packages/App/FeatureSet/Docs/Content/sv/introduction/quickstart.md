@@ -32,7 +32,7 @@ Ange ett **Projektnamn**, till exempel ditt företags namn. På OneUptime Cloud 
 
 ### Skapa det
 
-Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **Välkommen till OneUptime 👋** överst.
+Klicka på **Skapa projekt**. Projektets startsida öppnas, med checklistan **Välkommen till OneUptime 👋** överst. Först frågar den **Vad vill du göra först?**: kryssa i **Veta när min webbplats eller mitt API ligger nere**, **Larma rätt person när något går sönder** och **Berätta för mina kunder med en statussida**, och klicka på **Fortsätt**.
 :::
 
 ## Övervaka din webbplats
