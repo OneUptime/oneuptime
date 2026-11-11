@@ -12,6 +12,11 @@ import OnCallTestPageEvents, {
   TEST_PAGE_SENT_EVENT,
 } from "../../../Server/Utils/OnCall/OnCallTestPageEvents";
 import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
+import ProjectMilestoneService, {
+  Service as ProjectMilestoneServiceClass,
+} from "../../../Server/Services/ProjectMilestoneService";
+import ProjectService from "../../../Server/Services/ProjectService";
+import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import Email from "../../../Types/Email";
 import Name from "../../../Types/Name";
 import ObjectID from "../../../Types/ObjectID";
@@ -271,8 +276,16 @@ describe("the message a test page is acknowledged from", () => {
   });
 });
 
-describe("what product analytics hears of a test page", () => {
+describe("what a test page records", () => {
   let capture: jest.SpyInstance;
+  let reach: jest.SpyInstance;
+
+  // The events are sent once the project's plan is read.
+  async function settled(): Promise<void> {
+    for (let i: number = 0; i < 5; i++) {
+      await Promise.resolve();
+    }
+  }
 
   beforeEach(() => {
     acknowledged.mockRestore();
@@ -281,9 +294,18 @@ describe("what product analytics hears of a test page", () => {
       .mockImplementation(() => {
         return undefined;
       });
+    jest.spyOn(ProductAnalytics, "isConfigured").mockReturnValue(true);
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockResolvedValue({ planName: "Growth" } as never);
+    reach = jest
+      .spyOn(ProjectMilestoneService, "reachInBackground")
+      .mockImplementation(() => {
+        return undefined;
+      });
   });
 
-  test("one sent: who sent which kind, in which project", () => {
+  test("one sent: who sent which kind, in which project, by the events' rule", async () => {
     OnCallTestPageEvents.onTestPageSent({
       projectId: PROJECT,
       executionLogId: RUN,
@@ -292,20 +314,26 @@ describe("what product analytics hears of a test page", () => {
       recordKind: OnCallTestPageRecordKind.Alert,
     });
 
+    await settled();
+
     expect(capture).toHaveBeenCalledWith({
       userId: ANA,
       event: TEST_PAGE_SENT_EVENT,
       properties: {
         project_id: PROJECT.toString(),
+        plan: "Growth",
+        edition: ProjectMilestoneServiceClass.getEdition(),
         execution_log_id: RUN.toString(),
         kind: OnCallTestPageKind.Policy,
         record_kind: OnCallTestPageRecordKind.Alert,
       },
     });
-    expect(TEST_PAGE_SENT_EVENT).toBe("server/test_page_sent");
+    expect(TEST_PAGE_SENT_EVENT).toBe("test_page/sent");
+    // Sending one is no milestone: acknowledging one is.
+    expect(reach).not.toHaveBeenCalled();
   });
 
-  test("one acknowledged: who, in which project, by what", () => {
+  test("one acknowledged: the project's milestone, and who, by what", async () => {
     OnCallTestPageEvents.onTestPageAcknowledged({
       projectId: PROJECT,
       executionLogId: RUN,
@@ -313,28 +341,61 @@ describe("what product analytics hears of a test page", () => {
       channel: OnCallPageChannel.Call,
     });
 
+    expect(reach).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      milestone: ActivationMilestone.FirstTestPageAcknowledged,
+    });
+
+    await settled();
+
     expect(capture).toHaveBeenCalledWith({
       userId: ANA,
       event: TEST_PAGE_ACKNOWLEDGED_EVENT,
       properties: {
         project_id: PROJECT.toString(),
+        plan: "Growth",
+        edition: ProjectMilestoneServiceClass.getEdition(),
         execution_log_id: RUN.toString(),
         channel: OnCallPageChannel.Call,
       },
     });
-    expect(TEST_PAGE_ACKNOWLEDGED_EVENT).toBe("server/test_page_acknowledged");
+    expect(TEST_PAGE_ACKNOWLEDGED_EVENT).toBe("test_page/acknowledged");
   });
 
-  test("analytics that fails never fails the test page", () => {
+  test("where analytics is not set up, nothing is sent and no plan is read - the milestone is still kept", async () => {
+    (ProductAnalytics.isConfigured as unknown as jest.Mock).mockReturnValue(
+      false,
+    );
+
+    OnCallTestPageEvents.onTestPageAcknowledged({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      acknowledgedByUserId: ANA,
+    });
+
+    await settled();
+
+    expect(capture).not.toHaveBeenCalled();
+    expect(ProjectService.findOneById).not.toHaveBeenCalled();
+    expect(reach).toHaveBeenCalledTimes(1);
+  });
+
+  test("analytics that fails never fails the test page", async () => {
     capture.mockImplementation(() => {
       throw new Error("analytics is down");
+    });
+    reach.mockImplementation(() => {
+      throw new Error("milestones are down");
     });
 
     expect(() => {
       OnCallTestPageEvents.onTestPageAcknowledged({
+        projectId: PROJECT,
         executionLogId: RUN,
         acknowledgedByUserId: ANA,
       });
     }).not.toThrow();
+
+    await settled();
   });
 });

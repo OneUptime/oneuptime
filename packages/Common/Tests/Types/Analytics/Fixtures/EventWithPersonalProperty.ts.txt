@@ -1,0 +1,35 @@
+/*
+ * A fixture for EventPropertyNames.test.ts: an event that carries what no
+ * event may. Read by the scan as text; never compiled or run.
+ */
+import ProductAnalytics from "../../../../Server/Utils/ProductAnalytics";
+import UiAnalytics from "../../../../UI/Utils/Analytics";
+
+export const sendProjectCreated = (project: any): void => {
+  const properties: any = {
+    plan: project.plan,
+  };
+
+  properties["owner_email"] = project.ownerEmail;
+
+  ProductAnalytics.capture({
+    event: "server/project_created",
+    distinctId: project.ownerEmail,
+    properties: {
+      project_name: project.name,
+      ...properties,
+    },
+  });
+};
+
+export const sendNote = (note: any): void => {
+  UiAnalytics.capture("dashboard/note_added", {
+    message_text: note.text,
+  });
+
+  UiAnalytics.capture("dashboard/note_added", buildSomething(note));
+};
+
+const buildSomething = (note: any): any => {
+  return note;
+};

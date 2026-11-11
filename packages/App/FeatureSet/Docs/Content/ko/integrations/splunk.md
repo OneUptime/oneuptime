@@ -44,7 +44,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 ### OneUptime에서 연결 추가
 
-**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Splunk Enterprise Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 토큰을 **Authentication token**에, 또는 비밀번호를 **비밀번호**에 붙여 넣습니다.
+**제품 → 보안 이벤트 → 연결**(`/dashboard/{projectId}/security-events/connections`)를 열고 **연결 추가**를 클릭한 뒤 **Splunk Enterprise Security**를 고르고 **다음**을 클릭합니다. 아래 표의 설정을 채우고 **다음**을 클릭한 뒤, 토큰을 **인증 토큰**에, 또는 비밀번호를 **비밀번호**에 붙여 넣습니다.
 
 ### 저장하기 전에 테스트
 
@@ -53,13 +53,13 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 
 | 설정 | 입력할 값 |
 | --- | --- |
-| **Splunk management URL** | 검색 헤드의 REST API. 예: `https://splunk.example.com:8089`. `https`를 사용해야 하며 쿼리 문자열은 붙이지 않습니다. 경로 아래에서 API를 제공하는 리버스 프록시를 위해 경로는 유지됩니다. |
+| **Splunk 관리 URL** | 검색 헤드의 REST API. 예: `https://splunk.example.com:8089`. `https`를 사용해야 하며 쿼리 문자열은 붙이지 않습니다. 경로 아래에서 API를 제공하는 리버스 프록시를 위해 경로는 유지됩니다. |
 | **검색** | 무엇을 가져올지 고르는 검색으로, 바꾸지 않는 한 `index=notable`입니다. 예를 들어 `index=notable urgency IN (high, critical)`처럼 좁힙니다. 시간 범위는 OneUptime이 직접 추가하므로 검색에서 `earliest`나 `latest`를 지정하거나 파이프로 시작할 수 없습니다. 앞쪽의 `search`는 제거됩니다. |
 | **사용자 이름** | Splunk 사용자의 이름. 비밀번호로 인증하는 경우에만 필요합니다. |
-| **Authentication token** | 첫 단계의 토큰. 토큰이 저장되어 있으면 사용자 이름과 비밀번호 대신 토큰이 사용됩니다. |
+| **인증 토큰** | 첫 단계의 토큰. 토큰이 저장되어 있으면 사용자 이름과 비밀번호 대신 토큰이 사용됩니다. |
 | **비밀번호** | Splunk 사용자의 비밀번호. 토큰을 쓰지 않을 때만 필요합니다. |
 
-**Authentication token**과 **비밀번호**는 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **자격 증명 업데이트**를 사용합니다. 인증 방식을 바꾸려면 그곳에 새 값을 입력하고 **Remove the stored Authentication token** 또는 **Remove the stored Password**를 켭니다.
+**인증 토큰**과 **비밀번호**는 암호화되며, API가 반환하지 않고 다시 표시되지도 않습니다. 교체하려면 연결의 **자격 증명 업데이트**를 사용합니다. 인증 방식을 바꾸려면 그곳에 새 값을 입력하고 **저장된 인증 토큰 제거** 또는 **저장된 비밀번호 제거**를 켭니다.
 
 **폴링** 단계에는 선택 사항인 **설명**, `1`부터 `1440`까지의 정수이며 처음 값이 `5`인 **폴링 간격(분)**, 그리고 처음에 켜져 있는 **활성화됨**도 있습니다.
 
@@ -120,7 +120,7 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 
 1. **좁히기.** 다음 폴링은 같은 시작점에서 절반 길이의 구간을 읽으며, 구간을 끝까지 읽을 수 있게 될 때까지 계속 절반으로 줄이고, 가장 짧게는 1분까지 줄입니다. 실행의 경고에 그렇게 적힙니다: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **다시 늘리기.** 구간을 끝까지 읽은 뒤에는 다음 구간이 다시 두 배가 되며, 최대 24시간까지 늘어납니다.
-3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 notable event가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **Import this time range**로 그 1분을 가져오세요.
+3. **1분 넘어가기.** 1분 안에조차 한 번의 폴링으로 읽을 수 있는 것보다 많은 레코드가 있으면, 더 새로운 notable event가 계속 도착하도록 폴링이 그 1분을 넘어갑니다. 실행은 **부분**으로 남고, **마지막 오류**에는 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.`라고 나옵니다. 한 번의 실행이 읽을 수 있는 만큼 되찾으려면 **이 시간 범위 가져오기**로 그 1분을 가져오세요.
 
 Splunk의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는 그대로 유지되고 다음 폴링이 같은 구간을 다시 읽습니다. 단 하나의 예외는 요청 시간이 초과된 경우입니다. 커서는 그대로지만 다음 구간은 절반 길이가 됩니다. 제시간에 응답하기에는 너무 무거운 구간은 시도할 때마다 시간이 초과되기 때문입니다. **폴링 간격(분)** 값을 바꿔도 이 중 어느 것도 달라지지 않습니다. 이 설정은 폴링이 얼마나 자주 시작하는지를 정할 뿐, 구간이 어디서 시작하는지는 정하지 않습니다.
 
@@ -129,9 +129,9 @@ Splunk의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 연결에서 **진단**을 클릭하면 최근 실행을 보고 연결을 직접 다룰 수 있습니다. 연결을 변경할 수 있는 사람은 누구나 이를 시작할 수 있고, 연결을 볼 수 있는 사람은 누구나 기록을 읽을 수 있습니다.
 
 - **지금 실행**은 연결이 **활성화됨** 상태가 아닐 때에도 평소의 커서로 즉시 폴링을 시작합니다.
-- **Preview notable events**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
-- **Import this time range**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 행은 건너뜁니다.
-- 실행의 **Copy diagnostics**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
+- **주목할 이벤트 미리 보기**는 최대 7일의 시간 범위를 읽으며 아무것도 가져오지 않습니다.
+- **이 시간 범위 가져오기**는 확인을 거친 뒤 최대 7일의 범위를 가져오며, 커서는 옮기지 않습니다. 이미 가져온 행은 건너뜁니다.
+- 실행의 **진단 복사**는 지원팀에 보낼 보고서를 복사합니다. 자격 증명은 절대 포함되지 않습니다.
 
 ## 연결 테스트
 
@@ -144,7 +144,7 @@ Splunk의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 | **Run the search on Splunk** | **검색**의 검색이 지난 24시간을 대상으로 한 행만큼 실행되고, 어느 내보내기 엔드포인트가 응답했는지 알려 줍니다. |
 | **Notable events available to import** | **검색**의 검색이 지난 24시간과 지난 7일 동안 찾은 행의 수. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
-| **Scheduled polling** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
+| **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 
 테스트의 모든 요청에는 20초 기한이 있습니다. 테스트는 아무것도 가져오지 않고 커서를 옮기지도 않으며, 실패한 각 검사는 무엇을 바꿔야 하는지 알려 줍니다.
 
@@ -177,7 +177,7 @@ Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열�
 :::details Last Error가 `Splunk Enterprise Security authentication request`로 시작함
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk가 호출자가 누구인지 알려 주기를 거부했습니다.
   - `HTTP 401`: Splunk가 자격 증명을 받아들이지 않았습니다. 토큰이 잘못되었거나, 만료되었거나, 삭제되었거나, 검색 헤드에서 토큰 인증이 꺼져 있거나, 사용자 이름이나 비밀번호가 잘못되었습니다. 새 토큰을 만들어 **자격 증명 업데이트**로 저장하세요.
-  - `HTTP 404`: **Splunk management URL**이 REST API가 아닙니다. 포트 `8000`의 Splunk Web을 가리키거나, 검색 헤드가 제공하지 않는 경로가 붙어 있습니다.
+  - `HTTP 404`: **Splunk 관리 URL**이 REST API가 아닙니다. 포트 `8000`의 Splunk Web을 가리키거나, 검색 헤드가 제공하지 않는 경로가 붙어 있습니다.
 - `Splunk Enterprise Security authentication request returned ...`: 포트 `8000`의 Splunk Web HTML이나 프록시 페이지처럼, 검색 헤드의 REST API가 아닌 다른 것이 응답했습니다. URL이 관리 포트를 가리키게 하세요.
 :::
 
@@ -202,7 +202,7 @@ Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열�
 
 :::details 실행이 Partial임
 - `Stopped after collecting 10000 records; the window holds more`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 행이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 행 다음부터 시작합니다. 폴링할 때마다 **부분**으로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 **검색**의 검색이 폴링 간격마다 10,000개가 넘는 행을 찾고 있는 것입니다. 검색을 좁히거나 **폴링 간격(분)** 값을 줄이세요.
-- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **Import this time range**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
+- `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **이 시간 범위 가져오기**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details 테스트는 통과하지만 아무것도 가져오지 않음

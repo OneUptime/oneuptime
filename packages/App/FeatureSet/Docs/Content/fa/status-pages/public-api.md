@@ -74,6 +74,8 @@ flowchart TB
 
 نمای کلی یک درخواست برای کل صفحه است. همان داده‌ای است که صفحهٔ وضعیت ترسیم می‌کند، و حداکثر ۱۵ ثانیه قدمت دارد.
 
+روزهای نوارهای زمان کارکرد روزهای UTC هستند، مگر اینکه منطقهٔ زمانی‌ای نام ببرید: `?timezone=Asia/Shanghai` را به یک `GET` اضافه کنید، یا `{"timezone": "Asia/Shanghai"}` را به‌عنوان بدنهٔ یک `POST` بفرستید، تا `uptimeDailyAggregate` و `monitorGroupUptimeDailyAggregate` به روزهای آن منطقه بریده شوند، همان‌طور که صفحهٔ وضعیت برای هر بازدیدکننده درخواست می‌کند. منطقه‌ای که سرور نمی‌شناسد UTC است، و هر دو در `timezone` خود می‌گویند در کدام منطقه بریده شده‌اند.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 | `resourceGroups` | گروه‌ها، با `parentStatusPageGroupId` برای گروه‌های تودرتو. |
 | `monitorStatuses` | همهٔ وضعیت‌های مانیتور پروژه، از کمترین اولویت تا بیشترین. |
 | `monitorGroupCurrentStatuses`، `monitorsInGroup` | وضعیت فعلی هر گروه مانیتور در صفحه، و مانیتورهای درون آن. |
-| `monitorStatusTimelines`، `uptimeDailyAggregate`، `monitorGroupMergedDowntime`، `statusPageHistoryChartBarColorRules` | داده‌هایی که نوارهای زمان کارکرد از آن‌ها ترسیم می‌شوند، و قواعد رنگ نوارهای صفحه. |
+| `monitorStatusTimelines`، `uptimeDailyAggregate`، `monitorGroupUptimeDailyAggregate`، `monitorGroupMergedDowntime`، `statusPageHistoryChartBarColorRules` | داده‌هایی که نوارهای زمان کارکرد از آن‌ها ترسیم می‌شوند، و قواعد رنگ نوارهای صفحه. |
 | `activeIncidents`، `incidentPublicNotes`، `incidentStateTimelines`، `incidentStates` | حادثه‌های حل‌نشده‌ای که صفحه نشان می‌دهد، یادداشت‌های عمومی و تغییرات وضعیتشان، و وضعیت‌های حادثهٔ پروژه. |
 | `timelineIncidents` | حادثه‌های درون بازهٔ نوارهای زمان کارکرد، از جمله حل‌شده‌ها، برای راهنمای نوارها. |
 | `activeEpisodes`، `episodePublicNotes`، `episodeStateTimelines` | همین‌ها برای اپیزودهای حادثه. |

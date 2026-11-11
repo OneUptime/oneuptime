@@ -141,6 +141,7 @@ OneUptime 中的一切都位於專案中：你的監測器、事件、待命策�
 
 :::cards
 - [核心概念](/docs/introduction/core-concepts): 你剛剛設定的內容背後的概念。
+- [詞彙表](/docs/introduction/glossary): 你一路上遇到的每個詞彙，用一兩句話說明。
 - [待命排程](/docs/on-call/schedules): 與團隊分擔待命。
 - [狀態頁品牌與網域](/docs/status-pages/branding-and-domains): 讓狀態頁面展現你的品牌。
 - [OpenTelemetry](/docs/telemetry/open-telemetry): 從你的應用程式傳送日誌、指標和追蹤。

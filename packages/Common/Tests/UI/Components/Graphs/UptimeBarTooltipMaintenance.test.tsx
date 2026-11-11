@@ -144,11 +144,23 @@ describe("UptimeBarTooltip - the day's scheduled maintenance", () => {
   });
 
   test("gives the window on the reader's clock, with the zone that clock is in", () => {
-    renderTooltip({ maintenanceEvents: [maintenance()] });
+    // a bar drawn in the reader's own zone, as the status page now asks for.
+    renderTooltip({
+      timezone: "Europe/Paris",
+      maintenanceEvents: [maintenance()],
+    });
 
     expect(
       screen.getByTestId("uptime-tooltip-maintenance-window"),
     ).toHaveTextContent("Oct 21, 18:00 – 20:00 CEST");
+  });
+
+  test("on a bar drawn in another zone - a UTC day - gives the window on that zone's clock, named (issue #6697)", () => {
+    renderTooltip({ maintenanceEvents: [maintenance()] });
+
+    expect(
+      screen.getByTestId("uptime-tooltip-maintenance-window"),
+    ).toHaveTextContent("Oct 21, 16:00 – 18:00 UTC");
   });
 
   test("names the state the event is in, in its colour, readable on the dark theme too", () => {

@@ -1,4 +1,5 @@
 import { LongWordHyphenation } from "../HyphenatedWords/LongWords";
+import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../Utils/LineDirection";
 
 /*
  * How a table draws its header row, its rows and its cells (Table,
@@ -384,13 +385,15 @@ export const TABLE_CELL_MAX_WIDTH_CLASS_NAME: string = "max-w-[20rem]";
 
 /*
  * A record's link (a monitor, a host, a cluster - MonitorElement and its
- * fourteen siblings) draws its icon and name in a flex row: <span
- * class="flex"><div><svg/></div> name</span>. No ellipsis reaches the text
- * of a flex row, so a long name was cut off mid-letter at the cell's edge.
- * In a table's cell that row is laid out as a line of text instead - the
- * icon an inline box, centred on the name - and the name ends in "...".
- * Matched on that exact class, so a flex row of any other shape is left
- * alone.
+ * siblings) draws its name alone in a flex row: <span class="flex">
+ * name</span>. No ellipsis reaches the text of a flex row, so a long name
+ * was cut off mid-letter at the cell's edge. In a table's cell that row is
+ * laid out as a line of text instead, and the name ends in "...". Matched
+ * on that exact class, so a flex row of any other shape is left alone -
+ * among them the same link with its kind's icon (the Dashboard's
+ * RecordLinkName), whose name is a line of its own beside the icon that
+ * reads its own way and draws its own "...": laid out as the cell's line,
+ * an English name on an Arabic page was cut at its start.
  */
 export const TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES: string =
   "[&_span[class=flex]]:inline [&_span[class=flex]>div]:inline-block [&_span[class=flex]>div]:align-middle";
@@ -424,6 +427,19 @@ export const TABLE_WRAP_CELL_MIN_WIDTH_CLASS_NAME: string = "min-w-[10rem]";
  * taller, and every row with one stood taller than the rows without.
  */
 export const TABLE_CELL_CONTENT_ALIGN_CLASS_NAME: string = "[&>*]:align-top";
+
+/*
+ * The box a column of prose (Column.wrapContent) draws its value in when
+ * the value reads the other way from the page - an English description on
+ * an Arabic page (TableRow's lineDirection), with that dir. The cell's own
+ * box keeps the page's way, its cap and its floor; this one is as wide as
+ * the value's words, so a short value still starts where the column's
+ * other values do, and a long one wraps with each line from its own start
+ * (CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME). Aligned to its end
+ * instead, as a one-line value is, every line of it lined up on the right.
+ * What it holds keeps to the top of its line, as a cell's content does.
+ */
+export const TABLE_WRAP_CELL_OTHER_WAY_LINE_CLASS_NAME: string = `${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME} ${TABLE_CELL_CONTENT_ALIGN_CLASS_NAME}`;
 
 /*
  * The value of a row's name - its first column, drawn as a line of text -
@@ -602,9 +618,20 @@ function namesUtility(className: string | undefined, prefix: string): boolean {
  * resources, monitors or teams): on its own line, cut short with an
  * ellipsis when it is wider than the column - a record's link laid out as
  * a line of text, so its name ends in "..." rather than mid-letter
- * (TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES).
+ * (TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES). A resource's link with its
+ * icon keeps to the item's one line too, its name cut short at its own
+ * end by a line of its own (the Dashboard's RecordLinkName).
+ *
+ * Clipped across only (overflow-x-clip, not truncate's overflow-hidden),
+ * as a cell's value is (TABLE_CELL_TRUNCATE_CLASS_NAMES): a link's focus
+ * ring shows above and below it. A resource's icon and name are a box as
+ * tall as the item's line, and an item clipped all round would hide the
+ * whole of its ring - a keyboard could not see which resource it was on.
+ * Still a box of its own for what it holds (flow-root), as overflow-hidden
+ * made it: a clip does not, and the margins of a block inside an item
+ * would run out through it into the next item's.
  */
-export const TABLE_LIST_ITEM_CLASS_NAME: string = `truncate ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
+export const TABLE_LIST_ITEM_CLASS_NAME: string = `flow-root overflow-x-clip text-ellipsis whitespace-nowrap ${TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES}`;
 
 /*
  * The same item in a field of a phone's card (TableCardContext): the card

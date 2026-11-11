@@ -1,6 +1,6 @@
 # Visión general de los Runbooks
 
-Un runbook es un procedimiento de respuesta reutilizable: una lista ordenada de pasos manuales y automatizados que ejecutas sobre un incidente, una alerta o un evento de mantenimiento programado. Convierte el hilo de «¿y ahora qué hacemos?» en una lista de comprobación que cualquier persona de guardia puede seguir a las 3 de la madrugada, con los scripts, las llamadas a API y las aprobaciones ya escritos. Los runbooks son para los ingenieros de guardia que responden a los incidentes y para los equipos de plataforma que automatizan esa respuesta.
+Un runbook es un procedimiento de respuesta reutilizable: una lista ordenada de pasos manuales y automatizados que ejecutas sobre un incidente, una alerta o un evento de mantenimiento programado. Convierte el hilo de «¿y ahora qué hacemos?» en una lista de comprobación que cualquier persona de guardia puede seguir a las 3 de la madrugada, con los scripts, las llamadas a API y las aprobaciones ya escritos. Los runbooks son para los ingenieros de guardia que responden a los incidentes y para los equipos de plataforma que automatizan esa respuesta. Para elegir entre un runbook, un flujo de trabajo, un playbook y una regla de IA, consulta [¿Cuál uso?](/docs/introduction/which-one#flujo-de-trabajo-runbook-playbook-o-regla-de-ia).
 
 :::cards
 - [Crear un runbook](/docs/runbooks/authoring): Crear un runbook y escribir sus pasos.
@@ -39,6 +39,8 @@ Cada ejecución de un runbook es una **ejecución**. Al empezar, los pasos del r
 Los pasos HTTP y de IA se ejecutan en el Worker de OneUptime. Los pasos Bash, SSH y kubectl se ejecutan en un [Runner](/docs/runbooks/agents) que instalas en tu propia infraestructura, así que esos scripts nunca se ejecutan en los servidores de OneUptime. Un paso JavaScript también se ejecuta en uno de tus Runners o, si no elige ninguno y el proyecto no tiene un [Runner predeterminado](/docs/runbooks/agents#el-runner-predeterminado-del-proyecto), en un [Runner global](/docs/runbooks/agents#runners-globales), en un sandbox que solo alcanza internet. El estado, la salida y el mensaje de error de cada paso se registran en la ejecución, que queda unida al incidente, la alerta o el evento para el que se ejecutó.
 
 ## Conceptos clave
+
+Las palabras que se usan en todo OneUptime están en el [Glosario](/docs/introduction/glossary).
 
 | Término | Significado |
 | --- | --- |

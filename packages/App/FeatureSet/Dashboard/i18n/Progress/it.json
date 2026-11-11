@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10292
+    "keys": 50417,
+    "untranslated": 9979
   },
   "sameAsEnglish": [
     "\"GET\"",
     "\"WARNING\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "15 min",
     "2xx",
     "3xx",
@@ -59,6 +60,7 @@
     "Chat",
     "ClickHouse",
     "Client",
+    "Client ID",
     "Cloud",
     "CloudKitty",
     "Cluster",
@@ -108,13 +110,16 @@
     "Flame graph",
     "Flavor",
     "Floating IP",
+    "Fluent Bit",
     "Formula",
     "Formula: {{formula}}",
+    "Funnel",
     "Gateway",
     "Gigahertz",
     "Golden Signals",
     "Google Calendar",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "Guest",
     "H1",

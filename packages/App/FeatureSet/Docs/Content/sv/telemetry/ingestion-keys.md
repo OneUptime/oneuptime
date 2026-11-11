@@ -1,6 +1,6 @@
 # Intagningsnycklar
 
-En intagningsnyckel kopplar din telemetri till ditt projekt. Applikationer, OpenTelemetry Collectors och agenter skickar den med varje begäran, och OneUptime lägger deras loggar, spår och mätvärden i det projekt som nyckeln tillhör. Den här sidan visar hur du skapar en nyckel, vilken typ du ska välja och hur du håller nycklar säkra.
+En intagningsnyckel kopplar din telemetri till ditt projekt. Applikationer, OpenTelemetry Collectors och agenter skickar den med varje begäran, och OneUptime lägger deras loggar, spår och mätvärden i det projekt som nyckeln tillhör. Den här sidan visar hur du skapar en nyckel, vilken typ du ska välja och hur du håller nycklar säkra. För att skilja en intagningsnyckel från en API-nyckel, se [Vilken ska jag använda?](/docs/introduction/which-one#intagningsnyckel-eller-api-nyckel).
 
 :::cards
 - [Skapa en intagningsnyckel](#skapa-en-intagningsnyckel): Ett namn, en typ och en hemlighet att kopiera.

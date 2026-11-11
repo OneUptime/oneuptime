@@ -49,7 +49,7 @@ Elk van deze rechten kan ook afzonderlijk worden toegekend, van het aanmaken van
 | --- | --- | --- |
 | Detectieregels | Een regel matcht | **Zaak openen bij overeenkomst**, in de stap **Bij overeenkomst** van de regel |
 | Dreigingsinformatie | Een gebeurtenis een bekende indicator noemt | **Zaak openen bij overeenkomst**, in de stap **Bij overeenkomst** van de feed |
-| Gekoppelde producten | Een eigen waarschuwing van het product op of boven de drempel van de verbinding wordt geïmporteerd | **Open Cases From** op **Nooit** gezet, in de stap **Opvragen** van de verbinding |
+| Gekoppelde producten | Een eigen waarschuwing van het product op of boven de drempel van de verbinding wordt geïmporteerd | **Zaken openen vanaf** op **Nooit** gezet, in de stap **Opvragen** van de verbinding |
 | Beveiligingsproducten in je logs | Een bedreiging die een firewall, IDS of endpointproduct in je logs schrijft, ligt op of boven de drempel van Uw logboeken | **Cases openen vanaf** op **Nooit** gezet, op **Uw logboeken** |
 | Entiteitrisico | Het risico van een gebruiker, host of adres de drempel van het project haalt | **Risicozaken**, onder **Instellingen → Risicoscoring** |
 | Mensen | Iemand er een opent vanuit **Beveiligingszaken**, of met **Zaak openen** in het paneel van een gebeurtenis | Niet uit te zetten |

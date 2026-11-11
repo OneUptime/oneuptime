@@ -1,12 +1,13 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10024
+    "keys": 50417,
+    "untranslated": 9725
   },
   "sameAsEnglish": [
     "\"Error\"",
     "\"GET\"",
     "\"WARNING\"",
+    "00:05:0b*",
     "2xx",
     "3xx",
     "412 GB",
@@ -35,8 +36,10 @@
     "Down + Out",
     "Edge",
     "Elasticsearch URL",
+    "Fluent Bit",
     "Gemini for Google Workspace",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HAProxy",
@@ -55,6 +58,7 @@
     "JavaScript API",
     "K8s Pod",
     "Keystone",
+    "Kibana URL",
     "Kolla-Ansible",
     "LXC 201 · pve3",
     "Log4Shell",

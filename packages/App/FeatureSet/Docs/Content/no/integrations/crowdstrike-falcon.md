@@ -25,7 +25,7 @@ Hvert minutt poller OneUptime hver aktiverte tilkobling der pollintervallet har 
 
 - I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member og Security Viewer kan se tilkoblinger og kjøringshistorikken deres, men ikke endre dem.
 - En Falcon-kunde-ID (CID) og en bruker av Falcon-konsollen som kan administrere API-klienter: rollen Falcon Administrator, eller en egendefinert rolle med tillatelsen API clients and keys.
-- Utgående HTTPS fra OneUptime-appen og -workerne til API-verten for Falcon-skyen din, oppført under **Falcon cloud** nedenfor.
+- Utgående HTTPS fra OneUptime-appen og -workerne til API-verten for Falcon-skyen din, oppført under **Falcon-sky** nedenfor.
 
 ## Sett opp tilkoblingen
 
@@ -59,7 +59,7 @@ Klikk på **Test disse innstillingene** under **Test før du lagrer**. Testen lo
 | Innstilling | Hva du skal skrive inn |
 | --- | --- |
 | **Klient-ID** | ID-en til API-klienten, slik Falcon viste den da du opprettet klienten. |
-| **Falcon cloud** | Skyen CID-en din ligger i: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** eller **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Hver forespørsel går til API-verten for den skyen. |
+| **Falcon-sky** | Skyen CID-en din ligger i: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** eller **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Hver forespørsel går til API-verten for den skyen. |
 | **Klienthemmelighet** | Hemmeligheten til API-klienten. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Oppdater påloggingsinformasjon** på tilkoblingen. |
 
 Trinnet **Henting** har også en valgfri **Beskrivelse**, **Henteintervall (minutter)**, et heltall fra `1` til `1440` som starter på `5`, og **Aktivert**, som starter slått på. En tilkobling som ikke er aktivert, kan fortsatt testes og polles manuelt.
@@ -110,7 +110,7 @@ Når en kjøring ikke kommer forbi den lagrede markøren i det hele tatt, for ek
 
 1. **Snevre inn.** Den neste pollen leser et vindu som er halvparten så langt, fra det samme startpunktet, og fortsetter å halvere til et vindu leses helt, ned til ett minutt. Kjøringens advarsel sier det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Vokse igjen.** Når et vindu er lest helt, er det neste igjen dobbelt så langt, opptil 24 timer.
-3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere varsler fortsetter å komme. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese.
+3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere varsler fortsetter å komme. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Importer dette tidsrommet** for å hente det én kjøring kan lese.
 
 En kjøring som mislykkes helt, med en feil fra Falcon, beholder markøren og vinduslengden, og den neste pollen leser det samme vinduet på nytt. Det eneste unntaket er en forespørsel som fikk tidsavbrudd: markøren blir, men det neste vinduet er halvparten så langt, fordi et vindu som er for tungt til å bli besvart i tide, ville fått tidsavbrudd ved hvert forsøk. Å endre **Henteintervall (minutter)** endrer ingenting av dette: det avgjør hvor ofte en poll starter, ikke hvor vinduet begynner.
 
@@ -119,9 +119,9 @@ En kjøring som mislykkes helt, med en feil fra Falcon, beholder markøren og vi
 Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og arbeide med den manuelt. Alle som kan endre tilkoblingen, kan starte disse handlingene; alle som kan se den, kan lese historikken.
 
 - **Kjør nå** starter en poll med en gang, med den vanlige markøren, også når tilkoblingen ikke er **Aktivert**.
-- **Preview alerts** leser et tidsrom på opptil 7 dager og importerer ingenting.
-- **Import this time range** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Varsler som allerede er importert, hoppes over.
-- **Copy diagnostics** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
+- **Forhåndsvis varsler** leser et tidsrom på opptil 7 dager og importerer ingenting.
+- **Importer dette tidsrommet** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Varsler som allerede er importert, hoppes over.
+- **Kopier diagnostikk** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
 
 ## Test tilkoblingen
 
@@ -129,12 +129,12 @@ Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og ar
 
 | Kontroll | Hva den kontrollerer |
 | --- | --- |
-| **Konfigurasjon** | **Klient-ID**, **Falcon cloud** og **Klienthemmelighet** er til stede og riktig formatert. Ingenting kontaktes når dette mislykkes. |
+| **Konfigurasjon** | **Klient-ID**, **Falcon-sky** og **Klienthemmelighet** er til stede og riktig formatert. Ingenting kontaktes når dette mislykkes. |
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` med ID-en og hemmeligheten til API-klienten, på verten for skyen din, returnerer et token. |
 | **Read alerts from the Falcon Alerts API** | En varselspørring etter ett varsel (`limit=1`) over de siste 24 timene godtas, noe som beviser omfanget **Alerts → Read**. |
 | **Alerts available to import** | Hvor mange varsler som er opprettet de siste 24 timene og de siste 7 dagene. Ingen på 7 dager er en advarsel, ikke en feil: polling importerer nye varsler etter hvert som Falcon oppretter dem. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en prosess tar jobbene fra Worker-køen, poll-jobben kjører hvert minutt, og lageret for sikkerhetshendelser svarer. |
-| **Scheduled polling** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
+| **Planlagt henting** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
 
 Hver forespørsel i en test har en frist på 20 sekunder. En test importerer aldri noe og flytter aldri markøren, og hver kontroll som mislykkes, sier hva du skal endre. **Kopier rapport** kopierer sjekklisten som JSON, uten legitimasjon eller tokener.
 
@@ -143,13 +143,13 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 **Siste feil** for tilkoblingen, og hver kontroll som mislykkes, lagrer hele feilmeldingen, med legitimasjon maskert, bak et prefiks som navngir trinnet som mislyktes. Når en tilkobling har en feil, velger du **Vis feil** i kolonnen **Handlinger** for å lese den, og **Kopier feil** i dialogboksen for å kopiere den. Les prefikset først.
 
 :::details Last Error starter med `CrowdStrike Falcon token request`
-- `CrowdStrike Falcon token request failed (HTTP 401)` eller `(HTTP 403)`: Falcon avviste ID-en og hemmeligheten til API-klienten, før Alerts API ble kontaktet. Kontroller at **Falcon cloud** er skyen til CID-en din, siden en klient fra en annen sky avvises her, at **Klient-ID** er klientens, og at **Klienthemmelighet** er hemmeligheten som ble utstedt med den. Hvis hemmeligheten er borte, tilbakestiller du den i Falcon-konsollen og lagrer den med **Oppdater påloggingsinformasjon**.
+- `CrowdStrike Falcon token request failed (HTTP 401)` eller `(HTTP 403)`: Falcon avviste ID-en og hemmeligheten til API-klienten, før Alerts API ble kontaktet. Kontroller at **Falcon-sky** er skyen til CID-en din, siden en klient fra en annen sky avvises her, at **Klient-ID** er klientens, og at **Klienthemmelighet** er hemmeligheten som ble utstedt med den. Hvis hemmeligheten er borte, tilbakestiller du den i Falcon-konsollen og lagrer den med **Oppdater påloggingsinformasjon**.
 - `CrowdStrike Falcon token request returned ...`: Falcon svarte med noe ubrukelig, et innhold som ikke er JSON, eller uten `access_token`. Det er vanligvis en proxy eller gateway imellom, ikke legitimasjonen.
 :::
 
 :::details Last Error starter med `CrowdStrike Falcon alerts`
 - `CrowdStrike Falcon alerts query failed (HTTP 403)`: tokenet ble godtatt, men API-klienten har ikke omfanget **Alerts → Read**. Slå det på for klienten under **API clients and keys**, og lagre. Det gjelder for det neste tokenet, så test igjen etter et minutt.
-- `CrowdStrike Falcon alerts query failed (HTTP 401)`: Alerts API avviste tokenet, noe som nesten alltid betyr at **Falcon cloud** ikke er skyen som utstedte klienten.
+- `CrowdStrike Falcon alerts query failed (HTTP 401)`: Alerts API avviste tokenet, noe som nesten alltid betyr at **Falcon-sky** ikke er skyen som utstedte klienten.
 - `CrowdStrike Falcon alerts query failed (HTTP 429)` eller `CrowdStrike Falcon alerts fetch failed (HTTP 429)`: Falcon begrenser hastigheten for denne API-klienten. HTTP-klienten i OneUptime beholder ikke svarhoder ved en feil, så meldingen slutter vanligvis med `the X-RateLimit-RetryAfter header was not available` i stedet for å sitere den. Planlagte poller prøver igjen av seg selv. Hvis det fortsetter, gir du OneUptime en egen API-klient i stedet for en som deles med andre verktøy.
 - `CrowdStrike Falcon alerts query failed (HTTP 400)`: Falcon avviste spørringen. Tilkoblingen sender et fast FQL-filter på `created_timestamp`, så kopier rapporten og send den til OneUptimes brukerstøtte.
 - `CrowdStrike Falcon alerts query returned ...` eller `CrowdStrike Falcon alerts fetch returned ...`: Falcon svarte `200`, med et innhold som ikke er JSON, eller som ikke har en form tilkoblingen kjenner. Det rapporteres i stedet for å bli tatt som et tomt vindu, slik at markøren aldri går forbi varsler som ingen har lest.
@@ -167,7 +167,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 :::details En kjøring er Partial
 - `Stopped after 19 requests before reading the whole window`: vinduet inneholdt mer enn de 9 000 varslene én kjøring leser. Ingenting går tapt: den neste pollen starter etter det siste varselet som ble lest. En tilkobling som forblir **Delvis** poll etter poll, tar igjen et etterslep, og **Sist hentet** og **Siste importerte hendelse** fortsetter å flytte seg fremover. Tallet kan ligge litt over 19 når tokenet ble fornyet under kjøringen.
 - `Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.`: spørringen ignorerte rekkefølgen fra eldst til nyest, så kjøringen kan ikke flytte markøren til det siste varselet sitt, og den neste pollen leser i stedet et kortere vindu. Hvis det fortsetter, sender du kjøringens rapport til OneUptimes brukerstøtte.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gikk forbi det minuttet. Importer det med **Import this time range** i **Diagnostikk**. En import leser like mye som en poll.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gikk forbi det minuttet. Importer det med **Importer dette tidsrommet** i **Diagnostikk**. En import leser like mye som en poll.
 :::
 
 :::details Last Polled er Never og Last Error er tom
@@ -175,7 +175,7 @@ Ingen poll har kjørt, så ingenting har nådd Falcon. **Test tilkoblingen** vis
 :::
 
 :::details Testen lykkes, men ingen hendelser vises
-Les **Alerts available to import**: en advarsel der betyr at Falcon ikke har opprettet noen varsler de siste 7 dagene, så det er ingenting å importere ennå. Ellers åpner du **Diagnostikk**, sjekker vinduet og tallene for den siste pollen og bruker **View events in this time range** på en kjøring for å åpne tidsrommet for varslene den importerte.
+Les **Alerts available to import**: en advarsel der betyr at Falcon ikke har opprettet noen varsler de siste 7 dagene, så det er ingenting å importere ennå. Ellers åpner du **Diagnostikk**, sjekker vinduet og tallene for den siste pollen og bruker **Vis hendelser i dette tidsrommet** på en kjøring for å åpne tidsrommet for varslene den importerte.
 :::
 
 ## Hva du får

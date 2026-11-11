@@ -1,6 +1,6 @@
 # Visão geral das páginas de status
 
-Uma página de status é a face pública de tudo o que você monitora: uma única URL que seus clientes podem abrir em vez de escrever para você perguntando se o problema é só com eles. Ela mostra o status atual dos serviços que você escolhe expor, os incidentes em que você está trabalhando, a manutenção que você planejou e qualquer anúncio que queira fixar no topo.
+Uma página de status é a face pública de tudo o que você monitora: uma única URL que seus clientes podem abrir em vez de escrever para você perguntando se o problema é só com eles. Ela mostra o status atual dos serviços que você escolhe expor, os incidentes em que você está trabalhando, a manutenção que você planejou e qualquer anúncio que queira fixar no topo. Para escolher entre uma página de status e um painel, veja [Qual devo usar?](/docs/introduction/which-one#painel-painel-público-ou-página-de-status).
 
 Quando algo quebra às 2 da manhã, a página de status é a primeira coisa para a qual sua fila de suporte aponta. É também de onde seus assinantes são notificados, então vale a pena configurá-la antes de precisar dela, não no meio da indisponibilidade.
 
@@ -41,6 +41,8 @@ A página mostra como recursos os monitores que você coloca nela, e os incident
 - **Os assinantes são notificados automaticamente.** Assinantes de e-mail, SMS, Slack, Microsoft Teams e webhook podem seguir uma página, cada canal atrás de seu próprio interruptor.
 
 ## Termos principais
+
+As palavras usadas em todo o OneUptime estão no [Glossário](/docs/introduction/glossary).
 
 | Termo | O que significa |
 | --- | --- |

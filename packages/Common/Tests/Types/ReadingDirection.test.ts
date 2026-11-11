@@ -507,6 +507,120 @@ describe("which way a text shown on a page is read", () => {
 });
 
 /*
+ * THE ARABIC TATWEEL IS AN ARABIC LETTER.
+ *
+ * Arabic writes the Tatweel (U+0640, "ـ") after the article or a
+ * preposition put in front of a Latin name: "أحداث الـ CronJob", "لـ SMTP".
+ * Its script is Common - Arabic, Syriac, Mandaic and Adlam stretch their
+ * words with it - and the bidi algorithm draws it as an Arabic letter (AL).
+ * Read by its script alone it counted as a Latin letter, and a line with as
+ * many Latin letters as Arabic ones, but for it, read left to right: laid
+ * out from the left, its Arabic words came out in the wrong order. A letter
+ * is read by the scripts that use it (its script extensions).
+ */
+describe("the Arabic Tatweel", () => {
+  const TATWEEL: string = String.fromCharCode(0x0640);
+
+  // The text as it was read: its Tatweel counted as a Latin letter.
+  const withTatweelAsLatin: (text: string) => string = (
+    text: string,
+  ): string => {
+    return text.split(TATWEEL).join("x");
+  };
+
+  test("is the letter the locale files write after the article", () => {
+    expect("أحداث الـ CronJob".includes(TATWEEL)).toBe(true);
+    expect(TATWEEL).toMatch(/^\p{L}$/u);
+    // Not of the Arabic script, but used by it.
+    expect(TATWEEL).not.toMatch(/^\p{Script=Arabic}$/u);
+    expect(TATWEEL).toMatch(/^\p{Script_Extensions=Arabic}$/u);
+  });
+
+  test.each([
+    "أحداث الـ CronJob",
+    "معرّف عميل OAuth لـ SMTP",
+    "Deployment يدير مجموعة من الـ pods.",
+    "أرسل syslog الخاص بـ ESXi",
+  ])(
+    "decides that %p reads right to left, as its Arabic words do",
+    (text: string) => {
+      expect(getTextReadingDirectionByMostLetters(text)).toBe(RIGHT_TO_LEFT);
+      // Counted as a Latin letter, it turned the line round.
+      expect(
+        getTextReadingDirectionByMostLetters(withTatweelAsLatin(text)),
+      ).toBe(LEFT_TO_RIGHT);
+    },
+  );
+
+  test("counts as one Arabic letter, no more", () => {
+    // An Arabic letter and a Tatweel to two Latin letters: a tie, the first letter decides.
+    expect(getTextReadingDirectionByMostLetters("بـ ab")).toBe(RIGHT_TO_LEFT);
+    expect(getTextReadingDirectionByMostLetters("ab بـ")).toBe(LEFT_TO_RIGHT);
+    // An English sentence with an Arabic preposition in it is English.
+    expect(
+      getTextReadingDirectionByMostLetters("Send the logs of بـ ESXi here"),
+    ).toBe(LEFT_TO_RIGHT);
+  });
+
+  test("is an Arabic letter wherever a letter is read", () => {
+    // The first letter (a text being typed, dir="auto").
+    expect(getTextReadingDirection(`${TATWEEL} CronJob`)).toBe(RIGHT_TO_LEFT);
+    expect(getTextReadingDirection(`## ${TATWEEL}`)).toBe(RIGHT_TO_LEFT);
+    // A line's own right-to-left words.
+    expect(hasRightToLeftWords(`${TATWEEL} CronJob`)).toBe(true);
+    // A text of Tatweels alone.
+    expect(getTextReadingDirectionByMostLetters(TATWEEL.repeat(3))).toBe(
+      RIGHT_TO_LEFT,
+    );
+  });
+
+  test("every letter of a right-to-left script, by its script or by the scripts that use it, reads right to left; every other letter left to right", () => {
+    // RIGHT_TO_LEFT_SCRIPTS' codes ("arab") as Unicode properties ("Arab").
+    const properties: Array<string> = RIGHT_TO_LEFT_SCRIPTS.map(
+      (code: string): string => {
+        const name: string = `${code.charAt(0).toUpperCase()}${code.slice(1)}`;
+
+        return `\\p{Script=${name}}\\p{Script_Extensions=${name}}`;
+      },
+    );
+    const rightToLeftLetter: RegExp = new RegExp(
+      `^[${properties.join("")}]$`,
+      "u",
+    );
+    const letter: RegExp = /^\p{L}$/u;
+    const wrong: Array<string> = [];
+    let rightToLeft: number = 0;
+
+    for (let codePoint: number = 0; codePoint <= 0x10ffff; codePoint++) {
+      // Lone surrogates are no letters.
+      if (codePoint >= 0xd800 && codePoint <= 0xdfff) {
+        continue;
+      }
+
+      const character: string = String.fromCodePoint(codePoint);
+
+      if (!letter.test(character)) {
+        continue;
+      }
+
+      const expected: ReadingDirection = rightToLeftLetter.test(character)
+        ? RIGHT_TO_LEFT
+        : LEFT_TO_RIGHT;
+
+      rightToLeft += expected === RIGHT_TO_LEFT ? 1 : 0;
+
+      if (getTextReadingDirection(character) !== expected) {
+        wrong.push(`U+${codePoint.toString(16).toUpperCase()}`);
+      }
+    }
+
+    expect(wrong).toEqual([]);
+    // Arabic alone has over a thousand letters.
+    expect(rightToLeft).toBeGreaterThan(1000);
+  });
+});
+
+/*
  * Whether a text has right-to-left words of its own: a translated line on
  * an Arabic or Persian page is drawn the page's way however many names it
  * gives in Latin letters (UI/Utils/LineDirection's

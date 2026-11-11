@@ -141,6 +141,7 @@ OneUptime में सब कुछ एक प्रोजेक्ट मे�
 
 :::cards
 - [मुख्य अवधारणाएँ](/docs/introduction/core-concepts): आपने अभी जो सेट किया, उसके पीछे के विचार।
+- [शब्दावली](/docs/introduction/glossary): रास्ते में मिला हर शब्द, एक-दो वाक्यों में।
 - [ऑन-कॉल अनुसूची](/docs/on-call/schedules): ऑन-कॉल रहने की ज़िम्मेदारी अपनी टीम के साथ बाँटें।
 - [स्थिति पृष्ठ ब्रांडिंग और डोमेन](/docs/status-pages/branding-and-domains): स्थिति पृष्ठ को अपना बनाएँ।
 - [OpenTelemetry](/docs/telemetry/open-telemetry): अपने ऐप्स से लॉग, मेट्रिक्स और ट्रेस भेजें।

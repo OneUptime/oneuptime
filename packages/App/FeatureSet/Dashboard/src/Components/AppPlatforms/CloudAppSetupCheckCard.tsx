@@ -114,10 +114,7 @@ const SetupRow: FunctionComponent<{
                 {translator.translateText(CLOUD_APP_CONNECT_AZURE) ||
                   CLOUD_APP_CONNECT_AZURE}
               </span>
-              <Icon
-                icon={IconProp.ChevronRight}
-                className="h-4 w-4 rtl:rotate-180"
-              />
+              <Icon icon={IconProp.ChevronRight} className="h-4 w-4" />
             </AppLink>
           ) : (
             <></>

@@ -1,13 +1,14 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10291
+    "keys": 50417,
+    "untranslated": 9980
   },
   "sameAsEnglish": [
     "\"Error\"",
     "\"GET\"",
     "\"WARNING\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "15 min",
     "2xx",
     "3xx",
@@ -86,6 +87,7 @@
     "Finland (+358)",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Format",
     "Frustration",
     "Gateway",
@@ -93,6 +95,7 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

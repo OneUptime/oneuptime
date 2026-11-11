@@ -7,6 +7,7 @@ import {
   DataDashboardRefreshHistory,
   getDataDashboardRefreshTime,
 } from "Common/Types/DataObservability/DataDashboardActivity";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import { PluralTemplate, Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
@@ -59,6 +60,11 @@ const REFRESHES_IN_A_WEEK: PluralTemplate = {
   other: "{{count}} refreshes in the last 7 days",
 };
 
+/*
+ * "12,873 views", "1 viewer in the last 28 days": translatePlural writes
+ * {{count}} the reader's way ("12.873", "۱۲٬۸۷۳") unless it is handed a
+ * count of its own, so these are filled with the count alone.
+ */
 export const VIEWS: PluralTemplate = {
   one: "{{count}} view",
   other: "{{count}} views",
@@ -78,16 +84,38 @@ export function getRefreshCountText(
     return null;
   }
 
+  // Counts written the reader's way: "1,408", "1.408", "۱٬۴۰۸".
   if (history.failureCount) {
     return translator.translateTemplate(
       "{{failed}} of {{count}} failed in the last 7 days",
-      { failed: history.failureCount, count: history.refreshCount },
+      {
+        failed: translator.formatNumber(history.failureCount),
+        count: translator.formatNumber(history.refreshCount),
+      },
     );
   }
 
-  return translator.translatePlural(REFRESHES_IN_A_WEEK, history.refreshCount, {
-    count: history.refreshCount,
-  });
+  return translator.translatePlural(REFRESHES_IN_A_WEEK, history.refreshCount);
+}
+
+/*
+ * A refresh's error, as its tool wrote it (Power BI's are English): on a
+ * line of its own that reads the error's way, so on an Arabic or Persian
+ * page a long one is cut at its own end and keeps its full stop.
+ */
+export function RefreshError(props: {
+  error: string;
+  className: string;
+}): ReactElement {
+  return (
+    <IsolatedLine
+      as="span"
+      text={props.error}
+      title={props.error}
+      className={props.className}
+      dataTestId="refresh-error"
+    />
+  );
 }
 
 // One refresh on a line: its status, when, and a failed one's error.
@@ -101,12 +129,10 @@ export function RefreshLine(props: {
       {getRefreshStatusPill(props.refresh.status, PillSize.Small)}
       {at ? <TimeAgo at={at} /> : <></>}
       {props.refresh.error ? (
-        <span
+        <RefreshError
+          error={props.refresh.error}
           className="max-w-md truncate text-xs text-red-600"
-          title={props.refresh.error}
-        >
-          {props.refresh.error}
-        </span>
+        />
       ) : (
         <></>
       )}

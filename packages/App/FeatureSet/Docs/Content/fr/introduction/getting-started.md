@@ -7,6 +7,8 @@ Commencez ici :
 :::cards
 - [Démarrage rapide](/docs/introduction/quickstart): Surveiller un site web, être alerté en cas de panne et publier une page de statut.
 - [Concepts clés](/docs/introduction/core-concepts): Les quelques idées sur lesquelles tout repose, et comment elles s'articulent.
+- [Glossaire](/docs/introduction/glossary): Chaque mot qu'utilise OneUptime, en une phrase ou deux, avec ses autres noms.
+- [Lequel choisir ?](/docs/introduction/which-one): Incident ou alerte, workflow ou runbook, et les autres sosies côte à côte.
 - [Page d'accueil et raccourcis](/docs/introduction/home): Se repérer dans le tableau de bord, et les touches qui vous épargnent des clics.
 - [Votre compte](/docs/introduction/your-account): Votre profil, votre mot de passe, vos clés d'accès et l'authentification à deux facteurs.
 :::

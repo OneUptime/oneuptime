@@ -7,6 +7,8 @@ Start here:
 :::cards
 - [Quickstart](/docs/introduction/quickstart): Monitor a website, get paged when it fails and publish a status page.
 - [Core Concepts](/docs/introduction/core-concepts): The handful of ideas everything else builds on, and how they connect.
+- [Glossary](/docs/introduction/glossary): Every word OneUptime uses, in a sentence or two, with its other names.
+- [Which One Do I Use?](/docs/introduction/which-one): Incident or alert, workflow or runbook, and the other look-alikes side by side.
 - [Home Page & Shortcuts](/docs/introduction/home): Find your way around the dashboard, and the keys that save you clicks.
 - [Your Account](/docs/introduction/your-account): Your profile, password, passkeys and two-factor authentication.
 :::

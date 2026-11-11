@@ -1,6 +1,6 @@
 # Ingestiesleutels
 
-Een ingestiesleutel koppelt uw telemetrie aan uw project. Applicaties, OpenTelemetry Collectors en agents sturen hem mee met elk verzoek, en OneUptime zet hun logboeken, traces en metrieken in het project waar de sleutel bij hoort. Deze pagina laat zien hoe u een sleutel aanmaakt, welk type u kiest en hoe u sleutels veilig houdt.
+Een ingestiesleutel koppelt uw telemetrie aan uw project. Applicaties, OpenTelemetry Collectors en agents sturen hem mee met elk verzoek, en OneUptime zet hun logboeken, traces en metrieken in het project waar de sleutel bij hoort. Deze pagina laat zien hoe u een sleutel aanmaakt, welk type u kiest en hoe u sleutels veilig houdt. Om een ingestiesleutel van een API-sleutel te onderscheiden, zie [Welke gebruik ik?](/docs/introduction/which-one#ingestiesleutel-of-api-sleutel).
 
 :::cards
 - [Een ingestiesleutel aanmaken](#een-ingestiesleutel-aanmaken): Een naam, een type en een geheim om te kopiëren.

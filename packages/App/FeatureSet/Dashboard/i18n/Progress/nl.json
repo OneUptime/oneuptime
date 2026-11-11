@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10321
+    "keys": 50417,
+    "untranslated": 10010
   },
   "sameAsEnglish": [
     " is",
@@ -10,6 +10,7 @@
     "\"GET\"",
     "\"WARNING\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "1 week",
     "12 nodes · 248 pods · 9 namespaces",
     "14 containers · RHEL 9.4",
@@ -155,6 +156,7 @@
     "Flavor",
     "Flavors",
     "Floating IP",
+    "Fluent Bit",
     "Gateway",
     "Gibibytes",
     "Gigabits",
@@ -162,6 +164,7 @@
     "Gigahertz",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

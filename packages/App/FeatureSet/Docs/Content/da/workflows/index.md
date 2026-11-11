@@ -1,6 +1,6 @@
 # Workflows – Oversigt
 
-Workflows automatiserer arbejde i OneUptime uden kode. Du sætter blokke på et lærred, forbinder dem, og workflowet kører af sig selv, hver gang dets trigger udløses: en hændelse oprettes, en tidsplan er nået, et andet værktøj kalder en URL, eller der kommer en e-mail. Brug dem til at forbinde OneUptime med resten af din stak og til at tage dig af den rutinemæssige opfølgning, mens du arbejder på selve problemet.
+Workflows automatiserer arbejde i OneUptime uden kode. Du sætter blokke på et lærred, forbinder dem, og workflowet kører af sig selv, hver gang dets trigger udløses: en hændelse oprettes, en tidsplan er nået, et andet værktøj kalder en URL, eller der kommer en e-mail. Brug dem til at forbinde OneUptime med resten af din stak og til at tage dig af den rutinemæssige opfølgning, mens du arbejder på selve problemet. Se [Hvilken skal jeg bruge?](/docs/introduction/which-one#arbejdsgang-runbook-playbook-eller-ai-regel) for at vælge mellem et workflow, et runbook, en playbook og en AI-regel.
 
 :::cards
 - [Opret et workflow](/docs/workflows/authoring): Opret et workflow, og tilføj, forbind og konfigurer derefter blokkene på lærredet.
@@ -47,6 +47,8 @@ Du bygger det hele visuelt på et lærred. De fleste workflows kræver ingen kod
 - **Genbrug fælles automatik** — byg den én gang, og start den fra ethvert andet workflow med en **Execute Workflow**-blok.
 
 ## Vigtige begreber
+
+Se [Ordliste](/docs/introduction/glossary) for de ord, der bruges på tværs af OneUptime.
 
 | Begreb                 | Hvad det betyder                                                                                                   |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |

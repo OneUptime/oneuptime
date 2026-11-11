@@ -3,10 +3,10 @@ import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
-import Icon from "Common/UI/Components/Icon/Icon";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
 import React, { FunctionComponent, ReactElement } from "react";
 import AppLink from "../AppLink/AppLink";
+import RecordLinkName from "../RecordLink/RecordLinkName";
 
 export interface ComponentProps {
   networkSite: NetworkSite;
@@ -34,14 +34,10 @@ const NetworkSiteElement: FunctionComponent<ComponentProps> = (
         )}
         onNavigateComplete={props.onNavigateComplete}
       >
-        <span className="flex">
-          {props.showIcon ? (
-            <Icon icon={IconProp.BuildingOffice} className="w-5 h-5 mr-1" />
-          ) : (
-            <></>
-          )}{" "}
-          {props.networkSite.name}
-        </span>
+        <RecordLinkName
+          name={props.networkSite.name}
+          icon={props.showIcon ? IconProp.BuildingOffice : undefined}
+        />
       </AppLink>
     );
   }

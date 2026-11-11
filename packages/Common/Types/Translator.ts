@@ -2,6 +2,7 @@ import { getEnglishOf, getNumberLocale } from "./DateLanguage";
 import {
   FIRST_STRONG_ISOLATE,
   getReadingDirection,
+  isNumberJoinedToASign,
   LEFT_TO_RIGHT,
   POP_DIRECTIONAL_ISOLATE,
   ReadingDirection,
@@ -120,10 +121,12 @@ export interface TermOptions {
  * How a sentence is filled.
  *
  * setsValuesApart: each value is set apart from the sentence in a Unicode
- * isolate where it could move the words around it (setApartValues) - a name
- * in Latin letters and the time or the count after it in a Persian
+ * isolate where it could move the words around it (fillSettingValuesApart) -
+ * a name in Latin letters and the time or the count after it in a Persian
  * sentence, a Persian name in an English one - so the browser draws every
- * word where the sentence puts it. Only for a sentence that is drawn on the
+ * word where the sentence puts it; a number written against a sign of its
+ * own ("{{online}}/{{count}}", "#{{number}}") is left with it, so "3/5" stays
+ * "3/5" in an Arabic sentence. Only for a sentence that is drawn on the
  * page and nothing else (TranslatedSentence, translateTemplateAround): the
  * isolate's marks are characters, and a sentence that becomes a record's
  * name, a field's value or a request would carry them.
@@ -464,42 +467,101 @@ const englishTextValues: (values: TemplateValues) => Record<string, string> = (
   return result;
 };
 
+// A piece of a filled template: its own words, or a value where it goes.
+interface FilledPiece {
+  text: string;
+  // Where the piece starts in the template filled with its values as they are.
+  start: number;
+  isValue: boolean;
+}
+
 /*
- * The values as a sentence that reads `direction` holds them: each set
- * apart in a Unicode isolate where it could move the words around it
- * (ReadingDirection's setApartInSentence) - in a Persian sentence a name in
- * Latin letters, an address, a time or a count; in an English one a
- * Persian name. A slot's marker (TranslatedSentence, translateTemplateAround)
- * is set apart in a sentence read right to left when asked to
- * (SentenceOptions' setsSlotsApart), so what is drawn there as an element is
- * too; otherwise it is left as it is.
+ * `template` filled with `values` as a sentence that reads `direction`
+ * holds them: each set apart in a Unicode isolate where it could move the
+ * words around it (ReadingDirection's setApartInSentence) - in a Persian
+ * sentence a name in Latin letters, an address, a time or a count; in an
+ * English one a Persian name.
+ *
+ * A number the sentence writes against a sign the bidi algorithm reads
+ * with it - "{{online}}/{{count}}", "{{hours}}:{{minutes}}", Persian's
+ * "#{{number}}" behind its right-to-left mark - is left as it is: set
+ * apart, it was cut off from its sign, and "3/5" was drawn "5/3"
+ * (ReadingDirection's isNumberJoinedToASign, read on the sentence with
+ * every value as it is).
+ *
+ * A slot's marker (TranslatedSentence, translateTemplateAround) is set
+ * apart in a sentence read right to left when asked to (SentenceOptions'
+ * setsSlotsApart), so what is drawn there as an element is too; otherwise
+ * it is left as it is. As in fillTemplate, a placeholder with no value is
+ * left as it is, and each value goes in literally.
  */
-const setApartValues: (
+const fillSettingValuesApart: (
+  template: string,
   values: Record<string, string>,
   direction: ReadingDirection,
   setsSlotsApart: boolean,
-) => Record<string, string> = (
+) => string = (
+  template: string,
   values: Record<string, string>,
   direction: ReadingDirection,
   setsSlotsApart: boolean,
-): Record<string, string> => {
-  const result: Record<string, string> = {};
+): string => {
+  const pieces: Array<FilledPiece> = [];
+  // The sentence with every value as it is: what a number's signs are read in.
+  let filled: string = "";
+  let at: number = 0;
 
-  for (const key of Object.keys(values)) {
-    const value: string = values[key] as string;
+  const addPiece: (text: string, isValue: boolean) => void = (
+    text: string,
+    isValue: boolean,
+  ): void => {
+    pieces.push({ text, start: filled.length, isValue });
+    filled += text;
+  };
 
-    if (isSlotMarker(value)) {
-      result[key] =
-        setsSlotsApart && direction === RIGHT_TO_LEFT
-          ? `${FIRST_STRONG_ISOLATE}${value}${POP_DIRECTIONAL_ISOLATE}`
-          : value;
-      continue;
-    }
+  for (const match of template.matchAll(PLACEHOLDER)) {
+    const start: number = match.index ?? 0;
+    const name: string = match[1] || "";
+    const isFilled: boolean = Object.prototype.hasOwnProperty.call(
+      values,
+      name,
+    );
 
-    result[key] = setApartInSentence(value, direction);
+    addPiece(template.slice(at, start), false);
+    addPiece(isFilled ? (values[name] as string) : match[0], isFilled);
+    at = start + match[0].length;
   }
 
-  return result;
+  addPiece(template.slice(at), false);
+
+  return pieces
+    .map((piece: FilledPiece): string => {
+      if (!piece.isValue) {
+        return piece.text;
+      }
+
+      if (isSlotMarker(piece.text)) {
+        return setsSlotsApart && direction === RIGHT_TO_LEFT
+          ? `${FIRST_STRONG_ISOLATE}${piece.text}${POP_DIRECTIONAL_ISOLATE}`
+          : piece.text;
+      }
+
+      const end: number = piece.start + piece.text.length;
+
+      if (
+        direction === RIGHT_TO_LEFT &&
+        isNumberJoinedToASign(
+          piece.text,
+          filled.slice(Math.max(0, piece.start - 2), piece.start),
+          filled.slice(end, end + 2),
+        )
+      ) {
+        return piece.text;
+      }
+
+      return setApartInSentence(piece.text, direction);
+    })
+    .join("");
 };
 
 /*
@@ -731,8 +793,8 @@ export const createTranslator: (
    * language and always takes the reader's words.
    *
    * Asked to (SentenceOptions), each value is set apart from the sentence
-   * where it could move the words around it (setApartValues), by the way the
-   * sentence reads: the reader's language's, or English's.
+   * where it could move the words around it (fillSettingValuesApart), by the
+   * way the sentence reads: the reader's language's, or English's.
    */
   const fill: (
     stored: string | undefined,
@@ -756,39 +818,33 @@ export const createTranslator: (
        */
       if (hasWords(english)) {
         return setsValuesApart
-          ? fillTemplate(
+          ? fillSettingValuesApart(
               punctuate(english),
-              setApartValues(
-                englishTextValues(values),
-                LEFT_TO_RIGHT,
-                setsSlotsApart,
-              ),
+              englishTextValues(values),
+              LEFT_TO_RIGHT,
+              setsSlotsApart,
             )
           : fillTemplate(punctuate(english), englishDateValues(values));
       }
 
-      return fillTemplate(
-        punctuate(english),
-        setsValuesApart
-          ? setApartValues(
-              translatedValues(values),
-              readerDirection,
-              setsSlotsApart,
-            )
-          : translatedValues(values),
-      );
-    }
-
-    return fillTemplate(
-      punctuate(stored),
-      setsValuesApart
-        ? setApartValues(
+      return setsValuesApart
+        ? fillSettingValuesApart(
+            punctuate(english),
             translatedValues(values),
             readerDirection,
             setsSlotsApart,
           )
-        : translatedValues(values),
-    );
+        : fillTemplate(punctuate(english), translatedValues(values));
+    }
+
+    return setsValuesApart
+      ? fillSettingValuesApart(
+          punctuate(stored),
+          translatedValues(values),
+          readerDirection,
+          setsSlotsApart,
+        )
+      : fillTemplate(punctuate(stored), translatedValues(values));
   };
 
   const translateTemplate: (
@@ -1140,9 +1196,11 @@ export const getSentencePartsAndLanguage: (
 
   return {
     parts: split(
-      fillTemplate(
+      fillSettingValuesApart(
         englishTemplate,
-        setApartValues(englishTextValues(englishValues), LEFT_TO_RIGHT, false),
+        englishTextValues(englishValues),
+        LEFT_TO_RIGHT,
+        false,
       ),
     ) || [
       {

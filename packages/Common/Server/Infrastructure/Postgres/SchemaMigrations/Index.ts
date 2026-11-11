@@ -960,7 +960,9 @@ import { AddOnCallTimelineToWhatsAppLogIndexAndKey1809100612210 } from "./180910
 import { AddRumProductAnalyticsSavedViews1809110100000 } from "./1809110100000-AddRumProductAnalyticsSavedViews";
 import { AddDataBiConnectionRefreshAlerts1809110200000 } from "./1809110200000-AddDataBiConnectionRefreshAlerts";
 import { AddCloudAppSignalArrivals1809110300000 } from "./1809110300000-AddCloudAppSignalArrivals";
-import { AddOnCallTestPages1809110400000 } from "./1809110400000-AddOnCallTestPages";
+import { AddServerSendingHealth1809110400000 } from "./1809110400000-AddServerSendingHealth";
+import { AddProjectMilestones1809110500000 } from "./1809110500000-AddProjectMilestones";
+import { AddOnCallTestPages1809110600000 } from "./1809110600000-AddOnCallTestPages";
 
 export default [
   InitialMigration,
@@ -1925,5 +1927,7 @@ export default [
   AddRumProductAnalyticsSavedViews1809110100000,
   AddDataBiConnectionRefreshAlerts1809110200000,
   AddCloudAppSignalArrivals1809110300000,
-  AddOnCallTestPages1809110400000,
+  AddServerSendingHealth1809110400000,
+  AddProjectMilestones1809110500000,
+  AddOnCallTestPages1809110600000,
 ];

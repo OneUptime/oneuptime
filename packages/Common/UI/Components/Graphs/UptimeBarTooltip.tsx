@@ -1,4 +1,3 @@
-import OneUptimeDate from "../../../Types/Date";
 import DayUptimeGraphUtil from "../../../Utils/Uptime/DayUptimeGraphUtil";
 import UptimeBarTooltipIncident from "../../../Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "../../../Types/Monitor/UptimeBarTooltipMaintenance";
@@ -318,10 +317,10 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
-                        incident.declaredAt,
-                        false,
-                      )}
+                      {DayUptimeGraphUtil.formatEventTime({
+                        date: incident.declaredAt,
+                        timezone: props.timezone,
+                      })}
                     </span>
                   </div>
                 </div>
@@ -453,6 +452,7 @@ const UptimeBarTooltip: FunctionComponent<ComponentProps> = (
                       dataTestId="uptime-tooltip-maintenance-window"
                       startsAt={event.startsAt}
                       endsAt={event.endsAt}
+                      timezone={props.timezone}
                       style={{
                         fontSize: "10px",
                         color: "var(--ou-text-muted, #6b7280)",

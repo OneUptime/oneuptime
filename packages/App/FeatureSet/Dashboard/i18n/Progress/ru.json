@@ -1,13 +1,14 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10260
+    "keys": 50417,
+    "untranslated": 9947
   },
   "sameAsEnglish": [
     "\"Error\"",
     "\"GET\"",
     "\"WARNING\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "2xx",
     "3xx",
     "412 GB",
@@ -26,6 +27,7 @@
     "CPU Ready {{percent}}",
     "Canonical Sunbeam",
     "ClickHouse",
+    "Client ID",
     "CloudKitty",
     "CloudWatch Metric Streams",
     "CrowdStrike",
@@ -40,8 +42,10 @@
     "Edge",
     "Flavor",
     "Flavors",
+    "Fluent Bit",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "H1",
     "HA: {{state}}",
     "HAProxy",

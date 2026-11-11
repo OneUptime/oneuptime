@@ -1586,10 +1586,16 @@ describe("StatusPageResourceUptimeUtil", () => {
       describe("calculateUptimePercentOfResource", () => {
         test.each([
           ["the capped rows hold only its last day", cappedTails, 99.96],
+          /*
+           * B's Operational row used to erase A's outage in the row merge,
+           * which read 100%. The merge now takes the worst status at every
+           * instant (WorstStatusTimeline, issue #6697), so every row on its
+           * own agrees with the merged figure.
+           */
           [
-            "every row is there, but B's Operational row erases A's outage in the row merge",
+            "every row is there, and B's Operational row leaves A's outage in the row merge",
             outageErasedByTheRowMerge,
-            100,
+            90,
           ],
         ])(
           "a monitor group reads its merged downtime when %s",

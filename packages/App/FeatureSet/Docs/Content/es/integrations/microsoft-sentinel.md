@@ -52,7 +52,7 @@ El rol permite a la aplicación leer incidentes (`Microsoft.SecurityInsights/inc
 
 ### Buscar los datos del área de trabajo
 
-Abre el área de trabajo de Log Analytics en el portal de Azure. Su página **Overview** muestra el **ID de suscripción**, el **Resource group** y el nombre del área de trabajo. El ID de recurso del área de trabajo contiene los tres:
+Abre el área de trabajo de Log Analytics en el portal de Azure. Su página **Overview** muestra el **ID de suscripción**, el **Grupo de recursos** y el nombre del área de trabajo. El ID de recurso del área de trabajo contiene los tres:
 
 ```text
 /subscriptions/{Subscription ID}/resourceGroups/{Resource group}/providers/Microsoft.OperationalInsights/workspaces/{Workspace name}
@@ -72,8 +72,8 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 | **ID de directorio (tenant)** | La página **Overview** de la aplicación. El GUID del inquilino, o un dominio verificado como `contoso.onmicrosoft.com`. |
 | **ID de aplicación (cliente)** | La página **Overview** de la aplicación. Un GUID. |
 | **ID de suscripción** | La página **Overview** del área de trabajo. Un GUID. |
-| **Resource group** | La página **Overview** del área de trabajo. De 1 a 90 letras, dígitos, guiones bajos, guiones, puntos o paréntesis, sin terminar en punto. |
-| **Workspace name** | La página **Overview** del área de trabajo. De 3 a 90 letras, dígitos o guiones, empezando y terminando por una letra o un dígito. |
+| **Grupo de recursos** | La página **Overview** del área de trabajo. De 1 a 90 letras, dígitos, guiones bajos, guiones, puntos o paréntesis, sin terminar en punto. |
+| **Nombre del área de trabajo** | La página **Overview** del área de trabajo. De 3 a 90 letras, dígitos o guiones, empezando y terminando por una letra o un dígito. |
 | **Nube** | **Nube pública de Azure** (`login.microsoftonline.com`, `management.azure.com`) o **Azure Government (EE. UU.)** (`login.microsoftonline.us`, `management.usgovcloudapi.net`). |
 | **Secreto del cliente** | El **Value** del secreto. Se cifra, la API nunca lo devuelve y no se vuelve a mostrar. Sustitúyelo con **Actualizar credenciales** en la conexión. |
 
@@ -140,7 +140,7 @@ Una ejecución que falla del todo, con un error de Microsoft Entra ID o de Azure
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview incidents** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de incidentes** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Los incidentes ya importados se omiten.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
@@ -246,7 +246,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 - `Microsoft Sentinel incidents list failed (HTTP ...)`: Azure Resource Manager rechazó la solicitud.
   - `HTTP 401`: no aceptó el token. Casi siempre, **Nube** no coincide con el inquilino, o se eliminó el registro de aplicación. Un token que caduca entre dos páginas se renueva y se reintenta una vez por sí solo.
   - `HTTP 403` o `AuthorizationFailed`: la aplicación aún no tiene **Microsoft Sentinel Reader** en el grupo de recursos. Asígnalo y espera unos minutos.
-  - `HTTP 404`: ninguna área de trabajo tiene ese **ID de suscripción**, ese **Resource group** y ese **Workspace name**, o Microsoft Sentinel no está habilitado en ella. Cópialos de la página **Overview** del área de trabajo.
+  - `HTTP 404`: ninguna área de trabajo tiene ese **ID de suscripción**, ese **Grupo de recursos** y ese **Nombre del área de trabajo**, o Microsoft Sentinel no está habilitado en ella. Cópialos de la página **Overview** del área de trabajo.
   - `HTTP 429` o `HTTP 5xx`: Azure Resource Manager está limitando las solicitudes o no está disponible. El siguiente sondeo lo vuelve a intentar.
   - `HTTP 400`: Azure Resource Manager rechazó la solicitud, que construye OneUptime y no tus ajustes. Envía el mensaje al soporte de OneUptime.
 - `Microsoft Sentinel incidents list returned ...`: Azure respondió `200`, pero sin una página de incidentes legible, o con un `nextLink` a otro host, que la conexión rechaza para que el token nunca salga de Azure Resource Manager. Se notifica en lugar de tomarse como una ventana vacía, para que el cursor nunca pase de largo incidentes que nadie leyó.

@@ -117,7 +117,7 @@ A [List alerts_v2](https://learn.microsoft.com/en-us/graph/api/security-list-ale
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.` Os alertas já importados da janela mais longa são pulados como duplicatas.
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, o cursor vai para o fim dela, e a janela seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais de 2.000 alertas, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler.
+3. **Passar de um único minuto.** Se até um minuto contém mais de 2.000 alertas, a consulta passa dele, para que os alertas mais novos continuem chegando. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Importar este intervalo de tempo** para recuperar o que uma execução consegue ler.
 
 Uma execução **Parcial** por outro motivo, como um alerta que não pôde ser lido como evento de segurança, é tentada de novo do mesmo jeito, a partir do mesmo ponto de partida. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -126,9 +126,9 @@ Uma execução **Parcial** por outro motivo, como um alerta que não pôde ser l
 Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
 - **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
-- **Preview alerts** lê um intervalo de tempo de até 7 dias e não importa nada.
-- **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os alertas já importados são pulados.
-- **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
+- **Prévia de alertas** lê um intervalo de tempo de até 7 dias e não importa nada.
+- **Importar este intervalo de tempo** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os alertas já importados são pulados.
+- **Copiar diagnóstico** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
@@ -141,7 +141,7 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | **Read alerts from Microsoft Graph** | Um alerta criado nas últimas 24 horas pode ser lido (`$top=1`). Um `403` aqui é a permissão `SecurityAlert.Read.All` que falta, o consentimento do administrador que falta ou um locatário sem Defender XDR. |
 | **Alerts available to import** | Quantos alertas foram criados nas últimas 24 horas e nos últimos 7 dias, uma página de 100 para cada, então `100+` significa mais. Nenhum em 7 dias é um aviso, não uma falha. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
-| **Scheduled polling** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
+| **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
@@ -177,9 +177,9 @@ O job de consulta nunca rodou. Leia as verificações **Background workers** e *
 :::details As consultas funcionam, mas falta um alerta que você conhece
 Compare o `createdDateTime` do alerta no portal do Defender com a janela da execução em **Diagnóstico**: as janelas são pelo horário de criação, não pelo horário de atividade.
 
-- Um alerta criado antes de a conexão existir é mais antigo do que o primeiro olhar de 24 horas para trás. Importe-o com **Import this time range**.
+- Um alerta criado antes de a conexão existir é mais antigo do que o primeiro olhar de 24 horas para trás. Importe-o com **Importar este intervalo de tempo**.
 - Uma execução **Parcial** foi interrompida pelo limite de 2.000 alertas. A consulta seguinte lê uma janela mais curta a partir do mesmo início, então o alerta é importado assim que uma janela que o contém é lida por inteiro.
-- Se **Último erro** nomear um minuto que a consulta pulou, importe esse minuto com **Import this time range**.
+- Se **Último erro** nomear um minuto que a consulta pulou, importe esse minuto com **Importar este intervalo de tempo**.
 :::
 
 :::details O mesmo alerta aparece duas vezes

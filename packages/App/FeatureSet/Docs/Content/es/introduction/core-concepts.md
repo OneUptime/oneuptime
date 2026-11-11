@@ -1,6 +1,6 @@
 # Conceptos básicos
 
-OneUptime tiene muchos productos, pero se apoyan en un puñado de ideas: proyectos, monitores, incidentes y alertas, guardias, páginas de estado y telemetría. Esta página explica cada una en unas pocas frases, muestra cómo se relacionan y enlaza con las páginas que las tratan a fondo. Léela una vez, y todas las demás páginas de la documentación se leerán con más facilidad.
+OneUptime tiene muchos productos, pero se apoyan en un puñado de ideas: proyectos, monitores, incidentes y alertas, guardias, páginas de estado y telemetría. A su alrededor están lo que vigilas, lo que instalas y las reglas que actúan por ti. Esta página explica cada una en unas pocas frases, muestra cómo se relacionan y enlaza con las páginas que las tratan a fondo. Léela una vez, y todas las demás páginas de la documentación se leerán con más facilidad. Para consultar una palabra concreta, ve al [Glosario](/docs/introduction/glossary); para elegir entre dos cosas que se parecen, consulta [¿Cuál uso?](/docs/introduction/which-one).
 
 :::cards
 - [Proyectos y personas](#proyectos-y-personas): Dónde vive todo, y quién puede hacer qué.
@@ -47,6 +47,41 @@ Los **criterios** de un monitor deciden qué significa cada resultado. Se evalú
 :::cards
 - [Crear un monitor](/docs/monitor/create-monitor): Elegir un tipo, decir qué comprobar y con qué frecuencia.
 - [Sondas personalizadas](/docs/probe/custom-probe): Comprobar lo que solo tu propia red puede alcanzar.
+:::
+
+## Lo que vigilas
+
+Un monitor comprueba una sola cosa. Alrededor de tus monitores, OneUptime lleva un registro de lo que ejecutas, y te encuentras estos registros en el menú:
+
+- Un **grupo de monitores** reúne varios monitores en un solo estado, para que una página de estado pueda mostrar como una sola fila algo formado por muchas partes, como Checkout.
+- Un **servicio** es una aplicación o un microservicio que ejecutas. OneUptime lo añade la primera vez que llega su telemetría, y reúne en una sola página sus registros, trazas, métricas, excepciones e incidentes.
+- **Hosts**, los clústeres de **Kubernetes** y el resto de **Infraestructura** son las máquinas y plataformas que ejecutas, y los rellenan los agentes que instalas.
+- **Inventario** es una sola lista de todo ello: servicios, hosts, clústeres, dispositivos, recursos en la nube y las cosas que no envían ninguna telemetría.
+
+Todo confluye donde aparece un problema. Los monitores de un servicio pueden agruparse en un grupo de monitores, un SLO los mide, y cuando uno falla declara un incidente. El incidente incluye el servicio entre los recursos a los que afecta, y la página de estado muestra el grupo y el incidente.
+
+```mermaid title="Un servicio, lo que lo vigila y dónde aparece"
+flowchart TB
+    service["Servicio: Checkout"] -->|"vigilado por"| monitors["Sus monitores"]
+    monitors --> group["Grupo de monitores"]
+    monitors --> slo["SLO"]
+    monitors -->|"declaran"| incident["Incidente"]
+    group --> statuspage["Página de estado"]
+    incident --> statuspage
+```
+
+:::cards
+- [Grupos de monitores](/docs/monitor/monitor-groups): Reunir varios monitores en un solo estado.
+- [Catálogo de servicios](/docs/telemetry/services): Cada aplicación que ejecutas, con una página para cada una.
+- [Visión general del inventario](/docs/inventory/overview): Todo lo que OneUptime sabe de tu infraestructura.
+:::
+
+## Objetivos de fiabilidad
+
+Un **SLO** (objetivo de nivel de servicio) es un objetivo de fiabilidad para lo que monitorizas, como estar disponible el 99,9 % del tiempo durante 30 días. OneUptime lo mide a partir de sus monitores cada 5 minutos. El tiempo de inactividad que permite el objetivo es su presupuesto de errores: con mucho margen puedes arriesgarte, y con poco frenas e inviertes en estabilidad.
+
+:::cards
+- [Visión general de los SLO](/docs/slo/introduction): Fijar un objetivo y ver cuánto queda del presupuesto.
 :::
 
 ## Incidentes y alertas
@@ -97,11 +132,35 @@ El **mantenimiento programado** anuncia con antelación los trabajos previstos. 
 
 ## Telemetría
 
-La **telemetría** es lo que tus sistemas envían a OneUptime: registros, métricas, trazas, excepciones y perfiles. Las aplicaciones la envían con OpenTelemetry, y los agentes de OneUptime la envían desde hosts, clústeres de Kubernetes, hosts de Docker y el resto de tu infraestructura. Cada emisor usa una **clave de ingesta**, creada en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. Buscas en la telemetría, la representas en paneles y la vigilas con monitores de telemetría, que abren incidentes y alertas como cualquier otro monitor.
+La **telemetría** es lo que tus sistemas envían a OneUptime: registros, métricas, trazas, excepciones y perfiles. Las aplicaciones la envían con OpenTelemetry, y los agentes de OneUptime la envían desde hosts, clústeres de Kubernetes, hosts de Docker y el resto de tu infraestructura. Cada emisor usa una **clave de ingesta**, creada en **Ajustes del proyecto → Telemetría y APM → Claves de ingesta**. Buscas en la telemetría, la representas en paneles y la vigilas con monitores de telemetría, que abren incidentes y alertas como cualquier otro monitor. En el menú, **Registros**, **Métricas**, **Trazas**, **Perfiles de rendimiento** y **Excepciones** abren cada uno un tipo; **IA / LLM** sigue las conversaciones de tu IA, **Observabilidad de datos** vigila las tablas de tus bases de datos y **Topología** traza cómo se conecta todo.
 
 :::cards
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Enviar registros, métricas y trazas desde tus aplicaciones.
 - [Monitor de registros](/docs/monitor/logs-monitor): Enterarte cuando aparece un patrón en tus registros.
+:::
+
+## Seguridad
+
+**Eventos de seguridad** guarda los eventos de seguridad de tus registros, de tus herramientas de seguridad y de cualquier otra cosa que envíes. Sus reglas de detección convierten lo que encuentran en casos de seguridad, que tu equipo trabaja en una cola y a los que responden los playbooks. **Seguridad de datos** encuentra los datos sensibles de tus buckets, bases de datos y telemetría, y qué falla en cómo se guardan.
+
+:::cards
+- [Primeros pasos con la seguridad](/docs/telemetry/security-getting-started): Encontrar amenazas en los datos que ya tienes.
+- [Vista general de Seguridad de datos](/docs/data-security/index): Encontrar tus datos sensibles y corregir cómo se guardan.
+:::
+
+## Lo que instalas, y las claves
+
+La mayor parte de OneUptime no requiere instalar nada. Solo instalas algo para llegar a lo que OneUptime no puede ver desde fuera, y cada pieza se conecta hacia OneUptime con una clave:
+
+- Una sonda personalizada ejecuta las comprobaciones de los monitores dentro de tu red, con su propio ID de sonda y su clave.
+- El **OpenTelemetry Collector**, el agente de Kubernetes y el agente de Docker envían telemetría con una **clave de ingesta**. El agente de infraestructura que hay detrás de un monitor de servidor / VM envía con la clave secreta de ese monitor.
+- Un **Runner** ejecuta pasos de runbook dentro de tu infraestructura, con su propio Runner ID y su clave.
+
+Una clave de ingesta solo envía telemetría hacia dentro. Una **clave de API** es el otro tipo: permite a un script, la CLI, Terraform o un asistente de IA leer y cambiar tu proyecto, con los permisos que le des. Ninguna de las dos sirve en lugar de la otra.
+
+:::cards
+- [¿Cuál uso?](/docs/introduction/which-one#sonda-agente-colector-o-runner): Qué instalar, y la clave que usa cada uno.
+- [Claves de ingesta](/docs/telemetry/ingestion-keys): Crear, acotar y rotar las claves que envían telemetría.
 :::
 
 ## Automatización e IA
@@ -123,11 +182,30 @@ Las **etiquetas** son marcas que pones a monitores, incidentes, páginas de esta
 - [Reglas de etiquetas y propietarios](/docs/configuration/label-and-owner-rules): Etiquetar los recursos nuevos y darles propietarios automáticamente.
 :::
 
+## Los tipos de regla
+
+Muchas cosas en OneUptime se llaman regla. Cada una toma una decisión por ti cuando llega algo nuevo, y se agrupan en unas pocas familias. La mayoría están en **Reglas**, en los menús laterales de **Incidentes** y **Alertas**.
+
+| Qué decide | Reglas |
+| --- | --- |
+| A quién se avisa | Las **Reglas de guardia** eligen las políticas de guardia que ejecuta un incidente o una alerta nuevos, y las **Reglas de escalado** de una política avisan nivel a nivel |
+| Quién es su propietario, y cómo se etiqueta | **Reglas del propietario**, **Reglas de etiquetas** y **Reglas de privacidad** |
+| Qué va junto | Las **Reglas de agrupación** abren episodios y añaden elementos a ellos |
+| Qué se ejecuta sobre ello | Las **Reglas de runbook** inician runbooks, y las **Reglas de IA** deciden qué investiga y corrige OneUptime AI |
+| Cuándo hacer seguimiento | Las **Reglas de SLA** controlan los tiempos de respuesta y de resolución, y las **Reglas de recordatorio** avisan a los propietarios mientras sigue abierto |
+
+Las reglas propias de un monitor son sus criterios. Las reglas de guardia de **Ajustes de usuario** son otra cosa distinta: cada persona tiene las suyas, y deciden cómo le llega un aviso a esa persona.
+
+:::cards
+- [Configuración y automatización de incidentes](/docs/incidents/settings#reglas-que-se-ejecutan-al-crear-un-incidente): Las reglas que se ejecutan cuando se crea un incidente, en orden.
+- [Reglas de guardia personales](/docs/notifications/on-call-rules): Cómo te llega un aviso.
+:::
+
 ## Próximos pasos
 
 :::cards
 - [Inicio rápido](/docs/introduction/quickstart): Poner estas ideas en práctica en quince minutos.
-- [Página de inicio y atajos](/docs/introduction/home): Encontrar cada producto en el panel.
-- [Crear un monitor](/docs/monitor/create-monitor): Tu primer monitor, campo por campo.
+- [Glosario](/docs/introduction/glossary): Cada palabra que usa OneUptime, en una o dos frases.
+- [¿Cuál uso?](/docs/introduction/which-one): Incidente o alerta, flujo de trabajo o runbook, y las demás cosas que se parecen.
 - [Visión general de los incidentes](/docs/incidents/index): Qué pasa después de que un monitor declara un incidente.
 :::

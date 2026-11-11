@@ -1,11 +1,12 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10299
+    "keys": 50417,
+    "untranslated": 9988
   },
   "sameAsEnglish": [
     "\"GET\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "15 min",
     "2xx",
     "3xx",
@@ -84,6 +85,7 @@
     "Finland (+358)",
     "Flat",
     "Flavor",
+    "Fluent Bit",
     "Format",
     "Gateway",
     "Gemini for Google Workspace",
@@ -91,6 +93,7 @@
     "Global",
     "Golden Signals",
     "Google SecOps",
+    "Google UDM",
     "Goroutines",
     "H1",
     "HA: {{state}}",

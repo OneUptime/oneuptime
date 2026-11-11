@@ -157,7 +157,8 @@
     "successMessage": "We hebben u de wachtwoordresetlink gemaild. Vergeet niet de spammap te controleren.",
     "submitButton": "Wachtwoordresetlink verzenden",
     "rememberPasswordPrompt": "Herinnert u uw wachtwoord?",
-    "loginLink": "Inloggen."
+    "loginLink": "Inloggen.",
+    "cannotEmail": "Deze server kan nog geen e-mail versturen en kan u dus geen link sturen om uw wachtwoord opnieuw in te stellen. Vraag uw serverbeheerder om uw wachtwoord opnieuw in te stellen."
   },
   "magicLink": {
     "title": "Inloggen met een link",
@@ -168,7 +169,8 @@
     "notReceived": "Niet in uw inbox? Controleer uw spammap of controleer of u het adres hebt ingevoerd waarmee u zich hebt geregistreerd.",
     "sendAnother": "Nog een link sturen",
     "knowPasswordPrompt": "Kent u uw wachtwoord?",
-    "loginLink": "Inloggen."
+    "loginLink": "Inloggen.",
+    "cannotEmail": "Deze server kan nog geen e-mail versturen en kan u dus geen aanmeldlink sturen. Meld u aan met uw wachtwoord, of vraag uw serverbeheerder om u toegang te geven."
   },
   "resetPassword": {
     "title": "Reset uw wachtwoord",

@@ -42,7 +42,7 @@ Hvert token kan bruke en andel av organisasjonens API-hastighetsgrense, som rade
 
 ### Legg til tilkoblingen i OneUptime
 
-Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Okta System Log**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn tokenet i **API token**.
+Åpne **Produkter → Sikkerhetshendelser → Tilkoblinger** (`/dashboard/{projectId}/security-events/connections`), klikk på **Legg til tilkobling**, velg **Okta System Log**, og klikk på **Neste**. Fyll inn innstillingene i tabellen nedenfor, klikk på **Neste**, og lim inn tokenet i **API-token**.
 
 ### Test den før du lagrer
 
@@ -51,15 +51,15 @@ Klikk på **Test disse innstillingene** under **Test før du lagrer**. Testen lo
 
 | Innstilling | Hva du skal skrive inn |
 | --- | --- |
-| **Okta organization URL** | Adressen brukerne dine logger på hos, for eksempel `https://acme.okta.com`, `https://acme.oktapreview.com` eller `https://login.example.com`. Den må bruke `https`, uten bane. Ikke `-admin`-adressen til Admin Console, som ikke tilbyr API-et. |
-| **Event filter** | Valgfritt. Et [System Log-filter](https://developer.okta.com/docs/reference/core-okta-api/#filter) som velger hendelsene som skal importeres, for eksempel `eventType sw "user.session" or eventType sw "security"`. Tomt importerer familiene nedenfor. Høyst 2 000 tegn, på én linje, og ikke på `published`: OneUptime setter tidsrommet selv. |
-| **API token** | Verdien til tokenet, alene: OneUptime legger selv til skjemaet `SSWS`. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Oppdater påloggingsinformasjon** på tilkoblingen. |
+| **Okta-organisasjons-URL** | Adressen brukerne dine logger på hos, for eksempel `https://acme.okta.com`, `https://acme.oktapreview.com` eller `https://login.example.com`. Den må bruke `https`, uten bane. Ikke `-admin`-adressen til Admin Console, som ikke tilbyr API-et. |
+| **Hendelsesfilter** | Valgfritt. Et [System Log-filter](https://developer.okta.com/docs/reference/core-okta-api/#filter) som velger hendelsene som skal importeres, for eksempel `eventType sw "user.session" or eventType sw "security"`. Tomt importerer familiene nedenfor. Høyst 2 000 tegn, på én linje, og ikke på `published`: OneUptime setter tidsrommet selv. |
+| **API-token** | Verdien til tokenet, alene: OneUptime legger selv til skjemaet `SSWS`. Den krypteres, returneres aldri av API-et og vises aldri igjen. Erstatt den med **Oppdater påloggingsinformasjon** på tilkoblingen. |
 
 Trinnet **Henting** har også en valgfri **Beskrivelse**, **Henteintervall (minutter)**, et heltall fra `1` til `1440` som starter på `5`, og **Aktivert**, som starter slått på.
 
 ## Hva som importeres
 
-Uten **Event filter** importerer OneUptime hendelsesfamiliene et sikkerhetsteam følger med på, etter `eventType`-prefiks. Et eget filter erstatter denne listen i stedet for å legge til i den:
+Uten **Hendelsesfilter** importerer OneUptime hendelsesfamiliene et sikkerhetsteam følger med på, etter `eventType`-prefiks. Et eget filter erstatter denne listen i stedet for å legge til i den:
 
 | Prefiks | Hendelser |
 | --- | --- |
@@ -119,7 +119,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **En poll leser høyst 24 timer forbi markøren.** En tilkobling der markøren har kommet på etterskudd, tar igjen i en rekke vinduer på 24 timer, og **Helse** viser **Tar igjen etterslep**.
 - **Duplikater fjernes etter `uuid`** i prosjektet, slik at overlappingen, et gjentatt vindu og en import aldri lagrer en hendelse to ganger.
 
-En `next`-lenke som peker et annet sted enn din **Okta organization URL**, følges aldri, siden tokenet sendes med hver forespørsel.
+En `next`-lenke som peker et annet sted enn din **Okta-organisasjons-URL**, følges aldri, siden tokenet sendes med hver forespørsel.
 
 ### Når et vindu inneholder mer enn én poll kan lese
 
@@ -135,7 +135,7 @@ Når en kjøring ikke kommer forbi den lagrede markøren i det hele tatt, for ek
 
 1. **Snevre inn.** Den neste pollen leser et vindu som er halvparten så langt, fra det samme startpunktet, og fortsetter å halvere til et vindu leses helt, ned til ett minutt. Kjøringens advarsel sier det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Vokse igjen.** Når et vindu er lest helt, er det neste igjen dobbelt så langt, opptil 24 timer.
-3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere hendelser fortsetter å komme, og overlappingen til senere poller når ikke lenger tilbake til det. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Import this time range** for å hente det én kjøring kan lese, eller snevre inn **Event filter**.
+3. **Gå forbi ett enkelt minutt.** Hvis selv ett minutt inneholder mer enn en poll kan lese, går pollingen forbi det, slik at nyere hendelser fortsetter å komme, og overlappingen til senere poller når ikke lenger tilbake til det. Kjøringen forblir **Delvis**, og **Siste feil** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importer det minuttet med **Importer dette tidsrommet** for å hente det én kjøring kan lese, eller snevre inn **Hendelsesfilter**.
 
 En kjøring som mislykkes helt, med en feil fra Okta, beholder markøren og vinduslengden, og den neste pollen leser det samme vinduet på nytt. Det eneste unntaket er en forespørsel som fikk tidsavbrudd: markøren blir stående, men det neste vinduet er halvparten så langt, fordi et vindu som er for tungt til å bli besvart i tide, ville fått tidsavbrudd ved hvert forsøk. Å endre **Henteintervall (minutter)** endrer ingenting av dette: det avgjør hvor ofte en poll starter, ikke hvor vinduet begynner.
 
@@ -144,9 +144,9 @@ En kjøring som mislykkes helt, med en feil fra Okta, beholder markøren og vind
 Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og arbeide med den manuelt. Alle som kan endre tilkoblingen, kan starte disse handlingene; alle som kan se den, kan lese historikken.
 
 - **Kjør nå** starter en poll med en gang, med den vanlige markøren, også når tilkoblingen ikke er **Aktivert**.
-- **Preview log events** leser et tidsrom på opptil 7 dager og importerer ingenting.
-- **Import this time range** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Hendelser som allerede er importert, hoppes over. Okta beholder 90 dager med System Log.
-- **Copy diagnostics** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
+- **Forhåndsvis logghendelser** leser et tidsrom på opptil 7 dager og importerer ingenting.
+- **Importer dette tidsrommet** importerer et tidsrom på opptil 7 dager, etter at du har bekreftet, uten å flytte markøren. Hendelser som allerede er importert, hoppes over. Okta beholder 90 dager med System Log.
+- **Kopier diagnostikk** på en kjøring kopierer rapporten for brukerstøtte. Den inneholder aldri legitimasjon.
 
 ## Test tilkoblingen
 
@@ -156,10 +156,10 @@ Klikk på **Diagnostikk** på en tilkobling for å se de siste kjøringene og ar
 | --- | --- |
 | **Konfigurasjon** | Hver innstilling er til stede og riktig formatert. Ingenting kontaktes når dette mislykkes. |
 | **Authenticate with Okta** | Okta godtar tokenet for System Log, med én hendelse lest og uten filter. |
-| **Read System Log events** | Én hendelse fra de siste 24 timene kan leses gjennom filteret pollingen bruker, ditt eget eller standardfilteret, så et ugyldig **Event filter** feiler her i stedet for ved den første pollen. |
+| **Read System Log events** | Én hendelse fra de siste 24 timene kan leses gjennom filteret pollingen bruker, ditt eget eller standardfilteret, så et ugyldig **Hendelsesfilter** feiler her i stedet for ved den første pollen. |
 | **Events available to import** | Hvor mange hendelser som er publisert de siste 24 timene og de siste 7 dagene, én side på 1 000 for hver, så `1000+` betyr flere. Ingen på 7 dager er en advarsel, ikke en feil. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en prosess tar jobbene fra Worker-køen, poll-jobben kjører hvert minutt, og lageret for sikkerhetshendelser svarer. |
-| **Scheduled polling** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
+| **Planlagt henting** | For en lagret tilkobling: polling er slått på, ingen kjøring sitter fast og venter på en worker, og poller kjører i tide. |
 
 Hver forespørsel i en test har en frist på 20 sekunder. En test importerer aldri noe og flytter aldri markøren, og hver kontroll som mislykkes, sier hva du skal endre.
 
@@ -168,7 +168,7 @@ Hver forespørsel i en test har en frist på 20 sekunder. En test importerer ald
 **Siste feil** for tilkoblingen lagrer hele feilmeldingen, med legitimasjon maskert, bak et prefiks som navngir trinnet som mislyktes. Når en tilkobling har en feil, velger du **Vis feil** i kolonnen **Handlinger** for å lese den, og **Kopier feil** i dialogen for å kopiere den. Hver melding starter med `Okta System Log events request` og siterer Oktas egen feilkode etter statusen; les det som følger.
 
 :::details Last Error sier `failed (HTTP 400)`
-Okta avviste parameterne i forespørselen, `E0000053`. Når tokenet fungerte, er det nesten alltid **Event filter**: kontroller operatorene, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` og `le`, `and` og `or`, og de doble anførselstegnene rundt verdiene, eller tøm det for å bruke standardfamiliene. Ved en import kan det også bety at tidsrommet starter for mer enn 180 dager siden.
+Okta avviste parameterne i forespørselen, `E0000053`. Når tokenet fungerte, er det nesten alltid **Hendelsesfilter**: kontroller operatorene, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` og `le`, `and` og `or`, og de doble anførselstegnene rundt verdiene, eller tøm det for å bruke standardfamiliene. Ved en import kan det også bety at tidsrommet starter for mer enn 180 dager siden.
 :::
 
 :::details Last Error sier `failed (HTTP 401)` eller `failed (HTTP 403)`
@@ -194,12 +194,12 @@ Ingen poll er fullført for denne tilkoblingen. Kjør **Test tilkoblingen**: kon
 :::
 
 :::details En kjøring er Partial
-- `Stopped after collecting 10000 events`: vinduet inneholdt mer enn de 10 000 hendelsene én kjøring leser. Ingenting går tapt: den neste pollen starter etter den sist leste hendelsen. En tilkobling som forblir **Delvis** poll etter poll, er i ferd med å ta igjen et etterslep, og **Sist hentet** og **Siste importerte hendelse** fortsetter å gå fremover. Hvis den aldri tar igjen, publiserer organisasjonen flere samsvarende hendelser enn et pollintervall kan romme: snevre inn **Event filter**, eller gjør **Henteintervall (minutter)** kortere.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gikk forbi det minuttet. Importer det med **Import this time range** i **Diagnostikk**. En import leser like mye som en poll.
+- `Stopped after collecting 10000 events`: vinduet inneholdt mer enn de 10 000 hendelsene én kjøring leser. Ingenting går tapt: den neste pollen starter etter den sist leste hendelsen. En tilkobling som forblir **Delvis** poll etter poll, er i ferd med å ta igjen et etterslep, og **Sist hentet** og **Siste importerte hendelse** fortsetter å gå fremover. Hvis den aldri tar igjen, publiserer organisasjonen flere samsvarende hendelser enn et pollintervall kan romme: snevre inn **Hendelsesfilter**, eller gjør **Henteintervall (minutter)** kortere.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gikk forbi det minuttet. Importer det med **Importer dette tidsrommet** i **Diagnostikk**. En import leser like mye som en poll.
 :::
 
 :::details Testen lykkes, men ingenting importeres
-Les **Events available to import** i rapporten fra testen. Med standardfilteret publiserer en organisasjon med brukere pålogginger hele tiden, så `0` de siste 7 dagene betyr at URL-en er en sandkasse eller en ubrukt organisasjon. Med ditt eget **Event filter** betyr det at filteret ikke fant noe: sammenlign det med hendelsestypene i System Log i Admin Console.
+Les **Events available to import** i rapporten fra testen. Med standardfilteret publiserer en organisasjon med brukere pålogginger hele tiden, så `0` de siste 7 dagene betyr at URL-en er en sandkasse eller en ubrukt organisasjon. Med ditt eget **Hendelsesfilter** betyr det at filteret ikke fant noe: sammenlign det med hendelsestypene i System Log i Admin Console.
 :::
 
 ## Hva du får

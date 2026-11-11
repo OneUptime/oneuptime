@@ -140,6 +140,7 @@ const ALERT_ANSWER: DataAlertLineageAnswer = {
   isCauseDrawn: false,
   consequenceCount: 2,
   drawnConsequenceCount: 1,
+  column: null,
 };
 
 interface Asked {
@@ -450,6 +451,7 @@ describe("POST /data-observability/alerts/:id/lineage", () => {
       isCauseDrawn: false,
       consequenceCount: 4,
       drawnConsequenceCount: 0,
+      column: null,
     };
     const asked: Asked = await askAlert(
       withPermission(Permission.ProjectMember),

@@ -1,13 +1,14 @@
 {
   "baseline": {
-    "keys": 50206,
-    "untranslated": 10034
+    "keys": 50417,
+    "untranslated": 9734
   },
   "sameAsEnglish": [
     "\"Error\"",
     "\"GET\"",
     "\"WARNING\"",
     "0 (kiss-o'-death {{kissCode}})",
+    "00:05:0b*",
     "2xx",
     "3xx",
     "412 GB",
@@ -42,9 +43,11 @@
     "Down · In",
     "Edge",
     "Elasticsearch URL",
+    "Fluent Bit",
     "Full view",
     "Gemini for Google Workspace",
     "Google SecOps",
+    "Google UDM",
     "Grafana OnCall API URL",
     "H1",
     "HA: {{state}}",
@@ -64,6 +67,7 @@
     "JavaScript API",
     "K8s Deployment",
     "Keystone",
+    "Kibana URL",
     "Kolla-Ansible",
     "LXC 201 · pve3",
     "Log4Shell",

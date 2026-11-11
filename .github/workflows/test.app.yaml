@@ -1670,6 +1670,16 @@ jobs:
               test-openstack-pages-ui
               test-global-runners-ui
               test-host-pages-ui
+          # Added on 2026-11-11 for the journey budgets (#6831): the seven core
+          # jobs a newcomer comes to do, each done in the whole Dashboard or
+          # Admin Dashboard and counted against Tests/Ops/JourneyBudgets.json,
+          # and the counter's own tests (21 tests, 2.3 minutes locally with its
+          # two bundles). No group had the room: the most was group 4's 1.5.
+          # The rest of the group is room for the journeys the guided setups
+          # of #6802 add.
+          - group: 22
+            suites: >-
+              test-journeys-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
@@ -1924,6 +1934,9 @@ jobs:
             output/playwright/owners-on-create-ui/test-results
             output/playwright/first-on-call-policy-ui/*.png
             output/playwright/first-on-call-policy-ui/test-results
+            output/playwright/journeys-ui/*.md
+            output/playwright/journeys-ui/*.json
+            output/playwright/journeys-ui/test-results
             output/playwright/kubernetes-events-ui/*.png
             output/playwright/kubernetes-events-ui/test-results
             output/playwright/openshift-pages-ui/*.png

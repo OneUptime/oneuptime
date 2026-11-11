@@ -9,6 +9,8 @@ import ProjectReferenceCheck from "../../../Server/Utils/Database/ProjectReferen
 import logger from "../../../Server/Utils/Logger";
 import OnCallEscalationAdvance from "../../../Server/Utils/OnCall/OnCallEscalationAdvance";
 import OnCallPolicyRunMessage from "../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
+import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneService";
+import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
@@ -347,6 +349,7 @@ describe("startPolicyTest: a test of an on-call policy", () => {
 describe("a test of a policy pages its first level as a real run does", () => {
   let startRuleSpy: jest.SpyInstance;
   let moveOnSpy: jest.SpyInstance;
+  let reachSpy: jest.SpyInstance;
 
   beforeEach(() => {
     const firstRule: OnCallDutyPolicyEscalationRule =
@@ -376,6 +379,25 @@ describe("a test of a policy pages its first level as a real run does", () => {
     moveOnSpy = jest
       .spyOn(OnCallEscalationAdvance, "moveOnAtOnce")
       .mockResolvedValue(null as never);
+
+    reachSpy = jest
+      .spyOn(ProjectMilestoneService, "reachInBackground")
+      .mockImplementation(() => {
+        return undefined;
+      });
+  });
+
+  test("a test of a policy is not the project's first on-call policy that ran (#6830)", async () => {
+    await hooks.onCreateSuccess(
+      { createBy: { props: { isRoot: true } }, carryForward: null },
+      testPolicyRun(false),
+    );
+
+    expect(reachSpy).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        milestone: ActivationMilestone.FirstOnCallPolicyExecuted,
+      }),
+    );
   });
 
   test("its first level is paged with the test's event type, about no record", async () => {
@@ -476,6 +498,11 @@ describe("a test of a policy pages its first level as a real run does", () => {
     expect(updates()).toContainEqual({
       status: OnCallDutyPolicyStatus.Executing,
       statusMessage: "First escalation rule executed...",
+    });
+    // A real run is the project's first on-call policy that ran.
+    expect(reachSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      milestone: ActivationMilestone.FirstOnCallPolicyExecuted,
     });
   });
 });

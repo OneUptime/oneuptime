@@ -16,8 +16,8 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * changes the table's metadata only, and no row is rewritten - every run
  * that exists was not a test.
  */
-export class AddOnCallTestPages1809110400000 implements MigrationInterface {
-  public name: string = "AddOnCallTestPages1809110400000";
+export class AddOnCallTestPages1809110600000 implements MigrationInterface {
+  public name: string = "AddOnCallTestPages1809110600000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

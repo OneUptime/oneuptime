@@ -42,7 +42,7 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 ### 在 OneUptime 中添加连接
 
-打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Okta System Log**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **API token** 中。
+打开 **产品 → 安全事件 → 连接**（`/dashboard/{projectId}/security-events/connections`），点击 **添加连接**，选择 **Okta System Log**，然后点击 **下一步**。填写下表中的设置，点击 **下一步**，然后把令牌粘贴到 **API 令牌** 中。
 
 ### 保存之前先测试
 
@@ -51,15 +51,15 @@ OneUptime 每分钟轮询一次已过轮询间隔的每个已启用连接。一�
 
 | 设置 | 填写什么 |
 | --- | --- |
-| **Okta organization URL** | 你的用户登录时使用的地址，例如 `https://acme.okta.com`、`https://acme.oktapreview.com` 或 `https://login.example.com`。它必须使用 `https`，且不带路径。不能使用 Admin Console 的 `-admin` 地址，因为它不提供 API。 |
-| **Event filter** | 可选。一个选择要导入哪些事件的 [System Log 过滤器](https://developer.okta.com/docs/reference/core-okta-api/#filter)，例如 `eventType sw "user.session" or eventType sw "security"`。留空时导入下面的事件族。最多 2,000 个字符，写在一行中，并且不能针对 `published`：时间范围由 OneUptime 自己设置。 |
-| **API token** | 令牌的值本身：OneUptime 会自己加上 `SSWS` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **更新凭据**。 |
+| **Okta 组织 URL** | 你的用户登录时使用的地址，例如 `https://acme.okta.com`、`https://acme.oktapreview.com` 或 `https://login.example.com`。它必须使用 `https`，且不带路径。不能使用 Admin Console 的 `-admin` 地址，因为它不提供 API。 |
+| **事件筛选器** | 可选。一个选择要导入哪些事件的 [System Log 过滤器](https://developer.okta.com/docs/reference/core-okta-api/#filter)，例如 `eventType sw "user.session" or eventType sw "security"`。留空时导入下面的事件族。最多 2,000 个字符，写在一行中，并且不能针对 `published`：时间范围由 OneUptime 自己设置。 |
+| **API 令牌** | 令牌的值本身：OneUptime 会自己加上 `SSWS` 方案。它会被加密，API 从不返回它，也不会再次显示。要替换它，请在连接上使用 **更新凭据**。 |
 
 **轮询** 步骤还有可选的 **描述**、**轮询间隔（分钟）**（`1` 到 `1440` 之间的整数，初始为 `5`），以及初始为开启的 **已启用**。
 
 ## 导入的内容
 
-没有 **Event filter** 时，OneUptime 按 `eventType` 前缀导入安全团队关注的事件族。你自己的过滤器会替换这个列表，而不是在它基础上添加：
+没有 **事件筛选器** 时，OneUptime 按 `eventType` 前缀导入安全团队关注的事件族。你自己的过滤器会替换这个列表，而不是在它基础上添加：
 
 | 前缀 | 事件 |
 | --- | --- |
@@ -119,7 +119,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **一次轮询最多读取游标之后 24 小时。** 游标落后的连接会通过一连串 24 小时的窗口追赶，此时它的 **健康状况** 显示为 **正在追赶**。
 - **重复项按 `uuid` 去重**，范围是整个项目，所以重叠部分、重试的窗口和导入都不会把同一个事件存储两次。
 
-由于令牌会随每个请求一起发送，指向你的 **Okta organization URL** 之外任何地方的 `next` 链接都不会被跟随。
+由于令牌会随每个请求一起发送，指向你的 **Okta 组织 URL** 之外任何地方的 `next` 链接都不会被跟随。
 
 ### 当一个窗口包含的内容超过一次轮询能读取的量时
 
@@ -135,7 +135,7 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 
 1. **缩小。** 下一次轮询从同一个起点读取长度减半的窗口，并不断减半，直到某个窗口能被完整读取，最短为一分钟。运行的警告会说明这一点：`This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **恢复。** 一个窗口被完整读取后，下一个窗口的长度会再次加倍，最长为 24 小时。
-3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达，之后轮询的重叠部分也不会再回到这一分钟。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **Import this time range** 导入这一分钟，就能找回一次运行能读取的内容，或者缩小 **Event filter** 的范围。
+3. **越过单独的一分钟。** 如果连一分钟内的内容都超过一次轮询能读取的量，轮询会越过这一分钟，让更新的事件继续到达，之后轮询的重叠部分也不会再回到这一分钟。这次运行仍为 **部分**，**最近错误** 显示 `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` 用 **导入此时间范围** 导入这一分钟，就能找回一次运行能读取的内容，或者缩小 **事件筛选器** 的范围。
 
 因 Okta 的错误而彻底失败的运行，会保留游标和窗口长度，下一次轮询会再次读取同一个窗口。唯一的例外是请求超时：游标保持不变，但下一个窗口的长度减半，因为重到无法及时得到响应的窗口每次尝试都会超时。更改 **轮询间隔（分钟）** 不会改变这些：它决定的是轮询多久开始一次，而不是窗口从哪里开始。
 
@@ -144,9 +144,9 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 在连接上点击 **诊断**，可以查看它最近的运行，并手动操作它。能更改该连接的人都可以启动这些操作；能查看它的人都可以阅读历史记录。
 
 - **立即运行** 会立即开始一次轮询，使用通常的游标，即使连接未处于 **已启用** 状态也可以。
-- **Preview log events** 读取最长 7 天的时间范围，不导入任何内容。
-- **Import this time range** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的事件会被跳过。Okta 会保留 90 天的 System Log。
-- 运行上的 **Copy diagnostics** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
+- **预览日志事件** 读取最长 7 天的时间范围，不导入任何内容。
+- **导入此时间范围** 在你确认后导入最长 7 天的范围，不会移动游标。已导入的事件会被跳过。Okta 会保留 90 天的 System Log。
+- 运行上的 **复制诊断信息** 会复制它的报告以便提供给支持人员。报告从不包含凭据。
 
 ## 测试连接
 
@@ -156,10 +156,10 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 | --- | --- |
 | **配置** | 每项设置都存在且格式正确。此项失败时不会连接任何地方。 |
 | **Authenticate with Okta** | Okta 接受用于 System Log 的令牌，读取一个事件且不带过滤器。 |
-| **Read System Log events** | 能通过轮询使用的过滤器（你自己的或默认的）读取过去 24 小时内的一个事件，所以无效的 **Event filter** 会在这里失败，而不是在第一次轮询时失败。 |
+| **Read System Log events** | 能通过轮询使用的过滤器（你自己的或默认的）读取过去 24 小时内的一个事件，所以无效的 **事件筛选器** 会在这里失败，而不是在第一次轮询时失败。 |
 | **Events available to import** | 过去 24 小时和过去 7 天内发布了多少个事件，各统计一页（1,000 个），所以 `1000+` 表示更多。7 天内一个都没有是警告，而不是失败。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一侧：有进程在处理 Worker 队列的作业，轮询作业每分钟运行一次，安全事件存储能够响应。 |
-| **Scheduled polling** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
+| **计划轮询** | 针对已保存的连接：轮询已开启，没有运行卡在等待工作进程的状态，并且轮询按时运行。 |
 
 测试中的每个请求都有 20 秒的期限。测试从不导入任何内容，也不移动游标，每个失败的检查都会说明需要更改什么。
 
@@ -168,7 +168,7 @@ Stopped after collecting 10000 events; the window holds more. The last event rea
 连接的 **最近错误** 会保留完整的错误消息（凭据已隐去），前面带有一个指明失败步骤的前缀。连接出错时，在它的 **操作** 列中选择 **查看错误** 来阅读，并在对话框中用 **复制错误** 复制。每条消息都以 `Okta System Log events request` 开头，并在状态之后引用 Okta 自己的错误代码；请阅读后面的内容。
 
 :::details Last Error 显示 `failed (HTTP 400)`
-Okta 拒绝了请求的参数（`E0000053`）。如果令牌有效，问题几乎总是出在 **Event filter** 上：请检查它的运算符（`eq`、`ne`、`co`、`sw`、`ew`、`pr`、`gt`、`ge`、`lt` 和 `le`）、它的 `and` 和 `or`，以及值两边的双引号，或者清空它以使用默认事件族。对于导入，这也可能表示范围的开始时间早于 180 天前。
+Okta 拒绝了请求的参数（`E0000053`）。如果令牌有效，问题几乎总是出在 **事件筛选器** 上：请检查它的运算符（`eq`、`ne`、`co`、`sw`、`ew`、`pr`、`gt`、`ge`、`lt` 和 `le`）、它的 `and` 和 `or`，以及值两边的双引号，或者清空它以使用默认事件族。对于导入，这也可能表示范围的开始时间早于 180 天前。
 :::
 
 :::details Last Error 显示 `failed (HTTP 401)` 或 `failed (HTTP 403)`
@@ -194,12 +194,12 @@ Okta 拒绝了请求的参数（`E0000053`）。如果令牌有效，问题几�
 :::
 
 :::details 运行为 Partial
-- `Stopped after collecting 10000 events`：窗口中的事件超过了一次运行能读取的 10,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个事件之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压的内容，它的 **最近轮询** 和 **最近导入的事件** 会不断前进。如果它始终追不上，说明该组织发布的匹配事件多到一个轮询间隔装不下：请缩小 **Event filter** 的范围，或者缩短 **轮询间隔（分钟）**。
-- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **Import this time range** 导入它。一次导入读取的量与一次轮询相同。
+- `Stopped after collecting 10000 events`：窗口中的事件超过了一次运行能读取的 10,000 个。不会丢失任何内容：下一次轮询会从读取的最后一个事件之后开始。一次又一次轮询都保持 **部分** 的连接正在追赶积压的内容，它的 **最近轮询** 和 **最近导入的事件** 会不断前进。如果它始终追不上，说明该组织发布的匹配事件多到一个轮询间隔装不下：请缩小 **事件筛选器** 的范围，或者缩短 **轮询间隔（分钟）**。
+- `More records were created in the one minute from ... than one poll can read`：轮询越过了这一分钟。请在 **诊断** 中用 **导入此时间范围** 导入它。一次导入读取的量与一次轮询相同。
 :::
 
 :::details 测试通过，但没有导入任何内容
-阅读测试报告中的 **Events available to import**。使用默认过滤器时，有用户的组织会一直发布登录事件，所以过去 7 天为 `0` 表示该 URL 是一个沙盒或未使用的组织。使用你自己的 **Event filter** 时，这表示过滤器什么都没匹配到：请与 Admin Console 的 System Log 中的事件类型进行比较。
+阅读测试报告中的 **Events available to import**。使用默认过滤器时，有用户的组织会一直发布登录事件，所以过去 7 天为 `0` 表示该 URL 是一个沙盒或未使用的组织。使用你自己的 **事件筛选器** 时，这表示过滤器什么都没匹配到：请与 Admin Console 的 System Log 中的事件类型进行比较。
 :::
 
 ## 你会得到什么

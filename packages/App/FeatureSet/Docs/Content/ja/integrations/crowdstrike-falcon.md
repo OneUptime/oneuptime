@@ -25,7 +25,7 @@ OneUptime は 1 分ごとに、ポーリング間隔が経過した有効な接�
 
 - OneUptime で Project Owner、Project Admin、または Security Admin のロール。Security Member と Security Viewer は接続とその実行履歴を見ることはできますが、変更はできません。
 - Falcon の顧客 ID（CID）と、API クライアントを管理できる Falcon コンソールのユーザー。Falcon Administrator ロール、または API clients and keys の権限を持つカスタムロール。
-- OneUptime のアプリと worker から、下の **Falcon cloud** に記載されている Falcon クラウドの API ホストへの送信 HTTPS。
+- OneUptime のアプリと worker から、下の **Falcon クラウド** に記載されている Falcon クラウドの API ホストへの送信 HTTPS。
 
 ## 接続を設定する
 
@@ -59,7 +59,7 @@ Falcon が表示したベース URL から、CID がどのクラウドにある�
 | 設定 | 入力する内容 |
 | --- | --- |
 | **クライアント ID** | クライアント作成時に Falcon が表示した API クライアントの ID。 |
-| **Falcon cloud** | CID があるクラウド。**US-1 (api.crowdstrike.com)**、**US-2 (api.us-2.crowdstrike.com)**、**EU-1 (api.eu-1.crowdstrike.com)**、**US-GOV-1 (api.laggar.gcw.crowdstrike.com)** のいずれか。すべてのリクエストはそのクラウドの API ホストに送られます。 |
+| **Falcon クラウド** | CID があるクラウド。**US-1 (api.crowdstrike.com)**、**US-2 (api.us-2.crowdstrike.com)**、**EU-1 (api.eu-1.crowdstrike.com)**、**US-GOV-1 (api.laggar.gcw.crowdstrike.com)** のいずれか。すべてのリクエストはそのクラウドの API ホストに送られます。 |
 | **クライアントシークレット** | API クライアントのシークレット。暗号化され、API から返されることはなく、二度と表示されません。接続の **認証情報を更新** で置き換えます。 |
 
 **ポーリング** ステップには、任意の **説明**、`1`～`1440` の整数で初期値 `5` の **ポーリング間隔（分）**、初期状態でオンの **有効** もあります。有効になっていない接続でも、テストや手動のポーリングはできます。
@@ -119,7 +119,7 @@ Falcon のエラーで完全に失敗した実行は、カーソルと時間枠�
 接続の **診断** をクリックすると、最近の実行を確認し、手動で操作できます。これらを開始できるのは接続を変更できるユーザーで、履歴は接続を見られるユーザーなら誰でも読めます。
 
 - **今すぐ実行** は、接続が **有効** でなくても、通常のカーソルでただちにポーリングを開始します。
-- **Preview alerts** は最大 7 日間の時間範囲を読み取り、何もインポートしません。
+- **アラートをプレビュー** は最大 7 日間の時間範囲を読み取り、何もインポートしません。
 - **この時間範囲をインポート** は、確認後、カーソルを動かさずに最大 7 日間の範囲をインポートします。インポート済みのアラートはスキップされます。
 - 実行の **診断情報をコピー** は、サポート向けにその実行のレポートをコピーします。認証情報は含まれません。
 
@@ -129,7 +129,7 @@ Falcon のエラーで完全に失敗した実行は、カーソルと時間枠�
 
 | チェック | 確認内容 |
 | --- | --- |
-| **構成** | **クライアント ID**、**Falcon cloud**、**クライアントシークレット** が存在し、形式が正しいこと。失敗した場合はどこにも接続しません。 |
+| **構成** | **クライアント ID**、**Falcon クラウド**、**クライアントシークレット** が存在し、形式が正しいこと。失敗した場合はどこにも接続しません。 |
 | **Authenticate with CrowdStrike Falcon** | クラウドのホストで、API クライアントの ID とシークレットを使った `POST /oauth2/token` がトークンを返すこと。 |
 | **Read alerts from the Falcon Alerts API** | 過去 24 時間を対象とした一件のアラート（`limit=1`）のクエリが受け入れられること。これにより **Alerts → Read** スコープが確認できます。 |
 | **Alerts available to import** | 過去 24 時間と過去 7 日間に作成されたアラートの数。7 日間に一件もない場合は失敗ではなく警告です。ポーリングは Falcon が作成するたびに新しいアラートをインポートします。 |
@@ -143,13 +143,13 @@ Falcon のエラーで完全に失敗した実行は、カーソルと時間枠�
 接続の **最終エラー** と失敗した各チェックは、認証情報を伏せたうえで完全なエラーメッセージを保持し、その前に失敗したステップを示すプレフィックスを付けます。接続にエラーがある場合は、その **アクション** 列で **エラーを表示** を選んで読み、ダイアログの **エラーをコピー** でコピーします。まずプレフィックスを読んでください。
 
 :::details 最終エラーが `CrowdStrike Falcon token request` で始まる
-- `CrowdStrike Falcon token request failed (HTTP 401)` または `(HTTP 403)`: Alerts API に接続する前に、Falcon が API クライアントの ID とシークレットを拒否しました。別のクラウドのクライアントはここで拒否されるため、**Falcon cloud** が CID のクラウドであること、**クライアント ID** がそのクライアントのものであること、**クライアントシークレット** がそのクライアントとともに発行されたシークレットであることを確認します。シークレットを紛失した場合は、Falcon コンソールでリセットし、**認証情報を更新** で保存します。
+- `CrowdStrike Falcon token request failed (HTTP 401)` または `(HTTP 403)`: Alerts API に接続する前に、Falcon が API クライアントの ID とシークレットを拒否しました。別のクラウドのクライアントはここで拒否されるため、**Falcon クラウド** が CID のクラウドであること、**クライアント ID** がそのクライアントのものであること、**クライアントシークレット** がそのクライアントとともに発行されたシークレットであることを確認します。シークレットを紛失した場合は、Falcon コンソールでリセットし、**認証情報を更新** で保存します。
 - `CrowdStrike Falcon token request returned ...`: Falcon が、JSON でない本文や `access_token` のない本文など、使えない応答を返しました。通常は認証情報ではなく、間にあるプロキシやゲートウェイが原因です。
 :::
 
 :::details 最終エラーが `CrowdStrike Falcon alerts` で始まる
 - `CrowdStrike Falcon alerts query failed (HTTP 403)`: トークンは受け入れられましたが、API クライアントに **Alerts → Read** スコープがありません。**API clients and keys** でクライアントのスコープをオンにして保存します。反映されるのは次のトークンからなので、1 分ほど待ってから再度テストします。
-- `CrowdStrike Falcon alerts query failed (HTTP 401)`: Alerts API がトークンを拒否しました。ほとんどの場合、**Falcon cloud** がクライアントを発行したクラウドではありません。
+- `CrowdStrike Falcon alerts query failed (HTTP 401)`: Alerts API がトークンを拒否しました。ほとんどの場合、**Falcon クラウド** がクライアントを発行したクラウドではありません。
 - `CrowdStrike Falcon alerts query failed (HTTP 429)` または `CrowdStrike Falcon alerts fetch failed (HTTP 429)`: Falcon がこの API クライアントのレートを制限しています。OneUptime の HTTP クライアントはエラー時に応答ヘッダーを保持しないため、メッセージは値を示す代わりに通常 `the X-RateLimit-RetryAfter header was not available` で終わります。スケジュールされたポーリングは自動的に再試行します。続く場合は、他のツールと共有するのではなく、OneUptime 専用の API クライアントを用意します。
 - `CrowdStrike Falcon alerts query failed (HTTP 400)`: Falcon がクエリを拒否しました。接続は `created_timestamp` に対する固定の FQL フィルターを送信するため、レポートをコピーして OneUptime サポートに送ってください。
 - `CrowdStrike Falcon alerts query returned ...` または `CrowdStrike Falcon alerts fetch returned ...`: Falcon は `200` を返しましたが、本文が JSON でないか、接続が知らない形式でした。誰も読んでいないアラートをカーソルが飛び越えないよう、空の時間枠とは見なさずに報告します。
