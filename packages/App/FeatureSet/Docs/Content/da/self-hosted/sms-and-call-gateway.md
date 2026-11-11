@@ -125,4 +125,5 @@ SMS- eller opkaldsloggen, og for et vagttilkald personens vagtlog, viser `Sent t
 - [Push-notifikationer](/docs/self-hosted/push-notifications): Slå push fra for hele serveren.
 - [Twilio-integration](/docs/self-hosted/twilio-integration): Send gennem Twilio i stedet.
 - [Adgang til privat netværk](/docs/self-hosted/private-network-access): Hvad din server må nå på dit eget netværk.
+- [Metrikker for notifikationslevering](/docs/self-hosted/notification-delivery-metrics): Tæl de beskeder, din gateway tager imod og afviser.
 :::

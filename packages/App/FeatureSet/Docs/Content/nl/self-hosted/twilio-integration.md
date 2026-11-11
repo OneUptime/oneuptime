@@ -184,4 +184,5 @@ Een nummer dat voor sms is geverifieerd, is ook voor oproepen geverifieerd, zond
 - [Sms- en belgateway](/docs/self-hosted/sms-and-call-gateway): Sms-berichten en oproepen via uw eigen provider versturen in plaats van via Twilio.
 - [SMTP](/docs/emails/smtp): Ook e-mail via uw eigen mailserver versturen.
 - [Toegang tot privénetwerken](/docs/self-hosted/private-network-access): Workflows en webhooks interne tools laten bereiken.
+- [Metrics voor de bezorging van meldingen](/docs/self-hosted/notification-delivery-metrics): Meten hoeveel sms-berichten en oproepen Twilio en de telefoon bereiken.
 :::

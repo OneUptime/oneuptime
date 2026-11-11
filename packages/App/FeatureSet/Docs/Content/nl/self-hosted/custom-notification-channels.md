@@ -183,7 +183,7 @@ Een melding gaat naar elk kanaal dat aan staat, als één verzoek per kanaal, me
 
 ## Aflevering en nieuwe pogingen
 
-Een verzoek telt als afgeleverd wanneer uw dienst binnen 10 seconden antwoordt met een 2xx-status. Een verzoek waarop hij niet antwoordde, of antwoordde met 408, 429 of een 5xx-status, wordt opnieuw verstuurd na 1 seconde en na nog eens 4 seconden: drie pogingen in totaal. Bij elke andere 4xx-status wordt het niet opnieuw verstuurd.
+Een verzoek telt als afgeleverd wanneer uw dienst binnen 10 seconden antwoordt met een 2xx-status. Een verzoek waarop hij niet antwoordde, of antwoordde met 408, 429 of een 5xx-status, wordt opnieuw verstuurd na 1 seconde en na nog eens 4 seconden: drie pogingen in totaal. Bij elke andere 4xx-status wordt het niet opnieuw verstuurd. Hoe elk bericht afliep, wordt geteld in de [Metrics voor de bezorging van meldingen](/docs/self-hosted/notification-delivery-metrics), per ID en naam van het kanaal.
 
 De uitkomst van elke poging staat in het bereikbaarheidslogboek van de persoon, met de naam van het kanaal en de status waarmee uw dienst antwoordde, nooit de URL. Een oproep die niet wordt afgeleverd, stopt het bereikbaarheidsbeleid niet: als niemand bevestigt, escaleert het zoals gewoonlijk. Houd verderop in uw regels een e-mail- of sms-regel als uw dienst de enige manier is om mensen te bereiken.
 

@@ -125,4 +125,5 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 - [推播通知](/docs/self-hosted/push-notifications): 為整個伺服器關閉推播。
 - [Twilio 整合](/docs/self-hosted/twilio-integration): 改為透過 Twilio 傳送。
 - [私有網路存取](/docs/self-hosted/private-network-access): 你的伺服器可以在你自己的網路上存取哪些內容。
+- [通知傳遞指標](/docs/self-hosted/notification-delivery-metrics): 統計你的閘道接受和拒絕的訊息。
 :::

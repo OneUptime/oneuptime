@@ -125,4 +125,5 @@ Le journal des SMS ou des appels, et pour une alerte d'astreinte le journal d'as
 - [Notifications push](/docs/self-hosted/push-notifications): Désactiver le push sur tout le serveur.
 - [Intégration Twilio](/docs/self-hosted/twilio-integration): Envoyer plutôt par Twilio.
 - [Accès au réseau privé](/docs/self-hosted/private-network-access): Ce que votre serveur peut joindre sur votre propre réseau.
+- [Métriques de distribution des notifications](/docs/self-hosted/notification-delivery-metrics): Compter les messages que votre passerelle accepte et refuse.
 :::

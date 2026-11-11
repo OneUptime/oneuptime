@@ -125,4 +125,5 @@ O registro de SMS ou de chamadas, e para um acionamento de plantão o registro d
 - [Notificações push](/docs/self-hosted/push-notifications): Desativar o push para o servidor inteiro.
 - [Integração do Twilio](/docs/self-hosted/twilio-integration): Enviar pelo Twilio em vez disso.
 - [Acesso à rede privada](/docs/self-hosted/private-network-access): O que o seu servidor pode alcançar na sua própria rede.
+- [Métricas de entrega de notificações](/docs/self-hosted/notification-delivery-metrics): Contar as mensagens que o seu gateway aceita e recusa.
 :::

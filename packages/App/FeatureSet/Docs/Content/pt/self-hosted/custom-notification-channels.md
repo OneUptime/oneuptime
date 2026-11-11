@@ -183,7 +183,7 @@ Uma notificação vai para cada canal ativado, como uma solicitação por canal,
 
 ## Entrega e novas tentativas
 
-Uma solicitação conta como entregue quando o seu serviço responde com um status 2xx em até 10 segundos. Uma solicitação que ele não respondeu, ou respondeu com 408, 429 ou um status 5xx, é enviada de novo depois de 1 segundo e depois de mais 4 segundos: três tentativas no total. Nenhum outro status 4xx gera novo envio.
+Uma solicitação conta como entregue quando o seu serviço responde com um status 2xx em até 10 segundos. Uma solicitação que ele não respondeu, ou respondeu com 408, 429 ou um status 5xx, é enviada de novo depois de 1 segundo e depois de mais 4 segundos: três tentativas no total. Nenhum outro status 4xx gera novo envio. O resultado de cada mensagem é contado nas [Métricas de entrega de notificações](/docs/self-hosted/notification-delivery-metrics), pelo ID e pelo nome do canal.
 
 O resultado de cada tentativa fica no registro de plantão da pessoa, com o nome do canal e o status que o seu serviço respondeu, nunca a URL. Um acionamento não entregue não interrompe a política de plantão: se ninguém confirmar, ele é escalonado como de costume. Mantenha uma regra de e-mail ou SMS mais adiante nas suas regras se o seu serviço for a única forma de alcançar as pessoas.
 
