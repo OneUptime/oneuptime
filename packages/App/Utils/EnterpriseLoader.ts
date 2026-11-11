@@ -107,6 +107,12 @@ export const ENTERPRISE_OWNED_JOB_NAMES: ReadonlyArray<string> = [
    * repeatable definition in Redis.
    */
   "OnCallDutyPolicy:AddCustomChannelToEveryonesRules",
+  /*
+   * Ends the sessions that have run out, so their timeouts reach the audit
+   * log within minutes (issue #6762). An installation that moves back to
+   * the Community Edition keeps the repeatable definition in Redis.
+   */
+  "AuditLog:EndSessionsThatRanOut",
 ];
 
 export const DEFAULT_ENTERPRISE_INIT_TIMEOUT_IN_MS: number = 30 * 1000;

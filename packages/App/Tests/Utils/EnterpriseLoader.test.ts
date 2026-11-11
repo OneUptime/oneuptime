@@ -63,6 +63,7 @@ const ENTERPRISE_JOB_NAMES: Array<string> = [
   "AuditLogExport:ExportAuditLogs",
   "Backup:RunBackups",
   "OnCallDutyPolicy:AddCustomChannelToEveryonesRules",
+  "AuditLog:EndSessionsThatRanOut",
 ];
 
 const fixture: (name: string) => string = (name: string): string => {
@@ -1090,7 +1091,7 @@ describe("EnterpriseLoader: the request and the edition default to the environme
 });
 
 describe("EnterpriseLoader worker jobs", () => {
-  test("the ee-owned cron names are the five ee used to register from core, the self-hosted marketplace usage job, OneUptime Cloud's billing jobs and the audit log export", async () => {
+  test("the ee-owned cron names are the five ee used to register from core, the self-hosted marketplace usage job, OneUptime Cloud's billing jobs, the audit log export and the session sweep", async () => {
     const { loaderModule } = await loadFresh();
 
     expect([...loaderModule.ENTERPRISE_OWNED_JOB_NAMES]).toEqual(

@@ -22,6 +22,7 @@ import TeamMemberService from "./TeamMemberService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
 import UserNotificationSettingService from "./UserNotificationSettingService";
 import UserSessionService from "./UserSessionService";
+import { SessionEndCause } from "../../Types/UserSession/SessionEndCause";
 import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../Utils/Realtime/RealtimeAccessChanges";
@@ -948,7 +949,7 @@ export class Service extends DatabaseService<Model> {
       for (const userId of updatedItemIds) {
         if (onUpdate.updateBy.data.isBlocked) {
           await UserSessionService.revokeAllSessionsByUserId(userId, {
-            reason: "User blocked",
+            cause: SessionEndCause.AccountBlocked,
           });
 
           /*
@@ -985,7 +986,8 @@ export class Service extends DatabaseService<Model> {
       for (const user of onUpdate.carryForward) {
         // Revoke all active sessions for this user on password change
         await UserSessionService.revokeAllSessionsByUserId(user.id!, {
-          reason: "Password changed",
+          cause: SessionEndCause.PasswordChanged,
+          requestOrigin: onUpdate.updateBy.props.requestOrigin,
         });
 
         /*
@@ -1631,10 +1633,10 @@ export class Service extends DatabaseService<Model> {
       /*
        * Kept short on purpose: `UserSession.revokedReason` is a ShortText
        * column, and an over-long reason would fail the write that is supposed
-       * to be closing a security window.
+       * to be closing a security window (SessionEndCause's words are).
        */
       await UserSessionService.revokeAllSessionsByUserId(user.id!, {
-        reason: "Two factor auth required by admin",
+        cause: SessionEndCause.TwoFactorRequired,
       });
     }
 
@@ -1728,7 +1730,7 @@ export class Service extends DatabaseService<Model> {
      * person holding the stolen device.
      */
     await UserSessionService.revokeAllSessionsByUserId(user.id!, {
-      reason: "Two factor auth reset by admin",
+      cause: SessionEndCause.TwoFactorReset,
     });
 
     /*

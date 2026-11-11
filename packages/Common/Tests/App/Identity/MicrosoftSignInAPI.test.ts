@@ -16,6 +16,7 @@ import AuthenticationEmail from "../../../../App/FeatureSet/Identity/Utils/Authe
 import MicrosoftSignInRouter from "../../../../App/FeatureSet/Identity/API/MicrosoftSignIn";
 import { SSO_REQUIRED_SIGN_IN_MESSAGE } from "../../../Types/SSO/SignInMethods";
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
+import { SignInMethod } from "../../../Types/UserSession/SessionSignIn";
 
 /*
  * Sign in with Microsoft's two endpoints. The callback is where a Microsoft
@@ -355,7 +356,8 @@ describe("GET /microsoft/callback", () => {
       expect.objectContaining({
         userId: user.id,
         isGlobalLogin: true,
-        additionalInfo: { signInMethod: "Microsoft" },
+        // The audit log names how they signed in (SessionSignIn).
+        signIn: { method: SignInMethod.Microsoft },
       }),
     );
     expect(CookieUtil.setUserCookie).toHaveBeenCalledWith(

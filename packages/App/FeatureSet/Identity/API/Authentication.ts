@@ -73,6 +73,12 @@ import UserSessionService, {
   SessionRenewalDecision,
 } from "Common/Server/Services/UserSessionService";
 import SessionEndedException from "Common/Types/Exception/SessionEndedException";
+import { SessionEndCause } from "Common/Types/UserSession/SessionEndCause";
+import {
+  SecondFactor,
+  SessionSignIn,
+  SignInMethod,
+} from "Common/Types/UserSession/SessionSignIn";
 import {
   INACTIVE_FOR_IN_SECONDS_FIELD,
   readReportedInactivityInSeconds,
@@ -226,6 +232,8 @@ type FinalizeUserLoginInput = {
   res: ExpressResponse;
   user: User;
   isGlobalLogin: boolean;
+  // How they signed in, for the audit log's sign-in entry (SessionSignIn).
+  signIn: SessionSignIn;
   setCookie?: boolean;
 };
 
@@ -243,6 +251,8 @@ const finalizeUserLogin: (
       ipAddress: getClientIp(req),
       userAgent: headerValueToString(req.headers["user-agent"]),
       ...extractDeviceInfo(req),
+      signIn: data.signIn,
+      requestOrigin: RequestOriginUtil.fromRequest(req),
     });
 
   if (data.setCookie !== false) {
@@ -452,6 +462,7 @@ router.post(
         res,
         user,
         isGlobalLogin: true,
+        signIn: { method: SignInMethod.Passkey },
       });
 
       logger.info(
@@ -523,6 +534,7 @@ router.post(
         res,
         user,
         isGlobalLogin: true,
+        signIn: { method: SignInMethod.Passkey },
         setCookie: false,
       });
       logger.info(
@@ -993,6 +1005,7 @@ router.post(
           res,
           user: savedUser,
           isGlobalLogin: true,
+          signIn: { method: SignInMethod.Password },
         });
 
         logger.info(
@@ -2111,7 +2124,8 @@ router.post(
 
       // Revoke all active sessions for this user on password reset
       await UserSessionService.revokeAllSessionsByUserId(alreadySavedUser.id!, {
-        reason: "Password reset",
+        cause: SessionEndCause.PasswordReset,
+        requestOrigin: RequestOriginUtil.fromRequest(req),
       });
 
       logger.info(
@@ -2191,7 +2205,7 @@ router.post(
         OneUptimeDate.hasExpired(session.refreshTokenExpiresAt)
       ) {
         await UserSessionService.revokeSessionById(session.id, {
-          reason: "Refresh token expired",
+          cause: SessionEndCause.Expired,
         });
         CookieUtil.removeAllCookies(req, res);
         return Response.sendErrorResponse(
@@ -2250,7 +2264,7 @@ router.post(
        */
       if (user.isBlocked) {
         await UserSessionService.revokeSessionById(session.id, {
-          reason: "User blocked",
+          cause: SessionEndCause.AccountBlocked,
         });
         CookieUtil.removeAllCookies(req, res);
         return Response.sendErrorResponse(
@@ -2364,7 +2378,9 @@ router.post(
 
       if (refreshToken) {
         await UserSessionService.revokeSessionByRefreshToken(refreshToken, {
-          reason: "User logout",
+          cause: SessionEndCause.SignedOut,
+          // Where they signed out from, for the audit log's entry.
+          requestOrigin: RequestOriginUtil.fromRequest(req),
         });
       }
 
@@ -2820,6 +2836,37 @@ const tellOwnerAboutWrongCode: TellOwnerAboutWrongCodeFunction = async (data: {
  * that: it finishes whichever first step began it, by what its request
  * carries -- the password again, or the link's token again.
  */
+/*
+ * The second factor a login proved, for the audit log's sign-in entry
+ * (SessionSignIn): the step it is finishing, or none for an account
+ * without one. An enrolment proves the authenticator app it sets up.
+ */
+const getSecondFactorOfLogin: (stage: {
+  verifyTotpAuth: boolean;
+  verifyWebAuthn: boolean;
+  verifyTotpEnrolment: boolean;
+  verifyBackupCode: boolean;
+}) => SecondFactor | undefined = (stage: {
+  verifyTotpAuth: boolean;
+  verifyWebAuthn: boolean;
+  verifyTotpEnrolment: boolean;
+  verifyBackupCode: boolean;
+}): SecondFactor | undefined => {
+  if (stage.verifyTotpAuth || stage.verifyTotpEnrolment) {
+    return SecondFactor.AuthenticatorApp;
+  }
+
+  if (stage.verifyWebAuthn) {
+    return SecondFactor.SecurityKey;
+  }
+
+  if (stage.verifyBackupCode) {
+    return SecondFactor.BackupCode;
+  }
+
+  return undefined;
+};
+
 type LoginFunction = (options: {
   req: ExpressRequest;
   res: ExpressResponse;
@@ -3862,6 +3909,17 @@ const login: LoginFunction = async (options: {
           res,
           user: alreadySavedUser,
           isGlobalLogin: true,
+          signIn: {
+            method: isMagicLinkSignIn
+              ? SignInMethod.SignInLink
+              : SignInMethod.Password,
+            secondFactor: getSecondFactorOfLogin({
+              verifyTotpAuth,
+              verifyWebAuthn,
+              verifyTotpEnrolment,
+              verifyBackupCode,
+            }),
+          },
         });
 
         /*

@@ -24,6 +24,8 @@ import ObjectID from "Common/Types/ObjectID";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import PositiveNumber from "Common/Types/PositiveNumber";
 import SsoProviderType from "Common/Types/SSO/SsoProviderType";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import DatabaseConfig from "Common/Server/DatabaseConfig";
 import { Host, HttpProtocol } from "Common/Server/EnvironmentConfig";
 import AccessTokenService from "Common/Server/Services/AccessTokenService";
@@ -403,6 +405,8 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         isEnabled: true,
       },
       select: {
+        // The audit log's sign-in entry names the provider (SessionSignIn).
+        name: true,
         discoveryURL: true,
         issuerURL: true,
         clientId: true,
@@ -763,6 +767,12 @@ const handleGlobalOidcCallback: HandleGlobalOidcCallbackFunction = async (
         userAgent: headerValueToString(req.headers["user-agent"]),
         ...extractDeviceInfo(req),
         additionalInfo: { globalOidcId: globalOidcId.toString() },
+        requestOrigin: RequestOriginUtil.fromRequest(req),
+        // The server's own provider: every project's audit log names it.
+        signIn: {
+          method: SignInMethod.OpenIdConnect,
+          ssoProviderName: globalOidc.name,
+        },
       });
 
     /*

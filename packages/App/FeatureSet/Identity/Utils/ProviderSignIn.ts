@@ -32,6 +32,8 @@ import logger, {
 } from "Common/Server/Utils/Logger";
 import Response from "Common/Server/Utils/Response";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
+import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
+import { SignInMethod } from "Common/Types/UserSession/SessionSignIn";
 import User from "Common/Models/DatabaseModels/User";
 import AuthenticationEmail from "./AuthenticationEmail";
 
@@ -99,6 +101,8 @@ export interface SignInProvider {
   path: string;
   // What the Dashboard's mark of a sign-up names it (SignedUpWithProviders).
   signedUpWith: string;
+  // How the audit log names a sign-in with it (Types/UserSession/SessionSignIn).
+  signInMethod: SignInMethod;
   // Its client, or null where this server has no app for it.
   getClient: () => ProviderSignInClient | null;
   // The words its client's refusal has for the person, or null for any other error.
@@ -455,7 +459,8 @@ const createProviderSignInRouter: (
             ipAddress: getClientIp(req),
             userAgent: headerValueToString(req.headers["user-agent"]),
             ...extractDeviceInfo(req),
-            additionalInfo: { signInMethod: provider.name },
+            requestOrigin: RequestOriginUtil.fromRequest(req),
+            signIn: { method: provider.signInMethod },
           });
 
         CookieUtil.setUserCookie({

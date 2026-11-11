@@ -1,25 +1,42 @@
+import AuditLogService from "./AuditLogService";
 import DatabaseService from "./DatabaseService";
 import EnterpriseEdition from "../Enterprise/EnterpriseEdition";
 import { OnDelete, OnUpdate } from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
+import UpdateBy from "../Types/Database/UpdateBy";
 import { IsNull, SelectQueryBuilder, UpdateResult } from "typeorm";
 import RealtimeAccessChanges, {
   RealtimeAccessChangeKind,
 } from "../Utils/Realtime/RealtimeAccessChanges";
+import UserAgentDevice from "../Utils/RequestOrigin/UserAgentDevice";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import Model from "../../Models/DatabaseModels/UserSession";
+import AuditLogAction from "../../Types/AuditLog/AuditLogAction";
+import {
+  getSessionEndAuditLogAction,
+  SessionAuditEvent,
+} from "../../Types/AuditLog/AuditLogSessionEvent";
+import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import ObjectID from "../../Types/ObjectID";
 import LIMIT_MAX from "../../Types/Database/LimitMax";
 import { JSONObject } from "../../Types/JSON";
 import HashedString from "../../Types/HashedString";
+import RequestOrigin from "../../Types/RequestOrigin";
 import { EncryptionSecret } from "../EnvironmentConfig";
 import OneUptimeDate from "../../Types/Date";
 import Text from "../../Types/Text";
 import logger from "../Utils/Logger";
 import Exception from "../../Types/Exception/Exception";
 import {
+  getSessionEndCauseRevokedReason,
+  NamedSessionEndCause,
+  readSessionEndCause,
+  SessionEndCause,
+} from "../../Types/UserSession/SessionEndCause";
+import {
   DEFAULT_SESSION_IDLE_DAYS,
   getActivityAtRenewal,
+  getIdleTimeoutInMinutes,
   getSessionEnd,
   getSessionEndReachedBy,
   getSessionLengthRule,
@@ -29,6 +46,13 @@ import {
   SessionLengthRule,
   SessionLengths,
 } from "../../Types/UserSession/SessionLength";
+import {
+  readSessionSignIn,
+  readSessionSignInOrigin,
+  SessionSignIn,
+  SessionSignInOrigin,
+  toSessionSignInInfo,
+} from "../../Types/UserSession/SessionSignIn";
 
 export interface SessionMetadata {
   session: Model;
@@ -68,14 +92,28 @@ export type SessionRenewalDecision =
 /*
  * The revocation reason a session ended by the server's session lengths is
  * kept with (UserSession.revokedReason, a ShortText column), one for each
- * reason, so a refresh that comes after can say why it ended.
+ * reason, so a refresh that comes after can say why it ended - the words of
+ * its cause (Types/UserSession/SessionEndCause), which the audit log reads
+ * as a timeout.
  */
 export const SESSION_END_REVOKED_REASONS: Readonly<
   Record<SessionEndReason, string>
 > = {
-  [SessionEndReason.LengthReached]: "Session length reached",
-  [SessionEndReason.Inactive]: "Idle timeout reached",
+  [SessionEndReason.LengthReached]: getSessionEndCauseRevokedReason(
+    SessionEndCause.LengthReached,
+  ),
+  [SessionEndReason.Inactive]: getSessionEndCauseRevokedReason(
+    SessionEndCause.IdleTimeout,
+  ),
 };
+
+/*
+ * How long back a sweep (endSessionsThatRanOut) looks for sessions that
+ * ran out: ones that ran out longer ago are left as they are - they are
+ * refused at their next refresh all the same - so the first sweep after an
+ * upgrade, or after the workers were down, records a day of them at most.
+ */
+export const SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS: number = 24;
 
 // Who a change to the session lengths would sign out at once (countPeoplePastLengths).
 export interface SessionLengthsImpact {
@@ -103,6 +141,13 @@ export interface CreateSessionOptions {
   deviceOS?: string | undefined;
   deviceBrowser?: string | undefined;
   additionalInfo?: JSONObject | undefined;
+  /*
+   * How the person signed in (Types/UserSession/SessionSignIn), and where
+   * from (RequestOriginUtil.fromRequest): the session keeps both, and the
+   * audit log says them at its sign-in and again when it ends.
+   */
+  signIn?: SessionSignIn | undefined;
+  requestOrigin?: RequestOrigin | undefined;
 }
 
 export interface RenewSessionOptions {
@@ -133,8 +178,55 @@ export interface TouchSessionOptions {
 }
 
 export interface RevokeSessionOptions {
+  /*
+   * Why it ended (Types/UserSession/SessionEndCause): kept as its words,
+   * which a later refresh and the audit log read. Takes the place of
+   * `reason`, which is for a revocation no cause names.
+   */
+  cause?: NamedSessionEndCause | undefined;
   reason?: string | undefined;
+  /*
+   * Where the request that ended it came from - a sign-out's - for the
+   * audit log's entry about it.
+   */
+  requestOrigin?: RequestOrigin | undefined;
 }
+
+/*
+ * A session a revocation is about to end, as the audit log's entry about
+ * its end needs it (onBeforeUpdate reads them, onUpdateSuccess records).
+ */
+interface SessionEnding {
+  session: Model;
+}
+
+// What onBeforeUpdate hands onUpdateSuccess.
+interface RevocationCarryForward {
+  endingSessions: Array<SessionEnding>;
+}
+
+// The columns an entry about a session's end is built from.
+const SESSION_END_SELECT: {
+  _id: true;
+  userId: true;
+  isRevoked: true;
+  createdAt: true;
+  lastActiveAt: true;
+  refreshTokenExpiresAt: true;
+  additionalInfo: true;
+  ipAddress: true;
+  userAgent: true;
+} = {
+  _id: true,
+  userId: true,
+  isRevoked: true,
+  createdAt: true,
+  lastActiveAt: true,
+  refreshTokenExpiresAt: true,
+  additionalInfo: true,
+  ipAddress: true,
+  userAgent: true,
+};
 
 export class Service extends DatabaseService<Model> {
   private static readonly DEFAULT_REFRESH_TOKEN_TTL_DAYS: number =
@@ -186,6 +278,19 @@ export class Service extends DatabaseService<Model> {
           isRoot: true,
         },
       });
+
+      /*
+       * The sign-in, in the audit log of every project of theirs that keeps
+       * one (issue #6762). Never fails the sign-in: the delegate swallows
+       * whatever goes wrong.
+       */
+      await AuditLogService.recordSessionEvents([
+        Service.toSignInEvent({
+          session: createdSession,
+          userId: options.userId,
+          requestOrigin: options.requestOrigin,
+        }),
+      ]);
 
       return Service.buildSessionMetadata({
         session: createdSession,
@@ -378,7 +483,8 @@ export class Service extends DatabaseService<Model> {
   /*
    * Ends a session the server's session lengths have ended: revoked, with
    * the reason kept (SESSION_END_REVOKED_REASONS), which also ends its live
-   * updates on every server (onUpdateSuccess).
+   * updates on every server and records its timeout in the audit log
+   * (onUpdateSuccess).
    */
   @CaptureSpan()
   public async endSessionByLength(
@@ -386,7 +492,10 @@ export class Service extends DatabaseService<Model> {
     reason: SessionEndReason,
   ): Promise<void> {
     await this.revokeSessionById(sessionId, {
-      reason: SESSION_END_REVOKED_REASONS[reason],
+      cause:
+        reason === SessionEndReason.LengthReached
+          ? SessionEndCause.LengthReached
+          : SessionEndCause.IdleTimeout,
     });
   }
 
@@ -439,10 +548,11 @@ export class Service extends DatabaseService<Model> {
    * Ends, at once, every session the session lengths have already ended:
    * what a master admin's change to them means for the people signed in
    * now. Each one is revoked with its reason, as a renewal would have ended
-   * it (endSessionByLength), so its live updates end on every server and
-   * its next request and refresh are refused - by the database's clock,
-   * which keeps the sessions' own times. Only lengths that are set end
-   * anything. Returns how many sessions it ended.
+   * it (endSessionByLength), so its live updates end on every server, its
+   * timeout is in the audit log, and its next request and refresh are
+   * refused - by the database's clock, which keeps the sessions' own times.
+   * Only lengths that are set end anything. Returns how many sessions it
+   * ended.
    */
   @CaptureSpan()
   public async endSessionsPastLengths(
@@ -582,19 +692,109 @@ export class Service extends DatabaseService<Model> {
   private async endSessionsWhere(
     condition: PastLengthCondition,
   ): Promise<number> {
+    return await this.endSessionsSelectedBy({
+      buildQuery: (): SelectQueryBuilder<Model> => {
+        const parameters: Record<string, unknown> = {};
+
+        return this.getLiveSessionsQuery().andWhere(
+          Service.getPastLengthSql(condition, 0, parameters),
+          parameters,
+        );
+      },
+      revokedReason: SESSION_END_REVOKED_REASONS[condition.reason],
+      description: "past their length",
+    });
+  }
+
+  /*
+   * Ends, a batch at a time, the sessions that have run out and that
+   * nobody has ended yet - so their ends are in the audit log within
+   * minutes of happening, rather than whenever their browser or app comes
+   * back, if it ever does (issue #6762). Two kinds of session are past
+   * saving, and only those:
+   *
+   *   - one whose refresh token ran out: 30 days without use, which its
+   *     next refresh refuses all the same;
+   *   - one past its session length, when a master admin set one: the
+   *     length counts from its sign-in, however active its person is.
+   *
+   * Never a session past its idle timeout alone: a browser that renews it
+   * says how long its person has not used OneUptime, and that is what the
+   * timeout counts from (decideRenewal) - so whether it has timed out is
+   * decided at its renewal, and recorded then.
+   *
+   * Only sessions that ran out in the last SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS
+   * are ended: the first sweep after an upgrade records a day of them at
+   * most, not everyone who stopped using OneUptime in the last month. Each
+   * is revoked with its cause's words, as a refresh would have ended it.
+   * Returns how many sessions it ended.
+   */
+  @CaptureSpan()
+  public async endSessionsThatRanOut(
+    lengths: SessionLengths | null,
+  ): Promise<number> {
+    let ended: number = await this.endSessionsSelectedBy({
+      buildQuery: (): SelectQueryBuilder<Model> => {
+        return this.getQueryBuilder("session")
+          .where("session.isRevoked = false")
+          .andWhere("session.refreshTokenExpiresAt <= NOW()")
+          .andWhere(
+            "session.refreshTokenExpiresAt > NOW() - make_interval(hours => :ranOutLookbackHours)",
+            { ranOutLookbackHours: SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS },
+          );
+      },
+      revokedReason: getSessionEndCauseRevokedReason(SessionEndCause.Expired),
+      description: "whose refresh token ran out",
+    });
+
+    for (const condition of Service.getPastLengthConditions(lengths)) {
+      if (condition.reason !== SessionEndReason.LengthReached) {
+        continue;
+      }
+
+      ended += await this.endSessionsSelectedBy({
+        buildQuery: (): SelectQueryBuilder<Model> => {
+          const parameters: Record<string, unknown> = {
+            ranOutLookbackMinutes:
+              condition.minutes + SESSIONS_RAN_OUT_LOOKBACK_IN_HOURS * 60,
+          };
+
+          return this.getLiveSessionsQuery()
+            .andWhere(
+              Service.getPastLengthSql(condition, 0, parameters),
+              parameters,
+            )
+            .andWhere(
+              "session.createdAt > NOW() - make_interval(mins => :ranOutLookbackMinutes)",
+              parameters,
+            );
+        },
+        revokedReason: SESSION_END_REVOKED_REASONS[condition.reason],
+        description: "past their length",
+      });
+    }
+
+    return ended;
+  }
+
+  /*
+   * Ends the sessions a query selects, a batch at a time, each revoked with
+   * `revokedReason` - through updateBy, so every one ends its live updates
+   * and its end is recorded (onUpdateSuccess). How many it ended.
+   */
+  private async endSessionsSelectedBy(data: {
+    buildQuery: () => SelectQueryBuilder<Model>;
+    revokedReason: string;
+    description: string;
+  }): Promise<number> {
     let ended: number = 0;
 
     for (let batch: number = 0; batch < MAX_SESSION_END_BATCHES; batch++) {
-      const parameters: Record<string, unknown> = {};
-      const rows: Array<{ sessionId?: unknown }> =
-        await this.getLiveSessionsQuery()
-          .andWhere(
-            Service.getPastLengthSql(condition, 0, parameters),
-            parameters,
-          )
-          .select("session._id", "sessionId")
-          .limit(SESSIONS_ENDED_PER_BATCH)
-          .getRawMany();
+      const rows: Array<{ sessionId?: unknown }> = await data
+        .buildQuery()
+        .select("session._id", "sessionId")
+        .limit(SESSIONS_ENDED_PER_BATCH)
+        .getRawMany();
 
       const sessionIds: Array<ObjectID> = rows
         .map((row: { sessionId?: unknown }): string => {
@@ -619,7 +819,7 @@ export class Service extends DatabaseService<Model> {
         data: {
           isRevoked: true,
           revokedAt: OneUptimeDate.getCurrentDate(),
-          revokedReason: SESSION_END_REVOKED_REASONS[condition.reason],
+          revokedReason: data.revokedReason,
         },
         limit: SESSIONS_ENDED_PER_BATCH,
         skip: 0,
@@ -636,7 +836,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     logger.warn(
-      `UserSessionService: stopped ending sessions past their length after ${MAX_SESSION_END_BATCHES} batches; the rest are refused at their next refresh.`,
+      `UserSessionService: stopped ending sessions ${data.description} after ${MAX_SESSION_END_BATCHES} batches; the rest are refused at their next refresh.`,
     );
 
     return ended;
@@ -841,12 +1041,37 @@ export class Service extends DatabaseService<Model> {
       data: {
         isRevoked: true,
         revokedAt: OneUptimeDate.getCurrentDate(),
-        revokedReason: options?.reason ?? null,
+        revokedReason: Service.getRevokedReason(options),
       },
-      props: {
-        isRoot: true,
-      },
+      props: Service.getRevocationProps(options),
     });
+  }
+
+  // The words a revocation is kept with: its cause's, or the reason it gives.
+  private static getRevokedReason(
+    options: RevokeSessionOptions | undefined,
+  ): string | null {
+    if (options?.cause) {
+      return getSessionEndCauseRevokedReason(options.cause);
+    }
+
+    return options?.reason ?? null;
+  }
+
+  /*
+   * A revocation is OneUptime's own write, and carries where the request
+   * that asked for it came from, for the audit log's entry about it.
+   */
+  private static getRevocationProps(
+    options: RevokeSessionOptions | undefined,
+  ): DatabaseCommonInteractionProps {
+    const props: DatabaseCommonInteractionProps = { isRoot: true };
+
+    if (options?.requestOrigin) {
+      props.requestOrigin = options.requestOrigin;
+    }
+
+    return props;
   }
 
   public async revokeSessionByRefreshToken(
@@ -875,22 +1100,55 @@ export class Service extends DatabaseService<Model> {
       data: {
         isRevoked: true,
         revokedAt: OneUptimeDate.getCurrentDate(),
-        revokedReason: options?.reason ?? null,
+        revokedReason: Service.getRevokedReason(options),
       },
       limit: LIMIT_MAX,
       skip: 0,
-      props: {
-        isRoot: true,
-      },
+      props: Service.getRevocationProps(options),
     });
+  }
+
+  /*
+   * The sessions a revocation is about to end, read before it writes them
+   * (and the revocation held to exactly those rows), so the audit log can
+   * say what each one was once it has ended: whose it was, how and where it
+   * signed in, and when it was last used. A session revoked already is
+   * left out: it ended before, and its end was recorded then.
+   */
+  @CaptureSpan()
+  protected override async onBeforeUpdate(
+    updateBy: UpdateBy<Model>,
+  ): Promise<OnUpdate<Model>> {
+    if (updateBy.data.isRevoked !== true) {
+      return { updateBy, carryForward: null };
+    }
+
+    const sessions: Array<Model> = await this.findRowsAndHoldUpdateToThem(
+      updateBy,
+      SESSION_END_SELECT,
+    );
+
+    const carryForward: RevocationCarryForward = {
+      endingSessions: sessions
+        .filter((session: Model): boolean => {
+          return Boolean(session.id && session.userId && !session.isRevoked);
+        })
+        .map((session: Model): SessionEnding => {
+          return { session };
+        }),
+    };
+
+    return { updateBy, carryForward };
   }
 
   /*
    * A session that is revoked - signed out, a password changed, the person
    * blocked, a refresh token past its time - ends the live updates opened
-   * with it at once, on every server (RealtimeAccessChanges). Every
-   * revocation is an update through this service (revokeSessionById,
-   * revokeAllSessionsByUserId), so this is where they all pass.
+   * with it at once, on every server (RealtimeAccessChanges), and its end
+   * goes into the audit log (issue #6762). Every revocation is an update
+   * through this service (revokeSessionById, revokeAllSessionsByUserId,
+   * endSessionsPastLengths, endSessionsThatRanOut), so this is where they
+   * all pass.
    */
   @CaptureSpan()
   protected override async onUpdateSuccess(
@@ -899,9 +1157,93 @@ export class Service extends DatabaseService<Model> {
   ): Promise<OnUpdate<Model>> {
     if (onUpdate.updateBy.data.isRevoked === true) {
       Service.endLiveUpdatesOfSessions(updatedItemIds);
+
+      await this.recordSessionEnds({
+        carryForward: onUpdate.carryForward as
+          | RevocationCarryForward
+          | null
+          | undefined,
+        updatedItemIds: updatedItemIds,
+        revokedReason: onUpdate.updateBy.data.revokedReason,
+        props: onUpdate.updateBy.props,
+      });
     }
 
     return onUpdate;
+  }
+
+  /*
+   * The ends of the sessions a revocation ended - those it read before the
+   * write (onBeforeUpdate) and the write did end - in the audit log. Why
+   * they ended is what the revocation was kept with
+   * (Types/UserSession/SessionEndCause). Never fails the revocation.
+   */
+  private async recordSessionEnds(data: {
+    carryForward: RevocationCarryForward | null | undefined;
+    updatedItemIds: Array<ObjectID>;
+    revokedReason: unknown;
+    props: DatabaseCommonInteractionProps;
+  }): Promise<void> {
+    try {
+      const updated: Set<string> = new Set(
+        data.updatedItemIds.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      const endingSessions: Array<SessionEnding> = (
+        data.carryForward?.endingSessions || []
+      ).filter((ending: SessionEnding): boolean => {
+        return updated.has(ending.session.id!.toString());
+      });
+
+      if (endingSessions.length === 0) {
+        return;
+      }
+
+      const cause: SessionEndCause = readSessionEndCause(data.revokedReason);
+      const now: Date = OneUptimeDate.getCurrentDate();
+
+      const lengths: SessionLengths | null =
+        cause === SessionEndCause.IdleTimeout ||
+        cause === SessionEndCause.LengthReached
+          ? await Service.readLengthsForAuditLog()
+          : null;
+
+      const events: Array<SessionAuditEvent> = [];
+
+      for (const ending of endingSessions) {
+        const event: SessionAuditEvent | null = Service.toSessionEndEvent({
+          session: ending.session,
+          cause: cause,
+          lengths: lengths,
+          requestOrigin: data.props.requestOrigin,
+          now: now,
+        });
+
+        if (event) {
+          events.push(event);
+        }
+      }
+
+      await AuditLogService.recordSessionEvents(events);
+    } catch (err) {
+      logger.warn("UserSessionService: failed to record the end of sessions");
+      logger.warn(err);
+    }
+  }
+
+  /*
+   * The session lengths, for saying when a timed-out session ran out, or
+   * null when they cannot be read: the entry is recorded without that
+   * moment rather than not at all.
+   */
+  private static async readLengthsForAuditLog(): Promise<SessionLengths | null> {
+    try {
+      return await EnterpriseEdition.getUserSessionLengths();
+    } catch {
+      return null;
+    }
   }
 
   // A session that is deleted ends its live updates the same way.
@@ -981,12 +1323,193 @@ export class Service extends DatabaseService<Model> {
       session.ipAddress = ipAddress;
     }
 
+    /*
+     * How it signed in and from where, kept for the audit log's entries
+     * about it (Types/UserSession/SessionSignIn): its sign-in says them,
+     * and so does its end, whenever that comes.
+     */
     session.additionalInfo = {
       ...(options.additionalInfo || {}),
+      ...toSessionSignInInfo({
+        signIn: options.signIn,
+        origin: Service.getSignInOrigin(options),
+      }),
       isGlobalLogin: options.isGlobalLogin,
     } as JSONObject;
 
     return session;
+  }
+
+  /*
+   * Where a sign-in came from: what the request said (RequestOriginUtil), or
+   * the device its User-Agent describes when the caller handed no request
+   * over. Only words OneUptime spells out (UserAgentDevice).
+   */
+  private static getSignInOrigin(
+    options: CreateSessionOptions,
+  ): SessionSignInOrigin {
+    if (options.requestOrigin) {
+      return {
+        device: options.requestOrigin.device,
+        location: options.requestOrigin.location,
+      };
+    }
+
+    return { device: Service.describeDevice(options.userAgent) };
+  }
+
+  // A device in a few words ("Chrome 130 on macOS"), read off a User-Agent.
+  private static describeDevice(
+    userAgent: string | null | undefined,
+  ): string | undefined {
+    if (!userAgent) {
+      return undefined;
+    }
+
+    return UserAgentDevice.describe(
+      UserAgentDevice.read({ userAgent: userAgent }),
+    );
+  }
+
+  /*
+   * The audit log's sign-in event for a session just made: how and from
+   * where, as the session keeps them - so the entry about its end, read
+   * from the same row, says the same.
+   */
+  public static toSignInEvent(data: {
+    session: Model;
+    userId: ObjectID;
+    requestOrigin?: RequestOrigin | undefined;
+  }): SessionAuditEvent {
+    const origin: SessionSignInOrigin = readSessionSignInOrigin(
+      data.session.additionalInfo,
+    );
+
+    return {
+      action: AuditLogAction.SignIn,
+      userId: data.userId,
+      sessionId: data.session.id!,
+      signIn: readSessionSignIn(data.session.additionalInfo),
+      device: origin.device,
+      location: origin.location,
+      ipAddress:
+        data.requestOrigin?.ipAddress || data.session.ipAddress || undefined,
+    };
+  }
+
+  /*
+   * The audit log's event for a session's end, from the session as it was
+   * before the revocation (onBeforeUpdate read it), or null for a row that
+   * names no person.
+   *
+   * The address is the request's that ended it, when one did - a sign-out -
+   * and otherwise the last one the session was used from. A timeout says
+   * when it ran out: OneUptime notices a session's end at its next refresh,
+   * or at the next sweep (endSessionsThatRanOut), which can be later.
+   */
+  public static toSessionEndEvent(data: {
+    session: Model;
+    cause: SessionEndCause;
+    lengths: SessionLengths | null;
+    requestOrigin?: RequestOrigin | undefined;
+    now: Date;
+  }): SessionAuditEvent | null {
+    if (!data.session.id || !data.session.userId) {
+      return null;
+    }
+
+    const origin: SessionSignInOrigin = readSessionSignInOrigin(
+      data.session.additionalInfo,
+    );
+
+    const event: SessionAuditEvent = {
+      action: getSessionEndAuditLogAction(data.cause),
+      userId: data.session.userId,
+      sessionId: data.session.id,
+      signIn: readSessionSignIn(data.session.additionalInfo),
+      device: origin.device || Service.describeDevice(data.session.userAgent),
+      location: origin.location,
+      ipAddress:
+        data.requestOrigin?.ipAddress || data.session.ipAddress || undefined,
+      endCause: data.cause,
+    };
+
+    if (data.session.createdAt) {
+      event.signedInAt = new Date(data.session.createdAt);
+    }
+
+    if (data.session.lastActiveAt) {
+      event.lastActiveAt = new Date(data.session.lastActiveAt);
+    }
+
+    const endedAt: Date | null = Service.getRanOutAt({
+      session: data.session,
+      cause: data.cause,
+      lengths: data.lengths,
+      now: data.now,
+    });
+
+    if (endedAt) {
+      event.endedAt = endedAt;
+    }
+
+    return event;
+  }
+
+  /*
+   * When a timed-out session ran out, or null for any other end (it ended
+   * when it was revoked) and for one whose moment cannot be told: its
+   * refresh token's end; its last activity plus its idle timeout; its
+   * sign-in plus its session length. Never later than now.
+   */
+  public static getRanOutAt(data: {
+    session: Pick<
+      Model,
+      "createdAt" | "lastActiveAt" | "additionalInfo" | "refreshTokenExpiresAt"
+    >;
+    cause: SessionEndCause;
+    lengths: SessionLengths | null;
+    now: Date;
+  }): Date | null {
+    let ranOutAtMs: number | null = null;
+
+    if (data.cause === SessionEndCause.Expired) {
+      ranOutAtMs = data.session.refreshTokenExpiresAt
+        ? new Date(data.session.refreshTokenExpiresAt).getTime()
+        : null;
+    } else if (
+      data.cause === SessionEndCause.IdleTimeout ||
+      data.cause === SessionEndCause.LengthReached
+    ) {
+      const facts: SessionFacts = Service.getSessionFacts(
+        data.session,
+        data.now,
+      );
+      const rule: SessionLengthRule = getSessionLengthRule(
+        data.lengths,
+        facts.isSsoSignIn,
+      );
+
+      if (data.cause === SessionEndCause.IdleTimeout && data.lengths) {
+        ranOutAtMs =
+          facts.lastActiveAt.getTime() +
+          getIdleTimeoutInMinutes(rule) * 60 * 1000;
+      }
+
+      if (
+        data.cause === SessionEndCause.LengthReached &&
+        rule.lengthInMinutes !== null
+      ) {
+        ranOutAtMs =
+          facts.signedInAt.getTime() + rule.lengthInMinutes * 60 * 1000;
+      }
+    }
+
+    if (ranOutAtMs === null || !Number.isFinite(ranOutAtMs)) {
+      return null;
+    }
+
+    return new Date(Math.min(ranOutAtMs, data.now.getTime()));
   }
 
   private static generateRefreshToken(): string {
