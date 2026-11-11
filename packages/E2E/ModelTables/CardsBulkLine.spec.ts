@@ -424,11 +424,20 @@ test("on a laptop, Select All pressed from the keyboard keeps its place while it
     })
     .toBe("button: Bulk Actions");
 
-  // A keyboard's focus there is drawn: the indigo ring of the bar's buttons.
-  expect(await focusRing(page)).toEqual({
-    isFocusVisible: true,
-    isIndigoRing: true,
-  });
+  /*
+   * A keyboard's focus there is drawn: the indigo ring of the bar's
+   * buttons, which fades in as the focus lands (transition-all, 150 ms).
+   */
+  await expect
+    .poll(
+      async (): Promise<{ isFocusVisible: boolean; isIndigoRing: boolean }> => {
+        return await focusRing(page);
+      },
+    )
+    .toEqual({
+      isFocusVisible: true,
+      isIndigoRing: true,
+    });
 
   const selectAllReads: number = (await fixture(page)).listRequests.filter(
     (read: FixtureRecord["listRequests"][number]): boolean => {

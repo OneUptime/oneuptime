@@ -13,6 +13,7 @@ import {
   OnCallPassOnRefusal,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import OnCallPagePassOn from "../../../../Server/Utils/OnCall/OnCallPagePassOn";
+import { OnCallPageStart } from "../../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import OnCallDutyPolicyStatus from "../../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import AcknowledgementTimeoutWorld, {
   ACKNOWLEDGED,
@@ -272,6 +273,241 @@ describe("acknowledged and not resolved in time: the policy pages again", () => 
         return item.markdown.includes("30 minutes after it was acknowledged.");
       }),
     ).toBe(true);
+  });
+});
+
+/*
+ * WHEN A PAGE AGAIN'S TIME TO SEND STARTS (issue #6708): when its clock ran
+ * out, not when a worker got to it - so a page-again worker that fell
+ * behind shows in notification.time_to_send. Each person a page again pages
+ * is paged as its page starts (OnCallPageTiming), and their notifications
+ * are timed from that start.
+ */
+describe("a page again is timed from when its clock ran out", () => {
+  const ACKNOWLEDGED_AT: Date = new Date(START.getTime() + 5 * 60 * 1000);
+  const RAN_OUT_AT: Date = new Date(
+    ACKNOWLEDGED_AT.getTime() + LEVEL_WAIT_IN_MINUTES * 60 * 1000,
+  );
+
+  test("a worker on time: the page again starts at 03:35, for everybody it pages", async () => {
+    await world.startRun();
+    world.advance(5);
+    await world.acknowledgeInDashboard(DANA);
+    world.advance(LEVEL_WAIT_IN_MINUTES);
+
+    const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+      await world.pageAgainTick(),
+    );
+
+    expect(world.pageStartsIn(run.id!)).toEqual([
+      {
+        name: "Dana Kim",
+        at: RAN_OUT_AT,
+        pageStart: {
+          startedAt: RAN_OUT_AT,
+          start: OnCallPageStart.PageStarted,
+        },
+      },
+      {
+        name: "Ana Lopez",
+        at: RAN_OUT_AT,
+        pageStart: {
+          startedAt: RAN_OUT_AT,
+          start: OnCallPageStart.PageStarted,
+        },
+      },
+    ]);
+  });
+
+  test.each([
+    ["a tick", 1, 0],
+    ["seven and a half minutes", 7, 30],
+    ["an hour", 60, 0],
+    ["a day", 24 * 60, 0],
+  ])(
+    "a worker %s late: still 03:35, so the minutes it was late are in the page's time to send",
+    async (_name: string, lateMinutes: number, lateSeconds: number) => {
+      await world.startRun();
+      world.advance(5);
+      await world.acknowledgeInDashboard(DANA);
+
+      // No tick until the worker gets to it.
+      world.advance(LEVEL_WAIT_IN_MINUTES + lateMinutes, lateSeconds);
+
+      const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+        await world.pageAgainTick(),
+      );
+
+      const pagedAt: Date = new Date(
+        RAN_OUT_AT.getTime() + lateMinutes * 60 * 1000 + lateSeconds * 1000,
+      );
+
+      expect(world.pageStartsIn(run.id!)).toEqual([
+        {
+          name: "Dana Kim",
+          at: pagedAt,
+          pageStart: {
+            startedAt: RAN_OUT_AT,
+            start: OnCallPageStart.PageStarted,
+          },
+        },
+        {
+          name: "Ana Lopez",
+          at: pagedAt,
+          pageStart: {
+            startedAt: RAN_OUT_AT,
+            start: OnCallPageStart.PageStarted,
+          },
+        },
+      ]);
+    },
+  );
+
+  test("an acknowledgement at 03:05:17: its page again starts at 03:35:17, to the second, though the worker ticks on the minute", async () => {
+    await world.startRun();
+    world.advance(5, 17);
+    await world.acknowledgeInDashboard(DANA);
+
+    // 03:35:00 is too soon; 03:36:00 is the tick that pages again.
+    world.advance(LEVEL_WAIT_IN_MINUTES - 1, 43);
+    expect(pagedAgain(await world.pageAgainTick())).toEqual([]);
+    world.advance(1);
+
+    const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+      await world.pageAgainTick(),
+    );
+
+    const pageStarts: Array<Date | null> = world
+      .pageStartsIn(run.id!)
+      .map((page: { pageStart: { startedAt: Date } | null }) => {
+        return page.pageStart?.startedAt || null;
+      });
+
+    expect(minutesAfterStart(world.clock)).toBe(36);
+    expect(pageStarts).toEqual([
+      new Date("2026-10-16T03:35:17.000Z"),
+      new Date("2026-10-16T03:35:17.000Z"),
+    ]);
+  });
+
+  test("a second page again is timed from its own clock: the answer to the first, plus 30 minutes", async () => {
+    await world.startRun();
+    world.advance(5);
+    await world.acknowledgeInDashboard(DANA);
+    world.advance(LEVEL_WAIT_IN_MINUTES);
+
+    const first: OnCallDutyPolicyExecutionLog = pageAgainRun(
+      await world.pageAgainTick(),
+    );
+
+    // Ana answers it at 03:40; its clock runs out at 04:10.
+    world.advance(5);
+    await world.answerPage(ANA, first.id!);
+
+    // The worker gets to it at 04:22.
+    world.advance(LEVEL_WAIT_IN_MINUTES + 12);
+
+    const second: OnCallDutyPolicyExecutionLog = pageAgainRun(
+      await world.pageAgainTick(),
+    );
+
+    expect(second.pageAgainNumber).toBe(2);
+    expect(world.pageStartsIn(second.id!)).toEqual([
+      {
+        name: "Ana Lopez",
+        at: new Date("2026-10-16T04:22:00.000Z"),
+        pageStart: {
+          startedAt: new Date("2026-10-16T04:10:00.000Z"),
+          start: OnCallPageStart.PageStarted,
+        },
+      },
+    ]);
+
+    // The first page again kept its own start.
+    expect(
+      world
+        .pageStartsIn(first.id!)
+        .map((page: { pageStart: { startedAt: Date } | null }) => {
+          return page.pageStart?.startedAt;
+        }),
+    ).toEqual([RAN_OUT_AT, RAN_OUT_AT]);
+  });
+
+  test("two worker replicas ticking late at once: paged again once, from the one moment", async () => {
+    await world.startRun();
+    world.advance(5);
+    await world.acknowledgeInDashboard(DANA);
+    world.advance(LEVEL_WAIT_IN_MINUTES + 3);
+
+    await Promise.all([world.pageAgainTick(), world.pageAgainTick()]);
+
+    expect(world.pagesAgain()).toHaveLength(1);
+    expect(
+      world
+        .pageStartsIn(world.pagesAgain()[0]!.id!)
+        .map((page: { pageStart: { startedAt: Date } | null }) => {
+          return page.pageStart?.startedAt;
+        }),
+    ).toEqual([RAN_OUT_AT, RAN_OUT_AT]);
+  });
+
+  test("its next level, when nobody answers, is an escalation: timed by its send lag, not as a page start", async () => {
+    await world.startRun();
+    world.advance(5);
+    await world.acknowledgeInDashboard(DANA);
+    world.advance(LEVEL_WAIT_IN_MINUTES + 4);
+
+    const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+      await world.pageAgainTick(),
+    );
+
+    world.advance(LEVEL_WAIT_IN_MINUTES);
+    await world.escalationTick();
+
+    expect(
+      world
+        .pageStartsIn(run.id!)
+        .map(
+          (page: {
+            name: string;
+            pageStart: { startedAt: Date } | null;
+          }): [string, Date | null] => {
+            return [page.name, page.pageStart?.startedAt || null];
+          },
+        ),
+    ).toEqual([
+      ["Dana Kim", RAN_OUT_AT],
+      ["Ana Lopez", RAN_OUT_AT],
+      ["Carl Diaz", null],
+    ]);
+  });
+
+  test("a timeout shortened past its moment: timed from that moment by the new timeout", async () => {
+    /*
+     * Acknowledged at 03:05, the timeout cut to 10 minutes at 03:17: by the
+     * new timeout its clock ran out at 03:15, and the worker pages again at
+     * once - from 03:15, the moment it decides by.
+     */
+    await world.startRun();
+    world.advance(5);
+    await world.acknowledgeInDashboard(DANA);
+    world.advance(12);
+    world.policy.acknowledgementTimeoutInMinutes = 10;
+
+    const run: OnCallDutyPolicyExecutionLog = pageAgainRun(
+      await world.pageAgainTick(),
+    );
+
+    expect(
+      world
+        .pageStartsIn(run.id!)
+        .map((page: { pageStart: { startedAt: Date } | null }) => {
+          return page.pageStart?.startedAt;
+        }),
+    ).toEqual([
+      new Date("2026-10-16T03:15:00.000Z"),
+      new Date("2026-10-16T03:15:00.000Z"),
+    ]);
   });
 });
 

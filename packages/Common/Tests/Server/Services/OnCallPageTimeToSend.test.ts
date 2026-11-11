@@ -74,6 +74,8 @@ import Telemetry from "../../../Server/Utils/Telemetry";
 import OnCallPolicyRunMessage from "../../../Server/Utils/Workspace/LiveMessages/OnCallPolicyRunMessage";
 import OneUptimeDate from "../../../Types/Date";
 import ObjectID from "../../../Types/ObjectID";
+import { getOnCallAcknowledgementTimeoutDueAt } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
+import { getOnCallPolicyRunPagingDueAt } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
 import {
   ON_CALL_PAGE_CHANNELS,
   OnCallPageChannel,
@@ -430,6 +432,168 @@ describe("a notification due as its page starts", () => {
       );
     },
   );
+});
+
+/*
+ * A PAGE A WORKER STARTED LATE (issue #6708): a run held by its on-call rule
+ * or by OneUptime AI, and a page again, start when they were due - the
+ * moment the worker decides by - so the minutes a worker that fell behind
+ * added are in the time to send an operator's SLO reads, beside the
+ * seconds the notification took.
+ */
+describe("a page a worker started late is measured from when it was due", () => {
+  // The worker's tick that got to it, and the notification sent after it.
+  const SEND_TOOK_IN_MS: number = 2_300;
+
+  async function sentAfterTick(data: {
+    dueAt: Date;
+    tickAt: Date;
+    row: UserOnCallLogTimeline;
+  }): Promise<void> {
+    now = data.tickAt;
+
+    await writtenAsPageStarts(
+      data.row,
+      OnCallPageTiming.startPage({ dueAt: data.dueAt }),
+    );
+
+    now = new Date(data.tickAt.getTime() + SEND_TOOK_IN_MS);
+
+    await writtenAs(data.row, UserNotificationStatus.Sent);
+  }
+
+  test.each([
+    ["on time, at its very moment", 0],
+    ["half a minute late, as a worker on time is at most", 30_000],
+    ["7 minutes late, a worker that fell behind", 7 * 60_000],
+    ["two hours late, a worker that stopped and came back", 2 * 60 * 60_000],
+  ])(
+    "a run held until 10:00, started %s: the lateness and the send are both in it",
+    async (_name: string, lateByInMs: number) => {
+      const holdRanOut: Date = new Date("2026-11-10T10:00:00.000Z");
+      const sms: UserOnCallLogTimeline = notificationBy("userSmsId");
+
+      await sentAfterTick({
+        dueAt: getOnCallPolicyRunPagingDueAt({
+          pagingStartsAt: holdRanOut,
+          now: new Date(holdRanOut.getTime() + lateByInMs),
+        }),
+        tickAt: new Date(holdRanOut.getTime() + lateByInMs),
+        row: sms,
+      });
+
+      expect(timeToSendCalls).toEqual([
+        {
+          value: lateByInMs + SEND_TOOK_IN_MS,
+          attributes: {
+            "notification.channel": "sms",
+            "notification.page.start": "page_started",
+            "notification.trigger.type": "incident",
+          },
+        },
+      ]);
+    },
+  );
+
+  test("a page again 30 minutes after a 09:41:05 acknowledgement, got to at 10:19:00: 7 minutes 55 seconds late, plus its send", async () => {
+    const call: UserOnCallLogTimeline = notificationBy("userCallId");
+
+    await sentAfterTick({
+      dueAt: getOnCallAcknowledgementTimeoutDueAt({
+        startedAt: new Date("2026-11-10T09:41:05.000Z"),
+        minutes: 30,
+      }),
+      tickAt: new Date("2026-11-10T10:19:00.000Z"),
+      row: call,
+    });
+
+    expect(timeToSendCalls).toEqual([
+      {
+        value: (7 * 60 + 55) * 1000 + SEND_TOOK_IN_MS,
+        attributes: {
+          "notification.channel": "call",
+          "notification.page.start": "page_started",
+          "notification.trigger.type": "incident",
+        },
+      },
+    ]);
+  });
+
+  test("a held run started early - a rule that now matches, OneUptime AI handing off - is measured from when it started", async () => {
+    const holdRunsOutAt: Date = new Date("2026-11-10T11:00:00.000Z");
+    const startedAt: Date = new Date("2026-11-10T10:12:00.000Z");
+    const push: UserOnCallLogTimeline = notificationBy("userPushId");
+
+    await sentAfterTick({
+      dueAt: getOnCallPolicyRunPagingDueAt({
+        pagingStartsAt: holdRunsOutAt,
+        now: startedAt,
+      }),
+      tickAt: startedAt,
+      row: push,
+    });
+
+    expect(timeToSendCalls).toEqual([
+      {
+        value: SEND_TOOK_IN_MS,
+        attributes: {
+          "notification.channel": "push",
+          "notification.page.start": "page_started",
+          "notification.trigger.type": "incident",
+        },
+      },
+    ]);
+  });
+
+  test("the start kept for the server that sends it is the moment it was due, to the millisecond", async () => {
+    const dueAt: Date = new Date("2026-11-10T10:00:00.123Z");
+    const email: UserOnCallLogTimeline = notificationBy("userEmailId");
+
+    now = new Date("2026-11-10T10:04:00.000Z");
+
+    await writtenAsPageStarts(
+      email,
+      OnCallPageTiming.startPage({ dueAt: dueAt }),
+    );
+
+    expect(await OnCallPageTiming.takePageStartOf(email.id)).toEqual({
+      startedAt: dueAt,
+      start: OnCallPageStart.PageStarted,
+    });
+  });
+
+  test("without a metrics exporter, a late page keeps and records nothing either", async () => {
+    metricsEnabled.mockReturnValue(false);
+
+    const sms: UserOnCallLogTimeline = notificationBy("userSmsId");
+
+    await sentAfterTick({
+      dueAt: new Date("2026-11-10T10:00:00.000Z"),
+      tickAt: new Date("2026-11-10T10:09:00.000Z"),
+      row: sms,
+    });
+
+    expect(setString).not.toHaveBeenCalled();
+    expect(timeToSendCalls).toEqual([]);
+  });
+
+  test("its next notifications - sent by the person's rules later, outside the page's start - are not timed", async () => {
+    const first: UserOnCallLogTimeline = notificationBy("userSmsId");
+    const later: UserOnCallLogTimeline = notificationBy("userCallId");
+
+    await sentAfterTick({
+      dueAt: new Date("2026-11-10T10:00:00.000Z"),
+      tickAt: new Date("2026-11-10T10:05:00.000Z"),
+      row: first,
+    });
+
+    now = new Date("2026-11-10T10:10:00.000Z");
+    await written(later);
+    await writtenAs(later, UserNotificationStatus.Sent);
+
+    expect(timeToSendCalls).toHaveLength(1);
+    expect(timeToSendCalls[0]!.attributes["notification.channel"]).toBe("sms");
+  });
 });
 
 describe("a notification not due as its page starts", () => {

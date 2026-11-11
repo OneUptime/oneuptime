@@ -109,14 +109,14 @@ services:
 | `notification.provider.config` | 安裝自己的帳戶和設定為 `global`；專案自己的 Twilio 帳戶、SMTP 伺服器、Webhook 或工作區連線為 `project`，其故障由專案自行修正 |
 | `notification.on_call_page` | 待命呼叫的通知為 `true`，否則為 `false` |
 | `outcome` | `success`、`failure` 或 `not_sent`，見下文 |
-| `notification.destination` | 僅限 Slack、Microsoft Teams 和 Mattermost：傳給某個人的為 `direct_message`，發到頻道或 Teams 群組聊天的為 `channel`，發到傳入 Webhook（例如狀態頁訂閱者的）的為 `incoming_webhook` |
+| `notification.destination` | Slack、Microsoft Teams 和 Mattermost：傳給某個人的為 `direct_message`，發到頻道或 Teams 群組聊天的為 `channel`，發到傳入 Webhook（例如狀態頁訂閱者的）的為 `incoming_webhook`。Webhook：發到狀態頁訂閱者自己的 Webhook 的為 `status_page_subscriber`。個人的 Webhook 和其他所有管道都不帶此屬性 |
 | `notification.custom_channel.id`、`notification.custom_channel.name` | 僅限自訂管道：管道的 ID，以及截斷為 100 個字元的名稱 |
 
 - `success`：提供者接受了該訊息。
 - `failure`：提供者拒絕了它或無法連線，或是傳送失敗。找不到的聊天頻道算作沒有耗時的失敗。
 - `not_sent`：刻意不傳送。專案關閉了該管道、餘額不足或已被封鎖，此伺服器上關閉了推播，或自訂管道已關閉、已刪除或不在授權範圍內。成功率不包含這些：它們是設定在發揮作用，而不是平台出了故障。
 
-狀態頁訂閱者的一般 Webhook 目前尚未計入。
+發給狀態頁訂閱者自己的 Webhook 的訊息只計一次，無論嘗試了多少次：端點以 2xx 狀態回應時為 `success`；以其他狀態回應、無法連線或其位址不被允許時為 `failure`。
 
 ### 送達手機的內容
 
@@ -155,7 +155,7 @@ services:
 | --- | --- |
 | `monitor_data_received` | OneUptime 收到觸發監測器的資料之時：一個傳入請求、一份伺服器代理程式報告、一封傳入郵件、一次探針檢查、一個 SNMP Trap 或一次網路裝置輪詢。其中包含資料在佇列中等待評估的時間。 |
 | `record_created` | 事件、警示或片段建立之時：由遙測監測器、規則或人員建立，以及針對缺席的檢查，例如停止的心跳。 |
-| `page_started` | 呼叫稍後開始之時：由人員、工作流程或現在相符的規則啟動、再次呼叫、直接呼叫，或等候其待命規則要求的暫緩之後才開始的呼叫。 |
+| `page_started` | 呼叫稍後開始之時：由人員、工作流程或現在相符的規則啟動，或是直接呼叫。對於被其待命規則或 OneUptime AI 暫緩的呼叫，是暫緩結束之時，如果它更早開始，則是開始之時。對於再次呼叫，是確認後逾時到期之時。因此，遲遲才處理其中任何一種的工作程序會反映在這段時間中。 |
 
 對於傳入請求，時間從端點收到的最新請求開始計算，因此讀數可能略短。
 
@@ -170,7 +170,7 @@ services:
 | `escalation` | 後面的上報層級：前一個層級結束等待之時，或在有人把呼叫轉交出去時立即到期。 |
 | `policy_repeat` | 政策從第一個層級重新開始：其最後一個層級的等待結束之時。 |
 
-它也帶有 `notification.channel`、`notification.trigger.type`，對於自訂管道還有 `notification.custom_channel.id` 和 `notification.custom_channel.name`。在呼叫開始時就到期的通知絕不會出現在其中：它在傳送耗時中。
+它也帶有 `notification.channel`、`notification.trigger.type`，對於自訂管道還有 `notification.custom_channel.id` 和 `notification.custom_channel.name`。在呼叫開始時就到期的通知絕不會出現在其中，即使工作程序在暫緩之後或作為再次呼叫而遲遲才開始該呼叫也是如此：它在傳送耗時中。
 
 ### 直方圖分桶
 
@@ -220,7 +220,7 @@ services:
 | --- | --- | --- | --- |
 | `a` | `notification.time_to_send` | **P95** | `notification.page.start != page_started` |
 
-只要 `a` 維持在 30000 或以下，目標就算達成。稍後開始的呼叫是從開始之時而不是從觸發計時，因此不計入。依 `notification.page.start` 分組可以把監測器的佇列（`monitor_data_received`）與其餘部分分開檢視，依 `notification.channel` 分組可以找出較慢的管道。
+只要 `a` 維持在 30000 或以下，目標就算達成。稍後開始的呼叫是從開始或到期之時而不是從觸發計時，因此不計入。依 `notification.page.start` 分組可以把監測器的佇列（`monitor_data_received`）與其餘部分分開檢視，依 `notification.channel` 分組可以找出較慢的管道。
 
 ### 稍後傳送的通知在 90 秒內發出
 
