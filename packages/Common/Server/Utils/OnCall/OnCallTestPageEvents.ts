@@ -53,6 +53,7 @@ export default class OnCallTestPageEvents {
   }
 
   public static onTestPageAcknowledged(data: {
+    projectId?: ObjectID | undefined;
     executionLogId: ObjectID;
     acknowledgedByUserId: ObjectID;
     channel?: OnCallPageChannel | undefined;
@@ -62,6 +63,7 @@ export default class OnCallTestPageEvents {
         userId: data.acknowledgedByUserId,
         event: TEST_PAGE_ACKNOWLEDGED_EVENT,
         properties: {
+          project_id: data.projectId?.toString() || "",
           execution_log_id: data.executionLogId.toString(),
           channel: data.channel || "",
         },

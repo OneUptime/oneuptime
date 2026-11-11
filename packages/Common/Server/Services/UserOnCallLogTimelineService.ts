@@ -548,6 +548,7 @@ export class Service extends DatabaseService<Model> {
             channel: getOnCallPageChannelsOf(item)[0],
             sentAt: item.createdAt,
           },
+          projectId: item.projectId,
         });
       }
     }
@@ -584,6 +585,8 @@ export class Service extends DatabaseService<Model> {
           sentAt?: Date | undefined;
         }
       | undefined;
+    // The page's project, for what a test page's acknowledgement records.
+    projectId?: ObjectID | undefined;
   }): Promise<void> {
     if (page.userNotificationEventType === UserNotificationEventType.TestPage) {
       await this.acknowledgeTestPage(page);
@@ -815,6 +818,7 @@ export class Service extends DatabaseService<Model> {
           sentAt?: Date | undefined;
         }
       | undefined;
+    projectId?: ObjectID | undefined;
   }): Promise<void> {
     const user: User | null = await UserService.findOneById({
       id: page.userId,
@@ -901,6 +905,7 @@ export class Service extends DatabaseService<Model> {
 
     if (page.onCallDutyPolicyExecutionLogId) {
       OnCallTestPageEvents.onTestPageAcknowledged({
+        projectId: page.projectId,
         executionLogId: page.onCallDutyPolicyExecutionLogId,
         acknowledgedByUserId: page.userId,
         channel: page.acknowledgedFrom?.channel,

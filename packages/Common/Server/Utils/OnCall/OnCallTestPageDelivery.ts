@@ -616,7 +616,8 @@ export default class OnCallTestPageDelivery {
               _id: true,
               testPageRecordKind: true,
               testPageSeverityId: true,
-              triggeredByUserId: true,
+              // Who sent the test: the person its run was created for.
+              createdByUserId: true,
               onCallDutyPolicyId: true,
             },
             props: {
@@ -639,18 +640,18 @@ export default class OnCallTestPageDelivery {
         );
       }
 
-      if (run?.triggeredByUserId) {
+      /*
+       * The sender is named even to themselves: a policy's test says who
+       * is testing it ("Ana Lopez is testing the on-call policy Primary").
+       */
+      if (run?.createdByUserId) {
         context.isSentBySelf =
           Boolean(data.userId) &&
-          run.triggeredByUserId.toString() === data.userId!.toString();
+          run.createdByUserId.toString() === data.userId!.toString();
 
-        if (!context.isSentBySelf) {
-          const sender: User | null = await this.readPerson(
-            run.triggeredByUserId,
-          );
-          context.senderName =
-            sender?.name?.toString() || sender?.email?.toString() || "";
-        }
+        const sender: User | null = await this.readPerson(run.createdByUserId);
+        context.senderName =
+          sender?.name?.toString() || sender?.email?.toString() || "";
       }
 
       if (run?.onCallDutyPolicyId) {

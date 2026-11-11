@@ -1054,7 +1054,8 @@ export class OnCallTestPageService extends BaseService {
           testPageRecordKind: true,
           testPageSeverityId: true,
           testPageWalksEscalation: true,
-          triggeredByUserId: true,
+          // Who sent it: the person its run was created for.
+          createdByUserId: true,
           acknowledgedAt: true,
           acknowledgedByUserId: true,
           acknowledgedByUser: {
@@ -1253,7 +1254,7 @@ export class OnCallTestPageService extends BaseService {
 
     const userId: string | undefined = data.props.userId?.toString();
 
-    if (userId && data.run.triggeredByUserId?.toString() === userId) {
+    if (userId && data.run.createdByUserId?.toString() === userId) {
       return;
     }
 
@@ -1287,7 +1288,7 @@ export class OnCallTestPageService extends BaseService {
     }
 
     const senderId: string | undefined =
-      data.run.triggeredByUserId?.toString();
+      data.run.createdByUserId?.toString();
 
     const pagedSomebodyElse: boolean = data.lines.some(
       (line: OnCallDutyPolicyExecutionLogTimeline): boolean => {

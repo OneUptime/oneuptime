@@ -1,0 +1,340 @@
+import User from "../../../Models/DatabaseModels/User";
+import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
+import AlertService from "../../../Server/Services/AlertService";
+import IncidentService from "../../../Server/Services/IncidentService";
+import OnCallDutyPolicyExecutionLogService from "../../../Server/Services/OnCallDutyPolicyExecutionLogService";
+import OnCallDutyPolicyExecutionLogTimelineService from "../../../Server/Services/OnCallDutyPolicyExecutionLogTimelineService";
+import UserOnCallLogService from "../../../Server/Services/UserOnCallLogService";
+import UserOnCallLogTimelineService from "../../../Server/Services/UserOnCallLogTimelineService";
+import UserService from "../../../Server/Services/UserService";
+import OnCallTestPageEvents, {
+  TEST_PAGE_ACKNOWLEDGED_EVENT,
+  TEST_PAGE_SENT_EVENT,
+} from "../../../Server/Utils/OnCall/OnCallTestPageEvents";
+import ProductAnalytics from "../../../Server/Utils/ProductAnalytics";
+import Email from "../../../Types/Email";
+import Name from "../../../Types/Name";
+import ObjectID from "../../../Types/ObjectID";
+import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
+import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  OnCallTestPageKind,
+  OnCallTestPageRecordKind,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
+import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
+import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+
+/*
+ * ACKNOWLEDGING A TEST PAGE (UserOnCallLogTimelineService.acknowledgeTestPage).
+ *
+ * A test page is acknowledged from its message - a link, a call's 1 - as a
+ * real page is, and says who, by what and how long after the message went
+ * out. There is no record to acknowledge and no timeout clock to start; the
+ * first person to acknowledge it ends the run, and product analytics hears
+ * it once (the activation milestone's hook, #6830).
+ */
+
+const PROJECT: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-000000000001");
+const RUN: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-000000000002");
+const LINE: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-000000000003");
+const LOG: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-000000000004");
+const ROW: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-000000000005");
+const SMS_ID: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-000000000006");
+const ANA: ObjectID = new ObjectID("7e5ac000-0000-4000-8000-0000000000a1");
+
+const SENT_AT: Date = new Date("2026-11-11T09:00:00.000Z");
+const ACKNOWLEDGED_AT: Date = new Date("2026-11-11T09:00:14.000Z");
+
+let logUpdate: jest.SpyInstance;
+let runUpdate: jest.SpyInstance;
+let lineUpdate: jest.SpyInstance;
+let acknowledged: jest.SpyInstance;
+let incidentAcknowledge: jest.SpyInstance;
+let alertAcknowledge: jest.SpyInstance;
+let clockStart: jest.SpyInstance;
+
+beforeEach(() => {
+  jest.spyOn(UserService, "findOneById").mockImplementation((async () => {
+    const user: User = new User();
+    user.id = ANA;
+    user.name = new Name("Ana Lopez");
+    user.email = new Email("ana@example.com");
+    return user;
+  }) as never);
+
+  logUpdate = jest
+    .spyOn(UserOnCallLogService, "updateOneById")
+    .mockResolvedValue(undefined as never);
+  runUpdate = jest
+    .spyOn(OnCallDutyPolicyExecutionLogService, "updateOneBy")
+    .mockResolvedValue(1 as never);
+  lineUpdate = jest
+    .spyOn(OnCallDutyPolicyExecutionLogTimelineService, "updateOneById")
+    .mockResolvedValue(undefined as never);
+  acknowledged = jest
+    .spyOn(OnCallTestPageEvents, "onTestPageAcknowledged")
+    .mockImplementation(() => {
+      return undefined;
+    });
+  incidentAcknowledge = jest
+    .spyOn(IncidentService, "acknowledgeIncident")
+    .mockResolvedValue(undefined as never);
+  alertAcknowledge = jest
+    .spyOn(AlertService, "acknowledgeAlert")
+    .mockResolvedValue(undefined as never);
+  clockStart = jest
+    .spyOn(OnCallDutyPolicyExecutionLogService, "startAcknowledgementTimeoutClock")
+    .mockResolvedValue(undefined as never);
+});
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+async function acknowledgeTest(
+  acknowledgedFrom?: { channel?: OnCallPageChannel; sentAt?: Date },
+): Promise<void> {
+  await UserOnCallLogTimelineService.acknowledgePage({
+    userOnCallLogId: LOG,
+    userId: ANA,
+    onCallDutyPolicyExecutionLogId: RUN,
+    onCallDutyPolicyExecutionLogTimelineId: LINE,
+    acknowledgedAt: ACKNOWLEDGED_AT,
+    userNotificationEventType: UserNotificationEventType.TestPage,
+    acknowledgedFrom: acknowledgedFrom,
+    projectId: PROJECT,
+  });
+}
+
+const MESSAGE: string =
+  "Test page acknowledged by Ana Lopez (ana@example.com) by SMS after 14 seconds.";
+
+describe("a test page acknowledged from its message", () => {
+  test("the person's log says who, by what, and how long after their message went out", async () => {
+    await acknowledgeTest({ channel: OnCallPageChannel.SMS, sentAt: SENT_AT });
+
+    expect(logUpdate).toHaveBeenCalledWith({
+      id: LOG,
+      data: {
+        acknowledgedAt: ACKNOWLEDGED_AT,
+        acknowledgedByUserId: ANA,
+        status: UserNotificationExecutionStatus.Completed,
+        statusMessage: MESSAGE,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("the run ends, saying it - only if nobody acknowledged it first", async () => {
+    await acknowledgeTest({ channel: OnCallPageChannel.SMS, sentAt: SENT_AT });
+
+    expect(runUpdate).toHaveBeenCalledTimes(1);
+
+    const updateBy: {
+      query: Record<string, unknown>;
+      data: Record<string, unknown>;
+    } = runUpdate.mock.calls[0]![0] as {
+      query: Record<string, unknown>;
+      data: Record<string, unknown>;
+    };
+
+    expect(updateBy.query["_id"]).toBe(RUN.toString());
+    // Whoever acknowledged it first stays its answer.
+    expect(updateBy.query["acknowledgedAt"]).toBeDefined();
+    expect(updateBy.data).toEqual({
+      acknowledgedAt: ACKNOWLEDGED_AT,
+      acknowledgedByUserId: ANA,
+      status: OnCallDutyPolicyStatus.Completed,
+      statusMessage: MESSAGE,
+    });
+  });
+
+  test("the run's line for the person is acknowledged", async () => {
+    await acknowledgeTest({ channel: OnCallPageChannel.SMS, sentAt: SENT_AT });
+
+    expect(lineUpdate).toHaveBeenCalledWith({
+      id: LINE,
+      data: {
+        acknowledgedAt: ACKNOWLEDGED_AT,
+        isAcknowledged: true,
+        status: OnCallDutyExecutionLogTimelineStatus.SuccessfullyAcknowledged,
+        statusMessage: MESSAGE,
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("no record is acknowledged and no timeout clock starts: there is none", async () => {
+    await acknowledgeTest({ channel: OnCallPageChannel.SMS, sentAt: SENT_AT });
+
+    expect(incidentAcknowledge).not.toHaveBeenCalled();
+    expect(alertAcknowledge).not.toHaveBeenCalled();
+    expect(clockStart).not.toHaveBeenCalled();
+  });
+
+  test("product analytics hears it, with the project, the run and the channel", async () => {
+    await acknowledgeTest({ channel: OnCallPageChannel.SMS, sentAt: SENT_AT });
+
+    expect(acknowledged).toHaveBeenCalledWith({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      acknowledgedByUserId: ANA,
+      channel: OnCallPageChannel.SMS,
+    });
+  });
+
+  test("acknowledged with no message behind it, it says only who", async () => {
+    await acknowledgeTest();
+
+    expect(
+      (logUpdate.mock.calls[0]![0] as { data: { statusMessage: string } }).data
+        .statusMessage,
+    ).toBe("Test page acknowledged by Ana Lopez (ana@example.com).");
+  });
+
+  test("somebody who is not there any more is refused", async () => {
+    jest.spyOn(UserService, "findOneById").mockResolvedValue(null as never);
+
+    await expect(acknowledgeTest()).rejects.toThrow("User not found.");
+    expect(logUpdate).not.toHaveBeenCalled();
+  });
+});
+
+describe("the message a test page is acknowledged from", () => {
+  test("is read from the notification acknowledged: its channel and when it went out", async () => {
+    const page: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogTimelineService, "acknowledgePage")
+      .mockResolvedValue(undefined as never);
+
+    const row: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    row.id = ROW;
+    row.projectId = PROJECT;
+    row.userId = ANA;
+    row.userNotificationLogId = LOG;
+    row.onCallDutyPolicyExecutionLogId = RUN;
+    row.onCallDutyPolicyExecutionLogTimelineId = LINE;
+    row.userNotificationEventType = UserNotificationEventType.TestPage;
+    row.userSmsId = SMS_ID;
+    row.createdAt = SENT_AT;
+
+    const findBy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogTimelineService, "findBy")
+      .mockResolvedValue([row] as never);
+
+    await (
+      UserOnCallLogTimelineService as unknown as {
+        onUpdateSuccess: (
+          onUpdate: unknown,
+          ids: Array<ObjectID>,
+        ) => Promise<unknown>;
+      }
+    ).onUpdateSuccess(
+      {
+        updateBy: {
+          query: { _id: ROW.toString() },
+          data: { acknowledgedAt: ACKNOWLEDGED_AT, isAcknowledged: true },
+          props: { isRoot: true },
+        },
+        carryForward: null,
+      },
+      [ROW],
+    );
+
+    const select: Record<string, unknown> = (
+      findBy.mock.calls.find((call: Array<unknown>) => {
+        return Boolean(
+          (call[0] as { select?: Record<string, unknown> }).select?.[
+            "userNotificationEventType"
+          ],
+        );
+      })![0] as { select: Record<string, unknown> }
+    ).select;
+
+    expect(select["createdAt"]).toBe(true);
+    expect(select["userSmsId"]).toBe(true);
+    expect(select["userCallId"]).toBe(true);
+
+    expect(page).toHaveBeenCalledTimes(1);
+    expect(page.mock.calls[0]![0]).toMatchObject({
+      userOnCallLogId: LOG,
+      userId: ANA,
+      onCallDutyPolicyExecutionLogId: RUN,
+      userNotificationEventType: UserNotificationEventType.TestPage,
+      acknowledgedFrom: {
+        channel: OnCallPageChannel.SMS,
+        sentAt: SENT_AT,
+      },
+      projectId: PROJECT,
+    });
+  });
+});
+
+describe("what product analytics hears of a test page", () => {
+  let capture: jest.SpyInstance;
+
+  beforeEach(() => {
+    acknowledged.mockRestore();
+    capture = jest
+      .spyOn(ProductAnalytics, "captureForUser")
+      .mockImplementation(() => {
+        return undefined;
+      });
+  });
+
+  test("one sent: who sent which kind, in which project", () => {
+    OnCallTestPageEvents.onTestPageSent({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      sentByUserId: ANA,
+      kind: OnCallTestPageKind.Policy,
+      recordKind: OnCallTestPageRecordKind.Alert,
+    });
+
+    expect(capture).toHaveBeenCalledWith({
+      userId: ANA,
+      event: TEST_PAGE_SENT_EVENT,
+      properties: {
+        project_id: PROJECT.toString(),
+        execution_log_id: RUN.toString(),
+        kind: OnCallTestPageKind.Policy,
+        record_kind: OnCallTestPageRecordKind.Alert,
+      },
+    });
+    expect(TEST_PAGE_SENT_EVENT).toBe("server/test_page_sent");
+  });
+
+  test("one acknowledged: who, in which project, by what", () => {
+    OnCallTestPageEvents.onTestPageAcknowledged({
+      projectId: PROJECT,
+      executionLogId: RUN,
+      acknowledgedByUserId: ANA,
+      channel: OnCallPageChannel.Call,
+    });
+
+    expect(capture).toHaveBeenCalledWith({
+      userId: ANA,
+      event: TEST_PAGE_ACKNOWLEDGED_EVENT,
+      properties: {
+        project_id: PROJECT.toString(),
+        execution_log_id: RUN.toString(),
+        channel: OnCallPageChannel.Call,
+      },
+    });
+    expect(TEST_PAGE_ACKNOWLEDGED_EVENT).toBe("server/test_page_acknowledged");
+  });
+
+  test("analytics that fails never fails the test page", () => {
+    capture.mockImplementation(() => {
+      throw new Error("analytics is down");
+    });
+
+    expect(() => {
+      OnCallTestPageEvents.onTestPageAcknowledged({
+        executionLogId: RUN,
+        acknowledgedByUserId: ANA,
+      });
+    }).not.toThrow();
+  });
+});

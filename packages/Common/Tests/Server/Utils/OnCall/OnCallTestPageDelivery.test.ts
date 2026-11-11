@@ -22,6 +22,7 @@ import WebhookService from "../../../../Server/Services/WebhookService";
 import WhatsAppService from "../../../../Server/Services/WhatsAppService";
 import WorkspaceUserNotificationService from "../../../../Server/Services/WorkspaceUserNotificationService";
 import { getServerTranslator } from "../../../../Server/Utils/ServerTranslation";
+import { getOnCallTestPageSentBy } from "../../../../Types/OnCallDutyPolicy/OnCallTestPageWords";
 import logger from "../../../../Server/Utils/Logger";
 import UserNotificationRule from "../../../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallLogTimeline";
@@ -137,7 +138,7 @@ async function deliver(
 
 function armRun(data: {
   recordKind?: OnCallTestPageRecordKind;
-  triggeredByUserId?: ObjectID | undefined;
+  createdByUserId?: ObjectID | undefined;
   onCallDutyPolicyId?: ObjectID | undefined;
 }): void {
   jest
@@ -146,7 +147,7 @@ function armRun(data: {
       id: RUN_ID,
       testPageRecordKind: data.recordKind || OnCallTestPageRecordKind.Incident,
       testPageSeverityId: SEVERITY_ID,
-      triggeredByUserId: data.triggeredByUserId,
+      createdByUserId: data.createdByUserId,
       onCallDutyPolicyId: data.onCallDutyPolicyId,
     } as never);
 }
@@ -174,7 +175,7 @@ beforeEach(() => {
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
 
-  armRun({ triggeredByUserId: USER_ID });
+  armRun({ createdByUserId: USER_ID });
 
   jest
     .spyOn(IncidentSeverityService, "findOneById")
@@ -682,7 +683,7 @@ describe("Slack, Microsoft Teams and Mattermost", () => {
   );
 
   test("a project or a sender name with Markdown in it is escaped, not rendered", async () => {
-    armRun({ triggeredByUserId: SENDER_ID });
+    armRun({ createdByUserId: SENDER_ID });
     (UserService.findOneById as jest.Mock).mockResolvedValue({
       name: "[click](https://evil.example)",
     } as never);
@@ -854,19 +855,50 @@ describe("what every message says (readContext)", () => {
     });
   }
 
-  test("a test the person sent themselves", async () => {
+  test("a test the person sent themselves: its sender is the person its run was created for", async () => {
     expect(await readContext()).toEqual({
       recordKind: OnCallTestPageRecordKind.Incident,
       severityName: "Critical",
       projectName: "Acme",
       isSentBySelf: true,
-      senderName: "",
+      senderName: "Ana Lopez",
     });
+
+    expect(
+      (
+        (OnCallDutyPolicyExecutionLogService.findOneById as jest.Mock).mock
+          .calls[0]![0] as { select: Record<string, unknown> }
+      ).select["createdByUserId"],
+    ).toBe(true);
+  });
+
+  test("a policy's test sent by somebody it pages names them as who is testing it", async () => {
+    armRun({ createdByUserId: USER_ID, onCallDutyPolicyId: POLICY_ID });
+
+    const context: OnCallTestPageContext = await readContext();
+
+    expect(context.isSentBySelf).toBe(true);
+    expect(
+      getOnCallTestPageSentBy(getServerTranslator("en"), {
+        isSentBySelf: context.isSentBySelf,
+        senderName: context.senderName,
+        policyName: context.policyName,
+      }),
+    ).toBe("Ana Lopez is testing the on-call policy Primary, which pages you.");
+  });
+
+  test("a run that names no sender says nothing about who sent it", async () => {
+    armRun({ createdByUserId: undefined });
+
+    const context: OnCallTestPageContext = await readContext();
+
+    expect(context.isSentBySelf).toBe(false);
+    expect(context.senderName).toBe("");
   });
 
   test("a member's test names who sent it; an alert's names the alert severity", async () => {
     armRun({
-      triggeredByUserId: SENDER_ID,
+      createdByUserId: SENDER_ID,
       recordKind: OnCallTestPageRecordKind.Alert,
     });
 
@@ -880,7 +912,7 @@ describe("what every message says (readContext)", () => {
   });
 
   test("a policy's test names the policy", async () => {
-    armRun({ triggeredByUserId: SENDER_ID, onCallDutyPolicyId: POLICY_ID });
+    armRun({ createdByUserId: SENDER_ID, onCallDutyPolicyId: POLICY_ID });
 
     expect((await readContext()).policyName).toBe("Primary");
   });

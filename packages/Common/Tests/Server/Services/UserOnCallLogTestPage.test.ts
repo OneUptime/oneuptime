@@ -35,6 +35,7 @@ import UserNotificationExecutionStatus from "../../../Types/UserNotification/Use
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import { expectUserIdWhileMember } from "../TestingUtils/MembershipCondition";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import { FindOperator } from "typeorm";
 
 /*
  * A TEST PAGE, FOR ONE PERSON (UserOnCallLogService.runTestPageRules).
@@ -159,6 +160,28 @@ function select(query: RuleQuery): Array<StoredRule> {
 
     return true;
   });
+}
+
+/*
+ * A raw condition as the SQL it renders and the values it binds, with its
+ * random parameter names numbered: two conditions built alike read alike.
+ */
+function describeCondition(value: unknown): string {
+  if (!(value instanceof FindOperator) || typeof value.getSql !== "function") {
+    return JSON.stringify(value);
+  }
+
+  const parameters: Record<string, unknown> =
+    (value.objectLiteralParameters as Record<string, unknown> | undefined) ||
+    {};
+  let sql: string = (value.getSql as (alias: string) => string)("column");
+
+  Object.keys(parameters).forEach((name: string, index: number): void => {
+    sql = sql.split(`:...${name}`).join(`:...p${index}`);
+    sql = sql.split(`:${name}`).join(`:p${index}`);
+  });
+
+  return JSON.stringify({ sql: sql, values: Object.values(parameters) });
 }
 
 function makeLog(overrides: Record<string, unknown> = {}): Model {
@@ -517,7 +540,12 @@ describe("a test page uses exactly the methods and order a real page of that sev
     expect(testQuery.projectId).toBe(realImmediateQuery.projectId);
     expect(realImmediateQuery.notifyAfterMinutes).toBe(0);
     expect(testQuery.notifyAfterMinutes).toBeUndefined();
-    expect(String(testQuery.isOptOut)).toBe(String(realImmediateQuery.isOptOut));
+    expect(describeCondition(testQuery.isOptOut)).toBe(
+      describeCondition(realImmediateQuery.isOptOut),
+    );
+    expect(describeCondition(testQuery.isOptOut)).toBe(
+      '{"sql":"(column NOT IN (:...p0) or column IS NULL)","values":[["true"]]}',
+    );
   });
 
   test("getPagingRulesQuery is the cell a real page counts: the membership condition, the kind, the severity, no opt-outs", () => {
