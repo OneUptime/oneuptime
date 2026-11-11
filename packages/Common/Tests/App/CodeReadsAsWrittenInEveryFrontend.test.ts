@@ -16,6 +16,12 @@ import { setCodeApartInSentence } from "../../Types/CodeInSentence";
  * here as the browser loads it, in a fresh module registry: every sentence
  * of its Arabic and Persian locale files that names code comes out of t()
  * set apart, exactly as Common/Types/CodeInSentence sets it apart.
+ *
+ * The rules that set it apart load only for a language read from the
+ * right. The Dashboard, Accounts and status pages fetch them with an Arabic
+ * or Persian locale file, so a page in any other language never loads
+ * them; the admin dashboard and public dashboards bundle every language's
+ * words, and the rules with them.
  */
 
 const FEATURE_SET_DIR: string = path.resolve(
@@ -36,6 +42,12 @@ const FRONTENDS: Array<string> = [
 ];
 
 const RIGHT_TO_LEFT: Array<string> = ["ar", "fa"];
+
+// The frontends that bundle every language's words, and the rules with them.
+const BUNDLES_EVERY_LANGUAGE: Array<string> = [
+  "AdminDashboard",
+  "PublicDashboard",
+];
 
 type LocaleTree = { [key: string]: string | LocaleTree };
 
@@ -209,6 +221,28 @@ describe.each(FRONTENDS)("%s", (frontend: string) => {
     expect(i18n.t("englishProbe", { lng: "en" }) as string).toBe(
       "Add --help to any command.",
     );
+  });
+
+  test("loads the rules that set code apart for no language read from the left", async () => {
+    const { i18n } = await loadFrontend(frontend);
+    const probe: string = "أضف --help إلى أي أمر.";
+
+    // A page in a language read from the left, with its words loaded.
+    await i18n.loadLanguages(["de", "ja"]);
+    i18n.addResourceBundle("ar", "translation", { probe }, true, true);
+
+    const handed: string = i18n.t("probe", {
+      lng: "ar",
+      nsSeparator: false,
+    }) as string;
+
+    if (BUNDLES_EVERY_LANGUAGE.includes(frontend)) {
+      // Bundled with every language's words: there from the first sentence.
+      expect(handed).toBe(setCodeApartInSentence(probe, "ar"));
+    } else {
+      // Not loaded: an Arabic sentence asked for now goes out as written.
+      expect(handed).toBe(probe);
+    }
   });
 
   test("leaves the isolates' marks out of what is copied", async () => {
