@@ -181,7 +181,7 @@ describe("a rule that is refused, with what is wrong", () => {
         lookupKey: NamingLookupKey.MacAddress,
         lookupEntries: [{ key: "51", value: "X" }],
       }),
-    ).toContain('Row 1: "51"');
+    ).toContain('Row 1: "51" is not a MAC address, such as 00:05:0b:b0:7f:fc.');
   });
 
   test("a table over the limit", () => {
