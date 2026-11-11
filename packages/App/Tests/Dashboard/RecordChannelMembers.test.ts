@@ -322,6 +322,22 @@ describe("the product a channel is in", () => {
     );
   });
 
+  /*
+   * #6749: Slack installed for a whole Enterprise organization, removed from
+   * the workspace the channel is in. The project is still connected - its
+   * other workspaces work - so the card says the channel's workspace.
+   */
+  test("a Slack channel whose workspace no longer has OneUptime: said so, not that Slack is not connected", () => {
+    expect(
+      getChannelStateText(
+        WorkspaceType.Slack,
+        WorkspaceChannelState.WorkspaceNotAdded,
+      ),
+    ).toBe(
+      "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.",
+    );
+  });
+
   test("the hint for a channel the bot was taken out of holds no command: the bot's name is the server's", () => {
     expect(
       splitAtSlackInviteCommand(MATTERMOST_CHANNEL_TEXT.unreachableHint),
@@ -656,6 +672,7 @@ describe("what adding people says", () => {
       [
         WorkspaceChannelState.Archived,
         WorkspaceChannelState.NotConnected,
+        WorkspaceChannelState.WorkspaceNotAdded,
         WorkspaceChannelState.Unavailable,
         WorkspaceChannelState.Unreachable,
       ].sort(),

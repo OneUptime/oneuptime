@@ -10,6 +10,7 @@ import {
   getUserGroupStatus,
   isMembersShown,
   TEAM_SUBTITLE,
+  WORKSPACE_SUBTITLE,
   USER_GROUP_LABELS,
   USER_GROUP_STATUS_LABELS,
   USER_GROUP_TIME_TEXT,
@@ -31,6 +32,7 @@ import {
   WorkspaceUserGroupScheduleView,
   WorkspaceUserGroupView,
 } from "Common/Types/Workspace/WorkspaceUserGroup";
+import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
 import ActionButtonSchema, {
   ActionButtonPlacement,
 } from "Common/UI/Components/ActionButton/ActionButtonSchema";
@@ -345,9 +347,13 @@ const UserGroupRow: FunctionComponent<ComponentProps> = (
               data-testid={`${testId}-team`}
               className="mt-1 truncate text-xs text-gray-500"
             >
-              {translator.translateTemplate(TEAM_SUBTITLE, {
-                team: view.teamName,
-              })}
+              {view.workspaceType === WorkspaceType.Slack
+                ? translator.translateTemplate(WORKSPACE_SUBTITLE, {
+                    workspace: view.teamName,
+                  })
+                : translator.translateTemplate(TEAM_SUBTITLE, {
+                    team: view.teamName,
+                  })}
             </div>
           ) : (
             <></>

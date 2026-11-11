@@ -184,4 +184,5 @@ SMS के लिए सत्यापित नंबर बिना दू�
 - [SMS और कॉल गेटवे](/docs/self-hosted/sms-and-call-gateway): Twilio के बजाय अपने खुद के प्रोवाइडर से SMS और कॉल भेजें।
 - [SMTP](/docs/emails/smtp): ईमेल भी अपने खुद के मेल सर्वर से भेजें।
 - [निजी नेटवर्क पहुँच](/docs/self-hosted/private-network-access): वर्कफ़्लो और वेबहुक को अंदरूनी टूल तक पहुँचने दें।
+- [सूचना डिलीवरी मेट्रिक्स](/docs/self-hosted/notification-delivery-metrics): मापें कि कितने SMS और कॉल Twilio तक और फ़ोन तक पहुँचते हैं।
 :::

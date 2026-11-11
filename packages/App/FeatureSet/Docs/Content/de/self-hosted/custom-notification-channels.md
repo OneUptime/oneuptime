@@ -183,7 +183,7 @@ Eine Benachrichtigung geht an jeden eingeschalteten Kanal, als eine Anfrage pro 
 
 ## Zustellung und Wiederholungen
 
-Eine Anfrage gilt als zugestellt, wenn Ihr Dienst innerhalb von 10 Sekunden mit einem 2xx-Status antwortet. Eine Anfrage, auf die er nicht oder mit 408, 429 oder einem 5xx-Status geantwortet hat, wird nach 1 Sekunde und nach weiteren 4 Sekunden erneut gesendet: insgesamt drei Versuche. Bei jedem anderen 4xx-Status wird sie nicht erneut gesendet.
+Eine Anfrage gilt als zugestellt, wenn Ihr Dienst innerhalb von 10 Sekunden mit einem 2xx-Status antwortet. Eine Anfrage, auf die er nicht oder mit 408, 429 oder einem 5xx-Status geantwortet hat, wird nach 1 Sekunde und nach weiteren 4 Sekunden erneut gesendet: insgesamt drei Versuche. Bei jedem anderen 4xx-Status wird sie nicht erneut gesendet. Wie jede Nachricht ausging, wird in den [Metriken zur Benachrichtigungszustellung](/docs/self-hosted/notification-delivery-metrics) gezählt, nach ID und Name des Kanals.
 
 Das Ergebnis jedes Versuchs steht im Bereitschaftsprotokoll der Person, mit dem Namen des Kanals und dem Status, mit dem Ihr Dienst geantwortet hat, nie mit der URL. Ein nicht zugestellter Alarm hält die Bereitschaftsrichtlinie nicht an: Bestätigt niemand, eskaliert sie wie gewohnt. Behalten Sie weiter hinten in Ihren Regeln eine E-Mail- oder SMS-Regel, wenn Ihr Dienst der einzige Weg ist, Personen zu erreichen.
 

@@ -50015,5 +50015,10 @@
   "The team these channels are in. Leave it empty to look in the default team first, then in the others.": "这些频道所在的团队。留空则先在默认团队中查找，再在其他团队中查找。",
   "The team the channel is created in. Leave it empty to use the default team.": "创建频道的团队。留空则使用默认团队。",
   "The channel is created in the {{team}} team.": "频道在 {{team}} 团队中创建。",
-  "Those channels are in the {{team}} team.": "这些频道位于 {{team}} 团队中。"
+  "Those channels are in the {{team}} team.": "这些频道位于 {{team}} 团队中。",
+  "In the {{workspace}} workspace": "位于 {{workspace}} 工作区",
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.": "OneUptime 已不在 {{organization}} 的 {{workspace}} 工作区中。请在 Slack 的组织设置中重新添加它，或在规则中选择其他工作区。",
+  "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.": "大家在此工作区中提及该用户组。仅列出已添加 OneUptime 的工作区。",
+  "{{workspace}} (OneUptime no longer added)": "{{workspace}}（已不再添加 OneUptime）",
+  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "OneUptime 已不在此频道所在的 Slack 工作区中。请在 Slack 的组织设置中重新添加它。"
 }

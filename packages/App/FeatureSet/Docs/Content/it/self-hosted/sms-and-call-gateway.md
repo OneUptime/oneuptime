@@ -125,4 +125,5 @@ Il registro degli SMS o delle chiamate, e per un avviso di reperibilità il regi
 - [Notifiche push](/docs/self-hosted/push-notifications): Disattivare i push per l'intero server.
 - [Integrazione Twilio](/docs/self-hosted/twilio-integration): Inviare invece tramite Twilio.
 - [Accesso alla rete privata](/docs/self-hosted/private-network-access): Cosa può raggiungere il tuo server nella tua rete.
+- [Metriche di consegna delle notifiche](/docs/self-hosted/notification-delivery-metrics): Contare i messaggi che il tuo gateway accetta e rifiuta.
 :::

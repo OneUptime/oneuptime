@@ -50015,5 +50015,10 @@
   "The team these channels are in. Leave it empty to look in the default team first, then in the others.": "Teamet disse kanalene ligger i. La feltet stå tomt for å lete først i standardteamet og deretter i de andre.",
   "The team the channel is created in. Leave it empty to use the default team.": "Teamet kanalen opprettes i. La feltet stå tomt for å bruke standardteamet.",
   "The channel is created in the {{team}} team.": "Kanalen opprettes i teamet {{team}}.",
-  "Those channels are in the {{team}} team.": "Disse kanalene ligger i teamet {{team}}."
+  "Those channels are in the {{team}} team.": "Disse kanalene ligger i teamet {{team}}.",
+  "In the {{workspace}} workspace": "I arbeidsområdet {{workspace}}",
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.": "OneUptime er ikke lenger lagt til i arbeidsområdet {{workspace}} i {{organization}}. Legg det til igjen i organisasjonsinnstillingene i Slack, eller velg et annet arbeidsområde i regelen.",
+  "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.": "Folk nevner gruppen i dette arbeidsområdet. Bare arbeidsområder som OneUptime er lagt til i, vises.",
+  "{{workspace}} (OneUptime no longer added)": "{{workspace}} (OneUptime ikke lenger lagt til)",
+  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "OneUptime er ikke lenger lagt til i Slack-arbeidsområdet denne kanalen er i. Legg det til igjen i organisasjonsinnstillingene i Slack."
 }

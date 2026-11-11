@@ -50,6 +50,7 @@ import WorkspaceProjectAuthToken, {
 } from "../../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import SlackOrganization, {
   SlackOrganizationConnection,
+  SlackWorkspaceNotAddedException,
 } from "./SlackOrganization";
 import SSRFProtection from "../../SSRFProtection";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
@@ -1676,7 +1677,11 @@ export default class SlackUtil extends WorkspaceBase {
    * A project connected to a whole Slack Enterprise organization
    * (SlackOrganization) looks in the workspace `teamId` names - a rule's -
    * and only there; without one, in the default workspace first, then in
-   * the others OneUptime was added to.
+   * the others OneUptime was added to. A workspace `teamId` names that
+   * OneUptime is no longer added to - Slack does not list it, or refuses
+   * access to it - throws a SlackWorkspaceNotAddedException saying so: its
+   * channel is not looked for in another workspace, nor taken from the
+   * cache.
    */
   @CaptureSpan()
   public static async getWorkspaceChannelByName(data: {
@@ -1721,6 +1726,36 @@ export default class SlackUtil extends WorkspaceBase {
       logger.error(error, getByNameLogAttributes);
     }
 
+    /*
+     * The workspace a rule picks, of a whole organization's installation:
+     * OneUptime still added to it, as Slack listed them last.
+     */
+    let organization: SlackOrganizationConnection | null | undefined =
+      undefined;
+
+    if (
+      data.teamId &&
+      SlackOrganization.isOrganization(projectAuth?.miscData)
+    ) {
+      organization = await SlackOrganization.getOfConnection({
+        projectId: data.projectId,
+        projectAuth: projectAuth,
+      });
+
+      if (
+        organization &&
+        !SlackOrganization.isWorkspaceAdded({
+          organization: organization,
+          teamId: data.teamId,
+        })
+      ) {
+        throw SlackOrganization.getNotAddedException({
+          organization: organization,
+          teamId: data.teamId,
+        });
+      }
+    }
+
     // Try to get from cache first
     const cachedChannel: WorkspaceChannel | null = this.readChannelFromCache({
       projectAuth: projectAuth,
@@ -1733,12 +1768,14 @@ export default class SlackUtil extends WorkspaceBase {
       return cachedChannel;
     }
 
-    const organization: SlackOrganizationConnection | null = projectAuth
-      ? await SlackOrganization.getOfConnection({
-          projectId: data.projectId,
-          projectAuth: projectAuth,
-        })
-      : null;
+    if (organization === undefined) {
+      organization = projectAuth
+        ? await SlackOrganization.getOfConnection({
+            projectId: data.projectId,
+            projectAuth: projectAuth,
+          })
+        : null;
+    }
 
     const workspaceIds: Array<string | undefined> = organization
       ? data.teamId
@@ -1782,6 +1819,17 @@ export default class SlackUtil extends WorkspaceBase {
           getByNameLogAttributes,
         );
         logger.error(err, getByNameLogAttributes);
+
+        /*
+         * The workspace a rule picks, refusing OneUptime: removed from it
+         * since Slack listed the workspaces last.
+         */
+        if (data.teamId && this.isWorkspaceNotAddedError(err)) {
+          throw SlackOrganization.getNotAddedException({
+            organization: organization,
+            teamId: data.teamId,
+          });
+        }
       }
 
       if (found.channel) {
@@ -1981,6 +2029,13 @@ export default class SlackUtil extends WorkspaceBase {
 
     const workspaceChannelsToPostTo: Array<WorkspaceChannel> = [];
 
+    /*
+     * The channels not posted in for a reason their rule's Notification
+     * Logs say: the workspace the rule picks no longer has OneUptime.
+     */
+    const channelErrors: Array<{ channel: WorkspaceChannel; error: string }> =
+      [];
+
     // Resolve channel names efficiently
     for (let channelName of data.workspaceMessagePayload.channelNames) {
       if (channelName && channelName.startsWith("#")) {
@@ -1992,8 +2047,10 @@ export default class SlackUtil extends WorkspaceBase {
        * A project connected to a whole Slack Enterprise organization: a
        * channel of the workspace the rule names, when it names one.
        */
-      const channel: WorkspaceChannel | null =
-        await this.getWorkspaceChannelByName({
+      let channel: WorkspaceChannel | null = null;
+
+      try {
+        channel = await this.getWorkspaceChannelByName({
           authToken: data.authToken,
           channelName: channelName,
           projectId: data.projectId,
@@ -2001,6 +2058,30 @@ export default class SlackUtil extends WorkspaceBase {
             ? { teamId: data.workspaceMessagePayload.teamId }
             : {}),
         });
+      } catch (err) {
+        if (!(err instanceof SlackWorkspaceNotAddedException)) {
+          throw err;
+        }
+
+        logger.debug(
+          `Channel ${channelName} is in a Slack workspace OneUptime is no longer added to.`,
+          sendMsgLogAttributes,
+        );
+
+        posts.recordChannelNotFound();
+
+        channelErrors.push({
+          channel: {
+            id: "",
+            name: channelName,
+            workspaceType: WorkspaceType.Slack,
+            teamId: err.teamId,
+          },
+          error: err.message,
+        });
+
+        continue;
+      }
 
       if (channel) {
         workspaceChannelsToPostTo.push(channel);
@@ -2070,7 +2151,7 @@ export default class SlackUtil extends WorkspaceBase {
     const workspaspaceMessageResponse: WorkspaceSendMessageResponse = {
       threads: [],
       workspaceType: WorkspaceType.Slack,
-      errors: [],
+      errors: [...channelErrors],
     };
 
     const inlineImages: Array<WorkspacePayloadInlineImage> =
@@ -2169,7 +2250,11 @@ export default class SlackUtil extends WorkspaceBase {
         logger.error(e, sendMsgLogAttributes);
         workspaspaceMessageResponse.errors!.push({
           channel: channel,
-          error: WorkspaceBase.getSendErrorMessage(e),
+          error: await this.getPostErrorText({
+            projectId: data.projectId,
+            error: e,
+            teamId: channel.teamId || data.workspaceMessagePayload.teamId,
+          }),
         });
       }
     }
@@ -2178,6 +2263,37 @@ export default class SlackUtil extends WorkspaceBase {
     logger.debug(workspaspaceMessageResponse, sendMsgLogAttributes);
 
     return workspaspaceMessageResponse;
+  }
+
+  /*
+   * What a post's Notification Logs row says of its failure: Slack's own
+   * answer - or, when Slack refuses OneUptime the workspace of a whole
+   * organization's installation the channel is in (team_access_not_granted),
+   * that OneUptime is no longer added to it, by name.
+   */
+  private static async getPostErrorText(data: {
+    projectId: ObjectID;
+    error: unknown;
+    // The workspace the channel is in, or the rule picks, when one is known.
+    teamId?: string | undefined;
+  }): Promise<string> {
+    const text: string = WorkspaceBase.getSendErrorMessage(data.error);
+
+    if (!data.teamId || !this.isWorkspaceNotAddedError(data.error)) {
+      return text;
+    }
+
+    const organization: SlackOrganizationConnection | null =
+      await SlackOrganization.getOfProject({ projectId: data.projectId });
+
+    if (!organization) {
+      return text;
+    }
+
+    return SlackOrganization.getNotAddedMessage({
+      organization: organization,
+      teamId: data.teamId,
+    });
   }
 
   /*
@@ -2867,18 +2983,32 @@ export default class SlackUtil extends WorkspaceBase {
   }
 
   /*
+   * Whether Slack refused a call for the workspace it was made in: one a
+   * whole organization's installation is not added to - or no longer
+   * (SlackOrganization.NOT_ADDED_ERROR).
+   */
+  public static isWorkspaceNotAddedError(error: unknown): boolean {
+    return (
+      WorkspaceBase.getSendErrorMessage(error) ===
+      `Error from Slack ${SlackOrganization.NOT_ADDED_ERROR}`
+    );
+  }
+
+  /*
    * The workspace a channel is created in, for a project connected to a
    * whole Slack Enterprise organization (SlackOrganization): the one asked
    * for, else the default. Undefined for a project connected to one
-   * workspace - whose token needs none. Throws for an organization
-   * OneUptime is added to no workspace of yet: Slack would refuse.
+   * workspace - whose token needs none. Throws, before Slack is asked, for
+   * an organization OneUptime is added to no workspace of, and for a
+   * workspace asked for that OneUptime is no longer added to
+   * (SlackWorkspaceNotAddedException): Slack would refuse, and another
+   * workspace is not the one asked for.
    */
-  private static async getWorkspaceToCreateIn(data: {
-    projectId: ObjectID;
+  private static getWorkspaceToCreateIn(data: {
+    organization: SlackOrganizationConnection | null;
     teamId: string | undefined;
-  }): Promise<string | undefined> {
-    const organization: SlackOrganizationConnection | null =
-      await SlackOrganization.getOfProject({ projectId: data.projectId });
+  }): string | undefined {
+    const organization: SlackOrganizationConnection | null = data.organization;
 
     if (!organization) {
       return undefined;
@@ -2890,10 +3020,27 @@ export default class SlackUtil extends WorkspaceBase {
         teamId: data.teamId,
       });
 
-    if (!teamId) {
+    // Listed none, a default chosen before is no workspace to create in either.
+    const isAddedToNone: boolean =
+      Boolean(organization.workspacesReadAt) &&
+      organization.workspaces.length === 0;
+
+    if (!teamId || isAddedToNone) {
       throw new BadRequestException(
         `OneUptime is installed for the ${organization.enterpriseName || "Slack Enterprise"} organization but has not been added to any of its workspaces yet. Add it to a workspace in Slack's organization settings, then try again.`,
       );
+    }
+
+    if (
+      !SlackOrganization.isWorkspaceAdded({
+        organization: organization,
+        teamId: teamId,
+      })
+    ) {
+      throw SlackOrganization.getNotAddedException({
+        organization: organization,
+        teamId: teamId,
+      });
     }
 
     return teamId;
@@ -2932,7 +3079,8 @@ export default class SlackUtil extends WorkspaceBase {
   /*
    * Creates a channel. A project connected to a whole Slack Enterprise
    * organization creates it in a workspace (SlackOrganization): the one
-   * `teamId` names - a rule's - else the default one.
+   * `teamId` names - a rule's - else the default one. One OneUptime is no
+   * longer added to is refused, saying so (SlackWorkspaceNotAddedException).
    */
   @CaptureSpan()
   public static override async createChannel(data: {
@@ -2941,6 +3089,12 @@ export default class SlackUtil extends WorkspaceBase {
     projectId: ObjectID;
     isPrivate?: boolean;
     teamId?: string | undefined;
+    /*
+     * The project's Slack connection as a whole organization's
+     * installation, as its caller read it - null for one to one workspace.
+     * Read here when not given.
+     */
+    organization?: SlackOrganizationConnection | null | undefined;
   }): Promise<WorkspaceChannel> {
     /*
      * As Slack creates it (getChannelNameToCreate). A rule's channel arrives
@@ -2964,8 +3118,13 @@ export default class SlackUtil extends WorkspaceBase {
       createChannelPayload["is_private"] = true;
     }
 
-    const teamId: string | undefined = await this.getWorkspaceToCreateIn({
-      projectId: data.projectId,
+    const organization: SlackOrganizationConnection | null =
+      data.organization !== undefined
+        ? data.organization
+        : await SlackOrganization.getOfProject({ projectId: data.projectId });
+
+    const teamId: string | undefined = this.getWorkspaceToCreateIn({
+      organization: organization,
       teamId: data.teamId,
     });
 
@@ -3012,6 +3171,19 @@ export default class SlackUtil extends WorkspaceBase {
       const messageFromSlack: string = (response.jsonData as JSONObject)?.[
         "error"
       ] as string;
+
+      // Removed from the workspace since Slack listed the workspaces last.
+      if (
+        organization &&
+        teamId &&
+        messageFromSlack === SlackOrganization.NOT_ADDED_ERROR
+      ) {
+        throw SlackOrganization.getNotAddedException({
+          organization: organization,
+          teamId: teamId,
+        });
+      }
+
       throw new BadRequestException("Error from Slack " + messageFromSlack);
     }
 

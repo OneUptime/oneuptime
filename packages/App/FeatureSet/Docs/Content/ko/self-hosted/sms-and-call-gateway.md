@@ -125,4 +125,5 @@ SMS 또는 통화 로그와, 온콜 호출의 경우 그 사람의 온콜 로그
 - [푸시 알림](/docs/self-hosted/push-notifications): 서버 전체에서 푸시를 끕니다.
 - [Twilio 통합](/docs/self-hosted/twilio-integration): 대신 Twilio를 통해 보냅니다.
 - [프라이빗 네트워크 접근](/docs/self-hosted/private-network-access): 서버가 자체 네트워크에서 접근할 수 있는 범위.
+- [알림 전달 메트릭](/docs/self-hosted/notification-delivery-metrics): 게이트웨이가 수락하고 거부한 메시지를 셉니다.
 :::

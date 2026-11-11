@@ -125,4 +125,5 @@ curl -X POST "https://oneuptime.example.com/api/custom-notification-channel/page
 - [اعلان‌های پوش](/docs/self-hosted/push-notifications): پوش را برای کل سرور خاموش کنید.
 - [یکپارچه‌سازی Twilio](/docs/self-hosted/twilio-integration): به‌جای آن از راه Twilio بفرستید.
 - [دسترسی به شبکه خصوصی](/docs/self-hosted/private-network-access): سرور شما در شبکهٔ خودتان به چه چیزهایی می‌تواند برسد.
+- [متریک‌های تحویل اعلان](/docs/self-hosted/notification-delivery-metrics): پیام‌هایی را که درگاه شما می‌پذیرد و رد می‌کند بشمارید.
 :::

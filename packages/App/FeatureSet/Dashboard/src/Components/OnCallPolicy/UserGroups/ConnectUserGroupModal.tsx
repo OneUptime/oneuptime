@@ -48,7 +48,11 @@ import React, {
  * schedule's name; with no group of the workspace's to pick, the form
  * opens on it. Under the list, what connecting the group picked does: the
  * schedules it follows already, the people in it now that are replaced, a
- * group that is turned off turned back on.
+ * group that is turned off turned back on. Slack installed for a whole
+ * Enterprise organization and added to two or more of its workspaces asks
+ * first which workspace the group is in - the default one to start with -
+ * and lists that workspace's groups: a group is mentioned, and kept up to
+ * date, in its own workspace.
  *
  * Microsoft Teams: the team (one OneUptime's app is in) and the tag's name -
  * the team's tag of that name, or a new one.
@@ -70,6 +74,8 @@ export interface ComponentProps {
 }
 
 interface ConnectFormValues {
+  // Slack installed for a whole Enterprise organization: the group's workspace.
+  slackWorkspaceId?: string | undefined;
   userGroup?: string | undefined;
   newGroupName?: string | undefined;
   newGroupHandle?: string | undefined;
@@ -123,11 +129,24 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
   // What was sent last: the form opens with it again after a refusal.
   const [lastValues, setLastValues] =
     useState<FormValues<ConnectFormValues> | null>(null);
+  /*
+   * Slack installed for a whole Enterprise organization: the workspace
+   * picked, whose groups are listed - undefined for the default one.
+   */
+  const [slackWorkspaceId, setSlackWorkspaceId] = useState<string | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     let isCurrent: boolean = true;
 
-    UserGroupsAPI.getAvailable({ workspaceType: props.workspaceType })
+    setAvailable(null);
+    setLoadError("");
+
+    UserGroupsAPI.getAvailable({
+      workspaceType: props.workspaceType,
+      teamId: isSlack ? slackWorkspaceId : undefined,
+    })
       .then((result: AvailableUserGroups) => {
         if (isCurrent) {
           setAvailable(result);
@@ -142,7 +161,7 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
     return () => {
       isCurrent = false;
     };
-  }, [props.workspaceType]);
+  }, [props.workspaceType, slackWorkspaceId]);
 
   const submit: (
     values: FormValues<ConnectFormValues>,
@@ -159,6 +178,10 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
     };
 
     if (isSlack) {
+      if (values.slackWorkspaceId) {
+        request.workspaceTeamId = values.slackWorkspaceId;
+      }
+
       if (values.userGroup === NEW_USER_GROUP_VALUE) {
         request.newGroupName = (values.newGroupName || "").trim();
         request.newGroupHandle = readSlackUserGroupHandle(
@@ -218,8 +241,40 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
     },
   );
 
+  /*
+   * Slack installed for a whole Enterprise organization, added to two or
+   * more workspaces: the workspace the group is in. The groups listed are
+   * the one picked's - the default one's, first, which Slack lists first.
+   */
+  const slackWorkspaces: Array<WorkspaceUserGroupTeam> = isSlack
+    ? available.teams
+    : [];
+
+  const pickedSlackWorkspaceId: string =
+    slackWorkspaceId || slackWorkspaces[0]?.teamId || "";
+
+  const slackWorkspaceFields: Array<Field<ConnectFormValues>> =
+    slackWorkspaces.length > 1
+      ? [
+          {
+            field: { slackWorkspaceId: true },
+            title: CONNECT_FORM_TEXT.slackWorkspace,
+            description: CONNECT_FORM_TEXT.slackWorkspaceDescription,
+            fieldType: FormFieldSchemaType.Dropdown,
+            required: true,
+            defaultValue: pickedSlackWorkspaceId,
+            dropdownOptions: slackWorkspaces.map(
+              (workspace: WorkspaceUserGroupTeam): DropdownOption => {
+                return { label: workspace.name, value: workspace.teamId };
+              },
+            ),
+          },
+        ]
+      : [];
+
   const fields: Array<Field<ConnectFormValues>> = isSlack
     ? [
+        ...slackWorkspaceFields,
         {
           field: { userGroup: true },
           title: CONNECT_FORM_TEXT.userGroup,
@@ -381,6 +436,20 @@ const ConnectUserGroupModal: FunctionComponent<ComponentProps> = (
         id: `connect-user-group-${props.workspaceType}`,
         fields: fields,
         ...(lastValues ? { initialValues: lastValues } : {}),
+        /*
+         * Another workspace picked: its groups are listed instead, and the
+         * form opens again on it.
+         */
+        onChange: (values: FormValues<ConnectFormValues>) => {
+          if (
+            slackWorkspaceFields.length > 0 &&
+            values.slackWorkspaceId &&
+            values.slackWorkspaceId !== pickedSlackWorkspaceId
+          ) {
+            setLastValues(null);
+            setSlackWorkspaceId(values.slackWorkspaceId);
+          }
+        },
       }}
     />
   );

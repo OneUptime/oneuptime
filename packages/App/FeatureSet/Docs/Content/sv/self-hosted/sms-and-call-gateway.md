@@ -125,4 +125,5 @@ SMS- eller samtalsloggen, och för ett jourlarm personens jourlogg, säger `Sent
 - [Push-aviseringar](/docs/self-hosted/push-notifications): Stäng av push för hela servern.
 - [Twilio-integration](/docs/self-hosted/twilio-integration): Skicka via Twilio i stället.
 - [Åtkomst till privat nätverk](/docs/self-hosted/private-network-access): Vad din server får nå i ditt eget nätverk.
+- [Mått för aviseringsleverans](/docs/self-hosted/notification-delivery-metrics): Räkna de meddelanden som din gateway tar emot och avvisar.
 :::

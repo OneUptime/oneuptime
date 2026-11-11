@@ -184,4 +184,5 @@ Et nummer, der er bekræftet til SMS, er også bekræftet til opkald, uden en ny
 - [SMS- og opkaldsgateway](/docs/self-hosted/sms-and-call-gateway): Send SMS og opkald gennem din egen udbyder i stedet for Twilio.
 - [SMTP](/docs/emails/smtp): Send også e-mail gennem din egen mailserver.
 - [Adgang til private netværk](/docs/self-hosted/private-network-access): Lad workflows og webhooks nå interne værktøjer.
+- [Metrikker for notifikationslevering](/docs/self-hosted/notification-delivery-metrics): Mål, hvor mange SMS'er og opkald der når frem til Twilio og telefonen.
 :::

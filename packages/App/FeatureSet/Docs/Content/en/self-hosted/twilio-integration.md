@@ -184,4 +184,5 @@ A number verified for SMS is also verified for calls, with no second code. Verif
 - [SMS and Call Gateway](/docs/self-hosted/sms-and-call-gateway): Send SMS and calls through your own provider instead of Twilio.
 - [SMTP](/docs/emails/smtp): Send email through your own mail server too.
 - [Private Network Access](/docs/self-hosted/private-network-access): Let workflows and webhooks reach internal tools.
+- [Notification Delivery Metrics](/docs/self-hosted/notification-delivery-metrics): Measure how many SMS and calls reach Twilio and the phone.
 :::

@@ -50015,5 +50015,10 @@
   "The team these channels are in. Leave it empty to look in the default team first, then in the others.": "L'équipe où se trouvent ces canaux. Laissez vide pour chercher d'abord dans l'équipe par défaut, puis dans les autres.",
   "The team the channel is created in. Leave it empty to use the default team.": "L'équipe dans laquelle le canal est créé. Laissez vide pour utiliser l'équipe par défaut.",
   "The channel is created in the {{team}} team.": "Le canal est créé dans l'équipe {{team}}.",
-  "Those channels are in the {{team}} team.": "Ces canaux se trouvent dans l'équipe {{team}}."
+  "Those channels are in the {{team}} team.": "Ces canaux se trouvent dans l'équipe {{team}}.",
+  "In the {{workspace}} workspace": "Dans l'espace de travail {{workspace}}",
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.": "OneUptime n'est plus ajouté à l'espace de travail {{workspace}} de {{organization}}. Ajoutez-le de nouveau dans les paramètres de l'organisation de Slack, ou choisissez un autre espace de travail dans la règle.",
+  "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.": "Les membres mentionnent le groupe dans cet espace de travail. Seuls les espaces de travail auxquels OneUptime a été ajouté sont listés.",
+  "{{workspace}} (OneUptime no longer added)": "{{workspace}} (OneUptime n'y est plus ajouté)",
+  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "OneUptime n'est plus ajouté à l'espace de travail Slack de ce canal. Ajoutez-le de nouveau dans les paramètres de l'organisation de Slack."
 }

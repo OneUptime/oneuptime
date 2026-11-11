@@ -50015,5 +50015,10 @@
   "The team these channels are in. Leave it empty to look in the default team first, then in the others.": "이 채널들이 있는 팀입니다. 비워 두면 기본 팀을 먼저 찾은 다음 다른 팀을 찾습니다.",
   "The team the channel is created in. Leave it empty to use the default team.": "채널을 만들 팀입니다. 기본 팀을 사용하려면 비워 두세요.",
   "The channel is created in the {{team}} team.": "채널은 {{team}} 팀에 만들어집니다.",
-  "Those channels are in the {{team}} team.": "이 채널들은 {{team}} 팀에 있습니다."
+  "Those channels are in the {{team}} team.": "이 채널들은 {{team}} 팀에 있습니다.",
+  "In the {{workspace}} workspace": "{{workspace}} 워크스페이스",
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.": "OneUptime이 더 이상 {{organization}}의 {{workspace}} 워크스페이스에 추가되어 있지 않습니다. Slack의 조직 설정에서 다시 추가하거나 규칙에서 다른 워크스페이스를 선택하세요.",
+  "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.": "사람들은 이 워크스페이스에서 그룹을 멘션합니다. OneUptime이 추가된 워크스페이스만 표시됩니다.",
+  "{{workspace}} (OneUptime no longer added)": "{{workspace}} (OneUptime이 더 이상 추가되어 있지 않음)",
+  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "OneUptime이 더 이상 이 채널이 있는 Slack 워크스페이스에 추가되어 있지 않습니다. Slack의 조직 설정에서 다시 추가하세요."
 }

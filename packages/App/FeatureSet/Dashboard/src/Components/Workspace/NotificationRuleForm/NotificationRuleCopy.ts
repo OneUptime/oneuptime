@@ -4,6 +4,7 @@ import NotificationRuleInvites, {
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleInvites";
 import IncidentNotificationRule from "Common/Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
 import WorkspaceType from "Common/Types/Workspace/WorkspaceType";
+import { SlackOrganizationWorkspace } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import {
   composedValue,
   Translator,
@@ -697,6 +698,90 @@ export const CREATED_IN_MATTERMOST_TEAM_SENTENCE: string = translationKey(
 export const POSTS_IN_MATTERMOST_TEAM_SENTENCE: string = translationKey(
   "Those channels are in the {{team}} team.",
 );
+
+/*
+ * A rule that picks a Slack workspace OneUptime is no longer added to: on
+ * its card, as its Notification Logs and its test say it
+ * (SlackOrganization.getNotAddedMessage). It posts nowhere else instead.
+ */
+export const SLACK_WORKSPACE_NOT_ADDED_NOTE: string = translationKey(
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.",
+);
+
+// Such a workspace, as the rule form's Slack workspace picker still shows it.
+export const SLACK_WORKSPACE_NOT_ADDED_OPTION: string = translationKey(
+  "{{workspace}} (OneUptime no longer added)",
+);
+
+/*
+ * Slack installed for a whole Enterprise organization (GET
+ * /slack/workspaces): the workspaces OneUptime is added to, those it was
+ * removed from - by the names they had - and the organization's name.
+ */
+export interface SlackRuleWorkspaces {
+  workspaces: Array<SlackOrganizationWorkspace>;
+  removedWorkspaces: Array<SlackOrganizationWorkspace>;
+  organizationName: string;
+}
+
+/*
+ * The Slack workspaces a rule picks that OneUptime is no longer added to -
+ * for the channels it posts in, and for the channel it creates - each once,
+ * by name (the id when its name was never known). None before Slack has
+ * listed the organization's workspaces: what it is added to is not known.
+ */
+export function getRuleWorkspacesNotAdded(data: {
+  rule: IncidentNotificationRule | undefined;
+  workspaceType: WorkspaceType;
+  organization: SlackRuleWorkspaces | undefined;
+}): Array<SlackOrganizationWorkspace> {
+  const organization: SlackRuleWorkspaces | undefined = data.organization;
+
+  if (
+    data.workspaceType !== WorkspaceType.Slack ||
+    !data.rule ||
+    !organization ||
+    (organization.workspaces.length === 0 &&
+      organization.removedWorkspaces.length === 0)
+  ) {
+    return [];
+  }
+
+  const picked: Array<string | undefined> = [
+    data.rule.shouldPostToExistingChannel ? data.rule.existingTeam : undefined,
+    data.rule.shouldCreateNewChannel
+      ? data.rule.teamToCreateChannelIn
+      : undefined,
+  ];
+
+  const notAdded: Array<SlackOrganizationWorkspace> = [];
+
+  for (const id of picked) {
+    if (
+      !id ||
+      organization.workspaces.some(
+        (workspace: SlackOrganizationWorkspace): boolean => {
+          return workspace.id === id;
+        },
+      ) ||
+      notAdded.some((workspace: SlackOrganizationWorkspace): boolean => {
+        return workspace.id === id;
+      })
+    ) {
+      continue;
+    }
+
+    notAdded.push(
+      organization.removedWorkspaces.find(
+        (workspace: SlackOrganizationWorkspace): boolean => {
+          return workspace.id === id;
+        },
+      ) || { id: id, name: id },
+    );
+  }
+
+  return notAdded;
+}
 
 export const POST_TO_CHATS_TITLE: string = translationKey("Post to chats");
 

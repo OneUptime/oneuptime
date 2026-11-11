@@ -125,4 +125,5 @@ El registro de SMS o de llamadas, y para un aviso de guardia el registro de guar
 - [Notificaciones push](/docs/self-hosted/push-notifications): Desactivar el push en todo el servidor.
 - [Integración de Twilio](/docs/self-hosted/twilio-integration): Enviar a través de Twilio en su lugar.
 - [Acceso a red privada](/docs/self-hosted/private-network-access): A qué puede llegar tu servidor en tu propia red.
+- [Métricas de entrega de notificaciones](/docs/self-hosted/notification-delivery-metrics): Contar los mensajes que tu pasarela acepta y rechaza.
 :::

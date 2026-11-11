@@ -7,7 +7,9 @@ import {
   FilterType,
   NoDataPolicy,
 } from "../../../Types/Monitor/CriteriaFilter";
-import CriteriaFilterValues from "../../../Types/Monitor/CriteriaFilterValues";
+import CriteriaFilterValues, {
+  CriteriaFilterValueField,
+} from "../../../Types/Monitor/CriteriaFilterValues";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import { generatedTexts } from "../../Helpers/GeneratedTexts";
@@ -620,5 +622,67 @@ describe("MonitorCriteriaInstance reads its values written another way", () => {
     expect(
       MonitorCriteriaInstance.getValidationError(instance, MonitorType.Metrics),
     ).toContain('filters[0].filterType "GreaterThn"');
+  });
+});
+
+describe("CriteriaFilterValues.getNamesRead", () => {
+  test.each<
+    [CriteriaFilterValueField, Array<string>, (value: unknown) => string | null]
+  >([
+    [
+      "filterType",
+      Object.values(FilterType),
+      CriteriaFilterValues.readFilterType,
+    ],
+    ["checkOn", Object.values(CheckOn), CriteriaFilterValues.readCheckOn],
+    [
+      "filterCondition",
+      Object.values(FilterCondition),
+      CriteriaFilterValues.readFilterCondition,
+    ],
+    [
+      "evaluateOverTimeType",
+      Object.values(EvaluateOverTimeType),
+      CriteriaFilterValues.readEvaluateOverTimeType,
+    ],
+    [
+      "noDataPolicy",
+      Object.values(NoDataPolicy),
+      CriteriaFilterValues.readNoDataPolicy,
+    ],
+  ])(
+    "%s: lists every value and each other name, each read as a value",
+    (
+      field: CriteriaFilterValueField,
+      values: Array<string>,
+      read: (value: unknown) => string | null,
+    ) => {
+      const names: Array<string> = CriteriaFilterValues.getNamesRead(field);
+
+      expect(names).toEqual(expect.arrayContaining(values));
+      for (const name of names) {
+        expect([name, values.includes(read(name) as string)]).toEqual([
+          name,
+          true,
+        ]);
+      }
+    },
+  );
+
+  test("lists the other names and the symbols", () => {
+    expect(CriteriaFilterValues.getNamesRead("evaluateOverTimeType")).toEqual(
+      expect.arrayContaining(["avg", "mean", "max", "min", "any", "all"]),
+    );
+    expect(CriteriaFilterValues.getNamesRead("filterType")).toEqual(
+      expect.arrayContaining([">=", "gte", "!=", "<>"]),
+    );
+  });
+
+  test("hands out a copy", () => {
+    CriteriaFilterValues.getNamesRead("noDataPolicy").push("never");
+
+    expect(CriteriaFilterValues.getNamesRead("noDataPolicy")).not.toContain(
+      "never",
+    );
   });
 });

@@ -50015,5 +50015,10 @@
   "The team these channels are in. Leave it empty to look in the default team first, then in the others.": "वह टीम जिसमें ये चैनल हैं। पहले डिफ़ॉल्ट टीम में और फिर बाकी टीमों में खोजने के लिए इसे खाली छोड़ें।",
   "The team the channel is created in. Leave it empty to use the default team.": "वह टीम जिसमें चैनल बनाया जाता है। डिफ़ॉल्ट टीम का उपयोग करने के लिए इसे खाली छोड़ें।",
   "The channel is created in the {{team}} team.": "चैनल {{team}} टीम में बनाया जाता है।",
-  "Those channels are in the {{team}} team.": "वे चैनल {{team}} टीम में हैं।"
+  "Those channels are in the {{team}} team.": "वे चैनल {{team}} टीम में हैं।",
+  "In the {{workspace}} workspace": "{{workspace}} वर्कस्पेस में",
+  "OneUptime is no longer added to the {{workspace}} workspace of {{organization}}. Add it again in Slack's organization settings, or pick another workspace on the rule.": "OneUptime अब {{organization}} के {{workspace}} वर्कस्पेस में जोड़ा हुआ नहीं है। इसे Slack की संगठन सेटिंग्स में फिर से जोड़ें, या नियम में कोई दूसरा वर्कस्पेस चुनें।",
+  "People mention the group in this workspace. Only workspaces OneUptime was added to are listed.": "लोग इस वर्कस्पेस में समूह को मेंशन करते हैं। सिर्फ़ वे वर्कस्पेस दिखते हैं जिनमें OneUptime जोड़ा गया है।",
+  "{{workspace}} (OneUptime no longer added)": "{{workspace}} (OneUptime अब जोड़ा हुआ नहीं है)",
+  "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.": "OneUptime अब उस Slack वर्कस्पेस में जोड़ा हुआ नहीं है जिसमें यह चैनल है। इसे Slack की संगठन सेटिंग्स में फिर से जोड़ें।"
 }

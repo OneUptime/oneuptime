@@ -259,4 +259,5 @@ Expo сообщает `DeviceNotRegistered`, когда мобильное пр�
 - [Устранение неполадок мобильного приложения](/docs/mobile-desktop-apps/faq-troubleshooting): Решите проблемы со входом и уведомлениями на телефоне.
 - [Правила эскалации](/docs/on-call/escalation-rules): Решите, кого и когда вызывать.
 - [Доступ к частной сети](/docs/self-hosted/private-network-access): Что ваш сервер может достигать в вашей собственной сети.
+- [Метрики доставки уведомлений](/docs/self-hosted/notification-delivery-metrics): Считайте push-уведомления, которые Apple и Google принимают, и те, что они отклоняют.
 :::
