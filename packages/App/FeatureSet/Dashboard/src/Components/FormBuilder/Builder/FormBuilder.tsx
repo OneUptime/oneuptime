@@ -64,6 +64,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import MarkdownViewer from "Common/UI/Components/Markdown.tsx/LazyMarkdownViewer";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ModelFormModal from "Common/UI/Components/ModelFormModal/ModelFormModal";
+import { announceModelHeaderChanged } from "Common/UI/Components/Page/ModelHeaderEvents";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
@@ -773,6 +774,14 @@ const FormBuilder: FunctionComponent<ComponentProps> = (
           onSuccess={() => {
             setIsEditingDetails(false);
             void reloadDetails();
+            /*
+             * The page's header - "Form - Customer feedback" - shows the
+             * name too, and kept the old one until a reload (issue #6766).
+             */
+            announceModelHeaderChanged({
+              modelType: Form,
+              modelId: props.formId,
+            });
           }}
           formProps={{
             id: "form-details-form",
