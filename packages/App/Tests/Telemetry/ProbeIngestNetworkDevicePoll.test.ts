@@ -17,7 +17,16 @@ import {
   ExpressResponse,
   NextFunction,
 } from "Common/Server/Utils/Express";
-import { beforeEach, describe, expect, jest, test } from "@jest/globals";
+import OneUptimeDate from "Common/Types/Date";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("Common/Server/Utils/Express", () => {
   return {
@@ -1626,5 +1635,106 @@ describe("POST /probe/network-device/response/ingest", () => {
     );
 
     expect(next).toHaveBeenCalledWith(boom);
+  });
+});
+
+/*
+ * WHEN ONEUPTIME RECEIVED THE POLL (dataReceivedAt, issue #6647).
+ *
+ * The route reads the server's clock as a poll reaches it, before anything
+ * is checked or queued, and queues that moment beside the walk - not in it:
+ * the walk is the probe's word, and its monitoredAt stays the probe's own
+ * clock. A page the devices' monitors start is timed from the receipt,
+ * however long the poll waited in the queue.
+ *
+ * The clock here moves a second at each read, so a later read would show.
+ */
+describe("POST /probe/network-device/response/ingest: when OneUptime received the poll", () => {
+  const RECEIVED_AT: Date = new Date("2026-11-10T09:29:20.000Z");
+  const PROBES_CLOCK: string = "2020-01-01T00:00:00.000Z";
+  const probeId: ObjectID = ObjectID.generate();
+  const networkDeviceId: ObjectID = ObjectID.generate();
+
+  let reads: number;
+  let clock: SpyInstance<typeof OneUptimeDate.getCurrentDate>;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    queueService.addNetworkDeviceWalkJob.mockResolvedValue(undefined as never);
+    reads = 0;
+
+    clock = jest
+      .spyOn(OneUptimeDate, "getCurrentDate")
+      .mockImplementation((): Date => {
+        return new Date(RECEIVED_AT.getTime() + 1000 * reads++);
+      });
+  });
+
+  afterEach(() => {
+    clock.mockRestore();
+  });
+
+  function queuedJob(): JSONObject {
+    expect(queueService.addNetworkDeviceWalkJob).toHaveBeenCalledTimes(1);
+    return queueService.addNetworkDeviceWalkJob.mock.calls[0]![0] as JSONObject;
+  }
+
+  test("a walk is queued with the moment it reached the route, beside it - the probe's clock left as its word", async () => {
+    await callIngestEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          networkDeviceId: networkDeviceId.toString(),
+          snmpResponse: { oidResults: [], isOnline: true },
+          monitoredAt: PROBES_CLOCK,
+        },
+      }),
+    );
+
+    const job: JSONObject = queuedJob();
+    const walkRequestBody: JSONObject = job["walkRequestBody"] as JSONObject;
+
+    expect(Object.keys(job).sort()).toEqual(["receivedAt", "walkRequestBody"]);
+    expect(job["receivedAt"]).toBeInstanceOf(Date);
+    expect(job["receivedAt"]).toEqual(RECEIVED_AT);
+    expect(walkRequestBody["monitoredAt"]).toBe(PROBES_CLOCK);
+    expect("receivedAt" in walkRequestBody).toBe(false);
+    expect("dataReceivedAt" in walkRequestBody).toBe(false);
+  });
+
+  test("a ping's verdict with no walk too", async () => {
+    await callIngestEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          networkDeviceId: networkDeviceId.toString(),
+          isOnline: false,
+          pollMode: "ping",
+        },
+      }),
+    );
+
+    expect(queuedJob()["receivedAt"]).toEqual(RECEIVED_AT);
+  });
+
+  test("a body that says when it was received is not believed", async () => {
+    await callIngestEndpoint(
+      makeRequest({
+        probeId,
+        body: {
+          networkDeviceId: networkDeviceId.toString(),
+          isOnline: true,
+          receivedAt: PROBES_CLOCK,
+          dataReceivedAt: PROBES_CLOCK,
+        },
+      }),
+    );
+
+    const job: JSONObject = queuedJob();
+
+    expect(job["receivedAt"]).toEqual(RECEIVED_AT);
+    expect("dataReceivedAt" in (job["walkRequestBody"] as JSONObject)).toBe(
+      false,
+    );
   });
 });

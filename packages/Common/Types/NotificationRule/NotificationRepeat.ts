@@ -168,8 +168,7 @@ export function getRuleExecutionDueAfterMinutes(data: {
   const notifyAfterMinutes: number = Number.isFinite(data.notifyAfterMinutes)
     ? data.notifyAfterMinutes
     : 0;
-  const repeats: number =
-    data.executionNumber > 0 ? Math.floor(data.executionNumber) : 0;
+  const repeats: number = toRepeatNumber(data.executionNumber);
 
   return Math.max(
     0,
@@ -178,6 +177,19 @@ export function getRuleExecutionDueAfterMinutes(data: {
         repeats * getRepeatEveryMinutes(data.repeatEveryMinutes),
     ),
   );
+}
+
+/*
+ * An execution number as the repeat it is: 0 for the first push - and for
+ * anything that is not a number above 0 - whole repeats, never past the
+ * last (MAX_NOTIFICATION_REPEATS).
+ */
+function toRepeatNumber(executionNumber: number): number {
+  if (!Number.isFinite(executionNumber) || executionNumber <= 0) {
+    return 0;
+  }
+
+  return Math.min(MAX_NOTIFICATION_REPEATS, Math.floor(executionNumber));
 }
 
 /*
@@ -193,11 +205,13 @@ export function getFirstOwedRuleExecution(data: {
   ruleId: string;
   executionNumber: number;
 }): number {
-  if (data.executionNumber <= 0) {
+  const executionNumber: number = toRepeatNumber(data.executionNumber);
+
+  if (executionNumber === 0) {
     return 0;
   }
 
-  for (let repeat: number = data.executionNumber - 1; repeat >= 1; repeat--) {
+  for (let repeat: number = executionNumber - 1; repeat >= 1; repeat--) {
     if (
       data.executedClaimKeys.includes(getRepeatClaimKey(data.ruleId, repeat))
     ) {

@@ -1,8 +1,10 @@
 import {
   getDueRepeatNumber,
   getDueRuleExecution,
+  getFirstOwedRuleExecution,
   getRepeatClaimKey,
   getRepeatEveryMinutes,
+  getRuleExecutionDueAfterMinutes,
   isRepeatEveryMinutes,
   isRuleFullyExecuted,
   MAX_NOTIFICATION_REPEATS,
@@ -1170,4 +1172,554 @@ describe("a page walked with a worker that keeps missing minutes", () => {
       }
     });
   }
+});
+
+/*
+ * WHEN EACH DELIVERY WAS DUE, for how late it went out
+ * (notification.send.lag, OnCallSendLag, issue #6646).
+ *
+ * A delivery is timed from the first whole minute its rule's schedule made
+ * it due - and a repeat a worker that fell behind sends in place of those
+ * it skipped, from the first one it skipped: the person went without a
+ * push from then. Both ways of getting it wrong are silent as well: a
+ * moment too early charges the platform with the rule's own wait, one too
+ * late hides a worker that fell behind.
+ */
+const PART_MINUTE_DELAYS: Array<number> = [0, 0.5, 1, 2.5, 5, 7.25, 30, 59.9];
+
+function repeatClaimsBelow(executionNumber: number): Array<string> {
+  if (executionNumber === 0) {
+    return [];
+  }
+
+  const claims: Array<string> = [RULE_ID];
+
+  for (let repeat: number = 1; repeat < executionNumber; repeat++) {
+    claims.push(getRepeatClaimKey(RULE_ID, repeat));
+  }
+
+  return claims;
+}
+
+describe("getRuleExecutionDueAfterMinutes", () => {
+  test("the first push is due after the rule's delay, whatever its interval", () => {
+    const intervals: Array<unknown> = [
+      NO_NOTIFICATION_REPEAT,
+      ...REPEAT_EVERY_MINUTES_OPTIONS,
+      ...NOT_AN_INTERVAL.map((entry: [string, unknown]): unknown => {
+        return entry[1];
+      }),
+    ];
+
+    for (const notifyAfterMinutes of NOTIFY_AFTER_MINUTES) {
+      for (const repeatEveryMinutes of intervals) {
+        expect(
+          getRuleExecutionDueAfterMinutes({
+            notifyAfterMinutes: notifyAfterMinutes,
+            repeatEveryMinutes: repeatEveryMinutes,
+            executionNumber: 0,
+          }),
+        ).toBe(notifyAfterMinutes);
+      }
+    }
+  });
+
+  test("repeat n is due n whole intervals after the first push, up to the tenth", () => {
+    for (const repeatEveryMinutes of REPEAT_EVERY_MINUTES_OPTIONS) {
+      for (const notifyAfterMinutes of NOTIFY_AFTER_MINUTES) {
+        for (
+          let repeat: number = 1;
+          repeat <= MAX_NOTIFICATION_REPEATS;
+          repeat++
+        ) {
+          expect(
+            getRuleExecutionDueAfterMinutes({
+              notifyAfterMinutes: notifyAfterMinutes,
+              repeatEveryMinutes: repeatEveryMinutes,
+              executionNumber: repeat,
+            }),
+          ).toBe(notifyAfterMinutes + repeat * repeatEveryMinutes);
+        }
+      }
+    }
+  });
+
+  test.each(NOT_AN_INTERVAL)(
+    "an interval that is not one (%s) repeats nothing: every number is due with the first push",
+    (_name: string, repeatEveryMinutes: unknown) => {
+      for (
+        let executionNumber: number = 0;
+        executionNumber <= MAX_NOTIFICATION_REPEATS;
+        executionNumber++
+      ) {
+        expect(
+          getRuleExecutionDueAfterMinutes({
+            notifyAfterMinutes: 5,
+            repeatEveryMinutes: repeatEveryMinutes,
+            executionNumber: executionNumber,
+          }),
+        ).toBe(5);
+      }
+    },
+  );
+
+  test("the first whole minute the worker finds it due, and not the minute before - for whole and part-minute delays", () => {
+    for (const repeatEveryMinutes of REPEAT_EVERY_MINUTES_OPTIONS) {
+      for (const notifyAfterMinutes of PART_MINUTE_DELAYS) {
+        for (
+          let executionNumber: number = 0;
+          executionNumber <= MAX_NOTIFICATION_REPEATS;
+          executionNumber++
+        ) {
+          const dueAfterMinutes: number = getRuleExecutionDueAfterMinutes({
+            notifyAfterMinutes: notifyAfterMinutes,
+            repeatEveryMinutes: repeatEveryMinutes,
+            executionNumber: executionNumber,
+          });
+          const asTheWorkerAsks: (
+            minutesSinceStart: number,
+          ) => number | null = (minutesSinceStart: number): number | null => {
+            return getDueRuleExecution({
+              executedClaimKeys: repeatClaimsBelow(executionNumber),
+              ruleId: RULE_ID,
+              notifyAfterMinutes: notifyAfterMinutes,
+              repeatEveryMinutes: repeatEveryMinutes,
+              minutesSinceStart: minutesSinceStart,
+            });
+          };
+
+          expect(Number.isInteger(dueAfterMinutes)).toBe(true);
+          expect(asTheWorkerAsks(dueAfterMinutes)).toBe(executionNumber);
+
+          if (dueAfterMinutes > 0) {
+            expect(asTheWorkerAsks(dueAfterMinutes - 1)).toBeNull();
+          }
+        }
+      }
+    }
+  });
+
+  test("a part of a minute rounds up: a delay of 2.5 minutes is due at the third", () => {
+    expect(
+      getRuleExecutionDueAfterMinutes({
+        notifyAfterMinutes: 2.5,
+        repeatEveryMinutes: 5,
+        executionNumber: 0,
+      }),
+    ).toBe(3);
+    expect(
+      getRuleExecutionDueAfterMinutes({
+        notifyAfterMinutes: 2.5,
+        repeatEveryMinutes: 5,
+        executionNumber: 1,
+      }),
+    ).toBe(8);
+  });
+
+  test("a delay below 0 counts from the log's start: due at once, never before it", () => {
+    expect(
+      getRuleExecutionDueAfterMinutes({
+        notifyAfterMinutes: -5,
+        repeatEveryMinutes: NO_NOTIFICATION_REPEAT,
+        executionNumber: 0,
+      }),
+    ).toBe(0);
+    expect(
+      getRuleExecutionDueAfterMinutes({
+        notifyAfterMinutes: -5,
+        repeatEveryMinutes: 5,
+        executionNumber: 1,
+      }),
+    ).toBe(0);
+    expect(
+      getRuleExecutionDueAfterMinutes({
+        notifyAfterMinutes: -5,
+        repeatEveryMinutes: 5,
+        executionNumber: 2,
+      }),
+    ).toBe(5);
+
+    // As the worker: the first push goes at the log's first minute.
+    expect(
+      getDueRuleExecution({
+        executedClaimKeys: [],
+        ruleId: RULE_ID,
+        notifyAfterMinutes: -5,
+        repeatEveryMinutes: 5,
+        minutesSinceStart: 0,
+      }),
+    ).toBe(0);
+  });
+
+  test.each([
+    ["NaN", NaN],
+    ["Infinity", Infinity],
+    ["-Infinity", -Infinity],
+  ])(
+    "a delay of %s counts as none: never a moment that is not one",
+    (_name: string, notifyAfterMinutes: number) => {
+      for (
+        let executionNumber: number = 0;
+        executionNumber <= MAX_NOTIFICATION_REPEATS;
+        executionNumber++
+      ) {
+        expect(
+          getRuleExecutionDueAfterMinutes({
+            notifyAfterMinutes: notifyAfterMinutes,
+            repeatEveryMinutes: 5,
+            executionNumber: executionNumber,
+          }),
+        ).toBe(executionNumber * 5);
+      }
+    },
+  );
+
+  test.each([
+    ["a negative number", -1, 0],
+    ["NaN", NaN, 0],
+    ["Infinity", Infinity, 0],
+    ["-Infinity", -Infinity, 0],
+    ["half a repeat", 0.5, 0],
+    ["a part repeat", 2.7, 2],
+    [
+      "one past the tenth",
+      MAX_NOTIFICATION_REPEATS + 1,
+      MAX_NOTIFICATION_REPEATS,
+    ],
+    ["far past the tenth", 1000000, MAX_NOTIFICATION_REPEATS],
+  ])(
+    "an execution number of %s (%d) counts as repeat %d: a whole repeat, never past the tenth",
+    (_name: string, executionNumber: number, asRepeat: number) => {
+      expect(
+        getRuleExecutionDueAfterMinutes({
+          notifyAfterMinutes: 5,
+          repeatEveryMinutes: 5,
+          executionNumber: executionNumber,
+        }),
+      ).toBe(5 + asRepeat * 5);
+    },
+  );
+});
+
+describe("getFirstOwedRuleExecution", () => {
+  function owed(
+    executedClaimKeys: Array<string>,
+    executionNumber: number,
+  ): number {
+    return getFirstOwedRuleExecution({
+      executedClaimKeys: executedClaimKeys,
+      ruleId: RULE_ID,
+      executionNumber: executionNumber,
+    });
+  }
+
+  test("a first push stands for itself, claimed or not", () => {
+    expect(owed([], 0)).toBe(0);
+    expect(owed([RULE_ID], 0)).toBe(0);
+  });
+
+  test("repeat 1 stands for itself", () => {
+    expect(owed([RULE_ID], 1)).toBe(1);
+    expect(owed([], 1)).toBe(1);
+  });
+
+  test("a repeat right after the last one sent stands for itself, for every repeat", () => {
+    for (let repeat: number = 1; repeat <= MAX_NOTIFICATION_REPEATS; repeat++) {
+      expect(owed(repeatClaimsBelow(repeat), repeat)).toBe(repeat);
+    }
+  });
+
+  test("a repeat sent after the worker skipped some is owed since the first it skipped", () => {
+    expect(
+      owed(
+        [RULE_ID, getRepeatClaimKey(RULE_ID, 1), getRepeatClaimKey(RULE_ID, 2)],
+        8,
+      ),
+    ).toBe(3);
+  });
+
+  test("with no repeat sent yet, any repeat is owed since repeat 1", () => {
+    for (let repeat: number = 1; repeat <= MAX_NOTIFICATION_REPEATS; repeat++) {
+      expect(owed([RULE_ID], repeat)).toBe(1);
+    }
+  });
+
+  test("only the latest repeat sent below it counts, wherever the gaps", () => {
+    expect(
+      owed(
+        [RULE_ID, getRepeatClaimKey(RULE_ID, 1), getRepeatClaimKey(RULE_ID, 4)],
+        7,
+      ),
+    ).toBe(5);
+  });
+
+  test("another rule's claims say nothing about this rule", () => {
+    expect(
+      owed(
+        [
+          RULE_ID,
+          OTHER_RULE_ID,
+          getRepeatClaimKey(OTHER_RULE_ID, 1),
+          getRepeatClaimKey(OTHER_RULE_ID, 5),
+        ],
+        6,
+      ),
+    ).toBe(1);
+  });
+
+  test("claims at or above the repeat say nothing about when it was owed", () => {
+    expect(owed([RULE_ID, getRepeatClaimKey(RULE_ID, 5)], 5)).toBe(1);
+    expect(owed([RULE_ID, getRepeatClaimKey(RULE_ID, 9)], 5)).toBe(1);
+  });
+
+  test.each([
+    ["a negative number", -3],
+    ["NaN", NaN],
+    ["Infinity", Infinity],
+    ["-Infinity", -Infinity],
+    ["half a repeat", 0.5],
+  ])(
+    "an execution number of %s is a first push - and answers at once",
+    (_name: string, executionNumber: number) => {
+      expect(owed([RULE_ID], executionNumber)).toBe(0);
+    },
+  );
+
+  test("an execution number past the tenth counts as the tenth", () => {
+    expect(owed(repeatClaimsBelow(MAX_NOTIFICATION_REPEATS), 1000000)).toBe(
+      MAX_NOTIFICATION_REPEATS,
+    );
+  });
+});
+
+/*
+ * The walks above, each delivery timed from when it was due: the claims on
+ * the log before it went out tell which delivery it stands in for.
+ */
+interface TimedDelivery {
+  delivery: Delivery;
+  dueAfterMinutes: number;
+}
+
+function timed(data: {
+  notifyAfterMinutes: number;
+  repeatEveryMinutes: unknown;
+  deliveries: Array<Delivery>;
+}): Array<TimedDelivery> {
+  const claimedSoFar: Array<string> = [];
+
+  return data.deliveries.map((delivery: Delivery): TimedDelivery => {
+    const owedExecution: number = getFirstOwedRuleExecution({
+      executedClaimKeys: claimedSoFar,
+      ruleId: RULE_ID,
+      executionNumber: delivery.repeatNumber,
+    });
+
+    claimedSoFar.push(delivery.claimKey);
+
+    return {
+      delivery: delivery,
+      dueAfterMinutes: getRuleExecutionDueAfterMinutes({
+        notifyAfterMinutes: data.notifyAfterMinutes,
+        repeatEveryMinutes: data.repeatEveryMinutes,
+        executionNumber: owedExecution,
+      }),
+    };
+  });
+}
+
+// [minute sent, repeat number, minute due] of each delivery.
+function sentAndDue(
+  deliveries: Array<TimedDelivery>,
+): Array<[number, number, number]> {
+  return deliveries.map((entry: TimedDelivery): [number, number, number] => {
+    return [
+      entry.delivery.minute,
+      entry.delivery.repeatNumber,
+      entry.dueAfterMinutes,
+    ];
+  });
+}
+
+describe("each delivery of a walk, timed from when it was due", () => {
+  test("a worker that runs every minute sends each delivery the minute it is due: no lag at all", () => {
+    for (const repeatEveryMinutes of REPEAT_EVERY_MINUTES_OPTIONS) {
+      for (const notifyAfterMinutes of [...NOTIFY_AFTER_MINUTES, 0.5, 2.5]) {
+        const result: Walk = walk({
+          notifyAfterMinutes: notifyAfterMinutes,
+          repeatEveryMinutes: repeatEveryMinutes,
+          minutes: minutesFrom(0, 400),
+        });
+
+        expect(result.deliveries).toHaveLength(MAX_NOTIFICATION_REPEATS + 1);
+
+        for (const entry of timed({
+          notifyAfterMinutes: notifyAfterMinutes,
+          repeatEveryMinutes: repeatEveryMinutes,
+          deliveries: result.deliveries,
+        })) {
+          expect(entry.delivery.minute).toBe(entry.dueAfterMinutes);
+        }
+      }
+    }
+  });
+
+  test("a rule that does not repeat: its one push, timed from its delay", () => {
+    const result: Walk = walk({
+      notifyAfterMinutes: 10,
+      repeatEveryMinutes: NO_NOTIFICATION_REPEAT,
+      minutes: [0, 5, 12, 13],
+    });
+
+    expect(
+      sentAndDue(
+        timed({
+          notifyAfterMinutes: 10,
+          repeatEveryMinutes: NO_NOTIFICATION_REPEAT,
+          deliveries: result.deliveries,
+        }),
+      ),
+    ).toEqual([[12, 0, 10]]);
+  });
+
+  test("every 5 min from the start, the worker down from minute 12 to 40: the repeat it sends at 40 is owed since repeat 3, at 15", () => {
+    const result: Walk = walk({
+      notifyAfterMinutes: 0,
+      repeatEveryMinutes: 5,
+      minutes: [...minutesFrom(0, 12), ...minutesFrom(40, 100)],
+    });
+
+    expect(
+      sentAndDue(
+        timed({
+          notifyAfterMinutes: 0,
+          repeatEveryMinutes: 5,
+          deliveries: result.deliveries,
+        }),
+      ),
+    ).toEqual([
+      [0, 0, 0],
+      [5, 1, 5],
+      [10, 2, 10],
+      [40, 8, 15],
+      [45, 9, 45],
+      [50, 10, 50],
+    ]);
+  });
+
+  test("a first push that went out late: it is 100 minutes late, and the repeat after it is owed since repeat 1", () => {
+    const result: Walk = walk({
+      notifyAfterMinutes: 0,
+      repeatEveryMinutes: 5,
+      minutes: minutesFrom(100, 130),
+    });
+
+    expect(
+      sentAndDue(
+        timed({
+          notifyAfterMinutes: 0,
+          repeatEveryMinutes: 5,
+          deliveries: result.deliveries,
+        }),
+      ),
+    ).toEqual([
+      [100, 0, 0],
+      [101, 10, 5],
+    ]);
+  });
+
+  describe("a worker that keeps missing minutes", () => {
+    const random: SeededRandom = seededRandom(6646);
+
+    for (let scenario: number = 0; scenario < 150; scenario++) {
+      const repeatEveryMinutes: number = REPEAT_EVERY_MINUTES_OPTIONS[
+        random(REPEAT_EVERY_MINUTES_OPTIONS.length)
+      ] as number;
+      const notifyAfterMinutes: number = random(40);
+      const missChance: number = [0, 0.2, 0.8][random(3)] as number;
+      const minutes: Array<number> = [];
+
+      for (let minute: number = 0; minute <= 400; minute++) {
+        if (random() < 0.01) {
+          minute += random(60);
+          continue;
+        }
+
+        if (random() >= missChance) {
+          minutes.push(minute);
+        }
+      }
+
+      test(`scenario ${scenario}: every ${repeatEveryMinutes} min after ${notifyAfterMinutes} min, ${minutes.length} ticks`, () => {
+        const result: Walk = walk({
+          notifyAfterMinutes: notifyAfterMinutes,
+          repeatEveryMinutes: repeatEveryMinutes,
+          minutes: minutes,
+        });
+        const deliveryMinutes: Array<number> = result.deliveries.map(
+          (delivery: Delivery): number => {
+            return delivery.minute;
+          },
+        );
+        let previousDueAfter: number = -1;
+        // The latest repeat sent so far: 0 before any.
+        let latestRepeatSent: number = 0;
+
+        for (const entry of timed({
+          notifyAfterMinutes: notifyAfterMinutes,
+          repeatEveryMinutes: repeatEveryMinutes,
+          deliveries: result.deliveries,
+        })) {
+          // Never sent before it was due: a lag is never below 0.
+          expect(entry.dueAfterMinutes).toBeLessThanOrEqual(
+            entry.delivery.minute,
+          );
+
+          /*
+           * Due at the first minute the person was owed a push they did
+           * not have, read off the worker's own clock: the first push once
+           * its delay is up, a repeat once a repeat later than the latest
+           * sent is due.
+           */
+          let firstOwedMinute: number = 0;
+
+          while (
+            entry.delivery.repeatNumber === 0
+              ? firstOwedMinute < notifyAfterMinutes
+              : getDueRepeatNumber({
+                  minutesSinceStart: firstOwedMinute,
+                  notifyAfterMinutes: notifyAfterMinutes,
+                  repeatEveryMinutes: repeatEveryMinutes,
+                }) <= latestRepeatSent
+          ) {
+            firstOwedMinute++;
+          }
+
+          expect(entry.dueAfterMinutes).toBe(firstOwedMinute);
+          latestRepeatSent = Math.max(
+            latestRepeatSent,
+            entry.delivery.repeatNumber,
+          );
+
+          // Each owed later than the one before.
+          expect(entry.dueAfterMinutes).toBeGreaterThan(previousDueAfter);
+          previousDueAfter = entry.dueAfterMinutes;
+
+          /*
+           * The lag is the worker's alone: every tick from when it was due
+           * until it went out sent another delivery of the rule (its first
+           * push, before any repeat) - the worker never sat on one it owed.
+           */
+          for (const minute of minutes) {
+            if (
+              minute >= entry.dueAfterMinutes &&
+              minute < entry.delivery.minute
+            ) {
+              expect(deliveryMinutes).toContain(minute);
+            }
+          }
+        }
+      });
+    }
+  });
 });

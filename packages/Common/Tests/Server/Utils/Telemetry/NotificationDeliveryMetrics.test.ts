@@ -16,9 +16,11 @@ import {
  * with - and that recording a metric never fails a send.
  *
  * And what they record since: where a Slack, Microsoft Teams or Mattermost
- * message went (notification.destination, issue #6645), and how a message
- * a provider accepted ended, when the provider tells it later
- * (notification.delivery.count and .duration, issue #6648).
+ * message went (notification.destination, issue #6645), how a message a
+ * provider accepted ended, when the provider tells it later
+ * (notification.delivery.count and .duration, issue #6648), and how late an
+ * on-call notification sent later went out (notification.send.lag, issue
+ * #6646).
  */
 
 interface RecordedCall {
@@ -32,6 +34,7 @@ const triggerCounterCalls: Array<RecordedCall> = [];
 const timeToSendCalls: Array<RecordedCall> = [];
 const deliveryCounterCalls: Array<RecordedCall> = [];
 const deliveryDurationCalls: Array<RecordedCall> = [];
+const sendLagCalls: Array<RecordedCall> = [];
 
 let failInstruments: boolean = false;
 
@@ -75,6 +78,9 @@ jest.mock("../../../../Server/Utils/Telemetry/AppMetrics", () => {
       getNotificationDeliveryDuration: () => {
         return instrument(deliveryDurationCalls);
       },
+      getNotificationSendLag: () => {
+        return instrument(sendLagCalls);
+      },
     },
   };
 });
@@ -96,6 +102,7 @@ import NotificationDeliveryMetrics, {
   NotificationDispatch,
   NotificationMetricAttribute,
   NotificationProviderConfig,
+  NotificationSchedule,
   NotificationTriggerSource,
   NotificationTriggerType,
   OnCallPageStart,
@@ -118,6 +125,7 @@ beforeEach(() => {
   timeToSendCalls.length = 0;
   deliveryCounterCalls.length = 0;
   deliveryDurationCalls.length = 0;
+  sendLagCalls.length = 0;
   failInstruments = false;
 });
 
@@ -693,6 +701,158 @@ describe("an on-call page's time to send", () => {
   });
 });
 
+describe("an on-call notification sent later: how late it went out", () => {
+  test("is recorded in ms with its channel, the wait it was due after and its record's type", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.Call,
+      triggerType: NotificationTriggerType.Incident,
+      schedule: NotificationSchedule.RuleWait,
+      lagInMs: 42_500,
+    });
+
+    expect(sendLagCalls).toEqual([
+      {
+        value: 42_500,
+        attributes: {
+          "notification.channel": "call",
+          "notification.schedule": "rule_wait",
+          "notification.trigger.type": "incident",
+        },
+      },
+    ]);
+  });
+
+  test("each wait, each channel and each record type is told apart", () => {
+    for (const schedule of Object.values(NotificationSchedule)) {
+      for (const channel of Object.values(NotificationDeliveryChannel)) {
+        for (const triggerType of Object.values(NotificationTriggerType)) {
+          NotificationDeliveryMetrics.recordSendLag({
+            channel: channel,
+            triggerType: triggerType,
+            schedule: schedule,
+            lagInMs: 1,
+          });
+
+          expect(sendLagCalls[sendLagCalls.length - 1]!.attributes).toEqual({
+            "notification.channel": channel,
+            "notification.schedule": schedule,
+            "notification.trigger.type": triggerType,
+          });
+        }
+      }
+    }
+  });
+
+  test("a custom channel's is told apart by its id and its trimmed name", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.CustomChannel,
+      customChannel: { id: CUSTOM_CHANNEL_ID, name: "  CorpoApp  " },
+      triggerType: NotificationTriggerType.Alert,
+      schedule: NotificationSchedule.Repeat,
+      lagInMs: 900,
+    });
+
+    expect(sendLagCalls[0]!.attributes).toEqual({
+      "notification.channel": "custom_channel",
+      "notification.schedule": "repeat",
+      "notification.trigger.type": "alert",
+      "notification.custom_channel.id": CUSTOM_CHANNEL_ID,
+      "notification.custom_channel.name": "CorpoApp",
+    });
+  });
+
+  test("a custom channel's long name is cut to a bounded length", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.CustomChannel,
+      customChannel: { id: CUSTOM_CHANNEL_ID, name: "x".repeat(500) },
+      schedule: NotificationSchedule.Escalation,
+      lagInMs: 900,
+    });
+
+    expect(
+      sendLagCalls[0]!.attributes["notification.custom_channel.name"],
+    ).toHaveLength(MAX_CUSTOM_CHANNEL_NAME_LENGTH);
+  });
+
+  test("with no record type, none is carried", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.Push,
+      schedule: NotificationSchedule.PolicyRepeat,
+      lagInMs: 61_000,
+    });
+
+    expect(sendLagCalls[0]!.attributes).toEqual({
+      "notification.channel": "push",
+      "notification.schedule": "policy_repeat",
+    });
+  });
+
+  test("carries no project, person, record or notification: only bounded attributes", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.CustomChannel,
+      customChannel: { id: CUSTOM_CHANNEL_ID, name: "CorpoApp" },
+      triggerType: NotificationTriggerType.IncidentEpisode,
+      schedule: NotificationSchedule.Escalation,
+      lagInMs: 5,
+    });
+
+    expect(Object.keys(sendLagCalls[0]!.attributes).sort()).toEqual([
+      "notification.channel",
+      "notification.custom_channel.id",
+      "notification.custom_channel.name",
+      "notification.schedule",
+      "notification.trigger.type",
+    ]);
+  });
+
+  test("a lag below zero - two servers' clocks a little apart - is recorded as zero", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.SMS,
+      schedule: NotificationSchedule.RuleWait,
+      lagInMs: -120,
+    });
+
+    expect(sendLagCalls[0]!.value).toBe(0);
+  });
+
+  test("a lag that is not a number is not recorded", () => {
+    for (const lagInMs of [NaN, Infinity, -Infinity]) {
+      NotificationDeliveryMetrics.recordSendLag({
+        channel: NotificationDeliveryChannel.SMS,
+        schedule: NotificationSchedule.RuleWait,
+        lagInMs: lagInMs,
+      });
+    }
+
+    expect(sendLagCalls).toHaveLength(0);
+  });
+
+  test("goes to its own metric: no time to send, no send counted", () => {
+    NotificationDeliveryMetrics.recordSendLag({
+      channel: NotificationDeliveryChannel.SMS,
+      schedule: NotificationSchedule.RuleWait,
+      lagInMs: 10,
+    });
+
+    expect(sendLagCalls).toHaveLength(1);
+    expect(timeToSendCalls).toHaveLength(0);
+    expect(sendCounterCalls).toHaveLength(0);
+  });
+
+  test("an instrument that throws is logged and dropped", () => {
+    failInstruments = true;
+
+    expect(() => {
+      NotificationDeliveryMetrics.recordSendLag({
+        channel: NotificationDeliveryChannel.Call,
+        schedule: NotificationSchedule.Escalation,
+        lagInMs: 10,
+      });
+    }).not.toThrow();
+    expect(logger.debug).toHaveBeenCalled();
+  });
+});
+
 describe("recording never fails a send", () => {
   test("an instrument that throws is logged and dropped", async () => {
     failInstruments = true;
@@ -709,6 +869,11 @@ describe("recording never fails a send", () => {
         channel: NotificationDeliveryChannel.SMS,
         pageStart: OnCallPageStart.RecordCreated,
         timeToSendInMs: 10,
+      });
+      NotificationDeliveryMetrics.recordSendLag({
+        channel: NotificationDeliveryChannel.SMS,
+        schedule: NotificationSchedule.Escalation,
+        lagInMs: 10,
       });
       NotificationDeliveryMetrics.startDispatch({
         channel: NotificationDeliveryChannel.SMS,
@@ -776,6 +941,7 @@ describe("one spelling for every channel, provider and outcome", () => {
     ["trigger type", Object.values(NotificationTriggerType)],
     ["trigger source", Object.values(NotificationTriggerSource)],
     ["page start", Object.values(OnCallPageStart)],
+    ["schedule", Object.values(NotificationSchedule)],
   ])(
     "every %s value is lower snake case, and unique",
     (_name: string, values: Array<string>) => {
@@ -794,6 +960,16 @@ describe("one spelling for every channel, provider and outcome", () => {
     expect(NotificationDeliveryChannel.Call).toBe("call");
     expect(NotificationMetricAttribute.Channel).toBe("notification.channel");
     expect(NotificationMetricAttribute.Outcome).toBe("outcome");
+  });
+
+  test("a notification sent later is told apart by the wait it was due after", () => {
+    expect(NotificationMetricAttribute.Schedule).toBe("notification.schedule");
+    expect(Object.values(NotificationSchedule).sort()).toEqual([
+      "escalation",
+      "policy_repeat",
+      "repeat",
+      "rule_wait",
+    ]);
   });
 
   test("the probe's monitor type attribute is the one triggers use", () => {

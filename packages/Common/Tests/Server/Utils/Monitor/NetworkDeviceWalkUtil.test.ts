@@ -32,6 +32,7 @@ import {
 } from "../../../../Types/Monitor/SnmpMonitor/SnmpTransceiver";
 import TransceiverHealthUtil from "../../../../Utils/NetworkDevice/TransceiverHealthUtil";
 import logger from "../../../../Server/Utils/Logger";
+import OnCallPageTiming from "../../../../Server/Utils/OnCall/OnCallPageTiming";
 
 /*
  * NetworkDeviceWalkUtil is the server half of device-owned polling: the
@@ -1449,5 +1450,77 @@ describe("NetworkDeviceWalkUtil.processWalkResult - the address the ping resolve
       hostname: undefined,
       address: undefined,
     });
+  });
+});
+
+/*
+ * WHEN ONEUPTIME RECEIVED THE POLL (dataReceivedAt, issue #6647): the probe
+ * ingest worker hands over the moment the ingest API received it, and every
+ * monitor the poll fans out to evaluates it as received then - a page its
+ * evaluation starts is timed from it (OnCallPageTiming). A poll handed no
+ * moment evaluates as before, with no such field at all.
+ */
+describe("NetworkDeviceWalkUtil.processWalkResult — when OneUptime received the poll", () => {
+  const RECEIVED_AT: Date = new Date("2026-07-16T11:59:59.000Z");
+
+  test("every monitor step the poll fans out to evaluates it as received then", async () => {
+    mockPipeline({
+      monitors: [
+        buildMonitor({ steps: [buildStep(DEVICE_ID), buildStep(DEVICE_ID)] }),
+        buildMonitor({ steps: [buildStep(DEVICE_ID)] }),
+      ],
+    });
+
+    await NetworkDeviceWalkUtil.processWalkResult({
+      probeId: PROBE_ID,
+      networkDeviceId: new ObjectID(DEVICE_ID),
+      snmpResponse: buildSnmpResponse(),
+      monitoredAt: MONITORED_AT,
+      dataReceivedAt: RECEIVED_AT,
+    });
+
+    expect(monitorResourceSpy).toHaveBeenCalledTimes(3);
+
+    for (let index: number = 0; index < 3; index++) {
+      const response: ProbeMonitorResponse = synthesized(index);
+
+      expect(response.dataReceivedAt).toEqual(RECEIVED_AT);
+      expect(OnCallPageTiming.getMonitorDataReceivedAt(response)).toEqual(
+        RECEIVED_AT,
+      );
+      // The probe's clock and the evaluation's stay what they were.
+      expect(response.monitoredAt).toEqual(MONITORED_AT);
+      expect(response.ingestedAt).toEqual(NOW);
+    }
+  });
+
+  test("a ping's verdict with no walk too", async () => {
+    mockPipeline({
+      monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
+    });
+
+    await NetworkDeviceWalkUtil.processWalkResult({
+      probeId: PROBE_ID,
+      networkDeviceId: new ObjectID(DEVICE_ID),
+      isOnline: false,
+      pollMode: "ping",
+      monitoredAt: MONITORED_AT,
+      dataReceivedAt: RECEIVED_AT,
+    });
+
+    expect(synthesized().dataReceivedAt).toEqual(RECEIVED_AT);
+  });
+
+  test("a poll handed no moment evaluates as before: no such field at all", async () => {
+    mockPipeline({
+      monitors: [buildMonitor({ steps: [buildStep(DEVICE_ID)] })],
+    });
+
+    await runWalk(buildSnmpResponse());
+
+    expect("dataReceivedAt" in synthesized()).toBe(false);
+    expect(
+      OnCallPageTiming.getMonitorDataReceivedAt(synthesized()),
+    ).toBeUndefined();
   });
 });

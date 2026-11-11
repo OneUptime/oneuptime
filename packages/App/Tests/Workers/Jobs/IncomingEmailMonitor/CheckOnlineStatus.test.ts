@@ -8,6 +8,7 @@ import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
 
 /*
  * Regression tests for the IncomingEmailMonitor:CheckOnlineStatus cron's write
@@ -413,6 +414,37 @@ describe("IncomingEmailMonitor:CheckOnlineStatus worker", () => {
     expect(
       monitorService.updateColumnsByIdWithoutHooks.mock.invocationCallOrder[0],
     ).toBeLessThan(monitorResourceMock.mock.invocationCallOrder[0]!);
+  });
+
+  /*
+   * The stored request now carries when OneUptime received the last email
+   * (dataReceivedAt, issue #6647), and rides along on this check. A page
+   * the check starts is still timed from the record's creation: its moment
+   * is the last email's, long before what it found.
+   */
+  test("a check that no email came is not timed from when the last email was received", async () => {
+    const lastEmailReceivedAt: Date = new Date("2026-07-27T09:55:01.000Z");
+    const monitor: Monitor = makeMonitor({
+      id: MONITOR_A_ID,
+      monitorSteps: stepsWithCheckOn(CheckOn.EmailReceivedAt),
+      incomingEmailMonitorRequest: {
+        emailReceivedAt: new Date("2026-07-27T09:55:00.000Z"),
+        dataReceivedAt: lastEmailReceivedAt,
+        emailFrom: "alerts@acme.dev",
+      } as IncomingEmailMonitorRequest,
+    });
+
+    monitorService.findBy
+      .mockResolvedValueOnce([monitor])
+      .mockResolvedValueOnce([]);
+
+    await runWorkerTick();
+
+    const payload: IncomingEmailMonitorRequest = monitorResourceMock.mock
+      .calls[0]![0] as IncomingEmailMonitorRequest;
+
+    expect(payload.onlyCheckForIncomingEmailReceivedAt).toBe(true);
+    expect(OnCallPageTiming.getMonitorDataReceivedAt(payload)).toBeUndefined();
   });
 
   test("a monitor that never received an email falls back to createdAt as the received timestamp", async () => {

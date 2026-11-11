@@ -53,6 +53,7 @@ import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPo
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import fs from "fs";
 import path from "path";
+import ts from "typescript";
 
 type AnyFunction = (...args: Array<unknown>) => Promise<unknown>;
 
@@ -252,6 +253,159 @@ describe("a run pages its first rule inside its page's start", () => {
 });
 
 /*
+ * A record service's on-call fan-out, read through the TypeScript AST: the
+ * calls in it that page - the record's on-call policies, and those its
+ * on-call rules page as observers - each with whether it is made inside an
+ * OnCallPageTiming.runAsRecordIsCreated whose start is the record's
+ * creation, however deep in that callback it sits. A comment naming the
+ * wrapper does not count, nor does a wrapper whose start is any other
+ * moment, nor a call made as the wrapper's argument (it would run before
+ * the wrapper does).
+ */
+const PAGING_CALLS: Array<string> = [
+  "OnCallDutyPolicyService.executePolicy",
+  "OnCallObserverPaging.pagePolicies",
+];
+
+const RECORD_CREATION_WRAPPER: string = "OnCallPageTiming.runAsRecordIsCreated";
+
+interface PagingCall {
+  callee: string;
+  line: number;
+  isInsideCreation: boolean;
+}
+
+interface FanOutReading {
+  isFound: boolean;
+  pagingCalls: Array<PagingCall>;
+  // Paging calls made anywhere in the service but its fan-out.
+  pagingCallsOutsideFanOut: Array<PagingCall>;
+  // The method each call to the fan-out is made from.
+  calledFrom: Array<string>;
+}
+
+function readFanOut(
+  fileName: string,
+  source: string,
+  fanOut: string,
+): FanOutReading {
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+
+  const textOf: (node: ts.Node) => string = (node: ts.Node): string => {
+    return node.getText(sourceFile);
+  };
+
+  const methodOf: (node: ts.Node) => ts.MethodDeclaration | null = (
+    node: ts.Node,
+  ): ts.MethodDeclaration | null => {
+    let current: ts.Node | undefined = node.parent;
+
+    while (current) {
+      if (ts.isMethodDeclaration(current)) {
+        return current;
+      }
+      current = current.parent;
+    }
+
+    return null;
+  };
+
+  const isRecordCreationStart: (node: ts.Node | undefined) => boolean = (
+    node: ts.Node | undefined,
+  ): boolean => {
+    return Boolean(
+      node &&
+        ts.isObjectLiteralExpression(node) &&
+        node.properties.some((property: ts.ObjectLiteralElementLike) => {
+          return (
+            ts.isPropertyAssignment(property) &&
+            textOf(property.name) === "recordCreatedAt" &&
+            textOf(property.initializer) === "createdItem.createdAt"
+          );
+        }),
+    );
+  };
+
+  // Inside the callback of a wrapper that starts at the record's creation.
+  const isInsideCreation: (call: ts.CallExpression) => boolean = (
+    call: ts.CallExpression,
+  ): boolean => {
+    let child: ts.Node = call;
+    let current: ts.Node | undefined = call.parent;
+
+    while (current && !ts.isMethodDeclaration(current)) {
+      if (
+        ts.isCallExpression(current) &&
+        textOf(current.expression) === RECORD_CREATION_WRAPPER &&
+        isRecordCreationStart(current.arguments[0]) &&
+        current.arguments[1] === child &&
+        (ts.isArrowFunction(child) || ts.isFunctionExpression(child))
+      ) {
+        return true;
+      }
+
+      child = current;
+      current = current.parent;
+    }
+
+    return false;
+  };
+
+  const reading: FanOutReading = {
+    isFound: false,
+    pagingCalls: [],
+    pagingCallsOutsideFanOut: [],
+    calledFrom: [],
+  };
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (ts.isMethodDeclaration(node) && textOf(node.name) === fanOut) {
+      reading.isFound = true;
+    }
+
+    if (ts.isCallExpression(node)) {
+      const callee: string = textOf(node.expression);
+      const method: ts.MethodDeclaration | null = methodOf(node);
+      const methodName: string = method
+        ? textOf(method.name)
+        : "(outside a method)";
+
+      if (PAGING_CALLS.includes(callee)) {
+        const call: PagingCall = {
+          callee: callee,
+          line:
+            sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile))
+              .line + 1,
+          isInsideCreation: isInsideCreation(node),
+        };
+
+        if (methodName === fanOut) {
+          reading.pagingCalls.push(call);
+        } else {
+          reading.pagingCallsOutsideFanOut.push(call);
+        }
+      }
+
+      if (callee === `this.${fanOut}`) {
+        reading.calledFrom.push(methodName);
+      }
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return reading;
+}
+
+/*
  * The source's own shape, for the paths these do not drive: a call that
  * starts a page must be made inside a page's start, and a record's on-call
  * fan-out inside its creation, or their notifications go untimed - or are
@@ -308,21 +462,46 @@ describe("every way a page starts is timed from its start (guard)", () => {
   );
 
   test.each([
-    ["IncidentService.ts", "this.executeOnCallDutyPoliciesAsync("],
-    ["AlertService.ts", "this.executeAlertOnCallDutyPoliciesAsync("],
-    [
-      "IncidentEpisodeService.ts",
-      "this.executeEpisodeOnCallDutyPoliciesAsync(",
-    ],
-    ["AlertEpisodeService.ts", "this.executeEpisodeOnCallDutyPoliciesAsync("],
+    ["IncidentService.ts", "executeOnCallDutyPoliciesAsync"],
+    ["AlertService.ts", "executeAlertOnCallDutyPoliciesAsync"],
+    ["IncidentEpisodeService.ts", "executeEpisodeOnCallDutyPoliciesAsync"],
+    ["AlertEpisodeService.ts", "executeEpisodeOnCallDutyPoliciesAsync"],
   ])(
     "%s runs its on-call fan-out as the record is created",
-    (fileName: string, call: string) => {
-      const contexts: Array<string> = contextsOf(sourceOf(fileName), call);
+    (fileName: string, fanOut: string) => {
+      const reading: FanOutReading = readFanOut(
+        fileName,
+        sourceOf(fileName),
+        fanOut,
+      );
 
-      expect(contexts).toHaveLength(1);
-      expect(contexts[0]!).toContain("OnCallPageTiming.runAsRecordIsCreated(");
-      expect(contexts[0]!).toContain("recordCreatedAt: createdItem.createdAt");
+      expect(reading.isFound).toBe(true);
+
+      // It pages both ways: the record's policies, and its observers'.
+      for (const callee of PAGING_CALLS) {
+        expect(
+          reading.pagingCalls.filter((call: PagingCall) => {
+            return call.callee === callee;
+          }).length,
+        ).toBeGreaterThan(0);
+      }
+
+      // Every one of them inside the record's creation.
+      expect(
+        reading.pagingCalls.filter((call: PagingCall) => {
+          return !call.isInsideCreation;
+        }),
+      ).toEqual([]);
+
+      // Nothing else in the service pages.
+      expect(reading.pagingCallsOutsideFanOut).toEqual([]);
+
+      /*
+       * Called once, from onCreateSuccess - as a step of its own, which
+       * CreateStepsDecideOnStartingStageGuard reads: the fan-out wraps its
+       * own paging, after deciding the record's starting stage pages.
+       */
+      expect(reading.calledFrom).toEqual(["onCreateSuccess"]);
     },
   );
 
@@ -378,4 +557,307 @@ describe("every way a page starts is timed from its start (guard)", () => {
       ).toHaveLength(2);
     },
   );
+});
+
+/*
+ * The guard's own reading, on services written for it: the shape the four
+ * services have passes, and each shape that would page outside the
+ * record's creation - or that once did - is found.
+ */
+describe("the fan-out guard's reading", () => {
+  const WRAPPED_FAN_OUT: string = [
+    "    await OnCallPageTiming.runAsRecordIsCreated(",
+    "      { recordCreatedAt: createdItem.createdAt },",
+    "      async (): Promise<void> => {",
+    "        await Promise.allSettled(",
+    "          policies.map((policy: OnCallDutyPolicy) => {",
+    "            return OnCallDutyPolicyService.executePolicy(policy.id, {});",
+    "          }),",
+    "        );",
+    "        await OnCallObserverPaging.pagePolicies({ policyIds: [] });",
+    "      },",
+    "    );",
+  ].join("\n");
+
+  const UNWRAPPED_FAN_OUT: string = [
+    "    await Promise.allSettled(",
+    "      policies.map((policy: OnCallDutyPolicy) => {",
+    "        return OnCallDutyPolicyService.executePolicy(policy.id, {});",
+    "      }),",
+    "    );",
+    "    await OnCallObserverPaging.pagePolicies({ policyIds: [] });",
+  ].join("\n");
+
+  function serviceWith(settings: {
+    onCreateSuccess?: string;
+    fanOutBody: string;
+    otherMethods?: string;
+  }): string {
+    return [
+      "class Service {",
+      "  protected override async onCreateSuccess(): Promise<void> {",
+      settings.onCreateSuccess ||
+        "    await this.fanOut(createdItem, startingStage);",
+      "  }",
+      "",
+      "  private async fanOut(",
+      "    createdItem: Model,",
+      "    startingStage: StartingStage,",
+      "  ): Promise<void> {",
+      "    if (!StartingStageUtil.pagesOnCall(startingStage)) {",
+      "      return;",
+      "    }",
+      "",
+      settings.fanOutBody,
+      "  }",
+      settings.otherMethods || "",
+      "}",
+    ].join("\n");
+  }
+
+  function outsideCreation(reading: FanOutReading): Array<string> {
+    return reading.pagingCalls
+      .filter((call: PagingCall) => {
+        return !call.isInsideCreation;
+      })
+      .map((call: PagingCall) => {
+        return call.callee;
+      });
+  }
+
+  test("the services' shape: both kinds of paging inside the record's creation, the fan-out called from onCreateSuccess", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({ fanOutBody: WRAPPED_FAN_OUT }),
+      "fanOut",
+    );
+
+    expect(reading.isFound).toBe(true);
+    expect(
+      reading.pagingCalls.map((call: PagingCall) => {
+        return call.callee;
+      }),
+    ).toEqual(PAGING_CALLS);
+    expect(outsideCreation(reading)).toEqual([]);
+    expect(reading.pagingCallsOutsideFanOut).toEqual([]);
+    expect(reading.calledFrom).toEqual(["onCreateSuccess"]);
+  });
+
+  test("the shape before: onCreateSuccess wrapped the fan-out, which paged unwrapped - found, as the wrapping sat outside the fan-out", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        onCreateSuccess: [
+          "    await OnCallPageTiming.runAsRecordIsCreated(",
+          "      { recordCreatedAt: createdItem.createdAt },",
+          "      (): Promise<void> => {",
+          "        return this.fanOut(createdItem, startingStage);",
+          "      },",
+          "    );",
+        ].join("\n"),
+        fanOutBody: UNWRAPPED_FAN_OUT,
+      }),
+      "fanOut",
+    );
+
+    expect(outsideCreation(reading)).toEqual(PAGING_CALLS);
+    expect(reading.calledFrom).toEqual(["onCreateSuccess"]);
+  });
+
+  test("observers paged after the wrapper, not in it: only that call is found, on its line", () => {
+    const source: string = serviceWith({
+      fanOutBody: [
+        "    await OnCallPageTiming.runAsRecordIsCreated(",
+        "      { recordCreatedAt: createdItem.createdAt },",
+        "      async (): Promise<void> => {",
+        "        await OnCallDutyPolicyService.executePolicy(policyId, {});",
+        "      },",
+        "    );",
+        "    await OnCallObserverPaging.pagePolicies({ policyIds: [] });",
+      ].join("\n"),
+    });
+    const reading: FanOutReading = readFanOut("Service.ts", source, "fanOut");
+
+    expect(outsideCreation(reading)).toEqual([
+      "OnCallObserverPaging.pagePolicies",
+    ]);
+
+    const found: PagingCall = reading.pagingCalls.find((call: PagingCall) => {
+      return !call.isInsideCreation;
+    })!;
+
+    expect(source.split("\n")[found.line - 1]).toContain(
+      "OnCallObserverPaging.pagePolicies(",
+    );
+  });
+
+  test.each([
+    ["the moment the fan-out runs", "OneUptimeDate.getCurrentDate()"],
+    ["another record's creation", "otherItem.createdAt"],
+    ["the record's last change", "createdItem.updatedAt"],
+  ])(
+    "a wrapper that starts at %s is not the record's creation: both found",
+    (_moment: string, start: string) => {
+      const reading: FanOutReading = readFanOut(
+        "Service.ts",
+        serviceWith({
+          fanOutBody: WRAPPED_FAN_OUT.replace("createdItem.createdAt", start),
+        }),
+        "fanOut",
+      );
+
+      expect(outsideCreation(reading)).toEqual(PAGING_CALLS);
+    },
+  );
+
+  test("a wrapper with no start at all: both found", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        fanOutBody: WRAPPED_FAN_OUT.replace(
+          "{ recordCreatedAt: createdItem.createdAt }",
+          "{}",
+        ),
+      }),
+      "fanOut",
+    );
+
+    expect(outsideCreation(reading)).toEqual(PAGING_CALLS);
+  });
+
+  test("another wrapper - a page's start, not the record's creation: both found", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        fanOutBody: WRAPPED_FAN_OUT.replace(
+          "OnCallPageTiming.runAsRecordIsCreated(",
+          "OnCallPageTiming.runInPageStart(",
+        ),
+      }),
+      "fanOut",
+    );
+
+    expect(outsideCreation(reading)).toEqual(PAGING_CALLS);
+  });
+
+  test("a paging call made as the wrapper's argument runs before the wrapper does: found", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        fanOutBody: [
+          "    await OnCallPageTiming.runAsRecordIsCreated(",
+          "      { recordCreatedAt: createdItem.createdAt },",
+          "      OnCallObserverPaging.pagePolicies({ policyIds: [] }) as never,",
+          "    );",
+        ].join("\n"),
+      }),
+      "fanOut",
+    );
+
+    expect(outsideCreation(reading)).toEqual([
+      "OnCallObserverPaging.pagePolicies",
+    ]);
+  });
+
+  test("a comment naming the wrapper, close above the calls, does not count: both found", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        fanOutBody: [
+          "    // OnCallPageTiming.runAsRecordIsCreated(",
+          "    //   { recordCreatedAt: createdItem.createdAt }, ...)",
+          UNWRAPPED_FAN_OUT,
+        ].join("\n"),
+      }),
+      "fanOut",
+    );
+
+    expect(outsideCreation(reading)).toEqual(PAGING_CALLS);
+  });
+
+  test("a callback that returns the paging directly, or pages from a function expression, is inside", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        fanOutBody: [
+          "    await OnCallPageTiming.runAsRecordIsCreated(",
+          "      { recordCreatedAt: createdItem.createdAt },",
+          "      (): Promise<void> => OnCallDutyPolicyService.executePolicy(policyId, {}),",
+          "    );",
+          "    await OnCallPageTiming.runAsRecordIsCreated(",
+          "      { recordCreatedAt: createdItem.createdAt },",
+          "      async function (): Promise<void> {",
+          "        for (const id of ids) {",
+          "          if (id) {",
+          "            await OnCallObserverPaging.pagePolicies({ policyIds: [id] });",
+          "          }",
+          "        }",
+          "      },",
+          "    );",
+        ].join("\n"),
+      }),
+      "fanOut",
+    );
+
+    expect(reading.pagingCalls).toHaveLength(2);
+    expect(outsideCreation(reading)).toEqual([]);
+  });
+
+  test("paging anywhere else in the service is found, wrapped or not", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        fanOutBody: WRAPPED_FAN_OUT,
+        otherMethods: [
+          "  private async pageAgain(createdItem: Model): Promise<void> {",
+          "    await OnCallPageTiming.runAsRecordIsCreated(",
+          "      { recordCreatedAt: createdItem.createdAt },",
+          "      async (): Promise<void> => {",
+          "        await OnCallDutyPolicyService.executePolicy(policyId, {});",
+          "      },",
+          "    );",
+          "  }",
+        ].join("\n"),
+      }),
+      "fanOut",
+    );
+
+    expect(outsideCreation(reading)).toEqual([]);
+    expect(
+      reading.pagingCallsOutsideFanOut.map((call: PagingCall) => {
+        return call.callee;
+      }),
+    ).toEqual(["OnCallDutyPolicyService.executePolicy"]);
+  });
+
+  test("a fan-out also called from another hook is found", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({
+        fanOutBody: WRAPPED_FAN_OUT,
+        otherMethods: [
+          "  protected override async onUpdateSuccess(): Promise<void> {",
+          "    await this.fanOut(updatedItem, startingStage);",
+          "  }",
+        ].join("\n"),
+      }),
+      "fanOut",
+    );
+
+    expect(reading.calledFrom).toEqual(["onCreateSuccess", "onUpdateSuccess"]);
+  });
+
+  test("a fan-out the service does not have is not found, and pages nothing", () => {
+    const reading: FanOutReading = readFanOut(
+      "Service.ts",
+      serviceWith({ fanOutBody: WRAPPED_FAN_OUT }),
+      "renamedFanOut",
+    );
+
+    expect(reading.isFound).toBe(false);
+    expect(reading.pagingCalls).toEqual([]);
+    expect(reading.calledFrom).toEqual([]);
+    // Its paging is then paging outside the fan-out the guard names.
+    expect(reading.pagingCallsOutsideFanOut).toHaveLength(2);
+  });
 });
