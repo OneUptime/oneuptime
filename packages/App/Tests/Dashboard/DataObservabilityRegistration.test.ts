@@ -339,7 +339,7 @@ describe("Data Observability registry wiring", () => {
         "App/FeatureSet/Dashboard/src/Pages/DataObservability/BiDashboards.tsx",
       ),
     ).toContain(
-      "await readTool(connection); await keepRefreshAlert(connection);",
+      "await keepRefreshAlert(connection); await readTool(connection);",
     );
   });
 

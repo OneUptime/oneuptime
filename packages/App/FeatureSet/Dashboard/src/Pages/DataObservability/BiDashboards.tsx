@@ -377,12 +377,16 @@ const BiDashboardsPage: FunctionComponent<
             },
           },
         ]}
-        // Runs after Add and after Edit: the tool is read, and its alert kept as saved.
+        /*
+         * Runs after Add and after Edit: the tool's alert is kept as saved -
+         * first, as it is quick, and a Power BI read can take minutes - then
+         * the tool is read.
+         */
         onCreateSuccess={async (
           connection: DataBiConnection,
         ): Promise<DataBiConnection> => {
-          await readTool(connection);
           await keepRefreshAlert(connection);
+          await readTool(connection);
 
           return connection;
         }}
