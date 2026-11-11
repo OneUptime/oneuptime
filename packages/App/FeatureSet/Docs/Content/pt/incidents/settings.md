@@ -28,6 +28,7 @@ Abra **Incidentes** no menu **Produtos** da barra superior e expanda **Configura
 | **Alertas vinculados**          | Escolher se os alertas vinculados a um incidente são confirmados e resolvidos junto com ele. Os dois vêm ativados em projetos novos. |
 | **Participação em episódios**   | Escolher se um incidente só pode estar em um episódio. Desativado por padrão. |
 | **Numeração**                   | O texto antes dos números de incidente e de episódio, como `INC-` em `INC-42`, e o número que o próximo recebe. |
+| **Retenção de dados**           | Por quanto tempo os incidentes resolvidos são mantidos antes de serem excluídos. Todos são mantidos até você escolher um período. |
 
 O que o OneUptime AI faz por conta própria não é configurado aqui: ele tem uma seção própria, **Incidentes → IA**, em rotas que começam com `/dashboard/{projectId}/incidents/ai/`. A página **Configurações** dela ativa ou desativa a investigação de incidentes novos, a correção automática deles (desativada até você ativá-la) e os rascunhos de post-mortem, e cada um é salvo assim que você o altera; as regras de IA que restringem quais incidentes são investigados e corrigidos, e com quais repositórios de código e pull requests, as regras de post-mortem que escolhem quais incidentes resolvidos recebem um rascunho e quais modelos ele segue, e os limites opcionais sob os quais a IA trabalha, ficam recolhidos em **Mais configurações**, e nenhum se aplica até você defini-lo. **Insights** e **Registros** ficam ao lado: o que a IA aprendeu com seus incidentes, e tudo o que ela fez. Veja [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Os dois vêm ativados em projetos novos; um projeto criado antes de eles virem a
 ## Participação em episódios
 
 Um incidente pode estar em vários episódios ao mesmo tempo. **Incidentes → Configurações → Participação em episódios** (`/dashboard/{projectId}/incidents/settings/episode-membership`) tem um único interruptor, **Um incidente só pode estar em um episódio**: enquanto ele está ativado, um incidente que está em um episódio não é adicionado a nenhum outro, nem pelo painel, nem pela API, por um fluxo de trabalho ou por uma regra de agrupamento, até ser tirado desse episódio. Ele fica desativado até você ativá-lo e é salvo assim que você o altera. Só Project Owners e Project Admins podem alterá-lo; para todos os outros, o interruptor fica bloqueado e diz qual permissão é necessária. Ativá-lo não tira nenhum incidente de um episódio. [Um só episódio por incidente](/docs/incidents/episodes#um-só-episódio-por-incidente) explica o que cada forma de adicionar faz enquanto ele está ativado.
+
+## Retenção de dados
+
+Os incidentes resolvidos ficam até alguém excluí-los, cada um com sua linha do tempo de estado, notas, feed e logs de notificação, então o banco de dados de um projeto movimentado não para de crescer. **Incidentes → Configurações → Retenção de dados** (`/dashboard/{projectId}/incidents/settings/data-retention`) os exclui depois que estão resolvidos há tempo suficiente. O cartão **Incidentes resolvidos** pergunta **Excluir após**: **Nunca**, como todo projeto começa, ou um período de 30 dias a 3 anos. A escolha é salva na hora, e um período que exclui mais do que antes pede confirmação primeiro, com **Excluir incidentes antigos**.
+
+A cada hora, cada incidente resolvido há mais tempo que isso é excluído com tudo o que está ligado a ele: sua linha do tempo de estado, notas, feed, proprietários, logs de notificação e execuções de plantão. O período conta a partir da última mudança de estado do incidente, então um que ficou aberto por um ano e foi resolvido na semana passada fica pelo período inteiro. Um episódio é excluído quando está resolvido há o mesmo tempo e não resta nenhum de seus incidentes. As páginas de status deixam de mostrar os incidentes excluídos, nada do que foi excluído pode ser recuperado e os números de incidente nunca são reutilizados. Um projeto com anos de incidentes resolvidos se atualiza em algumas execuções de hora em hora.
+
+Não importa há quanto tempo foi resolvido, um incidente fica:
+
+- enquanto não estiver resolvido;
+- enquanto seu post-mortem estiver **Concluído** e **Manter incidentes com post-mortem concluído** estiver ativado. Esse interruptor fica no mesmo cartão, vem ativado e pede confirmação antes de ser desativado. Enquanto estiver ativado, um episódio com post-mortem escrito também fica;
+- enquanto estiver em um episódio que ainda está aberto, ou que foi resolvido há menos tempo que o período escolhido.
+
+Só Project Owners e Project Admins podem alterar essas configurações. Na API, elas são `incidentRetentionInDays` do projeto, `0` para **Nunca**, e `keepIncidentsWithCompletedPostmortem`. Os alertas têm uma configuração própria: veja [Regras e configurações de alertas](/docs/alerts/settings#retenção-de-dados).
+
+> [!NOTE]
+> Em uma instalação auto-hospedada, o PostgreSQL reutiliza o espaço deixado pelas linhas excluídas, mas não o devolve ao disco. Para reduzir o banco de dados depois de uma primeira limpeza grande, execute `VACUUM FULL` nas maiores tabelas durante uma janela de manutenção, já que ele bloqueia cada tabela enquanto a reescreve, ou use `pg_repack`, que não bloqueia.
 
 ## Regras executadas quando um incidente é criado
 

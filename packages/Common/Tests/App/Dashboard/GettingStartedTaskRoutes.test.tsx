@@ -19,39 +19,48 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * Where each Getting Started step on Home takes a new user.
+ * Where each step of the Welcome checklist on Home takes a person (issue
+ * #6803), and what it records:
  *
- * Two steps used to land in the wrong place:
- *
- *  - "Invite your team" opened Teams: a list of the three built-in teams with
- *    a "Create Team" button and no way to invite anybody. The Invite User
- *    button is on Users.
- *  - "Create your first monitor" opened the (empty) Monitors list, one click
- *    short of the form the step names. It now opens the create form - but
- *    only for somebody who may create a monitor. Anybody else still lands on
- *    the list, where the Create Monitor button is shown locked with the
- *    permission it needs (issue #3306: a create form that fails at submit is
- *    worse than one you are never sent to).
- *
- * The real component is mounted; ModelAPI.count decides which steps are done,
- * and PermissionGate.check is spied so each test says who is looking.
+ *  - "Invite your team" opens Users, where Invite User is - never Teams,
+ *    which cannot invite anybody.
+ *  - "Create your first monitor" opens the create form, but only for
+ *    somebody who may create a monitor, decided at the click; anybody else
+ *    lands on the list, where the button is locked with the reason (#3306).
+ *  - Every other step opens today's page for its job: on-call, status pages,
+ *    the importer (saying it was opened from here), Logs, Hosts.
+ *  - The server's email opens the Admin Dashboard in a new tab.
+ *  - A step the plan holds back says so before the click, and opens Billing.
+ *  - A step started from here is carried to the page its record lands on,
+ *    with the step after it (WelcomeNextStep).
+ *  - Each click sends home/checklist_step_started, with the goals, and the
+ *    event sent before the rule.
  */
 
 const navigateMock: MockFunction = getJestMockFunction();
-const countMock: MockFunction = getJestMockFunction();
 const captureMock: MockFunction = getJestMockFunction();
-const getCurrentProjectIdMock: MockFunction = getJestMockFunction();
+const sendMock: MockFunction = getJestMockFunction();
+const fetchMock: MockFunction = getJestMockFunction();
+const postMock: MockFunction = getJestMockFunction();
+const legacyMock: MockFunction = getJestMockFunction();
 
-jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
-  return {
-    __esModule: true,
-    default: {
-      count: (...args: Array<unknown>) => {
-        return countMock(...args);
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistApi",
+  () => {
+    return {
+      __esModule: true,
+      fetchWelcomeChecklist: (...args: Array<unknown>) => {
+        return fetchMock(...args);
       },
-    },
-  };
-});
+      postWelcomeChecklist: (...args: Array<unknown>) => {
+        return postMock(...args);
+      },
+      sendLegacyBrowserState: (...args: Array<unknown>) => {
+        return legacyMock(...args);
+      },
+    };
+  },
+);
 
 jest.mock("../../../UI/Utils/Navigation", () => {
   return {
@@ -81,57 +90,85 @@ jest.mock("../../../UI/Utils/Analytics", () => {
   };
 });
 
-jest.mock("../../../UI/Utils/Project", () => {
+jest.mock("../../../UI/Utils/ProductEvents", () => {
   return {
     __esModule: true,
     default: {
-      getCurrentProjectId: (...args: Array<unknown>) => {
-        return getCurrentProjectIdMock(...args);
+      send: (...args: Array<unknown>) => {
+        return sendMock(...args);
       },
     },
   };
 });
 
 import GettingStarted from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import { ADMIN_SERVER_SETUP_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog";
+import {
+  STEP_IN_PROGRESS_KEY,
+  readWelcomeStepInProgress,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeStepInProgress";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
-import Monitor from "../../../Models/DatabaseModels/Monitor";
+import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
+import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import ObjectID from "../../../Types/ObjectID";
+import ProjectGoal from "../../../Types/WelcomeChecklist/ProjectGoal";
+import {
+  WelcomeAudience,
+  WelcomeChecklistStepState,
+  WelcomeStep,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklist";
+import {
+  WelcomeChecklistAnswer,
+  getEmptyWelcomeChecklistAnswer,
+} from "../../../Types/WelcomeChecklist/WelcomeChecklistAnswer";
 import PermissionGate, {
-  ModelAction,
+  PermissionCheckableModel,
   PermissionGateResult,
 } from "../../../UI/Utils/PermissionGate";
+import ProjectUtil from "../../../UI/Utils/Project";
 
-const PROJECT_ID: string = "65f00000000000000000bbbb";
+const PROJECT_ID: string = "65f00000000000000000cccc";
 
-type CountFor = (modelName: string) => number;
-
-// Every step still to do: no monitor, no status page, one member, no policy.
-const NOTHING_DONE: CountFor = (): number => {
-  return 0;
-};
-
-function answerCounts(countFor: CountFor): void {
-  countMock.mockImplementation((...args: Array<unknown>) => {
-    const request: { modelType: { name: string } } = args[0] as {
-      modelType: { name: string };
-    };
-    return Promise.resolve(countFor(request.modelType.name));
-  });
+function step(
+  key: WelcomeStep,
+  extra?: Partial<WelcomeChecklistStepState>,
+): WelcomeChecklistStepState {
+  return { step: key, isDone: false, needsPlan: null, isNext: false, ...extra };
 }
 
+function answer(
+  steps: Array<WelcomeChecklistStepState>,
+  goals: Array<ProjectGoal> | null = [ProjectGoal.Uptime],
+): WelcomeChecklistAnswer {
+  return {
+    ...getEmptyWelcomeChecklistAnswer(),
+    audience: WelcomeAudience.SetUp,
+    goals: goals,
+    canChooseGoals: true,
+    steps: steps,
+    doneCount: 0,
+    totalCount: steps.length,
+  };
+}
+
+// Every step there is, none done, so each can be clicked.
+const EVERY_STEP: WelcomeChecklistAnswer = answer(
+  [
+    step(WelcomeStep.ServerEmail, { isNext: true }),
+    step(WelcomeStep.Import),
+    step(WelcomeStep.Monitor),
+    step(WelcomeStep.Infrastructure),
+    step(WelcomeStep.Telemetry),
+    step(WelcomeStep.OnCall),
+    step(WelcomeStep.StatusPage),
+    step(WelcomeStep.Team),
+  ],
+  [ProjectGoal.Uptime, ProjectGoal.StatusPage],
+);
+
+let mayCreate: boolean | undefined;
 let checkSpy: SpyInstance<typeof PermissionGate.check>;
-
-function allowMonitorCreate(isAllowed: boolean): void {
-  checkSpy.mockImplementation((): PermissionGateResult => {
-    return isAllowed
-      ? { isAllowed: true }
-      : {
-          isAllowed: false,
-          disabledReason: "You do not have permission to create this Monitor.",
-        };
-  });
-}
 
 async function renderGettingStarted(): Promise<void> {
   await act(async () => {
@@ -139,193 +176,290 @@ async function renderGettingStarted(): Promise<void> {
   });
 }
 
+function click(key: WelcomeStep): void {
+  fireEvent.click(screen.getByTestId(`getting-started-task-${key}`));
+}
+
 function routeOf(pageMap: PageMap): string {
   return RouteMap[pageMap]!.toString().replace(":projectId", PROJECT_ID);
 }
 
-function openStep(key: string): string {
-  fireEvent.click(screen.getByTestId(`getting-started-task-${key}`));
+function navigatedTo(): string {
   expect(navigateMock).toHaveBeenCalledTimes(1);
   return String(navigateMock.mock.calls[0]![0]);
 }
 
 beforeEach(() => {
   window.localStorage.clear();
-  getCurrentProjectIdMock.mockReturnValue(new ObjectID(PROJECT_ID));
-  answerCounts(NOTHING_DONE);
-  checkSpy = jest.spyOn(PermissionGate, "check");
-  allowMonitorCreate(true);
+  window.sessionStorage.clear();
+  mayCreate = true;
+  jest
+    .spyOn(ProjectUtil, "getCurrentProjectId")
+    .mockReturnValue(new ObjectID(PROJECT_ID));
+  legacyMock.mockResolvedValue(null);
+  fetchMock.mockResolvedValue(EVERY_STEP);
+  checkSpy = jest
+    .spyOn(PermissionGate, "check")
+    .mockImplementation((): PermissionGateResult => {
+      // Not loaded yet: not allowed, with nothing to say why.
+      return mayCreate === undefined
+        ? { isAllowed: false }
+        : mayCreate
+          ? { isAllowed: true }
+          : {
+              isAllowed: false,
+              disabledReason: "You need the Create Monitor permission.",
+            };
+    });
 });
 
 afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   navigateMock.mockReset();
-  countMock.mockReset();
   captureMock.mockReset();
-  getCurrentProjectIdMock.mockReset();
+  sendMock.mockReset();
+  fetchMock.mockReset();
+  postMock.mockReset();
+  legacyMock.mockReset();
 });
 
-describe("Getting Started: Invite your team", () => {
+describe("Invite your team", () => {
   test("opens Users, where Invite User is", async () => {
     await renderGettingStarted();
+    click(WelcomeStep.Team);
 
-    const route: string = openStep("invite-team");
-
-    expect(route).toBe(routeOf(PageMap.USERS));
+    expect(navigatedTo()).toBe(routeOf(PageMap.USERS));
   });
 
   test("no longer opens Teams, which cannot invite anybody", async () => {
     await renderGettingStarted();
+    click(WelcomeStep.Team);
 
-    const route: string = openStep("invite-team");
-
-    expect(route).not.toBe(routeOf(PageMap.TEAMS));
-    expect(route.endsWith("/teams")).toBe(false);
+    expect(navigatedTo()).not.toBe(routeOf(PageMap.TEAMS));
   });
 
   test("goes there for everyone: inviting has no create form to gate", async () => {
-    allowMonitorCreate(false);
+    mayCreate = false;
     await renderGettingStarted();
+    click(WelcomeStep.Team);
 
-    openStep("invite-team");
-
-    expect(checkSpy).not.toHaveBeenCalled();
+    expect(navigatedTo()).toBe(routeOf(PageMap.USERS));
   });
 
   test("the route carries the current project id", async () => {
     await renderGettingStarted();
+    click(WelcomeStep.Team);
 
-    const route: string = openStep("invite-team");
-
-    expect(route).toBe(`/dashboard/${PROJECT_ID}/users`);
-    expect(route).not.toContain(":projectId");
+    expect(navigatedTo()).toContain(PROJECT_ID);
+    expect(navigatedTo()).not.toContain(":projectId");
   });
 
-  test("still reports which step was opened", async () => {
+  test("on the Free plan, says which plan it needs before the click, and opens Billing", async () => {
+    fetchMock.mockResolvedValue(
+      answer([
+        step(WelcomeStep.Monitor, { isNext: true }),
+        step(WelcomeStep.Team, { needsPlan: PlanType.Growth }),
+      ]),
+    );
     await renderGettingStarted();
 
-    openStep("invite-team");
+    expect(
+      screen.getByTestId(`getting-started-task-${WelcomeStep.Team}-needs-plan`),
+    ).toHaveTextContent("Needs the Growth plan");
+    expect(
+      screen.getByTestId(`getting-started-task-${WelcomeStep.Team}`),
+    ).toHaveTextContent(
+      "The Free plan has one person. Upgrade to the Growth plan to invite your team.",
+    );
 
-    expect(captureMock).toHaveBeenCalledWith(
-      "dashboard/home/getting-started-task",
-      { projectId: PROJECT_ID, task: "invite-team" },
+    click(WelcomeStep.Team);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.SETTINGS_BILLING));
+    expect(sendMock).toHaveBeenCalledWith(
+      ProductEventName.ChecklistStepStarted,
+      { step: WelcomeStep.Team, goals: "uptime", needs_plan: PlanType.Growth },
     );
   });
 });
 
-describe("Getting Started: Create your first monitor", () => {
+describe("Create your first monitor", () => {
   test("opens the create form for someone who may create a monitor", async () => {
-    allowMonitorCreate(true);
     await renderGettingStarted();
+    click(WelcomeStep.Monitor);
 
-    const route: string = openStep("create-monitor");
-
-    expect(route).toBe(routeOf(PageMap.MONITOR_CREATE));
-    expect(route).toBe(`/dashboard/${PROJECT_ID}/monitors/create`);
+    expect(navigatedTo()).toBe(routeOf(PageMap.MONITOR_CREATE));
   });
 
   test("asks the permission gate about creating a Monitor, and nothing else", async () => {
     await renderGettingStarted();
-
-    openStep("create-monitor");
+    checkSpy.mockClear();
+    click(WelcomeStep.Monitor);
 
     expect(checkSpy).toHaveBeenCalledTimes(1);
-    expect(checkSpy).toHaveBeenCalledWith(
-      expect.any(Monitor),
-      ModelAction.Create,
-    );
+    expect(
+      (checkSpy.mock.calls[0]![0] as PermissionCheckableModel).constructor.name,
+    ).toBe("Monitor");
   });
 
   test("lands anyone else on the Monitors list, not in a form they cannot submit", async () => {
-    allowMonitorCreate(false);
+    mayCreate = false;
     await renderGettingStarted();
+    click(WelcomeStep.Monitor);
 
-    const route: string = openStep("create-monitor");
-
-    expect(route).toBe(routeOf(PageMap.MONITORS));
-    expect(route).not.toBe(routeOf(PageMap.MONITOR_CREATE));
+    expect(navigatedTo()).toBe(routeOf(PageMap.MONITORS));
   });
 
   test("an unknown permission snapshot (not loaded yet) is not a yes", async () => {
-    checkSpy.mockImplementation((): PermissionGateResult => {
-      return { isAllowed: false };
-    });
+    mayCreate = undefined;
     await renderGettingStarted();
+    click(WelcomeStep.Monitor);
 
-    expect(openStep("create-monitor")).toBe(routeOf(PageMap.MONITORS));
+    expect(navigatedTo()).toBe(routeOf(PageMap.MONITORS));
   });
 
   test("the permission is read at the click, not when Home first rendered", async () => {
-    allowMonitorCreate(false);
+    mayCreate = false;
     await renderGettingStarted();
-    expect(checkSpy).not.toHaveBeenCalled();
+    mayCreate = true;
+    click(WelcomeStep.Monitor);
 
-    // The snapshot arrives after the first paint (a response header).
-    allowMonitorCreate(true);
+    expect(navigatedTo()).toBe(routeOf(PageMap.MONITOR_CREATE));
+  });
+});
 
-    expect(openStep("create-monitor")).toBe(routeOf(PageMap.MONITOR_CREATE));
+describe("every other step opens today's page for its job", () => {
+  test.each([
+    [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY],
+    [WelcomeStep.StatusPage, PageMap.STATUS_PAGES],
+    [WelcomeStep.Telemetry, PageMap.LOGS],
+    [WelcomeStep.Infrastructure, PageMap.HOSTS],
+  ])("%s opens %s", async (key: WelcomeStep, pageMap: PageMap) => {
+    await renderGettingStarted();
+    click(key);
+
+    expect(navigatedTo()).toBe(routeOf(pageMap));
   });
 
-  test("still reports which step was opened", async () => {
+  test("importing opens the importer, saying it was opened from the checklist", async () => {
     await renderGettingStarted();
+    click(WelcomeStep.Import);
 
-    openStep("create-monitor");
-
-    expect(captureMock).toHaveBeenCalledWith(
-      "dashboard/home/getting-started-task",
-      { projectId: PROJECT_ID, task: "create-monitor" },
+    expect(navigatedTo()).toBe(
+      `${routeOf(PageMap.SETTINGS_IMPORT_FROM_TOOL)}?from=welcome`,
     );
   });
 
-  test("a finished step goes nowhere and asks nothing", async () => {
-    answerCounts((modelName: string): number => {
-      return modelName === "Monitor" ? 1 : 0;
-    });
+  test("the server's email opens the Admin Dashboard's server setup in a new tab", async () => {
     await renderGettingStarted();
+    click(WelcomeStep.ServerEmail);
 
-    fireEvent.click(screen.getByTestId("getting-started-task-create-monitor"));
+    expect(navigateMock).toHaveBeenCalledTimes(1);
+    expect(String(navigateMock.mock.calls[0]![0])).toContain(
+      `/admin${ADMIN_SERVER_SETUP_ROUTE}`,
+    );
+    expect(navigateMock.mock.calls[0]![1]).toEqual({ openInNewTab: true });
+  });
+});
+
+describe("what a click records", () => {
+  test("home/checklist_step_started with the step and the goals, and the event sent before the rule", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(sendMock).toHaveBeenCalledWith(
+      ProductEventName.ChecklistStepStarted,
+      { step: WelcomeStep.StatusPage, goals: "uptime.status_page" },
+    );
+    expect(captureMock).toHaveBeenCalledWith(
+      "dashboard/home/getting-started-task",
+      { projectId: PROJECT_ID, task: WelcomeStep.StatusPage },
+    );
+  });
+
+  test("a step whose record lands on a plain page is carried there, with the step after it", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.Monitor);
+
+    expect(readWelcomeStepInProgress()).toMatchObject({
+      projectId: PROJECT_ID,
+      step: WelcomeStep.Monitor,
+      nextStep: WelcomeStep.Infrastructure,
+    });
+  });
+
+  test("the step after the last one left wraps round to one still to do", async () => {
+    fetchMock.mockResolvedValue(
+      answer([
+        step(WelcomeStep.Monitor, { isNext: true }),
+        step(WelcomeStep.OnCall),
+        step(WelcomeStep.StatusPage),
+      ]),
+    );
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(readWelcomeStepInProgress()?.nextStep).toBe(WelcomeStep.Monitor);
+  });
+
+  test("a step with nothing to land on carries nothing", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.Team);
+
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
+  });
+});
+
+describe("a finished step", () => {
+  test("goes nowhere and asks nothing", async () => {
+    fetchMock.mockResolvedValue(
+      answer([
+        step(WelcomeStep.Monitor, { isDone: true }),
+        step(WelcomeStep.OnCall, { isNext: true }),
+      ]),
+    );
+    await renderGettingStarted();
+    checkSpy.mockClear();
+
+    fireEvent.click(
+      screen.getByTestId(`getting-started-task-${WelcomeStep.Monitor}`),
+    );
 
     expect(navigateMock).not.toHaveBeenCalled();
+    expect(sendMock).not.toHaveBeenCalledWith(
+      ProductEventName.ChecklistStepStarted,
+      expect.anything(),
+    );
     expect(checkSpy).not.toHaveBeenCalled();
   });
 });
 
-describe("Getting Started: the other steps are unchanged", () => {
-  test.each([
-    ["create-status-page", PageMap.STATUS_PAGES],
-    ["create-on-call-policy", PageMap.ON_CALL_DUTY],
-  ])(
-    "%s opens its product in the current project",
-    async (key: string, pageMap: PageMap) => {
-      await renderGettingStarted();
-
-      const route: string = openStep(key);
-
-      expect(route).toBe(routeOf(pageMap));
-      expect(route).toContain(PROJECT_ID);
-      expect(checkSpy).not.toHaveBeenCalled();
-      expect(captureMock).toHaveBeenCalledWith(
-        "dashboard/home/getting-started-task",
-        { projectId: PROJECT_ID, task: key },
-      );
-    },
-  );
-
-  test("the four steps are still offered, in the same order", async () => {
+describe("the steps a project that skipped gets", () => {
+  test("are the four it always had, in How OneUptime works' order", async () => {
+    fetchMock.mockResolvedValue(
+      answer(
+        [
+          step(WelcomeStep.Monitor, { isNext: true }),
+          step(WelcomeStep.OnCall),
+          step(WelcomeStep.StatusPage),
+          step(WelcomeStep.Team),
+        ],
+        [],
+      ),
+    );
     await renderGettingStarted();
 
-    const keys: Array<string> = screen
-      .getAllByTestId(/^getting-started-task-/)
-      .map((element: HTMLElement): string => {
-        return element.getAttribute("data-testid") || "";
-      });
-
-    expect(keys).toEqual([
-      "getting-started-task-create-monitor",
-      "getting-started-task-create-status-page",
-      "getting-started-task-invite-team",
-      "getting-started-task-create-on-call-policy",
+    expect(
+      screen
+        .getAllByTestId(/^getting-started-task-[a-z_]+$/)
+        .map((tile: HTMLElement): string | null => {
+          return tile.getAttribute("data-testid");
+        }),
+    ).toEqual([
+      "getting-started-task-monitor",
+      "getting-started-task-on_call",
+      "getting-started-task-status_page",
+      "getting-started-task-team",
     ]);
   });
 });

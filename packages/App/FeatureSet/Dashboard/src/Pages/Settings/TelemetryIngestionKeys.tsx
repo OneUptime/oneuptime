@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
 import Route from "Common/Types/API/Route";
@@ -93,6 +94,7 @@ const TelemetryIngestionKeys: FunctionComponent<
           title: "Telemetry Ingestion Keys",
           description:
             "These keys are used to ingest telemetry data like Logs, Traces and Metrics for your project.",
+          titleGlossaryTerm: GlossaryTerm.IngestionKey,
         }}
         noItemsMessage={"No telemetry ingestion keys found."}
         formSteps={formSteps}

@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import PageComponentProps from "../PageComponentProps";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -175,6 +176,7 @@ const OnCallDutyPage: FunctionComponent<
           title: "On-Call Duty Policies",
           description:
             "On-call policies decide who is notified when an incident or alert opens, and who is next if nobody acknowledges it.",
+          titleGlossaryTerm: GlossaryTerm.OnCallPolicy,
         }}
         videoLink={URL.fromString("https://youtu.be/HzhKmCryYdc")}
         formFields={createFormFields}

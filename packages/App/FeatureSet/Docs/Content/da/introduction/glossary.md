@@ -92,6 +92,12 @@ Hvem der har vagt på et givet tidspunkt: personerne skiftes, og hver enkelt ove
 
 Også kaldet: **Rotation**. Se [Vagtplaner](/docs/on-call/schedules).
 
+### Lag
+
+Én rotation i en vagtplan: hvem der skiftes, hvor ofte vagten overdrages, og hvilke timer laget dækker. Det øverste lag, hvor nogen har vagt, er det, der tilkalder, så hovedrotationen skal øverst og reservedækningen under den.
+
+Se [Vagtplaner](/docs/on-call/schedules#lag).
+
 ### Notifikationsmetode
 
 En adresse, OneUptime kan kontakte dig på i et projekt: en e-mailadresse, et telefonnummer til SMS eller opkald, din Slack- eller Microsoft Teams-konto eller OneUptime-appen på din telefon. Hver person tilføjer sine egne under **Brugerindstillinger**.

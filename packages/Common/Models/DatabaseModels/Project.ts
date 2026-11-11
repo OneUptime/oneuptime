@@ -35,6 +35,10 @@ import Permission from "../../Types/Permission";
 import Phone from "../../Types/Phone";
 import PositiveNumber from "../../Types/PositiveNumber";
 import { DEFAULT_DISCOVERED_DEVICE_RETENTION_IN_DAYS } from "../../Types/NetworkDevice/DiscoveredDeviceRetention";
+import {
+  DEFAULT_KEEP_INCIDENTS_WITH_COMPLETED_POSTMORTEM,
+  DEFAULT_RESOLVED_RECORD_RETENTION_IN_DAYS,
+} from "../../Types/Retention/ResolvedRecordRetention";
 import { NETWORK_TOPOLOGY_LAYOUTS } from "../../Types/NetworkDevice/NetworkTopologyLayout";
 import { SECURITY_CASE_NUMBER_PREFIX } from "../../Types/SecurityCase/SecurityCaseNumber";
 import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
@@ -2918,6 +2922,124 @@ export default class Project extends TenantModel {
   public discoveredDeviceRetentionInDays?: number = undefined;
 
   /*
+   * How long a resolved incident stays (issue #6903,
+   * Types/Retention/ResolvedRecordRetention): in days, one of the choices
+   * that module lists, or 0 to keep every incident - where every project
+   * starts, so an upgrade deletes nothing. Once an incident has been
+   * resolved for longer, the Workers job Incident:DeleteResolvedIncidents
+   * deletes it with everything it carries (Server/Utils/Retention/
+   * ResolvedRecordRetention says what stays however old it is), and its
+   * episode once none of the episode's incidents are left. A Project Owner
+   * or Admin sets it on Incidents -> Settings -> Data Retention; refused by
+   * ProjectService unless it is one of the choices or 0.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Incident Retention (Days)",
+    description:
+      "Days a resolved incident is kept once resolved: 30, 60, 90, 180, 365, 730 or 1095, or 0 to keep every incident (the default). Incidents that are not resolved are never deleted.",
+    defaultValue: DEFAULT_RESOLVED_RECORD_RETENTION_IN_DAYS,
+    example: 365,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DEFAULT_RESOLVED_RECORD_RETENTION_IN_DAYS,
+  })
+  public incidentRetentionInDays?: number = undefined;
+
+  /*
+   * Whether an incident whose postmortem is completed - in the project's
+   * Completed postmortem status - stays however long ago it was resolved,
+   * whatever incidentRetentionInDays says (issue #6903). On by default. A
+   * postmortem that is only drafted, by a person or by OneUptime AI, does
+   * not keep its incident: with AI drafting one for every resolved incident,
+   * that would keep them all.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Boolean,
+    title: "Keep Incidents With a Completed Postmortem",
+    description:
+      "When on (the default), an incident whose postmortem is completed is never deleted by the incident retention, however long ago it was resolved.",
+    defaultValue: DEFAULT_KEEP_INCIDENTS_WITH_COMPLETED_POSTMORTEM,
+    example: true,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: DEFAULT_KEEP_INCIDENTS_WITH_COMPLETED_POSTMORTEM,
+  })
+  public keepIncidentsWithCompletedPostmortem?: boolean = undefined;
+
+  /*
+   * How long a resolved alert stays (issue #6903), as
+   * incidentRetentionInDays is for incidents: one of the choices, or 0 to
+   * keep every alert - the default. Deleted by the Workers job
+   * Alert:DeleteResolvedAlerts; an alert linked to an incident stays as long
+   * as the incident does. A Project Owner or Admin sets it on Alerts ->
+   * Settings -> Data Retention.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [Permission.ProjectOwner, Permission.ProjectAdmin],
+  })
+  @TableColumn({
+    required: true,
+    isDefaultValueColumn: true,
+    type: TableColumnType.Number,
+    title: "Alert Retention (Days)",
+    description:
+      "Days a resolved alert is kept once resolved: 30, 60, 90, 180, 365, 730 or 1095, or 0 to keep every alert (the default). Alerts that are not resolved are never deleted.",
+    defaultValue: DEFAULT_RESOLVED_RECORD_RETENTION_IN_DAYS,
+    example: 90,
+  })
+  @Column({
+    type: ColumnType.Number,
+    nullable: false,
+    default: DEFAULT_RESOLVED_RECORD_RETENTION_IN_DAYS,
+  })
+  public alertRetentionInDays?: number = undefined;
+
+  /*
    * The columns each of the project's lists shows, and their order, for
    * everyone who has not chosen columns of their own for it: a list's key
    * (a ModelTable's userPreferencesKey) to { order, hidden } column ids
@@ -5253,4 +5375,74 @@ export default class Project extends TenantModel {
     transformer: getDecimalDatabaseTransformer(),
   })
   public securityEventsIngestionRateLimitInMBPerSecond?: number = undefined;
+
+  /*
+   * What the project came to do (issue #6803): the goals its owner ticked
+   * when Home asked "What do you want to do first?", as ProjectGoal values
+   * (Types/WelcomeChecklist/ProjectGoal). Null: never answered. Empty: the
+   * question was skipped. Read it with parseProjectGoals.
+   *
+   * Every member reads it - the Welcome checklist on Home is built from it,
+   * and #6814 starts a project's products from it. Nobody writes it through
+   * the API: it is chosen through POST /welcome-checklist/goals, which only
+   * an Owner or Admin may call (WelcomeChecklistAPI).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Goals",
+    description:
+      "What the project came to do, as its owner answered on Home: uptime, on_call, status_page, telemetry, infrastructure, import or explore. Empty: the question was skipped. Not set: never answered.",
+    example: '["uptime", "status_page"]',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public goals?: Array<string> = undefined;
+
+  /*
+   * The Welcome checklist's state, kept on the server so every member and
+   * every device sees the same checklist (issue #6803,
+   * Types/WelcomeChecklist/WelcomeChecklistState): when the goals were
+   * chosen and by whom, when the checklist finished, and the members who
+   * hid it for themselves. Null on a project from before the checklist was
+   * kept here; a project created now starts with startedWithOutcomes.
+   *
+   * Internal: read and written only by the server (WelcomeChecklistService),
+   * which answers Home with what it means for the person asking.
+   */
+  @ColumnAccessControl({
+    create: [Permission.User],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    hideColumnInDocumentation: true,
+    type: TableColumnType.JSON,
+    title: "Welcome Checklist State",
+    description:
+      "When the project's goals were chosen, when its Welcome checklist finished, and the members who hid it. Managed by the server.",
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public welcomeChecklistState?: JSONObject = undefined;
 }

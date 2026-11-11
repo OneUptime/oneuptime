@@ -49,6 +49,8 @@ command palette.
 | `?fail=`     | comma separated: `overview` (every Incident list fails, so Home's batch does), `overview-once` (only the first one does), `resources` (every Status Page count fails), `upcoming` (the upcoming maintenance list fails)                                                                    |
 | `?lang=`     | `de` reads the German locale file                                                                                                                                                                                                                                                           |
 | `?theme=`    | `dark` adds `html.dark`                                                                                                                                                                                                                                                                     |
+| `?welcome=`  | The Welcome checklist's answer (`GET /api/welcome-checklist`), built with the real rules in `Common/Types/WelcomeChecklist`: `ask` (nobody has answered for a new project yet: the question first), `half` (the four steps, the monitor's first check in), `hidden` (hidden by this person). Without it, a new project skipped the question and every other scenario finished the checklist |
+| `?plan=`     | `free`: OneUptime Cloud's Free plan, so the team step needs Growth                                                                                                                                                                                                                          |
 
 ## What the spec covers
 
@@ -69,6 +71,12 @@ command palette.
   needs attention ("4 issues need attention"), maintenance in progress, a new project (the
   checklist under the headline, every resource to set up, no maintenance card) and more open
   incidents than a group shows ("View all 9").
+- **What do you want to do first?** (issue #6803): at 1280px and 390px, a new project's owner
+  is asked first, ticks two goals and gets the checklist they bring, with one step marked next;
+  Skip gives the four steps and Change asks again with the answer ticked; a step ticks on its
+  outcome; the Free plan's team step says it needs Growth; Hide leaves a line with Show it and How
+  OneUptime works, and Show it brings the checklist back; an invited member sees neither; the
+  question in German on a dark card.
 - **Failures and Refresh**: the batch failing shows the card's error and never a strip of zeros,
   and the list says it could not be loaded and points at Try again; Try again recovering; a resource count the role may not read losing only its row; the upcoming
   list failing leaving out its card; Refresh reading again without blanking the page.
@@ -114,4 +122,5 @@ node HomeOverview/Fixture/server.js --watch
 then open `http://127.0.0.1:4224/dashboard/10000000-0000-4000-8000-000000000001/home/` and add
 the query parameters above. `--watch` rebuilds the bundle when a source file changes; refresh
 the browser. A browser outside Playwright shows relative times against the real clock, not the
-pinned one, and remembers a finished or dismissed checklist in its local storage.
+pinned one. The Welcome checklist's answer lives in the page (`?welcome=`), so a reload starts it
+over.

@@ -6,6 +6,7 @@ import {
   SetupStepStatus,
 } from "./ChecklistModel";
 import SetupChecklistTile from "./SetupChecklistTile";
+import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
 import useSetupChecklist, { SetupChecklistState } from "./useSetupChecklist";
 import IconProp from "Common/Types/Icon/IconProp";
 import ObjectID from "Common/Types/ObjectID";
@@ -196,13 +197,26 @@ const SetupChecklist: FunctionComponent<ComponentProps> = (
       title="Your setup checklist"
       description="Everything you need for OneUptime to reach you, in the order it matters."
       rightElement={
-        <Button
-          title="Recheck"
-          buttonStyle={ButtonStyleType.SECONDARY_LINK}
-          buttonSize={ButtonSize.Small}
-          onClick={reload}
-          dataTestId="setup-checklist-recheck"
-        />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {/*
+           * The step every checklist ends on: see it work. A test page goes
+           * through the person's own rules, as a real page would
+           * (OnCallTestPage).
+           */}
+          <SendTestPageButton
+            target={{ kind: "self" }}
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            buttonSize={ButtonSize.Small}
+            dataTestId="setup-checklist-send-test-page"
+          />
+          <Button
+            title="Recheck"
+            buttonStyle={ButtonStyleType.SECONDARY_LINK}
+            buttonSize={ButtonSize.Small}
+            onClick={reload}
+            dataTestId="setup-checklist-recheck"
+          />
+        </div>
       }
     >
       <div data-testid="setup-checklist">

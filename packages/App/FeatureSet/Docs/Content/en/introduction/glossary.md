@@ -92,6 +92,12 @@ Who is on call at any moment: people take turns, and each one hands over to the 
 
 Also called: **Rotation**. See [On-Call Schedules](/docs/on-call/schedules).
 
+### Layer
+
+One rotation inside an on-call schedule: the people who take turns, how often they hand over, and the hours it covers. The highest layer with someone on call is the one that pages, so the main rotation goes on top and fall-back cover below it.
+
+See [On-Call Schedules](/docs/on-call/schedules#layers).
+
 ### Notification Method
 
 An address OneUptime may reach you at in a project: an email address, a phone number for SMS or calls, your Slack or Microsoft Teams account, or the OneUptime app on your phone. Each person adds their own under **User Settings**.

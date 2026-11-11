@@ -56,27 +56,38 @@ Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **
 
 ### Die Willkommens-Checkliste
 
-Die Checkliste führt Sie durch die vier Dinge, die ein Projekt braucht, bevor es nützlich ist. Jeder Schritt öffnet die Seite, auf der Sie ihn erledigen, und hakt sich selbst ab, sobald das Projekt hat, worum er bittet.
+Wenn ein Projekteigentümer oder Projektadministrator die Startseite eines neuen Projekts zum ersten Mal öffnet, fragt die Karte **Was möchten Sie zuerst tun?** Haken Sie ein oder mehrere Ziele an, etwa **Wissen, wenn meine Website oder API ausfällt** oder **Ich sehe mich nur um**, und klicken Sie auf **Weiter**: Die Checkliste enthält dann die Schritte, die diese Ziele brauchen. **Überspringen** gibt Ihnen die vier Schritte, die jedes Projekt bekommt. Um später neu zu antworten, klicken Sie in der Checkliste auf **Ändern**. Ein Projekt, das schon Monitore, Telemetrie oder Bereitschaft nutzt, wird nicht gefragt.
+
+Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, wenn ein Eintrag existiert, und alle, die das Projekt einrichten, sehen auf jedem Gerät dieselbe Liste:
 
 | Schritt | Erledigt, wenn | Öffnet |
 | --- | --- | --- |
-| **Ersten Monitor erstellen** | Das Projekt einen Monitor hat. | Das Formular **Monitor erstellen**, oder die Liste **Monitore** für jemanden, der keine Monitore anlegen darf. |
-| **Statusseite veröffentlichen** | Das Projekt eine Statusseite hat. | **Statusseiten** |
-| **Team einladen** | Außer Ihnen jemand im Projekt ist oder dazu eingeladen wurde. | **Benutzer** |
-| **Bereitschaftsrichtlinie einrichten** | Das Projekt eine Bereitschaftsrichtlinie hat. | **Bereitschaftsdienst** |
+| **Aus Ihrem bisherigen Tool importieren** | Ein Import aus einem anderen Tool abgeschlossen ist. | **Import aus anderem Tool** |
+| **Ersten Monitor erstellen** | Seine erste Prüfung eintrifft. | Das Formular **Monitor erstellen**, oder die Liste **Monitore** für jemanden, der keine Monitore anlegen darf. |
+| **Server oder Cluster verbinden** | Seine ersten Metriken eintreffen. | **Hosts** |
+| **Erste Logs, Metriken oder Traces senden** | Die ersten Logs, Metriken, Traces, Ausnahmen oder Profile des Projekts eintreffen. | **Protokolle** |
+| **Bereitschaftsrichtlinie einrichten** | Eine Testalarmierung bestätigt wird, eine Alarmierung jemanden erreicht oder eine Bereitschaftsregel eine Richtlinie ausführt, die jemanden erreichen kann. | **Bereitschaftsdienst** |
+| **Statusseite veröffentlichen** | Eine Statusseite einen Monitor zeigt. | **Statusseiten** |
+| **Team einladen** | Jemand Ihre Einladung annimmt. | **Benutzer** |
 
-Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaftsdienst** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen.
+Der Schritt, mit dem Sie beginnen, ist mit **Nächster Schritt** markiert. Im Free-Tarif von OneUptime Cloud, der eine Person umfasst, sagt **Team einladen**, dass es den Growth-Tarif braucht, und öffnet **Abrechnung**. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, sehen die Administratoren des Servers zuerst **Dieser Server kann noch keine E-Mails senden**; das öffnet das Admin-Dashboard.
 
-```mermaid title="Wann die Willkommens-Checkliste verschwindet"
+Wenn Sie aus einem Schritt heraus einen Monitor, eine Statusseite oder eine Bereitschaftsrichtlinie erstellen, sagt die Seite, auf der Sie landen, was als Nächstes kommt, mit **Zurück zur Einrichtung**.
+
+Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaftsdienst** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
+
+```mermaid title="Wann die Willkommens-Checkliste erscheint"
 flowchart TB
-    open["Startseite öffnet sich"] --> dismissed{"In diesem Browser<br/>ausgeblendet?"}
-    dismissed -->|"Nein"| done{"Alle vier Schritte<br/>erledigt?"}
-    dismissed -->|"Ja"| hidden["Keine Checkliste"]
-    done -->|"Ja"| hidden
+    open["Startseite öffnet sich"] --> answered{"Ziele gewählt oder<br/>übersprungen?"}
+    answered -->|"Nein"| question["Was möchten Sie<br/>zuerst tun?"]
+    answered -->|"Ja"| hidden{"Von Ihnen<br/>ausgeblendet?"}
+    hidden -->|"Ja"| line["Eine Zeile zum<br/>erneuten Anzeigen"]
+    hidden -->|"Nein"| done{"Alle Schritte<br/>erledigt?"}
+    done -->|"Ja"| gone["Keine Checkliste"]
     done -->|"Nein"| shown["Die Checkliste mit den<br/>verbleibenden Schritten"]
 ```
 
-Die Checkliste verschwindet, sobald alle vier Schritte erledigt sind. Um sie früher auszublenden, klicken Sie auf **Ausblenden**. Das Ausblenden gilt für diesen Browser und dieses Projekt; alles, was die Schritte öffnen, finden Sie weiterhin im Menü **Produkte**.
+Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie früher auszublenden, klicken Sie auf **Ausblenden**: Sie ist dann nur für Sie ausgeblendet, auf jedem Gerät, und eine Zeile bleibt mit **Anzeigen** und **So funktioniert OneUptime**. Wer als Mitglied in das Projekt eingeladen wurde, sieht die Checkliste nicht. **So funktioniert OneUptime** bleibt in jedem Projekt einen Klick entfernt: Öffnen Sie es über **Hilfe** oder mit der Schaltfläche neben **OneUptime erkunden**.
 
 ### Erfordert Aufmerksamkeit
 
@@ -125,7 +136,9 @@ Zwei Leisten ziehen sich oben über jede Seite.
 | Oben rechts | **Suchen** und **KI fragen**, die Benachrichtigungsglocke mit dem, was Sie jetzt braucht (aktive Vorfälle und Warnungen, die Bereitschaftsrichtlinien, in denen Sie Dienst haben, offene Einladungen), **Hilfe**, und Ihr Bild, das Ihr [Konto](/docs/introduction/your-account)-Menü öffnet. |
 | Darunter | **Startseite** und **Produkte** links, **Benutzereinstellungen** rechts: wie OneUptime Sie in diesem Projekt erreicht. |
 
-**Hilfe** öffnet diese Dokumentation (**Dokumentation**) und die Liste **Tastenkürzel** und bietet Support per E-Mail und auf Slack. Auf einem schmalen Bildschirm, etwa einem Telefon, fallen **Suchen**, **KI fragen** und **Hilfe** weg, um Platz zu sparen; die Glocke und Ihr Bild bleiben.
+**Hilfe** beginnt mit dem, was beim Lernen hilft: **Schnellstart**, **So funktioniert OneUptime**, **Glossar** und diese Dokumentation (**Dokumentation**). Darunter folgen die Liste **Tastenkürzel** und Support per E-Mail und auf Slack. Auf einem schmalen Bildschirm, etwa einem Telefon, fallen **Suchen**, **KI fragen** und **Hilfe** weg, um Platz zu sparen; die Glocke und Ihr Bild bleiben.
+
+Ein Wort mit gepunkteter Linie darunter, etwa **Sonden** im Formular eines neuen Monitors, sagt, was es bedeutet, wenn Sie darauf zeigen, mit der Tabulatortaste dorthin wechseln oder darauf tippen. Sein **Mehr lesen** öffnet das Wort im [Glossar](/docs/introduction/glossary).
 
 ### Seiten und Listen
 

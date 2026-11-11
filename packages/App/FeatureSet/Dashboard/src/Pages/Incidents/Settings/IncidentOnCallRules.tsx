@@ -1,5 +1,7 @@
 import PageComponentProps from "../../PageComponentProps";
+import Route from "Common/Types/API/Route";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -111,7 +113,11 @@ const IncidentRulesTable: FunctionComponent = (): ReactElement => {
         title: "Incident On-Call Rules",
         description:
           "Page on-call policies automatically for incidents that match - as responders, or as observers kept informed.",
+        titleGlossaryTerm: GlossaryTerm.OnCallRules,
       }}
+      documentationLink={Route.fromString(
+        "/docs/incidents/settings#incident-on-call-rules",
+      )}
       helpContent={{
         title: "How Incident On-Call Rules Work",
         description: "Which new incidents page which on-call policies.",

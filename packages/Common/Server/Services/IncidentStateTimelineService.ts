@@ -61,6 +61,7 @@ import IncidentAlertService from "./IncidentAlertService";
 import ResolvedStateUtil from "../../Utils/ResolvedState";
 import AcknowledgedStateUtil from "../../Utils/AcknowledgedState";
 import { StateListType } from "../../Utils/StateOrder";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 import StateChangeFeedEmoji from "../Utils/StateChangeFeedEmoji";
 import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
 import StateMoveCheck from "../Utils/StateMoveCheck";
@@ -155,6 +156,17 @@ export class Service extends ProjectReferencesService<IncidentStateTimeline> {
     createBy: CreateBy<IncidentStateTimeline>,
   ): Promise<OnCreate<IncidentStateTimeline>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that caused the change, without a Synthetic monitor's
+     * screenshots: the log is read as JSON text, and they are megabytes a
+     * row. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.stateChangeLog) {
+      createBy.data.stateChangeLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.stateChangeLog,
+      );
+    }
 
     /*
      * The private note that can come with the change (`privateNote`): what a
