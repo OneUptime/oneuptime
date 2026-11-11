@@ -1297,7 +1297,7 @@ describe("Semantic monitor health", () => {
     expect(screen.getByTestId("monitor-issues-note")).toBeTruthy();
     expect(
       screen.getByText(
-        "Monitors with monitoring turned off are not listed. They are under Disabled.",
+        "Monitors with monitoring turned off are listed under Disabled.",
       ),
     ).toBeTruthy();
     expect(
@@ -1502,6 +1502,74 @@ describe("Helper notes under the controls", () => {
     await fireEvent.press(screen.getByRole("button", { name: "Has issues" }));
     expect(screen.getByTestId("monitor-issues-note")).toBeTruthy();
     await fireEvent.press(screen.getByRole("button", { name: "All monitors" }));
+    expect(screen.queryByTestId("monitor-issues-note")).toBeNull();
+  });
+
+  test("the issues note says where a disabled monitor went, in one sentence", async () => {
+    mockRoute.params = { initialFilter: "issues" };
+    mockMonitors.current = stateWith({ items: mixedFleet() });
+
+    await render(<MonitorsScreen />);
+
+    expect(
+      within(screen.getByTestId("monitor-issues-note")).getByText(
+        "Monitors with monitoring turned off are listed under Disabled.",
+      ),
+    ).toBeTruthy();
+    // It names the filter the Disabled monitors are under, as drawn.
+    expect(screen.getByRole("button", { name: "Disabled only" })).toBeTruthy();
+    expect(
+      within(screen.getByRole("button", { name: "Disabled only" })).getByText(
+        "Disabled",
+      ),
+    ).toBeTruthy();
+  });
+
+  test("with no disabled monitor, the issues filter carries no note: nothing was left out", async () => {
+    mockRoute.params = { initialFilter: "issues" };
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(healthyMonitor("healthy-1", "api.example.com")),
+        wrap(offlineMonitor("offline-1", "db.example.com")),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(countsBesideLabel("Has issues")).toEqual(["1"]);
+    expect(countsBesideLabel("Disabled")).toEqual(["0"]);
+    expect(screen.getByText("db.example.com")).toBeTruthy();
+    expect(screen.queryByTestId("monitor-issues-note")).toBeNull();
+    expect(
+      screen.queryByText(
+        "Monitors with monitoring turned off are listed under Disabled.",
+      ),
+    ).toBeNull();
+  });
+
+  test("a disabled monitor whose last status was Offline, alone, leaves no issue and the note says where it is", async () => {
+    mockRoute.params = { initialFilter: "issues" };
+    mockMonitors.current = stateWith({
+      items: [
+        wrap(
+          makeMonitor({
+            ...offlineMonitor("paused-down", "Paused database"),
+            disableActiveMonitoring: true,
+          }),
+        ),
+      ],
+    });
+
+    await render(<MonitorsScreen />);
+
+    expect(countsBesideLabel("Has issues")).toEqual(["0"]);
+    expect(countsBesideLabel("Disabled")).toEqual(["1"]);
+    expect(screen.queryByText("Paused database")).toBeNull();
+    expect(screen.getByTestId("monitor-issues-note")).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Disabled only" }),
+    );
+    expect(screen.getByText("Paused database")).toBeTruthy();
     expect(screen.queryByTestId("monitor-issues-note")).toBeNull();
   });
 

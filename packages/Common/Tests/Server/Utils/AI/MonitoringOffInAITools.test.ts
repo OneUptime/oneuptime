@@ -1,10 +1,14 @@
 import {
   ARCHIVED_MONITOR_NOTE,
+  MONITOR_TABLE_ORDER_TEXT,
+  MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT,
+  MONITORING_OFF_LAST_STATUS_LABEL,
   MONITORING_OFF_LIST_NOTE,
   MONITORING_OFF_MONITOR_NOTE,
   MONITORING_OFF_STATUS_TEXT,
   QueryMonitorsTool,
 } from "../../../../Server/Utils/AI/Toolbox/MonitorTools";
+import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 import {
   ToolContext,
   ToolExecutionResult,
@@ -40,9 +44,13 @@ import type { SpyInstance } from "jest-mock";
  *   - after every monitor that is checked, in the database's order and in
  *     the page's, whatever status it was frozen at;
  *   - its row says monitoringOff=true, and the result says what that means;
- *   - the chat's table says Disabled for it, as the Monitors table does;
+ *   - the chat's table says Disabled for it, as the Monitors table does,
+ *     and its order line says Disabled ones come last - only when one is
+ *     there, so the line stays short enough to be read whole;
  *   - no status filter matches it (problemsOnly, monitorStatusName).
- * Read by id, it carries a note and a "Monitoring: Off" fact.
+ * Read by id, it carries a note and a "Monitoring: Off" fact, and its card
+ * says Disabled under its name - not the Offline it was frozen at, which it
+ * names as its last status.
  */
 
 const ctx: ToolContext = {
@@ -281,8 +289,64 @@ describe("query_monitors lists a monitor whose monitoring is off as such", () =>
     expect(statusOf("Zulu")).toBe("Offline");
     expect(statusOf("Mid")).toBe("Degraded");
     expect(statusOf("Alpha")).toBe("Operational");
-    expect((result.widget?.description as string | undefined) || "").toContain(
-      "monitors with monitoring turned off last",
+  });
+
+  test("the table's order line says Disabled ones come last, in words its Status column uses", async () => {
+    const { result } = await list(mixedPage());
+
+    expect(result.widget?.description).toBe(
+      MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT,
+    );
+    expect(MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT).toBe(
+      "Non-operational first, Disabled last",
+    );
+    expect(MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT).toContain(
+      MONITORING_OFF_STATUS_TEXT,
+    );
+    /*
+     * One line beside Open, cut past about 206px on a 360px phone (about 40
+     * characters): "..., monitors with monitoring turned off last" was cut
+     * on every screen, so the half that mattered was never read.
+     */
+    expect(
+      MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT.length,
+    ).toBeLessThanOrEqual(40);
+  });
+
+  test("a table with no monitor whose monitoring is off keeps its order line as it was", async () => {
+    const { result } = await list([
+      monitor({ name: "Alpha", status: OPERATIONAL }),
+      monitor({ name: "Zulu", status: OFFLINE }),
+    ]);
+
+    expect(result.widget?.description).toBe(MONITOR_TABLE_ORDER_TEXT);
+    expect(MONITOR_TABLE_ORDER_TEXT).toBe("Non-operational monitors first");
+  });
+
+  test("a table of monitors whose monitoring is all off says Disabled for every row", async () => {
+    const { result } = await list([
+      monitor({ name: "Archive Bot", status: OFFLINE, monitoringOff: true }),
+      monitor({ name: "Backup Job", status: DEGRADED, monitoringOff: true }),
+    ]);
+
+    expect(result.widget?.description).toBe(
+      MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT,
+    );
+    expect(
+      tableRows(result).map((row: JSONObject): unknown => {
+        return row["currentStatus"];
+      }),
+    ).toEqual(["Disabled", "Disabled"]);
+  });
+
+  test("problemsOnly keeps its own order line, which never lists a monitor whose monitoring is off", async () => {
+    const { result } = await list(
+      [monitor({ name: "Zulu", status: OFFLINE })],
+      { problemsOnly: true },
+    );
+
+    expect(result.widget?.description).toBe(
+      "Only monitors whose current status is not operational",
     );
   });
 
@@ -372,11 +436,17 @@ describe("query_monitors read by id says when monitoring is off", () => {
     return findOneById;
   }
 
+  function cardData(result: ToolExecutionResult): JSONObject {
+    return (result.widget?.data as JSONObject | undefined) || {};
+  }
+
   function cardFields(
     result: ToolExecutionResult,
   ): Array<{ label: string; value: string }> {
-    return ((result.widget?.data as JSONObject | undefined)?.["fields"] ||
-      []) as Array<{ label: string; value: string }>;
+    return (cardData(result)["fields"] || []) as Array<{
+      label: string;
+      value: string;
+    }>;
   }
 
   test("reads the flag, and says what an Offline status is worth when monitoring is off", async () => {
@@ -402,6 +472,102 @@ describe("query_monitors read by id says when monitoring is off", () => {
     expect(cardFields(result)).toContainEqual({
       label: "Monitoring",
       value: "Off - not checked",
+    });
+  });
+
+  test("its card says Disabled under its name, as the Monitors table does, and Offline as its last status", async () => {
+    mockDetailLookups(
+      monitor({ name: "Checkout API", status: OFFLINE, monitoringOff: true }),
+    );
+
+    const result: ToolExecutionResult = await QueryMonitorsTool.execute(
+      { monitorId: ObjectID.generate().toString() },
+      ctx,
+    );
+    const card: JSONObject = cardData(result);
+
+    expect(card["heading"]).toBe("Checkout API");
+    expect(card["subheading"]).toBe(MONITORING_OFF_STATUS_TEXT);
+    expect(card["subheading"]).not.toBe("Offline");
+    expect(MONITORING_OFF_LAST_STATUS_LABEL).toBe("Last status");
+    expect(cardFields(result)).toEqual([
+      { label: "Type", value: MonitorType.Website },
+      { label: "Last status", value: "Offline" },
+      { label: "Monitoring", value: "Off - not checked" },
+    ]);
+    expect(
+      cardFields(result).map((field: { label: string }): string => {
+        return field.label;
+      }),
+    ).not.toContain("Status");
+  });
+
+  test("the card draws the last status, which the line under the name does not say", async () => {
+    mockDetailLookups(
+      monitor({ name: "Checkout API", status: OFFLINE, monitoringOff: true }),
+    );
+
+    const result: ToolExecutionResult = await QueryMonitorsTool.execute(
+      { monitorId: ObjectID.generate().toString() },
+      ctx,
+    );
+    const card: JSONObject = cardData(result);
+
+    // What ResourceCardWidget draws: every fact but those the lines say.
+    expect(
+      getFactsNotInHeading({
+        heading: card["heading"] as string,
+        subheading: card["subheading"] as string,
+        fields: cardFields(result),
+      }),
+    ).toEqual([
+      { label: "Type", value: MonitorType.Website },
+      { label: "Last status", value: "Offline" },
+      { label: "Monitoring", value: "Off - not checked" },
+    ]);
+  });
+
+  test("a monitor whose monitoring is on keeps its status under its name, said once", async () => {
+    mockDetailLookups(monitor({ name: "Checkout API", status: OFFLINE }));
+
+    const result: ToolExecutionResult = await QueryMonitorsTool.execute(
+      { monitorId: ObjectID.generate().toString() },
+      ctx,
+    );
+    const card: JSONObject = cardData(result);
+
+    // The line under the name says Offline, so no Status fact says it again.
+    expect(card["subheading"]).toBe("Offline");
+    expect(cardFields(result)).toEqual([
+      { label: "Type", value: MonitorType.Website },
+    ]);
+    expect(
+      getFactsNotInHeading({
+        heading: card["heading"] as string,
+        subheading: card["subheading"] as string,
+        fields: cardFields(result),
+      }),
+    ).toEqual([{ label: "Type", value: MonitorType.Website }]);
+  });
+
+  test("an operational monitor whose monitoring is off is Disabled on its card too, not Operational", async () => {
+    mockDetailLookups(
+      monitor({
+        name: "Backup Job",
+        status: OPERATIONAL,
+        monitoringOff: true,
+      }),
+    );
+
+    const result: ToolExecutionResult = await QueryMonitorsTool.execute(
+      { monitorId: ObjectID.generate().toString() },
+      ctx,
+    );
+
+    expect(cardData(result)["subheading"]).toBe("Disabled");
+    expect(cardFields(result)).toContainEqual({
+      label: "Last status",
+      value: "Operational",
     });
   });
 
@@ -448,6 +614,13 @@ describe("query_monitors read by id says when monitoring is off", () => {
     expect(lines[1]).toBe(MONITORING_OFF_MONITOR_NOTE);
     expect(result.dataForLlm).toContain("archived=true");
     expect(result.dataForLlm).toContain("monitoringOff=true");
+    expect(cardData(result)["subheading"]).toBe("Disabled");
+    expect(cardFields(result)).toEqual([
+      { label: "Type", value: MonitorType.Website },
+      { label: "Last status", value: "Offline" },
+      { label: "Archived", value: "Yes - not monitored" },
+      { label: "Monitoring", value: "Off - not checked" },
+    ]);
   });
 
   test("a monitor that is gone says nothing of monitoring", async () => {

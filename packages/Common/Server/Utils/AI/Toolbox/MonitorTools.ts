@@ -61,8 +61,24 @@ export const MONITORING_OFF_MONITOR_NOTE: string =
 export const MONITORING_OFF_LIST_NOTE: string =
   "Rows with monitoringOff=true are monitors whose monitoring is turned off: nothing checks them, so their currentStatus is only what their last check saw before monitoring was turned off. Do not report them as down or as up now; say their monitoring is off. They are listed after the monitors that are checked.";
 
-// What the chat's table says for such a monitor: the Monitors table's word.
+/*
+ * What the chat says for such a monitor - its table's Status, its card's
+ * line under the name: the Monitors table's word. The card names the status
+ * the monitor was frozen at as its last one.
+ */
 export const MONITORING_OFF_STATUS_TEXT: string = "Disabled";
+export const MONITORING_OFF_LAST_STATUS_LABEL: string = "Last status";
+
+/*
+ * What the chat's table of monitors says of its order, on one line under its
+ * title (which says they are monitors), cut where it is too long: about 40
+ * characters fit beside Open on a 360px phone.
+ */
+export const MONITOR_TABLE_ORDER_TEXT: string =
+  "Non-operational monitors first";
+export const MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT: string =
+  "Non-operational first, Disabled last";
+
 const resolveReadPermissions: () => Array<Permission> =
   (): Array<Permission> => {
     if (!cachedReadPermissions) {
@@ -258,8 +274,13 @@ export const QueryMonitorsTool: ObservabilityTool = {
         cardFields.push({ label: "Type", value: String(monitor.monitorType) });
       }
       if (monitor?.currentMonitorStatus?.name) {
+        /*
+         * A monitor whose monitoring is off is not in that status now: its
+         * card says Disabled under its name (below), and this is the status
+         * its last check saw, said as the last one.
+         */
         cardFields.push({
-          label: "Status",
+          label: isMonitoringOff ? MONITORING_OFF_LAST_STATUS_LABEL : "Status",
           value: monitor.currentMonitorStatus.name,
         });
       }
@@ -300,7 +321,13 @@ export const QueryMonitorsTool: ObservabilityTool = {
               title: `Monitor ${monitor.name || ""}`.trim(),
               resourceType: "Monitor",
               heading: monitor.name || "Monitor",
-              subheading: monitor.currentMonitorStatus?.name,
+              /*
+               * What the Monitors table says of it: Disabled when its
+               * monitoring is off, not the status it was frozen at.
+               */
+              subheading: isMonitoringOff
+                ? MONITORING_OFF_STATUS_TEXT
+                : monitor.currentMonitorStatus?.name,
               fields: cardFields,
               link: {
                 type: AIChatCitationTargetType.MonitorView,
@@ -508,17 +535,19 @@ export const QueryMonitorsTool: ObservabilityTool = {
     const serialized: SerializedResult =
       ToolResultSerializer.serializeRows(rows);
 
+    const hasMonitoringOffRow: boolean = sortedMonitors.some(
+      (monitor: Monitor): boolean => {
+        return MonitoringOff.isOff(monitor);
+      },
+    );
+
     const lines: Array<string> = [];
     if (rows.length > 0 && totalCount > rows.length) {
       lines.push(
         `Showing rows ${skip + 1}–${skip + rows.length} of ${totalCount} total. Pass skip to page further.`,
       );
     }
-    if (
-      sortedMonitors.some((monitor: Monitor): boolean => {
-        return MonitoringOff.isOff(monitor);
-      })
-    ) {
+    if (hasMonitoringOffRow) {
       lines.push(MONITORING_OFF_LIST_NOTE);
     }
     lines.push(serialized.text);
@@ -563,9 +592,12 @@ export const QueryMonitorsTool: ObservabilityTool = {
         rows.length > 0
           ? WidgetBuilder.table({
               title: `${scopeLabel} (${rows.length})`,
+              // Disabled ones are said to come last only when one is there.
               description: problemsOnly
                 ? "Only monitors whose current status is not operational"
-                : "Non-operational monitors first, monitors with monitoring turned off last",
+                : hasMonitoringOffRow
+                  ? MONITOR_TABLE_ORDER_WITH_MONITORING_OFF_TEXT
+                  : MONITOR_TABLE_ORDER_TEXT,
               columns: [
                 { key: "name", title: translationKey("Monitor"), type: "text" },
                 { key: "type", title: translationKey("Type"), type: "text" },

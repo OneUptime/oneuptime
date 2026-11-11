@@ -573,10 +573,13 @@ export default function MonitorsScreen(): React.JSX.Element {
         }
         onReset={hasFilters ? resetFilters : undefined}
       />
-      {filter === "issues" ? (
+      {/*
+       * Where a disabled monitor went, said only when there is one: its
+       * last status may have been Offline, and it is no issue now.
+       */}
+      {filter === "issues" && counts.disabled > 0 ? (
         <HelperNote testID="monitor-issues-note">
-          Monitors with monitoring turned off are not listed. They are under
-          Disabled.
+          Monitors with monitoring turned off are listed under Disabled.
         </HelperNote>
       ) : null}
     </View>
