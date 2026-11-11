@@ -111,6 +111,17 @@ Il segmento di un funnel, e quello di una tabella di fidelizzazione, prende i ca
 
 Ogni riga è una coorte con quante persone contiene, e ogni cella la quota di loro tornata in quel periodo, più scura quante più sono tornate. Un periodo non ancora iniziato resta vuoto.
 
+**Tutte le coorti**, sopra di esse, conta le coorti come una sola: in ogni periodo, le persone tornate rispetto alle persone delle coorti che lo hanno raggiunto, così una coorte di 200 persone pesa quattro volte una di 50. Compare non appena due coorti contengono qualcuno.
+
+## Funnel e tabelle di fidelizzazione salvati
+
+**Funnel salvati**, nella pagina **Funnel**, e **Tabelle di fidelizzazione salvate**, in **Fidelizzazione degli utenti**, elencano ciò che il tuo team ha salvato per l'applicazione, per riaprirlo o mostrarlo su una dashboard. Un funnel salvato conserva i suoi passaggi, il tempo per completarli e il suo segmento, e una tabella di fidelizzazione salvata i suoi due eventi, il suo periodo e il suo segmento. Nessuno dei due conserva l'intervallo di tempo: la pagina conserva il proprio, e una dashboard legge il proprio.
+
+- **+ Salva funnel** o **+ Salva tabella di fidelizzazione** salva ciò che mostra la pagina, con un nome. Un'applicazione ne conserva al massimo 100 di ogni tipo.
+- Scegline uno per aprirlo. L'indirizzo della pagina lo nomina, così un link lo apre per chiunque possa vederlo. Quando cambi ciò che mostra, il suo nome lo dice, e **Aggiorna** salva la modifica.
+- **Modifica** ne rinomina uno, ed **Elimina** lo elimina per tutti. **Cancella vista** chiude quello aperto e mantiene ciò che mostra la pagina.
+- Un link a uno che è stato eliminato, o che non puoi vedere, lo segnala, e la pagina si apre senza di esso.
+
 ## Dashboard e avvisi
 
 Ogni evento viene anche contato, minuto per minuto, come una metrica dell'applicazione, e ogni chiamata a `metric()` è un punto di una metrica a sé, con il nome che indica. Tracciale nella pagina **Metriche** dell'applicazione, aggiungile a una dashboard o invia avvisi su di esse con un monitor metriche; **Apri Metriche**, sotto **Tutti gli eventi**, apre la pagina.
@@ -123,6 +134,8 @@ Ogni evento viene anche contato, minuto per minuto, come una metrica dell'applic
 
 Queste tre non vengono fatturate, e `metric()` rifiuta un nome che inizia con `oneuptime.`, quindi nulla di ciò che invia la tua pagina passa per una di esse. I tuoi punti `metric()` vengono conservati e fatturati come le altre metriche dell'applicazione.
 
+Un funnel o una tabella di fidelizzazione salvati vanno anche su una dashboard: i widget **Funnel** e **Fidelizzazione degli utenti**, nel gruppo **Analisi del prodotto** del catalogo dei widget, ne mostrano uno nell'intervallo di tempo della dashboard, e **Apri in Funnel** o **Apri in Fidelizzazione degli utenti** lo apre nella sua pagina (vedi [Widget della dashboard](/docs/dashboards/widgets#analisi-del-prodotto)).
+
 ## Privacy e conservazione
 
 - **13 mesi.** I numeri di un mese vengono rimossi il primo giorno del 13° mese successivo, quindi gli ultimi 12 mesi completi ci sono sempre, qualunque sia la conservazione propria delle registrazioni (7 giorni per impostazione predefinita). Gli eventi vengono conservati allo stesso modo.
@@ -132,6 +145,8 @@ Queste tre non vengono fatturate, e `metric()` rifiuta un nome che inizia con `o
 ## Chi può vederla
 
 Leggere queste pagine richiede ciò che richiede la lista delle sessioni: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), che i proprietari e gli amministratori del progetto hanno. Vedere chi è un utente autenticato, e cercare persone per nome, richiede il permesso di identità descritto in [Chi può guardare una registrazione](/docs/telemetry/session-replay#chi-può-guardare-una-registrazione).
+
+Salvare, rinominare ed eliminare funnel e tabelle di fidelizzazione salvati richiede gli stessi permessi della lettura di queste pagine, e un widget della dashboard ne mostra uno solo a chi li ha.
 
 Attivare o disattivare gli eventi richiede `EditRumApplication` (_Edit RUM Application_) o il ruolo di proprietario, amministratore o membro del progetto. Elencare le proprietà utente richiede `EditRumApplication` o il ruolo di proprietario o amministratore, perché decide che cosa viene conservato sulle persone autenticate.
 

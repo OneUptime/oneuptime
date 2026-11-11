@@ -111,6 +111,17 @@ Segmentet til en trakt, og til en lojalitetstabell, bruker feltene hver hendelse
 
 Hver rad er en kohort og hvor mange personer den har, og hver celle andelen av dem som kom tilbake i den perioden, mørkere jo flere som gjorde det. En periode som ikke har begynt ennå, står tom.
 
+**Alle kohorter**, over dem, teller kohortene som én: i hver periode personene som kom tilbake, av personene i kohortene som har nådd den, så en kohort på 200 personer veier fire ganger så mye som en på 50. Den vises så snart to kohorter har noen i seg.
+
+## Lagrede trakter og lojalitetstabeller
+
+**Lagrede trakter**, på siden **Trakter**, og **Lagrede lojalitetstabeller**, på **Brukerlojalitet**, viser hva teamet ditt har lagret for applikasjonen, for å åpne det igjen eller vise det på et dashbord. En lagret trakt tar vare på trinnene, tiden til å fullføre dem og segmentet, og en lagret lojalitetstabell på de to hendelsene, perioden og segmentet. Ingen av dem tar vare på tidsrommet: siden har sitt eget, og et dashbord leser sitt eget.
+
+- **+ Lagre trakt** eller **+ Lagre lojalitetstabell** lagrer det siden viser, under et navn. En applikasjon tar vare på høyst 100 av hver.
+- Velg en for å åpne den. Sidens adresse nevner den, så en lenke åpner den for alle som kan se den. Når du endrer det den viser, sier navnet fra om det, og **Oppdater** lagrer endringen.
+- **Rediger** gir en nytt navn, og **Slett** sletter den for alle. **Fjern visning** lukker den som er åpen, og beholder det siden viser.
+- En lenke til en som er slettet, eller som du ikke kan se, sier fra om det, og siden åpnes uten den.
+
 ## Dashbord og varsler
 
 Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinger, og hvert kall til `metric()` er et punkt i en egen måling, under navnet kallet oppgir. Vis dem i diagram på applikasjonens side **Målinger**, legg dem til i et dashbord, eller varsle på dem med en metrikk-overvåking; **Åpne Målinger** under **Alle hendelser** åpner siden.
@@ -123,6 +134,8 @@ Hver hendelse telles også, minutt for minutt, som en av applikasjonens målinge
 
 Disse tre faktureres ikke, og `metric()` avviser et navn som begynner med `oneuptime.`, så ingenting siden din sender, kan utgi seg for dem. `metric()`-punktene dine lagres og faktureres som applikasjonens andre målinger.
 
+En lagret trakt eller lojalitetstabell kan også settes på et dashbord: widgetene **Trakt** og **Brukerlojalitet**, i widgetkatalogens gruppe **Produktanalyse**, viser en i dashbordets tidsintervall, og **Åpne i Trakter** eller **Åpne i Brukerlojalitet** åpner den på siden dens (se [Dashbord-widgets](/docs/dashboards/widgets#produktanalyse)).
+
 ## Personvern og oppbevaring
 
 - **13 måneder.** En måneds tall fjernes den første dagen i den 13. måneden etter, så de siste 12 hele månedene alltid er der, uansett opptakenes egen oppbevaring (7 dager som standard). Hendelser lagres på samme måte.
@@ -132,6 +145,8 @@ Disse tre faktureres ikke, og `metric()` avviser et navn som begynner med `oneup
 ## Hvem kan se det
 
 Å lese disse sidene krever det samme som å lese øktlisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som prosjekteiere og administratorer har. Å se hvem en pålogget bruker er, og å søke etter personer på navn, krever identitetstillatelsen som [Hvem kan se et opptak](/docs/telemetry/session-replay#hvem-kan-se-et-opptak) beskriver.
+
+Å lagre, gi nytt navn til og slette lagrede trakter og lojalitetstabeller krever de samme tillatelsene som å lese disse sidene, og en dashbord-widget viser en bare til en leser som har dem.
 
 Å slå hendelsene på eller av krever `EditRumApplication` (_Edit RUM Application_) eller rollen som prosjekteier, administrator eller medlem. Å oppgi brukeregenskaper krever `EditRumApplication` eller rollen som eier eller administrator, siden det avgjør hva som tas vare på om påloggede personer.
 

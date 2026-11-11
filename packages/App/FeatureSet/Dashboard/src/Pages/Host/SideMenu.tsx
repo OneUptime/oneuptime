@@ -24,21 +24,32 @@ const HostSideMenu: FunctionComponent = (): ReactElement => {
         },
         {
           link: {
-            title: "Collector Configs",
-            to: RouteUtil.populateRouteParams(
-              RouteMap[PageMap.HOST_COLLECTOR_CONFIGS] as Route,
-            ),
-          },
-          icon: IconProp.Code,
-        },
-        {
-          link: {
             title: "Documentation",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.HOST_DOCUMENTATION] as Route,
             ),
           },
           icon: IconProp.Book,
+        },
+      ],
+    },
+    /*
+     * What OneUptime sends the hosts whose collector it manages: a section
+     * of its own, apart from the hosts themselves. Set up once and revisited
+     * rarely, so it folds like Settings (SECTION_TITLES_COLLAPSED_BY_DEFAULT),
+     * and is open by itself on Collector Configs and on each config's page.
+     */
+    {
+      title: "Configuration",
+      items: [
+        {
+          link: {
+            title: "Collector Configs",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.HOST_COLLECTOR_CONFIGS] as Route,
+            ),
+          },
+          icon: IconProp.Code,
         },
       ],
     },

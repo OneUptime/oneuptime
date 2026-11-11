@@ -166,3 +166,45 @@ export function getVisibleSavedViews<T extends SavedViewListItem>(
     hasMore: hasMore,
   };
 }
+
+/*
+ * A saved view's row in a dropdown, with its Update, Edit and Delete - both
+ * dropdowns draw it with these, so they cannot drift apart.
+ *
+ * Where the pointer can hover, the actions are out of the layout until the
+ * row is hovered or holds the focus (Tab from a name reaches them), so the
+ * name has the row's width the rest of the time. Kept beside it,
+ * see-through but in the layout all the same, they cut "Sign-up to first
+ * project" to "Sign-up to fi..." in a German panel, and a keyboard's focus
+ * on one showed nothing. A touch screen has no hover to show them on:
+ * there they take a line of their own under the name, in view, and a size
+ * a finger can hit.
+ */
+export function getSavedViewRowClassName(isSelected: boolean): string {
+  return `group flex items-center gap-2 px-3 py-1.5 [@media(hover:none)]:flex-wrap [@media(hover:none)]:gap-y-1 ${
+    isSelected ? "bg-indigo-50" : "hover:bg-gray-50 focus-within:bg-gray-50"
+  }`;
+}
+
+// The row's name, the button that applies it: a line of its own on a touch screen.
+export const SAVED_VIEW_ROW_NAME_CLASS_NAME: string =
+  "flex min-w-0 flex-1 items-center gap-2 text-left [@media(hover:none)]:basis-full";
+
+/*
+ * The actions' box. In the row's line, not over the name: a box laid over
+ * it needed the row's colour, and a dark page's translucent colours, laid
+ * twice, drew it as a lighter block. Under the name on a touch screen, it
+ * starts where the name does, past the checkmark's column (w-4 and the
+ * row's gap-2).
+ */
+export const SAVED_VIEW_ROW_ACTIONS_CLASS_NAME: string =
+  "flex shrink-0 items-center gap-0.5 [@media(hover:hover)]:group-[:not(:hover):not(:focus-within)]:hidden [@media(hover:none)]:basis-full [@media(hover:none)]:pl-6";
+
+/*
+ * Each action's box; its colours are its own. leading-4 keeps it as tall as
+ * the name's line (2 + 16 + 2 = 20px): the 11px text's own line of 16.5px
+ * grew a row by half a pixel when a hover showed its actions, and moved
+ * every row under it.
+ */
+export const SAVED_VIEW_ROW_ACTION_CLASS_NAME: string =
+  "rounded px-1.5 py-0.5 text-[11px] leading-4 transition-colors [@media(hover:none)]:px-2 [@media(hover:none)]:py-1 [@media(hover:none)]:text-xs";

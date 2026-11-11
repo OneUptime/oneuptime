@@ -398,6 +398,8 @@ describe("property: every board reads every id setting as text, in every shape",
     [DashboardComponentType.VMwareHostList, ["vmwareVCenterIds"]],
     [DashboardComponentType.CephPoolList, ["cephClusterIds"]],
     [DashboardComponentType.StorageArrayVolumeList, ["storageArrayIds"]],
+    [DashboardComponentType.ProductAnalyticsFunnel, ["savedViewId"]],
+    [DashboardComponentType.ProductAnalyticsRetention, ["savedViewId"]],
   ];
 
   test("the sweep covers every id setting there is", () => {

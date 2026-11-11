@@ -2999,6 +2999,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Hosts",
         pages: [
           allListPage(PageMap.HOSTS, "All Hosts"),
+          documentation(PageMap.HOST_DOCUMENTATION),
+        ],
+      },
+      // The side menu's own section: what OneUptime sends the hosts it manages.
+      {
+        title: "Configuration",
+        pages: [
           {
             page: PageMap.HOST_COLLECTOR_CONFIGS,
             title: "Collector Configs",
@@ -3008,9 +3015,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "opentelemetry collector config",
               "fleet config",
               "opamp",
+              "default config",
             ],
           },
-          documentation(PageMap.HOST_DOCUMENTATION),
         ],
       },
       ...resourceSettingsSections({

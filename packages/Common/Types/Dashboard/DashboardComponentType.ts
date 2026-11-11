@@ -20,6 +20,13 @@ enum DashboardComponentType {
   LogChart = `LogChart`,
   SecurityEventsList = `SecurityEventsList`,
   SecurityEventsFlow = `SecurityEventsFlow`,
+  /*
+   * A funnel and a retention table saved from a RUM application's product
+   * analytics (issue #6630), read with the dashboard's time range. Not
+   * available on public dashboards.
+   */
+  ProductAnalyticsFunnel = `ProductAnalyticsFunnel`,
+  ProductAnalyticsRetention = `ProductAnalyticsRetention`,
   TraceList = `TraceList`,
   TraceChart = `TraceChart`,
   TraceTable = `TraceTable`,

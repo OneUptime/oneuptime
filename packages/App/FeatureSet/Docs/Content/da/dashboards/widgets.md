@@ -24,6 +24,7 @@ Start med det spørgsmål, flisen skal besvare:
 | Hvad sker der lige nu? | **Logstrøm**, **Sporliste**, **Hændelsesliste** eller **Advarselsliste** |
 | Er alle vores sites oppe? | **Overvågningsliste** |
 | Holder vi den pålidelighed, vi har lovet? | **SLO** eller **SLO-liste** |
+| Kommer folk igennem et forløb, og kommer de tilbage? | **Tragt** eller **Fastholdelse af brugere** |
 | Hvilken tilstand er vores klynger og værter i? | En widget fra gruppen Infrastruktur |
 | Hvor i verden er vores netværk, og hvad er nede? | **Netværkskort** |
 | En overskrift, en note, klokken på et andet kontor? | **Tekst** eller **Ur** |
@@ -170,6 +171,15 @@ SLO-widgetten virker på [offentlige dashboards](/docs/dashboards/sharing). Det,
 
 Hvert SLO med dets status, SLI, fejlbudget og burn rate, med det mindste resterende budget først. Filtrér den efter status eller etiketter, eller med en **Etiketvariabel**, som seerne vælger i værktøjslinjen. [SLO-metrikker og -dashboards](/docs/slo/metrics) viser begge SLO-widgets i brug.
 
+## Produktanalyse
+
+| Widget | Hvad den viser |
+| --- | --- |
+| **Tragt** | En tragt gemt på en RUM-applikations side **Tragte**: af de personer, der udførte dens første trin i dashboardets tidsinterval, hvor mange der gik videre til hvert næste trin. |
+| **Fastholdelse af brugere** | En fastholdelsestabel gemt på dens side **Fastholdelse af brugere**: personer grupperet efter, hvornår de første gang udførte dens startbegivenhed, og den andel af hver gruppe, der kom tilbage i hver periode efter, med **Alle kohorter** over dem. |
+
+Gem tragten eller fastholdelsestabellen på dens side først (se [Gemte tragte og fastholdelsestabeller](/docs/rum/product-analytics#gemte-tragte-og-fastholdelsestabeller)), og vælg den derefter i widgettens indstillinger. Widgetten bruger dens navn som titel, medmindre du giver den en, og læser den igen ved hver opdatering, så en ændring, der gemmes på siden, vises på dashboardet. **Åbn i Tragte** eller **Åbn i Fastholdelse af brugere** åbner den på dens side i dashboardets tidsinterval. At se den kræver det samme som at se siden.
+
 ## Infrastruktur
 
 Hver af disse widgets viser de ressourcer, en agent eller en collector rapporterer til OneUptime. Indsnævr dem efter klynge, vært eller navnerum i deres filtre, og vis dem som en liste eller som en honeycomb.
@@ -235,7 +245,7 @@ Gennem API'et og Terraform er rækkefølgen widgettens `arguments.sort`: en kolo
 
 Et [offentligt dashboard](/docs/dashboards/sharing) tegner de fleste widgets for sine besøgende, og hver viser kun det, den er sat op til at vise. Nogle få kan ikke vises uden en indlogget session:
 
-- **Logdiagram**, **Spordiagram**, **Sportabel**, **Sikkerhedshændelser** og **Flow af sikkerhedshændelser** skriver på deres plads, at de ikke er tilgængelige på offentlige dashboards.
+- **Logdiagram**, **Spordiagram**, **Sportabel**, **Sikkerhedshændelser**, **Flow af sikkerhedshændelser**, **Tragt** og **Fastholdelse af brugere** skriver på deres plads, at de ikke er tilgængelige på offentlige dashboards.
 - Widgets fra Eksterne datakilder udelades helt fra et offentligt dashboard, fordi deres indstillinger er selve forespørgslen.
 
 ## Når en widget ikke kan vises

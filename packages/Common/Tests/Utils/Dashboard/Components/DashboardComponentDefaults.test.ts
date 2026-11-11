@@ -44,6 +44,8 @@ import DashboardPodmanNetworkListComponentUtil from "../../../../Utils/Dashboard
 import DashboardPodmanVolumeListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardPodmanVolumeListComponent";
 import DashboardProxmoxGuestListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProxmoxGuestListComponent";
 import DashboardProxmoxNodeListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProxmoxNodeListComponent";
+import DashboardProductAnalyticsFunnelComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
+import DashboardProductAnalyticsRetentionComponentUtil from "../../../../Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
 import DashboardSecurityEventsFlowComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSecurityEventsFlowComponent";
 import DashboardSecurityEventsListComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSecurityEventsListComponent";
 import DashboardSloComponentUtil from "../../../../Utils/Dashboard/Components/DashboardSloComponent";
@@ -104,6 +106,10 @@ const TYPE_TO_UTIL: Record<DashboardComponentType, ComponentUtil> = {
     DashboardSecurityEventsListComponentUtil,
   [DashboardComponentType.SecurityEventsFlow]:
     DashboardSecurityEventsFlowComponentUtil,
+  [DashboardComponentType.ProductAnalyticsFunnel]:
+    DashboardProductAnalyticsFunnelComponentUtil,
+  [DashboardComponentType.ProductAnalyticsRetention]:
+    DashboardProductAnalyticsRetentionComponentUtil,
   [DashboardComponentType.TraceList]: DashboardTraceListComponentUtil,
   [DashboardComponentType.TraceChart]: DashboardTraceChartComponentUtil,
   [DashboardComponentType.TraceTable]: DashboardTraceTableComponentUtil,

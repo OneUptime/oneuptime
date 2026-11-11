@@ -40,11 +40,16 @@ export const DASHBOARD_WIDGET_ID_LIST_SETTINGS: ReadonlyArray<string> = [
   "storageArrayIds",
 ];
 
-// The settings that hold one id: of an SLO, or of a dashboard variable.
+/*
+ * The settings that hold one id: of an SLO, of a dashboard variable, or of
+ * a saved funnel or retention table (the product analytics widgets, issue
+ * #6630).
+ */
 export const DASHBOARD_WIDGET_ID_SETTINGS: ReadonlyArray<string> = [
   "serviceLevelObjectiveId",
   "serviceLevelObjectiveVariableId",
   "labelVariableId",
+  "savedViewId",
 ];
 
 export default class DashboardWidgetIds {

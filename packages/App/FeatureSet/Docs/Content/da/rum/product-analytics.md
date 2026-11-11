@@ -111,6 +111,17 @@ Segmentet for en tragt, og for en fastholdelsestabel, bruger de felter, hver beg
 
 Hver række er en kohorte og antallet af personer i den, og hver celle andelen af dem, der kom tilbage i den periode, mørkere jo flere der gjorde det. En periode, der endnu ikke er begyndt, står tom.
 
+**Alle kohorter**, over dem, tæller kohorterne som én: i hver periode de personer, der kom tilbage, ud af personerne i de kohorter, der har nået den, så en kohorte på 200 personer vejer fire gange så meget som en på 50. Den vises, så snart to kohorter rummer nogen.
+
+## Gemte tragte og fastholdelsestabeller
+
+**Gemte tragte**, på siden **Tragte**, og **Gemte fastholdelsestabeller**, på **Fastholdelse af brugere**, viser, hvad dit team har gemt for applikationen, så det kan åbnes igen eller vises på et dashboard. En gemt tragt gemmer sine trin, sin tid til at gennemføre dem og sit segment, og en gemt fastholdelsestabel sine to begivenheder, sin periode og sit segment. Ingen af dem gemmer tidsintervallet: siden beholder sit eget, og et dashboard læser sit eget.
+
+- **+ Gem tragt** eller **+ Gem fastholdelsestabel** gemmer det, siden viser, under et navn. En applikation gemmer højst 100 af hver.
+- Vælg en for at åbne den. Sidens adresse nævner den, så et link åbner den for alle, der må se den. Når du ændrer det, den viser, siger dens navn det, og **Opdater** gemmer ændringen.
+- **Rediger** omdøber en, og **Slet** sletter den for alle. **Ryd visning** lukker den, der er åben, og beholder det, siden viser.
+- Et link til en, der er slettet, eller som du ikke må se, siger det, og siden åbner uden den.
+
 ## Dashboards og alarmer
 
 Hver begivenhed tælles også, minut for minut, som en af applikationens metrikker, og hvert kald til `metric()` er et punkt i en metrik for sig, under det navn, kaldet angiver. Vis dem i diagrammer på applikationens side **Metrikker**, føj dem til et dashboard, eller lad en Metrik-monitor give alarm på dem; **Åbn Metrikker** under **Alle begivenheder** åbner siden.
@@ -123,6 +134,8 @@ Hver begivenhed tælles også, minut for minut, som en af applikationens metrikk
 
 Disse tre faktureres ikke, og `metric()` afviser et navn, der begynder med `oneuptime.`, så intet, din side sender, kan forveksles med dem. Dine `metric()`-punkter gemmes og faktureres som applikationens andre metrikker.
 
+En gemt tragt eller fastholdelsestabel kan også komme på et dashboard: widgetsene **Tragt** og **Fastholdelse af brugere**, i widgetkatalogets gruppe **Produktanalyse**, viser en i dashboardets tidsinterval, og **Åbn i Tragte** eller **Åbn i Fastholdelse af brugere** åbner den på dens side (se [Dashboard-widgets](/docs/dashboards/widgets#produktanalyse)).
+
 ## Privatliv og opbevaring
 
 - **13 måneder.** En måneds tal fjernes den første dag i den 13. måned efter den, så de seneste 12 hele måneder altid er der, uanset optagelsernes egen opbevaring (7 dage som standard). Begivenheder gemmes på samme måde.
@@ -132,6 +145,8 @@ Disse tre faktureres ikke, og `metric()` afviser et navn, der begynder med `oneu
 ## Hvem kan se det
 
 At læse disse sider kræver det samme som at læse sessionslisten: `ReadRumSessionReplay` (_List Session Replays_) eller `ReadRumSessionReplayPayload` (_Watch Session Replays_), som projektejere og administratorer har. At se, hvem en indlogget bruger er, og søge personer efter navn, kræver den identitetstilladelse, som [Hvem kan se en optagelse](/docs/telemetry/session-replay#hvem-kan-se-en-optagelse) beskriver.
+
+At gemme, omdøbe og slette gemte tragte og fastholdelsestabeller kræver de samme tilladelser som at læse disse sider, og en dashboard-widget viser en kun for en læser, der har dem.
 
 At slå begivenhederne til eller fra kræver `EditRumApplication` (_Edit RUM Application_) eller rollen som projektejer, administrator eller medlem. At angive brugeregenskaber kræver `EditRumApplication` eller rollen som ejer eller administrator, da det afgør, hvad der gemmes om indloggede personer.
 

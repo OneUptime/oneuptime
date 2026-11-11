@@ -9,6 +9,7 @@ import {
 import { buildRenderContext } from "../Utils/RenderContext";
 import { ExpressRequest, ExpressResponse } from "Common/Server/Utils/Express";
 import Dictionary from "Common/Types/Dictionary";
+import RollingTimeUtil from "Common/Types/RollingTime/RollingTimeUtil";
 
 const Resources: Array<ModelDocumentation> = ResourceUtil.getResources();
 const DataTypes: Array<DataTypeDocumentation> = DataTypeUtil.getDataTypes();
@@ -3162,8 +3163,12 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
         name: "rollingTime",
         type: "string",
         required: true,
-        description:
-          "The time window for metric evaluation. Possible values: 'Past 1 Minute', 'Past 5 Minutes', 'Past 10 Minutes', 'Past 15 Minutes', 'Past 30 Minutes', 'Past 1 Hour', 'Past 3 Hours', 'Past 6 Hours', 'Past 12 Hours', 'Past 1 Day'.",
+        /*
+         * Every value, from the enum: a list written out by hand missed
+         * five of them, and a caller who wrote a window its own way
+         * ("15 minutes") had it stored as no window at all.
+         */
+        description: `How far back each check looks. One of ${RollingTimeUtil.getValuesText()}. A length written another way that is exactly as long as one of them - "15 minutes", "1h", "PT15M" - is stored as that one; any other value is refused.`,
       },
     ],
     values: [],

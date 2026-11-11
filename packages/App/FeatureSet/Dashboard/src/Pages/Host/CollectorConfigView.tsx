@@ -24,6 +24,8 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
+import Tabs from "Common/UI/Components/Tabs/Tabs";
+import { Tab, TabType } from "Common/UI/Components/Tabs/Tab";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Pill from "Common/UI/Components/Pill/Pill";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -47,6 +49,15 @@ import {
 } from "../../Components/HostCollector/HostCollectorConfigVersions";
 import { HostCollectorTranslatableText } from "../../Components/HostCollector/HostCollectorStatus";
 import HostCollectorStatePill from "../../Components/HostCollector/HostCollectorStatePill";
+import HostCollectorHostCount from "../../Components/HostCollector/HostCollectorHostCount";
+import {
+  HostCollectorHostCount as HostCount,
+  hasHostCollectorConfigFailures,
+} from "../../Components/HostCollector/HostCollectorConfigFleet";
+import {
+  HostCollectorConfigHostCounts,
+  useHostCollectorConfigHostCounts,
+} from "../../Components/HostCollector/UseHostCollectorHostCounts";
 import React, {
   Fragment,
   FunctionComponent,
@@ -56,13 +67,18 @@ import React, {
 } from "react";
 
 /*
- * One Collector Config: who it is for, its config.yaml, every version it
- * has had, and the hosts that run it.
+ * One Collector Config. The card at the top says what it is at a glance:
+ * who it is for, how many hosts run it (in red, on how many it did not
+ * start) and its version. Under it, one tab at a time:
  *
- *   - Saving the YAML checks it on the server (HostCollectorConfigPolicy)
- *     and makes a new version, which its hosts get within a minute.
- *   - Put back sends an older version again, as a new version: the list
- *     only grows, so it always says what each host was sent.
+ *   - config.yaml: the config itself. Saving it checks it on the server
+ *     (HostCollectorConfigPolicy) and makes a new version, which its hosts
+ *     get within a minute.
+ *   - Hosts: the hosts that run it, and the version each one runs. Its
+ *     badge is how many, red when the config failed on one of them.
+ *   - Versions: every version it has had. Put back sends an older one
+ *     again, as a new version: the list only grows, so it always says what
+ *     each host was sent.
  */
 
 const YAML_VIEW_MAX_HEIGHT: string = "min(70vh, 36rem)";
@@ -86,6 +102,16 @@ const CollectorConfigView: FunctionComponent<
     useState<HostCollectorConfigVersion | null>(null);
   const [isPuttingBack, setIsPuttingBack] = useState<boolean>(false);
   const [putBackError, setPutBackError] = useState<string>("");
+
+  // How many hosts run it, and on how many it did not start.
+  const hostCounts: HostCollectorConfigHostCounts =
+    useHostCollectorConfigHostCounts();
+  const hostCount: HostCount | undefined =
+    hostCounts.counts[modelId.toString()];
+
+  const loadHostCount: () => void = (): void => {
+    hostCounts.load([modelId.toString()]);
+  };
 
   const updateGate: PermissionGateResult = PermissionGate.check(
     new HostCollectorConfig(),
@@ -115,6 +141,11 @@ const CollectorConfigView: FunctionComponent<
     return () => {
       isCurrentRequest = false;
     };
+  }, [savedCount]);
+
+  // A save reaches the hosts again: count them again with it.
+  useEffect(() => {
+    loadHostCount();
   }, [savedCount]);
 
   const onSaved: () => void = (): void => {
@@ -178,6 +209,321 @@ const CollectorConfigView: FunctionComponent<
     );
   };
 
+  /*
+   * config.yaml: the config its hosts run, with Edit config. The version is
+   * on the card at the top, beside the hosts that run it.
+   */
+  const configYamlTab: ReactElement = (
+    <CardModelDetail<HostCollectorConfig>
+      name="Collector Config > config.yaml"
+      cardProps={{
+        title: "config.yaml",
+        description:
+          "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.",
+      }}
+      isEditable={true}
+      editButtonText="Edit config"
+      editModalTitle="Edit config.yaml"
+      editModalDescription="A host this config does not start on keeps running the last config that worked there, and shows why."
+      createEditModalWidth={ModalWidth.Large}
+      refresher={yamlRefresher}
+      onSaveSuccess={onSaved}
+      formFields={[
+        {
+          field: {
+            configYaml: true,
+          },
+          title: "config.yaml",
+          fieldType: FormFieldSchemaType.YAML,
+          required: true,
+          dataTestId: "host-collector-config-yaml-editor",
+          description: translator.translateTemplate(
+            "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.",
+            {
+              url: HOST_COLLECTOR_URL_REFERENCE,
+              key: HOST_COLLECTOR_INGESTION_KEY_REFERENCE,
+            },
+          ),
+        },
+      ]}
+      modelDetailProps={{
+        modelType: HostCollectorConfig,
+        id: "host-collector-config-yaml",
+        modelId: modelId,
+        fields: [
+          {
+            field: {
+              configYaml: true,
+            },
+            fieldType: FieldType.Element,
+            getElement: (item: HostCollectorConfig): ReactElement => {
+              return renderYaml(item.configYaml, "host-collector-config-yaml");
+            },
+          },
+        ],
+      }}
+    />
+  );
+
+  // Hosts: who runs it now, and the version each one runs.
+  const hostsTab: ReactElement = (
+    <ModelTable<Host>
+      modelType={Host}
+      id="host-collector-config-hosts-table"
+      name="Collector Config > Hosts"
+      userPreferencesKey="host-collector-config-hosts-table"
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        collectorConfigId: modelId,
+        isArchived: false,
+      }}
+      refreshToggle={String(savedCount)}
+      isDeleteable={false}
+      isEditable={false}
+      isCreateable={false}
+      isViewable={true}
+      viewPageRoute={RouteUtil.populateRouteParams(
+        RouteMap[PageMap.HOSTS] as Route,
+      )}
+      sortBy="name"
+      sortOrder={SortOrder.Ascending}
+      showRefreshButton={true}
+      cardProps={{
+        title: "Hosts",
+        description:
+          "The hosts OneUptime sends this config to, and the version each one runs.",
+      }}
+      noItemsMessage="No host runs this config yet. A host gets it once it reports and this config is the first that applies to it."
+      // The tab's badge and the card at the top say what this list says.
+      onFetchSuccess={() => {
+        loadHostCount();
+      }}
+      selectMoreFields={{
+        collectorInstanceUid: true,
+        collectorLastContactAt: true,
+        collectorConfigStatus: true,
+        isCollectorHealthy: true,
+        isCollectorConfigPinned: true,
+      }}
+      filters={[]}
+      columns={[
+        {
+          field: {
+            name: true,
+          },
+          title: "Name",
+          type: FieldType.Text,
+        },
+        {
+          field: {
+            collectorConfigStatus: true,
+          },
+          title: "Collector",
+          type: FieldType.Element,
+          getElement: (item: Host): ReactElement => {
+            return <HostCollectorStatePill host={item} />;
+          },
+        },
+        {
+          field: {
+            collectorConfigVersion: {
+              versionNumber: true,
+            },
+          },
+          title: "Version",
+          type: FieldType.Element,
+          hideOnMobile: true,
+          getElement: (item: Host): ReactElement => {
+            const versionNumber: number | undefined =
+              item.collectorConfigVersion?.versionNumber;
+            return (
+              <span className="text-sm text-gray-700">
+                {versionNumber
+                  ? translator.formatNumber(versionNumber)
+                  : translator.translateText("Not yet")}
+                {item.isCollectorConfigPinned ? (
+                  <span className="ml-2 text-xs text-gray-500">
+                    {translator.translateText("Picked for this host")}
+                  </span>
+                ) : (
+                  <></>
+                )}
+              </span>
+            );
+          },
+        },
+      ]}
+    />
+  );
+
+  // Versions: every saved change, newest first, with View and Put back.
+  const versionsTab: ReactElement = (
+    <ModelTable<HostCollectorConfigVersion>
+      modelType={HostCollectorConfigVersion}
+      id="host-collector-config-versions-table"
+      name="Collector Config > Versions"
+      userPreferencesKey="host-collector-config-versions-table"
+      query={{
+        projectId: ProjectUtil.getCurrentProjectId()!,
+        hostCollectorConfigId: modelId,
+      }}
+      refreshToggle={String(savedCount)}
+      isDeleteable={false}
+      isEditable={false}
+      isCreateable={false}
+      isViewable={false}
+      sortBy="versionNumber"
+      sortOrder={SortOrder.Descending}
+      showRefreshButton={true}
+      cardProps={{
+        title: "Versions",
+        description:
+          "Every saved change, newest first. Put an older version back to send it to the hosts again.",
+      }}
+      noItemsMessage="No versions yet."
+      selectMoreFields={{
+        configYaml: true,
+        configHash: true,
+      }}
+      actionButtons={[
+        {
+          title: "View",
+          icon: IconProp.Code,
+          buttonStyleType: ButtonStyleType.NORMAL,
+          onClick: (
+            item: HostCollectorConfigVersion,
+            onCompleteAction: () => void,
+          ) => {
+            setShownVersion(item);
+            onCompleteAction();
+          },
+        },
+        {
+          title: "Put back",
+          icon: IconProp.Refresh,
+          buttonStyleType: ButtonStyleType.OUTLINE,
+          isVisible: (item: HostCollectorConfigVersion): boolean => {
+            /*
+             * Locked, with the reason, for a viewer who may not change
+             * the config; hidden while there is no reason to give yet.
+             */
+            if (!updateGate.isAllowed && !updateGate.disabledReason) {
+              return false;
+            }
+            return canPutHostCollectorConfigVersionBack({
+              versionConfigHash: item.configHash,
+              currentConfigHash: current?.configHash,
+            });
+          },
+          disabled: !updateGate.isAllowed,
+          tooltip: updateGate.disabledReason,
+          onClick: (
+            item: HostCollectorConfigVersion,
+            onCompleteAction: () => void,
+          ) => {
+            setPutBackError("");
+            setVersionToPutBack(item);
+            onCompleteAction();
+          },
+        },
+      ]}
+      filters={[]}
+      columns={[
+        {
+          field: {
+            versionNumber: true,
+          },
+          title: "Version",
+          type: FieldType.Element,
+          getElement: (item: HostCollectorConfigVersion): ReactElement => {
+            return (
+              <span className="inline-flex items-center gap-2 text-sm text-gray-900">
+                {translator.translateTemplate("Version {{number}}", {
+                  number: String(item.versionNumber || 1),
+                })}
+                {isCurrentHostCollectorConfigVersion({
+                  versionNumber: item.versionNumber,
+                  currentVersionNumber: current?.currentVersionNumber,
+                }) && <Pill text="Current" color={Green} />}
+              </span>
+            );
+          },
+        },
+        {
+          field: {
+            changeNote: true,
+          },
+          title: "Change",
+          type: FieldType.Element,
+          getElement: (item: HostCollectorConfigVersion): ReactElement => {
+            const change: HostCollectorTranslatableText =
+              describeHostCollectorConfigVersionChange(item.changeNote);
+            return (
+              <span className="text-sm text-gray-700">
+                {translator.translateTemplate(change.template, change.values)}
+              </span>
+            );
+          },
+        },
+        {
+          field: {
+            createdByUser: {
+              name: true,
+              email: true,
+              profilePictureId: true,
+            },
+          },
+          title: "Saved by",
+          type: FieldType.Element,
+          hideOnMobile: true,
+          getElement: (item: HostCollectorConfigVersion): ReactElement => {
+            const name: string =
+              item.createdByUser?.name?.toString() ||
+              item.createdByUser?.email?.toString() ||
+              "";
+            return (
+              <span className="text-sm text-gray-700">
+                {name || translator.translateText("OneUptime")}
+              </span>
+            );
+          },
+        },
+        {
+          field: {
+            createdAt: true,
+          },
+          title: "Saved",
+          type: FieldType.DateTime,
+        },
+      ]}
+    />
+  );
+
+  /*
+   * The YAML first: it is what the page is for. Hosts says how many run it,
+   * in red when it failed on one of them, so that is seen before the tab
+   * is opened.
+   */
+  const tabs: Array<Tab> = [
+    {
+      name: "config.yaml",
+      isName: true,
+      children: configYamlTab,
+    },
+    {
+      name: "Hosts",
+      countBadge: hostCount?.hosts,
+      tabType: hasHostCollectorConfigFailures(hostCount)
+        ? TabType.Error
+        : undefined,
+      children: hostsTab,
+    },
+    {
+      name: "Versions",
+      children: versionsTab,
+    },
+  ];
+
   return (
     <Fragment>
       <CardModelDetail<HostCollectorConfig>
@@ -185,7 +531,7 @@ const CollectorConfigView: FunctionComponent<
         cardProps={{
           title: "Collector Config",
           description:
-            "Which hosts run this config. A host runs the first config in the list that applies to it.",
+            "Who this config is for, and how many hosts run it now. A host runs the first config in the list that applies to it.",
         }}
         isEditable={true}
         editModalTitle="Edit Collector Config"
@@ -213,7 +559,7 @@ const CollectorConfigView: FunctionComponent<
                   color: true,
                 },
               },
-              // Who it is for; the Hosts card below lists who runs it.
+              // Who it is for; Hosts, beside it, is who runs it.
               title: "Applies to",
               fieldType: FieldType.Element,
               getElement: (item: HostCollectorConfig): ReactElement => {
@@ -236,50 +582,25 @@ const CollectorConfigView: FunctionComponent<
               },
             },
             /*
-             * The labels are in the Hosts sentence ("Linux hosts with
+             * The labels are in the Applies to sentence ("Linux hosts with
              * env:production"): no field of their own repeating them.
              */
-          ],
-        }}
-      />
-
-      <CardModelDetail<HostCollectorConfig>
-        name="Collector Config > config.yaml"
-        cardProps={{
-          title: "config.yaml",
-          description:
-            "The OpenTelemetry Collector config its hosts run. A saved change is checked, becomes a new version and reaches them within a minute.",
-        }}
-        isEditable={true}
-        editButtonText="Edit config"
-        editModalTitle="Edit config.yaml"
-        editModalDescription="A host this config does not start on keeps running the last config that worked there, and shows why."
-        createEditModalWidth={ModalWidth.Large}
-        refresher={yamlRefresher}
-        onSaveSuccess={onSaved}
-        formFields={[
-          {
-            field: {
-              configYaml: true,
-            },
-            title: "config.yaml",
-            fieldType: FormFieldSchemaType.YAML,
-            required: true,
-            dataTestId: "host-collector-config-yaml-editor",
-            description: translator.translateTemplate(
-              "Send with the otlp_http exporter to {{url}}/otlp, with the header x-oneuptime-token: {{key}}. Each host fills in its own address and key.",
-              {
-                url: HOST_COLLECTOR_URL_REFERENCE,
-                key: HOST_COLLECTOR_INGESTION_KEY_REFERENCE,
+            {
+              // Counted by the server: keyed on the id it is counted by.
+              field: {
+                _id: true,
               },
-            ),
-          },
-        ]}
-        modelDetailProps={{
-          modelType: HostCollectorConfig,
-          id: "host-collector-config-yaml",
-          modelId: modelId,
-          fields: [
+              title: "Hosts",
+              fieldType: FieldType.Element,
+              getElement: (): ReactElement => {
+                return (
+                  <HostCollectorHostCount
+                    count={hostCount}
+                    dataTestId="host-collector-config-host-count"
+                  />
+                );
+              },
+            },
             {
               field: {
                 currentVersionNumber: true,
@@ -287,22 +608,19 @@ const CollectorConfigView: FunctionComponent<
               title: "Version",
               fieldType: FieldType.Element,
               getElement: (item: HostCollectorConfig): ReactElement => {
+                /*
+                 * A save of the YAML (or a Put back) makes a new version
+                 * from another tab: the page's own read of the config has
+                 * it before this card reads it again.
+                 */
                 return (
                   <span data-testid="host-collector-config-version">
-                    {translator.formatNumber(item.currentVersionNumber || 1)}
+                    {translator.formatNumber(
+                      current?.currentVersionNumber ||
+                        item.currentVersionNumber ||
+                        1,
+                    )}
                   </span>
-                );
-              },
-            },
-            {
-              field: {
-                configYaml: true,
-              },
-              fieldType: FieldType.Element,
-              getElement: (item: HostCollectorConfig): ReactElement => {
-                return renderYaml(
-                  item.configYaml,
-                  "host-collector-config-yaml",
                 );
               },
             },
@@ -310,229 +628,11 @@ const CollectorConfigView: FunctionComponent<
         }}
       />
 
-      <ModelTable<HostCollectorConfigVersion>
-        modelType={HostCollectorConfigVersion}
-        id="host-collector-config-versions-table"
-        name="Collector Config > Versions"
-        userPreferencesKey="host-collector-config-versions-table"
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          hostCollectorConfigId: modelId,
-        }}
-        refreshToggle={String(savedCount)}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={false}
-        sortBy="versionNumber"
-        sortOrder={SortOrder.Descending}
-        showRefreshButton={true}
-        cardProps={{
-          title: "Versions",
-          description:
-            "Every saved change, newest first. Put an older version back to send it to the hosts again.",
-        }}
-        noItemsMessage="No versions yet."
-        selectMoreFields={{
-          configYaml: true,
-          configHash: true,
-        }}
-        actionButtons={[
-          {
-            title: "View",
-            icon: IconProp.Code,
-            buttonStyleType: ButtonStyleType.NORMAL,
-            onClick: (
-              item: HostCollectorConfigVersion,
-              onCompleteAction: () => void,
-            ) => {
-              setShownVersion(item);
-              onCompleteAction();
-            },
-          },
-          {
-            title: "Put back",
-            icon: IconProp.Refresh,
-            buttonStyleType: ButtonStyleType.OUTLINE,
-            isVisible: (item: HostCollectorConfigVersion): boolean => {
-              /*
-               * Locked, with the reason, for a viewer who may not change
-               * the config; hidden while there is no reason to give yet.
-               */
-              if (!updateGate.isAllowed && !updateGate.disabledReason) {
-                return false;
-              }
-              return canPutHostCollectorConfigVersionBack({
-                versionConfigHash: item.configHash,
-                currentConfigHash: current?.configHash,
-              });
-            },
-            disabled: !updateGate.isAllowed,
-            tooltip: updateGate.disabledReason,
-            onClick: (
-              item: HostCollectorConfigVersion,
-              onCompleteAction: () => void,
-            ) => {
-              setPutBackError("");
-              setVersionToPutBack(item);
-              onCompleteAction();
-            },
-          },
-        ]}
-        filters={[]}
-        columns={[
-          {
-            field: {
-              versionNumber: true,
-            },
-            title: "Version",
-            type: FieldType.Element,
-            getElement: (item: HostCollectorConfigVersion): ReactElement => {
-              return (
-                <span className="inline-flex items-center gap-2 text-sm text-gray-900">
-                  {translator.translateTemplate("Version {{number}}", {
-                    number: String(item.versionNumber || 1),
-                  })}
-                  {isCurrentHostCollectorConfigVersion({
-                    versionNumber: item.versionNumber,
-                    currentVersionNumber: current?.currentVersionNumber,
-                  }) && <Pill text="Current" color={Green} />}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              changeNote: true,
-            },
-            title: "Change",
-            type: FieldType.Element,
-            getElement: (item: HostCollectorConfigVersion): ReactElement => {
-              const change: HostCollectorTranslatableText =
-                describeHostCollectorConfigVersionChange(item.changeNote);
-              return (
-                <span className="text-sm text-gray-700">
-                  {translator.translateTemplate(change.template, change.values)}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              createdByUser: {
-                name: true,
-                email: true,
-                profilePictureId: true,
-              },
-            },
-            title: "Saved by",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: HostCollectorConfigVersion): ReactElement => {
-              const name: string =
-                item.createdByUser?.name?.toString() ||
-                item.createdByUser?.email?.toString() ||
-                "";
-              return (
-                <span className="text-sm text-gray-700">
-                  {name || translator.translateText("OneUptime")}
-                </span>
-              );
-            },
-          },
-          {
-            field: {
-              createdAt: true,
-            },
-            title: "Saved",
-            type: FieldType.DateTime,
-          },
-        ]}
-      />
-
-      <ModelTable<Host>
-        modelType={Host}
-        id="host-collector-config-hosts-table"
-        name="Collector Config > Hosts"
-        userPreferencesKey="host-collector-config-hosts-table"
-        query={{
-          projectId: ProjectUtil.getCurrentProjectId()!,
-          collectorConfigId: modelId,
-          isArchived: false,
-        }}
-        refreshToggle={String(savedCount)}
-        isDeleteable={false}
-        isEditable={false}
-        isCreateable={false}
-        isViewable={true}
-        viewPageRoute={RouteUtil.populateRouteParams(
-          RouteMap[PageMap.HOSTS] as Route,
-        )}
-        sortBy="name"
-        sortOrder={SortOrder.Ascending}
-        showRefreshButton={true}
-        cardProps={{
-          title: "Hosts",
-          description:
-            "The hosts OneUptime sends this config to, and the version each one runs.",
-        }}
-        noItemsMessage="No host runs this config yet. A host gets it once it reports and this config is the first that applies to it."
-        selectMoreFields={{
-          collectorInstanceUid: true,
-          collectorLastContactAt: true,
-          collectorConfigStatus: true,
-          isCollectorHealthy: true,
-          isCollectorConfigPinned: true,
-        }}
-        filters={[]}
-        columns={[
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            type: FieldType.Text,
-          },
-          {
-            field: {
-              collectorConfigStatus: true,
-            },
-            title: "Collector",
-            type: FieldType.Element,
-            getElement: (item: Host): ReactElement => {
-              return <HostCollectorStatePill host={item} />;
-            },
-          },
-          {
-            field: {
-              collectorConfigVersion: {
-                versionNumber: true,
-              },
-            },
-            title: "Version",
-            type: FieldType.Element,
-            hideOnMobile: true,
-            getElement: (item: Host): ReactElement => {
-              const versionNumber: number | undefined =
-                item.collectorConfigVersion?.versionNumber;
-              return (
-                <span className="text-sm text-gray-700">
-                  {versionNumber
-                    ? translator.formatNumber(versionNumber)
-                    : translator.translateText("Not yet")}
-                  {item.isCollectorConfigPinned ? (
-                    <span className="ml-2 text-xs text-gray-500">
-                      {translator.translateText("Picked for this host")}
-                    </span>
-                  ) : (
-                    <></>
-                  )}
-                </span>
-              );
-            },
-          },
-        ]}
-      />
+      {/*
+       * The tab row wraps on a phone, so Versions is never out of sight
+       * past the edge of the screen.
+       */}
+      <Tabs tabs={tabs} wrap={true} onTabChange={() => {}} />
 
       <ModelDelete
         modelType={HostCollectorConfig}

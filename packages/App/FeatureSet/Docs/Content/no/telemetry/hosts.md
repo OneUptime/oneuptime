@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Opprett en innsamlerkonfigurasjon
 
-Åpne **Produkter → Infrastruktur → Verter → Innsamlerkonfigurasjoner** og velg **Opprett Innsamlerkonfigurasjon**. Gi den et navn, systemet til vertene den er for, og etikettene deres hvis den bare skal nå noen av dem. Konfigurasjonen starter som OneUptimes standard for det systemet.
+Åpne **Produkter → Infrastruktur → Verter → Konfigurasjon → Innsamlerkonfigurasjoner** og velg **Opprett Innsamlerkonfigurasjon**. Gi den et navn, systemet til vertene den er for, og etikettene deres hvis den bare skal nå noen av dem. Konfigurasjonen starter som OneUptimes standard for det systemet.
 
 ### Rediger config.yaml-filen
 
@@ -134,14 +134,14 @@ Velg **Rediger konfigurasjon** på konfigurasjonens side, endre YAML-koden og la
 
 ### Se den nå vertene
 
-Hver lagrede endring er en ny versjon, og vertene den gjelder for, får den innen et minutt. Konfigurasjonens liste **Verter** viser hver vert, tilstanden til innsamleren og versjonen den kjører.
+Hver lagrede endring er en ny versjon, og vertene den gjelder for, får den innen et minutt. Konfigurasjonens fane **Verter** viser hver vert, tilstanden til innsamleren og versjonen den kjører.
 :::
 
-En vert kjører den første konfigurasjonen i listen som gjelder for den: Dra radene under **Innsamlerkonfigurasjoner** for å endre rekkefølgen. Legg de smaleste konfigurasjonene først, for eksempel en for webservere med `env:production`, og de brede, for eksempel en for alle Linux-verter, etter dem. Kortet **OneUptime-standarder** under listen viser hva en vert kjører når ingen konfigurasjon gjelder.
+En vert kjører den første konfigurasjonen i listen som gjelder for den: Dra radene under **Innsamlerkonfigurasjoner** for å endre rekkefølgen. Legg de smaleste konfigurasjonene først, for eksempel en for webservere med `env:production`, og de brede, for eksempel en for alle Linux-verter, etter dem. Hver rad viser hvor mange verter som kjører konfigurasjonen, og på hvor mange den mislyktes. Kortet **OneUptime-standarder** under listen viser hva en vert kjører når ingen konfigurasjon gjelder, og hvor mange verter som kjører det. For å endre det for et system velger du **Vis konfigurasjon** på standarden og deretter **Opprett en konfigurasjon fra den**.
 
 ### Versjoner og gjenoppretting
 
-En konfigurasjons liste **Versjoner** tar vare på hver lagrede endring, nyeste først, med hvem som lagret den og når. Velg **Vis** for å lese en versjon og **Gjenopprett** for å sende den til vertene igjen: Den lagres som en ny versjon som sier hvilken den gjenopprettet, så listen alltid forteller hva hver vert fikk.
+En konfigurasjons fane **Versjoner** tar vare på hver lagrede endring, nyeste først, med hvem som lagret den og når. Velg **Vis** for å lese en versjon og **Gjenopprett** for å sende den til vertene igjen: Den lagres som en ny versjon som sier hvilken den gjenopprettet, så listen alltid forteller hva hver vert fikk.
 
 ### Velg en konfigurasjon for én vert
 

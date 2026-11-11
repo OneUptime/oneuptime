@@ -126,7 +126,7 @@ curl -fsSL https://oneuptime.com/docs/static/scripts/host-collector/install.sh |
 :::steps
 ### Opret en collector-konfiguration
 
-Åbn **Produkter → Infrastruktur → Værter → Collector-konfigurationer**, og vælg **Opret Collector-konfiguration**. Giv den et navn, systemet for de værter, den er til, og deres etiketter, hvis den kun skal nå nogle af dem. Dens konfiguration starter som OneUptimes standard for det system.
+Åbn **Produkter → Infrastruktur → Værter → Konfiguration → Collector-konfigurationer**, og vælg **Opret Collector-konfiguration**. Giv den et navn, systemet for de værter, den er til, og deres etiketter, hvis den kun skal nå nogle af dem. Dens konfiguration starter som OneUptimes standard for det system.
 
 ### Rediger dens config.yaml
 
@@ -134,14 +134,14 @@ Vælg **Rediger konfiguration** på konfigurationens side, ændr YAML-koden, og 
 
 ### Se den nå værterne
 
-Hver gemt ændring er en ny version, og de værter, den gælder for, får den inden for et minut. Konfigurationens liste **Værter** viser hver vært, dens collectors tilstand og den version, den kører.
+Hver gemt ændring er en ny version, og de værter, den gælder for, får den inden for et minut. Konfigurationens fane **Værter** viser hver vært, dens collectors tilstand og den version, den kører.
 :::
 
-En vært kører den første konfiguration på listen, der gælder for den: Træk rækkerne under **Collector-konfigurationer** for at ændre rækkefølgen. Sæt de smalleste konfigurationer først, f.eks. en til webservere med `env:production`, og brede, f.eks. en til alle Linux-værter, efter dem. Kortet **OneUptime-standarder** under listen viser, hvad en vært kører, når ingen konfiguration gælder.
+En vært kører den første konfiguration på listen, der gælder for den: Træk rækkerne under **Collector-konfigurationer** for at ændre rækkefølgen. Sæt de smalleste konfigurationer først, f.eks. en til webservere med `env:production`, og brede, f.eks. en til alle Linux-værter, efter dem. Hver række viser, hvor mange værter der kører konfigurationen, og på hvor mange den fejlede. Kortet **OneUptime-standarder** under listen viser, hvad en vært kører, når ingen konfiguration gælder, og hvor mange værter der kører det. For at ændre det for et system skal du vælge **Vis konfiguration** ved dets standard og derefter **Opret en konfiguration ud fra den**.
 
 ### Versioner og gendannelse
 
-En konfigurations liste **Versioner** gemmer hver gemt ændring, nyeste først, med hvem der gemte den og hvornår. Vælg **Vis** for at læse en version og **Gendan** for at sende den til værterne igen: Den gemmes som en ny version, der siger, hvilken den gendannede, så listen altid fortæller, hvad hver vært fik sendt.
+En konfigurations fane **Versioner** gemmer hver gemt ændring, nyeste først, med hvem der gemte den og hvornår. Vælg **Vis** for at læse en version og **Gendan** for at sende den til værterne igen: Den gemmes som en ny version, der siger, hvilken den gendannede, så listen altid fortæller, hvad hver vært fik sendt.
 
 ### Vælg en konfiguration til én vært
 

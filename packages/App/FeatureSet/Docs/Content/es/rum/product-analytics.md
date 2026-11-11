@@ -111,6 +111,17 @@ El segmento de un embudo, y el de una tabla de retención, toma los campos que l
 
 Cada fila es una cohorte y cuántas personas tiene, y cada celda la proporción de ellas que volvió en ese periodo, más oscura cuantas más volvieron. Un periodo que aún no ha empezado se deja vacío.
 
+**Todas las cohortes**, encima de ellas, cuenta las cohortes como una sola: en cada periodo, las personas que volvieron sobre las personas de las cohortes que lo han alcanzado, de modo que una cohorte de 200 personas pesa cuatro veces más que una de 50. Aparece en cuanto dos cohortes tienen a alguien.
+
+## Embudos y tablas de retención guardados
+
+**Embudos guardados**, en la página **Embudos**, y **Tablas de retención guardadas**, en **Retención de usuarios**, listan lo que tu equipo guardó para la aplicación, para abrirlo de nuevo o mostrarlo en un panel. Un embudo guardado conserva sus pasos, su tiempo para completarlos y su segmento, y una tabla de retención guardada sus dos eventos, su periodo y su segmento. Ninguno conserva el intervalo de tiempo: la página conserva el suyo, y un panel lee el suyo.
+
+- **+ Guardar embudo** o **+ Guardar tabla de retención** guarda lo que muestra la página, con un nombre. Una aplicación conserva como máximo 100 de cada uno.
+- Elige uno para abrirlo. La dirección de la página lo nombra, así que un enlace lo abre para todos los que pueden verlo. Cuando cambias lo que muestra, su nombre lo indica, y **Actualizar** guarda el cambio.
+- **Editar** cambia el nombre de uno, y **Eliminar** lo elimina para todos. **Quitar vista** cierra el que está abierto y conserva lo que muestra la página.
+- Un enlace a uno que se eliminó, o que no puedes ver, lo indica, y la página se abre sin él.
+
 ## Paneles y alertas
 
 Cada evento también se cuenta, minuto a minuto, como una métrica de la aplicación, y cada llamada a `metric()` es un punto de una métrica propia, con el nombre que indica. Dibújalas en la página **Métricas** de la aplicación, añádelas a un panel o alerta sobre ellas con un monitor de métricas; **Abrir Métricas**, en **Todos los eventos**, abre la página.
@@ -123,6 +134,8 @@ Cada evento también se cuenta, minuto a minuto, como una métrica de la aplicac
 
 Estas tres no se facturan, y `metric()` rechaza un nombre que empiece por `oneuptime.`, así que nada de lo que envía tu página pasa por ellas. Tus puntos de `metric()` se guardan y se facturan como las demás métricas de la aplicación.
 
+Un embudo o una tabla de retención guardados también van a un panel: los widgets **Embudo** y **Retención de usuarios**, en el grupo **Analítica de producto** del catálogo de widgets, muestran uno en el intervalo de tiempo del panel, y **Abrir en Embudos** o **Abrir en Retención de usuarios** lo abre en su página (consulta [Widgets del panel](/docs/dashboards/widgets#analítica-de-producto)).
+
 ## Privacidad y retención
 
 - **13 meses.** Las cifras de un mes se eliminan el primer día del 13.º mes posterior, así que los últimos 12 meses completos siempre están, sea cual sea la retención propia de las grabaciones (7 días por defecto). Los eventos se guardan de la misma forma.
@@ -132,6 +145,8 @@ Estas tres no se facturan, y `metric()` rechaza un nombre que empiece por `oneup
 ## Quién puede verla
 
 Leer estas páginas requiere lo mismo que leer la lista de sesiones: `ReadRumSessionReplay` (_List Session Replays_) o `ReadRumSessionReplayPayload` (_Watch Session Replays_), que tienen los propietarios y administradores del proyecto. Ver quién es un usuario con sesión iniciada, y buscar personas por nombre, requiere el permiso de identidad que se describe en [Quién puede ver una grabación](/docs/telemetry/session-replay#quién-puede-ver-una-grabación).
+
+Guardar, renombrar y eliminar embudos y tablas de retención guardados requiere los mismos permisos que leer estas páginas, y un widget de panel solo muestra uno a quien los tenga.
 
 Activar o desactivar los eventos requiere `EditRumApplication` (_Edit RUM Application_) o el rol de propietario, administrador o miembro del proyecto. Enumerar propiedades de usuario requiere `EditRumApplication` o el rol de propietario o administrador, porque decide qué se guarda sobre las personas con sesión iniciada.
 
