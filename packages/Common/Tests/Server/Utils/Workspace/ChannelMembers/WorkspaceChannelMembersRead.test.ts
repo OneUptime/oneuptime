@@ -31,6 +31,8 @@ import ChannelMembersWorld, {
   INCIDENT_ID,
   MATTERMOST_BOT_ID,
   MATTERMOST_SERVER,
+  MATTERMOST_SUPPORT_TEAM_ID,
+  MATTERMOST_TEAM_ID,
   MM_ALICE,
   MM_ALT7,
   MM_BOB,
@@ -939,6 +941,58 @@ describe("the people in a record's Mattermost channel", () => {
     );
     // As the record stored it, like the header's button.
     expect(channel.name).toBe("inc-42");
+  });
+
+  /*
+   * A project in several teams of its server (MattermostTeams): a channel's
+   * link names the team it is in, as Mattermost says, else as the record
+   * stored it.
+   */
+  describe("in another team of the server", () => {
+    beforeEach(() => {
+      world.mattermostTeams = [
+        { id: MATTERMOST_TEAM_ID, name: "acme", displayName: "Acme" },
+        {
+          id: MATTERMOST_SUPPORT_TEAM_ID,
+          name: "support",
+          displayName: "Support",
+        },
+      ];
+      world.mattermostChannels[MM_INC42]!.teamId = MATTERMOST_SUPPORT_TEAM_ID;
+    });
+
+    test("its link names the team Mattermost says it is in", async () => {
+      const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(channel.url).toBe(`${MATTERMOST_SERVER}/support/channels/inc-42`);
+      expect(channel.state).toBe(WorkspaceChannelState.Members);
+    });
+
+    test("Mattermost not answering: its link names the team the record stored it in", async () => {
+      world.recordChannels[WorkspaceChannelRecordType.Incident] = [
+        {
+          ...mattermostChannel(MM_INC42, "inc-42"),
+          teamId: MATTERMOST_SUPPORT_TEAM_ID,
+        },
+      ];
+      world.mattermostDown = true;
+
+      const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(channel.state).toBe(WorkspaceChannelState.Unavailable);
+      expect(channel.url).toBe(`${MATTERMOST_SERVER}/support/channels/inc-42`);
+    });
+
+    test("a team the connection does not list: no link, the channel still listed", async () => {
+      world.mattermostTeams = [
+        { id: MATTERMOST_TEAM_ID, name: "acme", displayName: "Acme" },
+      ];
+
+      const channel: WorkspaceRecordChannel = (await read()).channels[0]!;
+
+      expect(channel.url).toBeUndefined();
+      expect(channel.state).toBe(WorkspaceChannelState.Members);
+    });
   });
 
   test("a connection without its team's name still lists the channel, without a link", async () => {

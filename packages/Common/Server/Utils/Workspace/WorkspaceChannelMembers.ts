@@ -11,7 +11,6 @@ import { ScheduledMaintenanceFeedEventType } from "../../../Models/DatabaseModel
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
 import WorkspaceProjectAuthToken, {
-  MattermostMiscData,
   MicrosoftTeamsMiscData,
   SlackMiscData,
 } from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
@@ -78,6 +77,7 @@ import MattermostUtil, {
 import MattermostConnection, {
   MattermostConnectionData,
 } from "./Mattermost/MattermostConnection";
+import MattermostTeams from "./Mattermost/MattermostTeams";
 import MicrosoftTeamsUtil from "./MicrosoftTeams/MicrosoftTeams";
 import SlackAccountByEmail, {
   SlackEmailAccount,
@@ -486,7 +486,11 @@ interface ProjectMattermostConnection {
   authToken: string;
   botUserId: string;
   serverUrl: string;
-  teamName: string;
+  // Its teams, which a channel's address names (MattermostTeams).
+  projectAuth: Pick<
+    WorkspaceProjectAuthToken,
+    "miscData" | "workspaceProjectId"
+  >;
 }
 
 export default class WorkspaceChannelMembers {
@@ -950,6 +954,7 @@ export default class WorkspaceChannelMembers {
       channelUrl: WorkspaceChannelMembers.getMattermostChannelUrl({
         connection: connection,
         channelName: facts.name,
+        teamId: facts.teamId || data.channel.teamId,
       }),
     };
   }
@@ -1991,15 +1996,12 @@ export default class WorkspaceChannelMembers {
     try {
       const connection: MattermostConnectionData =
         MattermostConnection.fromAuthToken(projectAuth.authToken);
-      const miscData: MattermostMiscData | undefined = projectAuth.miscData as
-        | MattermostMiscData
-        | undefined;
 
       return {
         authToken: projectAuth.authToken,
         botUserId: connection.botUserId,
         serverUrl: connection.serverUrl,
-        teamName: miscData?.teamName || "",
+        projectAuth: projectAuth,
       };
     } catch (err) {
       logger.error(err);
@@ -2007,13 +2009,18 @@ export default class WorkspaceChannelMembers {
     }
   }
 
+  // A channel's address: on the server, in the team the channel is in.
   private static getMattermostChannelUrl(data: {
     connection: ProjectMattermostConnection;
     channelName: string;
+    teamId: string | undefined;
   }): string | null {
     return WorkspaceChannelLinkUtil.getMattermostChannelUrl({
       serverUrl: data.connection.serverUrl,
-      teamName: data.connection.teamName,
+      teamName: MattermostTeams.getTeamNameOfChannel({
+        projectAuth: data.connection.projectAuth,
+        teamId: data.teamId,
+      }),
       channelName: data.channelName,
     });
   }
@@ -2229,6 +2236,7 @@ export default class WorkspaceChannelMembers {
       WorkspaceChannelMembers.getMattermostChannelUrl({
         connection: data.connection,
         channelName: data.channel.name,
+        teamId: data.channel.teamId,
       });
 
     if (!MattermostConnection.isMattermostId(data.channel.id)) {
@@ -2254,12 +2262,23 @@ export default class WorkspaceChannelMembers {
       });
     }
 
-    // Its address goes by its name now: somebody may have renamed it since.
+    /*
+     * Its address goes by its name now - somebody may have renamed it since
+     * - else by the name stored, and always in the team Mattermost says it
+     * is in: never another team's address for it.
+     */
+    const teamId: string | undefined = facts.teamId || data.channel.teamId;
     const url: string | null =
       WorkspaceChannelMembers.getMattermostChannelUrl({
         connection: data.connection,
         channelName: facts.name,
-      }) || storedUrl;
+        teamId: teamId,
+      }) ||
+      WorkspaceChannelMembers.getMattermostChannelUrl({
+        connection: data.connection,
+        channelName: data.channel.name,
+        teamId: teamId,
+      });
     const isPrivate: boolean | null =
       facts.type === "P" ? true : facts.type === "O" ? false : null;
 

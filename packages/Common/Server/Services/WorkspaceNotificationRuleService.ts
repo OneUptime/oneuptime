@@ -45,6 +45,7 @@ import WorkspaceProjectAuthToken, {
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
 import SlackOrganization from "../Utils/Workspace/Slack/SlackOrganization";
+import MattermostTeams from "../Utils/Workspace/Mattermost/MattermostTeams";
 import logger, { LogAttributes } from "../Utils/Logger";
 import NotificationRuleWorkspaceChannel, {
   NotificationRuleWorkspaceChannelUtil,
@@ -615,10 +616,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
           }
 
           /*
-           * Slack, installed for a whole Enterprise organization: the
-           * workspace the rule names, when it names one (SlackOrganization).
+           * Slack, installed for a whole Enterprise organization, and
+           * Mattermost: the workspace or the team the rule names, when it
+           * names one (SlackOrganization, MattermostTeams).
            */
-          if (rule.workspaceType === WorkspaceType.Slack && channel.teamId) {
+          if (
+            (rule.workspaceType === WorkspaceType.Slack ||
+              rule.workspaceType === WorkspaceType.Mattermost) &&
+            channel.teamId
+          ) {
             doesChannelExistData.teamId = channel.teamId;
           }
 
@@ -1352,14 +1358,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
               /*
                * The team of a Microsoft Teams channel - and, for Slack
-               * installed for a whole Enterprise organization, the workspace
-               * a channel named by a rule is in (SlackOrganization).
+               * installed for a whole Enterprise organization and for
+               * Mattermost, the workspace or the team a channel named by a
+               * rule is in (SlackOrganization, MattermostTeams).
                */
               if (
                 messageBlocksByWorkspaceType.workspaceType ===
                   WorkspaceType.MicrosoftTeams ||
-                (messageBlocksByWorkspaceType.workspaceType ===
-                  WorkspaceType.Slack &&
+                ((messageBlocksByWorkspaceType.workspaceType ===
+                  WorkspaceType.Slack ||
+                  messageBlocksByWorkspaceType.workspaceType ===
+                    WorkspaceType.Mattermost) &&
                   data.teamId &&
                   data.channelNames.length > 0)
               ) {
@@ -2208,15 +2217,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
     );
 
     /*
-     * Slack: the project's connection, when a rule names the workspace its
-     * channels are in - two rules may name one channel name in two
-     * workspaces of an Enterprise organization (SlackOrganization). Read
-     * only then; unread, a Slack name is one channel, as before.
+     * Slack and Mattermost: the project's connection, when a rule names the
+     * workspace or the team its channels are in - two rules may name one
+     * channel name in two workspaces of an Enterprise organization, or two
+     * teams of a Mattermost server (SlackOrganization, MattermostTeams).
+     * Read only then; unread, a name is one channel, as before.
      */
     let projectAuth: WorkspaceProjectAuthToken | null = null;
 
     if (
-      data.workspaceType === WorkspaceType.Slack &&
+      (data.workspaceType === WorkspaceType.Slack ||
+        data.workspaceType === WorkspaceType.Mattermost) &&
       rules.some((rule: BaseNotificationRule): boolean => {
         return Boolean(rule.shouldPostToExistingChannel && rule.existingTeam);
       })
@@ -2224,12 +2235,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       try {
         projectAuth = await WorkspaceProjectAuthTokenService.getProjectAuth({
           projectId: data.projectId,
-          workspaceType: WorkspaceType.Slack,
+          workspaceType: data.workspaceType,
         });
       } catch (err) {
-        logger.error("Could not read the project's Slack connection.", {
-          projectId: data.projectId?.toString(),
-        } as LogAttributes);
+        logger.error(
+          `Could not read the project's ${data.workspaceType} connection.`,
+          {
+            projectId: data.projectId?.toString(),
+          } as LogAttributes,
+        );
         logger.error(err, {
           projectId: data.projectId?.toString(),
         } as LogAttributes);
@@ -2769,10 +2783,17 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                 projectAuth: data.projectAuth,
                 teamId: workspaceRule.teamToCreateChannelIn,
               })
-            : workspaceRule.teamToCreateChannelIn ||
-              (data.workspaceType === WorkspaceType.MicrosoftTeams
-                ? (data.projectAuth.miscData?.["teamId"] as string | undefined)
-                : undefined),
+            : data.workspaceType === WorkspaceType.Mattermost
+              ? MattermostTeams.getTeamIdOfRuleChannel({
+                  projectAuth: data.projectAuth,
+                  teamId: workspaceRule.teamToCreateChannelIn,
+                })
+              : workspaceRule.teamToCreateChannelIn ||
+                (data.workspaceType === WorkspaceType.MicrosoftTeams
+                  ? (data.projectAuth.miscData?.["teamId"] as
+                      | string
+                      | undefined)
+                  : undefined),
       };
 
       return !channels.some(
@@ -2783,7 +2804,10 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
               /*
                * A Slack channel created before the project moved to its
                * organization's installation names no workspace: it is in
-               * the one the project was connected to, now the default.
+               * the one the project was connected to, now the default. A
+               * Mattermost channel created before teams were told apart
+               * names no team: it is in the team the project was
+               * connected to (MattermostTeams).
                */
               teamId:
                 data.workspaceType === WorkspaceType.Slack
@@ -2791,7 +2815,12 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
                       projectAuth: data.projectAuth,
                       teamId: channel.teamId,
                     })
-                  : channel.teamId,
+                  : data.workspaceType === WorkspaceType.Mattermost
+                    ? MattermostTeams.getTeamIdOfStoredChannel({
+                        projectAuth: data.projectAuth,
+                        teamId: channel.teamId,
+                      })
+                    : channel.teamId,
             },
             askedFor,
           );
@@ -4119,6 +4148,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
         });
       }
 
+      /*
+       * The Mattermost team it is created in: the rule's, or the default
+       * one - so rules asking for one name in two teams get a channel in
+       * each, and a rule that names the default team and one that names
+       * none share it (MattermostTeams).
+       */
+      if (data.workspaceType === WorkspaceType.Mattermost) {
+        teamId = MattermostTeams.getTeamIdOfRuleChannel({
+          projectAuth: projectAuth,
+          teamId: teamId,
+        });
+      }
+
       const askedFor: WorkspaceChannelToCreate = {
         channelName: notificationChannel.channelName,
         teamId: teamId,
@@ -4669,16 +4711,19 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
   /*
    * The existing channels rules post to, each once: a name once per team or
    * workspace it is in - a Microsoft Teams team's General is not another
-   * team's, and a channel in one workspace of a Slack Enterprise
-   * organization is not another workspace's (SlackOrganization). The first
-   * rule's entry is kept.
+   * team's, a channel in one workspace of a Slack Enterprise organization
+   * is not another workspace's (SlackOrganization), and a Mattermost team's
+   * town-square is not another team's (MattermostTeams). The first rule's
+   * entry is kept.
    */
   public getExistingChannelNamesFromNotificationRules(data: {
     notificationRules: Array<BaseNotificationRule>;
     workspaceType: WorkspaceType;
     /*
-     * Slack: the project's connection, which says whether its channels can
-     * be in several workspaces. Without it, a Slack name is one channel.
+     * Slack and Mattermost: the project's connection, which says whether
+     * its Slack channels can be in several workspaces, and which team a
+     * Mattermost rule that names none posts in. Without it, a Slack name is
+     * one channel, and a Mattermost name one channel per team named.
      */
     projectAuth?:
       | Pick<WorkspaceProjectAuthToken, "miscData" | "workspaceProjectId">
@@ -4706,6 +4751,15 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       if (data.workspaceType === WorkspaceType.Slack) {
         return (
           SlackOrganization.getWorkspaceIdOfChannel({
+            projectAuth: data.projectAuth,
+            teamId: teamId,
+          }) || ""
+        );
+      }
+
+      if (data.workspaceType === WorkspaceType.Mattermost) {
+        return (
+          MattermostTeams.getTeamIdOfRuleChannel({
             projectAuth: data.projectAuth,
             teamId: teamId,
           }) || ""
@@ -4879,11 +4933,13 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
       /*
        * Names the workspace creates as one channel are one channel
        * (isSameChannelToCreate): in Slack by the name Slack creates, within
-       * the workspace a rule names, and in Microsoft Teams within the team,
-       * whatever the case. A rule that leaves the team or the workspace to
-       * the project, and one that names the project's, are told apart here
-       * and share the channel when it is created, where the project's is
-       * read (SlackOrganization.getWorkspaceIdOfChannel for Slack).
+       * the workspace a rule names, in Mattermost by its handle, within the
+       * team a rule names, and in Microsoft Teams within the team, whatever
+       * the case. A rule that leaves the team or the workspace to the
+       * project, and one that names the project's, are told apart here and
+       * share the channel when it is created, where the project's is read
+       * (SlackOrganization.getWorkspaceIdOfChannel for Slack,
+       * MattermostTeams.getTeamIdOfRuleChannel for Mattermost).
        */
       const sameChannel: NotificationRuleChannelToCreate | undefined =
         channels.find((channel: NotificationRuleChannelToCreate): boolean => {

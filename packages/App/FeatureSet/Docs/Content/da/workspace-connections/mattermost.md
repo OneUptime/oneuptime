@@ -25,7 +25,7 @@ flowchart TB
 
 To forbindelser får det til at virke:
 
-- **Projektets forbindelse**, lavet én gang: en botkonto på din Mattermost-server, i det team, OneUptime slår op i. Den slår beskederne op, opretter kanalerne og tilføjer folk til dem.
+- **Projektets forbindelse**, lavet én gang: en botkonto på din Mattermost-server, i de teams, OneUptime slår op i. Den slår beskederne op, opretter kanalerne og tilføjer folk til dem.
 - **Hver persons egen forbindelse**: personens Mattermost-konto knyttet til personens OneUptime-konto. Knapper handler som den person, med personens rettigheder i projektet.
 
 Ét Mattermost-team kan være forbundet til mere end ét projekt, for eksempel produktion og staging. En knap handler i projektet for den post, dens besked handler om.
@@ -47,20 +47,32 @@ OneUptime behøver ikke at have noget sat op på sin egen server til Mattermost:
 
 ### Føj botten til dit team
 
-Føj botten til det team, OneUptime skal slå op i, ligesom du ville tilføje en person: **Main Menu** > **Invite People**, og invitér `@oneuptime`. OneUptime opretter kun kanaler og slår kun op i det team.
+Føj botten til hvert team, OneUptime skal slå op i, ligesom du ville tilføje en person: **Main Menu** > **Invite People**, og invitér `@oneuptime`. OneUptime opretter kun kanaler og slår kun op i de teams, botten er medlem af.
 
 ### Forbind projektet
 
-Gå i OneUptime til **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, og klik på **Forbind med Mattermost**. Angiv din servers adresse, for eksempel `https://chat.example.com`, og bottens adgangstoken. OneUptime kontrollerer tokenet hos din server, før den gemmer noget. Hvis botten er i mere end ét team, spørger OneUptime, hvilket den skal slå op i. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
+Gå i OneUptime til **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, og klik på **Forbind med Mattermost**. Angiv din servers adresse, for eksempel `https://chat.example.com`, og bottens adgangstoken. OneUptime kontrollerer tokenet hos din server, før den gemmer noget. Hvis botten er i mere end ét team, spørger OneUptime, hvilket af dem der er standardteamet: det team, en notifikationsregel, der ikke nævner et team, opretter sine kanaler i. Indtil et workspace er forbundet, indeholder sektionen **Arbejdsområde** i menuerne Hændelser, Advarsler, Planlagt vedligeholdelse, Monitorer og Vagtordning **Forbind et arbejdsområde**, som også fører hertil.
 
 ### Tilføj en notifikationsregel
 
 Gå til **Hændelser** > **Arbejdsområde** > **Mattermost**, og opret en regel. For eksempel en, der opretter en Mattermost-kanal for hver ny hændelse med alle, der arbejder på den. Se [Notifikationsregler](#notifikationsregler).
 :::
 
-Bottens adgangstoken gemmes kun på OneUptime-serveren, krypteret sammen med projektets andre hemmeligheder, og vises aldrig igen. Serveradressen, teamet og bottens brugernavn vises for alle i projektet på Mattermost-indstillingssiden.
+Bottens adgangstoken gemmes kun på OneUptime-serveren, krypteret sammen med projektets andre hemmeligheder, og vises aldrig igen. Serveradressen, teamene og bottens brugernavn vises for alle i projektet på Mattermost-indstillingssiden.
 
-Et projekt er forbundet med ét Mattermost-team. For at flytte det til et andet team eller en anden server skal du først afbryde forbindelsen: **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, derefter **⋯** > **Afbryd forbindelsen til Mattermost**. At afbryde forbindelsen fjerner også tilknytningen af hvert medlems egen Mattermost-konto, deres Mattermost-notifikationsmetoder og de vagtregler, der bruger dem. Dine notifikationsregler og opsummeringer bevares, til du forbinder igen.
+Et projekt er forbundet med én Mattermost-server. For at flytte det til en anden server skal du først afbryde forbindelsen: **Projektindstillinger** > **Arbejdsområde** > **Mattermost**, derefter **⋯** > **Afbryd forbindelsen til Mattermost**. At afbryde forbindelsen fjerner også tilknytningen af hvert medlems egen Mattermost-konto, deres Mattermost-notifikationsmetoder og de vagtregler, der bruger dem. Dine notifikationsregler og opsummeringer bevares, til du forbinder igen.
+
+## Mere end ét team
+
+OneUptime virker i hvert team på din Mattermost-server, som botten er medlem af:
+
+1. Føj i Mattermost botten til hvert team, der skal bruge OneUptime, ligesom du ville tilføje en person: åbn teamet, og derefter **Main Menu** > **Invite People**.
+2. Kortet **Mattermost-teams** under **Projektindstillinger** > **Arbejdsområde** > **Mattermost** viser disse teams, standardteamet først. Klik på **Opdater**, når du har føjet botten til et nyt team.
+
+- **Hvilket team en regel bruger.** Notifikationsregler vælger det **Mattermost-team**, deres kanaler ligger i. Står feltet tomt, opretter reglen sin kanal i standardteamet og leder først dér efter de kanaler, den nævner, og derefter i bottens andre teams.
+- **Standardteamet.** Det er det team, du forbandt projektet med. **Gør til standard** på kortet gør et andet team til standard, for en rolle, der må forbinde projektet.
+- **Hvor OneUptime virker.** Knapperne i OneUptimes beskeder og de formularer, de åbner, virker i hvert af disse teams. En knap i et team, botten er fjernet fra, gør intet.
+- **Et standardteam, botten er fjernet fra.** Kortet siger det. Tilføj botten igen i Mattermost, eller gør et andet team til standard.
 
 ## Forbind din egen Mattermost-konto
 
@@ -94,7 +106,7 @@ En notifikationsregel siger, hvilke begivenheder der slås op i Mattermost, og h
 
 En kanal, som en regel opretter, får navn efter sin post: hændelse INC-42 får `inc-42`. Mattermost tager små bogstaver, tal, `-` og `_`, op til 64 tegn, med et bogstav eller et tal først og sidst, og regelformularen viser navnet, mens du skriver. Findes der allerede en kanal med det navn, fx en arkiveret, tilføjer OneUptime `-2`, `-3` og så videre. En privat hændelse, advarsel eller episode får en privat kanal.
 
-For at slå op i en eksisterende kanal angiver du dens navn, som det står i kanalens adresse, for eksempel `incidents` for `chat.example.com/team/channels/incidents`, eller dens visningsnavn. OneUptime melder sig selv ind i en offentlig kanal første gang, den slår op der. Føj botten til en privat kanal i Mattermost, før en regel slår op i den.
+For at slå op i en eksisterende kanal angiver du dens navn, som det står i kanalens adresse, for eksempel `incidents` for `chat.example.com/team/channels/incidents`, eller dens visningsnavn. OneUptime melder sig selv ind i en offentlig kanal første gang, den slår op der. Føj botten til en privat kanal i Mattermost, før en regel slår op i den. Når botten er i mere end ét team, vælger en regel også det team, dens kanaler ligger i: se [Mere end ét team](#mere-end-ét-team).
 
 Folk kommer med i en regels kanal via den Mattermost-konto, de har forbundet, eller ellers via den Mattermost-konto, der har deres e-mailadresse, når din server viser e-mailadresser for botten (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). OneUptime nævner dem, den ikke kunne tilføje, i én besked i kanalen, med et link til at forbinde deres konto.
 
@@ -114,7 +126,7 @@ En hændelse, advarsel, episode eller planlagt vedligeholdelse med sin egen Matt
 OneUptimes bot tilføjer dem, ligesom den tilføjer personerne i en regels kanal. Botten bliver i de kanaler, den opretter, så det virker også for en privat kanal, som alle har forladt. En post, der også har kanaler i Slack eller Microsoft Teams, viser dem alle på ét kort **Chatkanaler**.
 
 - **Hvem der må tilføje personer.** Den, der må redigere posten: **Projektejer**, **Projektadministrator**, **Projektmedlem**, **Hændelsesadministrator** og **Hændelsesmedlem** for en hændelse, eller **Edit Incident** i en brugerdefineret rolle, og den samme tilladelse for en advarsel, en episode eller en begivenhed (for eksempel **Edit Alert**). Alle andre ser, hvem der er i kanalen, og hvordan de kommer ind.
-- **Hvem der kan tilføjes.** En person, OneUptime kan finde i Mattermost, via den konto, personen har forbundet, eller ellers via e-mailadressen, når din server viser e-mailadresser til botten, og som er i det team, projektet er forbundet med. En gæstekonto i det team kan også tilføjes: Mattermost lader en kanals medlemmer tilføje gæster. Kortet nævner dem, det ikke kunne tilføje, og hvorfor.
+- **Hvem der kan tilføjes.** En person, OneUptime kan finde i Mattermost, via den konto, personen har forbundet, eller ellers via e-mailadressen, når din server viser e-mailadresser til botten, og som er i kanalens team. En gæstekonto i det team kan også tilføjes: Mattermost lader en kanals medlemmer tilføje gæster. Kortet nævner dem, det ikke kunne tilføje, og hvorfor.
 - **Hvad der registreres.** Hvem der blev tilføjet, og af hvem, i postens feed (**Kanalmedlem tilføjet**) og under **Projektindstillinger** > **Notifikationer** > **Notifikationslogs** på fanen **Arbejdsområde**.
 - **En arkiveret kanal.** Kortet viser stadig, hvem der er i den, og tilføjer ingen, før kanalen er gendannet fra arkivet i Mattermost.
 - **En kanal, botten er fjernet fra.** Mattermost viser kun en kanals personer til nogen, der er i den, også for en offentlig kanal, så kortet siger, at det ikke kan se kanalen. En i kanalen kan tilføje botten igen i Mattermost. OneUptime deltager også selv i en offentlig kanal igen, næste gang det slår op der.
@@ -156,9 +168,12 @@ Hver knap, OneUptime slår op, bærer en signatur, der kontrolleres, når der tr
 | --- | --- |
 | **Mattermost did not accept the access token** | Kopiér bottens token igen. Mattermost viser det kun én gang: opret et nyt under **Integrations** > **Bot Accounts**, hvis du får brug for det. |
 | **The bot account is not a member of any team** | Føj botten til dit team i Mattermost, og forbind så igen. |
+| Et team, du har føjet botten til, står ikke på kortet **Mattermost-teams** | Klik på **Opdater** på kortet. |
+| **OneUptime's bot is not a member of this Mattermost team** | Du har valgt et team, botten har forladt. Føj botten til det i Mattermost, og klik så på **Opdater**. |
+| **OneUptime's bot may not create channels in the Mattermost team this rule names** | Føj botten til det team i Mattermost, eller vælg et andet team i reglen. |
 | **OneUptime could not reach the Mattermost server** | Tjek adressen, og at OneUptime kan nå den. Se [Netværk og selvhosting](#netværk-og-selvhosting). |
 | **The bot is not a member of the private Mattermost channel** | Føj botten til kanalen i Mattermost. |
 | En knap gør intet, eller Mattermost siger, at den ikke kunne fuldføre handlingen | Mattermost kan ikke nå OneUptime. Se [Netværk og selvhosting](#netværk-og-selvhosting). |
 | Der kommer ingen direkte besked med dit link | Tjek brugernavnet, og at botten er i et team, du er med i. |
 | Kanalkortet siger, at OneUptime ikke kan se kanalen | Kanalen er slettet, eller botten er fjernet fra den. Hvis den stadig findes, kan en i kanalen tilføje botten igen i Mattermost. |
-| Kanalkortet siger, at en person ikke er i Mattermost-teamet | Tilføj personen i Mattermost til det team, projektet er forbundet med, og tilføj vedkommende derefter igen. |
+| Kanalkortet siger, at en person ikke er i Mattermost-teamet | Tilføj personen i Mattermost til kanalens team, og tilføj vedkommende derefter igen. |

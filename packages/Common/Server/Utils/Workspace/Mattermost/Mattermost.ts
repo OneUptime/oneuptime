@@ -105,13 +105,27 @@ const EMAIL_PATH_BREAKERS: RegExp = /[\s/?#%\\]/;
  */
 const WORD_JOINER: string = "⁠";
 
-// A channel as Mattermost describes one, with what OneUptime reads of it.
+/*
+ * A channel as Mattermost describes one, with what OneUptime reads of it -
+ * its team (WorkspaceChannel.teamId) among it: a channel of a team names
+ * the team, a direct or group message none.
+ */
 export interface MattermostChannel extends WorkspaceChannel {
   displayName: string;
   // "O" for a public channel, "P" for a private one, "D" / "G" for direct and group messages.
   type: string;
   // Archived: Mattermost keeps the channel and everybody in it.
   isArchived?: boolean | undefined;
+}
+
+/*
+ * What the buttons of a post are signed for (MattermostActionContext): the
+ * team of the channel it is in, or - in a direct or group message, which
+ * belongs to no team - its channel, with the connection's team beside it.
+ */
+export interface MattermostPostSigning {
+  teamId: string;
+  directMessageChannelId?: string | undefined;
 }
 
 // A Mattermost account, as OneUptime reads one.
@@ -414,6 +428,11 @@ export default class MattermostUtil extends WorkspaceBase {
     return MattermostUtil.readUser(user);
   }
 
+  /*
+   * The teams the bot account is a member of, each once: those OneUptime
+   * can post in (MattermostTeams). An archived team, which Mattermost may
+   * still list, and an entry OneUptime cannot read are left out.
+   */
   @CaptureSpan()
   public static async getTeamsOfBot(data: {
     serverUrl: string;
@@ -427,14 +446,29 @@ export default class MattermostUtil extends WorkspaceBase {
       retry: true,
     });
 
+    if (!Array.isArray(teams)) {
+      throw new BadDataException(
+        "Mattermost answered with a list of teams OneUptime could not read.",
+      );
+    }
+
+    const seen: Set<string> = new Set<string>();
+
     return teams
       .map((team: JSONValue): MattermostTeam | null => {
         const json: JSONObject = (team || {}) as JSONObject;
         const id: unknown = json["id"];
+        const deletedAt: unknown = json["delete_at"];
 
-        if (!MattermostConnection.isMattermostId(id)) {
+        if (
+          !MattermostConnection.isMattermostId(id) ||
+          seen.has(id) ||
+          (typeof deletedAt === "number" && deletedAt > 0)
+        ) {
           return null;
         }
+
+        seen.add(id);
 
         return {
           id: id,
@@ -634,16 +668,20 @@ export default class MattermostUtil extends WorkspaceBase {
   }
 
   /*
-   * Names Mattermost creates by the same handle are one channel: asked to
-   * create it a second time, Mattermost answers that it exists.
+   * Names Mattermost creates by the same handle, in the same team, are one
+   * channel: asked to create it a second time, Mattermost answers that it
+   * exists. Another team has names of its own. The teams are as the rules
+   * service reads them (MattermostTeams.getTeamIdOfRuleChannel): a rule's,
+   * or the default team.
    */
   public static override isSameChannelToCreate(
     channel: WorkspaceChannelToCreate,
     otherChannel: WorkspaceChannelToCreate,
   ): boolean {
     return (
+      (channel.teamId || undefined) === (otherChannel.teamId || undefined) &&
       this.getChannelNameToCreate(channel.channelName) ===
-      this.getChannelNameToCreate(otherChannel.channelName)
+        this.getChannelNameToCreate(otherChannel.channelName)
     );
   }
 
@@ -656,15 +694,24 @@ export default class MattermostUtil extends WorkspaceBase {
     );
   }
 
+  /*
+   * Creates a channel in the team `teamId` names - a rule's - else in the
+   * connection's default team (MattermostTeams).
+   */
   @CaptureSpan()
   public static override async createChannel(data: {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
     isPrivate?: boolean;
+    teamId?: string | undefined;
   }): Promise<WorkspaceChannel> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
+
+    const teamId: string = data.teamId
+      ? MattermostConnection.assertMattermostId(data.teamId, "team")
+      : connection.teamId;
 
     const name: string = MattermostUtil.getChannelNameToCreate(
       data.channelName,
@@ -674,17 +721,33 @@ export default class MattermostUtil extends WorkspaceBase {
       projectId: data.projectId?.toString(),
     });
 
-    const channel: JSONObject = await MattermostUtil.callServer<JSONObject>({
-      ...connection,
-      method: HTTPMethod.POST,
-      path: "/api/v4/channels",
-      body: {
-        team_id: connection.teamId,
-        name: name,
-        display_name: name,
-        type: data.isPrivate ? "P" : "O",
-      },
-    });
+    let channel: JSONObject;
+
+    try {
+      channel = await MattermostUtil.callServer<JSONObject>({
+        ...connection,
+        method: HTTPMethod.POST,
+        path: "/api/v4/channels",
+        body: {
+          team_id: teamId,
+          name: name,
+          display_name: name,
+          type: data.isPrivate ? "P" : "O",
+        },
+      });
+    } catch (err) {
+      // Another team than the default: most likely one the bot is not in (any more).
+      if (
+        teamId !== connection.teamId &&
+        MattermostUtil.isForbiddenError(err)
+      ) {
+        throw new BadDataException(
+          "OneUptime's bot may not create channels in the Mattermost team this rule names. Add the bot to that team in Mattermost, or choose another team in the rule, then try again.",
+        );
+      }
+
+      throw err;
+    }
 
     return MattermostUtil.readChannel(channel);
   }
@@ -726,12 +789,14 @@ export default class MattermostUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    // A rule's team (findChannelByName).
     teamId?: string;
   }): Promise<boolean> {
     return Boolean(
       await MattermostUtil.findChannelByName({
         authToken: data.authToken,
         channelName: data.channelName,
+        teamId: data.teamId,
       }),
     );
   }
@@ -741,11 +806,13 @@ export default class MattermostUtil extends WorkspaceBase {
     authToken: string;
     channelName: string;
     projectId: ObjectID;
+    teamId?: string | undefined;
   }): Promise<WorkspaceChannel> {
     const channel: MattermostChannel | null =
       await MattermostUtil.findChannelByName({
         authToken: data.authToken,
         channelName: data.channelName,
+        teamId: data.teamId,
       });
 
     if (!channel) {
@@ -758,17 +825,29 @@ export default class MattermostUtil extends WorkspaceBase {
   }
 
   /*
-   * A channel of the connection's team by its name - its handle, as in
-   * ~incidents, or its display name, as in "Incidents" - or null when the
-   * bot can see none of that name. A "#" or "~" in front is left out.
+   * A channel by its name - its handle, as in ~incidents, or its display
+   * name, as in "Incidents" - or null when the bot can see none of that
+   * name. A "#" or "~" in front is left out.
+   *
+   * It is looked for in the team `teamId` names - a rule's - and only
+   * there. Without one, in the connection's default team first, then in
+   * the other teams the bot is a member of, asked for only then
+   * (MattermostTeams): by handle in each team, then by display name in
+   * each, so a handle in another team comes before a display name in the
+   * default one.
    */
   @CaptureSpan()
   public static async findChannelByName(data: {
     authToken: string;
     channelName: string;
+    teamId?: string | undefined;
   }): Promise<MattermostChannel | null> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
+
+    const namedTeamId: string | undefined = data.teamId
+      ? MattermostConnection.assertMattermostId(data.teamId, "team")
+      : undefined;
 
     const typed: string = (data.channelName || "").trim().replace(/^[#~]/, "");
 
@@ -777,43 +856,124 @@ export default class MattermostUtil extends WorkspaceBase {
     }
 
     const handle: string = typed.toLowerCase();
+    const firstTeamId: string = namedTeamId || connection.teamId;
+
+    // The bot's other teams, asked for once the first held no such channel.
+    let otherTeamIds: Array<string> | null = namedTeamId ? [] : null;
+
+    const getOtherTeamIds: () => Promise<Array<string>> = async (): Promise<
+      Array<string>
+    > => {
+      if (otherTeamIds === null) {
+        otherTeamIds = (
+          await MattermostUtil.getTeamsOfBot({
+            serverUrl: connection.serverUrl,
+            accessToken: connection.accessToken,
+          })
+        )
+          .map((team: MattermostTeam): string => {
+            return team.id;
+          })
+          .filter((teamId: string): boolean => {
+            return teamId !== firstTeamId;
+          });
+      }
+
+      return otherTeamIds;
+    };
 
     if (MattermostConnection.isChannelName(handle)) {
-      try {
-        const channel: JSONObject = await MattermostUtil.callServer<JSONObject>(
-          {
-            ...connection,
-            method: HTTPMethod.GET,
-            path: `/api/v4/teams/${connection.teamId}/channels/name/${handle}`,
-            retry: true,
-          },
-        );
+      const inFirstTeam: MattermostChannel | null =
+        await MattermostUtil.findChannelByHandle({
+          connection: connection,
+          teamId: firstTeamId,
+          handle: handle,
+        });
 
-        return MattermostUtil.readChannel(channel);
-      } catch (err) {
-        if (
-          !MattermostUtil.isNotFoundError(err) &&
-          !MattermostUtil.isForbiddenError(err)
-        ) {
-          throw err;
+      if (inFirstTeam) {
+        return inFirstTeam;
+      }
+
+      for (const teamId of await getOtherTeamIds()) {
+        const inTeam: MattermostChannel | null =
+          await MattermostUtil.findChannelByHandle({
+            connection: connection,
+            teamId: teamId,
+            handle: handle,
+          });
+
+        if (inTeam) {
+          return inTeam;
         }
       }
     }
 
     // Its display name, as people see it: among the channels the bot can post in.
-    const channels: Array<MattermostChannel> =
-      await MattermostUtil.listChannels(connection);
+    const byDisplayName: (
+      teamId: string,
+    ) => Promise<MattermostChannel | null> = async (
+      teamId: string,
+    ): Promise<MattermostChannel | null> => {
+      const channels: Array<MattermostChannel> =
+        await MattermostUtil.listChannels(connection, teamId);
 
-    for (const channel of channels) {
-      if (
-        channel.name === handle ||
-        (channel.displayName || "").toLowerCase() === handle
-      ) {
-        return channel;
+      return (
+        channels.find((channel: MattermostChannel): boolean => {
+          return (
+            channel.name === handle ||
+            (channel.displayName || "").toLowerCase() === handle
+          );
+        }) || null
+      );
+    };
+
+    const shownInFirstTeam: MattermostChannel | null =
+      await byDisplayName(firstTeamId);
+
+    if (shownInFirstTeam) {
+      return shownInFirstTeam;
+    }
+
+    // The other teams are asked for only when the first has no such channel.
+    for (const teamId of await getOtherTeamIds()) {
+      const shownInTeam: MattermostChannel | null = await byDisplayName(teamId);
+
+      if (shownInTeam) {
+        return shownInTeam;
       }
     }
 
     return null;
+  }
+
+  /*
+   * A channel of one team by its handle, or null when the bot cannot see
+   * one: none of that name, or a private one it is not in.
+   */
+  private static async findChannelByHandle(data: {
+    connection: MattermostConnectionData;
+    teamId: string;
+    handle: string;
+  }): Promise<MattermostChannel | null> {
+    try {
+      const channel: JSONObject = await MattermostUtil.callServer<JSONObject>({
+        ...data.connection,
+        method: HTTPMethod.GET,
+        path: `/api/v4/teams/${data.teamId}/channels/name/${data.handle}`,
+        retry: true,
+      });
+
+      return MattermostUtil.readChannel(channel);
+    } catch (err) {
+      if (
+        !MattermostUtil.isNotFoundError(err) &&
+        !MattermostUtil.isForbiddenError(err)
+      ) {
+        throw err;
+      }
+
+      return null;
+    }
   }
 
   @CaptureSpan()
@@ -852,9 +1012,9 @@ export default class MattermostUtil extends WorkspaceBase {
   }
 
   /*
-   * Every channel of the connection's team the bot can post in: its public
-   * channels, which it joins when it first posts in one, and the private
-   * channels it has been added to. Keyed by channel id.
+   * Every channel of the connection's default team the bot can post in:
+   * its public channels, which it joins when it first posts in one, and the
+   * private channels it has been added to. Keyed by channel id.
    */
   @CaptureSpan()
   public static override async getAllWorkspaceChannels(data: {
@@ -872,10 +1032,19 @@ export default class MattermostUtil extends WorkspaceBase {
     return channels;
   }
 
-  // The channels getAllWorkspaceChannels lists, each once, in the order Mattermost gave them.
+  /*
+   * The channels getAllWorkspaceChannels lists, each once, in the order
+   * Mattermost gave them: of the team `teamId` names, else of the
+   * connection's default team.
+   */
   public static async listChannels(
     connection: MattermostConnectionData,
+    teamId?: string | undefined,
   ): Promise<Array<MattermostChannel>> {
+    const team: string = teamId
+      ? MattermostConnection.assertMattermostId(teamId, "team")
+      : connection.teamId;
+
     const channels: Map<string, MattermostChannel> = new Map<
       string,
       MattermostChannel
@@ -905,7 +1074,7 @@ export default class MattermostUtil extends WorkspaceBase {
       const list: JSONArray = await MattermostUtil.callServer<JSONArray>({
         ...connection,
         method: HTTPMethod.GET,
-        path: `/api/v4/teams/${connection.teamId}/channels`,
+        path: `/api/v4/teams/${team}/channels`,
         query: {
           page: page.toString(),
           per_page: MattermostUtil.CHANNELS_PER_PAGE.toString(),
@@ -925,7 +1094,7 @@ export default class MattermostUtil extends WorkspaceBase {
       await MattermostUtil.callServer<JSONArray>({
         ...connection,
         method: HTTPMethod.GET,
-        path: `/api/v4/users/${connection.botUserId}/teams/${connection.teamId}/channels`,
+        path: `/api/v4/users/${connection.botUserId}/teams/${team}/channels`,
         retry: true,
       });
 
@@ -946,6 +1115,8 @@ export default class MattermostUtil extends WorkspaceBase {
     const name: string =
       typeof channel["name"] === "string" ? (channel["name"] as string) : id;
     const deletedAt: unknown = channel["delete_at"];
+    // A direct or group message names no team: its team_id is empty.
+    const teamId: unknown = channel["team_id"];
 
     return {
       id: id,
@@ -957,9 +1128,35 @@ export default class MattermostUtil extends WorkspaceBase {
       type:
         typeof channel["type"] === "string" ? (channel["type"] as string) : "",
       workspaceType: WorkspaceType.Mattermost,
+      ...(MattermostConnection.isMattermostId(teamId)
+        ? { teamId: teamId }
+        : {}),
       ...(typeof deletedAt === "number" && deletedAt > 0
         ? { isArchived: true }
         : {}),
+    };
+  }
+
+  /*
+   * What the buttons of a post in a channel are signed for: the channel's
+   * team, or - a direct or group message - the channel itself. A channel
+   * that names no team of its own is the connection's default team's.
+   */
+  public static getPostSigning(data: {
+    connection: MattermostConnectionData;
+    channel: MattermostChannel;
+  }): MattermostPostSigning {
+    if (data.channel.type === "D" || data.channel.type === "G") {
+      return {
+        teamId: data.connection.teamId,
+        directMessageChannelId: data.channel.id,
+      };
+    }
+
+    return {
+      teamId: MattermostConnection.isMattermostId(data.channel.teamId)
+        ? data.channel.teamId
+        : data.connection.teamId,
     };
   }
 
@@ -1320,6 +1517,10 @@ export default class MattermostUtil extends WorkspaceBase {
    * was posted in or not - one that could not be found or read among them
    * - and, when the message fails as a whole before every channel was
    * tried, a failure for each left.
+   *
+   * A channel named is looked for in the team the payload names - a
+   * rule's - else in the default team first (findChannelByName). Each
+   * post's buttons are signed for the team of the channel it is in.
    */
   @CaptureSpan()
   public static override async sendMessage(data: {
@@ -1371,12 +1572,6 @@ export default class MattermostUtil extends WorkspaceBase {
       },
     );
 
-    const post: JSONObject = MattermostUtil.toPost({
-      blocks: blocks,
-      teamId: connection.teamId,
-      text: data.workspaceMessagePayload.text,
-    });
-
     const response: WorkspaceSendMessageResponse = {
       threads: [],
       workspaceType: WorkspaceType.Mattermost,
@@ -1391,6 +1586,7 @@ export default class MattermostUtil extends WorkspaceBase {
           await MattermostUtil.findChannelByName({
             authToken: data.authToken,
             channelName: channelName,
+            teamId: data.workspaceMessagePayload.teamId,
           });
 
         if (channel) {
@@ -1462,7 +1658,14 @@ export default class MattermostUtil extends WorkspaceBase {
         const thread: WorkspaceThread = await MattermostUtil.postInChannel({
           connection: connection,
           channel: channel,
-          post: post,
+          post: MattermostUtil.toPost({
+            blocks: blocks,
+            ...MattermostUtil.getPostSigning({
+              connection: connection,
+              channel: channel,
+            }),
+            text: data.workspaceMessagePayload.text,
+          }),
         });
 
         channelPost.succeeded();
@@ -1563,6 +1766,7 @@ export default class MattermostUtil extends WorkspaceBase {
             id: data.channel.id,
             name: data.channel.name,
             workspaceType: WorkspaceType.Mattermost,
+            ...(data.channel.teamId ? { teamId: data.channel.teamId } : {}),
           }
         : {
             id: data.channelId,
@@ -1593,7 +1797,10 @@ export default class MattermostUtil extends WorkspaceBase {
       channel: channel,
       post: MattermostUtil.toPost({
         blocks: data.blocks,
-        teamId: connection.teamId,
+        ...MattermostUtil.getPostSigning({
+          connection: connection,
+          channel: channel,
+        }),
         text: data.text,
       }),
     });
@@ -1601,7 +1808,10 @@ export default class MattermostUtil extends WorkspaceBase {
 
   /*
    * Edits a post the bot made, in place: it keeps its place in the
-   * channel, and nobody is notified again.
+   * channel, and nobody is notified again. Its buttons are signed as a new
+   * post's in its channel would be (getPostSigning): for the team the
+   * location names, else as the channel says - read for it, so a direct
+   * message's buttons keep working after an edit.
    */
   @CaptureSpan()
   public static override async updateMessage(data: {
@@ -1620,13 +1830,20 @@ export default class MattermostUtil extends WorkspaceBase {
       "post",
     );
 
+    const signing: MattermostPostSigning =
+      await MattermostUtil.getPostSigningOfLocation({
+        connection: connection,
+        authToken: data.authToken,
+        location: data.location,
+      });
+
     const post: JSONObject = MattermostUtil.toPost({
       blocks: this.getBlocksFromWorkspaceMessagePayload({
         messageBlocks: WorkspaceInlineImages.splitMessageBlocks(
           data.messageBlocks,
         ),
       }),
-      teamId: connection.teamId,
+      ...signing,
       text: data.text,
     });
 
@@ -1640,6 +1857,38 @@ export default class MattermostUtil extends WorkspaceBase {
       },
       retry: true,
     });
+  }
+
+  /*
+   * What a kept post's buttons are signed for: the team its location names,
+   * else as its channel says (getPostSigning). A channel that cannot be
+   * read is the connection's default team's: the edit itself then says
+   * what became of the post.
+   */
+  private static async getPostSigningOfLocation(data: {
+    connection: MattermostConnectionData;
+    authToken: string;
+    location: WorkspaceMessageLocation;
+  }): Promise<MattermostPostSigning> {
+    if (MattermostConnection.isMattermostId(data.location.teamId)) {
+      return { teamId: data.location.teamId };
+    }
+
+    try {
+      return MattermostUtil.getPostSigning({
+        connection: data.connection,
+        channel: await MattermostUtil.getChannel({
+          authToken: data.authToken,
+          channelId: data.location.channelId,
+        }),
+      });
+    } catch (err) {
+      logger.debug(
+        "Could not read the Mattermost channel of a post being edited; its buttons are signed for the default team.",
+      );
+      logger.debug(err);
+      return { teamId: data.connection.teamId };
+    }
   }
 
   // A post somebody deleted is answered as not found: a new one has to be posted.
@@ -1732,6 +1981,12 @@ export default class MattermostUtil extends WorkspaceBase {
      * held to its channel, as the message's buttons are.
      */
     directMessageChannelId?: string | undefined;
+    /*
+     * The team the press that opens it came from: its submission names the
+     * team it is sent from, which the form is signed for. The default team
+     * for none.
+     */
+    teamId?: string | undefined;
   }): Promise<void> {
     const connection: MattermostConnectionData =
       MattermostConnection.fromAuthToken(data.authToken);
@@ -1746,7 +2001,9 @@ export default class MattermostUtil extends WorkspaceBase {
 
     const dialog: JSONObject = MattermostUtil.getDialog({
       modalBlock: data.modalBlock,
-      teamId: connection.teamId,
+      teamId: data.teamId
+        ? MattermostConnection.assertMattermostId(data.teamId, "team")
+        : connection.teamId,
       directMessageChannelId: data.directMessageChannelId,
     });
 
@@ -1928,8 +2185,9 @@ export default class MattermostUtil extends WorkspaceBase {
   /*
    * The post a message's pieces make: their Markdown as its message, and
    * their buttons, links and menu in an attachment under it. Each button
-   * and menu carries a context signed for the connection's team
-   * (MattermostActionContext); Mattermost POSTs it back when it is pressed.
+   * and menu carries a context signed for the team of the channel it is
+   * posted in, or a direct message's channel (MattermostActionContext);
+   * Mattermost POSTs it back when it is pressed.
    */
   public static toPost(data: {
     blocks: Array<JSONObject>;

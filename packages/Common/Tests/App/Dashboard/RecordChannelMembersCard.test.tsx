@@ -1745,7 +1745,7 @@ describe("Mattermost channels", () => {
     fireEvent.click(within(element).getByTestId("record-channel-join"));
 
     expect(await within(element).findByRole("alert")).toHaveTextContent(
-      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
+      "You're not in the Mattermost team this channel is in, so OneUptime can't add you.",
     );
     expect(
       within(element).queryByTestId("record-channel-open-after-join"),
@@ -1838,7 +1838,7 @@ describe("Mattermost channels", () => {
     fireEvent.click(within(dialog).getByRole("option", { name: /Platform/ }));
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(
-      "Carol Lee and Dan Brown aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+      "Carol Lee and Dan Brown aren't in the Mattermost team this channel is in, so OneUptime can't add them.",
     );
   });
 

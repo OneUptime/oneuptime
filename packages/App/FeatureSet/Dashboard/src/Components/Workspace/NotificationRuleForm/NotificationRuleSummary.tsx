@@ -1,4 +1,5 @@
 import {
+  MattermostConnectionTeam,
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
   SlackOrganizationWorkspace,
@@ -52,6 +53,11 @@ export interface RuleSummarySource {
    * OneUptime was added to, to name the one a rule picks.
    */
   slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
+  /*
+   * Mattermost: the teams of the server the project's bot is a member of,
+   * to name the one a rule picks.
+   */
+  mattermostTeams?: Array<MattermostConnectionTeam> | undefined;
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   exampleRecordName?: string | undefined;
 }
@@ -118,6 +124,23 @@ export const getRuleSummarySentences: (
     )?.name;
   };
 
+  // A team of the Mattermost server the rule picks, by its name.
+  const mattermostTeamName: (id: string | undefined) => string | undefined = (
+    id: string | undefined,
+  ): string | undefined => {
+    if (props.workspaceType !== WorkspaceType.Mattermost || !id) {
+      return undefined;
+    }
+
+    const team: MattermostConnectionTeam | undefined = (
+      props.mattermostTeams || []
+    ).find((candidate: MattermostConnectionTeam): boolean => {
+      return candidate.id === id;
+    });
+
+    return team ? team.displayName || team.name || undefined : undefined;
+  };
+
   return getNotificationRuleSummary({
     rule: rule,
     eventType: props.eventType,
@@ -150,6 +173,8 @@ export const getRuleSummarySentences: (
     channelTeamName: channelTeam?.name,
     channelWorkspaceName: slackWorkspaceName(rule.teamToCreateChannelIn),
     existingChannelsWorkspaceName: slackWorkspaceName(rule.existingTeam),
+    channelMattermostTeamName: mattermostTeamName(rule.teamToCreateChannelIn),
+    existingChannelsMattermostTeamName: mattermostTeamName(rule.existingTeam),
     chatNames: chatIds
       .map((chatId: string): string => {
         return (
@@ -181,6 +206,7 @@ const NotificationRuleSummary: FunctionComponent<
     microsoftTeamsTeams: props.microsoftTeamsTeams,
     microsoftTeamsChats: props.microsoftTeamsChats,
     slackWorkspaces: props.slackWorkspaces,
+    mattermostTeams: props.mattermostTeams,
     numberPrefixes: props.numberPrefixes,
     exampleRecordName: props.exampleRecordName,
     translator: translator,

@@ -25,7 +25,7 @@ flowchart TB
 
 Duas conexões fazem isso funcionar:
 
-- **A conexão do projeto**, feita uma vez: uma conta de bot no seu servidor do Mattermost, na equipe em que o OneUptime publica. Ela publica as mensagens, cria os canais e adiciona as pessoas a eles.
+- **A conexão do projeto**, feita uma vez: uma conta de bot no seu servidor do Mattermost, nas equipes em que o OneUptime publica. Ela publica as mensagens, cria os canais e adiciona as pessoas a eles.
 - **A conexão de cada pessoa**: a conta do Mattermost dela vinculada à conta dela no OneUptime. Os botões agem como essa pessoa, com as permissões dela no projeto.
 
 Uma equipe do Mattermost pode estar conectada a mais de um projeto, como produção e staging. Um botão age no projeto do registro de que trata a mensagem dele.
@@ -47,20 +47,32 @@ No Mattermost, abra **System Console** > **Integrations** > **Bot Accounts** e v
 
 ### Adicionar o bot à sua equipe
 
-Adicione o bot à equipe em que o OneUptime deve publicar, como você adicionaria uma pessoa: **Main Menu** > **Invite People**, e convide `@oneuptime`. O OneUptime cria canais e publica apenas nessa equipe.
+Adicione o bot a cada equipe em que o OneUptime deve publicar, como você adicionaria uma pessoa: **Main Menu** > **Invite People**, e convide `@oneuptime`. O OneUptime cria canais e publica apenas nas equipes das quais o bot é membro.
 
 ### Conectar o projeto
 
-No OneUptime, vá para **Configurações do projeto** > **Espaço de trabalho** > **Mattermost** e clique em **Conectar ao Mattermost**. Informe o endereço do seu servidor, como `https://chat.example.com`, e o token de acesso do bot. O OneUptime verifica o token com o seu servidor antes de guardar qualquer coisa. Se o bot estiver em mais de uma equipe, o OneUptime pergunta em qual delas publicar. Enquanto nenhum workspace estiver conectado, a seção **Espaço de trabalho** dos menus Incidentes, Alertas, Manutenção programada, Monitores e Plantão contém **Conectar um espaço de trabalho**, que também leva até aqui.
+No OneUptime, vá para **Configurações do projeto** > **Espaço de trabalho** > **Mattermost** e clique em **Conectar ao Mattermost**. Informe o endereço do seu servidor, como `https://chat.example.com`, e o token de acesso do bot. O OneUptime verifica o token com o seu servidor antes de guardar qualquer coisa. Se o bot estiver em mais de uma equipe, o OneUptime pergunta qual delas é a padrão: a equipe em que uma regra de notificação que não indica nenhuma equipe cria seus canais. Enquanto nenhum workspace estiver conectado, a seção **Espaço de trabalho** dos menus Incidentes, Alertas, Manutenção programada, Monitores e Plantão contém **Conectar um espaço de trabalho**, que também leva até aqui.
 
 ### Adicionar uma regra de notificação
 
 Vá para **Incidentes** > **Espaço de trabalho** > **Mattermost** e crie uma regra. Por exemplo, uma que crie um canal do Mattermost para cada novo incidente com todos que trabalham nele. Consulte [Regras de notificação](#regras-de-notificação).
 :::
 
-O token de acesso do bot fica guardado apenas no servidor do OneUptime, criptografado com os outros segredos do projeto, e nunca mais é mostrado. O endereço do servidor, a equipe e o nome de usuário do bot são mostrados a todos no projeto, na página de configurações do Mattermost.
+O token de acesso do bot fica guardado apenas no servidor do OneUptime, criptografado com os outros segredos do projeto, e nunca mais é mostrado. O endereço do servidor, as equipes e o nome de usuário do bot são mostrados a todos no projeto, na página de configurações do Mattermost.
 
-Um projeto fica conectado a uma única equipe do Mattermost. Para movê-lo para outra equipe, ou outro servidor, desconecte-o primeiro: **Configurações do projeto** > **Espaço de trabalho** > **Mattermost**, depois **⋯** > **Desconectar o Mattermost**. Desconectar também desconecta a conta do Mattermost de cada membro e remove os métodos de notificação do Mattermost dele e as regras de plantão que os usam. As suas regras de notificação e os seus resumos são mantidos para quando você conectar de novo.
+Um projeto fica conectado a um único servidor do Mattermost. Para movê-lo para outro servidor, desconecte-o primeiro: **Configurações do projeto** > **Espaço de trabalho** > **Mattermost**, depois **⋯** > **Desconectar o Mattermost**. Desconectar também desconecta a conta do Mattermost de cada membro e remove os métodos de notificação do Mattermost dele e as regras de plantão que os usam. As suas regras de notificação e os seus resumos são mantidos para quando você conectar de novo.
+
+## Mais de uma equipe
+
+O OneUptime funciona em cada equipe do seu servidor do Mattermost da qual o bot dele é membro:
+
+1. No Mattermost, adicione o bot a cada equipe que deve usar o OneUptime, como você adicionaria uma pessoa: abra a equipe e depois **Main Menu** > **Invite People**.
+2. O cartão **Equipes do Mattermost** em **Configurações do projeto** > **Espaço de trabalho** > **Mattermost** lista essas equipes, a padrão primeiro. Clique em **Atualizar** depois de adicionar o bot a outra equipe.
+
+- **Qual equipe uma regra usa.** As regras de notificação escolhem a **Equipe do Mattermost** dos seus canais. Se ficar em branco, a regra cria o canal dela na equipe padrão e procura os canais que nomeia primeiro ali, depois nas outras equipes do bot.
+- **A equipe padrão.** É a equipe à qual você conectou o projeto. **Tornar padrão** no cartão torna outra equipe a padrão, para uma função que possa conectar o projeto.
+- **Onde o OneUptime funciona.** Os botões das mensagens do OneUptime, e os formulários que eles abrem, funcionam em cada uma dessas equipes. Um botão em uma equipe da qual o bot foi removido não faz nada.
+- **Uma equipe padrão da qual o bot foi removido.** O cartão avisa. Adicione o bot de novo no Mattermost, ou torne outra equipe a padrão.
 
 ## Conectar a sua própria conta do Mattermost
 
@@ -94,7 +106,7 @@ Uma regra de notificação diz quais eventos são publicados no Mattermost, e on
 
 Um canal que uma regra cria recebe o nome do seu registro: o incidente INC-42 recebe `inc-42`. O Mattermost aceita letras minúsculas, números, `-` e `_`, até 64 caracteres, começando e terminando com uma letra ou um número, e o formulário da regra mostra o nome enquanto você digita. Se já existir um canal com esse nome, como um arquivado, o OneUptime adiciona `-2`, `-3` e assim por diante. Um incidente, alerta ou episódio privado recebe um canal privado.
 
-Para publicar em um canal existente, informe o nome dele como aparece no endereço do canal, como `incidents` para `chat.example.com/team/channels/incidents`, ou o nome de exibição dele. O OneUptime entra sozinho em um canal público na primeira vez que publica nele. Adicione o bot a um canal privado no Mattermost antes que uma regra publique nele.
+Para publicar em um canal existente, informe o nome dele como aparece no endereço do canal, como `incidents` para `chat.example.com/team/channels/incidents`, ou o nome de exibição dele. O OneUptime entra sozinho em um canal público na primeira vez que publica nele. Adicione o bot a um canal privado no Mattermost antes que uma regra publique nele. Quando o bot está em mais de uma equipe, uma regra também escolhe a equipe em que os canais dela estão: consulte [Mais de uma equipe](#mais-de-uma-equipe).
 
 As pessoas entram no canal de uma regra pela conta do Mattermost que conectaram, ou então pela conta do Mattermost que tem o endereço de e-mail delas, quando o seu servidor mostra endereços de e-mail ao bot (**System Console** > **Site Configuration** > **Users and Teams** > **Show Email Address**). O OneUptime nomeia quem não conseguiu adicionar em uma única mensagem no canal, com um link para conectar a conta.
 
@@ -114,7 +126,7 @@ Um incidente, alerta, episódio ou evento de manutenção agendada com um canal 
 O bot do OneUptime as adiciona, como adiciona as pessoas do canal de uma regra. O bot fica nos canais que cria, então isso funciona também para um canal privado que todos deixaram. Um registro que também tem canais no Slack ou no Microsoft Teams lista todos em um único cartão **Canais de chat**.
 
 - **Quem pode adicionar pessoas.** Quem pode editar o registro: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de incidentes** e **Membro de incidentes** para um incidente, ou **Edit Incident** em uma função personalizada, e a mesma permissão para um alerta, um episódio ou um evento (**Edit Alert**, por exemplo). Os demais veem quem está no canal e como entrar.
-- **Quem pode ser adicionado.** Alguém que o OneUptime encontra no Mattermost, pela conta que a pessoa conectou ou então pelo endereço de e-mail dela, quando o seu servidor mostra endereços de e-mail ao bot, e que está na equipe à qual o projeto está conectado. Uma conta de convidado dessa equipe também pode ser adicionada: o Mattermost permite que os membros de um canal adicionem convidados. O cartão nomeia quem não pôde adicionar, e por quê.
+- **Quem pode ser adicionado.** Alguém que o OneUptime encontra no Mattermost, pela conta que a pessoa conectou ou então pelo endereço de e-mail dela, quando o seu servidor mostra endereços de e-mail ao bot, e que está na equipe do canal. Uma conta de convidado dessa equipe também pode ser adicionada: o Mattermost permite que os membros de um canal adicionem convidados. O cartão nomeia quem não pôde adicionar, e por quê.
 - **O que fica registrado.** Quem foi adicionado, e por quem, no feed do registro (**Membro adicionado ao canal**) e em **Configurações do projeto** > **Notificações** > **Logs de notificação**, na aba **Espaço de trabalho**.
 - **Um canal arquivado.** O cartão continua listando quem está nele, e não adiciona ninguém até que o canal seja desarquivado no Mattermost.
 - **Um canal do qual o bot foi removido.** O Mattermost mostra as pessoas de um canal só a quem está nele, mesmo em um canal público, então o cartão diz que não consegue ver o canal. Alguém que esteja nele pode adicionar o bot de novo no Mattermost. O OneUptime também entra sozinho em um canal público na próxima vez que publica nele.
@@ -156,9 +168,12 @@ Todo botão que o OneUptime publica leva uma assinatura, verificada quando ele �
 | --- | --- |
 | **Mattermost did not accept the access token** | Copie o token do bot de novo. O Mattermost só o mostra uma vez: crie um novo em **Integrations** > **Bot Accounts**, se precisar. |
 | **The bot account is not a member of any team** | Adicione o bot à sua equipe no Mattermost e conecte de novo. |
+| Uma equipe à qual você adicionou o bot não aparece no cartão **Equipes do Mattermost** | Clique em **Atualizar** no cartão. |
+| **OneUptime's bot is not a member of this Mattermost team** | Você escolheu uma equipe da qual o bot saiu. Adicione o bot a ela no Mattermost e depois clique em **Atualizar**. |
+| **OneUptime's bot may not create channels in the Mattermost team this rule names** | Adicione o bot a essa equipe no Mattermost, ou escolha outra equipe na regra. |
 | **OneUptime could not reach the Mattermost server** | Verifique o endereço, e se o OneUptime consegue alcançá-lo. Consulte [Rede e auto-hospedagem](#rede-e-auto-hospedagem). |
 | **The bot is not a member of the private Mattermost channel** | Adicione o bot ao canal no Mattermost. |
 | Um botão não faz nada, ou o Mattermost diz que não conseguiu concluir a ação | O Mattermost não consegue alcançar o OneUptime. Consulte [Rede e auto-hospedagem](#rede-e-auto-hospedagem). |
 | Nenhuma mensagem direta chega com o seu link | Verifique o nome de usuário, e se o bot está em uma equipe da qual você faz parte. |
 | O cartão do canal diz que o OneUptime não consegue ver o canal | O canal foi excluído, ou o bot foi removido dele. Se ele ainda existir, alguém que esteja nele pode adicionar o bot de novo no Mattermost. |
-| O cartão do canal diz que alguém não está na equipe do Mattermost | Adicione a pessoa, no Mattermost, à equipe à qual o projeto está conectado e depois adicione-a de novo. |
+| O cartão do canal diz que alguém não está na equipe do Mattermost | Adicione a pessoa, no Mattermost, à equipe do canal e depois adicione-a de novo. |

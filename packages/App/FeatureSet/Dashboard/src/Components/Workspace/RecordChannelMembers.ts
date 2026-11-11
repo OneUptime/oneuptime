@@ -333,10 +333,10 @@ export const MATTERMOST_ADD_OUTCOME_TEXT: Record<
     ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.NotProjectMember],
   [WorkspaceChannelAddOutcome.NotInTeam]: {
     self: translationKey(
-      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
+      "You're not in the Mattermost team this channel is in, so OneUptime can't add you.",
     ),
     other: translationKey(
-      "{{name}} isn't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+      "{{name}} isn't in the Mattermost team this channel is in, so OneUptime can't add them.",
     ),
   },
   [WorkspaceChannelAddOutcome.Guest]: MATTERMOST_REFUSED_TEXT,
@@ -406,7 +406,7 @@ export const MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL: Record<
   [WorkspaceChannelAddOutcome.NotProjectMember]:
     ADD_PROBLEM_TEXT_FOR_SEVERAL[WorkspaceChannelAddOutcome.NotProjectMember],
   [WorkspaceChannelAddOutcome.NotInTeam]: translationKey(
-    "{{names}} aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+    "{{names}} aren't in the Mattermost team this channel is in, so OneUptime can't add them.",
   ),
   [WorkspaceChannelAddOutcome.Guest]: MATTERMOST_REFUSED_TEXT_FOR_SEVERAL,
   [WorkspaceChannelAddOutcome.TryAgain]: translationKey(

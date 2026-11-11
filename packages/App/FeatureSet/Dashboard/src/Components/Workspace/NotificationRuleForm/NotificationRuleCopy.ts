@@ -671,6 +671,33 @@ export const POSTS_IN_SLACK_WORKSPACE_SENTENCE: string = translationKey(
   "Those channels are in the {{workspace}} workspace.",
 );
 
+/*
+ * Mattermost, whose bot is a member of two or more teams of the server:
+ * which team a rule's channels are in. Left empty, OneUptime uses the
+ * project's default team (MattermostTeams).
+ */
+export const MATTERMOST_TEAM_TITLE: string = translationKey("Mattermost team");
+
+export const MATTERMOST_TEAM_PLACEHOLDER: string =
+  translationKey("Default team");
+
+export const EXISTING_CHANNELS_MATTERMOST_TEAM_DESCRIPTION: string =
+  translationKey(
+    "The team these channels are in. Leave it empty to look in the default team first, then in the others.",
+  );
+
+export const NEW_CHANNEL_MATTERMOST_TEAM_DESCRIPTION: string = translationKey(
+  "The team the channel is created in. Leave it empty to use the default team.",
+);
+
+export const CREATED_IN_MATTERMOST_TEAM_SENTENCE: string = translationKey(
+  "The channel is created in the {{team}} team.",
+);
+
+export const POSTS_IN_MATTERMOST_TEAM_SENTENCE: string = translationKey(
+  "Those channels are in the {{team}} team.",
+);
+
 export const POST_TO_CHATS_TITLE: string = translationKey("Post to chats");
 
 export const POST_TO_CHATS_DESCRIPTION: string = translationKey(
@@ -947,6 +974,13 @@ export interface NotificationRuleSummaryInput {
    */
   channelWorkspaceName?: string | undefined;
   existingChannelsWorkspaceName?: string | undefined;
+  /*
+   * Mattermost, whose bot is in several teams: the team the channel is
+   * created in, and the one the channels it posts in are in, by name -
+   * when the rule names them.
+   */
+  channelMattermostTeamName?: string | undefined;
+  existingChannelsMattermostTeamName?: string | undefined;
   chatNames: Array<string>;
 }
 
@@ -1021,10 +1055,24 @@ export function getNotificationRuleSummary(
         );
       }
     } else {
-      if (input.channelWorkspaceName) {
+      if (
+        input.workspaceType === WorkspaceType.Slack &&
+        input.channelWorkspaceName
+      ) {
         sentences.push(
           translator.translateTemplate(CREATED_IN_SLACK_WORKSPACE_SENTENCE, {
             workspace: input.channelWorkspaceName,
+          }),
+        );
+      }
+
+      if (
+        input.workspaceType === WorkspaceType.Mattermost &&
+        input.channelMattermostTeamName
+      ) {
+        sentences.push(
+          translator.translateTemplate(CREATED_IN_MATTERMOST_TEAM_SENTENCE, {
+            team: input.channelMattermostTeamName,
           }),
         );
       }
@@ -1061,6 +1109,17 @@ export function getNotificationRuleSummary(
         sentences.push(
           translator.translateTemplate(POSTS_IN_SLACK_WORKSPACE_SENTENCE, {
             workspace: input.existingChannelsWorkspaceName,
+          }),
+        );
+      }
+
+      if (
+        input.workspaceType === WorkspaceType.Mattermost &&
+        input.existingChannelsMattermostTeamName
+      ) {
+        sentences.push(
+          translator.translateTemplate(POSTS_IN_MATTERMOST_TEAM_SENTENCE, {
+            team: input.existingChannelsMattermostTeamName,
           }),
         );
       }

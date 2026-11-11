@@ -11,6 +11,7 @@ import {
 } from "../../../../Types/Workspace/WorkspaceChannelLink";
 import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import logger from "../../../../Server/Utils/Logger";
+import { JSONObject } from "../../../../Types/JSON";
 
 /*
  * Which links an incident's, alert's, episode's or scheduled maintenance
@@ -754,7 +755,14 @@ describe("a Mattermost channel", () => {
       ["http://10.0.0.5:8065", "http://10.0.0.5:8065/acme/channels/inc-42"],
     ] as Array<[string, string]>) {
       givenConnections({
-        mattermost: { miscData: { serverUrl, teamName: "acme" } },
+        mattermost: {
+          miscData: {
+            serverUrl,
+            teamId: "t4m9r2x8bqc6dn1kz7w3fyjgse",
+            teamName: "acme",
+          },
+          workspaceProjectId: "t4m9r2x8bqc6dn1kz7w3fyjgse",
+        },
       });
 
       expect(urlsOf(await getLinks())).toEqual([expected]);
@@ -800,6 +808,75 @@ describe("a Mattermost channel", () => {
     expect(urlsOf(await getLinks())).toEqual([
       "https://chat.example.com/acme/channels/inc-42",
     ]);
+  });
+
+  /*
+   * A project in several teams of its server (MattermostTeams): a channel
+   * opens in the team it is in, as the connection lists it. The project
+   * was connected to acme; support is the default now.
+   */
+  describe("in several teams", () => {
+    const ACME_ID: string = "t4m9r2x8bqc6dn1kz7w3fyjgse";
+    const SUPPORT_ID: string = "s".repeat(26);
+
+    const CONNECTED_TO_ACME: JSONObject = MATTERMOST_CONNECTION as JSONObject;
+
+    const IN_TWO_TEAMS: unknown = {
+      ...CONNECTED_TO_ACME,
+      miscData: {
+        ...(CONNECTED_TO_ACME["miscData"] as JSONObject),
+        teamId: SUPPORT_ID,
+        teamName: "support",
+        teamDisplayName: "Support",
+        teams: [
+          { id: ACME_ID, name: "acme", displayName: "Acme Inc" },
+          { id: SUPPORT_ID, name: "support", displayName: "Support" },
+        ],
+        teamsReadAt: "2026-11-11T09:00:00.000Z",
+      },
+    };
+
+    beforeEach(() => {
+      givenConnections({ mattermost: IN_TWO_TEAMS });
+    });
+
+    test("a channel opens in the team it is in", async () => {
+      givenChannels([
+        { ...mattermostChannel("inc-42"), teamId: ACME_ID },
+        {
+          ...mattermostChannel("inc-42", "z8x2q4w6e1r3t5y7u9i0o2p4as"),
+          teamId: SUPPORT_ID,
+        },
+      ]);
+
+      // One name in two teams: two channels, two buttons.
+      expect(urlsOf(await getLinks())).toEqual([
+        "https://chat.example.com/acme/channels/inc-42",
+        "https://chat.example.com/support/channels/inc-42",
+      ]);
+    });
+
+    test("a channel stored without a team opens in the team the project was connected to, not the default", async () => {
+      givenChannels([mattermostChannel("inc-42")]);
+
+      expect(urlsOf(await getLinks())).toEqual([
+        "https://chat.example.com/acme/channels/inc-42",
+      ]);
+    });
+
+    test("a channel of a team the connection does not list has no button, and the others stay", async () => {
+      givenChannels([
+        { ...mattermostChannel("inc-42"), teamId: "f".repeat(26) },
+        {
+          ...mattermostChannel("inc-43", "z8x2q4w6e1r3t5y7u9i0o2p4as"),
+          teamId: SUPPORT_ID,
+        },
+      ]);
+
+      expect(urlsOf(await getLinks())).toEqual([
+        "https://chat.example.com/support/channels/inc-43",
+      ]);
+    });
   });
 
   test("a stored name that is not text is left out, and fails nothing", async () => {

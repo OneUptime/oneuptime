@@ -7,7 +7,12 @@ export default interface CreateChannelNotificationRule
 
   // if filters match then do:
   shouldCreateNewChannel: boolean;
-  teamToCreateChannelIn?: string; // team to create new channel in (for MS Teams)
+  /*
+   * Where the channel is created: a Microsoft Teams team, a workspace of a
+   * Slack Enterprise organization, or a team of the Mattermost server.
+   * Slack and Mattermost rules may leave it empty for the default one.
+   */
+  teamToCreateChannelIn?: string;
   inviteTeamsToNewChannel: Array<ObjectID>;
   inviteUsersToNewChannel: Array<ObjectID>;
   /*
