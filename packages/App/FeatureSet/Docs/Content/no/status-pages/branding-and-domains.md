@@ -1,6 +1,6 @@
 # Statusside – merkevare og domener
 
-Statussiden din er den ene skjermen i OneUptime kundene dine ser på, så den bør ligne din egen og ligge på ditt eget domene, som `status.yourcompany.com`. Denne siden går gjennom siden **Merkevare** kort for kort og legger deretter statussiden på domenet ditt: legg til domenet, legg til én DNS-post, så følger det gratis SSL-sertifikatet av seg selv.
+Statussiden din er den ene skjermen i OneUptime kundene dine ser på, så den bør ligne din egen og ligge på ditt eget domene, som `status.yourcompany.com`. Denne siden går gjennom siden **Merkevare** kort for kort og legger deretter statussiden på domenet ditt: legg til domenet, legg til DNS-postene dets, så følger det gratis SSL-sertifikatet av seg selv.
 
 :::cards
 - [Siden Merkevare](#siden-merkevare): Logo, tema, tittel, favicon, lenker, bunntekst, farger og språk.
@@ -225,7 +225,7 @@ Dialogen **DNS-oppsett** viser hver post som fortsatt trengs hos DNS-leverandør
 | Viser at prosjektet eier domenet, til det er verifisert | `TXT` | Domenet, for eksempel `yourcompany.com` | Verifiseringsteksten, `oneuptime-verification-…` |
 | Peker adressen til OneUptime | `CNAME` | Hele adressen, for eksempel `status.yourcompany.com` | Installasjonens CNAME-post for statussider |
 
-Du legger til TXT-posten én gang per domene: hver senere adresse på det trenger bare sin egen CNAME-post. De to ligger aldri på samme navn, fordi et navn med en CNAME-post ikke kan ha noen annen post.
+Du legger til TXT-posten én gang per domene: hver senere adresse på det trenger bare sin egen CNAME-post. For en adresse under domenet ligger de to på forskjellige navn, fordi et navn med en CNAME-post ikke kan ha noen annen post; for selve rotdomenet ligger ALIAS- eller CNAME-flattening-posten ved siden av TXT-posten.
 
 > [!NOTE]
 > For et rotdomene, uten underdomene, legger dialogen til en merknad: mange DNS-leverandører tillater ikke en CNAME-post der. Bruk i stedet leverandørens ALIAS-, ANAME- eller CNAME-flattening-post med samme verdi.

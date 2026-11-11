@@ -1,6 +1,6 @@
 # Marca e domínios da página de status
 
-Sua página de status é a única tela do OneUptime que seus clientes olham, então ela deve ter a sua cara e ficar no seu próprio domínio, como `status.yourcompany.com`. Esta página percorre a página **Marca** cartão por cartão e depois coloca a página de status no seu domínio: adicione o domínio, adicione um registro DNS, e o certificado SSL gratuito vem sozinho.
+Sua página de status é a única tela do OneUptime que seus clientes olham, então ela deve ter a sua cara e ficar no seu próprio domínio, como `status.yourcompany.com`. Esta página percorre a página **Marca** cartão por cartão e depois coloca a página de status no seu domínio: adicione o domínio, adicione os registros DNS dele, e o certificado SSL gratuito vem sozinho.
 
 :::cards
 - [A página Marca](#a-página-marca): Logotipo, tema, título, favicon, links, rodapé, cores e idiomas.
@@ -225,7 +225,7 @@ A caixa de diálogo **Configuração de DNS** mostra cada registro que ainda fal
 | Mostra que o domínio é do projeto, até ele ser verificado | `TXT` | O domínio, por exemplo `yourcompany.com` | O texto de verificação dele, `oneuptime-verification-…` |
 | Aponta o endereço para o OneUptime | `CNAME` | O endereço completo, por exemplo `status.yourcompany.com` | O registro CNAME de páginas de status da sua instalação |
 
-Você adiciona o registro TXT uma vez por domínio: cada endereço seguinte nele só precisa do próprio registro CNAME. Os dois nunca ficam no mesmo nome, porque um nome com um registro CNAME não pode ter nenhum outro registro.
+Você adiciona o registro TXT uma vez por domínio: cada endereço seguinte nele só precisa do próprio registro CNAME. Para um endereço sob o domínio, os dois ficam em nomes diferentes, porque um nome com um registro CNAME não pode ter nenhum outro registro; para a raiz do domínio, o registro ALIAS ou de achatamento de CNAME fica ao lado do registro TXT.
 
 > [!NOTE]
 > Para um domínio raiz, sem subdomínio, a caixa de diálogo acrescenta uma observação: muitos provedores de DNS não permitem um registro CNAME ali. Use no lugar dele o registro ALIAS, ANAME ou de achatamento de CNAME do seu provedor, com o mesmo valor.

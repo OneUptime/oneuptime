@@ -1,6 +1,6 @@
 # Personnalisation et domaines de la page de statut
 
-Votre page de statut est l'écran OneUptime que regardent vos clients : elle devrait donc vous ressembler et se trouver sur votre propre domaine, comme `status.yourcompany.com`. Cette page parcourt la page **Image de marque** carte par carte, puis place la page de statut sur votre domaine : ajoutez le domaine, ajoutez un enregistrement DNS, et le certificat SSL gratuit suit de lui-même.
+Votre page de statut est l'écran OneUptime que regardent vos clients : elle devrait donc vous ressembler et se trouver sur votre propre domaine, comme `status.yourcompany.com`. Cette page parcourt la page **Image de marque** carte par carte, puis place la page de statut sur votre domaine : ajoutez le domaine, ajoutez ses enregistrements DNS, et le certificat SSL gratuit suit de lui-même.
 
 :::cards
 - [La page Image de marque](#la-page-image-de-marque): Logo, thème, titre, favicon, liens, pied de page, couleurs et langues.
@@ -225,7 +225,7 @@ La boîte de dialogue **Configuration DNS** affiche chaque enregistrement encore
 | Montre que le projet est propriétaire du domaine, jusqu'à sa vérification | `TXT` | Le domaine, par exemple `yourcompany.com` | Son texte de vérification, `oneuptime-verification-…` |
 | Fait pointer l'adresse vers OneUptime | `CNAME` | L'adresse complète, par exemple `status.yourcompany.com` | L'enregistrement CNAME des pages de statut de votre installation |
 
-Vous ajoutez l'enregistrement TXT une fois par domaine : chaque adresse ajoutée ensuite sur ce domaine n'a besoin que de son enregistrement CNAME. Les deux ne sont jamais sur le même nom, car un nom qui a un enregistrement CNAME ne peut avoir aucun autre enregistrement.
+Vous ajoutez l'enregistrement TXT une fois par domaine : chaque adresse ajoutée ensuite sur ce domaine n'a besoin que de son enregistrement CNAME. Pour une adresse sous le domaine, les deux sont sur des noms différents, car un nom qui a un enregistrement CNAME ne peut avoir aucun autre enregistrement ; pour la racine du domaine, l'enregistrement ALIAS ou d'aplatissement de CNAME se trouve à côté de l'enregistrement TXT.
 
 > [!NOTE]
 > Pour un domaine racine, sans sous-domaine, la boîte de dialogue ajoute une remarque : beaucoup de fournisseurs DNS n'y autorisent pas d'enregistrement CNAME. Utilisez à la place l'enregistrement ALIAS, ANAME ou d'aplatissement de CNAME de votre fournisseur, avec la même valeur.

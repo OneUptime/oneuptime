@@ -1,6 +1,6 @@
 # Marca y dominios de la página de estado
 
-Tu página de estado es la pantalla de OneUptime que miran tus clientes, así que debería parecerse a ti y vivir en tu propio dominio, como `status.yourcompany.com`. Esta página recorre la página **Marca** tarjeta por tarjeta y después pone la página de estado en tu dominio: añade el dominio, añade un registro DNS y el certificado SSL gratuito llega solo.
+Tu página de estado es la pantalla de OneUptime que miran tus clientes, así que debería parecerse a ti y vivir en tu propio dominio, como `status.yourcompany.com`. Esta página recorre la página **Marca** tarjeta por tarjeta y después pone la página de estado en tu dominio: añade el dominio, añade sus registros DNS y el certificado SSL gratuito llega solo.
 
 :::cards
 - [La página Marca](#la-página-marca): Logotipo, tema, título, favicon, enlaces, pie de página, colores e idiomas.
@@ -225,7 +225,7 @@ El cuadro de diálogo **Configuración de DNS** muestra cada registro que aún f
 | Demuestra que el dominio es del proyecto, hasta que se verifica | `TXT` | El dominio, por ejemplo `yourcompany.com` | Su texto de verificación, `oneuptime-verification-…` |
 | Apunta la dirección a OneUptime | `CNAME` | La dirección completa, por ejemplo `status.yourcompany.com` | El registro CNAME de páginas de estado de tu instalación |
 
-El registro TXT se añade una vez por dominio: cada dirección posterior en él solo necesita su registro CNAME. Los dos nunca están en el mismo nombre, porque un nombre con un registro CNAME no puede tener ningún otro registro.
+El registro TXT se añade una vez por dominio: cada dirección posterior en él solo necesita su registro CNAME. Para una dirección bajo el dominio, los dos están en nombres distintos, porque un nombre con un registro CNAME no puede tener ningún otro registro; para la raíz del dominio, el registro ALIAS o de aplanamiento de CNAME está junto al registro TXT.
 
 > [!NOTE]
 > Para un dominio raíz, sin subdominio, el cuadro de diálogo añade una nota: muchos proveedores de DNS no permiten ahí un registro CNAME. Usa en su lugar el registro ALIAS, ANAME o de aplanamiento de CNAME de tu proveedor, con el mismo valor.

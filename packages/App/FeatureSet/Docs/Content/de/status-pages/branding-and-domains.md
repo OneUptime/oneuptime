@@ -1,6 +1,6 @@
 # Statusseiten – Branding & Domains
 
-Ihre Statusseite ist der eine OneUptime-Bildschirm, den Ihre Kunden ansehen; sie sollte also wie Ihre eigene aussehen und unter Ihrer eigenen Domain erreichbar sein, etwa `status.yourcompany.com`. Diese Seite geht die Seite **Branding** Karte für Karte durch und bringt die Statusseite dann auf Ihre Domain: Domain hinzufügen, einen DNS-Eintrag hinzufügen, und das kostenlose SSL-Zertifikat folgt von selbst.
+Ihre Statusseite ist der eine OneUptime-Bildschirm, den Ihre Kunden ansehen; sie sollte also wie Ihre eigene aussehen und unter Ihrer eigenen Domain erreichbar sein, etwa `status.yourcompany.com`. Diese Seite geht die Seite **Branding** Karte für Karte durch und bringt die Statusseite dann auf Ihre Domain: Domain hinzufügen, ihre DNS-Einträge hinzufügen, und das kostenlose SSL-Zertifikat folgt von selbst.
 
 :::cards
 - [Die Seite Branding](#die-seite-branding): Logo, Design, Titel, Favicon, Links, Fußzeile, Farben und Sprachen.
@@ -225,7 +225,7 @@ Der Dialog **DNS-Einrichtung** zeigt jeden Eintrag, der bei Ihrem DNS-Anbieter n
 | Zeigt, dass die Domain dem Projekt gehört, bis sie verifiziert ist | `TXT` | Die Domain, zum Beispiel `yourcompany.com` | Ihr Verifizierungstext, `oneuptime-verification-…` |
 | Lässt die Adresse auf OneUptime zeigen | `CNAME` | Die vollständige Adresse, zum Beispiel `status.yourcompany.com` | Der CNAME-Eintrag für Statusseiten Ihrer Installation |
 
-Den TXT-Eintrag fügen Sie einmal pro Domain hinzu: Jede spätere Adresse darauf braucht nur ihren CNAME-Eintrag. Die beiden liegen nie auf demselben Namen, denn ein Name mit einem CNAME-Eintrag kann keinen anderen Eintrag haben.
+Den TXT-Eintrag fügen Sie einmal pro Domain hinzu: Jede spätere Adresse darauf braucht nur ihren CNAME-Eintrag. Für eine Adresse unter der Domain liegen die beiden auf verschiedenen Namen, denn ein Name mit einem CNAME-Eintrag kann keinen anderen Eintrag haben; für die Stammdomain selbst liegt der ALIAS- oder CNAME-Flattening-Eintrag neben dem TXT-Eintrag.
 
 > [!NOTE]
 > Für eine Stammdomain, eine ohne Subdomain, fügt der Dialog einen Hinweis hinzu: Viele DNS-Anbieter erlauben dort keinen CNAME-Eintrag. Verwenden Sie stattdessen den ALIAS-, ANAME- oder CNAME-Flattening-Eintrag Ihres Anbieters mit demselben Wert.

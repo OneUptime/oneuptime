@@ -1,6 +1,6 @@
 # Branding e domini della pagina di stato
 
-La vostra pagina di stato è l'unica schermata di OneUptime che guardano i vostri clienti, quindi dovrebbe somigliarvi e stare sul vostro dominio, come `status.yourcompany.com`. Questa pagina percorre la pagina **Branding** scheda per scheda, poi porta la pagina di stato sul vostro dominio: aggiungete il dominio, aggiungete un record DNS e il certificato SSL gratuito arriva da solo.
+La vostra pagina di stato è l'unica schermata di OneUptime che guardano i vostri clienti, quindi dovrebbe somigliarvi e stare sul vostro dominio, come `status.yourcompany.com`. Questa pagina percorre la pagina **Branding** scheda per scheda, poi porta la pagina di stato sul vostro dominio: aggiungete il dominio, aggiungete i suoi record DNS e il certificato SSL gratuito arriva da solo.
 
 :::cards
 - [La pagina Branding](#la-pagina-branding): Logo, tema, titolo, favicon, link, footer, colori e lingue.
@@ -225,7 +225,7 @@ La finestra di dialogo **Configurazione DNS** mostra ogni record ancora necessar
 | Dimostra che il dominio appartiene al progetto, finché non è verificato | `TXT` | Il dominio, per esempio `yourcompany.com` | Il suo testo di verifica, `oneuptime-verification-…` |
 | Fa puntare l'indirizzo a OneUptime | `CNAME` | L'indirizzo completo, per esempio `status.yourcompany.com` | Il record CNAME delle pagine di stato della vostra installazione |
 
-Il record TXT si aggiunge una volta per dominio: ogni indirizzo successivo su quel dominio ha bisogno solo del suo record CNAME. I due non stanno mai sullo stesso nome, perché un nome con un record CNAME non può avere nessun altro record.
+Il record TXT si aggiunge una volta per dominio: ogni indirizzo successivo su quel dominio ha bisogno solo del suo record CNAME. Per un indirizzo sotto il dominio i due stanno su nomi diversi, perché un nome con un record CNAME non può avere nessun altro record; per la radice del dominio, il record ALIAS o di appiattimento del CNAME sta accanto al record TXT.
 
 > [!NOTE]
 > Per un dominio radice, senza sottodominio, la finestra di dialogo aggiunge una nota: molti provider DNS non consentono lì un record CNAME. Usate invece il record ALIAS, ANAME o di appiattimento del CNAME del vostro provider, con lo stesso valore.

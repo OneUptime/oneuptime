@@ -1,6 +1,6 @@
 # Statusside – branding og domæner
 
-Din statusside er den ene skærm i OneUptime, dine kunder kigger på, så den bør ligne din egen og ligge på dit eget domæne, såsom `status.yourcompany.com`. Denne side gennemgår siden **Branding** kort for kort og lægger derefter statussiden på dit domæne: tilføj domænet, tilføj én DNS-post, og det gratis SSL-certifikat følger af sig selv.
+Din statusside er den ene skærm i OneUptime, dine kunder kigger på, så den bør ligne din egen og ligge på dit eget domæne, såsom `status.yourcompany.com`. Denne side gennemgår siden **Branding** kort for kort og lægger derefter statussiden på dit domæne: tilføj domænet, tilføj dets DNS-poster, og det gratis SSL-certifikat følger af sig selv.
 
 :::cards
 - [Siden Branding](#siden-branding): Logo, tema, titel, favicon, links, sidefod, farver og sprog.
@@ -225,7 +225,7 @@ Dialogen **DNS-opsætning** viser hver post, der stadig mangler hos din DNS-udby
 | Viser, at projektet ejer domænet, indtil det er bekræftet | `TXT` | Domænet, for eksempel `yourcompany.com` | Dets bekræftelsestekst, `oneuptime-verification-…` |
 | Peger adressen mod OneUptime | `CNAME` | Den fulde adresse, for eksempel `status.yourcompany.com` | Din installations CNAME-post til statussider |
 
-Du tilføjer TXT-posten én gang pr. domæne: hver senere adresse på det behøver kun sin CNAME-post. De to ligger aldrig på samme navn, fordi et navn med en CNAME-post ikke kan have nogen anden post.
+Du tilføjer TXT-posten én gang pr. domæne: hver senere adresse på det behøver kun sin CNAME-post. For en adresse under domænet ligger de to på forskellige navne, fordi et navn med en CNAME-post ikke kan have nogen anden post; for selve roddomænet ligger ALIAS- eller CNAME-flattening-posten ved siden af TXT-posten.
 
 > [!NOTE]
 > For et roddomæne, uden underdomæne, tilføjer dialogen en bemærkning: mange DNS-udbydere tillader ikke en CNAME-post der. Brug i stedet din udbyders ALIAS-, ANAME- eller CNAME-flattening-post med samme værdi.

@@ -1,6 +1,6 @@
 # Statuspagina – branding en domeinen
 
-Uw statuspagina is het enige scherm van OneUptime waar uw klanten naar kijken, dus het moet eruitzien als het uwe en op uw eigen domein staan, zoals `status.yourcompany.com`. Deze pagina loopt de pagina **Huisstijl** kaart voor kaart door en zet daarna de statuspagina op uw domein: voeg het domein toe, voeg één DNS-record toe, en het gratis SSL-certificaat volgt vanzelf.
+Uw statuspagina is het enige scherm van OneUptime waar uw klanten naar kijken, dus het moet eruitzien als het uwe en op uw eigen domein staan, zoals `status.yourcompany.com`. Deze pagina loopt de pagina **Huisstijl** kaart voor kaart door en zet daarna de statuspagina op uw domein: voeg het domein toe, voeg zijn DNS-records toe, en het gratis SSL-certificaat volgt vanzelf.
 
 :::cards
 - [De pagina Huisstijl](#de-pagina-huisstijl): Logo, thema, titel, favicon, links, footer, kleuren en talen.
@@ -225,7 +225,7 @@ Het dialoogvenster **DNS-instelling** toont elk record dat nog nodig is bij uw D
 | Laat zien dat het domein van het project is, totdat het is geverifieerd | `TXT` | Het domein, bijvoorbeeld `yourcompany.com` | De verificatietekst ervan, `oneuptime-verification-…` |
 | Laat het adres naar OneUptime wijzen | `CNAME` | Het volledige adres, bijvoorbeeld `status.yourcompany.com` | Het statuspagina-CNAME-record van uw installatie |
 
-U voegt het TXT-record één keer per domein toe: elk later adres op dat domein heeft alleen zijn CNAME-record nodig. De twee staan nooit op dezelfde naam, omdat een naam met een CNAME-record geen ander record kan hebben.
+U voegt het TXT-record één keer per domein toe: elk later adres op dat domein heeft alleen zijn CNAME-record nodig. Voor een adres onder het domein staan de twee op verschillende namen, omdat een naam met een CNAME-record geen ander record kan hebben; voor het hoofddomein zelf staat het ALIAS- of CNAME-flattening-record naast het TXT-record.
 
 > [!NOTE]
 > Voor een hoofddomein, zonder subdomein, voegt het dialoogvenster een opmerking toe: veel DNS-providers staan daar geen CNAME-record toe. Gebruik in plaats daarvan het ALIAS-, ANAME- of CNAME-flattening-record van uw provider, met dezelfde waarde.

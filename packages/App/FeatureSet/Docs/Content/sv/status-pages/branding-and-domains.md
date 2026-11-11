@@ -1,6 +1,6 @@
 # Statussidans varumärke och domäner
 
-Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så den bör se ut som din egen och ligga på din egen domän, som `status.yourcompany.com`. Den här sidan går igenom sidan **Varumärke** kort för kort och lägger sedan statussidan på din domän: lägg till domänen, lägg till en DNS-post, så följer det kostnadsfria SSL-certifikatet av sig självt.
+Din statussida är den enda skärmen i OneUptime som dina kunder tittar på, så den bör se ut som din egen och ligga på din egen domän, som `status.yourcompany.com`. Den här sidan går igenom sidan **Varumärke** kort för kort och lägger sedan statussidan på din domän: lägg till domänen, lägg till dess DNS-poster, så följer det kostnadsfria SSL-certifikatet av sig självt.
 
 :::cards
 - [Sidan Varumärke](#sidan-varumärke): Logotyp, tema, titel, favicon, länkar, sidfot, färger och språk.
@@ -225,7 +225,7 @@ Dialogrutan **DNS-inställning** visar varje post som fortfarande behövs hos di
 | Visar att projektet äger domänen, tills den är verifierad | `TXT` | Domänen, till exempel `yourcompany.com` | Dess verifieringstext, `oneuptime-verification-…` |
 | Pekar adressen mot OneUptime | `CNAME` | Den fullständiga adressen, till exempel `status.yourcompany.com` | Din installations CNAME-post för statussidor |
 
-Du lägger till TXT-posten en gång per domän: varje senare adress på den behöver bara sin egen CNAME-post. De två ligger aldrig på samma namn, eftersom ett namn med en CNAME-post inte kan ha någon annan post.
+Du lägger till TXT-posten en gång per domän: varje senare adress på den behöver bara sin egen CNAME-post. För en adress under domänen ligger de två på olika namn, eftersom ett namn med en CNAME-post inte kan ha någon annan post; för själva rotdomänen ligger ALIAS- eller CNAME-flattening-posten bredvid TXT-posten.
 
 > [!NOTE]
 > För en rotdomän, utan underdomän, lägger dialogrutan till en anmärkning: många DNS-leverantörer tillåter inte en CNAME-post där. Använd i stället leverantörens ALIAS-, ANAME- eller CNAME-flattening-post med samma värde.
