@@ -9,6 +9,7 @@ import {
   DEFAULT_DATA_PIPELINE_LINEAGE_DEPTH,
   DataAlertLineageAnswer,
   DataLineageHighlight,
+  DataLineageNodeKind,
   DataTableLineage,
   DataTableLineageEdge,
   DataTableLineageNode,
@@ -19,6 +20,7 @@ import {
 } from "../../../Types/DataObservability/DataTableLineage";
 import ObjectID from "../../../Types/ObjectID";
 import AlertService from "../../Services/AlertService";
+import AlertStateService from "../../Services/AlertStateService";
 import DataAlertService, {
   Service as DataAlertServiceType,
 } from "../../Services/DataAlertService";
@@ -155,6 +157,22 @@ interface AlertFocus {
   dataPipelineId: string | null;
 }
 
+// Whether the drawing's own card is a table's that counts open alerts.
+function countsOwnTableAlerts(answer: DataAlertLineageAnswer): boolean {
+  const lineage: DataTableLineage | null = answer.lineage;
+  const own: DataTableLineageNode | undefined = lineage?.nodes.find(
+    (node: DataTableLineageNode): boolean => {
+      return node.id === lineage.focusNodeId;
+    },
+  );
+
+  return Boolean(
+    own &&
+      own.kind === DataLineageNodeKind.Table &&
+      (own.openAlertCount || 0) > 0,
+  );
+}
+
 function toAlertRow(row: DataAlert): DataAlertLineageRow {
   return {
     alertId: row.alertId?.toString() || "",
@@ -212,7 +230,7 @@ export default class DataAlertLineageReader {
     now: Date;
     reader: DatabaseCommonInteractionProps | null;
   }): Promise<DataAlertLineageAnswer | null> {
-    return await this.build({
+    const answer: DataAlertLineageAnswer | null = await this.build({
       alertId: data.alertId.toString(),
       now: data.now,
       alerts: this.getDatabaseAlertReader(data.projectId, data.reader),
@@ -220,6 +238,60 @@ export default class DataAlertLineageReader {
         data.projectId,
         data.reader,
       ),
+    });
+
+    /*
+     * The alert's own card counts the open alerts on its table - the alert
+     * itself among them while it is open, which the card already says
+     * (This alert). Whether it is open goes with the drawing, read with it,
+     * so the card can leave out a count that is only the alert itself
+     * (#6851); asked only when that card counts any.
+     */
+    if (answer && countsOwnTableAlerts(answer)) {
+      const isOpen: boolean | null = await this.readIsAlertOpen(
+        data.projectId,
+        data.alertId,
+      );
+
+      if (isOpen !== null) {
+        answer.isAlertOpen = isOpen;
+      }
+    }
+
+    return answer;
+  }
+
+  /*
+   * Whether the alert is in a state that is not resolved, by the rule its
+   * table's count of open alerts goes by (getUnresolvedAlertStateIds): null
+   * when the alert is not there to say. Read as OneUptime: it is asked only
+   * of an alert its reader was found to see.
+   */
+  public static async readIsAlertOpen(
+    projectId: ObjectID,
+    alertId: ObjectID,
+  ): Promise<boolean | null> {
+    const alert: Alert | null = await AlertService.findOneBy({
+      query: { projectId, _id: alertId },
+      select: { currentAlertStateId: true },
+      props: { isRoot: true },
+    });
+
+    if (!alert) {
+      return null;
+    }
+
+    const stateId: string = alert.currentAlertStateId?.toString() || "";
+
+    if (!stateId) {
+      return false;
+    }
+
+    const unresolvedStateIds: Array<ObjectID> =
+      await AlertStateService.getUnresolvedAlertStateIds(projectId);
+
+    return unresolvedStateIds.some((id: ObjectID): boolean => {
+      return id.toString() === stateId;
     });
   }
 

@@ -206,6 +206,7 @@ const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
         columnOrder={columnOrder}
         initialColumn={column}
         highlightNotes={getAlertLineageNotes(translator, read.answer)}
+        isAlertOpen={read.answer.isAlertOpen === true}
       />
     );
   }

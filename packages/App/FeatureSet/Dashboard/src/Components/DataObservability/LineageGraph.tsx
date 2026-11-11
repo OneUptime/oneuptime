@@ -38,6 +38,7 @@ import {
   layoutLineage,
 } from "./LineageGraphModel";
 import { getRunStatePill } from "../../Pages/DataObservability/Pipelines";
+import FlowKeyboardFocus from "../Topology/FlowKeyboardFocus";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -123,7 +124,12 @@ import "reactflow/dist/style.css";
  * is dragged; the controls zoom and fit it. A drawing too wide to read
  * whole opens on the table itself, at a zoom its names can be read at
  * (getLineageViewport); the rest is a drag away. Until the reader pans or
- * zooms, the view follows the canvas's size.
+ * zooms, the view follows the canvas's size. Tab reaches the cards and
+ * counts off the view too, and the view pans to show each one the
+ * keyboard's focus goes to (FlowKeyboardFocus, as the Service Map does) -
+ * the browser would otherwise scroll React Flow's box to it, sliding the
+ * drawing and its controls off the canvas - and is the reader's from then
+ * on. A card a pointer presses is left where it is.
  *
  * One column followed (columnTrail) is picked out the way an alert's ways
  * are, in indigo with the rest faint, and each card on its way names the
@@ -411,6 +417,8 @@ interface LineageCardData {
   drawDownstream?: HiddenCountAction | undefined;
   // Drawn here by the last count pressed: tinted a moment.
   isDrawn?: boolean | undefined;
+  // On an alert's drawing, the alert's own card while the alert is open.
+  isAlertOpen?: boolean | undefined;
 }
 
 /*
@@ -481,12 +489,55 @@ export function getLineageDrawLabel(data: {
   });
 }
 
+/*
+ * How many open alerts a card's chip counts. On an alert's own card, the
+ * alert itself is one of its table's open alerts while it is open, and This
+ * alert already says that: a card whose one open alert is the alert itself
+ * counts none, so the chip after This alert says how fresh the table is.
+ * Whether the alert is open is not known on every page (a drawing read
+ * before the answer said), and then the count is shown as it is.
+ */
+export function getLineageCardOpenAlerts(data: {
+  node: DataTableLineageNode;
+  isFocus: boolean;
+  place: LineagePlace;
+  isAlertOpen?: boolean | undefined;
+}): number {
+  const count: number = Math.max(0, data.node.openAlertCount || 0);
+  const isOnlyThisAlert: boolean =
+    count === 1 &&
+    data.isFocus &&
+    data.place === LineagePlace.Alert &&
+    data.isAlertOpen === true;
+
+  return isOnlyThisAlert ? 0 : count;
+}
+
+/*
+ * The two chips under a card's name, side by side in a row as wide as the
+ * card leaves them. The first keeps its whole width (never more than the
+ * row's); the second takes what is left and gives way, its words ending in
+ * "..." - whole under the pointer (Pill) and in the card's name read aloud -
+ * rather than being cut off at the card's edge in the middle of a word:
+ * "Deze waarschuwing" and "1 open waarschuwing" are wider than a card
+ * together (#6851).
+ */
+export const LINEAGE_FIRST_CHIP_CLASS_NAME: string = "flex max-w-full shrink-0";
+export const LINEAGE_SECOND_CHIP_CLASS_NAME: string = "flex min-w-0";
+
 // What a card's chips are read from: the card's own data, but whether it fades.
 interface CardChipsProps {
   node: DataTableLineageNode;
   isFocus: boolean;
   place: LineagePlace;
   role: LineageCardRole | null;
+  // On an alert's own card: the alert is open, so one of the open alerts counted.
+  isAlertOpen?: boolean | undefined;
+}
+
+interface CardChip {
+  key: string;
+  pill: ReactElement;
 }
 
 // What most needs saying about a card, at most two chips.
@@ -495,83 +546,86 @@ const CardChips: FunctionComponent<CardChipsProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const node: DataTableLineageNode = props.node;
-  const chips: Array<ReactElement> = [];
+  const chips: Array<CardChip> = [];
 
   if (props.isFocus) {
-    chips.push(
-      <Pill
-        key="focus"
-        text={FOCUS_LABELS[props.place]}
-        color={Gray500}
-        size={PillSize.Small}
-      />,
-    );
+    chips.push({
+      key: "focus",
+      pill: (
+        <Pill
+          text={FOCUS_LABELS[props.place]}
+          color={Gray500}
+          size={PillSize.Small}
+        />
+      ),
+    });
   }
 
   if (props.role) {
-    chips.push(
-      <Pill
-        key="role"
-        text={ROLE_LABELS[props.role]}
-        color={Indigo500}
-        size={PillSize.Small}
-      />,
-    );
+    chips.push({
+      key: "role",
+      pill: (
+        <Pill
+          text={ROLE_LABELS[props.role]}
+          color={Indigo500}
+          size={PillSize.Small}
+        />
+      ),
+    });
   }
 
   if (node.kind === DataLineageNodeKind.Table) {
     if (node.isDropped) {
-      chips.push(
-        <Pill
-          key="dropped"
-          text={DROPPED}
-          color={Gray500}
-          size={PillSize.Small}
-        />,
-      );
+      chips.push({
+        key: "dropped",
+        pill: <Pill text={DROPPED} color={Gray500} size={PillSize.Small} />,
+      });
     } else {
-      if ((node.openAlertCount || 0) > 0) {
-        chips.push(
-          <Pill
-            key="alerts"
-            text={translator.translatePlural(
-              OPEN_ALERTS,
-              node.openAlertCount || 0,
-            )}
-            color={Red500}
-            size={PillSize.Small}
-          />,
-        );
+      const openAlerts: number = getLineageCardOpenAlerts({
+        node,
+        isFocus: props.isFocus,
+        place: props.place,
+        isAlertOpen: props.isAlertOpen,
+      });
+
+      if (openAlerts > 0) {
+        chips.push({
+          key: "alerts",
+          pill: (
+            <Pill
+              text={translator.translatePlural(OPEN_ALERTS, openAlerts)}
+              color={Red500}
+              size={PillSize.Small}
+            />
+          ),
+        });
       }
 
       if (node.freshness === DataAssetFreshness.Late) {
-        chips.push(
-          <Pill
-            key="late"
-            text={formatOverdue(translator, node.lateBySeconds || 0)}
-            color={Red500}
-            size={PillSize.Small}
-          />,
-        );
+        chips.push({
+          key: "late",
+          pill: (
+            <Pill
+              text={formatOverdue(translator, node.lateBySeconds || 0)}
+              color={Red500}
+              size={PillSize.Small}
+            />
+          ),
+        });
       } else if (node.freshness === DataAssetFreshness.Fresh) {
-        chips.push(
-          <Pill
-            key="fresh"
-            text={FRESH}
-            color={Green500}
-            size={PillSize.Small}
-          />,
-        );
+        chips.push({
+          key: "fresh",
+          pill: <Pill text={FRESH} color={Green500} size={PillSize.Small} />,
+        });
       }
     }
   }
 
   if (node.kind === DataLineageNodeKind.Pipeline) {
-    chips.push(
-      <span key="run" className="inline-flex">
-        {getRunStatePill(node.lastRunState || undefined, PillSize.Small)}
-      </span>,
-    );
+    chips.push({
+      key: "run",
+      pill: getRunStatePill(node.lastRunState || undefined, PillSize.Small),
+    });
   }
 
   if (chips.length === 0) {
@@ -579,8 +633,25 @@ const CardChips: FunctionComponent<CardChipsProps> = (
   }
 
   return (
-    <span className="mt-1.5 flex flex-nowrap items-center gap-1 overflow-hidden">
-      {chips.slice(0, 2)}
+    <span
+      className="mt-1.5 flex flex-nowrap items-center gap-1 overflow-hidden"
+      data-testid="lineage-card-chips"
+    >
+      {chips.slice(0, 2).map((chip: CardChip, index: number): ReactElement => {
+        return (
+          <span
+            key={chip.key}
+            className={
+              index === 0
+                ? LINEAGE_FIRST_CHIP_CLASS_NAME
+                : LINEAGE_SECOND_CHIP_CLASS_NAME
+            }
+            data-lineage-chip={chip.key}
+          >
+            {chip.pill}
+          </span>
+        );
+      })}
     </span>
   );
 };
@@ -841,6 +912,7 @@ const LineageCard: FunctionComponent<NodeProps<LineageCardData>> = (
         isFocus={isFocus}
         place={place}
         role={props.data.role}
+        isAlertOpen={props.data.isAlertOpen}
       />
     </>
   );
@@ -1104,6 +1176,11 @@ export interface ComponentProps {
    * when the control that had it is gone (Reset diagram, once pressed).
    */
   figureRef?: RefObject<HTMLDivElement> | undefined;
+  /*
+   * On an alert's drawing, whether the alert was open when it was read:
+   * then it is one of its own card's open alerts, which This alert says.
+   */
+  isAlertOpen?: boolean | undefined;
 }
 
 const LineageGraph: FunctionComponent<ComponentProps> = (
@@ -1186,6 +1263,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
           node,
           DataLineageSide.Downstream,
         );
+        const isFocus: boolean = node.id === props.lineage.focusNodeId;
 
         return {
           id: node.id,
@@ -1193,8 +1271,9 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
           position: layout.positions.get(node.id) || { x: 0, y: 0 },
           data: {
             node,
-            isFocus: node.id === props.lineage.focusNodeId,
+            isFocus,
             place,
+            ...(isFocus && props.isAlertOpen ? { isAlertOpen: true } : {}),
             role: getLineageCardRole(highlight, node.id),
             isDimmed: isLineageCardDimmed(highlight, node.id),
             ...(columns && columns.length > 0 ? { columns } : {}),
@@ -1232,6 +1311,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
     onExpand,
     expanding,
     props.growth,
+    props.isAlertOpen,
     translator.language,
   ]);
 
@@ -1432,6 +1512,24 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
     };
   }, [readViewport]);
 
+  /*
+   * The keyboard's focus went to a card or a count off the view, and the
+   * view moved to show it: the view is the reader's from now on, as after
+   * a drag - the canvas resizing, or tables drawn here, no longer fit the
+   * drawing again and carry the focused card back out of view. React Flow
+   * tells onMoveEnd of the reader's own gestures only, so where the view
+   * is now is read here.
+   */
+  const onFocusMovedView: () => void = useCallback((): void => {
+    const flow: ReactFlowInstance | null = flowRef.current;
+
+    hasReaderMovedRef.current = true;
+
+    if (flow && typeof flow.getViewport === "function") {
+      viewportRef.current = flow.getViewport();
+    }
+  }, []);
+
   const isMeasured: boolean = measured?.key === drawingKey;
   const viewport: LineageViewport | null = isMeasured
     ? measured?.viewport || null
@@ -1493,6 +1591,7 @@ const LineageGraph: FunctionComponent<ComponentProps> = (
           panOnScroll={false}
           preventScrolling={false}
         >
+          <FlowKeyboardFocus onViewMoved={onFocusMovedView} />
           <Controls
             position="bottom-right"
             showInteractive={false}
