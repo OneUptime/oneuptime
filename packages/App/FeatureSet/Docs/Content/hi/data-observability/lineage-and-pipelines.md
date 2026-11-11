@@ -128,5 +128,5 @@ Hightouch और Census रिवर्स ETL टूल हैं: किसी
 
 :::cards
 - [डेटा प्रोडक्ट](/docs/data-observability/data-products): लोग जिन टेबल का उपयोग करते हैं, उन पर ताज़गी SLA।
-- [OneUptime AI और API](/docs/data-observability/ai-and-api): ऐसी जांच-पड़ताल जो किसी टेबल में लिखने वालों और उसके रन से शुरू होती है।
+- [OneUptime AI और API](/docs/data-observability/ai-and-api): ऐसी जांच-पड़ताल जो किसी टेबल में लिखने वालों और उसके रन से शुरू होती है। AI से पूछें में यह पूछा जा सकता है कि कोई टेबल किससे बनती है, और AI एजेंट भी यह पूछ सकते हैं।
 :::

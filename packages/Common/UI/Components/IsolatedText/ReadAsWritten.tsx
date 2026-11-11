@@ -1,5 +1,5 @@
 import IsolatedText from "./IsolatedText";
-import { getLineDirection } from "../../Utils/LineDirection";
+import { getTranslatedLineDirection } from "../../Utils/LineDirection";
 import React, { ReactElement } from "react";
 
 /*
@@ -16,7 +16,12 @@ import React, { ReactElement } from "react";
  * written and still starts where the page's lines do. Words in the page's
  * own way - a translated line, an English line on an English page - and a
  * line handed over as an element of its own (links, bold names) are drawn
- * exactly as they always were, with no new element.
+ * exactly as they always were, with no new element. A translated Arabic
+ * or Persian line is the page's own way however many product names it
+ * gives in Latin letters (getTranslatedLineDirection): read by most of its
+ * letters, the 2FA help that names 1Password, Google Authenticator and
+ * Microsoft Authenticator was laid out from the left, its Arabic words in
+ * the wrong order.
  */
 export type ReadAsWrittenValue = string | ReactElement | undefined;
 
@@ -27,7 +32,8 @@ export const readAsWritten: (
   words: ReadAsWrittenValue,
   pageLanguage: string | null | undefined,
 ): ReadAsWrittenValue => {
-  return typeof words === "string" && getLineDirection(words, pageLanguage) ? (
+  return typeof words === "string" &&
+    getTranslatedLineDirection(words, pageLanguage) ? (
     <IsolatedText text={words} />
   ) : (
     words

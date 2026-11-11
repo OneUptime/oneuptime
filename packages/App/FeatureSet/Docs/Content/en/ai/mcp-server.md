@@ -339,6 +339,8 @@ The **`oneuptime_whoami`** tool returns the project your credentials belong to (
 
 The **`get_data_table_freshness`** tool tells an agent whether a table Data Observability watches is fresh, before it uses the data: fresh or late by the table's own rhythm, when it last changed, its open alerts, and how the latest run of each pipeline that writes it went. Pass `table` as `schema.table`, the table's name alone, or its ID. It changes nothing.
 
+The **`get_data_table_lineage`** tool tells an agent what a watched table is built from and what is built from it, before it changes the table or trusts its data: the tables upstream and downstream that are late, dropped, have open alerts or whose pipeline failed its last run, nearest first, with how many steps away each is, then the rest, the pipelines that load its sources from outside and the BI dashboards built on it. It goes three steps each way, or up to five with `depth`. Pass `table` as for `get_data_table_freshness`. It changes nothing.
+
 ## Querying Telemetry
 
 Logs, metrics, traces (spans), exceptions, monitor logs and the other kinds of telemetry come as read-only `list_` and `count_` tools (`list_logs`, `list_metrics`, `list_spans`, `list_exception_instances`, `list_monitor_logs` and their `count_` twins). Telemetry arrives through OpenTelemetry, so there are no create tools.

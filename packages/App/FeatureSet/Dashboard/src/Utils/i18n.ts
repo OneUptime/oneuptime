@@ -14,10 +14,12 @@ import {
 import { loadLocaleResource, LocaleResource } from "./I18nLocaleLoader";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
+import { productNamePostProcessor } from "Common/UI/Utils/ProductNameTranslation";
 import {
-  getProductNamePostProcess,
-  productNamePostProcessor,
-} from "Common/UI/Utils/ProductNameTranslation";
+  codeReadsAsWrittenPostProcessor,
+  getTranslationPostProcess,
+  leaveIsolatesOutOfCopiedText,
+} from "Common/UI/Utils/CodeReadsAsWritten";
 
 /*
  * English is the ONLY locale bundled statically: it is the fallback language,
@@ -117,12 +119,16 @@ export const i18nReady: Promise<void> = i18n
   .use(lazyLocaleBackend)
   .use(initReactI18next)
   .use(productNamePostProcessor)
+  .use(codeReadsAsWrittenPostProcessor)
   .init({
     resources: {
       en: { translation: en },
     },
-    // The installation's own name in every sentence, when it has one.
-    postProcess: getProductNamePostProcess(),
+    /*
+     * The installation's own name in every sentence, when it has one, and
+     * code in an Arabic or Persian sentence drawn as it is written.
+     */
+    postProcess: getTranslationPostProcess(),
     partialBundledLanguages: true,
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_DASHBOARD_LANGUAGE_CODES,
@@ -149,5 +155,8 @@ followLanguageForDates(i18n);
  * reads the page in it, and a Persian page reads right to left.
  */
 followLanguageForPage(i18n);
+
+// Code copied from a sentence pastes without the marks that set it apart.
+leaveIsolatesOutOfCopiedText();
 
 export default i18n;

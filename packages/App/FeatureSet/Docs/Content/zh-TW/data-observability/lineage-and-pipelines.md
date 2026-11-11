@@ -128,5 +128,5 @@ Hightouch 和 Census 是反向 ETL 工具：把資料表複製到 CRM 的同步�
 
 :::cards
 - [資料產品](/docs/data-observability/data-products): 針對人們使用的資料表的新鮮度 SLA。
-- [OneUptime AI 與 API](/docs/data-observability/ai-and-api): 從資料表的寫入者和執行開始的調查。
+- [OneUptime AI 與 API](/docs/data-observability/ai-and-api): 從資料表的寫入者和執行開始的調查。在詢問 AI 中和透過 AI 代理，還能查詢某個資料表由什麼建置。
 :::

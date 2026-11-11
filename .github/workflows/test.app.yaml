@@ -1644,7 +1644,10 @@ jobs:
           # The second third of the OpenStack pages (16.0, see group 19) runs
           # here since 2026-11-10, with Reading Direction. Dashboard Templates
           # (2.5) moved to group 13, the group with the most room, and Host
-          # Pages (1.6) to the new group 21: about 21.3.
+          # Pages (1.6) to the new group 21: about 21.3. Code in Arabic and
+          # Persian sentences (#6705) gave Reading Direction 12 more tests,
+          # its screenshots among them: planned as 5.9, this group about
+          # 21.9.
           - group: 20
             openstack_pages_shard: 2/3
             suites: >-

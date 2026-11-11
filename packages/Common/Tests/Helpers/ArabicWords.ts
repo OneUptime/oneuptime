@@ -3,9 +3,6 @@
  * change a word's letters (the Dashboard's Locales/ARABIC.md).
  */
 
-// A dot that starts a word: ".txt", ".csv".
-const LEADING_DOT_REGEX: RegExp = /^\.(?=[A-Za-z0-9])/;
-
 // A wildcard that ends a family of names: "browser.*".
 const TRAILING_WILDCARD_REGEX: RegExp = /\.\*$/;
 
@@ -28,13 +25,11 @@ const DROPPED_YA_REGEX: RegExp = /\u0651?\u064D\u0651?(?=$|[^\p{L}\p{M}])/gu;
 
 /*
  * A word a sentence keeps as written - a file's extension, a family of
- * attributes - as a language writes it. The Arabic strings hold no
- * direction marks, so a dot that starts a Latin word right after Arabic is
- * drawn at the word's far end (".txt" reads "txt."), and so is a wildcard
- * that ends one before more Arabic ("browser.*" reads "*.browser"). Arabic
- * names a format without its dot ("ملف txt") and a family of attributes by
- * the name they start with ("السمات التي تبدأ بـ browser"). Every other
- * language writes the word as it is.
+ * attributes - as a language writes it. Every language writes code as
+ * en.json does, a file's extension with its dot ("ملف .txt"): the page sets
+ * code apart so it is drawn as written (Common/UI/Utils/CodeReadsAsWritten).
+ * Arabic names a family of attributes by the name they start with
+ * ("السمات التي تبدأ بـ browser") rather than as a pattern.
  */
 export const wordAsWrittenIn: (language: string, word: string) => string = (
   language: string,
@@ -44,9 +39,7 @@ export const wordAsWrittenIn: (language: string, word: string) => string = (
     return word;
   }
 
-  return word
-    .replace(LEADING_DOT_REGEX, "")
-    .replace(TRAILING_WILDCARD_REGEX, "");
+  return word.replace(TRAILING_WILDCARD_REGEX, "");
 };
 
 /*
