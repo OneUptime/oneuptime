@@ -3,7 +3,12 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import InvestigationNotStartedReason, {
   InvestigationNotStartedCode,
+  InvestigationNotStartedFacts,
 } from "Common/Types/AI/InvestigationNotStartedReason";
+import {
+  getInvestigationNotStartedWords,
+  InvestigationNotStartedWords,
+} from "./InvestigationNotStartedWords";
 import Project from "Common/Models/DatabaseModels/Project";
 import { PROJECT_AI_DAILY_TOKEN_LIMIT_COLUMN } from "Common/Types/AI/ProjectAiDailyLimits";
 import { PROJECT_BALANCE_RECHARGE_PERMISSIONS } from "Common/Utils/Project/ProjectBalance";
@@ -77,23 +82,54 @@ const PROJECT_ADMIN_CAN_ACT: string = translationKey(
   "A project administrator can review these settings.",
 );
 
-const KNOWN_REASON_CODES: Array<InvestigationNotStartedCode> = [
-  "ai_disabled",
-  "automatic_investigation_disabled",
-  "provider_missing",
-  "insufficient_ai_balance",
-  "project_daily_limit_reached",
-  "no_investigation_rule_matched",
-  "severity_below_threshold",
-  "monitor_cooldown",
-  "created_resolved",
-  "resolved_before_investigation",
-  "daily_budget_exhausted",
-  "budget_check_failed",
-  "enqueue_failed",
-  "eligibility_check_failed",
-  "no_run_recorded",
+/*
+ * A reason's code: lowercase words joined by underscores. A code the card
+ * does not word yet - one a newer server sends - is still a reason, drawn
+ * in the server's own English.
+ */
+const REASON_CODE: RegExp = /^[a-z][a-z0-9_]{0,63}$/;
+
+const FACT_NAMES: ReadonlyArray<"severityName" | "minimumSeverityName"> = [
+  "severityName",
+  "minimumSeverityName",
 ];
+
+const FACT_COUNTS: ReadonlyArray<
+  "cooldownWindowMinutes" | "rulesChecked" | "usedTokensToday" | "dailyTokenLimit"
+> = ["cooldownWindowMinutes", "rulesChecked", "usedTokensToday", "dailyTokenLimit"];
+
+/*
+ * The facts sent with a reason, each kept only when it has the shape the
+ * server sends: a name, or a count that is not negative.
+ */
+export function parseInvestigationNotStartedFacts(
+  value: unknown,
+): InvestigationNotStartedFacts | undefined {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return undefined;
+  }
+
+  const raw: Record<string, unknown> = value as Record<string, unknown>;
+  const facts: InvestigationNotStartedFacts = {};
+
+  for (const key of FACT_NAMES) {
+    const name: unknown = raw[key];
+
+    if (typeof name === "string" && name.trim()) {
+      facts[key] = name;
+    }
+  }
+
+  for (const key of FACT_COUNTS) {
+    const count: unknown = raw[key];
+
+    if (typeof count === "number" && Number.isFinite(count) && count >= 0) {
+      facts[key] = count;
+    }
+  }
+
+  return Object.keys(facts).length > 0 ? facts : undefined;
+}
 
 /*
  * Treat missing/malformed data from an older API replica as unknown, never as
@@ -108,7 +144,8 @@ export function parseInvestigationNotStartedReason(
 
   const reason: Partial<InvestigationNotStartedReason> = value;
   if (
-    !KNOWN_REASON_CODES.includes(reason.code as InvestigationNotStartedCode) ||
+    typeof reason.code !== "string" ||
+    !REASON_CODE.test(reason.code) ||
     typeof reason.title !== "string" ||
     !reason.title.trim() ||
     typeof reason.description !== "string" ||
@@ -124,7 +161,15 @@ export function parseInvestigationNotStartedReason(
     return null;
   }
 
-  return reason as InvestigationNotStartedReason;
+  const parsed: InvestigationNotStartedReason = {
+    ...(reason as InvestigationNotStartedReason),
+  };
+  const facts: InvestigationNotStartedFacts | undefined =
+    parseInvestigationNotStartedFacts(reason.facts);
+
+  delete parsed.facts;
+
+  return facts ? { ...parsed, facts } : parsed;
 }
 
 /*
@@ -258,14 +303,23 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
   const isUnavailable: boolean = hasError && !hasSuccessfulResponse;
   const isIncident: boolean = subjectType === "incident";
   const reason: InvestigationNotStartedReason | null = props.reason;
-  // The reason's own copy is written by the server; the rest is ours.
+  /*
+   * The reason in the reader's language, worded here from its code and its
+   * facts (InvestigationNotStartedWords); the server's own English only for
+   * a code the Dashboard does not word yet.
+   */
+  const words: InvestigationNotStartedWords | null =
+    reason && !isLoading && !isUnavailable
+      ? getInvestigationNotStartedWords({ reason, subjectType, translator })
+      : null;
   const title: string = isLoading
     ? (translator.translateText("Checking investigation status…") as string)
     : isUnavailable
       ? (translator.translateText(
           "Investigation status is unavailable",
         ) as string)
-      : reason?.title ||
+      : words?.title ||
+        reason?.title ||
         (translator.translateText(
           "No investigation has been recorded",
         ) as string);
@@ -283,6 +337,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
     ) as string;
   } else {
     description =
+      words?.description ||
       reason?.description ||
       (translator.translateText(
         isIncident
@@ -292,6 +347,7 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
   }
 
   const nextStep: string =
+    words?.nextStep ||
     reason?.nextStep ||
     (translator.translateText(
       "Review the investigation settings and AI logs. Enabling automatic investigation applies to new events; it does not automatically investigate older ones.",
@@ -334,8 +390,9 @@ const InvestigationNotStarted: FunctionComponent<ComponentProps> = (
     >
       <div>
         {/*
-         * The reason's own copy is the server's English: on an Arabic page
-         * it reads as written, its full stop at its end (ReadAsWritten).
+         * The server's English, for a code the Dashboard does not word yet:
+         * on an Arabic page it reads as written, its full stop at its end
+         * (ReadAsWritten). The Dashboard's own words read as the page does.
          */}
         <h3 className="text-sm font-semibold text-gray-900">
           {readAsWritten(title, translator.language)}

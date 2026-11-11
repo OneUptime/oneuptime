@@ -61,6 +61,35 @@ export default interface InvestigationNotStartedReason {
    * record's AI card then says the decision was taken after the wait.
    */
   decidedAfterWaitMinutes?: number | undefined;
+  /*
+   * The facts `title`, `description` and `nextStep` were worded from, so a
+   * Dashboard words the reason itself, in its reader's language
+   * (InvestigationNotStartedWords): the three sentences stay the server's
+   * English, for API readers and older Dashboards. Only the facts the code
+   * had are set, and a decision recorded before they were sent has none.
+   */
+  facts?: InvestigationNotStartedFacts | undefined;
+}
+
+/*
+ * Nothing in here is secret: each fact is already in the English sentences
+ * beside it, and the record's readers see it there.
+ */
+export interface InvestigationNotStartedFacts {
+  // severity_below_threshold: the record's severity, by name.
+  severityName?: string | undefined;
+  // severity_below_threshold: the lowest severity investigated, by name.
+  minimumSeverityName?: string | undefined;
+  // monitor_cooldown: the re-investigation cooldown, in minutes.
+  cooldownWindowMinutes?: number | undefined;
+  // no_investigation_rule_matched: how many enabled rules were checked.
+  rulesChecked?: number | undefined;
+  /*
+   * daily_budget_exhausted: the tokens AI work on this kind of record had
+   * used that day, and its daily token limit (0 pauses it).
+   */
+  usedTokensToday?: number | undefined;
+  dailyTokenLimit?: number | undefined;
 }
 
 export interface InvestigationGateDetails {
