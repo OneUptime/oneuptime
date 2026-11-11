@@ -1,4 +1,5 @@
 import LabelsElement from "Common/UI/Components/Label/Labels";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ProjectUtil from "Common/UI/Utils/Project";
 import AlertEpisodeElement from "./AlertEpisode";
 import { Black } from "Common/Types/BrandColors";
@@ -226,6 +227,7 @@ const AlertEpisodesTable: FunctionComponent<ComponentProps> = (
           description:
             props.description ||
             "Episodes group related alerts so you can respond to them together. Grouping rules open episodes for you, or you can create one yourself.",
+          titleGlossaryTerm: GlossaryTerm.Episode,
           /*
            * Routes to the episode create page rather than the table's built in
            * create modal, so ModelTable's own permission gate never sees this

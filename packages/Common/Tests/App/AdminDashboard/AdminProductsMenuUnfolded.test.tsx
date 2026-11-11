@@ -119,6 +119,8 @@ describe("the Admin Dashboard menu", () => {
       "Telemetry Usage",
       "OneUptime Health",
       "Send Email",
+      // What a self-hosted server still needs (#6824).
+      "Server Setup",
       "Settings",
     ]);
   });
@@ -132,7 +134,7 @@ describe("the Admin Dashboard menu", () => {
     render(<AdminNavBar />);
     fireEvent.click(screen.getByRole("button", { name: "Menu" }));
 
-    expect(screen.getAllByRole("option")).toHaveLength(6);
+    expect(screen.getAllByRole("option")).toHaveLength(7);
   });
 
   /*
@@ -155,7 +157,7 @@ describe("the Admin Dashboard menu", () => {
     expect(within(menu).queryByRole("group", { name: /Recent/ })).toBeNull();
     expect(within(menu).queryByText("Recently visited")).toBeNull();
     // Each entry once.
-    expect(within(menu).getAllByRole("option")).toHaveLength(6);
+    expect(within(menu).getAllByRole("option")).toHaveLength(7);
   });
 
   test("remembers no page it is on, and no entry opened from it", () => {

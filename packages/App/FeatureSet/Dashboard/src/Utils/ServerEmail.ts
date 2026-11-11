@@ -29,6 +29,19 @@ export const getAdminEmailSettingsUrl: () => URL = (): URL => {
   );
 };
 
+/*
+ * The Admin Dashboard's Server setup page: what the server still needs
+ * (#6824). The card on Welcome and Home opens it; so can the Welcome
+ * checklist (#6803).
+ */
+export const ADMIN_SERVER_SETUP_ROUTE: string = "/setup";
+
+export const getAdminServerSetupUrl: () => URL = (): URL => {
+  return URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
+    ADMIN_SERVER_SETUP_ROUTE,
+  );
+};
+
 export const SERVER_EMAIL_COPY: {
   createMonitorDescription: string;
   createMonitorDescriptionForAdmin: string;

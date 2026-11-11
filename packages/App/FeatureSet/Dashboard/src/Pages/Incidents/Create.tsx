@@ -1,4 +1,5 @@
 import PageMap from "../../Utils/PageMap";
+import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
 import ArchivedValuePicker from "Common/UI/Utils/ArchivedValuePicker";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
@@ -1524,6 +1525,7 @@ const IncidentCreate: FunctionComponent<
                   title: "Incident Severity",
                   stepId: "incident-details",
                   description: "How serious is it?",
+                  glossaryTerm: GlossaryTerm.Severity,
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentSeverity,
@@ -1596,6 +1598,7 @@ const IncidentCreate: FunctionComponent<
                   stepId: "incident-details",
                   description:
                     "Leave empty for the usual starting state. Pick a later state to record an incident that is already acknowledged or resolved. No one is paged for it.",
+                  glossaryTerm: GlossaryTerm.State,
                   fieldType: FormFieldSchemaType.Dropdown,
                   dropdownModal: {
                     type: IncidentState,
@@ -2342,6 +2345,7 @@ const IncidentCreate: FunctionComponent<
                   stepId: "on-call",
                   description:
                     "The on-call policies to page as soon as the incident is declared.",
+                  glossaryTerm: GlossaryTerm.OnCallPolicy,
                   fieldType: FormFieldSchemaType.MultiSelectDropdown,
                   dropdownModal: {
                     type: OnCallDutyPolicy,

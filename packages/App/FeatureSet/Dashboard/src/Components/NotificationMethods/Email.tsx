@@ -1,4 +1,5 @@
 import ProjectUtil from "Common/UI/Utils/Project";
+import Route from "Common/Types/API/Route";
 import { ErrorFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ActionButtonPlacement } from "Common/UI/Components/ActionButton/ActionButtonSchema";
@@ -116,6 +117,13 @@ const Email: () => JSX.Element = (): ReactElement => {
           description:
             "Manage emails that will receive notifications for this project.",
         }}
+        /*
+         * The first card of Notification Methods: its one way to the docs
+         * page that explains every method and how each is verified.
+         */
+        documentationLink={Route.fromString(
+          "/docs/notifications/notification-methods",
+        )}
         noItemsMessage={
           "No emails found. Please add one to receive notifications."
         }

@@ -119,6 +119,7 @@ import Permission, {
 } from "../../../Types/Permission";
 import UserType from "../../../Types/UserType";
 import { customDomainCaller } from "./CustomDomainCallers";
+import { stubbedCnameCheck } from "./CnameCheckStub";
 import { withLabelJoinTables } from "../TestingUtils/LabelJoinTables";
 
 type MockedFn = ReturnType<typeof jest.fn>;
@@ -246,7 +247,7 @@ const CHANGE_ROUTES: Array<[string, ChangeRoute]> = [
     {
       route: "verify-cname",
       reachedTheChange: (spies: Spies): boolean => {
-        return spies.isCnameValid.mock.calls.length > 0;
+        return spies.checkCname.mock.calls.length > 0;
       },
     },
   ],
@@ -288,7 +289,7 @@ const ROLES: Array<Permission> = PermissionHelper.getRolePermissionProps()
 type Spies = {
   findOneBy: MockedFn;
   findOneById: MockedFn;
-  isCnameValid: MockedFn;
+  checkCname: MockedFn;
   orderCertOnceCnameIsVerified: MockedFn;
   orderCertIfMissing: MockedFn;
   reissueCert: MockedFn;
@@ -324,9 +325,11 @@ function stubDomainTable(kind: Kind, data: { inScope?: boolean } = {}): Spies {
     findOneById: jest
       .spyOn(kind.service, "findOneById")
       .mockResolvedValue(row as never) as unknown as MockedFn,
-    isCnameValid: jest
-      .spyOn(kind.service, "isCnameValid")
-      .mockResolvedValue(true) as unknown as MockedFn,
+    checkCname: jest
+      .spyOn(kind.service, "checkCname")
+      .mockImplementation((async (fullDomain: string) => {
+        return stubbedCnameCheck(fullDomain, true, "statuspage.example.com");
+      }) as never) as unknown as MockedFn,
     orderCertOnceCnameIsVerified: jest
       .spyOn(kind.service, "orderCertOnceCnameIsVerified")
       .mockResolvedValue({
@@ -570,7 +573,7 @@ describe.each(KINDS)("%s", (_label: string, kind: Kind) => {
             `You do not have permissions to update ${kind.name}.`,
           );
           expect(spies.findOneBy).not.toHaveBeenCalled();
-          expect(spies.isCnameValid).not.toHaveBeenCalled();
+          expect(spies.checkCname).not.toHaveBeenCalled();
           expect(spies.orderCertOnceCnameIsVerified).not.toHaveBeenCalled();
           expect(spies.orderCertIfMissing).not.toHaveBeenCalled();
           expect(spies.orderOnDemand).not.toHaveBeenCalled();

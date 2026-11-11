@@ -27,6 +27,8 @@ export default class DashboardDomainAPI extends BaseAPI<
         return DashboardCNameRecord;
       },
       parentColumn: "dashboardId",
+      cnameRecordVariable: "DASHBOARD_CNAME_RECORD",
+      cnameRecordHelmValue: "dashboard.cnameRecord",
     });
   }
 }

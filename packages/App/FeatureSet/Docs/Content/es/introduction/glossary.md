@@ -92,6 +92,12 @@ Quién está de guardia en cada momento: las personas se turnan, y cada una pasa
 
 Otros nombres: **Rotación**. Consulta [Programaciones de guardia](/docs/on-call/schedules).
 
+### Capa
+
+Una rotación dentro de una programación de guardia: quién se turna, cada cuánto se hace el relevo y qué horas cubre. Avisa la capa más alta en la que hay alguien de guardia, así que la rotación principal va arriba y la cobertura de respaldo debajo.
+
+Consulta [Programaciones de guardia](/docs/on-call/schedules#capas).
+
 ### Método de notificación
 
 Una dirección en la que OneUptime puede localizarte dentro de un proyecto: una dirección de correo, un número de teléfono para SMS o llamadas, tu cuenta de Slack o de Microsoft Teams, o la aplicación de OneUptime en tu teléfono. Cada persona añade los suyos en **Ajustes de usuario**.

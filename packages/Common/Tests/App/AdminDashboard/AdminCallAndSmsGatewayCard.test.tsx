@@ -410,7 +410,7 @@ describe("the card", () => {
     );
   });
 
-  test("is the first card on Settings > Call and SMS, above the Twilio account", async () => {
+  test("comes first on Settings > Call and SMS after the test card, above the Twilio account", async () => {
     await renderElement(<CallSmsSettings />);
 
     await waitForProvider("Twilio");
@@ -432,7 +432,14 @@ describe("the card", () => {
 
     const twilioCard: HTMLElement = within(page).getByText(twilioTitle);
 
-    expect(page.firstElementChild).toBe(gatewayCard);
+    /*
+     * The page opens on "Test SMS and calls" (#6824): where SMS and calls
+     * stand and their test sends. Then what carries them, then Twilio.
+     */
+    expect(page.firstElementChild).toBe(
+      screen.getByTestId("server-test-card-sms-and-calls"),
+    );
+    expect(page.children[1]).toBe(gatewayCard);
     expect(
       gatewayCard.compareDocumentPosition(twilioCard) &
         Node.DOCUMENT_POSITION_FOLLOWING,

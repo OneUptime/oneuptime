@@ -555,11 +555,14 @@ describe("on the Admin Dashboard's first page", () => {
     );
 
     const notice: number = page.indexOf("<SecurityAdvisoryNotice />");
-    const checklist: number = page.indexOf("<ServerSetupChecklist />");
     const table: number = page.indexOf("<ModelTable<User>");
 
     expect(notice).toBeGreaterThan(-1);
-    expect(notice).toBeLessThan(checklist);
-    expect(checklist).toBeLessThan(table);
+    expect(notice).toBeLessThan(table);
+    /*
+     * The server's setup checklist has a page of its own now (Server setup,
+     * #6824), where /admin lands while a required check is open.
+     */
+    expect(page).not.toContain("<ServerSetupChecklist");
   });
 });

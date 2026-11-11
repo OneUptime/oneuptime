@@ -1,7 +1,4 @@
-import {
-  DEFAULT_DOCS_LANGUAGE,
-  SUPPORTED_DOCS_LANGUAGES,
-} from "./DocsLanguage";
+import { getDocsPagePath } from "./DocsLanguage";
 
 /*
  * The terms of the docs' Glossary (/docs/<lang>/introduction/glossary), by
@@ -39,6 +36,7 @@ enum GlossaryTerm {
   OnCallPolicy = "on-call-policy",
   EscalationRule = "escalation-rule",
   OnCallSchedule = "on-call-schedule",
+  Layer = "layer",
   NotificationMethod = "notification-method",
   StatusPage = "status-page",
   Subscriber = "subscriber",
@@ -124,15 +122,7 @@ export const getGlossaryTermPath: (
   term: GlossaryTerm,
   language?: string | undefined,
 ) => string = (term: GlossaryTerm, language?: string | undefined): string => {
-  const docsLanguage: string =
-    language &&
-    SUPPORTED_DOCS_LANGUAGES.some((supported: { code: string }): boolean => {
-      return supported.code === language;
-    })
-      ? language
-      : DEFAULT_DOCS_LANGUAGE;
-
-  return `/docs/${docsLanguage}/${GLOSSARY_DOCS_PAGE}#${term}`;
+  return `${getDocsPagePath(GLOSSARY_DOCS_PAGE, language)}#${term}`;
 };
 
 // Every term, in the Glossary's order.

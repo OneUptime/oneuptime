@@ -14,6 +14,7 @@
  *   /dashboard/<project>/dashboards/<id>/authentication-settings  a dashboard's Sharing page
  *   /dashboard/<project>/forms/<id>/share                      a form's Share page
  *   /dashboard/<project>/forms/<id>/custom-domains             a form's Custom Domains page
+ *   /dashboard/<project>/status-pages/<id>/domains             a status page's Custom Domains page
  *
  * Steered by the query string:
  *   - domains=<state>:<domain>;...  the custom domains, each where it is on
@@ -33,6 +34,13 @@
  *                     Persian right to left
  *   - theme=dark, cname=0   (read by server.js) the dark theme; an
  *                     installation with no CNAME record
+ *   - projectdomain=verified|unverified   the project's domain acme.com,
+ *                     verified or not; none otherwise
+ *   - txt=found       its TXT record is found by Check now; not otherwise
+ *   - dns=found|wrong|proxied|missing   what Check now finds for a CNAME
+ *                     (found otherwise)
+ *   - readiness=ready|notready|nocert   what the self-hosted server still
+ *                     needs (ready otherwise; nothing is read on Cloud)
  *
  * Every read is recorded on `window.__fixture` (listRequests, itemRequests,
  * apiGets), and every read it does not model on `window.__fixture.unmodelled`
@@ -56,6 +64,9 @@ import StatusPageOverviewPage from "../../../App/FeatureSet/Dashboard/src/Pages/
 import DashboardSharingPage from "../../../App/FeatureSet/Dashboard/src/Pages/Dashboards/View/Sharing";
 import FormSharePage from "../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/Share";
 import FormCustomDomainsPage from "../../../App/FeatureSet/Dashboard/src/Pages/Forms/View/CustomDomains";
+import StatusPageDomainsPage from "../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
+import Domain from "Common/Models/DatabaseModels/Domain";
+import DomainType from "Common/Types/Domain";
 import Dashboard from "Common/Models/DatabaseModels/Dashboard";
 import DashboardDomain from "Common/Models/DatabaseModels/DashboardDomain";
 import Form from "Common/Models/DatabaseModels/Form";
@@ -104,6 +115,8 @@ window.__fixture = {
   itemRequests: [],
   listRequests: [],
   apiGets: [],
+  // What Add Custom Domain added: { tableName, values }.
+  created: [],
   unmodelled: [],
 };
 
@@ -244,16 +257,45 @@ function certificateOf(spec) {
   }
 }
 
+/*
+ * The project's domain acme.com, from ?projectdomain=verified|unverified -
+ * or the one Add Custom Domain adds - verified once Check now finds its
+ * TXT record (?txt=found).
+ */
+const projectDomains = [];
+
+function addProjectDomain(name, isVerified) {
+  const record = new Domain();
+  record._id = `70000000-0000-4000-8000-${String(projectDomains.length + 1).padStart(12, "0")}`;
+  record.projectId = new ObjectID(PROJECT_ID);
+  record.domain = new DomainType(name);
+  record.isVerified = isVerified;
+  record.domainVerificationText = "oneuptime-verification-3kd8f2hq9x";
+  projectDomains.push(record);
+  return record;
+}
+
+if (["verified", "unverified"].includes(params.get("projectdomain"))) {
+  addProjectDomain("acme.com", params.get("projectdomain") === "verified");
+}
+
+// The custom domains Add Custom Domain added, as their table holds them.
+const addedDomains = [];
+
 const RECORDS = {
+  Domain: () => projectDomains,
   StatusPage: () => [STATUS_PAGE],
   Dashboard: () => [DASHBOARD],
   Label: () => [LABEL],
   StatusPageCustomField: () => [],
   StatusPageResource: () => (params.get("firststep") === "1" ? [] : [{}]),
   StatusPageDomain: () => {
-    return domainSpecs.map((spec) => {
-      return domainRow(StatusPageDomain, "statusPageId", STATUS_PAGE_ID, spec);
-    });
+    return [
+      ...domainSpecs.map((spec) => {
+        return domainRow(StatusPageDomain, "statusPageId", STATUS_PAGE_ID, spec);
+      }),
+      ...addedDomains,
+    ];
   },
   DashboardDomain: () => {
     return domainSpecs.map((spec) => {
@@ -373,6 +415,115 @@ ModelAPI.count = async (options) => {
 };
 ModelAPI.getCount = ModelAPI.count;
 
+/*
+ * What Add Custom Domain adds: a project domain (unverified, with its TXT
+ * value) or a custom domain on one (waiting for DNS).
+ */
+ModelAPI.create = async (options) => {
+  const tableName = new options.modelType().tableName;
+  const values = options.model;
+  window.__fixture.created.push({
+    tableName,
+    values: {
+      domain: values.domain ? values.domain.toString() : undefined,
+      subdomain: values.subdomain,
+      domainId: values.domainId ? values.domainId.toString() : undefined,
+    },
+  });
+  await waitFor(50);
+
+  if (tableName === "Domain") {
+    const record = addProjectDomain(values.domain.toString(), false);
+    return new HTTPResponse(200, { _id: record._id }, {});
+  }
+
+  if (tableName === "StatusPageDomain") {
+    const projectDomain = projectDomains.find((record) => {
+      return idOf(record._id) === idOf(values.domainId);
+    });
+    const spec = {
+      id: `60000000-0000-4000-8000-${String(900 + addedDomains.length).padStart(12, "0")}`,
+      state: "dns",
+      fullDomain: [values.subdomain, projectDomain.domain.toString()]
+        .filter(Boolean)
+        .join("."),
+    };
+    addedDomains.push(
+      domainRow(StatusPageDomain, "statusPageId", STATUS_PAGE_ID, spec),
+    );
+    return new HTTPResponse(
+      200,
+      { _id: spec.id, fullDomain: spec.fullDomain, subdomain: values.subdomain },
+      {},
+    );
+  }
+
+  window.__fixture.unmodelled.push(`create ${tableName}`);
+  return new HTTPResponse(200, {}, {});
+};
+
+const CHECKED_AT = new Date("2026-11-11T09:41:00.000Z").toISOString();
+
+function cnameCheck(name) {
+  const dns = params.get("dns") || "found";
+  const base = {
+    type: "CNAME",
+    name,
+    expectedValue: "statuspage.oneuptime.com",
+    checkedAt: CHECKED_AT,
+  };
+  switch (dns) {
+    case "wrong":
+      return { ...base, outcome: "WrongValue", foundValues: ["acme.netlify.app"] };
+    case "proxied":
+      return {
+        ...base,
+        outcome: "NotFound",
+        foundValues: [],
+        addresses: ["104.21.32.1", "172.67.150.2"],
+      };
+    case "missing":
+      return { ...base, outcome: "NotFound", foundValues: [] };
+    default:
+      return {
+        ...base,
+        outcome: "Found",
+        foundValues: ["statuspage.oneuptime.com"],
+        reachedOneUptime: true,
+      };
+  }
+}
+
+function readinessAnswer() {
+  const target = "oneuptime.acme.com";
+  const passed = (id, values) => ({ id, outcome: "Pass", values });
+  switch (params.get("readiness")) {
+    case "notready":
+      return {
+        target,
+        checks: [
+          passed("TargetSet", { target, variable: "STATUS_PAGE_CNAME_RECORD" }),
+          passed("TargetResolves", { target, addresses: "203.0.113.10" }),
+          {
+            id: "Port80",
+            outcome: "Fail",
+            reason: "NotThisServer",
+            values: { target, status: "404" },
+          },
+          { id: "Port443", outcome: "Fail", values: { target } },
+          { id: "FreeCertificates", outcome: "Warn", values: {} },
+        ],
+      };
+    case "nocert":
+      return {
+        target,
+        checks: [{ id: "FreeCertificates", outcome: "Warn", values: {} }],
+      };
+    default:
+      return { target, checks: [passed("Port80", { target })] };
+  }
+}
+
 API.get = async (options) => {
   const url = String(options && options.url);
   window.__fixture.apiGets.push(url);
@@ -391,6 +542,60 @@ API.get = async (options) => {
   if (url.includes("/verify-cname/")) {
     await waitFor(200);
     return new HTTPResponse(200, { certificateStatus: "Issuing" }, {});
+  }
+  // DNS Setup's Check now: every record it looked up, found or not.
+  if (url.includes("/check-dns/")) {
+    await waitFor(200);
+    const id = url.substring(url.lastIndexOf("/") + 1);
+    const row = RECORDS.StatusPageDomain().find((record) => {
+      return idOf(record._id) === idOf(id);
+    });
+    const check = cnameCheck(row ? row.fullDomain : "status.acme.com");
+    return new HTTPResponse(
+      200,
+      check.outcome === "Found"
+        ? {
+            isVerified: true,
+            records: [check],
+            certificate: { certificateStatus: "Issuing" },
+          }
+        : { isVerified: false, records: [check] },
+      {},
+    );
+  }
+  // The project domain's TXT record, which verifies it once found.
+  if (url.includes("/domain/check-txt/")) {
+    await waitFor(200);
+    const id = url.substring(url.lastIndexOf("/") + 1);
+    const record = projectDomains.find((candidate) => {
+      return idOf(candidate._id) === idOf(id);
+    });
+    const found = params.get("txt") === "found";
+    if (found && record) {
+      record.isVerified = true;
+    }
+    return new HTTPResponse(
+      200,
+      {
+        isVerified: found,
+        records: [
+          {
+            type: "TXT",
+            name: record ? record.domain.toString() : "acme.com",
+            expectedValue: "oneuptime-verification-3kd8f2hq9x",
+            foundValues: found
+              ? ["oneuptime-verification-3kd8f2hq9x"]
+              : ["v=spf1 include:_spf.google.com ~all"],
+            outcome: found ? "Found" : "WrongValue",
+            checkedAt: CHECKED_AT,
+          },
+        ],
+      },
+      {},
+    );
+  }
+  if (url.includes("/server-readiness")) {
+    return new HTTPResponse(200, readinessAnswer(), {});
   }
   window.__fixture.unmodelled.push(`API.get ${url}`);
   return new HTTPResponse(200, {}, {});
@@ -472,6 +677,14 @@ function Fixture() {
         element={
           <Shell>
             <FormSharePage {...PAGE_PROPS} />
+          </Shell>
+        }
+      />
+      <PageRoute
+        path="/dashboard/:projectId/status-pages/:id/domains"
+        element={
+          <Shell>
+            <StatusPageDomainsPage {...PAGE_PROPS} />
           </Shell>
         }
       />

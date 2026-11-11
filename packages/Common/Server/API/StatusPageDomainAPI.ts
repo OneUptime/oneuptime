@@ -27,6 +27,8 @@ export default class StatusPageDomainAPI extends BaseAPI<
         return StatusPageCNameRecord;
       },
       parentColumn: "statusPageId",
+      cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD",
+      cnameRecordHelmValue: "statusPage.cnameRecord",
     });
   }
 }
