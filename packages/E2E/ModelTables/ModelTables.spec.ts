@@ -524,6 +524,8 @@ test.describe("the Alerts list of the screenshot", () => {
     "oneuptime-test - HPA Saturated at Max Replicas",
   ];
   const CLUSTER: string = "oneuptime-test";
+  // The service ?services=1 links the first alert to as well.
+  const SERVICE: string = "checkout-api";
   // The first alert's monitor with ?data=long: a name with nowhere to break.
   const LONG_MONITOR: string =
     "oneuptime-test - KubeNodeMemoryUtilizationHighOnGeneralPurposePoolNodesInEuWest1";
@@ -1035,6 +1037,132 @@ test.describe("the Alerts list of the screenshot", () => {
     isPastEndTheItems: boolean;
   }
 
+  // Tab to a link, as a keyboard does (a focus by script draws no ring).
+  async function tabTo(page: Page, link: Locator): Promise<void> {
+    for (let step: number = 0; step < 150; step++) {
+      await page.keyboard.press("Tab");
+
+      if (
+        await link.evaluate((element: Element): boolean => {
+          return element === document.activeElement;
+        })
+      ) {
+        break;
+      }
+    }
+
+    await expect(link).toBeFocused();
+  }
+
+  // A resource's focused link, its ring and its item (FocusedLink).
+  async function focusedLinkOf(link: Locator): Promise<FocusedLink> {
+    return await link.evaluate((element: Element): FocusedLink => {
+      const holder: Element = element.closest("td") as Element;
+      const item: Element = element.parentElement as Element;
+      const row: Element = element.firstElementChild as Element;
+      const clipped: Array<string> = [];
+      let box: Element | null = item;
+
+      while (box) {
+        const overflowY: string = getComputedStyle(box).overflowY;
+
+        if (overflowY !== "visible") {
+          clipped.push(`${box.tagName.toLowerCase()}: ${overflowY}`);
+        }
+
+        if (box === holder) {
+          break;
+        }
+
+        box = box.parentElement;
+      }
+
+      const rects: Array<DOMRect> = Array.from(element.getClientRects()).filter(
+        (rect: DOMRect): boolean => {
+          return rect.width > 0;
+        },
+      );
+      const itemBox: DOMRect = item.getBoundingClientRect();
+      const rowBox: DOMRect = row.getBoundingClientRect();
+      const parts: Array<DOMRect> = Array.from(row.children).map(
+        (part: Element): DOMRect => {
+          return part.getBoundingClientRect();
+        },
+      );
+      const iconToNameWidth: number =
+        Math.max(
+          ...parts.map((part: DOMRect): number => {
+            return part.right;
+          }),
+        ) -
+        Math.min(
+          ...parts.map((part: DOMRect): number => {
+            return part.left;
+          }),
+        );
+      const pastEnd: number =
+        getComputedStyle(item).direction === "rtl"
+          ? (itemBox.left + rowBox.left) / 2
+          : (rowBox.right + itemBox.right) / 2;
+      const hit: Element | null = document.elementFromPoint(
+        pastEnd,
+        rowBox.top + rowBox.height / 2,
+      );
+
+      return {
+        isFocusVisible: element.matches(":focus-visible"),
+        outlineStyle: getComputedStyle(element).outlineStyle,
+        clippedAboveOrBelow: clipped,
+        linkRectCount: rects.length,
+        linkLeft: rects[0] ? rects[0].left : 0,
+        linkRight: rects[0] ? rects[0].right : 0,
+        rowLeft: rowBox.left,
+        rowRight: rowBox.right,
+        rowWidth: rowBox.width,
+        iconToNameWidth: iconToNameWidth,
+        itemWidth: itemBox.width,
+        itemHeight: itemBox.height,
+        itemDisplay: getComputedStyle(item).display,
+        itemOverflowX: getComputedStyle(item).overflowX,
+        isPastEndTheLinks: hit !== null && element.contains(hit),
+        isPastEndTheItems: hit === item,
+      };
+    });
+  }
+
+  /*
+   * A resource's link with a short name, tabbed onto: its ring shows whole
+   * above and below it, round its icon (or a service's colour) and name and
+   * no wider, on its item's one line; and a click past its name's end is
+   * its row's.
+   */
+  function expectRingRoundIconAndName(focused: FocusedLink): void {
+    expect(focused.isFocusVisible).toBe(true);
+    expect(focused.outlineStyle).not.toBe("none");
+    // Nothing from its item to its cell cuts its ring off above or below.
+    expect(focused.clippedAboveOrBelow).toEqual([]);
+    // Its item still clips across, and is still a box of its own.
+    expect(focused.itemOverflowX).toBe("clip");
+    expect(focused.itemDisplay).toBe("flow-root");
+    // The link - and so its ring - is its icon (or colour) and name's width,
+    // no more.
+    expect(focused.linkRectCount).toBe(1);
+    expect(Math.abs(focused.linkLeft - focused.rowLeft)).toBeLessThanOrEqual(1);
+    expect(Math.abs(focused.linkRight - focused.rowRight)).toBeLessThanOrEqual(
+      1,
+    );
+    expect(
+      Math.abs(focused.rowWidth - focused.iconToNameWidth),
+    ).toBeLessThanOrEqual(1);
+    // A short name leaves room past its end, in its item.
+    expect(focused.rowWidth).toBeLessThan(focused.itemWidth - 4);
+    // On its item's one 24px line, as a name alone is.
+    expect(Math.round(focused.itemHeight)).toBe(24);
+    // A click past its end lands on its item - the row's - not the link.
+    expect(focused.isPastEndTheLinks).toBe(false);
+    expect(focused.isPastEndTheItems).toBe(true);
+  }
+
   /*
    * A resource's icon and name are a box of their own on its item's line
    * (the Dashboard's RecordLinkName). Clipped all round, as truncate clips,
@@ -1061,123 +1189,140 @@ test.describe("the Alerts list of the screenshot", () => {
         .first()
         .getByRole("link", { name: CLUSTER, exact: true });
 
-      // Tab to it, as a keyboard does (a focus by script draws no ring).
-      for (let step: number = 0; step < 150; step++) {
-        await page.keyboard.press("Tab");
+      await tabTo(page, link);
 
-        if (
-          await link.evaluate((element: Element): boolean => {
-            return element === document.activeElement;
-          })
-        ) {
-          break;
-        }
-      }
+      const focused: FocusedLink = await focusedLinkOf(link);
 
-      await expect(link).toBeFocused();
-
-      const focused: FocusedLink = await link.evaluate(
-        (element: Element): FocusedLink => {
-          const holder: Element = element.closest("td") as Element;
-          const item: Element = element.parentElement as Element;
-          const row: Element = element.firstElementChild as Element;
-          const clipped: Array<string> = [];
-          let box: Element | null = item;
-
-          while (box) {
-            const overflowY: string = getComputedStyle(box).overflowY;
-
-            if (overflowY !== "visible") {
-              clipped.push(`${box.tagName.toLowerCase()}: ${overflowY}`);
-            }
-
-            if (box === holder) {
-              break;
-            }
-
-            box = box.parentElement;
-          }
-
-          const rects: Array<DOMRect> = Array.from(
-            element.getClientRects(),
-          ).filter((rect: DOMRect): boolean => {
-            return rect.width > 0;
-          });
-          const itemBox: DOMRect = item.getBoundingClientRect();
-          const rowBox: DOMRect = row.getBoundingClientRect();
-          const parts: Array<DOMRect> = Array.from(row.children).map(
-            (part: Element): DOMRect => {
-              return part.getBoundingClientRect();
-            },
-          );
-          const iconToNameWidth: number =
-            Math.max(
-              ...parts.map((part: DOMRect): number => {
-                return part.right;
-              }),
-            ) -
-            Math.min(
-              ...parts.map((part: DOMRect): number => {
-                return part.left;
-              }),
-            );
-          const pastEnd: number =
-            getComputedStyle(item).direction === "rtl"
-              ? (itemBox.left + rowBox.left) / 2
-              : (rowBox.right + itemBox.right) / 2;
-          const hit: Element | null = document.elementFromPoint(
-            pastEnd,
-            rowBox.top + rowBox.height / 2,
-          );
-
-          return {
-            isFocusVisible: element.matches(":focus-visible"),
-            outlineStyle: getComputedStyle(element).outlineStyle,
-            clippedAboveOrBelow: clipped,
-            linkRectCount: rects.length,
-            linkLeft: rects[0] ? rects[0].left : 0,
-            linkRight: rects[0] ? rects[0].right : 0,
-            rowLeft: rowBox.left,
-            rowRight: rowBox.right,
-            rowWidth: rowBox.width,
-            iconToNameWidth: iconToNameWidth,
-            itemWidth: itemBox.width,
-            itemHeight: itemBox.height,
-            itemDisplay: getComputedStyle(item).display,
-            itemOverflowX: getComputedStyle(item).overflowX,
-            isPastEndTheLinks: hit !== null && element.contains(hit),
-            isPastEndTheItems: hit === item,
-          };
-        },
-      );
-
-      expect(focused.isFocusVisible).toBe(true);
-      expect(focused.outlineStyle).not.toBe("none");
-      // Nothing from its item to its cell cuts its ring off above or below.
-      expect(focused.clippedAboveOrBelow).toEqual([]);
-      // Its item still clips across, and is still a box of its own.
-      expect(focused.itemOverflowX).toBe("clip");
-      expect(focused.itemDisplay).toBe("flow-root");
-      // The link - and so its ring - is its icon and name's width, no more.
-      expect(focused.linkRectCount).toBe(1);
-      expect(Math.abs(focused.linkLeft - focused.rowLeft)).toBeLessThanOrEqual(
-        1,
-      );
-      expect(
-        Math.abs(focused.linkRight - focused.rowRight),
-      ).toBeLessThanOrEqual(1);
-      expect(
-        Math.abs(focused.rowWidth - focused.iconToNameWidth),
-      ).toBeLessThanOrEqual(1);
-      // The cluster's short name leaves room past its end, in its item.
-      expect(focused.rowWidth).toBeLessThan(focused.itemWidth - 4);
-      // On its item's one 24px line, as a name alone is.
-      expect(Math.round(focused.itemHeight)).toBe(24);
-      // A click past its end lands on its item - the row's - not the link.
-      expect(focused.isPastEndTheLinks).toBe(false);
-      expect(focused.isPastEndTheItems).toBe(true);
+      expectRingRoundIconAndName(focused);
 
       await screenshot(page, `alerts-${language}-1280-resource-focused`);
+    });
+  }
+
+  /*
+   * A service among a row's resources (?services=1 links the first alert
+   * to one, after its monitor and the cluster). Its colour stands where
+   * their icons do (ServiceElement's alignWithIcons), so its name starts
+   * where theirs do; and its link, tabbed onto, is as wide as its colour
+   * and name. Drawn as a row of its own, its 12px colour and gap put its
+   * name 8px before theirs, and its link ran the column's whole width: its
+   * ring was cut off at the column's edges, and a click past its name's
+   * end opened the service rather than the row.
+   */
+  interface ResourceStart {
+    text: string;
+    // Where its name starts, on the page's side: its icon's.
+    nameStart: number;
+    // The box before its name: its icon, or the room its colour is in.
+    roomLeft: number;
+    roomTop: number;
+    roomWidth: number;
+    roomHeight: number;
+    // How far its icon or colour is from its room's middle.
+    markOffCentreX: number;
+    markOffCentreY: number;
+    markColour: string;
+  }
+
+  for (const language of ["en", "fa"]) {
+    test(`a service's colour stands where the others' icons do, its name starts where theirs do, and its link tabbed onto is as wide as its colour and name (${language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        language === "en"
+          ? `${ALERTS}?services=1`
+          : `${ALERTS}?services=1&lang=${language}`,
+      );
+
+      // The first row's Affected Resources: the cell naming its monitor.
+      const resources: Locator = rows(page)
+        .first()
+        .locator("> td")
+        .filter({
+          has: page.getByRole("link", { name: FIRST_MONITOR, exact: true }),
+        });
+
+      await expect(resources.getByRole("link")).toHaveText([
+        FIRST_MONITOR,
+        CLUSTER,
+        SERVICE,
+      ]);
+
+      const starts: Array<ResourceStart> = await resources
+        .getByTestId("record-link-name")
+        .evaluateAll((names: Array<Element>): Array<ResourceStart> => {
+          return names.map((name: Element): ResourceStart => {
+            const row: Element = name.parentElement as Element;
+            const room: Element = row.firstElementChild!
+              .firstElementChild as Element;
+            const mark: Element =
+              room.tagName.toLowerCase() === "svg"
+                ? room
+                : (room.firstElementChild as Element);
+            const nameBox: DOMRect = name.getBoundingClientRect();
+            const roomBox: DOMRect = room.getBoundingClientRect();
+            const markBox: DOMRect = mark.getBoundingClientRect();
+
+            return {
+              text: name.textContent || "",
+              nameStart:
+                getComputedStyle(row).direction === "rtl"
+                  ? nameBox.right
+                  : nameBox.left,
+              roomLeft: roomBox.left,
+              roomTop: roomBox.top - row.getBoundingClientRect().top,
+              roomWidth: roomBox.width,
+              roomHeight: roomBox.height,
+              markOffCentreX:
+                markBox.left +
+                markBox.width / 2 -
+                (roomBox.left + roomBox.width / 2),
+              markOffCentreY:
+                markBox.top +
+                markBox.height / 2 -
+                (roomBox.top + roomBox.height / 2),
+              markColour: getComputedStyle(mark).backgroundColor,
+            };
+          });
+        });
+
+      expect(
+        starts.map((each: ResourceStart): string => {
+          return each.text;
+        }),
+      ).toEqual([FIRST_MONITOR, CLUSTER, SERVICE]);
+
+      const monitor: ResourceStart = starts[0]!;
+
+      for (const each of starts) {
+        // Every name starts where the monitor's does.
+        expect(Math.abs(each.nameStart - monitor.nameStart)).toBeLessThan(1);
+        // After a 20px room, in one place on its line.
+        expect(Math.abs(each.roomLeft - monitor.roomLeft)).toBeLessThan(1);
+        expect(Math.abs(each.roomTop - monitor.roomTop)).toBeLessThan(1);
+        expect(Math.round(each.roomWidth)).toBe(20);
+        expect(Math.round(each.roomHeight)).toBe(20);
+        // Its icon or colour in its room's middle.
+        expect(Math.abs(each.markOffCentreX)).toBeLessThan(1);
+        expect(Math.abs(each.markOffCentreY)).toBeLessThan(1);
+      }
+
+      // The service's own colour, in the room an icon takes.
+      expect(starts[2]!.markColour).toBe("rgb(99, 102, 241)");
+
+      const link: Locator = resources.getByRole("link", {
+        name: SERVICE,
+        exact: true,
+      });
+
+      await tabTo(page, link);
+
+      expectRingRoundIconAndName(await focusedLinkOf(link));
+
+      await screenshot(page, `alerts-${language}-1280-service-focused`);
     });
   }
 

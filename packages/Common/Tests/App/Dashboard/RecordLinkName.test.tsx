@@ -28,7 +28,9 @@ import { I18nextProvider } from "react-i18next";
  * Without its icon, the name is drawn exactly as it always was - a list on
  * a record's own name reads its line from the record, and a table's cell
  * lays that link out as a line of text (TableLayout's
- * TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES).
+ * TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES). A record with a mark of its
+ * own instead of a kind's icon - a service's colour - draws it in the
+ * icon's room, so its name starts where the others' do (the UI review).
  *
  * AppLink is a plain anchor here, so the hrefs can be read.
  */
@@ -54,6 +56,7 @@ jest.mock(
 
 import RecordLinkName, {
   RECORD_LINK_ICON_CLASS_NAME,
+  RECORD_LINK_MARK_CLASS_NAME,
   RECORD_LINK_NAME_LINE_CLASS_NAME,
   RECORD_LINK_NAME_ROW_CLASS_NAME,
   RECORD_LINK_NAME_TEST_ID,
@@ -319,6 +322,176 @@ describe("RecordLinkName without an icon", () => {
 });
 
 /*
+ * A service's colour among a row's resources' icons (ServiceElement's
+ * alignWithIcons). Drawn as a row of its own, its 12px colour and gap put
+ * its name 8px before every other name in the list, and its link - a
+ * block inside - ran the list's whole width. Drawn in the icon's room, the
+ * name starts where the others' do, and the link is as wide as the mark
+ * and the name.
+ */
+describe("RecordLinkName with a mark of its own instead of an icon", () => {
+  const MARK_TEST_ID: string = "record-mark";
+  const mark: () => ReactElement = (): ReactElement => {
+    return <i data-testid={MARK_TEST_ID} className="rounded h-3 w-3" />;
+  };
+
+  test.each(["ar", "fa"])(
+    "on a %s page the mark stands in the icon's room, and an English name is a line of its own beside it, read left to right",
+    (language: string) => {
+      const holder: HTMLElement = drawOn(
+        language,
+        <RecordLinkName name={ENGLISH_NAME} mark={mark()} />,
+      );
+
+      const row: HTMLElement = holder.firstElementChild as HTMLElement;
+      const name: HTMLElement = screen.getByTestId(RECORD_LINK_NAME_TEST_ID);
+
+      // The row an icon's record draws: the mark first, then the name.
+      expect(row.tagName).toBe("SPAN");
+      expect(row.getAttribute("class")).toBe(RECORD_LINK_NAME_ROW_CLASS_NAME);
+      expect(row).not.toHaveAttribute("dir");
+      expect(row.children).toHaveLength(2);
+      expect(row.lastElementChild).toBe(name);
+
+      // A box of the row holding the icon's room, the mark in it.
+      const box: HTMLElement = row.firstElementChild as HTMLElement;
+
+      expect(box).not.toHaveAttribute("dir");
+      expect(box.children).toHaveLength(1);
+
+      const room: HTMLElement = box.firstElementChild as HTMLElement;
+
+      expect(room.tagName).toBe("SPAN");
+      expect(room.getAttribute("class")).toBe(RECORD_LINK_MARK_CLASS_NAME);
+      expect(room).not.toHaveAttribute("dir");
+      expect(room.children).toHaveLength(1);
+      expect(room.firstElementChild).toBe(screen.getByTestId(MARK_TEST_ID));
+
+      // No kind's icon is drawn for it.
+      expect(holder.querySelector("svg")).toBeNull();
+
+      // The name: its own line, read its way, cut short at its own end.
+      expect(name).toHaveAttribute("dir", "ltr");
+      expect(name.textContent).toBe(ENGLISH_NAME);
+      expect(name).toHaveClass(...NAME_LINE_CLASSES, ...CLAMPED_CLASSES);
+      expect(name).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    },
+  );
+
+  test("on an English page nothing has a dir, and the name has its line's classes only", () => {
+    const holder: HTMLElement = drawOn(
+      "en",
+      <RecordLinkName name={ENGLISH_NAME} mark={mark()} />,
+    );
+
+    expect(holder.querySelector("[dir]")).toBeNull();
+    expect(
+      screen.getByTestId(RECORD_LINK_NAME_TEST_ID).getAttribute("class"),
+    ).toBe(RECORD_LINK_NAME_LINE_CLASS_NAME);
+  });
+
+  test.each(["en", "fa"])(
+    "on a %s page a name beside a mark starts where one beside an icon does: the same row, the same room, the same line",
+    (language: string) => {
+      drawOn(
+        language,
+        <>
+          <RecordLinkName name={ENGLISH_NAME} icon={IconProp.AltGlobe} />
+          <RecordLinkName name={ENGLISH_NAME} mark={mark()} />
+        </>,
+      );
+
+      const [withIcon, withMark] = screen.getAllByTestId(
+        RECORD_LINK_NAME_TEST_ID,
+      ) as [HTMLElement, HTMLElement];
+      const iconRow: HTMLElement = withIcon.parentElement as HTMLElement;
+      const markRow: HTMLElement = withMark.parentElement as HTMLElement;
+
+      expect(markRow.getAttribute("class")).toBe(iconRow.getAttribute("class"));
+      expect(markRow.children).toHaveLength(iconRow.children.length);
+
+      // Before the name: a box of the row holding one 20px box on its line.
+      const icon: Element = iconRow.firstElementChild!
+        .firstElementChild as Element;
+      const room: Element = markRow.firstElementChild!
+        .firstElementChild as Element;
+
+      expect(iconRow.firstElementChild!.children).toHaveLength(1);
+      expect(markRow.firstElementChild!.children).toHaveLength(1);
+      expect(icon.tagName.toLowerCase()).toBe("svg");
+
+      for (const sizeAndPlace of ["h-5", "w-5", "align-middle"]) {
+        expect(icon).toHaveClass(sizeAndPlace);
+        expect(room).toHaveClass(sizeAndPlace);
+      }
+
+      // The same line, read the same way.
+      expect(withMark.getAttribute("class")).toBe(
+        withIcon.getAttribute("class"),
+      );
+      expect(withMark.getAttribute("dir")).toBe(withIcon.getAttribute("dir"));
+    },
+  );
+
+  test("given a kind's icon and a mark, it draws the icon", () => {
+    const holder: HTMLElement = drawOn(
+      "fa",
+      <RecordLinkName
+        name={ENGLISH_NAME}
+        icon={IconProp.Server}
+        mark={mark()}
+      />,
+    );
+
+    expect(holder.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByTestId(MARK_TEST_ID)).toBeNull();
+    expect(
+      holder.querySelector(`[class="${RECORD_LINK_MARK_CLASS_NAME}"]`),
+    ).toBeNull();
+  });
+
+  /*
+   * A table's cell lays a record's bare name out as a line of text, matched
+   * on the exact class of the span it is drawn in
+   * (TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES). With a mark, the name is a
+   * row with a line of its own, which that must leave alone.
+   */
+  test("with a mark it is never the bare flex span a table's cell lays out as a line of text", () => {
+    const holder: HTMLElement = drawOn(
+      "fa",
+      <RecordLinkName name={ENGLISH_NAME} mark={mark()} />,
+    );
+
+    expect(holder.querySelector("span[class=flex]")).toBeNull();
+    expect(holder.innerHTML).not.toContain(`<span class="flex">`);
+  });
+
+  test("a record with no name draws its mark and an empty line, not 'undefined'", () => {
+    const holder: HTMLElement = drawOn(
+      "fa",
+      <RecordLinkName name={undefined} mark={mark()} />,
+    );
+
+    expect(screen.getByTestId(MARK_TEST_ID)).toBeInTheDocument();
+    expect(screen.getByTestId(RECORD_LINK_NAME_TEST_ID).textContent).toBe("");
+    expect(holder.textContent).toBe("");
+  });
+
+  test("a name beside a mark is text, never markup", () => {
+    const hostile: string = '<img src="x" onerror="alert(1)"> checkout-api';
+    const holder: HTMLElement = drawOn(
+      "ar",
+      <RecordLinkName name={hostile} mark={mark()} />,
+    );
+
+    expect(holder.querySelector("img")).toBeNull();
+    expect(screen.getByTestId(RECORD_LINK_NAME_TEST_ID).textContent).toBe(
+      hostile,
+    );
+  });
+});
+
+/*
  * The classes hold what the layout needs, so a later edit that swaps one
  * for a look-alike says so here rather than on an Arabic page.
  */
@@ -401,13 +574,53 @@ describe("the classes the row and its line are drawn with", () => {
       expect.arrayContaining(["inline-block", "align-middle", "h-5", "w-5"]),
     );
   });
+
+  /*
+   * A mark (a service's 12px colour) is drawn in a box the icon's size,
+   * set on its line as the icon is, so the name after it starts where an
+   * icon's record's does - and in its middle, as the icon's glyph is in
+   * its square.
+   */
+  test("the mark's room is the icon's: a 20px inline box centred on the name's first line, the mark in its middle", () => {
+    const classes: Array<string> = RECORD_LINK_MARK_CLASS_NAME.split(" ");
+    // A margin or a padding, on one side or more: mr-1, ms-2, px-1, p-1.
+    const SPACING_CLASS_NAME_PATTERN: RegExp =
+      /^(?:space-[xy]-|m[rlsetbxy]?-|p[rlsetbxy]?-)/;
+
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "inline-flex",
+        "h-5",
+        "w-5",
+        "align-middle",
+        "items-center",
+        "justify-center",
+      ]),
+    );
+
+    // The icon's size and place on the line.
+    for (const sizeAndPlace of ["h-5", "w-5", "align-middle"]) {
+      expect(RECORD_LINK_ICON_CLASS_NAME.split(" ")).toContain(sizeAndPlace);
+    }
+
+    // A box on the line, not a block of its own, and nothing off to a side.
+    for (const notOnTheLine of ["flex", "block", "w-full"]) {
+      expect(classes).not.toContain(notOnTheLine);
+    }
+
+    expect(
+      classes.filter((token: string): boolean => {
+        return SPACING_CLASS_NAME_PATTERN.test(token);
+      }),
+    ).toEqual([]);
+  });
 });
 
 /*
- * Every record link that draws a kind's icon: the eighteen a row's
- * Affected Resources lists (AffectedResourcesCell, but ServiceElement,
- * whose name was a line of its own already) and the two more that take
- * showIcon (a runner, a monitor group).
+ * Every record link that draws a kind's icon: the seventeen a row's
+ * Affected Resources lists with one (AffectedResourcesCell; a service
+ * draws its colour in an icon's room - ServiceElement.test) and the two
+ * more that take showIcon (a runner, a monitor group).
  */
 interface RecordElement {
   element: string;

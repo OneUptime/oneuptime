@@ -31,12 +31,12 @@ import { I18nextProvider } from "react-i18next";
  * for "Pod CPU Saturating Containers" - the name was a line of the page's,
  * cut where the page's lines end, at its start.
  *
- * Each name is a line of its own now (RecordLinkName; ServiceElement's
- * name, beside its colour, takes the same line's classes): read the way
- * it is written, so an English name is cut at its own end, and as wide as
- * its words beside its icon, so on a phone's card its wrapped lines start
- * on its own side. The icon, the item and the cell keep the page's way:
- * the icon still stands at the line's start, on the right.
+ * Each name is a line of its own now (RecordLinkName; a service's too,
+ * its colour in an icon's room): read the way it is written, so an English
+ * name is cut at its own end, and as wide as its words beside its icon, so
+ * on a phone's card its wrapped lines start on its own side. The icon, the
+ * item and the cell keep the page's way: the icon still stands at the
+ * line's start, on the right.
  *
  * These draw the real cell in a table's real row (TableBody), as the lists
  * do. AppLink is a plain anchor, so the hrefs can be read.
@@ -65,6 +65,8 @@ import AffectedResourcesCell, {
   ComponentProps as AffectedResources,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AffectedResources/AffectedResourcesCell";
 import {
+  RECORD_LINK_ICON_CLASS_NAME,
+  RECORD_LINK_MARK_CLASS_NAME,
   RECORD_LINK_NAME_LINE_CLASS_NAME,
   RECORD_LINK_NAME_ROW_CLASS_NAME,
   RECORD_LINK_NAME_TEST_ID,
@@ -239,7 +241,10 @@ const cellOf: (name: string) => HTMLElement = (name: string): HTMLElement => {
   return screen.getAllByText(name)[0]!.closest("td") as HTMLElement;
 };
 
-// A record link's name: its own line beside its icon (RecordLinkName).
+/*
+ * A record link's name: its own line beside its icon, or a service's
+ * beside its colour (RecordLinkName).
+ */
 const nameLineOf: (name: string) => HTMLElement = (
   name: string,
 ): HTMLElement => {
@@ -254,13 +259,6 @@ const nameLineOf: (name: string) => HTMLElement = (
   }
 
   return line;
-};
-
-// A service's name, beside its colour (ServiceElement's IsolatedLine).
-const serviceLineOf: (name: string) => HTMLElement = (
-  name: string,
-): HTMLElement => {
-  return screen.getByText(name, { selector: "div" });
 };
 
 const MONITOR_HOST_AND_SERVICE: () => AffectedResources =
@@ -290,11 +288,12 @@ describe("on an Arabic or a Persian page", () => {
       }
 
       // The service's name, beside its colour: the same line.
-      const service: HTMLElement = serviceLineOf(ENGLISH_SERVICE);
+      const service: HTMLElement = nameLineOf(ENGLISH_SERVICE);
 
       expect(service).toHaveAttribute("dir", "ltr");
       expect(service).toHaveClass(...NAME_LINE_CLASSES, ...CLAMPED_CLASSES);
       expect(service).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+      expect(service).not.toHaveClass("truncate");
     },
   );
 
@@ -308,17 +307,25 @@ describe("on an Arabic or a Persian page", () => {
       // A column that draws more than words keeps the page's way.
       expect(cell.firstElementChild).not.toHaveAttribute("dir");
 
-      for (const name of [ENGLISH_MONITOR, ENGLISH_HOST]) {
+      for (const name of [ENGLISH_MONITOR, ENGLISH_HOST, ENGLISH_SERVICE]) {
         const line: HTMLElement = nameLineOf(name);
         const row: HTMLElement = line.parentElement as HTMLElement;
         const iconBox: HTMLElement = row.firstElementChild as HTMLElement;
 
         expect(row.getAttribute("class")).toBe(RECORD_LINK_NAME_ROW_CLASS_NAME);
         expect(row).not.toHaveAttribute("dir");
-        // The icon first: at the line's start, the page's right.
+        /*
+         * The icon - or the service's colour, in an icon's room - first:
+         * at the line's start, the page's right.
+         */
         expect(iconBox).not.toBe(line);
-        expect(iconBox.querySelector("svg")).not.toBeNull();
+        expect(
+          name === ENGLISH_SERVICE
+            ? iconBox.querySelector(`[class="${RECORD_LINK_MARK_CLASS_NAME}"]`)
+            : iconBox.querySelector("svg"),
+        ).not.toBeNull();
         expect(iconBox).not.toHaveAttribute("dir");
+        expect(iconBox.querySelector("[dir]")).toBeNull();
 
         // Each on its item's one line, which ends in "..." as before.
         const item: HTMLElement = line.closest("a")!
@@ -327,12 +334,6 @@ describe("on an Arabic or a Persian page", () => {
         expect(item.getAttribute("class")).toBe(TABLE_LIST_ITEM_CLASS_NAME);
         expect(item).not.toHaveAttribute("dir");
       }
-
-      // The service's colour stays beside its name, the page's way.
-      const service: HTMLElement = serviceLineOf(ENGLISH_SERVICE);
-
-      expect(service.parentElement).not.toHaveAttribute("dir");
-      expect(service.previousElementSibling).not.toHaveAttribute("dir");
 
       // Only the three names read their own way.
       expect(
@@ -363,7 +364,7 @@ describe("on an Arabic or a Persian page", () => {
       RECORD_LINK_NAME_LINE_CLASS_NAME,
     );
 
-    const service: HTMLElement = serviceLineOf(ARABIC_SERVICE);
+    const service: HTMLElement = nameLineOf(ARABIC_SERVICE);
 
     expect(service).not.toHaveAttribute("dir");
     expect(service.getAttribute("class")).toBe(
@@ -423,22 +424,42 @@ describe("on an Arabic or a Persian page", () => {
 
     expect(host).not.toHaveAttribute("title");
   });
+
+  test("a service's name cut short at its own end shows in full under the pointer, as the others do", () => {
+    drawRows({ language: "fa", rows: [MONITOR_HOST_AND_SERVICE()] });
+
+    const line: HTMLElement = nameLineOf(ENGLISH_SERVICE);
+    const item: HTMLElement = line.closest("a")!.parentElement as HTMLElement;
+
+    expect(item.getAttribute("class")).toBe(TABLE_LIST_ITEM_CLASS_NAME);
+
+    Object.defineProperty(line, "scrollWidth", {
+      configurable: true,
+      value: 300,
+    });
+    Object.defineProperty(line, "clientWidth", {
+      configurable: true,
+      value: 180,
+    });
+    line.style.textOverflow = "ellipsis";
+
+    fireEvent.mouseEnter(item);
+
+    expect(item).toHaveAttribute("title", ENGLISH_SERVICE);
+  });
 });
 
 describe("on an English page", () => {
   test("each name is drawn with its line's classes and no dir; nothing in the cell has one", () => {
     drawRows({ language: "en", rows: [MONITOR_HOST_AND_SERVICE()] });
 
-    for (const name of [ENGLISH_MONITOR, ENGLISH_HOST]) {
+    for (const name of [ENGLISH_MONITOR, ENGLISH_HOST, ENGLISH_SERVICE]) {
       const line: HTMLElement = nameLineOf(name);
 
       expect(line).not.toHaveAttribute("dir");
       expect(line.getAttribute("class")).toBe(RECORD_LINK_NAME_LINE_CLASS_NAME);
     }
 
-    expect(serviceLineOf(ENGLISH_SERVICE).getAttribute("class")).toBe(
-      RECORD_LINK_NAME_LINE_CLASS_NAME,
-    );
     expect(cellOf(ENGLISH_MONITOR).querySelector("[dir]")).toBeNull();
   });
 
@@ -465,8 +486,6 @@ interface ResourceKind {
   kind: string;
   englishName: string;
   resources: () => AffectedResources;
-  // Where the name is drawn: a record link's line, or a service's.
-  lineOf: (name: string) => HTMLElement;
 }
 
 const RESOURCE_KINDS: Array<ResourceKind> = [
@@ -478,7 +497,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         monitors: [named(new Monitor(), "Checkout API p95 latency (EU)")],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "host",
@@ -486,7 +504,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { hosts: [named(new Host(), "db-primary-eu-west-1")] };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "network device",
@@ -496,7 +513,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         networkDevices: [named(new NetworkDevice(), "core-switch-fra-02")],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "Kubernetes cluster",
@@ -508,7 +524,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         ],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "Docker host",
@@ -516,7 +531,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { dockerHosts: [named(new DockerHost(), "docker-builder-3")] };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "Podman host",
@@ -524,7 +538,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { podmanHosts: [named(new PodmanHost(), "podman-edge-7")] };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "Proxmox cluster",
@@ -534,7 +547,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         proxmoxClusters: [named(new ProxmoxCluster(), "pve-lab-cluster")],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "OpenStack cloud",
@@ -544,7 +556,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         openStackClouds: [named(new OpenStackCloud(), "openstack-region-one")],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "VMware vCenter",
@@ -556,7 +567,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         ],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "Ceph cluster",
@@ -564,7 +574,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { cephClusters: [named(new CephCluster(), "ceph-object-store")] };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "storage array",
@@ -572,7 +581,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { storageArrays: [named(new StorageArray(), "netapp-a400-fra")] };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "Docker Swarm cluster",
@@ -582,7 +590,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         dockerSwarmClusters: [named(new DockerSwarmCluster(), "swarm-ingress")],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "IoT fleet",
@@ -590,7 +597,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { iotFleets: [named(new IoTFleet(), "warehouse-sensors")] };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "database server",
@@ -600,7 +606,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         databaseServers: [named(new DatabaseServer(), "orders-postgres-16")],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "cloud resource",
@@ -610,7 +615,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         cloudResources: [named(new CloudResource(), "checkout-bucket (S3)")],
       };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "network site",
@@ -618,7 +622,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { networkSites: [named(new NetworkSite(), "Frankfurt DC2")] };
     },
-    lineOf: nameLineOf,
   },
   {
     kind: "service",
@@ -626,7 +629,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
     resources: (): AffectedResources => {
       return { services: [serviceNamed("payments-worker")] };
     },
-    lineOf: serviceLineOf,
   },
   {
     kind: "SLO",
@@ -638,7 +640,6 @@ const RESOURCE_KINDS: Array<ResourceKind> = [
         ],
       };
     },
-    lineOf: nameLineOf,
   },
 ];
 
@@ -654,7 +655,7 @@ describe.each(
   test("on a Persian page reads left to right, cut short at its own end", () => {
     drawRows({ language: "fa", rows: [resource.resources()] });
 
-    const line: HTMLElement = resource.lineOf(resource.englishName);
+    const line: HTMLElement = nameLineOf(resource.englishName);
 
     expect(line).toHaveAttribute("dir", "ltr");
     expect(line).toHaveClass(...NAME_LINE_CLASSES, ...CLAMPED_CLASSES);
@@ -667,10 +668,123 @@ describe.each(
   test("on an English page has no dir", () => {
     drawRows({ language: "en", rows: [resource.resources()] });
 
-    const line: HTMLElement = resource.lineOf(resource.englishName);
+    const line: HTMLElement = nameLineOf(resource.englishName);
 
     expect(line).not.toHaveAttribute("dir");
     expect(line.getAttribute("class")).toBe(RECORD_LINK_NAME_LINE_CLASS_NAME);
+  });
+});
+
+/*
+ * Every name in a row's Affected Resources starts in one place, after the
+ * same room - its kind's icon, or a service's colour - and every link is
+ * as wide as that room and its name (the UI review of #6740). A service
+ * drew its colour and name as a block row of its own: its name stood 8px
+ * before every other name, and its link ran the column's whole width - its
+ * focus ring cut off at the column's edges, and a click past a short
+ * name's end opened the service rather than the row.
+ */
+describe("every kind of resource, one to a row", () => {
+  const ALL_KINDS: Array<AffectedResources> = RESOURCE_KINDS.map(
+    (each: ResourceKind): AffectedResources => {
+      return each.resources();
+    },
+  );
+
+  // What a resource's link draws before its name: an icon, or a mark.
+  const firstOf: (link: HTMLElement) => Element = (
+    link: HTMLElement,
+  ): Element => {
+    const row: HTMLElement = link.firstElementChild as HTMLElement;
+
+    return row.firstElementChild!.firstElementChild as Element;
+  };
+
+  test.each(["en", "fa", "ar"])(
+    "on a %s page every link's one box is the same row: a 20px room at its start, then its name's line",
+    (language: string) => {
+      const holder: HTMLElement = drawRows({
+        language: language,
+        rows: RESOURCE_KINDS.map((each: ResourceKind): AffectedResources => {
+          return each.resources();
+        }),
+      });
+
+      const links: Array<HTMLElement> = Array.from(
+        holder.querySelectorAll("a"),
+      );
+
+      expect(links).toHaveLength(18);
+
+      for (const link of links) {
+        const row: HTMLElement = link.firstElementChild as HTMLElement;
+
+        // The link holds the row alone: it is as wide as the row.
+        expect(link.children).toHaveLength(1);
+        expect(row.tagName).toBe("SPAN");
+        expect(row.getAttribute("class")).toBe(RECORD_LINK_NAME_ROW_CLASS_NAME);
+        expect(row.children).toHaveLength(2);
+
+        // A box holding one 20px box, set on its line the same way.
+        expect(row.firstElementChild!.children).toHaveLength(1);
+
+        for (const sizeAndPlace of ["h-5", "w-5", "align-middle"]) {
+          expect(firstOf(link)).toHaveClass(sizeAndPlace);
+        }
+
+        // Then its name's line.
+        expect(row.lastElementChild).toHaveAttribute(
+          "data-testid",
+          RECORD_LINK_NAME_TEST_ID,
+        );
+        expect(row.lastElementChild).toHaveClass(...NAME_LINE_CLASSES);
+      }
+
+      // Seventeen kinds' icons, and a service's colour in an icon's room.
+      const icons: Array<Element> = links
+        .map(firstOf)
+        .filter((each: Element): boolean => {
+          return each.tagName.toLowerCase() === "svg";
+        });
+      const marks: Array<Element> = links
+        .map(firstOf)
+        .filter((each: Element): boolean => {
+          return each.getAttribute("class") === RECORD_LINK_MARK_CLASS_NAME;
+        });
+
+      expect(icons).toHaveLength(17);
+
+      for (const icon of icons) {
+        expect(icon).toHaveClass(...RECORD_LINK_ICON_CLASS_NAME.split(" "));
+      }
+
+      expect(marks).toHaveLength(1);
+      expect(marks[0]!.closest("a")).toHaveTextContent("payments-worker");
+      expect(marks[0]!.querySelector("div.rounded.h-3.w-3")).not.toBeNull();
+
+      // Each a resource of its own list item, as before.
+      for (const link of links) {
+        expect(link.parentElement!.getAttribute("class")).toBe(
+          TABLE_LIST_ITEM_CLASS_NAME,
+        );
+      }
+    },
+  );
+
+  /*
+   * The service's link held a block (div.flex), which made the link run
+   * its item's whole width. Nothing between a link and its row is a block
+   * now.
+   */
+  test("no resource's link holds a block that would run it the column's width", () => {
+    const holder: HTMLElement = drawRows({ language: "fa", rows: ALL_KINDS });
+
+    for (const link of Array.from(holder.querySelectorAll("a"))) {
+      expect(link.querySelector("div.flex")).toBeNull();
+      expect(
+        link.firstElementChild!.getAttribute("class")!.split(" "),
+      ).not.toContain("flex");
+    }
   });
 });
 
@@ -706,7 +820,11 @@ describe("on a phone's card", () => {
         expect(item).not.toHaveAttribute("dir");
       }
 
-      expect(serviceLineOf(ENGLISH_SERVICE)).toHaveAttribute("dir", "ltr");
+      expect(nameLineOf(ENGLISH_SERVICE)).toHaveAttribute("dir", "ltr");
+      expect(nameLineOf(ENGLISH_SERVICE)).toHaveClass(
+        ...NAME_LINE_CLASSES,
+        ...CLAMPED_CLASSES,
+      );
 
       /*
        * The field's value draws more than words (an icon beside each

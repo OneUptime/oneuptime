@@ -23,6 +23,10 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The icon and the name are a flex row of the page's way (the icon at the
  * line's start, on the right of an Arabic page), set apart by a gap - a
  * margin on one side of the icon (mr-1) was on the far side of it there.
+ *
+ * A record with a mark of its own instead of a kind's icon - a service's
+ * colour (ServiceElement's alignWithIcons) - draws it in an icon's room,
+ * so the names of a row's resources start in one place.
  */
 
 /*
@@ -50,6 +54,18 @@ export const RECORD_LINK_ICON_CLASS_NAME: string =
   "inline-block h-5 w-5 align-middle";
 
 /*
+ * The room a record's own mark takes where a kind's icon would stand (a
+ * service's colour): the icon's 20px square, set on its line as the icon
+ * is (an inline box centred on the text), the mark in its middle. A
+ * service's 12px colour drawn as it is elsewhere, its 8px gap after it,
+ * put its name 8px before every other name in the list, and its link ran
+ * the item's whole width: its focus ring was cut off at the column's edges
+ * and a click past a short name's end opened the service, not the row.
+ */
+export const RECORD_LINK_MARK_CLASS_NAME: string =
+  "inline-flex h-5 w-5 items-center justify-center align-middle";
+
+/*
  * The name's line. Where the row's holder keeps it to one line (a table's
  * cell: TABLE_LIST_ITEM_CLASS_NAME's whitespace-nowrap), it shrinks with
  * the row, no wider than the line (min-w-0), and draws its own "..." at
@@ -61,8 +77,7 @@ export const RECORD_LINK_ICON_CLASS_NAME: string =
  * as its words beside the icon (IsolatedLine's
  * CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME), never aligned to its
  * end, which would line up every wrapped line of an English name on the
- * right of an Arabic page. ServiceElement's name takes it too
- * (serviceNameClassName), beside its colour.
+ * right of an Arabic page.
  */
 export const RECORD_LINK_NAME_LINE_CLASS_NAME: string =
   "min-w-0 overflow-hidden text-ellipsis [overflow-wrap:anywhere]";
@@ -73,24 +88,40 @@ export const RECORD_LINK_NAME_TEST_ID: string = "record-link-name";
 export interface ComponentProps {
   name: string | undefined;
   /*
-   * The record kind's icon, drawn before the name. Left out, the name is
-   * drawn alone, exactly as it always was: a table's cell lays that out as
-   * a line of text (TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES), and a list
-   * on a record's own name reads its line from the record (ColumnLineText).
+   * The record kind's icon, drawn before the name. Left out (with no
+   * mark), the name is drawn alone, exactly as it always was: a table's
+   * cell lays that out as a line of text
+   * (TABLE_CELL_INLINE_RECORD_LINK_CLASS_NAMES), and a list on a record's
+   * own name reads its line from the record (ColumnLineText).
    */
   icon?: IconProp | undefined;
+  /*
+   * A mark of the record's own, drawn in the icon's room when there is no
+   * icon (RECORD_LINK_MARK_CLASS_NAME): a service's colour.
+   */
+  mark?: ReactElement | undefined;
 }
 
 const RecordLinkName: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
-  if (props.icon === undefined) {
+  if (props.icon === undefined && props.mark === undefined) {
     return <span className="flex"> {props.name}</span>;
   }
 
   return (
     <span className={RECORD_LINK_NAME_ROW_CLASS_NAME}>
-      <Icon icon={props.icon} className={RECORD_LINK_ICON_CLASS_NAME} />
+      {props.icon !== undefined ? (
+        <Icon icon={props.icon} className={RECORD_LINK_ICON_CLASS_NAME} />
+      ) : (
+        /*
+         * A box of the row whose one line holds the mark's room, as the
+         * icon's box holds its svg: the two sit at one height.
+         */
+        <span>
+          <span className={RECORD_LINK_MARK_CLASS_NAME}>{props.mark}</span>
+        </span>
+      )}
       <IsolatedLine
         as="span"
         text={props.name || ""}
