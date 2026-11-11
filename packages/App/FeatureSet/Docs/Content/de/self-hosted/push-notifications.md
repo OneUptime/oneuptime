@@ -259,4 +259,5 @@ Wenn nichts davon hilft, schreiben Sie uns an [hello@oneuptime.com](mailto:hello
 - [Fehlerbehebung der mobilen App](/docs/mobile-desktop-apps/faq-troubleshooting): Anmelde- und Benachrichtigungsprobleme auf dem Telefon beheben.
 - [Eskalationsregeln](/docs/on-call/escalation-rules): Festlegen, wer wann alarmiert wird.
 - [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access): Was Ihr Server in Ihrem eigenen Netzwerk erreichen darf.
+- [Metriken zur Benachrichtigungszustellung](/docs/self-hosted/notification-delivery-metrics): Die Push-Nachrichten zählen, die Apple und Google annehmen, und die, die sie ablehnen.
 :::

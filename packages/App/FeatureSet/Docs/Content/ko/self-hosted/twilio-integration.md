@@ -184,4 +184,5 @@ SMS로 인증한 번호는 두 번째 코드 없이 통화용으로도 인증됩
 - [SMS 및 통화 게이트웨이](/docs/self-hosted/sms-and-call-gateway): Twilio 대신 자체 공급자를 통해 SMS와 통화를 보냅니다.
 - [SMTP](/docs/emails/smtp): 이메일도 자체 메일 서버로 보냅니다.
 - [프라이빗 네트워크 액세스](/docs/self-hosted/private-network-access): 워크플로와 웹훅이 내부 도구에 도달하게 합니다.
+- [알림 전달 메트릭](/docs/self-hosted/notification-delivery-metrics): Twilio와 휴대폰에 도달한 SMS와 통화 수를 측정합니다.
 :::

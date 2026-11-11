@@ -49,7 +49,9 @@ import { getReaderDateLocale } from "Common/Types/DateLanguage";
  *
  * Where the tool says (Power BI), a dashboard's views, when it was last
  * viewed and its data's last refresh come first; its viewers, who views it
- * most and its refreshes are columns to switch on.
+ * most and its refreshes are columns to switch on. A Power BI tool can alert
+ * on failed refreshes: saving it keeps its monitor in step, as the person
+ * who saved it (DataBiRefreshAlerts).
  */
 
 // A dashboard's link, when its tool gave one that reads as a URL.
@@ -213,6 +215,7 @@ const BiDashboardsPage: FunctionComponent<
   const translator: Translator = useTranslator();
   const [readCount, setReadCount] = useState<number>(0);
   const [readError, setReadError] = useState<string>("");
+  const [alertError, setAlertError] = useState<string>("");
 
   const readTool: (connection: DataBiConnection) => Promise<void> = async (
     connection: DataBiConnection,
@@ -235,11 +238,41 @@ const BiDashboardsPage: FunctionComponent<
     });
   };
 
+  // The tool's monitor on failed refreshes, made, kept or removed to match what was saved.
+  const keepRefreshAlert: (
+    connection: DataBiConnection,
+  ) => Promise<void> = async (connection: DataBiConnection): Promise<void> => {
+    if (!connection.id) {
+      return;
+    }
+
+    try {
+      await DataObservabilityApi.syncBiRefreshAlert(connection.id);
+      setAlertError("");
+    } catch (error) {
+      setAlertError(
+        translator.translateTemplate(
+          "The alert on failed refreshes was not saved: {{error}}",
+          {
+            error: error instanceof Error ? error.message : String(error),
+          },
+        ),
+      );
+    }
+  };
+
   return (
     <div className="space-y-5">
       {readError ? (
         <p className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">
           {readError}
+        </p>
+      ) : (
+        <></>
+      )}
+      {alertError ? (
+        <p className="rounded-md bg-yellow-50 p-3 text-sm text-yellow-800">
+          {alertError}
         </p>
       ) : (
         <></>
@@ -330,10 +363,29 @@ const BiDashboardsPage: FunctionComponent<
             required: false,
             defaultValue: true,
           },
+          {
+            field: { alertOnFailedRefreshes: true },
+            title: "Alert on Failed Refreshes",
+            stepId: "connection",
+            description:
+              "Open an alert for each dataset whose refresh fails, resolved once a later refresh completes. OneUptime keeps one monitor for it under Monitors, named after this tool.",
+            fieldType: FormFieldSchemaType.Toggle,
+            required: false,
+            defaultValue: true,
+            showIf: (values: FormValues<DataBiConnection>): boolean => {
+              return values.tool === DataBiTool.PowerBI;
+            },
+          },
         ]}
+        /*
+         * Runs after Add and after Edit: the tool's alert is kept as saved -
+         * first, as it is quick, and a Power BI read can take minutes - then
+         * the tool is read.
+         */
         onCreateSuccess={async (
           connection: DataBiConnection,
         ): Promise<DataBiConnection> => {
+          await keepRefreshAlert(connection);
           await readTool(connection);
 
           return connection;

@@ -259,4 +259,5 @@ Helpt niets hiervan, neem dan contact met ons op via [hello@oneuptime.com](mailt
 - [Problemen met de mobiele app oplossen](/docs/mobile-desktop-apps/faq-troubleshooting): Los aanmeld- en meldingsproblemen op de telefoon op.
 - [Escalatieregels](/docs/on-call/escalation-rules): Bepaal wie wordt gewaarschuwd, en wanneer.
 - [Toegang tot privénetwerk](/docs/self-hosted/private-network-access): Wat uw server in uw eigen netwerk mag bereiken.
+- [Metrics voor de bezorging van meldingen](/docs/self-hosted/notification-delivery-metrics): De pushmeldingen tellen die Apple en Google aannemen, en de meldingen die ze weigeren.
 :::

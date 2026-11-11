@@ -184,4 +184,5 @@ Un numero verificato per gli SMS è verificato anche per le chiamate, senza un s
 - [Gateway per SMS e chiamate](/docs/self-hosted/sms-and-call-gateway): Inviare SMS e chiamate tramite il tuo provider invece che tramite Twilio.
 - [SMTP](/docs/emails/smtp): Inviare anche le email tramite il tuo server di posta.
 - [Accesso alle reti private](/docs/self-hosted/private-network-access): Consentire a workflow e webhook di raggiungere strumenti interni.
+- [Metriche di consegna delle notifiche](/docs/self-hosted/notification-delivery-metrics): Misurare quanti SMS e chiamate raggiungono Twilio e il telefono.
 :::

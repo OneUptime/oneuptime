@@ -259,4 +259,5 @@ Si nada de esto ayuda, escríbenos a [hello@oneuptime.com](mailto:hello@oneuptim
 - [Solución de problemas de la app móvil](/docs/mobile-desktop-apps/faq-troubleshooting): Resuelve problemas de inicio de sesión y de notificaciones en el móvil.
 - [Reglas de escalado](/docs/on-call/escalation-rules): Decide a quién se avisa y cuándo.
 - [Acceso a red privada](/docs/self-hosted/private-network-access): Qué puede alcanzar tu servidor en tu propia red.
+- [Métricas de entrega de notificaciones](/docs/self-hosted/notification-delivery-metrics): Contar las notificaciones push que Apple y Google aceptan y las que rechazan.
 :::

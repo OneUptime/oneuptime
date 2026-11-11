@@ -183,7 +183,7 @@ Una notifica va a ogni canale attivo, come una richiesta per canale, con `event`
 
 ## Consegna e nuovi tentativi
 
-Una richiesta conta come consegnata quando il tuo servizio risponde con uno stato 2xx entro 10 secondi. Una richiesta senza risposta, o a cui ha risposto con 408, 429 o uno stato 5xx, viene inviata di nuovo dopo 1 secondo e dopo altri 4 secondi: tre tentativi in tutto. Con qualsiasi altro stato 4xx non viene inviata di nuovo.
+Una richiesta conta come consegnata quando il tuo servizio risponde con uno stato 2xx entro 10 secondi. Una richiesta senza risposta, o a cui ha risposto con 408, 429 o uno stato 5xx, viene inviata di nuovo dopo 1 secondo e dopo altri 4 secondi: tre tentativi in tutto. Con qualsiasi altro stato 4xx non viene inviata di nuovo. L'esito di ogni messaggio è contato nelle [Metriche di consegna delle notifiche](/docs/self-hosted/notification-delivery-metrics), per ID e nome del canale.
 
 L'esito di ogni tentativo compare nel registro di reperibilità della persona, con il nome del canale e lo stato con cui ha risposto il tuo servizio, mai l'URL. Un avviso non consegnato non ferma la policy di reperibilità: se nessuno conferma, viene escalato come di consueto. Tieni una regola e-mail o SMS più avanti nelle tue regole se il tuo servizio è l'unico modo per raggiungere le persone.
 
