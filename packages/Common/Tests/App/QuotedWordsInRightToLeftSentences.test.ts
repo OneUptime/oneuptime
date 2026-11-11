@@ -299,7 +299,7 @@ const SHOWN_AS_WRITTEN: Array<ShownAsWritten> = [
     reason: "A key of a JSON body, typed as it is.",
   },
   {
-    english: "narrow the collector's \"process\" scraper",
+    english: 'narrow the collector\'s "process" scraper',
     words: ["process"],
     reason: "The collector's scraper, by the name its configuration gives it.",
   },
@@ -517,6 +517,8 @@ describe("the guard sees an English word the page shows translated", () => {
   }
 
   const swaps: Array<Swap> = [];
+  // A quotation mark, a placeholder's brace or a line break: no word to swap in.
+  const QUOTE_OR_BREAK: RegExp = /[«»"'“”‘’{}\n]/u;
 
   for (const languageOfApp of LANGUAGES_OF_APPS) {
     const englishOf: Map<string, string> = new Map<string, string>();
@@ -525,7 +527,7 @@ describe("the guard sees an English word the page shows translated", () => {
       if (
         !englishOf.has(translated) &&
         LATIN_LETTER.test(english) &&
-        !/[«»"'“”‘’{}\n]/u.test(english) &&
+        !QUOTE_OR_BREAK.test(english) &&
         english.length <= 120
       ) {
         englishOf.set(translated, english);
@@ -791,17 +793,15 @@ describe("what the guard counts as quoting the page's word", () => {
   });
 
   test("not the page's own word, a placeholder, or an English sentence", () => {
-    expect(findQuotedPageWords("الحالة «متوقف عن التشغيل»", words)).toEqual(
-      [],
-    );
+    expect(findQuotedPageWords("الحالة «متوقف عن التشغيل»", words)).toEqual([]);
     expect(findQuotedPageWords("الحالة «{{state}}»", words)).toEqual([]);
     expect(findQuotedPageWords("Choose 'Powered off'.", words)).toEqual([]);
   });
 
   test("an apostrophe inside a word opens and closes no quote", () => {
     expect(findQuotedPageWords("متجر O'Home's للأجهزة", words)).toEqual([]);
-    expect(findQuotedPageWords("شهادة Let's Encrypt و'Home'", words)).toEqual(
-      [{ phrase: "Home", pageWord: "الرئيسية" }],
-    );
+    expect(findQuotedPageWords("شهادة Let's Encrypt و'Home'", words)).toEqual([
+      { phrase: "Home", pageWord: "الرئيسية" },
+    ]);
   });
 });

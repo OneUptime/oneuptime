@@ -152,14 +152,16 @@ const isTypingPlace: (node: Node | null | undefined) => boolean = (
   const element: Element | null =
     node && node.nodeType === 1
       ? (node as Element)
-      : (node?.parentElement ?? null);
+      : node?.parentElement ?? null;
 
   if (!element) {
     return false;
   }
 
   return Boolean(
-    element.closest("input, textarea, [contenteditable]:not([contenteditable='false'])"),
+    element.closest(
+      "input, textarea, [contenteditable]:not([contenteditable='false'])",
+    ),
   );
 };
 

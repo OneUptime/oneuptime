@@ -33,11 +33,7 @@ const readsAsWritten: (
 
   expect(from).toBeGreaterThanOrEqual(0);
 
-  return isDrawnAsWritten(
-    drawLine(line, direction),
-    from,
-    from + code.length,
-  );
+  return isDrawnAsWritten(drawLine(line, direction), from, from + code.length);
 };
 
 describe("a character's bidi class", () => {
@@ -130,9 +126,9 @@ describe("a line read from the right", () => {
     );
     // After Hebrew letters, or a Latin word, it stays a European number.
     expect(readsAsWritten("הושלם 99.9% מהם", "99.9%")).toBe(true);
-    expect(readsAsWritten("البطاقة Visa 4111-1111-1111 هنا", "Visa 4111-1111-1111")).toBe(
-      true,
-    );
+    expect(
+      readsAsWritten("البطاقة Visa 4111-1111-1111 هنا", "Visa 4111-1111-1111"),
+    ).toBe(true);
   });
 
   test("a left-to-right isolate draws what it holds as written", () => {
@@ -153,9 +149,7 @@ describe("a line read from the right", () => {
     expect(readsAsWritten(line, "/otlp")).toBe(true);
     // The Arabic value reads from the right inside its own isolate.
     expect(readsAsWritten(line, "مرحبا")).toBe(false);
-    expect(getDrawnText(drawLine(line, "rtl"))).toBe(
-      "عم ،ابحرم/otlp ىلإ لسرأ",
-    );
+    expect(getDrawnText(drawLine(line, "rtl"))).toBe("عم ،ابحرم/otlp ىلإ لسرأ");
   });
 
   test("but a value's isolate on its own is a sign to the sentence", () => {

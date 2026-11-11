@@ -148,7 +148,43 @@ const LETTER_REGEX: RegExp = /^\p{L}$/u;
  * right, their full stop at their end. A tie goes to the first letter.
  * Null when there is no letter, so the text follows the page; only the
  * first TEXT_DIRECTION_SCAN_LENGTH characters are read.
+ *
+ * What reads as it is written in any language decides nothing about the
+ * words round it: what a text sets apart in a Unicode isolate (LRI, RLI or
+ * FSI ... PDI) - the Unicode bidi algorithm itself skips an isolate when it
+ * looks for a paragraph's first letter - and a web address. An Arabic
+ * sentence that names a path, set apart to read as written
+ * (Types/CodeInSentence), and an address has more Latin letters than
+ * Arabic ones: counted, they turned the whole sentence round, laid out
+ * from the left with its words in the wrong order. A text that is nothing
+ * but isolates and addresses is read by the letters in them.
  */
+interface LetterCount {
+  rightToLeft: number;
+  leftToRight: number;
+  first: ReadingDirection | null;
+}
+
+// Each isolate's opening mark: LRI, RLI, FSI.
+const ISOLATE_INITIATOR_REGEX: RegExp = /^[\u{2066}-\u{2068}]$/u;
+
+/*
+ * A web address: a scheme from the start of a word ("https://",
+ * "s3://"), up to the next space or isolate mark.
+ */
+const WEB_ADDRESS_REGEX: RegExp =
+  /(?<![A-Za-z0-9+.-])[A-Za-z][A-Za-z0-9+.-]{0,31}:\/\/[^\s\u{2066}-\u{2069}]*/gu;
+
+const getDirectionByCount: (count: LetterCount) => ReadingDirection | null = (
+  count: LetterCount,
+): ReadingDirection | null => {
+  if (count.rightToLeft === count.leftToRight) {
+    return count.first;
+  }
+
+  return count.rightToLeft > count.leftToRight ? RIGHT_TO_LEFT : LEFT_TO_RIGHT;
+};
+
 export const getTextReadingDirectionByMostLetters: (
   text: string | null | undefined,
 ) => ReadingDirection | null = (
@@ -158,12 +194,30 @@ export const getTextReadingDirectionByMostLetters: (
     return null;
   }
 
-  let rightToLeftLetters: number = 0;
-  let leftToRightLetters: number = 0;
-  let firstLetterDirection: ReadingDirection | null = null;
+  const outside: LetterCount = { rightToLeft: 0, leftToRight: 0, first: null };
+  const inside: LetterCount = { rightToLeft: 0, leftToRight: 0, first: null };
+  // How many isolates the scan is in.
+  let depth: number = 0;
+  // Each address counted as if it were set apart.
+  const scanned: string = text
+    .slice(0, TEXT_DIRECTION_SCAN_LENGTH)
+    .replace(WEB_ADDRESS_REGEX, (address: string): string => {
+      return `${FIRST_STRONG_ISOLATE}${address}${POP_DIRECTIONAL_ISOLATE}`;
+    });
 
   // By code point, so a letter outside the Basic Multilingual Plane counts once.
-  for (const character of text.slice(0, TEXT_DIRECTION_SCAN_LENGTH)) {
+  for (const character of scanned) {
+    if (ISOLATE_INITIATOR_REGEX.test(character)) {
+      depth++;
+      continue;
+    }
+
+    // A PDI with no isolate open closes nothing.
+    if (character === POP_DIRECTIONAL_ISOLATE) {
+      depth = Math.max(0, depth - 1);
+      continue;
+    }
+
     if (!LETTER_REGEX.test(character)) {
       continue;
     }
@@ -173,23 +227,18 @@ export const getTextReadingDirectionByMostLetters: (
     )
       ? RIGHT_TO_LEFT
       : LEFT_TO_RIGHT;
+    const count: LetterCount = depth > 0 ? inside : outside;
 
     if (direction === RIGHT_TO_LEFT) {
-      rightToLeftLetters++;
+      count.rightToLeft++;
     } else {
-      leftToRightLetters++;
+      count.leftToRight++;
     }
 
-    firstLetterDirection = firstLetterDirection || direction;
+    count.first = count.first || direction;
   }
 
-  if (rightToLeftLetters === leftToRightLetters) {
-    return firstLetterDirection;
-  }
-
-  return rightToLeftLetters > leftToRightLetters
-    ? RIGHT_TO_LEFT
-    : LEFT_TO_RIGHT;
+  return getDirectionByCount(outside) || getDirectionByCount(inside);
 };
 
 /*

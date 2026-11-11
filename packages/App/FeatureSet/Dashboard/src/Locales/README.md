@@ -307,6 +307,35 @@ Translation guidelines:
   translate `<key>_one` for your "one" form. In ja/ko/zh-CN/zh-TW, `_one` is
   never shown, so translate it the same as the general form or leave it.
 
+### Code in a sentence read from the right (ar, fa)
+
+In Arabic, Persian and any language read from the right that is added later:
+
+- Write code exactly as `en.json` writes it: `.env`, `--help`,
+  `/.well-known/openid-configuration`, `grantConsent()`, `0 9 * * 1-5`. Do not
+  reword it, and put no direction mark (LRM, RLM) beside it.
+- The page draws it as written. Every frontend's i18next runs a translated
+  sentence through `Common/UI/Utils/CodeReadsAsWritten` as it hands it to
+  the page. That sets each piece of code the bidi algorithm would draw wrong
+  (a function's brackets, a path's slash, a flag's dashes, a file's dot, a
+  cron line) apart in a left-to-right isolate (`Common/Types/CodeInSentence`).
+  Copying the sentence leaves the marks out, and the code's letters do not
+  count when a help line works out which way it reads.
+- The only mark a locale file keeps is an LRM on each side of a lone key's
+  sign in brackets, such as the `}` of "Newer session by this user (})", so
+  the sign is not drawn mirrored.
+- Quote a label, a state or a button as the page draws it: its translation
+  where the page translates it, the English where the page shows English (a
+  vendor's column, a template's name, a permission title).
+
+Two guards in `packages/Common/Tests/App` hold this:
+`CodeInRightToLeftSentences.test.ts` lays every Arabic and Persian sentence
+of the five frontends out with a copy of the bidi algorithm, and
+`QuotedWordsInRightToLeftSentences.test.ts` fails on a quoted Latin phrase
+the Dashboard translates, unless its allowlist says why the page shows it in
+English. `ARABIC.md` has the Arabic details. Texts the server sends
+(`Common/Server/Locales`: emails, chat messages) are not set apart.
+
 ## What "untranslated" means
 
 A locale must have every `en.json` key and no others. A key is

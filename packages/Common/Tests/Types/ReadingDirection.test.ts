@@ -283,6 +283,203 @@ describe("which way a text shown on a page is read", () => {
     },
   );
 
+  describe("what reads as written in any language", () => {
+    const LRI: string = String.fromCharCode(0x2066);
+    const RLI: string = String.fromCharCode(0x2067);
+    const FSI: string = String.fromCharCode(0x2068);
+    const PDI: string = String.fromCharCode(0x2069);
+    // 27 Persian letters, and 32 Latin ones, 28 of them in its path.
+    const PERSIAN_OIDC_HELP: string =
+      "نشانی سند کشف OIDC — معمولاً به /.well-known/openid-configuration ختم می‌شود.";
+    const SET_APART: string = `نشانی سند کشف OIDC — معمولاً به ${LRI}/.well-known/openid-configuration${PDI} ختم می‌شود.`;
+
+    test("an isolate decides nothing about the words round it: a Persian sentence round its code is Persian", () => {
+      // Its code counted, it was read from the left, its words turned round.
+      expect(getTextReadingDirectionByMostLetters(PERSIAN_OIDC_HELP)).toBe(
+        LEFT_TO_RIGHT,
+      );
+      expect(getTextReadingDirectionByMostLetters(SET_APART)).toBe(
+        RIGHT_TO_LEFT,
+      );
+    });
+
+    test("an English sentence round a long Persian value is English", () => {
+      const value: string = "سرویس پرداخت فروشگاه اینترنتی مرکزی";
+
+      expect(
+        getTextReadingDirectionByMostLetters(`Paged ${value} again.`),
+      ).toBe(RIGHT_TO_LEFT);
+      expect(
+        getTextReadingDirectionByMostLetters(
+          `Paged ${FSI}${value}${PDI} again.`,
+        ),
+      ).toBe(LEFT_TO_RIGHT);
+    });
+
+    test.each([
+      ["LRI", LRI],
+      ["RLI", RLI],
+      ["FSI", FSI],
+    ])("%s opens an isolate", (_name: string, opening: string) => {
+      expect(
+        getTextReadingDirectionByMostLetters(`ابت ${opening}abcdefgh${PDI}`),
+      ).toBe(RIGHT_TO_LEFT);
+      expect(
+        getTextReadingDirectionByMostLetters(`abc ${opening}ابتثجحخد${PDI}`),
+      ).toBe(LEFT_TO_RIGHT);
+    });
+
+    test("an isolate in an isolate closes with its own PDI, and the outer one with the next", () => {
+      expect(
+        getTextReadingDirectionByMostLetters(
+          `ابت ${LRI}abc ${FSI}def${PDI} ghi${PDI} jk`,
+        ),
+      ).toBe(RIGHT_TO_LEFT);
+      // Past both PDIs, the Latin letters count again.
+      expect(
+        getTextReadingDirectionByMostLetters(
+          `ابت ${LRI}a ${FSI}b${PDI} c${PDI} defg`,
+        ),
+      ).toBe(LEFT_TO_RIGHT);
+    });
+
+    test("a PDI with no isolate open closes nothing", () => {
+      expect(getTextReadingDirectionByMostLetters(`ابت${PDI} abcd`)).toBe(
+        LEFT_TO_RIGHT,
+      );
+      expect(
+        getTextReadingDirectionByMostLetters(
+          `abcd${PDI}${PDI} ${LRI}ابتثجح${PDI}`,
+        ),
+      ).toBe(LEFT_TO_RIGHT);
+    });
+
+    test("an isolate left open runs to the text's end", () => {
+      expect(getTextReadingDirectionByMostLetters(`ابت ${LRI}abcdefgh`)).toBe(
+        RIGHT_TO_LEFT,
+      );
+    });
+
+    test("a text that is all isolates is read by the letters inside them", () => {
+      expect(getTextReadingDirectionByMostLetters(`${FSI}پرداخت${PDI}`)).toBe(
+        RIGHT_TO_LEFT,
+      );
+      expect(getTextReadingDirectionByMostLetters(`${LRI}--help${PDI}.`)).toBe(
+        LEFT_TO_RIGHT,
+      );
+      expect(
+        getTextReadingDirectionByMostLetters(`${FSI}ab${PDI} ${FSI}ابت${PDI}`),
+      ).toBe(RIGHT_TO_LEFT);
+      // As many each way inside: the first letter inside decides.
+      expect(
+        getTextReadingDirectionByMostLetters(`${FSI}abc${PDI} ${FSI}ابت${PDI}`),
+      ).toBe(LEFT_TO_RIGHT);
+    });
+
+    test("a tie outside goes to the first letter outside, whatever is inside", () => {
+      expect(
+        getTextReadingDirectionByMostLetters(`${LRI}abcdefgh${PDI} ابت abc`),
+      ).toBe(RIGHT_TO_LEFT);
+    });
+
+    test("a web address reads as written, and decides nothing about the words round it either", () => {
+      // 4 Arabic letters, 22 Latin ones in the address.
+      expect(
+        getTextReadingDirectionByMostLetters(
+          "افتح https://status.example.com/incidents",
+        ),
+      ).toBe(RIGHT_TO_LEFT);
+      expect(
+        getTextReadingDirectionByMostLetters(
+          "نشانی S3: s3://backups-prod/postgres/daily یا https://minio.example.com:9000/backups.",
+        ),
+      ).toBe(RIGHT_TO_LEFT);
+      // The words round it are English: English.
+      expect(
+        getTextReadingDirectionByMostLetters(
+          "Open https://وضعیت.example.com/حوادث-امروز-پرداخت",
+        ),
+      ).toBe(LEFT_TO_RIGHT);
+      // Nothing but an address: its letters decide.
+      expect(
+        getTextReadingDirectionByMostLetters("https://status.example.com/"),
+      ).toBe(LEFT_TO_RIGHT);
+      expect(
+        getTextReadingDirectionByMostLetters(
+          `${LRI}https://status.example.com/${PDI} https://وضعیت.example.com/پرداخت-امروز`,
+        ),
+      ).toBe(LEFT_TO_RIGHT);
+    });
+
+    test("an address starts at a scheme at the start of a word, and ends at a space", () => {
+      // No "://": a name, counted.
+      expect(
+        getTextReadingDirectionByMostLetters("افتح Node.js mailto:ops"),
+      ).toBe(LEFT_TO_RIGHT);
+      // The words after the address count again.
+      expect(
+        getTextReadingDirectionByMostLetters(
+          "ابت https://example.com then the rest of it",
+        ),
+      ).toBe(LEFT_TO_RIGHT);
+      // A scheme of up to 32 signs; a longer run before "://" is no scheme.
+      expect(
+        getTextReadingDirectionByMostLetters(`ابتث ${"a".repeat(32)}://x`),
+      ).toBe(RIGHT_TO_LEFT);
+      expect(
+        getTextReadingDirectionByMostLetters(`ابتث ${"a".repeat(33)}://x`),
+      ).toBe(LEFT_TO_RIGHT);
+    });
+
+    test("a text of hundreds of almost-addresses is read in a moment", () => {
+      const almost: string = `${"a.b-".repeat(300)} ${"x:/".repeat(300)} ${"ab".repeat(600)}://`;
+
+      expect(almost.length).toBeLessThan(TEXT_DIRECTION_SCAN_LENGTH);
+
+      const read: FastestRun<ReadingDirection | null> = fastestRun({
+        run: (): ReadingDirection | null => {
+          return getTextReadingDirectionByMostLetters(almost);
+        },
+        limitInMs: 200,
+      });
+
+      expect(read.result).toBe(LEFT_TO_RIGHT);
+      expect(read.inMs).toBeLessThan(200);
+    });
+
+    // Whether a text's first letter is an Arabic one.
+    const FIRST_LETTER_ARABIC: RegExp = /^[^\p{L}]*\p{Script=Arabic}/u;
+
+    test("with no isolate and no address, a text is read as it always was", () => {
+      for (const text of [
+        "Watches the checkout endpoint every minute.",
+        "API پرداخت از کار افتاده.",
+        "abc ابت",
+        "ابت abc",
+        PERSIAN_OIDC_HELP,
+      ]) {
+        const counted: { rightToLeft: number; leftToRight: number } = {
+          rightToLeft: (text.match(/\p{Script=Arabic}/gu) || []).length,
+          leftToRight: (text.match(/\p{Script=Latin}/gu) || []).length,
+        };
+        const startsArabic: boolean = FIRST_LETTER_ARABIC.test(text);
+        const expected: ReadingDirection =
+          counted.rightToLeft === counted.leftToRight
+            ? startsArabic
+              ? RIGHT_TO_LEFT
+              : LEFT_TO_RIGHT
+            : counted.rightToLeft > counted.leftToRight
+              ? RIGHT_TO_LEFT
+              : LEFT_TO_RIGHT;
+
+        expect({
+          text,
+          read: getTextReadingDirectionByMostLetters(text),
+        }).toEqual({ text, read: expected });
+      }
+    });
+  });
+
   test("only the start of a text is read", () => {
     const english: string = "a".repeat(TEXT_DIRECTION_SCAN_LENGTH);
 

@@ -75,15 +75,15 @@ export const startVisitorTranslation: (locales: VisitorLocales) => string = (
       // Code in an Arabic or Persian sentence drawn as it is written.
       postProcess: [CODE_READS_AS_WRITTEN_POST_PROCESSOR],
       lng: language,
-    fallbackLng: "en",
-    supportedLngs: supportedLanguages,
-    resources: resources,
-    keySeparator: false,
-    nsSeparator: false,
-    interpolation: {
-      escapeValue: false,
-    },
-  });
+      fallbackLng: "en",
+      supportedLngs: supportedLanguages,
+      resources: resources,
+      keySeparator: false,
+      nsSeparator: false,
+      interpolation: {
+        escapeValue: false,
+      },
+    });
 
   // Code copied from a sentence pastes without the marks that set it apart.
   leaveIsolatesOutOfCopiedText();

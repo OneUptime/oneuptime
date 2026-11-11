@@ -535,11 +535,11 @@ const resolveSequence: (
     const before: "L" | "R" =
       at === 0
         ? sos
-        : (getStrongDirection(types[at - 1] as BidiClass) ?? embedding);
+        : getStrongDirection(types[at - 1] as BidiClass) ?? embedding;
     const after: "L" | "R" =
       end === count
         ? eos
-        : (getStrongDirection(types[end] as BidiClass) ?? embedding);
+        : getStrongDirection(types[end] as BidiClass) ?? embedding;
     const resolved: "L" | "R" = before === after ? before : embedding;
 
     for (let neutral: number = at; neutral < end; neutral++) {
@@ -656,7 +656,10 @@ export const drawLine: (
       const isRightToLeft: boolean =
         bidiClass === "RLI" ||
         (bidiClass === "FSI" &&
-          isFirstStrongRightToLeft(index + 1, closing === -1 ? count : closing));
+          isFirstStrongRightToLeft(
+            index + 1,
+            closing === -1 ? count : closing,
+          ));
 
       levelStack.push(level);
       level = isRightToLeft
@@ -755,7 +758,8 @@ export const drawLine: (
   // What X9 removed takes the level of the unit before it.
   for (let index: number = 0; index < count; index++) {
     if (classes[index] === "BN") {
-      levels[index] = index === 0 ? paragraphLevel : (levels[index - 1] as number);
+      levels[index] =
+        index === 0 ? paragraphLevel : (levels[index - 1] as number);
     }
   }
 

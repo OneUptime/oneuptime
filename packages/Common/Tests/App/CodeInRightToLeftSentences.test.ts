@@ -5,7 +5,12 @@ import {
   getCodeInSentence,
   setCodeApartInSentence,
 } from "../../Types/CodeInSentence";
-import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
+import {
+  getTextReadingDirectionByMostLetters,
+  isRightToLeftLanguage,
+  LEFT_TO_RIGHT,
+  RIGHT_TO_LEFT,
+} from "../../Types/ReadingDirection";
 import {
   DrawnLine,
   drawLine,
@@ -45,6 +50,11 @@ const FRONTEND_LOCALE_DIRS: Record<string, string> = {
   AdminDashboard: "App/FeatureSet/AdminDashboard/src/Locales",
   PublicDashboard: "App/FeatureSet/PublicDashboard/src/Locales",
 };
+
+// A letter of the Arabic script, Persian's among them.
+const ARABIC_SCRIPT: RegExp = /[\u{0600}-\u{06FF}]/u;
+
+const LETTER_OR_DIGIT: RegExp = /[\p{L}\p{Nd}]/u;
 
 const FSI: string = String.fromCharCode(0x2068);
 const PDI: string = String.fromCharCode(0x2069);
@@ -136,13 +146,15 @@ const CODE_PATTERNS: Record<string, RegExp> = {
   // "--help", "-e", "--config=env:OTEL".
   flag: /(?<![\w\-.])--?[A-Za-z][\w-]*(?:=[^\s\u{0600}-\u{06FF}\u{060C}«»"'`)]+)?/gu,
   // ".env", ".NET", ".oneuptime.yaml".
-  file: /(?<![\w./\-])\.[A-Za-z][\w-]*(?:\.[\w-]+)*/gu,
+  file: /(?<![\w./-])\.[A-Za-z][\w-]*(?:\.[\w-]+)*/gu,
   // "https://", "webcal://", "app://".
-  scheme: /(?<![\w.])[a-z][a-z0-9+.-]*:\/\/[^\s\u{0600}-\u{06FF}\u{060C}«»"'`()<>]*/gu,
+  scheme:
+    /(?<![\w.])[a-z][a-z0-9+.-]*:\/\/[^\s\u{0600}-\u{06FF}\u{060C}«»"'`()<>]*/gu,
 };
 
 // Where code cannot be: an HTML tag, a Markdown link's target, a placeholder.
-const NOT_DRAWN: RegExp = /<\/?[A-Za-z0-9][^<>]*>|\]\([^()\s]*\)|\{\{[^{}]*\}\}/gu;
+const NOT_DRAWN: RegExp =
+  /<\/?[A-Za-z0-9][^<>]*>|\]\([^()\s]*\)|\{\{[^{}]*\}\}/gu;
 
 const SENTENCE_STOPS: RegExp = /[.,:;!?\u{2026}]+$/u;
 
@@ -244,7 +256,7 @@ const drawEveryCode: (
   const drawings: Array<Drawing> = [];
 
   for (const sentence of RIGHT_TO_LEFT_SENTENCES) {
-    if (!/[\u{0600}-\u{06FF}]/u.test(sentence.text)) {
+    if (!ARABIC_SCRIPT.test(sentence.text)) {
       continue;
     }
 
@@ -313,9 +325,7 @@ describe("code in a sentence read from the right, on the page", () => {
       }),
     );
 
-    expect([...languages].sort()).toEqual(
-      expect.arrayContaining(["ar", "fa"]),
-    );
+    expect([...languages].sort()).toEqual(expect.arrayContaining(["ar", "fa"]));
     expect(AS_THE_PAGE_SHOWS.length).toBeGreaterThan(1000);
   });
 
@@ -354,6 +364,115 @@ describe("code in a sentence read from the right, on the page", () => {
   });
 });
 
+/*
+ * A help line under a field or a switch is laid out the way most of its
+ * letters read when that is not the page's way (readAsWritten, over
+ * Types/ReadingDirection's getTextReadingDirectionByMostLetters): an
+ * English line left untranslated on an Arabic page reads from the left.
+ * The code an Arabic sentence names is in Latin letters, and in a sentence
+ * that names a path and an address they outnumber its Arabic ones: counted,
+ * the whole sentence was laid out from the left, its Arabic words in the
+ * wrong order. Set apart, the code is not counted, nor is an address; the
+ * words round them are.
+ */
+describe("the words round the code", () => {
+  const RIGHT_TO_LEFT_LETTER: RegExp = /\p{Script=Arabic}|\p{Script=Hebrew}/u;
+  const LETTER: RegExp = /\p{L}/u;
+
+  // How many letters each way in the sentence once its code is taken out.
+  const lettersRoundTheCode: (sentence: Sentence) => {
+    rightToLeft: number;
+    leftToRight: number;
+  } = (sentence: Sentence): { rightToLeft: number; leftToRight: number } => {
+    let rest: string = "";
+    let at: number = 0;
+
+    for (const code of getCodeInSentence(sentence.text)) {
+      rest += sentence.text.slice(at, code.start);
+      at = code.end;
+    }
+
+    rest += sentence.text.slice(at);
+
+    const letters: Array<string> = Array.from(rest).filter(
+      (character: string): boolean => {
+        return LETTER.test(character);
+      },
+    );
+    const rightToLeft: number = letters.filter((letter: string): boolean => {
+      return RIGHT_TO_LEFT_LETTER.test(letter);
+    }).length;
+
+    return { rightToLeft, leftToRight: letters.length - rightToLeft };
+  };
+
+  // Sentences with code to set apart, whose own words are mostly Arabic or Persian.
+  const MOSTLY_RIGHT_TO_LEFT: Array<Sentence> = RIGHT_TO_LEFT_SENTENCES.filter(
+    (sentence: Sentence): boolean => {
+      if (getCodeInSentence(sentence.text).length === 0) {
+        return false;
+      }
+
+      const letters: { rightToLeft: number; leftToRight: number } =
+        lettersRoundTheCode(sentence);
+
+      return letters.rightToLeft > letters.leftToRight;
+    },
+  );
+
+  test("decide which way the sentence is laid out", () => {
+    const turned: Array<string> = MOSTLY_RIGHT_TO_LEFT.filter(
+      (sentence: Sentence): boolean => {
+        return (
+          getTextReadingDirectionByMostLetters(
+            setCodeApartInSentence(sentence.text, sentence.language),
+          ) !== RIGHT_TO_LEFT
+        );
+      },
+    ).map((sentence: Sentence): string => {
+      return `${sentence.app} ${sentence.language} "${sentence.key}": ${sentence.text}`;
+    });
+
+    expect(MOSTLY_RIGHT_TO_LEFT.length).toBeGreaterThan(500);
+    expect(turned).toEqual([]);
+  });
+
+  /*
+   * The negative control: counted with their code, dozens of them, in
+   * both languages - the Persian help of the OIDC discovery URL among
+   * them - read from the left.
+   */
+  test("counted with their code, dozens were laid out from the left", () => {
+    const turned: Array<Sentence> = MOSTLY_RIGHT_TO_LEFT.filter(
+      (sentence: Sentence): boolean => {
+        return (
+          getTextReadingDirectionByMostLetters(sentence.text) === LEFT_TO_RIGHT
+        );
+      },
+    );
+    const oidc: string =
+      "OIDC discovery document URL — usually ends in /.well-known/openid-configuration.";
+
+    expect(turned.length).toBeGreaterThan(40);
+    expect(
+      new Set(
+        turned.map((sentence: Sentence): string => {
+          return sentence.language;
+        }),
+      ),
+    ).toEqual(new Set(["ar", "fa"]));
+    expect(
+      turned.some((sentence: Sentence): boolean => {
+        return (
+          sentence.app === "Dashboard" &&
+          sentence.language === "fa" &&
+          sentence.key === oidc
+        );
+      }),
+    ).toBe(true);
+  });
+});
+
 describe("what the page is handed", () => {
   test("is the locale file's sentence with marks added, and nothing else", () => {
     for (const sentence of RIGHT_TO_LEFT_SENTENCES) {
@@ -363,9 +482,7 @@ describe("what the page is handed", () => {
       );
 
       if (withoutIsolateMarks(shown) !== sentence.text) {
-        expect(`${sentence.app} ${sentence.key}: ${shown}`).toBe(
-          sentence.text,
-        );
+        expect(`${sentence.app} ${sentence.key}: ${shown}`).toBe(sentence.text);
       }
     }
   });
@@ -406,8 +523,13 @@ describe("a mark a translator placed by hand", () => {
 
     for (const sentence of RIGHT_TO_LEFT_SENTENCES) {
       for (const run of sentence.text.split(/\s+/u)) {
-        if (run.includes(LRM) && /[\p{L}\p{Nd}]/u.test(run.split(LRM).join(""))) {
-          besideCode.push(`${sentence.app} ${sentence.language} "${sentence.key}": ${run}`);
+        if (
+          run.includes(LRM) &&
+          LETTER_OR_DIGIT.test(run.split(LRM).join(""))
+        ) {
+          besideCode.push(
+            `${sentence.app} ${sentence.language} "${sentence.key}": ${run}`,
+          );
         }
       }
     }
@@ -534,8 +656,7 @@ describe("code the English names with a sign in front", () => {
   const translated: Array<Sentence> = RIGHT_TO_LEFT_SENTENCES.filter(
     (sentence: Sentence): boolean => {
       return (
-        sentence.text !== sentence.english &&
-        /[\u{0600}-\u{06FF}]/u.test(sentence.text)
+        sentence.text !== sentence.english && ARABIC_SCRIPT.test(sentence.text)
       );
     },
   );
@@ -565,9 +686,8 @@ describe("code the English names with a sign in front", () => {
     for (const sentence of translated) {
       for (const code of codeWithASign(sentence.english)) {
         const occurrences: number = sentence.text.split(code).length - 1;
-        const alone: number = (
-          sentence.text.match(standingAlone(code)) || []
-        ).length;
+        const alone: number = (sentence.text.match(standingAlone(code)) || [])
+          .length;
 
         // Only code the translation writes on its own, every time.
         if (occurrences === 0 || alone !== occurrences) {

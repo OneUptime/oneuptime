@@ -268,13 +268,16 @@ export interface CodeInSentence {
 }
 
 // The whole match of a sticky `regex` at `index` in `text`, or null.
-const matchAt: (regex: RegExp, text: string, index: number) => string | null =
-  (regex: RegExp, text: string, index: number): string | null => {
-    regex.lastIndex = index;
-    const match: RegExpExecArray | null = regex.exec(text);
+const matchAt: (regex: RegExp, text: string, index: number) => string | null = (
+  regex: RegExp,
+  text: string,
+  index: number,
+): string | null => {
+  regex.lastIndex = index;
+  const match: RegExpExecArray | null = regex.exec(text);
 
-    return match ? match[0] : null;
-  };
+  return match ? match[0] : null;
+};
 
 /*
  * The sentence cut into pieces: a character, a {{placeholder}} or an HTML
@@ -716,16 +719,19 @@ const getCodeInStretch: (
   };
 
   // Whether a run of `sign` twice starts in [start, end - 1).
-  const hasEmphasisRun: (sign: string, start: number, end: number) => boolean =
-    (sign: string, start: number, end: number): boolean => {
-      for (let index: number = start; index < end - 1; index++) {
-        if (pieces[index]?.text === sign && isEmphasisRun(index)) {
-          return true;
-        }
+  const hasEmphasisRun: (
+    sign: string,
+    start: number,
+    end: number,
+  ) => boolean = (sign: string, start: number, end: number): boolean => {
+    for (let index: number = start; index < end - 1; index++) {
+      if (pieces[index]?.text === sign && isEmphasisRun(index)) {
+        return true;
       }
+    }
 
-      return false;
-    };
+    return false;
+  };
 
   let isChanged: boolean = true;
   let peeled: number = 0;
@@ -1054,108 +1060,109 @@ const getCodeInStretch: (
  * sentence of a language read from the right. Empty when the sentence has
  * no letter of such a script.
  */
-export const getCodeInSentence: (sentence: string) => Array<CodeInSentence> =
-  (sentence: string): Array<CodeInSentence> => {
-    if (!sentence || !RIGHT_TO_LEFT_CHARACTER_REGEX.test(sentence)) {
-      return [];
+export const getCodeInSentence: (sentence: string) => Array<CodeInSentence> = (
+  sentence: string,
+): Array<CodeInSentence> => {
+  if (!sentence || !RIGHT_TO_LEFT_CHARACTER_REGEX.test(sentence)) {
+    return [];
+  }
+
+  const pieces: Array<Piece> = getPieces(sentence);
+  const found: Array<CodeInSentence> = [];
+
+  const readPart: (
+    part: ReadonlyArray<Piece>,
+    touchesSentenceAtStart: boolean,
+    touchesSentenceAtEnd: boolean,
+  ) => void = (
+    part: ReadonlyArray<Piece>,
+    touchesSentenceAtStart: boolean,
+    touchesSentenceAtEnd: boolean,
+  ): void => {
+    if (part.length === 0) {
+      return;
     }
 
-    const pieces: Array<Piece> = getPieces(sentence);
-    const found: Array<CodeInSentence> = [];
+    const code: { from: number; to: number } | null = getCodeInStretch(
+      part,
+      touchesSentenceAtStart,
+      touchesSentenceAtEnd,
+    );
 
-    const readPart: (
-      part: ReadonlyArray<Piece>,
-      touchesSentenceAtStart: boolean,
-      touchesSentenceAtEnd: boolean,
-    ) => void = (
-      part: ReadonlyArray<Piece>,
-      touchesSentenceAtStart: boolean,
-      touchesSentenceAtEnd: boolean,
-    ): void => {
-      if (part.length === 0) {
+    if (code) {
+      const start: number = (part[code.from] as Piece).start;
+      const end: number = (part[code.to - 1] as Piece).end;
+
+      found.push({ start, end, text: sentence.slice(start, end) });
+    }
+  };
+
+  /*
+   * One stretch of left-to-right text, read part by part: a bracket or a
+   * quotation mark whose partner is beyond the stretch belongs to the
+   * sentence and ends a part ("--reset-then-reuse-values (Helm 3.14 أو
+   * أحدث)"), and so does a space in a stretch of nothing but values and
+   * signs ("~{{time}} {{count}}").
+   */
+  const readStretch: (start: number, end: number) => void = (
+    start: number,
+    end: number,
+  ): void => {
+    const stretch: Array<Piece> = pieces.slice(start, end);
+
+    // A space or a sign between the sentence's words holds no code.
+    if (!stretch.some(isContent)) {
+      return;
+    }
+
+    const touchesSentenceAtStart: boolean = isAfterWord(pieces[start - 1]);
+    const touchesSentenceAtEnd: boolean = isBeforeWord(pieces[end]);
+    const partner: Array<number> = getPartners(stretch);
+    const isValuesOnly: boolean = !stretch.some((piece: Piece): boolean => {
+      return piece.kind === "letter" || piece.kind === "digit";
+    });
+    let partStart: number = 0;
+
+    stretch.forEach((piece: Piece, index: number): void => {
+      const endsPart: boolean =
+        (isBracket(piece) &&
+          !SAME_SIGN_QUOTES.includes(piece.text) &&
+          partner[index] === -1 &&
+          !isApostrophe(stretch, index)) ||
+        (isValuesOnly && piece.kind === "space");
+
+      if (!endsPart) {
         return;
       }
-
-      const code: { from: number; to: number } | null = getCodeInStretch(
-        part,
-        touchesSentenceAtStart,
-        touchesSentenceAtEnd,
-      );
-
-      if (code) {
-        const start: number = (part[code.from] as Piece).start;
-        const end: number = (part[code.to - 1] as Piece).end;
-
-        found.push({ start, end, text: sentence.slice(start, end) });
-      }
-    };
-
-    /*
-     * One stretch of left-to-right text, read part by part: a bracket or a
-     * quotation mark whose partner is beyond the stretch belongs to the
-     * sentence and ends a part ("--reset-then-reuse-values (Helm 3.14 أو
-     * أحدث)"), and so does a space in a stretch of nothing but values and
-     * signs ("~{{time}} {{count}}").
-     */
-    const readStretch: (start: number, end: number) => void = (
-      start: number,
-      end: number,
-    ): void => {
-      const stretch: Array<Piece> = pieces.slice(start, end);
-
-      // A space or a sign between the sentence's words holds no code.
-      if (!stretch.some(isContent)) {
-        return;
-      }
-
-      const touchesSentenceAtStart: boolean = isAfterWord(pieces[start - 1]);
-      const touchesSentenceAtEnd: boolean = isBeforeWord(pieces[end]);
-      const partner: Array<number> = getPartners(stretch);
-      const isValuesOnly: boolean = !stretch.some((piece: Piece): boolean => {
-        return piece.kind === "letter" || piece.kind === "digit";
-      });
-      let partStart: number = 0;
-
-      stretch.forEach((piece: Piece, index: number): void => {
-        const endsPart: boolean =
-          (isBracket(piece) &&
-            !SAME_SIGN_QUOTES.includes(piece.text) &&
-            partner[index] === -1 &&
-            !isApostrophe(stretch, index)) ||
-          (isValuesOnly && piece.kind === "space");
-
-        if (!endsPart) {
-          return;
-        }
-
-        readPart(
-          stretch.slice(partStart, index),
-          partStart === 0 && touchesSentenceAtStart,
-          false,
-        );
-        partStart = index + 1;
-      });
 
       readPart(
-        stretch.slice(partStart),
+        stretch.slice(partStart, index),
         partStart === 0 && touchesSentenceAtStart,
-        touchesSentenceAtEnd,
+        false,
       );
-    };
-
-    let stretchStart: number = 0;
-
-    pieces.forEach((piece: Piece, index: number): void => {
-      if (piece.kind === "sentence" || piece.kind === "break") {
-        readStretch(stretchStart, index);
-        stretchStart = index + 1;
-      }
+      partStart = index + 1;
     });
 
-    readStretch(stretchStart, pieces.length);
-
-    return found;
+    readPart(
+      stretch.slice(partStart),
+      partStart === 0 && touchesSentenceAtStart,
+      touchesSentenceAtEnd,
+    );
   };
+
+  let stretchStart: number = 0;
+
+  pieces.forEach((piece: Piece, index: number): void => {
+    if (piece.kind === "sentence" || piece.kind === "break") {
+      readStretch(stretchStart, index);
+      stretchStart = index + 1;
+    }
+  });
+
+  readStretch(stretchStart, pieces.length);
+
+  return found;
+};
 
 /*
  * `sentence` as a page shows it to a reader of `language`: in a language

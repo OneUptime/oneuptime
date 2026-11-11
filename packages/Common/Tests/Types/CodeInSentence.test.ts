@@ -106,8 +106,8 @@ describe("code an Arabic or Persian sentence names is set apart", () => {
       "جزء من اسم المقياس، <LRI>oneuptime.alert.measurement.<key><PDI>، لذا لا يتغير.",
     ],
     [
-      "وأضف crossorigin=\"anonymous\" إلى وسم <link> الخاص بها.",
-      "وأضف <LRI>crossorigin=\"anonymous\"<PDI> إلى وسم <LRI><link><PDI> الخاص بها.",
+      'وأضف crossorigin="anonymous" إلى وسم <link> الخاص بها.',
+      'وأضف <LRI>crossorigin="anonymous"<PDI> إلى وسم <LRI><link><PDI> الخاص بها.',
     ],
     // Brackets round a number only take the sentence's direction: set apart.
     ["القيمة getItem(2) هنا", "القيمة <LRI>getItem(2)<PDI> هنا"],
@@ -168,7 +168,9 @@ describe("what belongs to the sentence stays outside the code", () => {
       "مثل <LRI>/orders/1<PDI>: صفحة واحدة",
     );
     // An ellipsis after a value or a word is the sentence's too.
-    expect(shown("جارٍ تحميل {{itemsName}}…")).toBe("جارٍ تحميل {{itemsName}}…");
+    expect(shown("جارٍ تحميل {{itemsName}}…")).toBe(
+      "جارٍ تحميل {{itemsName}}…",
+    );
     expect(shown("جارٍ الاتصال بـ Meraki…")).toBe("جارٍ الاتصال بـ Meraki…");
   });
 
@@ -220,7 +222,9 @@ describe("what belongs to the sentence stays outside the code", () => {
 
 describe("a value in the code", () => {
   test("a sign beside it stays with it, and the value reads its own way", () => {
-    expect(shown("+{{count}} أخرى")).toBe("<LRI>+<FSI>{{count}}<PDI><PDI> أخرى");
+    expect(shown("+{{count}} أخرى")).toBe(
+      "<LRI>+<FSI>{{count}}<PDI><PDI> أخرى",
+    );
     expect(shown("النتائج: {{count}}+")).toBe(
       "النتائج: <LRI><FSI>{{count}}<PDI>+<PDI>",
     );
@@ -270,9 +274,12 @@ describe("a value in the code", () => {
       "تحمل `cloud.platform={{platform}}` — فبدون ذلك",
       "تحمل `<LRI>cloud.platform=<FSI>{{platform}}<PDI><PDI>` — فبدون ذلك",
     ],
-  ])("a value written onto a word of the code: %s", (sentence: string, expected: string) => {
-    expect(shown(sentence)).toBe(expected);
-  });
+  ])(
+    "a value written onto a word of the code: %s",
+    (sentence: string, expected: string) => {
+      expect(shown(sentence)).toBe(expected);
+    },
+  );
 
   test.each([
     // Values and the signs between them are numbers: the sentence's to draw.
@@ -283,10 +290,13 @@ describe("a value in the code", () => {
     "عرض {{first}}–{{last}} من أصل {{total}}",
     // A value set off by a space is a word of its own.
     "OneUptime {{version}} متاح",
-  ])("a value beside numbers' signs only, or set off by a space: %s", (sentence: string) => {
-    expect(setCodeApartInSentence(sentence, "ar")).toBe(sentence);
-    expect(setCodeApartInSentence(sentence, "fa")).toBe(sentence);
-  });
+  ])(
+    "a value beside numbers' signs only, or set off by a space: %s",
+    (sentence: string) => {
+      expect(setCodeApartInSentence(sentence, "ar")).toBe(sentence);
+      expect(setCodeApartInSentence(sentence, "fa")).toBe(sentence);
+    },
+  );
 });
 
 describe("an expression that starts with a number", () => {
@@ -484,10 +494,7 @@ describe("its time", () => {
     ["tags never closed", `س ${"<p ".repeat(130000)}`],
     ["a number with signs set off by spaces", `س ${"1.1 / ".repeat(66000)}`],
     ["digits and spaces, then a star", `س ${"1 ".repeat(200000)}*`],
-    [
-      "values written onto values",
-      `س ${"{{a}}/".repeat(66000)}b`,
-    ],
+    ["values written onto values", `س ${"{{a}}/".repeat(66000)}b`],
   ])("%s, 400,000 characters", (_name: string, text: string) => {
     const run: FastestRun<string> = fastestRun({
       run: (): string => {
