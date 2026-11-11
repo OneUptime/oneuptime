@@ -1754,7 +1754,13 @@ export const getGlobalSmtpConfigFormFields: () => Array<
         ],
     );
 
-    return isPort ? { ...field, defaultValue: DEFAULT_SMTP_PORT } : field;
+    return isPort
+      ? {
+          ...field,
+          defaultValue: DEFAULT_SMTP_PORT,
+          startsOnDefaultWhenEmpty: true,
+        }
+      : field;
   });
 };
 

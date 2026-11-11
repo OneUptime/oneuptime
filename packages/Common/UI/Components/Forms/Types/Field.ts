@@ -319,6 +319,14 @@ export default interface Field<TEntity> {
   fieldType?: FormFieldSchemaType;
   overrideFieldKey?: string;
   defaultValue?: boolean | string | Date | number | undefined;
+  /*
+   * An edit form starts this field on its defaultValue when the record
+   * holds nothing for it (null), not only when it holds no key at all:
+   * the server's one settings row, whose SMTP port is empty on a fresh
+   * server, starts on 587 rather than an empty box that looks filled in
+   * by its placeholder (#6875). A value the record holds is kept.
+   */
+  startsOnDefaultWhenEmpty?: boolean | undefined;
   getDefaultValue?:
     | ((item: FormValues<TEntity>) => boolean | string | Date | number)
     | undefined;

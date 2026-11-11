@@ -580,7 +580,7 @@ describe("Admin > Settings > Email > Host Settings", () => {
     await waitForField(dialog, "smtp.server.com");
 
     // A value, not only the box's example: a newcomer does not type it.
-    expect(within(dialog).getByPlaceholderText("587")).toHaveValue(587);
+    expect(within(dialog).getByPlaceholderText("587")).toHaveValue("587");
     // Never set: the mail service does not require TLS.
     expect(summaryOf(dialog)).toBe(
       "Mail is sent over SMTP, signing in with the username and password. TLS is used only if the server offers it.",
