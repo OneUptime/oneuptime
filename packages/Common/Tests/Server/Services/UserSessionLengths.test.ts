@@ -593,7 +593,11 @@ describe("ending a session the lengths ended", () => {
       "Session length reached",
       SessionEndCause.LengthReached,
     ],
-    [SessionEndReason.Inactive, "Idle timeout reached", SessionEndCause.IdleTimeout],
+    [
+      SessionEndReason.Inactive,
+      "Idle timeout reached",
+      SessionEndCause.IdleTimeout,
+    ],
   ])(
     "revokes it with its reason (%s)",
     async (

@@ -2110,9 +2110,7 @@ describe("Audit Logs", () => {
       "protected override async onBeforeUpdate(",
     );
     expect(sessionService).toContain("await this.recordSessionEnds({");
-    expect(sessionService).toContain(
-      "public async endSessionsThatRanOut(",
-    );
+    expect(sessionService).toContain("public async endSessionsThatRanOut(");
   });
 
   it("says an administrator's changes to someone else's notification setup are recorded", () => {

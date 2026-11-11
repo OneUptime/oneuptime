@@ -108,7 +108,9 @@ describe("the job", () => {
     expect(options.schedule).toBe(EVERY_FIVE_MINUTE);
     expect(options.runOnStartup).toBe(false);
     // Done well before the next run starts.
-    expect(options.timeoutInMS).toBe(END_SESSIONS_THAT_RAN_OUT_JOB_TIMEOUT_IN_MS);
+    expect(options.timeoutInMS).toBe(
+      END_SESSIONS_THAT_RAN_OUT_JOB_TIMEOUT_IN_MS,
+    );
     expect(END_SESSIONS_THAT_RAN_OUT_JOB_TIMEOUT_IN_MS).toBeLessThan(
       5 * 60 * 1000,
     );
@@ -159,9 +161,7 @@ describe("one run", () => {
       installFakeEnterpriseModule({ userSessionLengths: LENGTHS });
     fake.userSessionLengthsError = new Error("lengths unreadable");
 
-    await expect(endSessionsThatRanOut()).rejects.toThrow(
-      "lengths unreadable",
-    );
+    await expect(endSessionsThatRanOut()).rejects.toThrow("lengths unreadable");
     expect(endSessions).not.toHaveBeenCalled();
   });
 });

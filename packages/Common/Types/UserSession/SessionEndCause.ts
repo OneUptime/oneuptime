@@ -30,7 +30,10 @@ export enum SessionEndCause {
   Other = "Other",
 }
 
-export type NamedSessionEndCause = Exclude<SessionEndCause, SessionEndCause.Other>;
+export type NamedSessionEndCause = Exclude<
+  SessionEndCause,
+  SessionEndCause.Other
+>;
 
 /*
  * The revokedReason each cause is kept with. Short on purpose: the column
@@ -62,9 +65,9 @@ export const getSessionEndCauseRevokedReason: (
  * The cause a revokedReason names, or Other for one that names none of
  * them: no reason at all, or one written some other way.
  */
-export const readSessionEndCause: (revokedReason: unknown) => SessionEndCause = (
+export const readSessionEndCause: (
   revokedReason: unknown,
-): SessionEndCause => {
+) => SessionEndCause = (revokedReason: unknown): SessionEndCause => {
   if (typeof revokedReason !== "string") {
     return SessionEndCause.Other;
   }

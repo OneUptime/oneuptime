@@ -248,15 +248,16 @@ afterEach(() => {
 });
 
 describe("a sign-in", () => {
-  const createReturningWritten: () => ReturnType<typeof jest.spyOn> =
-    (): ReturnType<typeof jest.spyOn> => {
-      return jest
-        .spyOn(UserSessionService, "create")
-        .mockImplementation((async (data: { data: UserSession }) => {
-          data.data.id = SESSION_ID;
-          return data.data;
-        }) as never);
-    };
+  const createReturningWritten: () => ReturnType<
+    typeof jest.spyOn
+  > = (): ReturnType<typeof jest.spyOn> => {
+    return jest
+      .spyOn(UserSessionService, "create")
+      .mockImplementation((async (data: { data: UserSession }) => {
+        data.data.id = SESSION_ID;
+        return data.data;
+      }) as never);
+  };
 
   test("keeps how and where it signed in on the session", async () => {
     const create: ReturnType<typeof jest.spyOn> = createReturningWritten();
@@ -1013,13 +1014,11 @@ describe("the sweep that ends sessions that ran out", () => {
 
     expect(ended).toBe(1);
 
-    const lengthQuery: FakeQuery = queries.find(
-      (query: FakeQuery): boolean => {
-        return query.conditions.some((condition: string): boolean => {
-          return condition.includes("session.createdAt <= NOW()");
-        });
-      },
-    )!;
+    const lengthQuery: FakeQuery = queries.find((query: FakeQuery): boolean => {
+      return query.conditions.some((condition: string): boolean => {
+        return condition.includes("session.createdAt <= NOW()");
+      });
+    })!;
 
     expect(lengthQuery.conditions).toEqual(
       expect.arrayContaining([

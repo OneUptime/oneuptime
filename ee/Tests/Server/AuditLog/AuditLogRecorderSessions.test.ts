@@ -183,10 +183,11 @@ const userIdsInLookup: (call: Array<unknown>) => Array<string> = (
   call: Array<unknown>,
 ): Array<string> => {
   const query: JSONObject = (call[0] as { query: JSONObject }).query;
-  const operator: { objectLiteralParameters?: Record<string, unknown> } =
-    query["userId"] as unknown as {
-      objectLiteralParameters?: Record<string, unknown>;
-    };
+  const operator: { objectLiteralParameters?: Record<string, unknown> } = query[
+    "userId"
+  ] as unknown as {
+    objectLiteralParameters?: Record<string, unknown>;
+  };
 
   return Object.values(operator.objectLiteralParameters || {})
     .flat()
@@ -341,9 +342,11 @@ describe("where a session event is filed", () => {
 
     await recorder.recordSessionEvents([signInEvent()]);
 
-    expect(inserted.map((entry: AuditLog): string => {
-      return entry.projectId!.toString();
-    })).toEqual([PROJECT_A.toString()]);
+    expect(
+      inserted.map((entry: AuditLog): string => {
+        return entry.projectId!.toString();
+      }),
+    ).toEqual([PROJECT_A.toString()]);
   });
 
   /*
@@ -635,7 +638,9 @@ describe("what is not recorded, and what never fails", () => {
       recorder.recordSessionEvents([signInEvent()]),
     ).resolves.toBeUndefined();
     expect(inserted).toHaveLength(0);
-    expect(warn).toHaveBeenCalledWith("AuditLog: failed to record session events");
+    expect(warn).toHaveBeenCalledWith(
+      "AuditLog: failed to record session events",
+    );
   });
 
   test("an insert that fails never throws", async () => {

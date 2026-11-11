@@ -387,7 +387,13 @@ describe("the Action filter", () => {
       capturedTableProps?.filters?.map((filter: CapturedFilter): string => {
         return filter.title;
       }),
-    ).toEqual(["Resource Type", "Resource Name", "Action", "User Email", "Time"]);
+    ).toEqual([
+      "Resource Type",
+      "Resource Name",
+      "Action",
+      "User Email",
+      "Time",
+    ]);
   });
 });
 
@@ -438,7 +444,9 @@ describe("a session entry's details", () => {
       "Last active at",
       "Timed out at",
     ]);
-    expect(within(details).getByText("Idle timeout reached")).toBeInTheDocument();
+    expect(
+      within(details).getByText("Idle timeout reached"),
+    ).toBeInTheDocument();
     expect(within(details).getByText("Acme Okta")).toBeInTheDocument();
     // A change's before and after has no place here.
     expect(screen.queryByText("Before")).toBeNull();
@@ -447,7 +455,8 @@ describe("a session entry's details", () => {
   });
 
   test("a time reads in the reader's own zone, never as ISO 8601", () => {
-    const rows: Array<SessionDetailRow> = readSessionDetailRows(TIMEOUT_CHANGES);
+    const rows: Array<SessionDetailRow> =
+      readSessionDetailRows(TIMEOUT_CHANGES);
     const endedAt: SessionDetailRow | undefined = rows.find(
       (row: SessionDetailRow): boolean => {
         return row.field === "endedAt";
@@ -571,9 +580,11 @@ describe("the session badges and resource", () => {
       expect(tokens.length).toBeGreaterThanOrEqual(4);
 
       for (const token of tokens) {
-        expect({ action, token, remapped: theme.includes(`.${token}`) }).toEqual(
-          { action, token, remapped: true },
-        );
+        expect({
+          action,
+          token,
+          remapped: theme.includes(`.${token}`),
+        }).toEqual({ action, token, remapped: true });
       }
     }
   });

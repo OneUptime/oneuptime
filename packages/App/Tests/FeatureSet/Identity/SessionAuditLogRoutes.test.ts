@@ -481,9 +481,7 @@ describe("POST /logout", () => {
     );
 
     expect(revokeSessionByRefreshToken).toHaveBeenCalledTimes(1);
-    expect(revokeSessionByRefreshToken.mock.calls[0]![0]).toBe(
-      "refresh-token",
-    );
+    expect(revokeSessionByRefreshToken.mock.calls[0]![0]).toBe("refresh-token");
 
     const options: { cause: SessionEndCause; requestOrigin: RequestOrigin } =
       revokeSessionByRefreshToken.mock.calls[0]![1] as {

@@ -513,12 +513,14 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         return;
       }
 
-      const projectIdsByUser: Map<string, Array<ObjectID>> =
-        await this.getMemberProjectIds(
-          recordable.map((event: SessionAuditEvent): ObjectID => {
-            return event.userId;
-          }),
-        );
+      const projectIdsByUser: Map<
+        string,
+        Array<ObjectID>
+      > = await this.getMemberProjectIds(
+        recordable.map((event: SessionAuditEvent): ObjectID => {
+          return event.userId;
+        }),
+      );
 
       const entries: Array<AuditLog> = [];
 
@@ -530,8 +532,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
           continue;
         }
 
-        let person: { name: string | null; email: string | null } | null =
-          null;
+        let person: { name: string | null; email: string | null } | null = null;
 
         for (const projectId of projectIds) {
           const settings: CachedProjectSettings | null =
@@ -615,11 +616,7 @@ export default class AuditLogRecorder implements AuditLogRecorderContract {
         start + MEMBERSHIP_LOOKUP_USERS_PER_QUERY,
       );
 
-      for (
-        let page: number = 0;
-        page < MAX_MEMBERSHIP_LOOKUP_PAGES;
-        page++
-      ) {
+      for (let page: number = 0; page < MAX_MEMBERSHIP_LOOKUP_PAGES; page++) {
         const members: Array<TeamMember> = await TeamMemberService.findBy({
           query: {
             userId: QueryHelper.any(chunk),

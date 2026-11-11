@@ -81,7 +81,9 @@ export const isSessionAuditLogAction: (
 // The action a session's end is recorded as.
 export const getSessionEndAuditLogAction: (
   cause: SessionEndCause,
-) => SessionAuditLogAction = (cause: SessionEndCause): SessionAuditLogAction => {
+) => SessionAuditLogAction = (
+  cause: SessionEndCause,
+): SessionAuditLogAction => {
   switch (cause) {
     case SessionEndCause.SignedOut:
       return AuditLogAction.SignOut;

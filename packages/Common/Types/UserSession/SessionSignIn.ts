@@ -95,9 +95,7 @@ export const isSecondFactor: (value: unknown) => value is SecondFactor = (
 export const isSingleSignOnMethod: (method: SignInMethod) => boolean = (
   method: SignInMethod,
 ): boolean => {
-  return (
-    method === SignInMethod.Saml || method === SignInMethod.OpenIdConnect
-  );
+  return method === SignInMethod.Saml || method === SignInMethod.OpenIdConnect;
 };
 
 /*

@@ -37,7 +37,9 @@ import {
  * One field's value as an entry carries it, or null when there is nothing
  * to carry: a time as ISO 8601, a text on one line and short.
  */
-const toFieldValue: (value: string | Date | null | undefined) => string | null = (
+const toFieldValue: (
+  value: string | Date | null | undefined,
+) => string | null = (
   value: string | Date | null | undefined,
 ): string | null => {
   if (value === null || value === undefined) {
@@ -135,9 +137,10 @@ export const isProviderNamedIn: (data: {
 };
 
 // What a session entry is named: the device it signed in from.
-export const getSessionEntryResourceName: (event: SessionAuditEvent) => string =
-  (event: SessionAuditEvent): string => {
-    return (
-      readSessionSignInText(event.device) || AUDIT_LOG_SESSION_UNKNOWN_DEVICE
-    );
-  };
+export const getSessionEntryResourceName: (
+  event: SessionAuditEvent,
+) => string = (event: SessionAuditEvent): string => {
+  return (
+    readSessionSignInText(event.device) || AUDIT_LOG_SESSION_UNKNOWN_DEVICE
+  );
+};

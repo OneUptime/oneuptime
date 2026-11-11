@@ -164,9 +164,7 @@ describe("the fields of a session entry", () => {
       ["field"],
     ];
 
-    expect(
-      Array.from(readSessionEntryFields(changes).entries()),
-    ).toEqual([
+    expect(Array.from(readSessionEntryFields(changes).entries())).toEqual([
       [AuditLogSessionField.SignInMethod, "Password"],
       [AuditLogSessionField.IpAddress, "203.0.113.7"],
     ]);

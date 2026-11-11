@@ -148,9 +148,11 @@ const ACTION_STYLES: { [key: string]: ActionStyle } = {
  * to know that a sign-in is recorded as "SignIn".
  */
 export const AUDIT_LOG_ACTION_FILTER_OPTIONS: Array<DropdownOption> =
-  Object.values(AuditLogAction).map((action: AuditLogAction): DropdownOption => {
-    return { label: AUDIT_LOG_ACTION_LABELS[action], value: action };
-  });
+  Object.values(AuditLogAction).map(
+    (action: AuditLogAction): DropdownOption => {
+      return { label: AUDIT_LOG_ACTION_LABELS[action], value: action };
+    },
+  );
 
 const AuditLogsTable: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
