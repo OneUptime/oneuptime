@@ -318,6 +318,16 @@ export const LONG_FORMS_WITHOUT_STEPS: Array<ListedForm> = [
     reason:
       "The edit dialog of a shared calendar link's settings card, one page as the personal link's is: two switches and two day counts that the card lists, plus the minimum gap, which shows only while coverage gaps are switched on. Someone who opens Edit came to change one of them; as three steps (one of them a single switch) they first had to find which.",
   },
+  /*
+   * #6749: Slack installed for a whole Enterprise organization asks which
+   * workspace a user group is in.
+   */
+  {
+    file: `${DASHBOARD}/Components/OnCallPolicy/UserGroups/ConnectUserGroupModal.tsx`,
+    form: "BasicFormModal: Connect on-call user group",
+    reason:
+      "Connecting a user group to a schedule is one pick from a list. The Slack workspace picker shows only for Slack installed for a whole Enterprise organization and added to two or more of its workspaces, and it starts on the default one. A new group's name and handle show only under Create a new user group, filled in from the schedule's name. All four show together only in that case, each already filled in. A step for a workspace already picked would only add a Next before the groups it lists.",
+  },
   {
     file: `${DASHBOARD}/Pages/Global/UserProfile/Index.tsx`,
     form: "CardModelDetail: User Profile > Basic Info",

@@ -34,10 +34,11 @@ AI エージェントは、データを使う前に、それが新しいこと�
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetran の同期の Webhook | Fivetran の署名シークレットとしての取り込みキー |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbyte の同期の Webhook | URL に含めた取り込みキー |
 | `POST /api/data-observability/tables/freshness` | MCP ツールが答えるのと同じ、テーブルの鮮度。 `{ "table": "public.orders" }` を送ります | API キー |
-| `POST /api/data-observability/tables/lineage` | テーブルのリネージを各方向に数ステップ分、各テーブルの現在の状態とともに返します。**リネージ** タブが描くのと同じです。 `{ "dataAssetId": "<table ID>", "depth": 3 }` を送ります | API キー |
+| `POST /api/data-observability/tables/lineage` | テーブルのリネージを各方向に数ステップ分、各テーブルの現在の状態とともに返します。**リネージ** タブが描くのと同じです。 `{ "dataAssetId": "<table ID>", "depth": 3 }` を送ります。`"withColumns": true` を加えると、各矢印が運ぶ列も返します | API キー |
 | `POST /api/data-observability/tables/lineage/answer` | MCP ツールが答えるのと同じ、文章で伝えるテーブルのリネージ。問題のあるテーブルが先です。 `{ "table": "public.orders", "depth": 3 }` を送ります | API キー |
 | `POST /api/data-observability/pipelines/lineage` | パイプラインが読み取るテーブルと書き込むテーブルを、各テーブルの現在の状態とともに返します。パイプラインのページが描くのと同じです。 `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` を送ります | API キー |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | データアラートのリネージを、そのアラートを引き起こしたアラートと、そのアラートが引き起こしたアラートへの経路とともに返します。アラートのページが描くのと同じです | API キー |
+| `POST /api/data-observability/lineage/expand` | リネージ図のカードが描いていない次のテーブルを、その数を選んだときと同じように返します。カードを `nodeId` とその `side` で、描かれているものを `focusNodeId`、`tables`、`dataDashboardIds` で送ります | API キー |
 | `POST /api/data-observability/checks/apply` | `oneuptime data-checks apply` と同じように、プロジェクトのチェックをファイルに一致させます。 `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` を送ります | API キー |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | データプロダクトの「data as of」バッジ | バッジ専用のトークン |
 

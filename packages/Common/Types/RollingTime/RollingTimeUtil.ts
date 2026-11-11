@@ -206,6 +206,16 @@ export default class RollingTimeUtil {
   }
 
   /*
+   * Each unit a length is read in: "s", "min", "minutes", "h", "wk" and so
+   * on. For a reader that must read lengths exactly as this one does - the
+   * Terraform provider's, which is checked against cases built from these
+   * (Scripts/TerraformProvider/Core/MonitorStepsValuesCases.ts).
+   */
+  public static getUnitsRead(): Array<string> {
+    return Object.keys(UNIT_IN_SECONDS);
+  }
+
+  /*
    * Every rolling time, quoted and listed for a sentence: "Past 1 Minute",
    * "Past 5 Minutes", ... or "Past 365 Days".
    */

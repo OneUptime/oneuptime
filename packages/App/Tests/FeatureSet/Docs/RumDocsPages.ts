@@ -222,21 +222,21 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
     /*
      * - the player's and the session list's words that have no translation:
      *   the other-sessions menu's steps (icon buttons the page names Older
-     *   and Newer), the stage fit's 1:1, the shortcuts button, the More
-     *   menu and the flow map's Other pages;
+     *   and Newer), the stage fit's 1:1, the shortcuts button and the More
+     *   menu;
      * - links a span's and a log's details draw the same way;
      * - the budget recommendations, as their cards name them;
      * - the monitor form's If No Data choice Ignore, an enum value;
      * - a permission's Owned scope, as the team permission picker lists it.
      * (The back link, the ended card's buttons and the Health page's four
      * stages are translated since #6369, and the criterion's aggregation
-     * Maximum Value since 31eadaee92e, so every language names them as its
+     * Maximum Value since 31eadaee92e, and the flow map's Other pages
+     * since the UI review of #6658, so every language names them as its
      * own Dashboard draws them.)
      */
     [SESSION_REPLAY]: [
       "⋯",
       "View session replay",
-      "Other pages",
       "Older",
       "Newer",
       "1:1",

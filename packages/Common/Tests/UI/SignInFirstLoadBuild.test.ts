@@ -21,7 +21,8 @@ const COMMON_ROOT: string = path.resolve(__dirname, "..", "..");
  * is now loaded where it is used - posthog-js once analytics starts, the SDK
  * where browser telemetry is configured, the rest by the first list, form
  * field, summary or code that needs it. zone.js is gone altogether
- * (BrowserTelemetrySdk.ts says why).
+ * (BrowserTelemetrySdk.ts says why), and so are crypto-js's ciphers, which
+ * HashedString brought with the SHA-256 it hashes with.
  *
  * Built here as the frontends build (the shared esbuild config, for
  * production), with these modules as the entry, and read from esbuild's
@@ -180,6 +181,16 @@ const LEFT_OUT: ReadonlyArray<LeftOut> = [
   {
     name: "zone.js, which the SDK does not use",
     path: "node_modules/zone.js/",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "crypto-js's index, every cipher and hash it has, where HashedString hashes with SHA-256 alone",
+    path: "node_modules/crypto-js/index.js",
+    isLoadedWhenNeeded: false,
+  },
+  {
+    name: "the ciphers crypto-js's index brought (AES, Triple DES, Blowfish, RC4, Rabbit)",
+    path: "node_modules/crypto-js/cipher-core.js",
     isLoadedWhenNeeded: false,
   },
 ];

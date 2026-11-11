@@ -15,6 +15,10 @@ import {
   MembershipKind,
 } from "Common/Utils/DeveloperDocs/PeopleByEmail";
 import { isSetAtCreate } from "Common/Utils/DeveloperDocs/SetAtCreate";
+import {
+  MONITOR_STEPS_VALUES_CASES_FILE,
+  monitorStepsValuesCasesFile,
+} from "./MonitorStepsValuesCases";
 import path from "path";
 import fs from "fs";
 
@@ -317,6 +321,29 @@ func (r *${resourceTypeName}Resource) MoveState(ctx context.Context) []resource.
     );
     // An NTP monitor's check_on values (#4617), which shipped untested.
     await this.copyStaticFile("monitorsteps_ntp_test.go", "internal/provider");
+    /*
+     * The values in a monitor's steps the server reads written another way
+     * (#6723): a rolling time ("15 minutes" is "Past 15 Minutes") and a
+     * filter's aggregation and no-data policy ("avg" is "Average"), compared
+     * as the server stores them and refused at plan time where it refuses
+     * them. The tests check every rule against cases this generator writes
+     * from the server's own code, and apply, refresh and plan a monitor
+     * through the real protocol server.
+     */
+    await this.copyStaticFile("monitorstepsvalues.go", "internal/provider");
+    await this.copyStaticFile(
+      "monitorstepsvalues_test.go",
+      "internal/provider",
+    );
+    await this.copyStaticFile(
+      "monitorstepsvalues_roundtrip_test.go",
+      "internal/provider",
+    );
+    await this.fileGenerator.writeFileInDir(
+      "internal/provider/testdata",
+      MONITOR_STEPS_VALUES_CASES_FILE,
+      monitorStepsValuesCasesFile(),
+    );
     await this.copyStaticFile(
       "provider_schema_smoke_test.go",
       "internal/provider",

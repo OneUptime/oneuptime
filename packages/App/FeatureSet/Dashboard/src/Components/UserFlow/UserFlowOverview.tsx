@@ -15,6 +15,15 @@ import {
 } from "./UserFlowFormat";
 import { UserFlowScope } from "./UserFlowScope";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getNumberLocale } from "Common/Types/DateLanguage";
+import {
+  getLineDirection,
+  getTranslatedLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 
 /*
  * Findings shown at once. The engine orders them by how much they should
@@ -22,6 +31,12 @@ import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetr
  * which the "Top landing page" tile already says.
  */
 export const USER_FLOW_MAX_VISIBLE_INSIGHTS: number = 4;
+
+/* A tile's label and hint: two lines at most, never cut mid-word. */
+export const USER_FLOW_TILE_LABEL_CLASS_NAME: string =
+  "min-w-0 line-clamp-2 hyphens-auto break-words";
+export const USER_FLOW_TILE_HINT_CLASS_NAME: string =
+  "line-clamp-2 hyphens-auto break-words text-xs text-gray-500";
 
 /*
  * The strip above the map: how many sessions the map is drawn from, how
@@ -53,6 +68,19 @@ function Tile(props: {
   /* A page path: monospace, and cut from the front so the name survives. */
   isPage?: boolean | undefined;
 }): ReactElement {
+  const translator: Translator = useTranslator();
+  const label: string = translator.translateText(props.label) || props.label;
+  /* A page's path reads from the left on any page: "/checkout". */
+  const valueDirection: ReadingDirection | undefined = props.isPage
+    ? getLineDirection(props.value, translator.language)
+    : undefined;
+
+  /*
+   * The label and the hint wrap to a second line rather than being cut:
+   * in German a five-across row leaves "Sitzungen mit nur einer S..." and
+   * "neueste 5.000 von 12.000 aufge...". A word wider than the tile breaks
+   * at a syllable of the page's language.
+   */
   return (
     <div
       className="rounded-lg border border-gray-200 bg-white px-4 py-3"
@@ -60,26 +88,36 @@ function Tile(props: {
     >
       <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
         <Icon icon={props.icon} className="h-4 w-4 shrink-0 text-gray-400" />
-        <span className="min-w-0 truncate">{props.label}</span>
+        <span
+          className={USER_FLOW_TILE_LABEL_CLASS_NAME}
+          data-testid={`${props.testId}-label`}
+        >
+          {label}
+        </span>
         <InfoTooltip
-          label={props.label}
+          label={label}
           text={props.tooltip}
           dataTestId={`${props.testId}-info`}
         />
       </div>
       <p
-        className={
+        className={`${
           props.isPage
             ? "mt-1.5 truncate font-mono text-lg font-semibold leading-8 text-gray-900"
             : "mt-1 truncate text-2xl font-semibold text-gray-900"
-        }
+        } ${valueDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : ""}`}
+        dir={valueDirection}
         title={props.value}
         data-testid={`${props.testId}-value`}
         data-value={props.value}
       >
         {props.isPage ? truncateUserFlowLabel(props.value, 22) : props.value}
       </p>
-      <p className="truncate text-xs text-gray-500" title={props.hint}>
+      <p
+        className={USER_FLOW_TILE_HINT_CLASS_NAME}
+        title={props.hint}
+        data-testid={`${props.testId}-hint`}
+      >
         {props.hint}
       </p>
     </div>
@@ -109,6 +147,7 @@ const KIND_ICON: Record<UserFlowInsight["kind"], IconProp> = {
 const UserFlowOverview: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const summary: UserFlowSummary = props.summary;
 
   return (
@@ -116,21 +155,29 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Tile
           label="Sessions analysed"
-          value={formatUserFlowCount(summary.sessions)}
-          hint={formatUserFlowSessionsHint({
-            sessionsRead: props.sessionsRead,
-            sessionsInWindow: props.sessionsInWindow,
-            isSampled: props.isSampled,
-            scopeKind: props.scopeKind,
-          })}
+          value={formatUserFlowCount(summary.sessions, translator)}
+          hint={formatUserFlowSessionsHint(
+            {
+              sessionsRead: props.sessionsRead,
+              sessionsInWindow: props.sessionsInWindow,
+              isSampled: props.isSampled,
+              scopeKind: props.scopeKind,
+            },
+            translator,
+          )}
           icon={IconProp.Film}
           testId="user-flow-tile-sessions"
           tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.sessionsAnalysed}
         />
         <Tile
           label="Pages per session"
-          value={summary.avgPagesPerSession.toFixed(1)}
-          hint={`median ${summary.medianPagesPerSession}`}
+          value={summary.avgPagesPerSession.toLocaleString(
+            getNumberLocale(translator.language) || "en-US",
+            { minimumFractionDigits: 1, maximumFractionDigits: 1 },
+          )}
+          hint={translator.translateTemplate("median {{value}}", {
+            value: translator.formatNumber(summary.medianPagesPerSession),
+          })}
           icon={IconProp.Layers}
           testId="user-flow-tile-pages"
           tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.pagesPerSession}
@@ -138,9 +185,12 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
         <Tile
           label="Single-page sessions"
           value={formatUserFlowShare(summary.bounceRate)}
-          hint={`${formatUserFlowCount(
-            summary.sessions - summary.navigatingSessions,
-          )} never navigated`}
+          hint={translator.translateTemplate("{{count}} never navigated", {
+            count: formatUserFlowCount(
+              summary.sessions - summary.navigatingSessions,
+              translator,
+            ),
+          })}
           icon={IconProp.ArrowUturnLeft}
           testId="user-flow-tile-bounce"
           tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.singlePageSessions}
@@ -150,12 +200,17 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           value={summary.topEntryPage?.page || "—"}
           hint={
             summary.topEntryPage
-              ? `${formatUserFlowShare(
-                  summary.sessions > 0
-                    ? summary.topEntryPage.sessions / summary.sessions
-                    : 0,
-                )} of sessions start here`
-              : "no sessions"
+              ? translator.translateTemplate(
+                  "{{share}} of sessions start here",
+                  {
+                    share: formatUserFlowShare(
+                      summary.sessions > 0
+                        ? summary.topEntryPage.sessions / summary.sessions
+                        : 0,
+                    ),
+                  },
+                )
+              : translator.translateText("no sessions") || "no sessions"
           }
           icon={IconProp.Home}
           testId="user-flow-tile-entry"
@@ -167,12 +222,14 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
           value={summary.topExitPage?.page || "—"}
           hint={
             summary.topExitPage
-              ? `${formatUserFlowShare(
-                  summary.sessions > 0
-                    ? summary.topExitPage.sessions / summary.sessions
-                    : 0,
-                )} of sessions end here`
-              : "no sessions"
+              ? translator.translateTemplate("{{share}} of sessions end here", {
+                  share: formatUserFlowShare(
+                    summary.sessions > 0
+                      ? summary.topExitPage.sessions / summary.sessions
+                      : 0,
+                  ),
+                })
+              : translator.translateText("no sessions") || "no sessions"
           }
           icon={IconProp.Logout}
           testId="user-flow-tile-exit"
@@ -193,7 +250,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
                 <button
                   type="button"
                   key={insight.kind}
-                  className={`flex gap-3 rounded-lg border p-3 text-left transition-colors ${
+                  className={`flex gap-3 rounded-lg border p-3 text-start transition-colors ${
                     TONE_CLASSES[insight.tone]
                   }`}
                   data-testid="user-flow-insight"
@@ -201,8 +258,14 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
                   data-focus-direction={insight.focusDirection}
                   title={
                     insight.focusDirection === "backward"
-                      ? `Show how sessions reached ${insight.page}`
-                      : `Show paths from ${insight.page}`
+                      ? translator.translateTemplate(
+                          "Show how sessions reached {{page}}",
+                          { page: insight.page },
+                        )
+                      : translator.translateTemplate(
+                          "Show paths from {{page}}",
+                          { page: insight.page },
+                        )
                   }
                   onClick={(): void => {
                     props.onFocusPage(insight.page, insight.focusDirection);
@@ -212,11 +275,28 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
                     icon={KIND_ICON[insight.kind]}
                     className={`mt-0.5 h-5 w-5 shrink-0 ${TONE_ICON[insight.tone]}`}
                   />
+                  {/*
+                   * A finding is worded in English for now (issue #6754):
+                   * on a page read from the right it reads from the left,
+                   * so its full stop and its paths stay where written.
+                   */}
                   <div className="min-w-0">
-                    <p className="break-words text-sm font-semibold text-gray-900">
+                    <p
+                      className="break-words text-sm font-semibold text-gray-900"
+                      dir={getTranslatedLineDirection(
+                        insight.title,
+                        translator.language,
+                      )}
+                    >
                       {insight.title}
                     </p>
-                    <p className="mt-0.5 break-words text-xs text-gray-600">
+                    <p
+                      className="mt-0.5 break-words text-xs text-gray-600"
+                      dir={getTranslatedLineDirection(
+                        insight.detail,
+                        translator.language,
+                      )}
+                    >
                       {insight.detail}
                     </p>
                   </div>

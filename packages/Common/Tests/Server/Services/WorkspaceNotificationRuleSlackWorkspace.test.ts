@@ -19,8 +19,19 @@ import WorkspaceProjectAuthTokenService from "../../../Server/Services/Workspace
 import WorkspaceUserAuthTokenService from "../../../Server/Services/WorkspaceUserAuthTokenService";
 import WorkspaceUtil from "../../../Server/Utils/Workspace/Workspace";
 import { WorkspaceChannel } from "../../../Server/Utils/Workspace/WorkspaceBase";
+import SlackUtil from "../../../Server/Utils/Workspace/Slack/Slack";
+import SlackOrganization, {
+  SlackOrganizationConnection,
+  SlackWorkspaceNotAddedException,
+} from "../../../Server/Utils/Workspace/Slack/SlackOrganization";
+import OneUptimeDate from "../../../Types/Date";
+import BadDataException from "../../../Types/Exception/BadDataException";
+import BadRequestException from "../../../Types/Exception/BadRequestException";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import ObjectID from "../../../Types/ObjectID";
+import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceNotificationActionType";
+import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
+import { WorkspaceChannelNameParts } from "../../../Utils/Workspace/WorkspaceChannelName";
 import BaseNotificationRule from "../../../Types/Workspace/NotificationRules/BaseNotificationRule";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import NotificationRuleWorkspaceChannel from "../../../Types/Workspace/NotificationRules/NotificationRuleWorkspaceChannel";
@@ -43,6 +54,10 @@ import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
 const EAST: string = "T0EAST";
 const WEST: string = "T0WEST";
+
+// What a rule picking Acme East is told once OneUptime is removed from it.
+const NOT_ADDED_TO_EAST: string =
+  "OneUptime is no longer added to the Acme East workspace of Acme Corp. Add it again in Slack's organization settings, or pick another workspace on the rule.";
 
 const TEST_BY_USER_ID: ObjectID = new ObjectID(
   "c8000000-0000-4000-8000-000000000001",
@@ -165,6 +180,28 @@ async function testRule(rule: WorkspaceNotificationRule): Promise<void> {
   });
 }
 
+// Tests a rule that creates its channel in Acme East, refused with `error`.
+async function testRuleCreatingIn(error: Error): Promise<void> {
+  const rule: WorkspaceNotificationRule = slackRule({
+    shouldCreateNewChannel: true,
+    teamToCreateChannelIn: EAST,
+    newChannelTemplateName: "oneuptime-incident-",
+  });
+
+  install(rule);
+
+  jest
+    .mocked(WorkspaceNotificationRuleService.createChannelsBasedOnRules)
+    .mockRejectedValue(error as never);
+
+  await WorkspaceNotificationRuleService.testRule({
+    ruleId: rule.id!,
+    projectId: ObjectID.generate(),
+    testByUserId: TEST_BY_USER_ID,
+    props: { isRoot: true },
+  });
+}
+
 // What each post was addressed to.
 function posted(): Array<WorkspaceMessagePayload> {
   return postSpy.mock.calls.map(
@@ -242,6 +279,64 @@ describe("Test Rule for a Slack rule naming a workspace", () => {
         teamId: EAST,
       }),
     ]);
+  });
+
+  test("a workspace OneUptime was removed from: the test says so plainly - not that the channel does not exist - and nothing is posted", async () => {
+    // Slack's channel lookup, refusing the workspace (getWorkspaceChannelByName).
+    channelExists = (): boolean => {
+      throw new SlackWorkspaceNotAddedException({
+        message: NOT_ADDED_TO_EAST,
+        teamId: EAST,
+      });
+    };
+
+    const testing: Promise<void> = testRule(
+      slackRule({
+        shouldPostToExistingChannel: true,
+        existingChannelNames: "incidents",
+        existingTeam: EAST,
+      }),
+    );
+
+    await expect(testing).rejects.toBeInstanceOf(BadDataException);
+    await expect(testing).rejects.toThrow(NOT_ADDED_TO_EAST);
+    await expect(testing).rejects.not.toThrow("does not exist");
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("a channel to create in a workspace OneUptime was removed from: the test says so plainly, as its Notification Logs do", async () => {
+    let refusal: unknown = null;
+
+    try {
+      await testRuleCreatingIn(
+        new SlackWorkspaceNotAddedException({
+          message: NOT_ADDED_TO_EAST,
+          teamId: EAST,
+        }),
+      );
+    } catch (err) {
+      refusal = err;
+    }
+
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as Error).message).toBe(NOT_ADDED_TO_EAST);
+    expect(postSpy).not.toHaveBeenCalled();
+  });
+
+  test("any other channel the workspace does not create: 'Cannot create a new channel.' and what it answered, as before", async () => {
+    let refusal: unknown = null;
+
+    try {
+      await testRuleCreatingIn(
+        new BadRequestException("Error from Slack restricted_action"),
+      );
+    } catch (err) {
+      refusal = err;
+    }
+
+    expect((refusal as Error).message).toBe(
+      "Cannot create a new channel. Error from Slack restricted_action",
+    );
   });
 
   test("a channel the workspace does not have: the test says so, and nothing is posted", async () => {
@@ -378,5 +473,177 @@ describe("getExistingChannelNamesFromNotificationRules", () => {
       },
       { id: "ops", name: "ops", workspaceType: WorkspaceType.Slack },
     ]);
+  });
+});
+
+/*
+ * CREATING RULES' CHANNELS FOR AN ORGANIZATION'S INSTALLATION
+ * (createChannelsBasedOnRules): the project's organization is read once for
+ * every channel created for a record, and handed to each (#6749) - and a
+ * channel in a workspace OneUptime was removed from is logged as not
+ * created, saying so plainly.
+ */
+describe("creating rules' channels for an organization's installation", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "c8000000-0000-4000-8000-000000000003",
+  );
+
+  const NAME_PARTS: WorkspaceChannelNameParts = {
+    afterPrefix: "12",
+    ownName: "incident-12",
+  };
+
+  let rows: Array<WorkspaceNotificationLog>;
+
+  function connection(
+    miscData: Partial<SlackMiscData> = {},
+  ): WorkspaceProjectAuthToken {
+    const auth: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
+    auth.projectId = PROJECT_ID;
+    auth.workspaceType = WorkspaceType.Slack;
+    auth.authToken = "xoxb-acme-organization";
+    auth.workspaceProjectId = "E0ACME";
+    auth.miscData = {
+      teamId: "E0ACME",
+      teamName: "Acme Corp",
+      botUserId: "U0BOT",
+      isEnterpriseInstall: true,
+      enterpriseId: "E0ACME",
+      enterpriseName: "Acme Corp",
+      workspaces: [
+        { id: EAST, name: "Acme East" },
+        { id: WEST, name: "Acme West" },
+      ],
+      // Listed just now: Slack is not asked for them again.
+      workspacesReadAt: OneUptimeDate.toString(OneUptimeDate.getCurrentDate()),
+      defaultWorkspaceId: WEST,
+      ...miscData,
+    } as SlackMiscData;
+    return auth;
+  }
+
+  function creatingRule(
+    template: string,
+    teamId?: string | undefined,
+  ): WorkspaceNotificationRule {
+    return slackRule({
+      shouldCreateNewChannel: true,
+      newChannelTemplateName: template,
+      ...(teamId ? { teamToCreateChannelIn: teamId } : {}),
+    });
+  }
+
+  async function createChannels(
+    rules: Array<WorkspaceNotificationRule>,
+  ): Promise<Array<NotificationRuleWorkspaceChannel>> {
+    return await WorkspaceNotificationRuleService.createChannelsBasedOnRules({
+      projectId: PROJECT_ID,
+      projectOrUserAuthTokenForWorkspace: "xoxb-acme-organization",
+      workspaceType: WorkspaceType.Slack,
+      notificationRules: rules,
+      channelNameParts: NAME_PARTS,
+      notificationEventType: NotificationRuleEventType.Incident,
+    });
+  }
+
+  beforeEach(() => {
+    rows = [];
+
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue(connection());
+
+    jest
+      .spyOn(WorkspaceNotificationLogService, "create")
+      .mockImplementation((async (data: {
+        data: WorkspaceNotificationLog;
+      }): Promise<WorkspaceNotificationLog> => {
+        rows.push(data.data);
+        return data.data;
+      }) as never);
+  });
+
+  test("the organization is read once, and each channel is created with it - in the workspace its rule picks, else the default", async () => {
+    const reads: SpyInstance<typeof SlackOrganization.getOfConnection> =
+      jest.spyOn(SlackOrganization, "getOfConnection");
+
+    const create: SpyInstance<typeof SlackUtil.createChannel> = jest
+      .spyOn(SlackUtil, "createChannel")
+      .mockImplementation((async (data: {
+        channelName: string;
+        teamId?: string | undefined;
+      }): Promise<WorkspaceChannel> => {
+        return {
+          id: `C0${data.channelName.toUpperCase()}`,
+          name: data.channelName,
+          workspaceType: WorkspaceType.Slack,
+          ...(data.teamId ? { teamId: data.teamId } : {}),
+        };
+      }) as never);
+
+    const channels: Array<NotificationRuleWorkspaceChannel> =
+      await createChannels([
+        creatingRule("east-", EAST),
+        creatingRule("default-"),
+        creatingRule("west-", WEST),
+      ]);
+
+    expect(channels).toHaveLength(3);
+    expect(reads).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledTimes(3);
+
+    const given: Array<SlackOrganizationConnection | null | undefined> =
+      create.mock.calls.map(
+        (call: Array<unknown>): SlackOrganizationConnection | null => {
+          return (
+            call[0] as { organization: SlackOrganizationConnection | null }
+          ).organization;
+        },
+      );
+
+    expect(given[0]).toMatchObject({
+      enterpriseId: "E0ACME",
+      defaultWorkspaceId: WEST,
+    });
+    expect(given[1]).toBe(given[0]);
+    expect(given[2]).toBe(given[0]);
+    expect(
+      create.mock.calls.map((call: Array<unknown>): unknown => {
+        return (call[0] as { teamId?: string }).teamId;
+      }),
+    ).toEqual([EAST, WEST, WEST]);
+  });
+
+  test("a rule's workspace OneUptime was removed from: no channel - not in another workspace either - and its Notification Logs row says so plainly", async () => {
+    jest
+      .spyOn(WorkspaceProjectAuthTokenService, "getProjectAuth")
+      .mockResolvedValue(
+        connection({
+          workspaces: [{ id: WEST, name: "Acme West" }],
+          removedWorkspaces: [{ id: EAST, name: "Acme East" }],
+        }),
+      );
+
+    // Slack itself is never asked: refused before it would be.
+    const slack: SpyInstance<typeof SlackUtil.createChannel> = jest.spyOn(
+      SlackUtil,
+      "createChannel",
+    );
+
+    const channels: Array<NotificationRuleWorkspaceChannel> =
+      await createChannels([creatingRule("east-", EAST)]);
+
+    expect(channels).toEqual([]);
+    expect(slack).toHaveBeenCalledTimes(1);
+
+    const notCreated: Array<WorkspaceNotificationLog> = rows.filter(
+      (row: WorkspaceNotificationLog): boolean => {
+        return row.actionType === WorkspaceNotificationActionType.CreateChannel;
+      },
+    );
+
+    expect(notCreated).toHaveLength(1);
+    expect(notCreated[0]!.status).toBe(WorkspaceNotificationStatus.Error);
+    expect(notCreated[0]!.statusMessage).toBe(NOT_ADDED_TO_EAST);
   });
 });

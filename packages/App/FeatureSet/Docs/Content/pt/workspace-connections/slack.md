@@ -67,6 +67,7 @@ Com o Slack Enterprise Grid, um projeto pode funcionar em vários workspaces da 
 3. O cartão **Espaços de trabalho do Slack** lista esses workspaces. Clique em **Atualizar** depois de adicionar o OneUptime a outro workspace.
 
 - **Qual workspace uma regra usa.** As regras de notificação escolhem o **Espaço de trabalho do Slack** dos seus canais. Se ficar em branco, a regra usa o workspace padrão e procura primeiro ali os canais que nomeia. **Tornar padrão** no cartão muda o padrão.
+- **Um workspace do qual o OneUptime foi removido.** Uma regra que o escolhe não publica em outro workspace no lugar dele: o cartão da regra, **Regra de teste** e os logs de notificação dizem que o OneUptime não está mais adicionado a ele. O cartão **Canal do Slack** também diz isso quando o canal está nesse workspace. Adicione o OneUptime de novo a esse workspace nas configurações da organização do Slack, ou escolha outro workspace na regra.
 - **Onde o OneUptime funciona.** Botões, comandos, a aba Home e o OneUptime AI funcionam em cada um desses workspaces, e os membros conectam a própria conta do Slack a partir de qualquer um deles.
 - **Um projeto conectado a um único workspace.** Se esse workspace faz parte da organização, o projeto mantém suas regras, canais e contas conectadas quando é instalado para a organização inteira com **Instalar para a organização** na mesma página. Esse workspace passa a ser o padrão.
 - **Em um servidor auto-hospedado,** um app do Slack criado a partir do manifesto do OneUptime já permite isso: o manifesto define `org_deploy_enabled`.
@@ -268,6 +269,7 @@ Para um grupo com o plantão principal e o secundário, conecte o mesmo grupo na
 - **Acionar o grupo.** `/oneuptime page @payments-oncall The checkout API is down` aciona quem está de plantão nos agendamentos que o grupo segue. Veja [Acionar alguém pelo Slack](#acionar-alguém-pelo-slack).
 - **O que o Slack exige.** Grupos de usuários fazem parte dos planos pagos do Slack, e um espaço de trabalho pode permitir que só os proprietários e administradores os alterem: o cartão diz qual é o caso, e o que fazer. Se o Slack foi conectado antes de o OneUptime poder manter grupos de usuários, conecte-o de novo uma vez em **Configurações do projeto** > **Espaço de trabalho** > **Slack**.
 - **Quem pode conectar um.** As funções que podem editar agendamentos: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de plantão** e **Membro de plantão**, ou **Edit On-Call Duty Policy Schedule** em uma função personalizada. No OneUptime Cloud, conectar um exige o plano **Growth**.
+- **Em uma organização do Slack Enterprise.** Quando o OneUptime está adicionado a dois ou mais workspaces dela, **Conectar grupo de usuários** pergunta primeiro em qual **Espaço de trabalho do Slack** o grupo está e depois lista os grupos de usuários desse workspace. O cartão mostra o workspace de cada grupo, e o OneUptime mantém o grupo atualizado lá.
 - **Desconectar.** O OneUptime para de mudar o grupo. O grupo e os membros dele ficam no Slack como estão.
 
 ## Gerenciar um incidente pelo Slack

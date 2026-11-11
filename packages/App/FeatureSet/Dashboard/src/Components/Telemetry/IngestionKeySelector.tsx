@@ -535,7 +535,8 @@ const IngestionKeySelector: FunctionComponent<ComponentProps> = (
                   </div>
                   {props.endpointHint && (
                     <div className="text-xs text-gray-500 mt-1 leading-relaxed">
-                      {props.endpointHint}
+                      {translator.translateText(props.endpointHint) ||
+                        props.endpointHint}
                     </div>
                   )}
                 </div>

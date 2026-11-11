@@ -170,6 +170,8 @@ An app created before `/oneuptime page` needs the same update: until it has it, 
 
 An app created before the **Home** tab needs the same update: until it has it, Slack shows no **Home** tab for the app, and the app posts no hello in a channel it is added to. The update turns the tab on and subscribes the app to the `app_home_opened` and `member_joined_channel` events. It adds no scope, so nothing needs connecting again.
 
+An app installed for a whole organization on Slack Enterprise Grid needs the same update to hear when an admin adds OneUptime to one of the organization's workspaces or removes it. The update subscribes the app to the `team_access_granted` and `team_access_revoked` events, and OneUptime then reads the workspaces again at once. Until then, it reads them again when they are needed and were last read more than 10 minutes ago, or when someone clicks **Refresh** on the **Slack workspaces** card. It adds no scope, so nothing needs connecting again.
+
 ## Network access for self-hosted deployments
 
 ### Traffic direction and endpoints

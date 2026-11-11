@@ -8,12 +8,17 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete, OnFind } from "../Types/Database/Hooks";
 import Model, {
   LegacyServerOnlyMiscDataKeys,
+  MattermostConnectionTeam,
+  MattermostMiscData,
   MiscData,
   SlackChannelCache,
   SlackMiscData,
   SlackOrganizationWorkspace,
   WorkspaceMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import MattermostConnection, {
+  MattermostConnectionData,
+} from "../Utils/Workspace/Mattermost/MattermostConnection";
 import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
@@ -285,11 +290,12 @@ export class Service extends DatabaseService<Model> {
 
   /*
    * A Slack connection to a whole Enterprise organization: the workspaces
-   * Slack listed OneUptime as added to, when, and the default workspace
-   * (SlackOrganization) - written into the project's connection and nothing
-   * else, while it is still that organization's (`workspaceProjectId`). A
-   * connection removed or replaced meanwhile is left alone. Every other
-   * miscData field is carried over from the stored row.
+   * Slack listed OneUptime as added to, when, those it no longer lists, and
+   * the default workspace (SlackOrganization) - written into the project's
+   * connection and nothing else, while it is still that organization's
+   * (`workspaceProjectId`). A connection removed or replaced meanwhile is
+   * left alone. Every other miscData field is carried over from the stored
+   * row.
    */
   @CaptureSpan()
   public async updateSlackOrganization(data: {
@@ -297,6 +303,11 @@ export class Service extends DatabaseService<Model> {
     workspaceProjectId: string;
     workspaces?: Array<SlackOrganizationWorkspace> | undefined;
     workspacesReadAt?: Date | undefined;
+    /*
+     * The workspaces Slack no longer lists, by the names they had
+     * (SlackOrganization.getRemovedWorkspaces).
+     */
+    removedWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
     defaultWorkspaceId?: string | undefined;
     /*
      * A connection to one workspace: the Enterprise organization it is part
@@ -348,6 +359,14 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    if (data.removedWorkspaces) {
+      miscData.removedWorkspaces = data.removedWorkspaces.map(
+        (workspace: SlackOrganizationWorkspace): SlackOrganizationWorkspace => {
+          return { id: workspace.id, name: workspace.name };
+        },
+      );
+    }
+
     if (data.defaultWorkspaceId !== undefined) {
       /*
        * A channel of one name in several workspaces is cached once, as the
@@ -385,6 +404,124 @@ export class Service extends DatabaseService<Model> {
       data: {
         miscData: miscData,
       },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * A Mattermost connection's teams: those the server listed its bot in,
+   * when, and the default team (MattermostTeams) - written into the
+   * project's connection and nothing else, while it is still the one stored
+   * under `workspaceProjectId`. A connection removed or replaced meanwhile
+   * is left alone. Every other field is carried over from the stored row.
+   *
+   * Another default team is written into the server-only authToken too:
+   * every call that names no team is made in the team it holds
+   * (MattermostConnection). The connection stays stored under the team it
+   * was made for.
+   */
+  @CaptureSpan()
+  public async updateMattermostTeams(data: {
+    projectId: ObjectID;
+    workspaceProjectId: string;
+    teams?: Array<MattermostConnectionTeam> | undefined;
+    teamsReadAt?: Date | undefined;
+    defaultTeam?: MattermostConnectionTeam | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!data.workspaceProjectId) {
+      throw new BadDataException("workspaceProjectId is required");
+    }
+
+    if (
+      data.defaultTeam &&
+      !MattermostConnection.isMattermostId(data.defaultTeam.id)
+    ) {
+      throw new BadDataException("The Mattermost team id is not valid.");
+    }
+
+    const projectAuth: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.Mattermost,
+        workspaceProjectId: data.workspaceProjectId,
+      },
+      select: {
+        _id: true,
+        miscData: true,
+        authToken: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!projectAuth || !projectAuth.id) {
+      return;
+    }
+
+    const miscData: MattermostMiscData = {
+      ...((projectAuth.miscData as MattermostMiscData | undefined) ||
+        ({} as MattermostMiscData)),
+    };
+
+    const update: { miscData: MattermostMiscData; authToken?: string } = {
+      miscData: miscData,
+    };
+
+    if (data.teams) {
+      miscData.teams = data.teams.map(
+        (team: MattermostConnectionTeam): MattermostConnectionTeam => {
+          return {
+            id: team.id,
+            name: team.name,
+            displayName: team.displayName || team.name,
+          };
+        },
+      );
+      miscData.teamsReadAt = OneUptimeDate.toString(
+        data.teamsReadAt || OneUptimeDate.getCurrentDate(),
+      );
+
+      /*
+       * The default team as the server names it now: a team renamed in
+       * Mattermost has its channels at its new address.
+       */
+      const listedDefault: MattermostConnectionTeam | undefined =
+        miscData.teams.find((team: MattermostConnectionTeam): boolean => {
+          return team.id === miscData.teamId;
+        });
+
+      if (listedDefault && listedDefault.name) {
+        miscData.teamName = listedDefault.name;
+        miscData.teamDisplayName =
+          listedDefault.displayName || listedDefault.name;
+      }
+    }
+
+    if (data.defaultTeam) {
+      const connection: MattermostConnectionData =
+        MattermostConnection.fromAuthToken(projectAuth.authToken || "");
+
+      update.authToken = MattermostConnection.toAuthToken({
+        ...connection,
+        teamId: data.defaultTeam.id,
+      });
+
+      miscData.teamId = data.defaultTeam.id;
+      miscData.teamName = data.defaultTeam.name;
+      miscData.teamDisplayName =
+        data.defaultTeam.displayName || data.defaultTeam.name;
+    }
+
+    await this.updateOneById({
+      id: projectAuth.id,
+      data: update,
       props: {
         isRoot: true,
       },

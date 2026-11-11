@@ -672,7 +672,7 @@ Flytkartet har én kolonne per trinn. En side er en boks der høyden er antallet
 | **From session start** | Trinn 1 er hver økts landingsside. |
 | **After a page** | Forankrer kartet ved én side og følger øktene fra første gang de nådde den — «hvor går folk etter `/pricing`?» |
 | **Before a page** | Følger økter bakover fra første gang de nådde en side — «hvordan kommer folk til `/checkout`?» Ankeret tegnes til høyre. |
-| **Trinn** / **Sider per trinn** | Hvor mange kolonner som tegnes, og hvor mange sider en kolonne nevner før resten samles i **Other pages** (klikk på den for å se hva den inneholder). |
+| **Trinn** / **Sider per trinn** | Hvor mange kolonner som tegnes, og hvor mange sider en kolonne nevner før resten samles i **Andre sider** (klikk på den for å se hva den inneholder). |
 | **Økter** | Alle økter, bare økter med feil eller bare økter med frustrasjonssignaler (raseriklikk, døde klikk, feilklikk, raseri-innlastinger). Dine egne signaler teller med når de teller som frustrasjon. |
 | **Enhet** | Bare økter fra datamaskin, mobil eller nettbrett. |
 | **Grupper ID-er i URL-er** | Slått på som standard: `/orders/1042` og `/orders/1043` er én side, `/orders/:id`. Tall, heksadesimale ID-er og lange tokener av bokstaver og sifre grupperes, akkurat som hvert segment opptakeren allerede har erstattet med `[redacted]`. Av som standard for én bruker eller én økt. |

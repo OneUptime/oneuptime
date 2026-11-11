@@ -10,6 +10,8 @@ import { JSONObject } from "Common/Types/JSON";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import Exception from "Common/Types/Exception/Exception";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   onClose: VoidFunction;
@@ -18,6 +20,7 @@ export interface ComponentProps {
 const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = React.useState<boolean>(false);
   const [isSaving, setIsSaving] = React.useState<boolean>(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
@@ -111,8 +114,9 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-4">
         <div className="text-sm text-gray-600">
-          Channel name is the key (e.g., #general without the #). Value is the
-          Slack channel ID.
+          {translator.translateText(
+            "Channel name is the key (e.g., #general without the #). Value is the Slack channel ID.",
+          )}
         </div>
 
         <Dictionary
@@ -138,8 +142,9 @@ const SlackChannelCacheModal: FunctionComponent<ComponentProps> = (
         />
 
         <div className="text-xs text-gray-400">
-          Note: Saving will overwrite the current channel list with the entries
-          above.
+          {translator.translateText(
+            "Note: Saving will overwrite the current channel list with the entries above.",
+          )}
         </div>
       </div>
     </Modal>

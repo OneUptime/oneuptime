@@ -22,6 +22,7 @@ import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObje
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import {
+  MattermostConnectionTeam,
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
   SlackOrganizationWorkspace,
@@ -29,13 +30,18 @@ import {
 import { WorkspaceChannelNumberPrefixes } from "Common/Utils/Workspace/WorkspaceChannelName";
 import NotificationRuleSummary from "../NotificationRuleForm/NotificationRuleSummary";
 import {
+  getRuleWorkspacesNotAdded,
   NO_CONDITIONS_SENTENCES,
   NOTIFICATION_RULE_CONDITIONS_TITLES,
   RULE_THEN_TITLE,
+  SLACK_WORKSPACE_NOT_ADDED_NOTE,
+  SlackRuleWorkspaces,
 } from "../NotificationRuleForm/NotificationRuleCopy";
 import VideoCallRuleSummary from "./VideoCallRuleSummary";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Icon from "Common/UI/Components/Icon/Icon";
+import IconProp from "Common/Types/Icon/IconProp";
 
 /*
  * A WORKSPACE NOTIFICATION RULE'S CARD: WHICH RECORDS, THEN WHAT.
@@ -131,6 +137,14 @@ export interface NotificationRuleThenProps {
   microsoftTeamsChats?: Array<MicrosoftTeamsChat> | undefined;
   // A Slack Enterprise organization's workspaces, to name the one a rule picks.
   slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
+  /*
+   * Slack installed for a whole Enterprise organization: its workspaces and
+   * those OneUptime was removed from, to say when the rule picks one of
+   * those. Undefined for any other connection.
+   */
+  slackOrganization?: SlackRuleWorkspaces | undefined;
+  // The Mattermost teams the project's bot is in, to name the one a rule picks.
+  mattermostTeams?: Array<MattermostConnectionTeam> | undefined;
   // For the example of the name of the channel the rule creates.
   numberPrefixes?: WorkspaceChannelNumberPrefixes | undefined;
   exampleRecordName?: string | undefined;
@@ -139,22 +153,61 @@ export interface NotificationRuleThenProps {
 export const NotificationRuleThen: FunctionComponent<
   NotificationRuleThenProps
 > = (props: NotificationRuleThenProps): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  // The Slack workspaces the rule picks that OneUptime is no longer added to.
+  const notAdded: Array<SlackOrganizationWorkspace> = getRuleWorkspacesNotAdded(
+    {
+      rule: props.rule,
+      workspaceType: props.workspaceType,
+      organization: props.slackOrganization,
+    },
+  );
+
+  const organizationName: string =
+    props.slackOrganization?.organizationName ||
+    translator.translateText("Slack") ||
+    "Slack";
+
   return (
-    <NotificationRuleSummary
-      rule={props.rule}
-      eventType={props.eventType}
-      workspaceType={props.workspaceType}
-      users={props.users}
-      teams={props.teams}
-      onCallSchedules={props.onCallSchedules}
-      microsoftTeamsTeams={props.microsoftTeamsTeams}
-      microsoftTeamsChats={props.microsoftTeamsChats}
-      slackWorkspaces={props.slackWorkspaces}
-      numberPrefixes={props.numberPrefixes}
-      exampleRecordName={props.exampleRecordName}
-      showWhenEmpty={true}
-      dataTestId="notification-rule-summary"
-    />
+    <div>
+      <NotificationRuleSummary
+        rule={props.rule}
+        eventType={props.eventType}
+        workspaceType={props.workspaceType}
+        users={props.users}
+        teams={props.teams}
+        onCallSchedules={props.onCallSchedules}
+        microsoftTeamsTeams={props.microsoftTeamsTeams}
+        microsoftTeamsChats={props.microsoftTeamsChats}
+        slackWorkspaces={props.slackWorkspaces}
+        mattermostTeams={props.mattermostTeams}
+        numberPrefixes={props.numberPrefixes}
+        exampleRecordName={props.exampleRecordName}
+        showWhenEmpty={true}
+        dataTestId="notification-rule-summary"
+      />
+      {notAdded.map((workspace: SlackOrganizationWorkspace) => {
+        return (
+          <p
+            key={workspace.id}
+            data-testid="notification-rule-slack-workspace-not-added"
+            className="mt-2 flex items-start gap-2 text-sm text-amber-900"
+          >
+            <Icon
+              icon={IconProp.Alert}
+              className="mt-0.5 h-4 w-4 flex-none text-amber-600"
+            />
+            <span className="min-w-0 text-pretty">
+              {translator.translateTemplate(SLACK_WORKSPACE_NOT_ADDED_NOTE, {
+                workspace: workspace.name,
+                organization: organizationName,
+              })}
+            </span>
+          </p>
+        );
+      })}
+    </div>
   );
 };
 
@@ -257,6 +310,8 @@ export function getNotificationRuleCardColumns(
             microsoftTeamsTeams={data.microsoftTeamsTeams}
             microsoftTeamsChats={data.microsoftTeamsChats}
             slackWorkspaces={data.slackWorkspaces}
+            slackOrganization={data.slackOrganization}
+            mattermostTeams={data.mattermostTeams}
             numberPrefixes={data.numberPrefixes}
             exampleRecordName={data.exampleRecordName}
           />

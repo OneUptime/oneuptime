@@ -18,6 +18,7 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import AppLink from "../AppLink/AppLink";
 import { RUM_USER_FLOW_METRIC_DESCRIPTIONS } from "../MetricDescriptions/RumMetricDescriptions";
 import { buildReplayLinkRoute } from "../SessionReplay/ReplayLinkRoute";
@@ -117,7 +118,13 @@ function Step(props: {
         ) : (
           <></>
         )}
-        <span className="truncate">{step.page}</span>
+        {/* A path reads from the left on any page: "/home", not "home/". */}
+        <span
+          className="truncate"
+          dir={getLineDirection(step.page, translator.language)}
+        >
+          {step.page}
+        </span>
         {step.hadError ? (
           <span
             className="h-1.5 w-1.5 flex-none rounded-full bg-rose-500"

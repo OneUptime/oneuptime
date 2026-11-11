@@ -52,6 +52,13 @@ export enum WorkspaceChannelState {
   Unreachable = "unreachable",
   // The project's connection to the workspace is gone, or no longer works.
   NotConnected = "not-connected",
+  /*
+   * Slack installed for a whole Enterprise organization: OneUptime is no
+   * longer added to the workspace the channel is in (Slack answers
+   * team_access_not_granted). The project's connection still works in the
+   * organization's other workspaces, so it is not NotConnected.
+   */
+  WorkspaceNotAdded = "workspace-not-added",
   // The workspace did not answer (an outage, its rate limit): ask again later.
   Unavailable = "unavailable",
   /*
@@ -125,8 +132,8 @@ export enum WorkspaceChannelAddOutcome {
   // Not a member of the project: OneUptime adds only its members.
   NotProjectMember = "not-project-member",
   /*
-   * Mattermost: an account outside the team the project is connected to, and
-   * only the team's people can be in its channels.
+   * Mattermost: an account outside the team the channel is in, and only the
+   * team's people can be in its channels.
    */
   NotInTeam = "not-in-team",
   /*

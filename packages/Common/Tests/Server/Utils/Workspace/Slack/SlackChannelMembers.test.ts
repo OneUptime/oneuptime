@@ -195,6 +195,36 @@ describe("what each refusal means", () => {
     expect(SlackChannelMembersError.getCode(new Error("x"))).toBeNull();
     expect(SlackChannelMembersError.getCode(null)).toBeNull();
   });
+
+  /*
+   * #6749: an Enterprise organization's installation, removed from the
+   * workspace the call was made in. Still a not-connected answer, told
+   * apart so the channel's card can say which.
+   */
+  test("team_access_not_granted: not connected, and the workspace not added - nothing else is", () => {
+    const error: SlackChannelMembersError = new SlackChannelMembersError(
+      "team_access_not_granted",
+    );
+
+    expect(SlackChannelMembersError.isNotConnected(error)).toBe(true);
+    expect(SlackChannelMembersError.isWorkspaceNotAdded(error)).toBe(true);
+
+    for (const code of [
+      "invalid_auth",
+      "token_revoked",
+      "channel_not_found",
+      "ratelimited",
+      "team_access_not_granted_x",
+    ]) {
+      expect(
+        SlackChannelMembersError.isWorkspaceNotAdded(
+          new SlackChannelMembersError(code),
+        ),
+      ).toBe(false);
+    }
+
+    expect(SlackChannelMembersError.isWorkspaceNotAdded(null)).toBe(false);
+  });
 });
 
 describe("conversations.info", () => {

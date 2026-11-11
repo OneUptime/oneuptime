@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 10314
+    "keys": 50206,
+    "untranslated": 10292
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -121,6 +121,7 @@
     "HA: {{state}}",
     "HAProxy",
     "HH",
+    "HTTP {{status}}",
     "Hardware",
     "Hello world",
     "Hertz",
@@ -372,6 +373,7 @@
     "floating IP",
     "govc",
     "guest",
+    "history {{kind}}",
     "hit",
     "horizontal pod autoscaler",
     "host",
