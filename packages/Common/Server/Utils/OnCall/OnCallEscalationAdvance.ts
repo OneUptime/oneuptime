@@ -12,6 +12,10 @@ import {
   ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
 } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRunEnding";
 import { isOnCallPageLineReached } from "../../../Types/OnCallDutyPolicy/OnCallEmptyLevel";
+import {
+  ON_CALL_TEST_PAGE_WENT_THROUGH_EVERY_LEVEL_MESSAGE,
+  isOnCallTestPage,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallDutyExecutionLogTimelineStatus from "../../../Types/OnCallDutyPolicy/OnCalDutyExecutionLogTimelineStatus";
 import OnCallDutyPolicyStatus from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyStatus";
 import OnCallDutyPolicyEscalationRuleService, {
@@ -422,7 +426,7 @@ export default class OnCallEscalationAdvance {
        */
       if (
         repeatCount &&
-        repeatCount <= getOnCallPolicyRepeatsAllowed(run.onCallDutyPolicy)
+        repeatCount <= this.getRepeatsAllowed(run)
       ) {
         const newRepeatCount: number = repeatCount + 1;
 
@@ -890,13 +894,34 @@ export default class OnCallEscalationAdvance {
     const everybodyPassedItOn: boolean =
       data.passedOnUserIds.length > 0 && this.isEverybodyReachedPassedOn(lines);
 
+    let statusMessage: string = everybodyPassedItOn
+      ? ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE
+      : ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE;
+
+    // A test that walked every level says it in a test's words (OnCallTestPage).
+    if (isOnCallTestPage(data.run) && !everybodyPassedItOn) {
+      statusMessage = ON_CALL_TEST_PAGE_WENT_THROUGH_EVERY_LEVEL_MESSAGE;
+    }
+
     return await this.end({
       run: data.run,
       status: OnCallDutyPolicyStatus.Completed,
-      statusMessage: everybodyPassedItOn
-        ? ON_CALL_POLICY_RUN_EVERYBODY_PASSED_ON_MESSAGE
-        : ON_CALL_POLICY_RUN_WENT_THROUGH_EVERY_RULE_MESSAGE,
+      statusMessage: statusMessage,
     });
+  }
+
+  /*
+   * How many more times a run's policy starts again once it has gone
+   * through every level: what its Repeat Policy says - and none for a test
+   * page (OnCallTestPage), which walks the levels once, so a test that
+   * nobody answers does not page everybody again.
+   */
+  public static getRepeatsAllowed(run: OnCallDutyPolicyExecutionLog): number {
+    if (isOnCallTestPage(run)) {
+      return 0;
+    }
+
+    return getOnCallPolicyRepeatsAllowed(run.onCallDutyPolicy);
   }
 
   /*

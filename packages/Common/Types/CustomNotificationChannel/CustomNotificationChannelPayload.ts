@@ -1,6 +1,7 @@
 import { JSONObject } from "../JSON";
 import UserNotificationEventType from "../UserNotification/UserNotificationEventType";
 import { fitTextsToBudget } from "../../Utils/MessageFit";
+import BadDataException from "../Exception/BadDataException";
 
 /*
  * WHAT A CUSTOM CHANNEL'S SERVICE RECEIVES.
@@ -205,8 +206,19 @@ export const getCustomChannelEventFor: (
         event: CustomChannelEvent.AlertEpisodeCreated,
         recordType: CustomChannelRecordType.AlertEpisode,
       };
+    /*
+     * A test page (Types/OnCallDutyPolicy/OnCallTestPage) is about no
+     * record: it sends a channel the Send test payload instead
+     * (buildCustomChannelTestPayload), which every service already takes.
+     */
+    case UserNotificationEventType.TestPage:
+      throw new BadDataException(CUSTOM_CHANNEL_TEST_PAGE_HAS_NO_RECORD_MESSAGE);
   }
 };
+
+// Why a test page has no page event of its own (getCustomChannelEventFor).
+export const CUSTOM_CHANNEL_TEST_PAGE_HAS_NO_RECORD_MESSAGE: string =
+  "A test page is about no record: a custom channel gets the Send test payload for it.";
 
 const toReferenceJson: (
   reference: CustomChannelReference | undefined,

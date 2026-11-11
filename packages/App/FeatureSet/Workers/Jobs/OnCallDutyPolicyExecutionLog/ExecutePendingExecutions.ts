@@ -12,6 +12,8 @@ import {
 import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import OnCallTestPageRuns from "Common/Server/Utils/OnCall/OnCallTestPageRuns";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import { getOnCallPolicyRunEndedWhileWaitingMessage } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRunWait";
@@ -83,6 +85,8 @@ RunCron(
           isObserverPage: true,
           // A run OneUptime AI holds says how its hold ended.
           aiHoldOutcome: true,
+          // A test page (OnCallTestPage) walks every level, or waits.
+          testPageWalksEscalation: true,
           onCallDutyPolicy: {
             repeatPolicyIfNoOneAcknowledges: true,
             repeatPolicyIfNoOneAcknowledgesNoOfTimes: true,
@@ -150,6 +154,20 @@ const executeOnCallPolicy: ExecuteOnCallPolicyFunction = async (
         props: {
           isRoot: true,
         },
+      });
+
+      return;
+    }
+
+    /*
+     * A test page (OnCallTestPage) has no record to read: it ends once its
+     * answer window is over, and a test that walks a policy's every level
+     * moves on after a test's short wait (OnCallTestPageRuns).
+     */
+    if (isOnCallTestPage(executionLog)) {
+      await OnCallTestPageRuns.tick({
+        run: executionLog,
+        now: OneUptimeDate.getCurrentDate(),
       });
 
       return;

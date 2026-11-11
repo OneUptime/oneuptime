@@ -39,6 +39,27 @@ import { JSONObject } from "../../Types/JSON";
 import logger from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import { ON_CALL_PAGE_SENT_STATUS_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  ON_CALL_TEST_PAGE_RULES_RAN_MESSAGE,
+  ON_CALL_TEST_PAGE_RUN_UNREADABLE_MESSAGE,
+  OnCallTestPageRecordKind,
+  getOnCallTestPageRuleType,
+  isOnCallTestPage,
+  isOnCallTestPageRecordKind,
+  sortRulesAsAPageReachesThem,
+} from "../../Types/OnCallDutyPolicy/OnCallTestPage";
+import Query from "../Types/Database/Query";
+import SortOrder from "../../Types/BaseDatabase/SortOrder";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
+import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
+import OnCallDutyPolicyExecutionLogService from "./OnCallDutyPolicyExecutionLogService";
+import UserOnCallLogTimeline from "../../Models/DatabaseModels/UserOnCallLogTimeline";
+import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
+import IncidentSeverity from "../../Models/DatabaseModels/IncidentSeverity";
+import IncidentSeverityService from "./IncidentSeverityService";
+import AlertSeverity from "../../Models/DatabaseModels/AlertSeverity";
+import AlertSeverityService from "./AlertSeverityService";
 
 /*
  * The status message the zero-rule dead-end wrote before the fallback existed,
@@ -388,6 +409,16 @@ export class Service extends DatabaseService<Model> {
       },
     });
 
+    /*
+     * A test page (OnCallTestPage) has no record to read a severity from:
+     * its run says which kind of page and severity it stands in for, and
+     * every rule of the person's for that runs now (runTestPageRules).
+     */
+    if (isOnCallTestPage(createdItem)) {
+      await this.runTestPageRules(createdItem);
+      return createdItem;
+    }
+
     const notificationRuleType: NotificationRuleType =
       this.getNotificationRuleType(createdItem.userNotificationEventType!);
 
@@ -689,6 +720,270 @@ export class Service extends DatabaseService<Model> {
     return createdItem;
   }
 
+  /*
+   * THE RULES A PAGE RUNS FOR A PERSON: theirs, while they are a member of
+   * the project, of the page's kind (ruleType) and severity, opt-out rows
+   * left out (notOptOutRuleQuery) - the cell a real page counts and runs.
+   * A test page (OnCallTestPage) reads its rules with it, so it runs exactly
+   * the rules a real page of its kind and severity would.
+   */
+  public getPagingRulesQuery(data: {
+    userId: ObjectID;
+    projectId: ObjectID;
+    ruleType: NotificationRuleType;
+    incidentSeverityId?: ObjectID | undefined;
+    alertSeverityId?: ObjectID | undefined;
+  }): Query<UserNotificationRule> {
+    return {
+      userId: ProjectMembership.userIdWhileMember({
+        userId: data.userId,
+        projectId: data.projectId,
+      }),
+      projectId: data.projectId,
+      ruleType: data.ruleType,
+      incidentSeverityId: data.incidentSeverityId,
+      alertSeverityId: data.alertSeverityId,
+      isOptOut: notOptOutRuleQuery(),
+    };
+  }
+
+  /*
+   * A TEST PAGE'S RULES, FOR ONE PERSON (OnCallTestPage).
+   *
+   * The run says which kind of page the test stands in for - an incident or
+   * an alert - and which severity. The person's rules for that cell are the
+   * rules a real page of it runs (getPagingRulesQuery), and they all run
+   * now, in the order a real page would reach them - the immediate ones
+   * first, then "after 5 minutes", then "after 10" - without the waits; a
+   * push does not repeat. A rule that fails says so on the person's
+   * timeline, and the others still run.
+   *
+   * With no rule for the cell, it is the real page's no-rule path
+   * (handleNoMatchingNotificationRule): an opt-out says so, a project that
+   * turned the fallback off gets its error, and otherwise the person's
+   * verified methods are paged - only, being a test, nobody else is told
+   * the page could not be delivered: the test's result says it.
+   */
+  private async runTestPageRules(createdItem: Model): Promise<void> {
+    const run: OnCallDutyPolicyExecutionLog | null =
+      createdItem.onCallDutyPolicyExecutionLogId
+        ? await OnCallDutyPolicyExecutionLogService.findOneById({
+            id: createdItem.onCallDutyPolicyExecutionLogId,
+            select: {
+              _id: true,
+              testPageRecordKind: true,
+              testPageSeverityId: true,
+            },
+            props: {
+              isRoot: true,
+            },
+          })
+        : null;
+
+    if (
+      !run ||
+      !isOnCallTestPageRecordKind(run.testPageRecordKind) ||
+      !run.testPageSeverityId
+    ) {
+      await this.writeNoRuleOutcome({
+        createdItem: createdItem,
+        status: UserNotificationExecutionStatus.Error,
+        timelineStatus: OnCallDutyExecutionLogTimelineStatus.Error,
+        statusMessage: ON_CALL_TEST_PAGE_RUN_UNREADABLE_MESSAGE,
+      });
+
+      return;
+    }
+
+    const recordKind: OnCallTestPageRecordKind = run.testPageRecordKind;
+    const severityId: ObjectID = run.testPageSeverityId;
+    const notificationRuleType: NotificationRuleType =
+      getOnCallTestPageRuleType(recordKind);
+
+    const incidentSeverityId: ObjectID | undefined =
+      recordKind === OnCallTestPageRecordKind.Incident ? severityId : undefined;
+    const alertSeverityId: ObjectID | undefined =
+      recordKind === OnCallTestPageRecordKind.Alert ? severityId : undefined;
+
+    const rules: Array<UserNotificationRule> =
+      await UserNotificationRuleService.findBy({
+        query: this.getPagingRulesQuery({
+          userId: createdItem.userId!,
+          projectId: createdItem.projectId!,
+          ruleType: notificationRuleType,
+          incidentSeverityId: incidentSeverityId,
+          alertSeverityId: alertSeverityId,
+        }),
+        select: {
+          _id: true,
+          notifyAfterMinutes: true,
+        },
+        sort: {
+          notifyAfterMinutes: SortOrder.Ascending,
+          createdAt: SortOrder.Ascending,
+        },
+        skip: 0,
+        limit: LIMIT_PER_PROJECT,
+        props: {
+          isRoot: true,
+        },
+      });
+
+    if (rules.length === 0) {
+      if (await this.isNotAProjectMember(createdItem)) {
+        await this.writeNoRuleOutcome({
+          createdItem: createdItem,
+          status: UserNotificationExecutionStatus.Completed,
+          timelineStatus: OnCallDutyExecutionLogTimelineStatus.Skipped,
+          statusMessage: NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+        });
+
+        return;
+      }
+
+      await this.handleNoMatchingNotificationRule({
+        createdItem: createdItem,
+        notificationRuleType: notificationRuleType,
+        incidentSeverityId: incidentSeverityId,
+        alertSeverityId: alertSeverityId,
+        severityName: await this.getTestPageSeverityName({
+          recordKind: recordKind,
+          severityId: severityId,
+        }),
+      });
+
+      return;
+    }
+
+    for (const rule of sortRulesAsAPageReachesThem(rules)) {
+      try {
+        await UserNotificationRuleService.executeNotificationRuleItem(
+          rule.id!,
+          {
+            userNotificationLogId: createdItem.id!,
+            projectId: createdItem.projectId!,
+            userNotificationEventType: UserNotificationEventType.TestPage,
+            onCallPolicyExecutionLogId:
+              createdItem.onCallDutyPolicyExecutionLogId,
+            onCallPolicyId: createdItem.onCallDutyPolicyId,
+            onCallPolicyEscalationRuleId:
+              createdItem.onCallDutyPolicyEscalationRuleId,
+            userBelongsToTeamId: createdItem.userBelongsToTeamId,
+            onCallDutyPolicyExecutionLogTimelineId:
+              createdItem.onCallDutyPolicyExecutionLogTimelineId,
+            onCallScheduleId: createdItem.onCallDutyScheduleId,
+          },
+        );
+      } catch (err) {
+        logger.error(
+          `Test page: could not run notification rule ${rule.id?.toString()} for UserOnCallLog ${createdItem.id?.toString()}: ${err}`,
+        );
+
+        await this.recordTestPageRuleError({
+          createdItem: createdItem,
+          ruleId: rule.id!,
+          error: err as Error,
+        });
+      }
+    }
+
+    /*
+     * Every rule ran: the log is complete, and its step says the page went
+     * out (onUpdateSuccess) - unless somebody acknowledged the test while
+     * its rules ran, whose words stay as they are.
+     */
+    await this.updateOneBy({
+      query: {
+        _id: createdItem.id!.toString(),
+        acknowledgedAt: QueryHelper.isNull(),
+      },
+      data: {
+        status: UserNotificationExecutionStatus.Completed,
+        statusMessage: ON_CALL_TEST_PAGE_RULES_RAN_MESSAGE,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  // A rule of a test page that could not run, on the person's timeline.
+  private async recordTestPageRuleError(data: {
+    createdItem: Model;
+    ruleId: ObjectID;
+    error: Error;
+  }): Promise<void> {
+    try {
+      const row: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+      row.projectId = data.createdItem.projectId!;
+      row.userNotificationLogId = data.createdItem.id!;
+      row.userId = data.createdItem.userId!;
+      row.userNotificationEventType = UserNotificationEventType.TestPage;
+      row.userNotificationRuleId = data.ruleId;
+      row.status = UserNotificationStatus.Error;
+      row.statusMessage = (
+        data.error?.message || "This notification rule could not run."
+      ).substring(0, ColumnLength.LongText);
+
+      if (data.createdItem.onCallDutyPolicyExecutionLogId) {
+        row.onCallDutyPolicyExecutionLogId =
+          data.createdItem.onCallDutyPolicyExecutionLogId;
+      }
+
+      if (data.createdItem.onCallDutyPolicyExecutionLogTimelineId) {
+        row.onCallDutyPolicyExecutionLogTimelineId =
+          data.createdItem.onCallDutyPolicyExecutionLogTimelineId;
+      }
+
+      if (data.createdItem.onCallDutyPolicyId) {
+        row.onCallDutyPolicyId = data.createdItem.onCallDutyPolicyId;
+      }
+
+      await UserOnCallLogTimelineService.create({
+        data: row,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (err) {
+      logger.error(err);
+    }
+  }
+
+  // The name of the severity a test page stands in for, for its messages.
+  private async getTestPageSeverityName(data: {
+    recordKind: OnCallTestPageRecordKind;
+    severityId: ObjectID;
+  }): Promise<string> {
+    try {
+      const severity: IncidentSeverity | AlertSeverity | null =
+        data.recordKind === OnCallTestPageRecordKind.Alert
+          ? await AlertSeverityService.findOneById({
+              id: data.severityId,
+              select: {
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            })
+          : await IncidentSeverityService.findOneById({
+              id: data.severityId,
+              select: {
+                name: true,
+              },
+              props: {
+                isRoot: true,
+              },
+            });
+
+      return severity?.name?.toString() || "this severity";
+    } catch (err) {
+      logger.error(err);
+      return "this severity";
+    }
+  }
+
   /**
    * Nothing matched (ruleType x severity) for this responder.
    *
@@ -979,6 +1274,15 @@ export class Service extends DatabaseService<Model> {
     severityName: string;
     fallbackChannelsUsed: Array<string>;
   }): void {
+    /*
+     * A test page (OnCallTestPage) tells nobody else: its result says what
+     * could not be delivered, and why, to whoever sent it - owners are not
+     * emailed about a page that was only a test.
+     */
+    if (isOnCallTestPage(data.createdItem)) {
+      return;
+    }
+
     OnCallNotificationAlertingService.notifyOfUndeliverablePage({
       projectId: data.createdItem.projectId!,
       userId: data.createdItem.userId!,

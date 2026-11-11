@@ -34,6 +34,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { isOnCallPageAgainRun } from "Common/Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallPersonPage } from "Common/Types/OnCallDutyPolicy/OnCallPersonPage";
 import { isOnCallObserverPage } from "Common/Types/OnCallDutyPolicy/OnCallObserverPage";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordKind,
 } from "Common/Server/Utils/OnCall/OnCallAcknowledgementTimeout";
@@ -172,6 +173,27 @@ const executePendingNotificationLog: ExecutePendingNotificationLogFunction =
           data: {
             status: UserNotificationExecutionStatus.Completed,
             statusMessage: NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+
+        return;
+      }
+
+      /*
+       * A test page (OnCallTestPage) runs every one of a person's rules at
+       * once, as its log is written, and none of them repeats: there is
+       * nothing left to send, and no record to read. A test log still
+       * paging - its verified methods were paged for a severity with no
+       * rule - is complete.
+       */
+      if (isOnCallTestPage(pendingNotificationLog)) {
+        await UserOnCallLogService.updateOneById({
+          id: pendingNotificationLog.id!,
+          data: {
+            status: UserNotificationExecutionStatus.Completed,
           },
           props: {
             isRoot: true,
