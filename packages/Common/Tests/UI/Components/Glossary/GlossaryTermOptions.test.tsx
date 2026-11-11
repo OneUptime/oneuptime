@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import React from "react";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { DOCS_URL } from "../../../../UI/Config";
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
 import Card from "../../../../UI/Components/Card/Card";
@@ -89,7 +90,7 @@ describe("a form field's glossaryTerm", () => {
   });
 
   test("pressing the word does not move into the field or tick its box", () => {
-    const onChange: jest.Mock = jest.fn();
+    const onChange: Mock = jest.fn();
 
     render(
       <>
