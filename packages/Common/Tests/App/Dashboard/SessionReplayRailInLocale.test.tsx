@@ -1160,14 +1160,15 @@ function emptyDetails(): Array<string> {
     });
   }
 
+  // Locked without naming the permission it lacks.
+  const lockedUnnamed: ReplayBackendSignalsSlot = slot("locked");
+
+  delete lockedUnnamed.lockedPermission;
+
   for (const tabId of TELEMETRY_TABS) {
     add({ ...base, tabId: tabId, slot: slot("loading") });
     add({ ...base, tabId: tabId, slot: slot("locked") });
-    add({
-      ...base,
-      tabId: tabId,
-      slot: { ...slot("locked"), lockedPermission: undefined },
-    });
+    add({ ...base, tabId: tabId, slot: lockedUnnamed });
     add({ ...base, tabId: tabId, slot: slot("error") });
   }
 
