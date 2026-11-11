@@ -378,7 +378,10 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
       }
     >
       <div className={EVENT_HEADER_TOP_SECTION_CLASS_NAME}>
-        <div className={topRow.row} data-testid={EXCEPTION_SUMMARY_TEST_IDS.top}>
+        <div
+          className={topRow.row}
+          data-testid={EXCEPTION_SUMMARY_TEST_IDS.top}
+        >
           <div
             className={topRow.chips}
             data-testid={EXCEPTION_SUMMARY_TEST_IDS.pills}

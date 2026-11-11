@@ -26,7 +26,6 @@ import PageMap from "../../Utils/PageMap";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
 import Card from "Common/UI/Components/Card/Card";
-import CardGrid from "Common/UI/Components/Card/CardGrid";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import Icon from "Common/UI/Components/Icon/Icon";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -40,7 +39,7 @@ import URL from "Common/Types/API/URL";
 import { APP_API_URL } from "Common/UI/Config";
 import { parseFramesJson } from "../../Utils/SourceMapFrames";
 import ReplayCard from "../SessionReplay/ReplayCard";
-import ExceptionDetail from "./ExceptionDetail";
+import ExceptionCrashPoint from "./ExceptionCrashPoint";
 import StackFrameViewer from "./StackFrameViewer";
 import BreadcrumbTimeline, { BreadcrumbEvent } from "./BreadcrumbTimeline";
 import ExceptionOccurrences from "./ExceptionOccurrences";
@@ -333,6 +332,8 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
                 : {}),
               release: true,
               environment: true,
+              // How it was grouped, on the latest occurrence card.
+              fingerprint: true,
               traceId: true,
               spanId: true,
               spanName: true,
@@ -737,35 +738,48 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
               telemetryException.aiExplanationGeneratedAt
             }
           />
+          {/*
+           * Where in the code it was raised: the crash point and the
+           * frames that called it, the full trace one click away.
+           */}
+          <ExceptionCrashPoint
+            stackTrace={telemetryException.stackTrace}
+            {...(latestInstance?.parsedFrames
+              ? { parsedFrames: latestInstance.parsedFrames }
+              : {})}
+            {...(resolvedFrames ? { resolvedFrames: resolvedFrames } : {})}
+            isLoading={isOccurrenceLoading}
+            stackTraceRoute={getExceptionRoute(
+              PageMap.EXCEPTIONS_VIEW_STACK_TRACE,
+            )}
+          />
           <ExceptionOccurrenceTrend
             fingerprint={telemetryException.fingerprint}
             mergedFingerprints={mergedFingerprints}
             primaryEntityId={telemetryException.primaryEntityId}
           />
           {/*
-           * The exception and its latest occurrence side by side where the
-           * page has the room, the shorter card as tall as the other
-           * (CardGrid).
+           * The latest occurrence as wide as the page. What the exception
+           * is, where it runs and when it was first and last seen are in
+           * the header above every page of it.
            */}
-          <CardGrid columns={2} dataTestId="exception-overview-cards">
-            <ExceptionDetail {...telemetryException} services={services} />
-            <ExceptionLatestOccurrence
-              instance={latestInstance}
-              isLoading={isOccurrenceLoading}
-              links={[
-                {
-                  title: "View stack trace",
-                  to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_STACK_TRACE),
-                  icon: IconProp.Code,
-                },
-                {
-                  title: "All occurrences",
-                  to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_OCCURRENCES),
-                  icon: IconProp.List,
-                },
-              ]}
-            />
-          </CardGrid>
+          <ExceptionLatestOccurrence
+            instance={latestInstance}
+            isLoading={isOccurrenceLoading}
+            columns={3}
+            links={[
+              {
+                title: "All occurrences",
+                to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_OCCURRENCES),
+                icon: IconProp.List,
+              },
+              {
+                title: "View context",
+                to: getExceptionRoute(PageMap.EXCEPTIONS_VIEW_CONTEXT),
+                icon: IconProp.Activity,
+              },
+            ]}
+          />
           {/*
            * Other exception groups that look like this one, and whether
            * OneUptime AI thinks they are the same bug; shown only when

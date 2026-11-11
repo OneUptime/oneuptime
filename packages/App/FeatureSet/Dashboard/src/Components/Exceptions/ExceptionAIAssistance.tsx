@@ -846,10 +846,9 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
 
       {pendingStart && (
         <ConfirmModal
-          title={translator.translateText(pendingStart.presentation.title)}
-          description={translator.translateText(
-            pendingStart.presentation.description,
-          )}
+          // English keys: the modal looks them up.
+          title={pendingStart.presentation.title}
+          description={pendingStart.presentation.description}
           submitButtonText={pendingStart.label}
           onSubmit={() => {
             const taskType: ExceptionAITaskType = pendingStart.taskType;

@@ -132,7 +132,9 @@ const ExceptionTriageActions: FunctionComponent<ComponentProps> = (
           >
             <Icon
               icon={
-                isBusy ? IconProp.Spinner : EXCEPTION_TRIAGE_ACTION_ICONS[action.id]
+                isBusy
+                  ? IconProp.Spinner
+                  : EXCEPTION_TRIAGE_ACTION_ICONS[action.id]
               }
               className={`h-4 w-4 shrink-0${isBusy ? " animate-spin" : ""}`}
             />

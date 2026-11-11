@@ -148,7 +148,9 @@ const ExceptionAssignee: FunctionComponent<ComponentProps> = (
     value: value,
   });
   const pick: AssigneePick | null = getExceptionAssigneePick(props.exception);
-  const pickKey: string = pick ? getPeoplePickerOptionKey(pick.kind, pick.id) : "";
+  const pickKey: string = pick
+    ? getPeoplePickerOptionKey(pick.kind, pick.id)
+    : "";
 
   // What the list marks as picked: the one it holds now.
   const selectedKeys: Set<string> = useMemo((): Set<string> => {
