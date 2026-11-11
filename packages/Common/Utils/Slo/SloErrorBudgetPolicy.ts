@@ -1,9 +1,11 @@
 import { JSONObject, JSONValue } from "../../Types/JSON";
 import SloErrorBudgetPolicyChange from "../../Types/ServiceLevelObjective/SloErrorBudgetPolicyChange";
+import { Translator } from "../../Types/Translator";
 import {
   SLO_AT_RISK_RECOVERY_MARGIN_PERCENTAGE,
   SLO_BUDGET_EXHAUSTED_RECOVERY_PERCENTAGE,
 } from "./SloEvaluation";
+import { formatSloPercent } from "./SloWidgetFormat";
 
 /*
  * AN SLO'S ERROR BUDGET POLICY.
@@ -266,20 +268,30 @@ export const isMoreSevereSloPolicyTier: IsMoreSevereSloPolicyTierFunction = (
 
 export type FormatSloPolicyTierThresholdFunction = (
   thresholdPercentage: number | string | undefined | null,
+  translator?: Translator | undefined,
 ) => string;
 
 /*
  * "25%", the way every surface writes a tier's threshold: two decimals at
  * most, and none on a whole number. A threshold that is not a valid one
- * reads as an empty string.
+ * reads as an empty string. A page passes the reader's Translator for the
+ * figure in their language ("25 %" in German, "۲۵٪" in Persian); the
+ * worker, the server and the API's texts pass none and read as before.
  */
 export const formatSloPolicyTierThreshold: FormatSloPolicyTierThresholdFunction =
-  (thresholdPercentage: number | string | undefined | null): string => {
+  (
+    thresholdPercentage: number | string | undefined | null,
+    translator?: Translator | undefined,
+  ): string => {
     const threshold: number | null =
       readSloPolicyTierThreshold(thresholdPercentage);
 
     if (threshold === null) {
       return "";
+    }
+
+    if (translator) {
+      return formatSloPercent(threshold, 2, translator) || "";
     }
 
     return `${String(Math.round(threshold * 100) / 100)}%`;

@@ -51,6 +51,7 @@ import React, {
 } from "react";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
   getNamesOrNothingPicked,
@@ -427,15 +428,16 @@ const SloBurnRateRules: FunctionComponent<
             getElement: (
               item: ServiceLevelObjectiveBurnRateRule,
             ): ReactElement => {
-              const threshold: number | undefined | null =
-                item.burnRateThreshold;
+              // "14,4×" in German, as the rule's card on the Overview writes it.
+              const threshold: string | null = formatSloBurnRate(
+                item.burnRateThreshold,
+                translator,
+              );
 
-              if (threshold === undefined || threshold === null) {
+              if (threshold === null) {
                 return <span className="text-sm text-gray-400">—</span>;
               }
-              return (
-                <span className="text-sm text-gray-900">{threshold}×</span>
-              );
+              return <span className="text-sm text-gray-900">{threshold}</span>;
             },
           },
           {

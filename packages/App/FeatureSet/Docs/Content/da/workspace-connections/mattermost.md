@@ -70,6 +70,7 @@ OneUptime virker i hvert team på din Mattermost-server, som botten er medlem af
 2. Kortet **Mattermost-teams** under **Projektindstillinger** > **Arbejdsområde** > **Mattermost** viser disse teams, standardteamet først. Klik på **Opdater**, når du har føjet botten til et nyt team.
 
 - **Hvilket team en regel bruger.** Notifikationsregler vælger det **Mattermost-team**, deres kanaler ligger i. Står feltet tomt, opretter reglen sin kanal i standardteamet og leder først dér efter de kanaler, den nævner, og derefter i bottens andre teams.
+- **Hvilket team en opsummering bruger.** Opsummeringer, på fanen **Oversigt** i **Hændelser** og **Advarsler**, vælger også det **Mattermost-team**, deres kanaler ligger i. Står feltet tomt, leder en opsummering først efter sine kanaler i standardteamet og derefter i bottens andre teams.
 - **Standardteamet.** Det er det team, du forbandt projektet med. **Gør til standard** på kortet gør et andet team til standard, for en rolle, der må forbinde projektet.
 - **Hvor OneUptime virker.** Knapperne i OneUptimes beskeder og de formularer, de åbner, virker i hvert af disse teams. I et team, botten er fjernet fra, siger en knap kun, at teamet ikke længere er forbundet.
 - **Et standardteam, botten er fjernet fra.** Kortet siger det. Tilføj botten igen i Mattermost, eller gør et andet team til standard.

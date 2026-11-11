@@ -21,7 +21,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import ChartReferenceLineProps from "../../Types/ReferenceLineProps";
+import ChartReferenceLineProps, {
+  DEFAULT_REFERENCE_LINE_DASH,
+} from "../../Types/ReferenceLineProps";
 import {
   ReferenceLineShade,
   getReferenceLineShade,
@@ -693,6 +695,12 @@ interface LineChartProps extends React.HTMLAttributes<HTMLDivElement> {
    * faded, no dots, not click-selectable — context, not data.
    */
   ghostCategories?: Array<string> | undefined;
+  /**
+   * A legend is drawn right under the chart (Line's reference line legend):
+   * the chart keeps no blank band under its time axis's labels, so the
+   * legend sits about as close to them as they sit to the plot.
+   */
+  isFollowedByLegend?: boolean | undefined;
 }
 
 const LineChart: React.ForwardRefExoticComponent<
@@ -738,6 +746,7 @@ const LineChart: React.ForwardRefExoticComponent<
       onTimeRangeReset,
       onBucketClick,
       ghostCategories,
+      isFollowedByLegend = false,
       ...other
     } = props;
     const CustomTooltip: React.ComponentType<TooltipProps> | undefined =
@@ -981,11 +990,17 @@ const LineChart: React.ForwardRefExoticComponent<
                  * need ~20px of bottom space, plus another ~20px for the
                  * optional axis label. 8px (the no-axis case) is only
                  * valid when the axis is hidden entirely.
+                 *
+                 * None under the axis when a legend follows the chart
+                 * (isFollowedByLegend): the axis's own 30px band holds its
+                 * labels, and the legend's top margin sets it apart.
                  */
                 bottom: (xAxisLabel
                   ? 40
                   : showXAxis
-                    ? 24
+                    ? isFollowedByLegend
+                      ? 0
+                      : 24
                     : 8) as unknown as number,
                 left: (yAxisLabel ? 20 : 0) as unknown as number,
                 right: (yAxisLabel ? 5 : 8) as unknown as number,
@@ -1344,7 +1359,9 @@ const LineChart: React.ForwardRefExoticComponent<
                       <ReferenceLine
                         y={refLine.value}
                         stroke={refLine.color}
-                        strokeDasharray={refLine.strokeDasharray || "4 4"}
+                        strokeDasharray={
+                          refLine.strokeDasharray || DEFAULT_REFERENCE_LINE_DASH
+                        }
                         strokeWidth={1.5}
                         {...(refLine.extendsDomain
                           ? { ifOverflow: "extendDomain" as const }

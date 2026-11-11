@@ -334,7 +334,7 @@ const SloOverviewHero: FunctionComponent<ComponentProps> = (
             {translator.translateText("Target")}
           </dt>
           <dd className="mt-1 text-base font-semibold tabular-nums text-gray-900">
-            {formatSloPercent(slo.targetPercentage) ||
+            {formatSloPercent(slo.targetPercentage, undefined, translator) ||
               translator.translateText("Not set")}
           </dd>
         </div>

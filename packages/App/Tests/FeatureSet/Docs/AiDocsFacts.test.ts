@@ -984,12 +984,22 @@ describe("Code", () => {
       "Components/AI/TelemetryImprovementCard.tsx",
     );
 
-    for (const name of [
-      "Fix with AI",
-      "Generate Regression Test",
-      "Improve Error Handling",
+    /*
+     * An exception's Fix with AI page: its one task, and Start on each of
+     * the others folded under Other AI tasks.
+     */
+    expect(exceptionTasks).toContain(
+      'startActionName: translationKey("Fix with AI"),',
+    );
+    expect(exceptionTasks).toContain(
+      'startActionName: translationKey("Start"),',
+    );
+    for (const title of [
+      "Write a regression test",
+      "Fix the code",
+      "Handle the error better",
     ]) {
-      expect(exceptionTasks).toContain(`startActionName: "${name}"`);
+      expect(exceptionTasks).toContain(`title: "${title}",`);
     }
 
     expect(remediationStep).toContain(
@@ -1007,18 +1017,18 @@ describe("Code", () => {
       starts.map((row: Array<string>): string => {
         return row[1] as string;
       }),
-    ).toEqual(
-      [
-        "Fix with AI",
-        "Generate Regression Test",
-        "Improve Error Handling",
+    ).toEqual([
+      bold("Fix with AI"),
+      `${bold("Start")} on ${bold("Write a regression test")}`,
+      `${bold("Start")} on ${bold("Fix the code")} or ${bold("Handle the error better")}`,
+      ...[
         "Open fix pull request",
         "Fix performance with AI",
         "Improve Logging",
         "Improve Tracing",
         "Fix with AI",
       ].map(bold),
-    );
+    ]);
   });
 
   it("offers a function's Fix with AI only on own code that takes a real share, or grew, as the shared rule decides", () => {
@@ -1075,7 +1085,7 @@ describe("Code", () => {
       "Common/Utils/Suggestions/TelemetryImprovementSuggestion.ts",
     );
 
-    // AI off: the exception menu leaves AI Assistance out, and its page says so.
+    // AI off: the exception menu leaves Fix with AI out, and its page says so.
     expect(menu).toContain("const isAiOffered: boolean = useAiOffered();");
     expect(menu).toContain(
       '{isAiOffered ? ( <SideMenuSection title="Resolve">',
@@ -1105,26 +1115,26 @@ describe("Code", () => {
     ).toContain("CodeFixStartGate.check(");
 
     expect(section).toContain(
-      `These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no ${bold("AI Assistance")}. ${bold("Improve Logging")} and ${bold("Improve Tracing")} show once a repository is connected and nothing stops AI working in it (such as the plan, used-up AI credits or no Runner online), and ${bold("Fix performance with AI")} only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)).`,
+      `These buttons show only where they can start a task. With AI switched off for the project, none of them is shown and an exception's side menu has no ${bold("Fix with AI")}. ${bold("Improve Logging")} and ${bold("Improve Tracing")} show once a repository is connected and nothing stops AI working in it (such as the plan, used-up AI credits or no Runner online), and ${bold("Fix performance with AI")} only on a trace worth fixing (see [Traces Explorer](/docs/telemetry/traces-explorer)).`,
     );
     expect(rowStartingWith(starts, "A trace worth fixing")?.[2]).toBe(
       "Fixes the slow pattern the button names, such as an N+1 query or calls that could run in parallel.",
     );
   });
 
-  it("opens an exception's AI Assistance from its side menu, under Resolve", () => {
+  it("opens an exception's Fix with AI page from its side menu, under Resolve", () => {
     const menu: string = flat(
       dashboardSource("Pages/Exceptions/View/SideMenu.tsx"),
     );
 
     expect(menu).toContain('<SideMenuSection title="Resolve">');
-    expect(menu.indexOf('title: "AI Assistance"')).toBeGreaterThan(
+    expect(menu.indexOf('title: "Fix with AI"')).toBeGreaterThan(
       menu.indexOf('<SideMenuSection title="Resolve">'),
     );
     expect(
       flat(englishSection(CODE_PAGE, "## Where fix tasks start")),
     ).toContain(
-      `open the exception under ${bold("Products → Observability → Exceptions")} and choose ${bold("AI Assistance")} in its side menu`,
+      `open the exception under ${bold("Products → Observability → Exceptions")} and choose ${bold("Fix with AI")} in its side menu`,
     );
   });
 

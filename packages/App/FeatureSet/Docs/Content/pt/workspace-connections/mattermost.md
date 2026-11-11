@@ -70,6 +70,7 @@ O OneUptime funciona em cada equipe do seu servidor do Mattermost da qual o bot 
 2. O cartão **Equipes do Mattermost** em **Configurações do projeto** > **Espaço de trabalho** > **Mattermost** lista essas equipes, a padrão primeiro. Clique em **Atualizar** depois de adicionar o bot a outra equipe.
 
 - **Qual equipe uma regra usa.** As regras de notificação escolhem a **Equipe do Mattermost** dos seus canais. Se ficar em branco, a regra cria o canal dela na equipe padrão e procura os canais que nomeia primeiro ali, depois nas outras equipes do bot.
+- **Qual equipe um resumo usa.** Os resumos, na aba **Resumo** de **Incidentes** e **Alertas**, também escolhem a **Equipe do Mattermost** dos seus canais. Se ficar em branco, um resumo procura os seus canais primeiro na equipe padrão, depois nas outras equipes do bot.
 - **A equipe padrão.** É a equipe à qual você conectou o projeto. **Tornar padrão** no cartão torna outra equipe a padrão, para uma função que possa conectar o projeto.
 - **Onde o OneUptime funciona.** Os botões das mensagens do OneUptime, e os formulários que eles abrem, funcionam em cada uma dessas equipes. Em uma equipe da qual o bot foi removido, um botão apenas informa que a equipe não está mais conectada.
 - **Uma equipe padrão da qual o bot foi removido.** O cartão avisa. Adicione o bot de novo no Mattermost, ou torne outra equipe a padrão.

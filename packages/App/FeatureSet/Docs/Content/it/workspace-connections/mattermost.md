@@ -70,6 +70,7 @@ OneUptime funziona in ogni team del tuo server Mattermost di cui il suo bot è m
 2. La scheda **Team Mattermost** in **Impostazioni del progetto** > **Area di lavoro** > **Mattermost** elenca questi team, prima quello predefinito. Fai clic su **Aggiorna** dopo aver aggiunto il bot a un altro team.
 
 - **Quale team usa una regola.** Le regole di notifica scelgono il **Team Mattermost** dei loro canali. Se resta vuoto, la regola crea il suo canale nel team predefinito, e cerca i canali che nomina prima lì, poi negli altri team del bot.
+- **Quale team usa un riepilogo.** Anche i riepiloghi, nella scheda **Riepilogo** di **Incidenti** e **Avvisi**, scelgono il **Team Mattermost** dei loro canali. Se resta vuoto, un riepilogo cerca i suoi canali prima nel team predefinito, poi negli altri team del bot.
 - **Il team predefinito.** È il team a cui hai collegato il progetto. **Imposta come predefinito** sulla scheda rende predefinito un altro team, per un ruolo che può collegare il progetto.
 - **Dove funziona OneUptime.** I pulsanti dei messaggi di OneUptime, e i moduli che aprono, funzionano in ciascuno di questi team. In un team da cui il bot è stato rimosso, un pulsante dice solo che il team non è più collegato.
 - **Un team predefinito da cui il bot è stato rimosso.** La scheda lo segnala. Aggiungi di nuovo il bot in Mattermost, oppure imposta un altro team come predefinito.

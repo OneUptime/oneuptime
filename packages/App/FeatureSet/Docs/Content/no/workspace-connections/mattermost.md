@@ -70,6 +70,7 @@ OneUptime fungerer i hvert team på Mattermost-serveren din som boten er medlem 
 2. Kortet **Mattermost-team** under **Prosjektinnstillinger** > **Arbeidsområde** > **Mattermost** viser disse teamene, standardteamet først. Klikk på **Oppdater** etter at du har lagt til boten i et nytt team.
 
 - **Hvilket team en regel bruker.** Varslingsregler velger **Mattermost-team** for kanalene sine. Står feltet tomt, oppretter regelen kanalen sin i standardteamet, og leter først der etter kanalene den nevner, deretter i botens andre team.
+- **Hvilket team et sammendrag bruker.** Sammendrag, på fanen **Sammendrag** i **Hendelser** og **Varsler**, velger også **Mattermost-team** for kanalene sine. Står feltet tomt, leter et sammendrag først etter kanalene sine i standardteamet, deretter i botens andre team.
 - **Standardteamet.** Det er teamet du koblet prosjektet til. **Gjør til standard** på kortet gjør et annet team til standard, for en rolle som kan koble til prosjektet.
 - **Hvor OneUptime fungerer.** Knappene i meldingene fra OneUptime, og skjemaene de åpner, fungerer i hvert av disse teamene. I et team boten er fjernet fra, sier en knapp bare at teamet ikke lenger er koblet til.
 - **Et standardteam boten er fjernet fra.** Kortet sier fra om det. Legg til boten igjen i Mattermost, eller gjør et annet team til standard.

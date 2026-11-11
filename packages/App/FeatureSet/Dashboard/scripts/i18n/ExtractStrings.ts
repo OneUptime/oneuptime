@@ -374,6 +374,21 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * A dashboard's SLO widgets: the single SLO's metric labels, "Not
+   * evaluated yet", the line under its error budget ("43 min remaining")
+   * and under its SLI ("target 99.9%"), and the SLO list's Not Evaluated
+   * and Disabled. Only the words each file marks are read: the metric names
+   * the worker writes and the API's values stay as written.
+   */
+  {
+    directory: "packages/Common/Utils/Slo/SloWidgetFormat.ts",
+    kind: "keys",
+  },
+  {
+    directory: "packages/Common/Utils/Slo/SloListWidgetFormat.ts",
+    kind: "keys",
+  },
+  /*
    * A serverless function's status - Receiving data, No recent
    * invocations, Waiting for data - and a service's - Receiving data, No
    * recent data, Waiting for data - and what each means: the Serverless
