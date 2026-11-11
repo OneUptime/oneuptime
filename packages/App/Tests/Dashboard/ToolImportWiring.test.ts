@@ -14,6 +14,7 @@ jest.mock("Common/UI/Utils/ModelAPI/ModelAPI", () => {
 
 import {
   buildPageSearchCommandDescriptors,
+  getPageSearchCommandRanking,
   getPageSearchIndexEntries,
   PageSearchCommandDescriptor,
   PageSearchIndexEntry,
@@ -23,6 +24,7 @@ import {
   PageSearchArea,
   PageSearchPage,
   PageSearchSection,
+  TOOL_IMPORT_SEARCH_LEAVES_OUT,
 } from "../../FeatureSet/Dashboard/src/Components/CommandPalette/PageSearchIndex";
 import { TOOL_IMPORT_ROUTES } from "../../FeatureSet/Dashboard/src/Components/ToolImport/ToolImportApi";
 import {
@@ -114,6 +116,8 @@ function searchPagesIn(translate: TranslateFunction): Array<PaletteCommand> {
       breadcrumb: descriptor.breadcrumb,
       breadcrumbKeywords: descriptor.breadcrumbKeywords,
       category: "Pages",
+      // Ranked as the palette ranks it (DashboardCommandPalette).
+      ...getPageSearchCommandRanking(descriptor),
       onSelect: (): void => {},
     };
   });
@@ -297,13 +301,24 @@ describe("the page is reachable", () => {
       "anderem tool",
       "import from another tool",
       "migration",
-      "opsgenie",
-      "pagerduty",
-      "uptime kuma",
     ]) {
       expect({ query, first: firstFound(query, GERMAN_SEARCH_PAGES) }).toEqual({
         query,
         first: "Import aus anderem Tool — Projekteinstellungen › Erweitert",
+      });
+    }
+
+    // A tool's name finds the import from that tool, in German too (#6809).
+    for (const [query, tool] of [
+      ["opsgenie", "Opsgenie"],
+      ["pagerduty", "PagerDuty"],
+      ["uptime kuma", "Uptime Kuma"],
+      ["import from pagerduty", "PagerDuty"],
+      ["import aus pagerduty", "PagerDuty"],
+    ]) {
+      expect({ query, first: firstFound(query, GERMAN_SEARCH_PAGES) }).toEqual({
+        query,
+        first: `Import aus ${tool} — Projekteinstellungen › Erweitert › Import aus anderem Tool`,
       });
     }
   });
@@ -373,23 +388,142 @@ describe("the page is reachable", () => {
     }
   });
 
-  test("Cmd+K opens it first for the words someone moving over types, and for each tool's name", () => {
-    for (const query of [
-      "import",
-      "migrate",
-      "migration",
-      "move to oneuptime",
-      ...AllToolImportSources.filter((source: ToolImportSource): boolean => {
-        return !NAMES_SEARCH_LEAVES_OUT.has(source);
-      }).map((source: ToolImportSource): string => {
-        return getToolImportSourceDefinition(source).title;
-      }),
-    ]) {
+  test("Cmd+K opens it first for the words someone moving over types", () => {
+    for (const query of ["import", "migrate", "migration", "move to oneuptime"]) {
       expect({ query, first: firstFound(query) }).toEqual({
         query,
         first: `${PAGE_TITLE} — Project Settings › Advanced`,
       });
     }
+  });
+
+  /*
+   * "Search finds it by the tool's name" (#6809): typing the tool a team is
+   * leaving offers "Import from PagerDuty" first, on the importer's page,
+   * and the page itself right after it.
+   */
+  test("Cmd+K offers 'Import from <tool>' first for each tool's name", () => {
+    for (const source of AllToolImportSources.filter(
+      (candidate: ToolImportSource): boolean => {
+        return !NAMES_SEARCH_LEAVES_OUT.has(candidate);
+      },
+    )) {
+      const title: string = getToolImportSourceDefinition(source).title;
+
+      for (const query of [title, title.toLowerCase(), `import from ${title}`]) {
+        expect({ query, first: firstFound(query) }).toEqual({
+          query,
+          first: `Import from ${title} — Project Settings › Advanced › ${PAGE_TITLE}`,
+        });
+      }
+    }
+  });
+
+  /*
+   * The tools' names start like words OneUptime's own pages go by: "pager"
+   * (On-Call Policies), "ping", "uptime". Those still open OneUptime's own
+   * pages first; the import from a tool comes after them.
+   */
+  test("a word that starts a tool's name but that OneUptime's own pages go by still opens those pages first", () => {
+    expect(firstFound("pager")).toMatch(/^On-Call Policies — /);
+
+    for (const query of ["pag", "status", "on call", "oncall", "on-call"]) {
+      expect({ query, first: firstFound(query) }).toEqual({
+        query,
+        first: expect.not.stringMatching(/^Import from /),
+      });
+    }
+  });
+
+  test("a word no page of OneUptime's own goes by, but a tool's name starts with, finds the imports from those tools, as it found the importer before", () => {
+    expect(
+      filterPaletteCommands(SEARCH_PAGES, "uptime")
+        .slice(0, 2)
+        .map((match: PaletteCommandMatch): string => {
+          return match.command.title;
+        }),
+    ).toEqual(["Import from UptimeRobot", "Import from Uptime Kuma"]);
+    expect(firstFound("ping")).toBe(
+      `Import from Pingdom — Project Settings › Advanced › ${PAGE_TITLE}`,
+    );
+  });
+
+  test("a tool's other names find the import from it", () => {
+    for (const [query, tool] of [
+      ["victorops", "Splunk On-Call"],
+      ["grafana irm", "Grafana OnCall"],
+      ["uptime robot", "UptimeRobot"],
+      ["betterstack", "Better Stack"],
+      ["statuspage.io", "Atlassian Statuspage"],
+    ]) {
+      expect({ query, first: firstFound(query) }).toEqual({
+        query,
+        first: `Import from ${tool} — Project Settings › Advanced › ${PAGE_TITLE}`,
+      });
+    }
+  });
+
+  test("each 'Import from <tool>' opens the importer on that tool's connect step, saying it came from Search", () => {
+    const descriptors: Array<PageSearchCommandDescriptor> =
+      buildPageSearchCommandDescriptors({
+        areas: SEARCH_AREAS,
+        availability: {
+          isBillingEnabled: true,
+          isMonitorGroupsEnabled: true,
+          canDeleteProject: true,
+        },
+        getRouteTemplate: (key: string): string => {
+          return `/dashboard/:projectId/${key.toLowerCase()}`;
+        },
+        getRoutePath: (key: string): string => {
+          return `/dashboard/project/${key.toLowerCase()}`;
+        },
+        getProductTitle: (): undefined => {
+          return undefined;
+        },
+        translate: (text: string): string => {
+          return text;
+        },
+        catalog: [],
+      }).filter((descriptor: PageSearchCommandDescriptor): boolean => {
+        return descriptor.title.startsWith("Import from ") && descriptor.isAction;
+      });
+
+    const expected: Array<ToolImportSource> = AllToolImportSources.filter(
+      (source: ToolImportSource): boolean => {
+        return !NAMES_SEARCH_LEAVES_OUT.has(source);
+      },
+    );
+
+    expect(
+      descriptors.map((descriptor: PageSearchCommandDescriptor) => {
+        return [descriptor.title, descriptor.routePath, descriptor.icon];
+      }),
+    ).toEqual(
+      expected.map((source: ToolImportSource) => {
+        return [
+          `Import from ${getToolImportSourceDefinition(source).title}`,
+          `/dashboard/project/${PAGE_ID.toLowerCase()}?from=search&tool=${source}`,
+          "InboxArrowDown",
+        ];
+      }),
+    );
+    // Each remembered by Search's recents under an id of its own.
+    expect(
+      new Set(
+        descriptors.map((descriptor: PageSearchCommandDescriptor) => {
+          return descriptor.id;
+        }),
+      ).size,
+    ).toBe(expected.length);
+  });
+
+  test("Search leaves out of its actions exactly the tools it leaves out of the page's keywords", () => {
+    expect(new Set(TOOL_IMPORT_SEARCH_LEAVES_OUT)).toEqual(
+      NAMES_SEARCH_LEAVES_OUT,
+    );
+    expect(firstFound("incident settings")).not.toContain("Import from");
+    expect(firstFound("incident.io")).not.toContain("Import from incident.io");
   });
 
   /*

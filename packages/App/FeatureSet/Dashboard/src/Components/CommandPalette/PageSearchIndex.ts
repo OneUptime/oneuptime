@@ -106,6 +106,13 @@ export interface PageSearchAction {
    * { tool: "PagerDuty" }.
    */
   titleValues?: Record<string, string> | undefined;
+  /*
+   * Named for another product (a tool OneUptime imports from): it gives way
+   * in Search to OneUptime's own pages that hold the word typed, so "pager"
+   * opens On-Call Policies before "Import from PagerDuty"
+   * (PALETTE_SEARCH_PENALTY).
+   */
+  isNamedForAnotherProduct?: boolean | undefined;
 }
 
 /*
@@ -239,6 +246,7 @@ export const getToolImportSearchActions: () => Array<PageSearchAction> =
         titleValues: { tool: getToolImportSourceDefinition(source).title },
         icon: IconProp.InboxArrowDown,
         keywords: TOOL_IMPORT_SEARCH_KEYWORDS[source] || [],
+        isNamedForAnotherProduct: true,
         queryString: getToolImportQueryString({
           from: ToolImportEntryPoint.Search,
           tool: source,
@@ -815,26 +823,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.SETTINGS_IMPORT_FROM_TOOL,
             title: "Import from another tool",
             icon: IconProp.InboxArrowDown,
+            /*
+             * The tools' names are their "Import from <tool>" actions' own
+             * (getToolImportSearchActions), which open the page on that
+             * tool: a name typed finds that, not the page beside it.
+             */
             keywords: [
               "import",
               "migrate",
               "migration",
               "move to oneuptime",
               "switch to oneuptime",
-              "opsgenie",
-              "pagerduty",
-              "splunk on-call",
-              "victorops",
-              "grafana oncall",
-              "grafana irm",
-              "uptimerobot",
-              "uptime robot",
-              "atlassian statuspage",
-              "better stack",
-              "betterstack",
-              "pingdom",
-              "statuscake",
-              "uptime kuma",
             ],
             settings: ["Start a new import", "Earlier imports"],
             actions: getToolImportSearchActions(),

@@ -63,6 +63,15 @@ export const PALETTE_SEARCH_PRIORITY: {
   action: 0,
 };
 
+/*
+ * What a result named for another product ("Import from PagerDuty") gives up
+ * in Search (PaletteCommand.searchPenalty): enough that a word one of
+ * OneUptime's own pages holds, even as the start of one of its other names
+ * ("pager", "pag"), opens that page first, while a name only the import
+ * holds ("pagerduty", "uptime kuma") opens the import.
+ */
+export const PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY: number = 12;
+
 // ---- ":"-guard --------------------------------------------------------------
 
 /*
@@ -182,6 +191,11 @@ export interface PageSearchCommandDescriptor {
    * before (PaletteCommand.onPageCommandId).
    */
   onPageId?: string | undefined;
+  /*
+   * Named for another product: it gives way to OneUptime's own pages
+   * (PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY).
+   */
+  isNamedForAnotherProduct?: boolean | undefined;
 }
 
 export interface BuildPageSearchCommandsInput {
@@ -450,6 +464,9 @@ export function buildPageSearchCommandDescriptors(
             areaId: area.id,
             isAction: true,
             isSetting: false,
+            ...(action.isNamedForAnotherProduct
+              ? { isNamedForAnotherProduct: true }
+              : {}),
           });
         }
 
@@ -503,6 +520,7 @@ export function buildPageSearchCommandDescriptors(
 export interface PageSearchCommandRanking {
   searchPriority: number;
   onPageCommandId?: string | undefined;
+  searchPenalty?: number | undefined;
 }
 
 export const getPageSearchCommandRanking: (
@@ -510,6 +528,14 @@ export const getPageSearchCommandRanking: (
 ) => PageSearchCommandRanking = (
   descriptor: PageSearchCommandDescriptor,
 ): PageSearchCommandRanking => {
+  // "Import from PagerDuty" gives way to OneUptime's own pages.
+  if (descriptor.isNamedForAnotherProduct) {
+    return {
+      searchPriority: PALETTE_SEARCH_PRIORITY.page,
+      searchPenalty: PALETTE_ANOTHER_PRODUCT_SEARCH_PENALTY,
+    };
+  }
+
   if (!descriptor.isSetting) {
     return { searchPriority: PALETTE_SEARCH_PRIORITY.page };
   }
