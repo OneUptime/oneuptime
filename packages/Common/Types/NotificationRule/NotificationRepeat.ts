@@ -149,3 +149,75 @@ export function getDueRuleExecution(data: {
     ? null
     : repeatNumber;
 }
+
+/*
+ * WHEN A DELIVERY OF A RULE WAS DUE, for how late it went out
+ * (notification.send.lag, OnCallSendLag).
+ *
+ * How many minutes after its log started a rule's delivery comes due: its
+ * first push (0) after notifyAfterMinutes, repeat n after notifyAfterMinutes
+ * + n * repeatEveryMinutes - the first whole minute at which
+ * getDueRuleExecution, counting whole minutes as the worker does, says it
+ * is due.
+ */
+export function getRuleExecutionDueAfterMinutes(data: {
+  notifyAfterMinutes: number;
+  repeatEveryMinutes: unknown;
+  executionNumber: number;
+}): number {
+  const notifyAfterMinutes: number = Number.isFinite(data.notifyAfterMinutes)
+    ? data.notifyAfterMinutes
+    : 0;
+  const repeats: number = toRepeatNumber(data.executionNumber);
+
+  return Math.max(
+    0,
+    Math.ceil(
+      notifyAfterMinutes +
+        repeats * getRepeatEveryMinutes(data.repeatEveryMinutes),
+    ),
+  );
+}
+
+/*
+ * An execution number as the repeat it is: 0 for the first push - and for
+ * anything that is not a number above 0 - whole repeats, never past the
+ * last (MAX_NOTIFICATION_REPEATS).
+ */
+function toRepeatNumber(executionNumber: number): number {
+  if (!Number.isFinite(executionNumber) || executionNumber <= 0) {
+    return 0;
+  }
+
+  return Math.min(MAX_NOTIFICATION_REPEATS, Math.floor(executionNumber));
+}
+
+/*
+ * The earliest delivery a rule's send now stands in for. A worker that fell
+ * behind sends the latest repeat due and skips the ones it missed
+ * (getDueRuleExecution), so repeat n sent now was owed since the first
+ * repeat after the last one sent - the person went without a push from
+ * then. Its first push, and a repeat right after the last one sent, stand
+ * for themselves.
+ */
+export function getFirstOwedRuleExecution(data: {
+  executedClaimKeys: ReadonlyArray<string>;
+  ruleId: string;
+  executionNumber: number;
+}): number {
+  const executionNumber: number = toRepeatNumber(data.executionNumber);
+
+  if (executionNumber === 0) {
+    return 0;
+  }
+
+  for (let repeat: number = executionNumber - 1; repeat >= 1; repeat--) {
+    if (
+      data.executedClaimKeys.includes(getRepeatClaimKey(data.ruleId, repeat))
+    ) {
+      return repeat + 1;
+    }
+  }
+
+  return 1;
+}

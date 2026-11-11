@@ -352,6 +352,12 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      /*
+       * The moment OneUptime received this report, before any queueing: a
+       * page its evaluation starts is timed from it (OnCallPageTiming).
+       */
+      const receivedAt: Date = OneUptimeDate.getCurrentDate();
+
       const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
 
       if (!probeId) {
@@ -394,6 +400,7 @@ router.post(
         probeId: probeId,
         probeMonitorResponse: ownResult,
         jobType: "probe-response",
+        receivedAt: receivedAt,
       });
 
       return;
@@ -412,6 +419,12 @@ router.post(
     next: NextFunction,
   ): Promise<void> => {
     try {
+      /*
+       * The moment OneUptime received this trap, before any queueing: a
+       * page its evaluation starts is timed from it (OnCallPageTiming).
+       */
+      const receivedAt: Date = OneUptimeDate.getCurrentDate();
+
       const probeId: ObjectID | null = ProbeRequest.getProbeId(req);
 
       if (!probeId) {
@@ -439,6 +452,7 @@ router.post(
       await TelemetryQueueService.addSnmpTrapIngestJob({
         probeId: probeId,
         snmpTrap: req.body["snmpTrap"] as JSONObject,
+        receivedAt: receivedAt,
       });
 
       return;

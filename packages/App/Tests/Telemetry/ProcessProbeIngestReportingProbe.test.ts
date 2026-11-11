@@ -78,6 +78,10 @@ import MonitorTestService, {
 } from "Common/Server/Services/MonitorTestService";
 import ProbeService from "Common/Server/Services/ProbeService";
 import NetworkDeviceHydrationUtil from "Common/Server/Utils/Monitor/NetworkDeviceHydrationUtil";
+import NetworkDeviceWalkUtil from "Common/Server/Utils/Monitor/NetworkDeviceWalkUtil";
+import OnCallPageTiming from "Common/Server/Utils/OnCall/OnCallPageTiming";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import {
   PROBE_REPORTS_ONLY_ITS_OWN_RESULTS_MESSAGE,
   REPORTING_PROBE_NOT_KNOWN_MESSAGE,
@@ -447,5 +451,197 @@ describe("a queued SNMP trap", () => {
     ).rejects.toThrow(REPORTING_PROBE_NOT_KNOWN_MESSAGE);
 
     expect(findDevices).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * WHEN ONEUPTIME RECEIVED A PROBE'S REPORT (dataReceivedAt, issue #6647).
+ *
+ * The probe ingest route queues the moment it received a check result or
+ * a trap as the job's ingestionTimestamp. The worker puts it on what each
+ * monitor evaluates, in place of anything the probe wrote there, so a page
+ * the evaluation starts is timed from then - however long the job waited -
+ * and never from monitoredAt, the probe's own clock. A monitor test's
+ * result pages nobody and is not stamped.
+ */
+describe("when OneUptime received a probe's report", () => {
+  // The job()s above were received a second after the probe's check.
+  const RECEIVED_AT: Date = new Date("2026-10-17T10:00:01.000Z");
+  const PROBES_WORD: string = "2020-01-01T00:00:00.000Z";
+
+  it("a check result carries it - the moment the ingest API received it, read back from the queue", async () => {
+    await processProbeFromQueue(
+      job({
+        jobType: "probe-response",
+        sender: SENDER,
+        result: wireResult(asJson(SENDER)),
+      }),
+    );
+
+    const { result } = judgedResult();
+
+    expect(result.dataReceivedAt).toBeInstanceOf(Date);
+    expect(result.dataReceivedAt).toEqual(RECEIVED_AT);
+    expect(OnCallPageTiming.getMonitorDataReceivedAt(result)).toEqual(
+      RECEIVED_AT,
+    );
+    // Not the probe's clock, which said a second earlier.
+    expect(new Date(result.monitoredAt).toISOString()).toBe(
+      "2026-10-17T10:00:00.000Z",
+    );
+  });
+
+  it("what the probe wrote there is replaced by OneUptime's own stamp", async () => {
+    await processProbeFromQueue(
+      job({
+        jobType: "probe-response",
+        sender: SENDER,
+        result: { ...wireResult(asJson(SENDER)), dataReceivedAt: PROBES_WORD },
+      }),
+    );
+
+    expect(judgedResult().result.dataReceivedAt).toEqual(RECEIVED_AT);
+  });
+
+  it("a job that carries no stamp: what the probe wrote is taken off, and the page is timed as before", async () => {
+    const queued: ProbeIngestJobData = job({
+      jobType: "probe-response",
+      sender: SENDER,
+      result: { ...wireResult(asJson(SENDER)), dataReceivedAt: PROBES_WORD },
+    });
+
+    delete (queued as unknown as JSONObject)["ingestionTimestamp"];
+
+    await processProbeFromQueue(queued);
+
+    const { result } = judgedResult();
+
+    expect("dataReceivedAt" in result).toBe(false);
+    expect(OnCallPageTiming.getMonitorDataReceivedAt(result)).toBeUndefined();
+  });
+
+  it("a stamp after now - the ingest server's clock ahead of the worker's - is now", async () => {
+    const queued: ProbeIngestJobData = job({
+      jobType: "probe-response",
+      sender: SENDER,
+      result: wireResult(asJson(SENDER)),
+    });
+
+    (queued as unknown as JSONObject)["ingestionTimestamp"] = new Date(
+      Date.now() + 60 * 60 * 1000,
+    ).toISOString();
+
+    const before: number = Date.now();
+    await processProbeFromQueue(queued);
+
+    const stamped: number = judgedResult().result.dataReceivedAt!.getTime();
+
+    expect(stamped).toBeGreaterThanOrEqual(before);
+    expect(stamped).toBeLessThanOrEqual(Date.now());
+  });
+
+  it("a monitor test's result pages nobody: nothing it writes carries one", async () => {
+    await processProbeFromQueue(
+      job({
+        jobType: "monitor-test",
+        sender: SENDER,
+        result: wireResult(asJson(SENDER)),
+      }),
+    );
+
+    expect(mergeStepProbeResponse).toHaveBeenCalledTimes(1);
+    expect(
+      JSON.stringify(mergeStepProbeResponse.mock.calls[0]![0]),
+    ).not.toContain("dataReceivedAt");
+  });
+
+  describe("a trap", () => {
+    const DEVICE_ID: string = "4d6f8a0c-2e1b-4b3d-9f5a-7c9e1b3d5f77";
+    const PROJECT_ID: string = "5e7a9c1d-3f2b-4c4e-8a6b-8d0f2a4c6e88";
+    const snmpTrap: JSONObject = {
+      sourceIpAddress: "10.0.0.7",
+      trapOid: "1.3.6.1.6.3.1.1.5.3",
+    };
+
+    // A Network Device monitor whose one step watches the device.
+    function monitorWatchingTheDevice(stepId: string): Monitor {
+      const monitor: Monitor = new Monitor();
+      monitor.id = ObjectID.generate();
+      monitor.projectId = new ObjectID(PROJECT_ID);
+      monitor.monitorSteps = {
+        data: {
+          monitorStepsInstanceArray: [
+            {
+              id: new ObjectID(stepId),
+              data: { networkDeviceMonitor: { networkDeviceId: DEVICE_ID } },
+            },
+          ],
+        },
+      } as never;
+      return monitor;
+    }
+
+    function trapJob(ingestionTimestamp: unknown): ProbeIngestJobData {
+      return JSON.parse(
+        JSON.stringify({
+          jobType: "snmp-trap",
+          ingestionTimestamp: ingestionTimestamp,
+          snmpTrap: { probeId: SENDER, snmpTrap },
+        }),
+      ) as ProbeIngestJobData;
+    }
+
+    beforeEach(() => {
+      const device: NetworkDevice = new NetworkDevice();
+      device.id = new ObjectID(DEVICE_ID);
+      device.projectId = new ObjectID(PROJECT_ID);
+
+      jest
+        .spyOn(NetworkDeviceHydrationUtil, "findDevicesByProbeAndSource")
+        .mockResolvedValue([device] as never);
+      jest
+        .spyOn(SnmpTrapLogWriter, "writeTrapLogRows")
+        .mockResolvedValue(undefined as never);
+      jest
+        .spyOn(NetworkDeviceWalkUtil, "findMonitorsWatchingDevices")
+        .mockResolvedValue([
+          monitorWatchingTheDevice(STEP_ID),
+          monitorWatchingTheDevice("9c1e3a5b-7d2f-4e6a-8b0c-1d3f5a7c9e99"),
+        ] as never);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it("every monitor it reaches evaluates it as received when the ingest API received it", async () => {
+      await processSnmpTrapFromQueue(trapJob(RECEIVED_AT));
+
+      expect(monitorResource).toHaveBeenCalledTimes(2);
+
+      for (const call of monitorResource.mock.calls) {
+        const response: ProbeMonitorResponse = call[0] as ProbeMonitorResponse;
+
+        expect(response.snmpTrapResponse).toBeTruthy();
+        expect(response.dataReceivedAt).toEqual(RECEIVED_AT);
+        expect(OnCallPageTiming.getMonitorDataReceivedAt(response)).toEqual(
+          RECEIVED_AT,
+        );
+        // monitoredAt is when the worker got to it, as before.
+        expect(response.monitoredAt.getTime()).toBeGreaterThan(
+          RECEIVED_AT.getTime(),
+        );
+      }
+    });
+
+    it("a trap job with no stamp is timed as before", async () => {
+      await processSnmpTrapFromQueue(trapJob(undefined));
+
+      expect(monitorResource).toHaveBeenCalledTimes(2);
+
+      for (const call of monitorResource.mock.calls) {
+        expect("dataReceivedAt" in (call[0] as JSONObject)).toBe(false);
+      }
+    });
   });
 });
