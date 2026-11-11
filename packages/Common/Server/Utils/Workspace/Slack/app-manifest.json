@@ -86,6 +86,8 @@
         "pin_added",
         "app_home_opened",
         "member_joined_channel",
+        "team_access_granted",
+        "team_access_revoked",
         "app_mention",
         "message.im",
         "message.channels",

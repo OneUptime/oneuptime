@@ -1881,6 +1881,29 @@ export default class SlackAPI {
           }
 
           /*
+           * An admin added OneUptime's installation for a whole Slack
+           * Enterprise organization to some of its workspaces, or removed it
+           * from them: each project connected to the organization reads its
+           * workspaces again at once (SlackOrganization.refreshOrganization),
+           * a removed default moving to the first workspace left. Slack has
+           * its 200 first. A retry is read again too: it may be the first
+           * this server hears of the change, and reading twice changes
+           * nothing.
+           */
+          if (
+            event["type"] === "team_access_granted" ||
+            event["type"] === "team_access_revoked"
+          ) {
+            Response.sendTextResponse(req, res, "ok");
+
+            await SlackOrganization.refreshOrganization({
+              enterpriseId: eventEnterprise.enterpriseId,
+            });
+
+            return;
+          }
+
+          /*
            * Somebody added the OneUptime app to a channel: it says hello
            * there, once (SlackWelcome). Channels it creates or joins by
            * itself get none.

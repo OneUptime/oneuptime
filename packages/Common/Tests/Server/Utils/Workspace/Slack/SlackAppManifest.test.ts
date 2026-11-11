@@ -325,6 +325,50 @@ describe("the Slack app manifest's Home tab and hello", () => {
 });
 
 /*
+ * AN ORGANIZATION'S WORKSPACES, KEPT CURRENT (#6748).
+ *
+ * OneUptime installed for a whole Slack Enterprise organization works in
+ * the workspaces an admin added it to (SlackOrganization). Slack tells an
+ * organization-wide app when an admin adds it to workspaces
+ * (team_access_granted) or removes it (team_access_revoked), and each
+ * project connected to the organization then reads its workspaces again at
+ * once. Neither event needs a scope, so subscribing to them asks no
+ * organization to install the app again. Slack sends them only to an app
+ * that subscribes, and the live app's configuration changes only when a
+ * maintainer applies the manifest (Slack/RELEASING.md).
+ */
+describe("the Slack app manifest's organization events", () => {
+  const events: Array<string> = (
+    (manifest["settings"] as JSONObject)["event_subscriptions"] as JSONObject
+  )["bot_events"] as unknown as Array<string>;
+
+  test("the app hears when an admin adds OneUptime to a workspace of the organization, and when one removes it", () => {
+    expect(events).toEqual(
+      expect.arrayContaining(["team_access_granted", "team_access_revoked"]),
+    );
+  });
+
+  test("each is heard once, and an organization may install the app", () => {
+    for (const event of ["team_access_granted", "team_access_revoked"]) {
+      expect(
+        events.filter((heard: string): boolean => {
+          return heard === event;
+        }),
+      ).toHaveLength(1);
+    }
+
+    expect((manifest["settings"] as JSONObject)["org_deploy_enabled"]).toBe(
+      true,
+    );
+  });
+
+  test("neither needs a scope of its own", () => {
+    expect(EVENT_SCOPES["team_access_granted"]).toEqual([]);
+    expect(EVENT_SCOPES["team_access_revoked"]).toEqual([]);
+  });
+});
+
+/*
  * THE SCOPES THE APP ASKS FOR: THE ONES IT USES, AND NO MORE.
  *
  * Slack's review of the app for the Slack Marketplace: "The im:read and
@@ -428,6 +472,9 @@ const EVENT_SCOPES: Record<string, Array<string>> = {
   "message.mpim": ["mpim:history"],
   pin_added: ["pins:read"],
   reaction_added: ["reactions:read"],
+  // An admin adding OneUptime's organization-wide installation to workspaces, or removing it: no scope.
+  team_access_granted: [],
+  team_access_revoked: [],
 };
 
 // Where the server calls Slack: the workspace utilities, and the Slack routes.
