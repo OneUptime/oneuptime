@@ -22,6 +22,20 @@ import React, {
 import OneUptimeDate from "Common/Types/Date";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import HTTPResponse from "Common/Types/API/HTTPResponse";
+import URL from "Common/Types/API/URL";
+import { JSONObject } from "Common/Types/JSON";
+import { APP_API_URL } from "Common/UI/Config";
+import CustomDomainDnsCheckResultJSON, {
+  CustomDomainDnsCheckResult,
+} from "Common/Types/CustomDomain/CustomDomainDnsCheckResult";
+import { DnsRecordCheck } from "Common/Types/CustomDomain/DnsRecordCheck";
+import {
+  DnsRecordCheckDescription,
+  DnsRecordCheckSentence,
+  describeDnsRecordCheck,
+} from "Common/Types/CustomDomain/DnsRecordCheckWords";
 
 const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
@@ -201,18 +215,59 @@ const Domains: FunctionComponent<PageComponentProps> = (): ReactElement => {
             try {
               setIsVerificationLoading(true);
               setError("");
-              // verify domain.
-              await ModelAPI.updateById({
-                modelType: Domain,
-                id: new ObjectID(
-                  currentVerificationDomain["_id"]
-                    ? currentVerificationDomain["_id"].toString()
-                    : "",
-                ),
-                data: {
-                  isVerified: true,
-                },
-              });
+
+              /*
+               * check-txt verifies the domain when its record is found,
+               * and otherwise says what it looked up and what came back -
+               * the words a status page's DNS Setup uses (#6835).
+               */
+              const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+                await API.get<JSONObject>({
+                  url: URL.fromString(APP_API_URL.toString()).addRoute(
+                    `/domain/check-txt/${new ObjectID(
+                      currentVerificationDomain["_id"]
+                        ? currentVerificationDomain["_id"].toString()
+                        : "",
+                    ).toString()}`,
+                  ),
+                  data: {},
+                  headers: ModelAPI.getCommonHeaders(),
+                });
+
+              if (response.isFailure()) {
+                throw response;
+              }
+
+              const result: CustomDomainDnsCheckResult =
+                CustomDomainDnsCheckResultJSON.fromJSON(
+                  response.data as JSONObject,
+                );
+
+              if (!result.isVerified) {
+                const check: DnsRecordCheck | undefined = result.records[0];
+                const description: DnsRecordCheckDescription | undefined =
+                  check ? describeDnsRecordCheck(check) : undefined;
+                const parts: Array<DnsRecordCheckSentence> = description
+                  ? [
+                      description.lookedUp,
+                      ...(description.whatToDo ? [description.whatToDo] : []),
+                    ]
+                  : [];
+
+                setError(
+                  parts
+                    .map((part: DnsRecordCheckSentence): string => {
+                      return translator.translateTemplate(
+                        part.template,
+                        part.values,
+                      );
+                    })
+                    .join(" "),
+                );
+                setIsVerificationLoading(false);
+                return;
+              }
+
               setIsVerificationLoading(false);
               setShowVerificationModal(false);
               setRefreshToggle(OneUptimeDate.getCurrentDate().toString());

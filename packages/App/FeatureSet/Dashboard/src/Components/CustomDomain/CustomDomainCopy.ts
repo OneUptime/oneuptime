@@ -18,9 +18,11 @@ import { translationKey } from "Common/UI/Utils/TranslateTemplate";
  * order the 15-minute worker placed on its own anyway. Dashboards kept that
  * flow, and their own wording, after status pages lost it.
  *
- * Now the domain is added in one step, from the domains the project has
- * verified, and the DNS Setup dialog opens on the new domain with the record
- * to add. Check now verifies it, and the free certificate is ordered the
+ * Now Add Custom Domain asks for the address people will open, and the DNS
+ * Setup dialog opens on the new domain with the record to add - with the
+ * project domain's TXT record too, verified right there, when the project
+ * has not verified it yet (AddCustomDomainModal). Each record says what
+ * Check now looked up and what came back (DnsRecordCheckWords). Check now verifies it, and the free certificate is ordered the
  * moment the record is found; without a click the 15-minute sweeps do both.
  * Nothing on either page asks anyone to order a certificate.
  *
@@ -288,8 +290,6 @@ export const CUSTOM_DOMAIN_VERIFIED_NEXT: Record<
 export const CustomDomainCopy: {
   // Where the installation has no CNAME record for this kind of domain.
   cardDescriptionNotEnabled: string;
-  domainFieldDescription: string;
-  domainFieldSideLink: string;
   // Under the folded Advanced section's title.
   advancedSummaryFreeCertificate: string;
   advancedSummaryUploadedCertificate: string;
@@ -347,10 +347,6 @@ export const CustomDomainCopy: {
   cardDescriptionNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature.",
   ),
-  domainFieldDescription: translationKey(
-    "Only domains verified in Project Settings → Advanced → Domains are listed.",
-  ),
-  domainFieldSideLink: translationKey("Add a domain"),
   advancedSummaryFreeCertificate: translationKey(
     "We issue a free SSL certificate for this domain and renew it automatically.",
   ),
@@ -438,8 +434,6 @@ export interface CustomDomainKindCopy {
   addressPlaceholder: string;
   // DNS Setup where the installation has no CNAME record, with {{variable}}.
   dnsSetupNotEnabled: string;
-  subdomainPlaceholder: string;
-  subdomainDescription: string;
   reissueTitle: string;
   reissueDescription: string;
 }
@@ -461,10 +455,6 @@ export const STATUS_PAGE_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
   addressPlaceholder: "status.example.com",
   dnsSetupNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set statusPage.cnameRecord in the values.yaml file.",
-  ),
-  subdomainPlaceholder: translationKey("status (leave blank for root)"),
-  subdomainDescription: translationKey(
-    "Enter the subdomain label only (for example, status). Leave blank or enter @ to use the root/apex domain.",
   ),
   reissueTitle: translationKey("Reissue SSL Certificate for this Status Page"),
   reissueDescription: translationKey(
@@ -489,10 +479,6 @@ export const DASHBOARD_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
   addressPlaceholder: "dashboard.example.com",
   dnsSetupNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set dashboard.cnameRecord in the values.yaml file.",
-  ),
-  subdomainPlaceholder: translationKey("dashboard (leave blank for root)"),
-  subdomainDescription: translationKey(
-    "Enter the subdomain label only (for example, dashboard). Leave blank or enter @ to use the root/apex domain.",
   ),
   reissueTitle: translationKey("Reissue SSL Certificate for this Dashboard"),
   reissueDescription: translationKey(
@@ -524,10 +510,6 @@ export const FORM_CUSTOM_DOMAIN_COPY: CustomDomainKindCopy = {
   addressPlaceholder: "report.example.com",
   dnsSetupNotEnabled: translationKey(
     "Custom Domains not enabled for this OneUptime installation. Please contact your server admin to enable this feature. To enable this feature, if you are using Docker compose, the {{variable}} environment variable must be set when starting the OneUptime cluster. If you are using Helm and Kubernetes then set statusPage.cnameRecord in the values.yaml file: forms use the status page CNAME record.",
-  ),
-  subdomainPlaceholder: translationKey("report (leave blank for root)"),
-  subdomainDescription: translationKey(
-    "Enter the subdomain label only (for example, report). Leave blank or enter @ to use the root/apex domain.",
   ),
   reissueTitle: translationKey("Reissue SSL Certificate for this Form"),
   reissueDescription: translationKey(

@@ -234,6 +234,11 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
     }
   };
 
+  // The project a new domain is added to: the page's, else the current one.
+  const projectId: ObjectID | null = props.currentProject?._id
+    ? new ObjectID(props.currentProject._id)
+    : ProjectUtil.getCurrentProjectId();
+
   /*
    * The project's domains of this status page or dashboard. The column that
    * names it differs by kind, and the table's types know only the columns
@@ -528,11 +533,11 @@ const CustomDomainsTable: FunctionComponent<ComponentProps> = (
         ]}
       />
 
-      {showAddDomain && props.currentProject?._id ? (
+      {showAddDomain && projectId ? (
         <AddCustomDomainModal
           kind={kind}
           parentId={props.parentId}
-          projectId={new ObjectID(props.currentProject._id)}
+          projectId={projectId}
           onClose={() => {
             setShowAddDomain(false);
           }}

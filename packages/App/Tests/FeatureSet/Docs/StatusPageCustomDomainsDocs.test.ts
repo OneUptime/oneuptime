@@ -4,7 +4,20 @@ import path from "path";
 import {
   CUSTOM_DOMAIN_STATUS,
   CustomDomainCopy,
+  STATUS_PAGE_CUSTOM_DOMAIN_COPY,
 } from "../../../FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainCopy";
+import {
+  DnsRecordCheck,
+  DnsRecordCheckOutcome,
+  DnsRecordType,
+} from "Common/Types/CustomDomain/DnsRecordCheck";
+import {
+  DNS_RECORD_STATUS,
+  DnsRecordCheckDescription,
+  describeDnsRecordCheck,
+} from "Common/Types/CustomDomain/DnsRecordCheckWords";
+import { CustomDomainReadinessWords } from "Common/Types/CustomDomain/CustomDomainServerReadiness";
+import { fillTemplate } from "Common/Types/Translator";
 
 /*
  * The English docs for status page custom domains, held to the flow they
@@ -79,25 +92,50 @@ describe("Status page custom domains (English docs)", () => {
     ).toEqual(new Set(["15 minutes", "15 minute"]));
   });
 
-  it("sends readers to Project Settings → Advanced → Domains, by its menu names", () => {
+  it("names Project Settings → Advanced → Domains by its menu names, as where the domain is added for you", () => {
     expect(CUSTOM_DOMAINS).toContain(
       "**Project Settings → Advanced → Domains**",
     );
     expect(PAGE).not.toContain("More → Project Settings → Custom Domains");
-    expect(CUSTOM_DOMAINS).toContain(
-      `**${CustomDomainCopy.domainFieldSideLink}**`,
-    );
+    // No longer a detour: there is no link out of the page to follow.
+    expect(CUSTOM_DOMAINS).not.toContain("**Add a domain**");
+    expect(CUSTOM_DOMAINS).not.toContain("opens that page in a new tab");
   });
 
-  it("describes adding a domain as one page, with the certificate under More fields", () => {
+  /*
+   * Add Custom Domain asks for the address people will open, and verifies
+   * the project's domain right there when it is not yet (#6835): it used
+   * to ask for a subdomain and a verified domain, with a link out to
+   * Project Settings to add and verify one.
+   */
+  it("describes Add Custom Domain: one field, the certificate under More fields, both records when the domain is new", () => {
     const adding: string = section("### Adding the domain", "## DNS Setup");
 
-    expect(adding).toContain("The dialog is one page");
+    expect(adding).toContain(`**${CustomDomainCopy.addTitle}**`);
+    expect(adding).toContain("The dialog asks for one thing");
+    expect(adding).toContain(`**${CustomDomainCopy.addAddressTitle}**`);
+    expect(adding).toContain(
+      `placeholder \`${STATUS_PAGE_CUSTOM_DOMAIN_COPY.addressPlaceholder}\``,
+    );
     expect(adding).not.toMatch(/two steps|\*\*Basic\*\*|\*\*More\*\*/);
+    expect(adding).not.toContain("**Subdomain**");
     expect(adding).toContain("**More fields**");
     expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);
     expect(adding).toContain("**Upload Custom Certificate**");
-    expect(adding).toContain("**DNS Setup** opens");
+    expect(adding).toContain(`**${CustomDomainCopy.addSubmit}**`);
+    expect(adding).toContain("**DNS Setup** opens with both records");
+    expect(adding).toContain("without leaving the page");
+    expect(adding).toContain("**Create Project Domain**");
+    expect(adding).toContain("**Edit Project Domain**");
+    expect(PAGE).not.toContain("Create Status Page Domain");
+  });
+
+  it("says, before you start, what a self-hosted server is checked for", () => {
+    const before: string = section("### Before you start", "### Adding");
+
+    expect(before).toContain(CustomDomainReadinessWords.notReadyTitle);
+    expect(before).toContain("ports 80 and 443");
+    expect(before).toContain("from the server itself");
   });
 
   it("walks DNS Setup and Check now", () => {
@@ -111,10 +149,66 @@ describe("Status page custom domains (English docs)", () => {
     }
 
     expect(dnsSetup).toContain("`CNAME`");
+    expect(dnsSetup).toContain("`TXT`");
     expect(dnsSetup).toContain("copy button");
     expect(dnsSetup).toContain("**Check now**");
     expect(dnsSetup).toContain(CustomDomainCopy.dnsSetupVerified);
     expect(dnsSetup).toContain("ALIAS, ANAME or CNAME flattening");
+    expect(dnsSetup).toContain("follows the whole CNAME chain");
+  });
+
+  /*
+   * "I don't understand how OneUptime reads CNAME records" (#1664): the
+   * page quotes what Check now says, word for word, so a reader can match
+   * the dialog to the page.
+   */
+  it("quotes each record's status and what Check now looked up, exactly as the dialog says them", () => {
+    const dnsSetup: string = section(
+      "## DNS Setup and verification",
+      "## SSL certificates",
+    );
+
+    for (const outcome of [
+      DnsRecordCheckOutcome.Found,
+      DnsRecordCheckOutcome.WrongValue,
+      DnsRecordCheckOutcome.NotFound,
+      DnsRecordCheckOutcome.LookupFailed,
+    ]) {
+      const status: string = `**${DNS_RECORD_STATUS[outcome]}**`;
+      expect([status, dnsSetup.includes(status)]).toEqual([status, true]);
+    }
+
+    const example: (extra: Partial<DnsRecordCheck>) => string = (
+      extra: Partial<DnsRecordCheck>,
+    ): string => {
+      const description: DnsRecordCheckDescription = describeDnsRecordCheck({
+        type: DnsRecordType.CNAME,
+        name: "status.yourcompany.com",
+        expectedValue: "oneuptime.yourcompany.com",
+        foundValues: [],
+        outcome: DnsRecordCheckOutcome.NotFound,
+        ...extra,
+      });
+
+      return fillTemplate(
+        description.lookedUp.template,
+        description.lookedUp.values,
+      );
+    };
+
+    for (const sentence of [
+      example({}),
+      example({
+        outcome: DnsRecordCheckOutcome.WrongValue,
+        foundValues: ["other.example.net"],
+      }),
+      example({ addresses: ["203.0.113.10"] }),
+    ]) {
+      expect([sentence, dnsSetup.includes(`"${sentence}"`)]).toEqual([
+        sentence,
+        true,
+      ]);
+    }
   });
 
   it("says the free certificate needs no button", () => {
