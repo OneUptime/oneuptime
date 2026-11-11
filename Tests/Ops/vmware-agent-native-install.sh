@@ -365,7 +365,12 @@ PY
 # with a slow mirror (2026-10-29), though everything this test needs is up
 # within a second. Nothing here installs a package after the build, so the
 # cache is masked off.
-docker build -q -t "${IMAGE_TAG}" - >/dev/null <<DOCKERFILE
+#
+# The build says nothing while it works. When it fails, its last lines say
+# why - apt's or dnf's own error - where a quiet build gave only "exit code:
+# 100" (2026-11-11, twice, on Ubuntu 24.04).
+IMAGE_BUILD_LOG="${WORK_DIR}/image-build.log"
+if ! docker build --progress=plain -t "${IMAGE_TAG}" - >"${IMAGE_BUILD_LOG}" 2>&1 <<DOCKERFILE
 FROM ${BASE_IMAGE}
 RUN if command -v apt-get >/dev/null; then \\
       apt-get update \\
@@ -384,6 +389,11 @@ RUN if command -v apt-get >/dev/null; then \\
 STOPSIGNAL SIGRTMIN+3
 CMD ["/sbin/init"]
 DOCKERFILE
+then
+  fail "could not build the machine from ${BASE_IMAGE}; the build's last lines:"
+  tail -n 40 "${IMAGE_BUILD_LOG}"
+  exit 1
+fi
 
 docker run -d --name "${CONTAINER}" --privileged --cgroupns=host \
   -v /sys/fs/cgroup:/sys/fs/cgroup:rw --tmpfs /run --tmpfs /run/lock \
