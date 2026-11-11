@@ -3,6 +3,7 @@ import CustomNotificationChannelDeliveryService, {
   CustomChannelDeliveryResult,
 } from "../../../Server/Services/CustomNotificationChannelDeliveryService";
 import BlockedProjectNotifications from "../../../Server/Utils/Notification/BlockedProjectNotifications";
+import { NotificationDeliveryChannel } from "../../../Server/Utils/Telemetry/NotificationDeliveryMetrics";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
@@ -217,8 +218,13 @@ describe("CustomNotificationChannelDeliveryService.send", () => {
     expect(result.ok).toBe(false);
     expect(result.statusCode).toBe(403);
 
+    /*
+     * Named as the delivery metrics name it too, so the refusal is counted
+     * as not sent (NotificationDeliveryMetrics).
+     */
     expect(refusal).toHaveBeenCalledWith({
       channel: CUSTOM_CHANNEL_DELIVERY_LABEL,
+      deliveryChannel: NotificationDeliveryChannel.CustomChannel,
       projectId: PROJECT_ID,
       userOnCallLogTimelineId: TIMELINE_ID,
     });
