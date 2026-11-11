@@ -1,4 +1,8 @@
-import { mdText } from "../Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  MarkdownValue,
+  mdText,
+} from "../Markdown/FeedMarkdown";
 import {
   WordEvaluationSentenceOptions,
   wordStoredEvaluationText,
@@ -118,7 +122,7 @@ export interface RootCauseFinding {
 }
 
 interface WordedFinding {
-  // The finding as the root cause has it: escaped as Markdown text.
+  // The finding as the engine wrote it, and in the reader's language: text.
   english: string;
   worded: string;
 }
@@ -152,22 +156,28 @@ export default class MonitorRootCauseWording {
         options: data.options,
       });
 
+    // The finding the root cause has at a place, escaped as it is there.
     const findingAt: (
       text: string,
       escape: (text: string) => string,
-    ) => string | null = (
+    ) => WordedFinding | null = (
       text: string,
       escape: (text: string) => string,
-    ): string | null => {
+    ): WordedFinding | null => {
       for (const finding of findings) {
         if (escape(finding.english) === text) {
-          return escape(finding.worded);
+          return finding;
         }
       }
 
       return null;
     };
 
+    /*
+     * Each line OneUptime wrote is written again with mdText: its words, a
+     * label or a finding, as text, and what the root cause has after them as
+     * the Markdown it already is.
+     */
     return data.rootCause
       .split("\n")
       .map((line: string): string => {
@@ -175,48 +185,63 @@ export default class MonitorRootCauseWording {
 
         if (boldLabel && BOLD_LABEL_SET.has(boldLabel[1]!)) {
           const label: string = boldLabel[1]!;
-          let rest: string = boldLabel[3] || "";
+          const stored: string = boldLabel[3] || "";
+          let rest: MarkdownText = FeedMarkdown.asMarkdown(stored);
 
           // "**Filter Conditions Met**: <the finding, or All filters met.>"
-          if (label === FILTER_CONDITIONS_MET && rest.startsWith(" ")) {
-            const said: string = rest.slice(1);
+          if (label === FILTER_CONDITIONS_MET && stored.startsWith(" ")) {
+            const said: string = stored.slice(1);
 
             if (said === ALL_FILTERS_MET) {
-              rest = ` ${MonitorRootCauseWording.word(ALL_FILTERS_MET, translator)}`;
+              rest = mdText` ${MonitorRootCauseWording.word(ALL_FILTERS_MET, translator)}`;
             } else {
-              const worded: string | null = findingAt(said, asMarkdownText);
+              const finding: WordedFinding | null = findingAt(
+                said,
+                asMarkdownText,
+              );
 
-              if (worded !== null) {
-                rest = ` ${worded}`;
+              if (finding !== null) {
+                rest = mdText` ${finding.worded}`;
               }
             }
           }
 
-          return `${MonitorRootCauseWording.boldLabel(label, translator)}${boldLabel[2]}${rest}`;
+          const bold: MarkdownText = MonitorRootCauseWording.boldLabel(
+            label,
+            translator,
+          );
+
+          return (
+            boldLabel[2] === ":"
+              ? mdText`${bold}:${rest}`
+              : mdText`${bold}${rest}`
+          ).toString();
         }
 
         const fact: RegExpExecArray | null = FACT_LINE.exec(line);
 
         if (fact && FACT_LABEL_SET.has(fact[1]!)) {
           const label: string = fact[1]!;
-          let value: string = fact[2] || "";
+          const stored: string = fact[2] || "";
 
-          if (YES_NO_FACTS.has(label) && (value === "Yes" || value === "No")) {
-            value = MonitorRootCauseWording.word(value, translator);
-          }
+          // OneUptime's own yes or no is a word; any other value is as stored.
+          const value: MarkdownValue =
+            YES_NO_FACTS.has(label) && (stored === "Yes" || stored === "No")
+              ? MonitorRootCauseWording.word(stored, translator)
+              : FeedMarkdown.asMarkdown(stored);
 
-          return `- ${asMarkdownText(MonitorRootCauseWording.word(label, translator))}: ${value}`;
+          return mdText`- ${MonitorRootCauseWording.word(label, translator)}: ${value}`.toString();
         }
 
         // "- <a finding>", under All filters met.
         if (line.startsWith("- ")) {
-          const worded: string | null = findingAt(
+          const finding: WordedFinding | null = findingAt(
             line.slice(2),
             asListItemText,
           );
 
-          if (worded !== null) {
-            return `- ${worded}`;
+          if (finding !== null) {
+            return mdText`- ${finding.worded}`.toString();
           }
         }
 
@@ -225,8 +250,11 @@ export default class MonitorRootCauseWording {
       .join("\n");
   }
 
-  private static boldLabel(label: string, translator: Translator): string {
-    return `**${asMarkdownText(MonitorRootCauseWording.word(label, translator))}**`;
+  private static boldLabel(
+    label: string,
+    translator: Translator,
+  ): MarkdownText {
+    return mdText`**${MonitorRootCauseWording.word(label, translator)}**`;
   }
 
   // One of OneUptime's words, in the reader's language when it words it.
