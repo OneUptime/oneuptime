@@ -15,6 +15,8 @@ import {
   uninstallEnterpriseModule,
 } from "Common/Tests/Server/Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "Common/Tests/Server/Enterprise/TestBillingFlag";
+import { EVERY_FIVE_MINUTE } from "Common/Utils/CronTime";
+import { ENTERPRISE_OWNED_JOB_NAMES } from "App/Utils/EnterpriseLoader";
 
 /*
  * The AuditLog area of the enterprise module: what it hands core, and that
@@ -71,20 +73,53 @@ describe("the AuditLog area", () => {
     expect(EnterpriseModule.getAuditLogRecorder()).toBe(getAuditLogRecorder());
   });
 
-  test("the recorder implements all four entry points core delegates to", () => {
+  test("the recorder implements every entry point core delegates to", () => {
     const recorder: AuditLogRecorderContract = getAuditLogRecorder()!;
 
     expect(typeof recorder.recordCreate).toBe("function");
     expect(typeof recorder.recordUpdate).toBe("function");
     expect(typeof recorder.recordDelete).toBe("function");
+    expect(typeof recorder.recordDownload).toBe("function");
+    expect(typeof recorder.recordSessionEvents).toBe("function");
     expect(typeof recorder.invalidateProjectSettings).toBe("function");
   });
 
-  test("contributes no routers and no worker jobs", () => {
+  test("contributes no routers", () => {
     expect(AuditLogArea.name).toBe("AuditLog");
     expect(AuditLogArea.getIdentityRouters).toBeUndefined();
     expect(AuditLogArea.getApiRouters).toBeUndefined();
-    expect(AuditLogArea.registerWorkerJobs).toBeUndefined();
+  });
+
+  /*
+   * Its one worker job ends the sessions that ran out, so their timeouts
+   * reach the audit log within minutes (issue #6762). RunCron is captured
+   * above, so loading it registers nothing in Redis.
+   */
+  test("registers the job that ends sessions that ran out, every five minutes", async () => {
+    const cron: jest.Mock = (
+      jest.requireMock("App/FeatureSet/Workers/Utils/Cron") as {
+        default: jest.Mock;
+      }
+    ).default;
+
+    await AuditLogArea.registerWorkerJobs?.();
+
+    const call: Array<unknown> | undefined = cron.mock.calls.find(
+      (args: Array<unknown>): boolean => {
+        return args[0] === "AuditLog:EndSessionsThatRanOut";
+      },
+    );
+
+    expect(call).toBeDefined();
+    expect(call![1]).toEqual(
+      expect.objectContaining({
+        schedule: EVERY_FIVE_MINUTE,
+        runOnStartup: false,
+      }),
+    );
+    expect(ENTERPRISE_OWNED_JOB_NAMES).toContain(
+      "AuditLog:EndSessionsThatRanOut",
+    );
   });
 });
 

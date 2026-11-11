@@ -1161,6 +1161,7 @@ describe("EnterpriseLoader worker jobs", () => {
       "AuditLogExport:ExportAuditLogs",
       "Backup:RunBackups",
       "OnCallDutyPolicy:AddCustomChannelToEveryonesRules",
+      "AuditLog:EndSessionsThatRanOut",
     ]);
     expect(getFixtureCalls()).toContain("DefaultExport:registerWorkerJobs");
 
