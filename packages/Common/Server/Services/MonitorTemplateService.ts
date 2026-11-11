@@ -35,6 +35,7 @@ import QueryHelper from "../Types/Database/QueryHelper";
 import MonitorStepsIdentityUtil from "../../Utils/Monitor/MonitorStepsIdentityUtil";
 import MetricQueryCloudAggregation from "../../Utils/Metrics/MetricQueryCloudAggregation";
 import SyntheticMonitorStepsUtil from "../../Utils/Monitor/SyntheticMonitorStepsUtil";
+import MonitorStepsValuesUtil from "../../Utils/Monitor/MonitorStepsValuesUtil";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import Query from "../Types/Database/Query";
@@ -150,6 +151,16 @@ export class Service extends ProjectReferencesService<Model> {
      * nothing.
      */
     SyntheticMonitorStepsUtil.assertRunsSomewhere({
+      monitorType: createBy.data.monitorType,
+      monitorSteps: createBy.data.monitorSteps,
+    });
+
+    /*
+     * Nor a value no check reads - a rolling time or a filter condition
+     * that means none - which every monitor made or synced from it would
+     * take (MonitorStepsValuesUtil).
+     */
+    MonitorStepsValuesUtil.assertValuesReadable({
       monitorType: createBy.data.monitorType,
       monitorSteps: createBy.data.monitorSteps,
     });
@@ -299,6 +310,13 @@ export class Service extends ProjectReferencesService<Model> {
       if (!updateBy.data.monitorSteps) {
         continue;
       }
+      // The steps this write leaves, as on create.
+      MonitorStepsValuesUtil.assertValuesReadable({
+        monitorType:
+          (updateBy.data.monitorType as MonitorType | undefined) ||
+          template.monitorType,
+        monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
+      });
       await MonitorStepsProjectValidator.validateMonitorStepsBelongToProject({
         monitorSteps: updateBy.data.monitorSteps as MonitorSteps | JSONObject,
         projectId: Service.getProjectToCheckRowIn(
