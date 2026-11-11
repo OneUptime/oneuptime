@@ -1,4 +1,12 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import React, {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { getDateLocale } from "Common/Types/DateLanguage";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
@@ -394,17 +402,206 @@ export const RETENTION_TABLE_DENSITY: Readonly<
   },
 };
 
-const ProductAnalyticsRetentionTable: FunctionComponent<{
+/*
+ * A width to fit a table to, and the table's widths as drawn with every
+ * period (readProductAnalyticsRetentionTableWidths): each column's, and the
+ * space the table keeps around each cell (its border-spacing), before the
+ * first, between and after the last.
+ */
+export interface ProductAnalyticsRetentionTableColumnWidths {
+  widthInPx: number;
+  // The cohort and the people columns.
+  labelColumnsInPx: ReadonlyArray<number>;
+  // Each period's column, first to last.
+  periodColumnsInPx: ReadonlyArray<number>;
+  spacingInPx: number;
+}
+
+// Whether a width is one to fit to: no width, or none known, draws every period.
+function isWidthToFitTo(widthInPx: number): boolean {
+  return Number.isFinite(widthInPx) && widthInPx > 0;
+}
+
+// The periods that fit whole beside the label columns, from the first: none, if not even the first does.
+function countPeriodsThatFitWhole(
+  data: ProductAnalyticsRetentionTableColumnWidths,
+): number {
+  // A fraction of a pixel of rounding is no reason to leave a period out.
+  const roomInPx: number = data.widthInPx + 0.01;
+  let usedInPx: number = data.spacingInPx;
+
+  for (const width of data.labelColumnsInPx) {
+    usedInPx += width + data.spacingInPx;
+  }
+
+  let fit: number = 0;
+
+  for (const width of data.periodColumnsInPx) {
+    usedInPx += width + data.spacingInPx;
+
+    if (usedInPx > roomInPx) {
+      break;
+    }
+
+    fit += 1;
+  }
+
+  return fit;
+}
+
+/*
+ * How many of a table's periods fit in a width (issue #6721): all when the
+ * whole table does, else the most of them, from the first, that fit beside
+ * the label columns given - never fewer than one, so a narrow widget still
+ * shows a period rather than none.
+ */
+export function countProductAnalyticsRetentionPeriodsThatFit(
+  data: ProductAnalyticsRetentionTableColumnWidths,
+): number {
+  const periods: number = data.periodColumnsInPx.length;
+
+  // Nothing to measure against: every period, as the page draws them.
+  if (!isWidthToFitTo(data.widthInPx)) {
+    return periods;
+  }
+
+  return Math.min(periods, Math.max(countPeriodsThatFitWhole(data), 1));
+}
+
+/* What a table fitted to a width draws: how many periods, and whether its People column. */
+export interface ProductAnalyticsRetentionTableFit {
+  periods: number;
+  showsPeople: boolean;
+}
+
+/*
+ * What of a table fits in a width: the periods that fit beside the cohort
+ * and people columns (countProductAnalyticsRetentionPeriodsThatFit) - or,
+ * where not even the first does, the table without its People column
+ * (issue #6841) and the periods that fit beside the cohort column alone,
+ * still never fewer than one. The cohort and a period are what a reader
+ * reads a retention table for; each cell still says its cohort's people
+ * ("Week 0: 1,240 of 1,240 came back"), and the line under the table
+ * opens the whole table on its page.
+ */
+export function fitProductAnalyticsRetentionTable(
+  data: ProductAnalyticsRetentionTableColumnWidths,
+): ProductAnalyticsRetentionTableFit {
+  const periods: number = data.periodColumnsInPx.length;
+
+  if (
+    periods === 0 ||
+    data.labelColumnsInPx.length < 2 ||
+    !isWidthToFitTo(data.widthInPx) ||
+    countPeriodsThatFitWhole(data) > 0
+  ) {
+    return {
+      periods: countProductAnalyticsRetentionPeriodsThatFit(data),
+      showsPeople: true,
+    };
+  }
+
+  return {
+    periods: countProductAnalyticsRetentionPeriodsThatFit({
+      ...data,
+      labelColumnsInPx: data.labelColumnsInPx.slice(0, 1),
+    }),
+    showsPeople: false,
+  };
+}
+
+/* The widths of a table as drawn: each column's (its heading's) and the spacing around its cells. */
+export interface ProductAnalyticsRetentionTableWidths {
+  columnsInPx: Array<number>;
+  spacingInPx: number;
+}
+
+export function readProductAnalyticsRetentionTableWidths(
+  table: HTMLTableElement,
+): ProductAnalyticsRetentionTableWidths {
+  const headings: Array<HTMLTableCellElement> = Array.from(
+    table.tHead?.rows[0]?.cells || [],
+  );
+  const columnsInPx: Array<number> = headings.map(
+    (heading: HTMLTableCellElement): number => {
+      return heading.getBoundingClientRect().width;
+    },
+  );
+  const cellsInPx: number = columnsInPx.reduce(
+    (total: number, width: number): number => {
+      return total + width;
+    },
+    0,
+  );
+  // What the table is wider than its columns: the spacing, once more than there are columns.
+  const spacingInPx: number =
+    columnsInPx.length > 0
+      ? Math.max(
+          0,
+          (table.getBoundingClientRect().width - cellsInPx) /
+            (columnsInPx.length + 1),
+        )
+      : 0;
+
+  return { columnsInPx: columnsInPx, spacingInPx: spacingInPx };
+}
+
+export interface ProductAnalyticsRetentionTableProps {
   retention: ProductAnalyticsRetentionDto;
   dataTestId: string;
   // A dashboard widget's: compact, the cohorts' year left out when it is this year's.
   isCompact?: boolean | undefined;
-}> = (props: {
-  retention: ProductAnalyticsRetentionDto;
-  dataTestId: string;
-  isCompact?: boolean | undefined;
-}): ReactElement => {
+  /*
+   * A dashboard widget's width for the table (issue #6721): the periods
+   * that do not fit in it are left out from the last, rather than scrolled
+   * to sideways, and renderPeriodsLeftOut says how many under the table.
+   * Left out, as on the page, every period is drawn and the table scrolls.
+   */
+  fitToWidthInPx?: number | undefined;
+  renderPeriodsLeftOut?: ((leftOut: number) => ReactNode) | undefined;
+}
+
+interface RetentionTableFit extends ProductAnalyticsRetentionTableFit {
+  // What it was measured for: the width and everything drawn.
+  key: string;
+}
+
+interface RetentionTableSize {
+  widthInPx: number;
+  heightInPx: number;
+}
+
+/*
+ * How often a fitted table is measured again for a change of its drawn
+ * size alone - its styles or a font arriving after it was measured, a
+ * scrollbar taking from its box - before its width or its rows change:
+ * enough for each, never a loop with a layout that moves each time the
+ * table is drawn.
+ */
+export const RETENTION_TABLE_MAX_REMEASURES: number = 3;
+
+const ProductAnalyticsRetentionTable: FunctionComponent<
+  ProductAnalyticsRetentionTableProps
+> = (props: ProductAnalyticsRetentionTableProps): ReactElement => {
   const translator: Translator = useTranslator();
+  const tableRef: React.RefObject<HTMLTableElement> =
+    useRef<HTMLTableElement>(null);
+  const boxRef: React.RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+  const [fit, setFit] = useState<RetentionTableFit | null>(null);
+  // How often the table was measured again for a change of its drawn size alone.
+  const [remeasures, setRemeasures] = useState<number>(0);
+  // The fitted table's size as first drawn; null while it is measured.
+  const drawnSizeRef: React.MutableRefObject<RetentionTableSize | null> =
+    useRef<RetentionTableSize | null>(null);
+  // The width and rows last measured for, and how often since for its drawn size alone.
+  const remeasuredRef: React.MutableRefObject<{
+    contentKey: string;
+    count: number;
+  }> = useRef<{ contentKey: string; count: number }>({
+    contentKey: "",
+    count: 0,
+  });
+  const isFittedToWidth: boolean = props.fitToWidthInPx !== undefined;
   const density: ProductAnalyticsRetentionTableDensity =
     RETENTION_TABLE_DENSITY[props.isCompact ? "compact" : "page"];
   const rows: Array<ProductAnalyticsRetentionRow> =
@@ -418,18 +615,174 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
       retention: props.retention,
       translator: translator,
     });
-  const columns: number = [...(averageRow ? [averageRow] : []), ...rows].reduce(
+  const drawnRows: Array<ProductAnalyticsRetentionRow> = [
+    ...(averageRow ? [averageRow] : []),
+    ...rows,
+  ];
+  const columns: number = drawnRows.reduce(
     (most: number, row: ProductAnalyticsRetentionRow): number => {
       return Math.max(most, row.cells.length);
     },
     0,
   );
-  const columnIndexes: Array<number> = Array.from(
+  const headings: Array<string> = Array.from(
     { length: columns },
+    (_value: unknown, index: number): string => {
+      return describeProductAnalyticsRetentionColumn({
+        period: props.retention.period,
+        index: index,
+        translator: translator,
+      });
+    },
+  );
+
+  /*
+   * Fitted to a width: measured once with every period drawn at its own
+   * width (w-max), before the browser paints, then drawn with the periods
+   * that fit - again whenever the width or anything drawn changes (a
+   * refresh, the language), so a widget made wider gets its periods back,
+   * and whenever the table drawn fitted changes size by itself: measured
+   * before the page's styles for its classes or its font were in, its
+   * columns were not the widths they are drawn at.
+   */
+  const contentKey: string =
+    props.fitToWidthInPx === undefined
+      ? ""
+      : JSON.stringify([
+          props.fitToWidthInPx,
+          headings,
+          drawnRows.map((row: ProductAnalyticsRetentionRow): Array<string> => {
+            return [
+              row.cohort,
+              row.people,
+              ...row.cells.map(
+                (cell: ProductAnalyticsRetentionCell | null): string => {
+                  return cell?.text || "";
+                },
+              ),
+            ];
+          }),
+        ]);
+  const fitKey: string = contentKey === "" ? "" : `${remeasures}:${contentKey}`;
+  const isMeasuring: boolean = fitKey !== "" && fit?.key !== fitKey;
+  const currentFit: RetentionTableFit | null =
+    fitKey !== "" && fit && fit.key === fitKey ? fit : null;
+  const shownColumns: number = currentFit
+    ? Math.min(currentFit.periods, columns)
+    : columns;
+  // Drawn while measured, and wherever a period fits beside it.
+  const showsPeople: boolean = currentFit ? currentFit.showsPeople : true;
+  const leftOut: number = columns - shownColumns;
+  const columnIndexes: Array<number> = Array.from(
+    { length: shownColumns },
     (_value: unknown, index: number): number => {
       return index;
     },
   );
+
+  useLayoutEffect(() => {
+    const table: HTMLTableElement | null = tableRef.current;
+
+    if (!table || props.fitToWidthInPx === undefined) {
+      return;
+    }
+
+    if (remeasuredRef.current.contentKey !== contentKey) {
+      remeasuredRef.current = { contentKey: contentKey, count: 0 };
+    }
+
+    if (!isMeasuring) {
+      // The size it is first drawn at, fitted: a change of it measures again.
+      drawnSizeRef.current = drawnSizeRef.current || {
+        widthInPx: table.offsetWidth,
+        heightInPx: table.offsetHeight,
+      };
+      return;
+    }
+
+    drawnSizeRef.current = null;
+
+    const widths: ProductAnalyticsRetentionTableWidths =
+      readProductAnalyticsRetentionTableWidths(table);
+    /*
+     * The widget's own width; or its box's, where that is less - a
+     * scrollbar the widget shows down its side takes from it.
+     */
+    const boxWidthInPx: number = boxRef.current?.clientWidth || 0;
+    const widthInPx: number =
+      boxWidthInPx > 0
+        ? Math.min(props.fitToWidthInPx, boxWidthInPx)
+        : props.fitToWidthInPx;
+
+    setFit({
+      key: fitKey,
+      ...fitProductAnalyticsRetentionTable({
+        widthInPx: widthInPx,
+        labelColumnsInPx: widths.columnsInPx.slice(0, 2),
+        periodColumnsInPx: widths.columnsInPx.slice(2),
+        spacingInPx: widths.spacingInPx,
+      }),
+    });
+  });
+
+  /*
+   * A fitted table that changes size with nothing of it changed was
+   * measured at widths it is not drawn at: the styles for its classes,
+   * written by the page as they first appear, came after it was measured
+   * (the first widget of a board drew eleven weeks in room for six), or
+   * its font did, or a scrollbar took from its box. Measured again - and
+   * again once a font comes in, which can make it narrower without a
+   * change of size to see.
+   */
+  useEffect(() => {
+    const table: HTMLTableElement | null = tableRef.current;
+
+    if (!isFittedToWidth || !table) {
+      return;
+    }
+
+    const measureAgain: () => void = (): void => {
+      if (
+        !drawnSizeRef.current ||
+        remeasuredRef.current.count >= RETENTION_TABLE_MAX_REMEASURES
+      ) {
+        return;
+      }
+
+      remeasuredRef.current.count += 1;
+      drawnSizeRef.current = null;
+      setRemeasures((count: number): number => {
+        return count + 1;
+      });
+    };
+
+    const observer: ResizeObserver | null =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver((): void => {
+            const drawn: RetentionTableSize | null = drawnSizeRef.current;
+
+            if (
+              drawn &&
+              (Math.abs(table.offsetWidth - drawn.widthInPx) >= 1 ||
+                Math.abs(table.offsetHeight - drawn.heightInPx) >= 1)
+            ) {
+              measureAgain();
+            }
+          });
+
+    observer?.observe(table);
+
+    const fonts: FontFaceSet | undefined =
+      typeof document === "undefined" ? undefined : document.fonts;
+
+    fonts?.addEventListener?.("loadingdone", measureAgain);
+
+    return () => {
+      observer?.disconnect();
+      fonts?.removeEventListener?.("loadingdone", measureAgain);
+    };
+  }, [isFittedToWidth]);
 
   /*
    * A row: its cohort (or "All cohorts", bold, its test ids its own), its
@@ -457,13 +810,17 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
         >
           {row.cohort}
         </th>
-        <td
-          className={`whitespace-nowrap ${density.label} text-end tabular-nums ${
-            isAverage ? "font-semibold text-gray-900" : "text-gray-700"
-          }`}
-        >
-          {row.people}
-        </td>
+        {showsPeople ? (
+          <td
+            className={`whitespace-nowrap ${density.label} text-end tabular-nums ${
+              isAverage ? "font-semibold text-gray-900" : "text-gray-700"
+            }`}
+          >
+            {row.people}
+          </td>
+        ) : (
+          <></>
+        )}
         {columnIndexes.map((index: number): ReactElement => {
           const cell: ProductAnalyticsRetentionCell | null | undefined =
             row.cells[index];
@@ -505,62 +862,79 @@ const ProductAnalyticsRetentionTable: FunctionComponent<{
   };
 
   return (
-    <div className="overflow-x-auto" data-testid={props.dataTestId}>
-      <table
-        className={`min-w-full border-separate border-spacing-0.5 ${density.table}`}
+    <>
+      <div
+        ref={boxRef}
+        className="overflow-x-auto"
+        data-testid={props.dataTestId}
       >
-        <thead>
-          <tr>
-            <th
-              scope="col"
-              className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap ${density.header} text-start font-medium uppercase text-gray-500`}
-            >
-              {translator.translateText("Cohort")}
-            </th>
-            <th
-              scope="col"
-              className={`whitespace-nowrap ${density.header} text-end font-medium uppercase text-gray-500`}
-            >
-              {translator.translateText("People")}
-            </th>
-            {columnIndexes.map((index: number): ReactElement => {
-              return (
+        <table
+          ref={tableRef}
+          className={`${
+            isMeasuring ? "w-max" : "min-w-full"
+          } border-separate border-spacing-0.5 ${density.table}`}
+        >
+          <thead>
+            <tr>
+              <th
+                scope="col"
+                className={`${RETENTION_COHORT_COLUMN_CLASS_NAME} whitespace-nowrap ${density.header} text-start font-medium uppercase text-gray-500`}
+              >
+                {translator.translateText("Cohort")}
+              </th>
+              {showsPeople ? (
                 <th
-                  key={index}
                   scope="col"
-                  className={`whitespace-nowrap ${density.header} text-center font-medium uppercase text-gray-500`}
+                  className={`whitespace-nowrap ${density.header} text-end font-medium uppercase text-gray-500`}
                 >
-                  {describeProductAnalyticsRetentionColumn({
-                    period: props.retention.period,
-                    index: index,
-                    translator: translator,
-                  })}
+                  {translator.translateText("People")}
                 </th>
-              );
-            })}
-          </tr>
-        </thead>
-        {averageRow ? (
-          /*
-           * Its own group above the cohorts', a little apart from them: it
-           * reads as what the cohorts add up to, not as one more of them.
-           */
-          <tbody>
-            {renderRow(averageRow, true)}
-            <tr aria-hidden="true">
-              <td colSpan={columns + 2} className="h-1.5 p-0" />
+              ) : (
+                <></>
+              )}
+              {columnIndexes.map((index: number): ReactElement => {
+                return (
+                  <th
+                    key={index}
+                    scope="col"
+                    className={`whitespace-nowrap ${density.header} text-center font-medium uppercase text-gray-500`}
+                  >
+                    {headings[index]}
+                  </th>
+                );
+              })}
             </tr>
+          </thead>
+          {averageRow ? (
+            /*
+             * Its own group above the cohorts', a little apart from them: it
+             * reads as what the cohorts add up to, not as one more of them.
+             */
+            <tbody>
+              {renderRow(averageRow, true)}
+              <tr aria-hidden="true">
+                <td
+                  colSpan={shownColumns + (showsPeople ? 2 : 1)}
+                  className="h-1.5 p-0"
+                />
+              </tr>
+            </tbody>
+          ) : (
+            <></>
+          )}
+          <tbody>
+            {rows.map((row: ProductAnalyticsRetentionRow): ReactElement => {
+              return renderRow(row, false);
+            })}
           </tbody>
-        ) : (
-          <></>
-        )}
-        <tbody>
-          {rows.map((row: ProductAnalyticsRetentionRow): ReactElement => {
-            return renderRow(row, false);
-          })}
-        </tbody>
-      </table>
-    </div>
+        </table>
+      </div>
+      {leftOut > 0 && props.renderPeriodsLeftOut ? (
+        props.renderPeriodsLeftOut(leftOut)
+      ) : (
+        <></>
+      )}
+    </>
   );
 };
 
