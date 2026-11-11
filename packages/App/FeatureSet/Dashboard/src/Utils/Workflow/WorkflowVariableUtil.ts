@@ -156,7 +156,9 @@ const SAVED_SENTENCES: Record<string, string> = {
 /*
  * Worded in the reader's language when the modal passes its translator (#6752);
  * in English without one, as the tests read it. The variable's name and the
- * reason a fetch failed are shown as they are.
+ * reason a fetch failed are shown as they are, each set apart from a sentence
+ * that reads the other way: a Persian line holding the provider's English
+ * reason was otherwise laid out from the left, its words out of order.
  */
 export function getTokenRefreshDescription(
   outcome: TokenRefreshOutcome,
@@ -188,6 +190,7 @@ export function getTokenRefreshDescription(
     return `${saved}${translator.translateTemplate(
       'OneUptime could not fetch an access token for "{{name}}": {{error}}',
       { name: outcome.variableName, error: outcome.error },
+      { setsValuesApart: true },
     )}`;
   }
 
@@ -200,12 +203,14 @@ export function getTokenRefreshDescription(
           outcome.expiresAt,
         ),
       },
+      { setsValuesApart: true },
     )}`;
   }
 
   return `${saved}${translator.translateTemplate(
     'OneUptime fetched a new access token for "{{name}}" from your identity provider. The provider did not say when it expires, so every workflow run fetches a new one.',
     { name: outcome.variableName },
+    { setsValuesApart: true },
   )}`;
 }
 

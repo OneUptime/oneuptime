@@ -12,6 +12,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import readAsWritten from "Common/UI/Components/IsolatedText/ReadAsWritten";
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -87,14 +88,18 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
   let color: Color = Gray500;
   let icon: IconProp = IconProp.Clock;
   let detail: string = "";
+  // The provider's own words, shown as it wrote them after the detail.
+  let reason: string = "";
 
   switch (summary.status) {
     case OAuth2TokenStatus.Valid:
       color = Green500;
       icon = IconProp.CheckCircle;
-      detail = translator.translateTemplate("Valid until {{date}}", {
-        date: formatDate(summary.expiresAt!),
-      });
+      detail = translator.translateTemplate(
+        "Valid until {{date}}",
+        { date: formatDate(summary.expiresAt!) },
+        { setsValuesApart: true },
+      );
       break;
     case OAuth2TokenStatus.Expired:
       color = Amber500;
@@ -110,15 +115,20 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
       detail = translator.translateTemplate(
         "Fetched {{date}}. The provider did not say when it expires, so every run fetches a new one",
         { date: formatDate(summary.lastRefreshedAt!) },
+        { setsValuesApart: true },
       );
       break;
     case OAuth2TokenStatus.RefreshFailed: {
       color = Red500;
       icon = IconProp.Error;
-      detail = summary.lastRefreshError || "";
+      /*
+       * On a page read from the right, the provider's English kept its full
+       * stop at its own end only when drawn apart from the date before it.
+       */
+      reason = summary.lastRefreshError || "";
 
       if (summary.lastRefreshErrorAt) {
-        detail = `${formatDate(summary.lastRefreshErrorAt)}: ${detail}`;
+        detail = `${formatDate(summary.lastRefreshErrorAt)}: `;
       }
 
       break;
@@ -144,13 +154,14 @@ const WorkflowVariableTokenStatus: FunctionComponent<ComponentProps> = (
         color={color}
         icon={icon}
       />
-      {detail ? (
+      {detail || reason ? (
         // A refresh error is a sentence or two, so let it wrap.
         <span
           className="whitespace-normal break-words text-sm text-gray-500"
           data-testid="workflow-variable-token-status-detail"
         >
           {detail}
+          {reason ? readAsWritten(reason, translator.language) : <></>}
         </span>
       ) : (
         <></>

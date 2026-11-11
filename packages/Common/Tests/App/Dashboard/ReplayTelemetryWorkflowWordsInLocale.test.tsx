@@ -39,6 +39,7 @@ import { UserFlowJourney } from "../../../Utils/Rum/UserFlow";
 import TracePipelineProcessor from "../../../Models/DatabaseModels/TracePipelineProcessor";
 import WorkflowVariable from "../../../Models/DatabaseModels/WorkflowVariable";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { getTranslatedLineDirection } from "../../../UI/Utils/LineDirection";
 
 /*
  * SESSION REPLAY, USER FLOWS, TRACES, TRACE PIPELINES, TEAMS AND WORKFLOW
@@ -810,7 +811,9 @@ const SAVED_AND_FETCHED: TokenRefreshOutcome = {
 const SAVED_AND_REFUSED: TokenRefreshOutcome = {
   variableName: "API_TOKEN",
   savedWhat: "Client secret and refresh token",
-  error: "invalid_grant - Token has been expired or revoked.",
+  // The token endpoint's own answer, as OneUptime passes it on.
+  error:
+    "The token endpoint refused the request (HTTP 400): invalid_grant - Token has been expired or revoked.",
 };
 
 const FETCHED_WITHOUT_EXPIRY: TokenRefreshOutcome = {
@@ -891,6 +894,75 @@ describe("what Refresh now, or saving new credentials, says in Italian, Korean, 
       });
     }
   }
+
+  /*
+   * The provider's reason is English. Filled in as it was, it made a Persian
+   * line read as English, so the line was laid out from the left and its
+   * Persian words came out in the wrong order.
+   */
+  test("fa: the provider's English reason is set apart, so the line is still laid out as Persian", () => {
+    const description: string = getTokenRefreshDescription(
+      SAVED_AND_REFUSED,
+      translatorFor("fa"),
+    );
+
+    expect(description).toContain(
+      `\u2068${SAVED_AND_REFUSED.error as string}\u2069`,
+    );
+    expect(description).toContain("\u2068API_TOKEN\u2069");
+    expect(getTranslatedLineDirection(description, "fa")).toBeUndefined();
+    expect(
+      getTranslatedLineDirection(withoutIsolateMarks(description), "fa"),
+    ).toBe("ltr");
+  });
+
+  test("fa: a failed refresh's reason is drawn apart from the date before it, keeping its full stop at its end", async () => {
+    await i18next.changeLanguage("fa");
+    render(
+      <WorkflowVariableTokenStatus
+        variable={oauthVariable(
+          TOKEN_STATES.find((state: (typeof TOKEN_STATES)[number]) => {
+            return state.name === "refresh failed";
+          })!.values,
+        )}
+        now={TOKEN_NOW}
+      />,
+    );
+
+    const reason: Element | null = document.querySelector(
+      "[data-testid='workflow-variable-token-status-detail'] bdi",
+    );
+
+    expect(reason?.textContent).toBe(
+      "invalid_grant - Token has been expired or revoked.",
+    );
+    expect(reason?.getAttribute("dir")).toBe("ltr");
+  });
+
+  test("it: a failed refresh's reason on a page read from the left is plain text", async () => {
+    await i18next.changeLanguage("it");
+    render(
+      <WorkflowVariableTokenStatus
+        variable={oauthVariable(
+          TOKEN_STATES.find((state: (typeof TOKEN_STATES)[number]) => {
+            return state.name === "refresh failed";
+          })!.values,
+        )}
+        now={TOKEN_NOW}
+      />,
+    );
+
+    expect(
+      document.querySelector(
+        "[data-testid='workflow-variable-token-status-detail'] bdi",
+      ),
+    ).toBeNull();
+    expect(
+      document.querySelector(
+        "[data-testid='workflow-variable-token-status-detail']",
+      )?.textContent,
+    ).toMatch(/: invalid_grant - Token has been expired or revoked\.$/);
+  });
 
   test("without a translator the result is the English it always was", () => {
     expect(getTokenRefreshDescription(FETCHED_WITHOUT_EXPIRY)).toBe(
