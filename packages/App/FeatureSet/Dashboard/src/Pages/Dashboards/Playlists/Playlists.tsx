@@ -21,6 +21,8 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import { getPlaylistSummary } from "../../../Components/Dashboard/Playlist/PlaylistDashboards";
 import { getPlaylistFormFields } from "./PlaylistFormFields";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * Dashboards → Playlists (issue #5235): the project's playlists - each a
@@ -46,13 +48,18 @@ export const PlaylistNameCell: FunctionComponent<{
 }): ReactElement => {
   const isSummaryFolded: boolean = useAreTableColumnsFolded();
 
+  /*
+   * Its name reads the way it is written, on a line of its own cut short at
+   * its own end (IsolatedLine): an English name on an Arabic page, drawn
+   * inline, lost its start.
+   */
   if (!isSummaryFolded) {
-    return <>{props.name}</>;
+    return <IsolatedLine text={props.name} className="truncate" />;
   }
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-0.5">
-      <span className="truncate">{props.name}</span>
+      <IsolatedLine as="span" text={props.name} className="truncate" />
       {/*
        * Wraps - in two even lines - rather than ending in "...": on a
        * tablet beside the side menu the name's cell is about 200px wide.
@@ -164,6 +171,8 @@ const Playlists: FunctionComponent<PageComponentProps> = (): ReactElement => {
           getExportValue: (item: DashboardPlaylist): string => {
             return item.name || "";
           },
+          // The page's words beside the name: only the name reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: DashboardPlaylist): ReactElement => {
             return (
               <PlaylistNameCell

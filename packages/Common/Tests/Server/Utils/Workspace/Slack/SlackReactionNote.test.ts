@@ -671,6 +671,15 @@ describe("SlackReactionNoteActions.handleEmojiReaction", () => {
         slackChannelId: CHANNEL_ID,
       },
       slackTeamId: TEAM_ID,
+      /*
+       * Where the reaction was, which names the person's own workspace in a
+       * Slack Enterprise organization (SlackRequestWorkspace).
+       */
+      slackWorkspace: expect.objectContaining({
+        teamId: TEAM_ID,
+        userId: SLACK_USER_ID,
+        channelId: CHANNEL_ID,
+      }),
       description: {
         // The prompt is at the foot of the channel: not "this message".
         purpose:

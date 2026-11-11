@@ -58,6 +58,19 @@ Go to **Incidents** > **Workspace** > **Slack**. The **Workspace** section lists
 Click **Test Rule** on the rule's row. A test message arrives in the channels the rule names. See [Testing a rule](#testing-a-rule).
 :::
 
+## Slack Enterprise organizations
+
+On Slack Enterprise Grid, one project can work in several workspaces of your organization. Install OneUptime for the whole organization instead of one workspace:
+
+1. An organization admin or owner clicks **Connect with Slack** on **Project Settings** > **Workspace** > **Slack**, chooses the organization rather than one of its workspaces on Slack's install page, and allows OneUptime.
+2. In Slack's organization settings, an admin adds OneUptime to each workspace that should use it.
+3. The **Slack workspaces** card lists those workspaces. Click **Refresh** after adding OneUptime to another one.
+
+- **Which workspace a rule uses.** Notification rules pick the **Slack workspace** their channels are in. Left empty, a rule uses the default workspace, and looks for the channels it names there first. **Make default** on the card changes the default.
+- **Where OneUptime works.** Buttons, commands, the Home tab and OneUptime AI work in each of those workspaces, and members connect their own Slack account from any of them.
+- **A project connected to a single workspace.** If that workspace is part of the organization, the project keeps its rules, channels and connected accounts when it is installed for the whole organization with **Install for the organization** on the same page. That workspace becomes the default.
+- **On a self-hosted server,** a Slack app created from OneUptime's manifest allows this already: the manifest sets `org_deploy_enabled`.
+
 ## Asking everyone to connect
 
 Nobody can connect somebody else's Slack account, an admin included: each person signs in to their own. To bring in a whole team, a **Project Owner** or **Project Admin** asks everyone at once on **Project Settings** > **Workspace** > **Slack**. The **Members' Slack accounts** card says how many members have connected. **Ask everyone to connect** sends each member who has not a direct message from OneUptime in Slack, with a **Connect Slack account** button that connects their account in one click.

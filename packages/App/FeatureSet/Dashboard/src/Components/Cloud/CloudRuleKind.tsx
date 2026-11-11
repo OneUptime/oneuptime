@@ -9,6 +9,7 @@ import Pill from "Common/UI/Components/Pill/Pill";
 import { RuleWording } from "Common/UI/Components/RuleRun/RuleView";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { ReactElement } from "react";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * Owner and label rules for the CloudResource table, as each product's
@@ -98,7 +99,12 @@ export function CloudRuleName(props: {
 }): ReactElement {
   return (
     <span className="inline-flex min-w-0 flex-wrap items-center gap-1.5">
-      <span>{props.rule.name || ""}</span>
+      {/* Its name reads its own way, cut short at its own end. */}
+      <IsolatedLine
+        as="span"
+        text={props.rule.name || ""}
+        className="min-w-0 truncate"
+      />
       <CloudRuleKindPill rule={props.rule} kind={props.kind} />
     </span>
   );

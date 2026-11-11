@@ -325,7 +325,7 @@ describe("what of a press is kept to read it again", () => {
     });
   });
 
-  test("a shortcut: its kind, its callback, who and in which workspace", () => {
+  test("a shortcut: its kind, its callback, who and in which workspace and organization", () => {
     expect(
       SlackProjectChoice.getPressPayload({
         type: "shortcut",
@@ -340,7 +340,9 @@ describe("what of a press is kept to read it again", () => {
     ).toEqual({
       type: "shortcut",
       team: { id: TEAM_ID },
-      user: { id: DEANE, username: "deane" },
+      // Whose workspace, and whether it came from an organization's installation (SlackRequestWorkspace).
+      user: { id: DEANE, username: "deane", team_id: TEAM_ID },
+      is_enterprise_install: false,
       callback_id: "/incident",
     });
   });
@@ -395,7 +397,7 @@ describe("what of a press is kept to read it again", () => {
       }),
     ).toEqual({
       type: "block_actions",
-      user: { id: DEANE, username: "deane", name: "deane" },
+      user: { id: DEANE, username: "deane", name: "deane", team_id: TEAM_ID },
       team: { id: TEAM_ID },
       channel: { id: "C0GENERAL", name: "general" },
       container: { is_ephemeral: true, thread_ts: "1760000000.000100" },

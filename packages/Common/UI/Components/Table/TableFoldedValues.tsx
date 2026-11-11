@@ -3,6 +3,11 @@ import { TABLE_FOLDED_MAIN_ATTRIBUTE } from "./FullValueTitle";
 import { TABLE_SHRINKABLE_ATTRIBUTE } from "./TableLayout";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../Utils/LineDirection";
+import { ReadingDirection } from "../../../Types/ReadingDirection";
 import React, { FunctionComponent, ReactElement } from "react";
 
 /*
@@ -40,6 +45,11 @@ export interface ComponentProps {
   // The values of the columns folded into it (Column.foldInto).
   folded: Array<TableFoldedValue>;
   mainLayout?: TableFoldedMainLayout | undefined;
+  /*
+   * The way the cell's own value reads when it is not the page's way
+   * (TableRow's getValueLineDirection): an English title on an Arabic page.
+   */
+  mainDirection?: ReadingDirection | undefined;
 }
 
 export const TABLE_FOLDED_VALUES_TEST_ID: string = "table-folded-values";
@@ -75,6 +85,30 @@ export const TABLE_FOLDED_MAIN_CLASS_NAMES: Record<
 };
 
 /*
+ * THE CELL'S OWN VALUE, READ THE OTHER WAY FROM THE PAGE.
+ *
+ * A cell with values folded under it keeps the page's way: the labels,
+ * owners and times under its value are the page's words. Its own value
+ * may not be - an English incident title on an Arabic page. Drawn the
+ * page's way, a title cut short to its two lines lost the start of its
+ * second line instead of its end ("...every EU region while the payments
+ * gateway"). So the value's own line reads its way (dir), and lines up as
+ * the page's lines do: a title on two lines is a box as wide as its words,
+ * at the page's start, whose lines run from their own start and end in
+ * the whole "..." (CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME - text-end
+ * would draw a clamped line's "..." past the box's end); a value kept
+ * whole on its one line is aligned to its end (LINE_ALIGNED_AS_THE_PAGE).
+ */
+export const TABLE_FOLDED_MAIN_ALIGNED_AS_THE_PAGE_CLASS_NAMES: Record<
+  TableFoldedMainLayout,
+  string
+> = {
+  [TableFoldedMainLayout.Line]: CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  [TableFoldedMainLayout.Whole]: LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  [TableFoldedMainLayout.Wrap]: CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+};
+
+/*
  * What a cell draws while its value is still on its way (OwnersCell's
  * "Loading..."): folded under another value, it draws no line, so the rows
  * of a list do not grow by a line of "Loading..." each and shrink back as
@@ -97,7 +131,7 @@ export const TABLE_FOLDED_VALUE_TITLE_CLASS_NAME: string =
   "me-1.5 text-xs font-medium text-gray-500";
 
 // A value the cell need not draw a line for.
-const isEmptyContent: (content: React.ReactNode) => boolean = (
+export const isEmptyFoldedContent: (content: React.ReactNode) => boolean = (
   content: React.ReactNode,
 ): boolean => {
   if (content === null || content === undefined || content === false) {
@@ -131,7 +165,7 @@ const TableFoldedValues: FunctionComponent<ComponentProps> = (
 
   const values: Array<TableFoldedValue> = props.folded.filter(
     (value: TableFoldedValue): boolean => {
-      return !isEmptyContent(value.content);
+      return !isEmptyFoldedContent(value.content);
     },
   );
 
@@ -161,7 +195,12 @@ const TableFoldedValues: FunctionComponent<ComponentProps> = (
       {...shrinkable}
     >
       <div
-        className={TABLE_FOLDED_MAIN_CLASS_NAMES[layout]}
+        className={
+          props.mainDirection
+            ? `${TABLE_FOLDED_MAIN_CLASS_NAMES[layout]} ${TABLE_FOLDED_MAIN_ALIGNED_AS_THE_PAGE_CLASS_NAMES[layout]}`
+            : TABLE_FOLDED_MAIN_CLASS_NAMES[layout]
+        }
+        dir={props.mainDirection}
         // What the cell's tooltip names (FullValueTitle).
         {...{ [TABLE_FOLDED_MAIN_ATTRIBUTE]: "true" }}
         {...shrinkable}

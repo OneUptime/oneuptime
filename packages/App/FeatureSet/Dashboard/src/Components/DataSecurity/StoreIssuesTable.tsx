@@ -20,6 +20,8 @@ import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 /*
  * One store's issues, the riskiest first. A store's Issues page shows two of
@@ -144,6 +146,8 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
           // A long title wraps rather than pushing the table past its card.
           wrapContent: true,
           wrapMaxWidthClassName: "max-w-sm",
+          // The page's words beside the name: only the name reads its own way.
+          getLineText: drawsItsOwnLines,
           getElement: (item: DataSecurityIssue): ReactElement => {
             return (
               <div className="min-w-0">
@@ -151,9 +155,13 @@ const StoreIssuesTable: FunctionComponent<ComponentProps> = (
                   to={getDataSecurityIssueRoute(item._id!)}
                   className="text-sm font-medium text-gray-900 hover:underline"
                 >
-                  {translator.translateText(item.title || "") ||
-                    item.title ||
-                    "—"}
+                  <IsolatedText
+                    text={
+                      translator.translateText(item.title || "") ||
+                      item.title ||
+                      "—"
+                    }
+                  />
                 </AppLink>
                 {item.checkGroup ? (
                   <div className="text-xs text-gray-500">

@@ -19,6 +19,7 @@ import WorkspaceProjectResolver, {
 } from "../WorkspaceProjectResolution";
 import WorkspaceUserAuthTokenService from "../../../Services/WorkspaceUserAuthTokenService";
 import logger from "../../Logger";
+import SlackRequestWorkspaceUtil from "./SlackRequestWorkspace";
 import ProductBrandingText from "../../ProductBrandingText";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import WorkspaceCommands from "../WorkspaceCommands";
@@ -66,6 +67,13 @@ import SlackHome from "./SlackHome";
 // Somebody opening the app's Messages tab.
 export interface SlackMessagesTabOpen {
   teamId: string;
+  /*
+   * In a Slack Enterprise organization: the organization, and whether it
+   * came to OneUptime's installation in the whole organization
+   * (SlackRequestWorkspace) - what finds a project connected to it.
+   */
+  enterpriseId?: string | undefined;
+  isEnterpriseInstall?: boolean | undefined;
   slackUserId: string;
 }
 
@@ -122,7 +130,7 @@ export default class SlackMessagesWelcome {
       const resolution: WorkspaceProjectResolution =
         await WorkspaceProjectResolver.resolve({
           workspaceType: WorkspaceType.Slack,
-          workspaceId: open.teamId,
+          workspaceId: SlackRequestWorkspaceUtil.getConnectionIds(open),
           clues: {
             workspaceUserId: open.slackUserId,
           },

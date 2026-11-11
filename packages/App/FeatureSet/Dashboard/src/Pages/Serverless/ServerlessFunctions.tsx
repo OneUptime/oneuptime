@@ -222,6 +222,10 @@ const ServerlessFunctions: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // Its name, and its own data under it: the cell reads the name's way.
+            getLineText: (item: ServerlessFunction): string | undefined => {
+              return item.name;
+            },
             getElement: (item: ServerlessFunction): ReactElement => {
               const id: string = (item.functionIdentifier as string) || "";
               const name: string = (item.name as string) || "";

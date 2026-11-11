@@ -42,6 +42,8 @@ import {
 } from "../../Components/SecurityPlaybook/SecurityPlaybookTriggerOptions";
 import useAiOffered from "../../Utils/UseAiOffered";
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 
 // The list's own names: "Create Playbook", "4 playbooks" - not the model's "Security Playbook".
 export const PLAYBOOK_SINGULAR_NAME: string = translationKey("Playbook");
@@ -250,6 +252,8 @@ const SecurityPlaybooksPage: FunctionComponent<
             type: FieldType.Element,
             wrapContent: true,
             wrapMaxWidthClassName: "max-w-xl",
+            // The page's words beside the name: only the name reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: SecurityPlaybook): ReactElement => {
               const stepCount: number = Array.isArray(item.steps)
                 ? item.steps.length
@@ -258,7 +262,7 @@ const SecurityPlaybooksPage: FunctionComponent<
               return (
                 <div className="min-w-[14rem]">
                   <div className="break-words font-medium text-gray-900">
-                    {item.name || ""}
+                    <IsolatedText text={item.name || ""} />
                   </div>
                   <div className="mt-0.5 line-clamp-2 text-xs text-gray-500">
                     {translator.translatePlural(

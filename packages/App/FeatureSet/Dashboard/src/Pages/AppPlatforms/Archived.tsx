@@ -20,6 +20,8 @@ import { getManagedCloudPlatformLabel } from "Common/Types/Cloud/CloudPlatform";
 import { CloudResourceKind } from "Common/Types/Cloud/CloudResourceKind";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 /*
  * App Platforms > Archived: the environments archived by a person or by the
@@ -127,6 +129,8 @@ const AppPlatformsArchivedPage: FunctionComponent<
             },
             title: "Name",
             type: FieldType.Element,
+            // The page's words beside the name: only the name reads its own way.
+            getLineText: drawsItsOwnLines,
             getElement: (item: CloudResource): ReactElement => {
               const account: string = (item.cloudAccountId as string) || "";
               const name: string = (item.name as string) || "";
@@ -138,12 +142,18 @@ const AppPlatformsArchivedPage: FunctionComponent<
               );
               return (
                 <div className="min-w-0">
-                  <AppLink
-                    to={route}
-                    className="text-sm font-medium text-gray-900 truncate hover:underline"
+                  {/*
+                   * The name's own line, cut short at its own end
+                   * (IsolatedLine); the link inside it.
+                   */}
+                  <IsolatedLine
+                    text={name || "—"}
+                    className="truncate text-sm font-medium text-gray-900"
                   >
-                    {name || "—"}
-                  </AppLink>
+                    <AppLink to={route} className="hover:underline">
+                      {name || "—"}
+                    </AppLink>
+                  </IsolatedLine>
                   {account && (
                     <div className="text-xs text-gray-500 font-mono truncate">
                       {translator.translateTemplate("account {{account}}", {

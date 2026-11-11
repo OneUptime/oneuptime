@@ -251,6 +251,11 @@ export default class SlackChannelMembers {
   public static async getPeoplePage(data: {
     authToken: string;
     cursor: string;
+    /*
+     * A workspace of a Slack Enterprise organization, for the
+     * organization's installation, whose token Slack wants it with.
+     */
+    teamId?: string | undefined;
   }): Promise<{ people: Array<SlackPersonFacts>; nextCursor: string }> {
     const body: JSONObject = await SlackChannelMembers.call({
       authToken: data.authToken,
@@ -258,6 +263,7 @@ export default class SlackChannelMembers {
       body: {
         limit: MEMBERS_PAGE_SIZE,
         ...(data.cursor ? { cursor: data.cursor } : {}),
+        ...(data.teamId ? { team_id: data.teamId } : {}),
       },
     });
 

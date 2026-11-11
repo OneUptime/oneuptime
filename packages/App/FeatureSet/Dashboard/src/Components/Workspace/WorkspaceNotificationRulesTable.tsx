@@ -76,6 +76,7 @@ import {
 import {
   MicrosoftTeamsChat,
   MicrosoftTeamsTeam,
+  SlackOrganizationWorkspace,
 } from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
 import VideoCallConnection from "Common/Models/DatabaseModels/VideoCallConnection";
 import { getVideoCallValidationError } from "Common/Types/Workspace/NotificationRules/VideoCallNotificationRule";
@@ -184,6 +185,13 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
   >([]);
   const [microsoftTeamsChats, setMicrosoftTeamsChats] = React.useState<
     Array<MicrosoftTeamsChat>
+  >([]);
+  /*
+   * Slack installed for a whole Enterprise organization: the workspaces
+   * OneUptime was added to, for a rule to pick the one its channels are in.
+   */
+  const [slackWorkspaces, setSlackWorkspaces] = React.useState<
+    Array<SlackOrganizationWorkspace>
   >([]);
   const [users, setUsers] = React.useState<Array<User>>([]);
   const [onCallSchedules, setOnCallSchedules] = React.useState<
@@ -680,10 +688,52 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           setMicrosoftTeamsChats(chatsData);
         }
       }
+
+      /*
+       * Slack installed for a whole Enterprise organization: its workspaces.
+       * One workspace's connection - or one Slack could not be asked about -
+       * has none, and its rules simply pick no workspace.
+       */
+      if (props.workspaceType === WorkspaceType.Slack) {
+        setSlackWorkspaces(await loadSlackWorkspaces());
+      }
     } catch (err) {
       setError(API.getFriendlyErrorMessage(err as Exception));
     }
     setIsLoading(false);
+  };
+
+  type LoadSlackWorkspacesFunction = () => Promise<
+    Array<SlackOrganizationWorkspace>
+  >;
+
+  const loadSlackWorkspaces: LoadSlackWorkspacesFunction = async (): Promise<
+    Array<SlackOrganizationWorkspace>
+  > => {
+    try {
+      const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+        await API.get({
+          url: URL.fromString(APP_API_URL.toString()).addRoute(
+            `/slack/workspaces`,
+          ),
+          headers: ModelAPI.getCommonHeaders(),
+        });
+
+      if (
+        response instanceof HTTPErrorResponse ||
+        response.data?.["isOrganization"] !== true
+      ) {
+        return [];
+      }
+
+      const workspaces: unknown = response.data["workspaces"];
+
+      return Array.isArray(workspaces)
+        ? (workspaces as Array<SlackOrganizationWorkspace>)
+        : [];
+    } catch {
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -748,6 +798,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         teams={teams}
         microsoftTeamsTeams={microsoftTeamsTeams}
         microsoftTeamsChats={microsoftTeamsChats}
+        slackWorkspaces={slackWorkspaces}
         users={users}
         onCallSchedules={onCallSchedules}
         numberPrefixes={numberPrefixes}
@@ -1178,6 +1229,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             onCallSchedules: onCallSchedules,
             microsoftTeamsTeams: microsoftTeamsTeams,
             microsoftTeamsChats: microsoftTeamsChats,
+            slackWorkspaces: slackWorkspaces,
             videoCallConnections: videoCallConnections,
             numberPrefixes: numberPrefixes,
             exampleRecordName: exampleRecordName,

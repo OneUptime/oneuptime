@@ -11,8 +11,10 @@ import Model, {
   MiscData,
   SlackChannelCache,
   SlackMiscData,
+  SlackOrganizationWorkspace,
   WorkspaceMiscData,
 } from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import OneUptimeDate from "../../Types/Date";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import BadDataException from "../../Types/Exception/BadDataException";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
@@ -232,11 +234,151 @@ export class Service extends DatabaseService<Model> {
       );
     }
 
+    const storedMiscData: SlackMiscData =
+      (projectAuth.miscData as SlackMiscData | undefined) ||
+      ({} as SlackMiscData);
+
+    /*
+     * A Slack Enterprise organization's channels are stored with their
+     * workspace (teamId); the editor saves names and ids only. A channel
+     * kept keeps its workspace: a channel id is one channel, in one
+     * workspace. Without it, the channel would be taken for a channel of
+     * any of the organization's workspaces (Slack.getWorkspaceChannelByName).
+     */
+    const workspaceOfChannel: Map<string, string> = new Map();
+
+    for (const entry of Object.values(storedMiscData.channelCache || {})) {
+      if (
+        entry &&
+        typeof entry.id === "string" &&
+        typeof entry.teamId === "string" &&
+        entry.teamId
+      ) {
+        workspaceOfChannel.set(entry.id, entry.teamId);
+      }
+    }
+
+    const channelCache: SlackChannelCache = {};
+
+    for (const [name, entry] of Object.entries(data.channelCache)) {
+      const teamId: string | undefined =
+        entry.teamId || workspaceOfChannel.get(entry.id);
+
+      channelCache[name] = teamId ? { ...entry, teamId: teamId } : entry;
+    }
+
+    const miscData: SlackMiscData = {
+      ...storedMiscData,
+      channelCache: channelCache,
+    };
+
+    await this.updateOneById({
+      id: projectAuth.id,
+      data: {
+        miscData: miscData,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * A Slack connection to a whole Enterprise organization: the workspaces
+   * Slack listed OneUptime as added to, when, and the default workspace
+   * (SlackOrganization) - written into the project's connection and nothing
+   * else, while it is still that organization's (`workspaceProjectId`). A
+   * connection removed or replaced meanwhile is left alone. Every other
+   * miscData field is carried over from the stored row.
+   */
+  @CaptureSpan()
+  public async updateSlackOrganization(data: {
+    projectId: ObjectID;
+    workspaceProjectId: string;
+    workspaces?: Array<SlackOrganizationWorkspace> | undefined;
+    workspacesReadAt?: Date | undefined;
+    defaultWorkspaceId?: string | undefined;
+    /*
+     * A connection to one workspace: the Enterprise organization it is part
+     * of - empty for none - as Slack said it, for a connection made before
+     * installs recorded it.
+     */
+    enterpriseId?: string | undefined;
+  }): Promise<void> {
+    if (!data.projectId) {
+      throw new BadDataException("projectId is required");
+    }
+
+    if (!data.workspaceProjectId) {
+      throw new BadDataException("workspaceProjectId is required");
+    }
+
+    const projectAuth: Model | null = await this.findOneBy({
+      query: {
+        projectId: data.projectId,
+        workspaceType: WorkspaceType.Slack,
+        workspaceProjectId: data.workspaceProjectId,
+      },
+      select: {
+        _id: true,
+        miscData: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!projectAuth || !projectAuth.id) {
+      return;
+    }
+
     const miscData: SlackMiscData = {
       ...((projectAuth.miscData as SlackMiscData | undefined) ||
         ({} as SlackMiscData)),
-      channelCache: data.channelCache,
     };
+
+    if (data.workspaces) {
+      miscData.workspaces = data.workspaces.map(
+        (workspace: SlackOrganizationWorkspace): SlackOrganizationWorkspace => {
+          return { id: workspace.id, name: workspace.name };
+        },
+      );
+      miscData.workspacesReadAt = OneUptimeDate.toString(
+        data.workspacesReadAt || OneUptimeDate.getCurrentDate(),
+      );
+    }
+
+    if (data.defaultWorkspaceId !== undefined) {
+      /*
+       * A channel of one name in several workspaces is cached once, as the
+       * default workspace's (Slack.updateChannelsInCache), and a rule that
+       * names no workspace takes the cached one. With another default, the
+       * channels cached as other workspaces' are looked up again, the new
+       * default's first - or such a rule kept posting to the old default's.
+       * A channel cached with no workspace, as typed into the channel list
+       * by hand, stays.
+       */
+      if (
+        data.defaultWorkspaceId !== miscData.defaultWorkspaceId &&
+        miscData.channelCache
+      ) {
+        const channelCache: SlackChannelCache = {};
+
+        for (const [name, entry] of Object.entries(miscData.channelCache)) {
+          if (!entry?.teamId || entry.teamId === data.defaultWorkspaceId) {
+            channelCache[name] = entry;
+          }
+        }
+
+        miscData.channelCache = channelCache;
+      }
+
+      miscData.defaultWorkspaceId = data.defaultWorkspaceId;
+    }
+
+    if (data.enterpriseId !== undefined) {
+      miscData.enterpriseId = data.enterpriseId;
+    }
 
     await this.updateOneById({
       id: projectAuth.id,
@@ -253,6 +395,11 @@ export class Service extends DatabaseService<Model> {
    * `authTokenExpiresAt` is the expiry of THIS `authToken`. Leaving it out
    * clears the stored one, so a new token never inherits an old token's
    * expiry.
+   *
+   * `replacesWorkspaceProjectId`: the workspace the project is connected to
+   * now, which this connection may replace - a Slack workspace moving to its
+   * Enterprise organization's installation, or back (SlackOrganization).
+   * Any other workspace is refused, as below.
    */
   @CaptureSpan()
   public async refreshAuthToken(data: {
@@ -262,6 +409,7 @@ export class Service extends DatabaseService<Model> {
     authTokenExpiresAt?: Date | undefined;
     workspaceProjectId: string;
     miscData: WorkspaceMiscData;
+    replacesWorkspaceProjectId?: string | undefined;
   }): Promise<void> {
     if (!data.projectId) {
       throw new BadDataException("projectId is required");
@@ -310,7 +458,8 @@ export class Service extends DatabaseService<Model> {
     if (
       projectAuth &&
       projectAuth.workspaceProjectId &&
-      projectAuth.workspaceProjectId !== data.workspaceProjectId
+      projectAuth.workspaceProjectId !== data.workspaceProjectId &&
+      projectAuth.workspaceProjectId !== data.replacesWorkspaceProjectId
     ) {
       logger.error(
         `Refusing to repoint ${data.workspaceType} for project ${data.projectId.toString()} from workspace ${projectAuth.workspaceProjectId} to ${data.workspaceProjectId}.`,

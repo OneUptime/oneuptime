@@ -26,6 +26,7 @@ import ErrorMessage from "../ErrorMessage/ErrorMessage";
 import InfoCard from "../InfoCard/InfoCard";
 import Link from "../Link/Link";
 import Table from "../Table/Table";
+import { drawsItsOwnLines } from "../Table/ColumnLineText";
 import { getTableHeaderButtons } from "../Table/TableHeaderControls";
 import TableEmptyState, { TableEmptyStateKind } from "../Table/TableEmptyState";
 import Column from "../Table/Types/Column";
@@ -472,6 +473,8 @@ const TelemetryUsageOverview: FunctionComponent<ComponentProps> = (
       key: "name",
       title: "Resource",
       type: FieldType.Element,
+      // Its name (in an isolate) over the page's word for its kind.
+      getLineText: drawsItsOwnLines,
       getElement: (row: TelemetryUsageResourceRow): ReactElement => {
         return (
           <div className="min-w-0">
