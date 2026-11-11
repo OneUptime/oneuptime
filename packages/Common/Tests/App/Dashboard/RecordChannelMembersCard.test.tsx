@@ -1164,6 +1164,45 @@ describe("a channel that can take nobody", () => {
     ).toContainElement(connect);
   });
 
+  /*
+   * #6749: Slack installed for a whole Enterprise organization, removed from
+   * the workspace the channel is in. The project is still connected - its
+   * other workspaces work - so the card says the channel's workspace, and
+   * offers no Connect Slack: connecting again is not what is missing.
+   */
+  test("the channel's workspace no longer has OneUptime: said so, with no Connect Slack and nothing to add", async () => {
+    readAnswer({
+      channels: [
+        slackChannel({
+          state: WorkspaceChannelState.WorkspaceNotAdded,
+          people: [],
+          peopleCount: 0,
+        }),
+      ],
+      canAddPeople: true,
+    });
+    renderCard({});
+
+    const element: HTMLElement = await card();
+    const state: HTMLElement = within(element).getByTestId(
+      "record-channel-state",
+    );
+
+    expect(state).toHaveTextContent(
+      "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.",
+    );
+    expect(state).not.toHaveTextContent("isn't connected");
+    expect(
+      within(state).queryByTestId("record-channel-connect-project"),
+    ).toBeNull();
+    expect(
+      within(element).queryByTestId("record-channel-try-again"),
+    ).toBeNull();
+    expect(
+      within(element).queryByTestId("record-channel-add-people"),
+    ).toBeNull();
+  });
+
   test("Slack not answering: Try again is busy until the next answer", async () => {
     let answerRetry: (() => void) | undefined;
 
@@ -1745,7 +1784,7 @@ describe("Mattermost channels", () => {
     fireEvent.click(within(element).getByTestId("record-channel-join"));
 
     expect(await within(element).findByRole("alert")).toHaveTextContent(
-      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
+      "You're not in the Mattermost team this channel is in, so OneUptime can't add you.",
     );
     expect(
       within(element).queryByTestId("record-channel-open-after-join"),
@@ -1838,7 +1877,7 @@ describe("Mattermost channels", () => {
     fireEvent.click(within(dialog).getByRole("option", { name: /Platform/ }));
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent(
-      "Carol Lee and Dan Brown aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+      "Carol Lee and Dan Brown aren't in the Mattermost team this channel is in, so OneUptime can't add them.",
     );
   });
 

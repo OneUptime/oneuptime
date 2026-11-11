@@ -34,10 +34,11 @@ Elas funcionam com um login somente leitura e respondem como a pessoa ou a chave
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Os webhooks de sincronização do Fivetran | A chave de ingestão, como segredo de assinatura do Fivetran |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Os webhooks de sincronização do Airbyte | A chave de ingestão na URL |
 | `POST /api/data-observability/tables/freshness` | A atualidade de uma tabela, como a ferramenta MCP a responde, com `{ "table": "public.orders" }` | Uma chave de API |
-| `POST /api/data-observability/tables/lineage` | A linhagem de uma tabela alguns passos em cada direção, com o estado de cada tabela, como a aba **Linhagem** a desenha, com `{ "dataAssetId": "<table ID>", "depth": 3 }` | Uma chave de API |
+| `POST /api/data-observability/tables/lineage` | A linhagem de uma tabela alguns passos em cada direção, com o estado de cada tabela, como a aba **Linhagem** a desenha, com `{ "dataAssetId": "<table ID>", "depth": 3 }`, e com `"withColumns": true` as colunas que cada seta leva | Uma chave de API |
 | `POST /api/data-observability/tables/lineage/answer` | A linhagem de uma tabela contada em palavras, primeiro as tabelas com um problema, como a ferramenta MCP a responde, com `{ "table": "public.orders", "depth": 3 }` | Uma chave de API |
 | `POST /api/data-observability/pipelines/lineage` | As tabelas que um pipeline lê e escreve, com o estado de cada uma, como a página dele as desenha, com `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | Uma chave de API |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | A linhagem de um alerta de dados, como a página dele a desenha, com o caminho até o alerta que o causou e até os alertas que ele causou | Uma chave de API |
+| `POST /api/data-observability/lineage/expand` | As próximas tabelas que um cartão de um diagrama de linhagem não desenha, como selecionar o número dele as desenha: o cartão como `nodeId` com o seu `side`, e o que está desenhado como `focusNodeId`, `tables` e `dataDashboardIds` | Uma chave de API |
 | `POST /api/data-observability/checks/apply` | Faz as verificações do projeto corresponderem a um arquivo, como faz `oneuptime data-checks apply`, com `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | Uma chave de API |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | O selo "data as of" de um produto de dados | O próprio token do selo |
 

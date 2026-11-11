@@ -67,6 +67,7 @@ Avec Slack Enterprise Grid, un projet peut fonctionner dans plusieurs espaces de
 3. La carte **Espaces de travail Slack** liste ces espaces de travail. Cliquez sur **Actualiser** après avoir ajouté OneUptime à un autre espace de travail.
 
 - **L'espace de travail qu'une règle utilise.** Les règles de notification choisissent l'**Espace de travail Slack** de leurs canaux. S'il est laissé vide, une règle utilise l'espace de travail par défaut et y cherche d'abord les canaux qu'elle nomme. **Définir par défaut** sur la carte change l'espace par défaut.
+- **Un espace de travail dont OneUptime a été retiré.** Une règle qui le choisit ne publie pas dans un autre espace de travail à la place : la carte de la règle, **Tester la règle** et les journaux de notification indiquent que OneUptime n'y est plus ajouté. La carte **Canal Slack** le dit aussi lorsque le canal se trouve dans cet espace de travail. Ajoutez de nouveau OneUptime à cet espace de travail dans les paramètres de l'organisation de Slack, ou choisissez un autre espace de travail dans la règle.
 - **Où OneUptime fonctionne.** Les boutons, les commandes, l'onglet Home et OneUptime AI fonctionnent dans chacun de ces espaces de travail, et les membres connectent leur propre compte Slack depuis n'importe lequel d'entre eux.
 - **Un projet connecté à un seul espace de travail.** Si cet espace de travail fait partie de l'organisation, le projet conserve ses règles, ses canaux et ses comptes connectés lorsqu'il est installé pour toute l'organisation avec **Installer pour l'organisation** sur la même page. Cet espace de travail devient l'espace par défaut.
 - **Sur un serveur auto-hébergé,** une application Slack créée à partir du manifeste de OneUptime le permet déjà : le manifeste définit `org_deploy_enabled`.
@@ -268,6 +269,7 @@ Pour un groupe qui contient l'astreinte principale et l'astreinte secondaire, co
 - **L'alerter.** `/oneuptime page @payments-oncall The checkout API is down` alerte les personnes d'astreinte dans les plannings que suit le groupe. Voir [Alerter quelqu'un depuis Slack](#alerter-quelquun-depuis-slack).
 - **Ce dont Slack a besoin.** Les groupes d'utilisateurs font partie des formules payantes de Slack, et un espace de travail peut ne permettre qu'à ses propriétaires et administrateurs de les modifier : la carte dit lequel des deux, et quoi faire. Si Slack a été connecté avant que OneUptime puisse tenir des groupes d'utilisateurs à jour, reconnectez-le une fois dans **Paramètres du projet** > **Espace de travail** > **Slack**.
 - **Qui peut en connecter un.** Les rôles qui peuvent modifier les plannings : **Propriétaire du projet**, **Administrateur du projet**, **Membre du projet**, **Administrateur des astreintes** et **Membre des astreintes**, ou **Edit On-Call Duty Policy Schedule** dans un rôle personnalisé. Sur OneUptime Cloud, en connecter un nécessite la formule **Growth**.
+- **Dans une organisation Slack Enterprise.** Lorsque OneUptime est ajouté à deux de ses espaces de travail ou plus, **Connecter un groupe d'utilisateurs** demande d'abord dans quel **Espace de travail Slack** se trouve le groupe, puis liste les groupes d'utilisateurs de cet espace de travail. La carte indique l'espace de travail de chaque groupe, et OneUptime y tient le groupe à jour.
 - **Déconnecter.** OneUptime cesse de modifier le groupe. Le groupe et ses membres restent dans Slack tels quels.
 
 ## Gérer un incident depuis Slack
@@ -311,7 +313,7 @@ Lorsque les notes publiques de votre projet doivent être approuvées et que vou
 ## Déconnecter
 
 - **Déconnecter** ne dissocie que votre propre compte Slack, et retire avec lui votre méthode de notification Slack.
-- **Uninstall OneUptime from Slack**, dans **Paramètres du projet** > **Espace de travail** > **Slack**, déconnecte le projet. OneUptime cesse de publier dans Slack, et les menus **Espace de travail** cessent de le lister. Les règles de notification et les résumés sont conservés pour quand vous vous reconnectez.
+- **Désinstaller OneUptime de Slack**, dans **Paramètres du projet** > **Espace de travail** > **Slack**, déconnecte le projet. OneUptime cesse de publier dans Slack, et les menus **Espace de travail** cessent de le lister. Les règles de notification et les résumés sont conservés pour quand vous vous reconnectez.
 
 > [!WARNING]
 > Désinstaller dissocie aussi le compte Slack de chaque membre du projet, et retire les méthodes de notification Slack et les règles d'astreinte qui les utilisaient. Les personnes alertées dans Slack sont alertées sur leurs autres méthodes de notification jusqu'à ce qu'elles ajoutent à nouveau Slack.

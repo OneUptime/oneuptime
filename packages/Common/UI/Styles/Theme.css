@@ -2093,6 +2093,51 @@ html.dark [data-row-arrived] {
 }
 
 /*
+ * The cards a lineage diagram just drew where it is (Dashboard:
+ * DataObservability/LineageGraph, data-lineage-drawn): a card's count of
+ * tables not drawn, pressed, draws the next of them beside the cards
+ * already there. Each card drawn is tinted as a row a live list read in
+ * is, and the tint fades to the card's own colour (no "to" frame), so the
+ * eye finds them among the cards they were drawn beside; a reader who
+ * asks for less motion gets the tint held still until the next count is
+ * pressed. The card's colour is its own inline style, which only an
+ * animation or an !important rule is drawn over.
+ */
+@keyframes ou-lineage-drawn {
+  from {
+    background-color: var(--ou-lineage-drawn-tint);
+  }
+}
+
+[data-lineage-drawn] {
+  --ou-lineage-drawn-tint: color-mix(
+    in srgb,
+    rgb(99 102 241) 12%,
+    var(--ou-surface-primary)
+  );
+}
+
+html.dark [data-lineage-drawn] {
+  --ou-lineage-drawn-tint: color-mix(
+    in srgb,
+    rgb(129 140 248) 18%,
+    var(--ou-surface-primary)
+  );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-lineage-drawn] {
+    animation: ou-lineage-drawn 2.4s ease-out;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-lineage-drawn] {
+    background-color: var(--ou-lineage-drawn-tint) !important;
+  }
+}
+
+/*
  * A dashboard playlist's turn (Dashboard: Components/Dashboard/Playlist):
  * the line under the player's bar fills from the start side while a
  * dashboard is on screen, and is full when the next one comes. The player

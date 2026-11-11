@@ -47,8 +47,11 @@ import NotificationRuleForm, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleForm";
 import {
   getNotificationRuleSummary,
+  getRuleWorkspacesNotAdded,
   NotificationRuleSummaryInput,
+  SlackRuleWorkspaces,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleForm/NotificationRuleCopy";
+import { NotificationRuleThen } from "../../../../App/FeatureSet/Dashboard/src/Components/Workspace/NotificationRuleViewElement/NotificationRuleViewElement";
 import FilterCondition from "../../../Types/Filter/FilterCondition";
 import NotificationRuleEventType from "../../../Types/Workspace/NotificationRules/EventType";
 import IncidentNotificationRule from "../../../Types/Workspace/NotificationRules/NotificationRuleTypes/IncidentNotificationRule";
@@ -107,6 +110,7 @@ function ControlledDestination(props: {
   value: IncidentNotificationRule;
   workspaceType: WorkspaceType;
   slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
+  slackOrganization?: SlackRuleWorkspaces | undefined;
   onChange: MockFunction;
 }): React.ReactElement {
   const [value, setValue] = React.useState<IncidentNotificationRule>(
@@ -136,6 +140,7 @@ function ControlledDestination(props: {
       microsoftTeamsTeams={[OPS_TEAM]}
       microsoftTeamsChats={[]}
       slackWorkspaces={props.slackWorkspaces}
+      slackOrganization={props.slackOrganization}
       numberPrefixes={{
         [NotificationRuleEventType.Incident]: "INC-",
         [NotificationRuleEventType.Alert]: "ALT-",
@@ -151,6 +156,7 @@ async function renderDestination(data: {
   value: IncidentNotificationRule;
   workspaceType?: WorkspaceType | undefined;
   slackWorkspaces?: Array<SlackOrganizationWorkspace> | undefined;
+  slackOrganization?: SlackRuleWorkspaces | undefined;
   onChange?: MockFunction | undefined;
 }): Promise<MockFunction> {
   const onChange: MockFunction = data.onChange || getJestMockFunction();
@@ -161,6 +167,7 @@ async function renderDestination(data: {
         value={data.value}
         workspaceType={data.workspaceType || WorkspaceType.Slack}
         slackWorkspaces={data.slackWorkspaces}
+        slackOrganization={data.slackOrganization}
         onChange={onChange}
       />,
     );
@@ -497,5 +504,355 @@ describe("the sentences that name a Slack workspace", () => {
     });
 
     expect(said.join(" ")).not.toContain("Acme West workspace");
+  });
+});
+
+/*
+ * #6749: A WORKSPACE OF THE ORGANIZATION ONEUPTIME WAS REMOVED FROM.
+ *
+ * A rule that picks it does not post in another workspace instead: the
+ * workspace decides who reads its messages. Its card says OneUptime is no
+ * longer added to it - as the rule's Notification Logs and Test Rule say -
+ * and its form still shows the pick, said to be so, so it can be changed:
+ * even with one workspace left, when there is otherwise nothing to pick.
+ */
+
+const LAB: SlackOrganizationWorkspace = { id: "T0LAB", name: "Acme Lab" };
+
+// Added to Acme East only now; removed from Acme West and Acme Lab.
+const EAST_LEFT: SlackRuleWorkspaces = {
+  workspaces: [EAST],
+  removedWorkspaces: [WEST, LAB],
+  organizationName: "Acme Corp",
+};
+
+const WEST_NOT_ADDED: string = "Acme West (OneUptime no longer added)";
+
+function notAddedNote(workspace: string, organization: string): string {
+  return `OneUptime is no longer added to the ${workspace} workspace of ${organization}. Add it again in Slack's organization settings, or pick another workspace on the rule.`;
+}
+
+// The value each dropdown of the step shows, top to bottom.
+function shownValues(): Array<string> {
+  return Array.from(document.querySelectorAll(".ou-select__single-value")).map(
+    (value: Element): string => {
+      return (value.textContent || "").trim();
+    },
+  );
+}
+
+// Opens the dropdown showing `text` as its value.
+function openDropdownWithValue(text: string): void {
+  const control: HTMLElement | null = screen
+    .getByText(text)
+    .closest(".ou-select__control") as HTMLElement | null;
+
+  expect(control).not.toBeNull();
+
+  fireEvent.keyDown(within(control!.parentElement!).getByRole("combobox"), {
+    key: "ArrowDown",
+    code: "ArrowDown",
+  });
+}
+
+describe("a rule that picks a workspace OneUptime is no longer added to: its form", () => {
+  test("still shows the pick, said to be so - with one workspace left - and offers the ones it is added to", async () => {
+    await renderDestination({
+      value: {
+        ...CREATES_CHANNEL,
+        teamToCreateChannelIn: WEST.id,
+      } as IncidentNotificationRule,
+      slackWorkspaces: [EAST],
+      slackOrganization: EAST_LEFT,
+    });
+
+    expect(fieldLabels()).toContain(SLACK_WORKSPACE_LABEL);
+    expect(shownValues()).toEqual([WEST_NOT_ADDED]);
+
+    openDropdownWithValue(WEST_NOT_ADDED);
+
+    // Acme Lab, removed too, is not the rule's pick: not offered.
+    expect(optionNames()).toEqual(["Acme East", WEST_NOT_ADDED]);
+  });
+
+  test("changed to a workspace OneUptime is added to: kept on the rule, the picker still there to change it again", async () => {
+    const onChange: MockFunction = await renderDestination({
+      value: {
+        ...CREATES_CHANNEL,
+        teamToCreateChannelIn: WEST.id,
+      } as IncidentNotificationRule,
+      slackWorkspaces: [EAST],
+      slackOrganization: EAST_LEFT,
+    });
+
+    openDropdownWithValue(WEST_NOT_ADDED);
+
+    await act(async () => {
+      fireEvent.click(
+        screen.getAllByRole("option").find((option: HTMLElement) => {
+          return option.textContent === "Acme East";
+        })!,
+      );
+    });
+
+    await settle();
+
+    expect(lastChange(onChange).teamToCreateChannelIn).toBe(EAST.id);
+    expect(lastChange(onChange).shouldCreateNewChannel).toBe(true);
+    expect(fieldLabels()).toContain(SLACK_WORKSPACE_LABEL);
+    expect(shownValues()).toEqual(["Acme East"]);
+    expect(summary()).toContain(
+      "The channel is created in the Acme East workspace.",
+    );
+  });
+
+  test("posting in channels of such a workspace: that picker shows it too", async () => {
+    await renderDestination({
+      value: {
+        ...POSTS_IN_CHANNELS,
+        existingTeam: LAB.id,
+      } as IncidentNotificationRule,
+      slackWorkspaces: [EAST],
+      slackOrganization: EAST_LEFT,
+    });
+
+    expect(shownValues()).toEqual(["Acme Lab (OneUptime no longer added)"]);
+  });
+
+  test("a workspace whose name was never kept: its id, said to be no longer added", async () => {
+    await renderDestination({
+      value: {
+        ...CREATES_CHANNEL,
+        teamToCreateChannelIn: "T0GONE",
+      } as IncidentNotificationRule,
+      slackWorkspaces: [EAST, WEST],
+      slackOrganization: {
+        workspaces: [EAST, WEST],
+        removedWorkspaces: [],
+        organizationName: "Acme Corp",
+      },
+    });
+
+    expect(shownValues()).toEqual(["T0GONE (OneUptime no longer added)"]);
+  });
+
+  test("a rule whose workspaces OneUptime is added to: no such option", async () => {
+    await renderDestination({
+      value: {
+        ...CREATES_CHANNEL,
+        teamToCreateChannelIn: EAST.id,
+      } as IncidentNotificationRule,
+      slackWorkspaces: [EAST, WEST],
+      slackOrganization: {
+        workspaces: [EAST, WEST],
+        removedWorkspaces: [LAB],
+        organizationName: "Acme Corp",
+      },
+    });
+
+    openDropdownWithValue("Acme East");
+
+    expect(optionNames()).toEqual(["Acme East", "Acme West"]);
+  });
+
+  test("one workspace left, and the rule picks it or none: no picker, as before", async () => {
+    await renderDestination({
+      value: {
+        ...POSTS_IN_CHANNELS,
+        shouldCreateNewChannel: true,
+        teamToCreateChannelIn: EAST.id,
+      } as IncidentNotificationRule,
+      slackWorkspaces: [EAST],
+      slackOrganization: EAST_LEFT,
+    });
+
+    expect(fieldLabels()).not.toContain(SLACK_WORKSPACE_LABEL);
+  });
+});
+
+describe("a rule that picks a workspace OneUptime is no longer added to: its card", () => {
+  function renderThen(
+    rule: IncidentNotificationRule,
+    organization: SlackRuleWorkspaces | undefined,
+    workspaceType: WorkspaceType = WorkspaceType.Slack,
+  ): void {
+    render(
+      <NotificationRuleThen
+        rule={rule}
+        eventType={NotificationRuleEventType.Incident}
+        workspaceType={workspaceType}
+        teams={[]}
+        users={[]}
+        slackWorkspaces={organization?.workspaces}
+        slackOrganization={organization}
+      />,
+    );
+  }
+
+  function notes(): Array<string> {
+    return screen
+      .queryAllByTestId("notification-rule-slack-workspace-not-added")
+      .map((note: HTMLElement): string => {
+        return note.textContent || "";
+      });
+  }
+
+  test("says so, by the workspace's name and the organization's, under what the rule does", () => {
+    renderThen(
+      { ...CREATES_CHANNEL, teamToCreateChannelIn: WEST.id },
+      EAST_LEFT,
+    );
+
+    expect(notes()).toEqual([notAddedNote("Acme West", "Acme Corp")]);
+    expect(screen.getByTestId("notification-rule-summary")).toBeVisible();
+  });
+
+  test("both of its picks in such a workspace: said once; in two of them: once for each", () => {
+    renderThen(
+      {
+        ...POSTS_IN_CHANNELS,
+        shouldCreateNewChannel: true,
+        teamToCreateChannelIn: WEST.id,
+        existingTeam: WEST.id,
+      } as IncidentNotificationRule,
+      EAST_LEFT,
+    );
+
+    expect(notes()).toEqual([notAddedNote("Acme West", "Acme Corp")]);
+
+    cleanup();
+
+    renderThen(
+      {
+        ...POSTS_IN_CHANNELS,
+        shouldCreateNewChannel: true,
+        teamToCreateChannelIn: WEST.id,
+        existingTeam: LAB.id,
+      } as IncidentNotificationRule,
+      EAST_LEFT,
+    );
+
+    expect(notes()).toEqual([
+      notAddedNote("Acme Lab", "Acme Corp"),
+      notAddedNote("Acme West", "Acme Corp"),
+    ]);
+  });
+
+  test("a workspace OneUptime is added to, none picked, or a pick the rule does not use: nothing said", () => {
+    for (const rule of [
+      { ...CREATES_CHANNEL, teamToCreateChannelIn: EAST.id },
+      CREATES_CHANNEL,
+      // Switched off: the channel it would create in Acme West is not created.
+      {
+        ...POSTS_IN_CHANNELS,
+        existingTeam: EAST.id,
+        teamToCreateChannelIn: WEST.id,
+      },
+    ] as Array<IncidentNotificationRule>) {
+      renderThen(rule, EAST_LEFT);
+
+      expect(notes()).toEqual([]);
+
+      cleanup();
+    }
+  });
+
+  test("a project connected to one workspace, or to Microsoft Teams: nothing said", () => {
+    renderThen(
+      { ...CREATES_CHANNEL, teamToCreateChannelIn: WEST.id },
+      undefined,
+    );
+
+    expect(notes()).toEqual([]);
+
+    cleanup();
+
+    renderThen(
+      { ...CREATES_CHANNEL, teamToCreateChannelIn: WEST.id },
+      EAST_LEFT,
+      WorkspaceType.MicrosoftTeams,
+    );
+
+    expect(notes()).toEqual([]);
+  });
+});
+
+describe("getRuleWorkspacesNotAdded", () => {
+  test("the rule's picks OneUptime is no longer added to, each once, by name - the id when no name was kept", () => {
+    expect(
+      getRuleWorkspacesNotAdded({
+        rule: {
+          ...POSTS_IN_CHANNELS,
+          shouldCreateNewChannel: true,
+          teamToCreateChannelIn: "T0GONE",
+          existingTeam: WEST.id,
+        } as IncidentNotificationRule,
+        workspaceType: WorkspaceType.Slack,
+        organization: EAST_LEFT,
+      }),
+    ).toEqual([WEST, { id: "T0GONE", name: "T0GONE" }]);
+  });
+
+  test("before Slack has listed the organization's workspaces: none - what OneUptime is added to is not known", () => {
+    expect(
+      getRuleWorkspacesNotAdded({
+        rule: {
+          ...CREATES_CHANNEL,
+          teamToCreateChannelIn: WEST.id,
+        } as IncidentNotificationRule,
+        workspaceType: WorkspaceType.Slack,
+        organization: {
+          workspaces: [],
+          removedWorkspaces: [],
+          organizationName: "Acme Corp",
+        },
+      }),
+    ).toEqual([]);
+  });
+
+  test("removed from every workspace: the picks are still said", () => {
+    expect(
+      getRuleWorkspacesNotAdded({
+        rule: {
+          ...CREATES_CHANNEL,
+          teamToCreateChannelIn: WEST.id,
+        } as IncidentNotificationRule,
+        workspaceType: WorkspaceType.Slack,
+        organization: {
+          workspaces: [],
+          removedWorkspaces: [WEST],
+          organizationName: "Acme Corp",
+        },
+      }),
+    ).toEqual([WEST]);
+  });
+
+  test("no rule, no organization, or not Slack: none", () => {
+    const rule: IncidentNotificationRule = {
+      ...CREATES_CHANNEL,
+      teamToCreateChannelIn: WEST.id,
+    } as IncidentNotificationRule;
+
+    expect(
+      getRuleWorkspacesNotAdded({
+        rule: undefined,
+        workspaceType: WorkspaceType.Slack,
+        organization: EAST_LEFT,
+      }),
+    ).toEqual([]);
+    expect(
+      getRuleWorkspacesNotAdded({
+        rule: rule,
+        workspaceType: WorkspaceType.Slack,
+        organization: undefined,
+      }),
+    ).toEqual([]);
+    expect(
+      getRuleWorkspacesNotAdded({
+        rule: rule,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        organization: EAST_LEFT,
+      }),
+    ).toEqual([]);
   });
 });

@@ -644,6 +644,24 @@ describe("what GET /slack/workspaces answers, as the page reads it", () => {
       organizationName: "Acme Corp",
       workspaces: [EAST, WEST],
       defaultWorkspaceId: WEST.id,
+      removedWorkspaces: [],
+    });
+  });
+
+  // #6749: by the names they had, for the rules that still pick one.
+  test("an organization's, with the workspaces OneUptime was removed from", () => {
+    expect(
+      readSlackConnectionDescription({
+        ...organization([EAST], EAST.id),
+        removedWorkspaces: [WEST, LABS],
+      }),
+    ).toEqual({
+      isOrganization: true,
+      isInOrganization: true,
+      organizationName: "Acme Corp",
+      workspaces: [EAST],
+      defaultWorkspaceId: EAST.id,
+      removedWorkspaces: [WEST, LABS],
     });
   });
 
@@ -654,6 +672,7 @@ describe("what GET /slack/workspaces answers, as the page reads it", () => {
       organizationName: "",
       workspaces: [],
       defaultWorkspaceId: null,
+      removedWorkspaces: [],
     });
 
     expect(
@@ -661,6 +680,7 @@ describe("what GET /slack/workspaces answers, as the page reads it", () => {
         isOrganization: "yes",
         workspaces: [{ id: "" }, { name: "No id" }, { id: "T1", name: 7 }, 5],
         defaultWorkspaceId: 3,
+        removedWorkspaces: [null, { id: "T2", name: "Gone" }, { name: "x" }],
       } as unknown as JSONObject),
     ).toEqual({
       isOrganization: false,
@@ -668,6 +688,15 @@ describe("what GET /slack/workspaces answers, as the page reads it", () => {
       organizationName: "",
       workspaces: [{ id: "T1", name: "" }],
       defaultWorkspaceId: null,
+      removedWorkspaces: [{ id: "T2", name: "Gone" }],
     });
+
+    // Not a list: none.
+    expect(
+      readSlackConnectionDescription({
+        ...organization([EAST], EAST.id),
+        removedWorkspaces: "T0WEST",
+      } as unknown as JSONObject).removedWorkspaces,
+    ).toEqual([]);
   });
 });

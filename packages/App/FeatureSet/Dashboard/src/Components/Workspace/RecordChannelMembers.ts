@@ -72,6 +72,7 @@ export const RECORD_CHANNEL_TEXT: {
   unreachable: string;
   unreachableHint: string;
   notConnected: string;
+  workspaceNotAdded: string;
   unavailable: string;
   teamsTeam: string;
   teamsTeamUnknown: string;
@@ -118,6 +119,13 @@ export const RECORD_CHANNEL_TEXT: {
     "If it's still there, someone in it can add the app back by typing /invite @OneUptime.",
   ),
   notConnected: translationKey("Slack isn't connected to this project."),
+  /*
+   * Slack installed for a whole Enterprise organization, removed from the
+   * workspace the channel is in: its other workspaces still work.
+   */
+  workspaceNotAdded: translationKey(
+    "OneUptime is no longer added to the Slack workspace this channel is in. Add it again in Slack's organization settings.",
+  ),
   unavailable: translationKey("Slack didn't answer. Try again in a minute."),
   teamsTeam: translationKey("Everyone in {{team}} can open the channel."),
   teamsTeamUnknown: translationKey(
@@ -333,10 +341,10 @@ export const MATTERMOST_ADD_OUTCOME_TEXT: Record<
     ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.NotProjectMember],
   [WorkspaceChannelAddOutcome.NotInTeam]: {
     self: translationKey(
-      "You're not in the Mattermost team this project is connected to, so OneUptime can't add you.",
+      "You're not in the Mattermost team this channel is in, so OneUptime can't add you.",
     ),
     other: translationKey(
-      "{{name}} isn't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+      "{{name}} isn't in the Mattermost team this channel is in, so OneUptime can't add them.",
     ),
   },
   [WorkspaceChannelAddOutcome.Guest]: MATTERMOST_REFUSED_TEXT,
@@ -406,7 +414,7 @@ export const MATTERMOST_ADD_PROBLEM_TEXT_FOR_SEVERAL: Record<
   [WorkspaceChannelAddOutcome.NotProjectMember]:
     ADD_PROBLEM_TEXT_FOR_SEVERAL[WorkspaceChannelAddOutcome.NotProjectMember],
   [WorkspaceChannelAddOutcome.NotInTeam]: translationKey(
-    "{{names}} aren't in the Mattermost team this project is connected to, so OneUptime can't add them.",
+    "{{names}} aren't in the Mattermost team this channel is in, so OneUptime can't add them.",
   ),
   [WorkspaceChannelAddOutcome.Guest]: MATTERMOST_REFUSED_TEXT_FOR_SEVERAL,
   [WorkspaceChannelAddOutcome.TryAgain]: translationKey(
@@ -444,8 +452,14 @@ export const CHANNEL_STATE_TEXT: Record<ChannelStateWithText, string> = {
   [WorkspaceChannelState.Archived]: RECORD_CHANNEL_TEXT.archivedNote,
   [WorkspaceChannelState.Unreachable]: RECORD_CHANNEL_TEXT.unreachable,
   [WorkspaceChannelState.NotConnected]: RECORD_CHANNEL_TEXT.notConnected,
+  [WorkspaceChannelState.WorkspaceNotAdded]:
+    RECORD_CHANNEL_TEXT.workspaceNotAdded,
   [WorkspaceChannelState.Unavailable]: RECORD_CHANNEL_TEXT.unavailable,
 };
+
+const MATTERMOST_NOT_CONNECTED: string = translationKey(
+  "Mattermost isn't connected to this project.",
+);
 
 export const MATTERMOST_CHANNEL_STATE_TEXT: Record<
   ChannelStateWithText,
@@ -457,9 +471,9 @@ export const MATTERMOST_CHANNEL_STATE_TEXT: Record<
   [WorkspaceChannelState.Unreachable]: translationKey(
     "OneUptime can't see this channel. It was deleted, or OneUptime's bot was removed from it.",
   ),
-  [WorkspaceChannelState.NotConnected]: translationKey(
-    "Mattermost isn't connected to this project.",
-  ),
+  [WorkspaceChannelState.NotConnected]: MATTERMOST_NOT_CONNECTED,
+  // Slack's alone: a Mattermost channel never reaches it.
+  [WorkspaceChannelState.WorkspaceNotAdded]: MATTERMOST_NOT_CONNECTED,
   [WorkspaceChannelState.Unavailable]:
     MATTERMOST_ADD_OUTCOME_TEXT[WorkspaceChannelAddOutcome.TryAgain].self,
 };

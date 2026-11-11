@@ -10,6 +10,8 @@
  */
 
 import React, { FunctionComponent, ReactElement, useState } from "react";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
@@ -27,6 +29,7 @@ export interface ComponentProps {
 const UpdateWorkflowVariableContentModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
 
@@ -45,9 +48,16 @@ const UpdateWorkflowVariableContentModal: FunctionComponent<ComponentProps> = (
       name="Workflow > Update Variable Content"
       isLoading={isLoading}
       error={error || undefined}
-      description={`Replace the content of "${
-        props.variable.name || "this variable"
-      }". Every workflow that refers to this variable uses the new content from its next run.`}
+      description={
+        props.variable.name
+          ? translator.translateTemplate(
+              'Replace the content of "{{name}}". Every workflow that refers to this variable uses the new content from its next run.',
+              { name: props.variable.name },
+            )
+          : translator.translateText(
+              "Replace the content of this variable. Every workflow that refers to this variable uses the new content from its next run.",
+            )
+      }
       submitButtonText="Update Content"
       onClose={() => {
         setIsLoading(false);

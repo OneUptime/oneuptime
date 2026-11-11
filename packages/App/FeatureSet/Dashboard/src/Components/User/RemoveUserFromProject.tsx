@@ -14,6 +14,14 @@ import TeamMembershipRemoval, {
   RemovalConfirmation,
 } from "../../Utils/TeamMembershipRemoval";
 import React, { ReactElement, useEffect, useState } from "react";
+import {
+  composedValue,
+  translatableTerm,
+  TemplateValue,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
   projectId: ObjectID;
@@ -22,11 +30,12 @@ export interface ComponentProps {
   onError: (error: string) => void;
 }
 
-const CARD_TITLE: string = "Remove User from Project";
+const CARD_TITLE: string = translationKey("Remove User from Project");
 
 const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -139,15 +148,39 @@ const RemoveUserFromProject: (props: ComponentProps) => ReactElement = (
       }),
     });
 
-  const teamList: string = TeamMembershipRemoval.formatNames(teamNames);
+  /*
+   * The person by name and email, as their account writes them; with
+   * neither, "this user" in the sentence's language.
+   */
+  const userLabel: TemplateValue =
+    user?.name?.toString().trim() || user?.email?.toString().trim()
+      ? TeamMembershipRemoval.getUserLabel(user)
+      : translatableTerm("this user", { inSentence: true });
+
+  const description: string =
+    TeamMembershipRemoval.formatNames(teamNames).length > 0
+      ? translator.translateTemplate(
+          "Remove {{user}} from this project, and from every team they belong to in it: {{teams}}. They will lose access to the project immediately.",
+          {
+            user: userLabel,
+            teams: composedValue((sentence: Translator): string => {
+              return TeamMembershipRemoval.formatNamesInLanguage(
+                teamNames,
+                sentence,
+              );
+            }),
+          },
+        )
+      : translator.translateTemplate(
+          "Remove {{user}} from this project, and from every team they belong to in it. They will lose access to the project immediately.",
+          { user: userLabel },
+        );
 
   return (
     <>
       <Card
         title={CARD_TITLE}
-        description={`Remove ${TeamMembershipRemoval.getUserLabel(user)} from this project, and from every team they belong to in it${
-          teamList ? `: ${teamList}` : ""
-        }. They will lose access to the project immediately.`}
+        description={description}
         buttons={[
           {
             title: `Remove from Project`,

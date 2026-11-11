@@ -26,6 +26,12 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * own card. Connecting your own Mattermost account is yours: the bot sends
  * your account a link, to the account with your email address when
  * OneUptime can find it, or to the username you type.
+ *
+ * OneUptime works in every team of the server its bot is a member of
+ * (GitHub issue #6747): a Mattermost teams card on Project Settings lists
+ * them, the default first, marked Default; Make default makes another one
+ * the default, and Refresh asks the server again - adding the bot to a
+ * team happens in Mattermost, which tells OneUptime nothing.
  */
 
 interface MockState {
@@ -37,6 +43,10 @@ interface MockState {
   teams: Array<{ id: string; name: string; displayName: string }>;
   // What the server answers a route with instead of success.
   refusals: Record<string, string>;
+  // What GET /mattermost/connected-teams answers: the project's teams.
+  connectedTeams: Record<string, unknown>;
+  // After a refresh (?refresh=true), when the server lists something else.
+  connectedTeamsAfterRefresh?: Record<string, unknown> | undefined;
 }
 
 const mockState: MockState = {
@@ -45,9 +55,16 @@ const mockState: MockState = {
   suggestedUsername: null,
   teams: [],
   refusals: {},
+  connectedTeams: {},
 };
 
 const mockPosts: Array<{ route: string; data: unknown; query: string }> = [];
+// The reads and writes of the project's teams, in order.
+const mockTeamRequests: Array<{
+  method: string;
+  query: string;
+  data?: unknown;
+}> = [];
 
 const deleteItemMock: MockFunction = getJestMockFunction();
 const navigateMock: MockFunction = getJestMockFunction();
@@ -131,7 +148,7 @@ jest.mock("../../../UI/Utils/API/API", () => {
     __esModule: true,
     default: {
       get: async (data: { url: { toString: () => string } }) => {
-        const { route } = routeOf(data.url);
+        const { route, query } = routeOf(data.url);
 
         if (route === "/mattermost/account-suggestion") {
           return new HTTPResponse(
@@ -139,6 +156,65 @@ jest.mock("../../../UI/Utils/API/API", () => {
             { username: mockState.suggestedUsername },
             {},
           );
+        }
+
+        if (route === "/mattermost/connected-teams") {
+          mockTeamRequests.push({ method: "GET", query: query });
+
+          if (mockState.refusals[route]) {
+            return new HTTPErrorResponse(
+              400,
+              { message: mockState.refusals[route] },
+              {},
+            );
+          }
+
+          return new HTTPResponse(
+            200,
+            query.includes("refresh=true") &&
+            mockState.connectedTeamsAfterRefresh
+              ? mockState.connectedTeamsAfterRefresh
+              : mockState.connectedTeams,
+            {},
+          );
+        }
+
+        return new HTTPErrorResponse(404, { message: "Not found" }, {});
+      },
+      put: async (data: { url: { toString: () => string }; data: unknown }) => {
+        const { route, query } = routeOf(data.url);
+
+        mockTeamRequests.push({ method: "PUT", query: query, data: data.data });
+
+        if (mockState.refusals[route]) {
+          return new HTTPErrorResponse(
+            403,
+            { message: mockState.refusals[route] },
+            {},
+          );
+        }
+
+        if (route === "/mattermost/default-team") {
+          const teamId: string = (data.data as { teamId: string }).teamId;
+          const teams: Array<Record<string, unknown>> = (
+            mockState.connectedTeams["teams"] as Array<Record<string, unknown>>
+          ).map((team: Record<string, unknown>) => {
+            return { ...team, isDefault: team["id"] === teamId };
+          });
+
+          // The default first, as the server lists them.
+          teams.sort((a: Record<string, unknown>) => {
+            return a["isDefault"] ? -1 : 1;
+          });
+
+          mockState.connectedTeams = {
+            ...mockState.connectedTeams,
+            teams: teams,
+            defaultTeamId: teamId,
+            isBotInDefaultTeam: true,
+          };
+
+          return new HTTPResponse(200, mockState.connectedTeams, {});
         }
 
         return new HTTPErrorResponse(404, { message: "Not found" }, {});
@@ -331,6 +407,44 @@ async function renderPage(page: Page): Promise<void> {
 
 let refresh: MockFunction;
 
+const ENGINEERING_ID: string = "t".repeat(26);
+const SUPPORT_ID: string = "o".repeat(26);
+const PLATFORM_ID: string = "p".repeat(26);
+
+// The project's teams, as GET /mattermost/connected-teams answers.
+function connectedTeams(
+  teams: Array<{ id: string; name: string; displayName: string }>,
+  defaultTeamId: string,
+  isBotInDefaultTeam: boolean = true,
+): Record<string, unknown> {
+  return {
+    teams: teams.map(
+      (team: { id: string; name: string; displayName: string }) => {
+        return { ...team, isDefault: team.id === defaultTeamId };
+      },
+    ),
+    defaultTeamId: defaultTeamId,
+    isBotInDefaultTeam: isBotInDefaultTeam,
+    botUsername: "oneuptime",
+  };
+}
+
+const ENGINEERING_TEAM: { id: string; name: string; displayName: string } = {
+  id: ENGINEERING_ID,
+  name: "engineering",
+  displayName: "Engineering",
+};
+const SUPPORT_TEAM: { id: string; name: string; displayName: string } = {
+  id: SUPPORT_ID,
+  name: "support",
+  displayName: "Support",
+};
+const PLATFORM_TEAM: { id: string; name: string; displayName: string } = {
+  id: PLATFORM_ID,
+  name: "platform",
+  displayName: "Platform",
+};
+
 beforeEach(() => {
   mockState.isProjectConnected = false;
   mockState.isUserConnected = false;
@@ -339,6 +453,9 @@ beforeEach(() => {
     { id: "t".repeat(26), name: "engineering", displayName: "Engineering" },
   ];
   mockState.refusals = {};
+  mockState.connectedTeams = connectedTeams([ENGINEERING_TEAM], ENGINEERING_ID);
+  mockState.connectedTeamsAfterRefresh = undefined;
+  mockTeamRequests.length = 0;
   mockPosts.length = 0;
   mockQueryParams = {};
   deleteItemMock.mockReset();
@@ -684,5 +801,199 @@ describe("Mattermost connected, your account connected", () => {
     await renderPage("user");
 
     expect(screen.queryByTestId("mattermost-project-connection")).toBeNull();
+  });
+
+  test("User Settings shows no teams card, and never asks for the teams", async () => {
+    await renderPage("user");
+
+    expect(screen.queryByTestId("mattermost-teams")).toBeNull();
+    expect(mockTeamRequests).toEqual([]);
+  });
+});
+
+describe("Project Settings > Mattermost: the teams OneUptime works in", () => {
+  beforeEach(() => {
+    mockState.isProjectConnected = true;
+    mockState.isUserConnected = true;
+  });
+
+  // The teams listed, in order, with Default after the default one.
+  function listedTeams(): Array<string> {
+    return within(screen.getByTestId("mattermost-teams-list"))
+      .getAllByRole("listitem")
+      .map((row: HTMLElement): string => {
+        const name: string =
+          row.querySelector(".font-medium")?.textContent?.trim() || "";
+
+        return within(row).queryByTestId("mattermost-team-default")
+          ? `${name} (Default)`
+          : name;
+      });
+  }
+
+  test("a bot in one team: the project's card names it, and the teams card lists it as the default", async () => {
+    await renderPage("project");
+
+    await screen.findByTestId("mattermost-teams-list");
+
+    expect(cardIn("mattermost-project-connection").title).toBe(
+      "OneUptime is connected to the Engineering team in Mattermost",
+    );
+    expect(cardIn("mattermost-teams")).toEqual({
+      title: "Mattermost teams",
+      description:
+        "OneUptime works in every team its bot @oneuptime is a member of. A notification rule that names no team creates its channels in the default one.",
+      buttons: ["Refresh"],
+    });
+    expect(listedTeams()).toEqual(["Engineering (Default)"]);
+    // How to use OneUptime in another team, under the list.
+    expect(screen.getByTestId("mattermost-teams-hint")).toHaveTextContent(
+      "To use OneUptime in another team, add @oneuptime to it in Mattermost as you would add a person: open the team, then Main Menu → Invite People. Then click Refresh.",
+    );
+    expect(mockTeamRequests).toEqual([{ method: "GET", query: "" }]);
+
+    // After your account's card.
+    expect(
+      screen
+        .getByTestId("mattermost-your-account")
+        .compareDocumentPosition(screen.getByTestId("mattermost-teams")) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  test("a bot in several teams: the project's card names none, the teams card lists them, the default first", async () => {
+    mockState.connectedTeams = connectedTeams(
+      [ENGINEERING_TEAM, PLATFORM_TEAM, SUPPORT_TEAM],
+      ENGINEERING_ID,
+    );
+
+    await renderPage("project");
+    await screen.findByTestId("mattermost-teams-list");
+
+    expect(cardIn("mattermost-project-connection").title).toBe(
+      "OneUptime is connected to Mattermost",
+    );
+    expect(listedTeams()).toEqual([
+      "Engineering (Default)",
+      "Platform",
+      "Support",
+    ]);
+
+    // The default has no button; each other team has one, named for it.
+    expect(
+      within(
+        screen.getByTestId(`mattermost-team-${ENGINEERING_ID}`),
+      ).queryAllByRole("button"),
+    ).toHaveLength(0);
+    expect(
+      within(screen.getByTestId(`mattermost-team-${SUPPORT_ID}`)).getByRole(
+        "button",
+        { name: "Make Support the default team" },
+      ),
+    ).toHaveTextContent("Make default");
+  });
+
+  test("Make default asks the server to make that team the default, and shows what it answers", async () => {
+    mockState.connectedTeams = connectedTeams(
+      [ENGINEERING_TEAM, SUPPORT_TEAM],
+      ENGINEERING_ID,
+    );
+
+    await renderPage("project");
+    await screen.findByTestId("mattermost-teams-list");
+
+    await click("Make Support the default team");
+
+    await waitFor(() => {
+      expect(listedTeams()).toEqual(["Support (Default)", "Engineering"]);
+    });
+    expect(
+      mockTeamRequests.filter((request: { method: string }) => {
+        return request.method === "PUT";
+      }),
+    ).toEqual([{ method: "PUT", query: "", data: { teamId: SUPPORT_ID } }]);
+    expect(
+      screen.getByRole("button", { name: "Make Engineering the default team" }),
+    ).toBeEnabled();
+  });
+
+  test("a refusal is said on the card, and the list stays as it was", async () => {
+    mockState.connectedTeams = connectedTeams(
+      [ENGINEERING_TEAM, SUPPORT_TEAM],
+      ENGINEERING_ID,
+    );
+    mockState.refusals["/mattermost/default-team"] =
+      "You do not have permission to change this project's Mattermost settings.";
+
+    await renderPage("project");
+    await screen.findByTestId("mattermost-teams-list");
+
+    await click("Make Support the default team");
+
+    expect(
+      await within(screen.getByTestId("mattermost-teams")).findByText(
+        "You do not have permission to change this project's Mattermost settings.",
+      ),
+    ).toBeVisible();
+    expect(listedTeams()).toEqual(["Engineering (Default)", "Support"]);
+  });
+
+  test("Refresh asks the server again, and lists a team the bot was added to since", async () => {
+    mockState.connectedTeamsAfterRefresh = connectedTeams(
+      [ENGINEERING_TEAM, SUPPORT_TEAM],
+      ENGINEERING_ID,
+    );
+
+    await renderPage("project");
+    await screen.findByTestId("mattermost-teams-list");
+
+    expect(listedTeams()).toEqual(["Engineering (Default)"]);
+
+    await click("Refresh");
+
+    await waitFor(() => {
+      expect(listedTeams()).toEqual(["Engineering (Default)", "Support"]);
+    });
+    expect(mockTeamRequests).toEqual([
+      { method: "GET", query: "" },
+      { method: "GET", query: "refresh=true" },
+    ]);
+    // Now in two teams: the project's card names none of them.
+    expect(cardIn("mattermost-project-connection").title).toBe(
+      "OneUptime is connected to Mattermost",
+    );
+  });
+
+  test("a default team the bot was taken out of is said, with what to do", async () => {
+    mockState.connectedTeams = connectedTeams(
+      [ENGINEERING_TEAM, SUPPORT_TEAM],
+      ENGINEERING_ID,
+      false,
+    );
+
+    await renderPage("project");
+
+    expect(
+      await screen.findByTestId("mattermost-bot-left-default-team"),
+    ).toHaveTextContent(
+      "OneUptime's bot is no longer a member of Engineering, the default team. Add it back in Mattermost, or make another team the default.",
+    );
+  });
+
+  test("teams the server would not list: said on the card, the project's card as before", async () => {
+    mockState.refusals["/mattermost/connected-teams"] =
+      "Mattermost did not accept the access token.";
+
+    await renderPage("project");
+
+    expect(
+      await within(screen.getByTestId("mattermost-teams")).findByText(
+        "Mattermost did not accept the access token.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByTestId("mattermost-teams-list")).toBeNull();
+    expect(cardIn("mattermost-project-connection").title).toBe(
+      "OneUptime is connected to the Engineering team in Mattermost",
+    );
   });
 });

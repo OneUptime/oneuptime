@@ -170,6 +170,8 @@ Een app die is aangemaakt vóór `/oneuptime page` heeft dezelfde update nodig: 
 
 Een app die vóór het tabblad **Home** is gemaakt, heeft dezelfde update nodig: zolang hij die niet heeft, toont Slack geen tabblad **Home** voor de app, en plaatst de app geen begroeting in een kanaal waaraan hij wordt toegevoegd. De update zet het tabblad aan en abonneert de app op de events `app_home_opened` en `member_joined_channel`. Er komt geen scope bij, dus hoeft er niets opnieuw gekoppeld te worden.
 
+Een app die voor een hele organisatie op Slack Enterprise Grid is geïnstalleerd, heeft dezelfde update nodig om te horen wanneer een beheerder OneUptime aan een van de workspaces van de organisatie toevoegt of eruit verwijdert. De update abonneert de app op de events `team_access_granted` en `team_access_revoked`, en OneUptime leest de workspaces dan meteen opnieuw. Tot die tijd leest het ze opnieuw wanneer ze nodig zijn en meer dan 10 minuten geleden voor het laatst zijn gelezen, of wanneer iemand op de kaart **Slack-werkruimtes** op **Vernieuwen** klikt. Er komt geen scope bij, dus hoeft er niets opnieuw gekoppeld te worden.
+
 ## Netwerktoegang voor zelf gehoste installaties
 
 ### Verkeersrichting en endpoints

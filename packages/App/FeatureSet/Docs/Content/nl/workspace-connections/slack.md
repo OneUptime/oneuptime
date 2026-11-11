@@ -67,6 +67,7 @@ Met Slack Enterprise Grid kan één project werken in meerdere workspaces van je
 3. De kaart **Slack-werkruimtes** toont die workspaces. Klik op **Vernieuwen** nadat OneUptime aan een andere workspace is toegevoegd.
 
 - **Welke workspace een regel gebruikt.** Meldingsregels kiezen de **Slack-werkruimte** waarin hun kanalen staan. Blijft het veld leeg, dan gebruikt een regel de standaardworkspace en zoekt ze de kanalen die ze noemt daar eerst. **Als standaard instellen** op de kaart wijzigt de standaard.
+- **Een workspace waaruit OneUptime is verwijderd.** Een regel die hem kiest, post niet in plaats daarvan in een andere workspace: de kaart van de regel, **Testregel** en de meldingslogboeken zeggen dat OneUptime er niet meer aan is toegevoegd. De kaart **Slack-kanaal** zegt dat ook als het kanaal in die workspace staat. Voeg OneUptime opnieuw toe aan die workspace in de organisatie-instellingen van Slack, of kies een andere workspace in de regel.
 - **Waar OneUptime werkt.** Knoppen, opdrachten, het tabblad Home en OneUptime AI werken in elk van die workspaces, en leden koppelen hun eigen Slack-account vanuit elk ervan.
 - **Een project dat met één workspace is gekoppeld.** Hoort die workspace bij de organisatie, dan behoudt het project zijn regels, kanalen en gekoppelde accounts wanneer het met **Installeren voor de organisatie** op dezelfde pagina voor de hele organisatie wordt geïnstalleerd. Die workspace wordt de standaard.
 - **Op een zelfgehoste server** staat een Slack-app die is gemaakt met het manifest van OneUptime dit al toe: het manifest zet `org_deploy_enabled`.
@@ -268,6 +269,7 @@ Voor een groep met zowel de primaire als de secundaire dienst koppel je dezelfde
 - **De groep oproepen.** `/oneuptime page @payments-oncall The checkout API is down` roept op wie er dienst heeft in de schema's die de groep volgt. Zie [Iemand oproepen vanuit Slack](#iemand-oproepen-vanuit-slack).
 - **Wat Slack nodig heeft.** Gebruikersgroepen horen bij de betaalde abonnementen van Slack, en een werkruimte kan alleen de eigenaren en beheerders toestaan ze te wijzigen: de kaart zegt welke van de twee, en wat je kunt doen. Als Slack gekoppeld is voordat OneUptime gebruikersgroepen kon bijhouden, koppel het dan één keer opnieuw onder **Projectinstellingen** > **Werkruimte** > **Slack**.
 - **Wie er een mag koppelen.** De rollen die schema's mogen bewerken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Bereikbaarheidsbeheerder** en **Bereikbaarheidslid**, of **Edit On-Call Duty Policy Schedule** in een aangepaste rol. In OneUptime Cloud vraagt koppelen het abonnement **Growth**.
+- **In een Slack Enterprise-organisatie.** Is OneUptime toegevoegd aan twee of meer van haar workspaces, dan vraagt **Gebruikersgroep koppelen** eerst in welke **Slack-werkruimte** de groep staat, en toont daarna de gebruikersgroepen van die workspace. De kaart noemt de workspace van elke groep, en OneUptime houdt de groep daar bij.
 - **Ontkoppelen.** OneUptime past de groep niet meer aan. De groep en de leden blijven in Slack zoals ze zijn.
 
 ## Een incident beheren vanuit Slack

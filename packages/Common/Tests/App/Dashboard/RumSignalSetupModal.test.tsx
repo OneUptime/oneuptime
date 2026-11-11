@@ -426,8 +426,13 @@ describe("in the reader's language", () => {
       expect(dialog.textContent).toContain(
         `شناسه‌های پذیرفته: ${FIRST_STRONG_ISOLATE}${ORIGIN}${POP_DIRECTIONAL_ISOLATE}.`,
       );
-      // A left-to-right mark keeps "://" with "app", or it is drawn "//:app".
-      expect(dialog.textContent).toContain("شناسه‌های app://‎ فقط");
+      /*
+       * The locale writes app:// as en.json does: the Dashboard's i18next
+       * sets code apart as it hands a right-to-left sentence to the page
+       * (Common/UI/Utils/CodeReadsAsWritten, guarded by
+       * CodeInRightToLeftSentences), which this test's i18next does not.
+       */
+      expect(dialog.textContent).toContain("شناسه‌های app:// فقط");
       expect(dialog.textContent).not.toContain("client distribution");
     });
 

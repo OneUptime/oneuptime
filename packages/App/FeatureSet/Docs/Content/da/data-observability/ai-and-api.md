@@ -34,10 +34,11 @@ De virker begge med et skrivebeskyttet login og svarer som den person eller API-
 | `POST /telemetry/fivetran/v1/webhook/<ingestion key ID>` | Fivetrans synkroniseringswebhooks | Indtagelsesnøglen som Fivetrans signeringshemmelighed |
 | `POST /telemetry/airbyte/v1/webhook/<ingestion key>` | Airbytes synkroniseringswebhooks | Indtagelsesnøglen i URL'en |
 | `POST /api/data-observability/tables/freshness` | En tabels aktualitet, som MCP-værktøjet besvarer den, med `{ "table": "public.orders" }` | En API-nøgle |
-| `POST /api/data-observability/tables/lineage` | En tabels afstamning nogle trin i hver retning, med hvordan hver tabel står nu, som dens fane **Afstamning** tegner den, med `{ "dataAssetId": "<table ID>", "depth": 3 }` | En API-nøgle |
+| `POST /api/data-observability/tables/lineage` | En tabels afstamning nogle trin i hver retning, med hvordan hver tabel står nu, som dens fane **Afstamning** tegner den, med `{ "dataAssetId": "<table ID>", "depth": 3 }`, og med `"withColumns": true` de kolonner, hver pil bærer | En API-nøgle |
 | `POST /api/data-observability/tables/lineage/answer` | En tabels afstamning fortalt i ord, tabellerne med et problem først, som MCP-værktøjet svarer, med `{ "table": "public.orders", "depth": 3 }` | En API-nøgle |
 | `POST /api/data-observability/pipelines/lineage` | De tabeller, en pipeline læser og skriver, med hvordan hver tabel står nu, som dens side tegner dem, med `{ "dataPipelineId": "<pipeline ID>", "depth": 1 }` | En API-nøgle |
 | `POST /api/data-observability/alerts/<alert ID>/lineage` | En dataadvarsels afstamning, som dens side tegner den, med vejen til den advarsel, der forårsagede den, og til de advarsler, den forårsagede | En API-nøgle |
+| `POST /api/data-observability/lineage/expand` | De næste tabeller, et kort i et afstamningsdiagram ikke tegner, sådan som et valg af dets tal tegner dem: kortet som `nodeId` med dets `side`, og det tegnede som `focusNodeId`, `tables` og `dataDashboardIds` | En API-nøgle |
 | `POST /api/data-observability/checks/apply` | Få projektets tjek til at matche en fil, som `oneuptime data-checks apply` gør, med `{ "manifest": "...", "isDryRun": true, "shouldPrune": false }` | En API-nøgle |
 | `GET /api/data-observability/data-products/<data product ID>/badge?token=<badge token>` | Et dataprodukts "data as of"-badge | Badgets eget token |
 

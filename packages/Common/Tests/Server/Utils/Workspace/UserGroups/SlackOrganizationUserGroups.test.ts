@@ -74,6 +74,8 @@ let paymentsOnCall: FakeSlackGroup;
 let isOrganization: boolean;
 let defaultWorkspaceId: string | undefined;
 let workspaces: Array<SlackOrganizationWorkspace>;
+// The workspaces OneUptime was removed from, by the names they had.
+let removedWorkspaces: Array<SlackOrganizationWorkspace>;
 
 function connection(): WorkspaceProjectAuthToken {
   const auth: WorkspaceProjectAuthToken = new WorkspaceProjectAuthToken();
@@ -95,6 +97,7 @@ function connection(): WorkspaceProjectAuthToken {
       OneUptimeDate.addRemoveMinutes(world.now(), -1),
     ),
     defaultWorkspaceId: defaultWorkspaceId,
+    removedWorkspaces: removedWorkspaces,
   };
 
   auth.miscData = miscData as never;
@@ -141,6 +144,7 @@ beforeEach(() => {
   isOrganization = true;
   defaultWorkspaceId = WEST.id;
   workspaces = [EAST, WEST];
+  removedWorkspaces = [];
 
   ana = world.addPerson("Ana Silva", "ana@acme.test");
   world.slack.addUser({ id: "U0ANA", email: "ana@acme.test", name: "ana" });
@@ -205,7 +209,7 @@ afterEach(() => {
 });
 
 describe("a project connected to a whole Slack Enterprise organization", () => {
-  test("the Connect form offers the default workspace's user groups - asked with its team_id", async () => {
+  test("the Connect form offers the default workspace's user groups - asked with its team_id - and the workspaces to pick from, the default first", async () => {
     const available: {
       groups: Array<WorkspaceAvailableUserGroup>;
       teams: Array<WorkspaceUserGroupTeam>;
@@ -225,7 +229,143 @@ describe("a project connected to a whole Slack Enterprise organization", () => {
         },
       ),
     ).toEqual(["payments-oncall"]);
-    expect(available.teams).toEqual([]);
+    expect(available.teams).toEqual([
+      { teamId: WEST.id, name: WEST.name },
+      { teamId: EAST.id, name: EAST.name },
+    ]);
+  });
+
+  test("another workspace picked: its user groups, asked with its team_id", async () => {
+    await WorkspaceUserGroupManager.getAvailable({
+      workspaceType: WorkspaceType.Slack,
+      projectId: PROJECT_ID,
+      teamId: ` ${EAST.id} `,
+      props: PROPS,
+    });
+
+    expect(world.slack.calls("usergroups.list")).toEqual([
+      { include_disabled: true, include_count: true, team_id: EAST.id },
+    ]);
+  });
+
+  test("an existing group picked in another workspace is linked with it, kept in step there, and its card names it", async () => {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
+        request: {
+          onCallDutyPolicyScheduleId: primary.id.toString(),
+          workspaceType: WorkspaceType.Slack,
+          workspaceGroupId: paymentsOnCall.id,
+          workspaceTeamId: EAST.id,
+        },
+        projectId: PROJECT_ID,
+        props: PROPS,
+      });
+
+    expect(world.groups.get(view.workspaceUserGroupId)!.workspaceTeamId).toBe(
+      EAST.id,
+    );
+    expect(view.teamName).toBe(EAST.name);
+    expect(paymentsOnCall.users).toEqual(["U0ANA"]);
+    expect(userGroupTeamIds().length).toBeGreaterThan(0);
+    expect(new Set(userGroupTeamIds())).toEqual(new Set([EAST.id]));
+  });
+
+  test("a new group made in another workspace is made there, and linked with it", async () => {
+    const view: WorkspaceUserGroupView =
+      await WorkspaceUserGroupManager.connect({
+        request: {
+          onCallDutyPolicyScheduleId: primary.id.toString(),
+          workspaceType: WorkspaceType.Slack,
+          newGroupName: "Checkout on-call",
+          newGroupHandle: "checkout-oncall",
+          workspaceTeamId: EAST.id,
+        },
+        projectId: PROJECT_ID,
+        props: PROPS,
+      });
+
+    expect(world.slack.calls("usergroups.create")).toHaveLength(1);
+    expect(world.slack.calls("usergroups.create")[0]!["team_id"]).toBe(EAST.id);
+    expect(world.groups.get(view.workspaceUserGroupId)!.workspaceTeamId).toBe(
+      EAST.id,
+    );
+    expect(view.teamName).toBe(EAST.name);
+  });
+
+  test("a workspace OneUptime is not added to: refused, in plain words - Slack is not asked, and nothing is linked", async () => {
+    const message: string =
+      "OneUptime is not added to this Slack workspace any more. Pick another workspace.";
+
+    await expect(
+      WorkspaceUserGroupManager.getAvailable({
+        workspaceType: WorkspaceType.Slack,
+        projectId: PROJECT_ID,
+        teamId: "T0GONE",
+        props: PROPS,
+      }),
+    ).rejects.toThrow(message);
+
+    await expect(
+      WorkspaceUserGroupManager.connect({
+        request: {
+          onCallDutyPolicyScheduleId: primary.id.toString(),
+          workspaceType: WorkspaceType.Slack,
+          workspaceGroupId: paymentsOnCall.id,
+          workspaceTeamId: "T0GONE",
+        },
+        projectId: PROJECT_ID,
+        props: PROPS,
+      }),
+    ).rejects.toThrow(message);
+
+    expect(userGroupTeamIds()).toEqual([]);
+    expect(world.groups.size).toBe(0);
+  });
+
+  test("a group's card names the workspace it is in - one OneUptime was removed from by the name it had", async () => {
+    const inEast: WorldGroupRow = world.addGroup({
+      workspaceType: WorkspaceType.Slack,
+      workspaceGroupId: paymentsOnCall.id,
+      name: paymentsOnCall.name,
+      handle: paymentsOnCall.handle,
+      schedules: [primary],
+      workspaceTeamId: EAST.id,
+    });
+
+    const view: WorkspaceUserGroupView | null =
+      await WorkspaceUserGroupManager.getView({
+        workspaceUserGroupId: inEast.id,
+        scheduleId: primary.id,
+        projectId: PROJECT_ID,
+        props: PROPS,
+      });
+
+    expect(view?.teamName).toBe(EAST.name);
+
+    // OneUptime removed from Acme East since: named as it was.
+    workspaces = [WEST];
+    removedWorkspaces = [EAST];
+
+    const removed: WorkspaceUserGroupView | null =
+      await WorkspaceUserGroupManager.getView({
+        workspaceUserGroupId: inEast.id,
+        scheduleId: primary.id,
+        projectId: PROJECT_ID,
+        props: PROPS,
+      });
+
+    expect(removed?.teamName).toBe(EAST.name);
+
+    // A group that says no workspace: none named.
+    const legacy: WorkspaceUserGroupView | null =
+      await WorkspaceUserGroupManager.getView({
+        workspaceUserGroupId: legacyGroup().id,
+        scheduleId: primary.id,
+        projectId: PROJECT_ID,
+        props: PROPS,
+      });
+
+    expect(legacy?.teamName).toBeNull();
   });
 
   test("an existing group is linked with the default workspace, and kept in step there", async () => {
@@ -378,6 +518,23 @@ describe("a project connected to one Slack workspace (as before)", () => {
     expect(
       world.groups.get(view.workspaceUserGroupId)!.workspaceTeamId,
     ).toBeNull();
+    expect(view.teamName).toBeNull();
+    expect(new Set(userGroupTeamIds())).toEqual(new Set([SLACK_TEAM_ID]));
+  });
+
+  test("the Connect form offers the workspace's own groups, and no workspace to pick - a workspace named is not looked at", async () => {
+    const available: {
+      groups: Array<WorkspaceAvailableUserGroup>;
+      teams: Array<WorkspaceUserGroupTeam>;
+    } = await WorkspaceUserGroupManager.getAvailable({
+      workspaceType: WorkspaceType.Slack,
+      projectId: PROJECT_ID,
+      teamId: EAST.id,
+      props: PROPS,
+    });
+
+    expect(available.teams).toEqual([]);
+    expect(world.slack.calls("usergroups.list")).toHaveLength(1);
     expect(new Set(userGroupTeamIds())).toEqual(new Set([SLACK_TEAM_ID]));
   });
 

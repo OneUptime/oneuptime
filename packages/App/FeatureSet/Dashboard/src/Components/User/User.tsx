@@ -201,7 +201,7 @@ const UserElement: FunctionComponent<ComponentProps> = (
             <span
               className={props.usernameClassName ? props.usernameClassName : ""}
             >
-              {"OneUptime"}
+              {translator.translateText("OneUptime")}
             </span>{" "}
           </div>
         </div>

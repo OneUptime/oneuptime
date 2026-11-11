@@ -22,6 +22,8 @@ export { LINEAGE_DEPTH_OPTIONS } from "./LineageDiagram";
 
 export interface ComponentProps {
   dataAssetId: ObjectID;
+  // The table's columns in its own order, as its last collection read them: the order a column is offered to follow in.
+  columnOrder?: ReadonlyArray<string> | undefined;
 }
 
 const READ_FAILED: string = translationKey(
@@ -32,8 +34,9 @@ const READ_FAILED: string = translationKey(
  * A table's lineage as a diagram, at the top of its Lineage tab: what it is
  * built from on the left, what is built from it on the right, three steps
  * each way unless the reader picks another number, with how each table
- * and pipeline is now. The lists under it still say every edge one step
- * away, and where each was seen.
+ * and pipeline is now. It is read with the columns each arrow carries, so
+ * one of the table's columns can be followed up and down it. The lists
+ * under it still say every edge one step away, and where each was seen.
  */
 const TableLineageDiagram: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -43,7 +46,11 @@ const TableLineageDiagram: FunctionComponent<ComponentProps> = (
   const read: LineageRead<DataTableLineage> = useLineageRead<DataTableLineage>(
     `${props.dataAssetId.toString()}:${depth}`,
     (): Promise<DataTableLineage> => {
-      return DataObservabilityApi.getTableLineage(props.dataAssetId, depth);
+      return DataObservabilityApi.getTableLineage(
+        props.dataAssetId,
+        depth,
+        true,
+      );
     },
     READ_FAILED,
   );
@@ -66,7 +73,12 @@ const TableLineageDiagram: FunctionComponent<ComponentProps> = (
     );
   } else {
     body = (
-      <LineageDiagramBody lineage={read.answer} place={LineagePlace.Table} />
+      <LineageDiagramBody
+        lineage={read.answer}
+        place={LineagePlace.Table}
+        withColumns={true}
+        columnOrder={props.columnOrder}
+      />
     );
   }
 
