@@ -599,9 +599,12 @@ describe("Product Analytics: All cohorts, and saved funnels and retention tables
   });
 
   it("keeps no time range, as the save dialog says", () => {
-    expect(source("savedViews")).toContain(
-      "The time range is not kept: this page keeps its own, and a dashboard widget reads the dashboard's.",
-    );
+    // Both kinds' dialogs.
+    expect(
+      source("savedViews").split(
+        "to open again here or show on a dashboard. The time range is not saved.",
+      ),
+    ).toHaveLength(3);
     expect(saved).toContain(
       "Neither keeps the time range: the page keeps its own, and a dashboard reads its own.",
     );

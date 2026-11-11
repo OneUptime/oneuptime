@@ -73,8 +73,9 @@ export const PRODUCT_ANALYTICS_SAVED_VIEW_WORDS: Readonly<
     create: translationKey("+ Save funnel"),
     search: translationKey("Search saved funnels"),
     save: translationKey("Save funnel"),
+    // Two lines: why the time range is not saved is the docs' to say.
     saveDescription: translationKey(
-      "Keeps this funnel's steps, its time to finish and its segment under a name, to open again here or show on a dashboard. The time range is not kept: this page keeps its own, and a dashboard widget reads the dashboard's.",
+      "Saves this funnel's steps, time to finish and segment, to open again here or show on a dashboard. The time range is not saved.",
     ),
     rename: translationKey("Rename saved funnel"),
     delete: translationKey("Delete saved funnel"),
@@ -92,7 +93,7 @@ export const PRODUCT_ANALYTICS_SAVED_VIEW_WORDS: Readonly<
     search: translationKey("Search saved retention tables"),
     save: translationKey("Save retention table"),
     saveDescription: translationKey(
-      "Keeps this table's start and return events, its period and its segment under a name, to open again here or show on a dashboard. The time range is not kept: this page keeps its own, and a dashboard widget reads the dashboard's.",
+      "Saves this table's start and return events, period and segment, to open again here or show on a dashboard. The time range is not saved.",
     ),
     rename: translationKey("Rename saved retention table"),
     delete: translationKey("Delete saved retention table"),

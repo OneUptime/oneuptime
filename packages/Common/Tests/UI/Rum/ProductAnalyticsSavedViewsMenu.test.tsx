@@ -507,6 +507,21 @@ describe("the menu on the toolbar", () => {
     expect(callbacks.onNotice).not.toHaveBeenCalled();
   });
 
+  /*
+   * It stands in the card's header beside the time range, at the time
+   * range's header size - 38px, 42px on a phone - where a chip stood 30px.
+   */
+  test("its trigger is as tall as the header's time range beside it", async () => {
+    renderMenu();
+    await waitForListRead();
+    await waitFor(() => {
+      expect(trigger()).toHaveTextContent("Saved funnels3");
+    });
+
+    expect(trigger()).toHaveClass("px-3", "py-2.5", "md:py-2", "text-sm");
+    expect(trigger()).not.toHaveClass("py-1.5", "text-xs");
+  });
+
   test("reads the list again as it opens, so one saved in another tab is in it", async () => {
     renderMenu();
     await waitForListRead();
@@ -675,7 +690,7 @@ describe("saving what is on screen", () => {
     expect(mockLastFormModal?.title).toBe("Save funnel");
     expect(mockLastFormModal?.submitButtonText).toBe("Save funnel");
     expect(mockLastFormModal?.description).toContain(
-      "The time range is not kept",
+      "The time range is not saved.",
     );
     expect(mockLastFormModal?.formProps.formType).toBe(FormType.Create);
 

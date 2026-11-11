@@ -17,9 +17,9 @@ import {
   within,
 } from "@testing-library/react";
 import * as React from "react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import RumProductAnalyticsSavedView from "../../../Models/DatabaseModels/RumProductAnalyticsSavedView";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
-import Route from "../../../Types/API/Route";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import DashboardProductAnalyticsFunnelComponent from "../../../Types/Dashboard/DashboardComponents/DashboardProductAnalyticsFunnelComponent";
 import DashboardProductAnalyticsRetentionComponent from "../../../Types/Dashboard/DashboardComponents/DashboardProductAnalyticsRetentionComponent";
@@ -29,7 +29,6 @@ import ObjectID from "../../../Types/ObjectID";
 import { ProductAnalyticsSavedViewType } from "../../../Types/Rum/ProductAnalyticsSavedViews";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
-import Navigation from "../../../UI/Utils/Navigation";
 import ProjectUtil from "../../../UI/Utils/Project";
 import DashboardProductAnalyticsFunnelComponentUtil from "../../../Utils/Dashboard/Components/DashboardProductAnalyticsFunnelComponent";
 import DashboardProductAnalyticsRetentionComponentUtil from "../../../Utils/Dashboard/Components/DashboardProductAnalyticsRetentionComponent";
@@ -295,6 +294,14 @@ function retentionComponent(
   return component;
 }
 
+/*
+ * A board is drawn in the app's router: the link to the page is a link
+ * (AppLink). Kept through a rerender.
+ */
+function InRouter(props: { children?: React.ReactNode }): React.ReactElement {
+  return <MemoryRouter>{props.children}</MemoryRouter>;
+}
+
 function renderFunnel(
   args: DashboardProductAnalyticsFunnelComponent["arguments"],
   overrides?: Partial<DashboardBaseComponentProps>,
@@ -304,6 +311,7 @@ function renderFunnel(
       {...buildProps(overrides)}
       component={funnelComponent(args)}
     />,
+    { wrapper: InRouter },
   );
 }
 
@@ -316,7 +324,21 @@ function renderRetention(
       {...buildProps(overrides)}
       component={retentionComponent(args)}
     />,
+    { wrapper: InRouter },
   );
+}
+
+// Where a widget's link goes: its page, and what its address says.
+function linkTarget(link: HTMLElement): {
+  pathname: string;
+  params: URLSearchParams;
+} {
+  const [pathname, search] = (link.getAttribute("href") || "").split("?") as [
+    string,
+    string,
+  ];
+
+  return { pathname: pathname, params: new URLSearchParams(search) };
 }
 
 function read(
@@ -340,18 +362,11 @@ function savedViewReads(): Array<string> {
   });
 }
 
-let navigateMock: ReturnType<typeof getJestSpyOn>;
-
 beforeEach(() => {
   postMock.mockReset();
   getItemMock.mockReset();
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(
     new ObjectID(PROJECT_ID),
-  );
-  navigateMock = getJestSpyOn(Navigation, "navigate").mockImplementation(
-    (): void => {
-      // Recorded, never followed.
-    },
   );
 });
 
@@ -585,37 +600,50 @@ describe("the Funnel widget", () => {
     expect(screen.queryByText("Pricing to purchase")).not.toBeInTheDocument();
   });
 
-  test("Open in Funnels opens the page on the saved funnel, in the dashboard's range, and is no click on the widget", async () => {
+  test("Open in Funnels links to the page on the saved funnel, in the dashboard's range, and is no click on the widget", async () => {
     getItemMock.mockResolvedValue(savedFunnel());
     answerReads();
 
     const onWidgetClick: MockFunction = getJestMockFunction();
 
+    // Where the router went, once the link is followed.
+    const LocationProbe: () => React.ReactElement = (): React.ReactElement => {
+      const location: ReturnType<typeof useLocation> = useLocation();
+
+      return (
+        <div data-testid="location">{`${location.pathname}${location.search}`}</div>
+      );
+    };
+
     render(
-      <div onClick={onWidgetClick as never}>
-        <DashboardProductAnalyticsFunnelComponentElement
-          {...buildProps()}
-          component={funnelComponent({ savedViewId: FUNNEL_ID })}
-        />
-      </div>,
+      <MemoryRouter>
+        <div onClick={onWidgetClick as never}>
+          <DashboardProductAnalyticsFunnelComponentElement
+            {...buildProps()}
+            component={funnelComponent({ savedViewId: FUNNEL_ID })}
+          />
+        </div>
+        <LocationProbe />
+      </MemoryRouter>,
     );
 
-    const open: HTMLElement = await screen.findByTestId(
-      `${FUNNEL_WIDGET_TEST_ID}-open`,
-    );
+    await screen.findAllByTestId(`${FUNNEL_WIDGET_TEST_ID}-chart-step`);
 
-    expect(open).toHaveTextContent("Open in Funnels");
-
-    await act(async () => {
-      fireEvent.click(open);
+    /*
+     * An icon at the title's end, named by its words - to assistive tech,
+     * and on hover - as the Chart widget's Open in Metric Explorer is.
+     */
+    const open: HTMLElement = screen.getByRole("link", {
+      name: "Open in Funnels",
     });
 
-    expect(navigateMock).toHaveBeenCalledTimes(1);
-    expect(onWidgetClick).not.toHaveBeenCalled();
+    expect(open).toHaveAttribute(
+      "data-testid",
+      `${FUNNEL_WIDGET_TEST_ID}-open`,
+    );
+    expect(open).toHaveAttribute("title", "Open in Funnels");
 
-    const route: Route = navigateMock.mock.calls[0]![0] as Route;
-    const [pathname, search] = route.toString().split("?") as [string, string];
-    const params: URLSearchParams = new URLSearchParams(search);
+    const { pathname, params } = linkTarget(open);
 
     expect(pathname).toBe(
       `/dashboard/${PROJECT_ID}/rum/${APP_ID}/product-analytics-funnels`,
@@ -625,6 +653,15 @@ describe("the Funnel widget", () => {
     expect(params.get("endTime")).toBe(BOARD_END.toISOString());
     // The page opens what the saved funnel keeps: no steps in the link.
     expect(params.has("step")).toBe(false);
+
+    await act(async () => {
+      fireEvent.click(open);
+    });
+
+    expect(screen.getByTestId("location")).toHaveTextContent(
+      open.getAttribute("href") || "-",
+    );
+    expect(onWidgetClick).not.toHaveBeenCalled();
   });
 
   test.each([
@@ -956,25 +993,23 @@ describe("the Retention widget", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("Open in User Retention opens the page on the saved table, in the dashboard's range", async () => {
+  test("Open in User Retention links to the page on the saved table, in the dashboard's range", async () => {
     getItemMock.mockResolvedValue(savedRetention());
     answerReads();
 
     renderRetention({ savedViewId: RETENTION_ID });
 
-    const open: HTMLElement = await screen.findByTestId(
-      `${RETENTION_WIDGET_TEST_ID}-open`,
-    );
-
-    expect(open).toHaveTextContent("Open in User Retention");
-
-    await act(async () => {
-      fireEvent.click(open);
+    const open: HTMLElement = await screen.findByRole("link", {
+      name: "Open in User Retention",
     });
 
-    const route: Route = navigateMock.mock.calls[0]![0] as Route;
-    const [pathname, search] = route.toString().split("?") as [string, string];
-    const params: URLSearchParams = new URLSearchParams(search);
+    expect(open).toHaveAttribute(
+      "data-testid",
+      `${RETENTION_WIDGET_TEST_ID}-open`,
+    );
+    expect(open).toHaveAttribute("title", "Open in User Retention");
+
+    const { pathname, params } = linkTarget(open);
 
     expect(pathname).toBe(
       `/dashboard/${PROJECT_ID}/rum/${APP_ID}/product-analytics-retention`,

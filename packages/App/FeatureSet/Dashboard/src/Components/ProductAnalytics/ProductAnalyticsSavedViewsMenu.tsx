@@ -495,6 +495,8 @@ function ProductAnalyticsSavedViewsMenu<
         showCount={listState === ListState.Loaded && views.length > 0}
         emptyContent={emptyContent}
         selectedSavedViewId={props.savedViewId}
+        // In the card's header, beside its header-sized time range.
+        triggerSize="header"
         showTriggerIcon={true}
         triggerIcon={IconProp.Bookmark}
         labels={{

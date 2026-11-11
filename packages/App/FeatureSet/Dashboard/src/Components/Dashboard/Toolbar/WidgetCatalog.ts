@@ -411,8 +411,9 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
         type: DashboardComponentType.ProductAnalyticsFunnel,
         label: "Funnel",
         icon: IconProp.Funnel,
+        // Within a card's two lines, as its neighbours' are.
         description:
-          "A saved funnel: of the people who did its first step, how many went on to each next step in the dashboard's time range.",
+          "A saved funnel: how many people went on from each step to the next.",
         keywords: [
           "conversion",
           "drop off",
@@ -428,7 +429,7 @@ export const WIDGET_CATALOG: ReadonlyArray<WidgetCatalogCategory> = [
         label: "User Retention",
         icon: IconProp.TableCells,
         description:
-          "A saved retention table: people grouped by when they first did its start event, and the share that came back in each period after.",
+          "A saved retention table: how many came back, period by period.",
         keywords: [
           "cohort",
           "user retention",

@@ -23,10 +23,15 @@ import {
 import SavedViewsSearchInput from "../../SavedViews/SavedViewsSearchInput";
 import SavedViewsShowMoreButton from "../../SavedViews/SavedViewsShowMoreButton";
 import {
+  SAVED_VIEW_ROW_ACTIONS_CLASS_NAME,
+  SAVED_VIEW_ROW_ACTION_CLASS_NAME,
+  SAVED_VIEW_ROW_NAME_CLASS_NAME,
   VisibleSavedViews,
+  getSavedViewRowClassName,
   getVisibleSavedViews,
   shouldShowSavedViewsSearch,
 } from "../../SavedViews/SavedViewsList";
+import { TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME } from "../../Table/TableHeaderControls";
 import { getReaderNumberLocale } from "../../../../Types/DateLanguage";
 
 /*
@@ -75,6 +80,13 @@ export interface SavedViewsDropdownProps {
   onDelete?: ((viewId: string) => void) | undefined;
   onUpdateCurrent?: (() => void) | undefined;
   triggerClassName?: string | undefined;
+  /*
+   * The trigger's size: a chip, in an explorer's toolbar of chips (the
+   * default), or "header": as tall as a card header's buttons and pickers
+   * (TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME), beside a header-sized time
+   * range - where a chip stood 30px among 38px controls.
+   */
+  triggerSize?: "chip" | "header" | undefined;
   showTriggerIcon?: boolean | undefined;
   // The trigger's icon, when it shows one: a bookmark unless named.
   triggerIcon?: IconProp | undefined;
@@ -111,8 +123,36 @@ export interface SavedViewsDropdownProps {
 // Tailwind w-72: the panel's width, which it opens on the side with room for.
 const PANEL_WIDTH_IN_PX: number = 288;
 
-const triggerButtonClassName: string =
-  "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400";
+interface TriggerClassNames {
+  button: string;
+  icon: string;
+  // The count, in a pill beside the icon.
+  countPill: string;
+  chevron: string;
+}
+
+/*
+ * The trigger's box at each size. The header's is the time range picker's
+ * at its header size (TIME_RANGE_PICKER_BUTTON_CLASS_NAMES), so the two
+ * stand alike side by side.
+ */
+const TRIGGER_CLASS_NAMES: Record<"chip" | "header", TriggerClassNames> = {
+  chip: {
+    button:
+      "inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:border-gray-300 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400",
+    icon: "h-3.5 w-3.5 text-gray-500",
+    countPill: "rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold",
+    chevron: "h-3 w-3 text-gray-400",
+  },
+  header: {
+    button: `inline-flex max-w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3 ${TABLE_HEADER_CONTROL_HEIGHT_CLASS_NAME} text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2`,
+    icon: "h-4 w-4 text-gray-500",
+    // On the text's 20px line, so the button keeps the header's height.
+    countPill:
+      "rounded-md bg-gray-100 px-1.5 py-0.5 text-[11px] font-semibold leading-4",
+    chevron: "h-4 w-4 text-gray-400",
+  },
+};
 
 const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
   props: SavedViewsDropdownProps,
@@ -258,12 +298,15 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
     setIsComponentVisible(false);
   };
 
+  const triggerClassNames: TriggerClassNames =
+    TRIGGER_CLASS_NAMES[props.triggerSize || "chip"];
+
   return (
     <div className="relative" ref={ref} data-testid={props.dataTestId}>
       <button
         ref={triggerRef}
         type="button"
-        className={`${triggerButtonClassName} ${props.triggerClassName || ""}`}
+        className={`${triggerClassNames.button} ${props.triggerClassName || ""}`}
         onClick={() => {
           if (!isComponentVisible) {
             props.onOpen?.();
@@ -277,7 +320,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
         {props.showTriggerIcon ? (
           <Icon
             icon={props.triggerIcon || IconProp.Bookmark}
-            className="h-3.5 w-3.5 text-gray-500"
+            className={triggerClassNames.icon}
           />
         ) : null}
         <span className="max-w-40 truncate">
@@ -286,11 +329,11 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
         </span>
         {props.showCount === false ? null : (
           <span
-            className={`text-xs text-gray-400 ${
+            className={
               props.showTriggerIcon
-                ? "rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold"
-                : ""
-            }`}
+                ? triggerClassNames.countPill
+                : "text-xs text-gray-400"
+            }
           >
             {props.savedViews.length.toLocaleString(getReaderNumberLocale())}
           </span>
@@ -298,7 +341,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
         {props.showTriggerIcon ? (
           <Icon
             icon={IconProp.ChevronDown}
-            className={`h-3 w-3 text-gray-400 transition-transform ${
+            className={`${triggerClassNames.chevron} transition-transform ${
               isComponentVisible ? "rotate-180" : ""
             }`}
           />
@@ -388,13 +431,11 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
               return (
                 <div
                   key={view.id}
-                  className={`group flex items-center justify-between gap-2 px-3 py-1.5 ${
-                    isSelected ? "bg-indigo-50" : "hover:bg-gray-50"
-                  }`}
+                  className={getSavedViewRowClassName(isSelected)}
                 >
                   <button
                     type="button"
-                    className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                    className={SAVED_VIEW_ROW_NAME_CLASS_NAME}
                     /*
                      * Spelled out so the row announces as its own name: the
                      * ✓ is aria-hidden, and the "default" tag reads as a word
@@ -476,12 +517,15 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                     )}
                   </button>
 
-                  {/* Actions — visible on hover */}
-                  <div className="flex shrink-0 items-center gap-0.5 opacity-0 group-hover:opacity-100">
+                  {/*
+                   * Shown while the row is hovered or focused, under the name
+                   * on a touch screen (SAVED_VIEW_ROW_ACTIONS_CLASS_NAME).
+                   */}
+                  <div className={SAVED_VIEW_ROW_ACTIONS_CLASS_NAME}>
                     {isSelected && props.onUpdateCurrent && (
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-[11px] text-indigo-600 transition-colors hover:bg-indigo-100"
+                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-indigo-600 hover:bg-indigo-100`}
                         onClick={(
                           event: React.MouseEvent<HTMLButtonElement>,
                         ) => {
@@ -496,7 +540,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                     {props.onEdit && (
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-[11px] text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-gray-500 hover:bg-gray-100 hover:text-gray-700`}
                         onClick={(
                           event: React.MouseEvent<HTMLButtonElement>,
                         ) => {
@@ -511,7 +555,7 @@ const SavedViewsDropdown: FunctionComponent<SavedViewsDropdownProps> = (
                     {props.onDelete && (
                       <button
                         type="button"
-                        className="rounded px-1.5 py-0.5 text-[11px] text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+                        className={`${SAVED_VIEW_ROW_ACTION_CLASS_NAME} text-red-500 hover:bg-red-50 hover:text-red-600`}
                         onClick={(
                           event: React.MouseEvent<HTMLButtonElement>,
                         ) => {

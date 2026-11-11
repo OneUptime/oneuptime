@@ -12,7 +12,6 @@ import RangeStartAndEndDateTime, {
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
-import Navigation from "Common/UI/Utils/Navigation";
 import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
@@ -25,6 +24,7 @@ import {
 import useProductAnalyticsRead, {
   ProductAnalyticsRead,
 } from "../../ProductAnalytics/useProductAnalyticsRead";
+import AppLink from "../../AppLink/AppLink";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import WidgetPlaceholder from "./WidgetPlaceholder";
@@ -316,26 +316,37 @@ export function ProductAnalyticsWidgetFrame<
             {title}
           </div>
           {isLinked && view ? (
-            <button
-              type="button"
-              className="inline-flex flex-none items-center gap-1 rounded text-xs font-medium text-indigo-600 hover:text-indigo-800 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
-              data-testid={`${props.dataTestId}-open`}
-              onClick={(event: React.MouseEvent<HTMLButtonElement>): void => {
-                // Not also a click on the widget under it.
+            /*
+             * As the Chart widget's Open in Metric Explorer: an icon at the
+             * title's end, its words on hover and to assistive tech, so the
+             * title keeps the widget's width - the words beside it cut
+             * "Weekly return visits" to "Weekly retur..." on a phone, and
+             * German's longer ones cut more. A link, so it opens in a new
+             * tab too; not also a click on the widget under it.
+             */
+            <span
+              className="flex flex-none"
+              onClick={(event: React.MouseEvent<HTMLSpanElement>): void => {
                 event.stopPropagation();
-                Navigation.navigate(
-                  getProductAnalyticsSavedViewRoute({
-                    rumApplicationId: view.rumApplicationId,
-                    viewType: props.viewType,
-                    savedViewId: view.id,
-                    timeRange: props.dashboardStartAndEndDate,
-                  }),
-                );
               }}
             >
-              <span>{translator.translateText(words.open)}</span>
-              <Icon icon={IconProp.ExternalLink} className="h-3 w-3" />
-            </button>
+              <AppLink
+                to={getProductAnalyticsSavedViewRoute({
+                  rumApplicationId: view.rumApplicationId,
+                  viewType: props.viewType,
+                  savedViewId: view.id,
+                  timeRange: props.dashboardStartAndEndDate,
+                })}
+                title={translator.translateText(words.open)}
+                dataTestId={`${props.dataTestId}-open`}
+                className="inline-flex h-5 w-5 items-center justify-center rounded-full text-gray-500 transition-all duration-150 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
+              >
+                <Icon icon={IconProp.ExternalLink} className="h-3.5 w-3.5" />
+                <span className="sr-only">
+                  {translator.translateText(words.open)}
+                </span>
+              </AppLink>
+            </span>
           ) : (
             <></>
           )}
