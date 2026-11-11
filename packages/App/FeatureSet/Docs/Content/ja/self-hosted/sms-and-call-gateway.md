@@ -125,4 +125,5 @@ SMS または通話のログ、およびオンコールの呼び出しではそ�
 - [プッシュ通知](/docs/self-hosted/push-notifications): サーバー全体でプッシュをオフにします。
 - [Twilio 統合](/docs/self-hosted/twilio-integration): 代わりに Twilio を通じて送信します。
 - [プライベートネットワークへのアクセス](/docs/self-hosted/private-network-access): サーバーが自社のネットワーク内で到達できる範囲。
+- [通知配信メトリクス](/docs/self-hosted/notification-delivery-metrics): ゲートウェイが受け付けたメッセージと拒否したメッセージを数えます。
 :::

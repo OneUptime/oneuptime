@@ -259,4 +259,5 @@ If none of this helps, contact us at [hello@oneuptime.com](mailto:hello@oneuptim
 - [Mobile app troubleshooting](/docs/mobile-desktop-apps/faq-troubleshooting): Fix sign-in and notification problems on the phone.
 - [Escalation Rules](/docs/on-call/escalation-rules): Decide who is paged, and when.
 - [Private Network Access](/docs/self-hosted/private-network-access): What your server may reach on your own network.
+- [Notification Delivery Metrics](/docs/self-hosted/notification-delivery-metrics): Count the pushes Apple and Google take, and the ones they refuse.
 :::

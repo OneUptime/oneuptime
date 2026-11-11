@@ -315,6 +315,7 @@
     "GitHub Integration": "GitHub 集成",
     "Push Notifications": "推送通知",
     "Custom Notification Channels": "自定义通知渠道",
+    "Notification Delivery Metrics": "通知投递指标",
     "SMS and Call Gateway": "短信和电话网关",
     "SendGrid Inbound Email": "SendGrid 入站邮件",
     "Private Network Access": "私有网络访问",

@@ -184,4 +184,5 @@ Eine für SMS verifizierte Nummer ist auch für Anrufe verifiziert, ohne zweiten
 - [SMS- und Anruf-Gateway](/docs/self-hosted/sms-and-call-gateway): SMS und Anrufe über Ihren eigenen Anbieter statt über Twilio senden.
 - [SMTP](/docs/emails/smtp): E-Mails ebenfalls über Ihren eigenen Mailserver senden.
 - [Zugriff auf private Netzwerke](/docs/self-hosted/private-network-access): Workflows und Webhooks interne Werkzeuge erreichen lassen.
+- [Metriken zur Benachrichtigungszustellung](/docs/self-hosted/notification-delivery-metrics): Messen, wie viele SMS und Anrufe Twilio und das Telefon erreichen.
 :::

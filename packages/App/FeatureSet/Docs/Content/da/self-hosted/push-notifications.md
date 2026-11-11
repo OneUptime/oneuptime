@@ -259,4 +259,5 @@ Hvis intet af dette hjælper, så kontakt os på [hello@oneuptime.com](mailto:he
 - [Fejlfinding i mobilappen](/docs/mobile-desktop-apps/faq-troubleshooting): Ret problemer med login og notifikationer på telefonen.
 - [Eskaleringsregler](/docs/on-call/escalation-rules): Bestem, hvem der alarmeres, og hvornår.
 - [Adgang til privat netværk](/docs/self-hosted/private-network-access): Hvad din server må nå på dit eget netværk.
+- [Metrikker for notifikationslevering](/docs/self-hosted/notification-delivery-metrics): Tæl de push-notifikationer, Apple og Google tager imod, og dem, de afviser.
 :::

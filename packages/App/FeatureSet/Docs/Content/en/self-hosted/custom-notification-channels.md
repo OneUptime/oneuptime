@@ -183,7 +183,7 @@ A notification goes to every channel that is on, as one request per channel, wit
 
 ## Delivery and Retries
 
-A request counts as delivered when your service answers with a 2xx status within 10 seconds. A request it did not answer, or answered with 408, 429 or a 5xx status, is sent again after 1 second and after 4 seconds more: three attempts in all. Any other 4xx status is not sent again.
+A request counts as delivered when your service answers with a 2xx status within 10 seconds. A request it did not answer, or answered with 408, 429 or a 5xx status, is sent again after 1 second and after 4 seconds more: three attempts in all. Any other 4xx status is not sent again. How each message went is counted in [Notification Delivery Metrics](/docs/self-hosted/notification-delivery-metrics), by the channel's ID and name.
 
 Each attempt's outcome is in the person's on-call log, with the channel's name and the status your service answered, never the URL. A page that is not delivered does not stop the on-call policy: if nobody acknowledges, it escalates as usual. Keep an email or SMS rule later in your rules if your service is the only way people are reached.
 

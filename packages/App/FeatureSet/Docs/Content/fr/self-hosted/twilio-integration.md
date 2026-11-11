@@ -184,4 +184,5 @@ Un numéro vérifié pour les SMS l'est aussi pour les appels, sans second code.
 - [Passerelle SMS et appels](/docs/self-hosted/sms-and-call-gateway): Envoyer les SMS et les appels par votre propre fournisseur au lieu de Twilio.
 - [SMTP](/docs/emails/smtp): Envoyer aussi les e-mails par votre propre serveur de messagerie.
 - [Accès aux réseaux privés](/docs/self-hosted/private-network-access): Permettre aux workflows et aux webhooks de joindre des outils internes.
+- [Métriques de distribution des notifications](/docs/self-hosted/notification-delivery-metrics): Mesurer combien de SMS et d'appels atteignent Twilio et le téléphone.
 :::

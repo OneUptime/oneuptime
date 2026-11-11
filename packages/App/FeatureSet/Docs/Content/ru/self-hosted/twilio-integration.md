@@ -184,4 +184,5 @@ Twilio требует [общедоступные URL вебхуков](https://
 - [Шлюз SMS и звонков](/docs/self-hosted/sms-and-call-gateway): Отправляйте SMS и звонки через собственного провайдера вместо Twilio.
 - [SMTP](/docs/emails/smtp): Отправляйте и почту через собственный почтовый сервер.
 - [Доступ к частным сетям](/docs/self-hosted/private-network-access): Дайте рабочим процессам и вебхукам доступ к внутренним инструментам.
+- [Метрики доставки уведомлений](/docs/self-hosted/notification-delivery-metrics): Измеряйте, сколько SMS и звонков доходит до Twilio и до телефона.
 :::

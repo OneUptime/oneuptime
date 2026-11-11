@@ -183,7 +183,7 @@ Et varsel går til hver kanal som er slått på, som én forespørsel per kanal,
 
 ## Levering og nye forsøk
 
-En forespørsel regnes som levert når tjenesten din svarer med en 2xx-status innen 10 sekunder. En forespørsel den ikke svarte på, eller svarte på med 408, 429 eller en 5xx-status, sendes på nytt etter 1 sekund og etter ytterligere 4 sekunder: tre forsøk i alt. Ved alle andre 4xx-statuser sendes den ikke på nytt.
+En forespørsel regnes som levert når tjenesten din svarer med en 2xx-status innen 10 sekunder. En forespørsel den ikke svarte på, eller svarte på med 408, 429 eller en 5xx-status, sendes på nytt etter 1 sekund og etter ytterligere 4 sekunder: tre forsøk i alt. Ved alle andre 4xx-statuser sendes den ikke på nytt. Hvordan hver melding gikk, telles i [Metrikker for varslingslevering](/docs/self-hosted/notification-delivery-metrics) etter kanalens ID og navn.
 
 Utfallet av hvert forsøk står i personens vaktlogg, med kanalens navn og statusen tjenesten din svarte med, aldri URL-en. En tilkalling som ikke blir levert, stopper ikke vaktretningslinjen: Hvis ingen bekrefter, eskalerer den som vanlig. Ha en e-post- eller SMS-regel lenger ned i reglene dine hvis tjenesten din er den eneste måten å nå folk på.
 
