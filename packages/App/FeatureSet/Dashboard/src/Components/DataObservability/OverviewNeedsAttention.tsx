@@ -244,7 +244,7 @@ const OverviewNeedsAttention: FunctionComponent<ComponentProps> = (
     <div data-testid={NEEDS_ATTENTION_TEST_ID}>
       <Card title="Needs Attention" description={description}>
         {props.items.length === 0 ? (
-          <div className="flex items-start gap-3 px-6 pb-6">
+          <div className="flex items-start gap-3">
             <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
               <Icon icon={IconProp.CheckCircle} className="h-4 w-4" />
             </div>
@@ -263,7 +263,7 @@ const OverviewNeedsAttention: FunctionComponent<ComponentProps> = (
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-gray-100 px-4 pb-2 sm:px-6">
+          <ul className="divide-y divide-gray-100">
             {props.items.map(
               (item: DataAttentionItem, index: number): ReactElement => {
                 const copy: AttentionKindCopy = DATA_ATTENTION_COPY[item.kind];

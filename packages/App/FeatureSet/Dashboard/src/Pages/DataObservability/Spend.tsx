@@ -125,7 +125,7 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
         description="What your warehouses spent over the last day: Snowflake credits and BigQuery bytes billed, read once an hour, by team and by table, and what goes to jobs that fail or write tables nobody reads."
       >
         {summary ? (
-          <div className="space-y-6 px-6 pb-6">
+          <div className="space-y-6">
             <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
               <Stat
                 title={translator.translateText("Credits (24h)")}

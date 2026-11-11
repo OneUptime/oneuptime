@@ -157,7 +157,7 @@ const StoreOverviewPage: FunctionComponent<
               },
         ]}
       >
-        <div className="space-y-2 px-6 pb-6 text-sm text-gray-700">
+        <div className="space-y-2 text-sm text-gray-700">
           <div className="flex flex-wrap items-center gap-2">
             <StoreStatusPill store={store} />
             <span className="text-gray-500">{store.kind}</span>
@@ -210,7 +210,7 @@ const StoreOverviewPage: FunctionComponent<
           },
         ]}
       >
-        <div className="space-y-2 px-6 pb-6 text-sm text-gray-600">
+        <div className="space-y-2 text-sm text-gray-600">
           {isStoreWithoutAlerts(store) ? (
             <p className="font-medium text-amber-700">
               {translator.translateText(

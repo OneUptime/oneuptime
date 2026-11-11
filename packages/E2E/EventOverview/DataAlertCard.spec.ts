@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
 import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
@@ -23,7 +24,11 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * and for an alert from a check on one column, that column followed; for a
  * cause on the pipeline on its arrow, the arrow's label saying Cause, just
  * over the arrow, in words that read on a light page and a dark one, and in
- * view when the drawing opens on a phone.
+ * view when the drawing opens on a phone. What each card holds starts under
+ * its title (#6555, SuiteHelpers/CardBodyFit); a lineage card's two chips
+ * stay inside the card in German, Dutch, Russian and Japanese, the second
+ * ending in "..." (#6851); and Tab onto a card outside the drawing moves the
+ * drawing to show it, never React Flow's pane (#6779).
  *
  * On the Event Overview fixture's alerts #311 and #310 (Fixture/Fixture.js,
  * ?data= and ?fail=data-alert / data-writers / data-changes), with the clock
@@ -572,6 +577,21 @@ test.describe("an alert's Lineage card", () => {
         return Math.round(Math.abs(picker!.width - drawing!.width));
       })
       .toBe(0);
+    /*
+     * And the check's column's whole name fits there too: with the card's
+     * body no longer padded inside the card's own padding (#6555), the line
+     * is 48px wider than the 236px that cut provider_reference by 3px.
+     */
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return card
+          .getByTestId("lineage-column")
+          .getByTestId("dropdown-value-label")
+          .evaluate((element: HTMLElement): boolean => {
+            return element.scrollWidth <= element.clientWidth;
+          });
+      })
+      .toBe(true);
     await page.setViewportSize({ width: 1280, height: 1000 });
 
     await fs.mkdir(SCREENSHOTS, { recursive: true });
@@ -837,5 +857,544 @@ test.describe("an alert's Lineage card", () => {
     await expect(lineageCard(page)).toHaveCount(0);
     expect(await lineageReads(page, ALERT_ID)).toBe(0);
     await expect(cardTitled(page, "Alert Feed")).toBeVisible();
+  });
+});
+
+/*
+ * A lineage card's chips as the page drew them (#6851): how far the row
+ * under the card's name runs past its own width, and each chip in it -
+ * its words, whether they are cut short and how, and whether the chip
+ * stays inside the row.
+ */
+interface DrawnChip {
+  key: string;
+  text: string;
+  isCut: boolean;
+  textOverflow: string;
+  isInsideRow: boolean;
+}
+
+interface DrawnChipRow {
+  nodeId: string;
+  overflow: number;
+  chips: Array<DrawnChip>;
+}
+
+async function chipRowsOf(card: Locator): Promise<Array<DrawnChipRow>> {
+  return card
+    .locator("[data-node-id]")
+    .evaluateAll((nodes: Array<Element>): Array<DrawnChipRow> => {
+      return nodes.flatMap((node: Element): Array<DrawnChipRow> => {
+        const row: HTMLElement | null = node.querySelector(
+          '[data-testid="lineage-card-chips"]',
+        );
+
+        if (!row) {
+          return [];
+        }
+
+        const rowBox: DOMRect = row.getBoundingClientRect();
+
+        return [
+          {
+            nodeId: node.getAttribute("data-node-id") || "",
+            overflow: row.scrollWidth - row.clientWidth,
+            chips: Array.from(row.querySelectorAll("[data-lineage-chip]")).map(
+              (chip: Element): DrawnChip => {
+                const text: HTMLElement = chip.querySelector(
+                  '[data-testid="pill-text"]',
+                ) as HTMLElement;
+                const pill: DOMRect = (
+                  chip.querySelector('[data-testid="pill"]') as HTMLElement
+                ).getBoundingClientRect();
+
+                return {
+                  key: chip.getAttribute("data-lineage-chip") || "",
+                  text: text.textContent || "",
+                  isCut: text.scrollWidth > text.clientWidth,
+                  textOverflow: getComputedStyle(text).textOverflow,
+                  isInsideRow:
+                    pill.left >= rowBox.left - 0.5 &&
+                    pill.right <= rowBox.right + 0.5,
+                };
+              },
+            ),
+          },
+        ];
+      });
+    });
+}
+
+// The words of one card's chips, in their order.
+async function chipWordsOf(
+  card: Locator,
+  nodeId: string,
+): Promise<Array<string>> {
+  const row: DrawnChipRow | undefined = (await chipRowsOf(card)).find(
+    (drawn: DrawnChipRow): boolean => {
+      return drawn.nodeId === nodeId;
+    },
+  );
+
+  return (row?.chips || []).map((chip: DrawnChip): string => {
+    return chip.text;
+  });
+}
+
+const REGEXP_SPECIAL_CHARACTERS: RegExp = /[.*+?^${}()|[\]\\]/g;
+
+function literally(text: string): RegExp {
+  return new RegExp(text.replace(REGEXP_SPECIAL_CHARACTERS, "\\$&"));
+}
+
+/*
+ * THE CHIPS UNDER A LINEAGE CARD'S NAME, IN EVERY LANGUAGE (#6851). A card
+ * shows at most two chips in one row as wide as the card leaves them. The
+ * first keeps its whole width; the second takes what is left and, when
+ * its words do not fit, ends in "..." - never cut off at the card's edge in
+ * the middle of a word - with its whole words under the pointer and in the
+ * card's name read aloud. On #311's page (resolved, so the open alert its
+ * table counts is another) the alert's own card says This alert and 1
+ * open alert: in German, Dutch, Russian and Japanese the two are wider
+ * than the card, by 8 to 68 pixels before this rule.
+ */
+const CHIP_LANGUAGES: Array<{
+  language: string;
+  thisAlert: string;
+  openAlert: string;
+}> = [
+  { language: "de", thisAlert: "Diese Warnung", openAlert: "1 offener Alarm" },
+  {
+    language: "nl",
+    thisAlert: "Deze waarschuwing",
+    openAlert: "1 open waarschuwing",
+  },
+  {
+    language: "ru",
+    thisAlert: "Это оповещение",
+    openAlert: "Открытых оповещений: 1",
+  },
+  {
+    language: "ja",
+    thisAlert: "このアラート",
+    openAlert: "未解決のアラート 1 件",
+  },
+];
+
+test.describe("a lineage card's chips (#6851)", () => {
+  for (const look of CHIP_LANGUAGES) {
+    test(`in ${look.language}, no card's chips run past its edge at 1280px or on a phone: the first whole, a second that does not fit ending in an ellipsis, its words whole under the pointer and in the card's name (?data=table&cause=pipeline&lang=${look.language})`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await open(
+        page,
+        ALERT_PATH,
+        `data=table&cause=pipeline&lang=${look.language}&dir=auto`,
+      );
+
+      // The card's title is in the page's language: the drawing's own box is found by its test id.
+      const card: Locator = page.getByTestId("alert-lineage-diagram");
+      await expect(lineageNode(card, TABLE_CARD)).toBeVisible({
+        timeout: 30000,
+      });
+
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 1000 });
+
+        // The alert's own card: This alert, then its table's open alert - another, as this one is resolved.
+        await expect
+          .poll(async (): Promise<Array<string>> => {
+            return chipWordsOf(card, TABLE_CARD);
+          })
+          .toEqual([look.thisAlert, look.openAlert]);
+
+        const rows: Array<DrawnChipRow> = await chipRowsOf(card);
+        expect(
+          rows
+            .map((row: DrawnChipRow): string => {
+              return row.nodeId;
+            })
+            .sort(),
+        ).toEqual([CAUSE_TABLE_CARD, TABLE_CARD].sort());
+
+        for (const row of rows) {
+          const where: string = `${row.nodeId} in ${look.language} at ${width}px`;
+
+          expect(row.overflow, where).toBeLessThanOrEqual(0);
+          expect(row.chips, where).toHaveLength(2);
+          expect(row.chips[0]!.isCut, where).toBe(false);
+
+          for (const chip of row.chips) {
+            expect(chip.isInsideRow, `${chip.text}, ${where}`).toBe(true);
+
+            if (chip.isCut) {
+              expect(chip.textOverflow, `${chip.text}, ${where}`).toBe(
+                "ellipsis",
+              );
+            }
+          }
+        }
+
+        // What This alert leaves the open alert is too little for its words: they end in "...".
+        expect(
+          rows.find((row: DrawnChipRow): boolean => {
+            return row.nodeId === TABLE_CARD;
+          })!.chips[1]!.isCut,
+        ).toBe(true);
+      }
+
+      // Its whole words: under the pointer, and in the card's name read aloud.
+      const cutWords: Locator = lineageNode(card, TABLE_CARD).locator(
+        '[data-lineage-chip="alerts"] [data-testid="pill-text"]',
+      );
+      await cutWords.hover();
+      await expect(cutWords).toHaveAttribute("title", look.openAlert);
+      await expect(
+        lineageNode(card, TABLE_CARD).getByTestId("lineage-card"),
+      ).toHaveAccessibleName(literally(look.openAlert));
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+      await page.setViewportSize({ width: 1280, height: 1000 });
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await card.getByTestId("lineage-graph").scrollIntoViewIfNeeded();
+      await page.mouse.move(0, 0);
+      await card.getByTestId("lineage-graph").screenshot({
+        path: path.join(
+          SCREENSHOTS,
+          `data-alert-lineage-chips-${look.language}.png`,
+        ),
+        animations: "disabled",
+      });
+    });
+  }
+
+  test("on an open alert's page, its own card says This alert and how fresh its table is: the one open alert its table counts is the alert itself (?data=table&state=ongoing)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table&state=ongoing");
+
+    const card: Locator = lineageCard(page);
+    await expect(lineageNode(card, TABLE_CARD)).toBeVisible({
+      timeout: 30000,
+    });
+
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+
+      await expect
+        .poll(async (): Promise<Array<string>> => {
+          return chipWordsOf(card, TABLE_CARD);
+        })
+        .toEqual(["This alert", "Fresh"]);
+      // The table of its cause still counts its own open alert, beside Cause.
+      expect(await chipWordsOf(card, CAUSE_TABLE_CARD)).toEqual([
+        "Cause",
+        "1 open alert",
+      ]);
+
+      for (const row of await chipRowsOf(card)) {
+        expect(row.overflow).toBeLessThanOrEqual(0);
+        expect(
+          row.chips.some((chip: DrawnChip): boolean => {
+            return chip.isCut;
+          }),
+        ).toBe(false);
+      }
+    }
+  });
+});
+
+/*
+ * WHAT AN ALERT'S DATA OBSERVABILITY CARDS HOLD LINES UP WITH THEIR TITLES
+ * (#6555). A card pads what it holds itself; these cards' bodies padded it
+ * again, so what they held started 24px in from their title and left 24px
+ * more under it. Read from the page, at a desktop's width and a phone's,
+ * through SuiteHelpers/CardBodyFit.
+ */
+test.describe("an alert's Data Observability cards line up with their titles (#6555)", () => {
+  test("the Data card and the Lineage card: what they hold starts under their title's first letter, the card's own padding alone under it, at 1280px and on a phone (?data=table&check=column)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table&check=column");
+
+    const cards: Locator = dataCard(page).or(lineageCard(page));
+    await expect(lineageCard(page).getByTestId("lineage-graph")).toBeVisible({
+      timeout: 30000,
+    });
+    await expect(part(dataCard(page), "About")).toBeVisible();
+    await expect(cards).toHaveCount(2);
+
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+
+      await expect
+        .poll(async (): Promise<Array<string>> => {
+          return cardBodyMisfits(cards);
+        }, `the Data and Lineage cards at ${width}px`)
+        .toEqual([]);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+      await fs.mkdir(SCREENSHOTS, { recursive: true });
+      await dataCard(page).scrollIntoViewIfNeeded();
+      await page.mouse.move(0, 0);
+      await dataCard(page).screenshot({
+        path: path.join(SCREENSHOTS, `data-alert-data-card-${width}.png`),
+        animations: "disabled",
+      });
+      await lineageCard(page).scrollIntoViewIfNeeded();
+      await lineageCard(page).screenshot({
+        path: path.join(SCREENSHOTS, `data-alert-lineage-card-${width}.png`),
+        animations: "disabled",
+      });
+    }
+  });
+
+  test("the Downstream Impact card on the cause's page, at 1280px and on a phone (?data=table)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, CAUSE_PATH, "data=table");
+
+    await expect(impactCard(page)).toBeVisible({ timeout: 30000 });
+    await expect(impactCard(page)).toContainText(ALERT_NAME);
+
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 1000 });
+
+      await expect
+        .poll(async (): Promise<Array<string>> => {
+          return cardBodyMisfits(impactCard(page));
+        }, `the Downstream Impact card at ${width}px`)
+        .toEqual([]);
+    }
+  });
+});
+
+/*
+ * THE LINEAGE DRAWING FROM THE KEYBOARD (#6779). Tab moves through the
+ * drawing's cards, the ones out of view too. A card Tab reaches is brought
+ * fully into view by panning React Flow's own view, a little inside the
+ * canvas's edge; the browser never scrolls React Flow's pane, so the zoom
+ * controls stay where they are; and a press with a pointer pans nothing.
+ * On #311's page with its cause on the pipeline, the drawing opens on the
+ * alert's own table, so on a phone the table it is built from, left of
+ * it, is cut by the canvas's edge.
+ */
+interface DrawingPlace {
+  isInside: boolean;
+  // How far the card is from the canvas's left edge, in the page's pixels.
+  fromLeft: number;
+  centerY: number;
+  right: number;
+}
+
+async function drawingPlaceOf(
+  card: Locator,
+  nodeId: string,
+): Promise<DrawingPlace & { canvasRight: number }> {
+  const [canvas, node] = await boxesInOneFrame([
+    card.getByTestId("lineage-graph"),
+    lineageNode(card, nodeId).getByTestId("lineage-card"),
+  ]);
+
+  return {
+    isInside:
+      node!.x >= canvas!.x - 0.5 &&
+      node!.x + node!.width <= canvas!.x + canvas!.width + 0.5 &&
+      node!.y >= canvas!.y - 0.5 &&
+      node!.y + node!.height <= canvas!.y + canvas!.height + 0.5,
+    fromLeft: node!.x - canvas!.x,
+    centerY: node!.y + node!.height / 2,
+    right: node!.x + node!.width,
+    canvasRight: canvas!.x + canvas!.width,
+  };
+}
+
+interface DrawingState {
+  // React Flow's view: its viewport's transform.
+  transform: string;
+  // Where the zoom controls are on the canvas.
+  controls: string;
+  // Every element of the drawing the browser scrolled, by its classes.
+  scrolled: Array<string>;
+}
+
+async function drawingStateOf(card: Locator): Promise<DrawingState> {
+  return card
+    .getByTestId("lineage-graph")
+    .evaluate((graph: HTMLElement): DrawingState => {
+      const canvas: DOMRect = graph.getBoundingClientRect();
+      const controls: DOMRect = (
+        graph.querySelector(".react-flow__controls") as HTMLElement
+      ).getBoundingClientRect();
+      const viewport: HTMLElement = graph.querySelector(
+        ".react-flow__viewport",
+      ) as HTMLElement;
+
+      return {
+        transform: viewport.style.transform,
+        controls: `${Math.round(controls.left - canvas.left)},${Math.round(
+          controls.top - canvas.top,
+        )}`,
+        scrolled: [graph, ...Array.from(graph.querySelectorAll("*"))]
+          .filter((element: Element): boolean => {
+            return element.scrollLeft !== 0 || element.scrollTop !== 0;
+          })
+          .map((element: Element): string => {
+            return element.getAttribute("class") || element.tagName;
+          }),
+      };
+    });
+}
+
+// The drawing's card that has focus, by its id; null when focus is not on one.
+async function focusedLineageNode(page: Page): Promise<string | null> {
+  return page.evaluate((): string | null => {
+    const node: Element | null | undefined =
+      document.activeElement?.closest("[data-node-id]");
+
+    return node && node.closest('[data-testid="lineage-graph"]')
+      ? node.getAttribute("data-node-id")
+      : null;
+  });
+}
+
+// Tabs from the card's Explore Lineage through the drawing's cards: the cards reached, in order.
+async function tabThroughDrawing(
+  page: Page,
+  card: Locator,
+  atRest: DrawingState,
+): Promise<Array<string>> {
+  await card.getByRole("button", { name: "Explore Lineage" }).focus();
+
+  const reached: Array<string> = [];
+
+  for (let step: number = 0; step < 6; step++) {
+    await page.keyboard.press("Tab");
+
+    const nodeId: string | null = await focusedLineageNode(page);
+
+    if (!nodeId) {
+      break;
+    }
+
+    reached.push(nodeId);
+
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return (await drawingPlaceOf(card, nodeId)).isInside;
+      }, `${nodeId}, reached with Tab, is fully in view`)
+      .toBe(true);
+
+    const state: DrawingState = await drawingStateOf(card);
+    expect(state.scrolled, "nothing in the drawing scrolled").toEqual([]);
+    expect(state.controls, "the zoom controls stayed put").toBe(
+      atRest.controls,
+    );
+  }
+
+  return reached;
+}
+
+test.describe("the Lineage drawing from the keyboard (#6779)", () => {
+  test("on a phone, Tab brings each card fully into view by panning the drawing, a little inside its edge; React Flow's pane never scrolls, the zoom controls stay put, and a press with a pointer pans nothing (?data=table&cause=pipeline, 390px)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table&cause=pipeline");
+    await page.setViewportSize({ width: 390, height: 1000 });
+
+    const card: Locator = lineageCard(page);
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).toBeVisible({
+      timeout: 30000,
+    });
+    await card.getByTestId("lineage-graph").scrollIntoViewIfNeeded();
+
+    // The drawing opens on the alert's own table: the table it is built from is cut by the canvas's left edge.
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return (await drawingPlaceOf(card, CAUSE_TABLE_CARD)).isInside;
+      })
+      .toBe(false);
+    const atRest: DrawingState = await drawingStateOf(card);
+    expect(atRest.scrolled).toEqual([]);
+
+    expect(await tabThroughDrawing(page, card, atRest)).toEqual([
+      TABLE_CARD,
+      CAUSE_TABLE_CARD,
+    ]);
+
+    // React Flow's view moved to show it, 24px inside the canvas's edge.
+    const panned: DrawingState = await drawingStateOf(card);
+    expect(panned.transform).not.toBe(atRest.transform);
+    const cause: DrawingPlace = await drawingPlaceOf(card, CAUSE_TABLE_CARD);
+    expect(cause.fromLeft).toBeGreaterThanOrEqual(22);
+    expect(cause.fromLeft).toBeLessThanOrEqual(28);
+
+    await fs.mkdir(SCREENSHOTS, { recursive: true });
+    await page.mouse.move(0, 0);
+    await card.getByTestId("lineage-graph").screenshot({
+      path: path.join(SCREENSHOTS, "data-alert-lineage-keyboard-390.png"),
+      animations: "disabled",
+    });
+
+    // Now the alert's own card is cut by the right edge: a press with a pointer on the part in view pans nothing.
+    const own: DrawingPlace & { canvasRight: number } = await drawingPlaceOf(
+      card,
+      TABLE_CARD,
+    );
+    expect(own.isInside).toBe(false);
+    expect(own.right).toBeGreaterThan(own.canvasRight);
+    await page.mouse.move(own.canvasRight - 8, own.centerY);
+    await page.mouse.down();
+    await expect
+      .poll(async (): Promise<string | null> => {
+        return focusedLineageNode(page);
+      })
+      .toBe(TABLE_CARD);
+    await settle(page);
+    await settle(page);
+
+    expect((await drawingStateOf(card)).transform).toBe(panned.transform);
+    expect((await drawingPlaceOf(card, TABLE_CARD)).isInside).toBe(false);
+    expect((await drawingStateOf(card)).scrolled).toEqual([]);
+  });
+
+  test("at 1280px, where both cards are in view, Tab moves through them without moving the view (?data=table&cause=pipeline)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await open(page, ALERT_PATH, "data=table&cause=pipeline");
+
+    const card: Locator = lineageCard(page);
+    await expect(lineageNode(card, CAUSE_TABLE_CARD)).toBeVisible({
+      timeout: 30000,
+    });
+    await card.getByTestId("lineage-graph").scrollIntoViewIfNeeded();
+
+    for (const nodeId of [TABLE_CARD, CAUSE_TABLE_CARD]) {
+      await expect
+        .poll(async (): Promise<boolean> => {
+          return (await drawingPlaceOf(card, nodeId)).isInside;
+        })
+        .toBe(true);
+    }
+
+    const atRest: DrawingState = await drawingStateOf(card);
+
+    expect(await tabThroughDrawing(page, card, atRest)).toEqual([
+      TABLE_CARD,
+      CAUSE_TABLE_CARD,
+    ]);
+    expect((await drawingStateOf(card)).transform).toBe(atRest.transform);
   });
 });

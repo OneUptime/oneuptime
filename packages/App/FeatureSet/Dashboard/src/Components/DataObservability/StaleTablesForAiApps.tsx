@@ -52,7 +52,7 @@ const StaleTablesForAiApps: FunctionComponent = (): ReactElement => {
       title="Stale Data Behind Your AI Apps"
       description="These apps read tables that have stopped changing on their usual rhythm, so their answers may be out of date."
     >
-      <ul className="divide-y divide-gray-100 px-6 pb-6">
+      <ul className="divide-y divide-gray-100">
         {tables.map((table: DataObservabilityAiAppTable): ReactElement => {
           return (
             <li

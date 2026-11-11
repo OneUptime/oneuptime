@@ -449,9 +449,7 @@ const DataObservabilityDocumentationPage: FunctionComponent<
       title="Documentation"
       description="How Data Observability watches your tables, and how to connect a database."
     >
-      <div className="px-6 pb-6">
-        <MarkdownViewer text={DOCUMENTATION} />
-      </div>
+      <MarkdownViewer text={DOCUMENTATION} />
     </Card>
   );
 };

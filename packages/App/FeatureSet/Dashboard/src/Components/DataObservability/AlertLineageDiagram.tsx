@@ -217,9 +217,7 @@ const AlertLineageDiagram: FunctionComponent<ComponentProps> = (
       description="Where this alert's data comes from and where it goes, with how each table and pipeline is now."
       buttons={buttons}
     >
-      <div className="px-6 pb-6" data-testid="alert-lineage-diagram">
-        {body}
-      </div>
+      <div data-testid="alert-lineage-diagram">{body}</div>
     </Card>
   );
 };

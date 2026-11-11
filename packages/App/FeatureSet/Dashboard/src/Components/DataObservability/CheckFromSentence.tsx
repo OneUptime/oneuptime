@@ -110,7 +110,7 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
       title="Write a Check from a Sentence"
       description="Say a rule this table should hold to, and OneUptime AI writes the check: one read-only query that counts the rows breaking it. You read it before it is added."
     >
-      <div className="space-y-3 px-6 pb-6">
+      <div className="space-y-3">
         <textarea
           className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           rows={2}
