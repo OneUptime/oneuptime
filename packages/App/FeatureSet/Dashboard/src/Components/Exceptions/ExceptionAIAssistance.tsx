@@ -17,6 +17,8 @@ import Button, {
 } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
+import FoldedSection from "Common/UI/Components/FoldedSection/FoldedSection";
+import { FoldedSectionItem } from "Common/UI/Components/FoldedSection/FoldedSectionItem";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Link from "Common/UI/Components/Link/Link";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
@@ -45,12 +47,16 @@ import {
   AITaskPresentation,
   AI_TASK_PRESENTATION,
   AI_TASK_TONE_CLASS_NAMES,
-  EXCEPTION_AI_TASK_TYPES,
+  EXCEPTION_AI_HOW_IT_WORKS_STEPS,
   ExceptionAITaskType,
+  PRIMARY_AI_TASK_PRESENTATION,
+  PrimaryExceptionAITaskType,
   ReadinessCheckLink,
   findLatestAITask,
   getAIReadinessProgress,
   getAITaskCardState,
+  getOtherExceptionAITaskTypes,
+  getPrimaryExceptionAITaskType,
   getReadinessCheckLink,
   isAITaskActive,
   parseAIAgentTasksResponse,
@@ -66,9 +72,30 @@ import { CodeTaskBlockerType } from "Common/Types/AI/CodeTask";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   ComposedValue,
-  translatableTerm,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * FIX WITH AI, ON AN EXCEPTION.
+ *
+ * One task, not a menu of them: "Fix with AI" opens a pull request with the
+ * fix OneUptime AI's triage calls for - a fix of the code, or, for an
+ * exception it found to be an expected error (bad input, an intentional
+ * denial), better handling of it - with what it will do and how it works
+ * said right there. The page used to offer three cards side by side - fix
+ * it, write a regression test, improve the error handling - and left the
+ * reader to work out which one they wanted: "Why not just one?" (#6855).
+ *
+ * The other two stay a click away, folded under it as Other AI tasks: the
+ * other kind of fix, for when the reader knows better than the triage, and
+ * a regression test. The fold opens by itself once one of them has a task,
+ * so nothing that ran is hidden.
+ *
+ * What is missing before AI can work - an LLM provider, a repository, a
+ * Runner - is a checklist above the task, each item with the page that
+ * fixes it; once all is set, one quiet line under How it works says so.
+ */
 
 // How often an active task is re-read.
 export const AI_TASK_POLL_INTERVAL_MS: number = 5000;
@@ -76,14 +103,22 @@ export const AI_TASK_POLL_INTERVAL_MS: number = 5000;
 // Kept here too, where it was first exported.
 export { AI_TASK_TONE_CLASS_NAMES };
 
+export const OTHER_AI_TASKS_TITLE: string = translationKey("Other AI tasks");
+
 export interface ComponentProps {
   telemetryExceptionId: ObjectID;
   isResolved: boolean;
   isArchived: boolean;
+  /*
+   * OneUptime AI triage's verdict on the exception (errorClass): an expected
+   * error is fixed by handling it better, anything else by fixing the code.
+   */
+  errorClass?: string | undefined;
 }
 
 interface PendingStart {
   taskType: ExceptionAITaskType;
+  presentation: AITaskPresentation;
   label: string;
 }
 
@@ -93,6 +128,10 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const isAiOffered: boolean = useAiOffered();
   const exceptionId: string = props.telemetryExceptionId.toString();
+  const primaryTaskType: PrimaryExceptionAITaskType =
+    getPrimaryExceptionAITaskType(props.errorClass);
+  const otherTaskTypes: Array<ExceptionAITaskType> =
+    getOtherExceptionAITaskTypes(primaryTaskType);
   /*
    * A task works in the exception's repository, so starting one takes
    * permission to edit repositories - what the server asks. A person who
@@ -129,7 +168,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
     undefined,
   );
   /*
-   * Errors from task actions render inline above the cards — a failed
+   * Errors from task actions render inline above the task — a failed
    * button click must not blank the page.
    */
   const [taskError, setTaskError] = useState<string | undefined>(undefined);
@@ -151,7 +190,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
 
         setTasks(parseAIAgentTasksResponse(response.data));
       } catch {
-        // Quiet: without task data the cards simply offer to start a task.
+        // Quiet: without task data the page simply offers to start a task.
         setTasks([]);
       }
 
@@ -310,7 +349,7 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
   if (!hasLoadedTasks || !hasLoadedReadiness) {
     return (
       <Card
-        title="AI Assistance"
+        title="Fix with AI"
         description="Checking AI setup and earlier tasks for this exception…"
       >
         <ComponentLoader />
@@ -318,36 +357,18 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
     );
   }
 
-  const renderReadiness: () => ReactElement = (): ReactElement => {
-    if (!readiness || readiness.checks.length === 0 || props.isResolved) {
+  /*
+   * What is missing before AI can work, while something is: a checklist
+   * above the task, each missing item with the page that sets it up.
+   */
+  const renderSetupChecklist: () => ReactElement = (): ReactElement => {
+    if (
+      !readiness ||
+      readiness.ready ||
+      readiness.checks.length === 0 ||
+      props.isResolved
+    ) {
       return <></>;
-    }
-
-    if (readiness.ready) {
-      return (
-        <div
-          className="flex flex-col gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-5 py-4 sm:flex-row sm:items-center"
-          data-testid="exception-ai-ready"
-        >
-          <div className="flex items-center gap-2 text-sm font-medium text-emerald-900">
-            <Icon
-              icon={IconProp.CheckCircle}
-              className="h-5 w-5 text-emerald-600"
-            />
-            {translator.translateText("AI is ready to work on this exception")}
-          </div>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-emerald-800 sm:ml-auto">
-            {readiness.checks.map((check: AIFixReadinessCheck) => {
-              return (
-                <li key={check.id} className="flex items-center gap-1">
-                  <Icon icon={IconProp.Check} className="h-3.5 w-3.5" />
-                  {translator.translateText(check.title)}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      );
     }
 
     return (
@@ -435,145 +456,364 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const renderTaskCard: (taskType: ExceptionAITaskType) => ReactElement = (
+  // Everything set up: one quiet line, under How it works.
+  const renderReadyLine: () => ReactElement = (): ReactElement => {
+    if (
+      !readiness ||
+      !readiness.ready ||
+      readiness.checks.length === 0 ||
+      props.isResolved
+    ) {
+      return <></>;
+    }
+
+    return (
+      <div
+        className="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-4 text-sm sm:flex-row sm:items-center"
+        data-testid="exception-ai-ready"
+      >
+        <div className="flex items-center gap-2 font-medium text-emerald-700">
+          <Icon
+            icon={IconProp.CheckCircle}
+            className="h-5 w-5 flex-shrink-0 text-emerald-600"
+          />
+          {translator.translateText("AI is ready to work on this exception")}
+        </div>
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600 sm:ms-auto">
+          {readiness.checks.map((check: AIFixReadinessCheck) => {
+            return (
+              <li key={check.id} className="flex items-center gap-1">
+                <Icon
+                  icon={IconProp.Check}
+                  className="h-3.5 w-3.5 text-emerald-600"
+                />
+                {translator.translateText(check.title)}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    );
+  };
+
+  // What a task is doing or did: its status, its words, what production showed.
+  const getTaskState: (
     taskType: ExceptionAITaskType,
-  ): ReactElement => {
-    const presentation: AITaskPresentation = AI_TASK_PRESENTATION[taskType];
+    presentation: AITaskPresentation,
+  ) => { task: AIAgentTaskInfo | undefined; state: AITaskCardState } = (
+    taskType: ExceptionAITaskType,
+    presentation: AITaskPresentation,
+  ): { task: AIAgentTaskInfo | undefined; state: AITaskCardState } => {
     const task: AIAgentTaskInfo | undefined = findLatestAITask(tasks, taskType);
-    const state: AITaskCardState = getAITaskCardState({
+
+    return {
       task,
-      presentation,
-      isResolved: props.isResolved,
-      isArchived: props.isArchived,
-      isTasksLoading,
-      isBlockedBySetup,
-      startRefusedReason,
-    });
+      state: getAITaskCardState({
+        task,
+        presentation,
+        isResolved: props.isResolved,
+        isArchived: props.isArchived,
+        isTasksLoading,
+        isBlockedBySetup,
+        startRefusedReason,
+      }),
+    };
+  };
+
+  const renderStatusPill: (state: AITaskCardState) => ReactElement = (
+    state: AITaskCardState,
+  ): ReactElement => {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${AI_TASK_TONE_CLASS_NAMES[state.tone]}`}
+        data-testid="exception-ai-task-status"
+      >
+        {state.isActive && (
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
+          </span>
+        )}
+        {translator.translateText(state.statusLabel)}
+      </span>
+    );
+  };
+
+  const renderTaskProgress: (
+    task: AIAgentTaskInfo | undefined,
+    state: AITaskCardState,
+  ) => ReactElement = (
+    task: AIAgentTaskInfo | undefined,
+    state: AITaskCardState,
+  ): ReactElement => {
+    if (!task) {
+      return <></>;
+    }
+
     // In the sentence's own language (exceptionTimeValue).
-    const startedAgo: ComposedValue | undefined = task
-      ? exceptionTimeValue(task.createdAt)
-      : undefined;
+    const startedAgo: ComposedValue | undefined = exceptionTimeValue(
+      task.createdAt,
+    );
+
+    return (
+      <>
+        <div
+          className={`mt-3 max-w-3xl rounded-lg px-3 py-2 text-sm ${
+            state.tone === "danger"
+              ? "bg-red-50 text-red-800"
+              : "bg-gray-50 text-gray-700"
+          }`}
+          data-testid="exception-ai-task-message"
+        >
+          {state.message && <p>{state.message}</p>}
+          {startedAgo && (
+            <p
+              className={`text-xs ${
+                state.tone === "danger" ? "text-red-600" : "text-gray-500"
+              } ${state.message ? "mt-1" : ""}`}
+            >
+              {translator.translateTemplate("Latest task started {{time}}", {
+                time: startedAgo,
+              })}
+            </p>
+          )}
+        </div>
+        {/*
+          Merged is not fixed: what production showed once the fix
+          shipped (FixProductionVerifier).
+        */}
+        {task.production && (
+          <FixProductionVerdict
+            production={task.production}
+            testId="exception-ai-task-production"
+            className="mt-3"
+          />
+        )}
+      </>
+    );
+  };
+
+  // View task and the task's one move: start, again, or try again.
+  const renderTaskButtons: (data: {
+    taskType: ExceptionAITaskType;
+    presentation: AITaskPresentation;
+    task: AIAgentTaskInfo | undefined;
+    state: AITaskCardState;
+    isPrimary: boolean;
+  }) => ReactElement = (data: {
+    taskType: ExceptionAITaskType;
+    presentation: AITaskPresentation;
+    task: AIAgentTaskInfo | undefined;
+    state: AITaskCardState;
+    isPrimary: boolean;
+  }): ReactElement => {
+    const { taskType, presentation, task, state } = data;
+
+    return (
+      <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0">
+        {state.canViewTask && task && (
+          <Button
+            title="View task"
+            icon={IconProp.ExternalLink}
+            buttonStyle={ButtonStyleType.OUTLINE}
+            buttonSize={ButtonSize.Small}
+            dataTestId="exception-ai-task-view"
+            onClick={() => {
+              navigateToTask(task._id);
+            }}
+          />
+        )}
+        {state.primaryAction && (
+          <Button
+            title={state.primaryAction.label}
+            icon={
+              state.primaryAction.kind === "retry"
+                ? IconProp.Refresh
+                : presentation.icon
+            }
+            buttonStyle={
+              data.isPrimary ? ButtonStyleType.PRIMARY : ButtonStyleType.OUTLINE
+            }
+            buttonSize={ButtonSize.Small}
+            dataTestId="exception-ai-task-start"
+            isLoading={creatingTaskType === taskType}
+            disabled={
+              state.primaryAction.isDisabled ||
+              (Boolean(creatingTaskType) && creatingTaskType !== taskType)
+            }
+            tooltip={state.primaryAction.disabledReason}
+            onClick={() => {
+              setPendingStart({
+                taskType,
+                presentation,
+                label: state.primaryAction!.label,
+              });
+            }}
+          />
+        )}
+      </div>
+    );
+  };
+
+  // Fix with AI: the one task the page leads with, and how it works.
+  const renderPrimaryTask: () => ReactElement = (): ReactElement => {
+    const presentation: AITaskPresentation =
+      PRIMARY_AI_TASK_PRESENTATION[primaryTaskType];
+    const { task, state } = getTaskState(primaryTaskType, presentation);
 
     return (
       <section
+        className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+        data-testid={`exception-ai-task-${primaryTaskType}`}
+        data-primary="true"
+        aria-label={translator.translateText(presentation.title)}
+      >
+        <div className="p-5 md:p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
+              <Icon
+                icon={presentation.icon}
+                className="h-5 w-5 text-indigo-600"
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-semibold text-gray-900">
+                  {translator.translateText(presentation.title)}
+                </h2>
+                {renderStatusPill(state)}
+              </div>
+              <p
+                className="mt-1 max-w-3xl text-sm leading-6 text-gray-600"
+                data-testid="exception-ai-task-description"
+              >
+                {translator.translateText(presentation.description)}
+              </p>
+              {renderTaskProgress(task, state)}
+            </div>
+
+            {renderTaskButtons({
+              taskType: primaryTaskType,
+              presentation,
+              task,
+              state,
+              isPrimary: true,
+            })}
+          </div>
+        </div>
+
+        <div
+          className="border-t border-gray-100 bg-gray-50/60 px-5 py-4 md:px-6"
+          data-testid="exception-ai-how-it-works"
+        >
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+            {translator.translateText("How it works")}
+          </h3>
+          <ol className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            {EXCEPTION_AI_HOW_IT_WORKS_STEPS.map(
+              (step: string, index: number): ReactElement => {
+                return (
+                  <li key={step} className="flex items-start gap-2.5">
+                    <span
+                      aria-hidden="true"
+                      className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-700"
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="text-sm leading-5 text-gray-700">
+                      {translator.translateText(step)}
+                    </span>
+                  </li>
+                );
+              },
+            )}
+          </ol>
+          {renderReadyLine()}
+        </div>
+      </section>
+    );
+  };
+
+  // One of the other tasks, as a row of the fold.
+  const renderOtherTask: (taskType: ExceptionAITaskType) => ReactElement = (
+    taskType: ExceptionAITaskType,
+  ): ReactElement => {
+    const presentation: AITaskPresentation = AI_TASK_PRESENTATION[taskType];
+    const { task, state } = getTaskState(taskType, presentation);
+
+    return (
+      <li
         key={taskType}
-        className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm md:p-6"
+        className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 md:flex-row md:items-start"
         data-testid={`exception-ai-task-${taskType}`}
         aria-label={translator.translateText(presentation.title)}
       >
-        <div className="flex flex-col gap-4 md:flex-row md:items-start">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-50">
-            <Icon
-              icon={presentation.icon}
-              className="h-5 w-5 text-indigo-600"
-            />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-semibold text-gray-900">
-                {translator.translateText(presentation.title)}
-              </h3>
-              <span
-                className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${AI_TASK_TONE_CLASS_NAMES[state.tone]}`}
-                data-testid="exception-ai-task-status"
-              >
-                {state.isActive && (
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-500" />
-                  </span>
-                )}
-                {translator.translateText(state.statusLabel)}
-              </span>
-            </div>
-            <p className="mt-1 max-w-3xl text-sm leading-6 text-gray-600">
-              {translator.translateText(presentation.description)}
-            </p>
-
-            {task && (
-              <div
-                className={`mt-3 max-w-3xl rounded-lg px-3 py-2 text-sm ${
-                  state.tone === "danger"
-                    ? "bg-red-50 text-red-800"
-                    : "bg-gray-50 text-gray-700"
-                }`}
-                data-testid="exception-ai-task-message"
-              >
-                {state.message && <p>{state.message}</p>}
-                {startedAgo && (
-                  <p
-                    className={`text-xs ${
-                      state.tone === "danger" ? "text-red-600" : "text-gray-500"
-                    } ${state.message ? "mt-1" : ""}`}
-                  >
-                    {translator.translateTemplate(
-                      "Latest task started {{time}}",
-                      { time: startedAgo },
-                    )}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/*
-              Merged is not fixed: what production showed once the fix
-              shipped (FixProductionVerifier).
-            */}
-            {task?.production && (
-              <FixProductionVerdict
-                production={task.production}
-                testId="exception-ai-task-production"
-                className="mt-3"
-              />
-            )}
-          </div>
-
-          {/*
-            At the right edge at every width: beside the explanation from md
-            up, under it on a phone.
-          */}
-          <div className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2">
-            {state.canViewTask && task && (
-              <Button
-                title="View Task"
-                icon={IconProp.ExternalLink}
-                buttonStyle={ButtonStyleType.NORMAL}
-                buttonSize={ButtonSize.Small}
-                dataTestId="exception-ai-task-view"
-                onClick={() => {
-                  navigateToTask(task._id);
-                }}
-              />
-            )}
-            {state.primaryAction && (
-              <Button
-                title={state.primaryAction.label}
-                icon={
-                  state.primaryAction.kind === "retry"
-                    ? IconProp.Refresh
-                    : presentation.icon
-                }
-                buttonStyle={ButtonStyleType.PRIMARY}
-                buttonSize={ButtonSize.Small}
-                dataTestId="exception-ai-task-start"
-                isLoading={creatingTaskType === taskType}
-                disabled={
-                  state.primaryAction.isDisabled ||
-                  (Boolean(creatingTaskType) && creatingTaskType !== taskType)
-                }
-                tooltip={state.primaryAction.disabledReason}
-                onClick={() => {
-                  setPendingStart({
-                    taskType,
-                    label: state.primaryAction!.label,
-                  });
-                }}
-              />
-            )}
-          </div>
+        <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gray-100">
+          <Icon icon={presentation.icon} className="h-4 w-4 text-gray-600" />
         </div>
-      </section>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-sm font-semibold text-gray-900">
+              {translator.translateText(presentation.title)}
+            </h3>
+            {task ? renderStatusPill(state) : <></>}
+          </div>
+          <p className="mt-0.5 max-w-3xl text-sm leading-6 text-gray-600">
+            {translator.translateText(presentation.description)}
+          </p>
+          {renderTaskProgress(task, state)}
+        </div>
+        {renderTaskButtons({
+          taskType,
+          presentation,
+          task,
+          state,
+          isPrimary: false,
+        })}
+      </li>
+    );
+  };
+
+  /*
+   * The other tasks, folded: named in the fold's header with the status of
+   * any that ran, and open by itself once one of them has a task.
+   */
+  const renderOtherTasks: () => ReactElement = (): ReactElement => {
+    const items: Array<FoldedSectionItem> = otherTaskTypes.map(
+      (taskType: ExceptionAITaskType): FoldedSectionItem => {
+        const presentation: AITaskPresentation = AI_TASK_PRESENTATION[taskType];
+        const { task, state } = getTaskState(taskType, presentation);
+
+        return {
+          key: taskType,
+          title: presentation.title,
+          isSet: Boolean(task),
+          value: task ? state.statusLabel : undefined,
+          translateValue: true,
+        };
+      },
+    );
+    const hasOtherTask: boolean = items.some(
+      (item: FoldedSectionItem): boolean => {
+        return item.isSet;
+      },
+    );
+
+    return (
+      <FoldedSection
+        title={OTHER_AI_TASKS_TITLE}
+        icon={IconProp.Sparkles}
+        description="Other pull requests OneUptime AI can open for this exception."
+        items={items}
+        defaultCollapsed={!hasOtherTask}
+        isElevated={true}
+        dataTestId="exception-ai-other-tasks"
+      >
+        <ul className="divide-y divide-gray-100">
+          {otherTaskTypes.map(renderOtherTask)}
+        </ul>
+      </FoldedSection>
     );
   };
 
@@ -598,25 +838,17 @@ const ExceptionAIAssistance: FunctionComponent<ComponentProps> = (
         />
       )}
 
-      {renderReadiness()}
+      {renderSetupChecklist()}
 
-      <div className="space-y-4">
-        {EXCEPTION_AI_TASK_TYPES.map(renderTaskCard)}
-      </div>
+      {renderPrimaryTask()}
+
+      {renderOtherTasks()}
 
       {pendingStart && (
         <ConfirmModal
-          title={translator.translateTemplate("Confirm {{action}}", {
-            action: translatableTerm(pendingStart.label),
-          })}
-          description={translator.translateTemplate(
-            "{{description}}\n\nAre you sure you want to {{action}}?",
-            {
-              description: translator.translateText(
-                AI_TASK_PRESENTATION[pendingStart.taskType].description,
-              ) as string,
-              action: translatableTerm(pendingStart.label),
-            },
+          title={translator.translateText(pendingStart.presentation.title)}
+          description={translator.translateText(
+            pendingStart.presentation.description,
           )}
           submitButtonText={pendingStart.label}
           onSubmit={() => {

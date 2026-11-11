@@ -12,8 +12,10 @@ import React, {
   useState,
 } from "react";
 import {
+  ExceptionTriageAction,
   formatOccurrenceCount,
   formatRelativeTime,
+  getExceptionTriageActions,
 } from "../../Utils/ExceptionDetailPresentation";
 import { getErrorClassBadgeLabel } from "../../Utils/ExceptionErrorClassLabels";
 import ExceptionResource from "./ExceptionResource";
@@ -21,21 +23,67 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { ExceptionIssueBadge } from "Common/Utils/Exceptions/ExceptionIssueState";
 import { getExceptionIssueBadgePresentation } from "./ExceptionIssueBadges";
+import {
+  EVENT_HEADER_BUTTONS_CLASS_NAME,
+  EVENT_HEADER_CLASS_NAME,
+  EVENT_HEADER_FACT_CLASS_NAME,
+  EVENT_HEADER_FACT_LABEL_CLASS_NAME,
+  EVENT_HEADER_FACT_VALUE_CLASS_NAME,
+  EVENT_HEADER_TOP_SECTION_CLASS_NAME,
+  EventHeaderTopRowClassNames,
+  getEventHeaderActionsBesideWidth,
+  getEventHeaderFactsClassName,
+  getEventHeaderTopRowClassNames,
+} from "../EventView/EventHeaderLayout";
+
+/*
+ * The top of every page of an exception: what it is, where it stands, the
+ * moves it takes next, and what a reader needs at a glance.
+ *
+ * Laid out as the header of an incident, an alert and a security case is
+ * (EventHeaderLayout), so the record pages of the product read alike: the
+ * pills first - its status, whether it came back, whether it was caught -
+ * then its type as the title, on a line of its own; the message under it;
+ * the buttons at the top right, beside the pills wherever the header is wide
+ * enough for both (worked out from their words in the reader's language),
+ * under the title where it is not, with the ⋯ in the header's corner; and
+ * the facts - how often, since when, where, who owns it - on a grid of two
+ * to five columns that follows the header's own width, never the window's.
+ *
+ * Two buttons and a ⋯: Resolve (or Reopen) and Archive (or Unarchive) are
+ * the moves made on nearly every exception; Resolve in next release and
+ * Create monitor wait in the ⋯ (ExceptionMoreActions). Who owns it is a
+ * fact, changed right there (ExceptionAssignee), not a pill and a dashed
+ * button among the buttons.
+ */
 
 export const EXCEPTION_MESSAGE_CLAMP_CHARACTER_COUNT: number = 240;
 
-const STAT_BORDER_CLASS_NAMES: Array<string> = [
-  "",
-  "border-t border-gray-200 sm:border-l sm:border-t-0",
-  "border-t border-gray-200 xl:border-l xl:border-t-0",
-  "border-t border-gray-200 sm:border-l xl:border-t-0",
-];
+export const EXCEPTION_SUMMARY_TEST_IDS: {
+  header: string;
+  top: string;
+  pills: string;
+  title: string;
+  message: string;
+  actions: string;
+  buttons: string;
+  morePlace: string;
+  facts: string;
+} = {
+  header: "exception-summary",
+  top: "exception-summary-top",
+  pills: "exception-summary-pills",
+  title: "exception-summary-type",
+  message: "exception-summary-message",
+  actions: "exception-summary-actions",
+  buttons: "exception-summary-buttons",
+  morePlace: "exception-summary-more-place",
+  facts: "exception-summary-facts",
+};
 
 export interface ExceptionSummaryStatus {
   label: string;
   icon: IconProp;
-  containerClassName: string;
-  iconClassName: string;
   pillClassName: string;
 }
 
@@ -46,8 +94,6 @@ export function getExceptionSummaryStatus(
     return {
       label: "Resolved",
       icon: IconProp.CheckCircle,
-      containerClassName: "bg-emerald-50",
-      iconClassName: "text-emerald-600",
       pillClassName: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
     };
   }
@@ -56,8 +102,6 @@ export function getExceptionSummaryStatus(
     return {
       label: "Archived",
       icon: IconProp.Archive,
-      containerClassName: "bg-amber-50",
-      iconClassName: "text-amber-600",
       pillClassName: "bg-amber-50 text-amber-700 ring-amber-600/20",
     };
   }
@@ -65,14 +109,15 @@ export function getExceptionSummaryStatus(
   return {
     label: "Unresolved",
     icon: IconProp.Error,
-    containerClassName: "bg-red-50",
-    iconClassName: "text-red-600",
     pillClassName: "bg-red-50 text-red-700 ring-red-600/20",
   };
 }
 
 const NEUTRAL_PILL_CLASS_NAME: string =
   "bg-gray-50 text-gray-600 ring-gray-500/15";
+
+const PILL_CLASS_NAME: string =
+  "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset";
 
 interface SummaryPill {
   label: string;
@@ -82,19 +127,43 @@ interface SummaryPill {
   testId: string;
 }
 
-interface SummaryStat {
+interface SummaryFact {
   label: string;
+  // The fact's test id: exception-summary-stat-<key>.
+  key: string;
   value: ReactNode;
+  // A second, quieter line under the value: "all time", "in v1.4.0".
   detail?: string | undefined;
+  // The value's whole, on hover: a time's date and hour.
   title?: string | undefined;
+  /*
+   * A value that is a control (the Assignee's): drawn as it is, never in
+   * the box that cuts a long value short, which would cut its focus ring.
+   */
+  isControl?: boolean | undefined;
+}
+
+/*
+ * The buttons and the ⋯ the page offers in the header. The buttons are the
+ * exception's triage moves (ExceptionTriageActions), whose words follow its
+ * state, so the header works out where they fit from the exception itself.
+ */
+export interface ExceptionSummaryActions {
+  buttons: ReactElement;
+  more?: ReactElement | null | undefined;
 }
 
 export interface ComponentProps {
   exception: TelemetryException;
-  // The group's Service, once loaded, for the Service cell.
+  // The group's Service, once loaded, for the Service fact.
   services?: Array<Service> | undefined;
-  // Triage buttons rendered at the top right of the header.
-  actions?: ReactElement | undefined;
+  // The header's buttons and ⋯; left out, the header offers none (Settings).
+  actions?: ExceptionSummaryActions | undefined;
+  /*
+   * Who owns it, as the Assignee fact's value (ExceptionAssignee); left
+   * out, the header has no Assignee fact.
+   */
+  assignee?: ReactElement | undefined;
 }
 
 const ExceptionSummary: FunctionComponent<ComponentProps> = (
@@ -117,6 +186,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
   const pills: Array<SummaryPill> = [
     {
       label: translator.translateText(status.label) as string,
+      icon: status.icon,
       className: status.pillClassName,
       testId: "exception-summary-status",
     },
@@ -125,6 +195,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
   if (props.exception.isResolved && props.exception.isArchived) {
     pills.push({
       label: translator.translateText("Archived") as string,
+      icon: IconProp.Archive,
       className: "bg-amber-50 text-amber-700 ring-amber-600/20",
       testId: "exception-summary-archived",
     });
@@ -188,6 +259,38 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
     });
   }
 
+  /*
+   * Where the actions go: beside the pills from the header width that holds
+   * the pills, the two buttons and the ⋯ in one row - their words as the
+   * reader's language spells them - and under the title below it.
+   */
+  const hasMore: boolean = Boolean(props.actions?.more);
+  const besideWidthRem: number | null = props.actions
+    ? getEventHeaderActionsBesideWidth({
+        pills: pills.map((pill: SummaryPill): string => {
+          return pill.label;
+        }),
+        hasPillIcon: pills.some((pill: SummaryPill): boolean => {
+          return Boolean(pill.icon);
+        }),
+        actions: getExceptionTriageActions({
+          isResolved: Boolean(props.exception.isResolved),
+          isArchived: Boolean(props.exception.isArchived),
+        }).map((action: ExceptionTriageAction) => {
+          return {
+            label: translator.translateText(action.label) || action.label,
+            hasIcon: true,
+          };
+        }),
+        hasMore: hasMore,
+      })
+    : null;
+
+  const topRow: EventHeaderTopRowClassNames = getEventHeaderTopRowClassNames({
+    besideWidthRem: besideWidthRem,
+    hasMore: hasMore,
+  });
+
   const getAbsoluteTime: (date: Date | undefined) => string | undefined = (
     date: Date | undefined,
   ): string | undefined => {
@@ -206,14 +309,16 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
       : undefined;
   };
 
-  const statItems: Array<SummaryStat> = [
+  const facts: Array<SummaryFact> = [
     {
       label: "Occurrences",
+      key: "occurrences",
       value: formatOccurrenceCount(props.exception.occuranceCount),
       detail: translator.translateText("all time"),
     },
     {
       label: "First seen",
+      key: "first-seen",
       value:
         formatRelativeTime(
           props.exception.firstSeenAt,
@@ -225,6 +330,7 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
     },
     {
       label: "Last seen",
+      key: "last-seen",
       value:
         formatRelativeTime(
           props.exception.lastSeenAt,
@@ -236,12 +342,13 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
     },
     {
       label: "Service",
+      key: "service",
       value: (
         <ExceptionResource
           primaryEntityId={props.exception.primaryEntityId}
           primaryEntityType={props.exception.primaryEntityType}
           services={props.services}
-          className="min-w-0 truncate"
+          className="min-w-0 max-w-full truncate"
           fallback={
             <span className="text-gray-900">
               {translator.translateText("Not recorded")}
@@ -252,152 +359,170 @@ const ExceptionSummary: FunctionComponent<ComponentProps> = (
     },
   ];
 
+  if (props.assignee) {
+    facts.push({
+      label: "Assignee",
+      key: "assignee",
+      value: props.assignee,
+      isControl: true,
+    });
+  }
+
   return (
     <section
       aria-label={translator.translateText("Exception summary")}
-      className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
-      data-testid="exception-summary"
+      className={EVENT_HEADER_CLASS_NAME}
+      data-testid={EXCEPTION_SUMMARY_TEST_IDS.header}
+      data-actions-beside-from={
+        besideWidthRem === null ? "never" : `${besideWidthRem}rem`
+      }
     >
-      {/*
-       * The actions sit beside the exception only when the card is wide
-       * enough for both (a container query, not the window's width): from
-       * lg up beside the side menu, three buttons - Resolve, Archive,
-       * Create monitor - left the message a word a line at 1024px. On a
-       * narrower card they go under it. The assignee and Assign (#5422) and
-       * Resolve's menu (#5416) took the row to some 40rem, which left the
-       * message 230px at 1440px: beside it only from 72rem, where the
-       * message keeps a reading width of 26rem.
-       */}
-      <div className="px-5 py-5 [container-type:inline-size] sm:px-6">
-        <div className="flex flex-col gap-4 [@container(min-width:72rem)]:flex-row [@container(min-width:72rem)]:items-start">
-          <div className="flex min-w-0 flex-1 items-start gap-4">
-            <div
-              className={`max-sm:hidden h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl sm:flex ${status.containerClassName}`}
-              data-testid="exception-summary-status-icon"
-            >
-              <Icon
-                icon={status.icon}
-                className={`h-6 w-6 ${status.iconClassName}`}
-              />
-            </div>
-
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
-                {pills.map((pill: SummaryPill): ReactElement => {
-                  return (
-                    <span
-                      key={pill.testId}
-                      data-testid={pill.testId}
-                      title={pill.title}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${pill.className}`}
-                    >
-                      {pill.icon && (
-                        <Icon icon={pill.icon} className="h-3 w-3" />
-                      )}
-                      {pill.label}
-                    </span>
-                  );
-                })}
-              </div>
-
-              <h2
-                className="mt-2 break-words text-lg font-semibold leading-7 text-gray-900"
-                data-testid="exception-summary-type"
-              >
-                {props.exception.exceptionType ||
-                  translator.translateText("Application exception")}
-              </h2>
-
-              <div className="mt-1 flex items-start gap-2">
-                <p
-                  className={`min-w-0 flex-1 break-words font-mono text-sm leading-6 ${
-                    hasMessage ? "text-gray-700" : "italic text-gray-500"
-                  } ${isMessageClampable && !isMessageExpanded ? "line-clamp-3" : ""}`}
-                  id={messageId}
-                  data-testid="exception-summary-message"
+      <div className={EVENT_HEADER_TOP_SECTION_CLASS_NAME}>
+        <div className={topRow.row} data-testid={EXCEPTION_SUMMARY_TEST_IDS.top}>
+          <div
+            className={topRow.chips}
+            data-testid={EXCEPTION_SUMMARY_TEST_IDS.pills}
+          >
+            {pills.map((pill: SummaryPill): ReactElement => {
+              return (
+                <span
+                  key={pill.testId}
+                  data-testid={pill.testId}
+                  title={pill.title}
+                  className={`${PILL_CLASS_NAME} ${pill.className}`}
                 >
-                  {message}
-                </p>
-                {hasMessage && (
-                  <div className="mt-0.5 flex-shrink-0">
-                    <CopyTextButton
-                      textToBeCopied={message}
-                      iconOnly={true}
-                      size="sm"
-                      title="Copy exception message"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {isMessageClampable && (
-                <button
-                  type="button"
-                  aria-controls={messageId}
-                  aria-expanded={isMessageExpanded}
-                  aria-label={translator.translateText(
-                    isMessageExpanded
-                      ? "Collapse exception message"
-                      : "Expand exception message",
+                  {pill.icon && (
+                    <Icon icon={pill.icon} className="h-3 w-3 flex-shrink-0" />
                   )}
-                  className="mt-1 text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                  onClick={() => {
-                    setIsMessageExpanded(!isMessageExpanded);
-                  }}
-                >
-                  {translator.translateText(
-                    isMessageExpanded ? "Show less" : "Show more",
-                  )}
-                </button>
-              )}
-            </div>
+                  {pill.label}
+                </span>
+              );
+            })}
           </div>
 
+          {/*
+           * Before the actions in the page, as it is read and as a screen
+           * reader reads it; on a wide header drawn under the pills and the
+           * actions both.
+           */}
+          <h2
+            className={topRow.title}
+            data-testid={EXCEPTION_SUMMARY_TEST_IDS.title}
+          >
+            {props.exception.exceptionType ||
+              translator.translateText("Application exception")}
+          </h2>
+
           {props.actions && (
-            /*
-             * Under the exception, the actions start where its words do,
-             * past the status icon (44px and the 16px gap) where it shows,
-             * and each Button's own dialog-footer margin (md:ml-3) is taken
-             * off, so the first one lines up with the words and the gap
-             * between them is the row's own.
-             */
             <div
-              className="flex flex-shrink-0 flex-wrap items-center gap-2 sm:gap-3 sm:ps-[3.75rem] [@container(min-width:72rem)]:justify-end [@container(min-width:72rem)]:ps-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0 [&>button]:ml-0 [&>button]:md:ml-0"
-              data-testid="exception-summary-actions"
+              className={topRow.actions}
+              role="group"
+              aria-label={translator.translateText("Exception actions")}
+              data-testid={EXCEPTION_SUMMARY_TEST_IDS.actions}
             >
-              {props.actions}
+              <div
+                className={EVENT_HEADER_BUTTONS_CLASS_NAME}
+                data-testid={EXCEPTION_SUMMARY_TEST_IDS.buttons}
+              >
+                {props.actions.buttons}
+              </div>
+              {props.actions.more ? (
+                <div
+                  className={topRow.morePlace}
+                  data-testid={EXCEPTION_SUMMARY_TEST_IDS.morePlace}
+                >
+                  {props.actions.more}
+                </div>
+              ) : (
+                <></>
+              )}
             </div>
           )}
         </div>
+
+        {/*
+         * What it said, under what it is: in the reading font, three lines
+         * at most until it is asked for whole, with a copy button beside
+         * it.
+         */}
+        <div className="mt-2 flex items-start gap-2">
+          <p
+            className={`min-w-0 flex-1 break-words text-sm leading-6 [overflow-wrap:anywhere] ${
+              hasMessage ? "text-gray-700" : "italic text-gray-500"
+            } ${isMessageClampable && !isMessageExpanded ? "line-clamp-3" : ""}`}
+            id={messageId}
+            data-testid={EXCEPTION_SUMMARY_TEST_IDS.message}
+          >
+            {message}
+          </p>
+          {hasMessage && (
+            <div className="flex-shrink-0">
+              <CopyTextButton
+                textToBeCopied={message}
+                iconOnly={true}
+                size="sm"
+                title="Copy exception message"
+              />
+            </div>
+          )}
+        </div>
+
+        {isMessageClampable && (
+          <button
+            type="button"
+            aria-controls={messageId}
+            aria-expanded={isMessageExpanded}
+            aria-label={translator.translateText(
+              isMessageExpanded
+                ? "Collapse exception message"
+                : "Expand exception message",
+            )}
+            className="mt-1 rounded-sm text-xs font-medium text-indigo-600 hover:text-indigo-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            onClick={() => {
+              setIsMessageExpanded(!isMessageExpanded);
+            }}
+          >
+            {translator.translateText(
+              isMessageExpanded ? "Show less" : "Show more",
+            )}
+          </button>
+        )}
       </div>
 
-      <dl className="grid grid-cols-1 border-t border-gray-200 bg-gray-50/60 sm:grid-cols-2 xl:grid-cols-4">
-        {statItems.map((item: SummaryStat, index: number): ReactElement => {
+      <dl
+        className={getEventHeaderFactsClassName(facts.length)}
+        data-testid={EXCEPTION_SUMMARY_TEST_IDS.facts}
+      >
+        {facts.map((fact: SummaryFact): ReactElement => {
           return (
             <div
-              className={`min-w-0 px-5 py-3 sm:px-6 ${STAT_BORDER_CLASS_NAMES[index]}`}
-              key={item.label}
-              data-testid={`exception-summary-stat-${item.label
-                .toLowerCase()
-                .replace(/\s+/g, "-")}`}
+              className={EVENT_HEADER_FACT_CLASS_NAME}
+              key={fact.key}
+              data-testid={`exception-summary-stat-${fact.key}`}
             >
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                {translator.translateText(item.label)}
+              <dt className={EVENT_HEADER_FACT_LABEL_CLASS_NAME}>
+                {translator.translateText(fact.label)}
               </dt>
-              <dd
-                className="mt-1 truncate text-sm font-semibold text-gray-900"
-                title={item.title}
-              >
-                {item.value}
+              <dd className={EVENT_HEADER_FACT_VALUE_CLASS_NAME}>
+                {fact.isControl ? (
+                  <div className="flex min-w-0 max-w-full">{fact.value}</div>
+                ) : (
+                  <span
+                    className="block max-w-full truncate"
+                    title={fact.title}
+                  >
+                    {fact.value}
+                  </span>
+                )}
+                {fact.detail && (
+                  <span
+                    className="mt-0.5 block truncate text-xs font-normal text-gray-500"
+                    title={fact.detail}
+                  >
+                    {fact.detail}
+                  </span>
+                )}
               </dd>
-              {item.detail && (
-                <dd
-                  className="mt-0.5 truncate text-xs text-gray-500"
-                  title={item.detail}
-                >
-                  {item.detail}
-                </dd>
-              )}
             </div>
           );
         })}

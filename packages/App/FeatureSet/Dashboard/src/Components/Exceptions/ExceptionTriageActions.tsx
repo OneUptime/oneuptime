@@ -1,12 +1,8 @@
 import TelemetryException from "Common/Models/DatabaseModels/TelemetryException";
 import IconProp from "Common/Types/Icon/IconProp";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
-import MoreMenu from "Common/UI/Components/MoreMenu/MoreMenu";
-import MoreMenuItem from "Common/UI/Components/MoreMenu/MoreMenuItem";
+import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import PermissionGate, {
   ModelAction,
   PermissionGateResult,
@@ -18,23 +14,28 @@ import {
   ExceptionTriageAction,
   ExceptionTriageState,
   getExceptionTriageActions,
-  getResolveInNextReleaseAction,
 } from "../../Utils/ExceptionDetailPresentation";
+import {
+  EVENT_HEADER_BUTTON_CLASS_NAME,
+  EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME,
+  EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME,
+  EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
+  EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME,
+  EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME,
+} from "../EventView/EventHeaderLayout";
 
 export type ExceptionTriageActionId = ExceptionTriageAction["id"];
 
 export interface ComponentProps extends ExceptionTriageState {
   // The action whose request is in flight, if any.
   pendingActionId?: ExceptionTriageActionId | undefined;
-  /*
-   * The release the exception was last seen in. With one, Resolve has a
-   * menu beside it with Resolve in next release.
-   */
-  lastSeenInRelease?: string | undefined;
   onAction: (action: ExceptionTriageAction) => void;
 }
 
-const ACTION_ICONS: Record<ExceptionTriageActionId, IconProp> = {
+export const EXCEPTION_TRIAGE_ACTION_ICONS: Record<
+  ExceptionTriageActionId,
+  IconProp
+> = {
   resolve: IconProp.Check,
   "resolve-next-release": IconProp.CheckCircle,
   unresolve: IconProp.Refresh,
@@ -43,13 +44,38 @@ const ACTION_ICONS: Record<ExceptionTriageActionId, IconProp> = {
 };
 
 /*
- * Resolve / reopen and archive / unarchive, one click each — both are
- * reversible from the same buttons. A viewer without update permission
- * still sees them, locked, with the missing permission as the tooltip.
+ * A header button, drawn as an incident's and a security case's are
+ * (EventHeaderLayout): Resolve is the main move, in indigo; the others are
+ * white. Locked, it fades with the not-allowed cursor; busy, it shows a
+ * spinner in its icon's place and answers no hover until it is done.
+ */
+export function getExceptionTriageButtonClassName(data: {
+  isPrimary: boolean;
+  isLocked: boolean;
+  isBusy: boolean;
+}): string {
+  return `${EVENT_HEADER_BUTTON_CLASS_NAME} ${
+    data.isPrimary
+      ? EVENT_HEADER_PRIMARY_BUTTON_CLASS_NAME
+      : EVENT_HEADER_NEUTRAL_BUTTON_CLASS_NAME
+  } ${getHandDrawnButtonStateClassName({
+    isLocked: data.isLocked,
+    isBusy: data.isBusy,
+    hoverClassName: data.isPrimary
+      ? EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME
+      : EVENT_HEADER_NEUTRAL_BUTTON_HOVER_CLASS_NAME,
+  })}`;
+}
+
+/*
+ * The header's two buttons: Resolve (or Reopen) and Archive (or Unarchive),
+ * one click each, and each undone from the same place. Resolve in next
+ * release waits in the header's ⋯ (ExceptionMoreActions): most people
+ * resolve, and the rarer choice is a menu away rather than a third control.
  *
- * Resolve has a small menu beside it, while a release is known, with
- * Resolve in next release: most people resolve, and the rarer choice stays
- * one click away without a third button.
+ * A viewer without update permission still sees them, locked, with the
+ * missing permission as the tooltip. While one is saving it shows the work
+ * and the other waits.
  */
 const ExceptionTriageActions: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -64,93 +90,74 @@ const ExceptionTriageActions: FunctionComponent<ComponentProps> = (
     isArchived: props.isArchived,
   });
 
-  const nextReleaseAction: ExceptionTriageAction | null =
-    getResolveInNextReleaseAction({
-      isResolved: props.isResolved,
-      isArchived: props.isArchived,
-      lastSeenInRelease: props.lastSeenInRelease,
-    });
-
-  const isLocked: (action: ExceptionTriageAction) => boolean = (
-    action: ExceptionTriageAction,
-  ): boolean => {
-    return (
-      !updateGate.isAllowed ||
-      (Boolean(props.pendingActionId) && props.pendingActionId !== action.id)
-    );
-  };
+  const lockReason: string | undefined = updateGate.isAllowed
+    ? undefined
+    : updateGate.disabledReason;
 
   return (
     <>
       {actions.map((action: ExceptionTriageAction): ReactElement => {
         const isPrimary: boolean = action.id === "resolve";
+        // Resolve in next release, from the ⋯, is Resolve at work too.
+        const isBusy: boolean =
+          props.pendingActionId === action.id ||
+          (isPrimary && props.pendingActionId === "resolve-next-release");
+        const isLocked: boolean =
+          !updateGate.isAllowed || (Boolean(props.pendingActionId) && !isBusy);
+        const label: string =
+          translator.translateText(action.label) || action.label;
+        const reason: string | undefined = lockReason
+          ? translator.translateText(lockReason) || lockReason
+          : undefined;
 
         const button: ReactElement = (
-          <Button
+          <button
             key={action.id}
-            title={action.label}
-            icon={ACTION_ICONS[action.id]}
-            buttonSize={ButtonSize.Small}
-            buttonStyle={
-              isPrimary
-                ? ButtonStyleType.SUCCESS_OUTLINE
-                : ButtonStyleType.NORMAL
-            }
-            dataTestId={`exception-triage-${action.id}`}
-            isLoading={
-              props.pendingActionId === action.id ||
-              (isPrimary && props.pendingActionId === "resolve-next-release")
-            }
-            disabled={isLocked(action)}
-            tooltip={
-              updateGate.isAllowed ? undefined : updateGate.disabledReason
-            }
+            type="button"
+            title={reason ? undefined : label}
+            disabled={isLocked || isBusy}
+            aria-disabled={isLocked || isBusy}
+            aria-busy={isBusy ? true : undefined}
+            data-testid={`exception-triage-${action.id}`}
             onClick={() => {
-              props.onAction(action);
+              if (!isLocked && !isBusy) {
+                props.onAction(action);
+              }
             }}
-          />
+            className={`${getExceptionTriageButtonClassName({
+              isPrimary,
+              isLocked,
+              isBusy,
+            })}${reason ? " pointer-events-none w-full" : ""}`}
+          >
+            <Icon
+              icon={
+                isBusy ? IconProp.Spinner : EXCEPTION_TRIAGE_ACTION_ICONS[action.id]
+              }
+              className={`h-4 w-4 shrink-0${isBusy ? " animate-spin" : ""}`}
+            />
+            <span className="truncate">{label}</span>
+          </button>
         );
 
-        if (!isPrimary || !nextReleaseAction) {
+        if (!reason) {
           return button;
         }
 
+        /*
+         * A disabled button takes no pointer and no focus, so a locked one
+         * says why from a wrapper that can take both.
+         */
         return (
-          <div
-            key={action.id}
-            className="inline-flex items-center gap-1"
-            data-testid="exception-triage-resolve-group"
-          >
-            {button}
-            <MoreMenu
-              text=""
-              ariaLabel={translator.translateText("More ways to resolve")}
-              dataTestId="exception-triage-resolve-menu"
-              isDisabled={isLocked(nextReleaseAction)}
-              isMenuPortaled={true}
-              elementToBeShownInsteadOfButton={
-                <Icon icon={IconProp.ChevronDown} className="h-4 w-4" />
-              }
-              triggerClassName="inline-flex h-[30px] items-center rounded-md border border-gray-300 bg-white px-1.5 text-gray-500 shadow-sm hover:bg-gray-50 hover:text-gray-700"
+          <Tooltip key={action.id} text={reason}>
+            <span
+              className={EVENT_HEADER_LOCKED_WRAPPER_CLASS_NAME}
+              tabIndex={0}
+              data-testid={`exception-triage-${action.id}-disabled-wrapper`}
             >
-              {[
-                <MoreMenuItem
-                  key="resolve-next-release"
-                  text={nextReleaseAction.label}
-                  icon={ACTION_ICONS["resolve-next-release"]}
-                  tooltip={translator.translateTemplate(
-                    "Occurrences from {{release}} will not reopen it. One from any other release will.",
-                    { release: nextReleaseAction.release || "" },
-                  )}
-                  isDisabled={isLocked(nextReleaseAction)}
-                  dataTestId="exception-triage-resolve-next-release"
-                  onClick={() => {
-                    props.onAction(nextReleaseAction);
-                  }}
-                />,
-              ]}
-            </MoreMenu>
-          </div>
+              {button}
+            </span>
+          </Tooltip>
         );
       })}
     </>

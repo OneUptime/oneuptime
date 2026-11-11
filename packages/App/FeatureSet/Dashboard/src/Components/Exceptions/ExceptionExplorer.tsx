@@ -49,6 +49,7 @@ import ExceptionSummary from "./ExceptionSummary";
 import ExceptionTriageActions, {
   ExceptionTriageActionId,
 } from "./ExceptionTriageActions";
+import ExceptionMoreActions from "./ExceptionMoreActions";
 import ExceptionOccurrenceTrend from "./ExceptionOccurrenceTrend";
 import ExceptionLatestOccurrence from "./ExceptionLatestOccurrence";
 import ExceptionOccurrenceAttributes from "./ExceptionOccurrenceAttributes";
@@ -74,10 +75,6 @@ import {
 import { ExceptionTriageAction } from "../../Utils/ExceptionDetailPresentation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
-import Button, {
-  ButtonSize,
-  ButtonStyleType,
-} from "Common/UI/Components/Button/Button";
 import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import MonitorType from "Common/Types/Monitor/MonitorType";
@@ -528,36 +525,33 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
   );
 
   /*
-   * Assign it to one person or one team, or nobody: the write the picker
-   * made, saved at once, the exception read again after.
+   * Assign it to one person or one team, or nobody: the write the header's
+   * Assignee made, saved at once, the exception read again after. Settled
+   * once it is saved or refused, so the list's picked row waits for it.
    */
-  const onAssign: (write: ExceptionAssignmentWrite) => void = (
+  const onAssign: (write: ExceptionAssignmentWrite) => Promise<void> = async (
     write: ExceptionAssignmentWrite,
-  ): void => {
-    const run: () => Promise<void> = async (): Promise<void> => {
-      setIsAssigning(true);
-      setActionError(undefined);
+  ): Promise<void> => {
+    setIsAssigning(true);
+    setActionError(undefined);
 
-      try {
-        await ModelAPI.updateById<TelemetryException>({
-          id: props.telemetryExceptionId,
-          modelType: TelemetryException,
-          data: {
-            assignToUserId: write.assignToUserId,
-            assignToTeamId: write.assignToTeamId,
-          },
-        });
+    try {
+      await ModelAPI.updateById<TelemetryException>({
+        id: props.telemetryExceptionId,
+        modelType: TelemetryException,
+        data: {
+          assignToUserId: write.assignToUserId,
+          assignToTeamId: write.assignToTeamId,
+        },
+      });
 
-        bumpActivity();
-        await loadException();
-      } catch (err) {
-        setActionError(API.getFriendlyMessage(err));
-      }
+      bumpActivity();
+      await loadException();
+    } catch (err) {
+      setActionError(API.getFriendlyMessage(err));
+    }
 
-      setIsAssigning(false);
-    };
-
-    void run();
+    setIsAssigning(false);
   };
 
   if (isLoading) {
@@ -669,37 +663,37 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
         services={services}
         {...(dataPlan.showHeaderActions
           ? {
-              actions: (
-                <>
-                  <ExceptionAssignee
-                    exception={telemetryException}
-                    isSaving={isAssigning}
-                    onAssign={onAssign}
-                  />
+              actions: {
+                buttons: (
                   <ExceptionTriageActions
+                    isResolved={isResolved}
+                    isArchived={isArchived}
+                    pendingActionId={pendingActionId}
+                    onAction={onTriageAction}
+                  />
+                ),
+                more: (
+                  <ExceptionMoreActions
                     isResolved={isResolved}
                     isArchived={isArchived}
                     lastSeenInRelease={telemetryException.lastSeenInRelease}
                     pendingActionId={pendingActionId}
                     onAction={onTriageAction}
+                    onCreateMonitor={
+                      canCreateMonitor ? navigateToCreateMonitor : undefined
+                    }
                   />
-                  {canCreateMonitor ? (
-                    <Button
-                      title="Create monitor"
-                      icon={IconProp.Bell}
-                      buttonSize={ButtonSize.Small}
-                      buttonStyle={ButtonStyleType.NORMAL}
-                      dataTestId="exception-create-monitor"
-                      tooltip="Get alerted when this exception happens again."
-                      onClick={navigateToCreateMonitor}
-                    />
-                  ) : (
-                    <></>
-                  )}
-                </>
-              ),
+                ),
+              },
             }
           : {})}
+        assignee={
+          <ExceptionAssignee
+            exception={telemetryException}
+            isSaving={isAssigning}
+            onAssign={onAssign}
+          />
+        }
       />
 
       {actionError && dataPlan.showHeaderActions && (
@@ -926,6 +920,7 @@ const ExceptionExplorer: FunctionComponent<ComponentProps> = (
           telemetryExceptionId={props.telemetryExceptionId}
           isResolved={isResolved}
           isArchived={isArchived}
+          errorClass={telemetryException.errorClass}
         />
       )}
 
