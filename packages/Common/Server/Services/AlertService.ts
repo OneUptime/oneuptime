@@ -146,6 +146,7 @@ import FeedMarkdown, {
   MarkdownText,
 } from "../../Utils/Markdown/FeedMarkdown";
 import FeedWorkspaceNotificationUtil from "../Utils/Feed/FeedWorkspaceNotification";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 
 /*
  * The two spellings a write of an alert's monitor arrives under: the FK
@@ -917,6 +918,18 @@ export class Service extends ProjectReferencesService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that opened the alert, without a Synthetic monitor's
+     * screenshots, as its state timeline keeps it: they are megabytes a row,
+     * and nothing shows them - the alert's monitor summary is its own copy,
+     * without them. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.createdStateLog) {
+      createBy.data.createdStateLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.createdStateLog,
+      );
+    }
 
     // The owners picked in the form are asked about now, before anything is saved.
     await OwnerRuleAssignment.checkOwnersPickedOnCreate({

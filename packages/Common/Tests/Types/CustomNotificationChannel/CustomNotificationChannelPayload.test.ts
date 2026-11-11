@@ -4,6 +4,7 @@ import {
   CUSTOM_CHANNEL_METHOD_LABEL,
   CUSTOM_CHANNEL_PAYLOAD_VERSION,
   CUSTOM_CHANNEL_SIGNATURE_HEADER,
+  CUSTOM_CHANNEL_TEST_PAGE_HAS_NO_RECORD_MESSAGE,
   CustomChannelAction,
   CustomChannelActionResult,
   CustomChannelEvent,
@@ -179,10 +180,25 @@ describe("getCustomChannelEventFor", () => {
     },
   );
 
-  test("every on-call event type has an event", () => {
+  test("every on-call event type about a record has an event", () => {
     for (const eventType of Object.values(UserNotificationEventType)) {
+      if (eventType === UserNotificationEventType.TestPage) {
+        continue;
+      }
+
       expect(getCustomChannelEventFor(eventType).event).toBeTruthy();
     }
+  });
+
+  /*
+   * A test page (OnCallTestPage) is about no record: a channel gets the Send
+   * test payload for it, which every service already takes, so there is no
+   * page event to ask for - and asking says why.
+   */
+  test("a test page has no page event: asking for one is refused, in words", () => {
+    expect(() => {
+      return getCustomChannelEventFor(UserNotificationEventType.TestPage);
+    }).toThrow(CUSTOM_CHANNEL_TEST_PAGE_HAS_NO_RECORD_MESSAGE);
   });
 });
 

@@ -59,7 +59,10 @@ import { redactForPersistence } from "./MonitorPayloadRedaction";
  *     about the monitor's logs, incidents and alerts.
  *
  * Left as they are: screenshots, which no text rule can read, and an
- * incoming email - its addresses, subject, body and headers. Incoming Email
+ * incoming email - its addresses, subject, body and headers. An incident's
+ * or an alert's raw check (createdStateLog, the state timeline's log) then
+ * keeps no screenshots at all: the incident and alert services leave them
+ * out (StateChangeLogScreenshots), since nothing shows them there. Incoming Email
  * monitors are to get evidence and a content switch of their own
  * (https://github.com/OneUptime/oneuptime/issues/6343).
  *

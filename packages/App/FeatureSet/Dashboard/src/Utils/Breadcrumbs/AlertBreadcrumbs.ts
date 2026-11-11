@@ -157,6 +157,12 @@ export function getAlertsBreadcrumbs(path: string): Array<Link> | undefined {
       "Settings",
       "Numbering",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_RETENTION, [
+      "Project",
+      "Alerts",
+      "Settings",
+      "Data Retention",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ALERTS_SETTINGS_STATE, [
       "Project",
       "Alerts",

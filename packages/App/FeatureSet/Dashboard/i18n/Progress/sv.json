@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50430,
+    "keys": 50637,
     "untranslated": 9728
   },
   "sameAsEnglish": [
@@ -269,6 +269,7 @@
     "TTL",
     "TX",
     "Team",
+    "Team {{name}}",
     "Tenancy",
     "Text",
     "Token",

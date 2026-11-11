@@ -6,7 +6,7 @@ Alert configuration lives inside **Alerts**, not in **Project Settings**: the ru
 - [The rules a new alert passes through](#the-rules-a-new-alert-passes-through): In order, and what each one does.
 - [On-call rules](#on-call-rules): Page the right people without picking a policy each time.
 - [Reminder rules](#reminder-rules): Remind owners while an alert stays open.
-- [Settings](#settings): Note templates, custom fields, measurements, episode membership and numbering.
+- [Settings](#settings): Note templates, custom fields, measurements, episode membership, numbering and data retention.
 :::
 
 ## Where alert settings live
@@ -24,7 +24,7 @@ Open **Alerts** from the **Products** menu in the top bar. The **Rules** and **S
 | **Label Rules**     | Adds labels to matching alerts and episodes.                                                   |
 | **Reminder Rules**  | Reminds owners at an interval while an alert is open.                                          |
 
-The **Settings** section holds **Alert State** and **Alert Severity**, covered on [Alert States & Severities](/docs/alerts/states-and-severities), then **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership** and **Numbering**, covered below.
+The **Settings** section holds **Alert State** and **Alert Severity**, covered on [Alert States & Severities](/docs/alerts/states-and-severities), then **Note Templates**, **Custom Fields**, **Measurements**, **Episode Membership**, **Numbering** and **Data Retention**, covered below.
 
 Two more sections act on alerts. **Alerts → AI → Settings** decides what OneUptime AI does on its own: **Investigate new alerts**, on for new projects, and **Fix new alerts automatically**, off until you turn it on. See [AI SRE](/docs/ai/ai-sre). **Alerts → Workspace** holds the Slack and Microsoft Teams rules that post alerts and episodes to channels, and its **Summary** tab. See [Slack](/docs/workspace-connections/slack).
 
@@ -168,6 +168,10 @@ Owners get each reminder as **Alert reminder**, which is on by email by default.
 **Alerts → Settings → Numbering** sets the text in front of alert and episode numbers: `ALT-` and `AE-` in a new project, or `#` with none. **Update** opens **Alert Number Prefix** and **Alert Episode Number Prefix**, with a preview as you type. Only alerts and episodes created afterwards get the new prefix. The rules for a prefix are on [Number prefixes](/docs/incidents/settings#number-prefixes).
 
 The **Next Number** card under it sets the number the next alert and the next episode get, to carry on from another tool's numbers: **Update** opens **Next Alert Number** and **Next Alert Episode Number**, each higher than the highest used so far. See [Next numbers](/docs/incidents/settings#next-numbers).
+
+### Data retention
+
+**Alerts → Settings → Data Retention** deletes alerts once they have been resolved for long enough, as [Data retention](/docs/incidents/settings#data-retention) does for incidents. Its **Resolved Alerts** card asks **Delete after**, **Never** until you pick a length, and asks before deleting more, with **Delete old alerts**. An alert stays while it is not resolved, while it is in an episode that is still open or was resolved more recently, and as long as an incident it is linked to stays. Only Project Owners and Project Admins can change it; over the API it is the project's `alertRetentionInDays`.
 
 > [!NOTE]
 > On OneUptime Cloud, note templates and custom fields take the **Growth** plan or above.

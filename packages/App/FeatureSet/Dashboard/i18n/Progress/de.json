@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50430,
+    "keys": 50637,
     "untranslated": 2980
   },
   "sameAsEnglish": [
@@ -581,6 +581,7 @@
     "Task · 44% CPU · 610 MB",
     "Task · 52% CPU · 512 MB",
     "Team",
+    "Team {{name}}",
     "Teams",
     "Telegram: ",
     "Text",
@@ -800,6 +801,7 @@
     "{{count}} MB",
     "{{count}} SLO",
     "{{count}} SLOs",
+    "{{count}} SMS",
     "{{count}} VM",
     "{{count}} VMs",
     "{{count}} live",

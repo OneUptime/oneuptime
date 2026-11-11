@@ -56,27 +56,38 @@ Un número mayor que cero muestra **Requiere atención**, o **En curso** y **Pre
 
 ### La lista de bienvenida
 
-La lista te guía por las cuatro cosas que un proyecto necesita antes de ser útil. Cada paso abre la página donde lo haces, y se marca solo cuando el proyecto tiene lo que pide.
+La primera vez que un propietario o un administrador del proyecto abre Inicio en un proyecto nuevo, la tarjeta pregunta **¿Qué quieres hacer primero?** Marca uno o más objetivos, como **Saber cuándo cae mi sitio web o mi API** o **Solo estoy mirando**, y haz clic en **Continuar**: la lista contendrá los pasos que necesitan esos objetivos. **Omitir** da los cuatro pasos que recibe todo proyecto. Para responder de nuevo más tarde, haz clic en **Cambiar** en la lista. A un proyecto que ya usa monitores, telemetría o guardias no se le pregunta.
+
+Cada paso se marca solo cuando la cosa funciona, no cuando existe un registro, y todas las personas que configuran el proyecto ven la misma lista, en cada dispositivo:
 
 | Paso | Completado cuando | Abre |
 | --- | --- | --- |
-| **Crea tu primer monitor** | El proyecto tiene un monitor. | El formulario **Crear monitor**, o la lista **Monitores** para quien no puede crear monitores. |
-| **Publica una página de estado** | El proyecto tiene una página de estado. | **Páginas de estado** |
-| **Invita a tu equipo** | Alguien además de ti está en el proyecto, o invitado a él. | **Usuarios** |
-| **Configura una política de guardia** | El proyecto tiene una política de guardia. | **Guardia** |
+| **Importa desde tu herramienta actual** | Termina una importación desde otra herramienta. | **Importar desde otra herramienta** |
+| **Crea tu primer monitor** | Llega su primera comprobación. | El formulario **Crear monitor**, o la lista **Monitores** para quien no puede crear monitores. |
+| **Conecta un servidor o un clúster** | Llegan sus primeras métricas. | **Hosts** |
+| **Envía tus primeros logs, métricas o trazas** | Llegan los primeros logs, métricas, trazas, excepciones o perfiles del proyecto. | **Registros** |
+| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia ejecuta una política que puede llegar a alguien. | **Guardia** |
+| **Publica una página de estado** | Una página de estado muestra un monitor. | **Páginas de estado** |
+| **Invita a tu equipo** | Alguien acepta tu invitación. | **Usuarios** |
+
+El paso que toca primero está marcado con **Siguiente paso**. En el plan Free de OneUptime Cloud, que incluye una persona, **Invita a tu equipo** indica que necesita el plan Growth y abre **Facturación**. En un servidor autoalojado que aún no puede enviar correos, los administradores del servidor ven primero **Este servidor aún no puede enviar correos electrónicos**, que abre el panel de administración.
+
+Cuando creas un monitor, una página de estado o una política de guardia desde un paso, la página a la que llegas dice qué sigue, con **Volver a la configuración**.
 
 Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo.
 
-```mermaid title="Cuándo desaparece la lista de bienvenida"
+```mermaid title="Cuándo aparece la lista de bienvenida"
 flowchart TB
-    open["Se abre Inicio"] --> dismissed{"¿Descartada en<br/>este navegador?"}
-    dismissed -->|"No"| done{"¿Los cuatro pasos<br/>completados?"}
-    dismissed -->|"Sí"| hidden["Sin lista"]
-    done -->|"Sí"| hidden
+    open["Se abre Inicio"] --> answered{"¿Objetivos elegidos<br/>u omitidos?"}
+    answered -->|"No"| question["¿Qué quieres<br/>hacer primero?"]
+    answered -->|"Sí"| hidden{"¿La ocultaste<br/>tú?"}
+    hidden -->|"Sí"| line["Una línea para<br/>volver a mostrarla"]
+    hidden -->|"No"| done{"¿Todos los pasos<br/>hechos?"}
+    done -->|"Sí"| gone["Sin lista"]
     done -->|"No"| shown["La lista, con<br/>los pasos pendientes"]
 ```
 
-La lista desaparece cuando los cuatro pasos están completados. Para ocultarla antes, haz clic en **Descartar**. El descarte se recuerda en este navegador, para este proyecto; todo lo que abren los pasos sigue en el menú **Productos**.
+La lista desaparece para todos cuando todos los pasos están hechos. Para ocultarla antes, haz clic en **Ocultar**: se oculta solo para ti, en cada dispositivo, y queda una línea con **Mostrarlo** y **Cómo funciona OneUptime**. Las personas invitadas al proyecto como miembros no ven la lista.
 
 ### Requiere atención
 

@@ -32,7 +32,7 @@ Geben Sie einen **Projektname** ein, etwa den Namen Ihres Unternehmens. Bei OneU
 
 ### Das Projekt anlegen
 
-Klicken Sie auf **Projekt erstellen**. Die Startseite Ihres Projekts öffnet sich, oben mit der Checkliste **Willkommen bei OneUptime 👋**.
+Klicken Sie auf **Projekt erstellen**. Die Startseite Ihres Projekts öffnet sich, oben mit der Checkliste **Willkommen bei OneUptime 👋**. Zuerst fragt sie **Was möchten Sie zuerst tun?**: Haken Sie **Wissen, wenn meine Website oder API ausfällt**, **Die richtige Person alarmieren, wenn etwas ausfällt** und **Meine Kunden über eine Statusseite informieren** an, und klicken Sie auf **Weiter**.
 :::
 
 ## Ihre Website überwachen

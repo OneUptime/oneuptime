@@ -270,6 +270,40 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/EpisodeMemberDeletePostgres.test.ts --forceExit
 
+      # Deleting the resolved incidents and alerts a project no longer keeps
+      # (issue #6903): the real statements, hard deletes and cascades - what
+      # goes, what stays (not resolved, resolved lately, a completed
+      # postmortem, an episode still open, an alert linked to an incident)
+      # and the episodes left behind.
+      - name: Test deleting resolved incidents and alerts on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_RESOLVED_RECORD_RETENTION_TESTS: "true"
+          RESOLVED_RECORD_RETENTION_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          RESOLVED_RECORD_RETENTION_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          RESOLVED_RECORD_RETENTION_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Utils/Retention/ResolvedRecordRetentionPostgres.test.ts
+          --forceExit
+
+      # A project's activation milestones (#6894): each kept once, even by
+      # servers racing for it, and the backfill fills what the data shows
+      # without sending anything or overwriting a milestone kept live.
+      - name: Test project activation milestones on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_PROJECT_MILESTONE_TESTS: "true"
+          PROJECT_MILESTONE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          PROJECT_MILESTONE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          PROJECT_MILESTONE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/ProjectMilestonePostgres.test.ts
+          --forceExit
+
       # A person adds only an incident or alert they can see to an episode
       # they can see, and neither side's feed entry - nor the episode's Slack
       # / Teams post - names the other side when it is private.
@@ -2532,25 +2566,6 @@ jobs:
         run: >-
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Utils/OnCall/OnCallStuckNotificationsPostgres.test.ts --forceExit
-
-      # Clones the migrated ProjectMilestone and the tables its sources read
-      # into an isolated schema (#6830). A milestone is kept once however
-      # many servers race for it; a project that does not exist keeps
-      # nothing and a deleted one's go with it; the second-member count
-      # counts people; and the backfill reads every source as the live hooks
-      # count, marks its rows backfilled and never overwrites a milestone
-      # kept live.
-      - name: Test project activation milestones on migrated Postgres
-        if: matrix.shard == 2
-        working-directory: packages/Common
-        env:
-          RUN_POSTGRES_PROJECT_MILESTONE_TESTS: "true"
-          PROJECT_MILESTONE_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
-          PROJECT_MILESTONE_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
-          PROJECT_MILESTONE_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
-        run: >-
-          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
-          Tests/Server/Services/ProjectMilestonePostgres.test.ts --forceExit
 
       # Clones the migrated PacketCapture, File and Probe tables into an
       # isolated schema and runs packet capture's hand-written SQL: a probe

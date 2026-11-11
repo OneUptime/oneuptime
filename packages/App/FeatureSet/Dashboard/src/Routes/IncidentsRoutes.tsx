@@ -103,6 +103,7 @@ import IncidentSettingsPublicNoteApproval from "../Pages/Incidents/Settings/Inci
 import IncidentSettingsEpisodeMembership from "../Pages/Incidents/Settings/IncidentEpisodeMembershipSettings";
 
 import IncidentSettingsNumbering from "../Pages/Incidents/Settings/IncidentNumbering";
+import IncidentSettingsRetention from "../Pages/Incidents/Settings/IncidentRetentionSettings";
 import MovedNumberPrefixPageRedirect from "../Components/NumberPrefix/MovedNumberPrefixPageRedirect";
 import {
   MORE_SETTINGS_PATH,
@@ -810,6 +811,18 @@ const IncidentsRoutes: FunctionComponent<ComponentProps> = (
               {...props}
               pageRoute={
                 RouteMap[PageMap.INCIDENTS_SETTINGS_NUMBERING] as Route
+              }
+            />
+          }
+        />
+
+        <PageRoute
+          path={IncidentsRoutePath[PageMap.INCIDENTS_SETTINGS_RETENTION] || ""}
+          element={
+            <IncidentSettingsRetention
+              {...props}
+              pageRoute={
+                RouteMap[PageMap.INCIDENTS_SETTINGS_RETENTION] as Route
               }
             />
           }
