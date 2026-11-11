@@ -321,6 +321,63 @@ describe("an alert's lineage, as an investigation is told it", () => {
     );
   });
 
+  test("an alert it caused on a table past the few the context tells is still placed, with its way", async () => {
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.orders" });
+
+    // Six tables a step down, and one two steps down through the first.
+    for (let index: number = 1; index <= 6; index++) {
+      table(graph, t(10 + index), { assetKey: `a.d${index}` });
+      feeds(graph, t(0), t(10 + index));
+    }
+
+    table(graph, t(20), { assetKey: "z.far" });
+    feeds(graph, t(11), t(20));
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { table: 0 });
+    alertOn(alerts, a(1), { table: 20 }, a(0));
+
+    const lines: Array<string> = await linesFor(graph, alerts, a(0));
+
+    // The context tells the five nearest; the rest are counted.
+    expect(lines).toContain(
+      "  Nearest first: a.d1 (1 step down, fresh), a.d2 (1 step down, fresh), a.d3 (1 step down, fresh), a.d4 (1 step down, fresh), a.d5 (1 step down, fresh) and 2 more.",
+    );
+    // z.far is not one of them, and the alert on it is still placed, the way to it too.
+    expect(lines[lines.length - 1]).toBe(
+      "- 1 alert was raised as a consequence of this one, on: z.far, 2 steps down, through a.d1.",
+    );
+  });
+
+  test("a cause on a pipeline loading many tables names a few of them, problems first", async () => {
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.orders" });
+    // Its last run went through: an alert on how long it took, say.
+    pipeline(graph, p(1), { jobName: "fivetran_all" });
+
+    for (let index: number = 1; index <= 8; index++) {
+      const name: string = `raw.t${index}`;
+
+      if (index === 8) {
+        lateTable(graph, t(index), { assetKey: name });
+      } else {
+        table(graph, t(index), { assetKey: name });
+      }
+
+      feeds(graph, t(index), t(0));
+      writes(graph, p(1), t(index));
+    }
+
+    const alerts: MemoryAlerts = newAlerts();
+    alertOn(alerts, a(0), { pipeline: 1 });
+    alertOn(alerts, a(1), { table: 0 }, a(0));
+
+    expect(await linesFor(graph, alerts, a(1))).toContain(
+      "- The alert this one is a consequence of is on the pipeline fivetran_all, which loads raw.t8, raw.t1, raw.t2, raw.t3, raw.t4 and 3 more tables: start there.",
+    );
+  });
+
   test("an alert on a pipeline: the tables it reads, and the tables it writes", async () => {
     const graph: MemoryGraph = warehouse();
     const alerts: MemoryAlerts = newAlerts();
@@ -418,7 +475,14 @@ describe("an investigation's context section", () => {
       }): Promise<DataPipeline> => {
         const row: DataPipeline = new DataPipeline();
         row._id = findBy.query._id.toString();
-        row.jobName = graph.pipelines.get(findBy.query._id.toString())?.jobName;
+
+        const jobName: string | undefined = graph.pipelines.get(
+          findBy.query._id.toString(),
+        )?.jobName;
+
+        if (jobName) {
+          row.jobName = jobName;
+        }
 
         return row;
       }) as never);

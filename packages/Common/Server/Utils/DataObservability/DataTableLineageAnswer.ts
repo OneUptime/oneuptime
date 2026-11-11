@@ -87,8 +87,36 @@ export const DATA_LINEAGE_ANSWER_LIMITS_FOR_SEVERAL: DataLineageAnswerLimits = {
   dashboards: 5,
 };
 
+/*
+ * What an investigation of a data alert is told in its context: every
+ * problem the answer about one table tells, and a few of the rest. It
+ * looks for what went wrong, and reads more with get_data_table_lineage
+ * when it needs to.
+ */
+export const DATA_LINEAGE_ANSWER_LIMITS_FOR_INVESTIGATION: DataLineageAnswerLimits =
+  {
+    problems: 10,
+    others: 5,
+    loaders: 5,
+    dashboards: 5,
+  };
+
 // The longest pipeline error told: the pipeline's page has all of it.
 export const MAX_DATA_LINEAGE_ANSWER_ERROR_LENGTH: number = 200;
+
+/*
+ * The most failed pipelines told of one table, with their errors: the
+ * pipelines that build it first, then those that load it. The rest are
+ * counted - its own answer (get_data_table_freshness) tells each.
+ */
+export const MAX_DATA_LINEAGE_ANSWER_FAILURES_TOLD: number = 2;
+
+/*
+ * The most tables named for one loader or one dashboard: a sync that loads
+ * a whole schema writes dozens. Those with a problem first, then the
+ * nearest; the rest are counted.
+ */
+export const MAX_DATA_LINEAGE_ANSWER_TABLES_NAMED: number = 5;
 
 // A pipeline that loads tables from outside what OneUptime watches.
 export interface DataLineageAnswerLoader {
@@ -99,8 +127,10 @@ export interface DataLineageAnswerLoader {
   // ISO time.
   lastRunStartedAt: string | null;
   lastErrorMessage: string | null;
-  // The tables it loads, of those told: schema.table keys.
+  // The tables it loads that the drawing holds, those with a problem first, then the nearest: schema.table keys.
   tables: Array<string>;
+  // The tables it loads past the most named.
+  untoldTableCount: number;
 }
 
 export interface DataLineageAnswerTable {
@@ -126,6 +156,8 @@ export interface DataLineageAnswerTable {
     lastRunStartedAt: string | null;
     lastErrorMessage: string | null;
   }>;
+  // Failed pipelines into it past the most told (MAX_DATA_LINEAGE_ANSWER_FAILURES_TOLD).
+  untoldFailureCount: number;
   // Dropped, late, with open alerts, or a pipeline into it failed.
   hasProblem: boolean;
 }
@@ -155,8 +187,10 @@ export interface DataLineageAnswerDashboard {
   tool: string | null;
   // Whether it reads the table the answer is about itself.
   readsTheTable: boolean;
-  // The other tables it reads, of those built from it: schema.table keys.
+  // The other tables it reads, of those built from it, those with a problem first, then the nearest: schema.table keys.
   tables: Array<string>;
+  // The other tables it reads past the most named.
+  untoldTableCount: number;
 }
 
 export interface DataTableLineageAnswer {
@@ -205,6 +239,17 @@ const SENTENCE_END: RegExp = /[.!?…]$/;
 // A sentence's full stop, unless it ends with one: a pipeline's error often does.
 function withFullStop(text: string): string {
   return SENTENCE_END.test(text) ? text : `${text}.`;
+}
+
+// A pipeline's error inside a sentence: its own full stops off, so "; " can follow it.
+function withoutFullStop(text: string): string {
+  let end: number = text.length;
+
+  while (end > 0 && text[end - 1] === ".") {
+    end--;
+  }
+
+  return text.slice(0, end);
 }
 
 // "5 hours ago", from an ISO time; "" when there is none.
@@ -300,23 +345,20 @@ function findNearer(
 }
 
 /*
- * The answer from a drawing (DataTableLineage), told as DataTableLineageAnswer
- * holds it. Pure: the drawing holds everything it tells.
+ * Every table a drawing holds, as an answer tells it - how many steps from
+ * what the drawing is about and the tables between, how it is now, and
+ * whether something is wrong with it - by card id: the drawing's own table
+ * too, when it is about a table. Pure: the drawing holds everything.
  */
-export function buildDataTableLineageAnswer(
+export function readLineageAnswerTables(
   lineage: DataTableLineage,
-  limits: DataLineageAnswerLimits = DATA_LINEAGE_ANSWER_LIMITS,
-): DataTableLineageAnswer {
+): Map<string, DataLineageAnswerTable> {
   const byId: Map<string, DataTableLineageNode> = new Map();
 
   for (const node of lineage.nodes) {
     byId.set(node.id, node);
   }
 
-  const focus: DataTableLineageNode | undefined = byId.get(lineage.focusNodeId);
-  const isPipelineFocus: boolean =
-    focus?.kind === DataLineageNodeKind.Pipeline ||
-    isLineagePipelineNodeId(lineage.focusNodeId);
   // The arrows into each card.
   const into: Map<string, Array<DataTableLineageEdge>> = new Map();
 
@@ -400,6 +442,16 @@ export function buildDataTableLineageAnswer(
       node.freshness || DataAssetFreshness.Unknown;
     const isDropped: boolean = node.isDropped === true;
     const openAlertCount: number = node.openAlertCount || 0;
+    // The pipelines that build it first, then those that load it: the rest counted.
+    const toldPipelines: Array<string> = failedPipelines.slice(
+      0,
+      MAX_DATA_LINEAGE_ANSWER_FAILURES_TOLD,
+    );
+    const toldLoaders: DataLineageAnswerTable["failedLoaders"] =
+      failedLoaders.slice(
+        0,
+        MAX_DATA_LINEAGE_ANSWER_FAILURES_TOLD - toldPipelines.length,
+      );
 
     return {
       dataAssetId: node.dataAssetId || "",
@@ -411,8 +463,13 @@ export function buildDataTableLineageAnswer(
       lateBySeconds: node.lateBySeconds || 0,
       isDropped,
       openAlertCount,
-      failedPipelines,
-      failedLoaders,
+      failedPipelines: toldPipelines,
+      failedLoaders: toldLoaders,
+      untoldFailureCount:
+        failedPipelines.length +
+        failedLoaders.length -
+        toldPipelines.length -
+        toldLoaders.length,
       hasProblem:
         isDropped ||
         freshness === DataAssetFreshness.Late ||
@@ -422,10 +479,92 @@ export function buildDataTableLineageAnswer(
     };
   };
 
+  const tables: Map<string, DataLineageAnswerTable> = new Map();
+
+  for (const node of lineage.nodes) {
+    if (node.kind === DataLineageNodeKind.Table) {
+      tables.set(node.id, toTable(node));
+    }
+  }
+
+  return tables;
+}
+
+// Nearest first, then by name: the order each side tells its tables in.
+function compareNearest(
+  a: DataLineageAnswerTable,
+  b: DataLineageAnswerTable,
+): number {
+  return (
+    a.steps - b.steps ||
+    compareText(a.table, b.table) ||
+    compareText(a.dataAssetId, b.dataAssetId)
+  );
+}
+
+/*
+ * The tables of a loader or a dashboard, named: those with a problem
+ * first, then the nearest, at most the most named - the rest counted.
+ */
+function nameTables(
+  nodeIds: Array<string>,
+  tables: Map<string, DataLineageAnswerTable>,
+): { tables: Array<string>; untoldTableCount: number } {
+  const named: Array<DataLineageAnswerTable> = Array.from(new Set(nodeIds))
+    .map((nodeId: string): DataLineageAnswerTable | undefined => {
+      return tables.get(nodeId);
+    })
+    .filter(
+      (
+        table: DataLineageAnswerTable | undefined,
+      ): table is DataLineageAnswerTable => {
+        return Boolean(table);
+      },
+    )
+    .sort((a: DataLineageAnswerTable, b: DataLineageAnswerTable): number => {
+      if (a.hasProblem !== b.hasProblem) {
+        return a.hasProblem ? -1 : 1;
+      }
+
+      return compareNearest(a, b);
+    });
+
+  return {
+    tables: named
+      .slice(0, MAX_DATA_LINEAGE_ANSWER_TABLES_NAMED)
+      .map((table: DataLineageAnswerTable): string => {
+        return table.table;
+      }),
+    untoldTableCount: Math.max(
+      0,
+      named.length - MAX_DATA_LINEAGE_ANSWER_TABLES_NAMED,
+    ),
+  };
+}
+
+/*
+ * The answer from a drawing (DataTableLineage), told as DataTableLineageAnswer
+ * holds it. Pure: the drawing holds everything it tells.
+ */
+export function buildDataTableLineageAnswer(
+  lineage: DataTableLineage,
+  limits: DataLineageAnswerLimits = DATA_LINEAGE_ANSWER_LIMITS,
+): DataTableLineageAnswer {
+  const focus: DataTableLineageNode | undefined = lineage.nodes.find(
+    (node: DataTableLineageNode): boolean => {
+      return node.id === lineage.focusNodeId;
+    },
+  );
+  const isPipelineFocus: boolean =
+    focus?.kind === DataLineageNodeKind.Pipeline ||
+    isLineagePipelineNodeId(lineage.focusNodeId);
+  const tables: Map<string, DataLineageAnswerTable> =
+    readLineageAnswerTables(lineage);
+
   const sideOf: (side: DataLineageSide) => DataLineageAnswerSide = (
     side: DataLineageSide,
   ): DataLineageAnswerSide => {
-    const tables: Array<DataLineageAnswerTable> = lineage.nodes
+    const ofSide: Array<DataLineageAnswerTable> = lineage.nodes
       .filter((node: DataTableLineageNode): boolean => {
         return (
           node.kind === DataLineageNodeKind.Table &&
@@ -433,20 +572,16 @@ export function buildDataTableLineageAnswer(
           node.id !== lineage.focusNodeId
         );
       })
-      .map(toTable)
-      .sort((a: DataLineageAnswerTable, b: DataLineageAnswerTable): number => {
-        return (
-          a.steps - b.steps ||
-          compareText(a.table, b.table) ||
-          compareText(a.dataAssetId, b.dataAssetId)
-        );
-      });
-    const problems: Array<DataLineageAnswerTable> = tables.filter(
+      .map((node: DataTableLineageNode): DataLineageAnswerTable => {
+        return tables.get(node.id)!;
+      })
+      .sort(compareNearest);
+    const problems: Array<DataLineageAnswerTable> = ofSide.filter(
       (table: DataLineageAnswerTable): boolean => {
         return table.hasProblem;
       },
     );
-    const others: Array<DataLineageAnswerTable> = tables.filter(
+    const others: Array<DataLineageAnswerTable> = ofSide.filter(
       (table: DataLineageAnswerTable): boolean => {
         return !table.hasProblem;
       },
@@ -465,7 +600,7 @@ export function buildDataTableLineageAnswer(
     }
 
     return {
-      tableCount: tables.length,
+      tableCount: ofSide.length,
       problemCount: problems.length,
       problems: problems.slice(0, limits.problems),
       others: others.slice(0, limits.others),
@@ -493,17 +628,19 @@ export function buildDataTableLineageAnswer(
           node.lastErrorMessage,
           MAX_DATA_LINEAGE_ANSWER_ERROR_LENGTH,
         ),
-        tables: lineage.edges
-          .filter((edge: DataTableLineageEdge): boolean => {
-            return (
-              edge.kind === DataLineageEdgeKind.Writes &&
-              edge.source === node.id
-            );
-          })
-          .map((edge: DataTableLineageEdge): string => {
-            return byId.get(edge.target)?.name || edge.target;
-          })
-          .sort(compareText),
+        ...nameTables(
+          lineage.edges
+            .filter((edge: DataTableLineageEdge): boolean => {
+              return (
+                edge.kind === DataLineageEdgeKind.Writes &&
+                edge.source === node.id
+              );
+            })
+            .map((edge: DataTableLineageEdge): string => {
+              return edge.target;
+            }),
+          tables,
+        ),
       };
     })
     .sort((a: DataLineageAnswerLoader, b: DataLineageAnswerLoader): number => {
@@ -525,26 +662,26 @@ export function buildDataTableLineageAnswer(
       return node.kind === DataLineageNodeKind.Dashboard;
     })
     .map((node: DataTableLineageNode): DataLineageAnswerDashboard => {
-      const reads: Array<DataTableLineageEdge> = (
-        into.get(node.id) || []
-      ).filter((edge: DataTableLineageEdge): boolean => {
-        return edge.kind === DataLineageEdgeKind.Reads;
-      });
+      const reads: Array<string> = lineage.edges
+        .filter((edge: DataTableLineageEdge): boolean => {
+          return (
+            edge.kind === DataLineageEdgeKind.Reads && edge.target === node.id
+          );
+        })
+        .map((edge: DataTableLineageEdge): string => {
+          return edge.source;
+        });
 
       return {
         name: node.name,
         tool: node.tool || null,
-        readsTheTable: reads.some((edge: DataTableLineageEdge): boolean => {
-          return edge.source === lineage.focusNodeId;
-        }),
-        tables: reads
-          .filter((edge: DataTableLineageEdge): boolean => {
-            return edge.source !== lineage.focusNodeId;
-          })
-          .map((edge: DataTableLineageEdge): string => {
-            return byId.get(edge.source)?.name || edge.source;
-          })
-          .sort(compareText),
+        readsTheTable: reads.includes(lineage.focusNodeId),
+        ...nameTables(
+          reads.filter((source: string): boolean => {
+            return source !== lineage.focusNodeId;
+          }),
+          tables,
+        ),
       };
     })
     .sort(
@@ -562,7 +699,7 @@ export function buildDataTableLineageAnswer(
     name: focus?.name || "",
     database: isPipelineFocus ? null : focus?.database || null,
     depth: lineage.depth,
-    self: focus && !isPipelineFocus ? toTable(focus) : null,
+    self: (focus && !isPipelineFocus && tables.get(focus.id)) || null,
     upstream: sideOf(DataLineageSide.Upstream),
     downstream: sideOf(DataLineageSide.Downstream),
     loaders: loaders.slice(0, limits.loaders),
@@ -609,8 +746,18 @@ export function describeLineageTableState(
   }
 
   for (const loader of table.failedLoaders) {
+    const error: string = withoutFullStop(loader.lastErrorMessage || "");
+
     parts.push(
-      `the pipeline ${loader.name} that loads it failed its last run${agoOf(loader.lastRunStartedAt, now)}${loader.lastErrorMessage ? `: ${loader.lastErrorMessage}` : ""}`,
+      `the pipeline ${loader.name} that loads it failed its last run${agoOf(loader.lastRunStartedAt, now)}${error ? `: ${error}` : ""}`,
+    );
+  }
+
+  if (table.untoldFailureCount > 0) {
+    parts.push(
+      table.untoldFailureCount === 1
+        ? "1 more pipeline into it failed its last run"
+        : `${table.untoldFailureCount} more pipelines into it failed their last run`,
     );
   }
 
@@ -655,6 +802,13 @@ function nameOf(
   const other: string | null = otherDatabaseOf(table, database);
 
   return `${table.table}${other ? ` (${other})` : ""}`;
+}
+
+// "raw.a, raw.b and 3 more tables": a loader's or a dashboard's tables, past the most named counted.
+function listNamedTables(tables: Array<string>, untold: number): string {
+  return `${tables.join(", ")}${
+    untold > 0 ? ` and ${plural(untold, "more table", "more tables")}` : ""
+  }`;
 }
 
 function stepsOf(table: DataLineageAnswerTable, isUpstream: boolean): string {
@@ -759,7 +913,9 @@ export function describeDataTableLineageSides(
       `Loaded from outside what OneUptime watches by: ${answer.loaders
         .map((loader: DataLineageAnswerLoader): string => {
           return `the pipeline ${loader.name}${
-            loader.tables.length > 0 ? ` into ${loader.tables.join(", ")}` : ""
+            loader.tables.length > 0
+              ? ` into ${listNamedTables(loader.tables, loader.untoldTableCount)}`
+              : ""
           } (${describeLoaderRun(loader, now)})`;
         })
         .join(
@@ -788,7 +944,9 @@ export function describeDataTableLineageSides(
 
           return `${dashboard.name} (${[
             dashboard.tool,
-            reads.length > 0 ? `reads ${reads.join(", ")}` : null,
+            reads.length > 0
+              ? `reads ${listNamedTables(reads, dashboard.untoldTableCount)}`
+              : null,
           ]
             .filter(Boolean)
             .join(", ")})`;
@@ -902,7 +1060,11 @@ export function describeDataAlertLineage(
     return [];
   }
 
-  const answer: DataTableLineageAnswer = buildDataTableLineageAnswer(lineage);
+  // Problems first, and a few of the rest: it reads more with get_data_table_lineage.
+  const answer: DataTableLineageAnswer = buildDataTableLineageAnswer(
+    lineage,
+    DATA_LINEAGE_ANSWER_LIMITS_FOR_INVESTIGATION,
+  );
   const isPipeline: boolean = answer.dataAssetId === null;
   const lines: Array<string> = [
     `- ${isPipeline ? "The pipeline's lineage (the tables it reads, and the tables it writes and what is built from them)" : "Its lineage (the tables it is built from, and the tables built from it)"}, ${plural(answer.depth, "step", "steps")} each way:`,
@@ -918,20 +1080,9 @@ export function describeDataAlertLineage(
     byId.set(node.id, node);
   }
 
-  const tableAt: (nodeId: string) => DataLineageAnswerTable | undefined = (
-    nodeId: string,
-  ): DataLineageAnswerTable | undefined => {
-    const id: string | undefined = byId.get(nodeId)?.dataAssetId;
-
-    return [
-      ...answer.upstream.problems,
-      ...answer.upstream.others,
-      ...answer.downstream.problems,
-      ...answer.downstream.others,
-    ].find((table: DataLineageAnswerTable): boolean => {
-      return Boolean(id) && table.dataAssetId === id;
-    });
-  };
+  // Every table drawn, told or not: a cause or a consequence is placed wherever it is.
+  const tables: Map<string, DataLineageAnswerTable> =
+    readLineageAnswerTables(lineage);
   const placeOf: (nodeId: string) => string | null = (
     nodeId: string,
   ): string | null => {
@@ -944,21 +1095,29 @@ export function describeDataAlertLineage(
     const isUpstream: boolean = node.side === DataLineageSide.Upstream;
 
     if (node.kind === DataLineageNodeKind.Pipeline) {
-      const loads: Array<string> = lineage.edges
-        .filter((edge: DataTableLineageEdge): boolean => {
-          return (
-            edge.kind === DataLineageEdgeKind.Writes && edge.source === node.id
-          );
-        })
-        .map((edge: DataTableLineageEdge): string => {
-          return byId.get(edge.target)?.name || edge.target;
-        })
-        .sort(compareText);
+      const loads: { tables: Array<string>; untoldTableCount: number } =
+        nameTables(
+          lineage.edges
+            .filter((edge: DataTableLineageEdge): boolean => {
+              return (
+                edge.kind === DataLineageEdgeKind.Writes &&
+                edge.source === node.id
+              );
+            })
+            .map((edge: DataTableLineageEdge): string => {
+              return edge.target;
+            }),
+          tables,
+        );
 
-      return `the pipeline ${node.name}${loads.length > 0 ? `, which loads ${loads.join(", ")}` : ""}`;
+      return `the pipeline ${node.name}${
+        loads.tables.length > 0
+          ? `, which loads ${listNamedTables(loads.tables, loads.untoldTableCount)}`
+          : ""
+      }`;
     }
 
-    const table: DataLineageAnswerTable | undefined = tableAt(nodeId);
+    const table: DataLineageAnswerTable | undefined = tables.get(nodeId);
 
     if (!table) {
       return `${node.name}, ${plural(Math.abs(node.depth), "step", "steps")} ${isUpstream ? "up" : "down"}`;

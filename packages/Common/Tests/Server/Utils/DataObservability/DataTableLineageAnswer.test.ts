@@ -196,6 +196,7 @@ describe("a table's lineage, told", () => {
       openAlertCount: 1,
       failedPipelines: [],
       failedLoaders: [],
+      untoldFailureCount: 0,
       hasProblem: true,
     });
     expect(answer.upstream).toMatchObject({
@@ -224,6 +225,7 @@ describe("a table's lineage, told", () => {
             lastErrorMessage: "Connection refused by host",
           },
         ],
+        untoldFailureCount: 0,
         hasProblem: true,
       },
     ]);
@@ -239,6 +241,7 @@ describe("a table's lineage, told", () => {
         lastRunStartedAt: new Date(NOW.getTime() - 5 * HOUR).toISOString(),
         lastErrorMessage: "Connection refused by host",
         tables: ["raw.orders"],
+        untoldTableCount: 0,
       },
     ]);
     expect(namesOf(answer.downstream.problems)).toEqual(["marts.kpis"]);
@@ -249,12 +252,19 @@ describe("a table's lineage, told", () => {
     });
     expect(namesOf(answer.downstream.others)).toEqual(["marts.revenue"]);
     expect(answer.dashboards).toEqual([
-      { name: "Finance", tool: "Tableau", readsTheTable: true, tables: [] },
+      {
+        name: "Finance",
+        tool: "Tableau",
+        readsTheTable: true,
+        tables: [],
+        untoldTableCount: 0,
+      },
       {
         name: "Revenue",
         tool: "Looker",
         readsTheTable: false,
         tables: ["marts.revenue"],
+        untoldTableCount: 0,
       },
     ]);
   });
@@ -649,6 +659,103 @@ describe("how much one answer tells", () => {
     );
   });
 
+  test("a loader of many tables names five, those with a problem first, then the nearest, and counts the rest", async () => {
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.orders" });
+    pipeline(graph, p(1), { jobName: "sync_all" });
+
+    for (let index: number = 1; index <= 7; index++) {
+      const name: string = `raw.t0${index}`;
+
+      if (index === 7) {
+        lateTable(graph, t(index), { assetKey: name });
+      } else {
+        table(graph, t(index), { assetKey: name });
+      }
+
+      feeds(graph, t(index), t(0));
+      writes(graph, p(1), t(index));
+    }
+
+    // Two steps up, and first by name: told after the nearer ones.
+    table(graph, t(20), { assetKey: "staging.orders" });
+    table(graph, t(21), { assetKey: "raw.a_deep" });
+    feeds(graph, t(20), t(0));
+    feeds(graph, t(21), t(20));
+    writes(graph, p(1), t(21));
+
+    const answer: DataTableLineageAnswer = await answerOf(graph, t(0));
+
+    expect(answer.loaders).toHaveLength(1);
+    expect(answer.loaders[0]!.tables).toEqual([
+      "raw.t07",
+      "raw.t01",
+      "raw.t02",
+      "raw.t03",
+      "raw.t04",
+    ]);
+    expect(answer.loaders[0]!.untoldTableCount).toBe(3);
+    expect(formatDataTableLineageAnswer(answer, NOW)).toContain(
+      "Loaded from outside what OneUptime watches by: the pipeline sync_all into raw.t07, raw.t01, raw.t02, raw.t03, raw.t04 and 3 more tables (last run complete 1 hour ago).",
+    );
+
+    // One past the five: one more table.
+    expect(
+      formatDataTableLineageAnswer(
+        {
+          ...answer,
+          loaders: [{ ...answer.loaders[0]!, untoldTableCount: 1 }],
+        },
+        NOW,
+      ),
+    ).toContain("raw.t04 and 1 more table (last run complete 1 hour ago).");
+  });
+
+  test("a dashboard reading many tables names five, those with a problem first, and counts the rest", async () => {
+    const graph: MemoryGraph = newGraph();
+    table(graph, t(0), { assetKey: "public.orders" });
+
+    for (let index: number = 1; index <= 7; index++) {
+      const name: string = `marts.m${index}`;
+
+      if (index === 7) {
+        lateTable(graph, t(10 + index), { assetKey: name });
+      } else {
+        table(graph, t(10 + index), { assetKey: name });
+      }
+
+      feeds(graph, t(0), t(10 + index));
+    }
+
+    graph.dashboards.push({
+      dataDashboardId: d(1),
+      name: "Board",
+      tool: "Looker",
+      url: null,
+      dataAssetIds: [
+        t(0),
+        ...[1, 2, 3, 4, 5, 6, 7].map((index: number): string => {
+          return t(10 + index);
+        }),
+      ],
+    });
+
+    const answer: DataTableLineageAnswer = await answerOf(graph, t(0));
+
+    expect(answer.dashboards).toEqual([
+      {
+        name: "Board",
+        tool: "Looker",
+        readsTheTable: true,
+        tables: ["marts.m7", "marts.m1", "marts.m2", "marts.m3", "marts.m4"],
+        untoldTableCount: 2,
+      },
+    ]);
+    expect(formatDataTableLineageAnswer(answer, NOW)).toContain(
+      "Dashboards built on it or on tables built from it: Board (Looker, reads it, marts.m7, marts.m1, marts.m2, marts.m3, marts.m4 and 2 more tables).",
+    );
+  });
+
   test("loaders past the most told are counted", async () => {
     const graph: MemoryGraph = newGraph();
     table(graph, t(0), { assetKey: "public.orders" });
@@ -945,6 +1052,7 @@ describe("a table's state, in a few words", () => {
     openAlertCount: 0,
     failedPipelines: [],
     failedLoaders: [],
+    untoldFailureCount: 0,
     hasProblem: false,
   };
 
@@ -974,6 +1082,37 @@ describe("a table's state, in a few words", () => {
       {
         failedLoaders: [
           { name: "sync", lastRunStartedAt: null, lastErrorMessage: null },
+        ],
+      },
+      "fresh; the pipeline sync that loads it failed its last run",
+    ],
+    // The failures past the most told are counted, one or many.
+    [
+      { failedPipelines: ["a"], untoldFailureCount: 1 },
+      "fresh; the pipeline a that builds it failed its last run; 1 more pipeline into it failed its last run",
+    ],
+    [
+      { failedPipelines: ["a", "b"], untoldFailureCount: 4 },
+      "fresh; the pipeline a that builds it failed its last run; the pipeline b that builds it failed its last run; 4 more pipelines into it failed their last run",
+    ],
+    // An error's own full stop never ends the sentence early.
+    [
+      {
+        failedLoaders: [
+          {
+            name: "sync",
+            lastRunStartedAt: null,
+            lastErrorMessage: "Connection refused...",
+          },
+        ],
+        untoldFailureCount: 1,
+      },
+      "fresh; the pipeline sync that loads it failed its last run: Connection refused; 1 more pipeline into it failed its last run",
+    ],
+    [
+      {
+        failedLoaders: [
+          { name: "sync", lastRunStartedAt: null, lastErrorMessage: "..." },
         ],
       },
       "fresh; the pipeline sync that loads it failed its last run",

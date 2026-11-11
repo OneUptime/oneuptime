@@ -733,7 +733,15 @@ describe("WorkflowTools", () => {
         tables: [
           {
             dataAssetId: "asset-1",
+            dataPipelineId: null,
             name: "public.orders",
+            database: "Orders DB",
+            depth: 3,
+            // The route's structure of the lineage, which the words tell.
+            upstream: { tableCount: 2, problemCount: 1, problems: [] },
+            downstream: { tableCount: 1, problemCount: 0, problems: [] },
+            loaders: [],
+            dashboards: [],
             answer: ORDERS_LINEAGE,
           },
         ],
@@ -754,6 +762,7 @@ describe("WorkflowTools", () => {
           credential: API_KEY,
         }),
       );
+      // The lineage is the message, told once: each match only by what asks about it again.
       expect(result).toEqual({
         success: true,
         operation: "get_data_table_lineage",
@@ -764,11 +773,30 @@ describe("WorkflowTools", () => {
           {
             dataAssetId: "asset-1",
             name: "public.orders",
-            answer: ORDERS_LINEAGE,
+            database: "Orders DB",
           },
         ],
         message: ORDERS_LINEAGE,
       });
+    });
+
+    it("lists a match the API told without an ID, a name or a database with nulls, never undefined", async () => {
+      apiCallSpy.mockResolvedValueOnce({
+        depth: 3,
+        tables: [{ answer: ORDERS_LINEAGE }],
+      } as never);
+
+      const result: JSONObject = await handleWorkflowTool(
+        "get_data_table_lineage",
+        { table: "orders" },
+        API_KEY,
+      );
+
+      expect(result["matches"]).toBe(1);
+      expect(result["tables"]).toEqual([
+        { dataAssetId: null, name: null, database: null },
+      ]);
+      expect(result["message"]).toBe(ORDERS_LINEAGE);
     });
 
     it.each([
@@ -1411,6 +1439,8 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
                   {
                     dataAssetId: VALID_UUID,
                     name: "public.orders",
+                    database: "Orders DB",
+                    upstream: { tableCount: 1, problemCount: 1 },
                     answer: LINEAGE_ANSWER,
                   },
                 ],
@@ -1499,6 +1529,9 @@ describe("WorkflowTools against an API that answers over HTTP", () => {
     expect(result["success"]).toBe(true);
     expect(result["matches"]).toBe(1);
     expect(result["message"]).toBe(LINEAGE_ANSWER);
+    expect(result["tables"]).toEqual([
+      { dataAssetId: VALID_UUID, name: "public.orders", database: "Orders DB" },
+    ]);
 
     expect(received).toHaveLength(1);
     expect(received[0]!.method).toBe("POST");

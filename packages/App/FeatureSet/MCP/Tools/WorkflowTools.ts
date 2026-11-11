@@ -671,6 +671,11 @@ async function getDataTableFreshness(
  * Observability's own route (/api/data-observability/tables/lineage/answer),
  * read as the caller: one answer per table the name matches, each told in
  * lines an agent can quote - problems first.
+ *
+ * The lineage is the message. Each match is listed by its ID, name and
+ * database only, to ask about one of them again: the route's own structure
+ * of the lineage tells the same tables again, at twice the length, and an
+ * MCP client reads every byte of a result into its model's context.
  */
 async function getDataTableLineage(
   args: Record<string, unknown>,
@@ -685,11 +690,13 @@ async function getDataTableLineage(
     body: { table, depth } as JSONObject,
     credential,
   });
-  const tables: JSONArray =
-    ((response as JSONObject | null)?.["tables"] as JSONArray | undefined) ||
-    [];
-  const answers: Array<string> = tables.map((row: unknown): string => {
-    return String((row as JSONObject)["answer"] || "");
+  const tables: Array<JSONObject> = (
+    ((response as JSONObject | null)?.["tables"] as JSONArray | undefined) || []
+  ).map((row: unknown): JSONObject => {
+    return (row as JSONObject | null) || {};
+  });
+  const answers: Array<string> = tables.map((row: JSONObject): string => {
+    return String(row["answer"] || "");
   });
 
   return {
@@ -698,7 +705,13 @@ async function getDataTableLineage(
     table,
     depth,
     matches: tables.length,
-    tables,
+    tables: tables.map((row: JSONObject): JSONObject => {
+      return {
+        dataAssetId: (row["dataAssetId"] as string | undefined) || null,
+        name: (row["name"] as string | undefined) || null,
+        database: (row["database"] as string | undefined) || null,
+      };
+    }),
     message:
       tables.length === 0
         ? `No table Data Observability watches is called "${table}".`
