@@ -61,6 +61,10 @@ import GreenlockUtil from "../../../Server/Utils/Greenlock/Greenlock";
 import AcmeCertificateService from "../../../Server/Services/AcmeCertificateService";
 import QueryHelper from "../../../Server/Types/Database/QueryHelper";
 import Domain from "../../../Server/Types/Domain";
+import DnsLookup, {
+  DnsLookupAnswer,
+  DnsLookupFailure,
+} from "../../../Server/Utils/CustomDomain/DnsLookup";
 import GlobalCache from "../../../Server/Infrastructure/GlobalCache";
 import CertificateOrderBudget from "../../../Server/Utils/Greenlock/CertificateOrderBudget";
 import CertificateOrderFailures from "../../../Server/Utils/Greenlock/CertificateOrderFailures";
@@ -515,11 +519,23 @@ function setUpWorld(forKind: Kind): void {
       };
     }) as never);
 
-  jest.spyOn(Domain, "getCnameRecords").mockImplementation((async (data: {
-    domain: string;
-  }) => {
-    return world.dnsLive.has(data.domain) ? [kind.cnameRecord] : [];
-  }) as never);
+  /*
+   * The DNS lookups the CNAME check makes (CustomDomainDnsCheck): the
+   * record when it is live, nothing otherwise - never the network.
+   */
+  jest
+    .spyOn(DnsLookup, "resolveCname")
+    .mockImplementation((async (name: string): Promise<DnsLookupAnswer> => {
+      return world.dnsLive.has(name)
+        ? { values: [kind.cnameRecord] }
+        : { values: [], failure: DnsLookupFailure.NoRecords };
+    }) as never);
+
+  jest
+    .spyOn(DnsLookup, "resolveAddresses")
+    .mockImplementation((async (): Promise<DnsLookupAnswer> => {
+      return { values: [], failure: DnsLookupFailure.NoRecords };
+    }) as never);
 
   /*
    * The lock (a held key refuses at once, like Redis with one attempt) and

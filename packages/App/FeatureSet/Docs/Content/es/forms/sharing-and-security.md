@@ -55,27 +55,26 @@ De entrada, un formulario se sirve en su enlace, en la dirección propia de OneU
 
 Poner el formulario en tu propio dominio lleva tres pasos, y solo los dos primeros son tuyos:
 
-1. **Añadir el dominio**: un subdominio y uno de tus dominios verificados.
-2. **Añadir su registro CNAME** en tu proveedor de DNS. El cuadro de diálogo **Configuración de DNS** se abre con el registro en cuanto añades el dominio.
+1. **Añadir el dominio**: escribe la dirección que la gente abrirá, como `report.acme.com`.
+2. **Añadir sus registros DNS** en tu proveedor de DNS. El cuadro de diálogo **Configuración de DNS** los muestra: un registro CNAME para la dirección y, la primera vez que el proyecto usa un dominio, un registro TXT que demuestra que el dominio es del proyecto.
 3. **El certificado SSL gratuito se emite automáticamente** en cuanto se encuentra el registro. No hay ningún botón que pulsar.
 
 Cuando el dominio funciona, la tarjeta **Enlace para compartir** lo muestra encima del enlace del formulario. Los dos abren el mismo formulario.
 
 ### Añadir un dominio
 
-Haz clic en **Crear Dominio de formulario**. El cuadro de diálogo es una sola página:
+Haz clic en **Añadir dominio personalizado**. El cuadro de diálogo pide una sola cosa:
 
-- **Subdominio**: solo la etiqueta, con el texto de ejemplo `report (leave blank for root)`. Escribe solo `report`, no el nombre de host completo. Déjalo vacío o escribe `@` para usar el dominio raíz.
-- **Dominio**: uno de los dominios verificados en **Ajustes del proyecto** > **Avanzado** > **Dominios**, donde demuestras con un registro TXT que un dominio es tuyo. El enlace **Añadir un dominio** junto al campo abre esa página en una pestaña nueva.
+- **Dominio**: la dirección completa que la gente abrirá, con el texto de ejemplo `report.example.com`. Un enlace pegado también funciona: solo se conserva su nombre de host. Para usar la raíz de un dominio, escribe el propio dominio.
 - **Más campos**: plegado. Ábrelo solo para usar un certificado propio: activa **Subir certificado personalizado** y pega el **Certificado** y su **Clave privada del certificado**.
 
-Haz clic de nuevo en **Crear Dominio de formulario** para añadirlo. El cuadro de diálogo se cierra y se abre la **Configuración de DNS** del nuevo dominio. El nombre de un dominio y su formulario quedan fijos en cuanto se añade, así que **Editar** solo cambia su certificado: para cambiar cualquiera de los dos, añade el nuevo dominio y elimina el antiguo.
+Haz clic en **Continuar**. Si el proyecto ha verificado el dominio en el que está la dirección, en **Ajustes del proyecto** > **Avanzado** > **Dominios**, el dominio se añade y se abre su **Configuración de DNS**. Si no, OneUptime añade ese dominio al proyecto y la **Configuración de DNS** se abre también con su registro TXT, para que lo verifiques ahí mismo. El nombre de un dominio y su formulario quedan fijos en cuanto se añade, así que **Editar** solo cambia su certificado: para cambiar cualquiera de los dos, añade el nuevo dominio y elimina el antiguo.
 
 Un dominio muestra una sola página de estado, un solo panel o un solo formulario, así que se rechaza un nombre que ya tenga cualquiera de ellos, en cualquier proyecto: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### Configuración de DNS y Comprobar ahora
 
-El cuadro de diálogo **Configuración de DNS** muestra el registro que debes añadir en tu proveedor de DNS, cada campo con un botón para copiarlo: **Tipo** `CNAME`, **Nombre** el dominio completo que añadiste, y **Valor** el registro CNAME de tu instalación. Para un dominio raíz, muchos proveedores de DNS no permiten un registro CNAME: usa en su lugar el registro ALIAS, ANAME o CNAME aplanado de tu proveedor, con el mismo valor.
+El cuadro de diálogo **Configuración de DNS** muestra cada registro que debes añadir en tu proveedor de DNS, cada campo con un botón para copiarlo: **Tipo** `CNAME`, **Nombre** el dominio completo que añadiste, y **Valor** el registro CNAME de tu instalación, después del registro TXT del dominio mientras el proyecto no lo haya verificado. Debajo de cada registro, **Comprobar ahora** dice lo que OneUptime buscó y lo que obtuvo. Para un dominio raíz, muchos proveedores de DNS no permiten un registro CNAME: usa en su lugar el registro ALIAS, ANAME o CNAME aplanado de tu proveedor, con el mismo valor.
 
 OneUptime comprueba cada dominio sin verificar cada 15 minutos, y cuando encuentra el registro pide el certificado gratuito de Let's Encrypt del dominio en esa misma comprobación. Para comprobarlo al momento, haz clic en **Comprobar ahora**. Mientras un dominio no funciona, su fila tiene una acción **Configuración de DNS** que abre el mismo cuadro de diálogo, donde **Comprobar ahora** también vuelve a pedir un certificado que falló o caducó, como mucho una vez por dominio cada 15 minutos. La renovación es automática, mucho antes de que caduque el certificado.
 

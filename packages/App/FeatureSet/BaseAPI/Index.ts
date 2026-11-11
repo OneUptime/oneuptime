@@ -103,6 +103,7 @@ import WorkspaceNotificationSummaryAPI from "Common/Server/API/WorkspaceNotifica
 import DashboardAPI from "Common/Server/API/DashboardAPI";
 import DashboardDomainAPI from "Common/Server/API/DashboardDomainAPI";
 import StatusPageDomainAPI from "Common/Server/API/StatusPageDomainAPI";
+import DomainAPI from "Common/Server/API/DomainAPI";
 import StatusPageSubscriberAPI from "Common/Server/API/StatusPageSubscriberAPI";
 import UserCallAPI from "Common/Server/API/UserCallAPI";
 import UserTotpAuthAPI from "Common/Server/API/UserTotpAuthAPI";
@@ -159,9 +160,6 @@ import ApiKeyService, {
 import CallLogService, {
   Service as CallLogServiceType,
 } from "Common/Server/Services/CallLogService";
-import DomainService, {
-  Service as DomainServiceType,
-} from "Common/Server/Services/DomainService";
 import EmailLogService, {
   Service as EmailLogServiceType,
 } from "Common/Server/Services/EmailLogService";
@@ -1548,7 +1546,6 @@ import CallLog from "Common/Models/DatabaseModels/CallLog";
 import PushNotificationLog from "Common/Models/DatabaseModels/PushNotificationLog";
 import WebhookLog from "Common/Models/DatabaseModels/WebhookLog";
 import WorkspaceNotificationLog from "Common/Models/DatabaseModels/WorkspaceNotificationLog";
-import Domain from "Common/Models/DatabaseModels/Domain";
 import EmailLog from "Common/Models/DatabaseModels/EmailLog";
 import ProjectSCIMLog from "Common/Models/DatabaseModels/ProjectSCIMLog";
 import StatusPageSCIMLog from "Common/Models/DatabaseModels/StatusPageSCIMLog";
@@ -5352,7 +5349,8 @@ const BaseAPIFeatureSet: FeatureSet = {
 
     app.use(
       `/${APP_NAME.toLocaleLowerCase()}`,
-      new BaseAPI<Domain, DomainServiceType>(Domain, DomainService).getRouter(),
+      // The domains, and check-txt, which verifies one (DomainAPI).
+      new DomainAPI().getRouter(),
     );
 
     app.use(

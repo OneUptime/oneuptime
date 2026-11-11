@@ -1,6 +1,6 @@
 # Personnalisation et domaines de la page de statut
 
-Votre page de statut est l'écran OneUptime que regardent vos clients : elle devrait donc vous ressembler et se trouver sur votre propre domaine, comme `status.yourcompany.com`. Cette page parcourt la page **Image de marque** carte par carte, puis place la page de statut sur votre domaine : ajoutez le domaine, ajoutez un enregistrement DNS, et le certificat SSL gratuit suit de lui-même.
+Votre page de statut est l'écran OneUptime que regardent vos clients : elle devrait donc vous ressembler et se trouver sur votre propre domaine, comme `status.yourcompany.com`. Cette page parcourt la page **Image de marque** carte par carte, puis place la page de statut sur votre domaine : ajoutez le domaine, ajoutez ses enregistrements DNS, et le certificat SSL gratuit suit de lui-même.
 
 :::cards
 - [La page Image de marque](#la-page-image-de-marque): Logo, thème, titre, favicon, liens, pied de page, couleurs et langues.
@@ -155,20 +155,20 @@ Sur OneUptime Cloud, ajouter ou modifier l'un d'eux demande le forfait **Growth*
 
 Par défaut, une page de statut est accessible à l'URL d'aperçu affichée sur son écran **Vue d'ensemble**. Pour la placer sur votre propre nom d'hôte, allez dans **Pages de statut → votre page → Image de marque → Domaines personnalisés** (`{id}/domains`).
 
-La carte **Domaines personnalisés** indique quoi faire : faites pointer l'enregistrement CNAME de chaque domaine vers l'enregistrement CNAME des pages de statut de votre installation, et OneUptime émet le certificat SSL du domaine et le renouvelle pour vous. Quand rien n'est configuré, le tableau indique **Aucun domaine personnalisé trouvé**, avec **Créer : Domaine de la page de statut** en dessous. Le tableau a deux colonnes, **Domaine** et **Statut**, et des filtres pour **Domaine**, **CNAME valide** et **SSL provisionné**.
+La carte **Domaines personnalisés** indique quoi faire : faites pointer l'enregistrement CNAME de chaque domaine vers l'enregistrement CNAME des pages de statut de votre installation, et OneUptime émet le certificat SSL du domaine et le renouvelle pour vous. Quand rien n'est configuré, le tableau indique **Aucun domaine personnalisé trouvé**, avec **Ajouter un domaine personnalisé** en dessous. Le tableau a deux colonnes, **Domaine** et **Statut**, et des filtres pour **Domaine**, **CNAME valide** et **SSL provisionné**.
 
-Placer la page sur votre domaine se fait en trois étapes, et seules les deux premières vous reviennent :
+Placer la page sur votre domaine se fait en trois étapes, toutes sur cette page, et seules les deux premières vous reviennent :
 
-1. **Ajouter le domaine** : un sous-domaine et l'un de vos domaines vérifiés.
-2. **Ajouter son enregistrement CNAME** chez votre fournisseur DNS. La boîte de dialogue **Configuration DNS** affiche l'enregistrement dès que vous ajoutez le domaine.
-3. **Le certificat SSL gratuit est émis automatiquement** une fois l'enregistrement trouvé. Il n'y a aucun bouton à presser.
+1. **Ajouter le domaine** : saisissez l'adresse que les gens ouvriront, comme `status.yourcompany.com`.
+2. **Ajouter ses enregistrements DNS** chez votre fournisseur DNS. La boîte de dialogue **Configuration DNS** les affiche : un enregistrement CNAME pour l'adresse et, la première fois que le projet utilise un domaine, un enregistrement TXT qui montre que le projet en est propriétaire.
+3. **Le certificat SSL gratuit est émis automatiquement** une fois les enregistrements trouvés. Il n'y a aucun bouton à presser.
 
 ```mermaid title="D'un nouveau domaine personnalisé à HTTPS"
 flowchart TB
-    A["Ajouter le domaine"] --> B["Configuration DNS affiche l'enregistrement CNAME"]
-    B --> C["Ajouter l'enregistrement chez votre fournisseur DNS"]
-    C --> D{"Enregistrement trouvé ?"}
-    D -->|"Pas encore"| E["Vérifier maintenant, ou la vérification toutes les 15 minutes"]
+    A["Saisir l'adresse"] --> B["Configuration DNS affiche les enregistrements"]
+    B --> C["Les ajouter chez votre fournisseur DNS"]
+    C --> D{"Enregistrements trouvés ?"}
+    D -->|"Pas encore"| E["Vérifier maintenant indique ce qu'il a trouvé"]
     E --> D
     D -->|"Oui"| F["Domaine vérifié"]
     F --> G["Certificat gratuit commandé à Let's Encrypt"]
@@ -177,8 +177,8 @@ flowchart TB
 
 ### Avant de commencer
 
-- **Le domaine parent doit être vérifié.** La liste déroulante **Domaine** ne propose que les domaines vérifiés sous **Paramètres du projet → Avancé → Domaines**, où vous prouvez qu'un domaine vous appartient avec un enregistrement TXT. Le lien **Ajouter un domaine** à côté du champ ouvre cette page dans un nouvel onglet.
-- **Votre installation a besoin d'un enregistrement CNAME pour les pages de statut.** OneUptime Cloud en a un. Sur une installation auto-hébergée, faites-le pointer vers un nom d'hôte qui pointe lui-même vers votre serveur OneUptime (un enregistrement A), et assurez-vous que le serveur répond sur le port 80, où Let's Encrypt le vérifie. Sans lui, la carte et la boîte de dialogue **Configuration DNS** indiquent « Custom Domains not enabled for this OneUptime installation » au lieu d'afficher un enregistrement.
+- **Votre installation a besoin d'un enregistrement CNAME pour les pages de statut.** OneUptime Cloud en a un. Sur une installation auto-hébergée, faites-le pointer vers un nom d'hôte qui pointe lui-même vers votre serveur OneUptime (un enregistrement A), et assurez-vous que le serveur répond sur les ports 80 et 443 : c'est là que les visiteurs et Let's Encrypt atteignent chaque domaine personnalisé. Sans lui, la carte et la boîte de dialogue **Configuration DNS** indiquent « Custom Domains not enabled for this OneUptime installation » au lieu d'afficher un enregistrement.
+- **Un serveur auto-hébergé est vérifié d'abord.** **Ajouter un domaine personnalisé** et **Configuration DNS** indiquent ce dont le serveur a encore besoin avant qu'un domaine personnalisé puisse fonctionner, sous « This server is not ready for custom domains yet » : si le paramètre de l'enregistrement CNAME est défini, si son nom d'hôte se résout, s'il atteint cette installation OneUptime sur le port 80 et accepte les connexions sur le port 443, et si le serveur émet des certificats gratuits. Chaque ligne indique quoi changer et où. Les vérifications s'exécutent depuis le serveur lui-même : les personnes extérieures à votre réseau doivent donc atteindre le nom d'hôte sur les mêmes ports.
 
 :::tabs
 @tab Docker Compose
@@ -195,48 +195,52 @@ statusPage:
 ### Ajouter le domaine
 
 :::steps
-#### Ouvrir Créer : Domaine de la page de statut
+#### Ouvrir Ajouter un domaine personnalisé
 
-Dans **Domaines personnalisés**, cliquez sur **Créer : Domaine de la page de statut**. La boîte de dialogue tient sur une seule page.
+Dans **Domaines personnalisés**, cliquez sur **Ajouter un domaine personnalisé**. La boîte de dialogue ne demande qu'une chose.
 
-#### Saisir le sous-domaine
+#### Saisir l'adresse
 
-Dans **Sous-domaine** (texte indicatif `status (leave blank for root)`), saisissez seulement le libellé, comme `status`, pas le nom d'hôte complet. Laissez-le vide, ou saisissez `@`, pour utiliser le domaine racine (apex).
-
-#### Choisir le domaine
-
-Dans **Domaine** (texte indicatif `Select domain`), choisissez l'un de vos domaines vérifiés. Un domaine que vous n'avez pas vérifié n'est pas listé, car il serait refusé.
+Dans **Domaine** (texte indicatif `status.example.com`), saisissez l'adresse complète que les gens ouvriront, comme `status.yourcompany.com`. Un lien collé fonctionne aussi : seul son nom d'hôte est conservé. Pour utiliser la racine d'un domaine, saisissez le domaine lui-même.
 
 #### Garder le certificat gratuit, ou téléverser le vôtre
 
 **Plus de champs** est replié, et son en-tête indique le certificat qu'utilisera le domaine : « Nous émettons un certificat SSL gratuit pour ce domaine et le renouvelons automatiquement. » Ne l'ouvrez que pour utiliser votre propre certificat : activez **Téléverser un certificat personnalisé**, puis collez le **Certificat** et la **Clé privée du certificat** au format PEM. Les deux deviennent alors obligatoires.
 
-#### Créer le domaine
+#### Continuer
 
-Cliquez sur **Créer : Domaine de la page de statut**. La boîte de dialogue se ferme et la **Configuration DNS** du nouveau domaine s'ouvre, avec l'enregistrement à ajouter.
+Cliquez sur **Continuer**. Si le projet a vérifié le domaine sur lequel se trouve l'adresse, le domaine est ajouté et sa **Configuration DNS** s'ouvre, avec l'enregistrement CNAME à ajouter. Sinon, OneUptime ajoute ce domaine à **Paramètres du projet → Avancé → Domaines**, et la **Configuration DNS** s'ouvre avec les deux enregistrements, pour que vous vérifiiez le domaine sur place, sans quitter la page.
 :::
 
-Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser un autre sous-domaine, ajoutez ce domaine et supprimez l'ancien. Un nom déjà utilisé par un tableau de bord ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
+Le nom complet d'un domaine est fixé quand vous l'ajoutez : **Modifier** ne change donc que son certificat. Pour utiliser une autre adresse, ajoutez-la et supprimez l'ancienne. Un nom déjà utilisé par un tableau de bord ou un formulaire, dans n'importe quel projet, est refusé : un domaine affiche une seule page de statut, un seul tableau de bord ou un seul formulaire.
+
+Ajouter un domaine au projet demande l'autorisation de créer des domaines de projet (**Create Domain**, ou Project Owner ou Project Admin), et le vérifier demande **Edit Domain**. Sans elles, la boîte de dialogue indique qui peut le faire.
 
 ### Configuration DNS et vérification
 
-La boîte de dialogue **Configuration DNS** affiche l'enregistrement à ajouter chez votre fournisseur DNS, un champ par ligne, chacun avec un bouton de copie :
+La boîte de dialogue **Configuration DNS** affiche chaque enregistrement encore nécessaire chez votre fournisseur DNS, un champ par ligne, chacun avec un bouton de copie :
 
-| Champ | Ce qu'il faut saisir |
-| ----- | ------------- |
-| **Type** | `CNAME` |
-| **Nom** | Le domaine complet que vous avez ajouté, par exemple `status.yourcompany.com` |
-| **Valeur** | L'enregistrement CNAME des pages de statut de votre installation |
+| Enregistrement | **Type** | **Nom** | **Valeur** |
+| ------ | -------- | -------- | --------- |
+| Montre que le projet est propriétaire du domaine, jusqu'à sa vérification | `TXT` | Le domaine, par exemple `yourcompany.com` | Son texte de vérification, `oneuptime-verification-…` |
+| Fait pointer l'adresse vers OneUptime | `CNAME` | L'adresse complète, par exemple `status.yourcompany.com` | L'enregistrement CNAME des pages de statut de votre installation |
+
+Vous ajoutez l'enregistrement TXT une fois par domaine : chaque adresse ajoutée ensuite sur ce domaine n'a besoin que de son enregistrement CNAME. Pour une adresse sous le domaine, les deux sont sur des noms différents, car un nom qui a un enregistrement CNAME ne peut avoir aucun autre enregistrement ; pour la racine du domaine, l'enregistrement ALIAS ou d'aplatissement de CNAME se trouve à côté de l'enregistrement TXT.
 
 > [!NOTE]
 > Pour un domaine racine, sans sous-domaine, la boîte de dialogue ajoute une remarque : beaucoup de fournisseurs DNS n'y autorisent pas d'enregistrement CNAME. Utilisez à la place l'enregistrement ALIAS, ANAME ou d'aplatissement de CNAME de votre fournisseur, avec la même valeur.
 
-OneUptime vérifie chaque domaine non vérifié toutes les 15 minutes et vérifie le vôtre dès que son enregistrement est actif, que vous reveniez ou non. Pour vérifier tout de suite, cliquez sur **Vérifier maintenant** :
+Cliquez sur **Vérifier maintenant** pour rechercher les enregistrements tout de suite. La vérification porte d'abord sur l'enregistrement TXT et, dès qu'il est trouvé, ajoute le domaine à la page de statut et vérifie son enregistrement CNAME. Chaque enregistrement affiche alors son propre statut, **Trouvé**, **Valeur incorrecte**, **Pas encore trouvé** ou **Vérification impossible**, et en dessous ce que OneUptime a recherché et ce qui est revenu, avec ce qu'il faut changer :
 
-- **L'enregistrement n'est pas encore trouvé.** La boîte de dialogue reste ouverte et indique l'enregistrement qu'elle a cherché. Un nouvel enregistrement DNS peut mettre un moment à apparaître : cliquez de nouveau sur **Vérifier maintenant** plus tard, ou laissez faire la vérification toutes les 15 minutes.
-- **L'enregistrement est trouvé.** La boîte de dialogue indique « Votre enregistrement CNAME est vérifié. » et ce qui arrive ensuite au certificat. Le certificat gratuit est commandé à ce moment-là.
+- « Nous avons recherché l'enregistrement CNAME de status.yourcompany.com et n'avons rien obtenu. » L'enregistrement n'est pas encore là, ou pas encore visible : un nouvel enregistrement peut mettre un moment à apparaître.
+- « Nous avons recherché l'enregistrement CNAME de status.yourcompany.com et avons obtenu other.example.net, alors que nous attendions oneuptime.yourcompany.com. » L'enregistrement pointe ailleurs : changez sa valeur.
+- « Nous avons recherché l'enregistrement CNAME de status.yourcompany.com et n'avons rien obtenu, mais le nom répond avec l'adresse 203.0.113.10. » Le nom a un enregistrement A, ou son fournisseur DNS le fait passer par un proxy ou l'aplatit (c'est ce que fait le nuage orange de Cloudflare), ce qui cache l'enregistrement CNAME à tout le monde : remplacez l'enregistrement A, ou passez le nom en DNS only.
 
-Tant qu'un domaine n'est pas vérifié et que son certificat n'est pas en place, sa ligne a une action **Configuration DNS** qui ouvre la même boîte de dialogue. Sur un domaine vérifié dont la commande de certificat échoue sans cesse, ou dont le certificat a expiré, **Vérifier maintenant** y passe une nouvelle commande et montre pourquoi la dernière a échoué. Elle commande au plus une fois par domaine toutes les 15 minutes ; entre-temps, OneUptime continue d'essayer de lui-même.
+OneUptime suit toute la chaîne CNAME : un enregistrement qui pointe vers un nom à vous, qui pointe lui-même vers l'enregistrement de votre installation, compte donc. Tout comme un nom dont les requêtes atteignent OneUptime, même quand son fournisseur DNS cache l'enregistrement CNAME.
+
+Une fois l'enregistrement CNAME trouvé, la boîte de dialogue indique « Votre enregistrement CNAME est vérifié. » et ce qui arrive ensuite au certificat. Le certificat gratuit est commandé à ce moment-là. Si les requêtes vers l'adresse n'atteignent toujours pas OneUptime, par exemple parce qu'un proxy devant un serveur auto-hébergé ne transmet pas l'adresse, la boîte de dialogue le signale : le certificat ne peut pas être émis tant qu'elles ne l'atteignent pas.
+
+OneUptime vérifie l'enregistrement CNAME de chaque domaine non vérifié toutes les 15 minutes et vérifie le vôtre dès qu'il est actif, que vous reveniez ou non. Tant qu'un domaine n'est pas vérifié et que son certificat n'est pas en place, sa ligne a une action **Configuration DNS** qui ouvre la même boîte de dialogue. Sur un domaine vérifié dont la commande de certificat échoue sans cesse, ou dont le certificat a expiré, **Vérifier maintenant** y passe une nouvelle commande et montre pourquoi la dernière a échoué. Elle commande au plus une fois par domaine toutes les 15 minutes ; entre-temps, OneUptime continue d'essayer de lui-même.
 
 ### Certificats SSL
 
@@ -285,7 +289,7 @@ La colonne **Statut** indique où en est chaque domaine sur le chemin de HTTPS, 
 | Vérifié. Utilise le HTTPS de votre propre proxy. | Sur une installation auto-hébergée sans clé de compte Let's Encrypt, l'enregistrement est vérifié et le domaine est en ligne. Son HTTPS revient à votre propre proxy, sauf si vous téléversez un certificat. |
 
 :::details Un domaine reste sur « En attente du DNS » longtemps après l'ajout de l'enregistrement
-Vérifiez que le nom de l'enregistrement est le domaine complet, comme `status.yourcompany.com`, et que sa valeur correspond exactement à l'enregistrement CNAME de votre installation. Sur un domaine racine, utilisez un enregistrement ALIAS, ANAME ou CNAME aplati. Cliquez ensuite sur **Vérifier maintenant** dans **Configuration DNS**.
+Ouvrez **Configuration DNS** et cliquez sur **Vérifier maintenant** : sous l'enregistrement, il indique ce que OneUptime a recherché et ce qui est revenu. Vérifiez que le nom de l'enregistrement est le domaine complet, comme `status.yourcompany.com`, et que sa valeur correspond à l'enregistrement CNAME de votre installation. S'il indique que le nom répond avec une adresse, le nom a un enregistrement A ou passe par le proxy de son fournisseur DNS : remplacez l'enregistrement A, ou passez le nom en DNS only. Sur un domaine racine, utilisez un enregistrement ALIAS, ANAME ou CNAME aplati.
 :::
 
 :::details La colonne Statut indique qu'aucun certificat gratuit n'a pu être émis
@@ -298,7 +302,7 @@ Cherchez sur votre domaine un enregistrement CAA qui omet `letsencrypt.org` et, 
 
 Quelqu'un qui peut seulement lire le domaine, comme un Viewer ou un Status Page Viewer, voit quand même la colonne **Statut** et l'enregistrement à ajouter dans **Configuration DNS**. Pour lui, **Vérifier maintenant** et **Reissue SSL** sont verrouillés et indiquent l'autorisation qui lui manque. OneUptime continue de toute façon à vérifier chaque domaine et à commander son certificat de lui-même.
 
-Il en va de même pour les clés d'API. Une clé qui peut seulement lire les domaines de pages de statut ne peut pas appeler `verify-cname`, `order-ssl` ni `reissue-ssl` sur `/status-page-domain`. Donnez-lui **Read Status Page Domain** et **Edit Status Page Domain** si elle en a besoin.
+Il en va de même pour les clés d'API. Une clé qui peut seulement lire les domaines de pages de statut ne peut pas appeler `verify-cname`, `check-dns`, `order-ssl` ni `reissue-ssl` sur `/status-page-domain`. Donnez-lui **Read Status Page Domain** et **Edit Status Page Domain** si elle en a besoin. Quand l'enregistrement n'est pas trouvé, `verify-cname` refuse en indiquant ce qu'il a recherché et ce qui est revenu, dans les termes qu'affiche **Configuration DNS** ; `check-dns` répond dans tous les cas pour chaque enregistrement qu'il a recherché.
 
 ## Powered by OneUptime
 
