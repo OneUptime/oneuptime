@@ -170,13 +170,15 @@ describe("SloUtil", () => {
       ).toBe(SECONDS_IN_HOUR);
     });
 
-    it("documents the bug being avoided: the cross-monitor flatten yields only 1800s", () => {
+    it("UptimeUtil's cross-monitor merge agrees: the full hour, not 1800s", () => {
       /*
-       * This is why SloUtil does NOT feed multiple monitors into
-       * UptimeUtil.getNonOverlappingMonitorEvents / getTotalDowntimeInSeconds: B's
-       * Operational event ends later than A's Offline event, so the flatten truncates
-       * the Offline event at 10:30. If UptimeUtil's flatten ever changes, revisit
-       * SloUtil - this assertion pins the behaviour SloUtil works around.
+       * UptimeUtil.getNonOverlappingMonitorEvents used to flatten monitors
+       * by priority one event at a time: B's Operational event ended later
+       * than A's Offline event, so the flatten truncated the Offline event
+       * at 10:30 and counted 1800s. That is why SloUtil works per monitor.
+       * The merge now takes the worst status at every instant, with the
+       * downtime statuses outranking the rest (WorstStatusTimeline, issue
+       * #6697), so it counts the union too.
        */
       expect(
         UptimeUtil.getTotalDowntimeInSeconds(
@@ -184,7 +186,7 @@ describe("SloUtil", () => {
           downtimeStatuses,
           window,
         ).totalDowntimeInSeconds,
-      ).toBe(SECONDS_IN_HOUR / 2);
+      ).toBe(SECONDS_IN_HOUR);
     });
 
     it("computes the AnyDown SLI over the shared window", () => {

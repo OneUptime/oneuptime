@@ -173,9 +173,8 @@ export default class StatusPageResourceUptimeUtil {
      * MonitorGroupMergedDowntimeUtil). When supplied, a monitor-group resource
      * is measured from it: the time at least one of its monitors was down,
      * over the time any of them was recorded, merged from every row. Its rows
-     * here are capped like any other, and their merge
-     * (UptimeUtil.getNonOverlappingMonitorEvents) lets a later-starting,
-     * longer-running row of another monitor cut an outage short.
+     * here are capped like any other, so they hold only the newest days of
+     * the window on a page with a flapping monitor.
      */
     monitorGroupMergedDowntime?:
       | Dictionary<MergedDowntimeTotals>
