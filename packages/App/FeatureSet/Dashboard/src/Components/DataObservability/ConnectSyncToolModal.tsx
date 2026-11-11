@@ -72,7 +72,7 @@ const ConnectSyncToolModal: FunctionComponent<ComponentProps> = (
     >
       <div className="space-y-5">
         <IngestionKeySelector
-          endpointLabel="Webhook URL"
+          endpointLabel={translationKey("Webhook URL")}
           endpointValue={tool === "fivetran" ? fivetranUrl : airbyteUrl}
           keyTypeFilter={TelemetryIngestionKeyType.Server}
           newKeyName={translationKey("Sync webhooks key")}

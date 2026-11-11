@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 10319
+    "keys": 50206,
+    "untranslated": 10296
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -128,6 +128,7 @@
     "H1",
     "HA: {{state}}",
     "HAProxy",
+    "HTTP {{status}}",
     "Hardware",
     "Hello world",
     "Hertz",
@@ -403,6 +404,7 @@
     "floating IP",
     "frustration",
     "govc",
+    "history {{kind}}",
     "hits",
     "horizontal pod autoscaler",
     "hypervisor",
@@ -417,6 +419,7 @@
     "live",
     "main",
     "median",
+    "median {{value}}",
     "message",
     "misses",
     "mm",

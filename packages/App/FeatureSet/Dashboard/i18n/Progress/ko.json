@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 49779,
-    "untranslated": 10057
+    "keys": 50206,
+    "untranslated": 10034
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -51,6 +51,7 @@
     "HAProxy",
     "HEC URL",
     "HH",
+    "HTTP {{status}}",
     "Hello world",
     "INP 120 ms",
     "INP 168 ms",
@@ -157,6 +158,7 @@
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "failed password",
     "govc",
+    "history {{kind}}",
     "host:port",
     "id",
     "ip",

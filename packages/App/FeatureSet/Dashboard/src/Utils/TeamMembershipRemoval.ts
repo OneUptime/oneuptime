@@ -4,6 +4,7 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
+import { formatList, Translator } from "Common/Types/Translator";
 
 /*
  * In OneUptime a project has no member list of its own: a user belongs to a
@@ -133,6 +134,56 @@ export default class TeamMembershipRemoval {
     }
 
     return `${unique.slice(0, -1).join(", ")} and ${unique[unique.length - 1]}`;
+  }
+
+  /**
+   * The same list in a sentence of the reader's language: the language's
+   * own separator and "and", and "and N more" past MAX_LISTED_TEAM_NAMES.
+   * The names are the teams' own.
+   */
+  public static formatNamesInLanguage(
+    names: Array<string>,
+    translator: Translator,
+  ): string {
+    const unique: Array<string> = Array.from(
+      new Set(
+        names
+          .map((name: string) => {
+            return name.trim();
+          })
+          .filter((name: string) => {
+            return Boolean(name);
+          }),
+      ),
+    ).sort((a: string, b: string) => {
+      return a.localeCompare(b, undefined, { sensitivity: "base" });
+    });
+
+    if (unique.length === 0) {
+      return "";
+    }
+
+    if (unique.length > MAX_LISTED_TEAM_NAMES) {
+      return translator.translatePlural(
+        {
+          one: "{{names}} and {{count}} more",
+          other: "{{names}} and {{count}} more",
+        },
+        unique.length - MAX_LISTED_TEAM_NAMES,
+        {
+          names: formatList(unique.slice(0, MAX_LISTED_TEAM_NAMES), translator),
+        },
+      );
+    }
+
+    if (unique.length === 1) {
+      return unique[0]!;
+    }
+
+    return translator.translateTemplate("{{first}} and {{second}}", {
+      first: formatList(unique.slice(0, -1), translator),
+      second: unique[unique.length - 1]!,
+    });
   }
 
   public static getTeamNames(memberships: Array<TeamMember>): Array<string> {

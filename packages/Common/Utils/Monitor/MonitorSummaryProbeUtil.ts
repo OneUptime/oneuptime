@@ -1,3 +1,8 @@
+import { createTranslator, Translator } from "../../Types/Translator";
+
+// Option labels drawn without the reader's translator: English.
+const ENGLISH: Translator = createTranslator(undefined);
+
 /*
  * The rules behind the "Monitor Summary" probe picker.
  *
@@ -78,20 +83,29 @@ export default class MonitorSummaryProbeUtil {
   /*
    * The option labels. A disabled probe stays on the list - the user may well
    * want to look at what it collected before it was switched off - but saying
-   * so is what stops "no summary" from looking like a bug.
+   * so is what stops "no summary" from looking like a bug. Given the
+   * reader's Translator, "(disabled)" and "Unknown" read in their language;
+   * a probe's name is its own.
    */
   public static getProbeDropdownOptions(data: {
     probes: Array<AttachedProbe>;
+    translator?: Translator | undefined;
   }): Array<{ label: string; value: string }> {
     return (data.probes || [])
       .filter((probe: AttachedProbe) => {
         return Boolean(probe && probe.id);
       })
       .map((probe: AttachedProbe) => {
-        const name: string = probe.name || "Unknown";
+        const translator: Translator = data.translator || ENGLISH;
+        const name: string =
+          probe.name || translator.translateText("Unknown") || "Unknown";
 
         return {
-          label: probe.isEnabled ? name : `${name} (disabled)`,
+          label: probe.isEnabled
+            ? name
+            : translator.translateTemplate("{{name}} (disabled)", {
+                name: name,
+              }),
           value: probe.id,
         };
       });
