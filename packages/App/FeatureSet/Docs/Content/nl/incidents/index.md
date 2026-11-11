@@ -1,6 +1,6 @@
 # Incidenten – Overzicht
 
-Een incident is het dossier van waaruit je team werkt als er iets stukgaat: wat er getroffen is, hoe erg het is, hoe ver de respons staat, wie de eigenaar is, en alles wat er onderweg wordt opgeschreven. Eén melden roept de juiste bereikbaarheidsrotatie op, laat de eigenaren het weten en zet — als je dat wilt — de storing op je statuspagina, zodat klanten weten dat je ermee bezig bent.
+Een incident is het dossier van waaruit je team werkt als er iets stukgaat: wat er getroffen is, hoe erg het is, hoe ver de respons staat, wie de eigenaar is, en alles wat er onderweg wordt opgeschreven. Eén melden roept de juiste bereikbaarheidsrotatie op, laat de eigenaren het weten en zet — als je dat wilt — de storing op je statuspagina, zodat klanten weten dat je ermee bezig bent. Twijfel je of een probleem een incident of een waarschuwing is? [Welke gebruik ik?](/docs/introduction/which-one#incident-waarschuwing-of-een-ander-soort-probleem) zet ze naast elkaar.
 
 :::cards
 - [Een incident melden](/docs/incidents/declaring-incidents): Met de hand, vanuit een sjabloon, vanuit een monitor, via de API of via een formulier.
@@ -86,7 +86,7 @@ Daarna kun je een [postmortem](/docs/incidents/postmortems) schrijven en het eve
 
 ## Kernbegrippen
 
-Een handvol woorden komt op elke andere pagina in deze sectie terug. Zet die eerst op een rij.
+Een handvol woorden komt op elke andere pagina in deze sectie terug. Zet die eerst op een rij. De woorden die in heel OneUptime worden gebruikt, staan in de [Woordenlijst](/docs/introduction/glossary).
 
 | Begrip                 | Wat het betekent                                                                                                                                    |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |

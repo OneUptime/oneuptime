@@ -1,3 +1,4 @@
+import ChecklistEvents from "Common/UI/Utils/ChecklistEvents";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
@@ -25,6 +26,12 @@ import UiAnalytics from "Common/UI/Utils/Analytics";
 import useTranslateValue from "Common/UI/Utils/Translation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import HowOneUptimeWorks from "./HowOneUptimeWorks";
+import {
+  SERVER_EMAIL_COPY,
+  ServerEmail,
+  cannotSendEmail,
+  useServerEmail,
+} from "../../Utils/ServerEmail";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
@@ -45,6 +52,17 @@ interface GettingStartedTask {
   key: string;
   title: string;
   description: string;
+  /*
+   * What the step says instead while the server cannot send email, when
+   * its description promises one (Utils/ServerEmail): to a master admin,
+   * who can set email up, and to anybody else.
+   */
+  descriptionWithoutEmail?:
+    | {
+        forAdmin: string;
+        forOthers: string;
+      }
+    | undefined;
   icon: IconProp;
   iconBackgroundClassName: string;
   pageMap: PageMap;
@@ -152,6 +170,11 @@ const gettingStartedTasks: Array<GettingStartedTask> = [
      */
     description:
       "Page the right person when an incident or alert opens. Until then, the project's owners get an email.",
+    // A server that cannot send email emails nobody: said, with the fix.
+    descriptionWithoutEmail: {
+      forAdmin: SERVER_EMAIL_COPY.onCallStepDescriptionForAdmin,
+      forOthers: SERVER_EMAIL_COPY.onCallStepDescription,
+    },
     icon: IconProp.Call,
     iconBackgroundClassName: "bg-rose-500",
     pageMap: PageMap.ON_CALL_DUTY,
@@ -172,6 +195,26 @@ const getDismissKey: GetDismissKeyFunction = (projectId: ObjectID): string => {
   return `getting-started-dismissed-${projectId.toString()}`;
 };
 
+/*
+ * What a step says: its description, or - while the server cannot send
+ * email and the description promises one - the truth, with the fix.
+ */
+export const getGettingStartedTaskDescription: (
+  task: Pick<GettingStartedTask, "description" | "descriptionWithoutEmail">,
+  serverEmail: ServerEmail,
+) => string = (
+  task: Pick<GettingStartedTask, "description" | "descriptionWithoutEmail">,
+  serverEmail: ServerEmail,
+): string => {
+  if (!task.descriptionWithoutEmail || !cannotSendEmail(serverEmail)) {
+    return task.description;
+  }
+
+  return serverEmail.isMasterAdmin
+    ? task.descriptionWithoutEmail.forAdmin
+    : task.descriptionWithoutEmail.forOthers;
+};
+
 type GetCompleteKeyFunction = (projectId: ObjectID) => string;
 
 const getCompleteKey: GetCompleteKeyFunction = (
@@ -187,6 +230,9 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
   const tx: (value: string) => string = (value: string): string => {
     return translateString(value) ?? value;
   };
+
+  // Whether the on-call step's "the project's owners get an email" is true.
+  const serverEmail: ServerEmail = useServerEmail();
 
   const [isDismissed, setIsDismissed] = useState<boolean>(
     Boolean(LocalStorage.getItem(getDismissKey(props.projectId))),
@@ -225,6 +271,19 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
       setTaskCompletion(null);
       return;
     }
+
+    /*
+     * The steps this browser saw go from not done to done, and the whole
+     * checklist when it finishes (issue #6830): only the click on a step was
+     * recorded before.
+     */
+    ChecklistEvents.noteProgress({
+      projectId: props.projectId.toString(),
+      current: completion,
+      stepKeys: gettingStartedTasks.map((task: GettingStartedTask): string => {
+        return task.key;
+      }),
+    });
 
     const isEveryTaskComplete: boolean = gettingStartedTasks.every(
       (task: GettingStartedTask) => {
@@ -354,7 +413,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
                     {tx(task.title)}
                   </span>
                   <span className="mt-1 block text-sm text-gray-500">
-                    {tx(task.description)}
+                    {tx(getGettingStartedTaskDescription(task, serverEmail))}
                   </span>
                 </span>
                 {isComplete ? (

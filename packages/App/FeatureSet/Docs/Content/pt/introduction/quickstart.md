@@ -141,6 +141,7 @@ Abra o monitor e confira o que as sondas receberam. Veja a seção de solução 
 
 :::cards
 - [Conceitos básicos](/docs/introduction/core-concepts): As ideias por trás do que você acabou de configurar.
+- [Glossário](/docs/introduction/glossary): Cada palavra que você encontrou pelo caminho, em uma ou duas frases.
 - [Agendamentos de plantão](/docs/on-call/schedules): Dividir o plantão com sua equipe.
 - [Marca e domínios da página de status](/docs/status-pages/branding-and-domains): Deixar a página de status com a sua cara.
 - [OpenTelemetry](/docs/telemetry/open-telemetry): Enviar logs, métricas e traces dos seus aplicativos.

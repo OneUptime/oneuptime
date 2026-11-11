@@ -154,10 +154,10 @@ Die Karte **Zugriffstoken** auf der Seite einer OAuth-2.0-Variable zeigt eines d
 
 | Status                           | Was er bedeutet                                                                                                                              |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Valid**                        | Das zwischengespeicherte Token ist noch nicht abgelaufen.                                                                                    |
+| **Gültig**                       | Das zwischengespeicherte Token ist noch nicht abgelaufen.                                                                                    |
 | **Abgelaufen**                   | Normal für eine Variable, die kein Workflow in letzter Zeit verwendet hat. Die nächste Ausführung, die sie verwendet, ruft ein neues Token ab. |
 | **Noch nicht abgerufen**         | Seit die Variable angelegt wurde oder ihre Einstellungen geändert wurden, wurde kein Token abgerufen.                                        |
-| **No expiry reported**           | Der Anbieter hat nicht gesagt, wann das Token abläuft, daher ruft jede Ausführung ein neues ab.                                              |
+| **Kein Ablauf angegeben**        | Der Anbieter hat nicht gesagt, wann das Token abläuft, daher ruft jede Ausführung ein neues ab.                                              |
 | **Aktualisierung fehlgeschlagen** | Der letzte Versuch, ein Token zu bekommen, ist fehlgeschlagen. Der Grund des Anbieters steht vollständig da, mit dem Zeitpunkt. Die nächste erfolgreiche Erneuerung löscht ihn. |
 
 **Jetzt aktualisieren**, unter dem Status, ruft sofort ein neues Token ab. Prüfen Sie damit neue Einstellungen, ohne einen Workflow auszuführen. **Anmeldedaten aktualisieren** auf der Karte **OAuth-2.0-Einstellungen** ersetzt das Client-Secret oder das Aktualisierungstoken und ruft dann damit ein Token ab. Jede geänderte Einstellung (Token-URL, Client-ID, Scope und so weiter) verwirft das zwischengespeicherte Token, sodass die nächste Ausführung eines mit den neuen Einstellungen abruft.

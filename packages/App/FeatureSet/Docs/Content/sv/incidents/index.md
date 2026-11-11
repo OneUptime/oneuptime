@@ -1,6 +1,6 @@
 # Incidenter – Översikt
 
-En incident är posten ditt team arbetar utifrån när något går sönder: vad som är påverkat, hur allvarligt det är, hur långt insatsen har kommit, vem som äger den och allt som skrivs ner under tiden. Att deklarera en larmar rätt jourrotation, meddelar ägarna och — om du vill — lägger ut avbrottet på din statussida, så att kunderna vet att du arbetar med saken.
+En incident är posten ditt team arbetar utifrån när något går sönder: vad som är påverkat, hur allvarligt det är, hur långt insatsen har kommit, vem som äger den och allt som skrivs ner under tiden. Att deklarera en larmar rätt jourrotation, meddelar ägarna och — om du vill — lägger ut avbrottet på din statussida, så att kunderna vet att du arbetar med saken. Osäker på om ett problem är en incident eller ett larm? [Vilken ska jag använda?](/docs/introduction/which-one#incident-larm-eller-ett-annat-slags-problem) ställer dem sida vid sida.
 
 :::cards
 - [Deklarera en incident](/docs/incidents/declaring-incidents): För hand, från en mall, från en monitor, via API:t eller via ett formulär.
@@ -86,7 +86,7 @@ Därefter kan du skriva en [efteranalys](/docs/incidents/postmortems) och, om du
 
 ## Nyckelbegrepp
 
-En handfull ord återkommer på varannan sida i det här avsnittet. Reda ut dem först.
+En handfull ord återkommer på varannan sida i det här avsnittet. Reda ut dem först. Orden som används i hela OneUptime finns samlade på sidan [Ordlista](/docs/introduction/glossary).
 
 | Begrepp                | Vad det betyder                                                                                                                                     |
 | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |

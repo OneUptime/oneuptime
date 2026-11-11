@@ -25,7 +25,7 @@ Chaque minute, OneUptime interroge chaque connexion activée dont l'intervalle d
 
 - Dans OneUptime, le rôle Project Owner, Project Admin ou Security Admin. Les rôles Security Member et Security Viewer voient les connexions et l'historique de leurs exécutions, mais ne peuvent pas les modifier.
 - Un ID client Falcon (CID), et un utilisateur de la console Falcon qui peut gérer les clients API : le rôle Falcon Administrator, ou un rôle personnalisé avec l'autorisation API clients and keys.
-- Le HTTPS sortant de l'application et des workers OneUptime vers l'hôte API de votre cloud Falcon, listé sous **Falcon cloud** ci-dessous.
+- Le HTTPS sortant de l'application et des workers OneUptime vers l'hôte API de votre cloud Falcon, listé sous **Cloud Falcon** ci-dessous.
 
 ## Configurer la connexion
 
@@ -59,7 +59,7 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
 | **ID client** | L'ID du client API, tel que Falcon l'a affiché à la création du client. |
-| **Falcon cloud** | Le cloud de votre CID : **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** ou **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Chaque requête va à l'hôte API de ce cloud. |
+| **Cloud Falcon** | Le cloud de votre CID : **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** ou **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Chaque requête va à l'hôte API de ce cloud. |
 | **Secret client** | Le secret du client API. Il est chiffré, jamais renvoyé par l'API et plus jamais affiché. Remplacez-le avec **Mettre à jour les identifiants** sur la connexion. |
 
 L'étape **Interrogation** contient aussi une **Description** facultative, le **Intervalle d'interrogation (minutes)**, un nombre entier de `1` à `1440` qui vaut `5` au départ, et **Activé**, qui est activé au départ. Une connexion qui n'est pas activée peut quand même être testée, et interrogée à la main.
@@ -119,7 +119,7 @@ Une exécution qui échoue complètement, avec une erreur de Falcon, garde le cu
 Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récentes et travailler avec elle à la main. Quiconque peut modifier la connexion peut les lancer ; quiconque peut la voir peut lire l'historique.
 
 - **Exécuter maintenant** lance tout de suite une interrogation, avec le curseur habituel, même quand la connexion n'est pas **Activé**.
-- **Preview alerts** lit une plage de temps de 7 jours au plus et n'importe rien.
+- **Aperçu des alertes** lit une plage de temps de 7 jours au plus et n'importe rien.
 - **Importer cette plage de temps** importe une plage de 7 jours au plus, après votre confirmation, sans déplacer le curseur. Les alertes déjà importées sont sautées.
 - **Copier les diagnostics** sur une exécution copie son rapport pour le support. Il ne contient jamais d'identifiants.
 
@@ -129,7 +129,7 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 
 | Vérification | Ce qu'elle vérifie |
 | --- | --- |
-| **Configuration** | **ID client**, **Falcon cloud** et **Secret client** sont présents et bien formés. Rien n'est contacté quand cela échoue. |
+| **Configuration** | **ID client**, **Cloud Falcon** et **Secret client** sont présents et bien formés. Rien n'est contacté quand cela échoue. |
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` avec l'ID et le secret du client API, sur l'hôte de votre cloud, renvoie un jeton. |
 | **Read alerts from the Falcon Alerts API** | Une requête d'alertes pour une seule alerte (`limit=1`) sur les 24 dernières heures est acceptée, ce qui prouve l'étendue **Alerts → Read**. |
 | **Alerts available to import** | Combien d'alertes ont été créées dans les 24 dernières heures et les 7 derniers jours. Aucune en 7 jours est un avertissement, pas un échec : l'interrogation importe les nouvelles alertes à mesure que Falcon les crée. |
@@ -143,13 +143,13 @@ Chaque requête d'un test a un délai de 20 secondes. Un test n'importe jamais r
 La **Dernière erreur** de la connexion, et chaque vérification en échec, conservent le message d'erreur complet, identifiants masqués, derrière un préfixe qui nomme l'étape en échec. Quand une connexion a une erreur, sélectionnez **Voir l'erreur** dans sa colonne **Actions** pour la lire, et **Copier l'erreur** dans la boîte de dialogue pour la copier. Lisez d'abord le préfixe.
 
 :::details Dernière erreur commence par `CrowdStrike Falcon token request`
-- `CrowdStrike Falcon token request failed (HTTP 401)` ou `(HTTP 403)` : Falcon a refusé l'ID et le secret du client API, avant que l'API Alerts soit contactée. Vérifiez que **Falcon cloud** est le cloud de votre CID, car un client d'un autre cloud est refusé ici, que **ID client** est celui du client, et que **Secret client** est le secret délivré avec lui. Si le secret a été perdu, réinitialisez-le dans la console Falcon, et enregistrez-le avec **Mettre à jour les identifiants**.
+- `CrowdStrike Falcon token request failed (HTTP 401)` ou `(HTTP 403)` : Falcon a refusé l'ID et le secret du client API, avant que l'API Alerts soit contactée. Vérifiez que **Cloud Falcon** est le cloud de votre CID, car un client d'un autre cloud est refusé ici, que **ID client** est celui du client, et que **Secret client** est le secret délivré avec lui. Si le secret a été perdu, réinitialisez-le dans la console Falcon, et enregistrez-le avec **Mettre à jour les identifiants**.
 - `CrowdStrike Falcon token request returned ...` : Falcon a répondu par quelque chose d'inutilisable, un corps qui n'est pas du JSON ou sans `access_token`. C'est généralement un proxy ou une passerelle entre les deux, pas les identifiants.
 :::
 
 :::details Dernière erreur commence par `CrowdStrike Falcon alerts`
 - `CrowdStrike Falcon alerts query failed (HTTP 403)` : le jeton a été accepté, mais le client API n'a pas l'étendue **Alerts → Read**. Activez-la pour le client sous **API clients and keys**, et enregistrez. Elle s'applique au jeton suivant, testez donc de nouveau après une minute.
-- `CrowdStrike Falcon alerts query failed (HTTP 401)` : l'API Alerts a refusé le jeton, ce qui signifie presque toujours que **Falcon cloud** n'est pas le cloud qui a délivré le client.
+- `CrowdStrike Falcon alerts query failed (HTTP 401)` : l'API Alerts a refusé le jeton, ce qui signifie presque toujours que **Cloud Falcon** n'est pas le cloud qui a délivré le client.
 - `CrowdStrike Falcon alerts query failed (HTTP 429)` ou `CrowdStrike Falcon alerts fetch failed (HTTP 429)` : Falcon limite le débit de ce client API. Le client HTTP de OneUptime ne garde aucun en-tête de réponse sur une erreur, le message se termine donc généralement par `the X-RateLimit-RetryAfter header was not available` au lieu de le citer. Les interrogations planifiées réessaient d'elles-mêmes. Si cela continue, donnez à OneUptime son propre client API, plutôt qu'un client partagé avec d'autres outils.
 - `CrowdStrike Falcon alerts query failed (HTTP 400)` : Falcon a refusé la requête. La connexion envoie un filtre FQL fixe sur `created_timestamp`, copiez donc le rapport et envoyez-le au support de OneUptime.
 - `CrowdStrike Falcon alerts query returned ...` ou `CrowdStrike Falcon alerts fetch returned ...` : Falcon a répondu `200`, avec un corps qui n'est pas du JSON, ou dont la forme est inconnue de la connexion. C'est signalé plutôt que pris pour une fenêtre vide, pour que le curseur ne dépasse jamais des alertes que personne n'a lues.

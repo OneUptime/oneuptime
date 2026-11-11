@@ -25,7 +25,7 @@ Varje minut avsöker OneUptime varje aktiverad anslutning vars avsökningsinterv
 
 - I OneUptime rollen Project Owner, Project Admin eller Security Admin. Security Member och Security Viewer kan se anslutningar och deras körningshistorik, men inte ändra dem.
 - Ett Falcon-kund-ID (CID) och en användare av Falcon-konsolen som kan hantera API-klienter: rollen Falcon Administrator, eller en anpassad roll med behörigheten API clients and keys.
-- Utgående HTTPS från OneUptime-appen och -workerna till API-värden för ditt Falcon-moln, som anges under **Falcon cloud** nedan.
+- Utgående HTTPS från OneUptime-appen och -workerna till API-värden för ditt Falcon-moln, som anges under **Falcon-moln** nedan.
 
 ## Konfigurera anslutningen
 
@@ -59,7 +59,7 @@ Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. T
 | Inställning | Vad du anger |
 | --- | --- |
 | **Klient-ID** | API-klientens ID, så som Falcon visade det när du skapade klienten. |
-| **Falcon cloud** | Det moln som ditt CID finns i: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** eller **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Varje begäran går till det molnets API-värd. |
+| **Falcon-moln** | Det moln som ditt CID finns i: **US-1 (api.crowdstrike.com)**, **US-2 (api.us-2.crowdstrike.com)**, **EU-1 (api.eu-1.crowdstrike.com)** eller **US-GOV-1 (api.laggar.gcw.crowdstrike.com)**. Varje begäran går till det molnets API-värd. |
 | **Klienthemlighet** | API-klientens hemlighet. Den krypteras, returneras aldrig av API:et och visas aldrig igen. Ersätt den med **Uppdatera inloggningsuppgifter** på anslutningen. |
 
 Steget **Hämtning** har också en valfri **Beskrivning**, **Hämtningsintervall (minuter)**, ett heltal från `1` till `1440` som börjar på `5`, och **Aktiverad**, som börjar påslagen. En anslutning som inte är aktiverad kan fortfarande testas och avsökas manuellt.
@@ -110,7 +110,7 @@ När en körning inte alls kommer förbi den sparade markören, till exempel fö
 
 1. **Smalna av.** Nästa avsökning läser ett fönster som är hälften så långt, från samma startpunkt, och fortsätter att halvera tills ett fönster läses helt, ner till en minut. Körningens varning säger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Växa igen.** När ett fönster har lästs helt är nästa dubbelt så långt igen, upp till 24 timmar.
-3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Import this time range** för att hämta det som en körning kan läsa.
+3. **Gå förbi en enda minut.** Om till och med en minut innehåller mer än en avsökning kan läsa går avsökningen förbi den, så att nyare larm fortsätter att komma. Körningen förblir **Delvis**, och **Senaste fel** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importera den minuten med **Importera det här tidsintervallet** för att hämta det som en körning kan läsa.
 
 En körning som misslyckas helt, med ett fel från Falcon, behåller markören och fönsterlängden, och nästa avsökning läser samma fönster igen. Det enda undantaget är en begäran som fick tidsgräns: markören stannar, men nästa fönster är hälften så långt, eftersom ett fönster som är för tungt för att besvaras i tid skulle få tidsgräns vid varje försök. Att ändra **Hämtningsintervall (minuter)** ändrar inget av detta: det avgör hur ofta en avsökning startar, inte var dess fönster börjar.
 
@@ -119,9 +119,9 @@ En körning som misslyckas helt, med ett fel från Falcon, behåller markören o
 Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar och arbeta med den manuellt. Alla som kan ändra anslutningen kan starta de här åtgärderna; alla som kan se den kan läsa historiken.
 
 - **Kör nu** startar en avsökning direkt, med den vanliga markören, även när anslutningen inte är **Aktiverad**.
-- **Preview alerts** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
-- **Import this time range** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Larm som redan har importerats hoppas över.
-- **Copy diagnostics** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
+- **Förhandsgranska larm** läser ett tidsintervall på upp till 7 dagar och importerar ingenting.
+- **Importera det här tidsintervallet** importerar ett intervall på upp till 7 dagar, efter att du har bekräftat, utan att flytta markören. Larm som redan har importerats hoppas över.
+- **Kopiera diagnostik** på en körning kopierar dess rapport till supporten. Den innehåller aldrig autentiseringsuppgifter.
 
 ## Testa anslutningen
 
@@ -129,12 +129,12 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 
 | Kontroll | Vad den kontrollerar |
 | --- | --- |
-| **Konfiguration** | **Klient-ID**, **Falcon cloud** och **Klienthemlighet** finns och är korrekt formaterade. Ingenting kontaktas när detta misslyckas. |
+| **Konfiguration** | **Klient-ID**, **Falcon-moln** och **Klienthemlighet** finns och är korrekt formaterade. Ingenting kontaktas när detta misslyckas. |
 | **Authenticate with CrowdStrike Falcon** | `POST /oauth2/token` med API-klientens ID och hemlighet, på ditt molns värd, returnerar en token. |
 | **Read alerts from the Falcon Alerts API** | En larmfråga efter ett larm (`limit=1`) över de senaste 24 timmarna godtas, vilket bevisar omfånget **Alerts → Read**. |
 | **Alerts available to import** | Hur många larm som har skapats de senaste 24 timmarna och de senaste 7 dagarna. Inga på 7 dagar är en varning, inte ett fel: avsökningen importerar nya larm allteftersom Falcon skapar dem. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
-| **Scheduled polling** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
+| **Schemalagd hämtning** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
 
 Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar aldrig något och flyttar aldrig markören, och varje kontroll som misslyckas säger vad du ska ändra. **Kopiera rapport** kopierar checklistan som JSON, utan autentiseringsuppgifter eller tokens.
 
@@ -143,13 +143,13 @@ Varje begäran i ett test har en tidsgräns på 20 sekunder. Ett test importerar
 Anslutningens **Senaste fel**, och varje kontroll som misslyckas, sparar hela felmeddelandet, med autentiseringsuppgifter maskerade, bakom ett prefix som namnger det steg som misslyckades. När en anslutning har ett fel väljer du **Visa fel** i dess kolumn **Åtgärder** för att läsa det, och **Kopiera fel** i dialogrutan för att kopiera det. Läs prefixet först.
 
 :::details Last Error börjar med `CrowdStrike Falcon token request`
-- `CrowdStrike Falcon token request failed (HTTP 401)` eller `(HTTP 403)`: Falcon avvisade API-klientens ID och hemlighet, innan Alerts API kontaktades. Kontrollera att **Falcon cloud** är ditt CID:s moln, eftersom en klient från ett annat moln avvisas här, att **Klient-ID** är klientens och att **Klienthemlighet** är den hemlighet som utfärdades med den. Om hemligheten har gått förlorad återställer du den i Falcon-konsolen och sparar den med **Uppdatera inloggningsuppgifter**.
+- `CrowdStrike Falcon token request failed (HTTP 401)` eller `(HTTP 403)`: Falcon avvisade API-klientens ID och hemlighet, innan Alerts API kontaktades. Kontrollera att **Falcon-moln** är ditt CID:s moln, eftersom en klient från ett annat moln avvisas här, att **Klient-ID** är klientens och att **Klienthemlighet** är den hemlighet som utfärdades med den. Om hemligheten har gått förlorad återställer du den i Falcon-konsolen och sparar den med **Uppdatera inloggningsuppgifter**.
 - `CrowdStrike Falcon token request returned ...`: Falcon svarade med något oanvändbart, en kropp som inte är JSON eller som saknar `access_token`. Det är oftast en proxy eller gateway emellan, inte autentiseringsuppgifterna.
 :::
 
 :::details Last Error börjar med `CrowdStrike Falcon alerts`
 - `CrowdStrike Falcon alerts query failed (HTTP 403)`: token godtogs, men API-klienten har inte omfånget **Alerts → Read**. Slå på det för klienten under **API clients and keys** och spara. Det gäller för nästa token, så testa igen efter en minut.
-- `CrowdStrike Falcon alerts query failed (HTTP 401)`: Alerts API avvisade token, vilket nästan alltid betyder att **Falcon cloud** inte är det moln som utfärdade klienten.
+- `CrowdStrike Falcon alerts query failed (HTTP 401)`: Alerts API avvisade token, vilket nästan alltid betyder att **Falcon-moln** inte är det moln som utfärdade klienten.
 - `CrowdStrike Falcon alerts query failed (HTTP 429)` eller `CrowdStrike Falcon alerts fetch failed (HTTP 429)`: Falcon begränsar den här API-klientens hastighet. OneUptimes HTTP-klient behåller inga svarshuvuden vid ett fel, så meddelandet slutar oftast med `the X-RateLimit-RetryAfter header was not available` i stället för att citera det. Schemalagda avsökningar försöker igen av sig själva. Om det fortsätter ger du OneUptime en egen API-klient i stället för en som delas med andra verktyg.
 - `CrowdStrike Falcon alerts query failed (HTTP 400)`: Falcon avvisade frågan. Anslutningen skickar ett fast FQL-filter på `created_timestamp`, så kopiera rapporten och skicka den till OneUptimes support.
 - `CrowdStrike Falcon alerts query returned ...` eller `CrowdStrike Falcon alerts fetch returned ...`: Falcon svarade `200`, med en kropp som inte är JSON eller som inte har en form som anslutningen känner till. Det rapporteras i stället för att tolkas som ett tomt fönster, så att markören aldrig passerar larm som ingen har läst.
@@ -167,7 +167,7 @@ Anslutningens **Senaste fel**, och varje kontroll som misslyckas, sparar hela fe
 :::details En körning är Partial
 - `Stopped after 19 requests before reading the whole window`: fönstret innehöll mer än de 9 000 larm som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter det senast lästa larmet. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta sig framåt. Antalet kan ligga något över 19 när token förnyades under körningen.
 - `Falcon returned alerts out of created_timestamp order, so this run cannot name a point to resume from.`: frågan ignorerade ordningen från äldst till nyast, så körningen kan inte flytta markören till sitt sista larm, och nästa avsökning läser i stället ett kortare fönster. Om det upprepas skickar du körningens rapport till OneUptimes support.
-- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Import this time range** i **Diagnostik**. En import läser lika mycket som en avsökning.
+- `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Importera det här tidsintervallet** i **Diagnostik**. En import läser lika mycket som en avsökning.
 :::
 
 :::details Last Polled är Never och Last Error är tom
@@ -175,7 +175,7 @@ Ingen avsökning har körts, så ingenting har nått Falcon. **Testa anslutninge
 :::
 
 :::details Testet lyckas, men inga händelser visas
-Läs **Alerts available to import**: en varning där betyder att Falcon inte har skapat några larm de senaste 7 dagarna, så det finns inget att importera ännu. Annars öppnar du **Diagnostik**, kontrollerar den senaste avsökningens fönster och antal och använder **View events in this time range** på en körning för att öppna tidsintervallet för de larm som den importerade.
+Läs **Alerts available to import**: en varning där betyder att Falcon inte har skapat några larm de senaste 7 dagarna, så det finns inget att importera ännu. Annars öppnar du **Diagnostik**, kontrollerar den senaste avsökningens fönster och antal och använder **Visa händelser i det här tidsintervallet** på en körning för att öppna tidsintervallet för de larm som den importerade.
 :::
 
 ## Vad du får

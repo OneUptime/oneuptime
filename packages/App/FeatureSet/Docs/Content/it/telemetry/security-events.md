@@ -236,7 +236,7 @@ Un account AWS, un progetto Google Cloud o una sottoscrizione Azure [collegati i
 | Microsoft Entra ID | Accessi, modifiche alla directory e rilevamenti di rischio, se lo scegli gli accessi in background e delle app non riusciti, e dal log di audit di Microsoft 365 l'inoltro della posta, le condivisioni e i verdetti di phishing | [Microsoft Entra ID](/docs/integrations/microsoft-entra-id) |
 | Google Workspace | Accessi, i rilevamenti di Google, le modifiche di amministrazione e gli accessi concessi alle app, e le condivisioni in Drive | [Google Workspace](/docs/integrations/google-workspace) |
 
-- Gli avvisi propri del prodotto di livello pari o superiore a **Open Cases From** (**Alta e superiori** a meno che tu non scelga un altro livello, oppure **Mai**) aprono [casi](/docs/telemetry/security-cases), raggruppati per l'utente, l'host o l'indirizzo che riguardano.
+- Gli avvisi propri del prodotto di livello pari o superiore a **Apri casi da** (**Alta e superiori** a meno che tu non scelga un altro livello, oppure **Mai**) aprono [casi](/docs/telemetry/security-cases), raggruppati per l'utente, l'host o l'indirizzo che riguardano.
 - Una connessione legge i record in base al momento in cui il prodotto li ha creati, non al momento dell'attività che descrivono. Una regola SIEM che gira ogni ora crea rilevamenti molto dopo gli eventi corrispondenti, e vengono comunque importati.
 - La prima interrogazione guarda indietro di 24 ore, così una nuova connessione mostra subito i record recenti.
 - **Testa la connessione**, nella riga della connessione, verifica l'accesso al prodotto e che i worker di OneUptime siano in funzione, senza importare nulla. **Esegui ora** interroga subito.
@@ -283,7 +283,7 @@ Un campo è un nome breve (`severity`, `class`, `category`, `activity`, `status`
 
 ### Facet
 
-La barra laterale conta gli eventi della finestra per **Origine**, **Gravità**, **Request Outcome**, **Classe di eventi**, **Categoria**, **Attività**, **Stato**, **Fornitore**, **Prodotto**, **Regola di rilevamento**, **Utente di origine**, **Host di origine**, **Processo** e **Processo padre**. Fai clic su un valore per tenere solo i suoi eventi, o sul segno meno accanto per escluderli. Fai di nuovo clic per annullare. Il grafico e ogni conteggio descrivono esattamente gli eventi dell'elenco.
+La barra laterale conta gli eventi della finestra per **Origine**, **Gravità**, **Esito della richiesta**, **Classe di eventi**, **Categoria**, **Attività**, **Stato**, **Fornitore**, **Prodotto**, **Regola di rilevamento**, **Utente di origine**, **Host di origine**, **Processo** e **Processo padre**. Fai clic su un valore per tenere solo i suoi eventi, o sul segno meno accanto per escluderli. Fai di nuovo clic per annullare. Il grafico e ogni conteggio descrivono esattamente gli eventi dell'elenco.
 
 ### Cosa è successo dopo
 

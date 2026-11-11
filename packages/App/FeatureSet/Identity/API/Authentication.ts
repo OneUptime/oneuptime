@@ -60,6 +60,12 @@ import AccessTokenService from "Common/Server/Services/AccessTokenService";
 import EmailVerificationTokenService from "Common/Server/Services/EmailVerificationTokenService";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import MailService from "Common/Server/Services/MailService";
+import ServerSendingStatus from "Common/Server/Utils/ServerSending/ServerSendingStatus";
+import {
+  PASSWORD_RESET_CANNOT_BE_EMAILED_MESSAGE,
+  REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE,
+  SIGN_IN_LINK_CANNOT_BE_EMAILED_MESSAGE,
+} from "Common/Types/ServerSending/ServerSendingWords";
 import ProductBrandingText from "Common/Server/Utils/ProductBrandingText";
 import RequestOriginUtil from "Common/Server/Utils/RequestOrigin/RequestOriginUtil";
 import SsoRequiredSignIn from "Common/Server/Utils/SsoRequiredSignIn";
@@ -761,7 +767,21 @@ router.post(
            * handler, where it is on, and the limits on the emails a sign-up
            * sends (PublicMessageRateLimit: per caller and per address) are
            * what stop this branch from being a mail cannon.
+           *
+           * A server with no email set up cannot send that link: the person
+           * is told to ask whoever invited them for theirs, which a master
+           * admin can copy (TeamMemberAPI's invitation-link), rather than to
+           * wait for an email. This branch already answers differently from
+           * a new sign-up, so it says nothing more about the address.
            */
+          if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+            return Response.sendErrorResponse(
+              req,
+              res,
+              new BadDataException(REGISTRATION_LINK_CANNOT_BE_EMAILED_MESSAGE),
+            );
+          }
+
           await PublicMessageRateLimit.assertMaySend({
             req: req,
             kind: PublicMessageKind.SignUpEmail,
@@ -1091,6 +1111,18 @@ router.post(
        */
       CredentialGuard.assertPresent(user.email, "Email");
 
+      /*
+       * A server with no email set up cannot send the link, so nobody is
+       * told it was sent: they are told who can let them in instead. Asked
+       * before the address is looked up, so every address gets the same
+       * answer - a fact about the server, never about an account. The
+       * Forgot password page says the same before anyone types
+       * (GET /global-config/vars' canSendEmail).
+       */
+      if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+        throw new BadDataException(PASSWORD_RESET_CANNOT_BE_EMAILED_MESSAGE);
+      }
+
       const alreadySavedUser: User | null = await UserService.findOneBy({
         query: { email: user.email! },
         select: {
@@ -1256,6 +1288,14 @@ router.post(
 
       if (await GlobalConfigService.getMagicLinkLoginTurnedOff()) {
         throw new BadDataException(MAGIC_LINK_TURNED_OFF_MESSAGE);
+      }
+
+      /*
+       * No email set up: no link can go, so nobody is told to check their
+       * inbox. The same for every address, asked before any is looked up.
+       */
+      if (await ServerSendingStatus.isEmailKnownNotSetUp()) {
+        throw new BadDataException(SIGN_IN_LINK_CANNOT_BE_EMAILED_MESSAGE);
       }
 
       await PublicMessageRateLimit.assertMaySend({

@@ -599,6 +599,13 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
              * members are told only that their project is blocked.
              */
             isBlocked: true,
+            /*
+             * Who created the project, so the Dashboard's analytics events
+             * can say whether the person created it (is_project_creator,
+             * Docs/analytics/activation.md) - an id, compared in the
+             * browser and never sent.
+             */
+            createdByUserId: true,
           };
 
           const teamMembers: Array<TeamMember> = await TeamMemberService.findBy(

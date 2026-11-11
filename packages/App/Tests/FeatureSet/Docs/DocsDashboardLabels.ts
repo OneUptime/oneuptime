@@ -1,4 +1,6 @@
 import {
+  TemplateValues,
+  Translator,
   createTranslator,
   translateNamedAction,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -296,5 +298,62 @@ export const drawnCreateButton: DashboardLabelFunction = (
       template: "Create {{itemName}}",
       itemName: english.slice(CREATE_PREFIX.length),
     },
+  );
+};
+
+/*
+ * The Dashboard's translator in this language, reading its locale file: a
+ * value that is still the English is no wording at all, as on the screen.
+ */
+export const dashboardTranslator: (language: string) => Translator = (
+  language: string,
+): Translator => {
+  const locale: Record<string, unknown> = dashboardLocale(language);
+
+  return createTranslator((text: string): string | undefined => {
+    const value: unknown = locale[text];
+
+    return typeof value === "string" ? value : undefined;
+  }, language);
+};
+
+/*
+ * A label the Dashboard builds from a sentence and a value (#6703): the
+ * Security Events diagnostics' "Preview {{records}}" with the records a
+ * connector imports, the run details' "Returned by {{provider}}" with the
+ * provider's name, the connection form's "Remove the stored {{field}}" with
+ * a setting's title. The English label is no key, so a page cannot look it
+ * up: it names the template and the values the Dashboard fills it with.
+ */
+export interface DashboardTemplateLabel {
+  // The label as the English Dashboard draws it: "Preview detections".
+  label: string;
+  // The key it is drawn from: "Preview {{records}}".
+  template: string;
+  /*
+   * What the Dashboard puts in each placeholder: a word it translates with
+   * the sentence is a translatableTerm(), a name is a string.
+   */
+  values: TemplateValues;
+}
+
+type DrawnTemplateLabelFunction = (
+  language: string,
+  label: DashboardTemplateLabel,
+) => string;
+
+/*
+ * What the Dashboard draws for a template-built label in this language: the
+ * locale's whole sentence, filled with the same values, a word among them in
+ * this language too; the English sentence where the locale has no wording of
+ * it, as the Dashboard falls back.
+ */
+export const drawnTemplateLabel: DrawnTemplateLabelFunction = (
+  language: string,
+  label: DashboardTemplateLabel,
+): string => {
+  return dashboardTranslator(language).translateTemplate(
+    label.template,
+    label.values,
   );
 };

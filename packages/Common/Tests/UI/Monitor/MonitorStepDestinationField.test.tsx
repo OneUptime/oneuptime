@@ -442,4 +442,26 @@ describe("the address field of a new probe check", () => {
       ),
     ).not.toBeInTheDocument();
   });
+
+  /*
+   * The box used to have no name: its label was drawn beside it but pointed
+   * at nothing, so a screen reader read "edit text", and the journey budgets
+   * (packages/E2E/Journeys) could not find "Website URL" by its label.
+   */
+  test.each(DESTINATION_TYPES)(
+    "%s: the box is named by its label and described by its help",
+    async (monitorType: MonitorType) => {
+      const copy: ReturnType<typeof getMonitorDestinationFieldCopy> =
+        getMonitorDestinationFieldCopy(monitorType);
+
+      render(editor(monitorType));
+
+      const input: HTMLElement = await screen.findByLabelText(copy!.title, {
+        exact: false,
+      });
+
+      expect(input).toBe(screen.getByPlaceholderText(copy!.placeholder));
+      expect(input).toHaveAccessibleDescription(copy!.description);
+    },
+  );
 });

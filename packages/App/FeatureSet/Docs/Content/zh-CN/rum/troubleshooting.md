@@ -146,9 +146,9 @@ setTimeout(() => {
 - **Safari 和 Firefox。** `browserDetector` 读取 UA Client Hints API，而只有基于 Chromium 的浏览器才有这个 API。在其他浏览器中，它会设置 `browser.language` ，这足以将遥测归为 RUM，但不会设置 `browser.platform` 。要列出这些客户端，请自己设置 `browser.platform` 。
 - **只设置 `device.manufacturer` 的移动端 SDK。** 这会把遥测归为移动端 RUM，但 **客户端** 页面需要 `device.model.identifier` 。
 
-## 核心 Web 指标显示“No web vitals reported yet”
+## 核心 Web 指标显示“尚未上报 Web Vitals”
 
-这张卡片只由你的应用发送的指标填充，所以仅有追踪永远填不满它。检查你是否导出了指标、指标名称是否是 OneUptime 读取的名称，以及它们是否出现在应用程序的 **指标** 页面上。 [卡片显示“No web vitals reported yet”](/docs/rum/web-vitals#故障排除) 逐一介绍了每项检查，包括访客在下一次导出前关闭选项卡而丢失的值。
+这张卡片只由你的应用发送的指标填充，所以仅有追踪永远填不满它。检查你是否导出了指标、指标名称是否是 OneUptime 读取的名称，以及它们是否出现在应用程序的 **指标** 页面上。 [卡片显示“尚未上报 Web Vitals”](/docs/rum/web-vitals#故障排除) 逐一介绍了每项检查，包括访客在下一次导出前关闭选项卡而丢失的值。
 
 ## 有人在使用应用，但状态显示近期无流量
 

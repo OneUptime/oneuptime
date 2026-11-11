@@ -803,7 +803,195 @@ describe("Core Concepts", () => {
       "A new project starts with AI on; the **Enable AI** switch under **Project Settings → AI → AI Features** turns all of it off.",
     );
   });
+
+  /*
+   * #6818 took Core Concepts past the core loop: what you watch, reliability
+   * targets, security, what you install and the kinds of rule, so it covers
+   * what a newcomer meets in the menu's first three categories and the
+   * things they install.
+   */
+  it("covers what you watch, reliability targets, security, what you install and the kinds of rule, in reading order", () => {
+    const sections: Array<string> = CORE_CONCEPTS.split("\n").filter(
+      (line: string): boolean => {
+        return line.startsWith("## ");
+      },
+    );
+
+    expect(sections).toEqual([
+      "## How the pieces connect",
+      "## Projects and people",
+      "## Monitors and probes",
+      "## What you watch",
+      "## Reliability targets",
+      "## Incidents and alerts",
+      "## On-call",
+      "## Status pages and maintenance",
+      "## Telemetry",
+      "## Security",
+      "## What you install, and the keys",
+      "## Automation and AI",
+      "## Labels and owners",
+      "## The kinds of rule",
+      "## Next steps",
+    ]);
+  });
+
+  it("sends a reader to the Glossary for one word and to Which One Do I Use? for two that look alike", () => {
+    const opening: string = CORE_CONCEPTS.split("\n")[2] as string;
+
+    expect(opening).toContain("[Glossary](/docs/introduction/glossary)");
+    expect(opening).toContain(
+      "[Which One Do I Use?](/docs/introduction/which-one)",
+    );
+    expect(
+      sectionOf(CORE_CONCEPTS, "## What you install, and the keys"),
+    ).toContain(
+      "(/docs/introduction/which-one#probe-agent-collector-or-runner)",
+    );
+  });
+
+  it("names the products of the menu's first three categories", () => {
+    const essentials: Array<string> = [
+      "monitor",
+      "incident",
+      "alert",
+      "on-call",
+      "status page",
+      "maintenance",
+      "SLO",
+    ];
+
+    for (const word of essentials) {
+      expect({ word: word, named: CORE_CONCEPTS.includes(word) }).toEqual({
+        word: word,
+        named: true,
+      });
+    }
+
+    // Observability, in the menu's own order, as the menu names each one.
+    const navigation: string = dashboard("Utils/NavigationItems.tsx");
+    const items: Record<string, string> = (
+      JSON.parse(dashboard("Locales/en.json")) as {
+        navbar: { items: Record<string, string> };
+      }
+    ).navbar.items;
+    const observability: Array<string> = [
+      "logsTitle",
+      "metricsTitle",
+      "tracesTitle",
+      "performanceProfilesTitle",
+      "exceptionsTitle",
+      "llmObservabilityTitle",
+      "dataObservabilityTitle",
+      "topologyTitle",
+    ];
+    const positions: Array<number> = observability.map(
+      (key: string): number => {
+        return navigation.indexOf(`navbar.items.${key}`);
+      },
+    );
+
+    expect(
+      positions.every((position: number): boolean => {
+        return position >= 0;
+      }),
+    ).toBe(true);
+    expect(
+      [...positions].sort((a: number, b: number): number => {
+        return a - b;
+      }),
+    ).toEqual(positions);
+
+    const telemetry: string = sectionOf(CORE_CONCEPTS, "## Telemetry");
+    const named: Array<string> = boldSpans(
+      telemetry.slice(telemetry.indexOf("In the menu,")),
+    );
+
+    expect(named).toEqual(
+      observability.map((key: string): string => {
+        return items[key] as string;
+      }),
+    );
+
+    // Security, both of its products.
+    expect(boldSpans(sectionOf(CORE_CONCEPTS, "## Security"))).toEqual([
+      items["securityEventsTitle"],
+      items["dataSecurityTitle"],
+    ]);
+  });
+
+  it("names every kind of rule as the side menus that list it do", () => {
+    const table: Array<Array<string>> = onlyTableOf(
+      sectionOf(CORE_CONCEPTS, "## The kinds of rule"),
+    );
+    const rules: Array<string> = table.flatMap(
+      (row: Array<string>): Array<string> => {
+        return boldSpans(row[1] as string);
+      },
+    );
+    const listed: Set<string> = new Set<string>([
+      ...menuSection(dashboard("Pages/Incidents/SideMenu.tsx"), "Rules").items,
+      ...menuSection(dashboard("Pages/Alerts/SideMenu.tsx"), "Rules").items,
+    ]);
+
+    expect(rules.length).toBeGreaterThanOrEqual(10);
+
+    for (const rule of rules) {
+      const where: boolean =
+        listed.has(rule) ||
+        // A policy's own levels.
+        (rule === "Escalation Rules" &&
+          dashboard("Pages/OnCallDuty/OnCallDutyPolicy/SideMenu.tsx").includes(
+            'title: "Escalation Rules"',
+          )) ||
+        // OneUptime AI's rules, under AI → Settings.
+        rule === AUTO_REMEDIATION_RULES;
+
+      expect({ rule: rule, where: where }).toEqual({ rule: rule, where: true });
+    }
+
+    // Every rule Incidents lists has its family.
+    for (const rule of menuSection(
+      dashboard("Pages/Incidents/SideMenu.tsx"),
+      "Rules",
+    ).items) {
+      expect({ rule: rule, named: rules.includes(rule) }).toEqual({
+        rule: rule,
+        named: true,
+      });
+    }
+  });
+
+  it("measures an SLO as often as the SLO pages say, and links the service diagram's pieces to their pages", () => {
+    expect(sectionOf(CORE_CONCEPTS, "## Reliability targets")).toContain(
+      "every 5 minutes",
+    );
+    expect(readPage("en", "slo/introduction")).toContain(
+      "OneUptime measures every SLO against its target every 5 minutes",
+    );
+
+    const watch: string = sectionOf(CORE_CONCEPTS, "## What you watch");
+
+    expect(watch).toContain(
+      'title="One service, what watches it, and where it shows"',
+    );
+
+    for (const page of [
+      "/docs/monitor/monitor-groups",
+      "/docs/telemetry/services",
+      "/docs/inventory/overview",
+    ]) {
+      expect(watch).toContain(`(${page})`);
+    }
+  });
 });
+
+// AI rules' name, as their model names them.
+const AUTO_REMEDIATION_RULES: string = String(
+  readSource(COMMON_DIR, "Models/DatabaseModels/AutoRemediationRule.ts").match(
+    /pluralName: "([^"]+)"/,
+  )?.[1],
+);
 
 // ---- Home Page & Shortcuts --------------------------------------------------
 

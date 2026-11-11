@@ -1,6 +1,6 @@
 # Dashboards – Overzicht
 
-Een dashboard is één pagina met widgets die je zelf indeelt: grafieken van je metrics, logs en traces, lijsten met incidenten, waarschuwingen en monitors, je SLO's en je infrastructuur, zelfs gegevens uit systemen buiten OneUptime. Maak er een voor het scherm van de dienstdoende, de ochtendcheck van een team of een pagina voor je klanten, en deel het met je project of met iedereen die de link heeft.
+Een dashboard is één pagina met widgets die je zelf indeelt: grafieken van je metrics, logs en traces, lijsten met incidenten, waarschuwingen en monitors, je SLO's en je infrastructuur, zelfs gegevens uit systemen buiten OneUptime. Maak er een voor het scherm van de dienstdoende, de ochtendcheck van een team of een pagina voor je klanten, en deel het met je project of met iedereen die de link heeft. Om te kiezen tussen een dashboard, een openbaar dashboard en een statuspagina, zie [Welke gebruik ik?](/docs/introduction/which-one#dashboard-openbaar-dashboard-of-statuspagina).
 
 :::cards
 - [Hoe een dashboard werkt](#hoe-een-dashboard-werkt): Waar de gegevens vandaan komen, en wie het ziet.

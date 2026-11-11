@@ -116,6 +116,7 @@
     "test-reading-direction-ui": "playwright test --config playwright.reading-direction-ui.config.ts",
     "test-owners-on-create-ui": "playwright test --config playwright.owners-on-create-ui.config.ts",
     "test-first-on-call-policy-ui": "playwright test --config playwright.first-on-call-policy-ui.config.ts",
+    "test-journeys-ui": "playwright test --config playwright.journeys-ui.config.ts",
     "test-owner-filters-ui": "playwright test --config playwright.owner-filters-ui.config.ts",
     "test-kubernetes-events-ui": "playwright test --config playwright.kubernetes-events-ui.config.ts",
     "test-openshift-pages-ui": "playwright test --config playwright.openshift-pages-ui.config.ts",

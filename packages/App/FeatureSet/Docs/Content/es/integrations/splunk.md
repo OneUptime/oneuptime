@@ -44,7 +44,7 @@ Para autenticarte con una contraseña en su lugar, sáltate este paso y ten a ma
 
 ### Añadir la conexión en OneUptime
 
-Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Splunk Enterprise Security** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega el token en **Authentication token**, o la contraseña en **Contraseña**.
+Abre **Productos → Eventos de seguridad → Conexiones** (`/dashboard/{projectId}/security-events/connections`), haz clic en **Añadir conexión**, elige **Splunk Enterprise Security** y haz clic en **Siguiente**. Rellena los ajustes de la tabla de abajo, haz clic en **Siguiente** y pega el token en **Token de autenticación**, o la contraseña en **Contraseña**.
 
 ### Probarla antes de guardar
 
@@ -53,13 +53,13 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 
 | Ajuste | Qué introducir |
 | --- | --- |
-| **Splunk management URL** | La API REST del search head, por ejemplo `https://splunk.example.com:8089`. Debe usar `https`, sin cadena de consulta. Se conserva una ruta, para un proxy inverso que sirva la API bajo una ruta. |
+| **URL de administración de Splunk** | La API REST del search head, por ejemplo `https://splunk.example.com:8089`. Debe usar `https`, sin cadena de consulta. Se conserva una ruta, para un proxy inverso que sirva la API bajo una ruta. |
 | **Buscar** | La búsqueda que elige qué importar, `index=notable` mientras no la cambies. Restríngela, por ejemplo con `index=notable urgency IN (high, critical)`. OneUptime añade el intervalo de tiempo por sí mismo, así que la búsqueda no puede fijar `earliest` ni `latest`, ni empezar con una barra vertical. Se quita un `search` inicial. |
 | **Nombre de usuario** | El nombre del usuario de Splunk, solo si se autentica con contraseña. |
-| **Authentication token** | El token del primer paso. Cuando hay un token guardado, es el que se usa, y no el nombre de usuario ni la contraseña. |
+| **Token de autenticación** | El token del primer paso. Cuando hay un token guardado, es el que se usa, y no el nombre de usuario ni la contraseña. |
 | **Contraseña** | La contraseña del usuario de Splunk, solo cuando no se usa ningún token. |
 
-**Authentication token** y **Contraseña** se cifran, la API nunca los devuelve y nunca se vuelven a mostrar. Sustituye uno con **Actualizar credenciales** en la conexión. Para pasar de una forma de autenticación a la otra, escribe la nueva ahí y activa **Remove the stored Authentication token** o **Remove the stored Password**.
+**Token de autenticación** y **Contraseña** se cifran, la API nunca los devuelve y nunca se vuelven a mostrar. Sustituye uno con **Actualizar credenciales** en la conexión. Para pasar de una forma de autenticación a la otra, escribe la nueva ahí y activa **Eliminar el campo Token de autenticación almacenado** o **Eliminar el campo Contraseña almacenado**.
 
 El paso **Sondeo** también tiene una **Descripción** opcional, el **Intervalo de sondeo (minutos)**, un número entero de `1` a `1440` que empieza en `5`, y **Habilitado**, que empieza activado.
 
@@ -129,7 +129,7 @@ Una ejecución que falla del todo, con un error de Splunk, conserva el cursor y 
 Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones recientes y trabajar con ella a mano. Quien puede cambiar la conexión puede iniciar estas acciones; quien puede verla puede leer el historial.
 
 - **Ejecutar ahora** inicia un sondeo de inmediato, con el cursor habitual, incluso cuando la conexión no está **Habilitado**.
-- **Preview notable events** lee un intervalo de tiempo de hasta 7 días y no importa nada.
+- **Vista previa de eventos notables** lee un intervalo de tiempo de hasta 7 días y no importa nada.
 - **Importar este intervalo de tiempo** importa un intervalo de hasta 7 días, después de que lo confirmes, sin mover el cursor. Las filas ya importadas se omiten.
 - **Copiar diagnósticos** en una ejecución copia su informe para soporte. Nunca incluye credenciales.
 
@@ -177,7 +177,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 :::details Último error empieza por `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk se negó a decir quién es el que llama.
   - `HTTP 401`: Splunk no aceptó las credenciales. El token es incorrecto, caducó o se eliminó, la autenticación por token está desactivada en el search head, o el nombre de usuario o la contraseña son incorrectos. Crea un token nuevo y guárdalo con **Actualizar credenciales**.
-  - `HTTP 404`: la **Splunk management URL** no es la API REST. Apunta a Splunk Web en el puerto `8000`, o tiene una ruta que el search head no sirve.
+  - `HTTP 404`: la **URL de administración de Splunk** no es la API REST. Apunta a Splunk Web en el puerto `8000`, o tiene una ruta que el search head no sirve.
 - `Splunk Enterprise Security authentication request returned ...`: respondió algo distinto de la API REST del search head, por ejemplo el HTML de Splunk Web en el puerto `8000` o la página de un proxy. Apunta la URL al puerto de gestión.
 :::
 

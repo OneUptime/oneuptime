@@ -1,6 +1,6 @@
 # Groupes de moniteurs
 
-Un groupe de moniteurs réunit plusieurs moniteurs en un seul statut. Regroupez les moniteurs qui forment ensemble un service, comme Checkout : son API, son service de paiement et son application web. Le groupe affiche le pire statut parmi eux, a sa propre disponibilité, et une page de statut peut afficher tout le groupe sur une seule ligne.
+Un groupe de moniteurs réunit plusieurs moniteurs en un seul statut. Regroupez les moniteurs qui forment ensemble un service, comme Checkout : son API, son service de paiement et son application web. Le groupe affiche le pire statut parmi eux, a sa propre disponibilité, et une page de statut peut afficher tout le groupe sur une seule ligne. Pour choisir entre un groupe de moniteurs, un service et une étiquette, consultez [Lequel choisir ?](/docs/introduction/which-one#groupe-de-moniteurs-service-ou-étiquette).
 
 :::cards
 - [Comment le statut d'un groupe est calculé](#comment-le-statut-dun-groupe-est-calculé): Le pire statut parmi ses moniteurs.
@@ -90,6 +90,8 @@ Ouvrez un groupe pour voir ses pages dans le menu latéral :
 | **Supprimer le groupe** | Supprime le groupe, également sous **Avancé**. |
 
 La disponibilité de la **Vue d'ensemble** compte tout statut autre que l'opérationnel comme indisponibilité. Une page de statut ne compte que les statuts de sa propre liste **Compte comme indisponibilité** : voir [Choisir ce qui s'affiche sur la page](/docs/status-pages/index#choisir-ce-qui-saffiche-sur-la-page).
+
+Chaque barre du graphique de disponibilité, ici comme sur une page de statut, montre combien de temps le groupe lui-même est resté dans chaque statut ce jour-là : à chaque instant, il a le pire statut parmi ses moniteurs, si bien qu'une heure pendant laquelle deux d'entre eux sont hors ligne en même temps compte pour une heure du groupe, et qu'une journée ne fait jamais plus d'une journée. Les jours sont les vôtres : le tableau de bord les dessine dans le fuseau horaire de vos paramètres utilisateur, et une page de statut dans celui de chaque visiteur.
 
 La liste **Groupes de moniteurs** peut filtrer les groupes par propriétaire et par libellé, définir les libellés et les propriétaires de nombreux groupes à la fois, et exporter ou importer des groupes en JSON.
 

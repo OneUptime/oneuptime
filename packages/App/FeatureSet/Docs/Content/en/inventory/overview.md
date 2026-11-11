@@ -1,6 +1,6 @@
 # Inventory Overview
 
-Inventory is one list of everything OneUptime knows about your estate: services, hosts, Kubernetes objects, virtual machines, network devices, cloud resources, IoT devices, serverless functions, and the things that send no telemetry at all. Most of it fills itself in from what OneUptime already watches. You add what watching cannot tell it: what a thing is for, who owns it, when its warranty runs out.
+Inventory is one list of everything OneUptime knows about your estate: services, hosts, Kubernetes objects, virtual machines, network devices, cloud resources, IoT devices, serverless functions, and the things that send no telemetry at all. Most of it fills itself in from what OneUptime already watches. You add what watching cannot tell it: what a thing is for, who owns it, when its warranty runs out. The [Glossary](/docs/introduction/glossary#what-you-watch) says what each kind of record in it is.
 
 :::cards
 - [How items get into Inventory](#how-items-get-into-inventory): Discovered, mirrored, or added by you.

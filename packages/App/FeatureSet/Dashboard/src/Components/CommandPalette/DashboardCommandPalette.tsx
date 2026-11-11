@@ -1,3 +1,5 @@
+import ProductEvents from "Common/UI/Utils/ProductEvents";
+import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import useDashboardNavigationItems, {
   DashboardNavigationItems,
 } from "../../Utils/NavigationItems";
@@ -721,6 +723,21 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
     commands = [...commands, ...pageCommands];
   }
 
+  /*
+   * A search that found nothing (issue #6830): how many there are, and on
+   * OneUptime Cloud the words - cut short, and dropped off Cloud
+   * (ProductEvent's search/no_results).
+   */
+  const recordSearchFoundNothing: (searchedQuery: string) => void = (
+    searchedQuery: string,
+  ): void => {
+    ProductEvents.send(ProductEventName.SearchFoundNothing, {
+      source: "command_palette",
+      query_length: searchedQuery.length,
+      query: searchedQuery,
+    });
+  };
+
   return (
     <CommandPalette
       commands={commands}
@@ -728,6 +745,7 @@ const DashboardCommandPalette: FunctionComponent = (): ReactElement => {
       isOpen={isOpen}
       onClose={closePalette}
       recentStorageKey={PALETTE_RECENTS_STORAGE_KEY}
+      onSearchFoundNothing={recordSearchFoundNothing}
     />
   );
 };

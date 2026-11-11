@@ -44,7 +44,7 @@ Per autenticarti invece con una password, salta questo passo e tieni a portata d
 
 ### Aggiungere la connessione in OneUptime
 
-Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Splunk Enterprise Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il token in **Authentication token**, oppure la password in **Password**.
+Apri **Prodotti → Eventi di sicurezza → Connessioni** (`/dashboard/{projectId}/security-events/connections`), fai clic su **Aggiungi connessione**, scegli **Splunk Enterprise Security** e fai clic su **Avanti**. Compila le impostazioni della tabella qui sotto, fai clic su **Avanti** e incolla il token in **Token di autenticazione**, oppure la password in **Password**.
 
 ### Provarla prima di salvare
 
@@ -53,13 +53,13 @@ Fai clic su **Prova queste impostazioni** sotto **Testa prima di salvare**. Il t
 
 | Impostazione | Cosa inserire |
 | --- | --- |
-| **Splunk management URL** | L'API REST del search head, per esempio `https://splunk.example.com:8089`. Deve usare `https`, senza query string. Un percorso viene mantenuto, per un reverse proxy che serve l'API sotto un percorso. |
+| **URL di gestione di Splunk** | L'API REST del search head, per esempio `https://splunk.example.com:8089`. Deve usare `https`, senza query string. Un percorso viene mantenuto, per un reverse proxy che serve l'API sotto un percorso. |
 | **Cerca** | La ricerca che sceglie cosa importare, `index=notable` finché non la cambi. Restringila, per esempio con `index=notable urgency IN (high, critical)`. OneUptime aggiunge da sé l'intervallo di tempo, quindi la ricerca non può impostare `earliest` né `latest`, né iniziare con una pipe. Un `search` iniziale viene tolto. |
 | **Nome utente** | Il nome dell'utente Splunk, solo se si autentica con una password. |
-| **Authentication token** | Il token del primo passo. Quando è salvato un token, viene usato quello, e non il nome utente né la password. |
+| **Token di autenticazione** | Il token del primo passo. Quando è salvato un token, viene usato quello, e non il nome utente né la password. |
 | **Password** | La password dell'utente Splunk, solo quando non si usa nessun token. |
 
-**Authentication token** e **Password** sono cifrati, mai restituiti dall'API e mai più mostrati. Sostituiscine uno con **Aggiorna le credenziali** sulla connessione. Per passare da un tipo di autenticazione all'altro, inserisci lì quello nuovo e attiva **Remove the stored Authentication token** o **Remove the stored Password**.
+**Token di autenticazione** e **Password** sono cifrati, mai restituiti dall'API e mai più mostrati. Sostituiscine uno con **Aggiorna le credenziali** sulla connessione. Per passare da un tipo di autenticazione all'altro, inserisci lì quello nuovo e attiva **Rimuovi il campo Token di autenticazione memorizzato** o **Rimuovi il campo Password memorizzato**.
 
 Il passaggio **Interrogazione** ha anche una **Descrizione** facoltativa, il **Intervallo di interrogazione (minuti)**, un numero intero da `1` a `1440` che parte da `5`, e **Abilitato**, che parte attivo.
 
@@ -120,7 +120,7 @@ Quando un'esecuzione non riesce affatto a superare il cursore salvato, OneUptime
 
 1. **Restringere.** L'interrogazione successiva legge una finestra lunga la metà, dallo stesso punto di partenza, e continua a dimezzarla finché una finestra non viene letta per intero, fino a un minuto. L'avviso dell'esecuzione lo dice: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Tornare a crescere.** Dopo che una finestra è stata letta per intero, la successiva è di nuovo lunga il doppio, fino a 24 ore.
-3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così i notable event più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Import this time range** per recuperare ciò che un'esecuzione può leggere.
+3. **Superare un singolo minuto.** Se anche un solo minuto contiene più di quanto un'interrogazione possa leggere, il polling lo supera, così i notable event più recenti continuano ad arrivare. L'esecuzione resta **Parziale**, e **Ultimo errore** riporta `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importa quel minuto con **Importa questo intervallo di tempo** per recuperare ciò che un'esecuzione può leggere.
 
 Un'esecuzione che fallisce del tutto, con un errore di Splunk, mantiene il cursore e la lunghezza della finestra, e l'interrogazione successiva rilegge la stessa finestra. L'unica eccezione è una richiesta scaduta: il cursore resta, ma la finestra successiva è lunga la metà, perché una finestra troppo pesante per ricevere risposta in tempo scadrebbe a ogni tentativo. Cambiare il **Intervallo di interrogazione (minuti)** non cambia nulla di tutto questo: decide quanto spesso parte un'interrogazione, non dove inizia la sua finestra.
 
@@ -129,9 +129,9 @@ Un'esecuzione che fallisce del tutto, con un errore di Splunk, mantiene il curso
 Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti e lavorarci a mano. Chi può modificare la connessione può avviare queste azioni; chi può vederla può leggerne la cronologia.
 
 - **Esegui ora** avvia subito un'interrogazione, con il cursore abituale, anche quando la connessione non è **Abilitato**.
-- **Preview notable events** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
-- **Import this time range** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Le righe già importate vengono saltate.
-- **Copy diagnostics** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
+- **Anteprima dei eventi notevoli** legge un intervallo di tempo fino a 7 giorni e non importa nulla.
+- **Importa questo intervallo di tempo** importa un intervallo fino a 7 giorni, dopo la tua conferma, senza spostare il cursore. Le righe già importate vengono saltate.
+- **Copia diagnostica** su un'esecuzione copia il suo rapporto per il supporto. Non contiene mai credenziali.
 
 ## Testare la connessione
 
@@ -144,7 +144,7 @@ Fai clic su **Diagnostica** su una connessione per vederne le esecuzioni recenti
 | **Run the search on Splunk** | La ricerca di **Cerca** viene eseguita sulle ultime 24 ore, per una riga, e indica quale endpoint di export ha risposto. |
 | **Notable events available to import** | Quante righe trova la ricerca di **Cerca** nelle ultime 24 ore e negli ultimi 7 giorni. Nessuna in 7 giorni è un avviso, non un errore. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Il lato di OneUptime stesso: un processo prende i job della coda Worker, il job di polling gira ogni minuto e l'archivio degli eventi di sicurezza risponde. |
-| **Scheduled polling** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
+| **Interrogazione pianificata** | Per una connessione salvata: il polling è attivo, nessuna esecuzione è bloccata in attesa di un worker e le interrogazioni girano in orario. |
 
 Ogni richiesta di un test ha una scadenza di 20 secondi. Un test non importa mai nulla e non sposta mai il cursore, e ogni controllo fallito dice cosa cambiare.
 
@@ -177,7 +177,7 @@ Il **Ultimo errore** della connessione conserva il messaggio di errore completo,
 :::details Last Error inizia con `Splunk Enterprise Security authentication request`
 - `Splunk Enterprise Security authentication request failed (HTTP ...)`: Splunk si è rifiutato di dire chi è il chiamante.
   - `HTTP 401`: Splunk non ha accettato le credenziali. Il token è sbagliato, scaduto o eliminato, l'autenticazione con token è disattivata sul search head, oppure il nome utente o la password sono sbagliati. Crea un nuovo token e salvalo con **Aggiorna le credenziali**.
-  - `HTTP 404`: la **Splunk management URL** non è l'API REST. Punta a Splunk Web sulla porta `8000`, oppure ha un percorso che il search head non serve.
+  - `HTTP 404`: la **URL di gestione di Splunk** non è l'API REST. Punta a Splunk Web sulla porta `8000`, oppure ha un percorso che il search head non serve.
 - `Splunk Enterprise Security authentication request returned ...`: ha risposto qualcosa di diverso dall'API REST del search head, per esempio l'HTML di Splunk Web sulla porta `8000` o la pagina di un proxy. Fai puntare l'URL alla porta di gestione.
 :::
 
@@ -202,7 +202,7 @@ Nessuna interrogazione è terminata per questa connessione. Esegui **Testa la co
 
 :::details Un'esecuzione è Partial
 - `Stopped after collecting 10000 records; the window holds more`: la finestra conteneva più delle 10.000 righe che legge un'esecuzione. Non si perde nulla: l'interrogazione successiva parte dopo l'ultima riga letta. Una connessione che resta **Parziale** un'interrogazione dopo l'altra sta recuperando un arretrato, e i suoi **Ultima interrogazione** e **Ultimo evento importato** continuano ad avanzare. Se non recupera mai, la ricerca di **Cerca** trova più di 10.000 righe per intervallo di polling: restringila, oppure accorcia il **Intervallo di interrogazione (minuti)**.
-- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Import this time range** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
+- `More records were created in the one minute from ... than one poll can read`: il polling ha superato quel minuto. Importalo con **Importa questo intervallo di tempo** in **Diagnostica**. Un'importazione legge quanto un'interrogazione.
 :::
 
 :::details Il test riesce, ma non viene importato nulla

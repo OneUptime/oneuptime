@@ -3,6 +3,10 @@ import Header from "../Header/Header";
 import NavBar from "../NavBar/NavBar";
 import MasterPage from "Common/UI/Components/MasterPage/MasterPage";
 import TopAlert from "Common/UI/Components/TopAlert/TopAlert";
+import ServerSendingTopAlert from "Common/UI/Components/ServerSending/ServerSendingTopAlert";
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +23,18 @@ const DashboardMasterPage: FunctionComponent<ComponentProps> = (
       <TopAlert
         title={t("topAlert.title")}
         description={t("topAlert.description")}
+      />
+      {/*
+       * While the server cannot send email, or its global probes have all
+       * stopped reporting: what is not happening, and where to fix it.
+       */}
+      <ServerSendingTopAlert
+        emailSettingsLink={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SETTINGS_SMTP] as Route,
+        )}
+        globalProbesLink={RouteUtil.populateRouteParams(
+          RouteMap[PageMap.SETTINGS_PROBES] as Route,
+        )}
       />
       <MasterPage
         footer={<Footer />}

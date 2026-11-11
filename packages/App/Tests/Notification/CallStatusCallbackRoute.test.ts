@@ -144,7 +144,7 @@ jest.mock("Common/Server/Services/CallLogService", () => {
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
   return {
     __esModule: true,
-    default: { findOneById: jest.fn(), updateOneById: jest.fn() },
+    default: { findOneById: jest.fn(), updateOneBy: jest.fn() },
   };
 });
 
@@ -200,8 +200,12 @@ const writeCallLog: jest.Mock =
   CallLogService.compareAndSetColumnsByIdWithoutHooks as jest.Mock;
 const findNotification: jest.Mock =
   UserOnCallLogTimelineService.findOneById as jest.Mock;
+/*
+ * The notification is written only while it still says what was read, at
+ * the version read (OnCallNotificationStatus): an update that names it so.
+ */
 const updateNotification: jest.Mock =
-  UserOnCallLogTimelineService.updateOneById as jest.Mock;
+  UserOnCallLogTimelineService.updateOneBy as jest.Mock;
 const sendEmptySuccess: jest.Mock =
   Response.sendEmptySuccessResponse as jest.Mock;
 const sendError: jest.Mock = Response.sendErrorResponse as jest.Mock;
@@ -331,6 +335,7 @@ beforeEach(() => {
   notification = new UserOnCallLogTimeline();
   notification.id = NOTIFICATION_ID;
   notification.status = UserNotificationStatus.Sent;
+  notification.version = 7;
 
   findCallLog.mockImplementation((async () => {
     return callLog;
@@ -339,7 +344,7 @@ beforeEach(() => {
   findNotification.mockImplementation((async () => {
     return notification;
   }) as never);
-  updateNotification.mockResolvedValue(undefined as never);
+  updateNotification.mockResolvedValue(1 as never);
 });
 
 afterEach(() => {
@@ -385,7 +390,11 @@ describe("a call that was not answered", () => {
       },
     });
     expect(notificationUpdate()).toEqual({
-      id: NOTIFICATION_ID,
+      query: {
+        _id: NOTIFICATION_ID.toString(),
+        status: UserNotificationStatus.Sent,
+        version: 7,
+      },
       data: {
         status: UserNotificationStatus.NotAnswered,
         statusMessage: message,
@@ -410,6 +419,36 @@ describe("a call that was not answered", () => {
     await callback(ended("no-answer"));
 
     expect(updateNotification).toHaveBeenCalledTimes(1);
+  });
+
+  test("written only while the notification still says what was read: at its status and version", async () => {
+    await callback(ended("no-answer"));
+
+    expect(notificationUpdate()["query"]).toEqual({
+      _id: NOTIFICATION_ID.toString(),
+      status: UserNotificationStatus.Sent,
+      version: 7,
+    });
+    expect(notificationUpdate()["props"]).toEqual({ isRoot: true });
+  });
+
+  test("an answer - pressing 1 - landing between the read and the write stays: read again, and left", async () => {
+    const answered: UserOnCallLogTimeline = new UserOnCallLogTimeline();
+    answered.id = NOTIFICATION_ID;
+    answered.status = UserNotificationStatus.Acknowledged;
+    answered.version = 8;
+
+    findNotification
+      .mockResolvedValueOnce(notification as never)
+      .mockResolvedValueOnce(answered as never);
+    // The version read moved on: the update names no row.
+    updateNotification.mockResolvedValueOnce(0 as never);
+
+    await callback(ended("no-answer"));
+
+    expect(findNotification).toHaveBeenCalledTimes(2);
+    expect(updateNotification).toHaveBeenCalledTimes(1);
+    expect(onlyDelivery()["outcome"]).toBe("not_answered");
   });
 });
 

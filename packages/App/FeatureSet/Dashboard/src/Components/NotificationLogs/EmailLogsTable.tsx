@@ -20,6 +20,9 @@ import Query from "Common/Types/BaseDatabase/Query";
 import BaseModel from "Common/Types/Workflow/Components/BaseModel";
 import UserElement from "../User/User";
 import User from "Common/Models/DatabaseModels/User";
+import ServerSendingWords, {
+  SERVER_EMAIL_NOT_SET_UP_MESSAGE,
+} from "Common/Types/ServerSending/ServerSendingWords";
 
 export interface EmailLogsTableProps {
   query?: Query<BaseModel>;
@@ -171,7 +174,18 @@ const EmailLogsTable: FunctionComponent<EmailLogsTableProps> = (
             buttonStyleType: ButtonStyleType.NORMAL,
             icon: IconProp.Error,
             onClick: async (item: EmailLog, onCompleteAction: VoidFunction) => {
-              setModalText(item["statusMessage"] as string);
+              /*
+               * A send the server had no email set up for reads as that, in
+               * the reader's words - not the SMTP phrase older rows hold.
+               */
+              const statusMessage: string = item["statusMessage"] as string;
+
+              setModalText(
+                ServerSendingWords.isServerEmailNotSetUpMessage(statusMessage)
+                  ? translator.translateText(SERVER_EMAIL_NOT_SET_UP_MESSAGE) ||
+                      SERVER_EMAIL_NOT_SET_UP_MESSAGE
+                  : statusMessage,
+              );
               setModalTitle("Status Message");
               setShowModal(true);
               onCompleteAction();

@@ -53,8 +53,8 @@ Klik på **Test disse indstillinger** under **Test, før du gemmer**. Testen god
 
 | Indstilling | Hvad du skal angive |
 | --- | --- |
-| **Kibana URL** | Adressen, Kibana udstilles fra, for eksempel `https://kibana.example.com` eller `https://<deployment>.kb.<region>.cloud.es.io`. Uden sti: ingen `/app/security`, ingen `/api` og ingen `/s/<space>`-del. |
-| **Kibana space** | Spacets ID, ikke dets navn: bogstaver, cifre, bindestreger og understregninger. Lad det være tomt for standard-spacet. |
+| **Kibana-URL** | Adressen, Kibana udstilles fra, for eksempel `https://kibana.example.com` eller `https://<deployment>.kb.<region>.cloud.es.io`. Uden sti: ingen `/app/security`, ingen `/api` og ingen `/s/<space>`-del. |
+| **Kibana-space** | Spacets ID, ikke dets navn: bogstaver, cifre, bindestreger og understregninger. Lad det være tomt for standard-spacet. |
 | **API-nøgle** | Nøglens **Base64**-værdi, alene: OneUptime tilføjer selv skemaet `ApiKey`. Den krypteres, returneres aldrig af API'et og vises aldrig igen. Erstat den med **Opdater legitimationsoplysninger** på forbindelsen. |
 
 Trinnet **Hentning** har også en valgfri **Beskrivelse**, **Hentningsinterval (minutter)**, et heltal fra `1` til `1440`, der starter på `5`, og **Aktiveret**, som starter slået til.
@@ -115,7 +115,7 @@ Når en kørsel slet ikke kan komme forbi den gemte markør, gør OneUptime i st
 
 1. **Indsnævr.** Den næste poll læser et vindue, der er halvt så langt, fra det samme startpunkt, og bliver ved med at halvere, indtil et vindue læses helt, ned til ét minut. Kørslens advarsel siger det: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voks igen.** Når et vindue er læst helt, er det næste igen dobbelt så langt, op til 24 timer.
-3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Import this time range** for at hente det, én kørsel kan læse.
+3. **Gå forbi et enkelt minut.** Hvis selv ét minut indeholder mere, end en poll kan læse, går pollingen forbi det, så nyere advarsler bliver ved med at komme. Kørslen forbliver **Delvis**, og **Seneste fejl** lyder `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importér det minut med **Importér dette tidsinterval** for at hente det, én kørsel kan læse.
 
 En kørsel, der mislykkes helt, med en fejl fra Kibana, beholder markøren og vindueslængden, og den næste poll læser det samme vindue igen. Den eneste undtagelse er en anmodning, der fik timeout: markøren bliver, men det næste vindue er halvt så langt, fordi et vindue, der er for tungt til at blive besvaret i tide, ville få timeout ved hvert forsøg. At ændre **Hentningsinterval (minutter)** ændrer intet af dette: det afgør, hvor ofte en poll starter, ikke hvor dens vindue begynder.
 
@@ -124,9 +124,9 @@ En kørsel, der mislykkes helt, med en fejl fra Kibana, beholder markøren og vi
 Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler og arbejde med den manuelt. Alle, der kan ændre forbindelsen, kan starte disse handlinger; alle, der kan se den, kan læse historikken.
 
 - **Kør nu** starter straks en poll med den sædvanlige markør, også når forbindelsen ikke er **Aktiveret**.
-- **Preview alerts** læser et tidsinterval på op til 7 dage og importerer intet.
-- **Import this time range** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
-- **Copy diagnostics** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
+- **Forhåndsvis advarsler** læser et tidsinterval på op til 7 dage og importerer intet.
+- **Importér dette tidsinterval** importerer et interval på op til 7 dage, efter at du har bekræftet, uden at flytte markøren. Advarsler, der allerede er importeret, springes over.
+- **Kopiér diagnosticering** på en kørsel kopierer dens rapport til support. Den indeholder aldrig legitimationsoplysninger.
 
 ## Test forbindelse
 
@@ -139,7 +139,7 @@ Klik på **Diagnosticering** på en forbindelse for at se dens seneste kørsler 
 | **Read detection alerts** | Én alarm, der er oprettet inden for de seneste 24 timer, kan læses. Det beviser rettighederne og spacet. |
 | **Alerts available to import** | Hvor mange alarmer der er oprettet inden for de seneste 24 timer og de seneste 7 dage, med `+`, hvor Elasticsearch kun talte en del af dem. Ingen på 7 dage er en advarsel, ikke en fejl. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen side: en proces tager jobbene fra Worker-køen, poll-jobbet kører hvert minut, og lageret for sikkerhedsbegivenheder svarer. |
-| **Scheduled polling** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
+| **Planlagt hentning** | For en gemt forbindelse: polling er slået til, ingen kørsel sidder fast og venter på en worker, og polls kører til tiden. |
 
 Hver anmodning i en test har en frist på 20 sekunder. En test importerer aldrig noget og flytter aldrig markøren, og hver mislykket kontrol siger, hvad du skal ændre.
 
@@ -192,7 +192,7 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 :::details Last Error starter med `Elastic Security status request`
 - `Elastic Security status request failed (HTTP ...)`: Kibana afviste statusanmodningen.
   - `HTTP 401`: Kibana accepterede ikke API-nøglen. Det er ikke **Base64**-værdien, eller den er udløbet eller ugyldiggjort. Opret en ny nøgle, og gem den med **Opdater legitimationsoplysninger**.
-  - `HTTP 404`: **Kibana URL** har en sti eller er ikke Kibana.
+  - `HTTP 404`: **Kibana-URL** har en sti eller er ikke Kibana.
   - `HTTP 503`: Kibana melder sig selv utilgængelig, som regel fordi den ikke kan nå Elasticsearch.
   - `HTTP 3xx`: Kibana omdirigerede anmodningen, og omdirigeringer afvises. Brug den adresse, Kibana udstilles fra.
 - `Elastic Security status request returned ...`: noget andet end Kibana svarede, for eksempel en loginside eller en proxy.
@@ -202,7 +202,7 @@ Forbindelsens **Seneste fejl** gemmer hele fejlmeddelelsen, med legitimationsopl
 :::details Last Error starter med `Elastic Security alerts search`
 - `Elastic Security alerts search failed (HTTP ...)`: Kibana afviste alarmsøgningen.
   - `HTTP 403`: nøglen logger på, men kan ikke læse spacets alarmer. Giv den rettighederne under [Før du går i gang](#før-du-går-i-gang).
-  - `HTTP 404`: intet space har det ID i **Kibana space**, eller Elastic Security er ikke aktiveret i det.
+  - `HTTP 404`: intet space har det ID i **Kibana-space**, eller Elastic Security er ikke aktiveret i det.
   - `HTTP 429` eller `HTTP 5xx`: Kibana eller Elasticsearch begrænser anmodninger eller fejler. Den næste poll prøver igen.
 - `Elastic Security alerts search returned ...`: Kibana svarede `200`, men uden en læsbar side med alarmer, for eksempel med sin egen fejl. Meddelelsen citerer den. Det rapporteres i stedet for at blive taget som et tomt vindue, så markøren aldrig flytter sig forbi alarmer, som ingen har læst.
 :::
@@ -217,11 +217,11 @@ Ingen poll er blevet færdig for denne forbindelse. Kør **Test forbindelse**: d
 
 :::details En kørsel er Partial
 - `Stopped after collecting 10000 alerts; the window holds more`: vinduet indeholdt mere end de 10.000 alarmer, én kørsel læser. Intet går tabt: den næste poll starter efter den sidst læste alarm. En forbindelse, der forbliver **Delvis** poll efter poll, er ved at indhente et efterslæb, og dens **Senest hentet** og **Seneste importerede hændelse** bliver ved med at rykke frem. Hvis den aldrig indhenter, opretter spacet mere end 10.000 alarmer pr. pollinterval: gør **Hentningsinterval (minutter)** kortere.
-- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Import this time range** i **Diagnosticering**. En import læser lige så meget som en poll.
+- `More records were created in the one minute from ... than one poll can read`: pollingen gik forbi det minut. Importér det med **Importér dette tidsinterval** i **Diagnosticering**. En import læser lige så meget som en poll.
 :::
 
 :::details Testen lykkes, men intet importeres
-Læs **Alerts available to import** i testens rapport. `0` inden for de seneste 7 dage betyder, at ingen regel har oprettet en alarm i det space: kontrollér, at der er aktiverede regler dér, og at **Kibana space** er det space, de kører i. Hvis der findes alarmer, så udvid tidsintervallet i stifinderen for sikkerhedsbegivenheder: alarmer vises under tidspunktet for deres aktivitet, som kan ligge et godt stykke før deres oprettelse.
+Læs **Alerts available to import** i testens rapport. `0` inden for de seneste 7 dage betyder, at ingen regel har oprettet en alarm i det space: kontrollér, at der er aktiverede regler dér, og at **Kibana-space** er det space, de kører i. Hvis der findes alarmer, så udvid tidsintervallet i stifinderen for sikkerhedsbegivenheder: alarmer vises under tidspunktet for deres aktivitet, som kan ligge et godt stykke før deres oprettelse.
 :::
 
 ## Hvad du får

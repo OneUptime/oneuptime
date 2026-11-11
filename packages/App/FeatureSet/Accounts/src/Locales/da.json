@@ -157,7 +157,8 @@
     "successMessage": "Vi har sendt linket til nulstilling af adgangskode til din e-mail. Glem ikke at tjekke spam.",
     "submitButton": "Send link til nulstilling",
     "rememberPasswordPrompt": "Husker du din adgangskode?",
-    "loginLink": "Log ind."
+    "loginLink": "Log ind.",
+    "cannotEmail": "Denne server kan endnu ikke sende e-mails, så den kan ikke sende dig et link til at nulstille din adgangskode. Bed din serveradministrator om at nulstille din adgangskode."
   },
   "magicLink": {
     "title": "Log ind med et link",
@@ -168,7 +169,8 @@
     "notReceived": "Ikke i din indbakke? Tjek din spam-mappe, eller sørg for, at du har skrevet den adresse, du tilmeldte dig med.",
     "sendAnother": "Send et nyt link",
     "knowPasswordPrompt": "Kender du din adgangskode?",
-    "loginLink": "Log ind."
+    "loginLink": "Log ind.",
+    "cannotEmail": "Denne server kan endnu ikke sende e-mails, så den kan ikke sende dig et login-link. Log ind med din adgangskode, eller bed din serveradministrator om at give dig adgang."
   },
   "resetPassword": {
     "title": "Nulstil din adgangskode",

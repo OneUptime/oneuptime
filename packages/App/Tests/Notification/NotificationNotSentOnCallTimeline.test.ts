@@ -30,6 +30,9 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import OnCallTimelineRows, {
+  OnCallNotificationWrite,
+} from "./Fixtures/OnCallTimelineRows";
 import type { Mock } from "jest-mock";
 import Twilio from "twilio";
 
@@ -170,6 +173,7 @@ type AsyncMock = Mock<(...args: Array<unknown>) => Promise<unknown>>;
 let project: Project | null;
 let createMessage: AsyncMock;
 let createCall: AsyncMock;
+let timeline: OnCallTimelineRows;
 
 interface TimelineUpdate {
   id: string;
@@ -177,8 +181,13 @@ interface TimelineUpdate {
   statusMessage: string;
 }
 
+/*
+ * Every write to the person's timeline row: by id - a skip, a call, a
+ * Telegram message - and, for an SMS that went out, the write made only
+ * while the row still said Sending (OnCallNotificationStatus).
+ */
 function timelineUpdates(): Array<TimelineUpdate> {
-  return (
+  const byId: Array<TimelineUpdate> = (
     UserOnCallLogTimelineService.updateOneById as unknown as jest.Mock
   ).mock.calls.map((call: Array<unknown>): TimelineUpdate => {
     const argument: {
@@ -195,6 +204,17 @@ function timelineUpdates(): Array<TimelineUpdate> {
       statusMessage: argument.data.statusMessage,
     };
   });
+
+  return [
+    ...byId,
+    ...timeline.writes.map((write: OnCallNotificationWrite): TimelineUpdate => {
+      return {
+        id: write.id,
+        status: write.data.status as UserNotificationStatus,
+        statusMessage: write.data.statusMessage as string,
+      };
+    }),
+  ];
 }
 
 // What the person's timeline row ends up saying: one update, not sent, why.
@@ -353,9 +373,22 @@ beforeEach(() => {
   jest
     .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  // The send's result is written only while the log still says Sending.
+  jest
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockResolvedValue(true as never);
+  // A WhatsApp message's log, written before the send, gets its result after.
+  jest
+    .spyOn(WhatsAppLogService, "updateColumnsByIdWithoutHooks")
+    .mockResolvedValue(undefined as never);
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
+
+  // The person's notification, written Sending as its page went out.
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
   jest.spyOn(API, "post").mockResolvedValue({
     jsonData: {
       ok: true,

@@ -1,6 +1,6 @@
 # Advarsler – Oversigt
 
-En advarsel gør dit team opmærksom på et problem, der skal undersøges, før dine brugere opdager det: en disk, der er ved at blive fuld, et certifikat, der snart udløber, en fejlrate, der kryber op. Den kan tilkalde den, der har vagt, og give dens ejere besked, men den vises aldrig på en statusside og giver aldrig dine abonnenter besked. Denne side forklarer, hvor advarsler kommer fra, hvor de findes i dashboardet, og hvordan dit team arbejder med dem.
+En advarsel gør dit team opmærksom på et problem, der skal undersøges, før dine brugere opdager det: en disk, der er ved at blive fuld, et certifikat, der snart udløber, en fejlrate, der kryber op. Den kan tilkalde den, der har vagt, og give dens ejere besked, men den vises aldrig på en statusside og giver aldrig dine abonnenter besked. Denne side forklarer, hvor advarsler kommer fra, hvor de findes i dashboardet, og hvordan dit team arbejder med dem. Er du i tvivl om, hvorvidt et problem er en advarsel eller en hændelse? [Hvilken skal jeg bruge?](/docs/introduction/which-one#hændelse-advarsel-eller-en-anden-slags-problem) stiller dem op side om side.
 
 :::cards
 - [Advarsler og hændelser](#advarsler-og-hændelser): Hvilken af dem et problem skal være, og hvordan de to hænger sammen.

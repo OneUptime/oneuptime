@@ -42,7 +42,7 @@ Cada token pode usar uma parte do limite de taxa da API da organização, que a 
 
 ### Adicionar a conexão no OneUptime
 
-Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Okta System Log** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o token em **API token**.
+Abra **Produtos → Eventos de segurança → Conexões** (`/dashboard/{projectId}/security-events/connections`), clique em **Adicionar conexão**, escolha **Okta System Log** e clique em **Próximo**. Preencha as configurações da tabela abaixo, clique em **Próximo** e cole o token em **Token de API**.
 
 ### Testar antes de salvar
 
@@ -51,15 +51,15 @@ Clique em **Testar estas configurações** em **Testar antes de salvar**. O test
 
 | Configuração | O que informar |
 | --- | --- |
-| **Okta organization URL** | O endereço em que os seus usuários entram, por exemplo `https://acme.okta.com`, `https://acme.oktapreview.com` ou `https://login.example.com`. Ele deve usar `https`, sem caminho. Não o endereço `-admin` do Admin Console, que não serve a API. |
-| **Event filter** | Opcional. Um [filtro do System Log](https://developer.okta.com/docs/reference/core-okta-api/#filter) que escolhe os eventos a importar, por exemplo `eventType sw "user.session" or eventType sw "security"`. Vazio importa as famílias abaixo. No máximo 2.000 caracteres, em uma única linha, e não sobre `published`: o OneUptime define o intervalo de tempo por conta própria. |
-| **API token** | O valor do token, sozinho: o OneUptime adiciona o esquema `SSWS` por conta própria. Ele é criptografado, nunca devolvido pela API e nunca mostrado de novo. Substitua-o com **Atualizar credenciais** na conexão. |
+| **URL da organização do Okta** | O endereço em que os seus usuários entram, por exemplo `https://acme.okta.com`, `https://acme.oktapreview.com` ou `https://login.example.com`. Ele deve usar `https`, sem caminho. Não o endereço `-admin` do Admin Console, que não serve a API. |
+| **Filtro de eventos** | Opcional. Um [filtro do System Log](https://developer.okta.com/docs/reference/core-okta-api/#filter) que escolhe os eventos a importar, por exemplo `eventType sw "user.session" or eventType sw "security"`. Vazio importa as famílias abaixo. No máximo 2.000 caracteres, em uma única linha, e não sobre `published`: o OneUptime define o intervalo de tempo por conta própria. |
+| **Token de API** | O valor do token, sozinho: o OneUptime adiciona o esquema `SSWS` por conta própria. Ele é criptografado, nunca devolvido pela API e nunca mostrado de novo. Substitua-o com **Atualizar credenciais** na conexão. |
 
 A etapa **Consulta periódica** também tem uma **Descrição** opcional, o **Intervalo de consulta (minutos)**, um número inteiro de `1` a `1440` que começa em `5`, e **Habilitado**, que começa ativado.
 
 ## O que é importado
 
-Sem **Event filter**, o OneUptime importa as famílias de eventos que uma equipe de segurança acompanha, por prefixo de `eventType`. Um filtro seu substitui esta lista, em vez de somar a ela:
+Sem **Filtro de eventos**, o OneUptime importa as famílias de eventos que uma equipe de segurança acompanha, por prefixo de `eventType`. Um filtro seu substitui esta lista, em vez de somar a ela:
 
 | Prefixo | Eventos |
 | --- | --- |
@@ -119,7 +119,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Recuperando o atraso**.
 - **As duplicatas são descartadas por `uuid`** dentro do projeto, para que a sobreposição, uma janela repetida e uma importação nunca salvem um evento duas vezes.
 
-Um link `next` que aponta para qualquer lugar que não seja a sua **Okta organization URL** nunca é seguido, já que o token vai em toda requisição.
+Um link `next` que aponta para qualquer lugar que não seja a sua **URL da organização do Okta** nunca é seguido, já que o token vai em toda requisição.
 
 ### Quando uma janela contém mais do que uma consulta consegue ler
 
@@ -135,7 +135,7 @@ Quando uma execução não consegue passar do cursor salvo de jeito nenhum, por 
 
 1. **Reduzir.** A consulta seguinte lê uma janela com a metade do tamanho, a partir do mesmo ponto de partida, e continua dividindo pela metade até que uma janela seja lida por inteiro, até um minuto. O aviso da execução diz isso: `This window holds more records than one poll can read; the next poll reads a {n} minute window from the same starting point.`
 2. **Voltar a crescer.** Depois que uma janela é lida por inteiro, a seguinte volta a ter o dobro do tamanho, até 24 horas.
-3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os eventos mais novos continuem chegando, e a sobreposição das consultas seguintes não volta mais até ele. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Import this time range** para recuperar o que uma execução consegue ler, ou restrinja o **Event filter**.
+3. **Passar de um único minuto.** Se até um minuto contém mais do que uma consulta consegue ler, a consulta passa dele, para que os eventos mais novos continuem chegando, e a sobreposição das consultas seguintes não volta mais até ele. A execução continua **Parcial**, e **Último erro** mostra `More records were created in the one minute from {cursor} to {end} than one poll can read. Polling moved past this minute so newer records keep arriving; use Import this time range in Diagnostics on this minute to recover what one run can read.` Importe esse minuto com **Importar este intervalo de tempo** para recuperar o que uma execução consegue ler, ou restrinja o **Filtro de eventos**.
 
 Uma execução que falha por completo, com um erro do Okta, mantém o cursor e o tamanho da janela, e a consulta seguinte relê a mesma janela. A única exceção é uma requisição que expirou: o cursor fica, mas a janela seguinte tem a metade do tamanho, porque uma janela pesada demais para ser respondida a tempo expiraria em toda tentativa. Mudar o **Intervalo de consulta (minutos)** não muda nada disso: ele decide com que frequência uma consulta começa, não onde a janela dela começa.
 
@@ -144,9 +144,9 @@ Uma execução que falha por completo, com um erro do Okta, mantém o cursor e o
 Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela e trabalhar com ela manualmente. Quem pode alterar a conexão pode iniciar essas ações; quem pode vê-la pode ler o histórico.
 
 - **Executar agora** inicia uma consulta na hora, com o cursor de sempre, mesmo quando a conexão não está **Habilitado**.
-- **Preview log events** lê um intervalo de tempo de até 7 dias e não importa nada.
-- **Import this time range** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os eventos já importados são pulados. O Okta guarda 90 dias de System Log.
-- **Copy diagnostics** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
+- **Prévia de eventos de log** lê um intervalo de tempo de até 7 dias e não importa nada.
+- **Importar este intervalo de tempo** importa um intervalo de até 7 dias, depois que você confirma, sem mover o cursor. Os eventos já importados são pulados. O Okta guarda 90 dias de System Log.
+- **Copiar diagnóstico** em uma execução copia o relatório dela para o suporte. Ele nunca inclui credenciais.
 
 ## Testar conexão
 
@@ -156,10 +156,10 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | --- | --- |
 | **Configuração** | Cada configuração está presente e bem formada. Nada é contatado quando isso falha. |
 | **Authenticate with Okta** | O Okta aceita o token para o System Log, com um evento lido e nenhum filtro. |
-| **Read System Log events** | Um evento das últimas 24 horas pode ser lido pelo filtro que a consulta usa, o seu ou o padrão, então um **Event filter** inválido falha aqui, e não na primeira consulta. |
+| **Read System Log events** | Um evento das últimas 24 horas pode ser lido pelo filtro que a consulta usa, o seu ou o padrão, então um **Filtro de eventos** inválido falha aqui, e não na primeira consulta. |
 | **Events available to import** | Quantos eventos foram publicados nas últimas 24 horas e nos últimos 7 dias, uma página de 1.000 cada, então `1000+` significa mais. Nenhum em 7 dias é um aviso, não uma falha. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
-| **Scheduled polling** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
+| **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 
 Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca importa nada nem move o cursor, e cada verificação que falha diz o que mudar.
 
@@ -168,7 +168,7 @@ Cada requisição de um teste tem um prazo de 20 segundos. Um teste nunca import
 O **Último erro** da conexão guarda a mensagem de erro completa, com as credenciais ocultadas, atrás de um prefixo que nomeia a etapa que falhou. Quando uma conexão tem um erro, selecione **Ver erro** na coluna **Ações** dela para lê-lo, e **Copiar erro** na caixa de diálogo para copiá-lo. Toda mensagem começa com `Okta System Log events request`, e cita o próprio código de erro do Okta depois do status; leia o que vem depois.
 
 :::details Last Error diz `failed (HTTP 400)`
-O Okta recusou os parâmetros da requisição, `E0000053`. Quando o token funcionou, é quase sempre o **Event filter**: verifique os operadores dele, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` e `le`, os seus `and` e `or`, e as aspas duplas em volta dos valores, ou esvazie-o para usar as famílias padrão. Em uma importação, também pode significar que o intervalo começa há mais de 180 dias.
+O Okta recusou os parâmetros da requisição, `E0000053`. Quando o token funcionou, é quase sempre o **Filtro de eventos**: verifique os operadores dele, `eq`, `ne`, `co`, `sw`, `ew`, `pr`, `gt`, `ge`, `lt` e `le`, os seus `and` e `or`, e as aspas duplas em volta dos valores, ou esvazie-o para usar as famílias padrão. Em uma importação, também pode significar que o intervalo começa há mais de 180 dias.
 :::
 
 :::details Last Error diz `failed (HTTP 401)` ou `failed (HTTP 403)`
@@ -194,12 +194,12 @@ Nenhuma consulta terminou para essa conexão. Rode **Testar conexão**: as verif
 :::
 
 :::details Uma execução está Partial
-- `Stopped after collecting 10000 events`: a janela continha mais do que os 10.000 eventos que uma execução lê. Nada se perde: a consulta seguinte começa depois do último evento lido. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e os seus **Última consulta** e **Último evento importado** continuam avançando. Se ela nunca se atualiza, a organização publica mais eventos correspondentes do que cabem em um intervalo de consulta: restrinja o **Event filter**, ou encurte o **Intervalo de consulta (minutos)**.
-- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Import this time range** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
+- `Stopped after collecting 10000 events`: a janela continha mais do que os 10.000 eventos que uma execução lê. Nada se perde: a consulta seguinte começa depois do último evento lido. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e os seus **Última consulta** e **Último evento importado** continuam avançando. Se ela nunca se atualiza, a organização publica mais eventos correspondentes do que cabem em um intervalo de consulta: restrinja o **Filtro de eventos**, ou encurte o **Intervalo de consulta (minutos)**.
+- `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Importar este intervalo de tempo** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
 :::
 
 :::details O teste passa, mas nada é importado
-Leia **Events available to import** no relatório do teste. Com o filtro padrão, uma organização com usuários publica logins o tempo todo, então `0` nos últimos 7 dias significa que a URL é um sandbox ou uma organização sem uso. Com o seu próprio **Event filter**, significa que o filtro não encontrou nada: compare-o com os tipos de evento no System Log do Admin Console.
+Leia **Events available to import** no relatório do teste. Com o filtro padrão, uma organização com usuários publica logins o tempo todo, então `0` nos últimos 7 dias significa que a URL é um sandbox ou uma organização sem uso. Com o seu próprio **Filtro de eventos**, significa que o filtro não encontrou nada: compare-o com os tipos de evento no System Log do Admin Console.
 :::
 
 ## O que você ganha

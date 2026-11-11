@@ -74,6 +74,8 @@ De endpoints volgen de eigen instellingen van de pagina, in de kaart **Wat uw st
 
 Het overzicht is één request voor de hele pagina. Het zijn dezelfde gegevens die de statuspagina tekent, en ze zijn hooguit 15 seconden oud.
 
+De dagen van de beschikbaarheidsbalken zijn UTC-dagen, tenzij u een tijdzone noemt: voeg `?timezone=Asia/Shanghai` toe aan een `GET`, of stuur `{"timezone": "Asia/Shanghai"}` als body van een `POST`, en `uptimeDailyAggregate` en `monitorGroupUptimeDailyAggregate` worden in de dagen van die zone verdeeld, zoals de statuspagina het voor elke bezoeker vraagt. Een zone die de server niet kent, is UTC, en beide zeggen in hun `timezone` in welke zone ze zijn verdeeld.
+
 :::tabs
 @tab curl
 ```bash
@@ -133,7 +135,7 @@ De algemene status is de slechtste huidige status van de monitors en monitorgroe
 | `resourceGroups` | De groepen, met `parentStatusPageGroupId` voor geneste groepen. |
 | `monitorStatuses` | Elke monitorstatus van het project, van de laagste prioriteit naar de hoogste. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | De huidige status van elke monitorgroep op de pagina, en de monitors erin. |
-| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Waaruit de beschikbaarheidsbalken worden getekend, en de kleurregels voor de balken van de pagina. |
+| `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Waaruit de beschikbaarheidsbalken worden getekend, en de kleurregels voor de balken van de pagina. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | De onopgeloste incidenten die de pagina toont, hun publieke notities en statuswijzigingen, en de incidentstatussen van het project. |
 | `timelineIncidents` | De incidenten in het venster van de beschikbaarheidsbalken, opgeloste incidenten inbegrepen, voor de tooltips van de balken. |
 | `activeEpisodes`, `episodePublicNotes`, `episodeStateTimelines` | Hetzelfde voor incidentepisodes. |

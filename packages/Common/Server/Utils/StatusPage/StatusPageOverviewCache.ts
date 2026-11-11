@@ -2,6 +2,7 @@ import CacheGenerations from "../../Infrastructure/CacheGenerations";
 import InMemoryTTLCache from "../../Infrastructure/InMemoryTTLCache";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import StatusPageUptimeTimezone from "../../../Utils/StatusPage/StatusPageUptimeTimezone";
 import logger from "../Logger";
 
 /*
@@ -54,6 +55,55 @@ import logger from "../Logger";
 
 export const STATUS_PAGE_OVERVIEW_CACHE_NAMESPACE: string =
   "status-page-overview";
+
+/*
+ * What a page's uptime history - its day buckets - is built from, read
+ * once with the rest of the overview and kept beside it, so a visitor in
+ * another zone costs the history's two queries and nothing else.
+ */
+export interface StatusPageUptimeHistoryInputs {
+  // each resource's own monitor, and every monitor of a group, that shows its history or uptime.
+  monitorIds: Array<ObjectID>;
+  // every monitor group whose resource shows its history or uptime, with its monitors.
+  monitorGroups: Array<{
+    monitorGroupId: ObjectID;
+    monitorIds: Array<ObjectID>;
+  }>;
+  // the project's statuses in the order a group's day is merged by, worst last.
+  rankedMonitorStatusIds: Array<string>;
+  // the window of the overview this history belongs to.
+  startDate: Date;
+  endDate: Date;
+}
+
+/*
+ * A page's overview without its uptime history (the same for every
+ * visitor), and what the history is built from. The response is shared
+ * between requests and must not be changed.
+ */
+export interface StatusPageOverviewBase {
+  response: JSONObject;
+  uptimeHistory: StatusPageUptimeHistoryInputs;
+}
+
+/*
+ * One zone's uptime history, kept on the overview it belongs to: the JSON
+ * the response carries (uptimeDailyAggregate and
+ * monitorGroupUptimeDailyAggregate) and the zone its days were cut in.
+ */
+interface UptimeHistoryEntry {
+  history: Promise<{ json: JSONObject; cutIn: string }>;
+}
+
+/*
+ * What is kept on one overview: its histories by zone key, and the whole
+ * response by the zone each visitor asked for, so a visitor who asks again
+ * is handed the very object they were handed before.
+ */
+interface OverviewHistories {
+  byZoneKey: Map<string, UptimeHistoryEntry>;
+  responsesByTimezone: Map<string, Promise<JSONObject>>;
+}
 
 /*
  * How a write of one column of a record can take it off a status page:
@@ -173,14 +223,26 @@ export default class StatusPageOverviewCache {
     CacheGenerations.SHARED_READ_TTL_MS;
 
   // The overviews, by page and the generation they were built in.
-  private static responses: InMemoryTTLCache<JSONObject> =
-    new InMemoryTTLCache<JSONObject>(500);
+  private static responses: InMemoryTTLCache<unknown> =
+    new InMemoryTTLCache<unknown>(500);
 
   /*
    * Builds under way, by the same key, so requests that miss together share
    * one build instead of each reading the database.
    */
-  private static inFlight: Map<string, Promise<JSONObject>> = new Map();
+  private static inFlight: Map<string, Promise<unknown>> = new Map();
+
+  /*
+   * Each overview's uptime history, by zone key
+   * (StatusPageUptimeTimezone.getZoneKey), kept on the overview itself: it
+   * lives exactly as long as the overview it was cut for, is built once per
+   * clock however many visitors ask, and goes with the overview when that
+   * runs out or a new generation starts.
+   */
+  private static uptimeHistories: WeakMap<
+    StatusPageOverviewBase,
+    OverviewHistories
+  > = new WeakMap<StatusPageOverviewBase, OverviewHistories>();
 
   /*
    * Each project's generation: the shared one, from Redis, and this
@@ -203,28 +265,29 @@ export default class StatusPageOverviewCache {
    * for it that arrives meanwhile) and kept. A failed build is never kept.
    * The response is shared between requests and must not be changed.
    */
-  public static async getOrBuild(data: {
+  public static async getOrBuild<T = JSONObject>(data: {
     statusPageId: ObjectID;
     // The page's project; null when it cannot be read.
     readProjectId: () => Promise<ObjectID | null>;
-    build: () => Promise<JSONObject>;
-  }): Promise<JSONObject> {
+    build: () => Promise<T>;
+  }): Promise<T> {
     const key: string = await this.getKey(data);
 
-    const kept: JSONObject | undefined = this.responses.get(key);
+    const kept: unknown = this.responses.get(key);
 
     if (kept) {
-      return kept;
+      return kept as T;
     }
 
-    let building: Promise<JSONObject> | undefined = this.inFlight.get(key);
+    let building: Promise<unknown> | undefined = this.inFlight.get(key);
 
     if (!building) {
-      building = data.build();
-      this.inFlight.set(key, building);
+      const built: Promise<T> = data.build();
+      building = built;
+      this.inFlight.set(key, built);
 
-      building
-        .then((response: JSONObject) => {
+      built
+        .then((response: T) => {
           this.responses.set(key, response, this.TTL_MS);
         })
         .catch(() => {
@@ -235,7 +298,160 @@ export default class StatusPageOverviewCache {
         });
     }
 
-    return await building;
+    return (await building) as T;
+  }
+
+  /**
+   * A page's whole overview for a visitor in `timezone`: the overview every
+   * visitor shares, with its uptime history cut in their zone
+   * (getOrBuildUptimeHistory). Kept on the overview per zone asked for, so
+   * a visitor who asks again within its life is handed the very same
+   * object. Must not be changed.
+   */
+  public static async getOrBuildOverviewInZone(data: {
+    overview: StatusPageOverviewBase;
+    timezone: string;
+    build: () => Promise<{ json: JSONObject; cutIn: string }>;
+  }): Promise<JSONObject> {
+    const histories: OverviewHistories = this.getHistories(data.overview);
+
+    let response: Promise<JSONObject> | undefined =
+      histories.responsesByTimezone.get(data.timezone);
+
+    if (!response) {
+      const built: Promise<JSONObject> = this.getOrBuildUptimeHistory({
+        overview: data.overview,
+        timezone: data.timezone,
+        startDate: data.overview.uptimeHistory.startDate,
+        endDate: data.overview.uptimeHistory.endDate,
+        build: data.build,
+      }).then((history: JSONObject): JSONObject => {
+        return { ...data.overview.response, ...history };
+      });
+
+      response = built;
+      histories.responsesByTimezone.set(data.timezone, built);
+
+      built.catch(() => {
+        // A failed build is never kept; the next request builds again.
+        if (histories.responsesByTimezone.get(data.timezone) === built) {
+          histories.responsesByTimezone.delete(data.timezone);
+        }
+      });
+    }
+
+    return await response;
+  }
+
+  /**
+   * An overview's uptime history in one zone: the one kept on `overview`
+   * for the zone's key, else one built now by `build` (shared with any
+   * request for the same key that arrives meanwhile) and kept on it.
+   *
+   * Zones with the same key cut the same days over the overview's window
+   * (StatusPageUptimeTimezone.getZoneKey), so a history built for one is
+   * served to the others, labelled with the zone each visitor asked for.
+   * One that fell back to UTC keeps saying UTC. A failed build is never
+   * kept. The JSON is shared between requests and must not be changed.
+   */
+  public static async getOrBuildUptimeHistory(data: {
+    overview: StatusPageOverviewBase;
+    timezone: string;
+    startDate: Date;
+    endDate: Date;
+    build: () => Promise<{ json: JSONObject; cutIn: string }>;
+  }): Promise<JSONObject> {
+    const zoneKey: string = StatusPageUptimeTimezone.getZoneKey({
+      timezone: data.timezone,
+      startDate: data.startDate,
+      endDate: data.endDate,
+    });
+
+    const byZoneKey: Map<string, UptimeHistoryEntry> = this.getHistories(
+      data.overview,
+    ).byZoneKey;
+
+    let entry: UptimeHistoryEntry | undefined = byZoneKey.get(zoneKey);
+
+    if (!entry) {
+      const built: Promise<{ json: JSONObject; cutIn: string }> = data.build();
+      const thisEntry: UptimeHistoryEntry = { history: built };
+
+      entry = thisEntry;
+      byZoneKey.set(zoneKey, thisEntry);
+
+      built.catch(() => {
+        // A failed build is never kept; the next request builds again.
+        if (byZoneKey.get(zoneKey) === thisEntry) {
+          byZoneKey.delete(zoneKey);
+        }
+      });
+    }
+
+    const history: { json: JSONObject; cutIn: string } = await entry.history;
+
+    if (history.cutIn === data.timezone) {
+      return history.json;
+    }
+
+    // a history cut in another zone than this visitor's own key: as it is.
+    if (
+      StatusPageUptimeTimezone.getZoneKey({
+        timezone: history.cutIn,
+        startDate: data.startDate,
+        endDate: data.endDate,
+      }) !== zoneKey
+    ) {
+      return history.json;
+    }
+
+    return this.labelUptimeHistory(history.json, data.timezone);
+  }
+
+  // What is kept on an overview, made the first time it is asked for.
+  private static getHistories(
+    overview: StatusPageOverviewBase,
+  ): OverviewHistories {
+    let histories: OverviewHistories | undefined =
+      this.uptimeHistories.get(overview);
+
+    if (!histories) {
+      histories = {
+        byZoneKey: new Map<string, UptimeHistoryEntry>(),
+        responsesByTimezone: new Map<string, Promise<JSONObject>>(),
+      };
+      this.uptimeHistories.set(overview, histories);
+    }
+
+    return histories;
+  }
+
+  /*
+   * A history labelled with another zone of the same clock: new objects for
+   * the two aggregates, sharing their buckets, so the kept JSON is not
+   * changed.
+   */
+  private static labelUptimeHistory(
+    json: JSONObject,
+    timezone: string,
+  ): JSONObject {
+    const labelled: JSONObject = { ...json };
+
+    for (const field of [
+      "uptimeDailyAggregate",
+      "monitorGroupUptimeDailyAggregate",
+    ]) {
+      const aggregate: unknown = json[field];
+
+      if (aggregate && typeof aggregate === "object") {
+        labelled[field] = {
+          ...(aggregate as JSONObject),
+          timezone: timezone,
+        };
+      }
+    }
+
+    return labelled;
   }
 
   /*
@@ -373,6 +589,10 @@ export default class StatusPageOverviewCache {
   public static clear(): void {
     this.responses.clear();
     this.inFlight.clear();
+    this.uptimeHistories = new WeakMap<
+      StatusPageOverviewBase,
+      OverviewHistories
+    >();
     this.generations.clear();
     this.projectOfPage.clear();
   }
