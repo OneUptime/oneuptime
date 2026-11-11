@@ -28,6 +28,7 @@ Aprite **Incidenti** dal menu **Prodotti** nella barra superiore, poi espandete 
 | **Avvisi collegati**            | Scegliere se gli avvisi collegati a un incidente vengono riconosciuti e risolti insieme a esso. Entrambi sono attivi nei nuovi progetti. |
 | **Appartenenza agli episodi**   | Scegliere se un incidente può far parte di un solo episodio. Disattivato per impostazione predefinita. |
 | **Numerazione**                 | Il testo davanti ai numeri di incidente e di episodio, come `INC-` in `INC-42`, e il numero che riceve il successivo. |
+| **Conservazione dei dati**      | Per quanto tempo gli incidenti risolti vengono conservati prima di essere eliminati. Finché non scegliete una durata, vengono conservati tutti. |
 
 Ciò che OneUptime AI fa da sola non si imposta qui: ha una sezione propria, **Incidenti → IA**, su route che iniziano con `/dashboard/{projectId}/incidents/ai/`. La sua pagina **Impostazioni** attiva o disattiva l'esame dei nuovi incidenti, la loro correzione automatica (disattivata finché non la attivate) e le bozze di post-mortem, ciascuna salvata non appena la cambiate; le regole IA che restringono quali incidenti vengono esaminati e corretti, e con quali repository di codice e pull request, le regole post-mortem che scelgono quali incidenti risolti ricevono una bozza e quali modelli segue, e i limiti facoltativi entro cui lavora l'IA, sono ripiegati sotto **Altre impostazioni**, e nessuno si applica finché non lo impostate. **Informazioni** e **Registri** sono accanto: ciò che l'IA ha imparato dai vostri incidenti, e tutto ciò che ha fatto. Vedete [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Entrambi sono attivi nei nuovi progetti; un progetto creato prima che fossero at
 ## Appartenenza agli episodi
 
 Un incidente può far parte di più episodi contemporaneamente. **Incidenti → Impostazioni → Appartenenza agli episodi** (`/dashboard/{projectId}/incidents/settings/episode-membership`) ha un solo interruttore, **Un incidente può far parte di un solo episodio**: finché è attivo, un incidente che fa parte di un episodio non viene aggiunto a nessun altro, né dalla dashboard né tramite l'API, un flusso di lavoro o una regola di raggruppamento, se prima non viene tolto da quell'episodio. È disattivato finché non lo attivate, e si salva non appena lo cambiate. Solo i Project Owners e i Project Admins possono cambiarlo; per tutti gli altri l'interruttore è bloccato e dice quale permesso serve. Attivarlo non toglie nessun incidente da un episodio. [Un solo episodio per incidente](/docs/incidents/episodes#un-solo-episodio-per-incidente) descrive cosa fa ogni modo di aggiungere finché è attivo.
+
+## Conservazione dei dati
+
+Gli incidenti risolti restano finché qualcuno non li elimina, ciascuno con la sua cronologia stato, le note, il feed e i registri di notifica, perciò il database di un progetto attivo continua a crescere. **Incidenti → Impostazioni → Conservazione dei dati** (`/dashboard/{projectId}/incidents/settings/data-retention`) li elimina quando sono risolti da abbastanza tempo. La sua scheda **Incidenti risolti** chiede **Elimina dopo**: **Mai**, il valore con cui parte ogni progetto, oppure una durata da 30 giorni a 3 anni. La scelta si salva subito, e una durata che elimina più di prima chiede prima conferma, con **Elimina gli incidenti vecchi**.
+
+Ogni ora, ogni incidente risolto da più tempo viene eliminato con tutto ciò che contiene: la cronologia stato, le note, il feed, i proprietari, i registri di notifica e le esecuzioni di reperibilità. La durata si conta dall'ultimo cambio di stato dell'incidente, quindi uno rimasto aperto per un anno e risolto la settimana scorsa resta per tutta la durata. Un episodio viene eliminato quando è risolto da altrettanto tempo e non gli resta nessuno dei suoi incidenti. Le pagine di stato smettono di mostrare gli incidenti eliminati, niente di ciò che è stato eliminato può essere recuperato e i numeri degli incidenti non vengono mai riassegnati. Un progetto con anni di incidenti risolti si mette in pari in poche esecuzioni orarie.
+
+Per quanto tempo fa sia stato risolto, un incidente resta:
+
+- finché non è risolto;
+- finché il suo post-mortem è **Completato** e **Conserva gli incidenti con il post-mortem completato** è attivo. Questo interruttore è nella stessa scheda, è attivo per impostazione predefinita e chiede conferma prima di essere disattivato. Finché è attivo, resta anche un episodio con un post-mortem scritto;
+- finché fa parte di un episodio ancora aperto, o risolto più di recente della durata scelta.
+
+Solo i Project Owners e i Project Admins possono modificare queste impostazioni. Nell'API sono `incidentRetentionInDays` del progetto, `0` per **Mai**, e `keepIncidentsWithCompletedPostmortem`. Gli avvisi hanno un'impostazione propria: vedete [Regole e impostazioni degli avvisi](/docs/alerts/settings#conservazione-dei-dati).
+
+> [!NOTE]
+> In un'installazione self-hosted, PostgreSQL riutilizza lo spazio lasciato dalle righe eliminate, ma non lo restituisce al disco. Per ridurre il database dopo una prima grande pulizia, eseguite `VACUUM FULL` sulle tabelle più grandi in una finestra di manutenzione, perché blocca ogni tabella mentre la riscrive, oppure usate `pg_repack`, che non la blocca.
 
 ## Regole che vengono eseguite alla creazione di un incidente
 

@@ -6,7 +6,7 @@ Die Konfiguration von Warnungen liegt unter **Warnungen**, nicht in den **Projek
 - [Die Regeln, die eine neue Warnung durchläuft](#die-regeln-die-eine-neue-warnung-durchläuft): Der Reihe nach, und was jede bewirkt.
 - [Bereitschaftsregeln](#bereitschaftsregeln): Die richtigen Personen alarmieren, ohne jedes Mal eine Richtlinie zu wählen.
 - [Erinnerungsregeln](#erinnerungsregeln): Eigentümer erinnern, solange eine Warnung offen bleibt.
-- [Einstellungen](#einstellungen): Notiz-Vorlagen, benutzerdefinierte Felder, Messungen, Episodenzugehörigkeit und Nummerierung.
+- [Einstellungen](#einstellungen): Notiz-Vorlagen, benutzerdefinierte Felder, Messungen, Episodenzugehörigkeit, Nummerierung und Datenaufbewahrung.
 :::
 
 ## Wo die Warnungseinstellungen liegen
@@ -24,7 +24,7 @@ Die Konfiguration von Warnungen liegt unter **Warnungen**, nicht in den **Projek
 | **Beschriftungsregeln** | Fügt passenden Warnungen und Episoden Beschriftungen hinzu.                                     |
 | **Erinnerungsregeln**   | Erinnert Eigentümer in einem Intervall, solange eine Warnung offen ist.                         |
 
-Der Bereich **Einstellungen** enthält **Warnungsstatus** und **Warnungsschweregrad**, beschrieben unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit** und **Nummerierung**, beschrieben weiter unten.
+Der Bereich **Einstellungen** enthält **Warnungsstatus** und **Warnungsschweregrad**, beschrieben unter [Warnungsstatus & Schweregrade](/docs/alerts/states-and-severities), dann **Notiz-Vorlagen**, **Benutzerdefinierte Felder**, **Messungen**, **Episodenzugehörigkeit**, **Nummerierung** und **Datenaufbewahrung**, beschrieben weiter unten.
 
 Zwei weitere Bereiche wirken auf Warnungen. **Warnungen → KI → Einstellungen** entscheidet, was OneUptime AI von selbst tut: **Neue Warnungen untersuchen**, in neuen Projekten eingeschaltet, und **Neue Warnungen automatisch beheben**, aus, bis Sie es einschalten. Siehe [AI SRE](/docs/ai/ai-sre). **Warnungen → Arbeitsbereich** enthält die Slack- und Microsoft-Teams-Regeln, die Warnungen und Episoden in Kanäle posten, und seinen Tab **Zusammenfassung**. Siehe [Slack](/docs/workspace-connections/slack).
 
@@ -168,6 +168,10 @@ Die **Zeit bis zur Bestätigung nach der Alarmierung** zählt ab **Jemand wird z
 **Warnungen → Einstellungen → Nummerierung** legt den Text vor Warnungs- und Episodennummern fest: `ALT-` und `AE-` in einem neuen Projekt, oder `#` ohne Präfix. **Aktualisieren** öffnet **Warnungsnummernpräfix** und **Warnungs-Episoden-Nummernpräfix**, mit einer Vorschau beim Tippen. Nur danach erstellte Warnungen und Episoden bekommen das neue Präfix. Die Regeln für ein Präfix stehen unter [Nummernpräfixe](/docs/incidents/settings#nummernpräfixe).
 
 Die Karte **Nächste Nummer** darunter legt die Nummer fest, die die nächste Warnung und die nächste Episode bekommen, um die Nummern eines anderen Tools fortzusetzen: **Aktualisieren** öffnet **Nächste Warnungsnummer** und **Nächste Nummer der Warnungsepisode**, jede höher als die bisher höchste. Siehe [Nächste Nummern](/docs/incidents/settings#nächste-nummern).
+
+### Datenaufbewahrung
+
+**Warnungen → Einstellungen → Datenaufbewahrung** löscht Warnungen, sobald sie lange genug behoben sind, wie es [Datenaufbewahrung](/docs/incidents/settings#datenaufbewahrung) für Vorfälle tut. Die Karte **Behobene Warnungen** fragt nach **Löschen nach**, **Nie**, bis Sie eine Dauer wählen, und fragt nach, bevor mehr gelöscht wird, mit **Alte Warnungen löschen**. Eine Warnung bleibt, solange sie nicht behoben ist, solange sie in einer Episode ist, die noch offen ist oder vor kürzerer Zeit behoben wurde, und so lange, wie ein mit ihr verknüpfter Vorfall bleibt. Nur Project Owners und Project Admins können sie ändern; über die API ist es `alertRetentionInDays` des Projekts.
 
 > [!NOTE]
 > In OneUptime Cloud brauchen Notiz-Vorlagen und benutzerdefinierte Felder den Plan **Growth** oder höher.

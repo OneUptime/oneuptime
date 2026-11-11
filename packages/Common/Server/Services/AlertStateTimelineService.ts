@@ -49,6 +49,7 @@ import OnCallAcknowledgementTimeout from "../Utils/OnCall/OnCallAcknowledgementT
 import FindBy from "../Types/Database/FindBy";
 import CountBy from "../Types/Database/CountBy";
 import { applyAlertRelatedRecordPrivacyFilter } from "../Utils/Alert/AlertPrivacyFilter";
+import StateChangeLogScreenshots from "../../Utils/Monitor/StateChangeLogScreenshots";
 
 export class Service extends ProjectReferencesService<AlertStateTimeline> {
   public constructor() {
@@ -130,6 +131,17 @@ export class Service extends ProjectReferencesService<AlertStateTimeline> {
     createBy: CreateBy<AlertStateTimeline>,
   ): Promise<OnCreate<AlertStateTimeline>> {
     await super.onBeforeCreate(createBy);
+
+    /*
+     * The check that caused the change, without a Synthetic monitor's
+     * screenshots: the log is read as JSON text, and they are megabytes a
+     * row. See StateChangeLogScreenshots.
+     */
+    if (createBy.data.stateChangeLog) {
+      createBy.data.stateChangeLog = StateChangeLogScreenshots.leaveOut(
+        createBy.data.stateChangeLog,
+      );
+    }
 
     if (!createBy.data.alertId) {
       throw new BadDataException("alertId is null");

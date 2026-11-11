@@ -28,6 +28,7 @@ Open **Incidenten** vanuit het menu **Producten** in de bovenbalk en klap dan **
 | **Gekoppelde waarschuwingen** | Kiezen of de waarschuwingen die aan een incident gekoppeld zijn, samen met het incident worden bevestigd en opgelost. Beide staan aan in nieuwe projecten. |
 | **Lidmaatschap van episodes** | Kiezen of een incident maar in één episode kan zitten. Standaard uit. |
 | **Nummering**                | De tekst vóór incident- en episodenummers, zoals `INC-` in `INC-42`, en het nummer dat het volgende krijgt. |
+| **Gegevensbewaring**         | Hoe lang opgeloste incidenten worden bewaard voordat ze worden verwijderd. Tot je een periode kiest, blijven ze allemaal bewaard. |
 
 Wat OneUptime AI zelf doet, stel je hier niet in: daarvoor is er een eigen sectie, **Incidenten → AI**, op routes die beginnen met `/dashboard/{projectId}/incidents/ai/`. De pagina **Instellingen** daarvan zet het onderzoeken van nieuwe incidenten aan of uit, het automatisch herstellen ervan (uit tot je het aanzet), en het schrijven van concepten voor postmortems, en elke instelling wordt opgeslagen zodra je haar omzet; de AI-regels die beperken welke incidenten worden onderzocht en hersteld, en met welke code-repository's en pull requests, de postmortem-regels die kiezen welke opgeloste incidenten een concept krijgen en welke sjablonen het volgt, en de optionele limieten waaronder AI werkt, zijn ingeklapt onder **Meer instellingen**, en geen ervan geldt tot je het instelt. **Inzichten** en **Logboeken** staan ernaast: wat AI van je incidenten heeft geleerd, en alles wat het deed. Zie [AI SRE](/docs/ai/ai-sre).
 
@@ -593,6 +594,23 @@ Beide staan aan in nieuwe projecten; een project dat werd aangemaakt voordat ze 
 ## Lidmaatschap van episodes
 
 Een incident kan tegelijk in meerdere episodes zitten. **Incidenten → Instellingen → Lidmaatschap van episodes** (`/dashboard/{projectId}/incidents/settings/episode-membership`) heeft één schakelaar, **Een incident kan maar in één episode zitten**: zolang hij aanstaat, wordt een incident dat in een episode zit aan geen andere toegevoegd, niet vanuit het dashboard en niet via de API, een workflow of een groeperingsregel, totdat het uit die episode is gehaald. Hij staat uit tot je hem aanzet, en wordt opgeslagen zodra je hem omzet. Alleen Project Owners en Project Admins kunnen hem wijzigen; voor alle anderen is de schakelaar vergrendeld en zegt hij welke machtiging hij nodig heeft. Aanzetten haalt geen enkel incident uit een episode. [Eén episode per incident](/docs/incidents/episodes#eén-episode-per-incident) beschrijft wat elke manier van toevoegen doet zolang hij aanstaat.
+
+## Gegevensbewaring
+
+Opgeloste incidenten blijven tot iemand ze verwijdert, elk met zijn statustijdlijn, notities, feed en meldingslogboeken, waardoor de database van een druk project blijft groeien. **Incidenten → Instellingen → Gegevensbewaring** (`/dashboard/{projectId}/incidents/settings/data-retention`) verwijdert ze zodra ze lang genoeg zijn opgelost. De kaart **Opgeloste incidenten** vraagt om **Verwijderen na**: **Nooit**, waarmee elk project begint, of een periode van 30 dagen tot 3 jaar. De keuze wordt meteen opgeslagen, en een periode die meer verwijdert dan eerst vraagt eerst om bevestiging, met **Oude incidenten verwijderen**.
+
+Elk uur wordt elk incident dat langer is opgelost dan die periode verwijderd, met alles wat erbij hoort: de statustijdlijn, notities, feed, eigenaren, meldingslogboeken en uitvoeringen van bereikbaarheidsdiensten. De periode telt vanaf de laatste statuswijziging van het incident, dus een incident dat een jaar open stond en vorige week is opgelost, blijft de hele periode. Een episode wordt verwijderd zodra ze even lang is opgelost en geen van haar incidenten meer over is. Statuspagina's tonen verwijderde incidenten niet meer, niets wat is verwijderd kan worden teruggehaald, en incidentnummers worden nooit opnieuw uitgegeven. Een project met jaren aan opgeloste incidenten haalt de achterstand in na een paar uurlijkse rondes.
+
+Hoe lang geleden het ook is opgelost, een incident blijft:
+
+- zolang het niet is opgelost;
+- zolang de postmortem **Voltooid** is en **Incidenten met een voltooide postmortem bewaren** aanstaat. Die schakelaar staat op dezelfde kaart, staat standaard aan en vraagt om bevestiging voordat hij wordt uitgezet. Zolang hij aanstaat, blijft ook een episode waarvoor een postmortem is geschreven;
+- zolang het in een episode zit die nog open is, of korter geleden is opgelost dan de gekozen periode.
+
+Alleen Project Owners en Project Admins kunnen deze instellingen wijzigen. In de API zijn het `incidentRetentionInDays` van het project, `0` voor **Nooit**, en `keepIncidentsWithCompletedPostmortem`. Waarschuwingen hebben een eigen instelling: zie [Waarschuwingsregels en instellingen](/docs/alerts/settings#gegevensbewaring).
+
+> [!NOTE]
+> Bij een zelfgehoste installatie hergebruikt PostgreSQL de ruimte die verwijderde rijen achterlaten, maar geeft die niet terug aan de schijf. Om de database na een grote eerste opschoning te verkleinen, voer je in een onderhoudsvenster `VACUUM FULL` uit op de grootste tabellen, omdat dat elke tabel vergrendelt terwijl het die herschrijft, of gebruik je `pg_repack`, dat dat niet doet.
 
 ## Regels die draaien als een incident wordt aangemaakt
 
