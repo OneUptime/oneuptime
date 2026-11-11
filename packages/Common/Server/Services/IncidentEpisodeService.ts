@@ -984,10 +984,15 @@ export class Service extends ProjectReferencesService<Model> {
          * trigger (OnCallPageTiming).
          */
         try {
-          await this.executeEpisodeOnCallDutyPoliciesAsync(
-            createdItem,
-            startingStage,
-            onCallRulesPaging,
+          await OnCallPageTiming.runAsRecordIsCreated(
+            { recordCreatedAt: createdItem.createdAt },
+            (): Promise<void> => {
+              return this.executeEpisodeOnCallDutyPoliciesAsync(
+                createdItem,
+                startingStage,
+                onCallRulesPaging,
+              );
+            },
           );
         } catch (error) {
           logger.error(
@@ -1223,38 +1228,29 @@ export class Service extends ProjectReferencesService<Model> {
       }
 
       if (responderPolicies.length > 0) {
-        /*
-         * Every page they start now starts at the episode's creation,
-         * its trigger (OnCallPageTiming).
-         */
-        await OnCallPageTiming.runAsRecordIsCreated(
-          { recordCreatedAt: createdItem.createdAt },
-          async (): Promise<void> => {
-            // Execute all on-call policies in parallel
-            const policyPromises: Promise<void>[] = responderPolicies.map(
-              (policy: OnCallDutyPolicy) => {
-                const policyId: ObjectID = new ObjectID(policy._id as string);
-                const hold: OnCallRulePagingHold | undefined = paging.holds.get(
-                  policyId.toString(),
-                );
-
-                return OnCallDutyPolicyService.executePolicy(policyId, {
-                  triggeredByIncidentEpisodeId: createdItem.id!,
-                  userNotificationEventType:
-                    UserNotificationEventType.IncidentEpisodeCreated,
-                  ...(hold
-                    ? {
-                        pagingStartsAt: hold.pagingStartsAt,
-                        waitingStatusMessage: hold.waitingStatusMessage,
-                      }
-                    : {}),
-                });
-              },
+        // Execute all on-call policies in parallel
+        const policyPromises: Promise<void>[] = responderPolicies.map(
+          (policy: OnCallDutyPolicy) => {
+            const policyId: ObjectID = new ObjectID(policy._id as string);
+            const hold: OnCallRulePagingHold | undefined = paging.holds.get(
+              policyId.toString(),
             );
 
-            await Promise.allSettled(policyPromises);
+            return OnCallDutyPolicyService.executePolicy(policyId, {
+              triggeredByIncidentEpisodeId: createdItem.id!,
+              userNotificationEventType:
+                UserNotificationEventType.IncidentEpisodeCreated,
+              ...(hold
+                ? {
+                    pagingStartsAt: hold.pagingStartsAt,
+                    waitingStatusMessage: hold.waitingStatusMessage,
+                  }
+                : {}),
+            });
           },
         );
+
+        await Promise.allSettled(policyPromises);
 
         // Update the flag to indicate on-call policy has been executed
         await this.updateOneById({
@@ -1303,25 +1299,17 @@ export class Service extends ProjectReferencesService<Model> {
         });
       }
 
-      /*
-       * Then those paged as observers, kept informed, from the same
-       * start. Never throws.
-       */
-      await OnCallPageTiming.runAsRecordIsCreated(
-        { recordCreatedAt: createdItem.createdAt },
-        (): Promise<Array<string>> => {
-          return OnCallObserverPaging.pagePolicies({
-            projectId: createdItem.projectId!,
-            policyIds: paging.observerPolicyIds,
-            holds: paging.holds,
-            record: {
-              triggeredByIncidentEpisodeId: createdItem.id!,
-              userNotificationEventType:
-                UserNotificationEventType.IncidentEpisodeCreated,
-            },
-          });
+      // Then those paged as observers, kept informed. Never throws.
+      await OnCallObserverPaging.pagePolicies({
+        projectId: createdItem.projectId,
+        policyIds: paging.observerPolicyIds,
+        holds: paging.holds,
+        record: {
+          triggeredByIncidentEpisodeId: createdItem.id,
+          userNotificationEventType:
+            UserNotificationEventType.IncidentEpisodeCreated,
         },
-      );
+      });
     } catch (error) {
       logger.error(`Error in executeEpisodeOnCallDutyPoliciesAsync: ${error}`, {
         projectId: createdItem.projectId?.toString(),
