@@ -1,4 +1,9 @@
 import { ContentPath } from "./Config";
+import {
+  DocsGlossaryEntry,
+  GLOSSARY_PAGE,
+  parseGlossary,
+} from "./Glossary";
 import DocsNav, { NavGroup, NavLink } from "./Nav";
 import {
   DEFAULT_DOCS_LANGUAGE,
@@ -283,6 +288,12 @@ export default class DocsSearchIndex {
                 return { t: heading.text, a: heading.anchor };
               },
             );
+
+            if (link.url === `/docs/${GLOSSARY_PAGE}`) {
+              entry.h.push(
+                ...(await DocsSearchIndex.glossaryOtherNames(lang, markdown)),
+              );
+            }
           }
         }
 
@@ -291,6 +302,41 @@ export default class DocsSearchIndex {
     }
 
     return entries;
+  }
+
+  /*
+   * The Glossary's other names as section results: "Service Catalog
+   * (Service)" opens the Service term. A thing that was renamed, or that
+   * the product calls by two names, is found by either (#6817 keeps the old
+   * names there). Each opens its term by the term's English anchor, which
+   * the page answers in every language; a copy that is not the English
+   * page's shape gives the English names.
+   */
+  public static async glossaryOtherNames(
+    lang: string,
+    markdown: string,
+  ): Promise<Array<DocsSearchHeading>> {
+    const english: string | null = await readPage(
+      DEFAULT_DOCS_LANGUAGE,
+      GLOSSARY_PAGE,
+    );
+
+    if (english === null) {
+      return [];
+    }
+
+    const entries: Array<DocsGlossaryEntry> =
+      parseGlossary(english, markdown, lang) ||
+      parseGlossary(english, english, DEFAULT_DOCS_LANGUAGE) ||
+      [];
+
+    return entries.flatMap(
+      (entry: DocsGlossaryEntry): Array<DocsSearchHeading> => {
+        return entry.alsoCalled.map((name: string): DocsSearchHeading => {
+          return { t: `${name} (${entry.term})`, a: entry.id };
+        });
+      },
+    );
   }
 
   public static clearCache(): void {

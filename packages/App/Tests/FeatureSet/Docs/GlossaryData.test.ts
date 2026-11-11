@@ -5,6 +5,9 @@ import DocsGlossaryData, {
   parseGlossary,
 } from "../../../FeatureSet/Docs/Utils/Glossary";
 import { SUPPORTED_DOCS_LANGUAGE_CODES } from "../../../FeatureSet/Docs/Utils/I18n";
+import DocsSearchIndex, {
+  DocsSearchEntry,
+} from "../../../FeatureSet/Docs/Utils/SearchIndex";
 import { readPage } from "./DocsContentSupport";
 import { escapeRegExp } from "./DocsTranslationChecks";
 import { GLOSSARY } from "./GlossaryDocsSupport";
@@ -328,6 +331,59 @@ describe("DocsGlossaryData", () => {
     DocsGlossaryData.clearCache();
 
     expect(await DocsGlossaryData.getGlossary("de")).not.toBe(first);
+  });
+});
+
+describe("docs search, on the Glossary's other names", () => {
+  it("finds a term by any other name it goes by, and opens the term", async () => {
+    DocsSearchIndex.clearCache();
+
+    const glossary: DocsSearchEntry = (await DocsSearchIndex.getIndex("en")).find(
+      (entry: DocsSearchEntry): boolean => {
+        return entry.u === "/docs/en/introduction/glossary";
+      },
+    ) as DocsSearchEntry;
+
+    expect(glossary.h).toEqual(
+      expect.arrayContaining([
+        { t: "Service", a: "service" },
+        { t: "Service Catalog (Service)", a: "service" },
+        { t: "Telemetry Service (Service)", a: "service" },
+        { t: "On-Call Duty (On-Call Policy)", a: "on-call-policy" },
+        { t: "OnCallDutyPolicy (On-Call Policy)", a: "on-call-policy" },
+      ]),
+    );
+
+    // One result for each other name, and nothing for a term with none.
+    const otherNames: number = (
+      parseGlossary(ENGLISH, ENGLISH, "en") as Array<DocsGlossaryEntry>
+    ).reduce((count: number, entry: DocsGlossaryEntry): number => {
+      return count + entry.alsoCalled.length;
+    }, 0);
+
+    expect(
+      glossary.h.filter((heading: { t: string }): boolean => {
+        return heading.t.endsWith(")");
+      }).length,
+    ).toBe(otherNames);
+    expect(otherNames).toBeGreaterThan(30);
+  });
+
+  it("finds them in each language by that language's names", async () => {
+    DocsSearchIndex.clearCache();
+
+    const glossary: DocsSearchEntry = (await DocsSearchIndex.getIndex("de")).find(
+      (entry: DocsSearchEntry): boolean => {
+        return entry.u === "/docs/de/introduction/glossary";
+      },
+    ) as DocsSearchEntry;
+
+    expect(glossary.h).toEqual(
+      expect.arrayContaining([
+        { t: "Dienstkatalog (Dienst)", a: "service" },
+        { t: "OnCallDutyPolicy (Bereitschaftsrichtlinie)", a: "on-call-policy" },
+      ]),
+    );
   });
 });
 
