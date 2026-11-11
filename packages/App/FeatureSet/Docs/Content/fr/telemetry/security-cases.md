@@ -49,7 +49,7 @@ Chacune de ces actions peut aussi être accordée isolément, de la création d'
 | --- | --- | --- |
 | Règles de détection | Une règle correspond | **Ouvrir un dossier en cas de correspondance**, à l'étape **En cas de correspondance** de la règle |
 | Renseignement sur les menaces | Un événement nomme un indicateur connu | **Ouvrir un dossier en cas de correspondance**, à l'étape **En cas de correspondance** du flux |
-| Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Open Cases From** réglé sur **Jamais**, à l'étape **Interrogation** de la connexion |
+| Produits connectés | Une alerte propre au produit est importée à un niveau égal ou supérieur au seuil de la connexion | **Ouvrir des dossiers à partir de** réglé sur **Jamais**, à l'étape **Interrogation** de la connexion |
 | Produits de sécurité dans vos journaux | Une menace qu'un pare-feu, un IDS ou un produit de protection des terminaux écrit dans vos journaux atteint ou dépasse le seuil de Vos journaux | **Ouvrir des dossiers à partir de** réglé sur **Jamais**, sur **Vos journaux** |
 | Risque des entités | Le risque d'un utilisateur, d'un hôte ou d'une adresse atteint le seuil du projet | **Dossiers de risque**, dans **Paramètres → Notation du risque** |
 | Personnes | Quelqu'un en ouvre un depuis **Dossiers de sécurité**, ou avec **Ouvrir un dossier** dans le panneau d'un événement | Impossible |

@@ -296,7 +296,10 @@ function getUserRollupCells(
    * says which one they used last.
    */
   const subline: string = isUnlinkedBucket
-    ? translateLine("Recorded by a recorder that sent no visitor id", translator)
+    ? translateLine(
+        "Recorded by a recorder that sent no visitor id",
+        translator,
+      )
     : formatInline(
         [
           deviceParts.length > 0

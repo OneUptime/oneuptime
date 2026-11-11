@@ -17,8 +17,8 @@ A ogni controllo, una sonda chiede a un server DNS un tipo di record di un nome,
 flowchart TB
     query["Interrogare il tipo di record"] --> answer{"Record restituiti?"}
     answer -->|"No, tentativi rimasti"| query
-    answer -->|"No, tentativi esauriti"| offline["DNS Is Online: False"]
-    answer -->|"Sì"| online["DNS Is Online: True"]
+    answer -->|"No, tentativi esauriti"| offline["DNS online: Falso"]
+    answer -->|"Sì"| online["DNS online: Vero"]
     online --> ad["Controllare il flag AD"]
     ad --> criteria["Controllare i criteri"]
     offline --> criteria
@@ -126,7 +126,7 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 | **Tutti i valori** | Ogni controllo della finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo della finestra soddisfa la condizione. |
 
-**Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio aspetta invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisatemi appena un singolo controllo supera la soglia» e scatta comunque subito.
+L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio aspetta invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisatemi appena un singolo controllo supera la soglia» e scatta comunque subito.
 
 **Se nessun dato** decide cosa succede finché la finestra non può sostenere il criterio:
 
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Ancora sotto, aggiungete un criterio con **DNS online** / **Vero**, che segni il monitor **Offline** e dichiari un incidente. Corrisponde solo alle risposte che non hanno il valore.
 :::
 
-:::details DNSSEC Is Valid non corrisponde mai
+:::details DNSSEC valido non corrisponde mai
 Il server in **Server DNS (opzionale)** non convalida DNSSEC, quindi non imposta mai il flag AD, oppure la sonda non è riuscita a eseguire il controllo. Lasciate il campo vuoto per convalidare con `8.8.8.8`, o usate un [monitor DNSSEC](/docs/monitor/dnssec-monitor).
 :::
 

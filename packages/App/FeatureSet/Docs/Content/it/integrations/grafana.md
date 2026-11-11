@@ -3,7 +3,7 @@
 Invia gli avvisi di [Grafana](https://grafana.com) a OneUptime, così ogni avviso che scatta diventa un incidente che chiama il tuo team reperibile e si risolve quando l'avviso rientra. Grafana invia i suoi avvisi tramite un punto di contatto webhook, quindi non c'è nulla da installare né da una parte né dall'altra.
 
 :::cards
-- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un monitor Incoming Request o un workflow tuo.
+- [Scegliere come OneUptime riceve gli avvisi](#scegliere-come-oneuptime-riceve-gli-avvisi): Un monitor di richieste in arrivo o un workflow tuo.
 - [Ricevere gli avvisi con un monitor](#ricevere-gli-avvisi-con-un-monitor): Un incidente per avviso, risolto al rientro.
 - [Configurare Grafana](#configurare-grafana): Un punto di contatto webhook e la policy che lo usa.
 - [Risoluzione dei problemi](#risoluzione-dei-problemi): Quando gli avvisi non arrivano o gli incidenti restano aperti.
@@ -33,14 +33,14 @@ Configura prima OneUptime: ti dà l'URL a cui invia Grafana.
 
 | Strada | Usala quando |
 | --- | --- |
-| Un monitor Incoming Request (consigliato) | Vuoi che ogni avviso sia un incidente che chiama la reperibilità e si risolve quando l'avviso rientra. Non c'è nulla da costruire. |
+| Un monitor di richieste in arrivo (consigliato) | Vuoi che ogni avviso sia un incidente che chiama la reperibilità e si risolve quando l'avviso rientra. Non c'è nulla da costruire. |
 | Un workflow con un trigger Webhook | Ti serve una logica tua: filtrare gli avvisi, rimodellarli o chiamare prima altri sistemi. Un workflow apre un incidente per notifica, non per avviso, e non lo risolve al rientro. |
 
 Entrambi ricevono lo stesso JSON dallo stesso punto di contatto, quindi puoi iniziare con uno e passare all'altro in seguito cambiando un URL in Grafana.
 
 ## Ricevere gli avvisi con un monitor
 
-Un [monitor Incoming Request](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni notifica.
+Un [monitor di richieste in arrivo](/docs/monitor/incoming-request-monitor) ti dà un URL, e i suoi criteri decidono cosa fa ogni notifica.
 
 :::steps
 ### Creare il monitor

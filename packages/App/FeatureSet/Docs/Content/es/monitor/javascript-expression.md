@@ -24,7 +24,7 @@ flowchart TB
 
 Como los marcadores se sustituyen como texto, `{{responseBody.item}}` se convierte en el valor sin procesar. Una cadena tiene que ir entre comillas para ser una cadena de JavaScript; un número o un booleano no — consulte [Reglas de comillas](#reglas-de-comillas). Las expresiones se ejecutan en el servidor de OneUptime, en un entorno aislado.
 
-## Añadir un filtro JavaScript Expression
+## Añadir un filtro Expresión de JavaScript
 
 :::steps
 ### Abrir los criterios

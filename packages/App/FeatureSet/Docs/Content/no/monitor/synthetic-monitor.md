@@ -128,7 +128,7 @@ Data som returneres fra skriptet, serialiseres til JSON før de lagres: i vanlig
 
 ### Varsling på de returnerte dataene
 
-Det skriptet returnerer som `data`, er monitorens **Resultatverdi**, som et kriterium kan sammenligne. Når `data` er et objekt eller en matrise, fyller du inn **Feltsti (valgfritt)** på Result Value-filteret for å sammenligne ett felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret sjekkes mot dataene fra hver nettleser og skjermstørrelse monitoren kjører på, og samsvarer når én av dem gjør det. Se [Varsling på de returnerte dataene](/docs/monitor/custom-code-monitor#varsling-på-de-returnerte-dataene) for hvordan stier og vilkår fungerer.
+Det skriptet returnerer som `data`, er monitorens **Resultatverdi**, som et kriterium kan sammenligne. Når `data` er et objekt eller en matrise, fyller du inn **Feltsti (valgfritt)** på Resultatverdi-filteret for å sammenligne ett felt — for eksempel `status`, `timings.loadTime` eller `errors[0].message`. Filteret sjekkes mot dataene fra hver nettleser og skjermstørrelse monitoren kjører på, og samsvarer når én av dem gjør det. Se [Varsling på de returnerte dataene](/docs/monitor/custom-code-monitor#varsling-på-de-returnerte-dataene) for hvordan stier og vilkår fungerer.
 
 ## Skjermbilder
 

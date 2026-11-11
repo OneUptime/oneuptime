@@ -137,7 +137,7 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
-**Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
+De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens gevuld is. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en slaat nog steeds meteen aan.
 
 **Time-out van aanvraag** is geen getal dat OneUptime vastlegt. OneUptime legt daarom vast of het filter bij elke controle overeenkwam, en beoordeelt het venster aan de hand daarvan met **Alle waarden** of **Willekeurige waarde**.
 

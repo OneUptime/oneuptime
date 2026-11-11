@@ -215,26 +215,26 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 
 | Filtertyp | Was geprüft wird | Filterbedingungen |
 | --- | --- | --- |
-| Is Online | Ob der Agent kürzlich gemeldet hat (standardmäßig in den letzten 3 Minuten) | Wahr, Falsch |
-| CPU Usage (in %) | Gesamte CPU-Auslastung | Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich |
-| Memory Usage (in %) | Belegter Arbeitsspeicher | Wie bei CPU |
-| Disk Usage (in %) | Auslastung der unter **Festplattenpfad** genannten Festplatte | Wie bei CPU |
-| Swap Usage (in %) | Belegter Swap | Wie bei CPU |
-| CPU IO Wait (in %) | Anteil der CPU-Zeit, die auf I/O wartet | Wie bei CPU |
-| Load Average (1 minute) | Lastdurchschnitt der letzten Minute | Wie bei CPU |
-| Load Average (5 minute) | Lastdurchschnitt der letzten 5 Minuten | Wie bei CPU |
-| Load Average (15 minute) | Lastdurchschnitt der letzten 15 Minuten | Wie bei CPU |
-| Server Process Name | Ob ein Prozess mit diesem Namen läuft (ohne Beachtung der Groß-/Kleinschreibung) | Wird ausgeführt, Wird nicht ausgeführt |
-| Server Process Command | Ob ein Prozess mit genau dieser Befehlszeile läuft (ohne Beachtung der Groß-/Kleinschreibung) | Wird ausgeführt, Wird nicht ausgeführt |
-| Server Process PID | Ob ein Prozess mit dieser PID läuft | Wird ausgeführt, Wird nicht ausgeführt |
+| Ist online | Ob der Agent kürzlich gemeldet hat (standardmäßig in den letzten 3 Minuten) | Wahr, Falsch |
+| CPU-Auslastung (in %) | Gesamte CPU-Auslastung | Größer als, Kleiner als, Größer als oder gleich, Kleiner als oder gleich |
+| Arbeitsspeichernutzung (in %) | Belegter Arbeitsspeicher | Wie bei CPU |
+| Datenträgernutzung (in %) | Auslastung der unter **Festplattenpfad** genannten Festplatte | Wie bei CPU |
+| Swap-Nutzung (in %) | Belegter Swap | Wie bei CPU |
+| CPU-IO-Wartezeit (in %) | Anteil der CPU-Zeit, die auf I/O wartet | Wie bei CPU |
+| Lastdurchschnitt (1 Minute) | Lastdurchschnitt der letzten Minute | Wie bei CPU |
+| Lastdurchschnitt (5 Minuten) | Lastdurchschnitt der letzten 5 Minuten | Wie bei CPU |
+| Lastdurchschnitt (15 Minuten) | Lastdurchschnitt der letzten 15 Minuten | Wie bei CPU |
+| Name des Serverprozesses | Ob ein Prozess mit diesem Namen läuft (ohne Beachtung der Groß-/Kleinschreibung) | Wird ausgeführt, Wird nicht ausgeführt |
+| Befehl des Serverprozesses | Ob ein Prozess mit genau dieser Befehlszeile läuft (ohne Beachtung der Groß-/Kleinschreibung) | Wird ausgeführt, Wird nicht ausgeführt |
+| PID des Serverprozesses | Ob ein Prozess mit dieser PID läuft | Wird ausgeführt, Wird nicht ausgeführt |
 
 **Festplattenpfad** nimmt einen Einhängepunkt oder ein Gerät an, etwa `/`, `/mnt/data`, `C:\` oder `/dev/sda1`; leer gelassen ist er `/`. Geben Sie `*` ein, um jede Festplatte zu prüfen, die der Agent meldet: Jede Festplatte, die den Schwellenwert überschreitet, erhält eine eigene Warnung, sodass eine zweite volllaufende Festplatte nicht hinter der offenen Warnung der ersten verborgen bleibt. Groß-/Kleinschreibung und ein abschließendes `/` oder `\` spielen keine Rolle, und ein Gerät steht für die Festplatte, die von ihm eingehängt ist. Ein Pfad, der keine vom Agent gemeldete Festplatte bezeichnet, trifft nicht zu. Kann der Agent die Prozesse des Servers nicht lesen, enthält sein Bericht keine Prozessliste, und kein Prozessfilter trifft zu, ob er prüft, dass ein Prozess läuft oder dass er nicht läuft.
 
 ### Über einen Zeitraum auswerten
 
-**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein eigenes Kontrollkästchen im Kriterienformular, keine Filterbedingung. Es steht für **Ist online** und jeden numerischen Filtertyp zur Verfügung. Aktivieren Sie es, um statt des Werts der letzten Prüfung einen Gesamtwert zu vergleichen – gewählt unter **Auswerten** (Durchschnitt, Summe, Maximum Value, Minimum Value, All Values, Any Value) über das unter **Für die letzten (in Minuten)** festgelegte Zeitfenster. Bei einem **Ist online**-Filter ist das Zeitfenster die Dauer, die der Agent schweigen darf, bevor der Server als offline gilt.
+**Diese Kriterien über einen Zeitraum hinweg auswerten** ist ein eigenes Kontrollkästchen im Kriterienformular, keine Filterbedingung. Es steht für **Ist online** und jeden numerischen Filtertyp zur Verfügung. Aktivieren Sie es, um statt des Werts der letzten Prüfung einen Gesamtwert zu vergleichen – gewählt unter **Auswerten** (Durchschnitt, Summe, Maximalwert, Minimalwert, Alle Werte, Beliebiger Wert) über das unter **Für die letzten (in Minuten)** festgelegte Zeitfenster. Bei einem **Ist online**-Filter ist das Zeitfenster die Dauer, die der Agent schweigen darf, bevor der Server als offline gilt.
 
-**Alle Werte** trifft erst zu, wenn das Zeitfenster tatsächlich mit Daten abgedeckt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen; das Kriterium wartet daher, statt auf dem einen vorhandenen Messwert zuzutreffen. **Beliebiger Wert** ist die Einstellung für „melde mich, sobald eine einzige Prüfung den Wert überschreitet“ und löst weiterhin sofort aus.
+Die Option **Alle Werte** trifft erst zu, wenn das Zeitfenster tatsächlich mit Daten abgedeckt ist. Ein gerade erstellter Monitor oder einer, dessen Prüfungen nicht mehr aufgezeichnet wurden, hat nicht genug Verlauf, um etwas über die letzten N Minuten zu sagen; das Kriterium wartet daher, statt auf dem einen vorhandenen Messwert zuzutreffen. **Beliebiger Wert** ist die Einstellung für „melde mich, sobald eine einzige Prüfung den Wert überschreitet“ und löst weiterhin sofort aus.
 
 **Bei keinen Daten** steuert, was geschieht, solange das Zeitfenster das Kriterium nicht stützen kann:
 
@@ -251,12 +251,12 @@ Kriterien entscheiden, wann der Monitor online, beeinträchtigt oder offline ist
 
 | Ziel | Filtertyp | Filterbedingung | Wert |
 | --- | --- | --- | --- |
-| Den Server als offline markieren, wenn der Agent nicht mehr meldet | Is Online | Falsch | — |
-| Warnen, wenn die CPU-Auslastung über 90 % liegt | CPU Usage (in %) | Größer als | `90` |
-| Warnen, wenn die Root-Festplatte zu mehr als 85 % voll ist | Disk Usage (in %), **Festplattenpfad** `/` | Größer als | `85` |
-| Bei jeder Festplatte warnen, die zu mehr als 85 % voll ist, eine Warnung pro Festplatte | Disk Usage (in %), **Festplattenpfad** `*` | Größer als | `85` |
-| Warnen, wenn die Speicherauslastung über 80 % liegt | Memory Usage (in %) | Größer als | `80` |
-| Warnen, wenn nginx nicht mehr läuft | Server Process Name | Wird nicht ausgeführt | `nginx` |
+| Den Server als offline markieren, wenn der Agent nicht mehr meldet | Ist online | Falsch | — |
+| Warnen, wenn die CPU-Auslastung über 90 % liegt | CPU-Auslastung (in %) | Größer als | `90` |
+| Warnen, wenn die Root-Festplatte zu mehr als 85 % voll ist | Datenträgernutzung (in %), **Festplattenpfad** `/` | Größer als | `85` |
+| Bei jeder Festplatte warnen, die zu mehr als 85 % voll ist, eine Warnung pro Festplatte | Datenträgernutzung (in %), **Festplattenpfad** `*` | Größer als | `85` |
+| Warnen, wenn die Speicherauslastung über 80 % liegt | Arbeitsspeichernutzung (in %) | Größer als | `80` |
+| Warnen, wenn nginx nicht mehr läuft | Name des Serverprozesses | Wird nicht ausgeführt | `nginx` |
 
 ## Fehlerbehebung
 

@@ -17,6 +17,7 @@ import {
   getSecurityEventBaseFacetKey,
   isSecurityEventAttributeFacetKey,
 } from "Common/Utils/SecurityEvent/SecurityEventSearch";
+import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import { encodeRouteQueryParamValue } from "../../Utils/TelemetryTabScope";
 import { SECURITY_EVENT_VOLUME_COLORS } from "./SecurityEventVolume";
 
@@ -94,13 +95,13 @@ export const SECURITY_EVENT_FACETS: ReadonlyArray<SecurityEventFacetDefinition> 
        */
       key: SECURITY_EVENT_SOURCE_FACET_KEY,
       title: "Source",
-      pluralTitle: "Sources",
+      pluralTitle: translationKey("Sources"),
       priority: 0,
     },
     {
       key: "severityName",
       title: "Severity",
-      pluralTitle: "Severities",
+      pluralTitle: translationKey("Severities"),
       priority: 1,
     },
     {
@@ -112,61 +113,61 @@ export const SECURITY_EVENT_FACETS: ReadonlyArray<SecurityEventFacetDefinition> 
        */
       key: "requestOutcome",
       title: "Request Outcome",
-      pluralTitle: "Request Outcomes",
+      pluralTitle: translationKey("Request Outcomes"),
       priority: 2,
     },
     {
       key: "className",
       title: "Event Class",
-      pluralTitle: "Event Classes",
+      pluralTitle: translationKey("Event Classes"),
       priority: 3,
     },
     {
       key: "categoryName",
       title: "Category",
-      pluralTitle: "Categories",
+      pluralTitle: translationKey("Categories"),
       priority: 4,
     },
     {
       key: "activityName",
       title: "Activity",
-      pluralTitle: "Activities",
+      pluralTitle: translationKey("Activities"),
       priority: 5,
     },
     {
       key: "statusName",
       title: "Status",
-      pluralTitle: "Statuses",
+      pluralTitle: translationKey("Statuses"),
       priority: 6,
     },
     {
       key: "vendorName",
       title: "Vendor",
-      pluralTitle: "Vendors",
+      pluralTitle: translationKey("Vendors"),
       priority: 7,
     },
     {
       key: "productName",
       title: "Product",
-      pluralTitle: "Products",
+      pluralTitle: translationKey("Products"),
       priority: 8,
     },
     {
       key: "ruleName",
       title: "Detection Rule",
-      pluralTitle: "Detection Rules",
+      pluralTitle: translationKey("Detection Rules"),
       priority: 9,
     },
     {
       key: "principalUser",
       title: "Principal User",
-      pluralTitle: "Principal Users",
+      pluralTitle: translationKey("Principal Users"),
       priority: 10,
     },
     {
       key: "principalHost",
       title: "Principal Host",
-      pluralTitle: "Principal Hosts",
+      pluralTitle: translationKey("Principal Hosts"),
       priority: 11,
     },
     {
@@ -178,13 +179,13 @@ export const SECURITY_EVENT_FACETS: ReadonlyArray<SecurityEventFacetDefinition> 
        */
       key: "processName",
       title: "Process",
-      pluralTitle: "Processes",
+      pluralTitle: translationKey("Processes"),
       priority: 12,
     },
     {
       key: "parentProcessName",
       title: "Parent Process",
-      pluralTitle: "Parent Processes",
+      pluralTitle: translationKey("Parent Processes"),
       priority: 13,
     },
   ];

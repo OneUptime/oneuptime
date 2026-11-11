@@ -402,7 +402,7 @@ Um eine Metrik in einem Ausdruck zu lesen, setzen Sie den Zeitreihennamen mit se
 {{metrics}}['oneuptime.monitor.database.connections.used.percent'] > 90
 ```
 
-Für einen Schwellenwert auf eine einzelne Metrik greifen Sie zu **Datenbankmetrik** statt zu einem Ausdruck: Es löst die Zeitreihe für Sie auf, bietet nur an, was Ihre Engine liefern kann, und überspringt die Prüfung, wenn der Wert nicht erfasst wurde, statt mit nichts zu vergleichen.
+Für einen Schwellenwert auf eine einzelne Metrik greifen Sie zu **Datenbankmetrik** statt zu einem Ausdruck: Sie löst die Zeitreihe für Sie auf, bietet nur an, was Ihre Engine liefern kann, und überspringt die Prüfung, wenn der Wert nicht erfasst wurde, statt mit nichts zu vergleichen.
 
 ### Beispiel: ein PostgreSQL-Primärserver
 

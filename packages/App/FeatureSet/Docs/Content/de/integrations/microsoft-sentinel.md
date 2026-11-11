@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **Die Erstellungszeit ist der Cursor.** Eine geplante Analyseregel, die stündlich läuft, eröffnet ihren Vorfall lange nach der Aktivität, die sie gefunden hat, und `firstActivityTimeUtc` des Vorfalls kann Stunden oder Tage älter sein. Ein Cursor über die Aktivitätszeit würde jeden solchen Vorfall überspringen. Die Aktivitätszeiten bleiben in `attributes`, und die Beispiele in der Diagnose zeigen beide.
 - **Die erste Abfrage blickt 24 Stunden zurück**, sodass eine neue Verbindung ihre jüngsten Vorfälle sofort zeigt.
 - **Jede spätere Abfrage beginnt 1 Minute vor dem gespeicherten Cursor**, sodass ein Vorfall, der an der Grenze zwischen zwei Zeitfenstern erstellt wurde, nie übersprungen wird.
-- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Catching up**.
+- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Holt auf**.
 - **Duplikate werden nach der GUID des Vorfalls verworfen** (`name`), innerhalb des Projekts, sodass die Überlappung, ein wiederholtes Zeitfenster und ein Import nie einen Vorfall doppelt speichern.
 
 ### Wenn ein Zeitfenster mehr enthält, als eine Abfrage lesen kann

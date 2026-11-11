@@ -94,7 +94,7 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **O horário de criação é o cursor.** Os alertas são listados pelo próprio `@timestamp`, quando a execução da regra os criou, nunca pelo horário da atividade de que tratam. Uma regra que roda de hora em hora cria alertas sobre uma atividade de até uma hora atrás, e um cursor pelo horário de atividade pularia todos eles.
 - **A primeira consulta olha 24 horas para trás**, para que uma nova conexão mostre logo os alertas recentes dela.
 - **Cada consulta seguinte começa 1 minuto antes do cursor salvo**, para que um alerta criado na fronteira entre duas janelas nunca se perca.
-- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Catching up**.
+- **Uma consulta lê no máximo 24 horas além do cursor.** Uma conexão cujo cursor ficou para trás se atualiza em uma série de janelas de 24 horas, e a **Integridade** dela mostra **Recuperando o atraso**.
 - **As duplicatas são descartadas pelo `_id` do alerta** dentro do projeto, para que a sobreposição, uma janela repetida e uma importação nunca salvem um alerta duas vezes.
 
 A pesquisa de alertas do Kibana aceita um tamanho e uma ordenação, mas nenhum token de página. Então o OneUptime pagina movendo o início do intervalo para o último alerta de cada página, e deixa de fora, por `_id`, os alertas que já leu naquele instante. Uma execução de regra costuma marcar muitos alertas com o mesmo horário, e esse grupo é lido página por página, nenhum duas vezes e nenhum pulado.

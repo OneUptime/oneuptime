@@ -107,10 +107,10 @@ Disse monitorene evaluerer alltid **Metrikkverdi** – verdien av den konfigurer
 | --- | --- |
 | Gjennomsnitt | Gjennomsnittsverdi over tidsvinduet |
 | Sum | Summen av alle verdier |
-| Maximum Value | Høyeste verdi i tidsvinduet |
-| Minimum Value | Laveste verdi i tidsvinduet |
-| All Values | Alle verdier må samsvare med kriteriet og dekke hele tidsvinduet |
-| Any Value | Minst én verdi må samsvare |
+| Maksimumsverdi | Høyeste verdi i tidsvinduet |
+| Minimumsverdi | Laveste verdi i tidsvinduet |
+| Alle verdier | Alle verdier må samsvare med kriteriet og dekke hele tidsvinduet |
+| Minst én verdi | Minst én verdi må samsvare |
 
 ### Betingelser
 

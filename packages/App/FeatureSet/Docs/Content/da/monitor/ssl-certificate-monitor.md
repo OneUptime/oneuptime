@@ -73,8 +73,8 @@ Kriterier afgør, hvornår certifikatet tæller som i orden, forringet eller fej
 
 | Filter | Betingelser | Hvad det kontrollerer |
 | --- | --- | --- |
-| **Is Valid Certificate** | **Sand**, **Falsk** | Certifikatet består en browsers kontroller: en udsteder, der er tillid til, et værtsnavn, der passer, og en gyldighedsperiode, der omfatter i dag. **Falsk**, når endpointet ikke svarede. |
-| **Certifikatet er ugyldigt** | **Sand**, **Falsk** | Det modsatte af **Is Valid Certificate**: **Sand**, når certifikatet ikke består de kontroller eller ikke kunne kontrolleres. |
+| **Certifikatet er gyldigt** | **Sand**, **Falsk** | Certifikatet består en browsers kontroller: en udsteder, der er tillid til, et værtsnavn, der passer, og en gyldighedsperiode, der omfatter i dag. **Falsk**, når endpointet ikke svarede. |
+| **Certifikatet er ugyldigt** | **Sand**, **Falsk** | Det modsatte af **Certifikatet er gyldigt**: **Sand**, når certifikatet ikke består de kontroller eller ikke kunne kontrolleres. |
 | **Certifikatet er udløbet** | **Sand**, **Falsk** | Certifikatets udløbsdato er passeret. |
 | **Certifikatet er selvsigneret** | **Sand**, **Falsk** | Certifikatet, eller et i dets kæde, er selvsigneret. |
 | **Dage til udløb** | **Større end**, **Mindre end**, **Større end eller lig med**, **Mindre end eller lig med** | Dage, indtil certifikatet udløber. |
@@ -102,7 +102,7 @@ For at blive advaret tidligere skal du ændre værdien af filteret **Dage til ud
 Monitorer, der blev oprettet, før OneUptime indførte denne advarsel, har intet kriterium "udløber snart". Sådan tilføjer du det:
 
 1. Åbn **Konfiguration → Kriterier** på monitoren, og klik på **Rediger overvågningskriterier**.
-2. Klik på **Tilføj kriterier**. Sæt dets filter til **Is Valid Certificate** / **Sand**, klik på **Tilføj filter**, og sæt det andet til **Dage til udløb** / **Mindre end eller lig med** / `14`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
+2. Klik på **Tilføj kriterier**. Sæt dets filter til **Certifikatet er gyldigt** / **Sand**, klik på **Tilføj filter**, og sæt det andet til **Dage til udløb** / **Mindre end eller lig med** / `14`. Lad **Matchbetingelse** stå på **Alle** (den vises under filtrene, så snart der er to).
 3. Slå **Når filtre matcher, oprettes en advarsel.** til under **Handlinger**, og lad **Når filtre matcher, ændres overvågningsstatus.** være slået fra, så det opretter en advarsel og ikke ændrer monitorens status.
 4. Træk det nye kriterium op over det kriterium, der markerer monitoren som online, og gem derefter.
 :::
@@ -136,7 +136,7 @@ Et selvsigneret certifikat er aldrig gyldigt, så standardkriterierne holder mon
 
 1. Klik på **Tilføj filter** i kriteriet "ikke gyldigt", sæt det nye filter til **Certifikatet er selvsigneret** / **Falsk**, og sæt **Matchbetingelse** til **Alle**. Kriteriet tager stadig monitoren offline, når endpointet ikke svarer, eller certifikatet er forkert på en anden måde.
 2. Tilføj et kriterium med **Certifikatet er udløbet** / **Sand**, der markerer monitoren som **Offline** og erklærer en hændelse, og træk det helt op øverst.
-3. Erstat **Is Valid Certificate** / **Sand** med **Certifikatet er udløbet** / **Falsk** i kriteriet "udløber snart", så advarslen også dækker det selvsignerede certifikat.
+3. Erstat **Certifikatet er gyldigt** / **Sand** med **Certifikatet er udløbet** / **Falsk** i kriteriet "udløber snart", så advarslen også dækker det selvsignerede certifikat.
 
 Så længe certifikatet er gældende, matcher intet kriterium, og monitoren viser sin standardstatus, **I drift**.
 :::

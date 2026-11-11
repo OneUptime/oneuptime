@@ -107,10 +107,10 @@ Disse monitorer evaluerer altid **Metrikværdi** – værdien af den konfigurere
 | --- | --- |
 | Gennemsnit | Gennemsnitsværdi over tidsvinduet |
 | Sum | Summen af alle værdier |
-| Maximum Value | Højeste værdi i tidsvinduet |
-| Minimum Value | Laveste værdi i tidsvinduet |
-| All Values | Alle værdier skal matche kriteriet og dække hele tidsvinduet |
-| Any Value | Mindst én værdi skal matche |
+| Maksimumværdi | Højeste værdi i tidsvinduet |
+| Minimumværdi | Laveste værdi i tidsvinduet |
+| Alle værdier | Alle værdier skal matche kriteriet og dække hele tidsvinduet |
+| Vilkårlig værdi | Mindst én værdi skal matche |
 
 ### Betingelser
 

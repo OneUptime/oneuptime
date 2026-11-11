@@ -23,9 +23,9 @@ import {
  *
  * The code table below is the recorder's ACTUAL vocabulary, read from the
  * debugLog/debugWarn call sites across Index.ts, Loader.ts, Config.ts,
- * Recorder.ts, NetworkRecorder.ts and Transport.ts. Adding a code to the
- * recorder without
- * adding it here makes it fall through to the unknown-code copy, which
+ * Recorder.ts, NetworkRecorder.ts, Transport.ts and ProductAnalytics.ts.
+ * Adding a code to the recorder without adding it here makes it fall
+ * through to the unknown-code copy, which
  * App/Tests/Dashboard/RecorderDiagnosticsExplainer.test.ts pins.
  *
  * Every sentence is an English key of the Dashboard's locales: the table's
@@ -288,6 +288,14 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
     ),
     action: translationKey(
       "Call the API after the recorder started, or use the command queue.",
+    ),
+  },
+  "metric-analytics-off": {
+    explanation: translationKey(
+      "metric() was called while the application has product analytics events off, so nothing was sent.",
+    ),
+    action: translationKey(
+      "Turn product analytics events on under Analytics Settings.",
     ),
   },
 
@@ -565,6 +573,41 @@ export const RECORDER_DEBUG_CODE_COPY: Record<string, RecorderDebugCodeCopy> = {
       "Fix the cause named in the records above, then reload.",
     ),
     isOutcome: true,
+  },
+
+  /*
+   * ---- ProductAnalytics.ts ----
+   * The product analytics events sent beside the recording. None is an
+   * outcome: they say nothing about whether the page recorded.
+   */
+  "analytics-started": {
+    explanation: translationKey(
+      "The application has product analytics events on, so the recorder sends each session's start, its page views and the page's track() and metric() calls, from every session, recorded or not. The detail's userPropertyKeys counts the user properties the events keep.",
+    ),
+  },
+  "metric-name-refused": {
+    explanation: translationKey(
+      "metric() was given a name it cannot send, so nothing was sent. The detail shows that name, or its type if it was not a string.",
+    ),
+    action: translationKey(
+      'Use a name that starts with a letter and holds only letters, digits, underscores, dots, hyphens and slashes, at most 100 characters. A name starting with "oneuptime." is reserved for OneUptime\'s own metrics.',
+    ),
+  },
+  "metric-value-refused": {
+    explanation: translationKey(
+      "metric() was given a value that is not a finite number, so nothing was sent. The detail names the metric.",
+    ),
+    action: translationKey(
+      "Pass the metric's value as a finite number, such as 42.5, not as a string.",
+    ),
+  },
+  "analytics-stopped": {
+    explanation: translationKey(
+      "The server will not take this page's product analytics events, so none are sent from it again. The detail gives the status and the server's reason: 204 means the application has them or Session Replay off, 403 that the page's origin is not allowed, and 400 that the recorder sent a batch the server cannot read.",
+    ),
+    action: translationKey(
+      "For 204, turn product analytics events on under Analytics Settings and Session Replay on under Replay Policy. For 403, add this page's origin to the allowed origins under Replay Policy.",
+    ),
   },
 };
 

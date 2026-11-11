@@ -24,7 +24,7 @@ flowchart TB
 
 Eftersom platshållarna ersätts som text blir `{{responseBody.item}}` det råa värdet. En sträng måste stå inom citattecken för att vara en JavaScript-sträng; ett tal eller ett booleskt värde ska inte det — se [Regler för citattecken](#regler-för-citattecken). Uttryck körs på OneUptime-servern, i en isolerad sandlåda.
 
-## Lägg till ett filter av typen JavaScript Expression
+## Lägg till ett filter av typen JavaScript-uttryck
 
 :::steps
 ### Öppna kriterierna
@@ -46,7 +46,7 @@ Spara monitorn. Filtret utvärderas vid monitorns nästa kontroll.
 
 ## Variabler per monitortyp
 
-JavaScript-uttryck erbjuds för monitorer av typen Website, API, Incoming Request, Incoming Email, SQL Query och Database Health.
+JavaScript-uttryck erbjuds för monitorer av typen Website, API, Inkommande begäran, Incoming Email, SQL Query och Database Health.
 
 ### Webbplats- och API-monitorer
 

@@ -199,7 +199,9 @@ describe("the shell's capture callback", () => {
      * The header's tab strip counts the same manifest tabs from one, and
      * names each "Tab {{number}}" - in the reader's language there.
      */
-    expect(TABS_SOURCE).toContain("label: nameReplayTab(index + 1, translator)");
+    expect(TABS_SOURCE).toContain(
+      "label: nameReplayTab(index + 1, translator)",
+    );
     expect(TABS_SOURCE).toContain('translateTemplate("Tab {{number}}"');
   });
 

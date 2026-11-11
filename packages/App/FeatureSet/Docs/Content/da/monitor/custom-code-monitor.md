@@ -185,9 +185,9 @@ Standardkriterierne markerer monitoren som online, når **Fejl** er tom, og som 
 
 ### Advarsler på de returnerede data
 
-Det, scriptet returnerer som `data`, er monitorens **Resultatværdi**, og et kriterium kan sammenligne det — for eksempel _Result Value er Lig med `UP`_.
+Det, scriptet returnerer som `data`, er monitorens **Resultatværdi**, og et kriterium kan sammenligne det — for eksempel _Resultatværdi er Lig med `UP`_.
 
-Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Result Value-filteret for at sammenligne ét felt i stedet for hele værdien. Brug punktummer til indlejrede felter og `[n]` til elementer i et array:
+Når `data` er et objekt eller et array, skal du udfylde **Feltsti (valgfri)** på Resultatværdi-filteret for at sammenligne ét felt i stedet for hele værdien. Brug punktummer til indlejrede felter og `[n]` til elementer i et array:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

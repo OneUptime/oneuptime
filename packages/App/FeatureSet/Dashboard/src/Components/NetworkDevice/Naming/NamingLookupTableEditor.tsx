@@ -11,6 +11,7 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
+import FieldError from "Common/UI/Components/Forms/Fields/FieldError";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -526,11 +527,7 @@ const NamingLookupTableEditor: FunctionComponent<
         </p>
       )}
 
-      {props.error && (
-        <p className="text-sm text-red-600" role="alert">
-          {props.error}
-        </p>
-      )}
+      {props.error && <FieldError message={props.error} className="text-sm" />}
     </div>
   );
 };

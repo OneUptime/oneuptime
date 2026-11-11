@@ -71,7 +71,7 @@ const TEAM_OWNER_WRITERS: Array<Permission> = [
   pluralName: "Team Team Owners",
   icon: IconProp.Team,
   tableDescription:
-    "Add teams as owners of your teams. The members of an owning team look after who is in the owned team and what it may do.",
+    "Add teams as owners to your teams. The members of an owning team look after who is in the owned team and what it may do.",
 })
 @Entity({
   name: "TeamOwnerTeam",
@@ -137,7 +137,7 @@ export default class TeamOwnerTeam extends BaseModel {
     type: TableColumnType.Entity,
     modelType: Team,
     title: "Owned Team",
-    description: "The team that is owned",
+    description: "The team the owning team owns",
   })
   @ManyToOne(
     () => {
@@ -163,7 +163,7 @@ export default class TeamOwnerTeam extends BaseModel {
     required: true,
     canReadOnRelationQuery: true,
     title: "Owned Team ID",
-    description: "ID of the team that is owned",
+    description: "ID of the team the owning team owns",
   })
   @Column({
     type: ColumnType.ObjectID,

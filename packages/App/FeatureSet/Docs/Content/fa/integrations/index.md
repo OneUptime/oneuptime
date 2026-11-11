@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- | --- |
 | یک اتصال داخلی | ابزارهایی که OneUptime خودش به آن‌ها وصل می‌شود. یک فرم را پر می‌کنید و چیزی برای ساختن نیست. | [Slack](/docs/workspace-connections/slack)، [Microsoft Teams](/docs/workspace-connections/microsoft-teams)، اتصال‌های [رویدادهای امنیتی](/docs/telemetry/security-events) |
 | یک قالب گردش کاری | ابزارهای تیکت که در هر دو جهت هماهنگ نگه داشته می‌شوند، مشکل‌های پایش، گزارش‌های حادثه امنیتی و پیام‌های گفتگو. یک قالب برمی‌دارید و چند تنظیم را پر می‌کنید. | [Jira](/docs/integrations/jira)، [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365)، [Huntress](/docs/integrations/huntress)، [Zabbix](/docs/integrations/zabbix)، [Datadog](/docs/integrations/datadog)، [New Relic](/docs/integrations/new-relic) |
-| یک مانیتور Incoming Request | ابزارهای هشداردهی که وب‌هوک می‌فرستند. برای هر هشدار یک حادثه می‌گیرید که آنکال را فرا می‌خواند و با بهبود هشدار رفع می‌شود، بدون هیچ گردش کاری. | [Zabbix](/docs/integrations/zabbix)، [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)، [Grafana](/docs/integrations/grafana) |
+| یک مانیتور درخواست ورودی | ابزارهای هشداردهی که وب‌هوک می‌فرستند. برای هر هشدار یک حادثه می‌گیرید که آنکال را فرا می‌خواند و با بهبود هشدار رفع می‌شود، بدون هیچ گردش کاری. | [Zabbix](/docs/integrations/zabbix)، [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager)، [Grafana](/docs/integrations/grafana) |
 | گردش کاری‌ای که خودتان می‌سازید | هر ابزاری که وب‌هوک یا REST API دارد، و هر منطقی از خودتان. | [PagerDuty](/docs/integrations/pagerduty)، [Opsgenie](/docs/integrations/opsgenie)، [ServiceNow](/docs/integrations/servicenow) |
 
 از بالای جدول شروع کنید: هر روشی که بالاتر است، نگه‌داری کمتری دارد.
@@ -112,7 +112,7 @@ flowchart TB
 
 ### ورودی: ابزار دیگری داده به OneUptime می‌فرستد
 
-برای یک ابزار هشداردهی، با یک [مانیتور Incoming Request](/docs/monitor/incoming-request-monitor#دریافت-هشدار-از-سامانهای-دیگر) شروع کنید: برای هر هشدار یک حادثه باز می‌کند و با بهبود آن را رفع می‌کند، بی‌آنکه چیزی بسازید. وقتی به منطق خودتان نیاز دارید، یک گردش کاری بسازید:
+برای یک ابزار هشداردهی، با یک [مانیتور درخواست ورودی](/docs/monitor/incoming-request-monitor#دریافت-هشدار-از-سامانهای-دیگر) شروع کنید: برای هر هشدار یک حادثه باز می‌کند و با بهبود آن را رفع می‌کند، بی‌آنکه چیزی بسازید. وقتی به منطق خودتان نیاز دارید، یک گردش کاری بسازید:
 
 :::steps
 1. **گردش‌های کاری** را باز کنید، روی **ساخت گردش کاری** و سپس **شروع از صفر** کلیک کنید. برای گردش کاری نامی بگذارید و روی **ساخت گردش کاری** کلیک کنید.

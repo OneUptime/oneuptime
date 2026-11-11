@@ -136,7 +136,7 @@ const RenameRow: FunctionComponent<{
           </span>
           <Icon
             icon={IconProp.ArrowRight}
-            className="h-3.5 w-3.5 flex-shrink-0 text-gray-400 rtl:rotate-180"
+            className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
           />
           <span
             dir="ltr"

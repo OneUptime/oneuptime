@@ -47,7 +47,7 @@ Bruk den til å:
 
 Gå til **Monitorer**, og klikk på **Opprett monitor**.
 
-### Velg Incoming Request
+### Velg Innkommende forespørsel
 
 Under **Monitortype** velger du **Innkommende forespørsel** — den er en av de vanlige typene øverst. Skriv inn et **Navn**, og klikk deretter på **Neste**.
 
@@ -211,11 +211,11 @@ Endre verdien til det avsenderen faktisk sender (`"status":"firing"`, `FAILED` o
 
 | Filtertype | Sjekker | Merknader |
 | --------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Incoming Request | Om en forespørsel er mottatt innenfor et tidsvindu | Den eneste kontrollen som kan utløses når ingenting kommer |
+| Innkommende forespørsel | Om en forespørsel er mottatt innenfor et tidsvindu | Den eneste kontrollen som kan utløses når ingenting kommer |
 | Forespørselstekst | Forespørselsteksten | Søk etter en delstreng. Objekter som tekst sammenlignes som kompakt JSON |
-| Request Header | Navnene på forespørselens headere | Nøyaktig sammenligning med et helt headernavn, uten hensyn til store og små bokstaver |
-| Request Header Value | Verdiene til forespørselens headere | Nøyaktig sammenligning med en hel headerverdi, uten hensyn til store og små bokstaver |
-| JavaScript Expression | Ethvert uttrykk over `requestBody` og `requestHeaders` | Det mest fleksible alternativet — se [JavaScript-uttrykk](/docs/monitor/javascript-expression) |
+| Forespørselshode | Navnene på forespørselens headere | Nøyaktig sammenligning med et helt headernavn, uten hensyn til store og små bokstaver |
+| Verdi for forespørselshode | Verdiene til forespørselens headere | Nøyaktig sammenligning med en hel headerverdi, uten hensyn til store og små bokstaver |
+| JavaScript-uttrykk | Ethvert uttrykk over `requestBody` og `requestHeaders` | Det mest fleksible alternativet — se [JavaScript-uttrykk](/docs/monitor/javascript-expression) |
 
 ### Filtervilkår
 
@@ -223,7 +223,7 @@ Hver filtertype har sine egne vilkår:
 
 | Filtertype | Vilkår |
 | --- | --- |
-| **Innkommende forespørsel** | **Mottatt innen (minutter)** — en forespørsel er mottatt innenfor det angitte antallet minutter. **Ikke mottatt innen (minutter)** — ingen forespørsel er mottatt innenfor det angitte antallet minutter. (Dashbordet staver dem slik.) |
+| **Innkommende forespørsel** | **Mottatt innen (minutter)** — en forespørsel er mottatt innenfor det angitte antallet minutter. **Ikke mottatt innen (minutter)** — ingen forespørsel er mottatt innenfor det angitte antallet minutter. |
 | **Forespørselstekst**, **Forespørselshode**, **Verdi for forespørselshode** | **Inneholder** og **Inneholder ikke** |
 | **JavaScript-uttrykk** | **Evalueres til sann** |
 
@@ -238,7 +238,7 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 
 | Felt | Verdi |
 | --- | --- |
-| **Filtertype** | Incoming Request |
+| **Filtertype** | Innkommende forespørsel |
 | **Filtervilkår** | Ikke mottatt innen (minutter) |
 | **Verdi** | `10` |
 
@@ -254,7 +254,7 @@ Objekter som tekst sammenlignes som kompakt JSON uten mellomrom, så et filter *
 > Legg dødmannsbryteren **over** standardkriteriene. Kriteriene sjekkes ovenfra, og det første som samsvarer, avgjør. Bakgrunnskontrollen leser den siste forespørselen på nytt, så standardkriteriet for online — "Forespørselstekst Inneholder ikke `error`" — fortsetter å samsvare med den, og et kriterium under det kommer aldri til. **Legg til kriterier** legger til et kriterium nederst: dra det opp.
 
 > [!WARNING]
-> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Innkommende forespørsel**. En monitor der kriteriene bare sjekker forespørselsteksten, Request Header eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli frakoblet av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Innkommende forespørsel**.
+> En monitor evalueres bare på nytt i bakgrunnen hvis minst ett av kriteriene sjekker **Innkommende forespørsel**. En monitor der kriteriene bare sjekker forespørselsteksten, Forespørselshode eller et JavaScript-uttrykk, evalueres når en forespørsel kommer, og ikke på noe annet tidspunkt — så den kan aldri bli frakoblet av seg selv. Vil du ha en alarm for manglende heartbeat, trenger du et kriterium med **Innkommende forespørsel**.
 
 Bakgrunnskontrollen teller hele minutter og utløses så snart *mer* enn verdien har gått: "Ikke mottatt innen (minutter): 10" utløses omtrent 11 minutter etter den siste forespørselen (kontrollen kjører hvert 30. sekund). En monitor som aldri har mottatt en forespørsel, behandles som om opprettelsestidspunktet var den siste forespørselen, så det samme kriteriet på en helt ny monitor utløses omtrent 11 minutter etter at du oppretter den, selv om avsenderen aldri ble koblet til. Bare minutter da OneUptime tok imot, teller med: minutter mens OneUptime selv starter på nytt, oppgraderes eller tar igjen etterslep, teller ikke, slik [Når OneUptime ikke mottar data](/docs/monitor/when-oneuptime-is-not-receiving) forklarer.
 
@@ -367,7 +367,7 @@ Bare et kriterium med **Innkommende forespørsel** (**Ikke mottatt innen (minutt
 Send `Content-Type: application/json`, og skriv verdien som kompakt JSON — `"status":"firing"`, uten mellomrom etter kolonet. Uten en innholdstype for JSON eller skjema blir teksten ikke tolket.
 :::
 
-:::details Et filter på Request Header samsvarer aldri
+:::details Et filter på Forespørselshode samsvarer aldri
 Headernavn og -verdier sammenlignes i sin helhet. Oppgi hele verdien, som `application/json; charset=utf-8`, i stedet for en del av den.
 :::
 

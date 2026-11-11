@@ -1291,11 +1291,18 @@ function Frame(props) {
               Incident
             </PageLink>
           </nav>
+          {/*
+           * Search is a wide-screen entry, as in the Dashboard's header,
+           * which leaves it off below lg (max-lg:hidden). Ask AI stays at
+           * every width - the suite opens the panel from it on a phone -
+           * and takes the room: its label is the reader's, and Persian's
+           * ("پرسش از هوش مصنوعی") is three times as long as "Ask AI".
+           */}
           <div className="ms-auto flex items-center">
             <button
               type="button"
               data-testid="fixture-page-button"
-              className="me-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700"
+              className="max-lg:hidden me-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700"
             >
               Search
             </button>

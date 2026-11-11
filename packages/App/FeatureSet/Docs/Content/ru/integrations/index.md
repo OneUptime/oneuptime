@@ -29,7 +29,7 @@ flowchart TB
 | --- | --- | --- |
 | Встроенное подключение | Инструментов, к которым OneUptime подключается сам. Вы заполняете форму, и ничего не нужно создавать. | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), подключения [Событий безопасности](/docs/telemetry/security-events) |
 | Шаблон рабочего процесса | Тикет-систем, синхронизируемых в обе стороны, проблем мониторинга, отчётов об инцидентах безопасности и сообщений в чатах. Вы выбираете шаблон и заполняете несколько настроек. | [Jira](/docs/integrations/jira), [Microsoft Dynamics 365](/docs/integrations/microsoft-dynamics-365), [Huntress](/docs/integrations/huntress), [Zabbix](/docs/integrations/zabbix), [Datadog](/docs/integrations/datadog), [New Relic](/docs/integrations/new-relic) |
-| Монитор Incoming Request | Инструментов оповещения, которые отправляют вебхук. Вы получаете один инцидент на оповещение, переданный дежурным и устранённый, когда оповещение восстанавливается, без рабочего процесса. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
+| Монитор входящих запросов | Инструментов оповещения, которые отправляют вебхук. Вы получаете один инцидент на оповещение, переданный дежурным и устранённый, когда оповещение восстанавливается, без рабочего процесса. | [Zabbix](/docs/integrations/zabbix), [Prometheus Alertmanager](/docs/integrations/prometheus-alertmanager), [Grafana](/docs/integrations/grafana) |
 | Рабочий процесс, который вы создаёте | Любого инструмента с вебхуком или REST API и любой собственной логики. | [PagerDuty](/docs/integrations/pagerduty), [Opsgenie](/docs/integrations/opsgenie), [ServiceNow](/docs/integrations/servicenow) |
 
 Начинайте с верха таблицы: чем выше способ, тем меньше его нужно сопровождать.
@@ -112,7 +112,7 @@ flowchart TB
 
 ### Входящее: другой инструмент отправляет данные в OneUptime
 
-Для инструмента оповещения начните с [монитора Incoming Request](/docs/monitor/incoming-request-monitor#приём-оповещений-от-другой-системы): он создаёт один инцидент на оповещение и устраняет его при восстановлении, без какой-либо сборки. Создавайте рабочий процесс, когда вам нужна собственная логика:
+Для инструмента оповещения начните с [монитора входящих запросов](/docs/monitor/incoming-request-monitor#приём-оповещений-от-другой-системы): он создаёт один инцидент на оповещение и устраняет его при восстановлении, без какой-либо сборки. Создавайте рабочий процесс, когда вам нужна собственная логика:
 
 :::steps
 1. Откройте **Рабочие процессы**, нажмите **Создать рабочий процесс**, затем **Начать с нуля**. Назовите рабочий процесс и нажмите **Создать рабочий процесс**.

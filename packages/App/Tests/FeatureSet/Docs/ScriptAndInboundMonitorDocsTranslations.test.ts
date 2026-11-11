@@ -40,18 +40,18 @@ import path from "path";
  *     language's Dashboard locale, Persian included, as on the other monitor
  *     pages (drawnActionLabel). Menu paths ("A → B → C") are drawn segment by
  *     segment.
- *   - The type picker's categories (Synthetic Monitoring, Inbound
- *     Monitoring), the Custom JavaScript Code type, the browser and database
- *     names and the status page providers have no Dashboard locale key:
- *     every language's Dashboard shows them in English, so every
- *     translation names them in English (SHOWN_IN_ENGLISH). When the
- *     Dashboard gains a key for one, a test below fails until the pages name
- *     it as drawn. The text and number conditions (Equal To, Not Contains,
- *     Is Empty) gained theirs in adc8421a1b, and the criteria filters and
- *     the rest of their conditions (Result Value, SQL Is Online, Not Recieved
- *     In Minutes, Evaluates To True) theirs in #6575 (2026-11-10): they are
- *     labels now, drawn like any other (DocsCriteriaConditions holds every
- *     page to the conditions).
+ *   - The database type and driver, the browser a new monitor starts on,
+ *     the HTTP methods, the inbound email provider and the status page
+ *     providers have no Dashboard locale key: every language's Dashboard
+ *     shows them in English, so every translation names them in English
+ *     (SHOWN_IN_ENGLISH). When the Dashboard gains a key for one, a test
+ *     below fails until the pages name it as drawn. The text and number
+ *     conditions (Equal To, Not Contains, Is Empty) gained theirs in
+ *     adc8421a1b, and the criteria filters and the rest of their
+ *     conditions (Result Value, SQL Is Online, Email Received, Not Recieved
+ *     In Minutes, Evaluates To True) theirs in 31eadaee92e, worded in every
+ *     language in f155e8e0998: they are labels now, drawn like any other
+ *     (DocsCriteriaConditions holds every page to the conditions).
  *   - The Admin Dashboard's own locale draws the one Admin Dashboard setting
  *     the Incoming Email page names (ADMIN_DASHBOARD_LABELS).
  *
@@ -107,17 +107,10 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 /*
  * Bold names every language's Dashboard shows in English, because its
  * locale has no key for them, by page. A translation keeps each one bold and
- * in English, so the reader finds it as the screen shows it.
+ * in English, so the reader finds it as the screen shows it. The Custom Code
+ * page has none: its one, the Result Value filter, is a label now.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  /*
-   * The criteria filters of every page here (Result Value, SQL Is Online,
-   * Request Header Value, Email Body, External Status Page Is Online), the
-   * time conditions Recieved In Minutes and Not Recieved In Minutes,
-   * Evaluates To True and the Synthetic monitor's Screen Size left this list
-   * on 2026-11-10: #6575 keyed them in every language. The Custom Code
-   * monitor's page has nothing left in English.
-   */
   [SQL_MONITOR]: [
     /*
      * The Database Type dropdown's options. PostgreSQL and MySQL are

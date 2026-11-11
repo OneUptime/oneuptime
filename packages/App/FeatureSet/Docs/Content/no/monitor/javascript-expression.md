@@ -24,7 +24,7 @@ flowchart TB
 
 Fordi plassholderne erstattes som tekst, blir `{{responseBody.item}}` til den rå verdien. En streng må stå i anførselstegn for å være en JavaScript-streng; et tall eller en boolsk verdi skal ikke det — se [Regler for anførselstegn](#regler-for-anførselstegn). Uttrykk kjører på OneUptime-serveren, i en isolert sandkasse.
 
-## Legg til et filter av typen JavaScript Expression
+## Legg til et filter av typen JavaScript-uttrykk
 
 :::steps
 ### Åpne kriteriene
@@ -46,7 +46,7 @@ Lagre monitoren. Filteret evalueres ved monitorens neste sjekk.
 
 ## Variabler etter monitortype
 
-JavaScript-uttrykk tilbys for monitorer av typen Website, API, Incoming Request, Incoming Email, SQL Query og Database Health.
+JavaScript-uttrykk tilbys for monitorer av typen Website, API, Innkommende forespørsel, Incoming Email, SQL Query og Database Health.
 
 ### Nettsted- og API-monitorer
 

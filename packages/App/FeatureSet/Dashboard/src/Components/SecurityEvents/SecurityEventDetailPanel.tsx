@@ -38,7 +38,10 @@ import {
   SecurityLogResource,
   readSecurityEventLogResources,
 } from "Common/Utils/SecurityCase/SecurityConnectionMatch";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  Translator,
+  translatableTerm,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import SecurityEventWhatHappenedNext from "./SecurityEventWhatHappenedNext";
 import SecurityEventSourceSection from "./SecurityEventSourceSection";
@@ -131,9 +134,15 @@ const AttributeColumnButton: FunctionComponent<{
   isShown: boolean;
   onClick: () => void;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+  // The key as the source wrote it, in a sentence in the reader's language.
   const label: string = props.isShown
-    ? `Stop showing ${props.attributeKey} on event rows`
-    : `Show ${props.attributeKey} on event rows`;
+    ? translator.translateTemplate("Stop showing {{key}} on event rows", {
+        key: props.attributeKey,
+      })
+    : translator.translateTemplate("Show {{key}} on event rows", {
+        key: props.attributeKey,
+      });
 
   return (
     <button
@@ -166,6 +175,9 @@ const FieldRow: FunctionComponent<{
   filterLabel?: string | undefined;
   actions?: ReactElement | undefined;
 }): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  // The label is shown as given: a caller translates a field's name, never a source key.
   return (
     <div className="group grid grid-cols-3 gap-3 px-3 py-2 text-sm">
       <dt className="break-words font-medium text-gray-500">{props.label}</dt>
@@ -175,7 +187,12 @@ const FieldRow: FunctionComponent<{
         </span>
         {props.onFilter && (
           <FilterByButton
-            label={props.filterLabel || `Filter by ${props.label}`}
+            label={
+              props.filterLabel ||
+              translator.translateTemplate("Filter by {{field}}", {
+                field: props.label,
+              })
+            }
             onClick={props.onFilter}
           />
         )}
@@ -310,16 +327,16 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
       <dl className="divide-y divide-gray-100 rounded-md border border-gray-200">
         {time && (
           <FieldRow
-            label="Time"
+            label={translator.translateText("Time") || "Time"}
             value={OneUptimeDate.getDateAsLocalFormattedString(time)}
           />
         )}
         <FieldRow
-          label="Severity"
+          label={translator.translateText("Severity") || "Severity"}
           value={
             <SecurityEventSeverityPill severityName={event.severityName} />
           }
-          filterLabel="Filter by Severity"
+          filterLabel={translator.translateText("Filter by Severity")}
           onFilter={
             props.onFilterBy && event.severityName
               ? () => {
@@ -332,9 +349,11 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
           return (
             <FieldRow
               key={field.label}
-              label={field.label}
+              label={translator.translateText(field.label) || field.label}
               value={field.value}
-              filterLabel={`Filter by ${field.label}`}
+              filterLabel={translator.translateTemplate("Filter by {{field}}", {
+                field: translatableTerm(field.label),
+              })}
               onFilter={
                 props.onFilterBy && field.facetKey
                   ? () => {
@@ -349,11 +368,13 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
 
       <div>
         <h3 className="mb-2 text-sm font-semibold text-gray-900">
-          Observables
+          {translator.translateText("Observables")}
         </h3>
         {observables.length === 0 ? (
           <p className="text-sm text-gray-500">
-            No observables extracted from this event.
+            {translator.translateText(
+              "No observables extracted from this event.",
+            )}
           </p>
         ) : (
           <div className="flex flex-wrap gap-1.5">
@@ -363,7 +384,10 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
                   key={`${observable}-${index}`}
                   type="button"
                   data-testid={`security-event-panel-observable-chip-${index}`}
-                  title={`Correlate "${observable}"`}
+                  title={translator.translateTemplate(
+                    'Correlate "{{observable}}"',
+                    { observable },
+                  )}
                   className="inline-flex items-center rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-xs text-indigo-700 hover:bg-indigo-100"
                   onClick={() => {
                     correlateObservable(observable);
@@ -383,7 +407,7 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
     <div className="p-4">
       {attributeKeys.length === 0 ? (
         <p className="text-sm text-gray-500">
-          No attributes recorded for this event.
+          {translator.translateText("No attributes recorded for this event.")}
         </p>
       ) : (
         <dl className="divide-y divide-gray-100 rounded-md border border-gray-200">
@@ -395,7 +419,10 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
                 key={key}
                 label={key}
                 value={value}
-                filterLabel={`Filter by ${key}`}
+                filterLabel={translator.translateTemplate(
+                  "Filter by {{field}}",
+                  { field: key },
+                )}
                 onFilter={
                   props.onFilterBy && value.length > 0
                     ? () => {
@@ -437,8 +464,8 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
           aria-pressed={isJsonWrapped}
           title={
             isJsonWrapped
-              ? "Stop wrapping long lines"
-              : "Wrap long lines to fit the panel"
+              ? translator.translateText("Stop wrapping long lines")
+              : translator.translateText("Wrap long lines to fit the panel")
           }
           className={`inline-flex items-center rounded-md border px-2 py-1 text-xs transition-colors ${
             isJsonWrapped
@@ -449,7 +476,7 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
             setIsJsonWrapped(!isJsonWrapped);
           }}
         >
-          Wrap lines
+          {translator.translateText("Wrap lines")}
         </button>
         <CopyTextButton
           textToBeCopied={jsonText}
@@ -479,12 +506,12 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
   const tabs: Array<TelemetryDetailPanelTab> = [
     {
       id: SECURITY_EVENT_DETAIL_OVERVIEW_TAB_ID,
-      label: "Overview",
+      label: translator.translateText("Overview") || "Overview",
       content: overview,
     },
     {
       id: SECURITY_EVENT_DETAIL_ATTRIBUTES_TAB_ID,
-      label: "Attributes",
+      label: translator.translateText("Attributes") || "Attributes",
       content: attributesTab,
       badge: attributeKeys.length,
     },
@@ -527,7 +554,12 @@ const SecurityEventDetailPanel: FunctionComponent<ComponentProps> = (
     <div data-testid={SECURITY_EVENT_DETAIL_PANEL_TEST_ID}>
       <TelemetryDetailPanel
         isOpen={true}
-        title={event.message || event.className || "Security Event"}
+        title={
+          event.message ||
+          event.className ||
+          translator.translateText("Security Event") ||
+          "Security Event"
+        }
         subtitle={
           time ? OneUptimeDate.getDateAsLocalFormattedString(time) : undefined
         }

@@ -1772,7 +1772,9 @@ describe("Full-error guidance matches retention, redaction and copy controls", (
     expect(connectionsTableSource).toContain('title: "View Error"');
     expect(connectionsTableSource).not.toContain("View Full Error");
     expect(connectionsTableSource).toContain('label="Copy Error"');
-    expect(connectionsTableSource).toContain('aria-label="Full error message"');
+    expect(connectionsTableSource).toContain(
+      'aria-label={translator.translateText("Full error message")}',
+    );
   });
 
   for (const guidance of guidanceTexts) {

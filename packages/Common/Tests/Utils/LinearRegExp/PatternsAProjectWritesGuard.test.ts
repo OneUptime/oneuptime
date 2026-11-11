@@ -206,12 +206,6 @@ const LISTED_PATTERN_ARGUMENTS: ReadonlyArray<ListedFile> = [
       "the migration patterns of Rails, Alembic, Django, Sequelize, TypeORM and Knex the file lists (RAILS, PYTHON, JAVASCRIPT), each a pattern literal",
   },
   {
-    file: "packages/Common/Server/Utils/DataObservability/DataverseApi.ts",
-    count: 1,
-    builtFrom:
-      "the Dataverse clouds' host suffixes the file lists (CLOUDS), each an anchored pattern literal",
-  },
-  {
     file: "packages/Common/Server/Utils/DataSecurity/DataSecurityChangeSignals.ts",
     count: 1,
     builtFrom:

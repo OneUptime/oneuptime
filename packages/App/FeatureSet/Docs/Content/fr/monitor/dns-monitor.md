@@ -17,8 +17,8 @@ Un moniteur DNS interroge un enregistrement DNS à intervalle régulier et véri
 flowchart TB
     query["Interroger le type d'enregistrement"] --> answer{"Enregistrements renvoyés ?"}
     answer -->|"Non, tentatives restantes"| query
-    answer -->|"Non, plus de tentatives"| offline["DNS Is Online: False"]
-    answer -->|"Oui"| online["DNS Is Online: True"]
+    answer -->|"Non, plus de tentatives"| offline["DNS en ligne: Faux"]
+    answer -->|"Oui"| online["DNS en ligne: Vrai"]
     online --> ad["Vérifier l'indicateur AD"]
     ad --> criteria["Vérifier les critères"]
     offline --> criteria
@@ -126,7 +126,7 @@ Les critères sont vérifiés de haut en bas, et le premier qui correspond déci
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 
-**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
 **En l'absence de données** décide de ce qui se passe tant que la fenêtre ne peut pas étayer le critère :
 
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. En dessous encore, ajoutez un critère avec **DNS en ligne** / **Vrai**, qui marque le moniteur **Hors ligne** et déclare un incident. Il ne correspond qu'aux réponses qui n'ont pas la valeur.
 :::
 
-:::details DNSSEC Is Valid ne correspond jamais
+:::details DNSSEC valide ne correspond jamais
 Le serveur indiqué dans **Serveur DNS (facultatif)** ne valide pas DNSSEC, donc il ne pose jamais l'indicateur AD, ou la sonde n'a pas pu faire la vérification. Laissez le champ vide pour valider avec `8.8.8.8`, ou utilisez un [moniteur DNSSEC](/docs/monitor/dnssec-monitor).
 :::
 

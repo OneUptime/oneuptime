@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Gem den på monitoren
     O->>O: Tjek kriterierne
     O->>T: Advarsel eller hændelse,<br/>hvis et matcher
-    Note over O: Hvert 30. sekund, tjek<br/>kriterier med Email Received
+    Note over O: Hvert 30. sekund, tjek<br/>kriterier med »E-mail modtaget«
 ```
 
 1. Når du opretter en monitor for indgående e-mail, giver OneUptime den en unik e-mailadresse.
@@ -143,8 +143,8 @@ En ny monitor for indgående e-mail oprettes med to kriterier, der læser e-mail
 
 | Kriterium | Filtertype | Filterbetingelse | Værdi | Virkning |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Offline  | Email Body  | Indeholder | `error` | Markerer monitoren som offline, åbner en hændelse |
-| Online   | Email Body  | Indeholder ikke | `error` | Markerer monitoren som online |
+| Offline  | E-mailens brødtekst  | Indeholder | `error` | Markerer monitoren som offline, åbner en hændelse |
+| Online   | E-mailens brødtekst  | Indeholder ikke | `error` | Markerer monitoren som online |
 
 Det passer til det almindelige tilfælde, hvor et job eller et værktøj fra en tredjepart sender sit eget resultat med e-mail: en besked, hvis tekst nævner `error`, tager monitoren ned, og den næste besked uden ordet bringer monitoren op igen og løser hændelsen. Sammenligningen af teksten skelner ikke mellem store og små bogstaver, så `Error` og `ERROR` matcher også.
 
@@ -185,9 +185,7 @@ Monitorens egen adresse maskeres, før et kriterium læser e-mailen, så i **E-m
 
 Ingen af disse sammenligninger skelner mellem store og små bogstaver. Et filter med en tom værdi matcher aldrig.
 
-### Tidsbaserede filtre (Email Received)
-
-Dashboardet staver disse betingelser "Recieved".
+### Tidsbaserede filtre (E-mail modtaget)
 
 | Filterbetingelse | Beskrivelse | Eksempel |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ Dashboardet staver disse betingelser "Recieved".
 
 En monitor, der aldrig har modtaget en e-mail, regner sit oprettelsestidspunkt som den seneste e-mail.
 
-### JavaScript Expression
+### JavaScript-udtryk
 
 | Filterbetingelse | Beskrivelse |
 | --------------------- | ------------------------------------- |

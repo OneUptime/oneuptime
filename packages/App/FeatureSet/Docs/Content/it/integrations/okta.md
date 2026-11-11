@@ -116,7 +116,7 @@ GET {Okta organization URL}/api/v1/logs?since={window start}&until={window end}&
 - **L'ora di pubblicazione è il cursore.** Un evento del System Log è l'attività stessa, quindi `published` è sia il momento in cui è avvenuta sia ciò che legge il polling.
 - **La prima interrogazione guarda indietro di 24 ore**, così una nuova connessione mostra subito i suoi eventi recenti.
 - **Ogni interrogazione successiva parte 15 minuti prima del cursore salvato.** Okta avverte che una richiesta con un'ora di fine può tralasciare eventi in ritardo, cosa che definisce rara. La sovrapposizione li legge all'interrogazione successiva. Uno in ritardo di più di 15 minuti può finire dietro il cursore: importa il suo intervallo di tempo per recuperarlo.
-- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Catching up**.
+- **Un'interrogazione legge al massimo 24 ore oltre il cursore.** Una connessione il cui cursore è rimasto indietro recupera in una serie di finestre di 24 ore, e la sua **Integrità** indica **Recupero in corso**.
 - **I duplicati vengono scartati in base a `uuid`** all'interno del progetto, così la sovrapposizione, una finestra ripetuta e un'importazione non salvano mai un evento due volte.
 
 Un link `next` che punta altrove rispetto al tuo **Okta organization URL** non viene mai seguito, perché il token accompagna ogni richiesta.

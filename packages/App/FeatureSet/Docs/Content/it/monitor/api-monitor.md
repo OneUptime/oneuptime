@@ -154,7 +154,7 @@ I criteri decidono quando l'API conta come online, degradata o offline, e se ci�
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **Is Online** | **Vero**, **Falso** | Se l'API ha risposto, qualunque sia il codice di stato. |
+| **Online** | **Vero**, **Falso** | Se l'API ha risposto, qualunque sia il codice di stato. |
 | **Codice di stato della risposta** | **Uguale a**, **Diverso da**, **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Il codice di stato HTTP. |
 | **Tempo di risposta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Quanto è durata la richiesta, reindirizzamenti compresi. |
 | **Corpo della Risposta** | **Contiene**, **Non contiene** | Testo nel corpo della risposta. La corrispondenza distingue maiuscole e minuscole. |
@@ -188,7 +188,7 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Intestazione della risposta**, **Valore dell'intestazione della risposta**, **Espressione JavaScript** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Codice di stato della risposta**, **Tempo di risposta (in ms)**, **Corpo della Risposta**, **Intestazione della risposta**, **Valore dell'intestazione della risposta**, **Espressione JavaScript** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
@@ -196,7 +196,7 @@ I monitor creati prima che OneUptime cambiasse queste impostazioni predefinite m
 | **Tutti i valori** | Ogni controllo nella finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo nella finestra soddisfa la condizione. |
 
-**Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
+L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 
 Un corpo, un'intestazione, un valore di intestazione o un'espressione non è un numero che OneUptime registra, quindi per questi filtri e per **Timeout della richiesta** registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**. È così che un monitor supera un riavvio. Un'app che si sta avviando può rispondere `200` con una pagina segnaposto come `Application starting...`; con **Tutti i valori**, un filtro **Corpo della Risposta** che cerca il titolo dell'app porta il monitor offline solo quando la pagina segnaposto è durata per tutta la finestra.
 

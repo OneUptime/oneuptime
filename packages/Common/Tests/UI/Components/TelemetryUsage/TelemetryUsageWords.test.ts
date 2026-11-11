@@ -62,9 +62,9 @@ describe("the signals", () => {
     expect(
       getTelemetryUsageSignalTitle(TELEMETRY_USAGE_EXCEPTIONS_SIGNAL, english),
     ).toBe("Exceptions");
-    expect(TELEMETRY_USAGE_SIGNAL_COLORS[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL]).toBe(
-      "violet",
-    );
+    expect(
+      TELEMETRY_USAGE_SIGNAL_COLORS[TELEMETRY_USAGE_EXCEPTIONS_SIGNAL],
+    ).toBe("violet");
   });
 
   test("say that Traces count spans, and exceptions only on the days counted before they were shown apart", () => {

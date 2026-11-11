@@ -185,9 +185,9 @@ Die Standardkriterien markieren den Monitor als online, wenn **Fehler** leer ist
 
 ### Auf die zurückgegebenen Daten alarmieren
 
-Was das Skript als `data` zurückgibt, ist der **Ergebniswert** des Monitors, und ein Kriterium kann ihn vergleichen — zum Beispiel _Result Value ist Gleich `UP`_.
+Was das Skript als `data` zurückgibt, ist der **Ergebniswert** des Monitors, und ein Kriterium kann ihn vergleichen — zum Beispiel _Ergebniswert ist Gleich `UP`_.
 
-Ist `data` ein Objekt oder ein Array, füllen Sie im Result-Value-Filter **Feldpfad (optional)** aus, um ein Feld daraus statt des ganzen Werts zu vergleichen. Verwenden Sie Punkte für verschachtelte Felder und `[n]` für Array-Elemente:
+Ist `data` ein Objekt oder ein Array, füllen Sie im Ergebniswert-Filter **Feldpfad (optional)** aus, um ein Feld daraus statt des ganzen Werts zu vergleichen. Verwenden Sie Punkte für verschachtelte Felder und `[n]` für Array-Elemente:
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

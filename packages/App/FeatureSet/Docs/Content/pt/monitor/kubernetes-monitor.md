@@ -107,10 +107,10 @@ Esses monitores sempre avaliam o **Valor da métrica** – o valor da consulta d
 | --- | --- |
 | Média | Valor médio na janela de tempo |
 | Soma | Soma de todos os valores |
-| Maximum Value | Valor mais alto na janela de tempo |
-| Minimum Value | Valor mais baixo na janela de tempo |
-| All Values | Todos os valores precisam atender ao critério e cobrir toda a janela de tempo |
-| Any Value | Pelo menos um valor precisa corresponder |
+| Valor máximo | Valor mais alto na janela de tempo |
+| Valor mínimo | Valor mais baixo na janela de tempo |
+| Todos os valores | Todos os valores precisam atender ao critério e cobrir toda a janela de tempo |
+| Qualquer valor | Pelo menos um valor precisa corresponder |
 
 ### Condições
 

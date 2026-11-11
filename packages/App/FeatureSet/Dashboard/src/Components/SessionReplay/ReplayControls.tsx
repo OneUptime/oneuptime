@@ -459,9 +459,12 @@ const ReplayControls: FunctionComponent<ReplayControlsProps> = (
             label={formatReplaySpeed(speed)}
             hasPopup={true}
             isExpanded={isSpeedOpen}
-            ariaLabel={translator.translateTemplate("Playback speed {{speed}}", {
-              speed: formatReplaySpeed(speed),
-            })}
+            ariaLabel={translator.translateTemplate(
+              "Playback speed {{speed}}",
+              {
+                speed: formatReplaySpeed(speed),
+              },
+            )}
             title="Playback speed (< slower, > faster)"
             className="min-w-[3.25rem] tabular-nums"
             onClick={(): void => {

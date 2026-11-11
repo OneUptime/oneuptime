@@ -23,7 +23,7 @@ sequenceDiagram
     O->>O: Le stocker sur le moniteur
     O->>O: Vérifier les critères
     O->>T: Alerte ou incident,<br/>si l'un correspond
-    Note over O: Toutes les 30 secondes,<br/>vérifier<br/>les critères Email Received
+    Note over O: Toutes les 30 secondes,<br/>vérifier<br/>les critères « E-mail reçu »
 ```
 
 1. Quand vous créez un moniteur d'e-mails entrants, OneUptime lui donne une adresse e-mail unique.
@@ -143,8 +143,8 @@ Un nouveau moniteur d'e-mails entrants est créé avec deux critères qui lisent
 
 | Critère | Type de filtre | Condition de filtre | Valeur | Effet |
 | -------- | ----------- | ---------------- | ------- | -------------------------------------------- |
-| Hors ligne | Email Body | Contient | `error` | Marque le moniteur hors ligne, ouvre un incident |
-| En ligne | Email Body | Ne contient pas | `error` | Marque le moniteur en ligne |
+| Hors ligne | Corps de l'e-mail | Contient | `error` | Marque le moniteur hors ligne, ouvre un incident |
+| En ligne | Corps de l'e-mail | Ne contient pas | `error` | Marque le moniteur en ligne |
 
 Cela convient au cas courant où une tâche ou un outil tiers envoie son propre résultat par e-mail : un message dont le corps mentionne `error` met le moniteur hors ligne, et le message suivant sans ce mot le remet en ligne et résout l'incident. La correspondance sur le corps ne tient pas compte de la casse : `Error` et `ERROR` correspondent aussi.
 
@@ -185,9 +185,7 @@ L'adresse du moniteur lui-même est masquée avant qu'un critère ne lise l'e-ma
 
 Toutes ces comparaisons ignorent la casse. Un filtre dont la valeur est vide ne correspond jamais.
 
-### Filtres temporels (Email Received)
-
-Le tableau de bord écrit ces conditions "Recieved".
+### Filtres temporels (E-mail reçu)
 
 | Condition de filtre | Description | Exemple |
 | --------------------------- | ----------------------------------- | -------------------------------- |
@@ -196,7 +194,7 @@ Le tableau de bord écrit ces conditions "Recieved".
 
 Un moniteur qui n'a jamais reçu d'e-mail compte son heure de création comme le dernier e-mail.
 
-### JavaScript Expression
+### Expression JavaScript
 
 | Condition de filtre | Description |
 | --------------------- | ------------------------------------- |

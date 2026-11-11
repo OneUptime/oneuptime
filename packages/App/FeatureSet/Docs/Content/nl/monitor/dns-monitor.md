@@ -17,8 +17,8 @@ Bij elke controle vraagt een sonde een DNS-server om één recordtype van één 
 flowchart TB
     query["Het recordtype opvragen"] --> answer{"Records teruggegeven?"}
     answer -->|"Nee, pogingen over"| query
-    answer -->|"Nee, geen pogingen meer"| offline["DNS Is Online: False"]
-    answer -->|"Ja"| online["DNS Is Online: True"]
+    answer -->|"Nee, geen pogingen meer"| offline["DNS is online: Onwaar"]
+    answer -->|"Ja"| online["DNS is online: Waar"]
     online --> ad["De AD-vlag controleren"]
     ad --> criteria["De criteria controleren"]
     offline --> criteria
@@ -126,7 +126,7 @@ Criteria worden van boven naar beneden gecontroleerd, en het eerste dat overeenk
 | **Alle waarden** | Elke controle in het venster aan de voorwaarde voldoet. |
 | **Willekeurige waarde** | Minstens één controle in het venster aan de voorwaarde voldoet. |
 
-**Alle waarden** komt pas overeen wanneer het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
+De optie **Alle waarden** komt pas overeen wanneer het venster echt met gegevens is gevuld. Een monitor die net is gemaakt, of een waarvan de controles niet meer werden vastgelegd, heeft niet genoeg geschiedenis om iets over de laatste N minuten te zeggen, dus het criterium wacht in plaats van overeen te komen op de ene meting die het heeft. **Willekeurige waarde** is de instelling voor "laat het me weten zodra één controle de grens overschrijdt" en gaat nog steeds meteen af.
 
 **Als geen gegevens** bepaalt wat er gebeurt zolang het venster het criterium niet kan onderbouwen:
 
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. Voeg daaronder een criterium toe met **DNS is online** / **Waar**, dat de monitor als **Offline** markeert en een incident meldt. Het komt alleen overeen met antwoorden die de waarde niet hebben.
 :::
 
-:::details DNSSEC Is Valid komt nooit overeen
+:::details DNSSEC is geldig komt nooit overeen
 De server bij **DNS-server (optioneel)** valideert DNSSEC niet en zet dus nooit de AD-vlag, of de sonde kon de controle niet uitvoeren. Laat het veld leeg om met `8.8.8.8` te valideren, of gebruik een [DNSSEC-monitor](/docs/monitor/dnssec-monitor).
 :::
 

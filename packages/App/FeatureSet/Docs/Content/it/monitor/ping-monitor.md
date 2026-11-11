@@ -81,7 +81,7 @@ I criteri decidono quando l'host conta come online, degradato o offline, e se ci
 
 | Filtro | Condizioni | Cosa controlla |
 | --- | --- | --- |
-| **Is Online** | **Vero**, **Falso** | Se almeno una richiesta di eco ha ricevuto risposta. |
+| **Online** | **Vero**, **Falso** | Se almeno una richiesta di eco ha ricevuto risposta. |
 | **Tempo di risposta (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | Il tempo medio di andata e ritorno delle risposte. |
 | **Perdita di pacchetti (in %)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | La quota delle cinque richieste di eco rimaste senza risposta. |
 | **Jitter (in ms)** | **Maggiore di**, **Minore di**, **Maggiore o uguale a**, **Minore o uguale a** | La deviazione standard dei tempi di andata e ritorno tra i pacchetti inviati in un controllo. |
@@ -100,7 +100,7 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 
 ### Valutare su un periodo di tempo
 
-**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Is Online**, **Tempo di risposta (in ms)**, **Perdita di pacchetti (in %)**, **Jitter (in ms)** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
+**Valuta questo criterio su un periodo di tempo** è una casella sotto un filtro, offerta per **Online**, **Tempo di risposta (in ms)**, **Perdita di pacchetti (in %)**, **Jitter (in ms)** e **Timeout della richiesta**. Attivatela per valutare una finestra di controlli passati invece dell'ultimo: scegliete un'aggregazione in **Valuta** e una finestra, da 2 a 60 minuti, in **Per gli ultimi (in minuti)**.
 
 | Aggregazione | Corrisponde quando |
 | --- | --- |
@@ -108,7 +108,7 @@ I criteri vengono controllati dall'alto verso il basso, e il primo che corrispon
 | **Tutti i valori** | Ogni controllo nella finestra soddisfa la condizione. |
 | **Qualsiasi valore** | Almeno un controllo nella finestra soddisfa la condizione. |
 
-**Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
+L'opzione **Tutti i valori** corrisponde solo quando la finestra è davvero coperta da dati. Un monitor appena creato, o uno i cui controlli hanno smesso di essere registrati, non ha abbastanza storico per dire qualcosa sugli ultimi N minuti, quindi il criterio attende invece di corrispondere sull'unica lettura che ha. **Qualsiasi valore** è l'impostazione per «avvisami appena un singolo controllo supera la soglia» e scatta comunque subito.
 
 **Timeout della richiesta** non è un numero che OneUptime registra, quindi registra se il filtro ha corrisposto a ogni controllo, e valuta la finestra da quella registrazione con **Tutti i valori** o **Qualsiasi valore**.
 
@@ -126,7 +126,7 @@ Scegliete una finestra più lunga dell'intervallo di monitoraggio, così che con
 
 | Obiettivo | Filtro | Condizione | Valore |
 | --- | --- | --- | --- |
-| Offline quando l'host non è raggiungibile | **Is Online** | **Falso** | — |
+| Offline quando l'host non è raggiungibile | **Online** | **Falso** | — |
 | Avvisare quando la latenza è alta | **Tempo di risposta (in ms)** | **Maggiore di** | `200` |
 | Segnare l'host degradato su un collegamento con perdite | **Perdita di pacchetti (in %)** | **Maggiore di** | `20` |
 | Avvisare in caso di connessione instabile | **Jitter (in ms)** | **Maggiore di** | `30` |

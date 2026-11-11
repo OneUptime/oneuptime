@@ -100,6 +100,8 @@ const NOT_SECRETS: Record<string, string> = {
     "the name of an attribute the rule renames",
   "MetricPipelineRule.renameToKey":
     "the new name of an attribute the rule renames",
+  "NetworkDeviceNamingRule.lookupKey":
+    "which of a device's facts a naming rule's lookup table is keyed by: its last IP octet, address, MAC or discovered name",
   "NetworkTopologySuppression.nodeKey":
     "which node of the network map a suppression is for",
   "ScheduledMaintenanceMeasurement.key":

@@ -3218,9 +3218,7 @@ describe("Error Budget Policy in Slack, Microsoft Teams and Mattermost, against 
       "The Slack, Microsoft Teams and Mattermost channels your rules name get the same post",
     );
     expect(section(page, "Not available yet")).not.toContain("Slack");
-    expect(section(page, "Not available yet")).not.toContain(
-      "Microsoft Teams",
-    );
+    expect(section(page, "Not available yet")).not.toContain("Microsoft Teams");
   });
 
   it("says how each condition matches, as the Filter Type offers its operators", () => {

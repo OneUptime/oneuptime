@@ -594,9 +594,7 @@ integration("Metering without billing against ClickHouse", () => {
      * exactly as ClickHouse holds them - a part of the bytes the traces are
      * billed for, never more on top of them.
      */
-    expect(usage.get(SERVICE_ID)!.exceptionBytes).toBe(
-      exceptions[SERVICE_ID],
-    );
+    expect(usage.get(SERVICE_ID)!.exceptionBytes).toBe(exceptions[SERVICE_ID]);
     expect(
       usage.get(SERVICE_ID)!.bytes - usage.get(SERVICE_ID)!.exceptionBytes!,
     ).toBe(spans[SERVICE_ID]);

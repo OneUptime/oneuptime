@@ -98,7 +98,7 @@ For å se hvordan en kontroll ble vurdert, åpner du monitorens **Oversikt**: ko
 En hendelse eller et varsel som en monitor åpner, tar vare på kontrollen som åpnet den, så du kan se hvorfor lenge etter at monitorens egne logger er borte. Under rotårsaken nevner **Evalueringsdetaljer** kriteriet som samsvarte, og for hvert filter som samsvarte, hva kontrollen fant. **Vis detaljer** legger til resten av bevisene, filtrene som ikke samsvarte, og selve kontrollen: forespørselen, når den kjørte, fra hvilken sonde og hva som kom tilbake. Det et filter fant, kan være:
 
 - **Feltet.** Hvor et filter **Svartekst** samsvarte i et JSON-innhold, for eksempel `checks[1].status`, eller headeren der et filter **Verdi for svarhode** samsvarte.
-- **Verdiene.** Hva hver verdi en **JavaScript-uttrykk** leser inneholdt da den ble evaluert, for eksempel `responseBody.status = "down"`.
+- **Verdiene.** Hva hver verdi et **JavaScript-uttrykk** leser inneholdt da den ble evaluert, for eksempel `responseBody.status = "down"`.
 - **Et utdrag.** Et kort stykke av svaret rundt treffet, med treffet markert: aldri hele innholdet.
 
 Hemmeligheter og personopplysninger maskeres før noe tas vare på: headere som `Authorization`, `Cookie` og `Set-Cookie`, felt der navnet sier `password`, `token`, `key`, `session` eller `email`, og tekst som ser ut som et bearer-token, en JWT, et kortnummer eller en e-postadresse. Forespørselens URL er den monitoren ble satt opp med, så `{{monitorSecrets.NAME}}` forblir et navn, og en hemmelig spørringsverdi maskeres. Monitorens **Overvåkingslogger**, og enhver verdi en rotårsak siterer, maskeres på samme måte. En hendelse eller et varsel som er åpnet manuelt, eller før evalueringsdetaljer ble tatt vare på, har ingen.

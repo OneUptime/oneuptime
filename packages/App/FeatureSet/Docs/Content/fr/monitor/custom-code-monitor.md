@@ -185,9 +185,9 @@ Les critères par défaut marquent le moniteur en ligne quand **Erreur** est vid
 
 ### Alerter sur les données renvoyées
 
-Ce que le script renvoie comme `data` est la **Valeur du résultat** du moniteur, et un critère peut la comparer — par exemple _Result Value est Égal à `UP`_.
+Ce que le script renvoie comme `data` est la **Valeur du résultat** du moniteur, et un critère peut la comparer — par exemple _Valeur du résultat est Égal à `UP`_.
 
-Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Result Value pour comparer un de ses champs plutôt que la valeur entière. Utilisez des points pour les champs imbriqués et `[n]` pour les éléments de tableau :
+Quand `data` est un objet ou un tableau, renseignez **Chemin du champ (facultatif)** dans le filtre Valeur du résultat pour comparer un de ses champs plutôt que la valeur entière. Utilisez des points pour les champs imbriqués et `[n]` pour les éléments de tableau :
 
 ```javascript
 const response = await axios.get("https://api.example.com/health");

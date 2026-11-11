@@ -24,7 +24,7 @@ flowchart TB
 
 자리 표시자는 텍스트로 바뀌므로 `{{responseBody.item}}`은 원시 값이 됩니다. 문자열은 JavaScript 문자열이 되도록 따옴표로 감싸야 하고, 숫자나 불리언은 감싸지 않습니다. [따옴표 규칙](#따옴표-규칙)을 참고하세요. 표현식은 OneUptime 서버의 격리된 샌드박스에서 실행됩니다.
 
-## JavaScript Expression 필터 추가
+## JavaScript 표현식 필터 추가
 
 :::steps
 ### 기준 열기
@@ -46,7 +46,7 @@ flowchart TB
 
 ## 모니터 유형별 변수
 
-JavaScript 표현식은 Website, API, Incoming Request, Incoming Email, SQL Query, Database Health 모니터에서 사용할 수 있습니다.
+JavaScript 표현식은 Website, API, 수신 요청, Incoming Email, SQL Query, Database Health 모니터에서 사용할 수 있습니다.
 
 ### 웹사이트 및 API 모니터
 

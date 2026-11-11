@@ -194,7 +194,12 @@ function stubSloRoutePages(): void {
    * route of the product's page it was mounted for, read from those pages.
    */
   jest.doMock(
-    path.join(DASHBOARD_SRC, "Components", "Workspace", "WorkspaceConnectionsOverview"),
+    path.join(
+      DASHBOARD_SRC,
+      "Components",
+      "Workspace",
+      "WorkspaceConnectionsOverview",
+    ),
     () => {
       return {
         __esModule: true,

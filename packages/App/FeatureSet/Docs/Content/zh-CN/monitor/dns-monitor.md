@@ -17,8 +17,8 @@ DNS 监视器按计划查询一条 DNS 记录并检查应答：名称能否解�
 flowchart TB
     query["查询记录类型"] --> answer{"返回了记录？"}
     answer -->|"否，还有重试次数"| query
-    answer -->|"否，重试次数用完"| offline["DNS Is Online: False"]
-    answer -->|"是"| online["DNS Is Online: True"]
+    answer -->|"否，重试次数用完"| offline["DNS 是否在线: 否"]
+    answer -->|"是"| online["DNS 是否在线: 是"]
     online --> ad["检查 AD 标志"]
     ad --> criteria["检查条件"]
     offline --> criteria
@@ -164,7 +164,7 @@ dig @8.8.8.8 example.com A
 3. 再在其下方添加一个 **DNS 是否在线** / **是** 的条件，将监视器标记为 **离线** 并声明事件。它只匹配不含该值的应答。
 :::
 
-:::details DNSSEC Is Valid 从不匹配
+:::details “DNSSEC 是否有效”从不匹配
 **DNS 服务器（可选）** 中的服务器不验证 DNSSEC，因此从不设置 AD 标志；或者探测器无法执行该检查。将该字段留空即可用 `8.8.8.8` 验证，或者使用 [DNSSEC 监控](/docs/monitor/dnssec-monitor)。
 :::
 

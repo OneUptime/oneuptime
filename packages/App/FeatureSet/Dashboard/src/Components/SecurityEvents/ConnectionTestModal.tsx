@@ -17,10 +17,14 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import ConnectorTestReportView from "./ConnectorTestReportView";
 
-export const CONNECTION_TEST_PROGRESS_MESSAGE: string =
-  "Checking access, availability and OneUptime workers…";
+// English keys: each place that shows one translates it for the reader.
+export const CONNECTION_TEST_PROGRESS_MESSAGE: string = translationKey(
+  "Checking access, availability and OneUptime workers…",
+);
 
 /*
  * Posts a synchronous connection test and returns the report. Shared by the
@@ -51,8 +55,11 @@ export async function runConnectionTestRequest(data: {
   const report: JSONObject = response.data;
 
   if (!report || !Array.isArray(report["checks"]) || !report["status"]) {
+    // A key: ErrorMessage shows it in the reader's language.
     throw new Error(
-      "The server did not return a test report. Check the API logs and try again.",
+      translationKey(
+        "The server did not return a test report. Check the API logs and try again.",
+      ),
     );
   }
 
@@ -91,8 +98,9 @@ export function connectionTestSettingsKey(build: () => JSONObject): string {
   return `${hash(0x811c9dc5)}${hash(0x9747b28c)}`;
 }
 
-export const INLINE_TEST_SETTINGS_CHANGED_MESSAGE: string =
-  "The settings changed after the last test. Test again to check the values the form holds now.";
+export const INLINE_TEST_SETTINGS_CHANGED_MESSAGE: string = translationKey(
+  "The settings changed after the last test. Test again to check the values the form holds now.",
+);
 
 export interface InlineConnectionTestProps {
   providerTitle: string;
@@ -123,6 +131,7 @@ export interface InlineConnectionTestProps {
 export const InlineConnectionTest: FunctionComponent<
   InlineConnectionTestProps
 > = (props: InlineConnectionTestProps): ReactElement => {
+  const translator: Translator = useTranslator();
   const [report, setReport] = useState<SecurityConnectorTestReport | null>(
     null,
   );
@@ -188,10 +197,13 @@ export const InlineConnectionTest: FunctionComponent<
     >
       <p className="text-sm text-gray-600">
         {props.description ||
-          `Check access to ${props.providerTitle}, what it has available to import, and whether OneUptime's workers are running — before saving. Nothing is stored or imported.`}
+          translator.translateTemplate(
+            "Check access to {{provider}}, what it has available to import, and whether OneUptime's workers are running — before saving. Nothing is stored or imported.",
+            { provider: props.providerTitle },
+          )}
       </p>
       <Button
-        title={props.buttonTitle || "Test these settings"}
+        title={props.buttonTitle || translationKey("Test these settings")}
         buttonStyle={ButtonStyleType.OUTLINE}
         disabled={Boolean(props.disabledReason) || isRunning}
         isLoading={isRunning}
@@ -205,12 +217,12 @@ export const InlineConnectionTest: FunctionComponent<
       )}
       {isRunning && (
         <p role="status" aria-live="polite" className="text-sm text-gray-600">
-          {CONNECTION_TEST_PROGRESS_MESSAGE}
+          {translator.translateText(CONNECTION_TEST_PROGRESS_MESSAGE)}
         </p>
       )}
       {settingsChanged && !isRunning && (
         <p role="status" className="text-sm text-gray-600">
-          {INLINE_TEST_SETTINGS_CHANGED_MESSAGE}
+          {translator.translateText(INLINE_TEST_SETTINGS_CHANGED_MESSAGE)}
         </p>
       )}
       {error && !isRunning && !settingsChanged && (
@@ -246,6 +258,7 @@ export interface ComponentProps {
 const ConnectionTestModal: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const translator: Translator = useTranslator();
   const [report, setReport] = useState<SecurityConnectorTestReport | null>(
     null,
   );
@@ -304,7 +317,9 @@ const ConnectionTestModal: FunctionComponent<ComponentProps> = (
       title={props.title}
       description={
         props.description ||
-        "Checks the source, what it has to import, and whether OneUptime's workers and scheduler are running. Nothing is imported."
+        translationKey(
+          "Checks the source, what it has to import, and whether OneUptime's workers and scheduler are running. Nothing is imported.",
+        )
       }
       modalWidth={ModalWidth.Large}
       onClose={props.onClose}
@@ -325,7 +340,7 @@ const ConnectionTestModal: FunctionComponent<ComponentProps> = (
       <div className="space-y-4">
         {isRunning && (
           <p role="status" aria-live="polite" className="text-sm text-gray-600">
-            {CONNECTION_TEST_PROGRESS_MESSAGE}
+            {translator.translateText(CONNECTION_TEST_PROGRESS_MESSAGE)}
           </p>
         )}
         {error && !isRunning && <ErrorMessage message={error} />}

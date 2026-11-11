@@ -101,7 +101,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor tracce hanno un solo **Tipo di filtro**: **Span Count**, il numero di span che hanno corrisposto nella finestra. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e, per una condizione di soglia, un **Valore**.
+I criteri di un monitor tracce hanno un solo **Tipo di filtro**: **Numero di span**, il numero di span che hanno corrisposto nella finestra. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e, per una condizione di soglia, un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio degli span è… |
 | --- | --- |
@@ -127,8 +127,8 @@ Un monitor tracce creato tramite l'API o Terraform senza criteri parte con quest
 
 | Criterio | Filtro | Effetto |
 | --- | --- | --- |
-| Check if … is offline | **Span Count** **Uguale a** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
-| Check if … is online | **Span Count** **Maggiore di** `0` | Mette il monitor online |
+| Check if … is offline | **Numero di span** **Uguale a** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
+| Check if … is online | **Numero di span** **Maggiore di** `0` | Mette il monitor online |
 
 ## Esempio pratico: richieste di checkout non riuscite
 

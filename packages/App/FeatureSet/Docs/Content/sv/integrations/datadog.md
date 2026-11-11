@@ -3,7 +3,7 @@
 Skicka larm från [Datadog](https://www.datadoghq.com)-monitorer till OneUptime, så att vart och ett blir en incident eller ett larm, larmar ditt jourteam när det är brådskande och löses när Datadog-monitorn har återhämtat sig. Datadog skickar sina larm genom sin [Webhooks-integration](https://docs.datadoghq.com/integrations/webhooks/), så det finns inget att installera på någon av sidorna.
 
 :::cards
-- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En arbetsflödesmall eller en Incoming Request-monitor.
+- [Välj hur OneUptime tar emot larm](#välj-hur-oneuptime-tar-emot-larm): En arbetsflödesmall eller en monitor för inkommande förfrågningar.
 - [Börja från mallen](#börja-från-mallen): Välj vem som ska larmas, kopiera URL:en och se vad varje larm gör.
 - [Ta emot larm med en monitor](#ta-emot-larm-med-en-monitor): En incident per larm, löst vid återhämtning.
 - [Konfigurera Datadog](#konfigurera-datadog): En webhook och de monitorer som aviserar den.
@@ -36,7 +36,7 @@ Konfigurera OneUptime först: det ger dig den URL som Datadog skickar till.
 | Väg | Använd den när |
 | --- | --- |
 | Arbetsflödesmallen (rekommenderas) | Du vill ha varje larm som en incident eller ett larm med en allvarlighetsgrad som följer monitorns prioritet, med jouren larmad för P1 och P2, med varningar noterade på den och löst vid återhämtning. Det finns inget att bygga. |
-| En Incoming Request-monitor | Du vill ha incidenter utan ett arbetsflöde, på vilken plan som helst, och en monitor vars status följer Datadog. |
+| En monitor för inkommande förfrågningar | Du vill ha incidenter utan ett arbetsflöde, på vilken plan som helst, och en monitor vars status följer Datadog. |
 
 Båda får samma JSON från samma webhook, så du kan börja med det ena och byta senare genom att ändra en URL i Datadog.
 
@@ -86,7 +86,7 @@ Med egna allvarlighetsgrader går P1, P2 och ingen prioritet till din allvarliga
 
 ## Ta emot larm med en monitor
 
-En [Incoming Request-monitor](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje larm gör.
+En [monitor för inkommande förfrågningar](/docs/monitor/incoming-request-monitor) ger dig en URL, och dess kriterier avgör vad varje larm gör.
 
 :::steps
 ### Skapa monitorn

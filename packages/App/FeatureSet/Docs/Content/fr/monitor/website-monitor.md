@@ -142,7 +142,7 @@ Les critères décident quand le site web compte comme en ligne, dégradé ou ho
 
 | Filtre | Conditions | Ce qu'il vérifie |
 | --- | --- | --- |
-| **Is Online** | **Vrai**, **Faux** | Si le site a répondu, quel que soit le code de statut. |
+| **En ligne** | **Vrai**, **Faux** | Si le site a répondu, quel que soit le code de statut. |
 | **Code de statut de la réponse** | **Égal à**, **Différent de**, **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le code de statut HTTP. |
 | **Temps de réponse (en ms)** | **Supérieur à**, **Inférieur à**, **Supérieur ou égal à**, **Inférieur ou égal à** | Le temps qu'a pris la requête, redirections comprises. |
 | **Corps de la réponse** | **Contient**, **Ne contient pas** | Du texte dans le corps de la réponse. La correspondance respecte la casse. |
@@ -174,7 +174,7 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 
 ### Évaluer sur une période
 
-**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **Is Online**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
+**Évaluer ce critère sur une période donnée** est une case à cocher sous un filtre, proposée pour **En ligne**, **Code de statut de la réponse**, **Temps de réponse (en ms)**, **Corps de la réponse**, **En-tête de réponse**, **Valeur de l'en-tête de réponse**, **Expression JavaScript** et **Délai de la requête dépassé**. Activez-la pour juger une fenêtre de vérifications passées au lieu de la dernière : choisissez une agrégation sous **Évaluer** et une fenêtre, de 2 à 60 minutes, sous **Pour les dernières (en minutes)**.
 
 | Agrégation | Correspond quand |
 | --- | --- |
@@ -182,7 +182,7 @@ Les moniteurs créés avant que OneUptime change ces valeurs par défaut gardent
 | **Toutes les valeurs** | Chaque vérification de la fenêtre remplit la condition. |
 | **Au moins une valeur** | Au moins une vérification de la fenêtre remplit la condition. |
 
-**Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
+L'option **Toutes les valeurs** ne correspond qu'une fois la fenêtre réellement couverte par des données. Un moniteur qui vient d'être créé, ou dont les vérifications ont cessé d'être enregistrées, n'a pas assez d'historique pour dire quoi que ce soit des N dernières minutes, donc le critère attend au lieu de correspondre sur la seule mesure qu'il possède. **Au moins une valeur** est le réglage pour « prévenez-moi dès qu'une seule vérification dépasse le seuil » et se déclenche toujours immédiatement.
 
 Un corps, un en-tête, une valeur d'en-tête ou une expression n'est pas un nombre qu'OneUptime enregistre : pour ces filtres et pour **Délai de la requête dépassé**, OneUptime enregistre donc si le filtre a correspondu à chaque vérification, et juge la fenêtre à partir de cet enregistrement avec **Toutes les valeurs** ou **Au moins une valeur**. C'est ainsi qu'un moniteur traverse un redémarrage. Une application qui démarre peut répondre `200` avec une page d'attente comme `Application starting...` ; avec **Toutes les valeurs**, un filtre **Corps de la réponse** qui cherche le titre de l'application ne met le moniteur hors ligne qu'une fois que la page d'attente a duré toute la fenêtre.
 

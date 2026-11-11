@@ -154,6 +154,12 @@ describe("shouldUseInsertDedup — per-type policy matrix", () => {
     TelemetryType.IncomingRequestIngest,
     TelemetryType.TelemetryMonitorEvaluation,
     TelemetryType.SessionReplay,
+    /*
+     * Events from every page of every session, recorded or not: tokened,
+     * each job would be an INSERT of its own. A retry is idempotent by the
+     * batch id ProductAnalyticsEventIngestService remembers instead.
+     */
+    TelemetryType.ProductAnalyticsEvents,
   ];
 
   test("high-volume traces/logs/metrics never get per-job tokens, so their inserts merge across jobs", () => {
@@ -168,7 +174,7 @@ describe("shouldUseInsertDedup — per-type policy matrix", () => {
     }
   });
 
-  test("buffer-sharing and session-replay types never get per-job tokens", () => {
+  test("buffer-sharing, session replay and product analytics types never get per-job tokens", () => {
     for (const type of NEVER_ON) {
       expect(shouldUseInsertDedup(type)).toBe(false);
     }

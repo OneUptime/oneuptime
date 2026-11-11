@@ -88,7 +88,7 @@ Sophos가 active로 보고하는 터널은 보안 연결(SA)이 올라와 있다
 
 ### 트랩
 
-Sophos의 모든 알림은 같은 트랩 `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)이며, 이벤트는 `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)에 텍스트로 들어 있습니다. 한 종류의 이벤트에 알림을 걸려면 **SNMP 트랩 수신(트랩 OID)** 같음 `1.3.6.1.4.1.2604.5.1.8.1.1`과, 그 varbind에 대한 **SNMP 트랩 Varbind 값**(예: 포함 `IPSec`)를 결합하세요. 방화벽의 트랩 대상은 SNMP v2c로 설정하세요. 프로브의 트랩 수신기는 v1과 v2c 트랩을 받습니다.
+Sophos의 모든 알림은 같은 트랩 `sfosNotification`(`1.3.6.1.4.1.2604.5.1.8.1.1`)이며, 이벤트는 `sfosTrapMessage`(`1.3.6.1.4.1.2604.5.1.8.1.2`)에 텍스트로 들어 있습니다. 한 종류의 이벤트에 알림을 걸려면 **SNMP 트랩 수신(트랩 OID)** 같음 `1.3.6.1.4.1.2604.5.1.8.1.1`과, 그 varbind에 대한 **SNMP 트랩 Varbind 값**(예: 포함 `IPSec`)을 결합하세요. 방화벽의 트랩 대상은 SNMP v2c로 설정하세요. 프로브의 트랩 수신기는 v1과 v2c 트랩을 받습니다.
 
 ## Extreme Networks (EXOS / Switch Engine 및 Fabric Engine / VOSS)
 

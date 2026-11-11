@@ -114,7 +114,7 @@ GET https://management.azure.com/subscriptions/{sub}/resourceGroups/{rg}/provide
 - **La hora de creación es el cursor.** Una regla de análisis programada que se ejecuta cada hora abre su incidente mucho después de la actividad que detectó, y el `firstActivityTimeUtc` del incidente puede ser horas o días anterior. Un cursor sobre la hora de actividad se saltaría cada uno de esos incidentes. Las horas de actividad quedan en `attributes`, y las muestras de los diagnósticos enseñan ambas.
 - **El primer sondeo mira 24 horas atrás**, para que una conexión nueva muestre enseguida sus incidentes recientes.
 - **Cada sondeo posterior empieza 1 minuto antes del cursor guardado**, para que nunca se salte un incidente creado en el límite entre dos ventanas.
-- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Catching up**.
+- **Un sondeo lee como mucho 24 horas más allá del cursor.** Una conexión cuyo cursor se quedó atrás se pone al día en una serie de ventanas de 24 horas, y su **Salud** indica **Poniéndose al día**.
 - **Los duplicados se descartan por el GUID del incidente** (`name`) dentro del proyecto, para que el solapamiento, una ventana reintentada y una importación nunca guarden un incidente dos veces.
 
 ### Cuando una ventana contiene más de lo que un sondeo puede leer

@@ -116,7 +116,7 @@ Ogni cambio di stato, con il suo motivo, viene registrato nella **Cronologia di 
 
 ## Criteri
 
-I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **Exception Count**, il numero di eccezioni che hanno corrisposto nella finestra, e **New Exceptions**, **Eccezioni in regressione** e **Aumento delle eccezioni (in %)**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
+I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **Numero di eccezioni**, il numero di eccezioni che hanno corrisposto nella finestra, e **Nuove eccezioni**, **Eccezioni in regressione** e **Aumento delle eccezioni (in %)**, descritti più sotto. **Quando avvisare** imposta un criterio, la cui **Condizione** è **Più di**, **Almeno**, **Meno di**, **Al massimo**, **Esattamente**, **Insolitamente alto**, **Insolitamente basso** o **Insolitamente alto o basso**. Per più criteri, o per uno con più di un filtro, fate clic su **Modifica come criteri personalizzati** in **Altri campi** di **Cosa succede**: lì ogni criterio ha una **Condizione del filtro** e un **Valore**.
 
 | Condizione del filtro | Corrisponde quando il conteggio delle eccezioni è… |
 | --- | --- |
@@ -130,7 +130,7 @@ I criteri di un monitor eccezioni hanno quattro valori di **Tipo di filtro**: **
 | **Anomalmente basso** | sotto quell'intervallo |
 | **Anomalo** | fuori da quell'intervallo, in un senso o nell'altro |
 
-Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. Solo **Exception Count** le ha: vedete [Picchi rispetto alla norma](#picchi-rispetto-alla-norma).
+Le condizioni di anomalia non hanno un **Valore**. Scegliete una **Sensibilità** (Basso, Medio, quella predefinita, oppure Alto) e, nei criteri personalizzati, una **Finestra di riferimento** di 14 (quella predefinita), 28, 60 o 90 giorni. Solo **Numero di eccezioni** le ha: vedete [Picchi rispetto alla norma](#picchi-rispetto-alla-norma).
 
 Un monitor eccezioni creato in Crea monitor parte con la regola di ciò che avete scelto in **Di cosa deve informarti questo monitor?**:
 
@@ -146,8 +146,8 @@ Un monitor eccezioni creato tramite l'API o Terraform senza criteri parte con qu
 
 | Criterio | Filtro | Effetto |
 | --- | --- | --- |
-| Check if … has exceptions | **Exception Count** **Maggiore di** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
-| Check if … has no exceptions | **Exception Count** **Uguale a** `0` | Mette il monitor online |
+| Check if … has exceptions | **Numero di eccezioni** **Maggiore di** `0` | Mette il monitor offline e dichiara un incidente, risolto automaticamente |
+| Check if … has no exceptions | **Numero di eccezioni** **Uguale a** `0` | Mette il monitor online |
 
 ## Eccezioni nuove, tornate e in aumento
 
@@ -155,7 +155,7 @@ Oltre al numero di eccezioni, un monitor eccezioni può avvisare su ciò che un 
 
 | Tipo di filtro | Cosa conta nella finestra |
 | --- | --- |
-| **New Exceptions** | Le eccezioni corrispondenti viste per la prima volta, né risolte né archiviate. |
+| **Nuove eccezioni** | Le eccezioni corrispondenti viste per la prima volta, né risolte né archiviate. |
 | **Eccezioni in regressione** | Le eccezioni corrispondenti che avete risolto, tornate e ancora aperte. |
 | **Aumento delle eccezioni (in %)** | Di quanto il numero di eccezioni corrispondenti supera il solito: il giorno prima della finestra, per finestra della stessa durata, almeno una. Dieci eccezioni dopo un giorno tranquillo danno 900%. |
 
@@ -188,7 +188,7 @@ Volete un incidente ogni volta che l'API lancia un'eccezione in produzione, e ni
 | `TimeoutError` × 2 | nessuno | Attiva | No: nessun ambiente |
 | `NullReferenceException` × 4 | `production` | Risolta dopo che si è verificata | No: risolta |
 
-L'**Exception Count** è 3, quindi **Più di** `0` corrisponde: il monitor va offline e viene dichiarato un incidente. Quando passano cinque minuti senza eccezioni di produzione attive, la regola smette di corrispondere, il monitor torna al suo stato predefinito e l'incidente si risolve da solo.
+Il **Numero di eccezioni** è 3, quindi **Più di** `0` corrisponde: il monitor va offline e viene dichiarato un incidente. Quando passano cinque minuti senza eccezioni di produzione attive, la regola smette di corrispondere, il monitor torna al suo stato predefinito e l'incidente si risolve da solo.
 
 ## Risoluzione dei problemi
 

@@ -51,8 +51,7 @@ import { describe, expect, it } from "@jest/globals";
  *     translations keep it exactly (SHOWN_IN_ENGLISH). If the Dashboard
  *     starts translating one, "names only bold text with no Dashboard label"
  *     fails and says which one to move: the criteria's filter types,
- *     aggregations and anomaly conditions moved on 2026-11-10, when #6575
- *     keyed them in every language.
+ *     conditions and aggregations did in 31eadaee92e, and are drawn.
  *   - Bold labels kept in English on purpose (KEPT_IN_ENGLISH) and bold
  *     words that are prose (PROSE) are listed with why.
  */
@@ -135,12 +134,7 @@ const PROSE: Record<string, Array<string>> = {
  * has no locale key for them. The translations keep each one exactly.
  */
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
-  /*
-   * The criteria's filter types (Database Is Online, Database Metric), their
-   * aggregations (All Values) and anomaly conditions left this list on
-   * 2026-11-10: #6575 keyed them in every language. The no-data policies
-   * have no key yet.
-   */
+  // The over-time If No Data policy.
   [DATABASE_PAGE]: ["Ignore"],
   [CEPH_PAGE]: [
     // The Ceph form's More fields tab that has no locale key (Advanced has one).

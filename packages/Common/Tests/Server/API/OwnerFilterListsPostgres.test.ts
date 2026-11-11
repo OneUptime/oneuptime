@@ -614,6 +614,34 @@ describePostgres(
         .sort();
     };
 
+    /*
+     * The records of `kind` the project holds besides the seeded ones, none
+     * of them owned: a team is a kind with owners too, so the project's own
+     * teams - the member's, the SRE team and the Payments team, which own
+     * the seeded records - are records of the Team kind, with no owner.
+     */
+    const unownedFixturesOf: (kind: Kind) => Array<string> = (
+      kind: Kind,
+    ): Array<string> => {
+      if (kind.name !== "Team") {
+        return [];
+      }
+
+      return [memberTeamId, sreTeamId, paymentsTeamId].map(
+        (id: ObjectID): string => {
+          return id.toString();
+        },
+      );
+    };
+
+    // idsOf's records with the kind's unowned fixtures, sorted.
+    const idsWithUnownedOf: (
+      kind: Kind,
+      which: Array<Seeded>,
+    ) => Array<string> = (kind: Kind, which: Array<Seeded>): Array<string> => {
+      return [...idsOf(kind, which), ...unownedFixturesOf(kind)].sort();
+    };
+
     const sorted: (ids: Array<string> | undefined) => Array<string> = (
       ids: Array<string> | undefined,
     ): Array<string> => {
@@ -906,9 +934,11 @@ describePostgres(
         const listed: Listed = await list({ kind });
 
         expect(listed.error).toBeUndefined();
-        expect(sorted(listed.ids)).toEqual(idsOf(kind, SEEDED));
+        expect(sorted(listed.ids)).toEqual(idsWithUnownedOf(kind, SEEDED));
         expect(listed.ids).not.toContain(otherProjectRecords[kind.name]);
-        expect(listed.count).toBe(SEEDED.length);
+        expect(listed.count).toBe(
+          SEEDED.length + unownedFixturesOf(kind).length,
+        );
       });
 
       test.each([
@@ -971,9 +1001,15 @@ describePostgres(
         });
 
         expect(sorted(listed.ids)).toEqual(
-          idsOf(kind, ["ada", "bob", "nobody", "payments", "adaRemoved"]),
+          idsWithUnownedOf(kind, [
+            "ada",
+            "bob",
+            "nobody",
+            "payments",
+            "adaRemoved",
+          ]),
         );
-        expect(listed.count).toBe(5);
+        expect(listed.count).toBe(5 + unownedFixturesOf(kind).length);
       });
 
       test("none of Ada and the SRE team", async () => {
@@ -987,7 +1023,7 @@ describePostgres(
         });
 
         expect(sorted(listed.ids)).toEqual(
-          idsOf(kind, ["bob", "nobody", "payments", "adaRemoved"]),
+          idsWithUnownedOf(kind, ["bob", "nobody", "payments", "adaRemoved"]),
         );
       });
 
@@ -1010,9 +1046,9 @@ describePostgres(
         });
 
         expect(sorted(listed.ids)).toEqual(
-          idsOf(kind, ["nobody", "adaRemoved"]),
+          idsWithUnownedOf(kind, ["nobody", "adaRemoved"]),
         );
-        expect(listed.count).toBe(2);
+        expect(listed.count).toBe(2 + unownedFixturesOf(kind).length);
       });
 
       test("pages of a filtered list hold each record once, and the count is the whole", async () => {

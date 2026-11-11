@@ -94,7 +94,7 @@ POST {Kibana URL}/api/detection_engine/signals/search
 - **Die Erstellungszeit ist der Cursor.** Warnungen werden nach ihrem eigenen `@timestamp` gelistet, wann der Regellauf sie erstellt hat, nie nach der Zeit der Aktivität, um die es geht. Eine stündlich laufende Regel erstellt Warnungen über Aktivität, die bis zu einer Stunde alt ist, und ein Cursor über die Aktivitätszeit würde jede davon überspringen.
 - **Die erste Abfrage blickt 24 Stunden zurück**, sodass eine neue Verbindung ihre jüngsten Warnungen sofort zeigt.
 - **Jede spätere Abfrage beginnt 1 Minute vor dem gespeicherten Cursor**, sodass eine Warnung, die an der Grenze zwischen zwei Zeitfenstern erstellt wurde, nie übersprungen wird.
-- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Catching up**.
+- **Eine Abfrage liest höchstens 24 Stunden über den Cursor hinaus.** Eine Verbindung, deren Cursor zurückliegt, holt in einer Reihe von 24-Stunden-Fenstern auf, und ihre **Integrität** zeigt **Holt auf**.
 - **Duplikate werden nach `_id` der Warnung verworfen**, innerhalb des Projekts, sodass die Überlappung, ein wiederholtes Zeitfenster und ein Import nie eine Warnung doppelt speichern.
 
 Die Warnungssuche von Kibana nimmt eine Größe und eine Sortierung, aber kein Seitentoken. Deshalb blättert OneUptime, indem es den Anfang des Bereichs auf die letzte Warnung jeder Seite setzt, und lässt nach `_id` die Warnungen aus, die es zu diesem Zeitpunkt schon gelesen hat. Ein Regellauf versieht oft viele Warnungen mit derselben Zeit, und eine solche Gruppe wird Seite für Seite gelesen, keine doppelt und keine übersprungen.
