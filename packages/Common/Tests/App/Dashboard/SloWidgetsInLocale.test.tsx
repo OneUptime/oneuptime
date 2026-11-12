@@ -147,6 +147,8 @@ jest.mock(
 
 import DashboardSloComponentElement, {
   SLO_WIDGET_LEGEND_ROW_IN_PX,
+  SLO_WIDGET_TITLE_NAME_TEST_ID,
+  SLO_WIDGET_TITLE_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloComponent";
 import DashboardSloListComponentElement from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardSloListComponent";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
@@ -319,10 +321,11 @@ async function renderWidget(data: {
   const result: RenderResult = render(
     <DashboardSloComponentElement {...baseProps(320)} component={component} />,
   );
+  const sloName: string = data.slo.name || SLO_NAME;
 
   await screen.findByText((_content: string, element: Element | null) => {
     return Boolean(
-      element?.textContent?.includes(SLO_NAME) && element.children.length === 0,
+      element?.textContent?.includes(sloName) && element.children.length === 0,
     );
   });
 
@@ -378,6 +381,13 @@ function tileTitleOf(container: HTMLElement): Element | undefined {
         (element.textContent || "").includes(SLO_NAME)
       );
     },
+  );
+}
+
+// The widget's title, read whole: one line, or the name and the words beside it.
+function titleText(): string {
+  return withoutIsolateMarks(
+    screen.getByTestId(SLO_WIDGET_TITLE_TEST_ID).textContent || "",
   );
 }
 
@@ -580,19 +590,22 @@ describe("the SLO widget's tile in Arabic", () => {
     await inLanguage("ar");
   });
 
-  test("SLI: the English name is set apart in the Arabic title; Latin digits", async () => {
+  test("SLI: the English name in a box of its own in the Arabic title; Latin digits", async () => {
     const { container } = await renderWidget({
       metric: SloWidgetMetric.Sli,
       slo: buildSlo(),
     });
 
     const texts: Array<string> = drawnTexts(container);
-    const title: string | undefined = texts.find((text: string) => {
-      return text.includes(SLO_NAME);
-    });
 
-    expect(title).toContain(isolated(SLO_NAME));
-    expect(withoutIsolateMarks(title || "")).toBe(`${SLO_NAME} · SLI`);
+    expect(titleText()).toBe(`${SLO_NAME} · SLI`);
+    expect(screen.getByTestId(SLO_WIDGET_TITLE_NAME_TEST_ID).textContent).toBe(
+      SLO_NAME,
+    );
+    // The whole title under the pointer, the name set apart in it.
+    expect(
+      screen.getByTestId(SLO_WIDGET_TITLE_TEST_ID).getAttribute("title"),
+    ).toContain(isolated(SLO_NAME));
     expect(texts).toEqual(
       expect.arrayContaining([
         arabicPercent(99.95),
@@ -611,13 +624,9 @@ describe("the SLO widget's tile in Arabic", () => {
 
     let texts: Array<string> = drawnTexts(container);
 
-    expect(
-      withoutIsolateMarks(
-        texts.find((text: string) => {
-          return text.includes(SLO_NAME);
-        }) || "",
-      ),
-    ).toBe(`${SLO_NAME} · ${worded(AR, "Error Budget Remaining")}`);
+    expect(titleText()).toBe(
+      `${SLO_NAME} · ${worded(AR, "Error Budget Remaining")}`,
+    );
     expect(texts).toEqual(
       expect.arrayContaining([
         arabicPercent(42.5),
@@ -667,8 +676,10 @@ describe("the SLO widget's tile in Arabic", () => {
   /*
    * The tile's title is centred over it and cut where the tile ends
    * (#6858): a title someone wrote in English reads left to right, so it
-   * is cut at its own end, and stays in the middle; the board's own
-   * sentence around the SLO's name reads the board's way.
+   * is cut at its own end, and stays in the middle. The board's own
+   * sentence around the SLO's name reads the board's way, and the English
+   * name in it is a box of its own: drawn as one line read right to left,
+   * it lost its start where the tile cut it, and the metric after it.
    */
   test("a title someone wrote in English reads left to right, cut at its own end, and stays centred", async () => {
     const widgetTitle: string = `${SLO_NAME} (EU West, 30 days)`;
@@ -687,20 +698,69 @@ describe("the SLO widget's tile in Arabic", () => {
     expect(title).toHaveAttribute("title", widgetTitle);
   });
 
-  test("the board's own title - the name set apart in Arabic words - reads the board's way, centred", async () => {
-    const { container } = await renderWidget({
+  test("the board's own title: the English name in a box of its own, cut at its own end, the Arabic words beside it, centred", async () => {
+    await renderWidget({
       metric: SloWidgetMetric.ErrorBudgetRemaining,
       slo: buildSlo(),
     });
 
-    const title: Element | undefined = tileTitleOf(container);
+    const whole: string = `${SLO_NAME} · ${worded(AR, "Error Budget Remaining")}`;
+    const title: HTMLElement = screen.getByTestId(SLO_WIDGET_TITLE_TEST_ID);
+    const name: HTMLElement = screen.getByTestId(SLO_WIDGET_TITLE_NAME_TEST_ID);
+    const words: Element | null = title.lastElementChild;
 
-    expect(withoutIsolateMarks(title?.textContent || "")).toBe(
-      `${SLO_NAME} · ${worded(AR, "Error Budget Remaining")}`,
-    );
+    expect(titleText()).toBe(whole);
+    // A row across the tile, in its middle, the board's way; whole on hover.
     expect(title).not.toHaveAttribute("dir");
-    expect(title).toHaveClass("truncate", "text-center");
-    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(title).toHaveClass("flex", "w-full", "justify-center");
+    expect(withoutIsolateMarks(title.getAttribute("title") || "")).toBe(whole);
+    // The name first, read its own way: cut at its own end, and last.
+    expect(title.firstElementChild).toBe(name);
+    expect(name.textContent).toBe(SLO_NAME);
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveClass("truncate", "shrink-0", "max-w-full");
+    // The board's words beside it, cut first, their spaces kept.
+    expect(words).not.toBe(name);
+    expect(words).not.toHaveAttribute("dir");
+    expect(withoutIsolateMarks(words?.textContent || "")).toBe(
+      ` · ${worded(AR, "Error Budget Remaining")}`,
+    );
+    expect(words).toHaveClass("min-w-0", "text-ellipsis", "whitespace-pre");
+  });
+
+  test("Persian: the English name in a box of its own, the bullet and the Persian words beside it", async () => {
+    await inLanguage("fa");
+    await renderWidget({
+      metric: SloWidgetMetric.BurnRate,
+      slo: buildSlo(),
+    });
+
+    expect(titleText()).toBe(`${SLO_NAME} • ${worded(FA, "Burn Rate")}`);
+    expect(screen.getByTestId(SLO_WIDGET_TITLE_NAME_TEST_ID)).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
+  });
+
+  test("a chart with no history in its range: the notice's title draws the name in a box of its own too", async () => {
+    await renderWidget({
+      metric: SloWidgetMetric.Sli,
+      displayType: SloWidgetDisplayType.Chart,
+      slo: buildSlo(),
+    });
+
+    const title: HTMLElement = screen.getByTestId(SLO_WIDGET_TITLE_TEST_ID);
+
+    expect(lineChartMock).not.toHaveBeenCalled();
+    expect(title.tagName).toBe("P");
+    expect(titleText()).toBe(`${SLO_NAME} · SLI`);
+    expect(screen.getByTestId(SLO_WIDGET_TITLE_NAME_TEST_ID)).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
+    expect(withoutIsolateMarks(title.getAttribute("title") || "")).toBe(
+      `${SLO_NAME} · SLI`,
+    );
   });
 
   /*
@@ -739,13 +799,7 @@ describe("the SLO widget's tile in Arabic", () => {
     expect(texts).toEqual(
       expect.arrayContaining([worded(AR, "Not evaluated yet")]),
     );
-    expect(
-      withoutIsolateMarks(
-        texts.find((text: string) => {
-          return text.includes(SLO_NAME);
-        }) || "",
-      ),
-    ).toBe(`${SLO_NAME} · ${worded(AR, "Burn Rate")}`);
+    expect(titleText()).toBe(`${SLO_NAME} · ${worded(AR, "Burn Rate")}`);
     expect(texts.join("\n")).not.toMatch(ENGLISH_WORDS);
   });
 });
@@ -778,6 +832,44 @@ describe("the SLO widget in English reads as it always did", () => {
     expect(drawnTexts(sli.container)).toEqual(
       expect.arrayContaining([`${SLO_NAME} · SLI`, "Not evaluated yet"]),
     );
+  });
+
+  test("an English name's title is one line, drawn as it always was", async () => {
+    await renderWidget({
+      metric: SloWidgetMetric.ErrorBudgetRemaining,
+      slo: buildSlo(),
+    });
+
+    const title: HTMLElement = screen.getByTestId(SLO_WIDGET_TITLE_TEST_ID);
+
+    expect(title.textContent).toBe(`${SLO_NAME} · Error Budget Remaining`);
+    expect(title.children).toHaveLength(0);
+    expect(title).not.toHaveAttribute("dir");
+    expect(title.className).toBe(
+      "text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center",
+    );
+  });
+
+  /*
+   * The other way round (#6858): an Arabic name on an English board is a
+   * box of its own, read right to left, so it too is cut at its own end.
+   */
+  test("an Arabic name: a box of its own, read right to left, before the English words", async () => {
+    const arabicName: string = "واجهة الدفع";
+
+    await renderWidget({
+      metric: SloWidgetMetric.BurnRate,
+      slo: buildSlo({ name: arabicName }),
+    });
+
+    const title: HTMLElement = screen.getByTestId(SLO_WIDGET_TITLE_TEST_ID);
+    const name: HTMLElement = screen.getByTestId(SLO_WIDGET_TITLE_NAME_TEST_ID);
+
+    expect(titleText()).toBe(`${arabicName} · Burn Rate`);
+    expect(title.firstElementChild).toBe(name);
+    expect(name).toHaveAttribute("dir", "rtl");
+    expect(name).toHaveClass("truncate", "shrink-0");
+    expect(title.lastElementChild?.textContent).toBe(" · Burn Rate");
   });
 });
 

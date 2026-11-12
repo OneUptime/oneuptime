@@ -17,7 +17,9 @@ import DashboardWidgetTimeRangeZoom, {
   DashboardWidgetTimeRangeZoomHandlers,
 } from "../Utils/DashboardWidgetTimeRangeZoom";
 import DashboardWidgetZoomHint from "./DashboardWidgetZoomHint";
-import DashboardWidgetLine from "./DashboardWidgetLine";
+import DashboardWidgetLine, {
+  getWidgetPageLanguage,
+} from "./DashboardWidgetLine";
 import SloWidgetData from "../Utils/SloWidgetData";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import AggregatedResult from "Common/Types/BaseDatabase/AggregatedResult";
@@ -56,13 +58,18 @@ import {
   getSloMetricLabel,
   getSloWidgetTileDisplay,
   getSloWidgetTitle,
+  getSloWidgetTitleSentence,
   SLI_DECIMALS,
   SloWidgetTileDisplay,
+  SloWidgetTitleData,
+  SloWidgetTitleSentence,
 } from "Common/Utils/Slo/SloWidgetFormat";
 import API from "Common/UI/Utils/API/API";
 import ProjectUtil from "Common/UI/Utils/Project";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import DataPoint from "Common/UI/Components/Charts/Types/DataPoint";
@@ -93,6 +100,116 @@ export interface ComponentProps extends DashboardBaseComponentProps {
  */
 export const SLO_WIDGET_LEGEND_ROW_IN_PX: number = 24;
 
+export const SLO_WIDGET_TITLE_TEST_ID: string = "slo-widget-title";
+export const SLO_WIDGET_TITLE_NAME_TEST_ID: string = "slo-widget-title-name";
+
+/*
+ * How a title looks where it is drawn, as one line and as a row of pieces
+ * (SloWidgetTitle): over the tile and the chart, in small capitals across
+ * the widget; over a placeholder's notice, as wide as its words.
+ */
+interface SloWidgetTitleLook {
+  lineClassName: string;
+  rowClassName: string;
+  as: "div" | "p";
+}
+
+const TILE_TITLE_LOOK: SloWidgetTitleLook = {
+  lineClassName:
+    "text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center",
+  rowClassName:
+    "flex w-full justify-center text-[11px] font-medium text-gray-400 uppercase tracking-wider",
+  as: "div",
+};
+
+const PLACEHOLDER_TITLE_LOOK: SloWidgetTitleLook = {
+  lineClassName: "text-xs font-medium text-gray-500 truncate max-w-full",
+  rowClassName: "flex max-w-full text-xs font-medium text-gray-500",
+  as: "p",
+};
+
+/*
+ * The SLO's name in a title of pieces: it keeps the line, up to the whole
+ * of it, and the words beside it give way first - the line's end, which a
+ * title cut short always lost first.
+ */
+const TITLE_NAME_CLASS_NAME: string = "max-w-full shrink-0 truncate";
+
+/*
+ * The board's words beside the name: " · Error budget remaining". Cut at
+ * their end when the line runs out, and their spaces kept - a box of its
+ * own drops the spaces at its ends, which part them from the name.
+ */
+const TITLE_WORDS_CLASS_NAME: string =
+  "min-w-0 overflow-hidden text-ellipsis whitespace-pre";
+
+/*
+ * THE WIDGET'S TITLE (#6858): one line, cut where the widget ends.
+ *
+ * The board's own title - "{{name}} · {{metric}}" - holds the SLO's name.
+ * Drawn as one line it reads the board's way, so on an Arabic board an
+ * English name lost its start where the line was cut ("...T AVAILABILITY
+ * (EU WEST, 30 DAYS)"), and the metric after it went out of sight. A name
+ * that reads the other way from the board is drawn in a box of its own
+ * instead: cut at its own end, beside the board's words, which read the
+ * board's way. Hovering the line reads the whole title. A title in the
+ * board's way - every title on an English board with English names - is
+ * one line, drawn as it always was.
+ */
+const SloWidgetTitle: FunctionComponent<{
+  // The whole title, as one line.
+  title: string;
+  sentence: SloWidgetTitleSentence | null;
+  look: SloWidgetTitleLook;
+}> = (props: {
+  title: string;
+  sentence: SloWidgetTitleSentence | null;
+  look: SloWidgetTitleLook;
+}): ReactElement => {
+  const language: string = getWidgetPageLanguage(useTranslator().language);
+  const sentence: SloWidgetTitleSentence | null = props.sentence;
+
+  if (!sentence || !getLineDirection(sentence.name, language)) {
+    return (
+      <DashboardWidgetLine
+        as={props.look.as}
+        text={props.title}
+        className={props.look.lineClassName}
+        title={props.title}
+        dataTestId={SLO_WIDGET_TITLE_TEST_ID}
+      />
+    );
+  }
+
+  const Tag: "div" | "p" = props.look.as;
+
+  return (
+    <Tag
+      className={props.look.rowClassName}
+      title={props.title}
+      data-testid={SLO_WIDGET_TITLE_TEST_ID}
+    >
+      <TranslatedSentence
+        template={sentence.template}
+        values={sentence.values}
+        slots={{
+          name: (
+            <DashboardWidgetLine
+              as="span"
+              text={sentence.name}
+              className={TITLE_NAME_CLASS_NAME}
+              dataTestId={SLO_WIDGET_TITLE_NAME_TEST_ID}
+            />
+          ),
+        }}
+        renderText={(text: string): ReactElement => {
+          return <span className={TITLE_WORDS_CLASS_NAME}>{text}</span>;
+        }}
+      />
+    </Tag>
+  );
+};
+
 /*
  * Chrome shared by the "nothing to render" states so the setup, error and
  * empty-history cases all read the same as the sibling widgets' (Gauge /
@@ -103,6 +220,8 @@ type GetPlaceholderFunction = (data: {
   iconClassName: string;
   iconBackgroundClassName: string;
   title?: string | undefined;
+  // A title that holds the SLO's name, drawn as SloWidgetTitle draws it.
+  titleElement?: ReactElement | undefined;
   message: string;
 }) => ReactElement;
 
@@ -111,6 +230,7 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
   iconClassName: string;
   iconBackgroundClassName: string;
   title?: string | undefined;
+  titleElement?: ReactElement | undefined;
   message: string;
 }): ReactElement => {
   return (
@@ -122,7 +242,9 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
           <Icon icon={data.icon} />
         </div>
       </div>
-      {data.title ? (
+      {data.titleElement ? (
+        data.titleElement
+      ) : data.title ? (
         <DashboardWidgetLine
           as="p"
           text={translateText(data.title) || data.title}
@@ -445,13 +567,16 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
    * way, as an English name on an Arabic dashboard does.
    */
   const metricLabel: string = getSloMetricLabel(sloMetric, translator);
-  const title: string = getSloWidgetTitle({
+  const titleData: SloWidgetTitleData = {
     widgetTitle: props.component.arguments.widgetTitle,
     sloName: slo?.name,
     sloMetric: sloMetric,
     followsSelection: isFollowingSelection,
     translator: translator,
-  });
+  };
+  const title: string = getSloWidgetTitle(titleData);
+  const titleSentence: SloWidgetTitleSentence | null =
+    getSloWidgetTitleSentence(titleData);
   const placeholderTitle: string =
     props.component.arguments.widgetTitle || metricLabel;
 
@@ -566,10 +691,10 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
    * it whole.
    */
   const titleElement: ReactElement = (
-    <DashboardWidgetLine
-      text={title}
-      className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
+    <SloWidgetTitle
       title={title}
+      sentence={titleSentence}
+      look={TILE_TITLE_LOOK}
     />
   );
 
@@ -593,7 +718,13 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
             icon: IconProp.Percent,
             iconClassName: "text-gray-300",
             iconBackgroundClassName: "bg-gray-50",
-            title: title,
+            titleElement: (
+              <SloWidgetTitle
+                title={title}
+                sentence={titleSentence}
+                look={PLACEHOLDER_TITLE_LOOK}
+              />
+            ),
             message:
               "No history for the selected time range — the SLO is evaluated every few minutes.",
           })}
