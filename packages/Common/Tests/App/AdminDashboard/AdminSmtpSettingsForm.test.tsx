@@ -140,6 +140,7 @@ import GlobalConfig, {
   EmailServerType,
 } from "../../../Models/DatabaseModels/GlobalConfig";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import AmazonSesAuthenticationType from "../../../Types/Email/AmazonSesAuthenticationType";
 import MailTransportType from "../../../Types/Email/MailTransportType";
 import OAuthProviderType from "../../../Types/Email/OAuthProviderType";
 import SMTPAuthenticationType from "../../../Types/Email/SMTPAuthenticationType";
@@ -1130,7 +1131,7 @@ describe("Admin > Settings > Email > Email Server Settings", () => {
     for (const line of [
       "Send through your own mail server.",
       "Send through your SendGrid account.",
-      "Send through Amazon Simple Email Service with an IAM access key.",
+      "Send through Amazon SES with an access key or this server's IAM role.",
       "Send through Mailgun's API with an API key and a sending domain.",
       "Send through Postmark's API with a server API token.",
       "Send through Resend's API with an API key.",
@@ -1281,7 +1282,7 @@ describe("Admin > Settings > Email > a provider's own card", () => {
     );
     expect(
       within(card).getByText(
-        "Your Amazon SES access key and Region, and who the emails come from.",
+        "How this server signs in to Amazon SES, its Region, and who the emails come from.",
       ),
     ).toBeVisible();
 
@@ -1360,6 +1361,205 @@ describe("Admin > Settings > Email > a provider's own card", () => {
       amazonSesRegion: "us-west-2",
       amazonSesFromName: "Example Alerts",
     });
+  });
+
+  /*
+   * How the server signs in to Amazon SES (#7000): an access key, or the IAM
+   * role AWS gives the server itself, with no key stored.
+   */
+  const SES_ROLE_INSTANCE: Record<string, unknown> = {
+    ...SES_INSTANCE,
+    amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+    amazonSesAccessKeyId: null,
+    amazonSesSecretAccessKey: null,
+  };
+
+  async function openSesDialog(): Promise<HTMLElement> {
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Edit Amazon SES" }),
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByTestId("modal")).toBeInTheDocument();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+
+    const dialog: HTMLElement = screen.getByTestId("modal");
+
+    await waitForField(dialog, "us-east-1");
+
+    return dialog;
+  }
+
+  function signIn(dialog: HTMLElement, name: string): HTMLElement {
+    return within(
+      within(dialog).getByTestId("amazon-ses-authentication-type"),
+    ).getByRole("radio", { name });
+  }
+
+  test("Amazon SES: the card says it signs in with an access key, when the server never picked how", async () => {
+    stored = { ...SES_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("Authentication Type")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).getByText("Access Key")).toBeVisible();
+    expect(within(card).getByText("Access Key ID")).toBeVisible();
+  });
+
+  test("Amazon SES with this server's IAM role: Enabled with no key, the role named, and no access key ID", async () => {
+    stored = { ...SES_ROLE_INSTANCE };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(within(card).getByText("Enabled")).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(within(card).getByText("This Server's IAM Role")).toBeVisible();
+    expect(within(card).getByText("eu-west-1")).toBeVisible();
+    expect(within(card).getByText("alerts@example.com")).toBeVisible();
+    // No key to tell apart: the row is not drawn, not drawn empty.
+    expect(within(card).queryByText("Access Key ID")).toBeNull();
+    expect(
+      within(card).queryByText("Not Enabled. Please add the access key."),
+    ).toBeNull();
+  });
+
+  test("Amazon SES with this server's IAM role still needs its Region", async () => {
+    stored = { ...SES_ROLE_INSTANCE, amazonSesRegion: null };
+
+    await renderPage();
+
+    const card: HTMLElement = await cardTitled("Amazon SES Settings");
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByText(
+            text(ENGLISH, "pages.settings.email.pillNoRegion"),
+          ),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+  });
+
+  test("Amazon SES: the dialog starts on the access key; picking this server's IAM role asks for no key, and saves the role", async () => {
+    // A server set up before the choice: its row holds null, as the migration left it.
+    stored = { ...SES_INSTANCE, amazonSesAuthenticationType: null };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openSesDialog();
+
+    // A server that never picked one signs in with its access key.
+    expect(signIn(dialog, "Access Key")).toBeChecked();
+    expect(signIn(dialog, "This Server's IAM Role")).not.toBeChecked();
+    expect(
+      within(dialog).getByPlaceholderText("AKIAIOSFODNN7EXAMPLE"),
+    ).toBeVisible();
+    // Each answer says what it is.
+    expect(
+      within(dialog).getByText(
+        "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.",
+      ),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByText("How OneUptime signs in to Amazon SES."),
+    ).toBeVisible();
+
+    await act(async () => {
+      fireEvent.click(signIn(dialog, "This Server's IAM Role"));
+    });
+    await settle();
+
+    expect(signIn(dialog, "This Server's IAM Role")).toBeChecked();
+    expect(
+      within(dialog).queryByPlaceholderText("AKIAIOSFODNN7EXAMPLE"),
+    ).toBeNull();
+    expect(
+      within(dialog).queryByPlaceholderText("Secret access key"),
+    ).toBeNull();
+    expect(
+      (within(dialog).getByPlaceholderText("us-east-1") as HTMLInputElement)
+        .value,
+    ).toBe("eu-west-1");
+
+    await save(dialog);
+
+    expect({
+      amazonSesAuthenticationType: savedValues()["amazonSesAuthenticationType"],
+      amazonSesRegion: savedValues()["amazonSesRegion"],
+    }).toEqual({
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+      amazonSesRegion: "eu-west-1",
+    });
+  });
+
+  test("Amazon SES: a server on its IAM role opens on it with no key asked, and an access key asks for one again", async () => {
+    stored = { ...SES_ROLE_INSTANCE };
+
+    await renderPage();
+
+    const dialog: HTMLElement = await openSesDialog();
+
+    expect(signIn(dialog, "This Server's IAM Role")).toBeChecked();
+    expect(
+      within(dialog).queryByPlaceholderText("AKIAIOSFODNN7EXAMPLE"),
+    ).toBeNull();
+
+    await act(async () => {
+      fireEvent.click(signIn(dialog, "Access Key"));
+    });
+    await settle();
+
+    expect(
+      within(dialog).getByPlaceholderText("AKIAIOSFODNN7EXAMPLE"),
+    ).toBeVisible();
+    expect(
+      within(dialog).getByPlaceholderText("Secret access key"),
+    ).toBeVisible();
+  });
+
+  test("Amazon SES: the sign-in reads in the Admin Dashboard's languages: German", async () => {
+    stored = { ...SES_ROLE_INSTANCE };
+
+    await renderPage("de");
+
+    const card: HTMLElement = await cardTitled(
+      text(GERMAN, "pages.settings.email.amazonSesCardTitle"),
+    );
+
+    await waitFor(
+      () => {
+        expect(
+          within(card).getByText(text(GERMAN, "This Server's IAM Role")),
+        ).toBeVisible();
+      },
+      { timeout: WAIT_FOR_TIMEOUT },
+    );
+    expect(text(GERMAN, "This Server's IAM Role")).toBe(
+      "IAM-Rolle dieses Servers",
+    );
+    expect(
+      within(card).getByText(text(GERMAN, "Authentication Type")),
+    ).toBeVisible();
   });
 
   test("Mailgun: its domain and region on the card", async () => {

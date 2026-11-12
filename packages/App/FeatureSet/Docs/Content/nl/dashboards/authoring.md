@@ -59,7 +59,9 @@ flowchart TB
 Je wijzigingen zijn alleen van jou totdat je ze opslaat. Tijdens het bewerken wordt niets opgeslagen, dus anderen zien het dashboard zoals het was.
 
 - **Wijzigingen opslaan** slaat de widgets, hun plaatsen en formaten, de variabelen, en de standaardperiode en het standaard automatisch vernieuwen in één keer op, en gaat terug naar leesmodus. Als het opslaan wordt geweigerd, bijvoorbeeld omdat je intussen de machtiging bent kwijtgeraakt, blijf je in bewerkmodus met je wijzigingen en staat de reden boven het raster.
-- **Annuleren** vraagt het eerst, omdat het je wijzigingen weggooit: **Wijzigingen verwerpen** gaat terug naar het dashboard zoals het was opgeslagen, en **Doorgaan met bewerken** brengt je terug naar je werk.
+- **Annuleren** gaat terug naar leesmodus. Als je iets hebt gewijzigd, vraagt het het eerst, omdat het je wijzigingen weggooit: **Wijzigingen verwerpen** gaat terug naar het dashboard zoals het was opgeslagen, en **Doorgaan met bewerken** brengt je terug naar je werk.
+
+Ook het dashboard verlaten met niet-opgeslagen wijzigingen vraagt het eerst. Een link in het zijmenu, het kruimelpad of de bovenste balk, of de knoppen Terug en Vooruit van je browser, openen **Verlaten zonder op te slaan?** met dezelfde twee keuzes: **Doorgaan met bewerken** blijft op het dashboard met je wijzigingen, en **Wijzigingen verwerpen** gaat door naar de pagina die je opende. Het tabblad sluiten of opnieuw laden vraagt het via het eigen dialoogvenster van je browser. Een dashboard dat je opende om te bewerken en niet wijzigde, vraagt niets, en een dashboard dat je net hebt opgeslagen ook niet.
 
 Tijdens het bewerken pauzeert het automatisch vernieuwen, en gaat een ingezoomd tijdsbereik terug naar het bereik dat je had gekozen.
 
