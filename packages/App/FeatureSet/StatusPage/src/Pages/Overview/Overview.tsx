@@ -1854,7 +1854,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
                             }
                           >
                             {/*
-                             * The cell's column, at the start of its line
+                             * The cell's column, at the start of its tile
                              * when the grid is a stack and its column
                              * heading is not drawn.
                              */}

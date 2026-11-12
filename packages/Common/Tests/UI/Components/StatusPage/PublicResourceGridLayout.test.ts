@@ -11,6 +11,8 @@ import {
   PUBLIC_RESOURCE_GRID_ROW_AXIS_CLASS_NAME,
   PUBLIC_RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM,
   PUBLIC_RESOURCE_GRID_SIZES,
+  PUBLIC_RESOURCE_GRID_TILE_WIDTH_IN_REM,
+  PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME,
   PublicResourceGridClassNames,
   PublicResourceGridParts,
 } from "../../../../UI/Components/StatusPage/PublicResourceGridLayout";
@@ -37,7 +39,8 @@ import { describe, expect, test } from "@jest/globals";
  * third columns. Now, as the Dashboard's editor of the same grid does
  * (#7087), wherever the grid's box is narrower than its matrix needs the
  * same table is drawn as a stack: each row a section headed by its value,
- * each cell a line naming its column, with its status at the line's end.
+ * each cell a tile naming its column, with its status at the tile's end -
+ * one tile to a line on a phone, as many as fit on a wider box.
  *
  * These read the classes. jsdom applies no Tailwind and measures nothing:
  * the Tailwind the status page runs is read in
@@ -272,35 +275,39 @@ describe("the public grid's parts in the stack and in the matrix", () => {
     },
   );
 
-  test("in the stack: no column headings, each row a section ruled off from the next, its value a heading over its cells", () => {
+  test("in the stack: no column headings, each row a section ruled off from the next, its value a heading over a grid of its cells' tiles", () => {
     expect(PUBLIC_RESOURCE_GRID_PARTS.table.stack).toEqual(["block"]);
     // Each cell names its column instead.
     expect(PUBLIC_RESOURCE_GRID_PARTS.head.stack).toEqual(["hidden"]);
     expect(PUBLIC_RESOURCE_GRID_PARTS.body.stack).toEqual(["block"]);
     expect(PUBLIC_RESOURCE_GRID_PARTS.row.stack).toEqual([
-      "block",
+      "grid",
+      PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME,
+      "-ms-px",
       "border-b",
       "last:border-b-0",
     ]);
-    // Held at the start of a matrix that scrolls; a heading in the stack.
+    // Held at the start of a matrix that scrolls; a heading across the tiles in the stack.
     expect(PUBLIC_RESOURCE_GRID_PARTS.rowHeading.stack).toEqual([
       "static",
-      "block",
-      "border-b",
+      "col-span-full",
+      "border-b-0",
+      "border-s",
       "border-e-0",
       "py-2.5",
     ]);
   });
 
-  test("in the stack: each cell a line of its row - its column's name at the start, its status at the end", () => {
+  test("in the stack: each cell a tile of its row - its column's name at the start, its status at the end", () => {
     expect(PUBLIC_RESOURCE_GRID_PARTS.cell.stack).toEqual([
       "flex",
       "items-center",
       "justify-between",
       "gap-3",
       "min-h-[2.75rem]",
-      "border-b",
-      "last:border-b-0",
+      "border-t",
+      "border-b-0",
+      "border-s",
       "border-e-0",
       "px-4",
       "text-start",
@@ -461,6 +468,125 @@ describe("the public grid's parts in the stack and in the matrix", () => {
   });
 });
 
+/*
+ * A wide box's stack (#7238, UI review): six regions need 1,000px of
+ * matrix, more than the 934px the page's widest column leaves, so a
+ * laptop draws a six-column grid as a stack too - and a stack of one line
+ * per cell put each status some 700px from its column's name, eighteen
+ * lines for three rows. The cells are tiles instead, as many to a line as
+ * the box has room for.
+ */
+describe("the stack's tiles: as many to a line as the box has room for", () => {
+  // How many tiles of 16rem share a line of a box this wide (its row starts a pixel before it).
+  const tilesPerLineIn: (boxInPx: number) => number = (
+    boxInPx: number,
+  ): number => {
+    return Math.max(
+      1,
+      Math.floor((boxInPx + 1) / (PUBLIC_RESOURCE_GRID_TILE_WIDTH_IN_REM * 16)),
+    );
+  };
+
+  test("a tile is at least 16rem, and never wider than the box: a box narrower than one has one to a line", () => {
+    expect(PUBLIC_RESOURCE_GRID_TILE_WIDTH_IN_REM).toBe(16);
+    expect(PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME).toBe(
+      "grid-cols-[repeat(auto-fill,minmax(min(100%,16rem),1fr))]",
+    );
+    // No space in the class: Tailwind would read it as two.
+    expect(PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME).not.toContain(" ");
+  });
+
+  test("one tile to a line on a phone, two on a tablet, three on a laptop", () => {
+    expect(tilesPerLineIn(PHONE_BOX_IN_PX)).toBe(1);
+    expect(tilesPerLineIn(TABLET_BOX_IN_PX)).toBe(2);
+    expect(tilesPerLineIn(LAPTOP_BOX_IN_PX)).toBe(3);
+    // A six-column grid is a stack on a laptop: two lines of three.
+    expect(isStackIn({ columns: 6, boxInPx: LAPTOP_BOX_IN_PX })).toBe(true);
+    expect(6 / tilesPerLineIn(LAPTOP_BOX_IN_PX)).toBe(2);
+    // A four-column grid on a tablet: two lines of two.
+    expect(isStackIn({ columns: 4, boxInPx: TABLET_BOX_IN_PX })).toBe(true);
+    expect(4 / tilesPerLineIn(TABLET_BOX_IN_PX)).toBe(2);
+  });
+
+  test("a stacked row lays its cells out as tiles, its value across all of them", () => {
+    const layout: PublicResourceGridClassNames =
+      getPublicResourceGridClassNames(6);
+    const stack: string = getPublicResourceGridStackVariant(6);
+
+    expect(tokensOf(layout.row)).toEqual(
+      expect.arrayContaining([
+        `${stack}grid`,
+        `${stack}${PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME}`,
+      ]),
+    );
+    expect(tokensOf(layout.getRowHeading({ isLastRow: false }))).toContain(
+      `${stack}col-span-full`,
+    );
+    // A tile is a line of its own: its name at the start, its status at the end.
+    expect(
+      tokensOf(
+        layout.getCell({
+          isLastRow: false,
+          isLastColumn: false,
+          isEmpty: false,
+        }),
+      ),
+    ).toEqual(
+      expect.arrayContaining([`${stack}flex`, `${stack}justify-between`]),
+    );
+  });
+
+  /*
+   * A tile is ruled off at its start, from the tile before it. The first
+   * tile of each line has nothing before it - and which tile that is
+   * depends on the box's width - so the row starts a pixel before the box
+   * (-ms-px), where the scroller clips the first tile's rule: on the start
+   * side, which a box never scrolls to. The row's value has the same rule,
+   * so it starts where the tiles' names do.
+   */
+  test("each tile is ruled off from the one before it, and the first of a line from nothing: its rule is a pixel before the box", () => {
+    const layout: PublicResourceGridClassNames =
+      getPublicResourceGridClassNames(6);
+    const stack: string = getPublicResourceGridStackVariant(6);
+    const heading: Array<string> = tokensOf(
+      layout.getRowHeading({ isLastRow: false }),
+    );
+
+    expect(tokensOf(layout.row)).toContain(`${stack}-ms-px`);
+    expect(heading).toEqual(
+      expect.arrayContaining([`${stack}border-s`, `${stack}border-e-0`]),
+    );
+
+    for (const isLastRow of [false, true]) {
+      for (const isLastColumn of [false, true]) {
+        const cell: Array<string> = tokensOf(
+          layout.getCell({
+            isLastRow: isLastRow,
+            isLastColumn: isLastColumn,
+            isEmpty: false,
+          }),
+        );
+
+        // Ruled off at its start, never at its end (the card's own edge).
+        expect(cell).toEqual(
+          expect.arrayContaining([`${stack}border-s`, `${stack}border-e-0`]),
+        );
+        /*
+         * Ruled off above - from the heading, or the line before - and
+         * never below, where the next row's own rule is: the matrix's rule
+         * under a cell would draw twice under the last line of tiles.
+         */
+        expect(cell).toEqual(
+          expect.arrayContaining([`${stack}border-t`, `${stack}border-b-0`]),
+        );
+      }
+    }
+
+    // So the heading does not rule itself off: the first line's tiles do.
+    expect(heading).toContain(`${stack}border-b-0`);
+  });
+});
+
 describe("the rows' values, held at the start of the line in every reading direction", () => {
   /*
    * In a right-to-left page (Arabic, Persian: dir="rtl") a table's first
@@ -472,7 +598,7 @@ describe("the rows' values, held at the start of the line in every reading direc
    * (Common/UI/Styles/TailwindReadingDirection.js).
    */
   const PHYSICAL_SIDE_PATTERN: RegExp =
-    /^(?:[a-z-]+:)*(?:left-|right-|border-l\b|border-r\b|border-l-|border-r-|text-left$|text-right$|pl-|pr-|ml-|mr-|rounded-l|rounded-r|rounded-tl|rounded-tr|rounded-bl|rounded-br)/;
+    /^(?:[a-z-]+:)*-?(?:left-|right-|border-l\b|border-r\b|border-l-|border-r-|text-left$|text-right$|pl-|pr-|ml-|mr-|rounded-l|rounded-r|rounded-tl|rounded-tr|rounded-bl|rounded-br)/;
 
   const LOGICAL_HEADINGS: Record<string, string> = {
     rowHeading: PUBLIC_RESOURCE_GRID_PARTS.rowHeading.base,
@@ -548,13 +674,21 @@ describe("the rows' values, held at the start of the line in every reading direc
       "text-left",
       "pl-4",
       "group-hover:mr-2",
+      "-ml-px",
     ]) {
       expect(`${physical} ${PHYSICAL_SIDE_PATTERN.test(physical)}`).toBe(
         `${physical} true`,
       );
     }
 
-    for (const logical of ["start-0", "border-e", "border-e-0", "text-start"]) {
+    for (const logical of [
+      "start-0",
+      "border-e",
+      "border-e-0",
+      "text-start",
+      "-ms-px",
+      "border-s",
+    ]) {
       expect(`${logical} ${PHYSICAL_SIDE_PATTERN.test(logical)}`).toBe(
         `${logical} false`,
       );
@@ -575,7 +709,7 @@ describe("the rows' values, held at the start of the line in every reading direc
     expect(heading).toEqual(
       expect.arrayContaining([
         `${stack}static`,
-        `${stack}block`,
+        `${stack}col-span-full`,
         `${stack}border-e-0`,
       ]),
     );
@@ -589,7 +723,7 @@ describe("where each heading and cell is in the matrix", () => {
   const layout: PublicResourceGridClassNames =
     getPublicResourceGridClassNames(3);
 
-  test("a row's value is ruled off from the next row's; the last row's only in the stack", () => {
+  test("a row's value is ruled off from the next row's in the matrix; in the stack, by its first line of tiles", () => {
     const notLast: Array<string> = tokensOf(
       layout.getRowHeading({ isLastRow: false }),
     );
@@ -599,8 +733,11 @@ describe("where each heading and cell is in the matrix", () => {
 
     expect(notLast).toContain("border-b");
     expect(last).not.toContain("border-b");
-    // In the stack, every row's value is ruled off from its cells.
-    expect(last).toContain(`${getPublicResourceGridStackVariant(3)}border-b`);
+    // In the stack, its tiles rule it off from them (border-t), so it draws none of its own.
+    expect(notLast).toContain(
+      `${getPublicResourceGridStackVariant(3)}border-b-0`,
+    );
+    expect(last).toContain(`${getPublicResourceGridStackVariant(3)}border-b-0`);
   });
 
   test("a cell is ruled off below unless in the last row, and after unless in the last column", () => {

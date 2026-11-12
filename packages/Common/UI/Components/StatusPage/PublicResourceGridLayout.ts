@@ -23,11 +23,16 @@ import {
  * Wherever the grid's box is narrower than its matrix needs (a container
  * query on the grid's own box, as the Dashboard's editor of the same grid
  * does: ResourceGridLayout), the same table is drawn as a stack: each row
- * a section headed by its value, and each of its cells a line under it -
- * the column's name at the start of the line, the cell's status and uptime
- * at its end. Nothing scrolls sideways. A grid that fits keeps its matrix,
- * drawn as it always was: a one-column grid is a matrix on a phone, a
- * three-column grid a matrix from a tablet, a five-column one on a laptop.
+ * a section headed by its value, and each of its cells a tile under it -
+ * the column's name at the tile's start, the cell's status and uptime at
+ * its end. As many tiles share a line as the box has room for, 16rem each:
+ * one to a line on a phone, two beside each other on a tablet, three on a
+ * laptop, whose box (934px, the page's widest) no matrix of six columns or
+ * more fits in - so a wide grid is never a long list of lines with their
+ * statuses 700px from their names. Nothing scrolls sideways. A grid that
+ * fits keeps its matrix, drawn as it always was: a one-column grid is a
+ * matrix on a phone, a three-column grid a matrix from a tablet, a
+ * five-column one on a laptop.
  *
  * Where the matrix is kept but its words are wider than its least width (a
  * long status name, a long value), it still scrolls inside its card, with
@@ -47,6 +52,17 @@ export const PUBLIC_RESOURCE_GRID_COLUMN_WIDTH_IN_REM: number = 8.75;
 
 // The rows' values at the start of each row: min-w-[10rem] (160px).
 export const PUBLIC_RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM: number = 10;
+
+/*
+ * A tile of the stack, at least: its column's name (a word or two) beside a
+ * status and its uptime ("100.00% Verfügbarkeit" is some 8rem), with room
+ * between them. A box narrower than one tile (a sub group's grid on a
+ * small phone) has one tile to a line, as wide as the box.
+ */
+export const PUBLIC_RESOURCE_GRID_TILE_WIDTH_IN_REM: number = 16;
+
+// The stack's lines of tiles: as many as fit, each as wide as the others.
+export const PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME: string = `grid-cols-[repeat(auto-fill,minmax(min(100%,${PUBLIC_RESOURCE_GRID_TILE_WIDTH_IN_REM}rem),1fr))]`;
 
 export const PUBLIC_RESOURCE_GRID_SIZES: ResourceGridSizes = {
   rowHeadingWidthInRem: PUBLIC_RESOURCE_GRID_ROW_HEADING_WIDTH_IN_REM,
@@ -103,29 +119,53 @@ export const PUBLIC_RESOURCE_GRID_PARTS: PublicResourceGridParts = {
   head: { base: "", stack: ["hidden"], matrix: [] },
   body: { base: "", stack: ["block"], matrix: [] },
   /*
-   * A row of the stack: a section of the card, ruled off from the next.
-   * Its border's colour is a class of its own, outside the query (dark
-   * mode); a row of a table whose borders are separate draws no border, so
-   * it draws nothing in the matrix.
+   * A row of the stack: a section of the card, ruled off from the next, its
+   * heading over a grid of its cells' tiles. Its border's colour is a class
+   * of its own, outside the query (dark mode); a row of a table whose
+   * borders are separate draws no border, so it draws nothing in the
+   * matrix.
+   *
+   * Each tile is ruled off at its start, from the tile before it on its
+   * line. The first tile of a line has none before it, so the row starts
+   * one pixel before the box (-ms-px), where the box's scroller clips that
+   * rule: on the start side, which a box never scrolls to, so nothing
+   * scrolls. What is left is a rule between tiles, never one doubling the
+   * card's own edge - on any line, however many tiles it has room for.
    */
   row: {
     base: "group border-gray-200 transition-colors",
-    stack: ["block", "border-b", "last:border-b-0"],
+    stack: [
+      "grid",
+      PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME,
+      "-ms-px",
+      "border-b",
+      "last:border-b-0",
+    ],
     matrix: [],
   },
   /*
    * The row's value: held at the start of a matrix that scrolls sideways,
-   * and ruled off from its cells there; the heading of its section in the
-   * stack, over a line.
+   * and ruled off from its cells there; in the stack, the heading of its
+   * section, across every column of tiles, its start rule clipped with
+   * theirs, so it starts where their names do.
    */
   rowHeading: {
     base: "sticky start-0 z-10 min-w-[10rem] break-words border-e border-gray-200 bg-white px-4 py-3 text-start text-sm font-semibold text-gray-900 transition-colors group-hover:bg-gray-50/80",
-    stack: ["static", "block", "border-b", "border-e-0", "py-2.5"],
+    stack: [
+      "static",
+      "col-span-full",
+      "border-b-0",
+      "border-s",
+      "border-e-0",
+      "py-2.5",
+    ],
     matrix: [],
   },
   /*
-   * A cell: in the stack, a line of its row's section, its column's name at
-   * the start and its status at the end.
+   * A cell: in the stack, a tile of its row's section, its column's name at
+   * the start and its status at the end, ruled off above (from the heading,
+   * or from the line of tiles before) and at its start (from the tile
+   * before it).
    */
   cell: {
     base: "border-gray-100 text-center align-middle transition-colors",
@@ -135,8 +175,9 @@ export const PUBLIC_RESOURCE_GRID_PARTS: PublicResourceGridParts = {
       "justify-between",
       "gap-3",
       "min-h-[2.75rem]",
-      "border-b",
-      "last:border-b-0",
+      "border-t",
+      "border-b-0",
+      "border-s",
       "border-e-0",
       "px-4",
       "text-start",
@@ -144,7 +185,7 @@ export const PUBLIC_RESOURCE_GRID_PARTS: PublicResourceGridParts = {
     matrix: [],
   },
   /*
-   * The cell's column, at the start of its line in the stack; not drawn
+   * The cell's column, at the start of its tile in the stack; not drawn
    * (nor read) in the matrix, whose column heading names it. Drawn by
    * default and hidden under the matrix's query, never with a bare `hidden`
    * the stack's query shows again (ForeignHiddenRuleGuard).
@@ -154,13 +195,13 @@ export const PUBLIC_RESOURCE_GRID_PARTS: PublicResourceGridParts = {
     stack: [],
     matrix: ["hidden"],
   },
-  // The cell's status and uptime: centred in the matrix, at the line's end in the stack.
+  // The cell's status and uptime: centred in the matrix, at the tile's end in the stack.
   cellStatus: {
     base: "flex flex-shrink-0 flex-col items-center justify-center gap-1 px-2 py-3",
     stack: ["items-end", "px-0", "py-2.5"],
     matrix: [],
   },
-  // A cell with nothing in it: a dash, at the line's end in the stack.
+  // A cell with nothing in it: a dash, at the tile's end in the stack.
   cellEmpty: {
     base: "flex flex-shrink-0 items-center justify-center py-3.5",
     stack: ["py-0"],

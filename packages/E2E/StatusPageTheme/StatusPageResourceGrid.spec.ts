@@ -13,9 +13,14 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * 248px sideways in the 332px a 390px phone leaves it. Now:
  *
  *   - It never scrolls sideways: at 390px it is a stack - each row a
- *     section headed by its value, each cell a line with its column's name
- *     at the line's start and its status at its end - and at 768 and 1280
- *     pixels, where its matrix fits, a matrix as before.
+ *     section headed by its value, each cell a tile with its column's name
+ *     at its start and its status at its end, one tile to a line - and at
+ *     768 and 1280 pixels, where its matrix fits, a matrix as before.
+ *   - A grid whose matrix no laptop fits (grid=wide: six regions, 1,000px)
+ *     is a stack there too, its tiles side by side, as many to a line as
+ *     the box has room for - three at 1280, two at 768 - rather than a long
+ *     list of lines with each status 700px from its name. Each tile is
+ *     ruled off from the one before it, the first of a line from nothing.
  *   - In a matrix that is wider than its box (its words wider than its
  *     least width), the rows' values stay in view at the start of the line
  *     however far it scrolls, left to right in English and right to left in
@@ -31,6 +36,15 @@ const SCREENSHOTS: string = "../../output/playwright/status-page-theme-ui";
 
 const ROWS: Array<string> = ["API", "Dashboard"];
 const COLUMNS: Array<string> = ["US", "EU", "Asia Pacific"];
+// The same group by six regions, with grid=wide.
+const WIDE_COLUMNS: Array<string> = [
+  "US East",
+  "US West",
+  "EU",
+  "Asia Pacific",
+  "South America",
+  "Africa",
+];
 
 type LocaleTree = { [key: string]: string | LocaleTree };
 
@@ -87,18 +101,25 @@ const LANGUAGES: Array<Language> = [
 
 const openPage: (
   page: Page,
-  data: { lang: string; width: number; theme?: string },
+  data: { lang: string; width: number; theme?: string; grid?: string },
 ) => Promise<void> = async (
   page: Page,
-  data: { lang: string; width: number; theme?: string },
+  data: { lang: string; width: number; theme?: string; grid?: string },
 ): Promise<void> => {
   await page.setViewportSize({ width: data.width, height: 900 });
-  const query: string =
-    data.lang === "en"
-      ? `theme=${data.theme || "Light"}`
-      : `theme=${data.theme || "Light"}&lang=${data.lang}`;
+  const query: URLSearchParams = new URLSearchParams({
+    theme: data.theme || "Light",
+  });
 
-  await page.goto(`${PAGE}?${query}`);
+  if (data.lang !== "en") {
+    query.set("lang", data.lang);
+  }
+
+  if (data.grid) {
+    query.set("grid", data.grid);
+  }
+
+  await page.goto(`${PAGE}?${query.toString()}`);
   await expect(page.getByTestId("status-page-overview")).toBeVisible();
   // The page's words are fetched once it reads its default language.
   await expect(page.locator("#overview-alert")).toContainText(
@@ -118,15 +139,24 @@ const openPage: (
 interface CellLayout {
   label: string;
   labelShown: boolean;
-  // The label's and the status's distance from the line's start and end.
+  // The label's and the status's distance from the tile's start and end.
   labelFromStart: number;
   statusFromEnd: number | null;
+  // The same, from the grid box's start and end: what a reader sees.
+  labelFromBoxStart: number;
+  statusFromBoxEnd: number | null;
+  // The tile itself: where it starts in the box, how wide, and its rule.
+  fromBoxStart: number;
+  width: number;
+  startRule: string;
   top: number;
 }
 
 interface RowLayout {
   heading: string;
   headingBottom: number;
+  // Where the row's value starts, from the grid box's start.
+  headingTextFromBoxStart: number;
   cells: Array<CellLayout>;
 }
 
@@ -168,14 +198,22 @@ const gridLayoutOf: (page: Page) => Promise<GridLayout> = async (
           : outer.right - inner.right;
       };
 
+      const box: DOMRect = scroller.getBoundingClientRect();
+
       const rows: Array<RowLayout> = Array.from(
         table.querySelectorAll("tbody > tr"),
       ).map((row: Element): RowLayout => {
         const heading: HTMLElement = row.querySelector("th")!;
+        // The row's value, as drawn (IsolatedText's bdi).
+        const headingText: Element = heading.firstElementChild || heading;
 
         return {
           heading: (heading.textContent || "").trim(),
           headingBottom: heading.getBoundingClientRect().bottom,
+          headingTextFromBoxStart: fromStart(
+            headingText.getBoundingClientRect(),
+            box,
+          ),
           cells: Array.from(row.querySelectorAll("td")).map(
             (cell: Element): CellLayout => {
               const cellBox: DOMRect = cell.getBoundingClientRect();
@@ -196,6 +234,18 @@ const gridLayoutOf: (page: Page) => Promise<GridLayout> = async (
                 statusFromEnd: status
                   ? fromEnd(status.getBoundingClientRect(), cellBox)
                   : null,
+                labelFromBoxStart: fromStart(
+                  label.getBoundingClientRect(),
+                  box,
+                ),
+                statusFromBoxEnd: status
+                  ? fromEnd(status.getBoundingClientRect(), box)
+                  : null,
+                fromBoxStart: fromStart(cellBox, box),
+                width: cellBox.width,
+                startRule: getComputedStyle(cell).getPropertyValue(
+                  "border-inline-start-width",
+                ),
                 top: cellBox.top,
               };
             },
@@ -249,7 +299,7 @@ test.afterEach(async ({ page }: { page: Page }) => {
 
 test.describe("the public status page's resource grid (#7238)", () => {
   for (const language of LANGUAGES) {
-    test(`${language.lang}, a 390px phone: a stack, each cell a line naming its column, and nothing scrolls sideways`, async ({
+    test(`${language.lang}, a 390px phone: a stack, each cell a tile naming its column, one to a line, and nothing scrolls sideways`, async ({
       page,
     }: {
       page: Page;
@@ -281,18 +331,35 @@ test.describe("the public status page's resource grid (#7238)", () => {
           }),
         ).toEqual(COLUMNS);
 
-        let lineTop: number = row.headingBottom;
+        // The row's value starts where its cells' names do.
+        expect(Math.abs(row.headingTextFromBoxStart - 16)).toBeLessThanOrEqual(
+          0.5,
+        );
+
+        let lineTop: number = row.headingBottom - 1;
 
         for (const cell of row.cells) {
-          // Under its row's value, one line under the other.
+          // Under its row's value, one tile to a line, each under the last.
           expect(cell.labelShown).toBe(true);
-          expect(cell.top).toBeGreaterThanOrEqual(lineTop - 1);
+          expect(cell.top).toBeGreaterThan(lineTop);
           lineTop = cell.top;
+          /*
+           * As wide as the box, and one pixel more at its start: its start
+           * rule, which divides it from a tile beside it, is beyond the
+           * box's edge, so the card's own edge is not drawn twice.
+           */
+          expect(Math.abs(cell.fromBoxStart + 1)).toBeLessThanOrEqual(0.5);
+          expect(
+            Math.abs(cell.width - (layout.scrollerWidth + 1)),
+          ).toBeLessThanOrEqual(0.5);
+          expect(cell.startRule).toBe("1px");
           // Its column's name at the line's start, its status at its end.
-          expect(Math.abs(cell.labelFromStart - 16)).toBeLessThanOrEqual(1);
+          expect(Math.abs(cell.labelFromBoxStart - 16)).toBeLessThanOrEqual(
+            0.5,
+          );
 
-          if (cell.statusFromEnd !== null) {
-            expect(Math.abs(cell.statusFromEnd - 16)).toBeLessThanOrEqual(1);
+          if (cell.statusFromBoxEnd !== null) {
+            expect(Math.abs(cell.statusFromBoxEnd - 16)).toBeLessThanOrEqual(1);
           }
         }
       }
@@ -493,6 +560,108 @@ test.describe("the public status page's resource grid (#7238)", () => {
 
       if (language.lang !== "fa") {
         await shoot(page, `${language.lang}-1280-scrolled-to-end`);
+      }
+    });
+  }
+
+  /*
+   * Six regions need 1,000px of matrix, more than the 934px the page's
+   * widest column leaves a grid: a stack on every screen. Its tiles share
+   * a line - as many as the box has room for, 16rem each - so a laptop
+   * reads two lines of three under each row's value, not six lines with
+   * each status 700px from its name.
+   */
+  const WIDE_CASES: Array<{
+    lang: string;
+    width: number;
+    tilesPerLine: number;
+  }> = [
+    { lang: "en", width: 1280, tilesPerLine: 3 },
+    { lang: "ar", width: 1280, tilesPerLine: 3 },
+    { lang: "fa", width: 1280, tilesPerLine: 3 },
+    { lang: "en", width: 768, tilesPerLine: 2 },
+    { lang: "ar", width: 768, tilesPerLine: 2 },
+  ];
+
+  for (const wide of WIDE_CASES) {
+    test(`${wide.lang}, ${wide.width}px, six columns no matrix fits: a stack of tiles, ${wide.tilesPerLine} to a line from the line's start, each ruled off from the one before it, and nothing scrolls sideways`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openPage(page, {
+        lang: wide.lang,
+        width: wide.width,
+        grid: "wide",
+      });
+
+      await expect
+        .poll(async (): Promise<boolean> => {
+          return (await gridLayoutOf(page)).isStack;
+        })
+        .toBe(true);
+
+      const layout: GridLayout = await gridLayoutOf(page);
+      const tiles: number = wide.tilesPerLine;
+      // Equal tiles across the box and the pixel before it (its first rule).
+      const tileWidth: number = (layout.scrollerWidth + 1) / tiles;
+
+      expect(layout.direction).toBe(wide.lang === "en" ? "ltr" : "rtl");
+      expect(layout.headShown).toBe(false);
+      expect(layout.sideways).toBe(0);
+      // Room for this many tiles of 16rem, and not for one more.
+      expect(layout.scrollerWidth + 1).toBeGreaterThanOrEqual(tiles * 256);
+      expect(layout.scrollerWidth + 1).toBeLessThan((tiles + 1) * 256);
+      expect(
+        layout.rows.map((row: RowLayout): string => {
+          return row.heading;
+        }),
+      ).toEqual(ROWS);
+
+      for (const row of layout.rows) {
+        expect(
+          row.cells.map((cell: CellLayout): string => {
+            return cell.label;
+          }),
+        ).toEqual(WIDE_COLUMNS);
+        // The row's value starts where the first tile's name does.
+        expect(Math.abs(row.headingTextFromBoxStart - 16)).toBeLessThanOrEqual(
+          0.5,
+        );
+        expect(row.cells[0]!.top).toBeGreaterThanOrEqual(row.headingBottom - 1);
+
+        row.cells.forEach((cell: CellLayout, index: number) => {
+          const place: number = index % tiles;
+          const lineStart: CellLayout = row.cells[index - place]!;
+
+          // Its line's tiles side by side, in order from the line's start.
+          expect(cell.labelShown).toBe(true);
+          expect(Math.abs(cell.top - lineStart.top)).toBeLessThanOrEqual(0.5);
+          expect(
+            Math.abs(cell.fromBoxStart - (place * tileWidth - 1)),
+          ).toBeLessThanOrEqual(1);
+          expect(Math.abs(cell.width - tileWidth)).toBeLessThanOrEqual(1);
+
+          if (index >= tiles) {
+            // A line under the line before it.
+            expect(cell.top).toBeGreaterThan(row.cells[index - tiles]!.top);
+          }
+
+          // Ruled off from the tile before it; the first's rule is clipped.
+          expect(cell.startRule).toBe("1px");
+          // Its column's name at the tile's start, its status at its end.
+          expect(Math.abs(cell.labelFromStart - 17)).toBeLessThanOrEqual(0.5);
+
+          if (cell.statusFromEnd !== null) {
+            expect(Math.abs(cell.statusFromEnd - 16)).toBeLessThanOrEqual(1);
+          }
+        });
+      }
+
+      await expectNoSidewaysScroll(page);
+
+      if (wide.lang !== "fa") {
+        await shoot(page, `wide-${wide.lang}-${wide.width}-light`);
       }
     });
   }

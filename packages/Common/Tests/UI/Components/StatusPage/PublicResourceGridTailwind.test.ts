@@ -4,6 +4,7 @@ import {
   PUBLIC_RESOURCE_GRID_COLUMN_AXIS_CLASS_NAME,
   PUBLIC_RESOURCE_GRID_CORNER_CLASS_NAME,
   PUBLIC_RESOURCE_GRID_ROW_AXIS_CLASS_NAME,
+  PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME,
   PublicResourceGridClassNames,
 } from "../../../../UI/Components/StatusPage/PublicResourceGridLayout";
 import {
@@ -96,9 +97,51 @@ const classNamesOf: (columnCount: number) => Array<string> = (
 
 const BACKSLASH: string = String.fromCharCode(92);
 
-// A selector as written, with Tailwind's escapes taken out.
+const HEX_DIGITS: string = "0123456789abcdefABCDEF";
+
+/*
+ * A selector as written, with Tailwind's escapes taken out: "\(" is "(",
+ * and a character written by its code ("\2c " for the comma in the tiles'
+ * repeat(auto-fill,...)) is that character, its one space after it too.
+ */
 const unescaped: (selector: string) => string = (selector: string): string => {
-  return selector.split(BACKSLASH).join("");
+  let result: string = "";
+  let index: number = 0;
+
+  while (index < selector.length) {
+    const character: string = selector[index]!;
+
+    if (character !== BACKSLASH) {
+      result += character;
+      index += 1;
+      continue;
+    }
+
+    let hex: string = "";
+
+    while (
+      hex.length < 6 &&
+      index + 1 + hex.length < selector.length &&
+      HEX_DIGITS.includes(selector[index + 1 + hex.length]!)
+    ) {
+      hex += selector[index + 1 + hex.length]!;
+    }
+
+    if (hex.length === 0) {
+      result += selector[index + 1] || "";
+      index += 2;
+      continue;
+    }
+
+    result += String.fromCodePoint(parseInt(hex, 16));
+    index += 1 + hex.length;
+
+    if (selector[index] === " ") {
+      index += 1;
+    }
+  }
+
+  return result;
 };
 
 // The rules written for one class, with any pseudo-class after it.
@@ -234,7 +277,56 @@ describe("the public grid in the status page's own Tailwind (#7238)", () => {
           query: stackQuery,
           declarations: { position: "static" },
         },
-        // Each cell, a line: its column's name, then its status.
+        /*
+         * Each row, a grid of its cells' tiles - as many to a line as fit,
+         * 16rem each, and one on a box narrower than that - under its
+         * value, which spans them all.
+         */
+        {
+          className: `${stack}grid`,
+          query: stackQuery,
+          declarations: { display: "grid" },
+        },
+        {
+          className: `${stack}${PUBLIC_RESOURCE_GRID_TILES_CLASS_NAME}`,
+          query: stackQuery,
+          declarations: {
+            "grid-template-columns":
+              "repeat(auto-fill,minmax(min(100%,16rem),1fr))",
+          },
+        },
+        {
+          className: `${stack}col-span-full`,
+          query: stackQuery,
+          declarations: { "grid-column": "1 / -1" },
+        },
+        /*
+         * Each tile ruled off at its start, from the tile before it; the
+         * row starts a pixel before the box, so the first tile's rule is
+         * clipped at the box's start, whichever side that is.
+         */
+        {
+          className: `${stack}-ms-px`,
+          query: stackQuery,
+          declarations: { "margin-inline-start": "-1px" },
+        },
+        {
+          className: `${stack}border-s`,
+          query: stackQuery,
+          declarations: { "border-inline-start-width": "1px" },
+        },
+        // Ruled off above, from the heading or the line of tiles before, never below.
+        {
+          className: `${stack}border-t`,
+          query: stackQuery,
+          declarations: { "border-top-width": "1px" },
+        },
+        {
+          className: `${stack}border-b-0`,
+          query: stackQuery,
+          declarations: { "border-bottom-width": "0px" },
+        },
+        // Each cell, a tile: its column's name, then its status.
         {
           className: `${stack}flex`,
           query: stackQuery,
@@ -261,7 +353,7 @@ describe("the public grid in the status page's own Tailwind (#7238)", () => {
           query: stackQuery,
           declarations: { "border-inline-end-width": "0px" },
         },
-        // The last line of a row, and the last row, are not ruled off.
+        // The last row is not ruled off from the card's edge.
         {
           className: `${stack}last:border-b-0`,
           pseudo: ":last-child",
