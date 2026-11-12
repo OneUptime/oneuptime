@@ -50747,5 +50747,7 @@
   "Show every tool": "Показать все инструменты",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Кратко опишите последнее зафиксированное состояние этого монитора и хронологию его состояний до выключения мониторинга.",
   "Was it flapping?": "Был ли он нестабилен?",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Был ли этот монитор нестабилен до выключения мониторинга? Проанализируйте изменения его состояния до этого момента."
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Был ли этот монитор нестабилен до выключения мониторинга? Проанализируйте изменения его состояния до этого момента.",
+  "Switch to {{projectName}}": "Перейти в {{projectName}}",
+  "Ask AI: {{question}}": "Спросить ИИ: {{question}}"
 }

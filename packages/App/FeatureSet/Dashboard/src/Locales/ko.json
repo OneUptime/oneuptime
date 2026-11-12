@@ -50747,5 +50747,7 @@
   "Show every tool": "모든 도구 표시",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "이 모니터의 마지막으로 보고된 상태와 모니터링이 꺼지기 전까지의 상태 타임라인을 요약해 주세요.",
   "Was it flapping?": "상태가 반복해서 바뀌었나요?",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "모니터링이 꺼지기 전에 이 모니터의 상태가 반복해서 바뀌었나요? 그때까지의 상태 변경을 분석해 주세요."
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "모니터링이 꺼지기 전에 이 모니터의 상태가 반복해서 바뀌었나요? 그때까지의 상태 변경을 분석해 주세요.",
+  "Switch to {{projectName}}": "{{projectName}}(으)로 전환",
+  "Ask AI: {{question}}": "AI에게 질문: {{question}}"
 }

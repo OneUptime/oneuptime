@@ -50747,5 +50747,7 @@
   "Show every tool": "显示所有工具",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "总结此监视器最后报告的状态，以及关闭监控之前的状态时间线。",
   "Was it flapping?": "状态是否曾反复切换？",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "此监视器在关闭监控之前，状态是否曾反复切换？分析它在那之前的状态变化。"
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "此监视器在关闭监控之前，状态是否曾反复切换？分析它在那之前的状态变化。",
+  "Switch to {{projectName}}": "切换到 {{projectName}}",
+  "Ask AI: {{question}}": "询问 AI：{{question}}"
 }

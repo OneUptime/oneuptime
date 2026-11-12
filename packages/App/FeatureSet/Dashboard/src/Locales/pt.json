@@ -50747,5 +50747,7 @@
   "Show every tool": "Mostrar todas as ferramentas",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Resuma o último status registrado deste monitor e a linha do tempo de status até o monitoramento ser desligado.",
   "Was it flapping?": "Estava oscilando?",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Este monitor estava oscilando antes de o monitoramento ser desligado? Analise as mudanças de status dele até então."
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Este monitor estava oscilando antes de o monitoramento ser desligado? Analise as mudanças de status dele até então.",
+  "Switch to {{projectName}}": "Mudar para {{projectName}}",
+  "Ask AI: {{question}}": "Pergunte à IA: {{question}}"
 }

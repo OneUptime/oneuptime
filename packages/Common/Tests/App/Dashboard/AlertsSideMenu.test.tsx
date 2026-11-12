@@ -473,6 +473,11 @@ describe("Alerts side menu", () => {
           title: "Numbering",
           href: routeFor(PageMap.ALERTS_SETTINGS_NUMBERING),
         },
+        // How long a resolved alert is kept (#6903).
+        {
+          title: "Data Retention",
+          href: routeFor(PageMap.ALERTS_SETTINGS_RETENTION),
+        },
       ]);
     });
 
@@ -517,14 +522,18 @@ describe("Alerts side menu", () => {
       expect(activeLinkTitles()).toEqual(["Episode Membership"]);
     });
 
-    test("lists Numbering last, at settings/numbering", async () => {
+    test("lists Numbering, at settings/numbering, then Data Retention last", async () => {
       await renderAlertsMenu();
 
       const settings: Array<MenuLink> = linksIn("Settings");
 
-      expect(settings[settings.length - 1]).toEqual({
+      expect(settings[settings.length - 2]).toEqual({
         title: "Numbering",
         href: `/dashboard/${PROJECT_ID}/alerts/settings/numbering`,
+      });
+      expect(settings[settings.length - 1]).toEqual({
+        title: "Data Retention",
+        href: routeFor(PageMap.ALERTS_SETTINGS_RETENTION),
       });
     });
 

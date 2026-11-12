@@ -50747,5 +50747,7 @@
   "Show every tool": "Alle Tools anzeigen",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Fasse den zuletzt gemeldeten Status dieses Monitors und seine Statuszeitachse bis zum Ausschalten seiner Überwachung zusammen.",
   "Was it flapping?": "Hat er geflattert?",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Hat dieser Monitor geflattert, bevor seine Überwachung ausgeschaltet wurde? Analysiere seine Statusänderungen bis dahin."
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Hat dieser Monitor geflattert, bevor seine Überwachung ausgeschaltet wurde? Analysiere seine Statusänderungen bis dahin.",
+  "Switch to {{projectName}}": "Zu {{projectName}} wechseln",
+  "Ask AI: {{question}}": "KI fragen: {{question}}"
 }

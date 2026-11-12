@@ -50747,5 +50747,7 @@
   "Show every tool": "सभी टूल दिखाएं",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "इस मॉनिटर की आखिरी बार दर्ज स्थिति और निगरानी बंद होने तक की स्थिति टाइमलाइन का सारांश दें।",
   "Was it flapping?": "क्या स्थिति बार-बार बदल रही थी?",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "क्या निगरानी बंद होने से पहले इस मॉनिटर की स्थिति बार-बार बदल रही थी? तब तक के इसके स्थिति बदलावों का विश्लेषण करें।"
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "क्या निगरानी बंद होने से पहले इस मॉनिटर की स्थिति बार-बार बदल रही थी? तब तक के इसके स्थिति बदलावों का विश्लेषण करें।",
+  "Switch to {{projectName}}": "{{projectName}} पर जाएँ",
+  "Ask AI: {{question}}": "AI से पूछें: {{question}}"
 }
