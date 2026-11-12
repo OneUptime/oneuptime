@@ -914,6 +914,57 @@ describe("MonitorWhoIsToldCard", () => {
     });
   });
 
+  test("Recheck is busy while it works - its own look, no hover, not the locked fade - and can be pressed again after", async () => {
+    let finishRecheck: (value: WhoIsToldResult) => void = (): void => {};
+    getForMonitor.mockResolvedValueOnce(result([offline()]));
+    getForMonitor.mockReturnValueOnce(
+      new Promise<WhoIsToldResult>(
+        (resolve: (value: WhoIsToldResult) => void) => {
+          finishRecheck = resolve;
+        },
+      ),
+    );
+    renderCard();
+
+    const recheck: HTMLElement = await screen.findByTestId(
+      "who-is-told-recheck",
+    );
+
+    // At rest it can be pressed, and answers the pointer.
+    expect(recheck).toBeEnabled();
+    expect(recheck).toHaveTextContent("Recheck");
+    expect(recheck).toHaveClass("hover:underline");
+    expect(recheck).not.toHaveAttribute("aria-busy", "true");
+
+    await act(async () => {
+      fireEvent.click(recheck);
+    });
+
+    // Busy: it cannot be pressed again, says what it is doing, keeps its
+    // colour, and neither underlines under the pointer nor fades as if locked.
+    const busy: HTMLElement = screen.getByTestId("who-is-told-recheck");
+    expect(busy).toBeDisabled();
+    expect(busy).toHaveAttribute("aria-busy", "true");
+    expect(busy).toHaveTextContent("Checking...");
+    expect(busy).toHaveClass("text-indigo-700");
+    expect(busy).not.toHaveClass("hover:underline");
+    expect(busy).not.toHaveClass("opacity-50");
+    expect(busy).not.toHaveClass("cursor-not-allowed");
+    expect(busy.className).not.toMatch(/(^|\s)disabled:/u);
+
+    await act(async () => {
+      finishRecheck(result([offline()]));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("who-is-told-recheck")).toBeEnabled();
+    });
+    const again: HTMLElement = screen.getByTestId("who-is-told-recheck");
+    expect(again).toHaveTextContent("Recheck");
+    expect(again).toHaveClass("hover:underline");
+    expect(again).not.toHaveAttribute("aria-busy", "true");
+  });
+
   test("a failed read says so, in words", async () => {
     getForMonitor.mockRejectedValue(new Error("Monitor not found."));
     renderCard();

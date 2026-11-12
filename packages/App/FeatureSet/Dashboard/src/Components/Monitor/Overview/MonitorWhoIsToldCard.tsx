@@ -29,6 +29,7 @@ import {
 import ObjectID from "Common/Types/ObjectID";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Card from "Common/UI/Components/Card/Card";
 import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
 import Icon from "Common/UI/Components/Icon/Icon";
@@ -605,8 +606,14 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
           </span>
           <button
             type="button"
-            className="font-medium text-indigo-700 hover:underline disabled:cursor-not-allowed disabled:opacity-50"
+            className={`font-medium text-indigo-700 ${getHandDrawnButtonStateClassName(
+              {
+                isBusy: isRechecking,
+                hoverClassName: "hover:underline",
+              },
+            )}`}
             disabled={isRechecking}
+            aria-busy={isRechecking}
             data-testid="who-is-told-recheck"
             onClick={() => {
               void recheck();
