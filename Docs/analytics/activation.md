@@ -93,6 +93,11 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary`; `status_page`'s are `pick`, `review` and `summary`; `telemetry`'s are `send`, `alert` and `summary` | `setup`, `step`, `step_number` | Same |
 | `guided_setup/finished` | It reaches its end: the thing works and was tested (`status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |
 | `guided_setup/left` | It is left before its end | `setup`, `step`, `step_number` | Same |
+| `products/product_hidden` | A product is hidden in the project, on Project Settings > Products (`source` is `settings`) or with Home's **Keep hidden** (`home`) | `product` (its key, such as `kubernetes`), `source`, `has_data` | `ProductsSettings`, `HiddenProductsWithData` |
+| `products/product_shown` | A hidden product is shown again, on Project Settings > Products (`settings`) or with Home's **Show it** (`home`) | `product`, `source` | Same |
+| `products/all_products_shown` | **Show every product** on Project Settings > Products | `hidden_count` | `ProductsSettings` |
+| `products/product_pinned` | Somebody pins a product to the nav bar, from its card in the products menu (`source` is `menu`) or beside its page's title (`page`) | `product`, `source`, `pin_count` (how many they have pinned now) | `DashboardNavbar`, `ProductPinButton` |
+| `products/product_unpinned` | Somebody unpins one | `product`, `source`, `pin_count` | Same |
 
 ### The Welcome checklist and its goals
 

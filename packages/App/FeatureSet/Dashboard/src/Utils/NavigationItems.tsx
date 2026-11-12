@@ -17,6 +17,12 @@ export interface DashboardNavigationItems {
    * product at once.
    */
   moreMenuCategoriesOpenByDefault: Array<string>;
+  /*
+   * The categories whose order never changes (#6814): Essentials, in the
+   * order a problem flows through them, and Settings. In every other
+   * category the products a project uses come first.
+   */
+  moreMenuCategoriesInFixedOrder: Array<string>;
   rightElement: NavItem;
 }
 
@@ -1087,6 +1093,11 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
    */
   const moreMenuCategoriesOpenByDefault: Array<string> = [essentialsCategory];
 
+  const moreMenuCategoriesInFixedOrder: Array<string> = [
+    essentialsCategory,
+    settingsCategory,
+  ];
+
   // Define the right element (User Settings)
   const rightElement: NavItem = {
     id: "user-settings-nav-bar-item",
@@ -1106,6 +1117,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     navItems,
     moreMenuItems,
     moreMenuCategoriesOpenByDefault,
+    moreMenuCategoriesInFixedOrder,
     rightElement,
   };
 }
