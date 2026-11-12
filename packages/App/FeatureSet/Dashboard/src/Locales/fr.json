@@ -15523,7 +15523,7 @@
   "SLO Monitor Rules": "Règles de moniteurs du SLO",
   "SLO Owner Rule": "Règle de propriétaire des SLO",
   "SLO Status": "SLO Status",
-  "SLO Widget": "SLO Widget",
+  "SLO Widget": "Widget SLO",
   "SLO at a glance": "Le SLO en un coup d'œil",
   "SLO status changed": "Statut du SLO modifié",
   "SLO status summary": "Résumé du statut des SLO",
@@ -32989,7 +32989,6 @@
   "View all warnings": "Voir tous les avertissements",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Les personnes d'astreinte dans ces plannings à la création du canal y sont @mentionnées, pour que Microsoft Teams les notifie. Personne n'est alerté.",
   "About the same as in the first half of the time range": "À peu près comme dans la première moitié de la période",
-  "Click to configure metric": "Cliquez pour configurer une métrique",
   "Data Source Value": "Valeur de source de données",
   "Down from 0 in the first half of the time range": "En baisse depuis 0 dans la première moitié de la période",
   "Down {{percent}} from the first half of the time range": "En baisse de {{percent}} par rapport à la première moitié de la période",
@@ -51243,5 +51242,14 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Votre rôle ne peut pas lire l'identité de l'utilisateur final. Demandez à un administrateur du projet l'autorisation « {{permission}} ».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "La référence exacte que votre page a transmise à identify(). Nécessite l'autorisation « {{permission}} » ; n'est jamais écrite dans l'URL.",
   "That turn is not part of this task": "Ce tour ne fait pas partie de cette tâche",
-  "The task's first turn is shown instead.": "Le premier tour de la tâche est affiché à la place."
+  "The task's first turn is shown instead.": "Le premier tour de la tâche est affiché à la place.",
+  "Click to configure a metric": "Cliquez pour configurer une métrique",
+  "No SLO picked yet.": "Aucun SLO choisi pour l'instant.",
+  "No metric picked yet.": "Aucune métrique choisie pour l'instant.",
+  "No query set up yet.": "Aucune requête configurée pour l'instant.",
+  "No saved funnel picked yet.": "Aucun entonnoir enregistré choisi pour l'instant.",
+  "No saved retention table picked yet.": "Aucun tableau de rétention enregistré choisi pour l'instant.",
+  "Pick a metric in the settings below.": "Choisissez une métrique dans les paramètres ci-dessous.",
+  "Pick an SLO in the settings below.": "Choisissez un SLO dans les paramètres ci-dessous.",
+  "Write a query in the settings below.": "Écrivez une requête dans les paramètres ci-dessous."
 }

@@ -32989,7 +32989,6 @@
   "View all warnings": "دیدن همهٔ هشدارها",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "هر کسی که هنگام ایجاد کانال در این زمان‌بندی‌ها آنکال باشد، در آن @منشن می‌شود تا Microsoft Teams او را باخبر کند. هیچ‌کس فراخوانده نمی‌شود.",
   "About the same as in the first half of the time range": "تقریباً همانند نیمهٔ اول بازه زمانی",
-  "Click to configure metric": "برای پیکربندی متریک کلیک کنید",
   "Data Source Value": "مقدار منبع داده",
   "Down from 0 in the first half of the time range": "کاهش از ۰ در نیمهٔ اول بازه زمانی",
   "Down {{percent}} from the first half of the time range": "{{percent}} کمتر از نیمهٔ اول بازه زمانی",
@@ -51243,5 +51242,14 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "نقش شما نمی‌تواند هویت کاربر نهایی را بخواند. مجوز «{{permission}}» را از یک مدیر پروژه بخواهید.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "همان مرجعی که صفحه شما به identify() داد. به مجوز «{{permission}}» نیاز دارد؛ هرگز در نشانی نوشته نمی‌شود.",
   "That turn is not part of this task": "آن نوبت بخشی از این وظیفه نیست",
-  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود."
+  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود.",
+  "Click to configure a metric": "برای پیکربندی یک متریک کلیک کنید",
+  "No SLO picked yet.": "هنوز هیچ SLO انتخاب نشده است.",
+  "No metric picked yet.": "هنوز هیچ متریکی انتخاب نشده است.",
+  "No query set up yet.": "هنوز هیچ کوئری‌ای تنظیم نشده است.",
+  "No saved funnel picked yet.": "هنوز هیچ قیف ذخیره‌شده‌ای انتخاب نشده است.",
+  "No saved retention table picked yet.": "هنوز هیچ جدول ماندگاری ذخیره‌شده‌ای انتخاب نشده است.",
+  "Pick a metric in the settings below.": "در تنظیمات زیر یک متریک انتخاب کنید.",
+  "Pick an SLO in the settings below.": "در تنظیمات زیر یک SLO انتخاب کنید.",
+  "Write a query in the settings below.": "در تنظیمات زیر یک کوئری بنویسید."
 }

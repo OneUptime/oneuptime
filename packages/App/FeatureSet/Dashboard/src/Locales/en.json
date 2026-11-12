@@ -32989,7 +32989,6 @@
   "View all warnings": "View all warnings",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.",
   "About the same as in the first half of the time range": "About the same as in the first half of the time range",
-  "Click to configure metric": "Click to configure metric",
   "Data Source Value": "Data Source Value",
   "Down from 0 in the first half of the time range": "Down from 0 in the first half of the time range",
   "Down {{percent}} from the first half of the time range": "Down {{percent}} from the first half of the time range",
@@ -51243,5 +51242,14 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.",
   "That turn is not part of this task": "That turn is not part of this task",
-  "The task's first turn is shown instead.": "The task's first turn is shown instead."
+  "The task's first turn is shown instead.": "The task's first turn is shown instead.",
+  "Click to configure a metric": "Click to configure a metric",
+  "No SLO picked yet.": "No SLO picked yet.",
+  "No metric picked yet.": "No metric picked yet.",
+  "No query set up yet.": "No query set up yet.",
+  "No saved funnel picked yet.": "No saved funnel picked yet.",
+  "No saved retention table picked yet.": "No saved retention table picked yet.",
+  "Pick a metric in the settings below.": "Pick a metric in the settings below.",
+  "Pick an SLO in the settings below.": "Pick an SLO in the settings below.",
+  "Write a query in the settings below.": "Write a query in the settings below."
 }
