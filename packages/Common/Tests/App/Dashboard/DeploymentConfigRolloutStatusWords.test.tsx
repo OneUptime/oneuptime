@@ -124,12 +124,12 @@ function statesNamed(
   let marked: string = text;
 
   for (const [state, stateWord] of longestFirst) {
-    const mark: string = `\u0000${STATES_IN_ORDER.indexOf(state)}\u0000`;
+    const mark: string = `⟦${STATES_IN_ORDER.indexOf(state)}⟧`;
     marked = marked.split(stateWord).join(mark);
   }
 
   const named: Array<OpenShiftDeploymentConfigState> = [];
-  const markPattern: RegExp = /\u0000(\d)\u0000/g;
+  const markPattern: RegExp = /⟦(\d)⟧/g;
   let match: RegExpExecArray | null = markPattern.exec(marked);
 
   while (match) {
