@@ -14,6 +14,7 @@ import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
 import ToolImportRunService from "./ToolImportRunService";
 import { IsBillingEnabled } from "../EnvironmentConfig";
+import ServerProducts from "../Utils/ServerProducts/ServerProducts";
 import logger from "../Utils/Logger";
 import CallerPermission from "../Utils/Permission/CallerPermission";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
@@ -215,6 +216,8 @@ export default class WelcomeChecklistService {
 
     const checklist: WelcomeChecklist = buildWelcomeChecklist({
       goals: row.goals,
+      // A step of a product switched off on the server is left out (#6815).
+      offProducts: await ServerProducts.getOffProducts(),
       facts: {
         reached: reached,
         hasRuleThatPagesSomeone: hasRuleThatPagesSomeone,

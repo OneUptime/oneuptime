@@ -16,7 +16,7 @@ import Response from "../Utils/Response";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import CommonAPI from "./CommonAPI";
 import ServerProducts from "../Utils/ServerProducts/ServerProducts";
-import { getProductOfTable } from "../Utils/ServerProducts/ProductOfTable";
+import { getProductOfTable } from "../../Types/Product/ProductOfTable";
 import ProductKey from "../../Types/Product/ProductKey";
 import DatabaseRequestType from "../Types/BaseDatabase/DatabaseRequestType";
 import BaseModel from "../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -644,7 +644,7 @@ export default class BaseAPI<
 
   /*
    * Refuses a create, change or delete of a product's main record while the
-   * product is switched off on the server (#6815, Utils/ServerProducts/
+   * product is switched off on the server (#6815, Types/Product/
    * ProductOfTable), with what happened and who can switch it on. Reads are
    * never refused: products that are on show records of others.
    */

@@ -11,6 +11,7 @@ import {
 } from "../../Utils/KeyboardShortcuts";
 import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
 import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { getOffProducts } from "Common/Types/Product/ServerProducts";
 // The same ":"-guard the command palette navigates behind — one definition.
 import { isRoutePathNavigable } from "../CommandPalette/DashboardCommandPaletteHelpers";
 import Route from "Common/Types/API/Route";
@@ -158,7 +159,11 @@ const DashboardKeyboardShortcuts: FunctionComponent = (): ReactElement => {
   }
 
   const goToShortcuts: Array<KeyboardShortcutDescription> =
-    getListedDashboardGoToShortcuts(products.answer.hidden).map(
+    getListedDashboardGoToShortcuts([
+      ...products.answer.hidden,
+      // Switched off on the server (#6815): not listed either.
+      ...getOffProducts(products.answer.offOnServer || {}),
+    ]).map(
       (shortcut: DashboardGoToShortcut): KeyboardShortcutDescription => {
         return {
           id: `go-to-${shortcut.key}`,

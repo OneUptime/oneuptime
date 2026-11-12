@@ -1,4 +1,4 @@
-import ProductKey from "../../../Types/Product/ProductKey";
+import ProductKey from "./ProductKey";
 
 /*
  * WHICH PRODUCT A RECORD BELONGS TO, FOR THE API'S REFUSAL (#6815).
@@ -15,7 +15,8 @@ import ProductKey from "../../../Types/Product/ProductKey";
  * on-call policy, a status page lists scheduled maintenance - and refusing
  * those reads would break the products that are on.
  *
- * By table name, so BaseAPI can ask without loading every model.
+ * By table name, so BaseAPI and the Dashboard (Search leaves out records
+ * of a product that is off) can ask without loading every model. Pure.
  */
 export const PRODUCT_OF_TABLE: Readonly<Record<string, ProductKey>> = {
   Monitor: ProductKey.Monitors,

@@ -1,4 +1,7 @@
 import AskAiPanel from "./Components/AIChat/AskAiPanel";
+import ServerProductGate from "./Components/ServerProducts/ServerProductGate";
+import { useIsProductOffOnServer } from "./Utils/ProjectProducts/UseProjectProducts";
+import ProductKey from "Common/Types/Product/ProductKey";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
@@ -310,6 +313,11 @@ const TeamsRoutes: LazyRoutes = lazy(() => {
 
 const App: () => JSX.Element = () => {
   const location: ReturnType<typeof useLocation> = useLocation();
+
+  // Ask AI (the products menu's Chat) switched off on the server (#6815).
+  const isAskAiOffOnServer: boolean = useIsProductOffOnServer(
+    ProductKey.AIChat,
+  );
 
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
@@ -637,7 +645,7 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <UserLanguageInit />
       <ProductFeedbackInit />
-      <AskAiPanel />
+      {isAskAiOffOnServer ? <></> : <AskAiPanel />}
       <DashboardCommandPalette
         projects={projects}
         onProjectSelected={onProjectSelected}
@@ -654,6 +662,11 @@ const App: () => JSX.Element = () => {
        */}
       <ErrorBoundary resetKey={location.pathname}>
         <Suspense fallback={<PageLoader isVisible={true} />}>
+          {/*
+           * A page of a product switched off on the server says so, and who
+           * can switch it on, instead of drawing (#6815).
+           */}
+          <ServerProductGate>
           <Routes>
             <PageRoute
               path="/*"
@@ -1255,6 +1268,7 @@ const App: () => JSX.Element = () => {
               }
             />
           </Routes>
+          </ServerProductGate>
         </Suspense>
       </ErrorBoundary>
     </MasterPage>

@@ -74,8 +74,12 @@ export const SERVER_PRODUCTS_PRESETS: ReadonlyArray<ServerProductsPreset> = [
 /*
  * What each preset keeps on. Monitoring and status pages is the server that
  * watches websites and tells customers (#528): a monitor opens an incident,
- * the status page shows it, and planned work is announced. Incident
- * response adds what a team on call uses to answer it.
+ * the person who looks after it is paged, the status page shows it, and
+ * planned work is announced. On-Call Duty is in it because a monitor that
+ * can tell nobody is not monitoring: "Know when my website is down", the
+ * first thing Home offers, ends in a test page through an on-call policy.
+ * Incident response adds what a team on call uses to answer and learn:
+ * alerts, SLOs, workflows and runbooks.
  */
 export const PRODUCTS_OF_PRESET: Readonly<
   Record<ServerProductsPreset, ReadonlyArray<ProductKey>>
@@ -83,6 +87,7 @@ export const PRODUCTS_OF_PRESET: Readonly<
   [ServerProductsPreset.MonitoringAndStatusPages]: [
     ProductKey.Monitors,
     ProductKey.Incidents,
+    ProductKey.OnCall,
     ProductKey.StatusPages,
     ProductKey.ScheduledMaintenance,
   ],
