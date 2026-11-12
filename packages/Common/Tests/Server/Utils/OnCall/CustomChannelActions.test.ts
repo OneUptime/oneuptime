@@ -31,7 +31,11 @@ import {
   OnCallPassOnRefusal,
 } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
-import { ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE } from "../../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import {
+  MAX_NOTIFICATION_WRITE_ATTEMPTS,
+  ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+} from "../../../../Server/Utils/OnCall/OnCallNotificationStatus";
 import {
   UpdateOneByInput,
   updateNotificationWhileStill,
@@ -390,6 +394,92 @@ describe("CustomChannelActions: acknowledge", () => {
     expect(answer.result).toBe(CustomChannelActionResult.Acknowledged);
     expect(update).toHaveBeenCalledTimes(2);
     expect(row.status).toBe(UserNotificationStatus.Acknowledged);
+  });
+
+  test("a notification that keeps changing under every try: refused with try again, never answered as acknowledged", async () => {
+    const { id, token, row, update, meanwhile } = setUp();
+
+    // A write lands before each of the tries: the provider's reports, say.
+    for (
+      let write: number = 0;
+      write < MAX_NOTIFICATION_WRITE_ATTEMPTS;
+      write++
+    ) {
+      meanwhile((notification: UserOnCallLogTimeline) => {
+        notification.statusMessage = `Provider report ${write + 1}.`;
+      });
+    }
+
+    const refusal: unknown = await CustomChannelActions.act({
+      notificationId: id.toString(),
+      action: CustomChannelAction.Acknowledge,
+      token: token,
+    }).catch((error: unknown) => {
+      return error;
+    });
+
+    // The service answers 4xx with this message: the person tries again.
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as BadDataException).message).toBe(
+      ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+    );
+    expect(update).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(row.isAcknowledged).toBe(false);
+    expect(row.status).toBe(UserNotificationStatus.Sent);
+  });
+
+  test("acknowledged meanwhile by the last write that beat every try: answered as already acknowledged", async () => {
+    const { id, token, row, update, meanwhile } = setUp();
+
+    for (
+      let write: number = 1;
+      write < MAX_NOTIFICATION_WRITE_ATTEMPTS;
+      write++
+    ) {
+      meanwhile((notification: UserOnCallLogTimeline) => {
+        notification.statusMessage = `Provider report ${write}.`;
+      });
+    }
+
+    // The last write before the last try: the page's own link, pressed.
+    meanwhile((notification: UserOnCallLogTimeline) => {
+      notification.status = UserNotificationStatus.Acknowledged;
+      notification.statusMessage = ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE;
+      notification.isAcknowledged = true;
+    });
+
+    const answer: CustomChannelActionAnswer = await CustomChannelActions.act({
+      notificationId: id.toString(),
+      action: CustomChannelAction.Acknowledge,
+      token: token,
+    });
+
+    expect(answer).toEqual({
+      action: CustomChannelAction.Acknowledge,
+      result: CustomChannelActionResult.AlreadyAcknowledged,
+      message: "This page was already acknowledged.",
+    });
+    expect(update).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(row.isAcknowledged).toBe(true);
+  });
+
+  test("a notification gone between the reads: refused with try again, not answered as acknowledged", async () => {
+    const { id, token, row, update } = setUp();
+
+    // Read once by act; gone for the write's read and the read after it.
+    jest
+      .spyOn(UserOnCallLogTimelineService, "findOneById")
+      .mockResolvedValueOnce(row)
+      .mockResolvedValue(null);
+
+    await expect(
+      CustomChannelActions.act({
+        notificationId: id.toString(),
+        action: CustomChannelAction.Acknowledge,
+        token: token,
+      }),
+    ).rejects.toThrow(ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE);
+    expect(update).not.toHaveBeenCalled();
   });
 
   test("a page already acknowledged is not acknowledged again", async () => {

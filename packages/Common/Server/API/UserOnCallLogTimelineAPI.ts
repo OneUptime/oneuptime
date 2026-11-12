@@ -31,9 +31,11 @@ import {
 import OnCallPagePassOn from "../Utils/OnCall/OnCallPagePassOn";
 import OnCallAcknowledgePageAnswerReader from "../Utils/OnCall/OnCallAcknowledgePageAnswer";
 import {
+  ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
   ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
   ON_CALL_OBSERVER_NOTIFICATION_SEEN_MESSAGE,
+  isNotificationAcknowledged,
   recordAcknowledgement,
 } from "../Utils/OnCall/OnCallNotificationStatus";
 import OnCallDutyPolicyExecutionLog from "../../Models/DatabaseModels/OnCallDutyPolicyExecutionLog";
@@ -311,10 +313,28 @@ export default class UserNotificationLogTimelineAPI extends BaseAPI<
            * notification's update hook acknowledges the page and its record.
            */
           if (req.body["Digits"] === "1") {
-            await recordAcknowledgement({
+            const isAcknowledged: boolean = await recordAcknowledgement({
               userOnCallLogTimelineId: itemId,
               statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
             });
+
+            /*
+             * Not written, and not acknowledged meanwhile either - from
+             * another of the page's messages: the notification kept changing
+             * under every try. The call never says a page is acknowledged
+             * that goes on paging the person.
+             */
+            if (
+              !isAcknowledged &&
+              !(await isNotificationAcknowledged(itemId))
+            ) {
+              return NotificationMiddleware.sendResponse(
+                req,
+                res,
+                token as any,
+                ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
+              );
+            }
           }
 
           return NotificationMiddleware.sendResponse(req, res, token as any);

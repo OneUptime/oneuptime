@@ -76,6 +76,13 @@ export const ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE: string =
   "This notification could not be acknowledged just now. Please try again.";
 
 /*
+ * The same, said by a call whose 1 could not acknowledge the page. The call
+ * ends with it, so the person cannot press again there.
+ */
+export const ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE: string =
+  "This page could not be acknowledged just now. Please acknowledge it from the dashboard. Good bye.";
+
+/*
  * What the person's acknowledgement from this notification moves on from:
  * whatever its send or its provider wrote - Sending, Sent, an Error, a call
  * Not Answered - and an escalation from it. Taking a page after all, once
@@ -285,6 +292,31 @@ export async function recordAcknowledgement(data: {
     statusMessage: data.statusMessage,
     acknowledgedAt: data.acknowledgedAt || OneUptimeDate.getCurrentDate(),
   });
+}
+
+/*
+ * Whether the notification is acknowledged now: read again when
+ * recordAcknowledgement wrote nothing, to tell a second press - acknowledged
+ * meanwhile - from a notification that kept changing under every try. Only
+ * the first may be answered as acknowledged: the second is not, and the page
+ * goes on paging the person.
+ */
+export async function isNotificationAcknowledged(
+  userOnCallLogTimelineId: ObjectID,
+): Promise<boolean> {
+  const notification: UserOnCallLogTimeline | null =
+    await UserOnCallLogTimelineService.findOneById({
+      id: userOnCallLogTimelineId,
+      select: {
+        _id: true,
+        isAcknowledged: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+  return Boolean(notification?.isAcknowledged);
 }
 
 /*

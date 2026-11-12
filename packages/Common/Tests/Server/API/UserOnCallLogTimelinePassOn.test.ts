@@ -41,6 +41,10 @@ import {
 import Timezone from "../../../Types/Timezone";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import {
+  MAX_NOTIFICATION_WRITE_ATTEMPTS,
+  ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE,
+} from "../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import {
   UpdateOneByInput,
   updateNotificationWhileStill,
 } from "../TestingUtils/OnCallTimelineRows";
@@ -1124,5 +1128,60 @@ describe("a call's second key", () => {
     expect(updateSpy).not.toHaveBeenCalled();
     expect(passOnSpy).not.toHaveBeenCalled();
     expect(sayOf()).toContain("You have acknowledged this incident. Good bye");
+  });
+
+  /*
+   * A write lands before each of the first key's tries - the provider's
+   * reports, say - moving the version on; `last` is the one before the
+   * last try.
+   */
+  function changedUnderEveryTry(
+    last: (item: UserOnCallLogTimeline) => void,
+  ): jest.SpyInstance {
+    let writes: number = 0;
+
+    return jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+      .mockImplementation((async (updateBy: UpdateOneByInput) => {
+        writes++;
+
+        if (writes < MAX_NOTIFICATION_WRITE_ATTEMPTS) {
+          currentItem.statusMessage = `Provider report ${writes}.`;
+        } else {
+          last(currentItem);
+        }
+
+        currentItem.version = (currentItem.version || 0) + 1;
+
+        return updateNotificationWhileStill(currentItem, updateBy);
+      }) as never);
+  }
+
+  test("the first key, when the notification kept changing under every try: says the page was not acknowledged", async () => {
+    const updateSpy: jest.SpyInstance = changedUnderEveryTry(
+      (item: UserOnCallLogTimeline) => {
+        item.statusMessage = "Provider report, last.";
+      },
+    );
+
+    await press("1", VALID_TOKEN());
+
+    expect(updateSpy).toHaveBeenCalledTimes(MAX_NOTIFICATION_WRITE_ATTEMPTS);
+    expect(currentItem.isAcknowledged).toBeFalsy();
+    expect(sayOf()).toContain(ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE);
+    expect(sayOf()).not.toContain("You have acknowledged");
+    expect(passOnSpy).not.toHaveBeenCalled();
+  });
+
+  test("the first key, when the page was acknowledged meanwhile from another of its messages: the call still says so", async () => {
+    changedUnderEveryTry((item: UserOnCallLogTimeline) => {
+      item.status = UserNotificationStatus.Acknowledged;
+      item.isAcknowledged = true;
+    });
+
+    await press("1", VALID_TOKEN());
+
+    expect(sayOf()).toContain("You have acknowledged this incident. Good bye");
+    expect(sayOf()).not.toContain(ON_CALL_CALL_NOT_ACKNOWLEDGED_SAY_MESSAGE);
   });
 });

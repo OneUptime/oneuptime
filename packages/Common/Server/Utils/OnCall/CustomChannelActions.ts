@@ -3,6 +3,8 @@ import OnCallPagePassOn from "./OnCallPagePassOn";
 import CustomChannelActionToken from "./CustomChannelActionToken";
 import {
   ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+  isNotificationAcknowledged,
   recordAcknowledgement,
 } from "./OnCallNotificationStatus";
 import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorization";
@@ -179,7 +181,21 @@ export default class CustomChannelActions {
       statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
     });
 
+    /*
+     * Not written: acknowledged meanwhile - a second press - or the
+     * notification kept changing under every try. Read again to tell which:
+     * a page that is not acknowledged is never answered as if it were, or
+     * the person would stop answering a page that is still paging them. As
+     * the page's own Acknowledge link does (UserOnCallLogTimelineAPI), they
+     * are asked to try again.
+     */
     if (!isAcknowledged) {
+      if (!(await isNotificationAcknowledged(notification.id!))) {
+        throw new BadDataException(
+          ON_CALL_NOTIFICATION_NOT_ACKNOWLEDGED_MESSAGE,
+        );
+      }
+
       return {
         action: CustomChannelAction.Acknowledge,
         result: CustomChannelActionResult.AlreadyAcknowledged,
