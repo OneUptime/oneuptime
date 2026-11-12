@@ -179,6 +179,8 @@ interface StateDeck {
 const ASKS_FOR_A_STATUS_UPDATE: RegExp = /so far|status update/i;
 const ASKS_TO_CREATE_AN_INCIDENT: RegExp = /create an incident/i;
 const ASKS_ABOUT_THE_WINDOW_SO_FAR: RegExp = /during this maintenance window/i;
+const ASKS_ABOUT_THE_STATUS_NOW: RegExp =
+  /right now|current status|over the last 7 days|^Is this monitor/i;
 
 let incidentStatesRead: ReturnType<typeof jest.spyOn>;
 let alertStatesRead: ReturnType<typeof jest.spyOn>;
@@ -218,6 +220,33 @@ describe("where the record stands, from what the one rule says", () => {
     }
   });
 
+  /*
+   * Issue #6477: nothing checks a monitor whose monitoring is off, so the
+   * status it holds is only what its last check saw - it is neither
+   * operational nor not operational now, whatever that status says.
+   */
+  test("a monitor whose monitoring is off is that, whatever its status", () => {
+    for (const isOperationalState of [true, false, undefined, null]) {
+      expect(getMonitorEntityState(isOperationalState, true)).toBe(
+        PageEntityState.MonitoringOff,
+      );
+    }
+  });
+
+  test("a monitor whose monitoring is on, or not read, is read by its status", () => {
+    for (const disableActiveMonitoring of [false, undefined, null]) {
+      expect(getMonitorEntityState(true, disableActiveMonitoring)).toBe(
+        PageEntityState.Operational,
+      );
+      expect(getMonitorEntityState(false, disableActiveMonitoring)).toBe(
+        PageEntityState.NotOperational,
+      );
+      expect(
+        getMonitorEntityState(undefined, disableActiveMonitoring),
+      ).toBeUndefined();
+    }
+  });
+
   test("a maintenance event: not started, in progress or over", () => {
     expect(
       getScheduledMaintenanceEntityState(
@@ -242,6 +271,7 @@ describe("where the record stands, from what the one rule says", () => {
       "Resolved",
       "Operational",
       "NotOperational",
+      "MonitoringOff",
       "Upcoming",
       "Ongoing",
       "Ended",
@@ -292,12 +322,15 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     {
       type: AIChatPageContextType.Monitor,
       modelType: Monitor,
+      // With whether its monitoring is off (issue #6477).
       select: {
         name: true,
+        disableActiveMonitoring: true,
         currentMonitorStatus: { isOperationalState: true },
       },
       json: {
         name: "Checkout API",
+        disableActiveMonitoring: false,
         currentMonitorStatus: { isOperationalState: false },
       },
       title: "Checkout API",
@@ -549,6 +582,47 @@ describe("one read, each time Ask AI opens: the title and where it stands", () =
     ).toBe("Checkout API");
   });
 
+  test("a monitor whose monitoring is off is not read as not operational, whatever its last status was", async () => {
+    for (const isOperationalState of [false, true]) {
+      jest.spyOn(ModelAPI, "getItem").mockResolvedValueOnce(
+        fromApi(
+          {
+            name: "Checkout API",
+            disableActiveMonitoring: true,
+            currentMonitorStatus: { name: "Offline", isOperationalState },
+          },
+          Monitor,
+        ),
+      );
+
+      expect(
+        await PageContextUtil.resolveEntity(
+          contextFor(AIChatPageContextType.Monitor),
+        ),
+      ).toEqual({
+        title: "Checkout API",
+        state: PageEntityState.MonitoringOff,
+      });
+    }
+  });
+
+  test("a monitor whose monitoring is off is that even with no status to read", async () => {
+    jest
+      .spyOn(ModelAPI, "getItem")
+      .mockResolvedValue(
+        fromApi(
+          { name: "Checkout API", disableActiveMonitoring: true },
+          Monitor,
+        ),
+      );
+
+    expect(
+      (await PageContextUtil.resolveEntity(
+        contextFor(AIChatPageContextType.Monitor),
+      ))!.state,
+    ).toBe(PageEntityState.MonitoringOff);
+  });
+
   test("a monitor's status read without its flag is no state", async () => {
     jest
       .spyOn(ModelAPI, "getItem")
@@ -710,6 +784,16 @@ describe("the questions follow the record", () => {
       ],
     },
     {
+      type: AIChatPageContextType.Monitor,
+      state: PageEntityState.MonitoringOff,
+      titles: [
+        "Status summary",
+        "Last status change",
+        "Was it flapping?",
+        "Related incidents",
+      ],
+    },
+    {
       type: AIChatPageContextType.ScheduledMaintenanceEvent,
       state: PageEntityState.Upcoming,
       titles: [
@@ -831,6 +915,43 @@ describe("the questions follow the record", () => {
         },
       ),
     ).toBe(false);
+    /*
+     * A monitor whose monitoring is off is asked about the status it had
+     * before then (issue #6477), never why it is not operational now or
+     * whether it is flapping now: nothing has checked it since.
+     */
+    expect(
+      question(
+        AIChatPageContextType.Monitor,
+        PageEntityState.MonitoringOff,
+        "Status summary",
+      ),
+    ).toBe(
+      "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.",
+    );
+    expect(
+      question(
+        AIChatPageContextType.Monitor,
+        PageEntityState.MonitoringOff,
+        "Was it flapping?",
+      ),
+    ).toBe(
+      "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.",
+    );
+    expect(
+      deckFor(
+        AIChatPageContextType.Monitor,
+        PageEntityState.MonitoringOff,
+      ).some((suggestion: SuggestedQuestion): boolean => {
+        return ASKS_ABOUT_THE_STATUS_NOW.test(suggestion.question);
+      }),
+    ).toBe(false);
+    expect(
+      titlesOf(
+        deckFor(AIChatPageContextType.Monitor, PageEntityState.MonitoringOff),
+      ),
+    ).not.toContain("Why not operational?");
+
     // A maintenance event that has not started is not asked what it changed.
     expect(
       deckFor(

@@ -1,5 +1,6 @@
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import Query from "../../Types/BaseDatabase/Query";
+import MonitoringOff from "./MonitoringOff";
 
 /*
  * WHICH MONITORS ARE NOT OPERATIONAL.
@@ -22,13 +23,14 @@ import Query from "../../Types/BaseDatabase/Query";
  *
  * The one rule for each list and count that says "not operational": the
  * Monitors and Home menus' Not Operational pages and badges, Home's attention
- * strip, and OneUptime AI's query_monitors with problemsOnly.
+ * strip, the Monitor List widget's "non-operational" filter on a dashboard
+ * and a public dashboard, and OneUptime AI's query_monitors with
+ * problemsOnly. The checked monitors are MonitoringOff's.
  */
 export default class NotOperationalMonitorQuery {
   public static getQuery(): Query<Monitor> {
     return {
-      isArchived: false,
-      disableActiveMonitoring: false,
+      ...MonitoringOff.getMonitoredQuery(),
       currentMonitorStatus: {
         isOperationalState: false,
       },

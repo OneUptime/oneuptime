@@ -466,15 +466,36 @@ function storageHardwareStatusColumn(): DashboardWidgetListSortColumn {
 const DASHBOARD_WIDGET_SORT_SPECS: Partial<
   Record<DashboardComponentType, DashboardWidgetListSortSpec>
 > = {
+  /*
+   * A monitor whose monitoring is turned off is not checked: its status is
+   * frozen at what its last check saw, and its row says Disabled instead
+   * (Utils/Dashboard/MonitorListWidgetFormat). So by status it never ranks
+   * among the monitors that are checked - an Offline one turned off would
+   * otherwise head a worst-first list, and push a live problem off a capped
+   * one - and comes after every one of them both ways (Postgres sorts false
+   * before true, and the column is NOT NULL), as a disabled SLO does. Among
+   * the checked ones, a higher priority is worse.
+   */
   [DashboardComponentType.MonitorList]: {
     columns: [
       textColumn({ key: "name", title: "Name", path: "name" }),
-      orderedStatusColumn({
+      {
         key: "status",
         title: "Status",
-        path: "currentMonitorStatus.priority",
-        worseIs: "higher",
-      }),
+        kind: DashboardWidgetSortKind.Status,
+        fields: [
+          {
+            path: "disableActiveMonitoring",
+            whenDescending: ASC,
+            bothWays: true,
+          },
+          {
+            path: "currentMonitorStatus.priority",
+            whenDescending: DESC,
+            nullsLast: true,
+          },
+        ],
+      },
       textColumn({ key: "type", title: "Type", path: "monitorType" }),
     ],
     defaultSort: NAME_ASCENDING,

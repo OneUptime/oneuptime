@@ -36,6 +36,7 @@ interface FixtureList {
   sort: Record<string, unknown>;
   phase: string | null;
   limit: number;
+  select?: Record<string, unknown> | undefined;
 }
 
 interface FixtureRecord {
@@ -76,12 +77,18 @@ const SCREENSHOTS: string = "../../output/playwright/dashboard-widget-sort-ui";
 const APP_PATH: string = `/dashboard/${PROJECT_ID}/dashboards/${DASHBOARD_ID}`;
 const PUBLIC_PATH: string = `/public-dashboard/${DASHBOARD_ID}`;
 
-// The fixture's rows, in the orders the database answers them.
+/*
+ * The fixture's rows, in the orders the database answers them. legacy-api's
+ * monitoring is off (its status frozen at Offline): it is listed, after every
+ * monitor that is checked whichever way Status sorts. archived-cdn is
+ * archived and never listed (Fixture/Boards.js monitors).
+ */
 const MONITORS_BY_NAME: Array<string> = [
   "api-gateway",
   "auth",
   "billing",
   "checkout",
+  "legacy-api",
   "search",
 ];
 const MONITORS_WORST_FIRST: Array<string> = [
@@ -90,6 +97,7 @@ const MONITORS_WORST_FIRST: Array<string> = [
   "checkout",
   "api-gateway",
   "search",
+  "legacy-api",
 ];
 const MONITORS_BEST_FIRST: Array<string> = [
   "api-gateway",
@@ -97,7 +105,41 @@ const MONITORS_BEST_FIRST: Array<string> = [
   "checkout",
   "auth",
   "billing",
+  "legacy-api",
 ];
+
+/*
+ * What each row's Status says, in the orders above: the project's own status
+ * names as stored, and Disabled - the Monitors table's word, in the reader's
+ * language - for the monitor whose monitoring is off.
+ */
+const STATUSES_BY_NAME: Array<string> = [
+  "Operational",
+  "Offline",
+  "Offline",
+  "Degraded",
+  "Disabled",
+  "Operational",
+];
+const STATUSES_WORST_FIRST: Array<string> = [
+  "Offline",
+  "Offline",
+  "Degraded",
+  "Operational",
+  "Operational",
+  "Disabled",
+];
+const STATUSES_BEST_FIRST: Array<string> = [
+  "Operational",
+  "Operational",
+  "Degraded",
+  "Offline",
+  "Offline",
+  "Disabled",
+];
+
+// The monitor list's Status column.
+const STATUS_COLUMN: number = 1;
 
 const PODS_BY_NAMESPACE: Array<string> = [
   "batch-7",
@@ -434,8 +476,12 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     await press(header(table, "status"));
     await expectRows(table, MONITORS_WORST_FIRST);
 
-    // The database ordered the whole list: by priority, highest first.
+    /*
+     * The database ordered the whole list: the monitors that are checked
+     * first, then by priority, highest first.
+     */
     expect((await lastListOf(page, "Monitor", from)).sort).toEqual({
+      disableActiveMonitoring: "ASC",
       currentMonitorStatus: { priority: { direction: "DESC", nulls: "LAST" } },
       name: "ASC",
     });
@@ -454,7 +500,9 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     from = await listCount(page);
     await press(header(table, "status"));
     await expectRows(table, MONITORS_BEST_FIRST);
+    // Best first, and the monitor nobody checks still last.
     expect((await lastListOf(page, "Monitor", from)).sort).toEqual({
+      disableActiveMonitoring: "ASC",
       currentMonitorStatus: { priority: "ASC" },
       name: "ASC",
     });
@@ -467,6 +515,68 @@ test.describe("a list on the dashboard inside OneUptime", () => {
       "aria-sort",
       "ascending",
     );
+  });
+
+  /*
+   * A monitor whose monitoring is off is not checked: its status is only what
+   * its last check saw (#6476, #6477). The list keeps it - it is still one of
+   * the project's monitors - but its row says Disabled, in gray, and it never
+   * sorts ahead of a monitor that is checked. An archived monitor is in no
+   * monitor list.
+   */
+  test("a monitor whose monitoring is off says Disabled and comes after every checked one; an archived one is never listed", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openApp(page);
+
+    const table: Locator = monitorsTable(page);
+    const rowOf: (name: string) => Locator = (name: string): Locator => {
+      return table.locator("tbody tr").filter({
+        has: page.getByRole("link", { name, exact: true }),
+      });
+    };
+    const dotOf: (name: string) => Locator = (name: string): Locator => {
+      return rowOf(name)
+        .getByTestId("monitor-list-status")
+        .locator("span")
+        .first();
+    };
+
+    // By name, with the others - its row saying Disabled, not Offline.
+    await expectRows(table, MONITORS_BY_NAME);
+    await expectRows(table, STATUSES_BY_NAME, STATUS_COLUMN);
+    await expect(dotOf("legacy-api")).toHaveCSS(
+      "background-color",
+      "rgb(107, 114, 128)",
+    );
+    await expect(dotOf("auth")).toHaveCSS(
+      "background-color",
+      "rgb(239, 68, 68)",
+    );
+
+    /*
+     * The read asked for the column that says so, and for no archived
+     * monitor: archived-cdn, second by name, is in no row.
+     */
+    const read: FixtureList = await lastListOf(page, "Monitor", 0);
+    expect(read.select).toEqual(
+      expect.objectContaining({ disableActiveMonitoring: true }),
+    );
+    expect(await columnOf(table, 0)).not.toContain("archived-cdn");
+
+    // Worst first, it is last: nobody checks it, so it is no live problem.
+    await press(header(table, "status"));
+    await expectRows(table, MONITORS_WORST_FIRST);
+    await expectRows(table, STATUSES_WORST_FIRST, STATUS_COLUMN);
+
+    await shoot(page, testInfo, "monitoring-off-last", table);
+
+    // Best first, it is last as well: no status of its own to rank.
+    await press(header(table, "status"));
+    await expectRows(table, MONITORS_BEST_FIRST);
+    await expectRows(table, STATUSES_BEST_FIRST, STATUS_COLUMN);
   });
 
   test("a reload keeps the viewer's sort, and only for that widget", async ({
@@ -739,6 +849,12 @@ test.describe("a list on the dashboard inside OneUptime", () => {
     await expect(header(monitorsTable(page), "status")).toHaveAttribute(
       "title",
       "Sortiert: Schlechteste zuerst",
+    );
+    // Disabled in German; the project's own statuses as the project named them.
+    await expectRows(
+      monitorsTable(page),
+      [...STATUSES_WORST_FIRST.slice(0, -1), "Deaktiviert"],
+      STATUS_COLUMN,
     );
     await expect(header(monitorsTable(page), "name")).toHaveAttribute(
       "title",
@@ -1029,10 +1145,16 @@ test.describe("a list on a public dashboard", () => {
 
     const table: Locator = monitorsTable(page);
 
+    /*
+     * The public page lists what the board lists: no archived monitor, and
+     * the one whose monitoring is off saying Disabled, last when sorted.
+     */
     await expectRows(table, MONITORS_BY_NAME);
+    await expectRows(table, STATUSES_BY_NAME, STATUS_COLUMN);
 
     await press(header(table, "status"));
     await expectRows(table, MONITORS_WORST_FIRST);
+    await expectRows(table, STATUSES_WORST_FIRST, STATUS_COLUMN);
 
     const lists: Array<{
       resource: string;

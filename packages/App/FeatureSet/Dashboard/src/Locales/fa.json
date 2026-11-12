@@ -50744,5 +50744,8 @@
   "Import from {{tools}}": "درون‌ریزی از {{tools}}",
   "Import from {{tools}} and others": "درون‌ریزی از {{tools}} و ابزارهای دیگر",
   "Import from {{tool}}": "درون‌ریزی از {{tool}}",
-  "Show every tool": "نمایش همهٔ ابزارها"
+  "Show every tool": "نمایش همهٔ ابزارها",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "آخرین وضعیت گزارش‌شده برای این مانیتور و خط زمانی وضعیتش تا پیش از خاموش شدن پایشش را خلاصه کن.",
+  "Was it flapping?": "آیا مدام تغییر وضعیت می‌داد؟",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "آیا این مانیتور پیش از خاموش شدن پایشش مدام تغییر وضعیت می‌داد؟ تغییرات وضعیتش را تا آن زمان تحلیل کن."
 }

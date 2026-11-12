@@ -2,14 +2,17 @@ import type { SuggestedQuestion } from "./PageContext";
 import AIChatPageContextType from "Common/Types/AI/AIChatPageContext";
 import IconProp from "Common/Types/Icon/IconProp";
 import { ScheduledMaintenancePhaseOfState } from "Common/Utils/ScheduledMaintenanceStart";
+import MonitoringOff from "Common/Utils/Monitor/MonitoringOff";
 
 /*
  * Where the record Ask AI was opened on stands, read with its title each
  * time Ask AI opens on it (the follow-up #5273 listed), so the questions it
  * suggests fit that record: a resolved incident is asked how the response
  * went and what would stop it coming back, not for a status update; a
- * monitor that is not operational is asked why; a maintenance event that
- * has not started is asked what to check before it does.
+ * monitor that is not operational is asked why, and one whose monitoring is
+ * turned off about the status it had before that, not as if it were live; a
+ * maintenance event that has not started is asked what to check before it
+ * does.
  *
  * Only what the read says decides it. A state that could not be read, or
  * has not been read yet, is no state: the page type's own questions stay.
@@ -23,6 +26,12 @@ export enum PageEntityState {
   Operational = "Operational",
   // A monitor whose current status is not an operational one.
   NotOperational = "NotOperational",
+  /*
+   * A monitor whose monitoring is turned off, whatever its status: nothing
+   * checks it, so that status is only what its last check saw
+   * (Common/Utils/Monitor/MonitoringOff).
+   */
+  MonitoringOff = "MonitoringOff",
   // A scheduled maintenance event that has not started.
   Upcoming = "Upcoming",
   // A scheduled maintenance event under way.
@@ -59,10 +68,20 @@ export function getResolvableEntityState(
   return undefined;
 }
 
-// A monitor, from its current status's isOperationalState.
+/*
+ * A monitor, from its current status's isOperationalState - unless its
+ * monitoring is turned off: then the status it holds is only what its last
+ * check saw, so it is neither operational nor not operational now, and Ask
+ * AI does not ask why it is down (issue #6477).
+ */
 export function getMonitorEntityState(
   isOperationalState: unknown,
+  disableActiveMonitoring?: boolean | null | undefined,
 ): PageEntityState | undefined {
+  if (MonitoringOff.isOff({ disableActiveMonitoring })) {
+    return PageEntityState.MonitoringOff;
+  }
+
   if (isOperationalState === true) {
     return PageEntityState.Operational;
   }
@@ -195,6 +214,42 @@ export function getEntityStateSuggestions(
         title: "Is it flapping?",
         question:
           "Is this monitor flapping? Analyze its status changes over the last 7 days.",
+      },
+      {
+        icon: IconProp.Alert,
+        title: "Related incidents",
+        question: "Which incidents and alerts are connected to this monitor?",
+      },
+    ];
+  }
+
+  /*
+   * Nothing checks a monitor whose monitoring is off, so it is asked about
+   * the status it had and the changes it went through before that, not
+   * whether it is flapping now: the timeline stopped when its checks did.
+   */
+  if (
+    type === AIChatPageContextType.Monitor &&
+    state === PageEntityState.MonitoringOff
+  ) {
+    return [
+      {
+        icon: IconProp.Document,
+        title: "Status summary",
+        question:
+          "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.",
+      },
+      {
+        icon: IconProp.Search,
+        title: "Last status change",
+        question:
+          "Why did this monitor last change status? Investigate the telemetry around that time.",
+      },
+      {
+        icon: IconProp.Activity,
+        title: "Was it flapping?",
+        question:
+          "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.",
       },
       {
         icon: IconProp.Alert,
