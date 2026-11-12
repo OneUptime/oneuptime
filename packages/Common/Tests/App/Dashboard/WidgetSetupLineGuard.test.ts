@@ -53,6 +53,9 @@ const ALLOWED: ReadonlyArray<{ file: string; text: string; why: string }> = [
   },
 ];
 
+const SOURCE_FILE: RegExp = /\.tsx?$/;
+const TEST_FILE: RegExp = /\.test\.tsx?$/;
+
 interface WrittenText {
   file: string;
   line: number;
@@ -114,7 +117,7 @@ function widgetFiles(): Array<string> {
       return entry.toString();
     })
     .filter((entry: string): boolean => {
-      return /\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry);
+      return SOURCE_FILE.test(entry) && !TEST_FILE.test(entry);
     })
     .sort();
 }
@@ -264,7 +267,7 @@ describe("no widget asks a reader for a click that does nothing", () => {
     for (const entry of fs.readdirSync(dashboardSource, { recursive: true })) {
       const file: string = entry.toString();
 
-      if (!/\.tsx?$/.test(file)) {
+      if (!SOURCE_FILE.test(file)) {
         continue;
       }
 

@@ -1,5 +1,7 @@
 import MetricQueryConfigData from "Common/Types/Metrics/MetricQueryConfigData";
 import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType";
+import MetricsQuery from "Common/Types/Metrics/MetricsQuery";
+import FilterData from "Common/UI/Components/Filters/Types/FilterData";
 
 /*
  * THE QUERY OF A WIDGET THAT READS ONE OF ONEUPTIME'S METRICS: the Value,
@@ -16,7 +18,7 @@ import MetricsAggregationType from "Common/Types/Metrics/MetricsAggregationType"
 export const isMetricWidgetQuerySet: (
   queryConfig: MetricQueryConfigData | undefined,
 ) => boolean = (queryConfig: MetricQueryConfigData | undefined): boolean => {
-  const filterData: object | undefined =
+  const filterData: FilterData<MetricsQuery> | undefined =
     queryConfig?.metricQueryData?.filterData;
 
   return Boolean(filterData && Object.keys(filterData).length > 0);

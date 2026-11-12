@@ -33,6 +33,12 @@ const NEEDS: ReadonlyArray<DashboardWidgetSetupNeed> = Object.values(
 const PLACES: ReadonlyArray<DashboardWidgetPlace> =
   Object.values(DashboardWidgetPlace);
 
+const ASKS_FOR_A_CLICK: RegExp = /click/i;
+const NAMES_THE_SETTINGS: RegExp = /settings/;
+const SAYS_WHAT_IS_MISSING: RegExp = /^No .+ yet\.$/;
+const ASKS_SOMETHING: RegExp = /\b(pick|write|select|configure|settings)\b/i;
+const DIRECTION_MARKS: RegExp = /[\u200E\u200F\u061C]/;
+
 function everyLine(): Array<{
   need: DashboardWidgetSetupNeed;
   place: DashboardWidgetPlace;
@@ -87,7 +93,7 @@ describe("each need has a line in each place", () => {
           need,
           place,
           line,
-          asksForAClick: /click/i.test(line),
+          asksForAClick: ASKS_FOR_A_CLICK.test(line),
         }).toEqual({ need, place, line, asksForAClick: false });
       }
     }
@@ -120,7 +126,11 @@ describe("each need has a line in each place", () => {
         DashboardWidgetPlace.SettingsPreview,
       );
 
-      expect({ need, line, namesTheSettings: /settings/.test(line) }).toEqual({
+      expect({
+        need,
+        line,
+        namesTheSettings: NAMES_THE_SETTINGS.test(line),
+      }).toEqual({
         need,
         line,
         namesTheSettings: true,
@@ -138,12 +148,12 @@ describe("each need has a line in each place", () => {
       expect({
         need,
         line,
-        saysWhatIsMissing: /^No .+ yet\.$/.test(line),
+        saysWhatIsMissing: SAYS_WHAT_IS_MISSING.test(line),
       }).toEqual({ need, line, saysWhatIsMissing: true });
       expect({
         need,
         line,
-        asksSomething: /\b(pick|write|select|configure|settings)\b/i.test(line),
+        asksSomething: ASKS_SOMETHING.test(line),
       }).toEqual({ need, line, asksSomething: false });
       // No reader's board line is another place's line.
       expect(line).not.toBe(
@@ -174,45 +184,46 @@ describe("every line reaches every reader in their language", () => {
     }
   });
 
-  test.each(DASHBOARD_LANGUAGES.map((language: string) => [language]))(
-    "%s words every line its own way",
-    (language: string) => {
-      const words: Record<string, string> = readDashboardLocale(language);
+  test.each(
+    DASHBOARD_LANGUAGES.map((language: string) => {
+      return [language];
+    }),
+  )("%s words every line its own way", (language: string) => {
+    const words: Record<string, string> = readDashboardLocale(language);
 
-      for (const { line } of everyLine()) {
+    for (const { line } of everyLine()) {
+      expect({
+        language,
+        line,
+        worded: isWordedInDashboardLocale(line, language),
+        // Each line has words of its own besides SLO: none is kept English.
+        keptEnglish: words[line] === line,
+      }).toEqual({ language, line, worded: true, keptEnglish: false });
+    }
+
+    /*
+     * A reader's board line stays apart from the other places' lines in
+     * every language: a translation that merged them would hand a
+     * reader the click again.
+     */
+    for (const need of NEEDS) {
+      const board: string | undefined =
+        words[getDashboardWidgetSetupLine(need, DashboardWidgetPlace.Board)];
+
+      for (const place of [
+        DashboardWidgetPlace.EditedBoard,
+        DashboardWidgetPlace.SettingsPreview,
+      ]) {
         expect({
           language,
-          line,
-          worded: isWordedInDashboardLocale(line, language),
-          // Each line has words of its own besides SLO: none is kept English.
-          keptEnglish: words[line] === line,
-        }).toEqual({ language, line, worded: true, keptEnglish: false });
+          need,
+          place,
+          sameAsBoard:
+            board === words[getDashboardWidgetSetupLine(need, place)],
+        }).toEqual({ language, need, place, sameAsBoard: false });
       }
-
-      /*
-       * A reader's board line stays apart from the other places' lines in
-       * every language: a translation that merged them would hand a
-       * reader the click again.
-       */
-      for (const need of NEEDS) {
-        const board: string | undefined =
-          words[getDashboardWidgetSetupLine(need, DashboardWidgetPlace.Board)];
-
-        for (const place of [
-          DashboardWidgetPlace.EditedBoard,
-          DashboardWidgetPlace.SettingsPreview,
-        ]) {
-          expect({
-            language,
-            need,
-            place,
-            sameAsBoard:
-              board === words[getDashboardWidgetSetupLine(need, place)],
-          }).toEqual({ language, need, place, sameAsBoard: false });
-        }
-      }
-    },
-  );
+    }
+  });
 
   test.each([["ar"], ["fa"]])(
     "%s writes its lines without direction marks beside the SLO's name",
@@ -223,7 +234,7 @@ describe("every line reaches every reader in their language", () => {
         expect({
           language,
           line,
-          marks: /[\u200E\u200F\u061C]/.test(words[line] || ""),
+          marks: DIRECTION_MARKS.test(words[line] || ""),
         }).toEqual({ language, line, marks: false });
       }
 

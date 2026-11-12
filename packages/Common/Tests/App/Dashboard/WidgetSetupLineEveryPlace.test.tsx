@@ -13,7 +13,6 @@ import {
   act,
   cleanup,
   RenderResult,
-  screen,
   waitFor,
   within,
 } from "@testing-library/react";
@@ -586,30 +585,31 @@ describe("the Chart widget's old lines are gone", () => {
    * select a aggregation. Click here to add a aggregation." were the
    * chart's error text, drawn as written in every language.
    */
-  test.each(LANGUAGES.map((language: string) => [language]))(
-    "in %s, in every place",
-    async (language: string) => {
-      await speak(language);
+  test.each(
+    LANGUAGES.map((language: string) => {
+      return [language];
+    }),
+  )("in %s, in every place", async (language: string) => {
+    await speak(language);
 
-      const chart: WidgetKind = WIDGET_KINDS.find((kind: WidgetKind) => {
-        return kind.type === DashboardComponentType.Chart;
-      }) as WidgetKind;
+    const chart: WidgetKind = WIDGET_KINDS.find((kind: WidgetKind) => {
+      return kind.type === DashboardComponentType.Chart;
+    }) as WidgetKind;
 
-      openWidgetSettings(widgetOf(chart));
-      await setupLineIn(previewBox);
-      expect(previewBox().textContent || "").not.toMatch(
+    openWidgetSettings(widgetOf(chart));
+    await setupLineIn(previewBox);
+    expect(previewBox().textContent || "").not.toMatch(
+      /Please select|Click here|a aggregation/,
+    );
+    cleanup();
+
+    for (const isEditMode of [false, true]) {
+      drawWidgetOnBoard(widgetOf(chart), { isEditMode });
+      await setupLineIn(boardCard);
+      expect(boardCard().textContent || "").not.toMatch(
         /Please select|Click here|a aggregation/,
       );
       cleanup();
-
-      for (const isEditMode of [false, true]) {
-        drawWidgetOnBoard(widgetOf(chart), { isEditMode });
-        await setupLineIn(boardCard);
-        expect(boardCard().textContent || "").not.toMatch(
-          /Please select|Click here|a aggregation/,
-        );
-        cleanup();
-      }
-    },
-  );
+    }
+  });
 });
