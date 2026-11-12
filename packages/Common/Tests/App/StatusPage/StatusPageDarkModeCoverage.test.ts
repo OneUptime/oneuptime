@@ -75,7 +75,18 @@ const listSources: (directory: string) => Array<string> = (
   return found;
 };
 
-const FILES: Array<string> = listSources(STATUS_PAGE_SOURCE);
+/*
+ * The public resource grid's classes, which only the status page draws:
+ * its Overview's grid takes them from Common (#7238), where the editor's
+ * container queries live too.
+ */
+const PUBLIC_RESOURCE_GRID_LAYOUT: string =
+  "Components/StatusPage/PublicResourceGridLayout.ts";
+
+const FILES: Array<string> = [
+  ...listSources(STATUS_PAGE_SOURCE),
+  PUBLIC_RESOURCE_GRID_LAYOUT,
+];
 
 /*
  * Right in both themes on purpose, each for its reason. A class added to
@@ -116,6 +127,12 @@ describe("the status page app in the dark theme", () => {
     ]) {
       expect(FILES).toContain(`${STATUS_PAGE_SOURCE}/${file}`);
     }
+
+    // The grid's classes, drawn by the Overview from Common.
+    expect(FILES).toContain(PUBLIC_RESOURCE_GRID_LAYOUT);
+    expect(fs.existsSync(path.join(UI_DIR, PUBLIC_RESOURCE_GRID_LAYOUT))).toBe(
+      true,
+    );
   });
 
   test("uses no dark: variant, which this theme does not go by", () => {

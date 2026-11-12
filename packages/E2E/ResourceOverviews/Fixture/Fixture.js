@@ -87,6 +87,7 @@ import {
   getOpenStackPlacementScenario,
   getOpenStackPlacementsOfService,
 } from "../../SuiteHelpers/OpenStackPlacement";
+import { getUsedByRelations } from "Common/Types/UsedBy/UsedBy";
 
 /*
  * ---------------------------------------------------------------------------
@@ -798,6 +799,30 @@ function ok(data) {
   return new HTTPResponse(200, data, {});
 }
 
+/*
+ * What refers to the record a page is about ("Used by", #6813): GET
+ * /used-by/:recordKind/:recordId, answered as UsedByService answers for a
+ * record nothing refers to - every relation of the kind, each empty - so
+ * the page's Used by card says what to do next.
+ */
+function usedByNothing(url) {
+  const parts = String(url).split("/used-by/")[1].split("?")[0].split("/");
+
+  return {
+    recordKind: parts[0],
+    recordId: parts[1],
+    groups: getUsedByRelations(parts[0]).map((description) => {
+      return {
+        relation: description.relation,
+        rowKind: description.rowKind,
+        count: 0,
+        hiddenCount: 0,
+        rows: [],
+      };
+    }),
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const parsed = new URL(url, window.location.origin);
@@ -891,6 +916,11 @@ async function handleApi(method, options) {
       isInvestigationReady: false,
       isRemediationReady: false,
     });
+  }
+
+  // What refers to the service (its Used by card).
+  if (method === "GET" && parsed.pathname.includes("/used-by/")) {
+    return ok(usedByNothing(parsed.pathname));
   }
 
   fixture.unhandled.push({ kind: "api", method, url: parsed.pathname });

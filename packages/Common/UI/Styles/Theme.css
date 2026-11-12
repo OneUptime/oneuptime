@@ -2296,6 +2296,23 @@ html:lang(ko) {
 }
 
 /*
+ * A Persian numbered list counts in Persian digits: ۱. ۲. ۳. A page writes
+ * its numbers in the reader's digits (translator.formatNumber), but a list
+ * the browser numbers (Tailwind's list-decimal, the Markdown viewer's and
+ * the editor's numbered lists) counted 1. 2. 3. in Latin ones whatever the
+ * page's language, beside Persian words and figures (issue #7258). The
+ * persian counter style is the browser's own (Chrome, Firefox, Safari).
+ * Arabic keeps decimal: an Arabic page writes Latin digits by choice
+ * (LATIN_DIGIT_LANGUAGES in Common/Types/DateLanguage). Only a list that
+ * is numbered: an <ol> drawn without markers (a breadcrumb, Tailwind's
+ * list-none) is left as it is.
+ */
+html:lang(fa) .list-decimal,
+html:lang(fa) .oneuptime-wysiwyg ol {
+  list-style-type: persian;
+}
+
+/*
  * Right to left. A Persian page sets <html dir="rtl"> (Common/UI/Utils/
  * PageLanguage) and Tailwind's left and right follow it (Common/UI/Styles/
  * TailwindReadingDirection.js). Code reads left to right on every page: a
