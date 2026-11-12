@@ -280,6 +280,109 @@ export const formatReaderNumber: (
 };
 
 /*
+ * A FIGURE ON ITS OWN, IN THE READER'S LANGUAGE.
+ *
+ * A tile's "97.5%", a cell's "16.0 GiB", a legend's "99.81%" were written
+ * with toFixed and a "%" of their own: Latin digits, a point and an ASCII
+ * percent sign whatever the page's language, so a Persian card put "97.5%"
+ * beside sentences that read "۳۹ از ۴۰", and a German one "97.5%" where
+ * German writes "97,5 %". A figure written here keeps the decimals it was
+ * written with - exactly `decimals` of them as toFixed writes them, or up
+ * to `decimals` with the trailing zeros dropped - in the reader's digits,
+ * decimal sign and percent sign: "97,5 %" in German, "۹۷٫۵٪" in Persian,
+ * Latin digits in Arabic (LATIN_DIGIT_LANGUAGES), with Intl's percent sign.
+ * A negative figure takes the language's own minus: in Persian a
+ * left-to-right mark and a minus sign (U+2212) before its digits, drawn
+ * before its number on a page read from the right.
+ *
+ * English reads exactly as toFixed wrote it: "97.5%", "1023.0", no
+ * thousands separator - what every English page, export and test has
+ * always read.
+ */
+export interface ReaderFigureOptions {
+  // The decimals the figure is written with, as toFixed's argument.
+  decimals: number;
+  // Up to `decimals`, trailing zeros dropped: 50 -> "50", 12.30 -> "12.3".
+  dropTrailingZeros?: boolean | undefined;
+  // The value is a percent, 97.5 for 97.5%: written with the percent sign.
+  isPercent?: boolean | undefined;
+  // The language to write it in: the page's (getDateDisplayLanguage) when left out.
+  language?: string | undefined;
+}
+
+const figureFormatCache: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+const getFigureFormat: (
+  language: string,
+  options: ReaderFigureOptions,
+) => Intl.NumberFormat | null = (
+  language: string,
+  options: ReaderFigureOptions,
+): Intl.NumberFormat | null => {
+  const key: string = [
+    language,
+    options.decimals,
+    options.dropTrailingZeros ? "drop" : "keep",
+    options.isPercent ? "percent" : "decimal",
+  ].join("|");
+
+  if (!figureFormatCache.has(key)) {
+    let format: Intl.NumberFormat | null = null;
+
+    try {
+      format = new Intl.NumberFormat(getNumberLocale(language), {
+        style: options.isPercent ? "percent" : "decimal",
+        minimumFractionDigits: options.dropTrailingZeros ? 0 : options.decimals,
+        maximumFractionDigits: options.decimals,
+      });
+    } catch {
+      format = null;
+    }
+
+    figureFormatCache.set(key, format);
+  }
+
+  return figureFormatCache.get(key) || null;
+};
+
+export const formatReaderFigure: (
+  value: number,
+  options: ReaderFigureOptions,
+) => string = (value: number, options: ReaderFigureOptions): string => {
+  const decimals: number = Math.max(0, Math.min(20, Math.floor(options.decimals)));
+  const fixed: string = value.toFixed(decimals);
+  const english: string = `${
+    options.dropTrailingZeros ? Number(fixed).toString() : fixed
+  }${options.isPercent ? "%" : ""}`;
+  const language: string = normalizeLanguage(
+    options.language === undefined
+      ? getDateDisplayLanguage()
+      : options.language,
+  );
+
+  if (isEnglishDateLanguage(language) || !Number.isFinite(value)) {
+    return english;
+  }
+
+  const format: Intl.NumberFormat | null = getFigureFormat(language, {
+    ...options,
+    decimals: decimals,
+  });
+
+  if (!format) {
+    return english;
+  }
+
+  // Rounded once, as toFixed rounds it, so every language says the same figure.
+  const rounded: number = Number(fixed);
+
+  return format.format(options.isPercent ? rounded / 100 : rounded);
+};
+
+/*
  * THE ENGLISH OF A DATE WRITTEN IN ANOTHER LANGUAGE.
  *
  * Kept for the most recent texts only: a page writes its dates again on

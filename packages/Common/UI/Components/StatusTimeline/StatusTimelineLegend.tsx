@@ -103,7 +103,9 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
               </span>
               <span className="tabular-nums text-gray-500">
                 {[
-                  props.showShare ? formatStatusTimelineShare(item.share) : "",
+                  props.showShare
+                    ? formatStatusTimelineShare(item.share, translator)
+                    : "",
                   duration,
                   item.count > 1 && !isBaseline
                     ? translator.translatePlural(
