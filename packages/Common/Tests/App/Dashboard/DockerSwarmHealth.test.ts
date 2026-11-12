@@ -1,5 +1,6 @@
 import { describe, expect, test } from "@jest/globals";
 import DockerSwarmResource from "../../../Models/DatabaseModels/DockerSwarmResource";
+import { withDateDisplayLanguage } from "../../../Types/DateLanguage";
 import Route from "../../../Types/API/Route";
 import IconProp from "../../../Types/Icon/IconProp";
 import MonitorCriteriaInstance from "../../../Types/Monitor/MonitorCriteriaInstance";
@@ -1181,5 +1182,130 @@ describe("which part an open incident or alert is about", () => {
       false,
     );
     expect(getDockerSwarmTaskId(webTask)).toBe("k3x9q");
+  });
+});
+
+/*
+ * The numbers a reason sentence is filled with are written in the reader's
+ * digits (issue #7107): "۲ از ۳ رونوشت اجرا می‌شوند" on a Persian page, not
+ * "2 از 3", beside the Persian counts and durations around it. English
+ * reads as it always has (the cases above).
+ */
+describe("the numbers in a reason, in the reader's digits", () => {
+  const LATIN_DIGIT: RegExp = /[0-9]/;
+
+  const valuesOf: (texts: Array<ResourceAttentionText>) => Array<string> = (
+    texts: Array<ResourceAttentionText>,
+  ): Array<string> => {
+    return texts.flatMap((text: ResourceAttentionText): Array<string> => {
+      return Object.values(text.values || {});
+    });
+  };
+
+  test("a service short of replicas, and one with none running, in Persian", () => {
+    withDateDisplayLanguage("fa", () => {
+      expect(
+        assessDockerSwarmService(
+          service("shop_web", { runningReplicas: 2 }),
+          NOW,
+        ).reasons,
+      ).toEqual([
+        {
+          text: "{{running}} of {{desired}} replicas run",
+          values: { running: "۲", desired: "۳" },
+        },
+      ]);
+      expect(
+        assessDockerSwarmService(
+          service("shop_db", { runningReplicas: 0, desiredReplicas: 12 }),
+          NOW,
+        ).reasons,
+      ).toEqual([
+        {
+          text: "None of its {{desired}} replicas run",
+          values: { desired: "۱۲" },
+        },
+      ]);
+    });
+  });
+
+  test("a task close to its memory limit: Persian's own digits and percent sign; German's space before it", () => {
+    const hot: () => Array<ResourceAttentionText> =
+      (): Array<ResourceAttentionText> => {
+        return assessDockerSwarmTask(
+          task("shop_web.1", {
+            latestMemoryPercent: 91.4,
+            metricsUpdatedAt: minutesBefore(1),
+          }),
+          NOW,
+        ).reasons;
+      };
+
+    expect(
+      withDateDisplayLanguage("fa", () => {
+        return valuesOf(hot());
+      }),
+    ).toEqual(["۹۱٪"]);
+    expect(
+      withDateDisplayLanguage("de", () => {
+        return valuesOf(hot());
+      }),
+    ).toEqual(["91\u00a0%"]);
+    // Arabic is written in Latin digits, with Intl's percent sign.
+    expect(
+      withDateDisplayLanguage("ar", () => {
+        return valuesOf(hot());
+      }).every((value: string): boolean => {
+        return value.includes("91") && !value.includes("٩");
+      }),
+    ).toBe(true);
+    expect(valuesOf(hot())).toEqual(["91%"]);
+  });
+
+  test("the managers a swarm can still reach, in Persian: no Latin digit in the cluster's reasons", () => {
+    const items: Array<ResourceAttentionItem> = withDateDisplayLanguage(
+      "fa",
+      () => {
+        return getDockerSwarmAttentionItems({
+          rows: [
+            manager("manager-1", "Leader"),
+            manager("manager-2", "Reachable"),
+            manager("manager-3", "Unreachable"),
+          ],
+          clusterName: "prod-swarm",
+          routeFor: routeFor,
+          now: NOW,
+        });
+      },
+    );
+    const swarm: ResourceAttentionItem | undefined = items.find(
+      (item: ResourceAttentionItem): boolean => {
+        return item.key === DOCKER_SWARM_CLUSTER_ATTENTION_KEY;
+      },
+    );
+
+    expect(swarm?.reasons).toContainEqual({
+      text: "{{reachable}} of {{total}} managers reachable",
+      values: { reachable: "۲", total: "۳" },
+    });
+    expect(
+      valuesOf(swarm?.reasons || []).filter((value: string): boolean => {
+        return LATIN_DIGIT.test(value);
+      }),
+    ).toEqual([]);
+  });
+
+  test("a reason built in English after a Persian one reads in Latin digits again", () => {
+    withDateDisplayLanguage("fa", () => {
+      return assessDockerSwarmService(
+        service("shop_web", { runningReplicas: 2 }),
+        NOW,
+      );
+    });
+
+    expect(
+      assessDockerSwarmService(service("shop_web", { runningReplicas: 2 }), NOW)
+        .reasons[0]?.values,
+    ).toEqual({ running: "2", desired: "3" });
   });
 });

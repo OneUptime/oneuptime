@@ -164,8 +164,10 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                             {translator.translateTemplate(
                               "Attempt {{number}}/{{total}}",
                               {
-                                number: attempt.attemptNumber,
-                                total: totalAttempts,
+                                number: translator.formatNumber(
+                                  attempt.attemptNumber,
+                                ),
+                                total: translator.formatNumber(totalAttempts),
                               },
                             )}
                           </span>
@@ -182,7 +184,9 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                           <span className="mx-2 text-gray-400">—</span>
                           <span>
                             {translator.translateTemplate("{{value}} ms", {
-                              value: Math.round(attempt.executionTimeInMS),
+                              value: translator.formatNumber(
+                                Math.round(attempt.executionTimeInMS),
+                              ),
                             })}
                           </span>
                         </div>

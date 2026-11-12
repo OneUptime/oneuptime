@@ -47,8 +47,10 @@ const ProbeAttemptsView: FunctionComponent<ComponentProps> = (
                   {translator.translateTemplate(
                     "Attempt {{number}}/{{total}}",
                     {
-                      number: attempt.attemptNumber,
-                      total: totalAttempts,
+                      number: translator.formatNumber(
+                        attempt.attemptNumber ?? index + 1,
+                      ),
+                      total: translator.formatNumber(totalAttempts),
                     },
                   )}
                 </span>
@@ -61,7 +63,9 @@ const ProbeAttemptsView: FunctionComponent<ComponentProps> = (
                     <span className="mx-2 text-gray-400">—</span>
                     <span>
                       {translator.translateTemplate("{{value}} ms", {
-                        value: Math.round(attempt.responseTimeInMs),
+                        value: translator.formatNumber(
+                          Math.round(attempt.responseTimeInMs),
+                        ),
                       })}
                     </span>
                   </>

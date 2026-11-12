@@ -5,6 +5,10 @@ import NetworkPathTrace, {
 import { NetworkTopologyNode } from "Common/Types/Monitor/SnmpMonitor/NetworkTopology";
 import { NetworkDeviceDiagnosticPingResult } from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticResult";
 import NetworkDeviceDiagnosticType from "Common/Types/NetworkDevice/NetworkDeviceDiagnosticType";
+import {
+  formatReaderFigure,
+  formatReaderNumber,
+} from "Common/Types/DateLanguage";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
 import {
   translatePlural,
@@ -80,12 +84,16 @@ export interface PingResultSummary {
   rows: Array<DiagnosticRow>;
 }
 
+/*
+ * A round trip in the reader's digits ("12.4 ms", "۱۲٫۴ ms" in Persian), as
+ * the rest of the device's figures are; English reads as it always has.
+ */
 export function formatMilliseconds(value: number | undefined): string {
   if (value === undefined || value === null || Number.isNaN(value)) {
     return "—";
   }
 
-  return `${value.toFixed(1)} ms`;
+  return `${formatReaderFigure(value, { decimals: 1 })} ms`;
 }
 
 /*
@@ -93,11 +101,10 @@ export function formatMilliseconds(value: number | undefined): string {
  * number in practice, and a decimal there reads like false precision.
  */
 export function formatPercent(value: number): string {
-  if (Number.isInteger(value)) {
-    return `${value}%`;
-  }
-
-  return `${value.toFixed(1)}%`;
+  return formatReaderFigure(value, {
+    decimals: Number.isInteger(value) ? 0 : 1,
+    isPercent: true,
+  });
 }
 
 export function describePingResult(
@@ -169,8 +176,9 @@ export function describePingResult(
     label: "Packet loss",
     value: translateTemplate("{{percent}} ({{received}}/{{sent}} received)", {
       percent: formatPercent(loss),
-      received: result.pingResponse.packetsReceived,
-      sent: result.pingResponse.packetsSent,
+      // The pair in the reader's digits, as the share before it (issue #7107).
+      received: formatReaderNumber(result.pingResponse.packetsReceived),
+      sent: formatReaderNumber(result.pingResponse.packetsSent),
     }),
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.pingPacketLoss,
   });

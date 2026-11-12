@@ -244,8 +244,8 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
               {translator.translateTemplate(
                 "{{healthy}} of {{total}} healthy",
                 {
-                  healthy: health.counts.healthy,
-                  total: health.counts.total,
+                  healthy: translator.formatNumber(health.counts.healthy),
+                  total: translator.formatNumber(health.counts.total),
                 },
               )}
             </div>

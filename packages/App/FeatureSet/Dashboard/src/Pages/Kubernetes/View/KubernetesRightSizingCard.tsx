@@ -431,7 +431,11 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
                     "{{missing}} of {{count}} containers reported no memory peak, so their memory requests were left unsized. Peaks come from Prometheus — a memory request sized from an hourly average is how containers get OOMKilled, so we would rather say nothing. Set cost.engine.prometheusUrl on the agent to fill this in.",
                 },
                 summary.analyzedCount,
-                { missing: summary.missingMemoryPeakCount },
+                {
+                  missing: translator.formatNumber(
+                    summary.missingMemoryPeakCount,
+                  ),
+                },
               )}
             />
           </div>

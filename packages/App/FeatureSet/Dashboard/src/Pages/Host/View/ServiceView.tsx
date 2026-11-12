@@ -734,7 +734,7 @@ const HostServiceView: FunctionComponent<
                       "running in {{active}} of {{count}} samples (capped)",
                   },
                   samples.length,
-                  { active: runningCount },
+                  { active: translator.formatNumber(runningCount) },
                 )
               : translator.translatePlural(
                   {
@@ -742,7 +742,7 @@ const HostServiceView: FunctionComponent<
                     other: "running in {{active}} of {{count}} samples",
                   },
                   samples.length,
-                  { active: runningCount },
+                  { active: translator.formatNumber(runningCount) },
                 )
           }
           percent={availability}
@@ -909,9 +909,9 @@ const HostServiceView: FunctionComponent<
     const isListCapped: boolean = transitions.length > MAX_TRANSITIONS_SHOWN;
     const listValues: TemplateValues = {
       date: cappedSince,
-      limit: SAMPLE_FETCH_LIMIT,
-      shown: MAX_TRANSITIONS_SHOWN,
-      total: transitions.length,
+      limit: translator.formatNumber(SAMPLE_FETCH_LIMIT),
+      shown: translator.formatNumber(MAX_TRANSITIONS_SHOWN),
+      total: translator.formatNumber(transitions.length),
     };
     let transitionsDescription: string = "";
 
