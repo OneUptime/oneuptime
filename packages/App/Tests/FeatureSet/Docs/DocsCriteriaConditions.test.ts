@@ -16,11 +16,7 @@ import {
   proseLines,
   withoutInlineCode,
 } from "./DocsCriteriaConditions";
-import {
-  dashboardLabel,
-  drawnDashboardLabel,
-  isDashboardLabel,
-} from "./DocsDashboardLabels";
+import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
 import { readCommonSource, readDashboardSource } from "./DocsDashboardMenus";
 import { prose } from "./DocsTranslationChecks";
 import { CheckOn, FilterType } from "Common/Types/Monitor/CriteriaFilter";
@@ -103,7 +99,7 @@ function conditionsOn(
   page: string,
   markdown: string,
 ): Array<string> {
-  return englishConditionsOn(language, page, markdown).map(
+  return englishConditionsOn(language, markdown).map(
     (finding: EnglishCondition): string => {
       return described(page, finding);
     },
@@ -220,31 +216,38 @@ describe.each(TRANSLATED_LANGUAGES)("every %s page", (language: string) => {
   });
 });
 
+/*
+ * The Persian incident pages kept the Dashboard's English names until the
+ * Persian Dashboard drew them in Persian (#7100): they name a condition as it
+ * draws it now, like every other page.
+ */
 describe("the Persian incident pages", () => {
   const settings: string = readPage("fa", "incidents/settings");
+  const contains: string = drawnDashboardLabel("fa", FilterType.Contains);
 
-  it("keep the Dashboard's English names, as dashboardLabel reads them", () => {
-    expect(expectedConditionName("fa", "incidents/settings", "Contains")).toBe(
-      dashboardLabel("fa", "Contains"),
-    );
-    expect(dashboardLabel("fa", "Contains")).toBe("Contains");
-    expect(settings).toContain("**Contains**");
+  it("name a condition as the Persian Dashboard draws it", () => {
+    expect(expectedConditionName("fa", FilterType.Contains)).toBe(contains);
+    expect(contains).not.toBe(FilterType.Contains);
+    expect(settings).toContain(`**${contains}**`);
+    expect(settings).not.toContain(`**${FilterType.Contains}**`);
     expect(conditionsOn("fa", "incidents/settings", settings)).toEqual([]);
   });
 
-  it("are the only pages that may: the same words on any other page are found", () => {
-    expect(
-      conditionsOn("fa", "monitor/criteria-and-statuses", settings),
-    ).toContainEqual(
-      expect.stringContaining(
-        `**Contains** -> ${drawnDashboardLabel("fa", "Contains")}`,
-      ),
+  it("would be found naming one in English again", () => {
+    const english: string = settings
+      .split(`**${contains}**`)
+      .join(`**${FilterType.Contains}**`);
+
+    expect(conditionsOn("fa", "incidents/settings", english)).toContainEqual(
+      expect.stringContaining(`**${FilterType.Contains}** -> ${contains}`),
     );
-    // Every other language's incident pages draw it.
-    expect(expectedConditionName("de", "incidents/settings", "Contains")).toBe(
-      drawnDashboardLabel("de", "Contains"),
+    // As on every other language's incident pages.
+    expect(expectedConditionName("de", FilterType.Contains)).toBe(
+      drawnDashboardLabel("de", FilterType.Contains),
     );
-    expect(drawnDashboardLabel("de", "Contains")).not.toBe("Contains");
+    expect(drawnDashboardLabel("de", FilterType.Contains)).not.toBe(
+      FilterType.Contains,
+    );
   });
 });
 
@@ -259,7 +262,7 @@ describe("the reader, on the shapes the pages have", () => {
       "Setzen Sie die Bedingung auf **Greater Than** und den Wert auf `5`.",
     ].join("\n");
 
-    expect(englishConditionsOn("de", "monitor/page", markdown)).toEqual([
+    expect(englishConditionsOn("de", markdown)).toEqual([
       {
         line: 3,
         condition: FilterType.GreaterThan,
@@ -292,7 +295,7 @@ describe("the reader, on the shapes the pages have", () => {
       "**Greater Than Or Equal To**, **Not Equal To**, Not Contains, Is Not Empty";
 
     expect(
-      englishConditionsOn("de", "monitor/page", markdown).map(
+      englishConditionsOn("de", markdown).map(
         (finding: EnglishCondition): string => {
           return finding.condition;
         },
