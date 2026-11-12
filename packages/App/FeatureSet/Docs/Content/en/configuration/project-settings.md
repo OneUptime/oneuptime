@@ -62,6 +62,8 @@ flowchart LR
 
 A hidden product is not switched off. It moves under **More products**, the last row of the **Products** menu: Search still finds it, its pages and API keep working, and its data keeps arriving. Anyone who pinned it keeps their pin.
 
+On a self-hosted server, a master admin can also switch a product off for every project, under **Settings > Products** in the Admin Dashboard (see [Run only what you need](/docs/installation/docker-compose#run-only-what-you-need)). Such a product has no switch here: it says **Switched off on this server**, with who can switch it on.
+
 A new project starts from what its owner said it came to do on Home: the essentials, Settings and what those goals need are shown, and the rest are hidden. A project that skipped the question, or was created before it, shows every product. Once someone changes the list here, the goals no longer change it.
 
 Each product says what it is to this project: **In use**, **Not set up**, or, on OneUptime Cloud, the plan it needs. When a hidden product starts receiving data, Home tells the Project Owners and Admins and offers **Show It** or **Keep Hidden**.
