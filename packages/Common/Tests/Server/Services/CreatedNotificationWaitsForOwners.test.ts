@@ -265,10 +265,6 @@ function idOf(value: unknown): string {
   return value ? String(value).toLowerCase() : "";
 }
 
-function sortedUnique(ids: Array<string>): Array<string> {
-  return Array.from(new Set<string>(ids)).sort();
-}
-
 function idsAt(query: unknown, column: string): Array<string> {
   const value: unknown = (query as Record<string, unknown> | undefined)?.[
     column
@@ -443,7 +439,7 @@ function stubDatabaseCreate(): void {
 
 // The record's owner tables, held in memory (see OwnerRuleMatchingAgreement).
 function stubOwnerTable(data: {
-  service: object;
+  service: unknown;
   makeRow: () => BaseModel;
   recordColumn: "incidentId" | "alertId";
   ownerColumn: "userId" | "teamId";
@@ -1032,45 +1028,47 @@ function asTheJobReadsIt(kind: Kind, id: string): BaseModel {
   return alert;
 }
 
+// The records' one column the jobs read and mark, and the hold releases.
+function stubNotifiedColumn(kind: Kind): void {
+  const service: Record<string, (...args: Array<unknown>) => unknown> =
+    (kind === "incident" ? IncidentService : AlertService) as unknown as Record<
+      string,
+      (...args: Array<unknown>) => unknown
+    >;
+
+  // Exactly the records not marked as notified (the jobs' own query).
+  jest.spyOn(service, "findAllBy").mockImplementation((async (args: {
+    query: Record<string, unknown>;
+  }): Promise<Array<BaseModel>> => {
+    expect(args.query).toEqual({ [NOTIFIED_COLUMN[kind]]: false });
+
+    return Array.from(records.entries())
+      .filter(([, record]: [string, StoredRecord]): boolean => {
+        return record.kind === kind && !record.isNotified;
+      })
+      .map(([id]: [string, StoredRecord]): BaseModel => {
+        return asTheJobReadsIt(kind, id);
+      });
+  }) as never);
+
+  // The job's mark, and the hold's release, on the same column.
+  jest.spyOn(service, "updateOneById").mockImplementation((async (updateBy: {
+    id: ObjectID;
+    data: JSONObject;
+  }): Promise<void> => {
+    const value: unknown = updateBy.data[NOTIFIED_COLUMN[kind]];
+    const record: StoredRecord | undefined = records.get(idOf(updateBy.id));
+
+    if (record && typeof value === "boolean") {
+      record.isNotified = value;
+    }
+  }) as never);
+}
+
 // What the jobs read and write besides the owners: the records' one column, and the send.
 function stubJobs(): void {
-  for (const kind of ["incident", "alert"] as Array<Kind>) {
-    const service: Record<string, (...args: Array<unknown>) => unknown> =
-      (kind === "incident"
-        ? IncidentService
-        : AlertService) as unknown as Record<
-        string,
-        (...args: Array<unknown>) => unknown
-      >;
-
-    // Exactly the records not marked as notified (the jobs' own query).
-    jest.spyOn(service, "findAllBy").mockImplementation((async (args: {
-      query: Record<string, unknown>;
-    }): Promise<Array<BaseModel>> => {
-      expect(args.query).toEqual({ [NOTIFIED_COLUMN[kind]]: false });
-
-      return Array.from(records.entries())
-        .filter(([, record]: [string, StoredRecord]): boolean => {
-          return record.kind === kind && !record.isNotified;
-        })
-        .map(([id]: [string, StoredRecord]): BaseModel => {
-          return asTheJobReadsIt(kind, id);
-        });
-    }) as never);
-
-    // The job's mark, and the hold's release, on the same column.
-    jest.spyOn(service, "updateOneById").mockImplementation((async (updateBy: {
-      id: ObjectID;
-      data: JSONObject;
-    }): Promise<void> => {
-      const value: unknown = updateBy.data[NOTIFIED_COLUMN[kind]];
-      const record: StoredRecord | undefined = records.get(idOf(updateBy.id));
-
-      if (record && typeof value === "boolean") {
-        record.isNotified = value;
-      }
-    }) as never);
-  }
+  stubNotifiedColumn("incident");
+  stubNotifiedColumn("alert");
 
   jest
     .spyOn(IncidentService, "getIncidentIdentifiedDate")

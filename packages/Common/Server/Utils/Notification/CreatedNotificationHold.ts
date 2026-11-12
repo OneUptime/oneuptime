@@ -1,3 +1,5 @@
+import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import CreateBy from "../../Types/Database/CreateBy";
 import logger from "../Logger";
 
 /*
@@ -65,10 +67,13 @@ interface HeldCreate {
   isReleased: boolean;
 }
 
-const CREATES: WeakMap<object, HeldCreate> = new WeakMap<object, HeldCreate>();
+// A create: the CreateBy its caller hands the service, and every hook is handed.
+type Create = CreateBy<BaseModel>;
+
+const CREATES: WeakMap<Create, HeldCreate> = new WeakMap<Create, HeldCreate>();
 
 export default class CreatedNotificationHold {
-  private static recordOf(create: object): HeldCreate {
+  private static recordOf(create: Create): HeldCreate {
     let record: HeldCreate | undefined = CREATES.get(create);
 
     if (!record) {
@@ -89,12 +94,12 @@ export default class CreatedNotificationHold {
    * makes, and will say when they are in (ownersAreIn) - also when the
    * create fails.
    */
-  public static willAddOwners(create: object, by: OwnersAddedBy): void {
+  public static willAddOwners(create: Create, by: OwnersAddedBy): void {
     this.recordOf(create).addingOwners.add(by);
   }
 
   // onBeforeCreate: the create is written as notified already.
-  public static hold(create: object): void {
+  public static hold(create: Create): void {
     this.recordOf(create).isHeld = true;
   }
 
@@ -104,7 +109,7 @@ export default class CreatedNotificationHold {
    * not notified once everybody's are. Nothing for a create nobody held.
    */
   public static chainAddsOwners(
-    create: object,
+    create: Create,
     release: () => Promise<void>,
   ): void {
     const record: HeldCreate | undefined = CREATES.get(create);
@@ -125,7 +130,7 @@ export default class CreatedNotificationHold {
    * release that fails is logged, and leaves the notification unsent.
    */
   public static async ownersAreIn(
-    create: object,
+    create: Create,
     by: OwnersAddedBy,
   ): Promise<void> {
     const record: HeldCreate | undefined = CREATES.get(create);

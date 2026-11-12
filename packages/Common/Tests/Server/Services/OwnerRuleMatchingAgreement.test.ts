@@ -725,7 +725,7 @@ function personOf(userId: string): User {
  * back - the record's rows, or those of the owners asked about.
  */
 function stubOwnerTable(data: {
-  service: object;
+  service: unknown;
   makeRow: () => BaseModel;
   recordColumn: "incidentId" | "alertId";
   ownerColumn: "userId" | "teamId";

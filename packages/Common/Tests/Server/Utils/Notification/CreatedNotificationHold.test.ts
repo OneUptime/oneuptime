@@ -1,3 +1,5 @@
+import Incident from "../../../../Models/DatabaseModels/Incident";
+import CreateBy from "../../../../Server/Types/Database/CreateBy";
 import logger from "../../../../Server/Utils/Logger";
 import CreatedNotificationHold, {
   OwnersAddedBy,
@@ -40,9 +42,14 @@ function newRelease(): ReturnType<typeof jest.fn<Release>> {
   return jest.fn<Release>().mockResolvedValue(undefined);
 }
 
+// A create, as its caller hands it to the service and every hook is handed it.
+function newCreate(): CreateBy<Incident> {
+  return { data: new Incident(), props: { isRoot: true } };
+}
+
 // A create a monitor makes: its creator's word, its chain's and its caller's.
-function monitorCreate(release: Release): object {
-  const create: object = {};
+function monitorCreate(release: Release): CreateBy<Incident> {
+  const create: CreateBy<Incident> = newCreate();
 
   CreatedNotificationHold.willAddOwners(create, OwnersAddedBy.Create);
   CreatedNotificationHold.willAddOwners(create, OwnersAddedBy.Caller);
@@ -70,7 +77,7 @@ describe("a held create", () => {
       last: OwnersAddedBy,
     ) => {
       const release: ReturnType<typeof newRelease> = newRelease();
-      const create: object = monitorCreate(release);
+      const create: CreateBy<Incident> = monitorCreate(release);
 
       await CreatedNotificationHold.ownersAreIn(create, first);
       await CreatedNotificationHold.ownersAreIn(create, second);
@@ -86,7 +93,7 @@ describe("a held create", () => {
 
   test("is released once: a word said again, or by one that never said it adds owners, does not release it again", async () => {
     const release: ReturnType<typeof newRelease> = newRelease();
-    const create: object = {};
+    const create: CreateBy<Incident> = newCreate();
 
     CreatedNotificationHold.hold(create);
     CreatedNotificationHold.chainAddsOwners(create, release);
@@ -106,7 +113,7 @@ describe("a held create", () => {
 
   test("stays held until its chain has started: the chain is what releases it", async () => {
     const release: ReturnType<typeof newRelease> = newRelease();
-    const create: object = {};
+    const create: CreateBy<Incident> = newCreate();
 
     CreatedNotificationHold.willAddOwners(create, OwnersAddedBy.Create);
     CreatedNotificationHold.hold(create);
@@ -134,7 +141,7 @@ describe("a held create", () => {
       });
       order.push("release done");
     };
-    const create: object = {};
+    const create: CreateBy<Incident> = newCreate();
 
     CreatedNotificationHold.hold(create);
     CreatedNotificationHold.chainAddsOwners(create, release);
@@ -159,7 +166,7 @@ describe("a held create", () => {
     const release: ReturnType<typeof jest.fn<Release>> = jest
       .fn<Release>()
       .mockRejectedValue(new Error("The database is away"));
-    const create: object = {};
+    const create: CreateBy<Incident> = newCreate();
 
     CreatedNotificationHold.hold(create);
     CreatedNotificationHold.chainAddsOwners(create, release);
@@ -179,8 +186,8 @@ describe("a held create", () => {
   test("is told apart from every other create: releasing one leaves the other held", async () => {
     const releaseFirst: ReturnType<typeof newRelease> = newRelease();
     const releaseSecond: ReturnType<typeof newRelease> = newRelease();
-    const first: object = monitorCreate(releaseFirst);
-    const second: object = monitorCreate(releaseSecond);
+    const first: CreateBy<Incident> = monitorCreate(releaseFirst);
+    const second: CreateBy<Incident> = monitorCreate(releaseSecond);
 
     for (const by of [
       OwnersAddedBy.Create,
@@ -204,7 +211,7 @@ describe("a held create", () => {
 describe("a create nobody held", () => {
   test("is never released, whoever says their owners are in: the job may have told its owners already", async () => {
     const release: ReturnType<typeof newRelease> = newRelease();
-    const create: object = {};
+    const create: CreateBy<Incident> = newCreate();
 
     // Written as notified already by its caller: onBeforeCreate held nothing.
     CreatedNotificationHold.willAddOwners(create, OwnersAddedBy.Create);
@@ -225,7 +232,7 @@ describe("a create nobody held", () => {
 
   test("never seen at all: a word about it does nothing", async () => {
     await expect(
-      CreatedNotificationHold.ownersAreIn({}, OwnersAddedBy.Chain),
+      CreatedNotificationHold.ownersAreIn(newCreate(), OwnersAddedBy.Chain),
     ).resolves.toBeUndefined();
 
     expect(errors).not.toHaveBeenCalled();
