@@ -144,7 +144,8 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   mode for them;
 - dark mode (`?theme=dark`: no light surface, and a spinner's arc that keeps
   its own colour) and German (`?lang=de`); Arabic (`?lang=ar`) reads right
-  to left.
+  to left, laid out as production lays it out (`server.js` loads the
+  reading-direction script right after Tailwind's runtime).
 
 What the pages send is recorded on `window.__fixture` (`creates`, `replies`,
 `retries`, `stops`, `settings`, `deletes`, `navigations`, `branchReads`,
