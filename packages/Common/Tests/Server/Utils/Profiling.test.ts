@@ -307,7 +307,8 @@ describe("Profiling", () => {
 
     test("trims spaces around the token's name and value, as the exporters do", () => {
       process.env[OTLP_ENDPOINT] = "https://collector.example.com/otlp";
-      process.env[OTLP_HEADERS] = " x-other=1 ;  x-oneuptime-token = secret-token ";
+      process.env[OTLP_HEADERS] =
+        " x-other=1 ;  x-oneuptime-token = secret-token ";
 
       Profiling.init({ serviceName: "app" });
 

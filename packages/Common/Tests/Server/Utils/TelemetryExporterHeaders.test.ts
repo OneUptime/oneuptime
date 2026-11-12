@@ -219,7 +219,8 @@ describe("Telemetry.getHeaders: the warning", () => {
   });
 
   test("is not logged for a setting every header of which can be sent", () => {
-    process.env[SETTING] = `x-oneuptime-token=key;Authorization=${BASIC_AUTHORIZATION};x-extra=a=b`;
+    process.env[SETTING] =
+      `x-oneuptime-token=key;Authorization=${BASIC_AUTHORIZATION};x-extra=a=b`;
 
     Telemetry.getHeaders();
 
