@@ -58,6 +58,10 @@ File a GitHub issue for anything you notice outside your current task:
 
 When your current task is done, fix the bug follow-ups you filed, then the important enhancement ones, in pull requests separate from your current one. Enhancement follow-ups that aren't important can stay open as issues.
 
+### Changing AGENTS.md
+
+Change AGENTS.md only in a pull request of its own, never alongside other work. Put `UPDATE AGENTS.md` in its title (`chore(dev): UPDATE AGENTS.md - <what changed>` keeps it under Maintenance in the release notes), and file a separate issue for the change that the pull request closes.
+
 ## Read the guide before you touch these
 
 Apps, listings and consoles outside this repository (Slack, Microsoft Teams, GitHub, the marketplaces, Google Cloud) don't change when code merges. Each guide says what to change by hand and in which order, how to test it end to end, and which steps only a maintainer may do.
