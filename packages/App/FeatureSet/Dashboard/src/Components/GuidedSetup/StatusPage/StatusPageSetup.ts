@@ -49,8 +49,8 @@ export const STATUS_PAGE_SETUP_STEPS: ReadonlyArray<StatusPageSetupStep> = [
 export const STATUS_PAGE_NAME_MIN_LENGTH: number = 2;
 
 export const STATUS_PAGE_SETUP_COPY: {
-  pageTitle: string;
-  pageDescription: string;
+  setupTitle: string;
+  setupDescription: string;
   cannotCreate: string;
   goToStatusPages: string;
   pickTitle: string;
@@ -91,8 +91,8 @@ export const STATUS_PAGE_SETUP_COPY: {
   nextStatusPage: string;
   startOver: string;
 } = {
-  pageTitle: translationKey("Publish a status page"),
-  pageDescription: translationKey(
+  setupTitle: translationKey("Publish a status page"),
+  setupDescription: translationKey(
     "Guided setup: name a status page, pick what it shows and see what your customers see, on this page.",
   ),
   cannotCreate: translationKey(

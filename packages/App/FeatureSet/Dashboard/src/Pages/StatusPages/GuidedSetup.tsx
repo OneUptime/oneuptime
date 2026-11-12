@@ -14,15 +14,15 @@ import React, { FunctionComponent, ReactElement } from "react";
  * page whose owner has seen what customers see, on one page. A page of its
  * own, with no side menu (it is routed beside Status Pages' layout, as
  * Create Announcement is), like the website-down setup at /monitors/setup.
- * Home's checklist, the Status Pages list and Search lead here.
+ * Home's checklist and Search lead here.
  */
 const StatusPagesGuidedSetup: FunctionComponent<PageComponentProps> = (
   props: PageComponentProps,
 ): ReactElement => {
   return (
     <Page
-      title={STATUS_PAGE_SETUP_COPY.pageTitle}
-      description={STATUS_PAGE_SETUP_COPY.pageDescription}
+      title={STATUS_PAGE_SETUP_COPY.setupTitle}
+      description={STATUS_PAGE_SETUP_COPY.setupDescription}
       breadcrumbLinks={getStatusPagesBreadcrumbs(
         (
           props.pageRoute ||

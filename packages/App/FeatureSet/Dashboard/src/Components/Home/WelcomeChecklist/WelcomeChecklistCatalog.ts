@@ -201,6 +201,13 @@ export interface WelcomeStepEntry {
    * page.
    */
   guidedSetupPage?: PageMap | undefined;
+  /*
+   * What the guided setup's first step creates, for a step with no create
+   * page of its own (a status page): only someone who may create it is sent
+   * to the setup, and everyone else lands on `pageMap`. A step with a
+   * create page is gated by that page's model instead.
+   */
+  guidedSetupModelType?: { new (): PermissionCheckableModel } | undefined;
   // A page outside the Dashboard (the Admin Dashboard), opened in a new tab.
   externalUrl?: (() => URL) | undefined;
   /*
@@ -336,21 +343,14 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     iconBackgroundClassName: "bg-emerald-500",
     pageMap: PageMap.STATUS_PAGES,
     /*
-     * Only someone who may create a status page is sent to the guided
-     * setup; everyone else lands on the list, whose create button says why
-     * it is off. The setup itself is never a create form, so this page is
-     * never opened from here: it only gates the setup.
-     */
-    createPage: {
-      pageMap: PageMap.STATUS_PAGES,
-      modelType: StatusPage,
-    },
-    /*
      * The guided setup (#6806): a name, the monitors it shows and what
      * customers see, on one page. It cannot finish with an empty page, and
-     * says what is next itself, so the step has no landing line.
+     * says what is next itself, so the step has no landing line. Only
+     * someone who may create a status page is sent there; everyone else
+     * lands on the list, whose create button says why it is off.
      */
     guidedSetupPage: PageMap.STATUS_PAGES_GUIDED_SETUP,
+    guidedSetupModelType: StatusPage,
   },
   {
     step: WelcomeStep.Team,
@@ -400,7 +400,17 @@ export const getWelcomeStepPage: (entry: WelcomeStepEntry) => PageMap | null = (
         .isAllowed,
   );
 
-  if (entry.guidedSetupPage && (!entry.createPage || mayCreate)) {
+  // The model the setup's first step creates: its create page's, or its own.
+  const setupModelType: { new (): PermissionCheckableModel } | undefined =
+    entry.createPage?.modelType || entry.guidedSetupModelType;
+  const maySetUp: boolean = setupModelType
+    ? entry.createPage
+      ? mayCreate
+      : PermissionGate.check(new setupModelType(), ModelAction.Create)
+          .isAllowed
+    : true;
+
+  if (entry.guidedSetupPage && maySetUp) {
     return entry.guidedSetupPage;
   }
 
