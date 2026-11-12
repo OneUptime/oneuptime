@@ -915,7 +915,9 @@ describeWhenEnterprisePresent(
         "lostAt.getTime() <= new Date(data.now).getTime()",
       );
       expect(notifications).toContain('lost: "is losing entries",');
-      expect(exporter).toContain("now: data.now,");
+      expect(exporter).toContain(
+        "entriesLostAt,\n        now: data.now,\n        error: data.message,",
+      );
       expect(fails).toContain(
         "If that moment has already passed, as when **Export from** reaches back further than the retention, the second email takes the place of the first, 30 minutes in, and says entries are being lost now.",
       );
