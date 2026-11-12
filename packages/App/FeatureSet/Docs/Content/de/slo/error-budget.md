@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Ziel | 7-Tage-Fenster | 28-Tage-Fenster | 30-Tage-Fenster | 90-Tage-Fenster |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 Std., 40 Min. und 48 Sek. | 6 Std., 43 Min. und 12 Sek. | 7 Std., 12 Min. | 21 Std., 36 Min. |
+| 99,5 % | 50 Min., 24 Sek. | 3 Std., 21 Min. und 36 Sek. | 3 Std., 36 Min. | 10 Std., 48 Min. |
+| 99,9 % | 10 Min., 5 Sek. | 40 Min., 19 Sek. | 43 Min., 12 Sek. | 2 Std., 9 Min. und 36 Sek. |
+| 99,95 % | 5 Min., 2 Sek. | 20 Min., 10 Sek. | 21 Min., 36 Sek. | 1 Std., 4 Min. und 48 Sek. |
+| 99,99 % | 1 Min., 0 Sek. | 4 Min., 2 Sek. | 4 Min., 19 Sek. | 12 Min., 58 Sek. |
 
-Die Seite **Einstellungen** des SLO zeigt das Budget, das sein Ziel erlaubt, neben dem Ziel an, zum Beispiel „43m 12s Ausfallzeit pro 30-Tage-Zeitfenster“.
+Die Seite **Einstellungen** des SLO zeigt das Budget, das sein Ziel erlaubt, neben dem Ziel an, zum Beispiel „43 Min., 12 Sek. Ausfallzeit pro Zeitfenster von 30 Tagen“.
 
 ### Das Budget eines SLO mit mehreren Monitoren
 
@@ -35,7 +35,7 @@ Im Modus **Durchschnitt der Monitorsekunden** wird das Budget in Monitorsekunden
 
 ### Das Budget eines Kalendermonats
 
-Ein Kalendermonat-SLO hat vom ersten Tag an das Budget des ganzen Monats: Ein SLO mit 99,9 % in einem Monat mit 31 Tagen hat am 1. seine vollen 44m 38s. Das Budget wird nicht nach dem bereits vergangenen Teil des Monats anteilig berechnet, ein einminütiger Ausfall am Morgen des 1. verbraucht also eine Minute des Monatsbudgets.
+Ein Kalendermonat-SLO hat vom ersten Tag an das Budget des ganzen Monats: Ein SLO mit 99,9 % in einem Monat mit 31 Tagen hat am 1. seine vollen 44 Min., 38 Sek. zur Verfügung. Das Budget wird nicht nach dem bereits vergangenen Teil des Monats anteilig berechnet, ein einminütiger Ausfall am Morgen des 1. verbraucht also eine Minute des Monatsbudgets.
 
 ## Verbleibendes Budget
 
