@@ -46,8 +46,9 @@ import { readDashboardLocale } from "../../Helpers/DashboardLocales";
  * board's side; an Arabic one, and every line on a German or English
  * board, is drawn as it was.
  *
- * And a list's count stays one line beside a title that wraps: squeezed by
- * a long title in a narrow widget, "3 sites" broke in two.
+ * And a list's count, and a Log stream's, stay one line beside a title that
+ * wraps: squeezed by a long title in a narrow widget, "3 sites" broke in
+ * two.
  */
 
 type ListRequest = { query: JSONObject; limit: number };
@@ -294,6 +295,16 @@ describe("a Log stream's lines", () => {
       expect(line).toHaveClass("text-[11px]", "leading-4", "flex-1");
       cleanup();
     }
+  });
+
+  test("its count stays one line, and keeps its room, beside its title", async () => {
+    await inLanguage("en");
+    await renderLogStream();
+
+    const count: HTMLElement = screen.getByText("2 entries");
+
+    expect(count).toHaveClass("whitespace-nowrap", "shrink-0");
+    expect(count.parentElement).toHaveClass("justify-between", "gap-2");
   });
 });
 

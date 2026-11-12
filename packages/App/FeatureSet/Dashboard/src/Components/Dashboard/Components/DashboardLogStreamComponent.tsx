@@ -239,11 +239,15 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
       }}
     >
       {props.component.arguments.title && (
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center justify-between gap-2 mb-2 px-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
             {props.component.arguments.title}
           </span>
-          <span className="text-xs text-gray-300 tabular-nums">
+          {/*
+           * One line beside a title that wraps, as a list's count is:
+           * squeezed by a long title, "12 entries" broke in two.
+           */}
+          <span className="shrink-0 whitespace-nowrap text-xs text-gray-300 tabular-nums">
             {translator.translatePlural(
               { one: "{{count}} entry", other: "{{count}} entries" },
               logs.length,
