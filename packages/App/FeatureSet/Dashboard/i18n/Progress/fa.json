@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51086,
-    "untranslated": 6940
+    "untranslated": 6680
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -21,6 +21,7 @@
     "@alice",
     "A-Z",
     "AES",
+    "AWS Lambda",
     "Active + Clean",
     "Add custom connector",
     "Aggregate",
@@ -35,6 +36,9 @@
     "Auth, Priv",
     "Availability Zone",
     "Azure",
+    "Azure CLI",
+    "Azure Functions",
+    "Azure portal",
     "Bare Metal",
     "Brute force detected",
     "CIDR",
@@ -74,6 +78,7 @@
     "GitHub App",
     "Google BigQuery",
     "Google Calendar",
+    "Google Cloud Functions",
     "Google SecOps",
     "Google UDM",
     "H1",
