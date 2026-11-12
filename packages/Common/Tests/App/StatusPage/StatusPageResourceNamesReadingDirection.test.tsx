@@ -216,7 +216,11 @@ const resourceElementFor: (
 ) => (statusPageResource: StatusPageResource) => ReactElement = (
   isMonitorGroupsFeatureEnabled: boolean,
 ): ((statusPageResource: StatusPageResource) => ReactElement) => {
-  return (statusPageResource: StatusPageResource): ReactElement => {
+  const getResourceElement: (
+    statusPageResource: StatusPageResource,
+  ) => ReactElement = (
+    statusPageResource: StatusPageResource,
+  ): ReactElement => {
     return (
       <StatusPageResourceName
         statusPageResource={statusPageResource}
@@ -224,6 +228,8 @@ const resourceElementFor: (
       />
     );
   };
+
+  return getResourceElement;
 };
 
 const drawList: (data: {
