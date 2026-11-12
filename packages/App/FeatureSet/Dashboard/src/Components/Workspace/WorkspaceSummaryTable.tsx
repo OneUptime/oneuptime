@@ -1092,7 +1092,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           error={testError}
           description={
             testError
-              ? translator.translateText(
+              ? translator.translateTemplate(
                   "Fix the cause named above, then send the test again.",
                 )
               : translator.translateTemplate(
