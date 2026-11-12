@@ -1136,6 +1136,99 @@ test.describe("a honeycomb tile's tooltip", () => {
     await shoot(page, testInfo, "honeycomb-tooltip-german", undefined);
   });
 
+  /*
+   * A tile reached from the keyboard says what it is, as one under the
+   * pointer does, and shows where the focus is: a ring round the hexagon
+   * the tile is clipped to (the clip cuts away any outline drawn on the
+   * tile itself), in the theme's focus color. Escape puts the tooltip away
+   * and leaves the focus, and the ring, where they are.
+   */
+  test("a tile reached with Tab is ringed and says it is Disabled, and Escape puts its tooltip away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    const gray: Locator = await grayTile(page);
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+    const grayIndex: number = colors.indexOf(GRAY);
+
+    /*
+     * From the tile beside it, with the key a keyboard reader presses:
+     * Tab from the one before, or Shift+Tab from the one after.
+     */
+    const from: number = grayIndex > 0 ? grayIndex - 1 : grayIndex + 1;
+    await tiles(page).nth(from).focus();
+    await page.keyboard.press(grayIndex > 0 ? "Tab" : "Shift+Tab");
+
+    await expect(gray).toBeFocused();
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(gray));
+
+    // A button named for its monitor, which its open tooltip describes.
+    await expect(gray).toHaveAttribute("role", "button");
+    await expect(gray).toHaveAttribute("aria-label", "legacy-api");
+    const tooltipId: string | null = await tooltip(page).getAttribute("id");
+    expect(tooltipId).toBeTruthy();
+    await expect(gray).toHaveAttribute("aria-describedby", tooltipId!);
+
+    // The ring: round the tile on every side, in the light theme's focus color.
+    const ring: Locator = page.getByTestId("dashboard-honeycomb-focus-ring");
+    await expect(ring).toHaveCount(1);
+    await expect(ring).toBeVisible();
+    const tileBox: Box = await boxOf(gray);
+    const ringPlace: { box: Box; stroke: string; strokeWidth: string } =
+      await ring.evaluate(
+        (
+          element: Element,
+        ): { box: Box; stroke: string; strokeWidth: string } => {
+          const polygon: Element = element.querySelector("polygon")!;
+          const rect: DOMRect = polygon.getBoundingClientRect();
+          const style: CSSStyleDeclaration = window.getComputedStyle(polygon);
+          return {
+            box: {
+              left: rect.left,
+              top: rect.top,
+              right: rect.right,
+              bottom: rect.bottom,
+            },
+            stroke: style.stroke,
+            strokeWidth: style.strokeWidth,
+          };
+        },
+      );
+    expect(ringPlace.box.left).toBeLessThan(tileBox.left - 1);
+    expect(ringPlace.box.right).toBeGreaterThan(tileBox.right + 1);
+    expect(ringPlace.box.top).toBeLessThan(tileBox.top - 1);
+    expect(ringPlace.box.bottom).toBeGreaterThan(tileBox.bottom + 1);
+    expect(ringPlace.stroke).toBe("rgb(79, 70, 229)");
+    expect(ringPlace.strokeWidth).toBe("2px");
+
+    await shoot(page, testInfo, "honeycomb-keyboard", undefined);
+
+    await page.keyboard.press("Escape");
+    await expect(tooltip(page)).toHaveCount(0);
+    await expect(gray).toBeFocused();
+    await expect(ring).toBeVisible();
+
+    // Moving on: the next tile's tooltip, and the ring goes with the focus.
+    await page.keyboard.press(grayIndex > 0 ? "Shift+Tab" : "Tab");
+    await expect(tiles(page).nth(from)).toBeFocused();
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).not.toContainText("legacy-api");
+    await expect(ring).toHaveCount(1);
+  });
+
   test("in full screen the tooltip is drawn on the board, and leaving full screen takes it away", async ({
     page,
   }: {

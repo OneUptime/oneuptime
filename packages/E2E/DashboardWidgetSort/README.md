@@ -57,7 +57,9 @@ server reading a pod list's phases rank by rank; and a honeycomb tile's tooltip
 (`?view=honeycomb`, #6966): the gray tile of the monitor whose monitoring is off saying
 Disabled in a tooltip drawn on the page beside it, outside the widget's card, with nothing
 covering it, in the dark theme and in German, and on the board while the board is in full
-screen, gone once it leaves full screen. Phone (Pixel 5, 390px) Chromium runs what a phone
+screen, gone once it leaves full screen; and the gray tile reached with Tab: ringed in the
+theme's focus color, named for its monitor and described by its tooltip, which Escape puts
+away while the focus stays on the tile. Phone (Pixel 5, 390px) Chromium runs what a phone
 changes: reaching and pressing the headers, inside OneUptime and on the public dashboard,
 and the honeycomb's tooltip in a phone's window, in the light and the dark theme. Screenshots are under
 `output/playwright/dashboard-widget-sort-ui`.
