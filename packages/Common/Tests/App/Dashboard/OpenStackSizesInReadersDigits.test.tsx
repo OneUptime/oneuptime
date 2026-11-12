@@ -493,6 +493,10 @@ describe("OpenStack writes its sizes through OpenStackFigures", () => {
     "Pages/OpenStack",
   ];
 
+  const SOURCE_FILE: RegExp = /\.tsx?$/;
+  const IMPORTS_FORMAT_BYTES: RegExp =
+    /import\s*\{[^}]*\bformatBytes\b[^}]*\}\s*from\s*"[^"]*telemetryFormat"/;
+
   function filesUnder(directory: string): Array<string> {
     const files: Array<string> = [];
     for (const entry of fs.readdirSync(path.join(DASHBOARD_SRC, directory), {
@@ -501,7 +505,7 @@ describe("OpenStack writes its sizes through OpenStackFigures", () => {
       const relative: string = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         files.push(...filesUnder(relative));
-      } else if (/\.tsx?$/.test(entry.name)) {
+      } else if (SOURCE_FILE.test(entry.name)) {
         files.push(relative);
       }
     }
@@ -512,9 +516,7 @@ describe("OpenStack writes its sizes through OpenStackFigures", () => {
     const readers: Array<string> = OPENSTACK_DIRECTORIES.flatMap(
       filesUnder,
     ).filter((file: string): boolean => {
-      return /import\s*\{[^}]*\bformatBytes\b[^}]*\}\s*from\s*"[^"]*telemetryFormat"/.test(
-        readSource(file),
-      );
+      return IMPORTS_FORMAT_BYTES.test(readSource(file));
     });
 
     expect(readers).toEqual([
