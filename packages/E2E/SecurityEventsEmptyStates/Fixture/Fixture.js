@@ -43,7 +43,12 @@
  *            the Events page and on Connections alike.
  *   ?tools=  rows: three security tools in Your security tools (TOOLS):
  *            one polling well, one whose last poll failed, one turned off -
- *            the table at its widest, for how it fits its card.
+ *            the table at its widest, for how it fits its card. states:
+ *            those three and seven more (TOOLS_IN_OTHER_STATES), a row in
+ *            each state Health can say, for each state's pill.
+ *   ?lang=   de, ru or hi: the Dashboard's German, Russian or Hindi locale,
+ *            loaded and switched to, dates and times with it, for the
+ *            pages whose words run longer than the English (#6891).
  *   ?cloud=  none (default) | connected. How many cloud accounts the
  *            project has connected under Cloud (CloudConnection), which
  *            Your OneUptime data's Cloud audit logs read: none, so its row
@@ -79,6 +84,7 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import SecurityEventsLayout from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Layout";
 import SecurityEventsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Index";
 import SecurityEventsConnectionsPage from "../../../App/FeatureSet/Dashboard/src/Pages/SecurityEvents/Connections";
@@ -136,8 +142,36 @@ const latest = ["pending", "old"].includes(params.get("latest"))
 const OLD_EVENT_TIME = "2026-09-01T09:30:00.000Z";
 // ?siem=rows: three SIEMs in the Send to your SIEM table.
 const siem = params.get("siem") === "rows" ? "rows" : "none";
-// ?tools=rows: three security tools in the Your security tools table.
-const tools = params.get("tools") === "rows" ? "rows" : "none";
+/*
+ * ?tools=rows: three security tools in the Your security tools table;
+ * ?tools=states: a row in each state Health can say.
+ */
+const tools = ["rows", "states"].includes(params.get("tools"))
+  ? params.get("tools")
+  : "none";
+/*
+ * ?lang=: the Dashboard's German, Russian or Hindi locale, loaded and
+ * switched to. Each loads only when ?lang= names it - a locale is some four
+ * megabytes of JSON, which every page the suite opens would parse if it were
+ * bundled into the entry - and by one static import per language, so the
+ * value only ever chooses among these.
+ */
+function loadLocale(language) {
+  switch (language) {
+    case "de":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/de.json");
+    case "hi":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/hi.json");
+    case "ru":
+      return import("../../../App/FeatureSet/Dashboard/src/Locales/ru.json");
+    default:
+      return null;
+  }
+}
+const LANGUAGES = ["de", "hi", "ru"];
+const language = LANGUAGES.includes(params.get("lang"))
+  ? params.get("lang")
+  : "en";
 // ?events=one: one event in the window, and its drawer's Connected tab.
 const events = params.get("events") === "one" ? "one" : "none";
 /*
@@ -354,6 +388,132 @@ const TOOLS = [
     }),
   },
 ];
+
+/*
+ * ?tools=states: the three above, and a row in each other state Health can
+ * say (connectorHealth), by the pinned clock: a partial import, polls that
+ * succeed with nothing imported yet, a poll overdue, a backlog being caught
+ * up, the first poll still to come, a poll that found nothing, and a poll
+ * whose details were not kept.
+ */
+const TOOLS_IN_OTHER_STATES = [
+  {
+    _id: "a1000000-0000-4000-8000-000000000004",
+    name: "Falcon - US-2",
+    provider: "crowdstrike-falcon",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-08-21T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T11:58:00.000Z",
+    lastSuccessfulPollAt: "2026-09-22T11:58:00.000Z",
+    lastEventIngestedAt: "2026-09-22T11:57:00.000Z",
+    lastPollResult: {
+      ...pollResult({
+        provider: "crowdstrike-falcon",
+        status: "partial",
+        at: "2026-09-22T11:58:00.000Z",
+        fetched: 40,
+      }),
+      complete: false,
+    },
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000005",
+    name: "Sentinel - SOC workspace",
+    provider: "microsoft-sentinel",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-09-21T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T11:58:00.000Z",
+    lastSuccessfulPollAt: "2026-09-22T11:58:00.000Z",
+    lastPollResult: pollResult({
+      provider: "microsoft-sentinel",
+      status: "success",
+      at: "2026-09-22T11:58:00.000Z",
+      fetched: 0,
+    }),
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000006",
+    name: "Splunk ES",
+    provider: "splunk",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-08-02T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T10:30:00.000Z",
+    lastSuccessfulPollAt: "2026-09-22T10:30:00.000Z",
+    lastEventIngestedAt: "2026-09-22T10:29:00.000Z",
+    lastPollResult: pollResult({
+      provider: "splunk",
+      status: "success",
+      at: "2026-09-22T10:30:00.000Z",
+      fetched: 12,
+    }),
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000007",
+    name: "Elastic Security",
+    provider: "elastic-security",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-09-20T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T11:58:00.000Z",
+    lastSuccessfulPollAt: "2026-09-22T11:58:00.000Z",
+    lastEventIngestedAt: "2026-09-21T06:00:00.000Z",
+    lastPollResult: {
+      ...pollResult({
+        provider: "elastic-security",
+        status: "success",
+        at: "2026-09-22T11:58:00.000Z",
+        fetched: 10000,
+      }),
+      windowStart: "2026-09-21T05:00:00.000Z",
+      windowEnd: "2026-09-21T06:00:00.000Z",
+    },
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000008",
+    name: "Entra ID sign-ins",
+    provider: "microsoft-entra-id",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-09-22T11:59:00.000Z",
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000009",
+    name: "Security Hub - us-east-1",
+    provider: "aws-security-hub",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-08-30T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T11:58:00.000Z",
+    lastSuccessfulPollAt: "2026-09-22T11:58:00.000Z",
+    lastEventIngestedAt: "2026-09-19T14:10:00.000Z",
+    lastPollResult: pollResult({
+      provider: "aws-security-hub",
+      status: "empty",
+      at: "2026-09-22T11:58:00.000Z",
+      fetched: 0,
+    }),
+  },
+  {
+    _id: "a1000000-0000-4000-8000-000000000010",
+    name: "Workspace audit",
+    provider: "google-workspace",
+    isEnabled: true,
+    pollIntervalInMinutes: 5,
+    createdAt: "2026-08-12T09:00:00.000Z",
+    lastPolledAt: "2026-09-22T11:58:00.000Z",
+    lastSuccessfulPollAt: "2026-09-22T11:58:00.000Z",
+    lastEventIngestedAt: "2026-09-22T11:50:00.000Z",
+  },
+];
+const toolRows =
+  tools === "states"
+    ? [...TOOLS, ...TOOLS_IN_OTHER_STATES]
+    : tools === "rows"
+      ? TOOLS
+      : [];
 
 let releaseLatestEvent = () => {};
 const latestEventReleased = new Promise((resolve) => {
@@ -642,12 +802,12 @@ ModelAPI.getList = async (options) => {
       limit,
     };
   }
-  if (modelName === tableName(SecurityEventConnection) && tools === "rows") {
+  if (modelName === tableName(SecurityEventConnection) && tools !== "none") {
     return {
-      data: TOOLS.slice(skip, skip + limit).map((record) => {
+      data: toolRows.slice(skip, skip + limit).map((record) => {
         return Object.assign(new SecurityEventConnection(), record);
       }),
-      count: TOOLS.length,
+      count: toolRows.length,
       skip,
       limit,
     };
@@ -664,8 +824,8 @@ ModelAPI.getCount = async (options) => {
   if (modelName === tableName(SecurityEventDestination) && siem === "rows") {
     return DESTINATIONS.length;
   }
-  if (modelName === tableName(SecurityEventConnection) && tools === "rows") {
-    return TOOLS.length;
+  if (modelName === tableName(SecurityEventConnection) && tools !== "none") {
+    return toolRows.length;
   }
   return 0;
 };
@@ -884,12 +1044,27 @@ API.fetch = async (options) => {
   return handleApi(options.method || "GET", options);
 };
 
+const resources = { en: { translation: {} } };
+
+if (language !== "en") {
+  resources[language] = {
+    translation: (await loadLocale(language)).default,
+  };
+}
+
+/*
+ * Times follow the language as the Dashboard's own start-up has them
+ * (Utils/i18n.ts): "2 минуты назад" on a Russian page, not "2 minutes ago".
+ */
+followLanguageForDates(i18next);
+
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: language,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources,
   interpolation: { escapeValue: false },
 });
+document.documentElement.lang = language;
 
 /*
  * ---------------------------------------------------------------------------

@@ -62,7 +62,16 @@ import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connect
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import ModelColumn from "../../../UI/Components/ModelTable/Column";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import Pill, {
+  WHOLE_WORDS_PILL_TEXT_CLASS_NAME,
+} from "../../../UI/Components/Pill/Pill";
 import TableRow from "../../../UI/Components/Table/TableRow";
+import {
+  TABLE_SHRINKABLE_ATTRIBUTE,
+  TABLE_VALUE_ATTRIBUTE,
+} from "../../../UI/Components/Table/TableLayout";
+import { getValueGiveKind } from "../../../UI/Components/Table/useTableScrollState";
+import { Green } from "../../../Types/BrandColors";
 import TableColumn from "../../../UI/Components/Table/Types/Column";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import API from "../../../UI/Utils/API/API";
@@ -622,6 +631,80 @@ describe("SecurityEventConnectionsTable", () => {
     for (const cell of cells) {
       expect(cell.getAttribute("title")).toBeTruthy();
     }
+  });
+
+  /*
+   * The one word each row is read for is never cut short (#6891). In
+   * Russian at 1280 the table's give-way cut every Health pill to 8rem -
+   * "Последний о...", "Расписание п..." - because a pill says its words
+   * end in "..." where its box ends. Health's pill wraps instead, between
+   * its words, so the table finds nothing in it to cut, and a column held
+   * at 8rem never breaks a word ("приостановле / но").
+   */
+  test("Health is never cut short: its pill wraps between its words instead", (): void => {
+    renderTable([
+      connection({ lastEventIngestedAt: new Date(NOW - 3 * 60_000) }),
+    ]);
+
+    const words: HTMLElement = within(row("Acme Okta")).getByText(
+      "Last poll succeeded",
+    );
+    const pill: HTMLElement = words.closest(
+      "[data-testid=pill]",
+    ) as HTMLElement;
+
+    expect(words).toHaveAttribute("data-testid", "pill-text");
+    expect(pill).not.toHaveAttribute(TABLE_SHRINKABLE_ATTRIBUTE);
+    expect(words.className).toBe(WHOLE_WORDS_PILL_TEXT_CLASS_NAME);
+    expect(classesOf(words)).toEqual(
+      expect.arrayContaining([
+        "whitespace-normal",
+        "[overflow-wrap:break-word]",
+      ]),
+    );
+    expect(classesOf(words)).not.toContain("truncate");
+    expect(classesOf(words)).not.toContain("[overflow-wrap:anywhere]");
+
+    /*
+     * However wide it is, the table's give-way has nothing of it to cut.
+     * The pill drawn as its classes draw it (jsdom has no stylesheet): a
+     * box of its own, inline-flex.
+     */
+    const asDrawn: (value: HTMLElement) => HTMLElement = (
+      value: HTMLElement,
+    ): HTMLElement => {
+      const drawn: HTMLElement = value.querySelector(
+        "[data-testid=pill]",
+      ) as HTMLElement;
+
+      expect(classesOf(drawn)).toContain("inline-flex");
+      drawn.style.display = "inline-flex";
+      Object.defineProperty(value, "scrollWidth", {
+        configurable: true,
+        value: 240,
+      });
+
+      return value;
+    };
+
+    const value: HTMLElement = pill.closest(
+      `[${TABLE_VALUE_ATTRIBUTE}]`,
+    ) as HTMLElement;
+
+    expect(value).toContainElement(pill);
+    expect(getValueGiveKind(asDrawn(value))).toBeNull();
+
+    // A pill that may be cut short, in the same place, would be cut.
+    cleanup();
+    render(
+      <div {...{ [TABLE_VALUE_ATTRIBUTE]: "" }} data-testid="cut-value">
+        <Pill color={Green} text="Last poll succeeded" />
+      </div>,
+    );
+
+    expect(getValueGiveKind(asDrawn(screen.getByTestId("cut-value")))).toBe(
+      "box",
+    );
   });
 
   /*

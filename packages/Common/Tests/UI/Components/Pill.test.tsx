@@ -1,6 +1,7 @@
 import Pill, {
   PILL_TEXT_CLASS_NAME,
   PillSize,
+  WHOLE_WORDS_PILL_TEXT_CLASS_NAME,
   WRAPPING_PILL_CLASS_NAME,
   WRAPPING_PILL_DOT_CLASS_NAME,
   WRAPPING_PILL_ICON_CLASS_NAME,
@@ -601,6 +602,54 @@ describe("<Pill />", () => {
           },
         ),
       ).toBe(true);
+    });
+
+    /*
+     * A state's few words in a table's column wrap between one another and
+     * are never broken inside one (#6891): a label's one long key and value
+     * breaks where it must ([overflow-wrap:anywhere], which also lets a
+     * table squeeze the pill to a letter's width), while a state's pill is
+     * never narrower than its longest word ([overflow-wrap:break-word]).
+     */
+    test("a wrapping pill may keep its words whole, and is never narrower than its longest one", () => {
+      render(
+        <Pill
+          text="Расписание приостановлено"
+          color={Gray500}
+          isWrapping={true}
+          isKeepingWordsWhole={true}
+        />,
+      );
+
+      expect(getWords().className).toBe(WHOLE_WORDS_PILL_TEXT_CLASS_NAME);
+      expect(getWords()).toHaveClass(
+        "min-w-0",
+        "whitespace-normal",
+        "[overflow-wrap:break-word]",
+      );
+      expect(getWords()).not.toHaveClass("[overflow-wrap:anywhere]");
+      expect(getWords()).not.toHaveClass("truncate");
+      // Everything else is the wrapping pill's.
+      expect(getPill().className.trim()).toBe(WRAPPING_PILL_CLASS_NAME);
+      expect(getDot().className).toContain(WRAPPING_PILL_DOT_CLASS_NAME);
+      expect(getPill()).not.toHaveAttribute("data-table-shrinks");
+      expect(getPill().textContent).toBe("Расписание приостановлено");
+
+      // A label's wrapping pill still breaks a word where it must.
+      expect(WRAPPING_PILL_TEXT_CLASS_NAME).toContain(
+        "[overflow-wrap:anywhere]",
+      );
+      expect(WRAPPING_PILL_TEXT_CLASS_NAME).not.toBe(
+        WHOLE_WORDS_PILL_TEXT_CLASS_NAME,
+      );
+    });
+
+    test("keeping words whole changes nothing in a pill that stays on one line", () => {
+      render(<Pill text={LONG} color={Green} isKeepingWordsWhole={true} />);
+
+      expect(getWords().className).toBe(PILL_TEXT_CLASS_NAME);
+      expect(getWords()).toHaveClass("truncate");
+      expect(getPill()).toHaveAttribute("data-table-shrinks", "true");
     });
   });
 });

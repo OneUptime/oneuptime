@@ -455,6 +455,14 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             },
             title: "Health",
             type: FieldType.JSON,
+            /*
+             * The one word each row is read for, never cut short: a
+             * language whose states run long ("Расписание
+             * приостановлено") wraps one onto a second line, between its
+             * words, where the table has not the room for it on one. Cut
+             * to the 8rem a value gives way to, the Russian ones read
+             * "Последний о..." and "Расписание п..." at 1280 (#6891).
+             */
             getElement: (item: SecurityEventConnection): ReactElement => {
               const health: string = connectorHealth(item);
               return (
@@ -462,6 +470,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
                   color={connectorHealthPillColor(health)}
                   text={health}
                   tooltip={connectorHealthTooltip(health)}
+                  isWrapping={true}
+                  isKeepingWordsWhole={true}
                 />
               );
             },
