@@ -133,9 +133,22 @@ const WHITESPACE: RegExp = /\s+/;
 /*
  * A list comma left at the end of a duration cut to its two largest units:
  * German writes "26 Tg., 22 Std., 5 Min. und 3 Sek.", whose first four
- * words end "22 Std.,". Latin, Arabic-script and East Asian commas.
+ * words end "22 Std.,". Latin, Arabic-script and East Asian commas -
+ * dropped one character at a time, with no pattern to backtrack over.
  */
-const TRAILING_LIST_COMMA: RegExp = /[,\u060C\u3001\uFF0C]+$/u;
+const LIST_COMMAS: Array<string> = [",", "\u060C", "\u3001", "\uFF0C"];
+
+const withoutTrailingListComma: (text: string) => string = (
+  text: string,
+): string => {
+  let end: number = text.length;
+
+  while (end > 0 && LIST_COMMAS.includes(text.charAt(end - 1))) {
+    end--;
+  }
+
+  return text.slice(0, end);
+};
 
 const time: (date: Date) => number = (date: Date): number => {
   return date.getTime();
@@ -880,7 +893,7 @@ export const formatStatusTimelineCompactDuration: (
     return words.join(" ");
   }
 
-  return words.slice(0, 4).join(" ").replace(TRAILING_LIST_COMMA, "");
+  return withoutTrailingListComma(words.slice(0, 4).join(" "));
 };
 
 /*
