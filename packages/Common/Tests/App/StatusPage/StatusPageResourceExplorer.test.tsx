@@ -1121,6 +1121,26 @@ describe("Status Page > Resources", () => {
         2,
       );
 
+      /*
+       * Each monitor's link is drawn by StatusPageResourceName: with
+       * monitor groups off, its bare name on a line of its own that reads
+       * the way it is written (no dir for an English name on this English
+       * page), and the row says the whole name under the pointer.
+       */
+      const rowName: HTMLElement = screen
+        .getAllByTestId("status-page-resource-row-name")
+        .find((each: HTMLElement): boolean => {
+          return each.textContent?.trim() === "High Node Disk Usage";
+        })!;
+
+      expect(rowName).toHaveAttribute("title", "High Node Disk Usage");
+      expect(
+        within(rowName).getByTestId("status-page-resource-name"),
+      ).not.toHaveAttribute("dir");
+      expect(
+        within(rowName).getByRole("link", { name: "High Node Disk Usage" }),
+      ).toBeInTheDocument();
+
       const displayNames: Array<HTMLElement> = screen.queryAllByTestId(
         "status-page-resource-row-display-name",
       );
@@ -1128,10 +1148,13 @@ describe("Status Page > Resources", () => {
       expect(displayNames.length).toBe(1);
       expect(displayNames[0]!.textContent).toContain("Disk");
       /*
-       * Cut short on a right-to-left page, a name keeps its own start in
-       * view: it is laid out by its own first letter.
+       * A line of its own, read the way it is written (IsolatedLine): on
+       * this English page an English name reads the page's way, with no
+       * dir. Cut short on a right-to-left page, an English name keeps its
+       * own start in view (StatusPageResourceNamesReadingDirection.test).
        */
-      expect(displayNames[0]).toHaveAttribute("dir", "auto");
+      expect(displayNames[0]).not.toHaveAttribute("dir");
+      expect(displayNames[0]).toHaveAttribute("title", "Disk");
       expect(displayNames[0]).toHaveClass("truncate");
     });
 

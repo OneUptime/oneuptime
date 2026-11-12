@@ -1,5 +1,4 @@
-import MonitorElement from "../Monitor/Monitor";
-import MonitorGroupElement from "../MonitorGroup/MonitorGroupElement";
+import StatusPageResourceName from "./StatusPageResourceName";
 import BulkAddStatusPageMonitorsModal from "./BulkAddStatusPageMonitorsModal";
 import {
   StatusPageResourceTargetType,
@@ -903,37 +902,19 @@ const StatusPageResourcePanel: FunctionComponent<ComponentProps> = (
     statusPageResource: StatusPageResource,
   ) => ReactElement;
 
+  /*
+   * Its monitor's or monitor group's link, beside its kind's icon when
+   * monitor groups are on; a bare name is a line of its own, read the way
+   * it is written (StatusPageResourceName).
+   */
   const getResourceElement: GetResourceElementFunction = (
     statusPageResource: StatusPageResource,
   ): ReactElement => {
-    if (statusPageResource.monitor) {
-      return (
-        <MonitorElement
-          monitor={statusPageResource.monitor}
-          showIcon={props.isMonitorGroupsFeatureEnabled}
-        />
-      );
-    }
-
-    if (statusPageResource.monitorGroup) {
-      return (
-        <MonitorGroupElement
-          monitorGroup={statusPageResource.monitorGroup}
-          showIcon={props.isMonitorGroupsFeatureEnabled}
-        />
-      );
-    }
-
-    /*
-     * A resource whose monitor was deleted still has to be identifiable - its
-     * display name is the only handle left on it, and this row exists to be
-     * acted on.
-     */
     return (
-      <span className="text-gray-500">
-        {statusPageResource.displayName ||
-          translator.translateText("Unknown resource")}
-      </span>
+      <StatusPageResourceName
+        statusPageResource={statusPageResource}
+        showIcon={props.isMonitorGroupsFeatureEnabled}
+      />
     );
   };
 

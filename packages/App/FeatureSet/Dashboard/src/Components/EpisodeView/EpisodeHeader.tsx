@@ -1,6 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import React, { FunctionComponent, ReactElement } from "react";
 import { EventStatusFact } from "../EventView/EventStatusPanel";
 import RelativeTime from "./RelativeTime";
@@ -12,6 +13,9 @@ import {
 } from "Common/UI/Utils/TranslateTemplate";
 
 export type EpisodeMemberNoun = "incident" | "alert";
+
+export const EPISODE_GROUPING_RULE_NAME_TEST_ID: string =
+  "episode-grouping-rule-name";
 
 export interface EpisodeHeaderFactsInput {
   groupingRuleName?: string | undefined;
@@ -26,7 +30,9 @@ export interface EpisodeHeaderFactsInput {
  * value are left out here rather than rendered as "-", so a brand new
  * episode does not show an empty "Last incident added". The panel looks the
  * labels up; the values that are our own words are given in the reader's
- * language here.
+ * language here. The grouping rule's name is the project's own, a line
+ * that reads the way it is written (IsolatedLine): an English rule on an
+ * Arabic page wraps from its own start and keeps its brackets in place.
  */
 export function getEpisodeHeaderFacts(
   input: EpisodeHeaderFactsInput,
@@ -35,9 +41,15 @@ export function getEpisodeHeaderFacts(
   const facts: Array<EventStatusFact> = [
     {
       label: "Grouping",
-      value:
-        input.groupingRuleName ||
-        (translator.translateText("Manual episode") as string),
+      value: input.groupingRuleName ? (
+        <IsolatedLine
+          text={input.groupingRuleName}
+          className="break-words"
+          dataTestId={EPISODE_GROUPING_RULE_NAME_TEST_ID}
+        />
+      ) : (
+        (translator.translateText("Manual episode") as string)
+      ),
       icon: IconProp.Layers,
     },
   ];
