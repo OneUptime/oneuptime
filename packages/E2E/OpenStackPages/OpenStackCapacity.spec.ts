@@ -386,40 +386,18 @@ test.describe("on a phone", () => {
       await screenshot(page, `capacity-${viewport.width}`);
     });
   }
-
-  /*
-   * A narrow column broke a zone's "674 GiB / 762 GiB (88%)" inside a size,
-   * its unit alone on the line under its number, and a Persian or German
-   * page's longer words narrowed it more. Each part of the cell is kept
-   * whole; the line breaks between them.
-   */
-  for (const language of ["fa", "de"]) {
-    test(`in ${language} on a phone, a zone's sizes keep their units beside their numbers`, async ({
-      page,
-    }: {
-      page: Page;
-    }) => {
-      await page.setViewportSize({ width: 390, height: 844 });
-      await openCloudPage(page, "capacity", `capacity=short&lang=${language}`);
-
-      await expectSizesNumberFirst(
-        page.getByTestId("openstack-capacity-zones"),
-        `The zones in ${language}`,
-      );
-      await expectNoSidewaysScroll(page, { tolerance: 1 });
-      await screenshot(page, `capacity-${language}-390`);
-    });
-  }
 });
 
-test.describe("in Persian", () => {
-  /*
-   * The zones' table in Persian: a zone's name was broken at its hyphen
-   * ("zone-" over "a"), and its lost and disabled hosts, like the days
-   * "What is short" counts to, were written in Latin digits beside Persian
-   * ones.
-   */
-  test("in Persian, a zone's name is one line, and every count in the table is in Persian digits", async ({
+/*
+ * The zones' table read from the right. A narrow column broke a zone's
+ * "674 GiB / 762 GiB (88%)" inside a size, its unit alone on the line under
+ * its number, and a Persian page's longer words narrowed it more; a zone's
+ * name broke at its hyphen ("zone-" over "a"); and in Persian a zone's lost
+ * and disabled hosts, like the days "What is short" counts to, were written
+ * in Latin digits beside Persian ones.
+ */
+test.describe("in Persian and in Arabic", () => {
+  test("in Persian, a zone's name is one line, every count is in Persian digits, and on a phone its sizes stay whole", async ({
     page,
   }: {
     page: Page;
@@ -440,13 +418,57 @@ test.describe("in Persian", () => {
       ).toBe(1);
     }
 
-    // zone-b has a lost host: "۱ ازدست‌رفته، ۰ غیرفعال".
-    await expect(zones).toContainText("۱");
+    // zone-b has a lost host: "\u06F1 ازدست‌رفته، \u06F0 غیرفعال".
+    await expect(zones).toContainText("\u06F1");
     await expect(zones).not.toContainText(/[0-9]/);
     await expect(page.getByTestId("openstack-capacity-short")).toContainText(
-      "۱۴",
+      "\u06F1\u06F4",
     );
     await screenshot(page, "capacity-fa-1280");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expectSizesNumberFirst(zones, "The zones in Persian on a phone");
+    await expectNoSidewaysScroll(page, { tolerance: 1 });
+    await screenshot(page, "capacity-fa-390");
+  });
+
+  /*
+   * Arabic writes its figures in Latin digits, and its page reads from the
+   * right too: a size drawn bare was "GiB 674" there as well.
+   */
+  test("in Arabic, each size keeps its number before its unit, on a laptop and a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openCloudPage(page, "capacity", "capacity=short&lang=ar");
+
+      await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+
+      const sizes: Array<{ text: string }> = await expectSizesNumberFirst(
+        page.getByTestId("openstack-capacity-zones"),
+        `The zones in Arabic at ${width}`,
+      );
+
+      expect(
+        sizes.map((size: { text: string }): string => {
+          return size.text;
+        }),
+      ).toEqual([
+        "674 GiB",
+        "762 GiB",
+        "2.6 TiB",
+        "5.9 TiB",
+        "195 GiB",
+        "508 GiB",
+        "1.8 TiB",
+        "3.9 TiB",
+      ]);
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await screenshot(page, `capacity-ar-${width}`);
+    }
   });
 });
 

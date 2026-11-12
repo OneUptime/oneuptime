@@ -1727,16 +1727,12 @@ jobs:
           # Global Runners (2.2) from group 19 and Host Pages (1.6) from group
           # 20 joined it: about 21.6. This third planned as 18.1 (#6956, see
           # group 19): about 21.9.
-          # Host Pages (1.6) moved to group 22, the group with the most room, on
-          # 2026-11-12, when the OpenStack pages' sizes in Arabic and the
-          # Capacity zones on a phone (#7343) gave the suite 4 more tests, about
-          # 50 seconds locally across its thirds: this third planned as 18.5,
-          # this group about 20.7.
           - group: 21
             openstack_pages_shard: 3/3
             suites: >-
               test-openstack-pages-ui
               test-global-runners-ui
+              test-host-pages-ui
           # Added on 2026-11-11 for the journey budgets (#6831): the seven core
           # jobs a newcomer comes to do, each done in the whole Dashboard or
           # Admin Dashboard and counted against Tests/Ops/JourneyBudgets.json,
@@ -1754,14 +1750,11 @@ jobs:
           # test-journeys-ui planned as 2.9, this group about 8.8. Ask AI (4.5)
           # joined it from group 18 the same day, with its setup plans (#6829):
           # about 13.3.
-          # Host Pages (1.6) joined it from group 21 on 2026-11-12 (#7343, see
-          # group 21): about 14.9.
           - group: 22
             suites: >-
               test-journeys-ui
               test-reading-direction-ui
               test-ask-ai-ui
-              test-host-pages-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

@@ -254,10 +254,9 @@ export async function expectSizesNumberFirst(
   return sizes;
 }
 
-// The Dashboard's German, Persian and Arabic words, as the fixture draws them.
+// The Dashboard's German and Persian words, as the fixture draws them.
 export const GERMAN: Record<string, string> = locale("de");
 export const PERSIAN: Record<string, string> = locale("fa");
-export const ARABIC: Record<string, string> = locale("ar");
 
 // A word as a locale draws it: the English while it has no translation of its own.
 export function inLocale(

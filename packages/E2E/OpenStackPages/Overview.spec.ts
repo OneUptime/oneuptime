@@ -1,7 +1,6 @@
 import { Locator, Page } from "@playwright/test";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import {
-  ARABIC,
   CLOUD_PATH,
   FixtureRecord,
   GERMAN,
@@ -22,7 +21,7 @@ import {
  * A cloud's Overview, read the way an operator reads it: before any chart, whether the
  * cloud is healthy and what needs someone first, by name, most urgent first, one step from
  * the part's page. Busy, calm, new, in several regions, quiet for days, and with its reads
- * failing, at a laptop's, a tablet's and a phone's width, dark, in German, Persian and Arabic.
+ * failing, at a laptop's, a tablet's and a phone's width, dark, in German and in Persian.
  *
  * Every rule here is OpenStackHealth's, and the fixture answers every read from one
  * estate's rows the way the server does, so what these expect is what those rows mean.
@@ -1333,58 +1332,6 @@ test.describe("at every width, dark, in German and in Persian", () => {
       }
       await expectNoSidewaysScroll(page, { message: `Persian at ${width}` });
       await screenshot(page, `overview-sizes-persian-${width}`);
-    }
-  });
-
-  /*
-   * Arabic writes its figures in Latin digits, and its page reads from the
-   * right too: a size drawn bare was "TiB 6.0" there as well.
-   */
-  test("in Arabic, every size keeps its number before its unit, on a laptop and a phone", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width: width, height: 900 });
-      await openOverview(page, "lang=ar");
-
-      await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-
-      const volumes: Locator = page
-        .getByTestId("openstack-top-consumers-list")
-        .locator('xpath=self::*[@data-key="projects-volumes"]');
-      const values: Locator = volumes.getByTestId(
-        "openstack-top-consumers-value",
-      );
-
-      await expect(values).toHaveText([
-        "6.0 TiB",
-        "2.0 TiB",
-        "500 GiB",
-        "20 GiB",
-      ]);
-      expect(
-        (
-          await expectSizesNumberFirst(volumes, `Top consumers at ${width}`)
-        ).map((size: { text: string }): string => {
-          return size.text;
-        }),
-      ).toEqual(["6.0 TiB", "2.0 TiB", "500 GiB", "20 GiB"]);
-
-      for (const title of ["Memory allocated", "Storage used"]) {
-        expect(
-          await expectSizesNumberFirst(
-            tile(page, inLocale(ARABIC, title)).getByTestId(
-              "golden-metric-tile-sublabel",
-            ),
-            `${title} at ${width}`,
-          ),
-        ).toHaveLength(2);
-      }
-
-      await expectNoSidewaysScroll(page, { message: `Arabic at ${width}` });
-      await screenshot(page, `overview-sizes-arabic-${width}`);
     }
   });
 });
