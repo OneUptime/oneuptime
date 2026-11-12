@@ -2082,6 +2082,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
+import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
@@ -6558,6 +6559,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * it after. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallTestPageAPI);
+
+    /*
+     * Who is told when a monitor goes down (WhoIsToldAPI): the chain from a
+     * monitor to the people it reaches, and every break in it. A bare
+     * router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, WhoIsToldAPI);
 
     /*
      * The Welcome checklist on Home (issue #6803): the project's goals and
