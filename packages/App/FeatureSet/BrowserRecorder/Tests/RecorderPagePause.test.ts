@@ -13,6 +13,7 @@ import {
 } from "Common/Types/Rum/SessionReplayCustomEvents";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
 import { RecorderInitOptions } from "../src/Config";
+import { DebugRecord, clearDebugRecords, getDebugRecords } from "../src/Debug";
 import Recorder from "../src/Recorder";
 
 /*
@@ -231,6 +232,12 @@ describe("Recorder page pause (#6834)", (): void => {
     });
   };
 
+  const debugCodes: () => Array<string> = (): Array<string> => {
+    return getDebugRecords().map((record: DebugRecord): string => {
+      return record.code;
+    });
+  };
+
   const fullSnapshots: () => number = (): number => {
     return events().filter((event: RecordedEvent): boolean => {
       return event.type === EVENT_TYPE_FULL_SNAPSHOT;
@@ -362,6 +369,40 @@ describe("Recorder page pause (#6834)", (): void => {
 
       expect(rageClicks).toBe(0);
       expect(clicks).toBe(0);
+    });
+
+    it("does not even try to resume on input or captureSession()", async (): Promise<void> => {
+      const instance: Recorder = build();
+      instance.start();
+      await drainMicrotasks();
+
+      instance.pause();
+      clearDebugRecords();
+
+      input("mousedown");
+      instance.captureSession("look at this");
+      await flushTick();
+
+      // The idle pause's own resume never ran.
+      expect(debugCodes()).not.toContain("recording-resumed");
+    });
+
+    it("stays paused when the page comes back from the back/forward cache", async (): Promise<void> => {
+      const instance: Recorder = build();
+      instance.start();
+      await drainMicrotasks();
+
+      instance.pause();
+      showNotRecordedPage();
+
+      const restore: Event = new Event("pageshow");
+      Object.defineProperty(restore, "persisted", { value: true });
+      window.dispatchEvent(restore);
+      await flushTick();
+
+      expect(instance.getState()).toBe("paused");
+      expect(fullSnapshots()).toBe(1);
+      expect(allText()).not.toContain(NOT_RECORDED);
     });
 
     it("twice is once", async (): Promise<void> => {
@@ -503,6 +544,68 @@ describe("Recorder page pause (#6834)", (): void => {
 
       expect(instance.getState()).toBe("uploading");
       expect(fullSnapshots()).toBe(1);
+    });
+  });
+
+  describe("through window.OneUptimeReplay and its queue", (): void => {
+    const importIndex: () => Promise<typeof import("../src/Index")> =
+      async (): Promise<typeof import("../src/Index")> => {
+        let index: typeof import("../src/Index") | null = null;
+
+        await jest.isolateModulesAsync(async (): Promise<void> => {
+          index = await import("../src/Index");
+        });
+
+        return index as unknown as typeof import("../src/Index");
+      };
+
+    afterEach((): void => {
+      delete globalRecord["__ONEUPTIME_SESSION_REPLAY_STARTED__"];
+      delete globalRecord["OneUptimeReplayQueue"];
+    });
+
+    it("starts paused when the page queued pause() before the artifact arrived", async (): Promise<void> => {
+      showNotRecordedPage();
+      globalRecord["OneUptimeReplayQueue"] = [["grantConsent"], ["pause"]];
+
+      const index: typeof import("../src/Index") = await importIndex();
+
+      index.bootstrap(INIT_OPTIONS, baseConfig());
+      await flushTick();
+
+      expect(index.getDiagnostics().state).toBe("paused");
+      expect(fullSnapshots()).toBe(0);
+      expect(allText()).not.toContain(NOT_RECORDED);
+
+      // The live queue resumes it, on the page as it is then.
+      (document.getElementById("secret") as HTMLElement).remove();
+      (globalRecord["OneUptimeReplayQueue"] as Array<unknown>).push([
+        "resume",
+      ]);
+      await flushTick();
+
+      expect(index.getDiagnostics().state).toBe("uploading");
+      expect(fullSnapshots()).toBe(1);
+
+      (globalRecord["OneUptimeReplayQueue"] as Array<unknown>).push(["pause"]);
+      expect(index.getDiagnostics().state).toBe("paused");
+
+      index.stop();
+    });
+
+    it("exposes pause() and resume() on the API", async (): Promise<void> => {
+      const index: typeof import("../src/Index") = await importIndex();
+
+      index.bootstrap(INIT_OPTIONS, baseConfig());
+      await drainMicrotasks();
+
+      index.pause();
+      expect(index.getDiagnostics().state).toBe("paused");
+
+      index.resume();
+      expect(index.getDiagnostics().state).toBe("uploading");
+
+      index.stop();
     });
   });
 

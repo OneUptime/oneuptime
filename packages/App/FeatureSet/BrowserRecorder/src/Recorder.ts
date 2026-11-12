@@ -2346,12 +2346,7 @@ export default class Recorder {
    * does.
    */
   private wakeFromIdle(): void {
-    if (
-      !this.sealedForIdle ||
-      this.stopped ||
-      !this.started ||
-      this.pausedByPage
-    ) {
+    if (!this.sealedForIdle || this.stopped || !this.started) {
       return;
     }
 

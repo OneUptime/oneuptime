@@ -285,19 +285,25 @@ describe("page masking options (#6834)", (): void => {
       expect(maskAllText().maskText("draft", editable)).not.toContain("draft");
     });
 
-    it("does nothing outside MaskAllText, where only mask selectors mask text", (): void => {
+    it("does nothing outside MaskAllText, where only mask selectors mask text and always win", (): void => {
+      // A mask further out than the reveal: under MaskAllText the closer reveal wins...
       const element: HTMLElement = elementIn(
-        `<div class="${UNMASK_CLASS_NAME}"><span id="t" class="customer">Alice</span></div>`,
+        `<div class="oneuptime-mask"><span class="${UNMASK_CLASS_NAME}"><b id="t">Alice</b></span></div>`,
         "t",
       );
 
-      const masking: Masking = new Masking(
-        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
-        [".customer"],
-      );
+      expect(maskAllText().isRevealed(element)).toBe(true);
 
-      expect(masking.isRevealed(element)).toBe(false);
-      expect(masking.maskText("Alice", element)).not.toContain("Alice");
+      // ...but in the other modes the page asked for that mask, and it stands.
+      for (const mode of [
+        SessionReplayMaskingMode.MaskSensitiveInputsOnly,
+        SessionReplayMaskingMode.MaskInputsOnly,
+      ]) {
+        const masking: Masking = new Masking(mode, []);
+
+        expect(masking.isRevealed(element)).toBe(false);
+        expect(masking.maskText("Alice", element)).not.toContain("Alice");
+      }
     });
 
     it("keeps masking a detached text node", (): void => {
