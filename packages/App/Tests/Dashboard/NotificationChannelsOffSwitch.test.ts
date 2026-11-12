@@ -665,11 +665,21 @@ describe("the docs", () => {
           ? ProjectNotificationChannelsCopy.cardTitle
           : readLocale(locale)[ProjectNotificationChannelsCopy.cardTitle];
 
+      // The switch, by the name its language's Dashboard draws (Persian: پیامک).
+      const smsSwitch: string = getProjectNotificationChannel(
+        ProjectNotificationChannel.SMS,
+      ).title;
+      const switchName: unknown =
+        locale === "en" ? smsSwitch : readLocale(locale)[smsSwitch];
+
       expect([locale, smsLine.includes(`**${String(cardTitle)}**`)]).toEqual([
         locale,
         true,
       ]);
-      expect([locale, smsLine.includes("**SMS**")]).toEqual([locale, true]);
+      expect([locale, smsLine.includes(`**${String(switchName)}**`)]).toEqual([
+        locale,
+        true,
+      ]);
       expect([locale, smsLine.includes("Enable SMS Notifications")]).toEqual([
         locale,
         false,
