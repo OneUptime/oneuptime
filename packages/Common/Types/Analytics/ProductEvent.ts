@@ -73,6 +73,11 @@ export enum ProductEventName {
   AskAiQuestionAsked = "ask_ai/question_asked",
   AskAiAnswerRated = "ask_ai/answer_rated",
 
+  // Ask AI sets things up (#6829): a plan proposed, approved, then tested.
+  AskAiSetupProposed = "ask_ai/setup_proposed",
+  AskAiSetupApproved = "ask_ai/setup_approved",
+  AskAiSetupTestPageSent = "ask_ai/setup_test_page_sent",
+
   // "Import from another tool" was opened.
   ImporterOpened = "importer/opened",
 
@@ -264,6 +269,32 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       "An Ask AI answer was rated helpful or not helpful, or its rating was cleared.",
     properties: [token("rating")],
+  },
+  {
+    name: ProductEventName.AskAiSetupProposed,
+    description:
+      "Ask AI proposed a setup plan on one approval card: its parts (paging, website_monitor, status_page, status_page_monitors), how many, and the permission mode.",
+    properties: [
+      token("parts"),
+      { name: "part_count" },
+      token("permission_mode"),
+    ],
+  },
+  {
+    name: ProductEventName.AskAiSetupApproved,
+    description:
+      "A setup plan's card was answered: the parts approved, and how many were approved and skipped.",
+    properties: [
+      token("parts"),
+      { name: "approved_count" },
+      { name: "skipped_count" },
+    ],
+  },
+  {
+    name: ProductEventName.AskAiSetupTestPageSent,
+    description:
+      "A test page was sent from under an answer that set something up: to yourself or to the policy it made (target).",
+    properties: [token("target")],
   },
   {
     name: ProductEventName.ImporterOpened,

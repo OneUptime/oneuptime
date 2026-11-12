@@ -134,7 +134,7 @@ router.post(
 
         if (!isAccessible) {
           throw new BadDataException(
-            "The selected AI provider is not available for this project.",
+            "The selected LLM provider is not available for this project.",
           );
         }
       }
@@ -522,7 +522,7 @@ router.post(
         databaseProps: props,
         allowedPermissions: new LlmProvider().getReadPermissions(),
         errorMessage:
-          "You do not have permission to read this project's AI providers.",
+          "You do not have permission to read this project's LLM providers.",
       });
 
       const [providers, defaultProvider, project]: [

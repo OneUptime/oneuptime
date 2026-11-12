@@ -50,6 +50,8 @@ const WRITE_TOOL_FILES: Array<string> = [
   "IncidentWriteTools.ts",
   "NoteWriteTools.ts",
   "SecurityCaseTools.ts",
+  // Ask AI's setup actions (#6829): a monitor, a policy, a status page.
+  "SetupTools.ts",
 ];
 
 function toolboxFiles(): Array<string> {

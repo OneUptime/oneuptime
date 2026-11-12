@@ -1481,7 +1481,7 @@ describe("Needs attention", () => {
       within(steps[1]!).getByTestId("ai-agent-gap-number"),
     ).toHaveTextContent("2.");
     expect(steps[1]).toHaveTextContent(
-      "Add an AI provider for this project, or use OneUptime AI credits.",
+      "Add an LLM provider for this project, or use OneUptime AI credits.",
     );
 
     // Not a row per gap with the server's title and next step any more.
@@ -2773,14 +2773,20 @@ describe("automatic investigation footer", () => {
     expect(
       within(confirm).getByTestId("confirm-modal-description").textContent,
     ).toBe(
-      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+      "This applies to every new incident and alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
     );
+    // One link a page it names, each named (#7158).
     expect(
       within(confirm)
-        .getByText("Open settings")
-        .closest("a")
-        ?.getAttribute("href"),
-    ).toBe(`/dashboard/${PROJECT_ID}/incidents/ai/settings`);
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return `${link.textContent} ${link.getAttribute("href")}`;
+        }),
+    ).toEqual([
+      `Incident AI settings /dashboard/${PROJECT_ID}/incidents/ai/settings`,
+      `Alert AI settings /dashboard/${PROJECT_ID}/alerts/ai/settings`,
+    ]);
+    expect(within(confirm).queryByText("Open settings")).toBeNull();
     expect(updateByIdSpy).not.toHaveBeenCalled();
 
     fireEvent.click(within(confirm).getByText("Turn on"));
@@ -2814,12 +2820,57 @@ describe("automatic investigation footer", () => {
     expect(
       within(confirm).getByTestId("confirm-modal-description").textContent,
     ).toBe(
-      "This applies to every new alert in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+      "This applies to every new alert in Acme, not just this cluster. Limits live under Alerts → AI → Settings.",
     );
+    /*
+     * The alerts' limits are on the alerts' AI settings page: the
+     * incidents' page has none of them to change (#7158).
+     */
+    expect(
+      within(confirm)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return `${link.textContent} ${link.getAttribute("href")}`;
+        }),
+    ).toEqual([`Open settings /dashboard/${PROJECT_ID}/alerts/ai/settings`]);
     fireEvent.click(within(confirm).getByText("Turn on"));
 
     expect(await waitForOneUpdate()).toEqual({
       enableAutomaticAlertInvestigation: true,
+    });
+  });
+
+  test("turning on incidents only opens the incidents' AI settings, as before", async () => {
+    grant(ADMIN_PERMISSIONS);
+    serve(
+      makeStatus({
+        automaticInvestigation: { incidents: false, alerts: true },
+      }),
+    );
+    openAgentPage();
+
+    fireEvent.click(
+      await findTestId("ai-access-automatic-investigation-turn-on"),
+    );
+    const confirm: HTMLElement = await findDialogTitled(
+      "Turn on automatic investigation?",
+    );
+    expect(
+      within(confirm).getByTestId("confirm-modal-description").textContent,
+    ).toBe(
+      "This applies to every new incident in Acme, not just this cluster. Limits live under Incidents → AI → Settings.",
+    );
+    expect(
+      within(confirm)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string => {
+          return `${link.textContent} ${link.getAttribute("href")}`;
+        }),
+    ).toEqual([`Open settings /dashboard/${PROJECT_ID}/incidents/ai/settings`]);
+    fireEvent.click(within(confirm).getByText("Turn on"));
+
+    expect(await waitForOneUpdate()).toEqual({
+      enableAutomaticIncidentInvestigation: true,
     });
   });
 

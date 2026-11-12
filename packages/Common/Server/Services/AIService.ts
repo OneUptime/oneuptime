@@ -35,6 +35,7 @@ import ProjectAiDailyLimits, {
   ProjectAiDailyUsage,
 } from "../../Types/AI/ProjectAiDailyLimits";
 import AiTokenCount from "../../Types/AI/AiTokenCount";
+import { getRecordAiTokenLimitRunError } from "../../Types/AI/RecordAiTokenLimit";
 import ProjectAiDailyLimitOwnerNotice from "../Utils/AI/ProjectAiDailyLimitOwnerNotice";
 import AiCreditsUsedUpOwnerNotice from "../Utils/AI/AiCreditsUsedUpOwnerNotice";
 import { PROJECT_AI_CREDITS_USED_UP_MESSAGE } from "../../Utils/Project/ProjectBalance";
@@ -1414,6 +1415,13 @@ export class Service extends BaseService {
      * (G9); interactive features are never blocked here. A run that crosses
      * the limit mid-flight errors on its next LLM call, which marks the AIRun
      * Error with this message — visible in the investigation panel.
+     *
+     * The message names the record's own setting - the Daily Incident (or
+     * Alert) AI Token Limit, under its AI settings' More settings - and
+     * tells a limit of 0, which pauses the work until someone raises it,
+     * from a limit used up today, which lifts at midnight UTC (#7157,
+     * Types/AI/RecordAiTokenLimit). The run's failure is read back from
+     * these words (AIRunAttempt, AIInvestigationEngine).
      */
     if (AUTONOMOUS_AI_FEATURES.includes(request.feature)) {
       const budget: AutonomousBudgetStatus =
@@ -1423,10 +1431,13 @@ export class Service extends BaseService {
         });
 
       if (budget.exhausted) {
-        const settingsLocation: string = request.incidentId
-          ? "Incidents > AI > Settings"
-          : "Alerts > AI > Settings";
-        const budgetMessage: string = `Daily autonomous AI token budget exhausted (${budget.usedTokensToday.toLocaleString("en-US")} of ${budget.limitInTokens?.toLocaleString("en-US")} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${settingsLocation}.`;
+        const budgetMessage: string = getRecordAiTokenLimitRunError(
+          request.incidentId ? "incident" : "alert",
+          {
+            limitInTokens: budget.limitInTokens,
+            usedTokensToday: budget.usedTokensToday,
+          },
+        );
 
         logEntry.status = LlmLogStatus.BudgetExceeded;
         logEntry.statusMessage = budgetMessage.substring(0, 490);
@@ -1630,7 +1641,7 @@ export class Service extends BaseService {
         error instanceof Error ? error.message : String(error);
       const errorMessage: string =
         request.storeErrorDetails === false
-          ? "The AI provider request failed. Review the provider configuration and try again."
+          ? "The LLM provider request failed. Review the provider under Project Settings → AI → LLM Providers, then try again."
           : rawErrorMessage;
 
       /*

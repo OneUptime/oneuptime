@@ -410,7 +410,7 @@ describe("a written Project Settings path, as a reader follows it", () => {
     ],
     [
       "Project Settings called Settings, by the chat's provider picker",
-      "No AI providers configured yet. Add one in Settings → AI → LLM Providers.",
+      "No LLM providers configured yet. Add one in Settings → AI → LLM Providers.",
       [
         'calls Project Settings "Settings", a section every product\'s menu has: write Project Settings > AI > LLM Providers',
       ],
@@ -662,6 +662,8 @@ describe("every Project Settings path OneUptime writes is one a reader can follo
       [
         "Project Settings > AI > AI Features",
         "Project Settings > AI > LLM Providers",
+        // A failed model call names the provider's page too (#7156).
+        "Project Settings > AI > LLM Providers",
       ],
     ],
     [
@@ -797,7 +799,7 @@ describe("every translation names the path as its language's Dashboard draws it"
   // The Dashboard's texts this sweep rewrote, one of each kind.
   const REWRITTEN: ReadonlyArray<string> = [
     "Go to Project Settings → AI → AI Features",
-    "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.",
+    "No LLM providers configured yet. Add one in Project Settings → AI → LLM Providers.",
     "Only domains verified in Project Settings → Advanced → Domains are listed.",
     "Project Settings → Advanced → API Keys",
     "Project Settings → Notifications → Notification Settings",
