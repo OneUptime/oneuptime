@@ -119,6 +119,12 @@ const HEADING_PATTERN: RegExp = /^(#{1,6})\s+(.+?)\s*#*\s*$/;
 
 const FENCE_PATTERN: RegExp = /^\s*(```|~~~)/;
 
+// A link that names a scheme (https:, mailto:) leaves the repository.
+const EXTERNAL_LINK_PATTERN: RegExp = /^[a-z][a-z0-9+.-]*:/i;
+
+// An indented line carries on the bullet above it.
+const CONTINUATION_PATTERN: RegExp = /^\s+\S/;
+
 // How much of a file's top is read for its UX rule line.
 const HEADER_BYTES: number = 4096;
 
@@ -197,7 +203,7 @@ export function linkTargets(text: string): Array<string> {
 }
 
 export function isExternalLink(target: string): boolean {
-  return /^[a-z][a-z0-9+.-]*:/i.test(target);
+  return EXTERNAL_LINK_PATTERN.test(target);
 }
 
 // A link from the guide, as a path from the repository's root (no #section).
@@ -237,7 +243,7 @@ export function rulesIn(text: string): Array<string> {
       continue;
     }
 
-    if (current !== null && /^\s+\S/.test(line)) {
+    if (current !== null && CONTINUATION_PATTERN.test(line)) {
       current += "\n" + line.trim();
       continue;
     }
@@ -353,10 +359,7 @@ export function rulebookProblems(inputs: RulebookInputs): Array<string> {
       }
     }
 
-    if (
-      section.level > 0 &&
-      !SECTIONS_WITHOUT_RULES.includes(section.anchor)
-    ) {
+    if (section.level > 0 && !SECTIONS_WITHOUT_RULES.includes(section.anchor)) {
       for (const rule of rulesIn(section.text)) {
         if (ruleVerdict(rule) === "missing") {
           problems.push(
@@ -558,9 +561,15 @@ describe("reading the guide", () => {
 
   test("a heading inside a code block is not a section", () => {
     const sections: Array<GuideSection> = guideSections(
-      ["# Guide", "", "```md", "## Not a section", "```", "## Forms", "text"].join(
-        "\n",
-      ),
+      [
+        "# Guide",
+        "",
+        "```md",
+        "## Not a section",
+        "```",
+        "## Forms",
+        "text",
+      ].join("\n"),
     );
 
     expect(
@@ -584,9 +593,9 @@ describe("reading the guide", () => {
     expect(testsLinkedIn(text)).toEqual([
       "packages/Common/Tests/UI/Components/Forms/LongFormStepsGuard.test.ts",
     ]);
-    expect(repositoryPathOf("../../packages/E2E/Journeys/README.md#run-it")).toBe(
-      "packages/E2E/Journeys/README.md",
-    );
+    expect(
+      repositoryPathOf("../../packages/E2E/Journeys/README.md#run-it"),
+    ).toBe("packages/E2E/Journeys/README.md");
     expect(isTestFile("packages/E2E/Journeys/Journeys.spec.ts")).toBe(true);
     expect(isTestFile("Tests/Ops/JourneyBudgets.test.js")).toBe(true);
     expect(isTestFile("Tests/Ops/JourneyBudgets.json")).toBe(false);
@@ -636,16 +645,16 @@ describe("reading the guide", () => {
     ).toBe("missing");
     // A link to something other than a test is not a guard.
     expect(
-      ruleVerdict("- **R.** Enforced by [the README](../../Tests/Ops/README.md)."),
+      ruleVerdict(
+        "- **R.** Enforced by [the README](../../Tests/Ops/README.md).",
+      ),
     ).toBe("missing");
     expect(ruleVerdict("- **R.** Why it matters.")).toBe("missing");
   });
 
   test("a UX rule line is one exact comment; anything close to one is reported", () => {
     expect(
-      markersIn(
-        "// UX rule: Docs/ux/README.md#steps\nimport x from 'y';\n",
-      ),
+      markersIn("// UX rule: Docs/ux/README.md#steps\nimport x from 'y';\n"),
     ).toEqual({ anchors: ["steps"], malformed: [] });
     expect(
       markersIn(
@@ -669,7 +678,8 @@ describe("what keeps the guide and the guards in step", () => {
   const KEEPER: string = "packages/Common/Tests/App/Keeper.test.ts";
   const STEPS_GUARD: string = "packages/Common/Tests/UI/StepsGuard.test.ts";
   const DIALOG_GUARD: string = "packages/Common/Tests/UI/DialogGuard.test.ts";
-  const PLUMBING_GUARD: string = "packages/Common/Tests/UI/PlumbingGuard.test.ts";
+  const PLUMBING_GUARD: string =
+    "packages/Common/Tests/UI/PlumbingGuard.test.ts";
 
   const GUIDE: string = [
     "# The OneUptime UX rulebook",
@@ -787,7 +797,8 @@ describe("what keeps the guide and the guards in step", () => {
   });
 
   test("a guard that says it enforces a rule the guide does not name it for", () => {
-    const elsewhere: string = "packages/App/Tests/Notification/WordsGuard.test.ts";
+    const elsewhere: string =
+      "packages/App/Tests/Notification/WordsGuard.test.ts";
     const markers: Map<string, FoundMarker> = inputs().markers;
     markers.set(elsewhere, { anchors: ["steps"], malformed: [] });
 
@@ -966,7 +977,10 @@ describe("the rulebook in this repository", () => {
     );
     const simpleSection: string = agents.slice(
       agents.indexOf("### Keep OneUptime simple to use"),
-      agents.indexOf("\n### ", agents.indexOf("### Keep OneUptime simple to use") + 1),
+      agents.indexOf(
+        "\n### ",
+        agents.indexOf("### Keep OneUptime simple to use") + 1,
+      ),
     );
 
     expect(simpleSection).toContain(`[${GUIDE_PATH}](${GUIDE_PATH})`);
