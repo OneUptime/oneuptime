@@ -2,6 +2,9 @@
 
 An on-call policy pages people in levels. Each escalation rule is one level: who gets paged, and how long to wait for somebody to acknowledge before the next level is paged. A policy's rules are listed, in order, on its **Escalation Rules** page.
 
+> [!TIP]
+> New here? Follow the guide first: [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 ```mermaid title="An on-call policy pages level by level until someone acknowledges"
 flowchart TB
     trigger["Incident or alert"] --> level1["Level 1 pages"]

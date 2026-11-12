@@ -88,6 +88,7 @@ Allt som personer skapar, ändrar eller tar bort i ett projekt registreras: öve
 | Aktivitetsflöden | Ett flöde visar ändringar som granskningsloggen redan registrerar. |
 | OneUptimes arbetstillstånd | Sessioner för läsare av statussidor, köade jobb och annat tillstånd som OneUptime håller medan det arbetar. |
 | En persons egen aviseringskonfiguration | Varje persons adresser, nummer och personliga jourregler tillhör bara dem. |
+| En persons egna preferenser | De produkter som varje person fäster i sitt eget övre fält tillhör bara dem, och bara de ser dem. |
 
 Det registreras också när en administratör lägger till eller tar bort en aviseringsmetod eller en personlig jourregel på någon annans konto, utan själva adressen eller numret.
 

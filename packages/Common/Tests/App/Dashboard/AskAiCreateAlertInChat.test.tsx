@@ -451,7 +451,7 @@ describe("the card under the answer, once the alert is raised", () => {
       .closest("dd") as HTMLElement;
     expect(description.tagName).toBe("DD");
     expect(description.className).toContain("break-words");
-    expect(description.className).toContain("line-clamp-2");
+    expect(description.className).toContain("line-clamp-4");
     expect(description.className).not.toContain("truncate");
   });
 

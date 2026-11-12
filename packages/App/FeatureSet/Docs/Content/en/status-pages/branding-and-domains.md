@@ -2,6 +2,9 @@
 
 Your status page is the one OneUptime screen your customers look at, so it should look like yours and live on your own domain, such as `status.yourcompany.com`. This page walks the **Branding** page card by card, then puts the page on your domain: add the domain, add its DNS records, and the free SSL certificate follows on its own.
 
+> [!TIP]
+> New here? Follow the guide first: [Publish a Status Page](/docs/guides/status-page).
+
 :::cards
 - [The Branding page](#the-branding-page): Logo, theme, title, favicon, links, footer, colors and languages.
 - [Custom HTML, CSS and JavaScript](#custom-html-css-and-javascript): Anything the built-in controls do not cover.

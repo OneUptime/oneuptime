@@ -22,6 +22,7 @@ import RunbookExecutionService from "../../../Services/RunbookExecutionService";
 import logger from "../../Logger";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
+import { getEmptyRunbookCardWords } from "./ReadCardWords";
 import {
   ObservabilityTool,
   ToolArgs,
@@ -391,14 +392,12 @@ export const QueryRunbooksTool: ObservabilityTool = {
               })
             : WidgetBuilder.resourceCard({
                 title: "Runbook",
-                resourceType: "Runbook",
                 heading: runbook.name || "Runbook",
-                subheading:
-                  runbook.isEnabled !== false ? "Enabled" : "Disabled",
-                fields: [
-                  { label: "Description", value: runbook.description || "—" },
-                  { label: "Steps", value: "0" },
-                ],
+                // In the reader's language (issue #7175).
+                words: getEmptyRunbookCardWords({
+                  description: runbook.description || undefined,
+                  isEnabled: runbook.isEnabled !== false,
+                }),
                 link: {
                   type: AIChatCitationTargetType.RunbookView,
                   params: { runbookId: runbookIdString },

@@ -102,6 +102,34 @@ menu are each named by their own button (no id twice on the page), open with
 Enter, and Escape puts them away with the focus back on the button.
 Screenshots are saved as `header-*.png`.
 
+`ProjectProducts.spec.ts` covers products that fit the project and pins
+that follow the person (issue #6814). The Dashboard's navbar asks the API
+for the project's products (`/api/project-products`): the fixture's page
+names its own server as the Dashboard's host, so the request stays on the
+page's origin, and the server answers it with nothing hidden and nothing
+pinned. The spec answers it itself with a project that hides the container
+and cluster products and pins Status Pages and Incidents, records every
+write and answers it as the server does. It checks that the pins sit right
+of Products in their order and open their product, as the current page on
+it; that a card's pin in the menu shows when the card is pointed at, pins
+without opening the product and tells the server, and unpins; that with
+five pinned a sixth card's pin cannot be pressed and says why; that five
+pins and their names fit the bar at 1280px and are icons that still name
+their product at 1024px; that the hidden products are the menu's last row,
+More products, with the note that Search still finds them (and the link to
+choose products only for those who may), and that Search finds and opens
+one; that a card names the plan a product needs and says when one is not
+set up; and that a phone's menu lists the pins under Home and the hidden
+products last. `?products=true` draws Project Settings > Products under
+Home's card for hidden products that have data: a switch for every product
+by its menu section (Users, Teams and Project Settings always shown), a
+switch that hides a product at once and says Saved, Show Every Product, the
+card's Show It, and no sideways scroll on a phone. Every page but the
+header's takes `?lang=de` or `?lang=ar` too: in German five pins still fit
+the bar at 1280px, in Arabic the pins sit after Products, to its left, and
+in the dark theme a pin is drawn as Home is. Screenshots are saved under
+`output/playwright/navigation-search/products`.
+
 For manual inspection, run `node NavigationSearch/server.js` and open
 `http://127.0.0.1:4242/dashboard/00000000-0000-4000-8000-000000000001/home`.
 The server builds before listening; restart it after changing source files.

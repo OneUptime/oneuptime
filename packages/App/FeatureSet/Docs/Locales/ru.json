@@ -89,6 +89,7 @@
   },
   "navGroups": {
     "Introduction": "Введение",
+    "Guides": "Руководства",
     "Moving to OneUptime": "Переход на OneUptime",
     "Installation": "Установка",
     "Mobile & Desktop Apps": "Мобильные и настольные приложения",
@@ -138,6 +139,8 @@
     "Which One Do I Use?": "Что выбрать?",
     "Home Page & Shortcuts": "Главная страница и сочетания клавиш",
     "Your Account": "Ваша учётная запись",
+    "Get Paged by Phone, SMS or Push": "Получать оповещения звонком, SMS или push",
+    "Publish a Status Page": "Опубликовать страницу статуса",
     "Moving from Opsgenie": "Переход с Opsgenie",
     "Moving from PagerDuty": "Переход с PagerDuty",
     "Moving from incident.io": "Переход с incident.io",

@@ -474,7 +474,7 @@ describe("a resource's AI agent page in the reader's language", () => {
         ],
         [
           "llm_provider_missing",
-          "Add an AI provider for this project, or use OneUptime AI credits.",
+          "Add an LLM provider for this project, or use OneUptime AI credits.",
           "Open LLM Providers",
         ],
       ] as Array<[string, string, string]>) {

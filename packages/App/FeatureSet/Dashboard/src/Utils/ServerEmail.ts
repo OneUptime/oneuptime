@@ -57,10 +57,10 @@ export const SERVER_EMAIL_COPY: {
   done: string;
 } = {
   createMonitorDescription: translationKey(
-    "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert. This server cannot send email yet, so nobody is emailed: ask your server's admin to set up email.",
+    "Pick what to monitor and give it a name. When something goes wrong, OneUptime opens an incident or alert. This server cannot send email yet, so nobody is emailed: ask your server's admin to set up email.",
   ),
   createMonitorDescriptionForAdmin: translationKey(
-    "Pick what to monitor and give it a name. Everything else starts with defaults you can change. When something goes wrong, OneUptime opens an incident or alert. This server cannot send email yet, so nobody is emailed until you set up email in the Admin Dashboard.",
+    "Pick what to monitor and give it a name. When something goes wrong, OneUptime opens an incident or alert. This server cannot send email yet, so nobody is emailed until you set up email in the Admin Dashboard.",
   ),
   onCallStepDescription: translationKey(
     "Page the right person when an incident or alert opens. This server cannot send email yet, so until then nobody is told: ask your server's admin to set up email.",
@@ -69,7 +69,7 @@ export const SERVER_EMAIL_COPY: {
     "Page the right person when an incident or alert opens. This server cannot send email yet, so until then nobody is told: set up email in the Admin Dashboard.",
   ),
   inviteEmailDescription: translationKey(
-    "This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email, or to send them their invitation link.",
+    "This server cannot send email yet, so they get no invitation email. The invitation is still created: ask your server's admin to set up email.",
   ),
   inviteEmailDescriptionForAdmin:
     INVITATION_LINK_COPY.inviteDescriptionForAdmin,

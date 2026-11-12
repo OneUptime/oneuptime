@@ -2,6 +2,9 @@
 
 Una policy di reperibilità avvisa le persone per livelli. Ogni regola di escalation è un livello: chi viene avvisato e quanto attendere che qualcuno confermi prima di avvisare il livello successivo. Le regole di una policy sono elencate, in ordine, nella sua pagina **Regole di escalation**.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
+
 ```mermaid title="Una policy di reperibilità avvisa livello per livello finché qualcuno conferma"
 flowchart TB
     trigger["Incidente o avviso"] --> level1["Level 1 avvisa"]

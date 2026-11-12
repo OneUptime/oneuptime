@@ -73,6 +73,11 @@ export enum ProductEventName {
   AskAiQuestionAsked = "ask_ai/question_asked",
   AskAiAnswerRated = "ask_ai/answer_rated",
 
+  // Ask AI sets things up (#6829): a plan proposed, approved, then tested.
+  AskAiSetupProposed = "ask_ai/setup_proposed",
+  AskAiSetupApproved = "ask_ai/setup_approved",
+  AskAiSetupTestPageSent = "ask_ai/setup_test_page_sent",
+
   // "Import from another tool" was opened.
   ImporterOpened = "importer/opened",
 
@@ -85,6 +90,19 @@ export enum ProductEventName {
   GuidedSetupFinished = "guided_setup/finished",
   GuidedSetupLeft = "guided_setup/left",
 
+  /*
+   * Somebody told OneUptime how something went (#6832): "How easy was
+   * that?" at the end of a guided setup, Give feedback, "Was this clear?"
+   * or the first-week check-in. Never the words they wrote.
+   */
+  FeedbackGiven = "feedback/given",
+
+  // Products that fit the project: hidden, shown and pinned (#6814).
+  ProductHidden = "products/product_hidden",
+  ProductShown = "products/product_shown",
+  AllProductsShown = "products/all_products_shown",
+  ProductPinned = "products/product_pinned",
+  ProductUnpinned = "products/product_unpinned",
   // Setup health (#6812): what is misconfigured in the project.
   SetupHealthOpened = "setup_health/opened",
   SetupHealthFixOpened = "setup_health/fix_opened",
@@ -100,6 +118,9 @@ export const SEARCH_QUERY_MAX_LENGTH: number = 40;
 
 // A word-like value (a step's key, where something was opened from) is cut to this.
 export const PRODUCT_EVENT_TOKEN_MAX_LENGTH: number = 60;
+
+// The page a feedback answer was given on: a route with no ids, cut to this.
+export const FEEDBACK_PAGE_TOKEN_MAX_LENGTH: number = 200;
 
 export interface ProductEventPropertySpec {
   name: string;
@@ -253,6 +274,32 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     properties: [token("rating")],
   },
   {
+    name: ProductEventName.AskAiSetupProposed,
+    description:
+      "Ask AI proposed a setup plan on one approval card: its parts (paging, website_monitor, status_page, status_page_monitors), how many, and the permission mode.",
+    properties: [
+      token("parts"),
+      { name: "part_count" },
+      token("permission_mode"),
+    ],
+  },
+  {
+    name: ProductEventName.AskAiSetupApproved,
+    description:
+      "A setup plan's card was answered: the parts approved, and how many were approved and skipped.",
+    properties: [
+      token("parts"),
+      { name: "approved_count" },
+      { name: "skipped_count" },
+    ],
+  },
+  {
+    name: ProductEventName.AskAiSetupTestPageSent,
+    description:
+      "A test page was sent from under an answer that set something up: to yourself or to the policy it made (target).",
+    properties: [token("target")],
+  },
+  {
     name: ProductEventName.ImporterOpened,
     description:
       '"Import from another tool" was opened, and from where (?from= on its address, "settings" when it says nothing).',
@@ -284,6 +331,53 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     name: ProductEventName.GuidedSetupLeft,
     description: "A guided setup was left before its end, and at which step.",
     properties: [token("setup"), token("step"), { name: "step_number" }],
+  },
+  {
+    name: ProductEventName.FeedbackGiven,
+    description:
+      'Somebody answered "How easy was that?" at the end of a guided setup, sent Give feedback, rated an explanation ("Was this clear?") or answered the first-week check-in: the kind, what it was about (topic), the score or thumbs, whether they wrote anything (has_details) and the page as a route with no ids. Never what they wrote.',
+    properties: [
+      token("kind"),
+      token("topic"),
+      { name: "score" },
+      { name: "is_positive" },
+      { name: "has_details" },
+      {
+        name: "page",
+        isToken: true,
+        maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH,
+      },
+    ],
+  },
+  {
+    name: ProductEventName.ProductHidden,
+    description:
+      "A product was hidden in the project (Project Settings > Products, or Home's Keep hidden), and whether it had data.",
+    properties: [token("product"), token("source"), { name: "has_data" }],
+  },
+  {
+    name: ProductEventName.ProductShown,
+    description:
+      "A hidden product was shown again in the project (Project Settings > Products, or Home's Show it).",
+    properties: [token("product"), token("source")],
+  },
+  {
+    name: ProductEventName.AllProductsShown,
+    description:
+      "Every product was shown again in the project, and how many had been hidden.",
+    properties: [{ name: "hidden_count" }],
+  },
+  {
+    name: ProductEventName.ProductPinned,
+    description:
+      "Somebody pinned a product to the nav bar (from the products menu or the product's page), and how many they have pinned now.",
+    properties: [token("product"), token("source"), { name: "pin_count" }],
+  },
+  {
+    name: ProductEventName.ProductUnpinned,
+    description:
+      "Somebody unpinned a product from the nav bar, and how many they have pinned now.",
+    properties: [token("product"), token("source"), { name: "pin_count" }],
   },
   {
     name: ProductEventName.SetupHealthOpened,

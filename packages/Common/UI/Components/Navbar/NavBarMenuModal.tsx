@@ -1,4 +1,8 @@
 import Icon from "../Icon/Icon";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
+import { Translator } from "../../Utils/TranslateTemplate";
+import { MAX_PINNED_PRODUCTS } from "../../../Types/Product/ProductPins";
+import useTranslator from "../../Utils/UseTranslator";
 import KeyboardShortcut, {
   KeyboardShortcutSize,
 } from "../KeyboardShortcut/KeyboardShortcut";
@@ -15,6 +19,8 @@ import NavBarCategoryToggle, {
 } from "./NavBarCategoryToggle";
 import {
   CategoryFolds,
+  DEFAULT_HIDDEN_PRODUCTS_TITLE,
+  getMenuItemsWithHidden,
   groupItemsByCategory,
   isMoreMenuItemActive,
   MenuCategory,
@@ -122,8 +128,35 @@ export interface ComponentProps {
   showCommandKShortcutHint?: boolean | undefined;
   keyboardHint?: string | undefined;
   recentLabel?: string | undefined;
+  /*
+   * The products the project hides (#6814): one more row at the foot of the
+   * list, hiddenTitle ("More products"), folded like the other categories.
+   * Search finds them, under that row's name; the Recently visited row
+   * leaves them out.
+   */
+  hiddenItems?: Array<MoreMenuItem> | undefined;
+  hiddenTitle?: string | undefined;
+  /*
+   * Drawn under the hidden products once their row is open, while idle,
+   * handed the function that closes the menu.
+   */
+  hiddenFooter?: ((closeMenu: () => void) => ReactElement) | undefined;
+  /*
+   * The products this person pinned (by key), and the pin on each card that
+   * pins or unpins it. Without onTogglePin, cards have no pin.
+   */
+  pinnedItems?: Array<MoreMenuItem> | undefined;
+  onTogglePin?: ((item: MoreMenuItem) => void) | undefined;
+  // Whether another product can be pinned; a card's pin is locked when not.
+  canPinMore?: boolean | undefined;
   onClose: () => void;
 }
+
+// The data-testid of a product card's pin.
+export const PRODUCT_PIN_BUTTON_TEST_ID: string = "navbar-menu-pin";
+
+// The data-testid of the box that draws the pin, or keeps it out of sight.
+export const PRODUCT_PIN_SLOT_TEST_ID: string = "navbar-menu-pin-slot";
 
 /*
  * One stop of the keyboard cursor, in the order the rows are on screen: a
@@ -147,6 +180,8 @@ type MenuEntry = ItemEntry | CategoryEntry;
 
 interface MenuGroup {
   key: string;
+  // The row of the products the project hides (#6814).
+  isHiddenRow: boolean;
   // Its place among the groups on screen, for the ids of its heading and body.
   index: number;
   title: string;
@@ -222,8 +257,29 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     string | undefined
   >(undefined);
 
+  const translator: Translator = useTranslator();
+  const hiddenTitle: string =
+    props.hiddenTitle || DEFAULT_HIDDEN_PRODUCTS_TITLE;
+  const hasHiddenRow: boolean = Boolean(
+    props.hiddenItems && props.hiddenItems.length > 0,
+  );
+  const menuItems: Array<MoreMenuItem> = useMemo(() => {
+    return getMenuItemsWithHidden({
+      items: props.items,
+      hiddenItems: props.hiddenItems,
+      hiddenTitle: hiddenTitle,
+    });
+  }, [props.items, props.hiddenItems, hiddenTitle]);
+  const pinnedKeys: Array<string> = (props.pinnedItems || [])
+    .map((item: MoreMenuItem): string => {
+      return item.key || "";
+    })
+    .filter((key: string): boolean => {
+      return key.length > 0;
+    });
+
   const folds: CategoryFolds = useCategoryFolds(
-    props.items,
+    menuItems,
     props.categoriesOpenByDefault,
   );
 
@@ -245,16 +301,16 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
   const filteredItems: MoreMenuItem[] = useMemo(() => {
     const normalizedQuery: string = query.trim().toLowerCase();
     if (!normalizedQuery) {
-      return props.items;
+      return menuItems;
     }
-    return props.items.filter((item: MoreMenuItem) => {
+    return menuItems.filter((item: MoreMenuItem) => {
       return [item.title, item.description, ...(item.keywords || [])].some(
         (value: string) => {
           return value.toLowerCase().includes(normalizedQuery);
         },
       );
     });
-  }, [props.items, query]);
+  }, [menuItems, query]);
 
   /*
    * The "Recent" row: the remembered products of this menu, without the
@@ -336,6 +392,8 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
 
       return {
         key: group.isRecent ? "recent" : `category:${group.title}`,
+        isHiddenRow:
+          hasHiddenRow && !group.isRecent && group.title === hiddenTitle,
         index,
         title: group.title,
         isRecent: group.isRecent,
@@ -626,10 +684,16 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
     const colors: IconColorClasses =
       ICON_COLOR_CLASSES[item.iconColor || "indigo"] ||
       ICON_COLOR_CLASSES["indigo"]!;
+    const canPin: boolean = Boolean(props.onTogglePin && item.key);
+    const isPinned: boolean = Boolean(
+      item.key && pinnedKeys.includes(item.key),
+    );
+    const isPinLocked: boolean = !isPinned && props.canPinMore === false;
     return (
       <div
         key={entry.key}
         id={entryElementId(entry)}
+        className="group/card relative"
         role="option"
         aria-selected={isActive}
         /*
@@ -650,6 +714,8 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
             selectItem(item);
           }}
           className={`group flex h-full items-start gap-3 rounded-xl border p-3 text-left transition-colors duration-150 ${
+            canPin ? "pe-9" : ""
+          } ${
             isActive
               ? "border-indigo-300 bg-indigo-50 shadow-sm"
               : isCurrent
@@ -674,12 +740,97 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                   className="h-1.5 w-1.5 flex-shrink-0 rounded-full bg-indigo-500"
                 />
               )}
+              {item.neededPlan ? (
+                /*
+                 * Said before the click (#6814): a product the project's
+                 * plan cannot use names the plan that can.
+                 */
+                <span
+                  data-testid="navbar-menu-plan"
+                  className="flex-shrink-0 rounded-full bg-yellow-50 px-1.5 text-[10px] font-medium leading-4 text-yellow-800 ring-1 ring-inset ring-yellow-200"
+                >
+                  {translator.translateTemplate("{{planName}} Plan", {
+                    planName: item.neededPlan,
+                  })}
+                </span>
+              ) : item.isNotSetUp ? (
+                <span
+                  data-testid="navbar-menu-not-set-up"
+                  className="flex-shrink-0 text-[11px] font-normal text-gray-400"
+                >
+                  {tx("Not set up")}
+                </span>
+              ) : null}
             </p>
             <p className="mt-0.5 text-xs leading-relaxed text-gray-500 line-clamp-2">
               {highlightMatch(item.description)}
             </p>
           </div>
         </Link>
+        {canPin && (
+          /*
+           * Beside the card's link, never inside it: the pin keeps the
+           * product in the bar, beside Home and Products. A pointer's
+           * shortcut, as the link is (NestedControlsGuard): the search box
+           * drives the list and a mouse press leaves focus in it, and the
+           * keyboard pins a product with Pin beside its page's title. It is
+           * drawn when pinned and on the card under the pointer or the
+           * cursor; with five pinned, a sixth is locked, in the shared
+           * locked look (ButtonStates).
+           */
+          <span
+            data-testid={PRODUCT_PIN_SLOT_TEST_ID}
+            className={`absolute end-2 top-2 transition-opacity duration-150 ${
+              isPinned || isActive
+                ? "opacity-100"
+                : "opacity-0 group-hover/card:opacity-100"
+            }`}
+          >
+            <button
+              type="button"
+              tabIndex={-1}
+              data-testid={PRODUCT_PIN_BUTTON_TEST_ID}
+              aria-pressed={isPinned}
+              aria-label={translator.translateTemplate(
+                isPinned ? "Unpin {{product}}" : "Pin {{product}}",
+                { product: item.title },
+              )}
+              title={
+                isPinLocked
+                  ? translator.translatePlural(
+                      {
+                        one: "You can pin up to {{count}} product. Unpin one first.",
+                        other:
+                          "You can pin up to {{count}} products. Unpin one first.",
+                      },
+                      MAX_PINNED_PRODUCTS,
+                    )
+                  : translator.translateTemplate(
+                      isPinned ? "Unpin {{product}}" : "Pin {{product}}",
+                      { product: item.title },
+                    )
+              }
+              disabled={isPinLocked}
+              onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                event.preventDefault();
+              }}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                event.stopPropagation();
+                props.onTogglePin?.(item);
+              }}
+              className={`block rounded-md p-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                isPinned ? "text-indigo-600" : "text-gray-400"
+              } ${getHandDrawnButtonStateClassName({
+                isLocked: isPinLocked,
+                hoverClassName: isPinned
+                  ? "hover:bg-gray-100"
+                  : "hover:bg-gray-100 hover:text-gray-700",
+              })}`}
+            >
+              <Icon icon={IconProp.Pin} className="h-4 w-4" />
+            </button>
+          </span>
+        )}
       </div>
     );
   };
@@ -772,6 +923,14 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
             }`}
           >
             {group.shownEntries.map(renderProduct)}
+            {group.isHiddenRow && !isSearching && props.hiddenFooter && (
+              <div
+                data-testid="navbar-menu-hidden-footer"
+                className="col-span-full px-1 pb-1 text-xs text-gray-500"
+              >
+                {props.hiddenFooter(props.onClose)}
+              </div>
+            )}
           </div>
         )}
       </div>

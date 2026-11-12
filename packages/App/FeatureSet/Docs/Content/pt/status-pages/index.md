@@ -2,6 +2,9 @@
 
 Uma página de status é a face pública de tudo o que você monitora: uma única URL que seus clientes podem abrir em vez de escrever para você perguntando se o problema é só com eles. Ela mostra o status atual dos serviços que você escolhe expor, os incidentes em que você está trabalhando, a manutenção que você planejou e qualquer anúncio que queira fixar no topo. Para escolher entre uma página de status e um painel, veja [Qual devo usar?](/docs/introduction/which-one#painel-painel-público-ou-página-de-status).
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Publicar uma página de status](/docs/guides/status-page).
+
 Quando algo quebra às 2 da manhã, a página de status é a primeira coisa para a qual sua fila de suporte aponta. É também de onde seus assinantes são notificados, então vale a pena configurá-la antes de precisar dela, não no meio da indisponibilidade.
 
 :::cards
@@ -165,7 +168,7 @@ O que os visitantes veem é definido em um único cartão: **O que sua página d
 
 Se a página mostra um item **Inscrever-se** (**Mostrar página de assinantes**, `showSubscriberPageOnStatusPage`, ligado por padrão) e por quais canais os visitantes podem se inscrever não é definido nesta tela: as duas coisas ficam no cartão **Canais** de **Assinantes → Configurações de assinantes** (veja [Canais de inscrição](/docs/status-pages/subscribers#canais-de-inscrição)).
 
-Abaixo do cartão ficam **Exportar como JSON: Página de status**, que baixa as configurações da própria página de status em um arquivo que você pode importar de novo, e **Archive status page** (veja [Arquivar uma página de status](#arquivar-uma-página-de-status)). O percentual geral de tempo de atividade e os status de indisponibilidade eram antes dois cartões próprios aqui, cada um atrás de um botão **Editar**; agora são linhas do cartão.
+Abaixo do cartão ficam **Exportar como JSON: Página de status**, que baixa as configurações da própria página de status em um arquivo que você pode importar de novo, e **Arquivar: página de status** (veja [Arquivar uma página de status](#arquivar-uma-página-de-status)). O percentual geral de tempo de atividade e os status de indisponibilidade eram antes dois cartões próprios aqui, cada um atrás de um botão **Editar**; agora são linhas do cartão.
 
 **Onde ficam as cores.** As cores das barras de tempo de atividade não ficam aqui: a **Cor Padrão da Barra** e as regras de cor das barras ficam em **Mais configurações** em **Páginas de status → sua página → Marca → Marca**. O **Tema** da página (claro, escuro ou conforme o dispositivo de cada visitante) é um cartão perto do topo dessa mesma página. Não existe nenhuma configuração de cor da marca; tudo o que vai além desses controles é feito com **CSS Personalizado**.
 
@@ -238,7 +241,7 @@ Arquive uma página de status para tirá-la do ar sem excluí-la. Uma página de
 - **Sai da lista de páginas de status.** Você a encontra em **Páginas de status → Avançado → Arquivado**.
 - **Mantém tudo.** Seus recursos, grupos, marca, domínios, usuários privados e assinantes são mantidos, então desarquivá-la coloca a página de volta no ar exatamente como estava.
 
-Para arquivar uma página de status, abra-a e vá a **Avançado → Configurações avançadas → Archive status page**. Para arquivar várias, selecione-as na lista **Páginas de status** e escolha **Arquivar**. Para recuperar uma, abra **Páginas de status → Avançado → Arquivado**, selecione-a e escolha **Desarquivar**, ou abra-a e clique em **Desarquivar** no banner no topo das páginas dela.
+Para arquivar uma página de status, abra-a e vá a **Avançado → Configurações avançadas → Arquivar: página de status**. Para arquivar várias, selecione-as na lista **Páginas de status** e escolha **Arquivar**. Para recuperar uma, abra **Páginas de status → Avançado → Arquivado**, selecione-a e escolha **Desarquivar**, ou abra-a e clique em **Desarquivar** no banner no topo das páginas dela.
 
 ## Próximos passos
 

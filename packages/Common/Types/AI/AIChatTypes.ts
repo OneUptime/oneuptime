@@ -269,7 +269,23 @@ export interface AIChatWidgetData {
    */
   statusColor?: string | undefined;
   link?: AIChatCitationTarget | undefined;
+  /*
+   * The test page a setup action's card offers once its record exists
+   * (#6829, #6811): to yourself for a monitor you now own, or to the
+   * on-call policy just made. The Dashboard offers it once under the
+   * answer (the policy's first), and the test page's own route checks the
+   * person may send it.
+   */
+  testPage?: AIChatTestPageOffer | undefined;
 }
+
+/*
+ * Who a test page goes to (#6811's POST /on-call-test-page/page-person and
+ * /page-policy): the person reading the answer, or an on-call policy by id.
+ */
+export type AIChatTestPageOffer =
+  | { kind: "self" }
+  | { kind: "policy"; policyId: string; policyName?: string | undefined };
 
 export interface AIChatWidget {
   id: string; // "W1", "W2" — sequential per message

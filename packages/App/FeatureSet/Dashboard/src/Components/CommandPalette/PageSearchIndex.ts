@@ -509,6 +509,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               },
             ],
           },
+          /*
+           * The products this project shows (#6814): found by what people
+           * call what it does - hiding what they do not use, choosing what
+           * the menu lists.
+           */
+          {
+            page: PageMap.SETTINGS_PRODUCTS,
+            title: "Products",
+            icon: IconProp.Squares,
+            keywords: [
+              "hide products",
+              "show products",
+              "hidden products",
+              "choose products",
+              "products menu",
+              "more products",
+              "customize menu",
+              "show every product",
+            ],
+          },
           {
             page: PageMap.SETTINGS_LABELS,
             title: "Labels",
@@ -4286,8 +4306,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             page: PageMap.USER_PROFILE_OVERVIEW,
             title: "Overview",
             icon: IconProp.Info,
-            keywords: ["my profile", "profile", "my name", "my email"],
-            settings: ["Basic Info", "Full Name", "Timezone"],
+            keywords: [
+              "my profile",
+              "profile",
+              "my name",
+              "my email",
+              "feedback",
+              "survey",
+              "stop asking",
+            ],
+            settings: [
+              "Basic Info",
+              "Full Name",
+              "Timezone",
+              "Feedback Questions",
+              "Ask me how things went",
+            ],
           },
           {
             page: PageMap.USER_PROFILE_PICTURE,
