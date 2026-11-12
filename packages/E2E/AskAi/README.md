@@ -117,10 +117,10 @@ fails on any uncaught page error:
   words in German and in Persian - the alert's title and the host's name as written, set apart
   in the Persian sentences, each read right to left - with Allow and Skip beside the title in a
   panel dragged wide and under its whole title on a phone, and the row a run leaves in German;
-- a code change's cautions: each file Ask AI would write over unseen a line of its own, marked
-  with the card's amber at the start the page reads from, level with its first line, in the order
-  the card weighs them and above the commit's message and files; the dark theme's amber; and on a
-  phone in Persian, each read right to left with its mark on the right, nothing wider than the
-  screen.
+- a code change's cautions: each file Ask AI would write over unseen a line of its own inside the
+  card, marked with the card's amber at the start the page reads from, level with its first line,
+  in the order the card weighs them and above the commit's message and files; the dark theme's
+  amber; and on a phone in Persian, each read right to left with its mark on the right, wrapping
+  inside the card, nothing wider than the screen.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.
