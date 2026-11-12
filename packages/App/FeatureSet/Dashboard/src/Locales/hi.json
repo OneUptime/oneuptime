@@ -50475,7 +50475,7 @@
   "Requests to {{name}} reach OneUptime.": "{{name}} के अनुरोध OneUptime तक पहुँचते हैं।",
   "See global probes": "वैश्विक प्रोब देखें",
   "Send them their invitation link": "उन्हें उनका निमंत्रण लिंक भेजें",
-  "Server Sending Health": "सर्वर भेजने की स्थिति",
+  "Server Sending Health": "सर्वर भेजने का स्वास्थ्य",
   "Set up email": "ईमेल सेट अप करें",
   "Shows this project owns {{domain}}. You add it once, for every address on {{domain}}.": "दिखाता है कि {{domain}} इस प्रोजेक्ट का है। आप इसे एक बार जोड़ते हैं, {{domain}} पर हर पते के लिए।",
   "The address people will open. Next, we show the DNS records to add: a CNAME record for this address, and a TXT record for its domain if this project has not verified it yet.": "वह पता जिसे लोग खोलेंगे। इसके बाद हम जोड़ने के लिए DNS रिकॉर्ड दिखाते हैं: इस पते के लिए एक CNAME रिकॉर्ड, और अगर इस प्रोजेक्ट ने उसका डोमेन अभी सत्यापित नहीं किया है, तो उस डोमेन के लिए एक TXT रिकॉर्ड।",

@@ -370,8 +370,49 @@ describe("Help menu", () => {
 
   test("links to this instance's docs, not a hard-coded public URL", () => {
     expect(source).toContain('import{DOCS_URL}from"Common/UI/Config";');
-    expect(source).toContain("url={URL.fromString(DOCS_URL.toString())}");
+    /*
+     * Help's entries are one list (useHelpEntries, #6816) that the header's
+     * menu and the phone's menu both draw, each entry by its url:
+     * Documentation is this instance's DOCS_URL, and Quickstart and the
+     * Glossary are pages under it, in the reader's language.
+     */
+    expect(source).toMatch(
+      /id:"documentation",[^}]*url:URL\.fromString\(DOCS_URL\.toString\(\)\)/,
+    );
+    expect(source).toMatch(
+      /id:"quickstart",[^}]*url:URL\.fromString\(getDocsPageUrl\(QUICKSTART_DOCS_PAGE,language\)\)/,
+    );
+    expect(source).toMatch(
+      /id:"glossary",[^}]*url:URL\.fromString\(getDocsPageUrl\(GLOSSARY_INDEX_DOCS_PAGE,language\)\)/,
+    );
+    expect(source).toContain("url={entry.url}");
     expect(source).not.toContain("oneuptime.com/docs");
+
+    // getDocsPageUrl puts the page under DOCS_URL too.
+    const glossary: string = fs
+      .readFileSync(
+        path.join(
+          __dirname,
+          "..",
+          "..",
+          "..",
+          "Common",
+          "UI",
+          "Utils",
+          "Glossary.ts",
+        ),
+        "utf8",
+      )
+      .replace(/\s+/g, "");
+
+    expect(glossary).toContain('import{DOCS_URL}from"../Config";');
+    expect(glossary).toContain(
+      'return`${DOCS_URL.toString()}${docsPath.replace(/^\\/docs/,"")}`;',
+    );
+    expect(glossary).toContain(
+      "returntoDocsUrl(getDocsPagePath(page,language));",
+    );
+    expect(glossary).not.toContain("oneuptime.com/docs");
   });
 
   test("the ways to learn come first: Quickstart, How OneUptime works, Glossary, Documentation", () => {

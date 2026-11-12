@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -770,7 +771,7 @@ describe("the page", () => {
     const choose: ReturnType<typeof jest.spyOn> = jest
       .spyOn(ServerSetupChecklistLoader, "choose")
       .mockResolvedValue(answered);
-    const onAnswer: jest.Mock = jest.fn();
+    const onAnswer: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
 
     const checklist: HTMLElement = await renderIn(
       "en",
@@ -822,7 +823,7 @@ describe("the page", () => {
     jest
       .spyOn(ServerSetupChecklistLoader, "choose")
       .mockRejectedValue(new Error("Only master admins can do this."));
-    const onAnswer: jest.Mock = jest.fn();
+    const onAnswer: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
 
     const checklist: HTMLElement = await renderIn(
       "en",

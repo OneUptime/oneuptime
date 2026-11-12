@@ -25,7 +25,9 @@ import splitActionButtons, {
 } from "../../../UI/Components/ActionButton/SplitActionButtons";
 import { ModalType } from "../../../UI/Components/ModelTable/BaseModelTable";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
-import { FormFieldCollapsibleSection } from "../../../UI/Components/Forms/Types/Field";
+import Field, {
+  FormFieldCollapsibleSection,
+} from "../../../UI/Components/Forms/Types/Field";
 import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import Filter from "../../../UI/Components/ModelFilter/Filter";
 import StatusPageDomains from "../../../../App/FeatureSet/Dashboard/src/Pages/StatusPages/View/Domains";
@@ -52,7 +54,6 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainKinds";
 import { getAddCustomDomainFields } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/AddCustomDomainModal";
 import { CustomDomainAddressCopy } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainAddress";
-import Field from "../../../UI/Components/Forms/Types/Field";
 import { CUSTOM_DOMAIN_NAME_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/CustomDomain/CustomDomainName";
 import FieldType from "../../../UI/Components/Types/FieldType";
 import API from "../../../UI/Utils/API/API";
@@ -440,17 +441,6 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
   function tableProps(): ModelTableProps<CustomDomainModel> {
     expect(mockTableProps).not.toBeNull();
     return mockTableProps!;
-  }
-
-  function fieldOf(key: string): ModelField<CustomDomainModel> {
-    const field: ModelField<CustomDomainModel> | undefined = (
-      tableProps().formFields || []
-    ).find((candidate: ModelField<CustomDomainModel>) => {
-      return Object.keys(candidate.field || {})[0] === key;
-    });
-
-    expect(field).toBeDefined();
-    return field!;
   }
 
   // The fields the Create or the Edit dialog is given, as ModelTable picks them.
@@ -1518,11 +1508,11 @@ describe.each(PAGES)("Custom Domains on $name", (page: PageCase) => {
         "customCertificateKey",
       ]);
 
-      const sections: Array<unknown> = fields.slice(1).map(
-        (field: Field<FormValues<JSONObject>>) => {
+      const sections: Array<unknown> = fields
+        .slice(1)
+        .map((field: Field<FormValues<JSONObject>>) => {
           return field.collapsibleSection;
-        },
-      );
+        });
 
       expect(sections[0]).toBeDefined();
       expect(sections[1]).toBe(sections[0]);

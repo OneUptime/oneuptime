@@ -1,4 +1,6 @@
 import CustomDomainServerReadiness from "../../../../Server/Utils/CustomDomain/CustomDomainServerReadiness";
+import { EncryptionSecret } from "../../../../Server/EnvironmentConfig";
+import TokenSigningKey from "../../../../Server/Utils/TokenSigningKey";
 import DnsLookup, {
   DnsLookupAnswer,
   DnsLookupFailure,
@@ -22,6 +24,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import crypto from "crypto";
 
 /*
  * Whether a self-hosted server can serve a custom domain, checked before
@@ -145,10 +148,64 @@ describe("the readiness proof", () => {
       "x".repeat(500),
       `${nonce.toUpperCase()}.${signature}`,
     ]) {
-      expect([forged, CustomDomainServerReadiness.isValidProof(forged)]).toEqual(
-        [forged, false],
-      );
+      expect([
+        forged,
+        CustomDomainServerReadiness.isValidProof(forged),
+      ]).toEqual([forged, false]);
     }
+  });
+
+  test("a proof is signed with a key of its own: ENCRYPTION_SECRET, public while it is a shipped value, or the key every token shares, is refused", () => {
+    // This process's ENCRYPTION_SECRET is unset: the shipped fallback.
+    expect(TokenSigningKey.isEncryptionSecretUsed()).toBe(false);
+
+    const nonce: string = "0123456789abcdef0123456789abcdef";
+    const proofSignedWith: (key: string | Buffer) => string = (
+      key: string | Buffer,
+    ): string => {
+      const signature: string = crypto
+        .createHmac("sha256", key)
+        .update(`custom-domain-readiness:${nonce}`)
+        .digest("hex");
+
+      return `${nonce}.${signature}`;
+    };
+
+    expect(
+      CustomDomainServerReadiness.isValidProof(
+        proofSignedWith(EncryptionSecret.toString()),
+      ),
+    ).toBe(false);
+    expect(
+      CustomDomainServerReadiness.isValidProof(
+        proofSignedWith(TokenSigningKey.get()),
+      ),
+    ).toBe(false);
+
+    // Control: the same nonce under the proof's own derived key is valid.
+    expect(
+      CustomDomainServerReadiness.isValidProof(
+        proofSignedWith(
+          TokenSigningKey.deriveKey("custom-domain-readiness-proof"),
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  test("a proof holds only under the signing key it was made with", () => {
+    const proof: string = CustomDomainServerReadiness.createProof();
+
+    // The installation loads a key of its own, as the server does at boot.
+    TokenSigningKey.useInstallationKey(
+      TokenSigningKey.generateInstallationKey(),
+    );
+
+    expect(CustomDomainServerReadiness.isValidProof(proof)).toBe(false);
+    expect(
+      CustomDomainServerReadiness.isValidProof(
+        CustomDomainServerReadiness.createProof(),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -162,7 +219,10 @@ describe("the readiness check", () => {
         return [item.id, item.outcome];
       }),
     ).toEqual([
-      [CustomDomainReadinessCheckId.TargetSet, CustomDomainReadinessOutcome.Pass],
+      [
+        CustomDomainReadinessCheckId.TargetSet,
+        CustomDomainReadinessOutcome.Pass,
+      ],
       [
         CustomDomainReadinessCheckId.TargetResolves,
         CustomDomainReadinessOutcome.Pass,
@@ -179,9 +239,11 @@ describe("the readiness check", () => {
 
     expect(probedUrls).toHaveLength(1);
     const url: string = probedUrls[0]!;
-    expect(url.startsWith(
-      `http://oneuptime.yourcompany.com${CustomDomainServerReadiness.PROOF_PATH}`,
-    )).toBe(true);
+    expect(
+      url.startsWith(
+        `http://oneuptime.yourcompany.com${CustomDomainServerReadiness.PROOF_PATH}`,
+      ),
+    ).toBe(true);
     expect(
       CustomDomainServerReadiness.isValidProof(
         url.substring(url.lastIndexOf("/") + 1),
@@ -259,9 +321,9 @@ describe("the readiness check", () => {
         check(result, CustomDomainReadinessCheckId.Port80)!,
       ),
     ).toContain("does not answer on port 80");
-    expect(
-      check(result, CustomDomainReadinessCheckId.Port443)?.outcome,
-    ).toBe(CustomDomainReadinessOutcome.Fail);
+    expect(check(result, CustomDomainReadinessCheckId.Port443)?.outcome).toBe(
+      CustomDomainReadinessOutcome.Fail,
+    );
   });
 
   test("without a Let's Encrypt key it warns, and is still ready", async () => {

@@ -143,12 +143,11 @@ import HTTPResponse from "../../../Types/API/HTTPResponse";
 import { JSONObject } from "../../../Types/JSON";
 import Domain from "../../../Models/DatabaseModels/Domain";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
-import {
+import DnsRecordCheckJSON, {
   DnsRecordCheck,
   DnsRecordCheckOutcome,
   DnsRecordType,
 } from "../../../Types/CustomDomain/DnsRecordCheck";
-import DnsRecordCheckJSON from "../../../Types/CustomDomain/DnsRecordCheck";
 import { CustomDomainCertificateStatus } from "../../../Types/CustomDomain/CustomDomainVerification";
 import {
   CustomDomainReadinessCheckId,
@@ -220,7 +219,9 @@ function record(
     type,
     name: type === DnsRecordType.TXT ? "acme.com" : "status.acme.com",
     expectedValue:
-      type === DnsRecordType.TXT ? "oneuptime-verification-abc" : mockCnameRecord,
+      type === DnsRecordType.TXT
+        ? "oneuptime-verification-abc"
+        : mockCnameRecord,
     foundValues: [],
     outcome,
     checkedAt: new Date("2026-11-11T10:00:00.000Z"),
@@ -238,8 +239,8 @@ function projectDomain(isVerified: boolean, name: string = "acme.com"): Domain {
 }
 
 let projectDomains: Array<Domain>;
-let getList: jest.SpiedFunction<typeof ModelAPI.getList>;
-let create: jest.SpiedFunction<typeof ModelAPI.create>;
+let getList: ReturnType<typeof jest.spyOn>;
+let create: ReturnType<typeof jest.spyOn>;
 let createdModels: Array<BaseModel>;
 let permissions: Array<Permission>;
 
@@ -370,373 +371,376 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-describe.each(KINDS)("Add Custom Domain, on $name page", (kindCase: KindCase) => {
-  test("asks for one thing, the address, and says two records may follow", () => {
-    renderDialog(kindCase);
+describe.each(KINDS)(
+  "Add Custom Domain, on $name page",
+  (kindCase: KindCase) => {
+    test("asks for one thing, the address, and says two records may follow", () => {
+      renderDialog(kindCase);
 
-    expect(within(dialog()).getByText(CustomDomainCopy.addTitle)).toBeTruthy();
-    expect(
-      within(dialog()).getByPlaceholderText(kindCase.placeholder),
-    ).toBeTruthy();
-    expect(dialog().textContent).toContain(
-      CustomDomainCopy.addAddressDescription,
-    );
-    // No subdomain, no list of domains to pick from.
-    expect(within(dialog()).queryByText("Subdomain")).toBeNull();
-    expect(within(dialog()).queryByText("Select domain")).toBeNull();
-  });
-
-  test("an address that is not one is refused, and nothing is read or added", async () => {
-    renderDialog(kindCase);
-
-    await addAddress(kindCase, "not a domain");
-
-    await waitFor(() => {
+      expect(
+        within(dialog()).getByText(CustomDomainCopy.addTitle),
+      ).toBeTruthy();
+      expect(
+        within(dialog()).getByPlaceholderText(kindCase.placeholder),
+      ).toBeTruthy();
       expect(dialog().textContent).toContain(
-        CustomDomainAddressCopy.invalidAddress,
+        CustomDomainCopy.addAddressDescription,
       );
-    });
-    expect(getList).not.toHaveBeenCalled();
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  test("on a domain the project has verified, the custom domain is added at once", async () => {
-    projectDomains = [projectDomain(true)];
-
-    const rendered: Rendered = renderDialog(kindCase);
-
-    await addAddress(kindCase, "https://Status.Acme.com/");
-
-    await waitFor(() => {
-      expect(rendered.onAdded).toHaveBeenCalledTimes(1);
+      // No subdomain, no list of domains to pick from.
+      expect(within(dialog()).queryByText("Subdomain")).toBeNull();
+      expect(within(dialog()).queryByText("Select domain")).toBeNull();
     });
 
-    expect(createdOf(Domain)).toHaveLength(0);
+    test("an address that is not one is refused, and nothing is read or added", async () => {
+      renderDialog(kindCase);
 
-    const created: Record<string, unknown> = createdModels[0] as unknown as Record<
-      string,
-      unknown
-    >;
+      await addAddress(kindCase, "not a domain");
 
-    expect(createdModels[0]).toBeInstanceOf(kindCase.kind.modelType);
-    expect(created["subdomain"]).toBe("status");
-    expect((created["domainId"] as ObjectID).toString()).toBe(
-      PROJECT_DOMAIN_ID,
-    );
-    expect((created["projectId"] as ObjectID).toString()).toBe(
-      PROJECT_ID.toString(),
-    );
-    expect(
-      (created[kindCase.kind.parentColumn] as ObjectID).toString(),
-    ).toBe(PARENT_ID.toString());
-    expect(created["isCustomCertificate"]).toBe(false);
-
-    const added: CustomDomainModel = rendered.onAdded.mock.calls[0]![0];
-    expect(added.fullDomain).toBe("status.acme.com");
-    expect(rendered.onChanged).toHaveBeenCalled();
-    // No TXT to check: the domain is verified.
-    expect(mockApiGetCalls.join(" ")).not.toContain("/domain/check-txt/");
-  });
-
-  test("the root of a verified domain is added with no subdomain", async () => {
-    projectDomains = [projectDomain(true)];
-
-    const rendered: Rendered = renderDialog(kindCase);
-
-    await addAddress(kindCase, "acme.com");
-
-    await waitFor(() => {
-      expect(rendered.onAdded).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(dialog().textContent).toContain(
+          CustomDomainAddressCopy.invalidAddress,
+        );
+      });
+      expect(getList).not.toHaveBeenCalled();
+      expect(create).not.toHaveBeenCalled();
     });
 
-    expect(
-      (createdModels[0] as unknown as Record<string, unknown>)["subdomain"],
-    ).toBe("");
-  });
+    test("on a domain the project has verified, the custom domain is added at once", async () => {
+      projectDomains = [projectDomain(true)];
 
-  test("on a domain not verified yet, it becomes DNS Setup with both records", async () => {
-    projectDomains = [projectDomain(false)];
+      const rendered: Rendered = renderDialog(kindCase);
 
-    renderDialog(kindCase);
+      await addAddress(kindCase, "https://Status.Acme.com/");
 
-    await addAddress(kindCase, "status.acme.com");
+      await waitFor(() => {
+        expect(rendered.onAdded).toHaveBeenCalledTimes(1);
+      });
 
-    await waitFor(() => {
-      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      expect(createdOf(Domain)).toHaveLength(0);
+
+      const created: Record<string, unknown> =
+        createdModels[0] as unknown as Record<string, unknown>;
+
+      expect(createdModels[0]).toBeInstanceOf(kindCase.kind.modelType);
+      expect(created["subdomain"]).toBe("status");
+      expect((created["domainId"] as ObjectID).toString()).toBe(
+        PROJECT_DOMAIN_ID,
+      );
+      expect((created["projectId"] as ObjectID).toString()).toBe(
+        PROJECT_ID.toString(),
+      );
+      expect((created[kindCase.kind.parentColumn] as ObjectID).toString()).toBe(
+        PARENT_ID.toString(),
+      );
+      expect(created["isCustomCertificate"]).toBe(false);
+
+      const added: CustomDomainModel = rendered.onAdded.mock.calls[0]![0];
+      expect(added.fullDomain).toBe("status.acme.com");
+      expect(rendered.onChanged).toHaveBeenCalled();
+      // No TXT to check: the domain is verified.
+      expect(mockApiGetCalls.join(" ")).not.toContain("/domain/check-txt/");
     });
 
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecordType).textContent,
-    ).toBe("TXT");
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecordName).textContent,
-    ).toBe("acme.com");
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecordValue).textContent,
-    ).toBe("oneuptime-verification-abc");
-    expect(screen.getByTestId(DNS_SETUP_TEST_IDS.recordType).textContent).toBe(
-      "CNAME",
-    );
-    expect(screen.getByTestId(DNS_SETUP_TEST_IDS.recordName).textContent).toBe(
-      "status.acme.com",
-    );
-    expect(screen.getByTestId(DNS_SETUP_TEST_IDS.recordValue).textContent).toBe(
-      mockCnameRecord,
-    );
+    test("the root of a verified domain is added with no subdomain", async () => {
+      projectDomains = [projectDomain(true)];
 
-    // The TXT comes first, and nothing is added before it is found.
-    const order: number = screen
-      .getByTestId(DNS_SETUP_TEST_IDS.txtRecord)
-      .compareDocumentPosition(screen.getByTestId(DNS_SETUP_TEST_IDS.record));
-    expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(create).not.toHaveBeenCalled();
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext).textContent,
-    ).toBe(CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords);
-  });
+      const rendered: Rendered = renderDialog(kindCase);
 
-  test("one Check now: the TXT first, then the domain is added and its CNAME checked, each with its own status", async () => {
-    projectDomains = [projectDomain(false)];
+      await addAddress(kindCase, "acme.com");
 
-    const rendered: Rendered = renderDialog(kindCase);
+      await waitFor(() => {
+        expect(rendered.onAdded).toHaveBeenCalledTimes(1);
+      });
 
-    await addAddress(kindCase, "status.acme.com");
-
-    await waitFor(() => {
-      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      expect(
+        (createdModels[0] as unknown as Record<string, unknown>)["subdomain"],
+      ).toBe("");
     });
 
-    // 1. The TXT is not there yet: nothing is added, the CNAME waits.
-    mockApiAnswers = {
-      "/domain/check-txt/": [
-        ok({
-          isVerified: false,
-          records: [record(DnsRecordType.TXT, DnsRecordCheckOutcome.NotFound)],
-        }),
-        ok({
-          isVerified: true,
-          records: [record(DnsRecordType.TXT, DnsRecordCheckOutcome.Found)],
-        }),
-      ],
-      "/check-dns/": [
-        ok({
-          isVerified: false,
-          records: [
-            record(DnsRecordType.CNAME, DnsRecordCheckOutcome.WrongValue, {
-              foundValues: ["other.example.net"],
-            }),
-          ],
-        }),
-        ok({
-          isVerified: true,
-          records: [
-            record(DnsRecordType.CNAME, DnsRecordCheckOutcome.Found, {
-              foundValues: [mockCnameRecord],
-            }),
-          ],
-          certificate: {
-            certificateStatus: CustomDomainCertificateStatus.Issuing,
-          },
-        }),
-      ],
-    };
+    test("on a domain not verified yet, it becomes DNS Setup with both records", async () => {
+      projectDomains = [projectDomain(false)];
 
-    await clickButton(CustomDomainCopy.dnsSetupCheckNow);
+      renderDialog(kindCase);
 
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.txtStatus).textContent,
-    ).toBe("Not found yet");
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.txtLookedUp).textContent,
-    ).toContain("We looked up the TXT records of acme.com and got nothing.");
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.cnameStatus).textContent,
-    ).toBe("Not checked yet");
-    expect(create).not.toHaveBeenCalled();
-    expect(mockApiGetCalls.join(" ")).toContain(
-      `/domain/check-txt/${PROJECT_DOMAIN_ID}`,
-    );
+      await addAddress(kindCase, "status.acme.com");
 
-    // 2. The TXT is found: the domain is added, and its CNAME checked.
-    await clickButton(CustomDomainCopy.dnsSetupCheckNow);
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      });
 
-    await waitFor(() => {
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecordType).textContent,
+      ).toBe("TXT");
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecordName).textContent,
+      ).toBe("acme.com");
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecordValue).textContent,
+      ).toBe("oneuptime-verification-abc");
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.recordType).textContent,
+      ).toBe("CNAME");
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.recordName).textContent,
+      ).toBe("status.acme.com");
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.recordValue).textContent,
+      ).toBe(mockCnameRecord);
+
+      // The TXT comes first, and nothing is added before it is found.
+      const order: number = screen
+        .getByTestId(DNS_SETUP_TEST_IDS.txtRecord)
+        .compareDocumentPosition(screen.getByTestId(DNS_SETUP_TEST_IDS.record));
+      expect(order & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(create).not.toHaveBeenCalled();
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.whatHappensNext).textContent,
+      ).toBe(CustomDomainCopy.dnsSetupWhatHappensNextTwoRecords);
+    });
+
+    test("one Check now: the TXT first, then the domain is added and its CNAME checked, each with its own status", async () => {
+      projectDomains = [projectDomain(false)];
+
+      const rendered: Rendered = renderDialog(kindCase);
+
+      await addAddress(kindCase, "status.acme.com");
+
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      });
+
+      // 1. The TXT is not there yet: nothing is added, the CNAME waits.
+      mockApiAnswers = {
+        "/domain/check-txt/": [
+          ok({
+            isVerified: false,
+            records: [
+              record(DnsRecordType.TXT, DnsRecordCheckOutcome.NotFound),
+            ],
+          }),
+          ok({
+            isVerified: true,
+            records: [record(DnsRecordType.TXT, DnsRecordCheckOutcome.Found)],
+          }),
+        ],
+        "/check-dns/": [
+          ok({
+            isVerified: false,
+            records: [
+              record(DnsRecordType.CNAME, DnsRecordCheckOutcome.WrongValue, {
+                foundValues: ["other.example.net"],
+              }),
+            ],
+          }),
+          ok({
+            isVerified: true,
+            records: [
+              record(DnsRecordType.CNAME, DnsRecordCheckOutcome.Found, {
+                foundValues: [mockCnameRecord],
+              }),
+            ],
+            certificate: {
+              certificateStatus: CustomDomainCertificateStatus.Issuing,
+            },
+          }),
+        ],
+      };
+
+      await clickButton(CustomDomainCopy.dnsSetupCheckNow);
+
+      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtStatus).textContent).toBe(
+        "Not found yet",
+      );
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.txtLookedUp).textContent,
+      ).toContain("We looked up the TXT records of acme.com and got nothing.");
       expect(
         screen.getByTestId(DNS_SETUP_TEST_IDS.cnameStatus).textContent,
-      ).toBe("Wrong value");
-    });
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.txtStatus).textContent,
-    ).toBe("Found");
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.cnameLookedUp).textContent,
-    ).toContain(
-      `We looked up the CNAME record of status.acme.com and got other.example.net, but expected ${mockCnameRecord}.`,
-    );
-    expect(createdOf(kindCase.kind.modelType)).toHaveLength(1);
-    expect(rendered.onChanged).toHaveBeenCalled();
-    expect(mockApiGetCalls.join(" ")).toContain(
-      `${kindCase.crudApiPath}check-dns/${CUSTOM_DOMAIN_ID}`,
-    );
+      ).toBe("Not checked yet");
+      expect(create).not.toHaveBeenCalled();
+      expect(mockApiGetCalls.join(" ")).toContain(
+        `/domain/check-txt/${PROJECT_DOMAIN_ID}`,
+      );
 
-    // 3. The CNAME is found: verified, the TXT not asked again, nothing re-added.
-    const txtChecks: number = mockApiGetCalls.filter((url: string) => {
-      return url.includes("/domain/check-txt/");
-    }).length;
+      // 2. The TXT is found: the domain is added, and its CNAME checked.
+      await clickButton(CustomDomainCopy.dnsSetupCheckNow);
 
-    await clickButton(CustomDomainCopy.dnsSetupCheckNow);
+      await waitFor(() => {
+        expect(
+          screen.getByTestId(DNS_SETUP_TEST_IDS.cnameStatus).textContent,
+        ).toBe("Wrong value");
+      });
+      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtStatus).textContent).toBe(
+        "Found",
+      );
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.cnameLookedUp).textContent,
+      ).toContain(
+        `We looked up the CNAME record of status.acme.com and got other.example.net, but expected ${mockCnameRecord}.`,
+      );
+      expect(createdOf(kindCase.kind.modelType)).toHaveLength(1);
+      expect(rendered.onChanged).toHaveBeenCalled();
+      expect(mockApiGetCalls.join(" ")).toContain(
+        `${kindCase.crudApiPath}check-dns/${CUSTOM_DOMAIN_ID}`,
+      );
 
-    await waitFor(() => {
-      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.verified)).toBeTruthy();
-    });
-    expect(
-      mockApiGetCalls.filter((url: string) => {
+      // 3. The CNAME is found: verified, the TXT not asked again, nothing re-added.
+      const txtChecks: number = mockApiGetCalls.filter((url: string) => {
         return url.includes("/domain/check-txt/");
-      }),
-    ).toHaveLength(txtChecks);
-    expect(createdOf(kindCase.kind.modelType)).toHaveLength(1);
-    expect(dialog().textContent).toContain(CustomDomainCopy.dnsSetupVerified);
-  });
+      }).length;
 
-  test("a domain the project does not have is added to it, then DNS Setup shows its TXT", async () => {
-    renderDialog(kindCase);
+      await clickButton(CustomDomainCopy.dnsSetupCheckNow);
 
-    await addAddress(kindCase, "status.acme.com");
-
-    await waitFor(() => {
-      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
-    });
-
-    const domains: Array<Domain> = createdOf(Domain);
-
-    expect(domains).toHaveLength(1);
-    expect(domains[0]!.domain?.toString()).toBe("acme.com");
-    expect(domains[0]!.projectId?.toString()).toBe(PROJECT_ID.toString());
-    expect(createdOf(kindCase.kind.modelType)).toHaveLength(0);
-  });
-
-  test("somebody who may not add project domains is told who can, and nothing is added", async () => {
-    permissions = [Permission.ProjectMember];
-
-    renderDialog(kindCase);
-
-    await addAddress(kindCase, "status.acme.com");
-
-    await waitFor(() => {
-      expect(dialog().textContent).toContain(
-        "acme.com is not one of this project's domains yet, and only somebody who may add project domains can add it.",
-      );
-    });
-    expect(create).not.toHaveBeenCalled();
-  });
-
-  test("somebody who may not verify the domain sees both records, with Check now locked and why", async () => {
-    permissions = [Permission.ProjectMember];
-    projectDomains = [projectDomain(false)];
-
-    renderDialog(kindCase);
-
-    await addAddress(kindCase, "status.acme.com");
-
-    await waitFor(() => {
-      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
-    });
-
-    expect(
-      within(dialog()).getByRole("button", { name: "Check now" }),
-    ).toBeDisabled();
-    const reason: string | undefined = PermissionGate.check(
-      new Domain(),
-      ModelAction.Update,
-    ).disabledReason;
-
-    expect(reason).toBeTruthy();
-    expect(
-      screen.getByTestId(DNS_SETUP_TEST_IDS.checkNowLocked).textContent,
-    ).toBe(reason);
-  });
-
-  test("a refusal when the domain is added - a name already in use - is said in the dialog", async () => {
-    projectDomains = [projectDomain(false)];
-
-    renderDialog(kindCase);
-
-    await addAddress(kindCase, "status.acme.com");
-
-    await waitFor(() => {
-      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
-    });
-
-    create.mockRejectedValue(
-      new Error(
-        "status.acme.com is already in use: a domain can show only one status page, dashboard or form.",
-      ) as never,
-    );
-
-    mockApiAnswers = {
-      "/domain/check-txt/": [
-        ok({
-          isVerified: true,
-          records: [record(DnsRecordType.TXT, DnsRecordCheckOutcome.Found)],
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.verified)).toBeTruthy();
+      });
+      expect(
+        mockApiGetCalls.filter((url: string) => {
+          return url.includes("/domain/check-txt/");
         }),
-      ],
-    };
+      ).toHaveLength(txtChecks);
+      expect(createdOf(kindCase.kind.modelType)).toHaveLength(1);
+      expect(dialog().textContent).toContain(CustomDomainCopy.dnsSetupVerified);
+    });
 
-    await clickButton(CustomDomainCopy.dnsSetupCheckNow);
+    test("a domain the project does not have is added to it, then DNS Setup shows its TXT", async () => {
+      renderDialog(kindCase);
 
-    await waitFor(() => {
-      expect(dialog().textContent).toContain(
-        "status.acme.com is already in use",
+      await addAddress(kindCase, "status.acme.com");
+
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      });
+
+      const domains: Array<Domain> = createdOf(Domain);
+
+      expect(domains).toHaveLength(1);
+      expect(domains[0]!.domain?.toString()).toBe("acme.com");
+      expect(domains[0]!.projectId?.toString()).toBe(PROJECT_ID.toString());
+      expect(createdOf(kindCase.kind.modelType)).toHaveLength(0);
+    });
+
+    test("somebody who may not add project domains is told who can, and nothing is added", async () => {
+      permissions = [Permission.ProjectMember];
+
+      renderDialog(kindCase);
+
+      await addAddress(kindCase, "status.acme.com");
+
+      await waitFor(() => {
+        expect(dialog().textContent).toContain(
+          "acme.com is not one of this project's domains yet, and only somebody who may add project domains can add it.",
+        );
+      });
+      expect(create).not.toHaveBeenCalled();
+    });
+
+    test("somebody who may not verify the domain sees both records, with Check now locked and why", async () => {
+      permissions = [Permission.ProjectMember];
+      projectDomains = [projectDomain(false)];
+
+      renderDialog(kindCase);
+
+      await addAddress(kindCase, "status.acme.com");
+
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      });
+
+      expect(
+        within(dialog()).getByRole("button", { name: "Check now" }),
+      ).toBeDisabled();
+      const reason: string | undefined = PermissionGate.check(
+        new Domain(),
+        ModelAction.Update,
+      ).disabledReason;
+
+      expect(reason).toBeTruthy();
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.checkNowLocked).textContent,
+      ).toBe(reason);
+    });
+
+    test("a refusal when the domain is added - a name already in use - is said in the dialog", async () => {
+      projectDomains = [projectDomain(false)];
+
+      renderDialog(kindCase);
+
+      await addAddress(kindCase, "status.acme.com");
+
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.txtRecord)).toBeTruthy();
+      });
+
+      create.mockRejectedValue(
+        new Error(
+          "status.acme.com is already in use: a domain can show only one status page, dashboard or form.",
+        ) as never,
       );
-    });
-  });
 
-  test("a certificate to upload goes with the domain when it is added", async () => {
-    projectDomains = [projectDomain(true)];
+      mockApiAnswers = {
+        "/domain/check-txt/": [
+          ok({
+            isVerified: true,
+            records: [record(DnsRecordType.TXT, DnsRecordCheckOutcome.Found)],
+          }),
+        ],
+      };
 
-    const rendered: Rendered = renderDialog(kindCase);
+      await clickButton(CustomDomainCopy.dnsSetupCheckNow);
 
-    await typeAddress(kindCase, "status.acme.com");
-
-    // Open More fields, switch the upload on, paste the two.
-    await act(async (): Promise<void> => {
-      fireEvent.click(within(dialog()).getByText("More fields"));
-    });
-    await act(async (): Promise<void> => {
-      fireEvent.click(
-        within(dialog()).getByRole("switch", {
-          name: /Upload Custom Certificate/,
-        }),
-      );
+      await waitFor(() => {
+        expect(dialog().textContent).toContain(
+          "status.acme.com is already in use",
+        );
+      });
     });
 
-    await act(async (): Promise<void> => {
-      fireEvent.change(
-        within(dialog()).getByPlaceholderText(/BEGIN CERTIFICATE/),
-        { target: { value: "CERT" } },
-      );
-      fireEvent.change(
-        within(dialog()).getByPlaceholderText(/BEGIN PRIVATE KEY/),
-        { target: { value: "KEY" } },
-      );
+    test("a certificate to upload goes with the domain when it is added", async () => {
+      projectDomains = [projectDomain(true)];
+
+      const rendered: Rendered = renderDialog(kindCase);
+
+      await typeAddress(kindCase, "status.acme.com");
+
+      // Open More fields, switch the upload on, paste the two.
+      await act(async (): Promise<void> => {
+        fireEvent.click(within(dialog()).getByText("More fields"));
+      });
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog()).getByRole("switch", {
+            name: /Upload Custom Certificate/,
+          }),
+        );
+      });
+
+      await act(async (): Promise<void> => {
+        fireEvent.change(
+          within(dialog()).getByPlaceholderText(/BEGIN CERTIFICATE/),
+          { target: { value: "CERT" } },
+        );
+        fireEvent.change(
+          within(dialog()).getByPlaceholderText(/BEGIN PRIVATE KEY/),
+          { target: { value: "KEY" } },
+        );
+      });
+
+      await clickButton(CustomDomainCopy.addSubmit);
+
+      await waitFor(() => {
+        expect(rendered.onAdded).toHaveBeenCalledTimes(1);
+      });
+
+      const created: Record<string, unknown> =
+        createdModels[0] as unknown as Record<string, unknown>;
+
+      expect(created["isCustomCertificate"]).toBe(true);
+      expect(created["customCertificate"]).toBe("CERT");
+      expect(created["customCertificateKey"]).toBe("KEY");
     });
-
-    await clickButton(CustomDomainCopy.addSubmit);
-
-    await waitFor(() => {
-      expect(rendered.onAdded).toHaveBeenCalledTimes(1);
-    });
-
-    const created: Record<string, unknown> = createdModels[0] as unknown as Record<
-      string,
-      unknown
-    >;
-
-    expect(created["isCustomCertificate"]).toBe(true);
-    expect(created["customCertificate"]).toBe("CERT");
-    expect(created["customCertificateKey"]).toBe("KEY");
-  });
-});
+  },
+);
 
 describe("what a self-hosted server still needs, said before anything is added", () => {
   test("a server that is not ready says what is missing, failures first", async () => {

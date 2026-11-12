@@ -10,6 +10,7 @@ import AuditLogAction from "../../../Types/AuditLog/AuditLogAction";
 import { SessionAuditEvent } from "../../../Types/AuditLog/AuditLogSessionEvent";
 import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import OneUptimeDate from "../../../Types/Date";
+import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import RequestOrigin from "../../../Types/RequestOrigin";
 import {
@@ -158,7 +159,7 @@ const sessionRow: (data?: {
     secondFactor: SecondFactor.SecurityKey,
     signInDevice: "Chrome 130 on macOS",
     signInLocation: "Lisbon, Portugal",
-  }) as UserSession["additionalInfo"];
+  }) as JSONObject;
   session.ipAddress = data?.ipAddress || "198.51.100.4";
   session.userAgent = data?.userAgent || CHROME_ON_MAC;
 
@@ -219,7 +220,7 @@ const revoke: (data: {
 
   const updateBy: UpdateBy<UserSession> = revocationOf({
     revokedReason: data.revokedReason,
-    props: data.props,
+    ...(data.props ? { props: data.props } : {}),
   });
 
   const before: OnUpdate<UserSession> = await hooks.onBeforeUpdate(updateBy);

@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * CAN THIS SERVER SEND? THE ONE ANSWER ON THE SERVER (#6825).
@@ -18,10 +19,10 @@ import {
  */
 
 let storedConfig: Record<string, unknown> | null = null;
-const findOneById: jest.Mock = jest.fn();
-const writeServerSendingHealth: jest.Mock = jest.fn();
-const forgetServerSendingHealthOf: jest.Mock = jest.fn();
-const probeCountBy: jest.Mock = jest.fn();
+const findOneById: Mock = jest.fn();
+const writeServerSendingHealth: Mock = jest.fn();
+const forgetServerSendingHealthOf: Mock = jest.fn();
+const probeCountBy: Mock = jest.fn();
 
 jest.mock("../../../../Server/Services/GlobalConfigService", () => {
   return {
@@ -146,7 +147,7 @@ describe("where each channel stands", () => {
           failingSince: "2026-11-11T08:00:00.000Z",
           lastFailure: "403 Forbidden",
         },
-      }) as GlobalConfig,
+      }) as unknown as GlobalConfig,
       ServerSendingChannel.Email,
     );
 
@@ -167,7 +168,7 @@ describe("where each channel stands", () => {
             failingSince: null,
             lastFailure: null,
           },
-        }) as GlobalConfig,
+        }) as unknown as GlobalConfig,
         ServerSendingChannel.Email,
       ).state,
     ).toBe(ServerSendingState.Working);
@@ -180,7 +181,7 @@ describe("where each channel stands", () => {
     expect(ServerSendingStatus.canSendEmailPubliclyFrom(null)).toBe(false);
     expect(
       ServerSendingStatus.canSendEmailPubliclyFrom(
-        row(EMAIL_SET_UP) as GlobalConfig,
+        row(EMAIL_SET_UP) as unknown as GlobalConfig,
       ),
     ).toBe(true);
     // Set up, never worked, failing: cannot send yet.
@@ -193,7 +194,7 @@ describe("where each channel stands", () => {
             failingSince: "2026-11-11T09:00:00.000Z",
             lastFailure: "refused",
           },
-        }) as GlobalConfig,
+        }) as unknown as GlobalConfig,
       ),
     ).toBe(false);
     // Worked once, failing now: the public pages say nothing.
@@ -206,7 +207,7 @@ describe("where each channel stands", () => {
             failingSince: "2026-11-11T09:00:00.000Z",
             lastFailure: "refused",
           },
-        }) as GlobalConfig,
+        }) as unknown as GlobalConfig,
       ),
     ).toBe(true);
   });

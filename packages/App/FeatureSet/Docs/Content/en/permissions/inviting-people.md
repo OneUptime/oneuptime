@@ -76,7 +76,7 @@ Accepting puts them in the project straight away, with their team's permissions 
 | --- | --- |
 | **User** | Their name and email address. |
 | **Teams** | Every team of the project they are in, or invited to. |
-| **Status** | **Member** once they have joined, with a count of any invitations to other teams they have not accepted yet. **Invitation Sent** until then. |
+| **Status** | **Member** once they have joined, with a count of any invitations to other teams they have not accepted yet. **Invitation Sent** until then. On a self-hosted server that cannot send email yet, **Invited** instead: the invitation is created, but no email goes out. |
 
 Filter the list by **User**, **Status** or **Team**. Click a row to open the person's page:
 

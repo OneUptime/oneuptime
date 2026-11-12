@@ -531,7 +531,7 @@ describe("steps tick on outcomes", () => {
       "import:open:next",
     );
     expect(importsSpy).toHaveBeenCalledTimes(1);
-    expect((importsSpy.mock.calls[0]![0] as JSONObject)["query"]).toEqual({
+    expect(importsSpy.mock.calls[0]![0].query).toEqual({
       projectId: PROJECT_ID,
       status: ToolImportRunStatus.Completed,
     });

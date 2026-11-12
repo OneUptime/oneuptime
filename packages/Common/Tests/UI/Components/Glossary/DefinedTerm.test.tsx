@@ -19,6 +19,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import getJestMockFunction, { MockFunction } from "../../../MockType";
 import { DOCS_URL } from "../../../../UI/Config";
 import GlossaryTerm from "../../../../Types/Docs/GlossaryTerm";
@@ -153,7 +154,7 @@ const GLOSSARIES: Record<string, unknown> = {
   [`${DOCS}/glossary/fa.json`]: PERSIAN_GLOSSARY,
 };
 
-type FetchMock = jest.Mock<(url: string) => Promise<unknown>>;
+type FetchMock = Mock<(url: string) => Promise<unknown>>;
 
 let fetchMock: FetchMock;
 const originalFetch: unknown = (globalThis as Record<string, unknown>)["fetch"];

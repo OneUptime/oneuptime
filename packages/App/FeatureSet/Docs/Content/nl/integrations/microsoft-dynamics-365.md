@@ -120,7 +120,7 @@ De stap **Configureren** van de aanmaakwizard vraagt om maximaal zeven waarden: 
 
 **Hoe de sjablonen zich aanmelden.** De wizard slaat de tenant, de client-ID en het geheim op in één [OAuth 2.0-variabele](/docs/workflows/variables#oauth-20-variabelen-tokens-die-zichzelf-vernieuwen), `dynamicsAccessToken`, onder **Workflow-variabelen** van de workflow: Client Credentials, de token-URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, de scope `<environment URL>/.default` en het clientgeheim, verstuurd in de body van het verzoek en versleuteld opgeslagen. Elke aanroep naar Dynamics 365 stuurt `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime haalt het token op de eerste keer dat een stap het nodig heeft, haalt een nieuw op voordat het verloopt, en vervangt het door `[REDACTED]` in uitvoeringslogboeken en staptraces.
 
-Om de aanmelding te controleren voordat er iets draait, open je **Workflow-variabelen**, klik je bij `dynamicsAccessToken` op **Bekijken** en klik je op **Nu vernieuwen**. **Access Token Fetched** betekent dat de app-registratie klopt. Anders noemt de fout van Microsoft Entra ID wat er mis is, zoals `AADSTS7000215: Invalid client secret provided`.
+Om de aanmelding te controleren voordat er iets draait, open je **Workflow-variabelen**, klik je bij `dynamicsAccessToken` op **Bekijken** en klik je op **Nu vernieuwen**. **Toegangstoken opgehaald** betekent dat de app-registratie klopt. Anders noemt de fout van Microsoft Entra ID wat er mis is, zoals `AADSTS7000215: Invalid client secret provided`.
 
 Elke workflow houdt een eigen kopie bij. Wanneer je het clientgeheim vervangt, open je `dynamicsAccessToken` in elke Dynamics 365-workflow en gebruik je **Inloggegevens bijwerken**.
 

@@ -90,7 +90,7 @@ Under det, ovenfra og ned:
 
 - **ID**, **Inndata** og **Outputs**, side om side — blokkens identifikator, hvor den nås fra, og hva som kjører etter den.
 - **Returns** — dataene denne blokken gir videre til senere trinn. Hver verdi viser den nøyaktige referansen som leser den, med en knapp for å kopiere den.
-- **How to use** — hva blokken gjør i én setning, trinnene for å konfigurere den, et eksempel å kopiere og feilene folk ofte gjør. Eksempelet er bygget ut fra arbeidsflyten din: det bruker ID-en til denne blokken og triggerens verdier der det setter data inn i en melding. **Learn more** åpner den lengre forklaringen, og lenkene går til den fullstendige veiledningen. Hver blokk har en, og knappen **How to use** øverst i dialogen hopper rett dit.
+- **How to use** — hva blokken gjør i én setning, trinnene for å konfigurere den, et eksempel å kopiere og feilene folk ofte gjør. Eksempelet er bygget ut fra arbeidsflyten din: det bruker ID-en til denne blokken og triggerens verdier der det setter data inn i en melding. **Finn ut mer** åpner den lengre forklaringen, og lenkene går til den fullstendige veiledningen. Hver blokk har en, og knappen **How to use** øverst i dialogen hopper rett dit.
 
 Bunnen inneholder:
 

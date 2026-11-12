@@ -33,7 +33,8 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 const postMock: Mock<(...args: Array<unknown>) => Promise<unknown>> = jest.fn(
   async (..._args: Array<unknown>): Promise<unknown> => {
     return undefined;
-  });
+  },
+);
 
 jest.mock("../../../Utils/API", () => {
   return {

@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React, { ReactElement } from "react";
 import GlobalConfigUtil, {
@@ -29,7 +30,10 @@ import API from "../../../Utils/API";
  * is on its way the hook is null, and the pages draw their usual form.
  */
 
-let get: jest.SpyInstance;
+// A spy on API.get, without the type parameter a spy's type cannot carry.
+let get: SpyInstance<
+  (...args: Parameters<typeof API.get>) => ReturnType<typeof API.get>
+>;
 
 function answer(data: JSONObject): HTTPResponse<JSONObject> {
   return new HTTPResponse<JSONObject>(200, data, {});

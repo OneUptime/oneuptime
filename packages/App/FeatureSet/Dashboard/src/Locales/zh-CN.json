@@ -50475,7 +50475,7 @@
   "Requests to {{name}} reach OneUptime.": "发往 {{name}} 的请求能到达 OneUptime。",
   "See global probes": "查看全局探针",
   "Send them their invitation link": "发送邀请链接",
-  "Server Sending Health": "服务器发送状态",
+  "Server Sending Health": "服务器发送健康状况",
   "Set up email": "设置电子邮件",
   "Shows this project owns {{domain}}. You add it once, for every address on {{domain}}.": "证明此项目拥有 {{domain}}。只需添加一次，即可用于 {{domain}} 上的所有地址。",
   "The address people will open. Next, we show the DNS records to add: a CNAME record for this address, and a TXT record for its domain if this project has not verified it yet.": "访问者将打开的地址。接下来，我们会显示要添加的 DNS 记录：此地址的 CNAME 记录，以及在此项目尚未验证其域名时，该域名的 TXT 记录。",

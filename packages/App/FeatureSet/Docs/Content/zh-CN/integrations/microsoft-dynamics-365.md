@@ -120,7 +120,7 @@ Dataverse 中没有类似 Jira 标签的东西，因此案例和 OneUptime 记�
 
 **模板如何登录。** 向导会把租户、客户端 ID 和密钥保存到工作流 **工作流变量** 下的一个 [OAuth 2.0 变量](/docs/workflows/variables#oauth-20-变量会自动刷新的令牌) `dynamicsAccessToken` 中：Client Credentials、令牌 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`、作用域 `<environment URL>/.default`，以及在请求主体中发送并加密保存的客户端密钥。对 Dynamics 365 的每次调用都会发送 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`。OneUptime 在某个步骤第一次需要令牌时获取它，在过期之前获取新令牌，并在运行日志和步骤跟踪中把它替换为 `[REDACTED]`。
 
-要在运行任何内容之前检查登录，请打开 **工作流变量**，在 `dynamicsAccessToken` 上点击 **查看**，然后点击 **立即刷新**。显示 **Access Token Fetched** 表示应用注册正确。否则，Microsoft Entra ID 的错误会指出问题所在，例如 `AADSTS7000215: Invalid client secret provided`。
+要在运行任何内容之前检查登录，请打开 **工作流变量**，在 `dynamicsAccessToken` 上点击 **查看**，然后点击 **立即刷新**。显示 **已获取访问令牌** 表示应用注册正确。否则，Microsoft Entra ID 的错误会指出问题所在，例如 `AADSTS7000215: Invalid client secret provided`。
 
 每个工作流都保存自己的副本。更换客户端密钥时，请在每个 Dynamics 365 工作流中打开 `dynamicsAccessToken`，并使用 **更新凭据**。
 
