@@ -38,7 +38,7 @@ De status van elke locatie komt van elk apparaat in haar subboom, beoordeeld vol
 
 ## De hiërarchie
 
-Locaties vormen een boom. Elke locatie heeft een **Site Type** en optioneel een bovenliggende locatie. Locatietypen zijn de eigen lijst van het project, onder **Netwerk → Instellingen → Locatietypen**, en een nieuw project begint met Account Type, Region, Franchisee, Market en Unit, in die volgorde van boven af, plus Data Center en Other. Typen vormen een eigen hiërarchie (**Parent Site Type**), die bepaalt welke locaties de ouder van een locatie kunnen zijn. Een type gemarkeerd als **Is Unit Level** is het onderste niveau van je omgeving, de afzonderlijke winkel of vestiging: de locaties ervan bevatten apparaten, geen andere locaties.
+Locaties vormen een boom. Elke locatie heeft een **Locatietype** en optioneel een bovenliggende locatie. Locatietypen zijn de eigen lijst van het project, onder **Netwerk → Instellingen → Locatietypen**, en een nieuw project begint met Account Type, Region, Franchisee, Market en Unit, in die volgorde van boven af, plus Data Center en Other. Typen vormen een eigen hiërarchie (**Parent Site Type**), die bepaalt welke locaties de ouder van een locatie kunnen zijn. Een type gemarkeerd als **Is Unit Level** is het onderste niveau van je omgeving, de afzonderlijke winkel of vestiging: de locaties ervan bevatten apparaten, geen andere locaties.
 
 Het type, de naam, de beschrijving, de ouder en de ligging van een locatie bewerk je op één plek: de kaart **Site Settings** op de pagina **Instellingen** van de locatie. Het overzicht van de locatie toont ze met een link **Bewerken in Instellingen**, en de lijst **Locaties** voegt locaties toe maar bewerkt ze niet.
 
@@ -54,7 +54,7 @@ Elk apparaat hangt aan één locatie. De subboom van een locatie is de locatie z
 Ga naar **Netwerk → Locaties** en klik op **Locatie toevoegen**.
 
 ### Zeggen wat de locatie is
-Kies in de stap **Site Details** het **Site Type** (wat voor plaats het is: een regio, een winkel, een datacenter) en typ een **Naam**. De **Locatiecode**, de beschrijving, het adres, en de breedte- en lengtegraad die de locatie op de kaart vastzetten, zijn ingeklapt onder **Meer velden**: vul ze nu of later in. Een locatiecode is een korte code, zoals een winkel- of vestigingsnummer (`1216`); [naamgevingsregels](/docs/monitor/network-device-monitor#apparaten-een-naam-geven-volgens-je-naamgevingsconventie) zetten hem met `{site.code}` in apparaatnamen.
+Kies in de stap **Site Details** het **Locatietype** (wat voor plaats het is: een regio, een winkel, een datacenter) en typ een **Naam**. De **Locatiecode**, de beschrijving, het adres, en de breedte- en lengtegraad die de locatie op de kaart vastzetten, zijn ingeklapt onder **Meer velden**: vul ze nu of later in. Een locatiecode is een korte code, zoals een winkel- of vestigingsnummer (`1216`); [naamgevingsregels](/docs/monitor/network-device-monitor#apparaten-een-naam-geven-volgens-je-naamgevingsconventie) zetten hem met `{site.code}` in apparaatnamen.
 
 ### Haar in de boom plaatsen
 Kies in de stap **Hierarchy** de **Parent Site** als de locatie onder een andere valt. Laat het leeg om de locatie op het hoogste niveau te houden.
@@ -67,7 +67,7 @@ Op de pagina **Onderliggende locaties** van een locatie vraagt **Onderliggende l
 
 ### Locaties importeren uit een CSV-bestand
 
-Om een hele omgeving in één keer binnen te halen, open je het menu bovenaan de lijst **Locaties** en klik je op **Import from CSV**. Het bestand heeft een kopregel nodig; de kolommen mogen in elke volgorde staan en hun namen zijn niet hoofdlettergevoelig:
+Om een hele omgeving in één keer binnen te halen, open je het menu bovenaan de lijst **Locaties** en klik je op **Importeren uit CSV**. Het bestand heeft een kopregel nodig; de kolommen mogen in elke volgorde staan en hun namen zijn niet hoofdlettergevoelig:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

@@ -33,6 +33,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesJobObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { formatKubernetesCount } from "../Utils/KubernetesCount";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
 } from "../Utils/KubernetesCpuUtils";
@@ -280,12 +281,12 @@ const KubernetesClusterJobDetail: FunctionComponent<
       {
         title: "Completions",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobCompletions,
-        value: String(jobObject.spec.completions ?? "N/A"),
+        value: formatKubernetesCount(jobObject.spec.completions),
       },
       {
         title: "Parallelism",
         description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.jobParallelism,
-        value: String(jobObject.spec.parallelism ?? "N/A"),
+        value: formatKubernetesCount(jobObject.spec.parallelism),
       },
       {
         title: "Backoff Limit",

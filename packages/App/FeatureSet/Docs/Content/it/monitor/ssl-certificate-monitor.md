@@ -38,7 +38,7 @@ Una sonda che ha perso la propria connessione di rete non riporta alcun risultat
 :::steps
 ### Iniziare un nuovo monitor
 
-Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, scegliete **SSL Certificate**.
+Andate in **Monitor** e fate clic su **Crea monitor**. In **Tipo di monitor**, scegliete **Certificato SSL**.
 
 ### Dargli un nome
 

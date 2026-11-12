@@ -15,6 +15,7 @@ import {
   StatusPageGroupImportSummary,
   runStatusPageGroupImport,
 } from "../../Utils/StatusPageGroupImportRunner";
+import { getCreatedImportResultLabel } from "../../Utils/ImportResultWords";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import { JSONArray, JSONObject } from "Common/Types/JSON";
 import StatusPageGroup from "Common/Models/DatabaseModels/StatusPageGroup";
@@ -613,7 +614,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                         <td className="px-3 py-2">
                           {result.status === "created" && (
                             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              {translator.translateText("Created")}
+                              {getCreatedImportResultLabel(translator)}
                             </span>
                           )}
                           {result.status === "failed" && (

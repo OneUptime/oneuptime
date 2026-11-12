@@ -38,7 +38,7 @@ Le statut de chaque site vient de chaque équipement de son sous-arbre, jugé se
 
 ## La hiérarchie
 
-Les sites forment une arborescence. Chaque site a un **Site Type** et un site parent facultatif. Les types de site sont la liste propre au projet, sous **Réseau → Paramètres → Types de site**, et un nouveau projet commence avec Account Type, Region, Franchisee, Market et Unit, dans cet ordre en partant du haut, plus Data Center et Other. Les types forment leur propre hiérarchie (**Parent Site Type**), qui décide quels sites peuvent être le parent d'un site. Un type marqué **Niveau unité** est le dernier niveau de votre parc, le magasin ou l'agence : ses sites contiennent des équipements, pas d'autres sites.
+Les sites forment une arborescence. Chaque site a un **Type de site** et un site parent facultatif. Les types de site sont la liste propre au projet, sous **Réseau → Paramètres → Types de site**, et un nouveau projet commence avec Account Type, Region, Franchisee, Market et Unit, dans cet ordre en partant du haut, plus Data Center et Other. Les types forment leur propre hiérarchie (**Parent Site Type**), qui décide quels sites peuvent être le parent d'un site. Un type marqué **Niveau unité** est le dernier niveau de votre parc, le magasin ou l'agence : ses sites contiennent des équipements, pas d'autres sites.
 
 Le type, le nom, la description, le parent et l'emplacement d'un site se modifient à un seul endroit : la carte **Site Settings** de la page **Paramètres** du site. L'aperçu du site les affiche avec un lien **Modifier dans les paramètres**, et la liste **Sites** ajoute des sites mais ne les modifie pas.
 
@@ -54,7 +54,7 @@ Chaque équipement est rattaché à un site. Le sous-arbre d'un site, c'est le s
 Allez dans **Réseau → Sites** et cliquez sur **Ajouter : Site**.
 
 ### Dire ce qu'est le site
-À l'étape **Site Details**, choisissez le **Site Type** (le genre de lieu : une région, un magasin, un centre de données) et saisissez un **Nom**. Le **Code du site**, la description, l'adresse postale, et la latitude et la longitude qui placent le site sur la carte sont repliés sous **Plus de champs** : remplissez-les maintenant ou plus tard. Un code de site est un code court, comme un numéro de magasin ou d'établissement (`1216`) ; les [règles de nommage](/docs/monitor/network-device-monitor#nommer-les-équipements-selon-votre-convention-de-nommage) l'insèrent dans le nom des équipements avec `{site.code}`.
+À l'étape **Site Details**, choisissez le **Type de site** (le genre de lieu : une région, un magasin, un centre de données) et saisissez un **Nom**. Le **Code du site**, la description, l'adresse postale, et la latitude et la longitude qui placent le site sur la carte sont repliés sous **Plus de champs** : remplissez-les maintenant ou plus tard. Un code de site est un code court, comme un numéro de magasin ou d'établissement (`1216`) ; les [règles de nommage](/docs/monitor/network-device-monitor#nommer-les-équipements-selon-votre-convention-de-nommage) l'insèrent dans le nom des équipements avec `{site.code}`.
 
 ### Le placer dans l'arborescence
 À l'étape **Hiérarchie**, choisissez le **Parent Site** si le site se trouve sous un autre. Laissez-le vide pour garder le site au premier niveau.

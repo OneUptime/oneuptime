@@ -38,7 +38,7 @@ Hver lokasjons status kommer fra hver enhet i undertreet, vurdert etter lokasjon
 
 ## Hierarkiet
 
-Lokasjoner danner et tre. Hver lokasjon har en **Site Type** og eventuelt en overordnet lokasjon. Lokasjonstypene er prosjektets egen liste, under **Nettverk → Innstillinger → Lokasjonstyper**, og et nytt prosjekt starter med Account Type, Region, Franchisee, Market og Unit, i den rekkefølgen ovenfra, pluss Data Center og Other. Typene danner sitt eget hierarki (**Parent Site Type**), som avgjør hvilke lokasjoner som kan være forelder til en lokasjon. En type som er merket **Is Unit Level**, er det nederste nivået i miljøet ditt, den enkelte butikken eller filialen: lokasjonene dens inneholder enheter, ikke andre lokasjoner.
+Lokasjoner danner et tre. Hver lokasjon har en **Lokasjonstype** og eventuelt en overordnet lokasjon. Lokasjonstypene er prosjektets egen liste, under **Nettverk → Innstillinger → Lokasjonstyper**, og et nytt prosjekt starter med Account Type, Region, Franchisee, Market og Unit, i den rekkefølgen ovenfra, pluss Data Center og Other. Typene danner sitt eget hierarki (**Parent Site Type**), som avgjør hvilke lokasjoner som kan være forelder til en lokasjon. En type som er merket **Is Unit Level**, er det nederste nivået i miljøet ditt, den enkelte butikken eller filialen: lokasjonene dens inneholder enheter, ikke andre lokasjoner.
 
 En lokasjons type, navn, beskrivelse, forelder og plassering redigeres ett sted: kortet **Site Settings** på lokasjonens side **Innstillinger**. Lokasjonens oversikt viser dem med en lenke **Rediger i Innstillinger**, og listen **Lokasjoner** legger til lokasjoner, men redigerer dem ikke.
 
@@ -54,7 +54,7 @@ Hver enhet knyttes til én lokasjon. En lokasjons undertre er lokasjonen selv pl
 Gå til **Nettverk → Lokasjoner** og klikk på **Legg til Lokasjon**.
 
 ### Si hva lokasjonen er
-I trinnet **Site Details** velger du **Site Type** (hva slags sted det er: en region, en butikk, et datasenter) og skriver et **Navn**. Feltet **Lokasjonskode**, beskrivelsen, adressen og breddegraden og lengdegraden som fester lokasjonen på kartet, er foldet sammen under **Flere felt**: fyll dem ut nå eller senere. En lokasjonskode er en kort kode, for eksempel et butikk- eller avdelingsnummer (`1216`); [navneregler](/docs/monitor/network-device-monitor#gi-enheter-navn-etter-navnekonvensjonen-din) setter den inn i enhetsnavn med `{site.code}`.
+I trinnet **Site Details** velger du **Lokasjonstype** (hva slags sted det er: en region, en butikk, et datasenter) og skriver et **Navn**. Feltet **Lokasjonskode**, beskrivelsen, adressen og breddegraden og lengdegraden som fester lokasjonen på kartet, er foldet sammen under **Flere felt**: fyll dem ut nå eller senere. En lokasjonskode er en kort kode, for eksempel et butikk- eller avdelingsnummer (`1216`); [navneregler](/docs/monitor/network-device-monitor#gi-enheter-navn-etter-navnekonvensjonen-din) setter den inn i enhetsnavn med `{site.code}`.
 
 ### Plasser den i treet
 I trinnet **Hierarchy** velger du **Parent Site** hvis lokasjonen ligger under en annen. La det stå tomt for å holde lokasjonen på øverste nivå.
@@ -67,7 +67,7 @@ På en lokasjons egen side **Underordnede lokasjoner** spør **Legg til Underord
 
 ### Importer lokasjoner fra en CSV-fil
 
-For å hente inn et helt miljø på én gang åpner du menyen øverst i listen **Lokasjoner** og klikker på **Import from CSV**. Filen trenger en overskriftsrad; kolonnene kan komme i hvilken som helst rekkefølge, og navnene skiller ikke mellom store og små bokstaver:
+For å hente inn et helt miljø på én gang åpner du menyen øverst i listen **Lokasjoner** og klikker på **Importer fra CSV**. Filen trenger en overskriftsrad; kolonnene kan komme i hvilken som helst rekkefølge, og navnene skiller ikke mellom store og små bokstaver:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude
