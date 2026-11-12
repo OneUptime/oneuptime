@@ -289,7 +289,10 @@ describe("BulkSwitchConsequences: what the sentences claim", () => {
 
     // The monitors the update turns off are found before it is saved...
     expect(monitorService).toContain(
-      "const monitorIdsTurnedOff: Array<string> =\n      await this.findMonitorIdsTurnedOff(updateBy);",
+      "} = await this.findMonitorIdsSwitched(updateBy);",
+    );
+    expect(monitorService).toContain(
+      "carryForward.monitorIdsTurnedOff = switched.monitorIdsTurnedOff;",
     );
     // ...and each one's incidents and alerts resolved after.
     expect(monitorService).toContain(

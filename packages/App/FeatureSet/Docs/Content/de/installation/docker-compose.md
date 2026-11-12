@@ -144,6 +144,8 @@ Ersetzen Sie die Platzhalter-Geheimnisse vor dem ersten Start selbst, wie [Zufä
 Öffnen Sie `http://` gefolgt von Ihrem `HOST` (zum Beispiel `http://localhost`) und registrieren Sie sich. Das erste Konto einer neuen Instanz wird ihr Master-Admin, der das Admin Dashboard unter `/admin` öffnen kann.
 
 Jeder, der die Seite erreicht, kann sich nach Ihnen registrieren. Um das zu verhindern, öffnen Sie das Admin Dashboard, gehen zu **Einstellungen > Authentifizierung** und schalten **Registrierung erlauben** aus. Personen, die Sie in ein Projekt einladen, können ihr Konto weiterhin anlegen.
+
+Richten Sie den Server dann unter `/admin/setup` fertig ein, wo E-Mail, SMS und Anrufe eingerichtet und getestet werden: siehe [Den Server fertig einrichten](/docs/installation/self-hosting-guide#den-server-fertig-einrichten).
 :::
 
 ### Zufällige Geheimnisse erzeugen
@@ -566,8 +568,8 @@ Das Admin Dashboard listet die Probe unter **Einstellungen > Überwachung > Glob
 ## Nächste Schritte
 
 :::cards
+- [Den Server fertig einrichten](/docs/installation/self-hosting-guide#den-server-fertig-einrichten): E-Mail, dann SMS und Anrufe, jeweils mit einem Test.
+- [Schnellstart](/docs/introduction/quickstart): Ihr erster Monitor, Ihre erste Bereitschaftsrichtlinie und Ihre erste Statusseite.
 - [OneUptime upgraden](/docs/installation/upgrading): Was jede Hauptversion von Ihnen braucht.
-- [Dimensionierung & Kapazitätsplanung](/docs/installation/sizing): Arbeitsspeicher und Festplatte für Ihre Telemetrie planen.
 - [Self-Hosted-Architektur](/docs/self-hosted/architecture): Wie die Komponenten zusammenspielen.
-- [Enterprise Edition](/docs/self-hosted/enterprise): Was das Enterprise-Image hinzufügt, und seine Lizenz.
 :::

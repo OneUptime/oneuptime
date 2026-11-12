@@ -111,7 +111,7 @@ flowchart TB
 ### स्व-होस्टिंग
 
 :::cards
-- [इंस्टॉलेशन](/docs/installation/docker-compose): अपना OneUptime इंस्टॉल करें, उसका आकार तय करें और अपग्रेड करें।
+- [इंस्टॉलेशन](/docs/installation/self-hosting-guide): अपना OneUptime इंस्टॉल करें, उसका आकार तय करें और अपग्रेड करें।
 - [स्व-होस्टेड सेटअप](/docs/self-hosted/architecture): आपके अपने इंस्टॉल के लिए आर्किटेक्चर, इंटिग्रेशन और Enterprise सुविधाएँ।
 :::
 

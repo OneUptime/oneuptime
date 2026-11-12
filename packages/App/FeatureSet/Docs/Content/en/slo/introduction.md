@@ -11,7 +11,7 @@ A service level objective (SLO) is a reliability target for the things you monit
 
 ## How it works
 
-An SLO reads the status timelines of the monitors attached to it: the same data your status pages show. From them OneUptime works out how much of the compliance window was good time, how much of the error budget is left, and how fast it is being spent.
+An SLO reads the status timelines of the monitors attached to it: the same data your status pages show. From them OneUptime works out how much of the compliance window was good time, how much of the error budget is left, and how fast it is being spent. Time with a monitor's monitoring turned off is left out: nothing checks the monitor then, so that time neither spends the error budget nor counts as good time.
 
 ```mermaid title="From monitor checks to an SLO's status"
 flowchart TB

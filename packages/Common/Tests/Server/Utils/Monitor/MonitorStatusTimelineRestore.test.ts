@@ -145,6 +145,51 @@ test("writes one open row per monitor with no live row, guarded against a second
   expect(sql).not.toContain('"endsAt"');
 });
 
+test("the row restored takes the monitor's monitoring switch as it is now, so a monitor that is off gets a row uptime leaves out (#6480)", async () => {
+  await MonitorStatusTimelineReconciler.restoreMissingStatusTimelines({
+    now: NOW,
+  });
+
+  const sql: string = statements[0]!.sql;
+
+  // Read from the monitor, a NULL read as on: every row is one or the other.
+  expect(sql).toContain(
+    'm."disableActiveMonitoring" IS TRUE AS "isMonitoringOff"',
+  );
+
+  // Written into the row, in the column's place among those inserted.
+  const columns: string = sql.slice(
+    sql.indexOf('INSERT INTO "MonitorStatusTimeline"'),
+    sql.indexOf("SELECT", sql.indexOf('INSERT INTO "MonitorStatusTimeline"')),
+  );
+  const values: string = sql.slice(
+    sql.indexOf("SELECT", sql.indexOf('INSERT INTO "MonitorStatusTimeline"')),
+  );
+
+  const columnNames: Array<string> = columns
+    .slice(columns.indexOf("(") + 1, columns.lastIndexOf(")"))
+    .split(",")
+    .map((column: string) => {
+      return column.trim();
+    });
+
+  expect(columnNames).toContain('"isMonitoringOff"');
+
+  const valueExpressions: Array<string> = values
+    .slice("SELECT".length, values.indexOf("LEAST("))
+    .split(",")
+    .map((value: string) => {
+      return value.trim();
+    })
+    .filter((value: string) => {
+      return value.length > 0;
+    });
+
+  expect(valueExpressions[columnNames.indexOf('"isMonitoringOff"')]).toBe(
+    'missing."isMonitoringOff"',
+  );
+});
+
 test("keeps the root cause readable: it says the history was deleted and where the status is recorded from", () => {
   expect(RESTORED_STATUS_EVENT_ROOT_CAUSE).toBe(
     "Restored by OneUptime. This monitor's status history had been deleted, so its current status was recorded again, starting at its last recorded status change (or when the monitor was created).",

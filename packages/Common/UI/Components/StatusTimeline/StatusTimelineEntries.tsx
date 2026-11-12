@@ -1,4 +1,5 @@
 import CurrentlyActiveIndicator from "../StateTimeline/CurrentlyActiveIndicator";
+import MonitoringOffIndicator from "../StateTimeline/MonitoringOffIndicator";
 import StateTimelineDuration from "../StateTimeline/StateTimelineDuration";
 import { PillSize } from "../Pill/Pill";
 import Tooltip from "../Tooltip/Tooltip";
@@ -186,6 +187,14 @@ const EntryRow: FunctionComponent<{
             >
               {entry.name}
             </span>
+            {/*
+             * The status was held with monitoring off (issue #6480): only
+             * what the last check saw, left out of uptime. Without it,
+             * turning monitoring off read as a second status in a row.
+             */}
+            {entry.isMonitoringOff === true && (
+              <MonitoringOffIndicator size={PillSize.Small} />
+            )}
             {entry.isOngoing && (
               <CurrentlyActiveIndicator size={PillSize.Small} />
             )}

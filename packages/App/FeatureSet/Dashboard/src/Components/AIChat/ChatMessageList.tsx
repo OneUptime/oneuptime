@@ -25,6 +25,7 @@ import ChatActivityFeed, {
   describeLiveActivity,
   LiveActivity,
 } from "./ChatActivityFeed";
+import AskAiPageButtons from "./AskAiPageButtons";
 import SafeChatMarkdown from "./SafeChatMarkdown";
 import ToolApprovalCard, { ToolDecision } from "./ToolApprovalCard";
 import { getShownToolActions } from "./ToolActionWords";
@@ -567,6 +568,15 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
               citations={message.citations || []}
             />
           </div>
+        ) : (
+          <></>
+        )}
+
+        {message.contentInMarkdown ? (
+          <AskAiPageButtons
+            text={message.contentInMarkdown}
+            citations={message.citations || []}
+          />
         ) : (
           <></>
         )}

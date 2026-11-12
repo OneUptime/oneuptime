@@ -722,8 +722,14 @@ describe("WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot", () => {
       });
 
     expect(teamsSendSpy).not.toHaveBeenCalled();
+    // Saying why, for a caller that reports each channel (#6920).
     expect(responses).toEqual([
-      { workspaceType: WorkspaceType.MicrosoftTeams, threads: [] },
+      {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        threads: [],
+        notSentReason:
+          "This project is not connected to Microsoft Teams. Please ask a project admin to connect Microsoft Teams in Project Settings > Workspace > Microsoft Teams.",
+      },
     ]);
   });
 

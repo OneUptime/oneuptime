@@ -26,6 +26,12 @@ flowchart TB
 
 I läget **Skrivskyddad** erbjuds modellen aldrig åtgärderna, så samtalet bara läser.
 
+## Frågor om OneUptime
+
+Fråga AI svarar också på frågor om OneUptime självt: ”Hur får jag ett sms när min webbplats ligger nere?”, ”Vad är en episod?”, ”Var lägger jag till ett andra telefonnummer?”. Svaren kommer från den här dokumentationen, kopian som din OneUptime själv levererar, så det fungerar utan internetåtkomst och skickar inget till nya ställen. Den läser en sida på ditt språk när sidan är översatt, anger sida och avsnitt för varje steg och säger att dokumentationen inte täcker något i stället för att gissa.
+
+Ett svar på ”hur gör jag” slutar med en knapp som öppnar sidan i ditt projekt där du gör det, till exempel **Skapa monitor** eller **Aviseringsmetoder**. Den öppnar bara sidor som OneUptime har: de som Sök (`Ctrl` + `K`) hittar.
+
 ## Öppna Fråga AI
 
 | Var | Hur |

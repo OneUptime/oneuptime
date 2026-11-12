@@ -256,15 +256,17 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
   ],
   /*
    * The same card while monitoring is off for some of the group's monitors,
-   * and for every one of them (#6478): those are left out of the graph.
+   * and for every one of them: each monitor counts only while its
+   * monitoring is on, so the graph keeps its history up to when it was
+   * turned off (#6478, #6987).
    */
   [
     "Pages/MonitorGroup/View/Index.tsx",
-    "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.",
+    "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.",
   ],
   [
     "Pages/MonitorGroup/View/Index.tsx",
-    "Monitoring is off for every monitor in this group, so it has no uptime to show.",
+    "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.",
   ],
   [
     "Pages/Monitor/Settings/MonitorProbes.tsx",

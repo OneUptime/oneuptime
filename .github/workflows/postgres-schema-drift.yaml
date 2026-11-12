@@ -2761,6 +2761,24 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/MonitorGroupDailyUptimePostgres.test.ts --forceExit
 
+      # #6480 and #6987: time a monitor's monitoring was turned off is left
+      # out of its days, its rolling uptime, a monitor group's days and the
+      # group's uptime. Runs the four statements on a structure-only copy of
+      # the migrated MonitorStatusTimeline table (its isMonitoringOff column
+      # among them) against a reference that skips the time off, and checks
+      # the open row before a switch ends at the switch.
+      - name: Test time with monitoring off on migrated Postgres
+        if: matrix.shard == 1
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITORING_OFF_UPTIME_TESTS: "true"
+          MONITORING_OFF_UPTIME_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITORING_OFF_UPTIME_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITORING_OFF_UPTIME_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorStatusTimelineMonitoringOffPostgres.test.ts --forceExit
+
       # Clones the migrated MonitorTest table into an isolated schema and runs
       # the write a probe's monitor test result makes: keyed on the test and
       # the probe that reported it, so only the probe the test was handed to

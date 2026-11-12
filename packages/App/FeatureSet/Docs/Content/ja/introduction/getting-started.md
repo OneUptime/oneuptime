@@ -111,7 +111,7 @@ flowchart TB
 ### セルフホスティング
 
 :::cards
-- [インストール](/docs/installation/docker-compose): 自分の OneUptime をインストールし、規模を見積もり、アップグレードします。
+- [インストール](/docs/installation/self-hosting-guide): 自分の OneUptime をインストールし、規模を見積もり、アップグレードします。
 - [セルフホスト環境](/docs/self-hosted/architecture): 自分のインストールのアーキテクチャ、連携、Enterprise 機能。
 :::
 
