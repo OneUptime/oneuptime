@@ -348,14 +348,12 @@ beforeEach(() => {
   jest
     .spyOn(GlobalConfigService, "getPushNotificationsTurnedOff")
     .mockResolvedValue(false as never);
-  jest
-    .spyOn(UserPushService, "findOneBy")
-    .mockImplementation(
-      methodRow("push", {
-        deviceName: "Pixel 8",
-        deviceType: "android",
-      }) as never,
-    );
+  jest.spyOn(UserPushService, "findOneBy").mockImplementation(
+    methodRow("push", {
+      deviceName: "Pixel 8",
+      deviceType: "android",
+    }) as never,
+  );
   jest
     .spyOn(UserEmailService, "findOneBy")
     .mockImplementation(
