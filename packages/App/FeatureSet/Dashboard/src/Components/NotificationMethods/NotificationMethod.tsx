@@ -52,6 +52,12 @@ import React, {
 } from "react";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
+import {
+  getLineDirection,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "Common/UI/Utils/LineDirection";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -66,12 +72,40 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
   const displayItems: Array<NotificationMethodDisplayItem> =
     NotificationMethodUtil.getDisplayItems(item);
 
+  const translator: Translator = useTranslator();
+
   return (
     <div>
       {displayItems.map((displayItem: NotificationMethodDisplayItem) => {
+        /*
+         * "SMS: +447700900123" reads the way its words do - the method's
+         * name is the channel's own, in Latin letters - so on a Persian or
+         * Arabic page the line reads left to right, aligned where the
+         * page's lines end (getLineDirection), as "Email: ..." under it
+         * does. Left the page's way, the number drawn apart went before
+         * the name: "+447700900123 :SMS" over "Email: ana@example.com".
+         * The number an SMS, a call or a WhatsApp message goes to reads
+         * +447700900123 inside it in every language (PhoneNumberText).
+         */
+        const lineDirection: ReadingDirection | undefined = getLineDirection(
+          `${displayItem.title}: ${displayItem.value}`,
+          translator.language,
+        );
+
         return (
-          <p key={displayItem.title}>
-            {displayItem.title}: {displayItem.value}
+          <p
+            key={displayItem.title}
+            dir={lineDirection}
+            className={
+              lineDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : undefined
+            }
+          >
+            {displayItem.title}:{" "}
+            {NotificationMethodUtil.isPhoneNumberMethod(displayItem.title) ? (
+              <PhoneNumberText phoneNumber={displayItem.value} />
+            ) : (
+              displayItem.value
+            )}
           </p>
         );
       })}
