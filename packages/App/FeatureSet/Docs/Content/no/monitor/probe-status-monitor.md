@@ -67,7 +67,7 @@ Begge er heltall, som sammenlignes med **Større enn**, **Mindre enn**, **Lik** 
 
 ### Vente lenger før en hendelse
 
-En probe er først frakoblet etter tre minutter med stillhet, så en rask omstart åpner ingenting. For å vente lenger krysser du av for **Evaluer disse kriteriene over en tidsperiode** under filteret, velger **All Values** under **Evaluer** og et vindu under **For de siste (i minutter)**. Med fem minutter må en probe være frakoblet i fem minutter til før hendelsen erklæres.
+En probe er først frakoblet etter tre minutter med stillhet, så en rask omstart åpner ingenting. For å vente lenger krysser du av for **Evaluer disse kriteriene over en tidsperiode** under filteret, velger **Alle verdier** under **Evaluer** og et vindu under **For de siste (i minutter)**. Med fem minutter må en probe være frakoblet i fem minutter til før hendelsen erklæres.
 
 ## Målinger
 
