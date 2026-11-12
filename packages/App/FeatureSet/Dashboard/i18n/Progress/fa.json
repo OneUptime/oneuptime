@@ -1,14 +1,16 @@
 {
   "baseline": {
     "keys": 51086,
-    "untranslated": 8621
+    "untranslated": 8361
   },
   "sameAsEnglish": [
     "\"Error\"",
     "\"GET\"",
     "\"WARNING\"",
     "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+    "-----BEGIN CERTIFICATE-----\nMIIB...\n-----END CERTIFICATE-----",
     "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+    "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
     "00:05:0b*",
     "2xx",
     "3xx",
@@ -112,6 +114,7 @@
     "Oracle",
     "Orchestration",
     "PCI DSS v4.0",
+    "POST /api/checkout",
     "PV",
     "PVC",
     "Passthrough",
@@ -139,6 +142,7 @@
     "Resource class",
     "Runner",
     "SELECT * FROM orders WHERE total < 0",
+    "SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED'",
     "SELECT COUNT(*) FROM orders WHERE total < 0",
     "SHA",
     "SHA-256",
@@ -153,6 +157,7 @@
     "Slug",
     "Snowflake",
     "StatusPage",
+    "Stripe Payments API",
     "TLS",
     "TTL",
     "TX",
@@ -223,7 +228,9 @@
     "prod-.*",
     "prod-eu",
     "prod-vcenter",
+    "production, staging",
     "recordset",
+    "resolved",
     "s",
     "security-alerts",
     "share",
