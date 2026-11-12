@@ -1,7 +1,8 @@
 import Route from "Common/Types/API/Route";
 import { ReadingDirection } from "Common/Types/ReadingDirection";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 import { Link } from "react-router-dom";
+import { AppLinkAsTextContext, getAppLinkTextClassName } from "./AppLinkAsText";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement> | string;
@@ -28,12 +29,27 @@ export interface ComponentProps {
 const ReactDomLink: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  const isText: boolean = useContext(AppLinkAsTextContext);
+
   let children: ReactElement | Array<ReactElement>;
 
   if (typeof props.children === "string") {
     children = <span>{props.children}</span>;
   } else {
     children = props.children;
+  }
+
+  if (isText) {
+    return (
+      <span
+        className={getAppLinkTextClassName(props.className) || undefined}
+        title={props.title}
+        data-testid={props.dataTestId}
+        dir={props.dir}
+      >
+        {children}
+      </span>
+    );
   }
 
   const cursorClassName: string = props.to
