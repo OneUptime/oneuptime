@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "테스트 명령",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test Executed Successfully",
+  "Test Executed Successfully": "테스트 성공",
   "Test Failed": "테스트 실패",
   "Test LLM Provider": "LLM 제공자 테스트",
   "Test Message": "Test Message",
@@ -51057,5 +51057,6 @@
   "{{project}} Status": "{{project}} 상태",
   "{{service}} is already watched by these monitors.": "{{service}} 서비스는 이미 이 모니터들이 감시하고 있습니다.",
   "{{service}} is sending data": "{{service}} 서비스가 데이터를 보내고 있습니다",
-  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다."
+  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다.",
+  "Fix the problem above, then test the rule again.": "위에 나온 문제를 해결한 다음 규칙을 다시 테스트하세요."
 }

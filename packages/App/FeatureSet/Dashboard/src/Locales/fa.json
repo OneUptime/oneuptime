@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "فرمان آزمون",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test Executed Successfully",
+  "Test Executed Successfully": "آزمایش با موفقیت انجام شد",
   "Test Failed": "آزمایش ناموفق بود",
   "Test LLM Provider": "آزمایش ارائه‌دهنده LLM",
   "Test Message": "Test Message",
@@ -51057,5 +51057,6 @@
   "{{project}} Status": "وضعیت {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} از قبل توسط این مانیتورها پایش می‌شود.",
   "{{service}} is sending data": "{{service}} در حال ارسال داده است",
-  "{{service}} is sending data.": "{{service}} در حال ارسال داده است."
+  "{{service}} is sending data.": "{{service}} در حال ارسال داده است.",
+  "Fix the problem above, then test the rule again.": "مشکلی را که در بالا آمده برطرف کنید، سپس قاعده را دوباره بیازمایید."
 }

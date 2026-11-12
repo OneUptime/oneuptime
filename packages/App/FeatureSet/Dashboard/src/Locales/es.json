@@ -51057,5 +51057,6 @@
   "{{project}} Status": "Estado de {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} ya está vigilado por estos monitores.",
   "{{service}} is sending data": "{{service}} está enviando datos",
-  "{{service}} is sending data.": "{{service}} está enviando datos."
+  "{{service}} is sending data.": "{{service}} está enviando datos.",
+  "Fix the problem above, then test the rule again.": "Corrige el problema indicado arriba y vuelve a probar la regla."
 }

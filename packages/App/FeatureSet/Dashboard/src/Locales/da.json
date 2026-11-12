@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Testkommando",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test Executed Successfully",
+  "Test Executed Successfully": "Testen blev udført",
   "Test Failed": "Testen mislykkedes",
   "Test LLM Provider": "Test LLM-udbyder",
   "Test Message": "Test Message",
@@ -51057,5 +51057,6 @@
   "{{project}} Status": "Status for {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} overvåges allerede af disse monitorer.",
   "{{service}} is sending data": "{{service}} sender data",
-  "{{service}} is sending data.": "{{service}} sender data."
+  "{{service}} is sending data.": "{{service}} sender data.",
+  "Fix the problem above, then test the rule again.": "Ret det problem, der er nævnt ovenfor, og test derefter reglen igen."
 }

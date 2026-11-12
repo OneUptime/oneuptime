@@ -254,7 +254,15 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
     WorkspaceNotificationRule | undefined
   >(undefined);
 
-  const [showTestSuccessModal, setShowTestSuccessModal] =
+  /*
+   * What the test came to, once it is sent: Test Executed Successfully, or
+   * Test Failed with what the server said and what to do next. The failure
+   * showed inside the Test Rule dialog, under its Test button, and pressing
+   * Test again could post a second test into the channels that got the
+   * first: whatever the answer, that dialog closes and this one opens
+   * (#7114), as the summaries' Send Test Now does.
+   */
+  const [showTestResultModal, setShowTestResultModal] =
     React.useState<boolean>(false);
 
   // Locked, saying why, for someone who may not send a test (TestSendLock).
@@ -286,20 +294,18 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
            */
           headers: ModelAPI.getCommonHeaders(),
         });
-      if (response.isSuccess()) {
-        setIsTestLoading(false);
-        setShowTestModal(false);
-        setShowTestSuccessModal(true);
-      }
-
       if (response instanceof HTTPErrorResponse) {
         throw response;
       }
 
       setIsTestLoading(false);
+      setShowTestModal(false);
+      setShowTestResultModal(true);
     } catch (err) {
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
+      setShowTestModal(false);
+      setShowTestResultModal(true);
     }
   };
 
@@ -1298,7 +1304,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
       {showTestModal && testNotificationRule ? (
         <ConfirmModal
           title={`Test Rule`}
-          error={testError}
           description={translator.translateTemplate(
             "Test the rule {{rule}} by sending a test notification to {{workspace}}.",
             {
@@ -1311,7 +1316,6 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
             setShowTestModal(false);
             setTestNotificationRule(undefined);
             setTestError(undefined);
-            setError("");
           }}
           isLoading={isTestLoading}
           onSubmit={async () => {
@@ -1325,21 +1329,36 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {showTestSuccessModal ? (
+      {/*
+       * No onClose: a dialog that only reports an outcome needs one way
+       * out, and "Close" is it (SendTestNotificationButton's, the same).
+       * A failure says what the server said, then what to do next - never
+       * Test again. Close clears it, so a later test that succeeds does
+       * not show it.
+       */}
+      {showTestResultModal ? (
         <ConfirmModal
           title={testError ? `Test Failed` : `Test Executed Successfully`}
           error={testError}
-          description={translator.translateTemplate(
-            "Test executed successfully. You should now see a notification in {{workspace}}.",
-            { workspace: getWorkspaceTypeDisplayName(props.workspaceType) },
-          )}
+          description={
+            testError
+              ? translator.translateText(
+                  "Fix the problem above, then test the rule again.",
+                )
+              : translator.translateTemplate(
+                  "Test executed successfully. You should now see a notification in {{workspace}}.",
+                  {
+                    workspace: getWorkspaceTypeDisplayName(props.workspaceType),
+                  },
+                )
+          }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {
-            setShowTestSuccessModal(false);
+            setShowTestResultModal(false);
             setTestNotificationRule(undefined);
             setShowTestModal(false);
-            setTestError("");
+            setTestError(undefined);
           }}
         />
       ) : (

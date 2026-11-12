@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "टेस्ट कमांड",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test Executed Successfully",
+  "Test Executed Successfully": "टेस्ट सफलतापूर्वक चला",
   "Test Failed": "परीक्षण विफल",
   "Test LLM Provider": "LLM प्रदाता का परीक्षण करें",
   "Test Message": "Test Message",
@@ -51057,5 +51057,6 @@
   "{{project}} Status": "{{project}} स्थिति",
   "{{service}} is already watched by these monitors.": "{{service}} पर पहले से ये मॉनिटर नज़र रख रहे हैं।",
   "{{service}} is sending data": "{{service}} डेटा भेज रहा है",
-  "{{service}} is sending data.": "{{service}} डेटा भेज रहा है।"
+  "{{service}} is sending data.": "{{service}} डेटा भेज रहा है।",
+  "Fix the problem above, then test the rule again.": "ऊपर बताई गई समस्या ठीक करें, फिर नियम को दोबारा टेस्ट करें।"
 }

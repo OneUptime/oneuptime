@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "測試命令",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test Executed Successfully",
+  "Test Executed Successfully": "測試執行成功",
   "Test Failed": "測試失敗",
   "Test LLM Provider": "測試 LLM 提供商",
   "Test Message": "Test Message",
@@ -51057,5 +51057,6 @@
   "{{project}} Status": "{{project}} 狀態",
   "{{service}} is already watched by these monitors.": "{{service}} 已受這些監測器監控。",
   "{{service}} is sending data": "{{service}} 正在傳送資料",
-  "{{service}} is sending data.": "{{service}} 正在傳送資料。"
+  "{{service}} is sending data.": "{{service}} 正在傳送資料。",
+  "Fix the problem above, then test the rule again.": "修正上方的問題，然後再次測試該規則。"
 }

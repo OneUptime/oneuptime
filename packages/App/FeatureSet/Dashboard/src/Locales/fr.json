@@ -16878,7 +16878,7 @@
   "Terraform provider": "Terraform provider",
   "Test Command": "Commande de test",
   "Test Data Source": "Test Data Source",
-  "Test Executed Successfully": "Test Executed Successfully",
+  "Test Executed Successfully": "Test exécuté avec succès",
   "Test Failed": "Échec du test",
   "Test LLM Provider": "Tester le fournisseur LLM",
   "Test Message": "Test Message",
@@ -51057,5 +51057,6 @@
   "{{project}} Status": "Statut {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} est déjà surveillé par ces moniteurs.",
   "{{service}} is sending data": "{{service}} envoie des données",
-  "{{service}} is sending data.": "{{service}} envoie des données."
+  "{{service}} is sending data.": "{{service}} envoie des données.",
+  "Fix the problem above, then test the rule again.": "Corrigez le problème indiqué ci-dessus, puis testez de nouveau la règle."
 }
