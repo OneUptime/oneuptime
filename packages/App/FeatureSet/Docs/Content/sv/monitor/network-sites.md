@@ -67,7 +67,7 @@ På en plats egen sida **Underordnade platser** frågar **Lägg till Underordnad
 
 ### Importera platser från en CSV-fil
 
-För att ta in en hel miljö på en gång öppnar du menyn överst i listan **Platser** och klickar på **Import from CSV**. Filen behöver en rubrikrad; kolumnerna kan komma i valfri ordning och deras namn är inte skiftlägeskänsliga:
+För att ta in en hel miljö på en gång öppnar du menyn överst i listan **Platser** och klickar på **Importera från CSV**. Filen behöver en rubrikrad; kolumnerna kan komma i valfri ordning och deras namn är inte skiftlägeskänsliga:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

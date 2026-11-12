@@ -131,8 +131,9 @@ beforeAll(async () => {
   await i18next.use(initReactI18next).init({
     lng: "en",
     fallbackLng: "en",
+    // Hindi too, for the dialog's one word for an import.
     resources: Object.fromEntries(
-      LANGUAGES.map((language: string) => {
+      [...LANGUAGES, "hi"].map((language: string) => {
         return [language, { translation: readDashboardLocale(language) }];
       }),
     ),
@@ -341,4 +342,85 @@ describe("the preview's problems, in the reader's language", () => {
       }
     },
   );
+});
+
+/*
+ * UI review of #7097: the help above the box lists the project's site
+ * types the way the reader's language lists names, as a problem's "Valid
+ * values" beside it does - an Arabic page read "(Account Type, Region)"
+ * over "Account Type، Region" - and a Hindi dialog says import one way.
+ */
+describe("the site import's help and words, read as one dialog", () => {
+  function mockSiteTypes(): void {
+    jest.spyOn(ModelAPI, "getList").mockResolvedValue({
+      data: [
+        siteType("5f8b7c1e2d3a4b5c6d7e8f02", "Region"),
+        siteType("5f8b7c1e2d3a4b5c6d7e8f03", "Market"),
+      ],
+      count: 2,
+      skip: 0,
+      limit: 2,
+    } as never);
+  }
+
+  // The help paragraph: the one line above the box that names the types.
+  async function helpText(): Promise<string> {
+    const box: HTMLElement = await screen.findByRole("textbox");
+    const help: Element | null =
+      box.closest("div.space-y-4")?.querySelector("p") || null;
+
+    return withoutIsolateMarks(help?.textContent || "");
+  }
+
+  test.each(["en", "de", "ar", "fa"])(
+    "%s: the help lists the site types as a problem's valid values list them",
+    async (language: string) => {
+      mockSiteTypes();
+      await readIn(language);
+      render(
+        <ImportSitesFromCsvModal
+          onClose={() => {}}
+          onImportComplete={() => {}}
+        />,
+      );
+
+      const translator: Translator = dashboardTranslator(language);
+      const list: string = formatList(["Region", "Market"], translator);
+
+      expect(await helpText()).toContain(`(${list})`);
+
+      if (language === "en" || language === "de") {
+        expect(list).toBe("Region, Market");
+      } else {
+        // Arabic and Persian set names apart with their own comma.
+        expect(list).toBe("Region، Market");
+        expect(await helpText()).not.toContain("Region, Market");
+      }
+    },
+  );
+
+  test("hi: the title, the count line and the button say आयात, never इम्पोर्ट", async () => {
+    mockSiteTypes();
+    await readIn("hi");
+    render(
+      <ImportSitesFromCsvModal
+        onClose={() => {}}
+        onImportComplete={() => {}}
+      />,
+    );
+    await preview("hi", SITES_CSV);
+
+    expect(screen.getByTestId("modal-title")).toHaveTextContent(
+      "CSV से साइटें आयात करें",
+    );
+    expect(
+      screen.getByText("2 साइटें आयात के लिए तैयार हैं।"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("modal-footer-submit-button")).toHaveTextContent(
+      "2 साइटें आयात करें",
+    );
+    expect(screen.getByTestId("modal").textContent || "").not.toMatch(
+      /इम्पोर्ट|इंपोर्ट/u,
+    );
+  });
 });

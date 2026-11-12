@@ -33,7 +33,7 @@ import TextArea from "Common/UI/Components/TextArea/TextArea";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatList, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -355,11 +355,17 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
   const rows: Array<ParsedSiteRow> = parseResult?.rows || [];
   const parseErrors: Array<SiteCsvError> = parseResult?.errors || [];
 
-  const siteTypeNames: string = siteTypes
-    .map((siteType: NetworkSiteTypeOption) => {
+  /*
+   * The project's site types, listed the way the reader's language lists
+   * names - the way a problem's "Valid values" list beside it says them
+   * (Arabic and Persian set them apart with "،").
+   */
+  const siteTypeNames: string = formatList(
+    siteTypes.map((siteType: NetworkSiteTypeOption): string => {
       return siteType.name;
-    })
-    .join(", ");
+    }),
+    translator,
+  );
 
   const canImport: boolean = Boolean(
     parseResult && rows.length > 0 && parseErrors.length === 0,

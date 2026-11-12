@@ -804,3 +804,130 @@ describe("a create that failed without a message, in the reader's language", () 
     });
   });
 });
+
+/*
+ * WHERE EACH IMPORT OPENS, IN THE READER'S LANGUAGE (UI review of #7097).
+ *
+ * The site import opens from the Sites list's menu entry "Import from
+ * CSV", and the group import from a status page's "Import groups from
+ * CSV". The dialog was worded in every language while the entry that
+ * opens it stayed English in twelve of them (Persian and Hindi among
+ * them): a reader met the import in English before reaching its words.
+ */
+describe("the entries that open the CSV imports", () => {
+  interface Entry {
+    file: string;
+    label: string;
+  }
+
+  const ENTRIES: ReadonlyArray<Entry> = [
+    { file: "src/Pages/NetworkSite/Sites.tsx", label: "Import from CSV" },
+    {
+      file: "src/Pages/StatusPages/View/Resources.tsx",
+      label: "Import groups from CSV",
+    },
+  ];
+
+  test("each page draws its entry with that label", () => {
+    for (const entry of ENTRIES) {
+      expect({
+        file: entry.file,
+        draws: readSource(path.join(DASHBOARD, entry.file)).includes(
+          JSON.stringify(entry.label),
+        ),
+      }).toEqual({ file: entry.file, draws: true });
+    }
+  });
+
+  test.each(LANGUAGES)("%s words both entries", (language: string) => {
+    const english: Array<string> = unworded(
+      language,
+      ENTRIES.map((entry: Entry): Word => {
+        return { key: entry.label, english: entry.label };
+      }),
+    );
+
+    expect({ language, english }).toEqual({ language, english: [] });
+  });
+
+  test("Persian and Hindi name the site import's entry with their dialog title's verb", () => {
+    expect(readDashboardLocale("fa")["Import from CSV"]).toBe(
+      "وارد کردن از CSV",
+    );
+    expect(readDashboardLocale("hi")["Import from CSV"]).toBe(
+      "CSV से आयात करें",
+    );
+  });
+});
+
+/*
+ * ONE HINDI WORD FOR IMPORT IN BOTH DIALOGS (UI review of #7097).
+ *
+ * Hindi has two words for an import: आयात, and the loanword इम्पोर्ट
+ * (also spelt इंपोर्ट). The dialogs' own buttons and headings said आयात
+ * (आयात का पूर्वावलोकन, आयात के परिणाम, CSV से समूह आयात करें), while
+ * the site import's title, its submit button, its "ready to import" line
+ * and both dialogs' help texts said इम्पोर्ट: two words for one action
+ * in one dialog. Every word the dialogs and their parsers draw says आयात.
+ */
+describe("Hindi says import one way in the CSV imports", () => {
+  const LOANWORD: RegExp = /इम्पोर्ट|इंपोर्ट/u;
+  const DANDA_AFTER_COLUMNS: RegExp = /^कॉलम: \{\{columns\}\}। /u;
+
+  function loanwordKeys(
+    words: ReadonlyArray<Word>,
+    hindi: Record<string, string>,
+  ): Array<string> {
+    return words
+      .filter((word: Word): boolean => {
+        return LOANWORD.test(String(hindi[word.key] || ""));
+      })
+      .map((word: Word): string => {
+        return word.key;
+      });
+  }
+
+  test("no Hindi value the dialogs or parsers draw uses the loanword", () => {
+    expect(loanwordKeys(WORDS, readDashboardLocale("hi"))).toEqual([]);
+  });
+
+  test("the title, the button, the count line and the help say आयात", () => {
+    const hindi: Record<string, string> = readDashboardLocale("hi");
+
+    expect(hindi["Import Sites from CSV"]).toBe("CSV से साइटें आयात करें");
+    expect(hindi["Import {{count}} Sites"]).toBe("{{count}} साइटें आयात करें");
+    expect(hindi["Import {{count}} Sites_one"]).toBe(
+      "{{count}} साइट आयात करें",
+    );
+    expect(hindi["{{count}} sites ready to import."]).toBe(
+      "{{count}} साइटें आयात के लिए तैयार हैं।",
+    );
+    expect(hindi["Import {{count}} Groups"]).toBe("{{count}} समूह आयात करें");
+    expect(hindi["Preview Import"]).toBe("आयात का पूर्वावलोकन");
+
+    // A Hindi sentence ends with a danda, the columns' list's included.
+    const helpTexts: Array<Word> = WORDS.filter((word: Word): boolean => {
+      return word.key.startsWith("Columns: {{columns}}.");
+    });
+
+    expect(helpTexts.length).toBe(3);
+
+    for (const word of helpTexts) {
+      expect({
+        key: word.key.slice(0, 40),
+        endsWithDanda: DANDA_AFTER_COLUMNS.test(String(hindi[word.key])),
+      }).toEqual({ key: word.key.slice(0, 40), endsWithDanda: true });
+    }
+  });
+
+  test("the check finds a value that says इम्पोर्ट (negative control)", () => {
+    const key: string = "Import Sites from CSV";
+
+    expect(
+      loanwordKeys(WORDS, {
+        ...readDashboardLocale("hi"),
+        [key]: "CSV से साइटें इम्पोर्ट करें",
+      }),
+    ).toEqual([key]);
+  });
+});

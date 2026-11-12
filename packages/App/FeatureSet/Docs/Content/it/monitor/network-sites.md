@@ -67,7 +67,7 @@ Nella pagina **Siti figli** di un sito, **Aggiungi: Sito figlio** chiede solo il
 
 ### Importare i siti da un file CSV
 
-Per portare dentro un intero parco in una volta, apri il menu in cima all'elenco **Siti** e fai clic su **Import from CSV**. Il file richiede una riga di intestazione; le colonne possono essere in qualsiasi ordine e i loro nomi non distinguono tra maiuscole e minuscole:
+Per portare dentro un intero parco in una volta, apri il menu in cima all'elenco **Siti** e fai clic su **Importa da CSV**. Il file richiede una riga di intestazione; le colonne possono essere in qualsiasi ordine e i loro nomi non distinguono tra maiuscole e minuscole:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

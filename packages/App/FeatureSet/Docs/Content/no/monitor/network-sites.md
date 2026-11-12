@@ -67,7 +67,7 @@ På en lokasjons egen side **Underordnede lokasjoner** spør **Legg til Underord
 
 ### Importer lokasjoner fra en CSV-fil
 
-For å hente inn et helt miljø på én gang åpner du menyen øverst i listen **Lokasjoner** og klikker på **Import from CSV**. Filen trenger en overskriftsrad; kolonnene kan komme i hvilken som helst rekkefølge, og navnene skiller ikke mellom store og små bokstaver:
+For å hente inn et helt miljø på én gang åpner du menyen øverst i listen **Lokasjoner** og klikker på **Importer fra CSV**. Filen trenger en overskriftsrad; kolonnene kan komme i hvilken som helst rekkefølge, og navnene skiller ikke mellom store og små bokstaver:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

@@ -67,7 +67,7 @@ flowchart BT
 
 ### 從 CSV 檔案匯入站點
 
-若要一次匯入整個環境，請開啟**站點**清單頂端的選單，按一下 **Import from CSV**。檔案需要有標題列；欄可以依任意順序排列，欄名不區分大小寫：
+若要一次匯入整個環境，請開啟**站點**清單頂端的選單，按一下 **從 CSV 匯入**。檔案需要有標題列；欄可以依任意順序排列，欄名不區分大小寫：
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

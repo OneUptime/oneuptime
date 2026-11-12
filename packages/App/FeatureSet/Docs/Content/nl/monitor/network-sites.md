@@ -67,7 +67,7 @@ Op de pagina **Onderliggende locaties** van een locatie vraagt **Onderliggende l
 
 ### Locaties importeren uit een CSV-bestand
 
-Om een hele omgeving in één keer binnen te halen, open je het menu bovenaan de lijst **Locaties** en klik je op **Import from CSV**. Het bestand heeft een kopregel nodig; de kolommen mogen in elke volgorde staan en hun namen zijn niet hoofdlettergevoelig:
+Om een hele omgeving in één keer binnen te halen, open je het menu bovenaan de lijst **Locaties** en klik je op **Importeren uit CSV**. Het bestand heeft een kopregel nodig; de kolommen mogen in elke volgorde staan en hun namen zijn niet hoofdlettergevoelig:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

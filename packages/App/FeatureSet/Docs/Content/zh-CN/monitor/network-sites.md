@@ -67,7 +67,7 @@ flowchart BT
 
 ### 从 CSV 文件导入站点
 
-要一次性导入整个环境，请打开**站点**列表顶部的菜单，点击 **Import from CSV**。文件需要有标题行；列可以按任意顺序排列，列名不区分大小写：
+要一次性导入整个环境，请打开**站点**列表顶部的菜单，点击 **从 CSV 导入**。文件需要有标题行；列可以按任意顺序排列，列名不区分大小写：
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

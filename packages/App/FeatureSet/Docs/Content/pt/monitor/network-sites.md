@@ -67,7 +67,7 @@ Na página **Sites filhos** de um site, **Adicionar: Site filho** pede só o tip
 
 ### Importar sites de um arquivo CSV
 
-Para trazer um parque inteiro de uma vez, abra o menu no topo da lista **Sites** e clique em **Import from CSV**. O arquivo precisa de uma linha de cabeçalho; as colunas podem vir em qualquer ordem e os nomes delas não diferenciam maiúsculas de minúsculas:
+Para trazer um parque inteiro de uma vez, abra o menu no topo da lista **Sites** e clique em **Importar de CSV**. O arquivo precisa de uma linha de cabeçalho; as colunas podem vir em qualquer ordem e os nomes delas não diferenciam maiúsculas de minúsculas:
 
 ```csv title="sites.csv"
 name,siteType,parentName,address,latitude,longitude

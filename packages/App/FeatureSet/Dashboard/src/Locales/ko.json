@@ -11355,7 +11355,7 @@
   "Import core switches": "Import core switches",
   "Import device only (no monitor)": "Import device only (no monitor)",
   "Import discovered hosts as network devices automatically.": "Import discovered hosts as network devices automatically.",
-  "Import from CSV": "Import from CSV",
+  "Import from CSV": "CSV에서 가져오기",
   "Import groups from CSV": "CSV에서 그룹 가져오기",
   "Import it": "Import it",
   "Import it from the command line instead": "Import it from the command line instead",
