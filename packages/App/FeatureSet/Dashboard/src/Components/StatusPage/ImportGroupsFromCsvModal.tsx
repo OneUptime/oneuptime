@@ -510,7 +510,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                 <thead>
                   <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
                     <th className="px-3 py-2 text-start">
-                      {translator.translateText("Line")}
+                      {translator.translateText("CSV line")}
                     </th>
                     <th className="px-3 py-2 text-start">
                       {translator.translateText("Name")}
@@ -567,7 +567,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
               <thead>
                 <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-3 py-2 text-start">
-                    {translator.translateText("Line")}
+                    {translator.translateText("CSV line")}
                   </th>
                   <th className="px-3 py-2 text-start">
                     {translator.translateText("Name")}

@@ -31,6 +31,8 @@ import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import { SESSION_REPLAY_MAX_USER_REF_LENGTH } from "Common/Types/Rum/SessionReplay";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -295,8 +297,13 @@ const TargetedCapturePanel: FunctionComponent<ComponentProps> = (
               className="mt-0.5 h-4 w-4 shrink-0 text-gray-400"
             />
             <div className="text-sm text-gray-600">
-              {translator.translateText(
-                "Arming a recording of a named person is a capture-policy change, so it needs the Edit RUM Application permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.",
+              {translator.translateTemplate(
+                'Arming a recording of a named person is a capture-policy change, so it needs the "{{permission}}" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.',
+                {
+                  permission: getSessionReplayPermissionTitle(
+                    Permission.EditRumApplication,
+                  ),
+                },
               )}
             </div>
           </div>

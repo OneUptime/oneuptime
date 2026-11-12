@@ -513,7 +513,7 @@ API.post = async ({ url, data }) => {
           400,
           {
             message:
-              "Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead, or ask a project admin for the session replay identity permission.",
+              'Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead. Ask a project admin for the "Watch Session Replays" permission.',
           },
           {},
         );

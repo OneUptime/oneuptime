@@ -521,23 +521,23 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
               </p>
               <table className="min-w-full divide-y divide-gray-200 text-sm">
                 <thead>
-                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                    <th className="px-3 py-2">
-                      {translator.translateText("Line")}
+                  <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                    <th className="px-3 py-2 text-start">
+                      {translator.translateText("CSV line")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Name")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Site Type")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Parent")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Address")}
                     </th>
-                    <th className="px-3 py-2">
+                    <th className="px-3 py-2 text-start">
                       {translator.translateText("Coordinates")}
                     </th>
                   </tr>
@@ -580,17 +580,17 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
             </p>
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-gray-500">
-                  <th className="px-3 py-2">
-                    {translator.translateText("Line")}
+                <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                  <th className="px-3 py-2 text-start">
+                    {translator.translateText("CSV line")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Name")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Result")}
                   </th>
-                  <th className="px-3 py-2">
+                  <th className="px-3 py-2 text-start">
                     {translator.translateText("Details")}
                   </th>
                 </tr>
