@@ -6,8 +6,6 @@ import {
   getStepNumber,
   getStepState,
 } from "./GuidedSetupProgress";
-import IconProp from "Common/Types/Icon/IconProp";
-import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import {
   GuidedSetupEvents,
   useGuidedSetupEvents,
@@ -72,13 +70,21 @@ const StepMarker: FunctionComponent<{
   number: number;
 }> = (props: { state: GuidedSetupStepState; number: number }): ReactElement => {
   if (props.state === GuidedSetupStepState.Done) {
+    // The check a completed form step shows (Forms/Steps/Step), larger.
     return (
-      <span
-        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-indigo-600 text-white"
+      <svg
+        className="h-7 w-7 flex-shrink-0 text-indigo-600"
+        viewBox="0 0 20 20"
+        fill="currentColor"
         aria-hidden="true"
+        data-testid="guided-setup-step-done-mark"
       >
-        <Icon icon={IconProp.Check} size={SizeProp.Small} />
-      </span>
+        <path
+          fillRule="evenodd"
+          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+          clipRule="evenodd"
+        />
+      </svg>
     );
   }
 
@@ -115,7 +121,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
   const doneCount: number = countDoneSteps(props.steps);
 
   return (
-    <div className="mx-auto w-full max-w-3xl" data-testid="guided-setup">
+    <div className="w-full max-w-3xl" data-testid="guided-setup">
       <p
         className="text-sm text-gray-500"
         data-testid="guided-setup-progress"

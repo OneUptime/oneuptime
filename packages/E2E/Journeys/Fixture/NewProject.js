@@ -42,6 +42,8 @@ import UserCall from "Common/Models/DatabaseModels/UserCall";
 import UserSMS from "Common/Models/DatabaseModels/UserSMS";
 import Service from "Common/Models/DatabaseModels/Service";
 import TelemetryIngestionKey from "Common/Models/DatabaseModels/TelemetryIngestionKey";
+import MonitorProbe from "Common/Models/DatabaseModels/MonitorProbe";
+import MonitorOwnerUser from "Common/Models/DatabaseModels/MonitorOwnerUser";
 import Color from "Common/Types/Color";
 import Email from "Common/Types/Email";
 import Name from "Common/Types/Name";
@@ -64,6 +66,8 @@ export const ADA_ID = "40000000-0000-4000-8000-000000000001";
 export const GRACE_ID = "40000000-0000-4000-8000-000000000002";
 export const MONITOR_ID = "50000000-0000-4000-8000-000000000001";
 export const SERVICE_ID = "50000000-0000-4000-8000-000000000002";
+// The test page a guided setup sends (#6804): its run, acknowledged at once.
+export const TEST_PAGE_LOG_ID = "80000000-0000-4000-8000-000000006804";
 
 const OWNERS_TEAM_ID = "30000000-0000-4000-8000-000000000001";
 const ADMINS_TEAM_ID = "30000000-0000-4000-8000-000000000002";
@@ -327,6 +331,33 @@ export function dashboardHooks(project) {
       if (!record.currentMonitorStatusId) {
         store.update(Monitor, record._id, {
           currentMonitorStatusId: new ObjectID(project.statuses[0]._id),
+        });
+      }
+
+      /*
+       * Its creator owns it (DatabaseService's auto-owner), and the probes a
+       * new monitor starts with check it - each answering at once, as a
+       * reachable website does (MonitorProbe's lastMonitoringLog), for the
+       * guided setup's first check (#6804).
+       */
+      store.create(MonitorOwnerUser, {
+        monitorId: new ObjectID(record._id),
+        userId: new ObjectID(project.signedInAs === "member" ? GRACE_ID : ADA_ID),
+      });
+      for (const probe of store.table(Probe)) {
+        store.create(MonitorProbe, {
+          monitorId: new ObjectID(record._id),
+          probeId: new ObjectID(probe._id),
+          isEnabled: true,
+          lastPingAt: store.NOW,
+          lastMonitoringLog: {
+            step: {
+              isOnline: true,
+              responseCode: 200,
+              responseTimeInMs: 312,
+              failureCause: "",
+            },
+          },
         });
       }
     },
@@ -607,6 +638,74 @@ export function dashboardRoutes(project) {
         return ok({
           disableUserProjectCreation: false,
           disablePushNotifications: false,
+        });
+      },
+    ],
+    /*
+     * A test page to the person themselves (OnCallTestPageAPI, #6811): what
+     * it will send - Ada's verified email - then the run, acknowledged from
+     * the email at once.
+     */
+    [
+      "POST",
+      "/on-call-test-page/preview",
+      () => {
+        return ok({
+          kind: "Self",
+          people: [
+            {
+              userId: ADA_ID,
+              userName: "Ada Lovelace",
+              methods: [
+                {
+                  channel: "Email",
+                  address: "ada@example.com",
+                  notifyAfterMinutes: 0,
+                  isVerified: true,
+                  canAcknowledge: true,
+                },
+              ],
+              hasNoRule: false,
+              isOptedOut: false,
+              warnings: [],
+            },
+          ],
+          notPaged: [],
+          cost: {
+            isPaid: false,
+            smsCount: 0,
+            callCount: 0,
+            whatsAppCount: 0,
+            telegramCount: 0,
+          },
+        });
+      },
+    ],
+    [
+      "POST",
+      "/on-call-test-page/page-person",
+      () => {
+        return ok({ executionLogId: TEST_PAGE_LOG_ID });
+      },
+    ],
+    [
+      "GET",
+      /\/on-call-test-page\/result\/[0-9a-f-]+$/,
+      () => {
+        return ok({
+          executionLogId: TEST_PAGE_LOG_ID,
+          kind: "Self",
+          recordKind: "Incident",
+          severityName: "Critical",
+          walksEscalation: false,
+          status: "Acknowledged",
+          statusMessage: "Test page acknowledged.",
+          startedAt: store.NOW.toISOString(),
+          endsAt: new Date(store.NOW.getTime() + 30 * 60 * 1000).toISOString(),
+          acknowledgedByName: "Ada Lovelace",
+          acknowledgedChannel: "Email",
+          acknowledgedAfterSeconds: 14,
+          steps: [],
         });
       },
     ],

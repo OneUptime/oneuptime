@@ -260,7 +260,7 @@ describe("the steps, from the keyboard", () => {
 
     expect(navigateMock).toHaveBeenCalledTimes(1);
     expect(String(navigateMock.mock.calls[0]![0])).toBe(
-      routeOf(PageMap.MONITOR_CREATE),
+      routeOf(PageMap.MONITOR_GUIDED_SETUP),
     );
     expect(captureMock).toHaveBeenCalledWith(
       "dashboard/home/getting-started-task",

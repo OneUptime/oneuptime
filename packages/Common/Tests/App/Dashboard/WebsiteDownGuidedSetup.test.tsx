@@ -187,8 +187,13 @@ jest.mock(
       default: (props: {
         to: { toString: () => string };
         children: React.ReactNode;
+        dataTestId?: string;
       }) => {
-        return <a href={props.to.toString()}>{props.children}</a>;
+        return (
+          <a href={props.to.toString()} data-testid={props.dataTestId}>
+            {props.children}
+          </a>
+        );
       },
     };
   },
@@ -464,6 +469,18 @@ describe("a brand-new project", () => {
 });
 
 describe("1. What should we check?", () => {
+  test("every other kind of monitor is one link away, on Create Monitor", async () => {
+    await renderSetup();
+
+    expect(screen.getByTestId("guided-setup-other-types")).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/create`,
+    );
+    expect(screen.getByTestId("guided-setup-other-types")).toHaveTextContent(
+      "More monitor types",
+    );
+  });
+
   test("an address that is not one is said so, and makes nothing", async () => {
     await renderSetup();
     typeAddress("not an address");

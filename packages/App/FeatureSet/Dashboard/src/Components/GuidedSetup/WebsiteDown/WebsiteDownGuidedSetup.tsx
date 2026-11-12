@@ -381,7 +381,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
 
   if (!monitor && !mayCreateMonitor()) {
     return (
-      <div className="mx-auto max-w-3xl" data-testid="guided-setup-not-allowed">
+      <div className="max-w-3xl" data-testid="guided-setup-not-allowed">
         <Alert
           type={AlertType.INFO}
           title={
@@ -551,13 +551,23 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      <Button
-        title={WEBSITE_DOWN_COPY.startChecking}
-        type={ButtonType.Submit}
-        buttonStyle={ButtonStyleType.PRIMARY}
-        isLoading={isSaving}
-        dataTestId="guided-setup-start-checking"
-      />
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <Button
+          title={WEBSITE_DOWN_COPY.startChecking}
+          type={ButtonType.Submit}
+          buttonStyle={ButtonStyleType.PRIMARY}
+          isLoading={isSaving}
+          dataTestId="guided-setup-start-checking"
+        />
+        {/* A server, a port, a heartbeat: Create Monitor has every type. */}
+        <AppLink
+          to={routeOf(PageMap.MONITOR_CREATE)}
+          className={linkClassName}
+          dataTestId="guided-setup-other-types"
+        >
+          {translator.translateText("More monitor types") || ""}
+        </AppLink>
+      </div>
     </form>
   );
 
