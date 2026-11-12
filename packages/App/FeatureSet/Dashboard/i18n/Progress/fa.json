@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51094,
-    "untranslated": 5258
+    "untranslated": 5043
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -83,6 +83,8 @@
     "Elasticsearch",
     "Enterprise Edition",
     "Fivetran",
+    "FlashArray",
+    "FlashBlade",
     "Floating IP",
     "Fluent Bit",
     "Full view",
@@ -275,6 +277,7 @@
     "kubectl set image deployment/web * -n web",
     "libvirt",
     "main",
+    "member@company.com",
     "message",
     "mm",
     "mqtt",

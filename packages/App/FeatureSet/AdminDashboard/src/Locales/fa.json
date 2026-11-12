@@ -787,7 +787,7 @@
   "If you use port 465, please enable this. Do not enable this if you use port 587.": "اگر از پورت ۴۶۵ استفاده می‌کنید، این را فعال کنید. اگر از پورت ۵۸۷ استفاده می‌کنید آن را فعال نکنید.",
   "Instance footprint": "ردپای نمونه",
   "Job backlog across the queue workers. A growing backlog or failures indicate workers are unhealthy.": "انباشت کارها در میان کارگرهای صف. انباشت رو به رشد یا خطاها نشان می‌دهد که کارگرها سالم نیستند.",
-  "John Smith": "John Smith",
+  "John Smith": "علی رضایی",
   "Learn about Enterprise Edition": "درباره نسخه سازمانی بیشتر بدانید",
   "Live component health": "سلامت زنده اجزا",
   "Live status, datastore capacity and queue backlogs.": "وضعیت زنده، ظرفیت پایگاه داده و انباشت صف‌ها.",
