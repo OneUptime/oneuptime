@@ -12,8 +12,11 @@
  *                        default), paging, or failed (a message that did not
  *                        go out, with where to fix it)
  *   - cost=1             the preview's test sends paid texts and calls
- *   - lang=de            the Dashboard's German words (fa: Persian, read
- *                        from the right)
+ *   - old=1              the preview as a server from before #7015 and
+ *                        #7016 sends it: English only, no codes, and nothing
+ *                        about the levels a walking test reaches
+ *   - lang=de            the Dashboard's German words (fa: Persian, ar:
+ *                        Arabic, both read from the right)
  *   - theme=dark         dark mode (set before the bundle by server.js)
  *
  * Every request the dialog sends is recorded on window.__fixture.requests,
@@ -49,6 +52,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import Page from "Common/UI/Components/Page/Page";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000e1";
 const POLICY_ID = "20000000-0000-4000-8000-0000000000e1";
@@ -62,9 +66,11 @@ const params = new URLSearchParams(window.location.search);
 const view = params.get("view") === "policy" ? "policy" : "self";
 const resultState = params.get("result") || "acknowledged";
 const isPaid = params.get("cost") === "1";
-const language = ["de", "fa"].includes(params.get("lang"))
+const isOlderServer = params.get("old") === "1";
+const language = ["de", "fa", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
+const readsFromTheRight = ["fa", "ar"].includes(language);
 
 window.__fixture = {
   requests: [],
@@ -176,6 +182,36 @@ const SELF_PREVIEW = {
   },
 };
 
+// The server's English, which each code below comes with (#7015).
+const EMAIL_NOT_VERIFIED =
+  "This Email method is not verified, so the test can't use it.";
+const NO_RULE =
+  "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.";
+const LEE_AWAY = "Lee Park is away until Nov 14, 2026, with nobody covering.";
+const LEVEL_3_EMPTY =
+  "Escalation rule 3 pages nobody yet. Add people, a team or a schedule to it.";
+
+// A policy's cost: a text 10 cents, a call 25, paid only with cost=1.
+function policyCost(smsCount, callCount) {
+  return {
+    isPaid: isPaid,
+    smsCount: smsCount,
+    callCount: callCount,
+    whatsAppCount: 0,
+    telegramCount: 0,
+    ...(isPaid
+      ? { estimatedCostInUSDCents: smsCount * 10 + callCount * 25 }
+      : {}),
+  };
+}
+
+/*
+ * Payments primary: its first level pages Dana (on call in its schedule)
+ * and Sam (in team Platform), and can't reach Lee, who is away. Walking
+ * every level, nobody acknowledging it, the test pages Ravi at level 2 two
+ * minutes later, and passes level 3, which names nobody, two minutes after
+ * that.
+ */
 const POLICY_PREVIEW = {
   kind: "Policy",
   people: [
@@ -183,6 +219,7 @@ const POLICY_PREVIEW = {
       userId: USER_ID,
       userName: "Dana Kim",
       reachedThrough: "Schedule Payments primary",
+      reachedThroughCode: { code: "Schedule", name: "Payments primary" },
       methods: [
         {
           channel: "SMS",
@@ -199,31 +236,95 @@ const POLICY_PREVIEW = {
       ],
       hasNoRule: false,
       isOptedOut: false,
-      warnings: [
-        "This Email method is not verified, so the test can't use it.",
+      warnings: [EMAIL_NOT_VERIFIED],
+      warningCodes: [
+        {
+          code: "MethodNotVerified",
+          channel: "Email",
+          message: EMAIL_NOT_VERIFIED,
+        },
       ],
     },
     {
       userId: "40000000-0000-4000-8000-0000000000e2",
       userName: "Sam Rivera",
       reachedThrough: "Team Platform",
+      reachedThroughCode: { code: "Team", name: "Platform" },
       methods: [],
       hasNoRule: true,
       isOptedOut: false,
-      warnings: [
-        "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+      warnings: [NO_RULE],
+      warningCodes: [{ code: "NoRuleFallsBack", message: NO_RULE }],
+    },
+  ],
+  notPaged: [LEE_AWAY],
+  notPagedCodes: [
+    {
+      code: "AwayWithNobodyCovering",
+      userName: "Lee Park",
+      awayUntil: "2026-11-14T09:00:00.000Z",
+      message: LEE_AWAY,
+    },
+  ],
+  levelCount: 3,
+  cost: policyCost(1, 0),
+  walkLevels: [
+    {
+      order: 2,
+      startsAfterMinutes: 2,
+      people: [
+        {
+          userId: "40000000-0000-4000-8000-0000000000e3",
+          userName: "Ravi Shah",
+          reachedThrough: "Team Database",
+          reachedThroughCode: { code: "Team", name: "Database" },
+          methods: [
+            {
+              channel: "Call",
+              notifyAfterMinutes: 0,
+              isVerified: true,
+              canAcknowledge: true,
+            },
+          ],
+          hasNoRule: false,
+          isOptedOut: false,
+          warnings: [],
+          warningCodes: [],
+        },
+      ],
+      notPaged: [],
+      notPagedCodes: [],
+    },
+    {
+      order: 3,
+      startsAfterMinutes: 4,
+      people: [],
+      notPaged: [LEVEL_3_EMPTY],
+      notPagedCodes: [
+        {
+          code: "LevelNamesNobody",
+          levelOrder: 3,
+          message: LEVEL_3_EMPTY,
+        },
       ],
     },
   ],
-  notPaged: ["Lee Park is away until Nov 14, 2026, with nobody covering."],
-  levelCount: 3,
-  cost: {
-    isPaid: false,
-    smsCount: 0,
-    callCount: 0,
-    whatsAppCount: 0,
-    telegramCount: 0,
-  },
+  walkUnreachedLevelCount: 0,
+  walkCost: policyCost(1, 1),
+};
+
+// The same, as a server from before the codes and the walk sends it.
+const OLDER_POLICY_PREVIEW = {
+  kind: POLICY_PREVIEW.kind,
+  people: POLICY_PREVIEW.people.map((person) => {
+    const older = { ...person };
+    delete older.reachedThroughCode;
+    delete older.warningCodes;
+    return older;
+  }),
+  notPaged: POLICY_PREVIEW.notPaged,
+  levelCount: POLICY_PREVIEW.levelCount,
+  cost: POLICY_PREVIEW.cost,
 };
 
 const STARTED_AT = new Date(Date.now() - 20 * 1000);
@@ -330,7 +431,11 @@ API.post = async (request) => {
   if (url.endsWith("/on-call-test-page/preview")) {
     return new HTTPResponse(
       200,
-      view === "policy" ? POLICY_PREVIEW : SELF_PREVIEW,
+      view === "policy"
+        ? isOlderServer
+          ? OLDER_POLICY_PREVIEW
+          : POLICY_PREVIEW
+        : SELF_PREVIEW,
       {},
     );
   }
@@ -367,6 +472,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     de: { translation: DE },
     fa: { translation: FA },
+    ar: { translation: AR },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -374,7 +480,7 @@ await i18next.use(initReactI18next).init({
 });
 followLanguageForDates(i18next);
 document.documentElement.lang = language;
-document.documentElement.dir = language === "fa" ? "rtl" : "ltr";
+document.documentElement.dir = readsFromTheRight ? "rtl" : "ltr";
 
 function Shell() {
   Navigation.setNavigateHook(useNavigate());

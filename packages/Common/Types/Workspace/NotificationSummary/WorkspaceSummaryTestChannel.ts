@@ -23,7 +23,7 @@ export const WORKSPACE_SUMMARY_TEST_CHANNELS_KEY: string = "channels";
 /*
  * The channels of a Send Test Now answer, read from its JSON body. None
  * when the answer has none - a test refused before anything was posted
- * ("No channel names configured for summary"), a network error, a server
+ * ("The summary has no channel to post in."), a network error, a server
  * from before the answer had them - and none for a body that is not this
  * shape: the dialog then says the answer's message, as it always did.
  */

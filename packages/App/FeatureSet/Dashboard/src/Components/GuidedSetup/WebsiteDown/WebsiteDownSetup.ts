@@ -27,7 +27,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *      monitor starts with, every five minutes, and the type's criteria
  *      (offline when it does not answer, or answers outside 200 to 399,
  *      which opens an incident). The monitor's probes check it at once,
- *      and their first answer is said in a sentence.
+ *      and their first answer is said in a sentence. An address one of
+ *      this person's monitors already checks makes no second monitor: the
+ *      setup goes on with theirs, and says so (#7059) - whatever the
+ *      browser kept of the run.
  *   2. Who should be told? A project with no on-call policy gets one,
  *      paging the people picked - "You", to start with - for every new
  *      incident and alert (FirstResponders, EveryNewEventRules). A project
@@ -69,6 +72,7 @@ export const WEBSITE_DOWN_COPY: {
   addressError: string;
   isApiLabel: string;
   startChecking: string;
+  existingMonitor: string;
   continueButton: string;
   cannotCreateMonitor: string;
   whoTitle: string;
@@ -79,6 +83,7 @@ export const WEBSITE_DOWN_COPY: {
   whoNobodyPicked: string;
   whoSave: string;
   whoExistingHelp: string;
+  policyMadeElsewhere: string;
   whoOwnerOnlyHelp: string;
   whoOnCallRulesLink: string;
   noEmail: string;
@@ -119,6 +124,13 @@ export const WEBSITE_DOWN_COPY: {
   ),
   isApiLabel: translationKey("This is an API endpoint"),
   startChecking: translationKey("Start checking"),
+  /*
+   * Said when the address is one this person's monitor already checks: the
+   * setup goes on with it, and makes no second (#7059).
+   */
+  existingMonitor: translationKey(
+    'Your monitor "{{name}}" already checks this address, so no new monitor was made.',
+  ),
   continueButton: translationKey("Continue"),
   cannotCreateMonitor: translationKey(
     "Creating a monitor needs permission you do not have in this project. Ask a project admin to give it to you, or to set this up.",
@@ -136,6 +148,14 @@ export const WEBSITE_DOWN_COPY: {
   whoSave: translationKey("Save and continue"),
   whoExistingHelp: translationKey(
     "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident. You own this monitor, so you are also emailed when it goes down.",
+  ),
+  /*
+   * Said when Save and continue finds a policy another tab or device made
+   * since the step opened: why the people picked are gone, and that nothing
+   * was made twice (#7059).
+   */
+  policyMadeElsewhere: translationKey(
+    "An on-call policy was added to this project while this page was open, so no new policy was made.",
   ),
   whoOwnerOnlyHelp: translationKey(
     "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
@@ -193,6 +213,23 @@ const SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
 const WHITESPACE: RegExp = /\s/;
 export const MONITOR_NAME_MAX_LENGTH: number = 100;
 
+/*
+ * A path without its trailing slashes, taken one at a time: what a person
+ * typed is short, and no pattern runs on it (a run of slashes in the middle
+ * made /\/+$/ try again at every one of them).
+ */
+const withoutTrailingSlashes: (path: string) => string = (
+  path: string,
+): string => {
+  let end: number = path.length;
+
+  while (end > 0 && path[end - 1] === "/") {
+    end--;
+  }
+
+  return path.slice(0, end);
+};
+
 export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
   input: string,
 ): WebsiteAddress | null => {
@@ -240,7 +277,7 @@ export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
     return null;
   }
 
-  const path: string = parsed.pathname.replace(/\/+$/, "");
+  const path: string = withoutTrailingSlashes(parsed.pathname);
   const name: string = `${host.replace(/^www\./, "")}${parsed.port ? `:${parsed.port}` : ""}${path}`;
 
   return {
@@ -315,6 +352,85 @@ export const getMonitorAddress: (
   const destination: unknown = step?.data?.monitorDestination;
 
   return destination ? destination.toString() : "";
+};
+
+/*
+ * ONE ADDRESS, HOWEVER IT WAS TYPED (#7059): the scheme, the host, the port,
+ * the path and the query a check asks for. "acme.example" is
+ * "https://acme.example/", and a host's capitals or a path's trailing slash
+ * change nothing; http and https, www or not, another path or another query
+ * are other checks. Null for text that is not a web address, or that names
+ * a user or password: the setup never checks one (parseWebsiteAddress).
+ */
+export const getWebsiteAddressIdentity: (text: string) => string | null = (
+  text: string,
+): string | null => {
+  const trimmed: string = (text || "").trim();
+
+  if (!trimmed || WHITESPACE.test(trimmed)) {
+    return null;
+  }
+
+  let parsed: globalThis.URL;
+
+  try {
+    parsed = new globalThis.URL(
+      SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
+  } catch {
+    return null;
+  }
+
+  if (
+    (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+    parsed.username ||
+    parsed.password
+  ) {
+    return null;
+  }
+
+  return `${parsed.protocol}//${parsed.host.toLowerCase()}${withoutTrailingSlashes(parsed.pathname)}${parsed.search}`;
+};
+
+export const isSameWebsiteAddress: (left: string, right: string) => boolean = (
+  left: string,
+  right: string,
+): boolean => {
+  const leftIdentity: string | null = getWebsiteAddressIdentity(left);
+
+  return (
+    leftIdentity !== null && leftIdentity === getWebsiteAddressIdentity(right)
+  );
+};
+
+// What the setup reads of a monitor this person made, to know if it is theirs for an address.
+export interface OwnMonitorFacts {
+  monitorSteps?: MonitorSteps | undefined | null;
+  isArchived?: boolean | undefined;
+  disableActiveMonitoring?: boolean | undefined;
+}
+
+/*
+ * Whether a monitor this person made checks the address now, so the setup
+ * goes on with it instead of making a second (#7059): its first step asks
+ * for the same address, and it is neither archived nor turned off - one
+ * that is no longer checked does not answer "is my website down?".
+ */
+export const isMonitorCheckingAddress: (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}) => boolean = (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}): boolean => {
+  if (data.monitor.isArchived || data.monitor.disableActiveMonitoring) {
+    return false;
+  }
+
+  return isSameWebsiteAddress(
+    getMonitorAddress(data.monitor.monitorSteps),
+    data.address.url,
+  );
 };
 
 /*
@@ -554,14 +670,34 @@ export interface WhoIsToldFacts {
   mayAddRules: boolean;
 }
 
+// Facts whose policies and rules were counted.
+export interface CountedWhoIsToldFacts extends WhoIsToldFacts {
+  policyCount: number;
+  incidentRuleCount: number;
+  alertRuleCount: number;
+}
+
+/*
+ * Whether the project's on-call policies and rules could be counted: when
+ * they could not, nothing says the project has none, so no policy is made
+ * on that read (#7059).
+ */
+export const areWhoIsToldCountsKnown: (
+  facts: WhoIsToldFacts,
+) => facts is CountedWhoIsToldFacts = (
+  facts: WhoIsToldFacts,
+): facts is CountedWhoIsToldFacts => {
+  return (
+    facts.policyCount !== null &&
+    facts.incidentRuleCount !== null &&
+    facts.alertRuleCount !== null
+  );
+};
+
 export const getWhoIsToldMode: (facts: WhoIsToldFacts) => WhoIsToldMode = (
   facts: WhoIsToldFacts,
 ): WhoIsToldMode => {
-  if (
-    facts.policyCount === null ||
-    facts.incidentRuleCount === null ||
-    facts.alertRuleCount === null
-  ) {
+  if (!areWhoIsToldCountsKnown(facts)) {
     return WhoIsToldMode.OwnerEmailOnly;
   }
 
