@@ -76,9 +76,9 @@ jest.mock(
 );
 
 jest.mock("../../../Types/DataObservability/DataCheckSuggestions", () => {
-  const actual: Record<string, unknown> = jest.requireActual<
-    Record<string, unknown>
-  >("../../../Types/DataObservability/DataCheckSuggestions");
+  const actual: Record<string, unknown> = jest.requireActual(
+    "../../../Types/DataObservability/DataCheckSuggestions",
+  ) as Record<string, unknown>;
 
   return {
     ...actual,
@@ -334,7 +334,7 @@ describe("the checks' Alert column", () => {
     ["ar", DataCheckAlertCondition.Below, 5, "أدنى من 5"],
     ["fa", DataCheckAlertCondition.Above, 5, "بالاتر از ۵"],
   ])(
-    "in %s, %s %s reads %j",
+    "in %s, %s (threshold: %s) reads %j",
     async (
       language: string,
       condition: DataCheckAlertCondition,
@@ -477,7 +477,7 @@ describe("a suggested check", () => {
     ],
     ["ar", DataCheckAlertCondition.Below, 5, "أدنى من 5"],
   ])(
-    "in %s, %s %s ends with %j",
+    "in %s, %s (threshold: %s) ends with %j",
     async (
       language: string,
       condition: DataCheckAlertCondition,
