@@ -1284,24 +1284,35 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   } else {
     whoContent = (
       <div className="space-y-4">
-        {/* Why the step turned to the project's policies, said first. */}
-        {isPolicyMadeElsewhere && isExistingMode ? (
-          <p
-            className="text-sm text-gray-700"
-            data-testid="on-call-setup-policy-made-elsewhere"
-          >
-            {translator.translateText(ON_CALL_SETUP_COPY.policyMadeElsewhere)}
+        {/*
+         * Why the step turned to the project's policies, said first, and
+         * what to do now. Save and continue stays where it was, so the two
+         * lines are read out when they change (#7252): a screen reader
+         * hears why nothing was made instead of nothing at all.
+         */}
+        <div
+          className="space-y-4"
+          aria-live="polite"
+          data-testid="on-call-setup-who-help"
+        >
+          {isPolicyMadeElsewhere && isExistingMode ? (
+            <p
+              className="text-sm text-gray-700"
+              data-testid="on-call-setup-policy-made-elsewhere"
+            >
+              {translator.translateText(ON_CALL_SETUP_COPY.policyMadeElsewhere)}
+            </p>
+          ) : (
+            <></>
+          )}
+          <p className="text-sm text-gray-500">
+            {isExistingMode
+              ? translator.translateText(ON_CALL_SETUP_COPY.whoExistingHelp)
+              : translator.translateTemplate(ON_CALL_SETUP_COPY.whoCreateHelp, {
+                  policy: ON_CALL_POLICY_NAME,
+                })}
           </p>
-        ) : (
-          <></>
-        )}
-        <p className="text-sm text-gray-500">
-          {isExistingMode
-            ? translator.translateText(ON_CALL_SETUP_COPY.whoExistingHelp)
-            : translator.translateTemplate(ON_CALL_SETUP_COPY.whoCreateHelp, {
-                policy: ON_CALL_POLICY_NAME,
-              })}
-        </p>
+        </div>
         {isExistingMode ? (
           <div>
             <p

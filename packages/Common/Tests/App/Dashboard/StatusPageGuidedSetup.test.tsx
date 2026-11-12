@@ -116,7 +116,7 @@ import ObjectID from "../../../Types/ObjectID";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006806";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -734,7 +734,7 @@ describe("a run the browser lost, or another tab (#7252)", () => {
   };
 
   const NOTE: (name: string) => string = (name: string): string => {
-    return `You already have a status page named "${name}", so no new status page was made. It shows the monitors you picked.`;
+    return `You already have a status page named "${name}", so no new one was made.`;
   };
 
   beforeEach(() => {
@@ -1193,9 +1193,74 @@ describe("read in another language (#7252)", () => {
           name: "Acme Status",
         }),
       );
-      expect(note).not.toContain("no new status page was made");
+      expect(note).not.toContain("no new one was made");
       expect(note).not.toContain("acme status");
       expect(api["createStatusPage"]).not.toHaveBeenCalled();
+    });
+
+    /*
+     * A name in Latin letters that starts with a figure: in a sentence read
+     * from the right the bidi algorithm drew "24/7" after "Status" and the
+     * count beside the quotes unless the name is set apart. Each line that
+     * names the page - the note, step 1's line, the summary's title - sets it
+     * apart there, and adds nothing to a German one.
+     */
+    test("every line naming the page keeps the name whole in the reader's reading direction", async () => {
+      const name: string = "24/7 Status";
+      const isRightToLeft: boolean = language === "ar" || language === "fa";
+
+      api["findOwnStatusPage"]!.mockResolvedValue({ id: PAGE_ID, name });
+      api["loadShownMonitors"]!.mockResolvedValue({ count: 1, names: ["API"] });
+      await renderSetup();
+      fireEvent.change(nameField(), { target: { value: "24/7 status" } });
+      await press("guided-setup-monitor-m-api");
+      await press("guided-setup-create-status-page");
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId("guided-setup-existing-status-page"),
+        ).toBeInTheDocument();
+      });
+
+      const lines: () => Record<string, boolean> = (): Record<
+        string,
+        boolean
+      > => {
+        const setApart: Record<string, boolean> = {};
+
+        for (const testId of [
+          "guided-setup-existing-status-page",
+          "guided-setup-step-pick-done-line",
+          "guided-setup-summary-title",
+        ]) {
+          const element: HTMLElement | null = screen.queryByTestId(testId);
+
+          if (element) {
+            setApart[testId] = (element.textContent || "").includes(
+              isolated(name),
+            );
+          }
+        }
+
+        return setApart;
+      };
+
+      expect(lines()).toEqual({
+        "guided-setup-existing-status-page": isRightToLeft,
+        "guided-setup-step-pick-done-line": isRightToLeft,
+      });
+
+      await press("guided-setup-review-continue");
+
+      expect(lines()).toEqual({
+        "guided-setup-step-pick-done-line": isRightToLeft,
+        "guided-setup-summary-title": isRightToLeft,
+      });
+      expect(
+        withoutIsolateMarks(
+          screen.getByTestId("guided-setup-summary-title").textContent || "",
+        ),
+      ).toBe(fill(language, STATUS_PAGE_SETUP_COPY.summaryTitle, { name }));
     });
   });
 });

@@ -51459,5 +51459,5 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "你已有名为“{{name}}”的状态页，因此没有创建新的状态页。它会显示你选择的监视器。"
+  "You already have a status page named \"{{name}}\", so no new one was made.": "你已有名为“{{name}}”的状态页，因此没有创建新的页面。"
 }

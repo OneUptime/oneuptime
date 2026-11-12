@@ -3,6 +3,7 @@ import PageMap from "../../../Utils/PageMap";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
 import { STATUS_PAGE_NAME_MIN_LENGTH as GUIDED_STATUS_PAGE_NAME_MIN_LENGTH } from "Common/Utils/GuidedSetup/StatusPageRecords";
 import {
+  SentenceOptions,
   Translator,
   formatList,
   translationKey,
@@ -135,10 +136,11 @@ export const STATUS_PAGE_SETUP_COPY: {
   /*
    * Said first in step 2 when the name typed is one of this person's own
    * status pages: the setup went on with it and made no second page with
-   * the same name (#7252), as the website-down setup says of a monitor.
+   * the same name (#7252), in the website-down setup's words for a monitor.
+   * The preview right below shows the monitors picked on it.
    */
   existingStatusPage: translationKey(
-    'You already have a status page named "{{name}}", so no new status page was made. It shows the monitors you picked.',
+    'You already have a status page named "{{name}}", so no new one was made.',
   ),
   reviewTitle: translationKey("This is what your customers see"),
   reviewHelp: translationKey(
@@ -351,6 +353,18 @@ export const isStatusPageSetupFinished: (
   return isPickDone(facts) && facts.isReviewed;
 };
 
+/*
+ * Every sentence the setup draws with the page's name sets the name apart
+ * (the Translator's setsValuesApart): in an Arabic or Persian sentence a
+ * name in Latin letters - or one that starts with a figure, "24/7 Status" -
+ * keeps its place, and the count after it is not pulled into it ('"Acme
+ * Status" shows 1 monitor' was drawn with the 1 before the name). Each is
+ * drawn on the page and nothing else, so the isolate's marks go nowhere.
+ */
+export const STATUS_PAGE_NAME_SENTENCE: SentenceOptions = {
+  setsValuesApart: true,
+};
+
 // Step 1's line once it is done: '"Acme Status" shows 3 monitors.'
 export const getPickDoneLine: (data: {
   translator: Translator;
@@ -368,6 +382,7 @@ export const getPickDoneLine: (data: {
     },
     data.monitorCount,
     { name: data.name },
+    STATUS_PAGE_NAME_SENTENCE,
   );
 };
 

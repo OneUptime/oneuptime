@@ -2,6 +2,7 @@ import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import {
+  STATUS_PAGE_NAME_SENTENCE,
   STATUS_PAGE_SETUP,
   STATUS_PAGE_SETUP_COPY,
   STATUS_PAGE_SETUP_EXTRAS,
@@ -35,7 +36,7 @@ import {
   isWordedInDashboardLocale,
   readDashboardLocale,
 } from "../../Helpers/DashboardLocales";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
  * The status page guided setup's rules and words (issue #6806): the name
@@ -320,6 +321,55 @@ describe("the summary's lines", () => {
     ).toBe('"Acme" shows 3 monitors.');
   });
 
+  /*
+   * In an Arabic or Persian sentence a name in Latin letters, and the count
+   * after it, are set apart: without it the bidi algorithm pulled the 1 into
+   * the name's run and drew it between the quotes and the name.
+   */
+  test("step 1's line sets the page's name apart in Arabic and Persian, and adds no marks in German", () => {
+    for (const language of ["ar", "fa"]) {
+      const line: string = getPickDoneLine({
+        translator: dashboardTranslator(language),
+        name: "Acme Status",
+        monitorCount: 1,
+      });
+
+      expect({
+        language,
+        setApart: line.includes(isolated("Acme Status")),
+      }).toEqual({ language, setApart: true });
+    }
+
+    // A sentence read from the left, as the name is, sets nothing apart.
+    const german: string = getPickDoneLine({
+      translator: dashboardTranslator("de"),
+      name: "Acme Status",
+      monitorCount: 2,
+    });
+
+    expect(german).toBe(withoutIsolateMarks(german));
+    expect(german).toContain("Acme Status");
+  });
+
+  test("every sentence naming the page is filled setting its values apart, for the page and nothing else", () => {
+    expect(STATUS_PAGE_NAME_SENTENCE).toEqual({ setsValuesApart: true });
+    // A name that starts with a figure is set apart in a sentence read from the right.
+    expect(
+      dashboardTranslator("ar").translateTemplate(
+        STATUS_PAGE_SETUP_COPY.summaryTitle,
+        { name: "24/7 Status" },
+        STATUS_PAGE_NAME_SENTENCE,
+      ),
+    ).toContain(isolated("24/7 Status"));
+    // Negative control: without it, nothing is set apart.
+    expect(
+      dashboardTranslator("ar").translateTemplate(
+        STATUS_PAGE_SETUP_COPY.summaryTitle,
+        { name: "24/7 Status" },
+      ),
+    ).not.toContain(isolated("24/7 Status"));
+  });
+
   test("what it shows lists up to five names, then how many more", () => {
     expect(
       describeShownMonitors({
@@ -565,9 +615,9 @@ describe("the note that the name is one of the reader's pages (#7252)", () => {
     return problems;
   };
 
-  test("the English quotes the name and says no second page was made", () => {
+  test("the English quotes the name and says no second page was made, in one sentence", () => {
     expect(NOTE).toBe(
-      'You already have a status page named "{{name}}", so no new status page was made. It shows the monitors you picked.',
+      'You already have a status page named "{{name}}", so no new one was made.',
     );
     expect(quotesAround(NOTE)).toBe('""');
     expect(quotesAround(SIBLING)).toBe('""');
@@ -608,7 +658,7 @@ describe("the note that the name is one of the reader's pages (#7252)", () => {
       });
       expect({
         language,
-        english: sentence.includes("no new status page was made"),
+        english: sentence.includes("no new one was made"),
       }).toEqual({ language, english: false });
     }
   });

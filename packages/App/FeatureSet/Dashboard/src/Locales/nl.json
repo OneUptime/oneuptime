@@ -51459,5 +51459,5 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "Je hebt al een statuspagina met de naam \"{{name}}\", dus er is geen nieuwe statuspagina aangemaakt. Deze toont de monitoren die je hebt gekozen."
+  "You already have a status page named \"{{name}}\", so no new one was made.": "Je hebt al een statuspagina met de naam \"{{name}}\", dus er is geen nieuwe aangemaakt."
 }

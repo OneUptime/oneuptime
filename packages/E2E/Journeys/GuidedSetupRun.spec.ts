@@ -340,7 +340,7 @@ test("a status page run this browser lost: the same name goes on with the page a
   await expect(
     page.getByTestId("guided-setup-existing-status-page"),
   ).toHaveText(
-    'You already have a status page named "Acme Commerce Status", so no new status page was made. It shows the monitors you picked.',
+    'You already have a status page named "Acme Commerce Status", so no new one was made.',
   );
   // The monitor is on the page already: nothing is added twice.
   expect(await creates(page, "StatusPage")).toBe(1);
@@ -394,7 +394,7 @@ test("a long status page name on a phone: the note comes first in step 2, and ev
   await expect(
     page.getByTestId("guided-setup-existing-status-page"),
   ).toHaveText(
-    `You already have a status page named "${name}", so no new status page was made. It shows the monitors you picked.`,
+    `You already have a status page named "${name}", so no new one was made.`,
   );
   expect(await creates(page, "StatusPage")).toBe(1);
 

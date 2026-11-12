@@ -3,6 +3,7 @@ import StatusPageSetupApi, {
   mayCreateStatusPage,
 } from "./StatusPageSetupApi";
 import {
+  STATUS_PAGE_NAME_SENTENCE,
   STATUS_PAGE_SETUP,
   STATUS_PAGE_SETUP_COPY,
   STATUS_PAGE_SETUP_EXTRAS,
@@ -501,6 +502,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             {translator.translateTemplate(
               STATUS_PAGE_SETUP_COPY.emptyPageHelp,
               { name: statusPage.name },
+              STATUS_PAGE_NAME_SENTENCE,
             )}
           </p>
         ) : (
@@ -603,6 +605,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
           {translator.translateTemplate(
             STATUS_PAGE_SETUP_COPY.existingStatusPage,
             { name: statusPage.name },
+            STATUS_PAGE_NAME_SENTENCE,
           )}
         </p>
       ) : (
@@ -714,9 +717,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
         className="break-words text-lg font-semibold text-gray-900"
         data-testid="guided-setup-summary-title"
       >
-        {translator.translateTemplate(STATUS_PAGE_SETUP_COPY.summaryTitle, {
-          name: statusPage?.name || "",
-        })}
+        {translator.translateTemplate(
+          STATUS_PAGE_SETUP_COPY.summaryTitle,
+          { name: statusPage?.name || "" },
+          STATUS_PAGE_NAME_SENTENCE,
+        )}
       </h2>
       <dl className="mt-4 divide-y divide-gray-100">
         <div

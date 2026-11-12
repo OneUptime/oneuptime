@@ -1636,6 +1636,42 @@ describe("a policy made meanwhile, in another tab or on another device (#7252)",
     expect(stepState("no_answer")).toBe("open");
   });
 
+  /*
+   * Save and continue stays where it was when the step turns, so nothing
+   * else tells a screen reader why: the help is a polite live region that
+   * was on the page before the turn (a region added with its words is not
+   * read out), and the sentence and the new help are said in it.
+   */
+  test("the sentence is read out: it is said in the step's help, a polite live region that was there before the step turned", async () => {
+    await reachDone();
+    const region: HTMLElement = screen.getByTestId("on-call-setup-who-help");
+
+    expect(region).toHaveAttribute("aria-live", "polite");
+    expect(region).toHaveTextContent(
+      'This makes the on-call policy "Default on-call policy".',
+    );
+    expect(region).not.toHaveTextContent(MADE_ELSEWHERE);
+
+    api["loadPolicyChoices"]!.mockResolvedValue(ONE_POLICY_NOW);
+    await press("on-call-setup-who-save");
+
+    // The same element, now holding why and what to do.
+    expect(screen.getByTestId("on-call-setup-who-help")).toBe(region);
+    expect(region).toHaveTextContent(MADE_ELSEWHERE);
+    expect(region).toHaveTextContent(
+      "This project already has on-call policies. Pick the one to set up",
+    );
+    expect(
+      region.contains(
+        screen.getByTestId("on-call-setup-policy-made-elsewhere"),
+      ),
+    ).toBe(true);
+    // The picker and the button are not read out with it.
+    expect(region.contains(screen.getByTestId("on-call-setup-who-save"))).toBe(
+      false,
+    );
+  });
+
   test("choices that cannot be read just before: nothing is made, the step says to try again, and trying again makes one", async () => {
     await reachDone();
     api["loadPolicyChoices"]!.mockRejectedValueOnce(
