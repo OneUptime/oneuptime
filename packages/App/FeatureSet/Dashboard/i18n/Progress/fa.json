@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51094,
-    "untranslated": 4793
+    "untranslated": 4533
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -151,6 +151,7 @@
     "OpenTofu",
     "Oracle",
     "Orchestration",
+    "P95 (state)",
     "PCI DSS v4.0",
     "POST /api/checkout",
     "PV",
@@ -349,6 +350,7 @@
     "{{gigabytes}} GB",
     "{{inRate}} / {{outRate}} Mbps",
     "{{in}} in",
-    "{{value}} ms"
+    "{{value}} ms",
+    "μs"
   ]
 }
