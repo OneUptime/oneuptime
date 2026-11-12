@@ -50855,5 +50855,11 @@
   "{{interval}}, from {{count}} locations.": "{{interval}}, desde {{count}} ubicaciones.",
   "{{interval}}, from {{count}} locations._one": "{{interval}}, desde {{count}} ubicación.",
   "{{name}} is set up": "{{name}} está configurado",
-  "Search query": "Consulta de búsqueda"
+  "Search query": "Consulta de búsqueda",
+  "Fix the problems above, then send the test again.": "Corrige los problemas indicados arriba y vuelve a enviar la prueba.",
+  "Fix the problems above, then send the test again._one": "Corrige el problema indicado arriba y vuelve a enviar la prueba.",
+  "The test summary was not posted in any of its {{count}} channels.": "El resumen de prueba no se publicó en ninguno de sus {{count}} canales.",
+  "The test summary was not posted in any of its {{count}} channels._one": "El resumen de prueba no se publicó.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "El resumen de prueba no se publicó en {{failed}} de sus {{count}} canales.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "El resumen de prueba no se publicó en {{failed}} de {{count}} canal."
 }

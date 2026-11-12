@@ -50855,5 +50855,11 @@
   "{{interval}}, from {{count}} locations.": "{{interval}}، من مواقع عددها {{count}}.",
   "{{interval}}, from {{count}} locations._one": "{{interval}}، من {{count}} موقع.",
   "{{name}} is set up": "تم إعداد {{name}}",
-  "Search query": "استعلام البحث"
+  "Search query": "استعلام البحث",
+  "Fix the problems above, then send the test again.": "أصلح المشكلات المذكورة أعلاه، ثم أرسل الاختبار مرة أخرى.",
+  "Fix the problems above, then send the test again._one": "أصلح المشكلة المذكورة أعلاه، ثم أرسل الاختبار مرة أخرى.",
+  "The test summary was not posted in any of its {{count}} channels.": "لم يُنشر الملخص الاختباري في أي من قنواته (العدد: {{count}}).",
+  "The test summary was not posted in any of its {{count}} channels._one": "لم يُنشر الملخص الاختباري.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "لم يُنشر الملخص الاختباري في {{failed}} من أصل {{count}} من قنواته.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "لم يُنشر الملخص الاختباري في {{failed}} من أصل {{count}} قناة."
 }
