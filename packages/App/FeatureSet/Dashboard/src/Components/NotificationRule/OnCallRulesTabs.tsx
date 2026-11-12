@@ -22,11 +22,17 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement } from "react";
 
-// The line over the tabs, and the words it defines.
+/*
+ * The line over the tabs, and the word it defines. These are the person's
+ * own rules, the grid behind How to Reach Me; "On-Call Rules" are the
+ * project's, under Incidents and Alerts (#6817), so the line defines the
+ * notification method instead of calling these by that name.
+ */
 export const ON_CALL_RULES_INTRO: string = translationKey(
-  "{{onCallRules}} decide which notification method a page tries, and after how long, for each severity.",
+  "These rules decide which {{notificationMethod}} a page tries, and after how long, for each severity.",
 );
-export const ON_CALL_RULES_INTRO_TERM: string = translationKey("On-call rules");
+export const ON_CALL_RULES_INTRO_TERM: string =
+  translationKey("notification method");
 export const ON_CALL_RULES_INTRO_TEST_ID: string = "on-call-rules-intro";
 
 /*
@@ -164,9 +170,8 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
   return (
     <div data-testid="on-call-rules-tabs">
       {/*
-       * What these rules are, in a line, with the word defined - "on-call
-       * rules" is also the name of the rules under Incidents and Alerts that
-       * pick a policy, and the definition says both - and the docs page.
+       * What these rules are, in a line, with the word they turn on
+       * defined, and the docs page.
        */}
       <div
         className="mb-4 text-sm text-gray-500"
@@ -175,8 +180,8 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
         <TranslatedSentence
           template={ON_CALL_RULES_INTRO}
           slots={{
-            onCallRules: (
-              <DefinedTerm term={GlossaryTerm.OnCallRules}>
+            notificationMethod: (
+              <DefinedTerm term={GlossaryTerm.NotificationMethod}>
                 {translator.translateText(ON_CALL_RULES_INTRO_TERM)}
               </DefinedTerm>
             ),

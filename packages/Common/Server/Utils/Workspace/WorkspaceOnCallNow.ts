@@ -154,8 +154,8 @@ export default class WorkspaceOnCallNow {
     if (rows.length === 0) {
       return {
         markdown: (schedulesLink
-          ? mdText`👥 **No on-call schedules yet.** [Add one in ${productName}](${schedulesLink}) under On-Call Duty → Schedules.`
-          : mdText`👥 **No on-call schedules yet.** Add one in ${productName} under On-Call Duty → Schedules.`
+          ? mdText`👥 **No on-call schedules yet.** [Add one in ${productName}](${schedulesLink}) under On-Call → On-Call Schedules.`
+          : mdText`👥 **No on-call schedules yet.** Add one in ${productName} under On-Call → On-Call Schedules.`
         ).toString(),
         text: "No on-call schedules yet",
       };
@@ -185,7 +185,7 @@ export default class WorkspaceOnCallNow {
     } else if (isCut) {
       lines.push(FeedMarkdown.empty());
       lines.push(
-        mdText`These are the first ${WorkspaceOnCallNow.MAX_SCHEDULES} schedules. See them all in ${productName}, under On-Call Duty → Schedules.`,
+        mdText`These are the first ${WorkspaceOnCallNow.MAX_SCHEDULES} schedules. See them all in ${productName}, under On-Call → On-Call Schedules.`,
       );
     }
 

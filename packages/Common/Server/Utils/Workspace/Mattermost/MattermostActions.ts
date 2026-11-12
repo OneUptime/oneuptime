@@ -261,7 +261,7 @@ export default class MattermostActions {
     "This button cannot be used in Mattermost. Open the record in OneUptime instead.";
 
   public static readonly NO_ON_CALL_POLICIES_MESSAGE: string =
-    "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call Duty > Policies, or ask a project admin for access to one.";
+    "No on-call policies are available to you in this project yet. Add one in the OneUptime Dashboard under On-Call > On-Call Policies, or ask a project admin for access to one.";
 
   // A press of a button or a menu item: what its presser is told.
   @CaptureSpan()

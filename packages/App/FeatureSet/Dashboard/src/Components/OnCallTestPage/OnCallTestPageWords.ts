@@ -187,7 +187,7 @@ export const FIX_LINKS: Readonly<
   },
   [OnCallTestPageFix.ProjectNotificationSettings]: {
     pageMap: PageMap.SETTINGS_NOTIFICATION_SETTINGS,
-    text: translationKey("Open Notification Settings"),
+    text: translationKey("Open Notification Channels"),
   },
   [OnCallTestPageFix.ProjectBalance]: {
     pageMap: PageMap.SETTINGS_BILLING,
@@ -195,7 +195,7 @@ export const FIX_LINKS: Readonly<
   },
   [OnCallTestPageFix.ProjectCallAndSms]: {
     pageMap: PageMap.SETTINGS_NOTIFICATION_SETTINGS,
-    text: translationKey("Open Notification Settings"),
+    text: translationKey("Open Notification Channels"),
   },
   [OnCallTestPageFix.ProjectWorkspaceConnections]: {
     pageMap: PageMap.SETTINGS_SLACK_INTEGRATION,

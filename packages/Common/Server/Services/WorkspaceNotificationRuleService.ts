@@ -5533,14 +5533,16 @@ export class Service extends DatabaseService<WorkspaceNotificationRule> {
 
       if (!onCallDutyPolicy) {
         logger.debug(
-          "On Call Duty Policy not found for ID:",
+          "On-call policy not found for ID:",
           {} as LogAttributes,
         );
         logger.debug(
           data.notificationFor.onCallDutyPolicyId,
           {} as LogAttributes,
         );
-        throw new BadDataException("On Call Duty Policy ID not found");
+        throw new BadDataException(
+          "The on-call policy this notification is for was not found. It may have been deleted.",
+        );
       }
 
       const onCallDutyPolicyLabels: Array<Label> =

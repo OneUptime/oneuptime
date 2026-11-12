@@ -985,7 +985,7 @@ const dataTypeDetails: Dictionary<DataTypePageData> = {
   "restriction-times": {
     title: "RestrictionTimes",
     description:
-      "Object describing on-call duty time restrictions (daily or weekly windows).",
+      "Object describing on-call time restrictions (daily or weekly windows).",
     isEnum: false,
     properties: [
       {

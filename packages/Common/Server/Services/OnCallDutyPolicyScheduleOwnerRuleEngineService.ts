@@ -88,7 +88,7 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass
       });
     } catch (error) {
       logger.error(
-        `Error applying on-call duty schedule owner rules: ${error}`,
+        `Error applying on-call schedule owner rules: ${error}`,
         {
           projectId: schedule.projectId?.toString(),
           onCallDutyPolicyScheduleId: schedule.id?.toString(),
@@ -117,7 +117,7 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass
       });
     } catch (error) {
       logger.error(
-        `Error running on-call duty schedule owner rules: ${error}`,
+        `Error running on-call schedule owner rules: ${error}`,
         {
           projectId: data.resource.projectId?.toString(),
           onCallDutyPolicyScheduleId: data.resource.id?.toString(),
@@ -383,7 +383,7 @@ class OnCallDutyPolicyScheduleOwnerRuleEngineServiceClass
       return RulePatternMatchUtil.testRegex(pattern, value);
     } catch {
       logger.warn(
-        `Invalid regex in on-call duty schedule owner rule ${rule.id}: ${pattern}`,
+        `Invalid regex in on-call schedule owner rule ${rule.id}: ${pattern}`,
       );
       return false;
     }

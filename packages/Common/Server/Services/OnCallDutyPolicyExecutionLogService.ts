@@ -178,7 +178,7 @@ export class Service extends ProjectReferencesService<Model> {
       !RelationIdUtil.readConsistent(
         createBy.data as unknown as Record<string, unknown>,
         ["onCallDutyPolicyId", "onCallDutyPolicy"],
-        "On-Call Duty Policy",
+        "On-Call Policy",
       )
     ) {
       throw new BadDataException(ON_CALL_POLICY_REQUIRED_MESSAGE);
@@ -1136,7 +1136,7 @@ export class Service extends ProjectReferencesService<Model> {
     const policyId: ObjectID | null = RelationIdUtil.readConsistent(
       data as unknown as Record<string, unknown>,
       ["onCallDutyPolicyId", "onCallDutyPolicy"],
-      "On-Call Duty Policy",
+      "On-Call Policy",
     );
 
     if (!policyId) {

@@ -719,7 +719,7 @@ export default class OnCallReadinessService {
       });
 
     if (!policy || policy.projectId?.toString() !== projectId.toString()) {
-      throw new BadDataException("On-call duty policy not found");
+      throw new BadDataException("On-call policy not found");
     }
 
     const summary: ReadinessSummary = await this.computeSummary(

@@ -641,7 +641,13 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.SETTINGS_NOTIFICATION_SETTINGS,
-            title: "Notification Settings",
+            /*
+             * Named for what it holds (#6817): the project's channel
+             * switches, the balance they are paid from and its own mail
+             * servers and Twilio accounts. Its old name, which User Settings'
+             * page keeps, still finds it.
+             */
+            title: "Notification Channels",
             icon: IconProp.Settings,
             keywords: [
               "sms",
@@ -653,9 +659,9 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "twilio",
               "balance",
               "auto recharge",
+              "notification settings",
             ],
             settings: [
-              "Notification Channels",
               { name: "Current Balance", gate: PageSearchGate.Billing },
               { name: "Auto Recharge", gate: PageSearchGate.Billing },
             ],

@@ -205,7 +205,7 @@ export default class MicrosoftTeamsOnCallDutyActions {
         throw error;
       }
 
-      logger.error(`Error handling on-call duty action: ${error}`, {
+      logger.error(`Error handling on-call action: ${error}`, {
         actionType: actionType,
       });
       await turnContext.sendActivity(

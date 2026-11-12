@@ -189,7 +189,7 @@ export const ON_CALL_SETUP_COPY: {
   ),
   addBalance: translationKey("Add balance"),
   whoCanAddBalance: translationKey(
-    "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Settings.",
+    "A project owner or someone with Manage Billing can add balance in Project Settings → Notifications → Notification Channels.",
   ),
   serverNoTwilio: translationKey(
     "This server can't send SMS or make calls yet. Its admin sets up Twilio in the Admin Dashboard. Until then, email and the app still reach you.",

@@ -64,7 +64,7 @@ export const PROJECT_NOTIFICATION_CHANNEL_UPDATE_PERMISSIONS: ReadonlyArray<Perm
 
 // The page that holds the switches (its Notification Channels card).
 export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PAGE: string =
-  "Project Settings > Notifications > Notification Settings";
+  "Project Settings > Notifications > Notification Channels";
 
 // Where that page is in the dashboard, under a project's own route.
 export const PROJECT_NOTIFICATION_CHANNEL_SETTINGS_PATH: string =
@@ -116,7 +116,7 @@ export const getWhoCanTurnOnClause: (pronoun: ChannelPronoun) => string = (
 /*
  * The same, as the sentence after one that says a channel is off: "A
  * project owner, a Billing Admin or someone with Manage Billing can turn it
- * on in Project Settings > Notifications > Notification Settings."
+ * on in Project Settings > Notifications > Notification Channels."
  */
 export const getWhoCanTurnOnSentence: (pronoun: ChannelPronoun) => string = (
   pronoun: ChannelPronoun,

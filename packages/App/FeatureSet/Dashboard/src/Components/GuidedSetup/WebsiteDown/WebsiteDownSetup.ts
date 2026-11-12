@@ -180,7 +180,7 @@ export const WEBSITE_DOWN_COPY: {
   ),
   whoTitle: translationKey("Who should be told?"),
   whoCreateHelp: translationKey(
-    "When it goes down, OneUptime opens an incident and pages these people through their own notification rules. It starts with you, by email.",
+    "When it goes down, OneUptime opens an incident and pages these people, each the way their How to Reach Me says. It starts with you, by email.",
   ),
   whoCreatePolicyNote: translationKey(
     'This makes the on-call policy "{{policy}}", which pages them for every new incident and alert in this project.',
