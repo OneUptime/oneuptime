@@ -80,7 +80,7 @@ export const DEVICE_SUMMARY_TILES: Array<DeviceSummaryTile> = [
     attentionClassName: "text-gray-500",
     allClearClassName: "text-gray-900",
     caption:
-      "No verdict yet — never polled, no probe assigned, or no monitor bound.",
+      "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.",
     description: NETWORK_DEVICE_METRIC_DESCRIPTIONS.devicesPending,
     selection: {
       facetKey: DEVICE_STATUS_FACET_KEY,

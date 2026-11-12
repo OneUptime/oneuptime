@@ -1,6 +1,7 @@
 import FieldError from "../Forms/Fields/FieldError";
 import ObjectID from "../../../Types/ObjectID";
 import ArchivedTag from "../ArchivedTag/ArchivedTag";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
 import DROPDOWN_MENU_Z_INDEX from "./DropdownMenuZIndex";
 import { getDropdownLabelDirection } from "./DropdownLabelDirection";
 import joinAriaIds from "../../Utils/AriaIds";
@@ -73,6 +74,17 @@ export interface DropdownOption {
    * right, its words out of order.
    */
   isInPageDirection?: boolean | undefined;
+  /*
+   * The description is drawn as it is, never looked up as a translation
+   * key: something a person wrote - what was asked in a turn of a Code
+   * task - or words the picker already put in the reader's language. It
+   * reads the way its words are written (IsolatedLine), so an English
+   * request on an Arabic page keeps its full stop and its "…" at its own
+   * end and wraps from its own start, rather than being laid out right to
+   * left. Left out, the description is English to look up, read the
+   * page's way.
+   */
+  isDescriptionUserContent?: boolean | undefined;
   /*
    * An archived value a record still has (Common/Utils/ArchivableValues):
    * a picker never lists one, but shows the one already picked, marked
@@ -238,6 +250,16 @@ export const SINGLE_SELECT_WRAPPED_VALUE_LABEL_CLASS_NAME: string =
 
 export const MULTI_SELECT_CHIP_LABEL_CLASS_NAME: string =
   "min-w-0 whitespace-normal [overflow-wrap:anywhere] text-sm font-medium text-gray-900";
+
+/*
+ * A description someone wrote, under its option in the open menu
+ * (isDescriptionUserContent): the description's look, on lines that wrap
+ * and break a word too long for the menu - which also tells IsolatedLine
+ * it is more than one line, so one that reads the other way from the page
+ * is as wide as its words at the page's start, each line from its own.
+ */
+export const DROPDOWN_OPTION_TYPED_DESCRIPTION_CLASS_NAME: string =
+  "whitespace-normal [overflow-wrap:anywhere] text-xs text-gray-500";
 
 /*
  * The colours of one option in the open menu. A picked option is indigo-200,
@@ -815,8 +837,18 @@ const Dropdown: FunctionComponent<ComponentProps> = (
             <ArchivedTag dataTestId="dropdown-archived-tag" />
           ) : null}
         </div>
-        {option.description ? (
-          <span className="text-xs text-gray-500">
+        {option.description && option.isDescriptionUserContent ? (
+          <IsolatedLine
+            as="span"
+            text={option.description}
+            className={DROPDOWN_OPTION_TYPED_DESCRIPTION_CLASS_NAME}
+            dataTestId="dropdown-option-description"
+          />
+        ) : option.description ? (
+          <span
+            className="text-xs text-gray-500"
+            data-testid="dropdown-option-description"
+          >
             {tx(option.description) ?? option.description}
           </span>
         ) : null}

@@ -94,7 +94,7 @@ const OPEN_IS_THE_VERB: Record<string, string> = {
   "Components/Topology/EntityDetailPanel.tsx":
     "the heading over the links that open an entity's pages",
   "Components/Topology/InfrastructureExplorer.tsx":
-    "a row's open button, and the column it sits in",
+    "the column a row's open button sits in (the button is named by Open {{name}})",
   "Components/Topology/NetworkDeviceDetailPanel.tsx":
     "the heading over the links that open a device's pages",
 };
@@ -165,6 +165,60 @@ describe("one meaning per key", () => {
     ]);
   });
 
+  /*
+   * #7097: an import's results mark a row "Created" with the outcome's own
+   * key; the bare "Created" is a date column's title (Arabic تاريخ الإنشاء,
+   * "creation date"), so no import screen looks it up.
+   */
+  test("an import's Created is the outcome's own key, and no import screen looks up the date column's", () => {
+    expect(filesLookingUp("Created (import result)")).toEqual([
+      "Utils/ImportResultWords.ts",
+    ]);
+
+    const created: Array<string> = filesLookingUp("Created");
+
+    for (const file of [
+      "Components/NetworkSite/ImportSitesFromCsvModal.tsx",
+      "Components/StatusPage/ImportGroupsFromCsvModal.tsx",
+      "Components/ToolImport/ToolImportReport.tsx",
+      "Components/ToolImport/ToolImportText.ts",
+      "Utils/NetworkSiteImportRunner.ts",
+      "Utils/StatusPageGroupImportRunner.ts",
+    ]) {
+      expect({ file, looksUpCreated: created.includes(file) }).toEqual({
+        file,
+        looksUpCreated: false,
+      });
+    }
+  });
+
+  /*
+   * #7108: "Search" is the Search button's verb in every language. A
+   * filter's name, an AI call's kind and a family of data stores are
+   * nouns, each with a key of its own.
+   */
+  test('"Search" is never looked up where it names a thing', () => {
+    const search: Array<string> = filesLookingUp("Search");
+
+    for (const file of [
+      "Components/SessionReplay/SessionReplayFilterFields.ts",
+      "Components/LlmConversations/LlmConversationCopy.ts",
+      "Components/DataSecurity/DataSecurityCatalogTerms.ts",
+    ]) {
+      expect({ file, looksUpSearch: search.includes(file) }).toEqual({
+        file,
+        looksUpSearch: false,
+      });
+    }
+
+    expect(filesLookingUp("Retrieval")).toEqual([
+      "Components/LlmConversations/LlmConversationCopy.ts",
+    ]);
+    expect(filesLookingUp("Search engine")).toEqual([
+      "Components/DataSecurity/DataSecurityCatalogTerms.ts",
+    ]);
+  });
+
   test("the tab strip's divider says Closed tabs, never a case's bare Closed", () => {
     expect(filesLookingUp("Closed tabs")).toEqual([
       "Components/SessionReplay/ReplayTabSwitcher.tsx",
@@ -215,6 +269,25 @@ describe("the locales word each meaning as its own", () => {
 
     // German's chart picker offers a line ("Linie"), not a row ("Zeile").
     expect(readLocale("de")["Line"]).toBe("Linie");
+  });
+
+  test("an import's Created is never worded as the date column's", () => {
+    for (const language of LANGUAGES.filter((code: string): boolean => {
+      return code !== "en";
+    })) {
+      const locale: Record<string, string> = readLocale(language);
+
+      expect({
+        language,
+        worded: Boolean(locale["Created (import result)"]),
+      }).toEqual({ language, worded: true });
+    }
+
+    // Where the column's word is a date's heading, the outcome's is not.
+    expect(readLocale("ar")["Created"]).toBe("تاريخ الإنشاء");
+    expect(readLocale("ar")["Created (import result)"]).toBe("تم الإنشاء");
+    expect(readLocale("ja")["Created"]).toBe("作成");
+    expect(readLocale("ja")["Created (import result)"]).toBe("作成済み");
   });
 
   test("the bare Open is the verb, and a tab's state is never worded with it", () => {

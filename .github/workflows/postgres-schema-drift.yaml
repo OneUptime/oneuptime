@@ -663,8 +663,11 @@ jobs:
       # its person only when its LATEST turn asked. And a task of more than
       # 200 turns (issue #6529): read from its newest turns, each turn left
       # out counted and read once, the pull request a late turn opened
-      # found. Clones the migrated AIRun, CodeRepository and
-      # AIAgentTaskPullRequest into isolated schemas.
+      # found. A list row of a task of 10,205 turns stands as its newest
+      # turn (issue #7131), and a link to a turn its page does not show is
+      # numbered where its conversation places it (issue #7130). Clones the
+      # migrated AIRun, CodeRepository and AIAgentTaskPullRequest into
+      # isolated schemas.
       - name: Test Code's backfill and repository stats against Postgres
         if: matrix.shard == 1
         working-directory: packages/Common

@@ -120,7 +120,7 @@ const KIND_TITLES: Record<LlmCallKind, string> = {
   [LlmCallKind.Agent]: "Agent run",
   [LlmCallKind.Tool]: "Tool",
   [LlmCallKind.Embedding]: "Embedding",
-  [LlmCallKind.Retrieval]: "Search",
+  [LlmCallKind.Retrieval]: "Retrieval",
   [LlmCallKind.Other]: "Other",
 };
 

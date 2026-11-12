@@ -826,12 +826,17 @@ export default class AuditLogExporter {
         return;
       }
 
+      /*
+       * With the try's own time, which the email reads entriesLostAt
+       * against: past it, entries are being lost now (#7185).
+       */
       await this.notifier.notifyFailure({
         item: data.item,
         notice,
         failingSince: data.failingSince,
         oldestUnsentAt,
         entriesLostAt,
+        now: data.now,
         error: data.message,
         retentionInDays,
       });

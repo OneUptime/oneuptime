@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50831,
+    "keys": 50940,
     "untranslated": 2876
   },
   "sameAsEnglish": [
@@ -135,6 +135,7 @@
     "CPU.*high",
     "CPUs",
     "CSS",
+    "Cache",
     "Canonical Sunbeam",
     "Celsius",
     "Chat",
@@ -709,6 +710,7 @@
     "hh",
     "host:port",
     "in",
+    "in {{name}}",
     "info",
     "internal-probe",
     "internal-service",

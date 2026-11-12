@@ -190,7 +190,7 @@ Hvert sted, der viser en enhed — listen Enheder, en lokations Enheder-side, ov
 | --- | --- |
 | **Oppe** | Den seneste polling (ping eller SNMP), eller den bundne monitor, nåede enheden. |
 | **Nede** | Den seneste polling (ping eller SNMP), eller den bundne monitor, kunne ikke nå enheden. |
-| **Afventer** | Endnu ingen afgørelse: aldrig pollet, ingen sonde tildelt eller ingen monitor bundet. |
+| **Afventer** | Endnu ingen afgørelse: aldrig pollet, ingen sonde tildelt, ingen monitor bundet, eller den bundne monitor er slået fra eller arkiveret. |
 
 | Tilføjelse | Vises når | Hvad du gør |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Hvert sted, der viser en enhed — listen Enheder, en lokations Enheder-side, ov
 | **Ingen sonde** | Enheden polles af en sonde, men har ingen, eller dens polling er slået fra. | Tildel en sonde, der kan nå den; indtil da poller intet den. |
 | **Ingen overvågning** | Enheden bruger [tilsidesættelsen med bundet monitor](#tilsidesættelsen-med-bundet-monitor), og intet er bundet. | Bind en monitor, eller skift den tilbage til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det seneste SNMP-walk fejlede. | Kontrollér loginoplysningerne, SNMP-agenten eller en ACL. |
+| **Overvågning slået fra** | Overvågningen af den bundne monitor er slået fra, så enheden viser **Afventer** i stedet for den status, monitoren blev efterladt med. | Slå overvågningen af monitoren til igen, eller bind en anden monitor. |
+| **Overvågning arkiveret** | Den bundne monitor er arkiveret, så enheden viser **Afventer** i stedet for den status, monitoren blev efterladt med. | Gendan monitoren fra arkivet, eller bind en anden monitor. |
 
 Listen **Enheder** har et filter **SNMP** med tre værdier: **OK** (det seneste walk lykkedes), **Fejler** (det seneste walk fejlede) og **Not configured** (kun ping, ingen loginoplysninger eller aldrig pollet). "Hvilke enheder har loginoplysninger, der er holdt op med at virke" er ét klik væk. Listens kolonne **Interfaces (Up / Down)** viser **Ingen SNMP** i stedet for `0 / 0` for en enhed, der pinges og aldrig walkes: nul fungerende porte ville være en anden påstand, og en forkert.
 

@@ -269,15 +269,34 @@ describe("the strings in every Admin Dashboard language", () => {
     },
   );
 
-  test("the customer's button is named as it reads: Refresh license, which no language translates", () => {
-    for (const locale of OTHER_LOCALES) {
-      expect({
+  /*
+   * The customer's Settings > License page is in its reader's language
+   * (#7132), its Refresh license button among its words: the sentence names
+   * the button as the same language's Admin Dashboard draws it, never in
+   * English.
+   */
+  test("the customer's button is named as the reader's Admin Dashboard draws it", () => {
+    for (const locale of [...OTHER_LOCALES, "ar"]) {
+      const button: unknown = readLocale(locale)["Refresh license"];
+      const sentence: string = String(
+        readLocale(locale)[LicenseBulkCopy.newExpiryDateDescription],
+      );
+
+      expect({ locale, isText: typeof button === "string" }).toEqual({
         locale,
-        names: String(
-          readLocale(locale)[LicenseBulkCopy.newExpiryDateDescription],
-        ).includes("Refresh license"),
-      }).toEqual({ locale, names: true });
-      expect(readLocale(locale)["Refresh license"]).toBeUndefined();
+        isText: true,
+      });
+      expect({ locale, button: button !== "Refresh license" }).toEqual({
+        locale,
+        button: true,
+      });
+      expect({ locale, names: sentence.includes(button as string) }).toEqual({
+        locale,
+        names: true,
+      });
+      expect({ locale, english: sentence.includes("Refresh license") }).toEqual(
+        { locale, english: false },
+      );
     }
   });
 
