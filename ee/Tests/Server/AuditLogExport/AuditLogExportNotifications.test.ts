@@ -2598,6 +2598,85 @@ describe("the exporter tells people as its failures go on", () => {
         `From about ${written(lostAt)}, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first. A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.`,
       );
     });
+
+    test("turned off for longer than the retention, then on while its destination fails: one email, 30 minutes in, that it is losing entries since the first unsent one's stamp", async () => {
+      // It sent up to an entry 12 days old, then sat turned off; the project keeps a week.
+      const sentEntry: string = record(at(-12 * DAY), 7);
+      const firstUnsent: string = record(at(-11 * DAY), 7);
+      record(at(-HOUR), 7);
+      const row: StoredExport = webhookRow({
+        startsAt: at(-20 * DAY),
+        createdAt: at(-20 * DAY),
+        cursorCreatedAt: at(-12 * DAY),
+        cursorEntryId: sentEntry,
+        exportedEntryCount: 40,
+        lastExportedAt: at(-12 * DAY),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      webhook.failNext(
+        10_000,
+        new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+          retryable: false,
+        }),
+      );
+      const stamp: Date = auditLog.stampOf(firstUnsent);
+
+      await runUntil(exports, row, at(2 * DAY));
+
+      expect(stamp.getTime()).toBeLessThan(START.getTime());
+      expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+      expect(sent[0]!.at.toISOString()).toBe(at(31 * MINUTE).toISOString());
+      expect(sent[0]!.now.toISOString()).toBe(sent[0]!.at.toISOString());
+      expect(mailed()).toHaveLength(1);
+
+      const email: { subject: string; vars: Record<string, string> } =
+        mailed()[0]!;
+
+      expect(email.subject).toBe(
+        'The audit log export "SIEM webhook" is losing entries',
+      );
+      expect(email.vars["badgeText"]).toBe("Entries being lost");
+      // The first entry it has not sent, not the one it sent before it was turned off.
+      expect(email.vars["detail4Text"]).toBe(written(at(-11 * DAY)));
+      expect(email.vars["detail5Title"]).toBe("Entries lost since: ");
+      expect(email.vars["detail5Text"]).toBe(`about ${written(stamp)}`);
+      expect(email.vars["remediation"]).toBe(losingNow(stamp));
+    });
+
+    test("the worker was down past the date: 'is failing' with the date ahead, then, at the first try after it, 'is losing entries' since that same date", async () => {
+      const oldest: Date = at(-5 * MINUTE);
+      const { row, exports } = failingExport(oldest);
+      const lostAt: Date = deletedAt(oldest, 7);
+
+      // The first email, while the date is a week ahead.
+      await runUntil(exports, row, at(DAY));
+      expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+
+      // Nothing runs again until two days after the date; the entry is still kept.
+      clock = new Date(lostAt.getTime() + 2 * DAY);
+      await exporter().exportAll();
+
+      expect(notices()).toEqual([
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]);
+      expect(sent[1]!.now.toISOString()).toBe(clock.toISOString());
+      expect(sent[1]!.entriesLostAt!.toISOString()).toBe(lostAt.toISOString());
+
+      const [failing, lost] = mailed();
+
+      expect(failing!.vars["remediation"]).toBe(
+        `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log starts deleting them from about ${written(lostAt)}.`,
+      );
+      // The second email names the same date, now as passed: never "before then".
+      expect(lost!.subject).toBe(
+        'The audit log export "SIEM webhook" is losing entries',
+      );
+      expect(lost!.vars["badgeText"]).toBe("Entries being lost");
+      expect(lost!.vars["detail5Title"]).toBe("Entries lost since: ");
+      expect(lost!.vars["detail5Text"]).toBe(`about ${written(lostAt)}`);
+      expect(lost!.vars["remediation"]).toBe(losingNow(lostAt));
+    });
   });
 
   test("a failure after a delivery in the same run starts a new run of failures", async () => {
