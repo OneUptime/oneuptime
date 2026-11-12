@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "Этот сервер пока не может отправлять почту, поэтому никому не приходят письма.",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "Когда он упадёт",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "Канал «{{channel}}» отключён в этом проекте, поэтому вызовы через него не отправляются.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Исправлять нечего.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "Политика дежурств {{policy}} никого не вызывает: её не запускает ни одно правило дежурства и ни один монитор.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "В расписании дежурств {{schedule}} нет ротаций, поэтому в нём никогда никто не дежурит.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime проверяет ваши мониторы, политики дежурств, расписания, дежурных, страницы состояния и настройки уведомлений и показывает здесь всё, что помешало бы оповестить людей.",
   "Open Custom Domains": "Открыть пользовательские домены",
   "Open Monitor": "Открыть монитор",
   "Open On-Call Schedule": "Открыть расписание дежурств",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} отказался от некоторых вызовов, которые отправляет политика дежурств.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} подключён, но ни одно правило уведомлений туда не публикует.",
   "Checked the setup health": "Состояние настройки проверено",
-  "Checking the setup health": "Проверка состояния настройки"
+  "Checking the setup health": "Проверка состояния настройки",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime проверил ваши мониторы, дежурства, страницы состояния и уведомления: ничто не помешает оповестить людей."
 }

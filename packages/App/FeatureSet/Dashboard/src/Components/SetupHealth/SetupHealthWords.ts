@@ -83,7 +83,7 @@ export const SETUP_HEALTH_WORDS_PAGE: Readonly<{
   ),
   nothingToFix: translationKey("Nothing to fix."),
   nothingToFixDescription: translationKey(
-    "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.",
+    "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.",
   ),
   couldNotLoad: translationKey("Couldn't check the setup. {{error}}"),
   dismissed: translationKey("Dismissed"),

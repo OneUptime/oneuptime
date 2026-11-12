@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "لا شيء لإصلاحه.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "سياسة المناوبة {{policy}} لا تستدعي أحدًا: لا تشغّلها أي قاعدة مناوبة ولا أي مراقبة.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "ليس لجدول المناوبة {{schedule}} أي تناوب، لذا لا يكون أحد مناوبًا فيه أبدًا.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "يفحص OneUptime المراقبات وسياسات المناوبة والجداول والمستجيبين وصفحات الحالة وإعدادات الإشعارات، ويعرض هنا كل ما قد يمنع إبلاغ الأشخاص.",
   "Open Custom Domains": "فتح النطاقات المخصصة",
   "Open Monitor": "فتح المراقبة",
   "Open On-Call Schedule": "فتح جدول المناوبة",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "ألغى {{name}} الاشتراك في بعض الاستدعاءات التي ترسلها إليه سياسة مناوبة.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} متصل، لكن لا تنشر فيه أي قاعدة إشعار.",
   "Checked the setup health": "تم فحص سلامة الإعداد",
-  "Checking the setup health": "جارٍ فحص سلامة الإعداد"
+  "Checking the setup health": "جارٍ فحص سلامة الإعداد",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "فحص OneUptime المراقبات وإعداد المناوبة وصفحات الحالة والإشعارات: لا شيء سيمنع إبلاغ الأشخاص."
 }

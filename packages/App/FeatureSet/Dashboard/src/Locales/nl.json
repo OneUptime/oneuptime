@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "Deze server kan nog geen e-mail versturen, dus niemand wordt gemaild.",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "Als dit uitvalt",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "{{channel}} staat uit in dit project, dus oproepen die het gebruiken worden niet verstuurd.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Niets op te lossen.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "Bereikbaarheidsbeleid {{policy}} roept niemand op: geen bereikbaarheidsregel en geen monitor voert het uit.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "Bereikbaarheidsschema {{schedule}} heeft geen rotaties, dus er is daarin nooit iemand bereikbaar.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime controleert je monitors, bereikbaarheidsbeleid, schema's, responders, statuspagina's en meldingsinstellingen, en zet hier alles wat zou voorkomen dat mensen worden gewaarschuwd.",
   "Open Custom Domains": "Aangepaste domeinen openen",
   "Open Monitor": "Monitor openen",
   "Open On-Call Schedule": "Bereikbaarheidsschema openen",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} heeft zich afgemeld voor sommige oproepen die een bereikbaarheidsbeleid stuurt.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} is verbonden, maar geen meldingsregel plaatst er berichten in.",
   "Checked the setup health": "Inrichtingsstatus gecontroleerd",
-  "Checking the setup health": "Inrichtingsstatus controleren"
+  "Checking the setup health": "Inrichtingsstatus controleren",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime heeft je monitors, bereikbaarheid, statuspagina's en meldingen gecontroleerd: niets zou voorkomen dat mensen worden gewaarschuwd."
 }

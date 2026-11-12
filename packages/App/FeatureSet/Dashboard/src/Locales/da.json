@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "Denne server kan endnu ikke sende e-mail, så ingen får en e-mail.",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "Når den går ned",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "{{channel}} er slået fra i dette projekt, så tilkald, der bruger det, sendes ikke.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Intet at rette.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "Vagtpolitikken {{policy}} tilkalder ingen: ingen vagtregel og ingen overvågning kører den.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "Vagtplanen {{schedule}} har ingen rotationer, så ingen har nogensinde vagt i den.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime kontrollerer dine overvågninger, vagtpolitikker, vagtplaner, vagthavende, statussider og notifikationsindstillinger og viser her alt, der ville forhindre, at folk får besked.",
   "Open Custom Domains": "Åbn brugerdefinerede domæner",
   "Open Monitor": "Åbn overvågning",
   "Open On-Call Schedule": "Åbn vagtplan",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} har fravalgt nogle af de tilkald, en vagtpolitik sender.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} er forbundet, men ingen notifikationsregel poster dertil.",
   "Checked the setup health": "Opsætningens tilstand kontrolleret",
-  "Checking the setup health": "Kontrollerer opsætningens tilstand"
+  "Checking the setup health": "Kontrollerer opsætningens tilstand",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime har kontrolleret dine overvågninger, vagter, statussider og notifikationer: intet ville forhindre, at folk får besked."
 }

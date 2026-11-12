@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "Denne serveren kan ikke sende e-post ennå, så ingen får e-post.",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "Når den går ned",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "{{channel}} er slått av i dette prosjektet, så tilkallinger som bruker det, sendes ikke.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Ingenting å rette.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "Vaktretningslinjen {{policy}} tilkaller ingen: ingen vaktregel og ingen overvåking kjører den.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "Vaktplanen {{schedule}} har ingen rotasjoner, så ingen har noen gang vakt i den.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime kontrollerer overvåkingene, vaktretningslinjene, vaktplanene, vakthavende, statussidene og varselinnstillingene dine, og viser her alt som ville hindre at folk blir varslet.",
   "Open Custom Domains": "Åpne egendefinerte domener",
   "Open Monitor": "Åpne overvåking",
   "Open On-Call Schedule": "Åpne vaktplan",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} har reservert seg mot noen tilkallinger en vaktretningslinje sender.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} er koblet til, men ingen varselregel poster dit.",
   "Checked the setup health": "Oppsettets helse kontrollert",
-  "Checking the setup health": "Kontrollerer oppsettets helse"
+  "Checking the setup health": "Kontrollerer oppsettets helse",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime har kontrollert overvåkingene, vaktoppsettet, statussidene og varslene dine: ingenting ville hindre at folk blir varslet."
 }

@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Nichts zu beheben.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "Die Bereitschaftsrichtlinie {{policy}} alarmiert niemanden: Keine Bereitschaftsregel und keine Überwachung führt sie aus.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "Der Bereitschaftsplan {{schedule}} hat keine Rotationen, daher hat darin nie jemand Bereitschaft.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime prüft Ihre Überwachungen, Bereitschaftsrichtlinien, Bereitschaftspläne, Einsatzkräfte, Statusseiten und Benachrichtigungseinstellungen und listet hier alles auf, was verhindern würde, dass Menschen benachrichtigt werden.",
   "Open Custom Domains": "Benutzerdefinierte Domains öffnen",
   "Open Monitor": "Überwachung öffnen",
   "Open On-Call Schedule": "Bereitschaftsplan öffnen",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} hat einige Alarmierungen abbestellt, die eine Bereitschaftsrichtlinie sendet.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} ist verbunden, aber keine Benachrichtigungsregel postet dorthin.",
   "Checked the setup health": "Einrichtungsstatus geprüft",
-  "Checking the setup health": "Einrichtungsstatus wird geprüft"
+  "Checking the setup health": "Einrichtungsstatus wird geprüft",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime hat Ihre Überwachungen, die Bereitschaft, Statusseiten und Benachrichtigungen geprüft: Nichts würde verhindern, dass Menschen benachrichtigt werden."
 }

@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "此伺服器尚無法傳送電子郵件，因此不會有人收到郵件。",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "停機時",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "此專案已關閉 {{channel}}，因此使用它的呼叫不會發送。",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "沒有需要修正的問題。",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "待命策略 {{policy}} 不會呼叫任何人：沒有待命規則或監測器執行它。",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "待命排程 {{schedule}} 沒有輪替，因此永遠沒有人待命。",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime 會檢查你的監測器、待命策略、待命排程、回應人員、狀態頁面和通知設定，並在這裡列出任何會讓相關人員收不到通知的問題。",
   "Open Custom Domains": "開啟自訂網域",
   "Open Monitor": "開啟監測器",
   "Open On-Call Schedule": "開啟待命排程",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} 已選擇不接收待命策略發送的部分呼叫。",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} 已連線，但沒有通知規則向其發布訊息。",
   "Checked the setup health": "已檢查設定健康狀況",
-  "Checking the setup health": "正在檢查設定健康狀況"
+  "Checking the setup health": "正在檢查設定健康狀況",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime 已檢查你的監測器、待命設定、狀態頁面和通知：沒有任何問題會讓相關人員收不到通知。"
 }

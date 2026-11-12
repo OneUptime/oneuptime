@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "此服务器尚无法发送邮件，因此不会有人收到邮件。",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "宕机时",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "此项目已关闭 {{channel}}，因此使用它的呼叫不会发送。",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "没有需要修复的问题。",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "值班策略 {{policy}} 不会呼叫任何人：没有值班规则或监视器运行它。",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "值班计划 {{schedule}} 没有轮换，因此永远没有人值班。",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime 会检查你的监视器、值班策略、值班计划、响应人员、状态页面和通知设置，并在这里列出任何会让相关人员收不到通知的问题。",
   "Open Custom Domains": "打开自定义域名",
   "Open Monitor": "打开监视器",
   "Open On-Call Schedule": "打开值班计划",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} 已选择不接收值班策略发送的部分呼叫。",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} 已连接，但没有通知规则向其发布消息。",
   "Checked the setup health": "已检查配置健康",
-  "Checking the setup health": "正在检查配置健康"
+  "Checking the setup health": "正在检查配置健康",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime 已检查你的监视器、值班设置、状态页面和通知：没有任何问题会让相关人员收不到通知。"
 }

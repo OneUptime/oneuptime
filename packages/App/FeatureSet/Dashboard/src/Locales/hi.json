@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "यह सर्वर अभी ईमेल नहीं भेज सकता, इसलिए किसी को ईमेल नहीं जाता।",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "जब यह बंद हो",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "इस प्रोजेक्ट में {{channel}} बंद है, इसलिए इसका उपयोग करने वाले पेज नहीं भेजे जाते।",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "ठीक करने के लिए कुछ नहीं है।",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "ऑन-कॉल नीति {{policy}} किसी को पेज नहीं करती: कोई ऑन-कॉल नियम या मॉनिटर इसे नहीं चलाता।",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "ऑन-कॉल अनुसूची {{schedule}} में कोई रोटेशन नहीं है, इसलिए इसमें कभी कोई ऑन-कॉल नहीं होता।",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime आपके मॉनिटर, ऑन-कॉल नीतियाँ, अनुसूचियाँ, रिस्पॉन्डर, स्थिति पृष्ठ और सूचना सेटिंग्स जाँचता है, और यहाँ वह सब दिखाता है जो लोगों तक सूचना पहुँचने से रोक सकता है।",
   "Open Custom Domains": "कस्टम डोमेन खोलें",
   "Open Monitor": "मॉनिटर खोलें",
   "Open On-Call Schedule": "ऑन-कॉल अनुसूची खोलें",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} ने किसी ऑन-कॉल नीति के भेजे कुछ पेज से ऑप्ट आउट किया है।",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} जुड़ा है, पर कोई सूचना नियम उसमें पोस्ट नहीं करता।",
   "Checked the setup health": "सेटअप की सेहत जाँची",
-  "Checking the setup health": "सेटअप की सेहत जाँच रहे हैं"
+  "Checking the setup health": "सेटअप की सेहत जाँच रहे हैं",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime ने आपके मॉनिटर, ऑन-कॉल सेटअप, स्थिति पृष्ठ और सूचनाएँ जाँच लीं: कुछ भी लोगों तक सूचना पहुँचने से नहीं रोकेगा।"
 }

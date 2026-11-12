@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "Este servidor ainda não consegue enviar e-mails, então ninguém recebe e-mail.",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "Quando cair",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "{{channel}} está desligado neste projeto, então os acionamentos que o usam não são enviados.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Nada para corrigir.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "A política de plantão {{policy}} não aciona ninguém: nenhuma regra de plantão e nenhum monitor a executa.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "O agendamento de plantão {{schedule}} não tem rotações, então ninguém nunca está de plantão nele.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "O OneUptime verifica seus monitores, políticas de plantão, agendamentos, plantonistas, páginas de status e configurações de notificação, e lista aqui tudo o que impediria que as pessoas fossem avisadas.",
   "Open Custom Domains": "Abrir domínios personalizados",
   "Open Monitor": "Abrir monitor",
   "Open On-Call Schedule": "Abrir agendamento de plantão",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} optou por não receber alguns acionamentos que uma política de plantão envia.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} está conectado, mas nenhuma regra de notificação publica nele.",
   "Checked the setup health": "Saúde da configuração verificada",
-  "Checking the setup health": "Verificando a saúde da configuração"
+  "Checking the setup health": "Verificando a saúde da configuração",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "O OneUptime verificou seus monitores, o plantão, as páginas de status e as notificações: nada impediria que as pessoas fossem avisadas."
 }

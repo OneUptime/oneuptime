@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Nothing to fix.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.",
   "Open Custom Domains": "Open Custom Domains",
   "Open Monitor": "Open Monitor",
   "Open On-Call Schedule": "Open On-Call Schedule",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} opted out of some pages an on-call policy sends them.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} is connected, but no notification rule posts to it.",
   "Checked the setup health": "Checked the setup health",
-  "Checking the setup health": "Checking the setup health"
+  "Checking the setup health": "Checking the setup health",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told."
 }

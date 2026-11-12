@@ -50916,7 +50916,7 @@
   "This server can't send email yet, so nobody is emailed.": "Den här servern kan inte skicka e-post ännu, så ingen får något e-postmeddelande.",
   "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
-  "When this goes down": "When this goes down",
+  "When this goes down": "När den går ner",
   "When {{criteria}} matches": "When {{criteria}} matches",
   "{{channel}} is off in this project, so pages that use it are not sent.": "{{channel}} är avstängt i det här projektet, så larm som använder det skickas inte.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} more criteria open incidents or alerts.",
@@ -51076,7 +51076,6 @@
   "Nothing to fix.": "Inget att åtgärda.",
   "On-call policy {{policy}} pages nobody: no on-call rule and no monitor runs it.": "Jourpolicyn {{policy}} larmar ingen: ingen jourregel och ingen övervakning kör den.",
   "On-call schedule {{schedule}} has no rotations, so nobody is ever on call in it.": "Jourschemat {{schedule}} har inga rotationer, så ingen har någonsin jour i det.",
-  "OneUptime checks your monitors, on-call policies, schedules, responders, status pages and notification settings, and lists here anything that would stop people from being told.": "OneUptime kontrollerar dina övervakningar, jourpolicyer, jourscheman, jourhavande, statussidor och aviseringsinställningar och listar här allt som skulle hindra att folk får veta.",
   "Open Custom Domains": "Öppna anpassade domäner",
   "Open Monitor": "Öppna övervakning",
   "Open On-Call Schedule": "Öppna jourschema",
@@ -51111,5 +51110,6 @@
   "{{name}} opted out of some pages an on-call policy sends them.": "{{name}} har valt bort vissa larm som en jourpolicy skickar.",
   "{{workspace}} is connected, but no notification rule posts to it.": "{{workspace}} är anslutet, men ingen aviseringsregel publicerar där.",
   "Checked the setup health": "Inställningarnas hälsa kontrollerad",
-  "Checking the setup health": "Kontrollerar inställningarnas hälsa"
+  "Checking the setup health": "Kontrollerar inställningarnas hälsa",
+  "OneUptime checked your monitors, on-call setup, status pages and notifications: nothing would stop people from being told.": "OneUptime har kontrollerat dina övervakningar, jourer, statussidor och aviseringar: inget skulle hindra att folk får veta."
 }
