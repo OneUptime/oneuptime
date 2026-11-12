@@ -3,6 +3,8 @@ enum PageMap {
   HOME = "HOME",
   // What a new server still needs: the setup checklist (#6824).
   SERVER_SETUP = "SERVER_SETUP",
+  // What people told this server about how things went (#6832).
+  FEEDBACK = "FEEDBACK",
   HEALTH = "HEALTH",
   HEALTH_QUEUES = "HEALTH_QUEUES",
   HEALTH_INSTANCE_LOGS = "HEALTH_INSTANCE_LOGS",

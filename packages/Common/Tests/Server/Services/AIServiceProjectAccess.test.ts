@@ -217,7 +217,7 @@ describe("AIService.executeWithLogging error-detail storage", () => {
     const createLog: jest.SpiedFunction<typeof LlmLogService.create> =
       mockFailedProviderRequest(new Error(privateProviderDetail));
     const safeMessage: string =
-      "The AI provider request failed. Review the provider configuration and try again.";
+      "The LLM provider request failed. Review the provider under Project Settings → AI → LLM Providers, then try again.";
 
     await expect(
       AIService.executeWithLogging({

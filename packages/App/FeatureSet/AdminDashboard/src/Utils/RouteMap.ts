@@ -12,6 +12,7 @@ const RouteMap: Dictionary<Route> = {
    * `npm start`, the Welcome checklist (#6803) and the docs link to it.
    */
   [PageMap.SERVER_SETUP]: new Route(`/admin/setup`),
+  [PageMap.FEEDBACK]: new Route(`/admin/feedback`),
   [PageMap.HEALTH]: new Route(`/admin/health`),
   [PageMap.HEALTH_QUEUES]: new Route(`/admin/health/queues`),
   [PageMap.HEALTH_INSTANCE_LOGS]: new Route(`/admin/health/instance-logs`),

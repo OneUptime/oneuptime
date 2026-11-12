@@ -25,6 +25,7 @@ import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
+import WasThisClear from "../Feedback/WasThisClear";
 import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
 
 /*
@@ -93,6 +94,13 @@ export const DEFINED_TERM_CLASS_NAME: string =
  */
 export const DEFINED_TERM_POPOVER_CLASS_NAME: string =
   "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm font-normal normal-case tracking-normal focus:outline-none";
+
+// The topic a definition's "Was this clear?" is kept under: "term.criteria".
+export const getDefinedTermFeedbackTopic: (term: GlossaryTerm) => string = (
+  term: GlossaryTerm,
+): string => {
+  return `term.${term}`;
+};
 
 type ReadState =
   | { status: "idle" }
@@ -192,6 +200,18 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
           className="h-3.5 w-3.5 flex-shrink-0"
         />
       </a>
+      {/*
+       * Whether the definition helped (#6832), once it is there to judge:
+       * a quiet thumb up or down, only where OneUptime may ask this person.
+       */}
+      {definition && props.read.status === "ready" ? (
+        <WasThisClear
+          topic={getDefinedTermFeedbackTopic(props.term)}
+          className="border-t border-gray-100 pt-1.5"
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

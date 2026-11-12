@@ -6,13 +6,26 @@ import {
   AIChatWidgetSpan,
   AIChatWidgetStat,
   AIChatWidgetType,
+  isAIChatReadResourceCard,
 } from "../../../Types/AI/AIChatTypes";
+import {
+  AIActionCardFact,
+  isAIActionMoment,
+  isKnownAIActionCardWords,
+} from "../../../Types/AI/AIActionWords";
+import {
+  getFactsNotInHeading,
+  ResourceCardFact,
+} from "../../../Types/AI/ResourceCardFacts";
 import { JSONObject } from "../../../Types/JSON";
 import {
   TableDateTexts,
   getTableDateTexts,
 } from "../../Components/Table/TableDate";
-import { getReaderNumberLocale } from "../../../Types/DateLanguage";
+import {
+  getReaderNumberLocale,
+  inEnglishDates,
+} from "../../../Types/DateLanguage";
 
 /*
  * The formatting rules the AI chat widgets use on screen, factored out so the
@@ -344,6 +357,60 @@ export function formatTableCell(
     return value.toLocaleString(getReaderNumberLocale());
   }
   return String(value);
+}
+
+/*
+ * A resource card's facts as the exports write them: each once, as the
+ * card draws them (Types/AI/ResourceCardFacts), and a moment - when an
+ * on-call shift started, when it hands off - as the export writes its own
+ * dates ("Oct 26 2026, 13:00 GMT"), never the ISO text the card stores for
+ * them ("2026-10-26T13:00:00.000Z"), which the PDF printed as it was.
+ *
+ * A stored fact is a moment when the card's words say so at its place and
+ * its stored English is that moment's ISO text: a card saved before words,
+ * or one whose words are not ours, prints as stored.
+ */
+export function getExportedResourceCardFacts(
+  widget: AIChatWidget,
+): Array<ResourceCardFact> {
+  const stored: Array<ResourceCardFact> = widget.data.fields || [];
+  const words: Array<AIActionCardFact> = isKnownAIActionCardWords(
+    widget.data.words,
+    { isRead: isAIChatReadResourceCard(widget.data) },
+  )
+    ? widget.data.words.facts || []
+    : [];
+
+  const fields: Array<ResourceCardFact> = stored.map(
+    (field: ResourceCardFact, index: number): ResourceCardFact => {
+      const value: AIActionCardFact["value"] | undefined =
+        words.length === stored.length ? words[index]?.value : undefined;
+
+      if (!value || !isAIActionMoment(value) || value.moment !== field.value) {
+        return field;
+      }
+
+      const moment: Date = new Date(value.moment);
+
+      if (isNaN(moment.getTime())) {
+        return field;
+      }
+
+      return {
+        label: field.label,
+        // The export is English throughout, in the reader's time zone.
+        value: inEnglishDates((): string => {
+          return OneUptimeDate.getDateAsLocalFormattedString(moment);
+        }),
+      };
+    },
+  );
+
+  return getFactsNotInHeading({
+    heading: widget.data.heading,
+    subheading: widget.data.subheading,
+    fields,
+  });
 }
 
 // StatCardsWidget: the number/string union is discriminated at runtime.

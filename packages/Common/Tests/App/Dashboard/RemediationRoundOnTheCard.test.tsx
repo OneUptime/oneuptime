@@ -378,7 +378,7 @@ describe("a fix whose round stopped before it found one", () => {
     });
     expect(planStep()).toHaveAttribute("data-tone", "failed");
     expect(planSummary()).toBe(
-      "The AI provider did not answer within 120 seconds.",
+      "The LLM provider did not answer within 120 seconds.",
     );
     /*
      * Its one step says it under its name: no fact beside the name says it
@@ -417,7 +417,7 @@ describe("a fix whose round stopped before it found one", () => {
 
     expect(within(notice).getByText("Why it stopped")).toBeInTheDocument();
     expect(notice).toHaveTextContent(
-      "The AI provider did not answer within 120 seconds.",
+      "The LLM provider did not answer within 120 seconds.",
     );
     expect(notice).toHaveTextContent("OneUptime tried 3 times.");
     expect(notice).toHaveTextContent(
@@ -431,7 +431,7 @@ describe("a fix whose round stopped before it found one", () => {
     expect(planSummary()).toBe("");
     expect(
       within(planStep()).getAllByText(
-        "The AI provider did not answer within 120 seconds.",
+        "The LLM provider did not answer within 120 seconds.",
         { exact: false },
       ),
     ).toHaveLength(1);
@@ -1280,7 +1280,7 @@ describe("what the step reads", () => {
 
     await waitFor(() => {
       expect(planSummary()).toBe(
-        `Did not finish: The AI provider did not answer within 120 seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
+        `Did not finish: The LLM provider did not answer within 120 seconds. Trying again at ${formatAiRunTime(nextAttemptAt)}.`,
       );
     });
     expect(planTitle()).toBe("Working out a fix…");
