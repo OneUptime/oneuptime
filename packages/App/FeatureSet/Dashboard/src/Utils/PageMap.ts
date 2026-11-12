@@ -246,6 +246,11 @@ enum PageMap {
 
   HOME = "HOME",
   /*
+   * Setup health (#6812): what is misconfigured in the project, each
+   * finding with its fix. Opened from Home's "Needs attention" and Search.
+   */
+  HOME_SETUP_HEALTH = "HOME_SETUP_HEALTH",
+  /*
    * Where Home's own copies of the products' lists used to be (…/home/…):
    * Home is one page now, and their addresses forward to the products'
    * lists (Routes/MovedHomeRoutes).
@@ -1570,6 +1575,9 @@ enum PageMap {
 
   // Labels.
   SETTINGS_LABELS = "SETTINGS_LABELS",
+
+  // The products the project shows (#6814).
+  SETTINGS_PRODUCTS = "SETTINGS_PRODUCTS",
 
   // Import from another tool (Opsgenie, incident.io, ...).
   SETTINGS_IMPORT_FROM_TOOL = "SETTINGS_IMPORT_FROM_TOOL",

@@ -59,7 +59,9 @@ flowchart TB
 Suas alterações são só suas até você salvá-las. Nada é salvo enquanto você edita, então as outras pessoas continuam vendo o painel como ele estava.
 
 - **Salvar alterações** salva os widgets, suas posições e tamanhos, as variáveis, e o período e a atualização automática padrão, tudo de uma vez, e volta ao modo de leitura. Se o salvamento for recusado, por exemplo porque você perdeu a permissão nesse meio-tempo, você continua no modo de edição com suas alterações, e o motivo aparece acima da grade.
-- **Cancelar** pergunta antes, porque descarta suas alterações: **Descartar alterações** volta ao painel como ele foi salvo, e **Continuar Editando** devolve você ao seu trabalho.
+- **Cancelar** volta ao modo de leitura. Se você mudou algo, pergunta antes, porque descarta suas alterações: **Descartar alterações** volta ao painel como ele foi salvo, e **Continuar Editando** devolve você ao seu trabalho.
+
+Sair do painel com alterações não salvas também pergunta antes. Um link no menu lateral, na trilha de navegação ou na barra superior, ou os botões Voltar e Avançar do seu navegador, abrem **Sair sem salvar?** com as mesmas duas opções: **Continuar Editando** fica no painel com suas alterações, e **Descartar alterações** segue para a página que você estava abrindo. Fechar ou recarregar a aba pergunta com a própria caixa de diálogo do navegador. Um painel que você abriu para edição e não mudou não pergunta nada, nem um que você acabou de salvar.
 
 Durante a edição, a atualização automática fica em pausa, e um intervalo de tempo com zoom volta ao intervalo que você escolheu.
 

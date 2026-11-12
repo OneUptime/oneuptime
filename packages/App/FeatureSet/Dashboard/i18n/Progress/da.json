@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9563
+    "keys": 51296,
+    "untranslated": 9524
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -399,6 +399,7 @@
     "container",
     "customer facing|tier-1",
     "dashboard",
+    "dashboards",
     "database",
     "datastore",
     "db-primary",
@@ -494,6 +495,7 @@
     "subnet",
     "svc-backup",
     "syslog",
+    "team",
     "teams",
     "timeout|connection refused",
     "total",
@@ -503,6 +505,7 @@
     "vSphere Client",
     "vertical pod autoscaler",
     "workflow",
+    "workflows",
     "writesets",
     "x86",
     "z",

@@ -1,7 +1,11 @@
 import Route from "Common/Types/API/Route";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import PageMap from "../../Utils/PageMap";
-import { ProductKey, ProductOnboarding } from "./ProductOnboarding";
+import {
+  OnboardedProductKey,
+  ProductKey,
+  ProductOnboarding,
+} from "./ProductOnboarding";
 import {
   ALERTS_SHOWCASE,
   INCIDENTS_SHOWCASE,
@@ -64,7 +68,10 @@ const docs: (path: string) => Route = (path: string): Route => {
   return new Route(`/docs/${path}`);
 };
 
-export const PRODUCT_ONBOARDINGS: Record<ProductKey, ProductOnboarding> = {
+export const PRODUCT_ONBOARDINGS: Record<
+  OnboardedProductKey,
+  ProductOnboarding
+> = {
   [ProductKey.Monitors]: {
     page: PageMap.MONITORS,
     name: translationKey("Monitors"),
@@ -88,12 +95,14 @@ export const PRODUCT_ONBOARDINGS: Record<ProductKey, ProductOnboarding> = {
     name: translationKey("On-Call"),
     showcase: ON_CALL_SHOWCASE,
     docsRoute: docs("on-call/index"),
+    guideRoute: docs("guides/paging"),
   },
   [ProductKey.StatusPages]: {
     page: PageMap.STATUS_PAGES,
     name: translationKey("Status Pages"),
     showcase: STATUS_PAGES_SHOWCASE,
     docsRoute: docs("status-pages/index"),
+    guideRoute: docs("guides/status-page"),
   },
   [ProductKey.ScheduledMaintenance]: {
     page: PageMap.SCHEDULED_MAINTENANCE_EVENTS,
@@ -325,6 +334,8 @@ export const PRODUCT_ONBOARDINGS: Record<ProductKey, ProductOnboarding> = {
   },
 };
 
-export function getProductOnboarding(product: ProductKey): ProductOnboarding {
+export function getProductOnboarding(
+  product: OnboardedProductKey,
+): ProductOnboarding {
   return PRODUCT_ONBOARDINGS[product];
 }

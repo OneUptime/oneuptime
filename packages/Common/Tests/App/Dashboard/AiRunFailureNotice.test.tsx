@@ -19,7 +19,13 @@ import * as React from "react";
 import AiRunFailureNotice, {
   AiRunFailureSettingsLink,
   getAiRunFailureSettingsLink,
+  getAiRunFailureSettingsRoute,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiRunFailureNotice";
+import {
+  AI_LANE_ADVANCED_COLUMNS,
+  AiLane,
+  AiLaneAdvancedCard,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/ProjectAiSettingsCopy";
 import AiRunTryAgainButton, {
   TRY_AGAIN_ERROR_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiRunTryAgainButton";
@@ -43,7 +49,12 @@ import {
   describeAttemptEnd,
   formatAiRunTime,
   readAiRunFailure,
+  RECORD_TOKEN_LIMIT_FAILURE_WORDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AI/AiRunFailureWords";
+import {
+  getRecordAiTokenLimitRunError,
+  RECORD_AI_TOKEN_LIMIT_WORDS,
+} from "../../../Types/AI/RecordAiTokenLimit";
 import AIRunEvent from "../../../Models/DatabaseModels/AIRunEvent";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import { AIRunEventResultSummary } from "../../../Types/AI/AIChatTypes";
@@ -51,6 +62,7 @@ import {
   AIRunAttemptEnd,
   AIRunAttemptOutcome,
   AIRunFailureKind,
+  RECORD_TOKEN_LIMIT_FAILURE_KINDS,
 } from "../../../Types/AI/AIRunAttempt";
 import AIRunEventType from "../../../Types/AI/AIRunEventType";
 import OneUptimeDate from "../../../Types/Date";
@@ -159,7 +171,7 @@ describe("AiRunFailureNotice", () => {
 
     expect(screen.getByText("Triage did not finish")).toBeVisible();
     expect(screen.getByTestId("triage-failure-cause")).toHaveTextContent(
-      /^The AI provider did not answer within 120 seconds\.$/,
+      /^The LLM provider did not answer within 120 seconds\.$/,
     );
     expect(screen.getByTestId("triage-failure-tries")).toHaveTextContent(
       /^OneUptime tried 3 times\.$/,
@@ -254,7 +266,7 @@ describe("AiRunFailureNotice", () => {
 
     expect(screen.queryByTestId("ai-run-failure-tries")).toBeNull();
     expect(screen.getByTestId("ai-run-failure-cause")).toHaveTextContent(
-      "The AI provider refused the request",
+      "The LLM provider refused the request",
     );
   });
 
@@ -365,7 +377,7 @@ describe("the settings page a failure's fix is made on", () => {
   // Where each kind of failure is fixed; null: there is nothing to change.
   const FIXED_ON: Record<
     AIRunFailureKind,
-    { label: string; page: PageMap; path: string } | null
+    { label: string; page: PageMap; path: string; card?: string } | null
   > = {
     [AIRunFailureKind.ProviderTimeout]: {
       label: "Open LLM Providers",
@@ -401,6 +413,35 @@ describe("the settings page a failure's fix is made on", () => {
       label: "Open AI Credits",
       page: PageMap.SETTINGS_AI_CREDITS,
       path: "settings/ai-credits",
+    },
+    /*
+     * The incident's or alert's own daily AI token limit (#7157): the
+     * record's AI settings, opened at the Daily limits card under More
+     * settings - never the project's AI Features.
+     */
+    [AIRunFailureKind.IncidentTokenLimitPaused]: {
+      label: "Review incident AI settings",
+      page: PageMap.INCIDENTS_SETTINGS_AI,
+      path: "incidents/ai/settings#DailyLimits",
+      card: "DailyLimits",
+    },
+    [AIRunFailureKind.IncidentTokenLimitUsedUp]: {
+      label: "Review incident AI settings",
+      page: PageMap.INCIDENTS_SETTINGS_AI,
+      path: "incidents/ai/settings#DailyLimits",
+      card: "DailyLimits",
+    },
+    [AIRunFailureKind.AlertTokenLimitPaused]: {
+      label: "Review alert AI settings",
+      page: PageMap.ALERTS_SETTINGS_AI,
+      path: "alerts/ai/settings#DailyLimits",
+      card: "DailyLimits",
+    },
+    [AIRunFailureKind.AlertTokenLimitUsedUp]: {
+      label: "Review alert AI settings",
+      page: PageMap.ALERTS_SETTINGS_AI,
+      path: "alerts/ai/settings#DailyLimits",
+      card: "DailyLimits",
     },
     [AIRunFailureKind.ServerStopped]: null,
     [AIRunFailureKind.Other]: null,
@@ -438,7 +479,8 @@ describe("the settings page a failure's fix is made on", () => {
     "%s: its page, for whoever may make the change there",
     (kind: AIRunFailureKind) => {
       allow(true);
-      const expected: { label: string; page: PageMap } | null = FIXED_ON[kind];
+      const expected: { label: string; page: PageMap; card?: string } | null =
+        FIXED_ON[kind];
       const link: AiRunFailureSettingsLink | null =
         getAiRunFailureSettingsLink(kind);
 
@@ -450,6 +492,7 @@ describe("the settings page a failure's fix is made on", () => {
       expect(link).toEqual({
         label: expected.label,
         page: expected.page,
+        ...(expected.card ? { card: expected.card } : {}),
         isAllowed: true,
       });
     },
@@ -999,13 +1042,13 @@ describe("the words for each kind of failure", () => {
         },
         translator,
       ),
-    ).toBe("The AI provider did not answer within 1 second.");
+    ).toBe("The LLM provider did not answer within 1 second.");
     expect(
       describeAiRunFailureCause(
         { failureKind: AIRunFailureKind.ProviderTimeout },
         translator,
       ),
-    ).toBe("The AI provider did not answer in time.");
+    ).toBe("The LLM provider did not answer in time.");
   });
 
   test("the fixes point at the setting that helps", () => {
@@ -1083,7 +1126,7 @@ describe("the words for each kind of failure", () => {
 
     expect(failure.failureKind).toBe(AIRunFailureKind.ProviderRejected);
     expect(describeAiRunFailureCause(failure, translator)).toBe(
-      "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
+      "The LLM provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
     );
   });
 
@@ -1117,7 +1160,7 @@ describe("describeAttemptEnd: how an attempt ended, as a line of the activity", 
         translator,
       ),
     ).toBe(
-      "Did not finish: The AI provider could not be reached, or was too busy to answer. Trying again at 14:05.",
+      "Did not finish: The LLM provider could not be reached, or was too busy to answer. Trying again at 14:05.",
     );
   });
 
@@ -1132,7 +1175,7 @@ describe("describeAttemptEnd: how an attempt ended, as a line of the activity", 
         translator,
       ),
     ).toBe(
-      "Did not finish: The AI provider did not answer within 90 seconds. Trying again.",
+      "Did not finish: The LLM provider did not answer within 90 seconds. Trying again.",
     );
   });
 
@@ -1182,5 +1225,319 @@ describe("formatAiRunTime", () => {
       .mockReturnValue(true);
 
     expect(formatAiRunTime(date)).toBe("2:05 PM");
+  });
+});
+
+/*
+ * AN INCIDENT'S OR ALERT'S OWN DAILY AI TOKEN LIMIT (#7157).
+ *
+ * A project set the Daily Incident AI Token Limit to 0, and every automatic
+ * investigation failed. The card said the project reached its daily AI
+ * limit and that OneUptime AI starts again at midnight UTC: the wrong
+ * setting, and a promise a limit of 0 never keeps. The card now names the
+ * record's limit, says a limit of 0 pauses the work until someone raises
+ * it, and takes whoever may change it to the record's AI settings, at the
+ * Daily limits card.
+ */
+describe("a run the record's own daily AI token limit stopped", () => {
+  const PROJECT_ID: ObjectID = new ObjectID(
+    "10000000-0000-4000-8000-000000000002",
+  );
+
+  interface TokenLimitCase {
+    name: string;
+    errorMessage: string;
+    kind: AIRunFailureKind;
+    cause: string;
+    fix: string;
+    path: string;
+    label: string;
+  }
+
+  const CASES: Array<TokenLimitCase> = [
+    {
+      name: "an incident's limit of 0",
+      errorMessage: getRecordAiTokenLimitRunError("incident", {
+        limitInTokens: 0,
+        usedTokensToday: 0,
+      }),
+      kind: AIRunFailureKind.IncidentTokenLimitPaused,
+      cause:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents.",
+      fix: "Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+      path: "incidents/ai/settings#DailyLimits",
+      label: "Review incident AI settings",
+    },
+    {
+      name: "an incident's limit below 0",
+      errorMessage: getRecordAiTokenLimitRunError("incident", {
+        limitInTokens: -50,
+        usedTokensToday: 0,
+      }),
+      kind: AIRunFailureKind.IncidentTokenLimitPaused,
+      cause:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents.",
+      fix: "Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+      path: "incidents/ai/settings#DailyLimits",
+      label: "Review incident AI settings",
+    },
+    {
+      name: "an incident's limit used up",
+      errorMessage: getRecordAiTokenLimitRunError("incident", {
+        limitInTokens: 1000,
+        usedTokensToday: 1300,
+      }),
+      kind: AIRunFailureKind.IncidentTokenLimitUsedUp,
+      cause:
+        "Automatic AI work for incidents used up today's Daily Incident AI Token Limit.",
+      fix: "Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+      path: "incidents/ai/settings#DailyLimits",
+      label: "Review incident AI settings",
+    },
+    {
+      name: "an alert's limit of 0",
+      errorMessage: getRecordAiTokenLimitRunError("alert", {
+        limitInTokens: 0,
+        usedTokensToday: 0,
+      }),
+      kind: AIRunFailureKind.AlertTokenLimitPaused,
+      cause:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts.",
+      fix: "Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+      path: "alerts/ai/settings#DailyLimits",
+      label: "Review alert AI settings",
+    },
+    {
+      name: "an alert's limit below 0",
+      errorMessage: getRecordAiTokenLimitRunError("alert", {
+        limitInTokens: -1,
+        usedTokensToday: 0,
+      }),
+      kind: AIRunFailureKind.AlertTokenLimitPaused,
+      cause:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts.",
+      fix: "Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+      path: "alerts/ai/settings#DailyLimits",
+      label: "Review alert AI settings",
+    },
+    {
+      name: "an alert's limit used up",
+      errorMessage: getRecordAiTokenLimitRunError("alert", {
+        limitInTokens: 400,
+        usedTokensToday: 400,
+      }),
+      kind: AIRunFailureKind.AlertTokenLimitUsedUp,
+      cause:
+        "Automatic AI work for alerts used up today's Daily Alert AI Token Limit.",
+      fix: "Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+      path: "alerts/ai/settings#DailyLimits",
+      label: "Review alert AI settings",
+    },
+  ];
+
+  beforeEach(() => {
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
+  });
+
+  test.each(CASES)(
+    "$name: the cause, the fix, and the record's AI settings at the Daily limits card",
+    (data: TokenLimitCase) => {
+      jest
+        .spyOn(PermissionGate, "checkColumnUpdate")
+        .mockReturnValue({ isAllowed: true });
+
+      render(
+        <AiRunFailureNotice
+          title="Investigation did not finish"
+          events={[
+            runFailed({
+              outcome: AIRunAttemptOutcome.GaveUp,
+              failureKind: data.kind,
+              attempt: 1,
+              maxAttempts: 1,
+            }),
+          ]}
+          errorMessage={data.errorMessage}
+          testId="investigation-failure"
+        />,
+      );
+
+      expect(
+        screen.getByTestId("investigation-failure-cause"),
+      ).toHaveTextContent(data.cause);
+      expect(screen.getByTestId("investigation-failure-fix")).toHaveTextContent(
+        data.fix,
+      );
+
+      const link: HTMLElement = screen.getByTestId(
+        "investigation-failure-settings",
+      );
+      expect(link).toHaveAccessibleName(data.label);
+      expect(link).toHaveAttribute(
+        "href",
+        `/dashboard/${PROJECT_ID.toString()}/${data.path}`,
+      );
+
+      // Never the project's daily AI limit, and midnight only when used up.
+      const notice: string =
+        screen.getByTestId("investigation-failure").textContent || "";
+      expect(notice).not.toContain("The project reached its daily AI limit");
+      expect(notice.includes("midnight")).toBe(
+        data.kind === AIRunFailureKind.IncidentTokenLimitUsedUp ||
+          data.kind === AIRunFailureKind.AlertTokenLimitUsedUp,
+      );
+    },
+  );
+
+  test.each(CASES)(
+    "$name: the run's error alone reads as its kind",
+    (data: TokenLimitCase) => {
+      expect(
+        readAiRunFailure({ events: [], errorMessage: data.errorMessage })
+          .failureKind,
+      ).toBe(data.kind);
+    },
+  );
+
+  /*
+   * A run stored before #7157 recorded LimitReached for the record's limit,
+   * with "Daily autonomous AI token budget exhausted (0 of 0 tokens used
+   * today)". Its message says more than its kind: it reads as the record's
+   * limit, paused, and says no midnight.
+   */
+  test("a run stored before reads as the record's limit its error names", () => {
+    const oldError: (used: string, limit: string, place: string) => string = (
+      used: string,
+      limit: string,
+      place: string,
+    ): string => {
+      return `Daily autonomous AI token budget exhausted (${used} of ${limit} tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under ${place} > AI > Settings.`;
+    };
+    const storedAs: (
+      errorMessage: string,
+      failureKind?: AIRunFailureKind,
+    ) => AIRunFailureKind = (
+      errorMessage: string,
+      failureKind: AIRunFailureKind = AIRunFailureKind.LimitReached,
+    ): AIRunFailureKind => {
+      return readAiRunFailure({
+        events: [
+          runFailed({
+            outcome: AIRunAttemptOutcome.GaveUp,
+            failureKind,
+            attempt: 1,
+            maxAttempts: 1,
+          }),
+        ],
+        errorMessage,
+      }).failureKind;
+    };
+
+    expect(storedAs(oldError("0", "0", "Incidents"))).toBe(
+      AIRunFailureKind.IncidentTokenLimitPaused,
+    );
+    expect(storedAs(oldError("0", "0", "Alerts"))).toBe(
+      AIRunFailureKind.AlertTokenLimitPaused,
+    );
+    expect(storedAs(oldError("2,000", "1,000", "Incidents"))).toBe(
+      AIRunFailureKind.IncidentTokenLimitUsedUp,
+    );
+    expect(storedAs(oldError("1,000", "1,000", "Alerts"))).toBe(
+      AIRunFailureKind.AlertTokenLimitUsedUp,
+    );
+    // The project's own limits stay the project's.
+    expect(storedAs("This project has reached its daily AI token limit.")).toBe(
+      AIRunFailureKind.LimitReached,
+    );
+    // A kind the event names is kept over a message that names another.
+    expect(
+      storedAs(oldError("0", "0", "Incidents"), AIRunFailureKind.CreditsUsedUp),
+    ).toBe(AIRunFailureKind.CreditsUsedUp);
+  });
+
+  test("the link is for whoever may change the record's daily token limit", () => {
+    const columnCheck: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(PermissionGate, "checkColumnUpdate")
+      .mockReturnValue({ isAllowed: false });
+
+    expect(
+      getAiRunFailureSettingsLink(AIRunFailureKind.IncidentTokenLimitPaused)
+        ?.isAllowed,
+    ).toBe(false);
+    expect(columnCheck).toHaveBeenLastCalledWith(
+      expect.any(Project),
+      AI_LANE_ADVANCED_COLUMNS[AiLane.Incident].dailyTokens,
+    );
+
+    getAiRunFailureSettingsLink(AIRunFailureKind.AlertTokenLimitUsedUp);
+    expect(columnCheck).toHaveBeenLastCalledWith(
+      expect.any(Project),
+      AI_LANE_ADVANCED_COLUMNS[AiLane.Alert].dailyTokens,
+    );
+
+    // Refused: the sentences stay, the link does not.
+    render(
+      <AiRunFailureNotice
+        title="Investigation did not finish"
+        events={[]}
+        errorMessage={getRecordAiTokenLimitRunError("alert", {
+          limitInTokens: 0,
+          usedTokensToday: 0,
+        })}
+        testId="investigation-failure"
+      />,
+    );
+    expect(screen.queryByTestId("investigation-failure-settings")).toBeNull();
+    expect(screen.getByTestId("investigation-failure-fix")).toHaveTextContent(
+      "Alerts → AI → Settings → More settings",
+    );
+  });
+
+  test("a link with no card goes to the page as before", () => {
+    expect(
+      getAiRunFailureSettingsRoute({
+        label: "Open AI Features",
+        page: PageMap.SETTINGS_AI_FEATURES,
+        isAllowed: true,
+      }).toString(),
+    ).toBe(`/dashboard/${PROJECT_ID.toString()}/settings/ai-features`);
+    expect(
+      getAiRunFailureSettingsRoute({
+        label: "Review alert AI settings",
+        page: PageMap.ALERTS_SETTINGS_AI,
+        card: AiLaneAdvancedCard.DailyLimits,
+        isAllowed: true,
+      }).toString(),
+    ).toBe(
+      `/dashboard/${PROJECT_ID.toString()}/alerts/ai/settings#DailyLimits`,
+    );
+  });
+
+  /*
+   * The Dashboard's keys are the server's sentences, so a run's error and
+   * a refused Try again read in the reader's language word for word.
+   */
+  test("the words are the server's, sentence for sentence", () => {
+    expect(RECORD_TOKEN_LIMIT_FAILURE_WORDS).toEqual({
+      [AIRunFailureKind.IncidentTokenLimitPaused]: {
+        cause: RECORD_AI_TOKEN_LIMIT_WORDS.incident.paused,
+        fix: RECORD_AI_TOKEN_LIMIT_WORDS.incident.pausedStep,
+      },
+      [AIRunFailureKind.IncidentTokenLimitUsedUp]: {
+        cause: RECORD_AI_TOKEN_LIMIT_WORDS.incident.usedUp,
+        fix: RECORD_AI_TOKEN_LIMIT_WORDS.incident.usedUpStep,
+      },
+      [AIRunFailureKind.AlertTokenLimitPaused]: {
+        cause: RECORD_AI_TOKEN_LIMIT_WORDS.alert.paused,
+        fix: RECORD_AI_TOKEN_LIMIT_WORDS.alert.pausedStep,
+      },
+      [AIRunFailureKind.AlertTokenLimitUsedUp]: {
+        cause: RECORD_AI_TOKEN_LIMIT_WORDS.alert.usedUp,
+        fix: RECORD_AI_TOKEN_LIMIT_WORDS.alert.usedUpStep,
+      },
+    });
+    expect(Object.keys(RECORD_TOKEN_LIMIT_FAILURE_WORDS).sort()).toEqual(
+      [...RECORD_TOKEN_LIMIT_FAILURE_KINDS].sort(),
+    );
   });
 });

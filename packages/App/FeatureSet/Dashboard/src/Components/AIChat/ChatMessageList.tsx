@@ -26,6 +26,7 @@ import ChatActivityFeed, {
   LiveActivity,
 } from "./ChatActivityFeed";
 import AskAiPageButtons from "./AskAiPageButtons";
+import AskAiTestPageOffer from "./AskAiTestPageOffer";
 import SafeChatMarkdown from "./SafeChatMarkdown";
 import ToolApprovalCard, { ToolDecision } from "./ToolApprovalCard";
 import { getShownToolActions } from "./ToolActionWords";
@@ -582,6 +583,12 @@ const ChatMessageList: FunctionComponent<ComponentProps> = (
         )}
 
         {widgets.length > 0 && <WidgetRenderer widgets={widgets} />}
+
+        {/*
+         * What an answer that set something up offers last (#6829): a test
+         * page, to the policy it made or to yourself.
+         */}
+        {widgets.length > 0 && <AskAiTestPageOffer widgets={widgets} />}
 
         {toolActions.length > 0 && (
           <ToolApprovalCard

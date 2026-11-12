@@ -127,6 +127,7 @@ import RumSessionPin from "./RumSessionPin";
 import RumProductAnalyticsSavedView from "./RumProductAnalyticsSavedView";
 // Activation milestones of a project (issue #6830)
 import ProjectMilestone from "./ProjectMilestone";
+import ProjectUserPreference from "./ProjectUserPreference";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyCustomRole from "./ApiKeyCustomRole";
@@ -143,6 +144,7 @@ import EmailVerificationToken from "./EmailVerificationToken";
 import File from "./File";
 import GlobalConfig from "./GlobalConfig";
 import InstanceHealthLog from "./InstanceHealthLog";
+import ProductFeedback from "./ProductFeedback";
 import InstanceReceivingPeriod from "./InstanceReceivingPeriod";
 import InstanceTokenSigningKey from "./InstanceTokenSigningKey";
 import GreenlockCertificate from "./GreenlockCertificate";
@@ -1062,6 +1064,7 @@ const AllModelTypes: Array<{
 
   GlobalConfig,
   InstanceHealthLog,
+  ProductFeedback,
   InstanceReceivingPeriod,
   InstanceTokenSigningKey,
 
@@ -1316,6 +1319,7 @@ const AllModelTypes: Array<{
   RumSessionPin,
   RumProductAnalyticsSavedView,
   ProjectMilestone,
+  ProjectUserPreference,
   DeletedProject,
   MarketplaceSubscription,
   MarketplaceUsageReport,

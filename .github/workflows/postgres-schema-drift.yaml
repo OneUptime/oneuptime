@@ -491,6 +491,43 @@ jobs:
           node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
           Tests/Server/Services/DatabaseServiceUpdateColumnsIfUnlockedPostgres.test.ts --forceExit
 
+      # Clones the migrated NetworkDevice, NetworkInterface, Project and Probe
+      # tables into an isolated schema and runs a probe's device claim
+      # (issue #7194): one statement that locks the due devices FOR NO KEY
+      # UPDATE SKIP LOCKED and moves their next poll. Only a database shows
+      # that it skips a held device instead of waiting, never hands a device
+      # to two claims, and - while its locks are held - lets the device's
+      # interfaces be written, which FOR UPDATE did not.
+      - name: Test the network device poll claim against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_NETWORK_DEVICE_POLL_CLAIM_TESTS: "true"
+          NETWORK_DEVICE_POLL_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          NETWORK_DEVICE_POLL_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          NETWORK_DEVICE_POLL_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/NetworkDevicePollClaimPostgres.test.ts --forceExit
+
+      # Clones the migrated MonitorProbe, Monitor and Project tables into an
+      # isolated schema and runs a probe's monitor claim (issue #7194): a read
+      # of the due rows without a lock, then one statement that claims those
+      # still due that nobody else holds. Only a database shows that it skips
+      # a held row, never hands a row to two claims, and passes over a row
+      # another instance claimed between its read and its claim.
+      - name: Test the monitor probe claim against Postgres
+        if: matrix.shard == 2
+        working-directory: packages/Common
+        env:
+          RUN_POSTGRES_MONITOR_PROBE_CLAIM_TESTS: "true"
+          MONITOR_PROBE_CLAIM_TEST_DATABASE_HOST: ${{ env.DATABASE_MIGRATIONS_HOST }}
+          MONITOR_PROBE_CLAIM_TEST_DATABASE_PORT: ${{ env.DATABASE_MIGRATIONS_PORT }}
+          MONITOR_PROBE_CLAIM_TEST_DATABASE_NAME: ${{ env.DATABASE_NAME }}
+        run: >-
+          node --max-old-space-size=4096 node_modules/.bin/jest --runInBand
+          Tests/Server/Services/MonitorProbeClaimPostgres.test.ts --forceExit
+
       # Clones the migrated Workflow table (its unique key included) into an
       # isolated schema: the incoming email key's compare-and-set must write
       # once and let exactly one racing save win, no workflow may take

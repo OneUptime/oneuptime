@@ -2,6 +2,9 @@
 
 Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: eine einzige URL, die Ihre Kunden aufrufen können, statt Ihnen zu schreiben und zu fragen, ob es nur bei ihnen klemmt. Sie zeigt den aktuellen Zustand der Dienste, die Sie sichtbar machen, die Vorfälle, an denen Sie gerade arbeiten, die Wartungen, die Sie geplant haben, und jede Ankündigung, die Sie oben anheften möchten. Um zwischen einer Statusseite und einem Dashboard zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#dashboard-öffentliches-dashboard-oder-statusseite).
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Eine Statusseite veröffentlichen](/docs/guides/status-page).
+
 Wenn um 2 Uhr nachts etwas kaputtgeht, ist die Statusseite das Erste, was Ihre Support-Warteschlange verlinkt. Und sie ist die Quelle, aus der Ihre Abonnenten benachrichtigt werden – es lohnt sich also, sie einzurichten, bevor Sie sie brauchen, und nicht mitten im Ausfall.
 
 :::cards
@@ -165,7 +168,7 @@ Was Besucher sehen, legen Sie in einer Karte fest: **Was Ihre Statusseite zeigt*
 
 Ob die Seite einen Eintrag **Abonnieren** zeigt (**Abonnentenseite anzeigen**, `showSubscriberPageOnStatusPage`, standardmäßig an) und über welche Kanäle Besucher abonnieren können, legen Sie nicht auf diesem Bildschirm fest: Beides steht in der Karte **Kanäle** unter **Abonnenten → Abonnenten-Einstellungen** (siehe [Abonnementkanäle](/docs/status-pages/subscribers#abonnementkanäle)).
 
-Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Einstellungen der Statusseite als Datei herunterlädt, die Sie wieder importieren können, und **Archive status page** (siehe [Eine Statusseite archivieren](#eine-statusseite-archivieren)). Der Gesamtprozentsatz der Verfügbarkeit und die Ausfallzeit-Status waren hier früher zwei eigene Karten, jede hinter einer Schaltfläche **Bearbeiten**; jetzt sind sie Zeilen der Karte.
+Unter der Karte stehen **Statusseite als JSON exportieren**, das die eigenen Einstellungen der Statusseite als Datei herunterlädt, die Sie wieder importieren können, und **Statusseite archivieren** (siehe [Eine Statusseite archivieren](#eine-statusseite-archivieren)). Der Gesamtprozentsatz der Verfügbarkeit und die Ausfallzeit-Status waren hier früher zwei eigene Karten, jede hinter einer Schaltfläche **Bearbeiten**; jetzt sind sie Zeilen der Karte.
 
 **Wo die Farben sind.** Die Farben der Verfügbarkeitsbalken stehen nicht hier – die **Standard-Balkenfarbe** und die Balkenfarbregeln liegen unter **Weitere Einstellungen** auf **Statusseiten → Ihre Seite → Branding → Branding**. Das **Design** der Seite (hell, dunkel oder wie das Gerät jedes Besuchers eingestellt ist) ist eine Karte weit oben auf derselben Seite. Eine Markenfarbeinstellung gibt es nicht; alles, was über diese Steuerelemente hinausgeht, erledigen Sie mit **Benutzerdefiniertes CSS**.
 
@@ -238,7 +241,7 @@ Archivieren Sie eine Statusseite, um sie offline zu nehmen, ohne sie zu löschen
 - **Verlässt die Liste der Statusseiten.** Sie finden sie unter **Statusseiten → Erweitert → Archiviert**.
 - **Behält alles.** Ihre Ressourcen, Gruppen, ihr Branding, ihre Domains, privaten Benutzer und Abonnenten bleiben erhalten, sodass das Wiederherstellen aus dem Archiv die Seite genau so wieder online bringt, wie sie war.
 
-Um eine Statusseite zu archivieren, öffnen Sie sie und gehen zu **Erweitert → Erweiterte Einstellungen → Archive status page**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Statusseiten** aus und wählen **Archivieren**. Um eine zurückzuholen, öffnen Sie **Statusseiten → Erweitert → Archiviert**, wählen sie aus und wählen **Aus Archiv entfernen**, oder öffnen Sie sie und klicken Sie auf **Aus Archiv entfernen** im Banner oben auf ihren Seiten.
+Um eine Statusseite zu archivieren, öffnen Sie sie und gehen zu **Erweitert → Erweiterte Einstellungen → Statusseite archivieren**. Um mehrere zu archivieren, wählen Sie sie in der Liste **Statusseiten** aus und wählen **Archivieren**. Um eine zurückzuholen, öffnen Sie **Statusseiten → Erweitert → Archiviert**, wählen sie aus und wählen **Aus Archiv entfernen**, oder öffnen Sie sie und klicken Sie auf **Aus Archiv entfernen** im Banner oben auf ihren Seiten.
 
 ## Nächste Schritte
 

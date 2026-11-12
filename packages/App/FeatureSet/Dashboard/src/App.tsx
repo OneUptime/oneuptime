@@ -2,6 +2,8 @@ import AskAiPanel from "./Components/AIChat/AskAiPanel";
 import DashboardCommandPalette from "./Components/CommandPalette/DashboardCommandPalette";
 import DashboardKeyboardShortcuts from "./Components/KeyboardShortcuts/DashboardKeyboardShortcuts";
 import HowOneUptimeWorksDialog from "./Components/Home/HowOneUptimeWorksDialog";
+import GiveFeedbackDialog from "./Components/Feedback/GiveFeedbackDialog";
+import ProductFeedbackInit from "./Components/Feedback/ProductFeedbackInit";
 import MasterPage from "./Components/MasterPage/MasterPage";
 import UseTimezoneInitElement from "./Components/UserTimezone/UserTimezoneInit";
 import UserLanguageInit from "./Components/UserLanguage/UserLanguageInit";
@@ -92,6 +94,9 @@ type LazyRoutes = React.LazyExoticComponent<
 // Secondary pages download only when their route is opened.
 const AICopilot: LazyRoutes = lazy(() => {
   return import("./Pages/AICopilot/AICopilot");
+});
+const SetupHealth: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/SetupHealth");
 });
 const Sso: LazyRoutes = lazy(() => {
   return import("./Pages/Onboarding/SSO");
@@ -631,6 +636,7 @@ const App: () => JSX.Element = () => {
     >
       <UseTimezoneInitElement />
       <UserLanguageInit />
+      <ProductFeedbackInit />
       <AskAiPanel />
       <DashboardCommandPalette
         projects={projects}
@@ -638,6 +644,7 @@ const App: () => JSX.Element = () => {
       />
       <DashboardKeyboardShortcuts />
       <HowOneUptimeWorksDialog />
+      <GiveFeedbackDialog />
       {/*
        * Contain page-level render errors here. Without a boundary a single
        * throwing component (or a lazy chunk that 404s after a deploy) unmounts
@@ -694,6 +701,20 @@ const App: () => JSX.Element = () => {
                 }
               />
             </PageRoute>
+
+            {/*
+             * Setup health (#6812), under Home: its address outranks the
+             * forwarding of Home's old lists below.
+             */}
+            <PageRoute
+              path={RouteMap[PageMap.HOME_SETUP_HEALTH]?.toString() || ""}
+              element={
+                <SetupHealth
+                  {...commonPageProps}
+                  pageRoute={RouteMap[PageMap.HOME_SETUP_HEALTH] as Route}
+                />
+              }
+            />
 
             {/* Home's old lists, forwarded to the products' own lists */}
             <PageRoute

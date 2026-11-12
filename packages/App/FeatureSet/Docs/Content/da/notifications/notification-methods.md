@@ -2,6 +2,9 @@
 
 En notifikationsmetode er en adresse, OneUptime må nå dig på i ét projekt: en e-mailadresse, et telefonnummer til sms eller opkald, et WhatsApp-nummer, en Telegram-konto, din Slack-, Microsoft Teams- eller Mattermost-konto, en telefon eller browser til push-notifikationer eller en webhook. Du tilføjer dem under **Brugerindstillinger → Notifikationsmetoder**, bekræfter dem, og OneUptime begynder straks at bruge dem til dine tilkald.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Vælg en metode](#vælg-en-metode): Hvad hver metode kræver, og hvordan den bekræftes.
 - [Tilføj og bekræft en metode](#tilføj-og-bekræft-en-metode): E-mail, sms, opkald og WhatsApp, med en kode på 6 cifre.
