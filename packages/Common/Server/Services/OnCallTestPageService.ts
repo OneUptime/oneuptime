@@ -28,7 +28,9 @@ import ProjectCallSMSConfigService from "./ProjectCallSMSConfigService";
 import ProjectService from "./ProjectService";
 import SmsLogService from "./SmsLogService";
 import TeamMemberService from "./TeamMemberService";
-import UserNotificationRuleService from "./UserNotificationRuleService";
+import UserNotificationRuleService, {
+  FallbackRule,
+} from "./UserNotificationRuleService";
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import UserService from "./UserService";
@@ -602,8 +604,9 @@ export class OnCallTestPageService extends BaseService {
 
   /*
    * WHAT A TEST WILL SEND, before it is sent: for one person, their methods
-   * for the test's severity in the order a real page reaches them (and
-   * where to, for the person themselves); for a policy, the people its
+   * for the test's severity in the order a real page reaches them - or,
+   * with no rule for it, the ones the project's fallback picks (#7262) -
+   * and where to, for the person themselves; for a policy, the people its
    * first level pages right now, each with theirs - and the levels after it
    * that a test walking every level pages before it ends (#7016). With what
    * it costs on OneUptime Cloud: the first level's, and a walk's at most.
@@ -664,6 +667,8 @@ export class OnCallTestPageService extends BaseService {
             showAddresses:
               target.userId.toString() === data.callerUserId.toString(),
             project: project,
+            // With no rule, what the fallback sends them is listed, and priced (#7262).
+            readsFallbackMethods: true,
           });
 
           previews.set(key, preview);
@@ -873,7 +878,10 @@ export class OnCallTestPageService extends BaseService {
    * One person's methods for the test's severity: the rules a real page of
    * it runs (UserOnCallLogService.getPagingRulesQuery), in the order a page
    * reaches them. With none, whether they opted out, and whether the
-   * project falls back to their verified methods.
+   * project falls back to their verified methods - and, read for a test's
+   * preview (readsFallbackMethods), the methods the fallback picks
+   * (UserNotificationRuleService.getFallbackRules), each marked isFallback,
+   * so the preview lists what the test sends them and prices it (#7262).
    */
   public async getPersonPreview(data: {
     projectId: ObjectID;
@@ -885,6 +893,12 @@ export class OnCallTestPageService extends BaseService {
     reachedThrough?: string | undefined;
     reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
     project: Project | null;
+    /*
+     * Whether a person with no rule is previewed with what the fallback
+     * picks. A test's preview reads it; the view of who would be told
+     * (WhoIsToldService) reads every verified method of a person itself.
+     */
+    readsFallbackMethods?: boolean | undefined;
   }): Promise<OnCallTestPagePreviewPerson> {
     const ruleType: NotificationRuleType = getOnCallTestPageRuleType(
       data.recordKind,
@@ -983,11 +997,48 @@ export class OnCallTestPageService extends BaseService {
       isOptedOut = Boolean(optOut);
     }
 
+    /*
+     * No rule, not opted out, and a project that falls back: a real page -
+     * so the test - goes to what the fallback picks of their methods, read
+     * by the fallback's own reader (#7262).
+     */
+    const readsFallbackMethods: boolean = Boolean(
+      data.readsFallbackMethods &&
+        rules.length === 0 &&
+        !isOptedOut &&
+        !data.project?.disableOnCallNotificationFallback,
+    );
+
+    if (readsFallbackMethods) {
+      const fallbackRules: Array<FallbackRule> =
+        await UserNotificationRuleService.getFallbackRules({
+          projectId: data.projectId,
+          userId: data.userId,
+          ruleType: ruleType,
+        });
+
+      for (const fallback of fallbackRules) {
+        methods.push(
+          ...getPreviewMethodsOfRule({
+            rule: fallback.rule,
+            showAddresses: data.showAddresses,
+          }).map(
+            (
+              method: OnCallTestPagePreviewMethod,
+            ): OnCallTestPagePreviewMethod => {
+              return { ...method, isFallback: true };
+            },
+          ),
+        );
+      }
+    }
+
     const warningCodes: Array<OnCallTestPageWarning> = getPreviewWarningCodes({
       methods: methods,
       project: data.project,
       hasNoRule: rules.length === 0,
       isOptedOut: isOptedOut,
+      readsFallbackMethods: readsFallbackMethods,
     });
 
     return withReachedThrough(
@@ -2001,6 +2052,7 @@ export function getPreviewWarnings(data: {
   project: PreviewProject;
   hasNoRule: boolean;
   isOptedOut: boolean;
+  readsFallbackMethods?: boolean | undefined;
 }): Array<string> {
   return getPreviewWarningCodes(data).map(
     (warning: OnCallTestPageWarning): string => {
@@ -2011,13 +2063,18 @@ export function getPreviewWarnings(data: {
 
 /*
  * What a preview warns about before anything is sent, as codes with their
- * English sentences (#7015): the Dashboard words each code itself.
+ * English sentences (#7015): the Dashboard words each code itself. A person
+ * with no rule, read with what the fallback picks (readsFallbackMethods,
+ * #7262), is said to fall back to the methods listed - or, when it picks
+ * none, to be sent nothing.
  */
 export function getPreviewWarningCodes(data: {
   methods: Array<OnCallTestPagePreviewMethod>;
   project: PreviewProject;
   hasNoRule: boolean;
   isOptedOut: boolean;
+  // Whether `methods` are what the fallback picks for a person with no rule.
+  readsFallbackMethods?: boolean | undefined;
 }): Array<OnCallTestPageWarning> {
   const warnings: Array<OnCallTestPageWarning> = [];
 
@@ -2028,19 +2085,7 @@ export function getPreviewWarningCodes(data: {
         "Opted out of pages of this severity, so the test sends nothing.",
     });
   } else if (data.hasNoRule) {
-    warnings.push(
-      data.project?.disableOnCallNotificationFallback
-        ? {
-            code: OnCallTestPageWarningCode.NoRuleNoFallback,
-            message:
-              "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing.",
-          }
-        : {
-            code: OnCallTestPageWarningCode.NoRuleFallsBack,
-            message:
-              "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
-          },
-    );
+    warnings.push(getNoRuleWarning(data));
   }
 
   const offChannels: Array<{
@@ -2097,6 +2142,52 @@ export function getPreviewWarningCodes(data: {
   }
 
   return warnings;
+}
+
+/*
+ * What a preview says of a person with no rule for the severity: that the
+ * project does not fall back; or, read with what the fallback picks
+ * (#7262), that the test falls back to the methods listed, or that it has
+ * none it may use; or, read without, that it goes to every verified method.
+ */
+function getNoRuleWarning(data: {
+  methods: Array<OnCallTestPagePreviewMethod>;
+  project: PreviewProject;
+  readsFallbackMethods?: boolean | undefined;
+}): OnCallTestPageWarning {
+  if (data.project?.disableOnCallNotificationFallback) {
+    return {
+      code: OnCallTestPageWarningCode.NoRuleNoFallback,
+      message:
+        "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing.",
+    };
+  }
+
+  if (!data.readsFallbackMethods) {
+    return {
+      code: OnCallTestPageWarningCode.NoRuleFallsBack,
+      message:
+        "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+    };
+  }
+
+  const fallsBackToSomething: boolean = data.methods.some(
+    (method: OnCallTestPagePreviewMethod): boolean => {
+      return Boolean(method.isFallback);
+    },
+  );
+
+  return fallsBackToSomething
+    ? {
+        code: OnCallTestPageWarningCode.NoRuleFallsBackToListed,
+        message:
+          "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+      }
+    : {
+        code: OnCallTestPageWarningCode.NoRuleNothingToFallBackTo,
+        message:
+          "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
+      };
 }
 
 // Why a policy's test pages a person, in English: "Team Platform".

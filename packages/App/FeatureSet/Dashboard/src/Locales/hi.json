@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "उपयोग के लिए कोई LLM प्रदाता नहीं है।",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "यह केवल इस क्लस्टर पर नहीं, बल्कि {{project}} के हर नए अलर्ट पर लागू होता है। सीमाएं अलर्ट → एआई → सेटिंग्स में सेट की जाती हैं।",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "यह केवल इस क्लस्टर पर नहीं, बल्कि {{project}} की हर नई घटना और अलर्ट पर लागू होता है। सीमाएं घटनाएं → एआई → सेटिंग्स और अलर्ट → एआई → सेटिंग्स में सेट की जाती हैं।",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "इस प्रोजेक्ट में सुधार तैयार करने के लिए कोई LLM प्रदाता नहीं है। प्रोजेक्ट सेटिंग्स > एआई > LLM प्रदाता में एक जोड़ें, फिर दोबारा प्रयास करें।"
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "इस प्रोजेक्ट में सुधार तैयार करने के लिए कोई LLM प्रदाता नहीं है। प्रोजेक्ट सेटिंग्स > एआई > LLM प्रदाता में एक जोड़ें, फिर दोबारा प्रयास करें।",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "इस गंभीरता के लिए कोई ऑन-कॉल नियम नहीं है, और इसके बजाय कोई सत्यापित विधि इस्तेमाल नहीं की जा सकती: परीक्षण कुछ नहीं भेजता।",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "इस गंभीरता के लिए कोई ऑन-कॉल नियम नहीं है: असली पेज की तरह, परीक्षण ऊपर दी गई विधियों पर वापस जाता है।"
 }

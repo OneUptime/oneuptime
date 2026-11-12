@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "Det finnes ingen LLM-leverandør å bruke.",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "Dette gjelder alle nye varsler i {{project}}, ikke bare denne klyngen. Grensene finner du under Varsler → KI → Innstillinger.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "Dette gjelder alle nye hendelser og varsler i {{project}}, ikke bare denne klyngen. Grensene finner du under Hendelser → KI → Innstillinger og Varsler → KI → Innstillinger.",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "Dette prosjektet har ingen LLM-leverandør å utarbeide en rettelse med. Legg til en under Prosjektinnstillinger > KI > LLM-leverandører, og prøv deretter igjen."
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "Dette prosjektet har ingen LLM-leverandør å utarbeide en rettelse med. Legg til en under Prosjektinnstillinger > KI > LLM-leverandører, og prøv deretter igjen.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ingen vaktregel dekker denne alvorlighetsgraden, og ingen verifisert metode kan brukes i stedet: testen sender ingenting.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen vaktregel dekker denne alvorlighetsgraden: som ved et ekte oppkall faller testen tilbake på metodene ovenfor."
 }

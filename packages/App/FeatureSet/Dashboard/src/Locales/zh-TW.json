@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "沒有可用的 LLM 提供商。",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "這不只適用於此叢集，也適用於 {{project}} 中的每個新警示。限制可在「警示 → 人工智慧 → 設定」中設定。",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "這不只適用於此叢集，也適用於 {{project}} 中的每個新事件與警示。限制可在「事件 → 人工智慧 → 設定」與「警示 → 人工智慧 → 設定」中設定。",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "此專案沒有可用來擬定修正的 LLM 提供商。請在「專案設定 > 人工智慧 > LLM 提供商」中新增一個，然後再試一次。"
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "此專案沒有可用來擬定修正的 LLM 提供商。請在「專案設定 > 人工智慧 > LLM 提供商」中新增一個，然後再試一次。",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "沒有待命規則涵蓋此嚴重程度，也沒有可改用的已驗證方式：測試不會傳送任何內容。",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "沒有待命規則涵蓋此嚴重程度：與真實呼叫一樣，測試會改用上方的方式。"
 }

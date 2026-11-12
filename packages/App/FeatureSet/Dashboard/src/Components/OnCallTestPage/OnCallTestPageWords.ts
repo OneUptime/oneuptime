@@ -253,12 +253,19 @@ export const REACHED_THROUGH_WORDS: Readonly<
   ),
 };
 
-// What a preview warns about a person, the ones that name no channel.
+/*
+ * What a preview warns about a person, the ones that name no channel. A
+ * person with no rule falls back to the methods listed above the warning,
+ * the ones the fallback picks - or has none it may use (#7262); a server
+ * that does not list them says the test goes to every verified method.
+ */
 export const WARNING_SENTENCES: Readonly<
   Record<
     | OnCallTestPageWarningCode.OptedOut
     | OnCallTestPageWarningCode.NoRuleNoFallback
-    | OnCallTestPageWarningCode.NoRuleFallsBack,
+    | OnCallTestPageWarningCode.NoRuleFallsBack
+    | OnCallTestPageWarningCode.NoRuleFallsBackToListed
+    | OnCallTestPageWarningCode.NoRuleNothingToFallBackTo,
     string
   >
 > = {
@@ -270,6 +277,12 @@ export const WARNING_SENTENCES: Readonly<
   ),
   [OnCallTestPageWarningCode.NoRuleFallsBack]: translationKey(
     "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+  ),
+  [OnCallTestPageWarningCode.NoRuleFallsBackToListed]: translationKey(
+    "No on-call rule covers this severity: like a real page, the test falls back to the methods above.",
+  ),
+  [OnCallTestPageWarningCode.NoRuleNothingToFallBackTo]: translationKey(
+    "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
   ),
 };
 
@@ -443,6 +456,8 @@ export function getWarningSentence(
     case OnCallTestPageWarningCode.OptedOut:
     case OnCallTestPageWarningCode.NoRuleNoFallback:
     case OnCallTestPageWarningCode.NoRuleFallsBack:
+    case OnCallTestPageWarningCode.NoRuleFallsBackToListed:
+    case OnCallTestPageWarningCode.NoRuleNothingToFallBackTo:
       return translator.translateTemplate(WARNING_SENTENCES[warning.code]);
     case OnCallTestPageWarningCode.ChannelOff: {
       const list: ChannelGatedMethodList | undefined = warning.channel

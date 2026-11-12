@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "没有可用的 LLM 提供商。",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "这不仅适用于此集群，还适用于 {{project}} 中的每个新警报。限制可在“警报 → 人工智能 → 设置”中配置。",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "这不仅适用于此集群，还适用于 {{project}} 中的每个新事件和警报。限制可在“事件 → 人工智能 → 设置”和“警报 → 人工智能 → 设置”中配置。",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "此项目没有可用于制定修复的 LLM 提供商。请在“项目设置 > 人工智能 > LLM 提供商”中添加一个，然后重试。"
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "此项目没有可用于制定修复的 LLM 提供商。请在“项目设置 > 人工智能 > LLM 提供商”中添加一个，然后重试。",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "没有值班规则覆盖此严重程度，也没有可改用的已验证方式：测试不会发送任何内容。",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "没有值班规则覆盖此严重程度：与真实呼叫一样，测试会回退到上面的方式。"
 }

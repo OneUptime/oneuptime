@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "No hay ningún proveedor de LLM que usar.",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "Esto se aplica a cada alerta nueva en {{project}}, no solo a este clúster. Los límites están en Alertas → IA → Ajustes.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "Esto se aplica a cada incidente nuevo y a cada alerta nueva en {{project}}, no solo a este clúster. Los límites están en Incidentes → IA → Ajustes y Alertas → IA → Ajustes.",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "Este proyecto no tiene ningún proveedor de LLM con el que elaborar una corrección. Añade uno en Ajustes del proyecto > IA > Proveedores de LLM y vuelve a intentarlo."
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "Este proyecto no tiene ningún proveedor de LLM con el que elaborar una corrección. Añade uno en Ajustes del proyecto > IA > Proveedores de LLM y vuelve a intentarlo.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ninguna regla de guardia cubre esta gravedad y no se puede usar ningún método verificado en su lugar: la prueba no envía nada.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ninguna regla de guardia cubre esta gravedad: como un aviso real, la prueba recurre a los métodos de arriba."
 }

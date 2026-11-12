@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "هیچ ارائه‌دهندهٔ LLM برای استفاده وجود ندارد.",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "این نه فقط برای این خوشه، بلکه برای هر هشدار جدید در {{project}} اعمال می‌شود. محدودیت‌ها را در هشدارها ← هوش مصنوعی ← تنظیمات مشخص می‌کنید.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "این نه فقط برای این خوشه، بلکه برای هر حادثه و هشدار جدید در {{project}} اعمال می‌شود. محدودیت‌ها را در حوادث ← هوش مصنوعی ← تنظیمات و هشدارها ← هوش مصنوعی ← تنظیمات مشخص می‌کنید.",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "این پروژه هیچ ارائه‌دهندهٔ LLM برای آماده کردن اصلاح ندارد. یکی را در تنظیمات پروژه > هوش مصنوعی > ارائه‌دهندگان LLM اضافه کنید و سپس دوباره تلاش کنید."
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "این پروژه هیچ ارائه‌دهندهٔ LLM برای آماده کردن اصلاح ندارد. یکی را در تنظیمات پروژه > هوش مصنوعی > ارائه‌دهندگان LLM اضافه کنید و سپس دوباره تلاش کنید.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد و هیچ روش تأییدشده‌ای را نمی‌توان به‌جای آن به کار برد: آزمایش چیزی نمی‌فرستد.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد: مانند یک فراخوان واقعی، آزمایش به روش‌های بالا برمی‌گردد."
 }

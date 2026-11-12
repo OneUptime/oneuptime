@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "لا يوجد موفّر LLM لاستخدامه.",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "ينطبق هذا على كل تنبيه جديد في {{project}}، وليس على هذا العنقود فقط. وتوجد الحدود ضمن «التنبيهات ← الذكاء الاصطناعي ← الإعدادات».",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "ينطبق هذا على كل حادثة وتنبيه جديدين في {{project}}، وليس على هذا العنقود فقط. وتوجد الحدود ضمن «الحوادث ← الذكاء الاصطناعي ← الإعدادات» و«التنبيهات ← الذكاء الاصطناعي ← الإعدادات».",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "لا يملك هذا المشروع موفّر LLM لإعداد إصلاح. أضف موفّرًا في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM، ثم حاول مرة أخرى."
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "لا يملك هذا المشروع موفّر LLM لإعداد إصلاح. أضف موفّرًا في إعدادات المشروع > الذكاء الاصطناعي > موفّرو LLM، ثم حاول مرة أخرى.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "لا تغطي أي قاعدة مناوبة هذه الخطورة، ولا يمكن استخدام أي طريقة متحقق منها بدلًا منها: لا يرسل الاختبار شيئًا.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "لا تغطي أي قاعدة مناوبة هذه الخطورة: كما في الاستدعاء الحقيقي، يرجع الاختبار إلى الطرق المذكورة أعلاه."
 }

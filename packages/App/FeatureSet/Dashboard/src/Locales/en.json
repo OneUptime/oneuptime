@@ -51404,5 +51404,7 @@
   "There is no LLM provider to use.": "There is no LLM provider to use.",
   "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.": "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.",
   "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.": "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
-  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again."
+  "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.": "This project has no LLM provider to work out a fix with. Add one in Project Settings > AI > LLM Providers, then try again.",
+  "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.",
+  "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "No on-call rule covers this severity: like a real page, the test falls back to the methods above."
 }
