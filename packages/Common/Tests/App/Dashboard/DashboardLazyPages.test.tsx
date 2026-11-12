@@ -48,12 +48,13 @@ const coldAppTestTimeout: number = 300_000;
 const lazyLeafFindTimeout: number = 120_000;
 let navigateHook: Router.NavigateFunction;
 let currentPath: string = homePath;
+// The whole location App last drew at: where a forward ended up.
+let currentLocation: Router.Location | undefined;
 let failingModule: string | undefined;
 let suspendedModule: string | undefined;
 let pageSuspensionGate: SuspensionGate | undefined;
 
 type PersistentLayoutFamily =
-  | "home"
   | "user-profile"
   | "settings"
   | "monitor"
@@ -73,7 +74,6 @@ interface LayoutLifecycle {
 }
 
 const layoutLifecycle: Record<PersistentLayoutFamily, LayoutLifecycle> = {
-  home: { mounts: 0, unmounts: 0, countInitializations: 0 },
   "user-profile": { mounts: 0, unmounts: 0, countInitializations: 0 },
   settings: { mounts: 0, unmounts: 0, countInitializations: 0 },
   monitor: { mounts: 0, unmounts: 0, countInitializations: 0 },
@@ -173,7 +173,6 @@ const persistentRouteLayoutModules: Array<{
   family: PersistentLayoutFamily;
   module: string;
 }> = [
-  { family: "home", module: "Home/Layout" },
   { family: "user-profile", module: "Global/UserProfile/Layout" },
   { family: "settings", module: "Settings/Layout" },
   { family: "monitor", module: "Monitor/Layout" },
@@ -218,6 +217,16 @@ const settingsEagerLeafModules: Array<string> = [
   "Settings/McpServer",
 ];
 
+/*
+ * The products Home's old list addresses forward to (Routes/MovedHomeRoutes):
+ * Home is one page with no side menu, and keeps no lists of its own (#6857).
+ */
+const homeForwardRouteBundles: Array<string> = [
+  "IncidentsRoutes",
+  "AlertRoutes",
+  "ScheduleMaintenanceEventsRoutes",
+];
+
 const persistentSharedRouteBundles: Array<string> = [
   "MonitorsRoutes",
   "MonitorGroupRoutes",
@@ -258,21 +267,6 @@ const secondaryPages: Array<PageCase> = [
   { page: PageMap.PROJECT_SSO, module: "Onboarding/SSO" },
   { page: PageMap.AI_COPILOT, module: "AICopilot/AICopilot" },
   { page: PageMap.AI_COPILOT_CONVERSATION, module: "AICopilot/AICopilot" },
-  { page: PageMap.HOME_ACTIVE_INCIDENTS, module: "Home/ActiveIncidents" },
-  {
-    page: PageMap.HOME_NOT_OPERATIONAL_MONITORS,
-    module: "Home/NotOperationalMonitors",
-  },
-  { page: PageMap.HOME_ACTIVE_ALERTS, module: "Home/ActiveAlerts" },
-  {
-    page: PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
-    module: "Home/OngoingScheduledMaintenance",
-  },
-  { page: PageMap.HOME_ACTIVE_EPISODES, module: "Home/ActiveEpisodes" },
-  {
-    page: PageMap.HOME_ACTIVE_INCIDENT_EPISODES,
-    module: "Home/ActiveIncidentEpisodes",
-  },
   { page: PageMap.SETTINGS_DANGERZONE, module: "Settings/DangerZone" },
   { page: PageMap.USER_PROFILE_PICTURE, module: "Global/UserProfile/Picture" },
   { page: PageMap.USER_PROFILE_OVERVIEW, module: "Global/UserProfile/Index" },
@@ -346,6 +340,7 @@ jest.mock("../../../UI/Utils/Navigation", () => {
       },
       setLocation: (location: Router.Location) => {
         currentPath = location.pathname;
+        currentLocation = location;
       },
       setParams: jest.fn(),
       getCurrentRoute: () => {
@@ -359,8 +354,20 @@ jest.mock("../../../UI/Utils/Navigation", () => {
   };
 });
 
+/*
+ * The project in the address, as the real one reads it first: a forward
+ * (MovedPageRedirect) fills its new address's project from it.
+ */
 jest.mock("../../../UI/Utils/Project", () => {
-  return { __esModule: true, default: { setCurrentProject: jest.fn() } };
+  return {
+    __esModule: true,
+    default: {
+      setCurrentProject: jest.fn(),
+      getCurrentProjectId: (): string | null => {
+        return currentPath.match(/^\/dashboard\/([^/]+)\//)?.[1] || null;
+      },
+    },
+  };
 });
 
 jest.mock("../../../UI/Utils/GlobalEvents", () => {
@@ -402,13 +409,6 @@ interface AppRouteWiringCase {
 }
 
 const appRouteWiringCases: Array<AppRouteWiringCase> = [
-  {
-    family: "home",
-    initialPage: PageMap.HOME,
-    initialContent: "Home/Home",
-    targetPage: PageMap.HOME_ACTIVE_ALERTS,
-    targetModule: "Home/ActiveAlerts",
-  },
   {
     family: "user-profile",
     initialPage: PageMap.USER_PROFILE_OVERVIEW,
@@ -498,6 +498,20 @@ function mockPersistentRouteLayouts(): void {
     });
   }
 
+  // Home's frame: one page, no side menu, so a plain pass-through to it.
+  jest.doMock(`${dashboardSource}/Pages/Home/Layout`, () => {
+    return {
+      __esModule: true,
+      default: (): React.ReactElement => {
+        return (
+          <div data-testid="home-layout">
+            <Router.Outlet />
+          </div>
+        );
+      },
+    };
+  });
+
   jest.doMock(`${dashboardSource}/Pages/${settingsProjectPageModule}`, () => {
     return {
       __esModule: true,
@@ -531,6 +545,7 @@ beforeEach(() => {
   pageSuspensionGate = undefined;
   resetLayoutLifecycle();
   currentPath = homePath;
+  currentLocation = undefined;
   getListMock.mockResolvedValue({ data: [project], count: 1 });
   sessionStorage.clear();
 
@@ -552,6 +567,7 @@ beforeEach(() => {
   }
 
   for (const module of new Set([
+    ...homeForwardRouteBundles,
     ...persistentSharedRouteBundles,
     ...productRouteBundles.map((route: ProductRouteBundleCase): string => {
       return route.module;
@@ -992,6 +1008,69 @@ describe("dashboard secondary page loading", () => {
       RouteMap[PageMap.INIT]!.toString(),
     );
   });
+
+  /*
+   * Home is one page with no side menu (#6857): its old lists' addresses -
+   * in bookmarks, browser history and pasted links - forward to the
+   * products' own lists, through App.tsx's real route tree. Home itself
+   * (…/home/) outranks the forward, which only gets what is under it.
+   */
+  test(
+    "an old Home list address opens its product's own list, keeping the query and the hash",
+    async () => {
+      renderApp("/dashboard/project-one/home/active-alerts?page=2#top");
+
+      expect(
+        await screen.findByText(
+          "Routes/AlertRoutes",
+          {},
+          { timeout: lazyLeafFindTimeout },
+        ),
+      ).toBeInTheDocument();
+      expect({
+        pathname: currentLocation?.pathname,
+        search: currentLocation?.search,
+        hash: currentLocation?.hash,
+      }).toEqual({
+        pathname: "/dashboard/project-one/alerts/unresolved",
+        search: "?page=2",
+        hash: "#top",
+      });
+      // Home's frame and page never drew on the way.
+      expect(screen.queryByTestId("home-layout")).not.toBeInTheDocument();
+      expect(pageProps.has("Home/Home")).toBe(false);
+      expect(navigateMock).not.toHaveBeenCalled();
+    },
+    coldAppTestTimeout,
+  );
+
+  test(
+    "Home's address without its slash is Home itself, not forwarded",
+    async () => {
+      renderApp("/dashboard/project-one/home");
+
+      expect(screen.getByTestId("eager-page")).toHaveTextContent("Home/Home");
+      expect(screen.getByTestId("home-layout")).toContainElement(
+        screen.getByTestId("eager-page"),
+      );
+      expect(currentPath).toBe("/dashboard/project-one/home");
+    },
+    coldAppTestTimeout,
+  );
+
+  test(
+    "an address under Home that never was a page lands on Home",
+    async () => {
+      renderApp("/dashboard/project-one/home/not-a-page");
+
+      expect(
+        await screen.findByTestId("eager-page", {}, { timeout: 30_000 }),
+      ).toHaveTextContent("Home/Home");
+      expect(currentPath).toBe(homePath);
+      expect(screen.queryByText("Routes/AlertRoutes")).not.toBeInTheDocument();
+    },
+    coldAppTestTimeout,
+  );
 
   test("contains a failed page import and recovers when navigating Home", async () => {
     failingModule = "Global/UserProfile/Index";

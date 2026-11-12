@@ -11,7 +11,7 @@ O Início é a primeira página que você vê em um projeto. Ele mostra num rela
 
 ## O que o Início mostra
 
-Abra **Início** na barra do topo, ou pressione `g` e depois `h` de qualquer lugar. O Início é a visão geral do seu projeto. De cima para baixo, ele mostra:
+Abra **Início** na barra do topo, ou pressione `g` e depois `h` de qualquer lugar. O Início é a visão geral do seu projeto, uma única página sem menu lateral. De cima para baixo, ele mostra:
 
 1. Uma caixa de pesquisa, com **Declarar incidente** e **Criar** ao lado.
 2. Uma linha que diz se algo está errado, acima de cinco números que contam o que precisa de atenção.
@@ -42,17 +42,17 @@ Enquanto nada está sendo monitorado, a linha termina com o botão **Crie seu pr
 
 ### Os cinco números
 
-Cada número conta algo, diz se isso precisa de você e abre a lista por trás dele.
+Cada número conta algo, diz se isso precisa de você e abre a lista por trás dele, no produto a que ela pertence.
 
-| Número | O que conta | Quando o número é zero |
-| --- | --- | --- |
-| **Incidentes ativos** | Incidentes não resolvidos | **Tudo certo** |
-| **Alertas ativos** | Alertas não resolvidos | **Tudo certo** |
-| **Monitores não operacionais** | Monitores cujo status não é operacional. Monitores arquivados, e monitores com o monitoramento desligado, não entram. | **Todos operacionais** |
-| **Manutenção em andamento** | Eventos de manutenção programada em andamento | **Nenhuma em andamento** |
-| **SLOs em risco** | SLOs ativados que estão em risco ou esgotaram o orçamento de erro | **Orçamentos saudáveis** |
+| Número | O que conta | Quando o número é zero | Abre |
+| --- | --- | --- | --- |
+| **Incidentes ativos** | Incidentes não resolvidos | **Tudo certo** | **Incidentes → Incidentes ativos** |
+| **Alertas ativos** | Alertas não resolvidos | **Tudo certo** | **Alertas → Alertas ativos** |
+| **Monitores não operacionais** | Monitores cujo status não é operacional. Monitores arquivados, e monitores com o monitoramento desligado, não entram. | **Todos operacionais** | **Monitores → Não operacional** |
+| **Manutenção em andamento** | Eventos de manutenção programada em andamento | **Nenhuma em andamento** | **Manutenção programada → Eventos em andamento** |
+| **SLOs em risco** | SLOs ativados que estão em risco ou esgotaram o orçamento de erro | **Orçamentos saudáveis** | **SLOs** |
 
-Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Orçamento se esgotando** para manutenção e SLOs. Um projeto sem monitores vê **Nenhum monitor ainda**, e um sem SLOs vê **Nenhum SLO ainda**: um projeto vazio não é o mesmo que um projeto saudável. Esses dois abrem então as listas **Monitores** e **SLOs**, onde você cria um.
+Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Orçamento se esgotando** para manutenção e SLOs. Enquanto algum SLO estiver em risco, **SLOs em risco** abre a lista **SLOs** filtrada para esses SLOs. Um projeto sem monitores vê **Nenhum monitor ainda**, e um sem SLOs vê **Nenhum SLO ainda**: um projeto vazio não é o mesmo que um projeto saudável. Esses dois abrem então as listas **Monitores** e **SLOs**, onde você cria um.
 
 ### A lista de boas-vindas
 
@@ -91,7 +91,7 @@ A lista some para todos quando todas as etapas estão concluídas. Para ocultá-
 
 ### Requer atenção
 
-**Requer atenção** lista, pelo nome, o que os números contam: os incidentes abertos, os alertas abertos, os monitores que não estão operacionais, os SLOs em risco e as manutenções em andamento, os mais urgentes primeiro. Cada linha mostra a severidade ou o status, diz quando um incidente ou alerta começou e quando a manutenção termina, e abre o registro. Cada tipo mostra até cinco, com **Mostrar todos** para o resto. Quando nada está aberto, diz **Nada precisa da sua atenção**.
+**Requer atenção** lista, pelo nome, o que os números contam: os incidentes abertos, os alertas abertos, os monitores que não estão operacionais, os SLOs em risco e as manutenções em andamento, os mais urgentes primeiro. Cada linha mostra a severidade ou o status, diz quando um incidente ou alerta começou e quando a manutenção termina, e abre o registro. Cada tipo mostra até cinco, com **Mostrar todos** para o resto, que abre a mesma lista que o seu número. Quando nada está aberto, diz **Nada precisa da sua atenção**.
 
 ### Seu projeto
 
@@ -102,20 +102,6 @@ A lista some para todos quando todas as etapas estão concluídas. Para ocultá-
 ### Explore o OneUptime
 
 **Explore o OneUptime** mostra os produtos do menu **Produtos** uma categoria por vez, começando pelos essenciais. Cada produto diz para que serve e abre quando você clica nele.
-
-### O menu lateral do Início
-
-O Início não tem menu lateral: ele já mostra tudo o que o menu mostraria. As listas que ele abre compartilham um, que mostra cada lista com sua contagem e volta ao Início em **Visão geral**:
-
-| Seção | Páginas |
-| --- | --- |
-| **Início** | **Visão geral** |
-| **Incidentes** | **Incidentes ativos** e **Episódios ativos** |
-| **Alertas** | **Alertas ativos** e **Episódios ativos** |
-| **Monitores** | **Não operacional** |
-| **Eventos programados** | **Em andamento** |
-
-Um episódio agrupa incidentes ou alertas relacionados para você tratá-los como um só. Veja [Conceitos básicos](/docs/introduction/core-concepts#incidentes-e-alertas).
 
 ## Encontrar o caminho
 

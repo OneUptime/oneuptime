@@ -209,7 +209,10 @@ const EVERYDAY_SECTION_TITLES: ReadonlyArray<string> = [
   "Incoming Calls",
   "Monitors",
   "More",
-  "Scheduled Events",
+  /*
+   * "Scheduled Events" left this list with Home's side menu, the one menu
+   * that had it: Home is one page with no side menu (#6857).
+   */
   "Schedules",
   /*
    * Scheduled maintenance's Maintenance Calendar, a page of its own under a

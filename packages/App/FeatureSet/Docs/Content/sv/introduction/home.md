@@ -11,7 +11,7 @@ Hem är den första sidan du ser i ett projekt. Den visar med en blick om något
 
 ## Vad Hem visar
 
-Öppna **Hem** i fältet högst upp, eller tryck `g` och sedan `h` var du än är. Hem är översikten över ditt projekt. Uppifrån och ned visar den:
+Öppna **Hem** i fältet högst upp, eller tryck `g` och sedan `h` var du än är. Hem är översikten över ditt projekt, en enda sida utan sidomeny. Uppifrån och ned visar den:
 
 1. En sökruta, med **Deklarera incident** och **Skapa** bredvid.
 2. En rad som säger om något är fel, ovanför fem siffror som räknar det som behöver uppmärksamhet.
@@ -42,17 +42,17 @@ Så länge inget övervakas ännu slutar raden med knappen **Skapa din första �
 
 ### De fem siffrorna
 
-Varje siffra räknar något, säger om det behöver dig och öppnar listan bakom den.
+Varje siffra räknar något, säger om det behöver dig och öppnar listan bakom den, i den produkt som listan hör till.
 
-| Siffra | Vad den räknar | När siffran är noll |
-| --- | --- | --- |
-| **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** |
-| **Aktiva larm** | Larm som inte är lösta | **Allt är i sin ordning** |
-| **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer, och monitorer med avstängd övervakning, räknas inte. | **Alla fungerar** |
-| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** |
-| **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** |
+| Siffra | Vad den räknar | När siffran är noll | Öppnar |
+| --- | --- | --- | --- |
+| **Aktiva incidenter** | Incidenter som inte är lösta | **Allt är i sin ordning** | **Incidenter → Aktiva incidenter** |
+| **Aktiva larm** | Larm som inte är lösta | **Allt är i sin ordning** | **Larm → Aktiva larm** |
+| **Icke-operativa monitorer** | Monitorer vars status inte är en fungerande status. Arkiverade monitorer, och monitorer med avstängd övervakning, räknas inte. | **Alla fungerar** | **Monitorer → Ej operativ** |
+| **Pågående underhåll** | Schemalagda underhåll som pågår | **Inget pågår** | **Schemalagt underhåll → Pågående händelser** |
+| **SLO:er i riskzonen** | Påslagna SLO:er som är i riskzonen eller har förbrukat sin felbudget | **Budgetarna är friska** | **SLOs** |
 
-En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **Budgeten förbrukas** för underhåll och SLO:er. Ett projekt utan monitorer ser **Inga monitorer ännu**, och ett utan SLO:er ser **Inga SLO:er ännu**: ett tomt projekt är inte detsamma som ett friskt. De två siffrorna öppnar då listorna **Monitorer** och **SLOs**, där du skapar en.
+En siffra över noll visar **Kräver uppmärksamhet**, eller **Pågår** och **Budgeten förbrukas** för underhåll och SLO:er. Så länge en SLO är i riskzonen öppnar **SLO:er i riskzonen** listan **SLOs**, filtrerad på just dem. Ett projekt utan monitorer ser **Inga monitorer ännu**, och ett utan SLO:er ser **Inga SLO:er ännu**: ett tomt projekt är inte detsamma som ett friskt. De två siffrorna öppnar då listorna **Monitorer** och **SLOs**, där du skapar en.
 
 ### Välkomstchecklistan
 
@@ -91,7 +91,7 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 
 ### Kräver uppmärksamhet
 
-**Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten. När inget är öppet står det **Inget kräver din uppmärksamhet**.
+**Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten, som öppnar samma lista som dess siffra. När inget är öppet står det **Inget kräver din uppmärksamhet**.
 
 ### Ditt projekt
 
@@ -102,20 +102,6 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 ### Utforska OneUptime
 
 **Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den.
-
-### Hems sidomeny
-
-Hem har ingen egen sidomeny: sidan visar redan allt som menyn skulle visa. Listorna den öppnar delar på en sidomeny, som visar varje lista med sitt antal och leder tillbaka till Hem från **Översikt**:
-
-| Avsnitt | Sidor |
-| --- | --- |
-| **Hem** | **Översikt** |
-| **Incidenter** | **Aktiva incidenter** och **Aktiva episoder** |
-| **Larm** | **Aktiva larm** och **Aktiva episoder** |
-| **Monitorer** | **Ej operativ** |
-| **Schemalagda händelser** | **Pågående** |
-
-En episod samlar relaterade incidenter eller larm, så att du hanterar dem som en. Se [Grundbegrepp](/docs/introduction/core-concepts#incidenter-och-larm).
 
 ## Hitta rätt
 

@@ -253,10 +253,16 @@ const STRIP_SOURCE: string = readDashboardCode(
   "OverviewStats.tsx",
 );
 
+/*
+ * Home's Active incidents number opens Incidents > Active Incidents, the
+ * product's own list (#6857). Home used to keep a copy of that list, with a
+ * side menu of its own; the copy is gone, and the list it opens is held to
+ * the same rule the copy was.
+ */
 const ACTIVE_INCIDENTS_SOURCE: string = readDashboardCode(
   "Pages",
-  "Home",
-  "ActiveIncidents.tsx",
+  "Incidents",
+  "Unresolved.tsx",
 );
 
 const BATCH_BODY: string = arrowFunctionBody(
@@ -564,35 +570,40 @@ describe("Getting Started", () => {
   });
 });
 
-describe("Home's Active Incidents page", () => {
-  test("only the incidents table waits for the unresolved states, and it still waits", () => {
-    /*
-     * The states are not dead weight - the table's query is scoped by
-     * them. The table moved here from Home; it must still be gated.
-     */
-    const tableGates: Array<string> = loadingGateBlocks(
-      ACTIVE_INCIDENTS_SOURCE,
-    ).filter((gate: string): boolean => {
-      return gate.includes("<IncidentsTable");
-    });
-
-    expect(tableGates.length).toBe(1);
-    expect(tableGates[0]).toContain("unresolvedIncidentStates");
+describe("the Active Incidents list Home's number opens", () => {
+  test("is the Incidents product's own list, not a page of Home's", () => {
+    expect(STRIP_SOURCE).toContain("pageMap: PageMap.UNRESOLVED_INCIDENTS,");
+    expect(
+      fs.existsSync(
+        path.join(DASHBOARD_SRC, "Pages", "Home", "ActiveIncidents.tsx"),
+      ),
+    ).toBe(false);
   });
 
-  test("the page still surfaces its loading and error states", () => {
-    const gates: Array<string> = loadingGateBlocks(ACTIVE_INCIDENTS_SOURCE);
+  test("the incidents table waits for the unresolved states its query is scoped by", () => {
+    /*
+     * The states are not dead weight - the table's query is scoped by
+     * them, so the table must not be drawn before they are read.
+     */
+    const waitIndex: number = ACTIVE_INCIDENTS_SOURCE.indexOf(
+      "if (!unresolvedStateIds)",
+    );
+    const tableIndex: number =
+      ACTIVE_INCIDENTS_SOURCE.indexOf("<IncidentsTable");
 
+    expect(waitIndex).toBeGreaterThanOrEqual(0);
+    expect(tableIndex).toBeGreaterThan(waitIndex);
     expect(
-      gates.some((gate: string): boolean => {
-        return gate.includes("isLoading") && gate.includes("<PageLoader");
-      }),
-    ).toBe(true);
+      ACTIVE_INCIDENTS_SOURCE.slice(tableIndex).replace(/\s+/g, " "),
+    ).toContain(
+      "currentIncidentStateId: new Includes( unresolvedStateIds.map(",
+    );
+  });
 
-    expect(
-      gates.some((gate: string): boolean => {
-        return gate.includes("error") && gate.includes("<ErrorMessage");
-      }),
-    ).toBe(true);
+  test("the list still surfaces its loading and error states", () => {
+    const code: string = ACTIVE_INCIDENTS_SOURCE.replace(/\s+/g, " ");
+
+    expect(code).toContain("if (error) { return <ErrorMessage");
+    expect(code).toContain("if (!unresolvedStateIds) { return <PageLoader");
   });
 });
