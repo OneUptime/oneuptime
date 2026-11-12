@@ -61,6 +61,7 @@ import OnCallReadinessService, {
 import UserOnCallLogService from "./UserOnCallLogService";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import {
+  whenNotificationRequestAnswers,
   whenNotificationRequestFails,
   whenSendFails,
 } from "../Utils/OnCall/OnCallSendFailure";
@@ -1459,12 +1460,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending email.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending email.",
+            }),
+          );
       }
 
       // send email for incident
@@ -1511,12 +1518,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending email.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending email.",
+            }),
+          );
       }
 
       // send email for alert episode
@@ -1559,12 +1572,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending email.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending email.",
+            }),
+          );
       }
 
       // send email for incident episode
@@ -1611,12 +1630,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending email.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending email.",
+            }),
+          );
       }
     }
 
@@ -1686,12 +1711,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending SMS.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending SMS.",
+            }),
+          );
       }
 
       // send sms for incident
@@ -1739,12 +1770,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending SMS.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending SMS.",
+            }),
+          );
       }
 
       // send sms for alert episode
@@ -1788,12 +1825,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending SMS.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending SMS.",
+            }),
+          );
       }
 
       // send sms for incident episode
@@ -1840,12 +1883,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending SMS.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending SMS.",
+            }),
+          );
       }
     }
 
@@ -1905,12 +1954,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending WhatsApp message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending WhatsApp message.",
+            }),
+          );
       }
 
       if (
@@ -1949,12 +2004,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending WhatsApp message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending WhatsApp message.",
+            }),
+          );
       }
 
       // send WhatsApp for alert episode
@@ -1994,12 +2055,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending WhatsApp message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending WhatsApp message.",
+            }),
+          );
       }
 
       // send WhatsApp for incident episode
@@ -2042,12 +2109,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending WhatsApp message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending WhatsApp message.",
+            }),
+          );
       }
     }
 
@@ -2115,12 +2188,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending Telegram message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending Telegram message.",
+            }),
+          );
       }
 
       if (
@@ -2166,12 +2245,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending Telegram message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending Telegram message.",
+            }),
+          );
       }
 
       if (
@@ -2216,12 +2301,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending Telegram message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending Telegram message.",
+            }),
+          );
       }
 
       if (
@@ -2269,12 +2360,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending Telegram message.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending Telegram message.",
+            }),
+          );
       }
     }
 
@@ -2484,12 +2581,18 @@ export class Service extends ProjectReferencesService<Model> {
             ...callbacksByKind.alert,
             ...callbacksByKind.incident,
           },
-        ).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error sending webhook.",
-          }),
-        );
+        )
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error sending webhook.",
+            }),
+          );
       };
 
       if (
@@ -2663,12 +2766,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error making call.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error making call.",
+            }),
+          );
       }
 
       if (
@@ -2714,12 +2823,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error making call.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error making call.",
+            }),
+          );
       }
 
       // send call for alert episode
@@ -2762,12 +2877,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error making call.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error making call.",
+            }),
+          );
       }
 
       // send call for incident episode
@@ -2813,12 +2934,18 @@ export class Service extends ProjectReferencesService<Model> {
           onCallDutyPolicyExecutionLogTimelineId:
             options.onCallDutyPolicyExecutionLogTimelineId,
           onCallScheduleId: options.onCallScheduleId,
-        }).catch(
-          whenNotificationRequestFails({
-            userOnCallLogTimelineId: updatedLog.id!,
-            fallbackStatusMessage: "Error making call.",
-          }),
-        );
+        })
+          .then(
+            whenNotificationRequestAnswers({
+              userOnCallLogTimelineId: updatedLog.id!,
+            }),
+          )
+          .catch(
+            whenNotificationRequestFails({
+              userOnCallLogTimelineId: updatedLog.id!,
+              fallbackStatusMessage: "Error making call.",
+            }),
+          );
       }
     }
 

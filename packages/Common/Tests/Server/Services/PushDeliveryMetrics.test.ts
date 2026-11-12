@@ -71,7 +71,9 @@ import ObjectID from "../../../Types/ObjectID";
 import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import PushNotificationMessage from "../../../Types/PushNotification/PushNotificationMessage";
 import PushNotificationRequest from "../../../Types/PushNotification/PushNotificationRequest";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import API from "../../../Utils/API";
+import OnCallTimelineRows from "../TestingUtils/OnCallTimelineRows";
 import { Expo } from "expo-server-sdk";
 import webpush from "web-push";
 
@@ -170,9 +172,10 @@ beforeEach(() => {
       return createBy.data;
     }) as never);
 
-  jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+  // The page's timeline row, as written when the page went out.
+  const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
   jest
     .spyOn(UserOnCallLogTimelineService, "markNotSent")
     .mockResolvedValue(undefined as never);

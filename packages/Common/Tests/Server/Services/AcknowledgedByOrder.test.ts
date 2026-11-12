@@ -52,6 +52,7 @@ import DatabaseCommonInteractionProps from "../../../Types/BaseDatabase/Database
 import { PlanType } from "../../../Types/Billing/SubscriptionPlan";
 import Permission, { UserPermission } from "../../../Types/Permission";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import {
   afterEach,
   beforeEach,
@@ -600,11 +601,13 @@ describe("a responder acknowledging their page: on-call stops as for Acknowledge
 
   // The user's page for the record, acknowledged by them.
   async function acknowledgePage(triggeredBy: JSONObject): Promise<void> {
+    const notificationId: ObjectID = ObjectID.generate();
+
     jest
       .spyOn(UserOnCallLogTimelineService, "findBy")
       .mockImplementation((async () => {
         const row: UserOnCallLogTimeline = new UserOnCallLogTimeline();
-        row._id = ObjectID.generate().toString();
+        row._id = notificationId.toString();
         row.projectId = PROJECT_ID;
         row.userId = USER_ID;
         row.userNotificationLogId = ObjectID.generate();
@@ -620,19 +623,29 @@ describe("a responder acknowledging their page: on-call stops as for Acknowledge
         (...args: Array<unknown>) => Promise<unknown>
       >;
 
+    /*
+     * As OnCallNotificationStatus.recordAcknowledgement writes it: at the
+     * status and the version read - and the notification it wrote.
+     */
     await hooks["onUpdateSuccess"]!.call(
       UserOnCallLogTimelineService,
       {
         updateBy: {
-          query: { _id: ObjectID.generate() },
+          query: {
+            _id: notificationId.toString(),
+            status: UserNotificationStatus.Sent,
+            version: 1,
+          },
           data: {
+            status: UserNotificationStatus.Acknowledged,
+            statusMessage: "Notification Acknowledged",
             acknowledgedAt: OneUptimeDate.getCurrentDate(),
             isAcknowledged: true,
           },
           props: { isRoot: true },
         },
       },
-      [],
+      [notificationId],
     );
   }
 

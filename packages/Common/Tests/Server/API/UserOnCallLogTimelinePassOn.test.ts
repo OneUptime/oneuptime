@@ -39,7 +39,15 @@ import {
   OnCallPassOnResult,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import Timezone from "../../../Types/Timezone";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../TestingUtils/OnCallTimelineRows";
 import { beforeAll, beforeEach, describe, expect, test } from "@jest/globals";
+
+// The notification the routes read, and a call's first key acknowledges.
+let currentItem: UserOnCallLogTimeline;
 
 /*
  * "CAN'T TAKE IT? ESCALATE" FROM A PERSON'S OWN MESSAGES.
@@ -177,10 +185,14 @@ beforeEach(() => {
 
   const item: UserOnCallLogTimeline = new UserOnCallLogTimeline();
   item.id = ITEM;
+  // A call, answered: as its provider left it, at the first version.
+  item.status = UserNotificationStatus.Sent;
+  item.version = 1;
   item.projectId = PROJECT;
   item.userId = ANA;
   item.onCallDutyPolicyExecutionLogId = RUN;
   item.triggeredByIncidentId = INCIDENT;
+  currentItem = item;
   const incident: Incident = new Incident();
   incident.title = "Checkout is down";
   item.triggeredByIncident = incident;
@@ -1071,12 +1083,45 @@ describe("a call's second key", () => {
 
   test("the first key still acknowledges, and passes nothing on", async () => {
     const updateSpy: jest.SpyInstance = jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(1 as never);
+      .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+      .mockImplementation((async (updateBy: UpdateOneByInput) => {
+        return updateNotificationWhileStill(currentItem, updateBy);
+      }) as never);
 
     await press("1", VALID_TOKEN());
 
     expect(updateSpy).toHaveBeenCalledTimes(1);
+    expect(updateSpy.mock.calls[0]![0]).toEqual({
+      query: {
+        _id: ITEM.toString(),
+        status: UserNotificationStatus.Sent,
+        version: 1,
+      },
+      data: expect.objectContaining({
+        status: UserNotificationStatus.Acknowledged,
+        statusMessage: "Notification Acknowledged",
+        isAcknowledged: true,
+      }),
+      props: { isRoot: true },
+    });
+    expect(currentItem.status).toBe(UserNotificationStatus.Acknowledged);
+    expect(passOnSpy).not.toHaveBeenCalled();
+    expect(sayOf()).toContain("You have acknowledged this incident. Good bye");
+  });
+
+  test("the first key on a page acknowledged already, from another of its messages: written once, and the call still says so", async () => {
+    currentItem.status = UserNotificationStatus.Acknowledged;
+    currentItem.isAcknowledged = true;
+
+    const updateSpy: jest.SpyInstance = jest
+      .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+      .mockImplementation((async (updateBy: UpdateOneByInput) => {
+        return updateNotificationWhileStill(currentItem, updateBy);
+      }) as never);
+
+    await press("1", VALID_TOKEN());
+
+    expect(updateSpy).not.toHaveBeenCalled();
     expect(passOnSpy).not.toHaveBeenCalled();
     expect(sayOf()).toContain("You have acknowledged this incident. Good bye");
   });

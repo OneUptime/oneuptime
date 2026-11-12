@@ -1,6 +1,10 @@
 import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
 import OnCallPagePassOn from "./OnCallPagePassOn";
 import CustomChannelActionToken from "./CustomChannelActionToken";
+import {
+  ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
+  recordAcknowledgement,
+} from "./OnCallNotificationStatus";
 import WorkspaceActionAuthorization from "../Workspace/WorkspaceActionAuthorization";
 import WorkspaceMemberActions, {
   WorkspaceEventRecord,
@@ -19,7 +23,6 @@ import {
   CustomChannelActionResult,
   isCustomChannelAction,
 } from "../../../Types/CustomNotificationChannel/CustomNotificationChannelPayload";
-import OneUptimeDate from "../../../Types/Date";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../../Types/Exception/NotAuthorizedException";
 import ObjectID from "../../../Types/ObjectID";
@@ -28,7 +31,6 @@ import {
   getOnCallPassOnRefusalSentence,
   getOnCallPassOnSentence,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
-import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 
 // What an action came to: the answer to the service's POST.
 export interface CustomChannelActionAnswer {
@@ -168,20 +170,22 @@ export default class CustomChannelActions {
     /*
      * As the page's own Acknowledge link does: the row's update hook
      * acknowledges the page, the run and the record, credited to the person
-     * (UserOnCallLogTimelineService.acknowledgePage).
+     * (UserOnCallLogTimelineService.acknowledgePage). Written only while the
+     * notification is not acknowledged already (OnCallNotificationStatus):
+     * a second press landing meanwhile acknowledges nothing again.
      */
-    await UserOnCallLogTimelineService.updateOneById({
-      id: notification.id!,
-      data: {
-        acknowledgedAt: OneUptimeDate.getCurrentDate(),
-        isAcknowledged: true,
-        status: UserNotificationStatus.Acknowledged,
-        statusMessage: "Notification Acknowledged",
-      },
-      props: {
-        isRoot: true,
-      },
+    const isAcknowledged: boolean = await recordAcknowledgement({
+      userOnCallLogTimelineId: notification.id!,
+      statusMessage: ON_CALL_NOTIFICATION_ACKNOWLEDGED_MESSAGE,
     });
+
+    if (!isAcknowledged) {
+      return {
+        action: CustomChannelAction.Acknowledge,
+        result: CustomChannelActionResult.AlreadyAcknowledged,
+        message: "This page was already acknowledged.",
+      };
+    }
 
     return {
       action: CustomChannelAction.Acknowledge,
