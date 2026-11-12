@@ -398,7 +398,7 @@ interface DescribedTable {
   draw: (widgetArguments?: JSONObject) => Promise<void>;
 }
 
-describe.each<DescribedTable>([
+const DESCRIBED_TABLES: Array<DescribedTable> = [
   {
     widget: "a metric Table",
     draw: renderMetricTable,
@@ -407,87 +407,94 @@ describe.each<DescribedTable>([
     widget: "a Data Source Table",
     draw: renderDataSourceTable,
   },
-])("$widget's description", ({ draw }: DescribedTable) => {
-  function descriptionOf(text: string): HTMLElement {
-    const description: HTMLElement = screen.getByText(text);
+];
 
-    expect(description.tagName).toBe("P");
+describe.each(DESCRIBED_TABLES)(
+  "$widget's description",
+  ({ draw }: DescribedTable) => {
+    function descriptionOf(text: string): HTMLElement {
+      const description: HTMLElement = screen.getByText(text);
 
-    return description;
-  }
+      expect(description.tagName).toBe("P");
 
-  test.each(["ar", "fa"])(
-    "on a %s board an English description reads left to right, each of its lines from its own start",
-    async (language: string) => {
-      await inLanguage(language);
+      return description;
+    }
+
+    test.each(["ar", "fa"])(
+      "on a %s board an English description reads left to right, each of its lines from its own start",
+      async (language: string) => {
+        await inLanguage(language);
+        await draw({
+          tableTitle: "Checkout errors",
+          tableDescription: ENGLISH_DESCRIPTION,
+        });
+
+        const description: HTMLElement = descriptionOf(ENGLISH_DESCRIPTION);
+
+        expect(description).toHaveAttribute("dir", "ltr");
+        // It wraps: lined up by its width at the board's start, not by its end.
+        expect(description).toHaveClass(
+          "whitespace-normal",
+          CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+        );
+        expect(description).not.toHaveClass(
+          LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+        );
+        expect(description).not.toHaveClass("truncate");
+      },
+    );
+
+    test("on an Arabic board an Arabic description is drawn as it was", async () => {
+      await inLanguage("ar");
       await draw({
         tableTitle: "Checkout errors",
-        tableDescription: ENGLISH_DESCRIPTION,
+        tableDescription: ARABIC_DESCRIPTION,
       });
 
-      const description: HTMLElement = descriptionOf(ENGLISH_DESCRIPTION);
-
-      expect(description).toHaveAttribute("dir", "ltr");
-      // It wraps: lined up by its width at the board's start, not by its end.
-      expect(description).toHaveClass(
-        "whitespace-normal",
-        CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
-      );
-      expect(description).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
-      expect(description).not.toHaveClass("truncate");
-    },
-  );
-
-  test("on an Arabic board an Arabic description is drawn as it was", async () => {
-    await inLanguage("ar");
-    await draw({
-      tableTitle: "Checkout errors",
-      tableDescription: ARABIC_DESCRIPTION,
-    });
-
-    const description: HTMLElement = descriptionOf(ARABIC_DESCRIPTION);
-
-    expect(description).not.toHaveAttribute("dir");
-    expect(description.className).toBe(DESCRIPTION_CLASS_NAME);
-  });
-
-  test.each(["de", "en"])(
-    "on a %s board an English description is drawn as it always was",
-    async (language: string) => {
-      await inLanguage(language);
-      await draw({
-        tableTitle: "Checkout errors",
-        tableDescription: ENGLISH_DESCRIPTION,
-      });
-
-      const description: HTMLElement = descriptionOf(ENGLISH_DESCRIPTION);
+      const description: HTMLElement = descriptionOf(ARABIC_DESCRIPTION);
 
       expect(description).not.toHaveAttribute("dir");
       expect(description.className).toBe(DESCRIPTION_CLASS_NAME);
-    },
-  );
-
-  test("on a German board an Arabic description reads right to left", async () => {
-    await inLanguage("de");
-    await draw({
-      tableTitle: "Checkout errors",
-      tableDescription: ARABIC_DESCRIPTION,
     });
 
-    expect(descriptionOf(ARABIC_DESCRIPTION)).toHaveAttribute("dir", "rtl");
-  });
+    test.each(["de", "en"])(
+      "on a %s board an English description is drawn as it always was",
+      async (language: string) => {
+        await inLanguage(language);
+        await draw({
+          tableTitle: "Checkout errors",
+          tableDescription: ENGLISH_DESCRIPTION,
+        });
 
-  test("a description alone, with no title, is drawn the same way", async () => {
-    await inLanguage("fa");
-    await draw({ tableDescription: ENGLISH_DESCRIPTION });
+        const description: HTMLElement = descriptionOf(ENGLISH_DESCRIPTION);
 
-    expect(descriptionOf(ENGLISH_DESCRIPTION)).toHaveAttribute("dir", "ltr");
-  });
+        expect(description).not.toHaveAttribute("dir");
+        expect(description.className).toBe(DESCRIPTION_CLASS_NAME);
+      },
+    );
 
-  test("no description, no paragraph", async () => {
-    await inLanguage("ar");
-    await draw({ tableTitle: "Checkout errors" });
+    test("on a German board an Arabic description reads right to left", async () => {
+      await inLanguage("de");
+      await draw({
+        tableTitle: "Checkout errors",
+        tableDescription: ARABIC_DESCRIPTION,
+      });
 
-    expect(document.querySelector("p")).toBeNull();
-  });
-});
+      expect(descriptionOf(ARABIC_DESCRIPTION)).toHaveAttribute("dir", "rtl");
+    });
+
+    test("a description alone, with no title, is drawn the same way", async () => {
+      await inLanguage("fa");
+      await draw({ tableDescription: ENGLISH_DESCRIPTION });
+
+      expect(descriptionOf(ENGLISH_DESCRIPTION)).toHaveAttribute("dir", "ltr");
+    });
+
+    test("no description, no paragraph", async () => {
+      await inLanguage("ar");
+      await draw({ tableTitle: "Checkout errors" });
+
+      expect(document.querySelector("p")).toBeNull();
+    });
+  },
+);
