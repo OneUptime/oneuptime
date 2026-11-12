@@ -96,9 +96,16 @@ export const TABLE_HEADER_BUTTONS_BOX_CLASS_NAME: string =
  * button broke their words ("Create / On-Call / Schedule" stood three
  * lines tall), and in German "Gespeicherte Ansichten" ran past the card's
  * left edge.
+ *
+ * And no wider than the row (min-w-0): the box was as wide as its widest
+ * item's one line, so a time range picker holding a custom range that
+ * names its years ("Nov 12, 2025, 9:49 AM – Nov 12, 2026, 9:49 AM") ran
+ * 49px past the card's left edge at 390px instead of cutting the range
+ * short, as the picker does in a row that lets it. An item no row can
+ * shrink keeps its width, as before.
  */
 export const TABLE_HEADER_BUTTONS_CLASS_NAME: string =
-  "max-w-[600px] gap-3 opacity-100 max-md:flex-wrap max-md:justify-end max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
+  "min-w-0 max-w-[600px] gap-3 opacity-100 max-md:flex-wrap max-md:justify-end max-md:[&>button]:w-auto max-md:[&>*>button]:w-auto";
 
 /*
  * The main button and the ⋯, one item of that row

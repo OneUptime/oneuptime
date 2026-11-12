@@ -26,6 +26,8 @@ import { getOnCallTestPageSentBy } from "../../../../Types/OnCallDutyPolicy/OnCa
 import logger from "../../../../Server/Utils/Logger";
 import UserNotificationRule from "../../../../Models/DatabaseModels/UserNotificationRule";
 import UserOnCallLogTimeline from "../../../../Models/DatabaseModels/UserOnCallLogTimeline";
+import HTTPErrorResponse from "../../../../Types/API/HTTPErrorResponse";
+import HTTPResponse from "../../../../Types/API/HTTPResponse";
 import URL from "../../../../Types/API/URL";
 import CallRequest, { GatherInput } from "../../../../Types/Call/CallRequest";
 import { CustomChannelEvent } from "../../../../Types/CustomNotificationChannel/CustomNotificationChannelPayload";
@@ -495,6 +497,181 @@ describe("a send that fails", () => {
       statusMessage: "No devices provided",
     });
     expect(UserOnCallLogTimelineService.updateOneById).not.toHaveBeenCalled();
+  });
+
+  /*
+   * Issue #7083: an error answer from the Notification service does not
+   * throw - API.post hands it back - so the row said Sending until the
+   * stuck check. Each request's answer is read where it is sent.
+   */
+  describe("a request the Notification service answered with an error", () => {
+    const PHONE: Record<string, unknown> = {
+      id: METHOD_ID,
+      phone: new Phone("+15550100"),
+      isVerified: true,
+    };
+
+    const REQUESTS: Array<[string, Record<string, unknown>, () => jest.Mock]> =
+      [
+        [
+          "email",
+          EMAIL,
+          (): jest.Mock => {
+            return MailService.sendMail as jest.Mock;
+          },
+        ],
+        [
+          "SMS",
+          { userSms: PHONE },
+          (): jest.Mock => {
+            return SmsService.sendSms as jest.Mock;
+          },
+        ],
+        [
+          "call",
+          { userCall: PHONE },
+          (): jest.Mock => {
+            return CallService.makeCall as jest.Mock;
+          },
+        ],
+        [
+          "WhatsApp",
+          { userWhatsApp: PHONE },
+          (): jest.Mock => {
+            return WhatsAppService.sendWhatsAppMessage as jest.Mock;
+          },
+        ],
+        [
+          "Telegram",
+          {
+            userTelegram: {
+              id: METHOD_ID,
+              telegramChatId: "12345",
+              isVerified: true,
+            },
+          },
+          (): jest.Mock => {
+            return TelegramService.sendTelegramMessage as jest.Mock;
+          },
+        ],
+        [
+          "webhook",
+          {
+            userWebhook: {
+              id: METHOD_ID,
+              webhookUrl: "https://hooks.example.com/on-call",
+              secret: "s3cret",
+            },
+          },
+          (): jest.Mock => {
+            return WebhookService.sendWebhook as jest.Mock;
+          },
+        ],
+      ];
+
+    test.each(REQUESTS)(
+      "%s: a refusal is Error, in the answer's words",
+      async (
+        _name: string,
+        methods: Record<string, unknown>,
+        sender: () => jest.Mock,
+      ) => {
+        sender().mockResolvedValue(
+          new HTTPErrorResponse(
+            400,
+            { message: "Not valid for this project." },
+            {},
+          ) as never,
+        );
+
+        await deliver(methods);
+        await settle();
+
+        expect(createdRows).toHaveLength(1);
+        expect(timeline.get(createdRows[0]!.id!)).toMatchObject({
+          status: UserNotificationStatus.Error,
+          statusMessage:
+            "The Notification service refused to send this (HTTP 400): Not valid for this project.",
+        });
+        expect(
+          UserOnCallLogTimelineService.updateOneById,
+        ).not.toHaveBeenCalled();
+      },
+    );
+
+    test.each(REQUESTS)(
+      "%s: any other error answer is Error, saying it may not have been sent",
+      async (
+        _name: string,
+        methods: Record<string, unknown>,
+        sender: () => jest.Mock,
+      ) => {
+        sender().mockResolvedValue(new HTTPErrorResponse(503, {}, {}) as never);
+
+        await deliver(methods);
+        await settle();
+
+        expect(timeline.get(createdRows[0]!.id!)).toMatchObject({
+          status: UserNotificationStatus.Error,
+          statusMessage:
+            "The Notification service answered with an error (HTTP 503), so this may not have been sent.",
+        });
+      },
+    );
+
+    test("a success answer leaves the row to the Notification service's own result", async () => {
+      (MailService.sendMail as jest.Mock).mockResolvedValue(
+        new HTTPResponse<JSONObject>(200, {}, {}) as never,
+      );
+
+      await deliver(EMAIL);
+      await settle();
+
+      expect(timeline.get(createdRows[0]!.id!)!.status).toBe(
+        UserNotificationStatus.Sending,
+      );
+      expect(timeline.writes).toEqual([]);
+    });
+
+    test("the person acknowledging the test before the answer: their answer stays", async () => {
+      (MailService.sendMail as jest.Mock).mockResolvedValue(
+        new HTTPErrorResponse(500, { message: "Server Error" }, {}) as never,
+      );
+      timeline.whenRead((row: StoredOnCallNotification) => {
+        row.status = UserNotificationStatus.Acknowledged;
+      });
+
+      await deliver(EMAIL);
+      await settle();
+
+      expect(timeline.get(createdRows[0]!.id!)!.status).toBe(
+        UserNotificationStatus.Acknowledged,
+      );
+      expect(timeline.writes).toEqual([]);
+    });
+
+    test("a custom channel's answer is read by its own client: nothing is written here", async () => {
+      (
+        CustomNotificationChannelDeliveryService.send as jest.Mock
+      ).mockResolvedValue({
+        ok: false,
+        statusCode: 500,
+        message:
+          "The Notification service answered with an error (HTTP 500), so this may not have been sent.",
+      } as never);
+
+      await deliver({
+        customNotificationChannelId: CHANNEL_ID,
+        customNotificationChannel: { name: "Pager App", isEnabled: true },
+      });
+      await settle();
+
+      expect(createdRows).toHaveLength(1);
+      expect(timeline.get(createdRows[0]!.id!)!.status).toBe(
+        UserNotificationStatus.Sending,
+      );
+      expect(timeline.writes).toEqual([]);
+    });
   });
 });
 

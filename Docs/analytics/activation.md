@@ -72,7 +72,7 @@ These are sent from the server, each time the thing happens, with `project_id`, 
 
 ## Behaviour events
 
-These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, { ... })` (`packages/Common/UI/Utils/ProductEvents.ts`). The catalog in `packages/Common/Types/Analytics/ProductEvent.ts` lists every property an event may carry. Anything not listed is dropped before the event is sent.
+These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, { ... })` (`packages/Common/UI/Utils/ProductEvents.ts`), except `docs/feedback_given`, which the docs server sends for a docs page. The catalog in `packages/Common/Types/Analytics/ProductEvent.ts` lists every property an event may carry. Anything not listed is dropped before the event is sent.
 
 | Event | Sent when | Properties | Sent from |
 | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `ask_ai/question_asked` | Ask AI takes a question. The question itself is never sent | `is_new_conversation`, `permission_mode` | `useAiChat` |
 | `ask_ai/answer_rated` | An answer is rated, or its rating cleared | `rating` (`up`, `down`, `cleared`) | `useAiChat` |
 | `importer/opened` | "Import from another tool" is opened | `from` (`?from=` on its address, else `settings`) | `ImportFromTool` |
-| `docs/feedback_given` | "Was this page helpful?" is answered | `page`, `is_helpful` | Reserved for #6822 |
+| `docs/feedback_given` | "Was this page helpful?" is answered at the foot of a docs page. Sent by the docs server, not the Dashboard: only where product analytics is set up (OneUptime Cloud), only with the reader's consent, under an id of its own for each answer and with no person profile. A self-hosted server's docs send nothing | `page` (the page's address under /docs/, without its language), `is_helpful`, `reason` for a no (`unclear`, `missing`, `wrong` or `not_found`), `edition`, `language` (the docs' language) | `DocsFeedback` (`packages/App/FeatureSet/Docs/Utils/DocsFeedback.ts`), from the page's `PageFeedback` |
 | `guided_setup/started` | A guided setup opens: `website_down` (Know when my website or API is down, #6804), `on_call` (Page the right person when something breaks, #6805), `status_page` (Publish a status page, #6806) or `telemetry` (Send logs, metrics and traces, then get alerted, #6806) | `setup` | `GuidedSetupFrame`, through `useGuidedSetupEvents` |
 | `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary`; `on_call`'s are `reach_you`, `who_else`, `no_answer`, `test` and `summary`; `status_page`'s are `pick`, `review` and `summary`; `telemetry`'s are `send`, `alert` and `summary` | `setup`, `step`, `step_number` | Same |
 | `guided_setup/finished` | It reaches its end: the thing works and was tested (`on_call`: a test page of the policy acknowledged; `status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |

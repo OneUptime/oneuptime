@@ -92,6 +92,35 @@ describe("CredentialGuard", () => {
   });
 
   describe("assertPresent", () => {
+    it("says what to do next instead, where the route gives the words (#6836)", () => {
+      const words: string =
+        "This verification link is incomplete. Open the link from the email again, or sign in to get a new one.";
+
+      expect(() => {
+        return CredentialGuard.assertPresent(
+          undefined,
+          "Verification token",
+          words,
+        );
+      }).toThrow(words);
+
+      expect(() => {
+        return CredentialGuard.assertAllPresent([
+          { value: "token", label: "Reset password token" },
+          { value: undefined, label: "Password", message: words },
+        ]);
+      }).toThrow(words);
+
+      // A present value is not refused, whatever the words.
+      expect(() => {
+        return CredentialGuard.assertPresent(
+          "abc",
+          "Verification token",
+          words,
+        );
+      }).not.toThrow();
+    });
+
     it("throws BadDataException naming the field when the value is missing", () => {
       expect(() => {
         return CredentialGuard.assertPresent(undefined, "Verification token");

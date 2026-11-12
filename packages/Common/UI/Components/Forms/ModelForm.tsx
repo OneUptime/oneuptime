@@ -62,6 +62,7 @@ import TableColumnType from "../../../Types/Database/TableColumnType";
 import { RuleCriteriaSubject } from "../../../Types/Rules/RuleCriteriaSubject";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
+import { UnexplainedErrorWords } from "../../../Types/Exception/UnexplainedError";
 import { PromiseVoidFunction } from "../../../Types/FunctionTypes";
 import GenericObject from "../../../Types/GenericObject";
 import { JSONObject } from "../../../Types/JSON";
@@ -1751,6 +1752,20 @@ const ModelForm: <TBaseModel extends BaseModel>(
         onCancel={props.onCancel}
         maxPrimaryButtonWidth={props.maxPrimaryButtonWidth}
         error={error}
+        whatFailed={
+          model.singularName
+            ? translator.translateTemplate(
+                props.formType === FormType.Create
+                  ? UnexplainedErrorWords.createFailed
+                  : UnexplainedErrorWords.saveFailed,
+                {
+                  itemName: translatableTerm(model.singularName, {
+                    inSentence: true,
+                  }),
+                },
+              )
+            : undefined
+        }
         hideSubmitButton={props.hideSubmitButton}
         formRef={props.formRef}
         initialValues={

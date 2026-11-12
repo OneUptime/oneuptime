@@ -55,7 +55,7 @@ Vá para **Incidentes** > **Espaço de trabalho** > **Slack**. A seção **Espa�
 
 ### Testar a regra
 
-Clique em **Regra de teste** na linha da regra. Uma mensagem de teste chega aos canais que a regra indica. Consulte [Testar uma regra](#testar-uma-regra).
+Clique em **Testar regra** na linha da regra. Uma mensagem de teste chega aos canais que a regra indica. Consulte [Testar uma regra](#testar-uma-regra).
 :::
 
 ## Organizações do Slack Enterprise
@@ -67,7 +67,7 @@ Com o Slack Enterprise Grid, um projeto pode funcionar em vários workspaces da 
 3. O cartão **Espaços de trabalho do Slack** lista esses workspaces. Clique em **Atualizar** depois de adicionar o OneUptime a outro workspace.
 
 - **Qual workspace uma regra usa.** As regras de notificação escolhem o **Espaço de trabalho do Slack** dos seus canais. Se ficar em branco, a regra usa o workspace padrão e procura primeiro ali os canais que nomeia. **Tornar padrão** no cartão muda o padrão. Se o OneUptime for removido do workspace padrão, o primeiro dos workspaces restantes em ordem alfabética passa a ser o padrão. Ele continua sendo o padrão quando o OneUptime é adicionado de novo ao workspace antigo.
-- **Um workspace do qual o OneUptime foi removido.** Uma regra que o escolhe não publica em outro workspace no lugar dele: o cartão da regra, **Regra de teste** e os logs de notificação dizem que o OneUptime não está mais adicionado a ele. O cartão **Canal do Slack** também diz isso quando o canal está nesse workspace. Adicione o OneUptime de novo a esse workspace nas configurações da organização do Slack, ou escolha outro workspace na regra.
+- **Um workspace do qual o OneUptime foi removido.** Uma regra que o escolhe não publica em outro workspace no lugar dele: o cartão da regra, **Testar regra** e os logs de notificação dizem que o OneUptime não está mais adicionado a ele. O cartão **Canal do Slack** também diz isso quando o canal está nesse workspace. Adicione o OneUptime de novo a esse workspace nas configurações da organização do Slack, ou escolha outro workspace na regra.
 - **Onde o OneUptime funciona.** Botões, comandos, a aba Home e o OneUptime AI funcionam em cada um desses workspaces, e os membros conectam a própria conta do Slack a partir de qualquer um deles.
 - **Um projeto conectado a um único workspace.** Se esse workspace faz parte da organização, o projeto mantém suas regras, canais e contas conectadas quando é instalado para a organização inteira com **Instalar para a organização** na mesma página. Esse workspace passa a ser o padrão.
 - **Em um servidor auto-hospedado,** um app do Slack criado a partir do manifesto do OneUptime já permite isso: o manifesto define `org_deploy_enabled`.
@@ -138,9 +138,9 @@ O app do OneUptime as adiciona, como adiciona as pessoas do canal de uma regra. 
 
 ## Testar uma regra
 
-**Regra de teste** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, para você vê-la chegar. Se a regra cria um canal para cada evento, o teste também cria um e convida para ele as pessoas da regra.
+**Testar regra** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, para você vê-la chegar. Se a regra cria um canal para cada evento, o teste também cria um e convida para ele as pessoas da regra.
 
-Como **Enviar teste** ao lado de um canal em **Configurações do projeto** > **Espaço de trabalho** > **Slack**, ele requer permissão para criar regras de notificação: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações**, **Membro de configurações**, ou **Create Workspace Notification Rule** e **Read Workspace Notification Rule** em uma função personalizada. Para quem só pode ver as regras, como um **Visualizador**, **Regra de teste** fica bloqueado, e a sua dica diz o que é preciso; a API recusa o teste dessa pessoa com "You do not have permission to send test notifications in this project." No OneUptime Cloud, testar uma regra requer o plano **Growth**, assim como adicionar uma.
+Como **Enviar teste** ao lado de um canal em **Configurações do projeto** > **Espaço de trabalho** > **Slack**, ele requer permissão para criar regras de notificação: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações**, **Membro de configurações**, ou **Create Workspace Notification Rule** e **Read Workspace Notification Rule** em uma função personalizada. Para quem só pode ver as regras, como um **Visualizador**, **Testar regra** fica bloqueado, e a sua dica diz o que é preciso; a API recusa o teste dessa pessoa com "You do not have permission to send test notifications in this project." No OneUptime Cloud, testar uma regra requer o plano **Growth**, assim como adicionar uma.
 
 No OneUptime Cloud, **Enviar teste** ao lado de um canal também requer o plano **Growth**, já que publicar em um canal é o que regras e resumos fazem. **Enviar teste agora** em um resumo requer permissão para criar resumos (**Create Workspace Notification Summary** e **Read Workspace Notification Summary** em uma função personalizada) e, no OneUptime Cloud, o plano **Growth**; para qualquer outra pessoa fica bloqueado, e a sua dica diz o que é preciso. Um cliente MCP conectado com acesso somente leitura não pode enviar nenhum teste.
 
@@ -333,7 +333,7 @@ O que o OneUptime guarda disso — o nome do espaço de trabalho, os canais dele
 ## Solução de problemas
 
 :::details Uma regra não publica nada
-Verifique as condições da regra com **Regra de teste**: se o teste chegar, as condições da regra não corresponderam ao evento. Se não chegar, a página do Slack diz por quê. Para um canal privado, convide antes o app do OneUptime para ele no Slack. Cada mensagem que o OneUptime publica, e cada uma que o Slack recusou, está listada em **Configurações do projeto** > **Notificações** > **Logs de notificação**, na aba **Espaço de trabalho**.
+Verifique as condições da regra com **Testar regra**: se o teste chegar, as condições da regra não corresponderam ao evento. Se não chegar, a página do Slack diz por quê. Para um canal privado, convide antes o app do OneUptime para ele no Slack. Cada mensagem que o OneUptime publica, e cada uma que o Slack recusou, está listada em **Configurações do projeto** > **Notificações** > **Logs de notificação**, na aba **Espaço de trabalho**.
 :::
 
 :::details Falta alguém no canal de uma regra

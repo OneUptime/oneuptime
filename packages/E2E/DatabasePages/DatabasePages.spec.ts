@@ -687,13 +687,14 @@ test.describe("the Databases list", () => {
       fill(GERMAN, "{{count}} to look at", { count: "3" }),
     ]);
     worded(GERMAN, "Connections at {{percent}} of max_connections");
+    // German's own percent, as its tiles write theirs (#7106).
     await expect(
       attentionRow(card, IDS["ordersDb"]!).getByTestId(
         "database-fleet-attention-reason",
       ),
     ).toHaveText([
       fill(GERMAN, "Connections at {{percent}} of max_connections", {
-        percent: "96%",
+        percent: "96\u00A0%",
       }),
       fill(GERMAN, "A replica {{minutes}} min behind", { minutes: "1" }),
     ]);
@@ -703,7 +704,7 @@ test.describe("the Databases list", () => {
       ),
     ).toHaveText([
       fill(GERMAN, "Transaction IDs at {{percent}} of wraparound", {
-        percent: "74%",
+        percent: "74\u00A0%",
       }),
       fill(GERMAN, "A transaction open for {{hours}} h", { hours: "2" }),
     ]);

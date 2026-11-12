@@ -169,11 +169,13 @@ const KubernetesClusterPods: FunctionComponent<
           title: "Ready",
           key: "ready",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podReady,
+          isCount: true,
         },
         {
           title: "Restarts",
           key: "restarts",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podRestarts,
+          isCount: true,
         },
         {
           title: "Node",
@@ -183,6 +185,7 @@ const KubernetesClusterPods: FunctionComponent<
           title: "Containers",
           key: "containers",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.podContainers,
+          isCount: true,
         },
       ]}
       getViewRoute={(resource: KubernetesResource): Route => {

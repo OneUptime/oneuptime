@@ -966,11 +966,20 @@ describe("Create New Project: answers from the server", () => {
     await typeName("Acme Production");
     await pressCreate();
 
+    /*
+     * An answer that says nothing reads as a failure the server did not
+     * explain: what the form was doing, and what to do next (#6836).
+     */
     await waitFor(() => {
       expect(
-        within(dialog()).getByText("Server error. Please try again."),
+        within(dialog()).getByText(
+          "The server ran into a problem it could not explain. Try again in a moment.",
+        ),
       ).toBeVisible();
     });
+    expect(within(dialog()).getByTestId("error-what-failed")).toHaveTextContent(
+      /was not created\./,
+    );
     expect(nameInput()).not.toHaveAttribute("aria-invalid");
     expect(moreFieldsHeader()).toHaveAttribute("aria-expanded", "false");
   });

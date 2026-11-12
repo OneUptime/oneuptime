@@ -23,7 +23,7 @@ import {
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatInline, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -255,7 +255,9 @@ const StepBlock: FunctionComponent<{
               ""}
           </p>
           {through.length > 0 ? (
-            <p className="text-xs text-gray-500">{through.join(" · ")}</p>
+            <p className="text-xs text-gray-500">
+              {formatInline(through, translator)}
+            </p>
           ) : (
             <></>
           )}

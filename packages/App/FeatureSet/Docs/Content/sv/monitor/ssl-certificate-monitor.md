@@ -38,7 +38,7 @@ En sond som har förlorat sin egen nätverksanslutning rapporterar inget resulta
 :::steps
 ### Börja en ny monitor
 
-Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **SSL Certificate** under **Monitortyp**.
+Gå till **Monitorer** och klicka på **Skapa monitor**. Välj **SSL-certifikat** under **Monitortyp**.
 
 ### Namnge den
 

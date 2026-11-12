@@ -122,7 +122,7 @@ To bjælker løber hen over toppen af hver side.
 | Øverst til højre | **Søg** og **Spørg AI**, notifikationsklokken med det, der kræver dig nu (aktive hændelser og advarsler, de vagtpolitikker, du har vagt i, ventende invitationer), **Hjælp**, og dit billede, som åbner menuen for din [konto](/docs/introduction/your-account). |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brugerindstillinger** til højre: hvordan OneUptime kontakter dig i dette projekt. |
 
-**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Keyboard shortcuts** og support via e-mail og på Slack. På en smal skærm, som på en telefon, er **Søg**, **Spørg AI** og **Hjælp** udeladt for at spare plads; klokken og dit billede bliver.
+**Hjælp** starter med det, der hjælper dig med at lære: **Hurtigstart**, **Sådan virker OneUptime**, **Ordliste** og denne dokumentation (**Dokumentation**). Under dem ligger listen **Keyboard shortcuts** og support via e-mail og på Slack. På en tablet eller i et smalt vindue er **Spørg AI** udeladt for at spare plads: den findes blandt handlingerne i **Søg**. På en telefon flytter **Søg** og **Hjælp** ind i menuknappens liste, øverst og nederst; klokken og dit billede bliver.
 
 Et ord med en prikket linje under, som **Sonder** i formularen til en ny monitor, fortæller, hvad det betyder, når du peger på det, tabber til det eller trykker på det. Dets **Læs mere** åbner ordet i [Ordliste](/docs/introduction/glossary).
 
@@ -145,6 +145,7 @@ Tryk på **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klik på sø
 - **Indstillingerne på en side**, under det navn, deres kort eller kontakt viser: *Kræv SSO til login* finder SSO, og *Notifikationskanaler* finder Notifikationsindstillinger. Skriv navnet på engelsk eller på dit eget sprog.
 - **Handlinger**, efter hvad du vil gøre: Erklær hændelse, Opret monitor eller Delete Project, som åbner Farezone. En handling, der ændrer noget, tilbydes kun til dem, der må udføre den.
 - **Dine monitorer, hændelser, advarsler, statussider og vagtpolitikker**, efter navn, og hændelser og advarsler også efter nummer, for eksempel `INC-42`. Hvert resultat for en hændelse eller advarsel starter med dens nummer, så to med samme titel kan kendes fra hinanden.
+- **Dokumentationen**, i en gruppe *Dokumentation* under alt det andet: de sider og afsnit, hvis ord passer til det, du skriver, på dit sprog, også med en tastefejl. Hver åbner i en ny fane, så du beholder din plads.
 
 Søgningen læser det, du skriver, som du mener det:
 

@@ -11,6 +11,7 @@
     "searchPlaceholder": "Search documentation...",
     "searchTypeToSearch": "Type to search documentation...",
     "searchNoResults": "No results found for \"{{query}}\"",
+    "searchSearching": "Searching…",
     "onThisPage": "On This Page",
     "skipToContent": "Skip to content",
     "toggleTheme": "Toggle theme",
@@ -62,7 +63,18 @@
     "calloutDanger": "Danger",
     "detailsSummary": "Details",
     "copyPage": "Copy page",
-    "viewAsMarkdown": "View as Markdown"
+    "viewAsMarkdown": "View as Markdown",
+    "feedbackQuestion": "Was this page helpful?",
+    "feedbackYes": "Yes",
+    "feedbackNo": "No",
+    "feedbackThanks": "Thanks for telling us.",
+    "feedbackWhatWentWrong": "Thanks. What went wrong?",
+    "feedbackReasonUnclear": "Hard to follow",
+    "feedbackReasonMissing": "Something is missing",
+    "feedbackReasonWrong": "Wrong or out of date",
+    "feedbackReasonNotFound": "Not what I was looking for",
+    "feedbackTellUs": "Thanks. Tell us what to fix, and we will improve the page.",
+    "feedbackTellUsOnGithub": "Tell us on GitHub"
   },
   "navSections": {
     "Get Started": "Get Started",
