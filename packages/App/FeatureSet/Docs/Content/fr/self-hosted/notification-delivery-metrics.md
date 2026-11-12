@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Définissez-les dans `config.env`, puis lancez `npm start`. `DISABLE_TELEMETRY_FOR_APP` vaut `true` par défaut, et alors rien n'est envoyé.
 :::
 
-OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Séparez plusieurs en-têtes par `;`. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
+OneUptime a besoin à la fois du point de terminaison et des en-têtes : sans en-tête, il n'envoie rien. Écrivez chaque en-tête sous la forme `name=value`, et séparez-en plusieurs par `;`. Une valeur peut contenir `=`. OneUptime ajoute lui-même `/v1/metrics` au point de terminaison, et les mêmes paramètres envoient aussi ses propres traces et journaux. Chaque métrique apparaît dès que OneUptime l'enregistre pour la première fois : `notification.send.count` avec le premier message envoyé.
 
 ### Envoyer des deltas à un projet OneUptime
 
@@ -246,7 +246,7 @@ La formule `$b / $a * 100` est la part non distribuée. Les opérateurs et les t
 ## Dépannage
 
 :::details Aucune métrique de notification n'arrive
-Vérifiez que `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` et `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` sont tous deux définis, et dans Docker Compose que `DISABLE_TELEMETRY_FOR_APP` vaut `false`, puis redémarrez OneUptime. Une métrique n'apparaît qu'une fois que quelque chose est enregistré, envoyez donc d'abord une notification.
+Vérifiez que `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` et `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` sont tous deux définis, et dans Docker Compose que `DISABLE_TELEMETRY_FOR_APP` vaut `false`, puis redémarrez OneUptime. Au démarrage, OneUptime journalise un avertissement lorsqu'il ne peut pas lire un en-tête, ou lorsqu'il n'envoie rien. Une métrique n'apparaît qu'une fois que quelque chose est enregistré, envoyez donc d'abord une notification.
 :::
 
 :::details Un compte ne fait que croître, ou un percentile bouge à peine

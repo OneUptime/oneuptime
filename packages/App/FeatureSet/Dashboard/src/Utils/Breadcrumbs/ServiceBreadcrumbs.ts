@@ -137,6 +137,11 @@ export function getServiceBreadcrumbs(path: string): Array<Link> | undefined {
       "Services",
       "Archived",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.SERVICES_GUIDED_SETUP, [
+      "Project",
+      "Services",
+      "Guided setup",
+    ]),
   };
   return breadcrumpLinksMap[path];
 }

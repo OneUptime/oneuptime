@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 在 `config.env` 中設定它們，然後執行 `npm start`。`DISABLE_TELEMETRY_FOR_APP` 預設為 `true`，此時不會傳送任何內容。
 :::
 
-OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。多個標頭之間以 `;` 分隔。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
+OneUptime 需要同時設定端點和標頭：沒有標頭時它什麼都不傳送。每個標頭寫成 `name=value`，多個標頭之間以 `;` 分隔。值中可以包含 `=`。OneUptime 會自行在端點後加上 `/v1/metrics`，同樣的設定也會傳送它自己的追蹤和日誌。每個指標會在 OneUptime 第一次記錄它時出現：`notification.send.count` 會在傳送第一則訊息時出現。
 
 ### 向 OneUptime 專案傳送差量
 
@@ -246,7 +246,7 @@ Twilio 為安裝自己的帳戶接受的待命簡訊中，最多 5% 未能傳遞
 ## 疑難排解
 
 :::details 沒有收到通知指標
-檢查 `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` 和 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` 是否都已設定，在 Docker Compose 中還要檢查 `DISABLE_TELEMETRY_FOR_APP` 是否為 `false`，然後重新啟動 OneUptime。指標只有在記錄了內容之後才會出現，因此請先傳送一則通知。
+檢查 `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` 和 `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` 是否都已設定，在 Docker Compose 中還要檢查 `DISABLE_TELEMETRY_FOR_APP` 是否為 `false`，然後重新啟動 OneUptime。OneUptime 啟動時，如果有無法讀取的標頭，或者它什麼都不傳送，會在日誌中記錄一則警告。指標只有在記錄了內容之後才會出現，因此請先傳送一則通知。
 :::
 
 :::details 計數只增不減，或百分位數幾乎不動
