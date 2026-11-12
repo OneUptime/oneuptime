@@ -57,9 +57,13 @@ Al het andere staat in de [documentatie](https://oneuptime.com/docs/nl/introduct
 
 ### Zelf hosten met Docker Compose
 
-U hebt een Linux-server nodig met minstens 8 GB geheugen, en Docker, Docker Compose, Git en Node.js.
+U hebt een Linux-server nodig met minstens 8 GB geheugen. Op een nieuwe Ubuntu-, Debian- of RHEL-server installeert één opdracht Docker, Git en Node.js waar ze ontbreken, vraagt naar het adres waarmee mensen OneUptime openen en start OneUptime:
 
-Zet vóór stap 3 `HOST` in `config.env` op de domeinnaam of het IP-adres waarmee mensen OneUptime bereiken, zonder `http://`. Houd `localhost` alleen aan om OneUptime op uw eigen computer uit te proberen.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Of doe het stap voor stap, met Docker, Docker Compose, Git en Node.js geïnstalleerd. Zet in stap 3 de domeinnaam of het IP-adres waarmee mensen OneUptime bereiken in plaats van `<your-address>`, zonder `http://`: dat is `HOST` in `config.env`. Houd `localhost` alleen aan om OneUptime op uw eigen computer uit te proberen.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` controleert de server, geeft elk geheim in `config.env` een eigen willekeurige waarde en start OneUptime. Wanneer `npm start` **OneUptime is up!** toont, opent u `http://localhost` of het adres van uw server en registreert u zich. Het eerste account wordt de beheerder van de instantie.
 
-De [Docker Compose-handleiding](https://oneuptime.com/docs/nl/installation/docker-compose) behandelt servergroottes, HTTPS, back-ups en updates.
+Volg daarna de [Handleiding zelf hosten](https://oneuptime.com/docs/nl/installation/self-hosting-guide) via HTTPS, e-mail en sms, tot OneUptime u kan alarmeren. De [Docker Compose-handleiding](https://oneuptime.com/docs/nl/installation/docker-compose) behandelt servergroottes, back-ups en updates.
 
 ### Kubernetes met Helm
 

@@ -124,6 +124,12 @@ const PUBLISHED_PORTS = [
 const EVERY_ADDRESS = ["", "0.0.0.0", "::", "[::]"];
 const LOOPBACK_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"];
 
+/*
+ * What the README's quick start writes into HOST until the reader puts their
+ * own address in its place (Tests/Ops/ReadmeQuickStart.test.js).
+ */
+const HOST_PLACEHOLDER = "<your-address>";
+
 const IPV4_ADDRESS = /^\d{1,3}(\.\d{1,3}){3}$/;
 const PORT_NUMBER = /^\d{1,5}$/;
 // A version's leading numbers: "29.8.1", "v2.29.7-desktop.1" -> [29, 8, 1].
@@ -280,6 +286,19 @@ const hostFindings = (settings, interfaces) => {
     findings.push({
       level: "stop",
       message: `HOST in config.env is empty. Set it to the domain name or IP address people will use to reach OneUptime, without http://, such as HOST=${exampleHost}.`,
+    });
+    return findings;
+  }
+
+  /*
+   * The README's quick start sets HOST with a line the reader edits first
+   * (HOST=<your-address>, HOST_PLACEHOLDER): a HOST with a < or a > in it is
+   * that line run as it was copied. No address has either character.
+   */
+  if (/[<>]/.test(host)) {
+    findings.push({
+      level: "stop",
+      message: `HOST in config.env is ${host}, which is not an address yet. Replace it with the domain name or IP address people will use to reach OneUptime, without http://, such as HOST=${exampleHost}.`,
     });
     return findings;
   }
@@ -1121,6 +1140,7 @@ module.exports = {
   CONFIG_FILE,
   CONFIG_TEMPLATE,
   DOCS_URL,
+  HOST_PLACEHOLDER,
   MINIMUM_MEMORY_BYTES,
   MINIMUM_FREE_DISK_BYTES,
   MINIMUM_DOCKER_VERSION,

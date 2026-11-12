@@ -111,7 +111,7 @@ flowchart TB
 ### 自架部署
 
 :::cards
-- [安裝](/docs/installation/docker-compose): 安裝、規劃規模並升級你自己的 OneUptime。
+- [安裝](/docs/installation/self-hosting-guide): 安裝、規劃規模並升級你自己的 OneUptime。
 - [自架環境](/docs/self-hosted/architecture): 你自己的安裝的架構、整合和企業版功能。
 :::
 

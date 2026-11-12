@@ -111,7 +111,7 @@ The docs are organized like the sidebar, in nine sections. Pick the part you nee
 ### Self-Hosting
 
 :::cards
-- [Installation](/docs/installation/docker-compose): Install, size and upgrade your own OneUptime.
+- [Installation](/docs/installation/self-hosting-guide): Install, size and upgrade your own OneUptime.
 - [Self-hosted setup](/docs/self-hosted/architecture): Architecture, integrations and Enterprise features for your own install.
 :::
 

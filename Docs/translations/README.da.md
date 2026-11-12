@@ -57,9 +57,13 @@ Alt andet står i [dokumentationen](https://oneuptime.com/docs/da/introduction/g
 
 ### Host selv med Docker Compose
 
-Du skal bruge en Linux-server med mindst 8 GB hukommelse samt Docker, Docker Compose, Git og Node.js.
+Du skal bruge en Linux-server med mindst 8 GB hukommelse. På en ny Ubuntu-, Debian- eller RHEL-baseret server installerer én kommando Docker, Git og Node.js, hvor de mangler, spørger efter den adresse, folk skal bruge, og starter OneUptime:
 
-Før trin 3 sætter du `HOST` i `config.env` til det domænenavn eller den IP-adresse, folk skal bruge for at nå OneUptime, uden `http://`. Behold kun `localhost` for at prøve OneUptime på din egen computer.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Eller gør det trin for trin, med Docker, Docker Compose, Git og Node.js installeret. I trin 3 skriver du det domænenavn eller den IP-adresse, folk skal bruge for at nå OneUptime, i stedet for `<your-address>`, uden `http://`: det er `HOST` i `config.env`. Behold kun `localhost` for at prøve OneUptime på din egen computer.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` tjekker serveren, giver hver hemmelighed i `config.env` sin egen tilfældige værdi og starter OneUptime. Når `npm start` skriver **OneUptime is up!**, så åbn `http://localhost` eller serverens adresse, og tilmeld dig. Den første konto bliver instansens administrator.
 
-[Docker Compose-vejledningen](https://oneuptime.com/docs/da/installation/docker-compose) dækker serverstørrelser, HTTPS, backup og opdateringer.
+Følg derefter [Selv-hosting-guiden](https://oneuptime.com/docs/da/installation/self-hosting-guide) gennem HTTPS, e-mail og SMS, til OneUptime kan sende dig en alarm. [Docker Compose-vejledningen](https://oneuptime.com/docs/da/installation/docker-compose) dækker serverstørrelser, backup og opdateringer.
 
 ### Kubernetes med Helm
 

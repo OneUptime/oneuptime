@@ -144,6 +144,8 @@ Før første start erstatter du plassholderhemmelighetene selv, som [Generer til
 Åpne `http://` etterfulgt av `HOST` (for eksempel `http://localhost`) og registrer deg. Den første kontoen på en ny instans blir hovedadministratoren, som kan åpne Admin Dashboard på `/admin`.
 
 Alle som kan nå siden, kan registrere seg etter deg. For å hindre det åpner du Admin Dashboard, går til **Innstillinger > Autentisering** og slår av **Tillat registrering**. Personer du inviterer til et prosjekt, kan fortsatt opprette kontoen sin.
+
+Gjør deretter ferdig oppsettet av serveren på `/admin/setup`, der e-post, SMS og anrop settes opp og testes: se [Gjør ferdig oppsettet av serveren](/docs/installation/self-hosting-guide#gjør-ferdig-oppsettet-av-serveren).
 :::
 
 ### Generer tilfeldige hemmeligheter
@@ -566,8 +568,8 @@ Admin Dashboard viser proben under **Innstillinger > Overvåking > Globale probe
 ## Neste steg
 
 :::cards
+- [Gjør ferdig oppsettet av serveren](/docs/installation/self-hosting-guide#gjør-ferdig-oppsettet-av-serveren): E-post, deretter SMS og anrop, hver med en test.
+- [Hurtigstart](/docs/introduction/quickstart): Din første monitor, din første vaktpolicy og din første statusside.
 - [Oppgradering av OneUptime](/docs/installation/upgrading): Hva hver hovedversjon krever av deg.
-- [Dimensjonering og kapasitetsplanlegging](/docs/installation/sizing): Planlegg minne og disk for telemetrien din.
 - [Selvdriftet arkitektur](/docs/self-hosted/architecture): Hvordan komponentene henger sammen.
-- [Enterprise Edition](/docs/self-hosted/enterprise): Hva Enterprise-imaget legger til, og lisensen.
 :::

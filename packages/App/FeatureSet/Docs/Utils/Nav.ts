@@ -1682,10 +1682,16 @@ const DocsNav: NavGroup[] = [
     section: "Self-Hosting",
     links: [
       /*
-       * Docker Compose first: /docs/installation opens a category's first
-       * page, and people who type it want to install OneUptime. Running it
-       * from source, to work on it, comes last.
+       * The Self-Hosting Guide first: /docs/installation opens a category's
+       * first page, and people who type it want to install OneUptime. It
+       * goes from an empty server to one that has sent a test email and can
+       * page, and leads to Docker Compose and the chart's docs for detail.
+       * Running OneUptime from source, to work on it, comes last.
        */
+      {
+        title: "Self-Hosting Guide",
+        url: "/docs/installation/self-hosting-guide",
+      },
       {
         title: "Docker Compose",
         url: "/docs/installation/docker-compose",
