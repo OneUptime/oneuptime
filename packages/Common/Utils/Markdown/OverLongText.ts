@@ -1,3 +1,5 @@
+import { isWhiteSpaceCode } from "../RegExpCharacterClasses";
+
 /*
  * TEXT TOO LONG FOR A MARKDOWN PARSER TO READ.
  *
@@ -22,7 +24,10 @@
  *     characters. The line keeps its first and last OVER_LONG_LINE_KEPT_LENGTH
  *     characters, so it keeps what makes it a list item, a quote, a heading
  *     or a table row, and whatever wraps it - a code span's backticks, the
- *     asterisks of bold, a link's brackets - on both ends.
+ *     asterisks of bold, a link's brackets - on both ends. A link that goes
+ *     on from the kept start into the middle keeps its structure: its
+ *     address and its title are held back apart, with what parts them in
+ *     view (holdBackMiddle).
  *   - in every run of lines with no blank line between them that is longer
  *     than OVER_LONG_RUN_LENGTH characters, each group of consecutive lines
  *     that only continue the block they are in (isContinuationLine: plain
@@ -236,10 +241,569 @@ const getCut: (text: string, position: number) => number = (
 };
 
 /*
+ * A LINK ACROSS THE START OF A LINE'S MIDDLE.
+ *
+ * A link, an image or a link reference definition can start in an
+ * over-long line's kept start and go on into its middle: an address longer
+ * than the kept start (a signed URL, a dashboard link with a long query),
+ * then a title - an error message or a log a template placed there. Held
+ * back in one piece, the rest of the address, the white space after it and
+ * the title became one token: the parser read an address with no end - no
+ * space, no title, no ")" - and no link at all. An email showed "[Run](" as
+ * text and then a link to the address, the space, the quote and the whole
+ * title, percent-encoded (issue #7229).
+ *
+ * So the middle is held back in pieces that leave the link's own structure
+ * where the parser reads it: the rest of the address is one piece and the
+ * rest of the title another, and what parts them - the white space between
+ * them, the title's quotes, the ">" of an address in angle brackets, the
+ * ")" that closes the link - stays in view. The parser reads the link it
+ * would have read in the whole line, and the address and the title are put
+ * back into it. An autolink ("<https://...>") keeps its ">" the same way.
+ *
+ * A word the middle starts inside of that is in no link - a bare address -
+ * is held back to its end on its own, so an address written as text does
+ * not run on into the text after it. The punctuation that ends it stays in
+ * view, for the parser to judge as it judges the end of a whole address:
+ * "." and ")" end a sentence, not an address. And what follows a link is
+ * held back from the white space after it on, so it never joins the link's
+ * address either - where the parser reads no link there after all.
+ *
+ * Where the link is is read from the start of the line to the cut - at
+ * most OVER_LONG_LINE_KEPT_LENGTH characters - and then on to where its
+ * address or title ends: each character of the line once.
+ */
+
+// The parts of a link a line is read in (readLinkUnit).
+type LinkPart =
+  | "text"
+  | "autolink"
+  | "beforeDestination"
+  | "rawDestination"
+  | "angleDestination"
+  | "afterDestination"
+  | "title"
+  | "afterTitle";
+
+interface LinkReading {
+  part: LinkPart;
+  /*
+   * Whether the link is an inline one, "[text](...)", which a ")" closes -
+   * and its address too, where the ")" closes more parentheses than the
+   * address opened. A link reference definition's address ends at white
+   * space alone.
+   */
+  isInline: boolean;
+  // The parentheses an inline link's address has opened and not closed.
+  depth: number;
+  // What closes the title: '"', "'" or ")".
+  closer: number;
+  // Whether white space has come after the address: a title follows some.
+  spaced: boolean;
+}
+
+const BACKSLASH: number = 0x5c;
+const OPEN_BRACKET: number = 0x5b;
+const CLOSE_BRACKET: number = 0x5d;
+const OPEN_PARENTHESIS: number = 0x28;
+const CLOSE_PARENTHESIS: number = 0x29;
+const LESS_THAN: number = 0x3c;
+const COLON: number = 0x3a;
+const QUOTATION_MARK: number = 0x22;
+const APOSTROPHE: number = 0x27;
+
+// The most characters an autolink's scheme has (CommonMark: 2 to 32).
+const MAX_SCHEME_LENGTH: number = 32;
+
+/*
+ * The most white space kept in view between a link's parts in a line's
+ * middle - between its address and its title, its title and its ")". A
+ * longer run is held back with what follows it, all but its first
+ * MAX_KEPT_SEPARATOR_LENGTH characters, which keep the address apart from
+ * it. And the most text kept in view after a link before the white space
+ * that ends it.
+ */
+const MAX_KEPT_SEPARATOR_LENGTH: number = 64;
+
+/*
+ * What ends a bare address without being part of it - marked and remark
+ * take it off the end of an address written as text (GFM's autolinks) -
+ * and is kept in view after a word held back to its end. Not "*", "_" or
+ * "~": those can close emphasis.
+ */
+const ADDRESS_END_PUNCTUATION: string = "?!.,:;'\")";
+
+const isAsciiLetter: (code: number) => boolean = (code: number): boolean => {
+  return (code >= 0x41 && code <= 0x5a) || (code >= 0x61 && code <= 0x7a);
+};
+
+/*
+ * Whether text[index] - a "<" - starts an autolink's address: an ASCII
+ * letter, then letters, digits, "+", "." or "-", MAX_SCHEME_LENGTH
+ * characters at most and two at least, then ":".
+ */
+const startsAutolink: (text: string, index: number) => boolean = (
+  text: string,
+  index: number,
+): boolean => {
+  if (!isAsciiLetter(text.charCodeAt(index + 1))) {
+    return false;
+  }
+
+  for (
+    let at: number = index + 2;
+    at <= index + MAX_SCHEME_LENGTH + 1 && at < text.length;
+    at++
+  ) {
+    const code: number = text.charCodeAt(at);
+
+    if (code === COLON) {
+      return at - index - 1 >= 2;
+    }
+
+    if (
+      !isAsciiLetter(code) &&
+      !isDigit(code) &&
+      code !== 0x2b &&
+      code !== 0x2e &&
+      code !== 0x2d
+    ) {
+      return false;
+    }
+  }
+
+  return false;
+};
+
+/*
+ * Reads one character of a line - or a backslash and the character it
+ * escapes - in `reading`, moving it to the part of the link the character
+ * starts, and returns where the next character starts. A character that
+ * only shows that a part has ended - the white space after an address, an
+ * address's first character - is not read: it is read again, in the next
+ * part.
+ */
+const readLinkUnit: (
+  text: string,
+  index: number,
+  reading: LinkReading,
+) => number = (text: string, index: number, reading: LinkReading): number => {
+  const code: number = text.charCodeAt(index);
+
+  switch (reading.part) {
+    case "text":
+      if (code === BACKSLASH) {
+        return index + 2;
+      }
+
+      if (
+        code === CLOSE_BRACKET &&
+        text.charCodeAt(index + 1) === OPEN_PARENTHESIS
+      ) {
+        reading.part = "beforeDestination";
+        reading.isInline = true;
+        reading.depth = 0;
+        reading.spaced = false;
+
+        return index + 2;
+      }
+
+      if (code === LESS_THAN && startsAutolink(text, index)) {
+        reading.part = "autolink";
+      }
+
+      return index + 1;
+
+    case "autolink":
+      if (code === GREATER_THAN) {
+        reading.part = "text";
+
+        return index + 1;
+      }
+
+      if (code === LESS_THAN || isWhiteSpaceCode(code)) {
+        reading.part = "text";
+
+        return index;
+      }
+
+      return index + 1;
+
+    case "beforeDestination":
+      if (isWhiteSpaceCode(code)) {
+        return index + 1;
+      }
+
+      if (code === LESS_THAN) {
+        reading.part = "angleDestination";
+
+        return index + 1;
+      }
+
+      if (code === CLOSE_PARENTHESIS && reading.isInline) {
+        reading.part = "text";
+
+        return index + 1;
+      }
+
+      reading.part = "rawDestination";
+
+      return index;
+
+    case "rawDestination":
+      if (isWhiteSpaceCode(code)) {
+        reading.part = "afterDestination";
+        reading.spaced = false;
+
+        return index;
+      }
+
+      if (code === BACKSLASH) {
+        return isWhiteSpaceCode(text.charCodeAt(index + 1))
+          ? index + 1
+          : index + 2;
+      }
+
+      if (reading.isInline && code === OPEN_PARENTHESIS) {
+        reading.depth++;
+      } else if (reading.isInline && code === CLOSE_PARENTHESIS) {
+        if (reading.depth === 0) {
+          reading.part = "text";
+        } else {
+          reading.depth--;
+        }
+      }
+
+      return index + 1;
+
+    case "angleDestination":
+      if (code === BACKSLASH) {
+        return index + 2;
+      }
+
+      if (code === GREATER_THAN) {
+        reading.part = "afterDestination";
+        reading.spaced = false;
+      } else if (code === LESS_THAN) {
+        reading.part = "text";
+      }
+
+      return index + 1;
+
+    case "afterDestination":
+      if (isWhiteSpaceCode(code)) {
+        reading.spaced = true;
+
+        return index + 1;
+      }
+
+      if (
+        reading.spaced &&
+        (code === QUOTATION_MARK ||
+          code === APOSTROPHE ||
+          code === OPEN_PARENTHESIS)
+      ) {
+        reading.part = "title";
+        reading.closer = code === OPEN_PARENTHESIS ? CLOSE_PARENTHESIS : code;
+
+        return index + 1;
+      }
+
+      reading.part = "text";
+
+      return code === CLOSE_PARENTHESIS && reading.isInline ? index + 1 : index;
+
+    case "title":
+      if (code === BACKSLASH) {
+        return index + 2;
+      }
+
+      if (code === reading.closer) {
+        reading.part = "afterTitle";
+      }
+
+      return index + 1;
+
+    case "afterTitle":
+      if (isWhiteSpaceCode(code)) {
+        return index + 1;
+      }
+
+      reading.part = "text";
+
+      return code === CLOSE_PARENTHESIS && reading.isInline ? index + 1 : index;
+  }
+};
+
+/*
+ * Whether `reading` is in a link, or an autolink: readLinkUnit moves it
+ * from part to part.
+ */
+const isInLink: (reading: LinkReading) => boolean = (
+  reading: LinkReading,
+): boolean => {
+  return reading.part !== "text";
+};
+
+/*
+ * Where the address of the link reference definition on the line that
+ * starts at `lineStart` starts to be read - just after its "]:" - or -1
+ * when the line holds none before `limit`: a "[" that starts the line once
+ * the markers of the quotes and list items it is in are read, a label with
+ * no bracket in it but an escaped one, "]" and ":".
+ */
+const readDefinitionStart: (
+  text: string,
+  lineStart: number,
+  limit: number,
+) => number = (text: string, lineStart: number, limit: number): number => {
+  let index: number = lineStart;
+
+  for (;;) {
+    while (index < limit && isSpaceOrTab(text.charCodeAt(index))) {
+      index++;
+    }
+
+    if (index < limit && text.charCodeAt(index) === GREATER_THAN) {
+      index++;
+      continue;
+    }
+
+    let markerEnd: number = index;
+
+    while (markerEnd < limit && isDigit(text.charCodeAt(markerEnd))) {
+      markerEnd++;
+    }
+
+    const marker: string = text.charAt(markerEnd);
+    const isBullet: boolean =
+      markerEnd === index &&
+      (marker === "-" || marker === "+" || marker === "*");
+    const isNumber: boolean =
+      markerEnd > index && (marker === "." || marker === ")");
+
+    if (
+      markerEnd + 1 < limit &&
+      (isBullet || isNumber) &&
+      isSpaceOrTab(text.charCodeAt(markerEnd + 1))
+    ) {
+      index = markerEnd + 1;
+      continue;
+    }
+
+    break;
+  }
+
+  if (index >= limit || text.charCodeAt(index) !== OPEN_BRACKET) {
+    return -1;
+  }
+
+  for (let at: number = index + 1; at < limit; at++) {
+    const code: number = text.charCodeAt(at);
+
+    if (code === BACKSLASH) {
+      at++;
+    } else if (code === OPEN_BRACKET) {
+      return -1;
+    } else if (code === CLOSE_BRACKET) {
+      return at + 1 < limit && text.charCodeAt(at + 1) === COLON ? at + 2 : -1;
+    }
+  }
+
+  return -1;
+};
+
+/*
+ * Holds back the middle text[middleStart, middleEnd) of the over-long line
+ * that starts at `lineStart` - in pieces where a link, or a word, goes on
+ * into it from the line's kept start (see "A link across the start of a
+ * line's middle" above) - and adds what stands for it to `pieces`.
+ */
+const holdBackMiddle: (data: {
+  text: string;
+  lineStart: number;
+  middleStart: number;
+  middleEnd: number;
+  hold: HoldBackFunction;
+  pieces: Array<string>;
+}) => void = (data: {
+  text: string;
+  lineStart: number;
+  middleStart: number;
+  middleEnd: number;
+  hold: HoldBackFunction;
+  pieces: Array<string>;
+}): void => {
+  const text: string = data.text;
+  const middleEnd: number = data.middleEnd;
+  let position: number = data.middleStart;
+
+  const holdTo: (end: number) => void = (end: number): void => {
+    if (end > position) {
+      data.pieces.push(data.hold(text.slice(position, end)));
+      position = end;
+    }
+  };
+
+  const keepTo: (end: number) => void = (end: number): void => {
+    if (end > position) {
+      data.pieces.push(text.slice(position, end));
+      position = end;
+    }
+  };
+
+  // Where the kept start leaves the line: read from the line's start.
+  const reading: LinkReading = {
+    part: "text",
+    isInline: false,
+    depth: 0,
+    closer: 0,
+    spaced: false,
+  };
+  let index: number = readDefinitionStart(
+    text,
+    data.lineStart,
+    data.middleStart,
+  );
+
+  if (index === -1) {
+    index = data.lineStart;
+  } else {
+    reading.part = "beforeDestination";
+  }
+
+  while (index < data.middleStart) {
+    index = readLinkUnit(text, index, reading);
+  }
+
+  if (!isInLink(reading)) {
+    /*
+     * A word the cut is inside of - with no space near the cut, the kept
+     * start ends inside one - is held back to its end on its own, and the
+     * punctuation that ends it and the white space after it are kept.
+     */
+    if (
+      !isWhiteSpaceCode(text.charCodeAt(position - 1)) &&
+      !isWhiteSpaceCode(text.charCodeAt(position))
+    ) {
+      let wordEnd: number = position;
+
+      while (
+        wordEnd < middleEnd &&
+        !isWhiteSpaceCode(text.charCodeAt(wordEnd))
+      ) {
+        wordEnd++;
+      }
+
+      if (wordEnd < middleEnd) {
+        let heldEnd: number = wordEnd;
+
+        while (
+          heldEnd > position &&
+          wordEnd - heldEnd < MAX_KEPT_SEPARATOR_LENGTH &&
+          ADDRESS_END_PUNCTUATION.indexOf(text.charAt(heldEnd - 1)) !== -1
+        ) {
+          heldEnd--;
+        }
+
+        holdTo(heldEnd);
+        keepTo(wordEnd + 1);
+      }
+    }
+
+    holdTo(middleEnd);
+
+    return;
+  }
+
+  /*
+   * In a link, or an autolink. What the reading took past the cut - the
+   * "(" after "](", a character a backslash escapes - is kept: the
+   * backslash before it is.
+   */
+  keepTo(Math.min(index, middleEnd));
+
+  // White space kept since the last address or title character.
+  let separatorLength: number = 0;
+
+  while (index < middleEnd && isInLink(reading)) {
+    const part: LinkPart = reading.part;
+    const next: number = Math.min(
+      readLinkUnit(text, index, reading),
+      middleEnd,
+    );
+
+    if (next === index) {
+      // A part ended on a character the next part reads.
+      continue;
+    }
+
+    if (
+      part === "beforeDestination" ||
+      part === "afterDestination" ||
+      part === "afterTitle"
+    ) {
+      // White space between the parts, a title's opening quote, a ")": kept.
+      separatorLength += next - index;
+
+      if (separatorLength > MAX_KEPT_SEPARATOR_LENGTH) {
+        break;
+      }
+
+      holdTo(index);
+      keepTo(next);
+    } else {
+      separatorLength = 0;
+
+      /*
+       * An address's or a title's own characters are held back; what ends
+       * it - a ">", a closing quote, the ")" that closes the link - is
+       * kept.
+       */
+      if (reading.part !== part) {
+        holdTo(index);
+        keepTo(next);
+      }
+    }
+
+    index = next;
+  }
+
+  /*
+   * The link ended before the middle did - or what looked like one was
+   * none. What follows it is held back from the white space after it on,
+   * unless what is in view already ends in white space.
+   */
+  if (index < middleEnd) {
+    holdTo(index);
+
+    let wordEnd: number = isWhiteSpaceCode(text.charCodeAt(index - 1))
+      ? middleEnd
+      : index;
+
+    while (
+      wordEnd < middleEnd &&
+      wordEnd - index < MAX_KEPT_SEPARATOR_LENGTH &&
+      !isWhiteSpaceCode(text.charCodeAt(wordEnd))
+    ) {
+      wordEnd++;
+    }
+
+    if (wordEnd < middleEnd && isWhiteSpaceCode(text.charCodeAt(wordEnd))) {
+      keepTo(wordEnd + 1);
+    }
+  }
+
+  holdTo(middleEnd);
+};
+
+/*
  * `text` with the middle of every line longer than OVER_LONG_LINE_LENGTH
  * held back (see the top of this file). The middle starts and ends right
  * after a space where there is one near (getCut), and never between the two
- * halves of a surrogate pair, such as an emoji.
+ * halves of a surrogate pair, such as an emoji. A link, or a word, that
+ * goes on from the line's kept start into its middle is held back in pieces
+ * (holdBackMiddle).
  */
 export const holdBackOverLongLines: (
   text: string,
@@ -270,10 +834,15 @@ export const holdBackOverLongLines: (
         lineEnd - OVER_LONG_LINE_KEPT_LENGTH,
       );
 
-      pieces.push(
-        text.slice(copiedUpTo, middleStart),
-        hold(text.slice(middleStart, middleEnd)),
-      );
+      pieces.push(text.slice(copiedUpTo, middleStart));
+      holdBackMiddle({
+        text: text,
+        lineStart: lineStart,
+        middleStart: middleStart,
+        middleEnd: middleEnd,
+        hold: hold,
+        pieces: pieces,
+      });
       copiedUpTo = middleEnd;
     }
 

@@ -35,6 +35,7 @@ import EmailInlineImages, {
 } from "../../../Server/Utils/Mail/EmailInlineImages";
 import logger from "../../../Server/Utils/Logger";
 import { OVER_LONG_LINE_LENGTH } from "../../../Utils/Markdown/OverLongText";
+import { FastestRun, fastestRunAsync } from "../../Helpers/FastestRun";
 import { seededRandom } from "../../Helpers/SeededRandom";
 
 /*
@@ -255,6 +256,131 @@ describe("Markdown email renderer - text longer than marked can read", () => {
 
     expect(mockMarkedState.calls).toHaveLength(1);
     expect(mockMarkedState.calls[0] === markdown).toBe(true);
+  });
+});
+
+/*
+ * ISSUE #7229: A LINK ACROSS THE START OF AN OVER-LONG LINE'S MIDDLE.
+ *
+ * A link, an image or a link reference definition whose address is longer
+ * than an over-long line's kept start (1 KB), with a title that takes the
+ * line over 64 KB - a signed URL or a dashboard link with a long query,
+ * and an error message or a log for its title. The middle of the line was
+ * held back from marked in one piece, from the address to the title, and
+ * marked read no link: the email showed "[Run](" as text, then a link to
+ * the address, the space, the quote and the whole title, percent-encoded.
+ * Now the rest of the address and the rest of the title are held back
+ * apart, what parts them stays in view, and each renders as marked alone
+ * renders it.
+ */
+describe("Markdown email renderer - a link across the start of an over-long line's middle (#7229)", () => {
+  // The issue's title: 68 KB, so each of its rows is a line of about 70 KB.
+  const TITLE: string = "Checkout failed. ".repeat(4000);
+  const ADDRESS: string = `https://example.com/${"a".repeat(2000)}`;
+  const WORDS: string = "lorem ipsum ".repeat(6000).trim();
+
+  test.each([
+    ["the issue's link with its title", `[Run](${ADDRESS} "${TITLE}")`],
+    ["the issue's image with its title", `![Shot](${ADDRESS}.png "${TITLE}")`],
+    [
+      "the issue's reference, its definition with the title",
+      `[Run][s]\n\n[s]: ${ADDRESS} "${TITLE}"`,
+    ],
+    [
+      "the issue's 500-character row",
+      `[Run](https://example.com/${"a".repeat(500)} "${TITLE}")`,
+    ],
+    [
+      "an address of more than 64 KB with a title",
+      `[Run](https://example.com/${"a".repeat(70000)} "${TITLE}")`,
+    ],
+    [
+      "an address of more than 64 KB, in a definition with a title",
+      `![Shot][s]\n\n[s]: https://example.com/${"a".repeat(70000)}.png "${TITLE}"`,
+    ],
+    ["an address in angle brackets", `[Run](<${ADDRESS}> "${TITLE}")`],
+    ["a title in single quotes", `[Run](${ADDRESS} '${TITLE}')`],
+    ["a title in parentheses", `[Run](${ADDRESS} (${TITLE}))`],
+    ["a definition in a quote", `[Run][s]\n\n> [s]: ${ADDRESS} "${TITLE}"`],
+    ["a definition in a list item", `[Run][s]\n\n- [s]: ${ADDRESS} "${TITLE}"`],
+    [
+      "a link in a list item, in a quote",
+      `> - See [Run](${ADDRESS} "${TITLE}")`,
+    ],
+    ["a link that ends in the middle", `[Run](${ADDRESS}), then ${WORDS}`],
+    [
+      "a title that ends in the middle",
+      `[Run](${ADDRESS} "Checkout failed") and then ${WORDS}`,
+    ],
+    [
+      "a title the cut is inside of",
+      `[Run](https://example.com/x "${"Checkout failed. ".repeat(200)}") then ${WORDS}`,
+    ],
+    ["a bare address, then a period", `See ${ADDRESS}. Then ${WORDS}`],
+    ["a bare address in parentheses", `(see ${ADDRESS}) then ${WORDS}`],
+    ["an autolink", `See <${ADDRESS}> and ${WORDS}`],
+  ])(
+    "renders exactly as marked alone does: %s",
+    async (_label: string, markdown: string) => {
+      const html: string = await render(markdown);
+      const expected: string = await renderWithMarkedAlone(markdown);
+
+      expect(markdown.length).toBeGreaterThan(OVER_LONG_LINE_LENGTH);
+      // A boolean, so a failure does not print hundreds of kilobytes.
+      expect(html === expected).toBe(true);
+    },
+  );
+
+  test("the issue's rows: a link and an image to the address, with the title - and no address holds the title", async () => {
+    const link: string = await render(`[Run](${ADDRESS} "${TITLE}")`);
+    const image: string = await render(`![Shot](${ADDRESS}.png "${TITLE}")`);
+    const reference: string = await render(
+      `[Run][s]\n\n[s]: ${ADDRESS} "${TITLE}"`,
+    );
+
+    expect(link).toBe(`<p><a href="${ADDRESS}" title="${TITLE}">Run</a></p>\n`);
+    expect(
+      image.startsWith(
+        `<p><img src="${ADDRESS}.png" alt="Shot" title="${TITLE}"`,
+      ),
+    ).toBe(true);
+    expect(reference).toBe(
+      `<p><a href="${ADDRESS}" title="${TITLE}">Run</a></p>\n`,
+    );
+
+    for (const html of [link, image, reference]) {
+      expect(html).not.toContain("%20%22Checkout");
+      expect(html).not.toContain("[Run](");
+      expect(html).not.toContain("![Shot](");
+    }
+  });
+
+  test("a megabyte line of such links renders in time in line with its length: the first a link with its title, the rest as written", async () => {
+    const title: string = "Checkout failed: the payment step timed out";
+    const link: string = `[Run](${ADDRESS} "${title}") `;
+    const markdown: string = link.repeat(
+      Math.ceil((1024 * 1024) / link.length),
+    );
+    let html: string = "";
+
+    const run: FastestRun<string> = await fastestRunAsync({
+      run: async (): Promise<string> => {
+        html = await render(markdown);
+
+        return html;
+      },
+      limitInMs: 2000,
+    });
+
+    expect(run.inMs).toBeLessThan(2000);
+    expect(
+      html.startsWith(
+        `<p><a href="${ADDRESS}" title="${title}">Run</a> [Run](${ADDRESS} &quot;${title}&quot;) `,
+      ),
+    ).toBe(true);
+    // One link: the rest of the line is its middle, shown as written.
+    expect(html.split("<a ")).toHaveLength(2);
+    expect(html).not.toContain("%20");
   });
 });
 
