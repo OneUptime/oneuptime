@@ -89,6 +89,7 @@
   },
   "navGroups": {
     "Introduction": "Inleiding",
+    "Guides": "Handleidingen",
     "Moving to OneUptime": "Overstappen naar OneUptime",
     "Installation": "Installatie",
     "Mobile & Desktop Apps": "Mobiele en desktop-apps",
@@ -138,6 +139,9 @@
     "Which One Do I Use?": "Welke gebruik ik?",
     "Home Page & Shortcuts": "Startpagina en sneltoetsen",
     "Your Account": "Uw account",
+    "Know When Your Website or API Is Down": "Weten wanneer uw website of API uitvalt",
+    "Get Paged by Phone, SMS or Push": "Opgeroepen worden via telefoon, sms of push",
+    "Publish a Status Page": "Een statuspagina publiceren",
     "Moving from Opsgenie": "Overstappen van Opsgenie",
     "Moving from PagerDuty": "Overstappen van PagerDuty",
     "Moving from incident.io": "Overstappen van incident.io",

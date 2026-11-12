@@ -100,7 +100,7 @@ To be paged by direct message when you are on call, add Mattermost as one of you
 3. Click **Send Test Message** on its row. The message arrives as a direct message from the project's bot.
 :::
 
-Adding it adds it to your on-call rules straight away, so pages reach you in Mattermost from then on. Change which pages it gets under **User Settings** > **On-Call Rules**. Each page carries a link to acknowledge it and one to escalate it. Disconnecting your Mattermost account removes this method and the on-call rules that use it.
+Adding it adds it to your on-call rules straight away, so pages reach you in Mattermost from then on. Change which pages it gets under **User Settings** > **How to Reach Me**. Each page carries a link to acknowledge it and one to escalate it. Disconnecting your Mattermost account removes this method and the on-call rules that use it.
 
 ## Notification rules
 

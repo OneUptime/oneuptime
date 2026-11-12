@@ -19,6 +19,11 @@ import {
   OpenStackPresentedCertificate,
 } from "../../../../Types/OpenStack/OpenStackProbeCollection";
 import ColumnLength from "../../../../Types/Database/ColumnLength";
+import {
+  DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+  MAX_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+  MIN_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+} from "../../../../Utils/OpenStack/OpenStackCollectionSettings";
 
 /*
  * The database half of probe collection, against a recording fake of the cloud service:
@@ -53,10 +58,8 @@ interface FakeService {
 }
 
 function fakeService(data: {
-  selectedRows?: Array<{
-    _id: string;
-    collectionIntervalInMinutes: number | null;
-  }>;
+  // What the claim's one statement answers: the ids it claimed, in claim order.
+  claimedIds?: Array<string>;
   clouds?: Array<OpenStackCollectionCloudRecord>;
   cloud?: OpenStackCollectionCloudRecord | null;
   updateFails?: boolean;
@@ -70,23 +73,22 @@ function fakeService(data: {
     findByCalls: findByCalls,
     updates: updates,
     service: {
-      executeTransaction: async <T>(
-        run: (manager: {
-          query: (sql: string, parameters: Array<unknown>) => Promise<unknown>;
-        }) => Promise<T>,
-      ): Promise<T> => {
-        return await run({
-          query: async (
-            sql: string,
-            parameters: Array<unknown>,
-          ): Promise<unknown> => {
-            queries.push({ sql: sql, parameters: parameters });
+      // No transaction to open: the claim is one self-committing statement.
+      getRepository: () => {
+        return {
+          manager: {
+            query: async (
+              sql: string,
+              parameters: Array<unknown>,
+            ): Promise<unknown> => {
+              queries.push({ sql: sql, parameters: parameters });
 
-            return sql.trim().startsWith("SELECT")
-              ? data.selectedRows || []
-              : [];
+              return (data.claimedIds || []).map((id: string) => {
+                return { _id: id };
+              });
+            },
           },
-        });
+        };
       },
       findBy: async (
         options: Record<string, unknown>,
@@ -196,8 +198,14 @@ describe("claiming clouds", () => {
       '(c."nextCollectionAt" IS NULL OR c."nextCollectionAt" <= $2)',
     );
     expect(select?.sql).toContain('NOT (c."_id" = ANY($6::uuid[]))');
-    // Two work requests never hand one cloud out twice.
-    expect(select?.sql).toContain("FOR UPDATE OF c SKIP LOCKED");
+    /*
+     * Two work requests never hand one cloud out twice - with FOR NO KEY
+     * UPDATE, never FOR UPDATE: the foreign-key check of a row that names a
+     * cloud takes FOR KEY SHARE, which FOR UPDATE would make wait (OneUptime
+     * issue #7194).
+     */
+    expect(select?.sql).toContain("FOR NO KEY UPDATE OF c SKIP LOCKED");
+    expect(select?.sql).not.toMatch(/FOR UPDATE/);
     // The longest overdue first.
     expect(select?.sql).toContain(
       'ORDER BY c."nextCollectionAt" ASC NULLS FIRST',
@@ -260,7 +268,7 @@ describe("claiming clouds", () => {
   });
 
   test("nothing due touches nothing, and reads nothing", async () => {
-    const fake: FakeService = fakeService({ selectedRows: [] });
+    const fake: FakeService = fakeService({ claimedIds: [] });
 
     await expect(claim(fake.service)).resolves.toEqual([]);
 
@@ -268,42 +276,39 @@ describe("claiming clouds", () => {
     expect(fake.findByCalls).toEqual([]);
   });
 
-  test("each claimed cloud's next collection moves an interval on, in the same transaction", async () => {
+  test("each claimed cloud's next collection moves an interval on, in the same statement", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [
-        { _id: CLOUD_ID, collectionIntervalInMinutes: 5 },
-        { _id: CLOUD_ID_2, collectionIntervalInMinutes: null },
-      ],
+      claimedIds: [CLOUD_ID, CLOUD_ID_2],
       clouds: [],
     });
 
-    const before: number = Date.now();
-
     await claim(fake.service);
 
-    const after: number = Date.now();
-    const update: Query | undefined = fake.queries[1];
+    // One statement locks, moves and answers: nothing waits between them.
+    expect(fake.queries).toHaveLength(1);
+    const statement: Query = fake.queries[0]!;
+    const sql: string = statement.sql.replace(/\s+/g, " ");
 
-    expect(update?.sql).toBe(
-      'UPDATE "OpenStackCloud" SET "nextCollectionAt" = CASE "_id" WHEN $1 THEN $2::timestamptz WHEN $3 THEN $4::timestamptz END WHERE "_id" IN ($5, $6)',
+    expect(sql).toContain('UPDATE "OpenStackCloud" AS c');
+    // getSafeInterval's rule: none or not positive is the default, else 1 to 60.
+    expect(sql).toContain(
+      'SET "nextCollectionAt" = $2::timestamptz + ( CASE WHEN c."collectionIntervalInMinutes" IS NULL OR c."collectionIntervalInMinutes" <= 0 THEN $8::int ELSE LEAST(GREATEST(c."collectionIntervalInMinutes", $9::int), $10::int) END ) * INTERVAL \'1 minute\'',
     );
-    expect(update?.parameters[0]).toBe(CLOUD_ID);
-    expect(update?.parameters[2]).toBe(CLOUD_ID_2);
-    expect(update?.parameters.slice(4)).toEqual([CLOUD_ID, CLOUD_ID_2]);
-
-    const firstNext: number = (update?.parameters[1] as Date).getTime();
-    const secondNext: number = (update?.parameters[3] as Date).getTime();
-
-    expect(firstNext).toBeGreaterThanOrEqual(before + 5 * 60_000);
-    expect(firstNext).toBeLessThanOrEqual(after + 5 * 60_000);
-    // A row with no interval goes by the default.
-    expect(secondNext).toBeGreaterThanOrEqual(before + 2 * 60_000);
-    expect(secondNext).toBeLessThanOrEqual(after + 2 * 60_000);
+    expect(sql).toContain('FROM "due" WHERE c."_id" = "due"."_id"');
+    expect(statement.parameters.slice(7)).toEqual([
+      DEFAULT_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+      MIN_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+      MAX_OPENSTACK_COLLECTION_INTERVAL_IN_MINUTES,
+    ]);
+    // Only what the statement wrote is answered, the longest overdue first.
+    expect(sql).toContain(
+      'INNER JOIN "claimed" ON "claimed"."_id" = "due"."_id" ORDER BY "due"."dueAt" ASC NULLS FIRST',
+    );
   });
 
   test("an application credential's job", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: CLOUD_ID, collectionIntervalInMinutes: 5 }],
+      claimedIds: [CLOUD_ID],
       clouds: [cloudRow()],
     });
 
@@ -330,7 +335,7 @@ describe("claiming clouds", () => {
 
   test("a password's job", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: CLOUD_ID, collectionIntervalInMinutes: 5 }],
+      claimedIds: [CLOUD_ID],
       clouds: [
         cloudRow({
           credentialKind: "password",
@@ -358,7 +363,7 @@ describe("claiming clouds", () => {
 
   test("it reads as OneUptime, because that is what decrypts the secret, and only what it needs", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: CLOUD_ID, collectionIntervalInMinutes: 5 }],
+      claimedIds: [CLOUD_ID],
       clouds: [cloudRow()],
     });
 
@@ -398,7 +403,7 @@ describe("claiming clouds", () => {
 
   test("the options go with the job, for the probe to read what it was asked for", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: CLOUD_ID, collectionIntervalInMinutes: 5 }],
+      claimedIds: [CLOUD_ID],
       clouds: [
         cloudRow({
           collectionOptions: { collectPorts: true, portNetworkIds: ["n"] },
@@ -418,10 +423,7 @@ describe("claiming clouds", () => {
 
   test("the longest overdue first, as they were claimed, whatever order they read back in", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [
-        { _id: CLOUD_ID, collectionIntervalInMinutes: 5 },
-        { _id: CLOUD_ID_2, collectionIntervalInMinutes: 5 },
-      ],
+      claimedIds: [CLOUD_ID, CLOUD_ID_2],
       clouds: [cloudRow({ _id: CLOUD_ID_2 }), cloudRow({ _id: CLOUD_ID })],
     });
 
@@ -436,10 +438,7 @@ describe("claiming clouds", () => {
 
   test("a row it cannot make a job of is not handed out", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [
-        { _id: CLOUD_ID, collectionIntervalInMinutes: 5 },
-        { _id: CLOUD_ID_2, collectionIntervalInMinutes: 5 },
-      ],
+      claimedIds: [CLOUD_ID, CLOUD_ID_2],
       clouds: [
         cloudRow({ _id: CLOUD_ID, credentialSecret: undefined }),
         cloudRow({ _id: CLOUD_ID_2, authUrl: undefined }),
@@ -451,7 +450,7 @@ describe("claiming clouds", () => {
 
   test("what a saved row is missing has a safe answer", async () => {
     const fake: FakeService = fakeService({
-      selectedRows: [{ _id: CLOUD_ID, collectionIntervalInMinutes: 5 }],
+      claimedIds: [CLOUD_ID],
       clouds: [
         cloudRow({
           name: undefined,

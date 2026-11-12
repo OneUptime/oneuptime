@@ -2,6 +2,9 @@
 
 En vagtpolitik tilkalder folk i niveauer. Hver eskaleringsregel er ét niveau: hvem der tilkaldes, og hvor længe der ventes på, at nogen kvitterer, før næste niveau tilkaldes. En politiks regler står i rækkefølge på dens side **Eskaleringsregler**.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En vagtpolitik tilkalder niveau for niveau, indtil nogen kvitterer"
 flowchart TB
     trigger["Hændelse eller advarsel"] --> level1["Level 1 tilkalder"]
@@ -89,7 +92,7 @@ Oversigten øverst på siden **Eskaleringsregler** viser hele stigen: hvornår h
 
 ### Sådan nås hver person
 
-Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Vagtregler**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Vagtregler**. Se [Personlige vagtregler](/docs/notifications/on-call-rules).
+Hver person, et niveau tilkalder, nås sådan, som personens egne vagtregler siger: **Brugerindstillinger** > **Sådan når man mig**, med en fane for hændelser, hændelsesepisoder, advarsler og advarselsepisoder og et kort pr. alvorlighed, der viser, hvilken notifikationsmetode der prøves og efter hvor lang tid. En projektadministrator kan se og ændre et medlems regler under **Brugere** > medlemmet > **Sådan når man mig**. Se [Personlige vagtregler](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et niveau tilkalder, og hvordan hver person nås"
 flowchart TB

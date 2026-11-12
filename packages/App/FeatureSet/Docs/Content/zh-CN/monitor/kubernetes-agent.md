@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes 代理是一个 Helm Chart，它采集集群的指标、事件和 Pod 日志、通过 eBPF 捕获的应用跟踪，以及每个节点的操作系统指标，并发送到 OneUptime。只需一次 `helm install` 即可部署，无需修改应用代码。[Kubernetes 监视器](/docs/monitor/kubernetes-monitor) 根据它发送的数据发出告警。
 
+> [!NOTE]
+> 本页使用 Helm 逐步安装代理，并提供适用于你的平台的预设。所有选项、Amazon EKS 附加组件、OpenShift 和 Kubernetes AI 代理都在它的完整参考 [Kubernetes 代理](/docs/telemetry/kubernetes-agent) 中。
+
 :::cards
 - [安装代理](#安装代理): 使用 Helm 的四个步骤。
 - [选择预设](#选择预设): 标准集群、GKE Autopilot、EKS Fargate 或 OpenShift。

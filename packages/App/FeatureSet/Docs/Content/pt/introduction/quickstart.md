@@ -2,6 +2,8 @@
 
 Este guia leva você de uma conta nova a uma configuração funcionando em cerca de quinze minutos: um monitor que verifica seu site a cada cinco minutos, uma política de plantão que aciona você quando o site cai e uma página de status que informa seus clientes. Ele segue a lista **Boas-vindas ao OneUptime 👋** na página inicial do seu projeto.
 
+Vindo de outra ferramenta? Primeiro [importe sua configuração](/docs/introduction/getting-started#vindo-de-outra-ferramenta): seus monitores, agendamentos de plantão e páginas de status vêm junto.
+
 ```mermaid title="O que você configura neste guia"
 flowchart TB
     monitor["Monitor de site"] -->|"site fora do ar"| incident["Incidente"]
@@ -57,6 +59,8 @@ Mantenha as **Sondas** selecionadas e o **Intervalo de monitoramento** de **A ca
 
 Para testar a verificação antes de salvar, clique em **Testar monitor** na segunda etapa. Todos os outros tipos de monitor estão descritos em [Criar um monitor](/docs/monitor/create-monitor).
 
+Para verificar também uma API, escolher quem é avisado e enviar um acionamento de teste que comprove que a mensagem chega até você, siga [Saber quando seu site ou sua API cai](/docs/guides/website-down).
+
 ## Ser acionado quando cair
 
 Do jeito que está, um incidente sem proprietários é enviado por e-mail aos proprietários do projeto, e isso inclui você. Para ser acionado até que alguém responda, crie uma política de plantão: a primeira de um projeto é disparada a cada novo incidente e a cada novo alerta.
@@ -80,6 +84,8 @@ Seu e-mail de login já é uma forma de contatar você. Para receber também SMS
 
 Para mais níveis, rodízios e quanto tempo cada nível espera, veja [Regras de escalonamento](/docs/on-call/escalation-rules) e [Agendamentos de plantão](/docs/on-call/schedules).
 
+Para ser acionado por SMS, ligação e push, com a próxima pessoa acionada quando ninguém responde e um acionamento de teste que comprova isso, siga [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
+
 ## Publicar uma página de status
 
 :::steps
@@ -97,6 +103,8 @@ Escolha **Visão geral** no menu lateral. O cartão **Link da página de status*
 :::
 
 Uma página de status nova é pública: qualquer pessoa com o endereço pode abri-la. Para dar a ela seu próprio domínio, seu logotipo e suas cores, veja [Marca e domínios da página de status](/docs/status-pages/branding-and-domains).
+
+Para colocar a página de status no seu próprio domínio, por HTTPS, siga [Publicar uma página de status](/docs/guides/status-page).
 
 ## Convidar sua equipe
 

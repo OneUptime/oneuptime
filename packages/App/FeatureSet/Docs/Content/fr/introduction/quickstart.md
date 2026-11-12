@@ -2,6 +2,8 @@
 
 Ce guide vous mène d'un nouveau compte à une configuration qui fonctionne en une quinzaine de minutes : un moniteur qui vérifie votre site web toutes les cinq minutes, une politique d'astreinte qui vous alerte quand le site tombe, et une page de statut qui informe vos clients. Il suit la liste de vérification **Bienvenue sur OneUptime 👋** de la page d'accueil de votre projet.
 
+Vous venez d'un autre outil ? [Importez votre configuration](/docs/introduction/getting-started#venir-dun-autre-outil) d'abord : vos moniteurs, vos plannings d'astreinte et vos pages de statut vous suivent.
+
 ```mermaid title="Ce que vous configurez dans ce guide"
 flowchart TB
     monitor["Moniteur de site web"] -->|"site en panne"| incident["Incident"]
@@ -57,6 +59,8 @@ Gardez les **Sondes** sélectionnées et l'**Intervalle de surveillance** **Tout
 
 Pour essayer la vérification avant d'enregistrer, cliquez sur **Tester le moniteur** à la deuxième étape. Tous les autres types de moniteurs sont décrits dans [Créer un moniteur](/docs/monitor/create-monitor).
 
+Pour vérifier aussi une API, choisir qui est prévenu et envoyer un appel de test qui prouve que le message vous parvient, suivez [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
+
 ## Être alerté en cas de panne
 
 En l'état, un incident sans propriétaire est envoyé par e-mail aux propriétaires du projet, dont vous faites partie. Pour être alerté jusqu'à ce que quelqu'un réponde, créez une politique d'astreinte : la première d'un projet se déclenche pour chaque nouvel incident et chaque nouvelle alerte.
@@ -80,6 +84,8 @@ Votre e-mail de connexion est déjà un moyen de vous joindre. Pour recevoir aus
 
 Pour plus de niveaux, des rotations et le délai d'attente de chaque niveau, consultez [Règles d'escalade](/docs/on-call/escalation-rules) et [Plannings d'astreinte](/docs/on-call/schedules).
 
+Pour être alerté par SMS, appel téléphonique et push, avec la personne suivante alertée quand personne ne répond et un appel de test qui le prouve, suivez [Être alerté par appel, SMS ou push](/docs/guides/paging).
+
 ## Publier une page de statut
 
 :::steps
@@ -97,6 +103,8 @@ Choisissez **Vue d'ensemble** dans le menu latéral. La carte **Lien de la page 
 :::
 
 Une nouvelle page de statut est publique : toute personne disposant de son adresse peut l'ouvrir. Pour lui donner votre propre domaine, votre logo et vos couleurs, consultez [Personnalisation et domaines de la page de statut](/docs/status-pages/branding-and-domains).
+
+Pour placer la page de statut sur votre propre domaine, en HTTPS, suivez [Publier une page de statut](/docs/guides/status-page).
 
 ## Inviter votre équipe
 

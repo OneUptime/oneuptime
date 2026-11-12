@@ -2,6 +2,8 @@
 
 Deze handleiding brengt u in ongeveer vijftien minuten van een nieuw account naar een werkende inrichting: een monitor die uw website elke vijf minuten controleert, een bereikbaarheidsbeleid dat u oproept wanneer de site uitvalt, en een statuspagina die uw klanten informeert. Ze volgt de checklist **Welkom bij OneUptime 👋** op de startpagina van uw project.
 
+Komt u van een andere tool? [Importeer dan eerst uw inrichting](/docs/introduction/getting-started#overstappen-van-een-andere-tool): uw monitoren, bereikbaarheidsschema's en statuspagina's gaan mee.
+
 ```mermaid title="Wat u in deze handleiding inricht"
 flowchart TB
     monitor["Websitemonitor"] -->|"site is down"| incident["Incident"]
@@ -57,6 +59,8 @@ Laat de gekozen **Sondes** en het **Bewakingsinterval** **Elke 5 minuten** staan
 
 Om de controle te proberen voordat u opslaat, klikt u in de tweede stap op **Monitor testen**. Alle andere monitortypen staan beschreven in [Een monitor maken](/docs/monitor/create-monitor).
 
+Wilt u ook een API controleren, kiezen wie er wordt ingelicht en een testoproep sturen die bewijst dat het bericht u bereikt, volg dan de handleiding [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+
 ## Opgeroepen worden bij uitval
 
 Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenaren van het project gestuurd, en daar hoort u bij. Om opgeroepen te worden tot iemand reageert, maakt u een bereikbaarheidsbeleid aan: het eerste van een project wordt bij elk nieuw incident en elke nieuwe waarschuwing geactiveerd.
@@ -80,6 +84,8 @@ Uw inlog-e-mail is al een manier om u te bereiken. Om ook sms'jes of oproepen te
 
 Voor meer niveaus, roosters en hoe lang elk niveau wacht, zie [Escalatieregels](/docs/on-call/escalation-rules) en [Bereikbaarheidsschema's](/docs/on-call/schedules).
 
+Wilt u per sms, telefoonoproep en push worden opgeroepen, met de volgende persoon als niemand antwoordt en een testoproep die bewijst dat het werkt, volg dan de handleiding [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 ## Een statuspagina publiceren
 
 :::steps
@@ -97,6 +103,8 @@ Kies **Overzicht** in het zijmenu. De kaart **Link naar de statuspagina** linkt 
 :::
 
 Een nieuwe statuspagina is openbaar: iedereen met het adres kan haar openen. Hoe u haar uw eigen domein, logo en kleuren geeft, leest u in [Statuspagina – branding en domeinen](/docs/status-pages/branding-and-domains).
+
+Wilt u de statuspagina via HTTPS op uw eigen domein zetten, volg dan de handleiding [Een statuspagina publiceren](/docs/guides/status-page).
 
 ## Uw team uitnodigen
 

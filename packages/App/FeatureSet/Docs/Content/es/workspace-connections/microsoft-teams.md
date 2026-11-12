@@ -150,7 +150,7 @@ Para recibir avisos por mensaje directo cuando estás de guardia, añade Microso
 3. Haz clic en **Enviar mensaje de prueba** en su fila. El mensaje llega a tus chats de Microsoft Teams.
 :::
 
-Al añadirlo, entra de inmediato en tus reglas de guardia, así que a partir de entonces los avisos te llegan en Microsoft Teams. Cambia qué avisos recibe en **Ajustes de usuario** > **Reglas de guardia**.
+Al añadirlo, entra de inmediato en tus reglas de guardia, así que a partir de entonces los avisos te llegan en Microsoft Teams. Cambia qué avisos recibe en **Ajustes de usuario** > **Cómo contactarme**.
 
 ## Guardar mensajes como notas
 

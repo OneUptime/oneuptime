@@ -2,6 +2,9 @@
 
 En vaktretningslinje varsler folk i nivåer. Hver eskaleringsregel er ett nivå: hvem som varsles, og hvor lenge det ventes på at noen bekrefter før neste nivå varsles. Reglene i en retningslinje står i rekkefølge på siden **Eskaleringsregler**.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En vaktretningslinje varsler nivå for nivå til noen bekrefter"
 flowchart TB
     trigger["Hendelse eller varsel"] --> level1["Level 1 varsler"]
@@ -89,7 +92,7 @@ Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert
 
 ### Slik nås hver person
 
-Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Vaktregler**. Se [Personlige vaktregler](/docs/notifications/on-call-rules).
+Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Slik når man meg**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Slik når man meg**. Se [Personlige vaktregler](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et nivå varsler, og hvordan hver person nås"
 flowchart TB

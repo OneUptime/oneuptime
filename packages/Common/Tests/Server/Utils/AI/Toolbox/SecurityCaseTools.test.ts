@@ -61,6 +61,12 @@ import { stubSecurityCaseValues } from "../../../../Helpers/SecurityCaseValuesSt
 import { SecurityPlaybookActionType } from "../../../../../Types/SecurityPlaybook/SecurityPlaybookAction";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import { actionCardText } from "../../../../Helpers/AIActionCardText";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../../Helpers/ReadCardWords";
 
 /*
  * The security case tools: how OneUptime AI reads a case and what is
@@ -897,5 +903,59 @@ describe("who may call them", () => {
       expect(outcome.success).toBe(false);
     }
     expect(findBy).not.toHaveBeenCalled();
+  });
+});
+
+/*
+ * Issue #7175: one case's card said "Detections", "Entities" and
+ * "IP Address" in English on a German page. Its words are OneUptime's own
+ * now: its status and priority by the names the project gave them, each
+ * entity by its kind's word and its value as written.
+ */
+describe("query_security_cases - one case's card, in the reader's language", () => {
+  test("its status and priority as named, each entity by its kind", async () => {
+    jest.spyOn(SecurityCaseService, "findOneBy").mockResolvedValue({
+      id: caseId,
+      caseNumberWithPrefix: "CASE-42",
+      title: "Brute force from 203.0.113.9",
+      securityCaseStatusId: testStatusId(SecurityCaseStage.New),
+      securityCasePriorityId: testPriorityId(SecurityCasePriorityLevel.High),
+      entities: [
+        { type: SecurityEntityType.IpAddress, value: "203.0.113.9" },
+        { type: SecurityEntityType.User, value: "alice" },
+      ],
+      detectionCount: 2,
+    } as unknown as SecurityCase);
+    jest.spyOn(SecurityDetectionService, "findBy").mockResolvedValue([]);
+
+    const result: ToolExecutionResult = await QuerySecurityCasesTool.execute(
+      { securityCaseId: caseId.toString() },
+      context(),
+    );
+    const words: AIActionCardWords = expectReadCardWorded(result.widget);
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "Security case",
+      line: "New · High",
+      facts: [
+        { label: "Detections", value: "2" },
+        { label: "Entities", value: "IP Address: 203.0.113.9, User: alice" },
+      ],
+    });
+    // The project named its status and priority: data, in every language.
+    expect(words.line).toEqual(["New", "High"]);
+    expect(describeAIActionCardWords(words, dashboardTranslator("de"))).toEqual(
+      {
+        kind: "Sicherheitsfall",
+        line: "New · High",
+        facts: [
+          { label: "Erkennungen", value: "2" },
+          {
+            label: "Entitäten",
+            value: "IP-Adresse: 203.0.113.9, Benutzer: alice",
+          },
+        ],
+      },
+    );
   });
 });

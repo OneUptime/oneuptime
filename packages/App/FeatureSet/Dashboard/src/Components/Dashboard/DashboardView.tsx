@@ -9,6 +9,10 @@ import React, {
 } from "react";
 import DashboardToolbar from "./Toolbar/DashboardToolbar";
 import { useUnsavedChanges } from "Common/UI/Utils/NewVersion/UnsavedChanges";
+import useLeaveGuard, { LeavePrompt } from "Common/UI/Utils/UseLeaveGuard";
+import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import { getDashboardViewConfigSignature } from "Common/Utils/Dashboard/DashboardViewConfigSignature";
 import DashboardCanvas from "./Canvas/Index";
 import DashboardMode from "Common/Types/Dashboard/DashboardMode";
 import DashboardComponentType from "Common/Types/Dashboard/DashboardComponentType";
@@ -324,6 +328,14 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
       heightInDashboardUnits: DefaultDashboardSize.heightInDashboardUnits,
     });
 
+  /*
+   * The board editing started from, as Save Changes would write it
+   * (getDashboardViewConfigSignature): what the board is compared with to
+   * know whether anything is unsaved. Set as edit mode opens; Save Changes
+   * and Discard Changes both end edit mode, so after either nothing is.
+   */
+  const [editStartSignature, setEditStartSignature] = useState<string>("");
+
   const [error, setError] = useState<string | null>(null);
   /*
    * The board is read as it opens (loadPage, below), so it starts loading,
@@ -494,10 +506,34 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
     dashboardMode === DashboardMode.Edit && canEditDashboard;
 
   /*
-   * A dashboard being edited holds its changes until Save: nothing reloads
+   * Whether the board being edited differs from the one editing started
+   * from: a widget added, moved, resized, removed or set up differently, a
+   * variable, a default. A board opened for editing and left as it was
+   * holds nothing unsaved, and nothing asks before it is left (issue #7173).
+   */
+  const hasUnsavedChanges: boolean = useMemo(() => {
+    if (!isEditMode) {
+      return false;
+    }
+
+    return (
+      getDashboardViewConfigSignature(dashboardViewConfig) !==
+      editStartSignature
+    );
+  }, [isEditMode, dashboardViewConfig, editStartSignature]);
+
+  /*
+   * A dashboard with unsaved changes holds them until Save: nothing reloads
    * the page under them, a new version of OneUptime included.
    */
-  useUnsavedChanges(isEditMode);
+  useUnsavedChanges(hasUnsavedChanges);
+
+  /*
+   * And leaving it asks first (LeaveGuard): a side menu entry, a crumb, the
+   * header, the browser's Back and Forward buttons, closing or reloading the
+   * tab. Leaving it used to drop every unsaved widget without a word.
+   */
+  const leavePrompt: LeavePrompt = useLeaveGuard(hasUnsavedChanges);
 
   useEffect(() => {
     handleResize();
@@ -587,9 +623,16 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
      * widgets saved by older builds) before editing starts, so
      * every drag begins from a valid board.
      */
-    setDashboardViewConfig(
-      DashboardViewConfigUtil.normalizeLayout(dashboardViewConfig),
-    );
+    const editStartConfig: DashboardViewConfig =
+      DashboardViewConfigUtil.normalizeLayout(dashboardViewConfig);
+
+    setDashboardViewConfig(editStartConfig);
+    /*
+     * The healed board is where editing starts: healing it is no change of
+     * the editor's, and leaving a board opened and left as it was asks
+     * nothing.
+     */
+    setEditStartSignature(getDashboardViewConfigSignature(editStartConfig));
     setDashboardMode(DashboardMode.Edit);
   };
 
@@ -723,6 +766,7 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         dashboardViewConfig={dashboardViewConfig}
         dashboardName={dashboardName}
         dashboardDescription={dashboardDescription}
+        hasUnsavedChanges={hasUnsavedChanges}
         isSaving={isSaving}
         onSaveClick={() => {
           /*
@@ -1222,6 +1266,27 @@ const DashboardViewer: FunctionComponent<ComponentProps> = (
         <></>
       )}
       {canvas}
+      {/*
+       * Someone is leaving the board while it has unsaved changes: the
+       * toolbar's Cancel question, put for leaving. Keep Editing stays on
+       * the board, as it was; Discard Changes goes where they were going.
+       * Last, so it opens above any dialog that is open on the board.
+       */}
+      {leavePrompt.isAsking ? (
+        <ConfirmModal
+          title={"Leave without saving?"}
+          description={
+            "You have unsaved changes to this dashboard. If you leave now, they will be lost."
+          }
+          submitButtonType={ButtonStyleType.DANGER}
+          submitButtonText={"Discard Changes"}
+          closeButtonText={"Keep Editing"}
+          onSubmit={leavePrompt.leave}
+          onClose={leavePrompt.stay}
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

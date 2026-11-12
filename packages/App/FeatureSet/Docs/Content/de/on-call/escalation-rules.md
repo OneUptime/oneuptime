@@ -2,6 +2,9 @@
 
 Eine Bereitschaftsrichtlinie alarmiert Personen in Stufen. Jede Eskalationsregel ist eine Stufe: wer alarmiert wird und wie lange auf eine Bestätigung gewartet wird, bevor die nächste Stufe alarmiert wird. Die Regeln einer Richtlinie stehen der Reihe nach auf ihrer Seite **Eskalationsregeln**.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
+
 ```mermaid title="Eine Bereitschaftsrichtlinie alarmiert Stufe für Stufe, bis jemand bestätigt"
 flowchart TB
     trigger["Vorfall oder Warnung"] --> level1["Level 1 alarmiert"]
@@ -89,7 +92,7 @@ Die Übersicht oben auf der Seite **Eskalationsregeln** zeigt die ganze Leiter: 
 
 ### Wie jede Person erreicht wird
 
-Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Bereitschaftsregeln**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Bereitschaftsregeln**. Siehe [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules).
+Wie jede Person erreicht wird, die eine Stufe alarmiert, bestimmen ihre eigenen Bereitschaftsregeln: **Benutzereinstellungen** > **Wie ich erreichbar bin**, mit je einem Tab für Vorfälle, Vorfallsepisoden, Warnungen und Warnungsepisoden und einer Karte pro Schweregrad, die zeigt, welche Benachrichtigungsmethode nach welcher Wartezeit verwendet wird. Projektadministratoren sehen und ändern die Regeln eines Mitglieds unter **Benutzer** > das Mitglied > **Wie ich erreichbar bin**. Siehe [Persönliche Bereitschaftsregeln](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wen eine Stufe alarmiert und wie jede Person erreicht wird"
 flowchart TB

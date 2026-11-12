@@ -25,6 +25,7 @@ import PartialEntity from "../../Types/Database/PartialEntity";
 import Query from "../Types/Database/Query";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import logger, { LogAttributes } from "../Utils/Logger";
+import { isPostgresLockContentionError } from "../Utils/Database/PostgresLockContention";
 import LIMIT_MAX, { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -52,7 +53,6 @@ import { SnmpTableDefinition } from "../../Types/Monitor/SnmpMonitor/SnmpTable";
 import SnmpTableListUtil, {
   MAX_DEVICE_SPECIFIC_TABLES,
 } from "../../Types/Monitor/SnmpMonitor/SnmpTableListUtil";
-import { EntityManager } from "typeorm";
 import ModelPermission from "../Types/Database/Permissions/Index";
 import QueryHelper from "../Types/Database/QueryHelper";
 import Select from "../Types/Database/Select";
@@ -364,6 +364,13 @@ export interface DiscoveredDetailsMerge {
  * bytes per device), not on Postgres's parameter count.
  */
 export const DISCOVERED_DETAILS_MERGE_CHUNK_SIZE: number = 500;
+
+// One patch as mergeDiscoveredDetails sends it: re-read, and its id checked.
+interface DiscoveredDetailsMergeRow {
+  id: string;
+  set: Record<string, unknown>;
+  unset: Array<string>;
+}
 
 function normalizeIdentityValue(value: unknown): string {
   if (value === null || value === undefined) {
@@ -3187,9 +3194,33 @@ export class Service extends ProjectReferencesService<Model> {
   /*
    * Atomically claims the devices this probe should poll now and advances
    * each device's nextPollAt by its own polling interval — the device-owned
-   * twin of MonitorProbeService.claimMonitorProbesForProbing. FOR UPDATE
-   * SKIP LOCKED keeps horizontally-scaled probe ingest instances from
-   * handing the same device to two pollers.
+   * twin of MonitorProbeService.claimMonitorProbesForProbing. SKIP LOCKED
+   * keeps horizontally-scaled probe ingest instances from handing the same
+   * device to two pollers.
+   *
+   * ONE auto-committed statement (OneUptime issue #7194). The claim used to
+   * be a transaction: a SELECT ... FOR UPDATE of up to DEVICE_POLL_FETCH_
+   * LIMIT rows, the next poll times worked out in Node, an UPDATE, then
+   * COMMIT. Every claimed row stayed locked across those round trips, and
+   * for as long as the app's event loop took to get back to the
+   * connection - on a loaded ingest instance, hundreds of milliseconds
+   * "idle in transaction". Each poll result the probe had just sent for one
+   * of those devices queued behind the lock: the walk pipeline's writes to
+   * the device row (the rate baseline, the inventory) and, because FOR
+   * UPDATE also blocks the FOR KEY SHARE a foreign key check takes, the
+   * interface and endpoint upserts that reference it. On a busy database
+   * those waits ran past lock_timeout ("canceling statement due to lock
+   * timeout"), the jobs failed, were retried from scratch twice, and the
+   * telemetry queue grew - and a backlog makes it worse, since then the
+   * results being processed are for the very devices the probe is claiming
+   * again. Now the rows are locked only while this one statement runs -
+   * Postgres releases them when it ends, whatever the app is doing - and
+   * the next poll time is the database's arithmetic on the row's own
+   * interval, so nothing needs to come back to Node in between.
+   *
+   * FOR NO KEY UPDATE, not FOR UPDATE: the lock an UPDATE of non-key
+   * columns takes anyway, which a foreign key check (FOR KEY SHARE) does
+   * not wait for.
    *
    * Suspended projects are skipped for the same reason monitor claiming
    * skips them; archived devices keep polling on purpose ("archived devices
@@ -3216,14 +3247,12 @@ export class Service extends ProjectReferencesService<Model> {
     limit: number;
   }): Promise<Array<ObjectID>> {
     const currentDate: Date = OneUptimeDate.getCurrentDate();
+    const activeSubscriptionStatuses: Array<string> =
+      SubscriptionStatusUtil.getActiveSubscriptionStatuses();
 
-    const claimedIds: Array<ObjectID> = await this.executeTransaction(
-      async (transactionalEntityManager: EntityManager) => {
-        const activeSubscriptionStatuses: Array<string> =
-          SubscriptionStatusUtil.getActiveSubscriptionStatuses();
-
-        const selectQuery: string = `
-        SELECT nd."_id", nd."pollingIntervalInMinutes"
+    const claimQuery: string = `
+      WITH "due" AS (
+        SELECT nd."_id"
         FROM "NetworkDevice" nd
         INNER JOIN "Project" p ON nd."projectId" = p."_id"
         INNER JOIN "Probe" pr ON nd."probeId" = pr."_id"
@@ -3259,85 +3288,52 @@ export class Service extends ProjectReferencesService<Model> {
         -- order around any more.
         ORDER BY nd."nextPollAt" ASC
         LIMIT $3
-        FOR UPDATE OF nd SKIP LOCKED
-      `;
+        -- Only the device rows: the joined Project and Probe rows are read,
+        -- never locked.
+        FOR NO KEY UPDATE OF nd SKIP LOCKED
+      ),
+      "claimed" AS (
+        UPDATE "NetworkDevice" AS device
+        -- Each device's own interval: NULL (and 0) is the 5-minute default,
+        -- and anything below 1 minute is clamped - a walk can take tens of
+        -- seconds, so sub-minute schedules would only stack up. Counted from
+        -- the moment the claim compared nextPollAt against, cast as
+        -- ::timestamptz and never ::timestamp: node-postgres sends a Date as
+        -- local wall-clock digits plus an offset, and a ::timestamp cast
+        -- would throw the offset away and skew every schedule by the gap
+        -- between the app's offset and the database session's timezone.
+        SET "nextPollAt" = $2::timestamptz
+          + GREATEST(COALESCE(NULLIF(device."pollingIntervalInMinutes", 0), 5), 1)
+            * INTERVAL '1 minute'
+        FROM "due"
+        WHERE device."_id" = "due"."_id"
+        RETURNING device."_id"
+      )
+      SELECT "_id" FROM "claimed"
+    `;
 
-        const selectedRows: Array<{
-          _id: string;
-          pollingIntervalInMinutes: number | null;
-        }> = await transactionalEntityManager.query(selectQuery, [
-          data.probeId.toString(),
-          currentDate,
-          data.limit,
-          activeSubscriptionStatuses,
-        ]);
-
-        if (selectedRows.length === 0) {
-          return [];
-        }
-
-        const ids: Array<string> = [];
-        const caseFragments: Array<string> = [];
-        const parameters: Array<string | Date> = [];
-        let parameterIndex: number = 1;
-
-        for (const row of selectedRows) {
-          /*
-           * Guard the interval: NULL falls back to the 5-minute default,
-           * and anything below 1 minute is clamped — a walk can take tens
-           * of seconds, so sub-minute schedules would only stack up.
-           */
-          const intervalInMinutes: number = Math.max(
-            row.pollingIntervalInMinutes || 5,
-            1,
-          );
-
-          const nextPollAt: Date = OneUptimeDate.addRemoveMinutes(
-            currentDate,
-            intervalInMinutes,
-          );
-
-          ids.push(row._id);
-          /*
-           * ::timestamptz, not ::timestamp. node-postgres serialises a Date
-           * parameter as local wall-clock digits plus an explicit offset; a
-           * ::timestamp cast throws the offset away and the timestamptz
-           * column then re-reads those digits in the Postgres session's
-           * timezone. The claim query above compares nextPollAt without a
-           * cast (correctly, as timestamptz), so writing it as timestamp
-           * skews every schedule by the difference between the app's UTC
-           * offset and the database session timezone — devices then get
-           * re-polled on every cron tick, or not for hours.
-           */
-          caseFragments.push(
-            `WHEN $${parameterIndex} THEN $${parameterIndex + 1}::timestamptz`,
-          );
-          parameters.push(row._id, nextPollAt);
-          parameterIndex += 2;
-        }
-
-        const idPlaceholders: Array<string> = ids.map(
-          (_id: string, index: number) => {
-            return `$${parameterIndex + index}`;
-          },
-        );
-        parameters.push(...ids);
-
-        const updateQuery: string = `
-        UPDATE "NetworkDevice"
-        SET "nextPollAt" = CASE "_id" ${caseFragments.join(" ")} END
-        WHERE "_id" IN (${idPlaceholders.join(", ")})
-      `;
-
-        await transactionalEntityManager.query(updateQuery, parameters);
-
-        return ids.map((id: string) => {
-          return new ObjectID(id);
-        });
-      },
+    /*
+     * A SELECT of the rows the UPDATE wrote, so the answer is those rows:
+     * TypeORM hands a top-level UPDATE ... RETURNING back as
+     * [rows, rowCount] instead (see updateColumnsByIdIfUnlockedWithoutHooks).
+     */
+    const claimedRows: unknown = await this.getRepository().manager.query(
+      claimQuery,
+      [
+        data.probeId.toString(),
+        currentDate,
+        data.limit,
+        activeSubscriptionStatuses,
+      ],
     );
 
-    return claimedIds;
+    if (!Array.isArray(claimedRows)) {
+      return [];
+    }
+
+    return claimedRows.map((row: { _id: string }) => {
+      return new ObjectID(row._id);
+    });
   }
 
   /*
@@ -3411,19 +3407,35 @@ export class Service extends ProjectReferencesService<Model> {
    * reaches the database is exactly what the reader accepts.
    *
    * Hook-free and leaves `updatedAt` alone, like the poll's own bookkeeping
-   * writes: nothing about the device's settings changed. Returns how many
-   * patches were sent.
+   * writes: nothing about the device's settings changed.
+   *
+   * It never waits for a device while holding another (OneUptime issue
+   * #7194). Each chunk is merged into the devices nobody else holds right
+   * now - FOR NO KEY UPDATE SKIP LOCKED - so the statement never waits at
+   * all. It used to: one UPDATE of up to 500 devices took their row locks in
+   * whatever order the plan met them and waited for each device another
+   * writer held, holding every device it had already reached. Two routers
+   * whose ARP tables name the same devices did that to each other, and to
+   * every poll writing one of those devices - lock queues, lock timeouts
+   * and deadlocks, and each failure took the whole chunk with it.
+   *
+   * A device skipped that way is then merged on its own, waiting only for
+   * that one device - unless the caller says `skipLockedDevices`: a reading
+   * the next poll takes again anyway (the walk's own readings, a router's
+   * ARP table) is not worth waiting for, and is simply left for it. A device
+   * still held after lock_timeout is logged and left for the next reading
+   * rather than failing the devices around it.
+   *
+   * Returns how many devices it wrote.
    */
   @CaptureSpan()
   public async mergeDiscoveredDetails(data: {
     projectId: ObjectID;
     patches: Array<DiscoveredDetailsMerge>;
+    // Leave a device another writer holds to the next reading. See above.
+    skipLockedDevices?: boolean | undefined;
   }): Promise<number> {
-    const rows: Array<{
-      id: string;
-      set: Record<string, unknown>;
-      unset: Array<string>;
-    }> = [];
+    const rows: Array<DiscoveredDetailsMergeRow> = [];
 
     for (const patch of data.patches) {
       const id: string = patch.deviceId ? patch.deviceId.toString() : "";
@@ -3448,19 +3460,94 @@ export class Service extends ProjectReferencesService<Model> {
       rows.push({ id: id, set: set, unset: unset });
     }
 
+    let written: number = 0;
+    const leftOver: Array<DiscoveredDetailsMergeRow> = [];
+
     for (
       let offset: number = 0;
       offset < rows.length;
       offset += DISCOVERED_DETAILS_MERGE_CHUNK_SIZE
     ) {
-      const chunk: Array<{
-        id: string;
-        set: Record<string, unknown>;
-        unset: Array<string>;
-      }> = rows.slice(offset, offset + DISCOVERED_DETAILS_MERGE_CHUNK_SIZE);
+      const chunk: Array<DiscoveredDetailsMergeRow> = rows.slice(
+        offset,
+        offset + DISCOVERED_DETAILS_MERGE_CHUNK_SIZE,
+      );
 
-      await this.getRepository().manager.query(
-        `
+      const writtenIds: Set<string> = await this.mergeDiscoveredDetailsRows({
+        projectId: data.projectId,
+        rows: chunk,
+        skipLocked: true,
+      });
+
+      written += writtenIds.size;
+
+      for (const row of chunk) {
+        if (!writtenIds.has(row.id.toLowerCase())) {
+          leftOver.push(row);
+        }
+      }
+    }
+
+    /*
+     * What the first pass did not write: devices another writer held - and
+     * devices that are gone or another project's, which this pass leaves
+     * unwritten again at the cost of one indexed read each.
+     */
+    if (data.skipLockedDevices) {
+      return written;
+    }
+
+    for (const row of leftOver) {
+      try {
+        written += (
+          await this.mergeDiscoveredDetailsRows({
+            projectId: data.projectId,
+            rows: [row],
+            skipLocked: false,
+          })
+        ).size;
+      } catch (error) {
+        if (!isPostgresLockContentionError(error)) {
+          throw error;
+        }
+
+        logger.warn(
+          `Discovered details of network device ${row.id} were not merged: another writer held the device past the lock timeout. The next reading records them.`,
+        );
+      }
+    }
+
+    return written;
+  }
+
+  /*
+   * One statement of mergeDiscoveredDetails: the patches merged into the
+   * live devices of the project they name, as `(details - unset) || set`.
+   * The devices are locked by the sub-SELECT before the UPDATE reads them
+   * (FOR NO KEY UPDATE: the lock the UPDATE takes anyway, which a foreign
+   * key check does not wait for), so each is merged into its newest
+   * version. With skipLocked, a device another writer holds is left out
+   * instead of waited for, and the statement never waits at all. Returns
+   * the ids it wrote, lower case.
+   */
+  private async mergeDiscoveredDetailsRows(data: {
+    projectId: ObjectID;
+    rows: Array<DiscoveredDetailsMergeRow>;
+    skipLocked: boolean;
+  }): Promise<Set<string>> {
+    const merged: unknown = await this.getRepository().manager.query(
+      `
+      WITH "locked" AS (
+        SELECT device."_id"
+        FROM "NetworkDevice" AS device
+        WHERE device."_id" IN (
+            SELECT "id" FROM jsonb_to_recordset($1::jsonb) AS target("id" uuid)
+          )
+          AND device."projectId" = $2
+          AND device."deletedAt" IS NULL
+        FOR NO KEY UPDATE OF device${data.skipLocked ? " SKIP LOCKED" : ""}
+      ),
+      "merged" AS (
         UPDATE "NetworkDevice" AS nd
         SET "discoveredDetails" =
           (COALESCE(nd."discoveredDetails", '{}'::jsonb) - patch."unset")
@@ -3470,12 +3557,25 @@ export class Service extends ProjectReferencesService<Model> {
         WHERE nd."_id" = patch."id"
           AND nd."projectId" = $2
           AND nd."deletedAt" IS NULL
-      `,
-        [JSON.stringify(chunk), data.projectId.toString()],
-      );
+          AND nd."_id" IN (SELECT "_id" FROM "locked")
+        RETURNING nd."_id"
+      )
+      SELECT "_id" FROM "merged"
+    `,
+      [JSON.stringify(data.rows), data.projectId.toString()],
+    );
+
+    const ids: Set<string> = new Set<string>();
+
+    if (Array.isArray(merged)) {
+      for (const row of merged as Array<{ _id?: unknown }>) {
+        if (row && typeof row._id === "string") {
+          ids.add(row._id.toLowerCase());
+        }
+      }
     }
 
-    return rows.length;
+    return ids;
   }
 
   /*

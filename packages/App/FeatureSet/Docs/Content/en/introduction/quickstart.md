@@ -2,6 +2,8 @@
 
 This guide takes you from a new account to a working setup in about fifteen minutes: a monitor that checks your website every five minutes, an on-call policy that pages you when the site goes down, and a status page that tells your customers. It follows the **Welcome to OneUptime 👋** checklist on your project's Home page.
 
+Coming from another tool? [Import it](/docs/introduction/getting-started#coming-from-another-tool) first: your monitors, on-call schedules and status pages come with you.
+
 ```mermaid title="What you set up in this guide"
 flowchart TB
     monitor["Website monitor"] -->|"site is down"| incident["Incident"]
@@ -57,6 +59,8 @@ Keep the selected **Probes** and the **Monitoring Interval** of **Every 5 Minute
 
 To try the check before you save, click **Test Monitor** on the second step. Every other monitor type is described in [Creating a Monitor](/docs/monitor/create-monitor).
 
+To check an API as well, choose who is told and send a test page that proves the message reaches you, follow [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 ## Get paged when it goes down
 
 As it is, an incident with no owners is emailed to the project's owners, and that includes you. To be paged until someone responds, create an on-call policy: the first one in a project pages for every new incident and alert.
@@ -80,6 +84,8 @@ Your sign-in email is already a way to reach you. To be texted or called too, op
 
 For more levels, rotations and how long each level waits, see [Escalation Rules](/docs/on-call/escalation-rules) and [On-Call Schedules](/docs/on-call/schedules).
 
+To be paged by SMS, phone call and push, with the next person paged when nobody answers and a test page that proves it, follow [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 ## Publish a status page
 
 :::steps
@@ -97,6 +103,8 @@ Choose **Overview** in the side menu. The **Status Page Link** card links to you
 :::
 
 A new status page is public: anyone with its address can open it. To give it your own domain, logo and colors, see [Status Page Branding & Domains](/docs/status-pages/branding-and-domains).
+
+To put the status page on your own domain, over HTTPS, follow [Publish a Status Page](/docs/guides/status-page).
 
 ## Invite your team
 

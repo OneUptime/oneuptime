@@ -190,11 +190,19 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
            * name ("Betroffene Ressourcen") left the value a third of the
            * card, and a description was cut after a few words. The names
            * are gray-500: gray-400 on the card's green read at about 2.5:1.
+           * Beside them, the names take at most 40% of the card and wrap
+           * there, as the PDF's do: a long one - "Stufe der
+           * Fehlerbudget-Richtlinie", an escalation rule named by its team -
+           * left every value of the card a narrow column, cut at "nach
+           * 3..." where it said after 30 minutes (issue #7175). A value
+           * takes up to four lines: an escalation rule's targets and a
+           * status page's resources are sentences, longer in German and
+           * Persian than in English.
            */}
           {card.facts.length > 0 && (
             <dl
               data-testid="ai-chat-resource-card-facts"
-              className="mt-2.5 space-y-1.5 [@container(min-width:22rem)]:grid [@container(min-width:22rem)]:grid-cols-[auto,1fr] [@container(min-width:22rem)]:gap-x-3 [@container(min-width:22rem)]:gap-y-1"
+              className="mt-2.5 space-y-1.5 [@container(min-width:22rem)]:grid [@container(min-width:22rem)]:grid-cols-[fit-content(40%)_minmax(0,1fr)] [@container(min-width:22rem)]:gap-x-3 [@container(min-width:22rem)]:gap-y-1"
             >
               {card.facts.map((fact: DrawnResourceCardFact, index: number) => {
                 return (
@@ -205,13 +213,13 @@ const ResourceCardWidget: FunctionComponent<ComponentProps> = (
                   >
                     <dt
                       data-testid="ai-chat-resource-card-fact-label"
-                      className="text-[11px] font-medium text-gray-500"
+                      className="min-w-0 break-words text-[11px] font-medium text-gray-500"
                     >
                       {fact.label}
                     </dt>
                     <dd
                       data-testid="ai-chat-resource-card-fact-value"
-                      className="line-clamp-2 min-w-0 break-words text-[11px] text-gray-700"
+                      className="line-clamp-4 min-w-0 break-words text-[11px] text-gray-700"
                     >
                       <ToolActionSentence sentence={fact.value} />
                     </dd>

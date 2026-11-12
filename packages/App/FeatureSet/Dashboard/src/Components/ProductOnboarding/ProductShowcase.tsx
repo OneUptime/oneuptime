@@ -64,6 +64,7 @@ const ProductShowcase: FunctionComponent<ComponentProps> = (
         showcase={onboarding.showcase}
         addButton={props.startButton}
         docsRoute={onboarding.docsRoute}
+        guideRoute={onboarding.guideRoute}
         hidesSteps={props.hidesSteps}
         hidesDescription={props.hidesDescription}
       />

@@ -2,6 +2,9 @@
 
 Una policy di reperibilità avvisa le persone per livelli. Ogni regola di escalation è un livello: chi viene avvisato e quanto attendere che qualcuno confermi prima di avvisare il livello successivo. Le regole di una policy sono elencate, in ordine, nella sua pagina **Regole di escalation**.
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
+
 ```mermaid title="Una policy di reperibilità avvisa livello per livello finché qualcuno conferma"
 flowchart TB
     trigger["Incidente o avviso"] --> level1["Level 1 avvisa"]
@@ -89,7 +92,7 @@ Il riepilogo in cima alla pagina **Regole di escalation** mostra l'intera scala:
 
 ### Come viene raggiunta ogni persona
 
-Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Regole di reperibilità**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Regole di reperibilità**. Vedi [Regole di reperibilità personali](/docs/notifications/on-call-rules).
+Ogni persona avvisata da un livello viene raggiunta come indicano le sue regole di reperibilità: **Impostazioni utente** > **Come contattarmi**, con una scheda per incidenti, episodi di incidente, avvisi ed episodi di avviso e una scheda per gravità che indica quale metodo di notifica viene provato e dopo quanto tempo. Un amministratore del progetto può vedere e modificare le regole di un membro in **Utenti** > il membro > **Come contattarmi**. Vedi [Regole di reperibilità personali](/docs/notifications/on-call-rules).
 
 ```mermaid title="Chi avvisa un livello e come viene raggiunta ogni persona"
 flowchart TB

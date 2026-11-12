@@ -2,6 +2,9 @@
 
 An on-call policy pages people in levels. Each escalation rule is one level: who gets paged, and how long to wait for somebody to acknowledge before the next level is paged. A policy's rules are listed, in order, on its **Escalation Rules** page.
 
+> [!TIP]
+> New here? Follow the guide first: [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 ```mermaid title="An on-call policy pages level by level until someone acknowledges"
 flowchart TB
     trigger["Incident or alert"] --> level1["Level 1 pages"]
@@ -89,7 +92,7 @@ The summary at the top of the **Escalation Rules** page shows the whole ladder: 
 
 ### How each person is reached
 
-Each person a level pages is reached the way their own on-call rules say: **User Settings** > **On-Call Rules**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **On-Call Rules**. See [Personal On-Call Rules](/docs/notifications/on-call-rules).
+Each person a level pages is reached the way their own on-call rules say: **User Settings** > **How to Reach Me**, with a tab for incidents, incident episodes, alerts and alert episodes, and a card per severity listing which notification method is tried and after how long. A project admin can see and change a member's rules under **Users** > the member > **How to Reach Me**. See [Personal On-Call Rules](/docs/notifications/on-call-rules).
 
 ```mermaid title="Who a level pages, and how each person is reached"
 flowchart TB

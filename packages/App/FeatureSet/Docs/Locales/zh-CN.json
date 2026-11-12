@@ -89,6 +89,7 @@
   },
   "navGroups": {
     "Introduction": "简介",
+    "Guides": "指南",
     "Moving to OneUptime": "迁移到 OneUptime",
     "Installation": "安装",
     "Mobile & Desktop Apps": "移动和桌面应用",
@@ -138,6 +139,9 @@
     "Which One Do I Use?": "该用哪一个？",
     "Home Page & Shortcuts": "首页与快捷键",
     "Your Account": "您的账户",
+    "Know When Your Website or API Is Down": "在网站或 API 宕机时收到通知",
+    "Get Paged by Phone, SMS or Push": "通过电话、短信或推送接收呼叫",
+    "Publish a Status Page": "发布状态页面",
     "Moving from Opsgenie": "从 Opsgenie 迁移",
     "Moving from PagerDuty": "从 PagerDuty 迁移",
     "Moving from incident.io": "从 incident.io 迁移",

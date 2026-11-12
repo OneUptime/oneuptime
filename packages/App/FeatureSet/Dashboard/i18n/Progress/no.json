@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9568
+    "keys": 51296,
+    "untranslated": 9529
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -353,6 +353,7 @@
     "storefront-web",
     "svc-backup",
     "syslog",
+    "team",
     "timeout|connection refused",
     "type",
     "vApp {{name}}",

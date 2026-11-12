@@ -100,7 +100,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Mattermost
 3. Klikk på **Send Test Message** i raden. Meldingen kommer som en direktemelding fra prosjektets bot.
 :::
 
-Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Mattermost fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**. Hver tilkalling har en lenke for å bekrefte den og en for å eskalere den. Når du kobler fra Mattermost-kontoen din, fjernes denne metoden og vaktreglene som bruker den.
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Mattermost fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Slik når man meg**. Hver tilkalling har en lenke for å bekrefte den og en for å eskalere den. Når du kobler fra Mattermost-kontoen din, fjernes denne metoden og vaktreglene som bruker den.
 
 ## Varslingsregler
 

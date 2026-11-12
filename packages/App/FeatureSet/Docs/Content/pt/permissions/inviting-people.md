@@ -86,7 +86,7 @@ Filtre a lista por **Usuário**, **Status** ou **Equipe**. Clique em uma linha p
 | --- | --- |
 | **Perfil** | O nome, o endereço de e-mail, a foto e o ID de usuário dela. |
 | **Equipes** | As equipes de que ela participa. Adicione ou remova uma equipe aqui. |
-| **Prontidão**, **Métodos de notificação**, **Regras de Plantão** | Se ela pode ser acionada, e como. Visível para Project Owners, Project Admins, a própria pessoa e quem pode ler as regras de notificação dos outros. Veja [Prontidão e relatórios](/docs/on-call/readiness). |
+| **Prontidão**, **Métodos de notificação**, **Como me contatar** | Se ela pode ser acionada, e como. Visível para Project Owners, Project Admins, a própria pessoa e quem pode ler as regras de notificação dos outros. Veja [Prontidão e relatórios](/docs/on-call/readiness). |
 | **Campos personalizados** | Os campos personalizados do projeto para pessoas, quando há algum. |
 | **Remover do Projeto** | Tirar a pessoa do projeto. |
 

@@ -2,6 +2,9 @@
 
 A status page is the public face of everything you monitor: one URL your customers can open instead of emailing you to ask whether it's just them. It shows the current state of the services you choose to expose, the incidents you're working on, the maintenance you have planned, and any announcement you want to pin to the top. To choose between a status page and a dashboard, see [Which One Do I Use?](/docs/introduction/which-one#dashboard-public-dashboard-or-status-page).
 
+> [!TIP]
+> New here? Follow the guide first: [Publish a Status Page](/docs/guides/status-page).
+
 When something breaks at 2am, the status page is the first thing your support queue links to. It is also the thing your subscribers get notified from — so it is worth setting up before you need it, not during the outage.
 
 :::cards

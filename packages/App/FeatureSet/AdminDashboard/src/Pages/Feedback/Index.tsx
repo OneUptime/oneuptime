@@ -390,7 +390,7 @@ const FeedbackPage: FunctionComponent = (): ReactElement => {
         title="Ask people how things went"
         getDescription={(isOn: boolean): string => {
           return isOn
-            ? "People are asked one short question now and then: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one a week each, never while something is down. Give feedback is in Help."
+            ? "People are asked one short question now and then, at most once a week and never while something is down. Give feedback is in Help."
             : "Nobody is asked, and Help offers no Give feedback.";
         }}
         dataTestId="admin-feedback-switch"

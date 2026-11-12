@@ -62,6 +62,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 export const WEBSITE_DOWN_SETUP: string = "website_down";
 
+// The docs' start-to-finish guide to this job (#6821), linked from the page.
+export const WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH: string =
+  "/docs/guides/website-down";
+
 export enum WebsiteDownStep {
   Check = "check",
   WhoIsTold = "who_is_told",

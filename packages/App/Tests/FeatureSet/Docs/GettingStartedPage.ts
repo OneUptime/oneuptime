@@ -26,15 +26,15 @@ export const GETTING_STARTED_JOBS: ReadonlyArray<{
 }> = [
   {
     job: "Know when your website or API is down",
-    target: "/docs/monitor/website-monitor",
+    target: "/docs/guides/website-down",
   },
   {
     job: "Get paged by phone, SMS or push, and escalate",
-    target: "/docs/on-call/index",
+    target: "/docs/guides/paging",
   },
   {
     job: "Publish a status page on your own domain",
-    target: "/docs/status-pages/index",
+    target: "/docs/guides/status-page",
   },
   {
     job: "Send logs, metrics and traces",

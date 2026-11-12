@@ -138,7 +138,7 @@ Le **Impostazioni utente**, a destra nella barra sotto la barra superiore, sono 
 | --- | --- | --- |
 | **Elenco di configurazione** | Ti guida in tutto ciò che segue, e mostra cosa resta da fare. | |
 | **Metodi di notifica** | Le e-mail, i numeri di telefono, le app e i webhook con cui OneUptime può raggiungerti. La tua e-mail di accesso viene aggiunta per te. | |
-| **Regole di reperibilità** | Quale metodo usare, e dopo quanto tempo, quando una policy di reperibilità ti avvisa. | [Regole di escalation](/docs/on-call/escalation-rules) |
+| **Come contattarmi** | Quale metodo usare, e dopo quanto tempo, quando una policy di reperibilità ti avvisa. | [Regole di escalation](/docs/on-call/escalation-rules) |
 | **Impostazioni notifiche** | Quali aggiornamenti ricevi su incidenti, avvisi, monitor e altro, e su quale canale. | |
 | **Preferenze e-mail** | Quante e-mail ricevi: una alla volta, o raggruppate. | [Riepilogo delle notifiche](/docs/emails/notification-rollup) |
 | **Registri di reperibilità** | Ogni avviso inviato a te, e cosa ne è stato. | |

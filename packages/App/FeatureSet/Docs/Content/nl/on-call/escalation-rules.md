@@ -2,6 +2,9 @@
 
 Een bereikbaarheidsbeleid roept mensen op in niveaus. Elke escalatieregel is één niveau: wie wordt opgeroepen en hoe lang er wordt gewacht tot iemand bevestigt voordat het volgende niveau wordt opgeroepen. De regels van een beleid staan op volgorde op de pagina **Escalatieregels** ervan.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 ```mermaid title="Een bereikbaarheidsbeleid roept niveau na niveau op tot iemand bevestigt"
 flowchart TB
     trigger["Incident of waarschuwing"] --> level1["Level 1 roept op"]
@@ -89,7 +92,7 @@ Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wann
 
 ### Hoe iedere persoon wordt bereikt
 
-Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
+Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Hoe ik bereikbaar ben**. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wie een niveau oproept en hoe iedere persoon wordt bereikt"
 flowchart TB
