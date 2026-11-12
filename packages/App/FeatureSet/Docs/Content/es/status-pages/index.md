@@ -168,7 +168,7 @@ Lo que ven los visitantes se define en una sola tarjeta: **Lo que muestra tu pá
 
 Si la página muestra un elemento **Suscribirse** (**Mostrar página de suscriptores**, `showSubscriberPageOnStatusPage`, activado por defecto) y por qué canales pueden suscribirse los visitantes no se define en esta pantalla: ambas cosas están en la tarjeta **Canales** de **Suscriptores → Ajustes de suscriptores** (consulta [Canales de suscripción](/docs/status-pages/subscribers#canales-de-suscripción)).
 
-Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que descarga los ajustes propios de la página de estado en un archivo que puedes volver a importar, y **Archive status page** (consulta [Archivar una página de estado](#archivar-una-página-de-estado)). El porcentaje de tiempo de actividad general y los estados de inactividad eran antes dos tarjetas propias aquí, cada una tras un botón **Editar**; ahora son filas de la tarjeta.
+Debajo de la tarjeta están **Exportar como JSON: Página de estado**, que descarga los ajustes propios de la página de estado en un archivo que puedes volver a importar, y **Archivar página de estado** (consulta [Archivar una página de estado](#archivar-una-página-de-estado)). El porcentaje de tiempo de actividad general y los estados de inactividad eran antes dos tarjetas propias aquí, cada una tras un botón **Editar**; ahora son filas de la tarjeta.
 
 **Dónde están los colores.** Los colores de las barras de tiempo de actividad no están aquí: el **Color de barra predeterminado** y las reglas de color de las barras están en **Más ajustes** en **Páginas de estado → tu página → Marca → Marca**. El **Tema** de la página (claro, oscuro o según el dispositivo de cada visitante) es una tarjeta cerca del principio de esa misma página. No hay ningún ajuste de color de marca; todo lo que vaya más allá de esos controles se hace con **CSS personalizado**.
 
@@ -241,7 +241,7 @@ Archiva una página de estado para desconectarla sin eliminarla. Una página de 
 - **Sale de la lista de páginas de estado.** La encontrarás en **Páginas de estado → Avanzado → Archivado**.
 - **Lo conserva todo.** Sus recursos, grupos, marca, dominios, usuarios privados y suscriptores se conservan, así que desarchivarla vuelve a poner la página en línea exactamente como estaba.
 
-Para archivar una página de estado, ábrela y ve a **Avanzado → Ajustes avanzados → Archive status page**. Para archivar varias, selecciónalas en la lista **Páginas de estado** y elige **Archivar**. Para recuperar una, abre **Páginas de estado → Avanzado → Archivado**, selecciónala y elige **Desarchivar**, o ábrela y haz clic en **Desarchivar** en el banner de la parte superior de sus páginas.
+Para archivar una página de estado, ábrela y ve a **Avanzado → Ajustes avanzados → Archivar página de estado**. Para archivar varias, selecciónalas en la lista **Páginas de estado** y elige **Archivar**. Para recuperar una, abre **Páginas de estado → Avanzado → Archivado**, selecciónala y elige **Desarchivar**, o ábrela y haz clic en **Desarchivar** en el banner de la parte superior de sus páginas.
 
 ## Próximos pasos
 

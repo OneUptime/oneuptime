@@ -59,7 +59,9 @@ flowchart TB
 Endringene dine er bare dine til du lagrer dem. Ingenting lagres mens du redigerer, så andre ser fortsatt dashbordet slik det var.
 
 - **Lagre endringer** lagrer widgetene, plasseringene og størrelsene deres, variablene, og standardtidsrommet og den automatiske standardoppdateringen, alt på én gang, og går tilbake til visningsmodus. Hvis lagringen blir avvist, for eksempel fordi du har mistet tillatelsen i mellomtiden, blir du i redigeringsmodus med endringene dine, og årsaken står over rutenettet.
-- **Avbryt** spør først, fordi den kaster endringene dine: **Forkast endringer** går tilbake til dashbordet slik det ble lagret, og **Fortsett å redigere** tar deg tilbake til arbeidet ditt.
+- **Avbryt** går tilbake til visningsmodus. Hvis du har endret noe, spør den først, fordi den kaster endringene dine: **Forkast endringer** går tilbake til dashbordet slik det ble lagret, og **Fortsett å redigere** tar deg tilbake til arbeidet ditt.
+
+Å forlate dashbordet med ulagrede endringer spør også først. En lenke i sidemenyen, brødsmulestien eller topplinjen, eller nettleserens Tilbake- og Fremover-knapper, åpner **Forlate uten å lagre?** med de samme to valgene: **Fortsett å redigere** blir på dashbordet med endringene dine, og **Forkast endringer** går videre til siden du var på vei til. Lukker eller laster du inn fanen på nytt, spør nettleseren med sin egen dialog. Et dashbord du åpnet for redigering og ikke endret, spør ikke om noe, og det gjør heller ikke et du nettopp har lagret.
 
 Mens du redigerer, står den automatiske oppdateringen på pause, og et zoomet tidsintervall går tilbake til intervallet du valgte.
 
