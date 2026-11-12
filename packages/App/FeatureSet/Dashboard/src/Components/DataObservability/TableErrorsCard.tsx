@@ -65,7 +65,7 @@ const TableErrorsCard: FunctionComponent<ComponentProps> = (
       title="Errors Naming This Table"
       description="Open exceptions and the last day's error logs from the services that write this table."
     >
-      <div className="space-y-4 px-6 pb-6 text-sm">
+      <div className="space-y-4 text-sm">
         {errors.exceptions.length > 0 ? (
           <ul className="divide-y divide-gray-100">
             {errors.exceptions.map(

@@ -11,6 +11,7 @@ import { FindOperator } from "typeorm";
 import CommonAPI from "../../../../Server/API/CommonAPI";
 import DataObservabilityAPI from "../../../../Server/API/DataObservabilityAPI";
 import AlertService from "../../../../Server/Services/AlertService";
+import AlertStateService from "../../../../Server/Services/AlertStateService";
 import DataAlertService from "../../../../Server/Services/DataAlertService";
 import DataAssetLineageService from "../../../../Server/Services/DataAssetLineageService";
 import DataAssetService from "../../../../Server/Services/DataAssetService";
@@ -47,6 +48,7 @@ import { DATA_OBSERVABILITY_API_ROUTES } from "../../../../Types/DataObservabili
 import {
   DataAlertLineageAnswer,
   DataTableLineageEdge,
+  DataTableLineageNode,
   getLineageTableNodeId,
 } from "../../../../Types/DataObservability/DataTableLineage";
 import BadDataException from "../../../../Types/Exception/BadDataException";
@@ -869,6 +871,261 @@ describe("an alert's lineage, read from the database", () => {
     for (const call of calls(edgeRead)) {
       expect(call.query["projectId"]).toBe(PROJECT_ID);
     }
+  });
+});
+
+/*
+ * WHETHER THE ALERT ITSELF IS OPEN, SAID WITH ITS DRAWING (#6851). Its own
+ * table's card counts the table's open alerts, the alert itself among them
+ * while it is open - which the card already says (This alert) - so the
+ * answer says whether it is, read with the drawing, by the rule the count
+ * goes by: a state the project does not count as resolved. Asked only when
+ * that card counts any.
+ */
+const OPEN_STATE: string = "77777777-7777-4777-8777-000000000001";
+const RESOLVED_STATE: string = "77777777-7777-4777-8777-000000000002";
+
+function alertInState(stateId: string | null): Alert {
+  const alert: Alert = new Alert();
+  alert._id = ALERT;
+
+  if (stateId) {
+    alert.currentAlertStateId = new ObjectID(stateId);
+  }
+
+  return alert;
+}
+
+describe("whether the alert is open", () => {
+  test("an alert in a state the project does not count as resolved is open: its state read by id, the project's own, as OneUptime", async () => {
+    const findOne: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValue(alertInState(OPEN_STATE) as never);
+    const states: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+      .mockResolvedValue([new ObjectID(OPEN_STATE)] as never);
+
+    expect(
+      await DataAlertLineageReader.readIsAlertOpen(
+        PROJECT_ID,
+        new ObjectID(ALERT),
+      ),
+    ).toBe(true);
+
+    const call: FindCall = calls(findOne)[0]!;
+
+    expect(call.query["projectId"]).toBe(PROJECT_ID);
+    expect(String(call.query["_id"])).toBe(ALERT);
+    expect(call.select).toEqual({ currentAlertStateId: true });
+    expect(call.props).toEqual({ isRoot: true });
+    expect(states).toHaveBeenCalledWith(PROJECT_ID);
+  });
+
+  test("an alert in a resolved state, or in none, is not open", async () => {
+    jest
+      .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+      .mockResolvedValue([new ObjectID(OPEN_STATE)] as never);
+    const findOne: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertService, "findOneBy")
+      .mockResolvedValueOnce(alertInState(RESOLVED_STATE) as never)
+      .mockResolvedValueOnce(alertInState(null) as never);
+
+    expect(
+      await DataAlertLineageReader.readIsAlertOpen(
+        PROJECT_ID,
+        new ObjectID(ALERT),
+      ),
+    ).toBe(false);
+    expect(
+      await DataAlertLineageReader.readIsAlertOpen(
+        PROJECT_ID,
+        new ObjectID(ALERT),
+      ),
+    ).toBe(false);
+    expect(findOne).toHaveBeenCalledTimes(2);
+  });
+
+  test("an alert that is not there says nothing: neither open nor not, and no state is read", async () => {
+    jest.spyOn(AlertService, "findOneBy").mockResolvedValue(null as never);
+    const states: ReturnType<typeof jest.spyOn> = jest.spyOn(
+      AlertStateService,
+      "getUnresolvedAlertStateIds",
+    );
+
+    expect(
+      await DataAlertLineageReader.readIsAlertOpen(
+        PROJECT_ID,
+        new ObjectID(ALERT),
+      ),
+    ).toBeNull();
+    expect(states).not.toHaveBeenCalled();
+  });
+
+  /*
+   * A WAREHOUSE WITH THE ALERT OPEN ON ITS TABLE: the alert on
+   * analytics.table_1, built from analytics.table_2. The table's data
+   * alerts are the alert itself, when `counted`; every alert read is in
+   * the open state. The alert's own state is `stateId`.
+   */
+  function storeOpenAlert(data: { counted: boolean; stateId: string | null }): {
+    stateRead: ReturnType<typeof jest.spyOn>;
+  } {
+    jest
+      .spyOn(DataAlertService, "findOneBy")
+      .mockResolvedValue(
+        dataAlert({ alertId: ALERT, dataAssetId: id(1) }) as never,
+      );
+    jest.spyOn(DataAlertService, "findBy").mockImplementation((async (
+      findBy: FindCall,
+    ): Promise<Array<DataAlert>> => {
+      // The table's data alerts, which its card counts; never what the alert caused.
+      if (data.counted && findBy.query["dataAssetId"] !== undefined) {
+        return [dataAlert({ alertId: ALERT, dataAssetId: id(1) })];
+      }
+
+      return [];
+    }) as never);
+    jest
+      .spyOn(AlertStateService, "getUnresolvedAlertStateIds")
+      .mockResolvedValue([new ObjectID(OPEN_STATE)] as never);
+    jest
+      .spyOn(AlertService, "findBy")
+      .mockResolvedValue([alertInState(OPEN_STATE)] as never);
+
+    const stateRead: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(AlertService, "findOneBy")
+      .mockImplementation((async (findOne: FindCall): Promise<Alert | null> => {
+        // The monitor its check is on: none, so no column is read.
+        if (findOne.select?.["monitorId"]) {
+          return new Alert();
+        }
+
+        return alertInState(data.stateId);
+      }) as never);
+
+    const tables: Array<DataAsset> = [1, 2].map((index: number): DataAsset => {
+      const asset: DataAsset = new DataAsset();
+      asset._id = id(index);
+      asset.assetKey = `analytics.table_${index}`;
+      asset.assetKind = DataAssetKind.Table;
+
+      return asset;
+    });
+
+    jest.spyOn(DataAssetService, "findBy").mockImplementation((async (
+      findBy: FindCall,
+    ): Promise<Array<DataAsset>> => {
+      const asked: string = JSON.stringify(findBy.query["_id"]);
+
+      return tables.filter((asset: DataAsset): boolean => {
+        return asked.includes(asset._id!);
+      });
+    }) as never);
+    jest.spyOn(DataAssetLineageService, "findBy").mockImplementation((async (
+      findBy: FindCall,
+    ): Promise<Array<DataAssetLineage>> => {
+      const into: string = JSON.stringify(
+        findBy.query["downstreamDataAssetId"] || null,
+      );
+
+      if (into.includes(id(1))) {
+        const row: DataAssetLineage = new DataAssetLineage();
+        row.upstreamDataAssetId = new ObjectID(id(2));
+        row.downstreamDataAssetId = new ObjectID(id(1));
+
+        return [row];
+      }
+
+      return [];
+    }) as never);
+    jest.spyOn(DataPipelineService, "findBy").mockResolvedValue([] as never);
+    jest.spyOn(DataDashboardService, "findBy").mockResolvedValue([] as never);
+    jest
+      .spyOn(DataDashboardService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+
+    return { stateRead };
+  }
+
+  // The reads of the alert's own state: the ones that select it.
+  function stateReads(spy: ReturnType<typeof jest.spyOn>): Array<FindCall> {
+    return calls(spy).filter((call: FindCall): boolean => {
+      return Boolean(call.select?.["currentAlertStateId"]);
+    });
+  }
+
+  async function readAnswer(): Promise<DataAlertLineageAnswer> {
+    const answer: DataAlertLineageAnswer | null =
+      await DataAlertLineageReader.read({
+        projectId: PROJECT_ID,
+        alertId: new ObjectID(ALERT),
+        now: new Date("2026-11-10T12:00:00.000Z"),
+        reader: person(MEMBER, Permission.ProjectAdmin),
+      });
+
+    expect(answer).not.toBeNull();
+
+    return answer!;
+  }
+
+  function ownCard(answer: DataAlertLineageAnswer): DataTableLineageNode {
+    const own: DataTableLineageNode | undefined = answer.lineage!.nodes.find(
+      (node: DataTableLineageNode): boolean => {
+        return node.id === answer.lineage!.focusNodeId;
+      },
+    );
+
+    expect(own).toBeDefined();
+
+    return own!;
+  }
+
+  test("the drawing of an open alert says it is open, beside its own table's count of one open alert: the alert itself", async () => {
+    const stored: { stateRead: ReturnType<typeof jest.spyOn> } = storeOpenAlert(
+      { counted: true, stateId: OPEN_STATE },
+    );
+
+    const answer: DataAlertLineageAnswer = await readAnswer();
+
+    expect(ownCard(answer).id).toBe(getLineageTableNodeId(id(1)));
+    expect(ownCard(answer).openAlertCount).toBe(1);
+    expect(answer.isAlertOpen).toBe(true);
+    expect(stateReads(stored.stateRead)).toHaveLength(1);
+  });
+
+  test("a resolved alert's drawing says it is not: the open alert its table counts is another", async () => {
+    storeOpenAlert({ counted: true, stateId: RESOLVED_STATE });
+
+    const answer: DataAlertLineageAnswer = await readAnswer();
+
+    expect(ownCard(answer).openAlertCount).toBe(1);
+    expect(answer.isAlertOpen).toBe(false);
+  });
+
+  test("when its table's card counts no open alert, nothing is asked and nothing said", async () => {
+    const stored: { stateRead: ReturnType<typeof jest.spyOn> } = storeOpenAlert(
+      { counted: false, stateId: OPEN_STATE },
+    );
+
+    const answer: DataAlertLineageAnswer = await readAnswer();
+
+    expect(ownCard(answer).openAlertCount || 0).toBe(0);
+    expect("isAlertOpen" in answer).toBe(false);
+    expect(stateReads(stored.stateRead)).toEqual([]);
+  });
+
+  test("an alert gone by the time its state is read: the drawing says nothing of it", async () => {
+    storeOpenAlert({ counted: true, stateId: OPEN_STATE });
+    jest.spyOn(AlertService, "findOneBy").mockImplementation((async (
+      findOne: FindCall,
+    ): Promise<Alert | null> => {
+      return findOne.select?.["monitorId"] ? new Alert() : null;
+    }) as never);
+
+    const answer: DataAlertLineageAnswer = await readAnswer();
+
+    expect(ownCard(answer).openAlertCount).toBe(1);
+    expect("isAlertOpen" in answer).toBe(false);
   });
 });
 

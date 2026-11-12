@@ -139,7 +139,7 @@ const DataSourceSuggestionsCard: FunctionComponent<ComponentProps> = (
       title="Databases You Could Connect"
       description="Your project already knows of these, and nobody has connected them. Nothing is read until you do."
     >
-      <div className="px-6 pb-6">
+      <div>
         {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : <></>}
         <ul className="divide-y divide-gray-100">
           {suggestions.map(
