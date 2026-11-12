@@ -11,6 +11,7 @@ import {
   DataObservabilitySpendTable,
 } from "Common/Types/DataObservability/DataObservabilityApiTypes";
 import ObjectID from "Common/Types/ObjectID";
+import BreakableName from "Common/UI/Components/BreakableName/BreakableName";
 import Card from "Common/UI/Components/Card/Card";
 import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import FieldType from "Common/UI/Components/Types/FieldType";
@@ -147,7 +148,15 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                 )}
               />
             </div>
-            <div className="grid gap-6 lg:grid-cols-2">
+            {/*
+             * By Team and Costliest Tables: one column on a phone, two from
+             * a laptop. Each column is the card's width at most (grid-cols-1
+             * is minmax(0, 1fr)): a table name with no place to break, such
+             * as marketing.campaign_touchpoints_daily_rollup, widened an auto
+             * column past the card on a phone, and the spend at each row's
+             * end ran off the card's edge.
+             */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
               <div>
                 <h3 className="text-sm font-semibold text-gray-900">
                   {translator.translateText("By Team")}
@@ -167,12 +176,12 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         return (
                           <li
                             key={team.team}
-                            className="flex items-center justify-between py-2 text-sm"
+                            className="flex items-center justify-between gap-x-4 py-2 text-sm"
                           >
                             <span className="font-medium text-gray-900 [overflow-wrap:anywhere]">
                               {team.team}
                             </span>
-                            <span className="text-gray-600">
+                            <span className="text-end text-gray-600">
                               {spendOf(team.credits, team.bytesBilled)}
                             </span>
                           </li>
@@ -199,9 +208,15 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                         return (
                           <li
                             key={table.dataAssetId}
-                            className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                            className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2 text-sm"
                           >
-                            <span className="flex items-center gap-2">
+                            {/*
+                             * A name too long for the row takes its line,
+                             * breaking after its dots first (BreakableName),
+                             * and its spend moves under it to the row's
+                             * end, where every row's spend is.
+                             */}
+                            <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
                               <AppLink
                                 to={RouteUtil.populateRouteParams(
                                   RouteMap[
@@ -209,9 +224,11 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                   ] as Route,
                                   { modelId: new ObjectID(table.dataAssetId) },
                                 )}
-                                className="font-mono font-medium text-gray-900 hover:underline"
+                                className="min-w-0 font-mono font-medium text-gray-900 [overflow-wrap:anywhere] hover:underline"
                               >
-                                <span>{table.table}</span>
+                                <span>
+                                  <BreakableName text={table.table} />
+                                </span>
                               </AppLink>
                               {table.isUnused ? (
                                 <span className="rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">
@@ -221,7 +238,7 @@ const SpendPage: FunctionComponent<PageComponentProps> = (): ReactElement => {
                                 <></>
                               )}
                             </span>
-                            <span className="text-gray-600">
+                            <span className="ms-auto text-gray-600">
                               {spendOf(
                                 table.credits || 0,
                                 table.bytesBilled || 0,

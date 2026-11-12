@@ -52,3 +52,22 @@ them. Every record in them is made up.
 | `lineage-keyboard-390-tab1-after.png` | The drawing moves until the focused card is inside it, with its focus ring. |
 | `lineage-keyboard-390-tab2-before.png` | Tab again, onto the cause's card: it is outside the drawing, only its right border showing. |
 | `lineage-keyboard-390-tab2-after.png` | The drawing moves the other way and the cause's card is whole; the zoom buttons stay where they were. |
+
+## UI review
+
+Frames from the review of the pages above, before and after its own changes
+to this branch. The chips are the event overview fixture, as above. Write a
+Check from a Sentence and Warehouse Spend are the real components mounted on
+a page with the Dashboard's Tailwind build, `Theme.css`, Inter and locales,
+answered by a made-up API: a suggested check for "Orders never have a
+negative total", and a day's spend of 412 credits across three teams and two
+tables.
+
+| File | Shows |
+| --- | --- |
+| `review-chips-ru-1280-after.png` | Russian (`&cause=pipeline&lang=ru`). Before, the cause's card had room for "Открытых оповещений: 1" and one letter of "Свежая" ("С...", in `lineage-chips-ru-1280-after.png`). Now a second chip with room for less than a few letters moves out of view, and the row says both chips under the pointer. The alert's own card has room, so its "Открыты..." stays. |
+| `review-check-from-sentence-1280-before.png` | Write a Check from a Sentence at 1280px: Write the Check starts 12px right of the sentence's box, and Add Check 12px right of the suggestion's words (Button keeps a dialog footer's left margin). |
+| `review-check-from-sentence-1280-after.png` | Both rows of buttons start on their box's edge. |
+| `review-spend-390-before.png` | Warehouse Spend on a phone: marketing.campaign_touchpoints_daily_rollup, a name with no place to break, widens the lists' column past the card. Every row's spend runs off the card's right edge, and Unused is cut. |
+| `review-spend-390-after.png` | Each list as wide as the card: the long name breaks after its dot, Unused sits under it, and its spend is at the row's end like every other row's. |
+| `review-spend-ar-390-after.png` | The same in Arabic, right to left: the names at the start, each spend at the row's end. |

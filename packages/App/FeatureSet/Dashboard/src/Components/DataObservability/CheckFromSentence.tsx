@@ -25,6 +25,17 @@ export interface ComponentProps {
 }
 
 /*
+ * A row of the card's buttons: spaced by its gap, and starting where the
+ * sentence's box and the suggestion's words start. Button keeps a dialog
+ * footer's left margin (md:ml-3), which set Write the Check and Add Check
+ * 12px in from everything above them; the row clears it on each button, or
+ * on one inside the element it sits in, as a card header's actions do
+ * (Card's CARD_HEADER_ACTION_CLASS_NAME).
+ */
+export const CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME: string =
+  "flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
+/*
  * "Orders never have a negative total": a rule the team knows, as a check,
  * without writing SQL. OneUptime AI writes one read-only query that counts
  * the rows breaking the rule, held to everything a Custom SQL check is; it
@@ -124,7 +135,7 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
             setSentence(event.target.value);
           }}
         />
-        <div className="flex flex-wrap gap-2">
+        <div className={CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME}>
           <Button
             title="Write the Check"
             buttonStyle={ButtonStyleType.NORMAL}
@@ -162,7 +173,7 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
                 },
               )}
             </p>
-            <div className="flex flex-wrap gap-2">
+            <div className={CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME}>
               <Button
                 title="Add Check"
                 buttonStyle={ButtonStyleType.PRIMARY}

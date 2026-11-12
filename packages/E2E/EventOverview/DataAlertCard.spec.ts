@@ -5,6 +5,7 @@ import {
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { SUPPORTED_DASHBOARD_LANGUAGE_CODES } from "Common/Types/Dashboard/DashboardLanguage";
 import { escapeRegExp } from "Common/Utils/RegExpEscape";
 import fs from "fs/promises";
 import path from "path";
@@ -27,9 +28,11 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * over the arrow, in words that read on a light page and a dark one, and in
  * view when the drawing opens on a phone. What each card holds starts under
  * its title (#6555, SuiteHelpers/CardBodyFit); a lineage card's two chips
- * stay inside the card in German, Dutch, Russian and Japanese, the second
- * ending in "..." (#6851); and Tab onto a card outside the drawing moves the
- * drawing to show it, never React Flow's pane (#6779).
+ * stay inside the card in every language, the second ending in "..." in
+ * German, Dutch, Russian and Japanese (#6851), or, left too little room for
+ * a few letters, moving out of view, said under the pointer (#6957); and
+ * Tab onto a card outside the drawing moves the drawing to show it, never
+ * React Flow's pane (#6779).
  *
  * On the Event Overview fixture's alerts #311 and #310 (Fixture/Fixture.js,
  * ?data= and ?fail=data-alert / data-writers / data-changes), with the clock
@@ -862,10 +865,13 @@ test.describe("an alert's Lineage card", () => {
 });
 
 /*
- * A lineage card's chips as the page drew them (#6851): how far the row
- * under the card's name runs past its own width, and each chip in it -
- * its words, whether they are cut short and how, and whether the chip
- * stays inside the row.
+ * A lineage card's chips as the page drew them (#6851, #6957): how far the
+ * row under the card's name runs past its own width, how high it is and
+ * its em on screen (its font size at the drawing's zoom), the words it
+ * says under the pointer, and each chip in it - its words, whether they
+ * are cut short and how, its size, whether it stays inside the row's
+ * sides, and whether it is in the row's view or wholly below it, on the
+ * line the row does not show.
  */
 interface DrawnChip {
   key: string;
@@ -873,11 +879,20 @@ interface DrawnChip {
   isCut: boolean;
   textOverflow: string;
   isInsideRow: boolean;
+  isInView: boolean;
+  isBelowRow: boolean;
+  width: number;
+  height: number;
 }
 
 interface DrawnChipRow {
   nodeId: string;
   overflow: number;
+  width: number;
+  height: number;
+  em: number;
+  gap: number;
+  title: string | null;
   chips: Array<DrawnChip>;
 }
 
@@ -895,11 +910,19 @@ async function chipRowsOf(card: Locator): Promise<Array<DrawnChipRow>> {
         }
 
         const rowBox: DOMRect = row.getBoundingClientRect();
+        // The drawing's zoom: what the row measures on screen over what it is laid out at.
+        const zoom: number =
+          row.offsetWidth > 0 ? rowBox.width / row.offsetWidth : 1;
 
         return [
           {
             nodeId: node.getAttribute("data-node-id") || "",
             overflow: row.scrollWidth - row.clientWidth,
+            width: rowBox.width,
+            height: rowBox.height,
+            em: parseFloat(getComputedStyle(row).fontSize) * zoom,
+            gap: parseFloat(getComputedStyle(row).columnGap) * zoom,
+            title: row.getAttribute("title"),
             chips: Array.from(row.querySelectorAll("[data-lineage-chip]")).map(
               (chip: Element): DrawnChip => {
                 const text: HTMLElement = chip.querySelector(
@@ -917,6 +940,12 @@ async function chipRowsOf(card: Locator): Promise<Array<DrawnChipRow>> {
                   isInsideRow:
                     pill.left >= rowBox.left - 0.5 &&
                     pill.right <= rowBox.right + 0.5,
+                  isInView:
+                    pill.top >= rowBox.top - 0.5 &&
+                    pill.bottom <= rowBox.bottom + 0.5,
+                  isBelowRow: pill.top >= rowBox.bottom - 0.5,
+                  width: pill.width,
+                  height: pill.height,
                 };
               },
             ),
@@ -946,6 +975,133 @@ function literally(text: string): RegExp {
   return new RegExp(escapeRegExp(text));
 }
 
+// The chips of one row in the row's view, or out of it, by their words.
+function chipsInView(row: DrawnChipRow, isInView: boolean): Array<string> {
+  return row.chips
+    .filter((chip: DrawnChip): boolean => {
+      return chip.isInView === isInView;
+    })
+    .map((chip: DrawnChip): string => {
+      return chip.text;
+    });
+}
+
+/*
+ * The least room a second chip keeps when it shows cut short:
+ * LineageGraph's LINEAGE_CHIP_LEAST, in the row's ems.
+ */
+const CHIP_LEAST_EMS: number = 4.8;
+
+// A pill's height in its ems: its line (1.35) and padding above and below (0.2 each).
+const PILL_HEIGHT_EMS: number = 1.75;
+
+/*
+ * What every chip row is, in any language (#6851, #6957): no wider than
+ * its card; one pill high, so it shows its first line only; its first chip
+ * in view; each chip wholly in view or wholly below the row, never cut
+ * across; a chip cut short ends in "..." and, in view, keeps room for a few
+ * letters; and a chip out of view had less room than that beside the first.
+ * A row with a chip out of view says the chips' words under the pointer,
+ * which hovering it reads (expectRowSaysItsChips).
+ */
+function expectChipRowsFit(rows: Array<DrawnChipRow>, where: string): void {
+  for (const row of rows) {
+    const rowWhere: string = `${row.nodeId} ${where}`;
+
+    expect(row.overflow, rowWhere).toBeLessThanOrEqual(0);
+    expect(
+      Math.abs(row.height - PILL_HEIGHT_EMS * row.em),
+      `row height ${row.height} for an em of ${row.em}, ${rowWhere}`,
+    ).toBeLessThanOrEqual(0.5);
+    expect(row.chips.length, rowWhere).toBeGreaterThan(0);
+    expect(row.chips.length, rowWhere).toBeLessThanOrEqual(2);
+    expect(row.chips[0]!.isInView, rowWhere).toBe(true);
+
+    for (const chip of row.chips) {
+      const chipWhere: string = `${chip.text}, ${rowWhere}`;
+
+      expect(chip.isInsideRow, chipWhere).toBe(true);
+      expect(
+        chip.isInView !== chip.isBelowRow,
+        `${chipWhere}: in view ${chip.isInView}, below ${chip.isBelowRow}`,
+      ).toBe(true);
+
+      if (chip.isInView) {
+        expect(
+          Math.abs(chip.height - row.height),
+          chipWhere,
+        ).toBeLessThanOrEqual(0.5);
+      }
+
+      if (chip.isCut) {
+        expect(chip.textOverflow, chipWhere).toBe("ellipsis");
+      }
+
+      if (chip.isCut && chip.isInView) {
+        expect(
+          chip.width,
+          `${chipWhere}: ${chip.width}px for an em of ${row.em}`,
+        ).toBeGreaterThanOrEqual(CHIP_LEAST_EMS * row.em - 0.5);
+      }
+    }
+
+    const [first, second] = row.chips;
+
+    if (first && second && !second.isInView) {
+      expect(
+        row.width - first.width - row.gap,
+        `the room ${second.text} was left beside ${first.text}, ${rowWhere}`,
+      ).toBeLessThan(CHIP_LEAST_EMS * row.em + 0.5);
+    }
+  }
+}
+
+/*
+ * Hovers a card's chip row: with a chip out of view, the row says every
+ * chip's words in their order, joined as the language lists facts on a
+ * line (" · ", or " • " where a zero is a dot), and the card's name keeps
+ * the hidden ones; with every chip in view, it says nothing more.
+ */
+async function expectRowSaysItsChips(
+  card: Locator,
+  nodeId: string,
+  row: DrawnChipRow,
+): Promise<void> {
+  const rowLocator: Locator = lineageNode(card, nodeId).getByTestId(
+    "lineage-card-chips",
+  );
+  const hidden: Array<string> = chipsInView(row, false);
+
+  // From outside the drawing, so the pointer enters the row.
+  await card.page().mouse.move(0, 0);
+  await rowLocator.hover({ timeout: 15000 });
+
+  if (hidden.length === 0) {
+    await expect(rowLocator).not.toHaveAttribute("title");
+    return;
+  }
+
+  const words: Array<string> = row.chips.map((chip: DrawnChip): string => {
+    return chip.text;
+  });
+
+  await expect
+    .poll(async (): Promise<string | null> => {
+      return rowLocator.getAttribute("title");
+    })
+    .not.toBeNull();
+  expect(
+    [words.join(" \u{00B7} "), words.join(" \u{2022} ")],
+    `${nodeId}'s row under the pointer`,
+  ).toContain(await rowLocator.getAttribute("title"));
+
+  for (const text of hidden) {
+    await expect(
+      lineageNode(card, nodeId).getByTestId("lineage-card"),
+    ).toHaveAccessibleName(literally(text));
+  }
+}
+
 /*
  * THE CHIPS UNDER A LINEAGE CARD'S NAME, IN EVERY LANGUAGE (#6851). A card
  * shows at most two chips in one row as wide as the card leaves them. The
@@ -956,27 +1112,47 @@ function literally(text: string): RegExp {
  * table counts is another) the alert's own card says This alert and 1
  * open alert: in German, Dutch, Russian and Japanese the two are wider
  * than the card, by 8 to 68 pixels before this rule.
+ *
+ * A second chip left too little room for a few letters (#6957) moves to
+ * the row's second line, out of view: in Russian the cause's table card
+ * says "Открытых оповещений: 1", which left "Свежая" room for "С...". The
+ * row says both under the pointer; the card's name keeps both.
  */
 const CHIP_LANGUAGES: Array<{
   language: string;
   thisAlert: string;
   openAlert: string;
+  // The cause's table card: its open alert, then how fresh it is.
+  causeInView: Array<string>;
+  causeOutOfView: Array<string>;
 }> = [
-  { language: "de", thisAlert: "Diese Warnung", openAlert: "1 offener Alarm" },
+  {
+    language: "de",
+    thisAlert: "Diese Warnung",
+    openAlert: "1 offener Alarm",
+    causeInView: ["1 offener Alarm", "Aktuell"],
+    causeOutOfView: [],
+  },
   {
     language: "nl",
     thisAlert: "Deze waarschuwing",
     openAlert: "1 open waarschuwing",
+    causeInView: ["1 open waarschuwing", "Vers"],
+    causeOutOfView: [],
   },
   {
     language: "ru",
     thisAlert: "Это оповещение",
     openAlert: "Открытых оповещений: 1",
+    causeInView: ["Открытых оповещений: 1"],
+    causeOutOfView: ["Свежая"],
   },
   {
     language: "ja",
     thisAlert: "このアラート",
     openAlert: "未解決のアラート 1 件",
+    causeInView: ["未解決のアラート 1 件", "最新"],
+    causeOutOfView: [],
   },
 ];
 
@@ -1018,30 +1194,35 @@ test.describe("a lineage card's chips (#6851)", () => {
             .sort(),
         ).toEqual([CAUSE_TABLE_CARD, TABLE_CARD].sort());
 
+        expectChipRowsFit(rows, `in ${look.language} at ${width}px`);
+
         for (const row of rows) {
           const where: string = `${row.nodeId} in ${look.language} at ${width}px`;
 
-          expect(row.overflow, where).toBeLessThanOrEqual(0);
           expect(row.chips, where).toHaveLength(2);
           expect(row.chips[0]!.isCut, where).toBe(false);
-
-          for (const chip of row.chips) {
-            expect(chip.isInsideRow, `${chip.text}, ${where}`).toBe(true);
-
-            if (chip.isCut) {
-              expect(chip.textOverflow, `${chip.text}, ${where}`).toBe(
-                "ellipsis",
-              );
-            }
-          }
         }
 
-        // What This alert leaves the open alert is too little for its words: they end in "...".
-        expect(
-          rows.find((row: DrawnChipRow): boolean => {
-            return row.nodeId === TABLE_CARD;
-          })!.chips[1]!.isCut,
-        ).toBe(true);
+        const own: DrawnChipRow = rows.find((row: DrawnChipRow): boolean => {
+          return row.nodeId === TABLE_CARD;
+        })!;
+        const cause: DrawnChipRow = rows.find((row: DrawnChipRow): boolean => {
+          return row.nodeId === CAUSE_TABLE_CARD;
+        })!;
+
+        // What This alert leaves the open alert is too little for its words, enough for a few: they end in "...".
+        expect(own.chips[1]!.isCut).toBe(true);
+        expect(chipsInView(own, true)).toEqual([
+          look.thisAlert,
+          look.openAlert,
+        ]);
+        // The cause's card: its chips in view, and one with too little room for a few letters out of it.
+        expect(chipsInView(cause, true), `at ${width}px`).toEqual(
+          look.causeInView,
+        );
+        expect(chipsInView(cause, false), `at ${width}px`).toEqual(
+          look.causeOutOfView,
+        );
       }
 
       // Its whole words: under the pointer, and in the card's name read aloud.
@@ -1055,7 +1236,32 @@ test.describe("a lineage card's chips (#6851)", () => {
       ).toHaveAccessibleName(literally(look.openAlert));
       await expectNoSidewaysScroll(page, { tolerance: 1 });
 
+      /*
+       * A row with a chip out of view says both chips under the pointer; one
+       * with both in view, nothing more. At 1280px, where the drawing shows
+       * both cards: on a phone it opens on the alert's own, and the canvas's
+       * edge cuts the cause's (drawingPlaceOf).
+       */
       await page.setViewportSize({ width: 1280, height: 1000 });
+      await expect
+        .poll(async (): Promise<boolean> => {
+          return (await drawingPlaceOf(card, CAUSE_TABLE_CARD)).isInside;
+        })
+        .toBe(true);
+
+      for (const row of await chipRowsOf(card)) {
+        await expectRowSaysItsChips(card, row.nodeId, row);
+      }
+
+      if (look.causeOutOfView.length > 0) {
+        await expect(
+          lineageNode(card, CAUSE_TABLE_CARD).getByTestId("lineage-card-chips"),
+        ).toHaveAttribute(
+          "title",
+          [...look.causeInView, ...look.causeOutOfView].join(" \u{00B7} "),
+        );
+      }
+
       await fs.mkdir(SCREENSHOTS, { recursive: true });
       await card.getByTestId("lineage-graph").scrollIntoViewIfNeeded();
       await page.mouse.move(0, 0);
@@ -1095,13 +1301,62 @@ test.describe("a lineage card's chips (#6851)", () => {
         "1 open alert",
       ]);
 
-      for (const row of await chipRowsOf(card)) {
-        expect(row.overflow).toBeLessThanOrEqual(0);
+      const rows: Array<DrawnChipRow> = await chipRowsOf(card);
+
+      expectChipRowsFit(rows, `on an open alert's page at ${width}px`);
+
+      for (const row of rows) {
         expect(
           row.chips.some((chip: DrawnChip): boolean => {
-            return chip.isCut;
+            return chip.isCut || !chip.isInView;
           }),
         ).toBe(false);
+      }
+    }
+  });
+
+  test("in every language the Dashboard speaks, each chip is wholly in view or wholly out of it, one cut short keeps room for a few letters, and a row with a chip out of view says its chips under the pointer (?data=table&cause=pipeline)", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    // A page for each of the Dashboard's languages.
+    test.setTimeout(360000);
+
+    for (const language of SUPPORTED_DASHBOARD_LANGUAGE_CODES) {
+      await open(
+        page,
+        ALERT_PATH,
+        `data=table&cause=pipeline${
+          language === "en" ? "" : `&lang=${language}&dir=auto`
+        }`,
+      );
+
+      const card: Locator = page.getByTestId("alert-lineage-diagram");
+      await expect(lineageNode(card, TABLE_CARD)).toBeVisible({
+        timeout: 30000,
+      });
+      await expect(
+        lineageNode(card, CAUSE_TABLE_CARD).getByTestId("lineage-card-chips"),
+      ).toBeVisible();
+      await page.evaluate(async (): Promise<void> => {
+        await document.fonts.ready;
+      });
+
+      const rows: Array<DrawnChipRow> = await chipRowsOf(card);
+
+      expect(
+        rows
+          .map((row: DrawnChipRow): string => {
+            return row.nodeId;
+          })
+          .sort(),
+        language,
+      ).toEqual([CAUSE_TABLE_CARD, TABLE_CARD].sort());
+      expectChipRowsFit(rows, `in ${language}`);
+
+      for (const row of rows) {
+        await expectRowSaysItsChips(card, row.nodeId, row);
       }
     }
   });

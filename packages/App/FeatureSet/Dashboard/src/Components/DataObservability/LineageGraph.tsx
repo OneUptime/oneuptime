@@ -64,6 +64,7 @@ import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import {
   PluralTemplate,
   Translator,
+  formatInline,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -515,15 +516,41 @@ export function getLineageCardOpenAlerts(data: {
 
 /*
  * The two chips under a card's name, side by side in a row as wide as the
- * card leaves them. The first keeps its whole width (never more than the
- * row's); the second takes what is left and gives way, its words ending in
- * "..." - whole under the pointer (Pill) and in the card's name read aloud -
- * rather than being cut off at the card's edge in the middle of a word:
- * "Deze waarschuwing" and "1 open waarschuwing" are wider than a card
- * together (#6851).
+ * card leaves them (#6851), never cut off at the card's edge in the middle
+ * of a word: "Deze waarschuwing" and "1 open waarschuwing" are wider than a
+ * card together.
+ *
+ * The first chip keeps its whole width (never more than the row's). The
+ * second takes what is left, down to a few letters: from LINEAGE_CHIP_LEAST
+ * of room it shows its words up to there, ending in "..." - whole under the
+ * pointer (Pill) and in the card's name read aloud. With less left than
+ * that it says nothing a reader can use ("С..." for "Свежая", after "Открытых
+ * оповещений: 1"), so it moves to the row's second line, which the row does
+ * not show: its words stay in the card's name, and the row says both chips'
+ * under the pointer (CardChips).
+ *
+ * The row is a small pill's size (PillSize.Small), one pill high, and wraps:
+ * the second chip asks for LINEAGE_CHIP_LEAST (its flex basis, or its whole
+ * width when that is less), so it stays on the first line only while that
+ * much is left, and then grows to its whole width or the end of the row.
  */
+export const LINEAGE_CHIP_ROW_CLASS_NAME: string =
+  "mt-1.5 flex h-[1.75em] flex-wrap items-center gap-1 overflow-hidden";
+export const LINEAGE_CHIP_LEAST: string = "4.8em";
 export const LINEAGE_FIRST_CHIP_CLASS_NAME: string = "flex max-w-full shrink-0";
-export const LINEAGE_SECOND_CHIP_CLASS_NAME: string = "flex min-w-0";
+export const LINEAGE_SECOND_CHIP_CLASS_NAME: string = `flex min-w-0 max-w-max grow basis-[${LINEAGE_CHIP_LEAST}]`;
+
+/*
+ * Whether a chip went to the row's second line, out of view: below the
+ * row's foot. A page that cannot say (a test's DOM, with no layout) has
+ * every chip in view.
+ */
+export function isLineageChipOutOfView(chip: Element, row: Element): boolean {
+  const chipBox: DOMRect = chip.getBoundingClientRect();
+  const rowBox: DOMRect = row.getBoundingClientRect();
+
+  return chipBox.bottom > rowBox.bottom + 0.5;
+}
 
 // What a card's chips are read from: the card's own data, but whether it fades.
 interface CardChipsProps {
@@ -634,8 +661,33 @@ const CardChips: FunctionComponent<CardChipsProps> = (
 
   return (
     <span
-      className="mt-1.5 flex flex-nowrap items-center gap-1 overflow-hidden"
+      className={LINEAGE_CHIP_ROW_CLASS_NAME}
+      style={{ fontSize: PillSize.Small }}
       data-testid="lineage-card-chips"
+      onMouseEnter={(event: React.MouseEvent<HTMLSpanElement>): void => {
+        /*
+         * A chip moved out of view is said under the pointer with the one
+         * in view, as the reader's language lists facts on one line - and
+         * only then: a row whose chips all show needs no tooltip.
+         */
+        const row: HTMLSpanElement = event.currentTarget;
+        const wrappers: Array<Element> = Array.from(row.children);
+
+        if (
+          wrappers.some((wrapper: Element): boolean => {
+            return isLineageChipOutOfView(wrapper, row);
+          })
+        ) {
+          row.title = formatInline(
+            wrappers.map((wrapper: Element): string => {
+              return wrapper.textContent || "";
+            }),
+            translator,
+          );
+        } else {
+          row.removeAttribute("title");
+        }
+      }}
     >
       {chips.slice(0, 2).map((chip: CardChip, index: number): ReactElement => {
         return (
