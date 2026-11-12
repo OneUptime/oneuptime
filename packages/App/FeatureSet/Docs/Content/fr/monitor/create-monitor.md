@@ -18,7 +18,7 @@ Allez dans **Moniteurs** et cliquez sur **Créer un moniteur**. Le formulaire s'
 
 La première question est le **Type de moniteur** : que voulez-vous surveiller ?
 
-- Les six types que la plupart des gens créent viennent en premier : **Site web**, **API**, **Ping**, **Port**, **SSL Certificate** et **Requête entrante**, pour les heartbeats des tâches cron et des webhooks.
+- Les six types que la plupart des gens créent viennent en premier : **Site web**, **API**, **Ping**, **Port**, **Certificat SSL** et **Requête entrante**, pour les heartbeats des tâches cron et des webhooks.
 - **Plus de types de moniteurs** liste tous les autres types sous leur catégorie, comme **Infrastructure** (Kubernetes, Docker, hôte) et **Télémétrie** (journaux, métriques, traces). **Manuel**, un moniteur dont vous définissez vous-même l'état, et **Statut de la sonde**, qui vous prévient quand une sonde se déconnecte, se trouvent sous **Autre**.
 - Ou tapez dans le champ de recherche. Il connaît les mots que vous utilisez déjà, comme `k8s`, `postgres`, `heartbeat` ou `tls`, et **Entrée** choisit le premier résultat.
 
@@ -76,7 +76,7 @@ Les incidents et les alertes réglés pour se résoudre automatiquement, comme c
 
 ## Sondes et intervalle
 
-Les moniteurs que des sondes vérifient se terminent par cette étape : Site web, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domaine, SQL Query, Santé de la base de données, Synthetic Monitor, Custom JavaScript Code et Page de statut externe. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**.
+Les moniteurs que des sondes vérifient se terminent par cette étape : Site web, API, Ping, IP, Port, Certificat SSL, DNS, DNSSEC, NTP, Domaine, SQL Query, Santé de la base de données, Synthetic Monitor, Custom JavaScript Code et Page de statut externe. Les **Sondes** sont les machines qui exécutent les vérifications, et les sondes par défaut de votre projet sont déjà sélectionnées. L'**Intervalle de surveillance** commence à **Toutes les 5 minutes**.
 
 :::steps
 ### Choisir les sondes
@@ -85,7 +85,7 @@ Gardez les **Sondes** sélectionnées ou choisissez-en d'autres. Un moniteur san
 
 ### Choisir la fréquence des vérifications
 
-Choisissez un **Intervalle de surveillance**, de **Chaque minute** à **Chaque semaine**. Les moniteurs Synthetic Monitor, Custom JavaScript Code et SSL Certificate se voient proposer des intervalles de 5 minutes ou plus.
+Choisissez un **Intervalle de surveillance**, de **Chaque minute** à **Chaque semaine**. Les moniteurs Synthetic Monitor, Custom JavaScript Code et Certificat SSL se voient proposer des intervalles de 5 minutes ou plus.
 
 ### Créer le moniteur
 

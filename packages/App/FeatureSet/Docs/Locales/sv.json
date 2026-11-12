@@ -11,6 +11,7 @@
     "searchPlaceholder": "Sök i dokumentationen...",
     "searchTypeToSearch": "Skriv för att söka i dokumentationen...",
     "searchNoResults": "Inga resultat hittades för \"{{query}}\"",
+    "searchSearching": "Söker…",
     "onThisPage": "På den här sidan",
     "skipToContent": "Hoppa till innehåll",
     "toggleTheme": "Byt tema",
@@ -62,7 +63,18 @@
     "calloutDanger": "Fara",
     "detailsSummary": "Detaljer",
     "copyPage": "Kopiera sida",
-    "viewAsMarkdown": "Visa som Markdown"
+    "viewAsMarkdown": "Visa som Markdown",
+    "feedbackQuestion": "Var den här sidan till hjälp?",
+    "feedbackYes": "Ja",
+    "feedbackNo": "Nej",
+    "feedbackThanks": "Tack för att du sa till.",
+    "feedbackWhatWentWrong": "Tack. Vad var fel?",
+    "feedbackReasonUnclear": "Svår att följa",
+    "feedbackReasonMissing": "Något saknas",
+    "feedbackReasonWrong": "Fel eller inaktuell",
+    "feedbackReasonNotFound": "Inte det jag letade efter",
+    "feedbackTellUs": "Tack. Berätta vad vi ska rätta, så förbättrar vi sidan.",
+    "feedbackTellUsOnGithub": "Berätta på GitHub"
   },
   "navSections": {
     "Get Started": "Kom igång",

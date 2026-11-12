@@ -32,7 +32,7 @@ import Loader, { LoaderType } from "Common/UI/Components/Loader/Loader";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import SummaryInfo from "../../Monitor/SummaryView/SummaryInfo";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * How often the dashboard asks whether the probe has reported back, and how
@@ -47,6 +47,15 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
  */
 export const MONITOR_TEST_POLL_INTERVAL_IN_MS: number = 15000;
 export const MONITOR_TEST_MAX_POLL_ATTEMPTS: number = 10;
+
+/*
+ * What the budget running out says (#6836). Most often no probe picked the
+ * test up - the probe chosen is offline - so it says where to look, and
+ * what else to try, rather than "try again later".
+ */
+export const MONITOR_TEST_TIMED_OUT_MESSAGE: string = translationKey(
+  "The test did not finish in time. The probe may be offline: check it under Probes, or pick another probe, then test again.",
+);
 
 export interface ComponentProps {
   monitorId?: ObjectID | undefined;
@@ -211,7 +220,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
           if (attempts + 1 > MONITOR_TEST_MAX_POLL_ATTEMPTS) {
             stopPolling();
             setIsLoading(false);
-            setError(API.getFriendlyErrorMessage(err as Error));
+            setError(API.getFriendlyMessage(err));
             return;
           }
         }
@@ -235,16 +244,14 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
         ) {
           stopPolling();
           setIsLoading(false);
-          setError(
-            "Monitor Test took too long to complete. Please try again later.",
-          );
+          setError(MONITOR_TEST_TIMED_OUT_MESSAGE);
         }
       }, MONITOR_TEST_POLL_INTERVAL_IN_MS); // 15 seconds.
 
       pollIntervalRef.current = interval;
     } catch (err) {
       stopPolling();
-      setError(API.getFriendlyErrorMessage(err as Error));
+      setError(API.getFriendlyMessage(err));
       setIsLoading(false);
     }
   };

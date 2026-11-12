@@ -56,7 +56,13 @@ export const TRIGGER_REASON_OPTIONS: Array<DropdownOption> = Object.values(
 export const SESSION_REPLAY_FILTER_FIELDS: Array<SessionReplayFilterField> = [
   {
     field: "search",
-    title: "Search",
+    /*
+     * The box's name is a noun: "Search" is the Search button's verb in
+     * every other language (German "Suchen", Hindi "खोजें"), and over
+     * a text box it read as a command (#7108). The same noun names
+     * Splunk's search setting and a hunt's Search step.
+     */
+    title: "Search query",
     placeholder: "checkout, a session id, a trace id",
     kind: SessionReplayFilterKind.Text,
     type: FieldType.Text,

@@ -25,6 +25,7 @@ import FakeEnterpriseModule, {
   uninstallEnterpriseModule,
 } from "../Enterprise/FakeEnterpriseModule";
 import { setTestBillingEnabled } from "../Enterprise/TestBillingFlag";
+import OnCallTimelineRows from "../TestingUtils/OnCallTimelineRows";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -158,9 +159,12 @@ beforeEach(() => {
   refusal = jest
     .spyOn(BlockedProjectNotifications, "getRefusal")
     .mockResolvedValue(null);
-  updateTimeline = jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+  // The page's on-call log row, as written when the page went out.
+  const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
+  updateTimeline =
+    UserOnCallLogTimelineService.updateOneBy as unknown as jest.SpyInstance;
 });
 
 afterEach(() => {
@@ -311,7 +315,11 @@ describe("nothing is sent", () => {
       reason: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
     });
     expect(updateTimeline).toHaveBeenCalledWith({
-      id: TIMELINE_ID,
+      query: {
+        _id: TIMELINE_ID.toString(),
+        status: UserNotificationStatus.Sending,
+        version: 1,
+      },
       data: {
         status: UserNotificationStatus.Error,
         statusMessage: CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,

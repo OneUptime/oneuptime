@@ -33,6 +33,7 @@ import KubernetesYamlTab from "../../../Components/Kubernetes/KubernetesYamlTab"
 import KubernetesResourceLink from "../../../Components/Kubernetes/KubernetesResourceLink";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { formatKubernetesCount } from "../Utils/KubernetesCount";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
 } from "../Utils/KubernetesCpuUtils";
@@ -288,19 +289,19 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
         title: "Desired Replicas",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentDesiredReplicas,
-        value: String(desired),
+        value: formatKubernetesCount(desired),
       },
       {
         title: "Ready Replicas",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReadyReplicas,
-        value: String(ready),
+        value: formatKubernetesCount(ready),
       },
       {
         title: "Available",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentAvailableReplicas,
-        value: String(objectData.status.availableReplicas),
+        value: formatKubernetesCount(objectData.status.availableReplicas),
       },
     );
 
@@ -311,7 +312,7 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentUnavailableReplicas,
         value: (
           <StatusBadge
-            text={String(unavailable)}
+            text={formatKubernetesCount(unavailable)}
             type={StatusBadgeType.Danger}
           />
         ),

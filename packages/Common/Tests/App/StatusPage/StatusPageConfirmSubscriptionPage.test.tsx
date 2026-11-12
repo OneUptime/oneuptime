@@ -396,7 +396,8 @@ describe("a link to confirm a subscription, opened", () => {
     [
       "the network",
       new Error("Error connecting to server. Please try again in few minutes."),
-      "Error connecting to server. Please try again in few minutes.",
+      // Drawn as what happened and what to do next (#6836).
+      "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
     ],
   ])(
     "anything else - %s - is shown as it is, with no Subscribe again: it is not the link's doing",

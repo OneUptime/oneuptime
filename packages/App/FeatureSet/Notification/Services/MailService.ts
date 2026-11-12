@@ -37,10 +37,9 @@ import MailStatus from "Common/Types/Mail/MailStatus";
 import ObjectID from "Common/Types/ObjectID";
 import Port from "Common/Types/Port";
 import StatusPageSubscriberUnsubscribe from "Common/Types/StatusPage/StatusPageSubscriberUnsubscribe";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import { IsDevelopment } from "Common/Server/EnvironmentConfig";
 import EmailLogService from "Common/Server/Services/EmailLogService";
-import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import DataSourceEgressGuard, {
   ResolvedAddress,
@@ -990,20 +989,20 @@ export default class MailService {
     return emailServer;
   }
 
+  /*
+   * Written only while the page's timeline entry still says Sending
+   * (OnCallNotificationStatus): the person may have acknowledged the page,
+   * or escalated it, meanwhile - from another of its messages.
+   */
   private static async updateUserNotificationLogTimelineAsSent(
     timelineId: ObjectID,
     statusMessage: string,
   ): Promise<void> {
     if (timelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        data: {
-          status: UserNotificationStatus.Sent,
-          statusMessage: statusMessage,
-        },
-        id: timelineId,
-        props: {
-          isRoot: true,
-        },
+      await recordSendResult({
+        userOnCallLogTimelineId: timelineId,
+        isSent: true,
+        statusMessage: statusMessage,
       });
     }
   }
@@ -1931,16 +1930,12 @@ export default class MailService {
       }
 
       logger.error(err);
+      // Over Sending only, as the email that went is (recordSendResult).
       if (options?.userOnCallLogTimelineId) {
-        await UserOnCallLogTimelineService.updateOneById({
-          data: {
-            status: UserNotificationStatus.Error,
-            statusMessage: statusMessage,
-          },
-          id: options.userOnCallLogTimelineId,
-          props: {
-            isRoot: true,
-          },
+        await recordSendResult({
+          userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+          isSent: false,
+          statusMessage: statusMessage,
         });
       }
 

@@ -2,6 +2,7 @@ import { VoidFunction } from "Common/Types/FunctionTypes";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
 import {
+  formatList,
   getGlobalTranslator,
   TemplateValues,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -212,7 +213,10 @@ function lexCsv(text: string): CsvLexResult {
   if (inQuotes) {
     errors.push({
       line: recordStartLine,
-      message: "Unterminated quoted field — a closing quote is missing.",
+      message: translateCsvError(
+        "Unterminated quoted field — a closing quote is missing.",
+        {},
+      ),
     });
     return { records: records, errors: errors };
   }
@@ -379,7 +383,10 @@ function parseEnumCell<TEnumValue extends string>(data: {
         {
           column: data.column,
           value: data.raw.trim(),
-          values: Object.keys(data.enumObject).join(", "),
+          values: formatList(
+            Object.keys(data.enumObject),
+            getGlobalTranslator(),
+          ),
         },
       ),
     };
@@ -406,7 +413,10 @@ export function parseStatusPageGroupCsv(
   }
 
   if (records.length === 0) {
-    errors.push({ line: 0, message: "The CSV is empty." });
+    errors.push({
+      line: 0,
+      message: translateCsvError("The CSV is empty.", {}),
+    });
     return { rows: [], errors: errors };
   }
 
@@ -420,7 +430,7 @@ export function parseStatusPageGroupCsv(
   if (dataRecords.length === 0) {
     errors.push({
       line: 0,
-      message: "The CSV has a header but no data rows.",
+      message: translateCsvError("The CSV has a header but no data rows.", {}),
     });
     return { rows: [], errors: errors };
   }
@@ -437,8 +447,10 @@ export function parseStatusPageGroupCsv(
         message: translateCsvError(
           "Row has {{values}} values but the header has {{columns}} columns.",
           {
-            values: record.cells.length,
-            columns: headerRecord.cells.length,
+            values: getGlobalTranslator().formatNumber(record.cells.length),
+            columns: getGlobalTranslator().formatNumber(
+              headerRecord.cells.length,
+            ),
           },
         ),
       });
@@ -447,12 +459,14 @@ export function parseStatusPageGroupCsv(
 
     const name: string = cellAt(record, headerIndex, "name");
     if (name === "") {
-      rowErrors.push("name is required.");
+      rowErrors.push(translateCsvError("name is required.", {}));
     }
 
     const parentName: string = cellAt(record, headerIndex, "parentName");
     if (name !== "" && parentName === name) {
-      rowErrors.push("A group cannot be its own parent.");
+      rowErrors.push(
+        translateCsvError("A group cannot be its own parent.", {}),
+      );
     }
 
     const description: string = cellAt(record, headerIndex, "description");
@@ -534,9 +548,18 @@ export function parseStatusPageGroupCsv(
 
       if (suppliedGridColumns.length > 0) {
         rowErrors.push(
-          `${suppliedGridColumns.join(
-            ", ",
-          )} only applies when viewMode is ${StatusPageGroupViewMode.Grid}.`,
+          getGlobalTranslator().translatePlural(
+            {
+              one: "{{columns}} only applies when viewMode is {{grid}}.",
+              other: "{{columns}} only apply when viewMode is {{grid}}.",
+            },
+            suppliedGridColumns.length,
+            {
+              columns: formatList(suppliedGridColumns, getGlobalTranslator()),
+              grid: StatusPageGroupViewMode.Grid,
+            },
+            { setsValuesApart: true },
+          ),
         );
       }
     }
@@ -545,7 +568,13 @@ export function parseStatusPageGroupCsv(
       const firstLine: number | undefined = firstLineByName.get(name);
       if (firstLine !== undefined) {
         rowErrors.push(
-          `Duplicate group name "${name}" (first used on line ${firstLine}).`,
+          translateCsvError(
+            'Duplicate group name "{{name}}" (first used on line {{line}}).',
+            {
+              name: name,
+              line: getGlobalTranslator().formatNumber(firstLine),
+            },
+          ),
         );
       } else {
         firstLineByName.set(name, record.line);
@@ -643,7 +672,10 @@ export function planStatusPageGroupImport(
     if (depthByName.has(row.name)) {
       skipped.push({
         row: row,
-        reason: `A group named "${row.name}" already exists on this status page.`,
+        reason: translateCsvError(
+          'A group named "{{name}}" already exists on this status page.',
+          { name: row.name },
+        ),
       });
     } else {
       pending.push(row);
@@ -682,7 +714,16 @@ export function planStatusPageGroupImport(
          */
         skipped.push({
           row: row,
-          reason: `Nesting "${row.name}" under "${row.parentName}" would be more than ${MAX_GROUP_NESTING_DEPTH} levels deep.`,
+          reason: translateCsvError(
+            'Nesting "{{name}}" under "{{parent}}" would be more than {{depth}} levels deep.',
+            {
+              name: row.name,
+              parent: row.parentName,
+              depth: getGlobalTranslator().formatNumber(
+                MAX_GROUP_NESTING_DEPTH,
+              ),
+            },
+          ),
         });
         continue;
       }
@@ -730,8 +771,13 @@ export function planStatusPageGroupImport(
     skipped.push({
       row: row,
       reason: namesInFile.has(row.parentName)
-        ? `Parent group "${row.parentName}" could not be created.`
-        : `Parent group "${row.parentName}" was not found in the file or on this status page.`,
+        ? translateCsvError('Parent group "{{parent}}" could not be created.', {
+            parent: row.parentName,
+          })
+        : translateCsvError(
+            'Parent group "{{parent}}" was not found in the file or on this status page.',
+            { parent: row.parentName },
+          ),
     });
   }
 

@@ -64,7 +64,7 @@ Varje person länkar sitt eget Microsoft Teams-konto under **Användarinställni
 
 ### Lägg till en aviseringsregel
 
-Gå till **Incidenter** > **Arbetsyta** > **Microsoft Teams**. Avsnittet **Arbetsyta** visar bara de chattarbetsytor som ditt projekt har anslutit, så **Microsoft Teams** visas där så snart det är anslutet. Skapa en regel, till exempel en som publicerar i en Teams-kanal när en incident skapas, och klicka sedan på **Testregel** på dess rad.
+Gå till **Incidenter** > **Arbetsyta** > **Microsoft Teams**. Avsnittet **Arbetsyta** visar bara de chattarbetsytor som ditt projekt har anslutit, så **Microsoft Teams** visas där så snart det är anslutet. Skapa en regel, till exempel en som publicerar i en Teams-kanal när en incident skapas, och klicka sedan på **Testa regel** på dess rad.
 :::
 
 > [!NOTE]
@@ -122,9 +122,9 @@ En aviseringsregel kan tillhöra team. **Ansvariga team** under **Fler fält** f
 
 ## Testa en regel
 
-**Testregel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
+**Testa regel** på en regels rad publicerar ett testmeddelande för den regeln i de kanaler den anger, så att du ser att det kommer fram. Om regeln skapar en kanal för varje händelse skapar testet också en och bjuder in regelns personer till den.
 
-Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testregel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
+Precis som **Skicka test** bredvid en kanal i **Projektinställningar** > **Arbetsyta** > **Microsoft Teams** kräver den behörighet att skapa aviseringsregler: **Projektägare**, **Projektadministratör**, **Projektmedlem**, **Inställningsadministratör**, **Inställningsmedlem**, eller **Create Workspace Notification Rule** och **Read Workspace Notification Rule** i en anpassad roll. För den som bara får se reglerna, som en **Tittare**, är **Testa regel** låst, och dess verktygstips anger vad som krävs; API:et avvisar personens test med "You do not have permission to send test notifications in this project." På OneUptime Cloud kräver det **Growth**-planen att testa en regel, precis som att lägga till en.
 
 På OneUptime Cloud kräver **Skicka test** bredvid en kanal eller en chatt också **Growth**-planen, eftersom att publicera i en kanal är vad regler och sammanfattningar gör. **Skicka test nu** på en sammanfattning kräver behörighet att skapa sammanfattningar (**Create Workspace Notification Summary** och **Read Workspace Notification Summary** i en anpassad roll) och, på OneUptime Cloud, **Growth**-planen; för alla andra är den låst, och dess verktygstips anger vad som krävs. En MCP-klient som är ansluten med skrivskyddad åtkomst kan inte skicka något test.
 

@@ -23,6 +23,11 @@ import { FindOperator } from "typeorm";
  * between a read and the write that follows it (whenRead): the person
  * acknowledging the page meanwhile, say.
  *
+ * A caller that reads the notification whole first - with its user, its
+ * record and its run: the acknowledge routes, a custom channel's actions -
+ * is handed the model it reads, and writes to it through
+ * updateNotificationWhileStill: the same compare-and-set, on that model.
+ *
  * Used by Common's suites and App's (Common/Tests/Server/TestingUtils).
  */
 
@@ -32,6 +37,9 @@ export interface StoredOnCallNotification {
   version: number;
   createdAt?: Date | undefined;
   deletedAt?: Date | undefined;
+  // Written with an acknowledgement (OnCallNotificationStatus.recordAcknowledgement).
+  isAcknowledged?: boolean | undefined;
+  acknowledgedAt?: Date | undefined;
 }
 
 export interface OnCallNotificationWrite {
@@ -39,10 +47,13 @@ export interface OnCallNotificationWrite {
   data: {
     status?: UserNotificationStatus | undefined;
     statusMessage?: string | undefined;
+    // Only when the write names them: an acknowledgement.
+    isAcknowledged?: boolean | undefined;
+    acknowledgedAt?: Date | undefined;
   };
 }
 
-interface UpdateOneByInput {
+export interface UpdateOneByInput {
   query: Record<string, unknown>;
   data: Record<string, unknown>;
 }
@@ -59,6 +70,43 @@ interface TimelineService {
   findOneById: unknown;
   updateOneBy: unknown;
   findBy?: unknown;
+}
+
+/*
+ * An update by query, on one notification read whole (a model a test hands
+ * its caller's findOneById): it lands only while the notification still
+ * holds the status and the version the query names - as Postgres does
+ * under DatabaseService's compare-and-set - writing what the update names
+ * and moving the version on. A query naming another notification writes
+ * nothing; a model with no id stands for whichever one is asked for. How
+ * many rows it wrote, as updateOneBy answers.
+ */
+export function updateNotificationWhileStill(
+  notification: UserOnCallLogTimeline,
+  updateBy: UpdateOneByInput,
+): number {
+  if (notification._id && String(updateBy.query["_id"]) !== notification._id) {
+    return 0;
+  }
+
+  if (
+    "status" in updateBy.query &&
+    notification.status !== updateBy.query["status"]
+  ) {
+    return 0;
+  }
+
+  if (
+    "version" in updateBy.query &&
+    notification.version !== updateBy.query["version"]
+  ) {
+    return 0;
+  }
+
+  Object.assign(notification, updateBy.data);
+  notification.version = (notification.version || 0) + 1;
+
+  return 1;
 }
 
 /*
@@ -214,6 +262,16 @@ export default class OnCallTimelineRows {
     if (input.data["statusMessage"] !== undefined) {
       row.statusMessage = input.data["statusMessage"] as string;
       data.statusMessage = row.statusMessage;
+    }
+
+    if (input.data["isAcknowledged"] !== undefined) {
+      row.isAcknowledged = input.data["isAcknowledged"] as boolean;
+      data.isAcknowledged = row.isAcknowledged;
+    }
+
+    if (input.data["acknowledgedAt"] !== undefined) {
+      row.acknowledgedAt = input.data["acknowledgedAt"] as Date;
+      data.acknowledgedAt = row.acknowledgedAt;
     }
 
     row.version++;
