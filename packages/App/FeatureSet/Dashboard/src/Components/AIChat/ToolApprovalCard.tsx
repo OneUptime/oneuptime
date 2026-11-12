@@ -223,6 +223,17 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
               );
               const description: Array<DrawnActionSentence> =
                 getToolActionDescription(action, translator);
+              // What the action names, run together as one paragraph.
+              const lineSentences: Array<DrawnActionSentence> =
+                description.filter((sentence: DrawnActionSentence) => {
+                  return !sentence.isCaution;
+                });
+              // What a code change would write over unseen: a line each.
+              const cautions: Array<DrawnActionSentence> = description.filter(
+                (sentence: DrawnActionSentence) => {
+                  return sentence.isCaution === true;
+                },
+              );
               const argumentParts: Array<ActionArgumentPart> =
                 getActionArgumentParts(
                   action.arguments,
@@ -282,7 +293,53 @@ const ToolApprovalCard: FunctionComponent<ComponentProps> = (
                           data-testid="tool-approval-description"
                           className="mt-1 break-words text-[11px] leading-relaxed text-gray-700"
                         >
-                          <ToolActionSentences sentences={description} />
+                          {lineSentences.length > 0 && (
+                            <ToolActionSentences sentences={lineSentences} />
+                          )}
+                          {/*
+                           * A code change's cautions - a file changed since
+                           * Ask AI read it, read in an earlier answer, read
+                           * earlier in this answer and left out since - a
+                           * line each, marked, so each kind and the files
+                           * it names read at a glance before anyone
+                           * approves: run together, two cautions that begin
+                           * alike read as one sentence (issue #6570). Each
+                           * keeps the space that went before it, so the
+                           * card's text still reads as sentences.
+                           */}
+                          {cautions.length > 0 && (
+                            <ul
+                              role="list"
+                              data-testid="tool-approval-cautions"
+                              className={`space-y-1${lineSentences.length > 0 ? " mt-1" : ""}`}
+                            >
+                              {cautions.map(
+                                (
+                                  sentence: DrawnActionSentence,
+                                  index: number,
+                                ) => {
+                                  return (
+                                    <li
+                                      key={index}
+                                      data-testid="tool-approval-caution"
+                                      className="flex items-start gap-1.5"
+                                    >
+                                      <Icon
+                                        icon={IconProp.Alert}
+                                        className="mt-[3px] h-3 w-3 flex-shrink-0 text-amber-600"
+                                      />
+                                      <span className="min-w-0 flex-1">
+                                        {sentence.separatorBefore}
+                                        <ToolActionSentence
+                                          sentence={sentence}
+                                        />
+                                      </span>
+                                    </li>
+                                  );
+                                },
+                              )}
+                            </ul>
+                          )}
                         </div>
                       )}
                       {/*

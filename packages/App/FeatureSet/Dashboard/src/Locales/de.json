@@ -50775,5 +50775,8 @@
   "{{count}} steps left in your setup checklist": "Noch {{count}} Schritte in Ihrer Einrichtungs-Checkliste",
   "{{count}} steps left in your setup checklist_one": "Noch {{count}} Schritt in Ihrer Einrichtungs-Checkliste",
   "{{schedule}}, until at least {{time}}": "{{schedule}}, mindestens bis {{time}}",
-  "{{schedule}}, until {{time}}": "{{schedule}}, bis {{time}}"
+  "{{schedule}}, until {{time}}": "{{schedule}}, bis {{time}}",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "Die KI hat diese {{count}} Dateien zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Versionen der KI ersetzen die Dateien ganz: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "Die KI hat diese Datei zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}."
 }
