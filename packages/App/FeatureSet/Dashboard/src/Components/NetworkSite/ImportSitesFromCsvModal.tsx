@@ -25,6 +25,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import SiteCoordinates from "./SiteCoordinates";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ProgressBar, {
   ProgressBarSize,
@@ -595,9 +596,11 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                         <td className="px-3 py-2 text-gray-600">
                           {row.latitude !== undefined &&
                           row.longitude !== undefined ? (
-                            <bdi dir="ltr" data-testid="site-csv-coordinates">
-                              {`${row.latitude}, ${row.longitude}`}
-                            </bdi>
+                            <SiteCoordinates
+                              latitude={row.latitude}
+                              longitude={row.longitude}
+                              dataTestId="site-csv-coordinates"
+                            />
                           ) : (
                             "—"
                           )}

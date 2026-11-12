@@ -37,7 +37,7 @@ Varje kontroll körs var 15:e minut, varje timme, var 6:e timme eller varje dag,
 
 Ställ in **Larma när** för att larma på en kontroll:
 
-- **Unusually High** eller **Unusually Low** jämför varje värde med dess egen inlärda baslinje för den timmen i veckan.
+- **Ovanligt hög** eller **Ovanligt låg** jämför varje värde med dess egen inlärda baslinje för den timmen i veckan.
 - **Över** eller **Under** jämför det med ett tröskelvärde.
 
 När du sparar kontrollen skapas en metrikövervakning för den, i ditt namn och med dina behörigheter. Om du rensar villkoret tas monitorn bort.

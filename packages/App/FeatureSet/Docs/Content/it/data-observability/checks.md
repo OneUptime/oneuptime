@@ -37,7 +37,7 @@ Ogni controllo viene eseguito ogni 15 minuti, ogni ora, ogni 6 ore o ogni giorno
 
 Imposta **Avvisa quando** per ricevere un avviso su un controllo:
 
-- **Unusually High** o **Unusually Low** confronta ogni valore con la sua baseline appresa per quell'ora della settimana.
+- **Insolitamente alto** o **Insolitamente basso** confronta ogni valore con la sua baseline appresa per quell'ora della settimana.
 - **Sopra** o **Sotto** lo confronta con una soglia.
 
 Salvando il controllo si crea un monitor di metriche per esso, a tuo nome e con le tue autorizzazioni. Svuotando la condizione si rimuove il monitor.

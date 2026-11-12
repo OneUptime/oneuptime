@@ -15,6 +15,10 @@ import useResizableColumns, {
 } from "Common/UI/Components/Table/ColumnResize/useResizableColumns";
 import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/ResizableHeaderCell";
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
+import {
+  TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME,
+  TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME,
+} from "Common/UI/Components/Table/TableLayout";
 import IconProp from "Common/Types/Icon/IconProp";
 import Link from "Common/UI/Components/Link/Link";
 import Route from "Common/Types/API/Route";
@@ -170,6 +174,49 @@ interface ExplorerSummary {
 
 const BUTTON: string =
   "rounded-lg px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
+
+/*
+ * The lists' cells, spaced as every table the product draws (Common's
+ * TableLayout): 12px at each side of a value, 24px between two columns.
+ * The row's name starts 16px in from the box's edge, as it did, and the
+ * chevron ends 12px from the other.
+ *
+ * At 16px a side (32px between columns) the Russian resources list was
+ * 622px in its 608px pane at 1280, and the pane scrolled 14px to reach
+ * each row's chevron (#7103). Every column was as narrow as it can be
+ * drawn: the name at its 10rem floor, and the others at their header's
+ * longest word - "Содержит", "Запущенные", "появление" - since a header
+ * already wraps between its words, and at a value under it ("83 дня
+ * назад") that stays whole. Only the room between them could give: 28px,
+ * which the Russian list fits in with 14px to spare, while no header and
+ * no value is cut or wraps where it did not.
+ */
+export const INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME: string = `pl-4 ${TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME}`;
+export const INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME: string = `${TABLE_CELL_INNER_PADDING_LEFT_CLASS_NAME} ${TABLE_CELL_INNER_PADDING_RIGHT_CLASS_NAME}`;
+export const INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME: string = "px-3";
+
+/*
+ * The tree beside the list from 1280px up, and over it below that. Beside
+ * a 1024px window's side menu the tree left the list a 352px pane (428px
+ * at 1100), where every language's list scrolled sideways by 150 to 270px,
+ * its Last seen and each row's chevron out of sight. Over the list, the
+ * list has the card's whole width (644px at 1024), as it already had below
+ * 1024.
+ */
+export const INFRASTRUCTURE_PANES_CLASS_NAME: string =
+  "flex flex-col xl:flex-row";
+export const INFRASTRUCTURE_TREE_PANE_CLASS_NAME: string =
+  "border-b border-gray-200 bg-gray-50/70 p-3 xl:w-72 xl:flex-shrink-0 xl:border-b-0 xl:border-r";
+
+/*
+ * The tree's own scroll. Beside the list it may be as tall as the list
+ * (60vh); over it, it is held to 18rem - some nine rows - so a large estate's
+ * tree does not push the list, which is what the page is for, a screen
+ * further down (at 1024 by 768 a 60vh tree was 460px over it). It scrolls
+ * to the open row either way.
+ */
+export const INFRASTRUCTURE_TREE_LIST_CLASS_NAME: string =
+  "relative max-h-72 overflow-y-auto xl:max-h-[60vh]";
 
 function iconForNode(node: InfrastructureNode): IconProp {
   if (node.kind === "category") {
@@ -1113,7 +1160,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
           openNode(id);
         }}
       >
-        <td className="px-4 py-3">
+        <td
+          className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-3`}
+        >
           <div className="flex items-center gap-3">
             <span
               className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg"
@@ -1162,18 +1211,24 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             </span>
           </div>
         </td>
-        <td className="whitespace-nowrap px-4 py-3 text-xs text-gray-600">
+        <td
+          className={`whitespace-nowrap ${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3 text-xs text-gray-600`}
+        >
           {container
             ? node.kind === "group" || node.kind === "collection"
               ? describeInfrastructureNode(node)
               : summarizeCounts(node.countsByType) || "—"
             : "—"}
         </td>
-        <td className="px-4 py-3">{renderServiceChips(node)}</td>
-        <td className="px-4 py-3">
+        <td className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}>
+          {renderServiceChips(node)}
+        </td>
+        <td className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}>
           {renderLastSeen(node.isActive, node.lastSeenAt || undefined)}
         </td>
-        <td className="px-3 py-3 text-right text-gray-400">
+        <td
+          className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-3 text-right text-gray-400`}
+        >
           <Icon icon={IconProp.ChevronRight} className="ml-auto h-4 w-4" />
         </td>
       </tr>
@@ -1259,7 +1314,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               <tr>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "name",
                     t("Name"),
@@ -1270,7 +1325,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "contains",
                     t("Contains"),
@@ -1281,7 +1336,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "servicesRunning",
                     t("Services running"),
@@ -1292,7 +1347,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 </ResizableHeaderCell>
                 <ResizableHeaderCell
                   scope="col"
-                  className="px-4 py-2.5 font-medium"
+                  className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                   resize={explorerColumns.getResize(
                     "lastSeen",
                     t("Last seen"),
@@ -1301,7 +1356,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                 >
                   <span>{t("Last seen")}</span>
                 </ResizableHeaderCell>
-                <th scope="col" className="px-3 py-2.5">
+                <th
+                  scope="col"
+                  className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-2.5`}
+                >
                   <span className="sr-only">{t("Open")}</span>
                 </th>
               </tr>
@@ -1565,7 +1623,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                   <tr>
                     <ResizableHeaderCell
                       scope="col"
-                      className="px-4 py-2.5 font-medium"
+                      className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                       resize={collectionColumns.getResize(
                         "name",
                         t("Name"),
@@ -1576,7 +1634,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     </ResizableHeaderCell>
                     <ResizableHeaderCell
                       scope="col"
-                      className="px-4 py-2.5 font-medium"
+                      className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-2.5 font-medium`}
                       resize={collectionColumns.getResize(
                         "lastSeen",
                         t("Last seen"),
@@ -1585,7 +1643,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     >
                       <span>{t("Last seen")}</span>
                     </ResizableHeaderCell>
-                    <th scope="col" className="px-3 py-2.5">
+                    <th
+                      scope="col"
+                      className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-2.5`}
+                    >
                       <span className="sr-only">{t("Open")}</span>
                     </th>
                   </tr>
@@ -1611,7 +1672,9 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                         className={`cursor-pointer hover:bg-gray-50 ${active ? "" : "text-gray-400"}`}
                         onClick={open}
                       >
-                        <td className="px-4 py-3">
+                        <td
+                          className={`${INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME} py-3`}
+                        >
                           <button
                             type="button"
                             className="block min-w-[10rem] max-w-md break-words text-left text-sm font-medium text-gray-900 hover:text-indigo-600"
@@ -1627,10 +1690,14 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                             {name}
                           </button>
                         </td>
-                        <td className="px-4 py-3">
+                        <td
+                          className={`${INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME} py-3`}
+                        >
                           {renderLastSeen(active, item.lastSeenAt)}
                         </td>
-                        <td className="px-3 py-3 text-right text-gray-400">
+                        <td
+                          className={`${INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME} py-3 text-right text-gray-400`}
+                        >
                           <Icon
                             icon={IconProp.ChevronRight}
                             className="ml-auto h-4 w-4"
@@ -1914,10 +1981,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             </p>
           </div>
         ) : (
-          <div className="flex flex-col lg:flex-row">
+          <div
+            className={INFRASTRUCTURE_PANES_CLASS_NAME}
+            data-testid="infrastructure-panes"
+          >
             <aside
               aria-label={t("Infrastructure tree")}
-              className="border-b border-gray-200 bg-gray-50/70 p-3 lg:w-72 lg:flex-shrink-0 lg:border-b-0 lg:border-r"
+              className={INFRASTRUCTURE_TREE_PANE_CLASS_NAME}
             >
               <button
                 type="button"
@@ -1936,7 +2006,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               </button>
               <ul
                 ref={treeListRef}
-                className="relative max-h-[60vh] overflow-y-auto"
+                className={INFRASTRUCTURE_TREE_LIST_CLASS_NAME}
               >
                 {model.rootIds.map((rootId: string): ReactElement | null => {
                   return renderTree(rootId, 0);

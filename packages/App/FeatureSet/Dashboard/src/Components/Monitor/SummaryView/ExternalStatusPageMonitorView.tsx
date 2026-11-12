@@ -4,6 +4,10 @@ import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
 import ExternalStatusPageMonitorResponse, {
   ExternalStatusPageComponentStatus,
 } from "Common/Types/Monitor/ExternalStatusPageMonitor/ExternalStatusPageMonitorResponse";
+import ExternalStatusPageProviderType from "Common/Types/Monitor/ExternalStatusPageProviderType";
+import ExternalStatusPageReading, {
+  ExternalStatusPageOneUptimeNote,
+} from "Common/Utils/Monitor/ExternalStatusPageReading";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
@@ -11,6 +15,7 @@ import React, { FunctionComponent, ReactElement, useId } from "react";
 import ProbeAttemptsView from "./ProbeAttemptsView";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
 import {
+  getInlineSeparator,
   getSentenceParts,
   PluralTemplate,
   SentencePart,
@@ -138,6 +143,39 @@ export const getScopeValue: (data: {
   );
 };
 
+/*
+ * What the page says of a component, as the summary draws it. A OneUptime
+ * page gives a resource it shows no status for - one it does not show the
+ * status of, one whose monitoring is off, one under maintenance - a note
+ * the probe writes in OneUptime's words (ExternalStatusPageReading's
+ * readOneUptimeNote): that note reads in the reader's language, with the
+ * page's own words in it (a maintenance event's title) as written. Every
+ * other description is the page's own - an Atlassian Statuspage's, an
+ * incident.io page's, a OneUptime resource's status name - and stays as
+ * the page wrote it, even when it reads like one of OneUptime's notes.
+ */
+export const getComponentDescription: (data: {
+  translator: Translator;
+  description: string;
+  isOneUptimePage: boolean;
+}) => string = (data: {
+  translator: Translator;
+  description: string;
+  isOneUptimePage: boolean;
+}): string => {
+  const note: ExternalStatusPageOneUptimeNote | null = data.isOneUptimePage
+    ? ExternalStatusPageReading.readOneUptimeNote(data.description)
+    : null;
+
+  if (!note) {
+    return data.description.trim();
+  }
+
+  return data.translator.translateTemplate(note.template, note.values, {
+    setsValuesApart: true,
+  });
+};
+
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
   probeName?: string | undefined;
@@ -222,10 +260,21 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
   const components: Array<ExternalStatusPageComponentStatus> =
     externalStatusPageResponse?.componentStatuses || [];
 
-  // The line under a component's name: its group, and what the page says.
+  const isOneUptimePage: boolean =
+    externalStatusPageResponse?.provider ===
+    ExternalStatusPageProviderType.OneUptime;
+
+  /*
+   * The line under a component's name: its group, and what the page says.
+   * What a OneUptime page says of a resource it gives no status - a note
+   * the probe writes, not the page's words - reads in the reader's language
+   * (getComponentDescription).
+   */
   const getComponentDetail: (
     component: ExternalStatusPageComponentStatus,
-  ) => string = (component: ExternalStatusPageComponentStatus): string => {
+  ) => Array<string> = (
+    component: ExternalStatusPageComponentStatus,
+  ): Array<string> => {
     const parts: Array<string> = [];
 
     if (component.groupName?.trim()) {
@@ -239,10 +288,16 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         status: component.status,
       })
     ) {
-      parts.push(component.description.trim());
+      parts.push(
+        getComponentDescription({
+          translator: translator,
+          description: component.description,
+          isOneUptimePage: isOneUptimePage,
+        }),
+      );
     }
 
-    return parts.join(" · ");
+    return parts;
   };
 
   return (
@@ -376,7 +431,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
                   ExternalStatusPageComponentStatusDisplayUtil.getDisplay(
                     component.status,
                   );
-                const detail: string = getComponentDetail(component);
+                const detail: Array<string> = getComponentDetail(component);
 
                 return (
                   <li
@@ -391,12 +446,27 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
                       >
                         {component.name}
                       </div>
-                      {detail ? (
+                      {detail.length > 0 ? (
                         <div
                           className="mt-0.5 break-words text-xs text-gray-500"
                           data-testid="external-status-page-component-detail"
                         >
-                          {detail}
+                          {/*
+                           * Each part in its own direction: the page's
+                           * English group beside a Persian note.
+                           */}
+                          {detail.map(
+                            (part: string, partIndex: number): ReactElement => {
+                              return (
+                                <React.Fragment key={partIndex}>
+                                  {partIndex > 0
+                                    ? getInlineSeparator(translator.language)
+                                    : ""}
+                                  <bdi>{part}</bdi>
+                                </React.Fragment>
+                              );
+                            },
+                          )}
                         </div>
                       ) : (
                         <></>
