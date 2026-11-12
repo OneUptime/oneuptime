@@ -51241,6 +51241,8 @@
   "Hidden - your role needs the \"{{permission}}\" permission": "مخفي - يحتاج دورك إلى إذن «{{permission}}»",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "لا يستطيع دورك قراءة هوية المستخدم النهائي. اطلب من مسؤول المشروع إذن «{{permission}}».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "المرجع الدقيق الذي مرّرته صفحتك إلى identify(). يتطلب إذن «{{permission}}»؛ ولا يُكتب أبدًا في عنوان URL.",
+  "That turn is not part of this task": "تلك الجولة ليست جزءًا من هذه المهمة",
+  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها.",
   "Click to configure a metric": "انقر لتهيئة مقياس",
   "No SLO picked yet.": "لم يُختر أي SLO بعد.",
   "No metric picked yet.": "لم يُختر أي مقياس بعد.",

@@ -25,7 +25,6 @@ import { Indigo500 } from "../../../Types/BrandColors";
 import Dictionary from "../../../Types/Dictionary";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import PullRequestState from "../../../Types/CodeRepository/PullRequestState";
 import AiResourceType, {
   isCloudAiResourceType,
 } from "../../../Types/ResourceAiAgent/AiResourceType";
@@ -59,8 +58,10 @@ import IncidentFeedService from "../../Services/IncidentFeedService";
 import CodeTaskAccess from "../AI/CodeTask/CodeTaskAccess";
 import CodeTaskContextBuilder from "../AI/CodeTask/CodeTaskContextBuilder";
 import CodeTaskGate from "../AI/CodeTask/CodeTaskGate";
+import CodeTaskListRows, {
+  CodeTaskRepliesRead,
+} from "../AI/CodeTask/CodeTaskListRows";
 import CodeTaskRuns from "../AI/CodeTask/CodeTaskRuns";
-import CodeTaskThread from "../AI/CodeTask/CodeTaskThread";
 import DeclaredCodeOwner, {
   DeclaredCodeOwnerCandidate,
   getRepositoryFullName,
@@ -558,16 +559,37 @@ export default class DeclaredCodeChanges {
       return { changes: [] };
     }
 
-    const [repliesByTask, readable]: [
-      Map<string, Array<AIRun>>,
+    // The newest task of each step: an older one failed, and was asked again.
+    const latestBySequence: Map<number, AIRun> = new Map<number, AIRun>();
+
+    for (const task of tasks) {
+      const context: DeclaredCodeChangeTaskContext | null =
+        readDeclaredCodeChangeTaskContext(task.taskContext?.declaredCodeChange);
+
+      if (context && !latestBySequence.has(context.sequence)) {
+        latestBySequence.set(context.sequence, task);
+      }
+    }
+
+    const taskIds: Array<ObjectID> = Array.from(latestBySequence.values()).map(
+      (task: AIRun): ObjectID => {
+        return task.id!;
+      },
+    );
+
+    /*
+     * Each step's task as it stands: its newest turn and the pull request
+     * it shows, read per task however many turns it has (CodeTaskListRows)
+     * - a task kept open as a working thread never reads as it stood
+     * months ago.
+     */
+    const [replies, pullRequests, readable]: [
+      Map<string, CodeTaskRepliesRead>,
+      Map<string, AIAgentTaskPullRequest>,
       Array<CodeRepository>,
     ] = await Promise.all([
-      CodeTaskThread.getRepliesByTask({
-        projectId: data.tenantId,
-        taskIds: tasks.map((task: AIRun): ObjectID => {
-          return task.id!;
-        }),
-      }),
+      CodeTaskListRows.readReplies({ projectId: data.tenantId, taskIds }),
+      CodeTaskListRows.readPullRequests({ projectId: data.tenantId, taskIds }),
       CodeTaskAccess.listReadableRepositories({
         props: data.props,
         projectId: data.tenantId,
@@ -585,62 +607,15 @@ export default class DeclaredCodeChanges {
         ];
       }),
     );
-    const runIds: Array<ObjectID> = [];
-
-    for (const task of tasks) {
-      runIds.push(task.id!);
-
-      for (const reply of repliesByTask.get(task.id!.toString()) || []) {
-        runIds.push(reply.id!);
-      }
-    }
-
-    const pullRequests: Array<AIAgentTaskPullRequest> =
-      await CodeTaskThread.getPullRequests({
-        projectId: data.tenantId,
-        runIds,
-      });
-
-    // The newest task of each step: an older one failed, and was asked again.
-    const latestBySequence: Map<number, AIRun> = new Map<number, AIRun>();
-
-    for (const task of tasks) {
-      const context: DeclaredCodeChangeTaskContext | null =
-        readDeclaredCodeChangeTaskContext(task.taskContext?.declaredCodeChange);
-
-      if (context && !latestBySequence.has(context.sequence)) {
-        latestBySequence.set(context.sequence, task);
-      }
-    }
 
     const changes: Array<DeclaredCodeChangeJSON> = [];
 
     for (const [sequence, task] of latestBySequence) {
-      const turns: Array<AIRun> = [
-        task,
-        ...(repliesByTask.get(task.id!.toString()) || []),
-      ];
-      const latest: AIRun = turns[turns.length - 1] || task;
-      const turnIds: Set<string> = new Set<string>(
-        turns.map((turn: AIRun): string => {
-          return turn.id!.toString();
-        }),
-      );
+      const key: string = CodeTaskListRows.key(task.id!);
+      const latest: AIRun = replies.get(key)?.newest || task;
+      // The newest open one any turn opened, else the newest.
       const pullRequest: AIAgentTaskPullRequest | undefined =
-        pullRequests.find((candidate: AIAgentTaskPullRequest): boolean => {
-          return (
-            Boolean(candidate.aiRunId) &&
-            turnIds.has(candidate.aiRunId!.toString()) &&
-            (candidate.pullRequestState || PullRequestState.Open) ===
-              PullRequestState.Open
-          );
-        }) ||
-        pullRequests.find((candidate: AIAgentTaskPullRequest): boolean => {
-          return (
-            Boolean(candidate.aiRunId) &&
-            turnIds.has(candidate.aiRunId!.toString())
-          );
-        });
+        pullRequests.get(key);
       const repositoryName: string | undefined = task.codeRepositoryId
         ? readableNames.get(task.codeRepositoryId.toString())
         : undefined;
