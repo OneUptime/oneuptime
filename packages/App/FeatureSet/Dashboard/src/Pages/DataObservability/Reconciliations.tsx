@@ -28,7 +28,10 @@ import ModelTable from "Common/UI/Components/ModelTable/ModelTable";
 import Pill from "Common/UI/Components/Pill/Pill";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import ProjectUtil from "Common/UI/Utils/Project";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translatableTerm,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
@@ -356,8 +359,12 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                     {translator.translateTemplate(
                       "{{source}} against {{target}}, within {{tolerance}}",
                       {
-                        source: item.sourceMeasure || "",
-                        target: item.targetMeasure || "",
+                        /*
+                         * Each measure by its name, as the Measure dropdown
+                         * draws it in the reader's language (#7223).
+                         */
+                        source: translatableTerm(item.sourceMeasure || ""),
+                        target: translatableTerm(item.targetMeasure || ""),
                         tolerance:
                           item.toleranceType ===
                           DataReconciliationToleranceType.Percent

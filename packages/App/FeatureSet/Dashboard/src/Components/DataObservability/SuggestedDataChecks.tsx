@@ -1,5 +1,6 @@
 import DataObservabilityApi from "./DataObservabilityApi";
 import { getDataCheckAlertConditionWords } from "./DataCheckAlertConditionWords";
+import { getDataCheckTypeLabel } from "./DataCheckTypeWords";
 import RecommendationDismissalUtil from "../Recommendations/RecommendationDismissalUtil";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -13,6 +14,7 @@ import {
 } from "Common/Types/DataObservability/DataAssetColumn";
 import {
   DataCheckSuggestion,
+  DataCheckSuggestionWords,
   ExistingDataCheck,
   suggestDataChecks,
   SuggestionTable,
@@ -58,6 +60,10 @@ export const SUGGESTED_CHECK_REASON_TEST_ID: string = "suggested-check-reason";
 // The most other tables of the store read to find what a reference points at.
 const MAX_OTHER_TABLES: number = 1000;
 
+// The most a check's name and description hold.
+const MAX_CHECK_NAME_LENGTH: number = 100;
+const MAX_CHECK_DESCRIPTION_LENGTH: number = 500;
+
 /*
  * The checks this table's columns call for (DataCheckSuggestions), offered
  * above its checks: add one, add them all, or dismiss one for good. Each
@@ -71,6 +77,26 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
   const [suggestions, setSuggestions] = useState<Array<DataCheckSuggestion>>(
     [],
   );
+
+  /*
+   * A suggestion's name or reason in the reader's language (#7221), with
+   * the column, table and data type it names as they are. Drawn, each name
+   * is set apart where it could move the words around it; saved, it is
+   * not - the marks are characters, and would be kept in the check.
+   */
+  const wordsOf: (
+    words: DataCheckSuggestionWords,
+    options: { isDrawn: boolean },
+  ) => string = (
+    words: DataCheckSuggestionWords,
+    options: { isDrawn: boolean },
+  ): string => {
+    return translator.translateTemplate(
+      words.template,
+      words.values,
+      options.isDrawn ? { setsValuesApart: true } : undefined,
+    );
+  };
   const [readCount, setReadCount] = useState<number>(0);
   const [working, setWorking] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string>("");
@@ -193,8 +219,14 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
     }
 
     check.dataAssetId = props.dataAssetId;
-    check.name = suggestion.name.slice(0, 100);
-    check.description = suggestion.reason;
+    // Added as the reader read it: its name and why, in their language.
+    check.name = wordsOf(suggestion.nameWords, { isDrawn: false }).slice(
+      0,
+      MAX_CHECK_NAME_LENGTH,
+    );
+    check.description = wordsOf(suggestion.reasonWords, {
+      isDrawn: false,
+    }).slice(0, MAX_CHECK_DESCRIPTION_LENGTH);
     check.checkType = suggestion.checkType;
     check.intervalInMinutes = DEFAULT_DATA_CHECK_INTERVAL_IN_MINUTES;
     check.alertCondition = suggestion.alertCondition;
@@ -319,20 +351,23 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
               >
                 <div className="min-w-0 space-y-1">
                   {/*
-                   * The suggestion's name and reason are written in
-                   * English (DataCheckSuggestions): each line reads the way
-                   * it is written, so on an Arabic or Persian page the
-                   * reason keeps its full stop at its end.
+                   * The suggestion's name and reason, in the reader's
+                   * language with the names it gives set apart: each line
+                   * reads the way its words do, so a line the language has
+                   * no words for yet reads as English, its full stop at its
+                   * end, on an Arabic or Persian page too.
                    */}
                   <IsolatedLine
                     as="span"
-                    text={suggestion.name}
+                    text={wordsOf(suggestion.nameWords, { isDrawn: true })}
                     className="block break-words font-medium text-gray-900"
                     dataTestId={SUGGESTED_CHECK_NAME_TEST_ID}
                   />
                   <span className="block text-xs text-gray-500">
-                    {translator.translateText(suggestion.checkType) ||
-                      suggestion.checkType}
+                    {getDataCheckTypeLabel({
+                      translator: translator,
+                      checkType: suggestion.checkType,
+                    })}
                     <InlineSeparator />
                     {getDataCheckAlertConditionWords({
                       translator: translator,
@@ -342,7 +377,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
                   </span>
                   <IsolatedLine
                     as="span"
-                    text={suggestion.reason}
+                    text={wordsOf(suggestion.reasonWords, { isDrawn: true })}
                     className="block break-words text-sm text-gray-600"
                     dataTestId={SUGGESTED_CHECK_REASON_TEST_ID}
                   />

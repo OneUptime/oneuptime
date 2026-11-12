@@ -654,6 +654,17 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     directory: "packages/Common/Server/Utils/Monitor/LogGroupCriteriaFanOut.ts",
     kind: "keys",
   },
+  /*
+   * The checks a table's columns call for (Data Observability's Suggested
+   * Checks, #7221): each one's name and why it is suggested, as whole
+   * sentences with the names they give as values, for the Dashboard to
+   * word in the reader's language. Only the words the file marks are read.
+   */
+  {
+    directory:
+      "packages/Common/Types/DataObservability/DataCheckSuggestions.ts",
+    kind: "keys",
+  },
 ];
 
 /*

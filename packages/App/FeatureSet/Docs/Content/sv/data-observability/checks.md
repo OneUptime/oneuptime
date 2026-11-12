@@ -8,14 +8,14 @@ Lägg till en kontroll på en tabells flik **Kontroller**:
 
 | Kontroll | Vad den läser |
 | --- | --- |
-| **Null Percent** | Procentandel rader vars kolumn är tom |
-| **Duplicate Percent** | Procentandel värden som upprepar en annan rads värde |
-| **Distinct Count** | Hur många olika värden kolumnen innehåller |
+| **Andel NULL** | Procentandel rader vars kolumn är tom |
+| **Andel dubbletter** | Procentandel värden som upprepar en annan rads värde |
+| **Antal unika värden** | Hur många olika värden kolumnen innehåller |
 | **Minimum**, **Maximum**, **Genomsnitt**, **Summa** | Av en numerisk kolumn (en Summa av inga rader är 0) |
-| **Invalid Percent** | Procentandel värden utanför en lista som du anger |
-| **Format Mismatch Percent** | Procentandel värden som inte har ett format som du väljer, till exempel Email, UUID eller Country Code, eller som inte matchar ett reguljärt uttryck som du anger (alla motorer utom SQL Server och Dataverse) |
-| **Orphan Count** | Rader vars värde saknar motsvarighet i en annan tabells kolumn |
-| **Row Count** | Rader i tabellen, mest användbart med **Segmentera efter** |
+| **Andel ogiltiga värden** | Procentandel värden utanför en lista som du anger |
+| **Andel formatfel** | Procentandel värden som inte har ett format som du väljer, till exempel Email, UUID eller Country Code, eller som inte matchar ett reguljärt uttryck som du anger (alla motorer utom SQL Server och Dataverse) |
+| **Antal föräldralösa rader** | Rader vars värde saknar motsvarighet i en annan tabells kolumn |
+| **Antal rader** | Rader i tabellen, mest användbart med **Segmentera efter** |
 | **Anpassad SQL** | Talet som en egen SELECT med enbart läsbehörighet returnerar, med namnet `value` (i MongoDB en aggregeringspipelines) |
 | **Rader som misslyckas** | Hur många rader en egen SELECT med enbart läsbehörighet returnerar: de rader som inte borde finnas. 0 är friskt (i MongoDB de dokument som en pipeline slutar i) |
 
@@ -31,7 +31,7 @@ Varje kontroll körs var 15:e minut, varje timme, var 6:e timme eller varje dag,
 
 ## Segment
 
-**Segmentera efter** kör en kontroll en gång per värde i en kolumn, till exempel en tenant eller en region: en serie och ett larm för vart och ett, för de 100 största segmenten. En segmenterad Row Count larmar när en tenant slutar skicka data medan de andra fortsätter.
+**Segmentera efter** kör en kontroll en gång per värde i en kolumn, till exempel en tenant eller en region: en serie och ett larm för vart och ett, för de 100 största segmenten. Ett segmenterat antal rader larmar när en tenant slutar skicka data medan de andra fortsätter.
 
 ## Larm på en kontroll
 
@@ -48,13 +48,13 @@ En kontrolls **Status**, under **Kontroller** och på fliken **Kontroller** för
 
 En kontroll konkurrerar med din applikation om databasen, och i ett datavaruhus som debiterar efter vad en fråga läser kostar den pengar. Tre saker håller det under kontroll:
 
-- **Stickprovsprocent** läser en andel av raderna i stället för alla, för en kontroll som läser en andel: Null Percent, Genomsnitt, Invalid Percent och Format Mismatch Percent. De flesta motorer hoppar över hela sidor av tabellen; MySQL, Redshift, ClickHouse och MongoDB läser fortfarande varje rad, och slipper arbetet med resten. Dataverse tar inget stickprov: en kontroll där läser varje rad. En vy kan vägra det, och kontrollen säger det.
+- **Stickprovsprocent** läser en andel av raderna i stället för alla, för en kontroll som läser en andel: Andel NULL, Genomsnitt, Andel ogiltiga värden och Andel formatfel. De flesta motorer hoppar över hela sidor av tabellen; MySQL, Redshift, ClickHouse och MongoDB läser fortfarande varje rad, och slipper arbetet med resten. Dataverse tar inget stickprov: en kontroll där läser varje rad. En vy kan vägra det, och kontrollen säger det.
 - **Mest en kontroll får läsa (GB)**, under **Inställningar**, stoppar en kontroll i BigQuery eller Athena innan den läser fler gigabyte än så. Den är 10 tills du ändrar den.
 - **Vänta när en databas är upptagen**, under **Inställningar**, lämnar kontroller som ska köras till nästa insamling när en PostgreSQL-, MySQL- eller SQL Server-databas ser upptagen ut. Den är påslagen tills du stänger av den, och databasen säger när kontroller väntade.
 
 ## Felaktiga rader
 
-Ett tal säger att något är fel; några rader säger vad. **Spara felaktiga rader** under **Inställningar** sparar upp till 20 av de rader som en kontroll av typen Failing Rows, Invalid Percent, Format Mismatch Percent eller Orphan Count hittade, och **Rader som misslyckas** på kontrollen visar dem. Inställningen är av tills du slår på den. Känsliga kolumner maskeras där raden läses, utifrån vad Datasäkerhet hittade i dem eller deras namn, så det som lämnar databasen, eller en sond, är redan maskerat. En känslig kolumn som ingen skanning har hittat och vars namn inte avslöjar den sparas som den är.
+Ett tal säger att något är fel; några rader säger vad. **Spara felaktiga rader** under **Inställningar** sparar upp till 20 av de rader som en kontroll av typen Rader som misslyckas, Andel ogiltiga värden, Andel formatfel eller Antal föräldralösa rader hittade, och **Rader som misslyckas** på kontrollen visar dem. Inställningen är av tills du slår på den. Känsliga kolumner maskeras där raden läses, utifrån vad Datasäkerhet hittade i dem eller deras namn, så det som lämnar databasen, eller en sond, är redan maskerat. En känslig kolumn som ingen skanning har hittat och vars namn inte avslöjar den sparas som den är.
 
 Raderna lagras i OneUptime: på OneUptimes servrar med OneUptime Cloud och på dina egna med en egenhostad installation. Alla som kan läsa projektets kontroller kan se dem. En kontroll sparar bara raderna från sin senaste körning, och när du stänger av **Spara felaktiga rader** raderas det som varje kontroll har sparat.
 
@@ -104,9 +104,9 @@ Nycklarna är `name`, `table`, `database`, `type`, `column`, `segment`, `accepte
 
 Kopior glider isär: datavaruhuset har färre order än applikationens databas, eller en migrering tappade rader. En avstämning jämför ett mått i två tabeller, i en databas eller två, under **Avstämningar**:
 
-- **Row Count**
+- **Antal rader**
 - **Summa** av en kolumn
-- **Distinct Count** av en kolumn
+- **Antal unika värden** av en kolumn
 - **Anpassad SQL**: en fråga med enbart läsbehörighet som returnerar ett tal, med namnet `value`
 
 Den har en tolerans: **Absolut**, ett fast belopp, eller **Procent**, en procentandel av källans värde. Varje sida läses av en egen kontroll, som avstämningen skapar och underhåller, med sin databas insamling, så att en avstämning kan jämföra en PostgreSQL-tabell i ditt nätverk med dess kopia i Snowflake. De två värdena jämförs när båda har lästs inom 15 minuter från varandra. En avstämning skriver:

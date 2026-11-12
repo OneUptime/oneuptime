@@ -31,7 +31,7 @@ De sonde meldt alleen:
 
 | Waarde | Wat het is |
 |---|---|
-| **Row Count** | Het aantal rijen dat de query teruggaf (begrensd door de limiet Max Rows). |
+| **Aantal rijen** | Het aantal rijen dat de query teruggaf (begrensd door de limiet Max Rows). |
 | **Scalaire waarde** | De eerste kolom van de eerste rij. Dit is de natuurlijke waarde voor een query in de stijl van `SELECT COUNT(*)`. |
 | **First Row** | De eerste rij als paren van kolom en waarde, getoond in de samenvatting van de controle voor context. |
 | **Execution Time** | Hoe lang de controle duurde, in milliseconden, inclusief het verbinden en niet alleen de query. |
@@ -204,7 +204,7 @@ WHERE status = 'CANCELLED'
 :::
 
 > [!TIP]
-> Bij een query in de stijl van `COUNT(*)` is het aantal beschikbaar als **Row Count** (dat `1` is, omdat er één rij terugkomt) en als **Scalaire waarde** (het aantal zelf, uit de eerste kolom). Om op "hoeveel" te waarschuwen, vergelijkt u met de **Scalaire waarde**.
+> Bij een query in de stijl van `COUNT(*)` is het aantal beschikbaar als **Aantal rijen** (dat `1` is, omdat er één rij terugkomt) en als **Scalaire waarde** (het aantal zelf, uit de eerste kolom). Om op "hoeveel" te waarschuwen, vergelijkt u met de **Scalaire waarde**.
 
 ## Een monitorgeheim voor het wachtwoord gebruiken
 

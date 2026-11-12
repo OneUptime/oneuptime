@@ -1,3 +1,15 @@
+import {
+  DataTypeInfo,
+  getBuiltInDataType,
+} from "../DataSecurity/DataTypeCatalog";
+import {
+  ComposedValue,
+  composedValue,
+  fillTemplate,
+  TemplateValues,
+  translationKey,
+  Translator,
+} from "../Translator";
 import { DataAssetColumn } from "./DataAssetColumn";
 import { getFormatOfDataType, getFormatPattern } from "./DataCheckFormats";
 import { DataCheckAlertCondition, DataCheckType } from "./DataCheckType";
@@ -25,13 +37,90 @@ import { DataColumnSensitivity } from "./DataColumnSensitivity";
  *
  * A suggestion the table already has a check for, or one dismissed, is not
  * offered again. Each has a stable id, so dismissing it sticks.
+ *
+ * Its name and why it is suggested are each one whole sentence of the
+ * Dashboard's (#7221), with the column, table and data type it names as
+ * values: the Dashboard words the sentence in the reader's language and
+ * puts the names in as they are. `name` and `reason` are the same
+ * sentences in English, exactly as they always read.
  */
+
+/*
+ * A suggestion's words: a sentence that is a key of the Dashboard's locale
+ * files, and the names that go into it.
+ */
+export interface DataCheckSuggestionWords {
+  template: string;
+  values: TemplateValues;
+}
+
+/*
+ * The sentences a suggestion is worded with, by what they are. Each is
+ * worded in every language the Dashboard is read in; a column's, a table's
+ * or a segment's name goes in as it is, and a data type in the reader's
+ * words when it is one of Data Security's own (getDataTypeValue).
+ */
+export const DATA_CHECK_SUGGESTION_SENTENCES: {
+  uniqueName: string;
+  uniqueReason: string;
+  orphansName: string;
+  orphansReason: string;
+  nullsName: string;
+  nullsReason: string;
+  volumeByName: string;
+  volumeByReason: string;
+  emailFormatName: string;
+  emailFormatReason: string;
+  notNegativeName: string;
+  notNegativeReason: string;
+  valuesName: string;
+  valuesReason: string;
+  sensitiveFormatName: string;
+  sensitiveFormatReason: string;
+} = {
+  uniqueName: translationKey("{{column}} is unique"),
+  uniqueReason: translationKey(
+    "An id that repeats breaks every join and lookup on it.",
+  ),
+  orphansName: translationKey("Every {{column}} has a {{table}} row"),
+  orphansReason: translationKey(
+    "Rows whose {{column}} has no match in {{table}} are orphans: a delete that did not cascade, or a load out of order.",
+  ),
+  nullsName: translationKey("{{column}} is filled in as usual"),
+  nullsReason: translationKey(
+    "A deploy that stops setting {{column}} shows as more empty values than usual.",
+  ),
+  volumeByName: translationKey("Rows per {{segment}}"),
+  volumeByReason: translationKey(
+    "One {{segment}} that stops sending data is lost in the table's total: counted per {{column}}, it alerts on its own.",
+  ),
+  emailFormatName: translationKey("{{column}} looks like an email address"),
+  emailFormatReason: translationKey(
+    "Values that are not email addresses are bad input, or a column filled from the wrong field.",
+  ),
+  notNegativeName: translationKey("{{column}} is not negative"),
+  notNegativeReason: translationKey(
+    "A negative {{column}} is usually a sign or unit error.",
+  ),
+  valuesName: translationKey("{{column}} takes its usual values"),
+  valuesReason: translationKey(
+    "A {{column}} that suddenly has more different values than usual is a new, unexpected value being written.",
+  ),
+  sensitiveFormatName: translationKey("{{column}} looks like {{dataType}}"),
+  sensitiveFormatReason: translationKey(
+    "Data Security says this column holds {{dataType}}. Values that do not look like it are bad input, or a column filled from the wrong field.",
+  ),
+};
 
 export interface DataCheckSuggestion {
   // Stable across visits: what a dismissal remembers.
   id: string;
+  // The name and the reason in English: what they always were.
   name: string;
   reason: string;
+  // The same two, as sentences to word in the reader's language.
+  nameWords: DataCheckSuggestionWords;
+  reasonWords: DataCheckSuggestionWords;
   checkType: DataCheckType;
   columnName?: string | undefined;
   segmentColumn?: string | undefined;
@@ -70,6 +159,42 @@ const CATEGORY_NAME: RegExp = /(^|_)(status|state|type|kind|category|stage)$/i;
 const EMAIL_NAME: RegExp = /(^|_)e?mail(_address)?$/i;
 const TENANT_NAME: RegExp =
   /^(tenant|org|organization|organisation|account|workspace|team|customer)_id$/i;
+
+// A suggestion's name and reason: each sentence with its names, and its English.
+function worded(data: {
+  name: string;
+  reason: string;
+  values: TemplateValues;
+}): {
+  name: string;
+  reason: string;
+  nameWords: DataCheckSuggestionWords;
+  reasonWords: DataCheckSuggestionWords;
+} {
+  return {
+    name: fillTemplate(data.name, data.values),
+    reason: fillTemplate(data.reason, data.values),
+    nameWords: { template: data.name, values: data.values },
+    reasonWords: { template: data.reason, values: data.values },
+  };
+}
+
+/*
+ * A data type in a sentence: one of Data Security's own (Email address,
+ * Phone number, IP address) in the reader's words, by its catalog name;
+ * otherwise, and in English, as Data Security named it.
+ */
+function getDataTypeValue(sensitive: DataColumnSensitivity): ComposedValue {
+  return composedValue((translator: Translator): string => {
+    const builtIn: DataTypeInfo | undefined = getBuiltInDataType(
+      sensitive.dataTypeId,
+    );
+
+    return builtIn && translator.hasTranslation(builtIn.name)
+      ? translator.translateTerm(builtIn.name, { inSentence: true })
+      : sensitive.dataTypeName;
+  });
+}
 
 function isNumeric(column: DataAssetColumn): boolean {
   return NUMERIC_TYPE.test(column.dataType);
@@ -138,8 +263,11 @@ export function suggestDataChecks(data: {
     if (lower === "id") {
       suggestions.push({
         id: `unique:${name}`,
-        name: `${name} is unique`,
-        reason: "An id that repeats breaks every join and lookup on it.",
+        ...worded({
+          name: DATA_CHECK_SUGGESTION_SENTENCES.uniqueName,
+          reason: DATA_CHECK_SUGGESTION_SENTENCES.uniqueReason,
+          values: { column: name },
+        }),
         checkType: DataCheckType.DuplicatePercent,
         columnName: name,
         alertCondition: DataCheckAlertCondition.Above,
@@ -157,8 +285,23 @@ export function suggestDataChecks(data: {
       if (referenced) {
         suggestions.push({
           id: `orphans:${name}:${referenced.tableKey}`,
-          name: `Every ${name} has a ${referenced.name} row`,
-          reason: `Rows whose ${name} has no match in ${referenced.tableKey} are orphans: a delete that did not cascade, or a load out of order.`,
+          name: fillTemplate(DATA_CHECK_SUGGESTION_SENTENCES.orphansName, {
+            column: name,
+            table: referenced.name,
+          }),
+          reason: fillTemplate(DATA_CHECK_SUGGESTION_SENTENCES.orphansReason, {
+            column: name,
+            table: referenced.tableKey,
+          }),
+          // Its name says the table's name; why, the table as a query writes it.
+          nameWords: {
+            template: DATA_CHECK_SUGGESTION_SENTENCES.orphansName,
+            values: { column: name, table: referenced.name },
+          },
+          reasonWords: {
+            template: DATA_CHECK_SUGGESTION_SENTENCES.orphansReason,
+            values: { column: name, table: referenced.tableKey },
+          },
           checkType: DataCheckType.OrphanCount,
           columnName: name,
           referenceTableKey: referenced.tableKey,
@@ -174,8 +317,11 @@ export function suggestDataChecks(data: {
       if (column.isNullable) {
         suggestions.push({
           id: `nulls:${name}`,
-          name: `${name} is filled in as usual`,
-          reason: `A deploy that stops setting ${name} shows as more empty values than usual.`,
+          ...worded({
+            name: DATA_CHECK_SUGGESTION_SENTENCES.nullsName,
+            reason: DATA_CHECK_SUGGESTION_SENTENCES.nullsReason,
+            values: { column: name },
+          }),
           checkType: DataCheckType.NullPercent,
           columnName: name,
           alertCondition: DataCheckAlertCondition.UnusuallyHigh,
@@ -186,8 +332,12 @@ export function suggestDataChecks(data: {
     if (TENANT_NAME.test(lower)) {
       suggestions.push({
         id: `volume-by:${name}`,
-        name: `Rows per ${name.replace(/_id$/i, "")}`,
-        reason: `One ${name.replace(/_id$/i, "")} that stops sending data is lost in the table's total: counted per ${name}, it alerts on its own.`,
+        ...worded({
+          name: DATA_CHECK_SUGGESTION_SENTENCES.volumeByName,
+          reason: DATA_CHECK_SUGGESTION_SENTENCES.volumeByReason,
+          // "tenant_id" counts per tenant: the segment is the name without its _id.
+          values: { segment: name.replace(/_id$/i, ""), column: name },
+        }),
         checkType: DataCheckType.RowCount,
         segmentColumn: name,
         alertCondition: DataCheckAlertCondition.UnusuallyLow,
@@ -197,9 +347,11 @@ export function suggestDataChecks(data: {
     if (EMAIL_NAME.test(lower) && isText(column)) {
       suggestions.push({
         id: `email-format:${name}`,
-        name: `${name} looks like an email address`,
-        reason:
-          "Values that are not email addresses are bad input, or a column filled from the wrong field.",
+        ...worded({
+          name: DATA_CHECK_SUGGESTION_SENTENCES.emailFormatName,
+          reason: DATA_CHECK_SUGGESTION_SENTENCES.emailFormatReason,
+          values: { column: name },
+        }),
         checkType: DataCheckType.FormatMismatchPercent,
         columnName: name,
         pattern: EMAIL_PATTERN,
@@ -211,8 +363,11 @@ export function suggestDataChecks(data: {
     if (MONEY_NAME.test(lower) && isNumeric(column)) {
       suggestions.push({
         id: `not-negative:${name}`,
-        name: `${name} is not negative`,
-        reason: `A negative ${name} is usually a sign or unit error.`,
+        ...worded({
+          name: DATA_CHECK_SUGGESTION_SENTENCES.notNegativeName,
+          reason: DATA_CHECK_SUGGESTION_SENTENCES.notNegativeReason,
+          values: { column: name },
+        }),
         checkType: DataCheckType.Minimum,
         columnName: name,
         alertCondition: DataCheckAlertCondition.Below,
@@ -223,8 +378,11 @@ export function suggestDataChecks(data: {
     if (CATEGORY_NAME.test(lower)) {
       suggestions.push({
         id: `values:${name}`,
-        name: `${name} takes its usual values`,
-        reason: `A ${name} that suddenly has more different values than usual is a new, unexpected value being written.`,
+        ...worded({
+          name: DATA_CHECK_SUGGESTION_SENTENCES.valuesName,
+          reason: DATA_CHECK_SUGGESTION_SENTENCES.valuesReason,
+          values: { column: name },
+        }),
         checkType: DataCheckType.DistinctCount,
         columnName: name,
         alertCondition: DataCheckAlertCondition.UnusuallyHigh,
@@ -257,8 +415,11 @@ export function suggestDataChecks(data: {
 
     suggestions.push({
       id: `sensitive-format:${column.name}`,
-      name: `${column.name} looks like ${sensitive.dataTypeName}`,
-      reason: `Data Security says this column holds ${sensitive.dataTypeName}. Values that do not look like it are bad input, or a column filled from the wrong field.`,
+      ...worded({
+        name: DATA_CHECK_SUGGESTION_SENTENCES.sensitiveFormatName,
+        reason: DATA_CHECK_SUGGESTION_SENTENCES.sensitiveFormatReason,
+        values: { column: column.name, dataType: getDataTypeValue(sensitive) },
+      }),
       checkType: DataCheckType.FormatMismatchPercent,
       columnName: column.name,
       pattern,

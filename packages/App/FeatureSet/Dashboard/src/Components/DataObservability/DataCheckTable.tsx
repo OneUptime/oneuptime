@@ -5,6 +5,10 @@ import {
   DATA_CHECK_ALERT_CONDITION_LABELS,
   getDataCheckAlertConditionWords,
 } from "./DataCheckAlertConditionWords";
+import {
+  DATA_CHECK_TYPE_LABELS,
+  getDataCheckTypeLabel,
+} from "./DataCheckTypeWords";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -56,6 +60,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
+import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
@@ -67,9 +72,14 @@ export interface ComponentProps {
   dataStoreKind?: string | undefined;
 }
 
+/*
+ * The form's Check dropdown and the list's Check filter: each type by its
+ * name, which the dropdown draws in the reader's language (#7223). The
+ * value saved is the type's English value.
+ */
 const TYPE_OPTIONS: Array<DropdownOption> = DATA_CHECK_TYPES.map(
   (type: DataCheckType): DropdownOption => {
-    return { value: type, label: type };
+    return { value: type, label: DATA_CHECK_TYPE_LABELS[type] };
   },
 );
 
@@ -116,6 +126,9 @@ const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(
     };
   },
 );
+
+// The line under a check's name: what it measures, and the rest of its facts.
+export const DATA_CHECK_FACTS_TEST_ID: string = "data-check-facts";
 
 // Accepted values are typed one per line, and kept as a list.
 function readAcceptedValues(value: unknown): Array<string> | undefined {
@@ -207,6 +220,35 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
     } catch {
       // The Status stays what the last run alone says.
     }
+  };
+
+  /*
+   * The facts under a check's name: what it measures, in the reader's
+   * words; the column it reads; what it is counted by; and whether a
+   * checks file keeps it.
+   */
+  const getCheckFacts: (check: DataCheck) => Array<string> = (
+    check: DataCheck,
+  ): Array<string> => {
+    return [
+      getDataCheckTypeLabel({
+        translator: translator,
+        checkType: check.checkType,
+      }),
+      check.columnName || "",
+      check.segmentColumn
+        ? translator.translateTemplate(
+            "by {{column}}",
+            { column: check.segmentColumn },
+            { setsValuesApart: true },
+          )
+        : "",
+      check.isManagedByFile
+        ? translator.translateText("From a file") || "From a file"
+        : "",
+    ].filter((fact: string): boolean => {
+      return fact.length > 0;
+    });
   };
 
   const healthOf: (check: DataCheck) => DataCheckHealthAnswer = (
@@ -638,17 +680,26 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
                       </AppLink>
                     </IsolatedLine>
                   )}
-                  <span className="block truncate text-xs text-gray-500">
-                    {check.checkType}
-                    {check.columnName ? ` · ${check.columnName}` : ""}
-                    {check.segmentColumn
-                      ? ` · ${translator.translateTemplate("by {{column}}", {
-                          column: check.segmentColumn,
-                        })}`
-                      : ""}
-                    {check.isManagedByFile
-                      ? ` · ${translator.translateText("From a file")}`
-                      : ""}
+                  {/*
+                   * What the check measures, in the reader's words (#7223),
+                   * then the column it reads, its segments and where it came
+                   * from: each fact in its own direction, set apart the way
+                   * the reader's language sets facts apart.
+                   */}
+                  <span
+                    className="block truncate text-xs text-gray-500"
+                    data-testid={DATA_CHECK_FACTS_TEST_ID}
+                  >
+                    {getCheckFacts(check).map(
+                      (fact: string, index: number): ReactElement => {
+                        return (
+                          <React.Fragment key={index}>
+                            {index > 0 ? <InlineSeparator /> : <></>}
+                            <bdi>{fact}</bdi>
+                          </React.Fragment>
+                        );
+                      },
+                    )}
                   </span>
                 </div>
               );
