@@ -22,6 +22,11 @@ import { JSONObject } from "../../../Types/JSON";
 import { isCriticalPushNotification } from "../../../Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "../../../Types/ObjectID";
 import { getOnCallPageStateName } from "../../../Types/OnCallDutyPolicy/OnCallPageWords";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import {
+  getOnCallTestPageCustomChannelOffMessage,
+  getOnCallTestPageNotVerifiedMessage,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPageLine";
 import {
   OnCallTestPageRecordKind,
   isOnCallTestPageRecordKind,
@@ -197,7 +202,12 @@ export default class OnCallTestPageDelivery {
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
-          statusMessage: `Email notification not sent because email ${rule.userEmail.email.toString()} is not verified.`,
+          statusMessage: getOnCallTestPageNotVerifiedMessage({
+            channel: OnCallPageChannel.Email,
+            address: rule.userEmail.email.toString(),
+          }),
+          // Names its method, so the test's result says which one, and where.
+          method: { userEmailId: rule.userEmail.id! },
         });
       }
     }
@@ -243,7 +253,11 @@ export default class OnCallTestPageDelivery {
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
-          statusMessage: `SMS not sent because phone ${rule.userSms.phone.toString()} is not verified.`,
+          statusMessage: getOnCallTestPageNotVerifiedMessage({
+            channel: OnCallPageChannel.SMS,
+            address: rule.userSms.phone.toString(),
+          }),
+          method: { userSmsId: rule.userSms.id! },
         });
       }
     }
@@ -283,7 +297,10 @@ export default class OnCallTestPageDelivery {
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
-          statusMessage: `WhatsApp message not sent because phone ${rule.userWhatsApp.phone.toString()} is not verified.`,
+          statusMessage: getOnCallTestPageNotVerifiedMessage({
+            channel: OnCallPageChannel.WhatsApp,
+            address: rule.userWhatsApp.phone.toString(),
+          }),
           method: { userWhatsAppId: rule.userWhatsApp.id! },
         });
       }
@@ -325,8 +342,9 @@ export default class OnCallTestPageDelivery {
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
-          statusMessage:
-            "Telegram message not sent because the Telegram account is not verified.",
+          statusMessage: getOnCallTestPageNotVerifiedMessage({
+            channel: OnCallPageChannel.Telegram,
+          }),
           method: { userTelegramId: rule.userTelegram.id! },
         });
       }
@@ -335,6 +353,10 @@ export default class OnCallTestPageDelivery {
     // SLACK, MICROSOFT TEAMS AND MATTERMOST: a message to the person.
     const workspaceMethods: Array<{
       workspaceType: WorkspaceType;
+      channel:
+        | OnCallPageChannel.Slack
+        | OnCallPageChannel.MicrosoftTeams
+        | OnCallPageChannel.Mattermost;
       methodId: ObjectID | undefined;
       workspaceUserId: string | undefined;
       isVerified: boolean | undefined;
@@ -342,6 +364,7 @@ export default class OnCallTestPageDelivery {
     }> = [
       {
         workspaceType: WorkspaceType.Slack,
+        channel: OnCallPageChannel.Slack,
         methodId: rule.userSlack?.id || undefined,
         workspaceUserId: rule.userSlack?.slackUserId,
         isVerified: rule.userSlack?.isVerified,
@@ -349,6 +372,7 @@ export default class OnCallTestPageDelivery {
       },
       {
         workspaceType: WorkspaceType.MicrosoftTeams,
+        channel: OnCallPageChannel.MicrosoftTeams,
         methodId: rule.userMicrosoftTeams?.id || undefined,
         workspaceUserId: rule.userMicrosoftTeams?.microsoftTeamsUserId,
         isVerified: rule.userMicrosoftTeams?.isVerified,
@@ -356,6 +380,7 @@ export default class OnCallTestPageDelivery {
       },
       {
         workspaceType: WorkspaceType.Mattermost,
+        channel: OnCallPageChannel.Mattermost,
         methodId: rule.userMattermost?.id || undefined,
         workspaceUserId: rule.userMattermost?.mattermostUserId,
         isVerified: rule.userMattermost?.isVerified,
@@ -379,7 +404,9 @@ export default class OnCallTestPageDelivery {
       if (!workspaceMethod.isVerified) {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
-          statusMessage: `${displayName} message not sent because the ${displayName} account is not verified.`,
+          statusMessage: getOnCallTestPageNotVerifiedMessage({
+            channel: workspaceMethod.channel,
+          }),
           method: method,
         });
 
@@ -501,7 +528,11 @@ export default class OnCallTestPageDelivery {
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
-          statusMessage: `Call not sent because phone ${rule.userCall.phone.toString()} is not verified.`,
+          statusMessage: getOnCallTestPageNotVerifiedMessage({
+            channel: OnCallPageChannel.Call,
+            address: rule.userCall.phone.toString(),
+          }),
+          method: { userCallId: rule.userCall.id! },
         });
       }
     }
@@ -563,7 +594,7 @@ export default class OnCallTestPageDelivery {
       } else if (rule.customNotificationChannel) {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
-          statusMessage: `Not sent: ${channelName} is turned off.`,
+          statusMessage: getOnCallTestPageCustomChannelOffMessage(channelName),
           method: {
             customNotificationChannelId: customChannelId,
           },

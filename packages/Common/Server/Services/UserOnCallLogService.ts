@@ -40,6 +40,14 @@ import logger from "../Utils/Logger";
 import ProjectMembership from "../Utils/TeamMember/ProjectMembership";
 import { ON_CALL_PAGE_SENT_STATUS_MESSAGE } from "../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
+  getOnCallFallbackFailedStatusMessage,
+  getOnCallFallbackNotifiedStatusMessage,
+  getOnCallNoVerifiedMethodStatusMessage,
+  getOnCallOptedOutStatusMessage,
+  NO_NOTIFICATION_RULES_STATUS_MESSAGE,
+  NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+} from "../../Types/OnCallDutyPolicy/OnCallPageLine";
+import {
   ON_CALL_TEST_PAGE_RULES_RAN_MESSAGE,
   ON_CALL_TEST_PAGE_RUN_UNREADABLE_MESSAGE,
   OnCallTestPageRecordKind,
@@ -63,13 +71,14 @@ import AlertSeverityService from "./AlertSeverityService";
 
 /*
  * The status message the zero-rule dead-end wrote before the fallback existed,
- * kept verbatim. A project that sets `disableOnCallNotificationFallback` is
- * asking for precisely the old behaviour, so it must still receive precisely
- * the old words - operators grep their execution logs for this sentence, and a
- * characterisation test pins it character for character.
+ * kept verbatim (Types/OnCallDutyPolicy/OnCallPageLine), and why a log sent
+ * nothing to somebody who is not a member of the project. Kept where they
+ * always were too, for whoever reads them from here.
  */
-export const NO_NOTIFICATION_RULES_STATUS_MESSAGE: string =
-  "No notification rules found for this user. User should add the rules in User Settings > On-Call Rules.";
+export {
+  NO_NOTIFICATION_RULES_STATUS_MESSAGE,
+  NOT_A_PROJECT_MEMBER_STATUS_MESSAGE,
+};
 
 /*
  * Why an on-call notification log stopped part way: the person left the
@@ -78,17 +87,6 @@ export const NO_NOTIFICATION_RULES_STATUS_MESSAGE: string =
  */
 export const NO_LONGER_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
   "Stopped because this user is no longer a member of the project. Their remaining notification rules were not run.";
-
-/*
- * Why an on-call notification log sent nothing at all: the person it pages
- * is not a member of the project (they left, or never accepted their
- * invitation). The rules that choose what a page goes through are read only
- * while the person is a member, so this is what is left when somebody who is
- * not one reaches this far - when the escalation could not read membership
- * and paged as before.
- */
-export const NOT_A_PROJECT_MEMBER_STATUS_MESSAGE: string =
-  "Not sent because this user is not a member of the project.";
 
 /*
  * FindWhereProperty is constrained to object types, so the parameter is `any`
@@ -1047,9 +1045,10 @@ export class Service extends DatabaseService<Model> {
       });
 
     if (optOutRule) {
-      const optOutMessage: string = `You have opted out of notifications for ${
-        data.severityName
-      } ${this.getRuleTypeLabelForMessage(data.notificationRuleType)}.`;
+      const optOutMessage: string = getOnCallOptedOutStatusMessage({
+        severityName: data.severityName,
+        pagedFor: this.getRuleTypeLabelForMessage(data.notificationRuleType),
+      });
 
       /*
        * Completed, not Error: the system did exactly what it was told to do.
@@ -1165,9 +1164,10 @@ export class Service extends DatabaseService<Model> {
     }
 
     if (fallbackResult && fallbackResult.notified) {
-      const notifiedMessage: string = `No notification rule configured for ${
-        data.severityName
-      }; notified via fallback (${fallbackResult.channelsUsed.join(", ")}).`;
+      const notifiedMessage: string = getOnCallFallbackNotifiedStatusMessage({
+        severityName: data.severityName,
+        channelsUsed: fallbackResult.channelsUsed,
+      });
 
       /*
        * Executing, matching the normal path: there are no further rules to fire,
@@ -1226,8 +1226,11 @@ export class Service extends DatabaseService<Model> {
         status: UserNotificationExecutionStatus.Error,
         timelineStatus: OnCallDutyExecutionLogTimelineStatus.Error,
         statusMessage: isPermanentlyUndeliverable
-          ? `${responderLabel} has no verified notification method, so this page could not be delivered. Ask them to add one in User Settings > Notification Methods.`
-          : `${responderLabel} has no notification rule for ${data.severityName} and the fallback delivery attempt failed, so this page was not delivered. Check the worker logs, then add a rule in User Settings > On-Call Rules.`,
+          ? getOnCallNoVerifiedMethodStatusMessage(responderLabel)
+          : getOnCallFallbackFailedStatusMessage({
+              responderLabel: responderLabel,
+              severityName: data.severityName,
+            }),
       });
     }
 

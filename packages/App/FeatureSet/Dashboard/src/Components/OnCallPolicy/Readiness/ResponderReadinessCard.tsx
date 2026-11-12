@@ -11,6 +11,7 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import { DASHBOARD_URL } from "Common/UI/Config";
 import Navigation from "Common/UI/Utils/Navigation";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import UserUtil from "Common/UI/Utils/User";
 import React, { FunctionComponent, ReactElement } from "react";
 import PageMap from "../../../Utils/PageMap";
@@ -304,7 +305,10 @@ const ResponderReadinessCard: FunctionComponent<ComponentProps> = (
                 key={`method-${index}`}
                 className="inline-flex items-center gap-1 rounded-md bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-200"
               >
-                {translator.translateTerm(method.methodType)}
+                {NotificationMethodUtil.getMethodName(
+                  translator,
+                  method.methodType,
+                )}
                 <span className="font-normal text-gray-500">
                   {method.maskedIdentifier}
                 </span>

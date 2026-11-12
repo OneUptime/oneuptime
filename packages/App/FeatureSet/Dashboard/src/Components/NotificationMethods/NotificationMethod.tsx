@@ -24,6 +24,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import NotificationMethodUtil, {
   ColumnValueReader,
+  NOTIFICATION_METHOD_LINE,
   NotificationMethodDisplayItem,
 } from "Common/UI/Utils/NotificationMethodUtil";
 import {
@@ -53,11 +54,8 @@ import React, {
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { joinList } from "Common/UI/Utils/ListSeparator";
 import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
-import {
-  getLineDirection,
-  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
-} from "Common/UI/Utils/LineDirection";
-import { ReadingDirection } from "Common/Types/ReadingDirection";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -78,34 +76,36 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
     <div>
       {displayItems.map((displayItem: NotificationMethodDisplayItem) => {
         /*
-         * "SMS: +447700900123" reads the way its words do - the method's
-         * name is the channel's own, in Latin letters - so on a Persian or
-         * Arabic page the line reads left to right, aligned where the
-         * page's lines end (getLineDirection), as "Email: ..." under it
-         * does. Left the page's way, the number drawn apart went before
-         * the name: "+447700900123 :SMS" over "Email: ana@example.com".
-         * The number an SMS, a call or a WhatsApp message goes to reads
-         * +447700900123 inside it in every language (PhoneNumberText).
+         * "SMS: +447700900123" is a sentence of the reader's language
+         * (#7178): the method's name is theirs - "Phone call", never the
+         * shared "Call", which is a function call in Chinese - and so is
+         * its colon. So the line reads the page's way: from the right on
+         * a Persian or Arabic page, name first, as every line of the
+         * column does. The identifier keeps its own direction inside it:
+         * the number an SMS, a call or a WhatsApp message goes to reads
+         * +447700900123 in every language (PhoneNumberText), and an
+         * address or a name is an isolate of its own (IsolatedText).
          */
-        const lineDirection: ReadingDirection | undefined = getLineDirection(
-          `${displayItem.title}: ${displayItem.value}`,
-          translator.language,
-        );
-
         return (
-          <p
-            key={displayItem.title}
-            dir={lineDirection}
-            className={
-              lineDirection ? LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME : undefined
-            }
-          >
-            {displayItem.title}:{" "}
-            {NotificationMethodUtil.isPhoneNumberMethod(displayItem.title) ? (
-              <PhoneNumberText phoneNumber={displayItem.value} />
-            ) : (
-              displayItem.value
-            )}
+          <p key={displayItem.method}>
+            <TranslatedSentence
+              template={NOTIFICATION_METHOD_LINE}
+              values={{
+                label: NotificationMethodUtil.getMethodName(
+                  translator,
+                  displayItem.method,
+                ),
+              }}
+              slots={{
+                identifier: NotificationMethodUtil.isPhoneNumberChannel(
+                  displayItem.method,
+                ) ? (
+                  <PhoneNumberText phoneNumber={displayItem.value} />
+                ) : (
+                  <IsolatedText text={displayItem.value} />
+                ),
+              }}
+            />
           </p>
         );
       })}
@@ -1161,10 +1161,13 @@ export const getNotificationMethodLabel: (params: {
   relationName: string;
   item: unknown;
   fallbackLabel: string;
+  // Names the method in the reader's language (#7178); English without one.
+  translator?: Translator | undefined;
 }) => string = (params: {
   relationName: string;
   item: unknown;
   fallbackLabel: string;
+  translator?: Translator | undefined;
 }): string => {
   const displayItems: Array<NotificationMethodDisplayItem> =
     NotificationMethodUtil.getDisplayItems({
@@ -1183,6 +1186,14 @@ export const getNotificationMethodLabel: (params: {
      * reads as English instead of "Deleting  removes 2 notification rules".
      */
     return params.fallbackLabel;
+  }
+
+  if (params.translator) {
+    return NotificationMethodUtil.getMethodLabel(
+      params.translator,
+      displayItem.method,
+      displayItem.value,
+    );
   }
 
   return `${displayItem.title}: ${displayItem.value}`;
@@ -1311,6 +1322,7 @@ export function useNotificationMethodDeleteGuard<TBaseModel extends BaseModel>(
         methodLabel: getNotificationMethodLabel({
           relationName: params.relationName,
           item: itemToDelete,
+          translator: translator,
           fallbackLabel: translator.translateTemplate("this {{itemName}}", {
             itemName: translatableTerm(params.singularName, {
               inSentence: true,

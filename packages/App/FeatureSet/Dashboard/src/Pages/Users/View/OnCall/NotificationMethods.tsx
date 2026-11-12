@@ -765,7 +765,10 @@ const UserViewNotificationMethods: FunctionComponent<
                 className="h-3.5 w-3.5 flex-shrink-0 text-gray-400"
               />
               <span className="font-medium text-gray-900">
-                {method.methodType}
+                {NotificationMethodUtil.getMethodName(
+                  translator,
+                  method.methodType,
+                )}
               </span>
               <MaskedIdentifier method={method} className="text-gray-500" />
 
@@ -911,7 +914,12 @@ const UserViewNotificationMethods: FunctionComponent<
               template="This removes the {{methodType}} method {{identifier}} from {{name}}'s account, and every notification rule that points at it goes with it."
               slots={{ identifier: identifierElement }}
               values={{
-                methodType: methodToDelete?.methodType || "",
+                methodType: methodToDelete
+                  ? NotificationMethodUtil.getMethodName(
+                      translator,
+                      methodToDelete.methodType,
+                    )
+                  : "",
                 name: displayName,
               }}
             />
@@ -919,7 +927,14 @@ const UserViewNotificationMethods: FunctionComponent<
             <TranslatedSentence
               template="This removes the {{methodType}} method {{identifier}} from this user's account, and every notification rule that points at it goes with it."
               slots={{ identifier: identifierElement }}
-              values={{ methodType: methodToDelete?.methodType || "" }}
+              values={{
+                methodType: methodToDelete
+                  ? NotificationMethodUtil.getMethodName(
+                      translator,
+                      methodToDelete.methodType,
+                    )
+                  : "",
+              }}
             />
           )}
         </p>
@@ -1163,7 +1178,12 @@ const UserViewNotificationMethods: FunctionComponent<
         <ConfirmModal
           title={translator.translateTemplate(
             "Remove this {{methodType}} method?",
-            { methodType: methodToDelete.methodType },
+            {
+              methodType: NotificationMethodUtil.getMethodName(
+                translator,
+                methodToDelete.methodType,
+              ),
+            },
           )}
           description={getDeletionDescription()}
           submitButtonText="Remove"

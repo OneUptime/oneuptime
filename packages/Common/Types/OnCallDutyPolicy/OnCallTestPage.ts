@@ -536,6 +536,92 @@ export function getOnCallTestPageDeliveryStatus(data: {
   }
 }
 
+/*
+ * WHAT A RESULT'S LINE SAYS, AS A CODE (#7260). A message that did not go
+ * out, a person or target that was not paged, and how the test ended are
+ * written on the run's rows in English, for every reader of the execution
+ * logs. The result reads the lines it knows back into a code with the
+ * values it names (OnCallTestPageLine.ts), so the Dashboard words it in the
+ * reader's language. Each line keeps its English `statusMessage`: for other
+ * readers of the API, for a Dashboard that does not know a code yet, and
+ * for a line no code stands for - a provider's own error, which is shown
+ * as written.
+ */
+export enum OnCallTestPageLineCode {
+  /*
+   * A MESSAGE'S LINE. Its method is not verified - a custom channel: turned
+   * off - so the test did not use it. `channel`.
+   */
+  MethodNotVerified = "MethodNotVerified",
+  // Its channel is switched off in the project. `channel`.
+  ChannelOff = "ChannelOff",
+  /*
+   * Its push device, or browser, no longer receives push notifications.
+   * `isMobileApp`: a phone's app rather than a browser.
+   */
+  PushDeviceNoLongerReceives = "PushDeviceNoLongerReceives",
+
+  // A PERSON'S, OR A TARGET'S, LINE.
+  // They opted out of pages of this severity.
+  OptedOut = "OptedOut",
+  // No rule covers the severity, and the project does not fall back.
+  NoRuleNoFallback = "NoRuleNoFallback",
+  // No rule covers the severity: their verified methods were paged instead.
+  NoRuleFallsBack = "NoRuleFallsBack",
+  // No rule covers the severity, and they have no verified method. `name`.
+  NoVerifiedMethod = "NoVerifiedMethod",
+  // No rule covers the severity, and paging their verified methods failed.
+  FallbackFailed = "FallbackFailed",
+  // They are not a member of the project. `name`.
+  NotProjectMember = "NotProjectMember",
+  // They are away, and nobody covers for them. `name`, `awayUntil`.
+  AwayWithNobodyCovering = "AwayWithNobodyCovering",
+  // A team the level names has no members. `name`: the team's.
+  TeamHasNoMembers = "TeamHasNoMembers",
+  // A schedule it pages by rotation has nobody next. `name`: the schedule's.
+  NobodyNextInRotation = "NobodyNextInRotation",
+  // A schedule it names has nobody on call. `name`: the schedule's.
+  NobodyOnCall = "NobodyOnCall",
+  // The level names nobody: the run moved on at once.
+  LevelHasNoResponders = "LevelHasNoResponders",
+  // The level named somebody and paged nobody: the run moved on at once.
+  LevelPagedNobody = "LevelPagedNobody",
+  // Paged already by this test, so not paged again.
+  AlreadyPaged = "AlreadyPaged",
+  // Being paged: their messages are on their way.
+  SendingToPerson = "SendingToPerson",
+  // Every rule for the severity ran.
+  RulesRan = "RulesRan",
+  // The test does not say which kind and severity it tests.
+  RunUnreadable = "RunUnreadable",
+
+  // THE TEST'S OWN LINE, once it ended or failed.
+  // It reached nobody.
+  NobodyPaged = "NobodyPaged",
+  // Its first level reached nobody.
+  FirstLevelReachedNobody = "FirstLevelReachedNobody",
+  // Nobody acknowledged it in time. `minutes`.
+  EndedUnanswered = "EndedUnanswered",
+  // It went through every level, and nobody acknowledged it.
+  WentThroughEveryLevel = "WentThroughEveryLevel",
+  // The policy has no escalation levels.
+  PolicyHasNoLevels = "PolicyHasNoLevels",
+}
+
+export interface OnCallTestPageLine {
+  code: OnCallTestPageLineCode;
+  // MethodNotVerified, ChannelOff.
+  channel?: OnCallPageChannel | undefined;
+  // PushDeviceNoLongerReceives.
+  isMobileApp?: boolean | undefined;
+  // The person's, the team's or the schedule's name, by the code.
+  name?: string | undefined;
+  // AwayWithNobodyCovering: when they are back, as an ISO date.
+  awayUntil?: string | undefined;
+  // EndedUnanswered.
+  minutes?: number | undefined;
+}
+
 // One message of a test, as its result shows it.
 export interface OnCallTestPageDelivery {
   // Its row of the person's on-call timeline.
@@ -547,6 +633,8 @@ export interface OnCallTestPageDelivery {
   status: OnCallTestPageDeliveryStatus;
   // What its log says: why it did not go out, the provider's id, and so on.
   statusMessage: string;
+  // What `statusMessage` says, as a code, when it is a line the result knows.
+  statusMessageCode?: OnCallTestPageLine | undefined;
   // Where a message that did not go out is fixed.
   fix?: OnCallTestPageFix | undefined;
   // Whether the test can be acknowledged from it.
@@ -583,6 +671,8 @@ export interface OnCallTestPageStep {
   status: OnCallTestPageStepStatus;
   // What the run's line says.
   statusMessage: string;
+  // What `statusMessage` says, as a code, when it is a line the result knows.
+  statusMessageCode?: OnCallTestPageLine | undefined;
   deliveries: Array<OnCallTestPageDelivery>;
 }
 
@@ -596,6 +686,8 @@ export interface OnCallTestPageResult {
   walksEscalation: boolean;
   status: OnCallTestPageStatus;
   statusMessage: string;
+  // What `statusMessage` says, as a code, when it is a line the result knows.
+  statusMessageCode?: OnCallTestPageLine | undefined;
   startedAt: string;
   // When it ends unless somebody acknowledges it first.
   endsAt: string;

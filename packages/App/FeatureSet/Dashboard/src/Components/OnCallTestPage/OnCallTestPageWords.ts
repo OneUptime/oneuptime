@@ -16,6 +16,8 @@ import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChann
 import {
   OnCallTestPageDeliveryStatus,
   OnCallTestPageFix,
+  OnCallTestPageLine,
+  OnCallTestPageLineCode,
   OnCallTestPageNotPaged,
   OnCallTestPageNotPagedCode,
   OnCallTestPagePreviewPerson,
@@ -26,6 +28,7 @@ import {
   OnCallTestPageWarning,
   OnCallTestPageWarningCode,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import { NOTIFICATION_METHOD_NAMES } from "Common/UI/Utils/NotificationMethodUtil";
 import {
   PluralTemplate,
   TemplateValue,
@@ -39,20 +42,13 @@ import {
  * whole phrase translated as one - and the page each fix opens.
  */
 
-// What a channel is called in a line of the result: "SMS", "Phone call".
-export const CHANNEL_NAMES: Readonly<Record<OnCallPageChannel, string>> = {
-  [OnCallPageChannel.Call]: translationKey("Phone call"),
-  [OnCallPageChannel.SMS]: translationKey("SMS"),
-  [OnCallPageChannel.WhatsApp]: translationKey("WhatsApp"),
-  [OnCallPageChannel.Telegram]: translationKey("Telegram"),
-  [OnCallPageChannel.Push]: translationKey("Push notification"),
-  [OnCallPageChannel.Email]: translationKey("Email"),
-  [OnCallPageChannel.Slack]: translationKey("Slack"),
-  [OnCallPageChannel.MicrosoftTeams]: translationKey("Microsoft Teams"),
-  [OnCallPageChannel.Mattermost]: translationKey("Mattermost"),
-  [OnCallPageChannel.Webhook]: translationKey("Webhook"),
-  [OnCallPageChannel.CustomChannel]: translationKey("Custom channel"),
-};
+/*
+ * What a channel is called in a line of the result: "SMS", "Phone call" -
+ * the names a notification method's line uses everywhere
+ * (NotificationMethodUtil).
+ */
+export const CHANNEL_NAMES: Readonly<Record<OnCallPageChannel, string>> =
+  NOTIFICATION_METHOD_NAMES;
 
 /*
  * "by SMS", "by phone call": the channel the test was acknowledged from, in
@@ -587,4 +583,212 @@ export function getWalkLevelHeading(
     level.startsAfterMinutes,
     { order: order },
   );
+}
+
+/*
+ * THE RESULT'S LINES (#7260): what became of a message, a person or a
+ * target, and how the test ended, sent as a code with its values
+ * (Types/OnCallDutyPolicy/OnCallTestPageLine). Each is one whole sentence -
+ * the preview's own, where it says the same - so a German or a Persian
+ * reader reads why an SMS was not sent in their language. A line with no
+ * code, or with one this Dashboard does not know, is shown as the server
+ * wrote it (TestPageResult).
+ */
+export const RESULT_LINE_SENTENCES: Readonly<{
+  pushAppNoLongerReceives: string;
+  pushBrowserNoLongerReceives: string;
+  noVerifiedMethod: string;
+  fallbackFailed: string;
+  levelHasNoResponders: string;
+  levelPagedNobody: string;
+  alreadyPaged: string;
+  sendingToPerson: string;
+  rulesRan: string;
+  runUnreadable: string;
+  nobodyPaged: string;
+  firstLevelReachedNobody: string;
+  wentThroughEveryLevel: string;
+}> = {
+  pushAppNoLongerReceives: translationKey(
+    "The mobile app was removed from this device, or its push token is no longer valid. Open the mobile app on it to register it again.",
+  ),
+  pushBrowserNoLongerReceives: translationKey(
+    "This device's push subscription expired or was revoked. Register it again from the browser or app it belongs to.",
+  ),
+  noVerifiedMethod: translationKey(
+    "{{name}} has no verified notification method.",
+  ),
+  fallbackFailed: translationKey(
+    "No on-call rule covers this severity, and paging the verified methods instead failed.",
+  ),
+  levelHasNoResponders: translationKey(
+    "This level has no responders, so the policy moved on at once.",
+  ),
+  levelPagedNobody: translationKey(
+    "Nobody at this level could be paged, so the policy moved on at once.",
+  ),
+  alreadyPaged: translationKey("Already paged by this test, so not paged again."),
+  sendingToPerson: translationKey("Sending the test page..."),
+  rulesRan: translationKey("Every on-call rule for this severity ran at once."),
+  runUnreadable: translationKey(
+    "This test page does not say which kind of page and severity it tests, so nothing was sent.",
+  ),
+  nobodyPaged: translationKey(
+    "The test page reached nobody. Each person's line says why.",
+  ),
+  firstLevelReachedNobody: translationKey(
+    "Test ended: the first escalation level reached nobody. Each person's line says why.",
+  ),
+  wentThroughEveryLevel: translationKey(
+    "Test ended: it went through every escalation level and nobody acknowledged it.",
+  ),
+};
+
+// A test nobody acknowledged within its answer window.
+export const RESULT_ENDED_UNANSWERED: PluralTemplate = {
+  one: "Test ended: nobody acknowledged it within {{count}} minute.",
+  other: "Test ended: nobody acknowledged it within {{count}} minutes.",
+};
+
+/*
+ * One line of the result, in the reader's words: from its code and the
+ * values it names. Null when there is no code, the Dashboard does not know
+ * it, or a value its sentence names is missing - the line is then shown as
+ * the server wrote it.
+ */
+export function getResultLineSentence(
+  translator: Translator,
+  line: OnCallTestPageLine | null | undefined,
+): string | null {
+  if (!line) {
+    return null;
+  }
+
+  switch (line.code) {
+    case OnCallTestPageLineCode.MethodNotVerified: {
+      const sentence: string | undefined = line.channel
+        ? METHOD_NOT_VERIFIED_SENTENCES[line.channel]
+        : undefined;
+
+      return sentence ? translator.translateTemplate(sentence) : null;
+    }
+    case OnCallTestPageLineCode.ChannelOff: {
+      const list: ChannelGatedMethodList | undefined = line.channel
+        ? CHANNEL_OFF_LISTS[line.channel]
+        : undefined;
+
+      return list
+        ? translator.translateTemplate(
+            getChannelGatedMethodList(list).offSentence,
+          )
+        : null;
+    }
+    case OnCallTestPageLineCode.PushDeviceNoLongerReceives:
+      return translator.translateTemplate(
+        line.isMobileApp
+          ? RESULT_LINE_SENTENCES.pushAppNoLongerReceives
+          : RESULT_LINE_SENTENCES.pushBrowserNoLongerReceives,
+      );
+    case OnCallTestPageLineCode.OptedOut:
+      return translator.translateTemplate(
+        WARNING_SENTENCES[OnCallTestPageWarningCode.OptedOut],
+      );
+    case OnCallTestPageLineCode.NoRuleNoFallback:
+      return translator.translateTemplate(
+        WARNING_SENTENCES[OnCallTestPageWarningCode.NoRuleNoFallback],
+      );
+    case OnCallTestPageLineCode.NoRuleFallsBack:
+      return translator.translateTemplate(
+        WARNING_SENTENCES[OnCallTestPageWarningCode.NoRuleFallsBack],
+      );
+    case OnCallTestPageLineCode.NoVerifiedMethod:
+      return translator.translateTemplate(
+        RESULT_LINE_SENTENCES.noVerifiedMethod,
+        { name: nameOr(line.name) },
+        { setsValuesApart: true },
+      );
+    case OnCallTestPageLineCode.FallbackFailed:
+      return translator.translateTemplate(RESULT_LINE_SENTENCES.fallbackFailed);
+    case OnCallTestPageLineCode.NotProjectMember:
+      return translator.translateTemplate(
+        NOT_PAGED_SENTENCES.notProjectMember,
+        { name: nameOr(line.name) },
+        { setsValuesApart: true },
+      );
+    case OnCallTestPageLineCode.AwayWithNobodyCovering:
+      return line.awayUntil
+        ? translator.translateTemplate(
+            NOT_PAGED_SENTENCES.awayWithNobodyCovering,
+            {
+              name: nameOr(line.name),
+              time: OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                OneUptimeDate.fromString(line.awayUntil),
+              ),
+            },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallTestPageLineCode.TeamHasNoMembers:
+      return line.name
+        ? translator.translateTemplate(
+            NOT_PAGED_SENTENCES.teamHasNoMembers,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallTestPageLineCode.NobodyNextInRotation:
+      return line.name
+        ? translator.translateTemplate(
+            NOT_PAGED_SENTENCES.nobodyNextInRotation,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallTestPageLineCode.NobodyOnCall:
+      return line.name
+        ? translator.translateTemplate(
+            NOT_PAGED_SENTENCES.nobodyOnCall,
+            { name: line.name },
+            { setsValuesApart: true },
+          )
+        : null;
+    case OnCallTestPageLineCode.LevelHasNoResponders:
+      return translator.translateTemplate(
+        RESULT_LINE_SENTENCES.levelHasNoResponders,
+      );
+    case OnCallTestPageLineCode.LevelPagedNobody:
+      return translator.translateTemplate(
+        RESULT_LINE_SENTENCES.levelPagedNobody,
+      );
+    case OnCallTestPageLineCode.AlreadyPaged:
+      return translator.translateTemplate(RESULT_LINE_SENTENCES.alreadyPaged);
+    case OnCallTestPageLineCode.SendingToPerson:
+      return translator.translateTemplate(
+        RESULT_LINE_SENTENCES.sendingToPerson,
+      );
+    case OnCallTestPageLineCode.RulesRan:
+      return translator.translateTemplate(RESULT_LINE_SENTENCES.rulesRan);
+    case OnCallTestPageLineCode.RunUnreadable:
+      return translator.translateTemplate(RESULT_LINE_SENTENCES.runUnreadable);
+    case OnCallTestPageLineCode.NobodyPaged:
+      return translator.translateTemplate(RESULT_LINE_SENTENCES.nobodyPaged);
+    case OnCallTestPageLineCode.FirstLevelReachedNobody:
+      return translator.translateTemplate(
+        RESULT_LINE_SENTENCES.firstLevelReachedNobody,
+      );
+    case OnCallTestPageLineCode.EndedUnanswered:
+      return typeof line.minutes === "number"
+        ? translator.translatePlural(RESULT_ENDED_UNANSWERED, line.minutes)
+        : null;
+    case OnCallTestPageLineCode.WentThroughEveryLevel:
+      return translator.translateTemplate(
+        RESULT_LINE_SENTENCES.wentThroughEveryLevel,
+      );
+    case OnCallTestPageLineCode.PolicyHasNoLevels:
+      return translator.translateTemplate(
+        NOT_PAGED_SENTENCES.policyHasNoLevels,
+      );
+  }
+
+  return null;
 }

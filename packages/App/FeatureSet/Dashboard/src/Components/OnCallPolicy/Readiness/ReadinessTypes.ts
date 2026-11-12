@@ -4,11 +4,12 @@ import NotificationRuleType from "Common/Types/NotificationRule/NotificationRule
 import { getOnCallRuleKindQueryForRuleType } from "Common/Types/NotificationRule/OnCallRuleKind";
 import { JSONObject, JSONValue } from "Common/Types/JSON";
 import {
+  getGlobalTranslator,
   translatePlural,
   translateTemplate,
-  translateTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
 import type {
   ReadinessCoverageCell,
   ReadinessMethod,
@@ -803,8 +804,14 @@ const getMethodNames: (user: UserReadinessWire) => string = (
 ): string => {
   return joinList(
     getVerifiedMethods(user).map((method: ReadinessMethodWire): string => {
-      // The channel's name, in the reader's language where it has one.
-      return translateTerm(method.methodType);
+      /*
+       * The channel's name as a notification method, in the reader's
+       * language: "Phone call", never the shared "Call" (#7178).
+       */
+      return NotificationMethodUtil.getMethodName(
+        getGlobalTranslator(),
+        method.methodType,
+      );
     }),
   );
 };
