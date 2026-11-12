@@ -45,13 +45,15 @@ jest.mock("react-i18next", () => {
 
           return options?.defaultValue ?? key;
         },
-        i18n: { language: "en", resolvedLanguage: "en" },
+        i18n: { language: pageLanguage, resolvedLanguage: pageLanguage },
       };
     },
   };
 });
 
 let germanJoin: boolean = false;
+// The page's language: a person's name reads its own way on any other.
+let pageLanguage: string = "en";
 
 const getListMock: MockFunction = getJestMockFunction();
 
@@ -96,6 +98,7 @@ import WorkspaceChannelMembersUtil, {
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 import API from "../../../UI/Utils/API/API";
 import UserUtil from "../../../UI/Utils/User";
+import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 
 const PROJECT_ID: string = "c8000000-0000-4000-8000-0000000000aa";
 const RECORD_ID: ObjectID = new ObjectID(
@@ -224,6 +227,7 @@ function makeUser(id: string, name: string, email: string): User {
 
 beforeEach(() => {
   germanJoin = false;
+  pageLanguage = "en";
   sent = [];
   readAnswers = [];
   addAnswers = [];
@@ -2319,5 +2323,82 @@ describe("Add people", () => {
       expect(requestsOf("POST").length).toBe(1);
     });
     expect(requestsOf("POST")[0]!.data["channelId"]).toBe("C0WAR");
+  });
+});
+
+/*
+ * A person's name on an Arabic or Persian page (#6471): cut short where the
+ * card ends, an English name lost its start ("...rm SRE, EU West)"). It is a
+ * line that reads the way it is written now (IsolatedLine), its "..." at its
+ * own end, and the whole name under the pointer.
+ */
+describe("a person's name reads the way it is written", () => {
+  const ENGLISH_NAME: string = "Bob Jones-Whitfield (Platform SRE, EU West)";
+  const ARABIC_NAME: string = "بوب جونز";
+  const NAME_CLASS_NAME: string = "min-w-0 truncate text-sm text-gray-900";
+
+  const namesOf: (element: HTMLElement) => Array<HTMLElement> = (
+    element: HTMLElement,
+  ): Array<HTMLElement> => {
+    return within(element).getAllByTestId("record-channel-person-name");
+  };
+
+  test.each(["ar", "fa"])(
+    "on an %s page an English name reads left to right and an Arabic one is drawn as it was",
+    async (language: string) => {
+      pageLanguage = language;
+      readAnswer({
+        channels: [
+          slackChannel({
+            people: [
+              person("U0BOB", ENGLISH_NAME, BOB),
+              person("U0ARABIC", ARABIC_NAME),
+            ],
+          }),
+        ],
+        canAddPeople: true,
+      });
+      renderCard({});
+
+      const [english, arabic] = namesOf(await card());
+
+      expect(english!.textContent).toBe(ENGLISH_NAME);
+      expect(english!.tagName).toBe("SPAN");
+      expect(english).toHaveAttribute("dir", "ltr");
+      expect(english!.getAttribute("class")).toBe(
+        `${NAME_CLASS_NAME} ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+      );
+      expect(english).toHaveAttribute("title", ENGLISH_NAME);
+      // Its row, with the avatar at the line's start, keeps the page's way.
+      expect(
+        english!.closest("[data-testid='record-channel-person']"),
+      ).not.toHaveAttribute("dir");
+
+      expect(arabic!.textContent).toBe(ARABIC_NAME);
+      expect(arabic).not.toHaveAttribute("dir");
+      expect(arabic!.getAttribute("class")).toBe(NAME_CLASS_NAME);
+    },
+  );
+
+  test("on an English page an English name is drawn as it was, and an Arabic one reads right to left", async () => {
+    readAnswer({
+      channels: [
+        slackChannel({
+          people: [
+            person("U0BOB", ENGLISH_NAME, BOB),
+            person("U0ARABIC", ARABIC_NAME),
+          ],
+        }),
+      ],
+      canAddPeople: true,
+    });
+    renderCard({});
+
+    const [english, arabic] = namesOf(await card());
+
+    expect(english).not.toHaveAttribute("dir");
+    expect(english!.getAttribute("class")).toBe(NAME_CLASS_NAME);
+    expect(arabic).toHaveAttribute("dir", "rtl");
+    expect(arabic).toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
   });
 });

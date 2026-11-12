@@ -6,6 +6,8 @@ import CheckboxElement from "../Checkbox/Checkbox";
 import Icon from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
+import { RESOURCE_BARE_NAME_CLASS_NAME } from "./ResourceNameClassNames";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -134,7 +136,11 @@ const MONITOR_COLUMN_CLASS_NAME: string = "min-w-0 flex-[2_1_0%]";
  * text-overflow does not reach the anonymous item a flex container makes
  * of its text - so a long name was clipped mid-letter with no ellipsis.
  * Laying that span out as a block puts the name back in an inline
- * formatting context, where truncation means what it says.
+ * formatting context, where truncation means what it says
+ * (RESOURCE_BARE_NAME_CLASS_NAME). The Dashboard draws that bare name on a
+ * line of its own that reads the way it is written (StatusPageResourceName),
+ * so on an Arabic or Persian page an English name ends in "..." at its own
+ * end, not at its start.
  *
  * Only that bare flex span: with monitor groups on, each name is drawn
  * beside its kind's icon, in a row whose name is a line of its own that
@@ -142,8 +148,7 @@ const MONITOR_COLUMN_CLASS_NAME: string = "min-w-0 flex-[2_1_0%]";
  * too, that row put its icon on a line of its own above the name, and
  * every row of the list was two lines tall.
  */
-export const RESOURCE_ROW_NAME_CLASS_NAME: string =
-  "truncate text-sm font-medium text-gray-900 [&_span[class=flex]]:block [&_span[class=flex]]:truncate";
+export const RESOURCE_ROW_NAME_CLASS_NAME: string = `truncate text-sm font-medium text-gray-900 ${RESOURCE_BARE_NAME_CLASS_NAME}`;
 /*
  * Its own line on a phone, indented to sit under the monitor it renames rather
  * than out beneath the grip; beside the monitor from sm up.
@@ -380,6 +385,9 @@ const ResourceList: FunctionComponent<ComponentProps> = (
         <div className={MONITOR_COLUMN_CLASS_NAME}>
           <div
             className={RESOURCE_ROW_NAME_CLASS_NAME}
+            title={StatusPageResourceExplorerUtil.getKnownResourceName(
+              statusPageResource,
+            )}
             data-testid="status-page-resource-row-name"
           >
             {props.getResourceElement(statusPageResource)}
@@ -394,18 +402,19 @@ const ResourceList: FunctionComponent<ComponentProps> = (
         <div className={PUBLISHED_NAME_COLUMN_CLASS_NAME}>
           {displayName && displayName !== monitorName ? (
             /*
-             * The name reads its own way (dir="auto"): cut short on an Arabic
-             * page, an English name keeps its start in view instead of losing
-             * it past the cell's far edge.
+             * The name reads the way most of its letters do (IsolatedLine):
+             * cut short on an Arabic page, an English name keeps its start
+             * in view and ends in "..." at its own end, and a short one
+             * still starts where the page's lines do, as the column's
+             * "Same as the monitor name" does.
              */
-            <p
+            <IsolatedLine
+              as="p"
+              text={displayName}
               className="truncate text-sm text-gray-500"
-              dir="auto"
               title={displayName}
-              data-testid="status-page-resource-row-display-name"
-            >
-              {displayName}
-            </p>
+              dataTestId="status-page-resource-row-display-name"
+            />
           ) : (
             <p
               className="truncate text-sm text-gray-400"
