@@ -111,7 +111,7 @@ Dokumentationen är ordnad som sidofältet, i nio avsnitt. Välj den del du beh�
 ### Självhosting
 
 :::cards
-- [Installation](/docs/installation/docker-compose): Installera, dimensionera och uppgradera ditt eget OneUptime.
+- [Installation](/docs/installation/self-hosting-guide): Installera, dimensionera och uppgradera ditt eget OneUptime.
 - [Självhostad konfiguration](/docs/self-hosted/architecture): Arkitektur, integrationer och Enterprise-funktioner för din egen installation.
 :::
 

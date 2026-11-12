@@ -57,9 +57,13 @@ OneUptime — платформа наблюдаемости с открытым 
 
 ### Своё развёртывание с Docker Compose
 
-Нужен Linux-сервер как минимум с 8 ГБ памяти, а также Docker, Docker Compose, Git и Node.js.
+Нужен Linux-сервер как минимум с 8 ГБ памяти. На новом сервере с Ubuntu, Debian или системой на основе RHEL одна команда установит недостающие Docker, Git и Node.js, спросит адрес, по которому к OneUptime будут обращаться, и запустит OneUptime:
 
-Перед шагом 3 укажите в `HOST` файла `config.env` доменное имя или IP-адрес, по которому к OneUptime будут обращаться, без `http://`. Оставляйте `localhost`, только чтобы попробовать OneUptime на своём компьютере.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Или пройдите шаги сами, с установленными Docker, Docker Compose, Git и Node.js. На шаге 3 впишите вместо `<your-address>` доменное имя или IP-адрес, по которому к OneUptime будут обращаться, без `http://`: это `HOST` в `config.env`. Оставляйте `localhost`, только чтобы попробовать OneUptime на своём компьютере.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` проверяет сервер, задаёт каждому секрету в `config.env` собственное случайное значение и запускает OneUptime. Когда `npm start` выведет **OneUptime is up!**, откройте `http://localhost` или адрес своего сервера и зарегистрируйтесь. Первая учётная запись становится администратором экземпляра.
 
-В [руководстве по Docker Compose](https://oneuptime.com/docs/ru/installation/docker-compose) описаны размеры сервера, HTTPS, резервные копии и обновления.
+Затем пройдите [Руководство по самостоятельному хостингу](https://oneuptime.com/docs/ru/installation/self-hosting-guide): HTTPS, почта и SMS, пока OneUptime не сможет вас оповестить. В [руководстве по Docker Compose](https://oneuptime.com/docs/ru/installation/docker-compose) описаны размеры сервера, резервные копии и обновления.
 
 ### Kubernetes с Helm
 

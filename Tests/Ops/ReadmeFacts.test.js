@@ -67,6 +67,16 @@ const LEFT_TO_RIGHT_MARK = "\u{200E}";
 const GETTING_STARTED = "introduction/getting-started.md";
 const FENCE = "```";
 const STEP_THREE = /[3\u{06F3}]/u;
+/*
+ * The README's code blocks, in order: the one-line installer, offered first,
+ * the Docker Compose quick start, and the two Helm commands. Each block is
+ * two fences, so block n opens at fence 2n.
+ */
+const INSTALLER_BLOCK = 0;
+const QUICK_START_BLOCK = 1;
+const HELM_BLOCK = 2;
+const INSTALLER = "curl -fsSL https://oneuptime.com/install.sh | bash";
+const HOST_STEP = "# 3. Set HOST to the address people will use";
 
 // The logo pair the docs' header shows, light and dark.
 const LIGHT_LOGO = "packages/App/FeatureSet/Docs/Static/images/logo-light.svg";
@@ -670,7 +680,24 @@ describe("what the README says OneUptime is", () => {
 describe("installing with Docker Compose", () => {
   const packageJson = JSON.parse(read("package.json"));
   const configExample = read("config.example.env");
-  const quickStart = codeBlocksOf(ENGLISH.text)[0];
+  const quickStart = codeBlocksOf(ENGLISH.text)[QUICK_START_BLOCK];
+
+  test.each(byLanguage)(
+    "%s offers the one-line installer first, the command the Docker Compose guide gives",
+    (_language, readme) => {
+      expect(codeBlocksOf(readme.text)[INSTALLER_BLOCK]).toEqual([INSTALLER]);
+      expect(
+        read(`${DOCS_CONTENT}/en/${COMPOSE_GUIDE}`).split("\n"),
+      ).toContain(INSTALLER);
+      // The website serves the script the command fetches, which asks for HOST.
+      expect(read("packages/Home/Routes.ts")).toContain(
+        'app.get("/install.sh", (_req: ExpressRequest, res: ExpressResponse) => {',
+      );
+      expect(read("packages/Home/Scripts/Install.sh")).toContain(
+        "Which address will people use to open OneUptime?",
+      );
+    },
+  );
 
   test.each(byLanguage)(
     "%s quotes the line npm start ends with",
@@ -731,26 +758,33 @@ describe("installing with Docker Compose", () => {
     },
   );
 
-  test("HOST is set before step 3, the step that starts OneUptime, in the words of the guide's Set the host name step", () => {
+  test("HOST is set in step 3, inside the block, before step 4 starts OneUptime, in the words of the guide's Set the host name step", () => {
     const guide = read(`${DOCS_CONTENT}/en/${COMPOSE_GUIDE}`);
     const hostStep = guide.indexOf("### Set the host name");
     const startStep = guide.indexOf("### Start OneUptime");
     const guideWords =
-      "to the domain name or IP address people will use to reach OneUptime, without `http://`. Keep `localhost` only to try OneUptime on your own computer.";
+      "the domain name or IP address people will use to reach OneUptime";
+    const localhostWords =
+      "Keep `localhost` only to try OneUptime on your own computer.";
 
     expect(quickStart).toContain("cp config.example.env config.env");
+    // Copying the block cannot skip HOST: step 3 sets it, after the copy
+    // and before the start.
+    expect(quickStart.indexOf(HOST_STEP)).toBeGreaterThan(
+      quickStart.indexOf("cp config.example.env config.env"),
+    );
     expect(
-      quickStart.slice(quickStart.indexOf("# 3. Start everything")),
-    ).toEqual(["# 3. Start everything", "npm start"]);
+      quickStart.slice(quickStart.indexOf("# 4. Start everything")),
+    ).toEqual(["# 4. Start everything", "npm start"]);
     // The guide sets the host name before it starts OneUptime, and so does
     // the README, in the same words.
     expect(hostStep).toBeGreaterThan(0);
     expect(startStep).toBeGreaterThan(hostStep);
     expect(guide.slice(hostStep, startStep)).toContain(
-      `Open \`config.env\` and set \`HOST\` ${guideWords}`,
+      `Open \`config.env\` and set \`HOST\` to ${guideWords}, without \`http://\`. ${localhostWords}`,
     );
     expect(ENGLISH.text).toContain(
-      `Before step 3, set \`HOST\` in \`config.env\` ${guideWords}`,
+      `In step 3, put ${guideWords} in place of \`<your-address>\`, without \`http://\`: that is \`HOST\` in \`config.env\`. ${localhostWords}`,
     );
   });
 
@@ -758,16 +792,20 @@ describe("installing with Docker Compose", () => {
     "%s says to set HOST before the commands, not after them",
     (_language, readme) => {
       const lines = readme.text.split("\n");
-      const [open, close] = fenceIndexesOf(readme.text);
+      const fences = fenceIndexesOf(readme.text);
+      const open = fences[2 * QUICK_START_BLOCK];
+      const close = fences[2 * QUICK_START_BLOCK + 1];
       const before = lineBefore(lines, open);
       const nextHeading = lines.findIndex((line, index) => {
         return index > close && HEADING.test(line);
       });
       const afterBlock = lines.slice(close + 1, nextHeading);
 
-      // The paragraph right above the block: HOST in config.env, without
-      // http://, localhost only on your own computer, before step 3.
+      // The paragraph right above the block: the address in place of the
+      // placeholder in step 3, HOST in config.env, without http://, localhost
+      // only on your own computer.
       for (const words of [
+        "`<your-address>`",
         "`HOST`",
         "`config.env`",
         "`http://`",
@@ -820,7 +858,10 @@ describe("installing with Docker Compose", () => {
     expect(guide).toContain("- **Node.js and npm**");
     expect(guide).toContain("Debian, Ubuntu or RHEL-based Linux");
     expect(ENGLISH.text).toContain(
-      "You need a Linux server with at least 8 GB of memory, and Docker, Docker Compose, Git and Node.js.",
+      "You need a Linux server with at least 8 GB of memory. On a new Ubuntu, Debian or RHEL-based server, one command installs Docker, Git and Node.js where they are missing, asks for the address people will use and starts OneUptime:",
+    );
+    expect(ENGLISH.text).toContain(
+      "Or do it step by step, with Docker, Docker Compose, Git and Node.js installed.",
     );
 
     for (const readme of READMES) {
@@ -842,7 +883,10 @@ describe("installing with Helm", () => {
   test.each(byLanguage)(
     "%s gives the two Helm commands",
     (_language, readme) => {
-      expect(codeBlocksOf(readme.text)[1]).toEqual([REPO_ADD, HELM_INSTALL]);
+      expect(codeBlocksOf(readme.text)[HELM_BLOCK]).toEqual([
+        REPO_ADD,
+        HELM_INSTALL,
+      ]);
     },
   );
 
@@ -885,10 +929,13 @@ describe("installing with Helm", () => {
       const lines = readme.text.split("\n");
       const fences = fenceIndexesOf(readme.text);
 
-      expect(fences).toHaveLength(4);
-      expect(lineBefore(lines, fences[2])).toContain("`host`");
-      expect(lineAfter(lines, fences[3])).not.toContain("`host`");
-      expect(lineAfter(lines, fences[3])).toContain(`(/${CHART_README})`);
+      const open = fences[2 * HELM_BLOCK];
+      const close = fences[2 * HELM_BLOCK + 1];
+
+      expect(fences).toHaveLength(6);
+      expect(lineBefore(lines, open)).toContain("`host`");
+      expect(lineAfter(lines, close)).not.toContain("`host`");
+      expect(lineAfter(lines, close)).toContain(`(/${CHART_README})`);
     },
   );
 });

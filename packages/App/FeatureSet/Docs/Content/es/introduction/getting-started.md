@@ -111,7 +111,7 @@ La documentación está organizada como la barra lateral, en nueve secciones. El
 ### Autoalojamiento
 
 :::cards
-- [Instalación](/docs/installation/docker-compose): Instalar, dimensionar y actualizar tu propio OneUptime.
+- [Instalación](/docs/installation/self-hosting-guide): Instalar, dimensionar y actualizar tu propio OneUptime.
 - [Configuración autoalojada](/docs/self-hosted/architecture): Arquitectura, integraciones y funciones Enterprise para tu propia instalación.
 :::
 

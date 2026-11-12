@@ -368,10 +368,11 @@ describe("the Installation group", () => {
     },
   );
 
-  it("opens with Docker Compose, so /docs/installation opens the install guide", () => {
-    expect(urls[0]).toBe("/docs/installation/docker-compose");
+  it("opens with the Self-Hosting Guide, then Docker Compose, so /docs/installation opens the install guide", () => {
+    expect(urls[0]).toBe("/docs/installation/self-hosting-guide");
+    expect(urls[1]).toBe("/docs/installation/docker-compose");
     expect(getDocsCategoryFirstPage("installation")).toBe(
-      "installation/docker-compose",
+      "installation/self-hosting-guide",
     );
   });
 

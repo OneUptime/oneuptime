@@ -57,9 +57,13 @@
 
 ### میزبانی روی سرور خودتان با Docker Compose
 
-به یک سرور Linux با دست‌کم ۸ GB حافظه، و Docker، Docker Compose، Git و Node.js نیاز دارید.
+به یک سرور Linux با دست‌کم ۸ GB حافظه نیاز دارید. روی یک سرور تازهٔ Ubuntu، Debian یا مبتنی بر RHEL، یک فرمان Docker، Git و Node.js را هر جا نباشند نصب می‌کند، نشانی‌ای را که دیگران به کار می‌برند می‌پرسد و OneUptime را راه‌اندازی می‌کند:
 
-پیش از گام ۳، `HOST` را در `config.env` روی نام دامنه یا نشانی IP‌ای بگذارید که دیگران برای رسیدن به OneUptime به کار می‌برند، بدون `http://`‎. فقط برای امتحان OneUptime روی رایانهٔ خودتان `localhost` را نگه دارید.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+یا گام‌به‌گام پیش بروید، با Docker، Docker Compose، Git و Node.js نصب‌شده. در گام ۳، به جای `<your-address>`‎ نام دامنه یا نشانی IP‌ای را بنویسید که دیگران برای رسیدن به OneUptime به کار می‌برند، بدون `http://`‎: این همان `HOST` در `config.env` است. فقط برای امتحان OneUptime روی رایانهٔ خودتان `localhost` را نگه دارید.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 فرمان `npm start` سرور را بررسی می‌کند، به هر رمز در `config.env` مقدار تصادفی جداگانه‌ای می‌دهد و OneUptime را راه‌اندازی می‌کند. وقتی `npm start` پیام **OneUptime is up!‎** را نشان داد، `http://localhost` یا نشانی سرورتان را باز کنید و ثبت‌نام کنید. نخستین حساب، مدیر نمونه می‌شود.
 
-[راهنمای Docker Compose](https://oneuptime.com/docs/fa/installation/docker-compose) اندازه سرور، HTTPS، پشتیبان‌گیری و به‌روزرسانی را پوشش می‌دهد.
+سپس [راهنمای خودمیزبانی](https://oneuptime.com/docs/fa/installation/self-hosting-guide) را از HTTPS، ایمیل و پیامک دنبال کنید تا OneUptime بتواند به شما هشدار بدهد. [راهنمای Docker Compose](https://oneuptime.com/docs/fa/installation/docker-compose) اندازه سرور، پشتیبان‌گیری و به‌روزرسانی را پوشش می‌دهد.
 
 ### نصب روی Kubernetes با Helm
 
