@@ -41,6 +41,7 @@ import {
 } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import TranslatedSentence from "../TranslatedSentence/TranslatedSentence";
+import PhoneNumberText from "../PhoneNumber/PhoneNumberText";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export interface ComponentProps<T extends GenericObject> {
@@ -281,7 +282,18 @@ const FilterComponent: FilterComponentFunction = <T extends GenericObject>(
         template: string,
         display: string,
       ): ReactElement => {
-        return renderChip(template, data.filter.title, { value: display });
+        /*
+         * A phone number, or the start of one, reads +4477 on a Persian
+         * page too (PhoneNumberText).
+         */
+        return renderChip(template, data.filter.title, {
+          value:
+            data.filter.type === FieldType.Phone ? (
+              <PhoneNumberText phoneNumber={display} />
+            ) : (
+              display
+            ),
+        });
       };
 
       if (value instanceof IsNull) {

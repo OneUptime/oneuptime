@@ -146,6 +146,23 @@ export default class NotificationMethodUtil {
   }
 
   /*
+   * Whether a method of this name ("SMS", "Call", "WhatsApp") is reached at
+   * a phone number: its identifier then reads +447700900123 in every
+   * language (PhoneNumberText), where printed as it is a Persian or Arabic
+   * page put its "+" after its digits. The names are the display lines'
+   * titles, which the readiness payload's method types share.
+   */
+  public static isPhoneNumberMethod(methodName: string): boolean {
+    return NOTIFICATION_METHOD_RELATIONS.some(
+      (relation: NotificationMethodRelation): boolean => {
+        return (
+          relation.title === methodName && relation.columns.includes("phone")
+        );
+      },
+    );
+  }
+
+  /*
    * Turns a rule (or an on-call log timeline entry) into the lines to render in
    * the "Notification Method" column. Returns an empty array when no method
    * relation was loaded or populated.
