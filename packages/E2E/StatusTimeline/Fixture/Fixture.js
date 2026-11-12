@@ -36,9 +36,9 @@
  *   - role=viewer            a member who may read the timeline but not
  *                            create or delete a status event (Viewer); the
  *                            default is a project owner
- *   - lang=de|ja|ar          the Dashboard's German, Japanese or Arabic
- *                            words (Arabic right to left, as the Dashboard
- *                            draws it)
+ *   - lang=de|ja|ar|fa       the Dashboard's German, Japanese, Arabic or
+ *                            Persian words (Arabic and Persian right to
+ *                            left, as the Dashboard draws them)
  *   - fail=timeline          every read of the timeline's rows fails, as a
  *                            server that cannot be reached does
  *   - delay=<ms>             each read takes this long (60 ms otherwise), to
@@ -117,6 +117,7 @@ import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
 import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
+import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -146,7 +147,7 @@ const scenario = params.get("scenario") || "";
 const role = params.get("role") || "owner";
 const failure = params.get("fail") || "";
 const readDelay = Number(params.get("delay") || 60);
-const language = ["de", "ja", "ar"].includes(params.get("lang"))
+const language = ["de", "ja", "ar", "fa"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -1246,6 +1247,7 @@ await i18next.use(initReactI18next).init({
     de: { translation: DE },
     ja: { translation: JA },
     ar: { translation: AR },
+    fa: { translation: FA },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
