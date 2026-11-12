@@ -2084,6 +2084,7 @@ import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
+import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
@@ -6574,6 +6575,14 @@ const BaseAPIFeatureSet: FeatureSet = {
      * router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupHealthAPI);
+
+    /*
+     * What refers to a record (UsedByAPI, #6813): the status pages that
+     * show a monitor, the policies that page a schedule, the monitors that
+     * watch a service, and the rest, read with the caller's permissions. A
+     * bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UsedByAPI);
 
     /*
      * The Welcome checklist on Home (issue #6803): the project's goals and
