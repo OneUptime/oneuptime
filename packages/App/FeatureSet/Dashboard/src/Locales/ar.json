@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "عدد البطاقات المختلفة عن التسلسل: {{count}}.",
   "{{count}} cards are different from the ladder._one": "{{count}} بطاقة تختلف عن التسلسل.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "ليست لدى {{name}} طريقة إشعار مُتحقق منها بعد. أرسل تذكير الإعداد من صفحة الجاهزية الخاصة به.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "عند الحفظ يُستخدم هذا التسلسل لكل درجات الخطورة: تفقد البطاقات المختلفة الآن ما يميّزها."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "عند الحفظ يُستخدم هذا التسلسل لكل درجات الخطورة: تفقد البطاقات المختلفة الآن ما يميّزها.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "يقرأ الوكيل العنقود من العقدة التالية التي تجيب واجهة API الخاصة بها، دون عنوان IP افتراضي لإعداده.",
+  "When a node goes down": "عندما تتعطل عقدة"
 }

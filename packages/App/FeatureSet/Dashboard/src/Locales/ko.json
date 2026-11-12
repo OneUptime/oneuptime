@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "카드 {{count}}개가 연락 순서와 다릅니다.",
   "{{count}} cards are different from the ladder._one": "카드 {{count}}개가 연락 순서와 다릅니다.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}}에게는 아직 인증된 알림 방법이 없습니다. 준비 상태 페이지에서 설정 알림을 보내세요.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "저장하면 이 연락 순서가 모든 심각도에 쓰이고, 지금 다른 카드는 다른 점을 잃습니다."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "저장하면 이 연락 순서가 모든 심각도에 쓰이고, 지금 다른 카드는 다른 점을 잃습니다.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "에이전트는 API가 응답하는 다음 노드에서 클러스터를 읽으므로 가상 IP를 설정할 필요가 없습니다.",
+  "When a node goes down": "노드가 다운되면"
 }

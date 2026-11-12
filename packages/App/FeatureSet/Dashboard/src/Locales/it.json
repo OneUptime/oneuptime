@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} schede sono diverse dalla sequenza.",
   "{{count}} cards are different from the ladder._one": "{{count}} scheda è diversa dalla sequenza.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} non ha ancora un metodo di notifica verificato. Invia un promemoria di configurazione dalla sua pagina Prontezza.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Salvando, questa sequenza vale per ogni gravità: le schede che ora sono diverse perdono ciò che le rende diverse."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Salvando, questa sequenza vale per ogni gravità: le schede che ora sono diverse perdono ciò che le rende diverse.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "L'agente legge il cluster dal nodo successivo la cui API risponde, senza un IP virtuale da configurare.",
+  "When a node goes down": "Quando un nodo cade"
 }

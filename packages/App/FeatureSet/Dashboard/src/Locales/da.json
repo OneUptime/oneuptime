@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} kort afviger fra rækkefølgen.",
   "{{count}} cards are different from the ladder._one": "{{count}} kort afviger fra rækkefølgen.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} har endnu ingen bekræftet notifikationsmetode. Send en påmindelse om opsætning fra deres side Parathed.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Når du gemmer, gælder rækkefølgen for alle alvorligheder: de kort, der afviger nu, mister det, der gør dem anderledes."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Når du gemmer, gælder rækkefølgen for alle alvorligheder: de kort, der afviger nu, mister det, der gør dem anderledes.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Agenten læser klyngen fra den næste node, hvis API svarer, uden en virtuel IP at sætte op.",
+  "When a node goes down": "Når en node går ned"
 }

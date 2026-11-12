@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} kaarten wijken af van de reeks.",
   "{{count}} cards are different from the ladder._one": "{{count}} kaart wijkt af van de reeks.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} heeft nog geen geverifieerde meldingsmethode. Stuur een herinnering om alles in te stellen vanaf de pagina Gereedheid.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Bij opslaan geldt deze reeks voor elk ernstniveau: de kaarten die nu afwijken, verliezen wat ze anders maakt."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Bij opslaan geldt deze reeks voor elk ernstniveau: de kaarten die nu afwijken, verliezen wat ze anders maakt.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "De agent leest het cluster via de volgende node waarvan de API antwoordt, zonder virtueel IP om in te stellen.",
+  "When a node goes down": "Als een node uitvalt"
 }

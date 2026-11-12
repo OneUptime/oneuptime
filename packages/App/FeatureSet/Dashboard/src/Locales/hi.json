@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} कार्ड संपर्क क्रम से अलग हैं।",
   "{{count}} cards are different from the ladder._one": "{{count}} कार्ड संपर्क क्रम से अलग है।",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} के पास अभी कोई सत्यापित सूचना विधि नहीं है। उनके तैयारी पेज से सेटअप रिमाइंडर भेजें।",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "सहेजने पर यह संपर्क क्रम हर गंभीरता पर लागू होता है: जो कार्ड अभी अलग हैं, वे अपना अंतर खो देते हैं।"
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "सहेजने पर यह संपर्क क्रम हर गंभीरता पर लागू होता है: जो कार्ड अभी अलग हैं, वे अपना अंतर खो देते हैं।",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "एजेंट क्लस्टर को अगले ऐसे नोड से पढ़ता है जिसका API जवाब देता है, किसी वर्चुअल IP को सेट अप किए बिना।",
+  "When a node goes down": "जब कोई नोड बंद हो जाए"
 }

@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "Карточек, отличающихся от последовательности: {{count}}.",
   "{{count}} cards are different from the ladder._one": "{{count}} карточка отличается от последовательности.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "У {{name}} пока нет подтверждённого метода уведомлений. Отправьте напоминание о настройке со страницы «Готовность».",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "После сохранения эта последовательность действует для любой серьёзности: карточки, которые сейчас отличаются, теряют свои отличия."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "После сохранения эта последовательность действует для любой серьёзности: карточки, которые сейчас отличаются, теряют свои отличия.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Агент читает кластер со следующего узла, чей API отвечает, и виртуальный IP настраивать не нужно.",
+  "When a node goes down": "Когда узел выходит из строя"
 }

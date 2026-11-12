@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} cards are different from the ladder.",
   "{{count}} cards are different from the ladder._one": "{{count}} card is different from the ladder.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Saving uses this ladder for every severity: the cards that differ now lose what makes them different."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.",
+  "When a node goes down": "When a node goes down"
 }

@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} kort avviker fra rekkefølgen.",
   "{{count}} cards are different from the ladder._one": "{{count}} kort avviker fra rekkefølgen.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} har ingen verifisert varselmetode ennå. Send en påminnelse om oppsett fra siden Beredskap.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Når du lagrer, gjelder rekkefølgen for alle alvorlighetsgrader: kortene som avviker nå, mister det som gjør dem annerledes."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Når du lagrer, gjelder rekkefølgen for alle alvorlighetsgrader: kortene som avviker nå, mister det som gjør dem annerledes.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Agenten leser klyngen fra neste node som har et API som svarer, uten en virtuell IP å sette opp.",
+  "When a node goes down": "Når en node går ned"
 }

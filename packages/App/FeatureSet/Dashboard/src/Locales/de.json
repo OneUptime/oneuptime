@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} Karten weichen vom Ablauf ab.",
   "{{count}} cards are different from the ladder._one": "{{count}} Karte weicht vom Ablauf ab.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} hat noch keine verifizierte Benachrichtigungsmethode. Senden Sie über die Einsatzbereitschaft eine Einrichtungserinnerung.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Beim Speichern gilt dieser Ablauf für jeden Schweregrad: Die Karten, die jetzt abweichen, verlieren ihre Abweichung."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Beim Speichern gilt dieser Ablauf für jeden Schweregrad: Die Karten, die jetzt abweichen, verlieren ihre Abweichung.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Der Agent liest den Cluster vom nächsten Knoten, dessen API antwortet – ohne virtuelle IP, die eingerichtet werden muss.",
+  "When a node goes down": "Wenn ein Knoten ausfällt"
 }

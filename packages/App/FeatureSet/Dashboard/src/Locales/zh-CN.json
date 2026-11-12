@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} 张卡片与联系顺序不同。",
   "{{count}} cards are different from the ladder._one": "{{count}} 张卡片与联系顺序不同。",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} 还没有已验证的通知方式。请在其就绪情况页面发送设置提醒。",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "保存后，此联系顺序用于每个严重程度：目前不同的卡片将失去其不同之处。"
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "保存后，此联系顺序用于每个严重程度：目前不同的卡片将失去其不同之处。",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "代理会从下一个 API 有响应的节点读取集群，无需设置虚拟 IP。",
+  "When a node goes down": "当节点宕机时"
 }

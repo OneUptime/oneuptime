@@ -51680,5 +51680,7 @@
   "{{count}} cards are different from the ladder.": "{{count}} کارت با ترتیب تماس فرق دارند.",
   "{{count}} cards are different from the ladder._one": "{{count}} کارت با ترتیب تماس فرق دارد.",
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} هنوز هیچ روش اعلان تأییدشده‌ای ندارد. از صفحهٔ آمادگی او یادآور راه‌اندازی بفرستید.",
-  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "با ذخیره، این ترتیب تماس برای همهٔ شدت‌ها به کار می‌رود: کارت‌هایی که اکنون متفاوت‌اند، تفاوت خود را از دست می‌دهند."
+  "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "با ذخیره، این ترتیب تماس برای همهٔ شدت‌ها به کار می‌رود: کارت‌هایی که اکنون متفاوت‌اند، تفاوت خود را از دست می‌دهند.",
+  "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "عامل خوشه را از گره بعدی که API آن پاسخ می‌دهد می‌خواند و نیازی به راه‌اندازی IP مجازی نیست.",
+  "When a node goes down": "وقتی یک گره از کار می‌افتد"
 }
