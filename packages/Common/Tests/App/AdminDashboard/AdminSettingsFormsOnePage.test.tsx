@@ -744,12 +744,38 @@ describe("Settings > Call & SMS", () => {
 
       await renderWithLocale(<CallSmsSettings />, "de");
 
+      /*
+       * Each number of the list reads +6581234567 in every language: its
+       * own isolate that reads left to right, the list separated the
+       * reader's way (PhoneNumberTextList).
+       */
       await waitFor(
         () => {
-          expect(screen.getByText("+6581234567, +447700900123")).toBeVisible();
+          expect(
+            screen
+              .getAllByTestId("detail-phone-number-list")
+              .map((list: HTMLElement): string => {
+                return list.textContent || "";
+              }),
+          ).toContain("+6581234567, +447700900123");
         },
         { timeout: WAIT_FOR_TIMEOUT },
       );
+
+      const list: HTMLElement = screen
+        .getAllByTestId("detail-phone-number-list")
+        .find((candidate: HTMLElement): boolean => {
+          return candidate.textContent === "+6581234567, +447700900123";
+        })!;
+
+      expect(list).toBeVisible();
+      expect(
+        Array.from(list.querySelectorAll("bdi")).map(
+          (number: HTMLElement): string => {
+            return `${number.getAttribute("dir")} ${number.textContent}`;
+          },
+        ),
+      ).toEqual(["ltr +6581234567", "ltr +447700900123"]);
       expect(screen.getByText(text(GERMAN, SMS_NUMBERS))).toBeVisible();
       // The Dashboard's word for it, as for the primary and secondary numbers.
       expect(text(GERMAN, SMS_NUMBERS)).toBe("Twilio-SMS-Rufnummern");

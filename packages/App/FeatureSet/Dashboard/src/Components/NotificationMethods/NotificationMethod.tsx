@@ -52,6 +52,7 @@ import React, {
 } from "react";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { joinList } from "Common/UI/Utils/ListSeparator";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
 
 export interface ComponentProps {
   item: BaseModel;
@@ -69,9 +70,18 @@ const NotificationMethodView: FunctionComponent<ComponentProps> = (
   return (
     <div>
       {displayItems.map((displayItem: NotificationMethodDisplayItem) => {
+        /*
+         * A number an SMS, a call or a WhatsApp message goes to reads
+         * +447700900123 in every language (PhoneNumberText).
+         */
         return (
           <p key={displayItem.title}>
-            {displayItem.title}: {displayItem.value}
+            {displayItem.title}:{" "}
+            {NotificationMethodUtil.isPhoneNumberMethod(displayItem.title) ? (
+              <PhoneNumberText phoneNumber={displayItem.value} />
+            ) : (
+              displayItem.value
+            )}
           </p>
         );
       })}

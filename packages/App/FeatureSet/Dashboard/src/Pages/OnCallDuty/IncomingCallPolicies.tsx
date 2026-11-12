@@ -33,6 +33,7 @@ import React, {
 import Pill from "Common/UI/Components/Pill/Pill";
 import { Green, Red } from "Common/Types/BrandColors";
 import Icon from "Common/UI/Components/Icon/Icon";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
 import IconProp from "Common/Types/Icon/IconProp";
 import OwnersCell from "../../Components/ResourceOwners/OwnersCell";
 import useResourceOwners, {
@@ -364,9 +365,11 @@ const IncomingCallPoliciesPage: FunctionComponent<
                         icon={IconProp.Call}
                         className="h-4 w-4 text-green-500 flex-shrink-0"
                       />
-                      <span className="font-mono truncate">
-                        {legacyPhoneNumber}
-                      </span>
+                      <PhoneNumberText
+                        phoneNumber={legacyPhoneNumber}
+                        className="font-mono truncate"
+                        dataTestId="incoming-call-policy-row-phone-number"
+                      />
                     </div>
                   );
                 }
@@ -396,9 +399,11 @@ const IncomingCallPoliciesPage: FunctionComponent<
                       icon={IconProp.Call}
                       className="h-4 w-4 text-green-500 flex-shrink-0"
                     />
-                    <span className="font-mono truncate">
-                      {summary.visiblePhoneNumbers[0]}
-                    </span>
+                    <PhoneNumberText
+                      phoneNumber={summary.visiblePhoneNumbers[0]}
+                      className="font-mono truncate"
+                      dataTestId="incoming-call-policy-row-phone-number"
+                    />
                     {summary.additionalPhoneNumbersCount > 0 ? (
                       <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
                         {translator.translatePlural(
