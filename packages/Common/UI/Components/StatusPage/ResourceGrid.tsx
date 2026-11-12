@@ -8,6 +8,8 @@ import CheckboxElement from "../Checkbox/Checkbox";
 import Icon, { ThickProp } from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
+import IsolatedLine from "../IsolatedText/IsolatedLine";
+import { RESOURCE_CHIP_NAME_CLASS_NAME } from "./ResourceNameClassNames";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   translatableTerm,
@@ -276,14 +278,28 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         {renderSelect(statusPageResource)}
 
         <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-gray-900">
+          {/*
+           * One line that ends in "...", as a list's row draws it: the
+           * bare name's span laid out as a block that truncates, on a line
+           * that reads the way the name is written.
+           */}
+          <div
+            className={RESOURCE_CHIP_NAME_CLASS_NAME}
+            title={StatusPageResourceExplorerUtil.getKnownResourceName(
+              statusPageResource,
+            )}
+            data-testid="status-page-resource-grid-name"
+          >
             {props.getResourceElement(statusPageResource)}
           </div>
           {statusPageResource.displayName &&
           statusPageResource.displayName !== name ? (
-            <div className="truncate text-[11px] text-gray-500">
-              {statusPageResource.displayName}
-            </div>
+            <IsolatedLine
+              text={statusPageResource.displayName}
+              className="truncate text-[11px] text-gray-500"
+              title={statusPageResource.displayName}
+              dataTestId="status-page-resource-grid-display-name"
+            />
           ) : (
             <></>
           )}
@@ -448,7 +464,13 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
                     {renderSelect(statusPageResource)}
 
                     <div className="min-w-0 flex-1">
-                      <div className="truncate font-medium text-gray-900">
+                      <div
+                        className={RESOURCE_CHIP_NAME_CLASS_NAME}
+                        title={StatusPageResourceExplorerUtil.getKnownResourceName(
+                          statusPageResource,
+                        )}
+                        data-testid="status-page-resource-grid-orphan-name"
+                      >
                         {props.getResourceElement(statusPageResource)}
                       </div>
                       <div className="truncate text-gray-500">

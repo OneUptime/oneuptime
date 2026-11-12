@@ -17,6 +17,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -218,15 +219,29 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
                             size={SizeProp.Regular}
                             className="text-indigo-500 shrink-0"
                           />
-                          <span className="text-sm font-semibold text-gray-900 truncate">
-                            {rb.name ||
-                              translator.translateText("Untitled runbook")}
-                          </span>
+                          {/*
+                           * The runbook's name and description are the
+                           * project's own, read the way they are written
+                           * (IsolatedLine): cut short at their own end.
+                           */}
+                          <IsolatedLine
+                            as="span"
+                            text={
+                              rb.name ||
+                              translator.translateText("Untitled runbook") ||
+                              ""
+                            }
+                            className="text-sm font-semibold text-gray-900 truncate"
+                            dataTestId="runbook-picker-name"
+                          />
                         </div>
                         {rb.description && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                            {rb.description}
-                          </p>
+                          <IsolatedLine
+                            as="p"
+                            text={rb.description}
+                            className="text-xs text-gray-500 mt-1 line-clamp-2"
+                            dataTestId="runbook-picker-description"
+                          />
                         )}
                       </div>
                       {/*

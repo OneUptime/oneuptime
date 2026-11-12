@@ -605,10 +605,25 @@ export default class StatusPageResourceExplorerUtil {
    */
   public static getResourceName(resource: StatusPageResource): string {
     return (
+      StatusPageResourceExplorerUtil.getKnownResourceName(resource) ||
+      "Unknown resource"
+    );
+  }
+
+  /*
+   * The same name, or none at all for a resource left with no name: the
+   * hover title of a name cut short to fit its row (ResourceList,
+   * ResourceGrid), which says nothing rather than an untranslated
+   * "Unknown resource".
+   */
+  public static getKnownResourceName(
+    resource: StatusPageResource,
+  ): string | undefined {
+    return (
       resource.monitor?.name ||
       resource.monitorGroup?.name ||
       resource.displayName ||
-      "Unknown resource"
+      undefined
     );
   }
 

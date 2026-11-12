@@ -18,6 +18,7 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -148,9 +149,16 @@ export const getAffectedResourcesSectionClassName: GetColumnsClassNameFunction =
  * hover is also the row that opens the resource, not just the name inside
  * it. The link's own focus outline would be clipped by the truncation, so a
  * keyboard focus ring is drawn around the row instead.
+ *
+ * An item that draws a name alone is a line that reads the way the name
+ * does (IsolatedLine): the bare name's block takes the item's dir and its
+ * alignment, so an English monitor name on an Arabic page ends in "..." at
+ * its own end, and a short one still starts where the page's lines do.
  */
 export const AFFECTED_RESOURCE_ITEM_CLASS_NAME: string =
   "min-w-0 truncate [&_span.flex]:block [&_span.flex]:truncate [&_a]:after:absolute [&_a]:after:inset-0 [&_a]:after:rounded-md [&_a:focus-visible]:outline-none [&_a:focus-visible]:after:ring-2 [&_a:focus-visible]:after:ring-indigo-500";
+
+export const AFFECTED_RESOURCE_ITEM_TEST_ID: string = "affected-resource-item";
 
 interface NamedResource {
   name?: string | undefined;
@@ -176,6 +184,15 @@ interface CategorySectionProps<T extends NamedResource> {
   items: Array<T>;
   renderItem: (item: T) => ReactElement;
   className: string;
+  /*
+   * Each item draws more than its name on its line, and its name already
+   * reads its own way: a service's colour, then its name on a line of its
+   * own (ServiceElement's IsolatedLine). Its box keeps the page's way, so
+   * the colour stays at the line's start - on the right of an Arabic page.
+   * Left out, an item draws its name alone (a record link with no icon,
+   * RecordLinkName's bare name), and its box reads the way the name does.
+   */
+  itemsDrawTheirOwnLines?: boolean | undefined;
 }
 
 function CategorySection<T extends NamedResource>(
@@ -244,13 +261,30 @@ function CategorySection<T extends NamedResource>(
               key={i}
               className="relative -ms-2 rounded-md px-2 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-50"
             >
-              <div
-                data-testid="affected-resource-item"
-                className={AFFECTED_RESOURCE_ITEM_CLASS_NAME}
-                title={itemName || undefined}
-              >
-                {props.renderItem(item)}
-              </div>
+              {props.itemsDrawTheirOwnLines ? (
+                <div
+                  data-testid={AFFECTED_RESOURCE_ITEM_TEST_ID}
+                  className={AFFECTED_RESOURCE_ITEM_CLASS_NAME}
+                  title={itemName || undefined}
+                >
+                  {props.renderItem(item)}
+                </div>
+              ) : (
+                /*
+                 * The name is the item's one line, read the way it is
+                 * written: on an Arabic or Persian page an English name too
+                 * long for the sidebar was cut where the page's lines end,
+                 * at its start ("...Utilization on AllNodesInEuWest1").
+                 */
+                <IsolatedLine
+                  text={itemName}
+                  className={AFFECTED_RESOURCE_ITEM_CLASS_NAME}
+                  title={itemName || undefined}
+                  dataTestId={AFFECTED_RESOURCE_ITEM_TEST_ID}
+                >
+                  {props.renderItem(item)}
+                </IsolatedLine>
+              )}
             </li>
           );
         })}
@@ -734,7 +768,13 @@ const AffectedResourcesDisplay: FunctionComponent<ComponentProps> = (
             iconBgClass="bg-amber-50"
             iconColorClass="text-amber-600"
             items={services}
+            itemsDrawTheirOwnLines={true}
             renderItem={(service: Service) => {
+              /*
+               * Its colour, then its name on a line of its own, read the
+               * way it is written (IsolatedLine) and cut short at its own
+               * end.
+               */
               return (
                 <ServiceElement
                   service={service}
