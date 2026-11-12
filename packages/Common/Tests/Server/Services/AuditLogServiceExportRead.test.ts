@@ -1,9 +1,11 @@
-import { describe, expect, test } from "@jest/globals";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import ClickhouseDatabase from "../../../Server/Infrastructure/ClickhouseDatabase";
 import {
   AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS,
   AuditLogService,
 } from "../../../Server/Services/AuditLogService";
 import { Statement } from "../../../Server/Utils/AnalyticsDatabase/Statement";
+import AnalyticsTableName from "../../../Types/AnalyticsDatabase/AnalyticsTableName";
 import { AUDIT_LOG_EXPORT_SOURCE_COLUMNS } from "../../../Types/AuditLog/Export/AuditLogExportRecord";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
@@ -377,5 +379,126 @@ describe("AuditLogService.readSoonestRetentionDate", () => {
         read: AuditLogService.readSoonestRetentionDate([row]),
       }).toEqual({ row, read: null });
     }
+  });
+});
+
+/*
+ * The read as the exporter calls it: the statement above, run once on the
+ * service's own database and table, and its answer read by the reader
+ * above. A read ClickHouse refuses (its time limit, a dropped connection)
+ * is thrown to the exporter, which then reckons from the retention as it
+ * is now (AuditLogExporter.findSoonestRetentionDate).
+ */
+describe("AuditLogService.findSoonestRetentionDateForExport", () => {
+  // The service on a database that is never connected: only its name is read.
+  const newService: () => AuditLogService = (): AuditLogService => {
+    const service: AuditLogService = new AuditLogService();
+
+    service.database = {
+      getDatasourceOptions: (): { database: string } => {
+        return { database: "audit_test" };
+      },
+    } as unknown as ClickhouseDatabase;
+
+    return service;
+  };
+
+  const WINDOW: {
+    projectId: ObjectID | null;
+    startsAt: Date;
+    until: Date;
+    after: { createdAt: Date; id: ObjectID } | null;
+  } = {
+    projectId: PROJECT_ID,
+    startsAt: new Date("2026-10-01T00:00:00.000Z"),
+    until: new Date("2026-10-24T09:14:03.000Z"),
+    after: CURSOR,
+  };
+
+  // 2026-10-31T12:59:00Z, as ClickHouse answers it.
+  const STAMP_SECONDS: number = Date.parse("2026-10-31T12:59:00.000Z") / 1000;
+
+  // A service whose every read answers `answer`, and the statements it ran.
+  const answering: (answer: { data?: Array<JSONObject> }) => {
+    service: AuditLogService;
+    ran: Array<Statement | string>;
+  } = (answer: {
+    data?: Array<JSONObject>;
+  }): { service: AuditLogService; ran: Array<Statement | string> } => {
+    const service: AuditLogService = newService();
+    const ran: Array<Statement | string> = [];
+
+    jest
+      .spyOn(service, "executeQuery")
+      .mockImplementation((statement: Statement | string) => {
+        ran.push(statement);
+
+        return Promise.resolve({
+          json: () => {
+            return Promise.resolve(answer);
+          },
+        } as never);
+      });
+
+    return { service, ran };
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("runs the soonest-stamp read once, on the service's own database and audit log table, and answers the stamp", async () => {
+    const { service, ran } = answering({
+      data: [{ waiting: "2", soonest: STAMP_SECONDS }],
+    });
+
+    const soonest: Date | null =
+      await service.findSoonestRetentionDateForExport(WINDOW);
+
+    expect(soonest!.toISOString()).toBe("2026-10-31T12:59:00.000Z");
+    expect(ran).toHaveLength(1);
+
+    const expected: Statement = AuditLogService.toSoonestRetentionDateStatement(
+      {
+        databaseName: "audit_test",
+        tableName: AnalyticsTableName.AuditLog,
+        ...WINDOW,
+      },
+    );
+    const statement: Statement = ran[0] as Statement;
+
+    expect(statement.query).toBe(expected.query);
+    expect(statement.query_params).toEqual(expected.query_params);
+    expect(oneLine(statement)).toContain(
+      ` FROM audit_test.${AnalyticsTableName.AuditLog} WHERE `,
+    );
+  });
+
+  test("an answer with no rows, or with none waiting, is null: the exporter then reckons without it", async () => {
+    for (const answer of [
+      {},
+      { data: [] },
+      { data: [{ waiting: "0", soonest: 0 }] },
+      { data: [{ waiting: 0, soonest: 0 }] },
+    ] as Array<{ data?: Array<JSONObject> }>) {
+      const { service } = answering(answer);
+
+      expect({
+        answer,
+        soonest: await service.findSoonestRetentionDateForExport(WINDOW),
+      }).toEqual({ answer, soonest: null });
+    }
+  });
+
+  test("a read ClickHouse refuses is thrown, never answered as no stamp", async () => {
+    const service: AuditLogService = newService();
+
+    jest
+      .spyOn(service, "executeQuery")
+      .mockRejectedValue(new Error("Timeout exceeded: elapsed 45 seconds"));
+
+    await expect(
+      service.findSoonestRetentionDateForExport(WINDOW),
+    ).rejects.toThrow("Timeout exceeded: elapsed 45 seconds");
   });
 });

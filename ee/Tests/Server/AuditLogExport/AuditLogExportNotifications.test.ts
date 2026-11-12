@@ -146,9 +146,11 @@ const at: (offsetInMs: number) => Date = (offsetInMs: number): Date => {
  * When the audit log deletes an entry recorded at `recordedAt`: once its
  * retentionDate passes, which AuditLogRecorder stamps `retentionInDays`
  * calendar days after it records the entry, by the server's own clock
- * (computeRetentionDate). The export reckons with that moment too
- * (getAuditLogExportEntriesLostAt), so every moment below that hangs on a
- * deletion is reckoned from this, never as `recordedAt + days * DAY`: these
+ * (computeRetentionDate). The export reads that stamp back, or reckons the
+ * same moment when it cannot (getAuditLogExportEntriesLostAt), and the
+ * in-memory audit log stamps its entries the recorder's way. So every
+ * moment below that hangs on a deletion is reckoned from this, never as
+ * `recordedAt + days * DAY`: these
  * dates cross the night of 25 October 2026, when clocks in Europe go back,
  * and on a server in such a zone that day is 25 hours long (#6361). So the
  * suite holds in whatever zone the machine runs in.
@@ -497,8 +499,11 @@ describe("when entries are lost: the stamps on the entries waiting, not the rete
     expect(noticeAt(lostAt, due - HOUR, due - 1)).toBeNull();
 
     /*
-     * What the retention as it is now would say: lost 23 days after the entry
-     * was deleted, and so told 22 days after it was gone.
+     * What the retention as it is now would say: lost 23 calendar days after
+     * the entry was deleted, and so told 22 days after it was gone. Calendar
+     * days, as the recorder counts them: where the clocks go back between the
+     * two (in the United States on 1 November 2026), those 23 days are an
+     * hour longer, and the suite holds in whatever zone the machine runs in.
      */
     const reckonedLostAt: Date = getAuditLogExportEntriesLostAt({
       oldestUnsentAt: OLDEST,
@@ -509,8 +514,13 @@ describe("when entries are lost: the stamps on the entries waiting, not the rete
       entriesLostAt: reckonedLostAt,
     })!.getTime();
 
-    expect(reckonedLostAt.getTime() - STAMPED_7.getTime()).toBe(23 * DAY);
-    expect(reckonedDue - STAMPED_7.getTime()).toBe(22 * DAY);
+    expect(reckonedLostAt.toISOString()).toBe(
+      deletedAt(STAMPED_7, 23).toISOString(),
+    );
+    expect(reckonedDue).toBe(deletedAt(STAMPED_7, 23).getTime() - DAY);
+    expect(
+      Math.abs(reckonedDue - STAMPED_7.getTime() - 22 * DAY),
+    ).toBeLessThanOrEqual(HOUR);
   });
 
   test("shortened from 30 days to 7 while an entry waited: 'losing entries' 24 hours before its 30-day stamp, not three weeks early", () => {
@@ -1804,6 +1814,149 @@ describe("the exporter tells people as its failures go on", () => {
       until: sent[0]!.at,
       after: { createdAt: delivered, id: deliveredId },
     });
+  });
+
+  /*
+   * The issue's case as it unfolds: a week's retention, the export fails,
+   * and a day in someone lengthens the retention to 30 days to buy time,
+   * while recording goes on. The entries recorded before the change keep
+   * their week; the ones recorded since are kept 30 days and wait behind
+   * them. The first to be deleted is still the oldest, by its week.
+   */
+  test("a retention lengthened from 7 days to 30 a day into the failures, while recording goes on: 'losing entries' 24 hours before the first week-stamped entry is deleted", async () => {
+    retentionInDays = 7;
+    const row: StoredExport = webhookRow();
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const oldest: Date = at(-5 * MINUTE);
+    const first: string = record(oldest, 7);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused the key (HTTP 401)", {
+        retryable: false,
+        status: 401,
+      }),
+    );
+
+    await runUntil(exports, row, at(DAY));
+    expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+
+    // From now on the project keeps 30 days, and an entry is recorded every hour.
+    retentionInDays = 30;
+    const lengthenedAt: Date = clock;
+    const recordedSince: Array<string> = [];
+
+    for (let hour: number = 0; hour < 48; hour++) {
+      recordedSince.push(
+        record(new Date(lengthenedAt.getTime() + hour * HOUR), 30),
+      );
+    }
+
+    const stamped: Date = auditLog.stampOf(first);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+    // The retention as it is now still travels with it, for the email's other words.
+    expect(sent[1]!.retentionInDays).toBe(30);
+    // The entries recorded since were waiting too, and every one of them goes later.
+    expect(
+      recordedSince.every((id: string): boolean => {
+        return auditLog.stampOf(id).getTime() > stamped.getTime();
+      }),
+    ).toBe(true);
+    // Reckoned from the 30 days the project keeps now, it was due three weeks after the entry was gone.
+    expect(losingNoticeAt(oldest, 30) - stamped.getTime()).toBeGreaterThan(
+      21 * DAY,
+    );
+  });
+
+  /*
+   * The stamps are read again with every try, the entries recorded since
+   * the failures began among them. A retention shortened while the export
+   * fails stamps the entries recorded from then on sooner than the ones
+   * waiting from before, so the first entry to be deleted can be one
+   * recorded after the first email: read only then, the stamps would have
+   * put "losing entries" three weeks after it was gone.
+   */
+  test("a retention shortened from 30 days to 7 while the export fails: an entry recorded since is deleted first, and 'losing entries' comes 24 hours before its own stamp", async () => {
+    retentionInDays = 30;
+    const row: StoredExport = webhookRow();
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const oldest: Date = at(-5 * MINUTE);
+    const first: string = record(oldest, 30);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+
+    // The first email gives when the entry waiting then is deleted: 30 days on.
+    await runUntil(exports, row, at(2 * DAY));
+    expect(notices()).toEqual([AuditLogExportFailureNotice.Failing]);
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(
+      auditLog.stampOf(first).toISOString(),
+    );
+
+    // Two days in, the project keeps a week from now on, and recording goes on.
+    retentionInDays = 7;
+    const shortened: string = record(clock, 7);
+    const stamped: Date = auditLog.stampOf(shortened);
+    const losingAt: number = stamped.getTime() - 24 * HOUR;
+
+    // The newer entry goes three weeks before the older one.
+    expect(
+      auditLog.stampOf(first).getTime() - stamped.getTime(),
+    ).toBeGreaterThan(20 * DAY);
+
+    await runUntil(exports, row, new Date(losingAt + HOUR));
+
+    expect(notices()).toEqual([
+      AuditLogExportFailureNotice.Failing,
+      AuditLogExportFailureNotice.LosingEntries,
+    ]);
+    expect(sent[1]!.at.getTime()).toBeGreaterThanOrEqual(losingAt);
+    expect(sent[1]!.at.getTime() - losingAt).toBeLessThanOrEqual(HOUR);
+    // The oldest entry waiting is still the first one; the first to be deleted is the newer.
+    expect(sent[1]!.oldestUnsentAt!.toISOString()).toBe(oldest.toISOString());
+    expect(sent[1]!.entriesLostAt!.toISOString()).toBe(stamped.toISOString());
+  });
+
+  /*
+   * ClickHouse drops a whole part of the audit log only once every entry in
+   * it has passed its stamp (the table's ttl_only_drop_parts), so an entry
+   * can outlive its retentionDate, and an export reading from far back
+   * finds it waiting. It can go at any moment: "losing entries" goes with
+   * the first email, 30 minutes in, from its own stamp, never one reckoned
+   * later.
+   */
+  test("an entry waiting past its own stamp (the audit log has not dropped it yet): 'losing entries' with the first email, from that stamp", async () => {
+    retentionInDays = 30;
+    const row: StoredExport = webhookRow({
+      startsAt: at(-10 * DAY),
+      createdAt: START,
+    });
+    const exports: InMemoryExports = useInMemoryExports([row]);
+    const expired: string = record(at(-9 * DAY), 7);
+    record(at(-HOUR), 30);
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError("refused", { retryable: false }),
+    );
+
+    await runUntil(exports, row, at(3 * HOUR));
+
+    expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+    expect(sent[0]!.at.toISOString()).toBe(at(31 * MINUTE).toISOString());
+    expect(sent[0]!.entriesLostAt!.toISOString()).toBe(
+      auditLog.stampOf(expired).toISOString(),
+    );
+    expect(sent[0]!.entriesLostAt!.getTime()).toBeLessThan(START.getTime());
   });
 
   test("a failure after a delivery in the same run starts a new run of failures", async () => {
