@@ -205,7 +205,7 @@
     "onDutyOne": "待命 {{count}} 項策略",
     "onDutyOther": "待命 {{count}} 項策略",
     "onDutyTooltip": "您目前待命中的待命策略",
-    "search": "Search",
+    "search": "搜尋",
     "invitationsPendingOne": "{{count}} 個待處理邀請",
     "invitationsPendingOther": "{{count}} 個待處理邀請",
     "invitationsTooltip": "您似乎有待處理的專案邀請。請按一下此處檢視並接受。",

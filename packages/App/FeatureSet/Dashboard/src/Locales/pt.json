@@ -205,7 +205,7 @@
     "onDutyOne": "De plantão para {{count}} política",
     "onDutyOther": "De plantão para {{count}} políticas",
     "onDutyTooltip": "Políticas de plantão para as quais você está atualmente de plantão",
-    "search": "Search",
+    "search": "Pesquisar",
     "invitationsPendingOne": "{{count}} Convite pendente",
     "invitationsPendingOther": "{{count}} Convites pendentes",
     "invitationsTooltip": "Parece que você tem convites de projeto pendentes. Clique aqui para revisá-los e aceitá-los.",

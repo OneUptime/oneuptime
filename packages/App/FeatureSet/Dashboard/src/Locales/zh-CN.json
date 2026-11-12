@@ -205,7 +205,7 @@
     "onDutyOne": "值班 {{count}} 项策略",
     "onDutyOther": "值班 {{count}} 项策略",
     "onDutyTooltip": "您当前值班的值班策略",
-    "search": "Search",
+    "search": "搜索",
     "invitationsPendingOne": "{{count}} 个待处理邀请",
     "invitationsPendingOther": "{{count}} 个待处理邀请",
     "invitationsTooltip": "您似乎有待处理的项目邀请。请单击此处查看并接受。",

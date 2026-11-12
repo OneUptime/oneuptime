@@ -205,7 +205,7 @@
     "onDutyOne": "På vagt for {{count}} politik",
     "onDutyOther": "På vagt for {{count}} politikker",
     "onDutyTooltip": "Vagtpolitikker du er på vagt for",
-    "search": "Search",
+    "search": "Søg",
     "invitationsPendingOne": "{{count}} Ventende invitation",
     "invitationsPendingOther": "{{count}} Ventende invitationer",
     "invitationsTooltip": "Det ser ud til at du har ventende projektinvitationer. Klik her for at gennemgå og acceptere dem.",
