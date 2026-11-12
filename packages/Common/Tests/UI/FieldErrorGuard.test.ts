@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#errors
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";

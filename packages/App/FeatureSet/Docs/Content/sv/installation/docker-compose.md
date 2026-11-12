@@ -477,7 +477,27 @@ Ta sedan bort mappen `oneuptime`.
 > [!CAUTION]
 > `--volumes` tar bort varje monitor, incident, användare och all telemetri för gott. Säkerhetskopiera först om du kan komma att behöva något av det.
 
+## Kontrollera din installation
+
+När något inte fungerar kör du doctor i mappen `oneuptime`:
+
+```bash
+npm run doctor
+```
+
+Den listar vad som är fel, det allvarligaste först, varje rad med den exakta lösningen, och slutar med **Everything looks right.** eller antalet saker att åtgärda. Den kontrollerar varje container och visar de sista raderna i loggen för dem som inte körs, `config.env`, att `HOST` når den här servern, certifikatet när `PROVISION_SSL` är på, och ledigt diskutrymme. Den frågar också OneUptime vad den ser av sig själv: PostgreSQL, ClickHouse och Valkey, migreringarna, köerna, versionen och serverns konfigurationssteg, som e-post och prober. `npm start` slutar med samma kontroller och nämner bara det som behöver uppmärksamhet.
+
+För att också se de senaste felen från varje tjänst, var och en med tjänstens namn:
+
+```bash
+npm run doctor -- --logs
+```
+
+Den avslutar med koden `1` när något markerat med ✗ behöver åtgärdas, så att ett skript kan köra den. Admin Dashboard visar överst på **OneUptime-hälsa** vad OneUptime ser av sig själv, och på Kubernetes skriver `HelmChart/Public/diagnose.sh` ut det.
+
 ## Felsökning
+
+Börja med `npm run doctor`: den nämner de flesta av problemen nedan, med lösningen.
 
 :::details npm start stannar innan den startar OneUptime
 `npm start` kontrollerar först servern och stannar vid allt som skulle hindra OneUptime från att fungera: Docker eller Compose-tillägget saknas, Docker körs inte eller är utom räckhåll för din användare, ett annat program håller en port, eller `HOST` är en adress som ingen webbläsare kan öppna. Varje rad markerad med ✗ säger vad du ska ändra. Ändra det och kör sedan `npm start` igen. Har en kontroll fel om din server startar du utan kontrollerna:

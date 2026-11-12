@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#finding-a-page
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { cleanup, render, screen, within } from "@testing-library/react";

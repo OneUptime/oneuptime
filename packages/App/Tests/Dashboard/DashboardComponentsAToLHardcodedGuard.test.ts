@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#in-every-language
 import { describe, expect, test } from "@jest/globals";
 import {
   getDefaultContext,

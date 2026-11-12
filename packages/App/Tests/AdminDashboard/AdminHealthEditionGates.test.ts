@@ -204,9 +204,13 @@ const ENTERPRISE_ROUTES: Array<string> = [
  * Available on every edition. /visitor-addresses (where people sign in
  * from) takes a master admin's session only, never the master API key, so
  * the API reference does not list it (VisitorAddressesRoute.test.ts).
+ * /doctor (what is wrong with the installation, #6826) also takes the
+ * cluster key, for `npm run doctor` and diagnose.sh
+ * (InstallationHealthRoute.test.ts).
  */
 const COMMUNITY_ROUTES: Array<string> = [
   "/clickhouse-capacity",
+  "/doctor",
   "/instance-health-logs",
   "/migrations",
   "/support-bundle",

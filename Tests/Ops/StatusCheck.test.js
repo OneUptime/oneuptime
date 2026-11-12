@@ -208,9 +208,12 @@ describe("how npm runs it", () => {
     expect(ROOT_PACKAGE.scripts["status-check"]).toBe(
       "bash ./Tests/Scripts/status-check.sh",
     );
-    expect(ROOT_PACKAGE.scripts.start.endsWith("&& npm run status-check")).toBe(
-      true,
-    );
+    // The doctor's quiet run follows it, and only it (#6826).
+    expect(
+      ROOT_PACKAGE.scripts.start.endsWith(
+        "&& npm run status-check && node ./Scripts/Install/Doctor.js --after-start",
+      ),
+    ).toBe(true);
   });
 
   /*
@@ -350,7 +353,9 @@ describe("what it says once OneUptime is up", () => {
     });
     const lines = result.output.split("\n");
     const signUp = lines.findIndex((line) => {
-      return line.startsWith("Open http://oneuptime.example.com in your browser.");
+      return line.startsWith(
+        "Open http://oneuptime.example.com in your browser.",
+      );
     });
 
     expect(signUp).toBeGreaterThan(0);

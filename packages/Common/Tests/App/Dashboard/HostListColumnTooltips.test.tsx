@@ -460,15 +460,23 @@ describe("Host Systemd Units list", () => {
     expect(headerCell("State").getAttribute("aria-sort")).toBe(before);
   });
 
+  /*
+   * The states as the badges word them; the kinds as systemd writes them
+   * (#6731), never title-cased into "Timer".
+   */
   test("the rows use the labels the texts quote", async () => {
     render(<HostSystemdUnits {...PAGE_PROPS} />);
     await settle();
 
     expect(screen.getAllByText("Active").length).toBeGreaterThan(0);
     expect(screen.getByText("Failed")).toBeInTheDocument();
-    expect(screen.getByText("Timer")).toBeInTheDocument();
+    expect(screen.getByText("timer")).toBeInTheDocument();
+    expect(screen.getAllByText("service")).toHaveLength(2);
+    expect(screen.queryByText("Timer")).toBeNull();
+    expect(screen.queryByText("Service")).toBeNull();
     expect(D.unitListState).toContain("Active");
     expect(D.unitListState).toContain("Failed");
-    expect(D.unitListType).toContain("Timer");
+    expect(D.unitListType).toContain(" timer ");
+    expect(D.unitListType).toContain(" service ");
   });
 });

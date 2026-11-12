@@ -56,7 +56,11 @@ import {
   searchInfrastructure,
   summarizeCounts,
 } from "./InfrastructureTopologyModel";
-import { formatLastSeenInLanguage, isEntityActive } from "./TopologyActivity";
+import {
+  formatLastSeenInLanguage,
+  isEntityActive,
+  isLastSeenKnown,
+} from "./TopologyActivity";
 import {
   EntityDetailTarget,
   InfrastructureCollection,
@@ -964,6 +968,47 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * A resource's Last seen: whether it is active, and under it how long
+   * ago it last reported - "Aktiv" over "vor 65 Tagen". Each on a line of
+   * its own, and each line whole: as one line ("Active · 65 days ago") the
+   * column was as wide as its longest language's sentence, and at 1280
+   * pixels German's ran past the table's right edge (#6693). A resource
+   * with no time to tell (a manual one) is its status alone.
+   */
+  const renderLastSeen: (
+    isActive: boolean,
+    lastSeenAt: Date | undefined,
+  ) => ReactElement = (
+    isActive: boolean,
+    lastSeenAt: Date | undefined,
+  ): ReactElement => {
+    return (
+      <div data-testid="infrastructure-last-seen" className="text-xs leading-5">
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
+          <span
+            className={`h-2 w-2 flex-shrink-0 rounded-full ${isActive ? "bg-emerald-500" : "bg-gray-300"}`}
+            aria-hidden={true}
+          />
+          <span
+            data-testid="infrastructure-last-seen-status"
+            className={isActive ? "text-gray-700" : "text-gray-400"}
+          >
+            {t(isActive ? "Active" : "Inactive")}
+          </span>
+        </div>
+        {isLastSeenKnown(lastSeenAt) && (
+          <div
+            data-testid="infrastructure-last-seen-age"
+            className={`whitespace-nowrap ps-3.5 ${isActive ? "text-gray-500" : "text-gray-400"}`}
+          >
+            {formatLastSeenInLanguage(lastSeenAt)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderServiceChips: (node: InfrastructureNode) => ReactElement = (
     node: InfrastructureNode,
   ): ReactElement => {
@@ -1074,17 +1119,8 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
             : "—"}
         </td>
         <td className="px-4 py-3">{renderServiceChips(node)}</td>
-        <td className="whitespace-nowrap px-4 py-3 text-xs">
-          <span className="inline-flex items-center gap-1.5">
-            <span
-              className={`h-2 w-2 rounded-full ${node.isActive ? "bg-emerald-500" : "bg-gray-300"}`}
-              aria-hidden={true}
-            />
-            <span className={node.isActive ? "text-gray-600" : "text-gray-400"}>
-              {t(node.isActive ? "Active" : "Inactive")} ·{" "}
-              {formatLastSeenInLanguage(node.lastSeenAt || undefined)}
-            </span>
-          </span>
+        <td className="px-4 py-3">
+          {renderLastSeen(node.isActive, node.lastSeenAt || undefined)}
         </td>
         <td className="px-3 py-3 text-right text-gray-400">
           <Icon icon={IconProp.ChevronRight} className="ml-auto h-4 w-4" />
@@ -1498,21 +1534,8 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                             {name}
                           </button>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-xs">
-                          <span className="inline-flex items-center gap-1.5">
-                            <span
-                              className={`h-2 w-2 rounded-full ${active ? "bg-emerald-500" : "bg-gray-300"}`}
-                              aria-hidden={true}
-                            />
-                            <span
-                              className={
-                                active ? "text-gray-600" : "text-gray-400"
-                              }
-                            >
-                              {t(active ? "Active" : "Inactive")} ·{" "}
-                              {formatLastSeenInLanguage(item.lastSeenAt)}
-                            </span>
-                          </span>
+                        <td className="px-4 py-3">
+                          {renderLastSeen(active, item.lastSeenAt)}
                         </td>
                         <td className="px-3 py-3 text-right text-gray-400">
                           <Icon

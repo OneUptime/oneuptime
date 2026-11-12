@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#empty-states-and-suggestions
 import "@testing-library/jest-dom";
 import {
   cleanup,

@@ -449,13 +449,28 @@ describe("detail fields describe what the page reads", () => {
     expect(D.podContainers).toContain("not counting init containers");
   });
 
+  /*
+   * #6622: the (i) explained Complete and In Progress, which the badge
+   * never draws, and a bar the field does not have.
+   */
   test("the rollout status names the exact rule the badge uses", () => {
     expect(D.deploymentRolloutStatus).toContain(
-      "ready pods matches the desired count and none are unavailable",
+      "Available when every pod it is set to run is available",
+    );
+    expect(D.deploymentRolloutStatus).toContain("Progressing while only some");
+    expect(D.deploymentRolloutStatus).toContain("Unavailable when none are");
+    expect(D.deploymentRolloutStatus).toContain(
+      "Scaled to zero when it is set to run none",
     );
     expect(D.deploymentRolloutStatus).toContain(
-      "bar shows ready pods out of desired",
+      "Paused while its rollouts are paused",
     );
+    expect(D.deploymentRolloutStatus).toContain(
+      "how many of those pods are ready",
+    );
+    for (const gone of ["Complete", "In Progress", "bar"]) {
+      expect(D.deploymentRolloutStatus).not.toContain(gone);
+    }
   });
 
   test("Unavailable says it only appears when above zero", () => {

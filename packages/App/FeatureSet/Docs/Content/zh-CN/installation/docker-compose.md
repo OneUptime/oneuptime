@@ -477,7 +477,27 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 > [!CAUTION]
 > `--volumes` 会永久删除所有监控器、事件、用户和全部遥测数据。如果你可能还需要其中任何内容，请先备份。
 
+## 检查你的安装
+
+遇到问题时，在 `oneuptime` 文件夹中运行 doctor：
+
+```bash
+npm run doctor
+```
+
+它会列出出错的地方，最严重的排在最前，每行都附有确切的修复方法，最后显示 **Everything looks right.** 或需要修复的问题数量。它会检查每个容器，并显示未运行容器日志的最后几行，还会检查 `config.env`、`HOST` 能否到达这台服务器、`PROVISION_SSL` 开启时的证书以及可用磁盘空间。它还会询问 OneUptime 对自身的了解：PostgreSQL、ClickHouse 和 Valkey、迁移、队列、版本，以及服务器的设置步骤，例如电子邮件和探针。`npm start` 结束时也会做同样的检查，只列出需要处理的问题。
+
+如需同时查看每个服务最近的错误（每条都标明服务名称）：
+
+```bash
+npm run doctor -- --logs
+```
+
+当有标记为 ✗ 的问题需要修复时，它以退出码 `1` 结束，因此可以在脚本中运行。Admin Dashboard 会在 **OneUptime 健康状况** 页面顶部显示 OneUptime 对自身的了解，在 Kubernetes 上则由 `HelmChart/Public/diagnose.sh` 输出。
+
 ## 故障排除
+
+先运行 `npm run doctor`：它会指出下面大多数问题，并给出修复方法。
 
 :::details npm start 在启动 OneUptime 之前停止
 `npm start` 会先检查服务器，遇到任何会让 OneUptime 无法工作的问题都会停下来：缺少 Docker 或其 Compose 插件、Docker 未运行或你的用户无权使用、某个端口被其他程序占用，或者 `HOST` 是任何浏览器都打不开的地址。每一行标有 ✗ 的内容都说明了要改什么。改好后再次运行 `npm start`。如果某项检查对你的服务器判断有误，可以跳过检查启动：

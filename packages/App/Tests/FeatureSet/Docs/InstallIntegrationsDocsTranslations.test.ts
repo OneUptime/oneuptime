@@ -258,7 +258,7 @@ const EXTERNAL_CONSOLE_LABELS: Record<string, Array<string>> = {
 
 // What a script prints, quoted bold as it prints it.
 const SCRIPT_OUTPUT: Record<string, Array<string>> = {
-  [COMPOSE]: ["OneUptime is up!"],
+  [COMPOSE]: ["OneUptime is up!", "Everything looks right."],
 };
 
 // Microsoft Graph application and delegated permissions, and the Teams app's own.
@@ -561,6 +561,8 @@ const LEADS_THE_SAME_IN_EVERY_LANGUAGE: Array<string> = [
 const SERVER_MESSAGES: Record<string, Array<string>> = {
   [COMPOSE]: [
     "**OneUptime is up!**",
+    // What npm run doctor ends with on a healthy server (#6826).
+    "**Everything looks right.**",
     '"permission denied"',
     '"Maximum retries reached"',
     '"Page not found"',

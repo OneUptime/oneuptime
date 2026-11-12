@@ -908,15 +908,16 @@ describe("Host systemd unit view", () => {
     expect(tile).toHaveTextContent("active in 3 of 4 samples");
   });
 
-  test("the unit type is read from the end of the name", async () => {
+  test("the unit type is read from the end of the name, as systemd writes it", async () => {
     await renderUnit();
 
     const tile: HTMLElement = infoButtonsFor("Unit Type")[0]!.closest(
       ".rounded-xl",
     ) as HTMLElement;
 
-    expect(tile).toHaveTextContent("Service");
-    expect(D.unitType).toContain("read from the end of its name");
+    expect(tile).toHaveTextContent("service");
+    expect(tile).not.toHaveTextContent("Service");
+    expect(D.unitType).toContain("as systemd writes it at the end");
   });
 
   test("with no samples the tiles keep their (i)s and the timeline is hidden", async () => {
