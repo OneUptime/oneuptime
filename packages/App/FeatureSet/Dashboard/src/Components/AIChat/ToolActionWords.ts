@@ -47,6 +47,16 @@ export interface DrawnActionSentence {
    * Chinese or Japanese full stop.
    */
   separatorBefore: string;
+  /*
+   * A caution to read before approving, which the card draws on a line of
+   * its own, marked: a code change's line naming the files it would write
+   * over unseen (AI_ACTION_CODE_CHANGE_LINES). A change can carry several,
+   * one a kind - run together in one paragraph, "read in an earlier
+   * answer" and "read earlier in this answer" (issue #6570) read as one
+   * sentence, and the files at their ends were lost in the middle. Left
+   * out for every other sentence.
+   */
+  isCaution?: true | undefined;
 }
 
 // The action's words, when they are sentences this Dashboard can say.
@@ -106,7 +116,10 @@ export function getToolActionTitleLabel(
 
 /*
  * The line under the title, sentence by sentence, in the reader's language
- * when it can be: none when the action has no line.
+ * when it can be: none when the action has no line. A code change's
+ * sentences are cautions (isCaution), each drawn on a line of its own; an
+ * action saved before its words is one paragraph of English, as it always
+ * was.
  */
 export function getToolActionDescription(
   action: AIChatToolAction,
@@ -130,7 +143,11 @@ export function getToolActionDescription(
       previous,
     );
 
-    drawn.push(next);
+    drawn.push(
+      AI_ACTION_CODE_CHANGE_LINES.includes(sentence.template)
+        ? { ...next, isCaution: true }
+        : next,
+    );
     previous = next.text;
   }
 

@@ -50775,5 +50775,8 @@
   "{{count}} steps left in your setup checklist": "आपकी सेटअप चेकलिस्ट में {{count}} चरण बाकी हैं",
   "{{count}} steps left in your setup checklist_one": "आपकी सेटअप चेकलिस्ट में {{count}} चरण बाकी है",
   "{{schedule}}, until at least {{time}}": "{{schedule}}, कम से कम {{time}} तक",
-  "{{schedule}}, until {{time}}": "{{schedule}}, {{time}} तक"
+  "{{schedule}}, until {{time}}": "{{schedule}}, {{time}} तक",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI ने ये {{count}} फ़ाइलें इसी जवाब में पहले पढ़ी थीं और अब उसके पास इनका टेक्स्ट नहीं है, और AI के संस्करण इन पूरी फ़ाइलों की जगह ले लेते हैं: {{files}}।",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI ने यह फ़ाइल इसी जवाब में पहले पढ़ी थी और अब उसके पास इसका टेक्स्ट नहीं है, और AI का संस्करण पूरी फ़ाइल की जगह ले लेता है: {{files}}।",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI ने यह फ़ाइल इसी जवाब में पहले पढ़ी थी और अब उसके पास इसका टेक्स्ट नहीं है, और AI का संस्करण पूरी फ़ाइल की जगह ले लेता है: {{files}}।"
 }

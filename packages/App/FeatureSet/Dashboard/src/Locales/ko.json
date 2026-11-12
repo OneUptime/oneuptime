@@ -50775,5 +50775,8 @@
   "{{count}} steps left in your setup checklist": "설정 체크리스트에 {{count}}단계가 남았습니다",
   "{{count}} steps left in your setup checklist_one": "설정 체크리스트에 {{count}}단계가 남았습니다",
   "{{schedule}}, until at least {{time}}": "{{schedule}}, 최소 {{time}}까지",
-  "{{schedule}}, until {{time}}": "{{schedule}}, {{time}}까지"
+  "{{schedule}}, until {{time}}": "{{schedule}}, {{time}}까지",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI가 이 답변의 앞부분에서 파일 {{count}}개를 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI가 이 답변의 앞부분에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI가 이 답변의 앞부분에서 이 파일을 읽었지만 더 이상 그 내용을 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}."
 }
