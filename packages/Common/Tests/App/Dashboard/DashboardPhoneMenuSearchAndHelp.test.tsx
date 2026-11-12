@@ -57,12 +57,13 @@ import {
  *
  *  - The logo was drawn as something to click and did nothing: it now goes
  *    to the project's Home, as a link (keyboard, middle click, a name).
- *  - Below 1024 pixels the header leaves out Search and Help to keep its
- *    width, and below 768 the products menu is the phone's menu: there was
- *    no way to Search, the docs or support on a phone. The phone's menu now
- *    starts with Search and ends with Help (the header's own entries, the
- *    ways to learn first), and lists the products visited last, as the
- *    desktop products menu does.
+ *  - Below 768 pixels the header leaves out Search and Help to keep its
+ *    width, and the products menu is the phone's menu: there was no way to
+ *    Search, the docs or support on a phone. The phone's menu now starts
+ *    with Search and ends with Help (the header's own entries, the ways to
+ *    learn first), and lists the products visited last, as the desktop
+ *    products menu does. From 768 up the header draws Search and Help
+ *    itself (#7037, DashboardHelpAtTabletWidths).
  */
 
 const translation: i18n = createInstance();

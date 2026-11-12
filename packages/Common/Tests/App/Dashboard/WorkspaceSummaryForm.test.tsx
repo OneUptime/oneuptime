@@ -90,6 +90,7 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
           onBeforeCreate={
             modalMode === "create" ? props.onBeforeCreate : props.onBeforeEdit
           }
+          onBeforeUpdate={props.onBeforeUpdate}
           formProps={{
             id: "workspace-summary-form",
             name: "workspace-summary-form",
@@ -206,6 +207,7 @@ import {
   ConditionType,
   NotificationRuleConditionCheckOn,
 } from "../../../Types/Workspace/NotificationRules/NotificationRuleCondition";
+import WorkspaceNotificationSummaryItem from "../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
 import WorkspaceNotificationSummaryType from "../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
 
@@ -896,6 +898,124 @@ describe("editing a workspace summary", () => {
     await waitForStep("Schedule");
 
     expect(pickedTimezone()).toMatch(/ America\/New_York$/);
+  });
+});
+
+/*
+ * #7116: an edit saves what a create does. Channel Names edited in the
+ * text box went to the server as the text typed - "#incidents, #ops" -
+ * and the summary was then posted in a channel per letter; and a summary
+ * saved with nothing to include could never be sent. The table's
+ * onBeforeUpdate saves the list the text names, and All when nothing is
+ * picked, as a new summary does.
+ */
+describe("editing a workspace summary: what it is saved with", () => {
+  const CHANNELS_PLACEHOLDER: string = "#incidents-summary, #engineering";
+
+  function savedSummary(): WorkspaceNotificationSummary {
+    const summary: WorkspaceNotificationSummary =
+      new WorkspaceNotificationSummary();
+    summary._id = SUMMARY_ID.toString();
+    summary.name = "Weekly incidents for the team";
+    summary.channelNames = ["#incidents"];
+    summary.isEnabled = true;
+    const recurring: Recurring = new Recurring();
+    recurring.intervalType = EventInterval.Week;
+    recurring.intervalCount = new PositiveNumber(1);
+    summary.recurringInterval = recurring;
+    summary.numberOfDaysOfData = 7;
+    return summary;
+  }
+
+  async function openEdit(
+    saved: WorkspaceNotificationSummary,
+  ): Promise<UserEvent> {
+    modalMode = "edit";
+    getItemMock.mockResolvedValue(saved);
+
+    const user: UserEvent = await renderForm();
+
+    await within(dialog()).findByDisplayValue(
+      "Weekly incidents for the team",
+      {},
+      { timeout: 10000 },
+    );
+    await settle();
+
+    return user;
+  }
+
+  // Save is on the last step.
+  async function save(user: UserEvent): Promise<WorkspaceNotificationSummary> {
+    await user.click(within(progress()).getByText("Filters"));
+    await waitForStep("Filters");
+    await settle();
+
+    await user.click(
+      within(dialog()).getByRole("button", { name: "Save Changes" }),
+    );
+
+    await waitFor(() => {
+      expect(createOrUpdateMock).toHaveBeenCalledTimes(1);
+    });
+
+    return createdSummary();
+  }
+
+  test("REGRESSION: channel names typed in the box are saved as the list they name, not as the text typed", async () => {
+    const user: UserEvent = await openEdit(savedSummary());
+
+    fireEvent.change(
+      within(dialog()).getByPlaceholderText(CHANNELS_PLACEHOLDER),
+      {
+        target: { value: "#incidents, #ops ,, " },
+      },
+    );
+    await settle();
+
+    const sent: WorkspaceNotificationSummary = await save(user);
+
+    expect(sent.channelNames).toEqual(["#incidents", "#ops"]);
+  });
+
+  test("channel names left alone are saved as the list they were", async () => {
+    const saved: WorkspaceNotificationSummary = savedSummary();
+    saved.channelNames = ["#incidents", "#ops"];
+
+    const user: UserEvent = await openEdit(saved);
+
+    fireEvent.change(
+      within(dialog()).getByDisplayValue("Weekly incidents for the team"),
+      { target: { value: "Renamed summary" } },
+    );
+    await settle();
+
+    const sent: WorkspaceNotificationSummary = await save(user);
+
+    expect(sent.name).toBe("Renamed summary");
+    expect(sent.channelNames).toEqual(["#incidents", "#ops"]);
+  });
+
+  test("REGRESSION: one saved with nothing to include is saved including everything, as a new summary is", async () => {
+    const saved: WorkspaceNotificationSummary = savedSummary();
+    saved.summaryItems = [];
+
+    const user: UserEvent = await openEdit(saved);
+    const sent: WorkspaceNotificationSummary = await save(user);
+
+    expect(sent.summaryItems).toEqual([WorkspaceNotificationSummaryItem.All]);
+  });
+
+  test("what it includes, picked, is kept", async () => {
+    const saved: WorkspaceNotificationSummary = savedSummary();
+    saved.summaryItems = [WorkspaceNotificationSummaryItem.TotalCount];
+
+    const user: UserEvent = await openEdit(saved);
+    const sent: WorkspaceNotificationSummary = await save(user);
+
+    expect(sent.summaryItems).toEqual([
+      WorkspaceNotificationSummaryItem.TotalCount,
+    ]);
   });
 });
 

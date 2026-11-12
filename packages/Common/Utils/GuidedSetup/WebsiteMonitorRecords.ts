@@ -53,6 +53,23 @@ export interface WebsiteAddress {
 const SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
 const WHITESPACE: RegExp = /\s/;
 
+/*
+ * A path without its trailing slashes, taken one at a time: what a person
+ * typed is short, and no pattern runs on it (a run of slashes in the middle
+ * made /\/+$/ try again at every one of them).
+ */
+const withoutTrailingSlashes: (path: string) => string = (
+  path: string,
+): string => {
+  let end: number = path.length;
+
+  while (end > 0 && path[end - 1] === "/") {
+    end--;
+  }
+
+  return path.slice(0, end);
+};
+
 export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
   input: string,
 ): WebsiteAddress | null => {
@@ -100,7 +117,7 @@ export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
     return null;
   }
 
-  const path: string = parsed.pathname.replace(/\/+$/, "");
+  const path: string = withoutTrailingSlashes(parsed.pathname);
   const name: string = `${host.replace(/^www\./, "")}${parsed.port ? `:${parsed.port}` : ""}${path}`;
 
   return {
@@ -111,6 +128,55 @@ export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
         ? name.slice(0, MONITOR_NAME_MAX_LENGTH)
         : name,
   };
+};
+
+/*
+ * ONE ADDRESS, HOWEVER IT WAS TYPED (#7059): the scheme, the host, the port,
+ * the path and the query a check asks for. "acme.example" is
+ * "https://acme.example/", and a host's capitals or a path's trailing slash
+ * change nothing; http and https, www or not, another path or another query
+ * are other checks. Null for text that is not a web address, or that names
+ * a user or password: the setup never checks one (parseWebsiteAddress).
+ */
+export const getWebsiteAddressIdentity: (text: string) => string | null = (
+  text: string,
+): string | null => {
+  const trimmed: string = (text || "").trim();
+
+  if (!trimmed || WHITESPACE.test(trimmed)) {
+    return null;
+  }
+
+  let parsed: globalThis.URL;
+
+  try {
+    parsed = new globalThis.URL(
+      SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
+  } catch {
+    return null;
+  }
+
+  if (
+    (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+    parsed.username ||
+    parsed.password
+  ) {
+    return null;
+  }
+
+  return `${parsed.protocol}//${parsed.host.toLowerCase()}${withoutTrailingSlashes(parsed.pathname)}${parsed.search}`;
+};
+
+export const isSameWebsiteAddress: (left: string, right: string) => boolean = (
+  left: string,
+  right: string,
+): boolean => {
+  const leftIdentity: string | null = getWebsiteAddressIdentity(left);
+
+  return (
+    leftIdentity !== null && leftIdentity === getWebsiteAddressIdentity(right)
+  );
 };
 
 // What a new monitor's default criteria are made with: the project's own.

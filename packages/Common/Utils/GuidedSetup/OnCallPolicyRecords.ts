@@ -48,14 +48,34 @@ export interface WhoIsToldFacts {
   mayAddRules: boolean;
 }
 
+// Facts whose policies and rules were counted.
+export interface CountedWhoIsToldFacts extends WhoIsToldFacts {
+  policyCount: number;
+  incidentRuleCount: number;
+  alertRuleCount: number;
+}
+
+/*
+ * Whether the project's on-call policies and rules could be counted: when
+ * they could not, nothing says the project has none, so no policy is made
+ * on that read (#7059).
+ */
+export const areWhoIsToldCountsKnown: (
+  facts: WhoIsToldFacts,
+) => facts is CountedWhoIsToldFacts = (
+  facts: WhoIsToldFacts,
+): facts is CountedWhoIsToldFacts => {
+  return (
+    facts.policyCount !== null &&
+    facts.incidentRuleCount !== null &&
+    facts.alertRuleCount !== null
+  );
+};
+
 export const getWhoIsToldMode: (facts: WhoIsToldFacts) => WhoIsToldMode = (
   facts: WhoIsToldFacts,
 ): WhoIsToldMode => {
-  if (
-    facts.policyCount === null ||
-    facts.incidentRuleCount === null ||
-    facts.alertRuleCount === null
-  ) {
+  if (!areWhoIsToldCountsKnown(facts)) {
     return WhoIsToldMode.OwnerEmailOnly;
   }
 

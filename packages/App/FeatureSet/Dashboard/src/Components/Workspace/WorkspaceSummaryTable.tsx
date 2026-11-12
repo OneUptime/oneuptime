@@ -49,6 +49,7 @@ import { MattermostConnectionTeam } from "Common/Models/DatabaseModels/Workspace
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
+import WorkspaceSummarySetup from "Common/Utils/Workspace/WorkspaceSummarySetup";
 import WorkspaceSummaryFirstSendPreview from "./WorkspaceSummaryFirstSendPreview";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -464,16 +465,11 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               });
           }
 
-          // Parse channel names from comma-separated string
-          if (values.channelNames && typeof values.channelNames === "string") {
-            values.channelNames = (values.channelNames as unknown as string)
-              .split(",")
-              .map((name: string) => {
-                return name.trim();
-              })
-              .filter((name: string) => {
-                return name.length > 0;
-              });
+          // The channel names typed, comma-separated, as the list they name.
+          if (values.channelNames) {
+            values.channelNames = WorkspaceSummarySetup.readChannelNames(
+              values.channelNames,
+            );
           }
 
           // Default to "All" if none selected
@@ -517,6 +513,30 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               NotificationRuleConditionUtil.withoutEmptyConditions(
                 values.filters,
               );
+          }
+
+          return Promise.resolve(values);
+        }}
+        /*
+         * An edit saves what a create does. Channel Names edited in its
+         * text box went to the server as the text typed, "#ops, #alerts",
+         * saved as it was, and the summary was then posted in a channel
+         * per letter; it is the list it names. With nothing to include
+         * picked, it includes everything, as a new summary does - one
+         * saved with nothing could never be sent (#7116).
+         */
+        onBeforeUpdate={(values: WorkspaceNotificationSummary) => {
+          if (values.channelNames !== undefined) {
+            values.channelNames = WorkspaceSummarySetup.readChannelNames(
+              values.channelNames,
+            );
+          }
+
+          if (
+            Array.isArray(values.summaryItems) &&
+            values.summaryItems.length === 0
+          ) {
+            values.summaryItems = [WorkspaceNotificationSummaryItem.All];
           }
 
           return Promise.resolve(values);

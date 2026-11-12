@@ -281,7 +281,7 @@ De client-ID's zijn openbaar: ze worden naar het dashboard gestuurd zodat het we
 ## Problemen oplossen
 
 :::details Er is geen gesprek gestart voor een incident
-Controleer of de regel bij het incident paste (**Testregel**), of de stap **Video Call** ervan aanstaat, en of het incident als lopend werd gemeld: een incident dat al opgelost werd aangemaakt, krijgt geen gesprek. Een regel die al een gesprek voor het incident startte met die koppeling, start er geen tweede.
+Controleer of de regel bij het incident paste (**Regel testen**), of de stap **Video Call** ervan aanstaat, en of het incident als lopend werd gemeld: een incident dat al opgelost werd aangemaakt, krijgt geen gesprek. Een regel die al een gesprek voor het incident startte met die koppeling, start er geen tweede.
 :::
 
 :::details De feed zegt dat het gesprek niet kon worden gestart

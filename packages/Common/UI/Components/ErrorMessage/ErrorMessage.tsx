@@ -1,3 +1,6 @@
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "./ErrorExplanation";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import { getTranslatedLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";
@@ -14,6 +17,11 @@ export interface ComponentProps {
    * just loaded empty only shows the same nothing again.
    */
   action?: undefined | ReactElement;
+  /*
+   * What failed, in the reader's language - "The monitors could not be
+   * loaded." - said first when the error is one nobody explained.
+   */
+  whatFailed?: string | undefined;
 }
 
 const ErrorMessage: FunctionComponent<ComponentProps> = (
@@ -22,6 +30,12 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
   const { translateValue, translateString } = useTranslateValue();
   // The page's language: the way its lines read.
   const translator: Translator = useTranslator();
+  /*
+   * An error nobody explained (#6836) says what failed, what to do next
+   * and, when the server failed, the reference to give - and its way out is
+   * called Try again rather than Refresh?.
+   */
+  const isUnexplained: boolean = isUnexplainedErrorMessage(props.message);
   const translatedMessage: string | ReactElement | undefined =
     typeof props.message === "string"
       ? (translateValue(props.message) as string | ReactElement | undefined) ??
@@ -35,8 +49,15 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
        * in an isolate of its own. Words in the page's own way are drawn as
        * they always were.
        */}
-      {typeof translatedMessage === "string" &&
-      getTranslatedLineDirection(translatedMessage, translator.language) ? (
+      {isUnexplained ? (
+        <span className="mx-auto block max-w-prose">
+          <ErrorExplanation
+            message={props.message as string}
+            whatFailed={props.whatFailed}
+          />
+        </span>
+      ) : typeof translatedMessage === "string" &&
+        getTranslatedLineDirection(translatedMessage, translator.language) ? (
         <IsolatedText text={translatedMessage} />
       ) : (
         translatedMessage
@@ -65,7 +86,7 @@ const ErrorMessage: FunctionComponent<ComponentProps> = (
             }}
             className="underline cursor-pointer hover:text-gray-700 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
           >
-            {translateString("Refresh?")}
+            {translateString(isUnexplained ? "Try again" : "Refresh?")}
           </button>
         </div>
       ) : (

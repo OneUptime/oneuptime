@@ -2,6 +2,9 @@ import readAsWritten from "../IsolatedText/ReadAsWritten";
 import useTranslator from "../../Utils/UseTranslator";
 import { Translator } from "../../Utils/TranslateTemplate";
 import { ButtonStyleType } from "../Button/Button";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "../ErrorMessage/ErrorExplanation";
 import Modal, { ModalSecondaryButton } from "./Modal";
 import useTranslateValue from "../../Utils/Translation";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -61,8 +64,17 @@ const ConfirmModal: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   const { translateValue } = useTranslateValue();
   const translator: Translator = useTranslator();
+  /*
+   * The Error dialogs a failed row action or a failed delete opens hand
+   * their message here: one nobody explained says what to do next, with
+   * its reference (ErrorExplanation, #6836).
+   */
   const translatedDescription: string | ReactElement | undefined =
-    translateValue(props.description);
+    isUnexplainedErrorMessage(props.description) ? (
+      <ErrorExplanation message={props.description as string} />
+    ) : (
+      translateValue(props.description)
+    );
 
   /*
    * Compared with undefined, not by truthiness: ButtonStyleType.PRIMARY is the

@@ -7,9 +7,11 @@ import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
 import ObjectID from "Common/Types/ObjectID";
 import {
+  CountedWhoIsToldFacts,
   GUIDED_SETUP_POLICY_NAME,
   WhoIsToldFacts,
   WhoIsToldMode,
+  areWhoIsToldCountsKnown,
   getWhoIsToldMode,
 } from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
 import {
@@ -17,6 +19,8 @@ import {
   WebsiteAddress,
   WebsiteMonitorSeeds,
   buildWebsiteMonitor as buildGuidedWebsiteMonitor,
+  getWebsiteAddressIdentity,
+  isSameWebsiteAddress,
   parseWebsiteAddress,
 } from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
 import {
@@ -38,7 +42,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *      monitor starts with, every five minutes, and the type's criteria
  *      (offline when it does not answer, or answers outside 200 to 399,
  *      which opens an incident). The monitor's probes check it at once,
- *      and their first answer is said in a sentence.
+ *      and their first answer is said in a sentence. An address one of
+ *      this person's monitors already checks makes no second monitor: the
+ *      setup goes on with theirs, and says so (#7059) - whatever the
+ *      browser kept of the run.
  *   2. Who should be told? A project with no on-call policy gets one,
  *      paging the people picked - "You", to start with - for every new
  *      incident and alert (FirstResponders, EveryNewEventRules). A project
@@ -81,10 +88,18 @@ export const WEBSITE_DOWN_POLICY_NAME: string = GUIDED_SETUP_POLICY_NAME;
 export {
   MONITOR_NAME_MAX_LENGTH,
   WhoIsToldMode,
+  areWhoIsToldCountsKnown,
+  getWebsiteAddressIdentity,
   getWhoIsToldMode,
+  isSameWebsiteAddress,
   parseWebsiteAddress,
 };
-export type { WebsiteAddress, WebsiteMonitorSeeds, WhoIsToldFacts };
+export type {
+  CountedWhoIsToldFacts,
+  WebsiteAddress,
+  WebsiteMonitorSeeds,
+  WhoIsToldFacts,
+};
 
 export const WEBSITE_DOWN_COPY: {
   pageTitle: string;
@@ -96,6 +111,7 @@ export const WEBSITE_DOWN_COPY: {
   addressError: string;
   isApiLabel: string;
   startChecking: string;
+  existingMonitor: string;
   continueButton: string;
   cannotCreateMonitor: string;
   whoTitle: string;
@@ -106,6 +122,7 @@ export const WEBSITE_DOWN_COPY: {
   whoNobodyPicked: string;
   whoSave: string;
   whoExistingHelp: string;
+  policyMadeElsewhere: string;
   whoOwnerOnlyHelp: string;
   whoOnCallRulesLink: string;
   noEmail: string;
@@ -146,6 +163,13 @@ export const WEBSITE_DOWN_COPY: {
   ),
   isApiLabel: translationKey("This is an API endpoint"),
   startChecking: translationKey("Start checking"),
+  /*
+   * Said when the address is one this person's monitor already checks: the
+   * setup goes on with it, and makes no second (#7059).
+   */
+  existingMonitor: translationKey(
+    'Your monitor "{{name}}" already checks this address, so no new monitor was made.',
+  ),
   continueButton: translationKey("Continue"),
   cannotCreateMonitor: translationKey(
     "Creating a monitor needs permission you do not have in this project. Ask a project admin to give it to you, or to set this up.",
@@ -163,6 +187,14 @@ export const WEBSITE_DOWN_COPY: {
   whoSave: translationKey("Save and continue"),
   whoExistingHelp: translationKey(
     "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident. You own this monitor, so you are also emailed when it goes down.",
+  ),
+  /*
+   * Said when Save and continue finds a policy another tab or device made
+   * since the step opened: why the people picked are gone, and that nothing
+   * was made twice (#7059).
+   */
+  policyMadeElsewhere: translationKey(
+    "An on-call policy was added to this project while this page was open, so no new policy was made.",
   ),
   whoOwnerOnlyHelp: translationKey(
     "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
@@ -240,6 +272,36 @@ export const getMonitorAddress: (
   const destination: unknown = step?.data?.monitorDestination;
 
   return destination ? destination.toString() : "";
+};
+
+// What the setup reads of a monitor this person made, to know if it is theirs for an address.
+export interface OwnMonitorFacts {
+  monitorSteps?: MonitorSteps | undefined | null;
+  isArchived?: boolean | undefined;
+  disableActiveMonitoring?: boolean | undefined;
+}
+
+/*
+ * Whether a monitor this person made checks the address now, so the setup
+ * goes on with it instead of making a second (#7059): its first step asks
+ * for the same address, and it is neither archived nor turned off - one
+ * that is no longer checked does not answer "is my website down?".
+ */
+export const isMonitorCheckingAddress: (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}) => boolean = (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}): boolean => {
+  if (data.monitor.isArchived || data.monitor.disableActiveMonitoring) {
+    return false;
+  }
+
+  return isSameWebsiteAddress(
+    getMonitorAddress(data.monitor.monitorSteps),
+    data.address.url,
+  );
 };
 
 /*

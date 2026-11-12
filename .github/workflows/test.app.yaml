@@ -557,7 +557,10 @@ jobs:
           # policy - the preview, its cost, what a send asks for and the
           # result with where to fix a message - at 1280 and 390 pixels, dark
           # and German) joined it on 2026-11-11, the group with the most room:
-          # about 21.2.
+          # about 21.2. It grew to 15 tests on 2026-11-12 (#7193: a policy's
+          # test that walks every level, as a timeline, and the preview in the
+          # reader's words, Arabic and Persian too): about 1.2 minutes by its
+          # 9 tests' 0.7 - about 21.7.
           - group: 4
             workflow_builder_shard: 1/2
             model_tables_shard: 1/2
@@ -1716,9 +1719,14 @@ jobs:
           # of #6802 add.
           # Reading Direction (5.9) joined it from group 20 on 2026-11-12, when
           # the OpenStack pages' second third grew (#6956, see group 19): about
-          # 8.2, the rest still room for those journeys. Ask AI (4.5) joined it
-          # from group 18 on 2026-11-12, with its setup plans (#6829): about
-          # 12.7.
+          # 8.2, the rest still room for those journeys.
+          # The website-down guided setup's run, kept and lost (#7059), joined
+          # the journeys the same day: Journeys/GuidedSetupRun.spec.ts, 3 tests
+          # that are not journeys (nothing counted), the third a long address
+          # at 390 pixels, 18 seconds locally (37 on a loaded machine) -
+          # test-journeys-ui planned as 2.9, this group about 8.8. Ask AI (4.5)
+          # joined it from group 18 the same day, with its setup plans (#6829):
+          # about 13.3.
           - group: 22
             suites: >-
               test-journeys-ui

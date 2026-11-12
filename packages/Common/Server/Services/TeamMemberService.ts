@@ -218,11 +218,15 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
 
     if (!projectId) {
-      throw new BadDataException("Project Id is required to invite a member");
+      throw new BadDataException(
+        "The request did not say which project to invite the member to.",
+      );
     }
 
     if (!teamId) {
-      throw new BadDataException("Team Id is required to invite a member");
+      throw new BadDataException(
+        "The request did not say which team to invite the member to.",
+      );
     }
 
     createBy.data.projectId = projectId;
@@ -252,7 +256,9 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       });
 
       if (!team) {
-        throw new BadDataException("Invalid Team ID");
+        throw new BadDataException(
+          "This team no longer exists in this project. Reload the page and pick another team.",
+        );
       }
 
       await TeamPermissionService.assertCanGrantTeamPermissions({

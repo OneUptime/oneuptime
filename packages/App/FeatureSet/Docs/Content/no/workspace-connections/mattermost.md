@@ -114,7 +114,7 @@ Folk blir med i kanalen til en regel gjennom Mattermost-kontoen de har koblet ti
 
 En hendelse, et varsel, en episode eller en planlagt vedlikeholdshendelse med sin egen kanal har **Åpne i Mattermost** øverst på siden sin i OneUptime, ved siden av tilstandsknappene. Den åpner kanalen i en ny fane, på Mattermost-serveren din. En post med to egne kanaler viser begge under knappen. En post som også har kanaler i Slack eller Microsoft Teams, har i stedet én knapp, **Åpne kanal**, som viser alle. De eksisterende kanalene reglene dine publiserer i, tilbys ikke.
 
-**Testregel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, slik den gjør for Slack.
+**Test regel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, slik den gjør for Slack.
 
 Meldingene fra OneUptime varsler ingen gjennom det de siterer: et navn eller en beskrivelse som inneholder `@channel`, `@here` eller `@someone`, vises slik det er skrevet, og pinger ingen.
 
