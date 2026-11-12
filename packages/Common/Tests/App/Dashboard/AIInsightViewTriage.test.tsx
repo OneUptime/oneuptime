@@ -518,7 +518,7 @@ describe("AI insight detail — triage Try again", () => {
     const failure: HTMLElement = screen.getByTestId("ai-triage-failure");
     expect(failure).toHaveTextContent("Triage did not finish");
     expect(screen.getByTestId("ai-triage-failure-cause")).toHaveTextContent(
-      "The AI provider did not answer within 120 seconds.",
+      "The LLM provider did not answer within 120 seconds.",
     );
     expect(screen.getByTestId("ai-triage-failure-fix")).toHaveTextContent(
       "Response Timeout",

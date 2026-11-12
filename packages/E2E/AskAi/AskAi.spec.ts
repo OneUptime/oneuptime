@@ -2142,7 +2142,7 @@ test.describe("by keyboard", () => {
     const panel: Box = await boxOf(askAi(page));
 
     for (const control of [
-      { title: "Choose AI provider", menu: "AI provider" },
+      { title: "Choose LLM provider", menu: "LLM provider" },
       {
         title: "Choose what the AI is allowed to do",
         menu: "AI permissions",
@@ -2175,12 +2175,12 @@ test.describe("by keyboard", () => {
   }) => {
     await load(page);
     await openAskAi(page);
-    await expect(page.getByTitle("Choose AI provider")).toHaveCount(0);
+    await expect(page.getByTitle("Choose LLM provider")).toHaveCount(0);
 
     await load(page, "providers=two");
     await openAskAi(page);
-    await page.getByTitle("Choose AI provider").click();
-    const menu: Locator = page.getByRole("menu", { name: "AI provider" });
+    await page.getByTitle("Choose LLM provider").click();
+    const menu: Locator = page.getByRole("menu", { name: "LLM provider" });
     await expect(menu.getByRole("menuitemradio")).toHaveCount(2);
     await page.keyboard.press("Escape");
     await expect(menu).toHaveCount(0);
