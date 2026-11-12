@@ -24,7 +24,10 @@ import PortTimingsView from "../../../../App/FeatureSet/Dashboard/src/Components
 import ProbeAttemptsView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ProbeAttemptsView";
 import SnmpMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SnmpMonitorView";
 import SqlMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SqlMonitorView";
-import { SUMMARY_FACT_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryFacts";
+import {
+  SUMMARY_FACT_TEST_ID,
+  TIMING_ROW_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/SummaryFacts";
 import WebsiteMonitorView from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/WebsiteMonitorView";
 import TracerouteHopsTable from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/TracerouteHopsTable";
 import Hostname from "../../../Types/API/Hostname";
@@ -164,7 +167,7 @@ const phaseRows: (container: HTMLElement) => Array<[string, string]> = (
   container: HTMLElement,
 ): Array<[string, string]> => {
   return Array.from(
-    container.querySelectorAll("div.flex.items-center.text-sm"),
+    container.querySelectorAll(`[data-testid="${TIMING_ROW_TEST_ID}"]`),
   ).map((row: Element): [string, string] => {
     return [textOf(row.children[0]), textOf(row.children[2])];
   });

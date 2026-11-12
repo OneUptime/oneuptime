@@ -217,6 +217,27 @@ export const getFailureCause: (data: {
   return data.translator.translateText(sentence) || sentence;
 };
 
+/*
+ * The Active Incidents fact: the count the page gave, written as the
+ * reader's language writes a number ("3", "۳"), or "-" when the check
+ * could not read the page and so counted nothing.
+ */
+export const getActiveIncidentsText: (data: {
+  translator: Translator;
+  activeIncidentCount: number | undefined;
+  isPageRead: boolean;
+}) => string = (data: {
+  translator: Translator;
+  activeIncidentCount: number | undefined;
+  isPageRead: boolean;
+}): string => {
+  if (!data.isPageRead) {
+    return "-";
+  }
+
+  return data.translator.formatNumber(data.activeIncidentCount || 0);
+};
+
 export interface ComponentProps {
   probeMonitorResponse: ProbeMonitorResponse;
   probeName?: string | undefined;
@@ -313,6 +334,18 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
         provider: externalStatusPageResponse?.provider,
       })
     : "";
+
+  /*
+   * The page's active incidents, in the reader's digits. A check that could
+   * not read the page - a private page, a timeout, a page that would not
+   * answer - counted none, so it says "-", as its Overall Status does,
+   * rather than a 0 that reads as a quiet page.
+   */
+  const activeIncidents: string = getActiveIncidentsText({
+    translator: translator,
+    activeIncidentCount: externalStatusPageResponse?.activeIncidentCount,
+    isPageRead: !(failureCause && !props.probeMonitorResponse.isOnline),
+  });
 
   /*
    * The line under a component's name: its group, and what the page says.
@@ -431,8 +464,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
           value={
             incidentsOutsideScope > 0 ? (
               <>
-                {externalStatusPageResponse?.activeIncidentCount?.toString() ||
-                  "0"}
+                {activeIncidents}
                 <span
                   className="mt-0.5 block text-xs text-gray-500"
                   data-testid={EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID}
@@ -447,7 +479,7 @@ const ExternalStatusPageMonitorView: FunctionComponent<ComponentProps> = (
                 </span>
               </>
             ) : (
-              externalStatusPageResponse?.activeIncidentCount?.toString() || "0"
+              activeIncidents
             )
           }
         />

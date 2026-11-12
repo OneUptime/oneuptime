@@ -31,6 +31,7 @@ import ExternalStatusPageMonitorView, {
   EXTERNAL_STATUS_PAGE_OVERALL_STATUS_TEST_ID,
   EXTERNAL_STATUS_PAGE_UNMATCHED_TEST_ID,
   getComponentDescription,
+  getActiveIncidentsText,
   getFailureCause,
   getWatchedComponentNames,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/SummaryView/ExternalStatusPageMonitorView";
@@ -1700,5 +1701,161 @@ describe("the refusals in every Dashboard language", () => {
     expect(
       isWordedInDashboardLocale(`${PRIVATE_PAGE_MESSAGE} (made up)`, "de"),
     ).toBe(false);
+  });
+});
+
+/*
+ * THE PAGE'S ACTIVE INCIDENTS. A check that could not read the page - a
+ * private page, one whose IP allowlist leaves the probe out, a timeout, a
+ * network error - counted no incidents: its Active Incidents reads "-", as
+ * its Overall Status does, never a 0 that reads as a quiet page. A page
+ * the probe read gives its count in the reader's digits ("۳" in Persian).
+ */
+describe("the page's active incidents (getActiveIncidentsText)", () => {
+  const english: Translator = dashboardTranslator("en");
+
+  test("a page the probe read: its count, 0 when it has none", () => {
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: 3,
+        isPageRead: true,
+      }),
+    ).toBe("3");
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: 0,
+        isPageRead: true,
+      }),
+    ).toBe("0");
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: undefined,
+        isPageRead: true,
+      }),
+    ).toBe("0");
+    expect(
+      getActiveIncidentsText({
+        translator: english,
+        activeIncidentCount: 1250,
+        isPageRead: true,
+      }),
+    ).toBe("1,250");
+  });
+
+  test("a page the probe could not read: a dash, whatever count the check carries", () => {
+    for (const count of [0, 3, undefined]) {
+      expect(
+        getActiveIncidentsText({
+          translator: english,
+          activeIncidentCount: count,
+          isPageRead: false,
+        }),
+      ).toBe("-");
+    }
+  });
+
+  test("in Persian, the count in Persian digits", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    expect(
+      getActiveIncidentsText({
+        translator: persian,
+        activeIncidentCount: 3,
+        isPageRead: true,
+      }),
+    ).toBe("\u{06F3}");
+    expect(
+      getActiveIncidentsText({
+        translator: persian,
+        activeIncidentCount: 0,
+        isPageRead: true,
+      }),
+    ).toBe("\u{06F0}");
+  });
+});
+
+describe("the Active Incidents fact", () => {
+  // The Active Incidents card's value: the page facts' third card.
+  function activeIncidents(): string {
+    return withoutIsolateMarks(
+      factValue("external-status-page-page-facts", 2).textContent || "",
+    ).trim();
+  }
+
+  // The Overall Status card's value: the page facts' second card.
+  function overallStatus(): string {
+    return withoutIsolateMarks(
+      factValue("external-status-page-page-facts", 1).textContent || "",
+    ).trim();
+  }
+
+  test.each([
+    ["a private page", PRIVATE_PAGE_MESSAGE],
+    ["a page whose IP allowlist leaves the probe out", IP_NOT_ALLOWED_MESSAGE],
+    ["a network error", "connect ECONNREFUSED 203.0.113.7:443"],
+  ])(
+    "%s: a dash, as the Overall Status, not a 0",
+    (_name: string, cause: string) => {
+      renderView({ ...refusedResponse(cause), overallStatus: "" });
+
+      expect(activeIncidents()).toBe("-");
+      expect(overallStatus()).toBe("-");
+    },
+  );
+
+  test("a timeout, its status Unknown: a dash", () => {
+    renderView(
+      refusedResponse("Request was tried 3 times and it timed out.", undefined),
+    );
+
+    expect(activeIncidents()).toBe("-");
+  });
+
+  test("a page that answered with none: 0", () => {
+    renderView(pageResponse({ activeIncidentCount: 0 }));
+
+    expect(activeIncidents()).toBe("0");
+  });
+
+  test("a page that answered with two: 2", () => {
+    renderView(pageResponse({ activeIncidentCount: 2 }));
+
+    expect(activeIncidents()).toBe("2");
+  });
+
+  test("the incidents the scope left out still read under the count", () => {
+    renderView(
+      pageResponse({ activeIncidentCount: 1, incidentsOutsideScopeCount: 2 }),
+    );
+
+    expect(
+      screen.getByTestId(EXTERNAL_STATUS_PAGE_OUTSIDE_INCIDENTS_TEST_ID),
+    ).toHaveTextContent("2 more on the page, not counted");
+    expect(activeIncidents()).toBe("12 more on the page, not counted");
+  });
+
+  describe("in Persian", () => {
+    beforeAll(async () => {
+      await i18next.changeLanguage("fa");
+    });
+
+    afterAll(async () => {
+      await i18next.changeLanguage("en");
+    });
+
+    test("the count in Persian digits, never a Latin one", () => {
+      renderView(pageResponse({ activeIncidentCount: 3 }));
+
+      expect(activeIncidents()).toBe("\u{06F3}");
+    });
+
+    test("a refused page: a dash", () => {
+      renderView(refusedResponse(PRIVATE_PAGE_MESSAGE));
+
+      expect(activeIncidents()).toBe("-");
+    });
   });
 });
