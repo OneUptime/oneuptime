@@ -89,6 +89,7 @@ import {
 } from "../Utils/SystemdUnits";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
 import { EMPTY_VALUE_MARK } from "Common/UI/Components/Detail/EmptyValue";
 
@@ -661,7 +662,10 @@ const HostSystemdUnitView: FunctionComponent<
           value={
             availability.percent === null
               ? "—"
-              : `${availability.percent.toFixed(1)}%`
+              : formatReaderFigure(availability.percent, {
+                  decimals: 1,
+                  isPercent: true,
+                })
           }
           sublabel={
             truncatedFrom

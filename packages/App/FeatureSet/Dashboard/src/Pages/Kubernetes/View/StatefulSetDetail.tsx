@@ -35,6 +35,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesStatefulSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { formatKubernetesCount } from "../Utils/KubernetesCount";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
 } from "../Utils/KubernetesCpuUtils";
@@ -284,7 +285,7 @@ const KubernetesClusterStatefulSetDetail: FunctionComponent<
         title: "Replicas",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.statefulSetReplicas,
-        value: String(objectData.spec.replicas ?? "N/A"),
+        value: formatKubernetesCount(objectData.spec.replicas),
       },
       {
         title: "Ready Replicas",
