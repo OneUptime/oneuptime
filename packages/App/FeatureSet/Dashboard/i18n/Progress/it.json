@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9693
+    "keys": 50831,
+    "untranslated": 9576
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -69,6 +69,7 @@
     "Cluster {{cluster}}",
     "Collector",
     "Commit",
+    "Community Edition",
     "Console",
     "Container",
     "Container {{container}}: {{reason}}",
@@ -100,6 +101,7 @@
     "Edge",
     "Embedding",
     "Endpoint",
+    "Enterprise Edition",
     "Fahrenheit",
     "Failover",
     "Favicon",

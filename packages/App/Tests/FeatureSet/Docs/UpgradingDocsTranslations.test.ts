@@ -50,10 +50,11 @@ import { isPermissionTitleKeptInEnglish } from "./DocsRoleNames";
  *   - The Dashboard, Persian included: a label, a menu path segment by
  *     segment, a "Mark as <state>" button filled from its template.
  *   - The Admin Dashboard: its breadcrumbs, its OneUptime Health page and the
- *     way to its Authentication settings, and the names it draws in English
- *     in every language - "This installation" (no key of its locale) and the
- *     Health dashboards and the Query Console, which its own translated
- *     sentences keep in English.
+ *     way to its Authentication settings, the edition label's "This
+ *     installation" card (worded as the Dashboard words it, #6470), and the
+ *     names it draws in English in every language - the Health dashboards
+ *     and the Query Console, which its own translated sentences keep in
+ *     English.
  *   - The sign-in page and the Admin Dashboard's switch, for the note on
  *     sign-in links (SIGN_IN_LINK_LABELS).
  *
@@ -225,16 +226,19 @@ const PRODUCT_NAMES: Array<string> = [
 const SCRIPT_OUTPUT: Array<string> = ["OneUptime is up!"];
 
 /*
- * Names the Admin Dashboard draws in English in every language: the edition
- * label's "This installation" has no key of its locale, and its own
+ * Names the Admin Dashboard draws in English in every language: its own
  * translated sentences keep the Health dashboards and the Query Console in
  * English (ADMIN_SENTENCE_KEEPING_THEM).
  */
-const ADMIN_DRAWN_IN_ENGLISH: Array<string> = [
-  "This installation",
-  "Health",
-  "Query Console",
-];
+const ADMIN_DRAWN_IN_ENGLISH: Array<string> = ["Health", "Query Console"];
+
+/*
+ * The edition label's card that shows the running version. The Admin
+ * Dashboard's header draws it in the reader's language, worded as the
+ * Dashboard's footer words it (#6470), so a translation names it as a
+ * Dashboard label.
+ */
+const EDITION_LABEL_CARD: string = "This installation";
 
 const ADMIN_SENTENCE_KEEPING_THEM: string =
   "The live OneUptime Health dashboards and the query console need an Enterprise license that includes instance health, and this installation's license is missing, expired or does not include it. Activate or renew the license from the Enterprise Edition badge at the top of the Admin Dashboard. While the license is missing or expired, SCIM provisioning and audit logging are off too; they come back with these screens as soon as a license is activated. ClickHouse capacity, the instance log, Global Probes, Migrations and the Support Bundle keep working without it; find them in the menu on the left.";
@@ -952,15 +956,26 @@ describe("the lists this test keeps", () => {
     }
   });
 
-  it("draw the Admin Dashboard's English names as it draws them", () => {
-    // "This installation" is no key of any Admin Dashboard locale.
-    for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
+  it("name the edition label's card as the Admin Dashboard draws it, the Dashboard's word", () => {
+    expect(isDashboardLabel(EDITION_LABEL_CARD)).toBe(true);
+    expect(drawnLabels()).toContain(EDITION_LABEL_CARD);
+
+    for (const language of LANGUAGES) {
+      const drawn: string | null = localeValue(
+        adminLocale(language),
+        EDITION_LABEL_CARD,
+      );
+
       expect({
         language,
-        key: localeValue(adminLocale(language), "This installation"),
-      }).toEqual({ language, key: null });
+        worded: drawn !== null && drawn !== EDITION_LABEL_CARD,
+        asTheDashboard:
+          drawn === localeValue(dashboardLocale(language), EDITION_LABEL_CARD),
+      }).toEqual({ language, worded: true, asTheDashboard: true });
     }
+  });
 
+  it("draw the Admin Dashboard's English names as it draws them", () => {
     // Its translated sentences keep the Health dashboards and the Query Console.
     for (const language of LANGUAGES) {
       const sentence: string =

@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Finn den nåværende versjonen din
 
-Åpne som hovedadministrator utgavemerket i toppfeltet i Admin-dashbordet: **This installation** viser versjonen du kjører. Instansen oppgir den også på `/version`:
+Åpne som hovedadministrator utgavemerket i toppfeltet i Admin-dashbordet: **Denne installasjonen** viser versjonen du kjører. Instansen oppgir den også på `/version`:
 
 ```bash
 curl http://localhost/version
