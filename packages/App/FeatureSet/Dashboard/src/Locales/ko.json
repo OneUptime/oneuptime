@@ -51528,5 +51528,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "이 {{itemName}}은(는) 보관되어 목록에서 숨겨져 있습니다. 텔레메트리는 계속 수집됩니다. 다시 표시하려면 보관을 취소하세요.",
   "Unarchive {{count}} {{itemsName}}?": "{{itemsName}} {{count}}개의 보관을 취소하시겠습니까?",
   "Unarchive {{count}} {{itemsName}}?_one": "{{itemName}} {{count}}개의 보관을 취소하시겠습니까?",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "보관이 취소된 SLO는 SLO 목록에 다시 표시되고 다음 주기에 다시 평가됩니다. 보관하기 전에 비활성화되어 있던 SLO는 비활성화 상태로 유지됩니다."
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "보관이 취소된 SLO는 SLO 목록에 다시 표시되고 다음 주기에 다시 평가됩니다. 보관하기 전에 비활성화되어 있던 SLO는 비활성화 상태로 유지됩니다.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "이 상태 페이지는 비공개입니다. 로그인하거나 비밀번호를 아는 사람만 읽을 수 있습니다. 공개 상태 페이지만 모니터링할 수 있습니다.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "이 상태 페이지는 IP 허용 목록에 있는 IP 주소만 들여보내며, 이 프로브의 주소는 그중에 없습니다. 프로브의 주소를 허용 목록에 추가하거나 해당 네트워크 안에 있는 프로브에서 페이지를 모니터링하세요."
 }

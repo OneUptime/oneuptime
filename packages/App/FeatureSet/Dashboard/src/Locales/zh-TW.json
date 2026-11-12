@@ -51528,5 +51528,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "此{{itemName}}已封存，並已從清單中隱藏。它仍在收集遙測資料。取消封存即可使其重新顯示。",
   "Unarchive {{count}} {{itemsName}}?": "要取消封存 {{count}} 個{{itemsName}}嗎？",
   "Unarchive {{count}} {{itemsName}}?_one": "要取消封存 {{count}} 個{{itemName}}嗎？",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "取消封存的 SLO 會重新出現在 SLO 清單中，並在下一個週期重新評估。封存前已停用的 SLO 將維持停用狀態。"
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "取消封存的 SLO 會重新出現在 SLO 清單中，並在下一個週期重新評估。封存前已停用的 SLO 將維持停用狀態。",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "此狀態頁面為私人頁面：只有登入該頁面或知道其密碼的人才能查看。只能監控公開的狀態頁面。",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "此狀態頁面只允許其 IP 允許清單中的 IP 位址存取，而此探測器的位址不在其中。請將探測器的位址新增至允許清單，或從該網路內的探測器監控此頁面。"
 }
