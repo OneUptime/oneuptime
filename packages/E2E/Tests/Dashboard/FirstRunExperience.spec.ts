@@ -109,15 +109,22 @@ test.describe("First run: a brand-new project", () => {
     await expect(tiles).not.toContainText("All operational");
     await expect(tiles).not.toContainText("Budgets healthy");
 
-    // The overview draws no side menu; Home's lists keep it.
+    // Home is one page with no side menu (#6857).
     await expect(page.locator('[aria-label="Main navigation"]')).toHaveCount(0);
 
+    /*
+     * The address of Home's old copy of the list forwards to the Monitors
+     * product's own list, whose menu names it.
+     */
     await gotoProjectPage({
       page,
       projectId,
       url: projectUrl(projectId, "/home/monitors-inoperational"),
       ready: page.locator('[aria-label="Main navigation"]').first(),
     });
+    await expect(page).toHaveURL(
+      exactPath(projectId, "/monitors/inoperational"),
+    );
 
     const menu: Locator = page
       .locator('[aria-label="Main navigation"]')

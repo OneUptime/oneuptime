@@ -1,3 +1,4 @@
+import { SLO_STATUSES_AT_RISK } from "../Slo/SloStatusSummaryTiles";
 import AlertStateUtil from "../../Utils/AlertState";
 import IncidentStateUtil from "../../Utils/IncidentState";
 import ScheduledMaintenanceStateUtil from "../../Utils/ScheduledMaintenanceState";
@@ -5,7 +6,6 @@ import Includes from "Common/Types/BaseDatabase/Includes";
 import ListResult from "Common/Types/BaseDatabase/ListResult";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import ObjectID from "Common/Types/ObjectID";
-import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import Alert from "Common/Models/DatabaseModels/Alert";
@@ -246,8 +246,8 @@ export const fetchNotOperationalMonitors: (
  * In progress: in the project's ongoing state, or in a state of its own
  * placed between Ongoing and Ended, such as "Verifying"
  * (Common/Utils/ScheduledMaintenanceStart) - the events the Ongoing list
- * shows. The state list is the one the Home side menu reads on the same
- * mount, through ModelListCache, so it is one request for both.
+ * shows. The state list comes through ModelListCache, the same read the
+ * Scheduled Maintenance menu's Ongoing Events badge and that list make.
  */
 export const fetchOngoingMaintenance: (
   projectId: ObjectID,
@@ -294,14 +294,15 @@ export const fetchOngoingMaintenance: (
 
 /*
  * At Risk and Budget Exhausted are the two statuses that mean a reliability
- * target is in trouble. Misconfigured and Paused are deliberately excluded:
- * they are a setup problem, not a burning budget, and mixing them in would
- * make the number impossible to act on.
+ * target is in trouble (SLO_STATUSES_AT_RISK). Misconfigured and Paused are
+ * deliberately excluded: they are a setup problem, not a burning budget, and
+ * mixing them in would make the number impossible to act on.
  *
  * Disabled and archived SLOs are left out: the worker no longer evaluates
  * them, so their status is frozen at the moment they were switched off, and
  * the SLOs list does not show archived ones either. The least budget left
- * comes first.
+ * comes first. The number opens the SLOs list with the chips that show these
+ * same SLOs (SloListFacetRoute), so the two read one set of statuses.
  */
 export const fetchSlosNeedingAttention: (
   projectId: ObjectID,
@@ -315,7 +316,7 @@ export const fetchSlosNeedingAttention: (
         projectId: projectId,
         isEnabled: true,
         isArchived: false,
-        sloStatus: new Includes([SloStatus.AtRisk, SloStatus.BudgetExhausted]),
+        sloStatus: new Includes([...SLO_STATUSES_AT_RISK]),
       },
       select: {
         _id: true,

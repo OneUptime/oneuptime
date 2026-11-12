@@ -206,21 +206,15 @@ function pagesUnder(area: string): Array<ProjectPage> {
 
 /*
  * The pages of a project that belong to no product, so the bar rightly names
- * none: Home and the lists its tiles open (Home is its own item, left of the
- * products), the project's address itself (it sends the user to Home), the
- * SSO sign-in page (it hides the nav bar) and three addresses no page is
- * mounted at any more.
+ * none: Home (its own item, left of the products - the lists its numbers
+ * open are the products' own, so the bar names their product), the project's
+ * address itself (it sends the user to Home), the SSO sign-in page (it hides
+ * the nav bar) and three addresses no page is mounted at any more.
  */
 const PAGES_OF_NO_PRODUCT: Array<string> = [
   PageMap.INIT_PROJECT,
   PageMap.PROJECT_SSO,
   PageMap.HOME,
-  PageMap.HOME_ACTIVE_INCIDENTS,
-  PageMap.HOME_ACTIVE_ALERTS,
-  PageMap.HOME_ACTIVE_EPISODES,
-  PageMap.HOME_ACTIVE_INCIDENT_EPISODES,
-  PageMap.HOME_NOT_OPERATIONAL_MONITORS,
-  PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
   PageMap.AUTOMATION_SCRIPTS,
   PageMap.REPORTS,
   PageMap.ERROR_TRACKER,

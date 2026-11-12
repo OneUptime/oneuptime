@@ -11,7 +11,7 @@ La home è la prima pagina che vedi in un progetto. Ti dice a colpo d'occhio se 
 
 ## Cosa mostra la home
 
-Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto. La home è la panoramica del tuo progetto. Dall'alto verso il basso, mostra:
+Apri **Home** nella barra in alto, oppure premi `g` e poi `h` da qualsiasi punto. La home è la panoramica del tuo progetto, una sola pagina senza menu laterale. Dall'alto verso il basso, mostra:
 
 1. Una casella di ricerca, con accanto **Dichiara incidente** e **Crea**.
 2. Una riga che dice se qualcosa non va, sopra cinque numeri che contano ciò che richiede attenzione.
@@ -42,17 +42,17 @@ Finché non c'è ancora nulla sotto monitoraggio, la riga termina con il pulsant
 
 ### I cinque numeri
 
-Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco che c'è dietro.
+Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco che c'è dietro, nel prodotto a cui appartiene.
 
-| Numero | Cosa conta | Quando il numero è zero |
-| --- | --- | --- |
-| **Incidenti attivi** | Gli incidenti non risolti | **Tutto a posto** |
-| **Avvisi attivi** | Gli avvisi non risolti | **Tutto a posto** |
-| **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati, e quelli con il monitoraggio disattivato, non contano. | **Tutti operativi** |
-| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** |
-| **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** |
+| Numero | Cosa conta | Quando il numero è zero | Apre |
+| --- | --- | --- | --- |
+| **Incidenti attivi** | Gli incidenti non risolti | **Tutto a posto** | **Incidenti → Incidenti attivi** |
+| **Avvisi attivi** | Gli avvisi non risolti | **Tutto a posto** | **Avvisi → Avvisi attivi** |
+| **Monitor non operativi** | I monitor il cui stato non è operativo. I monitor archiviati, e quelli con il monitoraggio disattivato, non contano. | **Tutti operativi** | **Monitor → Non operativo** |
+| **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** | **Manutenzione programmata → Eventi in corso** |
+| **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** | **SLOs** |
 
-Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** per manutenzione e SLO. Un progetto senza monitor vede **Nessun monitor ancora**, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
+Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** per manutenzione e SLO. Finché un SLO è a rischio, **SLO a rischio** apre l'elenco **SLOs** filtrato su quegli SLO. Un progetto senza monitor vede **Nessun monitor ancora**, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
 
 ### L'elenco di benvenuto
 
@@ -91,7 +91,7 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 
 ### Richiede attenzione
 
-**Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.
+**Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri, che apre lo stesso elenco del suo numero. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.
 
 ### Il tuo progetto
 
@@ -102,20 +102,6 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 ### Esplora OneUptime
 
 **Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic.
-
-### Il menu laterale della home
-
-La home non ha un menu laterale: mostra già tutto ciò che il menu mostrerebbe. Gli elenchi che apre ne condividono uno, che mostra ogni elenco con il suo contatore e riporta alla home da **Panoramica**:
-
-| Sezione | Pagine |
-| --- | --- |
-| **Home** | **Panoramica** |
-| **Incidenti** | **Incidenti attivi** ed **Episodi attivi** |
-| **Avvisi** | **Avvisi attivi** ed **Episodi attivi** |
-| **Monitor** | **Non operativo** |
-| **Eventi pianificati** | **In corso** |
-
-Un episodio raggruppa incidenti o avvisi correlati, perché tu li gestisca come uno solo. Vedi [Concetti fondamentali](/docs/introduction/core-concepts#incidenti-e-avvisi).
 
 ## Orientarsi
 

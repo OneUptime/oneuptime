@@ -12,8 +12,9 @@ import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
- * The Dashboard's ongoing scheduled maintenance: the two Ongoing lists (under
- * Scheduled Maintenance, and on Home) and their menu badges.
+ * The Dashboard's ongoing scheduled maintenance: the Ongoing Events list
+ * under Scheduled Maintenance and its menu badge. Home's Ongoing maintenance
+ * number opens that list: Home keeps no copy of it (#6857).
  *
  * They used to ask for events whose state carries the ongoing flag, so an
  * event moved on to a state of the project's own after Ongoing - "Verifying",
@@ -25,7 +26,7 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * after Ended ("Reviewing") is over; one placed before Ongoing ("Preparing")
  * has not started.
  *
- * The real menus and pages are rendered. The project's states come through
+ * The real menu and page are rendered. The project's states come through
  * the real ScheduledMaintenanceStateUtil over a stubbed ModelListCache; the
  * table is stubbed to keep the query it is handed.
  */
@@ -76,8 +77,6 @@ jest.mock(
   },
 );
 
-import HomeOngoingScheduledMaintenancePage from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/OngoingScheduledMaintenance";
-import HomeSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/SideMenu";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import OngoingScheduledMaintenancePage from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/Ongoing";
 import ScheduledMaintenanceSideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/ScheduledMaintenanceEvents/SideMenu";
@@ -243,7 +242,7 @@ beforeEach(() => {
     if (request.modelType === ScheduledMaintenanceState) {
       return answerStates();
     }
-    // The Home menu's incident and alert states: none needed here.
+    // Any other state list a menu reads: none needed here.
     return Promise.resolve(listOf([]));
   });
 });
@@ -392,60 +391,11 @@ describe("the Scheduled Maintenance menu's Ongoing Events badge", () => {
   });
 });
 
-describe("the Home menu's Ongoing badge", () => {
-  beforeEach(() => {
-    goTo(`/dashboard/${PROJECT_ID}/home`);
-  });
-
-  test("counts the same events: the ongoing state and a state between Ongoing and Ended", async () => {
-    await renderMenu(<HomeSideMenu project={project()} />);
-    await settle();
-
-    await waitFor(() => {
-      const requests: Array<CountRequest> = scheduledMaintenanceCounts();
-      expect(requests.length).toBeGreaterThan(0);
-      expect(
-        idsIn(lastOf(requests).query["currentScheduledMaintenanceStateId"]),
-      ).toEqual(IN_PROGRESS);
-    });
-
-    const request: CountRequest = lastOf(scheduledMaintenanceCounts());
-    expect(Object.keys(request.query).sort()).toEqual([
-      "currentScheduledMaintenanceStateId",
-      "projectId",
-    ]);
-    for (const asked of scheduledMaintenanceCounts()) {
-      expect(asked.query).not.toHaveProperty(
-        "currentScheduledMaintenanceState",
-      );
-    }
-  });
-
-  test("before the states are read it asks for no state at all, never for every event", async () => {
-    answerStates = () => {
-      return new Promise<unknown>(() => {});
-    };
-    await renderMenu(<HomeSideMenu project={project()} />);
-    await settle();
-
-    for (const asked of scheduledMaintenanceCounts()) {
-      expect(idsIn(asked.query["currentScheduledMaintenanceStateId"])).toEqual(
-        [],
-      );
-    }
-  });
-});
-
 describe.each([
   [
     "Scheduled Maintenance > Ongoing Events",
     OngoingScheduledMaintenancePage,
     "scheduled-maintenance-events/ongoing",
-  ],
-  [
-    "Home > Ongoing",
-    HomeOngoingScheduledMaintenancePage,
-    "home/scheduled-maintenance-ongoing",
   ],
 ] as Array<[string, React.FunctionComponent<PageComponentProps>, string]>)(
   "the %s list",
