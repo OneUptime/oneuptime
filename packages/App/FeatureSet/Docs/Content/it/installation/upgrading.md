@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Trovate la vostra versione attuale
 
-Come amministratore master, aprite l'etichetta dell'edizione nell'intestazione del pannello amministratore: **This installation** mostra la versione che eseguite. L'istanza la riporta anche su `/version`:
+Come amministratore master, aprite l'etichetta dell'edizione nell'intestazione del pannello amministratore: **Questa installazione** mostra la versione che eseguite. L'istanza la riporta anche su `/version`:
 
 ```bash
 curl http://localhost/version

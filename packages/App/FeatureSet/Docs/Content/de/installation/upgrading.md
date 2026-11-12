@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Ermitteln Sie Ihre aktuelle Version
 
-Öffnen Sie als Master-Admin das Editions-Label in der Kopfzeile des Admin-Dashboards: **This installation** zeigt die Version, die Sie betreiben. Die Instanz meldet sie außerdem unter `/version`:
+Öffnen Sie als Master-Admin das Editions-Label in der Kopfzeile des Admin-Dashboards: **Diese Installation** zeigt die Version, die Sie betreiben. Die Instanz meldet sie außerdem unter `/version`:
 
 ```bash
 curl http://localhost/version

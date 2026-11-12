@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9703
+    "keys": 50831,
+    "untranslated": 9586
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -65,6 +65,7 @@
     "Collector",
     "Commit",
     "Commits",
+    "Community Edition",
     "Container",
     "Container {{container}}: {{reason}}",
     "Container {{id}}",
@@ -104,6 +105,7 @@
     "Element",
     "Embedding",
     "Endpoint",
+    "Enterprise Edition",
     "Episode",
     "Fahrenheit",
     "Failover",
