@@ -1129,8 +1129,15 @@ describe("DashboardAPI public resource-list", () => {
 
         expect(nextFunction).not.toHaveBeenCalled();
         const findBy: JSONObject = getFindByArgs(MonitorService);
+        /*
+         * Archived monitors are never published, and "operational" matches
+         * only monitors that are checked: one whose monitoring is off keeps
+         * the status its last check saw (issue #6476).
+         */
         expect(findBy["query"]).toEqual({
           projectId,
+          isArchived: false,
+          disableActiveMonitoring: false,
           currentMonitorStatus: { isOperationalState: true },
           monitorType: new Includes(["Ping"]),
           labels: new IncludesAnyOfGroups([[fixedLabelId], [secondLabelId]]),
@@ -1139,12 +1146,14 @@ describe("DashboardAPI public resource-list", () => {
         expect(findBy["sort"]).toEqual({ name: SortOrder.Ascending });
         /*
          * The status's place in the project's list is read too: a viewer
-         * may sort the list worst first by it (issue #5082).
+         * may sort the list worst first by it (issue #5082). And whether
+         * monitoring is off, which the page draws as Disabled (#6476).
          */
         expect(findBy["select"]).toEqual({
           _id: true,
           name: true,
           monitorType: true,
+          disableActiveMonitoring: true,
           currentMonitorStatus: { name: true, color: true, priority: true },
         });
       });
@@ -1170,6 +1179,7 @@ describe("DashboardAPI public resource-list", () => {
         expect(nextFunction).not.toHaveBeenCalled();
         expect(getFindByArgs(MonitorService)["query"]).toEqual({
           projectId,
+          isArchived: false,
           labels: new Includes([fixedLabelId]),
         });
       });
@@ -1197,6 +1207,7 @@ describe("DashboardAPI public resource-list", () => {
         expect(nextFunction).not.toHaveBeenCalled();
         expect(getFindByArgs(MonitorService)["query"]).toEqual({
           projectId,
+          isArchived: false,
           labels: new Includes([firstLabelId, secondLabelId]),
         });
       });
@@ -2259,8 +2270,10 @@ describe("DashboardAPI public resource-list", () => {
       };
 
       it("filters by the picked label in every shape the binding can still name the variable in", async () => {
+        // Archived monitors are never published (issue #6476).
         const expected: JSONObject = {
           projectId,
+          isArchived: false,
           labels: new Includes([SUPPORT]),
         };
         const shapes: Array<[string, unknown, string]> = [

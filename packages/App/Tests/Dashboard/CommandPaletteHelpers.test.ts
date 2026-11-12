@@ -3,11 +3,15 @@ import {
   buildEntitySearchQuery,
   buildEntitySearchSelect,
   buildEntitySearchSort,
+  buildGlossaryTermDescriptors,
   buildNavigationCommandDescriptors,
+  buildProjectSwitchDescriptors,
+  canSearchRecordsOf,
   computeCreateActionGates,
   getEntitySearchResultTitle,
   getEntitySearchSpecs,
   getVisibleActionIds,
+  isQuestion,
   isRoutePathNavigable,
   PALETTE_ENTITY_SEARCH_LIMIT,
   PALETTE_RECENTS_STORAGE_KEY,
@@ -25,6 +29,14 @@ import Incident from "Common/Models/DatabaseModels/Incident";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import OnCallDutyPolicy from "Common/Models/DatabaseModels/OnCallDutyPolicy";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
+import Service from "Common/Models/DatabaseModels/Service";
+import Host from "Common/Models/DatabaseModels/Host";
+import OnCallDutyPolicySchedule from "Common/Models/DatabaseModels/OnCallDutyPolicySchedule";
+import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
+import Dashboard from "Common/Models/DatabaseModels/Dashboard";
+import Workflow from "Common/Models/DatabaseModels/Workflow";
+import Runbook from "Common/Models/DatabaseModels/Runbook";
+import Team from "Common/Models/DatabaseModels/Team";
 import MultiSearch from "Common/Types/BaseDatabase/MultiSearch";
 import { TableColumnMetadata } from "Common/Types/Database/TableColumn";
 import TableColumnType from "Common/Types/Database/TableColumnType";
@@ -273,6 +285,12 @@ describe("getVisibleActionIds", () => {
      * needs it, and they may have no project and no permissions yet.
      */
     expect(actionIds).toContain("action-keyboard-shortcuts");
+    /*
+     * How OneUptime works and the Glossary (#6936): for whoever is lost,
+     * with no project and no permission.
+     */
+    expect(actionIds).toContain("action-how-oneuptime-works");
+    expect(actionIds).toContain("action-glossary");
     // The global (non-project) pages stay reachable without a project.
     expect(actionIds).toContain("action-active-incidents");
     expect(actionIds).toContain("action-my-on-call-policies");
@@ -392,6 +410,14 @@ describe("entity search specs and query construction", () => {
     alerts: Alert,
     "status-pages": StatusPage,
     "on-call-policies": OnCallDutyPolicy,
+    services: Service,
+    hosts: Host,
+    "on-call-schedules": OnCallDutyPolicySchedule,
+    "scheduled-maintenance": ScheduledMaintenance,
+    dashboards: Dashboard,
+    workflows: Workflow,
+    runbooks: Runbook,
+    teams: Team,
   };
 
   test("every spec searches real text columns of its model", () => {
@@ -458,6 +484,54 @@ describe("entity search specs and query construction", () => {
     expect(byId.get("on-call-policies")!.viewPageMap).toBe(
       PageMap.ON_CALL_DUTY_POLICY_VIEW,
     );
+    // The next most opened kinds (#6816).
+    expect(byId.get("services")!.viewPageMap).toBe(PageMap.SERVICE_VIEW);
+    expect(byId.get("hosts")!.viewPageMap).toBe(PageMap.HOST_VIEW);
+    expect(byId.get("on-call-schedules")!.viewPageMap).toBe(
+      PageMap.ON_CALL_DUTY_SCHEDULE_VIEW,
+    );
+    expect(byId.get("scheduled-maintenance")!.viewPageMap).toBe(
+      PageMap.SCHEDULED_MAINTENANCE_VIEW,
+    );
+    expect(byId.get("dashboards")!.viewPageMap).toBe(PageMap.DASHBOARD_VIEW);
+    expect(byId.get("workflows")!.viewPageMap).toBe(PageMap.WORKFLOW_VIEW);
+    expect(byId.get("runbooks")!.viewPageMap).toBe(PageMap.RUNBOOK_VIEW);
+    expect(byId.get("teams")!.viewPageMap).toBe(PageMap.TEAM_VIEW);
+  });
+
+  test("the kinds Search always found come first, in their old order", () => {
+    expect(
+      getEntitySearchSpecs()
+        .slice(0, 5)
+        .map((spec: PaletteEntitySearchSpec): string => {
+          return spec.id;
+        }),
+    ).toEqual([
+      "monitors",
+      "incidents",
+      "alerts",
+      "status-pages",
+      "on-call-policies",
+    ]);
+  });
+
+  test("scheduled maintenance is numbered, so its result leads with its number and the number finds it", () => {
+    const spec: PaletteEntitySearchSpec = getEntitySearchSpecs().find(
+      (candidate: PaletteEntitySearchSpec): boolean => {
+        return candidate.id === "scheduled-maintenance";
+      },
+    )!;
+
+    expect(spec.numberFields).toBeDefined();
+    expect(spec.searchFields).toContain(
+      spec.numberFields!.numberWithPrefixColumn,
+    );
+    expect(buildEntitySearchSelect(spec)).toEqual({
+      _id: true,
+      title: true,
+      [spec.numberFields!.numberColumn]: true,
+      [spec.numberFields!.numberWithPrefixColumn]: true,
+    });
   });
 
   test("the query carries a MultiSearch under _multiFieldSearch, exactly like the table search box", () => {
@@ -512,9 +586,21 @@ describe("entity search specs and query construction", () => {
     });
   });
 
-  test("the fan-out stays cheap: five specs, five rows each", () => {
-    expect(getEntitySearchSpecs()).toHaveLength(5);
+  test("the fan-out stays cheap: thirteen kinds in one round, five rows each, as before", () => {
+    /*
+     * Nine more kinds were asked for (#6816), users among them; users are
+     * team memberships, not a column a search box reads, and are left out.
+     * The limit per kind is the one Search always had.
+     */
+    expect(getEntitySearchSpecs()).toHaveLength(13);
     expect(PALETTE_ENTITY_SEARCH_LIMIT).toBe(5);
+    expect(
+      new Set(
+        getEntitySearchSpecs().map((spec: PaletteEntitySearchSpec): string => {
+          return spec.id;
+        }),
+      ).size,
+    ).toBe(13);
   });
 
   test("the recents storage key is the agreed dashboard-wide constant", () => {
@@ -664,5 +750,219 @@ describe("a numbered entity's results lead with its number", () => {
         incidentNumberWithPrefix: "INC-18",
       }),
     ).toBe("INC-18 Manually declared");
+  });
+});
+
+/*
+ * Search looks only for the kinds of record the person may read (#6816):
+ * a kind they may not would send a request the server refuses, every
+ * keystroke.
+ */
+describe("canSearchRecordsOf", () => {
+  test("a master admin searches every kind", () => {
+    expect(
+      canSearchRecordsOf({
+        model: new Service(),
+        held: HeldPermissionsUtil.fromPermissions([]),
+        isMasterAdmin: true,
+      }),
+    ).toBe(true);
+  });
+
+  test("with no snapshot yet, or one holding nothing, the server decides, as Search always let it", () => {
+    expect(
+      canSearchRecordsOf({
+        model: new Team(),
+        held: null,
+        isMasterAdmin: false,
+      }),
+    ).toBe(true);
+    expect(
+      canSearchRecordsOf({
+        model: new Team(),
+        held: HeldPermissionsUtil.fromPermissions([]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(true);
+  });
+
+  test("someone holding a kind's read permission searches it", () => {
+    const model: Service = new Service();
+
+    expect(
+      canSearchRecordsOf({
+        model: model,
+        held: HeldPermissionsUtil.fromPermissions([
+          model.getReadPermissions()[0]!,
+        ]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(true);
+  });
+
+  test("someone holding none of a kind's read permissions does not", () => {
+    expect(
+      canSearchRecordsOf({
+        model: new Workflow(),
+        held: HeldPermissionsUtil.fromPermissions([Permission.CurrentUser]),
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+  });
+
+  test("a team's block on the permission takes the kind away", () => {
+    const model: Runbook = new Runbook();
+    const permission: Permission = model.getReadPermissions()[0]!;
+
+    expect(
+      canSearchRecordsOf({
+        model: model,
+        held: {
+          allowed: [permission],
+          allowedProjectWide: [permission],
+          blocked: [permission],
+          blockedForSomeLabels: [],
+        },
+        isMasterAdmin: false,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("switching project (#6816)", () => {
+  test("each other project is a result, in the picker's order, never the one the person is in", () => {
+    expect(
+      buildProjectSwitchDescriptors({
+        projects: [
+          { id: "a", name: "Acme Production" },
+          { id: "b", name: "Acme Staging" },
+          { id: "c", name: "Side project" },
+        ],
+        currentProjectId: "a",
+      }),
+    ).toEqual([
+      { id: "project-switch-b", projectId: "b", name: "Acme Staging" },
+      { id: "project-switch-c", projectId: "c", name: "Side project" },
+    ]);
+  });
+
+  test("a project with no id or no name to show is left out, and each project is listed once", () => {
+    expect(
+      buildProjectSwitchDescriptors({
+        projects: [
+          { id: "", name: "No id" },
+          { id: "b", name: "   " },
+          { id: "c", name: " Spaced " },
+          { id: "c", name: "Spaced again" },
+        ],
+        currentProjectId: "",
+      }),
+    ).toEqual([{ id: "project-switch-c", projectId: "c", name: "Spaced" }]);
+  });
+
+  test("with one project there is nothing to switch to", () => {
+    expect(
+      buildProjectSwitchDescriptors({
+        projects: [{ id: "a", name: "Only" }],
+        currentProjectId: "a",
+      }),
+    ).toEqual([]);
+  });
+
+  test("the result's id names the project, not its name, so a renamed project is still the recent one", () => {
+    const [first] = buildProjectSwitchDescriptors({
+      projects: [{ id: "65f0", name: "Renamed" }],
+      currentProjectId: "x",
+    });
+
+    expect(first!.id).toBe("project-switch-65f0");
+  });
+});
+
+describe("the Glossary's terms (#6936)", () => {
+  test("each term is a result found by its name and its other names", () => {
+    expect(
+      buildGlossaryTermDescriptors([
+        { id: "probe", term: "Probe", alsoCalled: ["Monitoring location"] },
+        {
+          id: "escalation-rule",
+          term: "Escalation Rule",
+          alsoCalled: [],
+        },
+      ]),
+    ).toEqual([
+      {
+        id: "glossary-term-probe",
+        termId: "probe",
+        title: "Probe",
+        keywords: ["Monitoring location"],
+      },
+      {
+        id: "glossary-term-escalation-rule",
+        termId: "escalation-rule",
+        title: "Escalation Rule",
+        keywords: [],
+      },
+    ]);
+  });
+
+  test("a term with no id or no words is left out", () => {
+    expect(
+      buildGlossaryTermDescriptors([
+        { id: "", term: "Nothing", alsoCalled: [] },
+        { id: "blank", term: "  ", alsoCalled: [] },
+      ]),
+    ).toEqual([]);
+  });
+
+  test("a translated term keeps its English anchor, so it opens at the same place", () => {
+    const [sonde] = buildGlossaryTermDescriptors([
+      { id: "probe", term: "Sonde", alsoCalled: [] },
+    ]);
+
+    expect(sonde!.title).toBe("Sonde");
+    expect(sonde!.termId).toBe("probe");
+    expect(sonde!.id).toBe("glossary-term-probe");
+  });
+});
+
+/*
+ * A question typed into Search went nowhere (#6816): when nothing matches,
+ * Search offers to ask it. What reads as one?
+ */
+describe("isQuestion", () => {
+  test.each([
+    "how do I add a phone number",
+    "How do I add a phone number",
+    "what is an escalation rule",
+    "why was I not paged",
+    "where are my API keys",
+    "can I page by SMS",
+    "does a status page need a domain",
+    "is my monitor down",
+    "monitor down?",
+    "  who is on call?  ",
+    "warum wurde ich nicht benachrichtigt?",
+    "چرا پیامک نیامد؟",
+    "为什么没有通知我？",
+  ])("%p is a question", (text: string) => {
+    expect(isQuestion(text)).toBe(true);
+  });
+
+  test.each([
+    "",
+    "   ",
+    "?",
+    " ? ",
+    "how",
+    "how to",
+    "status pages",
+    "api keys",
+    "INC-18",
+    "showcase add phone",
+    "whatever works best",
+    "dashboard?x",
+  ])("%p is not", (text: string) => {
+    expect(isQuestion(text)).toBe(false);
   });
 });

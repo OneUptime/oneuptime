@@ -50740,5 +50740,14 @@
   "Only you see this, as the server's admin.": "只有您能看到這則內容，因為您是伺服器管理員。",
   "Server Setup Choices": "伺服器設定選擇",
   "This server is not finished: {{count}} things to set up": "此伺服器尚未完成設定：還有 {{count}} 項待設定",
-  "This server is not finished: {{count}} things to set up_one": "此伺服器尚未完成設定：還有 {{count}} 項待設定"
+  "This server is not finished: {{count}} things to set up_one": "此伺服器尚未完成設定：還有 {{count}} 項待設定",
+  "Import from {{tools}}": "從 {{tools}} 匯入",
+  "Import from {{tools}} and others": "從 {{tools}} 等工具匯入",
+  "Import from {{tool}}": "從 {{tool}} 匯入",
+  "Show every tool": "顯示所有工具",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "摘要此監測器最後回報的狀態，以及關閉監測之前的狀態時間軸。",
+  "Was it flapping?": "狀態是否曾反覆切換？",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "此監測器在關閉監測之前，狀態是否曾反覆切換？分析它在那之前的狀態變更。",
+  "Switch to {{projectName}}": "切換到 {{projectName}}",
+  "Ask AI: {{question}}": "詢問 AI：{{question}}"
 }

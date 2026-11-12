@@ -93,22 +93,210 @@ export interface SectionCollapseSettings {
   defaultCollapsed?: boolean | undefined;
   collapsible?: boolean | undefined;
   isActive?: boolean | undefined;
+  /*
+   * What the person last chose for this section of this menu by hand: true
+   * for open, false for folded, undefined when they never toggled it
+   * (readRememberedSectionFold).
+   */
+  rememberedOpen?: boolean | undefined;
 }
 
 /*
  * Whether a section starts collapsed when it mounts.
  *
- * An explicit `defaultCollapsed` wins either way; without one, the title
- * decides. A section that holds the current page always starts open, because
- * collapsing must never hide where the user is. A section that cannot
- * collapse never starts collapsed: it has no toggle to open it again.
+ * A section that holds the current page always starts open, because
+ * collapsing must never hide where the user is - not even a fold the person
+ * chose. A section that cannot collapse never starts collapsed: it has no
+ * toggle to open it again. Then what the person last chose for it by hand
+ * (#6816: Settings under Incidents, opened every day, stays open); then an
+ * explicit `defaultCollapsed`, either way; without one, the title decides.
  */
 export function startsCollapsed(section: SectionCollapseSettings): boolean {
   if (section.collapsible === false || section.isActive) {
     return false;
   }
 
+  if (section.rememberedOpen !== undefined) {
+    return !section.rememberedOpen;
+  }
+
   return section.defaultCollapsed ?? isTitleCollapsedByDefault(section.title);
+}
+
+/*
+ * REMEMBERED FOLDS (#6816).
+ *
+ * A section the person folds or opens by hand stays that way on their next
+ * visit, in that menu: the products menu remembers its categories the same
+ * way (NavBarMenuCatalog). It is a convenience kept in the browser, so a
+ * private window or blocked storage just means the defaults, every time.
+ *
+ * Only a choice made by hand is remembered. A section that opened by itself
+ * for the page the person arrived on is not, and every section never
+ * toggled keeps following the rule above, so a later change to the defaults
+ * still reaches it.
+ */
+export const SIDE_MENU_FOLDS_STORAGE_KEY: string = "oneuptime-side-menu-folds";
+
+/*
+ * How many menus the browser remembers folds for, the most recently changed
+ * first. A person changes a handful; the oldest beyond this are forgotten so
+ * the stored value stays small.
+ */
+export const SIDE_MENU_FOLDS_MENUS_REMEMBERED: number = 50;
+
+/*
+ * A path segment that names one record or project rather than a page: an
+ * ObjectID (hex, with or without the dashes of a UUID) or a number.
+ */
+const RECORD_SEGMENT: RegExp = /^(?:[0-9a-f]{8,}(?:-[0-9a-f]+)*|\d+)$/i;
+
+/*
+ * Which menu a remembered fold belongs to: the address of the menu's first
+ * entry, with every record and project id taken out. So every monitor's own
+ * menu shares one memory ("/dashboard/:id/monitors/:id"), in every project,
+ * while the Incidents and Alerts menus - whose sections have the same
+ * titles - each have their own. A menu with no entry to read is named by its
+ * section titles.
+ */
+export function getSideMenuFoldMemoryKey(data: {
+  firstRoute?: MenuRoute | undefined;
+  sectionTitles: ReadonlyArray<string>;
+}): string {
+  const route: string = data.firstRoute ? data.firstRoute.toString() : "";
+  const path: string = route.split(/[?#]/)[0] || "";
+
+  if (path) {
+    return path
+      .split("/")
+      .map((segment: string): string => {
+        return RECORD_SEGMENT.test(segment) ? ":id" : segment;
+      })
+      .join("/");
+  }
+
+  return `sections:${data.sectionTitles.join("|")}`;
+}
+
+type RememberedMenuFolds = Array<[string, Record<string, boolean>]>;
+
+const readAllRememberedFolds: () => RememberedMenuFolds =
+  (): RememberedMenuFolds => {
+    try {
+      if (typeof window === "undefined" || !window.localStorage) {
+        return [];
+      }
+
+      const raw: string | null = window.localStorage.getItem(
+        SIDE_MENU_FOLDS_STORAGE_KEY,
+      );
+
+      if (!raw) {
+        return [];
+      }
+
+      const parsed: unknown = JSON.parse(raw);
+
+      if (!Array.isArray(parsed)) {
+        return [];
+      }
+
+      const menus: RememberedMenuFolds = [];
+
+      for (const entry of parsed) {
+        if (
+          !Array.isArray(entry) ||
+          typeof entry[0] !== "string" ||
+          !entry[1] ||
+          typeof entry[1] !== "object" ||
+          Array.isArray(entry[1])
+        ) {
+          continue;
+        }
+
+        const folds: Record<string, boolean> = {};
+
+        for (const [title, isOpen] of Object.entries(
+          entry[1] as Record<string, unknown>,
+        )) {
+          if (typeof isOpen === "boolean") {
+            folds[title] = isOpen;
+          }
+        }
+
+        menus.push([entry[0], folds]);
+      }
+
+      return menus;
+    } catch {
+      // Storage blocked (private mode, a sandboxed frame) or bad JSON.
+      return [];
+    }
+  };
+
+/*
+ * What the person last chose for a section of a menu by hand: true for
+ * open, false for folded, undefined when they never toggled it.
+ */
+export function readRememberedSectionFold(
+  menuKey: string,
+  sectionTitle: string,
+): boolean | undefined {
+  const menu: [string, Record<string, boolean>] | undefined =
+    readAllRememberedFolds().find(
+      (entry: [string, Record<string, boolean>]): boolean => {
+        return entry[0] === menuKey;
+      },
+    );
+
+  return menu ? menu[1][sectionTitle] : undefined;
+}
+
+/*
+ * Remember a section the person folded or opened by hand. Its menu moves to
+ * the front, and the oldest menus past the limit are forgotten. Storage that
+ * refuses the write is ignored: the section still folds, it just is not
+ * remembered.
+ */
+export function rememberSectionFold(
+  menuKey: string,
+  sectionTitle: string,
+  isOpen: boolean,
+): void {
+  try {
+    if (typeof window === "undefined" || !window.localStorage) {
+      return;
+    }
+
+    const menus: RememberedMenuFolds = readAllRememberedFolds();
+    const existing: [string, Record<string, boolean>] | undefined = menus.find(
+      (entry: [string, Record<string, boolean>]): boolean => {
+        return entry[0] === menuKey;
+      },
+    );
+    const others: RememberedMenuFolds = menus.filter(
+      (entry: [string, Record<string, boolean>]): boolean => {
+        return entry[0] !== menuKey;
+      },
+    );
+
+    const folds: Record<string, boolean> = {
+      ...(existing ? existing[1] : {}),
+      [sectionTitle]: isOpen,
+    };
+
+    window.localStorage.setItem(
+      SIDE_MENU_FOLDS_STORAGE_KEY,
+      JSON.stringify(
+        [[menuKey, folds], ...others].slice(
+          0,
+          SIDE_MENU_FOLDS_MENUS_REMEMBERED,
+        ),
+      ),
+    );
+  } catch {
+    // Storage blocked or full.
+  }
 }
 
 export type MenuRoute = Link["to"];

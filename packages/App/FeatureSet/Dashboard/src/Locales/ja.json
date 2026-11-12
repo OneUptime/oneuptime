@@ -50740,5 +50740,14 @@
   "Only you see this, as the server's admin.": "サーバーの管理者であるあなたにだけ表示されています。",
   "Server Setup Choices": "サーバー設定での選択",
   "This server is not finished: {{count}} things to set up": "このサーバーはまだ準備中です：残り {{count}} 件の設定",
-  "This server is not finished: {{count}} things to set up_one": "このサーバーはまだ準備中です：残り {{count}} 件の設定"
+  "This server is not finished: {{count}} things to set up_one": "このサーバーはまだ準備中です：残り {{count}} 件の設定",
+  "Import from {{tools}}": "{{tools}} からインポート",
+  "Import from {{tools}} and others": "{{tools}} などからインポート",
+  "Import from {{tool}}": "{{tool}} からインポート",
+  "Show every tool": "すべてのツールを表示",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "このモニターの最後に報告されたステータスと、監視がオフになるまでのステータスタイムラインを要約してください。",
+  "Was it flapping?": "フラッピングしていましたか？",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "このモニターは監視がオフになる前にフラッピングしていましたか？ それまでのステータスの変化を分析してください。",
+  "Switch to {{projectName}}": "{{projectName}} に切り替え",
+  "Ask AI: {{question}}": "AI に質問：{{question}}"
 }

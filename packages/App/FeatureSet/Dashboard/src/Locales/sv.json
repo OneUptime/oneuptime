@@ -50740,5 +50740,14 @@
   "Only you see this, as the server's admin.": "Bara du ser det här, som serverns administratör.",
   "Server Setup Choices": "Val vid serverkonfiguration",
   "This server is not finished: {{count}} things to set up": "Den här servern är inte klar: {{count}} saker återstår att konfigurera",
-  "This server is not finished: {{count}} things to set up_one": "Den här servern är inte klar: {{count}} sak återstår att konfigurera"
+  "This server is not finished: {{count}} things to set up_one": "Den här servern är inte klar: {{count}} sak återstår att konfigurera",
+  "Import from {{tools}}": "Importera från {{tools}}",
+  "Import from {{tools}} and others": "Importera från {{tools}} med flera",
+  "Import from {{tool}}": "Importera från {{tool}}",
+  "Show every tool": "Visa alla verktyg",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Sammanfatta den här monitorns senast rapporterade status och dess statustidslinje fram till att övervakningen stängdes av.",
+  "Was it flapping?": "Växlade den hela tiden?",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Växlade den här monitorn status hela tiden innan övervakningen stängdes av? Analysera dess statusändringar fram till dess.",
+  "Switch to {{projectName}}": "Byt till {{projectName}}",
+  "Ask AI: {{question}}": "Fråga AI: {{question}}"
 }

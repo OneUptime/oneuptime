@@ -32,6 +32,11 @@ import DashboardVariableInterpolation from "../../../Utils/Dashboard/VariableInt
 import DashboardLabelVariable from "../../../Utils/Dashboard/LabelVariable";
 import DashboardWidgetIds from "../../../Utils/Dashboard/DashboardWidgetIds";
 import {
+  getMonitorListQuery,
+  MONITOR_LIST_STATUS_FILTER_VALUES,
+  MONITOR_LIST_WIDGET_SELECT,
+} from "../../../Utils/Dashboard/MonitorListWidgetFormat";
+import {
   STORAGE_ARRAY_HARDWARE_UNHEALTHY_FILTER,
   STORAGE_ARRAY_HARDWARE_WIDGET_KINDS,
   STORAGE_ARRAY_UNHEALTHY_COMPONENT_STATUSES,
@@ -428,12 +433,18 @@ export default class PublicDashboardResourceListPolicy {
           currentAlertState: { name: true, color: true },
           alertSeverity: { name: true, color: true },
         };
+      /*
+       * The widget's own select (MonitorListWidgetFormat): with
+       * disableActiveMonitoring, so the public page says Disabled for a
+       * monitor whose monitoring is off, as the app does, instead of the
+       * status its last check left.
+       */
       case DashboardComponentType.MonitorList:
         return {
-          _id: true,
-          name: true,
-          monitorType: true,
-          currentMonitorStatus: { name: true, color: true },
+          ...MONITOR_LIST_WIDGET_SELECT,
+          currentMonitorStatus: {
+            ...MONITOR_LIST_WIDGET_SELECT.currentMonitorStatus,
+          },
         };
       case DashboardComponentType.NetworkMap:
         return {
@@ -1095,30 +1106,34 @@ export default class PublicDashboardResourceListPolicy {
     });
   }
 
+  /*
+   * The Monitor List widget lists what the board lists in the app: the same
+   * query from the same stored settings (getMonitorListQuery). Archived
+   * monitors never reach a public page, and a status filter matches only the
+   * monitors that are checked - one whose monitoring is off keeps the status
+   * its last check saw, so "non-operational" would publish it as down.
+   */
   private static buildMonitorPolicy(
     argumentsObject: Record<string, unknown>,
     variables: Array<DashboardVariable>,
   ): PolicyDraft {
-    const query: Record<string, unknown> = {};
     const statusFilter: string | undefined =
       PublicDashboardResourceListPolicy.optionalEnum(
         argumentsObject,
         "statusFilter",
-        ["operational", "non-operational"],
+        MONITOR_LIST_STATUS_FILTER_VALUES,
+      );
+    const monitorStatusIds: Array<string> | undefined =
+      PublicDashboardResourceListPolicy.optionalStringArray(
+        argumentsObject,
+        "monitorStatusIds",
       );
 
-    if (statusFilter === "operational") {
-      query["currentMonitorStatus"] = { isOperationalState: true };
-    } else if (statusFilter === "non-operational") {
-      query["currentMonitorStatus"] = { isOperationalState: false };
-    }
-
-    PublicDashboardResourceListPolicy.addIncludesFromArgument({
-      query,
-      queryKey: "currentMonitorStatusId",
-      argumentsObject,
-      argumentKey: "monitorStatusIds",
+    const query: Record<string, unknown> = getMonitorListQuery({
+      statusFilter,
+      monitorStatusIds,
     });
+
     PublicDashboardResourceListPolicy.addIncludesFromArgument({
       query,
       queryKey: "monitorType",

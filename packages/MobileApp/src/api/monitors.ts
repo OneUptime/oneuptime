@@ -6,7 +6,18 @@ import type {
   MonitorStatusItem,
   FeedItem,
 } from "./types";
+import {
+  getDisabledMonitorsQuery,
+  getListedMonitorsQuery,
+  getMonitorIssuesQuery,
+} from "../utils/monitorHealth";
 
+/*
+ * The Monitors screen's list. Archived monitors are left out, as from every
+ * monitor list on the web: the count Home shows for Monitors leaves them out
+ * too, and Monitor issues counts none of them, so the screen a count opens
+ * lists the monitors it counted (utils/monitorHealth).
+ */
 export async function fetchMonitors(
   projectId: string,
   options: { skip?: number; limit?: number } = {},
@@ -16,7 +27,7 @@ export async function fetchMonitors(
   const response: AxiosResponse = await apiClient.post(
     `/api/monitor/get-list?skip=${skip}&limit=${limit}`,
     {
-      query: {},
+      query: getListedMonitorsQuery(),
       select: {
         _id: true,
         name: true,
@@ -230,13 +241,14 @@ export async function fetchMonitorProbes(
   return response.data.data;
 }
 
+// Every listed monitor: the archived ones are not (utils/monitorHealth).
 export async function fetchMonitorCount(
   projectId: string,
 ): Promise<ListResponse<MonitorItem>> {
   const response: AxiosResponse = await apiClient.post(
     "/api/monitor/get-list?skip=0&limit=1",
     {
-      query: {},
+      query: getListedMonitorsQuery(),
       select: {
         _id: true,
       },
@@ -249,13 +261,14 @@ export async function fetchMonitorCount(
   return response.data;
 }
 
+// The listed monitors whose monitoring is turned off.
 export async function fetchDisabledMonitorCount(
   projectId: string,
 ): Promise<ListResponse<MonitorItem>> {
   const response: AxiosResponse = await apiClient.post(
     "/api/monitor/get-list?skip=0&limit=1",
     {
-      query: { disableActiveMonitoring: true },
+      query: getDisabledMonitorsQuery(),
       select: {
         _id: true,
       },
@@ -268,15 +281,19 @@ export async function fetchDisabledMonitorCount(
   return response.data;
 }
 
+/*
+ * Home's Monitor issues: a status that is not operational, among the monitors
+ * that are checked - not archived, monitoring on. A monitor whose monitoring
+ * is off holds only the status its last check saw, so it is no issue, as on
+ * the web (Common/Utils/Monitor/NotOperationalMonitorQuery).
+ */
 export async function fetchInoperationalMonitorCount(
   projectId: string,
 ): Promise<ListResponse<MonitorItem>> {
   const response: AxiosResponse = await apiClient.post(
     "/api/monitor/get-list?skip=0&limit=1",
     {
-      query: {
-        currentMonitorStatus: { isOperationalState: false },
-      },
+      query: getMonitorIssuesQuery(),
       select: {
         _id: true,
       },

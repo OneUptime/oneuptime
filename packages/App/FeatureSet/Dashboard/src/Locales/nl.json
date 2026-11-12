@@ -50740,5 +50740,14 @@
   "Only you see this, as the server's admin.": "Alleen u ziet dit, als beheerder van de server.",
   "Server Setup Choices": "Keuzes bij de serverinstelling",
   "This server is not finished: {{count}} things to set up": "Deze server is niet af: nog {{count}} dingen in te stellen",
-  "This server is not finished: {{count}} things to set up_one": "Deze server is niet af: nog {{count}} ding in te stellen"
+  "This server is not finished: {{count}} things to set up_one": "Deze server is niet af: nog {{count}} ding in te stellen",
+  "Import from {{tools}}": "Importeren uit {{tools}}",
+  "Import from {{tools}} and others": "Importeren uit {{tools}} en andere",
+  "Import from {{tool}}": "Importeren uit {{tool}}",
+  "Show every tool": "Alle tools tonen",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Vat de laatst gemelde status van deze monitor en de statustijdlijn tot het uitzetten van de bewaking samen.",
+  "Was it flapping?": "Wisselde het steeds?",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Wisselde deze monitor steeds van status voordat de bewaking werd uitgezet? Analyseer de statuswijzigingen tot dat moment.",
+  "Switch to {{projectName}}": "Overschakelen naar {{projectName}}",
+  "Ask AI: {{question}}": "AI vragen: {{question}}"
 }

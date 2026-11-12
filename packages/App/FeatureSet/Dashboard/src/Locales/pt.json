@@ -50740,5 +50740,14 @@
   "Only you see this, as the server's admin.": "Só você vê isto, como administrador do servidor.",
   "Server Setup Choices": "Escolhas de configuração do servidor",
   "This server is not finished: {{count}} things to set up": "Este servidor não está pronto: {{count}} itens para configurar",
-  "This server is not finished: {{count}} things to set up_one": "Este servidor não está pronto: {{count}} item para configurar"
+  "This server is not finished: {{count}} things to set up_one": "Este servidor não está pronto: {{count}} item para configurar",
+  "Import from {{tools}}": "Importar de {{tools}}",
+  "Import from {{tools}} and others": "Importar de {{tools}} e outras",
+  "Import from {{tool}}": "Importar de {{tool}}",
+  "Show every tool": "Mostrar todas as ferramentas",
+  "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Resuma o último status registrado deste monitor e a linha do tempo de status até o monitoramento ser desligado.",
+  "Was it flapping?": "Estava oscilando?",
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Este monitor estava oscilando antes de o monitoramento ser desligado? Analise as mudanças de status dele até então.",
+  "Switch to {{projectName}}": "Mudar para {{projectName}}",
+  "Ask AI: {{question}}": "Pergunte à IA: {{question}}"
 }

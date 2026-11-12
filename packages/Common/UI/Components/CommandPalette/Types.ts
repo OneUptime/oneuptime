@@ -61,6 +61,14 @@ export interface PaletteCommand {
    * opens On-Call Duty, then On-Call Policies.
    */
   searchPriority?: number | undefined;
+  /**
+   * Points a match on this command gives up (0 when left out): a command
+   * named for something other than OneUptime's own pages - "Import from
+   * PagerDuty" - gives way to a page that holds the word typed as one of
+   * its other names, so "pager" still opens On-Call Policies first, and
+   * "pagerduty", which no page holds, opens the import.
+   */
+  searchPenalty?: number | undefined;
   /** Optional shortcut hint rendered as keycaps on the row. */
   shortcut?: Array<KeyboardShortcutKey> | undefined;
   onSelect: () => void;
