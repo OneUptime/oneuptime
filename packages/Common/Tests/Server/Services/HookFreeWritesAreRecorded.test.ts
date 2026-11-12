@@ -307,6 +307,8 @@ const DECIDED: Readonly<Record<string, Readonly<Record<string, Why>>>> = {
     "Service.bulkInsertInterfaces NetworkInterface": Why.Reported,
   },
   "packages/Common/Server/Services/NetworkSiteService.ts": {
+    // The rollup's own status, cleared when nothing at the site reports (#6965).
+    "Service.clearStatusNothingReports NetworkSite": Why.Derived,
     "Service.getMaterializedPathForSite NetworkSite": Why.Derived,
     "Service.onCreateSuccess NetworkSite": Why.Derived,
     "Service.onMonitorStatusChanged NetworkDevice": Why.Derived,

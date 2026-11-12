@@ -120,7 +120,7 @@ spec:
             - name: BILLING_ENABLED
               value: {{ $.Values.billing.enabled | squote }}
             - name: LOG_LEVEL
-              value: {{ $.Values.logLevel }}
+              value: {{ include "oneuptime.envValue" $.Values.logLevel }}
             - name: PORT
               {{- if and $val.ports $val.ports.http }}
               value: {{ $val.ports.http | squote }}
@@ -128,16 +128,16 @@ spec:
               value: "3874"
               {{- end }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers }}
+              value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-              value: {{ $.Values.openTelemetryExporter.endpoint }}
+              value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name (printf "probe-%s" $key))) | nindent 12 }}
             - name: ONEUPTIME_URL
               value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
             - name: PROBE_NAME
-              value: {{ $val.name }}
+              value: {{ include "oneuptime.envValue" $val.name }}
             - name: PROBE_DESCRIPTION
-              value: {{ $val.description }}
+              value: {{ include "oneuptime.envValue" $val.description }}
             - name: PROBE_MONITORING_WORKERS
               value: {{ $val.monitoringWorkers | squote }}
             # Retries after the first attempt; 0 turns retries off. Only an unset
@@ -172,7 +172,7 @@ spec:
               value: {{ $val.customCodeMonitorScriptTimeoutInMs | squote }}
             - name: PROBE_KEY
               {{- if $val.key }}
-              value: {{ $val.key }}
+              value: {{ include "oneuptime.envValue" $val.key }}
               {{- else if (($val.existingSecret).name) }}
               valueFrom:
                 secretKeyRef:
