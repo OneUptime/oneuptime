@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Denne serveren kjører OneUptime {{current}}. {{latest}} er ute.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Ta en sikkerhetskopi, og oppdater deretter: npm run update på Docker Compose, helm upgrade på Kubernetes.",
   "Finish it on the Server setup page.": "Fullfør det på siden Serveroppsett.",
-<<<<<<< HEAD
   "Products on this server": "Produkter på denne serveren",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Velg hva hvert prosjekt på denne serveren tilbyr. Et produkt som er slått av, forsvinner fra hvert prosjekts meny, Hjem og Søk, og sidene til produktet sier at det er slått av.",
   "Start from": "Start med",
@@ -2486,13 +2485,11 @@
   "Observability": "Observerbarhet",
   "Security": "Sikkerhet",
   "Infrastructure": "Infrastruktur",
-  "Dashboards & Automation": "Dashbord og automatisering"
-=======
+  "Dashboards & Automation": "Dashbord og automatisering",
   "How OneUptime signs in to Amazon SES.": "Hvordan OneUptime logger inn på Amazon SES.",
   "Access Key": "Tilgangsnøkkel",
   "An IAM user's access key ID and secret access key, stored encrypted.": "Tilgangsnøkkel-ID-en og den hemmelige tilgangsnøkkelen til en IAM-bruker, lagret kryptert.",
   "This Server's IAM Role": "Denne serverens IAM-rolle",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Rollen AWS gir denne serveren på Amazon EKS, ECS eller EC2. Ingen nøkkel lagres, og legitimasjonen fornyes av seg selv.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Send via Amazon SES med en tilgangsnøkkel eller denne serverens IAM-rolle."
->>>>>>> origin/main
 }

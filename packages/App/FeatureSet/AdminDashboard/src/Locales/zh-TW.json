@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "此伺服器執行的是 OneUptime {{current}}。{{latest}} 已發布。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "先備份，再更新：Docker Compose 上執行 npm run update，Kubernetes 上執行 helm upgrade。",
   "Finish it on the Server setup page.": "請在「伺服器設定」頁面完成。",
-<<<<<<< HEAD
   "Products on this server": "此伺服器上的產品",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "選擇此伺服器上每個專案提供的內容。關閉的產品會從每個專案的選單、首頁和搜尋中消失，其頁面會說明它已關閉。",
   "Start from": "從以下方案開始",
@@ -2486,13 +2485,11 @@
   "Observability": "可觀測性",
   "Security": "安全性",
   "Infrastructure": "基礎設施",
-  "Dashboards & Automation": "儀表板與自動化"
-=======
+  "Dashboards & Automation": "儀表板與自動化",
   "How OneUptime signs in to Amazon SES.": "OneUptime 登入 Amazon SES 的方式。",
   "Access Key": "存取金鑰",
   "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 使用者的存取金鑰 ID 和私密存取金鑰，會加密儲存。",
   "This Server's IAM Role": "此伺服器的 IAM 角色",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "AWS 在 Amazon EKS、ECS 或 EC2 上賦予此伺服器的角色。不會儲存任何金鑰，其憑證會自動更新。",
   "Send through Amazon SES with an access key or this server's IAM role.": "使用存取金鑰或此伺服器的 IAM 角色透過 Amazon SES 傳送。"
->>>>>>> origin/main
 }

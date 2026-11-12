@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Auf diesem Server läuft OneUptime {{current}}. {{latest}} ist erschienen.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Erstellen Sie ein Backup und aktualisieren Sie dann: npm run update mit Docker Compose, helm upgrade auf Kubernetes.",
   "Finish it on the Server setup page.": "Schließen Sie es auf der Seite „Server-Einrichtung“ ab.",
-<<<<<<< HEAD
   "Products on this server": "Produkte auf diesem Server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Wählen Sie, was jedes Projekt auf diesem Server anbietet. Ein ausgeschaltetes Produkt verschwindet aus dem Menü, der Startseite und der Suche jedes Projekts, und seine Seiten weisen darauf hin, dass es ausgeschaltet ist.",
   "Start from": "Ausgangspunkt",
@@ -2486,13 +2485,11 @@
   "Observability": "Observability",
   "Security": "Sicherheit",
   "Infrastructure": "Infrastruktur",
-  "Dashboards & Automation": "Dashboards & Automatisierung"
-=======
+  "Dashboards & Automation": "Dashboards & Automatisierung",
   "How OneUptime signs in to Amazon SES.": "Wie sich OneUptime bei Amazon SES anmeldet.",
   "Access Key": "Zugriffsschlüssel",
   "An IAM user's access key ID and secret access key, stored encrypted.": "Zugriffsschlüssel-ID und geheimer Zugriffsschlüssel eines IAM-Benutzers, verschlüsselt gespeichert.",
   "This Server's IAM Role": "IAM-Rolle dieses Servers",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Die Rolle, die AWS diesem Server auf Amazon EKS, ECS oder EC2 gibt. Es wird kein Schlüssel gespeichert, und die Anmeldedaten erneuern sich von selbst.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Über Amazon SES mit einem Zugriffsschlüssel oder der IAM-Rolle dieses Servers senden."
->>>>>>> origin/main
 }

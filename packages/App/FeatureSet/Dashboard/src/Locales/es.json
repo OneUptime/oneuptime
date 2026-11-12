@@ -51607,7 +51607,6 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-<<<<<<< HEAD
   "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "Un administrador del servidor puede reanudarla: debe establecer DISABLE_TELEMETRY_INGESTION en false y reiniciar OneUptime.",
   "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "Un administrador del servidor desactivó esto para todos los proyectos. Puede activarlo en Panel de administración > Ajustes > Productos.",
   "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "Un administrador del servidor desactivó el producto {{product}} para todos los proyectos de este servidor. No se eliminó nada: vuelve tal como estaba cuando se activa de nuevo.",
@@ -51622,8 +51621,7 @@
   "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "Esta página también usa el producto {{product}}, que un administrador del servidor desactivó para todos los proyectos de este servidor. No se eliminó nada.",
   "not done — this product is switched off on this server": "no se hizo — este producto está desactivado en este servidor",
   "{{product}} is off on this server": "El producto {{product}} está inactivo en este servidor",
-  "{{product}} is switched off on this server": "El producto {{product}} está desactivado en este servidor"
-=======
+  "{{product}} is switched off on this server": "El producto {{product}} está desactivado en este servidor",
   "Amazon SES Authentication Type": "Tipo de autenticación de Amazon SES",
   "An IAM user's access key ID and secret access key, stored encrypted.": "El ID de clave de acceso y la clave de acceso secreta de un usuario de IAM, guardados cifrados.",
   "How OneUptime signs in to Amazon SES.": "Cómo inicia sesión OneUptime en Amazon SES.",
@@ -51654,5 +51652,4 @@
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "Los SLO desarchivados vuelven a aparecer en la lista de SLO y se evalúan de nuevo en el próximo ciclo. Un SLO que estaba deshabilitado antes de archivarse sigue deshabilitado.",
   "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "Esta página de estado es privada: solo pueden leerla quienes inician sesión en ella o conocen su contraseña. Solo se puede monitorear una página de estado pública.",
   "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "Esta página de estado solo deja entrar a las direcciones IP de su lista de IP permitidas, y la dirección de esta sonda no es una de ellas. Añade la dirección de la sonda a la lista de IP permitidas o monitorea la página desde una sonda dentro de esa red."
->>>>>>> origin/main
 }

@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "يعمل هذا الخادم بالإصدار {{current}} من OneUptime. صدر الإصدار {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "خذ نسخة احتياطية، ثم حدّث: npm run update على Docker Compose، وhelm upgrade على Kubernetes.",
   "Finish it on the Server setup page.": "أكمله في صفحة إعداد الخادم.",
-<<<<<<< HEAD
   "Products on this server": "المنتجات على هذا الخادم",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "اختر ما يقدّمه كل مشروع على هذا الخادم. المنتج المتوقف يختفي من القائمة والصفحة الرئيسية والبحث في كل مشروع، وتذكر صفحاته أنه متوقف.",
   "Start from": "ابدأ من",
@@ -2486,13 +2485,11 @@
   "Observability": "قابلية الملاحظة",
   "Security": "الأمان",
   "Infrastructure": "البنية التحتية",
-  "Dashboards & Automation": "لوحات المعلومات والأتمتة"
-=======
+  "Dashboards & Automation": "لوحات المعلومات والأتمتة",
   "How OneUptime signs in to Amazon SES.": "كيف يسجّل OneUptime الدخول إلى Amazon SES.",
   "Access Key": "مفتاح الوصول",
   "An IAM user's access key ID and secret access key, stored encrypted.": "معرّف مفتاح الوصول ومفتاح الوصول السري لمستخدم IAM، ويُخزَّنان مشفّرَين.",
   "This Server's IAM Role": "دور IAM لهذا الخادم",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "الدور الذي تمنحه AWS لهذا الخادم على Amazon EKS أو ECS أو EC2. لا يُخزَّن أي مفتاح، وتتجدّد بيانات اعتماده تلقائيًا.",
   "Send through Amazon SES with an access key or this server's IAM role.": "الإرسال عبر Amazon SES بمفتاح وصول أو بدور IAM لهذا الخادم."
->>>>>>> origin/main
 }

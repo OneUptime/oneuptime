@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "이 서버는 OneUptime {{current}}을(를) 실행 중입니다. {{latest}}이(가) 출시되었습니다.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "백업한 다음 업데이트하세요. Docker Compose에서는 npm run update, Kubernetes에서는 helm upgrade를 실행합니다.",
   "Finish it on the Server setup page.": "서버 설정 페이지에서 마무리하세요.",
-<<<<<<< HEAD
   "Products on this server": "이 서버의 제품",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "이 서버의 모든 프로젝트에서 제공할 제품을 선택하세요. 꺼진 제품은 모든 프로젝트의 메뉴, 홈, 검색에서 사라지고, 해당 페이지에는 꺼져 있다고 표시됩니다.",
   "Start from": "다음 중 하나로 시작",
@@ -2486,13 +2485,11 @@
   "Observability": "관측 가능성",
   "Security": "보안",
   "Infrastructure": "인프라",
-  "Dashboards & Automation": "대시보드 및 자동화"
-=======
+  "Dashboards & Automation": "대시보드 및 자동화",
   "How OneUptime signs in to Amazon SES.": "OneUptime이 Amazon SES에 로그인하는 방식입니다.",
   "Access Key": "액세스 키",
   "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 사용자의 액세스 키 ID와 비밀 액세스 키이며, 암호화되어 저장됩니다.",
   "This Server's IAM Role": "이 서버의 IAM 역할",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS, ECS 또는 EC2에서 AWS가 이 서버에 부여하는 역할입니다. 키는 저장되지 않으며, 자격 증명은 자동으로 갱신됩니다.",
   "Send through Amazon SES with an access key or this server's IAM role.": "액세스 키 또는 이 서버의 IAM 역할로 Amazon SES를 통해 보냅니다."
->>>>>>> origin/main
 }

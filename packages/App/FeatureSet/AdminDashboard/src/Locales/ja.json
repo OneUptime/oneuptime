@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "このサーバーは OneUptime {{current}} を実行しています。{{latest}} がリリースされています。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "バックアップしてから更新してください。Docker Compose では npm run update、Kubernetes では helm upgrade です。",
   "Finish it on the Server setup page.": "「サーバーの設定」ページで完了してください。",
-<<<<<<< HEAD
   "Products on this server": "このサーバーの製品",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "このサーバーのすべてのプロジェクトで提供する製品を選びます。オフにした製品は、すべてのプロジェクトのメニュー、ホーム、検索から消え、そのページにはオフになっていることが表示されます。",
   "Start from": "次のいずれかから始める",
@@ -2486,13 +2485,11 @@
   "Observability": "オブザーバビリティ",
   "Security": "セキュリティ",
   "Infrastructure": "インフラストラクチャ",
-  "Dashboards & Automation": "ダッシュボードと自動化"
-=======
+  "Dashboards & Automation": "ダッシュボードと自動化",
   "How OneUptime signs in to Amazon SES.": "OneUptime が Amazon SES にサインインする方法です。",
   "Access Key": "アクセスキー",
   "An IAM user's access key ID and secret access key, stored encrypted.": "IAM ユーザーのアクセスキー ID とシークレットアクセスキーです。暗号化して保存されます。",
   "This Server's IAM Role": "このサーバーの IAM ロール",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS、ECS、EC2 で AWS がこのサーバーに与えるロールです。キーは保存されず、認証情報は自動で更新されます。",
   "Send through Amazon SES with an access key or this server's IAM role.": "アクセスキーまたはこのサーバーの IAM ロールを使って Amazon SES から送信します。"
->>>>>>> origin/main
 }

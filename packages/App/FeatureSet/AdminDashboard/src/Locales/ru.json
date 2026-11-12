@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "На этом сервере работает OneUptime {{current}}. Вышла версия {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Сделайте резервную копию, затем обновитесь: npm run update в Docker Compose, helm upgrade в Kubernetes.",
   "Finish it on the Server setup page.": "Завершите на странице «Настройка сервера».",
-<<<<<<< HEAD
   "Products on this server": "Продукты на этом сервере",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Выберите, что предлагает каждый проект на этом сервере. Отключённый продукт исчезает из меню, главной страницы и поиска каждого проекта, а его страницы сообщают, что он отключён.",
   "Start from": "Начать с",
@@ -2486,13 +2485,11 @@
   "Observability": "Наблюдаемость",
   "Security": "Безопасность",
   "Infrastructure": "Инфраструктура",
-  "Dashboards & Automation": "Дашборды и автоматизация"
-=======
+  "Dashboards & Automation": "Дашборды и автоматизация",
   "How OneUptime signs in to Amazon SES.": "Как OneUptime входит в Amazon SES.",
   "Access Key": "Ключ доступа",
   "An IAM user's access key ID and secret access key, stored encrypted.": "Идентификатор ключа доступа и секретный ключ доступа пользователя IAM, хранятся в зашифрованном виде.",
   "This Server's IAM Role": "Роль IAM этого сервера",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Роль, которую AWS выдаёт этому серверу в Amazon EKS, ECS или EC2. Ключ не хранится, а учётные данные обновляются сами.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Отправлять через Amazon SES с ключом доступа или ролью IAM этого сервера."
->>>>>>> origin/main
 }

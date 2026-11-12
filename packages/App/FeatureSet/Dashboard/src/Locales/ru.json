@@ -51607,7 +51607,6 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-<<<<<<< HEAD
   "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "Администратор сервера может снова запустить его: установите DISABLE_TELEMETRY_INGESTION в false и перезапустите OneUptime.",
   "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "Администратор сервера отключил это для всех проектов. Он может включить это в разделе «Панель администратора > Настройки > Продукты».",
   "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "Администратор сервера отключил продукт «{{product}}» для всех проектов на этом сервере. Ничего не удалено: когда продукт снова включат, всё вернётся как было.",
@@ -51622,8 +51621,7 @@
   "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "Эта страница также использует продукт «{{product}}», который администратор сервера отключил для всех проектов на этом сервере. Ничего не удалено.",
   "not done — this product is switched off on this server": "не выполнено — этот продукт отключён на этом сервере",
   "{{product}} is off on this server": "Продукт «{{product}}» выключен на этом сервере",
-  "{{product}} is switched off on this server": "Продукт «{{product}}» отключён на этом сервере"
-=======
+  "{{product}} is switched off on this server": "Продукт «{{product}}» отключён на этом сервере",
   "Amazon SES Authentication Type": "Тип аутентификации Amazon SES",
   "An IAM user's access key ID and secret access key, stored encrypted.": "Идентификатор ключа доступа и секретный ключ доступа пользователя IAM, хранятся в зашифрованном виде.",
   "How OneUptime signs in to Amazon SES.": "Как OneUptime входит в Amazon SES.",
@@ -51654,5 +51652,4 @@
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLO, извлечённые из архива, снова появляются в списке SLO и оцениваются в следующем цикле. SLO, который был отключён до архивирования, остаётся отключённым.",
   "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "Эта страница статуса приватная: читать её могут только те, кто входит на неё или знает её пароль. Отслеживать можно только публичную страницу статуса.",
   "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "Эта страница статуса пускает только IP-адреса из своего списка разрешённых IP, и адреса этого зонда в нём нет. Добавьте адрес зонда в список разрешённых IP или отслеживайте страницу с зонда внутри этой сети."
->>>>>>> origin/main
 }

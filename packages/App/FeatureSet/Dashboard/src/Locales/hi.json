@@ -51607,7 +51607,6 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-<<<<<<< HEAD
   "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "सर्वर एडमिन DISABLE_TELEMETRY_INGESTION को false पर सेट करके और OneUptime को रीस्टार्ट करके इसे फिर से शुरू कर सकता है।",
   "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "एक सर्वर एडमिन ने इसे हर प्रोजेक्ट के लिए बंद कर दिया है। वे इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकते हैं।",
   "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "एक सर्वर एडमिन ने इस सर्वर के हर प्रोजेक्ट के लिए {{product}} बंद कर दिया है। कुछ भी हटाया नहीं गया है: फिर से चालू करने पर यह पहले जैसा ही वापस आ जाता है।",
@@ -51622,8 +51621,7 @@
   "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "यह पेज {{product}} का भी उपयोग करता है, जिसे एक सर्वर एडमिन ने इस सर्वर के हर प्रोजेक्ट के लिए बंद कर दिया है। कुछ भी हटाया नहीं गया है।",
   "not done — this product is switched off on this server": "नहीं किया गया — यह उत्पाद इस सर्वर पर बंद है",
   "{{product}} is off on this server": "{{product}} इस सर्वर पर बंद है",
-  "{{product}} is switched off on this server": "{{product}} इस सर्वर पर बंद कर दिया गया है"
-=======
+  "{{product}} is switched off on this server": "{{product}} इस सर्वर पर बंद कर दिया गया है",
   "Amazon SES Authentication Type": "Amazon SES प्रमाणीकरण प्रकार",
   "An IAM user's access key ID and secret access key, stored encrypted.": "किसी IAM उपयोगकर्ता की एक्सेस कुंजी ID और सीक्रेट एक्सेस कुंजी, एन्क्रिप्ट करके संग्रहीत।",
   "How OneUptime signs in to Amazon SES.": "OneUptime Amazon SES में कैसे साइन इन करता है।",
@@ -51654,5 +51652,4 @@
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "संग्रह से निकाले गए SLO, SLO सूची में फिर से दिखते हैं और अगले चक्र में उनका फिर से मूल्यांकन होता है। जो SLO संग्रहित करने से पहले अक्षम था, वह अक्षम ही रहता है।",
   "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "यह स्थिति पृष्ठ निजी है: इसे केवल वे लोग पढ़ सकते हैं जो इसमें साइन इन करते हैं या इसका पासवर्ड जानते हैं। केवल सार्वजनिक स्थिति पृष्ठ की निगरानी की जा सकती है।",
   "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "यह स्थिति पृष्ठ केवल अपनी अनुमति सूची में दर्ज IP पतों को आने देता है, और इस प्रोब का पता उनमें से एक नहीं है। प्रोब का पता अनुमति सूची में जोड़ें, या उस नेटवर्क के भीतर किसी प्रोब से पृष्ठ की निगरानी करें।"
->>>>>>> origin/main
 }

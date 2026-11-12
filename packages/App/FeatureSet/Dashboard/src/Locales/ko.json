@@ -51607,7 +51607,6 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-<<<<<<< HEAD
   "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "서버 관리자는 DISABLE_TELEMETRY_INGESTION을 false로 설정하고 OneUptime을 재시작해 수집을 재개할 수 있습니다.",
   "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "서버 관리자가 모든 프로젝트에서 이 제품을 껐습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다.",
   "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "서버 관리자가 이 서버의 모든 프로젝트에서 {{product}}을(를) 껐습니다. 삭제된 것은 없습니다. 다시 켜면 이전 상태 그대로 돌아옵니다.",
@@ -51622,8 +51621,7 @@
   "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "이 페이지는 {{product}}도 사용하지만, 서버 관리자가 이 서버의 모든 프로젝트에서 이 제품을 껐습니다. 삭제된 것은 없습니다.",
   "not done — this product is switched off on this server": "수행되지 않음 — 이 제품은 이 서버에서 꺼져 있습니다",
   "{{product}} is off on this server": "{{product}}이(가) 이 서버에서 꺼져 있습니다",
-  "{{product}} is switched off on this server": "{{product}}이(가) 이 서버에서 꺼졌습니다"
-=======
+  "{{product}} is switched off on this server": "{{product}}이(가) 이 서버에서 꺼졌습니다",
   "Amazon SES Authentication Type": "Amazon SES 인증 유형",
   "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 사용자의 액세스 키 ID와 비밀 액세스 키이며, 암호화되어 저장됩니다.",
   "How OneUptime signs in to Amazon SES.": "OneUptime이 Amazon SES에 로그인하는 방식입니다.",
@@ -51654,5 +51652,4 @@
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "보관이 취소된 SLO는 SLO 목록에 다시 표시되고 다음 주기에 다시 평가됩니다. 보관하기 전에 비활성화되어 있던 SLO는 비활성화 상태로 유지됩니다.",
   "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "이 상태 페이지는 비공개입니다. 로그인하거나 비밀번호를 아는 사람만 읽을 수 있습니다. 공개 상태 페이지만 모니터링할 수 있습니다.",
   "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "이 상태 페이지는 IP 허용 목록에 있는 IP 주소만 들여보내며, 이 프로브의 주소는 그중에 없습니다. 프로브의 주소를 허용 목록에 추가하거나 해당 네트워크 안에 있는 프로브에서 페이지를 모니터링하세요."
->>>>>>> origin/main
 }

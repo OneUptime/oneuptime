@@ -21,6 +21,10 @@ import { I18nextProvider, initReactI18next } from "react-i18next";
 import { MemoryRouter } from "react-router-dom";
 import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import ExploreProducts from "../../../../App/FeatureSet/Dashboard/src/Components/Home/ExploreProducts";
+import OverviewStats, {
+  STAT_TILE_KEYS,
+  getStatTileKeysOnServer,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/OverviewStats";
 import AskAI from "../../../../App/FeatureSet/Dashboard/src/Components/Header/AskAI";
 import GoalQuestion from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/GoalQuestion";
 import ProductsSettings from "../../../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
@@ -53,6 +57,8 @@ import {
 import {
   ServerProductOffReason,
   ServerProductsOff,
+  ServerProductsPreset,
+  getOffByPreset,
 } from "../../../Types/Product/ServerProducts";
 import ProjectGoal from "../../../Types/WelcomeChecklist/ProjectGoal";
 import { NAVBAR_PINNED_ITEM_TEST_ID } from "../../../UI/Components/Navbar/NavBar";
@@ -256,6 +262,53 @@ describe("Home and the shortcuts", () => {
 
     expect(screen.queryByText("Status Pages")).toBeNull();
     expect(screen.getAllByText("Monitors").length).toBeGreaterThan(0);
+  });
+
+  test("Home's numbers leave out the cells of products that are off, and the rest share the row", () => {
+    given({
+      offOnServer: off(
+        getOffByPreset(ServerProductsPreset.MonitoringAndStatusPages),
+      ),
+    });
+
+    render(
+      wrapAt(
+        <OverviewStats
+          isLoading={false}
+          counts={{
+            activeIncidents: 1,
+            activeAlerts: 2,
+            notOperationalMonitors: 0,
+            ongoingMaintenance: 0,
+            slosNeedingAttention: 1,
+            totalMonitors: 3,
+            totalSlos: 1,
+          }}
+        />,
+        `/dashboard/${PROJECT_ID}/home`,
+      ),
+    );
+
+    expect(screen.getByTestId("home-stat-active-incidents")).toHaveTextContent(
+      "1",
+    );
+    expect(screen.queryByTestId("home-stat-active-alerts")).toBeNull();
+    expect(screen.queryByTestId("home-stat-slos-needing-attention")).toBeNull();
+    expect(
+      screen.getByTestId("home-stat-not-operational-monitors"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("home-overview-stats")).toHaveClass(
+      "xl:grid-cols-3",
+    );
+  });
+
+  test("every cell names its product: none off shows all five", () => {
+    expect(getStatTileKeysOnServer([])).toEqual(STAT_TILE_KEYS);
+    expect(getStatTileKeysOnServer([ProductKey.Slos])).toEqual(
+      STAT_TILE_KEYS.filter((key: string): boolean => {
+        return key !== "slos-needing-attention";
+      }),
+    );
   });
 
   test("the shortcuts list leaves out what the caller passes, off products included", () => {

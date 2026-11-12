@@ -51607,7 +51607,6 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-<<<<<<< HEAD
   "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "服务器管理员可以恢复摄取：将 DISABLE_TELEMETRY_INGESTION 设置为 false，然后重启 OneUptime。",
   "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "服务器管理员已为所有项目关闭此产品。服务器管理员可以在“管理员仪表板 > 设置 > 产品”中将其开启。",
   "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "服务器管理员已为此服务器上的所有项目关闭 {{product}}。没有删除任何内容：重新开启后，一切都会恢复原样。",
@@ -51622,8 +51621,7 @@
   "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "此页面还使用了 {{product}}，而服务器管理员已为此服务器上的所有项目关闭了它。没有删除任何内容。",
   "not done — this product is switched off on this server": "未执行 — 此产品已在此服务器上关闭",
   "{{product}} is off on this server": "{{product}} 在此服务器上处于关闭状态",
-  "{{product}} is switched off on this server": "{{product}} 已在此服务器上关闭"
-=======
+  "{{product}} is switched off on this server": "{{product}} 已在此服务器上关闭",
   "Amazon SES Authentication Type": "Amazon SES 认证类型",
   "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 用户的访问密钥 ID 和私有访问密钥，会加密存储。",
   "How OneUptime signs in to Amazon SES.": "OneUptime 登录 Amazon SES 的方式。",
@@ -51654,5 +51652,4 @@
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "取消归档的 SLO 会重新出现在 SLO 列表中，并在下一个周期重新评估。归档前已禁用的 SLO 将保持禁用状态。",
   "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "此状态页是私有的：只有登录该页面或知道其密码的人才能查看。只能监控公开的状态页。",
   "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "此状态页只允许其 IP 允许列表中的 IP 地址访问，而此探测器的地址不在其中。请将探测器的地址添加到允许列表，或从该网络内的探测器监控此页面。"
->>>>>>> origin/main
 }

@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Questo server esegue OneUptime {{current}}. È disponibile la {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Fai un backup, poi aggiorna: npm run update con Docker Compose, helm upgrade su Kubernetes.",
   "Finish it on the Server setup page.": "Completalo nella pagina Configurazione del server.",
-<<<<<<< HEAD
   "Products on this server": "Prodotti su questo server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Scegli cosa offre ogni progetto su questo server. Un prodotto disattivato scompare dal menu, dalla Home e dalla Ricerca di ogni progetto, e le sue pagine indicano che è disattivato.",
   "Start from": "Parti da",
@@ -2486,13 +2485,11 @@
   "Observability": "Osservabilità",
   "Security": "Sicurezza",
   "Infrastructure": "Infrastruttura",
-  "Dashboards & Automation": "Dashboard e automazione"
-=======
+  "Dashboards & Automation": "Dashboard e automazione",
   "How OneUptime signs in to Amazon SES.": "Come OneUptime accede ad Amazon SES.",
   "Access Key": "Chiave di accesso",
   "An IAM user's access key ID and secret access key, stored encrypted.": "L'ID della chiave di accesso e la chiave di accesso segreta di un utente IAM, memorizzati crittografati.",
   "This Server's IAM Role": "Ruolo IAM di questo server",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Il ruolo che AWS assegna a questo server su Amazon EKS, ECS o EC2. Nessuna chiave viene memorizzata e le sue credenziali si rinnovano da sole.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Invia tramite Amazon SES con una chiave di accesso o il ruolo IAM di questo server."
->>>>>>> origin/main
 }

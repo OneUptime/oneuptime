@@ -51607,7 +51607,6 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
-<<<<<<< HEAD
   "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "مدیر سرور می‌تواند با تنظیم DISABLE_TELEMETRY_INGESTION روی false و راه‌اندازی دوبارهٔ OneUptime، آن را دوباره به کار بیندازد.",
   "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "یک مدیر سرور این را برای همهٔ پروژه‌ها خاموش کرده است. او می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
   "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "یک مدیر سرور {{product}} را برای همهٔ پروژه‌های این سرور خاموش کرده است. چیزی حذف نشده است: وقتی دوباره روشن شود، همان‌طور که بود برمی‌گردد.",
@@ -51622,8 +51621,7 @@
   "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "این صفحه از {{product}} هم استفاده می‌کند که یک مدیر سرور آن را برای همهٔ پروژه‌های این سرور خاموش کرده است. چیزی حذف نشده است.",
   "not done — this product is switched off on this server": "انجام نشد — این محصول در این سرور خاموش است",
   "{{product}} is off on this server": "{{product}} در این سرور خاموش است",
-  "{{product}} is switched off on this server": "{{product}} در این سرور خاموش شده است"
-=======
+  "{{product}} is switched off on this server": "{{product}} در این سرور خاموش شده است",
   "Amazon SES Authentication Type": "نوع احراز هویت Amazon SES",
   "An IAM user's access key ID and secret access key, stored encrypted.": "شناسه کلید دسترسی و کلید دسترسی محرمانه یک کاربر IAM، که به‌صورت رمزگذاری‌شده نگهداری می‌شوند.",
   "How OneUptime signs in to Amazon SES.": "اینکه OneUptime چگونه وارد Amazon SES می‌شود.",
@@ -51654,5 +51652,4 @@
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLOهایی که از بایگانی خارج شوند دوباره در فهرست SLOها نمایش داده می‌شوند و در چرخهٔ بعدی دوباره ارزیابی می‌شوند. SLOای که پیش از بایگانی غیرفعال بوده، غیرفعال می‌ماند.",
   "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "این صفحه وضعیت خصوصی است: فقط کسانی که به آن وارد می‌شوند یا رمز عبورش را می‌دانند می‌توانند آن را بخوانند. فقط صفحه وضعیت عمومی را می‌توان پایش کرد.",
   "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "این صفحه وضعیت فقط به آدرس‌های IP فهرست مجازش اجازه ورود می‌دهد و آدرس این پراب جزو آن‌ها نیست. آدرس پراب را به فهرست مجاز اضافه کنید، یا صفحه را از پرابی درون همان شبکه پایش کنید."
->>>>>>> origin/main
 }

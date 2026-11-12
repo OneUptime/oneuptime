@@ -2412,7 +2412,6 @@
   "This server runs OneUptime {{current}}. {{latest}} is out.": "This server runs OneUptime {{current}}. {{latest}} is out.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.",
   "Finish it on the Server setup page.": "Finish it on the Server setup page.",
-<<<<<<< HEAD
   "Products on this server": "Products on this server",
   "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.": "Choose what every project on this server offers. A product that is off is gone from every project's menu, Home and Search, and its pages say it is switched off.",
   "Start from": "Start from",
@@ -2486,13 +2485,11 @@
   "Observability": "Observability",
   "Security": "Security",
   "Infrastructure": "Infrastructure",
-  "Dashboards & Automation": "Dashboards & Automation"
-=======
+  "Dashboards & Automation": "Dashboards & Automation",
   "How OneUptime signs in to Amazon SES.": "How OneUptime signs in to Amazon SES.",
   "Access Key": "Access Key",
   "An IAM user's access key ID and secret access key, stored encrypted.": "An IAM user's access key ID and secret access key, stored encrypted.",
   "This Server's IAM Role": "This Server's IAM Role",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Send through Amazon SES with an access key or this server's IAM role."
->>>>>>> origin/main
 }
