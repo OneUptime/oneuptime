@@ -163,7 +163,12 @@ const LicenseActivationForm: FunctionComponent<ComponentProps> = (
           type="button"
           onClick={props.onSwitchMode}
           data-testid="switch-license-activation-mode"
-          className="text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
+          /*
+           * text-start: a button centres its lines, and on a phone this
+           * link wraps in most languages - its second line sat in the
+           * middle, under nothing.
+           */
+          className="text-start text-xs font-medium text-indigo-600 hover:text-indigo-700 focus:outline-none focus-visible:underline"
         >
           {translate(
             isTokenMode

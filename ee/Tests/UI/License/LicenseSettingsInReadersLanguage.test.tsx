@@ -12,6 +12,10 @@ import LicenseSettingsView from "../../../AdminDashboard/License/LicenseSettings
 import { writeLicenseDate } from "../../../AdminDashboard/License/LicenseStatus";
 import { withoutIsolateMarks } from "Common/Tests/Helpers/IsolateMarks";
 import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "Common/Types/ReadingDirection";
+import {
   inEnglishDates,
   withDateDisplayLanguage,
 } from "Common/Types/DateLanguage";
@@ -108,8 +112,23 @@ const pluralKeys: (plurals: ReadonlyArray<PluralTemplate>) => string[] = (
   });
 };
 
+/*
+ * What the page's shared components draw on it in words: the license key's
+ * "Click to reveal" (HiddenText), its copy buttons and the error page's
+ * retry. They were English in Persian, Russian and ten more Admin languages,
+ * on a page otherwise in the reader's own (#7132's review).
+ */
+const SHARED_WORDS_ON_THE_PAGE: ReadonlyArray<string> = [
+  "Click to reveal",
+  "Copy to clipboard",
+  "Copied to clipboard",
+  "Copy failed",
+  "Try again",
+];
+
 // Every key the page reads, its license cards' among them.
 const KEYS: Array<string> = [
+  ...SHARED_WORDS_ON_THE_PAGE,
   ...Object.values(LicenseSettingsCopy),
   ...Object.values(LicenseStatusCopy),
   TRIAL_ENFORCEMENT_TEMPLATE,
@@ -321,13 +340,7 @@ const readIn: (language: string) => Promise<void> = async (
   await act(async () => {
     for (const code of [language, "en"]) {
       i18next.removeResourceBundle(code, "translation");
-      i18next.addResourceBundle(
-        code,
-        "translation",
-        wordsOf(code),
-        true,
-        true,
-      );
+      i18next.addResourceBundle(code, "translation", wordsOf(code), true, true);
     }
 
     await i18next.changeLanguage(language);
@@ -335,15 +348,20 @@ const readIn: (language: string) => Promise<void> = async (
 };
 
 // The page in `language`, once it has read the license.
-const drawIn: (language: string, payload: JSONObject) => Promise<string> =
-  async (language: string, payload: JSONObject): Promise<string> => {
-    answer = payload;
-    await readIn(language);
-    render(<LicenseSettingsView />);
-    await screen.findByTestId("license-status");
+const drawIn: (
+  language: string,
+  payload: JSONObject,
+) => Promise<string> = async (
+  language: string,
+  payload: JSONObject,
+): Promise<string> => {
+  answer = payload;
+  await readIn(language);
+  render(<LicenseSettingsView />);
+  await screen.findByTestId("license-status");
 
-    return drawnText();
-  };
+  return drawnText();
+};
 
 // A date as `language` writes one on the page: "2. März 2027", "۲ مارس ۲۰۲۷".
 const dateIn: (language: string, iso: string) => string = (
@@ -461,8 +479,9 @@ describe("Settings > License in the reader's language", () => {
     expect(drawn).toContain(
       `Validieren Sie Ihren Lizenzschlüssel bei OneUptime, um ihn zu aktivieren. Sie benötigen einen Lizenzschlüssel? Wenden Sie sich an unser Vertriebsteam unter ${SALES_EMAIL}.`,
     );
+    // Short enough to fit a phone's input (it was cut at 390px).
     expect(
-      screen.getByPlaceholderText("Geben Sie Ihren Enterprise-Lizenzschlüssel ein"),
+      screen.getByPlaceholderText("Enterprise-Lizenzschlüssel eingeben"),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Lizenz validieren/ }),
@@ -530,6 +549,68 @@ describe("Settings > License in the reader's language", () => {
     ).toHaveTextContent(word("de", LicenseStatusCopy.storedButNotLicensing));
   });
 
+  test("German: the license key's Click to reveal is German too", async () => {
+    await drawIn("de", licensed());
+
+    expect(screen.getByText("Zum Anzeigen klicken")).toBeInTheDocument();
+    expect(screen.queryByText("Click to reveal")).not.toBeInTheDocument();
+  });
+
+  test.each(["fa", "ru"])(
+    "%s: the license key's Click to reveal is in the reader's language",
+    async (language: string) => {
+      await drawIn(language, licensed());
+
+      expect(screen.getByText(word(language, "Click to reveal"))).toBeVisible();
+      expect(word(language, "Click to reveal")).not.toBe("Click to reveal");
+      expect(screen.queryByText("Click to reveal")).not.toBeInTheDocument();
+    },
+  );
+
+  test("German: a license that is not valid says so in German, then the client's reason as sent", async () => {
+    const drawn: string = await drawIn("de", invalid());
+
+    expect(drawn).toContain(word("de", LicenseStatusCopy.licenseNotValid));
+    expect(drawn).toContain(
+      "Die gespeicherte Lizenz konnte nicht verifiziert werden. Validieren Sie die Lizenz erneut.",
+    );
+    expect(
+      screen.getByTestId("license-status-server-message"),
+    ).toHaveTextContent(SERVER_MESSAGE);
+
+    // The page's own sentence comes first, the client's reason after it.
+    const status: string = withoutIsolateMarks(
+      screen.getByTestId("license-status").textContent || "",
+    );
+
+    expect(status.indexOf("Die gespeicherte Lizenz")).toBeLessThan(
+      status.indexOf(SERVER_MESSAGE),
+    );
+  });
+
+  test("Persian: the trial's title sets its days left apart from the Latin edition name", async () => {
+    await drawIn("fa", noLicense());
+
+    const title: string =
+      screen.getByTestId("license-status").querySelector("h3")?.textContent ||
+      "";
+
+    // Ten or eleven days, as the hour of the run falls against noon.
+    expect(
+      ["۱۰", "۱۱"].map((days: string): string => {
+        return `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}${days} روز مانده${POP_DIRECTIONAL_ISOLATE}`;
+      }),
+    ).toContain(title);
+  });
+
+  test("the way to a token is a link whose wrapped lines start where the form does", async () => {
+    await drawIn("de", noLicense());
+
+    expect(screen.getByTestId("switch-license-activation-mode")).toHaveClass(
+      "text-start",
+    );
+  });
+
   test("Russian: the instance's users begin their line", async () => {
     const drawn: string = await drawIn("ru", licensed());
 
@@ -592,9 +673,10 @@ describe("what is drawn as written reads its own way", () => {
       // An identifier reads left to right on every page.
       const instanceId: HTMLElement = screen.getByTestId("license-instance-id");
 
-      expect(
-        within(instanceId).getByText(INSTANCE_ID),
-      ).toHaveAttribute("dir", "ltr");
+      expect(within(instanceId).getByText(INSTANCE_ID)).toHaveAttribute(
+        "dir",
+        "ltr",
+      );
       cleanup();
 
       await drawIn(language, invalid());

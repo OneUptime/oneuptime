@@ -1943,7 +1943,7 @@
   "Main navigation": "Main navigation",
   "Skip to main content": "Skip to main content",
   "Copy": "복사",
-  "Click to reveal": "Click to reveal",
+  "Click to reveal": "표시하려면 클릭",
   "Show less": "간단히 보기",
   "Show more": "더 보기",
   "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.": "{{itemName}}을(를) 불러올 수 없습니다. 이 {{itemName}}을(를) 볼 권한이 없을 수 있습니다.",

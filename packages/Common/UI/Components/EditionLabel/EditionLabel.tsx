@@ -1693,6 +1693,12 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           data-testid="enterprise-license-trial-notice"
           className="rounded-xl border border-amber-200 bg-amber-50 p-5"
         >
+          {/*
+           * The days left set apart from the title: in Persian it keeps
+           * "Enterprise Edition" in Latin letters, and the browser drew the
+           * count's digits inside that Latin run, on the far side of the
+           * colon from its "days left" (#7132's review).
+           */}
           <h4 className="text-sm font-semibold text-amber-900">
             {graceDaysLeftText
               ? translator.translateTemplate(
@@ -1700,6 +1706,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                   {
                     daysLeft: graceDaysLeftText,
                   },
+                  { setsValuesApart: true },
                 )
               : translator.translateText("Enterprise Edition trial")}
           </h4>

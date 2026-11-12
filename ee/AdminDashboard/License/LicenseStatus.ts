@@ -17,6 +17,8 @@ import {
   ComposedValue,
   composedValue,
   createTranslator,
+  SentenceOptions,
+  TemplateValues,
   Translator,
 } from "Common/Types/Translator";
 import {
@@ -47,6 +49,37 @@ const DAY_IN_MS: number = 24 * 60 * 60 * 1000;
 
 // The sentences of a reader whose language is not known: English.
 const ENGLISH: Translator = createTranslator(undefined, "en");
+
+type DrawnOnThePageFunction = (translator: Translator) => Translator;
+
+/*
+ * The reader's translator, for sentences drawn on the page and nothing else
+ * (a summary is never stored or sent): each value is set apart from its
+ * sentence where it could move the words around it (SentenceOptions'
+ * setsValuesApart). On a Persian page "Enterprise Edition trial: 10 days
+ * left" keeps "Enterprise Edition" in Latin letters, and without the
+ * isolate the browser drew the days' Persian digits beside it, inside the
+ * Latin run: "دورهٔ آزمایشی ۱۰ :Enterprise Edition روز مانده" - the count on
+ * the wrong side of the colon, away from its "days left". A marketplace's
+ * name and a reporting problem in English sit in their own runs the same way.
+ */
+const drawnOnThePage: DrawnOnThePageFunction = (
+  translator: Translator,
+): Translator => {
+  return {
+    ...translator,
+    translateTemplate: (
+      template: string,
+      values?: TemplateValues,
+      options?: SentenceOptions,
+    ): string => {
+      return translator.translateTemplate(template, values, {
+        setsValuesApart: true,
+        ...options,
+      });
+    },
+  };
+};
 
 /*
  * What the license client (LicenseToken.ts) says when it has nothing to add
@@ -127,9 +160,7 @@ type DateInSentenceFunction = (date: Date) => ComposedValue;
  * their language words the sentence, English where it does not - so an
  * English sentence never holds a German date.
  */
-const dateInSentence: DateInSentenceFunction = (
-  date: Date,
-): ComposedValue => {
+const dateInSentence: DateInSentenceFunction = (date: Date): ComposedValue => {
   return composedValue((sentence: Translator): string => {
     const write: () => string = (): string => {
       return writeLicenseDate(date);
@@ -161,7 +192,9 @@ type PayloadCheckFunction = (payload: JSONObject) => boolean;
 export const isUnlicensedTrial: PayloadCheckFunction = (
   payload: JSONObject,
 ): boolean => {
-  return payload["status"] === "grace" && payload["graceReason"] === "unlicensed";
+  return (
+    payload["status"] === "grace" && payload["graceReason"] === "unlicensed"
+  );
 };
 
 // A real license (not the trial) is valid and loaded.
@@ -318,8 +351,10 @@ type DescribeLicenseStatusFunction = (
 export const describeLicenseStatus: DescribeLicenseStatusFunction = (
   payload: JSONObject,
   now?: Date | undefined,
-  translator: Translator = ENGLISH,
+  readerTranslator: Translator = ENGLISH,
 ): LicenseStatusSummary => {
+  const translator: Translator = drawnOnThePage(readerTranslator);
+
   if (CloudMarketplaceUtil.isCloudMarketplace(payload["marketplace"])) {
     return describeMarketplace(
       payload,
@@ -407,16 +442,16 @@ export const describeLicenseStatus: DescribeLicenseStatusFunction = (
 
   if (payload["licenseValid"] !== true) {
     /*
-     * An invalid license: the license client's own message is the reason,
-     * as it was sent; without one, this page's sentence says it.
+     * An invalid license: this page's sentence says what it means and what
+     * to do, in the reader's language, and the license client's own message
+     * says why, as it was sent. With the message alone, a German or Persian
+     * admin's only explanation was an English sentence.
      */
     if (status === "invalid") {
       return {
         tone: "critical",
         title: translate(LicenseStatusCopy.licenseNotValid),
-        description: message
-          ? ""
-          : translate(LicenseStatusCopy.couldNotBeVerified),
+        description: translate(LicenseStatusCopy.couldNotBeVerified),
         serverMessage: message || undefined,
         note: translate(LICENSE_LAPSED_STATE),
       };
@@ -514,24 +549,22 @@ type DescribeLicenseWriteOutcomeFunction = (
   successMessage: string,
 ) => LicenseWriteOutcome;
 
-export const describeLicenseWriteOutcome: DescribeLicenseWriteOutcomeFunction = (
-  payload: JSONObject,
-  successMessage: string,
-): LicenseWriteOutcome => {
-  const status: string = toText(payload["status"]);
-  const graceReason: string = toText(payload["graceReason"]);
+export const describeLicenseWriteOutcome: DescribeLicenseWriteOutcomeFunction =
+  (payload: JSONObject, successMessage: string): LicenseWriteOutcome => {
+    const status: string = toText(payload["status"]);
+    const graceReason: string = toText(payload["graceReason"]);
 
-  const isLicensedNow: boolean =
-    status === "" ||
-    status === "valid" ||
-    (status === "grace" && graceReason !== "unlicensed");
+    const isLicensedNow: boolean =
+      status === "" ||
+      status === "valid" ||
+      (status === "grace" && graceReason !== "unlicensed");
 
-  if (isLicensedNow) {
-    return { isLicensed: true, message: successMessage };
-  }
+    if (isLicensedNow) {
+      return { isLicensed: true, message: successMessage };
+    }
 
-  return {
-    isLicensed: false,
-    message: toText(payload["message"]) || LICENSE_STORED_BUT_NOT_LICENSING,
+    return {
+      isLicensed: false,
+      message: toText(payload["message"]) || LICENSE_STORED_BUT_NOT_LICENSING,
+    };
   };
-};

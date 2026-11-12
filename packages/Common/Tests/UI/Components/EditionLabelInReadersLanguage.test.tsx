@@ -14,6 +14,10 @@ import {
   DASHBOARD_LANGUAGES,
 } from "../../Helpers/TranslatedLanguages";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  FIRST_STRONG_ISOLATE,
+  POP_DIRECTIONAL_ISOLATE,
+} from "../../../Types/ReadingDirection";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -756,6 +760,37 @@ describe("the badge's numbers in Persian", () => {
     expect(notice).toContain("دورهٔ آزمایشی ۱۴ روزه");
     expect(notice).toContain("۱۰ روز مانده");
     expect(notice).not.toContain("14");
+  });
+
+  /*
+   * Persian keeps "Enterprise Edition" in Latin letters in the trial's
+   * title. Without an isolate around the days left, the browser drew their
+   * Persian digits inside that Latin run, on the far side of the colon:
+   * "دورهٔ آزمایشی ۱۰ :Enterprise Edition روز مانده".
+   */
+  test("the trial's title sets its days left apart from the Latin edition name", async () => {
+    isEnterpriseEdition = true;
+    payload = publicPayload({
+      status: "grace",
+      graceReason: "unlicensed",
+      verification: "none",
+      graceEndsAt: inDays(10),
+      companyName: null,
+      expiresAt: null,
+    });
+    await readIn("Accounts", "fa");
+    const words: Words = wordsOf("Accounts", "fa");
+
+    await openDialog(await drawPill(words), words);
+
+    const title: string =
+      (
+        await screen.findByTestId("enterprise-license-trial-notice")
+      ).querySelector("h4")?.textContent || "";
+
+    expect(title).toBe(
+      `دورهٔ آزمایشی Enterprise Edition: ${FIRST_STRONG_ISOLATE}۱۰ روز مانده${POP_DIRECTIONAL_ISOLATE}`,
+    );
   });
 
   test("the grace period's 30 days and a marketplace's user-hours, in the Admin Dashboard", async () => {

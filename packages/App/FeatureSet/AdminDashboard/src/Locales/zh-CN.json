@@ -1943,7 +1943,7 @@
   "Main navigation": "Main navigation",
   "Skip to main content": "Skip to main content",
   "Copy": "复制",
-  "Click to reveal": "Click to reveal",
+  "Click to reveal": "点击以显示",
   "Show less": "收起",
   "Show more": "显示更多",
   "Cannot load {{itemName}}. It could be because you don't have enough permissions to read this {{itemName}}.": "无法加载{{itemName}}。可能是因为您没有足够的权限查看此{{itemName}}。",

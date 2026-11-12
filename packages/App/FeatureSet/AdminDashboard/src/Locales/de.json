@@ -2298,7 +2298,7 @@
   "Enter the new enterprise license key and validate it to replace the current one. Your existing license stays active until the new key is validated.": "Geben Sie den neuen Enterprise-Lizenzschlüssel ein und validieren Sie ihn, um den aktuellen zu ersetzen. Ihre bestehende Lizenz bleibt aktiv, bis der neue Schlüssel validiert ist.",
   "Validate your license key with OneUptime to activate it. Need a license key? Contact our sales team at {{email}}.": "Validieren Sie Ihren Lizenzschlüssel bei OneUptime, um ihn zu aktivieren. Sie benötigen einen Lizenzschlüssel? Wenden Sie sich an unser Vertriebsteam unter {{email}}.",
   "Paste the signed license token": "Signiertes Lizenz-Token einfügen",
-  "Enter your enterprise license key": "Geben Sie Ihren Enterprise-Lizenzschlüssel ein",
+  "Enter your enterprise license key": "Enterprise-Lizenzschlüssel eingeben",
   "A token works only on the instance it was issued for. This installation's instance ID is {{instanceId}}.": "Ein Token funktioniert nur auf der Instanz, für die es ausgestellt wurde. Die Instanz-ID dieser Installation ist {{instanceId}}.",
   "Use a license key instead": "Stattdessen einen Lizenzschlüssel verwenden",
   "No internet access? Activate offline with a license token": "Kein Internetzugang? Offline mit einem Lizenz-Token aktivieren",
