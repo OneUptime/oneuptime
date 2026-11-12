@@ -41,6 +41,7 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import URL from "Common/Types/API/URL";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { getReaderDateLocale } from "Common/Types/DateLanguage";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * The BI tools Data Observability reads dashboards from, and the dashboards
@@ -251,7 +252,9 @@ const BiDashboardsPage: FunctionComponent<
         translator.translateTemplate(
           "The alert on failed refreshes was not saved: {{error}}",
           {
-            error: error instanceof Error ? error.message : String(error),
+            error: errorInSentence(
+              error instanceof Error ? error.message : String(error),
+            ),
           },
         ),
       );

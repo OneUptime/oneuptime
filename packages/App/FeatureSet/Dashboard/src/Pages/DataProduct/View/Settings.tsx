@@ -10,6 +10,7 @@ import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -60,7 +61,7 @@ const DataProductSettingsPage: FunctionComponent<
               setSyncError(
                 translator.translateTemplate(
                   "The data product is saved, but its monitor and SLO could not be brought in step: {{reason}}",
-                  { reason: err.message },
+                  { reason: errorInSentence(err.message) },
                 ),
               );
             },

@@ -796,9 +796,11 @@ const CODE_ELEMENTS: ReadonlySet<string> = new Set<string>([
 
 /*
  * Components whose `template` attribute is a sentence they translate:
- * <TranslatedSentence template="{{field}} is {{value}}" ... />.
+ * <TranslatedSentence template="{{field}} is {{value}}" ... />, and
+ * ErrorSentence, a TranslatedSentence with an error in it (#7307).
  */
 const TEMPLATE_COMPONENTS: ReadonlySet<string> = new Set<string>([
+  "ErrorSentence",
   "NamedSentence",
   "TranslatedSentence",
 ]);

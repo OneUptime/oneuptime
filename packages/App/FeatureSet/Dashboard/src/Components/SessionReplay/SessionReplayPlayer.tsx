@@ -200,6 +200,7 @@ import {
   getReplayRecorderKindLabel,
   isMobileSessionReplay,
 } from "./ReplayRecorderKind";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * The composition root of the player: manifest transport, the chunk
@@ -1084,7 +1085,7 @@ const SessionReplayPlayer: FunctionComponent<SessionReplayPlayerProps> = (
             (sentence: Translator): string => {
               return sentence.translateTemplate(
                 "The replay engine could not be downloaded. {{reason}}",
-                { reason: reason },
+                { reason: errorInSentence(reason) },
               );
             },
           );

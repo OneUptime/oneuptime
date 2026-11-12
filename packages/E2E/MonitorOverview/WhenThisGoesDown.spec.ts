@@ -1,10 +1,12 @@
 import {
+  BrowserContext,
   expect,
   Locator,
   Page,
   Route as PlaywrightRoute,
   test,
 } from "@playwright/test";
+import { readFileSync } from "fs";
 import fs from "fs/promises";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
@@ -94,6 +96,47 @@ test.afterEach(async ({ page }: { page: Page }) => {
   expect(unhandled, "requests the fixture does not model").toEqual([]);
 });
 
+/*
+ * #7307: the words of a failed read, and the Dashboard's German and Persian
+ * for them, as the fixture draws them.
+ */
+const WHO_IS_TOLD_ERROR: string = "Couldn't work out who is told. {{error}}";
+const SERVER_DOWN_MESSAGE: string =
+  "Error connecting to server. Please try again in few minutes.";
+const SERVER_DOWN_WHY: string = "The OneUptime server did not answer.";
+const SERVER_DOWN_NEXT: string =
+  "It may be starting or restarting. Try again in a few minutes.";
+const SERVER_WHY: string =
+  "The server ran into a problem it could not explain.";
+const SERVER_NEXT_WITH_REFERENCE: string =
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:";
+
+function localeOf(language: "de" | "fa"): Record<string, string> {
+  return JSON.parse(
+    readFileSync(
+      path.resolve(
+        __dirname,
+        `../../App/FeatureSet/Dashboard/src/Locales/${language}.json`,
+      ),
+      "utf8",
+    ),
+  ) as Record<string, string>;
+}
+
+// Unicode's isolate marks, which set a sentence's values apart.
+const ISOLATE_MARKS: RegExp = new RegExp(
+  `[${String.fromCharCode(0x2066)}-${String.fromCharCode(0x2069)}]`,
+  "g",
+);
+
+// What a reader reads: the text without its isolate marks, spaces as one.
+async function readText(locator: Locator): Promise<string> {
+  return ((await locator.textContent()) || "")
+    .replace(ISOLATE_MARKS, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 async function open(
   page: Page,
   options: {
@@ -101,7 +144,7 @@ async function open(
     theme?: "dark";
     lang?: "de" | "fa";
     width?: number;
-    fail?: "who-is-told";
+    fail?: "who-is-told" | "who-is-told-reference";
   } = {},
 ): Promise<Locator> {
   const width: number = options.width || 1440;
@@ -568,6 +611,12 @@ test.describe("When this goes down", () => {
     await shoot(card, "rules-390-chain");
   });
 
+  /*
+   * A gateway's 502 is API.getFriendlyMessage's SERVER_DOWN_MESSAGE, which
+   * the card said as it came: in English on every page, German and Persian
+   * too (#7307). It says why and what to do next now, in the card's own
+   * sentence and the reader's language.
+   */
   test("a failed read says so, and Try again reads it again", async ({
     page,
   }: {
@@ -576,7 +625,10 @@ test.describe("When this goes down", () => {
     const card: Locator = await open(page, { fail: "who-is-told" });
 
     await expect(card.getByTestId("who-is-told-error")).toHaveText(
-      "Couldn't work out who is told. Error connecting to server. Please try again in few minutes.",
+      "Couldn't work out who is told. The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
+    );
+    expect(await readText(card.getByTestId("who-is-told-error"))).not.toContain(
+      SERVER_DOWN_MESSAGE,
     );
     await shoot(card, "error-1440");
 
@@ -587,6 +639,143 @@ test.describe("When this goes down", () => {
     );
     await expect(card.getByTestId("who-is-told-error")).toHaveCount(0);
     await expect(card.getByTestId("who-is-told-try-again")).toHaveCount(0);
+  });
+
+  test("a failed read reads wholly in German and in Persian, and Try again reads it again", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const language of ["de", "fa"] as const) {
+      const words: Record<string, string> = localeOf(language);
+      const card: Locator = await open(page, {
+        fail: "who-is-told",
+        lang: language,
+        width: language === "fa" ? 390 : 1440,
+      });
+      const error: Locator = card.getByTestId("who-is-told-error");
+
+      await expect(error).toBeVisible();
+
+      const text: string = await readText(error);
+
+      expect(text).toBe(
+        words[WHO_IS_TOLD_ERROR]!.replace(
+          "{{error}}",
+          `${words[SERVER_DOWN_WHY]} ${words[SERVER_DOWN_NEXT]}`,
+        ),
+      );
+      // None of it in English, the words it came as least of all.
+      for (const english of [
+        SERVER_DOWN_MESSAGE,
+        "Couldn't work out who is told.",
+        SERVER_DOWN_WHY,
+        SERVER_DOWN_NEXT,
+      ]) {
+        expect(text).not.toContain(english);
+      }
+
+      if (language === "de") {
+        expect(text).toContain("Der OneUptime-Server hat nicht geantwortet.");
+      } else {
+        // Persian's own script: the only Latin letters are OneUptime's name.
+        await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+        expect(text.replace(/OneUptime/g, "").match(/[A-Za-z]+/g)).toBeNull();
+        await expectNoSidewaysScroll(page, { message: "Persian, 390 wide" });
+      }
+
+      await shoot(card, `error-${language}`);
+
+      await card.getByRole("button", { name: words["Try again"]! }).click();
+
+      await expect(card.getByTestId("who-is-told-summary")).toBeVisible();
+      await expect(card.getByTestId("who-is-told-error")).toHaveCount(0);
+    }
+  });
+
+  /*
+   * A failure the server could not explain names a reference to its log
+   * lines: the card said it as English text, with no way to copy it. It is
+   * code now, beside a copy button that copies it, in every language.
+   */
+  test("a server failure names its reference in code, with a copy button that copies it", async ({
+    page,
+    context,
+  }: {
+    page: Page;
+    context: BrowserContext;
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+    let card: Locator = await open(page, { fail: "who-is-told-reference" });
+    let error: Locator = card.getByTestId("who-is-told-error");
+
+    await expect(error).toHaveText(
+      "Couldn't work out who is told. The server ran into a problem it could not explain. Try again. If it keeps failing, give this reference to whoever runs your OneUptime server: 1f0c9a2b.",
+    );
+
+    let reference: Locator = error.getByTestId("error-reference");
+    await expect(reference.locator("code")).toHaveText("1f0c9a2b");
+    await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+
+    // The reference and its button keep to one line.
+    const copy: Locator = reference.getByRole("button");
+    await expect(copy).toHaveAccessibleName("Copy");
+    const [codeBox, copyBox] = await Promise.all([
+      reference.locator("code").boundingBox(),
+      copy.boundingBox(),
+    ]);
+    expect(codeBox).not.toBeNull();
+    expect(copyBox).not.toBeNull();
+    expect(
+      Math.abs(
+        codeBox!.y + codeBox!.height / 2 - (copyBox!.y + copyBox!.height / 2),
+      ),
+    ).toBeLessThan(6);
+    expect(copyBox!.x).toBeGreaterThan(codeBox!.x);
+
+    await copy.click();
+    await expect(copy).toHaveAttribute("data-copy-state", "copied");
+    expect(
+      await page.evaluate(async (): Promise<string> => {
+        return await navigator.clipboard.readText();
+      }),
+    ).toBe("1f0c9a2b");
+    await shoot(card, "error-reference-1440");
+
+    await card.getByRole("button", { name: "Try again" }).click();
+    await expect(card.getByTestId("who-is-told-summary")).toContainText(
+      "OneUptime marks it Offline and opens a Critical incident.",
+    );
+
+    // In Persian on a phone: the sentence in its words, the reference in code.
+    const words: Record<string, string> = localeOf("fa");
+    card = await open(page, {
+      fail: "who-is-told-reference",
+      lang: "fa",
+      width: 390,
+    });
+    error = card.getByTestId("who-is-told-error");
+    await expect(error).toBeVisible();
+
+    const text: string = await readText(error);
+    expect(
+      text.startsWith(words[WHO_IS_TOLD_ERROR]!.split("{{error}}")[0]!),
+    ).toBe(true);
+    expect(text).toContain(
+      `${words[SERVER_WHY]} ${words[SERVER_NEXT_WITH_REFERENCE]} 1f0c9a2b.`,
+    );
+    expect(text).not.toContain("The server ran into a problem");
+    expect(text).not.toContain("give this reference");
+
+    reference = error.getByTestId("error-reference");
+    await expect(reference.locator("code")).toHaveText("1f0c9a2b");
+    await expect(reference.locator("code")).toHaveAttribute("dir", "ltr");
+    await expect(reference.getByRole("button")).toHaveAccessibleName(
+      words["Copy"]!,
+    );
+    await expectNoSidewaysScroll(page, { message: "Persian reference, 390" });
+    await shoot(card, "error-reference-fa-390");
   });
 });
 

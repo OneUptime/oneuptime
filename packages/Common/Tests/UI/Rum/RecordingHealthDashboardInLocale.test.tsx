@@ -467,7 +467,13 @@ describe("the Replay Health page in the reader's language", () => {
     expect(unmarkedText(unknown)).toEqual([]);
   });
 
-  it("no status and an error: the reason in the reader's words, the server's own words as written", () => {
+  /*
+   * The server's words are looked up as any error put in a sentence is
+   * (ErrorSentence, #7307): a message the Dashboard has words for reads in
+   * the reader's language, any other as written. Every lookup is marked
+   * here, so they are marked inside the sentence's own marks.
+   */
+  it("no status and an error: the reason in the reader's words, the server's own words looked up inside them", () => {
     const page: HTMLElement = renderView(
       makeSnapshot(null, {
         error: { kind: "permission", message: "Forbidden" },
@@ -479,9 +485,14 @@ describe("the Replay Health page in the reader's language", () => {
       marked("You cannot see recording health"),
     );
     expect(screen.getByTestId("health-error-message")).toHaveTextContent(
-      marked("Server said: Forbidden"),
+      marked(`Server said: ${marked("Forbidden")}`),
     );
-    expect(unmarkedText(page)).toEqual([]);
+    /*
+     * The sentence is drawn around its error (ErrorSentence): its two
+     * halves are text of their own, one marked sentence with the error
+     * between them (above). Nothing else is left unmarked.
+     */
+    expect(unmarkedText(page)).toEqual(["⟦Server said: ", "⟧"]);
   });
 
   it("a failed refresh says why and how old the status is, one whole sentence per failure", () => {
@@ -557,7 +568,14 @@ describe("the connected page diagnoses in the reader's language", () => {
       marked("Recording health could not be loaded"),
     );
     expect(screen.getByTestId("health-error-message")).toHaveTextContent(
-      marked(`Server said: ${marked("The health response was not readable.")}`),
+      /*
+       * The hook hands its own words out in the reader's language, and the
+       * sentence looks them up once more, as it does any error: a wording
+       * is no key, so it reads as handed out.
+       */
+      marked(
+        `Server said: ${marked(marked("The health response was not readable."))}`,
+      ),
     );
   });
 });

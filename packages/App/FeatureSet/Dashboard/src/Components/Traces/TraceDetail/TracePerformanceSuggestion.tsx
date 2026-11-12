@@ -13,6 +13,7 @@ import Link from "Common/UI/Components/Link/Link";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 import SuggestionOffer from "Common/Utils/Suggestions/SuggestionOffer";
 import {
   TracePerformanceFixRepository,
@@ -438,7 +439,7 @@ const TracePerformanceSuggestion: FunctionComponent<ComponentProps> = (
               data-testid="trace-fix-performance-error"
             >
               {translator.translateTemplate(COULD_NOT_START_THE_FIX, {
-                reason: props.error,
+                reason: errorInSentence(props.error),
               })}
             </p>
           )}

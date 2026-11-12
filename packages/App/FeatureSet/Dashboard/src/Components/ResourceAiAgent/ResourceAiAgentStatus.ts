@@ -43,6 +43,7 @@ import {
   AutomaticRemediationSettings,
   readAutomaticRemediation,
 } from "../AiAccess/AutomaticRemediationLine";
+import { errorInSentence } from "Common/UI/Utils/ErrorInSentence";
 
 /*
  * What a resource's AI agent page (ResourceAiAgentPage) and its AI Insights
@@ -484,7 +485,10 @@ export function getResourceAiAgentStateSentence(
         return reachError
           ? translateTemplate(
               "The {{agent}} is running, but it could not reach this {{noun}} at its last check: {{error}} Check its logs:",
-              { ...getAgentAndNoun(descriptor), error: reachError },
+              {
+                ...getAgentAndNoun(descriptor),
+                error: errorInSentence(reachError),
+              },
             )
           : translateTemplate(
               "The {{agent}} is running, but it could not reach this {{noun}} at its last check. Check its logs:",

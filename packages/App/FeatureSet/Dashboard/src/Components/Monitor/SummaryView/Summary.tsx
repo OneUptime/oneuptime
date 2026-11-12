@@ -28,6 +28,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Dictionary from "Common/Types/Dictionary";
 import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import ErrorSentence from "Common/UI/Components/ErrorMessage/ErrorSentence";
 
 export interface ComponentProps {
   probeMonitorResponses?: Array<MonitorStepProbeResponse> | undefined;
@@ -262,10 +263,12 @@ const Summary: FunctionComponent<ComponentProps> = (
     if (hasProbeLoadError) {
       return (
         <ErrorMessage
-          message={translator.translateTemplate(
-            "Probe results are unavailable. {{error}}",
-            { error: props.probeLoadError || "" },
-          )}
+          message={
+            <ErrorSentence
+              template="Probe results are unavailable. {{error}}"
+              error={props.probeLoadError || ""}
+            />
+          }
         />
       );
     }

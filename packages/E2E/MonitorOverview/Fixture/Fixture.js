@@ -48,6 +48,10 @@
  *              who-is-told     the FIRST who-is-told request fails, as a
  *                              gateway's 502 does ("When this goes down"
  *                              says so; its Try again reads it again)
+ *              who-is-told-reference  the FIRST who-is-told request fails
+ *                              as a failure the server could not explain
+ *                              does: a 500 naming the reference of its log
+ *                              lines (1f0c9a2b)
  *   ?maintenance=1  the subject monitor has scheduled maintenance on its
  *              uptime strip: a completed database upgrade two days ago and
  *              load balancer patching in progress now. Without it the
@@ -216,6 +220,10 @@ import Team from "Common/Models/DatabaseModels/Team";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
 import User from "Common/Models/DatabaseModels/User";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
+import {
+  ERROR_REFERENCE_FIELD,
+  getUnexplainedServerErrorMessage,
+} from "Common/Types/Exception/UnexplainedError";
 import HTTPMethod from "Common/Types/API/HTTPMethod";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import CommonURL from "Common/Types/API/URL";
@@ -3602,6 +3610,23 @@ async function handleApi(method, options) {
        * thrown, as API.get answers an error response.
        */
       return fail(502, "Bad Gateway");
+    }
+
+    if (failures.has("who-is-told-reference") && !hasFailedWhoIsTold) {
+      hasFailedWhoIsTold = true;
+      /*
+       * A failure the server could not explain, as its last-resort handler
+       * answers it (Server/Utils/UnexplainedServerError): its sentence and
+       * the reference of its log lines.
+       */
+      return new HTTPErrorResponse(
+        500,
+        {
+          message: getUnexplainedServerErrorMessage("1f0c9a2b"),
+          [ERROR_REFERENCE_FIELD]: "1f0c9a2b",
+        },
+        {},
+      );
     }
 
     return ok(whoIsTold(parsed.pathname.split("/").pop()));
