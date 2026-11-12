@@ -904,11 +904,21 @@ export const formatStatusTimelineShare: (
   if (percent < 0.01) {
     const smallest: string = write(0.01);
 
+    /*
+     * The figure set apart in its sentence, so a Persian legend draws its
+     * percent sign where every other share there has it: "کمتر از ۰٫۰۱٪"
+     * beside "۹۹٫۹۶٪", not "٪۰٫۰۱" after the words. The legend is the
+     * only place this is drawn, so the isolate's marks go nowhere else.
+     */
     return translator &&
       translator.hasTranslation(STATUS_TIMELINE_SHARE_LESS_THAN)
-      ? translator.translateTemplate(STATUS_TIMELINE_SHARE_LESS_THAN, {
-          percent: smallest,
-        })
+      ? translator.translateTemplate(
+          STATUS_TIMELINE_SHARE_LESS_THAN,
+          {
+            percent: smallest,
+          },
+          { setsValuesApart: true },
+        )
       : `<${smallest}`;
   }
 

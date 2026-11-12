@@ -202,7 +202,7 @@ describe("in German", () => {
       ),
     ).toContain(
       sentence(DE, "Connections at {{percent}} of max_connections", {
-        percent: "96%",
+        percent: "96\u00A0%",
       }),
     );
   });
@@ -283,7 +283,7 @@ describe("in German", () => {
     expect(rows[0]).toContain(worded(DE, "Connections"));
     expect(rows[0]).toContain(
       sentence(DE, "Connections at {{percent}} of max_connections", {
-        percent: "96%",
+        percent: "96\u00A0%",
       }),
     );
     expect(rows[1]).toContain(worded(DE, "Replication"));
@@ -308,7 +308,7 @@ describe("in German", () => {
     expect(rows[0]).toContain(worded(DE, "Availability"));
     expect(rows[0]).toContain(
       sentence(DE, "Transaction IDs at {{percent}} of wraparound", {
-        percent: "74%",
+        percent: "74\u00A0%",
       }),
     );
     expect(rows[1]).toContain(worded(DE, "Performance"));
@@ -393,7 +393,7 @@ describe("in Persian", () => {
     expect(text).toContain("orders-db");
     expect(text).toContain(
       sentence(FA, "Connections at {{percent}} of max_connections", {
-        percent: "96%",
+        percent: "۹۶٪",
       }),
     );
     expect(text).toContain(

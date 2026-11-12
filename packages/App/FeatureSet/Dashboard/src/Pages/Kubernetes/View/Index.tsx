@@ -2785,23 +2785,35 @@ const KubernetesClusterOverview: FunctionComponent<
                               )}
                             </div>
                             <div className="flex-shrink-0 text-right ml-2">
+                              {/*
+                               * A size set apart, as the tiles above write
+                               * theirs: "۳۲۹٫۰ MB" on a Persian page, never
+                               * "MB ۳۲۹٫۰".
+                               */}
                               <div className="text-sm font-semibold text-gray-700 tabular-nums">
-                                {pod.memoryUtilization !== null &&
-                                pod.memoryUtilization !== undefined
-                                  ? formatReaderFigure(pod.memoryUtilization, {
-                                      decimals: 1,
-                                      isPercent: true,
-                                    })
-                                  : KubernetesResourceUtils.formatMemoryValue(
-                                      pod.memoryUsageBytes,
-                                    )}
+                                <bdi>
+                                  {pod.memoryUtilization !== null &&
+                                  pod.memoryUtilization !== undefined
+                                    ? formatReaderFigure(
+                                        pod.memoryUtilization,
+                                        {
+                                          decimals: 1,
+                                          isPercent: true,
+                                        },
+                                      )
+                                    : KubernetesResourceUtils.formatMemoryValue(
+                                        pod.memoryUsageBytes,
+                                      )}
+                                </bdi>
                               </div>
                               {pod.memoryUtilization !== null &&
                               pod.memoryUtilization !== undefined ? (
                                 <div className="text-xs text-gray-400 tabular-nums">
-                                  {KubernetesResourceUtils.formatMemoryValue(
-                                    pod.memoryUsageBytes,
-                                  )}
+                                  <bdi>
+                                    {KubernetesResourceUtils.formatMemoryValue(
+                                      pod.memoryUsageBytes,
+                                    )}
+                                  </bdi>
                                 </div>
                               ) : null}
                             </div>

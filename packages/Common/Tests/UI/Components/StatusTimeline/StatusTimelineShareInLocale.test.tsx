@@ -8,7 +8,7 @@ import {
   getNumberLocale,
   setDateDisplayLanguage,
 } from "../../../../Types/DateLanguage";
-import { Translator } from "../../../../Types/Translator";
+import { getInlineSeparator, Translator } from "../../../../Types/Translator";
 import StatusTimelineLegend from "../../../../UI/Components/StatusTimeline/StatusTimelineLegend";
 import {
   formatStatusTimelineShare,
@@ -232,7 +232,7 @@ const summary: StatusTimelineSummary = {
 const instances: Record<string, i18n> = {};
 
 beforeAll(async () => {
-  for (const language of ["en", "de", "fa"]) {
+  for (const language of ["en", "de", "fa", "ar"]) {
     const instance: i18n = createInstance();
 
     await instance.init({
@@ -315,5 +315,123 @@ describe("the legend, drawn", () => {
     expect(
       formatStatusTimelineShare(0.9981, dashboardTranslator("fa")),
     ).not.toBe(handBuilt);
+  });
+});
+
+/*
+ * THE LEGEND'S READING ORDER.
+ *
+ * A status's figures were one line of text: an Arabic share ("99.96%",
+ * which Intl writes with left-to-right marks to keep its sign after the
+ * number) took the duration's first number with it, drawing "99.96% · 30"
+ * beside the name and "يومًا و23 س" after it, the 30 days cut from their
+ * days. An English status name in an Arabic or Persian legend did the same.
+ * Each part is an isolate of its own now, the name too, with the
+ * separator between them, outside every isolate.
+ */
+describe("the legend's reading order", () => {
+  const NAMED_IN_ENGLISH: StatusTimelineSummary = {
+    ...summary,
+    items: summary.items.map(
+      (
+        item: StatusTimelineSummary["items"][number],
+        index: number,
+      ): StatusTimelineSummary["items"][number] => {
+        return {
+          ...item,
+          name: ["Operational", "Offline", "Degraded"][index] as string,
+        };
+      },
+    ),
+  };
+
+  const drawItems: (
+    language: string,
+    legend: StatusTimelineSummary,
+  ) => Array<HTMLElement> = (
+    language: string,
+    legend: StatusTimelineSummary,
+  ): Array<HTMLElement> => {
+    setDateDisplayLanguage(language);
+    render(
+      <I18nextProvider i18n={instances[language]!}>
+        <StatusTimelineLegend summary={legend} showShare={true} />
+      </I18nextProvider>,
+    );
+
+    return screen.getAllByTestId("status-timeline-legend-item");
+  };
+
+  // Each isolate's words, without Intl's left-to-right marks.
+  const partsOf: (item: HTMLElement) => Array<string> = (
+    item: HTMLElement,
+  ): Array<string> => {
+    return Array.from(item.querySelectorAll("bdi")).map(
+      (part: Element): string => {
+        return withoutIsolateMarks(part.textContent || "").replace(
+          /\u200E/g,
+          "",
+        );
+      },
+    );
+  };
+
+  test("on an Arabic page, the name, the share, the duration and the count are each set apart", () => {
+    const items: Array<HTMLElement> = drawItems("ar", NAMED_IN_ENGLISH);
+    const offline: Array<string> = partsOf(items[1]!);
+
+    expect(offline).toHaveLength(4);
+    expect(offline[0]).toBe("Offline");
+    expect(offline[1]).toBe("0.19%");
+    // The duration whole, its first number with its unit.
+    expect(offline[2]).toMatch(/^1 /);
+    expect(offline[3]).toBe(
+      dashboardTranslator("ar").translatePlural(
+        { one: "{{count}} time", other: "{{count}} times" },
+        31,
+      ),
+    );
+
+    // The status the record spent most of the period in: no count.
+    const operational: Array<string> = partsOf(items[0]!);
+    expect(operational).toHaveLength(3);
+    expect(operational[0]).toBe("Operational");
+    expect(operational[1]).toBe("99.81%");
+    expect(operational[2]).toMatch(/^29 /);
+  });
+
+  test("an English name reads left to right in an Arabic legend, an Arabic name right to left", () => {
+    expect(
+      drawItems("ar", NAMED_IN_ENGLISH)[1]!.querySelector("bdi"),
+    ).toHaveAttribute("dir", "ltr");
+
+    cleanup();
+
+    expect(drawItems("fa", summary)[1]!.querySelector("bdi")).toHaveAttribute(
+      "dir",
+      "rtl",
+    );
+  });
+
+  test("the separator sits between the figures, outside their isolates", () => {
+    const item: HTMLElement = drawItems("fa", summary)[1]!;
+    const separator: string = getInlineSeparator("fa");
+    const figures: Element = item.lastElementChild!;
+
+    // The share, the duration and the count: three isolates, two separators.
+    expect(figures.querySelectorAll("bdi")).toHaveLength(3);
+    expect(
+      Array.from(figures.childNodes)
+        .filter((node: ChildNode): boolean => {
+          return node.nodeType === 3 && Boolean(node.textContent);
+        })
+        .map((node: ChildNode): string => {
+          return node.textContent || "";
+        }),
+    ).toEqual([separator, separator]);
+
+    for (const part of Array.from(figures.querySelectorAll("bdi"))) {
+      expect(part.textContent).not.toContain(separator.trim());
+    }
   });
 });

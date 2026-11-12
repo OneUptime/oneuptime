@@ -380,6 +380,19 @@ describe("a Kubernetes cluster's Overview on a Persian page", () => {
       });
     }
   });
+
+  test("a pod's memory size is set apart, its number before its unit", async () => {
+    await renderIn("fa");
+
+    // "MB ۵۱۲٫۰" on a Persian page while the size sat in the row's own text.
+    const sizes: Array<string> = Array.from(
+      document.querySelectorAll(".tabular-nums > bdi"),
+    ).map((element: Element): string => {
+      return withoutIsolateMarks(element.textContent || "").trim();
+    });
+
+    expect(sizes).toContain("۵۱۲٫۰ MB");
+  });
 });
 
 // The names a cluster gave its parts: written as the cluster wrote them.

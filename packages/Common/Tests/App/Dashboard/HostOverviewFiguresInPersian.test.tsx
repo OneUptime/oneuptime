@@ -466,3 +466,74 @@ describe("the same page in English and German (the negative control)", () => {
     ).toEqual(["40,0\u{00A0}%", "50,0\u{00A0}%", "96,0\u{00A0}%", "1,00", "3"]);
   });
 });
+
+/*
+ * A HOST THAT NEEDS ATTENTION.
+ *
+ * The host above reports nothing worth a look, so its Needs attention card
+ * is empty. A full disk, busy memory and a high load put three reasons on
+ * the card, whose figures the rules write as plain "96%" and "9.6": the
+ * card drew them as written, "96% پر" under the Filesystem tile's
+ * "۹۶٫۰٪". (Details, with the cached process count, is checked on the
+ * offline Host pages: E2E/HostPages.)
+ */
+describe("a host that needs attention, on a Persian page", () => {
+  beforeEach(() => {
+    getItemMock.mockResolvedValue({
+      _id: MODEL_ID,
+      name: "db-01",
+      hostIdentifier: "db-01",
+      otelCollectorStatus: "connected",
+      lastSeenAt: new Date(),
+      cpuCores: 4,
+      totalMemoryBytes: 16 * GIB,
+      osType: "linux",
+      processCount: 312,
+      latestDiskPercent: 96.4,
+      latestDiskMountpoint: "/var",
+      latestMemoryPercent: 93,
+      latestLoadAverage15m: 9.62,
+      readingsUpdatedAt: new Date(),
+    });
+  });
+
+  test("Needs attention's reasons write their figures in Persian digits", async () => {
+    await renderIn("fa");
+
+    const reasons: Array<string> = screen
+      .getAllByTestId("host-needs-attention-reason")
+      .map((reason: HTMLElement): string => {
+        return withoutIsolateMarks(reason.textContent || "");
+      });
+
+    expect(reasons).toContain("۹۶٪ پر");
+    expect(reasons).toContain("۹۳٪ از حافظه استفاده شده");
+    expect(reasons).toContain("بار ۱۵ دقیقه‌ای ۹٫۶ روی ۴ هسته");
+
+    for (const reason of reasons) {
+      expect({ reason, latin: LATIN_DIGIT.test(reason) }).toEqual({
+        reason,
+        latin: false,
+      });
+    }
+  });
+
+  test("nothing on the page is in Latin digits but the names the host gave its parts", async () => {
+    await renderIn("fa");
+
+    expect(latinTexts()).toEqual([]);
+  });
+
+  test("in English the reasons and the count read as the rules wrote them", async () => {
+    await renderIn("en");
+
+    const reasons: Array<string> = screen
+      .getAllByTestId("host-needs-attention-reason")
+      .map((reason: HTMLElement): string => {
+        return withoutIsolateMarks(reason.textContent || "");
+      });
+
+    expect(reasons).toContain("96% full");
+    expect(reasons).toContain("15-minute load 9.6 on 4 cores");
+  });
+});

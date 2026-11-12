@@ -19,7 +19,14 @@ import {
   formatMemoryValue,
   writeCountInReaderDigits,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Infrastructure/ResourceTable";
-import { figureInSentence } from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/SentenceDigits";
+import {
+  figureInSentence,
+  withSentenceDigits,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourcePart/SentenceDigits";
+import {
+  formatHostLoad,
+  formatHostPercent,
+} from "../../../Types/Host/HostHealth";
 import { dashboardTranslator } from "../../Helpers/DashboardLocales";
 import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
@@ -400,5 +407,139 @@ describe("an uptime's figure in its sentence takes the sentence's language", () 
     inLanguage("fa", () => {
       expect(uptime(dashboardTranslator("de"), 99.5)).toBe("99,50 % verfügbar");
     });
+  });
+});
+
+/*
+ * A REASON'S PERCENTAGE AND DECIMALS, IN THE SENTENCE'S DIGITS.
+ *
+ * A host's rules write their values as plain figures ("96%", "9.6"), and
+ * the Needs attention card, the hosts list and the hero drew them as
+ * written: a Persian page read "/var 96% پر" under the Filesystem tile's
+ * "۹۶٫۴٪", and German "/var zu 96% voll" beside the tile's "96,4 %".
+ * withSentenceDigits writes a percentage or a figure with decimals in the
+ * sentence's language now, as it writes a whole number, keeping the
+ * decimals it was written with. Each case fills a sentence as the Needs
+ * attention card does.
+ */
+describe("a reason's percentage and decimals take the sentence's language", () => {
+  const LOAD_ON_CORES: { one: string; other: string } = {
+    one: "15-minute load {{load}} on {{count}} core",
+    other: "15-minute load {{load}} on {{count}} cores",
+  };
+
+  const filled: (
+    translator: Translator,
+    template: string,
+    values: Record<string, string>,
+  ) => string = (
+    translator: Translator,
+    template: string,
+    values: Record<string, string>,
+  ): string => {
+    return withoutIsolateMarks(
+      translator.translateTemplate(template, withSentenceDigits(values), {
+        setsValuesApart: true,
+      }),
+    );
+  };
+
+  const full: (translator: Translator) => string = (
+    translator: Translator,
+  ): string => {
+    return filled(translator, "{{mount}} {{percent}} full", {
+      mount: "/var",
+      percent: formatHostPercent(96.4),
+    });
+  };
+
+  const loaded: (translator: Translator, cores: number) => string = (
+    translator: Translator,
+    cores: number,
+  ): string => {
+    return withoutIsolateMarks(
+      translator.translatePlural(
+        LOAD_ON_CORES,
+        cores,
+        withSentenceDigits({ load: formatHostLoad(9.62) }),
+        { setsValuesApart: true },
+      ),
+    );
+  };
+
+  test("Persian writes Persian digits, its decimal sign and its percent sign", () => {
+    expect(full(dashboardTranslator("fa"))).toBe("/var ۹۶٪ پر");
+    expect(loaded(dashboardTranslator("fa"), 4)).toBe(
+      "بار ۱۵ دقیقه‌ای ۹٫۶ روی ۴ هسته",
+    );
+  });
+
+  test("German writes its decimal comma and its spaced percent", () => {
+    expect(full(dashboardTranslator("de"))).toBe("/var zu 96 % voll");
+    expect(loaded(dashboardTranslator("de"), 4)).toBe(
+      "15-Minuten-Last 9,6 auf 4 Kernen",
+    );
+  });
+
+  test("English reads exactly as the rules wrote it", () => {
+    expect(full(dashboardTranslator("en"))).toBe("/var 96% full");
+    expect(loaded(dashboardTranslator("en"), 1)).toBe(
+      "15-minute load 9.6 on 1 core",
+    );
+  });
+
+  test("Arabic writes Latin digits, never Arabic-Indic ones", () => {
+    const arabic: string = full(dashboardTranslator("ar"));
+
+    expect(ARABIC_INDIC_DIGIT.test(arabic)).toBe(false);
+    // Intl's own left-to-right marks keep "96%" in its order.
+    expect(arabic.replace(/‎/g, "")).toBe("/var ممتلئ بنسبة 96%");
+  });
+
+  test("a figure keeps the decimals it was written with", () => {
+    const persian: Translator = dashboardTranslator("fa");
+    const german: Translator = dashboardTranslator("de");
+
+    expect(filled(persian, "{{percent}} full", { percent: "4.20%" })).toBe(
+      "۴٫۲۰٪ پر",
+    );
+    expect(filled(persian, "{{percent}} full", { percent: "100%" })).toBe(
+      "۱۰۰٪ پر",
+    );
+    expect(filled(german, "{{percent}} full", { percent: "0.5%" })).toBe(
+      "0,5 % voll",
+    );
+  });
+
+  test("a value that is not a plain figure is drawn as written", () => {
+    const persian: Translator = dashboardTranslator("fa");
+
+    for (const value of [
+      "10.0.1.21",
+      "1.29.3",
+      "500m",
+      "12 GiB",
+      "OOMKilled",
+      "-5%",
+      "96 %",
+      ".5",
+      "5.",
+      "1e3",
+    ]) {
+      expect({
+        value,
+        drawn: filled(persian, "{{percent}} full", { percent: value }),
+      }).toEqual({ value, drawn: `${value} پر` });
+    }
+  });
+
+  test("a sentence the reader's language has not worded yet reads in English, its figure too", () => {
+    expect(
+      filled(
+        dashboardTranslator("fa"),
+        "{{percent}} of a sentence no locale has",
+        { percent: "96%" },
+      ),
+    ).toBe("96% of a sentence no locale has");
   });
 });

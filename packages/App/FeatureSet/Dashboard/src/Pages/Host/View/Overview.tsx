@@ -83,6 +83,7 @@ import {
   getResourceHealthLabel,
 } from "../../../Components/TelemetryResource/ResourceHeroStatus";
 import NeedsAttentionCard from "../../../Components/ResourcePart/NeedsAttentionCard";
+import EmptyValue from "Common/UI/Components/Detail/EmptyValue";
 import {
   figureInSentence,
   withSentenceDigits,
@@ -2389,10 +2390,13 @@ const HostOverview: FunctionComponent<
               title: "Total Memory",
               fieldType: FieldType.Element,
               getElement: (item: Host): ReactElement => {
+                /*
+                 * A size set apart, as the hero's chip and the Filesystems
+                 * table write theirs: "۶۴ GiB" on a Persian page, never
+                 * "GiB ۶۴".
+                 */
                 return (
-                  <span>
-                    {formatMemoryBytes(Number(item.totalMemoryBytes))}
-                  </span>
+                  <bdi>{formatMemoryBytes(Number(item.totalMemoryBytes))}</bdi>
                 );
               },
             },
@@ -2421,7 +2425,18 @@ const HostOverview: FunctionComponent<
               },
               title: "Process Count (cached)",
               description: HOST_METRIC_DESCRIPTIONS.processCountCached,
-              fieldType: FieldType.Number,
+              fieldType: FieldType.Element,
+              // In the reader's digits, as the Processes tile's "۲۱۴" (#7106).
+              getElement: (item: Host): ReactElement => {
+                return item.processCount === undefined ||
+                  item.processCount === null ? (
+                  <EmptyValue />
+                ) : (
+                  <span>
+                    {translator.formatNumber(Number(item.processCount))}
+                  </span>
+                );
+              },
             },
             {
               field: {
