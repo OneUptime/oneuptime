@@ -104,10 +104,12 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
  * page (FrozenMonitorResources). Whether a resource's monitor is archived,
  * and whether its monitoring is off, is read here as OneUptime, for the
  * monitors of the resources the caller read and only those, in their
- * project. A relation read never reads it (Monitor.isArchived is not
- * readable on a relation query): asking for it along with the resources
- * refused every member's read of a page by id - "Column isArchived on
- * Monitor does not support read on relation query."
+ * project. It was read apart because a relation read could not read it
+ * then: asking for it along with the resources refused every member's read
+ * of a page by id - "Column isArchived on Monitor does not support read on
+ * relation query." Both flags are readable on a relation query now (issue
+ * #6965); the read stays here, as OneUptime, so a member's own column
+ * permissions never decide which resources a page's answer leaves out.
  */
 async function withoutArchivedMonitors(
   ctx: ToolContext,

@@ -293,9 +293,14 @@ export class Service extends ProjectReferencesService<Model> {
    * SLO, so a second request - a double click, a second tab, a retry - waits
    * for the first and then finds nothing left to add. Without the lock
    * (Redis unreachable) the request still runs, and the unique threshold
-   * index refuses a second tier at a threshold the first already took. Tiers
-   * are created one at a time; the first that fails stops the request, the
-   * ones already added stay, and asking again adds only what is missing.
+   * index refuses a second tier at a threshold the first already took.
+   *
+   * All or nothing: tiers are created one at a time, and when one fails,
+   * the ones this request already added are removed again before the
+   * refusal is passed on (removeRecommendedTiersAdded). Half a policy is
+   * worse than none: the Error Budget Policy page offers the recommended
+   * policy only to an SLO with no tier, so it could not be finished from
+   * there, and a policy without its last tier never freezes deployments.
    */
   @CaptureSpan()
   public async addMissingRecommendedTiers(data: {
@@ -324,20 +329,37 @@ export class Service extends ProjectReferencesService<Model> {
 
       const added: Array<SloAddedRecommendedPolicyTier> = [];
 
-      for (const recommended of missing.tiers) {
-        const created: Model = await this.create({
-          data: this.buildRecommendedTier({
-            projectId: missing.projectId,
-            serviceLevelObjectiveId: missing.serviceLevelObjectiveId,
-            recommended: recommended,
-          }),
-          props: data.props,
+      try {
+        for (const recommended of missing.tiers) {
+          const created: Model = await this.create({
+            data: this.buildRecommendedTier({
+              projectId: missing.projectId,
+              serviceLevelObjectiveId: missing.serviceLevelObjectiveId,
+              recommended: recommended,
+            }),
+            props: data.props,
+          });
+
+          added.push({
+            ...recommended,
+            tierId: created.id || null,
+          });
+        }
+      } catch (err) {
+        // Still under the lock: a request waiting for it finds the SLO as it was.
+        await this.removeRecommendedTiersAdded({
+          projectId: missing.projectId,
+          serviceLevelObjectiveId: missing.serviceLevelObjectiveId,
+          tierIds: added
+            .map((tier: SloAddedRecommendedPolicyTier): ObjectID | null => {
+              return tier.tierId;
+            })
+            .filter((tierId: ObjectID | null): tierId is ObjectID => {
+              return tierId !== null;
+            }),
         });
 
-        added.push({
-          ...recommended,
-          tierId: created.id || null,
-        });
+        throw err;
       }
 
       return {
@@ -357,6 +379,68 @@ export class Service extends ProjectReferencesService<Model> {
         }
       }
     }
+  }
+
+  /*
+   * The tiers a "Use the recommended policy" request added before one of its
+   * creates failed, removed again. Only those: by the ids its own creates
+   * handed back, never a tier somebody else added meanwhile - one that took
+   * the threshold a create then failed on, say. Removed as OneUptime, with
+   * the delete's hooks, which ask for the SLO to be evaluated again: whoever
+   * may add tiers need not be allowed to remove them, and these are the
+   * request's own, created moments ago. Each removal is tried on its own,
+   * and one that fails is logged, never thrown: the refusal the caller hears
+   * about is the create's.
+   */
+  private async removeRecommendedTiersAdded(data: {
+    projectId: ObjectID;
+    serviceLevelObjectiveId: ObjectID;
+    tierIds: Array<ObjectID>;
+  }): Promise<void> {
+    for (const tierId of data.tierIds) {
+      try {
+        await this.deleteOneBy({
+          query: {
+            _id: tierId.toString(),
+            projectId: data.projectId,
+            serviceLevelObjectiveId: data.serviceLevelObjectiveId,
+          },
+          props: {
+            isRoot: true,
+          },
+        });
+      } catch (err) {
+        logger.error(
+          `Could not remove error budget policy tier ${tierId.toString()} of SLO ${data.serviceLevelObjectiveId.toString()} after adding the recommended policy failed; the SLO keeps it: ${err}`,
+          { projectId: data.projectId.toString() } as LogAttributes,
+        );
+      }
+    }
+  }
+
+  /*
+   * 0 is a threshold: the tier of an exhausted budget, which the recommended
+   * policy ends with (Budget exhausted, the tier that freezes deployments).
+   * The required-column check reads 0 as missing, so a tier at 0% was
+   * refused as "thresholdPercentage is required" - added by hand, through
+   * the API, or by "Use the recommended policy", which then stopped with
+   * its first two tiers added (#6978). onBeforeCreate has read the threshold
+   * into a number from 0 to 100 by then (validateThreshold), so any number
+   * is a value of it; anything else is still read as the check reads it.
+   */
+  protected override isRequiredColumnValueGiven(
+    column: string,
+    value: unknown,
+  ): boolean {
+    if (
+      column === "thresholdPercentage" &&
+      typeof value === "number" &&
+      Number.isFinite(value)
+    ) {
+      return true;
+    }
+
+    return super.isRequiredColumnValueGiven(column, value);
   }
 
   @CaptureSpan()

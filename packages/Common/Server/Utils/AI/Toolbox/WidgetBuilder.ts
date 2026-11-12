@@ -8,6 +8,7 @@ import {
   AIChatWidgetSpan,
   AIChatWidgetStat,
   AIChatWidgetType,
+  AIChatTestPageOffer,
   getAIChatResourceCardStatusColor,
 } from "../../../../Types/AI/AIChatTypes";
 import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
@@ -199,6 +200,8 @@ export default class WidgetBuilder {
     link?: AIChatCitationTarget | undefined;
     statusColor?: string | undefined;
     origin: AIChatResourceCardOrigin;
+    // The test page the card offers once its record exists (#6829).
+    testPage?: AIChatTestPageOffer | undefined;
   }): AIChatWidget {
     const english: {
       kind: string;
@@ -255,6 +258,7 @@ export default class WidgetBuilder {
         origin: params.origin,
         ...(statusColor && english.line ? { statusColor } : {}),
         link: params.link,
+        ...(params.testPage ? { testPage: params.testPage } : {}),
       },
     };
   }
@@ -276,10 +280,16 @@ export default class WidgetBuilder {
     heading: string;
     words: AIActionCardWords;
     link?: AIChatCitationTarget | undefined;
+    /*
+     * A setup action's card (#6829): the test page to offer once its
+     * record exists - to yourself, or to the policy it made.
+     */
+    testPage?: AIChatTestPageOffer | undefined;
   }): AIChatWidget {
     return this.card({
       ...params,
       origin: AIChatResourceCardOrigin.Write,
+      testPage: params.testPage,
     });
   }
 

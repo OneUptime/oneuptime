@@ -23,6 +23,7 @@ import { getDockerBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/U
 import { getDockerSwarmBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/DockerSwarmBreadcrumbs";
 import { getExceptionsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/ExceptionsBreadcrumbs";
 import { getFormsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/FormsBreadcrumbs";
+import { getHomeBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/HomeBreadcrumbs";
 import { getHostBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/HostBreadcrumbs";
 import { getIncidentsBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/IncidentBreadcrumbs";
 import { getInventoryBreadcrumbs } from "../../../../App/FeatureSet/Dashboard/src/Utils/Breadcrumbs/InventoryBreadcrumbs";
@@ -147,6 +148,8 @@ const TRAIL_GETTERS: Dictionary<BreadcrumbGetter> = {
   },
   MonitorGroupRoutePath: getMonitorGroupBreadcrumbs,
   UserSettingsRoutePath: getUserSettingsBreadcrumbs,
+  // The pages under Home: Setup health (#6812).
+  HomeRoutePath: getHomeBreadcrumbs,
 };
 
 /*
