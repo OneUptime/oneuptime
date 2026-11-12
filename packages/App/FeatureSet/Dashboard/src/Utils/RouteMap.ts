@@ -1728,28 +1728,14 @@ const RouteMap: Dictionary<Route> = {
 
   [PageMap.HOME]: new Route(`/dashboard/${RouteParams.ProjectID}/home/`),
 
-  [PageMap.HOME_ACTIVE_INCIDENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-incidents`,
-  ),
-
-  [PageMap.HOME_NOT_OPERATIONAL_MONITORS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/monitors-inoperational`,
-  ),
-
-  [PageMap.HOME_ACTIVE_ALERTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-alerts`,
-  ),
-
-  [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/scheduled-maintenance-ongoing`,
-  ),
-
-  [PageMap.HOME_ACTIVE_EPISODES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-episodes`,
-  ),
-
-  [PageMap.HOME_ACTIVE_INCIDENT_EPISODES]: new Route(
-    `/dashboard/${RouteParams.ProjectID}/home/active-incident-episodes`,
+  /*
+   * Everything under …/home/ but Home itself: the addresses of the lists
+   * Home used to hold, which forward to the products' own lists
+   * (MOVED_HOME_LIST_PATHS). Home (…/home/) outranks it in the router, so
+   * it only ever gets the addresses under Home.
+   */
+  [PageMap.MOVED_HOME_LISTS_ROOT]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/home/*`,
   ),
 
   [PageMap.MONITORS_ROOT]: new Route(

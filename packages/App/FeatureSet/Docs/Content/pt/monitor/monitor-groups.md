@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Monitores arquivados não contam.** Um monitor arquivado não é verificado, então o status dele fica congelado; o grupo o deixa de fora.
+- **Monitores com o monitoramento desligado não contam.** Nada verifica um monitor cujo monitoramento está desligado, então o status dele é só o que sua última verificação viu. O grupo o deixa de fora do seu status e, no painel, também do seu tempo de atividade e do seu **Gráfico de tempo de atividade**: um monitor que ficou **Offline** quando seu monitoramento foi desligado não deixa o grupo **Offline**.
 - **Um grupo vazio está operacional.** Um grupo sem monitores, ou só com monitores arquivados, mostra o seu status operacional. Até você adicionar um monitor, o painel mostra **Nenhum monitor ainda** no lugar do status dele.
-- **Monitoramento desligado mostra Desabilitado.** Quando o monitoramento está desligado para todos os monitores de um grupo, nada os verifica, então o painel mostra **Desabilitado** no lugar do status do grupo.
+- **Monitoramento desligado mostra Desabilitado.** Quando o monitoramento está desligado para todos os monitores de um grupo, nada os verifica, então o painel mostra **Desabilitado** no lugar do status do grupo, e nenhuma porcentagem de tempo de atividade ao lado do seu **Gráfico de tempo de atividade**. Uma página de status mostra o grupo como **Não monitorado**.
 - **A ordem é sua.** Qual status é o pior segue a ordem de **Monitores → Configurações → Status do monitor**. Veja [Status de monitor](/docs/monitor/criteria-and-statuses#status-de-monitor).
 
 Um grupo de monitores não é um grupo de página de status. Um grupo de página de status é um título em uma página de status que reúne linhas. Um grupo de monitores é uma linha que representa vários monitores, e qualquer página de status pode mostrá-lo.
@@ -124,7 +125,7 @@ Escolha o grupo. **Nome de exibição**, o nome que os visitantes leem, assume o
 
 Na página de status, a linha representa cada monitor do grupo:
 
-- **O status dela.** É o do grupo: o pior dos seus monitores.
+- **O status dela.** É o do grupo: o pior dos seus monitores com o monitoramento ligado. Quando o monitoramento está desligado para todos eles, a linha mostra **Não monitorado** e não conta nem para o cabeçalho acima dela nem para o status geral da página.
 - **Os incidentes dela.** Um incidente em qualquer monitor do grupo aparece na página, com o grupo entre os recursos afetados.
 - **Os assinantes dela.** Um assinante que escolhe o grupo recebe avisos sobre cada monitor que ele contém. Veja [Deixar os assinantes escolherem recursos e tipos de evento](/docs/status-pages/subscribers#deixar-o-assinante-escolher-recursos-e-tipos-de-evento).
 

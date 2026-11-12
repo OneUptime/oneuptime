@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-整體狀態是頁面上監控器與監控器群組目前狀態中最差的那一個，也就是優先順序最高的那一個。一個監控器狀態如下所示：
+整體狀態是頁面上監控器與監控器群組目前狀態中最差的那一個，也就是優先順序最高的那一個。頁面顯示為 **未監控** 的資源（列在 `notMonitoredResourceIds` 中）不計入其中。一個監控器狀態如下所示：
 
 ```json
 {
@@ -129,12 +129,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | 鍵 | 內容 |
 | --- | ------------- |
-| `overallStatus` | 頁面的整體狀態，也就是上面那樣的監控器狀態；頁面上什麼都沒有時，是專案中優先順序最低的狀態。 |
+| `overallStatus` | 頁面的整體狀態，也就是上面那樣的監控器狀態；頁面上什麼都沒有時，是專案中優先順序最低的狀態；頁面上所有資源都是 **未監控** 時，為 `null`。 |
 | `statusPage` | 頁面的公開設定：標題、說明、品牌，以及顯示的內容。 |
 | `statusPageResources` | 每個資源：顯示名稱、說明、群組、監控器或監控器群組，以及顯示選項。 |
 | `resourceGroups` | 群組；巢狀群組帶有 `parentStatusPageGroupId`。 |
 | `monitorStatuses` | 專案的所有監控器狀態，依優先順序由低到高排列。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | 頁面上每個監控器群組的目前狀態，以及其中的監控器。 |
+| `notMonitoredResourceIds` | 頁面顯示為 **未監控** 的資源的 ID：監測已關閉的監控器，或所有監控器的監測都已關閉的監控器群組。它們不決定任何狀態，這樣的群組在 `monitorGroupCurrentStatuses` 中沒有項目。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 繪製運作率長條所用的資料，以及頁面的長條顏色規則。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | 頁面顯示的未解決事件、它們的公開備註與狀態變化，以及專案的事件狀態。 |
 | `timelineIncidents` | 運作率長條時間範圍內的事件（包括已解決的），用於長條的提示說明。 |
@@ -170,6 +171,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -190,12 +192,12 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 
 | 鍵 | 狀態概要中的內容 |
 | --- | -------------- |
-| `overallStatus` | 頁面的整體狀態，與其橫幅顯示的一致：`name`、`color` 與 `isOperational`。 |
-| `resources` | 頁面顯示的每個資源，依頁面順序：它在頁面上的 `name`、包含上層群組的 `groupName`、它的 `currentStatus`，以及 `isUnderMaintenance`。 |
+| `overallStatus` | 頁面的整體狀態，與其橫幅顯示的一致：`name`、`color` 與 `isOperational`。頁面上所有資源都是 **未監控** 時為 `null`。 |
+| `resources` | 頁面顯示的每個資源，依頁面順序：它在頁面上的 `name`、包含上層群組的 `groupName`、它的 `currentStatus`、`isMonitored`，以及 `isUnderMaintenance`。 |
 | `activeIncidents` | 頁面顯示的未解決事件，每個都帶有它所影響資源的 `affectedResourceIds`。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中與即將到來的排定維護事件，每個都帶有它的 `affectedResourceIds`。 |
 
-頁面不顯示資源的狀態時，該資源的 `currentStatus` 為 `null`。只要進行中的事件指定了該資源的某個監測器，或其監測器群組中的某個監測器，無論這些監測器處於什麼狀態，`isUnderMaintenance` 都為 `true`。
+頁面不顯示資源的狀態時，以及 `isMonitored` 為 `false` 時，該資源的 `currentStatus` 為 `null`：後者表示沒有任何東西檢查該資源，因為其監測器的監測已關閉，或其監測器群組中每個監測器的監測都已關閉，所以頁面將其顯示為 **未監控**。只要進行中的事件指定了該資源的某個監測器，或其監測器群組中的某個監測器，無論這些監測器處於什麼狀態，`isUnderMaintenance` 都為 `true`。
 
 ## 指定日期範圍的運作率
 
@@ -278,7 +280,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -303,7 +306,8 @@ for group in uptime["groupUptimes"]:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -313,7 +317,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -327,6 +332,7 @@ for group in uptime["groupUptimes"]:
 | `groupUptimes` | 每個群組一項。群組的 `uptimePercent` 與 `currentStatus` 涵蓋它底下的所有資源，包括巢狀群組；它的 `statusPageResourceUptimes` 只列出直接位於該群組中的資源。請用 `parentStatusPageGroupId` 重建樹狀結構。 |
 | `uptimePercent` | 依資源或群組自身的精確度捨入。資源或群組不顯示運作率百分比時為 `null`。 |
 | `currentStatus` | 資源或群組不顯示目前狀態時為 `null`。 |
+| `isMonitored` | 頁面將資源顯示為 **未監控** 時為 `false`；對群組而言，其下每個資源都如此時也是。此時其 `currentStatus` 為 `null`。 |
 
 當一段時間的監控器狀態屬於頁面的 **計為停機時間** 狀態之一時，這段時間會計為停機。
 

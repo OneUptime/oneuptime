@@ -38,10 +38,13 @@ import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstanc
 import { MonitorStepExternalStatusPageMonitorUtil } from "Common/Types/Monitor/MonitorStepExternalStatusPageMonitor";
 import StatusPageSummaryUtil, {
   STATUS_PAGE_SUMMARY_GROUP_SEPARATOR,
+  StatusPageSummary,
 } from "Common/Types/StatusPage/StatusPageSummary";
 import ExternalStatusPageComponentStatusUtil from "Common/Utils/Monitor/ExternalStatusPageComponentStatusUtil";
 import ExternalStatusPageComponentNames from "Common/Utils/Monitor/ExternalStatusPageComponentNames";
-import ExternalStatusPageReading from "Common/Utils/Monitor/ExternalStatusPageReading";
+import ExternalStatusPageReading, {
+  ExternalStatusPageComponent,
+} from "Common/Utils/Monitor/ExternalStatusPageReading";
 import ExternalStatusPageScope, {
   ExternalStatusPageScopeResult,
 } from "Common/Utils/Monitor/ExternalStatusPageScope";
@@ -2170,6 +2173,36 @@ describe("Incoming Email Monitor", () => {
   });
 });
 
+/*
+ * A OneUptime page's summary with one resource nothing checks (#6478): its
+ * monitoring is off, so the page shows it as Not monitored - though the
+ * status its last check left was Offline.
+ */
+function notMonitoredSummary(): StatusPageSummary {
+  const offline: { name: string; color: string; isOperational: boolean } = {
+    name: "Offline",
+    color: "#ef4444",
+    isOperational: false,
+  };
+
+  return StatusPageSummaryUtil.fromJSON({
+    overallStatus: null,
+    resources: [
+      {
+        id: "5e000000-0000-4000-8000-000000000002",
+        name: "Checkout API",
+        groupName: null,
+        currentStatus: offline,
+        isMonitored: false,
+        isUnderMaintenance: false,
+      },
+    ],
+    activeIncidents: [],
+    ongoingScheduledMaintenance: [],
+    upcomingScheduledMaintenance: [],
+  }) as StatusPageSummary;
+}
+
 describe("External Status Page Monitor", () => {
   const page: string = englishPage(STATUS_PAGE_PAGE);
   const probe: string = readRepoFile(PROBE_STATUS_PAGE_FILE);
@@ -2369,12 +2402,26 @@ describe("External Status Page Monitor", () => {
       section(page, "## OneUptime status pages"),
     );
 
-    expect(rows.length).toBe(8);
+    expect(rows.length).toBe(9);
 
     for (const row of rows) {
       const [onThePage, componentStatus] = row as [string, string];
       const expected: string = codeItems(componentStatus)[0] as string;
       const names: Array<string> = codeItems(onThePage);
+
+      // Issue #6478: a resource nothing checks, whatever status it last had.
+      if (
+        onThePage.startsWith("A resource the page shows as **Not monitored**")
+      ) {
+        expect(
+          ExternalStatusPageReading.readOneUptimeSummary(
+            notMonitoredSummary(),
+          ).components.map((component: ExternalStatusPageComponent): string => {
+            return component.status;
+          }),
+        ).toEqual([expected]);
+        continue;
+      }
 
       if (onThePage === "The project's operational status") {
         expect(
@@ -2426,6 +2473,33 @@ describe("External Status Page Monitor", () => {
         }).toEqual({ name, status: expected });
       }
     }
+  });
+
+  it("leaves a resource the page shows as Not monitored out of the overall status, and reads unknown when nothing else is in scope (#6478)", () => {
+    const oneUptime: string = section(page, "## OneUptime status pages");
+    const read: Array<ExternalStatusPageComponent> =
+      ExternalStatusPageReading.readOneUptimeSummary(
+        notMonitoredSummary(),
+      ).components;
+
+    expect(read[0]?.isMonitored).toBe(false);
+    // Nothing else in scope, and no incident open: unknown.
+    expect(ExternalStatusPageScope.deriveOverallStatus(read, 0)).toBe(
+      "unknown",
+    );
+    // Beside a resource that is checked, it decides nothing.
+    expect(
+      ExternalStatusPageScope.deriveOverallStatus(
+        [...read, { name: "Web app", status: "operational", key: "web-app" }],
+        0,
+      ),
+    ).toBe("operational");
+    // The probe reads a OneUptime page's summary this way.
+    expect(probe).toContain("ExternalStatusPageReading.readOneUptimeSummary(");
+
+    expect(oneUptime).toContain(
+      "A resource the page shows as **Not monitored** is one nothing checks, so it counts toward no overall status, as on the page's own banner. When none of the components the monitor watches is monitored, and none has an incident open, the overall status is `unknown`.",
+    );
   });
 
   it("puts a resource under maintenance while an event in progress affects it, whatever its status", () => {

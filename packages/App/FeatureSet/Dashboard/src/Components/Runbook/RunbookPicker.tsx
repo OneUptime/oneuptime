@@ -17,6 +17,7 @@ import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Runbook from "Common/Models/DatabaseModels/Runbook";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
@@ -26,6 +27,13 @@ import React, {
   useEffect,
   useState,
 } from "react";
+
+/*
+ * Where each runbook's Run sits: at its own width beside the runbook. A
+ * button is as wide as its row below md, which beside the runbook's name
+ * left the name no room at all.
+ */
+export const RUNBOOK_PICKER_RUN_CLASS_NAME: string = "shrink-0";
 
 export interface ComponentProps {
   isOpen: boolean;
@@ -218,32 +226,54 @@ const RunbookPicker: FunctionComponent<ComponentProps> = (
                             size={SizeProp.Regular}
                             className="text-indigo-500 shrink-0"
                           />
-                          <span className="text-sm font-semibold text-gray-900 truncate">
-                            {rb.name ||
-                              translator.translateText("Untitled runbook")}
-                          </span>
+                          {/*
+                           * The runbook's name and description are the
+                           * project's own, read the way they are written
+                           * (IsolatedLine): cut short at their own end.
+                           */}
+                          <IsolatedLine
+                            as="span"
+                            text={
+                              rb.name ||
+                              translator.translateText("Untitled runbook") ||
+                              ""
+                            }
+                            className="text-sm font-semibold text-gray-900 truncate"
+                            dataTestId="runbook-picker-name"
+                          />
                         </div>
                         {rb.description && (
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                            {rb.description}
-                          </p>
+                          <IsolatedLine
+                            as="p"
+                            text={rb.description}
+                            className="text-xs text-gray-500 mt-1 line-clamp-2"
+                            dataTestId="runbook-picker-description"
+                          />
                         )}
                       </div>
                       {/*
                        * One Run per row, so a plain one: a filled button on
                        * every row is as many "main actions" as there are
-                       * runbooks.
+                       * runbooks. It keeps its own width: a button is as
+                       * wide as its row on a phone, and beside the runbook
+                       * it took the whole row, so no runbook showed its
+                       * name or what it does.
                        */}
-                      <Button
-                        title={isStarting ? "Starting..." : "Run"}
-                        buttonStyle={ButtonStyleType.NORMAL}
-                        buttonSize={ButtonSize.Small}
-                        icon={IconProp.Play}
-                        onClick={() => {
-                          void startRunbook(rbId);
-                        }}
-                        disabled={startingRunbookId !== null}
-                      />
+                      <div
+                        className={RUNBOOK_PICKER_RUN_CLASS_NAME}
+                        data-testid="runbook-picker-run"
+                      >
+                        <Button
+                          title={isStarting ? "Starting..." : "Run"}
+                          buttonStyle={ButtonStyleType.NORMAL}
+                          buttonSize={ButtonSize.Small}
+                          icon={IconProp.Play}
+                          onClick={() => {
+                            void startRunbook(rbId);
+                          }}
+                          disabled={startingRunbookId !== null}
+                        />
+                      </div>
                     </div>
                   </li>
                 );

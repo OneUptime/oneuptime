@@ -43,14 +43,17 @@
   "overview": {
     "uptimeSuffix": "% oppetid",
     "operational": "I drift",
+    "notMonitored": "Ikke overvåket",
     "noResourcesInGroup": "Ingen ressurser lagt til i denne gruppen.",
     "activeIncidents": "Aktive hendelser",
     "scheduledMaintenanceEvents": "Planlagte vedlikeholdshendelser",
     "allClearTitle": "Alt ser bra ut",
     "allClearDescription": "Ingen ressurser er lagt til på denne statussiden ennå. Legg til noen ressurser fra kontrollpanelet.",
     "allResourcesAre": "Alle ressurser er {{status}}",
+    "allMonitoredResourcesAre": "Alle overvåkede ressurser er {{status}}",
     "someResourcesAre": "Noen ressurser er {{status}}",
     "someResourcesAreUnder": "Noen ressurser er under {{status}}",
+    "noResourcesAreMonitored": "Ingen ressurser overvåkes akkurat nå",
     "oneSubGroup": "1 gruppe",
     "subGroupCount": "{{total}} grupper"
   },

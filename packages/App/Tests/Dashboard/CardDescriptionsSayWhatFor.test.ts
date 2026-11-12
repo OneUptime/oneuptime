@@ -254,6 +254,18 @@ const OTHER_DESCRIPTIONS: Array<[string, string]> = [
     "Pages/MonitorGroup/View/Index.tsx",
     "This group's status over the last 90 days, one bar per day.",
   ],
+  /*
+   * The same card while monitoring is off for some of the group's monitors,
+   * and for every one of them (#6478): those are left out of the graph.
+   */
+  [
+    "Pages/MonitorGroup/View/Index.tsx",
+    "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.",
+  ],
+  [
+    "Pages/MonitorGroup/View/Index.tsx",
+    "Monitoring is off for every monitor in this group, so it has no uptime to show.",
+  ],
   [
     "Pages/Monitor/Settings/MonitorProbes.tsx",
     "Your probe connects to OneUptime with this ID and key. Keep the key secret.",

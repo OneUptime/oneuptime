@@ -172,3 +172,27 @@ export const MOVED_REPOSITORY_PATHS: {
   settings: `${RouteParams.ModelID}/settings`,
   delete: `${RouteParams.ModelID}/delete`,
 };
+
+/*
+ * Home had a side menu of its own copies of the products' lists - active
+ * incidents and their episodes, active alerts and their episodes, monitors
+ * that are not operational, and maintenance in progress - so Home's Active
+ * Alerts opened a Home page, not the one in Alerts. Home is one page now,
+ * the overview, with no side menu: what it counts opens the product's own
+ * list, and these addresses forward there. Relative to …/home/.
+ */
+export const MOVED_HOME_LIST_PATHS: {
+  activeIncidents: string;
+  activeIncidentEpisodes: string;
+  activeAlerts: string;
+  activeAlertEpisodes: string;
+  notOperationalMonitors: string;
+  ongoingScheduledMaintenance: string;
+} = {
+  activeIncidents: "active-incidents",
+  activeIncidentEpisodes: "active-incident-episodes",
+  activeAlerts: "active-alerts",
+  activeAlertEpisodes: "active-episodes",
+  notOperationalMonitors: "monitors-inoperational",
+  ongoingScheduledMaintenance: "scheduled-maintenance-ongoing",
+};

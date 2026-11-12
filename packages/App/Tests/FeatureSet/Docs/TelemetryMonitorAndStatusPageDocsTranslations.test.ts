@@ -416,6 +416,7 @@ const PROSE_LEADS: Record<string, Array<string>> = {
     // A resource's name as a customer would say it.
     "Checkout API",
     "Archived monitors are not shown.",
+    "A monitor whose monitoring is off shows Not monitored.",
     "Resources decide which incidents the page shows.",
     "A monitor group row stands for every monitor in it, for subscribers too.",
     // The parts of the Resources screen, named for what they are.

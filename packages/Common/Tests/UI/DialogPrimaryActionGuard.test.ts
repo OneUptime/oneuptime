@@ -486,9 +486,9 @@ describe("the guard catches the faults the audit fixed", () => {
     const reverted: string = revert(
       read(file),
       `title={isStarting ? "Starting..." : "Run"}
-                        buttonStyle={ButtonStyleType.NORMAL}`,
+                          buttonStyle={ButtonStyleType.NORMAL}`,
       `title={isStarting ? "Starting..." : "Run"}
-                        buttonStyle={ButtonStyleType.PRIMARY}`,
+                          buttonStyle={ButtonStyleType.PRIMARY}`,
     );
 
     expect(

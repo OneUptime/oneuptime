@@ -22,6 +22,8 @@ import StatusPageGroupViewMode from "../../Types/StatusPage/StatusPageGroupViewM
 export enum StatusPageGroupRollupKind {
   UptimePercent = "UptimePercent",
   CurrentStatus = "CurrentStatus",
+  // Nothing beneath the group is checked: it reads Not monitored, in gray.
+  NotMonitored = "NotMonitored",
   None = "None",
 }
 
@@ -374,6 +376,11 @@ export default class StatusPageGroupNestingLayoutUtil {
    * percent - "99.9% uptime" next to a red group is not the thing a visitor came
    * to read - and a group whose uptime cannot be worked out (no resources under
    * it at all) shows nothing rather than a zero.
+   *
+   * A group none of whose resources is checked - each one drawn as Not
+   * monitored (FrozenMonitorResources) - says Not monitored wherever it
+   * would show a reading: its status, or an uptime percent that would speak
+   * for a time nothing is checking.
    */
   public static getRollupKind(data: {
     showUptimePercent: boolean;
@@ -385,6 +392,8 @@ export default class StatusPageGroupNestingLayoutUtil {
      * is nothing under this group to report on.
      */
     resourceCountInSubtree: number;
+    // Whether every resource in the subtree is drawn as Not monitored.
+    isNotMonitored?: boolean | undefined;
   }): StatusPageGroupRollupKind {
     /*
      * A group with nothing under it has no reading to give - not an uptime
@@ -397,6 +406,12 @@ export default class StatusPageGroupNestingLayoutUtil {
      */
     if (data.resourceCountInSubtree <= 0) {
       return StatusPageGroupRollupKind.None;
+    }
+
+    if (data.isNotMonitored) {
+      return data.showUptimePercent || data.showCurrentStatus
+        ? StatusPageGroupRollupKind.NotMonitored
+        : StatusPageGroupRollupKind.None;
     }
 
     if (data.showUptimePercent && !data.isCurrentlyDown) {

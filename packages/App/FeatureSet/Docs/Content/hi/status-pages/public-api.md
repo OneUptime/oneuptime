@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-समग्र स्थिति पृष्ठ के मॉनिटरों और मॉनिटर समूहों की मौजूदा स्थितियों में सबसे खराब होती है, यानी सबसे ऊंची प्राथमिकता वाली। एक मॉनिटर स्थिति ऐसी दिखती है:
+समग्र स्थिति पृष्ठ के मॉनिटरों और मॉनिटर समूहों की मौजूदा स्थितियों में सबसे खराब होती है, यानी सबसे ऊंची प्राथमिकता वाली। जिन संसाधनों को पृष्ठ **निगरानी नहीं** के रूप में दिखाता है, और जो `notMonitoredResourceIds` में सूचीबद्ध हैं, वे इसमें नहीं गिने जाते। एक मॉनिटर स्थिति ऐसी दिखती है:
 
 ```json
 {
@@ -129,12 +129,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | कुंजी | इसमें क्या होता है |
 | --- | ------------- |
-| `overallStatus` | पृष्ठ की समग्र स्थिति, ऊपर जैसी एक मॉनिटर स्थिति। जिस पृष्ठ पर कुछ नहीं होता, उसे प्रोजेक्ट की सबसे कम प्राथमिकता वाली स्थिति मिलती है। |
+| `overallStatus` | पृष्ठ की समग्र स्थिति, ऊपर जैसी एक मॉनिटर स्थिति। जिस पृष्ठ पर कुछ नहीं होता, उसे प्रोजेक्ट की सबसे कम प्राथमिकता वाली स्थिति मिलती है, और जिस पृष्ठ के सभी संसाधन **निगरानी नहीं** हैं, उसे `null` मिलता है। |
 | `statusPage` | पृष्ठ की सार्वजनिक सेटिंग्स: उसका शीर्षक, विवरण, ब्रांडिंग और वह क्या दिखाता है। |
 | `statusPageResources` | हर संसाधन: उसका डिस्प्ले नाम, विवरण, समूह, मॉनिटर या मॉनिटर समूह, और डिस्प्ले विकल्प। |
 | `resourceGroups` | समूह, नेस्टेड समूहों के लिए `parentStatusPageGroupId` के साथ। |
 | `monitorStatuses` | प्रोजेक्ट की हर मॉनिटर स्थिति, सबसे कम प्राथमिकता से सबसे ऊंची तक। |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | पृष्ठ पर हर मॉनिटर समूह की मौजूदा स्थिति, और उसमें शामिल मॉनिटर। |
+| `notMonitoredResourceIds` | उन संसाधनों की ID जिन्हें पृष्ठ **निगरानी नहीं** के रूप में दिखाता है: ऐसा मॉनिटर जिसकी निगरानी बंद है, या ऐसा मॉनिटर समूह जिसके सभी मॉनिटरों की निगरानी बंद है। ये कोई स्थिति तय नहीं करते, और ऐसे समूह की `monitorGroupCurrentStatuses` में कोई प्रविष्टि नहीं होती। |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | वह डेटा जिससे अपटाइम बार बनते हैं, और पृष्ठ के बार रंग नियम। |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएं, उनके सार्वजनिक नोट और स्थिति बदलाव, और प्रोजेक्ट की घटना स्थितियां। |
 | `timelineIncidents` | अपटाइम बार की अवधि की घटनाएं, सुलझी हुई भी, बार के टूलटिप के लिए। |
@@ -170,6 +171,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -190,12 +192,12 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 
 | कुंजी | सारांश में क्या होता है |
 | --- | -------------- |
-| `overallStatus` | पृष्ठ की समग्र स्थिति, जैसी उसका बैनर दिखाता है: `name`, `color` और `isOperational`। |
-| `resources` | पृष्ठ पर दिखने वाला हर संसाधन, उसी क्रम में: पृष्ठ पर उसका `name`, ऊपर के समूहों सहित उसका `groupName`, उसका `currentStatus`, और `isUnderMaintenance`। |
+| `overallStatus` | पृष्ठ की समग्र स्थिति, जैसी उसका बैनर दिखाता है: `name`, `color` और `isOperational`। जब पृष्ठ का हर संसाधन **निगरानी नहीं** होता, तो `null`। |
+| `resources` | पृष्ठ पर दिखने वाला हर संसाधन, उसी क्रम में: पृष्ठ पर उसका `name`, ऊपर के समूहों सहित उसका `groupName`, उसका `currentStatus`, `isMonitored`, और `isUnderMaintenance`। |
 | `activeIncidents` | पृष्ठ पर दिखने वाली अनसुलझी घटनाएँ, हर एक के साथ उन संसाधनों के `affectedResourceIds` जिन्हें वह प्रभावित करती है। |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | जारी और आने वाले अनुसूचित रखरखाव इवेंट, हर एक के साथ उसके `affectedResourceIds`। |
 
-जब पृष्ठ किसी संसाधन की स्थिति नहीं दिखाता, तो उसका `currentStatus` `null` होता है। जब तक कोई जारी इवेंट संसाधन के किसी मॉनिटर या उसके मॉनिटर समूह के किसी मॉनिटर का नाम लेता है, `isUnderMaintenance` `true` रहता है, चाहे वे मॉनिटर किसी भी स्थिति में हों।
+जब पृष्ठ किसी संसाधन की स्थिति नहीं दिखाता, और जब `isMonitored` `false` होता है, तो उसका `currentStatus` `null` होता है: तब संसाधन की कोई जाँच नहीं होती, क्योंकि उसके मॉनिटर की निगरानी बंद है या उसके मॉनिटर समूह के हर मॉनिटर की निगरानी बंद है, इसलिए पृष्ठ उसे **निगरानी नहीं** के रूप में दिखाता है। जब तक कोई जारी इवेंट संसाधन के किसी मॉनिटर या उसके मॉनिटर समूह के किसी मॉनिटर का नाम लेता है, `isUnderMaintenance` `true` रहता है, चाहे वे मॉनिटर किसी भी स्थिति में हों।
 
 ## किसी तारीख-सीमा का अपटाइम
 
@@ -278,7 +280,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -303,7 +306,8 @@ for group in uptime["groupUptimes"]:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -313,7 +317,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -327,6 +332,7 @@ for group in uptime["groupUptimes"]:
 | `groupUptimes` | हर समूह के लिए एक एंट्री। किसी समूह के `uptimePercent` और `currentStatus` उसके नीचे के हर संसाधन को कवर करते हैं, नेस्टेड समूहों सहित; उसका `statusPageResourceUptimes` सिर्फ़ सीधे उसमें मौजूद संसाधनों को सूचीबद्ध करता है। `parentStatusPageGroupId` से ट्री दोबारा बनाएं। |
 | `uptimePercent` | संसाधन या समूह की अपनी परिशुद्धता तक राउंड किया गया। `null`, जब संसाधन या समूह अपटाइम प्रतिशत नहीं दिखाता। |
 | `currentStatus` | `null`, जब संसाधन या समूह अपनी मौजूदा स्थिति नहीं दिखाता। |
+| `isMonitored` | `false`, जब पृष्ठ संसाधन को **निगरानी नहीं** के रूप में दिखाता है, और किसी समूह के लिए तब, जब उसके नीचे का हर संसाधन ऐसा हो। तब उसका `currentStatus` `null` होता है। |
 
 समय डाउनटाइम के रूप में तब गिना जाता है जब उसकी मॉनिटर स्थिति पृष्ठ की **डाउनटाइम के रूप में गिना जाता है** स्थितियों में से एक हो।
 

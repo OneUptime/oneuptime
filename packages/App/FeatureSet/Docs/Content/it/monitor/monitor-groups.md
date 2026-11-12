@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **I monitor archiviati non contano.** Un monitor archiviato non viene controllato, quindi il suo stato è congelato; il gruppo lo esclude.
+- **I monitor con il monitoraggio disattivato non contano.** Niente controlla un monitor il cui monitoraggio è disattivato, quindi il suo stato è solo ciò che ha visto il suo ultimo controllo. Il gruppo lo esclude dal suo stato e, nella dashboard, anche dal suo uptime e dal suo **Grafico di uptime**: un monitor rimasto **Offline** quando il suo monitoraggio è stato disattivato non rende il gruppo **Offline**.
 - **Un gruppo vuoto è operativo.** Un gruppo senza monitor, o con soli monitor archiviati, mostra il vostro stato operativo. Finché non aggiungete un monitor, la dashboard mostra **Nessun monitor ancora** al posto del suo stato.
-- **Il monitoraggio disattivato mostra Disabilitato.** Quando il monitoraggio è disattivato per tutti i monitor di un gruppo, niente li controlla, quindi la dashboard mostra **Disabilitato** al posto dello stato del gruppo.
+- **Il monitoraggio disattivato mostra Disabilitato.** Quando il monitoraggio è disattivato per tutti i monitor di un gruppo, niente li controlla, quindi la dashboard mostra **Disabilitato** al posto dello stato del gruppo, e nessuna percentuale di uptime accanto al suo **Grafico di uptime**. Una pagina di stato mostra il gruppo come **Non monitorato**.
 - **L'ordine lo decidete voi.** Quale stato sia il peggiore segue l'ordine di **Monitor → Impostazioni → Stato del monitor**. Vedere [Stati dei monitor](/docs/monitor/criteria-and-statuses#stati-dei-monitor).
 
 Un gruppo di monitor non è un gruppo di una pagina di stato. Un gruppo di una pagina di stato è un'intestazione su una pagina di stato che contiene righe. Un gruppo di monitor è una riga che rappresenta più monitor, e qualsiasi pagina di stato può mostrarla.
@@ -124,7 +125,7 @@ Scegliete il gruppo. **Nome visualizzato**, il nome che leggono i visitatori, pr
 
 Sulla pagina di stato, la riga rappresenta ogni monitor del gruppo:
 
-- **Il suo stato.** È quello del gruppo: il peggiore dei suoi monitor.
+- **Il suo stato.** È quello del gruppo: il peggiore dei suoi monitor con il monitoraggio attivo. Quando il monitoraggio è disattivato per tutti, la riga mostra **Non monitorato** e non conta né per l'intestazione sopra di essa né per lo stato complessivo della pagina.
 - **I suoi incidenti.** Un incidente su qualsiasi monitor del gruppo compare sulla pagina, con il gruppo tra le risorse interessate.
 - **I suoi iscritti.** Un iscritto che sceglie il gruppo riceve notizie su ogni monitor che contiene. Vedere [Lasciare che gli iscritti scelgano risorse e tipi di evento](/docs/status-pages/subscribers#lasciare-che-gli-iscritti-scelgano-risorse-e-tipi-di-evento).
 
