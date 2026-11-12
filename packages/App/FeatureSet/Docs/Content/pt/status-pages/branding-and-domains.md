@@ -2,6 +2,9 @@
 
 Sua página de status é a única tela do OneUptime que seus clientes olham, então ela deve ter a sua cara e ficar no seu próprio domínio, como `status.yourcompany.com`. Esta página percorre a página **Marca** cartão por cartão e depois coloca a página de status no seu domínio: adicione o domínio, adicione os registros DNS dele, e o certificado SSL gratuito vem sozinho.
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Publicar uma página de status](/docs/guides/status-page).
+
 :::cards
 - [A página Marca](#a-página-marca): Logotipo, tema, título, favicon, links, rodapé, cores e idiomas.
 - [HTML, CSS e JavaScript personalizados](#html-css-e-javascript-personalizados): Tudo o que os controles embutidos não cobrem.
