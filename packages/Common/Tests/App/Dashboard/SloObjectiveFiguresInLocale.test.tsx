@@ -47,7 +47,7 @@ import SliType from "../../../Types/ServiceLevelObjective/SliType";
 import SloMultiMonitorMode from "../../../Types/ServiceLevelObjective/SloMultiMonitorMode";
 import SloStatus from "../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../Types/ServiceLevelObjective/SloWindowType";
-import { FormValues } from "../../../UI/Components/Forms/Types/FormValues";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
 import { ModelField } from "../../../UI/Components/Forms/ModelForm";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionUtil from "../../../UI/Utils/Permission";
