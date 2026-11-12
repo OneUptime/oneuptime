@@ -306,6 +306,45 @@ describe("Markdown email renderer - the last resort", () => {
     expect(attached.html.includes(notAnImage)).toBe(false);
   });
 
+  test("if marked still runs out of stack, a screenshot defined once is an image where its definition was - never its base64 as text - and its references are text (#6962)", async () => {
+    mockMarkedState.failWith = new RangeError(
+      "Maximum call stack size exceeded",
+    );
+    jest.spyOn(logger, "error").mockImplementation((): void => {});
+
+    // A real 1x1 PNG, as the probe reports a screenshot.
+    const png: string =
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+    const notAnImage: string = Buffer.from("not an image").toString("base64");
+
+    const html: string = await render(
+      [
+        "**Down**: ![Home][home] & ![Home, again][HOME]",
+        "",
+        `[home]: data:image/png;base64,${png} "Shot"`,
+        "[runs]: https://example.com/runs",
+        `[file]: <data:text/plain;base64,${notAnImage}>`,
+        "[query]: https://example.com/?q=;base64,QUJD",
+      ].join("\n"),
+    );
+
+    /*
+     * The screenshot's definition is its image, its label for alt text; the
+     * definition of data that is no image, its label. Definitions of other
+     * addresses are text, as every line is - one whose query says
+     * ";base64," too.
+     */
+    expect(html).toBe(
+      `<p>**Down**: ![Home][home] &amp; ![Home, again][HOME]<br>\n<br>\n<img src="data:image/png;base64,${png}" alt="home" style="${EMAIL_IMAGE_STYLE}"><br>\n[runs]: https://example.com/runs<br>\nfile<br>\n[query]: https://example.com/?q=;base64,QUJD</p>\n`,
+    );
+
+    const attached: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+
+    expect(attached.inlineImages).toHaveLength(1);
+    expect(attached.html.includes(png)).toBe(false);
+    expect(attached.html.includes(notAnImage)).toBe(false);
+  });
+
   test("Markdown with more than a megabyte left once over-long text is held back is sent as text, and marked never reads it", async () => {
     const logged: SpyInstance<typeof logger.warn> = jest
       .spyOn(logger, "warn")
