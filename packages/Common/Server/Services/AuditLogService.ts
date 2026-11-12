@@ -285,6 +285,151 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
     const statement: Statement = SQL`SELECT `;
     statement.append(AUDIT_LOG_EXPORT_SOURCE_COLUMNS.join(", "));
     statement.append(` FROM ${data.databaseName}.${data.tableName} WHERE `);
+    AuditLogService.appendExportWindow(statement, data);
+
+    statement.append(
+      SQL` ORDER BY createdAt ASC, _id ASC LIMIT ${{
+        type: TableColumnType.Number,
+        value: Math.max(1, Math.trunc(data.limit)),
+      }}`,
+    );
+    /*
+     * Stopped at the limit, the read fails rather than breaking off: a
+     * sorted read cut short answers some rows that are not the first ones,
+     * and the cursor would move past entries never sent.
+     */
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS,
+        timeoutOverflowMode: "throw",
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
+   * When the first of the entries an audit log export has not sent is
+   * deleted: the soonest retentionDate among the entries findEntriesForExport
+   * reads next - from `startsAt` to `until`, after the export's cursor, its
+   * project's only or every project's - or null when none waits.
+   *
+   * Each entry is deleted once the retentionDate the recorder stamped on it
+   * passes (the table's TTL), and the recorder stamps it from the project's
+   * retention as it is when the entry is recorded. A retention changed since
+   * moves no stamp, so a failing export reads the stamps rather than reckon
+   * from the retention as it is now: lengthened from 7 days to 30, the
+   * entries already waiting are still deleted after 7 (#6563). The soonest
+   * is not always the oldest entry's: a retention shortened later, or for
+   * the instance's export another project's, can have a newer entry
+   * deleted first.
+   *
+   * One row is answered, and retentionDate is read for it alone: it is never
+   * part of what an export sends (AUDIT_LOG_EXPORT_SOURCE_COLUMNS leaves it
+   * out). Root-only reading, for the exporter.
+   */
+  @CaptureSpan()
+  public async findSoonestRetentionDateForExport(data: {
+    projectId: ObjectID | null;
+    startsAt: Date;
+    until: Date;
+    after: { createdAt: Date; id: ObjectID } | null;
+  }): Promise<Date | null> {
+    if (!this.database) {
+      this.useDefaultDatabase();
+    }
+
+    const statement: Statement =
+      AuditLogService.toSoonestRetentionDateStatement({
+        databaseName: this.database!.getDatasourceOptions().database!,
+        tableName: this.model.tableName,
+        ...data,
+      });
+
+    const result: Results = await this.executeQuery(statement);
+    const response: DbJSONResponse = await result.json<{
+      data?: Array<JSONObject>;
+    }>();
+
+    return AuditLogService.readSoonestRetentionDate(response.data || []);
+  }
+
+  /*
+   * The read findSoonestRetentionDateForExport runs: how many entries wait
+   * and the soonest stamp among them, as whole seconds since 1970 - a
+   * number, whatever time zone the server writes dates in. It waits for the
+   * same entries the export read pages through (appendExportWindow), sorts
+   * nothing and answers one row. Held to the export read's time limit, and
+   * stopped there it fails rather than answer the soonest of some of the
+   * entries, which could be later than the real one; the exporter then
+   * reckons as it did before.
+   */
+  public static toSoonestRetentionDateStatement(data: {
+    databaseName: string;
+    tableName: string;
+    projectId: ObjectID | null;
+    startsAt: Date;
+    until: Date;
+    after: { createdAt: Date; id: ObjectID } | null;
+  }): Statement {
+    const statement: Statement = SQL`SELECT count() AS waiting, toUnixTimestamp(min(retentionDate)) AS soonest`;
+    statement.append(` FROM ${data.databaseName}.${data.tableName} WHERE `);
+    AuditLogService.appendExportWindow(statement, data);
+    statement.append(
+      getQuerySettings({
+        maxExecutionTimeInSeconds: AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS,
+        timeoutOverflowMode: "throw",
+      }),
+    );
+
+    return statement;
+  }
+
+  /*
+   * The soonest stamp from that read's answer, or null when no entry waits
+   * (ClickHouse answers an empty set's min as 1970) or the answer has no
+   * stamp that can be read: the caller then reckons without it.
+   */
+  public static readSoonestRetentionDate(rows: Array<JSONObject>): Date | null {
+    const row: JSONObject | undefined = rows[0];
+
+    if (!row) {
+      return null;
+    }
+
+    // count() is a UInt64, which ClickHouse's JSON writes as text.
+    const waiting: number = Number(row["waiting"]);
+    const seconds: number = Number(row["soonest"]);
+
+    if (
+      !Number.isFinite(waiting) ||
+      waiting <= 0 ||
+      !Number.isFinite(seconds) ||
+      seconds <= 0
+    ) {
+      return null;
+    }
+
+    const soonest: Date = new Date(seconds * 1000);
+
+    return Number.isNaN(soonest.getTime()) ? null : soonest;
+  }
+
+  /*
+   * The entries an export has not sent yet, as both export reads ask for
+   * them: recorded from `startsAt` to `until`, after the cursor (a later
+   * second, or the same second with a later id), its project's only when it
+   * names one. Every value a bound parameter.
+   */
+  private static appendExportWindow(
+    statement: Statement,
+    data: {
+      projectId: ObjectID | null;
+      startsAt: Date;
+      until: Date;
+      after: { createdAt: Date; id: ObjectID } | null;
+    },
+  ): void {
     statement.append(
       SQL`createdAt >= ${{
         type: TableColumnType.Date,
@@ -318,26 +463,6 @@ export class AuditLogService extends AnalyticsDatabaseService<AuditLog> {
         }}))`,
       );
     }
-
-    statement.append(
-      SQL` ORDER BY createdAt ASC, _id ASC LIMIT ${{
-        type: TableColumnType.Number,
-        value: Math.max(1, Math.trunc(data.limit)),
-      }}`,
-    );
-    /*
-     * Stopped at the limit, the read fails rather than breaking off: a
-     * sorted read cut short answers some rows that are not the first ones,
-     * and the cursor would move past entries never sent.
-     */
-    statement.append(
-      getQuerySettings({
-        maxExecutionTimeInSeconds: AUDIT_LOG_EXPORT_READ_TIME_LIMIT_IN_SECONDS,
-        timeoutOverflowMode: "throw",
-      }),
-    );
-
-    return statement;
   }
 
   // Null on the Community Edition (the facade also swallows a module's errors).
