@@ -269,8 +269,26 @@ describe("what is carried", () => {
     ).toBeNull();
   });
 
+  /*
+   * The status page step opens its guided setup (#6806), which says what
+   * is next itself: a status page it lands on carries no line.
+   */
+  test("a status page started from the checklist carries no line: its guided setup says what is next", () => {
+    expect(
+      getWelcomeNextStepLine({
+        inProgress: {
+          projectId: PROJECT_ID,
+          step: WelcomeStep.StatusPage,
+          nextStep: WelcomeStep.Team,
+          startedAt: Date.now(),
+        },
+        path: pathOf(PageMap.STATUS_PAGE_VIEW),
+        projectId: PROJECT_ID,
+      }),
+    ).toBeNull();
+  });
+
   test.each([
-    [WelcomeStep.StatusPage, PageMap.STATUS_PAGE_VIEW],
     [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION],
   ])("%s lands on %s", (step: WelcomeStep, pageMap: PageMap) => {
     expect(
@@ -337,17 +355,17 @@ describe("the line", () => {
   test("says so when that was the last step", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Status page created. Add a monitor to it to tick the step off.",
+      "On-call policy created.",
     );
     expect(screen.getByTestId("welcome-next-step-next")).toHaveTextContent(
       "That was the last step.",
@@ -431,17 +449,17 @@ describe("the line", () => {
 
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       rerender(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Status page created.",
+      "On-call policy created.",
     );
   });
 });

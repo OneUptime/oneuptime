@@ -957,7 +957,14 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       </h3>
       <ul className="mt-2 space-y-1">
         <li>
-          <AppLink to={routeOf(PageMap.STATUS_PAGES)} className={linkClassName}>
+          {/*
+           * The status page guided setup (#6806), which lists this monitor
+           * to pick.
+           */}
+          <AppLink
+            to={routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP)}
+            className={linkClassName}
+          >
             {translator.translateText(WEBSITE_DOWN_COPY.nextStatusPage) || ""}
           </AppLink>
         </li>
