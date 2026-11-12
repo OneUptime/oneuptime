@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} と等しくありません。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} で始まっています。",
   "{{subject}} is {{values}}.": "{{subject}}は {{values}} です。",
-  "Search query": "検索クエリ"
+  "Search query": "検索クエリ",
+  "Finding the page in OneUptime": "OneUptime のページを探しています",
+  "Found the page in OneUptime": "OneUptime のページが見つかりました",
+  "Go to {{page}}": "{{page}} へ移動",
+  "Read the docs": "ドキュメントを読みました",
+  "Reading the docs": "ドキュメントを読んでいます",
+  "Searched the docs": "ドキュメントを検索しました",
+  "Searching the docs": "ドキュメントを検索しています"
 }

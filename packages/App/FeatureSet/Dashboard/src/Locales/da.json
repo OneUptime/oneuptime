@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} er {{values}} og dermed ikke lig med {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} er {{values}} og starter med {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}} er {{values}}.",
-  "Search query": "Søgeforespørgsel"
+  "Search query": "Søgeforespørgsel",
+  "Finding the page in OneUptime": "Finder siden i OneUptime",
+  "Found the page in OneUptime": "Fandt siden i OneUptime",
+  "Go to {{page}}": "Gå til {{page}}",
+  "Read the docs": "Læste dokumentationen",
+  "Reading the docs": "Læser dokumentationen",
+  "Searched the docs": "Søgte i dokumentationen",
+  "Searching the docs": "Søger i dokumentationen"
 }

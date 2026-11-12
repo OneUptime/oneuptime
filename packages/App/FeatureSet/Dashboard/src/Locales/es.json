@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}} (distinto de {{threshold}}).",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}} (empieza por {{threshold}}).",
   "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
-  "Search query": "Consulta de búsqueda"
+  "Search query": "Consulta de búsqueda",
+  "Finding the page in OneUptime": "Buscando la página en OneUptime",
+  "Found the page in OneUptime": "Página encontrada en OneUptime",
+  "Go to {{page}}": "Ir a {{page}}",
+  "Read the docs": "Documentación leída",
+  "Reading the docs": "Leyendo la documentación",
+  "Searched the docs": "Documentación consultada",
+  "Searching the docs": "Buscando en la documentación"
 }

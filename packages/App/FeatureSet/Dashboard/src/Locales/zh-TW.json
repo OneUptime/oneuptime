@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}為 {{values}}，不等於 {{threshold}}。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}為 {{values}}，以 {{threshold}} 開頭。",
   "{{subject}} is {{values}}.": "{{subject}}：{{values}}。",
-  "Search query": "搜尋查詢"
+  "Search query": "搜尋查詢",
+  "Finding the page in OneUptime": "正在 OneUptime 中尋找頁面",
+  "Found the page in OneUptime": "已在 OneUptime 中找到頁面",
+  "Go to {{page}}": "前往 {{page}}",
+  "Read the docs": "已閱讀文件",
+  "Reading the docs": "正在閱讀文件",
+  "Searched the docs": "已搜尋文件",
+  "Searching the docs": "正在搜尋文件"
 }

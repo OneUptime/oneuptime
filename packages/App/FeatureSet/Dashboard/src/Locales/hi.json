@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}, जो {{threshold}} के बराबर नहीं है।",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}}, जो {{threshold}} से शुरू होता है।",
   "{{subject}} is {{values}}.": "{{subject}}: {{values}}।",
-  "Search query": "खोज क्वेरी"
+  "Search query": "खोज क्वेरी",
+  "Finding the page in OneUptime": "OneUptime में पेज ढूँढा जा रहा है",
+  "Found the page in OneUptime": "OneUptime में पेज मिल गया",
+  "Go to {{page}}": "{{page}} पर जाएँ",
+  "Read the docs": "दस्तावेज़ पढ़े",
+  "Reading the docs": "दस्तावेज़ पढ़े जा रहे हैं",
+  "Searched the docs": "दस्तावेज़ों में खोजा",
+  "Searching the docs": "दस्तावेज़ों में खोजा जा रहा है"
 }

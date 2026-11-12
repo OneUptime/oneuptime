@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}과(와) 같지 않습니다.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}(으)로 시작합니다.",
   "{{subject}} is {{values}}.": "{{subject}}은(는) {{values}}입니다.",
-  "Search query": "검색 쿼리"
+  "Search query": "검색 쿼리",
+  "Finding the page in OneUptime": "OneUptime에서 페이지 찾는 중",
+  "Found the page in OneUptime": "OneUptime에서 페이지를 찾았습니다",
+  "Go to {{page}}": "{{page}}(으)로 이동",
+  "Read the docs": "문서를 읽었습니다",
+  "Reading the docs": "문서 읽는 중",
+  "Searched the docs": "문서를 검색했습니다",
+  "Searching the docs": "문서 검색 중"
 }

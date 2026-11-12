@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}، أي لا يساوي {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}}، أي يبدأ بـ {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
-  "Search query": "استعلام البحث"
+  "Search query": "استعلام البحث",
+  "Finding the page in OneUptime": "جارٍ العثور على الصفحة في OneUptime",
+  "Found the page in OneUptime": "تم العثور على الصفحة في OneUptime",
+  "Go to {{page}}": "انتقل إلى {{page}}",
+  "Read the docs": "تمت قراءة الوثائق",
+  "Reading the docs": "جارٍ قراءة الوثائق",
+  "Searched the docs": "تم البحث في الوثائق",
+  "Searching the docs": "جارٍ البحث في الوثائق"
 }

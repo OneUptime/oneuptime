@@ -50794,5 +50794,12 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} برابر نیست.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} شروع می‌شود.",
   "{{subject}} is {{values}}.": "{{subject}} {{values}} است.",
-  "Search query": "عبارت جستجو"
+  "Search query": "عبارت جستجو",
+  "Finding the page in OneUptime": "یافتن صفحه در OneUptime",
+  "Found the page in OneUptime": "صفحه در OneUptime پیدا شد",
+  "Go to {{page}}": "رفتن به {{page}}",
+  "Read the docs": "مستندات خوانده شد",
+  "Reading the docs": "خواندن مستندات",
+  "Searched the docs": "مستندات جست‌وجو شد",
+  "Searching the docs": "جست‌وجو در مستندات"
 }
