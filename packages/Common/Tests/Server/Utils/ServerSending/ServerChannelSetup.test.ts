@@ -218,10 +218,14 @@ describe("email", () => {
       "Amazon SES: the Secret Access Key is not set under Settings > Emails.",
     );
 
-    // An access key picked, or a choice the sender does not know: the same.
+    /*
+     * An access key picked, or a choice the sender does not know: the same.
+     * The column is free text in Postgres, so a row can hold a value the
+     * enum lacks.
+     */
     for (const amazonSesAuthenticationType of [
       AmazonSesAuthenticationType.AccessKey,
-      "Instance Profile",
+      "Instance Profile" as AmazonSesAuthenticationType,
     ]) {
       expect(
         ServerChannelSetup.getEmailSetUpProblem({
