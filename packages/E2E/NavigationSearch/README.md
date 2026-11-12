@@ -97,8 +97,10 @@ phone's menu carries Search and Help and widening to 768 hands them back to
 the header. In German the project picker keeps at least 160px and no entry
 of the Help menu is cut ("So funktioniert OneUptime" was, at the menu's old
 16rem); in Arabic the header reads right to left and the menu opens inside
-the window; in the dark the menu is drawn dark. Screenshots are saved as
-`header-*.png`.
+the window; in the dark the menu is drawn dark. Help's menu and the profile
+menu are each named by their own button (no id twice on the page), open with
+Enter, and Escape puts them away with the focus back on the button.
+Screenshots are saved as `header-*.png`.
 
 For manual inspection, run `node NavigationSearch/server.js` and open
 `http://127.0.0.1:4242/dashboard/00000000-0000-4000-8000-000000000001/home`.
