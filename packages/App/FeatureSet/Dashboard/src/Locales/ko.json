@@ -50793,5 +50793,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}보다 작습니다.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}과(와) 같지 않습니다.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}(으)로 시작합니다.",
-  "{{subject}} is {{values}}.": "{{subject}}은(는) {{values}}입니다."
+  "{{subject}} is {{values}}.": "{{subject}}은(는) {{values}}입니다.",
+  "Search query": "검색 쿼리"
 }

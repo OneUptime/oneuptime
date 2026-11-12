@@ -50793,5 +50793,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} is {{values}}, which is less than {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} is {{values}}, which is not equal to {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} is {{values}}, which starts with {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}} is {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}} is {{values}}.",
+  "Search query": "Search query"
 }

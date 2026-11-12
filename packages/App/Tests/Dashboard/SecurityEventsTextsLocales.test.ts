@@ -31,7 +31,10 @@ import {
  * from the connector catalog - each provider's description, each setting's
  * title, description and choices - are keys too. And since #6781 a Russian
  * sentence never puts the records a connector imports (a nominative plural:
- * "оповещения", "записи") after a word that wants another case.
+ * "оповещения", "записи") after a word that wants another case; since #6893
+ * no Hindi sentence makes a word agree with them, as Microsoft Sentinel's
+ * incidents (घटनाएं) are feminine where every other connector's are
+ * masculine.
  */
 
 const CONTEXT: ReturnType<typeof getDefaultContext> = getDefaultContext();
@@ -721,6 +724,376 @@ describe("the Security Events texts in every language", () => {
     expect(
       russianCaseProblems(
         "{{records}} за эту минуту не импортированы; все {{records}} этого окна.",
+      ),
+    ).toEqual([]);
+  });
+
+  /*
+   * A Hindi sentence names the records a connector imports with a plural
+   * the locale words them in: इवेंट, अलर्ट, निष्कर्ष, रिकॉर्ड and डिटेक्शन are
+   * masculine, and Microsoft Sentinel's incidents, घटनाएं, are feminine.
+   * Hindi makes the words around a noun agree with it - इतने / इतनी, नए /
+   * नई, बने / बनीं, थे / थीं, किए गए / की गईं - so a sentence written for
+   * the masculine ones read wrongly on a Sentinel connection (#6893). And a
+   * postposition after the word (का, के, को, के लिए) wants its oblique
+   * form, घटनाओं, which the filled sentence cannot give either. So no
+   * Hindi sentence puts a word that agrees with the records next to them,
+   * or a postposition straight after them, and no verb or participle after
+   * them in their clause agrees with them (Hindi puts its verb last; one
+   * before them, as in "बताए गए मिनट के लिए", agrees with a noun of its own).
+   */
+  const HINDI_RECORDS_PLACEHOLDERS: Array<string> = [
+    "records",
+    "what",
+    "alerting",
+    "nonAlerting",
+    "nonAlertingLabel",
+  ];
+
+  // Postpositions: the noun before them takes its oblique form.
+  const HINDI_POSTPOSITIONS: ReadonlySet<string> = new Set([
+    "का",
+    "के",
+    "की",
+    "को",
+    "में",
+    "से",
+    "पर",
+    "तक",
+    "ने",
+  ]);
+
+  // Words that agree with the noun after them, in gender or in number.
+  const HINDI_AGREEING_MODIFIERS: ReadonlySet<string> = new Set([
+    "का",
+    "के",
+    "की",
+    "इतना",
+    "इतने",
+    "इतनी",
+    "जितना",
+    "जितने",
+    "जितनी",
+    "नया",
+    "नए",
+    "नये",
+    "नई",
+    "पुराना",
+    "पुराने",
+    "पुरानी",
+    "सारा",
+    "सारे",
+    "सारी",
+    "ऐसा",
+    "ऐसे",
+    "ऐसी",
+    "कितने",
+    "कितनी",
+    "अपने",
+    "अपनी",
+    "बने",
+    "बनी",
+    "बनीं",
+    "गए",
+    "गई",
+    "गईं",
+    "किए",
+    "हुए",
+    "हुई",
+    "वाले",
+    "वाली",
+    "कोई",
+  ]);
+
+  /*
+   * The plural verbs and participles that agree with their subject or
+   * object, masculine and feminine: after the records in their clause, each
+   * one agrees with them.
+   */
+  const HINDI_AGREEING_PLURAL_VERBS: ReadonlySet<string> = new Set([
+    "बने",
+    "बनीं",
+    "थे",
+    "थीं",
+    "पढ़े",
+    "पढ़ीं",
+    "गए",
+    "गईं",
+    "किए",
+    "कीं",
+    "दिए",
+    "दीं",
+    "हुए",
+    "हुईं",
+    "आते",
+    "आतीं",
+    "जाते",
+    "जातीं",
+    "होते",
+    "होतीं",
+    "रहते",
+    "रहतीं",
+    "चुके",
+    "चुकीं",
+  ]);
+
+  const HINDI_CLAUSE_END: RegExp = /[।;,?:]/;
+
+  const HINDI_WORD_SPLIT: RegExp = /[\s"“”'(),;:।?]+/;
+
+  function hindiWords(text: string): Array<string> {
+    return text.split(HINDI_WORD_SPLIT).filter(Boolean);
+  }
+
+  // Where a Hindi sentence makes a word agree with the records it names.
+  function hindiAgreementProblems(sentence: string): Array<string> {
+    const problems: Array<string> = [];
+
+    for (const name of HINDI_RECORDS_PLACEHOLDERS) {
+      const placeholder: string = `{{${name}}}`;
+      const parts: Array<string> = sentence.split(placeholder);
+
+      parts.slice(0, -1).forEach((before: string, index: number): void => {
+        const after: string = parts[index + 1] as string;
+        const previous: string = hindiWords(before).pop() || "";
+        const next: string = after.startsWith(" ")
+          ? hindiWords(after)[0] || ""
+          : "";
+
+        if (HINDI_AGREEING_MODIFIERS.has(previous)) {
+          problems.push(`${previous} ${placeholder}`);
+        }
+
+        if (HINDI_POSTPOSITIONS.has(next)) {
+          problems.push(`${placeholder} ${next}`);
+        }
+
+        // The rest of the placeholder's clause, up to its next clause end.
+        const rest: string = after.split(HINDI_CLAUSE_END)[0] || "";
+
+        for (const verb of hindiWords(rest)) {
+          if (HINDI_AGREEING_PLURAL_VERBS.has(verb)) {
+            problems.push(`${placeholder} ... ${verb}`);
+          }
+        }
+      });
+    }
+
+    return [...new Set(problems)];
+  }
+
+  // Every connector's records, as the Hindi locale names them in a sentence.
+  function hindiRecordsWords(): Array<string> {
+    const hindi: Record<string, string> = readLocale("hi");
+
+    return [
+      ...new Set(
+        SecurityEventConnectorCatalog.map(
+          (definition: SecurityEventConnectorDefinition): string => {
+            const key: string = `${definition.importedRecordName}s`;
+
+            expect({ key, english: ENGLISH[key] }).toEqual({
+              key,
+              english: key,
+            });
+
+            return hindi[key] as string;
+          },
+        ),
+      ),
+    ];
+  }
+
+  test("Hindi names Microsoft Sentinel's incidents with a feminine plural and the rest with masculine ones", () => {
+    const hindi: Record<string, string> = readLocale("hi");
+
+    expect(
+      [
+        "incidents",
+        "alerts",
+        "notable events",
+        "findings",
+        "log events",
+        "records",
+        "audit events",
+        "detections",
+      ].map((name: string): string => {
+        return hindi[name] as string;
+      }),
+    ).toEqual([
+      "घटनाएं",
+      "अलर्ट",
+      "उल्लेखनीय इवेंट",
+      "निष्कर्ष",
+      "लॉग इवेंट",
+      "रिकॉर्ड",
+      "ऑडिट इवेंट",
+      "डिटेक्शन",
+    ]);
+    // Every connector's records are among them, Sentinel's incidents too.
+    expect(hindiRecordsWords()).toEqual(expect.arrayContaining(["घटनाएं"]));
+  });
+
+  test("no Hindi sentence makes a word agree with the records it names (#6893)", () => {
+    const hindi: Record<string, string> = readLocale("hi");
+    const sentences: Array<string> = EVERY_SECURITY_EVENTS_KEY.filter(
+      (key: string): boolean => {
+        return HINDI_RECORDS_PLACEHOLDERS.some((name: string): boolean => {
+          return key.includes(`{{${name}}}`);
+        });
+      },
+    );
+
+    // The diagnostics, the run details and the import confirmation, at least.
+    expect(sentences.length).toBeGreaterThan(10);
+    expect(sentences).toEqual(
+      expect.arrayContaining([
+        "Preview {{records}}",
+        "Find historical {{records}}",
+        "More {{records}} were created in one minute than one poll can read. Polling moved past that minute so newer {{records}} keep arriving; the {{records}} from it that this poll did not read were not imported.",
+        "This window held more {{records}} than one poll can read, so the cursor stayed where it was. The next scheduled poll reads a window of {{window}} from the same starting point and widens it again as polls complete.",
+        "Import {{what}} from {{start}} to {{end}} into OneUptime? Imported events become available to security rules and monitors. Already imported {{records}} are skipped.",
+      ]),
+    );
+
+    const problems: Array<string> = sentences.flatMap(
+      (key: string): Array<string> => {
+        return hindiAgreementProblems(hindi[key] as string).map(
+          (problem: string): string => {
+            return `${problem}: ${key}`;
+          },
+        );
+      },
+    );
+
+    expect(problems).toEqual([]);
+
+    // Filled with every connector's records, Sentinel's incidents read whole.
+    const words: Array<string> = hindiRecordsWords();
+
+    for (const key of sentences) {
+      for (const word of words) {
+        const filled: string = (hindi[key] as string)
+          .split("{{records}}")
+          .join(word)
+          .split("{{what}}")
+          .join(word);
+
+        for (const modifier of ["इतने", "नए", "पुराने", "कोई"]) {
+          expect({
+            key,
+            word,
+            modifier,
+            found: filled.includes(`${modifier} ${word}`),
+          }).toEqual({ key, word, modifier, found: false });
+        }
+
+        for (const postposition of ["का", "के", "की", "को"]) {
+          expect({
+            key,
+            word,
+            postposition,
+            found: filled.includes(`${word} ${postposition} `),
+          }).toEqual({ key, word, postposition, found: false });
+        }
+      }
+    }
+  });
+
+  test("the Hindi sentences #6893 reworded read the same for every connector's records", () => {
+    const hindi: Record<string, string> = readLocale("hi");
+
+    expect(
+      hindi[
+        "More {{records}} were created in one minute than one poll can read. Polling moved past that minute so newer {{records}} keep arriving; the {{records}} from it that this poll did not read were not imported."
+      ],
+    ).toBe(
+      "एक ही मिनट में एक पोल जितना पढ़ सकता है, उससे अधिक {{records}} हैं। पोलिंग उस मिनट से आगे बढ़ गई, ताकि OneUptime नवीनतम {{records}} आयात करता रहे; यह पोल उस मिनट में से बाकी {{records}} नहीं पढ़ पाया, इसलिए उनका आयात नहीं हुआ।",
+    );
+    expect(
+      hindi[
+        "This window held more {{records}} than one poll can read, so the cursor stayed where it was. The next scheduled poll reads a window of {{window}} from the same starting point and widens it again as polls complete."
+      ],
+    ).toContain(
+      "इस विंडो में एक पोल जितना पढ़ सकता है, उससे अधिक {{records}} हैं,",
+    );
+    expect(
+      hindi[
+        "Preview a window before importing. The first scheduled poll looks back 24 hours; older {{records}} need a historical import. Choose up to 7 days per run. When Last Error says polling moved past a minute it could not read in full, import that minute here to recover what one run can read."
+      ],
+    ).toContain(
+      "उससे पहले के समय से {{records}} लाने के लिए ऐतिहासिक आयात चलाएँ।",
+    );
+    expect(
+      hindi[
+        "Import {{what}} from {{start}} to {{end}} into OneUptime? Imported events become available to security rules and monitors. Already imported {{records}} are skipped."
+      ],
+    ).toContain("OneUptime पहले से आयातित {{records}} छोड़ देता है।");
+    expect(hindi["Preview {{records}}"]).toBe(
+      "पूर्वावलोकन में {{records}} देखें",
+    );
+    // What a run skips names a record of its own, not the records' plural.
+    for (const key of [
+      "To recover them, use Import this time range under Find historical {{records}} for {{start}} → {{end}}. Any already imported are skipped.",
+      "To recover them, use Import this time range under Find historical {{records}} on the minute named in the warnings. Any already imported are skipped.",
+    ]) {
+      expect(hindi[key]).toContain(
+        "पहले से आयात हो चुका कोई भी रिकॉर्ड छोड़ दिया जाता है।",
+      );
+      expect(hindi[key]).not.toContain("पहले से आयात किए गए छोड़ दिए जाते हैं");
+    }
+  });
+
+  test("the Hindi check finds the wordings #6893 replaced", () => {
+    // As the Hindi locale worded them before: masculine around the records.
+    expect(
+      hindiAgreementProblems(
+        "एक मिनट में इतने {{records}} बने जितने एक पोल नहीं पढ़ सकता। पोलिंग उस मिनट से आगे बढ़ गई ताकि नए {{records}} आते रहें; उस मिनट के जो {{records}} इस पोल ने नहीं पढ़े, वे आयात नहीं किए गए।",
+      ),
+    ).toEqual([
+      "इतने {{records}}",
+      "{{records}} ... बने",
+      "नए {{records}}",
+      "{{records}} ... आते",
+      "{{records}} ... पढ़े",
+    ]);
+    expect(
+      hindiAgreementProblems(
+        "इस विंडो में इतने {{records}} थे जितने एक पोल नहीं पढ़ सकता, इसलिए कर्सर अपनी जगह पर रहा।",
+      ),
+    ).toEqual(["इतने {{records}}", "{{records}} ... थे"]);
+    expect(
+      hindiAgreementProblems(
+        "पहला शेड्यूल किया गया पोल 24 घंटे पीछे तक देखता है; पुराने {{records}} के लिए ऐतिहासिक आयात चाहिए।",
+      ),
+    ).toEqual(["पुराने {{records}}", "{{records}} के"]);
+    expect(
+      hindiAgreementProblems(
+        "{{start}} से {{end}} तक के {{what}} OneUptime में आयात करें? पहले से आयात किए गए {{records}} छोड़ दिए जाते हैं।",
+      ),
+    ).toEqual([
+      "गए {{records}}",
+      "{{records}} ... दिए",
+      "{{records}} ... जाते",
+      "के {{what}}",
+    ]);
+    expect(hindiAgreementProblems("{{records}} का पूर्वावलोकन")).toEqual([
+      "{{records}} का",
+    ]);
+    expect(
+      hindiAgreementProblems(
+        "इस {{control}} चयन के साथ केवल {{alerting}} आयात किए जाते हैं;",
+      ),
+    ).toEqual(["{{alerting}} ... किए", "{{alerting}} ... जाते"]);
+    expect(
+      hindiAgreementProblems(
+        "{{nonAlertingLabel}} के साथ और उसके बिना आयात के लिए क्या उपलब्ध है",
+      ),
+    ).toEqual(["{{nonAlertingLabel}} के"]);
+    // A sentence where nothing agrees with the records reads right.
+    expect(
+      hindiAgreementProblems(
+        "ऐतिहासिक {{records}} खोजें; पूर्वावलोकन में {{records}} देखें; OneUptime पहले से आयातित {{records}} छोड़ देता है।",
       ),
     ).toEqual([]);
   });
