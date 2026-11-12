@@ -671,11 +671,18 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
  * out of every locale file (a test in ee/ holds every frontend's locales to
  * that). BackupSetting and BackupRun are the instance's backups, which only
  * the Admin Dashboard shows, in words of its own (ee/AdminDashboard/Backups).
+ * ProductFeedback is what people told the server, which only the Admin
+ * Dashboard's Feedback page shows (#6832).
  */
 export const SKIPPED_SOURCE_FILES: ReadonlySet<string> = new Set<string>([
   "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
   "packages/Common/Models/DatabaseModels/BackupSetting.ts",
   "packages/Common/Models/DatabaseModels/BackupRun.ts",
+  /*
+   * What people told OneUptime (#6832): only the Admin Dashboard's Feedback
+   * page reads it, in words of its own.
+   */
+  "packages/Common/Models/DatabaseModels/ProductFeedback.ts",
 ]);
 
 /*

@@ -46,7 +46,13 @@ import {
   HowOneUptimeWorksOpenedFrom,
   openHowOneUptimeWorks,
 } from "../Home/HowOneUptimeWorksDialog";
+import {
+  GiveFeedbackOpenedFrom,
+  openGiveFeedback,
+} from "../Feedback/GiveFeedbackDialog";
 import { getPageSearchAreas } from "./PageSearchIndex";
+import { useProductFeedbackSettings } from "Common/UI/Utils/ProductFeedback";
+import { ProductFeedbackSettings } from "Common/Types/ProductFeedback/ProductFeedback";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import GlossaryTerm from "Common/Types/Docs/GlossaryTerm";
@@ -340,6 +346,9 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const theme: Theme = useTheme();
   const themePreference: ThemePreference = useThemePreference();
+  // Give feedback is offered once the server says it takes feedback (#6832).
+  const feedbackSettings: ProductFeedbackSettings | null =
+    useProductFeedbackSettings();
 
   const closePalette: () => void = useCallback((): void => {
     setIsOpen(false);
@@ -573,6 +582,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
       hasProjectSelected,
       isMasterAdmin,
       isThemeFollowingDevice: themePreference === ThemePreference.System,
+      canGiveFeedback: feedbackSettings?.isOn === true,
     });
 
     const actionsCategory: string = t(
@@ -763,6 +773,30 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
             URL.fromString(getDocsPageUrl(GLOSSARY_INDEX_DOCS_PAGE, language)),
             { openInNewTab: true },
           );
+        },
+      },
+      /*
+       * Tell OneUptime what was hard (#6832): the dialog Help opens, kept
+       * on this server for its admins.
+       */
+      "action-give-feedback": {
+        id: "action-give-feedback",
+        title: t("help.giveFeedback", "Give feedback"),
+        icon: IconProp.ChatBubbleLeftRight,
+        iconColor: "indigo",
+        category: actionsCategory,
+        keywords: [
+          "feedback",
+          "suggestion",
+          "confusing",
+          "hard",
+          "report a problem",
+          "tell us",
+          "help",
+        ],
+        onSelect: () => {
+          closePalette();
+          openGiveFeedback(GiveFeedbackOpenedFrom.CommandPalette);
         },
       },
       "action-active-incidents": {
