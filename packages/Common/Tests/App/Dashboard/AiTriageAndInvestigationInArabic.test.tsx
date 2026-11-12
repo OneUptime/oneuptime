@@ -818,11 +818,12 @@ describe("the insight's AI Triage, in Arabic, right to left", () => {
   });
 
   /*
-   * The provider's error and the server's refusal of Try again are English
-   * whatever the reader's language: laid out right to left, as the page
-   * is, an English line has its full stop at its start. Each is laid out
-   * by its own first letter (dir="auto"), and the button's own Arabic
-   * words still read right to left.
+   * The provider's error, and a refusal of Try again the Dashboard does
+   * not word, are English whatever the reader's language: laid out right
+   * to left, as the page is, an English line has its full stop at its
+   * start. Each is laid out by its own first letter (dir="auto"), and the
+   * button's own Arabic words still read right to left. (A refusal the
+   * Dashboard words reads in Arabic: AiRunRefusalInReaderLanguage.)
    */
   test("the provider's error under Details is laid out by its own first letter", async () => {
     const panel: HTMLElement = await renderInsightPage();
@@ -981,11 +982,12 @@ describe("the AI investigation card, in Arabic", () => {
   });
 
   /*
-   * The provider's error and the server's refusal of Try again are English
-   * whatever the reader's language: laid out right to left, as the page
-   * is, an English line has its full stop at its start. Each is laid out
-   * by its own first letter (dir="auto"), and the button's own Arabic
-   * words still read right to left.
+   * The provider's error, and a refusal of Try again the Dashboard does
+   * not word, are English whatever the reader's language: laid out right
+   * to left, as the page is, an English line has its full stop at its
+   * start. Each is laid out by its own first letter (dir="auto"), and the
+   * button's own Arabic words still read right to left. (A refusal the
+   * Dashboard words reads in Arabic: AiRunRefusalInReaderLanguage.)
    */
   test("the provider's error under Details is laid out by its own first letter", async () => {
     await renderInvestigationCard();

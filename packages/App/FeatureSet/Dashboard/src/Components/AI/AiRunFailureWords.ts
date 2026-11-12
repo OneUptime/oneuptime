@@ -300,6 +300,20 @@ export function describeAiRunFailure(
   };
 }
 
+/*
+ * The server's refusal of Try again or Investigate now, as the reader
+ * sees it: in the reader's language when the Dashboard words that very
+ * sentence - a record's own daily AI token limit (#7157) says the same
+ * sentence in the refusal as on the card, worded in every language - and
+ * as the server wrote it otherwise.
+ */
+export function describeAiRunRefusal(
+  message: string,
+  translator: Translator,
+): string {
+  return translator.translateText(message) || message;
+}
+
 // A time of day, as the reader's clock reads it: "14:05" or "2:05 PM".
 export function formatAiRunTime(date: Date): string {
   return OneUptimeDate.getLocalTimeString(date, {

@@ -1314,8 +1314,11 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
           {/*
            * The AI settings page of each kind it turns on, as the sentence
            * names them: the alerts' limits are on the alerts' page (#7158).
+           * Right under the sentence (the dialog spaces it already), and
+           * two links as far apart as a notice's actions, so they read as
+           * two where their arrows point left.
            */}
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
             {getAutomaticInvestigationSettingsLinks(automaticInvestigation).map(
               (link: AutomaticInvestigationSettingsLink) => {
                 return (
