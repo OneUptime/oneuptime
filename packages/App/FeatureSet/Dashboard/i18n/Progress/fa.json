@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51019,
-    "untranslated": 8881
+    "untranslated": 8621
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -98,6 +98,7 @@
     "MongoDB",
     "MySQL",
     "Namespace",
+    "OID",
     "OK",
     "OSD",
     "OVN Chassis",
@@ -231,6 +232,10 @@
     "svc-backup",
     "syslog",
     "test@company.com",
+    "text-amber-700/80",
+    "text-emerald-700/80",
+    "text-rose-700/80",
+    "text-sky-700/80",
     "timeout|connection refused",
     "vApp {{name}}",
     "vCenter",
