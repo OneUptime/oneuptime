@@ -2085,6 +2085,7 @@ import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
+import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
@@ -6575,6 +6576,16 @@ const BaseAPIFeatureSet: FeatureSet = {
      * own checks are the gate.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
+
+    /*
+     * Asking people how things went (issue #6832): the question at the end
+     * of a guided setup, Give feedback, Was this clear? and the first-week
+     * check-in, kept on this server for its master admins (Admin Dashboard
+     * > Feedback). A bare router for the same reason as OnCallReadinessAPI:
+     * ProductFeedback has no CRUD API, and the service writes as root, so
+     * the router's own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProductFeedbackAPI);
 
     /*
      * Telemetry usage (Project Settings > Telemetry & APM > Usage, and the

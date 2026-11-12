@@ -2708,4 +2708,31 @@ export default class GlobalConfig extends GlobalConfigModel {
     nullable: true,
   })
   public serverSetupChoices?: JSONObject = undefined;
+
+  /*
+   * Whether OneUptime asks people how things went (issue #6832): the
+   * question at the end of a guided setup, Was this clear? and the
+   * first-week check-in, and whether Give feedback is in Help. On unless
+   * a master admin turns it off (Admin Dashboard > Feedback): the answers
+   * stay on this server either way (ProductFeedback). Off, nothing asks,
+   * nothing is offered, and ProductFeedbackAPI takes no answer.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    title: "Disable Product Feedback",
+    description:
+      "When enabled, OneUptime asks nobody how things went and offers no Give feedback: no question at the end of a guided setup, no Was this clear?, no first-week check-in.",
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public disableProductFeedback?: boolean = undefined;
 }
