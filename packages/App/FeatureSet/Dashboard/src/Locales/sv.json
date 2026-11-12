@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "Testsammanfattningen publicerades inte i någon av sina {{count}} kanaler.",
   "The test summary was not posted in any of its {{count}} channels._one": "Testsammanfattningen publicerades inte.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "Testsammanfattningen publicerades inte i {{failed}} av sina {{count}} kanaler.",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Testsammanfattningen publicerades inte i {{failed}} av {{count}} kanal."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Testsammanfattningen publicerades inte i {{failed}} av {{count}} kanal.",
+  "Finding the page in OneUptime": "Letar upp sidan i OneUptime",
+  "Found the page in OneUptime": "Hittade sidan i OneUptime",
+  "Go to {{page}}": "Gå till {{page}}",
+  "Read the docs": "Läste dokumentationen",
+  "Reading the docs": "Läser dokumentationen",
+  "Searched the docs": "Sökte i dokumentationen",
+  "Searching the docs": "Söker i dokumentationen"
 }

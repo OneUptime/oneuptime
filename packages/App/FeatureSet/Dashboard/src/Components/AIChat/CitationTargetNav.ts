@@ -15,6 +15,9 @@ import {
   buildProfilesRoute,
   parseProfilesUrlState,
 } from "../../Utils/ProfilesUrlState";
+import { getDashboardPageTemplate, getDocsPageAddress } from "./AskAiPageLinks";
+import { DOCS_URL } from "Common/UI/Config";
+import URL from "Common/Types/API/URL";
 
 /*
  * Maps an AI citation/widget target onto its dashboard route. Shared by the
@@ -73,6 +76,9 @@ export const targetTypeToPageMap: {
     PageMap.DATA_OBSERVABILITY_TABLE_VIEW,
   [AIChatCitationTargetType.DataTableLineageView]:
     PageMap.DATA_OBSERVABILITY_TABLE_VIEW_LINEAGE,
+  // Opened by their own checked address (AskAiPageLinks), not a PageMap key.
+  [AIChatCitationTargetType.DocsPage]: undefined,
+  [AIChatCitationTargetType.DashboardPage]: undefined,
 };
 
 export const targetTypeToIcon: {
@@ -123,6 +129,8 @@ export const targetTypeToIcon: {
   [AIChatCitationTargetType.DataTableView]: IconProp.TableCells,
   // The Lineage tab's own icon.
   [AIChatCitationTargetType.DataTableLineageView]: IconProp.Workflow,
+  [AIChatCitationTargetType.DocsPage]: IconProp.Book,
+  [AIChatCitationTargetType.DashboardPage]: IconProp.ArrowRight,
 };
 
 /*
@@ -180,6 +188,17 @@ export function getRouteForCitationTarget(
     return getProfilesCitationRoute(target.params || {});
   }
 
+  /*
+   * A page of the Dashboard an answer sends the reader to (issue #6828):
+   * only when its route is one of RouteMap's, in this project.
+   */
+  if (target.type === AIChatCitationTargetType.DashboardPage) {
+    const template: string | undefined = getDashboardPageTemplate(target);
+    return template
+      ? RouteUtil.populateRouteParams(new Route(template))
+      : undefined;
+  }
+
   const pageMapKey: PageMap | undefined = targetTypeToPageMap[target.type];
   const route: Route | undefined = pageMapKey
     ? (RouteMap[pageMapKey] as Route)
@@ -198,9 +217,43 @@ export function getRouteForCitationTarget(
   );
 }
 
+/*
+ * The docs page a DocsPage citation opens, at its section, under this
+ * installation's own docs - or undefined.
+ */
+export function getDocsUrlForCitationTarget(
+  target: AIChatCitationTarget | undefined,
+): URL | undefined {
+  const address: string | undefined = getDocsPageAddress(target);
+
+  if (!address) {
+    return undefined;
+  }
+
+  return URL.fromString(
+    `${DOCS_URL.toString()}${address.replace(/^\/docs/, "")}`,
+  );
+}
+
+// Whether a citation opens anything: a page of the Dashboard, or of the docs.
+export function canOpenCitationTarget(
+  target: AIChatCitationTarget | undefined,
+): boolean {
+  return Boolean(
+    getRouteForCitationTarget(target) || getDocsUrlForCitationTarget(target),
+  );
+}
+
 export function navigateToCitationTarget(
   target: AIChatCitationTarget | undefined,
 ): void {
+  // The docs open beside the Dashboard, so the answer stays where it was.
+  const docsUrl: URL | undefined = getDocsUrlForCitationTarget(target);
+  if (docsUrl) {
+    Navigation.navigate(docsUrl, { openInNewTab: true });
+    return;
+  }
+
   const route: Route | undefined = getRouteForCitationTarget(target);
   if (route) {
     Navigation.navigate(route);

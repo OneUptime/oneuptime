@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "خلاصه آزمایشی در هیچ‌یک از {{count}} کانالش ارسال نشد.",
   "The test summary was not posted in any of its {{count}} channels._one": "خلاصه آزمایشی ارسال نشد.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "خلاصه آزمایشی در {{failed}} مورد از {{count}} کانالش ارسال نشد.",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "خلاصه آزمایشی در {{failed}} مورد از {{count}} کانالش ارسال نشد."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "خلاصه آزمایشی در {{failed}} مورد از {{count}} کانالش ارسال نشد.",
+  "Finding the page in OneUptime": "یافتن صفحه در OneUptime",
+  "Found the page in OneUptime": "صفحه در OneUptime پیدا شد",
+  "Go to {{page}}": "رفتن به {{page}}",
+  "Read the docs": "مستندات خوانده شد",
+  "Reading the docs": "خواندن مستندات",
+  "Searched the docs": "مستندات جست‌وجو شد",
+  "Searching the docs": "جست‌وجو در مستندات"
 }

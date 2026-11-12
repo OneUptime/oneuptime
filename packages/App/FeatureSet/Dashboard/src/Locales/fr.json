@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "Le résumé de test n'a été publié dans aucun de ses {{count}} canaux.",
   "The test summary was not posted in any of its {{count}} channels._one": "Le résumé de test n'a pas été publié.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "Le résumé de test n'a pas été publié dans {{failed}} de ses {{count}} canaux.",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Le résumé de test n'a pas été publié dans {{failed}} canal sur {{count}}."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Le résumé de test n'a pas été publié dans {{failed}} canal sur {{count}}.",
+  "Finding the page in OneUptime": "Recherche de la page dans OneUptime",
+  "Found the page in OneUptime": "Page trouvée dans OneUptime",
+  "Go to {{page}}": "Aller à {{page}}",
+  "Read the docs": "Documentation lue",
+  "Reading the docs": "Lecture de la documentation",
+  "Searched the docs": "Documentation parcourue",
+  "Searching the docs": "Recherche dans la documentation"
 }

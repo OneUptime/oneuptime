@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "Тестовая сводка не опубликована ни в одном из каналов (всего {{count}}).",
   "The test summary was not posted in any of its {{count}} channels._one": "Тестовая сводка не опубликована.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "Тестовая сводка не опубликована в {{failed}} из {{count}} каналов.",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Тестовая сводка не опубликована в {{failed}} из {{count}} канала."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Тестовая сводка не опубликована в {{failed}} из {{count}} канала.",
+  "Finding the page in OneUptime": "Поиск страницы в OneUptime",
+  "Found the page in OneUptime": "Страница в OneUptime найдена",
+  "Go to {{page}}": "Перейти: {{page}}",
+  "Read the docs": "Документация прочитана",
+  "Reading the docs": "Чтение документации",
+  "Searched the docs": "Поиск по документации выполнен",
+  "Searching the docs": "Поиск по документации"
 }

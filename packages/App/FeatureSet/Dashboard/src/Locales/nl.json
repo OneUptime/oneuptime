@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "De testsamenvatting is in geen van de {{count}} kanalen geplaatst.",
   "The test summary was not posted in any of its {{count}} channels._one": "De testsamenvatting is niet geplaatst.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "De testsamenvatting is in {{failed}} van de {{count}} kanalen niet geplaatst.",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "De testsamenvatting is in {{failed}} van {{count}} kanaal niet geplaatst."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "De testsamenvatting is in {{failed}} van {{count}} kanaal niet geplaatst.",
+  "Finding the page in OneUptime": "Pagina in OneUptime zoeken",
+  "Found the page in OneUptime": "Pagina in OneUptime gevonden",
+  "Go to {{page}}": "Naar {{page}}",
+  "Read the docs": "Documentatie gelezen",
+  "Reading the docs": "Documentatie lezen",
+  "Searched the docs": "Documentatie doorzocht",
+  "Searching the docs": "Documentatie doorzoeken"
 }
