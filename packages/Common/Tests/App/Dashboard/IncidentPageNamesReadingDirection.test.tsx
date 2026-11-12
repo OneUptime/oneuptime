@@ -101,9 +101,11 @@ import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Runbook from "../../../Models/DatabaseModels/Runbook";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
 import Route from "../../../Types/API/Route";
+import URL from "../../../Types/API/URL";
 import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import { RUNBOOK_URL } from "../../../UI/Config";
 import API from "../../../UI/Utils/API/API";
 import { APIRequestOptions } from "../../../Utils/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
@@ -861,8 +863,11 @@ describe("a runbook's name and description in the runbook picker", () => {
         expect(onStarted).toHaveBeenCalledTimes(1);
       });
 
-      expect(posted).toHaveLength(1);
-      expect(posted[0]).toContain(`/run/${arabic._id!.toString()}`);
+      expect(posted).toEqual([
+        URL.fromString(RUNBOOK_URL.toString())
+          .addRoute(`/run/${arabic._id!.toString()}`)
+          .toString(),
+      ]);
       expect(onClose).toHaveBeenCalledTimes(1);
     },
   );
