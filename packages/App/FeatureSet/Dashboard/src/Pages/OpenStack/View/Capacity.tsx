@@ -1179,7 +1179,7 @@ const OpenStackCloudCapacity: FunctionComponent<
             </ul>
           ) : (
             <p
-              className="py-2 text-sm text-gray-600"
+              className="text-sm text-gray-600"
               data-testid="openstack-capacity-nothing-short"
             >
               {translator.translateText(
@@ -1217,7 +1217,7 @@ const OpenStackCloudCapacity: FunctionComponent<
               routes={routes}
             />
           ) : (
-            <p className="py-2 text-sm text-gray-600">
+            <p className="text-sm text-gray-600">
               {translator.translateText("No flavors have been reported yet.")}
             </p>
           )}
@@ -1313,7 +1313,7 @@ const OpenStackCloudCapacity: FunctionComponent<
               <OvercommitTable zones={view.zones} />
             ) : (
               <p
-                className="py-2 text-sm text-gray-600"
+                className="text-sm text-gray-600"
                 data-testid="openstack-capacity-no-real-usage"
               >
                 {translator.translateText(

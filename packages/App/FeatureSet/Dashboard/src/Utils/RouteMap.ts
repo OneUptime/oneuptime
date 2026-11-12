@@ -1652,6 +1652,7 @@ export const OnCallDutyRoutePath: Dictionary<string> = {
   [PageMap.ON_CALL_DUTY_POLICIES]: "policies",
   [PageMap.ON_CALL_DUTY_POLICIES_ARCHIVED]: "policies/archived",
   [PageMap.ON_CALL_DUTY_READINESS]: "readiness",
+  [PageMap.ON_CALL_DUTY_GUIDED_SETUP]: "setup",
   [PageMap.ON_CALL_DUTY_CALENDAR_FEEDS]: "calendar-feeds",
   [PageMap.ON_CALL_DUTY_SCHEDULE_TIMELINE]: "schedule-timeline",
   [PageMap.ON_CALL_DUTY_POLICY_VIEW]: `policies/${RouteParams.ModelID}`,
@@ -7840,6 +7841,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.ON_CALL_DUTY_READINESS]: new Route(
     `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
       OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_READINESS]
+    }`,
+  ),
+
+  [PageMap.ON_CALL_DUTY_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/on-call-duty/${
+      OnCallDutyRoutePath[PageMap.ON_CALL_DUTY_GUIDED_SETUP]
     }`,
   ),
 

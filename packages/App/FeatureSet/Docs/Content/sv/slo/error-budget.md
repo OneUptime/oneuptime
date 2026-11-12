@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Mål | Fönster på 7 dagar | Fönster på 28 dagar | Fönster på 30 dagar | Fönster på 90 dagar |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 tim 40 min 48 s | 6 tim 43 min 12 s | 7 tim 12 min | 21 tim 36 min |
+| 99,5 % | 50 min 24 s | 3 tim 21 min 36 s | 3 tim 36 min | 10 tim 48 min |
+| 99,9 % | 10 min 5 s | 40 min 19 s | 43 min 12 s | 2 tim 9 min 36 s |
+| 99,95 % | 5 min 2 s | 20 min 10 s | 21 min 36 s | 1 tim 4 min 48 s |
+| 99,99 % | 1 min 0 s | 4 min 2 s | 4 min 19 s | 12 min 58 s |
 
-SLO:ets sida **Inställningar** visar budgeten som målet tillåter bredvid målet, till exempel ”43m 12s driftstopp per fönster på 30 dagar”.
+SLO:ets sida **Inställningar** visar budgeten som målet tillåter bredvid målet, till exempel ”43 min 12 s driftstopp per fönster på 30 dagar”.
 
 ### Budgeten för ett SLO med flera monitorer
 
@@ -35,7 +35,7 @@ I läget **Genomsnitt av monitorsekunder** räknas budgeten i monitorsekunder, s
 
 ### Budgeten för en kalendermånad
 
-Ett SLO med kalendermånad har hela månadens budget från första dagen: ett SLO på 99,9 % i en månad med 31 dagar har alla sina 44m 38s den 1:a. Budgeten fördelas inte efter hur stor del av månaden som har gått, så ett avbrott på en minut på morgonen den 1:a förbrukar en minut av månadens budget.
+Ett SLO med kalendermånad har hela månadens budget från första dagen: ett SLO på 99,9 % i en månad med 31 dagar har alla sina 44 min 38 s den 1:a. Budgeten fördelas inte efter hur stor del av månaden som har gått, så ett avbrott på en minut på morgonen den 1:a förbrukar en minut av månadens budget.
 
 ## Återstående budget
 

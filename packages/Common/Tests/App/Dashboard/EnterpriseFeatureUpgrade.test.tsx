@@ -134,6 +134,60 @@ import IconProp from "../../../Types/Icon/IconProp";
 // A filled button - what a primary button looks like, whatever its colour.
 const FILLED_BUTTON_CLASS: RegExp = /\bbg-(indigo|red|green|yellow)-600\b/;
 
+/*
+ * What a card holds lines up with its title (#6956), and so do the buttons
+ * under its pitch: Button keeps a dialog footer's margin (md:ml-3), which put
+ * the first of them 12px right of the words above it from a tablet up. The
+ * row clears it on its buttons, and on the one element a button sits in (a
+ * locked button's tooltip), so the row's gap alone spaces them.
+ */
+const DIALOG_MARGIN_CLEARED: ReadonlyArray<string> = [
+  "[&>button]:ml-0",
+  "[&>button]:md:ml-0",
+  "[&>*>button]:ml-0",
+  "[&>*>button]:md:ml-0",
+];
+
+const expectPitchLinesUp: (cta: HTMLElement, secondary: string) => void = (
+  cta: HTMLElement,
+  secondary: string,
+): void => {
+  // The margin is there to clear: if Button drops it, so can the row.
+  expect(cta).toHaveClass("md:ml-3");
+  expect(cta.parentElement).toHaveClass(...DIALOG_MARGIN_CLEARED);
+  // Both buttons sit in that row.
+  expect(screen.getByText(secondary).closest("button")!.parentElement).toBe(
+    cta.parentElement,
+  );
+
+  /*
+   * The card pads its body, and the body does not pad it again: the boxed
+   * pitch is the body's only element, with no wrapper of its own between.
+   */
+  const body: Element = document.querySelector(
+    '[data-testid="card-header"]',
+  )!.nextElementSibling!;
+
+  expect(body.children).toHaveLength(1);
+  expect(body.firstElementChild).toHaveClass("rounded-xl", "border", "p-5");
+  expect(body.firstElementChild).toContainElement(cta);
+};
+
+const pitchButton: (label: string) => HTMLElement = (
+  label: string,
+): HTMLElement => {
+  const ctas: Array<HTMLElement> = screen
+    .getAllByText(label)
+    .map((text: HTMLElement): HTMLElement => {
+      return text.closest("button") as HTMLElement;
+    });
+
+  // The header's copy first, the one under the pitch second.
+  expect(ctas).toHaveLength(2);
+
+  return ctas[1]!;
+};
+
 type Deployment = "cloud" | "self-hosted-enterprise" | "self-hosted-community";
 
 const pinDeployment: (deployment: Deployment) => void = (
@@ -637,6 +691,25 @@ describe("EnterpriseFeatureUpgrade", () => {
     expect(ctas[0]).toHaveClass("bg-white");
   });
 
+  test("the buttons under the pitch start where it does, in a box the card pads once", () => {
+    pinDeployment("self-hosted-community");
+
+    renderCard();
+
+    expectPitchLinesUp(
+      pitchButton("Learn about Enterprise Edition"),
+      "Read docs",
+    );
+  });
+
+  test("on the Cloud too, where the pitch sells a plan", () => {
+    pinDeployment("cloud");
+
+    renderCard();
+
+    expectPitchLinesUp(pitchButton("Upgrade to Scale"), "Compare plans");
+  });
+
   test("an explicit Edition reason wins over billing", () => {
     pinDeployment("cloud");
 
@@ -744,5 +817,27 @@ describe("the admin dashboard's EnterpriseFeatureUpgrade", () => {
     expect(ctas).toHaveLength(2);
     expect(filled).toEqual([ctas[1]]);
     expect(ctas[0]).toHaveClass("bg-white");
+  });
+
+  test("the buttons under the pitch start where it does, in a box the card pads once", () => {
+    render(
+      <AdminEnterpriseFeatureUpgrade
+        title="Single Sign On (SSO)"
+        description="Configure SAML SSO for every project."
+        featureName="Global SSO"
+        benefits={[
+          {
+            icon: IconProp.Lock,
+            title: "Centralized auth",
+            subtitle: "Revoke access from one place.",
+          },
+        ]}
+      />,
+    );
+
+    expectPitchLinesUp(
+      pitchButton("Learn about Enterprise Edition"),
+      "Read docs",
+    );
   });
 });

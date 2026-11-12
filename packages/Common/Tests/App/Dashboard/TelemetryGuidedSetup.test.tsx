@@ -413,7 +413,7 @@ describe("2. Get alerted", () => {
     expect(who).toHaveTextContent(TELEMETRY_SETUP_COPY.whoOwners);
     expect(screen.getByTestId("guided-setup-page-someone")).toHaveAttribute(
       "href",
-      `/dashboard/${PROJECT_ID}/on-call-duty/policies`,
+      `/dashboard/${PROJECT_ID}/on-call-duty/setup`,
     );
   });
 
