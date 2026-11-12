@@ -8,6 +8,7 @@ import Components from "Common/Types/Workflow/Components";
 import { getCreateFromTemplateArgument } from "Common/Types/Workflow/CreateFromTemplate";
 import {
   dashboardLabel,
+  dashboardLocale,
   drawnActionLabel,
   drawnDashboardLabel,
   isActionLabel,
@@ -56,6 +57,9 @@ const LATIN_ONLY: RegExp = /^[ -~—…]+$/;
 
 const BOLD: RegExp = /\*\*([^*\n]+?)\*\*/g;
 const MENU_PATH_SEPARATOR: string = "→";
+
+// A headline's colon, ASCII or full-width, and the space French puts first.
+const TRAILING_COLON: RegExp = /\s*[:：]$/;
 
 interface KeptName {
   name: string;
@@ -221,7 +225,8 @@ function readPersianPage(page: string): string {
  * in English although the Persian Dashboard draws them in other words: a
  * label, a Create or Add button, or a named action on a model ("Edit
  * Incident Template", which a page's Edit button draws from "Edit
- * {{itemName}}").
+ * {{itemName}}") or a headline the Dashboard writes with a colon, which the
+ * pages quote without it ("Will notify", from "Will notify:").
  */
 function englishDashboardLabels(markdown: string): Array<string> {
   const found: Set<string> = new Set<string>();
@@ -230,10 +235,18 @@ function englishDashboardLabels(markdown: string): Array<string> {
     for (const segment of (match[1] as string).split(MENU_PATH_SEPARATOR)) {
       const name: string = segment.trim();
 
+      if (!LATIN_ONLY.test(name)) {
+        continue;
+      }
+
+      const headline: string = `${name}:`;
+
       if (
-        LATIN_ONLY.test(name) &&
-        isActionLabel(name) &&
-        drawnActionLabel(PERSIAN, name) !== name
+        (isActionLabel(name) && drawnActionLabel(PERSIAN, name) !== name) ||
+        (typeof dashboardLocale("en")[headline] === "string" &&
+          drawnDashboardLabel(PERSIAN, headline)
+            .trim()
+            .replace(TRAILING_COLON, "") !== name)
       ) {
         found.add(name);
       }
@@ -485,6 +498,8 @@ describe("the Persian pages the exception covered", () => {
     expect(englishDashboardLabels("**Edit Incident Template**")).toEqual([
       "Edit Incident Template",
     ]);
+    // A headline the Dashboard writes with a colon, quoted without it.
+    expect(englishDashboardLabels("**Will notify**")).toEqual(["Will notify"]);
     // Not a product name, nor a label the Persian locale has in English.
     expect(englishDashboardLabels("**OneUptime** and **Markdown**")).toEqual(
       [],
