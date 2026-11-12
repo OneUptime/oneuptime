@@ -45,6 +45,32 @@ import {
   guideUrl,
 } from "./GuidesDocsPages";
 import { describe, expect, it } from "@jest/globals";
+import fs from "fs";
+import path from "path";
+
+const DASHBOARD_DIR: string = path.resolve(
+  __dirname,
+  "../../../FeatureSet/Dashboard/src",
+);
+
+// A Dashboard source file, read as text: its copy files load the browser's config.
+function dashboardFile(relativePath: string): string {
+  return fs.readFileSync(path.join(DASHBOARD_DIR, relativePath), "utf8");
+}
+
+// The entry of a product in the products' explanations, from its key to its end.
+function onboardingEntryOf(product: string): string {
+  const source: string = dashboardFile(
+    "Components/ProductOnboarding/ProductOnboardings.ts",
+  );
+  const start: number = source.indexOf(`[ProductKey.${product}]: {`);
+
+  if (start === -1) {
+    throw new Error(`No onboarding for ${product}`);
+  }
+
+  return source.slice(start, source.indexOf("\n  },", start));
+}
 
 /*
  * THE GUIDES (#6821): one page per job people come with, each followed
@@ -129,6 +155,16 @@ function sectionAt(markdown: string, place: number): string {
 // What comes before the first "## ": the title, the opening and the picture.
 function openingOf(markdown: string): string {
   return markdown.split("\n## ")[0] as string;
+}
+
+/*
+ * The links a reader could leave by: a picture of the screen is not one
+ * (#6823 puts a screenshot under a step's heading), a link to a page is.
+ */
+function linksOutOf(markdown: string): Array<DocsLink> {
+  return scanMarkdown(markdown).links.filter((link: DocsLink): boolean => {
+    return !link.isImage;
+  });
 }
 
 function h2s(markdown: string): Array<string> {
@@ -259,7 +295,7 @@ describe.each(DOCS_GUIDES)("$navTitle, in English", (guide: DocsGuide) => {
     expect(fences[0]!.info).toContain(`title="${GUIDE_PICTURE_TITLE}"`);
     // Nothing else to choose from before the first step: no cards, no links.
     expect(cardLines(opening)).toEqual([]);
-    expect(scanMarkdown(opening).links).toEqual([]);
+    expect(linksOutOf(opening)).toEqual([]);
   });
 
   it("has the guides' sections, in their order", () => {
@@ -282,7 +318,7 @@ describe.each(DOCS_GUIDES)("$navTitle, in English", (guide: DocsGuide) => {
     ).toEqual(["steps"]);
     expect(containers[0]!.steps).toBe(stepHeadings.length);
     expect(stepHeadings.length).toBeGreaterThanOrEqual(4);
-    expect(scanMarkdown(steps).links).toEqual([]);
+    expect(linksOutOf(steps)).toEqual([]);
     // Steps are the only third-level headings: the rest of a guide is flat.
     expect(
       scanMarkdown(markdown).headings.filter((heading: DocsHeading) => {
@@ -606,6 +642,33 @@ describe.each(DOCS_GUIDES)(
           return job.job === guide.job;
         })?.target,
       ).toBe(guideUrl(guide));
+    });
+
+    it("is linked from its product's explanation: the empty list and How it works", () => {
+      expect(guide.products.length).toBeGreaterThan(0);
+
+      for (const product of guide.products) {
+        expect({
+          product,
+          links: onboardingEntryOf(product).includes(
+            `guideRoute: docs("${guide.page}"),`,
+          ),
+        }).toEqual({ product, links: true });
+      }
+    });
+
+    it("is linked from its guided setup, beside the progress line", () => {
+      if (!guide.guidedSetup) {
+        return;
+      }
+
+      const copy: string = dashboardFile(guide.guidedSetup.copyFile);
+      const page: string = dashboardFile(guide.guidedSetup.pageFile);
+
+      expect(copy.replace(/\s+/g, " ")).toContain(
+        `export const ${guide.guidedSetup.constant}: string = "${guideUrl(guide)}";`,
+      );
+      expect(page).toContain(`guideDocsPath={${guide.guidedSetup.constant}}`);
     });
 
     it.each(DOCS_LANGUAGES)(

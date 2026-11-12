@@ -199,13 +199,13 @@ Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:
 | **Compliance-Zeitraum** | **Typ des Zeitfensters**, **Zeitfenster (Tage)** und **Zeitzone**, mit **Zeitraum bearbeiten**. | Burn-Rate-Regeln behalten ihre Schwellenwerte, wenn sich das Zeitfenster ändert, prüfen Sie sie also danach. |
 | **Berechnung der Ausfallzeit** | **Multi-Monitor-Modus** und **Ausfallzeit-Monitorstatus**, mit **Berechnung der Ausfallzeit bearbeiten**. | Leere Status zählen jeden nicht betriebsbereiten Status, auch später hinzugefügte. |
 | **Auswertung** | Der Schalter **Dieses SLO auswerten**, der sofort speichert, wenn Sie ihn umlegen. | Beim Ausschalten fragt er zuerst, denn das löst auch die offenen Burn-Rate-Warnungen und -Vorfälle des SLO auf. |
-| **Archive SLO** | **Archivieren** oder **Aus Archiv entfernen**. | Siehe [Ein SLO archivieren](#ein-slo-archivieren). |
+| **SLO archivieren** | **Archivieren** oder **Aus Archiv entfernen**. | Siehe [Ein SLO archivieren](#ein-slo-archivieren). |
 
 Nach einer Änderung an Ziel, Zeitraum oder Berechnung der Ausfallzeit wertet OneUptime das SLO beim nächsten Lauf neu aus.
 
 ## Ein SLO archivieren
 
-Archivieren Sie ein SLO, das Sie nicht mehr messen, aber behalten möchten, etwa für einen stillgelegten Dienst oder das Ziel des letzten Jahres. Archivieren Sie es unter **Einstellungen** → **Archive SLO**, oder wählen Sie SLOs in der SLO-Liste aus und dann **Archivieren**.
+Archivieren Sie ein SLO, das Sie nicht mehr messen, aber behalten möchten, etwa für einen stillgelegten Dienst oder das Ziel des letzten Jahres. Archivieren Sie es unter **Einstellungen** → **SLO archivieren**, oder wählen Sie SLOs in der SLO-Liste aus und dann **Archivieren**.
 
 Ein archiviertes SLO:
 

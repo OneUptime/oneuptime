@@ -172,7 +172,7 @@ describe("in every language", () => {
 describe("the words", () => {
   test("the promises they replace keep their first words", () => {
     expect(SERVER_EMAIL_COPY.createMonitorDescription).toMatch(
-      /^Pick what to monitor and give it a name\. Everything else starts with defaults you can change\. When something goes wrong, OneUptime opens an incident or alert\./,
+      /^Pick what to monitor and give it a name\. When something goes wrong, OneUptime opens an incident or alert\./,
     );
     expect(SERVER_EMAIL_COPY.onCallStepDescription).toMatch(
       /^Page the right person when an incident or alert opens\./,
