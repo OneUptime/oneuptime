@@ -288,8 +288,9 @@ export interface CodeTaskLogShownTurn {
    */
   isKnown: boolean;
   /*
-   * The address names a run that is not one of the task's turns: the page
-   * shows the task's first turn instead, and says so.
+   * The address names a run that is not one of the task's turns - or
+   * something that is no run's id at all: the page shows the task's first
+   * turn instead, and says so.
    */
   isNotOfTask: boolean;
 }
@@ -301,7 +302,9 @@ export interface CodeTaskLogShownTurn {
  * task's own id is its first run's). While the task is read, the named
  * turn's record is read too but not shown. A task that could not be read
  * leaves the address as it is: the record's own read decides who may see
- * it.
+ * it. A `turn` that is no run's id at all - a link cut short when it was
+ * pasted, a typo - names no turn of any task: the first turn, said so at
+ * once, with nothing to ask.
  */
 export function getCodeTaskLogShownTurn(data: {
   taskId: string;
@@ -315,8 +318,13 @@ export function getCodeTaskLogShownTurn(data: {
   const turnKey: string = getCodeTaskLogTurnKey(data.turnParam);
   const turnParam: string = (data.turnParam || "").trim();
 
-  if (!turnKey) {
+  if (!turnParam) {
     return { runId: data.taskId, isKnown: true, isNotOfTask: false };
+  }
+
+  // Never silently somewhere else (issue #7130), not even for a broken link.
+  if (!turnKey) {
+    return { runId: data.taskId, isKnown: true, isNotOfTask: true };
   }
 
   // The task's own first turn, by its id: nothing to ask.

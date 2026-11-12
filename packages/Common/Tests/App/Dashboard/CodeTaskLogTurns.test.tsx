@@ -504,11 +504,32 @@ describe("a task's turns, as the Log page lists them", () => {
       }),
     ).toEqual({ runId: OTHER_TASK_RUN_ID, isKnown: true, isNotOfTask: false });
 
-    // Nothing, or not an id: the task's first turn, nothing to ask or say.
-    for (const turnParam of [null, "", "turn-2", "  "]) {
+    // No turn named: the task's first turn, nothing to ask or say.
+    for (const turnParam of [null, undefined, "", "  "]) {
       expect(
         getCodeTaskLogShownTurn({ taskId: TASK_ID, turnParam, task }),
       ).toEqual({ runId: TASK_ID, isKnown: true, isNotOfTask: false });
+    }
+
+    /*
+     * Something that is no run's id at all - a link cut short when it was
+     * pasted, a typo, a turn's number: no turn of any task. The first
+     * turn, said so at once - before any read, and with none to wait for.
+     */
+    for (const turnParam of [
+      "turn-2",
+      "5",
+      SECOND_RUN_ID.slice(0, 23),
+      `${SECOND_RUN_ID}x`,
+    ]) {
+      expect(getCodeTaskLogShownTurn({ taskId: TASK_ID, turnParam })).toEqual({
+        runId: TASK_ID,
+        isKnown: true,
+        isNotOfTask: true,
+      });
+      expect(
+        getCodeTaskLogShownTurn({ taskId: TASK_ID, turnParam, task }),
+      ).toEqual({ runId: TASK_ID, isKnown: true, isNotOfTask: true });
     }
 
     // The task's own id names its first turn: nothing to ask.
@@ -896,6 +917,75 @@ describe("the Log page's turn picker", () => {
     expect(words).not.toHaveAttribute("dir");
   });
 
+  /*
+   * What was asked under each turn is as its person wrote it - in
+   * English, say, on an Arabic page. Laid out right to left with the page,
+   * "Retry charges when the gateway times out." came out with its full
+   * stop first, and a long request ended its line with "…" on the left.
+   * It reads the way it was written now; what started a turn nobody asked
+   * for is the product's words in the reader's language, and reads the
+   * page's way.
+   */
+  test("in Arabic, what was asked reads the way it was written; what started a turn, the page's way", async () => {
+    const asked: string = "Retry charges when the gateway times out.";
+    getTaskMock.mockResolvedValue(
+      taskAnswer([
+        turn({ request: { message: asked, context: [] } }),
+        turn({
+          runId: SECOND_RUN_ID,
+          recipe: CodeFixTaskType.FixException,
+          request: undefined,
+        }),
+        THREE_TURNS[2]!,
+      ]) as never,
+    );
+    jest.spyOn(API, "post").mockImplementation(logOfEachRun() as never);
+
+    await act(async () => {
+      await translation.changeLanguage("ar");
+    });
+
+    drawLog();
+
+    await waitFor(() => {
+      expect(shownTurn()).toMatch(/^الجولة 1 · /);
+    });
+
+    const descriptions: Array<HTMLElement> = openPicker().map(
+      (option: HTMLElement): HTMLElement => {
+        return within(option).getByTestId("dropdown-option-description");
+      },
+    );
+
+    // Drawn as written, never looked up: an English request reads left to right.
+    expect(descriptions[0]).toHaveTextContent(asked);
+    expect(descriptions[0]).toHaveAttribute("dir", "ltr");
+    expect(descriptions[2]).toHaveTextContent(
+      "Try again with a smaller change",
+    );
+    expect(descriptions[2]).toHaveAttribute("dir", "ltr");
+    // What started it, in Arabic: the page's way, with no direction of its own.
+    expect(descriptions[1]).toHaveTextContent("إصلاح الاستثناء");
+    expect(descriptions[1]).not.toHaveAttribute("dir");
+  });
+
+  test("negative control: in English, what was asked reads the page's way - no direction of its own", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
+    jest.spyOn(API, "post").mockImplementation(logOfEachRun() as never);
+
+    drawLog();
+
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 1 · Done");
+    });
+
+    for (const option of openPicker()) {
+      expect(
+        within(option).getByTestId("dropdown-option-description"),
+      ).not.toHaveAttribute("dir");
+    }
+  });
+
   test("picking another turn opens the page at it", async () => {
     getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
     jest
@@ -1156,6 +1246,46 @@ describe("a link to a turn a long task's page does not show", () => {
     });
 
     expect(notOfTask()).toHaveTextContent(NOT_OF_TASK_TITLE);
+  });
+
+  test("a link cut short when it was pasted - no run's id at all - shows turn 1, and says so: never silently", async () => {
+    getTaskMock.mockResolvedValue(longTaskAnswer(false) as never);
+    const postSpy: SpyInstance<typeof API.post> = jest
+      .spyOn(API, "post")
+      .mockImplementation(logOfEachRun() as never) as unknown as SpyInstance<
+      typeof API.post
+    >;
+
+    // The fifth turn's id, its last part lost.
+    drawLog(`?turn=${LINKED_RUN_ID.slice(0, 23)}`);
+
+    expect(await screen.findByText(`step of ${TASK_ID}`)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 1 · Done");
+    });
+
+    const notice: HTMLElement = notOfTask()!;
+
+    expect(notice).toHaveTextContent(NOT_OF_TASK_TITLE);
+    expect(notice).toHaveTextContent(NOT_OF_TASK_BODY);
+    // Nothing to ask the server for: the task is read for no turn.
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(getTaskMock).toHaveBeenCalledWith(TASK_ID, {});
+    // Only the first turn's record is read - nothing by the broken id.
+    expect(logReads(postSpy)).toEqual([TASK_ID]);
+  });
+
+  test("negative control: an empty turn in the address names none - turn 1, and nothing said", async () => {
+    getTaskMock.mockResolvedValue(longTaskAnswer(false) as never);
+    jest.spyOn(API, "post").mockImplementation(logOfEachRun() as never);
+
+    drawLog("?turn=");
+
+    expect(await screen.findByText(`step of ${TASK_ID}`)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 1 · Done");
+    });
+    expect(notOfTask()).toBeNull();
   });
 
   test("the lines around the linked turn are never picked; picking the newest turn opens it, and the task is not read again", async () => {

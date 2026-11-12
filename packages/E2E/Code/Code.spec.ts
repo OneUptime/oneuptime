@@ -4676,6 +4676,69 @@ test.describe("a task of more than 200 turns", () => {
     );
     await expect(picker).toContainText("Turn 9 ·");
     await expect(notice).toHaveCount(0);
+
+    /*
+     * A link cut short when it was pasted - turn 5's id without its last
+     * part - names no run at all: the first turn, said so as well, with
+     * no turn asked for.
+     */
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${LONG_TASK_TURN_5.slice(0, 23)}`,
+    );
+    await expect(notice).toContainText("That turn is not part of this task");
+    await expect(picker).toContainText("Turn 1 ·");
+    await expect(
+      page.getByTestId("code-task-log-entry-message").first(),
+    ).toHaveText("src/errors.ts");
+    expect((await recorded(page)).taskTurnReads).toEqual([]);
+  });
+
+  /*
+   * What was asked under each turn in the picker is as its person wrote it
+   * - English, on an Arabic page. Laid out right to left with the page,
+   * "Now the orders handler." came out as ".Now the orders handler". It
+   * reads left to right now, its full stop at its end, at the page's start.
+   */
+  test("Arabic: the linked turn's request in the picker reads the way it was written", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&lang=ar&turn=${LONG_TASK_TURN_5}`,
+    );
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(picker).toContainText("الجولة 5 ·");
+    await picker.getByRole("combobox").click();
+
+    const linked: Locator = page.getByRole("option").nth(2);
+    await expect(linked).toContainText("الجولة 5 ·");
+    const asked: Locator = linked.getByTestId("dropdown-option-description");
+    await expect(asked).toHaveText("Now the orders handler.");
+    await expect(asked).toHaveAttribute("dir", "ltr");
+    expect(
+      await asked.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
+
+    // At the page's start - the right - under the turn's Arabic name.
+    const [askedBox, nameBox] = await boxesInOneFrame([
+      asked,
+      linked.getByTestId("dropdown-option-label"),
+    ]);
+    expect(
+      Math.abs(askedBox!.x + askedBox!.width - (nameBox!.x + nameBox!.width)),
+    ).toBeLessThan(2);
+    await screenshot(page, testInfo, "code-task-log-linked-turn-picker-ar");
   });
 
   test("German: the line and the work time in the reader's language", async ({

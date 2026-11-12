@@ -648,6 +648,13 @@ const CodeTaskLogTurnPicker: FunctionComponent<{
         ...(description ? { description } : {}),
         // Translated here, part by part; the request is as its person wrote it.
         isUserContent: true,
+        /*
+         * What was asked, as it was written - or what started the turn,
+         * translated above: never looked up again, and read the way its
+         * words are, so an English request on an Arabic page keeps its
+         * full stop at its end.
+         */
+        isDescriptionUserContent: true,
       };
     },
   );
@@ -980,7 +987,8 @@ const CodeTaskLogPage: FunctionComponent<
 
   /*
    * The address named a run that is not one of the task's turns - another
-   * task's, or one gone: the task's first turn is shown, and said so.
+   * task's, one gone, or no run's id at all (a link cut short): the task's
+   * first turn is shown, and said so.
    */
   const notOfTask: ReactElement = shownTurn.isNotOfTask ? (
     <Alert
