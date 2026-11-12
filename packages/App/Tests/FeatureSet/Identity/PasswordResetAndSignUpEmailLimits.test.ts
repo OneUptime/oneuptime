@@ -739,8 +739,9 @@ describe.each([
   it("an address that already has an account is answered as before, and counts against nobody", async () => {
     const answer: Answer = await signUp(VICTIM_EMAIL, CALLER);
 
+    // Says what to do next (#6836): sign in, or reset the password.
     expect(answer.error?.message).toBe(
-      `User with email ${VICTIM_EMAIL} already exists.`,
+      `An account with ${VICTIM_EMAIL} already exists. Sign in instead, or reset your password if you have forgotten it.`,
     );
     expect(redisClient.keys()).toEqual([]);
   });
