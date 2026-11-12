@@ -1085,6 +1085,40 @@ describe("reading a task", () => {
 
     expect(result?.["canReadLogContent"]).toBe(true);
   });
+
+  /*
+   * A task kept open for weeks (issue #6529): its page is sent its first
+   * turn and its newest, and how many turns between them it does not show.
+   */
+  test("a long task's answer says how many turns between its first and its newest are not shown, and how long AI worked on them", async () => {
+    (
+      CodeTaskPresenter.getConversation as unknown as jest.Mock
+    ).mockImplementation(async () => {
+      return {
+        task: { id: TASK_ID.toString(), state: CodeTaskState.Done } as never,
+        turns: [],
+        turnsNotShown: { count: 5, workMilliseconds: 300000 },
+      };
+    });
+
+    const { result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(result?.["turnsNotShown"]).toEqual({
+      count: 5,
+      workMilliseconds: 300000,
+    });
+  });
+
+  test("a task shown whole carries no turnsNotShown at all", async () => {
+    const { result } = await call(route, {
+      params: { taskId: TASK_ID.toString() },
+    });
+
+    expect(result).not.toHaveProperty("turnsNotShown");
+    expect(result?.["turns"]).toEqual([]);
+  });
 });
 
 /*

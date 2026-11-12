@@ -61,6 +61,7 @@ import {
   getCodeTaskLogTurns,
   getShownTurnRunId,
 } from "../../../Components/Code/CodeTaskLogTurns";
+import { CODE_TASK_TURNS_NOT_SHOWN_COPY } from "../../../Components/Code/CodeTaskTurnsNotShown";
 import Dropdown, {
   DropdownOption,
   DropdownValue,
@@ -80,6 +81,12 @@ export const CODE_TASK_LOG_POLL_MS: number = 5000;
 
 export const CODE_TASK_LOG_TURN_PICKER_TEST_ID: string =
   "code-task-log-turn-picker";
+
+/*
+ * The value of the picker's line where a long task's turns are not listed
+ * - never picked, so never a turn's.
+ */
+export const CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE: string = "turns-not-shown";
 
 /*
  * A task's Log page in Code: everything recorded about one of its turns (one
@@ -565,19 +572,28 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
 /*
  * The task's turns, one pick away: "Turn 2 · Failed", with what was asked
  * under each. Only for a task of more than one turn.
+ *
+ * A long task lists the turns its conversation shows - its first and its
+ * newest - and between them, where the conversation draws its line, the
+ * same words on a line that is never picked: "7 earlier turns are not
+ * shown". Turn 1 then Turn 9 reads as the task's own numbering, not as
+ * turns gone missing.
  */
 const CodeTaskLogTurnPicker: FunctionComponent<{
   taskId: string;
   turns: Array<CodeTaskLogTurn>;
   shownRunId: string;
+  // How many turns between the first and the newest are not listed.
+  turnsNotShown: number;
 }> = (props: {
   taskId: string;
   turns: Array<CodeTaskLogTurn>;
   shownRunId: string;
+  turnsNotShown: number;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const options: Array<DropdownOption> = props.turns.map(
+  const turnOptions: Array<DropdownOption> = props.turns.map(
     (turn: CodeTaskLogTurn): DropdownOption => {
       const description: string = turn.isSummaryTranslated
         ? translator.translateText(turn.summary) || turn.summary
@@ -595,7 +611,27 @@ const CodeTaskLogTurnPicker: FunctionComponent<{
     },
   );
 
-  const shown: DropdownOption | undefined = options.find(
+  const options: Array<DropdownOption> =
+    props.turnsNotShown > 0 && turnOptions.length > 1
+      ? [
+          turnOptions[0]!,
+          {
+            value: CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE,
+            label: translator.translatePlural(
+              CODE_TASK_TURNS_NOT_SHOWN_COPY,
+              props.turnsNotShown,
+            ),
+            // Never picked: the Dropdown passes it by.
+            isDisabled: true,
+            // Translated here, whole: drawn as it is, the page's way.
+            isUserContent: true,
+            isInPageDirection: true,
+          },
+          ...turnOptions.slice(1),
+        ]
+      : turnOptions;
+
+  const shown: DropdownOption | undefined = turnOptions.find(
     (option: DropdownOption): boolean => {
       return (
         String(option.value).toLowerCase() === props.shownRunId.toLowerCase()
@@ -665,7 +701,11 @@ const CodeTaskLogPage: FunctionComponent<
   });
 
   const turns: Array<CodeTaskLogTurn> = useMemo(() => {
-    return getCodeTaskLogTurns(task?.turns || []);
+    // A long task's newer turns keep their places past the ones not shown.
+    return getCodeTaskLogTurns(
+      task?.turns || [],
+      task?.turnsNotShown?.count || 0,
+    );
   }, [task]);
 
   // "this task", or "this turn" once the picker lists more than one.
@@ -840,6 +880,7 @@ const CodeTaskLogPage: FunctionComponent<
           taskId={id || ""}
           turns={turns}
           shownRunId={runId}
+          turnsNotShown={task?.turnsNotShown?.count || 0}
         />
       ) : (
         <></>

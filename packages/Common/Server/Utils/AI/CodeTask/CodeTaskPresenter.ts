@@ -5,7 +5,10 @@ import Select from "../../../Types/Database/Select";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import CodeTaskOrigin, { CodeTaskOriginSubjects } from "./CodeTaskOrigin";
 import CodeTaskSteps from "./CodeTaskSteps";
-import CodeTaskThread, { CODE_TASK_TURN_SELECT } from "./CodeTaskThread";
+import CodeTaskThread, {
+  CODE_TASK_TURN_SELECT,
+  CodeTaskTurnsRead,
+} from "./CodeTaskThread";
 import FixProductionReportUtil from "../CodeFix/FixProductionReportUtil";
 import FixProductionReport from "../../../../Types/AI/FixProductionReport";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
@@ -27,6 +30,7 @@ import {
   CodeTaskChangeStatsJSON,
   CodeTaskContextItem,
   CodeTaskContextItemJSON,
+  CodeTaskConversationJSON,
   CodeTaskOriginJSON,
   CodeTaskOriginType,
   CodeTaskOutcome,
@@ -54,11 +58,12 @@ import ObjectID from "../../../../Types/ObjectID";
  *
  * A list row (summarize): the task's title, its state - read from its latest
  * turn - its number, who asked or what started it, its pull request, how
- * much it changed and when anything last happened. A conversation (getConversation): every turn, with
- * what was asked and the context added (never the snapshots the AI read),
- * the steps the AI took in plain words, its reply, the files it changed, the
- * diff for people who may change the code, the pull requests, and why a turn
- * failed.
+ * much it changed and when anything last happened. A conversation (getConversation): every turn - or,
+ * for a task of more turns than are read, its first and its newest, with how
+ * many between them are not shown - with what was asked and the context
+ * added (never the snapshots the AI read), the steps the AI took in plain
+ * words, its reply, the files it changed, the diff for people who may change
+ * the code, the pull requests, and why a turn failed.
  *
  * Everything is read as root; the Code API decides beforehand who may read
  * the task and who may see its diff (CodeTaskAccess).
@@ -66,6 +71,20 @@ import ObjectID from "../../../../Types/ObjectID";
 
 // Steps read for one turn. The Log page has the whole trail.
 export const MAX_STEPS_PER_TURN: number = 400;
+
+/*
+ * What a turn a long task's conversation does not show is read with: what
+ * the task at the top adds up over every turn (the files it changed, what
+ * AI last said, its pull requests) and how long AI worked on it - never its
+ * request, steps or diff.
+ */
+export const TURN_NOT_SHOWN_SELECT: Select<AIRun> = {
+  _id: true,
+  createdAt: true,
+  startedAt: true,
+  completedAt: true,
+  taskOutcome: true,
+};
 
 // What a step is read from: never a tool's arguments or output.
 export const CODE_TASK_STEP_EVENT_SELECT: Select<AIRunEvent> = {
@@ -167,13 +186,20 @@ export default class CodeTaskPresenter {
     });
   }
 
+  /*
+   * A task's conversation: its first turn and its newest - at most
+   * MAX_TURNS_PER_TASK - and, for a task with more, how many turns between
+   * them are not shown and how long AI worked on those. The task at the top
+   * is every turn's: what it changed, its pull request and how many turns
+   * it has count the ones not shown too.
+   */
   @CaptureSpan()
   public static async getConversation(data: {
     projectId: ObjectID;
     task: AIRun;
     canSeeChanges: boolean;
     props: DatabaseCommonInteractionProps;
-  }): Promise<{ task: CodeTaskSummaryJSON; turns: Array<CodeTaskTurnJSON> }> {
+  }): Promise<CodeTaskConversationJSON> {
     const select: Select<AIRun> = {
       ...CODE_TASK_TURN_SELECT,
       taskContext: true,
@@ -187,10 +213,20 @@ export default class CodeTaskPresenter {
       props: { isRoot: true },
     });
 
-    const turns: Array<AIRun> = await CodeTaskThread.getTurns({
+    const read: CodeTaskTurnsRead = await CodeTaskThread.getTurns({
       projectId: data.projectId,
       task: task || data.task,
       select,
+    });
+
+    const turns: Array<AIRun> = read.turns;
+
+    // None for a task the conversation shows whole: nothing more is read.
+    const turnsNotShown: Array<AIRun> = await CodeTaskThread.getTurnsLeftOut({
+      projectId: data.projectId,
+      task: turns[0]!,
+      read,
+      select: TURN_NOT_SHOWN_SELECT,
     });
 
     const turnIds: Array<ObjectID> = turns.map((turn: AIRun): ObjectID => {
@@ -203,9 +239,15 @@ export default class CodeTaskPresenter {
       Map<string, CodeTaskPersonJSON>,
       Map<string, Array<AIRunEvent>>,
     ] = await Promise.all([
+      // Every turn's: the task's pull request may be one a turn not shown opened.
       CodeTaskThread.getPullRequests({
         projectId: data.projectId,
-        runIds: turnIds,
+        runIds: [
+          ...turnIds,
+          ...turnsNotShown.map((turn: AIRun): ObjectID => {
+            return turn.id!;
+          }),
+        ],
       }),
       CodeTaskOrigin.loadSubjects({
         projectId: data.projectId,
@@ -237,7 +279,8 @@ export default class CodeTaskPresenter {
 
     const summary: CodeTaskSummaryJSON = CodeTaskPresenter.toSummary({
       task: first,
-      turns,
+      // Every turn, in order: the ones not shown changed files too.
+      turns: [first, ...turnsNotShown, ...turns.slice(1)],
       pullRequests,
       origin,
       requestedBy: first.userId
@@ -245,7 +288,10 @@ export default class CodeTaskPresenter {
         : undefined,
     });
 
-    return {
+    // As counted: more turns than one read takes are not read, but are the task's.
+    summary.turnCount = turns.length + read.olderTurnsLeftOut;
+
+    const conversation: CodeTaskConversationJSON = {
       task: summary,
       turns: turns.map((turn: AIRun, index: number): CodeTaskTurnJSON => {
         return CodeTaskPresenter.toTurn({
@@ -263,6 +309,40 @@ export default class CodeTaskPresenter {
         });
       }),
     };
+
+    if (read.olderTurnsLeftOut > 0) {
+      conversation.turnsNotShown = {
+        count: read.olderTurnsLeftOut,
+        workMilliseconds: CodeTaskPresenter.getWorkMilliseconds(turnsNotShown),
+      };
+    }
+
+    return conversation;
+  }
+
+  /*
+   * How long AI worked on turns, in all: each from when it started to when
+   * it ended. A turn that never started, or has no end, adds nothing - the
+   * turns this adds up are done.
+   */
+  public static getWorkMilliseconds(turns: Array<AIRun>): number {
+    let total: number = 0;
+
+    for (const turn of turns) {
+      if (!turn.startedAt || !turn.completedAt) {
+        continue;
+      }
+
+      const took: number =
+        new Date(turn.completedAt).getTime() -
+        new Date(turn.startedAt).getTime();
+
+      if (Number.isFinite(took) && took > 0) {
+        total += took;
+      }
+    }
+
+    return total;
   }
 
   /*
