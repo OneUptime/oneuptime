@@ -1092,7 +1092,7 @@ describe("a brand-new project", () => {
    * way to do it was the first item of the Create menu, or a step of the
    * checklist - gone for good once dismissed. It now ends on the button.
    */
-  test("the headline ends on Create your first monitor, which opens the create form", async () => {
+  test("the headline ends on Create your first monitor, which opens the guided setup", async () => {
     currentProjectId = new ObjectID(OTHER_PROJECT_ID);
     await renderHome();
 
@@ -1104,7 +1104,7 @@ describe("a brand-new project", () => {
     expect(button).toBeVisible();
     expect(button).toHaveAttribute(
       "href",
-      `/dashboard/${OTHER_PROJECT_ID}/monitors/create`,
+      `/dashboard/${OTHER_PROJECT_ID}/monitors/setup`,
     );
   });
 

@@ -978,6 +978,23 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         title: "Monitors",
         pages: [
           allListPage(PageMap.MONITORS, "All Monitors"),
+          /*
+           * The guided setup (#6804): an address, who is told and a test
+           * page on one page. Found by what people come to do.
+           */
+          {
+            page: PageMap.MONITOR_GUIDED_SETUP,
+            title: "Know when my website or API is down",
+            icon: IconProp.AltGlobe,
+            keywords: [
+              "guided setup",
+              "get started",
+              "website down",
+              "api down",
+              "uptime",
+              "monitor my website",
+            ],
+          },
           {
             page: PageMap.MONITOR_GROUPS,
             title: "Monitor Groups",
