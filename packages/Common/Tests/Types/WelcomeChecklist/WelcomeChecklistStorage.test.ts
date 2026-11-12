@@ -26,11 +26,13 @@ import {
   WelcomeChecklistFinishedBy,
   WelcomeChecklistState,
   getNewProjectWelcomeChecklistState,
+  hasAcknowledgedTestPage,
   isWelcomeChecklistFinished,
   isWelcomeChecklistHiddenFor,
   needsLegacyCheck,
   parseWelcomeChecklistState,
   toWelcomeChecklistStateJSON,
+  withTestPageAcknowledgedBy,
   withWelcomeChecklistFinished,
   withWelcomeChecklistHiddenFor,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklistState";
@@ -223,6 +225,60 @@ describe("the checklist's state", () => {
     ).toBe(true);
   });
 
+  test("notes each member who acknowledged a test page, once (#6807)", () => {
+    let state: WelcomeChecklistState = {};
+
+    expect(hasAcknowledgedTestPage(state, USER_A)).toBe(false);
+
+    state = withTestPageAcknowledgedBy(state, USER_A.toUpperCase());
+
+    expect(hasAcknowledgedTestPage(state, USER_A)).toBe(true);
+    expect(hasAcknowledgedTestPage(state, USER_B)).toBe(false);
+    expect(hasAcknowledgedTestPage(state, null)).toBe(false);
+    expect(state.testPageAcknowledgedByUserIds).toEqual([USER_A]);
+
+    // Twice is once, and the same state, so the server skips the write.
+    expect(withTestPageAcknowledgedBy(state, USER_A)).toBe(state);
+
+    state = withTestPageAcknowledgedBy(state, USER_B);
+    expect(state.testPageAcknowledgedByUserIds).toEqual([USER_A, USER_B]);
+    // Hiding is another list: noting a test page hides nothing.
+    expect(isWelcomeChecklistHiddenFor(state, USER_A)).toBe(false);
+  });
+
+  test("reads the members who acknowledged a test page as it reads who hid it", () => {
+    expect(
+      parseWelcomeChecklistState({
+        testPageAcknowledgedByUserIds: [
+          USER_A,
+          USER_A.toUpperCase(),
+          7,
+          "",
+          USER_B,
+        ],
+      }).testPageAcknowledgedByUserIds,
+    ).toEqual([USER_A, USER_B]);
+    expect(
+      parseWelcomeChecklistState({ testPageAcknowledgedByUserIds: [] })
+        .testPageAcknowledgedByUserIds,
+    ).toBeUndefined();
+    expect(
+      parseWelcomeChecklistState({ testPageAcknowledgedByUserIds: USER_A })
+        .testPageAcknowledgedByUserIds,
+    ).toBeUndefined();
+
+    let state: WelcomeChecklistState = {};
+
+    for (let index: number = 0; index <= MAX_HIDDEN_FOR_USER_IDS; index++) {
+      state = withTestPageAcknowledgedBy(state, `user-${index}`);
+    }
+
+    expect(state.testPageAcknowledgedByUserIds).toHaveLength(
+      MAX_HIDDEN_FOR_USER_IDS,
+    );
+    expect(hasAcknowledgedTestPage(state, "user-0")).toBe(false);
+  });
+
   test("finishes once, keeping the first reason and time", () => {
     const first: WelcomeChecklistState = withWelcomeChecklistFinished(
       {},
@@ -247,12 +303,14 @@ describe("the checklist's state", () => {
     const json: unknown = toWelcomeChecklistStateJSON({
       startedWithOutcomes: true,
       hiddenForUserIds: [USER_A],
+      testPageAcknowledgedByUserIds: [USER_B],
       finishedAt: undefined,
     });
 
     expect(json).toEqual({
       startedWithOutcomes: true,
       hiddenForUserIds: [USER_A],
+      testPageAcknowledgedByUserIds: [USER_B],
     });
     expect(
       parseWelcomeChecklistState(JSON.parse(JSON.stringify(json))),
@@ -269,6 +327,7 @@ describe("the answer Home reads", () => {
     isHiddenForMe: false,
     isFinished: false,
     canSendEmail: true,
+    hasAcknowledgedTestPage: true,
     steps: [
       {
         step: WelcomeStep.Monitor,
@@ -359,6 +418,28 @@ describe("the answer Home reads", () => {
     expect(
       parseWelcomeChecklistAnswer({ audience: "set_up" })?.goals,
     ).toBeNull();
+  });
+
+  test("a test page reached the person only when the answer says exactly so", () => {
+    expect(
+      parseWelcomeChecklistAnswer({ audience: "invited_member" })
+        ?.hasAcknowledgedTestPage,
+    ).toBe(false);
+    expect(
+      parseWelcomeChecklistAnswer({
+        audience: "invited_member",
+        hasAcknowledgedTestPage: "yes",
+      })?.hasAcknowledgedTestPage,
+    ).toBe(false);
+    expect(
+      parseWelcomeChecklistAnswer({
+        audience: "invited_member",
+        hasAcknowledgedTestPage: true,
+      })?.hasAcknowledgedTestPage,
+    ).toBe(true);
+    expect(getEmptyWelcomeChecklistAnswer().hasAcknowledgedTestPage).toBe(
+      false,
+    );
   });
 
   test("an empty answer draws nothing", () => {

@@ -44,11 +44,17 @@ export interface WelcomeChecklistState {
   finishedBy?: WelcomeChecklistFinishedBy | undefined;
   // The members who hid it for themselves.
   hiddenForUserIds?: Array<string> | undefined;
+  /*
+   * The members who acknowledged a test page in this project: a page has
+   * reached them. An invited member's first hour ends there (#6807).
+   */
+  testPageAcknowledgedByUserIds?: Array<string> | undefined;
 }
 
 /*
- * The most members one project keeps as having hidden the card. More is
- * a project of thousands; the oldest are let go, and see the card again.
+ * The most members one project keeps as having hidden the card (or as
+ * having acknowledged a test page). More is a project of thousands; the
+ * oldest are let go, and see the card again.
  */
 export const MAX_HIDDEN_FOR_USER_IDS: number = 1000;
 
@@ -57,6 +63,29 @@ const readString: (value: unknown) => string | undefined = (
 ): string | undefined => {
   return typeof value === "string" && value.length > 0 && value.length <= 100
     ? value
+    : undefined;
+};
+
+// A list of member ids as stored: each once, lower-case, the newest kept.
+const readUserIds: (value: unknown) => Array<string> | undefined = (
+  value: unknown,
+): Array<string> | undefined => {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const userIds: Array<string> = [];
+
+  for (const item of value as Array<unknown>) {
+    const userId: string | undefined = readString(item);
+
+    if (userId && !userIds.includes(userId.toLowerCase())) {
+      userIds.push(userId.toLowerCase());
+    }
+  }
+
+  return userIds.length > 0
+    ? userIds.slice(-MAX_HIDDEN_FOR_USER_IDS)
     : undefined;
 };
 
@@ -115,20 +144,20 @@ export const parseWelcomeChecklistState: (
       : WelcomeChecklistFinishedBy.Outcomes;
   }
 
-  if (Array.isArray(raw["hiddenForUserIds"])) {
-    const hidden: Array<string> = [];
+  const hiddenForUserIds: Array<string> | undefined = readUserIds(
+    raw["hiddenForUserIds"],
+  );
 
-    for (const item of raw["hiddenForUserIds"] as Array<unknown>) {
-      const userId: string | undefined = readString(item);
+  if (hiddenForUserIds) {
+    state.hiddenForUserIds = hiddenForUserIds;
+  }
 
-      if (userId && !hidden.includes(userId.toLowerCase())) {
-        hidden.push(userId.toLowerCase());
-      }
-    }
+  const testPageAcknowledgedByUserIds: Array<string> | undefined = readUserIds(
+    raw["testPageAcknowledgedByUserIds"],
+  );
 
-    if (hidden.length > 0) {
-      state.hiddenForUserIds = hidden.slice(-MAX_HIDDEN_FOR_USER_IDS);
-    }
+  if (testPageAcknowledgedByUserIds) {
+    state.testPageAcknowledgedByUserIds = testPageAcknowledgedByUserIds;
   }
 
   return state;
@@ -215,6 +244,46 @@ export const withWelcomeChecklistHiddenFor: (
   }
 
   return next;
+};
+
+export const hasAcknowledgedTestPage: (
+  state: WelcomeChecklistState,
+  userId: string | null | undefined,
+) => boolean = (
+  state: WelcomeChecklistState,
+  userId: string | null | undefined,
+): boolean => {
+  if (!userId) {
+    return false;
+  }
+
+  return (state.testPageAcknowledgedByUserIds || []).includes(
+    userId.toLowerCase(),
+  );
+};
+
+/*
+ * The state with one member noted as having acknowledged a test page. The
+ * same state when they already were, so the caller can skip the write.
+ */
+export const withTestPageAcknowledgedBy: (
+  state: WelcomeChecklistState,
+  userId: string,
+) => WelcomeChecklistState = (
+  state: WelcomeChecklistState,
+  userId: string,
+): WelcomeChecklistState => {
+  if (hasAcknowledgedTestPage(state, userId)) {
+    return state;
+  }
+
+  return {
+    ...state,
+    testPageAcknowledgedByUserIds: [
+      ...(state.testPageAcknowledgedByUserIds || []),
+      userId.toLowerCase(),
+    ].slice(-MAX_HIDDEN_FOR_USER_IDS),
+  };
 };
 
 // The state with the checklist finished, unless it already was.

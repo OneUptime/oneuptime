@@ -59,6 +59,10 @@ export enum ProductEventName {
   ChecklistFinished = "home/checklist_finished",
   ChecklistDismissed = "home/checklist_dismissed",
 
+  // An invited member's own first steps on Home (#6807).
+  MemberStepStarted = "home/member_step_started",
+  MemberStepsDismissed = "home/member_steps_dismissed",
+
   // A product's "How it works" explanation was opened.
   HowItWorksOpened = "how_it_works/opened",
 
@@ -194,6 +198,18 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       "Somebody hid the Welcome checklist on Home for themselves, and how far it was.",
     properties: [{ name: "done_count" }, { name: "step_count" }, goalsProperty],
+  },
+  {
+    name: ProductEventName.MemberStepStarted,
+    description:
+      "An invited member opened one of their own first steps on Home: their setup checklist, a test page to themselves, their shifts or the mobile app.",
+    properties: [token("step")],
+  },
+  {
+    name: ProductEventName.MemberStepsDismissed,
+    description:
+      "An invited member hid their own first steps on Home, and how many were left.",
+    properties: [{ name: "open_count" }],
   },
   {
     name: ProductEventName.HowItWorksOpened,

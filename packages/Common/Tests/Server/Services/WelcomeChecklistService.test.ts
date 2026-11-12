@@ -22,7 +22,9 @@ import type { SpyInstance } from "jest-mock";
  *    needs; a master admin of a self-hosted server that cannot send email
  *    sees that first.
  *  - A project that existed before is looked at once by the old rule.
- *  - Invited members get nothing to draw, and nothing is read for them.
+ *  - Invited members get no steps, and nothing of the project's is read
+ *    for them: only whether a test page has reached them, and, while
+ *    their card shows, whether the server can send email (#6807).
  */
 
 let mockIsBillingEnabled: boolean = false;
@@ -596,7 +598,7 @@ describe("one checklist for the project", () => {
     ).toBe(false);
   });
 
-  test("an invited member gets nothing to draw, and nothing is read for them", async () => {
+  test("an invited member gets no steps, and nothing of the project's is read for them", async () => {
     const answer: WelcomeChecklistAnswer =
       await WelcomeChecklistService.getAnswer(MEMBER());
 
@@ -604,8 +606,101 @@ describe("one checklist for the project", () => {
     expect(answer.steps).toEqual([]);
     expect(answer.shouldAskForGoals).toBe(false);
     expect(answer.canChooseGoals).toBe(false);
+    expect(answer.hasAcknowledgedTestPage).toBe(false);
     expect(milestonesSpy).not.toHaveBeenCalled();
+    expect(incidentRulesSpy).not.toHaveBeenCalled();
+    expect(importsSpy).not.toHaveBeenCalled();
     expect(writes).toHaveLength(0);
+  });
+
+  test("an invited member is told when the server cannot send email (#6807)", async () => {
+    serverCanSendEmail = false;
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(MEMBER());
+
+    expect(answer.canSendEmail).toBe(false);
+    expect(canSendSpy).toHaveBeenCalledTimes(1);
+  });
+
+  test("OneUptime Cloud always sends email, and asks nothing", async () => {
+    mockIsBillingEnabled = true;
+    serverCanSendEmail = false;
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(MEMBER());
+
+    expect(answer.canSendEmail).toBe(true);
+    expect(canSendSpy).not.toHaveBeenCalled();
+  });
+
+  test("a member who hid their first steps is asked nothing more", async () => {
+    serverCanSendEmail = false;
+    await WelcomeChecklistService.setHiddenForCaller(MEMBER(), true);
+    canSendSpy.mockClear();
+
+    const answer: WelcomeChecklistAnswer =
+      await WelcomeChecklistService.getAnswer(MEMBER());
+
+    expect(answer.isHiddenForMe).toBe(true);
+    expect(answer.canSendEmail).toBe(true);
+    expect(canSendSpy).not.toHaveBeenCalled();
+  });
+
+  test("a test page a member acknowledged is theirs alone, and written once", async () => {
+    await WelcomeChecklistService.noteTestPageAcknowledged({
+      projectId: PROJECT_ID,
+      userId: MEMBER_ID,
+    });
+
+    expect(writes).toHaveLength(1);
+    expect(storedState().testPageAcknowledgedByUserIds).toEqual([
+      MEMBER_ID.toString(),
+    ]);
+    expect(
+      (await WelcomeChecklistService.getAnswer(MEMBER()))
+        .hasAcknowledgedTestPage,
+    ).toBe(true);
+    expect(
+      (await WelcomeChecklistService.getAnswer(OWNER()))
+        .hasAcknowledgedTestPage,
+    ).toBe(false);
+
+    // A later acknowledgement reads the row and stops.
+    await WelcomeChecklistService.noteTestPageAcknowledged({
+      projectId: PROJECT_ID,
+      userId: MEMBER_ID,
+    });
+
+    expect(
+      writes.filter((write: { sql: string }): boolean => {
+        return write.sql.includes("welcomeChecklistState");
+      }),
+    ).toHaveLength(1);
+    // What else the state held is kept.
+    expect(storedState().startedWithOutcomes).toBe(true);
+  });
+
+  test("noting a test page in the background never throws", async () => {
+    jest
+      .spyOn(ProjectService, "findOneById")
+      .mockImplementation((async (): Promise<unknown> => {
+        throw new Error("The database is restarting.");
+      }) as never);
+
+    expect(() => {
+      WelcomeChecklistService.noteTestPageAcknowledgedInBackground({
+        projectId: PROJECT_ID,
+        userId: MEMBER_ID,
+      });
+    }).not.toThrow();
+
+    await new Promise((resolve: (value: unknown) => void) => {
+      setTimeout(resolve, 0);
+    });
+
+    expect(writes).toHaveLength(0);
+    expect(logger.error).toHaveBeenCalled();
   });
 
   test("an invited member may not choose the goals", async () => {
