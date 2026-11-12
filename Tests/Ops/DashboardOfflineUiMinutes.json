@@ -116,7 +116,7 @@
     "test-slo-burn-rate-ui": 2.0,
     "test-snmp-walk-ui": 1.6,
     "test-status-page-search-ui": 1.4,
-    "test-status-page-theme-ui": 4.0,
+    "test-status-page-theme-ui": 4.8,
     "test-status-timeline-ui": 2.2,
     "test-storage-array-pages-ui": 1.4,
     "test-suite-helpers-ui": 0.6,
