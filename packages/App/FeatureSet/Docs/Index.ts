@@ -12,6 +12,7 @@ import DocsSearchIndex, {
   summarizeDocsPage,
 } from "./Utils/SearchIndex";
 import DocsSitemap from "./Utils/Sitemap";
+import DocsSearch, { DocsSearchAnswer } from "./Utils/DocsSearch";
 import DocsAIReader from "./Utils/AIDocsReader";
 import AIDocsLibrary from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DocsTranslations from "./Utils/Translations";
@@ -291,11 +292,51 @@ const DocsFeatureSet: FeatureSet = {
     );
 
     /*
-     * The search index for one language: every page's title, group,
-     * summary and section headings (Utils/SearchIndex.ts). The search box
-     * fetches it the first time it opens. Registered before the two-segment
+     * Docs search, for one language: the results for ?q= (and at most
+     * ?limit= of them), read from every page in full, forgiving typos and a
+     * reader's other words (Utils/DocsSearch.ts). The docs' search box asks
+     * it as the reader types, and so does Search (Cmd/Ctrl+K) in the
+     * Dashboard for its Docs group. Registered before the two-segment
      * legacy redirect below, which would otherwise take the address for a
      * page called "<lang>.json".
+     */
+    app.get(
+      "/docs/search/:lang.json",
+      async (req: ExpressRequest, res: ExpressResponse, next: NextFunction) => {
+        try {
+          const lang: string = req.params["lang"] || "";
+          const query: string =
+            typeof req.query["q"] === "string" ? req.query["q"] : "";
+          const limit: number = Number(req.query["limit"]);
+
+          if (!isSupportedDocsLanguage(lang)) {
+            res.status(404);
+            return res.json({ query: "", results: [], words: [] });
+          }
+
+          const answer: DocsSearchAnswer = query.trim()
+            ? await DocsSearch.search({
+                query,
+                language: lang,
+                limit: Number.isFinite(limit) && limit > 0 ? limit : undefined,
+              })
+            : { query: "", results: [], words: [] };
+
+          res.setHeader("Cache-Control", "public, max-age=300");
+          return res.json(answer);
+        } catch (err) {
+          logger.error(err);
+          return next(err);
+        }
+      },
+    );
+
+    /*
+     * The headings index for one language: every page's title, group,
+     * summary and section headings (Utils/SearchIndex.ts), for tools that
+     * want the docs' outline. The search box asks /docs/search instead.
+     * Registered before the two-segment legacy redirect below, which would
+     * otherwise take the address for a page called "<lang>.json".
      */
     app.get(
       "/docs/search-index/:lang.json",
