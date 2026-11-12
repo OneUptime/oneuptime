@@ -2,6 +2,9 @@
 
 Vagt er den måde, OneUptime får en person sat på et problem, på alle tider af døgnet. Når en hændelse, en advarsel eller en episode har brug for nogen, tilkalder dens vagtpolitikker folk niveau for niveau, indtil nogen kvitterer, og hver person nås på den måde, de har valgt: en pushnotifikation, en sms, et opkald, en e-mail eller en chatbesked. Denne side viser, hvordan delene hænger sammen, og hvor hver del findes. Hvert ord, der bruges om vagt, er forklaret med en sætning eller to i [Ordliste](/docs/introduction/glossary#vagtpolitik).
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Sådan når et tilkald frem](#sådan-når-et-tilkald-frem): Fra en ny hændelse til den person, der svarer.
 - [Byggestenene](#byggestenene): Politikker, eskaleringsregler, vagtplaner, tilsidesættelser og personlige regler.

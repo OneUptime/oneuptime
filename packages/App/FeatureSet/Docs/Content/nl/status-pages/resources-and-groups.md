@@ -2,6 +2,9 @@
 
 Een resource is één rij op uw statuspagina: een monitor of een monitorgroep, met een naam die uw klanten begrijpen, de huidige status en, als u wilt, de uptime en de geschiedenis. Groepen zijn secties die resources bevatten, zodat een pagina met veertig monitoren leest als "API", "Webapp" en "Datapipeline" in plaats van als één eindeloze lijst. U bouwt beide op één scherm: open een statuspagina en kies **Middelen** in het zijmenu.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Een statuspagina publiceren](/docs/guides/status-page).
+
 :::cards
 - [Een monitor toevoegen](#een-monitor-toevoegen): Zet een monitor op de pagina, met de naam die bezoekers lezen.
 - [Groepen](#groepen): Verdeel de pagina in secties en nest ze.

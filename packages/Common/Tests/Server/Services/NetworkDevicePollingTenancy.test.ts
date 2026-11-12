@@ -8,12 +8,15 @@ import NetworkSnmpCredentialProfile from "../../../Models/DatabaseModels/Network
 import Probe from "../../../Models/DatabaseModels/Probe";
 import BadDataException from "../../../Types/Exception/BadDataException";
 import ObjectID from "../../../Types/ObjectID";
-import { EntityManager } from "typeorm";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import {
   ProjectDirectoryStub,
   stubProjectDirectory,
 } from "../TestingUtils/ProjectDirectory";
+import {
+  CapturedStatement,
+  captureClaimQueries,
+} from "../TestingUtils/PastDueMonitoringClaimSql";
 
 /*
  * The records these tests name are their project's own: the services check
@@ -516,32 +519,17 @@ describe("the polling claim query refuses a probe from another project", () => {
 
   async function capturedClaimSql(): Promise<string> {
     const { service } = buildDeviceService();
-    const statements: Array<string> = [];
-
-    jest
-      .spyOn(service, "executeTransaction")
-      .mockImplementation(
-        async <TResult>(
-          runInTransaction: (entityManager: EntityManager) => Promise<TResult>,
-        ): Promise<TResult> => {
-          const entityManager: {
-            query: (sql: string) => Promise<Array<never>>;
-          } = {
-            query: async (sql: string): Promise<Array<never>> => {
-              statements.push(sql);
-              return [];
-            },
-          };
-
-          return await runInTransaction(
-            entityManager as unknown as EntityManager,
-          );
-        },
-      );
+    // One auto-committed statement on the service's own connection (#7194).
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
 
     await service.claimDevicesForPolling({ probeId: PROBE_ID, limit: 10 });
 
-    return statements.join("\n").replace(/\s+/g, " ");
+    return statements
+      .map((statement: CapturedStatement) => {
+        return statement.sql;
+      })
+      .join("\n")
+      .replace(/\s+/g, " ");
   }
 
   test("joins Probe and requires it to be global or in the device's project", async () => {
@@ -555,13 +543,14 @@ describe("the polling claim query refuses a probe from another project", () => {
 
   /*
    * The row lock must stay on the device rows alone. Widening it to the
-   * joined tables would take FOR UPDATE locks on Probe and Project rows that
+   * joined tables would take row locks on Probe and Project rows that
    * every other probe's claim also touches, turning SKIP LOCKED contention
    * between unrelated probes into serialisation across the whole fleet.
    */
   test("still locks only the device rows", async () => {
     const sql: string = await capturedClaimSql();
 
-    expect(sql).toContain("FOR UPDATE OF nd SKIP LOCKED");
+    expect(sql).toContain("FOR NO KEY UPDATE OF nd SKIP LOCKED");
+    expect(sql).not.toMatch(/FOR (NO KEY )?UPDATE(?! OF nd)/);
   });
 });

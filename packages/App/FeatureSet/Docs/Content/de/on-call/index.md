@@ -2,6 +2,9 @@
 
 Bereitschaft ist der Weg, auf dem OneUptime zu jeder Stunde eine Person an ein Problem bringt. Braucht ein Vorfall, eine Warnung oder eine Episode jemanden, alarmieren ihre Bereitschaftsrichtlinien Personen Stufe für Stufe, bis jemand bestätigt, und jede Person wird so erreicht, wie sie es gewählt hat: per Push-Benachrichtigung, SMS, Anruf, E-Mail oder Chat-Nachricht. Diese Seite zeigt, wie die Teile zusammenpassen und wo jedes zu finden ist. Das [Glossar](/docs/introduction/glossary#bereitschaftsrichtlinie) erklärt jedes Wort, das die Bereitschaft verwendet, in ein oder zwei Sätzen.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
+
 :::cards
 - [Wie ein Alarm jemanden erreicht](#wie-ein-alarm-jemanden-erreicht): Von einem neuen Vorfall bis zur Person, die antwortet.
 - [Die Bausteine](#die-bausteine): Richtlinien, Eskalationsregeln, Pläne, Überschreibungen und persönliche Regeln.

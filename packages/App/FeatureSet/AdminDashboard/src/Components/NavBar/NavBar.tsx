@@ -92,6 +92,20 @@ const DashboardNavbar: FunctionComponent = (): ReactElement => {
       iconColor: "rose",
       category: monitoringCategory,
     },
+    /*
+     * What people told this server about how things went (#6832): the
+     * question at the end of a guided setup, Give feedback, Was this clear?
+     * and the first-week check-in, with Ask AI's thumbs.
+     */
+    {
+      title: "Feedback",
+      description: "What people said was hard, and how each setup went.",
+      route: RouteUtil.populateRouteParams(RouteMap[PageMap.FEEDBACK] as Route),
+      activeRoute: RouteMap[PageMap.FEEDBACK],
+      icon: IconProp.ChatBubbleLeftRight,
+      iconColor: "violet",
+      category: monitoringCategory,
+    },
     {
       title: "Send Email",
       description: "Send a broadcast email to all users.",

@@ -29,7 +29,13 @@ import ExternalStatusPageMonitorUtil, {
   EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+  ExternalStatusPageRefusedException,
 } from "../../../../Utils/Monitors/MonitorTypes/ExternalStatusPageMonitor";
+import ExternalStatusPageReading, {
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE as COMMON_IP_NOT_ALLOWED_MESSAGE,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE as COMMON_PRIVATE_MESSAGE,
+} from "Common/Utils/Monitor/ExternalStatusPageReading";
+import BadDataException from "Common/Types/Exception/BadDataException";
 import { HttpMonitorExecutionContext } from "../../../../Utils/Monitors/HttpMonitorRequest";
 import ProxyConfig from "../../../../Utils/ProxyConfig";
 import ExternalStatusPageMonitorResponse, {
@@ -833,6 +839,16 @@ describe("a OneUptime status page that does not let the probe in", () => {
 
       expect(response.isOnline).toBe(false);
       expect(response.failureCause).toBe(message);
+      /*
+       * The provider that read the page, so the summary names it and draws
+       * the Error in the reader's language (#7222).
+       */
+      expect(response.provider).toBe(ExternalStatusPageProviderType.OneUptime);
+      expect(
+        ExternalStatusPageReading.readOneUptimeFailureCause(
+          response.failureCause,
+        ),
+      ).toBe(message);
       expect(response.componentStatuses).toEqual([]);
       // A definite answer: not retried, and no reachability check after it.
       expect(response.totalAttempts).toBe(1);
@@ -875,6 +891,46 @@ describe("a OneUptime status page that does not let the probe in", () => {
 
     expect(response.provider).toBeUndefined();
     expect(response.overallStatus).toBe("reachable");
+  });
+});
+
+/*
+ * The probe stores the English it always stored (#7222): monitor criteria
+ * and logs compare a failure cause's words, so the words never change. They
+ * are Common's translation keys now, which the summary draws in the
+ * reader's language.
+ */
+describe("why a OneUptime page turned the probe away, as the probe stores it", () => {
+  test("the English, word for word", () => {
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE).toBe(
+      "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.",
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE).toBe(
+      "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.",
+    );
+  });
+
+  test("the probe's words are Common's, so the summary can read them back", () => {
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE).toBe(
+      COMMON_PRIVATE_MESSAGE,
+    );
+    expect(EXTERNAL_STATUS_PAGE_ONEUPTIME_IP_NOT_ALLOWED_MESSAGE).toBe(
+      COMMON_IP_NOT_ALLOWED_MESSAGE,
+    );
+  });
+
+  test("the refusal fails closed, as a BadDataException does, and names its provider", () => {
+    const refused: ExternalStatusPageRefusedException =
+      new ExternalStatusPageRefusedException(
+        ExternalStatusPageProviderType.OneUptime,
+        EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+      );
+
+    expect(refused).toBeInstanceOf(BadDataException);
+    expect(refused.message).toBe(
+      EXTERNAL_STATUS_PAGE_ONEUPTIME_PRIVATE_MESSAGE,
+    );
+    expect(refused.provider).toBe(ExternalStatusPageProviderType.OneUptime);
   });
 });
 

@@ -82,6 +82,14 @@ import StatusPageGroupNestingLayoutUtil, {
   StatusPageGroupRollupKind,
 } from "Common/Utils/StatusPage/GroupNestingLayout";
 import ResourceGroupSection from "Common/UI/Components/StatusPage/ResourceGroupSection";
+import {
+  getPublicResourceGridClassNames,
+  PUBLIC_RESOURCE_GRID_COLUMN_AXIS_CLASS_NAME,
+  PUBLIC_RESOURCE_GRID_CORNER_CLASS_NAME,
+  PUBLIC_RESOURCE_GRID_ROW_AXIS_CLASS_NAME,
+  PublicResourceGridClassNames,
+} from "Common/UI/Components/StatusPage/PublicResourceGridLayout";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import UptimeBarTooltipIncident from "Common/Types/Monitor/UptimeBarTooltipIncident";
 import UptimeBarTooltipMaintenance from "Common/Types/Monitor/UptimeBarTooltipMaintenance";
@@ -1463,6 +1471,13 @@ const Overview: FunctionComponent<PageComponentProps> = (
     const rowValues: Array<string> = parseAxisValues(group.rowAxisValues);
     const columnValues: Array<string> = parseAxisValues(group.columnAxisValues);
 
+    /*
+     * A matrix where this many columns fit the grid's box, a stack where
+     * they would scroll sideways (PublicResourceGridLayout).
+     */
+    const layout: PublicResourceGridClassNames =
+      getPublicResourceGridClassNames(columnValues.length);
+
     if (rowValues.length === 0 || columnValues.length === 0) {
       return (
         <div className="mb-5">
@@ -1642,10 +1657,7 @@ const Overview: FunctionComponent<PageComponentProps> = (
     ): ReactElement => {
       if (meta.isEmpty) {
         return (
-          <div
-            className="flex items-center justify-center py-3.5"
-            aria-hidden="true"
-          >
+          <div className={layout.cellEmpty} aria-hidden="true">
             <span className="block w-3 h-0.5 bg-gray-200 rounded-full select-none" />
           </div>
         );
@@ -1655,8 +1667,9 @@ const Overview: FunctionComponent<PageComponentProps> = (
 
       return (
         <div
-          className="flex flex-col items-center justify-center gap-1 px-2 py-3"
+          className={layout.cellStatus}
           title={meta.labels.join(", ")}
+          data-testid="status-page-grid-cell-status"
         >
           <div
             className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full transition-transform group-hover:scale-[1.03]"
@@ -1761,56 +1774,59 @@ const Overview: FunctionComponent<PageComponentProps> = (
             })}
           </div>
         )}
-        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]">
+        {/*
+         * The grid's box, which its container query measures: a matrix
+         * where its columns fit, a stack where they would scroll sideways
+         * (PublicResourceGridLayout). The values are the page owner's
+         * words, each read the way it is written (IsolatedText).
+         */}
+        <div
+          className={`${layout.grid} rounded-xl border border-gray-200 bg-white overflow-hidden shadow-[0_1px_2px_0_rgba(0,0,0,0.02)]`}
+          data-testid="status-page-grid"
+        >
           <div className="overflow-x-auto">
-            <table className="min-w-full border-separate border-spacing-0">
-              <thead>
+            <table className={layout.table}>
+              <thead className={layout.head}>
                 {group.columnAxisLabel ? (
                   <tr>
-                    <th className="bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pt-3 pb-1.5 min-w-[160px] border-r border-gray-200" />
+                    <th className={PUBLIC_RESOURCE_GRID_CORNER_CLASS_NAME} />
                     <th
                       colSpan={columnValues.length}
-                      className="bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pt-3 pb-1.5 text-center text-[10px] uppercase tracking-[0.18em] text-gray-400 font-semibold"
+                      className={PUBLIC_RESOURCE_GRID_COLUMN_AXIS_CLASS_NAME}
                     >
-                      {group.columnAxisLabel}
+                      <IsolatedText text={group.columnAxisLabel} />
                     </th>
                   </tr>
                 ) : null}
                 <tr>
-                  <th className="sticky left-0 z-10 bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400 border-b border-r border-gray-200 min-w-[160px]">
-                    {rowAxisDisplay}
+                  <th className={PUBLIC_RESOURCE_GRID_ROW_AXIS_CLASS_NAME}>
+                    <IsolatedText text={rowAxisDisplay} />
                   </th>
                   {columnValues.map((col: string, i: number) => {
                     return (
                       <th
                         key={`col-${i}`}
-                        className={`bg-gradient-to-b from-gray-50 to-gray-50/80 px-3 py-3 text-center text-sm font-semibold text-gray-900 border-b border-gray-200 min-w-[140px] ${
-                          i < columnValues.length - 1
-                            ? "border-r border-gray-100"
-                            : ""
-                        }`}
+                        scope="col"
+                        className={layout.getColumnHeading({
+                          isLastColumn: i === columnValues.length - 1,
+                        })}
                       >
-                        {col}
+                        <IsolatedText text={col} />
                       </th>
                     );
                   })}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className={layout.body}>
                 {rowValues.map((row: string, rowIdx: number) => {
                   const isLast: boolean = rowIdx === rowValues.length - 1;
                   return (
-                    <tr
-                      key={`row-${rowIdx}`}
-                      className="group transition-colors"
-                    >
+                    <tr key={`row-${rowIdx}`} className={layout.row}>
                       <th
                         scope="row"
-                        className={`sticky left-0 z-10 bg-white group-hover:bg-gray-50/80 px-4 py-3 text-left text-sm font-semibold text-gray-900 min-w-[140px] border-r border-gray-200 transition-colors ${
-                          isLast ? "" : "border-b border-gray-100"
-                        }`}
+                        className={layout.getRowHeading({ isLastRow: isLast })}
                       >
-                        {row}
+                        <IsolatedText text={row} />
                       </th>
                       {columnValues.map((col: string, colIdx: number) => {
                         const cell: CellContent = cellByRowCol[row]![col]!;
@@ -1821,11 +1837,11 @@ const Overview: FunctionComponent<PageComponentProps> = (
                         return (
                           <td
                             key={`cell-${rowIdx}-${colIdx}`}
-                            className={`align-middle text-center transition-colors ${
-                              isLast ? "" : "border-b border-gray-100"
-                            } ${isLastCol ? "" : "border-r border-gray-100"} ${
-                              meta.isEmpty ? "group-hover:bg-gray-50/40" : ""
-                            }`}
+                            className={layout.getCell({
+                              isLastRow: isLast,
+                              isLastColumn: isLastCol,
+                              isEmpty: meta.isEmpty,
+                            })}
                             style={
                               meta.color
                                 ? {
@@ -1837,6 +1853,16 @@ const Overview: FunctionComponent<PageComponentProps> = (
                                 : undefined
                             }
                           >
+                            {/*
+                             * The cell's column, at the start of its tile
+                             * when the grid is a stack and its column
+                             * heading is not drawn.
+                             */}
+                            <IsolatedText
+                              text={col}
+                              className={layout.cellLabel}
+                              dataTestId="status-page-grid-cell-label"
+                            />
                             {renderCellContent(meta)}
                           </td>
                         );

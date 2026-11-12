@@ -2088,9 +2088,11 @@ import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
+import UsedByAPI from "Common/Server/API/UsedByAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
+import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
@@ -6594,6 +6596,14 @@ const BaseAPIFeatureSet: FeatureSet = {
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupHealthAPI);
 
     /*
+     * What refers to a record (UsedByAPI, #6813): the status pages that
+     * show a monitor, the policies that page a schedule, the monitors that
+     * watch a service, and the rest, read with the caller's permissions. A
+     * bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, UsedByAPI);
+
+    /*
      * The Welcome checklist on Home (issue #6803): the project's goals and
      * its checklist, with each step ticked on what works, for the person
      * asking. A bare router for the same reason as OnCallReadinessAPI: it
@@ -6601,6 +6611,16 @@ const BaseAPIFeatureSet: FeatureSet = {
      * own checks are the gate.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
+
+    /*
+     * Asking people how things went (issue #6832): the question at the end
+     * of a guided setup, Give feedback, Was this clear? and the first-week
+     * check-in, kept on this server for its master admins (Admin Dashboard
+     * > Feedback). A bare router for the same reason as OnCallReadinessAPI:
+     * ProductFeedback has no CRUD API, and the service writes as root, so
+     * the router's own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProductFeedbackAPI);
 
     /*
      * A project's products (issue #6814): the ones it hides, the ones the

@@ -23,6 +23,8 @@ import Navigation from "Common/UI/Utils/Navigation";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import ArchiveResourceCard from "../../../Components/TelemetryResource/ArchiveResourceCard";
 import { MONITOR_ARCHIVE_COPY } from "../../../Components/Archive/ResourceArchiveCopy";
+import { UsedByImpactForRecord } from "../../../Components/UsedBy/UsedByImpact";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import React, {
   Fragment,
   FunctionComponent,
@@ -273,6 +275,12 @@ const MonitorCriteria: FunctionComponent<
             archiveConfirmMessage={MONITOR_ARCHIVE_COPY.archiveConfirmMessage}
             unarchiveConfirmMessage={
               MONITOR_ARCHIVE_COPY.unarchiveConfirmMessage
+            }
+            archiveConfirmationContent={
+              <UsedByImpactForRecord
+                recordKind={UsedByRecordKind.Monitor}
+                recordId={modelId}
+              />
             }
           />
         </div>

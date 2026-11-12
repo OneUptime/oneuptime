@@ -96,6 +96,7 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary`; `on_call`'s are `reach_you`, `who_else`, `no_answer`, `test` and `summary`; `status_page`'s are `pick`, `review` and `summary`; `telemetry`'s are `send`, `alert` and `summary` | `setup`, `step`, `step_number` | Same |
 | `guided_setup/finished` | It reaches its end: the thing works and was tested (`on_call`: a test page of the policy acknowledged; `status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |
 | `guided_setup/left` | It is left before its end | `setup`, `step`, `step_number` | Same |
+| `feedback/given` | Somebody tells OneUptime how something went (#6832): "How easy was that?" at the end of a guided setup (`kind` `setup_flow`, `topic` the setup, `score` 1 to 5), Give feedback in Help (`general`), "Was this clear?" under an explanation (`explanation`, `topic` `how_oneuptime_works` or `term.<term>`, `is_positive`) or the first-week check-in on Home (`check_in`, `is_positive`). What they wrote is never sent, only whether they wrote anything. Every answer is also kept on the server for its master admins (Admin Dashboard > Feedback), on every server | `kind`, `topic`, `score`, `is_positive`, `has_details`, `page` (the route, with no ids) | `ProductFeedback.submit` (`packages/Common/UI/Utils/ProductFeedback.ts`) |
 | `products/product_hidden` | A product is hidden in the project, on Project Settings > Products (`source` is `settings`) or with Home's **Keep hidden** (`home`) | `product` (its key, such as `kubernetes`), `source`, `has_data` | `ProductsSettings`, `HiddenProductsWithData` |
 | `products/product_shown` | A hidden product is shown again, on Project Settings > Products (`settings`) or with Home's **Show it** (`home`) | `product`, `source` | Same |
 | `products/all_products_shown` | **Show every product** on Project Settings > Products | `hidden_count` | `ProductsSettings` |
@@ -105,6 +106,7 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `setup_health/fix_opened` | The fix of a finding is opened: which findings people act on, for the one-click fixes the issue leaves for later | `check`, `level` | `SetupHealthView` |
 | `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthView` |
 | `setup_health/finding_restored` | A dismissed finding is restored | `check` | `SetupHealthView` |
+| `used_by/list_opened` | The full list of what refers to a record is opened (#6813): a relation's "See all" on a record's Used by card, or a label's Used by on Settings > Labels. Whether people open it says whether the card's three rows are enough | `record_kind` (`monitor`, `on-call-schedule`, `service`, `status-page`, `team`, `label`), `relation` (the relation, or `all` for a label's whole list) | `UsedByDialog` |
 
 ### The Welcome checklist and its goals
 

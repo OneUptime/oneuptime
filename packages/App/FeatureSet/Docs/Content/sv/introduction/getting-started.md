@@ -6,8 +6,8 @@ OneUptime är en observerbarhetsplattform med öppen källkod. Den kontrollerar 
 
 :::cards
 - [Få veta när din webbplats eller ditt API går ner](/docs/monitor/website-monitor): Kontrollera den från sonder runt om i världen, och få ett e-postmeddelande eller ett larm när den fallerar.
-- [Bli larmad via samtal, SMS eller push, och eskalera](/docs/on-call/index): Larma den som har jour, och nästa person om ingen svarar.
-- [Publicera en statussida på din egen domän](/docs/status-pages/index): Berätta för dina kunder vad som händer, på en egen adress.
+- [Bli larmad via samtal, SMS eller push, och eskalera](/docs/guides/paging): Larma den som har jour, och nästa person om ingen svarar.
+- [Publicera en statussida på din egen domän](/docs/guides/status-page): Berätta för dina kunder vad som händer, på en egen adress.
 - [Skicka loggar, mätvärden och spår](/docs/telemetry/open-telemetry): Skicka dina appars telemetri med OpenTelemetry, sök i den och få larm om den.
 - [Övervaka en server](/docs/telemetry/hosts): Lägg till en värd med ett kommando, och håll koll på CPU, minne och diskar.
 - [Övervaka ett Kubernetes-kluster](/docs/telemetry/kubernetes-agent): Installera agenten med Helm, och håll koll på varje nod och pod.

@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 51205,
+    "keys": 51223,
     "untranslated": 1414
   },
   "sameAsEnglish": [
@@ -392,7 +392,6 @@
     "{{gigabytes}} GB",
     "{{inRate}} / {{outRate}} Mbps",
     "{{in}} in",
-    "{{value}} ms",
     "μs"
   ]
 }
