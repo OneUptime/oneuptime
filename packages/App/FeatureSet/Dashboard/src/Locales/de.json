@@ -51132,5 +51132,8 @@
   "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Der Anteil der Zeit, in der seine Monitore verfügbar sein müssen. Bei {{target}} sind über {{days}} Tage {{minutes}} Minuten Ausfallzeit erlaubt, bei {{stricterTarget}} etwa {{stricterMinutes}}.",
   "Window must be a whole number of days.": "Das Zeitfenster muss eine ganze Zahl von Tagen sein.",
   "Window must be between {{min}} and {{max}} days.": "Das Zeitfenster muss zwischen {{min}} und {{max}} Tagen liegen.",
-  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} jedes Monats: {{budget}} Ausfallzeit in einem Monat mit {{days}} Tagen"
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} jedes Monats: {{budget}} Ausfallzeit in einem Monat mit {{days}} Tagen",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "Die KI hat diese {{count}} Dateien gelesen und kennt einen Teil ihres Textes nicht mehr, und die Versionen der KI ersetzen die Dateien ganz: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}."
 }

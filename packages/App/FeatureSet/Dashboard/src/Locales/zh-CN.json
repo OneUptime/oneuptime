@@ -51132,5 +51132,8 @@
   "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "其监视器必须正常运行的时间占比。在 {{days}} 天内，{{target}} 允许 {{minutes}} 分钟停机时间，{{stricterTarget}} 约允许 {{stricterMinutes}} 分钟。",
   "Window must be a whole number of days.": "窗口必须是整数天。",
   "Window must be between {{min}} and {{max}} days.": "窗口必须介于 {{min}} 到 {{max}} 天之间。",
-  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "每月的 {{percentage}}：{{days}} 天的月份中有 {{budget}} 停机时间"
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "每月的 {{percentage}}：{{days}} 天的月份中有 {{budget}} 停机时间",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "AI 读取了这 {{count}} 个文件，但已不再掌握其中部分内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI 读取了此文件，但已不再掌握其中部分内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI 读取了此文件，但已不再掌握其中部分内容，而 AI 的版本会替换整个文件：{{files}}。"
 }

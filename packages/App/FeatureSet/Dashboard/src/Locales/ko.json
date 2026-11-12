@@ -51132,5 +51132,8 @@
   "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "모니터가 정상이어야 하는 시간의 비율입니다. {{days}}일 동안 {{target}}이면 {{minutes}}분, {{stricterTarget}}이면 약 {{stricterMinutes}}분의 다운타임이 허용됩니다.",
   "Window must be a whole number of days.": "기간은 정수 일수여야 합니다.",
   "Window must be between {{min}} and {{max}} days.": "기간은 {{min}}일에서 {{max}}일 사이여야 합니다.",
-  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "매월 {{percentage}}: {{days}}일 기준 한 달에 다운타임 {{budget}}"
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "매월 {{percentage}}: {{days}}일 기준 한 달에 다운타임 {{budget}}",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "AI가 파일 {{count}}개를 읽었지만 더 이상 그 내용의 일부를 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI가 이 파일을 읽었지만 더 이상 그 내용의 일부를 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI가 이 파일을 읽었지만 더 이상 그 내용의 일부를 가지고 있지 않으며, AI의 버전은 파일 전체를 대체합니다: {{files}}."
 }
