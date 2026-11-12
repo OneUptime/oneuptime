@@ -1689,6 +1689,10 @@ jobs:
           # two bundles). No group had the room: the most was group 4's 1.5.
           # The rest of the group is room for the journeys the guided setups
           # of #6802 add.
+          # The website-down guided setup's run, kept and lost (#7059), joined
+          # it on 2026-11-12: Journeys/GuidedSetupRun.spec.ts, 2 tests that are
+          # not journeys (nothing counted), about 23 seconds locally - planned
+          # as 2.7.
           - group: 22
             suites: >-
               test-journeys-ui
