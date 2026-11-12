@@ -22,9 +22,9 @@ import {
   navTitle,
   prose,
 } from "./DocsTranslationChecks";
+import { parseYaml } from "Common/Tests/Helpers/Yaml";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
-import yaml from "js-yaml";
 import path from "path";
 
 /*
@@ -269,7 +269,7 @@ function yamlPaths(value: unknown, prefix: string = ""): Array<string> {
   );
 }
 
-const CHART_VALUES: unknown = yaml.load(
+const CHART_VALUES: unknown = parseYaml(
   repoFile("HelmChart/Public/oneuptime/values.yaml"),
 );
 
@@ -444,7 +444,7 @@ describe("what the Self-Hosting Guide names is what OneUptime has", () => {
     const paths: Set<string> = new Set(yamlPaths(CHART_VALUES));
     const set: Array<string> = fencesOf(ENGLISH, "yaml").flatMap(
       (code: string): Array<string> => {
-        return yamlPaths(yaml.load(code));
+        return yamlPaths(parseYaml(code));
       },
     );
     const named: Array<string> = inlineCode(ENGLISH).filter(
@@ -630,7 +630,12 @@ describe("where people meet the Self-Hosting Guide", () => {
       const compose: string = readPage(language, "installation/docker-compose");
       const cards: Array<string> = cardTargets(
         cardLines(
-          sectionOf(compose, scanMarkdown(compose).headings.at(-1)!.text),
+          sectionOf(
+            compose,
+            scanMarkdown(compose).headings[
+              scanMarkdown(compose).headings.length - 1
+            ]!.text,
+          ),
         ),
       );
 
@@ -657,6 +662,46 @@ describe("where people meet the Self-Hosting Guide", () => {
       ).toHaveLength(1);
     },
   );
+
+  it("the chart's quick start and production checklist lead to email and SMS at /admin/setup, and to the guide", () => {
+    const chartReadme: string = repoFile(
+      "HelmChart/Public/oneuptime/README.md",
+    );
+    const checklist: string = repoFile(
+      "HelmChart/Public/oneuptime/docs/production-checklist.md",
+    );
+    const guideUrl: string =
+      "(https://oneuptime.com/docs/installation/self-hosting-guide)";
+
+    expect(chartReadme).toContain(
+      "4. **Finish setting up the server** at `/admin/setup`",
+    );
+    expect(chartReadme).toContain(guideUrl);
+    // Email comes first in the checklist, before pinning versions.
+    expect(checklist.indexOf("## Reach people")).toBeGreaterThan(0);
+    expect(checklist.indexOf("## Reach people")).toBeLessThan(
+      checklist.indexOf("## Pin versions"),
+    );
+    expect(checklist).toContain("`https://<host>/admin/setup`");
+    expect(checklist).toContain(guideUrl);
+    // The Admin Dashboard's words it names are the ones it draws.
+    for (const label of Object.keys(ADMIN_LOCALE_KEYS).filter(
+      (key: string): boolean => {
+        return checklist.includes(`**${key}**`);
+      },
+    )) {
+      expect(drawnAdminLabel("en", label)).toBe(label);
+    }
+    for (const label of [
+      "Set up email",
+      "Send test email",
+      "Set up SMS and calls",
+      "Use email and push only",
+      "Let people sign up",
+    ]) {
+      expect(checklist).toContain(`**${label}**`);
+    }
+  });
 
   it("the README and config.example.env send self-hosters to it", () => {
     expect(repoFile("README.md")).toContain(
