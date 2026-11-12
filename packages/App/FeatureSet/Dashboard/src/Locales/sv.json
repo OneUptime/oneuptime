@@ -50808,7 +50808,7 @@
   "Guided setup": "Guidad installation",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Guidad installation: kontrollera en adress, välj vem som får veta och skicka ett test, på den här sidan.",
   "I did not get it": "Jag fick inget",
-  "If it does not answer, or answers with an error, OneUptime opens a {{severity}} incident.": "Om det inte kommer något svar, eller svaret är ett fel, öppnar OneUptime en incident med allvarlighetsgrad {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Om det inte kommer något svar, eller svaret är ett fel, öppnar OneUptime en incident med allvarlighetsgrad {{severity}}.",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Om det inte kommer något svar, eller svaret är ett fel, ändras dess status till Offline.",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Ingen plats kontrollerar {{host}} ännu. Sonder läggs till under Monitorer > Inställningar > Sonder.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Inte testat ännu. Skicka ett testlarm till dig själv för att vara säker på att det når dig.",

@@ -50808,7 +50808,7 @@
   "Guided setup": "الإعداد الموجَّه",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "الإعداد الموجَّه: افحص عنوانًا، واختر من يُبلَّغ، وأرسل اختبارًا، في هذه الصفحة.",
   "I did not get it": "لم يصلني",
-  "If it does not answer, or answers with an error, OneUptime opens a {{severity}} incident.": "إذا لم يُجب، أو أجاب بخطأ، يفتح OneUptime حادثة بخطورة {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "إذا لم يُجب، أو أجاب بخطأ، يفتح OneUptime حادثة بخطورة {{severity}}.",
   "If it does not answer, or answers with an error, its status changes to Offline.": "إذا لم يُجب، أو أجاب بخطأ، تتغير حالته إلى «غير متصل».",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "لا يفحص أي موقع {{host}} بعد. تُضاف المسابير من المراقبات > الإعدادات > المسابير.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "لم يُختبر بعد. أرسل إلى نفسك استدعاء اختبار للتأكد من وصوله إليك.",

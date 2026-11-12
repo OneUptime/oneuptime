@@ -50808,7 +50808,7 @@
   "Guided setup": "引导式设置",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "引导式设置：在此页面检查地址、选择通知对象并发送测试。",
   "I did not get it": "我没有收到",
-  "If it does not answer, or answers with an error, OneUptime opens a {{severity}} incident.": "如果没有响应，或响应出错，OneUptime 会创建严重程度为 {{severity}} 的事件。",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "如果没有响应，或响应出错，OneUptime 会创建严重程度为 {{severity}} 的事件。",
   "If it does not answer, or answers with an error, its status changes to Offline.": "如果没有响应，或响应出错，其状态会变为离线。",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "还没有任何位置在检查 {{host}}。探测器可在 监视器 > 设置 > 探测器 中添加。",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "尚未测试。给自己发送一条测试呼叫，确保能收到。",

@@ -700,7 +700,7 @@ describe("the summary, read from the records", () => {
       {
         key: "when_down",
         label: "When it goes down",
-        text: "If it does not answer, or answers with an error, OneUptime opens a Critical incident.",
+        text: "If it does not answer, or answers with an error, OneUptime opens an incident (Critical).",
       },
       {
         key: "who_is_told",

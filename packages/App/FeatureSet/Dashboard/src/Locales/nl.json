@@ -50808,7 +50808,7 @@
   "Guided setup": "Begeleide installatie",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Begeleide installatie: controleer een adres, kies wie op de hoogte wordt gesteld en stuur een test, op deze pagina.",
   "I did not get it": "Ik heb het niet ontvangen",
-  "If it does not answer, or answers with an error, OneUptime opens a {{severity}} incident.": "Als er geen antwoord komt, of het antwoord een fout is, opent OneUptime een incident met ernst {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Als er geen antwoord komt, of het antwoord een fout is, opent OneUptime een incident met ernst {{severity}}.",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Als er geen antwoord komt, of het antwoord een fout is, verandert de status in Offline.",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Nog geen enkele locatie controleert {{host}}. Sondes worden toegevoegd onder Monitoren > Instellingen > Sondes.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Nog niet getest. Stuur jezelf een testoproep om zeker te weten dat die je bereikt.",

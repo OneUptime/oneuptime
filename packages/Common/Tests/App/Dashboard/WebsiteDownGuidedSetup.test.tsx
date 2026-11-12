@@ -878,7 +878,7 @@ describe("the summary", () => {
     expect(
       screen.getByTestId("guided-setup-summary-when_down"),
     ).toHaveTextContent(
-      "If it does not answer, or answers with an error, OneUptime opens a Critical incident.",
+      "If it does not answer, or answers with an error, OneUptime opens an incident (Critical).",
     );
     expect(
       screen.getByTestId("guided-setup-summary-who_is_told"),

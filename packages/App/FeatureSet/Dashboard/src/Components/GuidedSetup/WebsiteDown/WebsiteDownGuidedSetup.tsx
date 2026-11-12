@@ -104,6 +104,13 @@ const routeOf: (page: PageMap, modelId?: string | undefined) => Route = (
   });
 };
 
+/*
+ * Button keeps a dialog footer's margin (md:ml-3); a row of the step's
+ * actions takes it back, so they line up with the words above.
+ */
+const ACTIONS_CLASS_NAME: string =
+  "flex flex-wrap items-center gap-y-2 md:-ml-3";
+
 const linkClassName: string =
   "text-sm font-medium text-indigo-600 hover:text-indigo-800 underline-offset-2 hover:underline";
 
@@ -493,14 +500,16 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       >
         {checkSentence?.text}
       </p>
-      <Button
-        title={WEBSITE_DOWN_COPY.continueButton}
-        buttonStyle={ButtonStyleType.PRIMARY}
-        dataTestId="guided-setup-check-continue"
-        onClick={() => {
-          openNextStep(WebsiteDownStep.Check);
-        }}
-      />
+      <div className={ACTIONS_CLASS_NAME}>
+        <Button
+          title={WEBSITE_DOWN_COPY.continueButton}
+          buttonStyle={ButtonStyleType.PRIMARY}
+          dataTestId="guided-setup-check-continue"
+          onClick={() => {
+            openNextStep(WebsiteDownStep.Check);
+          }}
+        />
+      </div>
     </div>
   ) : (
     <form
@@ -551,7 +560,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <div className={ACTIONS_CLASS_NAME}>
         <Button
           title={WEBSITE_DOWN_COPY.startChecking}
           type={ButtonType.Submit}
@@ -562,7 +571,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         {/* A server, a port, a heartbeat: Create Monitor has every type. */}
         <AppLink
           to={routeOf(PageMap.MONITOR_CREATE)}
-          className={linkClassName}
+          className={`${linkClassName} md:ml-4`}
           dataTestId="guided-setup-other-types"
         >
           {translator.translateText("More monitor types") || ""}
@@ -705,19 +714,21 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
-      <Button
-        title={
-          mode === WhoIsToldMode.CreatePolicy && !policy
-            ? WEBSITE_DOWN_COPY.whoSave
-            : WEBSITE_DOWN_COPY.continueButton
-        }
-        buttonStyle={ButtonStyleType.PRIMARY}
-        isLoading={isSaving}
-        dataTestId="guided-setup-who-continue"
-        onClick={() => {
-          void saveWhoIsTold();
-        }}
-      />
+      <div className={ACTIONS_CLASS_NAME}>
+        <Button
+          title={
+            mode === WhoIsToldMode.CreatePolicy && !policy
+              ? WEBSITE_DOWN_COPY.whoSave
+              : WEBSITE_DOWN_COPY.continueButton
+          }
+          buttonStyle={ButtonStyleType.PRIMARY}
+          isLoading={isSaving}
+          dataTestId="guided-setup-who-continue"
+          onClick={() => {
+            void saveWhoIsTold();
+          }}
+        />
+      </div>
     </div>
   );
 
@@ -759,16 +770,18 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       )}
       {executionLogId ? <></> : emailWarning}
       {isAcknowledged ? (
-        <Button
-          title={WEBSITE_DOWN_COPY.continueButton}
-          buttonStyle={ButtonStyleType.PRIMARY}
-          dataTestId="guided-setup-test-continue"
-          onClick={() => {
-            setOpenStepKey(null);
-          }}
-        />
+        <div className={ACTIONS_CLASS_NAME}>
+          <Button
+            title={WEBSITE_DOWN_COPY.continueButton}
+            buttonStyle={ButtonStyleType.PRIMARY}
+            dataTestId="guided-setup-test-continue"
+            onClick={() => {
+              setOpenStepKey(null);
+            }}
+          />
+        </div>
       ) : (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className={ACTIONS_CLASS_NAME}>
           <SendTestPageButton
             target={{ kind: "self" }}
             title={
@@ -923,7 +936,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           <></>
         )}
       </ul>
-      <div className="mt-5">
+      <div className={`mt-5 ${ACTIONS_CLASS_NAME}`}>
         <Button
           title={WEBSITE_DOWN_COPY.startOver}
           buttonStyle={ButtonStyleType.NORMAL}

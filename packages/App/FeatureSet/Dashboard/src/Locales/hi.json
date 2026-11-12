@@ -50808,7 +50808,7 @@
   "Guided setup": "गाइडेड सेटअप",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "गाइडेड सेटअप: इसी पेज पर किसी पते की जाँच करें, चुनें कि किसे बताया जाए, और एक टेस्ट भेजें।",
   "I did not get it": "मुझे नहीं मिला",
-  "If it does not answer, or answers with an error, OneUptime opens a {{severity}} incident.": "अगर जवाब नहीं आता, या जवाब में त्रुटि आती है, तो OneUptime {{severity}} गंभीरता वाली घटना खोलता है।",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "अगर जवाब नहीं आता, या जवाब में त्रुटि आती है, तो OneUptime {{severity}} गंभीरता वाली घटना खोलता है।",
   "If it does not answer, or answers with an error, its status changes to Offline.": "अगर जवाब नहीं आता, या जवाब में त्रुटि आती है, तो इसकी स्थिति ऑफ़लाइन हो जाती है।",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "अभी कोई भी स्थान {{host}} को नहीं जाँच रहा है। प्रोब मॉनिटर > सेटिंग्स > प्रोब में जोड़े जाते हैं।",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "अभी परीक्षण नहीं हुआ है। पक्का करने के लिए कि वह आप तक पहुँचता है, खुद को एक परीक्षण पेज भेजें।",

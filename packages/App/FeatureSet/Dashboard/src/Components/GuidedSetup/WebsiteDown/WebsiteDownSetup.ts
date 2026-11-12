@@ -694,7 +694,11 @@ export const getWebsiteDownSummaryRows: (
     label: translator.translateText(WEBSITE_DOWN_COPY.summaryWhenDown) || "",
     text: facts.incidentSeverityName
       ? translator.translateTemplate(
-          "If it does not answer, or answers with an error, OneUptime opens a {{severity}} incident.",
+          /*
+           * The severity in brackets: a new project's are named "Critical
+           * Incident" and the rest, so "a {{severity}} incident" doubled it.
+           */
+          "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).",
           { severity: facts.incidentSeverityName },
         )
       : translator.translateText(
