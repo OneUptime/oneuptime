@@ -40,7 +40,10 @@ export const toErrorReference: (
   let hex: string = "";
 
   for (const character of (requestId || "").toLowerCase()) {
-    if ((character >= "0" && character <= "9") || (character >= "a" && character <= "f")) {
+    if (
+      (character >= "0" && character <= "9") ||
+      (character >= "a" && character <= "f")
+    ) {
       hex += character;
     }
 
@@ -61,7 +64,12 @@ export const isErrorReference: (value: unknown) => value is string = (
   }
 
   for (const character of value) {
-    if (!((character >= "0" && character <= "9") || (character >= "a" && character <= "f"))) {
+    if (
+      !(
+        (character >= "0" && character <= "9") ||
+        (character >= "a" && character <= "f")
+      )
+    ) {
       return false;
     }
   }

@@ -552,7 +552,9 @@ export class Service extends DatabaseService<Model> {
       updateBy.data.enableTwoFactorAuth !== undefined &&
       typeof updateBy.data.enableTwoFactorAuth !== "boolean"
     ) {
-      throw new BadDataException("Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).");
+      throw new BadDataException(
+        "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
+      );
     }
 
     this.normalizeLanguage(updateBy.data as unknown as JSONObject);

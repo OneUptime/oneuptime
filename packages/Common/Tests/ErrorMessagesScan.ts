@@ -12,7 +12,12 @@ import path from "path";
  * about eight thousand files, and needs only the literal after the bracket.
  */
 
-export const REPOSITORY_ROOT: string = path.resolve(__dirname, "..", "..", "..");
+export const REPOSITORY_ROOT: string = path.resolve(
+  __dirname,
+  "..",
+  "..",
+  "..",
+);
 
 // The product's code: every package, and ee/ when the checkout has it.
 export const SCAN_ROOTS: ReadonlyArray<string> = ["packages", "ee"];

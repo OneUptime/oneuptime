@@ -1,4 +1,6 @@
-import ErrorExplanation, { isUnexplainedErrorMessage } from "./ErrorExplanation";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "./ErrorExplanation";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import { getTranslatedLineDirection } from "../../Utils/LineDirection";
 import { Translator } from "../../Utils/TranslateTemplate";

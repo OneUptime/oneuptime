@@ -161,33 +161,42 @@ afterAll(async () => {
 });
 
 describe.each(APPS)("%s", (app: App) => {
-  test.each(LANGUAGES)("in %s, says none of it in English", async (language: string) => {
-    await readIn(app, language);
+  test.each(LANGUAGES)(
+    "in %s, says none of it in English",
+    async (language: string) => {
+      await readIn(app, language);
 
-    for (const message of MESSAGES) {
-      const { container, unmount } = render(
-        <ErrorExplanation message={message} />,
-      );
+      for (const message of MESSAGES) {
+        const { container, unmount } = render(
+          <ErrorExplanation message={message} />,
+        );
 
-      const text: string = withoutIsolateMarks(container.textContent || "");
+        const text: string = withoutIsolateMarks(container.textContent || "");
 
-      for (const sentence of ENGLISH_SENTENCES) {
-        expect({ app, language, message, sentence, left: text.includes(sentence) }).toEqual({
-          app,
-          language,
-          message,
-          sentence,
-          left: false,
-        });
+        for (const sentence of ENGLISH_SENTENCES) {
+          expect({
+            app,
+            language,
+            message,
+            sentence,
+            left: text.includes(sentence),
+          }).toEqual({
+            app,
+            language,
+            message,
+            sentence,
+            left: false,
+          });
+        }
+
+        if (message.includes(REFERENCE)) {
+          expect(text).toContain(REFERENCE);
+        }
+
+        unmount();
       }
-
-      if (message.includes(REFERENCE)) {
-        expect(text).toContain(REFERENCE);
-      }
-
-      unmount();
-    }
-  });
+    },
+  );
 
   test("every locale file of the app has every sentence the transport carries", () => {
     for (const language of ["en", ...LANGUAGES]) {

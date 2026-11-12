@@ -1203,8 +1203,8 @@ export default class SlackAPI {
               req,
               res,
               new BadRequestException(
-              "Slack sent an action OneUptime does not recognise. Press the button again, or reinstall the OneUptime app in Slack if it keeps happening.",
-            ),
+                "Slack sent an action OneUptime does not recognise. Press the button again, or reinstall the OneUptime app in Slack if it keeps happening.",
+              ),
             );
           }
 
@@ -1412,8 +1412,8 @@ export default class SlackAPI {
           req,
           res,
           new BadRequestException(
-              "Slack sent an action OneUptime does not recognise. Press the button again, or reinstall the OneUptime app in Slack if it keeps happening.",
-            ),
+            "Slack sent an action OneUptime does not recognise. Press the button again, or reinstall the OneUptime app in Slack if it keeps happening.",
+          ),
         );
       },
     );

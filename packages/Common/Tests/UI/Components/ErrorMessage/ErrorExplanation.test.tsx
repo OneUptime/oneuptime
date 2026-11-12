@@ -93,12 +93,16 @@ afterEach(() => {
 describe("isUnexplainedErrorMessage", () => {
   test("is true for the sentences API.getFriendlyMessage writes for these", () => {
     expect(isUnexplainedErrorMessage(WITH_REFERENCE)).toBe(true);
-    expect(isUnexplainedErrorMessage(UNEXPLAINED_ERROR_MESSAGES.server)).toBe(true);
+    expect(isUnexplainedErrorMessage(UNEXPLAINED_ERROR_MESSAGES.server)).toBe(
+      true,
+    );
     expect(isUnexplainedErrorMessage(SERVER_DOWN_MESSAGE)).toBe(true);
     expect(
       isUnexplainedErrorMessage(UNEXPLAINED_ERROR_MESSAGES.unreachable),
     ).toBe(true);
-    expect(isUnexplainedErrorMessage(UNEXPLAINED_ERROR_MESSAGES.page)).toBe(true);
+    expect(isUnexplainedErrorMessage(UNEXPLAINED_ERROR_MESSAGES.page)).toBe(
+      true,
+    );
   });
 
   test("is false for a message somebody wrote, and for anything not a string", () => {
@@ -116,7 +120,11 @@ describe("getExplanationWords", () => {
 
   test("on OneUptime Cloud, the reference goes to OneUptime support", () => {
     expect(
-      getExplanationWords({ error: server, isCloud: true, isMasterAdmin: true }),
+      getExplanationWords({
+        error: server,
+        isCloud: true,
+        isMasterAdmin: true,
+      }),
     ).toEqual({
       why: UnexplainedErrorWords.serverWhy,
       next: UnexplainedErrorWords.serverNextWithReferenceCloud,
@@ -136,8 +144,11 @@ describe("getExplanationWords", () => {
 
   test("whoever runs it - a master admin - is told where to look", () => {
     expect(
-      getExplanationWords({ error: server, isCloud: false, isMasterAdmin: true })
-        .whereToLook,
+      getExplanationWords({
+        error: server,
+        isCloud: false,
+        isMasterAdmin: true,
+      }).whereToLook,
     ).toBe(UnexplainedErrorWords.adminWhereToLookWithReference);
     expect(
       getExplanationWords({
@@ -231,7 +242,10 @@ describe("ErrorExplanation", () => {
 
     const reference: HTMLElement = screen.getByTestId("error-reference");
 
-    expect(within(reference).getByText(REFERENCE)).toHaveAttribute("dir", "ltr");
+    expect(within(reference).getByText(REFERENCE)).toHaveAttribute(
+      "dir",
+      "ltr",
+    );
     expect(within(reference).getByRole("button")).toHaveTextContent("Copy");
   });
 
@@ -244,9 +258,7 @@ describe("ErrorExplanation", () => {
   });
 
   test("leaves the first line out under a title that says it", () => {
-    render(
-      <ErrorExplanation message={WITH_REFERENCE} hideWhatFailed={true} />,
-    );
+    render(<ErrorExplanation message={WITH_REFERENCE} hideWhatFailed={true} />);
 
     expect(screen.queryByTestId("error-what-failed")).toBeNull();
   });
@@ -318,7 +330,9 @@ describe("ErrorExplanation", () => {
   });
 
   test("a connection that failed: check it, then try again; no reference", () => {
-    render(<ErrorExplanation message={UNEXPLAINED_ERROR_MESSAGES.unreachable} />);
+    render(
+      <ErrorExplanation message={UNEXPLAINED_ERROR_MESSAGES.unreachable} />,
+    );
 
     expect(screen.getByTestId("error-why-and-next")).toHaveTextContent(
       `${UnexplainedErrorWords.unreachableWhy} ${UnexplainedErrorWords.unreachableNext}`,
@@ -375,7 +389,9 @@ describe("the shared places an error is drawn", () => {
 
     await screen.findByRole("textbox", { name: "Name" });
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Promo code is invalid.");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Promo code is invalid.",
+    );
     expect(screen.queryByTestId("error-explanation")).toBeNull();
   });
 
@@ -443,7 +459,9 @@ describe("the shared places an error is drawn", () => {
       "confirm-modal-description",
     );
 
-    expect(within(description).getByTestId("error-explanation")).toBeInTheDocument();
+    expect(
+      within(description).getByTestId("error-explanation"),
+    ).toBeInTheDocument();
     expect(within(description).getByText(REFERENCE)).toBeInTheDocument();
   });
 
@@ -455,7 +473,9 @@ describe("the shared places an error is drawn", () => {
     );
 
     expect(
-      within(screen.getByTestId("modal-error")).getByTestId("error-why-and-next"),
+      within(screen.getByTestId("modal-error")).getByTestId(
+        "error-why-and-next",
+      ),
     ).toHaveTextContent(UnexplainedErrorWords.pageNext);
   });
 });
@@ -464,7 +484,9 @@ describe("the page that did not load (#1741)", () => {
   test("says so, not 'Oops, something went wrong.'", () => {
     render(<PageError message={SERVER_DOWN_MESSAGE} />);
 
-    expect(screen.getByText(UnexplainedErrorWords.pageDidNotLoadTitle)).toBeInTheDocument();
+    expect(
+      screen.getByText(UnexplainedErrorWords.pageDidNotLoadTitle),
+    ).toBeInTheDocument();
     expect(document.body).not.toHaveTextContent("Oops");
     expect(document.body).not.toHaveTextContent("something went wrong");
   });

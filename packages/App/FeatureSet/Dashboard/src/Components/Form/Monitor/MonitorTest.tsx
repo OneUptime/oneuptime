@@ -244,9 +244,7 @@ const MonitorTestForm: FunctionComponent<ComponentProps> = (
         ) {
           stopPolling();
           setIsLoading(false);
-          setError(
-            MONITOR_TEST_TIMED_OUT_MESSAGE,
-          );
+          setError(MONITOR_TEST_TIMED_OUT_MESSAGE);
         }
       }, MONITOR_TEST_POLL_INTERVAL_IN_MS); // 15 seconds.
 

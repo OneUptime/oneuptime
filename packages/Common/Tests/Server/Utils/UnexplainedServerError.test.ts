@@ -95,12 +95,7 @@ const handle: (
   err: Error | Exception | HTTPErrorResponse,
   req: ExpressRequest = request(),
 ): void => {
-  expressErrorHandler(
-    err,
-    req,
-    res,
-    (() => {}) as unknown as NextFunction,
-  );
+  expressErrorHandler(err, req, res, (() => {}) as unknown as NextFunction);
 };
 
 // The log line that names the reference.
@@ -189,12 +184,12 @@ describe("sendUnexplainedError", () => {
   test("the answer is one the Dashboard reads back as the server's, with its reference", () => {
     sendUnexplainedError(request(), res, { status: 500, errorField: "error" });
 
-    expect(readUnexplainedError(captured.bodies[0]?.["error"] as string)).toEqual(
-      {
-        kind: UnexplainedErrorKind.ServerWithReference,
-        reference: REFERENCE,
-      },
-    );
+    expect(
+      readUnexplainedError(captured.bodies[0]?.["error"] as string),
+    ).toEqual({
+      kind: UnexplainedErrorKind.ServerWithReference,
+      reference: REFERENCE,
+    });
   });
 });
 

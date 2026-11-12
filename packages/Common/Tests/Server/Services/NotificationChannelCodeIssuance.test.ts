@@ -207,7 +207,11 @@ describe("notification channel verification code issuance", () => {
 
       await expect(
         UserEmailService.resendVerificationCode(ITEM_ID),
-      ).rejects.toThrow(new BadDataException("This notification method is not in your list any more. Add it again, then verify it."));
+      ).rejects.toThrow(
+        new BadDataException(
+          "This notification method is not in your list any more. Add it again, then verify it.",
+        ),
+      );
 
       expect(MailService.sendMail).not.toHaveBeenCalled();
       expect(updateOneById).not.toHaveBeenCalled();

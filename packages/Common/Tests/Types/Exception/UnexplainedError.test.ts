@@ -86,15 +86,20 @@ describe("every sentence meets the rule it exists for", () => {
     ...Object.values(UnexplainedErrorWords).filter((words: string) => {
       // The two that end in the reference, and the dialog title.
       return (
-        !words.endsWith(":") && words !== UnexplainedErrorWords.pageDidNotLoadTitle && words !== UnexplainedErrorWords.openHealth
+        !words.endsWith(":") &&
+        words !== UnexplainedErrorWords.pageDidNotLoadTitle &&
+        words !== UnexplainedErrorWords.openHealth
       );
     }),
   ];
 
-  test.each(sentences)("%j is a sentence, and not an empty phrase", (s: string) => {
-    expect(isErrorSentence(s)).toBe(true);
-    expect(isEmptyErrorPhrase(s)).toBe(false);
-  });
+  test.each(sentences)(
+    "%j is a sentence, and not an empty phrase",
+    (s: string) => {
+      expect(isErrorSentence(s)).toBe(true);
+      expect(isEmptyErrorPhrase(s)).toBe(false);
+    },
+  );
 
   test("none says Server Error or Something went wrong", () => {
     for (const s of sentences) {
@@ -104,7 +109,9 @@ describe("every sentence meets the rule it exists for", () => {
   });
 
   test("the sentences that end in the reference end with a colon", () => {
-    expect(UnexplainedErrorWords.serverNextWithReferenceCloud.endsWith(":")).toBe(true);
+    expect(
+      UnexplainedErrorWords.serverNextWithReferenceCloud.endsWith(":"),
+    ).toBe(true);
     expect(
       UnexplainedErrorWords.serverNextWithReferenceSelfHosted.endsWith(":"),
     ).toBe(true);

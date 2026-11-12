@@ -244,10 +244,7 @@ const VerifyEmail: () => JSX.Element = () => {
                   </h1>
                   <p className="mt-3 px-2 text-sm leading-relaxed text-gray-600 sm:px-0 sm:text-base">
                     {isUnexplainedErrorMessage(error) ? (
-                      <ErrorExplanation
-                        message={error}
-                        hideWhatFailed={true}
-                      />
+                      <ErrorExplanation message={error} hideWhatFailed={true} />
                     ) : (
                       error
                     )}

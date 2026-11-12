@@ -623,7 +623,9 @@ async function fiveWrongCodes(account: Account): Promise<void> {
   for (let index: number = 0; index < 5; index++) {
     const result: AttemptResult = await enterCode(account, account.wrongCode());
 
-    expect(result.errorMessage).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
+    expect(result.errorMessage).toBe(
+      "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+    );
   }
 }
 
@@ -726,7 +728,11 @@ describe("wrong authenticator codes are counted for the account, wherever they c
       results.slice(0, 5).map((result: AttemptResult) => {
         return result.errorMessage;
       }),
-    ).toEqual(Array(5).fill("That code is not right. Enter the 6-digit code your authenticator app shows now."));
+    ).toEqual(
+      Array(5).fill(
+        "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+      ),
+    );
     expect(
       results.slice(5).every((result: AttemptResult): boolean => {
         return result.errorCode === ExceptionCode.TooManyRequestsException;
@@ -887,7 +893,9 @@ describe("wrong authenticator codes are counted for the account, wherever they c
             },
           })
         ).errorMessage,
-      ).toBe("This authenticator is no longer set up for your account. Go back and sign in again.");
+      ).toBe(
+        "This authenticator is no longer set up for your account. Go back and sign in again.",
+      );
     }
 
     expect((await enterCode(account, account.code())).errorCode).toBe(
@@ -1014,7 +1022,9 @@ describe("a sign-in that passes its second step forgets the wrong codes", () => 
       for (let index: number = 0; index < 4; index++) {
         expect(
           (await enterCode(account, account.wrongCode())).errorMessage,
-        ).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
+        ).toBe(
+          "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+        );
       }
 
       expect((await enterCode(account, account.code())).signedIn).toBe(true);
@@ -1075,7 +1085,9 @@ describe("backup codes: a count of their own", () => {
 
     const result: AttemptResult = await enterBackupCode(account, "abcde-fghij");
 
-    expect(result.errorMessage).toBe("That backup code is not right, or it was already used. Each backup code works once.");
+    expect(result.errorMessage).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
     expect(consumeBackupCode).toHaveBeenCalledTimes(1);
   });
 
@@ -1247,7 +1259,9 @@ describe("the owner is told", () => {
 
     const fifth: AttemptResult = await enterCode(account, account.wrongCode());
 
-    expect(fifth.errorMessage).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
+    expect(fifth.errorMessage).toBe(
+      "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+    );
     expect(fifth.nextError).toBeUndefined();
     expect(sendTwoFactorWrongCodesEmail).toHaveBeenCalledTimes(1);
   });
@@ -1265,13 +1279,17 @@ describe("the owner is told", () => {
         account.wrongCode(),
       );
 
-      expect(result.errorMessage).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
+      expect(result.errorMessage).toBe(
+        "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+      );
       expect(result.nextError).toBeUndefined();
     }
 
     const backup: AttemptResult = await enterBackupCode(account, "abcde-fghij");
 
-    expect(backup.errorMessage).toBe("That backup code is not right, or it was already used. Each backup code works once.");
+    expect(backup.errorMessage).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
     expect(backup.nextError).toBeUndefined();
 
     expect((await enterCode(account, account.code())).errorCode).toBe(
@@ -1326,7 +1344,9 @@ describe("a caller with the password gets no more codes checked by changing the 
         },
       });
 
-      expect(result.errorMessage).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
+      expect(result.errorMessage).toBe(
+        "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+      );
     }
 
     verifyToken.mockClear();
@@ -1371,7 +1391,9 @@ describe("a caller with the password gets no more codes checked by changing the 
         body: { code: shape, twoFactorAuthId: TOTP_ID.toString() },
       });
 
-      expect(result.errorMessage).toBe("That code is not right. Enter the 6-digit code your authenticator app shows now.");
+      expect(result.errorMessage).toBe(
+        "That code is not right. Enter the 6-digit code your authenticator app shows now.",
+      );
       expect(result.signedIn).toBe(false);
     }
 

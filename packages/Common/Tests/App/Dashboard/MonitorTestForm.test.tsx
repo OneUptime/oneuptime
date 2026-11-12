@@ -466,9 +466,7 @@ describe("waiting for the probe to report", () => {
     }
 
     expect(
-      screen.getByText(
-        MONITOR_TEST_TIMED_OUT_MESSAGE,
-      ),
+      screen.getByText(MONITOR_TEST_TIMED_OUT_MESSAGE),
     ).toBeInTheDocument();
 
     const callsAtGiveUp: number = getItemMock.mock.calls.length;
@@ -498,9 +496,7 @@ describe("waiting for the probe to report", () => {
 
     expect(getItemMock).toHaveBeenCalledTimes(2);
     expect(
-      screen.queryByText(
-        MONITOR_TEST_TIMED_OUT_MESSAGE,
-      ),
+      screen.queryByText(MONITOR_TEST_TIMED_OUT_MESSAGE),
     ).not.toBeInTheDocument();
   });
 });

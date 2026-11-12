@@ -89,7 +89,7 @@ describe("isErrorSentence", () => {
     "projectId is required.",
     "invalid code.",
     "Invalid code",
-    "URL scheme \"ftp\": is not supported:",
+    'URL scheme "ftp": is not supported:',
     "",
     "   ",
   ])("%j is not a sentence", (message: string) => {

@@ -945,8 +945,8 @@ describe("UserService -- admin-controlled two factor auth", () => {
                 },
               }),
             ).rejects.toThrow(
-        "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
-      );
+              "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
+            );
           },
         );
       },

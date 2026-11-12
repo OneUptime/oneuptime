@@ -2133,7 +2133,9 @@ export class Service extends ProjectReferencesService<OnCallDutyPolicySchedule> 
       !OneUptimeDate.isBefore(options.windowStart, options.windowEnd) &&
       options.windowStart.getTime() !== options.windowEnd.getTime()
     ) {
-      throw new BadDataException("The start of the time window must be before its end.");
+      throw new BadDataException(
+        "The start of the time window must be before its end.",
+      );
     }
 
     const inputsById: Map<string, ScheduleResolutionInputs> =

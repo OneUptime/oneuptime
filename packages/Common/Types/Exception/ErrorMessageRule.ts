@@ -76,24 +76,25 @@ const toWords: (message: string) => string = (message: string): string => {
  * Whether the message is one of the empty phrases and nothing else - also
  * an empty message, which says even less.
  */
-export const isEmptyErrorPhrase: (message: string | undefined | null) => boolean =
-  (message: string | undefined | null): boolean => {
-    let words: string = toWords(message || "");
+export const isEmptyErrorPhrase: (
+  message: string | undefined | null,
+) => boolean = (message: string | undefined | null): boolean => {
+  let words: string = toWords(message || "");
 
-    for (const tryAgain of TRAILING_TRY_AGAIN) {
-      if (words === tryAgain) {
-        // "Please try again" alone says nothing about what happened either.
-        return true;
-      }
-
-      if (words.endsWith(` ${tryAgain}`)) {
-        words = words.substring(0, words.length - tryAgain.length - 1);
-        break;
-      }
+  for (const tryAgain of TRAILING_TRY_AGAIN) {
+    if (words === tryAgain) {
+      // "Please try again" alone says nothing about what happened either.
+      return true;
     }
 
-    return words.length === 0 || EMPTY_ERROR_PHRASES.includes(words);
-  };
+    if (words.endsWith(` ${tryAgain}`)) {
+      words = words.substring(0, words.length - tryAgain.length - 1);
+      break;
+    }
+  }
+
+  return words.length === 0 || EMPTY_ERROR_PHRASES.includes(words);
+};
 
 // What may close a sentence after its full stop: a quote or a bracket.
 const CLOSING_MARKS: string = `"'”’)]»`;
@@ -112,9 +113,9 @@ const SENTENCE_ENDS: string = ".!?…。！？";
  * A message that is several sentences counts as one when its first starts
  * and its last ends that way.
  */
-export const isErrorSentence: (message: string | undefined | null) => boolean = (
+export const isErrorSentence: (
   message: string | undefined | null,
-): boolean => {
+) => boolean = (message: string | undefined | null): boolean => {
   const text: string = (message || "").trim();
 
   if (!text) {

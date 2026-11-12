@@ -50,7 +50,9 @@ describe("a failure the server explained is shown as the server put it", () => {
 
   test("a SyntaxError about what the person typed", () => {
     expect(
-      friendly(new SyntaxError("Invalid regular expression: /(/: Unterminated group")),
+      friendly(
+        new SyntaxError("Invalid regular expression: /(/: Unterminated group"),
+      ),
     ).toBe("Invalid regular expression: /(/: Unterminated group");
   });
 
@@ -109,11 +111,14 @@ describe("a failure on the server nobody explained", () => {
     [{ message: "Internal Server Error" }],
     [{ error: "" }],
     [{}],
-  ])("an answer that says nothing (%j) says what to do next", (body: Record<string, string>) => {
-    expect(friendly(new HTTPErrorResponse(500, body, {}))).toBe(
-      UNEXPLAINED_ERROR_MESSAGES.server,
-    );
-  });
+  ])(
+    "an answer that says nothing (%j) says what to do next",
+    (body: Record<string, string>) => {
+      expect(friendly(new HTTPErrorResponse(500, body, {}))).toBe(
+        UNEXPLAINED_ERROR_MESSAGES.server,
+      );
+    },
+  );
 
   test("never 'Server Error. Please try again'", () => {
     expect(friendly(new HTTPErrorResponse(500, {}, {}))).not.toContain(
@@ -130,16 +135,19 @@ describe("a failure on the server nobody explained", () => {
 });
 
 describe("a server that did not answer", () => {
-  test.each([502, 504])("a gateway's %i page reads as the server being down", (status: number) => {
-    const message: string = friendly(
-      new HTTPErrorResponse(status, "<html>Bad Gateway</html>" as never, {}),
-    );
+  test.each([502, 504])(
+    "a gateway's %i page reads as the server being down",
+    (status: number) => {
+      const message: string = friendly(
+        new HTTPErrorResponse(status, "<html>Bad Gateway</html>" as never, {}),
+      );
 
-    expect(message).toBe(SERVER_DOWN_MESSAGE);
-    expect(readUnexplainedError(message)?.kind).toBe(
-      UnexplainedErrorKind.ServerDown,
-    );
-  });
+      expect(message).toBe(SERVER_DOWN_MESSAGE);
+      expect(readUnexplainedError(message)?.kind).toBe(
+        UnexplainedErrorKind.ServerDown,
+      );
+    },
+  );
 });
 
 describe("OneUptime that could not be reached at all", () => {
@@ -164,9 +172,9 @@ describe("OneUptime that could not be reached at all", () => {
   });
 
   test("no response at all", () => {
-    expect(friendly(new APIException("No response received from server."))).toBe(
-      UNEXPLAINED_ERROR_MESSAGES.unreachable,
-    );
+    expect(
+      friendly(new APIException("No response received from server.")),
+    ).toBe(UNEXPLAINED_ERROR_MESSAGES.unreachable);
   });
 
   test.each([
@@ -180,9 +188,9 @@ describe("OneUptime that could not be reached at all", () => {
   });
 
   test("an APIException with words of its own keeps them", () => {
-    expect(friendly(new APIException("The LLM provider refused the key."))).toBe(
-      "The LLM provider refused the key.",
-    );
+    expect(
+      friendly(new APIException("The LLM provider refused the key.")),
+    ).toBe("The LLM provider refused the key.");
   });
 });
 

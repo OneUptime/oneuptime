@@ -285,9 +285,7 @@ describe("the messages the product throws", () => {
       if (now > before) {
         const examples: Array<string> = messages
           .filter((message: ThrownMessage): boolean => {
-            return (
-              message.file === file && !isErrorSentence(message.message)
-            );
+            return message.file === file && !isErrorSentence(message.message);
           })
           .map(describeFinding);
 
@@ -307,26 +305,29 @@ describe("the messages the product throws", () => {
 });
 
 describe("the last resort", () => {
-  test.each(LAST_RESORT_FILES)("%s says none of the empty phrases", (file: string) => {
-    const source: string = fs.readFileSync(
-      path.join(REPOSITORY_ROOT, file),
-      "utf8",
-    );
+  test.each(LAST_RESORT_FILES)(
+    "%s says none of the empty phrases",
+    (file: string) => {
+      const source: string = fs.readFileSync(
+        path.join(REPOSITORY_ROOT, file),
+        "utf8",
+      );
 
-    const empty: Array<string> = findCapitalisedStringLiterals(source)
-      .filter((literal: { text: string }): boolean => {
-        // A button that says what it does is not a message.
-        return (
-          !BUTTON_LABELS.includes(literal.text) &&
-          isEmptyErrorPhrase(literal.text)
-        );
-      })
-      .map((literal: { line: number; text: string }): string => {
-        return `${file}:${literal.line} ${JSON.stringify(literal.text)}`;
-      });
+      const empty: Array<string> = findCapitalisedStringLiterals(source)
+        .filter((literal: { text: string }): boolean => {
+          // A button that says what it does is not a message.
+          return (
+            !BUTTON_LABELS.includes(literal.text) &&
+            isEmptyErrorPhrase(literal.text)
+          );
+        })
+        .map((literal: { line: number; text: string }): string => {
+          return `${file}:${literal.line} ${JSON.stringify(literal.text)}`;
+        });
 
-    expect(empty).toEqual([]);
-  });
+      expect(empty).toEqual([]);
+    },
+  );
 
   test("the reader of the last resort's files finds a capitalised empty phrase, and skips comments", () => {
     expect(

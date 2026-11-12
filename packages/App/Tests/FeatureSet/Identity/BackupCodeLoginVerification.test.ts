@@ -847,7 +847,9 @@ describe("POST /verify-backup-code -- what it refuses", () => {
     const result: InvokeResult = await postBackupCode();
 
     expect(loginSucceeded()).toBe(false);
-    expect(refusalMessage(result)).toBe("That backup code is not right, or it was already used. Each backup code works once.");
+    expect(refusalMessage(result)).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
     expect(sessionViolations()).toEqual([]);
   });
 
@@ -869,7 +871,9 @@ describe("POST /verify-backup-code -- what it refuses", () => {
 
     const result: InvokeResult = await postBackupCode();
 
-    expect(refusalMessage(result)).toBe("That backup code is not right, or it was already used. Each backup code works once.");
+    expect(refusalMessage(result)).toBe(
+      "That backup code is not right, or it was already used. Each backup code works once.",
+    );
   });
 
   /*

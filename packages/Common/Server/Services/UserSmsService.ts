@@ -283,9 +283,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!item) {
-      throw new BadDataException(
-        ChannelVerificationMessages.notFound,
-      );
+      throw new BadDataException(ChannelVerificationMessages.notFound);
     }
 
     /*

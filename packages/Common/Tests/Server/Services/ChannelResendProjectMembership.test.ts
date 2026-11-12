@@ -166,7 +166,9 @@ describe.each(SERVICES)(
 
     test("refuses an owner who is not a member of the row's project as if the row did not exist", async () => {
       await expect(resend()).rejects.toThrow(
-        new BadDataException("This notification method is not in your list any more. Add it again, then verify it."),
+        new BadDataException(
+          "This notification method is not in your list any more. Add it again, then verify it.",
+        ),
       );
     });
 

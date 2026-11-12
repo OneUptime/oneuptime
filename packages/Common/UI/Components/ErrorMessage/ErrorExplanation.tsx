@@ -164,7 +164,10 @@ const ErrorExplanation: FunctionComponent<ComponentProps> = (
   return (
     <span className="block" data-testid="error-explanation">
       {!props.hideWhatFailed && (
-        <span className="mb-1 block font-medium" data-testid="error-what-failed">
+        <span
+          className="mb-1 block font-medium"
+          data-testid="error-what-failed"
+        >
           {props.whatFailed || say(UnexplainedErrorWords.didNotFinish)}
         </span>
       )}

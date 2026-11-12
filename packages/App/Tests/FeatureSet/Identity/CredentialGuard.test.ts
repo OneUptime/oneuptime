@@ -113,7 +113,11 @@ describe("CredentialGuard", () => {
 
       // A present value is not refused, whatever the words.
       expect(() => {
-        return CredentialGuard.assertPresent("abc", "Verification token", words);
+        return CredentialGuard.assertPresent(
+          "abc",
+          "Verification token",
+          words,
+        );
       }).not.toThrow();
     });
 
