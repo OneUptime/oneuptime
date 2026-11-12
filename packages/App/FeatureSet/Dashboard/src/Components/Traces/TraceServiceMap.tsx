@@ -342,7 +342,7 @@ const TraceServiceMap: FunctionComponent<TraceServiceMapProps> = (
 
   return (
     <div className="trace-service-map">
-      <div className="text-[11px] text-gray-500 mb-2 px-1">
+      <div className="text-[11px] text-gray-500 mb-2">
         {translator.translateText(props.caption || TRACE_CAPTION)}
       </div>
       <div

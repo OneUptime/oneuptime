@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Objetivo | Ventana de 7 días | Ventana de 28 días | Ventana de 30 días | Ventana de 90 días |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 h 40 min 48 s | 6 h 43 min 12 s | 7 h 12 min | 21 h 36 min |
+| 99,5 % | 50 min 24 s | 3 h 21 min 36 s | 3 h 36 min | 10 h 48 min |
+| 99,9 % | 10 min 5 s | 40 min 19 s | 43 min 12 s | 2 h 9 min 36 s |
+| 99,95 % | 5 min 2 s | 20 min 10 s | 21 min 36 s | 1 h 4 min 48 s |
+| 99,99 % | 1 min 0 s | 4 min 2 s | 4 min 19 s | 12 min 58 s |
 
-La página **Ajustes** del SLO muestra el presupuesto que permite su objetivo junto al objetivo, por ejemplo «43m 12s de inactividad por ventana de 30 días».
+La página **Ajustes** del SLO muestra el presupuesto que permite su objetivo junto al objetivo, por ejemplo «43 min 12 s de tiempo de inactividad por ventana de 30 días».
 
 ### El presupuesto de un SLO con varios monitores
 
@@ -35,7 +35,7 @@ En modo **Promedio de segundos del monitor**, el presupuesto se cuenta en segund
 
 ### El presupuesto de un mes natural
 
-Un SLO de mes natural tiene el presupuesto de todo el mes desde el primer día: un SLO al 99,9 % en un mes de 31 días tiene sus 44m 38s completos el día 1. El presupuesto no se prorratea según la parte del mes que ha pasado, así que una caída de un minuto la mañana del día 1 gasta un minuto del presupuesto del mes.
+Un SLO de mes natural tiene el presupuesto de todo el mes desde el primer día: un SLO al 99,9 % en un mes de 31 días tiene sus 44 min 38 s completos el día 1. El presupuesto no se prorratea según la parte del mes que ha pasado, así que una caída de un minuto la mañana del día 1 gasta un minuto del presupuesto del mes.
 
 ## Presupuesto restante
 

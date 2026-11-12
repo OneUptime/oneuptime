@@ -868,7 +868,11 @@ describeWhenEnterprisePresent(
         "A failing export emails the people who can fix it: the project's owners for a project's export, and every master admin for the instance's.",
       );
 
-      // After 30 minutes, then a day before the oldest unsent entry is deleted.
+      /*
+       * After 30 minutes, then a day before the first of the unsent entries
+       * is deleted: the soonest retentionDate stamped on them (#6563), read
+       * whenever an email can be due, or reckoned only when it cannot be.
+       */
       expect(
         numberConstant(
           notifications,
@@ -884,8 +888,15 @@ describeWhenEnterprisePresent(
       expect(exporter).toContain(
         "await this.recordFailure(item, result.failure, batch.firstCreatedAt);",
       );
+      expect(exporter).toContain("? await this.findSoonestRetentionDate(data)");
+      expect(exporter).toContain(
+        "this.reader.findSoonestRetentionDateForExport(",
+      );
+      expect(notifications).toContain(
+        "return new Date(data.soonestRetentionDate);",
+      );
       expect(fails).toContain(
-        "The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the oldest entry the export has not sent is deleted, with when entries start to be lost.",
+        "The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the first of the entries the export has not sent is deleted, with when entries start to be lost.",
       );
 
       // Once each while the failures go on: a delivery that works clears failingSince.

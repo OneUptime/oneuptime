@@ -526,7 +526,7 @@ describe("SLOs Overview, against the product", () => {
 
   it("says what the folded section's line says while it is at its defaults", () => {
     expect(readSource("sloFormFields")).toContain(
-      '"Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left."',
+      '"Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}} of the error budget is left."',
     );
     expect(page).toContain(
       `the SLO is measured over a rolling ${DEFAULT_ROLLING_WINDOW_DAYS}-day window and turns At Risk when less than ${DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE}% of its error budget is left`,
