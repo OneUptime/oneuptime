@@ -78,7 +78,7 @@ function listSourceFiles(directory: string, files: Array<string>): void {
 
     if (entry.isDirectory()) {
       listSourceFiles(full, files);
-    } else if (/\.(ts|tsx)$/.test(entry.name)) {
+    } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
       files.push(full);
     }
   }
