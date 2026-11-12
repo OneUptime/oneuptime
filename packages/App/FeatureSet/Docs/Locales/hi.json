@@ -89,6 +89,7 @@
   },
   "navGroups": {
     "Introduction": "परिचय",
+    "Guides": "गाइड",
     "Moving to OneUptime": "OneUptime पर आना",
     "Installation": "स्थापना",
     "Mobile & Desktop Apps": "मोबाइल और डेस्कटॉप ऐप",
@@ -138,6 +139,8 @@
     "Which One Do I Use?": "कौन-सा इस्तेमाल करें?",
     "Home Page & Shortcuts": "मुख्य पृष्ठ और शॉर्टकट",
     "Your Account": "आपका खाता",
+    "Get Paged by Phone, SMS or Push": "फ़ोन, SMS या पुश से पेज पाएँ",
+    "Publish a Status Page": "एक स्थिति पृष्ठ प्रकाशित करें",
     "Moving from Opsgenie": "Opsgenie से आना",
     "Moving from PagerDuty": "PagerDuty से आना",
     "Moving from incident.io": "incident.io से आना",
