@@ -288,10 +288,7 @@ function bareNamings(text: string, label: string): Array<number> {
 
     let after: number = at + label.length;
 
-    while (
-      after < text.length &&
-      SPACES_BESIDE_QUOTES.includes(text[after]!)
-    ) {
+    while (after < text.length && SPACES_BESIDE_QUOTES.includes(text[after]!)) {
       after++;
     }
 
@@ -349,10 +346,7 @@ describe("the descriptions set All Values and Any Value apart in quotes", () => 
     );
     // French sets its guillemets a space apart.
     expect(
-      bareNamings(
-        "« Au moins une valeur » une seule.",
-        "Au moins une valeur",
-      ),
+      bareNamings("« Au moins une valeur » une seule.", "Au moins une valeur"),
     ).toEqual([]);
     // Quoted on one side only is not quoted.
     expect(bareNamings("„Alle Werte verlangt", "Alle Werte")).toHaveLength(1);

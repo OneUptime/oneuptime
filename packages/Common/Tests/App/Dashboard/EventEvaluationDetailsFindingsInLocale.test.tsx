@@ -60,14 +60,13 @@ const HEADER_VALUE: { english: string; sentence: EvaluationSentence } = {
 };
 
 // The same finding as a record written before #6581 holds it.
-const HEADER_VALUE_BEFORE: { english: string; sentence: EvaluationSentence } =
-  {
-    english: "Response header threshold contains miss.",
-    sentence: {
-      template: "Response header threshold contains {{text}}.",
-      values: { text: "miss" },
-    },
-  };
+const HEADER_VALUE_BEFORE: { english: string; sentence: EvaluationSentence } = {
+  english: "Response header threshold contains miss.",
+  sentence: {
+    template: "Response header threshold contains {{text}}.",
+    values: { text: "miss" },
+  },
+};
 
 // A text comparison: what was read, then why it matched.
 const COMPARISON: { english: string; sentence: EvaluationSentence } = {
@@ -182,14 +181,12 @@ afterEach(() => {
 
 describe("the findings this suite renders are the ones the section shows folded", () => {
   test("a finding with nothing else to say what was found shows", () => {
-    expect(isFilterSentenceShown(filterSaying(HEADER_VALUE), false)).toBe(
-      true,
-    );
+    expect(isFilterSentenceShown(filterSaying(HEADER_VALUE), false)).toBe(true);
     expect(
       isFilterSentenceShown(
         filterSaying(COMPARISON, {
           checkOn: CheckOn.ResultValue,
-                  }),
+        }),
         false,
       ),
     ).toBe(true);
@@ -204,7 +201,7 @@ describe("in English, each finding reads as the engine wrote it", () => {
           filterSaying(HEADER_VALUE),
           filterSaying(COMPARISON, {
             checkOn: CheckOn.ResultValue,
-                      }),
+          }),
         ])}
       />,
     );
@@ -245,7 +242,7 @@ describe("in another language, each finding reads in that language", () => {
           filterSaying(HEADER_VALUE),
           filterSaying(COMPARISON, {
             checkOn: CheckOn.ResultValue,
-                      }),
+          }),
         ])}
       />,
     );
@@ -285,7 +282,7 @@ describe("in another language, each finding reads in that language", () => {
           filterSaying(HEADER_VALUE),
           filterSaying(COMPARISON, {
             checkOn: CheckOn.ResultValue,
-                      }),
+          }),
         ])}
       />,
     );
@@ -307,7 +304,7 @@ describe("in another language, each finding reads in that language", () => {
             filterSaying(HEADER_VALUE_BEFORE),
             filterSaying(COMPARISON_BEFORE, {
               checkOn: CheckOn.ResultValue,
-                          }),
+            }),
           ])}
         />,
       );
