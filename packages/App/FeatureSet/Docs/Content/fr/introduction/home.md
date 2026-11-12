@@ -145,6 +145,7 @@ Appuyez sur **Cmd+K** (Mac) ou **Ctrl+K** (Windows et Linux), ou cliquez sur l'i
 - **Les paramètres d'une page**, sous le nom qu'affiche leur carte ou leur interrupteur : *Exiger le SSO pour la connexion* trouve SSO, et *Canaux de notification* trouve Paramètres de notification. Tapez le nom en anglais ou dans votre langue.
 - **Actions**, d'après ce que vous voulez faire : Déclarer un incident, Créer un moniteur, ou Supprimer le projet, qui ouvre la Zone de danger. Une action qui modifie quelque chose n'est proposée qu'aux personnes autorisées à la faire.
 - **Vos moniteurs, incidents, alertes, pages de statut et politiques d'astreinte**, par leur nom, et les incidents et les alertes aussi par leur numéro, comme `INC-42`. Chaque résultat d'incident ou d'alerte commence par son numéro, si bien que deux du même titre se distinguent.
+- **La documentation**, dans un groupe *Documentation* sous tout le reste : les pages et les sections dont les mots correspondent à ce que vous tapez, dans votre langue, même avec une faute de frappe. Chacune s'ouvre dans un nouvel onglet, pour que vous gardiez votre place.
 
 La recherche lit ce que vous tapez comme vous l'entendez :
 

@@ -64,7 +64,7 @@ Hver person kobler til sin egen Microsoft Teams-konto under **Brukerinnstillinge
 
 ### Legg til en varslingsregel
 
-Gå til **Hendelser** > **Arbeidsområde** > **Microsoft Teams**. Seksjonen **Arbeidsområde** viser bare chat-workspacene prosjektet ditt har koblet til, så **Microsoft Teams** vises der så snart det er koblet til. Opprett en regel, for eksempel en som publiserer i en Teams-kanal når en hendelse opprettes, og klikk deretter på **Testregel** i raden.
+Gå til **Hendelser** > **Arbeidsområde** > **Microsoft Teams**. Seksjonen **Arbeidsområde** viser bare chat-workspacene prosjektet ditt har koblet til, så **Microsoft Teams** vises der så snart det er koblet til. Opprett en regel, for eksempel en som publiserer i en Teams-kanal når en hendelse opprettes, og klikk deretter på **Test regel** i raden.
 :::
 
 > [!NOTE]
@@ -122,9 +122,9 @@ En varslingsregel kan tilhøre team. **Ansvarlige team** under **Flere felt** fo
 
 ## Teste en regel
 
-**Testregel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en og inviterer regelens folk inn i den.
+**Test regel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en og inviterer regelens folk inn i den.
 
-I likhet med **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams** krever den tillatelse til å opprette varslingsregler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem**, eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For en som bare kan se reglene, som en **Leser**, er **Testregel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det **Growth**-planen å teste en regel, på samme måte som å legge til en.
+I likhet med **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Arbeidsområde** > **Microsoft Teams** krever den tillatelse til å opprette varslingsregler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem**, eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For en som bare kan se reglene, som en **Leser**, er **Test regel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det **Growth**-planen å teste en regel, på samme måte som å legge til en.
 
 På OneUptime Cloud krever **Send test** ved siden av en kanal eller en chat også **Growth**-planen, siden det å publisere i en kanal er det regler og sammendrag gjør. **Send test nå** på et sammendrag krever tillatelse til å opprette sammendrag (**Create Workspace Notification Summary** og **Read Workspace Notification Summary** i en egendefinert rolle) og, på OneUptime Cloud, **Growth**-planen; for alle andre er den låst, og verktøytipset sier hva som kreves. En MCP-klient som er koblet til med skrivebeskyttet tilgang, kan ikke sende noen test.
 

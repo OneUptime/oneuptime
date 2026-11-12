@@ -81,6 +81,7 @@ import {
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
 interface ServiceSample {
   time: Date;
@@ -724,7 +725,14 @@ const HostServiceView: FunctionComponent<
           description={HOST_METRIC_DESCRIPTIONS.serviceAvailability}
           icon={IconProp.ChartBar}
           iconColor="blue"
-          value={availability === null ? "—" : `${availability.toFixed(1)}%`}
+          value={
+            availability === null
+              ? "—"
+              : formatReaderFigure(availability, {
+                  decimals: 1,
+                  isPercent: true,
+                })
+          }
           sublabel={
             truncatedFrom
               ? translator.translatePlural(
@@ -734,7 +742,7 @@ const HostServiceView: FunctionComponent<
                       "running in {{active}} of {{count}} samples (capped)",
                   },
                   samples.length,
-                  { active: runningCount },
+                  { active: translator.formatNumber(runningCount) },
                 )
               : translator.translatePlural(
                   {
@@ -742,7 +750,7 @@ const HostServiceView: FunctionComponent<
                     other: "running in {{active}} of {{count}} samples",
                   },
                   samples.length,
-                  { active: runningCount },
+                  { active: translator.formatNumber(runningCount) },
                 )
           }
           percent={availability}
@@ -909,9 +917,9 @@ const HostServiceView: FunctionComponent<
     const isListCapped: boolean = transitions.length > MAX_TRANSITIONS_SHOWN;
     const listValues: TemplateValues = {
       date: cappedSince,
-      limit: SAMPLE_FETCH_LIMIT,
-      shown: MAX_TRANSITIONS_SHOWN,
-      total: transitions.length,
+      limit: translator.formatNumber(SAMPLE_FETCH_LIMIT),
+      shown: translator.formatNumber(MAX_TRANSITIONS_SHOWN),
+      total: translator.formatNumber(transitions.length),
     };
     let transitionsDescription: string = "";
 

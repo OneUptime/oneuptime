@@ -12,6 +12,7 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { SummaryFact, SummaryFacts, SummaryView } from "./SummaryFacts";
+import AttemptLine from "./AttemptLine";
 
 export interface ComponentProps {
   customCodeMonitorResponse: CustomCodeMonitorResponse;
@@ -159,33 +160,41 @@ const CustomMonitorRunSummary: FunctionComponent<ComponentProps> = (
                         key={attempt.attemptNumber}
                         className="text-sm text-gray-700"
                       >
-                        <div>
-                          <span className="font-mono">
-                            {translator.translateTemplate(
-                              "Attempt {{number}}/{{total}}",
-                              {
-                                number: attempt.attemptNumber,
-                                total: totalAttempts,
-                              },
-                            )}
-                          </span>
-                          <span className="mx-2 text-gray-400">—</span>
-                          <span
-                            className={
-                              failed ? "text-red-700" : "text-green-700"
-                            }
-                          >
-                            {translator.translateText(
-                              failed ? "Failed" : "Succeeded",
-                            )}
-                          </span>
-                          <span className="mx-2 text-gray-400">—</span>
-                          <span>
-                            {translator.translateTemplate("{{value}} ms", {
-                              value: Math.round(attempt.executionTimeInMS),
-                            })}
-                          </span>
-                        </div>
+                        <AttemptLine
+                          testId="custom-monitor-attempt-line"
+                          parts={[
+                            {
+                              text: translator.translateTemplate(
+                                "Attempt {{number}}/{{total}}",
+                                {
+                                  number: translator.formatNumber(
+                                    attempt.attemptNumber,
+                                  ),
+                                  total: translator.formatNumber(totalAttempts),
+                                },
+                              ),
+                            },
+                            {
+                              text:
+                                translator.translateText(
+                                  failed ? "Failed" : "Succeeded",
+                                ) || (failed ? "Failed" : "Succeeded"),
+                              className: failed
+                                ? "text-red-700"
+                                : "text-green-700",
+                            },
+                            {
+                              text: translator.translateTemplate(
+                                "{{value}} ms",
+                                {
+                                  value: translator.formatNumber(
+                                    Math.round(attempt.executionTimeInMS),
+                                  ),
+                                },
+                              ),
+                            },
+                          ]}
+                        />
                         {failed && attempt.scriptError && (
                           <div className="ml-4 mt-1 text-xs text-gray-500 break-all">
                             {attempt.scriptError}

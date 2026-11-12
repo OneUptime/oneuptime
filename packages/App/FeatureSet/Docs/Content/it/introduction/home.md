@@ -145,6 +145,7 @@ Premi **Cmd+K** (Mac) o **Ctrl+K** (Windows e Linux), oppure fai clic sull'icona
 - **Le impostazioni di una pagina**, con il nome che mostra la loro scheda o il loro interruttore: *Richiedi l'SSO per l'accesso* trova SSO, e *Canali di notifica* trova Impostazioni notifiche. Digita il nome in inglese o nella tua lingua.
 - **Azioni**, in base a ciò che vuoi fare: Dichiara incidente, Crea monitor, o Delete Project, che apre la Zona pericolosa. Un'azione che modifica qualcosa viene offerta solo a chi ha il permesso di farla.
 - **I tuoi monitor, incidenti, avvisi, pagine di stato e policy di reperibilità**, per nome, e incidenti e avvisi anche per numero, come `INC-42`. Ogni risultato di un incidente o di un avviso comincia con il suo numero, così due con lo stesso titolo si distinguono.
+- **La documentazione**, in un gruppo *Documentazione* sotto tutto il resto: le pagine e le sezioni le cui parole corrispondono a ciò che digiti, nella tua lingua, anche con un errore di battitura. Ognuna si apre in una nuova scheda, così non perdi il punto in cui eri.
 
 La ricerca legge ciò che digiti come lo intendi:
 

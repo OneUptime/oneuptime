@@ -64,7 +64,7 @@ Elke persoon koppelt zijn eigen Microsoft Teams-account onder **Gebruikersinstel
 
 ### Een meldingsregel toevoegen
 
-Ga naar **Incidenten** > **Werkruimte** > **Microsoft Teams**. De sectie **Werkruimte** toont alleen de chatworkspaces die je project heeft gekoppeld, dus **Microsoft Teams** verschijnt daar zodra het is gekoppeld. Maak een regel aan, bijvoorbeeld een die in een Teams-kanaal plaatst als er een incident wordt aangemaakt, en klik dan op **Testregel** in de rij ervan.
+Ga naar **Incidenten** > **Werkruimte** > **Microsoft Teams**. De sectie **Werkruimte** toont alleen de chatworkspaces die je project heeft gekoppeld, dus **Microsoft Teams** verschijnt daar zodra het is gekoppeld. Maak een regel aan, bijvoorbeeld een die in een Teams-kanaal plaatst als er een incident wordt aangemaakt, en klik dan op **Regel testen** in de rij ervan.
 :::
 
 > [!NOTE]
@@ -122,9 +122,9 @@ Een meldingsregel kan bij teams horen. **Verantwoordelijke teams**, onder **Meer
 
 ## Een regel testen
 
-**Testregel** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zodat je het ziet aankomen. Als de regel voor elke gebeurtenis een kanaal aanmaakt, maakt de test er ook een aan en nodigt de mensen van de regel uit.
+**Regel testen** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zodat je het ziet aankomen. Als de regel voor elke gebeurtenis een kanaal aanmaakt, maakt de test er ook een aan en nodigt de mensen van de regel uit.
 
-Net als **Test verzenden** naast een kanaal in **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** vereist het rechten om meldingsregels aan te maken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder**, **Instellingenlid**, of **Create Workspace Notification Rule** en **Read Workspace Notification Rule** in een aangepaste rol. Voor iemand die de regels alleen mag bekijken, zoals een **Kijker**, is **Testregel** vergrendeld, en de tooltip zegt wat er nodig is; de API weigert diens test met "You do not have permission to send test notifications in this project." Op OneUptime Cloud vereist het testen van een regel het **Growth**-abonnement, net als het toevoegen ervan.
+Net als **Test verzenden** naast een kanaal in **Projectinstellingen** > **Werkruimte** > **Microsoft Teams** vereist het rechten om meldingsregels aan te maken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder**, **Instellingenlid**, of **Create Workspace Notification Rule** en **Read Workspace Notification Rule** in een aangepaste rol. Voor iemand die de regels alleen mag bekijken, zoals een **Kijker**, is **Regel testen** vergrendeld, en de tooltip zegt wat er nodig is; de API weigert diens test met "You do not have permission to send test notifications in this project." Op OneUptime Cloud vereist het testen van een regel het **Growth**-abonnement, net als het toevoegen ervan.
 
 Op OneUptime Cloud vereist **Test verzenden** naast een kanaal of een chat ook het **Growth**-abonnement, omdat in een kanaal plaatsen is wat regels en samenvattingen doen. **Test nu verzenden** bij een samenvatting vereist rechten om samenvattingen aan te maken (**Create Workspace Notification Summary** en **Read Workspace Notification Summary** in een aangepaste rol) en, op OneUptime Cloud, het **Growth**-abonnement; voor ieder ander is het vergrendeld, en de tooltip zegt wat er nodig is. Een MCP-client die met alleen-lezen toegang is gekoppeld, kan geen enkele test versturen.
 

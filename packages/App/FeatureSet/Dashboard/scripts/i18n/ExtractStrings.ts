@@ -368,6 +368,15 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
     kind: "keys",
   },
   /*
+   * An error nobody explained (#6836): what happened, what to do next and
+   * where to look, which ErrorExplanation says in the reader's language.
+   * Only the words the file marks are read.
+   */
+  {
+    directory: "packages/Common/Types/Exception/UnexplainedError.ts",
+    kind: "keys",
+  },
+  /*
    * A RUM application's status - Receiving data, No recent traffic, Waiting
    * for data - and what each means: the RUM Applications list and an
    * application's hero say them in the reader's language. Only the words

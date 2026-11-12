@@ -1,6 +1,7 @@
 import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { readPage } from "./DocsContentSupport";
 import { boldSpans, escapeRegExp } from "./DocsTranslationChecks";
+import { foldedBlocks } from "./GettingStartedPage";
 import PageMap from "../../../FeatureSet/Dashboard/src/Utils/PageMap";
 import {
   DASHBOARD_GO_TO_LEADER_KEY,
@@ -339,13 +340,22 @@ function seeded(variable: string): string {
 // ---- Getting Started --------------------------------------------------------
 
 describe("Getting Started", () => {
+  // Since #6822 the import is one paragraph, its eleven tools folded under it.
   const moving: string = sectionOf(
     GETTING_STARTED,
-    "### Bring your setup with you",
+    "## Coming from another tool",
   );
 
   it("names every tool the import reads, in the order the import page lists them, each linked to its own guide", () => {
-    const rows: Array<Array<string>> = onlyTableOf(moving);
+    const tools: { title: string; lines: Array<string> } | undefined =
+      foldedBlocks(moving)[0];
+
+    expect(tools?.title).toBe("The eleven tools it imports from");
+    expect(AllToolImportSources).toHaveLength(11);
+
+    const rows: Array<Array<string>> = onlyTableOf(
+      (tools as { lines: Array<string> }).lines.join("\n"),
+    );
     const links: Array<{ title: string; target: string }> = rows.map(
       (row: Array<string>): { title: string; target: string } => {
         const match: RegExpMatchArray | null = (row[0] as string).match(
