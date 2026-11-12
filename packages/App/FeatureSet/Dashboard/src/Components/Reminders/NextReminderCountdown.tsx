@@ -5,6 +5,7 @@ import React, {
   useState,
 } from "react";
 import OneUptimeDate from "Common/Types/Date";
+import { getReminderIntervalInMinutes } from "Common/Types/Reminder/ReminderInterval";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
@@ -68,7 +69,8 @@ const getMatchingIntervalInMinutes: (
       });
 
     if (severityMatches && labelMatches) {
-      return rule.reminderIntervalInMinutes || null;
+      // Read as the workers read it: below a minute reminds nobody.
+      return getReminderIntervalInMinutes(rule.reminderIntervalInMinutes);
     }
   }
 
