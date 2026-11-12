@@ -584,18 +584,31 @@ export default class NetworkInventoryUtil {
             }),
           });
 
+        /*
+         * Its own try/catch, so that a failure here does not also stop the
+         * ARP table's MAC learning below (OneUptime issue #7388). Another
+         * writer's row lock is no failure: the service leaves those rows
+         * for the next walk and writes the rest.
+         */
         if (
           endpointResult.attachments.length > 0 ||
           endpointResult.ipBindings.length > 0
         ) {
-          await NetworkEndpointService.upsertDiscoveredEndpoints({
-            projectId: data.projectId,
-            deviceId: deviceId,
-            deviceSiteId: ownedDevice.siteId,
-            attachments: endpointResult.attachments,
-            ipBindings: endpointResult.ipBindings,
-            now: now,
-          });
+          try {
+            await NetworkEndpointService.upsertDiscoveredEndpoints({
+              projectId: data.projectId,
+              deviceId: deviceId,
+              deviceSiteId: ownedDevice.siteId,
+              attachments: endpointResult.attachments,
+              ipBindings: endpointResult.ipBindings,
+              now: now,
+            });
+          } catch (err) {
+            logger.error(
+              `Failed to update the endpoint inventory from the walk of network device ${deviceId.toString()}:`,
+            );
+            logger.error(err);
+          }
         }
 
         /*
@@ -605,8 +618,8 @@ export default class NetworkInventoryUtil {
          * that the switches' forwarding tables can put on a port, but only
          * once something has said which MAC is theirs. Stamped on the
          * device, once, while its MAC column is empty. Its own try/catch:
-         * the endpoint inventory above is already written, and a failure
-         * here must not read as one there.
+         * a failure here must not read as one of the endpoint inventory
+         * above, which has its own.
          */
         if (endpointResult.ipBindings.length > 0) {
           try {
