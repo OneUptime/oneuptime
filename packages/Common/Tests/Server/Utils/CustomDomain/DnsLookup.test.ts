@@ -23,28 +23,30 @@ jest.mock("dns", () => {
     }
   }
 
-  for (const method of [
-    "resolveCname",
-    "resolveTxt",
-    "resolve4",
-    "resolve6",
-  ]) {
+  // One resolver method, answering from mockAnswers as it stands at the call.
+  const fakeMethod: (method: string) => (name: string) => Promise<unknown> = (
+    method: string,
+  ): ((name: string) => Promise<unknown>) => {
+    return async (name: string): Promise<unknown> => {
+      mockCalls.push({ method, name });
+      const answer: ((name: string) => Promise<unknown>) | undefined =
+        mockAnswers[method];
+
+      if (!answer) {
+        const error: Error & { code?: string } = new Error(
+          `query${method} ENODATA ${name}`,
+        );
+        error.code = "ENODATA";
+        throw error;
+      }
+
+      return await answer(name);
+    };
+  };
+
+  for (const method of ["resolveCname", "resolveTxt", "resolve4", "resolve6"]) {
     (FakeResolver.prototype as unknown as Record<string, unknown>)[method] =
-      async (name: string): Promise<unknown> => {
-        mockCalls.push({ method, name });
-        const answer: ((name: string) => Promise<unknown>) | undefined =
-          mockAnswers[method];
-
-        if (!answer) {
-          const error: Error & { code?: string } = new Error(
-            `query${method} ENODATA ${name}`,
-          );
-          error.code = "ENODATA";
-          throw error;
-        }
-
-        return await answer(name);
-      };
+      fakeMethod(method);
   }
 
   const dns: Record<string, unknown> = {
@@ -169,8 +171,9 @@ describe("DnsLookup", () => {
   test("no address: the A lookup says why", async () => {
     mockAnswers["resolve4"] = failWith("ENOTFOUND");
 
-    const answer: DnsLookupAnswer =
-      await DnsLookup.resolveAddresses("missing.example.com");
+    const answer: DnsLookupAnswer = await DnsLookup.resolveAddresses(
+      "missing.example.com",
+    );
 
     expect(answer.values).toEqual([]);
     expect(answer.failure).toBe(DnsLookupFailure.NameNotFound);

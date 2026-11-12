@@ -119,6 +119,11 @@ const RAW_TRANSPORT_ALLOWLIST: Array<AllowlistEntry> = [
     reason:
       "Reads another company's status page (its Statuspage, incident.io or OneUptime components list) for the External Status Page monitor's Components picker, not OneUptime's API: it sends nothing of OneUptime's - credentials omit, no referrer, no session to refresh - and reads the answer itself, for at most 4 MB within 15 seconds.",
   },
+  {
+    file: "Common/UI/Utils/Glossary.ts",
+    reason:
+      "Reads the docs' public Glossary data (DOCS_URL/glossary/<lang>.json, the docs' glossary route) for the product's term definitions, not the API: the route needs no session, so there is nothing to refresh. A failed read is forgotten and asked again, and the definition still links to the Glossary page.",
+  },
 ];
 
 function toPackagesPath(filePath: string): string {

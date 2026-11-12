@@ -90,11 +90,11 @@ beforeEach(() => {
       return world.addresses.get(name) || noRecords;
     }) as never) as unknown as MockedFn;
 
-  jest
-    .spyOn(DnsLookup, "resolveTxt")
-    .mockImplementation((async (name: string): Promise<DnsLookupAnswer> => {
-      return world.txt.get(name) || noRecords;
-    }) as never);
+  jest.spyOn(DnsLookup, "resolveTxt").mockImplementation((async (
+    name: string,
+  ): Promise<DnsLookupAnswer> => {
+    return world.txt.get(name) || noRecords;
+  }) as never);
 
   getForDomainVerification = jest
     .spyOn(Domain, "getForDomainVerification")
@@ -128,9 +128,8 @@ describe("the CNAME check", () => {
   test("a domain whose request reaches OneUptime is found, without a DNS lookup (the sweeps)", async () => {
     world.http.http = 200;
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.Found);
     expect(check.reachedOneUptime).toBe(true);
@@ -156,19 +155,15 @@ describe("the CNAME check", () => {
     world.http.http = 301;
     world.http.https = 200;
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.Found);
     expect(getForDomainVerification).toHaveBeenCalledTimes(2);
   });
 
   test("a record typed with the root's trailing dot and in capitals is the target", async () => {
-    world.cname.set(
-      "status.example.com",
-      answers("StatusPage.OneUptime.com."),
-    );
+    world.cname.set("status.example.com", answers("StatusPage.OneUptime.com."));
 
     const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
       request({ expectedTarget: "statuspage.oneuptime.com." }),
@@ -186,9 +181,8 @@ describe("the CNAME check", () => {
       answers("statuspage.oneuptime.com"),
     );
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.Found);
     expect(check.foundValues).toEqual([
@@ -201,9 +195,8 @@ describe("the CNAME check", () => {
     world.cname.set("status.example.com", answers("other.example.net"));
     world.cname.set("other.example.net", answers("lb.example.net"));
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.WrongValue);
     expect(check.foundValues).toEqual(["other.example.net", "lb.example.net"]);
@@ -214,9 +207,8 @@ describe("the CNAME check", () => {
     world.cname.set("a.example.com", answers("b.example.com"));
     world.cname.set("b.example.com", answers("a.example.com"));
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.WrongValue);
     expect(check.foundValues).toEqual(["a.example.com", "b.example.com"]);
@@ -230,9 +222,8 @@ describe("the CNAME check", () => {
       );
     }
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.foundValues).toHaveLength(CustomDomainDnsCheck.MAX_CNAME_HOPS);
     expect(resolveCname).toHaveBeenCalledTimes(
@@ -246,9 +237,8 @@ describe("the CNAME check", () => {
       answers("104.21.3.4", "172.67.1.2", "2606:4700::1", "2606:4700::2", "x"),
     );
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.NotFound);
     expect(check.addresses).toEqual([
@@ -260,9 +250,8 @@ describe("the CNAME check", () => {
   });
 
   test("no CNAME and no address: not found, with nothing more", async () => {
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.NotFound);
     expect(check.addresses).toBeUndefined();
@@ -276,9 +265,8 @@ describe("the CNAME check", () => {
       errorCode: "ENOTFOUND",
     });
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.NameNotFound);
     expect(resolveAddresses).not.toHaveBeenCalled();
@@ -291,9 +279,8 @@ describe("the CNAME check", () => {
       errorCode: "ETIMEOUT",
     });
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.LookupFailed);
     expect(check.lookupError).toBe("ETIMEOUT");
@@ -303,9 +290,8 @@ describe("the CNAME check", () => {
     world.http.http = 404;
     world.cname.set("status.example.com", answers("statuspage.oneuptime.com"));
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.outcome).toBe(DnsRecordCheckOutcome.Found);
     expect(check.reachedOneUptime).toBe(false);
@@ -316,9 +302,8 @@ describe("the CNAME check", () => {
     world.http.http = 404;
     world.http.https = 502;
 
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.httpStatus).toBe(404);
   });
@@ -342,9 +327,8 @@ describe("the CNAME check", () => {
 
   test("says when it looked", async () => {
     const before: number = Date.now();
-    const check: DnsRecordCheck = await CustomDomainDnsCheck.checkCname(
-      request(),
-    );
+    const check: DnsRecordCheck =
+      await CustomDomainDnsCheck.checkCname(request());
 
     expect(check.checkedAt!.getTime()).toBeGreaterThanOrEqual(before - 1000);
   });

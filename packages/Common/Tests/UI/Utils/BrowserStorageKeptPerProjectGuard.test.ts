@@ -183,9 +183,6 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "the way the person last picked on Connect an AI tool",
   "oneuptime.scheduled-maintenance-view":
     "only read once and removed: where the old List | Calendar switch kept the person's pick",
-  // The instance's own, on the Admin Dashboard.
-  "admin-dashboard-server-setup-hidden":
-    "whether the master admin put the setup checklist away - the instance's, not a project's",
 };
 
 /*

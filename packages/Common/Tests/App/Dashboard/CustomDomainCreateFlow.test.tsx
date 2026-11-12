@@ -429,10 +429,16 @@ describe.each(PAGES)("adding $name custom domain", (page: PageCase) => {
     return modal;
   }
 
-  async function addAddress(modal: HTMLElement, address: string): Promise<void> {
-    fireEvent.change(within(modal).getByPlaceholderText(page.addressPlaceholder), {
-      target: { value: address },
-    });
+  async function addAddress(
+    modal: HTMLElement,
+    address: string,
+  ): Promise<void> {
+    fireEvent.change(
+      within(modal).getByPlaceholderText(page.addressPlaceholder),
+      {
+        target: { value: address },
+      },
+    );
 
     await act(async (): Promise<void> => {
       fireEvent.click(within(modal).getByRole("button", { name: "Continue" }));
@@ -447,9 +453,9 @@ describe.each(PAGES)("adding $name custom domain", (page: PageCase) => {
     ).toBeVisible();
 
     // No subdomain, no list of verified domains, no link out of the page.
-    expect(within(modal).queryByPlaceholderText(page.subdomainPlaceholder)).toBe(
-      null,
-    );
+    expect(
+      within(modal).queryByPlaceholderText(page.subdomainPlaceholder),
+    ).toBe(null);
     expect(within(modal).queryByRole("combobox", { name: /^Domain/ })).toBe(
       null,
     );

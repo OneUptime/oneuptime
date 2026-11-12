@@ -16,9 +16,8 @@ import type { Mock } from "jest-mock";
  * words of a search only on Cloud - and never an error on the page.
  */
 
-const captureMock: Mock<(name: string, data?: unknown) => void> = jest.fn<
-  (name: string, data?: unknown) => void
->();
+const captureMock: Mock<(name: string, data?: unknown) => void> =
+  jest.fn<(name: string, data?: unknown) => void>();
 
 jest.mock("../../../UI/Utils/Analytics", () => {
   return {
