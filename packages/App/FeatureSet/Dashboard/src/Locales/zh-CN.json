@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}为 {{values}}，不等于 {{threshold}}。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}为 {{values}}，以 {{threshold}} 开头。",
   "{{subject}} is {{values}}.": "{{subject}}：{{values}}。",
-  "Fix the cause named above, then send the test again.": "修复上方指出的原因，然后再次发送测试。"
+  "Fix the problems above, then send the test again.": "修复上方列出的问题，然后再次发送测试。",
+  "Fix the problems above, then send the test again._one": "Fix the problem above, then send the test again.",
+  "The test summary was not posted in any of its {{count}} channels.": "测试摘要未发布到任何频道（共 {{count}} 个频道）。",
+  "The test summary was not posted in any of its {{count}} channels._one": "The test summary was not posted.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "测试摘要未发布到其 {{count}} 个频道中的 {{failed}} 个。",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel."
 }

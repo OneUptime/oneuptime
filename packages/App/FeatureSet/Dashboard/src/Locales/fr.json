@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} : {{values}}, ce qui est différent de {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} : {{values}}, ce qui commence par {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}} : {{values}}.",
-  "Fix the cause named above, then send the test again.": "Corrigez la cause indiquée ci-dessus, puis envoyez de nouveau le test."
+  "Fix the problems above, then send the test again.": "Corrigez les problèmes indiqués ci-dessus, puis envoyez de nouveau le test.",
+  "Fix the problems above, then send the test again._one": "Corrigez le problème indiqué ci-dessus, puis envoyez de nouveau le test.",
+  "The test summary was not posted in any of its {{count}} channels.": "Le résumé de test n'a été publié dans aucun de ses {{count}} canaux.",
+  "The test summary was not posted in any of its {{count}} channels._one": "Le résumé de test n'a pas été publié.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "Le résumé de test n'a pas été publié dans {{failed}} de ses {{count}} canaux.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Le résumé de test n'a pas été publié dans {{failed}} canal sur {{count}}."
 }

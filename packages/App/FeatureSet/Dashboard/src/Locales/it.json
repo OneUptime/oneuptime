@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}} (diverso da {{threshold}}).",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}} (inizia con {{threshold}}).",
   "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
-  "Fix the cause named above, then send the test again.": "Correggi la causa indicata qui sopra, poi invia di nuovo la prova."
+  "Fix the problems above, then send the test again.": "Correggi i problemi indicati qui sopra, poi invia di nuovo la prova.",
+  "Fix the problems above, then send the test again._one": "Correggi il problema indicato qui sopra, poi invia di nuovo la prova.",
+  "The test summary was not posted in any of its {{count}} channels.": "Il riepilogo di prova non è stato pubblicato in nessuno dei suoi {{count}} canali.",
+  "The test summary was not posted in any of its {{count}} channels._one": "Il riepilogo di prova non è stato pubblicato.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "Il riepilogo di prova non è stato pubblicato in {{failed}} dei suoi {{count}} canali.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Il riepilogo di prova non è stato pubblicato in {{failed}} di {{count}} canale."
 }

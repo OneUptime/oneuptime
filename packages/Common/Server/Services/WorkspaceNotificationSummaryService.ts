@@ -55,6 +55,7 @@ import WorkspaceType, {
 } from "../../Types/Workspace/WorkspaceType";
 import ColumnLength from "../../Types/Database/ColumnLength";
 import ProductBrandingText from "../Utils/ProductBrandingText";
+import { WorkspaceSummaryTestChannel } from "../../Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import URL from "../../Types/API/URL";
@@ -210,6 +211,26 @@ const MATTERMOST_CHANNEL_PREFIX: RegExp = /^[#~]/;
 // A Microsoft Teams team's id, as Microsoft Graph writes it: a GUID.
 const MICROSOFT_TEAMS_TEAM_ID: RegExp =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/*
+ * Send Test Now's refusal when a channel did not get the test summary
+ * (testSummary). A BadDataException, so its message - each channel not
+ * posted in and why, in English - is what the API answers as before; the
+ * test route also answers `channels`, what became of the test in each
+ * channel, which the Dashboard lists in the reader's language
+ * (WorkspaceNotificationSummaryAPI).
+ */
+export class WorkspaceSummaryTestNotPostedException extends BadDataException {
+  public readonly channels: Array<WorkspaceSummaryTestChannel>;
+
+  public constructor(data: {
+    message: string;
+    channels: Array<WorkspaceSummaryTestChannel>;
+  }) {
+    super(data.message);
+    this.channels = data.channels;
+  }
+}
 
 /*
  * The Microsoft Teams team a summary's channels are in, as Microsoft Graph
@@ -763,7 +784,10 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
           return !result.isPosted;
         })
       ) {
-        throw new BadDataException(Service.getTestNotPostedMessage(results));
+        throw new WorkspaceSummaryTestNotPostedException({
+          message: Service.getTestNotPostedMessage(results),
+          channels: Service.getTestChannels(results),
+        });
       }
 
       return;
@@ -1235,6 +1259,29 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
         return `${result.channelName}: ${reasons[index]}`;
       })
       .join(" ")}`;
+  }
+
+  /*
+   * What became of a test in each of its channels, in the summary's order,
+   * as the test route answers it: posted, or not with why - never the
+   * channel's or the message's id, which say nothing to the person testing.
+   */
+  public static getTestChannels(
+    results: Array<WorkspaceSummaryChannelResult>,
+  ): Array<WorkspaceSummaryTestChannel> {
+    return results.map(
+      (result: WorkspaceSummaryChannelResult): WorkspaceSummaryTestChannel => {
+        if (result.isPosted) {
+          return { channelName: result.channelName, isPosted: true };
+        }
+
+        return {
+          channelName: result.channelName,
+          isPosted: false,
+          reason: (result.reason || "").trim() || SEND_FAILED_REASON,
+        };
+      },
+    );
   }
 
   // Texts as sentences, one after another: each ends as a sentence does.

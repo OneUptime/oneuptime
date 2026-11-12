@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}과(와) 같지 않습니다.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}(으)로 시작합니다.",
   "{{subject}} is {{values}}.": "{{subject}}은(는) {{values}}입니다.",
-  "Fix the cause named above, then send the test again.": "위에 나온 원인을 해결한 다음 테스트를 다시 보내세요."
+  "Fix the problems above, then send the test again.": "위에 나온 문제를 해결한 다음 테스트를 다시 보내세요.",
+  "Fix the problems above, then send the test again._one": "Fix the problem above, then send the test again.",
+  "The test summary was not posted in any of its {{count}} channels.": "테스트 요약이 어느 채널에도 게시되지 않았습니다(총 {{count}}개 채널).",
+  "The test summary was not posted in any of its {{count}} channels._one": "The test summary was not posted.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "테스트 요약이 {{count}}개 채널 중 {{failed}}개 채널에 게시되지 않았습니다.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel."
 }

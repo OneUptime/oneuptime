@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}, जो {{threshold}} के बराबर नहीं है।",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}}, जो {{threshold}} से शुरू होता है।",
   "{{subject}} is {{values}}.": "{{subject}}: {{values}}।",
-  "Fix the cause named above, then send the test again.": "ऊपर बताया गया कारण ठीक करें, फिर टेस्ट दोबारा भेजें।"
+  "Fix the problems above, then send the test again.": "ऊपर बताई गई समस्याएं ठीक करें, फिर टेस्ट दोबारा भेजें।",
+  "Fix the problems above, then send the test again._one": "ऊपर बताई गई समस्या ठीक करें, फिर टेस्ट दोबारा भेजें।",
+  "The test summary was not posted in any of its {{count}} channels.": "टेस्ट सारांश अपने {{count}} चैनलों में से किसी में भी पोस्ट नहीं हुआ।",
+  "The test summary was not posted in any of its {{count}} channels._one": "टेस्ट सारांश पोस्ट नहीं हुआ।",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "टेस्ट सारांश अपने {{count}} चैनलों में से {{failed}} में पोस्ट नहीं हुआ।",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "टेस्ट सारांश अपने {{count}} चैनल में से {{failed}} में पोस्ट नहीं हुआ।"
 }

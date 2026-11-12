@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} er {{values}} og dermed ikke lig med {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} er {{values}} og starter med {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}} er {{values}}.",
-  "Fix the cause named above, then send the test again.": "Ret den årsag, der er nævnt ovenfor, og send derefter testen igen."
+  "Fix the problems above, then send the test again.": "Ret de problemer, der er nævnt ovenfor, og send derefter testen igen.",
+  "Fix the problems above, then send the test again._one": "Ret det problem, der er nævnt ovenfor, og send derefter testen igen.",
+  "The test summary was not posted in any of its {{count}} channels.": "Testoversigten blev ikke sendt til nogen af sine {{count}} kanaler.",
+  "The test summary was not posted in any of its {{count}} channels._one": "Testoversigten blev ikke sendt.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "Testoversigten blev ikke sendt til {{failed}} af sine {{count}} kanaler.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Testoversigten blev ikke sendt til {{failed}} af {{count}} kanal."
 }

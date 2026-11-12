@@ -1,6 +1,7 @@
 import UserMiddleware from "../Middleware/UserAuthorization";
 import WorkspaceNotificationSummaryService, {
   Service as WorkspaceNotificationSummaryServiceType,
+  WorkspaceSummaryTestNotPostedException,
 } from "../Services/WorkspaceNotificationSummaryService";
 import {
   ExpressRequest,
@@ -12,6 +13,9 @@ import BaseAPI from "./BaseAPI";
 import TestSendAccess, { TestSendCaller } from "./TestSendAccess";
 import WorkspaceNotificationSummary from "../../Models/DatabaseModels/WorkspaceNotificationSummary";
 import ObjectID from "../../Types/ObjectID";
+import StatusCode from "../../Types/API/StatusCode";
+import { JSONArray } from "../../Types/JSON";
+import { WORKSPACE_SUMMARY_TEST_CHANNELS_KEY } from "../../Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
 
 export default class WorkspaceNotificationSummaryAPI extends BaseAPI<
   WorkspaceNotificationSummary,
@@ -29,6 +33,12 @@ export default class WorkspaceNotificationSummaryAPI extends BaseAPI<
      * off or delete them - who could create a summary, and a summary they
      * may read, in their own project. testSummary then reads the summary as
      * OneUptime to send it.
+     *
+     * A test that a channel did not get is refused with a 400, whose
+     * message says so in English, as every refusal does, and whose
+     * `channels` say what became of the test in each channel - posted, or
+     * not with why - for the Dashboard to list them in the reader's
+     * language (WorkspaceSummaryTestChannel).
      */
     this.router.post(
       `${new this.entityType().getCrudApiPath()?.toString()}/test/:workspaceNotificationSummaryId`,
@@ -59,6 +69,19 @@ export default class WorkspaceNotificationSummaryAPI extends BaseAPI<
 
           return Response.sendEmptySuccessResponse(req, res);
         } catch (e) {
+          if (e instanceof WorkspaceSummaryTestNotPostedException) {
+            return Response.sendJsonObjectResponse(
+              req,
+              res,
+              {
+                message: e.message,
+                [WORKSPACE_SUMMARY_TEST_CHANNELS_KEY]:
+                  e.channels as unknown as JSONArray,
+              },
+              { statusCode: new StatusCode(e.code) },
+            );
+          }
+
           next(e);
         }
       },

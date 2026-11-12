@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}, что не равно {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}} — начинается с {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
-  "Fix the cause named above, then send the test again.": "Устраните причину, указанную выше, затем отправьте тест снова."
+  "Fix the problems above, then send the test again.": "Устраните проблемы, указанные выше, затем отправьте тест снова.",
+  "Fix the problems above, then send the test again._one": "Устраните проблему, указанную выше, затем отправьте тест снова.",
+  "The test summary was not posted in any of its {{count}} channels.": "Тестовая сводка не опубликована ни в одном из каналов (всего {{count}}).",
+  "The test summary was not posted in any of its {{count}} channels._one": "Тестовая сводка не опубликована.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "Тестовая сводка не опубликована в {{failed}} из {{count}} каналов.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "Тестовая сводка не опубликована в {{failed}} из {{count}} канала."
 }

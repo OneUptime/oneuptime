@@ -84,6 +84,15 @@ import {
   TestSendLock,
   TestSendTargets,
 } from "../TestSend/TestSendLock";
+import {
+  getWorkspaceSummaryTestChannels,
+  WorkspaceSummaryTestChannel,
+} from "Common/Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
+import WorkspaceSummaryTestFailure, {
+  getChannelsNotPostedIn,
+  getWorkspaceSummaryTestLead,
+  getWorkspaceSummaryTestNextStep,
+} from "./WorkspaceSummaryTestFailure";
 
 export interface ComponentProps {
   workspaceType: WorkspaceType;
@@ -153,6 +162,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
    */
   const [showTestResultModal, setShowTestResultModal] =
     React.useState<boolean>(false);
+  /*
+   * A failed test's channels, as the test route answers them: listed in
+   * Test Failed, each under why it did not get the test. Empty for a
+   * failure the route says only in words (a summary with no channels, a
+   * network error): the dialog says those words.
+   */
+  const [testChannels, setTestChannels] = React.useState<
+    Array<WorkspaceSummaryTestChannel>
+  >([]);
 
   // The time zones the Timezone field offers: worked out once, not per render.
   const timezoneOptions: Array<DropdownOption> =
@@ -290,6 +308,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
     try {
       setIsTestLoading(true);
       setTestError(undefined);
+      setTestChannels([]);
 
       const response: HTTPResponse<EmptyResponseData> | HTTPErrorResponse =
         await API.post({
@@ -311,12 +330,28 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         setShowTestResultModal(true);
       }
     } catch (err) {
+      setTestChannels(
+        err instanceof HTTPErrorResponse
+          ? getWorkspaceSummaryTestChannels(err.jsonData)
+          : [],
+      );
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
       setShowTestModal(false);
       setShowTestResultModal(true);
     }
   };
+
+  /*
+   * Test Failed's red line: how many channels did not get the test, in the
+   * reader's language, when the route said which - else its own words.
+   * Summary Sent has none.
+   */
+  const testFailureLead: string | undefined = testError
+    ? getWorkspaceSummaryTestLead(translator, testChannels) || testError
+    : undefined;
+  const hasTestChannelsNotPostedIn: boolean =
+    getChannelsNotPostedIn(testChannels).length > 0;
 
   const allSummaryItems: Array<WorkspaceNotificationSummaryItem> =
     Object.values(WorkspaceNotificationSummaryItem);
@@ -1083,22 +1118,26 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       {/*
        * No onClose: a dialog that only reports an outcome needs one way
        * out, and "Close" is it (SendTestNotificationButton's, the same).
-       * A failure names each channel the summary was not posted in, and
-       * why, above the next step.
+       * A failure says how many channels did not get the test, lists each
+       * under why (WorkspaceSummaryTestFailure), then what to do next.
        */}
       {showTestResultModal ? (
         <ConfirmModal
           title={testError ? `Test Failed` : `Summary Sent`}
-          error={testError}
+          error={testFailureLead}
           description={
-            testError
-              ? translator.translateTemplate(
-                  "Fix the cause named above, then send the test again.",
-                )
-              : translator.translateTemplate(
-                  "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
-                  { workspace: workspaceName },
-                )
+            testError ? (
+              hasTestChannelsNotPostedIn ? (
+                <WorkspaceSummaryTestFailure channels={testChannels} />
+              ) : (
+                getWorkspaceSummaryTestNextStep(translator, 1)
+              )
+            ) : (
+              translator.translateTemplate(
+                "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
+                { workspace: workspaceName },
+              )
+            )
           }
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
@@ -1107,6 +1146,7 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             setTestSummary(undefined);
             setShowTestModal(false);
             setTestError(undefined);
+            setTestChannels([]);
           }}
         />
       ) : (

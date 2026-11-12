@@ -50794,5 +50794,10 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} برابر نیست.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} شروع می‌شود.",
   "{{subject}} is {{values}}.": "{{subject}} {{values}} است.",
-  "Fix the cause named above, then send the test again.": "علتی را که در بالا آمده برطرف کنید، سپس آزمایش را دوباره ارسال کنید."
+  "Fix the problems above, then send the test again.": "مشکلاتی را که در بالا آمده برطرف کنید، سپس آزمایش را دوباره ارسال کنید.",
+  "Fix the problems above, then send the test again._one": "مشکلی را که در بالا آمده برطرف کنید، سپس آزمایش را دوباره ارسال کنید.",
+  "The test summary was not posted in any of its {{count}} channels.": "خلاصه آزمایشی در هیچ‌یک از {{count}} کانالش ارسال نشد.",
+  "The test summary was not posted in any of its {{count}} channels._one": "خلاصه آزمایشی ارسال نشد.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels.": "خلاصه آزمایشی در {{failed}} مورد از {{count}} کانالش ارسال نشد.",
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "خلاصه آزمایشی در {{failed}} مورد از {{count}} کانالش ارسال نشد."
 }

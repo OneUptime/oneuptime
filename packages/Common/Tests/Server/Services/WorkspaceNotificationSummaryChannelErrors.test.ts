@@ -16,7 +16,9 @@ import WorkspaceProjectAuthToken, {
 import WorkspaceNotificationLogService, {
   WorkspaceLogData,
 } from "../../../Server/Services/WorkspaceNotificationLogService";
-import WorkspaceNotificationSummaryService from "../../../Server/Services/WorkspaceNotificationSummaryService";
+import WorkspaceNotificationSummaryService, {
+  WorkspaceSummaryTestNotPostedException,
+} from "../../../Server/Services/WorkspaceNotificationSummaryService";
 import WorkspaceProjectAuthTokenService from "../../../Server/Services/WorkspaceProjectAuthTokenService";
 import BlockedProjectNotifications from "../../../Server/Utils/Notification/BlockedProjectNotifications";
 import SSRFProtection from "../../../Server/Utils/SSRFProtection";
@@ -36,6 +38,7 @@ import { JSONArray, JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import WorkspaceNotificationSummaryItem from "../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryItem";
 import WorkspaceNotificationSummaryType from "../../../Types/Workspace/NotificationSummary/WorkspaceNotificationSummaryType";
+import { WorkspaceSummaryTestChannel } from "../../../Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
 import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
@@ -567,6 +570,17 @@ async function testRefusal(): Promise<Error> {
   throw new Error("Send Test Now did not fail.");
 }
 
+/*
+ * What Send Test Now's refusal says of each channel, for the Dashboard to
+ * list in the reader's language: a test that a channel did not get is
+ * refused with each channel of the summary, in its order - posted, or not
+ * with why (WorkspaceSummaryTestNotPostedException).
+ */
+function testChannelsOf(refusal: Error): Array<WorkspaceSummaryTestChannel> {
+  expect(refusal).toBeInstanceOf(WorkspaceSummaryTestNotPostedException);
+  return (refusal as WorkspaceSummaryTestNotPostedException).channels;
+}
+
 // What a scheduled send throws, when it throws.
 async function scheduledRefusal(): Promise<unknown> {
   try {
@@ -814,6 +828,15 @@ describe("a Slack summary", () => {
     expect(refusal.message).toBe(
       `The test summary was not posted in 1 of its 2 channels. #gone: ${SLACK_NOT_FOUND("#gone")}`,
     );
+    // Channel by channel, in the summary's order - never a channel's id.
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      { channelName: "#ops", isPosted: true },
+      {
+        channelName: "#gone",
+        isPosted: false,
+        reason: SLACK_NOT_FOUND("#gone"),
+      },
+    ]);
 
     // The channel that exists still got it.
     expect(slackPostedIn()).toEqual(["C0OPS"]);
@@ -846,6 +869,13 @@ describe("a Slack summary", () => {
     expect(refusal.message).toBe(
       `The test summary was not posted in incidnets. ${SLACK_NOT_FOUND("incidnets")}`,
     );
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      {
+        channelName: "incidnets",
+        isPosted: false,
+        reason: SLACK_NOT_FOUND("incidnets"),
+      },
+    ]);
     expect(slackPostedIn()).toEqual([]);
   });
 
@@ -907,6 +937,14 @@ describe("a Slack summary", () => {
     expect(refusal.message).toBe(
       "The test summary was not posted in 1 of its 2 channels. #old-incidents: Error from Slack is_archived.",
     );
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      { channelName: "#ops", isPosted: true },
+      {
+        channelName: "#old-incidents",
+        isPosted: false,
+        reason: "Error from Slack is_archived",
+      },
+    ]);
     expect(logs[1]).toEqual(
       notPostedLog({
         workspaceType: WorkspaceType.Slack,
@@ -932,6 +970,9 @@ describe("a Slack summary", () => {
     );
     expect(logs[0]!.statusMessage).toBe("ratelimited");
     expect(refusal.message).not.toContain("[object Object]");
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      { channelName: "#ops", isPosted: false, reason: "ratelimited" },
+    ]);
   });
 
   test("a project not connected to Slack: every channel says so, and the test says it once", async () => {
@@ -949,6 +990,11 @@ describe("a Slack summary", () => {
     expect(refusal.message).toBe(
       `The test summary was not posted in any of its 2 channels. ${notConnected}`,
     );
+    // Said once in the message; each channel still says it, for the list.
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      { channelName: "#ops", isPosted: false, reason: notConnected },
+      { channelName: "#engineering", isPosted: false, reason: notConnected },
+    ]);
     expect(logs).toEqual([
       notPostedLog({
         workspaceType: WorkspaceType.Slack,
@@ -1017,6 +1063,14 @@ describe("a Slack summary", () => {
     expect(refusal.message).toBe(
       "The test summary was not posted in #ops. Workspace message not sent: This project has been blocked. Please contact your administrator.",
     );
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      {
+        channelName: "#ops",
+        isPosted: false,
+        reason:
+          "Workspace message not sent: This project has been blocked. Please contact your administrator.",
+      },
+    ]);
     expect(logs[0]!.statusMessage).toBe(
       "Workspace message not sent: This project has been blocked. Please contact your administrator.",
     );
@@ -1049,6 +1103,8 @@ describe("a Slack summary", () => {
 
     expect(refusal).toBeInstanceOf(BadDataException);
     expect(refusal.message).toBe("No channel names configured for summary");
+    // No channel was tried: the Dashboard says this message alone.
+    expect(refusal).not.toBeInstanceOf(WorkspaceSummaryTestNotPostedException);
     expect(calls).toEqual([]);
     expect(logs).toEqual([]);
   });
@@ -1109,6 +1165,13 @@ describe("a Slack summary", () => {
     expect(refusal.message).toBe(
       `The test summary was not posted in #gone. ${SLACK_NOT_FOUND("#gone")}`,
     );
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      {
+        channelName: "#gone",
+        isPosted: false,
+        reason: SLACK_NOT_FOUND("#gone"),
+      },
+    ]);
   });
 });
 
@@ -1151,7 +1214,10 @@ describe("a summary that cannot be sent for a moment (the database)", () => {
     });
     isBlocked.mockRejectedValue(DATABASE_DOWN);
 
-    expect(await scheduledRefusal()).toBe(DATABASE_DOWN);
+    const thrown: unknown = await scheduledRefusal();
+
+    expect(thrown).toBe(DATABASE_DOWN);
+    expect(thrown).not.toBeInstanceOf(WorkspaceSummaryTestNotPostedException);
 
     expect(slackPostedIn()).toEqual([]);
     expect(
@@ -1189,6 +1255,18 @@ describe("a summary that cannot be sent for a moment (the database)", () => {
     expect(refusal.message).toBe(
       "The test summary was not posted in any of its 2 channels. Connection terminated unexpectedly.",
     );
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      {
+        channelName: "#ops",
+        isPosted: false,
+        reason: "Connection terminated unexpectedly",
+      },
+      {
+        channelName: "#engineering",
+        isPosted: false,
+        reason: "Connection terminated unexpectedly",
+      },
+    ]);
   });
 });
 
@@ -1211,6 +1289,15 @@ describe("a Mattermost summary", () => {
     expect(refusal.message).toBe(
       `The test summary was not posted in 2 of its 3 channels. War Room: ${notFound} Status: Error from Mattermost: We could not save the post.`,
     );
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      { channelName: "town-square", isPosted: true },
+      { channelName: "War Room", isPosted: false, reason: notFound },
+      {
+        channelName: "Status",
+        isPosted: false,
+        reason: "Error from Mattermost: We could not save the post.",
+      },
+    ]);
     expect(logs).toEqual([
       postedLog({
         workspaceType: WorkspaceType.Mattermost,
@@ -1466,6 +1553,18 @@ describe("a Microsoft Teams summary", () => {
     expect(refusal.message).toBe(
       `The test summary was not posted in any of its 2 channels. ${teamNotFound("Enginering")}`,
     );
+    expect(testChannelsOf(refusal)).toStrictEqual([
+      {
+        channelName: "General",
+        isPosted: false,
+        reason: teamNotFound("Enginering"),
+      },
+      {
+        channelName: "Incidents",
+        isPosted: false,
+        reason: teamNotFound("Enginering"),
+      },
+    ]);
     expect(logs).toEqual([
       notPostedLog({
         workspaceType: WorkspaceType.MicrosoftTeams,

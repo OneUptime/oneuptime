@@ -9,6 +9,7 @@ import {
   WorkspaceSendMessageResponse,
 } from "../../../Server/Utils/Workspace/WorkspaceBase";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { WorkspaceSummaryTestChannel } from "../../../Types/Workspace/NotificationSummary/WorkspaceSummaryTestChannel";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -347,6 +348,83 @@ describe("getTestNotPostedMessage: what Send Test Now answers", () => {
     ).toBe(
       "The test summary was not posted in any of its 4 channels. #ops: Is the bot in it? #dev: It was refused! #sre: Failed to send message. #qa: Failed to send message.",
     );
+  });
+});
+
+describe("getTestChannels: Send Test Now's channels, for the Dashboard to list", () => {
+  test("each channel in the summary's order: posted, or not with why", () => {
+    expect(
+      WorkspaceNotificationSummaryService.getTestChannels([
+        { channelName: "#ops", isPosted: true },
+        {
+          channelName: "#gone",
+          isPosted: false,
+          reason: SLACK_NOT_FOUND,
+        },
+        { channelName: "#sre", isPosted: false, reason: "ratelimited" },
+      ]),
+    ).toStrictEqual([
+      { channelName: "#ops", isPosted: true },
+      { channelName: "#gone", isPosted: false, reason: SLACK_NOT_FOUND },
+      { channelName: "#sre", isPosted: false, reason: "ratelimited" },
+    ]);
+  });
+
+  test("never a channel's or a message's id, which say nothing to the person testing", () => {
+    const channels: Array<WorkspaceSummaryTestChannel> =
+      WorkspaceNotificationSummaryService.getTestChannels([
+        {
+          channelName: "#ops",
+          isPosted: true,
+          channelId: "C0OPS",
+          threadId: "1760000000.000100",
+        },
+        {
+          channelName: "#archive",
+          isPosted: false,
+          channelId: "C0ARCHIVE",
+          reason: "Error from Slack is_archived",
+        },
+      ]);
+
+    expect(
+      channels.map((channel: WorkspaceSummaryTestChannel): Array<string> => {
+        return Object.keys(channel).sort();
+      }),
+    ).toEqual([
+      ["channelName", "isPosted"],
+      ["channelName", "isPosted", "reason"],
+    ]);
+  });
+
+  test("a reason without words is a failed send, as the message says it; one with spaces around it is said without them", () => {
+    expect(
+      WorkspaceNotificationSummaryService.getTestChannels([
+        { channelName: "#sre", isPosted: false },
+        { channelName: "#qa", isPosted: false, reason: "  " },
+        { channelName: "#dev", isPosted: false, reason: " ratelimited \n" },
+      ]),
+    ).toStrictEqual([
+      {
+        channelName: "#sre",
+        isPosted: false,
+        reason: "Failed to send message",
+      },
+      { channelName: "#qa", isPosted: false, reason: "Failed to send message" },
+      { channelName: "#dev", isPosted: false, reason: "ratelimited" },
+    ]);
+  });
+
+  test("a channel that was posted in carries no reason, whatever the result held", () => {
+    expect(
+      WorkspaceNotificationSummaryService.getTestChannels([
+        { channelName: "#ops", isPosted: true, reason: "left over" },
+      ]),
+    ).toStrictEqual([{ channelName: "#ops", isPosted: true }]);
+  });
+
+  test("no channels: none", () => {
+    expect(WorkspaceNotificationSummaryService.getTestChannels([])).toEqual([]);
   });
 });
 
