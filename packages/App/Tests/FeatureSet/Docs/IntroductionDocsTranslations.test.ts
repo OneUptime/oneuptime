@@ -39,6 +39,7 @@ import {
   prose,
   tableShape,
 } from "./DocsTranslationChecks";
+import { exploreCardLines, exploreSections } from "./GettingStartedPage";
 import { describe, expect, it } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -65,8 +66,9 @@ import path from "path";
  *     (USER_MENU_LABELS, SIGN_IN_LABELS).
  *   - Bold words that are Dashboard labels only by coincidence - a concept
  *     introduced in prose, a list item's lead - are PROSE, with why.
- *   - Getting Started's section headings are the docs' own sidebar section
- *     titles (Docs/Locales navSections), in sidebar order.
+ *   - Getting Started's folded sections under Explore the docs are the
+ *     docs' own sidebar section titles (Docs/Locales navSections), in
+ *     sidebar order.
  */
 
 const LANGUAGES: Array<string> = SUPPORTED_DOCS_LANGUAGE_CODES.filter(
@@ -231,28 +233,6 @@ function menuPaths(markdown: string): Array<Array<string>> {
         return isActionLabel(segment);
       });
     });
-}
-
-// The headings of a page under the "## " heading at an index, up to the next.
-function subheadingsOf(
-  scanned: ScannedPage,
-  sectionIndex: number,
-): Array<DocsHeading> {
-  const sections: Array<DocsHeading> = scanned.headings.filter(
-    (heading: DocsHeading): boolean => {
-      return heading.level === 2;
-    },
-  );
-  const start: DocsHeading = sections[sectionIndex] as DocsHeading;
-  const end: DocsHeading | undefined = sections[sectionIndex + 1];
-
-  return scanned.headings.filter((heading: DocsHeading): boolean => {
-    return (
-      heading.level === 3 &&
-      heading.line > start.line &&
-      (end === undefined || heading.line < end.line)
-    );
-  });
 }
 
 // The index of the English "## " heading with this text.
@@ -506,13 +486,17 @@ describe("the English pages", () => {
     },
   );
 
+  /*
+   * Since #6822 the page chooses a path first, and folds the full index:
+   * each sidebar section is a `:::details` named as the sidebar names it,
+   * its cards inside (GettingStartedPage.ts).
+   */
   it("Getting Started explores the docs section by section, in sidebar order, after Get Started", () => {
-    const scanned: ScannedPage = scanMarkdown(englishPage(GETTING_STARTED));
-    const explore: Array<string> = subheadingsOf(
-      scanned,
+    const explore: Array<string> = exploreSections(
+      englishPage(GETTING_STARTED),
       englishSectionIndex(GETTING_STARTED, "Explore the docs"),
-    ).map((heading: DocsHeading): string => {
-      return heading.text;
+    ).map((section: { title: string }): string => {
+      return section.title;
     });
 
     expect(explore).toEqual(
@@ -524,41 +508,38 @@ describe("the English pages", () => {
 
   it("Getting Started's cards under each section open only that section's pages", () => {
     const markdown: string = englishPage(GETTING_STARTED);
-    const lines: Array<string> = markdown.split("\n");
-    let section: string | null = null;
     let checked: number = 0;
 
-    for (const line of lines) {
-      if (line.startsWith("## ")) {
-        section = null;
+    for (const section of DocsNavSections.filter((title: string) => {
+      return title !== "Get Started";
+    })) {
+      for (const line of exploreCardLines(
+        markdown,
+        englishSectionIndex(GETTING_STARTED, "Explore the docs"),
+        section,
+      )) {
+        if (!CARD_LINE.test(line)) {
+          continue;
+        }
+
+        const page: string = (cardTargets([line])[0] as string).replace(
+          /^\/docs\//,
+          "",
+        );
+        const group: NavGroup | undefined = DocsNav.find(
+          (candidate: NavGroup): boolean => {
+            return candidate.links.some((link: NavLink): boolean => {
+              return link.url === `/docs/${page}`;
+            });
+          },
+        );
+
+        expect({ line: line, section: group?.section }).toEqual({
+          line: line,
+          section: section,
+        });
+        checked++;
       }
-
-      if (line.startsWith("### ") && DocsNavSections.includes(line.slice(4))) {
-        section = line.slice(4);
-        continue;
-      }
-
-      if (!section || !CARD_LINE.test(line)) {
-        continue;
-      }
-
-      const page: string = (cardTargets([line])[0] as string).replace(
-        /^\/docs\//,
-        "",
-      );
-      const group: NavGroup | undefined = DocsNav.find(
-        (candidate: NavGroup): boolean => {
-          return candidate.links.some((link: NavLink): boolean => {
-            return link.url === `/docs/${page}`;
-          });
-        },
-      );
-
-      expect({ line: line, section: group?.section }).toEqual({
-        line: line,
-        section: section,
-      });
-      checked++;
     }
 
     expect(checked).toBeGreaterThan(20);
@@ -672,14 +653,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
 
   describe("Getting Started", () => {
     it("explores the docs under this language's sidebar section titles, in order", () => {
-      const scanned: ScannedPage = scanMarkdown(
+      const explore: Array<string> = exploreSections(
         readPage(language, GETTING_STARTED),
-      );
-      const explore: Array<string> = subheadingsOf(
-        scanned,
         englishSectionIndex(GETTING_STARTED, "Explore the docs"),
-      ).map((heading: DocsHeading): string => {
-        return heading.text;
+      ).map((section: { title: string }): string => {
+        return section.title;
       });
 
       expect(explore).toEqual(
@@ -926,30 +904,38 @@ describe("the helpers, on these pages' shapes", () => {
     expect(boldLabels(markdown)).toEqual(["Enable AI"]);
   });
 
-  it("read the sub-sections of one section only", () => {
-    const scanned: ScannedPage = scanMarkdown(
-      [
-        "# Page",
-        "## First",
-        "### A",
-        "### B",
-        "## Second",
-        "### C",
-        "## Third",
-      ].join("\n"),
-    );
+  it("read the folded sections of one section only, each with its cards", () => {
+    const markdown: string = [
+      "# Page",
+      "## First",
+      ":::details A",
+      ":::cards",
+      "- [One](/docs/monitor/create-monitor): One.",
+      ":::",
+      ":::",
+      ":::details B",
+      ":::cards",
+      "- [Two](/docs/incidents/index): Two.",
+      "- [Three](/docs/alerts/index): Three.",
+      ":::",
+      ":::",
+      "## Second",
+      ":::details C",
+      "Only words.",
+      ":::",
+      "## Third",
+    ].join("\n");
 
-    expect(
-      subheadingsOf(scanned, 0).map((heading: DocsHeading): string => {
-        return heading.text;
-      }),
-    ).toEqual(["A", "B"]);
-    expect(
-      subheadingsOf(scanned, 1).map((heading: DocsHeading): string => {
-        return heading.text;
-      }),
-    ).toEqual(["C"]);
-    expect(subheadingsOf(scanned, 2)).toEqual([]);
+    expect(exploreSections(markdown, 0)).toEqual([
+      { title: "A", targets: ["/docs/monitor/create-monitor"] },
+      { title: "B", targets: ["/docs/incidents/index", "/docs/alerts/index"] },
+    ]);
+    expect(exploreSections(markdown, 1)).toEqual([{ title: "C", targets: [] }]);
+    expect(exploreSections(markdown, 2)).toEqual([]);
+    expect(exploreCardLines(markdown, 0, "B")).toEqual([
+      "- [Two](/docs/incidents/index): Two.",
+      "- [Three](/docs/alerts/index): Three.",
+    ]);
   });
 
   it("find the nav groups a page reaches, from its links", () => {

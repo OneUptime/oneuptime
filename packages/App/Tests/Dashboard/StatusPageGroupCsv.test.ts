@@ -536,13 +536,14 @@ describe("parseStatusPageGroupCsv — the grid axis columns", () => {
     );
   });
 
+  // Two columns or more "apply": the sentence is a plural, counted (#7097).
   test("all offending axis columns are named in one message", () => {
     const result: StatusPageGroupCsvParseResult = parseStatusPageGroupCsv(
       "name,viewMode,rowAxisLabel,columnAxisLabel\nA,List,Service,Region\n",
     );
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]!.message).toBe(
-      "rowAxisLabel, columnAxisLabel only applies when viewMode is Grid.",
+      "rowAxisLabel, columnAxisLabel only apply when viewMode is Grid.",
     );
   });
 
