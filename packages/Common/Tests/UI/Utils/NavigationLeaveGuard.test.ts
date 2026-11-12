@@ -11,6 +11,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * Navigation.navigate is how the app opens its pages (the command palette,
@@ -22,7 +23,7 @@ import {
 const DASHBOARD: string = "/dashboard/p1/dashboards/d1";
 const MONITORS: string = "/dashboard/p1/monitors";
 
-let navigateHook: jest.Mock<(...args: Array<unknown>) => void>;
+let navigateHook: Mock<(...args: Array<unknown>) => void>;
 let asked: Array<LeavePageFunction>;
 
 const holdWithUnsavedWork: () => () => void = (): (() => void) => {
@@ -109,7 +110,7 @@ describe("Navigation.navigate while a page holds unsaved work", () => {
   });
 
   test("a new tab never asks: the page stays as it is", () => {
-    const open: jest.Mock<(...args: Array<unknown>) => null> = jest.fn<
+    const open: Mock<(...args: Array<unknown>) => null> = jest.fn<
       (...args: Array<unknown>) => null
     >(() => {
       return null;

@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 import { NavigateFunction } from "react-router-dom";
@@ -31,6 +32,8 @@ const MONITORS: string = "/dashboard/p1/monitors";
 
 let calls: Array<string>;
 let asked: Array<LeavePageFunction>;
+// A side menu entry scrolls the page to the top as it opens its page.
+let scrollTo: SpyInstance<(x: number, y: number) => void>;
 
 const holdWithUnsavedWork: () => void = (): void => {
   LeaveGuard.hold((leave: LeavePageFunction): void => {
@@ -64,7 +67,7 @@ beforeEach(() => {
   Navigation.setNavigateHook(((to: string) => {
     calls.push(`navigate ${to}`);
   }) as unknown as NavigateFunction);
-  (window.scrollTo as jest.Mock).mockImplementation(() => {
+  scrollTo = jest.spyOn(window, "scrollTo").mockImplementation(() => {
     calls.push("scrollTo");
   });
 });
@@ -72,7 +75,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   LeaveGuard.reset();
-  (window.scrollTo as jest.Mock).mockReset();
+  scrollTo.mockRestore();
 });
 
 describe("a Link on a page with nothing unsaved", () => {

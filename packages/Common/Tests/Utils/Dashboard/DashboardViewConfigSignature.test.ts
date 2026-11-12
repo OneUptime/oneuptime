@@ -70,16 +70,22 @@ describe("getDashboardViewConfigSignature", () => {
   test("reads the same board the same, however its objects were built", () => {
     const built: DashboardViewConfig = board([textWidget()]);
 
-    // Keys in another order, as a spread copy writes them.
+    // Every key in another order, as a copy built by hand writes them.
     const reordered: DashboardViewConfig = {
       heightInDashboardUnits: 60,
       components: [
         {
           arguments: { isBold: false, text: "Hello, World!" },
+          minWidthInDashboardUnits: 3,
+          minHeightInDashboardUnits: 1,
           leftInDashboardUnits: 0,
           topInDashboardUnits: 0,
-          ...textWidget(),
-        },
+          heightInDashboardUnits: 1,
+          widthInDashboardUnits: 6,
+          componentId: new ObjectID(WIDGET_ID),
+          componentType: DashboardComponentType.Text,
+          _type: ObjectType.DashboardComponent,
+        } as DashboardBaseComponent,
       ],
       _type: ObjectType.DashboardViewConfig,
     };

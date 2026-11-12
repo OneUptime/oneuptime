@@ -10,6 +10,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 
 /*
  * LeaveGuard asks before a page holding unsaved work is left (issue #7173):
@@ -108,21 +109,20 @@ afterEach(async () => {
 describe("LeaveGuard hears Back and Forward before the router", () => {
   test("it listens on the window as its module loads, before any page holds it or any router mounts", () => {
     const added: Array<string> = [];
-    const addEventListener: jest.SpiedFunction<typeof window.addEventListener> =
-      jest
-        .spyOn(window, "addEventListener")
-        .mockImplementation(
-          (
-            type: string,
-            _listener: EventListenerOrEventListenerObject | null,
-            options?: boolean | AddEventListenerOptions,
-          ): void => {
-            const capture: boolean =
-              options === true ||
-              (typeof options === "object" && Boolean(options.capture));
-            added.push(`${type}${capture ? " (capturing)" : ""}`);
-          },
-        );
+    const addEventListener: SpyInstance<Window["addEventListener"]> = jest
+      .spyOn(window, "addEventListener")
+      .mockImplementation(
+        (
+          type: string,
+          _listener: EventListenerOrEventListenerObject | null,
+          options?: boolean | AddEventListenerOptions,
+        ): void => {
+          const capture: boolean =
+            options === true ||
+            (typeof options === "object" && Boolean(options.capture));
+          added.push(`${type}${capture ? " (capturing)" : ""}`);
+        },
+      );
 
     try {
       jest.isolateModules(() => {
@@ -147,7 +147,7 @@ describe("LeaveGuard hears Back and Forward before the router", () => {
 
   test("a hold adds no popstate listener of its own, so none can run after the router's", () => {
     const added: Array<string> = [];
-    const addEventListener: jest.SpiedFunction<typeof window.addEventListener> =
+    const addEventListener: SpyInstance<Window["addEventListener"]> =
       jest.spyOn(window, "addEventListener");
 
     try {
@@ -166,7 +166,7 @@ describe("LeaveGuard hears Back and Forward before the router", () => {
 
 describe("LeaveGuard while no page holds it", () => {
   test("a step to another page goes ahead at once", () => {
-    const leave: jest.Mock<() => void> = jest.fn<() => void>();
+    const leave: Mock<() => void> = jest.fn<() => void>();
 
     LeaveGuard.whenLeaving("/dashboard/p1/monitors", leave);
 
@@ -191,7 +191,7 @@ describe("LeaveGuard while no page holds it", () => {
 describe("LeaveGuard steps inside the app", () => {
   test("a step to another page waits for the page's answer", () => {
     const asks: AskRecorder = recordAsks();
-    const leave: jest.Mock<() => void> = jest.fn<() => void>();
+    const leave: Mock<() => void> = jest.fn<() => void>();
 
     LeaveGuard.hold(asks.askToLeave);
 
@@ -205,7 +205,7 @@ describe("LeaveGuard steps inside the app", () => {
 
   test("dropping the answer (Keep Editing) never takes the step, and the guard still holds", () => {
     const asks: AskRecorder = recordAsks();
-    const leave: jest.Mock<() => void> = jest.fn<() => void>();
+    const leave: Mock<() => void> = jest.fn<() => void>();
 
     LeaveGuard.hold(asks.askToLeave);
     LeaveGuard.whenLeaving("/dashboard/p1/monitors", leave);
@@ -252,7 +252,7 @@ describe("LeaveGuard steps inside the app", () => {
     ],
   ])("%s asks nothing", (_label: string, address: string) => {
     const asks: AskRecorder = recordAsks();
-    const leave: jest.Mock<() => void> = jest.fn<() => void>();
+    const leave: Mock<() => void> = jest.fn<() => void>();
 
     LeaveGuard.hold(asks.askToLeave);
     LeaveGuard.whenLeaving(address, leave);
@@ -302,7 +302,7 @@ describe("LeaveGuard steps inside the app", () => {
 
   test("once every page lets go, nothing asks, the browser included", () => {
     const asks: AskRecorder = recordAsks();
-    const leave: jest.Mock<() => void> = jest.fn<() => void>();
+    const leave: Mock<() => void> = jest.fn<() => void>();
     const releaseFirst: () => void = LeaveGuard.hold(asks.askToLeave);
     const releaseSecond: () => void = LeaveGuard.hold(asks.askToLeave);
 

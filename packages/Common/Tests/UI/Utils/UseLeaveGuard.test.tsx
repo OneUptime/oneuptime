@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -74,7 +75,7 @@ afterEach(() => {
 
 describe("useLeaveGuard", () => {
   test("a page with nothing unsaved holds nothing, and nothing asks", () => {
-    const step: jest.Mock<() => void> = jest.fn<() => void>();
+    const step: Mock<() => void> = jest.fn<() => void>();
 
     render(<Page hasUnsavedChanges={false} />);
 
@@ -87,7 +88,7 @@ describe("useLeaveGuard", () => {
   });
 
   test("with unsaved work, leaving asks, and the step waits", () => {
-    const step: jest.Mock<() => void> = jest.fn<() => void>();
+    const step: Mock<() => void> = jest.fn<() => void>();
 
     render(<Page hasUnsavedChanges={true} />);
 
@@ -101,7 +102,7 @@ describe("useLeaveGuard", () => {
   });
 
   test("Keep Editing closes the question, drops the step and keeps holding", () => {
-    const step: jest.Mock<() => void> = jest.fn<() => void>();
+    const step: Mock<() => void> = jest.fn<() => void>();
 
     render(<Page hasUnsavedChanges={true} />);
     leaveTo("/dashboard/p1/monitors", step);
@@ -133,8 +134,8 @@ describe("useLeaveGuard", () => {
   });
 
   test("asked twice before answering, Discard Changes takes the latest step", () => {
-    const first: jest.Mock<() => void> = jest.fn<() => void>();
-    const second: jest.Mock<() => void> = jest.fn<() => void>();
+    const first: Mock<() => void> = jest.fn<() => void>();
+    const second: Mock<() => void> = jest.fn<() => void>();
 
     render(<Page hasUnsavedChanges={true} />);
     leaveTo("/dashboard/p1/monitors", first);
@@ -147,7 +148,7 @@ describe("useLeaveGuard", () => {
   });
 
   test("once nothing is unsaved (saved or discarded), it lets go and stops asking", () => {
-    const step: jest.Mock<() => void> = jest.fn<() => void>();
+    const step: Mock<() => void> = jest.fn<() => void>();
     const { rerender } = render(<Page hasUnsavedChanges={true} />);
 
     leaveTo("/dashboard/p1/monitors", step);
