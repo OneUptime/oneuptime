@@ -15,8 +15,10 @@ import IncidentFeedService from "../../../Server/Services/IncidentFeedService";
 import IncidentOnCallRuleEngineService from "../../../Server/Services/IncidentOnCallRuleEngineService";
 import IncidentOnCallRuleService from "../../../Server/Services/IncidentOnCallRuleService";
 import IncidentService from "../../../Server/Services/IncidentService";
+import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import { OnCallRulesPaging } from "../../../Server/Utils/OnCall/OnCallRulePageAs";
+import MonitorRuleCriteriaCache from "../../../Server/Utils/Rules/MonitorRuleCriteriaCache";
 import ObjectID from "../../../Types/ObjectID";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 import { stubProjectDirectory } from "../TestingUtils/ProjectDirectory";
@@ -286,6 +288,17 @@ interface EngineCase {
   resolverPolicies: (record: RecordFacts) => Promise<Array<string>>;
   // How many rules the resolver's matching returns.
   resolverRuleCount: (record: RecordFacts) => Promise<number>;
+  /*
+   * The policies of the rules the matching returns from rules read once
+   * and monitors already read (Setup health, #6812: getMatchingRules'
+   * `preloaded`).
+   */
+  preloadedPolicies: (
+    record: RecordFacts,
+    monitorCache: MonitorRuleCriteriaCache,
+  ) => Promise<Array<string>>;
+  // A rule that pages the first policy for monitors whose name matches.
+  stubMonitorNameRule: (pattern: string) => void;
   // The policies the engine pages.
   enginePolicies: (record: RecordFacts) => Promise<Array<string>>;
   stubAttach: (attached: Array<string>) => void;
@@ -372,6 +385,33 @@ const ENGINES: Array<EngineCase> = [
         ),
       );
     },
+    preloadedPolicies: async (
+      record: RecordFacts,
+      monitorCache: MonitorRuleCriteriaCache,
+    ): Promise<Array<string>> => {
+      return policyIdsOfRules(
+        await IncidentOnCallRuleEngineService.getMatchingRules(
+          toIncident(record, false),
+          {
+            rules: await IncidentOnCallRuleEngineService.readEnabledRules(
+              PROJECT_ID,
+            ),
+            monitorCache: monitorCache,
+          },
+        ),
+      );
+    },
+    stubMonitorNameRule: (pattern: string): void => {
+      const rule: IncidentOnCallRule = new IncidentOnCallRule();
+      rule.id = ObjectID.generate();
+      rule.name = "By monitor name";
+      rule.monitorNamePattern = pattern;
+      rule.onCallDutyPolicies = policiesOf([POLICIES[0]!]);
+
+      jest
+        .spyOn(IncidentOnCallRuleService, "findBy")
+        .mockResolvedValue([rule] as never);
+    },
     stubAttach: (attached: Array<string>): void => {
       jest
         .spyOn(IncidentService, "getRepository")
@@ -410,6 +450,33 @@ const ENGINES: Array<EngineCase> = [
           toAlert(record, true),
         ),
       );
+    },
+    preloadedPolicies: async (
+      record: RecordFacts,
+      monitorCache: MonitorRuleCriteriaCache,
+    ): Promise<Array<string>> => {
+      return policyIdsOfRules(
+        await AlertOnCallRuleEngineService.getMatchingRules(
+          toAlert(record, false),
+          {
+            rules: await AlertOnCallRuleEngineService.readEnabledRules(
+              PROJECT_ID,
+            ),
+            monitorCache: monitorCache,
+          },
+        ),
+      );
+    },
+    stubMonitorNameRule: (pattern: string): void => {
+      const rule: AlertOnCallRule = new AlertOnCallRule();
+      rule.id = ObjectID.generate();
+      rule.name = "By monitor name";
+      rule.monitorNamePattern = pattern;
+      rule.onCallDutyPolicies = policiesOf([POLICIES[0]!]);
+
+      jest
+        .spyOn(AlertOnCallRuleService, "findBy")
+        .mockResolvedValue([rule] as never);
     },
     stubAttach: (attached: Array<string>): void => {
       jest
@@ -464,12 +531,18 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
 
       const shown: Array<string> = await engine.resolverPolicies(record);
 
+      const preloaded: Array<string> = await engine.preloadedPolicies(
+        record,
+        new MonitorRuleCriteriaCache(),
+      );
+
       attached.length = 0;
       const paged: Array<string> = await engine.enginePolicies(record);
 
       const context: string = JSON.stringify({ case: index, rules, record });
 
       expect({ context, shown }).toEqual({ context, shown: expected });
+      expect({ context, preloaded }).toEqual({ context, preloaded: expected });
       expect({ context, paged }).toEqual({ context, paged: expected });
       expect({ context, attached: [...attached].sort() }).toEqual({
         context,
@@ -553,5 +626,40 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
     expect(await AlertOnCallRuleEngineService.getMatchingRules(alert)).toEqual(
       [],
     );
+  });
+
+  test("matched from rules read once and monitors already read, a rule on the monitor's name reads no monitor", async () => {
+    engine.stubMonitorNameRule("^Checkout");
+
+    const read: jest.SpiedFunction<typeof MonitorService.findOneById> = jest
+      .spyOn(MonitorService, "findOneById")
+      .mockResolvedValue(null as never);
+
+    const record: RecordFacts = {
+      severity: SEVERITIES[0]!,
+      monitor: MONITORS[0]!,
+      labels: [],
+      title: TITLES[0]!,
+    };
+
+    const named: (name: string) => MonitorRuleCriteriaCache = (
+      name: string,
+    ): MonitorRuleCriteriaCache => {
+      const monitor: Monitor = withId(new Monitor(), MONITORS[0]!);
+      monitor.name = name;
+      monitor.labels = [];
+
+      const cache: MonitorRuleCriteriaCache = new MonitorRuleCriteriaCache();
+      cache.seed(monitor);
+      return cache;
+    };
+
+    expect(
+      await engine.preloadedPolicies(record, named("Checkout API")),
+    ).toEqual([POLICIES[0]]);
+    expect(await engine.preloadedPolicies(record, named("Search"))).toEqual(
+      [],
+    );
+    expect(read).not.toHaveBeenCalled();
   });
 });

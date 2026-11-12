@@ -981,6 +981,212 @@ describe("WhoIsToldService", () => {
     }
   });
 
+  describe("for the whole project at once (Setup health, #6812)", () => {
+    function projectMonitor(id: string, name: string): Monitor {
+      const monitor: Monitor = withId(new Monitor(), id);
+      monitor.name = name;
+      monitor.projectId = PROJECT_ID;
+      monitor.monitorSteps = world.monitorSteps;
+      monitor.labels = [];
+      return monitor;
+    }
+
+    function stubRuleReads(): {
+      incident: jest.SpiedFunction<
+        typeof IncidentOnCallRuleEngineService.readEnabledRules
+      >;
+      alert: jest.SpiedFunction<
+        typeof AlertOnCallRuleEngineService.readEnabledRules
+      >;
+    } {
+      return {
+        incident: jest
+          .spyOn(IncidentOnCallRuleEngineService, "readEnabledRules")
+          .mockImplementation((async () => {
+            return world.incidentRules;
+          }) as never),
+        alert: jest
+          .spyOn(AlertOnCallRuleEngineService, "readEnabledRules")
+          .mockImplementation((async () => {
+            return world.alertRules;
+          }) as never),
+      };
+    }
+
+    test("each monitor's breaks are the ones resolve finds for it alone", async () => {
+      stubRuleReads();
+
+      const alone: WhoIsToldResult = await resolve();
+      const together: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [
+            projectMonitor(MONITOR_ID.toString(), "Checkout API"),
+            projectMonitor(
+              "68101111-0000-4000-8000-000000000003",
+              "Billing API",
+            ),
+          ],
+        });
+
+      expect(together).toHaveLength(2);
+      expect(together[0]!.monitorId).toBe(MONITOR_ID.toString());
+      expect(together[0]!.breaks).toEqual(alone.breaks);
+      expect(together[1]!.monitorName).toBe("Billing API");
+      expect(firstEvent(together[0]!).policies).toEqual(
+        firstEvent(alone).policies,
+      );
+    });
+
+    test("a break resolve finds, the whole project finds too", async () => {
+      stubRuleReads();
+      world.incidentRules = [];
+
+      const alone: WhoIsToldResult = await resolve();
+      const together: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
+        });
+
+      expect(kinds(alone)).toContain(WhoIsToldBreakKind.NobodyPaged);
+      expect(kinds(together[0]!)).toEqual(kinds(alone));
+    });
+
+    test("the rules are read once, and matched for every monitor without reading again", async () => {
+      const ruleReads: ReturnType<typeof stubRuleReads> = stubRuleReads();
+
+      const monitors: Array<Monitor> = [];
+
+      for (let index: number = 0; index < 50; index++) {
+        monitors.push(
+          projectMonitor(
+            `68101111-0000-4000-8000-${(1000 + index)
+              .toString()
+              .padStart(12, "0")}`,
+            `Monitor ${index}`,
+          ),
+        );
+      }
+
+      await WhoIsToldService.resolveProject({
+        projectId: PROJECT_ID,
+        monitors: monitors,
+      });
+
+      expect(ruleReads.incident).toHaveBeenCalledTimes(1);
+      expect(ruleReads.alert).toHaveBeenCalledTimes(1);
+      // Every monitor's incident is matched against the rules read once.
+      expect(IncidentOnCallRuleEngineService.getMatchingRules).toHaveBeenCalledTimes(
+        50,
+      );
+      for (const call of (
+        IncidentOnCallRuleEngineService.getMatchingRules as unknown as {
+          mock: { calls: Array<Array<unknown>> };
+        }
+      ).mock.calls) {
+        expect(call[1]).toMatchObject({ rules: world.incidentRules });
+      }
+      // The project, its policies and each person are read once.
+      expect(ProjectService.findOneById).toHaveBeenCalledTimes(1);
+      expect(OnCallDutyPolicyService.findBy).toHaveBeenCalledTimes(1);
+      expect(OnCallTestPageService.readFirstLevel).toHaveBeenCalledTimes(1);
+      expect(OnCallTestPageService.getPersonPreview).toHaveBeenCalledTimes(2);
+      // No monitor is read again, and nothing a break does not need.
+      expect(MonitorService.findOneBy).not.toHaveBeenCalled();
+      expect(MonitorService.findOwners).not.toHaveBeenCalled();
+      expect(ProjectService.getOwners).not.toHaveBeenCalled();
+      expect(StatusPageResourceService.findBy).not.toHaveBeenCalled();
+    });
+
+    test("only the breaks' worth is read: owners go unnamed and no status page is listed", async () => {
+      stubRuleReads();
+
+      const [result]: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
+        });
+
+      expect(firstEvent(result!).owners).toEqual({
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: [],
+        teamNames: [],
+        hasOwnerRules: false,
+      });
+      expect(firstEvent(result!).statusPages).toEqual([]);
+      expect(
+        result!.criteria.find(
+          (item: WhoIsToldResult["criteria"][number]): boolean => {
+            return item.name === "Online";
+          },
+        )!.statusOwners,
+      ).toBeUndefined();
+    });
+
+    test("owners the criteria names are said to be named, without reading them", async () => {
+      stubRuleReads();
+      world.monitorSteps = stepsOf([
+        offlineCriteria({
+          incidents: [
+            {
+              id: "incident-template",
+              title: "Down",
+              description: "",
+              incidentSeverityId: new ObjectID(CRITICAL),
+              ownerTeamIds: [ObjectID.generate()],
+            },
+          ],
+        }),
+      ]);
+
+      const [result]: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
+        });
+
+      expect(firstEvent(result!).owners.source).toBe(
+        WhoIsToldOwnersSource.Named,
+      );
+      expect(TeamService.findBy).not.toHaveBeenCalled();
+    });
+
+    test("the project's Readiness gives every responder's verified methods up front", async () => {
+      stubRuleReads();
+
+      const [result]: Array<WhoIsToldResult> =
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [projectMonitor(MONITOR_ID.toString(), "Checkout API")],
+          readiness: [readiness(ANA, ["SMS", "Email"]), readiness(BEN, ["Push"])],
+        });
+
+      expect(OnCallReadinessService.getReadinessForUsers).not.toHaveBeenCalled();
+      // Ben has no rule for the severity: the fallback pages his verified push.
+      expect(
+        firstEvent(result!).policies[0]!.people.find(
+          (person: { userId: string }): boolean => {
+            return person.userId === BEN;
+          },
+        ),
+      ).toMatchObject({ channels: [OnCallPageChannel.Push], isFallback: true });
+    });
+
+    test("no monitor: nothing is read", async () => {
+      const ruleReads: ReturnType<typeof stubRuleReads> = stubRuleReads();
+
+      expect(
+        await WhoIsToldService.resolveProject({
+          projectId: PROJECT_ID,
+          monitors: [],
+        }),
+      ).toEqual([]);
+      expect(ruleReads.incident).not.toHaveBeenCalled();
+      expect(ProjectService.findOneById).not.toHaveBeenCalled();
+    });
+  });
+
   describe("for one caller", () => {
     async function forCaller(): Promise<WhoIsToldResult> {
       return await WhoIsToldService.getForMonitor({
