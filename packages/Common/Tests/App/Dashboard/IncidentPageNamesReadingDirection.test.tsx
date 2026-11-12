@@ -105,6 +105,7 @@ import ListResult from "../../../Types/BaseDatabase/ListResult";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import API from "../../../UI/Utils/API/API";
+import { APIRequestOptions } from "../../../Utils/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import {
@@ -112,6 +113,8 @@ import {
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../../UI/Utils/LineDirection";
 import { PROJECT_ID, goTo } from "./SideMenuHarness";
+
+type VoidMock = ReturnType<typeof jest.fn<() => void>>;
 
 const RIGHT_TO_LEFT_LANGUAGES: Array<string> = ["ar", "fa"];
 
@@ -826,11 +829,22 @@ describe("a runbook's name and description in the runbook picker", () => {
           return { data: [english, arabic], count: 2, skip: 0, limit: 200 };
         });
 
-      const post: jest.SpiedFunction<typeof API.post> = jest
+      const posted: Array<string> = [];
+
+      jest
         .spyOn(API, "post")
-        .mockResolvedValue(new HTTPResponse<JSONObject>(200, {}, {}));
-      const onClose: jest.Mock<() => void> = jest.fn<() => void>();
-      const onStarted: jest.Mock<() => void> = jest.fn<() => void>();
+        .mockImplementation(
+          async (
+            options: APIRequestOptions,
+          ): Promise<HTTPResponse<JSONObject>> => {
+            posted.push(options.url.toString());
+
+            return new HTTPResponse<JSONObject>(200, {}, {});
+          },
+        );
+
+      const onClose: VoidMock = jest.fn<() => void>();
+      const onStarted: VoidMock = jest.fn<() => void>();
 
       drawOn(
         language,
@@ -847,10 +861,8 @@ describe("a runbook's name and description in the runbook picker", () => {
         expect(onStarted).toHaveBeenCalledTimes(1);
       });
 
-      expect(post).toHaveBeenCalledTimes(1);
-      expect(post.mock.calls[0]![0].url.toString()).toContain(
-        `/run/${arabic._id!.toString()}`,
-      );
+      expect(posted).toHaveLength(1);
+      expect(posted[0]).toContain(`/run/${arabic._id!.toString()}`);
       expect(onClose).toHaveBeenCalledTimes(1);
     },
   );
