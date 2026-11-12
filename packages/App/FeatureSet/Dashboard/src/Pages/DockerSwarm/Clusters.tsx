@@ -265,8 +265,8 @@ const DockerSwarmClusters: FunctionComponent<
                   }`}
                 >
                   {translator.translateTemplate("{{ready}}/{{total}} ready", {
-                    ready: ready,
-                    total: total,
+                    ready: translator.formatNumber(ready),
+                    total: translator.formatNumber(total),
                   })}
                 </span>
               );
@@ -283,7 +283,7 @@ const DockerSwarmClusters: FunctionComponent<
             getElement: (item: DockerSwarmCluster): ReactElement => {
               return (
                 <span className="text-sm text-gray-700">
-                  {item.serviceCount || 0}
+                  {translator.formatNumber(item.serviceCount || 0)}
                 </span>
               );
             },
@@ -307,7 +307,10 @@ const DockerSwarmClusters: FunctionComponent<
                 <span className="text-sm text-gray-700">
                   {translator.translateTemplate(
                     "{{running}}/{{total}} running",
-                    { running: running, total: total },
+                    {
+                      running: translator.formatNumber(running),
+                      total: translator.formatNumber(total),
+                    },
                   )}
                 </span>
               );
