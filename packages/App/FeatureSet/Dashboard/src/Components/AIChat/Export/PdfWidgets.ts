@@ -649,19 +649,24 @@ export default class PdfWidgets {
     }
 
     for (const fact of layout.facts) {
+      // Its name's lines and its value's, each from the fact's own top.
       this.pdf.setStyle({ ...CARD_FACT_STYLE, color: PDF_COLORS.faint });
-      fact.labelLines.forEach((line: string, index: number) => {
-        this.pdf.drawLine(line, x, y + index * spacing.factExtraLine);
-      });
+      for (let index: number = 0; index < fact.labelLines.length; index++) {
+        this.pdf.drawLine(
+          fact.labelLines[index]!,
+          x,
+          y + index * spacing.factExtraLine,
+        );
+      }
 
       this.pdf.setStyle({ ...CARD_FACT_STYLE, color: PDF_COLORS.text });
-      fact.valueLines.forEach((line: string, index: number) => {
+      for (let index: number = 0; index < fact.valueLines.length; index++) {
         this.pdf.drawLine(
-          line,
+          fact.valueLines[index]!,
           x + fact.labelWidth,
           y + index * spacing.factExtraLine,
         );
-      });
+      }
 
       y += fact.height;
     }

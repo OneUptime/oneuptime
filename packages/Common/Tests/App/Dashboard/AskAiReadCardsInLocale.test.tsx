@@ -378,10 +378,11 @@ describe("a security case's card in Arabic", () => {
     );
 
     expect(drawn.kind).toBe(AR["Security case"]);
-    expect(drawn.line.map((part: { text: string }) => part.text)).toEqual([
-      "New",
-      "P1",
-    ]);
+    expect(
+      drawn.line.map((part: { text: string }): string => {
+        return part.text;
+      }),
+    ).toEqual(["New", "P1"]);
     expect(drawn.line[1]!.separatorBefore).toBe(" · ");
     expect(lineText(drawn)).toBe("New · P1");
 

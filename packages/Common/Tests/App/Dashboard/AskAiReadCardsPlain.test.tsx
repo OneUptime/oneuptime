@@ -1276,7 +1276,13 @@ describe("in the PDF export", () => {
         statRects(calls);
       const lines: Array<DrawCall> = textsOf(calls, "val");
 
-      expect(lines.map((call: DrawCall) => call.args[0]).join(" ")).toBe(value);
+      expect(
+        lines
+          .map((call: DrawCall): string => {
+            return String(call.args[0]);
+          })
+          .join(" "),
+      ).toBe(value);
       expect(lines.length).toBe(2);
       expect(rects.length).toBe(3);
       for (const rect of rects) {
