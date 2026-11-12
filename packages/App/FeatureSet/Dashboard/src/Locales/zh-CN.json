@@ -51133,6 +51133,9 @@
   "Window must be a whole number of days.": "窗口必须是整数天。",
   "Window must be between {{min}} and {{max}} days.": "窗口必须介于 {{min}} 到 {{max}} 天之间。",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "每月的 {{percentage}}：{{days}} 天的月份中有 {{budget}} 停机时间",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "AI 读取了这 {{count}} 个文件，但已不再掌握其中部分内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI 读取了此文件，但已不再掌握其中部分内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI 读取了此文件，但已不再掌握其中部分内容，而 AI 的版本会替换整个文件：{{files}}。",
   "A status page you can't see": "您无法查看的状态页面",
   "It emails the owners its owner rules add ({{names}}).": "向其所有者规则添加的所有者发送电子邮件（{{names}}）。",
   "It emails the owners its owner rules add.": "向其所有者规则添加的所有者发送电子邮件。"

@@ -51133,6 +51133,9 @@
   "Window must be a whole number of days.": "Window must be a whole number of days.",
   "Window must be between {{min}} and {{max}} days.": "Window must be between {{min}} and {{max}} days.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.",
   "A status page you can't see": "A status page you can't see",
   "It emails the owners its owner rules add ({{names}}).": "It emails the owners its owner rules add ({{names}}).",
   "It emails the owners its owner rules add.": "It emails the owners its owner rules add."

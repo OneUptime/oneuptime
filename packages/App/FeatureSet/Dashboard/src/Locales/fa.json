@@ -51133,6 +51133,9 @@
   "Window must be a whole number of days.": "بازه باید تعداد صحیحی روز باشد.",
   "Window must be between {{min}} and {{max}} days.": "بازه باید بین {{min}} تا {{max}} روز باشد.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} از هر ماه: {{budget}} زمان قطعی در یک ماه {{days}} روزه",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "هوش مصنوعی این {{count}} فایل را خوانده است و دیگر بخشی از متن آن‌ها را ندارد و نسخه‌های هوش مصنوعی جایگزین کل این فایل‌ها می‌شوند: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "هوش مصنوعی این فایل را خوانده است و دیگر بخشی از متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را خوانده است و دیگر بخشی از متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
   "A status page you can't see": "صفحه وضعیتی که نمی‌توانید ببینید",
   "It emails the owners its owner rules add ({{names}}).": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند ({{names}}).",
   "It emails the owners its owner rules add.": "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند."
