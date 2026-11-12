@@ -124,47 +124,49 @@ const ServerProductOffPage: FunctionComponent<ComponentProps> = (
           id={SERVER_PRODUCT_OFF_PAGE_TEST_ID}
           icon={IconProp.Power}
           title={title}
-          description={
-            <>
-              <span className="block">{description}</span>
-              <span
-                className="mt-2 block"
+          description={description}
+          paddingClassName="pt-24 pb-24"
+          footer={
+            <div className="flex max-w-xl flex-col items-center gap-4">
+              {/*
+               * What to do next, under what happened: who can switch it
+               * on, and where (or the setting that starts ingestion).
+               */}
+              <p
+                className="text-balance text-sm leading-6 text-gray-600"
                 data-testid={`${SERVER_PRODUCT_OFF_PAGE_TEST_ID}-next-step`}
               >
                 {nextStep}
-              </span>
-            </>
-          }
-          paddingClassName="pt-24 pb-24"
-          footer={
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {isMasterAdmin && !isIngestionStopped ? (
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {isMasterAdmin && !isIngestionStopped ? (
+                  <Button
+                    title={translator.translateText(
+                      ServerProductOffCopy.openSettings,
+                    )}
+                    buttonStyle={ButtonStyleType.PRIMARY}
+                    icon={IconProp.Settings}
+                    dataTestId={SERVER_PRODUCT_OFF_OPEN_SETTINGS_TEST_ID}
+                    onClick={() => {
+                      Navigation.navigate(
+                        URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
+                          ADMIN_SERVER_PRODUCTS_PATH,
+                        ),
+                      );
+                    }}
+                  />
+                ) : (
+                  <></>
+                )}
                 <Button
-                  title={translator.translateText(
-                    ServerProductOffCopy.openSettings,
-                  )}
-                  buttonStyle={ButtonStyleType.PRIMARY}
-                  icon={IconProp.Settings}
-                  dataTestId={SERVER_PRODUCT_OFF_OPEN_SETTINGS_TEST_ID}
+                  title={translator.translateText(ServerProductOffCopy.goHome)}
+                  buttonStyle={ButtonStyleType.NORMAL}
+                  dataTestId={SERVER_PRODUCT_OFF_GO_HOME_TEST_ID}
                   onClick={() => {
-                    Navigation.navigate(
-                      URL.fromString(ADMIN_DASHBOARD_URL.toString()).addRoute(
-                        ADMIN_SERVER_PRODUCTS_PATH,
-                      ),
-                    );
+                    Navigation.navigate(homeRoute);
                   }}
                 />
-              ) : (
-                <></>
-              )}
-              <Button
-                title={translator.translateText(ServerProductOffCopy.goHome)}
-                buttonStyle={ButtonStyleType.NORMAL}
-                dataTestId={SERVER_PRODUCT_OFF_GO_HOME_TEST_ID}
-                onClick={() => {
-                  Navigation.navigate(homeRoute);
-                }}
-              />
+              </div>
             </div>
           }
         />
