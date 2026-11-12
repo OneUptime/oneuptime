@@ -115,9 +115,11 @@ const GENTLEST_FIRST: ReadonlyArray<OnCallPageChannel> = [
 
 // Every method column, in the order a rule's columns are read.
 export const PAGING_METHOD_COLUMNS: ReadonlyArray<PagingMethodColumn> =
-  ON_CALL_PAGE_CHANNELS.map((info: OnCallPageChannelInfo): PagingMethodColumn => {
-    return info.field;
-  });
+  ON_CALL_PAGE_CHANNELS.map(
+    (info: OnCallPageChannelInfo): PagingMethodColumn => {
+      return info.field;
+    },
+  );
 
 export const isPagingMethodColumn: (
   value: unknown,
@@ -574,10 +576,12 @@ const getStepsSignature: (steps: ReadonlyArray<PagingLadderStep>) => string = (
   return steps.map(getPagingLadderStepKey).join(",");
 };
 
-const isSamePushSettings: (a: PagingLadderStep, b: PagingLadderStep) => boolean =
-  (a: PagingLadderStep, b: PagingLadderStep): boolean => {
-    return getPagingLadderStepKey(a) === getPagingLadderStepKey(b);
-  };
+const isSamePushSettings: (
+  a: PagingLadderStep,
+  b: PagingLadderStep,
+) => boolean = (a: PagingLadderStep, b: PagingLadderStep): boolean => {
+  return getPagingLadderStepKey(a) === getPagingLadderStepKey(b);
+};
 
 // How one card's steps differ from the ladder's.
 export const comparePagingLadderCell: (data: {
@@ -896,7 +900,9 @@ export const planPagingLadderSave: (data: {
           const ruleStep: PagingLadderStep | null =
             getPagingLadderStepFromRule(rule);
 
-          return Boolean(ruleStep && getPagingLadderStepKey(ruleStep) === stepKey);
+          return Boolean(
+            ruleStep && getPagingLadderStepKey(ruleStep) === stepKey,
+          );
         },
       );
 

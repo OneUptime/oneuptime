@@ -31,7 +31,8 @@ export const HOW_EACH_PERSON_IS_REACHED: string = translationKey(
   "This rule says who is paged. How each person is reached, by which method and after how long, is their own {{howToReachMe}}.",
 );
 
-export const HOW_TO_REACH_ME_LINK_TEXT: string = translationKey("How to Reach Me");
+export const HOW_TO_REACH_ME_LINK_TEXT: string =
+  translationKey("How to Reach Me");
 
 export const PAGED_AFTER_PREVIOUS_LEVEL: PluralTemplate = {
   one: "This level is paged {{count}} minute after {{level}}, if nobody acknowledges {{level}}. That wait is set on {{level}}.",

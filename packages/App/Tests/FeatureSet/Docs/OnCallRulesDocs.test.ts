@@ -110,12 +110,8 @@ describe("the docs send people to the one How to Reach Me page", () => {
     expect(readRepoFile(USER_SETTINGS_MENU)).toContain(
       'title: "How to Reach Me"',
     );
-    expect(readRepoFile(USER_VIEW_MENU)).toContain(
-      'title: "How to Reach Me"',
-    );
-    expect(readPage("en")).toContain(
-      "**User Settings** > **How to Reach Me**",
-    );
+    expect(readRepoFile(USER_VIEW_MENU)).toContain('title: "How to Reach Me"');
+    expect(readPage("en")).toContain("**User Settings** > **How to Reach Me**");
   });
 
   it.each(SUPPORTED_DOCS_LANGUAGE_CODES)(

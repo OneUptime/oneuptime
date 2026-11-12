@@ -89,7 +89,7 @@ Gå til **Brugerindstillinger → Sådan når man mig**, åbn fanen for den slag
 
 ### Vælg metoden
 
-Klik på **Tilføj Meddelelse Regel**. Vælg under **Notifikationsmetode** en af dine bekræftede metoder; en metode, du ikke har bekræftet, bliver ikke tilbudt.
+Klik på **Tilføj notifikationsregel**. Vælg under **Notifikationsmetode** en af dine bekræftede metoder; en metode, du ikke har bekræftet, bliver ikke tilbudt.
 
 ### Vælg, hvordan en push lyder
 
@@ -97,7 +97,7 @@ Vælg for en telefon under **Push-notifikation** enten **Kritisk advarsel** elle
 
 ### Sæt ventetiden
 
-Vælg **Underret mig efter**: **Med det samme**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klik så på **Tilføj Meddelelse Regel** i dialogen.
+Vælg **Underret mig efter**: **Med det samme**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klik så på **Tilføj notifikationsregel** i dialogen.
 :::
 
 Kortet viser sine regler i rækkefølge efter ventetid, med **Notifikationsmetode** og **Underret efter** for hver.

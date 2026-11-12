@@ -89,7 +89,7 @@ Andate in **Impostazioni utente → Come contattarmi**, aprite la scheda del tip
 
 ### Scegliete il metodo
 
-Fate clic su **Aggiungi: Regola di notifica**. In **Metodo di notifica**, scegliete uno dei vostri metodi verificati; un metodo che non avete verificato non viene proposto.
+Fate clic su **Aggiungi regola di notifica**. In **Metodo di notifica**, scegliete uno dei vostri metodi verificati; un metodo che non avete verificato non viene proposto.
 
 ### Scegliete il suono di un push
 
@@ -97,7 +97,7 @@ Per un telefono, scegliete **Notifica push**: **Avviso critico** o **Standard**.
 
 ### Impostate il ritardo
 
-Scegliete **Notificami dopo**: **Immediatamente**, **5 minuti**, **10 minuti**, **15 minuti**, **30 minuti** o **1 ora**. Poi fate clic su **Aggiungi: Regola di notifica** nella finestra.
+Scegliete **Notificami dopo**: **Immediatamente**, **5 minuti**, **10 minuti**, **15 minuti**, **30 minuti** o **1 ora**. Poi fate clic su **Aggiungi regola di notifica** nella finestra.
 :::
 
 Il riquadro elenca le sue regole in ordine di ritardo, con **Metodo di notifica** e **Notifica dopo** per ciascuna.

@@ -16,8 +16,10 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React, { ReactElement } from "react";
 import { MemoryRouter } from "react-router-dom";
+import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
  * HOW TO REACH ME (#6820): the page opens on one ladder, opens on the grid
@@ -27,18 +29,16 @@ import { MemoryRouter } from "react-router-dom";
  * reading and planning are the real Common functions.
  */
 
-type MockFunction = (...args: Array<any>) => any;
-
-const getJestMockFunction: () => jest.Mock<MockFunction> = () => {
-  return jest.fn<MockFunction>();
-};
-
-const loadDataMock: jest.Mock<MockFunction> = getJestMockFunction();
-const loadMethodsMock: jest.Mock<MockFunction> = getJestMockFunction();
-const saveMock: jest.Mock<MockFunction> = getJestMockFunction();
-const sendEventMock: jest.Mock<MockFunction> = getJestMockFunction();
+const loadDataMock: MockFunction = getJestMockFunction();
+const loadMethodsMock: MockFunction = getJestMockFunction();
+const saveMock: MockFunction = getJestMockFunction();
+const sendEventMock: MockFunction = getJestMockFunction();
 let queryType: string | null = null;
-let setQueryStringSpy: jest.SpiedFunction<typeof Navigation.setQueryString>;
+let setQueryStringSpy: SpyInstance<
+  (
+    ...args: Parameters<typeof Navigation.setQueryString>
+  ) => ReturnType<typeof Navigation.setQueryString>
+>;
 
 const PAGE_PATH: string =
   "/dashboard/8f2a1b3c-4d5e-4f60-9a7b-1c2d3e4f5a6b/user-settings/on-call-rules";
@@ -249,7 +249,7 @@ const choice: (
   methodId: string,
   title: string,
   identifier: string,
-  isVerified: boolean = true,
+  isVerified?: boolean,
 ) => PagingMethodChoice = (
   methodColumn: PagingMethodChoice["methodColumn"],
   methodId: string,
@@ -396,7 +396,9 @@ describe("which view it opens on", () => {
 
     await screen.findByTestId("paging-ladder");
     expect(pageView()).toBe("ladder");
-    expect(screen.getByText("How to reach me when I am on call")).toBeInTheDocument();
+    expect(
+      screen.getByText("How to reach me when I am on call"),
+    ).toBeInTheDocument();
 
     const groups: Array<HTMLElement> = screen.getAllByTestId(
       "paging-ladder-wait-group",
@@ -419,11 +421,17 @@ describe("which view it opens on", () => {
 
     await screen.findByTestId("paging-ladder-summary");
     expect(pageView()).toBe("grid");
-    expect(screen.getByText("1 card is different from the ladder.")).toBeInTheDocument();
+    expect(
+      screen.getByText("1 card is different from the ladder."),
+    ).toBeInTheDocument();
 
-    const difference: HTMLElement = screen.getByTestId("paging-ladder-difference");
+    const difference: HTMLElement = screen.getByTestId(
+      "paging-ladder-difference",
+    );
     expect(within(difference).getByText("Incidents")).toBeInTheDocument();
-    expect(within(difference).getByText("Critical Incident")).toBeInTheDocument();
+    expect(
+      within(difference).getByText("Critical Incident"),
+    ).toBeInTheDocument();
     expect(within(difference).getByText("Also")).toBeInTheDocument();
     expect(within(difference).getByText("Call")).toBeInTheDocument();
     expect(within(difference).getByText("At once")).toBeInTheDocument();
@@ -436,7 +444,9 @@ describe("which view it opens on", () => {
         severityId: CRITICAL,
       }),
     ]);
-    expect(screen.getByText("Use One Ladder for Everything")).toBeInTheDocument();
+    expect(
+      screen.getByText("Use One Ladder for Everything"),
+    ).toBeInTheDocument();
   });
 
   test("a link to one kind's tab opens the grid, even on one ladder", async () => {
@@ -525,7 +535,9 @@ describe("moving between the ladder and the grid", () => {
     });
 
     await waitFor(() => {
-      expect(screen.queryByTestId("paging-ladder-difference")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("paging-ladder-difference"),
+      ).not.toBeInTheDocument();
     });
     expect(loadDataMock).toHaveBeenCalledTimes(2);
   });
@@ -539,13 +551,18 @@ describe("saving a ladder", () => {
 
     expect(screen.getByTestId("paging-ladder-save")).toBeDisabled();
 
-    const waits: Array<HTMLElement> = screen.getAllByTestId("paging-ladder-step-wait");
+    const waits: Array<HTMLElement> = screen.getAllByTestId(
+      "paging-ladder-step-wait",
+    );
     // The call: after 5 minutes, to after 10.
     fireEvent.change(waits[1]!, { target: { value: "10" } });
 
     // What the server holds once it has saved, as the page reads it back.
     givenRules(
-      rulesFor(CELLS, [step("userSmsId", SMS, 0), step("userCallId", CALL, 10)]),
+      rulesFor(CELLS, [
+        step("userSmsId", SMS, 0),
+        step("userCallId", CALL, 10),
+      ]),
     );
     fireEvent.click(screen.getByTestId("paging-ladder-save"));
 
@@ -589,7 +606,9 @@ describe("saving a ladder", () => {
     await waitFor(() => {
       expect(saveMock).toHaveBeenCalledTimes(1);
     });
-    expect((saveMock.mock.calls[0]![0] as { steps: Array<PagingLadderStep> }).steps).toEqual([
+    expect(
+      (saveMock.mock.calls[0]![0] as { steps: Array<PagingLadderStep> }).steps,
+    ).toEqual([
       {
         methodColumn: "userPushId",
         methodId: PUSH,
@@ -635,7 +654,9 @@ describe("saving a ladder", () => {
     fireEvent.click(await screen.findByText("Use One Ladder for Everything"));
 
     expect(pageView()).toBe("ladder");
-    expect(screen.getByTestId("paging-ladder-replaces-note")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("paging-ladder-replaces-note"),
+    ).toBeInTheDocument();
 
     // Nothing changed in the ladder, and still it can be saved: it replaces the difference.
     fireEvent.click(screen.getByTestId("paging-ladder-save"));
@@ -644,7 +665,9 @@ describe("saving a ladder", () => {
       "paging-ladder-confirm-cards",
     );
     expect(within(confirmCards).getByText("Incidents")).toBeInTheDocument();
-    expect(within(confirmCards).getByText("Critical Incident")).toBeInTheDocument();
+    expect(
+      within(confirmCards).getByText("Critical Incident"),
+    ).toBeInTheDocument();
     expect(saveMock).not.toHaveBeenCalled();
 
     givenRules(ONE_LADDER);
@@ -677,7 +700,9 @@ describe("saving a ladder", () => {
     fireEvent.click(screen.getByTestId("paging-ladder-save"));
 
     expect(
-      await screen.findByText(/is not verified, or is not theirs in this project/),
+      await screen.findByText(
+        /is not verified, or is not theirs in this project/,
+      ),
     ).toBeInTheDocument();
     expect(screen.getAllByTestId("paging-ladder-step")).toHaveLength(1);
     expect(screen.queryByTestId("paging-ladder-saved")).not.toBeInTheDocument();
@@ -690,12 +715,15 @@ describe("what is not verified yet", () => {
     renderPage();
     await screen.findByTestId("paging-ladder");
 
-    const notVerified: HTMLElement = screen.getByTestId("paging-ladder-not-verified");
+    const notVerified: HTMLElement = screen.getByTestId(
+      "paging-ladder-not-verified",
+    );
     expect(within(notVerified).getByText("SMS")).toBeInTheDocument();
 
     // It is not offered as a step until it is verified.
     const addOptions: Array<string> = Array.from(
-      (screen.getByTestId("paging-ladder-add-step") as HTMLSelectElement).options,
+      (screen.getByTestId("paging-ladder-add-step") as HTMLSelectElement)
+        .options,
     ).map((option: HTMLOptionElement): string => {
       return option.value;
     });
@@ -720,9 +748,15 @@ describe("what is not verified yet", () => {
     ]);
     renderPage();
 
-    expect(await screen.findByTestId("paging-ladder-no-methods")).toBeInTheDocument();
-    expect(screen.queryByTestId("paging-ladder-add-step")).not.toBeInTheDocument();
-    expect(screen.getByText("Set up more ways to be reached")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("paging-ladder-no-methods"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("paging-ladder-add-step"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Set up more ways to be reached"),
+    ).toBeInTheDocument();
   });
 });
 
@@ -733,8 +767,18 @@ describe("a member's page", () => {
     maskedIdentifier: string;
     isVerified: boolean;
   }> = [
-    { methodType: "SMS", methodId: SMS, maskedIdentifier: "+1 ••• ••• 0100", isVerified: true },
-    { methodType: "Call", methodId: CALL, maskedIdentifier: "+1 ••• ••• 0100", isVerified: true },
+    {
+      methodType: "SMS",
+      methodId: SMS,
+      maskedIdentifier: "+1 ••• ••• 0100",
+      isVerified: true,
+    },
+    {
+      methodType: "Call",
+      methodId: CALL,
+      maskedIdentifier: "+1 ••• ••• 0100",
+      isVerified: true,
+    },
   ];
 
   test("names the member, uses their masked methods, and saves their ladder with their id", async () => {
@@ -747,7 +791,9 @@ describe("a member's page", () => {
     });
 
     await screen.findByTestId("paging-ladder");
-    expect(screen.getByText("How to reach Ana when they are on call")).toBeInTheDocument();
+    expect(
+      screen.getByText("How to reach Ana when they are on call"),
+    ).toBeInTheDocument();
     expect(loadMethodsMock).not.toHaveBeenCalled();
     expect(loadDataMock).toHaveBeenCalledWith(new ObjectID(ANA));
     expect(screen.getAllByTestId("paging-ladder-method")[0]!).toHaveTextContent(
@@ -756,7 +802,9 @@ describe("a member's page", () => {
 
     // No test page to yourself, and no Notification Methods of yours to send them to.
     expect(screen.queryByTestId("test-page-card-stub")).not.toBeInTheDocument();
-    expect(screen.queryByText("Set up more ways to be reached")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Set up more ways to be reached"),
+    ).not.toBeInTheDocument();
 
     fireEvent.change(screen.getAllByTestId("paging-ladder-step-wait")[1]!, {
       target: { value: "15" },
@@ -788,8 +836,12 @@ describe("a member's page", () => {
     await screen.findByTestId("paging-ladder");
     expect(screen.getAllByTestId("paging-ladder-step")).toHaveLength(2);
     expect(screen.queryByTestId("paging-ladder-save")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("paging-ladder-add-step")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("paging-ladder-step-remove")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("paging-ladder-add-step"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("paging-ladder-step-remove"),
+    ).not.toBeInTheDocument();
     expect(screen.getByTestId("paging-ladder-read-only")).toBeInTheDocument();
   });
 

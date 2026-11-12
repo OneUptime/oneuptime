@@ -89,7 +89,7 @@ Allez dans **Paramètres utilisateur → Comment me joindre**, ouvrez l'onglet d
 
 ### Choisir la méthode
 
-Cliquez sur **Ajouter : Règle de notification**. Dans **Méthode de notification**, choisissez l'une de vos méthodes vérifiées ; une méthode que vous n'avez pas vérifiée n'est pas proposée.
+Cliquez sur **Ajouter une règle de notification**. Dans **Méthode de notification**, choisissez l'une de vos méthodes vérifiées ; une méthode que vous n'avez pas vérifiée n'est pas proposée.
 
 ### Choisir le son d'un push
 
@@ -97,7 +97,7 @@ Pour un téléphone, choisissez **Notification push** : **Alerte critique** ou *
 
 ### Fixer le délai
 
-Choisissez **Me notifier après** : **Immédiatement**, **5 minutes**, **10 minutes**, **15 minutes**, **30 minutes** ou **1 heure**. Cliquez ensuite sur **Ajouter : Règle de notification** dans la boîte de dialogue.
+Choisissez **Me notifier après** : **Immédiatement**, **5 minutes**, **10 minutes**, **15 minutes**, **30 minutes** ou **1 heure**. Cliquez ensuite sur **Ajouter une règle de notification** dans la boîte de dialogue.
 :::
 
 La carte liste ses règles dans l'ordre de leur délai, avec **Méthode de notification** et **Notifier après** pour chacune.

@@ -37,7 +37,9 @@ import {
 } from "../../../Types/NotificationRule/PagingLadder";
 import PushNotificationLevel from "../../../Types/NotificationRule/PushNotificationLevel";
 import ObjectID from "../../../Types/ObjectID";
-import Permission, { UserTenantAccessPermission } from "../../../Types/Permission";
+import Permission, {
+  UserTenantAccessPermission,
+} from "../../../Types/Permission";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -75,7 +77,10 @@ interface MethodRow {
 let methodRows: Record<string, Array<MethodRow>> = {};
 
 let rules: Array<UserNotificationRule> = [];
-let severities: { incident: Array<IncidentSeverity>; alert: Array<AlertSeverity> };
+let severities: {
+  incident: Array<IncidentSeverity>;
+  alert: Array<AlertSeverity>;
+};
 
 let createSpy: jest.SpyInstance;
 let updateSpy: jest.SpyInstance;
@@ -135,12 +140,17 @@ const rule: (data: {
 }): UserNotificationRule => {
   ruleCounter++;
   const row: UserNotificationRule = new UserNotificationRule(
-    new ObjectID(`40000000-0000-4000-8000-${String(ruleCounter).padStart(12, "0")}`),
+    new ObjectID(
+      `40000000-0000-4000-8000-${String(ruleCounter).padStart(12, "0")}`,
+    ),
   );
   row.projectId = PROJECT;
   row.userId = data.userId || ANA;
   row.ruleType = data.cell.ruleType;
-  row.setColumnValue(data.cell.severityColumn, new ObjectID(data.cell.severityId));
+  row.setColumnValue(
+    data.cell.severityColumn,
+    new ObjectID(data.cell.severityId),
+  );
   row.setColumnValue(data.column, new ObjectID(data.methodId));
   row.notifyAfterMinutes = data.wait ?? 0;
   row.isOptOut = false;
@@ -150,21 +160,24 @@ const rule: (data: {
 };
 
 // Ana's defaults: email, SMS and call, at once, in every live card.
-const anasDefaults: () => Array<UserNotificationRule> = (): Array<UserNotificationRule> => {
-  const rows: Array<UserNotificationRule> = [];
+const anasDefaults: () => Array<UserNotificationRule> =
+  (): Array<UserNotificationRule> => {
+    const rows: Array<UserNotificationRule> = [];
 
-  for (const cell of cells()) {
-    if (cell.isArchived) {
-      continue;
+    for (const cell of cells()) {
+      if (cell.isArchived) {
+        continue;
+      }
+
+      rows.push(
+        rule({ cell: cell, column: "userEmailId", methodId: ANA_EMAIL }),
+      );
+      rows.push(rule({ cell: cell, column: "userSmsId", methodId: ANA_SMS }));
+      rows.push(rule({ cell: cell, column: "userCallId", methodId: ANA_CALL }));
     }
 
-    rows.push(rule({ cell: cell, column: "userEmailId", methodId: ANA_EMAIL }));
-    rows.push(rule({ cell: cell, column: "userSmsId", methodId: ANA_SMS }));
-    rows.push(rule({ cell: cell, column: "userCallId", methodId: ANA_CALL }));
-  }
-
-  return rows;
-};
+    return rows;
+  };
 
 const queryMatches: (
   row: Record<string, unknown>,
@@ -201,7 +214,10 @@ const mockMethodTable: (service: object, table: string) => void = (
     }): Promise<Array<{ id: ObjectID }>> => {
       return (methodRows[table] || [])
         .filter((row: MethodRow): boolean => {
-          return queryMatches(row as unknown as Record<string, unknown>, findBy.query);
+          return queryMatches(
+            row as unknown as Record<string, unknown>,
+            findBy.query,
+          );
         })
         .map((row: MethodRow): { id: ObjectID } => {
           return { id: new ObjectID(row._id) };
@@ -215,7 +231,9 @@ const anaProps: DatabaseCommonInteractionProps = {
 };
 
 // Bob, holding a permission: a member's own rules are his to change only with one.
-const bobProps: (permissions: Array<Permission>) => DatabaseCommonInteractionProps = (
+const bobProps: (
+  permissions: Array<Permission>,
+) => DatabaseCommonInteractionProps = (
   permissions: Array<Permission>,
 ): DatabaseCommonInteractionProps => {
   return {
@@ -254,69 +272,74 @@ const save: (data: {
   });
 };
 
-const createdRules: () => Array<UserNotificationRule> = (): Array<UserNotificationRule> => {
-  return createSpy.mock.calls.map((call: Array<unknown>): UserNotificationRule => {
-    return (call[0] as CreateBy<UserNotificationRule>).data;
-  });
-};
+const createdRules: () => Array<UserNotificationRule> =
+  (): Array<UserNotificationRule> => {
+    return createSpy.mock.calls.map(
+      (call: Array<unknown>): UserNotificationRule => {
+        return (call[0] as CreateBy<UserNotificationRule>).data;
+      },
+    );
+  };
 
 // The rules as they stand after the writes the service made.
-const rulesAfterSave: () => Array<PagingLadderRule> = (): Array<PagingLadderRule> => {
-  const deleted: Set<string> = new Set<string>(
-    deleteSpy.mock.calls.map((call: Array<unknown>): string => {
-      return readPagingId((call[0] as { id: ObjectID }).id);
-    }),
-  );
+const rulesAfterSave: () => Array<PagingLadderRule> =
+  (): Array<PagingLadderRule> => {
+    const deleted: Set<string> = new Set<string>(
+      deleteSpy.mock.calls.map((call: Array<unknown>): string => {
+        return readPagingId((call[0] as { id: ObjectID }).id);
+      }),
+    );
 
-  const after: Array<PagingLadderRule> = rules
-    .filter((row: UserNotificationRule): boolean => {
-      return !deleted.has(readPagingId(row.id));
-    })
-    .map((row: UserNotificationRule): PagingLadderRule => {
-      const update: { data: Record<string, unknown> } | undefined = updateSpy.mock.calls
-        .map((call: Array<unknown>) => {
-          return call[0] as { id: ObjectID; data: Record<string, unknown> };
-        })
-        .find((call: { id: ObjectID }) => {
-          return readPagingId(call.id) === readPagingId(row.id);
-        });
+    const after: Array<PagingLadderRule> = rules
+      .filter((row: UserNotificationRule): boolean => {
+        return !deleted.has(readPagingId(row.id));
+      })
+      .map((row: UserNotificationRule): PagingLadderRule => {
+        const update: { data: Record<string, unknown> } | undefined =
+          updateSpy.mock.calls
+            .map((call: Array<unknown>) => {
+              return call[0] as { id: ObjectID; data: Record<string, unknown> };
+            })
+            .find((call: { id: ObjectID }) => {
+              return readPagingId(call.id) === readPagingId(row.id);
+            });
 
-      return {
-        ...(row as unknown as PagingLadderRule),
-        _id: readPagingId(row.id),
-        ruleType: row.ruleType,
-        incidentSeverityId: row.incidentSeverityId,
-        alertSeverityId: row.alertSeverityId,
-        userEmailId: row.userEmailId,
-        userSmsId: row.userSmsId,
-        userCallId: row.userCallId,
-        userPushId: row.userPushId,
-        notifyAfterMinutes: row.notifyAfterMinutes,
-        isOptOut: row.isOptOut,
-        pushNotificationLevel: row.pushNotificationLevel,
-        repeatEveryMinutes: row.repeatEveryMinutes,
-        ...(update ? update.data : {}),
-      } as PagingLadderRule;
-    });
+        return {
+          ...(row as unknown as PagingLadderRule),
+          _id: readPagingId(row.id),
+          ruleType: row.ruleType,
+          incidentSeverityId: row.incidentSeverityId,
+          alertSeverityId: row.alertSeverityId,
+          userEmailId: row.userEmailId,
+          userSmsId: row.userSmsId,
+          userCallId: row.userCallId,
+          userPushId: row.userPushId,
+          notifyAfterMinutes: row.notifyAfterMinutes,
+          isOptOut: row.isOptOut,
+          pushNotificationLevel: row.pushNotificationLevel,
+          repeatEveryMinutes: row.repeatEveryMinutes,
+          ...(update ? update.data : {}),
+        } as PagingLadderRule;
+      });
 
-  for (const created of createdRules()) {
-    after.push({
-      _id: `created-${after.length}`,
-      ruleType: created.ruleType,
-      incidentSeverityId: created.incidentSeverityId,
-      alertSeverityId: created.alertSeverityId,
-      userEmailId: created.userEmailId,
-      userSmsId: created.userSmsId,
-      userCallId: created.userCallId,
-      userPushId: created.userPushId,
-      notifyAfterMinutes: created.notifyAfterMinutes,
-      pushNotificationLevel: created.pushNotificationLevel || "Critical",
-      repeatEveryMinutes: created.repeatEveryMinutes,
-    } as PagingLadderRule);
-  }
+    for (const created of createdRules()) {
+      after.push({
+        _id: `created-${after.length}`,
+        ruleType: created.ruleType,
+        incidentSeverityId: created.incidentSeverityId,
+        alertSeverityId: created.alertSeverityId,
+        userEmailId: created.userEmailId,
+        userSmsId: created.userSmsId,
+        userCallId: created.userCallId,
+        userPushId: created.userPushId,
+        notifyAfterMinutes: created.notifyAfterMinutes,
+        pushNotificationLevel: created.pushNotificationLevel || "Critical",
+        repeatEveryMinutes: created.repeatEveryMinutes,
+      } as PagingLadderRule);
+    }
 
-  return after;
-};
+    return after;
+  };
 
 const PUSH_SMS_CALL: Array<Record<string, unknown>> = [
   { methodColumn: "userPushId", methodId: ANA_PUSH, notifyAfterMinutes: 0 },
@@ -340,46 +363,74 @@ beforeEach(() => {
 
   methodRows = {
     email: [
-      { _id: ANA_EMAIL, userId: ANA.toString(), projectId: PROJECT.toString(), isVerified: true },
+      {
+        _id: ANA_EMAIL,
+        userId: ANA.toString(),
+        projectId: PROJECT.toString(),
+        isVerified: true,
+      },
     ],
     sms: [
-      { _id: ANA_SMS, userId: ANA.toString(), projectId: PROJECT.toString(), isVerified: true },
+      {
+        _id: ANA_SMS,
+        userId: ANA.toString(),
+        projectId: PROJECT.toString(),
+        isVerified: true,
+      },
       {
         _id: ANA_UNVERIFIED_SMS,
         userId: ANA.toString(),
         projectId: PROJECT.toString(),
         isVerified: false,
       },
-      { _id: BOB_SMS, userId: BOB.toString(), projectId: PROJECT.toString(), isVerified: true },
+      {
+        _id: BOB_SMS,
+        userId: BOB.toString(),
+        projectId: PROJECT.toString(),
+        isVerified: true,
+      },
     ],
     call: [
-      { _id: ANA_CALL, userId: ANA.toString(), projectId: PROJECT.toString(), isVerified: true },
+      {
+        _id: ANA_CALL,
+        userId: ANA.toString(),
+        projectId: PROJECT.toString(),
+        isVerified: true,
+      },
     ],
     push: [
-      { _id: ANA_PUSH, userId: ANA.toString(), projectId: PROJECT.toString(), isVerified: true },
+      {
+        _id: ANA_PUSH,
+        userId: ANA.toString(),
+        projectId: PROJECT.toString(),
+        isVerified: true,
+      },
     ],
   };
 
   rules = anasDefaults();
 
-  jest.spyOn(IncidentSeverityService, "findBy").mockImplementation((async () => {
-    return severities.incident;
-  }) as never);
+  jest
+    .spyOn(IncidentSeverityService, "findBy")
+    .mockImplementation((async () => {
+      return severities.incident;
+    }) as never);
   jest.spyOn(AlertSeverityService, "findBy").mockImplementation((async () => {
     return severities.alert;
   }) as never);
 
-  jest.spyOn(UserNotificationRuleService, "findBy").mockImplementation((async (findBy: {
-    query: Record<string, unknown>;
-  }) => {
-    return rules.filter((row: UserNotificationRule): boolean => {
-      return (
-        readPagingId(row.userId) === readPagingId(findBy.query["userId"]) &&
-        readPagingId(row.projectId) === readPagingId(findBy.query["projectId"]) &&
-        row.ruleType === findBy.query["ruleType"]
-      );
-    });
-  }) as never);
+  jest
+    .spyOn(UserNotificationRuleService, "findBy")
+    .mockImplementation((async (findBy: { query: Record<string, unknown> }) => {
+      return rules.filter((row: UserNotificationRule): boolean => {
+        return (
+          readPagingId(row.userId) === readPagingId(findBy.query["userId"]) &&
+          readPagingId(row.projectId) ===
+            readPagingId(findBy.query["projectId"]) &&
+          row.ruleType === findBy.query["ruleType"]
+        );
+      });
+    }) as never);
 
   mockMethodTable(UserEmailService, "email");
   mockMethodTable(UserSmsService, "sms");
@@ -416,7 +467,10 @@ beforeEach(() => {
     .spyOn(UserNotificationRuleAdminService, "assertTargetUserIsProjectMember")
     .mockResolvedValue(undefined as never);
   ownershipSpy = jest
-    .spyOn(UserNotificationRuleAdminService, "assertNotificationMethodsBelongToUser")
+    .spyOn(
+      UserNotificationRuleAdminService,
+      "assertNotificationMethodsBelongToUser",
+    )
     .mockResolvedValue(undefined as never);
 });
 
@@ -454,7 +508,9 @@ describe("saving your own ladder", () => {
   test("new rows are written before old ones go, and every write is OneUptime's", async () => {
     const order: Array<string> = [];
 
-    createSpy.mockImplementation((async (createBy: CreateBy<UserNotificationRule>) => {
+    createSpy.mockImplementation((async (
+      createBy: CreateBy<UserNotificationRule>,
+    ) => {
       order.push("create");
       return createBy.data;
     }) as never);
@@ -468,12 +524,18 @@ describe("saving your own ladder", () => {
 
     await save({ steps: PUSH_SMS_CALL });
 
-    expect(order.indexOf("delete")).toBeGreaterThan(order.lastIndexOf("create"));
-    expect(order.indexOf("delete")).toBeGreaterThan(order.lastIndexOf("update"));
+    expect(order.indexOf("delete")).toBeGreaterThan(
+      order.lastIndexOf("create"),
+    );
+    expect(order.indexOf("delete")).toBeGreaterThan(
+      order.lastIndexOf("update"),
+    );
 
     for (const spy of [createSpy, updateSpy, deleteSpy]) {
       for (const call of spy.mock.calls) {
-        expect((call[0] as { props: DatabaseCommonInteractionProps }).props).toEqual({
+        expect(
+          (call[0] as { props: DatabaseCommonInteractionProps }).props,
+        ).toEqual({
           isRoot: true,
         });
       }
@@ -550,9 +612,17 @@ describe("saving your own ladder", () => {
 
     const result: PagingLadderSaveResult = await save({
       steps: [
-        { methodColumn: "userEmailId", methodId: ANA_EMAIL, notifyAfterMinutes: 0 },
+        {
+          methodColumn: "userEmailId",
+          methodId: ANA_EMAIL,
+          notifyAfterMinutes: 0,
+        },
         { methodColumn: "userSmsId", methodId: ANA_SMS, notifyAfterMinutes: 0 },
-        { methodColumn: "userCallId", methodId: ANA_CALL, notifyAfterMinutes: 0 },
+        {
+          methodColumn: "userCallId",
+          methodId: ANA_CALL,
+          notifyAfterMinutes: 0,
+        },
       ],
     });
 
@@ -578,14 +648,18 @@ describe("saving your own ladder", () => {
     await save({ steps: PUSH_SMS_CALL });
 
     expect(ownershipSpy).toHaveBeenCalledTimes(1);
-    const call: { ownerUserId: ObjectID; references: Array<{ idColumn: string; methodId: ObjectID }> } =
-      ownershipSpy.mock.calls[0]![0] as never;
+    const call: {
+      ownerUserId: ObjectID;
+      references: Array<{ idColumn: string; methodId: ObjectID }>;
+    } = ownershipSpy.mock.calls[0]![0] as never;
 
     expect(call.ownerUserId.toString()).toBe(ANA.toString());
     expect(
-      call.references.map((reference: { idColumn: string; methodId: ObjectID }) => {
-        return `${reference.idColumn}:${reference.methodId.toString()}`;
-      }),
+      call.references.map(
+        (reference: { idColumn: string; methodId: ObjectID }) => {
+          return `${reference.idColumn}:${reference.methodId.toString()}`;
+        },
+      ),
     ).toEqual([
       `userPushId:${ANA_PUSH}`,
       `userSmsId:${ANA_SMS}`,
@@ -599,10 +673,16 @@ describe("what a ladder may name", () => {
     await expect(
       save({
         steps: [
-          { methodColumn: "userSmsId", methodId: ANA_UNVERIFIED_SMS, notifyAfterMinutes: 0 },
+          {
+            methodColumn: "userSmsId",
+            methodId: ANA_UNVERIFIED_SMS,
+            notifyAfterMinutes: 0,
+          },
         ],
       }),
-    ).rejects.toThrow(new BadDataException(PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE));
+    ).rejects.toThrow(
+      new BadDataException(PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE),
+    );
 
     expect(createSpy).not.toHaveBeenCalled();
     expect(deleteSpy).not.toHaveBeenCalled();
@@ -611,7 +691,13 @@ describe("what a ladder may name", () => {
   test("somebody else's method is refused: a ladder cannot copy Ana's pages to Bob's phone", async () => {
     await expect(
       save({
-        steps: [{ methodColumn: "userSmsId", methodId: BOB_SMS, notifyAfterMinutes: 0 }],
+        steps: [
+          {
+            methodColumn: "userSmsId",
+            methodId: BOB_SMS,
+            notifyAfterMinutes: 0,
+          },
+        ],
       }),
     ).rejects.toThrow(PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE);
 
@@ -699,7 +785,13 @@ describe("what a ladder may name", () => {
   test("a step with a bad wait is refused", async () => {
     await expect(
       save({
-        steps: [{ methodColumn: "userSmsId", methodId: ANA_SMS, notifyAfterMinutes: -5 }],
+        steps: [
+          {
+            methodColumn: "userSmsId",
+            methodId: ANA_SMS,
+            notifyAfterMinutes: -5,
+          },
+        ],
       }),
     ).rejects.toThrow("from 0 to 1440");
   });
@@ -709,7 +801,9 @@ describe("who may change whose ladder", () => {
   test("a member may not change another member's ladder", async () => {
     await expect(
       save({ steps: PUSH_SMS_CALL, target: ANA, props: bobProps([]) }),
-    ).rejects.toThrow(new NotAuthorizedException(PAGING_LADDER_NOT_ALLOWED_MESSAGE));
+    ).rejects.toThrow(
+      new NotAuthorizedException(PAGING_LADDER_NOT_ALLOWED_MESSAGE),
+    );
 
     expect(createSpy).not.toHaveBeenCalled();
   });
@@ -728,15 +822,24 @@ describe("who may change whose ladder", () => {
     Permission.ProjectOwner,
     Permission.ProjectAdmin,
     Permission.EditProjectUserNotificationRule,
-  ])("someone holding %s may, for a member of the project", async (permission: Permission) => {
-    await save({ steps: PUSH_SMS_CALL, target: ANA, props: bobProps([permission]) });
+  ])(
+    "someone holding %s may, for a member of the project",
+    async (permission: Permission) => {
+      await save({
+        steps: PUSH_SMS_CALL,
+        target: ANA,
+        props: bobProps([permission]),
+      });
 
-    expect(memberSpy).toHaveBeenCalledTimes(1);
-    expect(
-      (memberSpy.mock.calls[0]![0] as { targetUserId: ObjectID }).targetUserId.toString(),
-    ).toBe(ANA.toString());
-    expect(createSpy).toHaveBeenCalled();
-  });
+      expect(memberSpy).toHaveBeenCalledTimes(1);
+      expect(
+        (
+          memberSpy.mock.calls[0]![0] as { targetUserId: ObjectID }
+        ).targetUserId.toString(),
+      ).toBe(ANA.toString());
+      expect(createSpy).toHaveBeenCalled();
+    },
+  );
 
   test("not for somebody who is not a member of the project (R1)", async () => {
     memberSpy.mockRejectedValue(new BadDataException("not a member"));
@@ -755,7 +858,13 @@ describe("who may change whose ladder", () => {
   test("the methods checked are the member's, never the admin's", async () => {
     await expect(
       save({
-        steps: [{ methodColumn: "userSmsId", methodId: BOB_SMS, notifyAfterMinutes: 0 }],
+        steps: [
+          {
+            methodColumn: "userSmsId",
+            methodId: BOB_SMS,
+            notifyAfterMinutes: 0,
+          },
+        ],
         target: ANA,
         props: bobProps([Permission.ProjectAdmin]),
       }),
@@ -831,10 +940,10 @@ describe("who may change whose ladder", () => {
 });
 
 describe("the refusals say what to do next", () => {
-  test.each([PAGING_LADDER_NOT_ALLOWED_MESSAGE, PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE])(
-    "%s",
-    (message: string) => {
-      expect(message).toMatch(/^[A-Z].*\.$/);
-    },
-  );
+  test.each([
+    PAGING_LADDER_NOT_ALLOWED_MESSAGE,
+    PAGING_LADDER_METHOD_NOT_USABLE_MESSAGE,
+  ])("%s", (message: string) => {
+    expect(message).toMatch(/^[A-Z].*\.$/);
+  });
 });

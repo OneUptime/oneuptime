@@ -89,7 +89,7 @@ Gå til **Brukerinnstillinger → Slik når man meg**, åpne fanen for typen til
 
 ### Velg metoden
 
-Klikk **Legg til Varsling Regel**. Velg en av de verifiserte metodene dine under **Varselmetode**; en metode du ikke har verifisert, blir ikke tilbudt.
+Klikk **Legg til varselregel**. Velg en av de verifiserte metodene dine under **Varselmetode**; en metode du ikke har verifisert, blir ikke tilbudt.
 
 ### Velg hvordan en push høres ut
 
@@ -97,7 +97,7 @@ For en telefon velger du under **Push-varsel** enten **Kritisk varsel** eller **
 
 ### Sett ventetiden
 
-Velg **Varsle meg etter**: **Umiddelbart**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klikk så **Legg til Varsling Regel** i dialogen.
+Velg **Varsle meg etter**: **Umiddelbart**, **5 minutter**, **10 minutter**, **15 minutter**, **30 minutter** eller **1 time**. Klikk så **Legg til varselregel** i dialogen.
 :::
 
 Kortet viser reglene sine i rekkefølge etter ventetid, med **Varselmetode** og **Varsle etter** for hver.

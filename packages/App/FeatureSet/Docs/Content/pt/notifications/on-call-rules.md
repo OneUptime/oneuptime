@@ -89,7 +89,7 @@ Vá até **Configurações do usuário → Como me contatar**, abra a aba do tip
 
 ### Escolha o método
 
-Clique em **Adicionar: Regra de notificação**. Em **Método de notificação**, escolha um dos seus métodos verificados; um método que você não verificou não é oferecido.
+Clique em **Adicionar regra de notificação**. Em **Método de notificação**, escolha um dos seus métodos verificados; um método que você não verificou não é oferecido.
 
 ### Escolha como o push toca
 
@@ -97,7 +97,7 @@ Para um telefone, escolha **Notificação push**: **Alerta crítico** ou **Norma
 
 ### Defina o atraso
 
-Escolha **Notificar-me após**: **Imediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** ou **1 hora**. Depois clique em **Adicionar: Regra de notificação** na caixa.
+Escolha **Notificar-me após**: **Imediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** ou **1 hora**. Depois clique em **Adicionar regra de notificação** na caixa.
 :::
 
 O cartão lista as regras dele em ordem de atraso, com **Método de notificação** e **Notificar após** para cada uma.

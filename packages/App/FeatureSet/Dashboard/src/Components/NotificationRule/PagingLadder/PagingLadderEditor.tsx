@@ -111,7 +111,9 @@ export const getWaitOptions: (
 const getStepsSignature: (steps: ReadonlyArray<PagingLadderStep>) => string = (
   steps: ReadonlyArray<PagingLadderStep>,
 ): string => {
-  return normalizePagingLadderSteps(steps).map(getPagingLadderStepKey).join(",");
+  return normalizePagingLadderSteps(steps)
+    .map(getPagingLadderStepKey)
+    .join(",");
 };
 
 interface WaitGroup {
@@ -175,15 +177,17 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     isPushTurnedOff: props.isPushTurnedOff,
   });
 
-  const updateStep: (index: number, change: Partial<PagingLadderStep>) => void =
-    (index: number, change: Partial<PagingLadderStep>): void => {
-      setSavedNote(false);
-      setDraft((current: Array<PagingLadderStep>) => {
-        return current.map((step: PagingLadderStep, i: number) => {
-          return i === index ? { ...step, ...change } : step;
-        });
+  const updateStep: (
+    index: number,
+    change: Partial<PagingLadderStep>,
+  ) => void = (index: number, change: Partial<PagingLadderStep>): void => {
+    setSavedNote(false);
+    setDraft((current: Array<PagingLadderStep>) => {
+      return current.map((step: PagingLadderStep, i: number) => {
+        return i === index ? { ...step, ...change } : step;
       });
-    };
+    });
+  };
 
   const removeStep: (index: number) => void = (index: number): void => {
     setSavedNote(false);
@@ -296,7 +300,9 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
                 value={waitOptions.find((option: DropdownOption): boolean => {
                   return option.value === step.notifyAfterMinutes;
                 })}
-                ariaLabel={translator.translateText(PAGING_LADDER_COPY.waitLabel)}
+                ariaLabel={translator.translateText(
+                  PAGING_LADDER_COPY.waitLabel,
+                )}
                 dataTestId="paging-ladder-step-wait"
                 /* A step always has a wait: removing it is the step's own ×. */
                 isClearable={false}
@@ -315,7 +321,9 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
               buttonStyle={ButtonStyleType.ICON}
               icon={IconProp.Close}
               title={PAGING_LADDER_COPY.removeStep}
-              ariaLabel={translator.translateText(PAGING_LADDER_COPY.removeStep)}
+              ariaLabel={translator.translateText(
+                PAGING_LADDER_COPY.removeStep,
+              )}
               tooltip={PAGING_LADDER_COPY.removeStep}
               dataTestId="paging-ladder-step-remove"
               onClick={() => {
@@ -358,7 +366,10 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
               {noStepsText}
             </p>
           ) : (
-            <ol className="flex flex-col gap-3" data-testid="paging-ladder-steps">
+            <ol
+              className="flex flex-col gap-3"
+              data-testid="paging-ladder-steps"
+            >
               {groupStepsByWait(draft).map((group: WaitGroup) => {
                 return (
                   <li

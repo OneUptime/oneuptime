@@ -23,7 +23,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 const UserSettingsOnCallRules: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
-  return <HowToReachMe userPreferencesKeyPrefix="user-notification-rules-table" />;
+  return (
+    <HowToReachMe userPreferencesKeyPrefix="user-notification-rules-table" />
+  );
 };
 
 export default UserSettingsOnCallRules;

@@ -89,7 +89,7 @@ Gå till **Användarinställningar → Så når man mig**, öppna fliken för ty
 
 ### Välj metoden
 
-Klicka på **Lägg till Aviseringsregel**. Välj under **Aviseringsmetod** en av dina verifierade metoder; en metod som du inte har verifierat erbjuds inte.
+Klicka på **Lägg till aviseringsregel**. Välj under **Aviseringsmetod** en av dina verifierade metoder; en metod som du inte har verifierat erbjuds inte.
 
 ### Välj hur en push låter
 
@@ -97,7 +97,7 @@ För en telefon väljer du under **Push-avisering** antingen **Kritiskt larm** e
 
 ### Ställ in väntetiden
 
-Välj **Avisera mig efter**: **Omedelbart**, **5 minuter**, **10 minuter**, **15 minuter**, **30 minuter** eller **1 timme**. Klicka sedan på **Lägg till Aviseringsregel** i dialogen.
+Välj **Avisera mig efter**: **Omedelbart**, **5 minuter**, **10 minuter**, **15 minuter**, **30 minuter** eller **1 timme**. Klicka sedan på **Lägg till aviseringsregel** i dialogen.
 :::
 
 Kortet listar sina regler i ordning efter väntetid, med **Aviseringsmetod** och **Avisera efter** för var och en.

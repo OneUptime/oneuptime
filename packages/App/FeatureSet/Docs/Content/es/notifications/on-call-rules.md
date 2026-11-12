@@ -89,7 +89,7 @@ Ve a **Ajustes de usuario → Cómo contactarme**, abre la pestaña del tipo de 
 
 ### Elige el método
 
-Haz clic en **Añadir Regla de notificación**. En **Método de notificación**, elige uno de tus métodos verificados; un método que no has verificado no se ofrece.
+Haz clic en **Añadir regla de notificación**. En **Método de notificación**, elige uno de tus métodos verificados; un método que no has verificado no se ofrece.
 
 ### Elige cómo suena un push
 
@@ -97,7 +97,7 @@ Para un teléfono, elige **Notificación push**: **Alerta crítica** o **Estánd
 
 ### Fija el retraso
 
-Elige **Notificarme después de**: **Inmediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** o **1 hora**. Luego haz clic en **Añadir Regla de notificación** en el diálogo.
+Elige **Notificarme después de**: **Inmediatamente**, **5 minutos**, **10 minutos**, **15 minutos**, **30 minutos** o **1 hora**. Luego haz clic en **Añadir regla de notificación** en el diálogo.
 :::
 
 La tarjeta lista sus reglas por orden de retraso, con **Método de notificación** y **Notificar después de** para cada una.

@@ -51,29 +51,31 @@ const SMS: string = "aaaaaaaa-0000-4000-8000-000000000002";
 const CALL: string = "aaaaaaaa-0000-4000-8000-000000000003";
 const PUSH: string = "aaaaaaaa-0000-4000-8000-000000000004";
 
-const newProjectCells: () => Array<PagingLadderCell> = (): Array<PagingLadderCell> => {
-  return getPagingLadderCells({
-    incidentSeverities: [
-      { id: CRITICAL, name: "Critical Incident" },
-      { id: MAJOR, name: "Major Incident" },
-      { id: MINOR, name: "Minor Incident" },
-    ],
-    alertSeverities: [
-      { id: ALERT_HIGH, name: "High" },
-      { id: ALERT_LOW, name: "Low" },
-    ],
-  });
-};
+const newProjectCells: () => Array<PagingLadderCell> =
+  (): Array<PagingLadderCell> => {
+    return getPagingLadderCells({
+      incidentSeverities: [
+        { id: CRITICAL, name: "Critical Incident" },
+        { id: MAJOR, name: "Major Incident" },
+        { id: MINOR, name: "Minor Incident" },
+      ],
+      alertSeverities: [
+        { id: ALERT_HIGH, name: "High" },
+        { id: ALERT_LOW, name: "Low" },
+      ],
+    });
+  };
 
-const withArchived: () => Array<PagingLadderCell> = (): Array<PagingLadderCell> => {
-  return getPagingLadderCells({
-    incidentSeverities: [
-      { id: CRITICAL, name: "Critical Incident" },
-      { id: ARCHIVED_INCIDENT, name: "[DONOTUSE] Sev 4", isArchived: true },
-    ],
-    alertSeverities: [{ id: ALERT_HIGH, name: "High" }],
-  });
-};
+const withArchived: () => Array<PagingLadderCell> =
+  (): Array<PagingLadderCell> => {
+    return getPagingLadderCells({
+      incidentSeverities: [
+        { id: CRITICAL, name: "Critical Incident" },
+        { id: ARCHIVED_INCIDENT, name: "[DONOTUSE] Sev 4", isArchived: true },
+      ],
+      alertSeverities: [{ id: ALERT_HIGH, name: "High" }],
+    });
+  };
 
 const step: (
   methodColumn: PagingLadderStep["methodColumn"],
@@ -294,14 +296,7 @@ describe("the grid's cards", () => {
       cells.map((cell: PagingLadderCell): string => {
         return cell.severityId;
       }),
-    ).toEqual([
-      CRITICAL,
-      MAJOR,
-      CRITICAL,
-      MAJOR,
-      ALERT_HIGH,
-      ALERT_HIGH,
-    ]);
+    ).toEqual([CRITICAL, MAJOR, CRITICAL, MAJOR, ALERT_HIGH, ALERT_HIGH]);
   });
 
   test("archived severities are cards, marked, and are not live", () => {
@@ -395,7 +390,11 @@ describe("a ladder's steps", () => {
     expect(
       normalizePagingLadderSteps([
         step("userEmailId", "", 0),
-        { methodColumn: "userFaxId", methodId: EMAIL, notifyAfterMinutes: 0 } as unknown as PagingLadderStep,
+        {
+          methodColumn: "userFaxId",
+          methodId: EMAIL,
+          notifyAfterMinutes: 0,
+        } as unknown as PagingLadderStep,
         step("userSmsId", SMS, 0),
       ]),
     ).toEqual([step("userSmsId", SMS, 0)]);
@@ -475,7 +474,9 @@ describe("reading a ladder from the rules", () => {
     expect(reading.differences).toHaveLength(1);
     expect(reading.differences[0]!.cell.severityName).toBe("Critical Incident");
     expect(reading.differences[0]!.cell.kind).toBe(OnCallRuleKind.Incidents);
-    expect(reading.differences[0]!.extra).toEqual([step("userCallId", CALL, 0)]);
+    expect(reading.differences[0]!.extra).toEqual([
+      step("userCallId", CALL, 0),
+    ]);
     expect(reading.differences[0]!.missing).toEqual([]);
     expect(reading.differences[0]!.changed).toEqual([]);
     expect(reading.differences[0]!.isMuted).toBe(false);
@@ -504,7 +505,9 @@ describe("reading a ladder from the rules", () => {
 
     expect(reading.steps).toEqual(ladder);
     expect(reading.differences).toHaveLength(1);
-    expect(reading.differences[0]!.extra).toEqual([step("userCallId", CALL, 0)]);
+    expect(reading.differences[0]!.extra).toEqual([
+      step("userCallId", CALL, 0),
+    ]);
     expect(reading.differences[0]!.missing).toEqual([
       step("userSmsId", SMS, 0),
       step("userCallId", CALL, 5),
@@ -532,7 +535,9 @@ describe("reading a ladder from the rules", () => {
     });
 
     expect(reading.differences).toHaveLength(1);
-    expect(reading.differences[0]!.cell.kind).toBe(OnCallRuleKind.AlertEpisodes);
+    expect(reading.differences[0]!.cell.kind).toBe(
+      OnCallRuleKind.AlertEpisodes,
+    );
     expect(reading.differences[0]!.extra).toEqual([]);
     expect(reading.differences[0]!.missing).toEqual([]);
     expect(reading.differences[0]!.changed).toEqual([
@@ -627,7 +632,9 @@ describe("reading a ladder from the rules", () => {
     });
 
     expect(reading.differences).toHaveLength(1);
-    expect(reading.differences[0]!.missing).toEqual([step("userSmsId", SMS, 0)]);
+    expect(reading.differences[0]!.missing).toEqual([
+      step("userSmsId", SMS, 0),
+    ]);
     expect(reading.differences[0]!.isMuted).toBe(false);
   });
 
@@ -774,17 +781,19 @@ describe("saving a ladder writes the rows the grid edited by hand would hold", (
     const written: Array<PagingLadderRule> = getPagingLadderRules({
       cells: cells,
       steps: PUSH_SMS_CALL,
-    }).map((rule: PagingLadderRuleToCreate, index: number): PagingLadderRule => {
-      return {
-        _id: `eeeeeeee-0000-4000-8000-${String(index).padStart(12, "0")}`,
-        ruleType: rule.ruleType,
-        [rule.severityColumn]: rule.severityId,
-        [rule.methodColumn]: rule.methodId,
-        notifyAfterMinutes: rule.notifyAfterMinutes,
-        pushNotificationLevel: rule.pushNotificationLevel || "Critical",
-        repeatEveryMinutes: rule.repeatEveryMinutes,
-      } as PagingLadderRule;
-    });
+    }).map(
+      (rule: PagingLadderRuleToCreate, index: number): PagingLadderRule => {
+        return {
+          _id: `eeeeeeee-0000-4000-8000-${String(index).padStart(12, "0")}`,
+          ruleType: rule.ruleType,
+          [rule.severityColumn]: rule.severityId,
+          [rule.methodColumn]: rule.methodId,
+          notifyAfterMinutes: rule.notifyAfterMinutes,
+          pushNotificationLevel: rule.pushNotificationLevel || "Critical",
+          repeatEveryMinutes: rule.repeatEveryMinutes,
+        } as PagingLadderRule;
+      },
+    );
 
     const reading: PagingLadderReading = readPagingLadder({
       cells: cells,
@@ -865,7 +874,11 @@ describe("saving a ladder writes the rows the grid edited by hand would hold", (
         step("userCallId", CALL, 0),
       ]),
       ruleRow({ cell: cells[4]!, isOptOut: true }),
-      ruleRow({ cell: cells[6]!, methodColumn: "userEmailId", methodId: EMAIL }),
+      ruleRow({
+        cell: cells[6]!,
+        methodColumn: "userEmailId",
+        methodId: EMAIL,
+      }),
     ];
 
     const plan: PagingLadderPlan = planPagingLadderSave({
@@ -935,7 +948,10 @@ describe("saving a ladder writes the rows the grid edited by hand would hold", (
       methodColumn: "userSmsId",
       methodId: SMS,
     });
-    const optOut: PagingLadderRule = ruleRow({ cell: cells[0]!, isOptOut: true });
+    const optOut: PagingLadderRule = ruleRow({
+      cell: cells[0]!,
+      isOptOut: true,
+    });
 
     const plan: PagingLadderPlan = planPagingLadderSave({
       cells: cells,

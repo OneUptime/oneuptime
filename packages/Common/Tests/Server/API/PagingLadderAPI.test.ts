@@ -59,7 +59,9 @@ const STEPS: Array<JSONObject> = [
   },
 ];
 
-async function apply(body: JSONObject): Promise<{ thrown: unknown; sent: unknown }> {
+async function apply(
+  body: JSONObject,
+): Promise<{ thrown: unknown; sent: unknown }> {
   const route: ReturnType<typeof mockRouter.match> = mockRouter.match(
     "POST",
     `${PAGING_LADDER_API_PATH}/apply`,
@@ -99,12 +101,14 @@ beforeEach(() => {
     .spyOn(CommonAPI, "assertAuthenticatedProjectMember")
     .mockReturnValue(PROJECT);
 
-  applyLadder = jest.spyOn(PagingLadderService, "applyLadder").mockResolvedValue({
-    createdCount: 1,
-    updatedCount: 2,
-    deletedCount: 3,
-    unchangedCount: 4,
-  } as never);
+  applyLadder = jest
+    .spyOn(PagingLadderService, "applyLadder")
+    .mockResolvedValue({
+      createdCount: 1,
+      updatedCount: 2,
+      deletedCount: 3,
+      unchangedCount: 4,
+    } as never);
 });
 
 describe("POST /paging-ladder/apply", () => {
@@ -148,7 +152,9 @@ describe("POST /paging-ladder/apply", () => {
     await apply({ steps: STEPS, userId: BOB.toString() });
 
     expect(
-      (applyLadder.mock.calls[0]![0] as { targetUserId: ObjectID }).targetUserId.toString(),
+      (
+        applyLadder.mock.calls[0]![0] as { targetUserId: ObjectID }
+      ).targetUserId.toString(),
     ).toBe(BOB.toString());
   });
 

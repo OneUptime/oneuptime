@@ -331,7 +331,11 @@ export const loadOwnPagingMethods: (
       });
     }),
     ...slacks.map((model: UserSlack) => {
-      return toChoice({ column: "userSlackId", model: model, isVerified: true });
+      return toChoice({
+        column: "userSlackId",
+        model: model,
+        isVerified: true,
+      });
     }),
     ...teamsAccounts.map((model: UserMicrosoftTeams) => {
       return toChoice({

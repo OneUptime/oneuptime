@@ -169,7 +169,9 @@ export const describePushSettings: (
 
   const parts: Array<string> = [
     translator.translateTemplate(
-      PUSH_LEVEL_WORDS[step.pushNotificationLevel || PushNotificationLevel.Critical],
+      PUSH_LEVEL_WORDS[
+        step.pushNotificationLevel || PushNotificationLevel.Critical
+      ],
     ),
   ];
 
@@ -177,7 +179,9 @@ export const describePushSettings: (
     step.repeatEveryMinutes &&
     step.repeatEveryMinutes !== NO_NOTIFICATION_REPEAT
   ) {
-    parts.push(translator.translatePlural(REPEATS_EVERY, step.repeatEveryMinutes));
+    parts.push(
+      translator.translatePlural(REPEATS_EVERY, step.repeatEveryMinutes),
+    );
   }
 
   return parts.join(" · ");

@@ -171,7 +171,8 @@ const OWNED_METHOD_TABLES: ReadonlyArray<OwnedMethodTable> = [
   },
   {
     column: "userWebhookId",
-    service: UserWebhookService as unknown as DatabaseService<DatabaseBaseModel>,
+    service:
+      UserWebhookService as unknown as DatabaseService<DatabaseBaseModel>,
     hasVerification: false,
   },
 ];
@@ -316,29 +317,34 @@ export class PagingLadderService extends BaseService {
     const keys: Set<string> = new Set<string>();
 
     await Promise.all(
-      OWNED_METHOD_TABLES.map(async (table: OwnedMethodTable): Promise<void> => {
-        const rows: Array<DatabaseBaseModel> = await table.service.findBy({
-          query: {
-            projectId: data.projectId,
-            userId: data.userId,
-            ...(table.hasVerification ? { isVerified: true } : {}),
-          } as never,
-          select: { _id: true } as never,
-          limit: LIMIT_PER_PROJECT,
-          skip: 0,
-          props: { isRoot: true },
-        });
+      OWNED_METHOD_TABLES.map(
+        async (table: OwnedMethodTable): Promise<void> => {
+          const rows: Array<DatabaseBaseModel> = await table.service.findBy({
+            query: {
+              projectId: data.projectId,
+              userId: data.userId,
+              ...(table.hasVerification ? { isVerified: true } : {}),
+            } as never,
+            select: { _id: true } as never,
+            limit: LIMIT_PER_PROJECT,
+            skip: 0,
+            props: { isRoot: true },
+          });
 
-        for (const row of rows) {
-          const id: string = readPagingId(row.id);
+          for (const row of rows) {
+            const id: string = readPagingId(row.id);
 
-          if (id) {
-            keys.add(
-              getPagingLadderMethodKey({ methodColumn: table.column, methodId: id }),
-            );
+            if (id) {
+              keys.add(
+                getPagingLadderMethodKey({
+                  methodColumn: table.column,
+                  methodId: id,
+                }),
+              );
+            }
           }
-        }
-      }),
+        },
+      ),
     );
 
     return keys;
@@ -468,15 +474,16 @@ export class PagingLadderService extends BaseService {
 
     // New rows first, so the person is never without a rule in between.
     for (const toCreate of plan.create) {
-      const created: UserNotificationRule = await UserNotificationRuleService.create({
-        data: this.buildRule({
-          projectId: data.projectId,
-          userId: data.targetUserId,
-          actorUserId: actorUserId,
-          rule: toCreate,
-        }),
-        props: { isRoot: true },
-      });
+      const created: UserNotificationRule =
+        await UserNotificationRuleService.create({
+          data: this.buildRule({
+            projectId: data.projectId,
+            userId: data.targetUserId,
+            actorUserId: actorUserId,
+            rule: toCreate,
+          }),
+          props: { isRoot: true },
+        });
 
       changes.push({
         action: AuditLogAction.Create,
@@ -566,7 +573,10 @@ export class PagingLadderService extends BaseService {
       data.rule.severityColumn,
       new ObjectID(data.rule.severityId),
     );
-    rule.setColumnValue(data.rule.methodColumn, new ObjectID(data.rule.methodId));
+    rule.setColumnValue(
+      data.rule.methodColumn,
+      new ObjectID(data.rule.methodId),
+    );
     rule.notifyAfterMinutes = data.rule.notifyAfterMinutes;
     rule.repeatEveryMinutes = data.rule.repeatEveryMinutes;
 

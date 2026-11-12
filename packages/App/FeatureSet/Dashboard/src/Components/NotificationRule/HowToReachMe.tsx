@@ -43,8 +43,7 @@ import {
   readPagingLadder,
 } from "Common/Types/NotificationRule/PagingLadder";
 import ObjectID from "Common/Types/ObjectID";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
-import Button from "Common/UI/Components/Button/Button";
+import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Link from "Common/UI/Components/Link/Link";
@@ -113,13 +112,14 @@ const VERIFY_CHANNEL_BY_COLUMN: Partial<
 };
 
 // Whether an address asks for the grid: it names a tab, known or not.
-export const isGridRequested: (typeParam: string | null | undefined) => boolean =
-  (typeParam: string | null | undefined): boolean => {
-    return (
-      Boolean(readOnCallRuleKind(typeParam)) ||
-      (typeof typeParam === "string" && typeParam.trim().length > 0)
-    );
-  };
+export const isGridRequested: (
+  typeParam: string | null | undefined,
+) => boolean = (typeParam: string | null | undefined): boolean => {
+  return (
+    Boolean(readOnCallRuleKind(typeParam)) ||
+    (typeof typeParam === "string" && typeParam.trim().length > 0)
+  );
+};
 
 // The view a page opens on: the grid for a link to one kind's rules, or for rules that differ.
 export const getInitialView: (data: {
@@ -162,7 +162,6 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
   const [data, setData] = useState<PagingLadderData | null>(null);
   const [ownMethods, setOwnMethods] = useState<Array<PagingMethodChoice>>([]);
   const [error, setError] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [view, setView] = useState<HowToReachMeView | null>(
     requestsKind ? HowToReachMeView.Grid : null,
   );
@@ -172,17 +171,13 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     ? ownMethods
     : getMemberMethodChoices(props.notificationMethods || []);
 
-  const load: (options?: {
-    quietly?: boolean;
-  }) => Promise<void> = async (options?: {
-    quietly?: boolean;
-  }): Promise<void> => {
+  /*
+   * Reads the rules again. What is on screen stays while it does: only a
+   * first read, with nothing to show yet, draws the loader.
+   */
+  const load: () => Promise<void> = async (): Promise<void> => {
     if (!targetUserId) {
       return;
-    }
-
-    if (!options?.quietly) {
-      setIsLoading(true);
     }
 
     setError("");
@@ -211,8 +206,6 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     } catch (err) {
       setError(API.getFriendlyMessage(err));
     }
-
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -300,7 +293,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
       replaced_card_count: differences.length,
     });
 
-    await load({ quietly: true });
+    await load();
   };
 
   const notVerified: Array<PagingMethodChoice> = isOwn
@@ -393,7 +386,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
         onVerified={() => {
           setVerifying(null);
           // Verifying adds the method to every card at once, as it always has.
-          load({ quietly: true }).catch(() => {
+          load().catch(() => {
             // load() reports its own failure.
           });
         }}
@@ -490,7 +483,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
             noItemsMessage={props.noItemsMessage}
             differingCellKeys={differingCellKeys}
             onRulesChanged={() => {
-              load({ quietly: true }).catch(() => {
+              load().catch(() => {
                 // load() reports its own failure.
               });
             }}

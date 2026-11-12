@@ -113,7 +113,10 @@ export const StepChip: FunctionComponent<{
 export const CardName: FunctionComponent<{
   cell: PagingLadderCell;
   color?: string | undefined;
-}> = (props: { cell: PagingLadderCell; color?: string | undefined }): ReactElement => {
+}> = (props: {
+  cell: PagingLadderCell;
+  color?: string | undefined;
+}): ReactElement => {
   const translator: Translator = useTranslator();
 
   return (
@@ -225,15 +228,17 @@ export const DifferencesList: FunctionComponent<{
                   <span className="text-sm text-gray-500">
                     {translator.translateText(PAGING_LADDER_COPY.pushDiffers)}
                   </span>
-                  {difference.changed.map((changed: PagingLadderChangedStep) => {
-                    return (
-                      <StepChip
-                        key={getPagingLadderStepKey(changed.step)}
-                        step={changed.step}
-                        methods={props.methods}
-                      />
-                    );
-                  })}
+                  {difference.changed.map(
+                    (changed: PagingLadderChangedStep) => {
+                      return (
+                        <StepChip
+                          key={getPagingLadderStepKey(changed.step)}
+                          step={changed.step}
+                          methods={props.methods}
+                        />
+                      );
+                    },
+                  )}
                 </div>
               ) : (
                 <></>
