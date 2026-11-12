@@ -25,6 +25,14 @@ import {
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import Navigation from "../../../UI/Utils/Navigation";
+import FormField from "../../../UI/Components/Forms/Fields/FormField";
+import Field from "../../../UI/Components/Forms/Types/Field";
+import FormFieldSchemaType from "../../../UI/Components/Forms/Types/FormFieldSchemaType";
+import FormValues from "../../../UI/Components/Forms/Types/FormValues";
+import {
+  NUMBER_AT_THE_PAGE_START_CLASS_NAME,
+  NUMBER_READS_LEFT_TO_RIGHT_CLASS_NAME,
+} from "../../../UI/Components/Input/Input";
 
 /*
  * A NETWORK SITE'S POINT ON THE MAP KEEPS ITS MINUS SIGN (#7099).
@@ -54,14 +62,22 @@ interface CapturedField {
   getElement?: (item: NetworkSite) => ReactElement;
 }
 
+// A field of the form a table's Add button or a card's Edit button opens.
+type CapturedFormField = Field<NetworkSite>;
+
 let tableColumns: Array<CapturedColumn> = [];
 let detailFields: Array<CapturedField> = [];
+let formFields: Array<CapturedFormField> = [];
 
 jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
   return {
     __esModule: true,
-    default: (props: { columns: Array<CapturedColumn> }): null => {
+    default: (props: {
+      columns: Array<CapturedColumn>;
+      formFields?: Array<CapturedFormField>;
+    }): null => {
       tableColumns = props.columns;
+      formFields = [...formFields, ...(props.formFields || [])];
       return null;
     },
   };
@@ -72,8 +88,11 @@ jest.mock("../../../UI/Components/ModelDetail/CardModelDetail", () => {
     __esModule: true,
     default: (props: {
       modelDetailProps: { fields: Array<CapturedField> };
+      formFields?: Array<CapturedFormField>;
     }): null => {
       detailFields = props.modelDetailProps.fields;
+      // A page of several cards (Settings: Site Settings, Alerting): all of them.
+      formFields = [...formFields, ...(props.formFields || [])];
       return null;
     },
   };
@@ -172,6 +191,8 @@ jest.mock(
 
 import NetworkSitesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/Sites";
 import NetworkSiteViewPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/Index";
+import NetworkChildSitesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/ChildSites";
+import NetworkSiteSettingsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/NetworkSite/View/Settings";
 import PageComponentProps from "../../../../App/FeatureSet/Dashboard/src/Pages/PageComponentProps";
 import SiteCoordinates, {
   formatSiteCoordinates,
@@ -224,6 +245,7 @@ beforeAll(async () => {
 beforeEach(() => {
   tableColumns = [];
   detailFields = [];
+  formFields = [];
   jest
     .spyOn(Navigation, "getLastParamAsObjectID")
     .mockReturnValue(new ObjectID(SITE_ID));
@@ -540,6 +562,150 @@ describe("a site's Coordinates", () => {
       expect(value.querySelector("bdi")).toBeNull();
     },
   );
+});
+
+/*
+ * THE FORMS THAT TAKE A SITE'S POINT.
+ *
+ * Add Site (the Sites list), Add Child Site (a site's Child Sites) and Edit
+ * Settings (a site's Settings) ask for the latitude and the longitude in
+ * number fields. On an Arabic or Persian page such a field showed Boston's
+ * saved longitude as "71.0589-" and its example as "89.6501-"; a number
+ * field there now reads its number left to right, at the field's right
+ * (Input: NUMBER_READS_LEFT_TO_RIGHT_CLASS_NAME). Each form's own fields
+ * are drawn here, as the form draws them, with Boston's point in them.
+ */
+describe("the forms that take a site's point", () => {
+  const FORMS: Array<{ name: string; page: ReactElement }> = [
+    { name: "Add Site", page: <NetworkSitesPage {...PAGE_PROPS} /> },
+    {
+      name: "Add Child Site",
+      page: <NetworkChildSitesPage {...PAGE_PROPS} />,
+    },
+    {
+      name: "Edit Settings",
+      page: <NetworkSiteSettingsPage {...PAGE_PROPS} />,
+    },
+  ];
+
+  // The form's field for `column`, as the page hands it to its form.
+  const formFieldFor: (
+    language: string,
+    page: ReactElement,
+    column: "latitude" | "longitude",
+  ) => Promise<CapturedFormField> = async (
+    language: string,
+    page: ReactElement,
+    column: "latitude" | "longitude",
+  ): Promise<CapturedFormField> => {
+    await drawPage(language, page);
+
+    const field: CapturedFormField | undefined = formFields.find(
+      (candidate: CapturedFormField): boolean => {
+        return Boolean(
+          candidate.field &&
+            (candidate.field as Record<string, unknown>)[column],
+        );
+      },
+    );
+
+    expect(field).toBeDefined();
+    cleanup();
+
+    return field!;
+  };
+
+  // `field` drawn by the form's own field, holding `value`, on a `language` page.
+  const drawFormField: (
+    language: string,
+    field: CapturedFormField,
+    value: number,
+  ) => HTMLInputElement = (
+    language: string,
+    field: CapturedFormField,
+    value: number,
+  ): HTMLInputElement => {
+    const column: string = Object.keys(field.field || {})[0]!;
+
+    return inLanguage(
+      language,
+      <FormField<NetworkSite>
+        field={field}
+        fieldName={column}
+        index={0}
+        isDisabled={false}
+        error=""
+        touched={false}
+        currentValues={{ [column]: value } as FormValues<NetworkSite>}
+        setFieldTouched={(): void => {}}
+        setFieldValue={(): void => {}}
+      />,
+    ).querySelector("input") as HTMLInputElement;
+  };
+
+  const NUMBER_CLASSES: Array<string> = [
+    ...NUMBER_READS_LEFT_TO_RIGHT_CLASS_NAME.split(" "),
+    NUMBER_AT_THE_PAGE_START_CLASS_NAME,
+  ];
+
+  for (const form of FORMS) {
+    test(`${form.name} asks for both in number fields, with a negative example`, async () => {
+      const latitude: CapturedFormField = await formFieldFor(
+        "en",
+        form.page,
+        "latitude",
+      );
+      const longitude: CapturedFormField = await formFieldFor(
+        "en",
+        form.page,
+        "longitude",
+      );
+
+      expect(latitude.fieldType).toBe(FormFieldSchemaType.Number);
+      expect(longitude.fieldType).toBe(FormFieldSchemaType.Number);
+      expect(longitude.placeholder).toBe("-89.6501");
+    });
+
+    test.each(RIGHT_TO_LEFT_LANGUAGES)(
+      `${form.name}, %s: Boston's longitude and the example read left to right, at the field's right`,
+      async (language: string) => {
+        const longitude: CapturedFormField = await formFieldFor(
+          language,
+          form.page,
+          "longitude",
+        );
+        const input: HTMLInputElement = drawFormField(
+          language,
+          longitude,
+          -71.0589,
+        );
+
+        expect(input).toHaveAttribute("type", "number");
+        expect(input).toHaveValue(-71.0589);
+        expect(input).toHaveAttribute("placeholder", "-89.6501");
+
+        for (const className of NUMBER_CLASSES) {
+          expect(input.className.split(" ")).toContain(className);
+        }
+      },
+    );
+
+    test(`${form.name}, en: the field is drawn as it always was`, async () => {
+      const longitude: CapturedFormField = await formFieldFor(
+        "en",
+        form.page,
+        "longitude",
+      );
+      const input: HTMLInputElement = drawFormField("en", longitude, -71.0589);
+
+      expect(input).toHaveValue(-71.0589);
+      expect(input).not.toHaveAttribute("dir");
+      expect(input.className).not.toContain("unicode-bidi");
+      expect(input.className).not.toContain(
+        NUMBER_AT_THE_PAGE_START_CLASS_NAME,
+      );
+    });
+  }
 });
 
 describe("every place the Dashboard writes a site's point", () => {
