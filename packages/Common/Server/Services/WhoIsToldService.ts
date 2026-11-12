@@ -2,6 +2,7 @@ import { IsBillingEnabled } from "../EnvironmentConfig";
 import InMemoryTTLCache from "../Infrastructure/InMemoryTTLCache";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger from "../Utils/Logger";
+import MonitorRuleCriteriaCache from "../Utils/Rules/MonitorRuleCriteriaCache";
 import ServerSendingStatus from "../Utils/ServerSending/ServerSendingStatus";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import AlertOnCallRuleEngineService from "./AlertOnCallRuleEngineService";
@@ -110,26 +111,79 @@ import { TwilioMessageKind } from "../../Utils/Project/TwilioAccount";
  * nothing of who.
  */
 
-// What one resolve reads once and hands every criteria.
-interface ResolveContext {
+/*
+ * What is read once per project and shared by every monitor a resolve asks
+ * about: one (resolve) or all of them (resolveProject). The maps fill as
+ * the monitors are resolved, so a policy's first level and a person's
+ * paging rules are read once however many monitors reach them.
+ */
+interface ProjectContext {
   projectId: ObjectID;
-  monitor: Monitor;
   project: Project | null;
+  channels: WhoIsToldChannels;
   incidentSeverities: Array<IncidentSeverity>;
   alertSeverities: Array<AlertSeverity>;
   statuses: Map<string, MonitorStatus>;
   policyNames: Map<string, string>;
   hasIncidentOwnerRules: boolean;
   hasAlertOwnerRules: boolean;
+  projectHasIncidentOnCallRules: boolean;
+  projectHasAlertOnCallRules: boolean;
   projectOwnerNames: Array<string> | null;
-  monitorOwnerNames: Array<string> | null;
-  statusPages: Array<WhoIsToldStatusPage>;
   channelsOff: Array<OnCallPageChannel>;
   isFallbackEnabled: boolean;
   firstLevels: Map<string, FirstLevel>;
   people: Map<string, WhoIsToldPerson>;
+  previews: Map<string, OnCallTestPagePreviewPerson>;
   verifiedChannels: Map<string, Array<OnCallPageChannel>>;
+  /*
+   * Set when the whole project is resolved at once (resolveProject): its
+   * enabled on-call rules, read once, and its monitors in the cache the
+   * engines' matching reads them from - so the matching reads nothing per
+   * monitor. Null for one monitor, whose matching reads as the engines do.
+   */
+  matching: PreloadedMatching | null;
+  /*
+   * Only the breaks are wanted (resolveProject): who is emailed as owners
+   * and the status pages an incident shows on are not read, as no break
+   * depends on them.
+   */
+  isForBreaksOnly: boolean;
 }
+
+interface PreloadedMatching {
+  incidentRules: Array<IncidentOnCallRule>;
+  alertRules: Array<AlertOnCallRule>;
+  monitorCache: MonitorRuleCriteriaCache;
+}
+
+// What one resolve of one monitor reads once and hands every criteria.
+interface ResolveContext extends ProjectContext {
+  monitor: Monitor;
+  monitorOwnerNames: Array<string> | null;
+  statusPages: Array<WhoIsToldStatusPage>;
+}
+
+/*
+ * The columns of a monitor a resolve reads. A caller that hands
+ * resolveProject the monitors it read itself (SetupHealthService) selects
+ * at least these.
+ */
+export const WHO_IS_TOLD_MONITOR_SELECT: {
+  _id: true;
+  name: true;
+  description: true;
+  projectId: true;
+  monitorSteps: true;
+  labels: { _id: true };
+} = {
+  _id: true,
+  name: true,
+  description: true,
+  projectId: true,
+  monitorSteps: true,
+  labels: { _id: true },
+};
 
 interface FirstLevel {
   targets: Array<{ userId: ObjectID; reachedThrough?: string | undefined }>;
@@ -426,14 +480,7 @@ export class WhoIsToldService {
         _id: data.monitorId.toString(),
         projectId: data.projectId,
       },
-      select: {
-        _id: true,
-        name: true,
-        description: true,
-        projectId: true,
-        monitorSteps: true,
-        labels: { _id: true },
-      },
+      select: WHO_IS_TOLD_MONITOR_SELECT,
       props: {
         isRoot: true,
       },
@@ -443,6 +490,93 @@ export class WhoIsToldService {
       throw new BadDataException("Monitor not found.");
     }
 
+    const project: ProjectContext = await this.readProjectContext({
+      projectId: data.projectId,
+      matching: null,
+      isForBreaksOnly: false,
+    });
+
+    return await this.resolveMonitor({ project: project, monitor: monitor });
+  }
+
+  /*
+   * EVERY MONITOR'S ANSWER AT ONCE, for Setup health (#6812): resolve's
+   * answer for each of these monitors of the project, as OneUptime reads
+   * it, with its breaks worked out by the same rules (getWhoIsToldBreaks)
+   * - so the card on a monitor and the project's list never disagree.
+   *
+   * What it reads does not grow with the number of monitors. The caller
+   * reads the monitors (with at least WHO_IS_TOLD_MONITOR_SELECT); the
+   * project, its channels, severities, statuses, policies and on-call rules
+   * are read once; the rule engines match each incident or alert against
+   * the rules read once and the monitors handed in (getMatchingRules'
+   * `preloaded`); each policy's first level and each person's paging rules
+   * are read once however many monitors reach them; and `readiness` (the
+   * project's, from OnCallReadinessService.getReadinessForProject) gives
+   * every responder's verified methods up front. Who is emailed as owners
+   * and the status pages are not read: no break depends on them.
+   *
+   * Not cached: its reader keeps its own answer (SetupHealthService).
+   */
+  @CaptureSpan()
+  public static async resolveProject(data: {
+    projectId: ObjectID;
+    monitors: Array<Monitor>;
+    readiness?: Array<UserReadiness> | undefined;
+  }): Promise<Array<WhoIsToldResult>> {
+    if (data.monitors.length === 0) {
+      return [];
+    }
+
+    const monitorCache: MonitorRuleCriteriaCache =
+      new MonitorRuleCriteriaCache();
+
+    for (const monitor of data.monitors) {
+      monitorCache.seed(monitor);
+    }
+
+    const [incidentRules, alertRules]: [
+      Array<IncidentOnCallRule>,
+      Array<AlertOnCallRule>,
+    ] = await Promise.all([
+      IncidentOnCallRuleEngineService.readEnabledRules(data.projectId),
+      AlertOnCallRuleEngineService.readEnabledRules(data.projectId),
+    ]);
+
+    const project: ProjectContext = await this.readProjectContext({
+      projectId: data.projectId,
+      matching: {
+        incidentRules: incidentRules,
+        alertRules: alertRules,
+        monitorCache: monitorCache,
+      },
+      isForBreaksOnly: true,
+    });
+
+    for (const person of data.readiness || []) {
+      project.verifiedChannels.set(
+        person.userId.toString(),
+        this.verifiedChannelsOf(person),
+      );
+    }
+
+    const results: Array<WhoIsToldResult> = [];
+
+    for (const monitor of data.monitors) {
+      results.push(
+        await this.resolveMonitor({ project: project, monitor: monitor }),
+      );
+    }
+
+    return results;
+  }
+
+  // What every monitor of a project shares, read once.
+  private static async readProjectContext(data: {
+    projectId: ObjectID;
+    matching: PreloadedMatching | null;
+    isForBreaksOnly: boolean;
+  }): Promise<ProjectContext> {
     const project: Project | null = await ProjectService.findOneById({
       id: data.projectId,
       select: {
@@ -464,44 +598,87 @@ export class WhoIsToldService {
       project: project,
     });
 
-    const context: ResolveContext = {
+    return {
       projectId: data.projectId,
-      monitor: monitor,
       project: project,
+      channels: channels,
       incidentSeverities: await this.readIncidentSeverities(data.projectId),
       alertSeverities: await this.readAlertSeverities(data.projectId),
       statuses: await this.readStatuses(data.projectId),
       policyNames: await this.readPolicyNames(data.projectId),
-      hasIncidentOwnerRules:
-        (
-          await IncidentOwnerRuleService.countBy({
-            query: { projectId: data.projectId, isEnabled: true },
-            props: { isRoot: true },
-          })
-        ).toNumber() > 0,
-      hasAlertOwnerRules:
-        (
-          await AlertOwnerRuleService.countBy({
-            query: { projectId: data.projectId, isEnabled: true },
-            props: { isRoot: true },
-          })
-        ).toNumber() > 0,
+      hasIncidentOwnerRules: await this.hasEnabled(
+        IncidentOwnerRuleService,
+        data.projectId,
+      ),
+      hasAlertOwnerRules: await this.hasEnabled(
+        AlertOwnerRuleService,
+        data.projectId,
+      ),
+      projectHasIncidentOnCallRules: await this.hasEnabled(
+        IncidentOnCallRuleService,
+        data.projectId,
+      ),
+      projectHasAlertOnCallRules: await this.hasEnabled(
+        AlertOnCallRuleService,
+        data.projectId,
+      ),
       projectOwnerNames: null,
-      monitorOwnerNames: null,
-      statusPages: await this.readStatusPages({
-        projectId: data.projectId,
-        monitorId: data.monitorId,
-      }),
       channelsOff: getChannelsSwitchedOff(channels),
       isFallbackEnabled: !project?.disableOnCallNotificationFallback,
       firstLevels: new Map<string, FirstLevel>(),
       people: new Map<string, WhoIsToldPerson>(),
+      previews: new Map<string, OnCallTestPagePreviewPerson>(),
       verifiedChannels: new Map<string, Array<OnCallPageChannel>>(),
+      matching: data.matching,
+      isForBreaksOnly: data.isForBreaksOnly,
+    };
+  }
+
+  // Whether the project has an enabled rule of this kind.
+  private static async hasEnabled(
+    service: {
+      countBy: (args: {
+        query: { projectId: ObjectID; isEnabled: boolean };
+        props: DatabaseCommonInteractionProps;
+      }) => Promise<{ toNumber: () => number }>;
+    },
+    projectId: ObjectID,
+  ): Promise<boolean> {
+    return (
+      (
+        await service.countBy({
+          query: { projectId: projectId, isEnabled: true },
+          props: { isRoot: true },
+        })
+      ).toNumber() > 0
+    );
+  }
+
+  // One monitor's answer, from what its project shares.
+  private static async resolveMonitor(data: {
+    project: ProjectContext;
+    monitor: Monitor;
+  }): Promise<WhoIsToldResult> {
+    const monitorId: string = idText(data.monitor.id);
+
+    const context: ResolveContext = {
+      ...data.project,
+      monitor: data.monitor,
+      monitorOwnerNames: null,
+      statusPages:
+        data.project.isForBreaksOnly || !monitorId
+          ? []
+          : await this.readStatusPages({
+              projectId: data.project.projectId,
+              monitorId: new ObjectID(monitorId),
+            }),
     };
 
     const criteria: Array<WhoIsToldCriteria> = [];
 
-    for (const instance of getMonitorCriteriaInstances(monitor.monitorSteps)) {
+    for (const instance of getMonitorCriteriaInstances(
+      data.monitor.monitorSteps,
+    )) {
       const item: WhoIsToldCriteria | null = await this.resolveCriteria({
         context: context,
         instance: instance,
@@ -512,33 +689,17 @@ export class WhoIsToldService {
       }
     }
 
-    const projectHasIncidentOnCallRules: boolean =
-      (
-        await IncidentOnCallRuleService.countBy({
-          query: { projectId: data.projectId, isEnabled: true },
-          props: { isRoot: true },
-        })
-      ).toNumber() > 0;
-
-    const projectHasAlertOnCallRules: boolean =
-      (
-        await AlertOnCallRuleService.countBy({
-          query: { projectId: data.projectId, isEnabled: true },
-          props: { isRoot: true },
-        })
-      ).toNumber() > 0;
-
     return {
-      monitorId: data.monitorId.toString(),
-      monitorName: monitor.name?.toString() || "",
+      monitorId: monitorId,
+      monitorName: data.monitor.name?.toString() || "",
       checkedAt: OneUptimeDate.getCurrentDate().toISOString(),
       criteria: criteria,
-      channels: channels,
+      channels: context.channels,
       breaks: getWhoIsToldBreaks({
         criteria: criteria,
-        channels: channels,
-        projectHasIncidentOnCallRules: projectHasIncidentOnCallRules,
-        projectHasAlertOnCallRules: projectHasAlertOnCallRules,
+        channels: context.channels,
+        projectHasIncidentOnCallRules: context.projectHasIncidentOnCallRules,
+        projectHasAlertOnCallRules: context.projectHasAlertOnCallRules,
       }),
     };
   }
@@ -607,7 +768,9 @@ export class WhoIsToldService {
         item.statusColor = status.color.toString();
       }
 
-      item.statusOwners = await this.getMonitorOwners(data.context);
+      if (!data.context.isForBreaksOnly) {
+        item.statusOwners = await this.getMonitorOwners(data.context);
+      }
     }
 
     return item;
@@ -635,8 +798,12 @@ export class WhoIsToldService {
     incident.monitors = [data.context.monitor];
     incident.labels = this.toLabels(data.template.labelIds);
 
-    const rules: Array<IncidentOnCallRule> =
-      await IncidentOnCallRuleEngineService.getMatchingRules(incident);
+    const rules: Array<IncidentOnCallRule> = data.context.matching
+      ? await IncidentOnCallRuleEngineService.getMatchingRules(incident, {
+          rules: data.context.matching.incidentRules,
+          monitorCache: data.context.matching.monitorCache,
+        })
+      : await IncidentOnCallRuleEngineService.getMatchingRules(incident);
 
     return await this.makeEvent({
       context: data.context,
@@ -673,8 +840,12 @@ export class WhoIsToldService {
     alert.monitorId = data.context.monitor.id!;
     alert.labels = this.toLabels(data.template.labelIds);
 
-    const rules: Array<AlertOnCallRule> =
-      await AlertOnCallRuleEngineService.getMatchingRules(alert);
+    const rules: Array<AlertOnCallRule> = data.context.matching
+      ? await AlertOnCallRuleEngineService.getMatchingRules(alert, {
+          rules: data.context.matching.alertRules,
+          monitorCache: data.context.matching.monitorCache,
+        })
+      : await AlertOnCallRuleEngineService.getMatchingRules(alert);
 
     return await this.makeEvent({
       context: data.context,
@@ -774,14 +945,49 @@ export class WhoIsToldService {
     return {
       kind: data.kind,
       severityName: data.severityName,
-      owners: await this.getEventOwners({
-        context: data.context,
-        kind: data.kind,
-        template: data.template,
-      }),
+      owners: data.context.isForBreaksOnly
+        ? this.getUnreadOwners({
+            context: data.context,
+            kind: data.kind,
+            template: data.template,
+          })
+        : await this.getEventOwners({
+            context: data.context,
+            kind: data.kind,
+            template: data.template,
+          }),
       rules: rules,
       policies: policies,
       statusPages: data.statusPages,
+    };
+  }
+
+  /*
+   * Who an incident or alert emails as its owners, without their names:
+   * for an answer that only its breaks are read from (resolveProject).
+   */
+  private static getUnreadOwners(data: {
+    context: ResolveContext;
+    kind: OnCallTestPageRecordKind;
+    template: CriteriaIncident | CriteriaAlert;
+  }): WhoIsToldOwners {
+    const namesSomebody: boolean = [
+      ...(data.template.ownerUserIds || []),
+      ...(data.template.ownerTeamIds || []),
+    ].some((id: ObjectID): boolean => {
+      return Boolean(idText(id));
+    });
+
+    return {
+      source: namesSomebody
+        ? WhoIsToldOwnersSource.Named
+        : WhoIsToldOwnersSource.ProjectOwners,
+      userNames: [],
+      teamNames: [],
+      hasOwnerRules:
+        data.kind === OnCallTestPageRecordKind.Alert
+          ? data.context.hasAlertOwnerRules
+          : data.context.hasIncidentOwnerRules,
     };
   }
 
@@ -874,15 +1080,22 @@ export class WhoIsToldService {
     for (const person of readiness) {
       data.context.verifiedChannels.set(
         person.userId.toString(),
-        person.methods
-          .filter((method: ReadinessMethod): boolean => {
-            return method.isVerified;
-          })
-          .map((method: ReadinessMethod): OnCallPageChannel => {
-            return method.methodType as OnCallPageChannel;
-          }),
+        this.verifiedChannelsOf(person),
       );
     }
+  }
+
+  // A person's verified methods, by channel: what the fallback pages.
+  private static verifiedChannelsOf(
+    person: UserReadiness,
+  ): Array<OnCallPageChannel> {
+    return person.methods
+      .filter((method: ReadinessMethod): boolean => {
+        return method.isVerified;
+      })
+      .map((method: ReadinessMethod): OnCallPageChannel => {
+        return method.methodType as OnCallPageChannel;
+      });
   }
 
   private static async resolvePerson(data: {
@@ -899,8 +1112,16 @@ export class WhoIsToldService {
       return known;
     }
 
-    const preview: OnCallTestPagePreviewPerson =
-      await OnCallTestPageService.getPersonPreview({
+    /*
+     * A person's paging rules for a kind and severity are read once,
+     * however many ways and monitors reach them.
+     */
+    const previewKey: string = `${data.userId.toString()}|${data.kind}|${data.severityId.toString()}`;
+    let preview: OnCallTestPagePreviewPerson | undefined =
+      data.context.previews.get(previewKey);
+
+    if (!preview) {
+      preview = await OnCallTestPageService.getPersonPreview({
         projectId: data.context.projectId,
         userId: data.userId,
         recordKind: data.kind,
@@ -909,6 +1130,9 @@ export class WhoIsToldService {
         reachedThrough: data.reachedThrough,
         project: data.context.project,
       });
+
+      data.context.previews.set(previewKey, preview);
+    }
 
     const person: WhoIsToldPerson = {
       userId: data.userId.toString(),
