@@ -36,6 +36,7 @@ import {
   ReplayTabSummary,
   computeReplayTabSpan,
   describeReplayTabCounts,
+  describeReplayTabGroupHeading,
   describeReplayTabName,
   describeReplayTabOpened,
   describeReplayTabPage,
@@ -102,14 +103,17 @@ const STATUS_DOT_CLASS: Record<ReplayTabStatus, string> = {
 };
 
 /*
- * The word a tooltip uses for a status. "unknown" and "empty" have none
- * on purpose: the server did not say, and a tooltip that guessed would be
- * the one claim an evidence tool must not make. English keys, looked up
- * where the tooltip is written.
+ * A tab's name with what the server says of it, for the tooltip: "Tab 2
+ * (still open)", "Tab 2 (closed)". Each is a sentence with the tab in it,
+ * so a language words the state for a tab, in a tab's gender, and never
+ * with the bare "Open" that every Open button reads (a verb: German
+ * "Öffnen"). "unknown" and "empty" have none on purpose: the server did
+ * not say, and a tooltip that guessed would be the one claim an evidence
+ * tool must not make. English keys, looked up where the tooltip is written.
  */
-const STATUS_TITLE_WORD: Record<ReplayTabStatus, string | null> = {
-  open: translationKey("Open"),
-  closed: translationKey("Closed"),
+const NAME_WITH_STATUS: Record<ReplayTabStatus, string | null> = {
+  open: translationKey("{{tab}} (still open)"),
+  closed: translationKey("{{tab}} (closed)"),
   unknown: null,
   empty: null,
 };
@@ -145,8 +149,8 @@ export function describeReplayTabDuration(
 }
 
 /*
- * "Tab 2 · Open · /checkout · opened 2:14 · 30s — switch to this tab; the
- * playhead stays where it is". The pill itself only has room for a couple
+ * "Tab 2 (still open) · /checkout · opened 2:14 · 30s — switch to this tab;
+ * the playhead stays where it is". The pill itself only has room for a couple
  * of those parts at a narrow width, so the tooltip carries all of them.
  * One sentence in the translator's language, its facts worded in the
  * sentence's language too.
@@ -165,13 +169,13 @@ export function buildReplayTabPillTitle(
   const facts: (sentence: Translator) => string = (
     sentence: Translator,
   ): string => {
-    const parts: Array<string> = [describeReplayTabName(tab, sentence)];
-    const statusWord: string | null =
-      STATUS_TITLE_WORD[getReplayTabStatus(tab)];
-
-    if (statusWord !== null) {
-      parts.push(sentence.translateText(statusWord) || statusWord);
-    }
+    const nameWithStatus: string | null =
+      NAME_WITH_STATUS[getReplayTabStatus(tab)];
+    const parts: Array<string> = [
+      nameWithStatus === null
+        ? describeReplayTabName(tab, sentence)
+        : sentence.translateTemplate(nameWithStatus, tabNameValue(tab)),
+    ];
 
     const page: string = describeReplayTabPage(readReplayTabUrl(tab));
 
@@ -604,9 +608,12 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
     const status: ReplayTabStatus = getReplayTabStatus(tab);
 
     /*
-     * One word where the open run ends. Without it the strip reads as one
+     * A word where the open run ends. Without it the strip reads as one
      * undifferentiated row and the dots alone have to carry "these three
-     * are still going, those two are done".
+     * are still going, those two are done". "Closed tabs", never the bare
+     * "Closed" that cases and pull requests use: a language words it for
+     * tabs, in their gender, as the summary beside it does (Spanish
+     * "Pestañas cerradas" next to "5 cerradas", not "Cerrado").
      */
     if (status === "closed" && hasDrawnOpenPill && !hasDrawnClosedDivider) {
       hasDrawnClosedDivider = true;
@@ -617,7 +624,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           data-testid="replay-tab-strip-divider"
           className="shrink-0 px-1 text-[11px] font-medium uppercase tracking-wide text-gray-400"
         >
-          {translator.translateText("Closed")}
+          {translator.translateText("Closed tabs")}
         </span>,
       );
     }
@@ -914,13 +921,9 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
                           );
                         }
 
-                        /* "Open · 3": the group's title, then its count. */
-                        const heading: string = formatInline(
-                          [
-                            translator.translateText(group.title) ||
-                              group.title,
-                            translator.formatNumber(group.tabs.length),
-                          ],
+                        /* "3 still open": the group's count of tabs. */
+                        const heading: string = describeReplayTabGroupHeading(
+                          group,
                           translator,
                         );
 

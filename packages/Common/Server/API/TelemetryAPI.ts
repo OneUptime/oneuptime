@@ -176,7 +176,7 @@ import ProfileSample from "../../Models/AnalyticsModels/ProfileSample";
 import ProfileService from "../Services/ProfileService";
 import ProfileSampleService from "../Services/ProfileSampleService";
 import SortOrder from "../../Types/BaseDatabase/SortOrder";
-import Permission from "../../Types/Permission";
+import Permission, { PermissionHelper } from "../../Types/Permission";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import PaymentRequiredException from "../../Types/Exception/PaymentRequiredException";
 import SubscriptionPlan, {
@@ -5579,6 +5579,16 @@ const SESSION_REPLAY_IDENTITY_PERMISSIONS: Array<Permission> = [
 ];
 
 /*
+ * The sentence that tells a caller without SESSION_REPLAY_IDENTITY_PERMISSIONS
+ * what to ask for, naming the grant by the title the roles screen shows
+ * ("Watch Session Replays"), never a "session replay identity permission"
+ * a project admin cannot find there.
+ */
+const ASK_FOR_SESSION_REPLAY_IDENTITY: string = `Ask a project admin for the "${PermissionHelper.getTitle(
+  Permission.ReadRumSessionReplayPayload,
+)}" permission.`;
+
+/*
  * Whose session replays the caller may read under a set of permissions: the
  * RUM applications their grants reach, by the rule every telemetry read
  * follows (TelemetryReadAccess.getScopeForPermissions) - a grant that
@@ -7761,7 +7771,7 @@ router.post(
 
       if (search && !includeLabel) {
         throw new BadDataException(
-          "Your role cannot see who signed-in users are, so it cannot search them by name. Ask a project admin for the session replay identity permission.",
+          `Your role cannot see who signed-in users are, so it cannot search them by name. ${ASK_FOR_SESSION_REPLAY_IDENTITY}`,
         );
       }
 
@@ -8351,7 +8361,7 @@ const readUserFlowScope: ReadUserFlowScopeFunction = (data: {
 
       if (!data.canReadIdentity) {
         throw new BadDataException(
-          "Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead, or ask a project admin for the session replay identity permission.",
+          `Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead. ${ASK_FOR_SESSION_REPLAY_IDENTITY}`,
         );
       }
 

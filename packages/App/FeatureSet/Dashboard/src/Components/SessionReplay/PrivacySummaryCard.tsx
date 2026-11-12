@@ -5,8 +5,10 @@ import Icon from "Common/UI/Components/Icon/Icon";
 import { joinSentences } from "Common/UI/Components/DeleteConfirmation/DeleteConsequences";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
+  composedValue,
   createTranslator,
   DEFAULT_LANGUAGE,
+  formatList,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import SessionReplayMaskingMode from "Common/Types/Rum/SessionReplayMaskingMode";
@@ -106,42 +108,65 @@ export function buildPrivacySummary(
     : (input.maskingMode as string);
   const maskCount: number = countSelectors(input.maskSelectors);
   const blockCount: number = countSelectors(input.blockSelectors);
-  const extras: Array<string> = [];
-
-  if (maskCount > 0) {
-    extras.push(
-      translator.translatePlural(
-        {
-          one: "{{count}} extra selector masked",
-          other: "{{count}} extra selectors masked",
-        },
-        maskCount,
-      ),
-    );
-  }
-
-  if (blockCount > 0) {
-    extras.push(
-      translator.translatePlural(
-        {
-          one: "{{count}} selector blocked entirely",
-          other: "{{count}} selectors blocked entirely",
-        },
-        blockCount,
-      ),
-    );
-  }
-
-  if (input.recordCanvas === true) {
-    extras.push(translateLine("canvas contents recorded"));
-  }
 
   /*
-   * What the policy adds to its mode, after the mode's sentence: each fact
-   * whole in the reader's language, the facts run together with semicolons.
+   * What the policy adds to its mode, each fact whole in the language of
+   * the sentence they are listed in.
    */
-  const extrasSentence: string =
-    extras.length > 0 ? `${extras.join("; ")}.` : "";
+  const describeExtras: (sentence: Translator) => Array<string> = (
+    sentence: Translator,
+  ): Array<string> => {
+    const extras: Array<string> = [];
+
+    if (maskCount > 0) {
+      extras.push(
+        sentence.translatePlural(
+          {
+            one: "{{count}} extra selector masked",
+            other: "{{count}} extra selectors masked",
+          },
+          maskCount,
+        ),
+      );
+    }
+
+    if (blockCount > 0) {
+      extras.push(
+        sentence.translatePlural(
+          {
+            one: "{{count}} selector blocked entirely",
+            other: "{{count}} selectors blocked entirely",
+          },
+          blockCount,
+        ),
+      );
+    }
+
+    if (input.recordCanvas === true) {
+      extras.push(
+        sentence.translateText("canvas contents recorded") ||
+          "canvas contents recorded",
+      );
+    }
+
+    return extras;
+  };
+
+  /*
+   * After the mode's sentence, one sentence of its own: the facts listed
+   * with the reader's separator ("、" in Japanese and Chinese, "، " in
+   * Arabic and Persian) and ended with the reader's full stop, never an
+   * English "; " and "." inside a Chinese line.
+   */
+  const hasExtras: boolean =
+    maskCount > 0 || blockCount > 0 || input.recordCanvas === true;
+  const extrasSentence: string = hasExtras
+    ? translator.translateTemplate("Also: {{facts}}.", {
+        facts: composedValue((sentence: Translator): string => {
+          return formatList(describeExtras(sentence), sentence);
+        }),
+      })
+    : "";
 
   let modeText: string;
   let pageTextSensitive: boolean;
