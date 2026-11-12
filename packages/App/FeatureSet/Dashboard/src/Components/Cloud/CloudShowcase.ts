@@ -73,10 +73,10 @@ const CLOUD_SHOWCASE: ResourceShowcase = {
     name: "production · 123456789012",
     subtitle: translationKey("AWS · 248 resources"),
     stats: [
-      { label: translationKey("Resources"), value: "248" },
-      { label: translationKey("Needs attention"), value: "2" },
-      { label: translationKey("Spend this month"), value: "$4,120" },
-      { label: translationKey("Savings available"), value: "$310" },
+      { label: translationKey("Resources"), value: 248 },
+      { label: translationKey("Needs attention"), value: 2 },
+      { label: translationKey("Spend this month"), value: { usDollars: 4120 } },
+      { label: translationKey("Savings available"), value: { usDollars: 310 } },
     ],
     // A day's spend a bar would show: lower at weekends, a little up a week.
     chart: {

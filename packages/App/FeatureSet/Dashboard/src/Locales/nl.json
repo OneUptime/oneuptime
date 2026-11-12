@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "{{count}}+ resultaten",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "{{count}}+ resultaten",
   "{{count}}d ago": "{{count}} d geleden",
   "{{count}}h ago": "{{count}} u geleden",
   "{{count}}m ago": "{{count}} min geleden",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, tot {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "De AI las deze {{count}} bestanden eerder in dit antwoord en heeft de tekst ervan niet meer, en de versies van de AI vervangen de hele bestanden: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "De AI las dit bestand eerder in dit antwoord en heeft de tekst ervan niet meer, en de versie van de AI vervangt het hele bestand: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "De AI las dit bestand eerder in dit antwoord en heeft de tekst ervan niet meer, en de versie van de AI vervangt het hele bestand: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "De AI las dit bestand eerder in dit antwoord en heeft de tekst ervan niet meer, en de versie van de AI vervangt het hele bestand: {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "{{count}} metrieken",
+  "{{count}} metrics_one": "{{count}} metriek",
+  "{{count}}+ exceptions": "{{count}}+ uitzonderingen",
+  "{{count}}+ logs": "{{count}}+ logboeken",
+  "{{count}}+ metrics": "{{count}}+ metrieken",
+  "{{count}}+ security events": "{{count}}+ beveiligingsgebeurtenissen",
+  "{{count}}+ spans": "{{count}}+ spans",
+  "{{count}}+ traces": "{{count}}+ traces"
 }

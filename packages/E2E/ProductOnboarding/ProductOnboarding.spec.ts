@@ -1900,6 +1900,58 @@ async function overflowingBoxes(page: Page): Promise<Array<string>> {
   });
 }
 
+/*
+ * The example's figures, written the reader's way (#6535): "1,284" in
+ * English, "1.284" in German, "۱٬۲۸۴" in Persian, and a unit in the
+ * language's own words ("۱۸۴ میلی‌ثانیه"). A figure is never cut short, and
+ * one that takes a second line - a unit a language writes long, under its
+ * number - is listed: English and German keep every figure on one line.
+ * Each product's figures, by its explanation.
+ */
+interface DrawnStatValues {
+  values: Record<string, Array<string>>;
+  cut: Array<string>;
+  wrapped: Array<string>;
+}
+
+async function drawnStatValues(page: Page): Promise<DrawnStatValues> {
+  return page.evaluate((): DrawnStatValues => {
+    const values: Record<string, Array<string>> = {};
+    const cut: Array<string> = [];
+    const wrapped: Array<string> = [];
+
+    for (const section of Array.from(
+      document.querySelectorAll('[data-testid="product-explanation"]'),
+    )) {
+      const product: string = section.getAttribute("data-product") || "";
+
+      for (const value of Array.from(
+        section.querySelectorAll(
+          '[data-testid="resource-showcase-stat-value"]',
+        ),
+      )) {
+        const text: string = (value.textContent || "").trim();
+
+        (values[product] = values[product] || []).push(text);
+        if (value.scrollWidth > value.clientWidth + 1) {
+          cut.push(
+            `${product}: "${text}" is cut, ${value.scrollWidth}px in ${value.clientWidth}px`,
+          );
+        }
+
+        const lineHeight: number = parseFloat(
+          window.getComputedStyle(value).lineHeight,
+        );
+        if (value.getBoundingClientRect().height > lineHeight * 1.5) {
+          wrapped.push(`${product}: "${text}"`);
+        }
+      }
+    }
+
+    return { values, cut, wrapped };
+  });
+}
+
 async function shootEveryExplanation(page: Page, name: string): Promise<void> {
   if (!SHOOTS_EVERY_EXPLANATION) {
     return;
@@ -1977,11 +2029,50 @@ test("every product explains itself the same way: its name, its pitch, its first
   }
 
   expect(await overflowingBoxes(page)).toEqual([]);
+  // Four figures to an example, each whole: Status Pages' subscribers "1,284".
+  const figures: DrawnStatValues = await drawnStatValues(page);
+  expect(figures.values["status-pages"]).toContain("1,284");
+  expect(figures.cut).toEqual([]);
+  expect(figures.wrapped).toEqual([]);
   await expectNoSidewaysScroll(page, {
     message: "every product's explanation at 1280px",
   });
   await shootEveryExplanation(page, "1280");
 });
+
+/*
+ * A figure is longer in some languages than in English: "1,82 Mio." for
+ * "1.82M", "۱۸۴ میلی‌ثانیه" for "184 ms". At a laptop's width an example's
+ * four tiles stand in one row, the narrowest they are drawn. German keeps
+ * each figure on one line; Persian's long unit words take a second line
+ * under their number, and are never cut.
+ */
+for (const reader of [
+  { language: "German", lang: "de", subscribers: "1.284", oneLine: true },
+  { language: "Persian", lang: "fa", subscribers: "۱٬۲۸۴", oneLine: false },
+]) {
+  test(`every product's example in ${reader.language} at a laptop's width: its figures written the ${reader.language} way, none cut short`, async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openExplanations(page, `lang=${reader.lang}`);
+
+    const figures: DrawnStatValues = await drawnStatValues(page);
+
+    expect(figures.values["status-pages"]).toContain(reader.subscribers);
+    expect(
+      Object.values(figures.values).flat().length,
+      "every example draws its figures",
+    ).toBeGreaterThan(100);
+    expect(figures.cut).toEqual([]);
+    if (reader.oneLine) {
+      expect(figures.wrapped).toEqual([]);
+    }
+    await shootEveryExplanation(page, `1280-${reader.lang}`);
+  });
+}
 
 for (const reader of [
   { language: "German", lang: "de", words: GERMAN, theme: "light" },
@@ -2047,6 +2138,11 @@ for (const reader of [
     }
 
     expect(await overflowingBoxes(page)).toEqual([]);
+    const figures: DrawnStatValues = await drawnStatValues(page);
+    expect(figures.cut).toEqual([]);
+    if (reader.lang === "de") {
+      expect(figures.wrapped).toEqual([]);
+    }
     await expectNoSidewaysScroll(page, {
       message: `every product's explanation in ${reader.language} at 390px`,
     });

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50698,
-    "untranslated": 9713
+    "keys": 50749,
+    "untranslated": 9711
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -489,6 +489,7 @@
     "{{count}} volumes",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}}+ spans",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",

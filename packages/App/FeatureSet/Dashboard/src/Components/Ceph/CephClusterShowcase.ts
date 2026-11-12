@@ -68,10 +68,13 @@ const CEPH_CLUSTER_SHOWCASE: ResourceShowcase = {
     name: "ceph-prod",
     subtitle: translationKey("Reef 18.2.4 · 12 OSDs · 3 monitors · 8 pools"),
     stats: [
-      { label: translationKey("Capacity used"), value: "62.4%" },
-      { label: translationKey("OSDs up"), value: "11/12" },
-      { label: translationKey("Mons in quorum"), value: "3/3" },
-      { label: translationKey("Degraded PGs"), value: "34" },
+      { label: translationKey("Capacity used"), value: { percent: 62.4 } },
+      { label: translationKey("OSDs up"), value: { count: 11, outOf: 12 } },
+      {
+        label: translationKey("Mons in quorum"),
+        value: { count: 3, outOf: 3 },
+      },
+      { label: translationKey("Degraded PGs"), value: 34 },
     ],
     chart: {
       label: translationKey("Capacity used"),

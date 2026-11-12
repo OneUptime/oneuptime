@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, hasta {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "La IA leyó estos {{count}} archivos antes en esta misma respuesta y ya no tiene su texto, y sus versiones los reemplazan enteros: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "La IA leyó este archivo antes en esta misma respuesta y ya no tiene su texto, y su versión lo reemplaza entero: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "La IA leyó este archivo antes en esta misma respuesta y ya no tiene su texto, y su versión lo reemplaza entero: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "La IA leyó este archivo antes en esta misma respuesta y ya no tiene su texto, y su versión lo reemplaza entero: {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "{{count}} métricas",
+  "{{count}} metrics_one": "{{count}} métrica",
+  "{{count}}+ exceptions": "{{count}}+ excepciones",
+  "{{count}}+ logs": "{{count}}+ registros",
+  "{{count}}+ metrics": "{{count}}+ métricas",
+  "{{count}}+ security events": "{{count}}+ eventos de seguridad",
+  "{{count}}+ spans": "{{count}}+ spans",
+  "{{count}}+ traces": "{{count}}+ trazas"
 }

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50698,
-    "untranslated": 9756
+    "keys": 50749,
+    "untranslated": 9754
   },
   "sameAsEnglish": [
     " is",
@@ -771,6 +771,8 @@
     "{{count}} week",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}}+ spans",
+    "{{count}}+ traces",
     "{{count}}d",
     "{{count}}m",
     "{{count}}s",

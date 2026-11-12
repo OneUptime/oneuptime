@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50698,
+    "keys": 50749,
     "untranslated": 2305
   },
   "sameAsEnglish": [
@@ -660,6 +660,7 @@
     "{{count}} vCPU",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}}+ spans",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",

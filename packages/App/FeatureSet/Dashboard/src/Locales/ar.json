@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}، حتى {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "قرأ الذكاء الاصطناعي هذه الملفات (العدد: {{count}}) في وقت سابق من هذه الإجابة ولم يعد لديه نصها، وتحل نسخ الذكاء الاصطناعي محلها بالكامل: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "قرأ الذكاء الاصطناعي هذا الملف في وقت سابق من هذه الإجابة ولم يعد لديه نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "قرأ الذكاء الاصطناعي هذا الملف في وقت سابق من هذه الإجابة ولم يعد لديه نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "قرأ الذكاء الاصطناعي هذا الملف في وقت سابق من هذه الإجابة ولم يعد لديه نصه، وتحل نسخة الذكاء الاصطناعي محل الملف بالكامل: {{files}}.",
+  "less than {{percent}}": "أقل من {{percent}}",
+  "{{count}} metrics": "المقاييس: {{count}}",
+  "{{count}} metrics_one": "{{count}} مقياس",
+  "{{count}}+ exceptions": "الاستثناءات: {{count}}+",
+  "{{count}}+ logs": "السجلات: {{count}}+",
+  "{{count}}+ metrics": "المقاييس: {{count}}+",
+  "{{count}}+ security events": "الأحداث الأمنية: {{count}}+",
+  "{{count}}+ spans": "الامتدادات: {{count}}+",
+  "{{count}}+ traces": "التتبعات: {{count}}+"
 }

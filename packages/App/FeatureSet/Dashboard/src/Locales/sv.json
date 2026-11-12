@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "{{count}}+ resultat",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "{{count}}+ resultat",
   "{{count}}d ago": "för {{count}} d sedan",
   "{{count}}h ago": "för {{count}} h sedan",
   "{{count}}m ago": "för {{count}} min sedan",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, till {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI läste de här {{count}} filerna tidigare i det här svaret och har inte längre deras text, och AI:s versioner ersätter filerna i sin helhet: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI läste den här filen tidigare i det här svaret och har inte längre dess text, och AI:s version ersätter hela filen: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI läste den här filen tidigare i det här svaret och har inte längre dess text, och AI:s version ersätter hela filen: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI läste den här filen tidigare i det här svaret och har inte längre dess text, och AI:s version ersätter hela filen: {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "{{count}} mätvärden",
+  "{{count}} metrics_one": "{{count}} mätvärde",
+  "{{count}}+ exceptions": "{{count}}+ undantag",
+  "{{count}}+ logs": "{{count}}+ loggar",
+  "{{count}}+ metrics": "{{count}}+ mätvärden",
+  "{{count}}+ security events": "{{count}}+ säkerhetshändelser",
+  "{{count}}+ spans": "{{count}}+ spann",
+  "{{count}}+ traces": "{{count}}+ spår"
 }

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50698,
-    "untranslated": 5457
+    "keys": 50749,
+    "untranslated": 5456
   },
   "sameAsEnglish": [
     " incidents",
@@ -756,6 +756,9 @@
     "{{count}} volumes",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}}+ exceptions",
+    "{{count}}+ spans",
+    "{{count}}+ traces",
     "{{in}} in",
     "{{minutes}} min",
     "{{protocol}} port {{port}}",

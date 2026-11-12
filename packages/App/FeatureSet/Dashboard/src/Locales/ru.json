@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "Результатов: {{count}}+",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "Результатов: {{count}}+",
   "{{count}}d ago": "{{count}} д назад",
   "{{count}}h ago": "{{count}} ч назад",
   "{{count}}m ago": "{{count}} мин назад",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, до {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "ИИ прочитал эти файлы ({{count}}) раньше в этом же ответе и больше не видит их текста, а версии ИИ заменяют их целиком: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "Метрик: {{count}}",
+  "{{count}} metrics_one": "{{count}} метрика",
+  "{{count}}+ exceptions": "Исключений: {{count}}+",
+  "{{count}}+ logs": "Журналов: {{count}}+",
+  "{{count}}+ metrics": "Метрик: {{count}}+",
+  "{{count}}+ security events": "Событий безопасности: {{count}}+",
+  "{{count}}+ spans": "Спанов: {{count}}+",
+  "{{count}}+ traces": "Трассировок: {{count}}+"
 }

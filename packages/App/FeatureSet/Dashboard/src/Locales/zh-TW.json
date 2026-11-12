@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}，至 {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI 在本次回答中稍早讀取了這 {{count}} 個檔案，但已不再掌握其內容，而 AI 的版本會取代整個檔案：{{files}}。",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI 在本次回答中稍早讀取了此檔案，但已不再掌握其內容，而 AI 的版本會取代整個檔案：{{files}}。",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI 在本次回答中稍早讀取了此檔案，但已不再掌握其內容，而 AI 的版本會取代整個檔案：{{files}}。"
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI 在本次回答中稍早讀取了此檔案，但已不再掌握其內容，而 AI 的版本會取代整個檔案：{{files}}。",
+  "less than {{percent}}": "不到 {{percent}}",
+  "{{count}} metrics": "{{count}} 個指標",
+  "{{count}} metrics_one": "{{count}} 個指標",
+  "{{count}}+ exceptions": "{{count}}+ 個例外",
+  "{{count}}+ logs": "{{count}}+ 筆日誌",
+  "{{count}}+ metrics": "{{count}}+ 個指標",
+  "{{count}}+ security events": "{{count}}+ 個安全事件",
+  "{{count}}+ spans": "{{count}}+ 個跨度",
+  "{{count}}+ traces": "{{count}}+ 個追蹤"
 }

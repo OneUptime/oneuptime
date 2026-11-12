@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "{{count}}+ risultati",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "{{count}}+ risultati",
   "{{count}}d ago": "{{count}} g fa",
   "{{count}}h ago": "{{count}} h fa",
   "{{count}}m ago": "{{count}} min fa",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, fino alle {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "L'IA ha letto questi {{count}} file in precedenza in questa risposta e non ne ha più il testo, e le sue versioni li sostituiscono per intero: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "L'IA ha letto questo file in precedenza in questa risposta e non ne ha più il testo, e la sua versione lo sostituisce per intero: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "L'IA ha letto questo file in precedenza in questa risposta e non ne ha più il testo, e la sua versione lo sostituisce per intero: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "L'IA ha letto questo file in precedenza in questa risposta e non ne ha più il testo, e la sua versione lo sostituisce per intero: {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "{{count}} metriche",
+  "{{count}} metrics_one": "{{count}} metrica",
+  "{{count}}+ exceptions": "{{count}}+ eccezioni",
+  "{{count}}+ logs": "{{count}}+ log",
+  "{{count}}+ metrics": "{{count}}+ metriche",
+  "{{count}}+ security events": "{{count}}+ eventi di sicurezza",
+  "{{count}}+ spans": "{{count}}+ span",
+  "{{count}}+ traces": "{{count}}+ tracce"
 }

@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, until {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.",
+  "less than {{percent}}": "less than {{percent}}",
+  "{{count}} metrics": "{{count}} metrics",
+  "{{count}} metrics_one": "{{count}} metric",
+  "{{count}}+ exceptions": "{{count}}+ exceptions",
+  "{{count}}+ logs": "{{count}}+ logs",
+  "{{count}}+ metrics": "{{count}}+ metrics",
+  "{{count}}+ security events": "{{count}}+ security events",
+  "{{count}}+ spans": "{{count}}+ spans",
+  "{{count}}+ traces": "{{count}}+ traces"
 }

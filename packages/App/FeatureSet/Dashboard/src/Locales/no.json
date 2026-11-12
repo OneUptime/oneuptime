@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "{{count}}+ resultater",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "{{count}}+ resultater",
   "{{count}}d ago": "for {{count}} d siden",
   "{{count}}h ago": "for {{count}} t siden",
   "{{count}}m ago": "for {{count}} min siden",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, til {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI leste disse {{count}} filene tidligere i dette svaret og har ikke lenger teksten i dem, og AI-versjonene erstatter filene i sin helhet: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI leste denne filen tidligere i dette svaret og har ikke lenger teksten i den, og AI-versjonen erstatter hele filen: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI leste denne filen tidligere i dette svaret og har ikke lenger teksten i den, og AI-versjonen erstatter hele filen: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI leste denne filen tidligere i dette svaret og har ikke lenger teksten i den, og AI-versjonen erstatter hele filen: {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "{{count}} metrikker",
+  "{{count}} metrics_one": "{{count}} metrikk",
+  "{{count}}+ exceptions": "{{count}}+ unntak",
+  "{{count}}+ logs": "{{count}}+ logger",
+  "{{count}}+ metrics": "{{count}}+ metrikker",
+  "{{count}}+ security events": "{{count}}+ sikkerhetshendelser",
+  "{{count}}+ spans": "{{count}}+ spenn",
+  "{{count}}+ traces": "{{count}}+ spor"
 }

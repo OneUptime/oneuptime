@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "{{count}}+ نتیجه",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "{{count}}+ نتیجه",
   "{{count}}d ago": "{{count}} روز پیش",
   "{{count}}h ago": "{{count}} ساعت پیش",
   "{{count}}m ago": "{{count}} دقیقه پیش",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}، تا {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "هوش مصنوعی این {{count}} فایل را پیش‌تر در همین پاسخ خوانده است و دیگر متن آن‌ها را ندارد و نسخه‌های هوش مصنوعی جایگزین کل این فایل‌ها می‌شوند: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "هوش مصنوعی این فایل را پیش‌تر در همین پاسخ خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را پیش‌تر در همین پاسخ خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "هوش مصنوعی این فایل را پیش‌تر در همین پاسخ خوانده است و دیگر متن آن را ندارد و نسخهٔ هوش مصنوعی جایگزین کل فایل می‌شود: {{files}}.",
+  "less than {{percent}}": "کمتر از {{percent}}",
+  "{{count}} metrics": "{{count}} متریک",
+  "{{count}} metrics_one": "{{count}} متریک",
+  "{{count}}+ exceptions": "{{count}}+ استثنا",
+  "{{count}}+ logs": "{{count}}+ لاگ",
+  "{{count}}+ metrics": "{{count}}+ متریک",
+  "{{count}}+ security events": "{{count}}+ رویداد امنیتی",
+  "{{count}}+ spans": "{{count}}+ اسپن",
+  "{{count}}+ traces": "{{count}}+ ترِیس"
 }

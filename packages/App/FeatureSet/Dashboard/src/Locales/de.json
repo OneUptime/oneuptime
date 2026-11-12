@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "{{count}}+ Ergebnisse",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "{{count}}+ Ergebnisse",
   "{{count}}d ago": "vor {{count}} Tg.",
   "{{count}}h ago": "vor {{count}} Std.",
   "{{count}}m ago": "vor {{count}} Min.",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, bis {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "Die KI hat diese {{count}} Dateien zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Versionen der KI ersetzen die Dateien ganz: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "Die KI hat diese Datei zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei zuvor in dieser Antwort gelesen und kennt ihren Text nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "{{count}} Metriken",
+  "{{count}} metrics_one": "{{count}} Metrik",
+  "{{count}}+ exceptions": "{{count}}+ Ausnahmen",
+  "{{count}}+ logs": "{{count}}+ Protokolle",
+  "{{count}}+ metrics": "{{count}}+ Metriken",
+  "{{count}}+ security events": "{{count}}+ Sicherheitsereignisse",
+  "{{count}}+ spans": "{{count}}+ Spans",
+  "{{count}}+ traces": "{{count}}+ Traces"
 }

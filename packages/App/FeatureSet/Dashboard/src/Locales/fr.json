@@ -21569,7 +21569,7 @@
   "{{count}} {{itemsName}} imported successfully.": "{{count}} {{itemsName}} imported successfully.",
   "{{count}} {{itemsName}} imported successfully._one": "{{count}} {{itemName}} imported successfully.",
   "{{count}}+ results": "{{count}}+ résultats",
-  "{{count}}+ results_one": "{{count}}+ results",
+  "{{count}}+ results_one": "{{count}}+ résultats",
   "{{count}}d ago": "il y a {{count}} j",
   "{{count}}h ago": "il y a {{count}} h",
   "{{count}}m ago": "il y a {{count}} min",
@@ -50778,5 +50778,14 @@
   "{{schedule}}, until {{time}}": "{{schedule}}, jusqu'à {{time}}",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "L'IA a lu ces {{count}} fichiers plus tôt dans cette réponse et n'en a plus le texte, et ses versions les remplacent en entier : {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "L'IA a lu ce fichier plus tôt dans cette réponse et n'en a plus le texte, et sa version le remplace en entier : {{files}}.",
-  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "L'IA a lu ce fichier plus tôt dans cette réponse et n'en a plus le texte, et sa version le remplace en entier : {{files}}."
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "L'IA a lu ce fichier plus tôt dans cette réponse et n'en a plus le texte, et sa version le remplace en entier : {{files}}.",
+  "less than {{percent}}": "<{{percent}}",
+  "{{count}} metrics": "{{count}} métriques",
+  "{{count}} metrics_one": "{{count}} métrique",
+  "{{count}}+ exceptions": "{{count}}+ exceptions",
+  "{{count}}+ logs": "{{count}}+ journaux",
+  "{{count}}+ metrics": "{{count}}+ métriques",
+  "{{count}}+ security events": "{{count}}+ événements de sécurité",
+  "{{count}}+ spans": "{{count}}+ spans",
+  "{{count}}+ traces": "{{count}}+ traces"
 }
