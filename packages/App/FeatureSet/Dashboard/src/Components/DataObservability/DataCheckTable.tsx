@@ -1,6 +1,10 @@
 import AppLink from "../AppLink/AppLink";
 import DataObservabilityApi from "./DataObservabilityApi";
 import FailingRowsModal from "./FailingRowsModal";
+import {
+  DATA_CHECK_ALERT_CONDITION_LABELS,
+  getDataCheckAlertConditionWords,
+} from "./DataCheckAlertConditionWords";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -103,9 +107,13 @@ const LAST_RUN_OPTIONS: Array<DropdownOption> = [
   { value: DataCheckRunStatus.Failed, label: "Could Not Run" },
 ];
 
+// Each condition by its name, which the dropdown draws in the reader's language.
 const ALERT_OPTIONS: Array<DropdownOption> = DATA_CHECK_ALERT_CONDITIONS.map(
   (condition: DataCheckAlertCondition): DropdownOption => {
-    return { value: condition, label: condition };
+    return {
+      value: condition,
+      label: DATA_CHECK_ALERT_CONDITION_LABELS[condition],
+    };
   },
 );
 
@@ -753,11 +761,12 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
                 );
               }
 
-              const text: string = doesAlertConditionNeedThreshold(
-                check.alertCondition,
-              )
-                ? `${check.alertCondition} ${check.alertThreshold ?? ""}`
-                : check.alertCondition;
+              // "Above 0" in the reader's words, the number where they put it.
+              const text: string = getDataCheckAlertConditionWords({
+                translator: translator,
+                condition: check.alertCondition,
+                threshold: check.alertThreshold,
+              });
 
               return check.monitorId ? (
                 <AppLink

@@ -282,7 +282,7 @@ describe("whether the line under the title names what the action's lists stand f
   );
 
   test("every code change line is one of them, and none of them is any other line", () => {
-    expect(AI_ACTION_CODE_CHANGE_LINES).toHaveLength(8);
+    expect(AI_ACTION_CODE_CHANGE_LINES).toHaveLength(9);
     for (const template of AI_ACTION_CODE_CHANGE_LINES) {
       expect(
         AI_ACTION_PLURAL_SENTENCES.some((plural: PluralTemplate): boolean => {

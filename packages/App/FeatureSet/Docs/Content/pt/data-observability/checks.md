@@ -37,7 +37,7 @@ Cada verificação roda a cada 15 minutos, hora, 6 horas ou dia, como uma única
 
 Defina **Gerar alerta quando** para alertar sobre uma verificação:
 
-- **Unusually High** ou **Unusually Low** compara cada valor com a sua própria linha de base aprendida para aquela hora da semana.
+- **Incomumente alto** ou **Incomumente baixo** compara cada valor com a sua própria linha de base aprendida para aquela hora da semana.
 - **Acima de** ou **Abaixo de** o compara com um limite.
 
 Salvar a verificação cria um monitor de métricas para ela, em seu nome e com as suas permissões. Limpar a condição remove o monitor.

@@ -824,3 +824,126 @@ describe("a file read in an earlier answer, and one left out of this one", () =>
     );
   }, 120_000);
 });
+
+/*
+ * Issue #6984: a file read in two parts, the first left out by the time
+ * the model writes. It read every line, so the card never says it read
+ * only part, and the model is never told it has not read lines it read:
+ * it read them earlier, and no longer has them.
+ */
+describe("a file read in two parts, the first left out since (#6984)", () => {
+  // 800 short lines: 400 to a read, so two reads read all of it.
+  const LONG: string = shortLines(800, "v");
+
+  const startLongRepository: () => void = (): void => {
+    repository = makeRepository({ files: { "fix/login": { [CHARGE]: LONG } } });
+  };
+
+  const READ_LINES: (
+    id: string,
+    startLine: number,
+    endLine: number,
+  ) => ToolCall = (
+    id: string,
+    startLine: number,
+    endLine: number,
+  ): ToolCall => {
+    return {
+      id,
+      name: "read_code_file",
+      arguments: {
+        filePath: CHARGE,
+        branchName: "fix/login",
+        startLine,
+        endLine,
+      },
+    };
+  };
+
+  // The first half, three long results, the second half: the first half is left out.
+  const HALVES_THEN_QUERIES: Array<ToolCall> = [
+    READ_LINES("call-first-half", 1, 400),
+    JOURNAL_PAGE(1),
+    JOURNAL_PAGE(2),
+    JOURNAL_PAGE(3),
+    READ_LINES("call-second-half", 401, 800),
+  ];
+
+  const PART_NO_LONGER_IN_HAND: string = `Ask AI read this file and no longer has part of its text, and its version replaces all of it: ${CHARGE}.`;
+
+  test("Ask to act: the card says Ask AI read it and no longer has part of it - never that it read only part", async () => {
+    startLongRepository();
+    const spies: Spies = installSpies({
+      turns: rounds([...HALVES_THEN_QUERIES, COMMIT_CHARGE(fixed(LONG))]),
+    });
+
+    await ChatAgentRunner.runTurn(buildRequest());
+
+    // When the model wrote, the first half was a note, and the second half still in hand.
+    expect(
+      heldWhenAsking({
+        spies,
+        askedBy: "call-commit",
+        answerOf: "call-first-half",
+      }),
+    ).toMatch(new RegExp(`^\\${ELIDED_TOOL_RESULT_PREFIX}`));
+    expect(
+      heldWhenAsking({
+        spies,
+        askedBy: "call-commit",
+        answerOf: "call-second-half",
+      }),
+    ).toContain("v800 = 800;");
+
+    const action: AIChatToolAction = commitAction(spies);
+    expect(action.status).toBe(AIChatToolActionStatus.Pending);
+    expect(action.description).toBe(PART_NO_LONGER_IN_HAND);
+    expect(templatesOf(action)).toEqual([
+      AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand.other,
+    ]);
+    expect(repository.commits).toEqual([]);
+  }, 120_000);
+
+  test("Auto-run: not made - the model is told it read lines 1-400 earlier and no longer has them, reads them again, and commits", async () => {
+    startLongRepository();
+    const spies: Spies = installSpies({
+      turns: [
+        ...rounds([
+          ...HALVES_THEN_QUERIES,
+          COMMIT_CHARGE(fixed(LONG), "call-memory"),
+          READ_LINES("call-first-half-again", 1, 400),
+          COMMIT_CHARGE(fixed(LONG), "call-after-reading"),
+        ]),
+        { answer: response({ content: "Doubled line 40's charge." }) },
+      ],
+    });
+
+    await ChatAgentRunner.runTurn(
+      buildRequest({ permissionMode: AIChatPermissionMode.AutoRun }),
+    );
+
+    expect(toldModel(spies, "call-memory")).toBe(
+      [
+        "Not done: nothing was committed to fix/login, because you read these files before and no longer have all of their text:",
+        `- ${CHARGE} has 800 lines on fix/login, and you read lines 1-400 earlier and no longer have them.`,
+        'Read the lines you no longer have again now, on fix/login with read_code_file, branchName "fix/login", startLine and endLine, and write each file whole right after you read them: a commit replaces each file whole, and you no longer have the text you read of those lines before.',
+      ].join("\n"),
+    );
+    expect(toldModel(spies, "call-memory")).not.toContain("not read");
+
+    const actions: Array<AIChatToolAction> = toolActionsOf(spies);
+    expect(
+      actions.map((action: AIChatToolAction) => {
+        return [action.id, action.status];
+      }),
+    ).toEqual([
+      ["call-memory", AIChatToolActionStatus.Skipped],
+      ["call-after-reading", AIChatToolActionStatus.Executed],
+    ]);
+    expect(actions[0]!.resultSummary).toBe(
+      "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
+    );
+    expect(repository.commits).toHaveLength(1);
+    expect(repository.branches.get("fix/login")!.get(CHARGE)).toBe(fixed(LONG));
+  }, 120_000);
+});
