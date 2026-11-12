@@ -29,6 +29,7 @@ import ObjectID from "../../../Types/ObjectID";
 import {
   createReferencingTable,
   expectClaimLocksHoldOnlyTheRow,
+  expectConcurrentClaimsHandOutEachRowOnce,
   expectHeldRowSkipped,
 } from "../TestingUtils/Postgres/ClaimRowLocks";
 import { DataSource } from "typeorm";
@@ -553,7 +554,7 @@ describePostgres("Data store probe claims against Postgres", () => {
       ).toEqual([...claim.kinds].sort());
     });
 
-    test("hands out no more than the limit, and two claims at once never hand out one store twice", async () => {
+    test("hands out no more than the limit, and four claims at once hand out each store once", async () => {
       const ids: Array<string> = [];
 
       for (let index: number = 0; index < 6; index++) {
@@ -570,14 +571,13 @@ describePostgres("Data store probe claims against Postgres", () => {
         ids.slice(0, 2),
       );
 
-      const [left, right] = await Promise.all([
-        claim.claim({ probeId: probeId, limit: 4 }),
-        claim.claim({ probeId: probeId, limit: 4 }),
-      ]);
-
-      const handedOut: Array<string> = [...idsOf(left!), ...idsOf(right!)];
-      expect(new Set(handedOut).size).toBe(handedOut.length);
-      expect([...handedOut].sort()).toEqual([...ids.slice(2)].sort());
+      // The rest, shared by four claims at once: none twice, none lost.
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: ids.slice(2),
+        claim: async (limit: number): Promise<Array<string>> => {
+          return idsOf(await claim.claim({ probeId: probeId, limit: limit }));
+        },
+      });
     });
 
     test("a store another writer holds is skipped, not waited for, and is handed out once it is free", async () => {

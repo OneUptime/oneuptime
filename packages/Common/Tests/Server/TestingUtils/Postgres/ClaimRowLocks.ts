@@ -12,6 +12,8 @@ import { DataSource, QueryRunner } from "typeorm";
  * moves them on in the same self-committing statement. Each suite proves
  * two things of its own claim with these:
  *
+ * - Claims at once hand out each due row exactly once: none twice, none
+ *   lost.
  * - A row another writer holds is skipped, never waited for, and is handed
  *   out once it is free.
  * - While a claim holds its rows, a row that names one of them is still
@@ -78,6 +80,34 @@ export async function holdRow(data: {
       await holder.release();
     },
   };
+}
+
+/*
+ * Four claims at once, each with room for its share of the due rows: every
+ * due row is handed out exactly once - to no two claims, and to none
+ * lost. A claim skips the rows another is claiming and takes the next due
+ * ones, and passes over a row another has just moved on.
+ *
+ * `claim` hands out up to `limit` rows, and answers their ids.
+ */
+export async function expectConcurrentClaimsHandOutEachRowOnce(data: {
+  due: Array<string>;
+  claims?: number;
+  claim: (limit: number) => Promise<Array<string>>;
+}): Promise<void> {
+  const claims: number = data.claims ?? 4;
+  const limit: number = Math.ceil(data.due.length / claims);
+
+  const handedOut: Array<string> = (
+    await Promise.all(
+      Array.from({ length: claims }, (): Promise<Array<string>> => {
+        return data.claim(limit);
+      }),
+    )
+  ).flat();
+
+  expect(new Set(handedOut).size).toBe(handedOut.length);
+  expect([...handedOut].sort()).toEqual([...data.due].sort());
 }
 
 /*

@@ -22,6 +22,7 @@ import VMwareProbeCollectionStore, {
 import {
   createReferencingTable,
   expectClaimLocksHoldOnlyTheRow,
+  expectConcurrentClaimsHandOutEachRowOnce,
   expectHeldRowSkipped,
 } from "../TestingUtils/Postgres/ClaimRowLocks";
 import { Gray500 } from "../../../Types/BrandColors";
@@ -530,7 +531,7 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
       ).toEqual(IsBillingEnabled ? [] : [vcenter.toString()]);
     });
 
-    test("hands out no more than the free slots, and two claims at once never hand out one vCenter twice", async () => {
+    test("hands out no more than the free slots, and four claims at once hand out each vCenter once", async () => {
       const ids: Array<string> = [];
 
       for (let index: number = 0; index < 6; index++) {
@@ -551,22 +552,19 @@ describePostgres("VMware probe collection SQL against Postgres", () => {
         });
       expect(idsOf(firstTwo)).toEqual(ids.slice(0, 2));
 
-      const [left, right] = await Promise.all([
-        VMwareVCenterService.claimForCollection({
-          probeId: probeId,
-          runningVMwareVCenterIds: [],
-          limit: 4,
-        }),
-        VMwareVCenterService.claimForCollection({
-          probeId: probeId,
-          runningVMwareVCenterIds: [],
-          limit: 4,
-        }),
-      ]);
-
-      const handedOut: Array<string> = [...idsOf(left!), ...idsOf(right!)];
-      expect(new Set(handedOut).size).toBe(handedOut.length);
-      expect([...handedOut].sort()).toEqual([...ids.slice(2)].sort());
+      // The rest, shared by four claims at once: none twice, none lost.
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: ids.slice(2),
+        claim: async (limit: number): Promise<Array<string>> => {
+          return idsOf(
+            await VMwareVCenterService.claimForCollection({
+              probeId: probeId,
+              runningVMwareVCenterIds: [],
+              limit: limit,
+            }),
+          );
+        },
+      });
     });
 
     /*

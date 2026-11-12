@@ -31,6 +31,7 @@ import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollect
 import {
   createReferencingTable,
   expectClaimLocksHoldOnlyTheRow,
+  expectConcurrentClaimsHandOutEachRowOnce,
   expectHeldRowSkipped,
 } from "../TestingUtils/Postgres/ClaimRowLocks";
 import { DataSource } from "typeorm";
@@ -550,6 +551,62 @@ describePostgres("OpenStack checks' SQL against Postgres", () => {
         // Only the lifecycle check's time moves.
         expect((row["nextApiCheckAt"] as Date).getTime()).toBeLessThan(before);
       }
+    });
+
+    test("four claims at once hand out each due check once, of either kind", async () => {
+      const apiChecks: Array<string> = [];
+      const lifecycleChecks: Array<string> = [];
+
+      for (let index: number = 0; index < 8; index++) {
+        apiChecks.push(
+          (
+            await insertCheck({
+              cloudId: await insertCloud(),
+              next: minutesFromNow(-20 + index),
+            })
+          ).toString(),
+        );
+        lifecycleChecks.push(
+          (
+            await insertCheck({
+              cloudId: await insertCloud(),
+              isApiOn: false,
+              isLifecycleOn: true,
+              next: minutesFromNow(-20 + index),
+            })
+          ).toString(),
+        );
+      }
+
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: apiChecks,
+        claim: async (limit: number): Promise<Array<string>> => {
+          return (
+            await OpenStackCloudCheckService.claimApiChecks({
+              probeId: probeId,
+              runningIds: [],
+              limit: limit,
+            })
+          ).map((job: OpenStackApiCheckJob): string => {
+            return job.openStackCloudCheckId;
+          });
+        },
+      });
+
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: lifecycleChecks,
+        claim: async (limit: number): Promise<Array<string>> => {
+          return (
+            await OpenStackCloudCheckService.claimLifecycleChecks({
+              probeId: probeId,
+              runningIds: [],
+              limit: limit,
+            })
+          ).map((job: OpenStackLifecycleCheckJob): string => {
+            return job.openStackCloudCheckId;
+          });
+        },
+      });
     });
 
     test("a check another writer holds is skipped, not waited for, and is handed out once it is free", async () => {
