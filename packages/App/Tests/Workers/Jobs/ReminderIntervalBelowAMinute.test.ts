@@ -346,11 +346,15 @@ beforeEach(() => {
 
   /*
    * The clock reads NOW everywhere: OneUptimeDate.isInTheFuture reads
-   * `new Date()`, not getCurrentDate. Only Date is faked - timers run.
+   * `new Date()`, not getCurrentDate. Only Date is faked - timers run. And
+   * performance and hrtime are left alone: the fake timers of App's jest
+   * cannot redefine Node's performance ("Cannot redefine property").
    */
   jest.useFakeTimers({
     now: NOW,
     doNotFake: [
+      "hrtime",
+      "performance",
       "nextTick",
       "setImmediate",
       "clearImmediate",
