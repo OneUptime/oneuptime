@@ -212,6 +212,8 @@
     "{{count}} KB",
     "{{count}} Kubernetes",
     "{{count}} MB",
+    "{{count}} OSD",
+    "{{count}} SLO",
     "{{count}} SMS",
     "{{count}} VM",
     "{{count}} vCPU",

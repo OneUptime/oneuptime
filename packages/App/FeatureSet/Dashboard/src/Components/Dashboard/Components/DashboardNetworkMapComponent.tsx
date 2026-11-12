@@ -421,7 +421,10 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
     return (
       <DashboardResourceListBase
         title={args.title}
-        pluralLabel="sites"
+        countLabel={{
+          one: "{{count}} site",
+          other: "{{count}} sites",
+        }}
         columns={COLUMNS}
         count={sites.length}
         isLoading={isLoading}

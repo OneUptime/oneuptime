@@ -387,8 +387,17 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
               className="text-sm font-semibold text-gray-700 tracking-tight truncate"
             />
           )}
+          {/*
+           * The description, read the way its words are written (#7092): it
+           * wraps, so an English one on an Arabic or Persian board starts
+           * each of its lines at its own start, and ends at its own end.
+           */}
           {description && (
-            <p className="mt-0.5 text-xs text-gray-400">{description}</p>
+            <DashboardWidgetLine
+              as="p"
+              text={description}
+              className="mt-0.5 text-xs text-gray-400 whitespace-normal"
+            />
           )}
         </div>
         <span className="text-xs text-gray-400 tabular-nums whitespace-nowrap">

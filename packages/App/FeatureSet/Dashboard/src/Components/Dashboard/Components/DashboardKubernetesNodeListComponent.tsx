@@ -22,6 +22,7 @@ import {
   buildReadinessTile,
   READINESS_LEGEND,
 } from "./DashboardKubernetesTileHelpers";
+import { getUnnamedText } from "./DashboardWidgetFallbackWords";
 
 const ATTRIBUTE_TO_COLUMN: AttributeToColumnMap = {
   "k8s.node.name": "name",
@@ -41,7 +42,7 @@ const COLUMNS: Array<ResourceListColumn> = [
 
 function renderNodeRow(r: KubernetesResource): ReactElement {
   const id: string = (r._id as string) || "";
-  const name: string = (r.name as string) || "Unnamed";
+  const name: string = (r.name as string) || getUnnamedText();
   const isReady: boolean | undefined = r.isReady as boolean | undefined;
   const clusterName: string = (r.kubernetesCluster?.name as string) || "—";
   const clusterId: string = (r.kubernetesClusterId?.toString() as string) || "";
@@ -189,7 +190,10 @@ const DashboardKubernetesNodeListComponentElement: FunctionComponent<
       componentType={DashboardComponentType.KubernetesNodeList}
       widgetProps={props}
       title={args.title}
-      pluralLabel="nodes"
+      countLabel={{
+        one: "{{count}} node",
+        other: "{{count}} nodes",
+      }}
       emptyMessage="No nodes found"
       emptyIcon={IconProp.Server}
       columns={COLUMNS}

@@ -17,6 +17,7 @@ import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ValueFormatter, { FormattedValue } from "Common/Utils/ValueFormatter";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 import {
   getValueContentBox,
   getValueWidgetLayout,
@@ -694,6 +695,22 @@ export const getValueWidgetTrendTone: (data: {
 };
 
 /*
+ * The trend's percentage (rounded to a tenth), as the reader's language
+ * writes it (#7094): "12.5%", "12,5 %" in German, "۱۲٫۵٪" in Persian.
+ */
+export const writeValueWidgetTrendPercent: (
+  percent: number,
+  translator: Translator,
+) => string = (percent: number, translator: Translator): string => {
+  return formatReaderFigure(Math.abs(percent), {
+    decimals: 1,
+    dropTrailingZeros: true,
+    isPercent: true,
+    language: translator.language,
+  });
+};
+
+/*
  * The one sentence that says what the arrow means: which way, by how much,
  * and against what. It is the chip's accessible name and the first line of
  * its tooltip.
@@ -702,7 +719,10 @@ export const getValueWidgetTrendSentence: (
   trend: ValueWidgetTrend,
   translator: Translator,
 ) => string = (trend: ValueWidgetTrend, translator: Translator): string => {
-  const percent: string = `${Math.abs(trend.percent ?? 0)}%`;
+  const percent: string = writeValueWidgetTrendPercent(
+    trend.percent ?? 0,
+    translator,
+  );
 
   if (trend.direction === ValueWidgetTrendDirection.Flat) {
     return translator.translateTemplate(
@@ -853,7 +873,7 @@ export const ValueWidgetTrendChip: FunctionComponent<
         <span className="font-medium tabular-nums">
           {trend.percent === null
             ? translator.translateTemplate("from 0")
-            : `${Math.abs(trend.percent)}%`}
+            : writeValueWidgetTrendPercent(trend.percent, translator)}
         </span>
       </span>
     </Tooltip>
@@ -1200,10 +1220,16 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     ? hoveredPoint.value
     : aggregatedValue;
 
+  /*
+   * In the reader's language (#7094): "73,40 %" in German, "۷۳٫۴۰٪" in
+   * Persian, as the SLO tiles write theirs.
+   */
+  const language: string = translator.language;
+
   const displayParts: FormattedValue = ValueFormatter.formatValueCompact(
     displayValue,
     rawUnit,
-    { metricName },
+    { metricName, language },
   );
 
   /*
@@ -1217,6 +1243,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   const sizingParts: FormattedValue = hoveredPoint
     ? ValueFormatter.formatValueCompact(aggregatedValue, rawUnit, {
         metricName,
+        language,
       })
     : displayParts;
 
@@ -1304,7 +1331,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
     const parts: FormattedValue = ValueFormatter.formatValueCompact(
       value,
       rawUnit,
-      { metricName },
+      { metricName, language },
     );
 
     return props.hideUnit ? parts.value : parts.formatted;
@@ -1445,9 +1472,10 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
               className="text-gray-500 font-normal"
               style={{ fontSize: `${layout.unitFontSizeInPx}px` }}
             >
-              {displayParts.unit === "%"
-                ? displayParts.unit
-                : ` ${displayParts.unit}`}
+              {/* "1.5 MB" and German's "73,40 %" leave a gap; "73.40%" none. */}
+              {ValueFormatter.isUnitSetApart(displayParts)
+                ? ` ${displayParts.unit}`
+                : displayParts.unit}
             </span>
           )}
         </div>

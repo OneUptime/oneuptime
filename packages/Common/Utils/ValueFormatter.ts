@@ -3,10 +3,22 @@
  * Converts raw values like 1048576 bytes → "1 MB", 3661 seconds → "1.02 hr", etc.
  */
 
+import { getNumberLocale, isEnglishDateLanguage } from "../Types/DateLanguage";
+
 export interface FormattedValue {
   value: string; // e.g. "1.5"
   unit: string; // e.g. "MB"
   formatted: string; // e.g. "1.5 MB"
+}
+
+export interface ValueFormatterOptions {
+  metricName?: string;
+  /*
+   * The reader's language ("de", "fa"): the number is written the way it
+   * writes numbers (writeNumberInLanguage). None, or English, writes it
+   * exactly as it always was.
+   */
+  language?: string | undefined;
 }
 
 type UnitThreshold = {
@@ -421,6 +433,144 @@ function formatPercent(value: number): string {
 }
 
 /*
+ * THE NUMBER IN THE READER'S LANGUAGE (#7094).
+ *
+ * The formatter writes its numbers the way English does - "73.40", "1.5K" -
+ * and a Gauge or a Value widget drew them so on every board: Latin digits
+ * and a point on a Persian one, beside an SLO tile that wrote "۹۹٫۹٪", and
+ * "73.4" where German writes "73,4". Given the reader's language, a number
+ * keeps exactly the decimals and the scale letter (K, M, B, T, P) it was
+ * written with, in that language's digits, decimal sign and minus: "73,40"
+ * in German, "۷۳٫۴۰" in Persian, Latin digits in Arabic (getNumberLocale).
+ * A percentage takes the language's own percent sign and spacing, as the
+ * SLO tiles write theirs: "73,40 %", "۷۳٫۴۰٪". No language, or English,
+ * writes every number exactly as before.
+ */
+
+// A number as formatNumber and formatPercent write it: "73.40", "-1.5", "119.25B".
+const WRITTEN_NUMBER: RegExp = /^(-?\d+)(?:\.(\d+))?([KMBTP]?)$/;
+
+// What follows a number that sets its unit apart: a space, or a no-break one.
+const STARTS_WITH_SPACE: RegExp = /^\s/;
+
+// One Intl format per language, decimals and style: a board writes many numbers.
+const languageNumberFormats: Map<string, Intl.NumberFormat | null> = new Map<
+  string,
+  Intl.NumberFormat | null
+>();
+
+function getLanguageNumberFormat(
+  language: string,
+  decimals: number,
+  isPercent: boolean,
+): Intl.NumberFormat | null {
+  const key: string = [
+    language,
+    decimals,
+    isPercent ? "percent" : "decimal",
+  ].join("|");
+
+  if (!languageNumberFormats.has(key)) {
+    let format: Intl.NumberFormat | null = null;
+
+    try {
+      format = new Intl.NumberFormat(getNumberLocale(language), {
+        style: isPercent ? "percent" : "decimal",
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      });
+    } catch {
+      format = null;
+    }
+
+    languageNumberFormats.set(key, format);
+  }
+
+  return languageNumberFormats.get(key) || null;
+}
+
+/*
+ * `text`, a number this formatter wrote in English, written in `language`:
+ * the number (with its scale letter), the percent sign when it is a
+ * percentage ("" otherwise), and the two as the language joins them. Null
+ * where there is nothing to rewrite - English, or a text that is not a
+ * number - and the English stands.
+ */
+function writeNumberInLanguage(
+  text: string,
+  isPercent: boolean,
+  language: string | undefined,
+): { value: string; percentSign: string; formatted: string } | null {
+  if (isEnglishDateLanguage(language)) {
+    return null;
+  }
+
+  const match: RegExpExecArray | null = WRITTEN_NUMBER.exec(text);
+
+  if (!match) {
+    return null;
+  }
+
+  const fraction: string = match[2] || "";
+  const scaleLetter: string = match[3] || "";
+  const format: Intl.NumberFormat | null = getLanguageNumberFormat(
+    (language || "").trim(),
+    fraction.length,
+    isPercent,
+  );
+
+  if (!format) {
+    return null;
+  }
+
+  const number: number = Number(
+    fraction ? `${match[1]}.${fraction}` : match[1],
+  );
+  const parts: Array<Intl.NumberFormatPart> = format.formatToParts(
+    isPercent ? number / 100 : number,
+  );
+
+  /*
+   * Everything but the percent sign is the number - a negative's minus and
+   * the mark that keeps it before its digits on a page read from the right
+   * too - except the space or the marks set beside the sign (German's
+   * space, Arabic's marks), which go with the sign.
+   */
+  const value: string = parts
+    .filter((part: Intl.NumberFormatPart, index: number): boolean => {
+      if (part.type === "percentSign") {
+        return false;
+      }
+
+      return (
+        part.type !== "literal" ||
+        (parts[index - 1]?.type !== "percentSign" &&
+          parts[index + 1]?.type !== "percentSign")
+      );
+    })
+    .map((part: Intl.NumberFormatPart): string => {
+      return part.value;
+    })
+    .join("");
+  const percentSign: string =
+    parts.find((part: Intl.NumberFormatPart): boolean => {
+      return part.type === "percentSign";
+    })?.value || "";
+
+  return {
+    value: `${value}${scaleLetter}`,
+    percentSign: percentSign,
+    formatted: isPercent
+      ? parts
+          .map((part: Intl.NumberFormatPart): string => {
+            return part.value;
+          })
+          .join("")
+      : `${value}${scaleLetter}`,
+  };
+}
+
+/*
  * Whether a formatted value carries the spelled-out unit name ("Milliseconds")
  * or its symbol ("ms"). Readable is what charts, badges and the metric details
  * modal want; compact is for width-constrained surfaces like the dashboard
@@ -467,7 +617,7 @@ function compactThresholdUnit(unit: string): string {
 function formatValueParts(
   value: number,
   unit: string,
-  options: { metricName?: string } | undefined,
+  options: ValueFormatterOptions | undefined,
   unitStyle: UnitStyle,
 ): FormattedValue {
   const trimmedUnit: string = (unit || "").trim();
@@ -476,6 +626,31 @@ function formatValueParts(
     partValue: string,
     partUnit: string,
   ): FormattedValue => {
+    // In the reader's language, when one is given (#7094).
+    const inLanguage: {
+      value: string;
+      percentSign: string;
+      formatted: string;
+    } | null = writeNumberInLanguage(
+      partValue,
+      partUnit === "%",
+      options?.language,
+    );
+
+    if (inLanguage) {
+      return partUnit === "%"
+        ? {
+            value: inLanguage.value,
+            unit: inLanguage.percentSign || partUnit,
+            formatted: inLanguage.formatted,
+          }
+        : {
+            value: inLanguage.value,
+            unit: partUnit,
+            formatted: joinValueAndUnit(inLanguage.value, partUnit),
+          };
+    }
+
     return {
       value: partValue,
       unit: partUnit,
@@ -576,13 +751,52 @@ export default class ValueFormatter {
    * e.g. formatValue(3661, "seconds") → "1.02 hr"
    * e.g. formatValue(42, "%") → "42%"
    * e.g. formatValue(0.25, "1", { metricName: "system.cpu.utilization" }) → "25%"
+   * e.g. formatValue(73.4, "%", { language: "de" }) → "73,40 %"
    */
   public static formatValue(
     value: number,
     unit: string,
-    options?: { metricName?: string },
+    options?: ValueFormatterOptions,
   ): string {
     return formatValueParts(value, unit, options, "readable").formatted;
+  }
+
+  /*
+   * formatValue, but returning the number and the unit separately, the unit
+   * named as formatValue names it ("hours", "Bytes per Second"). For a
+   * widget that draws the two at different sizes, as formatValueCompact is
+   * for one that draws the unit's symbol: the Gauge split the joined string
+   * at its last space, which put "requests per" in the big-number span and
+   * cannot find the number in "73,40 %" or "۷۳٫۴۰٪".
+   */
+  public static formatValueInParts(
+    value: number,
+    unit: string,
+    options?: ValueFormatterOptions,
+  ): FormattedValue {
+    return formatValueParts(value, unit, options, "readable");
+  }
+
+  /*
+   * Whether `parts` set their unit apart from the number - "1.5 MB", and
+   * "73,40 %" in German - or write it right after it: "73.40%", "۷۳٫۴۰٪".
+   * What a widget that draws the number and the unit in spans of their own
+   * leaves between them.
+   */
+  public static isUnitSetApart(parts: FormattedValue): boolean {
+    if (!parts.unit) {
+      return false;
+    }
+
+    const valueStart: number = parts.formatted.indexOf(parts.value);
+
+    if (valueStart < 0) {
+      return parts.unit !== "%";
+    }
+
+    return STARTS_WITH_SPACE.test(
+      parts.formatted.slice(valueStart + parts.value.length),
+    );
   }
 
   /*
@@ -657,7 +871,7 @@ export default class ValueFormatter {
   public static formatValueCompact(
     value: number,
     unit: string,
-    options?: { metricName?: string },
+    options?: ValueFormatterOptions,
   ): FormattedValue {
     return formatValueParts(value, unit, options, "compact");
   }

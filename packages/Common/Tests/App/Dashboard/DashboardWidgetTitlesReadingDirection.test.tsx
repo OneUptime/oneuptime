@@ -721,11 +721,18 @@ describe("a Gauge's title, centred over the gauge", () => {
   /*
    * The arc fills from the left in every language, as a chart's time runs,
    * so its bounds under it are laid out left to right too: mirrored on an
-   * Arabic board, "100" sat under the end the fill starts from.
+   * Arabic board, "100" sat under the end the fill starts from. The bounds
+   * are written in the board's digits: Persian's own on a Persian board
+   * (#7094).
    */
-  test.each(["ar", "fa", "de", "en"])(
+  test.each([
+    ["ar", ["0", "100"]],
+    ["fa", ["۰", "۱۰۰"]],
+    ["de", ["0", "100"]],
+    ["en", ["0", "100"]],
+  ])(
     "on a %s board the minimum sits under the arc's left end and the maximum under its right",
-    async (language: string) => {
+    async (language: string, expectedBounds: Array<string>) => {
       await inLanguage(language);
       render(<GaugeWidgetView {...GAUGE_PROPS} />);
 
@@ -736,7 +743,7 @@ describe("a Gauge's title, centred over the gauge", () => {
         Array.from(bounds.children).map((bound: Element): string => {
           return bound.textContent || "";
         }),
-      ).toEqual(["0", "100"]);
+      ).toEqual(expectedBounds);
     },
   );
 

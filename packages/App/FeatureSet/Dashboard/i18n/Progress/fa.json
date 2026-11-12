@@ -383,6 +383,8 @@
     "{{count}} DNS zone",
     "{{count}} Kubernetes",
     "{{count}} OID",
+    "{{count}} OSD",
+    "{{count}} SLO",
     "{{count}} VM",
     "{{count}} datastore",
     "{{count}} load balancer",
