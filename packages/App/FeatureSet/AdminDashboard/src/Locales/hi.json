@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "डेटाबेस माइग्रेशन अभी चल रहे हैं: {{count}} बाकी हैं। ये OneUptime के शुरू होते समय चलते हैं।",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "कुछ मिनट रुकें। अगर ये पूरे न हों, तो OneUptime को दोबारा शुरू करें और ऐप का लॉग पढ़ें।",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "ClickHouse की डिस्क {{disk}} पर {{total}} में से {{free}} खाली है। भरने पर ClickHouse टेलीमेट्री सहेजना बंद कर देगा।",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "डिस्क को ज़्यादा जगह दें, या OneUptime Health के ClickHouse पेज पर अपने-आप छँटाई चालू करें।",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "डिस्क को ज़्यादा जगह दें, या OneUptime स्वास्थ्य के ClickHouse पेज पर अपने-आप छँटाई चालू करें।",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "{{queue}} कतार में {{count}} जॉब इंतज़ार कर रहे हैं, यानी वर्कर पीछे चल रहे हैं।",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "वर्कर को ज़्यादा मेमोरी और CPU दें, और ऐप के लॉग में बार-बार विफल होने वाले जॉब देखें।",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "यह सर्वर OneUptime {{current}} चला रहा है। {{latest}} आ चुका है।",

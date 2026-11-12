@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "数据库迁移仍在运行：还剩 {{count}} 个。迁移会在 OneUptime 启动时运行。",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "请等待几分钟。如果迁移没有完成，请重启 OneUptime 并查看应用的日志。",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "ClickHouse 磁盘 {{disk}} 的可用空间为 {{free}}（共 {{total}}）。磁盘写满后，ClickHouse 将停止保存遥测数据。",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "为磁盘增加空间，或在 OneUptime Health 的 ClickHouse 页面开启自动清理。",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "为磁盘增加空间，或在“OneUptime 健康状况”的 ClickHouse 页面开启自动清理。",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "{{queue}} 队列中有 {{count}} 个任务在等待，工作进程处理不过来。",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "为工作进程分配更多内存和 CPU，并在应用的日志中查找反复失败的任务。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "此服务器运行的是 OneUptime {{current}}。{{latest}} 已发布。",

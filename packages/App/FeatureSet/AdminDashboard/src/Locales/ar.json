@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "ما زالت ترحيلات قاعدة البيانات تعمل: بقي {{count}}. تعمل أثناء بدء تشغيل OneUptime.",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "انتظر بضع دقائق. إن لم تنتهِ، فأعد تشغيل OneUptime واقرأ سجل التطبيق.",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "في قرص ClickHouse ‏{{disk}} مساحة فارغة قدرها {{free}} من {{total}}. عندما يمتلئ، يتوقف ClickHouse عن حفظ بيانات القياس عن بُعد.",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "امنح القرص مساحة أكبر، أو شغّل التقليم التلقائي في صفحة ClickHouse ضمن OneUptime Health.",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "امنح القرص مساحة أكبر، أو شغّل التقليم التلقائي في صفحة ClickHouse ضمن صحة OneUptime.",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "هناك {{count}} مهمة تنتظر في الطابور {{queue}}، لذا فالعمّال متأخرون.",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "امنح العمّال ذاكرة ومعالجًا أكثر، وابحث في سجل التطبيق عن المهام التي تفشل مرارًا.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "يعمل هذا الخادم بالإصدار {{current}} من OneUptime. صدر الإصدار {{latest}}.",

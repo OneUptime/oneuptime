@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "مهاجرت‌های پایگاه داده هنوز در حال اجرا هستند: {{count}} مورد مانده است. این مهاجرت‌ها هنگام راه‌اندازی OneUptime اجرا می‌شوند.",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "چند دقیقه صبر کنید. اگر تمام نشدند، OneUptime را دوباره راه‌اندازی کنید و گزارش برنامه را بخوانید.",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "دیسک ClickHouse با نام {{disk}} از {{total}} فقط {{free}} فضای آزاد دارد. وقتی پر شود، ClickHouse دیگر داده‌های تله‌متری را ذخیره نمی‌کند.",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "به دیسک فضای بیشتری بدهید، یا در صفحهٔ ClickHouse در OneUptime Health پاک‌سازی خودکار را روشن کنید.",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "به دیسک فضای بیشتری بدهید، یا در صفحهٔ ClickHouse در سلامت OneUptime پاک‌سازی خودکار را روشن کنید.",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "{{count}} کار در صف {{queue}} منتظرند، پس پردازشگرها عقب افتاده‌اند.",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "به پردازشگرها حافظه و CPU بیشتری بدهید و در گزارش برنامه دنبال کارهایی بگردید که مدام ناموفق می‌شوند.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "این سرور OneUptime {{current}} را اجرا می‌کند. نسخهٔ {{latest}} منتشر شده است.",

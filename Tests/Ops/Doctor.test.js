@@ -22,6 +22,7 @@ const {
   DOCTOR_PATH,
   READY_PATH,
   CERTIFICATE_WARN_DAYS,
+  TROUBLESHOOTING_COVERAGE,
   MINIMUM_FREE_DISK_TO_RUN_BYTES,
   configFindings,
   containersOf,
@@ -1354,4 +1355,101 @@ describe("against a real HTTP server standing in for the ingress", () => {
     expect(answer.json.findings[0].id).toBe("setup-email");
     expect(closed.error).toBe("ECONNREFUSED");
   });
+});
+
+describe("the Docker Compose guide", () => {
+  const guide = fs.readFileSync(
+    path.join(
+      REPO_ROOT,
+      "packages/App/FeatureSet/Docs/Content/en/installation/docker-compose.md",
+    ),
+    "utf8",
+  );
+
+  test("every entry of its troubleshooting list is detected, partly, or not, with the reason", () => {
+    const troubleshooting = guide.slice(
+      guide.indexOf("\n## Troubleshooting\n"),
+      guide.indexOf("\n## Next steps\n"),
+    );
+    const entries = Array.from(
+      troubleshooting.matchAll(/^:::details (.+)$/gm),
+    ).map((match) => {
+      return match[1];
+    });
+
+    expect(entries.length).toBeGreaterThan(5);
+    expect(Object.keys(TROUBLESHOOTING_COVERAGE).sort()).toEqual(
+      entries.sort(),
+    );
+
+    for (const answer of Object.values(TROUBLESHOOTING_COVERAGE)) {
+      expect(answer).toMatch(/^(Detected|Partly|Not)\b/);
+    }
+  });
+
+  test("it documents the command, its errors option and its exit code, and Troubleshooting starts with it", () => {
+    const check = guide.slice(
+      guide.indexOf("\n## Check your installation\n"),
+      guide.indexOf("\n## Troubleshooting\n"),
+    );
+
+    expect(check).toContain("```bash\nnpm run doctor\n```");
+    expect(check).toContain("```bash\nnpm run doctor -- --logs\n```");
+    expect(check).toContain("It exits with `1` when something marked ✗");
+    expect(check).toContain("**Everything looks right.**");
+    expect(
+      guide.slice(guide.indexOf("\n## Troubleshooting\n")).split("\n")[3],
+    ).toBe(
+      "Start with `npm run doctor`: it names most of the problems below, with their fixes.",
+    );
+  });
+
+  test.each([
+    "da",
+    "de",
+    "es",
+    "fa",
+    "fr",
+    "hi",
+    "it",
+    "ja",
+    "ko",
+    "nl",
+    "no",
+    "pt",
+    "ru",
+    "sv",
+    "zh-CN",
+    "zh-TW",
+  ])(
+    "%s documents it too, in the same place, with the same commands",
+    (language) => {
+      const page = fs.readFileSync(
+        path.join(
+          REPO_ROOT,
+          `packages/App/FeatureSet/Docs/Content/${language}/installation/docker-compose.md`,
+        ),
+        "utf8",
+      );
+      const headings = page.split("\n").filter((line) => {
+        return line.startsWith("## ");
+      });
+      // Check your installation, Troubleshooting, Next steps: the last three.
+      const check = page.slice(
+        page.indexOf(`\n${headings[headings.length - 3]}\n`),
+        page.indexOf(`\n${headings[headings.length - 2]}\n`),
+      );
+
+      expect(check).toContain("```bash\nnpm run doctor\n```");
+      expect(check).toContain("```bash\nnpm run doctor -- --logs\n```");
+      expect(check).toContain("`1`");
+      expect(check).toContain("**Everything looks right.**");
+      expect(check).toContain("HelmChart/Public/diagnose.sh");
+      expect(
+        page
+          .slice(page.indexOf(`\n${headings[headings.length - 2]}\n`))
+          .split("\n")[3],
+      ).toContain("`npm run doctor`");
+    },
+  );
 });

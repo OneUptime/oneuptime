@@ -111,6 +111,32 @@ const MINIMUM_FREE_DISK_TO_RUN_BYTES = 2 * 1000 * 1000 * 1000;
 const ERROR_LINE = /\b(error|fatal|exception|panic|failed|unhandled)\b/i;
 
 /*
+ * Every entry of the Docker Compose guide's troubleshooting list, and what
+ * the doctor says about it: detected, partly, or not, and why. A test reads
+ * the guide's list against this, so a new entry needs an answer here.
+ */
+const TROUBLESHOOTING_COVERAGE = {
+  "npm start stops before it starts OneUptime":
+    "Not after the fact: npm start's own checks (Preflight.js) stop it and say why before anything runs. The doctor repeats their config.env and Docker checks.",
+  'Docker says "permission denied" when you run npm start':
+    "Detected: Docker is installed, but your user cannot use it.",
+  "The ingress cannot start because port 80 or 443 is in use":
+    "Detected: the ingress service has no container or stopped, with the last lines of its log, which name the port.",
+  'npm start ends with "Maximum retries reached"':
+    "Detected: every service that is not running or healthy, with its log, and whether OneUptime answers at the ingress.",
+  'The browser says "OneUptime is not set up for this address"':
+    "Partly: HOST left at localhost or at a listening address, and whether HOST reaches this OneUptime. Not the address someone typed, which only their browser knows.",
+  "Some pages load, but live updates or uploads fail":
+    "Partly, as above: which address people open is known only to their browsers.",
+  'Signing up or signing in fails with "Page not found"':
+    "Partly: HOST without the ingress's port, and whether HOST reaches this OneUptime. Not whether a proxy passes on the Host header of every request, which takes a browser's request through it.",
+  "The browser warns about the certificate after you set PROVISION_SSL":
+    "Detected: the certificate HOST presents, and the app's CoreSSL lines when it is not issued.",
+  "The bundled probe shows Disconnected after you moved the ingress port":
+    "Detected: probe-1 not running, and the server's probe check (no global probe reporting).",
+};
+
+/*
  * A finding: { level: "fix" | "warn" | "ok", message, fix, details }.
  * `fix` is the exact fix, on the line under it; `details` are lines shown
  * under that (a service's log).
@@ -1127,6 +1153,7 @@ module.exports = {
   READY_PATH,
   LOG_LINES,
   CERTIFICATE_WARN_DAYS,
+  TROUBLESHOOTING_COVERAGE,
   MINIMUM_FREE_DISK_TO_RUN_BYTES,
   finding,
   configFindings,

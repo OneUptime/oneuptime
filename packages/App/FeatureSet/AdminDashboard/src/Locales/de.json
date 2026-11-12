@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "Datenbankmigrationen laufen noch: {{count}} verbleibend. Sie laufen, während OneUptime startet.",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "Warten Sie ein paar Minuten. Wenn sie nicht fertig werden, starten Sie OneUptime neu und lesen Sie das Log der App.",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "Auf dem ClickHouse-Datenträger {{disk}} sind {{free}} von {{total}} frei. Wenn er voll ist, speichert ClickHouse keine Telemetrie mehr.",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "Geben Sie dem Datenträger mehr Platz oder schalten Sie auf der ClickHouse-Seite von OneUptime Health die automatische Bereinigung ein.",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "Geben Sie dem Datenträger mehr Platz oder schalten Sie auf der ClickHouse-Seite unter „OneUptime-Zustand“ die automatische Bereinigung ein.",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "{{count}} Aufgaben warten in der Warteschlange {{queue}}, die Worker kommen also nicht hinterher.",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Geben Sie den Workern mehr Arbeitsspeicher und CPU, und suchen Sie im Log der App nach Aufgaben, die immer wieder fehlschlagen.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Auf diesem Server läuft OneUptime {{current}}. {{latest}} ist erschienen.",

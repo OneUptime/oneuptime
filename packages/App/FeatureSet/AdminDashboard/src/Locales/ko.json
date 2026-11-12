@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "데이터베이스 마이그레이션이 아직 실행 중입니다. {{count}}개 남았습니다. 마이그레이션은 OneUptime이 시작되는 동안 실행됩니다.",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "몇 분 기다리세요. 끝나지 않으면 OneUptime을 다시 시작하고 앱 로그를 확인하세요.",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "ClickHouse 디스크 {{disk}}의 여유 공간은 {{total}} 중 {{free}}입니다. 가득 차면 ClickHouse가 텔레메트리를 저장하지 않습니다.",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "디스크 공간을 늘리거나 OneUptime Health의 ClickHouse 페이지에서 자동 정리를 켜세요.",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "디스크 공간을 늘리거나 OneUptime 상태의 ClickHouse 페이지에서 자동 정리를 켜세요.",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "{{queue}} 대기열에 작업 {{count}}개가 대기 중이라 워커가 밀려 있습니다.",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "워커에 메모리와 CPU를 더 할당하고, 앱 로그에서 계속 실패하는 작업을 확인하세요.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "이 서버는 OneUptime {{current}}을(를) 실행 중입니다. {{latest}}이(가) 출시되었습니다.",

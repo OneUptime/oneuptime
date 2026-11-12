@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "Миграции базы данных ещё выполняются: осталось {{count}}. Они выполняются при запуске OneUptime.",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "Подождите несколько минут. Если они не завершатся, перезапустите OneUptime и прочитайте журнал приложения.",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "На диске ClickHouse {{disk}} свободно {{free}} из {{total}}. Когда он заполнится, ClickHouse перестанет сохранять телеметрию.",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "Добавьте диску места или включите автоматическую очистку на странице ClickHouse в разделе OneUptime Health.",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "Добавьте диску места или включите автоматическую очистку на странице ClickHouse в разделе Состояние OneUptime.",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "В очереди {{queue}} ждут {{count}} задач, поэтому обработчики не успевают.",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Выделите обработчикам больше памяти и CPU и найдите в журнале приложения задачи, которые постоянно завершаются ошибкой.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "На этом сервере работает OneUptime {{current}}. Вышла версия {{latest}}.",

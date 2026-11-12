@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "データベースの移行がまだ実行中です。残り {{count}} 件です。移行は OneUptime の起動中に実行されます。",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "数分お待ちください。終わらない場合は OneUptime を再起動し、アプリのログを確認してください。",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "ClickHouse のディスク {{disk}} の空きは {{total}} 中 {{free}} です。いっぱいになると ClickHouse はテレメトリーを保存しなくなります。",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "ディスクの容量を増やすか、OneUptime Health の ClickHouse ページで自動削除をオンにしてください。",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "ディスクの容量を増やすか、「OneUptime のヘルス」の ClickHouse ページで自動削除をオンにしてください。",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "{{queue}} キューで {{count}} 件のジョブが待機しており、ワーカーの処理が遅れています。",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "ワーカーのメモリーと CPU を増やし、失敗し続けるジョブがないかアプリのログを確認してください。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "このサーバーは OneUptime {{current}} を実行しています。{{latest}} がリリースされています。",

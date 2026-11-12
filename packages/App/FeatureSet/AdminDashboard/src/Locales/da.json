@@ -2180,7 +2180,7 @@
   "Database migrations are still running: {{count}} left. They run while OneUptime starts.": "Databasemigreringer kører stadig: {{count}} tilbage. De kører, mens OneUptime starter.",
   "Wait a few minutes. If they do not finish, restart OneUptime and read the app's log.": "Vent et par minutter. Hvis de ikke bliver færdige, så genstart OneUptime og læs appens log.",
   "ClickHouse's disk {{disk}} has {{free}} free of {{total}}. When it fills, ClickHouse stops saving telemetry.": "ClickHouse-disken {{disk}} har {{free}} ledigt af {{total}}. Når den er fuld, holder ClickHouse op med at gemme telemetri.",
-  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "Giv disken mere plads, eller slå automatisk oprydning til på ClickHouse-siden under OneUptime Health.",
+  "Give the disk more space, or turn on automatic pruning on the ClickHouse page of OneUptime Health.": "Giv disken mere plads, eller slå automatisk oprydning til på ClickHouse-siden under OneUptime-tilstand.",
   "{{count}} jobs are waiting in the {{queue}} queue, so the workers are behind.": "{{count}} job venter i køen {{queue}}, så workerne er bagud.",
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Giv workerne mere hukommelse og CPU, og led i appens log efter job, der bliver ved med at fejle.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Denne server kører OneUptime {{current}}. {{latest}} er udkommet.",
