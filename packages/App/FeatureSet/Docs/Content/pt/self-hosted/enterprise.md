@@ -128,7 +128,7 @@ O OneUptime Enterprise comprado no AWS Marketplace, no Microsoft Marketplace ou 
 2. Insira a sua chave de licença e valide-a.
 :::
 
-A instalação verifica a chave com o OneUptime e armazena a licença que recebe. A partir daí, mantém a licença atualizada com uma sincronização diária. Use **Refresh license** na mesma página para buscar alterações na hora, como assentos extras ou uma renovação.
+A instalação verifica a chave com o OneUptime e armazena a licença que recebe. A partir daí, mantém a licença atualizada com uma sincronização diária. Use **Atualizar licença** na mesma página para buscar alterações na hora, como assentos extras ou uma renovação.
 
 A ativação online precisa de HTTPS de saída do servidor do OneUptime para `https://oneuptime.com`. Se o servidor só chega à internet através de um relay, defina `ENTERPRISE_LICENSE_SERVER_URL` com o endereço `https://` do relay. O relay deve encaminhar `/api/enterprise-license/` para oneuptime.com.
 

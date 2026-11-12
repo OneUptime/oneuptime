@@ -3,6 +3,7 @@ import * as path from "path";
 import MonitorFeedService from "../../../Server/Services/MonitorFeedService";
 import MonitorService from "../../../Server/Services/MonitorService";
 import MonitorStatusTimelineService from "../../../Server/Services/MonitorStatusTimelineService";
+import NetworkDeviceService from "../../../Server/Services/NetworkDeviceService";
 import { OnUpdate } from "../../../Server/Types/Database/Hooks";
 import UpdateBy from "../../../Server/Types/Database/UpdateBy";
 import logger from "../../../Server/Utils/Logger";
@@ -50,8 +51,14 @@ import {
  * time it is off. Marked first, before anything turning it off leads to,
  * and only for a monitor whose switch the update really turned.
  *
+ * The same hooks stamp the network devices the monitors back again
+ * (NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors, issue
+ * #6965) when monitoring is turned off or on, or the monitor is archived or
+ * unarchived: a device takes no status from a monitor nothing checks.
+ *
  * The real onBeforeUpdate runs, and what it carries forward goes to the
- * real onUpdateSuccess; the database and MonitorTurnedOff are stubbed.
+ * real onUpdateSuccess; the database, MonitorTurnedOff and the device
+ * re-stamp are stubbed.
  *
  * On a server without billing (TestBillingFlag): where billing is on, as in
  * CI, turning monitoring on also passes the pay-as-you-go gate, which reads
@@ -94,6 +101,7 @@ let resolves: MockFunction;
 let switches: MockFunction;
 let feed: MockFunction;
 let errors: MockFunction;
+let restamps: MockFunction;
 
 type OnBeforeUpdate = (
   updateBy: UpdateBy<Monitor>,
@@ -238,6 +246,12 @@ beforeEach(() => {
 
   errors = getJestMockFunction();
   jest.spyOn(logger, "error").mockImplementation(errors as never);
+
+  restamps = getJestMockFunction();
+  restamps.mockResolvedValue(undefined as never);
+  jest
+    .spyOn(NetworkDeviceService, "refreshStampsOfDevicesBoundToMonitors")
+    .mockImplementation(restamps as never);
 });
 
 afterEach(() => {
@@ -672,5 +686,96 @@ describe("what onUpdateSuccess marks on the status timeline", () => {
     ).toEqual([CHECKED, ALSO_CHECKED].sort());
     expect(resolvedMonitorIds().sort()).toEqual([CHECKED, ALSO_CHECKED].sort());
     expect(errors).toHaveBeenCalled();
+  });
+});
+
+/*
+ * Issue #6965: a network device backed by a monitor takes no status from it
+ * while nothing checks it, so the devices of every monitor an update turns
+ * off or on, archives or unarchives are stamped again - once, after the
+ * monitor's own incidents and alerts are resolved.
+ */
+describe("what onUpdateSuccess stamps again on the network devices the monitors back", () => {
+  function restampedMonitorIds(): Array<Array<string>> {
+    return restamps.mock.calls.map((call: Array<unknown>): Array<string> => {
+      return (call[0] as { monitorIds: Array<ObjectID> }).monitorIds.map(
+        (monitorId: ObjectID): string => {
+          return monitorId.toString();
+        },
+      );
+    });
+  }
+
+  test("turning monitoring off stamps the devices of that monitor again, after what it would have resolved", async () => {
+    await runUpdate({ disableActiveMonitoring: true });
+
+    expect(restampedMonitorIds()).toEqual([[CHECKED]]);
+    expect(resolves.mock.invocationCallOrder[0]!).toBeLessThan(
+      restamps.mock.invocationCallOrder[0]!,
+    );
+    expect(switches.mock.invocationCallOrder[0]!).toBeLessThan(
+      restamps.mock.invocationCallOrder[0]!,
+    );
+  });
+
+  test("turning monitoring back on stamps them again, so they follow the monitor", async () => {
+    await runUpdate({ disableActiveMonitoring: false }, { ids: [ALREADY_OFF] });
+
+    expect(restampedMonitorIds()).toEqual([[ALREADY_OFF]]);
+  });
+
+  test("a bulk Disable stamps again only the devices of the monitors it turned off, in one call", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: true },
+      { ids: [CHECKED, ALREADY_OFF, ALSO_CHECKED] },
+    );
+
+    expect(restamps).toHaveBeenCalledTimes(1);
+    expect(restampedMonitorIds()[0]!.sort()).toEqual(
+      [CHECKED, ALSO_CHECKED].sort(),
+    );
+  });
+
+  test("writing the switch back as it is stamps nothing", async () => {
+    await runUpdate({ disableActiveMonitoring: true }, { ids: [ALREADY_OFF] });
+    await runUpdate({ disableActiveMonitoring: false });
+
+    expect(restamps).not.toHaveBeenCalled();
+  });
+
+  test("an edit that leaves the switch and the archive alone stamps nothing", async () => {
+    await runUpdate({ name: "Checkout API v2" });
+
+    expect(restamps).not.toHaveBeenCalled();
+  });
+
+  test("archiving stamps the devices of every monitor the update wrote, and so does unarchiving", async () => {
+    await runUpdate({ isArchived: true }, { ids: [CHECKED, ALREADY_OFF] });
+    await runUpdate({ isArchived: false });
+
+    expect(restampedMonitorIds()).toEqual([[CHECKED, ALREADY_OFF], [CHECKED]]);
+  });
+
+  test("only a monitor the update wrote: one read but not written is not stamped again", async () => {
+    await runUpdate(
+      { disableActiveMonitoring: true },
+      { ids: [CHECKED, ALSO_CHECKED], updatedIds: [ALSO_CHECKED] },
+    );
+
+    expect(restampedMonitorIds()).toEqual([[ALSO_CHECKED]]);
+  });
+
+  test("a failure to stamp them is logged and does not fail the save", async () => {
+    restamps.mockRejectedValue(new Error("database is down") as never);
+
+    await expect(
+      runUpdate({ disableActiveMonitoring: true }),
+    ).resolves.toBeDefined();
+
+    expect(resolvedMonitorIds()).toEqual([CHECKED]);
+    expect(errors).toHaveBeenCalled();
+    expect(String(errors.mock.calls[0]![0])).toContain(
+      "Stamping the network devices",
+    );
   });
 });

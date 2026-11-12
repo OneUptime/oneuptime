@@ -122,8 +122,6 @@ const PAGE_NAMES: Array<string> = PAGES.map((entry: TranslatedPage): string => {
 const SHOWN_IN_ENGLISH: Record<string, Array<string>> = {
   // The Admin Dashboard's switch that turns push off, which has no locale key.
   [PUSH_PAGE]: ["Send push notifications"],
-  // The license page's button, which has no locale key.
-  [ENTERPRISE_PAGE]: ["Refresh license"],
 };
 
 // Permission titles, which the permission picker shows in English.
@@ -235,6 +233,13 @@ const ADMIN_LABELS: Record<string, Record<string, string>> = {
   [PRIVATE_NETWORK_PAGE]: {
     Settings: "breadcrumbs.settings",
     "Global LLM Providers": "breadcrumbs.globalLlmProviders",
+  },
+  /*
+   * The license page's button, a flat English key of the Admin locales: it
+   * was English in every language until the page was translated (#7132).
+   */
+  [ENTERPRISE_PAGE]: {
+    "Refresh license": "Refresh license",
   },
 };
 
