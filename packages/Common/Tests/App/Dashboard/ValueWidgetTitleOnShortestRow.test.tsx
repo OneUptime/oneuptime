@@ -73,7 +73,7 @@ function viewProps(data: {
     noDataMessage: "No data for the selected time range",
     isConfigured: true,
     setupTitle: "Value Widget",
-    setupMessage: "Click to configure metric",
+    setupMessage: "Click to configure a metric",
     title: data.title,
     rawUnit: "",
     metricName: "http.server.active_requests",

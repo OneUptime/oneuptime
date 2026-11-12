@@ -578,6 +578,17 @@ export interface CodeTaskTurnsNotShownJSON {
   workMilliseconds: number;
 }
 
+/*
+ * A turn a long task's conversation does not show, sent because a link
+ * names it: the Log page's address (`?turn=<run id>`) can name any turn of
+ * the task - one shared in chat, or bookmarked when the task was shorter.
+ * Its place in the task (the first turn is 1), and the turn itself.
+ */
+export interface CodeTaskLinkedTurnJSON {
+  number: number;
+  turn: CodeTaskTurnJSON;
+}
+
 // A task's conversation, as its page is sent it (POST /code-task/get/:taskId).
 export interface CodeTaskConversationJSON {
   // The task at the top: every turn's, the ones not shown included.
@@ -586,6 +597,12 @@ export interface CodeTaskConversationJSON {
   turns: Array<CodeTaskTurnJSON>;
   // Only for a task with more turns than its conversation shows.
   turnsNotShown?: CodeTaskTurnsNotShownJSON | undefined;
+  /*
+   * The turn the read asked for (its `turn`), when it is one of the task's
+   * turns not shown. None for any other: a turn shown is in `turns`, and a
+   * run that is not the task's is never sent.
+   */
+  linkedTurn?: CodeTaskLinkedTurnJSON | undefined;
 }
 
 /*

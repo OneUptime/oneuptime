@@ -318,3 +318,122 @@ describe("a Dropdown on a Persian page", () => {
     );
   });
 });
+
+/*
+ * AN OPTION'S DESCRIPTION, under its name in the open menu. Most are the
+ * product's own words - "Runs JavaScript steps only." - looked up and read
+ * the page's way. Some are what a person wrote: Code's Turn picker lists
+ * each turn of a task with what was asked under it, and on an Arabic page
+ * an English request was laid out right to left - "Now the orders
+ * handler." drawn as ".Now the orders handler", a long one ending its
+ * first line with "Start w…" on the left. A description marked as written
+ * (isDescriptionUserContent) is drawn as it is, never looked up, and reads
+ * the way its words are written (IsolatedLine).
+ */
+describe("an option's description, in the open menu of a Persian page", () => {
+  const ENGLISH_REQUEST: string = "Now the orders handler.";
+
+  async function openMenu(): Promise<HTMLElement> {
+    await act(async () => {
+      fireEvent.keyDown(screen.getByRole("combobox"), {
+        key: "ArrowDown",
+        code: "ArrowDown",
+      });
+    });
+
+    return document.querySelector<HTMLElement>(".ou-select__menu")!;
+  }
+
+  function descriptions(menu: HTMLElement): Array<HTMLElement> {
+    return within(menu).getAllByTestId("dropdown-option-description");
+  }
+
+  test("one a person wrote reads the way its words are written: an English request keeps its full stop at its end", async () => {
+    const option: DropdownOption = {
+      value: "turn-5",
+      label: PERSIAN_NAME_STARTING_IN_ENGLISH,
+      isUserContent: true,
+      description: ENGLISH_REQUEST,
+      isDescriptionUserContent: true,
+    };
+
+    render(<Dropdown onChange={() => {}} options={[option]} />);
+
+    const line: HTMLElement = descriptions(await openMenu())[0]!;
+
+    expect(line).toHaveTextContent(ENGLISH_REQUEST);
+    expect(line).toHaveAttribute("dir", "ltr");
+    /*
+     * On lines that wrap, as wide as its words at the page's start, each
+     * from its own start - never aligned to its end line by line.
+     */
+    expect(line.className.split(" ")).toEqual(
+      expect.arrayContaining([
+        "whitespace-normal",
+        "w-fit",
+        "max-w-full",
+        "text-xs",
+        "text-gray-500",
+      ]),
+    );
+    expect(line.className.split(" ")).not.toContain("text-end");
+  });
+
+  test("negative control: a description the Dropdown looks up is the page's words, with no direction of its own", async () => {
+    dictionary = { "Custom CSS": CUSTOM_CSS_FA };
+    const option: DropdownOption = {
+      value: "css",
+      label: "Theme",
+      description: "Custom CSS",
+    };
+
+    render(<Dropdown onChange={() => {}} options={[option]} />);
+
+    const line: HTMLElement = descriptions(await openMenu())[0]!;
+
+    expect(line).toHaveTextContent(CUSTOM_CSS_FA);
+    expect(line).not.toHaveAttribute("dir");
+  });
+
+  test("one a person wrote is never looked up, even when it reads like words the Dashboard translates", async () => {
+    dictionary = { "Custom CSS": CUSTOM_CSS_FA };
+    const options: Array<DropdownOption> = [
+      {
+        value: "written",
+        label: "Turn 2",
+        description: "Custom CSS",
+        isDescriptionUserContent: true,
+      },
+      // Negative control: the same words, not marked, are looked up.
+      { value: "looked-up", label: "Turn 3", description: "Custom CSS" },
+    ];
+
+    render(<Dropdown onChange={() => {}} options={options} />);
+
+    const lines: Array<HTMLElement> = descriptions(await openMenu());
+
+    expect(
+      lines.map((line: HTMLElement): string => {
+        return line.textContent || "";
+      }),
+    ).toEqual(["Custom CSS", CUSTOM_CSS_FA]);
+    expect(lines[0]).toHaveAttribute("dir", "ltr");
+  });
+
+  test("one a person wrote in Persian - even starting with an English word - reads the page's way", async () => {
+    const option: DropdownOption = {
+      value: "turn-7",
+      label: "Turn 7",
+      description: PERSIAN_NAME_STARTING_IN_ENGLISH,
+      isDescriptionUserContent: true,
+    };
+
+    render(<Dropdown onChange={() => {}} options={[option]} />);
+
+    const line: HTMLElement = descriptions(await openMenu())[0]!;
+
+    expect(line).toHaveTextContent(PERSIAN_NAME_STARTING_IN_ENGLISH);
+    expect(line).not.toHaveAttribute("dir");
+    expect(line.className.split(" ")).not.toContain("w-fit");
+  });
+});
