@@ -11,6 +11,7 @@
     "searchPlaceholder": "ドキュメントを検索...",
     "searchTypeToSearch": "ドキュメントを検索するには入力してください...",
     "searchNoResults": "\"{{query}}\" の検索結果はありません",
+    "searchSearching": "検索中…",
     "onThisPage": "このページの内容",
     "skipToContent": "コンテンツへスキップ",
     "toggleTheme": "テーマを切り替える",
@@ -62,7 +63,18 @@
     "calloutDanger": "危険",
     "detailsSummary": "詳細",
     "copyPage": "ページをコピー",
-    "viewAsMarkdown": "Markdown で表示"
+    "viewAsMarkdown": "Markdown で表示",
+    "feedbackQuestion": "このページは役に立ちましたか?",
+    "feedbackYes": "はい",
+    "feedbackNo": "いいえ",
+    "feedbackThanks": "ご意見ありがとうございます。",
+    "feedbackWhatWentWrong": "ありがとうございます。何が問題でしたか?",
+    "feedbackReasonUnclear": "わかりにくい",
+    "feedbackReasonMissing": "情報が足りない",
+    "feedbackReasonWrong": "誤り・古い情報がある",
+    "feedbackReasonNotFound": "探していた内容ではない",
+    "feedbackTellUs": "ありがとうございます。直すべき点をお知らせいただければ、ページを改善します。",
+    "feedbackTellUsOnGithub": "GitHub で知らせる"
   },
   "navSections": {
     "Get Started": "はじめに",

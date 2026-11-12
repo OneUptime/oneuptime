@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50831,
-    "untranslated": 9576
+    "keys": 51203,
+    "untranslated": 9552
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -55,6 +55,7 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "Cache",
     "Canada (+1)",
     "Canonical Sunbeam",
     "Celsius",
@@ -107,6 +108,7 @@
     "Favicon",
     "Feed",
     "File",
+    "File system",
     "File {{number}}",
     "Filesystem",
     "Filesystem %",
@@ -390,6 +392,7 @@
     "host",
     "hypervisor",
     "id",
+    "in {{name}}",
     "info",
     "ip",
     "job",

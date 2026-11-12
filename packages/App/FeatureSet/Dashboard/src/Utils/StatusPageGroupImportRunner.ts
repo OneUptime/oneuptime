@@ -5,7 +5,10 @@ import {
   StatusPageGroupImportPlan,
   planStatusPageGroupImport,
 } from "./StatusPageGroupCsv";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The create-loop behind the Status Page > Groups CSV import, kept react-free
@@ -195,7 +198,9 @@ export async function runStatusPageGroupImport(
           errorMessage:
             err instanceof Error && err.message
               ? err.message
-              : "Something went wrong while creating this group.",
+              : translateText(
+                  "Something went wrong while creating this group.",
+                ) || "Something went wrong while creating this group.",
         };
       }
 
