@@ -51080,7 +51080,7 @@
   "Unpin from the top bar.": "إلغاء التثبيت من الشريط العلوي.",
   "Unpin {{product}}": "إلغاء تثبيت {{product}}",
   "What a person chose for themselves in a project, such as the products they pinned to the nav bar. Only they see it.": "ما اختاره شخص لنفسه في مشروع، مثل المنتجات التي ثبّتها في شريط التنقل. لا يراه غيره.",
-  "You can pin up to {{count}} products. Unpin one first.": "يمكنك تثبيت {{count}} منتجات بحد أقصى. ألغِ تثبيت واحد أولًا.",
+  "You can pin up to {{count}} products. Unpin one first.": "يمكنك تثبيت {{count}} من المنتجات بحد أقصى. ألغِ تثبيت واحد أولًا.",
   "You can pin up to {{count}} products. Unpin one first._one": "يمكنك تثبيت {{count}} منتج بحد أقصى. ألغِ تثبيت واحد أولًا.",
   "{{products}} are hidden in this project and have data.": "{{products}} مخفية في هذا المشروع ولديها بيانات.",
   "{{products}} are hidden in this project and have data._one": "{{products}} مخفي في هذا المشروع ولديه بيانات.",

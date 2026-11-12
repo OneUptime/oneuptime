@@ -101,7 +101,7 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 
 ### Explore OneUptime
 
-**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it.
+**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it. The products your project hides are left out.
 
 ## Finding your way around
 
@@ -111,6 +111,9 @@ Everything in OneUptime is under **Products** in the top bar. The menu lists its
 - **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
 - **Your choices stay.** The menu remembers, on your browser, which of the other groups you opened or folded. The essentials are open again each time you open the menu, even if you folded them.
 - **On a phone**, the menu button lists the products the same way: the essentials open at the top, and every other group as one row that opens on a tap.
+- **Products the project does not use.** A Project Owner or Admin can hide them on **Project Settings → Basic → Products**. A hidden product moves under **More products**, the last row of the menu: Search still finds it, its pages keep working and its data keeps arriving. When one starts receiving data, Home says so to the people who can show it again.
+- **Pins.** Keep a product in the top bar, beside **Home** and **Products**: press the pin on its card in the menu, or **Pin** beside its page's title. You can pin five, and they follow you to every browser. On a phone, your pins come first in the menu.
+- **What is in use.** In each group but the essentials and Settings, the products your project uses come first, and one you have not set up yet says **Not set up**. On OneUptime Cloud, a product your plan does not include names the plan that does.
 
 ### The bars at the top
 

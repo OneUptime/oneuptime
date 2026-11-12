@@ -101,7 +101,7 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 
 ### Udforsk OneUptime
 
-**Udforsk OneUptime** viser produkterne i menuen **Produkter** én kategori ad gangen, begyndende med det grundlæggende. Hvert produkt siger, hvad det er til, og åbnes, når du klikker på det.
+**Udforsk OneUptime** viser produkterne i menuen **Produkter** én kategori ad gangen, begyndende med det grundlæggende. Hvert produkt siger, hvad det er til, og åbnes, når du klikker på det. De produkter, dit projekt skjuler, er ikke med.
 
 ## Find rundt
 
@@ -111,6 +111,9 @@ Alt i OneUptime ligger under **Produkter** i topbjælken. Menuen viser sine grup
 - **Du starter, hvor du er.** Gruppen for den side, du er på, folder sig selv ud, og de produkter, du har åbnet for nylig, står øverst.
 - **Dine valg bliver.** Menuen husker i din browser, hvilke af de andre grupper du har foldet ud eller sammen. Det grundlæggende er foldet ud igen, hver gang du åbner menuen, også selvom du foldede det sammen.
 - **På en telefon** viser menuknappen produkterne på samme måde: det grundlæggende foldet ud øverst og hver anden gruppe som én række, der åbner med et tryk.
+- **Produkter, projektet ikke bruger.** En projektejer eller -administrator kan skjule dem under **Projektindstillinger → Grundlæggende → Produkter**. Et skjult produkt flytter ned under **Flere produkter**, menuens sidste række: Søgning finder det stadig, dets sider virker fortsat, og dets data bliver ved med at komme. Når et af dem begynder at modtage data, siger Hjem det til dem, der kan vise det igen.
+- **Fastgør.** Hold et produkt i den øverste bjælke ved siden af **Hjem** og **Produkter**: tryk på nålen på dets kort i menuen, eller på **Fastgør** ved siden af dets sides titel. Du kan fastgøre fem, og de følger dig til alle browsere. På en telefon kommer dine fastgjorte produkter først i menuen.
+- **Hvad der er i brug.** I hver gruppe undtagen det grundlæggende og indstillingerne kommer de produkter, dit projekt bruger, først, og et, du endnu ikke har sat op, siger **Ikke sat op**. I OneUptime Cloud nævner et produkt, som dit abonnement ikke omfatter, det abonnement, der omfatter det.
 
 ### Bjælkerne øverst
 

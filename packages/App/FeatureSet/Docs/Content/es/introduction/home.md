@@ -101,7 +101,7 @@ La lista desaparece para todos cuando todos los pasos están hechos. Para oculta
 
 ### Explora OneUptime
 
-**Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él.
+**Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él. Los productos que tu proyecto oculta no aparecen.
 
 ## Orientarse
 
@@ -111,6 +111,9 @@ Todo en OneUptime está bajo **Productos** en la barra superior. El menú presen
 - **Empiezas donde estás.** El grupo de la página en la que estás se despliega solo, y los productos que abriste hace poco aparecen arriba.
 - **Tus elecciones se mantienen.** El menú recuerda, en tu navegador, qué otros grupos desplegaste o plegaste. Los esenciales vuelven a estar desplegados cada vez que abres el menú, aunque los hayas plegado.
 - **En un teléfono**, el botón del menú lista los productos de la misma manera: los esenciales desplegados arriba, y cada uno de los demás grupos como una fila que se abre con un toque.
+- **Productos que el proyecto no usa.** Un propietario o administrador del proyecto puede ocultarlos en **Ajustes del proyecto → Básico → Productos**. Un producto oculto pasa a **Más productos**, la última fila del menú: la búsqueda lo sigue encontrando, sus páginas siguen funcionando y sus datos siguen llegando. Cuando uno empieza a recibir datos, Inicio se lo dice a quienes pueden volver a mostrarlo.
+- **Fijar.** Mantén un producto en la barra superior, junto a **Inicio** y **Productos**: pulsa la chincheta de su tarjeta en el menú, o **Fijar** junto al título de su página. Puedes fijar cinco, y te acompañan en cada navegador. En un teléfono, tus productos fijados aparecen primero en el menú.
+- **Lo que se usa.** En cada grupo salvo los esenciales y Ajustes, los productos que usa tu proyecto aparecen primero, y uno que aún no has configurado dice **Sin configurar**. En OneUptime Cloud, un producto que tu plan no incluye nombra el plan que lo incluye.
 
 ### Las barras superiores
 
