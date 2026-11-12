@@ -541,10 +541,10 @@ describe("Health > Overview (the landing page)", () => {
 
     await screen.findByText("Available on every edition");
     await waitFor(() => {
-      expect(apiGet).toHaveBeenCalledTimes(2);
+      expect(apiGet).toHaveBeenCalledTimes(3);
     });
 
-    // ClickHouse capacity, and where people sign in from (VisitorAddressesSummary).
+    // What needs attention (#6826), ClickHouse capacity, and where people sign in from.
     const routes: Array<string> = apiGet.mock.calls
       .map((call: Array<unknown>): string => {
         const pathname: string = new URL(
@@ -557,6 +557,7 @@ describe("Health > Overview (the landing page)", () => {
 
     expect(routes).toEqual([
       "/admin/health/clickhouse-capacity",
+      "/admin/health/doctor",
       "/admin/health/visitor-addresses",
     ]);
   });

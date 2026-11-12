@@ -1344,12 +1344,14 @@ describe("Docker Compose, against the compose files and scripts", () => {
     );
   });
 
-  it("probe-1 runs by default, and probe-2 only when asked for", () => {
+  it("probe-1 runs by default; probe-2 is only in the base file, for an override that adds it", () => {
     expect(composeServices("compose")["probe-1"]).toBeDefined();
     expect(composeServices("compose")["probe-2"]).toBeUndefined();
     expect(composeServices("baseCompose")["probe-2"]).toBeDefined();
+    // run-probes named probe-2 too, which the stock compose file does not define (#6826).
+    expect(scriptsOf("rootPackage")["run-probes"]).toMatch(/-d probe-1$/);
     expect(scriptsOf("rootPackage")["run-probes"]).toContain(
-      "docker compose up --remove-orphans -d probe-1 probe-2",
+      "docker compose up --remove-orphans -d probe-1",
     );
     expect(page).toContain("(`probe-1` runs by default)");
   });
@@ -1579,7 +1581,10 @@ describe("Docker Compose, against the compose files and scripts", () => {
     expect(scripts["start"]).toContain(
       "sh ./Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d",
     );
-    expect(scripts["start"]).toMatch(/&& npm run status-check$/);
+    // Then the doctor's quiet run (#6826).
+    expect(scripts["start"]).toMatch(
+      /&& npm run status-check && node \.\/Scripts\/Install\/Doctor\.js --after-start$/,
+    );
     expect(scripts["status-check"]).toBe(
       "bash ./Tests/Scripts/status-check.sh",
     );

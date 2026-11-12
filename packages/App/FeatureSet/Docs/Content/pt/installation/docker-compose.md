@@ -477,7 +477,27 @@ Depois apague a pasta `oneuptime`.
 > [!CAUTION]
 > `--volumes` apaga para sempre cada monitor, incidente, usuário e toda a telemetria. Faça backup primeiro se você puder precisar de algo disso.
 
+## Verificar a sua instalação
+
+Quando algo não funcionar, execute o doctor na pasta `oneuptime`:
+
+```bash
+npm run doctor
+```
+
+Ele lista o que está errado, o mais grave primeiro, cada linha com a correção exata, e termina com **Everything looks right.** ou com o número de coisas a corrigir. Ele verifica cada contêiner e mostra as últimas linhas do log dos que não estão rodando, o `config.env`, se o `HOST` chega a este servidor, o certificado quando `PROVISION_SSL` está ativado e o espaço livre em disco. Também pergunta ao OneUptime o que ele vê de si mesmo: PostgreSQL, ClickHouse e Valkey, as migrações, as filas, a versão e as etapas de configuração do servidor, como e-mail e sondas. O `npm start` termina com as mesmas verificações e diz apenas o que precisa de atenção.
+
+Para ver também os erros recentes de cada serviço, cada um com o nome do serviço:
+
+```bash
+npm run doctor -- --logs
+```
+
+Ele termina com o código `1` quando algo marcado com ✗ precisa de correção, para que um script possa executá-lo. O Admin Dashboard mostra o que o OneUptime vê de si mesmo no topo de **Integridade do OneUptime**, e no Kubernetes o `HelmChart/Public/diagnose.sh` o imprime.
+
 ## Solução de problemas
+
+Comece com `npm run doctor`: ele aponta a maioria dos problemas abaixo, com a correção.
 
 :::details O npm start para antes de iniciar o OneUptime
 O `npm start` verifica primeiro o servidor e para diante de qualquer coisa que impediria o OneUptime de funcionar: falta o Docker ou o plugin do Compose, o Docker está parado ou fora do alcance do seu usuário, outro programa ocupa uma porta, ou o `HOST` é um endereço que nenhum navegador consegue abrir. Cada linha marcada com ✗ diz o que mudar. Corrija e execute `npm start` de novo. Se uma verificação estiver errada sobre o seu servidor, inicie sem as verificações:
