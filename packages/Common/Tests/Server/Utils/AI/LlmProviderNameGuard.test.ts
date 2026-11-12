@@ -15,6 +15,11 @@ import { describe, expect, test } from "@jest/globals";
  * reader, or anyone on an older Dashboard, looked for a setting that does
  * not exist under that name.
  *
+ * #7156 added the messages that still said it: Ask AI's provider errors,
+ * a failed model call, a refused AI fix's Try again, and the workflow AI
+ * step's documentation. The Dashboard's words are held the same way
+ * (packages/App/Tests/Dashboard/LlmProviderNameInDashboard.test.ts).
+ *
  * This reads the text of every message these files write (string literals
  * and template text, not comments) and holds it to "LLM provider". Log
  * lines are left out: nobody looks for a setting in them. Prompts are not
@@ -34,6 +39,12 @@ const MESSAGE_FILES: ReadonlyArray<string> = [
   "Server/Utils/AI/Security/SecurityCaseTriage.ts",
   "Server/Services/ResourceAiAccessService.ts",
   "Server/Services/KubernetesClusterAiAccessService.ts",
+  // #7156: Ask AI, a failed model call, an AI fix, the workflow AI step.
+  "Server/API/AIChatAPI.ts",
+  "Server/Services/AIService.ts",
+  "Server/Utils/AutoRemediation/RemediationRound.ts",
+  "Types/AutoRemediation/RemediationRound.ts",
+  "Types/Workflow/Documentation/AIDocumentation.ts",
 ];
 
 // "AI provider", "AI providers", "AI-provider", in any case.
@@ -116,6 +127,9 @@ describe("the server's AI messages say LLM provider, never AI provider", () => {
       "Server/Utils/AI/SRE/Insights/Triage.ts",
       "Server/Services/ResourceAiAccessService.ts",
       "Server/Services/KubernetesClusterAiAccessService.ts",
+      "Server/Services/AIService.ts",
+      "Types/AutoRemediation/RemediationRound.ts",
+      "Types/Workflow/Documentation/AIDocumentation.ts",
     ]) {
       const texts: Array<string> = messageTexts(
         file,

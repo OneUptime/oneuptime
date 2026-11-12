@@ -500,12 +500,19 @@ jobs:
           # unlinked, a member, German and dark: about 50 seconds locally),
           # which would have taken this group to 22.3: Host Collectors (1.2)
           # moved to group 13. About 21.1.
+          # #7205 gave WhenThisGoesDown.spec.ts 6 more tests on 2026-11-12
+          # (When this goes down's owner rules, status pages, names a reader
+          # can't see, German and Persian, and its UI review's: the chain laid
+          # out by the card's own width at three widths, a failed read and Try
+          # again, On-call policy's definition - about 75 seconds locally,
+          # about half in each half): Monitor Overview's halves planned as 9.6
+          # and 10.2, which would have taken this group to 22.3. Label Rule
+          # Transfer (0.7) moved to group 16: about 21.6.
           - group: 3
             monitor_overview_shard: 1/2
             suites: >-
               test-monitor-overview-ui
               test-event-notes-ui
-              test-label-rule-transfer-ui
               test-meraki-traffic-ui
               test-security-events-empty-states-ui
           # The Workflow Builder suite on its own: it sat in group 2 near the
@@ -1525,14 +1532,21 @@ jobs:
           # ruled table, a body bled to the card's edges, centred states,
           # bulleted lists), in Chromium and Firefox, about 4 seconds locally:
           # Suite Helpers planned as 0.6, this group about 21.7.
+          # Monitor Overview's second half planned as 10.2 on 2026-11-12, with
+          # #7205's tests (see group 3), which would have taken this group to
+          # 22.6: Navigation Search (4.6) moved to group 20, and Label Rule
+          # Transfer (0.7) came from group 3: about 18.7.
+          # Ceph Pages (2.0) joined it from group 17 the same day, when Setup
+          # health (#6812) grew Home Overview there: about 20.7.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
               test-monitor-overview-ui
-              test-navigation-search-ui
               test-discovery-ui
               test-suite-helpers-ui
               test-resource-onboarding-ui
+              test-label-rule-transfer-ui
+              test-ceph-pages-ui
           # Added on 2026-11-03, when the sixteen groups' run steps added up to
           # 367.1 and 364.4 minutes on the last two runs with these suites
           # (master's of 2026-11-02 23:47, 41541694087, and 14.0.102's first
@@ -1574,6 +1588,12 @@ jobs:
           # Home's cards lined up with their titles and a category tab's focus
           # ring (#6956, about 3 seconds locally): Home Overview planned as
           # 3.1, this group about 21.6.
+          # Setup health (#6812: Needs attention's Setup line, and the Setup
+          # Health page at 1280 and 390 pixels, dark, German and Persian, and
+          # with nothing to fix; 7 tests, about 48 seconds locally on a busy
+          # machine): Home Overview planned as 3.9, past the line, so Ceph
+          # Pages (2.0) moved to group 16, the group with the most room but
+          # 22's (kept for the journeys): this group about 20.4.
           - group: 17
             suites: >-
               test-snmp-walk-ui
@@ -1585,7 +1605,6 @@ jobs:
               test-ai-context-ui
               test-llm-provider-test-ui
               test-status-timeline-ui
-              test-ceph-pages-ui
           # Added on 2026-11-03. Timed over App Test's six finished runs of
           # 11-02 (each suite's median minutes in its group's job,
           # Tests/Ops/DashboardOfflineUiMinutes.json), the seventeen groups
@@ -1596,12 +1615,13 @@ jobs:
           # to. Diagrams (4.6) from group 2, Resource Overviews (4.6) from group
           # 12, Ask AI (3.4) and Asset Details (2.6) from group 16, Dashboard
           # Table Thresholds (2.2) from group 7 and Value Picker (3.5) from
-          # group 8, at the planned line itself: about 21.
+          # group 8, at the planned line itself: about 21. Ask AI (4.5) moved to
+          # group 22 on 2026-11-12, when its setup plans (#6829) took it past
+          # this group's room: about 17.7.
           - group: 18
             suites: >-
               test-diagrams-ui
               test-resource-overviews-ui
-              test-ask-ai-ui
               test-asset-details-ui
               test-dashboard-table-thresholds-ui
               test-value-picker-ui
@@ -1694,10 +1714,14 @@ jobs:
           # Reading Direction (5.9) moved to group 22, the group with the most
           # room, when this third grew to 16.3 (#6956, see group 19): about
           # 16.3.
+          # Navigation Search (4.6) joined it from group 16 on 2026-11-12, when
+          # #7205's Monitor Overview tests took that group to 22.6 (see group
+          # 3): about 20.9.
           - group: 20
             openstack_pages_shard: 2/3
             suites: >-
               test-openstack-pages-ui
+              test-navigation-search-ui
           # Added on 2026-11-10 for the last third of the OpenStack pages (195
           # tests, 17.8 minutes, see group 19): no group had the room for it.
           # Global Runners (2.2) from group 19 and Host Pages (1.6) from group
@@ -1723,11 +1747,14 @@ jobs:
           # the journeys the same day: Journeys/GuidedSetupRun.spec.ts, 3 tests
           # that are not journeys (nothing counted), the third a long address
           # at 390 pixels, 18 seconds locally (37 on a loaded machine) -
-          # test-journeys-ui planned as 2.9, this group about 8.8.
+          # test-journeys-ui planned as 2.9, this group about 8.8. Ask AI (4.5)
+          # joined it from group 18 the same day, with its setup plans (#6829):
+          # about 13.3.
           - group: 22
             suites: >-
               test-journeys-ui
               test-reading-direction-ui
+              test-ask-ai-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass

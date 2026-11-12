@@ -2,6 +2,7 @@ import LicenseActivationForm, {
   ActivationInputMode,
 } from "./LicenseActivationForm";
 import LicenseDetails from "./LicenseDetails";
+import { LicenseSettingsCopy } from "./LicenseSettingsCopy";
 import {
   activateLicenseKey,
   activateLicenseToken,
@@ -16,10 +17,12 @@ import {
   LicenseStatusTone,
   LicenseWriteOutcome,
   toLicenseSnapshot,
+  writeLicenseDate,
 } from "./LicenseStatus";
 import OneUptimeDate from "Common/Types/Date";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
@@ -29,8 +32,13 @@ import { LicenseSnapshot } from "Common/UI/Components/EditionLabel/LicenseDetail
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import HiddenText from "Common/UI/Components/HiddenText/HiddenText";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine, {
+  getIsolatedLine,
+} from "Common/UI/Components/IsolatedText/IsolatedLine";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import API from "Common/UI/Utils/API/API";
+import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
   ReactElement,
@@ -54,6 +62,13 @@ import { useTranslation } from "react-i18next";
  * The Admin Dashboard is a master admin's and the server checks every write
  * again (ee/Server/License/API/LicenseClientAPI.ts), so nothing here is a
  * check of its own.
+ *
+ * In the reader's language: every word is a key of ./LicenseSettingsCopy.ts.
+ * The shared components (Card, Button, Alert, ErrorMessage) draw the keys
+ * they are given in the reader's language themselves; what this page draws
+ * as text it translates here. The license key, the instance ID and the
+ * licensed company's name are drawn as written, and read in their own
+ * direction on an Arabic or Persian page.
  */
 
 const STATUS_ICON: Record<LicenseStatusTone, IconProp> = {
@@ -68,14 +83,27 @@ const STATUS_ICON_CLASS_NAME: Record<LicenseStatusTone, string> = {
   critical: "bg-red-50 text-red-700",
 };
 
+// How a fact's value is drawn: one line, cut short where its box ends.
+const FACT_VALUE_CLASS_NAME: string =
+  "mt-1 truncate text-sm font-medium text-gray-900";
+
 interface LicenseFact {
+  // The English key: the fact's label, and its React key.
   label: string;
   value: ReactNode;
   title?: string | undefined;
+  /*
+   * A value written as someone wrote it (the licensed company's name): its
+   * box reads the way its words do, so on an Arabic or Persian page a Latin
+   * name is cut short at its own end rather than losing its start.
+   */
+  dir?: ReadingDirection | undefined;
+  className?: string | undefined;
 }
 
 type FormatExpiryFunction = (value: unknown) => string;
 
+// The expiry in the page's language ("2. März 2027"), or a dash.
 const formatExpiry: FormatExpiryFunction = (value: unknown): string => {
   if (typeof value !== "string" || !value) {
     return "—";
@@ -83,11 +111,12 @@ const formatExpiry: FormatExpiryFunction = (value: unknown): string => {
 
   const date: Date = OneUptimeDate.fromString(value);
 
-  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString();
+  return Number.isNaN(date.getTime()) ? "—" : writeLicenseDate(date);
 };
 
 const LicenseSettingsView: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
+  const translator: Translator = useTranslator();
   const [payload, setPayload] = useState<JSONObject | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
@@ -179,7 +208,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
     const trimmedKey: string = licenseKeyInput.trim();
 
     if (!trimmedKey) {
-      setActionError("Please enter a license key before validating.");
+      setActionError(LicenseSettingsCopy.enterLicenseKeyFirst);
       return;
     }
 
@@ -191,7 +220,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
       licenseInputEditedRef.current = false;
       setLicenseKeyInput((response["licenseKey"] as string) || trimmedKey);
       setIsChangingLicense(false);
-      applyLicenseWrite(response, "License validated successfully.");
+      applyLicenseWrite(response, LicenseSettingsCopy.licenseValidated);
     } catch (err) {
       setActionError(API.getFriendlyMessage(err));
     } finally {
@@ -208,7 +237,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
     const trimmedToken: string = licenseTokenInput.trim();
 
     if (!trimmedToken) {
-      setActionError("Please paste a license token before activating.");
+      setActionError(LicenseSettingsCopy.pasteLicenseTokenFirst);
       return;
     }
 
@@ -220,7 +249,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
       setLicenseTokenInput("");
       setIsChangingLicense(false);
       setActivationInputMode("key");
-      applyLicenseWrite(response, "License activated offline.");
+      applyLicenseWrite(response, LicenseSettingsCopy.licenseActivatedOffline);
     } catch (err) {
       setActionError(API.getFriendlyMessage(err));
     } finally {
@@ -263,7 +292,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
       try {
         applyLicenseWrite(
           await refreshLicense(),
-          "License refreshed from OneUptime.",
+          LicenseSettingsCopy.licenseRefreshed,
         );
       } catch (err) {
         setActionError(API.getFriendlyMessage(err));
@@ -307,7 +336,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
   if (!payload || !license) {
     return (
       <ErrorMessage
-        message={loadError || "The license could not be read."}
+        message={loadError || LicenseSettingsCopy.licenseCouldNotBeRead}
         onRefreshClick={() => {
           void loadLicense();
         }}
@@ -315,7 +344,11 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
     );
   }
 
-  const status: LicenseStatusSummary = describeLicenseStatus(payload);
+  const status: LicenseStatusSummary = describeLicenseStatus(
+    payload,
+    undefined,
+    translator,
+  );
   const hasLicense: boolean = isLicensed(payload);
   const isMarketplaceLicense: boolean = Boolean(payload["marketplace"]);
   const isOfflineLicense: boolean = payload["activationMode"] === "offline";
@@ -330,38 +363,66 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
    * While the form is showing nothing is in place to read, and the form says
    * the instance ID where it matters: beside a token.
    */
+  const companyNameLine: {
+    dir: ReadingDirection | undefined;
+    className: string;
+  } = getIsolatedLine({
+    text: license.companyName,
+    pageLanguage: translator.language,
+    className: FACT_VALUE_CLASS_NAME,
+  });
+
   const facts: Array<LicenseFact> = [
     ...(hasLicense && !isMarketplaceLicense
       ? [
           {
-            label: "Licensed to",
-            value: license.companyName || "Not specified",
+            label: LicenseSettingsCopy.licensedTo,
+            value:
+              license.companyName ||
+              translator.translateText(LicenseSettingsCopy.notSpecified),
             title: license.companyName || undefined,
+            dir: companyNameLine.dir,
+            className: companyNameLine.className,
           },
-          { label: "Expires", value: formatExpiry(payload["expiresAt"]) },
+          {
+            label: LicenseSettingsCopy.expires,
+            value: formatExpiry(payload["expiresAt"]),
+          },
         ]
       : []),
     ...(license.licenseKey && !showActivationForm
       ? [
           {
-            label: "License key",
+            label: LicenseSettingsCopy.licenseKey,
+            // Drawn left to right in every language (HiddenText).
             value: <HiddenText text={license.licenseKey} isCopyable={true} />,
           },
         ]
       : []),
     ...(hasLicense && isOfflineLicense
-      ? [{ label: "Activation", value: "Offline, with a signed token" }]
+      ? [
+          {
+            label: LicenseSettingsCopy.activation,
+            value: translator.translateText(
+              LicenseSettingsCopy.activatedOffline,
+            ),
+          },
+        ]
       : []),
     ...(instanceId && !showActivationForm
       ? [
           {
-            label: "Instance ID",
+            label: LicenseSettingsCopy.instanceId,
             value: (
               <span
                 className="group inline-flex max-w-full items-center gap-1 font-mono text-xs"
                 data-testid="license-instance-id"
               >
-                <span className="truncate" title={instanceId}>
+                {/*
+                 * An identifier: left to right on every page, so it is cut
+                 * short at its own end.
+                 */}
+                <span className="truncate" dir="ltr" title={instanceId}>
                   {instanceId}
                 </span>
                 <CopyableButton textToBeCopied={instanceId} />
@@ -384,20 +445,24 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
             ? [
                 <Button
                   key="refresh"
-                  title="Refresh license"
+                  title={LicenseSettingsCopy.refreshLicense}
                   icon={IconProp.Refresh}
                   buttonStyle={ButtonStyleType.OUTLINE}
                   onClick={handleRefresh}
                   isLoading={isRefreshing}
                   disabled={isRefreshing}
-                  tooltip="Fetch the latest seat limit and expiry for this license from OneUptime."
+                  tooltip={LicenseSettingsCopy.refreshLicenseTooltip}
                   dataTestId="refresh-enterprise-license"
                 />,
               ]
             : []),
           <Button
             key="change"
-            title={isOfflineLicense ? "Replace license" : "Change license key"}
+            title={
+              isOfflineLicense
+                ? LicenseSettingsCopy.replaceLicense
+                : LicenseSettingsCopy.changeLicenseKey
+            }
             icon={IconProp.Edit}
             buttonStyle={ButtonStyleType.OUTLINE}
             onClick={handleStartChangingLicense}
@@ -411,7 +476,7 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
     <div className="space-y-4">
       <Card
         title={t("breadcrumbs.enterpriseLicense")}
-        description="The Enterprise license of this installation."
+        description={LicenseSettingsCopy.cardDescription}
         buttons={cardButtons}
       >
         <div>
@@ -462,9 +527,24 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
               <h3 className="text-sm font-semibold text-gray-900">
                 {status.title}
               </h3>
-              <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-600">
-                {status.description}
-              </p>
+              {status.description && (
+                <p className="mt-1 max-w-3xl text-sm leading-relaxed text-gray-600">
+                  {status.description}
+                </p>
+              )}
+              {/*
+               * What the license client said, as the server sent it: a
+               * line of its own, so on an Arabic or Persian page an English
+               * diagnosis reads left to right with its full stop at its end.
+               */}
+              {status.serverMessage && (
+                <IsolatedLine
+                  as="p"
+                  text={status.serverMessage}
+                  className="mt-1 max-w-3xl break-words text-sm leading-relaxed text-gray-600"
+                  dataTestId="license-status-server-message"
+                />
+              )}
               {status.note && (
                 <p className="mt-1.5 max-w-3xl text-xs leading-relaxed text-gray-500">
                   {status.note}
@@ -479,10 +559,11 @@ const LicenseSettingsView: FunctionComponent = (): ReactElement => {
                 return (
                   <div key={fact.label} className="min-w-0">
                     <dt className="text-xs font-medium text-gray-500">
-                      {fact.label}
+                      {translator.translateText(fact.label)}
                     </dt>
                     <dd
-                      className="mt-1 truncate text-sm font-medium text-gray-900"
+                      className={fact.className || FACT_VALUE_CLASS_NAME}
+                      dir={fact.dir}
                       title={fact.title}
                     >
                       {fact.value}

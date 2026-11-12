@@ -57,7 +57,8 @@ const place = (component, data) => {
 
 /*
  * The dashboard's config as the server stores it. `isPublic` keeps the
- * widgets a public dashboard draws.
+ * widgets a public dashboard draws; `isHoneycomb` draws the monitor list as
+ * a honeycomb, a tile per monitor whose tooltip says what it is (#6966).
  */
 export const buildConfig = (options) => {
   const components = [
@@ -67,7 +68,11 @@ export const buildConfig = (options) => {
       left: 0,
       width: 6,
       height: 4,
-      arguments: { title: "Monitors", maxRows: 25 },
+      arguments: {
+        title: "Monitors",
+        maxRows: 25,
+        ...(options && options.isHoneycomb ? { viewMode: "honeycomb" } : {}),
+      },
     }),
     place(DashboardKubernetesPodListComponentUtil.getDefaultComponent(), {
       id: WIDGETS.pods,

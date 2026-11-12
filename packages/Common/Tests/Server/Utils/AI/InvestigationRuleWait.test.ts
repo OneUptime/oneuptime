@@ -1062,11 +1062,119 @@ describe("startNow: someone starts a waiting investigation at once", () => {
       isStarted: false,
       problem: "daily_budget_exhausted",
       message:
-        "The daily AI token limit for this kind of record is reached. It resets at midnight UTC.",
+        "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
     });
     expect(mocks.recordSkipped).not.toHaveBeenCalled();
     expect(mocks.incidentCas).not.toHaveBeenCalled();
   });
+
+  /*
+   * #7157: a limit of 0 pauses the record's automatic AI work - waiting for
+   * midnight does not lift it - and an alert's limit is the alerts' own,
+   * under Alerts → AI → Settings.
+   */
+  test.each([
+    {
+      lane: "Incident" as const,
+      budget: { exhausted: true, limitInTokens: 0, usedTokensToday: 0 },
+      message:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "Incident" as const,
+      budget: { exhausted: true, limitInTokens: -5, usedTokensToday: 0 },
+      message:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "Incident" as const,
+      budget: { exhausted: true, limitInTokens: 500, usedTokensToday: 900 },
+      message:
+        "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    },
+    {
+      lane: "Alert" as const,
+      budget: { exhausted: true, limitInTokens: 0, usedTokensToday: 0 },
+      message:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "Alert" as const,
+      budget: { exhausted: true, limitInTokens: -1, usedTokensToday: 0 },
+      message:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "Alert" as const,
+      budget: { exhausted: true, limitInTokens: 500, usedTokensToday: 500 },
+      message:
+        "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    },
+  ])(
+    "$lane, limit $budget.limitInTokens: the queue's refusal names the record's own limit, and only a used-up one says midnight",
+    async (data: {
+      lane: "Incident" | "Alert";
+      budget: {
+        exhausted: boolean;
+        limitInTokens: number;
+        usedTokensToday: number;
+      };
+      message: string;
+    }) => {
+      if (data.lane === "Incident") {
+        jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(waiting());
+        jest
+          .spyOn(InvestigationRules, "getIncidentScope")
+          .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+      } else {
+        const createdAt: Date = minutesFromNow(-2);
+
+        jest.spyOn(AlertService, "findOneBy").mockResolvedValue(
+          Object.assign(new Alert(), {
+            _id: ALERT_ID.toString(),
+            createdAt,
+            aiInvestigationWaitUntil: new Date(
+              createdAt.getTime() + 10 * MINUTE,
+            ),
+            monitorId: MONITOR_ID,
+          }),
+        );
+        jest
+          .spyOn(InvestigationRules, "getAlertScope")
+          .mockResolvedValue({ isInScope: true, rulesChecked: 0 });
+      }
+      jest
+        .spyOn(AIInvestigationEngine, "getDisabledReason")
+        .mockResolvedValue(null);
+      jest
+        .spyOn(AIInvestigationQueue, "enqueue")
+        .mockImplementation(
+          async (
+            enqueue: Parameters<typeof AIInvestigationQueue.enqueue>[0],
+          ): Promise<ObjectID | null> => {
+            await enqueue.onNotEnqueued!("daily_budget_exhausted", data.budget);
+            return null;
+          },
+        );
+
+      const result: StartNowResult = await InvestigationRuleWait.startNow({
+        lane: data.lane,
+        projectId: PROJECT_ID,
+        subjectId: data.lane === "Incident" ? INCIDENT_ID : ALERT_ID,
+      });
+
+      expect(result).toEqual({
+        isStarted: false,
+        problem: "daily_budget_exhausted",
+        message: data.message,
+      });
+      expect(data.message.includes("midnight")).toBe(
+        data.budget.limitInTokens > 0,
+      );
+      expect(data.message).not.toMatch(/tomorrow/i);
+      expect(mocks.recordSkipped).not.toHaveBeenCalled();
+    },
+  );
 
   test("started by someone else first (not admitted): says it has already started", async () => {
     jest.spyOn(IncidentService, "findOneBy").mockResolvedValue(waiting());

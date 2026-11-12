@@ -480,7 +480,7 @@ describe("a run tried more than once reads as its attempts", () => {
       "Searching logs · 3 rows",
       // Open when the attempt ended: it stopped with it, though the run runs on.
       "Thinking · did not finish",
-      "Did not finish: The AI provider did not answer within 120 seconds. Trying again at 14:05.",
+      "Did not finish: The LLM provider did not answer within 120 seconds. Trying again at 14:05.",
     ]);
     // The one spinner is the second attempt's.
     expect(spinners(container)).toBe(1);
@@ -606,7 +606,7 @@ describe("a run tried more than once reads as its attempts", () => {
 
     const end: HTMLElement = screen.getByTestId("activity-attempt-end");
     expect(end).toHaveTextContent(
-      "Stopped: The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
+      "Stopped: The LLM provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
     );
     expect(end.className).toContain("text-red-600");
     expect(screen.getByText("Thinking")).toBeVisible();
@@ -788,7 +788,7 @@ describe("a failed read promises another way only while its attempt can keep it"
     ).toEqual([
       "Starting investigation",
       "Analyzing traces · failed",
-      "Did not finish: The AI provider did not answer within 120 seconds. Trying again.",
+      "Did not finish: The LLM provider did not answer within 120 seconds. Trying again.",
     ]);
   });
 

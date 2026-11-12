@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50831,
+    "keys": 50940,
     "untranslated": 5332
   },
   "sameAsEnglish": [
@@ -492,6 +492,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Suggestions",
     "Switch",
     "TLS",
     "TTL",
