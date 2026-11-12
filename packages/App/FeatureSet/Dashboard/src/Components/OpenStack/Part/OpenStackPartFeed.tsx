@@ -183,7 +183,7 @@ export const OpenStackPartFeed: FunctionComponent<ComponentProps> = (
       title="Feed"
       description="What the cloud said happened to this part, and what OneUptime AI changed on it and who approved that, newest first. The cloud's side needs notifications in the logs, or a probe: the OpenStack guide says how."
     >
-      <div className="p-4 text-sm" data-testid="openstack-part-feed">
+      <div className="text-sm" data-testid="openstack-part-feed">
         {error ? (
           <p className="text-gray-500">
             {translator.translateText("The feed could not be read.")}
@@ -395,7 +395,7 @@ export const OpenStackWhoChangedThis: FunctionComponent<ComponentProps> = (
       title="Who changed this"
       description="Who did what to this part around the moment its state last changed, from the cloud's audit trail and notifications."
     >
-      <ul className="p-4 text-sm" data-testid="openstack-who-changed-this">
+      <ul className="text-sm" data-testid="openstack-who-changed-this">
         {rows.map((who: WhoRow): ReactElement => {
           return (
             <li key={who.key} className="py-1">

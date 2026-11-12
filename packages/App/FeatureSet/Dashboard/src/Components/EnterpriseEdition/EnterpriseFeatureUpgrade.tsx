@@ -170,7 +170,7 @@ const EnterpriseFeatureUpgrade: FunctionComponent<ComponentProps> = (
         />
       }
     >
-      <div className="px-4 pb-6 pt-2">
+      <div>
         <div className="flex flex-col items-start gap-4 rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 via-white to-white p-5">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm">

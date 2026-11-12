@@ -1107,7 +1107,7 @@ const PhoneNumberPurchase: FunctionComponent<PhoneNumberPurchaseProps> = (
           },
         ]}
       >
-        <div className="p-6">{renderPhoneNumbers()}</div>
+        {renderPhoneNumbers()}
       </Card>
       {renderModals()}
     </>
