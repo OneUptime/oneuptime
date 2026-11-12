@@ -519,7 +519,7 @@
         "pillNoFromEmail": "Não habilitado. Adicione o e-mail do remetente.",
         "pillNoFromName": "Não habilitado. Adicione o nome do remetente.",
         "amazonSesCardTitle": "Configurações Amazon SES",
-        "amazonSesCardDescription": "Sua chave de acesso do Amazon SES e a região, e o remetente dos e-mails.",
+        "amazonSesCardDescription": "Como este servidor entra no Amazon SES, a região, e o remetente dos e-mails.",
         "amazonSesEditButton": "Editar Amazon SES",
         "mailgunCardTitle": "Configurações Mailgun",
         "mailgunCardDescription": "Sua chave de API do Mailgun e o domínio de envio, e o remetente dos e-mails.",
@@ -2378,5 +2378,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Dê mais memória e CPU aos workers e procure no log do app as tarefas que continuam falhando.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Este servidor roda o OneUptime {{current}}. A versão {{latest}} já está disponível.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Faça um backup e depois atualize: npm run update no Docker Compose, helm upgrade no Kubernetes.",
-  "Finish it on the Server setup page.": "Conclua na página Configuração do servidor."
+  "Finish it on the Server setup page.": "Conclua na página Configuração do servidor.",
+  "How OneUptime signs in to Amazon SES.": "Como o OneUptime entra no Amazon SES.",
+  "Access Key": "Chave de acesso",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "O ID da chave de acesso e a chave de acesso secreta de um usuário do IAM, armazenados criptografados.",
+  "This Server's IAM Role": "Função do IAM deste servidor",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "A função que a AWS dá a este servidor no Amazon EKS, ECS ou EC2. Nenhuma chave é armazenada, e suas credenciais se renovam sozinhas.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Enviar pelo Amazon SES com uma chave de acesso ou a função do IAM deste servidor."
 }

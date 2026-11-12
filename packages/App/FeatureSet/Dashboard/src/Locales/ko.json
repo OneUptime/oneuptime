@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "현재 역할로는 최종 사용자 신원을 읽을 수 없습니다. 프로젝트 관리자에게 \"{{permission}}\" 권한을 요청하세요.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "페이지가 identify()에 전달한 정확한 참조 값입니다. \"{{permission}}\" 권한이 필요하며 URL에는 절대 기록되지 않습니다.",
   "That turn is not part of this task": "그 차례는 이 작업에 속하지 않습니다",
-  "The task's first turn is shown instead.": "대신 작업의 첫 번째 차례를 표시합니다."
+  "The task's first turn is shown instead.": "대신 작업의 첫 번째 차례를 표시합니다.",
+  "Amazon SES Authentication Type": "Amazon SES 인증 유형",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 사용자의 액세스 키 ID와 비밀 액세스 키이며, 암호화되어 저장됩니다.",
+  "How OneUptime signs in to Amazon SES.": "OneUptime이 Amazon SES에 로그인하는 방식입니다.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "액세스 키 또는 이 서버의 IAM 역할로 Amazon SES를 통해 보냅니다.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS, ECS 또는 EC2에서 AWS가 이 서버에 부여하는 역할입니다. 키는 저장되지 않으며, 자격 증명은 자동으로 갱신됩니다.",
+  "This Server's IAM Role": "이 서버의 IAM 역할"
 }

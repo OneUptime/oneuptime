@@ -519,7 +519,7 @@
         "pillNoFromEmail": "No habilitado. Por favor, añada el correo del remitente.",
         "pillNoFromName": "No habilitado. Por favor, añada el nombre del remitente.",
         "amazonSesCardTitle": "Ajustes de Amazon SES",
-        "amazonSesCardDescription": "Su clave de acceso de Amazon SES y su región, y el remitente de los correos.",
+        "amazonSesCardDescription": "Cómo inicia sesión este servidor en Amazon SES, su región y el remitente de los correos.",
         "amazonSesEditButton": "Editar Amazon SES",
         "mailgunCardTitle": "Ajustes de Mailgun",
         "mailgunCardDescription": "Su clave de API de Mailgun y su dominio de envío, y el remitente de los correos.",
@@ -2378,5 +2378,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Da más memoria y CPU a los workers, y busca en el registro de la aplicación las tareas que fallan una y otra vez.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Este servidor ejecuta OneUptime {{current}}. Ya está disponible la {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Haz una copia de seguridad y luego actualiza: npm run update en Docker Compose, helm upgrade en Kubernetes.",
-  "Finish it on the Server setup page.": "Termínalo en la página Configuración del servidor."
+  "Finish it on the Server setup page.": "Termínalo en la página Configuración del servidor.",
+  "How OneUptime signs in to Amazon SES.": "Cómo inicia sesión OneUptime en Amazon SES.",
+  "Access Key": "Clave de acceso",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "El ID de clave de acceso y la clave de acceso secreta de un usuario de IAM, guardados cifrados.",
+  "This Server's IAM Role": "Rol de IAM de este servidor",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "El rol que AWS da a este servidor en Amazon EKS, ECS o EC2. No se guarda ninguna clave y sus credenciales se renuevan solas.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Enviar a través de Amazon SES con una clave de acceso o el rol de IAM de este servidor."
 }

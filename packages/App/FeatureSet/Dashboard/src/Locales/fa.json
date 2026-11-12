@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "نقش شما نمی‌تواند هویت کاربر نهایی را بخواند. مجوز «{{permission}}» را از یک مدیر پروژه بخواهید.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "همان مرجعی که صفحه شما به identify() داد. به مجوز «{{permission}}» نیاز دارد؛ هرگز در نشانی نوشته نمی‌شود.",
   "That turn is not part of this task": "آن نوبت بخشی از این وظیفه نیست",
-  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود."
+  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود.",
+  "Amazon SES Authentication Type": "نوع احراز هویت Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "شناسه کلید دسترسی و کلید دسترسی محرمانه یک کاربر IAM، که به‌صورت رمزگذاری‌شده نگهداری می‌شوند.",
+  "How OneUptime signs in to Amazon SES.": "اینکه OneUptime چگونه وارد Amazon SES می‌شود.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "ارسال از راه Amazon SES با یک کلید دسترسی یا نقش IAM این سرور.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "نقشی که AWS روی Amazon EKS، ECS یا EC2 به این سرور می‌دهد. هیچ کلیدی نگهداری نمی‌شود و اعتبارنامه‌های آن خودبه‌خود تمدید می‌شوند.",
+  "This Server's IAM Role": "نقش IAM این سرور"
 }

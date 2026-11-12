@@ -519,7 +519,7 @@
         "pillNoFromEmail": "Ikke aktivert. Legg til Fra-e-posten.",
         "pillNoFromName": "Ikke aktivert. Legg til Fra-navnet.",
         "amazonSesCardTitle": "Amazon SES-innstillinger",
-        "amazonSesCardDescription": "Din Amazon SES-tilgangsnøkkel og region, og avsenderen av e-postene.",
+        "amazonSesCardDescription": "Hvordan denne serveren logger inn på Amazon SES, regionen, og avsenderen av e-postene.",
         "amazonSesEditButton": "Rediger Amazon SES",
         "mailgunCardTitle": "Mailgun-innstillinger",
         "mailgunCardDescription": "Din Mailgun-API-nøkkel og avsenderdomenet, og avsenderen av e-postene.",
@@ -2378,5 +2378,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Gi workerne mer minne og CPU, og se i appens logg etter jobber som stadig feiler.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Denne serveren kjører OneUptime {{current}}. {{latest}} er ute.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Ta en sikkerhetskopi, og oppdater deretter: npm run update på Docker Compose, helm upgrade på Kubernetes.",
-  "Finish it on the Server setup page.": "Fullfør det på siden Serveroppsett."
+  "Finish it on the Server setup page.": "Fullfør det på siden Serveroppsett.",
+  "How OneUptime signs in to Amazon SES.": "Hvordan OneUptime logger inn på Amazon SES.",
+  "Access Key": "Tilgangsnøkkel",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "Tilgangsnøkkel-ID-en og den hemmelige tilgangsnøkkelen til en IAM-bruker, lagret kryptert.",
+  "This Server's IAM Role": "Denne serverens IAM-rolle",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Rollen AWS gir denne serveren på Amazon EKS, ECS eller EC2. Ingen nøkkel lagres, og legitimasjonen fornyes av seg selv.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Send via Amazon SES med en tilgangsnøkkel eller denne serverens IAM-rolle."
 }

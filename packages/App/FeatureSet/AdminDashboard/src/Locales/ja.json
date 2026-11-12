@@ -519,7 +519,7 @@
         "pillNoFromEmail": "有効化されていません。送信元メールを追加してください。",
         "pillNoFromName": "有効化されていません。送信元名を追加してください。",
         "amazonSesCardTitle": "Amazon SES設定",
-        "amazonSesCardDescription": "Amazon SES のアクセスキーとリージョン、メールの差出人です。",
+        "amazonSesCardDescription": "このサーバーが Amazon SES にサインインする方法とリージョン、メールの差出人です。",
         "amazonSesEditButton": "Amazon SESを編集",
         "mailgunCardTitle": "Mailgun設定",
         "mailgunCardDescription": "Mailgun の API キーと送信ドメイン、メールの差出人です。",
@@ -2378,5 +2378,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "ワーカーのメモリーと CPU を増やし、失敗し続けるジョブがないかアプリのログを確認してください。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "このサーバーは OneUptime {{current}} を実行しています。{{latest}} がリリースされています。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "バックアップしてから更新してください。Docker Compose では npm run update、Kubernetes では helm upgrade です。",
-  "Finish it on the Server setup page.": "「サーバーの設定」ページで完了してください。"
+  "Finish it on the Server setup page.": "「サーバーの設定」ページで完了してください。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime が Amazon SES にサインインする方法です。",
+  "Access Key": "アクセスキー",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM ユーザーのアクセスキー ID とシークレットアクセスキーです。暗号化して保存されます。",
+  "This Server's IAM Role": "このサーバーの IAM ロール",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS、ECS、EC2 で AWS がこのサーバーに与えるロールです。キーは保存されず、認証情報は自動で更新されます。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "アクセスキーまたはこのサーバーの IAM ロールを使って Amazon SES から送信します。"
 }

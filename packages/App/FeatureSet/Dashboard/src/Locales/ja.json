@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "あなたのロールではエンドユーザーの身元を読み取れません。プロジェクト管理者に「{{permission}}」権限を依頼してください。",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "ページが identify() に渡した参照そのもの。「{{permission}}」権限が必要で、URL に書き込まれることはありません。",
   "That turn is not part of this task": "そのターンはこのタスクのものではありません",
-  "The task's first turn is shown instead.": "代わりにタスクの最初のターンを表示しています。"
+  "The task's first turn is shown instead.": "代わりにタスクの最初のターンを表示しています。",
+  "Amazon SES Authentication Type": "Amazon SES の認証タイプ",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM ユーザーのアクセスキー ID とシークレットアクセスキーです。暗号化して保存されます。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime が Amazon SES にサインインする方法です。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "アクセスキーまたはこのサーバーの IAM ロールを使って Amazon SES から送信します。",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS、ECS、EC2 で AWS がこのサーバーに与えるロールです。キーは保存されず、認証情報は自動で更新されます。",
+  "This Server's IAM Role": "このサーバーの IAM ロール"
 }

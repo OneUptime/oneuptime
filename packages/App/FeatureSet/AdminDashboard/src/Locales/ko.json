@@ -519,7 +519,7 @@
         "pillNoFromEmail": "활성화되지 않음. 발신자 이메일을 추가하세요.",
         "pillNoFromName": "활성화되지 않음. 발신자 이름을 추가하세요.",
         "amazonSesCardTitle": "Amazon SES 설정",
-        "amazonSesCardDescription": "Amazon SES 액세스 키와 리전, 메일의 보낸 사람입니다.",
+        "amazonSesCardDescription": "이 서버가 Amazon SES에 로그인하는 방식과 리전, 메일의 보낸 사람입니다.",
         "amazonSesEditButton": "Amazon SES 편집",
         "mailgunCardTitle": "Mailgun 설정",
         "mailgunCardDescription": "Mailgun API 키와 발신 도메인, 메일의 보낸 사람입니다.",
@@ -2378,5 +2378,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "워커에 메모리와 CPU를 더 할당하고, 앱 로그에서 계속 실패하는 작업을 확인하세요.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "이 서버는 OneUptime {{current}}을(를) 실행 중입니다. {{latest}}이(가) 출시되었습니다.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "백업한 다음 업데이트하세요. Docker Compose에서는 npm run update, Kubernetes에서는 helm upgrade를 실행합니다.",
-  "Finish it on the Server setup page.": "서버 설정 페이지에서 마무리하세요."
+  "Finish it on the Server setup page.": "서버 설정 페이지에서 마무리하세요.",
+  "How OneUptime signs in to Amazon SES.": "OneUptime이 Amazon SES에 로그인하는 방식입니다.",
+  "Access Key": "액세스 키",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 사용자의 액세스 키 ID와 비밀 액세스 키이며, 암호화되어 저장됩니다.",
+  "This Server's IAM Role": "이 서버의 IAM 역할",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS, ECS 또는 EC2에서 AWS가 이 서버에 부여하는 역할입니다. 키는 저장되지 않으며, 자격 증명은 자동으로 갱신됩니다.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "액세스 키 또는 이 서버의 IAM 역할로 Amazon SES를 통해 보냅니다."
 }

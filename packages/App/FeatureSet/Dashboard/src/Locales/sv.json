@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Din roll kan inte läsa slutanvändaridentitet. Be en projektadministratör om behörigheten ”{{permission}}”.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Den exakta referens som din sida skickade till identify(). Kräver behörigheten ”{{permission}}”; skrivs aldrig i URL:en.",
   "That turn is not part of this task": "Den turen hör inte till den här uppgiften",
-  "The task's first turn is shown instead.": "Uppgiftens första tur visas i stället."
+  "The task's first turn is shown instead.": "Uppgiftens första tur visas i stället.",
+  "Amazon SES Authentication Type": "Autentiseringstyp för Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "En IAM-användares åtkomstnyckel-ID och hemliga åtkomstnyckel, lagrade krypterade.",
+  "How OneUptime signs in to Amazon SES.": "Hur OneUptime loggar in på Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Skicka via Amazon SES med en åtkomstnyckel eller den här serverns IAM-roll.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Rollen som AWS ger den här servern på Amazon EKS, ECS eller EC2. Ingen nyckel lagras, och dess autentiseringsuppgifter förnyas av sig själva.",
+  "This Server's IAM Role": "Den här serverns IAM-roll"
 }

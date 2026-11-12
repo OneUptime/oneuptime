@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "你的角色無法讀取終端使用者身分。請向專案管理員申請「{{permission}}」權限。",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "你的頁面傳給 identify() 的確切參照值。需要「{{permission}}」權限；絕不會寫入 URL。",
   "That turn is not part of this task": "該回合不屬於此任務",
-  "The task's first turn is shown instead.": "已改為顯示此任務的第一回合。"
+  "The task's first turn is shown instead.": "已改為顯示此任務的第一回合。",
+  "Amazon SES Authentication Type": "Amazon SES 驗證類型",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 使用者的存取金鑰 ID 和私密存取金鑰，會加密儲存。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime 登入 Amazon SES 的方式。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "使用存取金鑰或此伺服器的 IAM 角色透過 Amazon SES 傳送。",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "AWS 在 Amazon EKS、ECS 或 EC2 上賦予此伺服器的角色。不會儲存任何金鑰，其憑證會自動更新。",
+  "This Server's IAM Role": "此伺服器的 IAM 角色"
 }

@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Il tuo ruolo non può leggere l'identità degli utenti finali. Chiedi a un amministratore del progetto il permesso «{{permission}}».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Il riferimento esatto che la tua pagina ha passato a identify(). Richiede il permesso «{{permission}}»; non viene mai scritto nell'URL.",
   "That turn is not part of this task": "Quel turno non fa parte di questa attività",
-  "The task's first turn is shown instead.": "Al suo posto viene mostrato il primo turno dell'attività."
+  "The task's first turn is shown instead.": "Al suo posto viene mostrato il primo turno dell'attività.",
+  "Amazon SES Authentication Type": "Tipo di autenticazione Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "L'ID della chiave di accesso e la chiave di accesso segreta di un utente IAM, memorizzati crittografati.",
+  "How OneUptime signs in to Amazon SES.": "Come OneUptime accede ad Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Invia tramite Amazon SES con una chiave di accesso o il ruolo IAM di questo server.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Il ruolo che AWS assegna a questo server su Amazon EKS, ECS o EC2. Nessuna chiave viene memorizzata e le sue credenziali si rinnovano da sole.",
+  "This Server's IAM Role": "Ruolo IAM di questo server"
 }

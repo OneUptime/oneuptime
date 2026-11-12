@@ -519,7 +519,7 @@
         "pillNoFromEmail": "فعال نیست. لطفاً ایمیل فرستنده را اضافه کنید.",
         "pillNoFromName": "فعال نیست. لطفاً نام فرستنده را اضافه کنید.",
         "amazonSesCardTitle": "تنظیمات Amazon SES",
-        "amazonSesCardDescription": "کلید دسترسی و منطقه Amazon SES شما، و فرستندهٔ ایمیل‌ها.",
+        "amazonSesCardDescription": "اینکه این سرور چگونه وارد Amazon SES می‌شود، منطقه آن، و فرستندهٔ ایمیل‌ها.",
         "amazonSesEditButton": "ویرایش Amazon SES",
         "mailgunCardTitle": "تنظیمات Mailgun",
         "mailgunCardDescription": "کلید API و دامنه ارسال Mailgun شما، و فرستندهٔ ایمیل‌ها.",
@@ -2378,5 +2378,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "به پردازشگرها حافظه و CPU بیشتری بدهید و در گزارش برنامه دنبال کارهایی بگردید که مدام ناموفق می‌شوند.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "این سرور OneUptime {{current}} را اجرا می‌کند. نسخهٔ {{latest}} منتشر شده است.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "اول پشتیبان بگیرید، بعد به‌روزرسانی کنید: در Docker Compose با npm run update و در Kubernetes با helm upgrade.",
-  "Finish it on the Server setup page.": "آن را در صفحهٔ «راه‌اندازی سرور» تمام کنید."
+  "Finish it on the Server setup page.": "آن را در صفحهٔ «راه‌اندازی سرور» تمام کنید.",
+  "How OneUptime signs in to Amazon SES.": "اینکه OneUptime چگونه وارد Amazon SES می‌شود.",
+  "Access Key": "کلید دسترسی",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "شناسه کلید دسترسی و کلید دسترسی محرمانه یک کاربر IAM، که به‌صورت رمزگذاری‌شده نگهداری می‌شوند.",
+  "This Server's IAM Role": "نقش IAM این سرور",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "نقشی که AWS روی Amazon EKS، ECS یا EC2 به این سرور می‌دهد. هیچ کلیدی نگهداری نمی‌شود و اعتبارنامه‌های آن خودبه‌خود تمدید می‌شوند.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "ارسال از راه Amazon SES با یک کلید دسترسی یا نقش IAM این سرور."
 }

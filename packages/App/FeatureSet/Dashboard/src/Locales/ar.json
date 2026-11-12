@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "لا يستطيع دورك قراءة هوية المستخدم النهائي. اطلب من مسؤول المشروع إذن «{{permission}}».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "المرجع الدقيق الذي مرّرته صفحتك إلى identify(). يتطلب إذن «{{permission}}»؛ ولا يُكتب أبدًا في عنوان URL.",
   "That turn is not part of this task": "تلك الجولة ليست جزءًا من هذه المهمة",
-  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها."
+  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها.",
+  "Amazon SES Authentication Type": "نوع مصادقة Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "معرّف مفتاح الوصول ومفتاح الوصول السري لمستخدم IAM، ويُخزَّنان مشفّرَين.",
+  "How OneUptime signs in to Amazon SES.": "كيف يسجّل OneUptime الدخول إلى Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "الإرسال عبر Amazon SES بمفتاح وصول أو بدور IAM لهذا الخادم.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "الدور الذي تمنحه AWS لهذا الخادم على Amazon EKS أو ECS أو EC2. لا يُخزَّن أي مفتاح، وتتجدّد بيانات اعتماده تلقائيًا.",
+  "This Server's IAM Role": "دور IAM لهذا الخادم"
 }

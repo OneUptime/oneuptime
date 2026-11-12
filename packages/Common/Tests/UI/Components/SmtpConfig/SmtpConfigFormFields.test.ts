@@ -20,11 +20,14 @@ import {
 } from "../../../../UI/Components/Forms/Utils/AdvancedFormSection";
 import { getCreateFormColumnDefault } from "../../../../UI/Components/Forms/Utils/CreateFormDefaults";
 import {
+  AMAZON_SES_AUTHENTICATION_TYPE_CHOICES,
+  AMAZON_SES_AUTHENTICATION_TYPE_DESCRIPTION,
   AMAZON_SES_REGION_INVALID,
   DEFAULT_SMTP_PORT,
   EMAIL_PROVIDER_CHOICES,
   EMAIL_PROVIDER_DESCRIPTION,
   EMAIL_PROVIDER_KEY_COLUMNS,
+  GLOBAL_AMAZON_SES_PROVIDER_DESCRIPTION,
   GLOBAL_EMAIL_PROVIDERS,
   GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS,
   GLOBAL_EMAIL_PROVIDER_TRANSPORTS,
@@ -59,9 +62,11 @@ import {
   SMTP_TRANSPORT_DESCRIPTION,
   SMTP_USERNAME_DESCRIPTION,
   SmtpConfigFormColumns,
+  getAmazonSesAuthenticationTypeTitle,
   getAmazonSesFormFields,
   getColumnsTransportIgnores,
   getEmailProviderTitle,
+  getGlobalAmazonSesFormFields,
   getGlobalEmailProviderCard,
   getGlobalEmailProviderFormFields,
   getGlobalEmailProviderFormSteps,
@@ -87,8 +92,10 @@ import {
   showsSmtpPassword,
   showsSmtpServerFields,
   showsSmtpUsername,
+  usesAmazonSesServerIamRole,
   withoutValuesTransportIgnores,
 } from "../../../../UI/Components/SmtpConfig/SmtpConfigFormFields";
+import AmazonSesAuthenticationType from "../../../../Types/Email/AmazonSesAuthenticationType";
 import MailgunRegion from "../../../../Types/Email/MailgunRegion";
 import type { CardSelectOption } from "../../../../UI/Components/CardSelect/CardSelect";
 import BaseModel from "../../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -116,6 +123,10 @@ import type { RadioButton } from "../../../../UI/Components/RadioButtons/GroupRa
  * The instance's server keeps Server - its transport folded under Advanced
  * - then Sender. The columns each form writes, and what each starts as, are
  * pinned here, so an existing config keeps saving what it holds.
+ *
+ * The instance's Amazon SES card asks one thing a project's never does: how
+ * the server signs in - with an access key, or with the IAM role AWS gives
+ * the server itself (#7000).
  */
 
 type Values = Record<string, unknown>;
@@ -1726,8 +1737,28 @@ describe("the instance's provider cards", () => {
         },
       )!;
 
-      expect(card).toEqual({ ...projectCard, value: provider.serverType });
+      expect(card).toEqual(
+        provider.serverType === EmailServerType.AmazonSES
+          ? {
+              ...projectCard,
+              value: provider.serverType,
+              description: GLOBAL_AMAZON_SES_PROVIDER_DESCRIPTION,
+            }
+          : { ...projectCard, value: provider.serverType },
+      );
     }
+
+    // Only the instance's Amazon SES may sign in with the server's IAM role.
+    expect(
+      getGlobalEmailProviderCard(EmailServerType.AmazonSES)!.description,
+    ).toBe(
+      "Send through Amazon SES with an access key or this server's IAM role.",
+    );
+    expect(
+      EMAIL_PROVIDER_CHOICES.find((choice: CardSelectOption): boolean => {
+        return choice.value === MailTransportType.AmazonSES;
+      })!.description,
+    ).toBe("Send through Amazon Simple Email Service with an IAM access key.");
 
     // Custom SMTP and SendGrid have cards of the page's own.
     expect(
@@ -1761,7 +1792,12 @@ describe("the instance's provider cards", () => {
       ]);
 
       expect(openOn(fields, projectStep.id)).toEqual(
-        openOn(PROJECT_FIELDS, projectStep.id),
+        transport === MailTransportType.AmazonSES
+          ? [
+              "amazonSesAuthenticationType",
+              ...openOn(PROJECT_FIELDS, projectStep.id),
+            ]
+          : openOn(PROJECT_FIELDS, projectStep.id),
       );
       expect(openOn(fields, "sender")).toEqual([
         GLOBAL_EMAIL_PROVIDER_SENDER_COLUMNS[transport].fromEmail,
@@ -1819,6 +1855,49 @@ describe("the instance's provider cards", () => {
       }),
     ).toBeNull();
 
+    // Signing in with the server's IAM role: no key to ask for (#7000).
+    const role: Values = {
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+    };
+
+    expect(missing(MailTransportType.AmazonSES, role)).toBe(
+      GlobalEmailProviderMissingSetting.Region,
+    );
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        ...role,
+        amazonSesRegion: "not a region",
+      }),
+    ).toBe(GlobalEmailProviderMissingSetting.Region);
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        ...role,
+        amazonSesRegion: "eu-west-1",
+      }),
+    ).toBe(GlobalEmailProviderMissingSetting.FromEmail);
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        ...role,
+        amazonSesRegion: "eu-west-1",
+        amazonSesFromEmail: "alerts@example.com",
+      }),
+    ).toBeNull();
+    // A sign-in it does not know is an access key, as the mail service reads it.
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        amazonSesAuthenticationType: "Instance Profile",
+        amazonSesRegion: "eu-west-1",
+        amazonSesFromEmail: "alerts@example.com",
+      }),
+    ).toBe(GlobalEmailProviderMissingSetting.AccessKey);
+    expect(
+      missing(MailTransportType.AmazonSES, {
+        amazonSesAuthenticationType: AmazonSesAuthenticationType.AccessKey,
+        amazonSesRegion: "eu-west-1",
+        amazonSesFromEmail: "alerts@example.com",
+      }),
+    ).toBe(GlobalEmailProviderMissingSetting.AccessKey);
+
     expect(missing(MailTransportType.Mailgun, {})).toBe(
       GlobalEmailProviderMissingSetting.ApiKey,
     );
@@ -1859,6 +1938,202 @@ describe("the instance's provider cards", () => {
         resendFromEmail: "alerts@example.com",
       }),
     ).toBeNull();
+  });
+});
+
+describe("the instance's Amazon SES card: an access key, or this server's IAM role (#7000)", () => {
+  const fields: Array<Field<GlobalConfig>> = getGlobalAmazonSesFormFields();
+  const ROLE: Values = {
+    amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+  };
+  const KEY: Values = {
+    amazonSesAuthenticationType: AmazonSesAuthenticationType.AccessKey,
+  };
+
+  test("asks first how the server signs in, two plain answers, an access key to start", () => {
+    const field: Field<GlobalConfig> = fieldFor(
+      fields,
+      "amazonSesAuthenticationType",
+    );
+
+    expect(keyOf(fields[0]!)).toBe("amazonSesAuthenticationType");
+    expect({
+      title: field.title,
+      stepId: field.stepId,
+      fieldType: field.fieldType,
+      required: field.required,
+      defaultValue: field.defaultValue,
+      startsOnDefaultWhenEmpty: field.startsOnDefaultWhenEmpty,
+      description: field.description,
+      dataTestId: field.dataTestId,
+    }).toEqual({
+      title: "Authentication Type",
+      stepId: "amazon-ses",
+      fieldType: FormFieldSchemaType.RadioButton,
+      required: true,
+      defaultValue: AmazonSesAuthenticationType.AccessKey,
+      // A server that never picked one signs in with its access key.
+      startsOnDefaultWhenEmpty: true,
+      description: "How OneUptime signs in to Amazon SES.",
+      dataTestId: "amazon-ses-authentication-type",
+    });
+    expect(AMAZON_SES_AUTHENTICATION_TYPE_DESCRIPTION).toBe(
+      "How OneUptime signs in to Amazon SES.",
+    );
+
+    expect(field.radioButtonOptions).toBe(
+      AMAZON_SES_AUTHENTICATION_TYPE_CHOICES,
+    );
+    expect(
+      AMAZON_SES_AUTHENTICATION_TYPE_CHOICES.map((choice: RadioButton) => {
+        return [choice.value, choice.title, choice.description];
+      }),
+    ).toEqual([
+      [
+        AmazonSesAuthenticationType.AccessKey,
+        "Access Key",
+        "An IAM user's access key ID and secret access key, stored encrypted.",
+      ],
+      [
+        AmazonSesAuthenticationType.ServerIamRole,
+        "This Server's IAM Role",
+        "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.",
+      ],
+    ]);
+  });
+
+  test("with the server's IAM role, asks only for the Region", () => {
+    expect(shownKeys(fields, ROLE)).toEqual([
+      "amazonSesAuthenticationType",
+      "amazonSesRegion",
+    ]);
+  });
+
+  test("with an access key - picked, never picked, or one it does not know - asks for the key and the Region", () => {
+    const withKey: Array<string> = [
+      "amazonSesAuthenticationType",
+      "amazonSesAccessKeyId",
+      "amazonSesSecretAccessKey",
+      "amazonSesRegion",
+    ];
+
+    expect(shownKeys(fields, KEY)).toEqual(withKey);
+    expect(shownKeys(fields, {})).toEqual(withKey);
+    expect(shownKeys(fields, { amazonSesAuthenticationType: null })).toEqual(
+      withKey,
+    );
+    expect(
+      shownKeys(fields, { amazonSesAuthenticationType: "Instance Profile" }),
+    ).toEqual(withKey);
+  });
+
+  test("the key stays required when it is asked; hidden, it is not checked", () => {
+    for (const key of ["amazonSesAccessKeyId", "amazonSesSecretAccessKey"]) {
+      const field: Field<GlobalConfig> = fieldFor(fields, key);
+
+      expect({ key, required: field.required }).toEqual({
+        key,
+        required: true,
+      });
+      expect(field.showIf!(ROLE as unknown as FormValues<GlobalConfig>)).toBe(
+        false,
+      );
+      expect(field.showIf!(KEY as unknown as FormValues<GlobalConfig>)).toBe(
+        true,
+      );
+    }
+
+    // The Region is asked either way, as it was.
+    expect(fieldFor(fields, "amazonSesRegion").showIf).toBeUndefined();
+    expect(fieldFor(fields, "amazonSesRegion").required).toBe(true);
+  });
+
+  test("its key and Region fields are a project's own, but for when they show", () => {
+    // Functions are made anew for each list: compared by what they do.
+    const strip: (
+      field: Field<GlobalConfig>,
+    ) => Omit<Field<GlobalConfig>, "showIf" | "customValidation"> = (
+      field: Field<GlobalConfig>,
+    ): Omit<Field<GlobalConfig>, "showIf" | "customValidation"> => {
+      const { showIf, customValidation, ...rest } = field;
+      void showIf;
+      void customValidation;
+      return rest;
+    };
+
+    expect(fields.slice(1).map(strip)).toEqual(
+      getAmazonSesFormFields<GlobalConfig>().map(strip),
+    );
+
+    const region: Field<GlobalConfig> = fieldFor(fields, "amazonSesRegion");
+
+    expect(
+      region.customValidation!({
+        amazonSesRegion: "not a region",
+      } as unknown as FormValues<GlobalConfig>),
+    ).toBe(AMAZON_SES_REGION_INVALID);
+    expect(
+      region.customValidation!({
+        amazonSesRegion: "eu-west-1",
+      } as unknown as FormValues<GlobalConfig>),
+    ).toBeFalsy();
+  });
+
+  test("takes no more than five rows", () => {
+    expect(rowsOn(fields, "amazon-ses")).toBe(4);
+  });
+
+  test("a project's config never asks it: only the server's own email may use the server's role", () => {
+    expect(
+      PROJECT_FIELDS.map((field: Field<ProjectSmtpConfig>): string => {
+        return keyOf(field);
+      }),
+    ).not.toContain("amazonSesAuthenticationType");
+    // A project's config has nowhere to keep one.
+    expect(
+      new ProjectSmtpConfig().hasColumn("amazonSesAuthenticationType"),
+    ).toBe(false);
+    expect(new GlobalConfig().hasColumn("amazonSesAuthenticationType")).toBe(
+      true,
+    );
+  });
+
+  test("reads the form's answer however it holds it", () => {
+    expect(usesAmazonSesServerIamRole(ROLE)).toBe(true);
+    expect(
+      usesAmazonSesServerIamRole({
+        amazonSesAuthenticationType: {
+          label: "This Server's IAM Role",
+          value: AmazonSesAuthenticationType.ServerIamRole,
+        },
+      }),
+    ).toBe(true);
+    expect(usesAmazonSesServerIamRole(KEY)).toBe(false);
+    expect(usesAmazonSesServerIamRole({})).toBe(false);
+    expect(usesAmazonSesServerIamRole(null)).toBe(false);
+    expect(usesAmazonSesServerIamRole(undefined)).toBe(false);
+    expect(
+      usesAmazonSesServerIamRole({
+        amazonSesAuthenticationType: "server iam role",
+      }),
+    ).toBe(false);
+  });
+
+  test("names each answer by its title; a server that never picked one signs in with its access key", () => {
+    expect(
+      getAmazonSesAuthenticationTypeTitle(
+        AmazonSesAuthenticationType.ServerIamRole,
+      ),
+    ).toBe("This Server's IAM Role");
+    expect(
+      getAmazonSesAuthenticationTypeTitle(
+        AmazonSesAuthenticationType.AccessKey,
+      ),
+    ).toBe("Access Key");
+
+    for (const value of [undefined, null, "", "Instance Profile"]) {
+      expect(getAmazonSesAuthenticationTypeTitle(value)).toBe("Access Key");
+    }
   });
 });
 

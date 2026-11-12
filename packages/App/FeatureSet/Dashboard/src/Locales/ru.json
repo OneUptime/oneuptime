@@ -51243,5 +51243,11 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Ваша роль не может просматривать личность конечных пользователей. Попросите администратора проекта выдать разрешение «{{permission}}».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Точная ссылка, которую ваша страница передала в identify(). Требуется разрешение «{{permission}}»; никогда не записывается в URL.",
   "That turn is not part of this task": "Этот ход не входит в эту задачу",
-  "The task's first turn is shown instead.": "Вместо него показан первый ход задачи."
+  "The task's first turn is shown instead.": "Вместо него показан первый ход задачи.",
+  "Amazon SES Authentication Type": "Тип аутентификации Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "Идентификатор ключа доступа и секретный ключ доступа пользователя IAM, хранятся в зашифрованном виде.",
+  "How OneUptime signs in to Amazon SES.": "Как OneUptime входит в Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Отправлять через Amazon SES с ключом доступа или ролью IAM этого сервера.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Роль, которую AWS выдаёт этому серверу в Amazon EKS, ECS или EC2. Ключ не хранится, а учётные данные обновляются сами.",
+  "This Server's IAM Role": "Роль IAM этого сервера"
 }

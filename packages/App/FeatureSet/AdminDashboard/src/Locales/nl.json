@@ -519,7 +519,7 @@
         "pillNoFromEmail": "Niet ingeschakeld. Voeg het afzender-e-mailadres toe.",
         "pillNoFromName": "Niet ingeschakeld. Voeg de afzendernaam toe.",
         "amazonSesCardTitle": "Amazon SES-instellingen",
-        "amazonSesCardDescription": "Uw Amazon SES-toegangssleutel en regio, en de afzender van de e-mails.",
+        "amazonSesCardDescription": "Hoe deze server zich aanmeldt bij Amazon SES, de regio, en de afzender van de e-mails.",
         "amazonSesEditButton": "Amazon SES bewerken",
         "mailgunCardTitle": "Mailgun-instellingen",
         "mailgunCardDescription": "Uw Mailgun-API-sleutel en verzenddomein, en de afzender van de e-mails.",
@@ -2378,5 +2378,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Geef de workers meer geheugen en CPU, en zoek in het log van de app naar taken die steeds mislukken.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Deze server draait OneUptime {{current}}. {{latest}} is uit.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Maak een back-up en werk daarna bij: npm run update op Docker Compose, helm upgrade op Kubernetes.",
-  "Finish it on the Server setup page.": "Rond het af op de pagina Serverinstelling."
+  "Finish it on the Server setup page.": "Rond het af op de pagina Serverinstelling.",
+  "How OneUptime signs in to Amazon SES.": "Hoe OneUptime zich aanmeldt bij Amazon SES.",
+  "Access Key": "Toegangssleutel",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "De toegangssleutel-ID en geheime toegangssleutel van een IAM-gebruiker, versleuteld opgeslagen.",
+  "This Server's IAM Role": "IAM-rol van deze server",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "De rol die AWS deze server geeft op Amazon EKS, ECS of EC2. Er wordt geen sleutel opgeslagen en de inloggegevens vernieuwen zichzelf.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Verzenden via Amazon SES met een toegangssleutel of de IAM-rol van deze server."
 }
