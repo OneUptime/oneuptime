@@ -828,3 +828,219 @@ describe("an evaluation license's tag on the pill", () => {
     );
   });
 });
+
+describe("the pill where a line is too short for it", () => {
+  /*
+   * A phone's sign-in page, the Admin Dashboard's header beside its logo,
+   * or a language whose words are longer than English's: the pill wraps
+   * between its parts and never inside its tag or its action, which broke
+   * in two ("EVALUATION / LICENSE", "Details / anzeigen") with the pill's
+   * round ends cutting into them. Its corners round a two-line box.
+   */
+  // The parts that stay whole: the action, last, and the tag, if any.
+  const partsOf: (pill: HTMLElement) => Array<Element> = (
+    pill: HTMLElement,
+  ): Array<Element> => {
+    return [
+      ...Array.from(pill.querySelectorAll("span.uppercase")),
+      pill.lastElementChild as Element,
+    ];
+  };
+
+  const expectWrapsBetweenItsParts: (
+    pill: HTMLElement,
+    words: Words,
+    action: string,
+  ) => void = (pill: HTMLElement, words: Words, action: string): void => {
+    expect(pill).toHaveClass("flex-wrap", "max-w-full", "rounded-2xl");
+    expect(pill).not.toHaveClass("rounded-full");
+
+    const unbroken: Array<Element> = partsOf(pill);
+
+    expect(
+      withoutIsolateMarks(unbroken[unbroken.length - 1]!.textContent || ""),
+    ).toBe(word(words, action));
+
+    for (const part of unbroken) {
+      expect(part).toHaveClass("whitespace-nowrap");
+    }
+
+    /*
+     * The status dot and the warning icon keep their size, beside the
+     * edition they mark: a state too long for the line wraps inside its own
+     * words, and never leaves the dot alone on a line above them.
+     */
+    const edition: HTMLElement | null = pill.querySelector(
+      "[data-testid='edition-label-pill-edition']",
+    );
+    const marks: Array<Element> = Array.from(
+      pill.querySelectorAll("span.h-2, svg"),
+    );
+
+    expect(edition).toHaveClass("min-w-0");
+    expect(edition?.lastElementChild).toHaveClass("min-w-0");
+    expect(marks.length).toBeGreaterThan(0);
+
+    for (const mark of marks) {
+      expect(mark).toHaveClass("shrink-0");
+      expect(edition?.contains(mark)).toBe(true);
+    }
+  };
+
+  beforeEach(() => {
+    isEnterpriseEdition = true;
+    isMasterAdmin = true;
+    isLoggedIn = true;
+  });
+
+  test.each(["de", "fr", "ru", "ar"])(
+    "%s: an evaluation license's tag and its action stay whole",
+    async (language: string) => {
+      payload = adminPayload({ isEvaluation: true, isEvaluationLicense: true });
+      await readIn("Dashboard", language);
+      const words: Words = wordsOf("Dashboard", language);
+      const pill: HTMLElement = await drawPill(words);
+
+      await waitFor(() => {
+        expect(pill).toHaveTextContent(word(words, "Evaluation license"));
+      });
+
+      expectWrapsBetweenItsParts(pill, words, "View details");
+      expect(partsOf(pill).length).toBe(2);
+    },
+  );
+
+  test("a license in its grace period (amber) and one over its seats (red) wrap the same way", async () => {
+    withLicenseDetails = true;
+    payload = adminPayload({
+      status: "grace",
+      graceReason: "expired",
+      graceEndsAt: inDays(5),
+      expiresAt: inDays(-25),
+    });
+    await readIn("AdminDashboard", "de");
+    const words: Words = wordsOf("AdminDashboard", "de");
+    const grace: HTMLElement = await drawPill(words);
+
+    expect(grace).toHaveClass("border-amber-200");
+    expect(grace.querySelector("svg")).toBeTruthy();
+    expectWrapsBetweenItsParts(grace, words, "Renew license");
+
+    cleanup();
+    payload = adminPayload({
+      currentUserCount: 52,
+      seatsInUse: 52,
+      seatsRemaining: -2,
+      canAddMoreUsers: false,
+    });
+    const over: HTMLElement = await drawPill(words);
+
+    await waitFor(() => {
+      expect(over).toHaveClass("border-red-200");
+    });
+    expectWrapsBetweenItsParts(over, words, "User limit exceeded");
+  });
+
+  test("the Community Edition pill on a sign-in page wraps the same way", async () => {
+    isEnterpriseEdition = false;
+    await readIn("Accounts", "de");
+    const words: Words = wordsOf("Accounts", "de");
+    const pill: HTMLElement = await drawPill(words);
+
+    expectWrapsBetweenItsParts(pill, words, "Learn more");
+  });
+});
+
+describe("the days left, in the middle of a sentence", () => {
+  /*
+   * "{{count}} days left" stands inside "Enterprise Edition (Testphase,
+   * {{daysLeft}})" and after "Testphase der Enterprise Edition:", where
+   * German and Spanish write it in lower case: "noch 10 Tage", "quedan 10
+   * días" - not "Noch", "Quedan".
+   */
+  test.each([
+    ["de", "Enterprise Edition (Testphase, noch 10 Tage)"],
+    ["es", "Enterprise Edition (prueba, quedan 10 días)"],
+  ])("%s: %s", async (language: string, name: string) => {
+    isEnterpriseEdition = true;
+    payload = publicPayload({
+      status: "grace",
+      graceReason: "unlicensed",
+      verification: "none",
+      graceEndsAt: inDays(10),
+      companyName: null,
+      expiresAt: null,
+    });
+    await readIn("Accounts", language);
+
+    expect(nameOf(await drawPill(wordsOf("Accounts", language)))).toContain(
+      name,
+    );
+  });
+
+  test.each(["Dashboard", "Accounts", "AdminDashboard"] as Array<App>)(
+    "%s: German and Spanish start the days left in lower case",
+    (app: App) => {
+      for (const language of ["de", "es"]) {
+        const words: Words = wordsOf(app, language);
+
+        for (const key of ["{{count}} days left", "{{count}} days left_one"]) {
+          const daysLeft: string = word(words, key);
+          const first: string = daysLeft.charAt(0);
+
+          expect({ app, language, key, first }).toEqual({
+            app,
+            language,
+            key,
+            first: first.toLocaleLowerCase(language),
+          });
+          expect(first).not.toBe(first.toLocaleUpperCase(language));
+        }
+      }
+    },
+  );
+});
+
+describe("the company a license names", () => {
+  /*
+   * A Latin company name in an Arabic or Persian dialog reads left to
+   * right, cut short at its own end rather than losing its start, and
+   * still lines up under its label; on a German page it reads as the page
+   * does.
+   */
+  const COMPANY: string = "Nordwind Logistik und Datenverarbeitung GmbH";
+
+  const companyLine: (language: string) => Promise<HTMLElement> = async (
+    language: string,
+  ): Promise<HTMLElement> => {
+    isEnterpriseEdition = true;
+    isMasterAdmin = true;
+    isLoggedIn = true;
+    withLicenseDetails = true;
+    payload = adminPayload({ companyName: COMPANY });
+    await readIn("AdminDashboard", language);
+    const words: Words = wordsOf("AdminDashboard", language);
+
+    await openDialog(await drawPill(words), words);
+
+    return screen.getByTitle(COMPANY);
+  };
+
+  test.each(["ar", "fa"])(
+    "%s: reads left to right, cut short at its end",
+    async (language: string) => {
+      const line: HTMLElement = await companyLine(language);
+
+      expect(line).toHaveAttribute("dir", "ltr");
+      expect(line).toHaveClass("truncate");
+      expect(line).toHaveTextContent(COMPANY);
+    },
+  );
+
+  test("de: reads as the page does", async () => {
+    const line: HTMLElement = await companyLine("de");
+
+    expect(line).not.toHaveAttribute("dir");
+    expect(line).toHaveClass("truncate");
+  });
+});
