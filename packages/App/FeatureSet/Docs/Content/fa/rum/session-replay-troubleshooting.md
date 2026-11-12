@@ -120,7 +120,7 @@ copy(JSON.stringify(window.__ONEUPTIME_SESSION_REPLAY_DEBUG__.records, null, 2))
 [OneUptime Session Replay] recording: Recording into memory. Nothing uploads until a trigger fires - call OneUptimeReplay.captureSession() to force one.
 ```
 
-…آنگاه ضبط‌کننده کار می‌کند. زیر سیاستی تریگرشونده با خطا، صفحه‌ای سالم در هر بارگذاری صفحه دقیقاً یک درخواست به OneUptime می‌زند (واکشی پیکربندی) و تا وقتی خطا، یک 5xx، سیگنال سرخوردگی یا گذر از بودجه کارایی رخ ندهد چیز دیگری نمی‌فرستد.
+…آنگاه ضبط‌کننده کار می‌کند. زیر سیاستی تریگرشونده با خطا، صفحه‌ای سالم در هر بارگذاری صفحه دقیقاً یک درخواست به OneUptime می‌زند (واکشی پیکربندی) و تا وقتی خطا، یک 5xx، سیگنال کلافگی یا گذر از بودجه کارایی رخ ندهد چیز دیگری نمی‌فرستد.
 
 برای اثبات کل مسیر از سر تا ته، ارسالی را وادار کنید:
 

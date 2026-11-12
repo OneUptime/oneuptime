@@ -112,7 +112,7 @@ export const RECORDING_HEALTH_ROW_FAILED: string = translationKey(
  * The "Recording Health" detail row's value, in English (the page draws it
  * in the reader's language), or undefined to leave the row out entirely.
  *
- * A viewer without the Read Session Replay permission (or on a plan that
+ * A viewer without the List Session Replays permission (or on a plan that
  * does not include replay) is shown nothing rather than a permission error
  * in a list of SDK facts - they cannot act on it here, and the settings
  * page is where that conversation belongs. Every other failure IS named,

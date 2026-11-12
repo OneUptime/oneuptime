@@ -158,7 +158,7 @@ describe("buildPrivacySummary in the reader's language", () => {
     );
 
     expect(sentence(sentences, "page-text").text).toBe(
-      "⟦Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not.⟧ ⟦2 extra selectors masked⟧; ⟦2 selectors blocked entirely⟧; ⟦canvas contents recorded⟧.",
+      "⟦Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not.⟧ ⟦Also: ⟦2 extra selectors masked⟧, ⟦2 selectors blocked entirely⟧, ⟦canvas contents recorded⟧.⟧",
     );
     expect(sentence(sentences, "retention").text).toBe(
       "⟦Recorded footage is deleted after 30 days, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.⟧",
@@ -187,7 +187,7 @@ describe("buildPrivacySummary in the reader's language", () => {
     });
 
     expect(sentence(sentences, "page-text").text).toBe(
-      "Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not. 1 extra selector masked; 2 selectors blocked entirely; canvas contents recorded.",
+      "Readable page text is recorded; every input value is masked. An account number in a heading is visible in the replay, one typed into a form is not. Also: 1 extra selector masked, 2 selectors blocked entirely, canvas contents recorded.",
     );
     expect(sentence(sentences, "retention").text).toBe(
       "Recorded footage is deleted after 1 day, and the session row - duration, URLs, counts, device and any identity label - expires with it; only the session's logs, spans and exceptions follow the telemetry retention.",

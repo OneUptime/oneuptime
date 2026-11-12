@@ -25,6 +25,7 @@ import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ProgressBar, {
   ProgressBarSize,
@@ -510,7 +511,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                 <thead>
                   <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
                     <th className="px-3 py-2 text-start">
-                      {translator.translateText("Line")}
+                      {translator.translateText("CSV line")}
                     </th>
                     <th className="px-3 py-2 text-start">
                       {translator.translateText("Name")}
@@ -531,18 +532,33 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {rows.map((row: ParsedStatusPageGroupRow): ReactElement => {
+                    /*
+                     * The file's line in the reader's digits, as the errors
+                     * above name it; what the file says, each value read
+                     * the way it is written (an English description's full
+                     * stop stays at its end on an Arabic page).
+                     */
                     return (
                       <tr key={row.line}>
-                        <td className="px-3 py-2 text-gray-500">{row.line}</td>
+                        <td className="px-3 py-2 text-gray-500">
+                          {translator.formatNumber(row.line)}
+                        </td>
                         <td className="px-3 py-2 font-medium text-gray-900">
-                          {row.name}
+                          <IsolatedText text={row.name} />
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.parentName ||
-                            translator.translateText("Top level")}
+                          {row.parentName ? (
+                            <IsolatedText text={row.parentName} />
+                          ) : (
+                            translator.translateText("Top level")
+                          )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.description || "—"}
+                          {row.description ? (
+                            <IsolatedText text={row.description} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
                           {row.viewMode || "—"}
@@ -567,7 +583,7 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
               <thead>
                 <tr className="text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="px-3 py-2 text-start">
-                    {translator.translateText("Line")}
+                    {translator.translateText("CSV line")}
                   </th>
                   <th className="px-3 py-2 text-start">
                     {translator.translateText("Name")}
@@ -589,10 +605,10 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                     return (
                       <tr key={index}>
                         <td className="px-3 py-2 text-gray-500">
-                          {result.line}
+                          {translator.formatNumber(result.line)}
                         </td>
                         <td className="px-3 py-2 font-medium text-gray-900">
-                          {result.name}
+                          <IsolatedText text={result.name} />
                         </td>
                         <td className="px-3 py-2">
                           {result.status === "created" && (
@@ -612,7 +628,22 @@ const ImportGroupsFromCsvModal: FunctionComponent<ComponentProps> = (
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {translator.translateText(result.message) || "—"}
+                          {/*
+                           * What went wrong, as the server said it when it
+                           * has no words of ours: read the way it is
+                           * written, its full stop at its end on a Persian
+                           * page.
+                           */}
+                          {result.message ? (
+                            <IsolatedText
+                              text={
+                                translator.translateText(result.message) ||
+                                result.message
+                              }
+                            />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     );
