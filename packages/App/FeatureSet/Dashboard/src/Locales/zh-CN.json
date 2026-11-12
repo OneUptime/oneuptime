@@ -50775,5 +50775,8 @@
   "{{count}} steps left in your setup checklist": "您的设置清单中还剩 {{count}} 个步骤",
   "{{count}} steps left in your setup checklist_one": "您的设置清单中还剩 {{count}} 个步骤",
   "{{schedule}}, until at least {{time}}": "{{schedule}}，至少至 {{time}}",
-  "{{schedule}}, until {{time}}": "{{schedule}}，至 {{time}}"
+  "{{schedule}}, until {{time}}": "{{schedule}}，至 {{time}}",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI 在本次回答中稍早读取了这 {{count}} 个文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI 在本次回答中稍早读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI 在本次回答中稍早读取了此文件，但已不再掌握其内容，而 AI 的版本会替换整个文件：{{files}}。"
 }

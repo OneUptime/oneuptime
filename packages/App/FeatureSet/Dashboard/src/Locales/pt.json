@@ -50775,5 +50775,8 @@
   "{{count}} steps left in your setup checklist": "Faltam {{count}} etapas na sua lista de configuração",
   "{{count}} steps left in your setup checklist_one": "Falta {{count}} etapa na sua lista de configuração",
   "{{schedule}}, until at least {{time}}": "{{schedule}}, até pelo menos {{time}}",
-  "{{schedule}}, until {{time}}": "{{schedule}}, até {{time}}"
+  "{{schedule}}, until {{time}}": "{{schedule}}, até {{time}}",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "A IA leu estes {{count}} arquivos anteriormente nesta resposta e não tem mais o texto deles, e as versões da IA os substituem por inteiro: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "A IA leu este arquivo anteriormente nesta resposta e não tem mais o texto dele, e a versão da IA o substitui por inteiro: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "A IA leu este arquivo anteriormente nesta resposta e não tem mais o texto dele, e a versão da IA o substitui por inteiro: {{files}}."
 }
