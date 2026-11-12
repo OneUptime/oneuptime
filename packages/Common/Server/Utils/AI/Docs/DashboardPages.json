@@ -1209,6 +1209,22 @@
     "kind": "page"
   },
   {
+    "title": "Know when my website or API is down",
+    "where": [
+      "Monitors"
+    ],
+    "keywords": [
+      "guided setup",
+      "get started",
+      "website down",
+      "api down",
+      "uptime",
+      "monitor my website"
+    ],
+    "path": "/dashboard/:projectId/monitors/setup",
+    "kind": "page"
+  },
+  {
     "title": "Not Operational",
     "where": [
       "Monitors",
