@@ -221,6 +221,25 @@ async function whereIs(
 }
 
 /*
+ * The query of the address a link opened, read the way the list reads it:
+ * each parameter's value decoded and parsed. Nothing, when there is none.
+ */
+function listStateIn(search: string): Record<string, unknown> | null {
+  const params: URLSearchParams = new URLSearchParams(search);
+  const names: Array<string> = Array.from(params.keys());
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(
+    names.map((name: string): [string, unknown] => {
+      return [name, JSON.parse(params.get(name) || "null")];
+    }),
+  );
+}
+
+/*
  * Home is one page with no side menu, and keeps no lists of its own
  * (#6857): each number and each View all opens the list in the product it
  * belongs to, and the addresses of Home's old copies forward there.
@@ -230,7 +249,23 @@ interface ProductList {
   group: string;
   path: string;
   page: string;
+  /*
+   * The list's own filters the link sets, decoded, when that list holds
+   * more than Home counted: the SLOs list's Status and Enabled chips.
+   */
+  state: Record<string, unknown> | null;
 }
+
+// The SLOs list's chips that show the SLOs at risk, as its bar reads them.
+const SLOS_AT_RISK_STATE: Record<string, unknown> = {
+  "slos-table-facets": {
+    facetSelections: {
+      sloEnabled: ["true"],
+      sloStatus: ["At Risk", "Budget Exhausted"],
+    },
+    facetOperators: { sloEnabled: "is", sloStatus: "is" },
+  },
+};
 
 const PRODUCT_LISTS: Array<ProductList> = [
   {
@@ -238,30 +273,35 @@ const PRODUCT_LISTS: Array<ProductList> = [
     group: "incidents",
     path: `/dashboard/${PROJECT_ID}/incidents/unresolved`,
     page: "UNRESOLVED_INCIDENTS",
+    state: null,
   },
   {
     stat: "active-alerts",
     group: "alerts",
     path: `/dashboard/${PROJECT_ID}/alerts/unresolved`,
     page: "UNRESOLVED_ALERTS",
+    state: null,
   },
   {
     stat: "not-operational-monitors",
     group: "monitors",
     path: `/dashboard/${PROJECT_ID}/monitors/inoperational`,
     page: "MONITORS_INOPERATIONAL",
+    state: null,
   },
   {
     stat: "ongoing-maintenance",
     group: "maintenance",
     path: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/ongoing`,
     page: "ONGOING_SCHEDULED_MAINTENANCE_EVENTS",
+    state: null,
   },
   {
     stat: "slos-needing-attention",
     group: "slos",
     path: `/dashboard/${PROJECT_ID}/slos`,
     page: "SLOS",
+    state: SLOS_AT_RISK_STATE,
   },
 ];
 
@@ -428,11 +468,15 @@ test.describe("a busy project", () => {
         "data-page",
         list.page,
       );
-      expect(await whereIs(page)).toEqual({
-        pathname: list.path,
-        search: "",
-        hash: "",
-      });
+
+      const where: { pathname: string; search: string; hash: string } =
+        await whereIs(page);
+
+      expect({
+        pathname: where.pathname,
+        state: listStateIn(where.search),
+        hash: where.hash,
+      }).toEqual({ pathname: list.path, state: list.state, hash: "" });
 
       await page.goBack();
       await expect(page.getByTestId("home-overview-stats")).toBeVisible();
@@ -457,7 +501,14 @@ test.describe("a busy project", () => {
         "data-page",
         list.page,
       );
-      expect((await whereIs(page)).pathname).toBe(list.path);
+
+      const where: { pathname: string; search: string; hash: string } =
+        await whereIs(page);
+
+      expect({
+        pathname: where.pathname,
+        state: listStateIn(where.search),
+      }).toEqual({ pathname: list.path, state: list.state });
 
       await page.goBack();
       await expect(page.getByTestId("home-attention-total")).toBeVisible();
@@ -694,6 +745,31 @@ test.describe("the verdicts", () => {
     await expect(page.getByTestId("home-upcoming-row")).toHaveCount(1);
 
     await screenshot(page, "home-healthy");
+  });
+
+  test("healthy: with no SLO at risk, the SLO number opens the whole SLOs list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=healthy");
+
+    await expect(stat(page, "slos-needing-attention")).toHaveText("0");
+    await expect(statStatus(page, "slos-needing-attention")).toHaveText(
+      "Budgets healthy",
+    );
+
+    await stat(page, "slos-needing-attention").click();
+
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "SLOS",
+    );
+    expect(await whereIs(page)).toEqual({
+      pathname: `/dashboard/${PROJECT_ID}/slos`,
+      search: "",
+      hash: "",
+    });
   });
 
   test("needs attention: alerts, a degraded monitor and an SLO at risk", async ({

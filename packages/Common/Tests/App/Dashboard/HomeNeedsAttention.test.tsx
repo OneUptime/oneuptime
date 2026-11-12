@@ -317,6 +317,37 @@ function linkOf(element: HTMLElement): string {
   return element.closest("a")?.getAttribute("href") || "";
 }
 
+/*
+ * The query of an address, read the way the list it opens reads it: each
+ * parameter's value decoded and parsed. Nothing, when there is none.
+ */
+function listStateIn(href: string): Record<string, unknown> | null {
+  const query: string = href.includes("?") ? href.split("?")[1]! : "";
+  const params: URLSearchParams = new URLSearchParams(query);
+  const names: Array<string> = Array.from(params.keys());
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(
+    names.map((name: string): [string, unknown] => {
+      return [name, JSON.parse(params.get(name) || "null")];
+    }),
+  );
+}
+
+// The SLOs list's chips that show the SLOs at risk, as its bar reads them.
+const SLOS_AT_RISK_STATE: Record<string, unknown> = {
+  "slos-table-facets": {
+    facetSelections: {
+      sloEnabled: ["true"],
+      sloStatus: ["At Risk", "Budget Exhausted"],
+    },
+    facetOperators: { sloEnabled: "is", sloStatus: "is" },
+  },
+};
+
 beforeEach(() => {
   activeLocale = EN;
   currentProjectId = new ObjectID(PROJECT_ID);
@@ -365,7 +396,8 @@ describe("the groups", () => {
   /*
    * In the product the kind belongs to, with that product's side menu: Home
    * keeps no lists of its own (#6857), so Active alerts' View all is Alerts >
-   * Active Alerts, never a page under Home.
+   * Active Alerts, never a page under Home. The SLOs list holds every SLO, so
+   * the SLOs' View all opens it with its chips set to the SLOs at risk.
    */
   test("each kind says its total and opens its full list, in its own product", () => {
     renderCard(busy());
@@ -406,9 +438,16 @@ describe("the groups", () => {
         `home-attention-group-${key}-view-all`,
       );
       expect(viewAll).toHaveTextContent("View all");
-      expect(linkOf(viewAll)).toBe(routeOf(pageMap));
-      expect(linkOf(viewAll)).toBe(`/dashboard/${PROJECT_ID}/${address}`);
-      expect(linkOf(viewAll)).not.toContain("/home");
+
+      const href: string = linkOf(viewAll);
+
+      expect(href.split("?")[0]).toBe(routeOf(pageMap));
+      expect(href.split("?")[0]).toBe(`/dashboard/${PROJECT_ID}/${address}`);
+      expect(href).not.toContain("/home");
+      expect({ key, state: listStateIn(href) }).toEqual({
+        key,
+        state: key === AttentionGroupKey.Slos ? SLOS_AT_RISK_STATE : null,
+      });
     }
   });
 

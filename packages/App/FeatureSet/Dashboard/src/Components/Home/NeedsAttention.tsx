@@ -1,13 +1,16 @@
 import { HomeOverviewData } from "./HomeOverviewData";
+import { getHomeListRoute } from "./HomeListRoute";
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
+import { getSlosAtRiskQueryParams } from "../Slo/SloListFacetRoute";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import Route from "Common/Types/API/Route";
 import { Amber500, Gray500, Red500 } from "Common/Types/BrandColors";
 import Color from "Common/Types/Color";
 import OneUptimeDate from "Common/Types/Date";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import Card from "Common/UI/Components/Card/Card";
@@ -88,6 +91,11 @@ export interface AttentionGroup {
   count: number;
   rows: Array<AttentionRow>;
   viewAll: PageMap;
+  /*
+   * That list's own filters, in its address, when it holds more than the
+   * group: the SLOs list showing only the SLOs at risk.
+   */
+  viewAllQuery?: Dictionary<string> | undefined;
 }
 
 export const NEEDS_ATTENTION_TITLE: string = translationKey("Needs attention");
@@ -317,7 +325,8 @@ const maintenanceRow: (event: ScheduledMaintenance) => AttentionRow = (
  * The groups with something open, most urgent kind first: incidents affect
  * users, alerts and failing monitors are next, a burning budget after them,
  * and maintenance - planned - last. Each group's View all opens the whole
- * list in its own product, as the strip's cells do.
+ * list in its own product, as the strip's cells do - for SLOs, the SLOs list
+ * showing only the ones at risk.
  */
 export const getAttentionGroups: (
   data: HomeOverviewData,
@@ -366,6 +375,7 @@ export const getAttentionGroups: (
         },
       ),
       viewAll: PageMap.SLOS,
+      viewAllQuery: getSlosAtRiskQueryParams(),
     },
     {
       key: AttentionGroupKey.Maintenance,
@@ -621,9 +631,7 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
                   </span>
                 </div>
                 <AppLink
-                  to={RouteUtil.populateRouteParams(
-                    RouteMap[group.viewAll] as Route,
-                  )}
+                  to={getHomeListRoute(group.viewAll, group.viewAllQuery)}
                   className="flex-none text-xs font-medium text-indigo-600 hover:text-indigo-700 hover:underline"
                 >
                   <span

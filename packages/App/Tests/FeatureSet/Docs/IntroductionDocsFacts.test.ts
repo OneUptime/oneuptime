@@ -14,6 +14,7 @@ import { DEFAULT_MONITORING_INTERVAL } from "../../../FeatureSet/Dashboard/src/U
 import { getMonitoringIntervalLabel } from "../../../FeatureSet/Dashboard/src/Utils/MonitorIntervalDropdownOptions";
 import { ProjectNotificationChannelsCopy } from "../../../FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannelsCopy";
 import { StatusPageOverviewCopy } from "../../../FeatureSet/Dashboard/src/Components/StatusPage/StatusPageOverviewCopy";
+import { SLO_STATUSES_AT_RISK } from "../../../FeatureSet/Dashboard/src/Components/Slo/SloStatusSummaryTiles";
 import {
   EMPTY_KEYBOARD_SEQUENCE_STATE,
   KEYBOARD_SEQUENCE_TIMEOUT_IN_MS,
@@ -49,6 +50,7 @@ import {
 } from "Common/Types/Monitor/CriteriaFilter";
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import ObjectID from "Common/Types/ObjectID";
+import SloStatus from "Common/Types/ServiceLevelObjective/SloStatus";
 import IncidentOnCallRule from "Common/Models/DatabaseModels/IncidentOnCallRule";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
@@ -1031,6 +1033,8 @@ const TILE_FIELD: (field: string) => RegExp = (field: string): RegExp => {
 };
 // A tile's own page, not its not-set-up one (that is indented deeper).
 const TILE_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
+// The filters a tile's list opens with while its count is above zero.
+const TILE_ATTENTION_LINK_QUERY: RegExp = /^ {4}attentionLinkQuery: (\w+),$/m;
 const ATTENTION_GROUP_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/;
 const ATTENTION_GROUP_VIEW_ALL: RegExp = /viewAll: PageMap\.(\w+),/;
 const TILE_NOT_SET_UP_LABEL: RegExp =
@@ -1094,6 +1098,8 @@ interface HomeTile {
   attentionLabel: string;
   allClearLabel: string;
   notSetUpLabel: string | null;
+  // What sets that list's filters while the count is above zero, if anything.
+  attentionLinkQuery: string | null;
 }
 
 function homeTiles(): Array<HomeTile> {
@@ -1130,6 +1136,9 @@ function homeTiles(): Array<HomeTile> {
             TILES_SOURCE.match(STRING_CONSTANT(notSetUp)) as RegExpMatchArray
           )[1] as string)
         : null,
+      attentionLinkQuery:
+        (chunk.match(TILE_ATTENTION_LINK_QUERY)?.[1] as string | undefined) ||
+        null,
     };
   });
 }
@@ -1496,8 +1505,13 @@ describe("Home Page & Shortcuts", () => {
       currentMonitorStatus: { isOperationalState: false },
     });
     expect(counting).toContain("isEnabled: true, isArchived: false");
-    expect(counting).toContain("SloStatus.AtRisk");
-    expect(counting).toContain("SloStatus.BudgetExhausted");
+    expect(counting).toContain(
+      "sloStatus: new Includes([...SLO_STATUSES_AT_RISK]),",
+    );
+    expect(SLO_STATUSES_AT_RISK).toEqual([
+      SloStatus.AtRisk,
+      SloStatus.BudgetExhausted,
+    ]);
 
     const rows: Array<Array<string>> = onlyTableOf(
       sectionOf(HOME, "### The five numbers"),
@@ -1746,6 +1760,33 @@ describe("Home Page & Shortcuts", () => {
 
     expect(sectionOf(HOME, "### Needs attention")).toContain(
       "Each kind shows up to five, with **View all** for the rest, which opens the same list as its number.",
+    );
+  });
+
+  /*
+   * The SLOs list holds every SLO, so while any is at risk the number, and
+   * the View all of the SLOs it lists, open that list with its chips set to
+   * the SLOs at risk. At zero, or with no SLOs yet, the whole list opens.
+   */
+  it("opens the SLOs list showing only the SLOs at risk while any is, from the number and from View all", () => {
+    expect(
+      homeTiles()
+        .filter((tile: HomeTile): boolean => {
+          return tile.attentionLinkQuery !== null;
+        })
+        .map((tile: HomeTile): [string, string | null] => {
+          return [tile.key, tile.attentionLinkQuery];
+        }),
+    ).toEqual([["slos-needing-attention", "getSlosAtRiskQueryParams"]]);
+    // Only a count above zero opens the list with those filters.
+    expect(
+      oneLine(blockFrom(TILES_SOURCE, "if (count > 0) {", "\n      }")),
+    ).toContain("linkQuery: definition.attentionLinkQuery?.(),");
+    expect(
+      blockFrom(ATTENTION_SOURCE, "key: AttentionGroupKey.Slos,", "\n    },"),
+    ).toContain("viewAllQuery: getSlosAtRiskQueryParams(),");
+    expect(sectionOf(HOME, "### The five numbers")).toContain(
+      "While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs.",
     );
   });
 

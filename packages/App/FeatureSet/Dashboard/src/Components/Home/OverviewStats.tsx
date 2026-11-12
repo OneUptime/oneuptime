@@ -1,8 +1,9 @@
 import { HomeCounts } from "./HomeOverviewData";
+import { getHomeListRoute } from "./HomeListRoute";
 import AppLink from "../AppLink/AppLink";
+import { getSlosAtRiskQueryParams } from "../Slo/SloListFacetRoute";
 import PageMap from "../../Utils/PageMap";
-import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
-import Route from "Common/Types/API/Route";
+import Dictionary from "Common/Types/Dictionary";
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon from "Common/UI/Components/Icon/Icon";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -13,7 +14,9 @@ import React, { FunctionComponent, ReactElement } from "react";
  * The five numbers under Home's health headline: what is open right now, one
  * cell per kind, each opening the list it counts - in its own product, with
  * that product's side menu, filters and actions (Alerts > Active Alerts for
- * active alerts). Home is one page and keeps no lists of its own.
+ * active alerts). Home is one page and keeps no lists of its own. SLOs have
+ * no list of the ones at risk, so that cell opens the SLOs list with its
+ * Status and Enabled chips set to them (linkQuery).
  *
  * The counts come in from Home's one parallel batch (HomeOverviewData), which
  * also feeds the headline and the attention list, so the strip makes no
@@ -54,12 +57,24 @@ export interface StatTile {
   statusIcon: IconProp;
   // Where the cell opens.
   pageMap: PageMap;
+  /*
+   * That list's own filters, in its address, when it holds more than the
+   * cell counts: the SLOs list showing only the SLOs at risk. None: the
+   * whole list.
+   */
+  linkQuery?: Dictionary<string> | undefined;
 }
 
 interface StatTileDefinition {
   key: string;
   label: string;
   pageMap: PageMap;
+  /*
+   * The list's filters while the count is above zero, so it shows exactly
+   * what the cell counts. At zero, or before anything is set up, the cell
+   * opens the whole list, where there is something to see.
+   */
+  attentionLinkQuery?: (() => Dictionary<string>) | undefined;
   count: (counts: HomeCounts) => number;
   // Shown when the count is above zero.
   attentionLabel: string;
@@ -139,6 +154,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
     key: "slos-needing-attention",
     label: "SLOs at risk",
     pageMap: PageMap.SLOS,
+    attentionLinkQuery: getSlosAtRiskQueryParams,
     count: (counts: HomeCounts): number => {
       return counts.slosNeedingAttention;
     },
@@ -193,6 +209,7 @@ export const getStatTiles: (counts: HomeCounts) => Array<StatTile> = (
           statusLabel: definition.attentionLabel,
           statusIcon: definition.attentionIcon,
           pageMap: definition.pageMap,
+          linkQuery: definition.attentionLinkQuery?.(),
         };
       }
 
@@ -282,9 +299,7 @@ const OverviewStats: FunctionComponent<ComponentProps> = (
           return (
             <AppLink
               key={tile.key}
-              to={RouteUtil.populateRouteParams(
-                RouteMap[tile.pageMap] as Route,
-              )}
+              to={getHomeListRoute(tile.pageMap, tile.linkQuery)}
               className={`group ${CELL_ROWS} bg-white px-5 py-4 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 ${spanClassName}`}
             >
               <div

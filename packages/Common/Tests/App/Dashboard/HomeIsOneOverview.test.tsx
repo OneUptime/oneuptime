@@ -70,12 +70,14 @@ import {
   getStatTiles,
   StatTile,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/OverviewStats";
+import { getSlosAtRiskQueryParams } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloListFacetRoute";
 import MovedHomeRoutes from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedHomeRoutes";
 import { MOVED_HOME_LIST_PATHS } from "../../../../App/FeatureSet/Dashboard/src/Routes/MovedPagePaths";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Project from "../../../Models/DatabaseModels/Project";
 import Route from "../../../Types/API/Route";
+import Dictionary from "../../../Types/Dictionary";
 import { createTranslator } from "../../../UI/Utils/TranslateTemplate";
 import {
   DESKTOP_WIDTH,
@@ -503,10 +505,66 @@ describe("what Home counts opens in its own product", () => {
         },
       );
 
-      expect({ group: group.key, viewAll: group.viewAll }).toEqual({
+      expect({
+        group: group.key,
+        viewAll: group.viewAll,
+        query: group.viewAllQuery,
+      }).toEqual({
         group: group.key,
         viewAll: tile?.pageMap,
+        query: tile?.linkQuery,
       });
     }
+  });
+
+  /*
+   * The SLOs list holds every SLO, so while any is at risk the number opens
+   * it with its chips set to them. Every other list holds just what its
+   * number counts, and opens as it is.
+   */
+  test("only SLOs at risk opens its list filtered, and only while there are some", () => {
+    const linkQueries: (
+      counts: HomeCounts,
+    ) => Record<string, Dictionary<string> | undefined> = (
+      counts: HomeCounts,
+    ): Record<string, Dictionary<string> | undefined> => {
+      return Object.fromEntries(
+        getStatTiles(counts).map(
+          (tile: StatTile): [string, Dictionary<string> | undefined] => {
+            return [tile.key, tile.linkQuery];
+          },
+        ),
+      );
+    };
+
+    expect(Object.keys(getSlosAtRiskQueryParams())).toEqual([
+      "slos-table-facets",
+    ]);
+    expect(linkQueries(COUNTS)).toStrictEqual({
+      "active-incidents": undefined,
+      "active-alerts": undefined,
+      "not-operational-monitors": undefined,
+      "ongoing-maintenance": undefined,
+      "slos-needing-attention": getSlosAtRiskQueryParams(),
+    });
+
+    // None at risk: the whole list, where the healthy ones are.
+    expect(
+      linkQueries({ ...COUNTS, slosNeedingAttention: 0 })[
+        "slos-needing-attention"
+      ],
+    ).toBeUndefined();
+
+    // No SLOs yet: the whole list, where one is created.
+    const notSetUp: StatTile | undefined = getStatTiles({
+      ...COUNTS,
+      slosNeedingAttention: 0,
+      totalSlos: 0,
+    }).find((tile: StatTile): boolean => {
+      return tile.key === "slos-needing-attention";
+    });
+
+    expect(notSetUp?.pageMap).toBe(PageMap.SLOS);
+    expect(notSetUp?.linkQuery).toBeUndefined();
   });
 });

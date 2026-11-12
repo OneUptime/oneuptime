@@ -64,15 +64,16 @@ command palette.
   work in urgency order with its "9 open" total, an incident row's number, severity, state and
   age, a monitor row, an SLO with no budget left, a window that ends in 40 minutes, and a row
   opening its incident; Home with no side menu, each number and each View all opening its
-  product's own list and Back coming home; the six addresses of Home's old lists forwarding to
+  product's own list (the SLOs list with its Status and Enabled chips set to the SLOs at risk)
+  and Back coming home; the six addresses of Home's old lists forwarding to
   the products' lists with the query and the hash, Back skipping them; Home without its slash,
   and an address under Home that never was a page landing on Home; Your project's counts with Set up for workflows; the three windows coming up, soonest first; two
   columns at 1440px; Explore opening on Essentials, a tab click and the arrow keys.
 - **Search and create**: the search box opens the palette by mouse and by keyboard; Declare
   Incident and the Create menu's three items, one opening Create Monitor; a viewer gets no
   create actions.
-- **The verdicts**: healthy ("All systems operational", "11 monitors are operational..."),
-  needs attention ("4 issues need attention"), maintenance in progress, a new project (the
+- **The verdicts**: healthy ("All systems operational", "11 monitors are operational...", and
+  Budgets healthy opening the whole SLOs list), needs attention ("4 issues need attention"), maintenance in progress, a new project (the
   checklist under the headline, every resource to set up, no maintenance card) and more open
   incidents than a group shows ("View all 9").
 - **What do you want to do first?** (issue #6803): at 1280px and 390px, a new project's owner

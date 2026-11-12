@@ -52,7 +52,7 @@ Each number counts something, says whether that needs you, and opens the list be
 | **Ongoing maintenance** | Scheduled maintenance events in progress | **None ongoing** | **Scheduled Maintenance → Ongoing Events** |
 | **SLOs at risk** | Turned-on SLOs that are at risk or have used up their error budget | **Budgets healthy** | **SLOs** |
 
-A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
+A count above zero reads **Needs attention**, or **In progress** and **Budget burning** for maintenance and SLOs. While any SLO is at risk, **SLOs at risk** opens the **SLOs** list filtered to those SLOs. A project with no monitors yet sees **No monitors yet**, and one with no SLOs sees **No SLOs yet**: an empty project is not the same as a healthy one. Those two then open the **Monitors** and **SLOs** lists, where you create one.
 
 ### The welcome checklist
 

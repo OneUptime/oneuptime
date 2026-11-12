@@ -52,7 +52,7 @@ Jede Zahl zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet di
 | **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** | **Geplante Wartung → Laufende Ereignisse** |
 | **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** | **SLOs** |
 
-Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Ein Projekt ohne Monitore sieht **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
+Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Solange ein SLO gefährdet ist, öffnet **Gefährdete SLOs** die Liste **SLOs**, gefiltert auf genau diese SLOs. Ein Projekt ohne Monitore sieht **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
 
 ### Die Willkommens-Checkliste
 

@@ -52,7 +52,7 @@ Cada número conta algo, diz se isso precisa de você e abre a lista por trás d
 | **Manutenção em andamento** | Eventos de manutenção programada em andamento | **Nenhuma em andamento** | **Manutenção programada → Eventos em andamento** |
 | **SLOs em risco** | SLOs ativados que estão em risco ou esgotaram o orçamento de erro | **Orçamentos saudáveis** | **SLOs** |
 
-Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Orçamento se esgotando** para manutenção e SLOs. Um projeto sem monitores vê **Nenhum monitor ainda**, e um sem SLOs vê **Nenhum SLO ainda**: um projeto vazio não é o mesmo que um projeto saudável. Esses dois abrem então as listas **Monitores** e **SLOs**, onde você cria um.
+Um número acima de zero mostra **Requer atenção**, ou **Em andamento** e **Orçamento se esgotando** para manutenção e SLOs. Enquanto algum SLO estiver em risco, **SLOs em risco** abre a lista **SLOs** filtrada para esses SLOs. Um projeto sem monitores vê **Nenhum monitor ainda**, e um sem SLOs vê **Nenhum SLO ainda**: um projeto vazio não é o mesmo que um projeto saudável. Esses dois abrem então as listas **Monitores** e **SLOs**, onde você cria um.
 
 ### A lista de boas-vindas
 

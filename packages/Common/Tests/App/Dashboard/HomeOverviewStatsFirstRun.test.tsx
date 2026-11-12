@@ -154,8 +154,23 @@ import ProjectHealthCard from "../../../../App/FeatureSet/Dashboard/src/Componen
 import useHomeOverview, {
   UseHomeOverviewResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/UseHomeOverview";
+import {
+  buildFacetColumnQuery,
+  FacetColumnQuery,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FacetColumnQuery";
+import {
+  FacetSelectionState,
+  parseFacetSelectionState,
+  sanitizeFacetSelectionState,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/ResourceOwners/FacetSelectionState";
+import {
+  getSloListBaseQuery,
+  SLO_LIST_FACETS,
+  SLOS_TABLE_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloStatusSummaryTiles";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import TableFilterUrlState from "../../../UI/Utils/TableFilterUrlState";
 import Alert from "../../../Models/DatabaseModels/Alert";
 import AlertState from "../../../Models/DatabaseModels/AlertState";
 import Incident from "../../../Models/DatabaseModels/Incident";
@@ -526,6 +541,51 @@ function routeOf(pageMap: PageMap): string {
   return RouteMap[pageMap]!.toString().replace(":projectId", PROJECT_ID);
 }
 
+/*
+ * What the SLOs list asks for when it is opened at `href`: the chips it
+ * restores from the address, read as useResourceOwners reads them, over the
+ * list's base query - each chip's column from the builder the list's own
+ * merge runs - in the project, as every list request is.
+ */
+function sloListQueryAt(href: string): Record<string, unknown> {
+  const before: string = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  let chips: FacetSelectionState;
+
+  window.history.replaceState({}, "", href);
+
+  try {
+    chips = sanitizeFacetSelectionState(
+      parseFacetSelectionState(
+        TableFilterUrlState.read(SLOS_TABLE_ID, "facets"),
+      ),
+      SLO_LIST_FACETS,
+    );
+  } finally {
+    window.history.replaceState({}, "", before);
+  }
+
+  const query: Record<string, unknown> = {
+    projectId: new ObjectID(PROJECT_ID),
+    ...(getSloListBaseQuery() as Record<string, unknown>),
+  };
+
+  for (const facet of SLO_LIST_FACETS) {
+    const field: string = facet.queryField || facet.key;
+    const columnQuery: FacetColumnQuery | null = buildFacetColumnQuery({
+      facet: facet,
+      operator: chips.facetOperators[facet.key] || "is",
+      values: chips.facetSelections[facet.key] || [],
+      existingValue: query[field],
+    });
+
+    if (columnQuery) {
+      query[columnQuery.field] = columnQuery.value;
+    }
+  }
+
+  return query;
+}
+
 function sloRow(
   status: SloStatus,
   overrides: { isEnabled?: boolean; isArchived?: boolean } = {},
@@ -789,6 +849,42 @@ describe("a project with SLOs", () => {
       "Budget burning",
     );
     expect(statusOf("slos-needing-attention")).toHaveClass("text-amber-600");
+  });
+
+  /*
+   * The SLOs list holds every SLO, so while any is at risk the cell opens it
+   * with its own Status and Enabled chips set (#6857). Read back the way the
+   * list reads its address, the chips ask for exactly the SLOs the cell
+   * counted: the same evaluator answers both.
+   */
+  test("at risk: the cell opens the SLOs list showing just the SLOs it counts", async () => {
+    dataset.slos = [
+      sloRow(SloStatus.AtRisk),
+      sloRow(SloStatus.BudgetExhausted),
+      sloRow(SloStatus.Healthy),
+      sloRow(SloStatus.Misconfigured),
+      sloRow(SloStatus.Paused),
+      sloRow(SloStatus.AtRisk, { isEnabled: false }),
+      sloRow(SloStatus.BudgetExhausted, { isArchived: true }),
+    ];
+    await renderStats();
+
+    const href: string = hrefOf("slos-needing-attention");
+    const counted: ModelRequest = onlyRequestOf("slosAtRisk");
+    const listed: Record<string, unknown> = sloListQueryAt(href);
+
+    expect(
+      screen.getByTestId("home-stat-slos-needing-attention"),
+    ).toHaveTextContent("2");
+    expect(href.split("?")[0]).toBe(routeOf(PageMap.SLOS));
+    expect(evaluate({ modelType: ServiceLevelObjective, query: listed })).toBe(
+      2,
+    );
+    expect(listed["isEnabled"]).toBe(counted.query["isEnabled"]);
+    expect(listed["isArchived"]).toBe(counted.query["isArchived"]);
+    expect(idsIn(listed["sloStatus"]).sort()).toEqual(
+      idsIn(counted.query["sloStatus"]).sort(),
+    );
   });
 
   test("only disabled SLOs still count as set up", async () => {

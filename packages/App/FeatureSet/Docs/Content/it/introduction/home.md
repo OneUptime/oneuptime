@@ -52,7 +52,7 @@ Ogni numero conta qualcosa, dice se richiede la tua attenzione e apre l'elenco c
 | **Manutenzione in corso** | Gli eventi di manutenzione programmata in corso | **Nessuna in corso** | **Manutenzione programmata → Eventi in corso** |
 | **SLO a rischio** | Gli SLO attivi che sono a rischio o hanno esaurito il loro error budget | **Budget in salute** | **SLOs** |
 
-Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** per manutenzione e SLO. Un progetto senza monitor vede **Nessun monitor ancora**, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
+Un numero sopra lo zero mostra **Richiede attenzione**, oppure **In corso** e **Budget in esaurimento** per manutenzione e SLO. Finché un SLO è a rischio, **SLO a rischio** apre l'elenco **SLOs** filtrato su quegli SLO. Un progetto senza monitor vede **Nessun monitor ancora**, e uno senza SLO vede **Nessun SLO ancora**: un progetto vuoto non è un progetto sano. Questi due aprono allora gli elenchi **Monitor** e **SLOs**, dove ne crei uno.
 
 ### L'elenco di benvenuto
 
