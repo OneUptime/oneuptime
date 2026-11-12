@@ -11,6 +11,7 @@ import DashboardTextComponent from "./DashboardTextComponent";
 import DashboardClockComponent from "./DashboardClockComponent";
 import DashboardTableComponent from "./DashboardTableComponent";
 import { DashboardWidgetIdContext } from "./DashboardWidgetColumns";
+import { DashboardWidgetPreviewProvider } from "./DashboardWidgetPreview";
 import DashboardGaugeComponent from "./DashboardGaugeComponent";
 import DashboardDataSourceChartComponent from "./DashboardDataSourceChartComponent";
 import DashboardDataSourceValueComponent from "./DashboardDataSourceValueComponent";
@@ -139,6 +140,13 @@ export interface DashboardBaseComponentProps {
    * where a reader digs in.
    */
   isPlayback?: boolean | undefined;
+  /*
+   * Drawn by the widget settings' live preview (issue #6859), over a board
+   * being edited: the widget draws as a reader sees it, with nothing that
+   * leaves the page. The widget and every part of it read it through
+   * useIsDashboardWidgetPreview (DashboardWidgetPreview).
+   */
+  isPreview?: boolean | undefined;
   /*
    * The dashboard the widget is on. A viewer's sort of a list or table
    * widget is remembered per widget on this dashboard (issue #5082).
@@ -612,15 +620,19 @@ const DashboardBaseComponentElement: FunctionComponent<ComponentProps> = (
       >
         {/*
          * Which widget it is, for what it keeps per widget: a table's
-         * column widths (DashboardWidgetColumns).
+         * column widths (DashboardWidgetColumns). Whether it is the
+         * settings' live preview, for each of its links
+         * (DashboardWidgetPreview).
          */}
         <DashboardWidgetIdContext.Provider value={props.componentId.toString()}>
-          <Widget
-            {...props}
-            isEditMode={props.isEditMode}
-            isSelected={props.isSelected}
-            component={component}
-          />
+          <DashboardWidgetPreviewProvider isPreview={Boolean(props.isPreview)}>
+            <Widget
+              {...props}
+              isEditMode={props.isEditMode}
+              isSelected={props.isSelected}
+              component={component}
+            />
+          </DashboardWidgetPreviewProvider>
         </DashboardWidgetIdContext.Provider>
       </ContainedErrorBoundary>
     );

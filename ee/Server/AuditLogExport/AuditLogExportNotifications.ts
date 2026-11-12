@@ -36,11 +36,21 @@ import ObjectID from "Common/Types/ObjectID";
  *
  *   - FAILING, once it has failed for 30 minutes without a success: what
  *     the destination answered, and that nothing is lost yet;
- *   - LOSING ENTRIES, a day before the oldest entry it has not sent is
- *     deleted, and never sooner than the first email: from when entries
+ *   - LOSING ENTRIES, a day before the first of the entries it has not sent
+ *     is deleted, and never sooner than the first email: from when entries
  *     are lost, and that fixing the destination before then sends them. A
  *     longer retention keeps only the entries recorded after the change,
  *     so the email does not offer it as a way to keep these.
+ *
+ * When that first entry is deleted is read from the entries themselves:
+ * the soonest retentionDate stamped on the ones the export has not sent
+ * (AuditLogService.findSoonestRetentionDateForExport). Reckoned from the
+ * retention as it is now, a retention lengthened from 7 days to 30 while
+ * entries waited put the email 22 days after they were gone (#6563). Only
+ * when the stamps cannot be read is it reckoned that way, from the oldest
+ * entry waiting (getAuditLogExportEntriesLostAt). So the emails say when
+ * the entries waiting are deleted, never "a retention of N days" that they
+ * may not have been recorded with.
  *
  * A project's export emails the project's owners (ProjectService.getOwners,
  * as the other owner emails do); the instance's export, every master admin
@@ -54,16 +64,16 @@ import ObjectID from "Common/Types/ObjectID";
 // How long an export fails before its people are told.
 export const AUDIT_LOG_EXPORT_FAILING_NOTICE_AFTER_IN_MINUTES: number = 30;
 
-// How long before the oldest unsent entry is deleted that they are told again.
+// How long before the first unsent entry is deleted that they are told again.
 export const AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS: number = 24;
 
 /*
  * The retention an entry is recorded with, and when it is deleted, are the
  * recorder's own (Common/Types/AuditLog/AuditLogRetention): the project's,
- * from 7 to 180 days, and 7 when it has none. Reckoning them the same way
- * is the whole point: for a retention the API took outside that range, the
- * recorder and this module once disagreed, and the "losing entries" email
- * came after the entries were gone (#6383).
+ * from 7 to 180 days, and 7 when it has none. Reckoning them the same way,
+ * when the stamps cannot be read, is the whole point: for a retention the
+ * API took outside that range, the recorder and this module once disagreed,
+ * and the "losing entries" email came after the entries were gone (#6383).
  */
 
 // Where each email's button opens.
@@ -81,13 +91,28 @@ const MINUTE_IN_MS: number = 60 * 1000;
 const HOUR_IN_MS: number = 60 * MINUTE_IN_MS;
 
 /*
- * When the oldest entry the export has not sent is deleted from the audit
- * log: the retentionDate the recorder stamped on it.
+ * When the first of the entries the export has not sent is deleted from the
+ * audit log: the soonest retentionDate stamped on them, as the audit log
+ * answered it (soonestRetentionDate). Each entry is deleted on its own
+ * stamp, so a retention changed since they were recorded changes nothing
+ * here.
+ *
+ * Without the stamps - the audit log could not answer, or answered that
+ * none waits while a batch had just been read - it is reckoned as it was
+ * before #6563: the retentionDate the recorder stamps on an entry recorded
+ * when the oldest one waiting was, with the retention as it is now. That
+ * is the same moment while the retention has not changed; lengthened, it
+ * is later than the real one, so it is the reckoning of last resort.
  */
 export function getAuditLogExportEntriesLostAt(data: {
   oldestUnsentAt: Date;
   retentionInDays: number;
+  soonestRetentionDate?: Date | null | undefined;
 }): Date {
+  if (data.soonestRetentionDate) {
+    return new Date(data.soonestRetentionDate);
+  }
+
   return getAuditLogRetentionDate({
     recordedAt: data.oldestUnsentAt,
     retentionInDays: data.retentionInDays,
@@ -96,22 +121,19 @@ export function getAuditLogExportEntriesLostAt(data: {
 
 /*
  * When the email saying entries are about to be lost is due: a day before
- * the oldest unsent entry is deleted, and never before the first email.
- * None while nothing waits to be sent.
+ * the first unsent entry is deleted (entriesLostAt), and never before the
+ * first email. None while nothing waits to be sent.
  */
 export function getAuditLogExportLosingNoticeAt(data: {
   failingSince: Date;
-  oldestUnsentAt: Date | null;
-  retentionInDays: number;
+  // When the first of the entries the export has not sent is deleted; null while none waits.
+  entriesLostAt: Date | null;
 }): Date | null {
-  if (!data.oldestUnsentAt) {
+  if (!data.entriesLostAt) {
     return null;
   }
 
-  const lostAt: number = getAuditLogExportEntriesLostAt({
-    oldestUnsentAt: data.oldestUnsentAt,
-    retentionInDays: data.retentionInDays,
-  }).getTime();
+  const lostAt: number = new Date(data.entriesLostAt).getTime();
 
   return new Date(
     Math.max(
@@ -134,9 +156,8 @@ export function getAuditLogExportFailureNotice(data: {
   // The try before this one, while the export was already failing; else null.
   previousFailureAt: Date | null | undefined;
   now: Date;
-  // When the oldest entry the export has not sent was recorded; null for none.
-  oldestUnsentAt: Date | null;
-  retentionInDays: number;
+  // When the first of the entries the export has not sent is deleted; null for none waiting.
+  entriesLostAt: Date | null;
 }): AuditLogExportFailureNotice | null {
   const since: number = new Date(data.failingSince).getTime();
   const before: number =
@@ -148,8 +169,7 @@ export function getAuditLogExportFailureNotice(data: {
 
   const losingAt: Date | null = getAuditLogExportLosingNoticeAt({
     failingSince: data.failingSince,
-    oldestUnsentAt: data.oldestUnsentAt,
-    retentionInDays: data.retentionInDays,
+    entriesLostAt: data.entriesLostAt,
   });
 
   if (losingAt && before < losingAt.getTime() && now >= losingAt.getTime()) {
@@ -189,6 +209,12 @@ const formatDate: (date: Date) => string = (date: Date): string => {
  * - and an export with no name is "an audit log export", never "the audit
  * log export audit log export". The remediation says what to do first,
  * then what happens if nobody does (fu-platform's review).
+ *
+ * How long the entries waiting are kept is said as a date - when the first
+ * of them is deleted - never as the retention's days: they keep the
+ * retention they were recorded with, which a project may have changed since
+ * (#6563). Only with nothing waiting does the "failing" email give the days
+ * the audit log keeps an entry recorded from now on.
  */
 export function buildAuditLogExportFailureEmail(data: {
   notice: AuditLogExportFailureNotice;
@@ -197,7 +223,10 @@ export function buildAuditLogExportFailureEmail(data: {
   isInstanceExport: boolean;
   failingSince: Date;
   oldestUnsentAt: Date | null;
+  // When the first of the entries the export has not sent is deleted (getAuditLogExportEntriesLostAt); null while none waits.
+  entriesLostAt: Date | null;
   error: string;
+  // The project's retention as it is now: how long an entry recorded from now on is kept.
   retentionInDays: number;
 }): AuditLogExportFailureEmail {
   const product: string = ProductBrandingText.getProductName();
@@ -205,11 +234,8 @@ export function buildAuditLogExportFailureEmail(data: {
   const retentionInDays: number = readAuditLogRetentionInDays(
     data.retentionInDays,
   );
-  const lostAt: Date | null = data.oldestUnsentAt
-    ? getAuditLogExportEntriesLostAt({
-        oldestUnsentAt: data.oldestUnsentAt,
-        retentionInDays,
-      })
+  const lostAt: Date | null = data.entriesLostAt
+    ? new Date(data.entriesLostAt)
     : null;
   const isLosing: boolean =
     data.notice === AuditLogExportFailureNotice.LosingEntries &&
@@ -256,22 +282,24 @@ export function buildAuditLogExportFailureEmail(data: {
     : "A longer retention (Project Settings > Audit Logs > Settings) only keeps the entries recorded after the change.";
 
   /*
+   * Why nothing is lost yet: when the entries waiting start to be deleted,
+   * or - with none waiting - how long an entry recorded from now on is kept.
+   */
+  const keptFor: string = lostAt
+    ? `the audit log starts deleting them from about ${formatDate(lostAt)}.`
+    : data.isInstanceExport
+      ? "entries stay in each project's audit log for as long as that project's retention."
+      : `the audit log keeps each entry for ${days}.`;
+
+  /*
    * Failing: what to do, then why nothing is lost yet. Losing entries: from
    * when, what to do before then, and why a longer retention does not help
    * the entries already waiting.
    */
   const remediation: string =
     isLosing && lostAt
-      ? `From about ${formatDate(lostAt)}, the entries this export has not sent are deleted as they pass ${
-          data.isInstanceExport
-            ? "their project's audit log retention"
-            : `the audit log's retention of ${days}`
-        }, and are never sent. Fix the destination before then, and the export sends them, oldest first. ${longerRetention}`
-      : `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: ${
-          data.isInstanceExport
-            ? "entries stay in each project's audit log for as long as that project's retention."
-            : `the audit log keeps each entry for ${days}.`
-        }`;
+      ? `From about ${formatDate(lostAt)}, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first. ${longerRetention}`
+      : `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: ${keptFor}`;
 
   return {
     subject,
@@ -284,14 +312,18 @@ export function buildAuditLogExportFailureEmail(data: {
 }
 
 /*
- * The audit log retention that decides when this export's unsent entries
- * are deleted: its project's, or for the instance's export the shortest of
+ * The audit log retention as it is now, which entries recorded from now on
+ * are kept for: its project's, or for the instance's export the shortest of
  * the projects that record an audit log (the soonest any entry it waits to
- * send can be deleted). Each is read by the recorder's rule, so a value the
- * API once took outside 7 to 180 is reckoned as the recorder keeps it; the
- * rule never reads a smaller stored value as a longer retention, so the
- * smallest stored value is the shortest retention. A read that fails is
- * reckoned with the default.
+ * send can be deleted). The entries already waiting keep the retention they
+ * were recorded with, read from their stamps; this one is what the
+ * "failing" email gives when none waits, and what the moment they are lost
+ * is reckoned from when the stamps cannot be read
+ * (getAuditLogExportEntriesLostAt). Each is read by the recorder's rule, so
+ * a value the API once took outside 7 to 180 is reckoned as the recorder
+ * keeps it; the rule never reads a smaller stored value as a longer
+ * retention, so the smallest stored value is the shortest retention. A read
+ * that fails is reckoned with the default.
  */
 export async function getAuditLogExportRetentionInDays(
   item: AuditLogExport,
@@ -329,6 +361,8 @@ export interface AuditLogExportFailureNotification {
   notice: AuditLogExportFailureNotice;
   failingSince: Date;
   oldestUnsentAt: Date | null;
+  // When the first of the entries the export has not sent is deleted; null while none waits.
+  entriesLostAt: Date | null;
   error: string;
   retentionInDays: number;
 }
@@ -381,6 +415,7 @@ export const auditLogExportEmailNotifier: AuditLogExportNotifier = {
       isInstanceExport: !data.item.projectId,
       failingSince: data.failingSince,
       oldestUnsentAt: data.oldestUnsentAt,
+      entriesLostAt: data.entriesLostAt,
       error: data.error,
       retentionInDays: data.retentionInDays,
     });

@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -1355,6 +1356,33 @@ test.describe("the lists", () => {
       "Running",
     );
     await expectNoSidewaysScroll(page);
+  });
+});
+
+/*
+ * What a card holds lines up with its title (#6956): the Overview's
+ * Workloads and Infrastructure links and its Pod Health bar sat in a second
+ * padding (py-4 pr-4 pl-1, p-4), 4 to 16px in from the title.
+ */
+test.describe("the Overview's cards line up with their titles", () => {
+  test("Workloads, Infrastructure and Pod Health start under their titles, on a laptop and a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openOverview(page);
+
+    await expectCardsFit(page, [
+      page
+        .getByTestId("card")
+        .filter({ hasText: "Explore workload resources" }),
+      page
+        .getByTestId("card")
+        .filter({ hasText: "Explore infrastructure resources" }),
+      page
+        .getByTestId("card")
+        .filter({ hasText: "Distribution of pod statuses" }),
+    ]);
   });
 });
 

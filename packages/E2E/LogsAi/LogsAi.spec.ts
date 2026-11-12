@@ -1619,3 +1619,112 @@ test.describe("Logs → AI → Activity", () => {
     ).toBeVisible({ timeout: 60000 });
   });
 });
+
+/*
+ * The daily ingestion budget banner Logs' layout draws above every Logs
+ * page while today's Logs budget is past its warning or used up (Common's
+ * TelemetryIngestionBudgetBanner). Issue #6486: the offline fixtures once
+ * answered its read with {}, the banner read that as a status and threw
+ * while it drew, and every page under the layout went blank with an
+ * uncaught error. An answer that is not a status now draws nothing, and the
+ * page under it is whole; a used-up budget still draws the banner.
+ */
+test.describe("Logs → the daily ingestion budget banner", () => {
+  const BANNER_TEST_ID: string = "telemetry-ingestion-budget-banner";
+  const BUDGET_READ: string = "/telemetry-ingestion-budget/project";
+
+  // Whether the page asked for today's budgets, and how often.
+  async function budgetReads(page: Page): Promise<number> {
+    const state: FixtureState = await fixture(page);
+
+    return state.apiRequests.filter(
+      (request: { method: string; url: string }): boolean => {
+        return (
+          request.method === "GET" &&
+          new URL(request.url).pathname.endsWith(BUDGET_READ)
+        );
+      },
+    ).length;
+  }
+
+  test("an answer that is not a status: no banner, nothing thrown, and the page under it whole", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(page, `${AI}/insights?budget=unreadable`, async () => {
+      await expect(logsTabs(page)).toBeVisible({ timeout: 60000 });
+      await expect(page.getByText(ERROR_TITLE)).toBeVisible();
+      await expectAiSection(page, testInfo, "Insights");
+
+      // The layout read today's budgets, was answered {}, and drew nothing.
+      await expect
+        .poll((): Promise<number> => {
+          return budgetReads(page);
+        })
+        .toBe(1);
+      await expect(page.getByTestId(BANNER_TEST_ID)).toHaveCount(0);
+
+      if (isPhone(testInfo)) {
+        await expectNoSidewaysScroll(page);
+      }
+    });
+
+    // Page to page under the layout, the pages still draw.
+    await page.getByText(ERROR_TITLE).click();
+    await expect(page).toHaveURL(
+      new RegExp(`/logs/ai/insights/${ERROR_INSIGHT}`),
+    );
+    await expect(page.getByTestId("telemetry-ai-fix")).toBeVisible();
+    await expect(page.getByTestId(BANNER_TEST_ID)).toHaveCount(0);
+    // The uncaught page errors are checked after each test (afterEach).
+  });
+
+  test("a used-up Logs budget: the banner above the page says until when, and See budgets leads to Usage", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await inBothThemes(
+      page,
+      `${AI}/insights?budget=used-up`,
+      async (theme: "light" | "dark"): Promise<void> => {
+        const banner: Locator = page.getByTestId(BANNER_TEST_ID);
+
+        await expect(banner).toBeVisible({ timeout: 60000 });
+        await expect(banner).toContainText(
+          "Logs: today's ingestion budget of 10 GB is used up, so new data is refused until the budget resets at",
+        );
+
+        const link: Locator = page.getByTestId(
+          "telemetry-ingestion-budget-banner-link",
+        );
+        await expect(link).toHaveText("See budgets");
+        await expect(link).toHaveAttribute(
+          "href",
+          `/dashboard/${PROJECT_ID}/settings/usage-history`,
+        );
+
+        // Above the page it is about: the problems found are still drawn.
+        const firstFinding: Locator = page.getByText(ERROR_TITLE);
+        await expect(firstFinding).toBeVisible();
+        const [bannerBox, findingBox] = await boxesInOneFrame([
+          banner,
+          firstFinding,
+        ]);
+        if (!bannerBox || !findingBox) {
+          throw new Error("The banner or the first finding is not drawn.");
+        }
+        expect(bannerBox.y + bannerBox.height).toBeLessThanOrEqual(
+          findingBox.y,
+        );
+
+        if (isPhone(testInfo)) {
+          await expectNoSidewaysScroll(page);
+        }
+
+        await screenshot(page, testInfo, `budget-banner-used-up-${theme}`);
+      },
+    );
+  });
+});
