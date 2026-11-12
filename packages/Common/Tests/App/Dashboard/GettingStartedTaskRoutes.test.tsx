@@ -334,11 +334,60 @@ describe("Create your first monitor", () => {
   });
 });
 
+describe("Publish a status page", () => {
+  /*
+   * The guided setup (#6806) takes the step over: a name, the monitors it
+   * shows and what customers see on one page - for somebody who may create
+   * a status page, since its first step makes one.
+   */
+  test("opens the guided setup for someone who may create a status page", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP));
+  });
+
+  test("asks the permission gate about creating a StatusPage", async () => {
+    await renderGettingStarted();
+    checkSpy.mockClear();
+    click(WelcomeStep.StatusPage);
+
+    expect(checkSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (checkSpy.mock.calls[0]![0] as PermissionCheckableModel).constructor.name,
+    ).toBe("StatusPage");
+  });
+
+  test("lands anyone else on the Status Pages list", async () => {
+    mayCreate = false;
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.STATUS_PAGES));
+  });
+
+  test("carries nothing: the setup says what is next", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
+  });
+});
+
+describe("Send your first logs, metrics or traces", () => {
+  // The guided setup (#6806): the guide, the first data, then alerts on it.
+  test("opens the guided setup, which carries nothing", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.Telemetry);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.SERVICES_GUIDED_SETUP));
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
+  });
+});
+
 describe("every other step opens today's page for its job", () => {
   test.each([
     [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY],
-    [WelcomeStep.StatusPage, PageMap.STATUS_PAGES],
-    [WelcomeStep.Telemetry, PageMap.LOGS],
     [WelcomeStep.Infrastructure, PageMap.HOSTS],
   ])("%s opens %s", async (key: WelcomeStep, pageMap: PageMap) => {
     await renderGettingStarted();
@@ -405,12 +454,12 @@ describe("what a click records", () => {
     fetchMock.mockResolvedValue(
       answer([
         step(WelcomeStep.Monitor, { isNext: true }),
-        step(WelcomeStep.OnCall),
         step(WelcomeStep.StatusPage),
+        step(WelcomeStep.OnCall),
       ]),
     );
     await renderGettingStarted();
-    click(WelcomeStep.StatusPage);
+    click(WelcomeStep.OnCall);
 
     expect(readWelcomeStepInProgress()?.nextStep).toBe(WelcomeStep.Monitor);
   });

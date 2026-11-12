@@ -1579,6 +1579,22 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
             icon: IconProp.CheckCircle,
             keywords: ["create status page", "public status page"],
           },
+          /*
+           * The guided setup (#6806): a name, the monitors it shows and what
+           * customers see, on one page. Found by what people come to do.
+           */
+          {
+            page: PageMap.STATUS_PAGES_GUIDED_SETUP,
+            title: "Publish a status page",
+            icon: IconProp.CheckCircle,
+            keywords: [
+              "guided setup",
+              "get started",
+              "status page setup",
+              "show uptime to customers",
+              "public status",
+            ],
+          },
         ],
       },
       {
@@ -3002,7 +3018,28 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     sections: [
       {
         title: "Services",
-        pages: [allListPage(PageMap.SERVICES, "All Services")],
+        pages: [
+          allListPage(PageMap.SERVICES, "All Services"),
+          /*
+           * The guided setup (#6806): the OpenTelemetry guide, the first
+           * data, and recommended alerts on it, on one page.
+           */
+          {
+            page: PageMap.SERVICES_GUIDED_SETUP,
+            title: "Send logs, metrics and traces, then get alerted",
+            icon: IconProp.Logs,
+            keywords: [
+              "guided setup",
+              "get started",
+              "opentelemetry",
+              "send telemetry",
+              "send logs",
+              "send traces",
+              "send metrics",
+              "telemetry alert",
+            ],
+          },
+        ],
       },
       ...resourceSettingsSections({
         ownerRules: PageMap.SERVICE_SETTINGS_OWNER_RULES,

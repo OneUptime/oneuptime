@@ -423,6 +423,28 @@ describe("ResourceAiAccessService.buildStatus", () => {
   );
 
   /*
+   * The setting is LLM Providers (#6738): the gap names it so, for API
+   * readers and a Dashboard that does not word the gap itself - never an
+   * "AI provider", which no page is called.
+   */
+  it("names an LLM provider and the LLM Providers page when there is none, never an AI provider", () => {
+    const status: ResourceAiAccessStatus = build(row(), agentRow(), {
+      ...READY_GATES,
+      hasLlmProvider: false,
+    });
+
+    expect(gap(status, "llm_provider_missing").title).toBe(
+      "No LLM provider is configured",
+    );
+    expect(gap(status, "llm_provider_missing").nextStep).toBe(
+      "Add an LLM provider under Project Settings → AI → LLM Providers (or use OneUptime AI credits).",
+    );
+    expect(JSON.stringify(gap(status, "llm_provider_missing"))).not.toMatch(
+      /\bAI providers?\b/i,
+    );
+  });
+
+  /*
    * Enable AI is the project's only AI switch. The "Enable auto-remediation"
    * switch it replaced had a gap of its own
    * (auto_remediation_disabled_for_project), retired with it: with AI on a
