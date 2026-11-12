@@ -51636,5 +51636,15 @@
   "Unarchive {{count}} {{itemsName}}?_one": "要取消归档 {{count}} 个{{itemName}}吗？",
   "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "取消归档的 SLO 会重新出现在 SLO 列表中，并在下一个周期重新评估。归档前已禁用的 SLO 将保持禁用状态。",
   "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "此状态页是私有的：只有登录该页面或知道其密码的人才能查看。只能监控公开的状态页。",
-  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "此状态页只允许其 IP 允许列表中的 IP 地址访问，而此探测器的地址不在其中。请将探测器的地址添加到允许列表，或从该网络内的探测器监控此页面。"
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "此状态页只允许其 IP 允许列表中的 IP 地址访问，而此探测器的地址不在其中。请将探测器的地址添加到允许列表，或从该网络内的探测器监控此页面。",
+  "Disable Dashboard Recording": "Disable Dashboard Recording",
+  "If you accepted analytics, OneUptime may record how you use the setup pages - Welcome, Home, creating a monitor, the guided setups, How to Reach Me and Project Settings - to see where people get stuck. What you type and what your team stores is hidden in the recording: only OneUptime's own buttons, headings and labels can be read.": "If you accepted analytics, OneUptime may record how you use the setup pages - Welcome, Home, creating a monitor, the guided setups, How to Reach Me and Project Settings - to see where people get stuck. What you type and what your team stores is hidden in the recording: only OneUptime's own buttons, headings and labels can be read.",
+  "Members who accepted analytics, and did not switch it off themselves, may be recorded on the setup pages.": "Members who accepted analytics, and did not switch it off themselves, may be recorded on the setup pages.",
+  "Nobody is recorded while working in this project.": "Nobody is recorded while working in this project.",
+  "OneUptime may record how members who accepted analytics use the setup pages, with what they type and what this project stores hidden, to see where people get stuck. Switch it off to keep everyone working in this project out of it.": "OneUptime may record how members who accepted analytics use the setup pages, with what they type and what this project stores hidden, to see where people get stuck. Switch it off to keep everyone working in this project out of it.",
+  "OneUptime may record your use of the setup pages, with your data hidden.": "OneUptime may record your use of the setup pages, with your data hidden.",
+  "OneUptime never records how you use the dashboard.": "OneUptime never records how you use the dashboard.",
+  "Record how I use setup pages": "Record how I use setup pages",
+  "Record setup pages in this project": "Record setup pages in this project",
+  "Recordings of Setup Pages": "Recordings of Setup Pages"
 }

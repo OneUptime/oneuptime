@@ -231,7 +231,7 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         <></>
       )}
       {/*
-       * "Record how I use the setup pages" (#6834), beside the feedback
+       * "Record how I use setup pages" (#6834), beside the feedback
        * questions: the help-improve-OneUptime choices sit together. Only on
        * a server that records at all - OneUptime Cloud, once it is on.
        */}

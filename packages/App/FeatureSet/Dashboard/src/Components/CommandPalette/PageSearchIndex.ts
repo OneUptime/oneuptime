@@ -517,7 +517,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                 gate: PageSearchGate.DashboardRecording,
               },
               {
-                name: "Let OneUptime record setup pages in this project",
+                name: "Record setup pages in this project",
                 gate: PageSearchGate.DashboardRecording,
               },
             ],
@@ -4339,7 +4339,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                 gate: PageSearchGate.DashboardRecording,
               },
               {
-                name: "Record how I use the setup pages",
+                name: "Record how I use setup pages",
                 gate: PageSearchGate.DashboardRecording,
               },
             ],
