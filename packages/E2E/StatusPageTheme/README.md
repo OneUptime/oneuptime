@@ -49,5 +49,16 @@ laptop's tabs run from the right, its words are the status page's Arabic in
 Vazirmatn, its dates are Arabic with Latin digits, and nothing scrolls sideways,
 light or dark.
 
+`StatusPageResourceGrid.spec.ts` opens the page's grid group, Regions (Service: API and
+Dashboard, by Region: US, EU and Asia Pacific, with nothing in the Dashboard's EU cell),
+at 390, 768 and 1280 pixels in English, Arabic and Persian (Chromium only; each test
+sets its own window). Its matrix needs 580 pixels: at 390 it is a stack, each row a
+section headed by its value and each cell a line with its column's name at the start
+and its status at the end; at 768 and 1280 it is the matrix, with its column headings.
+Nothing scrolls sideways. With its columns widened past its box, the matrix scrolls in
+its card and each row's value stays whole at the start of the line, on a solid ground,
+ruled off on its cells' side, left to right and right to left. The dark theme draws it
+with nothing white. Its screenshots are `grid-*.png`.
+
 This checks real browser rendering and the app's theme handling; the API, the
 database and the deployed app's routing are outside this fixture.

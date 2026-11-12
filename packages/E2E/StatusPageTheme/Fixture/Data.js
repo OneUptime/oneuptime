@@ -9,7 +9,9 @@
  * (light lettering) - a description, an announcement, an incident in progress, a
  * maintenance event, a list group whose history shows every bar colour
  * the recommended rules give a day - and days with no data - and a grid
- * group. Colours are the product's defaults for new projects.
+ * group of two rows by three columns, one cell empty: 580px of matrix,
+ * which a phone draws as a stack (StatusPageResourceGrid.spec.ts). Colours
+ * are the product's defaults for new projects.
  */
 import BaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import File from "Common/Models/DatabaseModels/File";
