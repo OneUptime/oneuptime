@@ -207,6 +207,40 @@ export function getChatTableCellPieces(
   return pieces;
 }
 
+// The dot of a dotted name, "payments.example.com", which it may wrap before.
+const CHAT_TABLE_NAME_DOT: string = ".";
+
+// A letter of any script: what a name after a dot starts with.
+const CHAT_TABLE_LETTER: RegExp = /^\p{L}$/u;
+
+// A letter or a digit of any script: what a name before a dot ends with.
+const CHAT_TABLE_LETTER_OR_DIGIT: RegExp = /^[\p{L}\p{N}]$/u;
+
+/*
+ * Whether the dot at a place in a word starts a name of a dotted one - a
+ * host's "payments.example.com" - so the word may wrap before it: a dot
+ * between a name's last letter or digit and the next name's first letter.
+ * Never a number's ("10.0.12.34", "3.14"), a run of dots, or one at either
+ * end. Letters as a person counts them: an emoji is never half read.
+ */
+function isChatTableNameDot(word: string, index: number): boolean {
+  if (word[index] !== CHAT_TABLE_NAME_DOT || index === 0) {
+    return false;
+  }
+
+  const before: string | undefined = Array.from(
+    word.slice(Math.max(0, index - 2), index),
+  ).pop();
+  const afterCode: number | undefined = word.codePointAt(index + 1);
+
+  return (
+    before !== undefined &&
+    CHAT_TABLE_LETTER_OR_DIGIT.test(before) &&
+    afterCode !== undefined &&
+    CHAT_TABLE_LETTER.test(String.fromCodePoint(afterCode))
+  );
+}
+
 /*
  * A word that may break anywhere, in the parts it wraps between first
  * (issue #6969): after each run of slashes inside it, so a path wraps as
@@ -214,9 +248,17 @@ export function getChatTableCellPieces(
  * than the whole column. Broken anywhere, "/ledger/entries" was drawn as
  * "/ledger/en" and "tries". The slashes a word starts with stay with its
  * first part ("/api/"), and so do those after a colon, with the name after
- * them ("https://payments.example.com/", "C:\Windows\"): alone on a line
- * they say nothing, and take a line of the three a cell shows. A word with
- * no slash is one part, and the parts put together are the word.
+ * them ("https://payments", "C:\Windows\"): alone on a line they say
+ * nothing, and take a line of the three a cell shows.
+ *
+ * A dotted name wraps before each dot that starts a name in it, as a style
+ * guide breaks a URL: a URL's host, after the two slashes that follow its
+ * scheme or start the word ("https://payments", ".example", ".com/"), and
+ * a word with no slash at all - a long host name. Broken anywhere, a
+ * monitor named by its URL was drawn as "https://payments.ex" over
+ * "ample.com/" at the panel's width. A path's other names keep their dots:
+ * "charge.ts" never wraps before its ".ts". The parts put together are the
+ * word.
  */
 export function getChatTableWordParts(word: string): Array<string> {
   if (!word) {
@@ -227,24 +269,45 @@ export function getChatTableWordParts(word: string): Array<string> {
   let start: number = 0;
   // Whether the part being read has a letter yet, not only slashes.
   let hasLetter: boolean = false;
+  // Whether the name being read wraps before its dots: a word with no slash.
+  let isDottedName: boolean = !CHAT_TABLE_PATH_SLASHES.some(
+    (slash: string): boolean => {
+      return word.includes(slash);
+    },
+  );
 
-  // By UTF-16 unit: a slash is one, and is never half of a pair.
+  // By UTF-16 unit: a slash and a dot are one, and never half of a pair.
   for (let index: number = 0; index < word.length; index++) {
     if (isChatTablePathSlash(word[index])) {
       continue;
     }
 
-    if (hasLetter && isChatTablePathSlash(word[index - 1])) {
-      // The letter before the run of slashes just read.
+    if (isChatTablePathSlash(word[index - 1])) {
+      // The letter before the run of slashes just read, if any.
       let before: number = index - 1;
       while (isChatTablePathSlash(word[before])) {
         before--;
       }
 
-      if (word[before] !== ":") {
+      /*
+       * A URL's host is the name after two slashes or more, which follow
+       * its scheme's colon or start the word: a path's names, each after
+       * one slash, are not hosts.
+       */
+      isDottedName =
+        index - 1 - before >= 2 && (before < 0 || word[before] === ":");
+
+      if (hasLetter && word[before] !== ":") {
         parts.push(word.slice(start, index));
         start = index;
       }
+    } else if (
+      isDottedName &&
+      index > start &&
+      isChatTableNameDot(word, index)
+    ) {
+      parts.push(word.slice(start, index));
+      start = index;
     }
 
     hasLetter = true;

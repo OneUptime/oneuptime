@@ -3549,7 +3549,12 @@ test.describe("an action's arguments and the cards it leaves", () => {
  * marked at its start, in the order the card weighs them.
  */
 
-// The thread's three cautions, in the order the card weighs them (?thread=code).
+/*
+ * The thread's four cautions, in the order the card weighs them
+ * (?thread=code). The last is of a file Ask AI read all of, in two parts,
+ * the first of them left out since: read, so never "read only part of"
+ * (issue #6984).
+ */
 const CODE_CAUTION_KEYS: Array<[string, Record<string, string>]> = [
   [
     "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one",
@@ -3563,13 +3568,22 @@ const CODE_CAUTION_KEYS: Array<[string, Record<string, string>]> = [
     "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one",
     { files: "src/billing/charge.ts" },
   ],
+  [
+    "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one",
+    { files: "src/billing/ledger.ts" },
+  ],
 ];
 
 const CODE_CAUTIONS: Array<string> = [
   "This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: src/billing/refund.ts.",
   "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: README.md.",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: src/billing/charge.ts.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: src/billing/ledger.ts.",
 ];
+
+// The card's amber, one mark a caution: in the light theme, and in the dark.
+const CAUTION_AMBER: string = "rgb(217, 119, 6)";
+const CAUTION_AMBER_DARK: string = "rgb(252, 211, 77)";
 
 // Each caution of the card: its line, its mark and its sentence.
 interface CautionBoxes {
@@ -3646,7 +3660,7 @@ async function expectCautionsALineEach(
   const { action, cautions } = await cautionBoxes(page);
   const lineHeight: number = await cautionLineHeight(page);
 
-  expect(cautions).toHaveLength(3);
+  expect(cautions).toHaveLength(CODE_CAUTIONS.length);
 
   for (const caution of cautions) {
     for (const box of [caution.line, caution.mark, caution.sentence]) {
@@ -3714,11 +3728,11 @@ test.describe("a code change's cautions", () => {
 
     const action: Locator = page.getByTestId("tool-approval-action");
     await expect(action.getByTestId("tool-approval-title")).toHaveText(
-      "Commit 3 files to fix/login",
+      "Commit 4 files to fix/login",
     );
 
     const cautions: Locator = action.getByTestId("tool-approval-caution");
-    await expect(cautions).toHaveCount(3);
+    await expect(cautions).toHaveCount(CODE_CAUTIONS.length);
     for (let index: number = 0; index < CODE_CAUTIONS.length; index++) {
       // Each keeps the space that went before it in the card's text.
       expect((await wordsOf(cautions.nth(index))).trim()).toBe(
@@ -3733,16 +3747,26 @@ test.describe("a code change's cautions", () => {
     await expectCautionsALineEach(page, "ltr");
 
     // Marked in the card's amber, the colour of its own heading.
-    expect(await markColours(page)).toEqual([
-      "rgb(217, 119, 6)",
-      "rgb(217, 119, 6)",
-      "rgb(217, 119, 6)",
-    ]);
+    expect(await markColours(page)).toEqual(
+      CODE_CAUTIONS.map((): string => {
+        return CAUTION_AMBER;
+      }),
+    );
+
+    /*
+     * A file read whole and partly lost since is said to be read, and no
+     * longer all in hand: never "read only part of" (issue #6984).
+     */
+    const partLost: string = (
+      await wordsOf(cautions.nth(CODE_CAUTIONS.length - 1))
+    ).trim();
+    expect(partLost).toContain("no longer has part of its text");
+    expect(partLost).not.toContain("only part");
 
     // The commit's message and its files still read under its cautions.
     expect(await argumentRows(action)).toEqual([
       "Commit message: fix: round charges and refunds to the cent",
-      "Files: 3",
+      "Files: 4",
     ]);
 
     await screenshot(page, "code-cautions-1280");
@@ -3757,12 +3781,14 @@ test.describe("a code change's cautions", () => {
     await expect(askAi(page)).toBeVisible();
     await settle(page);
 
-    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(3);
-    expect(await markColours(page)).toEqual([
-      "rgb(252, 211, 77)",
-      "rgb(252, 211, 77)",
-      "rgb(252, 211, 77)",
-    ]);
+    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(
+      CODE_CAUTIONS.length,
+    );
+    expect(await markColours(page)).toEqual(
+      CODE_CAUTIONS.map((): string => {
+        return CAUTION_AMBER_DARK;
+      }),
+    );
 
     await screenshot(page, "code-cautions-1280-dark");
   });
@@ -3781,7 +3807,7 @@ test.describe("a code change's cautions", () => {
 
       const words: Record<string, string> = dashboardWords("fa");
       const cautions: Locator = page.getByTestId("tool-approval-caution");
-      await expect(cautions).toHaveCount(3);
+      await expect(cautions).toHaveCount(CODE_CAUTION_KEYS.length);
 
       for (let index: number = 0; index < CODE_CAUTION_KEYS.length; index++) {
         const [key, values] = CODE_CAUTION_KEYS[index]!;
@@ -4109,5 +4135,61 @@ test.describe("monitors looked up, and the monitors table", () => {
       await expectNothingScrollsSideways(page);
       await screenshot(page, "monitors-table-360");
     });
+  });
+
+  /*
+   * Broken anywhere, the URL's host was cut mid-name wherever the column
+   * ended: "https://payments.ex" over "ample.com/api/v2/" in the panel at
+   * 1024 pixels, "https://payments.example.c" over "om/..." at 1280. It
+   * wraps before its host's dots now, as a style guide breaks a URL, and
+   * after its slashes: each name whole on its line.
+   */
+  test("a monitor's URL wraps after its slashes and before its host's dots, each name whole: in the panel at 1280 and 1024, and on a 390 pixel phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const URL_NAME: string =
+      "https://payments.example.com/api/v2/health/checkout";
+
+    for (const width of [1280, 1024, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await load(page, "thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const table: Locator = page.locator("table").filter({
+        hasText: "legacy-payments-api",
+      });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      const url: Locator = table
+        .locator("tbody tr")
+        .nth(1)
+        .getByTestId("ai-chat-table-cell")
+        .nth(0);
+      await expect(url).toHaveAttribute("title", URL_NAME);
+
+      const layout: CellLayout = await cellLayoutOf(url);
+      const lines: string = JSON.stringify(layout.lines);
+      expect(layout.lines.join(""), lines).toBe(URL_NAME);
+      // Too long for one line, at every width...
+      expect(layout.lines.length, lines).toBeGreaterThanOrEqual(2);
+      // ...and never broken inside a name: no part is wider than the column.
+      expect(layout.brokenParts, `${width}: ${lines}`).toEqual([]);
+      for (let index: number = 0; index < layout.lines.length - 1; index++) {
+        // Each line ends after a slash, or the next starts with the host's dot.
+        expect(
+          layout.lines[index]!.endsWith("/") ||
+            layout.lines[index + 1]!.startsWith("."),
+          `${width}: ${lines}`,
+        ).toBe(true);
+      }
+      // The scheme stays with the host's first name.
+      expect(layout.lines[0]!.startsWith("https://payments"), lines).toBe(true);
+    }
+
+    await screenshot(page, "monitors-table-url-390");
   });
 });

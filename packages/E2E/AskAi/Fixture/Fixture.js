@@ -27,11 +27,13 @@
  *                    waiting to post a public status update on incident
  *                    #42 and add a private note to it, each with its
  *                    arguments, which leave their two cards once run;
- *                    code, one waiting to commit three files whose card
+ *                    code, one waiting to commit four files whose card
  *                    names what it would write over unseen - a file
  *                    changed since Ask AI read it, one read in an earlier
- *                    answer and one read earlier in this answer, left
- *                    out of the conversation since (issue #6570);
+ *                    answer, one read earlier in this answer, left out of
+ *                    the conversation since (issue #6570), and one read
+ *                    whole in two parts, the first left out since (issue
+ *                    #6984);
  *                    monitors, "Which monitors are down right now?"
  *                    answered with two monitors read by id - one
  *                    Offline, one whose monitoring is off - and the
@@ -491,13 +493,15 @@ function incidentNoteActions(status) {
 }
 
 /*
- * A commit of three files on fix/login, as the server stores it
+ * A commit of four files on fix/login, as the server stores it
  * (CodeWriteTools, CodeFilesSeen): its title, and a caution for each kind
  * of file it would write over unseen, in the order the card weighs them -
  * a file changed on the branch since Ask AI read it, one read in an
- * earlier answer, and one read earlier in this answer whose read the
- * conversation has left out since (issue #6570). Ask AI writes each file
- * whole, so the card names them before anyone approves it.
+ * earlier answer, one read earlier in this answer whose read the
+ * conversation has left out since (issue #6570), and one Ask AI read all
+ * of in two parts, the first of them left out since: read, and no longer
+ * all in hand - never "read only part of" (issue #6984). Ask AI writes
+ * each file whole, so the card names them before anyone approves it.
  */
 const CODE_BRANCH = "fix/login";
 
@@ -510,7 +514,7 @@ function codeFiles(paths) {
 }
 
 const CODE_CHANGE_WORDS = {
-  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 3, {
+  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 4, {
     branch: CODE_BRANCH,
   }),
   description: [
@@ -532,6 +536,11 @@ const CODE_CHANGE_WORDS = {
       1,
       { files: codeFiles(["src/billing/charge.ts"]) },
     ),
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand,
+      1,
+      { files: codeFiles(["src/billing/ledger.ts"]) },
+    ),
   ],
 };
 
@@ -551,6 +560,7 @@ function codeChangeAction(status) {
         { filePath: "src/billing/refund.ts", content: "export {};\n" },
         { filePath: "README.md", content: "# Billing\n" },
         { filePath: "src/billing/charge.ts", content: "export {};\n" },
+        { filePath: "src/billing/ledger.ts", content: "export {};\n" },
       ],
     },
     isMutation: true,

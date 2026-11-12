@@ -124,9 +124,9 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                    * they were there. A word wraps whole, broken only when
                    * it is wider than its column; a long one, or a path - an
                    * endpoint has no spaces to wrap at - anywhere, after its
-                   * slashes first (issue #6969): broken anywhere, every
-                   * word let a phone's table split "Operational" into
-                   * "Operationa" and "l".
+                   * slashes and before its host's dots first (issue
+                   * #6969): broken anywhere, every word let a phone's table
+                   * split "Operational" into "Operationa" and "l".
                    *
                    * A date is written as every table writes one, "Oct 14,
                    * 11:57 AM" (Table/TableDate), and whole under the
@@ -160,9 +160,10 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                               index: number,
                             ): ReactElement => {
                               /*
-                               * A path wraps after its slashes first: the
-                               * browser breaks anywhere only in a part
-                               * with no <wbr> left that fits the line.
+                               * A path wraps after its slashes first, and a
+                               * host before its dots: the browser breaks
+                               * anywhere only in a part with no <wbr> left
+                               * that fits the line.
                                */
                               return piece.breaksAnywhere ? (
                                 <span

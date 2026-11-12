@@ -10,6 +10,7 @@ import ResourceCardWidget, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Widgets/ResourceCardWidget";
 import PdfWidgets, {
   PDF_RESOURCE_CARD_LOOKS,
+  PDF_STATUS_DOT,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Export/PdfWidgets";
 import PdfDocument, {
   PDF_COLORS,
@@ -578,5 +579,120 @@ describe("in the PDF export", () => {
 
   test("a card saved before cards said which is green, as it was", () => {
     expect(lookOf(savedBeforeOrigins())).toEqual(lookOf(alertCard()));
+  });
+
+  /*
+   * The status the line names, in its own colour, a dot before it, as the
+   * chat draws it: the export said "Offline" in the card's gray alone.
+   */
+  interface PdfStatusLine {
+    // The dot, when one is drawn: its colour, its middle and its radius.
+    dot: { color: unknown; x: number; y: number; radius: number } | null;
+    // Where the line's words start, and where the kind's do: the card's edge.
+    lineX: number;
+    lineY: number;
+    kindX: number;
+  }
+
+  function statusLineOf(widget: AIChatWidget): PdfStatusLine {
+    const calls: Array<DrawCall> = drawn(widget);
+    const textAt: (text: string | undefined) => DrawCall = (
+      text: string | undefined,
+    ): DrawCall => {
+      const call: DrawCall | undefined = calls.find(
+        (candidate: DrawCall): boolean => {
+          return candidate.method === "text" && candidate.args[0] === text;
+        },
+      );
+      expect(call).toBeDefined();
+      return call!;
+    };
+    const line: DrawCall = textAt(widget.data.subheading);
+    const kind: DrawCall = textAt(
+      (widget.data.resourceType || "").toUpperCase(),
+    );
+    const dots: Array<number> = calls
+      .map((call: DrawCall, index: number): number => {
+        return call.method === "circle" ? index : -1;
+      })
+      .filter((index: number): boolean => {
+        return index > -1;
+      });
+
+    // One dot at most: the status's.
+    expect(dots.length).toBeLessThanOrEqual(1);
+
+    return {
+      dot:
+        dots.length === 1
+          ? {
+              color: lastBefore(calls, dots[0]!, "setFillColor"),
+              x: calls[dots[0]!]!.args[0] as number,
+              y: calls[dots[0]!]!.args[1] as number,
+              radius: calls[dots[0]!]!.args[2] as number,
+            }
+          : null,
+      lineX: line.args[1] as number,
+      lineY: line.args[2] as number,
+      kindX: kind.args[1] as number,
+    };
+  }
+
+  test("a read's status in its own colour: a dot before the line's words, level with them", () => {
+    const drawnLine: PdfStatusLine = statusLineOf(
+      monitorCard({ subheading: "Offline", statusColor: "#fd625e" }),
+    );
+
+    expect(drawnLine.dot).not.toBeNull();
+    expect(drawnLine.dot!.color).toBe("#fd625e");
+    expect(drawnLine.dot!.radius).toBe(PDF_STATUS_DOT.radius);
+    // At the card's edge, where the kind starts; the words after it, a gap between.
+    expect(drawnLine.dot!.x - drawnLine.dot!.radius).toBe(drawnLine.kindX);
+    expect(drawnLine.lineX).toBe(drawnLine.kindX + PDF_STATUS_DOT.indent);
+    expect(drawnLine.dot!.x + drawnLine.dot!.radius).toBeLessThan(
+      drawnLine.lineX,
+    );
+    // Level with the line's words: its middle half a line below their top.
+    expect(drawnLine.dot!.y).toBeGreaterThan(drawnLine.lineY);
+    expect(drawnLine.dot!.y).toBeLessThan(drawnLine.lineY + 11);
+  });
+
+  test("monitoring off: the dot is gray, as the chat draws it", () => {
+    expect(
+      statusLineOf(
+        monitorCard({
+          subheading: "Disabled",
+          statusColor: Gray500.toString(),
+        }),
+      ).dot!.color,
+    ).toBe("#6b7280");
+  });
+
+  test("no colour, a stored one that is not one, or a write's card: no dot, and the line at the card's edge", () => {
+    const untrusted: AIChatWidget = monitorCard({ subheading: "Offline" });
+    // As a stored card might say it, past the server's own check.
+    untrusted.data.statusColor = "red; background: url(https://example.com)";
+
+    for (const widget of [
+      monitorCard({ subheading: "Offline" }),
+      untrusted,
+      alertCard(),
+      savedBeforeOrigins(),
+    ]) {
+      const drawnLine: PdfStatusLine = statusLineOf(widget);
+      expect(drawnLine.dot).toBeNull();
+      expect(drawnLine.lineX).toBe(drawnLine.kindX);
+    }
+  });
+
+  test("no line, no dot: the colour belongs to the status the line names", () => {
+    const widget: AIChatWidget = monitorCard({});
+    widget.data.statusColor = "#fd625e";
+
+    expect(
+      drawn(widget).some((call: DrawCall): boolean => {
+        return call.method === "circle";
+      }),
+    ).toBe(false);
   });
 });
