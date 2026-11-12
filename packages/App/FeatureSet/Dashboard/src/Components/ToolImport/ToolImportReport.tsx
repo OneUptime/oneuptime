@@ -12,7 +12,7 @@ import {
   formatToolImportDateTime,
   TOOL_IMPORT_KIND_TITLES,
   TOOL_IMPORT_OUTCOME_COUNTS,
-  TOOL_IMPORT_OUTCOME_LABELS,
+  getToolImportOutcomeLabel,
 } from "./ToolImportText";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -188,7 +188,7 @@ const ReportItem: FunctionComponent<{
           </span>
         )}
         <Pill
-          text={TOOL_IMPORT_OUTCOME_LABELS[item.outcome]}
+          text={getToolImportOutcomeLabel(translator, item.outcome)}
           color={OUTCOME_COLORS[item.outcome]}
           size={PillSize.Small}
         />

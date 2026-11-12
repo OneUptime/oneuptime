@@ -18,7 +18,7 @@
 
 첫 질문은 **모니터 유형**입니다. 무엇을 모니터링하시겠습니까?
 
-- 가장 많이 만드는 여섯 가지 유형이 먼저 나옵니다. **웹사이트**, **API**, **Ping**, **포트**, **SSL Certificate**, 그리고 cron 작업과 웹훅의 하트비트를 위한 **수신 요청**입니다.
+- 가장 많이 만드는 여섯 가지 유형이 먼저 나옵니다. **웹사이트**, **API**, **Ping**, **포트**, **SSL 인증서**, 그리고 cron 작업과 웹훅의 하트비트를 위한 **수신 요청**입니다.
 - **더 많은 모니터 유형**은 나머지 모든 유형을 범주별로 보여 줍니다. 예를 들어 **인프라**(Kubernetes, Docker, 호스트)와 **텔레메트리**(로그, 메트릭, 트레이스)가 있습니다. 상태를 직접 설정하는 모니터인 **수동**과 프로브 연결이 끊기면 알려 주는 **프로브 상태**는 **기타** 아래에 있습니다.
 - 또는 검색 상자에 입력합니다. 검색은 `k8s`, `postgres`, `heartbeat`, `tls`처럼 이미 쓰는 단어를 알아듣고, **Enter**를 누르면 첫 번째 결과가 선택됩니다.
 
@@ -76,7 +76,7 @@ flowchart TB
 
 ## 프로브 및 간격
 
-프로브가 확인하는 모니터는 이 단계로 끝납니다. 웹사이트, API, Ping, IP, 포트, SSL Certificate, DNS, DNSSEC, NTP, 도메인, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code, External Status Page입니다. **프로브**는 확인을 실행하는 머신이며, 프로젝트의 기본 프로브가 처음부터 선택되어 있습니다. **모니터링 간격**은 **5분마다**로 시작합니다.
+프로브가 확인하는 모니터는 이 단계로 끝납니다. 웹사이트, API, Ping, IP, 포트, SSL 인증서, DNS, DNSSEC, NTP, 도메인, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code, External Status Page입니다. **프로브**는 확인을 실행하는 머신이며, 프로젝트의 기본 프로브가 처음부터 선택되어 있습니다. **모니터링 간격**은 **5분마다**로 시작합니다.
 
 :::steps
 ### 프로브 선택
@@ -85,7 +85,7 @@ flowchart TB
 
 ### 확인 주기 선택
 
-**매분**부터 **매주**까지 중에서 **모니터링 간격**을 고릅니다. Synthetic Monitor, Custom JavaScript Code, SSL Certificate 모니터에는 5분 이상의 간격만 제공됩니다.
+**매분**부터 **매주**까지 중에서 **모니터링 간격**을 고릅니다. Synthetic Monitor, Custom JavaScript Code, SSL 인증서 모니터에는 5분 이상의 간격만 제공됩니다.
 
 ### 모니터 생성
 
