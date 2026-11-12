@@ -32989,7 +32989,6 @@
   "View all warnings": "Ver todas las advertencias",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Cuando se crea el canal, se @menciona en él a quien esté de guardia en estas programaciones, para que Microsoft Teams le envíe una notificación. No se avisa a nadie.",
   "About the same as in the first half of the time range": "Más o menos igual que en la primera mitad del intervalo de tiempo",
-  "Click to configure metric": "Haz clic para configurar una métrica",
   "Data Source Value": "Valor de fuente de datos",
   "Down from 0 in the first half of the time range": "Bajó desde 0 en la primera mitad del intervalo de tiempo",
   "Down {{percent}} from the first half of the time range": "{{percent}} menos que en la primera mitad del intervalo de tiempo",
@@ -50917,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "El canal {{channel}} está desactivado en este proyecto, así que no se envían los avisos que lo usan.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} criterios más abren incidentes o alertas.",
   "{{count}} more criteria open incidents or alerts._one": "{{count}} criterio más abre un incidente o una alerta.",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, licencia de evaluación, {{action}}",
   "Licensed seats": "Puestos con licencia",
   "Unique users across every instance on this license.": "Usuarios únicos en todas las instancias de esta licencia.",
   "Limit exceeded": "Límite superado",
@@ -51285,5 +51283,15 @@
   "{{enabled}} of {{count}} enabled_one": "{{enabled}} de {{count}} habilitada",
   "{{name}} (monitor group: {{group}})": "{{name}} (grupo de monitores: {{group}})",
   "{{name}} (monitor: {{monitor}})": "{{name}} (monitor: {{monitor}})",
-  "{{resource}} - not monitored": "{{resource}} - no monitoreado"
+  "{{resource}} - not monitored": "{{resource}} - no monitoreado",
+  "Click to configure a metric": "Haz clic para configurar una métrica",
+  "No SLO picked yet.": "Aún no se ha elegido ningún SLO.",
+  "No metric picked yet.": "Aún no se ha elegido ninguna métrica.",
+  "No query set up yet.": "Aún no se ha configurado ninguna consulta.",
+  "No saved funnel picked yet.": "Aún no se ha elegido ningún embudo guardado.",
+  "No saved retention table picked yet.": "Aún no se ha elegido ninguna tabla de retención guardada.",
+  "Pick a metric in the settings below.": "Elige una métrica en la configuración de abajo.",
+  "Pick an SLO in the settings below.": "Elige un SLO en la configuración de abajo.",
+  "Write a query in the settings below.": "Escribe una consulta en la configuración de abajo.",
+  "Users: {{count}}": "Usuarios: {{count}}"
 }

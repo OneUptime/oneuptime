@@ -88,13 +88,13 @@ spec:
           imagePullPolicy: {{ $.Values.image.pullPolicy }}
           env:
             - name: LOG_LEVEL
-              value: {{ $.Values.logLevel }}
+              value: {{ include "oneuptime.envValue" $.Values.logLevel }}
             - name: PORT
               value: {{ $.Values.globalRunner.ports.http | squote }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-              value: {{ $.Values.openTelemetryExporter.headers }}
+              value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}
             - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-              value: {{ $.Values.openTelemetryExporter.endpoint }}
+              value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}
             {{- include "oneuptime.env.telemetryIdentity" (dict "Values" $.Values "DeploymentName" (printf "%s-%s" $.Release.Name "global-runner")) | nindent 12 }}
             - name: ONEUPTIME_URL
               value: http://{{ $.Release.Name }}-app.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}:{{ $.Values.app.ports.http }}
