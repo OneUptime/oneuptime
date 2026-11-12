@@ -296,6 +296,12 @@ const visitorIds = [
 // identify()" nudge and every user cell reads "Visitor ..." - the shape of
 // the customer's screenshots in #3705.
 const isAnonymousFixture = params.get("identity") === "none";
+/*
+ * ?identity=hidden (#7096): the viewer's role lacks Watch Session Replays,
+ * so the manifest leaves the end user's identity out, as the server does,
+ * and the header and session details say which grant shows it.
+ */
+const isIdentityHidden = params.get("identity") === "hidden";
 const records = Array.from({ length: count }, (_, index) => {
   const startTimeUnixMs = started - index * 75 * 1000;
   const hasError = index % 3 === 0;
@@ -788,8 +794,18 @@ API.post = async ({ url, data }) => {
     return new HTTPResponse(200, health, {});
   }
   if (route === "manifest") {
-    const row =
+    const found =
       records.find((item) => item.sessionId === data.sessionId) || records[0];
+    // Left out, not emptied: an empty label is an anonymous end user.
+    const row = isIdentityHidden
+      ? Object.fromEntries(
+          Object.entries(found).filter(([key]) => {
+            return (
+              key !== "identifiedUserLabel" && key !== "identifiedUserTraits"
+            );
+          }),
+        )
+      : found;
     return new HTTPResponse(
       200,
       {

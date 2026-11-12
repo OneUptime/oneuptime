@@ -242,7 +242,10 @@ const RETIRED_NAMES_BY_LANGUAGE: Record<string, ReadonlyArray<string>> = {
   it: ["autorizzazione per l'identità", "autorizzazione all'identità"],
   ja: ["身元に関する権限"],
   ko: ["신원 권한"],
-  nl: ["machtiging voor identiteit", "machtiging voor eindgebruikersidentiteit"],
+  nl: [
+    "machtiging voor identiteit",
+    "machtiging voor eindgebruikersidentiteit",
+  ],
   no: ["identitetstillatelse", "tillatelsen for sluttbrukeridentitet"],
   pt: ["permissão de identidade"],
   ru: ["право на просмотр личности"],
@@ -418,10 +421,7 @@ describe("no Session Replay line names the identity permission", () => {
     const offenders: Array<string> = [];
 
     for (const file of sourceFilesUnder(SESSION_REPLAY_DIR)) {
-      for (const text of stringsInSource(
-        file,
-        fs.readFileSync(file, "utf8"),
-      )) {
+      for (const text of stringsInSource(file, fs.readFileSync(file, "utf8"))) {
         if (IDENTITY_PERMISSION_WORDS.test(text)) {
           offenders.push(`${path.relative(SESSION_REPLAY_DIR, file)}: ${text}`);
         }

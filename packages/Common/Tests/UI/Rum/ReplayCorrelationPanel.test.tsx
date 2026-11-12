@@ -664,9 +664,9 @@ describe("ReplayCorrelationPanel Session tab", () => {
     expect(screen.getByTestId("replay-details-end-user")).toHaveTextContent(
       'Not shown - seeing who this is needs the "Watch Session Replays" permission',
     );
-    expect(
-      screen.getByTestId("replay-details-end-user"),
-    ).not.toHaveTextContent("identity permission");
+    expect(screen.getByTestId("replay-details-end-user")).not.toHaveTextContent(
+      "identity permission",
+    );
     unmount();
 
     const second: ReturnType<typeof render> = renderPanel({

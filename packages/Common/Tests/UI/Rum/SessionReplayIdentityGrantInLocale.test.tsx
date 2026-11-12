@@ -234,8 +234,7 @@ describe("the lines that say the identity is hidden name Watch Session Replays",
   });
 
   test("English", () => {
-    const lines: { row: string; tooltip: string; hint: string } =
-      drawnLines();
+    const lines: { row: string; tooltip: string; hint: string } = drawnLines();
 
     expect(lines.row).toContain(
       'Not shown - seeing who this is needs the "Watch Session Replays" permission',

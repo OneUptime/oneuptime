@@ -1,5 +1,11 @@
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 /*
  * The Dashboard has its own copy of react; Common's jest moduleNameMapper
  * pins react and react-dom to this project's single copy for every
@@ -291,24 +297,19 @@ describe("on a phone, where neither edge of the button has room, it slides onto 
     ["at the start of a line", 16],
     ["in the middle of a line", 140],
     ["at the end of a line", 282],
-  ])(
-    "a 390px page, the button %s",
-    (_where: string, buttonLeft: number) => {
-      const screenSize: Screen = { width: 390, buttonLeft: buttonLeft };
-      const picker: HTMLElement = openPickerOn(screenSize);
+  ])("a 390px page, the button %s", (_where: string, buttonLeft: number) => {
+    const screenSize: Screen = { width: 390, buttonLeft: buttonLeft };
+    const picker: HTMLElement = openPickerOn(screenSize);
 
-      expectOnScreen(picker, screenSize);
-    },
-  );
+    expectOnScreen(picker, screenSize);
+  });
 
   it("the slide is a logical inset on the side it hangs from", () => {
     const picker: HTMLElement = openPickerOn({ width: 390, buttonLeft: 140 });
 
     // 140 + 374 runs 132px past the right gutter at 382: it slides 132px back.
     expect(picker).toHaveAttribute("data-align", "left");
-    expect(picker.style.getPropertyValue("inset-inline-start")).toBe(
-      "-132px",
-    );
+    expect(picker.style.getPropertyValue("inset-inline-start")).toBe("-132px");
     expect(picker.style.getPropertyValue("left")).toBe("");
     expect(picker.style.getPropertyValue("right")).toBe("");
   });

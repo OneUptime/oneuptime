@@ -236,9 +236,7 @@ describe("in Persian, the switcher writes every figure in Persian digits", () =>
     expect(textOf("replay-tab-option", "tab-12")).toContain(
       "باز شده در ۱:۰۲:۱۴",
     );
-    expect(textOf("replay-tab-option", "tab-2")).toContain(
-      "باز شده در ۱:۰۷",
-    );
+    expect(textOf("replay-tab-option", "tab-2")).toContain("باز شده در ۱:۰۷");
     expect(screen.getByTestId("replay-continue-in-tab")).toHaveTextContent(
       "ادامه در زبانه ۱۲",
     );
@@ -304,21 +302,24 @@ describe("every other language keeps Latin digits", () => {
     ["Arabic", "ar"],
     ["German", "de"],
     ["English", "en"],
-  ])("%s: no Persian or Arabic-Indic digit", async (_name, language) => {
-    await readIn(language);
-    renderSwitcher();
+  ])(
+    "%s: no Persian or Arabic-Indic digit",
+    async (_name: string, language: string) => {
+      await readIn(language);
+      renderSwitcher();
 
-    for (const text of everyFigure()) {
-      expect({ text, persian: PERSIAN_DIGIT.test(text) }).toEqual({
-        text,
-        persian: false,
-      });
-      expect({ text, arabicIndic: ARABIC_INDIC_DIGIT.test(text) }).toEqual({
-        text,
-        arabicIndic: false,
-      });
-    }
-  });
+      for (const text of everyFigure()) {
+        expect({ text, persian: PERSIAN_DIGIT.test(text) }).toEqual({
+          text,
+          persian: false,
+        });
+        expect({ text, arabicIndic: ARABIC_INDIC_DIGIT.test(text) }).toEqual({
+          text,
+          arabicIndic: false,
+        });
+      }
+    },
+  );
 
   test("English reads as it did", async () => {
     renderSwitcher();
@@ -347,9 +348,7 @@ describe("every other language keeps Latin digits", () => {
     renderSwitcher();
     fireEvent.click(screen.getByTestId("replay-tab-picker-button"));
 
-    expect(textOf("replay-tab-option", "tab-12")).toContain(
-      "علامة التبويب 12",
-    );
+    expect(textOf("replay-tab-option", "tab-12")).toContain("علامة التبويب 12");
     expect(textOf("replay-tab-option", "tab-12")).toContain(
       "فُتحت عند 1:02:14",
     );

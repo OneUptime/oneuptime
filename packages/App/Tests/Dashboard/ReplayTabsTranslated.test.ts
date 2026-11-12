@@ -335,21 +335,18 @@ describe("every other language keeps Latin digits", () => {
     ["Arabic", "ar", "علامة التبويب 12", "فُتحت عند 1:02:14"],
     ["German", "de", "Tab 12", "geöffnet bei 1:02:14"],
     ["English", "en", "Tab 12", "opened 1:02:14"],
-  ])(
-    "%s",
-    (_name: string, language: string, name: string, opened: string) => {
-      const translator: Translator =
-        language === "en"
-          ? createTranslator(undefined, "en")
-          : shippedTranslator(language);
+  ])("%s", (_name: string, language: string, name: string, opened: string) => {
+    const translator: Translator =
+      language === "en"
+        ? createTranslator(undefined, "en")
+        : shippedTranslator(language);
 
-      expect(describeReplayTabName(LATE_TAB, translator)).toBe(name);
-      expect(describeReplayTabOpened(LATE_TAB, translator)).toBe(opened);
-      expect(
-        formatReplayTabLabel(LATE_TAB, undefined, translator),
-      ).not.toMatch(PERSIAN_DIGIT);
-    },
-  );
+    expect(describeReplayTabName(LATE_TAB, translator)).toBe(name);
+    expect(describeReplayTabOpened(LATE_TAB, translator)).toBe(opened);
+    expect(formatReplayTabLabel(LATE_TAB, undefined, translator)).not.toMatch(
+      PERSIAN_DIGIT,
+    );
+  });
 
   test("English reads word for word as it did", () => {
     expect(describeReplayTabName(SECOND_TAB)).toBe("Tab 2");

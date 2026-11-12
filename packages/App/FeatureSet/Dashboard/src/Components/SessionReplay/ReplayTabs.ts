@@ -596,9 +596,7 @@ export function filterReplayTabs(
   query: string,
   translator: Translator = ENGLISH,
 ): Array<ReplayTabSummary> {
-  const needle: string = readLatinDigits(
-    typeof query === "string" ? query : "",
-  )
+  const needle: string = readLatinDigits(typeof query === "string" ? query : "")
     .trim()
     .toLowerCase();
 
