@@ -340,7 +340,7 @@ test("a self-hosted estate before the fix: no calls explained, pods grouped, old
   await expect(infrastructureRows(page)).toHaveCount(12);
   await page.getByTestId("topology-show-inactive").check();
   await expect(infrastructureRows(page)).toHaveCount(50);
-  await expect(page.getByText("Page 1 / 3")).toBeVisible();
+  await expect(page.getByText("Page 1 of 3", { exact: true })).toBeVisible();
   await screenshot(page, "legacy-infrastructure-inactive-synthetic");
 });
 
@@ -731,14 +731,14 @@ test("a large IoT fleet is a collection: exact counts, server-paged items and se
   await expect(items).toHaveCount(50);
   await expect(items.first()).toContainText("warehouse-sensor-0001");
   await expect(
-    page.getByText("Page 1 of 25 · 1,250 IoT devices", { exact: true }),
+    page.getByText("Page 1 of 25 · 1,250 resources", { exact: true }),
   ).toBeVisible();
   await screenshot(page, "infrastructure-collection-synthetic");
 
   // Keyset paging: page 2 starts after the last row of page 1.
   await page.getByRole("button", { name: "Next", exact: true }).click();
   await expect(
-    page.getByText("Page 2 of 25 · 1,250 IoT devices", { exact: true }),
+    page.getByText("Page 2 of 25 · 1,250 resources", { exact: true }),
   ).toBeVisible();
   await expect(items.first()).toContainText("warehouse-sensor-0051");
   const pages: Array<Record<string, unknown>> = await topologyPosts(
@@ -753,7 +753,7 @@ test("a large IoT fleet is a collection: exact counts, server-paged items and se
   });
   await page.getByRole("button", { name: "Previous", exact: true }).click();
   await expect(
-    page.getByText("Page 1 of 25 · 1,250 IoT devices", { exact: true }),
+    page.getByText("Page 1 of 25 · 1,250 resources", { exact: true }),
   ).toBeVisible();
   await expect(items.first()).toContainText("warehouse-sensor-0001");
 
@@ -765,7 +765,8 @@ test("a large IoT fleet is a collection: exact counts, server-paged items and se
     "infrastructure-collection-match",
   );
   await expect(match).toHaveCount(1);
-  await expect(match).toContainText("1 matching IoT device");
+  await expect(match).toContainText("1 match");
+  await expect(match).toContainText("in IoT Devices");
   expect(await topologyPosts(page, COLLECTION_SEARCH_API)).toContainEqual(
     expect.objectContaining({
       types: [{ entityType: "iot.device", nameTerms: ["sensor-1234"] }],
