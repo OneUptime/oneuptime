@@ -1201,6 +1201,23 @@
     "kind": "page"
   },
   {
+    "title": "Setup Health",
+    "where": [
+      "Home"
+    ],
+    "keywords": [
+      "misconfigured",
+      "is my setup ok",
+      "setup check",
+      "health check",
+      "nobody is paged",
+      "what is broken",
+      "configuration problems"
+    ],
+    "path": "/dashboard/:projectId/home/setup-health",
+    "kind": "page"
+  },
+  {
     "title": "All Monitors",
     "where": [
       "Monitors"

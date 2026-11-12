@@ -96,6 +96,10 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary`; `on_call`'s are `reach_you`, `who_else`, `no_answer`, `test` and `summary`; `status_page`'s are `pick`, `review` and `summary`; `telemetry`'s are `send`, `alert` and `summary` | `setup`, `step`, `step_number` | Same |
 | `guided_setup/finished` | It reaches its end: the thing works and was tested (`on_call`: a test page of the policy acknowledged; `status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |
 | `guided_setup/left` | It is left before its end | `setup`, `step`, `step_number` | Same |
+| `setup_health/opened` | Setup health is opened (#6812), with how many findings of each level it shows. Whether people open it says whether a weekly email of new findings is worth sending | `source` (`?from=` on its address: `home`, `search`; else `direct`), `pages_will_not_arrive_count`, `worth_fixing_count`, `suggestion_count`, `dismissed_count` | `SetupHealthView` |
+| `setup_health/fix_opened` | The fix of a finding is opened: which findings people act on, for the one-click fixes the issue leaves for later | `check`, `level` | `SetupHealthView` |
+| `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthView` |
+| `setup_health/finding_restored` | A dismissed finding is restored | `check` | `SetupHealthView` |
 
 ### The Welcome checklist and its goals
 

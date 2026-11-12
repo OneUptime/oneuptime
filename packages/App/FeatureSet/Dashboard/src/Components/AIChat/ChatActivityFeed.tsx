@@ -367,6 +367,8 @@ export const friendlyToolNames: { [key: string]: string } = {
   query_teams: translationKey("Checking teams"),
   // Who a monitor's going down reaches, and where that breaks (#6810, #6829).
   who_is_told: translationKey("Checking who is told"),
+  // Whether the project's setup tells the right people (#6812).
+  get_setup_health: translationKey("Checking the setup health"),
   // OneUptime AI's own earlier work.
   get_ai_investigation: translationKey("Reading the AI investigation"),
   query_ai_insights: translationKey("Checking AI insights"),
