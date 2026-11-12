@@ -284,6 +284,8 @@ describe("the Self-Hosting Guide in the nav", () => {
     expect(installation?.links[0]).toEqual({
       title: NAV_TITLE,
       url: `/docs/${PAGE}`,
+      // Followed from its first line to its last: docs search puts it above reference pages (#6822).
+      isGuide: true,
     });
     expect(installation?.links[1]?.url).toBe(
       "/docs/installation/docker-compose",

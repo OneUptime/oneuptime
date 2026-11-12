@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50940,
-    "untranslated": 9609
+    "keys": 51203,
+    "untranslated": 9585
   },
   "sameAsEnglish": [
     " is",
@@ -69,6 +69,7 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "Cache",
     "Canada (+1)",
     "Canonical Sunbeam",
     "Capture",
@@ -561,6 +562,7 @@
     "images",
     "in",
     "in {{count}} project",
+    "in {{name}}",
     "incident",
     "incl. threads",
     "info",

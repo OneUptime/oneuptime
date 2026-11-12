@@ -462,6 +462,21 @@ describe("a golden metric tile", () => {
     expect(titleElement()).not.toHaveAttribute("lang");
   });
 
+  /*
+   * A Persian page drew a size's figure after its unit, "GiB ۲۵", the
+   * unit's Latin letters and the Persian digits laid out right to left
+   * (issue #7106): the value is an isolate of its own, as the hosts list
+   * and the Filesystems table set theirs apart.
+   */
+  test("its value is set apart: a size reads number first on a Persian page", () => {
+    renderTile("fa", { value: "۲۵ GiB" });
+
+    const value: HTMLElement = screen.getByTestId("golden-metric-tile-value");
+
+    expect(value).toHaveTextContent("۲۵ GiB");
+    expect(value.querySelector("bdi")?.textContent).toBe("۲۵ GiB");
+  });
+
   test.each(LANGUAGES)(
     "%s: the (i) beside the title names the title in the same words",
     (language: string) => {

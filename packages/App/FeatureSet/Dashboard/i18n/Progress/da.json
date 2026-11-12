@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50940,
-    "untranslated": 9586
+    "keys": 51203,
+    "untranslated": 9563
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -52,6 +52,7 @@
     "CIDR",
     "CPU Ready",
     "CPU Ready {{percent}}",
+    "Cache",
     "Canada (+1)",
     "Canonical Sunbeam",
     "Celsius",

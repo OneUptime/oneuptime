@@ -18,7 +18,7 @@ Ga naar **Monitoren** en klik op **Monitor maken**. Het formulier opent op de ee
 
 De eerste vraag is het **Monitortype**: wat wilt u bewaken?
 
-- De zes types die het vaakst worden gemaakt staan bovenaan: **Website**, **API**, **Ping**, **Poort**, **SSL Certificate** en **Inkomende aanvraag**, voor heartbeats van cronjobs en webhooks.
+- De zes types die het vaakst worden gemaakt staan bovenaan: **Website**, **API**, **Ping**, **Poort**, **SSL-certificaat** en **Inkomende aanvraag**, voor heartbeats van cronjobs en webhooks.
 - **Meer monitortypen** toont alle andere types onder hun categorie, zoals **Infrastructuur** (Kubernetes, Docker, host) en **Telemetrie** (logboeken, metrieken, traces). **Handmatig**, een monitor waarvan u de status zelf instelt, en **Sondestatus**, die u laat weten wanneer een probe de verbinding verliest, staan onder **Overig**.
 - Of typ in het zoekvak. Het kent de woorden die u al gebruikt, zoals `k8s`, `postgres`, `heartbeat` of `tls`, en **Enter** kiest de eerste treffer.
 
@@ -76,7 +76,7 @@ Incidenten en waarschuwingen die automatisch worden opgelost, zoals die van de s
 
 ## Sondes en interval
 
-Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL Certificate, DNS, DNSSEC, NTP, Domein, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
+Monitoren die sondes controleren eindigen met deze stap: Website, API, Ping, IP, Poort, SSL-certificaat, DNS, DNSSEC, NTP, Domein, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code en External Status Page. **Sondes** zijn de machines die de controles uitvoeren, en de standaardsondes van uw project zijn al geselecteerd. Het **Bewakingsinterval** begint bij **Elke 5 minuten**.
 
 :::steps
 ### De sondes kiezen
@@ -85,7 +85,7 @@ Houd de geselecteerde **Sondes** of kies andere. Een monitor zonder sondes wordt
 
 ### Kiezen hoe vaak er gecontroleerd wordt
 
-Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetic Monitor, Custom JavaScript Code en SSL Certificate krijgen intervallen van 5 minuten of langer aangeboden.
+Kies een **Bewakingsinterval**, van **Elke minuut** tot **Elke week**. Monitoren van het type Synthetic Monitor, Custom JavaScript Code en SSL-certificaat krijgen intervallen van 5 minuten of langer aangeboden.
 
 ### De monitor maken
 

@@ -1,4 +1,5 @@
 import PageComponentProps from "../../PageComponentProps";
+import Route from "Common/Types/API/Route";
 import { STATE_SETTINGS_COPY } from "../../../Components/StateSettings/StateSettingsCopy";
 import { getStateSettingsDeleteLockedReason } from "../../../Components/StateSettings/StateSettingsRows";
 import {
@@ -69,6 +70,10 @@ const AlertStatesPage: FunctionComponent<
         dragDropIndexField="order"
         sortBy="order"
         sortOrder={SortOrder.Ascending}
+        /* The docs page for this list (#6822): what each state does, and why their order matters. */
+        documentationLink={Route.fromString(
+          "/docs/alerts/states-and-severities",
+        )}
         cardProps={{
           title: STATE_SETTINGS_COPY[StateListType.AlertState].title,
           description:

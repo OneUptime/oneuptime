@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50940,
-    "untranslated": 9346
+    "keys": 51203,
+    "untranslated": 9325
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -96,6 +96,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Ping",
     "Pod · data",
     "Pod · production",
     "PostgreSQL",

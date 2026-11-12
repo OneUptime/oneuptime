@@ -1,5 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
-import { DATA_SECURITY_CATALOG_TERMS } from "../../FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityCatalogTerms";
+import {
+  DATA_SECURITY_CATALOG_TERMS,
+  DATA_STORE_FAMILY_TITLES,
+} from "../../FeatureSet/Dashboard/src/Components/DataSecurity/DataSecurityCatalogTerms";
 import {
   COMPLIANCE_FRAMEWORK_INFO,
   ComplianceFrameworkInfo,
@@ -130,7 +133,10 @@ describe("Data Security's catalog terms", () => {
       ...Object.values(DATA_STORE_EXPOSURE_DESCRIPTION),
       ...Object.values(DataSecurityIssueStatus),
       ...Object.values(DataStoreKind),
-      ...Object.values(DataStoreFamily),
+      // A family by its title: "Search" is a store's family, worded as a noun.
+      ...Object.values(DataStoreFamily).map((family: DataStoreFamily) => {
+        return DATA_STORE_FAMILY_TITLES[family];
+      }),
       ...Object.values(DataStoreEnvironment),
       ...Object.values(DataStorePrincipalType),
       ...Object.values(DataStoreAccessLevel),
@@ -139,6 +145,26 @@ describe("Data Security's catalog terms", () => {
       ...Object.values(DataSecurityCheckStatus),
       ...Object.values(ComplianceRequirementStatus),
     ]);
+  });
+
+  /*
+   * A store's family is a noun over a store ("Search engine": Elasticsearch,
+   * OpenSearch), never the key "Search", which every language words as the
+   * verb on a search box (#7108).
+   */
+  test("every store family has a noun title of its own, and the search family is not the Search verb", () => {
+    for (const family of Object.values(DataStoreFamily)) {
+      expect({
+        family,
+        title: typeof DATA_STORE_FAMILY_TITLES[family],
+      }).toEqual({ family, title: "string" });
+    }
+
+    expect(DATA_STORE_FAMILY_TITLES[DataStoreFamily.Search]).toBe(
+      "Search engine",
+    );
+    expect(Object.values(DATA_STORE_FAMILY_TITLES)).not.toContain("Search");
+    expect(DATA_SECURITY_CATALOG_TERMS).not.toContain("Search");
   });
 
   test("what every response action changes, on every kind of store it acts on", () => {

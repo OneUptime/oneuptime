@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50940,
-    "untranslated": 9560
+    "keys": 51203,
+    "untranslated": 9537
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -92,6 +92,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Ping",
     "Placement Groups",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
