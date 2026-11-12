@@ -1593,12 +1593,13 @@ jobs:
           # to. Diagrams (4.6) from group 2, Resource Overviews (4.6) from group
           # 12, Ask AI (3.4) and Asset Details (2.6) from group 16, Dashboard
           # Table Thresholds (2.2) from group 7 and Value Picker (3.5) from
-          # group 8, at the planned line itself: about 21.
+          # group 8, at the planned line itself: about 21. Ask AI (4.5) moved to
+          # group 22 on 2026-11-12, when its setup plans (#6829) took it past
+          # this group's room: about 17.7.
           - group: 18
             suites: >-
               test-diagrams-ui
               test-resource-overviews-ui
-              test-ask-ai-ui
               test-asset-details-ui
               test-dashboard-table-thresholds-ui
               test-value-picker-ui
@@ -1715,11 +1716,14 @@ jobs:
           # of #6802 add.
           # Reading Direction (5.9) joined it from group 20 on 2026-11-12, when
           # the OpenStack pages' second third grew (#6956, see group 19): about
-          # 8.2, the rest still room for those journeys.
+          # 8.2, the rest still room for those journeys. Ask AI (4.5) joined it
+          # from group 18 on 2026-11-12, with its setup plans (#6829): about
+          # 12.7.
           - group: 22
             suites: >-
               test-journeys-ui
               test-reading-direction-ui
+              test-ask-ai-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
