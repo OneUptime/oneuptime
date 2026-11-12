@@ -44,6 +44,7 @@ import ExceptionCode from "../../../Types/Exception/ExceptionCode";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
+  PermissionHelper,
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
@@ -4651,6 +4652,28 @@ describe("Session replay playback API", () => {
         expect(result.jsonBody).toBeUndefined();
         expect(statements()).toHaveLength(0);
       }
+    });
+
+    /*
+     * The refusal names the grant as the roles screen titles it (#6635),
+     * never a "session replay identity permission" no screen lists.
+     */
+    test("that refusal names the permission the roles screen shows", async () => {
+      const result: CallResult = await readBody(
+        principalWith([Permission.ReadRumSessionReplay]),
+        { identifiedUserRef: "jane@example.com" },
+      );
+      const message: string = String(
+        (result.thrownToNext as Exception).message,
+      );
+
+      expect(
+        PermissionHelper.getTitle(Permission.ReadRumSessionReplayPayload),
+      ).toBe("Watch Session Replays");
+      expect(message).toBe(
+        'Your role cannot read end-user identity, so it cannot look a user up by their reference. Pick them from the list of users instead. Ask a project admin for the "Watch Session Replays" permission.',
+      );
+      expect(message).not.toContain("identity permission");
     });
 
     /*

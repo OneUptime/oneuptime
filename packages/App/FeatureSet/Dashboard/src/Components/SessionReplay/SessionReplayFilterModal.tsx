@@ -12,6 +12,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
 import {
   FILTER_LABEL_CELL_CLASS_NAME,
   FILTER_LABEL_CLASS_NAME,
@@ -167,11 +169,19 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
   const getHint: GetHintFunction = (
     field: SessionReplayFilterField,
   ): string | null => {
+    /*
+     * End-user identity is read with the watch permission
+     * (SESSION_REPLAY_IDENTITY_PERMISSIONS in TelemetryAPI), named as the
+     * roles screen names it.
+     */
     if (field.field === "identifiedUserRef" && props.isIdentityFilterIgnored) {
-      return (
-        translator.translateText(
-          "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the session replay identity permission.",
-        ) || null
+      return translator.translateTemplate(
+        'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the "{{permission}}" permission.',
+        {
+          permission: getSessionReplayPermissionTitle(
+            Permission.ReadRumSessionReplayPayload,
+          ),
+        },
       );
     }
 

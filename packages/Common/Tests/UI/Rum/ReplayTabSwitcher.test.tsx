@@ -258,7 +258,7 @@ describe("ReplayTabSwitcher summary", () => {
     renderSwitcher();
 
     expect(screen.getByTestId("replay-tab-summary")).toHaveTextContent(
-      "3 tabs · 1 open · 1 closed · 1 without footage",
+      "3 tabs · 1 still open · 1 closed · 1 without footage",
     );
   });
 
@@ -385,7 +385,7 @@ describe("ReplayTabSwitcher strip", () => {
 
     expect(screen.getAllByTestId("replay-tab-pill")[1]).toHaveAttribute(
       "title",
-      "Tab 2 · Open · /checkout · opened 2:14 · 30s — switch to this tab; the playhead stays where it is",
+      "Tab 2 (still open) · /checkout · opened 2:14 · 30s — switch to this tab; the playhead stays where it is",
     );
   });
 
@@ -488,7 +488,7 @@ describe("ReplayTabSwitcher strip", () => {
 
     const divider: HTMLElement = screen.getByTestId("replay-tab-strip-divider");
 
-    expect(divider).toHaveTextContent("Closed");
+    expect(divider).toHaveTextContent("Closed tabs");
     expect(divider).toHaveAttribute("aria-hidden", "true");
 
     /* Every tab still open: nothing to divide. */
@@ -733,9 +733,20 @@ describe("ReplayTabSwitcher picker", () => {
         return group.getAttribute("data-group");
       }),
     ).toEqual(["open", "closed", "empty"]);
-    expect(groups[0]).toHaveTextContent("Open · 2");
-    expect(groups[1]).toHaveTextContent("Closed · 5");
-    expect(groups[2]).toHaveTextContent("No footage · 1");
+    /*
+     * Each heading counts its tabs as the summary line does ("2 still
+     * open"), never with the bare "Open" every Open button reads.
+     */
+    expect(
+      groups.map((group: HTMLElement): string | null => {
+        return group.textContent;
+      }),
+    ).toEqual(["2 still open", "5 closed", "1 without footage"]);
+    expect(
+      screen.getAllByRole("group").map((group: HTMLElement): string | null => {
+        return group.getAttribute("aria-label");
+      }),
+    ).toEqual(["2 still open", "5 closed", "1 without footage"]);
     expect(screen.getAllByTestId("replay-tab-option")).toHaveLength(8);
   });
 
@@ -1436,7 +1447,7 @@ describe("ReplayTabSwitcher copy helpers", () => {
         }),
       ),
     ).toBe(
-      "Tab 4 · Closed · 30s — switch to this tab; the playhead stays where it is",
+      "Tab 4 (closed) · 30s — switch to this tab; the playhead stays where it is",
     );
   });
 });

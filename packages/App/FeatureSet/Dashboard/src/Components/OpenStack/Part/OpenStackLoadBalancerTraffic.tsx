@@ -58,7 +58,11 @@ const CHARTS: ReadonlyArray<ChartSpec> = [
       "Connections open at each reading. Short requests close before Octavia is asked, so this can read 0 under real traffic.",
     ),
     suffix: "active_connections",
-    legend: translationKey("Open"),
+    /*
+     * The connections that are open, a state: never the bare "Open", which
+     * every Open button reads as a verb (German "Öffnen").
+     */
+    legend: translationKey("Open connections"),
     format: (value: number): string => {
       return String(Math.round(value));
     },

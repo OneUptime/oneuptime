@@ -24,6 +24,7 @@ import Exception from "../../../Types/Exception/Exception";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
 import Permission, {
+  PermissionHelper,
   UserPermission,
   UserTenantAccessPermission,
 } from "../../../Types/Permission";
@@ -1340,6 +1341,15 @@ describe("Product analytics API", () => {
       expect(result.thrownToNext).toBeInstanceOf(BadDataException);
       expect((result.thrownToNext as Error).message).toContain(
         "cannot search them by name",
+      );
+      // The grant it lacks, as the roles screen titles it (#6635).
+      expect((result.thrownToNext as Error).message).toContain(
+        `Ask a project admin for the "${PermissionHelper.getTitle(
+          Permission.ReadRumSessionReplayPayload,
+        )}" permission.`,
+      );
+      expect((result.thrownToNext as Error).message).not.toContain(
+        "identity permission",
       );
       expect(querySpy).not.toHaveBeenCalled();
     });
