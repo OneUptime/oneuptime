@@ -172,6 +172,11 @@ import { SLO_LIST_DEFAULT_MAX_ROWS } from "../../../Utils/Slo/SloListWidgetForma
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
+import {
+  drawLine,
+  getDrawnText,
+  isDrawnAsWritten,
+} from "../../Helpers/BidiLayout";
 
 const EN: Record<string, string> = readDashboardLocale("en");
 const DE: Record<string, string> = readDashboardLocale("de");
@@ -1205,5 +1210,68 @@ describe("the SLO list widget in German and Arabic", () => {
     expect(rowTexts("Payments API")).toEqual(
       expect.arrayContaining(["−10 min over budget"]),
     );
+  });
+});
+
+/*
+ * A chart over a range with no history says so in a notice (#7088): on a
+ * Persian board it was the English sentence, drawn with its full stop at
+ * the left. It reads in Persian now, from the right, ending where a
+ * Persian sentence ends; the SLO keeps its name, drawn as written.
+ */
+describe("the SLO chart's notice when its range has no history", () => {
+  const NO_HISTORY: string =
+    "No history for the selected time range — the SLO is evaluated every few minutes.";
+  const LATIN_LETTER: RegExp = /[A-Za-z]/;
+
+  async function renderEmptyChart(): Promise<RenderResult> {
+    aggregateMock.mockResolvedValue({ data: [] });
+
+    const result: RenderResult = await renderWidget({
+      metric: SloWidgetMetric.Sli,
+      displayType: SloWidgetDisplayType.Chart,
+      slo: buildSlo(),
+    });
+
+    expect(lineChartMock).not.toHaveBeenCalled();
+
+    return result;
+  }
+
+  test("Persian: the notice is a Persian sentence, its only Latin word the SLO", async () => {
+    await inLanguage("fa");
+    await renderEmptyChart();
+
+    const notice: string = worded(FA, NO_HISTORY);
+    const drawn: HTMLElement = screen.getByText(notice);
+
+    expect(withoutIsolateMarks(drawn.textContent || "")).toBe(notice);
+    expect(notice.endsWith(".")).toBe(true);
+    expect(LATIN_LETTER.test(notice.split("SLO").join(""))).toBe(false);
+    expect(screen.queryByText(NO_HISTORY)).toBeNull();
+  });
+
+  test("Persian: laid out from the right, its full stop ends it at the left and the SLO reads as written", () => {
+    const notice: string = worded(FA, NO_HISTORY);
+    const line: ReturnType<typeof drawLine> = drawLine(notice, "rtl");
+    const from: number = notice.indexOf("SLO");
+
+    // Drawn left to right: the sentence's end, its full stop, comes first.
+    expect(getDrawnText(line).startsWith(".")).toBe(true);
+    expect(isDrawnAsWritten(line, from, from + "SLO".length)).toBe(true);
+  });
+
+  test("German: the notice is the German sentence", async () => {
+    await inLanguage("de");
+    await renderEmptyChart();
+
+    expect(screen.getByText(worded(DE, NO_HISTORY))).toBeTruthy();
+  });
+
+  test("English: the notice reads as it always did", async () => {
+    await inLanguage("en");
+    await renderEmptyChart();
+
+    expect(screen.getByText(NO_HISTORY)).toBeTruthy();
   });
 });

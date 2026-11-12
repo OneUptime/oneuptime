@@ -73,9 +73,11 @@ const INSIGHT_ID: string = "50000000-0000-4000-8000-0000000000e6";
 /*
  * long=1: a task kept open as a working thread for three weeks, 207 turns.
  * Its page reads its first turn and its newest 199, so turns 2 to 8 are not
- * shown and turn 9 (its run below) comes right after the first.
+ * shown and turn 9 (its run below) comes right after the first. Turn 5 is
+ * one of those not shown.
  */
 const LONG_TASK_ID: string = "40000000-0000-4000-8000-0000000000db";
+const LONG_TASK_TURN_5: string = "41000000-0000-4000-8000-000000000004";
 const LONG_TASK_TURN_9: string = "41000000-0000-4000-8000-000000000008";
 
 // The project's own Runners a repository may pick (Code/Fixture).
@@ -129,6 +131,8 @@ interface Recorded {
     runId: string;
     afterSequence: number;
   }>;
+  // Each task read that asked for a turn (the Log page's address names one).
+  taskTurnReads: Array<{ taskId: string; turn: string }>;
 }
 
 // What a page listens to on the live connection (live=1).
@@ -4560,6 +4564,183 @@ test.describe("a task of more than 200 turns", () => {
     await expect(picker).toContainText("Turn 9");
   });
 
+  /*
+   * Issue #7130: a Log link can name a turn the task's page no longer
+   * shows - shared in chat, or bookmarked when the task was shorter. The
+   * page showed the task's first turn as if it were the one linked. It
+   * asks for the turn by name now, shows its record, and lists it at its
+   * place, with a line either side: Turn 1, 3 not shown, Turn 5, 3 not
+   * shown, Turn 9.
+   */
+  test("a link to a turn its page does not show opens that turn, listed at its place", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${LONG_TASK_TURN_5}`,
+    );
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    const firstStep: Locator = page
+      .getByTestId("code-task-log-entry-message")
+      .first();
+    await expect(picker).toContainText("Turn 5 ·");
+    // Turn 5's own record: it read the orders handler first.
+    await expect(firstStep).toHaveText("src/handlers/orders.ts");
+    await expect(
+      page.getByTestId("code-task-log-turn-not-of-task"),
+    ).toHaveCount(0);
+    // Asked for by name, once.
+    expect((await recorded(page)).taskTurnReads).toEqual([
+      { taskId: LONG_TASK_ID, turn: LONG_TASK_TURN_5 },
+    ]);
+
+    await picker.getByRole("combobox").click();
+    const options: Locator = page.getByRole("option");
+    // The 200 turns the page shows, turn 5, and a line either side of it.
+    await expect(options).toHaveCount(203);
+    await expect(options.nth(0)).toContainText("Turn 1 ·");
+    await expect(options.nth(1)).toHaveText("3 earlier turns are not shown");
+    await expect(options.nth(1)).toHaveAttribute("aria-disabled", "true");
+    await expect(options.nth(2)).toContainText("Turn 5 ·");
+    await expect(options.nth(2)).toContainText("Now the orders handler.");
+    await expect(options.nth(3)).toHaveText("3 earlier turns are not shown");
+    await expect(options.nth(3)).toHaveAttribute("aria-disabled", "true");
+    await expect(options.nth(4)).toContainText("Turn 9 ·");
+    await expect(options.last()).toContainText("Turn 207 ·");
+    await screenshot(page, testInfo, "code-task-log-linked-turn-picker");
+
+    // Turn 9, then back to turn 5: one pick each, with nothing read again.
+    const taskReads: number = (await recorded(page)).reads.task;
+    await options.nth(4).click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_9}`,
+    );
+    await expect(picker).toContainText("Turn 9 ·");
+    await expect(firstStep).toHaveText("src/handlers/inventory.ts");
+
+    await picker.getByRole("combobox").click();
+    await expect(options.nth(2)).toContainText("Turn 5 ·");
+    await options.nth(2).click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_5}`,
+    );
+    await expect(picker).toContainText("Turn 5 ·");
+    await expect(firstStep).toHaveText("src/handlers/orders.ts");
+    expect((await recorded(page)).reads.task).toBe(taskReads);
+  });
+
+  /*
+   * Issue #7130: a Log link whose turn is a run of another task - its id
+   * pasted into the wrong task's address - showed that run's record under
+   * this task's name. The page shows this task's first turn instead, and
+   * says so until another turn is picked.
+   */
+  test("a link to another task's turn shows this task's first turn, and says so", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${TASK.retries}`,
+    );
+
+    const notice: Locator = page.getByTestId("code-task-log-turn-not-of-task");
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(notice).toContainText("That turn is not part of this task");
+    await expect(notice).toContainText(
+      "The task's first turn is shown instead.",
+    );
+    await expect(picker).toContainText("Turn 1 ·");
+    // This task's first turn: it read src/errors.ts first.
+    await expect(
+      page.getByTestId("code-task-log-entry-message").first(),
+    ).toHaveText("src/errors.ts");
+    // Never the other task's record, which starts at src/payments/client.ts.
+    await expect(page.getByText("src/payments/client.ts")).toHaveCount(0);
+    expect((await recorded(page)).taskTurnReads).toEqual([
+      { taskId: LONG_TASK_ID, turn: TASK.retries },
+    ]);
+    await screenshot(page, testInfo, "code-task-log-turn-not-of-task");
+
+    // A turn picked: the address names one of the task's, so the notice goes.
+    await picker.getByRole("combobox").click();
+    await page.getByRole("option").nth(2).click();
+    await expect(page).toHaveURL(
+      `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_9}`,
+    );
+    await expect(picker).toContainText("Turn 9 ·");
+    await expect(notice).toHaveCount(0);
+
+    /*
+     * A link cut short when it was pasted - turn 5's id without its last
+     * part - names no run at all: the first turn, said so as well, with
+     * no turn asked for.
+     */
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&turn=${LONG_TASK_TURN_5.slice(0, 23)}`,
+    );
+    await expect(notice).toContainText("That turn is not part of this task");
+    await expect(picker).toContainText("Turn 1 ·");
+    await expect(
+      page.getByTestId("code-task-log-entry-message").first(),
+    ).toHaveText("src/errors.ts");
+    expect((await recorded(page)).taskTurnReads).toEqual([]);
+  });
+
+  /*
+   * What was asked under each turn in the picker is as its person wrote it
+   * - English, on an Arabic page. Laid out right to left with the page,
+   * "Now the orders handler." came out as ".Now the orders handler". It
+   * reads left to right now, its full stop at its end, at the page's start.
+   */
+  test("Arabic: the linked turn's request in the picker reads the way it was written", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await page.goto(
+      `${taskPath(LONG_TASK_ID)}/log?long=1&lang=ar&turn=${LONG_TASK_TURN_5}`,
+    );
+    expect(
+      await page.evaluate((): string => {
+        return document.documentElement.dir;
+      }),
+    ).toBe("rtl");
+
+    const picker: Locator = page.getByTestId("code-task-log-turn-picker");
+    await expect(picker).toContainText("الجولة 5 ·");
+    await picker.getByRole("combobox").click();
+
+    const linked: Locator = page.getByRole("option").nth(2);
+    await expect(linked).toContainText("الجولة 5 ·");
+    const asked: Locator = linked.getByTestId("dropdown-option-description");
+    await expect(asked).toHaveText("Now the orders handler.");
+    await expect(asked).toHaveAttribute("dir", "ltr");
+    expect(
+      await asked.evaluate((element: Element): string => {
+        return window.getComputedStyle(element).direction;
+      }),
+    ).toBe("ltr");
+
+    // At the page's start - the right - under the turn's Arabic name.
+    const [askedBox, nameBox] = await boxesInOneFrame([
+      asked,
+      linked.getByTestId("dropdown-option-label"),
+    ]);
+    expect(
+      Math.abs(askedBox!.x + askedBox!.width - (nameBox!.x + nameBox!.width)),
+    ).toBeLessThan(2);
+    await screenshot(page, testInfo, "code-task-log-linked-turn-picker-ar");
+  });
+
   test("German: the line and the work time in the reader's language", async ({
     page,
   }: {
@@ -6518,7 +6699,11 @@ test.describe("dark mode and other languages", () => {
     await expect(page.getByTestId("code-task-steps-toggle").first()).toHaveText(
       "7 Schritte · 2 Dateien gelesen · 2 Dateien bearbeitet · 1 Befehl ausgeführt",
     );
-    // A summary that wraps on a phone reads on from the left, not centred.
+    /*
+     * A summary that wraps on a phone reads on from the left, not centred:
+     * text-left, which the reading-direction script (loaded as production
+     * loads it) makes the line's start - the left, on a German page.
+     */
     expect(
       await page
         .getByTestId("code-task-steps-toggle")
@@ -6526,7 +6711,7 @@ test.describe("dark mode and other languages", () => {
         .evaluate((element: Element): string => {
           return window.getComputedStyle(element).textAlign;
         }),
-    ).toBe("left");
+    ).toBe("start");
     await expect(
       page.getByTestId("code-turn-pull-request").first(),
     ).toContainText("Pull Request #418 geöffnet");
