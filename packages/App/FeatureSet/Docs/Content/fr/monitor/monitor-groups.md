@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Les moniteurs archivés ne comptent pas.** Un moniteur archivé n'est pas vérifié, son statut est donc figé ; le groupe l'écarte.
+- **Les moniteurs dont la surveillance est désactivée ne comptent pas.** Rien ne vérifie un moniteur dont la surveillance est désactivée, son statut n'est donc que ce qu'a vu sa dernière vérification. Le groupe l'écarte de son statut et, dans le tableau de bord, aussi de sa disponibilité et de son **Graphique de disponibilité** : un moniteur resté **Hors ligne** quand sa surveillance a été désactivée ne rend pas le groupe **Hors ligne**.
 - **Un groupe vide est opérationnel.** Un groupe sans moniteur, ou avec seulement des moniteurs archivés, affiche votre statut opérationnel. Tant que vous n'ajoutez pas de moniteur, le tableau de bord affiche **Aucun moniteur pour l'instant** à la place de son statut.
-- **Une surveillance désactivée affiche Désactivé.** Quand la surveillance est désactivée pour tous les moniteurs d'un groupe, rien ne les vérifie, et le tableau de bord affiche **Désactivé** à la place du statut du groupe.
+- **Une surveillance désactivée affiche Désactivé.** Quand la surveillance est désactivée pour tous les moniteurs d'un groupe, rien ne les vérifie, et le tableau de bord affiche **Désactivé** à la place du statut du groupe, sans pourcentage de disponibilité à côté de son **Graphique de disponibilité**. Une page de statut affiche le groupe comme **Non surveillé**.
 - **L'ordre est le vôtre.** Le pire statut suit l'ordre de **Moniteurs → Paramètres → Statut du moniteur**. Voir [Statuts de moniteur](/docs/monitor/criteria-and-statuses#statuts-de-moniteur).
 
 Un groupe de moniteurs n'est pas un groupe de page de statut. Un groupe de page de statut est un titre sur une page de statut qui contient des lignes. Un groupe de moniteurs est une ligne qui représente plusieurs moniteurs, et n'importe quelle page de statut peut l'afficher.
@@ -124,7 +125,7 @@ Choisissez le groupe. **Nom d'affichage**, le nom que lisent les visiteurs, repr
 
 Sur la page de statut, la ligne représente chaque moniteur du groupe :
 
-- **Son statut.** C'est celui du groupe : le pire de ses moniteurs.
+- **Son statut.** C'est celui du groupe : le pire de ses moniteurs dont la surveillance est activée. Quand la surveillance est désactivée pour tous, la ligne affiche **Non surveillé** et ne compte ni pour l'en-tête au-dessus d'elle ni pour le statut global de la page.
 - **Ses incidents.** Un incident sur n'importe quel moniteur du groupe apparaît sur la page, avec le groupe cité parmi les ressources affectées.
 - **Ses abonnés.** Un abonné qui choisit le groupe est informé pour chaque moniteur qu'il contient. Voir [Laisser les abonnés choisir les ressources et les types d'événements](/docs/status-pages/subscribers#laisser-les-abonnés-choisir-ressources-et-types-dévénements).
 

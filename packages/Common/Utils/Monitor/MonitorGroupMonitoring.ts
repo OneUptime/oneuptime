@@ -11,8 +11,11 @@ import { JSONObject } from "../../Types/JSON";
  * "Disabled", as a monitor's does.
  *
  * Archived monitors are left out of the count and of the switch: nothing
- * checks them whatever their switch says, and they do not count towards
- * the group's status either (ArchivedMonitorResources).
+ * checks them whatever their switch says. Neither they nor the monitors
+ * whose monitoring is off count towards the group's status, timeline or
+ * uptime, nor towards its status on a status page, which draws a group
+ * whose monitors all have monitoring off as Not monitored
+ * (Utils/StatusPage/FrozenMonitorResources, issue #6478).
  *
  * What the server answers (MonitorGroupAPI's monitoring-summary,
  * turn-monitoring-off and turn-monitoring-on) and how the dashboard reads

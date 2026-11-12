@@ -7,7 +7,7 @@ import {
 import ProjectScopedReferenceValidator, {
   resolveReferenceIds,
 } from "../Database/ProjectScopedReferenceValidator";
-import ArchivedMonitorResources from "../../../Utils/StatusPage/ArchivedMonitorResources";
+import FrozenMonitorResources from "../../../Utils/StatusPage/FrozenMonitorResources";
 import StatusPageResource from "../../../Models/DatabaseModels/StatusPageResource";
 import StatusPageSubscriber from "../../../Models/DatabaseModels/StatusPageSubscriber";
 import { TableColumnMetadata } from "../../../Types/Database/TableColumn";
@@ -36,9 +36,11 @@ import ObjectID from "../../../Types/ObjectID";
  * A visitor - a sign-up on the status page, or a change from its manage
  * subscription page - picks from what the page shows them (the status
  * page's resources route): a resource whose monitor is archived is left out
- * of every public read of the page (ArchivedMonitorResources), so naming one
- * gets the same answer. The team may name any resource of the page, as the
- * dashboard's resource picker lists them all.
+ * of every public read of the page (FrozenMonitorResources), so naming one
+ * gets the same answer. A resource whose monitor has its monitoring off is
+ * still on the page, drawn as Not monitored, so it can still be picked. The
+ * team may name any resource of the page, as the dashboard's resource
+ * picker lists them all.
  *
  * A change asks only about the resources it adds: what a subscription
  * already names stays nameable, so a subscription whose resource's monitor
@@ -200,7 +202,7 @@ export default class StatusPageSubscriberResources {
       );
 
       const onPage: Array<StatusPageResource> = data.shownToVisitorsOnly
-        ? ArchivedMonitorResources.withoutArchivedMonitors(resources)
+        ? FrozenMonitorResources.withoutArchivedMonitors(resources)
         : resources;
 
       for (const resource of onPage) {

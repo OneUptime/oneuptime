@@ -54,6 +54,9 @@ function makeGroupResource(data: {
   monitorId?: ObjectID | undefined;
   currentMonitorStatusId?: ObjectID | undefined;
   omitMonitor?: boolean;
+  // The monitor's monitoring switch, as read; unset: not read.
+  disableActiveMonitoring?: boolean | undefined;
+  isArchived?: boolean | undefined;
 }): MonitorGroupResource {
   const resource: MonitorGroupResource = new MonitorGroupResource();
   resource.monitorGroupId = data.monitorGroupId;
@@ -64,6 +67,12 @@ function makeGroupResource(data: {
     const monitor: Monitor = new Monitor();
     if (data.currentMonitorStatusId) {
       monitor.currentMonitorStatusId = data.currentMonitorStatusId;
+    }
+    if (data.disableActiveMonitoring !== undefined) {
+      monitor.disableActiveMonitoring = data.disableActiveMonitoring;
+    }
+    if (data.isArchived !== undefined) {
+      monitor.isArchived = data.isArchived;
     }
     resource.monitor = monitor;
   }
@@ -304,6 +313,191 @@ describe("StatusPageService monitor-group batching", () => {
       expect(result[groupB.toString()]).toBeUndefined();
       // Direct-monitor resources never produce group entries.
       expect(Object.keys(result)).toEqual([groupA.toString()]);
+    });
+
+    /*
+     * Issue #6478: a member nothing checks - its monitoring is off, or it
+     * is archived - holds a frozen status, so it decides nothing: the
+     * group's status (what the embedded badge reads) comes from the members
+     * still checked, and a group whose members are all off has no entry.
+     */
+    test("a member whose monitoring is off decides nothing: the status comes from the members still checked", async () => {
+      const group: ObjectID = ObjectID.generate();
+
+      (
+        jest.spyOn(
+          MonitorGroupService,
+          "getMonitorGroupResourcesByGroupIds",
+        ) as unknown as jest.SpyInstance
+      ).mockResolvedValue({
+        [group.toString()]: [
+          /*
+           * Would win under these semantics (lowest number), but nothing
+           * checks it: its Degraded is frozen.
+           */
+          makeGroupResource({
+            monitorGroupId: group,
+            monitorId: ObjectID.generate(),
+            currentMonitorStatusId: statusDegraded.id!,
+            disableActiveMonitoring: true,
+          }),
+          makeGroupResource({
+            monitorGroupId: group,
+            monitorId: ObjectID.generate(),
+            currentMonitorStatusId: statusOffline.id!,
+            disableActiveMonitoring: false,
+          }),
+        ],
+      } as never);
+
+      const result: Dictionary<ObjectID> =
+        await StatusPageService.getMonitorGroupCurrentStatuses({
+          statusPageResources: [
+            makeStatusPageResource({ monitorGroupId: group }),
+          ],
+          monitorStatuses: allStatuses,
+        });
+
+      expect(result[group.toString()]?.toString()).toBe(
+        statusOffline.id!.toString(),
+      );
+    });
+
+    test("a group whose members all have monitoring off gets no entry, so it colors nothing", async () => {
+      const allOff: ObjectID = ObjectID.generate();
+      const checked: ObjectID = ObjectID.generate();
+
+      (
+        jest.spyOn(
+          MonitorGroupService,
+          "getMonitorGroupResourcesByGroupIds",
+        ) as unknown as jest.SpyInstance
+      ).mockResolvedValue({
+        [allOff.toString()]: [
+          makeGroupResource({
+            monitorGroupId: allOff,
+            monitorId: ObjectID.generate(),
+            currentMonitorStatusId: statusOffline.id!,
+            disableActiveMonitoring: true,
+          }),
+          makeGroupResource({
+            monitorGroupId: allOff,
+            monitorId: ObjectID.generate(),
+            currentMonitorStatusId: statusDegraded.id!,
+            disableActiveMonitoring: true,
+          }),
+        ],
+        [checked.toString()]: [
+          makeGroupResource({
+            monitorGroupId: checked,
+            monitorId: ObjectID.generate(),
+            currentMonitorStatusId: statusOperational.id!,
+            disableActiveMonitoring: false,
+          }),
+        ],
+      } as never);
+
+      const result: Dictionary<ObjectID> =
+        await StatusPageService.getMonitorGroupCurrentStatuses({
+          statusPageResources: [
+            makeStatusPageResource({ monitorGroupId: allOff }),
+            makeStatusPageResource({ monitorGroupId: checked }),
+          ],
+          monitorStatuses: allStatuses,
+        });
+
+      expect(result[allOff.toString()]).toBeUndefined();
+      expect(result[checked.toString()]?.toString()).toBe(
+        statusOperational.id!.toString(),
+      );
+    });
+
+    test("an archived member decides nothing either, wherever the members came from", async () => {
+      const group: ObjectID = ObjectID.generate();
+
+      const result: Dictionary<ObjectID> =
+        await StatusPageService.getMonitorGroupCurrentStatuses({
+          statusPageResources: [
+            makeStatusPageResource({ monitorGroupId: group }),
+          ],
+          monitorStatuses: allStatuses,
+          monitorGroupResources: {
+            [group.toString()]: [
+              makeGroupResource({
+                monitorGroupId: group,
+                monitorId: ObjectID.generate(),
+                currentMonitorStatusId: statusDegraded.id!,
+                isArchived: true,
+              }),
+              makeGroupResource({
+                monitorGroupId: group,
+                monitorId: ObjectID.generate(),
+                currentMonitorStatusId: statusOffline.id!,
+              }),
+            ],
+          },
+        });
+
+      expect(result[group.toString()]?.toString()).toBe(
+        statusOffline.id!.toString(),
+      );
+    });
+
+    test("a member read without the switch counts as checked", async () => {
+      const group: ObjectID = ObjectID.generate();
+
+      const result: Dictionary<ObjectID> =
+        await StatusPageService.getMonitorGroupCurrentStatuses({
+          statusPageResources: [
+            makeStatusPageResource({ monitorGroupId: group }),
+          ],
+          monitorStatuses: allStatuses,
+          monitorGroupResources: {
+            [group.toString()]: [
+              makeGroupResource({
+                monitorGroupId: group,
+                monitorId: ObjectID.generate(),
+                currentMonitorStatusId: statusDegraded.id!,
+              }),
+            ],
+          },
+        });
+
+      expect(result[group.toString()]?.toString()).toBe(
+        statusDegraded.id!.toString(),
+      );
+    });
+
+    test("members the caller already read are used as they are: nothing is fetched", async () => {
+      const group: ObjectID = ObjectID.generate();
+
+      const batchedSpy: jest.SpyInstance = jest.spyOn(
+        MonitorGroupService,
+        "getMonitorGroupResourcesByGroupIds",
+      ) as unknown as jest.SpyInstance;
+
+      const result: Dictionary<ObjectID> =
+        await StatusPageService.getMonitorGroupCurrentStatuses({
+          statusPageResources: [
+            makeStatusPageResource({ monitorGroupId: group }),
+          ],
+          monitorStatuses: allStatuses,
+          monitorGroupResources: {
+            [group.toString()]: [
+              makeGroupResource({
+                monitorGroupId: group,
+                monitorId: ObjectID.generate(),
+                currentMonitorStatusId: statusOffline.id!,
+                disableActiveMonitoring: false,
+              }),
+            ],
+          },
+        });
+
+      expect(batchedSpy).not.toHaveBeenCalled();
+      expect(result[group.toString()]?.toString()).toBe(
+        statusOffline.id!.toString(),
+      );
     });
 
     test("no group resources at all yields an empty dictionary", async () => {

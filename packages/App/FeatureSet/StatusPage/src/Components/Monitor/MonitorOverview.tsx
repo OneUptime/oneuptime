@@ -27,6 +27,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { translateStatusName } from "../../Utils/StatusTranslation";
 import { getStatusTextProps } from "Common/UI/Utils/StatusColorStyle";
+import { NOT_MONITORED_STATUS_COLOR } from "Common/Utils/StatusPage/FrozenMonitorResources";
 
 export interface ComponentProps {
   monitorName: string;
@@ -83,6 +84,14 @@ export interface ComponentProps {
    * on for anything that renders a resource on its own.
    */
   showTimeAxisLabels?: boolean | undefined;
+  /*
+   * Nothing checks this resource right now: its monitor's monitoring is
+   * off, or every monitor of its monitor group has it off (the overview's
+   * notMonitoredResourceIds). The status it holds is only what the last
+   * check saw, so where the status or the uptime would go, it says Not
+   * monitored, in gray.
+   */
+  isNotMonitored?: boolean | undefined;
 }
 
 const MonitorOverview: FunctionComponent<ComponentProps> = (
@@ -142,6 +151,20 @@ const MonitorOverview: FunctionComponent<ComponentProps> = (
       .length > 0;
 
   const getCurrentStatus: GetReactElementFunction = (): ReactElement => {
+    if (
+      props.isNotMonitored &&
+      (props.showCurrentStatus || props.showUptimePercent)
+    ) {
+      return (
+        <div
+          data-testid="resource-not-monitored"
+          {...getStatusTextProps(NOT_MONITORED_STATUS_COLOR.toString())}
+        >
+          {t("overview.notMonitored")}
+        </div>
+      );
+    }
+
     // if the current status is operational then show uptime Percent.
 
     let precision: UptimePrecision = UptimePrecision.ONE_DECIMAL;

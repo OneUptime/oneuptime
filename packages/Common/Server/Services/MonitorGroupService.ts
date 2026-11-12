@@ -17,13 +17,14 @@ import DeleteBy from "../Types/Database/DeleteBy";
 import { OnDelete } from "../Types/Database/Hooks";
 import StatusPageResourceService from "./StatusPageResourceService";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
-import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import FrozenMonitorResources from "../../Utils/StatusPage/FrozenMonitorResources";
 import Monitor from "../../Models/DatabaseModels/Monitor";
 import MonitorService from "./MonitorService";
 import MonitorGroupMonitoring, {
   MonitorGroupMonitoringChange,
   MonitorGroupMonitoringSummary,
 } from "../../Utils/Monitor/MonitorGroupMonitoring";
+import { MONITORING_OFF_SELECT } from "../../Utils/Monitor/MonitoringOff";
 
 export class Service extends ProjectReferencesService<MonitorGroup> {
   public constructor() {
@@ -81,8 +82,15 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
       throw new BadDataException("Monitor group not found.");
     }
 
+    /*
+     * Only the monitors that are checked: an archived monitor, or one whose
+     * monitoring is turned off, holds a frozen status, so neither its status
+     * now nor its history speaks for the group's timeline and uptime
+     * (FrozenMonitorResources, issue #6478). A group whose monitors are all
+     * off has no timeline: the Dashboard draws it as Disabled.
+     */
     const monitorGroupResources: Array<MonitorGroupResource> =
-      ArchivedMonitorResources.withoutArchivedMonitors(
+      FrozenMonitorResources.withoutFrozenMonitors(
         await MonitorGroupResourceService.findBy({
           query: {
             monitorGroupId: monitorGroup.id!,
@@ -93,6 +101,7 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
             monitorId: true,
             monitor: {
               isArchived: true,
+              ...MONITORING_OFF_SELECT,
             },
           },
           props: {
@@ -178,11 +187,14 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
     // now get all the monitors in this group with current status.
 
     /*
-     * An archived monitor is not checked, so its status is frozen: it does
-     * not count towards the group's status (ArchivedMonitorResources).
+     * An archived monitor, or one whose monitoring is turned off, is not
+     * checked, so its status is frozen: it does not count towards the
+     * group's status (FrozenMonitorResources, issue #6478). A group whose
+     * monitors are all off is left at the operational status here; the
+     * Dashboard draws it as Disabled (MonitorGroupMonitoring).
      */
     const monitorGroupResources: Array<MonitorGroupResource> =
-      ArchivedMonitorResources.withoutArchivedMonitors(
+      FrozenMonitorResources.withoutFrozenMonitors(
         await MonitorGroupResourceService.findBy({
           query: {
             monitorGroupId: monitorGroup.id!,
@@ -193,6 +205,7 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
             monitor: {
               currentMonitorStatusId: true,
               isArchived: true,
+              ...MONITORING_OFF_SELECT,
             },
           },
           props: {
@@ -365,7 +378,7 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
     monitorGroup: MonitorGroup,
   ): Promise<Array<Monitor>> {
     const monitorGroupResources: Array<MonitorGroupResource> =
-      ArchivedMonitorResources.withoutArchivedMonitors(
+      FrozenMonitorResources.withoutArchivedMonitors(
         await MonitorGroupResourceService.findBy({
           query: {
             monitorGroupId: monitorGroup.id!,
@@ -450,6 +463,7 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
           monitor: {
             currentMonitorStatusId: true,
             isArchived: true,
+            ...MONITORING_OFF_SELECT,
           },
         },
         props: {
@@ -461,8 +475,15 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
      * Archived members are left out: a status page that shows the group, its
      * status and its timeline all come from here, and an archived monitor's
      * frozen status must not decide any of them.
+     *
+     * A member whose monitoring is turned off stays, with the switch read
+     * (monitor.disableActiveMonitoring): the incidents and maintenance on it
+     * still show on the page, and the page tells a group whose monitors all
+     * have it off (FrozenMonitorResources.getNotMonitoredResourceIds). Its
+     * status decides nothing: getCurrentStatusesForMonitorGroups leaves it
+     * out.
      */
-    for (const monitorGroupResource of ArchivedMonitorResources.withoutArchivedMonitors(
+    for (const monitorGroupResource of FrozenMonitorResources.withoutArchivedMonitors(
       monitorGroupResources,
     )) {
       if (!monitorGroupResource.monitorGroupId) {
@@ -503,10 +524,14 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
   /*
    * Batched twin of getCurrentStatus, preserving its exact semantics: each
    * group's status starts at the project's operational state and is replaced
-   * by the highest-priority-number status among its monitors. Callers supply
-   * the project's monitor statuses (they already have them in hand on every
-   * path that renders a status page), so this issues at most ONE query — the
-   * group-resource fetch — instead of three per group.
+   * by the highest-priority-number status among its monitors that are
+   * checked - an archived monitor, or one whose monitoring is off, decides
+   * nothing (FrozenMonitorResources). Callers supply the project's monitor
+   * statuses (they already have them in hand on every path that renders a
+   * status page), so this issues at most ONE query — the group-resource
+   * fetch — instead of three per group. Supplied monitorGroupResources must
+   * carry monitor.isArchived and monitor.disableActiveMonitoring, as
+   * getMonitorGroupResourcesByGroupIds reads them.
    */
   @CaptureSpan()
   public async getCurrentStatusesForMonitorGroups(data: {
@@ -536,9 +561,9 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
     for (const monitorGroupId of data.monitorGroupIds) {
       let currentStatus: MonitorStatus = operationalStatus;
 
-      for (const monitorGroupResource of resourcesByGroupId[
-        monitorGroupId.toString()
-      ] || []) {
+      for (const monitorGroupResource of FrozenMonitorResources.withoutFrozenMonitors(
+        resourcesByGroupId[monitorGroupId.toString()] || [],
+      )) {
         if (!monitorGroupResource.monitor) {
           continue;
         }

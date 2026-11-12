@@ -845,6 +845,82 @@ describe("StatusPageGroupNestingLayoutUtil", () => {
         }),
       ).toBe(StatusPageGroupRollupKind.CurrentStatus);
     });
+
+    /*
+     * #6478: every resource beneath the group is drawn as Not monitored -
+     * its monitoring is off, so the status it holds is frozen. The group has
+     * no reading to give: not a status, and not an uptime percent that would
+     * speak for a time nothing checks. It says Not monitored wherever it
+     * would show one.
+     */
+    test("a group nothing beneath which is checked reads Not monitored wherever it shows a reading", () => {
+      for (const showUptimePercent of [true, false]) {
+        for (const showCurrentStatus of [true, false]) {
+          for (const isCurrentlyDown of [true, false]) {
+            const expected: StatusPageGroupRollupKind =
+              showUptimePercent || showCurrentStatus
+                ? StatusPageGroupRollupKind.NotMonitored
+                : StatusPageGroupRollupKind.None;
+
+            expect({
+              showUptimePercent,
+              showCurrentStatus,
+              isCurrentlyDown,
+              kind: StatusPageGroupNestingLayoutUtil.getRollupKind({
+                showUptimePercent: showUptimePercent,
+                showCurrentStatus: showCurrentStatus,
+                isCurrentlyDown: isCurrentlyDown,
+                uptimePercent: 99.9,
+                resourceCountInSubtree: 3,
+                isNotMonitored: true,
+              }),
+            }).toEqual({
+              showUptimePercent,
+              showCurrentStatus,
+              isCurrentlyDown,
+              kind: expected,
+            });
+          }
+        }
+      }
+    });
+
+    test("a group with nothing under it shows nothing, not Not monitored", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.getRollupKind({
+          showUptimePercent: true,
+          showCurrentStatus: true,
+          isCurrentlyDown: false,
+          uptimePercent: null,
+          resourceCountInSubtree: 0,
+          isNotMonitored: true,
+        }),
+      ).toBe(StatusPageGroupRollupKind.None);
+    });
+
+    test("a group with any resource checked reads as it always did", () => {
+      expect(
+        StatusPageGroupNestingLayoutUtil.getRollupKind({
+          showUptimePercent: true,
+          showCurrentStatus: true,
+          isCurrentlyDown: false,
+          uptimePercent: 99.9,
+          resourceCountInSubtree: 3,
+          isNotMonitored: false,
+        }),
+      ).toBe(StatusPageGroupRollupKind.UptimePercent);
+
+      expect(
+        StatusPageGroupNestingLayoutUtil.getRollupKind({
+          showUptimePercent: true,
+          showCurrentStatus: true,
+          isCurrentlyDown: true,
+          uptimePercent: 99.9,
+          resourceCountInSubtree: 3,
+          isNotMonitored: false,
+        }),
+      ).toBe(StatusPageGroupRollupKind.CurrentStatus);
+    });
   });
 
   describe("shouldShowSubGroupDivider", () => {

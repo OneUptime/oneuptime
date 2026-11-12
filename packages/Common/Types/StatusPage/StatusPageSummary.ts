@@ -23,6 +23,12 @@ import ObjectID from "../ObjectID";
  *     "Core / Databases" for a group nested in another.
  *   - Its current status is null when the page does not show it (the
  *     resource's Show current status is off), as the uptime endpoint answers.
+ *   - It is not monitored while nothing checks it - its monitor's
+ *     monitoring is off, or every monitor of its monitor group has it off -
+ *     and the page draws it as Not monitored. Its current status is then
+ *     null too, and it counts toward no other status: the page's overall
+ *     status is the worst among the resources that are monitored, and null
+ *     when none is (Utils/StatusPage/FrozenMonitorResources).
  *   - It is under maintenance while a scheduled maintenance event in
  *     progress names one of its monitors (a monitor group's, for a group) -
  *     whatever status those monitors are left in: a monitor is not checked
@@ -48,8 +54,16 @@ export interface StatusPageSummaryResource {
   name: string;
   // The page's group it sits in, with the groups above it; null for none.
   groupName: string | null;
-  // Null when the page does not show the resource's current status.
+  /*
+   * Null when the page does not show the resource's current status, or the
+   * resource is not monitored.
+   */
   currentStatus: StatusPageSummaryStatus | null;
+  /*
+   * False while nothing checks the resource: its monitor's monitoring is
+   * off, or every monitor of its monitor group has it off.
+   */
+  isMonitored: boolean;
   // Whether a scheduled maintenance event in progress affects it.
   isUnderMaintenance: boolean;
 }
@@ -76,7 +90,10 @@ export interface StatusPageSummaryMaintenance {
 }
 
 export interface StatusPageSummary {
-  // The page's overall status, as its banner shows it; null for an empty page.
+  /*
+   * The page's overall status, as its banner shows it; null for an empty
+   * page, and for one none of whose resources is monitored.
+   */
   overallStatus: StatusPageSummaryStatus | null;
   resources: Array<StatusPageSummaryResource>;
   activeIncidents: Array<StatusPageSummaryIncident>;
@@ -216,6 +233,7 @@ export default class StatusPageSummaryUtil {
             currentStatus: StatusPageSummaryUtil.statusToJSON(
               resource.currentStatus,
             ),
+            isMonitored: resource.isMonitored,
             isUnderMaintenance: resource.isUnderMaintenance,
           };
         },
@@ -288,6 +306,8 @@ export default class StatusPageSummaryUtil {
         currentStatus: StatusPageSummaryUtil.statusFromJSON(
           item["currentStatus"],
         ),
+        // A server older than the field monitored every resource it listed.
+        isMonitored: item["isMonitored"] !== false,
         isUnderMaintenance: item["isUnderMaintenance"] === true,
       });
     }

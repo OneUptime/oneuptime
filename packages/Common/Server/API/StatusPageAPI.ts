@@ -158,7 +158,11 @@ import StatusPageSubscriberNotificationTemplateService, {
   Service as StatusPageSubscriberNotificationTemplateServiceClass,
 } from "../Services/StatusPageSubscriberNotificationTemplateService";
 import { canServeStatusPageCustomizations } from "../Utils/StatusPageCustomizationAccess";
-import ArchivedMonitorResources from "../../Utils/StatusPage/ArchivedMonitorResources";
+import FrozenMonitorResources, {
+  NOT_MONITORED_STATUS_COLOR,
+  NOT_MONITORED_STATUS_NAME,
+} from "../../Utils/StatusPage/FrozenMonitorResources";
+import { MONITORING_OFF_SELECT } from "../../Utils/Monitor/MonitoringOff";
 import IncidentStatusPageScope, {
   INCIDENT_SCOPE_SELECT,
 } from "../Utils/StatusPage/IncidentStatusPageScope";
@@ -757,11 +761,12 @@ export default class StatusPageAPI extends BaseAPI<
           }
 
           /*
-           * Get status page resources and current statuses. An archived
-           * monitor's frozen status must not color the badge.
+           * Get status page resources and current statuses. A frozen
+           * status - an archived monitor's, or one whose monitoring is off -
+           * must not color the badge (FrozenMonitorResources).
            */
           const statusPageResources: Array<StatusPageResource> =
-            ArchivedMonitorResources.withoutArchivedMonitors(
+            FrozenMonitorResources.withoutArchivedMonitors(
               await StatusPageResourceService.findBy({
                 query: {
                   statusPageId: statusPageId,
@@ -772,6 +777,7 @@ export default class StatusPageAPI extends BaseAPI<
                     _id: true,
                     currentMonitorStatusId: true,
                     isArchived: true,
+                    ...MONITORING_OFF_SELECT,
                   },
                   monitorGroupId: true,
                 },
@@ -806,12 +812,42 @@ export default class StatusPageAPI extends BaseAPI<
               },
             });
 
+          // The members of each monitor group on the page, read once.
+          const monitorGroupResources: Dictionary<Array<MonitorGroupResource>> =
+            await MonitorGroupService.getMonitorGroupResourcesByGroupIds(
+              statusPageResources
+                .map((resource: StatusPageResource) => {
+                  return resource.monitorGroupId!;
+                })
+                .filter((id: ObjectID) => {
+                  return Boolean(id); // remove nulls
+                }),
+            );
+
           // Get monitor group current statuses
           const monitorGroupCurrentStatuses: Dictionary<ObjectID> =
             await StatusPageService.getMonitorGroupCurrentStatuses({
               statusPageResources,
               monitorStatuses,
+              monitorGroupResources,
             });
+
+          /*
+           * The resources the page draws as Not monitored: nothing checks
+           * them, so they color nothing - and a page of nothing else has no
+           * status to show but that.
+           */
+          const notMonitoredResourceIds: Array<string> =
+            FrozenMonitorResources.getNotMonitoredResourceIds({
+              statusPageResources,
+              monitorGroupResources,
+            });
+
+          const isNothingMonitored: boolean =
+            FrozenMonitorResources.isEveryResourceNotMonitored(
+              statusPageResources,
+              notMonitoredResourceIds,
+            );
 
           // Calculate overall status
           const overallStatus: MonitorStatus | null =
@@ -819,14 +855,19 @@ export default class StatusPageAPI extends BaseAPI<
               statusPageResources,
               monitorStatuses,
               monitorGroupCurrentStatuses,
+              notMonitoredResourceIds,
             });
 
           // Generate SVG badge
           const statusName: string = escapeXml(
-            overallStatus?.name || "Unknown",
+            isNothingMonitored
+              ? NOT_MONITORED_STATUS_NAME
+              : overallStatus?.name || "Unknown",
           );
           const statusColor: string = escapeXml(
-            overallStatus?.color?.toString() || "#808080",
+            isNothingMonitored
+              ? NOT_MONITORED_STATUS_COLOR.toString()
+              : overallStatus?.color?.toString() || "#808080",
           );
 
           const svg: string = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="20">
@@ -1681,10 +1722,12 @@ export default class StatusPageAPI extends BaseAPI<
 
           /*
            * A subscriber cannot pick a resource the page does not show. The
-           * monitor was only read to decide that, so it is not sent.
+           * monitor was only read to decide that, so it is not sent. A
+           * resource whose monitor has its monitoring off is still on the
+           * page (as Not monitored), so it can still be picked.
            */
           const subscribableResources: Array<StatusPageResource> =
-            ArchivedMonitorResources.withoutArchivedMonitors(resources);
+            FrozenMonitorResources.withoutArchivedMonitors(resources);
 
           for (const resource of subscribableResources) {
             delete resource.monitor;
@@ -1763,6 +1806,7 @@ export default class StatusPageAPI extends BaseAPI<
           const {
             monitorStatuses,
             monitorGroupCurrentStatuses,
+            notMonitoredResourceIds,
             statusPageResources,
             statusPage,
             monitorStatusTimelines,
@@ -1774,6 +1818,10 @@ export default class StatusPageAPI extends BaseAPI<
             startDateForMonitorTimeline: startDate,
             endDateForMonitorTimeline: endDate,
           });
+
+          const notMonitoredResourceIdSet: Set<string> = new Set<string>(
+            notMonitoredResourceIds,
+          );
 
           const downtimeMonitorStatuses: Array<MonitorStatus> =
             statusPage.downtimeMonitorStatuses || [];
@@ -1811,6 +1859,13 @@ export default class StatusPageAPI extends BaseAPI<
             uptimePercent: number | null;
             statusPageResourceName: string;
             currentStatus: MonitorStatus | null;
+            /*
+             * False when nothing checks the resource right now - its
+             * monitor's monitoring is off, or every monitor of its monitor
+             * group has it off - so the page draws it as Not monitored and
+             * its currentStatus is null (FrozenMonitorResources).
+             */
+            isMonitored: boolean;
           };
 
           type StatusPageGroupUptime = {
@@ -1820,6 +1875,8 @@ export default class StatusPageAPI extends BaseAPI<
             statusPageResourceUptimes: Array<ResourceUptime>;
             statusPageGroupName: string | null;
             currentStatus: MonitorStatus | null;
+            // False when every resource beneath the group is not monitored.
+            isMonitored: boolean;
           };
 
           type GetUptimeByStatusPageGroup = (data: {
@@ -1841,6 +1898,7 @@ export default class StatusPageAPI extends BaseAPI<
                 statusPageResourceUptimes: [],
                 statusPageGroupName: data.statusPageGroup?.name || null,
                 currentStatus: null,
+                isMonitored: true,
               };
 
               const group: StatusPageGroup | null = data.statusPageGroup;
@@ -1867,6 +1925,10 @@ export default class StatusPageAPI extends BaseAPI<
                     statusPageResourceName:
                       resource.displayName || resource.monitor?.name || "",
                     currentStatus: null,
+                    isMonitored: !FrozenMonitorResources.isNotMonitored(
+                      resource,
+                      notMonitoredResourceIdSet,
+                    ),
                   };
 
                   // if its a monitor
@@ -1895,6 +1957,11 @@ export default class StatusPageAPI extends BaseAPI<
                     }
 
                     if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    // Nothing checks it: the page draws it as Not monitored.
+                    if (!resourceUptime.isMonitored) {
                       resourceUptime.currentStatus = null;
                     }
 
@@ -1946,6 +2013,11 @@ export default class StatusPageAPI extends BaseAPI<
                     }
 
                     if (!resource.showCurrentStatus) {
+                      resourceUptime.currentStatus = null;
+                    }
+
+                    // Nothing checks it: the page draws it as Not monitored.
+                    if (!resourceUptime.isMonitored) {
                       resourceUptime.currentStatus = null;
                     }
 
@@ -2073,17 +2145,32 @@ export default class StatusPageAPI extends BaseAPI<
                 });
             }
 
+            /*
+             * A group whose resources are all not monitored has no status:
+             * the page draws it as Not monitored. One with any resource that
+             * is checked takes its status from those alone - the others'
+             * currentStatus is null.
+             */
+            groupUptime.isMonitored =
+              resourceUptimesInSubtree.length === 0 ||
+              resourceUptimesInSubtree.some(
+                (resourceUptime: ResourceUptime) => {
+                  return resourceUptime.isMonitored;
+                },
+              );
+
             if (group.showCurrentStatus) {
-              groupUptime.currentStatus =
-                StatusPageResourceUptimeUtil.getWorstMonitorStatus({
-                  monitorStatuses: resourceUptimesInSubtree
-                    .filter((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus !== null;
-                    })
-                    .map((resourceUptime: ResourceUptime) => {
-                      return resourceUptime.currentStatus!;
-                    }),
-                });
+              groupUptime.currentStatus = groupUptime.isMonitored
+                ? StatusPageResourceUptimeUtil.getWorstMonitorStatus({
+                    monitorStatuses: resourceUptimesInSubtree
+                      .filter((resourceUptime: ResourceUptime) => {
+                        return resourceUptime.currentStatus !== null;
+                      })
+                      .map((resourceUptime: ResourceUptime) => {
+                        return resourceUptime.currentStatus!;
+                      }),
+                  })
+                : null;
             }
           }
 
@@ -3186,7 +3273,7 @@ export default class StatusPageAPI extends BaseAPI<
 
     // get monitors on status page, leaving out archived ones.
     const statusPageResources: Array<StatusPageResource> =
-      ArchivedMonitorResources.withoutArchivedMonitors(
+      FrozenMonitorResources.withoutArchivedMonitors(
         await StatusPageResourceService.findBy({
           query: {
             statusPageId: statusPageId,
@@ -3210,6 +3297,7 @@ export default class StatusPageAPI extends BaseAPI<
               _id: true,
               currentMonitorStatusId: true,
               isArchived: true,
+              ...MONITORING_OFF_SELECT,
             },
           },
 
@@ -5494,6 +5582,12 @@ export default class StatusPageAPI extends BaseAPI<
     monitorStatusTimelines: MonitorStatusTimeline[];
     uptimeDailyAggregate: UptimeDailyAggregate;
     monitorGroupCurrentStatuses: Dictionary<ObjectID>;
+    /*
+     * The ids of the resources the page draws as Not monitored
+     * (FrozenMonitorResources.getNotMonitoredResourceIds): a monitor whose
+     * monitoring is off, a monitor group whose monitors all have it off.
+     */
+    notMonitoredResourceIds: Array<string>;
     statusPageGroups: StatusPageGroup[];
     statusPage: StatusPage;
     monitorsOnStatusPage: ObjectID[];
@@ -5624,10 +5718,11 @@ export default class StatusPageAPI extends BaseAPI<
     /*
      * get monitors on status page. An archived monitor is retired and its
      * status frozen: it is not shown, and its timeline is not read
-     * (ArchivedMonitorResources).
+     * (FrozenMonitorResources). A monitor whose monitoring is off is shown,
+     * as Not monitored: monitor.disableActiveMonitoring is read to tell.
      */
     const statusPageResources: Array<StatusPageResource> =
-      ArchivedMonitorResources.withoutArchivedMonitors(
+      FrozenMonitorResources.withoutArchivedMonitors(
         await StatusPageResourceService.findBy({
           query: {
             statusPageId: objectId,
@@ -5651,6 +5746,7 @@ export default class StatusPageAPI extends BaseAPI<
               _id: true,
               currentMonitorStatusId: true,
               isArchived: true,
+              ...MONITORING_OFF_SELECT,
             },
             monitorGroupId: true,
             showUptimePercent: true,
@@ -5715,10 +5811,25 @@ export default class StatusPageAPI extends BaseAPI<
         monitorGroupIds,
       );
 
+    /*
+     * A group whose monitors all have monitoring off is left out: nothing
+     * checks it, so the status it is left at says nothing. The page draws
+     * it as Not monitored, with each monitor whose monitoring is off.
+     */
     const monitorGroupStatuses: Dictionary<MonitorStatus> =
-      await MonitorGroupService.getCurrentStatusesForMonitorGroups({
-        monitorGroupIds: monitorGroupIds,
-        monitorStatuses: monitorStatuses,
+      FrozenMonitorResources.withoutNotMonitoredMonitorGroups({
+        monitorGroupStatuses:
+          await MonitorGroupService.getCurrentStatusesForMonitorGroups({
+            monitorGroupIds: monitorGroupIds,
+            monitorStatuses: monitorStatuses,
+            monitorGroupResources: monitorGroupResourcesByGroupId,
+          }),
+        monitorGroupResources: monitorGroupResourcesByGroupId,
+      });
+
+    const notMonitoredResourceIds: Array<string> =
+      FrozenMonitorResources.getNotMonitoredResourceIds({
+        statusPageResources: statusPageResources,
         monitorGroupResources: monitorGroupResourcesByGroupId,
       });
 
@@ -5818,6 +5929,7 @@ export default class StatusPageAPI extends BaseAPI<
       statusPageResources,
       monitorStatuses,
       monitorGroupCurrentStatuses,
+      notMonitoredResourceIds,
       statusPageGroups: groups,
       monitorStatusTimelines,
       uptimeDailyAggregate,
@@ -6068,6 +6180,7 @@ export default class StatusPageAPI extends BaseAPI<
     const {
       monitorStatuses,
       monitorGroupCurrentStatuses,
+      notMonitoredResourceIds,
       statusPageResources,
       statusPage,
       monitorsOnStatusPage,
@@ -6946,6 +7059,7 @@ export default class StatusPageAPI extends BaseAPI<
         statusPageResources,
         monitorStatuses,
         monitorGroupCurrentStatuses,
+        notMonitoredResourceIds,
       });
 
     /*
@@ -7039,6 +7153,11 @@ export default class StatusPageAPI extends BaseAPI<
       monitorGroupCurrentStatuses: JSONFunctions.serialize(
         monitorGroupCurrentStatuses,
       ),
+      /*
+       * The resources the page draws as Not monitored, in gray, in place of
+       * a status: nothing checks them right now (FrozenMonitorResources).
+       */
+      notMonitoredResourceIds: notMonitoredResourceIds,
       monitorsInGroup: JSONFunctions.serialize(monitorsInGroup),
       timelineIncidents:
         this.serializeIncidentsForStatusPage(timelineIncidents),

@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Los monitores archivados no cuentan.** Un monitor archivado no se comprueba, así que su estado está congelado; el grupo lo deja fuera.
+- **Los monitores con el monitoreo desactivado no cuentan.** Nada comprueba un monitor cuyo monitoreo está desactivado, así que su estado es solo lo que vio su última comprobación. El grupo lo deja fuera de su estado y, en el panel, también de su tiempo de actividad y de su **Gráfico de tiempo de actividad**: un monitor que quedó **Sin conexión** al desactivar su monitoreo no deja el grupo **Sin conexión**.
 - **Un grupo vacío está operativo.** Un grupo sin monitores, o solo con monitores archivados, muestra su estado operativo. Hasta que añada un monitor, el panel muestra **Aún no hay monitores** en lugar de su estado.
-- **Con el monitoreo desactivado se muestra Deshabilitado.** Cuando el monitoreo está desactivado para todos los monitores de un grupo, nada los comprueba, así que el panel muestra **Deshabilitado** en lugar del estado del grupo.
+- **Con el monitoreo desactivado se muestra Deshabilitado.** Cuando el monitoreo está desactivado para todos los monitores de un grupo, nada los comprueba, así que el panel muestra **Deshabilitado** en lugar del estado del grupo, y ningún porcentaje de tiempo de actividad junto a su **Gráfico de tiempo de actividad**. Una página de estado muestra el grupo como **No monitoreado**.
 - **El orden lo decide usted.** Cuál es el peor estado sigue el orden de **Monitores → Ajustes → Estado del monitor**. Consulte [Estados del monitor](/docs/monitor/criteria-and-statuses#estados-del-monitor).
 
 Un grupo de monitores no es un grupo de una página de estado. Un grupo de una página de estado es un encabezado en una página de estado que contiene filas. Un grupo de monitores es una fila que representa varios monitores, y cualquier página de estado puede mostrarlo.
@@ -124,7 +125,7 @@ Elija el grupo. **Nombre para mostrar**, el nombre que leen los visitantes, toma
 
 En la página de estado, la fila representa a cada monitor del grupo:
 
-- **Su estado.** Es el del grupo: el peor de sus monitores.
+- **Su estado.** Es el del grupo: el peor de sus monitores con el monitoreo activado. Cuando el monitoreo está desactivado para todos ellos, la fila muestra **No monitoreado** y no cuenta ni para el encabezado que la contiene ni para el estado general de la página.
 - **Sus incidentes.** Un incidente en cualquier monitor del grupo aparece en la página, con el grupo entre los recursos afectados.
 - **Sus suscriptores.** Un suscriptor que elige el grupo recibe avisos de cada monitor que contiene. Consulte [Dejar que los suscriptores elijan recursos y tipos de evento](/docs/status-pages/subscribers#dejar-que-los-suscriptores-elijan-recursos-y-tipos-de-eventos).
 

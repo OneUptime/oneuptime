@@ -5,6 +5,7 @@ import StatusPageSummaryUtil, {
 import ExternalStatusPageReading, {
   EXTERNAL_STATUS_PAGE_MAX_COMPONENTS,
   EXTERNAL_STATUS_PAGE_MAX_INCIDENTS,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
   EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
   EXTERNAL_STATUS_PAGE_UNNAMED_INCIDENT,
   ExternalStatusPageComponent,
@@ -472,6 +473,99 @@ describe("a OneUptime status page", () => {
         description: EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
       }),
     );
+  });
+
+  test("a resource whose monitoring is off reads as unknown, and says the page shows it as not monitored", () => {
+    const contents: ExternalStatusPageContents =
+      ExternalStatusPageReading.readOneUptimeSummary(
+        summaryOf({
+          ...page,
+          resources: [
+            page.resources[0]!,
+            {
+              ...page.resources[1]!,
+              statusId: FAKE_STATUSES.offline.id,
+              isMonitoringOff: true,
+            },
+          ],
+        }),
+      );
+
+    expect(contents.components).toEqual([
+      {
+        key: "5e300000-0000-4000-8000-000000000d01",
+        name: "Checkout API",
+        groupName: "Core",
+        status: "operational",
+        description: "Operational",
+      },
+      {
+        // Never the Offline it was left at: nothing checks it.
+        key: "5e300000-0000-4000-8000-000000000d02",
+        name: "Storefront",
+        groupName: undefined,
+        status: "unknown",
+        description: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+        isMonitored: false,
+      },
+    ]);
+
+    // Only a component nothing checks is marked: the rest carry no flag.
+    expect("isMonitored" in contents.components[0]!).toBe(false);
+  });
+
+  test("not monitored is said even when the page sends a status with it", () => {
+    const summary: StatusPageSummary = summaryOf(page);
+    summary.resources[1]!.isMonitored = false;
+
+    // The Degraded it still carries is not read.
+    expect(
+      ExternalStatusPageReading.readOneUptimeSummary(summary).components[1],
+    ).toEqual(
+      expect.objectContaining({
+        status: "unknown",
+        description: EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+      }),
+    );
+  });
+
+  test("maintenance in progress on a resource whose monitoring is off reads as under maintenance", () => {
+    const summary: StatusPageSummary = summaryOf({
+      ...page,
+      resources: [{ ...page.resources[0]!, isMonitoringOff: true }],
+      maintenance: [
+        {
+          id: "5e300000-0000-4000-8000-000000000e01",
+          title: "Checkout upgrade",
+          state: "ongoing",
+          startsAt: new Date(Date.now() - 60 * 60 * 1000),
+          monitorIds: ["5e300000-0000-4000-8000-000000000a01"],
+        },
+      ],
+    });
+
+    expect(summary.resources[0]!.isMonitored).toBe(false);
+    expect(
+      ExternalStatusPageReading.readOneUptimeSummary(summary).components[0],
+    ).toEqual(
+      expect.objectContaining({
+        status: "under_maintenance",
+        description: "Under maintenance: Checkout upgrade",
+      }),
+    );
+  });
+
+  test("a resource whose status is hidden, and that is monitored, still says its status is not shown", () => {
+    const summary: StatusPageSummary = summaryOf({
+      ...page,
+      resources: [{ ...page.resources[0]!, showCurrentStatus: false }],
+    });
+
+    expect(summary.resources[0]!.isMonitored).toBe(true);
+    expect(
+      ExternalStatusPageReading.readOneUptimeSummary(summary).components[0]
+        ?.description,
+    ).toBe(EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN);
   });
 
   test("an incident affects the resources it names, by their ids", () => {

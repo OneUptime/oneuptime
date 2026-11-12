@@ -33,6 +33,7 @@ function fullSummary(): StatusPageSummary {
           color: "#f59e0b",
           isOperational: false,
         },
+        isMonitored: true,
         isUnderMaintenance: false,
       },
       {
@@ -40,7 +41,17 @@ function fullSummary(): StatusPageSummary {
         name: "Database",
         groupName: "Core / Data",
         currentStatus: null,
+        isMonitored: true,
         isUnderMaintenance: true,
+      },
+      {
+        // Its monitoring is off: the page draws it as Not monitored.
+        id: "res-search",
+        name: "Search",
+        groupName: null,
+        currentStatus: null,
+        isMonitored: false,
+        isUnderMaintenance: false,
       },
     ],
     activeIncidents: [
@@ -193,6 +204,7 @@ describe("StatusPageSummaryUtil.toJSON and fromJSON", () => {
           name: "  Padded name  ",
           groupName: 7,
           currentStatus: { name: "Operational", color: 1, isOperational: 1 },
+          isMonitored: "false",
           isUnderMaintenance: "true",
         },
       ],
@@ -233,6 +245,8 @@ describe("StatusPageSummaryUtil.toJSON and fromJSON", () => {
             color: null,
             isOperational: false,
           },
+          // Only false is not monitored.
+          isMonitored: true,
           isUnderMaintenance: false,
         },
       ],
@@ -259,6 +273,106 @@ describe("StatusPageSummaryUtil.toJSON and fromJSON", () => {
       ],
       upcomingScheduledMaintenance: [],
     });
+  });
+
+  test("writes whether each resource is monitored, as a plain boolean", () => {
+    const json: JSONObject = StatusPageSummaryUtil.toJSON(fullSummary());
+
+    expect(
+      (json["resources"] as Array<JSONObject>).map(
+        (resource: JSONObject): unknown => {
+          return [resource["id"], resource["isMonitored"]];
+        },
+      ),
+    ).toEqual([
+      ["res-api", true],
+      ["res-db", true],
+      ["res-search", false],
+    ]);
+  });
+
+  test.each([
+    ["false", false, false],
+    ["true", true, true],
+    ["missing", undefined, true],
+    ["null", null, true],
+    ["the text false", "false", true],
+    ["zero", 0, true],
+  ])(
+    "reads isMonitored %s as %s: a resource is not monitored only when the server says false",
+    (_name: string, value: unknown, expected: boolean) => {
+      const resource: JSONObject = { id: "a", name: "Search" };
+
+      if (value !== undefined) {
+        resource["isMonitored"] = value as JSONObject[string];
+      }
+
+      const summary: StatusPageSummary | null = StatusPageSummaryUtil.fromJSON({
+        resources: [resource],
+        activeIncidents: [],
+        ongoingScheduledMaintenance: [],
+      });
+
+      expect(summary!.resources[0]!.isMonitored).toBe(expected);
+    },
+  );
+
+  test("a server older than isMonitored monitored every resource it listed", () => {
+    const summary: StatusPageSummary | null = StatusPageSummaryUtil.fromJSON({
+      overallStatus: { name: "Operational", color: "#2ab57d" },
+      resources: [
+        {
+          id: "a",
+          name: "Checkout",
+          groupName: null,
+          currentStatus: { name: "Operational", color: "#2ab57d" },
+          isUnderMaintenance: false,
+        },
+        {
+          id: "b",
+          name: "Search",
+          groupName: null,
+          currentStatus: null,
+          isUnderMaintenance: false,
+        },
+      ],
+      activeIncidents: [],
+      ongoingScheduledMaintenance: [],
+    });
+
+    expect(
+      summary!.resources.map(
+        (resource: { id: string; isMonitored: boolean }): unknown => {
+          return [resource.id, resource.isMonitored];
+        },
+      ),
+    ).toEqual([
+      ["a", true],
+      ["b", true],
+    ]);
+  });
+
+  test("a page none of whose resources is monitored has no overall status, and round-trips that way", () => {
+    const summary: StatusPageSummary = {
+      overallStatus: null,
+      resources: [
+        {
+          id: "res-search",
+          name: "Search",
+          groupName: null,
+          currentStatus: null,
+          isMonitored: false,
+          isUnderMaintenance: false,
+        },
+      ],
+      activeIncidents: [],
+      ongoingScheduledMaintenance: [],
+      upcomingScheduledMaintenance: [],
+    };
+    const wire: string = JSON.stringify(StatusPageSummaryUtil.toJSON(summary));
+
+    expect(JSON.parse(wire)["overallStatus"]).toBeNull();
+    expect(StatusPageSummaryUtil.fromJSON(JSON.parse(wire))).toEqual(summary);
   });
 
   test("leaves out an incident or an event without an id", () => {
