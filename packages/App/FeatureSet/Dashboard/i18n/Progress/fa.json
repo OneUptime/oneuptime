@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51019,
-    "untranslated": 9496
+    "untranslated": 9351
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -43,6 +43,7 @@
     "DNS:",
     "Datastore",
     "Deployment",
+    "Docker CLI",
     "Docker Compose",
     "Down + In",
     "Down + Out",
@@ -99,6 +100,8 @@
     "Ping",
     "Placement Flavor Fits",
     "Placement Groups",
+    "Podman CLI",
+    "Podman Compose",
     "Pool",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
