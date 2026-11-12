@@ -11,6 +11,12 @@ import {
   makeT,
   TranslateFn,
 } from "./I18n";
+import {
+  DocsScreenManifest,
+  readManifest,
+  resolveScreen,
+  ResolvedScreen,
+} from "../Screens/DocsScreenFiles";
 
 export interface DocsRenderOptions {
   // The language the page is served in: in-content links stay in it.
@@ -21,7 +27,36 @@ export interface DocsRenderOptions {
    * the text around them.
    */
   contentLang?: string | undefined;
+  /*
+   * Which screenshots exist, in which languages (Screens/DocsScreenFiles.ts):
+   * the manifest on disk unless a test hands one in.
+   */
+  screens?: DocsScreenManifest | undefined;
 }
+
+// The screenshots' manifest, read once, the first time a page shows one.
+let screenManifest: DocsScreenManifest | null = null;
+
+const screensOf: (options: DocsRenderOptions) => DocsScreenManifest = (
+  options: DocsRenderOptions,
+): DocsScreenManifest => {
+  if (options.screens) {
+    return options.screens;
+  }
+
+  if (!screenManifest) {
+    screenManifest = readManifest();
+  }
+
+  return screenManifest;
+};
+
+/*
+ * A screenshot as the shared renderer draws it, from a docs page's
+ * `![alt](screen:<shot>)`: its address names the shot, not a file.
+ */
+const SCREEN_IMAGE: RegExp =
+  /<img src="screen:([a-z0-9]+(?:-[a-z0-9]+)*)" alt="([^"]*)"((?: title="[^"]*")?) class="docs-image" loading="lazy" decoding="async" \/>/g;
 
 /*
  * Which UI string replaces a default label the renderer marked with
@@ -185,6 +220,30 @@ export default class DocsRender {
       ): string => {
         const uiKey: string | undefined = LABEL_KEYS[key];
         return uiKey ? `${open}${escapeHtml(t(`ui.${uiKey}`))}${close}` : whole;
+      },
+    );
+
+    /*
+     * A screenshot (#6823) in the language the page is written in, so the
+     * buttons in the picture are the ones its steps name; the English one
+     * when the shot is not drawn in that language. Its size is set, so the
+     * page does not jump as it loads. A shot with no picture at all (the
+     * content rules fail one) leaves its alt text.
+     */
+    result = result.replace(
+      SCREEN_IMAGE,
+      (_whole: string, name: string, alt: string, title: string): string => {
+        const screen: ResolvedScreen | null = resolveScreen(
+          screensOf(options),
+          name,
+          contentLang,
+        );
+
+        if (!screen) {
+          return alt;
+        }
+
+        return `<img src="${screen.src}" alt="${alt}"${title} width="${screen.width}" height="${screen.height}" class="docs-image docs-screen" loading="lazy" decoding="async" />`;
       },
     );
 

@@ -1,0 +1,195 @@
+{
+  "pixelRatio": 2,
+  "shots": {
+    "home-goal-paging": {
+      "de": {
+        "width": 938,
+        "height": 403
+      },
+      "en": {
+        "width": 938,
+        "height": 403
+      }
+    },
+    "home-goal-status-page": {
+      "de": {
+        "width": 938,
+        "height": 403
+      },
+      "en": {
+        "width": 938,
+        "height": 403
+      }
+    },
+    "home-goal-website": {
+      "de": {
+        "width": 938,
+        "height": 403
+      },
+      "en": {
+        "width": 938,
+        "height": 403
+      }
+    },
+    "home-goals-three": {
+      "de": {
+        "width": 938,
+        "height": 403
+      },
+      "en": {
+        "width": 938,
+        "height": 403
+      }
+    },
+    "incident-feed": {
+      "de": {
+        "width": 576,
+        "height": 950
+      },
+      "en": {
+        "width": 576,
+        "height": 950
+      }
+    },
+    "incident-resolve": {
+      "de": {
+        "width": 888,
+        "height": 291
+      },
+      "en": {
+        "width": 888,
+        "height": 291
+      }
+    },
+    "paging-no-answer": {
+      "de": {
+        "width": 780,
+        "height": 522
+      },
+      "en": {
+        "width": 780,
+        "height": 522
+      }
+    },
+    "paging-phone": {
+      "de": {
+        "width": 780,
+        "height": 596
+      },
+      "en": {
+        "width": 780,
+        "height": 576
+      }
+    },
+    "paging-reach-you": {
+      "de": {
+        "width": 780,
+        "height": 664
+      },
+      "en": {
+        "width": 780,
+        "height": 604
+      }
+    },
+    "paging-summary": {
+      "de": {
+        "width": 768,
+        "height": 482
+      },
+      "en": {
+        "width": 768,
+        "height": 482
+      }
+    },
+    "paging-test": {
+      "de": {
+        "width": 780,
+        "height": 190
+      },
+      "en": {
+        "width": 780,
+        "height": 190
+      }
+    },
+    "paging-who-else": {
+      "de": {
+        "width": 780,
+        "height": 258
+      },
+      "en": {
+        "width": 780,
+        "height": 258
+      }
+    },
+    "status-page-pick": {
+      "de": {
+        "width": 780,
+        "height": 420
+      },
+      "en": {
+        "width": 780,
+        "height": 420
+      }
+    },
+    "status-page-review": {
+      "de": {
+        "width": 780,
+        "height": 498
+      },
+      "en": {
+        "width": 780,
+        "height": 478
+      }
+    },
+    "status-page-summary": {
+      "de": {
+        "width": 780,
+        "height": 714
+      },
+      "en": {
+        "width": 780,
+        "height": 694
+      }
+    },
+    "website-down-address": {
+      "de": {
+        "width": 780,
+        "height": 310
+      },
+      "en": {
+        "width": 780,
+        "height": 310
+      }
+    },
+    "website-down-summary": {
+      "de": {
+        "width": 768,
+        "height": 511
+      },
+      "en": {
+        "width": 768,
+        "height": 511
+      }
+    },
+    "website-down-test": {
+      "de": {
+        "width": 780,
+        "height": 190
+      },
+      "en": {
+        "width": 780,
+        "height": 190
+      }
+    },
+    "website-down-who": {
+      "de": {
+        "width": 780,
+        "height": 314
+      },
+      "en": {
+        "width": 780,
+        "height": 314
+      }
+    }
+  }
+}
