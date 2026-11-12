@@ -746,6 +746,9 @@ jobs:
           # dark) planned it as 4.8, which would have taken this group to
           # 22.7: Kubernetes Pages (2.2) moved to group 22 on 2026-11-12,
           # this group about 20.5.
+          # The same spec's wide grid (five tests, about 25 seconds locally: a
+          # grid of six regions as a stack of tiles at 768 and 1280 pixels in
+          # English, Arabic and Persian) planned it as 5.2: about 20.9.
           - group: 6
             suites: >-
               test-status-page-theme-ui
