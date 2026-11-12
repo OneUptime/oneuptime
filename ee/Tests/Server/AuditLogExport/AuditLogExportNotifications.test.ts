@@ -805,7 +805,8 @@ describe("the email's words", () => {
   });
 
   test("entries waiting are never said to be kept 'N days', in either email, for either export", () => {
-    const DAYS_PATTERN: RegExp = /\d+ days?/;
+    // Any number of days ends in a digit followed by " day" (linear to match).
+    const DAYS_PATTERN: RegExp = /\d days?/;
 
     for (const notice of [
       AuditLogExportFailureNotice.Failing,
