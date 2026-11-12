@@ -1,6 +1,13 @@
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SentenceOptions,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
-import { formatSloNumber } from "Common/Utils/Slo/SloWidgetFormat";
+import {
+  formatSloNumber,
+  formatSloPercent,
+} from "Common/Utils/Slo/SloWidgetFormat";
 
 /*
  * The Burn Rate Rules table's Severity, On-Call and Owners cells: a line per
@@ -136,11 +143,22 @@ export const formatBurnRateRuleWindows: FormatBurnRateRuleWindowsFunction = (
  * What a recommended rule is for, under its name in the recommended rules
  * dialog and the SLO list's bulk Add recommended rules: "Fires when about 2%
  * of the error budget burns in 1h". The share and the window are written
- * the reader's way: "۲٪" and a Persian hour on a Persian page.
+ * the reader's way: "2 %" in German, "۲٪" and a Persian hour on a Persian
+ * page.
+ *
+ * The share is one value with its sign (formatSloPercent), set apart from
+ * the sentence, so an Arabic or Persian page draws it as every other share
+ * on the SLO pages is drawn: its figure, then its sign on the right. With
+ * the sign written into the sentence after a bare figure, the bidi
+ * algorithm read the sign with the right-to-left words around it and drew
+ * it on the figure's left ("%2" beside the Overview's "99.9%").
  */
 export const BURN_RATE_RULE_FIRES_WHEN_TEMPLATE: string = translationKey(
-  "Fires when about {{percent}}% of the error budget burns in {{duration}}",
+  "Fires when about {{percent}} of the error budget burns in {{duration}}",
 );
+
+// The share and the window each set apart from the words around them.
+const FIGURES_SET_APART: SentenceOptions = { setsValuesApart: true };
 
 export interface BurnRateRuleFiresWhenData {
   budgetPercentage: number;
@@ -154,13 +172,17 @@ type FormatBurnRateRuleFiresWhenFunction = (
 
 export const formatBurnRateRuleFiresWhen: FormatBurnRateRuleFiresWhenFunction =
   (rule: BurnRateRuleFiresWhenData, translator: Translator): string => {
-    return translator.translateTemplate(BURN_RATE_RULE_FIRES_WHEN_TEMPLATE, {
-      percent:
-        formatSloNumber(rule.budgetPercentage, 2, translator) ??
-        String(rule.budgetPercentage),
-      duration: formatDurationCompactInLanguage(
-        rule.longWindowInMinutes * 60,
-        translator.language,
-      ),
-    });
+    return translator.translateTemplate(
+      BURN_RATE_RULE_FIRES_WHEN_TEMPLATE,
+      {
+        percent:
+          formatSloPercent(rule.budgetPercentage, 2, translator) ??
+          `${rule.budgetPercentage}%`,
+        duration: formatDurationCompactInLanguage(
+          rule.longWindowInMinutes * 60,
+          translator.language,
+        ),
+      },
+      FIGURES_SET_APART,
+    );
   };

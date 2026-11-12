@@ -21,6 +21,7 @@ import {
   formatBurnRateRuleWindows,
 } from "../../FeatureSet/Dashboard/src/Pages/Slo/Utils/BurnRateRuleLines";
 import {
+  SLO_ADVANCED_DEFAULTS_SUMMARY,
   SLO_FORM_ERRORS,
   SLO_TARGET_HELP_TEMPLATE,
   getSloTargetHelpText,
@@ -74,9 +75,29 @@ const FIGURE_KEYS: ReadonlyArray<string> = [
   BURN_RATE_RULE_WINDOWS_TEMPLATE,
   BURN_RATE_RULE_SUPPRESSION_TEMPLATE,
   BURN_RATE_RULE_FIRES_WHEN_TEMPLATE,
+  SLO_ADVANCED_DEFAULTS_SUMMARY,
   "{{budget}} of downtime per {{count}}-day window",
   "Rolling {{count}}-day window",
 ];
+
+/*
+ * The sentences whose share brings its own sign ("2%", "2 %", "۲٪"): a
+ * sign the sentence wrote beside it would read twice, and on an Arabic or
+ * Persian page it was drawn on the figure's left.
+ */
+const SHARE_KEYS: ReadonlyArray<string> = [
+  BURN_RATE_RULE_FIRES_WHEN_TEMPLATE,
+  SLO_ADVANCED_DEFAULTS_SUMMARY,
+];
+
+// A percent sign of any script just before or after a placeholder.
+const SIGN_BESIDE_PLACEHOLDER: RegExp =
+  /\{\{\w+\}\}\s?[%\u066a\ufe6a\uff05]|[%\u066a\ufe6a\uff05]\s?\{\{\w+\}\}/;
+
+// The create form's figures and the rule's share, each set apart from their words.
+const FIGURES_SET_APART: { setsValuesApart: boolean } = {
+  setsValuesApart: true,
+};
 
 function readLocale(code: string): Record<string, unknown> {
   return JSON.parse(
@@ -276,23 +297,49 @@ describe.each(LANGUAGES)("%s", (code: string) => {
   test("says what a rule fires on with its own share and duration", () => {
     const text: string = formatBurnRateRuleFiresWhen(SLOW_LEAK, translator);
 
-    expect(text).toContain(figure(10));
+    expect(text).toBe(
+      translator.translateTemplate(
+        BURN_RATE_RULE_FIRES_WHEN_TEMPLATE,
+        {
+          percent: formatSloPercent(10, 2, translator) as string,
+          duration: formatDurationCompactInLanguage(4320 * 60, code),
+        },
+        FIGURES_SET_APART,
+      ),
+    );
+    expect(text).toContain(formatSloPercent(10, 2, translator) as string);
     expect(text).toContain(formatDurationCompactInLanguage(4320 * 60, code));
     expect(text).not.toContain("3d");
     expectOwnDigits(text);
+  });
+
+  test("writes no percent sign beside a share that brings its own", () => {
+    for (const key of SHARE_KEYS) {
+      const text: string = locale[key] as string;
+
+      expect({
+        code,
+        key,
+        signBesidePlaceholder: SIGN_BESIDE_PLACEHOLDER.test(text),
+      }).toEqual({ code, key, signBesidePlaceholder: false });
+    }
   });
 
   test("helps with the target in its own words and figures", () => {
     const help: string = getSloTargetHelpText(translator);
 
     expect(help).toBe(
-      translator.translateTemplate(SLO_TARGET_HELP_TEMPLATE, {
-        days: figure(30),
-        target: formatSloPercent(99.9, 3, translator) as string,
-        minutes: figure(43),
-        stricterTarget: formatSloPercent(99.99, 3, translator) as string,
-        stricterMinutes: figure(4),
-      }),
+      translator.translateTemplate(
+        SLO_TARGET_HELP_TEMPLATE,
+        {
+          days: figure(30),
+          target: formatSloPercent(99.9, 3, translator) as string,
+          minutes: figure(43),
+          stricterTarget: formatSloPercent(99.99, 3, translator) as string,
+          stricterMinutes: figure(4),
+        },
+        FIGURES_SET_APART,
+      ),
     );
     expect(help).not.toBe(getSloTargetHelpText(ENGLISH));
     expectOwnDigits(help);

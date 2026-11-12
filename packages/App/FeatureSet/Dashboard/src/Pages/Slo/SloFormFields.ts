@@ -14,6 +14,8 @@ import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioBu
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import {
   getGlobalTranslator,
+  SentenceOptions,
+  TemplateValues,
   translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -71,6 +73,17 @@ const getAllowedDowntimeMinutes: DowntimeMinutesFunction = (data: {
   );
 };
 
+/*
+ * The create form's sentences set their figures apart from the words
+ * around them, as the SLO Overview's notes do: on an Arabic or Persian page
+ * each share is then drawn as the Settings page and the Overview draw it,
+ * its figure first and its sign on the right. Left in the sentence, the
+ * bidi algorithm read a share's sign with the right-to-left words around it
+ * and drew it on the figure's left, a few lines under "99.9%". An English
+ * sentence is filled as it always was.
+ */
+const FIGURES_SET_APART: SentenceOptions = { setsValuesApart: true };
+
 export type GetSloTargetHelpTextFunction = (
   translator?: Translator | undefined,
 ) => string;
@@ -86,7 +99,7 @@ export const getSloTargetHelpText: GetSloTargetHelpTextFunction = (
   const reader: Translator = translator || getGlobalTranslator();
   const days: number = DEFAULT_ROLLING_WINDOW_DAYS;
 
-  return reader.translateTemplate(SLO_TARGET_HELP_TEMPLATE, {
+  const values: TemplateValues = {
     days: formatSloNumber(days, 0, reader) ?? String(days),
     target:
       formatSloPercent(SLO_SUGGESTED_TARGET_PERCENTAGE, SLI_DECIMALS, reader) ??
@@ -115,7 +128,13 @@ export const getSloTargetHelpText: GetSloTargetHelpTextFunction = (
         0,
         reader,
       ) ?? "",
-  });
+  };
+
+  return reader.translateTemplate(
+    SLO_TARGET_HELP_TEMPLATE,
+    values,
+    FIGURES_SET_APART,
+  );
 };
 
 /*
@@ -222,10 +241,12 @@ export const SLO_CREATE_INITIAL_VALUES: FormValues<ServiceLevelObjective> = {
 
 /*
  * What the folded Advanced section says while everything in it is at its
- * default: what the SLO is measured over, and when it warns.
+ * default: what the SLO is measured over, and when it warns. The threshold
+ * is one value with its sign ("20 %" in German, "۲۰٪" in Persian), as the
+ * help under Target (%) writes its shares.
  */
 export const SLO_ADVANCED_DEFAULTS_SUMMARY: string = translationKey(
-  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left.",
+  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}} of the error budget is left.",
 );
 
 type ValueOfFunction = (value: unknown) => unknown;
@@ -334,12 +355,18 @@ export const getSloAdvancedSummary: GetSloAdvancedSummaryFunction = (
 
   const reader: Translator = getGlobalTranslator();
 
-  // "۳۰" and "۲۰" on a Persian page: the reader's digits.
+  // "۳۰" and "۲۰٪" on a Persian page: the reader's digits and sign.
   return [
-    reader.translateTemplate(SLO_ADVANCED_DEFAULTS_SUMMARY, {
-      days: reader.formatNumber(DEFAULT_ROLLING_WINDOW_DAYS),
-      threshold: reader.formatNumber(DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE),
-    }),
+    reader.translateTemplate(
+      SLO_ADVANCED_DEFAULTS_SUMMARY,
+      {
+        days: reader.formatNumber(DEFAULT_ROLLING_WINDOW_DAYS),
+        threshold:
+          formatSloPercent(DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE, 0, reader) ??
+          `${DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE}%`,
+      },
+      FIGURES_SET_APART,
+    ),
   ];
 };
 

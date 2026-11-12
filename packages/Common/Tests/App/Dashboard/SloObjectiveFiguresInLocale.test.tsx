@@ -66,6 +66,9 @@ import {
 } from "../../../UI/Utils/TranslateTemplate";
 import User from "../../../UI/Utils/User";
 import { formatDurationCompactInLanguage } from "../../../Utils/Slo/SloDuration";
+import { formatSloPercent } from "../../../Utils/Slo/SloWidgetFormat";
+import { drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
+import { isolated } from "../../Helpers/IsolateMarks";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 /*
@@ -88,6 +91,10 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
  * English decimal point between German words. Every one is now worded by
  * the reader's language, its figures written the reader's way - and an
  * English reader reads each word for word as before.
+ *
+ * The help's and the summary's figures are set apart from their words: a
+ * Persian sentence drew a share's sign on the figure's left, "٪۹۹٫۹", a
+ * few lines under the Overview's "99.9%".
  */
 
 const LOCALES_DIR: string = path.resolve(
@@ -136,6 +143,19 @@ const LATIN_DIGIT: RegExp = /[0-9]/;
 
 // A figure with an English decimal point: "99.9", "0.1".
 const DECIMAL_POINT: RegExp = /[0-9]\.[0-9]/;
+
+/*
+ * Whether `piece` of a sentence on a right-to-left page is drawn as it is
+ * written (Tests/Helpers/BidiLayout): a share's figure, then its sign on
+ * its right, as the Overview and the Settings page draw "99.9%".
+ */
+function isDrawnAsWrittenIn(sentence: string, piece: string): boolean {
+  const from: number = sentence.indexOf(piece);
+
+  expect({ piece, found: from >= 0 }).toEqual({ piece, found: true });
+
+  return isDrawnAsWritten(drawLine(sentence, "rtl"), from, from + piece.length);
+}
 
 const ROLLING_ERROR_BUDGET_KEY: string =
   "{{budget}} of downtime per {{count}}-day window";
@@ -228,14 +248,47 @@ describe("the create form's help under Target (%) (#6925)", () => {
 
     expect(help).toBe(
       worded(FA, SLO_TARGET_HELP_TEMPLATE, {
-        days: "۳۰",
-        target: "۹۹٫۹٪",
-        minutes: "۴۳",
-        stricterTarget: "۹۹٫۹۹٪",
-        stricterMinutes: "۴",
+        days: isolated("۳۰"),
+        target: isolated("۹۹٫۹٪"),
+        minutes: isolated("۴۳"),
+        stricterTarget: isolated("۹۹٫۹۹٪"),
+        stricterMinutes: isolated("۴"),
       }),
     );
     expect(help).not.toMatch(LATIN_DIGIT);
+  });
+
+  test("Persian and Arabic: each share drawn with its sign on its right, as the Overview draws one", async () => {
+    for (const language of ["fa", "ar"]) {
+      await i18next.changeLanguage(language);
+
+      const help: string = getSloTargetHelpText();
+
+      for (const target of [99.9, 99.99]) {
+        const written: string = formatSloPercent(
+          target,
+          3,
+          getGlobalTranslator(),
+        ) as string;
+
+        expect({
+          language,
+          written,
+          drawnAsWritten: isDrawnAsWrittenIn(help, written),
+        }).toEqual({ language, written, drawnAsWritten: true });
+      }
+    }
+
+    // The help as it was filled before, its shares in the words: drawn "٪۹۹٫۹".
+    const before: string = worded(FA, SLO_TARGET_HELP_TEMPLATE, {
+      days: "۳۰",
+      target: "۹۹٫۹٪",
+      minutes: "۴۳",
+      stricterTarget: "۹۹٫۹۹٪",
+      stricterMinutes: "۴",
+    });
+
+    expect(isDrawnAsWrittenIn(before, "۹۹٫۹٪")).toBe(false);
   });
 
   test("a translator handed in wins over the language of the moment", () => {
@@ -266,7 +319,7 @@ describe("the create form's Advanced summary and field help (#6925)", () => {
     ]);
   });
 
-  test("Persian: the summary's 30 and 20 in Persian digits", async () => {
+  test("Persian: the summary's 30 and 20% in Persian digits, the share drawn with its sign on its right", async () => {
     await i18next.changeLanguage("fa");
 
     const summary: Array<string> = getSloAdvancedSummary(
@@ -275,11 +328,37 @@ describe("the create form's Advanced summary and field help (#6925)", () => {
 
     expect(summary).toEqual([
       worded(FA, SLO_ADVANCED_DEFAULTS_SUMMARY, {
-        days: "۳۰",
-        threshold: "۲۰",
+        days: isolated("۳۰"),
+        threshold: isolated("۲۰٪"),
       }),
     ]);
     expect(summary[0]).not.toMatch(LATIN_DIGIT);
+    expect(isDrawnAsWrittenIn(summary[0] as string, "۲۰٪")).toBe(true);
+  });
+
+  test("German and Arabic: the summary's share written the reader's way", async () => {
+    await i18next.changeLanguage("de");
+
+    expect(getSloAdvancedSummary(SLO_CREATE_INITIAL_VALUES)).toEqual([
+      worded(DE, SLO_ADVANCED_DEFAULTS_SUMMARY, {
+        days: "30",
+        threshold: germanPercent("20"),
+      }),
+    ]);
+
+    await i18next.changeLanguage("ar");
+
+    const summary: string = (
+      getSloAdvancedSummary(SLO_CREATE_INITIAL_VALUES) as Array<string>
+    )[0] as string;
+    const threshold: string = formatSloPercent(
+      20,
+      0,
+      getGlobalTranslator(),
+    ) as string;
+
+    expect(summary).toContain(isolated(threshold));
+    expect(isDrawnAsWrittenIn(summary, threshold)).toBe(true);
   });
 
   test("Persian: the Advanced fields' help and the description's example write Persian digits", () => {
@@ -722,9 +801,7 @@ describe("the Settings page (#6925)", () => {
       await i18next.changeLanguage("de");
     });
 
-    await shownValues([
-      worded(DE, ROLLING_WINDOW_KEY, { count: "30" }),
-    ]);
+    await shownValues([worded(DE, ROLLING_WINDOW_KEY, { count: "30" })]);
 
     fireEvent.click(
       await screen.findByRole("button", {
@@ -733,9 +810,7 @@ describe("the Settings page (#6925)", () => {
     );
 
     const germanHelp: string = getSloTargetHelpText(translatorFor("de", DE));
-    const englishHelp: string = getSloTargetHelpText(
-      translatorFor("en", EN),
-    );
+    const englishHelp: string = getSloTargetHelpText(translatorFor("en", EN));
 
     await waitFor(
       () => {

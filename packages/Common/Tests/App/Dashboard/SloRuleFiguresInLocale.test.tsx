@@ -42,6 +42,11 @@ import { ComponentProps as ConfirmModalProps } from "../../../UI/Components/Moda
  * Persian sentence read right to left drew it "×۱". Each figure is now
  * written the reader's way - and an English reader reads every line word
  * for word as before.
+ *
+ * A share is one value with its sign, set apart from the sentence: with
+ * the sign written into a Persian sentence after a bare figure, the line
+ * drew it on the figure's left, "٪۲", a few lines under the Overview's
+ * "99.9%".
  */
 
 const LOCALES_DIR: string = path.resolve(
@@ -89,6 +94,22 @@ const BIDI_MARKS: RegExp = new RegExp(
 
 function withoutMarks(text: string): string {
   return text.replace(BIDI_MARKS, "");
+}
+
+// German sets its percent sign apart with a no-break space: "2 %".
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+/*
+ * Whether `piece` of a sentence on a right-to-left page is drawn as it is
+ * written (Tests/Helpers/BidiLayout): a share's figure, then its sign on
+ * its right, as the Overview and the Settings page draw "99.9%".
+ */
+function isDrawnAsWrittenIn(sentence: string, piece: string): boolean {
+  const from: number = sentence.indexOf(piece);
+
+  expect({ piece, found: from >= 0 }).toEqual({ piece, found: true });
+
+  return isDrawnAsWritten(drawLine(sentence, "rtl"), from, from + piece.length);
 }
 
 const mockPost: MockFunction = getJestMockFunction();
@@ -240,7 +261,12 @@ import {
   SloRecommendedBurnRateRuleToAdd,
   getSloRecommendedBurnRateRules,
 } from "../../../Utils/Slo/SloRecommendedBurnRateRules";
-import { formatSloBurnRate } from "../../../Utils/Slo/SloWidgetFormat";
+import {
+  formatSloBurnRate,
+  formatSloPercent,
+} from "../../../Utils/Slo/SloWidgetFormat";
+import { drawLine, isDrawnAsWritten } from "../../Helpers/BidiLayout";
+import { isolated } from "../../Helpers/IsolateMarks";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "22222222-2222-4222-8222-222222222222",
@@ -651,8 +677,8 @@ describe("the Add recommended rules dialog (#6924)", () => {
       "Fast burn",
       formatSloBurnRate(14.4, reader()),
       worded(FA, BURN_RATE_RULE_FIRES_WHEN_TEMPLATE, {
-        percent: "۲",
-        duration: formatDurationCompactInLanguage(3600, "fa"),
+        percent: isolated("۲٪"),
+        duration: isolated(formatDurationCompactInLanguage(3600, "fa")),
       }),
       worded(FA, BURN_RATE_RULE_WINDOWS_TEMPLATE, { long: "۶۰", short: "۵" }),
       worded(FA, BURN_RATE_RULE_SUPPRESSION_TEMPLATE, { minutes: "۶۰" }),
@@ -660,8 +686,10 @@ describe("the Add recommended rules dialog (#6924)", () => {
     ]);
     expect(rules[2]?.slice(2, 5)).toEqual([
       worded(FA, BURN_RATE_RULE_FIRES_WHEN_TEMPLATE, {
-        percent: "۱۰",
-        duration: formatDurationCompactInLanguage(3 * 24 * 3600, "fa"),
+        percent: isolated("۱۰٪"),
+        duration: isolated(
+          formatDurationCompactInLanguage(3 * 24 * 3600, "fa"),
+        ),
       }),
       worded(FA, BURN_RATE_RULE_WINDOWS_TEMPLATE, {
         long: numberIn("fa", 4320),
@@ -687,7 +715,7 @@ describe("the Add recommended rules dialog (#6924)", () => {
     expect(rules[0]?.slice(1, 5)).toEqual([
       "14,4×",
       worded(DE, BURN_RATE_RULE_FIRES_WHEN_TEMPLATE, {
-        percent: "2",
+        percent: `2${NO_BREAK_SPACE}%`,
         duration: formatDurationCompactInLanguage(3600, "de"),
       }),
       worded(DE, BURN_RATE_RULE_WINDOWS_TEMPLATE, { long: "60", short: "5" }),
@@ -721,8 +749,8 @@ describe("the Add recommended rules dialog (#6924)", () => {
 
     expect(modalRules()[0]?.slice(2, 5)).toEqual([
       worded(FA, BURN_RATE_RULE_FIRES_WHEN_TEMPLATE, {
-        percent: "۱۰",
-        duration: formatDurationCompactInLanguage(1008 * 60, "fa"),
+        percent: isolated("۱۰٪"),
+        duration: isolated(formatDurationCompactInLanguage(1008 * 60, "fa")),
       }),
       worded(FA, BURN_RATE_RULE_WINDOWS_TEMPLATE, {
         long: numberIn("fa", 1008),
@@ -732,6 +760,41 @@ describe("the Add recommended rules dialog (#6924)", () => {
         minutes: numberIn("fa", 1008),
       }),
     ]);
+  });
+
+  test("Persian and Arabic: each share drawn with its sign on its right, as the Overview draws one", async () => {
+    for (const language of ["fa", "ar"]) {
+      cleanup();
+      await i18next.changeLanguage(language);
+      renderModal(recommendedToAdd(30));
+
+      const lines: Array<string> = modalRules().map(
+        (rule: Array<string>): string => {
+          return rule[2] as string;
+        },
+      );
+
+      [2, 5, 10].forEach((share: number, index: number) => {
+        const written: string = formatSloPercent(share, 2, reader()) as string;
+
+        expect({
+          language,
+          written,
+          drawnAsWritten: isDrawnAsWrittenIn(lines[index] as string, written),
+        }).toEqual({ language, written, drawnAsWritten: true });
+      });
+    }
+
+    // The line as it was filled before, a bare figure with the sign after it: drawn "٪۲".
+    expect(
+      isDrawnAsWrittenIn(
+        worded(FA, BURN_RATE_RULE_FIRES_WHEN_TEMPLATE, {
+          percent: "۲٪",
+          duration: formatDurationCompactInLanguage(3600, "fa"),
+        }),
+        "۲٪",
+      ),
+    ).toBe(false);
   });
 });
 
@@ -779,10 +842,11 @@ describe("the SLO list's bulk Add recommended rules confirmation (#6924)", () =>
     );
     expect(variants[0]?.line).toContain(
       worded(FA, BURN_RATE_RULE_FIRES_WHEN_TEMPLATE, {
-        percent: "۲",
-        duration: formatDurationCompactInLanguage(3600, "fa"),
+        percent: isolated("۲٪"),
+        duration: isolated(formatDurationCompactInLanguage(3600, "fa")),
       }),
     );
+    expect(isDrawnAsWrittenIn(variants[0]?.line as string, "۲٪")).toBe(true);
 
     for (const variant of variants) {
       for (const text of [variant.line, ...variant.facts]) {
