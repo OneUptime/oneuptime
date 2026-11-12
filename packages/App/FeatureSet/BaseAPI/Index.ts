@@ -2083,6 +2083,7 @@ import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
+import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
@@ -6566,6 +6567,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WhoIsToldAPI);
+
+    /*
+     * Setup health (SetupHealthAPI, #6812): what is misconfigured in the
+     * project, each finding with its fix, and the counts Home says. A bare
+     * router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, SetupHealthAPI);
 
     /*
      * The Welcome checklist on Home (issue #6803): the project's goals and
