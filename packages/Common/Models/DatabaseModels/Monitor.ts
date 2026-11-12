@@ -507,6 +507,13 @@ export default class Monitor extends BaseModel {
     isDefaultValueColumn: true,
     required: true,
     type: TableColumnType.Boolean,
+    /*
+     * Read with a record that names the monitor - a network device bound to
+     * it, a network link it watches - as with its current status: an
+     * archived monitor's status is frozen, and what reads the record must be
+     * able to tell (Utils/Monitor/MonitoringOff.isMonitored).
+     */
+    canReadOnRelationQuery: true,
     title: "Is Archived",
     description:
       "Archived monitors are hidden from monitor lists and status pages, are not checked, and open no incidents or alerts. Unarchiving resumes monitoring.",
@@ -2127,6 +2134,13 @@ export default class Monitor extends BaseModel {
     type: TableColumnType.Boolean,
     required: true,
     isDefaultValueColumn: true,
+    /*
+     * Read with a record that names the monitor - a network device bound to
+     * it, a network link it watches - as with its current status: while
+     * its monitoring is off that status is frozen, and what reads the
+     * record must be able to tell (Utils/Monitor/MonitoringOff).
+     */
+    canReadOnRelationQuery: true,
     title: "Disable Monitoring",
     description: "Disable active monitoring for this resource?",
     defaultValue: false,

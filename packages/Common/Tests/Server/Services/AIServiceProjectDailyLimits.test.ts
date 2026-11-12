@@ -1,5 +1,6 @@
 import AIService, {
   AI_DISABLED_MESSAGE,
+  AI_ALERT_INVESTIGATION_FEATURE,
   AI_INCIDENT_INVESTIGATION_FEATURE,
   AILogResponse,
   getProjectDailyLimitMessage,
@@ -274,6 +275,29 @@ describe("the sentence a refusal says", () => {
         "Daily autonomous AI token budget exhausted (10 of 10 tokens used today).",
       ),
     ).toBe(true);
+  });
+
+  /*
+   * #7157: the incident's or alert's own daily AI token limit says so in
+   * new words - paused at 0, or used up until midnight UTC - and a run it
+   * stops is not tried again, whichever words it failed with.
+   */
+  test("the record's daily AI token limit is permanent, in its new words and its old", () => {
+    for (const message of [
+      "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+      "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+      "Automatic AI work for incidents used 120 of its Daily Incident AI Token Limit of 100 tokens today. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+      "Automatic AI work for alerts used up today's Daily Alert AI Token Limit. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+      "Daily autonomous AI token budget exhausted (0 of 0 tokens used today). Autonomous AI requests resume tomorrow (UTC) — raise or unset the limit under Alerts > AI > Settings.",
+    ]) {
+      expect({
+        message,
+        isPermanent: isPermanentInvestigationFailure(message),
+      }).toEqual({
+        message,
+        isPermanent: true,
+      });
+    }
   });
 });
 
@@ -1001,10 +1025,101 @@ describe("the incident and alert limits still apply under the ceiling", () => {
         feature: AI_INCIDENT_INVESTIGATION_FEATURE,
         messages: [{ role: "user", content: "investigate" }],
       }),
-    ).rejects.toThrow(/Daily autonomous AI token budget exhausted/);
+    ).rejects.toThrow(
+      "Automatic AI work for incidents used 100 of its Daily Incident AI Token Limit of 100 tokens today. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    );
     expect(laneBudget).toHaveBeenCalledTimes(1);
     expect(completion).not.toHaveBeenCalled();
   });
+
+  /*
+   * #7157: a lane's limit of 0 (or below) pauses its automatic AI work: the
+   * refusal says so, names the record's own limit, and never says the work
+   * resumes tomorrow or at midnight. An alert's lane names the alerts' limit.
+   */
+  test.each([
+    {
+      lane: "incident",
+      limitInTokens: 0,
+      usedTokensToday: 0,
+      error:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "incident",
+      limitInTokens: -100,
+      usedTokensToday: 0,
+      error:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "alert",
+      limitInTokens: 0,
+      usedTokensToday: 0,
+      error:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "alert",
+      limitInTokens: -1,
+      usedTokensToday: 0,
+      error:
+        "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts. Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      lane: "alert",
+      limitInTokens: 2500,
+      usedTokensToday: 3100,
+      error:
+        "Automatic AI work for alerts used 3,100 of its Daily Alert AI Token Limit of 2,500 tokens today. Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    },
+  ])(
+    "the $lane lane's limit of $limitInTokens refuses in words that fit it",
+    async (data: {
+      lane: string;
+      limitInTokens: number;
+      usedTokensToday: number;
+      error: string;
+    }) => {
+      projectLookup.mockResolvedValue(
+        projectRow({ aiDailyTokenLimit: 1_000_000 }),
+      );
+      jest
+        .spyOn(AIService, "getAutonomousDailyBudgetStatus")
+        .mockResolvedValue({
+          exhausted: true,
+          limitInTokens: data.limitInTokens,
+          usedTokensToday: data.usedTokensToday,
+        });
+
+      const refusal: Error = await AIService.executeWithLogging({
+        projectId: PROJECT_ID,
+        ...(data.lane === "incident"
+          ? {
+              incidentId: ObjectID.generate(),
+              feature: AI_INCIDENT_INVESTIGATION_FEATURE,
+            }
+          : {
+              alertId: ObjectID.generate(),
+              feature: AI_ALERT_INVESTIGATION_FEATURE,
+            }),
+        messages: [{ role: "user", content: "investigate" }],
+      }).then(
+        (): Error => {
+          throw new Error("The lane's limit let the call through.");
+        },
+        (error: Error): Error => {
+          return error;
+        },
+      );
+
+      expect(refusal.message).toBe(data.error);
+      expect(refusal.message).not.toMatch(/tomorrow/i);
+      expect(refusal.message.includes("midnight")).toBe(data.limitInTokens > 0);
+      expect(isPermanentInvestigationFailure(refusal.message)).toBe(true);
+      expect(completion).not.toHaveBeenCalled();
+    },
+  );
 
   test("the project's ceiling reached: refused before the lane is even asked", async () => {
     projectLookup.mockResolvedValue(projectRow({ aiDailyTokenLimit: 10 }));

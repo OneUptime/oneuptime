@@ -2,6 +2,9 @@
 
 Din statusside er den ene skærm i OneUptime, dine kunder kigger på, så den bør ligne din egen og ligge på dit eget domæne, såsom `status.yourcompany.com`. Denne side gennemgår siden **Branding** kort for kort og lægger derefter statussiden på dit domæne: tilføj domænet, tilføj dets DNS-poster, og det gratis SSL-certifikat følger af sig selv.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Udgiv en statusside](/docs/guides/status-page).
+
 :::cards
 - [Siden Branding](#siden-branding): Logo, tema, titel, favicon, links, sidefod, farver og sprog.
 - [Brugerdefineret HTML, CSS og JavaScript](#brugerdefineret-html-css-og-javascript): Alt det, de indbyggede indstillinger ikke dækker.

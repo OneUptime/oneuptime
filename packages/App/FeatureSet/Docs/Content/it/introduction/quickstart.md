@@ -2,6 +2,8 @@
 
 Questa guida ti porta da un account nuovo a una configurazione funzionante in circa quindici minuti: un monitor che controlla il tuo sito web ogni cinque minuti, una policy di reperibilità che ti avvisa quando il sito va giù, e una pagina di stato che informa i tuoi clienti. Segue l'elenco **Benvenuto in OneUptime 👋** nella home page del tuo progetto.
 
+Arrivi da un altro strumento? [Importa la tua configurazione](/docs/introduction/getting-started#se-arrivi-da-un-altro-strumento) per prima cosa: i tuoi monitor, le pianificazioni di reperibilità e le pagine di stato vengono con te.
+
 ```mermaid title="Cosa configuri in questa guida"
 flowchart TB
     monitor["Monitor del sito web"] -->|"sito giù"| incident["Incidente"]
@@ -80,6 +82,8 @@ La tua e-mail di accesso è già un modo per raggiungerti. Per ricevere anche SM
 
 Per altri livelli, turni e quanto attende ogni livello, vedi [Regole di escalation](/docs/on-call/escalation-rules) e [Pianificazioni di reperibilità](/docs/on-call/schedules).
 
+Per essere avvisato via SMS, telefonata e push, con la persona successiva avvisata quando nessuno risponde e una chiamata di test che lo dimostra, segui [Essere avvisati per chiamata, SMS o push](/docs/guides/paging).
+
 ## Pubblicare una pagina di stato
 
 :::steps
@@ -97,6 +101,8 @@ Scegli **Panoramica** nel menu laterale. La scheda **Link della pagina di stato*
 :::
 
 Una nuova pagina di stato è pubblica: chiunque abbia il suo indirizzo può aprirla. Per darle il tuo dominio, il tuo logo e i tuoi colori, vedi [Branding e domini della pagina di stato](/docs/status-pages/branding-and-domains).
+
+Per portare la pagina di stato sul tuo dominio, in HTTPS, segui [Pubblicare una pagina di stato](/docs/guides/status-page).
 
 ## Invitare il tuo team
 

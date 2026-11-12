@@ -93,6 +93,10 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 
 **Richiede attenzione** elenca per nome ciò che i numeri contano: gli incidenti aperti, gli avvisi aperti, i monitor non operativi, gli SLO a rischio e le manutenzioni in corso, prima i più urgenti. Ogni riga mostra la gravità o lo stato, dice quando è iniziato un incidente o un avviso e quando termina una manutenzione, e apre l'elemento. Per ogni tipo ne mostra fino a cinque, con **Mostra tutti** per gli altri, che apre lo stesso elenco del suo numero. Quando non c'è nulla di aperto, dice **Nulla richiede la tua attenzione**.
 
+### Stato della configurazione
+
+Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le persone, **Richiede attenzione** termina con **Configurazione**: quante cose meritano un'occhiata. Apre **Stato della configurazione**, che elenca ciò che è configurato male, il più grave per primo, sotto **Gli avvisi non arriveranno**, **Da correggere** e **Suggerimenti**: un monitor che non avvisa nessuno, una policy di reperibilità che nulla esegue, una persona che non può essere avvisata, gli SMS disattivati, una pianificazione di reperibilità senza nessuno reperibile, una pagina di stato che non mostra alcun monitor. Ogni rilevamento dice in una frase cosa non va, con il pulsante che apre la sua correzione, e i rilevamenti di un monitor sono le interruzioni che nomina la sua scheda **Quando va giù**. Un rilevamento che il tuo team lascia così di proposito può essere nascosto con un motivo, per tutti, e ripristinato da **Ignorato**. La ricerca trova la pagina come **Stato della configurazione**, e Chiedi all'IA risponde a "la mia configurazione va bene?" partendo da essa.
+
 ### Il tuo progetto
 
 **Il tuo progetto** conta i **Monitor**, le **Pagine di stato**, le **Policy di reperibilità**, gli **SLOs**, i **Servizi**, le **Dashboard** e i **Flussi di lavoro** del progetto, esclusi quelli archiviati. Ogni riga apre il suo elenco. Un tipo di cui il progetto non ha nessun elemento mostra **Configura** al posto di un numero.
@@ -101,7 +105,7 @@ La checklist sparisce per tutti quando ogni passaggio è fatto. Per nasconderla 
 
 ### Esplora OneUptime
 
-**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic.
+**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic. I prodotti che il tuo progetto nasconde non compaiono.
 
 ## Orientarsi
 
@@ -111,6 +115,9 @@ Tutto in OneUptime si trova sotto **Prodotti** nella barra in alto. Il menu pres
 - **Parti da dove sei.** Il gruppo della pagina in cui ti trovi si espande da solo, e i prodotti che hai aperto di recente sono elencati in alto.
 - **Le tue scelte restano.** Il menu ricorda, nel tuo browser, quali degli altri gruppi hai espanso o compresso. Gli essenziali sono di nuovo espansi ogni volta che apri il menu, anche se li avevi compressi.
 - **Su un telefono**, il pulsante del menu elenca i prodotti allo stesso modo: gli essenziali espansi in alto, e ogni altro gruppo come una riga che si apre con un tocco.
+- **Prodotti che il progetto non usa.** Un proprietario o un amministratore del progetto può nasconderli in **Impostazioni del progetto → Base → Prodotti**. Un prodotto nascosto passa in **Altri prodotti**, l'ultima riga del menu: la ricerca lo trova ancora, le sue pagine funzionano e i suoi dati continuano ad arrivare. Quando uno inizia a ricevere dati, la Home lo dice a chi può mostrarlo di nuovo.
+- **Fissare.** Tieni un prodotto nella barra in alto, accanto a **Home** e **Prodotti**: premi la puntina sulla sua scheda nel menu, oppure **Fissa** accanto al titolo della sua pagina. Puoi fissarne cinque, e ti seguono in ogni browser. Su un telefono, i prodotti fissati vengono per primi nel menu.
+- **Cosa è in uso.** In ogni gruppo tranne gli essenziali e le impostazioni, i prodotti che il tuo progetto usa vengono per primi, e uno che non hai ancora configurato dice **Non configurato**. Su OneUptime Cloud, un prodotto che il tuo piano non include nomina il piano che lo include.
 
 ### Le barre in alto
 

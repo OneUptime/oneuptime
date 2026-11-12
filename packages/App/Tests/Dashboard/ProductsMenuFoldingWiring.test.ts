@@ -82,6 +82,18 @@ const ADMIN_NAVBAR: string = dense(
     "NavBar.tsx",
   ),
 );
+// The NavBar's catalog, fitted to the project's products (#6814).
+const DASHBOARD_PRODUCTS_MENU: string = dense(
+  read(
+    APP_ROOT,
+    "FeatureSet",
+    "Dashboard",
+    "src",
+    "Utils",
+    "ProjectProducts",
+    "UseDashboardProductsMenu.ts",
+  ),
+);
 const COMMAND_PALETTE: string = dense(
   read(
     APP_ROOT,
@@ -149,7 +161,7 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
       "moreMenuCategoriesOpenByDefault:Array<string>;",
     );
     expect(NAVIGATION_ITEMS).toMatch(
-      /return\{navItems,moreMenuItems,moreMenuCategoriesOpenByDefault,rightElement,?\};/,
+      /return\{navItems,moreMenuItems,moreMenuCategoriesOpenByDefault,moreMenuCategoriesInFixedOrder,rightElement,?\};/,
     );
   });
 
@@ -162,9 +174,17 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
   });
 
   test("the Dashboard navbar hands it to the shared NavBar", () => {
+    /*
+     * Through the catalog fitted to the project's products (#6814), which
+     * passes the catalog's own sections on as they are.
+     */
     expect(DASHBOARD_NAVBAR).toContain(
-      "moreMenuCategoriesOpenByDefault,rightElement,}:DashboardNavigationItems=useDashboardNavigationItems();",
+      "moreMenuCategoriesOpenByDefault,rightElement,menu,products,}:DashboardProductsMenu=useDashboardProductsMenu();",
     );
+    expect(DASHBOARD_PRODUCTS_MENU).toContain(
+      "constnavigation:DashboardNavigationItems=useDashboardNavigationItems();",
+    );
+    expect(DASHBOARD_PRODUCTS_MENU).toContain("...navigation,");
     expect(DASHBOARD_NAVBAR).toContain(
       "moreMenuCategoriesOpenByDefault={moreMenuCategoriesOpenByDefault}",
     );
@@ -184,11 +204,22 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
   });
 
   test("both menus hand it to the shared rules", () => {
+    /*
+     * Each hands over its products with the project's hidden ones under
+     * the row at the foot (#6814, getMenuItemsWithHidden), so that row
+     * folds and opens by the same rules.
+     */
     expect(NAVBAR_MODAL).toContain(
-      "useCategoryFolds(props.items,props.categoriesOpenByDefault,)",
+      "useCategoryFolds(menuItems,props.categoriesOpenByDefault,)",
+    );
+    expect(NAVBAR_MODAL).toContain(
+      "getMenuItemsWithHidden({items:props.items,",
     );
     expect(NAVBAR_MOBILE_MENU).toContain(
-      "useCategoryFolds(props.moreMenuItems,props.categoriesOpenByDefault,)",
+      "useCategoryFolds(menuItems,props.categoriesOpenByDefault,)",
+    );
+    expect(NAVBAR_MOBILE_MENU).toContain(
+      "getMenuItemsWithHidden({items:props.moreMenuItems,",
     );
   });
 

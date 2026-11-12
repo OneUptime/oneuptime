@@ -2,6 +2,9 @@
 
 Una pagina di stato è il volto pubblico di tutto ciò che monitorate: un unico URL che i vostri clienti possono aprire invece di scrivervi per chiedere se il problema è solo loro. Mostra lo stato attuale dei servizi che scegliete di esporre, gli incidenti su cui state lavorando, la manutenzione che avete pianificato e qualsiasi annuncio vogliate fissare in cima. Per scegliere tra una pagina di stato e una dashboard, consultate [Quale usare?](/docs/introduction/which-one#dashboard-dashboard-pubblica-o-pagina-di-stato).
 
+> [!TIP]
+> Prima volta qui? Inizia dalla guida: [Pubblicare una pagina di stato](/docs/guides/status-page).
+
 Quando qualcosa si rompe alle 2 di notte, la pagina di stato è la prima cosa a cui rimanda la vostra coda di supporto. È anche da lì che vengono notificati i vostri iscritti, quindi conviene configurarla prima di averne bisogno, non nel mezzo del disservizio.
 
 :::cards

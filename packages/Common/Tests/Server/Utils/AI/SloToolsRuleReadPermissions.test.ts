@@ -189,7 +189,7 @@ describe("query_slos detail mode when a rule table is not readable", () => {
 
     // The widget must not claim the SLO's monitors are picked by hand.
     expect(widgetFieldValue(result, "Monitor rules")).toBe(
-      "not visible to you",
+      "Not visible to you",
     );
     expect(widgetFieldValue(result, "Burn-rate rules")).toBe("1");
   });
@@ -212,7 +212,7 @@ describe("query_slos detail mode when a rule table is not readable", () => {
 
     // "0" would read as "this SLO has no burn-rate rules".
     expect(widgetFieldValue(result, "Burn-rate rules")).toBe(
-      "not visible to you",
+      "Not visible to you",
     );
     expect(widgetFieldValue(result, "Monitor rules")).toBe("1 of 1 enabled");
   });
@@ -228,10 +228,10 @@ describe("query_slos detail mode when a rule table is not readable", () => {
     expect(result.dataForLlm).toContain(BURN_RATE_RULES_PERMISSION);
     expect(result.citationLabel).toBe("SLO Checkout availability");
     expect(widgetFieldValue(result, "Monitor rules")).toBe(
-      "not visible to you",
+      "Not visible to you",
     );
     expect(widgetFieldValue(result, "Burn-rate rules")).toBe(
-      "not visible to you",
+      "Not visible to you",
     );
   });
 
@@ -254,7 +254,7 @@ describe("query_slos detail mode when a rule table is not readable", () => {
     expect(result.rowCount).toBe(3);
     expect(result.dataForLlm).not.toContain(MONITOR_RULES_PERMISSION);
     expect(result.dataForLlm).not.toContain(BURN_RATE_RULES_PERMISSION);
-    expect(JSON.stringify(result.widget)).not.toContain("not visible to you");
+    expect(JSON.stringify(result.widget)).not.toContain("Not visible to you");
   });
 
   test.each([["monitor rules"], ["burn-rate rules"]])(

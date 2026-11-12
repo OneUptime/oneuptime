@@ -1,6 +1,7 @@
 import EventName from "../../Utils/EventName";
 import HowOneUptimeWorks, { HOW_IT_WORKS_TITLE } from "./HowOneUptimeWorks";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
+import WasThisClear from "Common/UI/Components/Feedback/WasThisClear";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
@@ -49,6 +50,9 @@ export const HOW_ONEUPTIME_WORKS_PRODUCT: string = "oneuptime";
 
 export const HOW_ONEUPTIME_WORKS_DIALOG_TEST_ID: string =
   "how-oneuptime-works-dialog";
+
+// The topic "Was this clear?" under the map is kept under (#6832).
+export const HOW_ONEUPTIME_WORKS_FEEDBACK_TOPIC: string = "how_oneuptime_works";
 
 // Opens the dialog, from anywhere in the dashboard.
 export const openHowOneUptimeWorks: (
@@ -110,6 +114,14 @@ const HowOneUptimeWorksDialog: FunctionComponent = (): ReactElement => {
           projectId={ProjectUtil.getCurrentProjectId()?.toString() || undefined}
           isInDialog={true}
           onStepOpened={close}
+        />
+        {/*
+         * Whether the map helped (#6832): a quiet thumb up or down, only
+         * where OneUptime may ask this person.
+         */}
+        <WasThisClear
+          topic={HOW_ONEUPTIME_WORKS_FEEDBACK_TOPIC}
+          className="mt-4"
         />
       </div>
     </Modal>

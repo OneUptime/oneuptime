@@ -18,6 +18,9 @@ import Query from "Common/Server/Types/Database/Query";
 import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import { normalizeMac } from "Common/Utils/Monitor/EndpointAttachmentUtil";
+import MonitoringOff, {
+  MONITORED_SELECT,
+} from "Common/Utils/Monitor/MonitoringOff";
 import {
   NetworkDeviceControllerLink,
   NetworkDeviceDiscoveredDetails,
@@ -682,12 +685,34 @@ export default class NetworkDeviceTopologyAPI {
                 toPortName: true,
                 monitor: {
                   currentMonitorStatusId: true,
+                  /*
+                   * A link whose monitor is not checked takes no color
+                   * from the status it was left at (issue #6965).
+                   */
+                  ...MONITORED_SELECT,
                 },
               },
               limit: LIMIT_PER_PROJECT,
               skip: 0,
               props: props,
             });
+
+          /*
+           * The status each manual link is colored by: its monitor's, while
+           * that monitor is checked - MonitoringOff.isMonitored - and none
+           * otherwise, so the link is drawn as one nothing reports on.
+           */
+          const getLinkMonitorStatusId: (
+            link: NetworkDeviceLink,
+          ) => string | undefined = (
+            link: NetworkDeviceLink,
+          ): string | undefined => {
+            if (!link.monitor || !MonitoringOff.isMonitored(link.monitor)) {
+              return undefined;
+            }
+
+            return link.monitor.currentMonitorStatusId?.toString();
+          };
 
           /*
            * Monitor statuses are per-project lookup rows, so one query
@@ -702,10 +727,11 @@ export default class NetworkDeviceTopologyAPI {
             }
           }
           for (const link of manualLinkRows) {
-            if (link.monitor?.currentMonitorStatusId) {
-              statusIdsInUse.add(
-                link.monitor.currentMonitorStatusId.toString(),
-              );
+            const linkStatusId: string | undefined =
+              getLinkMonitorStatusId(link);
+
+            if (linkStatusId) {
+              statusIdsInUse.add(linkStatusId);
             }
           }
 
@@ -963,7 +989,7 @@ export default class NetworkDeviceTopologyAPI {
               continue;
             }
             const linkStatusId: string | undefined =
-              link.monitor?.currentMonitorStatusId?.toString();
+              getLinkMonitorStatusId(link);
             manualLinkInput.push({
               fromDeviceId: link.fromDeviceId.toString(),
               toDeviceId: link.toDeviceId.toString(),

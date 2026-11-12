@@ -88,6 +88,7 @@ Alt, hvad folk opretter, ændrer eller sletter i et projekt, registreres: monito
 | Aktivitetsfeeds | Et feed viser ændringer, som auditloggen allerede registrerer. |
 | OneUptimes arbejdstilstand | Sessioner for læsere af statussider, jobs i kø og anden tilstand, som OneUptime holder, mens det arbejder. |
 | En persons egen notifikationsopsætning | Hver persons adresser, numre og personlige vagtregler er kun deres egne. |
+| En persons egne præferencer | De produkter, hver person fastgør til sin egen øverste bjælke, er kun deres egne, og kun de ser dem. |
 
 Det registreres også, når en administrator tilføjer eller fjerner en notifikationsmetode eller en personlig vagtregel på en andens konto, uden selve adressen eller nummeret.
 

@@ -519,7 +519,7 @@
         "pillNoFromEmail": "Не включено. Пожалуйста, добавьте email отправителя.",
         "pillNoFromName": "Не включено. Пожалуйста, добавьте имя отправителя.",
         "amazonSesCardTitle": "Настройки Amazon SES",
-        "amazonSesCardDescription": "Ваш ключ доступа Amazon SES и регион, а также отправитель писем.",
+        "amazonSesCardDescription": "Как этот сервер входит в Amazon SES, его регион, а также отправитель писем.",
         "amazonSesEditButton": "Изменить Amazon SES",
         "mailgunCardTitle": "Настройки Mailgun",
         "mailgunCardDescription": "Ваш API-ключ Mailgun и домен отправки, а также отправитель писем.",
@@ -2409,5 +2409,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Выделите обработчикам больше памяти и CPU и найдите в журнале приложения задачи, которые постоянно завершаются ошибкой.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "На этом сервере работает OneUptime {{current}}. Вышла версия {{latest}}.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Сделайте резервную копию, затем обновитесь: npm run update в Docker Compose, helm upgrade в Kubernetes.",
-  "Finish it on the Server setup page.": "Завершите на странице «Настройка сервера»."
+  "Finish it on the Server setup page.": "Завершите на странице «Настройка сервера».",
+  "How OneUptime signs in to Amazon SES.": "Как OneUptime входит в Amazon SES.",
+  "Access Key": "Ключ доступа",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "Идентификатор ключа доступа и секретный ключ доступа пользователя IAM, хранятся в зашифрованном виде.",
+  "This Server's IAM Role": "Роль IAM этого сервера",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Роль, которую AWS выдаёт этому серверу в Amazon EKS, ECS или EC2. Ключ не хранится, а учётные данные обновляются сами.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Отправлять через Amazon SES с ключом доступа или ролью IAM этого сервера."
 }

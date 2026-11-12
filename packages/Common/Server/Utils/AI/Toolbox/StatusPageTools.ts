@@ -24,6 +24,10 @@ import Dictionary from "../../../../Types/Dictionary";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import WidgetBuilder from "./WidgetBuilder";
 import {
+  getStatusPageCardWords,
+  StatusPageResourceCardData,
+} from "./ReadCardWords";
+import {
   ObservabilityTool,
   ToolArgs,
   ToolContext,
@@ -100,10 +104,12 @@ function joinNames(items: Array<{ name?: string }> | undefined): string {
  * page (FrozenMonitorResources). Whether a resource's monitor is archived,
  * and whether its monitoring is off, is read here as OneUptime, for the
  * monitors of the resources the caller read and only those, in their
- * project. A relation read never reads it (Monitor.isArchived is not
- * readable on a relation query): asking for it along with the resources
- * refused every member's read of a page by id - "Column isArchived on
- * Monitor does not support read on relation query."
+ * project. It was read apart because a relation read could not read it
+ * then: asking for it along with the resources refused every member's read
+ * of a page by id - "Column isArchived on Monitor does not support read on
+ * relation query." Both flags are readable on a relation query now (issue
+ * #6965); the read stays here, as OneUptime, so a member's own column
+ * permissions never decide which resources a page's answer leaves out.
  */
 async function withoutArchivedMonitors(
   ctx: ToolContext,
@@ -200,22 +206,54 @@ async function getNotMonitoredResourceIds(
  * the internal monitor it maps to.
  */
 function describeResource(resource: StatusPageResource): string {
+  const named: StatusPageResourceCardData | null = nameResource(
+    resource,
+    false,
+  );
+
+  if (!named) {
+    return "";
+  }
+
+  if (named.source) {
+    const sourceKind: string = named.source.isMonitorGroup
+      ? "monitor group"
+      : "monitor";
+    return `${named.name} (${sourceKind}: ${named.source.name})`;
+  }
+
+  return named.name;
+}
+
+/*
+ * The same, as the card says it in the reader's language (issue #7175):
+ * the names are data, the words around them the reader's. Null for a
+ * resource with no name to show.
+ */
+function nameResource(
+  resource: StatusPageResource,
+  isNotMonitored: boolean,
+): StatusPageResourceCardData | null {
   const monitorName: string =
     resource.monitor?.name || resource.monitorGroup?.name || "";
   const displayName: string = resource.displayName || monitorName;
 
   if (!displayName) {
-    return "";
+    return null;
   }
 
-  if (monitorName && monitorName !== displayName) {
-    const sourceKind: string = resource.monitor?.name
-      ? "monitor"
-      : "monitor group";
-    return `${displayName} (${sourceKind}: ${monitorName})`;
-  }
-
-  return displayName;
+  return {
+    name: displayName,
+    ...(monitorName && monitorName !== displayName
+      ? {
+          source: {
+            name: monitorName,
+            isMonitorGroup: !resource.monitor?.name,
+          },
+        }
+      : {}),
+    isNotMonitored,
+  };
 }
 
 /*
@@ -404,28 +442,26 @@ export const QueryStatusPagesTool: ObservabilityTool = {
       const serialized: SerializedResult =
         ToolResultSerializer.serializeRows(rows);
 
-      const cardFields: Array<{ label: string; value: string }> = [
-        { label: "Visibility", value: visibility },
-      ];
-      if (statusPage.isArchived === true) {
-        cardFields.push({
-          label: "Archived",
-          value: "Yes - offline, sends nothing",
-        });
-      }
-      if (publicUrl) {
-        cardFields.push({ label: "Public URL", value: publicUrl });
-      }
-      cardFields.push({
-        label: "Resources shown",
-        value: resourceSummaries
-          ? `${shownResources.length}: ${resourceSummaries}`
-          : "0",
-      });
-      cardFields.push({
-        label: "Active subscribers",
-        value: activeSubscribers.toNumber().toString(),
-      });
+      // The resources the card names, as the reply's summary names them.
+      const cardResources: Array<StatusPageResourceCardData> = shownResources
+        .map(
+          (resource: StatusPageResource): StatusPageResourceCardData | null => {
+            return nameResource(
+              resource,
+              FrozenMonitorResources.isNotMonitored(
+                resource,
+                notMonitoredResourceIds,
+              ),
+            );
+          },
+        )
+        .filter(
+          (
+            resource: StatusPageResourceCardData | null,
+          ): resource is StatusPageResourceCardData => {
+            return resource !== null;
+          },
+        );
 
       return {
         dataForLlm:
@@ -442,10 +478,17 @@ export const QueryStatusPagesTool: ObservabilityTool = {
         isTruncated: serialized.isTruncated,
         widget: WidgetBuilder.resourceCard({
           title: `Status page: ${statusPage.name || statusPageId.toString()}`,
-          resourceType: "Status Page",
           heading: statusPage.name || statusPageId.toString(),
-          subheading: statusPage.description,
-          fields: cardFields,
+          // In the reader's language (issue #7175).
+          words: getStatusPageCardWords({
+            description: statusPage.description || undefined,
+            isPublic: statusPage.isPublicStatusPage !== false,
+            isArchived: statusPage.isArchived === true,
+            publicUrl: publicUrl || undefined,
+            resourceCount: shownResources.length,
+            resources: cardResources,
+            activeSubscribers: activeSubscribers.toNumber(),
+          }),
           link: {
             type: AIChatCitationTargetType.StatusPageView,
             params: { statusPageId: statusPageId.toString() },

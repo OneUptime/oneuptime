@@ -3475,9 +3475,9 @@ test.describe("investigation states", () => {
  * and nothing on it moves until then.
  */
 const FAILED_CAUSE: string =
-  "The AI provider could not be reached, or was too busy to answer.";
+  "The LLM provider could not be reached, or was too busy to answer.";
 const FAILED_FIX: string =
-  "Check that the AI provider is up and that OneUptime can reach it, then try again.";
+  "Check that the LLM provider is up and that OneUptime can reach it, then try again.";
 // The fixture's refusal of Try again (?fail=investigation-try-again).
 const TRY_AGAIN_REFUSAL: string =
   "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.";
@@ -3698,7 +3698,7 @@ test.describe("a run that did not finish (issues #6437, #6438)", () => {
     );
     await expect(step.getByTestId("activity-attempt-end")).toHaveText(
       new RegExp(
-        `^Did not finish: The AI provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
+        `^Did not finish: The LLM provider did not answer within 120 seconds\\. Trying again at ${RETRY_TIME}\\.$`,
       ),
     );
     // The model call that ran out of time failed; nothing promises a retry.
@@ -22901,7 +22901,7 @@ test.describe("a fix that did not work, step by step (?fixes=rolled-back)", () =
  */
 const UNFINISHED_ROUND_FIX_ID: string = "93000000-0000-4000-8000-000000000010";
 const ROUND_TIMEOUT_CAUSE: string =
-  "The AI provider did not answer within 120 seconds.";
+  "The LLM provider did not answer within 120 seconds.";
 // The fixture's refusal of the round's Try again (?fail=round-try-again).
 const ROUND_LIMIT_REFUSAL: string =
   "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.";

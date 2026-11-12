@@ -15,6 +15,8 @@ import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import DashboardCommandPalette from "../../App/FeatureSet/Dashboard/src/Components/CommandPalette/DashboardCommandPalette";
 import DashboardNavbar from "../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
+import HiddenProductsWithData from "../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/HiddenProductsWithData";
+import ProductsSettings from "../../App/FeatureSet/Dashboard/src/Components/ProjectProducts/ProductsSettings";
 import { useDashboardNavigationItems } from "../../App/FeatureSet/Dashboard/src/Utils/NavigationItems";
 import ar from "../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 import de from "../../App/FeatureSet/Dashboard/src/Locales/de.json";
@@ -26,8 +28,23 @@ import {
   isHeaderMode,
 } from "./HeaderFixture";
 
+/*
+ * The header page reads ?lang= its own way (HeaderFixture.js: en, de or ar).
+ * Every other page is English, or the Dashboard's German (?lang=de) or
+ * Arabic (?lang=ar, read from right to left). Read once: links navigate
+ * without the query.
+ */
+const requestedLanguage = new URLSearchParams(window.location.search).get(
+  "lang",
+);
+const language = isHeaderMode
+  ? headerLanguage
+  : ["de", "ar"].includes(requestedLanguage)
+    ? requestedLanguage
+    : "en";
+
 await i18n.use(initReactI18next).init({
-  lng: headerLanguage,
+  lng: language,
   fallbackLng: "en",
   resources: {
     en: { translation: en },
@@ -43,9 +60,10 @@ await i18n.use(initReactI18next).init({
  */
 followLanguageForDates(i18n);
 
+// <html lang dir> follow the reader's language: Arabic reads right to left.
+followLanguageForPage(i18n);
+
 if (isHeaderMode) {
-  // <html lang dir> follow the reader's language: Arabic reads right to left.
-  followLanguageForPage(i18n);
   installHeaderFixture();
 }
 
@@ -62,6 +80,13 @@ function Fixture() {
   const [showPalette] = useState(
     () => new URLSearchParams(location.search).get("palette") === "true",
   );
+  /*
+   * Project Settings > Products, under Home's card for hidden products that
+   * have data (issue #6814): ?products=true.
+   */
+  const [showProducts] = useState(
+    () => new URLSearchParams(location.search).get("products") === "true",
+  );
   Navigation.setNavigateHook(useNavigate());
   Navigation.setLocation(location);
   Navigation.setParams(useParams());
@@ -71,6 +96,16 @@ function Fixture() {
   // The header and nav bar of every page: ?header=true (HeaderFixture.js).
   if (isHeaderMode) {
     return <HeaderFixture pathname={location.pathname} />;
+  }
+
+  if (showProducts) {
+    return (
+      <main className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+        <p data-testid="current-route">{location.pathname}</p>
+        <HiddenProductsWithData />
+        <ProductsSettings />
+      </main>
+    );
   }
 
   if (showPalette) {

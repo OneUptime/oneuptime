@@ -83,6 +83,8 @@ const OTHER_READS: Record<string, string> = {
     "Hands out the writer of a GitHub repository, through its GitHub App installation; writes nothing.",
   "CodeHostWriters.openForRepository":
     "Hands out the writer of a GitLab, Forgejo or Gitea repository, through its connection; writes nothing.",
+  "PayAsYouGoBillingService.canUsePayAsYouGo":
+    "Whether the project may incur usage charges on OneUptime Cloud (a card on file, a reseller's or a marketplace plan), asked before a setup action's card (#6829); reads the payment setup and keeps the answer in memory, writes nothing.",
 };
 
 // What every write passes: the props of the person who asked.

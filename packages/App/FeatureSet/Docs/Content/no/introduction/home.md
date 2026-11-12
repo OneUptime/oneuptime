@@ -93,6 +93,10 @@ Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tid
 
 **Krever oppmerksomhet** viser ved navn det tallene teller: de åpne hendelsene, de åpne varslene, monitorene som ikke er i drift, SLO-ene i faresonen og vedlikeholdet som pågår, det mest presserende først. Hver rad viser alvorlighetsgrad eller status, sier når en hendelse eller et varsel startet og når vedlikeholdet slutter, og åpner oppføringen. Hver type viser opptil fem, med **Vis alle** for resten, som åpner den samme listen som tallet. Når ingenting er åpent, står det **Ingenting krever oppmerksomheten din**.
 
+### Oppsettets helse
+
+Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krever oppmerksomhet** med **Oppsett**: hvor mange ting som bør ses på. Den åpner **Oppsettets helse**, som viser hva som er satt opp feil, det verste først, under **Varsler kommer ikke frem**, **Verdt å rette** og **Forslag**: en monitor som ikke varsler noen, en vaktpolicy som ingenting kjører, en person som ikke kan varsles, SMS slått av, en vakttidsplan uten noen på vakt, en statusside som ikke viser noen monitor. Hvert funn sier i én setning hva som er galt, med knappen som åpner rettingen, og funnene for en monitor er bruddene som kortet **Når den går ned** nevner. Et funn som teamet ditt lar være med vilje, kan skjules med en begrunnelse, for alle, og gjenopprettes fra **Avvist**. Søk finner siden som **Oppsettets helse**, og Spør AI svarer på «er oppsettet mitt i orden?» ut fra den.
+
 ### Prosjektet ditt
 
 **Prosjektet ditt** teller prosjektets **Monitorer**, **Statussider**, **Vaktretningslinjer**, **SLOs**, **Tjenester**, **Dashbord** og **Arbeidsflyter**, uten de arkiverte. Hver rad åpner listen sin. En type som prosjektet ikke har noen av, viser **Konfigurer** i stedet for et tall.
@@ -101,7 +105,7 @@ Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tid
 
 ### Utforsk OneUptime
 
-**Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det.
+**Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det. Produktene prosjektet ditt skjuler, er ikke med.
 
 ## Finn frem
 
@@ -111,6 +115,9 @@ Alt i OneUptime ligger under **Produkter** i topplinjen. Menyen viser gruppene s
 - **Du starter der du er.** Gruppen til siden du er på, utvides av seg selv, og produktene du nylig har åpnet, står øverst.
 - **Valgene dine blir værende.** Menyen husker i nettleseren din hvilke av de andre gruppene du har utvidet eller slått sammen. Det grunnleggende er utvidet igjen hver gang du åpner menyen, selv om du slo det sammen.
 - **På en telefon** viser menyknappen produktene på samme måte: det grunnleggende utvidet øverst, og hver annen gruppe som én rad som åpnes med et trykk.
+- **Produkter prosjektet ikke bruker.** En prosjekteier eller -administrator kan skjule dem under **Prosjektinnstillinger → Grunnleggende → Produkter**. Et skjult produkt flyttes til **Flere produkter**, menyens siste rad: Søk finner det fortsatt, sidene virker fortsatt, og dataene fortsetter å komme. Når ett av dem begynner å motta data, sier Hjem fra til dem som kan vise det igjen.
+- **Fest.** Behold et produkt i den øverste linjen, ved siden av **Hjem** og **Produkter**: trykk på nålen på kortet i menyen, eller på **Fest** ved siden av sidetittelen. Du kan feste fem, og de følger deg til alle nettlesere. På en telefon kommer de festede produktene dine først i menyen.
+- **Hva som er i bruk.** I hver gruppe unntatt det grunnleggende og innstillingene kommer produktene prosjektet ditt bruker, først, og et du ikke har satt opp ennå, sier **Ikke satt opp**. I OneUptime Cloud nevner et produkt som abonnementet ditt ikke omfatter, abonnementet som omfatter det.
 
 ### Linjene øverst
 

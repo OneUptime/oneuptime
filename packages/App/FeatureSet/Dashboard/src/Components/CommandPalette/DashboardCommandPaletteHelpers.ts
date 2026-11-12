@@ -107,6 +107,11 @@ export interface PaletteNavigationCatalogEntry {
    * recents are persisted under.
    */
   templatePath: string;
+  /*
+   * Offered only to someone searching (#6814): a product the project hides
+   * is still found by Search, but browsing lists the products it shows.
+   */
+  isSearchOnly?: boolean | undefined;
 }
 
 export interface PaletteNavigationCommandDescriptor
@@ -583,6 +588,7 @@ export type PaletteActionId =
   | "action-keyboard-shortcuts"
   | "action-how-oneuptime-works"
   | "action-glossary"
+  | "action-give-feedback"
   | "action-log-out"
   | "action-project-invitations"
   | "action-active-incidents"
@@ -728,6 +734,11 @@ export interface PaletteActionAvailability extends PaletteCreateActionGates {
    * Left out, the palette offers only the switch to the other theme.
    */
   isThemeFollowingDevice?: boolean | undefined;
+  /*
+   * Whether this server takes feedback (#6832, ProductFeedback.isOn): Give
+   * feedback is offered beside the Glossary. Left out, it is not.
+   */
+  canGiveFeedback?: boolean | undefined;
 }
 
 /*
@@ -777,6 +788,12 @@ export function getVisibleActionIds(
    */
   actionIds.push("action-how-oneuptime-works");
   actionIds.push("action-glossary");
+
+  // Tell OneUptime what was hard (#6832), where the server takes feedback.
+  if (availability.canGiveFeedback) {
+    actionIds.push("action-give-feedback");
+  }
+
   actionIds.push("action-active-incidents");
   actionIds.push("action-my-on-call-policies");
   actionIds.push("action-project-invitations");

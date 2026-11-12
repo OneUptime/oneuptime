@@ -55,6 +55,7 @@ import MonitorService from "../../../Server/Services/MonitorService";
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallReadinessService from "../../../Server/Services/OnCallReadinessService";
 import ProjectMilestoneService from "../../../Server/Services/ProjectMilestoneService";
+import ProjectProductsService from "../../../Server/Services/ProjectProductsService";
 import ProjectService from "../../../Server/Services/ProjectService";
 import StatusPageService from "../../../Server/Services/StatusPageService";
 import TeamMemberService from "../../../Server/Services/TeamMemberService";
@@ -218,6 +219,12 @@ let milestonesSpy: SpyInstance<
 type LegacyCountSpy = SpyInstance<() => Promise<PositiveNumber>>;
 let legacyCountSpies: Array<LegacyCountSpy>;
 let canSendSpy: SpyInstance;
+/*
+ * The products the goals need (#6814): ProjectProductsService works them
+ * out and is tested on its own (ProjectProductsService.test.ts); here, only
+ * that choosing the goals hands them over.
+ */
+let applyGoalsSpy: SpyInstance<typeof ProjectProductsService.applyGoals>;
 
 function permission(value: Permission): UserPermission {
   return {
@@ -403,6 +410,10 @@ beforeEach(() => {
     .mockImplementation((async (): Promise<boolean> => {
       return serverCanSendEmail;
     }) as never);
+
+  applyGoalsSpy = jest
+    .spyOn(ProjectProductsService, "applyGoals")
+    .mockImplementation((async (): Promise<void> => {}) as never);
 
   jest.spyOn(logger, "error").mockImplementation((() => {}) as never);
   jest.spyOn(logger, "debug").mockImplementation((() => {}) as never);
@@ -1029,6 +1040,39 @@ describe("what a browser remembered of the old checklist", () => {
     });
 
     expect(writes).toHaveLength(0);
+  });
+});
+
+describe("the products the goals need (#6814)", () => {
+  test("choosing the goals gives the project the products they need", async () => {
+    await WelcomeChecklistService.chooseGoals(OWNER(), ["telemetry", "uptime"]);
+
+    expect(applyGoalsSpy).toHaveBeenCalledTimes(1);
+    expect(applyGoalsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      // In the order of PROJECT_GOALS, as they are kept.
+      goals: [ProjectGoal.Uptime, ProjectGoal.Telemetry],
+    });
+  });
+
+  test("skipping the question hands over no goals", async () => {
+    await WelcomeChecklistService.chooseGoals(OWNER(), []);
+
+    expect(applyGoalsSpy).toHaveBeenCalledWith({
+      projectId: PROJECT_ID,
+      goals: [],
+    });
+  });
+
+  test("goals that are refused set no products", async () => {
+    await expect(
+      WelcomeChecklistService.chooseGoals(MEMBER(), ["uptime"]),
+    ).rejects.toBeInstanceOf(BadDataException);
+    await expect(
+      WelcomeChecklistService.chooseGoals(OWNER(), ["uptime", "world_peace"]),
+    ).rejects.toBeInstanceOf(BadDataException);
+
+    expect(applyGoalsSpy).not.toHaveBeenCalled();
   });
 });
 

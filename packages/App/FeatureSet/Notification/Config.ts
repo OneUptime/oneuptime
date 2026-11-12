@@ -2,6 +2,9 @@ import TwilioConfig from "Common/Types/CallAndSMS/TwilioConfig";
 import URL from "Common/Types/API/URL";
 import Email from "Common/Types/Email";
 import EmailServer from "Common/Types/Email/EmailServer";
+import AmazonSesAuthenticationType, {
+  toAmazonSesAuthenticationType,
+} from "Common/Types/Email/AmazonSesAuthenticationType";
 import MailTransportType from "Common/Types/Email/MailTransportType";
 import { isMailgunDomain } from "Common/Types/Email/MailgunDomain";
 import { toMailgunRegion } from "Common/Types/Email/MailgunRegion";
@@ -218,6 +221,7 @@ export const getGlobalEmailProviderServer: GetGlobalEmailProviderServerFunction 
           isRoot: true,
         },
         select: {
+          amazonSesAuthenticationType: true,
           amazonSesAccessKeyId: true,
           amazonSesSecretAccessKey: true,
           amazonSesRegion: true,
@@ -282,17 +286,26 @@ export const getGlobalEmailProviderServer: GetGlobalEmailProviderServerFunction 
 
     switch (transportType) {
       case MailTransportType.AmazonSES: {
+        /*
+         * Signed in as the server's own IAM role (#7000), nothing but the
+         * Region is needed: the credentials are the role's, fetched when
+         * the email goes (AwsDefaultCredentialChain).
+         */
+        const usesServerIamRole: boolean =
+          toAmazonSesAuthenticationType(
+            globalConfig.amazonSesAuthenticationType,
+          ) === AmazonSesAuthenticationType.ServerIamRole;
         const accessKeyId: string = text(globalConfig.amazonSesAccessKeyId);
         const secretAccessKey: string = text(
           globalConfig.amazonSesSecretAccessKey,
         );
         const region: string = text(globalConfig.amazonSesRegion).toLowerCase();
 
-        if (!accessKeyId) {
+        if (!usesServerIamRole && !accessKeyId) {
           throw notSet("Access Key ID");
         }
 
-        if (!secretAccessKey) {
+        if (!usesServerIamRole && !secretAccessKey) {
           throw notSet("Secret Access Key");
         }
 
@@ -306,8 +319,11 @@ export const getGlobalEmailProviderServer: GetGlobalEmailProviderServerFunction 
             globalConfig.amazonSesFromEmail,
             globalConfig.amazonSesFromName,
           ),
-          awsAccessKeyId: accessKeyId,
-          awsSecretAccessKey: secretAccessKey,
+          awsAuthenticationType: usesServerIamRole
+            ? AmazonSesAuthenticationType.ServerIamRole
+            : AmazonSesAuthenticationType.AccessKey,
+          awsAccessKeyId: usesServerIamRole ? undefined : accessKeyId,
+          awsSecretAccessKey: usesServerIamRole ? undefined : secretAccessKey,
           awsRegion: region,
         };
       }
