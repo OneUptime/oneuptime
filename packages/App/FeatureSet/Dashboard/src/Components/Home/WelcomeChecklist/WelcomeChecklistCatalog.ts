@@ -18,6 +18,7 @@ import PermissionGate, {
 } from "Common/UI/Utils/PermissionGate";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 
 /*
  * THE WELCOME CHECKLIST'S WORDS AND PAGES (issue #6803).
@@ -200,6 +201,13 @@ export interface WelcomeStepEntry {
    * page.
    */
   guidedSetupPage?: PageMap | undefined;
+  /*
+   * What the guided setup's first step creates, for a step with no create
+   * page of its own (a status page): only someone who may create it is sent
+   * to the setup, and everyone else lands on `pageMap`. A step with a
+   * create page is gated by that page's model instead.
+   */
+  guidedSetupModelType?: { new (): PermissionCheckableModel } | undefined;
   // A page outside the Dashboard (the Admin Dashboard), opened in a new tab.
   externalUrl?: (() => URL) | undefined;
   /*
@@ -292,6 +300,12 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     icon: IconProp.Logs,
     iconBackgroundClassName: "bg-violet-500",
     pageMap: PageMap.LOGS,
+    /*
+     * The guided setup (#6806): the OpenTelemetry guide, the wait for the
+     * first data, and recommended alerts on the service that reported, on
+     * one page. It says what is next itself.
+     */
+    guidedSetupPage: PageMap.SERVICES_GUIDED_SETUP,
   },
   {
     step: WelcomeStep.OnCall,
@@ -312,12 +326,12 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     icon: IconProp.Call,
     iconBackgroundClassName: "bg-rose-500",
     pageMap: PageMap.ON_CALL_DUTY,
-    landing: {
-      pageMap: PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
-      doneText: translationKey(
-        "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
-      ),
-    },
+    /*
+     * The guided setup (#6805): how you are reached, who else is on call,
+     * what if nobody answers and a test page, on one page. It says what is
+     * next itself, so the step has no landing line.
+     */
+    guidedSetupPage: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
   },
   {
     step: WelcomeStep.StatusPage,
@@ -328,12 +342,15 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     icon: IconProp.CheckCircle,
     iconBackgroundClassName: "bg-emerald-500",
     pageMap: PageMap.STATUS_PAGES,
-    landing: {
-      pageMap: PageMap.STATUS_PAGE_VIEW,
-      doneText: translationKey(
-        "Status page created. Add a monitor to it to tick the step off.",
-      ),
-    },
+    /*
+     * The guided setup (#6806): a name, the monitors it shows and what
+     * customers see, on one page. It cannot finish with an empty page, and
+     * says what is next itself, so the step has no landing line. Only
+     * someone who may create a status page is sent there; everyone else
+     * lands on the list, whose create button says why it is off.
+     */
+    guidedSetupPage: PageMap.STATUS_PAGES_GUIDED_SETUP,
+    guidedSetupModelType: StatusPage,
   },
   {
     step: WelcomeStep.Team,
@@ -383,7 +400,16 @@ export const getWelcomeStepPage: (entry: WelcomeStepEntry) => PageMap | null = (
         .isAllowed,
   );
 
-  if (entry.guidedSetupPage && (!entry.createPage || mayCreate)) {
+  // The model the setup's first step creates: its create page's, or its own.
+  const setupModelType: { new (): PermissionCheckableModel } | undefined =
+    entry.createPage?.modelType || entry.guidedSetupModelType;
+  const maySetUp: boolean = setupModelType
+    ? entry.createPage
+      ? mayCreate
+      : PermissionGate.check(new setupModelType(), ModelAction.Create).isAllowed
+    : true;
+
+  if (entry.guidedSetupPage && maySetUp) {
     return entry.guidedSetupPage;
   }
 

@@ -47,7 +47,7 @@ export const INVESTIGATION_NOT_STARTED_MESSAGES: Partial<
   ai_disabled:
     "OneUptime AI is switched off for this project. A project owner or someone with Manage Billing can turn it on in Project Settings > AI > AI Features.",
   provider_missing:
-    "This project has no AI provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
+    "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
   insufficient_ai_balance: PROJECT_AI_CREDITS_USED_UP_MESSAGE,
   project_daily_limit_reached: `The project reached its daily AI limit. OneUptime AI starts again at midnight UTC. ${ProjectAiDailyLimits.getWhoCanChangeSentence()}`,
 };
