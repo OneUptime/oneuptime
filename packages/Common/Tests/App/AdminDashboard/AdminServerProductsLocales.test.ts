@@ -65,8 +65,8 @@ const isPlural: (value: unknown) => value is PluralTemplate = (
   return (
     typeof value === "object" &&
     value !== null &&
-    "one" in (value as object) &&
-    "other" in (value as object)
+    "one" in (value as Record<string, unknown>) &&
+    "other" in (value as Record<string, unknown>)
   );
 };
 
@@ -148,7 +148,11 @@ describe("Settings > Products in every language", () => {
     },
   );
 
-  test.each(LANGUAGES.filter((language: string): boolean => language !== "en"))(
+  test.each(
+    LANGUAGES.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )(
     "%s translates the page's sentences, not leaving them in English",
     (language: string) => {
       const locale: Record<string, unknown> = read(language);

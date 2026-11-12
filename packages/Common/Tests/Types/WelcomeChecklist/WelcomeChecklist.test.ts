@@ -26,18 +26,16 @@ import {
   isWelcomeStepDone,
   needsOnCallRuleCheck,
   shouldAskForGoals,
+  GOAL_PRODUCTS,
+  WELCOME_STEP_PRODUCTS,
+  isGoalOffOnServer,
+  isWelcomeStepOffOnServer,
 } from "../../../Types/WelcomeChecklist/WelcomeChecklist";
 import ProductKey from "../../../Types/Product/ProductKey";
 import {
   ServerProductsPreset,
   getOffByPreset,
 } from "../../../Types/Product/ServerProducts";
-import {
-  GOAL_PRODUCTS,
-  WELCOME_STEP_PRODUCTS,
-  isGoalOffOnServer,
-  isWelcomeStepOffOnServer,
-} from "../../../Types/WelcomeChecklist/WelcomeChecklist";
 import { describe, expect, test } from "@jest/globals";
 
 /*

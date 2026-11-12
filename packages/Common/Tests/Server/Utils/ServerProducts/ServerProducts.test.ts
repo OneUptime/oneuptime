@@ -71,13 +71,20 @@ beforeEach(() => {
       stored = settings;
     });
 
+  const readStartingValue: () => string = (): string => {
+    return startingValue;
+  };
+  const readIngestionStopped: () => boolean = (): boolean => {
+    return isIngestionStopped;
+  };
+
   for (const target of [service, ServerProducts]) {
-    jest.spyOn(target, "getStartingValueText").mockImplementation(() => {
-      return startingValue;
-    });
-    jest.spyOn(target, "isTelemetryIngestionStopped").mockImplementation(() => {
-      return isIngestionStopped;
-    });
+    jest
+      .spyOn(target, "getStartingValueText")
+      .mockImplementation(readStartingValue);
+    jest
+      .spyOn(target, "isTelemetryIngestionStopped")
+      .mockImplementation(readIngestionStopped);
     target.forget();
   }
 });

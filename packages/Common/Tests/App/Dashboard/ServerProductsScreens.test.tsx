@@ -61,8 +61,10 @@ import {
   getOffByPreset,
 } from "../../../Types/Product/ServerProducts";
 import ProjectGoal from "../../../Types/WelcomeChecklist/ProjectGoal";
-import { NAVBAR_PINNED_ITEM_TEST_ID } from "../../../UI/Components/Navbar/NavBar";
-import { MoreMenuItem } from "../../../UI/Components/Navbar/NavBar";
+import {
+  MoreMenuItem,
+  NAVBAR_PINNED_ITEM_TEST_ID,
+} from "../../../UI/Components/Navbar/NavBar";
 import Navigation from "../../../UI/Utils/Navigation";
 import User from "../../../UI/Utils/User";
 import Route from "../../../Types/API/Route";
@@ -242,15 +244,21 @@ describe("the products menu", () => {
       fixedOrderCategories: [],
     });
 
-    expect(fromAnswer.listed.map((item: MoreMenuItem) => item.key)).toEqual([
-      ProductKey.Monitors,
-    ]);
-    expect(fromAnswer.hidden.map((item: MoreMenuItem) => item.key)).toEqual([
-      ProductKey.Traces,
-    ]);
-    expect(fromAnswer.pinned.map((item: MoreMenuItem) => item.key)).toEqual([
-      ProductKey.Traces,
-    ]);
+    expect(
+      fromAnswer.listed.map((item: MoreMenuItem) => {
+        return item.key;
+      }),
+    ).toEqual([ProductKey.Monitors]);
+    expect(
+      fromAnswer.hidden.map((item: MoreMenuItem) => {
+        return item.key;
+      }),
+    ).toEqual([ProductKey.Traces]);
+    expect(
+      fromAnswer.pinned.map((item: MoreMenuItem) => {
+        return item.key;
+      }),
+    ).toEqual([ProductKey.Traces]);
 
     expect(
       buildProductsMenu({
@@ -258,7 +266,9 @@ describe("the products menu", () => {
         answer: answer,
         fixedOrderCategories: [],
         offOnServer: [ProductKey.Monitors],
-      }).listed.map((item: MoreMenuItem) => item.key),
+      }).listed.map((item: MoreMenuItem) => {
+        return item.key;
+      }),
     ).toEqual([ProductKey.Logs]);
   });
 });
