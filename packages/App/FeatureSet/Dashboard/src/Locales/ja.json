@@ -51447,5 +51447,16 @@
   "Your answer could not be sent. Check your connection, then try again.": "回答を送信できませんでした。接続を確認してから、もう一度お試しください。",
   "Your answer helps decide what to make simpler next.": "あなたの回答は、次に何をシンプルにするかを決める手がかりになります。",
   "Your feedback could not be sent. Check your connection, then try again.": "フィードバックを送信できませんでした。接続を確認してから、もう一度お試しください。",
-  "Your project is a week old. One click tells us how it went.": "プロジェクトを作成して 1 週間です。ワンクリックで、うまくいったか教えてください。"
+  "Your project is a week old. One click tells us how it went.": "プロジェクトを作成して 1 週間です。ワンクリックで、うまくいったか教えてください。",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }

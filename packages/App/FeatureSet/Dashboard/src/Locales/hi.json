@@ -51447,5 +51447,16 @@
   "Your answer could not be sent. Check your connection, then try again.": "आपका जवाब नहीं भेजा जा सका। अपना कनेक्शन जांचें, फिर दोबारा कोशिश करें।",
   "Your answer helps decide what to make simpler next.": "आपका जवाब यह तय करने में मदद करता है कि आगे क्या आसान बनाना है।",
   "Your feedback could not be sent. Check your connection, then try again.": "आपका फ़ीडबैक नहीं भेजा जा सका। अपना कनेक्शन जांचें, फिर दोबारा कोशिश करें।",
-  "Your project is a week old. One click tells us how it went.": "आपका प्रोजेक्ट एक हफ़्ते पुराना है। एक क्लिक से हमें बताएं कि कैसा रहा।"
+  "Your project is a week old. One click tells us how it went.": "आपका प्रोजेक्ट एक हफ़्ते पुराना है। एक क्लिक से हमें बताएं कि कैसा रहा।",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }

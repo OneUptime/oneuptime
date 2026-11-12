@@ -51447,5 +51447,16 @@
   "Your answer could not be sent. Check your connection, then try again.": "无法发送你的回答。请检查网络连接，然后重试。",
   "Your answer helps decide what to make simpler next.": "你的回答有助于决定接下来要简化什么。",
   "Your feedback could not be sent. Check your connection, then try again.": "无法发送你的反馈。请检查网络连接，然后重试。",
-  "Your project is a week old. One click tells us how it went.": "你的项目已创建一周。点一下，告诉我们进展如何。"
+  "Your project is a week old. One click tells us how it went.": "你的项目已创建一周。点一下，告诉我们进展如何。",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }

@@ -51447,5 +51447,16 @@
   "Your answer could not be sent. Check your connection, then try again.": "Votre réponse n'a pas pu être envoyée. Vérifiez votre connexion, puis réessayez.",
   "Your answer helps decide what to make simpler next.": "Votre réponse aide à décider ce qu'il faut simplifier ensuite.",
   "Your feedback could not be sent. Check your connection, then try again.": "Votre avis n'a pas pu être envoyé. Vérifiez votre connexion, puis réessayez.",
-  "Your project is a week old. One click tells us how it went.": "Votre projet a une semaine. Un clic nous dit comment ça s'est passé."
+  "Your project is a week old. One click tells us how it went.": "Votre projet a une semaine. Un clic nous dit comment ça s'est passé.",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }

@@ -51447,5 +51447,16 @@
   "Your answer could not be sent. Check your connection, then try again.": "답변을 보내지 못했습니다. 연결을 확인한 다음 다시 시도해 주세요.",
   "Your answer helps decide what to make simpler next.": "답변은 다음에 무엇을 더 간단하게 만들지 정하는 데 도움이 됩니다.",
   "Your feedback could not be sent. Check your connection, then try again.": "피드백을 보내지 못했습니다. 연결을 확인한 다음 다시 시도해 주세요.",
-  "Your project is a week old. One click tells us how it went.": "프로젝트를 만든 지 일주일이 되었습니다. 한 번의 클릭으로 어땠는지 알려 주세요."
+  "Your project is a week old. One click tells us how it went.": "프로젝트를 만든 지 일주일이 되었습니다. 한 번의 클릭으로 어땠는지 알려 주세요.",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }

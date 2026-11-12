@@ -51447,5 +51447,16 @@
   "Your answer could not be sent. Check your connection, then try again.": "Je antwoord kon niet worden verstuurd. Controleer je verbinding en probeer het opnieuw.",
   "Your answer helps decide what to make simpler next.": "Je antwoord helpt bepalen wat we hierna eenvoudiger maken.",
   "Your feedback could not be sent. Check your connection, then try again.": "Je feedback kon niet worden verstuurd. Controleer je verbinding en probeer het opnieuw.",
-  "Your project is a week old. One click tells us how it went.": "Je project is een week oud. Eén klik laat ons weten hoe het ging."
+  "Your project is a week old. One click tells us how it went.": "Je project is een week oud. Eén klik laat ons weten hoe het ging.",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }
