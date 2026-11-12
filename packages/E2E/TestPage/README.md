@@ -16,8 +16,13 @@ The suite pins:
   the reader's language from the codes the server sends (#7015); a server from
   before the codes is shown in its own English
 - a policy's test that walks every level shows each level it reaches, when it is
-  paged and who it pages, and what the whole walk costs at most (#7016)
-- what a test costs, when it sends paid texts or calls
+  paged and who it pages, and what the whole walk costs at most (#7016), as a
+  timeline: a numbered marker for each level and a line down to the next, on
+  the left - or on the right, read from the right
+- what a test costs, when it sends paid texts or calls: the texts and calls
+  listed as the reader's language lists them, the amount as the reader writes
+  money
+- a phone number in the preview keeps its own direction beside Persian words
 - a send asks for the severity picked - and, for a policy, whether to walk every
   level - and nothing else
 - the result shows each message as it goes out: who acknowledged it, by what and

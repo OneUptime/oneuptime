@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Planning {{name}} (suivant dans la rotation)",
   "Team {{name}} has no members.": "L'équipe {{name}} n'a aucun membre.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "La première règle d'escalade n'appelle encore personne. Ajoutez-y des personnes, une équipe ou un planning.",
-  "The test ends before it reaches {{count}} more levels.": "Le test se termine avant d'atteindre {{count}} niveaux de plus.",
-  "The test ends before it reaches {{count}} more levels._one": "Le test se termine avant d'atteindre {{count}} niveau de plus.",
   "This Mattermost method is not verified, so the test can't use it.": "Cette méthode Mattermost n'est pas vérifiée, le test ne peut donc pas l'utiliser.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "Cette méthode Microsoft Teams n'est pas vérifiée, le test ne peut donc pas l'utiliser.",
   "This SMS method is not verified, so the test can't use it.": "Cette méthode SMS n'est pas vérifiée, le test ne peut donc pas l'utiliser.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "Cette méthode de notification push n'est pas vérifiée, le test ne peut donc pas l'utiliser.",
   "This webhook method is not verified, so the test can't use it.": "Cette méthode webhook n'est pas vérifiée, le test ne peut donc pas l'utiliser.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} est absent jusqu'au {{time}}, sans remplaçant.",
-  "{{name}} is not a member of this project.": "{{name}} n'est pas membre de ce projet."
+  "{{name}} is not a member of this project.": "{{name}} n'est pas membre de ce projet.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "Il suit les propres règles d'astreinte de chaque personne pour la gravité choisie, comme un vrai appel - sans les délais. Chaque message indique TEST. Aucun incident n'est créé, rien n'apparaît sur une page de statut, et aucun abonné ni canal n'est informé.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Appelle chaque niveau à tour de rôle, à {{minutes}} minutes d'intervalle au plus, jusqu'à ce que quelqu'un prenne en compte. Désactivé, il n'appelle que le premier niveau.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "Le test se termine après {{minutes}} minutes, avant d'atteindre {{count}} niveaux de plus.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "Le test se termine après {{minutes}} minutes, avant d'atteindre {{count}} niveau de plus."
 }

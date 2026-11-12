@@ -35,6 +35,13 @@ import getJestMockFunction, { MockFunction } from "../../MockType";
  * level shows each level it reaches before it ends, when, with its people,
  * how many it never reaches, and what the whole walk costs at most.
  *
+ * The walk is drawn as a timeline: a numbered marker for each level, in
+ * the reader's digits, a line down to the next one, and an end marker for
+ * the levels it never reaches. A policy of one level is not offered it.
+ * What the test costs lists its texts and calls as the reader's language
+ * lists them and writes its amount as the reader writes money, with no
+ * direction marks of Intl's in it.
+ *
  * The dialog is the real SendTestPageModal with the shipped Dashboard
  * locales; only the server's answers are stood in for.
  */
@@ -87,8 +94,12 @@ jest.mock(
 );
 
 import SendTestPageModal, {
+  describePreviewMethod,
   describeTestPageCost,
   doesTestPageAnybody,
+  formatTestPageAmount,
+  getTestPageDialogDescription,
+  isWalkOffered,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/SendTestPageModal";
 import {
   getNotPagedLines,
@@ -110,7 +121,7 @@ import {
   OnCallTestPageWarningCode,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import { Translator, createTranslator } from "../../../Types/Translator";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const LOCALES_DIR: string = path.resolve(
   __dirname,
@@ -164,16 +175,25 @@ const AWAY_ENGLISH: string =
 const LEVEL_3_EMPTY: string =
   "Escalation rule 3 pages nobody yet. Add people, a team or a schedule to it.";
 
+// The marks Intl writes into an amount in Persian and Arabic: never drawn here.
+const DIRECTION_MARKS: RegExp = new RegExp(
+  `[${String.fromCharCode(0x200e, 0x200f, 0x061c)}]`,
+);
+
+// Between a German amount and its sign, as Intl writes it.
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
 function cost(
   smsCount: number,
   callCount: number,
   estimatedCostInUSDCents?: number,
+  whatsAppCount: number = 0,
 ): OnCallTestPageCost {
   return {
-    isPaid: smsCount + callCount > 0,
+    isPaid: smsCount + callCount + whatsAppCount > 0,
     smsCount: smsCount,
     callCount: callCount,
-    whatsAppCount: 0,
+    whatsAppCount: whatsAppCount,
     telegramCount: 0,
     ...(estimatedCostInUSDCents === undefined
       ? {}
@@ -323,6 +343,15 @@ async function openPolicyDialog(): Promise<HTMLElement> {
 
 function walkEveryLevel(): void {
   fireEvent.click(screen.getByTestId("test-page-walks-escalation"));
+}
+
+// Each level's heading, as the walk draws them, in order.
+function headingsOf(walk: HTMLElement): Array<string> {
+  return within(walk)
+    .getAllByTestId("test-page-walk-level")
+    .map((level: HTMLElement): string => {
+      return textOf(within(level).getByTestId("test-page-walk-level-heading"));
+    });
 }
 
 function textOf(element: HTMLElement): string {
@@ -645,6 +674,71 @@ describe("the preview, in the reader's words (#7015)", () => {
   });
 });
 
+describe("the dialog's words, in every reader's digits and direction", () => {
+  test("a policy's line under the title says how it pages, not which levels: that is the walk's choice", () => {
+    const english: string = getTestPageDialogDescription(translatorIn("en"), {
+      kind: "policy",
+      policyId: "7e5ae000-0000-4000-8000-0000000009c1",
+    });
+
+    expect(english).not.toContain("first escalation level");
+    expect(
+      getTestPageDialogDescription(translatorIn("de"), {
+        kind: "policy",
+        policyId: "7e5ae000-0000-4000-8000-0000000009c1",
+      }),
+    ).toBe(worded("de", english));
+  });
+
+  test("an address keeps its own direction beside Persian words, on a line punctuated as Persian punctuates it", () => {
+    const call: Parameters<typeof describePreviewMethod>[1] = {
+      channel: OnCallPageChannel.Call,
+      address: "+1 415 555 0100",
+      notifyAfterMinutes: 0,
+      isVerified: true,
+      canAcknowledge: true,
+    };
+
+    expect(describePreviewMethod(translatorIn("en"), call)).toBe(
+      "Phone call · +1 415 555 0100",
+    );
+
+    const persian: string = describePreviewMethod(translatorIn("fa"), call);
+
+    expect(persian).toBe(
+      `${worded("fa", "Phone call")} • ${isolated("+1 415 555 0100")}`,
+    );
+    expect(
+      describePreviewMethod(translatorIn("fa"), {
+        ...call,
+        notifyAfterMinutes: 5,
+      }),
+    ).toBe(
+      worded("fa", "{{name}} (after {{count}} minutes on a real page)", {
+        name: persian,
+        count: "۵",
+      }),
+    );
+  });
+
+  test("sent, the line under the title says when the test ends, in the reader's digits", async () => {
+    sendMock.mockResolvedValue("7e5ae000-0000-4000-8000-0000000009e1");
+
+    await readIn("fa");
+    await openPolicyDialog();
+    fireEvent.click(sendButton());
+    await screen.findByTestId("test-page-result");
+
+    expect(textOf(screen.getByTestId("modal-description"))).toBe(
+      worded(
+        "fa",
+        "Sent. Each message is below as it goes out. The test ends when someone acknowledges it, or after {{minutes}} minutes.",
+        { minutes: "۱۵" },
+      ),
+    );
+  });
+});
+
 describe("a policy's test that walks every level (#7016)", () => {
   test("off, the dialog shows the first level and its cost; on, each level it reaches, when, and the walk's cost at most", async () => {
     await openPolicyDialog();
@@ -661,15 +755,31 @@ describe("a policy's test that walks every level (#7016)", () => {
       "test-page-walk-level",
     );
 
-    expect(
-      levels.map((level: HTMLElement): string => {
-        return textOf(level.querySelector("p")!);
-      }),
-    ).toEqual([
+    expect(headingsOf(walk)).toEqual([
       "Level 1, right away",
       "Level 2, after 2 minutes",
       "Level 3, after 4 minutes",
     ]);
+    /*
+     * A timeline: each level's number on its marker, a line down to the next
+     * level, and none under the last when the walk reaches every level.
+     */
+    expect(
+      within(walk)
+        .getAllByTestId("test-page-walk-marker")
+        .map((marker: HTMLElement): string => {
+          return textOf(marker);
+        }),
+    ).toEqual(["1", "2", "3"]);
+    expect(
+      levels.map((level: HTMLElement): boolean => {
+        return within(level).queryByTestId("test-page-walk-line") !== null;
+      }),
+    ).toEqual([true, true, false]);
+    // A heading the dialog's outline reads, under the dialog's own (h3).
+    expect(
+      within(levels[0]!).getByTestId("test-page-walk-level-heading").tagName,
+    ).toBe("H4");
     expect(textOf(levels[0]!)).toContain("Ana Lopez");
     expect(textOf(levels[1]!)).toContain("Bob Stone");
     expect(textOf(levels[1]!)).toContain("Team Platform");
@@ -679,7 +789,7 @@ describe("a policy's test that walks every level (#7016)", () => {
       within(levels[0]!).getByTestId("test-page-preview"),
     ).toBeInTheDocument();
     expect(textOf(screen.getByTestId("test-page-cost"))).toBe(
-      "If nobody acknowledges it, walking every level sends up to 1 SMS, 1 phone call, paid from this project's SMS and call balance: about $0.35.",
+      "If nobody acknowledges it, walking every level sends up to 1 SMS and 1 phone call, paid from this project's SMS and call balance: about $0.35.",
     );
     expect(
       screen.queryByTestId("test-page-walk-unreached"),
@@ -692,9 +802,10 @@ describe("a policy's test that walks every level (#7016)", () => {
     expect(textOf(screen.getByTestId("test-page-cost"))).toContain("$0.10");
   });
 
-  test("the levels it ends before are counted", async () => {
+  test("the levels it ends before are counted where the test ends, and the line runs on to it", async () => {
     previewMock.mockResolvedValue({
       ...currentPreview(),
+      levelCount: 5,
       walkUnreachedLevelCount: 2,
     });
 
@@ -702,7 +813,29 @@ describe("a policy's test that walks every level (#7016)", () => {
     walkEveryLevel();
 
     expect(textOf(await screen.findByTestId("test-page-walk-unreached"))).toBe(
-      "The test ends before it reaches 2 more levels.",
+      "The test ends after 15 minutes, before it reaches 2 more levels.",
+    );
+
+    const levels: Array<HTMLElement> = screen.getAllByTestId(
+      "test-page-walk-level",
+    );
+
+    expect(
+      within(levels[levels.length - 1]!).getByTestId("test-page-walk-line"),
+    ).toBeInTheDocument();
+
+    cleanup();
+    previewMock.mockResolvedValue({
+      ...currentPreview(),
+      levelCount: 4,
+      walkUnreachedLevelCount: 1,
+    });
+
+    await openPolicyDialog();
+    walkEveryLevel();
+
+    expect(textOf(await screen.findByTestId("test-page-walk-unreached"))).toBe(
+      "The test ends after 15 minutes, before it reaches 1 more level.",
     );
   });
 
@@ -759,11 +892,7 @@ describe("a policy's test that walks every level (#7016)", () => {
     walkEveryLevel();
 
     const walk: HTMLElement = await screen.findByTestId("test-page-walk");
-    const headings: Array<string> = within(walk)
-      .getAllByTestId("test-page-walk-level")
-      .map((level: HTMLElement): string => {
-        return textOf(level.querySelector("p")!);
-      });
+    const headings: Array<string> = headingsOf(walk);
 
     expect(headings).toEqual([
       worded("de", "Level {{order}}, right away", { order: "1" }),
@@ -780,8 +909,70 @@ describe("a policy's test that walks every level (#7016)", () => {
 
     const costLine: string = textOf(screen.getByTestId("test-page-cost"));
 
-    expect(costLine).toContain("$0.35");
-    expect(costLine).not.toContain("walking every level");
+    expect(costLine).toBe(
+      worded(
+        "de",
+        "If nobody acknowledges it, walking every level sends up to {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+        {
+          items: worded("de", "{{items}} and {{last}}", {
+            items: worded("de", "{{count}} SMS_one", { count: "1" }),
+            last: worded("de", "{{count}} phone calls_one", { count: "1" }),
+          }),
+          // As German writes money.
+          amount: `0,35${NO_BREAK_SPACE}$`,
+        },
+      ),
+    );
+    expect(costLine).not.toContain("$0.35");
+  });
+
+  test("in Persian, the walk's markers, its minutes and its cost are in Persian digits, with no direction marks", async () => {
+    previewMock.mockResolvedValue({
+      ...currentPreview(),
+      levelCount: 5,
+      walkUnreachedLevelCount: 2,
+    });
+
+    await readIn("fa");
+    await openPolicyDialog();
+
+    // "up to 2 minutes apart", in Persian digits.
+    const walkChoice: string = textOf(
+      screen.getByText(
+        worded(
+          "fa",
+          "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.",
+          { minutes: "۲" },
+        ),
+      ),
+    );
+
+    expect(walkChoice).not.toMatch(/[0-9]/);
+
+    walkEveryLevel();
+
+    const walk: HTMLElement = await screen.findByTestId("test-page-walk");
+
+    expect(
+      within(walk)
+        .getAllByTestId("test-page-walk-marker")
+        .map((marker: HTMLElement): string => {
+          return textOf(marker);
+        }),
+    ).toEqual(["۱", "۲", "۳"]);
+    expect(textOf(screen.getByTestId("test-page-walk-unreached"))).toBe(
+      worded(
+        "fa",
+        "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.",
+        { minutes: "۱۵", count: "۲" },
+      ),
+    );
+
+    const costLine: string = screen.getByTestId("test-page-cost").textContent!;
+
+    expect(withoutIsolateMarks(costLine)).toContain("$۰٫۳۵");
+    expect(costLine).not.toMatch(DIRECTION_MARKS);
+    expect(withoutIsolateMarks(costLine)).not.toMatch(/[0-9]/);
   });
 
   test("a heading is worded for its count: one minute, and Russian's forms", () => {
@@ -823,12 +1014,17 @@ describe("a policy's test that walks every level (#7016)", () => {
     const english: Translator = translatorIn("en");
 
     expect(describeTestPageCost(english, cost(2, 1, 45))).toBe(
-      "This test sends 2 SMS, 1 phone call, paid from this project's SMS and call balance: about $0.45.",
+      "This test sends 2 SMS and 1 phone call, paid from this project's SMS and call balance: about $0.45.",
     );
     expect(
       describeTestPageCost(english, cost(2, 1, 45), { isWalk: true }),
     ).toBe(
-      "If nobody acknowledges it, walking every level sends up to 2 SMS, 1 phone call, paid from this project's SMS and call balance: about $0.45.",
+      "If nobody acknowledges it, walking every level sends up to 2 SMS and 1 phone call, paid from this project's SMS and call balance: about $0.45.",
+    );
+    expect(
+      describeTestPageCost(english, cost(3, 3, 110, 1), { isWalk: true }),
+    ).toBe(
+      "If nobody acknowledges it, walking every level sends up to 3 SMS, 3 phone calls and 1 WhatsApp message, paid from this project's SMS and call balance: about $1.10.",
     );
     expect(describeTestPageCost(english, cost(0, 2), { isWalk: true })).toBe(
       "If nobody acknowledges it, walking every level sends up to 2 phone calls, paid from this project's SMS and call balance.",
@@ -836,6 +1032,99 @@ describe("a policy's test that walks every level (#7016)", () => {
     expect(describeTestPageCost(english, cost(0, 0), { isWalk: true })).toBe(
       "",
     );
+    // Paid, with nothing to list: no sentence with an empty list in it.
+    expect(describeTestPageCost(english, { ...cost(0, 0), isPaid: true })).toBe(
+      "",
+    );
+  });
+
+  test("an amount is written as the reader writes money, with no direction marks", () => {
+    expect(formatTestPageAmount(translatorIn("en"), 35)).toBe("$0.35");
+    expect(formatTestPageAmount(translatorIn("de"), 110)).toBe(
+      `1,10${NO_BREAK_SPACE}$`,
+    );
+
+    const persian: string = formatTestPageAmount(translatorIn("fa"), 110);
+    const arabic: string = formatTestPageAmount(translatorIn("ar"), 110);
+
+    expect(persian).toBe("$۱٫۱۰");
+    // Arabic writes Latin digits in OneUptime (getNumberLocale).
+    expect(arabic).toContain("1.10");
+    expect(persian).not.toMatch(DIRECTION_MARKS);
+    expect(arabic).not.toMatch(DIRECTION_MARKS);
+
+    // In a Persian sentence, the list and the amount are Persian's.
+    const persianLine: string = withoutIsolateMarks(
+      describeTestPageCost(translatorIn("fa"), cost(3, 3, 110, 1), {
+        isWalk: true,
+      }),
+    );
+
+    expect(persianLine).toContain("$۱٫۱۰");
+    expect(persianLine).toContain(
+      worded("fa", "{{items}} and {{last}}", {
+        items: [
+          worded("fa", "{{count}} SMS", { count: "۳" }),
+          worded("fa", "{{count}} phone calls", { count: "۳" }),
+        ].join("، "),
+        last: worded("fa", "{{count}} WhatsApp messages_one", { count: "۱" }),
+      }),
+    );
+  });
+
+  test("a policy of one escalation level is not offered the walk, nor sends one", async () => {
+    previewMock.mockResolvedValue({
+      ...currentPreview(),
+      levelCount: 1,
+      walkLevels: [],
+      walkCost: cost(1, 0, 10),
+    });
+    sendMock.mockResolvedValue("7e5ae000-0000-4000-8000-0000000009e1");
+
+    await openPolicyDialog();
+
+    expect(
+      screen.queryByTestId("test-page-walks-escalation"),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(sendButton());
+
+    expect(await screen.findByTestId("test-page-result")).toBeInTheDocument();
+    expect(
+      (sendMock.mock.calls[0]![0] as { walksEscalation: boolean })
+        .walksEscalation,
+    ).toBe(false);
+  });
+
+  test("where the walk is offered: a policy with a level after its first, or one whose server does not say", () => {
+    const policy: { kind: "policy"; policyId: string } = {
+      kind: "policy",
+      policyId: "7e5ae000-0000-4000-8000-0000000009c1",
+    };
+    const withLevels: (
+      levelCount: number | undefined,
+    ) => OnCallTestPagePreview = (
+      levelCount: number | undefined,
+    ): OnCallTestPagePreview => {
+      const preview: OnCallTestPagePreview = currentPreview();
+
+      if (levelCount === undefined) {
+        delete preview.levelCount;
+      } else {
+        preview.levelCount = levelCount;
+      }
+
+      return preview;
+    };
+
+    expect(isWalkOffered(policy, withLevels(3))).toBe(true);
+    expect(isWalkOffered(policy, withLevels(2))).toBe(true);
+    expect(isWalkOffered(policy, withLevels(undefined))).toBe(true);
+    expect(isWalkOffered(policy, withLevels(1))).toBe(false);
+    expect(isWalkOffered(policy, withLevels(0))).toBe(false);
+    // Before the preview is read, and for a test of people: never.
+    expect(isWalkOffered(policy, null)).toBe(false);
+    expect(isWalkOffered({ kind: "self" }, withLevels(3))).toBe(false);
   });
 
   test("whether a test pages anybody: its first level, or - walking - any level it reaches", () => {

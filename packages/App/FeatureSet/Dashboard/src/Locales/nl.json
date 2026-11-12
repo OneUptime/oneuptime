@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Rooster {{name}} (volgende in de rotatie)",
   "Team {{name}} has no members.": "Team {{name}} heeft geen leden.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "De eerste escalatieregel roept nog niemand op. Voeg er personen, een team of een rooster aan toe.",
-  "The test ends before it reaches {{count}} more levels.": "De test eindigt voordat hij nog {{count}} niveaus bereikt.",
-  "The test ends before it reaches {{count}} more levels._one": "De test eindigt voordat hij nog {{count}} niveau bereikt.",
   "This Mattermost method is not verified, so the test can't use it.": "Deze Mattermost-methode is niet geverifieerd, dus de test kan hem niet gebruiken.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "Deze Microsoft Teams-methode is niet geverifieerd, dus de test kan hem niet gebruiken.",
   "This SMS method is not verified, so the test can't use it.": "Deze sms-methode is niet geverifieerd, dus de test kan hem niet gebruiken.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "Deze pushmeldingsmethode is niet geverifieerd, dus de test kan hem niet gebruiken.",
   "This webhook method is not verified, so the test can't use it.": "Deze webhookmethode is niet geverifieerd, dus de test kan hem niet gebruiken.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} is afwezig tot {{time}}, zonder vervanging.",
-  "{{name}} is not a member of this project.": "{{name}} is geen lid van dit project."
+  "{{name}} is not a member of this project.": "{{name}} is geen lid van dit project.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "Hij loopt via de eigen dienstregels van ieder voor de gekozen ernst, zoals een echte oproep, maar zonder de wachttijden. Elk bericht zegt TEST. Er wordt geen incident gemaakt, er verschijnt niets op een statuspagina, en geen abonnee of kanaal krijgt bericht.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Roept elk niveau om de beurt op, hooguit {{minutes}} minuten na elkaar, tot iemand bevestigt. Uit, roept hij alleen het eerste niveau op.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "De test eindigt na {{minutes}} minuten, voordat hij nog {{count}} niveaus bereikt.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "De test eindigt na {{minutes}} minuten, voordat hij nog {{count}} niveau bereikt."
 }

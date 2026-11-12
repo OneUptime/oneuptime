@@ -17,6 +17,8 @@ import {
   getWalkLevelHeading,
 } from "./OnCallTestPageWords";
 import TestPageResult from "./TestPageResult";
+import { getNumberLocale } from "Common/Types/DateLanguage";
+import IconProp from "Common/Types/Icon/IconProp";
 import {
   ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
   ON_CALL_TEST_PAGE_ESCALATION_WAIT_IN_MINUTES,
@@ -28,7 +30,6 @@ import {
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
-import { getInlineSeparator } from "Common/Types/Translator";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
@@ -37,9 +38,16 @@ import Dropdown, {
   DropdownOptionGroup,
   DropdownValue,
 } from "Common/UI/Components/Dropdown/Dropdown";
+import Icon from "Common/UI/Components/Icon/Icon";
 import InlineLoadingLine from "Common/UI/Components/Loader/InlineLoadingLine";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ComposedValue,
+  composedValue,
+  formatList,
+  getInlineSeparator,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, {
   FunctionComponent,
@@ -88,7 +96,11 @@ export function getTestPageDialogTitle(
   return translator.translateText("Send me a test page") || "";
 }
 
-// The line under the title: what a test does, and that nothing else happens.
+/*
+ * The line under the title: what a test does, and that nothing else
+ * happens. A policy's says nothing of which levels it pages: that is the
+ * "Walk every escalation level" choice's, below it (#7016).
+ */
 export function getTestPageDialogDescription(
   translator: Translator,
   target: OnCallTestPageTarget,
@@ -96,7 +108,7 @@ export function getTestPageDialogDescription(
   if (target.kind === "policy") {
     return (
       translator.translateText(
-        "It pages this policy's first escalation level now, through each person's own on-call rules for the severity you pick - as a real page would, without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.",
+        "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.",
       ) || ""
     );
   }
@@ -116,7 +128,12 @@ export function getTestPageDialogDescription(
   );
 }
 
-// "Email · ana@example.com", "SMS (after 5 minutes on a real page)".
+/*
+ * "Email · ana@example.com", "SMS (after 5 minutes on a real page)". The
+ * address is set apart from the channel's name, so a phone number keeps
+ * its own direction beside Persian or Arabic words: "+1 415 555 0100",
+ * never "0100 555 415 +1".
+ */
 export function describePreviewMethod(
   translator: Translator,
   method: OnCallTestPagePreviewMethod,
@@ -126,7 +143,11 @@ export function describePreviewMethod(
     CHANNEL_NAMES[method.channel];
 
   const name: string = method.address
-    ? `${channel} · ${method.address}`
+    ? translator.translateTemplate(
+        "{{channel}} · {{address}}",
+        { channel: channel, address: method.address },
+        { setsValuesApart: true },
+      )
     : channel;
 
   if (method.notifyAfterMinutes > 0) {
@@ -144,22 +165,50 @@ export function describePreviewMethod(
 }
 
 /*
- * What a test costs, in a sentence, or empty when it costs nothing: the
- * first level's, or - for a test that walks every level - the most the
- * walk costs, nobody acknowledging it (#7016).
+ * The marks Intl writes into an amount in a language read from the right -
+ * a left-to-right mark (U+200E) before Persian's "$", a right-to-left one
+ * (U+200F) before Arabic's figure, an Arabic letter mark (U+061C) - taken
+ * out: the cost sentence sets the amount apart itself, so it reads as one
+ * figure wherever the sentence puts it.
  */
-export function describeTestPageCost(
+const AMOUNT_DIRECTION_MARKS: RegExp = new RegExp(
+  `[${String.fromCharCode(0x200e, 0x200f, 0x061c)}]`,
+  "g",
+);
+
+/*
+ * An amount in US cents, in dollars as the reader writes money: "$0.35",
+ * "0,35 $" in German, Persian's own digits ("$۰٫۳۵").
+ */
+export function formatTestPageAmount(
+  translator: Translator,
+  cents: number,
+): string {
+  const dollars: number = cents / 100;
+
+  try {
+    return new Intl.NumberFormat(getNumberLocale(translator.language), {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+      .format(dollars)
+      .replace(AMOUNT_DIRECTION_MARKS, "");
+  } catch {
+    return `$${dollars.toFixed(2)}`;
+  }
+}
+
+/*
+ * What a test sends that is paid for, as a sentence lists it: "1 SMS",
+ * "3 SMS, 3 phone calls and 1 WhatsApp message" - the last two joined as
+ * the reader's language joins them. Empty when it sends nothing paid.
+ */
+export function getTestPageCostItems(
   translator: Translator,
   cost: OnCallTestPageCost,
-  options?: { isWalk?: boolean | undefined } | undefined,
 ): string {
-  if (!cost.isPaid) {
-    return "";
-  }
-
-  const sentences: { withAmount: string; withoutAmount: string } =
-    options?.isWalk ? COST_SENTENCES.walk : COST_SENTENCES.firstLevel;
-
   const items: Array<string> = [];
 
   if (cost.smsCount > 0) {
@@ -204,18 +253,59 @@ export function describeTestPageCost(
     );
   }
 
-  const list: string = items.join(", ");
-
-  if (typeof cost.estimatedCostInUSDCents === "number") {
-    return translator.translateTemplate(sentences.withAmount, {
-      items: list,
-      amount: `$${(cost.estimatedCostInUSDCents / 100).toFixed(2)}`,
-    });
+  if (items.length <= 1) {
+    return items[0] || "";
   }
 
-  return translator.translateTemplate(sentences.withoutAmount, {
-    items: list,
+  return translator.translateTemplate("{{items}} and {{last}}", {
+    items: formatList(items.slice(0, -1), translator),
+    last: items[items.length - 1]!,
   });
+}
+
+/*
+ * What a test costs, in a sentence, or empty when it costs nothing: the
+ * first level's, or - for a test that walks every level - the most the
+ * walk costs, nobody acknowledging it (#7016). The list and the amount are
+ * written in the sentence's language: the reader's, or English's while
+ * the reader's has no wording of the sentence.
+ */
+export function describeTestPageCost(
+  translator: Translator,
+  cost: OnCallTestPageCost,
+  options?: { isWalk?: boolean | undefined } | undefined,
+): string {
+  if (!cost.isPaid || !getTestPageCostItems(translator, cost)) {
+    return "";
+  }
+
+  const sentences: { withAmount: string; withoutAmount: string } =
+    options?.isWalk ? COST_SENTENCES.walk : COST_SENTENCES.firstLevel;
+
+  const items: ComposedValue = composedValue((sentence: Translator): string => {
+    return getTestPageCostItems(sentence, cost);
+  });
+
+  const cents: number | undefined = cost.estimatedCostInUSDCents;
+
+  if (typeof cents === "number") {
+    return translator.translateTemplate(
+      sentences.withAmount,
+      {
+        items: items,
+        amount: composedValue((sentence: Translator): string => {
+          return formatTestPageAmount(sentence, cents);
+        }),
+      },
+      { setsValuesApart: true },
+    );
+  }
+
+  return translator.translateTemplate(
+    sentences.withoutAmount,
+    { items: items },
+    { setsValuesApart: true },
+  );
 }
 
 /*
@@ -243,6 +333,29 @@ export function doesTestPageAnybody(
       },
     )
   );
+}
+
+/*
+ * Whether "Walk every escalation level" is offered: for a policy with a
+ * level after its first - or one whose server does not say how many it has.
+ * Nothing is offered before the preview is read.
+ */
+export function isWalkOffered(
+  target: OnCallTestPageTarget,
+  preview: OnCallTestPagePreview | null,
+): boolean {
+  if (target.kind !== "policy" || !preview) {
+    return false;
+  }
+
+  return !(typeof preview.levelCount === "number" && preview.levelCount <= 1);
+}
+
+// A level as the preview draws it: its people, and who it can't reach.
+interface PreviewLevelWords {
+  people: Array<OnCallTestPagePreviewPerson>;
+  notPaged: Array<string>;
+  notPagedCodes?: OnCallTestPagePreview["notPagedCodes"];
 }
 
 const PreviewPerson: FunctionComponent<{
@@ -312,52 +425,26 @@ const PreviewPerson: FunctionComponent<{
   );
 };
 
-// The targets of a level that reach nobody, and why.
-const NotPagedLines: FunctionComponent<{
-  level: {
-    notPaged: Array<string>;
-    notPagedCodes?: OnCallTestPagePreview["notPagedCodes"];
-  };
+/*
+ * One level: each person it pages, with how the test reaches them - and,
+ * as a row of its own under them, each target of it that reaches nobody,
+ * and why, so it is never read as one more line about the person above.
+ */
+const PreviewLevel: FunctionComponent<{
+  level: PreviewLevelWords;
+  showNames: boolean;
+  dataTestId?: string | undefined;
 }> = (props: {
-  level: {
-    notPaged: Array<string>;
-    notPagedCodes?: OnCallTestPagePreview["notPagedCodes"];
-  };
+  level: PreviewLevelWords;
+  showNames: boolean;
+  dataTestId?: string | undefined;
 }): ReactElement => {
   const translator: Translator = useTranslator();
+  const notPaged: Array<string> = getNotPagedLines(translator, props.level);
 
-  return (
-    <>
-      {getNotPagedLines(translator, props.level).map(
-        (line: string, index: number) => {
-          return (
-            <p
-              key={`not-paged-${index}`}
-              className="text-sm text-amber-700"
-              data-testid="test-page-preview-not-paged"
-            >
-              {line}
-            </p>
-          );
-        },
-      )}
-    </>
-  );
-};
-
-// The people of one level, each with how the test reaches them.
-const PreviewPeople: FunctionComponent<{
-  people: Array<OnCallTestPagePreviewPerson>;
-  showNames: boolean;
-  dataTestId?: string | undefined;
-}> = (props: {
-  people: Array<OnCallTestPagePreviewPerson>;
-  showNames: boolean;
-  dataTestId?: string | undefined;
-}): ReactElement => {
   return (
     <ul className="divide-y divide-gray-100" data-testid={props.dataTestId}>
-      {props.people.map((person: OnCallTestPagePreviewPerson) => {
+      {props.level.people.map((person: OnCallTestPagePreviewPerson) => {
         return (
           <PreviewPerson
             key={person.userId}
@@ -366,13 +453,32 @@ const PreviewPeople: FunctionComponent<{
           />
         );
       })}
+      {notPaged.length > 0 ? (
+        <li className="flex flex-col gap-1 py-2">
+          {notPaged.map((line: string, index: number) => {
+            return (
+              <p
+                key={`not-paged-${index}`}
+                className="text-sm text-amber-700"
+                data-testid="test-page-preview-not-paged"
+              >
+                {line}
+              </p>
+            );
+          })}
+        </li>
+      ) : (
+        <></>
+      )}
     </ul>
   );
 };
 
 /*
- * A test that walks every level (#7016): each level it reaches before it
- * ends, in turn, under when it is paged - and how many it never reaches.
+ * A test that walks every level (#7016), drawn as the policy's escalation
+ * is (EscalationSummary): a line down a numbered marker for each level it
+ * reaches before it ends, under when it is paged - and, where the test
+ * ends with levels left, how many it never reaches.
  */
 const WalkPreview: FunctionComponent<{
   preview: OnCallTestPagePreview;
@@ -380,9 +486,7 @@ const WalkPreview: FunctionComponent<{
   const translator: Translator = useTranslator();
   const preview: OnCallTestPagePreview = props.preview;
   const levels: Array<
-    Omit<OnCallTestPagePreviewLevel, "notPagedCodes"> & {
-      notPagedCodes?: OnCallTestPagePreview["notPagedCodes"];
-    }
+    PreviewLevelWords & { order: number; startsAfterMinutes: number }
   > = [
     {
       order: 1,
@@ -396,37 +500,69 @@ const WalkPreview: FunctionComponent<{
   const unreached: number = preview.walkUnreachedLevelCount || 0;
 
   return (
-    <div className="flex flex-col gap-3" data-testid="test-page-walk">
-      {levels.map((level: (typeof levels)[number]) => {
+    <ol className="flex flex-col" data-testid="test-page-walk">
+      {levels.map((level: (typeof levels)[number], index: number) => {
+        // A line runs on to the next level, or to where the test ends.
+        const hasNext: boolean = index < levels.length - 1 || unreached > 0;
+
         return (
-          <section
+          <li
             key={level.order}
-            className="flex flex-col gap-1"
+            className="relative flex gap-3"
             data-testid="test-page-walk-level"
           >
-            <p className="text-xs font-semibold text-gray-500">
-              {getWalkLevelHeading(translator, level)}
-            </p>
-            <PreviewPeople
-              people={level.people}
-              showNames={true}
-              dataTestId={level.order === 1 ? "test-page-preview" : undefined}
-            />
-            <NotPagedLines level={level} />
-          </section>
+            {hasNext ? (
+              <span
+                aria-hidden="true"
+                className="absolute start-[11.5px] top-7 bottom-1 w-px bg-gray-200"
+                data-testid="test-page-walk-line"
+              />
+            ) : (
+              <></>
+            )}
+            <span
+              aria-hidden="true"
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-xs font-semibold text-white"
+              data-testid="test-page-walk-marker"
+            >
+              {translator.formatNumber(level.order)}
+            </span>
+            <div className={`min-w-0 flex-1 ${hasNext ? "pb-4" : ""}`}>
+              <h4
+                className="pt-0.5 text-sm font-semibold text-gray-900"
+                data-testid="test-page-walk-level-heading"
+              >
+                {getWalkLevelHeading(translator, level)}
+              </h4>
+              <PreviewLevel
+                level={level}
+                showNames={true}
+                dataTestId={level.order === 1 ? "test-page-preview" : undefined}
+              />
+            </div>
+          </li>
         );
       })}
       {unreached > 0 ? (
-        <p
-          className="text-sm text-gray-600"
-          data-testid="test-page-walk-unreached"
-        >
-          {translator.translatePlural(WALK_UNREACHED_LEVELS, unreached)}
-        </p>
+        <li className="flex gap-3" data-testid="test-page-walk-unreached">
+          <span
+            aria-hidden="true"
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 ring-1 ring-inset ring-gray-200"
+          >
+            <Icon icon={IconProp.Clock} className="h-3.5 w-3.5 text-gray-500" />
+          </span>
+          <p className="min-w-0 flex-1 pt-0.5 text-sm text-gray-600">
+            {translator.translatePlural(WALK_UNREACHED_LEVELS, unreached, {
+              minutes: translator.formatNumber(
+                ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
+              ),
+            })}
+          </p>
+        </li>
       ) : (
         <></>
       )}
-    </div>
+    </ol>
   );
 };
 
@@ -527,7 +663,11 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
         description={
           translator.translateTemplate(
             "Sent. Each message is below as it goes out. The test ends when someone acknowledges it, or after {{minutes}} minutes.",
-            { minutes: ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES },
+            {
+              minutes: translator.formatNumber(
+                ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
+              ),
+            },
           ) || ""
         }
         onClose={props.onClose}
@@ -595,14 +735,15 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
     });
 
   /*
-   * A policy's test that walks every level: shown level by level, and
-   * priced as the walk, once the server says what the walk reaches.
+   * A policy's test walks every level only where that is offered (a policy
+   * of one level has nothing to walk) and asked for. Shown level by level,
+   * and priced as the walk, once the server says what the walk reaches.
    */
+  const offersWalk: boolean = isWalkOffered(props.target, preview);
+  const isWalking: boolean = offersWalk && walksEscalation;
+
   const showsWalk: boolean = Boolean(
-    props.target.kind === "policy" &&
-      walksEscalation &&
-      preview &&
-      Array.isArray(preview.walkLevels),
+    isWalking && preview && Array.isArray(preview.walkLevels),
   );
 
   const costSentence: string = preview
@@ -611,10 +752,7 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
       : describeTestPageCost(translator, preview.cost)
     : "";
 
-  const hasAnybodyToPage: boolean = doesTestPageAnybody(
-    preview,
-    props.target.kind === "policy" && walksEscalation,
-  );
+  const hasAnybodyToPage: boolean = doesTestPageAnybody(preview, isWalking);
 
   const send: () => Promise<void> = async (): Promise<void> => {
     if (!severity) {
@@ -628,7 +766,7 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
       const id: string = await OnCallTestPageApi.send({
         target: props.target,
         severity: severity,
-        walksEscalation: walksEscalation,
+        walksEscalation: isWalking,
       });
 
       setExecutionLogId(id);
@@ -694,14 +832,18 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
           )}
         </div>
 
-        {props.target.kind === "policy" ? (
+        {offersWalk ? (
           <CheckboxElement
             title={
               translator.translateText("Walk every escalation level") || ""
             }
             description={translator.translateTemplate(
-              "Pages each level in turn, {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.",
-              { minutes: ON_CALL_TEST_PAGE_ESCALATION_WAIT_IN_MINUTES },
+              "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.",
+              {
+                minutes: translator.formatNumber(
+                  ON_CALL_TEST_PAGE_ESCALATION_WAIT_IN_MINUTES,
+                ),
+              },
             )}
             value={walksEscalation}
             onChange={(value: boolean) => {
@@ -724,14 +866,11 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
           ) : preview && showsWalk ? (
             <WalkPreview preview={preview} />
           ) : preview ? (
-            <>
-              <PreviewPeople
-                people={preview.people}
-                showNames={props.target.kind === "policy"}
-                dataTestId="test-page-preview"
-              />
-              <NotPagedLines level={preview} />
-            </>
+            <PreviewLevel
+              level={preview}
+              showNames={props.target.kind === "policy"}
+              dataTestId="test-page-preview"
+            />
           ) : (
             <></>
           )}

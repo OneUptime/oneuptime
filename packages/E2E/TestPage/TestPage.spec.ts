@@ -29,7 +29,10 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * it can't reach are worded in the reader's language from the codes the
  * server sends (the server's English for a server that sends none), and a
  * policy's test that walks every level shows each level it reaches, when,
- * and what the walk costs at most.
+ * and what the walk costs at most - as a timeline, a numbered marker for
+ * each level with a line down to the next, on the side a reader starts
+ * from: the left, or the right in Arabic and Persian. A phone number in
+ * the preview keeps its own direction beside Persian words.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000e1";
@@ -86,6 +89,51 @@ function worded(
 // What an element reads, without the marks that set its values apart.
 async function wordsOf(locator: Locator): Promise<string> {
   return ((await locator.textContent()) || "").replace(/[\u2066-\u2069]/g, "");
+}
+
+// Between a German amount and its sign, as Intl writes it ("0,35 $").
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
+
+interface Box {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+async function boxOf(locator: Locator): Promise<Box> {
+  const box: Box | null = await locator.boundingBox();
+
+  expect(box).not.toBeNull();
+
+  return box!;
+}
+
+/*
+ * A walked level as a timeline draws it: its marker on the side the reader
+ * starts from, beside its heading, and the line to the next level running
+ * down from the middle of the marker.
+ */
+async function expectTimelineLevel(
+  level: Locator,
+  side: "left" | "right",
+): Promise<void> {
+  const marker: Box = await boxOf(level.getByTestId("test-page-walk-marker"));
+  const heading: Box = await boxOf(
+    level.getByTestId("test-page-walk-level-heading"),
+  );
+  const line: Box = await boxOf(level.getByTestId("test-page-walk-line"));
+
+  if (side === "left") {
+    expect(marker.x + marker.width).toBeLessThanOrEqual(heading.x);
+  } else {
+    expect(marker.x).toBeGreaterThanOrEqual(heading.x + heading.width);
+  }
+
+  expect(
+    Math.abs(line.x + line.width / 2 - (marker.x + marker.width / 2)),
+  ).toBeLessThanOrEqual(1);
+  expect(line.y).toBeGreaterThan(marker.y + marker.height);
 }
 
 interface RecordedRequest {
@@ -332,7 +380,9 @@ test("walking every level: each level it reaches, when, who it pages, and what t
   const levels: Locator = dialog(page).getByTestId("test-page-walk-level");
 
   await expect(levels).toHaveCount(3);
-  await expect(levels.nth(0)).toContainText("Level 1, right away");
+  await expect(
+    levels.nth(0).getByTestId("test-page-walk-level-heading"),
+  ).toHaveText("Level 1, right away");
   await expect(levels.nth(0)).toContainText("Dana Kim");
   await expect(levels.nth(0)).toContainText("Lee Park is away until");
   await expect(levels.nth(1)).toContainText("Level 2, after 2 minutes");
@@ -343,8 +393,18 @@ test("walking every level: each level it reaches, when, who it pages, and what t
     "Escalation rule 3 pages nobody yet.",
   );
   await expect(cost).toContainText(
-    "If nobody acknowledges it, walking every level sends up to 1 SMS, 1 phone call, paid from this project's SMS and call balance: about $0.35.",
+    "If nobody acknowledges it, walking every level sends up to 1 SMS and 1 phone call, paid from this project's SMS and call balance: about $0.35.",
   );
+
+  // A timeline read from the left: each marker numbered, a line down to the next.
+  await expect(dialog(page).getByTestId("test-page-walk-marker")).toHaveText([
+    "1",
+    "2",
+    "3",
+  ]);
+  await expectTimelineLevel(levels.nth(0), "left");
+  await expectTimelineLevel(levels.nth(1), "left");
+  await expect(levels.nth(2).getByTestId("test-page-walk-line")).toHaveCount(0);
 
   await expectNoSidewaysScroll(page);
   await screenshot(page, "policy-walk-1280");
@@ -382,7 +442,10 @@ test("a server from before the codes and the walk: its English, and a walk price
     worded(
       GERMAN,
       "This test sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
-      { items: "1 SMS", amount: "$0.10" },
+      {
+        items: worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
+        amount: `0,10${NO_BREAK_SPACE}$`,
+      },
     ),
   );
 });
@@ -516,11 +579,11 @@ test("in German, the policy's preview, its levels and the walk's cost are worded
       GERMAN,
       "If nobody acknowledges it, walking every level sends up to {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
       {
-        items: [
-          worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
-          worded(GERMAN, "{{count}} phone calls_one", { count: "1" }),
-        ].join(", "),
-        amount: "$0.35",
+        items: worded(GERMAN, "{{items}} and {{last}}", {
+          items: worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
+          last: worded(GERMAN, "{{count}} phone calls_one", { count: "1" }),
+        }),
+        amount: `0,35${NO_BREAK_SPACE}$`,
       },
     ),
   );
@@ -546,15 +609,20 @@ test("in Arabic, the policy's levels read from the right", async ({
   const levels: Locator = dialog(page).getByTestId("test-page-walk-level");
 
   await expect(levels).toHaveCount(3);
-  expect(await wordsOf(levels.nth(0).locator("p").first())).toBe(
-    worded(ARABIC, "Level {{order}}, right away", { order: "1" }),
-  );
-  expect(await wordsOf(levels.nth(1).locator("p").first())).toBe(
+  expect(
+    await wordsOf(levels.nth(0).getByTestId("test-page-walk-level-heading")),
+  ).toBe(worded(ARABIC, "Level {{order}}, right away", { order: "1" }));
+  expect(
+    await wordsOf(levels.nth(1).getByTestId("test-page-walk-level-heading")),
+  ).toBe(
     worded(ARABIC, "Level {{order}}, after {{count}} minutes", {
       order: "2",
       count: "2",
     }),
   );
+  // Read from the right: each marker is on the right of its heading.
+  await expectTimelineLevel(levels.nth(0), "right");
+  await expectTimelineLevel(levels.nth(1), "right");
   await expect(
     dialog(page).getByTestId("test-page-preview-warning").first(),
   ).toHaveText(
@@ -608,6 +676,39 @@ test("in Persian, the dialog and its result read from the right", async ({
   await expect(
     dialog(page).getByRole("button", { name: sendLabel }),
   ).toBeVisible();
+
+  /*
+   * The preview's phone number keeps its own direction beside Persian words
+   * too: drawn "+1 415 555 0100", its country code first from the left.
+   */
+  const call: Locator = dialog(page)
+    .getByTestId("test-page-preview-method")
+    .filter({ hasText: PERSIAN["Phone call"]! });
+  const drawnAt: Array<number> = await call.evaluate(
+    (element: Element): Array<number> => {
+      const text: Text = Array.from(element.childNodes).find(
+        (node: ChildNode): boolean => {
+          return (node.textContent || "").includes("+1 415 555 0100");
+        },
+      ) as Text;
+
+      return ["+1", "415", "555", "0100"].map((part: string): number => {
+        const range: Range = document.createRange();
+        const at: number = text.data.indexOf(part);
+
+        range.setStart(text, at);
+        range.setEnd(text, at + part.length);
+
+        return range.getBoundingClientRect().left;
+      });
+    },
+  );
+
+  expect(drawnAt).toEqual(
+    [...drawnAt].sort((a: number, b: number): number => {
+      return a - b;
+    }),
+  );
 
   await expectNoSidewaysScroll(page);
   await screenshot(page, "self-dialog-fa-390");

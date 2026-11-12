@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Horario {{name}} (siguiente en la rotación)",
   "Team {{name}} has no members.": "El equipo {{name}} no tiene miembros.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "La primera regla de escalado aún no avisa a nadie. Añádele personas, un equipo o un horario.",
-  "The test ends before it reaches {{count}} more levels.": "La prueba termina antes de llegar a {{count}} niveles más.",
-  "The test ends before it reaches {{count}} more levels._one": "La prueba termina antes de llegar a {{count}} nivel más.",
   "This Mattermost method is not verified, so the test can't use it.": "Este método de Mattermost no está verificado, así que la prueba no puede usarlo.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "Este método de Microsoft Teams no está verificado, así que la prueba no puede usarlo.",
   "This SMS method is not verified, so the test can't use it.": "Este método de SMS no está verificado, así que la prueba no puede usarlo.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "Este método de notificación push no está verificado, así que la prueba no puede usarlo.",
   "This webhook method is not verified, so the test can't use it.": "Este método de webhook no está verificado, así que la prueba no puede usarlo.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} está ausente hasta el {{time}}, sin nadie que cubra su ausencia.",
-  "{{name}} is not a member of this project.": "{{name}} no es miembro de este proyecto."
+  "{{name}} is not a member of this project.": "{{name}} no es miembro de este proyecto.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "Pasa por las reglas de guardia de cada persona para la gravedad que elijas, como un aviso real, pero sin las esperas. Cada mensaje dice PRUEBA. No se crea ninguna incidencia, nada aparece en una página de estado y no se avisa a ningún suscriptor ni canal.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Avisa a cada nivel por turnos, con hasta {{minutes}} minutos de separación, hasta que alguien lo reconozca. Desactivado, solo avisa al primer nivel.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "La prueba termina a los {{minutes}} minutos, antes de llegar a {{count}} niveles más.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "La prueba termina a los {{minutes}} minutos, antes de llegar a {{count}} nivel más."
 }

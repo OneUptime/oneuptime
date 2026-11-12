@@ -557,7 +557,10 @@ jobs:
           # policy - the preview, its cost, what a send asks for and the
           # result with where to fix a message - at 1280 and 390 pixels, dark
           # and German) joined it on 2026-11-11, the group with the most room:
-          # about 21.2.
+          # about 21.2. It grew to 15 tests on 2026-11-12 (#7193: a policy's
+          # test that walks every level, as a timeline, and the preview in the
+          # reader's words, Arabic and Persian too): about 1.2 minutes by its
+          # 9 tests' 0.7 - about 21.7.
           - group: 4
             workflow_builder_shard: 1/2
             model_tables_shard: 1/2

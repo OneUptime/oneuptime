@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "शेड्यूल {{name}} (रोटेशन में अगला)",
   "Team {{name}} has no members.": "टीम {{name}} में कोई सदस्य नहीं है।",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "पहला एस्केलेशन नियम अभी किसी को पेज नहीं करता। इसमें लोग, कोई टीम या कोई शेड्यूल जोड़ें।",
-  "The test ends before it reaches {{count}} more levels.": "परीक्षण {{count}} और स्तरों तक पहुँचने से पहले समाप्त हो जाता है।",
-  "The test ends before it reaches {{count}} more levels._one": "परीक्षण {{count}} और स्तर तक पहुँचने से पहले समाप्त हो जाता है।",
   "This Mattermost method is not verified, so the test can't use it.": "यह Mattermost विधि सत्यापित नहीं है, इसलिए परीक्षण इसका उपयोग नहीं कर सकता।",
   "This Microsoft Teams method is not verified, so the test can't use it.": "यह Microsoft Teams विधि सत्यापित नहीं है, इसलिए परीक्षण इसका उपयोग नहीं कर सकता।",
   "This SMS method is not verified, so the test can't use it.": "यह SMS विधि सत्यापित नहीं है, इसलिए परीक्षण इसका उपयोग नहीं कर सकता।",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "यह पुश सूचना विधि सत्यापित नहीं है, इसलिए परीक्षण इसका उपयोग नहीं कर सकता।",
   "This webhook method is not verified, so the test can't use it.": "यह वेबहुक विधि सत्यापित नहीं है, इसलिए परीक्षण इसका उपयोग नहीं कर सकता।",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} {{time}} तक अनुपस्थित हैं, और कोई कवर नहीं कर रहा।",
-  "{{name}} is not a member of this project.": "{{name}} इस प्रोजेक्ट के सदस्य नहीं हैं।"
+  "{{name}} is not a member of this project.": "{{name}} इस प्रोजेक्ट के सदस्य नहीं हैं।",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "यह चुनी गई गंभीरता के लिए हर व्यक्ति के अपने ऑन-कॉल नियमों से होकर जाता है, असली पेज की तरह - बिना प्रतीक्षा के। हर संदेश में TEST लिखा होता है। कोई घटना नहीं बनती, स्टेटस पेज पर कुछ नहीं दिखता, और किसी सब्सक्राइबर या चैनल को सूचना नहीं दी जाती।",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "किसी के स्वीकार करने तक हर स्तर को बारी-बारी से अधिकतम {{minutes}} मिनट के अंतर पर पेज करता है। बंद होने पर केवल पहले स्तर को पेज करता है।",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "परीक्षण {{minutes}} मिनट बाद, {{count}} और स्तरों तक पहुँचने से पहले समाप्त हो जाता है।",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "परीक्षण {{minutes}} मिनट बाद, {{count}} और स्तर तक पहुँचने से पहले समाप्त हो जाता है।"
 }

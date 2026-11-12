@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Vaktplan {{name}} (neste i rotasjonen)",
   "Team {{name}} has no members.": "Teamet {{name}} har ingen medlemmer.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "Den første eskaleringsregelen kaller ikke opp noen ennå. Legg til personer, et team eller en vaktplan i den.",
-  "The test ends before it reaches {{count}} more levels.": "Testen avsluttes før den når {{count}} nivåer til.",
-  "The test ends before it reaches {{count}} more levels._one": "Testen avsluttes før den når {{count}} nivå til.",
   "This Mattermost method is not verified, so the test can't use it.": "Denne Mattermost-metoden er ikke verifisert, så testen kan ikke bruke den.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "Denne Microsoft Teams-metoden er ikke verifisert, så testen kan ikke bruke den.",
   "This SMS method is not verified, so the test can't use it.": "Denne SMS-metoden er ikke verifisert, så testen kan ikke bruke den.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "Denne push-varselmetoden er ikke verifisert, så testen kan ikke bruke den.",
   "This webhook method is not verified, so the test can't use it.": "Denne webhook-metoden er ikke verifisert, så testen kan ikke bruke den.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} er borte til {{time}}, uten noen som dekker.",
-  "{{name}} is not a member of this project.": "{{name}} er ikke medlem av dette prosjektet."
+  "{{name}} is not a member of this project.": "{{name}} er ikke medlem av dette prosjektet.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "Det går gjennom hver persons egne vaktregler for alvorlighetsgraden du velger, som et ekte oppkall - uten ventetidene. Hver melding sier TEST. Ingen hendelse opprettes, ingenting vises på en statusside, og ingen abonnent eller kanal får beskjed.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Kaller opp hvert nivå etter tur med høyst {{minutes}} minutters mellomrom, til noen bekrefter. Av kaller den bare opp det første nivået.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "Testen avsluttes etter {{minutes}} minutter, før den når {{count}} nivåer til.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "Testen avsluttes etter {{minutes}} minutter, før den når {{count}} nivå til."
 }

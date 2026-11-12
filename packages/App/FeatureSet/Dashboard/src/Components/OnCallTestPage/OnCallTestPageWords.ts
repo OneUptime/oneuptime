@@ -370,9 +370,15 @@ export const WALK_LEVEL_AFTER: PluralTemplate = {
   other: "Level {{order}}, after {{count}} minutes",
 };
 
+/*
+ * Where a walk stops short of the policy's last level: a test ends
+ * ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES after it is sent ({{minutes}}),
+ * whatever levels are left.
+ */
 export const WALK_UNREACHED_LEVELS: PluralTemplate = {
-  one: "The test ends before it reaches {{count}} more level.",
-  other: "The test ends before it reaches {{count}} more levels.",
+  one: "The test ends after {{minutes}} minutes, before it reaches {{count}} more level.",
+  other:
+    "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.",
 };
 
 // What a test costs, in a sentence: the first level's, or a walk's at most.

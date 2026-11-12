@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Dienstplan {{name}} (nächste in der Rotation)",
   "Team {{name}} has no members.": "Team {{name}} hat keine Mitglieder.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "Die erste Eskalationsregel alarmiert noch niemanden. Fügen Sie ihr Personen, ein Team oder einen Dienstplan hinzu.",
-  "The test ends before it reaches {{count}} more levels.": "Der Test endet, bevor er {{count}} weitere Stufen erreicht.",
-  "The test ends before it reaches {{count}} more levels._one": "Der Test endet, bevor er {{count}} weitere Stufe erreicht.",
   "This Mattermost method is not verified, so the test can't use it.": "Diese Mattermost-Methode ist nicht verifiziert, daher kann der Test sie nicht verwenden.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "Diese Microsoft-Teams-Methode ist nicht verifiziert, daher kann der Test sie nicht verwenden.",
   "This SMS method is not verified, so the test can't use it.": "Diese SMS-Methode ist nicht verifiziert, daher kann der Test sie nicht verwenden.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "Diese Push-Benachrichtigungsmethode ist nicht verifiziert, daher kann der Test sie nicht verwenden.",
   "This webhook method is not verified, so the test can't use it.": "Diese Webhook-Methode ist nicht verifiziert, daher kann der Test sie nicht verwenden.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} ist bis {{time}} abwesend, ohne Vertretung.",
-  "{{name}} is not a member of this project.": "{{name}} ist kein Mitglied dieses Projekts."
+  "{{name}} is not a member of this project.": "{{name}} ist kein Mitglied dieses Projekts.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "Sie läuft durch die eigenen Bereitschaftsregeln jeder Person für den gewählten Schweregrad, wie eine echte Alarmierung - ohne die Wartezeiten. Jede Nachricht sagt TEST. Es wird kein Vorfall erstellt, nichts erscheint auf einer Statusseite, und kein Abonnent und kein Kanal wird informiert.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Alarmiert jede Stufe nacheinander im Abstand von bis zu {{minutes}} Minuten, bis jemand bestätigt. Aus, alarmiert sie nur die erste Stufe.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "Der Test endet nach {{minutes}} Minuten, bevor er {{count}} weitere Stufen erreicht.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "Der Test endet nach {{minutes}} Minuten, bevor er {{count}} weitere Stufe erreicht."
 }

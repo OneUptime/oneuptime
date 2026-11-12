@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Расписание {{name}} (следующий в ротации)",
   "Team {{name}} has no members.": "В команде {{name}} нет участников.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "Первое правило эскалации пока никого не вызывает. Добавьте в него людей, команду или расписание.",
-  "The test ends before it reaches {{count}} more levels.": "Проверка закончится, не дойдя до оставшихся уровней: {{count}}.",
-  "The test ends before it reaches {{count}} more levels._one": "Проверка закончится, не дойдя ещё до {{count}} уровня.",
   "This Mattermost method is not verified, so the test can't use it.": "Этот метод Mattermost не подтверждён, поэтому проверка не может его использовать.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "Этот метод Microsoft Teams не подтверждён, поэтому проверка не может его использовать.",
   "This SMS method is not verified, so the test can't use it.": "Этот метод SMS не подтверждён, поэтому проверка не может его использовать.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "Этот метод push-уведомлений не подтверждён, поэтому проверка не может его использовать.",
   "This webhook method is not verified, so the test can't use it.": "Этот метод вебхука не подтверждён, поэтому проверка не может его использовать.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} отсутствует до {{time}}, замены нет.",
-  "{{name}} is not a member of this project.": "{{name}} не участник этого проекта."
+  "{{name}} is not a member of this project.": "{{name}} не участник этого проекта.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "Он проходит по собственным правилам дежурства каждого человека для выбранной серьёзности, как настоящий вызов, но без ожиданий. В каждом сообщении сказано ТЕСТ. Инцидент не создаётся, на странице статуса ничего не появляется, и ни подписчики, ни каналы не узнают.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Вызывает уровни по очереди с интервалом до {{minutes}} мин, пока кто-нибудь не подтвердит. Если выключено, вызывает только первый уровень.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "Проверка закончится через {{minutes}} мин, не дойдя до оставшихся уровней: {{count}}.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "Проверка закончится через {{minutes}} мин, не дойдя ещё до {{count}} уровня."
 }

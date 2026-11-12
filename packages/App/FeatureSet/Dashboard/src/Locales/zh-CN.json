@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "排班 {{name}}（轮换中的下一个人）",
   "Team {{name}} has no members.": "团队 {{name}} 没有成员。",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "第一条升级规则尚未呼叫任何人。请为其添加人员、团队或排班。",
-  "The test ends before it reaches {{count}} more levels.": "测试会在到达剩余的 {{count}} 个级别之前结束。",
-  "The test ends before it reaches {{count}} more levels._one": "测试会在到达剩余的 {{count}} 个级别之前结束。",
   "This Mattermost method is not verified, so the test can't use it.": "此 Mattermost 方式未经验证，因此测试无法使用。",
   "This Microsoft Teams method is not verified, so the test can't use it.": "此 Microsoft Teams 方式未经验证，因此测试无法使用。",
   "This SMS method is not verified, so the test can't use it.": "此短信方式未经验证，因此测试无法使用。",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "此推送通知方式未经验证，因此测试无法使用。",
   "This webhook method is not verified, so the test can't use it.": "此 Webhook 方式未经验证，因此测试无法使用。",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} 在 {{time}} 之前不在岗，且无人代班。",
-  "{{name}} is not a member of this project.": "{{name}} 不是此项目的成员。"
+  "{{name}} is not a member of this project.": "{{name}} 不是此项目的成员。",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "它会按每个人针对所选严重程度的值班规则发送，就像真实呼叫一样，但没有等待时间。每条消息都会注明“测试”。不会创建事件，状态页上不会显示任何内容，也不会通知任何订阅者或频道。",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "依次呼叫每个级别，间隔最多 {{minutes}} 分钟，直到有人确认。关闭时只呼叫第一个级别。",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "测试会在 {{minutes}} 分钟后结束，不会到达剩余的 {{count}} 个级别。",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "测试会在 {{minutes}} 分钟后结束，不会到达剩余的 {{count}} 个级别。"
 }

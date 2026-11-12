@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "الجدول {{name}} (التالي في التناوب)",
   "Team {{name}} has no members.": "لا يوجد أعضاء في الفريق {{name}}.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "لا تستدعي قاعدة التصعيد الأولى أحدًا بعد. أضف إليها أشخاصًا أو فريقًا أو جدولًا.",
-  "The test ends before it reaches {{count}} more levels.": "ينتهي الاختبار قبل أن يصل إلى المستويات المتبقية: {{count}}.",
-  "The test ends before it reaches {{count}} more levels._one": "ينتهي الاختبار قبل أن يصل إلى {{count}} مستوى آخر.",
   "This Mattermost method is not verified, so the test can't use it.": "طريقة Mattermost هذه غير متحقق منها، لذا لا يستطيع الاختبار استخدامها.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "طريقة Microsoft Teams هذه غير متحقق منها، لذا لا يستطيع الاختبار استخدامها.",
   "This SMS method is not verified, so the test can't use it.": "طريقة الرسائل النصية هذه غير متحقق منها، لذا لا يستطيع الاختبار استخدامها.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "طريقة الإشعار الفوري هذه غير متحقق منها، لذا لا يستطيع الاختبار استخدامها.",
   "This webhook method is not verified, so the test can't use it.": "طريقة خطاف الويب هذه غير متحقق منها، لذا لا يستطيع الاختبار استخدامها.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} غائب حتى {{time}}، ولا أحد ينوب عنه.",
-  "{{name}} is not a member of this project.": "{{name}} ليس عضوًا في هذا المشروع."
+  "{{name}} is not a member of this project.": "{{name}} ليس عضوًا في هذا المشروع.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "يمرّ عبر قواعد المناوبة الخاصة بكل شخص لدرجة الخطورة التي تختارها، كما يفعل الاستدعاء الحقيقي - دون فترات الانتظار. تقول كل رسالة اختبار. لا تُنشأ أي حادثة، ولا يظهر شيء في صفحة الحالة، ولا يُبلَّغ أي مشترك أو قناة.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "يستدعي كل مستوى بالتناوب، بفاصل أقصاه {{minutes}} د، إلى أن يُقرّ أحد. عند إيقافه، يستدعي المستوى الأول فقط.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "ينتهي الاختبار بعد {{minutes}} دقيقة، قبل أن يصل إلى المستويات المتبقية: {{count}}.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "ينتهي الاختبار بعد {{minutes}} دقيقة، قبل أن يصل إلى {{count}} مستوى آخر."
 }

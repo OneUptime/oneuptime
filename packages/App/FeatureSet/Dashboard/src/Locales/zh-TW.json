@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "排班 {{name}}（輪換中的下一個人）",
   "Team {{name}} has no members.": "團隊 {{name}} 沒有成員。",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "第一條上報規則尚未呼叫任何人。請為其新增人員、團隊或排班。",
-  "The test ends before it reaches {{count}} more levels.": "測試會在到達剩餘的 {{count}} 個層級之前結束。",
-  "The test ends before it reaches {{count}} more levels._one": "測試會在到達剩餘的 {{count}} 個層級之前結束。",
   "This Mattermost method is not verified, so the test can't use it.": "此 Mattermost 方式未經驗證，因此測試無法使用。",
   "This Microsoft Teams method is not verified, so the test can't use it.": "此 Microsoft Teams 方式未經驗證，因此測試無法使用。",
   "This SMS method is not verified, so the test can't use it.": "此簡訊方式未經驗證，因此測試無法使用。",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "此推播通知方式未經驗證，因此測試無法使用。",
   "This webhook method is not verified, so the test can't use it.": "此 Webhook 方式未經驗證，因此測試無法使用。",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} 在 {{time}} 之前不在崗，且無人代班。",
-  "{{name}} is not a member of this project.": "{{name}} 不是此專案的成員。"
+  "{{name}} is not a member of this project.": "{{name}} 不是此專案的成員。",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "它會依每個人針對所選嚴重程度的待命規則傳送，就像真實呼叫一樣，但沒有等待時間。每則訊息都會註明「測試」。不會建立事件，狀態頁上不會顯示任何內容，也不會通知任何訂閱者或頻道。",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "依序呼叫每個層級，間隔最多 {{minutes}} 分鐘，直到有人確認。關閉時只呼叫第一個層級。",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "測試會在 {{minutes}} 分鐘後結束，不會到達剩餘的 {{count}} 個層級。",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "測試會在 {{minutes}} 分鐘後結束，不會到達剩餘的 {{count}} 個層級。"
 }

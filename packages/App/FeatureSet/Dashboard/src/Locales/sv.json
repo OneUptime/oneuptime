@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Schema {{name}} (nästa i rotationen)",
   "Team {{name}} has no members.": "Teamet {{name}} har inga medlemmar.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "Den första eskaleringsregeln larmar ingen än. Lägg till personer, ett team eller ett schema i den.",
-  "The test ends before it reaches {{count}} more levels.": "Testet avslutas innan det når {{count}} nivåer till.",
-  "The test ends before it reaches {{count}} more levels._one": "Testet avslutas innan det når {{count}} nivå till.",
   "This Mattermost method is not verified, so the test can't use it.": "Den här Mattermost-metoden är inte verifierad, så testet kan inte använda den.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "Den här Microsoft Teams-metoden är inte verifierad, så testet kan inte använda den.",
   "This SMS method is not verified, so the test can't use it.": "Den här sms-metoden är inte verifierad, så testet kan inte använda den.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "Den här push-aviseringsmetoden är inte verifierad, så testet kan inte använda den.",
   "This webhook method is not verified, so the test can't use it.": "Den här webhook-metoden är inte verifierad, så testet kan inte använda den.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} är borta till {{time}}, utan någon som täcker.",
-  "{{name}} is not a member of this project.": "{{name}} är inte medlem i det här projektet."
+  "{{name}} is not a member of this project.": "{{name}} är inte medlem i det här projektet.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "Det går genom varje persons egna jourregler för den valda allvarlighetsgraden, som ett riktigt larm - utan väntetiderna. Varje meddelande säger TEST. Ingen incident skapas, inget visas på en statussida, och ingen prenumerant eller kanal får veta.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Larmar varje nivå i tur och ordning med högst {{minutes}} minuters mellanrum, tills någon bekräftar. Av larmar den bara det första nivået.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "Testet avslutas efter {{minutes}} minuter, innan det når {{count}} nivåer till.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "Testet avslutas efter {{minutes}} minuter, innan det når {{count}} nivå till."
 }

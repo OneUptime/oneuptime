@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "زمان‌بندی {{name}} (نفر بعدی در چرخش)",
   "Team {{name}} has no members.": "تیم {{name}} عضوی ندارد.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "نخستین قاعده تشدید هنوز کسی را فرا نمی‌خواند. افراد، یک تیم یا یک زمان‌بندی به آن اضافه کنید.",
-  "The test ends before it reaches {{count}} more levels.": "آزمایش پیش از رسیدن به {{count}} سطح دیگر پایان می‌یابد.",
-  "The test ends before it reaches {{count}} more levels._one": "آزمایش پیش از رسیدن به {{count}} سطح دیگر پایان می‌یابد.",
   "This Mattermost method is not verified, so the test can't use it.": "این روش Mattermost تأیید نشده است، پس آزمایش نمی‌تواند از آن استفاده کند.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "این روش Microsoft Teams تأیید نشده است، پس آزمایش نمی‌تواند از آن استفاده کند.",
   "This SMS method is not verified, so the test can't use it.": "این روش پیامک تأیید نشده است، پس آزمایش نمی‌تواند از آن استفاده کند.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "این روش اعلان پوش تأیید نشده است، پس آزمایش نمی‌تواند از آن استفاده کند.",
   "This webhook method is not verified, so the test can't use it.": "این روش وب‌هوک تأیید نشده است، پس آزمایش نمی‌تواند از آن استفاده کند.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} تا {{time}} غایب است و کسی جای او را پوشش نمی‌دهد.",
-  "{{name}} is not a member of this project.": "{{name}} عضو این پروژه نیست."
+  "{{name}} is not a member of this project.": "{{name}} عضو این پروژه نیست.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "از قوانین آنکال هر فرد برای شدتی که انتخاب می‌کنید عبور می‌کند، مانند یک فراخوان واقعی - بدون انتظارها. هر پیام می‌گوید آزمایشی. هیچ حادثه‌ای ساخته نمی‌شود، چیزی در صفحهٔ وضعیت نمایش داده نمی‌شود و به هیچ مشترک یا کانالی خبر داده نمی‌شود.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "هر سطح را به نوبت، با فاصلهٔ حداکثر {{minutes}} دقیقه، فرامی‌خواند تا کسی تأیید کند. خاموش، فقط سطح نخست را فرامی‌خواند.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "آزمایش پس از {{minutes}} دقیقه، پیش از رسیدن به {{count}} سطح دیگر پایان می‌یابد.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "آزمایش پس از {{minutes}} دقیقه، پیش از رسیدن به {{count}} سطح دیگر پایان می‌یابد."
 }

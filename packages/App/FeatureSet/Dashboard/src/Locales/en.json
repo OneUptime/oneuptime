@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "Schedule {{name}} (next in rotation)",
   "Team {{name}} has no members.": "Team {{name}} has no members.",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
-  "The test ends before it reaches {{count}} more levels.": "The test ends before it reaches {{count}} more levels.",
-  "The test ends before it reaches {{count}} more levels._one": "The test ends before it reaches {{count}} more level.",
   "This Mattermost method is not verified, so the test can't use it.": "This Mattermost method is not verified, so the test can't use it.",
   "This Microsoft Teams method is not verified, so the test can't use it.": "This Microsoft Teams method is not verified, so the test can't use it.",
   "This SMS method is not verified, so the test can't use it.": "This SMS method is not verified, so the test can't use it.",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "This push notification method is not verified, so the test can't use it.",
   "This webhook method is not verified, so the test can't use it.": "This webhook method is not verified, so the test can't use it.",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} is away until {{time}}, with nobody covering.",
-  "{{name}} is not a member of this project.": "{{name}} is not a member of this project."
+  "{{name}} is not a member of this project.": "{{name}} is not a member of this project.",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "The test ends after {{minutes}} minutes, before it reaches {{count}} more level."
 }

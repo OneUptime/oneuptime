@@ -51139,8 +51139,6 @@
   "Schedule {{name}} (next in rotation)": "スケジュール {{name}}（ローテーションの次の人）",
   "Team {{name}} has no members.": "チーム {{name}} にはメンバーがいません。",
   "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.": "最初のエスカレーションルールはまだ誰も呼び出しません。人、チーム、またはスケジュールを追加してください。",
-  "The test ends before it reaches {{count}} more levels.": "テストは、残り {{count}} 個のレベルに到達する前に終了します。",
-  "The test ends before it reaches {{count}} more levels._one": "テストは、残り {{count}} 個のレベルに到達する前に終了します。",
   "This Mattermost method is not verified, so the test can't use it.": "この Mattermost の方法は確認されていないため、テストでは使用できません。",
   "This Microsoft Teams method is not verified, so the test can't use it.": "この Microsoft Teams の方法は確認されていないため、テストでは使用できません。",
   "This SMS method is not verified, so the test can't use it.": "この SMS の方法は確認されていないため、テストでは使用できません。",
@@ -51154,5 +51152,9 @@
   "This push notification method is not verified, so the test can't use it.": "このプッシュ通知の方法は確認されていないため、テストでは使用できません。",
   "This webhook method is not verified, so the test can't use it.": "この Webhook の方法は確認されていないため、テストでは使用できません。",
   "{{name}} is away until {{time}}, with nobody covering.": "{{name}} は {{time}} まで不在で、代理の人がいません。",
-  "{{name}} is not a member of this project.": "{{name}} はこのプロジェクトのメンバーではありません。"
+  "{{name}} is not a member of this project.": "{{name}} はこのプロジェクトのメンバーではありません。",
+  "It goes through each person's own on-call rules for the severity you pick, as a real page would - without the waits. Every message says TEST. No incident is created, nothing shows on a status page, and no subscriber or channel is told.": "選んだ重大度に対する各メンバーのオンコールルールを、実際の呼び出しと同じように、待ち時間なしで通ります。すべてのメッセージに「テスト」と表示されます。インシデントは作成されず、ステータスページには何も表示されず、購読者やチャンネルにも知らされません。",
+  "Pages each level in turn, up to {{minutes}} minutes apart, until someone acknowledges. Off, it pages the first level only.": "誰かが確認するまで、各レベルを最大 {{minutes}} 分の間隔で順番に呼び出します。オフの場合は最初のレベルだけを呼び出します。",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels.": "テストは {{minutes}} 分後に終了し、残り {{count}} 個のレベルには到達しません。",
+  "The test ends after {{minutes}} minutes, before it reaches {{count}} more levels._one": "テストは {{minutes}} 分後に終了し、残り {{count}} 個のレベルには到達しません。"
 }
