@@ -392,7 +392,7 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
     return (
       <div className="flex flex-col items-center gap-2">
         {/* A code is for a phone held up to a big screen, not for a phone. */}
-        <div className="hidden h-28 w-28 sm:block">
+        <div className="hidden sm:block">
           <QRCode text={data.url} alt={data.name} />
         </div>
         <a
