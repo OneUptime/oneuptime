@@ -10,6 +10,7 @@ import DashboardNetworkMapComponent from "Common/Types/Dashboard/DashboardCompon
 import { DEFAULT_MAX_SITES } from "Common/Utils/Dashboard/Components/DashboardNetworkMapComponent";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardWidgetLine from "./DashboardWidgetLine";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 import DashboardResourceListBase, {
   ResourceListColumn,
   ResourceListNameCell,
@@ -133,6 +134,14 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const args: DashboardNetworkMapComponent["arguments"] =
     props.component.arguments;
+
+  /*
+   * In the widget's live preview a site's marker opens nothing (issue
+   * #6859): the preview sits over a board being edited, and the site's
+   * page would take the unsaved widgets with it. The list's names are
+   * their words there too (AppLink).
+   */
+  const isPreview: boolean = useIsDashboardWidgetPreview();
 
   /*
    * COERCED, not type-tested. The settings form renders Max Sites as an
@@ -541,7 +550,9 @@ const DashboardNetworkMapComponentElement: FunctionComponent<ComponentProps> = (
             <g>
               {markers.map((marker: NetworkMapMarker): ReactElement => {
                 const radius: number = marker.screenRadius / zoom;
-                const route: Route | undefined = getMarkerRoute(marker);
+                const route: Route | undefined = isPreview
+                  ? undefined
+                  : getMarkerRoute(marker);
 
                 const onActivate: () => void = () => {
                   if (route) {
