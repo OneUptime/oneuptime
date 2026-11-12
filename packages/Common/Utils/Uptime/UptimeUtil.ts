@@ -23,6 +23,30 @@ export interface UptimeWindow {
   endDate: Date;
 }
 
+/*
+ * A row of one monitor's status timeline as the time it covers: from its
+ * start to its end - an open row to the next row's start, or to now - and
+ * clipped to the window when there is one.
+ */
+interface StatusTimelineRowSpan {
+  row: MonitorStatusTimeline;
+  startDate: Date;
+  endDate: Date;
+}
+
+/*
+ * Time one monitor's monitoring was turned off, as its status timeline
+ * marks it (MonitorStatusTimeline.isMonitoringOff).
+ */
+export interface MonitoringOffSpan {
+  monitorId: ObjectID;
+  startDate: Date;
+  endDate: Date;
+}
+
+// An interval in epoch milliseconds, start before end.
+type MillisecondInterval = [number, number];
+
 export default class UptimeUtil {
   /**
    * Chronological order for timeline rows, to the millisecond.
@@ -79,8 +103,24 @@ export default class UptimeUtil {
     );
   }
 
+  /*
+   * Whether a status timeline row covers time with the monitor's monitoring
+   * turned off. Only an explicit true does: the column is NOT NULL and
+   * defaults to false, so a row read without it was read without the
+   * column, not with monitoring off.
+   */
+  public static isMonitoringOff(row: MonitorStatusTimeline): boolean {
+    return row.isMonitoringOff === true;
+  }
+
   /**
    * This function, `getMonitorEventsForId`, takes a `monitorId` as an argument and returns an array of `MonitorEvent` objects.
+   *
+   * Time with the monitor's monitoring turned off is no event (issue #6480): nothing checked
+   * the monitor then, so the status its row holds is only what the last check saw before that.
+   * The row still ends the row before it - an open row runs to the next row's start, whatever
+   * that row is - and leaves a gap of its own, which getTotalDowntimeInSeconds leaves out of
+   * the time it measures (getNotMonitoredSeconds).
    * @param {ObjectID} monitorId - The ID of the monitor for which events are to be fetched.
    * @param {UptimeWindow | undefined} window - If supplied, events are clipped to this window and events outside it are dropped.
    * @returns {Array<MonitorEvent>} - An array of `MonitorEvent` objects.
@@ -90,8 +130,242 @@ export default class UptimeUtil {
     statusTimelineItems: Array<MonitorStatusTimeline>,
     window?: UptimeWindow | undefined,
   ): Array<MonitorEvent> {
-    // Initialize an empty array to store the monitor events.
+    const eventList: Array<MonitorEvent> = [];
 
+    for (const span of this.getRowSpansForId(
+      monitorId,
+      statusTimelineItems,
+      window,
+    )) {
+      if (UptimeUtil.isMonitoringOff(span.row)) {
+        continue;
+      }
+
+      // Push a new MonitorEvent object to the eventList array with properties from the current item and calculated dates.
+      eventList.push({
+        startDate: span.startDate,
+        endDate: span.endDate,
+        label: span.row.monitorStatus?.name || "Operational",
+        priority: span.row.monitorStatus?.priority || 0,
+        color: span.row.monitorStatus?.color || Green,
+        monitorId: span.row.monitorId!,
+        eventStatusId: span.row.monitorStatus!.id!,
+      });
+    }
+
+    // Return the populated eventList array.
+    return eventList;
+  }
+
+  /*
+   * The time each monitor's monitoring was turned off, as its rows mark it:
+   * clipped and ended exactly as getMonitorEventsForId clips and ends the
+   * rows it turns into events, so the two never overlap. In start order.
+   */
+  public static getMonitoringOffSpans(
+    items: Array<MonitorStatusTimeline>,
+    window?: UptimeWindow | undefined,
+  ): Array<MonitoringOffSpan> {
+    const spans: Array<MonitoringOffSpan> = [];
+
+    for (const monitorId of this.getMonitorIds(items)) {
+      for (const span of this.getRowSpansForId(monitorId, items, window)) {
+        if (!UptimeUtil.isMonitoringOff(span.row)) {
+          continue;
+        }
+
+        spans.push({
+          monitorId: monitorId,
+          startDate: OneUptimeDate.fromString(span.startDate),
+          endDate: OneUptimeDate.fromString(span.endDate),
+        });
+      }
+    }
+
+    return spans.sort((a: MonitoringOffSpan, b: MonitoringOffSpan): number => {
+      return a.startDate.getTime() - b.startDate.getTime();
+    });
+  }
+
+  /*
+   * Seconds of [startDate, endDate] in which none of the monitors in `items`
+   * was monitored: at each such instant every one of them either had its
+   * monitoring turned off, or had no row yet. That time is no time at all
+   * for uptime (issue #6480): neither up nor down. A gap in a timeline - a
+   * row deleted from its middle - is read as it always was.
+   *
+   * Zero when no row marks monitoring off, so a timeline without such a
+   * row is measured exactly as before.
+   */
+  public static getNotMonitoredSeconds(data: {
+    items: Array<MonitorStatusTimeline>;
+    startDate: Date;
+    endDate: Date;
+  }): number {
+    const periodStart: number = OneUptimeDate.fromString(
+      data.startDate,
+    ).getTime();
+    const periodEnd: number = OneUptimeDate.fromString(data.endDate).getTime();
+
+    if (
+      !(periodEnd > periodStart) ||
+      !data.items.some((item: MonitorStatusTimeline): boolean => {
+        return Boolean(item) && UptimeUtil.isMonitoringOff(item);
+      })
+    ) {
+      return 0;
+    }
+
+    let notMonitored: Array<MillisecondInterval> | null = null;
+
+    for (const monitorId of this.getMonitorIds(data.items)) {
+      const intervals: Array<MillisecondInterval> = [];
+
+      // Before its first row the monitor was not there to be checked.
+      let firstRowStart: number | null = null;
+
+      for (const item of data.items) {
+        if (!item || item.monitorId?.toString() !== monitorId.toString()) {
+          continue;
+        }
+
+        const startsAt: number = OneUptimeDate.fromString(
+          item.startsAt || OneUptimeDate.getCurrentDate(),
+        ).getTime();
+
+        if (firstRowStart === null || startsAt < firstRowStart) {
+          firstRowStart = startsAt;
+        }
+      }
+
+      if (firstRowStart !== null && firstRowStart > periodStart) {
+        intervals.push([periodStart, Math.min(firstRowStart, periodEnd)]);
+      }
+
+      for (const span of this.getRowSpansForId(monitorId, data.items)) {
+        if (!UptimeUtil.isMonitoringOff(span.row)) {
+          continue;
+        }
+
+        intervals.push([
+          Math.max(
+            OneUptimeDate.fromString(span.startDate).getTime(),
+            periodStart,
+          ),
+          Math.min(OneUptimeDate.fromString(span.endDate).getTime(), periodEnd),
+        ]);
+      }
+
+      const merged: Array<MillisecondInterval> =
+        UptimeUtil.mergeMillisecondIntervals(intervals);
+
+      notMonitored =
+        notMonitored === null
+          ? merged
+          : UptimeUtil.intersectMillisecondIntervals(notMonitored, merged);
+
+      if (notMonitored.length === 0) {
+        return 0;
+      }
+    }
+
+    let notMonitoredMilliseconds: number = 0;
+
+    for (const interval of notMonitored || []) {
+      notMonitoredMilliseconds += interval[1] - interval[0];
+    }
+
+    return notMonitoredMilliseconds / 1000;
+  }
+
+  // Sorted, disjoint and non-empty: overlapping or touching intervals joined.
+  private static mergeMillisecondIntervals(
+    intervals: Array<MillisecondInterval>,
+  ): Array<MillisecondInterval> {
+    const merged: Array<MillisecondInterval> = [];
+
+    const sorted: Array<MillisecondInterval> = [...intervals].sort(
+      (a: MillisecondInterval, b: MillisecondInterval): number => {
+        return a[0] - b[0];
+      },
+    );
+
+    for (const interval of sorted) {
+      if (!(interval[1] > interval[0])) {
+        continue;
+      }
+
+      const last: MillisecondInterval | undefined = merged[merged.length - 1];
+
+      if (last && interval[0] <= last[1]) {
+        last[1] = Math.max(last[1], interval[1]);
+        continue;
+      }
+
+      merged.push([interval[0], interval[1]]);
+    }
+
+    return merged;
+  }
+
+  // The time both sorted, disjoint lists cover.
+  private static intersectMillisecondIntervals(
+    a: Array<MillisecondInterval>,
+    b: Array<MillisecondInterval>,
+  ): Array<MillisecondInterval> {
+    const both: Array<MillisecondInterval> = [];
+    let i: number = 0;
+    let j: number = 0;
+
+    while (i < a.length && j < b.length) {
+      const start: number = Math.max(a[i]![0], b[j]![0]);
+      const end: number = Math.min(a[i]![1], b[j]![1]);
+
+      if (end > start) {
+        both.push([start, end]);
+      }
+
+      if (a[i]![1] < b[j]![1]) {
+        i++;
+      } else {
+        j++;
+      }
+    }
+
+    return both;
+  }
+
+  // Every monitor the rows are of, once each, in the order first seen.
+  private static getMonitorIds(
+    items: Array<MonitorStatusTimeline>,
+  ): Array<ObjectID> {
+    const monitorIds: Array<ObjectID> = [];
+    const seen: Set<string> = new Set<string>();
+
+    for (const item of items) {
+      const monitorId: string | undefined = item?.monitorId?.toString();
+
+      if (!monitorId || seen.has(monitorId)) {
+        continue;
+      }
+
+      seen.add(monitorId);
+      monitorIds.push(new ObjectID(monitorId));
+    }
+
+    return monitorIds;
+  }
+
+  /*
+   * One monitor's rows as the time each covers, in order: what
+   * getMonitorEventsForId makes its events of, and getMonitoringOffSpans
+   * and getNotMonitoredSeconds the time with monitoring off of.
+   */
+  private static getRowSpansForId(
+    monitorId: ObjectID,
+    statusTimelineItems: Array<MonitorStatusTimeline>,
+    window?: UptimeWindow | undefined,
+  ): Array<StatusTimelineRowSpan> {
     // make sure items are sorted by start date - to the millisecond, see compareTimelinesChronologically.
 
     let items: Array<MonitorStatusTimeline> = [...statusTimelineItems];
@@ -102,7 +376,7 @@ export default class UptimeUtil {
       },
     );
 
-    const eventList: Array<MonitorEvent> = [];
+    const spans: Array<StatusTimelineRowSpan> = [];
 
     const monitorEvents: Array<MonitorStatusTimeline> = items.filter(
       (item: MonitorStatusTimeline) => {
@@ -183,20 +457,14 @@ export default class UptimeUtil {
         continue;
       }
 
-      // Push a new MonitorEvent object to the eventList array with properties from the current item and calculated dates.
-      eventList.push({
+      spans.push({
+        row: monitorEvents[i]!,
         startDate: eventStartDate,
         endDate: eventEndDate,
-        label: monitorEvents[i]?.monitorStatus?.name || "Operational",
-        priority: monitorEvents[i]?.monitorStatus?.priority || 0,
-        color: monitorEvents[i]?.monitorStatus?.color || Green,
-        monitorId: monitorEvents[i]!.monitorId!,
-        eventStatusId: monitorEvents[i]!.monitorStatus!.id!,
       });
     }
 
-    // Return the populated eventList array.
-    return eventList;
+    return spans;
   }
 
   /*
@@ -236,27 +504,7 @@ export default class UptimeUtil {
     window?: UptimeWindow | undefined,
   ): Array<MonitorEvent> {
     // get all distinct monitor ids.
-    const monitorIds: Array<ObjectID> = [];
-
-    for (let i: number = 0; i < items.length; i++) {
-      if (!items[i]) {
-        continue;
-      }
-
-      const monitorId: string | undefined = items[i]!.monitorId?.toString();
-
-      if (!monitorId) {
-        continue;
-      }
-
-      if (
-        !monitorIds.find((item: ObjectID) => {
-          return item.toString() === monitorId;
-        })
-      ) {
-        monitorIds.push(new ObjectID(monitorId));
-      }
-    }
+    const monitorIds: Array<ObjectID> = this.getMonitorIds(items);
 
     const eventList: Array<MonitorEvent> = [];
     // convert data to events.
@@ -325,8 +573,17 @@ export default class UptimeUtil {
      *
      * When there are no events at all there is nothing to clamp to and the denominator is the
      * full (now-clipped) window.
+     *
+     * Either way, the time in it that none of the monitors was monitored - each had its
+     * monitoring turned off, or no row yet - is left out (getNotMonitoredSeconds, issue #6480).
+     * Their rows hold no events for it, so it would otherwise count as up. A window nothing was
+     * monitored in at all measures no time: 0.
      */
     let windowSecondsInTimePeriod: number | null = null;
+
+    // The period measured, which the time nothing was monitored is taken out of.
+    let periodStartDate: Date | null = null;
+    let periodEndDate: Date | null = null;
 
     if (window) {
       const windowEndDate: Date = OneUptimeDate.getLesserDate(
@@ -351,6 +608,9 @@ export default class UptimeUtil {
       if (!windowSecondsInTimePeriod || windowSecondsInTimePeriod < 0) {
         windowSecondsInTimePeriod = 1;
       }
+
+      periodStartDate = windowStartDate;
+      periodEndDate = windowEndDate;
     }
 
     // calculate number of seconds between start of first event to date time now.
@@ -359,7 +619,15 @@ export default class UptimeUtil {
     if (monitorEvents.length === 0) {
       return {
         totalDowntimeInSeconds: 0,
-        totalSecondsInTimePeriod: windowSecondsInTimePeriod ?? 1,
+        totalSecondsInTimePeriod:
+          windowSecondsInTimePeriod === null
+            ? 1
+            : UptimeUtil.withoutNotMonitoredSeconds({
+                seconds: windowSecondsInTimePeriod,
+                items: monitorStatusTimelines,
+                startDate: periodStartDate!,
+                endDate: periodEndDate!,
+              }),
       };
     }
 
@@ -383,7 +651,17 @@ export default class UptimeUtil {
           monitorEvents[0]!.startDate,
           OneUptimeDate.getCurrentDate(),
         ) || 1;
+
+      periodStartDate = monitorEvents[0]!.startDate;
+      periodEndDate = OneUptimeDate.getCurrentDate();
     }
+
+    totalSecondsInTimePeriod = UptimeUtil.withoutNotMonitoredSeconds({
+      seconds: totalSecondsInTimePeriod,
+      items: monitorStatusTimelines,
+      startDate: periodStartDate!,
+      endDate: periodEndDate!,
+    });
 
     // get order of operational state.
 
@@ -445,12 +723,76 @@ export default class UptimeUtil {
   ): number {
     // calculate percentage.
 
-    const { totalDowntimeInSeconds, totalSecondsInTimePeriod } =
-      this.getTotalDowntimeInSeconds(
+    return this.toUptimePercentage({
+      totals: this.getTotalDowntimeInSeconds(
         monitorStatusTimelines,
         downtimeMonitorStatuses,
         window,
-      );
+      ),
+      precision: precision,
+    });
+  }
+
+  /*
+   * calculateUptimePercentage, or null when none of the period was
+   * monitored - every monitor's rows in it mark its monitoring off - so a
+   * reader can show no percentage rather than the 100% that no time at all
+   * reads as (issue #6480).
+   */
+  public static calculateUptimePercentageOfMonitoredTime(
+    monitorStatusTimelines: Array<MonitorStatusTimeline>,
+    precision: UptimePrecision,
+    downtimeMonitorStatuses: Array<MonitorStatus>,
+    window?: UptimeWindow | undefined,
+  ): number | null {
+    const totals: {
+      totalDowntimeInSeconds: number;
+      totalSecondsInTimePeriod: number;
+    } = this.getTotalDowntimeInSeconds(
+      monitorStatusTimelines,
+      downtimeMonitorStatuses,
+      window,
+    );
+
+    if (!(totals.totalSecondsInTimePeriod > 0)) {
+      return null;
+    }
+
+    return this.toUptimePercentage({ totals: totals, precision: precision });
+  }
+
+  /*
+   * The period's seconds without those in it that none of the monitors was
+   * monitored (getNotMonitoredSeconds), never below zero.
+   */
+  private static withoutNotMonitoredSeconds(data: {
+    seconds: number;
+    items: Array<MonitorStatusTimeline>;
+    startDate: Date;
+    endDate: Date;
+  }): number {
+    const notMonitoredSeconds: number = this.getNotMonitoredSeconds({
+      items: data.items,
+      startDate: data.startDate,
+      endDate: data.endDate,
+    });
+
+    if (!(notMonitoredSeconds > 0)) {
+      return data.seconds;
+    }
+
+    return Math.max(0, data.seconds - notMonitoredSeconds);
+  }
+
+  private static toUptimePercentage(data: {
+    totals: {
+      totalDowntimeInSeconds: number;
+      totalSecondsInTimePeriod: number;
+    };
+    precision: UptimePrecision;
+  }): number {
+    const { totalDowntimeInSeconds, totalSecondsInTimePeriod } = data.totals;
+    const precision: UptimePrecision = data.precision;
 
     if (totalSecondsInTimePeriod === 0) {
       return 100;

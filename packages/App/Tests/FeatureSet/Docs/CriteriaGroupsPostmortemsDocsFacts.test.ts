@@ -138,6 +138,7 @@ import FrozenMonitorResources from "Common/Utils/StatusPage/FrozenMonitorResourc
 import MonitorGroupMonitoring from "Common/Utils/Monitor/MonitorGroupMonitoring";
 import NotOperationalMonitorQuery from "Common/Utils/Monitor/NotOperationalMonitorQuery";
 import StatusPageResourceUptimeUtil from "Common/Utils/StatusPage/ResourceUptime";
+import UptimeUtil from "Common/Utils/Uptime/UptimeUtil";
 import {
   STATE_LISTS,
   StateListRow,
@@ -2515,11 +2516,14 @@ describe("a monitor group's status", () => {
 
   /*
    * Issue #6478: a monitor whose monitoring is off holds the status its last
-   * check saw. The group's status, its batched twin a status page reads,
-   * and the timeline its uptime and Uptime Graph are drawn from all leave it
-   * out, so one monitor left Offline does not hold the group Offline.
+   * check saw. The group's status, and its batched twin a status page reads,
+   * leave it out, so one monitor left Offline does not hold the group
+   * Offline. The timeline the group's uptime and Uptime Graph are drawn from
+   * keeps it (#6987): its rows up to when its monitoring was turned off
+   * count, and the rows from then on mark monitoring off (isMonitoringOff,
+   * #6480), which uptime leaves out.
    */
-  it("leaves monitors with monitoring off out of its status, and on the Dashboard of its uptime and Uptime Graph (#6478)", () => {
+  it("leaves monitors with monitoring off out of its status, and of its uptime and Uptime Graph from when it was turned off (#6478, #6987)", () => {
     const timeline: string = between(
       MONITOR_GROUP_SERVICE,
       "public async getStatusTimeline(",
@@ -2531,12 +2535,11 @@ describe("a monitor group's status", () => {
       "\n  }\n",
     );
 
-    for (const source of [status, batched, timeline]) {
+    for (const source of [status, batched]) {
       expect(source).toContain("FrozenMonitorResources.withoutFrozenMonitors(");
     }
-    // Each read carries the switch the monitor is left out by.
+    // Each status read carries the switch the monitor is left out by.
     expect(status).toContain("...MONITORING_OFF_SELECT,");
-    expect(timeline).toContain("...MONITORING_OFF_SELECT,");
     expect(
       FrozenMonitorResources.withoutFrozenMonitors([
         { monitor: { disableActiveMonitoring: true } },
@@ -2549,20 +2552,91 @@ describe("a monitor group's status", () => {
       { monitor: {} },
     ]);
 
-    // With every monitor off there is no timeline left: no percentage.
-    expect(
-      between(
-        GROUP_OVERVIEW_PAGE,
-        "const getUptimePercent",
-        "const uptimePercent",
-      ),
-    ).toContain(
-      "MonitorGroupMonitoring.isMonitoringOffForEveryMonitor(monitoringSummary)",
+    // The timeline keeps every monitor but an archived one, and its switch rows.
+    expect(timeline).toContain(
+      "FrozenMonitorResources.withoutArchivedMonitors(",
     );
+    expect(timeline).not.toContain("withoutFrozenMonitors");
+    expect(timeline).toContain("isMonitoringOff: true,");
+
+    /*
+     * A monitor Offline for a day, then turned off: the day counts, the
+     * time since does not. Measured over the time it was monitored.
+     */
+    const monitorId: ObjectID = ObjectID.generate();
+    const offline: MonitorStatus = new MonitorStatus();
+    offline._id = ObjectID.generate().toString();
+    offline.name = "Offline";
+    offline.priority = 3;
+    const now: number = Date.now();
+    const DAY_MS: number = 24 * 60 * 60 * 1000;
+    const row: (data: {
+      startsAt: number;
+      endsAt?: number | undefined;
+      status: MonitorStatus;
+      isMonitoringOff?: boolean | undefined;
+    }) => MonitorStatusTimeline = (data: {
+      startsAt: number;
+      endsAt?: number | undefined;
+      status: MonitorStatus;
+      isMonitoringOff?: boolean | undefined;
+    }): MonitorStatusTimeline => {
+      const item: MonitorStatusTimeline = new MonitorStatusTimeline();
+      item.monitorId = monitorId;
+      item.monitorStatus = data.status;
+      item.startsAt = new Date(data.startsAt);
+      if (data.endsAt !== undefined) {
+        item.endsAt = new Date(data.endsAt);
+      }
+      item.isMonitoringOff = data.isMonitoringOff === true;
+      return item;
+    };
+    const operational: MonitorStatus = new MonitorStatus();
+    operational._id = ObjectID.generate().toString();
+    operational.name = "Operational";
+    operational.priority = 1;
+    const rows: Array<MonitorStatusTimeline> = [
+      row({
+        startsAt: now - 10 * DAY_MS,
+        endsAt: now - 9 * DAY_MS,
+        status: offline,
+      }),
+      row({
+        startsAt: now - 9 * DAY_MS,
+        endsAt: now - 3 * DAY_MS,
+        status: operational,
+      }),
+      row({
+        startsAt: now - 3 * DAY_MS,
+        status: operational,
+        isMonitoringOff: true,
+      }),
+    ];
+    const totals: {
+      totalDowntimeInSeconds: number;
+      totalSecondsInTimePeriod: number;
+    } = UptimeUtil.getTotalDowntimeInSeconds(rows, [offline], {
+      startDate: new Date(now - 10 * DAY_MS),
+      endDate: new Date(now),
+    });
+    expect(Math.round(totals.totalDowntimeInSeconds)).toBe(24 * 60 * 60);
+    // Seven days were monitored: the three since monitoring went off are not.
+    expect(Math.round(totals.totalSecondsInTimePeriod / 3600)).toBe(7 * 24);
+
+    // The percentage, of the monitored time only, and none when none was.
+    const percent: string = between(
+      GROUP_OVERVIEW_PAGE,
+      "const getUptimePercent",
+      "const getCurrentStatusBubble",
+    );
+    expect(percent).toContain(
+      "UptimeUtil.calculateUptimePercentageOfMonitoredTime(",
+    );
+    expect(percent).toContain("if (uptimePercent === null) {");
     expect(GROUP_OVERVIEW_PAGE).toContain('title="Uptime Graph"');
 
     expect(groupsPage).toContain(
-      "- **Monitors with monitoring off do not count.** Nothing checks a monitor whose monitoring is turned off, so its status is only what its last check saw. The group leaves it out of its status, and on the Dashboard out of its uptime and **Uptime Graph** too: a monitor left **Offline** when its monitoring was turned off does not make the group **Offline**.",
+      "- **Monitors with monitoring off do not count.** Nothing checks a monitor whose monitoring is turned off, so its status is only what its last check saw. The group leaves it out of its status: a monitor left **Offline** when its monitoring was turned off does not make the group **Offline**. The group's uptime and **Uptime Graph** keep the monitor's history up to when its monitoring was turned off, and leave out the time after, on the Dashboard and on status pages alike. Turned back on, the monitor counts again from that moment.",
     );
   });
 
@@ -2612,7 +2686,7 @@ describe("a monitor group's status", () => {
       }),
     ).toBe(false);
     expect(groupsPage).toContain(
-      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status, and no uptime percentage beside its **Uptime Graph**. A status page shows the group as **Not monitored**.",
+      "- **Monitoring off shows Disabled.** When monitoring is turned off for every monitor in a group, nothing checks them, so the Dashboard shows **Disabled** in place of the group's status, and its **Uptime Graph** and uptime end where monitoring was turned off for the last of them. A status page shows the group as **Not monitored**.",
     );
     // A status page draws such a group in the words the Dashboard has for it.
     expect(STATUS_PAGE_ENGLISH_OVERVIEW["notMonitored"]).toBe("Not monitored");
@@ -3044,9 +3118,24 @@ describe("a monitor group on a status page", () => {
       "\n  }\n",
     );
 
+    /*
+     * The status the group has everywhere else: the worst among its checked
+     * monitors (getCurrentStatusesForMonitorGroups leaves the frozen ones
+     * out), and none when every one of them is off.
+     */
     expect(groupStatuses).toContain(
-      "FrozenMonitorResources.withoutFrozenMonitors(",
+      "MonitorGroupService.getCurrentStatusesForMonitorGroups({",
     );
+    expect(groupStatuses).toContain(
+      "FrozenMonitorResources.withoutNotMonitoredMonitorGroups({",
+    );
+    expect(
+      between(
+        MONITOR_GROUP_SERVICE,
+        "public async getCurrentStatusesForMonitorGroups(",
+        "\n  }\n",
+      ),
+    ).toContain("FrozenMonitorResources.withoutFrozenMonitors(");
     expect(
       FrozenMonitorResources.getNotMonitoredResourceIds({
         statusPageResources: [

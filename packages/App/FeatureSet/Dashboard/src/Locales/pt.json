@@ -50779,6 +50779,8 @@
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "A IA leu estes {{count}} arquivos anteriormente nesta resposta e não tem mais o texto deles, e as versões da IA os substituem por inteiro: {{files}}.",
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "A IA leu este arquivo anteriormente nesta resposta e não tem mais o texto dele, e a versão da IA o substitui por inteiro: {{files}}.",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "A IA leu este arquivo anteriormente nesta resposta e não tem mais o texto dele, e a versão da IA o substitui por inteiro: {{files}}.",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "O monitoramento está desligado para todos os monitores deste grupo, então não há tempo de atividade para mostrar.",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "O status deste grupo nos últimos 90 dias, uma barra por dia. Monitores com o monitoramento desligado ficam de fora."
+  "Monitoring Off": "Monitoramento desligado",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "O status deste grupo nos últimos 90 dias, uma barra por dia, até quando o monitoramento foi desligado para todos os seus monitores.",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "O status deste grupo nos últimos 90 dias, uma barra por dia. Cada monitor só conta enquanto o monitoramento dele está ligado.",
+  "leaves out time with monitoring off": "exclui o tempo com o monitoramento desligado"
 }
