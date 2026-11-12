@@ -714,6 +714,13 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
     ];
   }
 
+  // The interfaces half of a stored baseline, as the jsonb column holds it.
+  function interfacesBaseline(inOctets: number, outOctets: number): JSONObject {
+    return JSON.parse(
+      JSON.stringify({ interfaces: interfaceWith(inOctets, outOctets) }),
+    ) as JSONObject;
+  }
+
   function storedWalkLog(callIndex: number = 0): JSONObject {
     return (hookFreeUpdateSpy.mock.calls[callIndex][0]["data"] as JSONObject)[
       "lastWalkLog"
@@ -941,7 +948,7 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
 
     test("writes nothing: the newer interfaces and counters stay the baseline, and it gets no rate", async () => {
       mockWalkPipeline({
-        snmpResponse: { interfaces: interfaceWith(9_000, 9_000) },
+        snmpResponse: interfacesBaseline(9_000, 9_000),
         monitoredAt: NEWER,
         oidCounters: { values: { [IF_IN_ERRORS]: "1500" }, readAt: NEWER },
       });
@@ -969,7 +976,7 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
      */
     test("replaces only the half of the baseline it is newer than", async () => {
       mockWalkPipeline({
-        snmpResponse: { interfaces: interfaceWith(1_000, 1_000) },
+        snmpResponse: interfacesBaseline(1_000, 1_000),
         monitoredAt: "2026-07-16T11:50:00.000Z",
         oidCounters: { values: { [IF_IN_ERRORS]: "1500" }, readAt: NEWER },
       });
@@ -1004,7 +1011,7 @@ describe("NetworkDeviceWalkUtil — a busy database and a queue backlog (issue #
 
     test("one received at the very time the baseline holds - the same poll, retried - rewrites nothing", async () => {
       mockWalkPipeline({
-        snmpResponse: { interfaces: interfaceWith(5_000, 5_000) },
+        snmpResponse: interfacesBaseline(5_000, 5_000),
         monitoredAt: RECEIVED_AT.toISOString(),
         oidCounters: {
           values: { [IF_IN_ERRORS]: "1400" },

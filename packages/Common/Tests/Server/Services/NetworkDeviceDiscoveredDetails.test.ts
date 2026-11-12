@@ -407,7 +407,10 @@ describe("mergeDiscoveredDetails - the one write after create", () => {
     });
 
     test("an id in upper case is matched to the lower-case id Postgres answers", async () => {
-      const upper: string = DEVICE_ID.toString().toUpperCase();
+      // Hex letters, so upper case is a different string from what Postgres answers.
+      const lower: string = "abcdef01-2345-4678-9abc-def012345678";
+      const upper: string = lower.toUpperCase();
+      expect(upper).not.toBe(lower);
 
       query.mockImplementationOnce(
         async (_sql: string, parameters: Array<unknown>): Promise<unknown> => {
