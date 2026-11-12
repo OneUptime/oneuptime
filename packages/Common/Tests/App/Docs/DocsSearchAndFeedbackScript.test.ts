@@ -184,7 +184,8 @@ async function openPage(options: PageOptions): Promise<OpenedPage> {
             if (options.search === "offline" || !options.search) {
               return Promise.reject(new Error("offline"));
             }
-            const query: string = new URL(url, ORIGIN).searchParams.get("q") || "";
+            const query: string =
+              new URL(url, ORIGIN).searchParams.get("q") || "";
             const answer: unknown = options.search(query);
             const delay: number = options.searchDelay
               ? options.searchDelay(query)
@@ -313,9 +314,9 @@ describe("the docs search box", () => {
         return mark.textContent;
       }),
     ).toEqual(["escalation", "escalation"]);
-    expect(
-      item.querySelector(".docs-search__item-meta")?.textContent,
-    ).toBe("On Call › Escalation Rules");
+    expect(item.querySelector(".docs-search__item-meta")?.textContent).toBe(
+      "On Call › Escalation Rules",
+    );
     expect(page.errors).toEqual([]);
   });
 
@@ -408,11 +409,24 @@ describe("the docs search box", () => {
 
     openSearch(page);
     type(page, "zzqxv");
-    expect(
-      page.document.getElementById("search-results")?.textContent,
-    ).not.toContain("ui.searchNoResults");
+    // Meanwhile it says the search is on, not that nothing was found.
+    expect(page.document.getElementById("search-results")?.textContent).toBe(
+      "ui.searchSearching",
+    );
 
     await wait(page.window, 600);
+    expect(
+      page.document.getElementById("search-results")?.textContent,
+    ).toContain("ui.searchNoResults");
+  });
+
+  test("says nothing was found, not that it is still searching, when the server cannot be reached and no title matches", async () => {
+    const page: OpenedPage = await openPage({ search: "offline" });
+
+    openSearch(page);
+    type(page, "zzqxv");
+    await wait(page.window, 250);
+
     expect(
       page.document.getElementById("search-results")?.textContent,
     ).toContain("ui.searchNoResults");
@@ -454,7 +468,10 @@ describe("the docs search box", () => {
 
 describe("Was this page helpful?, on a self-hosted server", () => {
   test("is shown once the page's script runs, and posts nothing for a yes", async () => {
-    const page: OpenedPage = await openPage({ mode: "local", consent: "granted" });
+    const page: OpenedPage = await openPage({
+      mode: "local",
+      consent: "granted",
+    });
     const box: HTMLElement = page.document.querySelector(
       "[data-docs-feedback]",
     ) as HTMLElement;
@@ -464,7 +481,8 @@ describe("Was this page helpful?, on a self-hosted server", () => {
     await wait(page.window, 50);
 
     expect(
-      (box.querySelector('[data-feedback-step="thanks"]') as HTMLElement).hidden,
+      (box.querySelector('[data-feedback-step="thanks"]') as HTMLElement)
+        .hidden,
     ).toBe(false);
     expect(
       (box.querySelector('[data-feedback-step="ask"]') as HTMLElement).hidden,
@@ -473,7 +491,10 @@ describe("Was this page helpful?, on a self-hosted server", () => {
   });
 
   test("answers a no with the GitHub issue, and posts nothing, not even when the page is left", async () => {
-    const page: OpenedPage = await openPage({ mode: "local", consent: "granted" });
+    const page: OpenedPage = await openPage({
+      mode: "local",
+      consent: "granted",
+    });
     const box: HTMLElement = page.document.querySelector(
       "[data-docs-feedback]",
     ) as HTMLElement;
@@ -497,7 +518,10 @@ describe("Was this page helpful?, on a self-hosted server", () => {
 
 describe("Was this page helpful?, where analytics is set up", () => {
   test("posts a yes once, with the page and its language", async () => {
-    const page: OpenedPage = await openPage({ mode: "send", consent: "granted" });
+    const page: OpenedPage = await openPage({
+      mode: "send",
+      consent: "granted",
+    });
     const yes: HTMLElement = page.document.querySelector(
       '[data-feedback-answer="yes"]',
     ) as HTMLElement;
@@ -512,7 +536,10 @@ describe("Was this page helpful?, where analytics is set up", () => {
   });
 
   test("posts a no with the reason picked, once", async () => {
-    const page: OpenedPage = await openPage({ mode: "send", consent: "granted" });
+    const page: OpenedPage = await openPage({
+      mode: "send",
+      consent: "granted",
+    });
 
     (
       page.document.querySelector('[data-feedback-answer="no"]') as HTMLElement
@@ -568,7 +595,10 @@ describe("Was this page helpful?, where analytics is set up", () => {
   });
 
   test("posts nothing after Reject all", async () => {
-    const page: OpenedPage = await openPage({ mode: "send", consent: "denied" });
+    const page: OpenedPage = await openPage({
+      mode: "send",
+      consent: "denied",
+    });
 
     (
       page.document.querySelector('[data-feedback-answer="yes"]') as HTMLElement

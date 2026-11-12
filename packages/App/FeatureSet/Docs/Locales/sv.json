@@ -11,6 +11,7 @@
     "searchPlaceholder": "Sök i dokumentationen...",
     "searchTypeToSearch": "Skriv för att söka i dokumentationen...",
     "searchNoResults": "Inga resultat hittades för \"{{query}}\"",
+    "searchSearching": "Söker…",
     "onThisPage": "På den här sidan",
     "skipToContent": "Hoppa till innehåll",
     "toggleTheme": "Byt tema",

@@ -11,6 +11,7 @@
     "searchPlaceholder": "搜索文档...",
     "searchTypeToSearch": "输入以搜索文档...",
     "searchNoResults": "未找到 \"{{query}}\" 的搜索结果",
+    "searchSearching": "正在搜索…",
     "onThisPage": "本页目录",
     "skipToContent": "跳到内容",
     "toggleTheme": "切换主题",

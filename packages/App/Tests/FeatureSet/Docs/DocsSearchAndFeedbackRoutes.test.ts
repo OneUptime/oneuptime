@@ -175,21 +175,24 @@ const searchFor: (
   lang: string,
   query: string,
   extra?: string,
-) => Promise<{ status: number; answer: DocsSearchAnswer; cache: string }> =
-  async (
-    lang: string,
-    query: string,
-    extra?: string,
-  ): Promise<{ status: number; answer: DocsSearchAnswer; cache: string }> => {
-    const response: Response = await fetch(
-      `${origin}/docs/search/${lang}.json?q=${encodeURIComponent(query)}${extra || ""}`,
-    );
-    return {
-      status: response.status,
-      answer: (await response.json()) as DocsSearchAnswer,
-      cache: response.headers.get("cache-control") || "",
-    };
+) => Promise<{
+  status: number;
+  answer: DocsSearchAnswer;
+  cache: string;
+}> = async (
+  lang: string,
+  query: string,
+  extra?: string,
+): Promise<{ status: number; answer: DocsSearchAnswer; cache: string }> => {
+  const response: Response = await fetch(
+    `${origin}/docs/search/${lang}.json?q=${encodeURIComponent(query)}${extra || ""}`,
+  );
+  return {
+    status: response.status,
+    answer: (await response.json()) as DocsSearchAnswer,
+    cache: response.headers.get("cache-control") || "",
   };
+};
 
 const postFeedback: (body: unknown) => Promise<number> = async (
   body: unknown,
@@ -234,12 +237,15 @@ describe("/docs/search/<lang>.json", () => {
   }, 600000);
 
   it("keeps to the limit asked, and to thirty", async () => {
-    expect((await searchFor("en", "monitor", "&limit=3")).answer.results).toHaveLength(3);
+    expect(
+      (await searchFor("en", "monitor", "&limit=3")).answer.results,
+    ).toHaveLength(3);
     expect(
       (await searchFor("en", "monitor", "&limit=1000")).answer.results.length,
     ).toBeLessThanOrEqual(30);
     expect(
-      (await searchFor("en", "monitor", "&limit=nonsense")).answer.results.length,
+      (await searchFor("en", "monitor", "&limit=nonsense")).answer.results
+        .length,
     ).toBeGreaterThan(3);
   }, 600000);
 
@@ -330,8 +336,11 @@ describe("Was this page helpful?, where product analytics is set up", () => {
 
     expect(mockPost).toHaveBeenCalledTimes(1);
     expect(
-      (mockPost.mock.calls[0]![0] as { data: { event: string; properties: unknown } })
-        .data,
+      (
+        mockPost.mock.calls[0]![0] as {
+          data: { event: string; properties: unknown };
+        }
+      ).data,
     ).toEqual(
       expect.objectContaining({
         event: "docs/feedback_given",
@@ -346,7 +355,9 @@ describe("Was this page helpful?, where product analytics is set up", () => {
   }, 600000);
 
   it("refuses anything that is not an answer, and sends nothing for it", async () => {
-    expect(await postFeedback({ page: "nope/nope", isHelpful: true })).toBe(400);
+    expect(await postFeedback({ page: "nope/nope", isHelpful: true })).toBe(
+      400,
+    );
     expect(
       await postFeedback({
         page: "monitor/website-monitor",

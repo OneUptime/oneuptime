@@ -11,6 +11,7 @@
     "searchPlaceholder": "Search documentation...",
     "searchTypeToSearch": "Type to search documentation...",
     "searchNoResults": "No results found for \"{{query}}\"",
+    "searchSearching": "Searching…",
     "onThisPage": "On This Page",
     "skipToContent": "Skip to content",
     "toggleTheme": "Toggle theme",

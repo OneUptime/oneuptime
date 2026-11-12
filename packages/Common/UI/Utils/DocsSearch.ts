@@ -67,6 +67,9 @@ const percentEncoded: (docsPath: string) => string = (
   }
 };
 
+// A docs page's own address: /docs/<lang>/<page>[#anchor], no spaces.
+const DOCS_ADDRESS: RegExp = /^\/docs\/[a-zA-Z-]+\/[^\s]+$/;
+
 const isRecord: (value: unknown) => value is Record<string, unknown> = (
   value: unknown,
 ): value is Record<string, unknown> => {
@@ -101,7 +104,7 @@ export const readDocsSearchAnswer: (data: unknown) => Array<DocsSearchHit> = (
       typeof title !== "string" ||
       !title.trim() ||
       typeof url !== "string" ||
-      !/^\/docs\/[a-zA-Z-]+\/[^\s]+$/.test(url) ||
+      !DOCS_ADDRESS.test(url) ||
       url.includes("//") ||
       url.includes("..")
     ) {

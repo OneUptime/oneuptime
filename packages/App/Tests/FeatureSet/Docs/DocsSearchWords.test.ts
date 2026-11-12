@@ -159,8 +159,10 @@ describe("the synonyms", () => {
 
   it("gives every language the issue's four pairs: pager, uptime, outage and 2FA", () => {
     for (const language of SUPPORTED_DOCS_LANGUAGE_CODES) {
-      const synonyms: Map<string, Array<DocsSearchSynonym>> =
-        getDocsSearchSynonyms(language);
+      const synonyms: Map<
+        string,
+        Array<DocsSearchSynonym>
+      > = getDocsSearchSynonyms(language);
 
       for (const word of ["pager", "uptime", "outage", "2fa"]) {
         expect({ language, word, has: synonyms.has(word) }).toEqual({
@@ -173,8 +175,10 @@ describe("the synonyms", () => {
   });
 
   it("reads English as English: pager is on-call, outage an incident, 2FA two-factor", () => {
-    const english: Map<string, Array<DocsSearchSynonym>> =
-      getDocsSearchSynonyms("en");
+    const english: Map<
+      string,
+      Array<DocsSearchSynonym>
+    > = getDocsSearchSynonyms("en");
 
     expect(english.get("pager")).toEqual([
       { words: "on-call", isWordStart: false },
@@ -190,8 +194,9 @@ describe("the synonyms", () => {
   });
 
   it("lets a language's own list answer a word, and the English list the rest", () => {
-    const german: Map<string, Array<DocsSearchSynonym>> =
-      getDocsSearchSynonyms("de");
+    const german: Map<string, Array<DocsSearchSynonym>> = getDocsSearchSynonyms(
+      "de",
+    );
 
     // German's own "pager": a word start, Bereitschaft*.
     expect(german.get("pager")).toEqual([

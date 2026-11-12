@@ -11,6 +11,7 @@
     "searchPlaceholder": "Zoeken in documentatie...",
     "searchTypeToSearch": "Typ om te zoeken in de documentatie...",
     "searchNoResults": "Geen resultaten gevonden voor \"{{query}}\"",
+    "searchSearching": "Zoeken…",
     "onThisPage": "Op deze pagina",
     "skipToContent": "Naar inhoud springen",
     "toggleTheme": "Thema wisselen",

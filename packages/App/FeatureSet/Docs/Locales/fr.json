@@ -11,6 +11,7 @@
     "searchPlaceholder": "Rechercher dans la documentation...",
     "searchTypeToSearch": "Tapez pour rechercher dans la documentation...",
     "searchNoResults": "Aucun résultat trouvé pour \"{{query}}\"",
+    "searchSearching": "Recherche…",
     "onThisPage": "Sur cette page",
     "skipToContent": "Aller au contenu",
     "toggleTheme": "Changer de thème",

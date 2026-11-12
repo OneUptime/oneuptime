@@ -11,6 +11,7 @@
     "searchPlaceholder": "Buscar en la documentación...",
     "searchTypeToSearch": "Escriba para buscar en la documentación...",
     "searchNoResults": "No se encontraron resultados para \"{{query}}\"",
+    "searchSearching": "Buscando…",
     "onThisPage": "En esta página",
     "skipToContent": "Ir al contenido",
     "toggleTheme": "Cambiar tema",

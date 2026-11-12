@@ -98,6 +98,8 @@ const sectionPhrases: WeakMap<AIDocsIndexedSection, string> = new WeakMap();
 const MOST_WORD_STARTS: number = 12;
 const MOST_TYPO_MATCHES: number = 6;
 
+// What was typed ends with a space: its last word is done, not being typed.
+const ENDS_WITH_SPACE: RegExp = /\s$/;
 const UNSPACED_SCRIPT: RegExp =
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
 // A word of a page's text, as it is written: hyphenated words whole.
@@ -277,7 +279,7 @@ export default class DocsSearch {
     query: string,
   ): Array<DocsQueryWord> {
     const typedWords: Array<string> = splitDocsWords(query);
-    const isTyping: boolean = !/\s$/.test(query);
+    const isTyping: boolean = !ENDS_WITH_SPACE.test(query);
     const words: Array<DocsQueryWord> = [];
 
     typedWords.forEach((typed: string, position: number): void => {
@@ -382,7 +384,9 @@ export default class DocsSearch {
                 MOST_TYPO_MATCHES,
               ),
               (match: DocsVocabularyMatch): number => {
-                return match.distance === 1 ? ONE_TYPO_WEIGHT : TWO_TYPOS_WEIGHT;
+                return match.distance === 1
+                  ? ONE_TYPO_WEIGHT
+                  : TWO_TYPOS_WEIGHT;
               },
             );
           }
@@ -530,14 +534,16 @@ export default class DocsSearch {
     const averageLength: number = DocsSearch.averageSectionLength(index);
     const phrase: string | null =
       splitDocsWords(trimmed).length >= PHRASE_LEAST_WORDS
-        ? /\s$/.test(trimmed)
+        ? ENDS_WITH_SPACE.test(trimmed)
           ? DocsSearch.asPhrase(trimmed)
           : DocsSearch.asPhrase(trimmed).trimEnd()
         : null;
 
-    const scoreUnit: (
-      fieldWeight: (term: string) => number,
-    ) => { score: number; matched: number; terms: Set<string> } = (
+    const scoreUnit: (fieldWeight: (term: string) => number) => {
+      score: number;
+      matched: number;
+      terms: Set<string>;
+    } = (
       fieldWeight: (term: string) => number,
     ): { score: number; matched: number; terms: Set<string> } => {
       let score: number = 0;
@@ -706,11 +712,9 @@ export default class DocsSearch {
       });
     }
 
-    answer.words = Array.from(marked).sort(
-      (a: string, b: string): number => {
-        return b.length - a.length || a.localeCompare(b);
-      },
-    );
+    answer.words = Array.from(marked).sort((a: string, b: string): number => {
+      return b.length - a.length || a.localeCompare(b);
+    });
 
     return answer;
   }
@@ -806,4 +810,3 @@ export default class DocsSearch {
     };
   }
 }
-

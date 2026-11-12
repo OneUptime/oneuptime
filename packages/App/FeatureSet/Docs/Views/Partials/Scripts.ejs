@@ -6,6 +6,7 @@
     window.__docsI18n = {
         typeToSearch: <%- JSON.stringify(t('ui.searchTypeToSearch')) %>,
         noResults: <%- JSON.stringify(t('ui.searchNoResults')) %>,
+        searching: <%- JSON.stringify(t('ui.searchSearching')) %>,
         copy: <%- JSON.stringify(t('ui.copy')) %>,
         copied: <%- JSON.stringify(t('ui.copied')) %>,
         copyFailed: <%- JSON.stringify(t('ui.copyFailed')) %>,
@@ -573,6 +574,14 @@
         var searchTimer = null;
         var searchSequence = 0;
         var serverAnswer = null;
+        // What the box said when the server could not answer: the titles' answer is the last word.
+        var serverFailedFor = null;
+
+        function showIfCurrent(rawQuery) {
+            if (isSearchOpen() && searchInput.value === rawQuery) {
+                renderResults(rawQuery);
+            }
+        }
 
         function askServer(rawQuery) {
             if (!window.fetch) {
@@ -587,16 +596,22 @@
                     })
                     .then(function (answer) {
                         /* Only the answer to what the box says now. */
-                        if (sequence !== searchSequence || !answer || !Array.isArray(answer.results)) {
+                        if (sequence !== searchSequence) {
                             return;
                         }
-                        serverAnswer = { query: rawQuery, results: answer.results, words: answer.words || [] };
-                        if (isSearchOpen() && searchInput.value === rawQuery) {
-                            renderResults(rawQuery);
+                        if (!answer || !Array.isArray(answer.results)) {
+                            serverFailedFor = rawQuery;
+                        } else {
+                            serverAnswer = { query: rawQuery, results: answer.results, words: answer.words || [] };
                         }
+                        showIfCurrent(rawQuery);
                     })
                     .catch(function () {
                         /* Offline or blocked: the titles search keeps answering. */
+                        if (sequence === searchSequence) {
+                            serverFailedFor = rawQuery;
+                            showIfCurrent(rawQuery);
+                        }
                     });
             }, SEARCH_DELAY_MS);
         }
@@ -677,13 +692,14 @@
             }
 
             var found = findMatches(rawQuery, query);
-            var hasServerAnswer = Boolean(serverAnswer && serverAnswer.query === rawQuery);
+            var hasServerAnswer = Boolean(serverAnswer && serverAnswer.query === rawQuery) || serverFailedFor === rawQuery;
 
             if (found.items.length === 0 && !hasServerAnswer && window.fetch) {
-                /* Nothing by title: wait for the server, which forgives typos, before saying so. */
+                /* Nothing by title: say the search is on, and wait for the server, which forgives typos. */
                 matches = [];
                 highlightedIndex = -1;
                 searchInput.removeAttribute('aria-activedescendant');
+                searchResults.innerHTML = '<div class="docs-search__empty" data-search-pending>' + escapeHtml(i18n.searching || '') + '</div>';
                 return;
             }
 

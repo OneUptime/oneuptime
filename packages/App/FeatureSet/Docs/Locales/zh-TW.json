@@ -11,6 +11,7 @@
     "searchPlaceholder": "搜尋文件...",
     "searchTypeToSearch": "輸入以搜尋文件...",
     "searchNoResults": "找不到 \"{{query}}\" 的搜尋結果",
+    "searchSearching": "正在搜尋…",
     "onThisPage": "本頁目錄",
     "skipToContent": "跳至內容",
     "toggleTheme": "切換主題",

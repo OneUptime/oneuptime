@@ -11,6 +11,7 @@
     "searchPlaceholder": "दस्तावेज़ीकरण खोजें...",
     "searchTypeToSearch": "दस्तावेज़ीकरण खोजने के लिए टाइप करें...",
     "searchNoResults": "\"{{query}}\" के लिए कोई परिणाम नहीं मिला",
+    "searchSearching": "खोजा जा रहा है…",
     "onThisPage": "इस पृष्ठ पर",
     "skipToContent": "सामग्री पर जाएं",
     "toggleTheme": "थीम बदलें",

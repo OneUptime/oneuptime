@@ -155,6 +155,8 @@ const UNSPACED_SCRIPT: RegExp =
 
 const cache: Map<string, { index: AIDocsLanguageIndex; at: number }> =
   new Map();
+// The builds under way, by language.
+const building: Map<string, Promise<AIDocsLanguageIndex>> = new Map();
 
 /*
  * A word as both a question and a page are compared by: lowercase, a
@@ -265,8 +267,9 @@ export const tokenizeQueryForDocs: (
   query: string,
   language?: string | undefined,
 ): Array<string> => {
-  const synonyms: Map<string, Array<DocsSearchSynonym>> =
-    getDocsSearchSynonyms(language || DEFAULT_DOCS_LANGUAGE);
+  const synonyms: Map<string, Array<DocsSearchSynonym>> = getDocsSearchSynonyms(
+    language || DEFAULT_DOCS_LANGUAGE,
+  );
   const otherWords: Array<string> = splitDocsWords(query).flatMap(
     (word: string): Array<string> => {
       return (synonyms.get(foldDocsSearchWord(word)) || [])
@@ -565,6 +568,14 @@ const glossaryOtherNameSections: (
 };
 
 export default class DocsAIReader implements AIDocsReader {
+  /*
+   * A language's index, built the first time it is asked for. Building
+   * reads every page, which takes seconds, and the docs search box asks as
+   * someone types (#6822): so requests that arrive while it builds share the
+   * one build, and an index older than TTL_MS is still answered from while a
+   * new one is built behind it. Only the very first search in a language
+   * waits.
+   */
   public static async getIndex(language: string): Promise<AIDocsLanguageIndex> {
     const resolved: string = isSupportedDocsLanguage(language)
       ? language
@@ -573,13 +584,42 @@ export default class DocsAIReader implements AIDocsReader {
     const cached: { index: AIDocsLanguageIndex; at: number } | undefined =
       cache.get(resolved);
 
-    if (cached && now - cached.at < TTL_MS) {
+    if (cached) {
+      if (now - cached.at >= TTL_MS) {
+        DocsAIReader.buildOnce(resolved).catch((): void => {
+          // The old index keeps answering; the next request tries again.
+        });
+      }
       return cached.index;
     }
 
-    const index: AIDocsLanguageIndex = await DocsAIReader.build(resolved);
-    cache.set(resolved, { index, at: now });
-    return index;
+    return DocsAIReader.buildOnce(resolved);
+  }
+
+  // One build per language at a time, kept when it is done.
+  private static buildOnce(language: string): Promise<AIDocsLanguageIndex> {
+    const pending: Promise<AIDocsLanguageIndex> | undefined =
+      building.get(language);
+
+    if (pending) {
+      return pending;
+    }
+
+    const build: Promise<AIDocsLanguageIndex> = DocsAIReader.build(language)
+      .then((index: AIDocsLanguageIndex): AIDocsLanguageIndex => {
+        cache.set(language, {
+          index,
+          at: OneUptimeDate.getCurrentDate().getTime(),
+        });
+        return index;
+      })
+      .finally((): void => {
+        building.delete(language);
+      });
+
+    building.set(language, build);
+
+    return build;
   }
 
   public static async build(language: string): Promise<AIDocsLanguageIndex> {
@@ -599,9 +639,7 @@ export default class DocsAIReader implements AIDocsReader {
       const summary: DocsPageSummary = summarizeDocsPage(copy.markdown);
       const body: string = copy.markdown.split("\n").slice(1).join("\n");
 
-      const sections: Array<AIDocsIndexedSection> = splitDocsSections(
-        body,
-      ).map(
+      const sections: Array<AIDocsIndexedSection> = splitDocsSections(body).map(
         (section: {
           title: string;
           anchor: string;
@@ -687,8 +725,10 @@ export default class DocsAIReader implements AIDocsReader {
     index: AIDocsLanguageIndex,
     query: string,
   ): Array<string> {
-    const synonyms: Map<string, Array<DocsSearchSynonym>> =
-      getDocsSearchSynonyms(index.language);
+    const synonyms: Map<
+      string,
+      Array<DocsSearchSynonym>
+    > = getDocsSearchSynonyms(index.language);
     const wordStarts: Array<string> = splitDocsWords(query).flatMap(
       (word: string): Array<string> => {
         return (synonyms.get(foldDocsSearchWord(word)) || [])
@@ -912,5 +952,6 @@ export default class DocsAIReader implements AIDocsReader {
 
   public static clearCache(): void {
     cache.clear();
+    building.clear();
   }
 }

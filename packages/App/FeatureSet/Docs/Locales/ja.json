@@ -11,6 +11,7 @@
     "searchPlaceholder": "ドキュメントを検索...",
     "searchTypeToSearch": "ドキュメントを検索するには入力してください...",
     "searchNoResults": "\"{{query}}\" の検索結果はありません",
+    "searchSearching": "検索中…",
     "onThisPage": "このページの内容",
     "skipToContent": "コンテンツへスキップ",
     "toggleTheme": "テーマを切り替える",

@@ -17,7 +17,9 @@ import {
  * is no results, never an error.
  */
 
-const mockFetch: (implementation?: (...args: Array<unknown>) => unknown) => MockFunction = (
+const mockFetch: (
+  implementation?: (...args: Array<unknown>) => unknown,
+) => MockFunction = (
   implementation?: (...args: Array<unknown>) => unknown,
 ): MockFunction => {
   const mock: MockFunction = getJestMockFunction();
@@ -85,8 +87,10 @@ describe("readDocsSearchAnswer", () => {
       "/docs/en/a b",
       42,
     ]) {
-      expect({ url, hits: readDocsSearchAnswer(answer([{ ...RESULT, url }])) })
-        .toEqual({ url, hits: [] });
+      expect({
+        url,
+        hits: readDocsSearchAnswer(answer([{ ...RESULT, url }])),
+      }).toEqual({ url, hits: [] });
     }
   });
 
@@ -137,7 +141,11 @@ describe("searchDocs", () => {
       return {
         ok: true,
         json: async (): Promise<unknown> => {
-          return answer(Array.from({ length: 8 }, () => RESULT));
+          return answer(
+            Array.from({ length: 8 }, () => {
+              return RESULT;
+            }),
+          );
         },
       };
     });
@@ -164,26 +172,36 @@ describe("searchDocs", () => {
   });
 
   test("is no results, never an error, when the docs answer badly or cannot be reached", async () => {
-    (globalThis as unknown as { fetch: unknown }).fetch = mockFetch(async () => {
-      return { ok: false, status: 404, json: async (): Promise<unknown> => {
-        return {};
-      } };
-    });
+    (globalThis as unknown as { fetch: unknown }).fetch = mockFetch(
+      async () => {
+        return {
+          ok: false,
+          status: 404,
+          json: async (): Promise<unknown> => {
+            return {};
+          },
+        };
+      },
+    );
     expect(await searchDocs({ query: "monitor" })).toEqual([]);
 
-    (globalThis as unknown as { fetch: unknown }).fetch = mockFetch(async () => {
-      throw new Error("offline");
-    });
+    (globalThis as unknown as { fetch: unknown }).fetch = mockFetch(
+      async () => {
+        throw new Error("offline");
+      },
+    );
     expect(await searchDocs({ query: "monitor" })).toEqual([]);
 
-    (globalThis as unknown as { fetch: unknown }).fetch = mockFetch(async () => {
-      return {
-        ok: true,
-        json: async (): Promise<unknown> => {
-          throw new Error("not JSON");
-        },
-      };
-    });
+    (globalThis as unknown as { fetch: unknown }).fetch = mockFetch(
+      async () => {
+        return {
+          ok: true,
+          json: async (): Promise<unknown> => {
+            throw new Error("not JSON");
+          },
+        };
+      },
+    );
     expect(await searchDocs({ query: "monitor" })).toEqual([]);
   });
 });

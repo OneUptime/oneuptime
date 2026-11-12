@@ -263,9 +263,7 @@ describe("Search finds the docs (#6822)", () => {
     openPalette();
     await search("eskalaton");
 
-    expect(docsReads()).toEqual([
-      `${DOCS}/search/de.json?q=eskalaton&limit=5`,
-    ]);
+    expect(docsReads()).toEqual([`${DOCS}/search/de.json?q=eskalaton&limit=5`]);
 
     const section: HTMLElement = screen.getByTestId(
       "command-palette-section-docs",
@@ -316,9 +314,9 @@ describe("Search finds the docs (#6822)", () => {
 
     expect(screen.queryByTestId("command-palette-section-docs")).toBeNull();
     // A question nothing answers still offers Ask AI.
-    expect(
-      screen.getByTestId("command-palette").textContent || "",
-    ).toContain("Ask AI");
+    expect(screen.getByTestId("command-palette").textContent || "").toContain(
+      "Ask AI",
+    );
   });
 
   test("asks nothing for a word too short to search", async () => {

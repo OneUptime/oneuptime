@@ -11,6 +11,7 @@
     "searchPlaceholder": "Поиск в документации...",
     "searchTypeToSearch": "Введите запрос для поиска в документации...",
     "searchNoResults": "Ничего не найдено по запросу \"{{query}}\"",
+    "searchSearching": "Поиск…",
     "onThisPage": "На этой странице",
     "skipToContent": "Перейти к содержимому",
     "toggleTheme": "Сменить тему",

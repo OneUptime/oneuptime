@@ -97,7 +97,11 @@ const phraseSweep: (
 
       tried++;
 
-      if (urls(answer).includes(`/docs/${language}/${page.page}#${section.anchor}`)) {
+      if (
+        urls(answer).includes(
+          `/docs/${language}/${page.page}#${section.anchor}`,
+        )
+      ) {
         found++;
       } else {
         missed.push(`${page.page}#${section.anchor}: ${phrase}`);
@@ -135,9 +139,7 @@ describe("docs search, on the real docs", () => {
   test(
     "English: the issue's other words, a half-typed word and a misspelt plural",
     async () => {
-      expect(
-        urls(await search("en", "2fa")).slice(0, 2),
-      ).toContain(
+      expect(urls(await search("en", "2fa")).slice(0, 2)).toContain(
         "/docs/en/introduction/your-account#turn-on-two-factor-authentication",
       );
       expect(
@@ -150,7 +152,7 @@ describe("docs search, on the real docs", () => {
       expect(
         (await search("en", "uptime")).results.some(
           (result: DocsSearchResult): boolean => {
-            return /monitor/i.test(result.title);
+            return result.title.toLowerCase().includes("monitor");
           },
         ),
       ).toBe(true);
@@ -158,7 +160,9 @@ describe("docs search, on the real docs", () => {
         (await search("en", "kube")).results
           .slice(0, 3)
           .every((result: DocsSearchResult): boolean => {
-            return /kubernetes/i.test(`${result.title} ${result.url}`);
+            return `${result.title} ${result.url}`
+              .toLowerCase()
+              .includes("kubernetes");
           }),
       ).toBe(true);
       expect(urls(await search("en", "notifcations")).slice(0, 3)).toEqual(
@@ -178,7 +182,7 @@ describe("docs search, on the real docs", () => {
         urls(await search("de", "Eskalatonsregel"))
           .slice(0, 3)
           .some((url: string): boolean => {
-            return /escalation-rule/.test(url);
+            return url.includes("escalation-rule");
           }),
       ).toBe(true);
 

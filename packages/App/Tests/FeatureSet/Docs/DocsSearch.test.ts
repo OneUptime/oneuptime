@@ -219,7 +219,9 @@ describe("docs search finds the docs' word", () => {
 
     expect(urls(answer)[0]).toBe("/docs/en/telemetry/kubernetes-agent");
     expect(urls(answer)).toContain("/docs/en/runbooks/authoring#kubectl");
-    expect(urls(answer).indexOf("/docs/en/runbooks/authoring#kubectl")).toBeGreaterThan(
+    expect(
+      urls(answer).indexOf("/docs/en/runbooks/authoring#kubectl"),
+    ).toBeGreaterThan(
       urls(answer).indexOf("/docs/en/telemetry/kubernetes-agent"),
     );
   });
@@ -264,9 +266,9 @@ describe("docs search finds the docs' word", () => {
 
 describe("reading what was typed", () => {
   it("finds the last word by its start only while it is being typed", () => {
-    expect(alternativeTerms(DocsSearch.readQuery(INDEX, "install ")[0]!)).toEqual(
-      ["install"],
-    );
+    expect(
+      alternativeTerms(DocsSearch.readQuery(INDEX, "install ")[0]!),
+    ).toEqual(["install"]);
     expect(
       alternativeTerms(DocsSearch.readQuery(INDEX, "install")[0]!),
     ).toEqual(expect.arrayContaining(["install", "installation"]));
@@ -367,9 +369,9 @@ describe("ranking", () => {
   });
 
   it("lands a phrase typed word for word on the section it is from", () => {
-    expect(urls(DocsSearch.rank(INDEX, "when the site counts as down "))[0]).toBe(
-      "/docs/en/monitor/website-monitor#criteria",
-    );
+    expect(
+      urls(DocsSearch.rank(INDEX, "when the site counts as down "))[0],
+    ).toBe("/docs/en/monitor/website-monitor#criteria");
     // As it is being typed, its last word half done.
     expect(urls(DocsSearch.rank(INDEX, "when the site counts as do"))[0]).toBe(
       "/docs/en/monitor/website-monitor#criteria",
@@ -381,7 +383,9 @@ describe("ranking", () => {
       DocsSearch.rank(INDEX, "publish a status page "),
     );
 
-    expect(answer.indexOf("/docs/en/introduction/quickstart#publish-a-status-page")).toBeLessThan(
+    expect(
+      answer.indexOf("/docs/en/introduction/quickstart#publish-a-status-page"),
+    ).toBeLessThan(
       answer.indexOf("/docs/en/basics/status-pages#publish-a-status-page"),
     );
     expect(
@@ -400,7 +404,9 @@ describe("ranking", () => {
   });
 
   it("keeps to the limit asked, never above thirty, and cuts what was typed at a hundred characters", () => {
-    expect(DocsSearch.rank(INDEX, "notification monitor", 1).results).toHaveLength(1);
+    expect(
+      DocsSearch.rank(INDEX, "notification monitor", 1).results,
+    ).toHaveLength(1);
     expect(DOCS_SEARCH_MAX_LIMIT).toBe(30);
     expect(DOCS_SEARCH_QUERY_MAX_LENGTH).toBe(100);
     expect(
@@ -414,7 +420,8 @@ describe("ranking", () => {
 
 describe("a result", () => {
   it("says where it is and opens the page in the reader's language, at the section", () => {
-    const section: DocsSearchResult = DocsSearch.rank(INDEX, "ssl ").results[0]!;
+    const section: DocsSearchResult = DocsSearch.rank(INDEX, "ssl ")
+      .results[0]!;
 
     expect(section).toEqual(
       expect.objectContaining({
@@ -426,7 +433,8 @@ describe("a result", () => {
       }),
     );
 
-    const page: DocsSearchResult = DocsSearch.rank(INDEX, "website ").results[0]!;
+    const page: DocsSearchResult = DocsSearch.rank(INDEX, "website ")
+      .results[0]!;
 
     expect(page).toEqual(
       expect.objectContaining({
@@ -462,10 +470,8 @@ describe("snippetOf", () => {
   ].join(" ");
 
   it("cuts a line around the first word found, at words, with an ellipsis where it was cut", () => {
-    const snippet: { text: string; words: Array<string> } = DocsSearch.snippetOf(
-      text,
-      new Set<string>(["incident"]),
-    );
+    const snippet: { text: string; words: Array<string> } =
+      DocsSearch.snippetOf(text, new Set<string>(["incident"]));
 
     expect(snippet.text.startsWith("…")).toBe(true);
     expect(snippet.text.endsWith("…")).toBe(true);

@@ -221,8 +221,10 @@ export interface DocsSearchSynonym {
   isWordStart: boolean;
 }
 
-const synonymCache: Map<string, Map<string, Array<DocsSearchSynonym>>> =
-  new Map();
+const synonymCache: Map<
+  string,
+  Map<string, Array<DocsSearchSynonym>>
+> = new Map();
 
 /*
  * The synonyms a language's search reads, by folded key: its own list,
@@ -414,7 +416,10 @@ export class DocsVocabulary {
   }
 
   // The words that start with `start` (itself not included), most used first.
-  public startingWith(start: string, limit: number): Array<DocsVocabularyMatch> {
+  public startingWith(
+    start: string,
+    limit: number,
+  ): Array<DocsVocabularyMatch> {
     if (!start) {
       return [];
     }
@@ -453,7 +458,11 @@ export class DocsVocabulary {
    * included), starting with the same letter, closest first, then most
    * used.
    */
-  public near(word: string, max: number, limit: number): Array<DocsVocabularyMatch> {
+  public near(
+    word: string,
+    max: number,
+    limit: number,
+  ): Array<DocsVocabularyMatch> {
     if (max <= 0) {
       return [];
     }

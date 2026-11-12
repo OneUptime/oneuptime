@@ -11,6 +11,7 @@
     "searchPlaceholder": "Søk i dokumentasjon...",
     "searchTypeToSearch": "Skriv for å søke i dokumentasjonen...",
     "searchNoResults": "Ingen resultater funnet for \"{{query}}\"",
+    "searchSearching": "Søker…",
     "onThisPage": "På denne siden",
     "skipToContent": "Gå til innhold",
     "toggleTheme": "Bytt tema",

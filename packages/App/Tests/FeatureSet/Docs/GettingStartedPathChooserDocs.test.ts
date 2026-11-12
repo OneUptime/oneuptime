@@ -176,9 +176,7 @@ describe("Getting Started, in English", () => {
     expect(cardTargets(cardLines(newcomers))).toEqual(
       GETTING_STARTED_NEWCOMER_TARGETS,
     );
-    expect(newcomers).toContain(
-      `[Self-Hosting Guide](${SELF_HOSTING_GUIDE})`,
-    );
+    expect(newcomers).toContain(`[Self-Hosting Guide](${SELF_HOSTING_GUIDE})`);
     // A sentence, not a card: the Installation card under Self-Hosting is the guide's one card.
     expect(cardTargets(cardLines(newcomers))).not.toContain(SELF_HOSTING_GUIDE);
     expect(
@@ -232,9 +230,10 @@ describe("Getting Started, in English", () => {
     );
 
     for (const section of sections) {
-      expect({ title: section.title, cards: section.targets.length > 0 }).toEqual(
-        { title: section.title, cards: true },
-      );
+      expect({
+        title: section.title,
+        cards: section.targets.length > 0,
+      }).toEqual({ title: section.title, cards: true });
     }
 
     // No headings under Explore: a fold's title is its section.
@@ -248,7 +247,9 @@ describe("Getting Started, in English", () => {
   });
 
   it("still reaches every nav group, the jobs and the folds together", () => {
-    const linked: Set<string> = new Set<string>(cardTargets(cardLines(ENGLISH)));
+    const linked: Set<string> = new Set<string>(
+      cardTargets(cardLines(ENGLISH)),
+    );
 
     for (const group of DocsNav) {
       const pages: Array<string> = group.links

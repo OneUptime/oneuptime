@@ -109,6 +109,9 @@ export const cardTargetsAt: (
   return cardTargets(cardLines(sectionAt(markdown, place)));
 };
 
+const CONTAINER_OPEN: RegExp = /^:::(\S+)\s*(.*)$/;
+const CONTAINER_CLOSE: RegExp = /^:::\s*$/;
+
 // Every folded `:::details <title>` block of a piece of Markdown, with its lines.
 export const foldedBlocks: (
   markdown: string,
@@ -120,7 +123,7 @@ export const foldedBlocks: (
   let depth: number = 0;
 
   for (const line of markdown.split("\n")) {
-    const opens: RegExpMatchArray | null = line.match(/^:::(\S+)\s*(.*)$/);
+    const opens: RegExpMatchArray | null = line.match(CONTAINER_OPEN);
 
     if (opens) {
       if (!current && opens[1] === "details") {
@@ -129,7 +132,7 @@ export const foldedBlocks: (
         continue;
       }
       depth++;
-    } else if (/^:::\s*$/.test(line)) {
+    } else if (CONTAINER_CLOSE.test(line)) {
       depth--;
       if (current && depth === 0) {
         blocks.push(current);

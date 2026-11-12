@@ -11,6 +11,7 @@
     "searchPlaceholder": "جستجو در مستندات...",
     "searchTypeToSearch": "برای جستجو در مستندات تایپ کنید...",
     "searchNoResults": "هیچ نتیجه‌ای برای «{{query}}» یافت نشد",
+    "searchSearching": "در حال جستجو…",
     "onThisPage": "در این صفحه",
     "skipToContent": "رفتن به محتوا",
     "toggleTheme": "تغییر پوسته",
