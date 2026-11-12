@@ -15,14 +15,7 @@ Before you build or change a page, a form, a dialog, a menu or the words on one,
 
 ### Migrations
 
-Postgres:
-
-- Never write a migration by hand. Run `npm run generate-postgres-migration`.
-- Register the generated class in `packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts` (import it at the top, append it to the default export array). A migration that is not registered never runs.
-- Run `npm run check-postgres-schema-drift`, which prints any statements still missing. CI's "Postgres Schema Drift" workflow runs the same check.
-- `CREATE INDEX` or `ADD CONSTRAINT ... FOREIGN KEY` on an existing table blocks its writers. Move those statements into a migration of their own with `public transaction: boolean = false;` and pass each one, as generated, to `OnlineDdl.createIndex` / `OnlineDdl.addForeignKey` (`packages/Common/Server/Infrastructure/Postgres/OnlineDdl.ts`). `SchemaMigrationsOnlineDdl` enforces this.
-
-ClickHouse migrations are written by hand in `packages/App/FeatureSet/Workers/DataMigrations`, following the existing ones and registered in that folder's `Index.ts`.
+Before you change a database model or write a migration, read the migration guide, [Docs/migrations/README.md](Docs/migrations/README.md). In short: Postgres schema migrations are generated with `npm run generate-postgres-migration`, never written by hand, and registered in `packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts`. ClickHouse and data migrations are written by hand in `packages/App/FeatureSet/Workers/DataMigrations` and registered in that folder's `Index.ts`.
 
 ### Feed and chat Markdown
 
