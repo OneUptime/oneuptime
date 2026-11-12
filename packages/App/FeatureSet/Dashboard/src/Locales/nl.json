@@ -205,7 +205,7 @@
     "onDutyOne": "In dienst voor {{count}} beleid",
     "onDutyOther": "In dienst voor {{count}} beleidsregels",
     "onDutyTooltip": "Bereikbaarheidsbeleid waarvoor u momenteel dienst hebt",
-    "search": "Search",
+    "search": "Zoeken",
     "invitationsPendingOne": "{{count}} Lopende uitnodiging",
     "invitationsPendingOther": "{{count}} Lopende uitnodigingen",
     "invitationsTooltip": "Het lijkt erop dat u openstaande projectuitnodigingen heeft. Klik hier om ze te bekijken en accepteren.",

@@ -205,7 +205,7 @@
     "onDutyOne": "I tjänst för {{count}} policy",
     "onDutyOther": "I tjänst för {{count}} policyer",
     "onDutyTooltip": "Jourpolicyer du är i tjänst för",
-    "search": "Search",
+    "search": "Sök",
     "invitationsPendingOne": "{{count}} Väntande inbjudan",
     "invitationsPendingOther": "{{count}} Väntande inbjudningar",
     "invitationsTooltip": "Det verkar som att du har väntande projektinbjudningar. Klicka här för att granska och acceptera dem.",

@@ -205,7 +205,7 @@
     "onDutyOne": "In servizio per {{count}} policy",
     "onDutyOther": "In servizio per {{count}} policy",
     "onDutyTooltip": "Policy di reperibilità per cui sei attualmente in servizio",
-    "search": "Search",
+    "search": "Cerca",
     "invitationsPendingOne": "{{count}} Invito in sospeso",
     "invitationsPendingOther": "{{count}} Inviti in sospeso",
     "invitationsTooltip": "Sembra che tu abbia inviti al progetto in sospeso. Clicca qui per esaminarli e accettarli.",

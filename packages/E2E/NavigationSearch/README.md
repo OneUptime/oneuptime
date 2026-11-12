@@ -79,6 +79,27 @@ phone layout never used the bare `hidden` class, so the mobile tests guard
 against a future regression rather than reproduce the reported one. Run only
 this spec with `npm run test-navigation-search-ui -- ForeignHiddenRule`.
 
+`HeaderAtTabletWidths.spec.ts` covers the top of every Dashboard page from
+768px to 1023px (#7037), on the desktop project. The fixture's
+`?header=true` page (`HeaderFixture.js`) renders the production header and
+navbar in a project named Acme Commerce Production, with the bell's counts
+and Search's and Ask AI's toggles answered in the page
+(`window.__headerFixture` counts them), production's Inter and Vazirmatn
+fonts and `Theme.css`; add `lang=de` or `lang=ar` for German or Arabic and
+`theme=dark` for the dark theme. Each test opens the page once and resizes
+the window. At 768, 900 and 1023px the header shows Search and Help, leaves
+Ask AI to Search, draws no phone menu, keeps every entry on one row inside
+the window with nothing over anything else and no sideways scroll, and Help
+opens to Quickstart, How OneUptime works (which opens its dialog) and the
+Glossary (a new tab on `/docs/en/introduction/glossary`). Search's button
+opens Search; at 1024px the desktop rail keeps its order; at 767px the
+phone's menu carries Search and Help and widening to 768 hands them back to
+the header. In German the project picker keeps at least 160px and no entry
+of the Help menu is cut ("So funktioniert OneUptime" was, at the menu's old
+16rem); in Arabic the header reads right to left and the menu opens inside
+the window; in the dark the menu is drawn dark. Screenshots are saved as
+`header-*.png`.
+
 For manual inspection, run `node NavigationSearch/server.js` and open
 `http://127.0.0.1:4242/dashboard/00000000-0000-4000-8000-000000000001/home`.
 The server builds before listening; restart it after changing source files.

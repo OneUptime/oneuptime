@@ -205,7 +205,7 @@
     "onDutyOne": "{{count}}개 정책에 대해 담당 중",
     "onDutyOther": "{{count}}개 정책에 대해 담당 중",
     "onDutyTooltip": "현재 담당 중인 온콜 정책",
-    "search": "Search",
+    "search": "검색",
     "invitationsPendingOne": "{{count}}개의 대기 중인 초대",
     "invitationsPendingOther": "{{count}}개의 대기 중인 초대",
     "invitationsTooltip": "대기 중인 프로젝트 초대가 있는 것 같습니다. 클릭하여 검토하고 수락하세요.",
