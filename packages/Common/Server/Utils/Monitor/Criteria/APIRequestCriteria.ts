@@ -241,6 +241,14 @@ export default class APIRequestCriteria {
       }
     }
 
+    /*
+     * The headers' findings say which of the two checks met (issue #6581):
+     * Response Header looks for a header by its name, Response Header Value
+     * for a header whose value is exactly the text, both in lowercase. They
+     * read "Response header contains ..." and "Response header threshold
+     * contains ..." until then; a sentence stored that way is read through
+     * its current wording (RetiredEvaluationTemplates).
+     */
     if (input.criteriaFilter.checkOn === CheckOn.ResponseHeader) {
       const headerKeys: Array<string> = Object.keys(
         (input.dataToProcess as ProbeMonitorResponse).responseHeaders || {},
@@ -256,7 +264,7 @@ export default class APIRequestCriteria {
           headerKeys.includes(threshold as string)
         ) {
           return EvaluationSentenceMemo.write(
-            translatableSentence("Response header contains {{text}}.", {
+            translatableSentence("The response has the header {{text}}.", {
               text: String(threshold),
             }),
           );
@@ -271,9 +279,10 @@ export default class APIRequestCriteria {
           !headerKeys.includes(threshold as string)
         ) {
           return EvaluationSentenceMemo.write(
-            translatableSentence("Response header does not contain {{text}}.", {
-              text: String(threshold),
-            }),
+            translatableSentence(
+              "The response does not have the header {{text}}.",
+              { text: String(threshold) },
+            ),
           );
         }
         return null;
@@ -295,10 +304,9 @@ export default class APIRequestCriteria {
           headerValues.includes(threshold as string)
         ) {
           return EvaluationSentenceMemo.write(
-            translatableSentence(
-              "Response header threshold contains {{text}}.",
-              { text: String(threshold) },
-            ),
+            translatableSentence("A response header has the value {{text}}.", {
+              text: String(threshold),
+            }),
           );
         }
         return null;
@@ -311,10 +319,9 @@ export default class APIRequestCriteria {
           !headerValues.includes(threshold as string)
         ) {
           return EvaluationSentenceMemo.write(
-            translatableSentence(
-              "Response header threshold does not contain {{text}}.",
-              { text: String(threshold) },
-            ),
+            translatableSentence("No response header has the value {{text}}.", {
+              text: String(threshold),
+            }),
           );
         }
         return null;

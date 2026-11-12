@@ -1,5 +1,6 @@
 import OneUptimeDate from "../Date";
 import { inEnglishDates, withDateDisplayLanguage } from "../DateLanguage";
+import { currentEvaluationTemplate } from "./RetiredEvaluationTemplates";
 import {
   composedValue,
   createTranslator,
@@ -489,10 +490,52 @@ export function isWhollyWorded(
 }
 
 /*
+ * A stored sentence as this build words it: each template the engine has
+ * since reworded - in the sentence and in every part of it - replaced by
+ * the one in its place (RetiredEvaluationTemplates), its values as stored.
+ * A sentence with no retired template is returned as it is.
+ */
+export function withCurrentTemplates(
+  sentence: EvaluationSentence,
+): EvaluationSentence {
+  const template: string = currentEvaluationTemplate(sentence.template);
+  let values: Record<string, EvaluationSentenceValue> | undefined =
+    sentence.values;
+
+  for (const key of Object.keys(sentence.values || {})) {
+    const value: EvaluationSentenceValue = (sentence.values || {})[
+      key
+    ] as EvaluationSentenceValue;
+
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      isEvaluationTerm(value) ||
+      isEvaluationTime(value)
+    ) {
+      continue;
+    }
+
+    const current: EvaluationSentence = withCurrentTemplates(value);
+
+    if (current !== value) {
+      values = { ...(values || {}), [key]: current };
+    }
+  }
+
+  if (template === sentence.template && values === sentence.values) {
+    return sentence;
+  }
+
+  return { ...sentence, template: template, values: values };
+}
+
+/*
  * A stored sentence in the reader's language, or `english` - the text
  * stored beside it - when there is none, or none this build can read. A
  * sentence the reader's language words only in part reads in English,
- * whole (isWhollyWorded).
+ * whole (isWhollyWorded). One written before a template it holds was
+ * reworded reads in the current words (withCurrentTemplates).
  */
 export function wordStoredEvaluationText(data: {
   english: string;
@@ -505,22 +548,17 @@ export function wordStoredEvaluationText(data: {
   }
 
   try {
+    const sentence: EvaluationSentence = withCurrentTemplates(data.sentence);
+
     /*
      * English, when the reader's language does not word all of it - with
      * its times still written where it is read (the reader's time zone).
      */
-    const translator: Translator = isWhollyWorded(
-      data.sentence,
-      data.translator,
-    )
+    const translator: Translator = isWhollyWorded(sentence, data.translator)
       ? data.translator
       : getEnglishTranslator();
 
-    return wordEvaluationSentence(
-      data.sentence,
-      translator,
-      data.options || {},
-    );
+    return wordEvaluationSentence(sentence, translator, data.options || {});
   } catch {
     return data.english;
   }

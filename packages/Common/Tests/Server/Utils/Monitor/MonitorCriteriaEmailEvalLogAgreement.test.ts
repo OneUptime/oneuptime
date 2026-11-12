@@ -273,8 +273,8 @@ describe("the alert email and the evaluation log describe one sample identically
       MonitorCriteriaMessageBuilder.buildCriteriaFilterMessage({
         ...inputs,
         didMeetCriteria: true,
-        matchMessage: "Metric Value is 1.07 GB which is greater than 1 GB.",
+        matchMessage: "Metric Value is 1.07 GB, which is greater than 1 GB.",
       }),
-    ).toBe("Metric Value is 1.07 GB which is greater than 1 GB.");
+    ).toBe("Metric Value is 1.07 GB, which is greater than 1 GB.");
   });
 });

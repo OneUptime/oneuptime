@@ -67,7 +67,7 @@ Beide sind ganze Zahlen und werden mit **Größer als**, **Kleiner als**, **Glei
 
 ### Länger warten vor einem Vorfall
 
-Eine Sonde gilt erst nach drei Minuten Stille als getrennt, ein kurzer Neustart löst also nichts aus. Um länger zu warten, aktivieren Sie unter dem Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** und wählen unter **Auswerten** **All Values** und unter **Für die letzten (in Minuten)** ein Zeitfenster. Bei fünf Minuten muss eine Sonde weitere fünf Minuten getrennt bleiben, bevor der Vorfall gemeldet wird.
+Eine Sonde gilt erst nach drei Minuten Stille als getrennt, ein kurzer Neustart löst also nichts aus. Um länger zu warten, aktivieren Sie unter dem Filter **Diese Kriterien über einen Zeitraum hinweg auswerten** und wählen unter **Auswerten** **Alle Werte** und unter **Für die letzten (in Minuten)** ein Zeitfenster. Bei fünf Minuten muss eine Sonde weitere fünf Minuten getrennt bleiben, bevor der Vorfall gemeldet wird.
 
 ## Metriken
 

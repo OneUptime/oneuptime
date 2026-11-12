@@ -148,7 +148,7 @@ const VARS: Record<string, unknown> = {
   declaredAt: "Sep 05 2026, 10:55 AM BST",
   alertSeverity: "Warning",
   rootCause:
-    "Any value of Pod CPU vs Limit (%) is 91.53 % which is greater than 90 %.",
+    "Any value of Pod CPU vs Limit (%) is 91.53 %, which is greater than 90 %.",
   alertDescription: "A pod's CPU usage has exceeded 90% of its limit.",
   remediationNotes: "",
   alertViewLink: "https://oneuptime.test/dashboard/alerts/1",

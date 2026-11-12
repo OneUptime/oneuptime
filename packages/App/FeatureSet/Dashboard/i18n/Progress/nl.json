@@ -783,6 +783,7 @@
     "{{minutes}} min",
     "{{monitorName}} is offline",
     "{{size}} in {{duration}}",
+    "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",
     "{{subject}} was {{value}}",
     "{{tokens}} tokens",
