@@ -58,6 +58,9 @@ import BadDataException from "../../../Types/Exception/BadDataException";
 import GenericObject from "../../../Types/GenericObject";
 import IsolatedText from "../IsolatedText/IsolatedText";
 import IsolatedTextList from "../IsolatedText/IsolatedTextList";
+import PhoneNumberText from "../PhoneNumber/PhoneNumberText";
+import PhoneNumberTextList from "../PhoneNumber/PhoneNumberTextList";
+import { getPhoneNumbersOfValue } from "../../../Types/PhoneNumberDirection";
 import React, { ReactElement, useEffect, useState } from "react";
 
 export enum DetailStyle {
@@ -1010,6 +1013,29 @@ const Detail: DetailFunction = <T extends GenericObject>(
           <IsolatedText text={String(data)} />
         </code>
       );
+    }
+
+    /*
+     * A phone number reads +447700900123 in every language: printed as it
+     * is, a Persian page put its "+" at the end (PhoneNumberText). A list
+     * of them typed as one value (a Twilio account's SMS numbers) is each
+     * of its numbers so, separated the reader's way (PhoneNumberTextList).
+     * No number leaves the field empty, for its placeholder.
+     */
+    if (data && field.fieldType === FieldType.Phone) {
+      const phoneNumbers: Array<string> = getPhoneNumbersOfValue(data);
+
+      data =
+        phoneNumbers.length > 1 ? (
+          <PhoneNumberTextList
+            phoneNumbers={phoneNumbers}
+            dataTestId="detail-phone-number-list"
+          />
+        ) : phoneNumbers[0] ? (
+          <PhoneNumberText phoneNumber={phoneNumbers[0]} />
+        ) : (
+          ""
+        );
     }
 
     if (data && field.fieldType === FieldType.ObjectID) {

@@ -1,6 +1,13 @@
 import { EnableProfiling } from "../EnvironmentConfig";
 import logger, { LogAttributes } from "./Logger";
 import GracefulShutdown, { ShutdownPriority } from "./GracefulShutdown";
+import {
+  OTLP_EXPORTER_HEADERS_SETTING,
+  readOtlpExporterHeaders,
+} from "./Telemetry/OtlpExporterHeaders";
+import Dictionary from "../../Types/Dictionary";
+
+const ONEUPTIME_TOKEN_HEADER: string = "x-oneuptime-token";
 
 /*
  * Type-only import: erased at compile time, so it emits NO runtime require.
@@ -137,26 +144,24 @@ export default class Profiling {
 
   private static getAuthToken(): string | undefined {
     /*
-     * Extract the OneUptime token from OTLP headers
-     * Format: "x-oneuptime-token=<value>;other-header=value"
+     * The OneUptime token from the OTLP headers, read as the exporters read
+     * them ("x-oneuptime-token=<value>;other-header=value", each header split
+     * at its first '='), so a token ending in '=' arrives whole. Header names
+     * are case-insensitive, as the ingest side reads them. Telemetry.init
+     * reports a header it cannot read; this reads quietly.
      */
-    const headersStr: string | undefined =
-      process.env["OPENTELEMETRY_EXPORTER_OTLP_HEADERS"];
+    const headers: Dictionary<string> = readOtlpExporterHeaders(
+      process.env[OTLP_EXPORTER_HEADERS_SETTING],
+    ).headers;
 
-    if (!headersStr) {
-      return undefined;
-    }
+    let token: string | undefined = undefined;
 
-    const parts: Array<string> = headersStr.split(";");
-    for (const part of parts) {
-      const [key, value]: Array<string | undefined> = part.split("=") as Array<
-        string | undefined
-      >;
-      if (key === "x-oneuptime-token" && value) {
-        return value;
+    for (const name of Object.keys(headers)) {
+      if (name.toLowerCase() === ONEUPTIME_TOKEN_HEADER) {
+        token = headers[name];
       }
     }
 
-    return undefined;
+    return token || undefined;
   }
 }

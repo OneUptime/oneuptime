@@ -1823,6 +1823,9 @@ openTelemetryExporter:
   # never serialized into a frontend env.js response.
   endpoint:
   # This can be for example: x-oneuptime-token=<YOUR_ONEUPTIME_TELEMETRY_INGEST_TOKEN>
+  # Write each header as name=value and separate headers with ';'. A value may
+  # hold '=', as a Basic Authorization value does. Nothing is exported without
+  # a header; one OneUptime cannot read is logged as a warning at startup.
   headers:
   # Optional. Reported as k8s.cluster.name on OneUptime's own telemetry so its
   # pods group under this cluster in Topology. Pods always report their pod,

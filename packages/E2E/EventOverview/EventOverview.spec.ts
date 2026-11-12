@@ -7592,7 +7592,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       title: "Severity was below the minimum for AI investigation",
       description:
         "OneUptime AI investigates only the incidents with a severity of SEV-1 or higher, and this one's severity was SEV-2.",
-      serverWords: "did not meet the minimum SEV-1 investigation severity",
+      serverWords:
+        "did not meet the minimum severity for AI investigation (SEV-1)",
     },
     {
       name: "an alert, in German",
@@ -7601,7 +7602,8 @@ test.describe("the AI card as one line when AI was off for the record (?ai=off-*
       title: "Der Schweregrad lag unter dem Mindestwert für KI-Untersuchungen",
       description:
         "OneUptime AI untersucht nur Warnungen mit dem Schweregrad Critical oder höher, und diese Warnung hatte den Schweregrad High.",
-      serverWords: "did not meet the minimum Critical investigation severity",
+      serverWords:
+        "did not meet the minimum severity for AI investigation (Critical)",
     },
   ]) {
     test(`the whole card names the severity and the minimum for ${name} (?ai=off-severity&fixing=acted)`, async ({

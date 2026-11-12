@@ -358,9 +358,11 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
            * synthetic query config — OneUptime's logs/traces/exceptions
            * and the Metric Explorer know nothing about them, so the
            * per-series investigate menu would only mislead (and it must
-           * never render on unauthenticated public dashboards).
+           * never render on unauthenticated public dashboards). Nor do
+           * they have OneUptime exemplars to open a trace from.
            */
           enableSeriesActions={false}
+          enableExemplarActions={false}
           chartSyncId={props.chartSyncId}
           onTimeRangeSelect={timeRangeZoom.onTimeRangeSelect}
           onTimeRangeReset={timeRangeZoom.onTimeRangeReset}
