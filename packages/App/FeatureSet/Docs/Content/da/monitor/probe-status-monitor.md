@@ -67,7 +67,7 @@ Begge er heltal, der sammenlignes med **Større end**, **Mindre end**, **Lig med
 
 ### Vent længere før en hændelse
 
-En probe er først afbrudt efter tre minutters stilhed, så en hurtig genstart åbner intet. For at vente længere skal du sætte flueben i **Evaluér disse kriterier over en periode** under filteret, vælge **All Values** under **Evaluér** og et vindue under **For de seneste (i minutter)**. Med fem minutter skal en probe forblive afbrudt fem minutter mere, før hændelsen erklæres.
+En probe er først afbrudt efter tre minutters stilhed, så en hurtig genstart åbner intet. For at vente længere skal du sætte flueben i **Evaluér disse kriterier over en periode** under filteret, vælge **Alle værdier** under **Evaluér** og et vindue under **For de seneste (i minutter)**. Med fem minutter skal en probe forblive afbrudt fem minutter mere, før hændelsen erklæres.
 
 ## Metrikker
 
