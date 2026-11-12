@@ -1,15 +1,14 @@
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { formatDurationCompactInLanguage } from "Common/Utils/Slo/SloDuration";
 import { SloRecommendedBurnRateRuleToAdd } from "Common/Utils/Slo/SloRecommendedBurnRateRules";
-import {
-  formatSloBurnRate,
-  formatSloNumber,
-} from "Common/Utils/Slo/SloWidgetFormat";
+import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 import React, { FunctionComponent, ReactElement } from "react";
 import {
   BURN_RATE_RULE_NOTHING_PICKED,
+  BurnRateRuleWindowsText,
+  formatBurnRateRuleFiresWhen,
+  formatBurnRateRuleWindows,
   getNamesOrNothingPicked,
 } from "../../Pages/Slo/Utils/BurnRateRuleLines";
 
@@ -51,6 +50,12 @@ const SloRecommendedBurnRateRulesModal: FunctionComponent<ComponentProps> = (
         className="divide-y divide-gray-100 rounded-md border border-gray-200"
       >
         {props.rules.map((rule: SloRecommendedBurnRateRuleToAdd) => {
+          // "۶۰ دقیقه / ۵ دقیقه" in Persian, as the rules table writes it.
+          const windows: BurnRateRuleWindowsText = formatBurnRateRuleWindows(
+            rule,
+            translator,
+          );
+
           return (
             <li
               key={rule.name}
@@ -67,35 +72,12 @@ const SloRecommendedBurnRateRulesModal: FunctionComponent<ComponentProps> = (
                 </span>
               </div>
               <div className="mt-0.5 text-sm text-gray-600">
-                {translator.translateTemplate(
-                  "Fires when about {{percent}}% of the error budget burns in {{duration}}",
-                  {
-                    percent:
-                      formatSloNumber(rule.budgetPercentage, 2, translator) ||
-                      String(rule.budgetPercentage),
-                    duration: formatDurationCompactInLanguage(
-                      rule.longWindowInMinutes * 60,
-                      translator.language,
-                    ),
-                  },
-                )}
+                {formatBurnRateRuleFiresWhen(rule, translator)}
               </div>
               <div className="mt-1 text-xs text-gray-500">
-                {translator.translateTemplate("{{long}}m / {{short}}m", {
-                  long: rule.longWindowInMinutes,
-                  short: rule.shortWindowInMinutes,
-                })}
+                {windows.windows}
               </div>
-              <div className="text-xs text-gray-500">
-                {translator.translateTemplate(
-                  "Suppress {{minutes}}m after resolve",
-                  {
-                    // Empty suppression is one long window, as the table says.
-                    minutes:
-                      rule.refireSuppressionMinutes ?? rule.longWindowInMinutes,
-                  },
-                )}
-              </div>
+              <div className="text-xs text-gray-500">{windows.suppression}</div>
               <div className="text-xs text-gray-500">
                 {translator.translateTemplate("Alert: {{severity}}", {
                   severity: getNamesOrNothingPicked(

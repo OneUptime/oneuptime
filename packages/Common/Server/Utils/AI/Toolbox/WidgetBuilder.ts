@@ -1,6 +1,7 @@
 import { JSONObject } from "../../../../Types/JSON";
 import {
   AIChatCitationTarget,
+  AIChatResourceCardOrigin,
   AIChatWidget,
   AIChatWidgetColumn,
   AIChatWidgetSeries,
@@ -8,6 +9,7 @@ import {
   AIChatWidgetStat,
   AIChatWidgetType,
   AIChatTestPageOffer,
+  getAIChatResourceCardStatusColor,
 } from "../../../../Types/AI/AIChatTypes";
 import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 import {
@@ -158,10 +160,12 @@ export default class WidgetBuilder {
   }
 
   /*
-   * The card a write leaves under the answer. A fact its heading or its
-   * subheading already says ("#42" in "#42 · Payment API down", "High" in
-   * "Severity: High") is left out of its fields: each fact once, for every
-   * write tool at once (Types/AI/ResourceCardFacts).
+   * The card a read leaves under the answer: a record as it is - a
+   * monitor, an SLO, a team - drawn plain (issue #6968), with its status's
+   * own colour beside the line that names it when it has one. A fact its
+   * heading or its subheading already says ("#42" in "#42 · Payment API
+   * down", "High" in "Severity: High") is left out of its fields: each fact
+   * once, for every tool at once (Types/AI/ResourceCardFacts).
    */
   public static resourceCard(params: {
     title: string;
@@ -170,11 +174,38 @@ export default class WidgetBuilder {
     subheading?: string | undefined;
     fields: Array<{ label: string; value: string }>;
     link?: AIChatCitationTarget | undefined;
+    // The status the subheading names, in its own colour ("#ef4444").
+    statusColor?: string | undefined;
+  }): AIChatWidget {
+    return this.card({
+      ...params,
+      origin: AIChatResourceCardOrigin.Read,
+    });
+  }
+
+  /*
+   * Either card: what a read or a write left, which the Dashboard draws
+   * plain or as done (issue #6968). The status colour is kept only when it
+   * is one ("#rrggbb"): the card draws it as is.
+   */
+  private static card(params: {
+    title: string;
+    resourceType: string;
+    heading: string;
+    subheading?: string | undefined;
+    fields: Array<{ label: string; value: string }>;
+    link?: AIChatCitationTarget | undefined;
     // The same card as words the Dashboard says in the reader's language.
     words?: AIActionCardWords | undefined;
+    statusColor?: string | undefined;
+    origin: AIChatResourceCardOrigin;
     // The test page the card offers once its record exists (#6829).
     testPage?: AIChatTestPageOffer | undefined;
   }): AIChatWidget {
+    const statusColor: string | null = getAIChatResourceCardStatusColor(
+      params.statusColor,
+    );
+
     return {
       id: "",
       type: AIChatWidgetType.ResourceCard,
@@ -189,6 +220,8 @@ export default class WidgetBuilder {
           fields: params.fields,
         }),
         ...(params.words ? { words: params.words } : {}),
+        origin: params.origin,
+        ...(statusColor && params.subheading ? { statusColor } : {}),
         link: params.link,
         ...(params.testPage ? { testPage: params.testPage } : {}),
       },
@@ -204,7 +237,8 @@ export default class WidgetBuilder {
    * The English the card stores beside its words - what the exports print,
    * and what a Dashboard that cannot read the words draws - is the same
    * words in English, so the two never say different things. Every card a
-   * write tool leaves is one of these (ResourceCardWordsGuard).
+   * write tool leaves is one of these (ResourceCardWordsGuard), drawn as
+   * done (issue #6968).
    */
   public static actionCard(params: {
     title: string;
@@ -223,7 +257,7 @@ export default class WidgetBuilder {
       facts: Array<{ label: string; value: string }>;
     } = describeAIActionCardWords(params.words);
 
-    return this.resourceCard({
+    return this.card({
       title: params.title,
       resourceType: english.kind,
       heading: params.heading,
@@ -231,6 +265,7 @@ export default class WidgetBuilder {
       fields: english.facts,
       link: params.link,
       words: params.words,
+      origin: AIChatResourceCardOrigin.Write,
       testPage: params.testPage,
     });
   }

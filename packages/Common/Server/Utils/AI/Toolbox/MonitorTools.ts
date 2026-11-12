@@ -9,6 +9,7 @@ import Permission from "../../../../Types/Permission";
 import Query from "../../../../Types/BaseDatabase/Query";
 import SortOrder from "../../../../Types/BaseDatabase/SortOrder";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
+import { Gray500 } from "../../../../Types/BrandColors";
 import MonitorService from "../../../Services/MonitorService";
 import MonitorOwnerTeamService from "../../../Services/MonitorOwnerTeamService";
 import MonitorOwnerUserService from "../../../Services/MonitorOwnerUserService";
@@ -328,6 +329,15 @@ export const QueryMonitorsTool: ObservabilityTool = {
               subheading: isMonitoringOff
                 ? MONITORING_OFF_STATUS_TEXT
                 : monitor.currentMonitorStatus?.name,
+              /*
+               * And in its colour, as that table draws it (issue #6968):
+               * gray when the status is not live - monitoring off, or
+               * archived - never the green of the status it was frozen at.
+               */
+              statusColor:
+                isMonitoringOff || monitor.isArchived === true
+                  ? Gray500.toString()
+                  : monitor.currentMonitorStatus?.color?.toString(),
               fields: cardFields,
               link: {
                 type: AIChatCitationTargetType.MonitorView,

@@ -92,9 +92,9 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `ask_ai/setup_test_page_sent` | A test page is sent from under an answer that set something up | `target` (`self`, `policy`) | `AskAiTestPageOffer` |
 | `importer/opened` | "Import from another tool" is opened | `from` (`?from=` on its address, else `settings`) | `ImportFromTool` |
 | `docs/feedback_given` | "Was this page helpful?" is answered | `page`, `is_helpful` | Reserved for #6822 |
-| `guided_setup/started` | A guided setup opens: `website_down` (Know when my website or API is down, #6804), `status_page` (Publish a status page, #6806) or `telemetry` (Send logs, metrics and traces, then get alerted, #6806) | `setup` | `GuidedSetupFrame`, through `useGuidedSetupEvents`; #6805 adds its setup to it |
-| `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary`; `status_page`'s are `pick`, `review` and `summary`; `telemetry`'s are `send`, `alert` and `summary` | `setup`, `step`, `step_number` | Same |
-| `guided_setup/finished` | It reaches its end: the thing works and was tested (`status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |
+| `guided_setup/started` | A guided setup opens: `website_down` (Know when my website or API is down, #6804), `on_call` (Page the right person when something breaks, #6805), `status_page` (Publish a status page, #6806) or `telemetry` (Send logs, metrics and traces, then get alerted, #6806) | `setup` | `GuidedSetupFrame`, through `useGuidedSetupEvents` |
+| `guided_setup/step_reached` | It moves on to a step. `website_down`'s steps are `check`, `who_is_told`, `test` and `summary`; `on_call`'s are `reach_you`, `who_else`, `no_answer`, `test` and `summary`; `status_page`'s are `pick`, `review` and `summary`; `telemetry`'s are `send`, `alert` and `summary` | `setup`, `step`, `step_number` | Same |
+| `guided_setup/finished` | It reaches its end: the thing works and was tested (`on_call`: a test page of the policy acknowledged; `status_page`: a public page showing a monitor, reviewed; `telemetry`: data arrived, and a monitor watches it or the person said "not now") | `setup`, `seconds_taken` | Same |
 | `guided_setup/left` | It is left before its end | `setup`, `step`, `step_number` | Same |
 
 ### The Welcome checklist and its goals

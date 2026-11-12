@@ -28,6 +28,11 @@ export function getOnCallDutyBreadcrumbs(
       "On-Call Duty",
       "Readiness",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_GUIDED_SETUP, [
+      "Project",
+      "On-Call Duty",
+      "Guided setup",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.ON_CALL_DUTY_CALENDAR_FEEDS, [
       "Project",
       "On-Call Duty",

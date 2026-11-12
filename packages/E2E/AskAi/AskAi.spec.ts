@@ -1468,6 +1468,90 @@ async function yAxisLabels(
     );
 }
 
+/*
+ * A table cell's text as it was laid out: the text of each line, how wide
+ * its text may be, and each break that fell inside a part of a word - not
+ * at a space, a hyphen or a slash - with how wide that part is. A part is
+ * a text of its own: the words between a long word's or a path's places
+ * to wrap (DataTableWidget draws a <wbr> between them), or a run of words.
+ * A part broken inside is wider than the room, give or take the half
+ * pixel its letters' boxes are rounded by (PART_ROUNDING).
+ */
+const PART_ROUNDING: number = 0.5;
+
+interface CellLayout {
+  lines: Array<string>;
+  room: number;
+  brokenParts: Array<{ part: string; width: number }>;
+}
+
+async function cellLayoutOf(cell: Locator): Promise<CellLayout> {
+  return cell.evaluate((element: Element): CellLayout => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    // To the fraction of a pixel: clientWidth is rounded to a whole one.
+    const room: number =
+      element.getBoundingClientRect().width -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight) -
+      parseFloat(style.borderLeftWidth) -
+      parseFloat(style.borderRightWidth);
+    // Where a line may end without breaking a part: a space, a hyphen, a slash.
+    const wrapsAfter: RegExp = /[\s/\\-]/;
+    const lines: Array<string> = [];
+    const brokenParts: Array<{ part: string; width: number }> = [];
+    let line: string = "";
+    let top: number | null = null;
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      const text: string = node.textContent || "";
+      for (let index: number = 0; index < text.length; index++) {
+        const letter: Range = document.createRange();
+        letter.setStart(node, index);
+        letter.setEnd(node, index + 1);
+        const box: DOMRect | undefined = Array.from(
+          letter.getClientRects(),
+        ).find((rect: DOMRect): boolean => {
+          return rect.width > 0;
+        });
+
+        if (box) {
+          const boxTop: number = Math.round(box.top);
+          if (top !== null && boxTop > top + 2) {
+            lines.push(line);
+            line = "";
+            if (index > 0 && !wrapsAfter.test(text[index - 1]!)) {
+              const part: Range = document.createRange();
+              part.selectNodeContents(node);
+              brokenParts.push({
+                part: text,
+                width: Array.from(part.getClientRects()).reduce(
+                  (sum: number, rect: DOMRect): number => {
+                    return sum + rect.width;
+                  },
+                  0,
+                ),
+              });
+            }
+          }
+          top = boxTop;
+        }
+        line += text[index];
+      }
+    }
+    lines.push(line);
+
+    return { lines, room, brokenParts };
+  });
+}
+
 test.describe("what an answer carries fits where it is drawn", () => {
   test("a citation reads as a footnote, never as inline code", async ({
     page,
@@ -1589,6 +1673,52 @@ test.describe("what an answer carries fits where it is drawn", () => {
     );
 
     await screenshot(page, "rich-table-390");
+  });
+
+  /*
+   * A path - an endpoint, a URL - has no spaces to wrap at. Kept whole when
+   * its parts were short, "POST /ledger/entries" was as wide as a long word,
+   * and the table above no longer fit a 390 pixel phone (issue #6969). It
+   * may break anywhere now, after its slashes first: never "/ledger/en"
+   * over "tries", and a part of it is broken only when it is wider than
+   * its column.
+   */
+  test("on a phone a path wraps after its slashes, and a part of it breaks only when it is wider than its column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "thread=rich");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const table: Locator = page.locator("table").filter({
+      hasText: "Endpoint",
+    });
+    await table.scrollIntoViewIfNeeded();
+    await settle(page);
+
+    // Four columns a row: the endpoints are the first.
+    const cells: Locator = table.getByTestId("ai-chat-table-cell");
+    const ledger: Locator = cells.nth(8);
+    await expect(ledger).toHaveAttribute("title", "POST /ledger/entries");
+
+    const ledgerLayout: CellLayout = await cellLayoutOf(ledger);
+    expect(ledgerLayout.lines.join("")).toBe("POST /ledger/entries");
+    expect(ledgerLayout.lines.length).toBeGreaterThanOrEqual(2);
+    for (const line of ledgerLayout.lines.slice(0, -1)) {
+      expect(line, JSON.stringify(ledgerLayout.lines)).toMatch(/[\s/]$/);
+    }
+
+    for (const row of [0, 1, 2]) {
+      const layout: CellLayout = await cellLayoutOf(cells.nth(row * 4));
+      for (const broken of layout.brokenParts) {
+        expect(broken.width, broken.part).toBeGreaterThan(
+          layout.room - PART_ROUNDING,
+        );
+      }
+    }
   });
 
   /*
@@ -3419,7 +3549,12 @@ test.describe("an action's arguments and the cards it leaves", () => {
  * marked at its start, in the order the card weighs them.
  */
 
-// The thread's three cautions, in the order the card weighs them (?thread=code).
+/*
+ * The thread's four cautions, in the order the card weighs them
+ * (?thread=code). The last is of a file Ask AI read all of, in two parts,
+ * the first of them left out since: read, so never "read only part of"
+ * (issue #6984).
+ */
 const CODE_CAUTION_KEYS: Array<[string, Record<string, string>]> = [
   [
     "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one",
@@ -3433,13 +3568,22 @@ const CODE_CAUTION_KEYS: Array<[string, Record<string, string>]> = [
     "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one",
     { files: "src/billing/charge.ts" },
   ],
+  [
+    "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one",
+    { files: "src/billing/ledger.ts" },
+  ],
 ];
 
 const CODE_CAUTIONS: Array<string> = [
   "This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: src/billing/refund.ts.",
   "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: README.md.",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: src/billing/charge.ts.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: src/billing/ledger.ts.",
 ];
+
+// The card's amber, one mark a caution: in the light theme, and in the dark.
+const CAUTION_AMBER: string = "rgb(217, 119, 6)";
+const CAUTION_AMBER_DARK: string = "rgb(252, 211, 77)";
 
 // Each caution of the card: its line, its mark and its sentence.
 interface CautionBoxes {
@@ -3516,7 +3660,7 @@ async function expectCautionsALineEach(
   const { action, cautions } = await cautionBoxes(page);
   const lineHeight: number = await cautionLineHeight(page);
 
-  expect(cautions).toHaveLength(3);
+  expect(cautions).toHaveLength(CODE_CAUTIONS.length);
 
   for (const caution of cautions) {
     for (const box of [caution.line, caution.mark, caution.sentence]) {
@@ -3584,11 +3728,11 @@ test.describe("a code change's cautions", () => {
 
     const action: Locator = page.getByTestId("tool-approval-action");
     await expect(action.getByTestId("tool-approval-title")).toHaveText(
-      "Commit 3 files to fix/login",
+      "Commit 4 files to fix/login",
     );
 
     const cautions: Locator = action.getByTestId("tool-approval-caution");
-    await expect(cautions).toHaveCount(3);
+    await expect(cautions).toHaveCount(CODE_CAUTIONS.length);
     for (let index: number = 0; index < CODE_CAUTIONS.length; index++) {
       // Each keeps the space that went before it in the card's text.
       expect((await wordsOf(cautions.nth(index))).trim()).toBe(
@@ -3603,16 +3747,26 @@ test.describe("a code change's cautions", () => {
     await expectCautionsALineEach(page, "ltr");
 
     // Marked in the card's amber, the colour of its own heading.
-    expect(await markColours(page)).toEqual([
-      "rgb(217, 119, 6)",
-      "rgb(217, 119, 6)",
-      "rgb(217, 119, 6)",
-    ]);
+    expect(await markColours(page)).toEqual(
+      CODE_CAUTIONS.map((): string => {
+        return CAUTION_AMBER;
+      }),
+    );
+
+    /*
+     * A file read whole and partly lost since is said to be read, and no
+     * longer all in hand: never "read only part of" (issue #6984).
+     */
+    const partLost: string = (
+      await wordsOf(cautions.nth(CODE_CAUTIONS.length - 1))
+    ).trim();
+    expect(partLost).toContain("no longer has part of its text");
+    expect(partLost).not.toContain("only part");
 
     // The commit's message and its files still read under its cautions.
     expect(await argumentRows(action)).toEqual([
       "Commit message: fix: round charges and refunds to the cent",
-      "Files: 3",
+      "Files: 4",
     ]);
 
     await screenshot(page, "code-cautions-1280");
@@ -3627,12 +3781,14 @@ test.describe("a code change's cautions", () => {
     await expect(askAi(page)).toBeVisible();
     await settle(page);
 
-    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(3);
-    expect(await markColours(page)).toEqual([
-      "rgb(252, 211, 77)",
-      "rgb(252, 211, 77)",
-      "rgb(252, 211, 77)",
-    ]);
+    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(
+      CODE_CAUTIONS.length,
+    );
+    expect(await markColours(page)).toEqual(
+      CODE_CAUTIONS.map((): string => {
+        return CAUTION_AMBER_DARK;
+      }),
+    );
 
     await screenshot(page, "code-cautions-1280-dark");
   });
@@ -3651,7 +3807,7 @@ test.describe("a code change's cautions", () => {
 
       const words: Record<string, string> = dashboardWords("fa");
       const cautions: Locator = page.getByTestId("tool-approval-caution");
-      await expect(cautions).toHaveCount(3);
+      await expect(cautions).toHaveCount(CODE_CAUTION_KEYS.length);
 
       for (let index: number = 0; index < CODE_CAUTION_KEYS.length; index++) {
         const [key, values] = CODE_CAUTION_KEYS[index]!;
@@ -3679,6 +3835,362 @@ test.describe("a code change's cautions", () => {
       await expectNothingScrollsSideways(page);
       await screenshot(page, "code-cautions-390-fa");
     });
+  });
+});
+
+/*
+ * ---------------------------------------------------------------------------
+ * Monitors looked up, and the monitors table (issues #6968 and #6969)
+ * ---------------------------------------------------------------------------
+ *
+ * "Which monitors are down right now?", answered with two monitors read by
+ * id and the table query_monitors lists them in (?thread=monitors).
+ *
+ *   - Every card a tool left was drawn as a write's - green, with a check -
+ *     so a monitor that was Offline, or whose monitoring was off, had a
+ *     green check beside it. A read's card is plain now, as the other
+ *     widgets are, its status's own colour a dot before the line that
+ *     names it: the Offline red, and gray for monitoring off.
+ *   - The table let every word break anywhere, and on a 360 pixel phone
+ *     its Status column drew "Operational" as "Operationa" over "l". A
+ *     word is whole now; only a long one, or a path - a URL, an endpoint -
+ *     may break anywhere, after its slashes first.
+ */
+
+interface StatusDot {
+  color: string;
+  dot: { left: number; right: number; top: number; bottom: number };
+  words: { left: number; right: number; top: number; bottom: number };
+}
+
+// A card's status dot, and the words of the line it stands before, in one read.
+async function statusDotOf(card: Locator): Promise<StatusDot> {
+  return card.evaluate((element: Element): StatusDot => {
+    const line: Element = element.querySelector(
+      '[data-testid="ai-chat-resource-card-line"]',
+    )!;
+    const dot: Element = line.querySelector(
+      '[data-testid="ai-chat-resource-card-status-dot"]',
+    )!;
+    const range: Range = document.createRange();
+    range.setStartAfter(dot);
+    range.setEnd(line, line.childNodes.length);
+    const words: DOMRect = range.getBoundingClientRect();
+    const box: DOMRect = dot.getBoundingClientRect();
+
+    return {
+      color: window.getComputedStyle(dot).backgroundColor,
+      dot: {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+      },
+      words: {
+        left: words.left,
+        right: words.right,
+        top: words.top,
+        bottom: words.bottom,
+      },
+    };
+  });
+}
+
+interface CardLook {
+  origin: string | null;
+  background: string;
+  border: string;
+  kind: string;
+  checks: number;
+  greens: number;
+}
+
+// How a card is drawn: its surface, its edge, its kind's colour, any check or green.
+async function cardLookOf(card: Locator): Promise<CardLook> {
+  return card.evaluate((element: Element): CardLook => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    const kind: Element = element.querySelector(
+      '[data-testid="ai-chat-resource-card-kind"]',
+    )!;
+
+    return {
+      origin: element.getAttribute("data-card-origin"),
+      background: style.backgroundColor,
+      border: style.borderTopColor,
+      kind: window.getComputedStyle(kind).color,
+      checks: element.querySelectorAll(
+        '[data-testid="ai-chat-resource-card-done"]',
+      ).length,
+      greens: element.querySelectorAll('[class*="emerald"]').length,
+    };
+  });
+}
+
+// The lines a cell's text was laid out on.
+async function linesOfCell(cell: Locator): Promise<number> {
+  return cell.evaluate((element: Element): number => {
+    const range: Range = document.createRange();
+    range.selectNodeContents(element);
+    return new Set(
+      Array.from(range.getClientRects()).map((rect: DOMRect): number => {
+        return Math.round(rect.top);
+      }),
+    ).size;
+  });
+}
+
+test.describe("monitors looked up, and the monitors table", () => {
+  test("a monitor looked up is drawn plain - no green, no check - its status a dot in its own colour, light and dark", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const theme of ["light", "dark"]) {
+      await load(
+        page,
+        theme === "dark" ? "theme=dark&thread=monitors" : "thread=monitors",
+      );
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await expect(cards.nth(0)).toContainText("Checkout API");
+      await expect(cards.nth(1)).toContainText("Backup Job");
+      await cards.nth(1).scrollIntoViewIfNeeded();
+      await settle(page);
+
+      for (const card of await cards.all()) {
+        expect(await cardLookOf(card)).toEqual(
+          theme === "dark"
+            ? {
+                origin: "read",
+                // The dark theme's surface and edge, as the other widgets have.
+                background: "rgb(23, 32, 51)",
+                border: "rgb(71, 85, 105)",
+                kind: expect.any(String),
+                checks: 0,
+                greens: 0,
+              }
+            : {
+                origin: "read",
+                background: "rgb(255, 255, 255)",
+                border: "rgb(229, 231, 235)",
+                kind: "rgb(107, 114, 128)",
+                checks: 0,
+                greens: 0,
+              },
+        );
+      }
+
+      if (theme === "dark") {
+        // Its kind is read on the dark surface.
+        expect(
+          await luminanceOf(
+            cards.nth(0).getByTestId("ai-chat-resource-card-kind"),
+            "color",
+          ),
+        ).toBeGreaterThan(0.25);
+      }
+
+      // Offline in its own red; monitoring off in gray: in either theme.
+      const offline: StatusDot = await statusDotOf(cards.nth(0));
+      const disabled: StatusDot = await statusDotOf(cards.nth(1));
+      expect(offline.color).toBe("rgb(253, 98, 94)");
+      expect(disabled.color).toBe("rgb(107, 114, 128)");
+
+      for (const drawn of [offline, disabled]) {
+        // A dot, 8 pixels round, before the words, on their line.
+        expect(drawn.dot.right - drawn.dot.left).toBeCloseTo(8, 0);
+        expect(drawn.dot.bottom - drawn.dot.top).toBeCloseTo(8, 0);
+        expect(drawn.dot.right).toBeLessThanOrEqual(drawn.words.left);
+        expect(drawn.words.left - drawn.dot.right).toBeLessThanOrEqual(8);
+        const middle: number = (drawn.dot.top + drawn.dot.bottom) / 2;
+        expect(middle).toBeGreaterThan(drawn.words.top);
+        expect(middle).toBeLessThan(drawn.words.bottom);
+      }
+
+      await expect(
+        cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+      ).toHaveText("Offline");
+      await expect(
+        cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+      ).toHaveText("Disabled");
+
+      await screenshot(
+        page,
+        theme === "dark" ? "monitor-cards-1280-dark" : "monitor-cards-1280",
+      );
+    }
+  });
+
+  test.describe("on a phone, in Persian", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("right to left, the dot stands where the line starts: at its right", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "lang=fa&thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const cards: Locator = page.getByTestId("ai-chat-resource-card");
+      await expect(cards).toHaveCount(2);
+      await cards.nth(0).scrollIntoViewIfNeeded();
+      await settle(page);
+
+      for (const card of await cards.all()) {
+        const drawn: StatusDot = await statusDotOf(card);
+        expect(drawn.dot.left).toBeGreaterThanOrEqual(drawn.words.right);
+        expect(drawn.dot.left - drawn.words.right).toBeLessThanOrEqual(8);
+
+        const look: CardLook = await cardLookOf(card);
+        expect(look.checks).toBe(0);
+        expect(look.greens).toBe(0);
+      }
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "monitor-cards-390-fa");
+    });
+  });
+
+  test.describe("on a 360 pixel phone", () => {
+    test.use({ viewport: { width: 360, height: 780 } });
+
+    test("the monitors table keeps Operational whole on its line, and wraps a monitor's long URL inside the table", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const table: Locator = page.locator("table").filter({
+        hasText: "legacy-payments-api",
+      });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      // Nothing hidden past the card's edge, waiting to be scrolled to.
+      const fit: { table: number; room: number } = await table.evaluate(
+        (element: Element): { table: number; room: number } => {
+          return {
+            table: element.scrollWidth,
+            room: (element.parentElement as HTMLElement).clientWidth,
+          };
+        },
+      );
+      expect(fit.table).toBeLessThanOrEqual(fit.room);
+
+      const rows: Locator = table.locator("tbody tr");
+      await expect(rows).toHaveCount(4);
+
+      const statuses: Array<string> = [];
+      for (const row of await rows.all()) {
+        const status: Locator = row.getByTestId("ai-chat-table-cell").nth(2);
+        statuses.push((await status.textContent()) || "");
+        // One line each: "Operational" is never "Operationa" over "l".
+        expect(await linesOfCell(status)).toBe(1);
+      }
+      expect(statuses).toEqual([
+        "Offline",
+        "Operational",
+        "Operational",
+        "Disabled",
+      ]);
+
+      /*
+       * The URL has no spaces to wrap at: it wraps inside the table, after
+       * its slashes first, and anywhere in a part wider than its column.
+       * Its scheme stays with its host: "https://" alone took a line of
+       * the three a cell shows, and said nothing.
+       */
+      const url: Locator = rows.nth(1).getByTestId("ai-chat-table-cell").nth(0);
+      await expect(url).toHaveAttribute(
+        "title",
+        "https://payments.example.com/api/v2/health/checkout",
+      );
+      expect(await linesOfCell(url)).toBeGreaterThanOrEqual(2);
+      const urlLayout: CellLayout = await cellLayoutOf(url);
+      expect(urlLayout.lines.join("")).toBe(
+        "https://payments.example.com/api/v2/health/checkout",
+      );
+      expect(urlLayout.lines[0]!.length).toBeGreaterThan("https://".length);
+      for (const broken of urlLayout.brokenParts) {
+        expect(broken.width, broken.part).toBeGreaterThan(
+          urlLayout.room - PART_ROUNDING,
+        );
+      }
+      const tableBox: Box = await boxOf(table);
+      const urlBox: Box = await boxOf(url);
+      expect(urlBox.x + urlBox.width).toBeLessThanOrEqual(
+        tableBox.x + tableBox.width + 0.5,
+      );
+      // ...and still leaves the other two columns most of their room.
+      expect(urlBox.width).toBeLessThan(tableBox.width * 0.6);
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "monitors-table-360");
+    });
+  });
+
+  /*
+   * Broken anywhere, the URL's host was cut mid-name wherever the column
+   * ended: "https://payments.ex" over "ample.com/api/v2/" in the panel at
+   * 1024 pixels, "https://payments.example.c" over "om/..." at 1280. It
+   * wraps before its host's dots now, as a style guide breaks a URL, and
+   * after its slashes: each name whole on its line.
+   */
+  test("a monitor's URL wraps after its slashes and before its host's dots, each name whole: in the panel at 1280 and 1024, and on a 390 pixel phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const URL_NAME: string =
+      "https://payments.example.com/api/v2/health/checkout";
+
+    for (const width of [1280, 1024, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await load(page, "thread=monitors");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const table: Locator = page.locator("table").filter({
+        hasText: "legacy-payments-api",
+      });
+      await table.scrollIntoViewIfNeeded();
+      await settle(page);
+
+      const url: Locator = table
+        .locator("tbody tr")
+        .nth(1)
+        .getByTestId("ai-chat-table-cell")
+        .nth(0);
+      await expect(url).toHaveAttribute("title", URL_NAME);
+
+      const layout: CellLayout = await cellLayoutOf(url);
+      const lines: string = JSON.stringify(layout.lines);
+      expect(layout.lines.join(""), lines).toBe(URL_NAME);
+      // Too long for one line, at every width...
+      expect(layout.lines.length, lines).toBeGreaterThanOrEqual(2);
+      // ...and never broken inside a name: no part is wider than the column.
+      expect(layout.brokenParts, `${width}: ${lines}`).toEqual([]);
+      for (let index: number = 0; index < layout.lines.length - 1; index++) {
+        // Each line ends after a slash, or the next starts with the host's dot.
+        expect(
+          layout.lines[index]!.endsWith("/") ||
+            layout.lines[index + 1]!.startsWith("."),
+          `${width}: ${lines}`,
+        ).toBe(true);
+      }
+      // The scheme stays with the host's first name.
+      expect(layout.lines[0]!.startsWith("https://payments"), lines).toBe(true);
+    }
+
+    await screenshot(page, "monitors-table-url-390");
   });
 });
 

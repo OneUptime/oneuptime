@@ -411,8 +411,9 @@ export const AI_ACTION_LINES: {
  * - would undo what was pushed to a file since, or replace a file Ask AI
  * read on another branch, or never read, or read only part of (issue
  * #6330), or read only in an earlier answer (issue #6365), or read earlier
- * in this answer and no longer has (issue #6570) - or write placeholders
- * where values were hidden from Ask AI (issue #6364). Each
+ * in this answer and no longer has (issue #6570), or read all of and no
+ * longer has part of (issue #6984) - or write placeholders where values
+ * were hidden from Ask AI (issue #6364). Each
  * names the files, as {{files}}: a list of AI_ACTION_CODE_FILE, the first
  * few written out and the rest counted (moreFiles). {{count}} is how many
  * files it names.
@@ -424,6 +425,7 @@ export const AI_ACTION_PLURAL_LINES: {
   codeFilesReadInPart: PluralTemplate;
   codeFilesReadInEarlierAnswer: PluralTemplate;
   codeFilesReadEarlierInThisAnswer: PluralTemplate;
+  codeFilesPartNoLongerInHand: PluralTemplate;
   codeFilesNotChecked: PluralTemplate;
   codeFilesValuesHidden: PluralTemplate;
   moreFiles: PluralTemplate;
@@ -503,6 +505,20 @@ export const AI_ACTION_PLURAL_LINES: {
       "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.",
     ),
   },
+  /*
+   * Ask AI read every line of the version on the branch, in parts, and no
+   * longer has some of them (issue #6984): a part read in an earlier
+   * answer, or earlier in this answer and left out since. It writes those
+   * lines from memory - read, so never "read only part of".
+   */
+  codeFilesPartNoLongerInHand: {
+    one: translationKey(
+      "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.",
+    ),
+    other: translationKey(
+      "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.",
+    ),
+  },
   // The branch could not be read: never said to be unchanged.
   codeFilesNotChecked: {
     one: translationKey(
@@ -572,6 +588,7 @@ export const AI_ACTION_CODE_CHANGE_LINES: ReadonlyArray<string> = [
   AI_ACTION_PLURAL_LINES.codeFilesReadInPart.other,
   AI_ACTION_PLURAL_LINES.codeFilesReadInEarlierAnswer.other,
   AI_ACTION_PLURAL_LINES.codeFilesReadEarlierInThisAnswer.other,
+  AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand.other,
   AI_ACTION_PLURAL_LINES.codeFilesNotChecked.other,
   AI_ACTION_PLURAL_LINES.codeFilesValuesHidden.other,
 ];
