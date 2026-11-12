@@ -693,18 +693,23 @@ export default class OneUptimeDate {
    * configured timezone (falling back to the one the browser reports), and the
    * 12- vs 24-hour choice follows the operating system's clock preference
    * unless a caller overrides it.
+   *
+   * With `showYear`, the year too: "Mar 1, 2025, 14:30" - for a window whose
+   * ends are not both in this year (isWindowInTheCurrentYear).
    */
   public static getDateAsLocalShortDateTimeString(
     date: Date | string,
     options?: {
       use12HourFormat?: boolean | undefined;
       includeSeconds?: boolean | undefined;
+      showYear?: boolean | undefined;
     },
   ): string {
     date = this.fromString(date);
 
     const use12HourFormat: boolean =
       options?.use12HourFormat ?? this.getUserPrefers12HourFormat();
+    const showYear: boolean = Boolean(options?.showYear);
 
     let timeFormat: string = use12HourFormat ? "h:mm" : "HH:mm";
 
@@ -717,19 +722,25 @@ export default class OneUptimeDate {
     }
 
     const instant: Date = date;
+    const dateFormat: string = showYear ? "MMM D, YYYY" : "MMM D";
 
     return writeInDateDisplayLanguage(
       (): string => {
-        return this.inCurrentTimezone(instant).format(`MMM D, ${timeFormat}`);
+        return this.inCurrentTimezone(instant).format(
+          `${dateFormat}, ${timeFormat}`,
+        );
       },
       (language: string, locale: string): string | null => {
-        // "1. März, 14:30", "1 mars, 14:30", "3月1日 14:30".
+        /*
+         * "1. März, 14:30", "1 mars, 14:30", "3月1日 14:30"; with the year,
+         * "1. März 2025, 14:30", "1 mars 2025, 14:30", "2025年3月1日 14:30".
+         */
         return this.getLocalizedDateText({
           date: instant,
           language,
           locale,
           shape: {
-            hideYear: true,
+            hideYear: !showYear,
             use12HourFormat,
             showSeconds: Boolean(options?.includeSeconds),
           },
@@ -1027,6 +1038,30 @@ export default class OneUptimeDate {
     };
 
     return yearOf(a) === yearOf(b);
+  }
+
+  /**
+   * Whether both ends of a window fall in the current year, on the reader's
+   * calendar (the configured timezone, New Year included): a label of the
+   * window can then leave the year out, as the time range button does
+   * ("Mar 1, 14:30 – Mar 2, 09:00"). Otherwise it cannot: a custom range of
+   * exactly a year read "Nov 12, 9:49 AM – Nov 12, 9:49 AM", as if it were
+   * no time at all, and a range in an earlier year did not say which (issue
+   * #7124).
+   *
+   * "The current year" is the one `now` is in: now, unless a caller says.
+   */
+  public static isWindowInTheCurrentYear(data: {
+    start: Date | string;
+    end: Date | string;
+    now?: Date | undefined;
+  }): boolean {
+    const now: Date = data.now || this.getCurrentDate();
+
+    return (
+      this.isSameYearInTimezone(data.start, now) &&
+      this.isSameYearInTimezone(data.end, now)
+    );
   }
 
   /*

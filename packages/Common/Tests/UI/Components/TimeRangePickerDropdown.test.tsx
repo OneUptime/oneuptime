@@ -18,7 +18,14 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const PREFIX: string = "test-range-picker";
 const DROPDOWN_WIDTH_IN_PX: number = 288;
@@ -80,6 +87,18 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   OneUptimeDate.setUserTimezone(null);
+});
+
+/*
+ * The custom windows here are in 2024, and a window that is not all in the
+ * current year names its years on the button (issue #7124, see
+ * TimeRangeButtonYear.test.tsx). These tests are about everything else the
+ * label says, so "now" is pinned into 2024, where the label is the short one.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(OneUptimeDate, "getCurrentDate")
+    .mockReturnValue(new Date("2024-06-15T12:00:00.000Z"));
 });
 
 /*
