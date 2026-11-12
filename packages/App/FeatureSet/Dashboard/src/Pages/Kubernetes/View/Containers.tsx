@@ -170,6 +170,7 @@ const KubernetesClusterContainers: FunctionComponent<
           key: "restarts",
           description:
             KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.containerRestarts,
+          isCount: true,
         },
       ]}
       getViewRoute={(resource: KubernetesResource) => {

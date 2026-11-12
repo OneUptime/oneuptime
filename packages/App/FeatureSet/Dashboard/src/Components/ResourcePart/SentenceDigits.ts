@@ -1,8 +1,13 @@
 import {
+  ComposedValue,
   TemplateValues,
   Translator,
   composedValue,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  ReaderFigureOptions,
+  formatReaderFigure,
+} from "Common/Types/DateLanguage";
 
 /*
  * A count in one of a part's sentences, written the way the sentence's
@@ -35,4 +40,22 @@ export function withSentenceDigits(
   }
 
   return result;
+}
+
+/*
+ * A figure with decimals in one of a part's sentences - an uptime's
+ * "99.95" before the sentence's own "%" - in the sentence's language, as
+ * withSentenceDigits writes a whole number: "99.95" in English (a fallback
+ * included), "99,95" in German, "۹۹٫۹۵" in Persian (issue #7106).
+ */
+export function figureInSentence(
+  value: number,
+  options: Omit<ReaderFigureOptions, "language">,
+): ComposedValue {
+  return composedValue((sentence: Translator): string => {
+    return formatReaderFigure(value, {
+      ...options,
+      language: sentence.language,
+    });
+  });
 }

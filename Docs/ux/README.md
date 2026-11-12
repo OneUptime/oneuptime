@@ -407,8 +407,25 @@ work out, starts from a default for everything else, and folds what most people 
 ### Numbers, dates and plurals
 
 - **A count goes through the plural forms of the reader's language** (`translatePlural`), and a
-  second count beside it is written in the reader's digits too: "۵/۸" on a Persian page. Enforced by
-  [CountPairsInReadersDigitsGuard](../../packages/Common/Tests/UI/CountPairsInReadersDigitsGuard.test.ts).
+  second count beside it, joined by "/", " of " or ":", is written in the reader's digits too
+  (`translator.formatNumber`): "۵/۸" and "۳۹ از ۴۰" on a Persian page. Enforced by
+  [CountPairsInReadersDigitsGuard](../../packages/Common/Tests/UI/CountPairsInReadersDigitsGuard.test.ts),
+  whose list of " of " pairs still to write only shrinks.
+- **A figure on its own is written in the reader's digits, decimal sign and percent sign:** a tile's
+  "97.5%" is "۹۷٫۵٪" in Persian and "97,5 %" in German, with `formatReaderFigure` (toFixed's
+  decimals, English exactly as toFixed writes it) or `translator.formatNumber`; a figure inside a
+  sentence takes the sentence's language (`figureInSentence`, `withSentenceDigits`), and a count in
+  a list column is a count column (`isCount`). Arabic is written in Latin digits. A name, an id, a
+  port or a Kubernetes quantity ("500m") is drawn as written. Checked on the Host and Kubernetes
+  pages. Enforced by
+  [HostOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/HostOverviewFiguresInPersian.test.tsx)
+  and
+  [KubernetesOverviewFiguresInPersian](../../packages/Common/Tests/App/Dashboard/KubernetesOverviewFiguresInPersian.test.tsx).
+- **A negative number in a right-to-left sentence takes the language's own minus:** in Persian a
+  left-to-right mark and a minus sign (U+2212) before the digits, in Arabic the word
+  ([ARABIC.md](../../packages/App/FeatureSet/Dashboard/src/Locales/ARABIC.md)),
+  never a hyphen that a right-to-left line moves after the number. Enforced by
+  [NegativeNumbersInRightToLeftSentences](../../packages/Common/Tests/App/NegativeNumbersInRightToLeftSentences.test.ts).
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).

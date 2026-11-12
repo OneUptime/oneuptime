@@ -81,6 +81,7 @@ import {
   translatableTerm,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
 interface ServiceSample {
   time: Date;
@@ -724,7 +725,14 @@ const HostServiceView: FunctionComponent<
           description={HOST_METRIC_DESCRIPTIONS.serviceAvailability}
           icon={IconProp.ChartBar}
           iconColor="blue"
-          value={availability === null ? "—" : `${availability.toFixed(1)}%`}
+          value={
+            availability === null
+              ? "—"
+              : formatReaderFigure(availability, {
+                  decimals: 1,
+                  isPercent: true,
+                })
+          }
           sublabel={
             truncatedFrom
               ? translator.translatePlural(

@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#numbers-dates-and-plurals
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
@@ -5,7 +6,6 @@ import { setCodeApartInSentence } from "../../Types/CodeInSentence";
 import { getNumberLocale } from "../../Types/DateLanguage";
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
 import {
-  DrawnLine,
   drawLine,
   getDrawnText,
   isDrawnAsWritten,
@@ -198,9 +198,8 @@ const describeNegative: (negative: NegativeNumber) => string = (
   )}`;
 };
 
-const NEGATIVE_NUMBERS: Array<NegativeNumber> = RIGHT_TO_LEFT_SENTENCES.flatMap(
-  negativeNumbersIn,
-);
+const NEGATIVE_NUMBERS: Array<NegativeNumber> =
+  RIGHT_TO_LEFT_SENTENCES.flatMap(negativeNumbersIn);
 
 const dashboardValue: (language: string, key: string) => string = (
   language: string,
@@ -325,7 +324,10 @@ describe("the issue's sentences", () => {
     for (const key of ISSUE_SENTENCES) {
       const persian: string = dashboardValue("fa", key);
 
-      expect({ key, hyphenBeforeADigit: HYPHEN_BEFORE_A_DIGIT.test(persian) }).toEqual({
+      expect({
+        key,
+        hyphenBeforeADigit: HYPHEN_BEFORE_A_DIGIT.test(persian),
+      }).toEqual({
         key,
         hyphenBeforeADigit: false,
       });
@@ -350,9 +352,10 @@ describe("the issue's sentences", () => {
         key,
         hasMinusWord: true,
       });
-      expect({ key, hyphenBeforeADigit: HYPHEN_BEFORE_A_DIGIT_AT_A_WORD_START.test(arabic) }).toEqual(
-        { key, hyphenBeforeADigit: false },
-      );
+      expect({
+        key,
+        hyphenBeforeADigit: HYPHEN_BEFORE_A_DIGIT_AT_A_WORD_START.test(arabic),
+      }).toEqual({ key, hyphenBeforeADigit: false });
     }
   });
 
@@ -417,7 +420,10 @@ describe("the guard itself", () => {
       true,
     ]);
     expect(
-      drawnRight("ar", `ودون ${(-100).toLocaleString(getNumberLocale("ar"))} dBm`),
+      drawnRight(
+        "ar",
+        `ودون ${(-100).toLocaleString(getNumberLocale("ar"))} dBm`,
+      ),
     ).toEqual([true]);
     /*
      * A hyphen-minus before Latin digits is set apart by the page as code
@@ -427,9 +433,9 @@ describe("the guard itself", () => {
      */
     expect(drawnRight("ar", "ودون -100 dBm ضعيفة")).toEqual([true]);
     // In a line of code, as a log line names a time zone, it is drawn as written.
-    expect(drawnRight("ar", "[10/Oct/2023:13:55:36 -0700] GET /health")).toEqual(
-      [true],
-    );
+    expect(
+      drawnRight("ar", "[10/Oct/2023:13:55:36 -0700] GET /health"),
+    ).toEqual([true]);
   });
 
   test("the Persian rules catch a Persian number left with a hyphen-minus or a bare minus sign", () => {
@@ -440,9 +446,11 @@ describe("the guard itself", () => {
       sentenceOf("fa", `۸۷٪ باتری · ${MINUS_SIGN}۶۱ dBm`),
     );
 
-    expect(old.map((negative: NegativeNumber): string => {
-      return negative.sentence.text[negative.from] || "";
-    })).toEqual([HYPHEN_MINUS]);
+    expect(
+      old.map((negative: NegativeNumber): string => {
+        return negative.sentence.text[negative.from] || "";
+      }),
+    ).toEqual([HYPHEN_MINUS]);
     expect(bare[0]?.sentence.text[(bare[0]?.from ?? 0) - 1]).not.toBe(LRM);
   });
 });

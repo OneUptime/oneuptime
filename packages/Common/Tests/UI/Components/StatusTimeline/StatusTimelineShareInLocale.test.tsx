@@ -1,11 +1,5 @@
 import "@testing-library/jest-dom";
-import {
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  test,
-} from "@jest/globals";
+import { afterEach, beforeAll, describe, expect, test } from "@jest/globals";
 import { cleanup, render, screen } from "@testing-library/react";
 import { createInstance, i18n } from "i18next";
 import React from "react";
@@ -99,9 +93,9 @@ describe("formatStatusTimelineShare in the reader's language", () => {
     ["de", 0.5, "50\u{00A0}%"],
     ["ja", 0.9981, "99.81%"],
   ])("%s: %p reads %p", (language: string, share: number, text: string) => {
-    expect(formatStatusTimelineShare(share, dashboardTranslator(language))).toBe(
-      text,
-    );
+    expect(
+      formatStatusTimelineShare(share, dashboardTranslator(language)),
+    ).toBe(text);
   });
 
   test("Arabic keeps Latin digits by its own rule, with Intl's percent sign", () => {
@@ -151,9 +145,9 @@ describe("formatStatusTimelineShare in the reader's language", () => {
         formatStatusTimelineShare(0.00004, dashboardTranslator("fa")),
       ),
     ).toBe("کمتر از ۰٫۰۱٪");
-    expect(
-      formatStatusTimelineShare(0.00004, dashboardTranslator("de")),
-    ).toBe("<0,01\u{00A0}%");
+    expect(formatStatusTimelineShare(0.00004, dashboardTranslator("de"))).toBe(
+      "<0,01\u{00A0}%",
+    );
     expect(
       withoutIsolateMarks(
         formatStatusTimelineShare(0.00004, dashboardTranslator("ja")),

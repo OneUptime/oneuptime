@@ -381,7 +381,9 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             icon={IconProp.BarsArrowDown}
             iconColor="amber"
             value={
-              isLoading || !summary ? "—" : `${summary.overprovisionedCount}`
+              isLoading || !summary
+                ? "—"
+                : translator.formatNumber(summary.overprovisionedCount)
             }
             sublabel="containers asking for too much"
             description={
@@ -393,7 +395,9 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             icon={IconProp.BarsArrowUp}
             iconColor="violet"
             value={
-              isLoading || !summary ? "—" : `${summary.underprovisionedCount}`
+              isLoading || !summary
+                ? "—"
+                : translator.formatNumber(summary.underprovisionedCount)
             }
             sublabel="throttle or OOM risk"
             description={
@@ -404,7 +408,11 @@ const KubernetesRightSizingCard: FunctionComponent<ComponentProps> = (
             title="Analyzed"
             icon={IconProp.Cube}
             iconColor="slate"
-            value={isLoading || !summary ? "—" : `${summary.analyzedCount}`}
+            value={
+              isLoading || !summary
+                ? "—"
+                : translator.formatNumber(summary.analyzedCount)
+            }
             sublabel="containers with cost data"
             description={KUBERNETES_RIGHT_SIZING_METRIC_DESCRIPTIONS.analyzed}
           />

@@ -352,7 +352,10 @@ export const formatReaderFigure: (
   value: number,
   options: ReaderFigureOptions,
 ) => string = (value: number, options: ReaderFigureOptions): string => {
-  const decimals: number = Math.max(0, Math.min(20, Math.floor(options.decimals)));
+  const decimals: number = Math.max(
+    0,
+    Math.min(20, Math.floor(options.decimals)),
+  );
   const fixed: string = value.toFixed(decimals);
   const english: string = `${
     options.dropTrailingZeros ? Number(fixed).toString() : fixed

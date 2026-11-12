@@ -104,6 +104,7 @@ const KubernetesClusterDaemonSets: FunctionComponent<
           title: "Ready",
           key: "ready",
           description: KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetReady,
+          isCount: true,
         },
       ]}
       getViewRoute={(resource: KubernetesResource): Route => {
