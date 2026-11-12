@@ -20,6 +20,7 @@ import ObjectID from "../../Types/ObjectID";
 import Phone from "../../Types/Phone";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ChannelVerification, {
+  ChannelVerificationMessages,
   ChannelVerificationStatus,
 } from "../Utils/ChannelVerification";
 import TwilioAccountAvailability from "../Utils/TwilioAccountAvailability";
@@ -103,7 +104,9 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.isRoot && createBy.data.isVerified) {
-      throw new BadDataException("isVerified cannot be set to true");
+      throw new BadDataException(
+        "A notification method is verified with the code sent to it, so it cannot be created as verified. Leave isVerified out.",
+      );
     }
 
     // check if this project has SMS and Call mEnabled.
@@ -120,7 +123,9 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!project) {
-      throw new BadDataException("Project not found");
+      throw new BadDataException(
+        "The project this phone number was added to no longer exists. Add the number again in a project you are a member of.",
+      );
     }
 
     if (!project.enableCallNotifications) {
@@ -428,9 +433,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!item) {
-      throw new BadDataException(
-        "Item with ID " + itemId.toString() + " not found",
-      );
+      throw new BadDataException(ChannelVerificationMessages.notFound);
     }
 
     /*
@@ -444,7 +447,9 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (item.isVerified) {
-      throw new BadDataException("Phone Number already verified");
+      throw new BadDataException(
+        "This phone number is already verified. You can close this dialog.",
+      );
     }
 
     /*

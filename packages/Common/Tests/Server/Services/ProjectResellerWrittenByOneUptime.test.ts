@@ -521,7 +521,7 @@ describe("a project created from a reseller's promo code (the sign-up a reseller
         creator(),
       ),
     ).toBe(
-      "This promocode is assigned to a different user and cannot be used.",
+      "This promo code belongs to another account. Leave Promo Code empty to create the project without it.",
     );
     expect(save).not.toHaveBeenCalled();
   });

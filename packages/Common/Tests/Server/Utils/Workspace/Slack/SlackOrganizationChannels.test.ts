@@ -1539,7 +1539,7 @@ describe("sendMessage", () => {
     const lookup: SpyInstance<typeof SlackUtil.getWorkspaceChannelByName> =
       jest.spyOn(SlackUtil, "getWorkspaceChannelByName");
 
-    await SlackUtil.sendMessage({
+    const response: WorkspaceSendMessageResponse = await SlackUtil.sendMessage({
       workspaceMessagePayload: payload({
         channelNames: ["#general", "east-only", "north-only"],
         teamId: EAST.id,
@@ -1563,6 +1563,19 @@ describe("sendMessage", () => {
     ]);
     // North's channel is not the East rule's: not posted in.
     expect(postedIn()).toEqual(["C0EGEN", "C0EONLY"]);
+    // ...and said, as a channel the rule's workspace does not have (#7115).
+    expect(response.errors).toEqual([
+      {
+        channel: {
+          id: "",
+          name: "north-only",
+          workspaceType: WorkspaceType.Slack,
+          teamId: EAST.id,
+        },
+        error:
+          "The Slack channel #north-only was not found. If it is a private channel, invite OneUptime's bot to it in Slack.",
+      },
+    ]);
   });
 
   test("a rule's workspace OneUptime was removed from: nothing posted - not in another workspace either - and each channel's Notification Logs row says so plainly", async () => {

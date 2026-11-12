@@ -1,11 +1,18 @@
 /** @timezone UTC */
 import TimeRangePickerDropdown, {
   CUSTOM_RANGE_OPTION_LABEL,
+  TIME_RANGE_LABEL_SEPARATOR,
   TIME_RANGE_PRESET_OPTIONS,
   getTimeRangeButtonLabel,
+  renderTimeRangeDetail,
 } from "../../../UI/Components/Date/TimeRangePickerDropdown";
 import InBetween from "../../../Types/BaseDatabase/InBetween";
 import OneUptimeDate from "../../../Types/Date";
+import {
+  forgetRememberedDateTexts,
+  setDateDisplayLanguage,
+} from "../../../Types/DateLanguage";
+import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
 import Timezone from "../../../Types/Timezone";
@@ -18,7 +25,14 @@ import {
   within,
 } from "@testing-library/react";
 import React from "react";
-import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 
 const PREFIX: string = "test-range-picker";
 const DROPDOWN_WIDTH_IN_PX: number = 288;
@@ -80,6 +94,18 @@ afterEach(() => {
   cleanup();
   jest.restoreAllMocks();
   OneUptimeDate.setUserTimezone(null);
+});
+
+/*
+ * The custom windows here are in 2024, and a window that is not all in the
+ * current year names its years on the button (issue #7124, see
+ * TimeRangeButtonYear.test.tsx). These tests are about everything else the
+ * label says, so "now" is pinned into 2024, where the label is the short one.
+ */
+beforeEach(() => {
+  jest
+    .spyOn(OneUptimeDate, "getCurrentDate")
+    .mockReturnValue(new Date("2024-06-15T12:00:00.000Z"));
 });
 
 /*
@@ -673,5 +699,89 @@ describe("ranges anchored on the page", () => {
     expect(within(dropdown).getByText("Past 1 Hour")).toHaveClass(
       "text-indigo-700",
     );
+  });
+
+  /*
+   * The window under a moment's name is longer than the dropdown's line in
+   * Russian, Arabic, Korean or Chinese, whose dates are longer than English
+   * ones. Written as one run of text it broke wherever the line ran out, and
+   * left a time ("05:44"), an "AM" ("ص") or part of one ("午05:44") alone
+   * on the next line. It breaks between its two ends now, and nowhere else.
+   */
+  test("a window breaks between its two ends and nowhere else, and reads the same", () => {
+    renderWithMoments({
+      value: { range: TimeRange.CUSTOM, startAndEndDate: AROUND_START_WINDOW },
+      selectedId: "around-start",
+    });
+    openDropdown();
+
+    const detail: HTMLElement = screen.getByTestId(
+      `${PREFIX}-moment-around-start`,
+    ).lastElementChild as HTMLElement;
+    const ends: Array<Element> = Array.from(detail.children);
+
+    expect(detail.textContent).toBe("Nov 5, 05:14 – Nov 5, 06:14");
+    expect(
+      ends.map((end: Element): string | null => {
+        return end.textContent;
+      }),
+    ).toEqual(["Nov 5, 05:14 –", "Nov 5, 06:14"]);
+
+    for (const end of ends) {
+      expect(end).toHaveClass("whitespace-nowrap");
+    }
+  });
+
+  test("a window that is not two ends is written as it comes", () => {
+    for (const detail of ["Since the start", "a – b – c"]) {
+      render(<p data-testid="detail">{renderTimeRangeDetail(detail)}</p>);
+
+      expect(screen.getByTestId("detail").textContent).toBe(detail);
+      expect(screen.getByTestId("detail").children).toHaveLength(0);
+
+      cleanup();
+    }
+  });
+});
+
+/*
+ * A moment's window is a custom range's label (MetricInvestigationTimePicker
+ * writes it with getTimeRangeButtonLabel), so it splits into its two ends in
+ * every language the Dashboard is in: no language's date holds the dash that
+ * stands between them.
+ */
+describe("a custom range's label splits into its two ends in every language", () => {
+  const LAST_YEAR: RangeStartAndEndDateTime = {
+    range: TimeRange.CUSTOM,
+    startAndEndDate: new InBetween<Date>(
+      new Date("2023-11-04T05:44:00.000Z"),
+      new Date("2023-11-05T17:44:00.000Z"),
+    ),
+  };
+
+  afterEach(() => {
+    setDateDisplayLanguage(null);
+    forgetRememberedDateTexts();
+  });
+
+  test.each(["en", ...DASHBOARD_LANGUAGES])("%s", (language: string) => {
+    setDateDisplayLanguage(language);
+
+    for (const use12HourFormat of [true, false]) {
+      jest
+        .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+        .mockReturnValue(use12HourFormat);
+
+      const label: string = getTimeRangeButtonLabel(LAST_YEAR);
+
+      expect(label.split(TIME_RANGE_LABEL_SEPARATOR)).toHaveLength(2);
+
+      render(<p data-testid="detail">{renderTimeRangeDetail(label)}</p>);
+
+      expect(screen.getByTestId("detail").textContent).toBe(label);
+      expect(screen.getByTestId("detail").children).toHaveLength(2);
+
+      cleanup();
+    }
   });
 });

@@ -21,11 +21,19 @@ import CustomChannelEdition, {
   CUSTOM_CHANNEL_NOT_ACTIVE_MESSAGE,
 } from "../Utils/Notification/CustomChannelEdition";
 import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
+import {
+  getAnsweredFailureStatusMessage,
+  recordNotificationRequestAnswer,
+} from "../Utils/OnCall/OnCallSendFailure";
 
 // How a delivery to a custom channel went, in words fit for its sender.
 export interface CustomChannelDeliveryResult {
   ok: boolean;
-  // The HTTP status the channel's service answered with, when it answered.
+  /*
+   * The HTTP status the channel's service answered with, when it answered -
+   * or the platform's own, when it refused the send (a blocked project) or
+   * the Notification service answered with an error: the message says which.
+   */
   statusCode?: number | undefined;
   message: string;
 }
@@ -149,16 +157,33 @@ export class CustomNotificationChannelDeliveryService extends BaseService {
         },
       });
 
+    /*
+     * The Notification service answered with an error: the sender did not
+     * record how it went - it answers how it went otherwise, error or not -
+     * so the notification says so here (issue #7083), with the answer's own
+     * words, instead of Sending until the stuck check. Over Sending only
+     * (OnCallSendFailure). A test has no notification: its admin reads the
+     * words in the answer.
+     */
     if (response instanceof HTTPErrorResponse) {
       if (!data.isTest) {
         dispatch.end(NotificationDeliveryOutcome.Failure);
       }
 
+      if (data.userOnCallLogTimelineId && !data.isTest) {
+        await recordNotificationRequestAnswer({
+          userOnCallLogTimelineId: data.userOnCallLogTimelineId,
+          answer: response,
+        });
+      }
+
       return {
         ok: false,
-        message:
-          response.message ||
-          "Could not reach the Notification service to send this.",
+        statusCode: response.statusCode,
+        message: getAnsweredFailureStatusMessage({
+          statusCode: response.statusCode,
+          message: response.message,
+        }),
       };
     }
 

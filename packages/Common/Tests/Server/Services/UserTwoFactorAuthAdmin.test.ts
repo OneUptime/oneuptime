@@ -944,7 +944,9 @@ describe("UserService -- admin-controlled two factor auth", () => {
                   isRoot: caller === "root",
                 },
               }),
-            ).rejects.toThrow("enableTwoFactorAuth must be a boolean.");
+            ).rejects.toThrow(
+              "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
+            );
           },
         );
       },
@@ -961,7 +963,9 @@ describe("UserService -- admin-controlled two factor auth", () => {
           },
           props: { userId: userId },
         }),
-      ).rejects.toThrow("enableTwoFactorAuth must be a boolean.");
+      ).rejects.toThrow(
+        "Two-factor authentication is turned on or off with true or false (enableTwoFactorAuth).",
+      );
       expect(findBySpy).not.toHaveBeenCalled();
       expect(updateBySpy).not.toHaveBeenCalled();
       expect(revokeSessionsSpy).not.toHaveBeenCalled();

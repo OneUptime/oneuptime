@@ -208,8 +208,16 @@ const GoldenMetricTile: FunctionComponent<GoldenMetricTileProps> = (
           <Icon icon={props.icon} className={`h-3.5 w-3.5 ${colors.text}`} />
         </div>
       </div>
-      <div className="text-2xl font-semibold text-gray-900 leading-none">
-        {props.value}
+      {/*
+       * The figure set apart, so a size reads as the Details cards and the
+       * tables write theirs on a page read from the right: "۲۵ GiB", never
+       * "GiB ۲۵" (#7106). A percent or a count draws as before.
+       */}
+      <div
+        className="text-2xl font-semibold text-gray-900 leading-none"
+        data-testid="golden-metric-tile-value"
+      >
+        <bdi>{props.value}</bdi>
       </div>
       {sublabel ? (
         <div

@@ -29,6 +29,9 @@ import { EmailServerType } from "Common/Models/DatabaseModels/GlobalConfig";
 import Markdown, { MarkdownContentType } from "Common/Server/Types/Markdown";
 import EmailLogService from "Common/Server/Services/EmailLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import OnCallTimelineRows, {
+  UpdateOneByInput,
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import EmailPlainText from "Common/Server/Utils/Mail/EmailPlainText";
 import {
@@ -100,7 +103,10 @@ jest.mock("Common/Server/Services/EmailLogService", () => {
 });
 
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
-  return { __esModule: true, default: { updateOneById: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { findOneById: jest.fn(), updateOneBy: jest.fn() },
+  };
 });
 
 jest.mock("Common/Models/DatabaseModels/EmailLog", () => {
@@ -228,6 +234,12 @@ interface LoggedEmail {
 }
 
 /*
+ * The pages' on-call log rows, read and written over Sending only
+ * (recordSendResult). A test adds the row of the page it sends for.
+ */
+let timeline: OnCallTimelineRows;
+
+/*
  * The Email Log and the on-call timeline as the database layer writes their
  * rows: a status message longer than its column is refused
  * (DatabaseService.checkMaxLengthOfFields), and the row is not written.
@@ -250,9 +262,10 @@ function holdStatusMessagesToTheirColumns(): void {
     return createBy.data;
   }) as never);
   jest
-    .mocked(UserOnCallLogTimelineService.updateOneById)
-    .mockImplementation((async (updateBy: { data: LoggedEmail }) => {
-      write(updateBy.data);
+    .mocked(UserOnCallLogTimelineService.updateOneBy)
+    .mockImplementation((async (updateBy: UpdateOneByInput) => {
+      write(updateBy.data as LoggedEmail);
+      return timeline.update(updateBy);
     }) as never);
 }
 
@@ -418,6 +431,8 @@ beforeEach(() => {
   sendSendGridTo(sendGrid);
   sendMicrosoftGraphTo(graph);
   jest.mocked(SMTPOAuthService.getAccessToken).mockResolvedValue("token-123");
+  timeline = new OnCallTimelineRows();
+  timeline.standIn(UserOnCallLogTimelineService);
   holdStatusMessagesToTheirColumns();
 });
 
@@ -461,6 +476,7 @@ describe("SendGrid refuses an email for its images", () => {
     });
 
     const timelineId: ObjectID = ObjectID.generate();
+    timeline.add(timelineId, UserNotificationStatus.Sending);
 
     await MailService.send(await incidentWithScreenshot(), {
       projectId: ObjectID.generate(),
@@ -480,15 +496,15 @@ describe("SendGrid refuses an email for its images", () => {
         statusMessage: expected,
       }),
     ]);
-    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: timelineId,
+    expect(timeline.writes).toEqual([
+      {
+        id: timelineId.toString(),
         data: {
           status: UserNotificationStatus.Sent,
           statusMessage: expected,
         },
-      }),
-    );
+      },
+    ]);
   });
 
   test("OneUptime's own fault is logged as one: our attachments, refused", async () => {
@@ -915,6 +931,7 @@ describe("a long answer from the mail service", () => {
     });
 
     const timelineId: ObjectID = ObjectID.generate();
+    timeline.add(timelineId, UserNotificationStatus.Sending);
 
     await MailService.send(await incidentWithScreenshot(), {
       projectId: ObjectID.generate(),
@@ -943,16 +960,15 @@ describe("a long answer from the mail service", () => {
     expect(
       statusMessage.endsWith(`… ${EMAIL_DELIVERY_NOT_TRACKED_IN_SHORT}`),
     ).toBe(true);
-    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledTimes(1);
-    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: timelineId,
+    expect(timeline.writes).toEqual([
+      {
+        id: timelineId.toString(),
         data: {
           status: UserNotificationStatus.Sent,
           statusMessage: statusMessage,
         },
-      }),
-    );
+      },
+    ]);
   });
 
   test("refused with a long answer: the rows keep its start, and the error thrown keeps all of it", async () => {
@@ -963,6 +979,7 @@ describe("a long answer from the mail service", () => {
     });
 
     const timelineId: ObjectID = ObjectID.generate();
+    timeline.add(timelineId, UserNotificationStatus.Sending);
     const refusal: string = `SendGrid would not send this email (HTTP 403 Forbidden). The API key needs the Mail Send permission, and the From Email must be a sender verified in SendGrid. SendGrid said: ${LONG_REASON} (from)`;
 
     expect(refusal.length).toBeGreaterThan(MAX_EMAIL_STATUS_MESSAGE_LENGTH);
@@ -994,15 +1011,15 @@ describe("a long answer from the mail service", () => {
     );
     expect(statusMessage.endsWith("…")).toBe(true);
     expect(refusal.startsWith(statusMessage.slice(0, -1))).toBe(true);
-    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: timelineId,
+    expect(timeline.writes).toEqual([
+      {
+        id: timelineId.toString(),
         data: {
           status: UserNotificationStatus.Error,
           statusMessage: statusMessage,
         },
-      }),
-    );
+      },
+    ]);
   });
 });
 

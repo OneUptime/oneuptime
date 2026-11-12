@@ -42,6 +42,7 @@ import { WorkspaceSummaryTestChannel } from "../../../Types/Workspace/Notificati
 import WorkspaceNotificationActionType from "../../../Types/Workspace/WorkspaceNotificationActionType";
 import WorkspaceNotificationStatus from "../../../Types/Workspace/WorkspaceNotificationStatus";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import { WorkspaceSummaryNotSendableException } from "../../../Utils/Workspace/WorkspaceSummarySetup";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -81,6 +82,11 @@ const SUMMARY_NAME: string = "Daily incidents";
 
 // How a Notification Log names the summary.
 const SUMMARY_LABEL: string = `Incident summary "${SUMMARY_NAME}"`;
+
+// Why a summary cannot be sent, as a person reads it: what is missing, and where.
+const NO_CHANNELS: string = "The summary has no channel to post in.";
+const NO_ITEMS: string =
+  "The summary has no items picked under What to Include.";
 
 type Answer = HTTPResponse<JSONObject | JSONArray> | HTTPErrorResponse;
 
@@ -866,14 +872,19 @@ describe("a Slack summary", () => {
 
     const refusal: Error = await testRefusal();
 
+    /*
+     * The channel as the summary names it, and why in Slack's words: Slack
+     * says each channel it cannot find (#7115), the way Slack writes a
+     * channel - with its "#" - and that is said once.
+     */
     expect(refusal.message).toBe(
-      `The test summary was not posted in incidnets. ${SLACK_NOT_FOUND("incidnets")}`,
+      `The test summary was not posted in incidnets. ${SLACK_NOT_FOUND("#incidnets")}`,
     );
     expect(testChannelsOf(refusal)).toStrictEqual([
       {
         channelName: "incidnets",
         isPosted: false,
-        reason: SLACK_NOT_FOUND("incidnets"),
+        reason: SLACK_NOT_FOUND("#incidnets"),
       },
     ]);
     expect(slackPostedIn()).toEqual([]);
@@ -1102,10 +1113,12 @@ describe("a Slack summary", () => {
     const refusal: Error = await testRefusal();
 
     expect(refusal).toBeInstanceOf(BadDataException);
-    expect(refusal.message).toBe("No channel names configured for summary");
+    expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
+    expect(refusal.message).toBe(NO_CHANNELS);
     // No channel was tried: the Dashboard says this message alone.
     expect(refusal).not.toBeInstanceOf(WorkspaceSummaryTestNotPostedException);
     expect(calls).toEqual([]);
+    // A test is answered in its dialog: nothing in the Notification Logs.
     expect(logs).toEqual([]);
   });
 
@@ -1863,5 +1876,154 @@ describe("a Microsoft Teams summary", () => {
     );
     expect(logs[0]!.status).toBe(WorkspaceNotificationStatus.Success);
     expect(isLastSentMoved()).toBe(true);
+  });
+});
+
+/*
+ * #7116: a summary that cannot be sent as it is set up - no channel to post
+ * in, nothing to include - is not sent, and says why where the project
+ * looks: a scheduled send leaves one Error row in its Notification Logs, in
+ * no channel, and throws WorkspaceSummaryNotSendableException, which the
+ * report worker leaves alone (it does not try the summary again a minute
+ * later). No workspace is asked anything for it.
+ */
+describe("a summary that cannot be sent as it is set up", () => {
+  /*
+   * The Notification Log of a scheduled send of such a summary: a channel's
+   * failure without the channel, why it failed its status message - as a
+   * channel's reason is. It said "...: it cannot be sent as it is set up"
+   * before the reason, which then said it again.
+   */
+  function notSendableLog(reason: string): WorkspaceLogData {
+    return {
+      projectId: PROJECT_ID,
+      workspaceType: WorkspaceType.Slack,
+      actionType: WorkspaceNotificationActionType.SendMessage,
+      status: WorkspaceNotificationStatus.Error,
+      statusMessage: reason,
+      message: `Failed to send ${SUMMARY_LABEL}`,
+    };
+  }
+
+  test("REGRESSION: a scheduled send of one whose channel names are all blank - refused as one that cannot be sent, with one Error row saying why, and no workspace asked", async () => {
+    useSummary({
+      workspaceType: WorkspaceType.Slack,
+      channelNames: [" ", ""],
+    });
+
+    const refusal: unknown = await scheduledRefusal();
+
+    expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
+    expect(refusal).toBeInstanceOf(BadDataException);
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
+    expect(logs).toEqual([notSendableLog(NO_CHANNELS)]);
+    // In no channel, and sent by no one.
+    expect(logs[0]!.channelName).toBeUndefined();
+    expect(logs[0]!.userId).toBeUndefined();
+    expect(calls).toEqual([]);
+    expect(isLastSentMoved()).toBe(false);
+  });
+
+  test("a scheduled send of one with nothing to include: the same, saying so", async () => {
+    useSummary({
+      workspaceType: WorkspaceType.Slack,
+      channelNames: ["#ops"],
+    });
+    currentSummary!.summaryItems = [];
+
+    const refusal: unknown = await scheduledRefusal();
+
+    expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
+    expect((refusal as Error).message).toBe(NO_ITEMS);
+    expect(logs).toEqual([notSendableLog(NO_ITEMS)]);
+    expect(slackPostedIn()).toEqual([]);
+  });
+
+  test("a scheduled send of one with no project: refused as one that cannot be sent, with nowhere to log it", async () => {
+    useSummary({
+      workspaceType: WorkspaceType.Slack,
+      channelNames: ["#ops"],
+    });
+    delete currentSummary!.projectId;
+
+    const refusal: unknown = await scheduledRefusal();
+
+    expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
+    expect((refusal as Error).message).toBe("Summary project ID not found");
+    expect(logs).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  test("its Notification Log not written (the database): the send is still refused as one that cannot be sent, not as the database's failure", async () => {
+    useSummary({
+      workspaceType: WorkspaceType.Slack,
+      channelNames: [],
+    });
+    createWorkspaceLog.mockRejectedValueOnce(
+      new Error("connection terminated") as never,
+    );
+
+    const refusal: unknown = await scheduledRefusal();
+
+    expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
+    expect((refusal as Error).message).toBe(NO_CHANNELS);
+  });
+
+  test("Send Test Now of one with nothing to include: refused in the same words, and nothing logged - the dialog says it", async () => {
+    useSummary({
+      workspaceType: WorkspaceType.Slack,
+      channelNames: ["#ops"],
+    });
+    currentSummary!.summaryItems = [];
+
+    const refusal: Error = await testRefusal();
+
+    expect(refusal).toBeInstanceOf(WorkspaceSummaryNotSendableException);
+    expect(refusal.message).toBe(NO_ITEMS);
+    expect(logs).toEqual([]);
+    expect(calls).toEqual([]);
+  });
+
+  test("REGRESSION: channels saved as the text the dashboard's edit form sent are posted in by name - not letter by letter", async () => {
+    useSummary({
+      workspaceType: WorkspaceType.Slack,
+      channelNames: [],
+    });
+    currentSummary!.channelNames =
+      "#ops, engineering" as unknown as Array<string>;
+
+    await sendScheduled();
+
+    expect(slackPostedIn()).toEqual(["C0OPS", "C0ENGINEERING"]);
+    expect(
+      logs.map((log: WorkspaceLogData): string => {
+        return `${log.channelName} ${log.status}`;
+      }),
+    ).toEqual([
+      `#ops ${WorkspaceNotificationStatus.Success}`,
+      `engineering ${WorkspaceNotificationStatus.Success}`,
+    ]);
+    expect(isLastSentMoved()).toBe(true);
+  });
+
+  test("a summary that can be sent leaves no such row", async () => {
+    useSummary({
+      workspaceType: WorkspaceType.Slack,
+      channelNames: ["#ops"],
+    });
+
+    await sendScheduled();
+
+    expect(
+      logs.some((log: WorkspaceLogData): boolean => {
+        return log.message === notSendableLog(NO_CHANNELS).message;
+      }),
+    ).toBe(false);
+    // Its one row is its channel's.
+    expect(
+      logs.map((log: WorkspaceLogData): string | undefined => {
+        return log.channelName;
+      }),
+    ).toEqual(["#ops"]);
   });
 });
