@@ -176,11 +176,10 @@ jest.mock("../../../Server/EnvironmentConfig", () => {
 });
 
 import OpenTelemetryAPI from "@opentelemetry/api";
-import { logs } from "@opentelemetry/api-logs";
+import { logs, SeverityNumber } from "@opentelemetry/api-logs";
 import Telemetry from "../../../Server/Utils/Telemetry";
 import logger, { EXTERNAL_FAULT } from "../../../Server/Utils/Logger";
 import ConfigLogLevel from "../../../Server/Types/ConfigLogLevel";
-import { SeverityNumber } from "@opentelemetry/api-logs";
 import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
 import { NOTHING_EXPORTED_WITHOUT_A_HEADER } from "../../../Server/Utils/Telemetry/OtlpExporterHeaders";
 
