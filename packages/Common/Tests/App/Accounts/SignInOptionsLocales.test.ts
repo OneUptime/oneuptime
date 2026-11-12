@@ -443,10 +443,31 @@ describe("English Accounts says 'sign in', one way", () => {
   // "Login", "Log in", "log-in", "login to": the word for the action, not "Sign in".
   const OTHER_WORD_FOR_SIGNING_IN: RegExp = /\blog[\s-]?in\b/i;
 
+  /*
+   * Another screen's switch, quoted by its name: the edition badge's
+   * Community comparison, on the sign-in page since #6470, names the
+   * Dashboard's "Require SSO for Login" switch, which is not a word of
+   * Accounts' for signing in.
+   */
+  const QUOTED_SWITCHES_OF_OTHER_SCREENS: Array<string> = [
+    '"Require SSO for login"',
+  ];
+
+  const withoutQuotedSwitches: (value: string) => string = (
+    value: string,
+  ): string => {
+    return QUOTED_SWITCHES_OF_OTHER_SCREENS.reduce(
+      (text: string, quoted: string): string => {
+        return text.split(quoted).join("");
+      },
+      value,
+    );
+  };
+
   test("no English string calls signing in 'Login' or 'Log in'", () => {
     const offenders: Array<string> = strings(accounts("en"))
       .filter(([, value]: [string, string]): boolean => {
-        return OTHER_WORD_FOR_SIGNING_IN.test(value);
+        return OTHER_WORD_FOR_SIGNING_IN.test(withoutQuotedSwitches(value));
       })
       .map(([key, value]: [string, string]): string => {
         return `${key}: ${value}`;
@@ -462,6 +483,26 @@ describe("English Accounts says 'sign in', one way", () => {
     for (const sample of ["Sign in", "Logging", "blogin", "logins"]) {
       expect(OTHER_WORD_FOR_SIGNING_IN.test(sample)).toBe(false);
     }
+  });
+
+  test("only the quoted switch is set aside, not a login beside it (positive control)", () => {
+    const quoting: string = strings(accounts("en"))
+      .map(([, value]: [string, string]): string => {
+        return value;
+      })
+      .find((value: string): boolean => {
+        return value.includes(QUOTED_SWITCHES_OF_OTHER_SCREENS[0]!);
+      })!;
+
+    expect(quoting).toBeDefined();
+    expect(OTHER_WORD_FOR_SIGNING_IN.test(withoutQuotedSwitches(quoting))).toBe(
+      false,
+    );
+    expect(
+      OTHER_WORD_FOR_SIGNING_IN.test(
+        withoutQuotedSwitches(`${quoting} Login to continue.`),
+      ),
+    ).toBe(true);
   });
 
   test("the page's own buttons and the way back say what the options say", () => {

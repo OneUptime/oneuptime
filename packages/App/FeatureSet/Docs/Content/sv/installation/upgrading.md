@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Ta reda på din nuvarande version
 
-Öppna som huvudadministratör utgåvemärket i sidhuvudet i administratörspanelen: **This installation** visar versionen du kör. Instansen anger den också på `/version`:
+Öppna som huvudadministratör utgåvemärket i sidhuvudet i administratörspanelen: **Den här installationen** visar versionen du kör. Instansen anger den också på `/version`:
 
 ```bash
 curl http://localhost/version

@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Trouvez votre version actuelle
 
-En tant qu'administrateur principal, ouvrez l'étiquette d'édition dans l'en-tête du tableau de bord admin : **This installation** indique la version que vous exécutez. L'instance l'indique aussi sur `/version` :
+En tant qu'administrateur principal, ouvrez l'étiquette d'édition dans l'en-tête du tableau de bord admin : **Cette installation** indique la version que vous exécutez. L'instance l'indique aussi sur `/version` :
 
 ```bash
 curl http://localhost/version
