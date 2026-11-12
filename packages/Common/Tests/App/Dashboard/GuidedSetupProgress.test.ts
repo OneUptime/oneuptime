@@ -58,10 +58,7 @@ const failing: () => never = (): never => {
 const withStorage: (
   replacements: Partial<StorageMethods>,
   work: () => void,
-) => void = (
-  replacements: Partial<StorageMethods>,
-  work: () => void,
-): void => {
+) => void = (replacements: Partial<StorageMethods>, work: () => void): void => {
   if (replacements.getItem) {
     jest
       .spyOn(Storage.prototype, "getItem")

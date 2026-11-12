@@ -333,7 +333,8 @@ export const getMonitorAddress: (
  * the path and the query a check asks for. "acme.example" is
  * "https://acme.example/", and a host's capitals or a path's trailing slash
  * change nothing; http and https, www or not, another path or another query
- * are other checks. Null for text that is not a web address.
+ * are other checks. Null for text that is not a web address, or that names
+ * a user or password: the setup never checks one (parseWebsiteAddress).
  */
 export const getWebsiteAddressIdentity: (text: string) => string | null = (
   text: string,
@@ -354,7 +355,11 @@ export const getWebsiteAddressIdentity: (text: string) => string | null = (
     return null;
   }
 
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+  if (
+    (parsed.protocol !== "http:" && parsed.protocol !== "https:") ||
+    parsed.username ||
+    parsed.password
+  ) {
     return null;
   }
 
