@@ -10,6 +10,7 @@ import ProjectMilestoneService, {
   Service as ProjectMilestoneServiceClass,
 } from "../../Services/ProjectMilestoneService";
 import ProjectService from "../../Services/ProjectService";
+import WelcomeChecklistService from "../../Services/WelcomeChecklistService";
 import logger from "../Logger";
 import ProductAnalytics from "../ProductAnalytics";
 
@@ -20,6 +21,8 @@ import ProductAnalytics from "../ProductAnalytics";
  *     ProjectMilestoneService): the first time anybody in a project
  *     acknowledges a test page - the moment a project knows its pages
  *     reach a person;
+ *   - that this person acknowledged one (WelcomeChecklistService): their
+ *     own first hour on Home ends there (#6807);
  *   - `test_page/sent`: somebody sent a test page - to themselves, to a
  *     member, or a policy's test;
  *   - `test_page/acknowledged`: somebody acknowledged one, and by what.
@@ -84,6 +87,12 @@ export default class OnCallTestPageEvents {
         ProjectMilestoneService.reachInBackground({
           projectId: data.projectId,
           milestone: ActivationMilestone.FirstTestPageAcknowledged,
+        });
+
+        // And this person's own first hour on Home is done (#6807).
+        WelcomeChecklistService.noteTestPageAcknowledgedInBackground({
+          projectId: data.projectId,
+          userId: data.acknowledgedByUserId,
         });
       }
     } catch (err) {

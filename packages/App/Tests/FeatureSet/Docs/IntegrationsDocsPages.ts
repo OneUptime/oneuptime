@@ -786,11 +786,13 @@ export const OTHER_NAMES: Readonly<Record<string, ReadonlyArray<string>>> = {
 
 /*
  * Bold names no Dashboard locale has as a label, kept as written in every
- * language: the ⋯ menu, a symbol everywhere; what the OAuth 2.0 variable's
- * card says once a token is fetched, drawn in English; and a custom
- * field's name, which is code. (The grant type, Client Credentials, is a
- * label of the SMTP form's OAuth answers now, and reads the same in every
- * language: i18n/SameAsEnglish.json.)
+ * language: the ⋯ menu, a symbol everywhere, and a custom field's name,
+ * which is code. (The grant type, Client Credentials, is a label of the
+ * SMTP form's OAuth answers now, and reads the same in every language:
+ * i18n/SameAsEnglish.json. What the OAuth 2.0 variable's card says once a
+ * token is fetched, Access Token Fetched, was drawn in English and kept
+ * here until c29ecc007f5 (#6868) gave it a key worded in every locale: each
+ * language's page names it as its Dashboard draws it.)
  */
 export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
   {
@@ -800,7 +802,7 @@ export const KEPT_AS_WRITTEN: Readonly<Record<string, ReadonlyArray<string>>> =
      * worded in every language in f155e8e0998: the criteria form draws them
      * translated, so the page names them as drawn.)
      */
-    [DYNAMICS]: ["⋯", "Access Token Fetched", "`customFields.dynamicsCaseId`."],
+    [DYNAMICS]: ["⋯", "`customFields.dynamicsCaseId`."],
     /*
      * What the Security Events connection pages name that no Dashboard
      * locale words: the providers' titles and the checks a test reports,

@@ -120,7 +120,7 @@ Steget **Konfigurera** i skapandeguiden frågar efter upp till sju värden: varj
 
 **Så loggar mallarna in.** Guiden sparar klientorganisationen, klient-ID:t och hemligheten i en enda [OAuth 2.0-variabel](/docs/workflows/variables#oauth-20-variabler-token-som-förnyar-sig-själva), `dynamicsAccessToken`, under arbetsflödets **Arbetsflödesvariabler**: Client Credentials, token-URL:en `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, scopet `<environment URL>/.default` och klienthemligheten, som skickas i begärans innehåll och sparas krypterad. Varje anrop till Dynamics 365 skickar `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`. OneUptime hämtar token första gången ett steg behöver den, hämtar en ny innan den löper ut och ersätter den med `[REDACTED]` i körningsloggar och stegspår.
 
-För att kontrollera inloggningen innan något körs öppnar du **Arbetsflödesvariabler**, klickar på **Visa** vid `dynamicsAccessToken` och klickar på **Uppdatera nu**. **Access Token Fetched** betyder att appregistreringen är rätt. Annars säger felet från Microsoft Entra ID vad som är fel, t.ex. `AADSTS7000215: Invalid client secret provided`.
+För att kontrollera inloggningen innan något körs öppnar du **Arbetsflödesvariabler**, klickar på **Visa** vid `dynamicsAccessToken` och klickar på **Uppdatera nu**. **Åtkomsttoken hämtad** betyder att appregistreringen är rätt. Annars säger felet från Microsoft Entra ID vad som är fel, t.ex. `AADSTS7000215: Invalid client secret provided`.
 
 Varje arbetsflöde har sin egen kopia. När du byter ut klienthemligheten öppnar du `dynamicsAccessToken` i varje Dynamics 365-arbetsflöde och använder **Uppdatera inloggningsuppgifter**.
 

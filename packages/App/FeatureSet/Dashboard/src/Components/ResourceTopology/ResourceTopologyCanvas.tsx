@@ -36,7 +36,7 @@ import {
 import {
   FOCUS_REVEAL_PADDING_PX,
   isKeyboardFocus,
-} from "../Topology/FlowViewportGuard";
+} from "../Topology/FlowKeyboardFocus";
 import {
   ResourceTopologyGraph,
   ResourceTopologyNode,

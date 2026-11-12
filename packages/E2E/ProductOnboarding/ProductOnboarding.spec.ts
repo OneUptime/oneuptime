@@ -9,6 +9,7 @@ import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 import { boxesInOneFrame, FrameBox } from "../SuiteHelpers/Frames";
+import { cardBodyMisfits } from "../SuiteHelpers/CardBodyFit";
 import { sideMenuAtRest } from "../SuiteHelpers/SideMenuAtRest";
 
 /*
@@ -1366,6 +1367,17 @@ for (const width of [1280, 1024, 768, 390]) {
 
     expect(await attentionKinds(page)).toEqual(BUSY_ATTENTION_KINDS);
     expect(await overflowingOnTheOverview(page)).toEqual([]);
+    /*
+     * What each card holds starts under its title's first letter, with
+     * the card's own padding alone around it, as on every product's cards
+     * (#6555): Needs Attention, Recent Schema Changes, Databases.
+     */
+    await expect(needsAttention(page).getByTestId("card")).toHaveCount(1);
+    await expect
+      .poll(async (): Promise<Array<string>> => {
+        return cardBodyMisfits(page.getByTestId("card"));
+      }, `the Overview's cards at ${width}px`)
+      .toEqual([]);
     // Dismiss keeps to the end of the title's line, on a phone too.
     expect(
       await isOnOneLine(
@@ -1566,6 +1578,12 @@ test("in Persian, dark: right to left, what needs someone in Persian with its fa
   expect(Math.min(...channels)).toBeGreaterThan(180);
 
   expect(await overflowingOnTheOverview(page)).toEqual([]);
+  // Right to left, what each card holds starts under its title's first letter, at its right (#6555).
+  await expect
+    .poll(async (): Promise<Array<string>> => {
+      return cardBodyMisfits(page.getByTestId("card"));
+    }, "the Overview's cards in Persian")
+    .toEqual([]);
   await expectNoSidewaysScroll(page, {
     message: "a busy Data Observability Overview in Persian",
   });
@@ -1574,6 +1592,11 @@ test("in Persian, dark: right to left, what needs someone in Persian with its fa
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(needsAttention(page)).toBeVisible();
   expect(await overflowingOnTheOverview(page)).toEqual([]);
+  await expect
+    .poll(async (): Promise<Array<string>> => {
+      return cardBodyMisfits(page.getByTestId("card"));
+    }, "the Overview's cards in Persian at 390px")
+    .toEqual([]);
   await expectNoSidewaysScroll(page, {
     message: "a busy Data Observability Overview in Persian at 390px",
   });

@@ -10,6 +10,7 @@ import {
 import fs from "fs";
 import os from "os";
 import path from "path";
+import ts from "typescript";
 import type EnterpriseLoaderType from "../../Utils/EnterpriseLoader";
 import type {
   EnterpriseLoaderOptions,
@@ -1215,5 +1216,150 @@ describe("EnterpriseLoader worker jobs", () => {
       JobDictionary.getJobFunction("EnterpriseLicense:ReportUserCount"),
     ).toBe(handler);
     expect(EnterpriseLoader.registerMissingJobPlaceholders()).toEqual([]);
+  });
+});
+
+/*
+ * EnterpriseLoaderNodeBoot runs the loader under real node and ts-node and
+ * pins, with toEqual, the placeholders the boot registers for the
+ * DefaultExport fixture: every ENTERPRISE_OWNED_JOB_NAMES name the fixture
+ * does not register, in the loader's order. Nothing tied that list to the
+ * loader's, and the node boot suite is slow, so a new enterprise-owned job
+ * turned it red on main unseen: #6791 added AuditLog:EndSessionsThatRanOut
+ * to the loader and to this file but not there (#6884). This reads its list
+ * as text and holds it to what the loader registers for the same fixture,
+ * so the next name added fails here, in the fast suite, naming the file.
+ */
+const NODE_BOOT_TEST_FILE: string = path.join(
+  __dirname,
+  "EnterpriseLoaderNodeBoot.test.ts",
+);
+const NODE_BOOT_TEST_NAME: string = path
+  .relative(REPOSITORY_ROOT, NODE_BOOT_TEST_FILE)
+  .split(path.sep)
+  .join("/");
+
+interface PlaceholderList {
+  names: Array<string>;
+  // Elements that are not a plain string, which the reading cannot follow.
+  unread: Array<string>;
+}
+
+// Every `placeholders: [...]` list a source writes, in order.
+const placeholderListsIn: (
+  fileName: string,
+  source: string,
+) => Array<PlaceholderList> = (
+  fileName: string,
+  source: string,
+): Array<PlaceholderList> => {
+  const sourceFile: ts.SourceFile = ts.createSourceFile(
+    fileName,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
+  );
+  const lists: Array<PlaceholderList> = [];
+
+  const visit: (node: ts.Node) => void = (node: ts.Node): void => {
+    if (
+      ts.isPropertyAssignment(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === "placeholders" &&
+      ts.isArrayLiteralExpression(node.initializer)
+    ) {
+      const list: PlaceholderList = { names: [], unread: [] };
+
+      for (const element of node.initializer.elements) {
+        if (ts.isStringLiteral(element)) {
+          list.names.push(element.text);
+        } else {
+          list.unread.push(element.getText(sourceFile));
+        }
+      }
+
+      lists.push(list);
+    }
+
+    ts.forEachChild(node, visit);
+  };
+
+  visit(sourceFile);
+
+  return lists;
+};
+
+describe("the node boot suite's placeholders follow the loader's list", () => {
+  test("the reading finds each list, by name, with its comments left out", () => {
+    expect(
+      placeholderListsIn(
+        "Sample.ts",
+        [
+          "const a = { placeholders: [",
+          "  // A comment between the names.",
+          '  "First:Job",',
+          '  "Second:Job",',
+          "] };",
+          'const b = { other: ["Not:Read"], placeholders: [NAME, "Third:Job"] };',
+        ].join("\n"),
+      ),
+    ).toEqual([
+      { names: ["First:Job", "Second:Job"], unread: [] },
+      { names: ["Third:Job"], unread: ["NAME"] },
+    ]);
+  });
+
+  test("EnterpriseLoaderNodeBoot.test.ts expects one list of placeholders, every name written out", () => {
+    const lists: Array<PlaceholderList> = placeholderListsIn(
+      NODE_BOOT_TEST_FILE,
+      fs.readFileSync(NODE_BOOT_TEST_FILE, "utf8"),
+    );
+
+    expect(lists).toHaveLength(1);
+    expect(lists[0]!.unread).toEqual([]);
+    expect(lists[0]!.names.length).toBeGreaterThan(10);
+  });
+
+  test("its list is every enterprise-owned job the DefaultExport fixture leaves to a placeholder, in the loader's order", async () => {
+    const { EnterpriseLoader, JobDictionary, loaderModule } = await loadFresh();
+
+    await EnterpriseLoader.load(
+      baseOptions({ enterpriseDirectory: fixture("DefaultExport") }),
+    );
+
+    // The placeholders the loader registered: the names the fixture left out.
+    const placeholders: Array<string> =
+      await EnterpriseLoader.registerWorkerJobs();
+    const ownedNames: Array<string> = [
+      ...loaderModule.ENTERPRISE_OWNED_JOB_NAMES,
+    ];
+    const registeredByFixture: Array<string> = ownedNames.filter(
+      (name: string): boolean => {
+        return !placeholders.includes(name);
+      },
+    );
+
+    // Both halves are real: the fixture registers some names itself.
+    expect(registeredByFixture.length).toBeGreaterThan(0);
+    expect(placeholders.length).toBeGreaterThan(0);
+
+    for (const name of ownedNames) {
+      expect(JobDictionary.has(name)).toBe(true);
+    }
+
+    const listed: Array<string> = placeholderListsIn(
+      NODE_BOOT_TEST_FILE,
+      fs.readFileSync(NODE_BOOT_TEST_FILE, "utf8"),
+    )[0]!.names;
+
+    /*
+     * A name added to ENTERPRISE_OWNED_JOB_NAMES goes into the node boot
+     * test's placeholders too, where the loader's order puts it.
+     */
+    expect({ file: NODE_BOOT_TEST_NAME, placeholders: listed }).toEqual({
+      file: NODE_BOOT_TEST_NAME,
+      placeholders: placeholders,
+    });
   });
 });

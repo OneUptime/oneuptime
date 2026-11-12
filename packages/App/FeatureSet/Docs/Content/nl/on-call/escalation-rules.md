@@ -164,6 +164,8 @@ Een oproep die niet wordt verstuurd, zegt waarom in de **Bereikbaarheidslogboeke
 
 De eigenaren van het project krijgen daar één keer een e-mail over, totdat het saldo is aangevuld of het kanaal weer aan staat.
 
+Een oproep die de meldingsdienst van OneUptime niet kon bereiken, zegt `Could not reach the Notification service to send this (ECONNREFUSED).`, met de code van de netwerkfout tussen de haakjes. Een oproep waarvan het verzenden nooit klaar was, bijvoorbeeld omdat een server tijdens het verzenden opnieuw opstartte, zegt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Als het verzenden toch nog klaar is, vervangt het resultaat dat bericht.
+
 Op OneUptime Cloud wordt elke SMS, oproep, WhatsApp- en Telegram-bericht betaald uit het saldo van het project op **Projectinstellingen > Meldingen > Meldingsinstellingen**: de exacte kosten gaan van het saldo af wanneer de provider het bericht aanneemt, hoeveel berichten er ook tegelijk uitgaan.
 
 - Staat **Automatisch bijvullen** daar aan, dan voegt het bericht dat het saldo onder de drempel aantreft eerst het bedrag toe waarop automatisch bijvullen is ingesteld, en belast daarvoor de kaart van het project; berichten die het saldo op hetzelfde moment laag aantreffen, belasten de kaart één keer.

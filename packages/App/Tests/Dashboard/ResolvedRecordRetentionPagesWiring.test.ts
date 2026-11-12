@@ -1,6 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * The wiring of the Data Retention pages (issue #6903) - Incidents ->
@@ -36,10 +37,6 @@ function dense(relative: string): string {
     .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/\/\/.*$/gm, " ")
     .replace(/\s+/g, "");
-}
-
-function escape(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 interface Product {
@@ -119,7 +116,7 @@ describe.each(PRODUCTS)(
       );
       expect(routes).toMatch(
         new RegExp(
-          escape(
+          escapeRegExp(
             `<PageRoutepath={${product.routePath}[PageMap.${product.pageKey}]||""}element={<${product.pageImportName}{...props}pageRoute={RouteMap[PageMap.${product.pageKey}]asRoute}/>}/>`,
           ),
         ),

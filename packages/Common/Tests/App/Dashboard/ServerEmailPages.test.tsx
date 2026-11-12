@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock, SpyInstance } from "jest-mock";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import InvitationLinkModal, {
@@ -43,6 +44,14 @@ import ObjectID from "../../../Types/ObjectID";
  *     link for someone new, the sign-in page for someone with an account,
  *     and a way on when the link cannot be read.
  */
+
+/*
+ * A spy on API.fetch: its parameters and answer, without the type parameter
+ * a spy's type cannot carry.
+ */
+type FetchSpy = SpyInstance<
+  (...args: Parameters<typeof API.fetch>) => ReturnType<typeof API.fetch>
+>;
 
 const ON_CALL_STEP: {
   description: string;
@@ -127,7 +136,7 @@ describe("the invitation link a master admin is handed", () => {
     "68250000-0000-4000-8000-0000000000c1",
   );
 
-  let fetch: jest.SpyInstance;
+  let fetch: FetchSpy;
 
   function answerWith(data: JSONObject | HTTPErrorResponse | Error): void {
     fetch = jest
@@ -259,7 +268,7 @@ describe("the invitation link a master admin is handed", () => {
   test("a link that cannot be read: the invitation stands, and the way on is said", async () => {
     answerWith(new HTTPErrorResponse(500, { message: "Server Error" }, {}));
 
-    const onClose: jest.Mock = jest.fn();
+    const onClose: Mock<() => void> = jest.fn<() => void>();
 
     await act(async () => {
       render(

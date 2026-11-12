@@ -164,6 +164,8 @@ Un avviso non inviato indica il motivo nei **Registri di reperibilità** della p
 
 I proprietari del progetto ricevono un'email una volta, finché il saldo non viene ricaricato o il canale non viene riattivato.
 
+Un avviso che non ha potuto raggiungere il servizio di notifica di OneUptime dice `Could not reach the Notification service to send this (ECONNREFUSED).`, con il codice dell'errore di rete tra le parentesi. Un avviso il cui invio non è mai terminato, per esempio perché un server si è riavviato durante l'invio, dice `Sending did not finish within 15 minutes, so this notification may not have been sent.` Se l'invio termina comunque, il suo risultato sostituisce quel messaggio.
+
 Su OneUptime Cloud ogni SMS, chiamata, messaggio WhatsApp e Telegram viene pagato con il saldo del progetto in **Impostazioni del progetto > Notifiche > Impostazioni notifiche**: il suo costo esatto viene scalato dal saldo quando il fornitore lo accetta, indipendentemente da quanti messaggi partono insieme.
 
 - Con la **Ricarica automatica** attiva lì, il messaggio che trova il saldo sotto la soglia aggiunge prima l'importo impostato per la ricarica automatica, addebitandolo sulla carta del progetto; i messaggi che lo trovano basso nello stesso momento addebitano la carta una sola volta.

@@ -76,7 +76,7 @@ Al aceptar entra en el proyecto al instante, con los permisos de su equipo y la 
 | --- | --- |
 | **Usuario** | Su nombre y su dirección de correo. |
 | **Equipos** | Cada equipo del proyecto del que forma parte, o al que está invitada. |
-| **Estado** | **Miembro** una vez que se unió, con el número de invitaciones a otros equipos que aún no aceptó. **Invitación enviada** hasta entonces. |
+| **Estado** | **Miembro** una vez que se unió, con el número de invitaciones a otros equipos que aún no aceptó. **Invitación enviada** hasta entonces. En un servidor autoalojado que aún no puede enviar correos electrónicos, **Invitado** en su lugar: la invitación se crea, pero no se envía ningún correo. |
 
 Filtre la lista por **Usuario**, **Estado** o **Equipo**. Haga clic en una fila para abrir la página de la persona:
 

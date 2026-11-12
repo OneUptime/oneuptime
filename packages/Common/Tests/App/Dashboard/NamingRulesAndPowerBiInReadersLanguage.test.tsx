@@ -43,7 +43,10 @@ import TableDashboards from "../../../../App/FeatureSet/Dashboard/src/Components
 import { DataObservabilityTableDashboard } from "../../../Types/DataObservability/DataObservabilityApiTypes";
 import { DataBiRefreshStatus } from "../../../Types/DataObservability/DataDashboardActivity";
 import ObjectID from "../../../Types/ObjectID";
-import { LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../../UI/Utils/LineDirection";
 import {
   DeviceNamingApplyResult,
   DeviceNamingOutcome,
@@ -1039,9 +1042,31 @@ describe.each(["ar", "fa"])("the naming rules, in %s", (language: string) => {
 
   /*
    * A device's name, on a line of its own: an English one reads its own
-   * way and lines up with the page's lines at their end, where dir="auto"
-   * had it read its own way and line up on the left (#6686 review).
+   * way, where dir="auto" had it read its own way and line up on the left
+   * (#6686 review). The name breaks anywhere (break-all), so a long one
+   * wraps onto more lines, and since #6849 a line that wraps is as wide as
+   * its words, up to its holder (CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME):
+   * a short name starts where the page's lines do, and each line of a long
+   * one runs from its own start. Aligned to its end (text-end), as a line
+   * that never wraps is, a long name's wrapped lines lined up on the right,
+   * ragged on the left where they start (#6900).
    */
+  const expectsWrappedNameReadingItsOwnWay: (name: HTMLElement) => void = (
+    name: HTMLElement,
+  ): void => {
+    const classes: Array<string> = name.className.split(" ");
+
+    expect(name).toHaveAttribute("dir", "ltr");
+    expect(classes).toEqual(
+      expect.arrayContaining([
+        "block",
+        "break-all",
+        ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+      ]),
+    );
+    expect(classes).not.toContain(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+  };
+
   test("the names of devices that need attention, and of those left alone, read their own way", async () => {
     planMock.mockResolvedValue({
       ...PLAN,
@@ -1071,10 +1096,7 @@ describe.each(["ar", "fa"])("the naming rules, in %s", (language: string) => {
       within(attention).getByText("Drive-thru board 3");
 
     expect(attentionName.tagName).toBe("SPAN");
-    expect(attentionName).toHaveAttribute("dir", "ltr");
-    expect(attentionName.className.split(" ")).toEqual(
-      expect.arrayContaining(["block", LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME]),
-    );
+    expectsWrappedNameReadingItsOwnWay(attentionName);
     expect(attention.querySelectorAll("[dir=auto]").length).toBe(0);
 
     await act(async () => {
@@ -1086,10 +1108,7 @@ describe.each(["ar", "fa"])("the naming rules, in %s", (language: string) => {
     );
     const skippedName: HTMLElement = within(skipped).getByText("dmb-5");
 
-    expect(skippedName).toHaveAttribute("dir", "ltr");
-    expect(skippedName.className.split(" ")).toContain(
-      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
-    );
+    expectsWrappedNameReadingItsOwnWay(skippedName);
     expect(skipped.querySelectorAll("[dir=auto]").length).toBe(0);
   });
 });

@@ -90,7 +90,7 @@ Più in basso, dall'alto verso il basso:
 
 - **ID**, **Input** e **Outputs**, uno accanto all'altro: l'identificatore del blocco, da dove lo si raggiunge e cosa viene eseguito dopo di lui.
 - **Returns** — i dati che questo blocco passa ai passaggi successivi. Ogni valore mostra il riferimento esatto che lo legge, con un pulsante per copiarlo.
-- **How to use** — cosa fa il blocco in una frase, i passaggi per configurarlo, un esempio da copiare e gli errori più comuni. L'esempio è costruito dal tuo workflow: usa l'ID di questo blocco, e i valori del trigger dove inserisce dati in un messaggio. **Learn more** apre la spiegazione più lunga, e i link portano alla guida completa. Ogni blocco ne ha una, e il pulsante **How to use** in cima alla finestra ci salta direttamente.
+- **How to use** — cosa fa il blocco in una frase, i passaggi per configurarlo, un esempio da copiare e gli errori più comuni. L'esempio è costruito dal tuo workflow: usa l'ID di questo blocco, e i valori del trigger dove inserisce dati in un messaggio. **Scopri di più** apre la spiegazione più lunga, e i link portano alla guida completa. Ogni blocco ne ha una, e il pulsante **How to use** in cima alla finestra ci salta direttamente.
 
 Il piè di pagina contiene:
 

@@ -783,7 +783,7 @@ describe("who a policy's first level pages right now", () => {
 
     expect(
       level.targets.map(
-        (target: { userId: ObjectID; reachedThrough?: string }) => {
+        (target: { userId: ObjectID; reachedThrough?: string | undefined }) => {
           return [target.userId.toString(), target.reachedThrough];
         },
       ),

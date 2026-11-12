@@ -1,4 +1,5 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
+import { cardBodyMisfits } from "./CardBodyFit";
 import {
   DrawnBox,
   DrawnBoxes,
@@ -506,5 +507,191 @@ test.describe("recordDrawnBoxes", () => {
     );
 
     expect(failure).toContain("nothing is recording");
+  });
+});
+
+/*
+ * A card as Common's Card draws it: its frame, its padding (24px, the card's
+ * own), its header with the title, and its body under the header, holding
+ * `body`. `direction` is the page's reading direction.
+ */
+function cardPage(
+  cards: Array<{ title: string | null; body: string }>,
+  direction: "ltr" | "rtl" = "ltr",
+): string {
+  return `<!doctype html>
+<html dir="${direction}"><head><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;font:14px/20px sans-serif">
+${cards
+  .map((card: { title: string | null; body: string }): string => {
+    return `<div data-testid="card" style="margin:16px">
+  <div style="border:1px solid #e5e7eb;border-radius:12px;background:#fff">
+    <div style="padding:24px">
+      ${
+        card.title === null
+          ? ""
+          : `<div data-testid="card-header"><div><h2 style="margin:0;font-size:16px">${card.title}</h2><p style="margin:0">What the card is for.</p></div></div>`
+      }
+      <div style="margin-top:16px">${card.body}</div>
+    </div>
+  </div>
+</div>`;
+  })
+  .join("\n")}
+</body></html>`;
+}
+
+test.describe("cardBodyMisfits", () => {
+  test("a card whose body is flush with its padding, under its title, has none", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Data",
+          body: `<dl style="margin:0">About</dl><p style="margin:8px 0 0">And 3 more.</p>`,
+        },
+        {
+          title: "Lineage",
+          body: `<div data-testid="alert-lineage-diagram"><div style="height:200px;background:#f9fafb">drawing</div></div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
+  });
+
+  test("a body that pads the card again is named, with each side's padding, and how far from the title it starts", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Lineage",
+          body: `<div data-testid="alert-lineage-diagram" style="padding:0 24px 24px">drawing</div>`,
+        },
+        {
+          title: "Needs Attention",
+          body: `<ul style="margin:0;padding:0 16px 8px">One row</ul>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      'Lineage: <div data-testid="alert-lineage-diagram"> pads the card again (left 24px, right 24px, bottom 24px)',
+      "Lineage: what it holds starts 24px from its title",
+      "Needs Attention: <ul> pads the card again (left 16px, right 16px, bottom 8px)",
+      "Needs Attention: what it holds starts 16px from its title",
+    ]);
+  });
+
+  test("padding on one side only is named too, and the room under the header is not padding", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        { title: "Right", body: `<div style="padding-right:12px">x</div>` },
+        { title: "Bottom", body: `<div style="padding-bottom:6px">x</div>` },
+        { title: "Top", body: `<div style="padding-top:16px">x</div>` },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Right: <div> pads the card again (left 0px, right 12px, bottom 0px)",
+      "Bottom: <div> pads the card again (left 0px, right 0px, bottom 6px)",
+    ]);
+  });
+
+  test("an element that draws a box of its own pads its own content: its box is what lines up", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Notice",
+          body: `<p style="margin:0;padding:12px;background:#fefce8">The warehouse could not be read.</p>`,
+        },
+        {
+          title: "Framed",
+          body: `<div style="padding:16px;border:1px solid #e5e7eb">A box</div>`,
+        },
+        {
+          title: "Ringed",
+          body: `<div style="padding:16px;box-shadow:0 0 0 1px #e5e7eb">A ring</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
+  });
+
+  test("a box set in from the title is named, though its padding is its own", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        {
+          title: "Notice",
+          body: `<p style="margin:0 0 0 24px;padding:12px;background:#fefce8">Set in</p>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "Notice: what it holds starts 24px from its title",
+    ]);
+  });
+
+  test("right to left, what a card holds starts at its title's right edge", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage(
+        [
+          { title: "داده", body: `<dl style="margin:0">درباره</dl>` },
+          {
+            title: "تبار",
+            body: `<div style="padding-inline-start:24px">نقشه</div>`,
+          },
+        ],
+        "rtl",
+      ),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([
+      "تبار: <div> pads the card again (left 0px, right 24px, bottom 0px)",
+      "تبار: what it holds starts 24px from its title",
+    ]);
+  });
+
+  test("a card without a header, an empty body and a hidden element are not read", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setContent(
+      cardPage([
+        { title: null, body: `<div style="padding:24px">No title</div>` },
+        { title: "Empty", body: `` },
+        {
+          title: "Hidden",
+          body: `<div style="display:none;padding:24px">Hidden</div><div>Shown</div>`,
+        },
+      ]),
+    );
+
+    expect(await cardBodyMisfits(page.getByTestId("card"))).toEqual([]);
   });
 });

@@ -248,6 +248,13 @@ export interface DataAlertLineageAnswer {
    * that column followed. Null for any other alert.
    */
   column: string | null;
+  /*
+   * Whether the alert itself was open - in a state that is not resolved -
+   * when its drawing was read: then it is one of the open alerts its own
+   * table's card counts. Said only when that card counts any; left out
+   * when not known.
+   */
+  isAlertOpen?: boolean | undefined;
 }
 
 export function getLineageTableNodeId(dataAssetId: string): string {

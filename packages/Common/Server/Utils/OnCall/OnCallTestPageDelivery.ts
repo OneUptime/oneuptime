@@ -83,6 +83,10 @@ import PushNotificationUtil from "../PushNotificationUtil";
 import ProductBrandingText from "../ProductBrandingText";
 import CaptureSpan from "../Telemetry/CaptureSpan";
 import OnCallPageLinks from "./OnCallPageLinks";
+import {
+  whenNotificationRequestFails,
+  whenSendFails,
+} from "./OnCallSendFailure";
 
 /*
  * A TEST PAGE'S MESSAGES, FOR ONE RULE (OnCallTestPage).
@@ -99,7 +103,10 @@ import OnCallPageLinks from "./OnCallPageLinks";
  * Each message is a row of the person's on-call timeline, as every page's
  * is: "Sending", then what its sender says - sent, or why not - so the
  * test's result reads what happened to each one. A method that is not
- * verified gets the row a real page writes for it, with the same words.
+ * verified gets the row a real page writes for it, with the same words. A
+ * send that fails is handed to the handler of its kind, as every page's
+ * is (OnCallSendFailure): Error over Sending only, and nothing at all for
+ * a request to the Notification service that got no answer.
  *
  * Returns whether anything was handed to a sender.
  */
@@ -181,7 +188,12 @@ export default class OnCallTestPageDelivery {
             projectId: options.projectId,
             ...sendIds,
           },
-        ).catch(this.onSendError(row.id!, "Error sending email."));
+        ).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: "Error sending email.",
+          }),
+        );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -222,7 +234,12 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(this.onSendError(row.id!, "Error sending SMS."));
+        ).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: "Error sending SMS.",
+          }),
+        );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -257,7 +274,12 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(this.onSendError(row.id!, "Error sending WhatsApp message."));
+        ).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: "Error sending WhatsApp message.",
+          }),
+        );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -294,7 +316,12 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(this.onSendError(row.id!, "Error sending Telegram message."));
+        ).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: "Error sending Telegram message.",
+          }),
+        );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -390,7 +417,10 @@ export default class OnCallTestPageDelivery {
         teamId: options.userBelongsToTeamId,
         onCallScheduleId: options.onCallScheduleId,
       }).catch(
-        this.onSendError(row.id!, `Error sending ${displayName} message.`),
+        whenSendFails({
+          userOnCallLogTimelineId: row.id!,
+          fallbackStatusMessage: `Error sending ${displayName} message.`,
+        }),
       );
     }
 
@@ -425,7 +455,12 @@ export default class OnCallTestPageDelivery {
           userOnCallLogTimelineId: row.id!,
           ...sendIds,
         },
-      ).catch(this.onSendError(row.id!, "Error sending webhook."));
+      ).catch(
+        whenNotificationRequestFails({
+          userOnCallLogTimelineId: row.id!,
+          fallbackStatusMessage: "Error sending webhook.",
+        }),
+      );
     }
 
     // CALL.
@@ -457,7 +492,12 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(this.onSendError(row.id!, "Error making call."));
+        ).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: "Error making call.",
+          }),
+        );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -514,7 +554,12 @@ export default class OnCallTestPageDelivery {
           }),
           projectId: options.projectId,
           userOnCallLogTimelineId: row.id!,
-        }).catch(this.onSendError(row.id!, `Error sending to ${channelName}.`));
+        }).catch(
+          whenNotificationRequestFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: `Error sending to ${channelName}.`,
+          }),
+        );
       } else if (rule.customNotificationChannel) {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -570,7 +615,12 @@ export default class OnCallTestPageDelivery {
             userOnCallLogTimelineId: row.id!,
             ...sendIds,
           },
-        ).catch(this.onSendError(row.id!, "Error sending push notification."));
+        ).catch(
+          whenSendFails({
+            userOnCallLogTimelineId: row.id!,
+            fallbackStatusMessage: "Error sending push notification.",
+          }),
+        );
       } else {
         await this.writeErrorRow({
           row: data.newTimelineRow(),
@@ -1007,28 +1057,6 @@ export default class OnCallTestPageDelivery {
         isRoot: true,
       },
     });
-  }
-
-  /*
-   * A send that failed before its sender could say so: its row says why,
-   * as every page's does.
-   */
-  private static onSendError(
-    timelineId: ObjectID,
-    fallbackMessage: string,
-  ): (err: Error) => Promise<void> {
-    return async (err: Error): Promise<void> => {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: timelineId,
-        data: {
-          status: UserNotificationStatus.Error,
-          statusMessage: err?.message || fallbackMessage,
-        },
-        props: {
-          isRoot: true,
-        },
-      });
-    };
   }
 }
 

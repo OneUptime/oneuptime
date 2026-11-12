@@ -274,6 +274,16 @@ function mockPage(): void {
       statusPageGroups: [],
       statusPage: statusPage,
       monitorsOnStatusPage: [MONITOR, GROUP_MONITOR, UNRECORDED_MONITOR],
+      /*
+       * The monitors the page shows a history or an uptime for: every one
+       * here. The uptime endpoint does not read it; it reads each
+       * resource's own switches.
+       */
+      monitorsOnStatusPageForTimeline: [
+        MONITOR,
+        GROUP_MONITOR,
+        UNRECORDED_MONITOR,
+      ],
       monitorsInGroup: {
         [MONITOR_GROUP.toString()]: [GROUP_MONITOR],
       },

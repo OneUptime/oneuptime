@@ -2664,6 +2664,16 @@ function dataAlertLineage(url) {
 
   const column = isConsequence ? dataCheckColumn : null;
   const causePipeline = isConsequence ? dataCausePipeline : null;
+  // Whether the page's alert is open, said with the drawing: its own table counts it then.
+  const pageAlert = table(Alert).find((item) => {
+    return (
+      String(item._id) ===
+      ID.alert(isCause ? DATA_CAUSE_ALERT_NUMBER : ALERT_NUMBER)
+    );
+  });
+  const isAlertOpen =
+    Boolean(pageAlert) &&
+    String(pageAlert.currentAlertStateId) !== String(alertStates.resolved.id);
 
   const callbacks = `table:${ID.dataAsset(1)}`;
   const ledger = `table:${ID.dataAsset(2)}`;
@@ -2743,6 +2753,7 @@ function dataAlertLineage(url) {
     consequenceCount: isCause ? 1 : 0,
     drawnConsequenceCount: isCause ? 1 : 0,
     column,
+    isAlertOpen,
   };
 }
 const DATA_WRITERS_FAILURE =

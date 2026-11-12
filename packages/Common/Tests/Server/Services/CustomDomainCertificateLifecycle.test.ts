@@ -523,13 +523,13 @@ function setUpWorld(forKind: Kind): void {
    * The DNS lookups the CNAME check makes (CustomDomainDnsCheck): the
    * record when it is live, nothing otherwise - never the network.
    */
-  jest
-    .spyOn(DnsLookup, "resolveCname")
-    .mockImplementation((async (name: string): Promise<DnsLookupAnswer> => {
-      return world.dnsLive.has(name)
-        ? { values: [kind.cnameRecord] }
-        : { values: [], failure: DnsLookupFailure.NoRecords };
-    }) as never);
+  jest.spyOn(DnsLookup, "resolveCname").mockImplementation((async (
+    name: string,
+  ): Promise<DnsLookupAnswer> => {
+    return world.dnsLive.has(name)
+      ? { values: [kind.cnameRecord] }
+      : { values: [], failure: DnsLookupFailure.NoRecords };
+  }) as never);
 
   jest
     .spyOn(DnsLookup, "resolveAddresses")

@@ -76,7 +76,7 @@ Når personen accepterer, er den med i projektet med det samme, med teamets till
 | --- | --- |
 | **Bruger** | Navn og e-mailadresse. |
 | **Teams** | Hvert af projektets teams, personen er med i eller inviteret til. |
-| **Status** | **Medlem**, når personen er kommet med, med antallet af invitationer til andre teams, der ikke er accepteret endnu. **Invitation sendt** indtil da. |
+| **Status** | **Medlem**, når personen er kommet med, med antallet af invitationer til andre teams, der ikke er accepteret endnu. **Invitation sendt** indtil da. På en selvhostet server, der endnu ikke kan sende e-mails, **Inviteret** i stedet: invitationen oprettes, men der sendes ingen e-mail. |
 
 Filtrér listen efter **Bruger**, **Status** eller **Team**. Klik på en række for at åbne personens side:
 

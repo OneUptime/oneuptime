@@ -76,7 +76,7 @@ Når personen godtar, er den med i prosjektet med en gang, med teamets tillatels
 | --- | --- |
 | **Bruker** | Navn og e-postadresse. |
 | **Team** | Hvert av prosjektets team personen er med i eller invitert til. |
-| **Status** | **Medlem** når personen har blitt med, med antallet invitasjoner til andre team som ikke er godtatt ennå. **Invitasjon sendt** til da. |
+| **Status** | **Medlem** når personen har blitt med, med antallet invitasjoner til andre team som ikke er godtatt ennå. **Invitasjon sendt** til da. På en selvhostet server som ikke kan sende e-post ennå, **Invitert** i stedet: invitasjonen opprettes, men ingen e-post sendes. |
 
 Filtrer listen etter **Bruker**, **Status** eller **Team**. Klikk på en rad for å åpne personens side:
 

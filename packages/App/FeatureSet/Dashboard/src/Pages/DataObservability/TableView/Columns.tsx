@@ -259,7 +259,7 @@ const TableColumnsPage: FunctionComponent<
       title="Columns"
       description="The table's columns at its last collection. Changes to them are on the Timeline and on Schema Changes."
     >
-      <div className="overflow-x-auto px-6 pb-6">
+      <div className="overflow-x-auto">
         {columns.length === 0 ? (
           <p className="text-sm text-gray-500">
             {dataAsset?.assetKind === DataAssetKind.StoragePath

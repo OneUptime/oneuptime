@@ -295,7 +295,7 @@ const DataProductOverviewPage: FunctionComponent<
           title="Tables"
           description="The data product's tables. Add them in its Settings."
         >
-          <p className="px-6 pb-6 text-sm text-gray-600">
+          <p className="text-sm text-gray-600">
             {translator.translateText(
               "This data product has no tables yet, so nothing says whether it is fresh.",
             )}
@@ -323,7 +323,7 @@ const DataProductOverviewPage: FunctionComponent<
           },
         ]}
       >
-        <div className="space-y-3 px-6 pb-6 text-sm text-gray-700">
+        <div className="space-y-3 text-sm text-gray-700">
           <div className="flex flex-wrap gap-x-6 gap-y-2">
             {product?.monitorId ? (
               <AppLink
@@ -392,7 +392,7 @@ const DataProductOverviewPage: FunctionComponent<
         ]}
       >
         {badgeUrl ? (
-          <div className="space-y-4 px-6 pb-6">
+          <div className="space-y-4">
             <img
               src={badgeUrl}
               alt={translator.translateText("Data as of badge")}
@@ -422,7 +422,7 @@ const DataProductOverviewPage: FunctionComponent<
             </div>
           </div>
         ) : (
-          <p className="px-6 pb-6 text-sm text-gray-600">
+          <p className="text-sm text-gray-600">
             {translator.translateText(
               "This data product has no badge link yet. Reset Badge Link makes one.",
             )}

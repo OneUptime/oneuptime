@@ -120,7 +120,7 @@ Dataverse 中沒有類似 Jira 標籤的東西，因此案例和 OneUptime 記�
 
 **範本如何登入。** 精靈會把租用戶、用戶端 ID 和金鑰儲存到工作流程 **工作流程變數** 下的一個 [OAuth 2.0 變數](/docs/workflows/variables#oauth-20-變數會自動重新整理的權杖) `dynamicsAccessToken` 中：Client Credentials、權杖 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`、範圍 `<environment URL>/.default`，以及在請求內文中傳送並加密儲存的用戶端密鑰。對 Dynamics 365 的每次呼叫都會發送 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`。OneUptime 在某個步驟第一次需要權杖時取得它，在過期之前取得新權杖，並在執行日誌和步驟追蹤中把它替換為 `[REDACTED]`。
 
-要在執行任何內容之前檢查登入，請開啟 **工作流程變數**，在 `dynamicsAccessToken` 上點選 **檢視**，然後點選 **立即重新整理**。顯示 **Access Token Fetched** 表示應用程式註冊正確。否則，Microsoft Entra ID 的錯誤會指出問題所在，例如 `AADSTS7000215: Invalid client secret provided`。
+要在執行任何內容之前檢查登入，請開啟 **工作流程變數**，在 `dynamicsAccessToken` 上點選 **檢視**，然後點選 **立即重新整理**。顯示 **已取得存取權杖** 表示應用程式註冊正確。否則，Microsoft Entra ID 的錯誤會指出問題所在，例如 `AADSTS7000215: Invalid client secret provided`。
 
 每個工作流程都儲存自己的副本。更換用戶端密鑰時，請在每個 Dynamics 365 工作流程中開啟 `dynamicsAccessToken`，並使用 **更新憑證**。
 

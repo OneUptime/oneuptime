@@ -162,6 +162,7 @@ beforeEach(() => {
   fetchVars = jest.spyOn(GlobalConfigUtil, "fetchVars").mockResolvedValue({
     disableUserProjectCreation: false,
     disablePushNotifications: false,
+    canSendEmail: true,
   });
   goTo(`/dashboard/${PROJECT_ID}/user-settings/notification-methods`);
 });
