@@ -18,6 +18,7 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import type { SpyInstance } from "jest-mock";
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
 import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
@@ -487,7 +488,7 @@ describe("the answer's shape", () => {
 });
 
 describe("MonitorWhoIsToldCard", () => {
-  let getForMonitor: jest.SpiedFunction<typeof WhoIsToldApi.getForMonitor>;
+  let getForMonitor: SpyInstance<typeof WhoIsToldApi.getForMonitor>;
 
   function renderCard(): void {
     render(
