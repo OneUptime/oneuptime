@@ -54,7 +54,7 @@ OneUptime 每分鐘輪詢一次已過輪詢間隔的每個已啟用連線。一�
 | 設定 | 填寫什麼 |
 | --- | --- |
 | **Splunk 管理 URL** | 搜尋頭的 REST API，例如 `https://splunk.example.com:8089`。它必須使用 `https`，且不帶查詢字串。路徑會被保留，以便用於在某個路徑下提供 API 的反向代理。 |
-| **搜尋** | 選擇要匯入什麼內容的搜尋，在你更改之前為 `index=notable`。可以縮小它的範圍，例如 `index=notable urgency IN (high, critical)`。OneUptime 會自己新增時間範圍，所以搜尋不能設定 `earliest` 或 `latest`，也不能以管道符開頭。開頭的 `search` 會被去掉。 |
+| **搜尋查詢** | 選擇要匯入什麼內容的搜尋，在你更改之前為 `index=notable`。可以縮小它的範圍，例如 `index=notable urgency IN (high, critical)`。OneUptime 會自己新增時間範圍，所以搜尋不能設定 `earliest` 或 `latest`，也不能以管道符開頭。開頭的 `search` 會被去掉。 |
 | **使用者名稱** | Splunk 使用者的名稱，僅當它使用密碼進行驗證時才需要。 |
 | **驗證權杖** | 第一步中的權杖。儲存了權杖時，使用的是權杖，而不是使用者名稱和密碼。 |
 | **密碼** | Splunk 使用者的密碼，僅當不使用權杖時才需要。 |
@@ -114,7 +114,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-搜尋按 `_time` 從早到晚對時間窗排序，所以 OneUptime 會把游標移到它讀取的最後一列的建立時間，下一次輪詢就從那裡開始，時間窗長度不變。繁忙的搜尋頭每次輪詢追趕 10,000 列，而不是重複讀取同樣的列。在同一時刻建立的列會被讀取兩次，去除重複檢查會丟棄第二份副本。Splunk 在傳回任何一列之前會先對整個時間窗排序，所以 **搜尋** 中找到遠超所需內容的搜尋會拖慢每一次輪詢。請讓它保持精確。
+搜尋按 `_time` 從早到晚對時間窗排序，所以 OneUptime 會把游標移到它讀取的最後一列的建立時間，下一次輪詢就從那裡開始，時間窗長度不變。繁忙的搜尋頭每次輪詢追趕 10,000 列，而不是重複讀取同樣的列。在同一時刻建立的列會被讀取兩次，去除重複檢查會丟棄第二份副本。Splunk 在傳回任何一列之前會先對整個時間窗排序，所以找到遠超所需內容的 **搜尋查詢** 會拖慢每一次輪詢。請讓它保持精確。
 
 當一次執行完全無法越過儲存的游標時，OneUptime 會改為縮短時間窗：
 
@@ -141,8 +141,8 @@ Stopped after collecting 10000 records; the window holds more. Records are read 
 | --- | --- |
 | **設定** | 每項設定都存在且格式正確。此項失敗時不會連線到任何地方。 |
 | **Authenticate with Splunk** | Splunk 接受權杖，或者使用者名稱和密碼，並說明使用者及其角色，方便你與原本想授予的角色進行比較。 |
-| **Run the search on Splunk** | **搜尋** 中的搜尋在過去 24 小時上執行，只取一列，並說明是哪個匯出端點作出了回應。 |
-| **Notable events available to import** | **搜尋** 中的搜尋在過去 24 小時和過去 7 天內找到的列數。7 天內一列都沒有是警告，而不是失敗。 |
+| **Run the search on Splunk** | **搜尋查詢** 在過去 24 小時上執行，只取一列，並說明是哪個匯出端點作出了回應。 |
+| **Notable events available to import** | **搜尋查詢** 在過去 24 小時和過去 7 天內找到的列數。7 天內一列都沒有是警告，而不是失敗。 |
 | **Background workers**、**Poll scheduler**、**Security event storage** | OneUptime 自身的一側：有程序在處理 Worker 佇列的作業，輪詢作業每分鐘執行一次，安全性事件儲存能夠回應。 |
 | **排定的輪詢** | 針對已儲存的連線：輪詢已開啟，沒有執行卡在等待工作程序的狀態，並且輪詢按時執行。 |
 
@@ -183,7 +183,7 @@ OneUptime 也可以透過 Splunk 的 HTTP Event Collector（HEC）把它發現�
 
 :::details Last Error 以 `Splunk Enterprise Security search export` 或 `Splunk Enterprise Security count search` 開頭
 - `Splunk Enterprise Security search export failed (HTTP ...)`：Splunk 拒絕執行該搜尋。
-  - `HTTP 400`：Splunk 無法解析該搜尋。在 Splunk Web 中執行 **搜尋** 中的搜尋，即可看到它的錯誤。
+  - `HTTP 400`：Splunk 無法解析該搜尋。在 Splunk Web 中執行 **搜尋查詢**，即可看到它的錯誤。
   - `HTTP 403`：使用者的角色缺少 `search` 能力，或者無法讀取該索引。請把 `notable` 或你的索引新增到該角色可以搜尋的索引中。
   - `HTTP 404`：該 URL 上兩個匯出端點都不存在，所以它不是搜尋頭的管理連接埠。
   - `HTTP 429` 或 `HTTP 5xx`：Splunk 正在限制該使用者、酬載過高，或者搜尋達到了它的某個限制。下一次輪詢會重試。
@@ -193,7 +193,7 @@ OneUptime 也可以透過 Splunk 的 HTTP Event Collector（HEC）把它發現�
 :::
 
 :::details Last Error 以 `did not complete` 結尾
-`Splunk Enterprise Security search export did not complete`（其他步驟也一樣）表示請求沒有得到回應：逾時、無法解析的名稱、OneUptime 不信任的證書，或者被拒絕的私有位址。請檢查 OneUptime 應用程式和工作程序能否開啟到管理連接埠的 HTTPS 連線。如果搜尋頭能回應其他請求，但搜尋逾時，說明它排序的內容太多：下一次輪詢會讀取長度減半的時間窗，而把 **搜尋** 中的搜尋範圍縮小，就能徹底解決問題。
+`Splunk Enterprise Security search export did not complete`（其他步驟也一樣）表示請求沒有得到回應：逾時、無法解析的名稱、OneUptime 不信任的證書，或者被拒絕的私有位址。請檢查 OneUptime 應用程式和工作程序能否開啟到管理連接埠的 HTTPS 連線。如果搜尋頭能回應其他請求，但搜尋逾時，說明它排序的內容太多：下一次輪詢會讀取長度減半的時間窗，而把 **搜尋查詢** 的範圍縮小，就能徹底解決問題。
 :::
 
 :::details Last Polled 為 Never 且 Last Error 為空
@@ -201,12 +201,12 @@ OneUptime 也可以透過 Splunk 的 HTTP Event Collector（HEC）把它發現�
 :::
 
 :::details 執行為 Partial
-- `Stopped after collecting 10000 records; the window holds more`：時間窗中的行超過了一次執行能讀取的 10,000 列。不會遺失任何內容：下一次輪詢會從讀取的最後一列之後開始。一次又一次輪詢都保持 **部分** 的連線正在追趕積壓的內容，它的 **最近輪詢** 和 **最近匯入的事件** 會不斷前進。如果它始終追不上，說明 **搜尋** 中的搜尋在每個輪詢間隔內找到的行超過 10,000 列：請縮小它的範圍，或者縮短 **輪詢間隔（分鐘）**。
+- `Stopped after collecting 10000 records; the window holds more`：時間窗中的行超過了一次執行能讀取的 10,000 列。不會遺失任何內容：下一次輪詢會從讀取的最後一列之後開始。一次又一次輪詢都保持 **部分** 的連線正在追趕積壓的內容，它的 **最近輪詢** 和 **最近匯入的事件** 會不斷前進。如果它始終追不上，說明 **搜尋查詢** 在每個輪詢間隔內找到的行超過 10,000 列：請縮小它的範圍，或者縮短 **輪詢間隔（分鐘）**。
 - `More records were created in the one minute from ... than one poll can read`：輪詢越過了這一分鐘。請在 **診斷** 中用 **匯入此時間範圍** 匯入它。一次匯入讀取的量與一次輪詢相同。
 :::
 
 :::details 測試通過，但沒有匯入任何內容
-閱讀測試報告中的 **Notable events available to import**。過去 7 天為 `0` 表示 **搜尋** 中的搜尋在 Splunk 中什麼都沒找到：請在 Incident Review 中檢查關聯搜尋是否已啟用並在建立 notable event，以及 **搜尋** 中的搜尋是否比預期更窄。
+閱讀測試報告中的 **Notable events available to import**。過去 7 天為 `0` 表示 **搜尋查詢** 在 Splunk 中什麼都沒找到：請在 Incident Review 中檢查關聯搜尋是否已啟用並在建立 notable event，以及 **搜尋查詢** 是否比預期更窄。
 :::
 
 ## 你會得到什麼

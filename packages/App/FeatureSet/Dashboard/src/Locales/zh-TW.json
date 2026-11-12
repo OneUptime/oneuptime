@@ -50780,5 +50780,6 @@
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI 在本次回答中稍早讀取了此檔案，但已不再掌握其內容，而 AI 的版本會取代整個檔案：{{files}}。",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI 在本次回答中稍早讀取了此檔案，但已不再掌握其內容，而 AI 的版本會取代整個檔案：{{files}}。",
   "Monitoring is off for every monitor in this group, so it has no uptime to show.": "此群組中所有監測器的監測均已關閉，因此沒有可顯示的正常運作時間。",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "此群組過去 90 天的狀態，每天一根長條。已關閉監測的監測器不計入其中。"
+  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "此群組過去 90 天的狀態，每天一根長條。已關閉監測的監測器不計入其中。",
+  "Search query": "搜尋查詢"
 }
