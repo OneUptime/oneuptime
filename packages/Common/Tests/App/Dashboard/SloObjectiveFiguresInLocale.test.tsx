@@ -11,7 +11,14 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { cleanup, render, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import fs from "fs";
@@ -698,5 +705,45 @@ describe("the Settings page (#6925)", () => {
     for (const line of expected) {
       expect(line).not.toMatch(LATIN_DIGIT);
     }
+  });
+
+  /*
+   * Target (%)'s help is filled in with its figures when the fields are
+   * built, so the page builds Edit Objective's fields again when the reader
+   * switches language: built once per mount, the form kept the language the
+   * page opened in ("Over 30 days, 99.9% allows..." on a German page).
+   */
+  test("switching language while the page is open: Edit Objective's help follows", async () => {
+    openSettings();
+
+    await shownValues(["43m 12s of downtime per 30-day window"]);
+
+    await act(async () => {
+      await i18next.changeLanguage("de");
+    });
+
+    await shownValues([
+      worded(DE, ROLLING_WINDOW_KEY, { count: "30" }),
+    ]);
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: worded(DE, "Edit Objective"),
+      }),
+    );
+
+    const germanHelp: string = getSloTargetHelpText(translatorFor("de", DE));
+    const englishHelp: string = getSloTargetHelpText(
+      translatorFor("en", EN),
+    );
+
+    await waitFor(
+      () => {
+        expect(screen.getByRole("dialog").textContent).toContain(germanHelp);
+      },
+      { timeout: 20000 },
+    );
+
+    expect(screen.getByRole("dialog").textContent).not.toContain(englishHelp);
   });
 });

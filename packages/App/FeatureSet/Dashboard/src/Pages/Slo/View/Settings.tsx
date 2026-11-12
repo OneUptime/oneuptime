@@ -171,11 +171,17 @@ const SloSettings: FunctionComponent<PageComponentProps> = (): ReactElement => {
    * Built once per mount: the period fields carry the full timezone list,
    * and rebuilding it on every render would hand each form new field
    * objects for no reason.
+   *
+   * The objective's fields are built again when the reader switches
+   * language: Target (%)'s help is a sentence filled in with its figures
+   * when it is built (getSloTargetHelpText), not a key the field looks up
+   * as it draws, so Edit Objective would otherwise keep the language the
+   * page opened in.
    */
   const objectiveFormFields: Array<ModelField<ServiceLevelObjective>> =
     useMemo((): Array<ModelField<ServiceLevelObjective>> => {
       return getSloObjectiveSettingsFormFields();
-    }, []);
+    }, [translator.language]);
   const periodFormFields: Array<ModelField<ServiceLevelObjective>> =
     useMemo((): Array<ModelField<ServiceLevelObjective>> => {
       return getSloPeriodSettingsFormFields();
