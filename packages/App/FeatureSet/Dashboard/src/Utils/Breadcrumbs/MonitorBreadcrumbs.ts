@@ -46,6 +46,11 @@ export function getMonitorBreadcrumbs(path: string): Array<Link> | undefined {
       "Monitors",
       "Create New Monitor",
     ]),
+    ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_GUIDED_SETUP, [
+      "Project",
+      "Monitors",
+      "Guided setup",
+    ]),
     ...BuildBreadcrumbLinksByTitles(PageMap.MONITOR_VIEW, [
       "Project",
       "Monitors",
