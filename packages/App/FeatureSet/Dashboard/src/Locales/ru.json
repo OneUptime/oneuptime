@@ -50786,5 +50786,7 @@
   "Monitoring Off": "Мониторинг выключен",
   "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "Статус этой группы за последние 90 дней, по одному столбцу на день, до момента, когда мониторинг был выключен для всех её мониторов.",
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "Статус этой группы за последние 90 дней, по одному столбцу на день. Каждый монитор учитывается, только пока его мониторинг включён.",
-  "leaves out time with monitoring off": "без учёта времени с выключенным мониторингом"
+  "leaves out time with monitoring off": "без учёта времени с выключенным мониторингом",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, мониторинг выключен, с {{start}}, уже {{duration}}. Сейчас активно.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, мониторинг выключен, {{start}} – {{end}}, {{duration}}"
 }

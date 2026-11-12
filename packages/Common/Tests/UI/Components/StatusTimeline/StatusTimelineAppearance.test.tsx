@@ -58,6 +58,8 @@ const FILES: Array<string> = [
   "Components/StatusTimeline/StatusTimelineBand.tsx",
   "Components/StatusTimeline/StatusTimelineEntries.tsx",
   "Components/StatusTimeline/StatusTimelineLegend.tsx",
+  // The class time with monitoring off is drawn in (MONITORING_OFF_CLASS_NAME).
+  "Components/StatusTimeline/StatusTimelineLayout.ts",
   "Components/StatusTimeline/StatusTimelineView.tsx",
   "Components/StatusTimeline/StatusTimelineWindowControls.tsx",
   "Components/StatusTimeline/ModelStatusTimeline.tsx",
@@ -83,6 +85,8 @@ describe("the status timeline in the dark theme", () => {
         // The band's ground, the list's rail, the skeleton.
         "bg-gray-100",
         "bg-gray-200",
+        // Time with monitoring off, on the band and in the legend (#6480).
+        "bg-gray-300",
         // The entry chosen on the band, and its dot's ring.
         "bg-indigo-50",
         "ring-indigo-50",
@@ -117,13 +121,25 @@ const at: (offsetMs: number) => Date = (offsetMs: number): Date => {
 const WINDOW: StatusTimelineWindow = { start: at(-30 * DAY), end: NOW };
 
 const ENTRIES: Array<StatusTimelineDisplayEntry> = [
+  // Monitoring turned off two days ago (issue #6480).
+  {
+    id: "off-now",
+    statusKey: "operational",
+    name: "Operational",
+    color: "#10b981",
+    startsAt: at(-2 * DAY),
+    endsAt: null,
+    rank: 1,
+    changedBy: "Ada Lovelace",
+    isMonitoringOff: true,
+  },
   {
     id: "up-now",
     statusKey: "operational",
     name: "Operational",
     color: "#10b981",
     startsAt: at(-5 * DAY + 38 * SECOND),
-    endsAt: null,
+    endsAt: at(-2 * DAY),
     rank: 1,
     changedBy: "Ada Lovelace",
   },
@@ -241,6 +257,8 @@ describe("every word the timeline writes can be read", () => {
     expect(written).toContain("View cause");
     expect(written).toContain("by Ada Lovelace");
     expect(written).toContain("Reset zoom");
+    // The legend's and the entry's Monitoring Off.
+    expect(written).toContain("Monitoring Off");
 
     expect(unreadable(words)).toEqual([]);
   });

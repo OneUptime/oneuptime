@@ -1,9 +1,12 @@
 import {
   formatStatusTimelineCompactDuration,
   formatStatusTimelineShare,
+  MONITORING_OFF_CLASS_NAME,
+  MONITORING_OFF_STRIPES,
   StatusTimelineSummary,
   StatusTimelineSummaryItem,
 } from "./StatusTimelineLayout";
+import { MONITORING_OFF_TEXT } from "../StateTimeline/MonitoringOffIndicator";
 import { formatDurationInSeconds } from "../../Utils/UseLiveDuration";
 import { getInlineSeparator, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
@@ -27,13 +30,19 @@ export interface ComponentProps {
  * The band's legend: what each colour is, and how long the record spent in
  * it during the period - "Offline 0.14% · 1 hour 2 mins · 31 times". The
  * colours are named here, so the band never relies on colour alone.
+ *
+ * Time with monitoring off (issue #6480) comes last, as long as it lasted
+ * and with no share: nothing checked the monitor then, so it is in no
+ * status's time, and the shares are of the rest - as uptime counts it.
  */
 const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
-  if (props.summary.items.length === 0) {
+  const hasMonitoringOff: boolean = props.summary.monitoringOffCount > 0;
+
+  if (props.summary.items.length === 0 && !hasMonitoringOff) {
     return <></>;
   }
 
@@ -113,6 +122,29 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
             </li>
           );
         },
+      )}
+      {hasMonitoringOff && (
+        <li
+          className="min-w-0 text-sm"
+          data-testid="status-timeline-legend-monitoring-off"
+        >
+          <span
+            className={`mr-2 inline-block h-2.5 w-2.5 rounded-full align-baseline ${MONITORING_OFF_CLASS_NAME}`}
+            style={{ backgroundImage: MONITORING_OFF_STRIPES }}
+            aria-hidden="true"
+          ></span>
+          <span className="mr-2 font-medium text-gray-900">
+            {translator.translateText(MONITORING_OFF_TEXT) ||
+              MONITORING_OFF_TEXT}
+          </span>
+          <span className="tabular-nums text-gray-500">
+            {formatStatusTimelineCompactDuration(
+              formatDurationInSeconds(
+                Math.floor(props.summary.monitoringOffMs / 1000),
+              ),
+            )}
+          </span>
+        </li>
       )}
     </ul>
   );

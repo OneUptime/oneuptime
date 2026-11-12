@@ -50786,5 +50786,7 @@
   "Monitoring Off": "Monitoring Off",
   "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.",
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.",
-  "leaves out time with monitoring off": "leaves out time with monitoring off"
+  "leaves out time with monitoring off": "leaves out time with monitoring off",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}"
 }

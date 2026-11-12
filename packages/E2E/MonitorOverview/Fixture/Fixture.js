@@ -1539,9 +1539,37 @@ const PAST_OUTAGES = [
 const LAST_RECOVERY = ago(3 * DAY + 4 * HOUR + 12 * MINUTE);
 const LAST_DEGRADATION_MINUTES = 35;
 
+// "disabled": when monitoring was turned off, as the probes last ran.
+const MONITORING_TURNED_OFF_AGO = 6 * HOUR;
+
 /*
- * The status changes of one monitor, oldest first: [{ status, start, end }],
- * the last one still open (end undefined).
+ * Monitoring turned off at turnedOffAt, as MonitorStatusTimelineService
+ * records it (issue #6480): the status held then starts a row of its own
+ * marked isMonitoringOff, and so does any status set after it.
+ */
+function withMonitoringTurnedOff(segments, turnedOffAt) {
+  const result = [];
+  for (const segment of segments) {
+    if ((segment.end || NOW).getTime() <= turnedOffAt.getTime()) {
+      result.push(segment);
+    } else if (segment.start.getTime() >= turnedOffAt.getTime()) {
+      result.push({ ...segment, isMonitoringOff: true });
+    } else {
+      result.push({ ...segment, end: turnedOffAt });
+      result.push({
+        status: segment.status,
+        start: turnedOffAt,
+        end: segment.end,
+        isMonitoringOff: true,
+      });
+    }
+  }
+  return result;
+}
+
+/*
+ * The status changes of one monitor, oldest first: [{ status, start, end,
+ * isMonitoringOff }], the last one still open (end undefined).
  */
 function buildSegments(scenario, createdAt) {
   const outages = [];
@@ -1607,7 +1635,7 @@ function buildSegments(scenario, createdAt) {
     }
   }
 
-  return changes.map((change, index) => {
+  const segments = changes.map((change, index) => {
     const next = changes[index + 1];
     return {
       status: change.status,
@@ -1615,6 +1643,10 @@ function buildSegments(scenario, createdAt) {
       end: next ? next.at : undefined,
     };
   });
+
+  return scenario.flags.has("disabled")
+    ? withMonitoringTurnedOff(segments, ago(MONITORING_TURNED_OFF_AGO))
+    : segments;
 }
 
 /*
@@ -1663,7 +1695,7 @@ function lastRunAgo(scenario) {
     return 2 * DAY;
   }
   if (scenario.flags.has("disabled")) {
-    return 6 * HOUR;
+    return MONITORING_TURNED_OFF_AGO;
   }
   if (scenario.flags.has("disconnected")) {
     return 52 * MINUTE;
@@ -1914,6 +1946,7 @@ function defineMonitor(typeKey) {
       monitorStatus: statuses[segment.status],
       startsAt: segment.start,
       endsAt: segment.end,
+      isMonitoringOff: segment.isMonitoringOff === true,
       createdAt: segment.start,
     });
   }
@@ -2483,6 +2516,10 @@ function durationsIn(segments, start, end) {
   const secondsByStatus = new Map();
   let covered = 0;
   for (const segment of segments) {
+    // Time with monitoring off is left out, as the server leaves it out.
+    if (segment.isMonitoringOff) {
+      continue;
+    }
     const from = Math.max(segment.start.getTime(), start.getTime());
     const to = Math.min((segment.end || NOW).getTime(), end.getTime());
     if (to > from) {
@@ -3010,6 +3047,8 @@ function createStatusEvent(model, data) {
     monitorStatus: statuses[statusKey],
     startsAt: now,
     createdAt: now,
+    // A status set while monitoring is off is held with it off.
+    isMonitoringOff: Boolean(monitorRecord.disableActiveMonitoring),
     rootCause: "Monitor status created by **Maya Chen**",
   });
 
@@ -3021,7 +3060,12 @@ function createStatusEvent(model, data) {
   if (open) {
     open.end = now;
   }
-  segments.push({ status: statusKey, start: now, end: undefined });
+  segments.push({
+    status: statusKey,
+    start: now,
+    end: undefined,
+    isMonitoringOff: Boolean(monitorRecord.disableActiveMonitoring),
+  });
 
   const definition = STATUS_DEFINITIONS[statusKey];
   insert(MonitorFeed, {

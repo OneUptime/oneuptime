@@ -50786,5 +50786,7 @@
   "Monitoring Off": "Monitoramento desligado",
   "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "O status deste grupo nos últimos 90 dias, uma barra por dia, até quando o monitoramento foi desligado para todos os seus monitores.",
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "O status deste grupo nos últimos 90 dias, uma barra por dia. Cada monitor só conta enquanto o monitoramento dele está ligado.",
-  "leaves out time with monitoring off": "exclui o tempo com o monitoramento desligado"
+  "leaves out time with monitoring off": "exclui o tempo com o monitoramento desligado",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoramento desligado, desde {{start}}, {{duration}} até agora. Atualmente ativo.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoramento desligado, {{start}} – {{end}}, {{duration}}"
 }

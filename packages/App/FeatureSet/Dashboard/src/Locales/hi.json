@@ -50786,5 +50786,7 @@
   "Monitoring Off": "निगरानी बंद",
   "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "पिछले 90 दिनों में इस समूह की स्थिति, हर दिन के लिए एक बार, उस समय तक जब इसके सभी मॉनिटर की निगरानी बंद की गई।",
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "पिछले 90 दिनों में इस समूह की स्थिति, हर दिन के लिए एक बार। हर मॉनिटर केवल तभी गिना जाता है जब उसकी निगरानी चालू हो।",
-  "leaves out time with monitoring off": "निगरानी बंद रहने का समय शामिल नहीं"
+  "leaves out time with monitoring off": "निगरानी बंद रहने का समय शामिल नहीं",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, निगरानी बंद, {{start}} से, अब तक {{duration}}। वर्तमान में सक्रिय।",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, निगरानी बंद, {{start}} – {{end}}, {{duration}}"
 }

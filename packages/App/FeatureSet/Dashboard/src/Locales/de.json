@@ -50786,5 +50786,7 @@
   "Monitoring Off": "Überwachung aus",
   "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "Der Status dieser Gruppe in den letzten 90 Tagen, ein Balken pro Tag, bis die Überwachung für alle ihre Monitore ausgeschaltet wurde.",
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "Der Status dieser Gruppe in den letzten 90 Tagen, ein Balken pro Tag. Jeder Monitor zählt nur, solange seine Überwachung eingeschaltet ist.",
-  "leaves out time with monitoring off": "ohne Zeit mit ausgeschalteter Überwachung"
+  "leaves out time with monitoring off": "ohne Zeit mit ausgeschalteter Überwachung",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, Überwachung aus, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}"
 }

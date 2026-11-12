@@ -18,7 +18,12 @@
  *                            with short Offline blips), flapping (700 changes
  *                            in the last day, more than one read), new (one
  *                            status, an hour old), quiet (one outage in a
- *                            year) or empty;
+ *                            year), monitoring-off (Ada turned monitoring
+ *                            off for three days last month and back on,
+ *                            then off again yesterday while it was
+ *                            Offline, which resolved its incident and so
+ *                            set it back to Operational: issue #6480) or
+ *                            empty;
  *                            for an incident: resolved (the default; Created,
  *                            Acknowledged, Resolved three weeks ago), ongoing
  *                            (still Acknowledged), declared (its only state)
@@ -31,7 +36,9 @@
  *   - role=viewer            a member who may read the timeline but not
  *                            create or delete a status event (Viewer); the
  *                            default is a project owner
- *   - lang=de|ja             the Dashboard's German or Japanese words
+ *   - lang=de|ja|ar          the Dashboard's German, Japanese or Arabic
+ *                            words (Arabic right to left, as the Dashboard
+ *                            draws it)
  *   - fail=timeline          every read of the timeline's rows fails, as a
  *                            server that cannot be reached does
  *   - delay=<ms>             each read takes this long (60 ms otherwise), to
@@ -57,6 +64,7 @@ import {
 } from "react-router-dom";
 import i18next from "i18next";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { initReactI18next } from "react-i18next";
 import MonitorStatusTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Monitor/View/StatusTimeline";
 import IncidentStateTimelinePage from "../../../App/FeatureSet/Dashboard/src/Pages/Incidents/View/StateTimeline";
@@ -108,6 +116,7 @@ import PermissionUtil from "Common/UI/Utils/Permission";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import JA from "../../../App/FeatureSet/Dashboard/src/Locales/ja.json";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-000000000001";
 const USER_ID = "80000000-0000-4000-8000-000000000001";
@@ -137,7 +146,7 @@ const scenario = params.get("scenario") || "";
 const role = params.get("role") || "owner";
 const failure = params.get("fail") || "";
 const readDelay = Number(params.get("delay") || 60);
-const language = ["de", "ja"].includes(params.get("lang"))
+const language = ["de", "ja", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -260,7 +269,60 @@ function monitorEvent(status, from, to, extra) {
     row.createdByUser = ADA;
     row.createdByUserId = new ObjectID(USER_ID);
   }
+  // The column is NOT NULL, false unless monitoring was off (issue #6480).
+  row.isMonitoringOff = Boolean(extra && extra.isMonitoringOff);
+  if (extra && extra.rootCause) {
+    row.rootCause = extra.rootCause;
+  }
   return row;
+}
+
+/*
+ * The root causes MonitorStatusTimelineService.getMonitoringSwitchRootCause
+ * writes on the status event that marks the switch, naming Ada as
+ * UserService.getUserMarkdownString links her.
+ */
+const ADA_MARKDOWN = `[Ada Lovelace](http://localhost/dashboard/${PROJECT_ID}/users/${USER_ID})`;
+const TURNED_OFF_CAUSE = `${ADA_MARKDOWN} turned off monitoring. Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`;
+const TURNED_ON_CAUSE = `${ADA_MARKDOWN} turned monitoring back on. Uptime, status pages and SLOs count the monitor's time again from here.`;
+
+/*
+ * Monitoring turned off and on (issue #6480). Each switch starts a status
+ * event of its own with the status the monitor held, marked
+ * isMonitoringOff while it is off. Ada turned it off yesterday while the
+ * monitor was Offline, which resolved its open incident (MonitorTurnedOff,
+ * issue #6400), and the resolve set the monitor back to Operational two
+ * seconds later: a status set with monitoring off, so marked off too, and
+ * with no root cause, as a resolve writes none.
+ */
+function monitoringOffHistory() {
+  const switchedAt = 25 * HOUR;
+  const setBackByTheResolve = monitorEvent(
+    OPERATIONAL,
+    switchedAt - 2 * SECOND,
+    null,
+    { isMonitoringOff: true },
+  );
+  setBackByTheResolve.rootCause = undefined;
+  return [
+    setBackByTheResolve,
+    monitorEvent(OFFLINE, switchedAt, switchedAt - 2 * SECOND, {
+      byAda: true,
+      isMonitoringOff: true,
+      rootCause: TURNED_OFF_CAUSE,
+    }),
+    monitorEvent(OFFLINE, 26 * HOUR + 12 * MINUTE, switchedAt),
+    monitorEvent(OPERATIONAL, 17 * DAY, 26 * HOUR + 12 * MINUTE, {
+      byAda: true,
+      rootCause: TURNED_ON_CAUSE,
+    }),
+    monitorEvent(OPERATIONAL, 20 * DAY, 17 * DAY, {
+      byAda: true,
+      isMonitoringOff: true,
+      rootCause: TURNED_OFF_CAUSE,
+    }),
+    monitorEvent(OPERATIONAL, 120 * DAY, 20 * DAY),
+  ];
 }
 
 /*
@@ -344,6 +406,9 @@ function monitorHistory() {
   if (scenario === "empty") {
     return [];
   }
+  if (scenario === "monitoring-off") {
+    return monitoringOffHistory();
+  }
   return screenshotHistory();
 }
 
@@ -352,7 +417,8 @@ const monitor = (() => {
   record._id = MONITOR_ID;
   record.projectId = new ObjectID(PROJECT_ID);
   record.name = "Checkout API";
-  record.disableActiveMonitoring = false;
+  // Its monitoring is off now in the monitoring-off scenario (issue #6480).
+  record.disableActiveMonitoring = scenario === "monitoring-off";
   record.currentMonitorStatus = OPERATIONAL;
   return record;
 })();
@@ -1179,6 +1245,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     de: { translation: DE },
     ja: { translation: JA },
+    ar: { translation: AR },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,
@@ -1186,7 +1253,11 @@ await i18next.use(initReactI18next).init({
 });
 // Dates in the reader's language ("vor 2 Stunden"), as Utils/i18n.ts sets them.
 followLanguageForDates(i18next);
-document.documentElement.lang = language;
+/*
+ * <html> in the reader's language and its direction - Arabic right to left
+ * - as every frontend sets it at start-up.
+ */
+followLanguageForPage(i18next);
 
 /*
  * Each page's trail, as the Dashboard's breadcrumbs end it: a monitor's and

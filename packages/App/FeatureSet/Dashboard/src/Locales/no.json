@@ -50786,5 +50786,7 @@
   "Monitoring Off": "Overvåking slått av",
   "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "Denne gruppens status de siste 90 dagene, én stolpe per dag, frem til overvåkingen ble slått av for alle monitorene i den.",
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "Denne gruppens status de siste 90 dagene, én stolpe per dag. Hver monitor teller bare mens overvåkingen av den er slått på.",
-  "leaves out time with monitoring off": "utelater tid med overvåking slått av"
+  "leaves out time with monitoring off": "utelater tid med overvåking slått av",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvåking slått av, siden {{start}}, {{duration}} så langt. Aktiv nå.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvåking slått av, {{start}} – {{end}}, {{duration}}"
 }

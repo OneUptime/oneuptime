@@ -50786,5 +50786,7 @@
   "Monitoring Off": "پایش خاموش",
   "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "وضعیت این گروه در ۹۰ روز گذشته، یک ستون برای هر روز، تا زمانی که پایش برای همه مانیتورهایش خاموش شد.",
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "وضعیت این گروه در ۹۰ روز گذشته، یک ستون برای هر روز. هر مانیتور فقط تا وقتی پایشش روشن است به حساب می‌آید.",
-  "leaves out time with monitoring off": "بدون زمانی که پایش خاموش بود"
+  "leaves out time with monitoring off": "بدون زمانی که پایش خاموش بود",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، پایش خاموش، از {{start}}، تاکنون {{duration}}. در حال حاضر فعال.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، پایش خاموش، {{start}} – {{end}}، {{duration}}"
 }
