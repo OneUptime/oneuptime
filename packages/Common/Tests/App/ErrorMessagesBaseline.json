@@ -408,7 +408,7 @@
   "packages/Common/Server/Services/WelcomeChecklistService.ts": 2,
   "packages/Common/Server/Services/WorkflowVariableService.ts": 1,
   "packages/Common/Server/Services/WorkspaceNotificationRuleService.ts": 19,
-  "packages/Common/Server/Services/WorkspaceNotificationSummaryService.ts": 4,
+  "packages/Common/Server/Services/WorkspaceNotificationSummaryService.ts": 1,
   "packages/Common/Server/Services/WorkspaceProjectAuthTokenService.ts": 17,
   "packages/Common/Server/Types/AnalyticsDatabase/ModelPermission.ts": 3,
   "packages/Common/Server/Types/Billing/MeteredPlan/AllMeteredPlans.ts": 1,

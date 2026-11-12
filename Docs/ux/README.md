@@ -287,7 +287,8 @@ work out, starts from a default for everything else, and folds what most people 
   Every message thrown with its words written where it is thrown is a sentence, a capital letter first
   and a full stop last; the first-hour flows' files (sign-up, a project, an invitation, a monitor, a
   notification method, on-call, a status page, an ingestion key) have no exception, and everywhere
-  else a per-file baseline of messages that are not sentences only goes down. Enforced by
+  else a per-file baseline of messages that are not sentences may not grow (lower it with
+  `UPDATE_ERROR_MESSAGES_BASELINE=true` when you rewrite one). Enforced by
   [ErrorMessagesGuard](../../packages/Common/Tests/App/ErrorMessagesGuard.test.ts).
 - **A failure nobody explained still says what to do next, with a reference.** When the server fails
   in a way no message describes, it answers with what happened and what to do next, and a reference

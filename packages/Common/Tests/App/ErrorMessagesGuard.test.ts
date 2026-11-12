@@ -38,9 +38,10 @@ import path from "path";
  *
  *   3. Everywhere else, the number of messages that are not sentences may
  *      not grow, file by file (ErrorMessagesBaseline.json, today's count).
- *      A file that has fewer than its baseline fails too, so the baseline
- *      is lowered as old messages are rewritten: run the guard with
- *      UPDATE_ERROR_MESSAGES_BASELINE=true to write the new counts.
+ *      A file that has fewer than its baseline does not fail - fixing a
+ *      message must never turn main red - but the run names it: lower the
+ *      baseline with UPDATE_ERROR_MESSAGES_BASELINE=true, so the room it
+ *      left is not used again by a new message that is not a sentence.
  *
  *   4. The last resort - what the server answers and the Dashboard shows
  *      when nobody put a failure into words - says none of the empty
@@ -300,7 +301,14 @@ describe("the messages the product throws", () => {
     }
 
     expect(grew).toEqual([]);
-    expect(shrank).toEqual([]);
+
+    // Fixed messages are named, never failed (see the header).
+    if (shrank.length > 0) {
+      // eslint-disable-next-line no-console
+      console.info(
+        `Error messages rewritten as sentences; lower the baseline:\n${shrank.join("\n")}`,
+      );
+    }
   });
 });
 
