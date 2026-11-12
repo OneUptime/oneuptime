@@ -2,6 +2,9 @@
 
 Una página de estado es la cara pública de todo lo que monitorizas: una única URL que tus clientes pueden abrir en lugar de escribirte para preguntar si el problema es solo suyo. Muestra el estado actual de los servicios que eliges exponer, los incidentes en los que estás trabajando, el mantenimiento que tienes planificado y cualquier anuncio que quieras fijar arriba. Para elegir entre una página de estado y un panel, consulta [¿Cuál uso?](/docs/introduction/which-one#panel-panel-público-o-página-de-estado).
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Publicar una página de estado](/docs/guides/status-page).
+
 Cuando algo se rompe a las 2 de la madrugada, la página de estado es lo primero que enlaza tu cola de soporte. También es desde donde se notifica a tus suscriptores, así que merece la pena configurarla antes de necesitarla, no en mitad de la caída.
 
 :::cards

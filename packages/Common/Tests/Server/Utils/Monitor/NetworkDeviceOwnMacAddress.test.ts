@@ -239,6 +239,36 @@ describe("NetworkInventoryUtil.recordOwnMacAddress", () => {
     ).toBe(false);
     expect(mergeSpy).not.toHaveBeenCalled();
   });
+
+  /*
+   * OneUptime issue #7194. The merge never waits for the device: held by
+   * another writer (its claim, a router's ARP readings), it is left as it
+   * is, and the next poll - reading the same port against the same old
+   * record - writes it then. Waiting here held up the poll, and a wait past
+   * lock_timeout failed it.
+   */
+  test("never waits for a device another writer holds, and says it wrote nothing", async () => {
+    mockMerge();
+    // The merge skipped the device: written to none.
+    mergeSpy.mockResolvedValueOnce(0);
+
+    expect(await record(device(), PROBE_ID)).toBe(false);
+
+    const input: { skipLockedDevices?: boolean } = mergeSpy.mock
+      .calls[0]![0] as never;
+
+    expect(input.skipLockedDevices).toBe(true);
+  });
+
+  test("written, it says so", async () => {
+    mockMerge();
+
+    expect(await record(device(), PROBE_ID)).toBe(true);
+    expect(
+      (mergeSpy.mock.calls[0]![0] as { skipLockedDevices?: boolean })
+        .skipLockedDevices,
+    ).toBe(true);
+  });
 });
 
 describe("the poll pipeline records it", () => {

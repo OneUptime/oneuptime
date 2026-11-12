@@ -87,7 +87,9 @@ import GlobalConfig, {
 import CallRequest from "Common/Types/Call/CallRequest";
 import { CallAndSmsProvider } from "Common/Types/CallAndSMS/CallAndSmsProvider";
 import { TwilioConfigUse } from "Common/Types/CallAndSMS/TwilioConfigUse";
+import { NO_AWS_CREDENTIALS_MESSAGE } from "Common/Server/Utils/Aws/AwsDefaultCredentialChain";
 import Email from "Common/Types/Email";
+import AmazonSesAuthenticationType from "Common/Types/Email/AmazonSesAuthenticationType";
 import EmailMessage from "Common/Types/Email/EmailMessage";
 import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import { JSONObject } from "Common/Types/JSON";
@@ -266,6 +268,35 @@ describe("a test email", () => {
       (await ServerTestSendService.sendEmail(new Email("ada@example.com")))
         .sentThrough,
     ).toBe("Amazon SES (eu-west-1)");
+  });
+
+  test("Amazon SES on this server's IAM role is tried with no key, and a refusal says what AWS said (#7000)", async () => {
+    config = {
+      emailServerType: EmailServerType.AmazonSES,
+      amazonSesAuthenticationType: AmazonSesAuthenticationType.ServerIamRole,
+      amazonSesRegion: "eu-west-1",
+      amazonSesFromEmail: "ops@example.com",
+    };
+
+    const accepted: ServerTestSendAnswer =
+      await ServerTestSendService.sendEmail(new Email("ada@example.com"));
+
+    expect(accepted.result).toBe(ServerTestSendResult.Accepted);
+    expect(accepted.sentThrough).toBe("Amazon SES (eu-west-1)");
+    expect(mailSend).toHaveBeenCalledTimes(1);
+
+    // Whether the server has a role at all, only AWS knows: the test asks.
+    const noRole: string = `Amazon SES could not sign in with this server's IAM role. ${NO_AWS_CREDENTIALS_MESSAGE}`;
+
+    mailSend.mockRejectedValue(new Error(noRole));
+
+    const refused: ServerTestSendAnswer = await ServerTestSendService.sendEmail(
+      new Email("ada@example.com"),
+    );
+
+    expect(refused.result).toBe(ServerTestSendResult.Refused);
+    expect(refused.message).toBe(noRole);
+    expect(refused.sentThrough).toBe("Amazon SES (eu-west-1)");
   });
 
   test("a refusal with no words still says something, cut to what a page shows", async () => {

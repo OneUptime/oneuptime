@@ -353,6 +353,7 @@
     "storefront-web",
     "svc-backup",
     "syslog",
+    "team",
     "timeout|connection refused",
     "type",
     "vApp {{name}}",

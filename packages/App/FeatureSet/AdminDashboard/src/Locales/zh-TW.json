@@ -519,7 +519,7 @@
         "pillNoFromEmail": "未啟用。請新增寄件者電子郵件。",
         "pillNoFromName": "未啟用。請新增寄件者名稱。",
         "amazonSesCardTitle": "Amazon SES 設定",
-        "amazonSesCardDescription": "您的 Amazon SES 存取金鑰和區域，以及郵件的寄件者。",
+        "amazonSesCardDescription": "此伺服器登入 Amazon SES 的方式、區域，以及郵件的寄件者。",
         "amazonSesEditButton": "編輯 Amazon SES",
         "mailgunCardTitle": "Mailgun 設定",
         "mailgunCardDescription": "您的 Mailgun API 金鑰和寄件網域，以及郵件的寄件者。",
@@ -2409,5 +2409,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "為工作程序分配更多記憶體和 CPU，並在應用程式的日誌中查找反覆失敗的工作。",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "此伺服器執行的是 OneUptime {{current}}。{{latest}} 已發布。",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "先備份，再更新：Docker Compose 上執行 npm run update，Kubernetes 上執行 helm upgrade。",
-  "Finish it on the Server setup page.": "請在「伺服器設定」頁面完成。"
+  "Finish it on the Server setup page.": "請在「伺服器設定」頁面完成。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime 登入 Amazon SES 的方式。",
+  "Access Key": "存取金鑰",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 使用者的存取金鑰 ID 和私密存取金鑰，會加密儲存。",
+  "This Server's IAM Role": "此伺服器的 IAM 角色",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "AWS 在 Amazon EKS、ECS 或 EC2 上賦予此伺服器的角色。不會儲存任何金鑰，其憑證會自動更新。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "使用存取金鑰或此伺服器的 IAM 角色透過 Amazon SES 傳送。"
 }

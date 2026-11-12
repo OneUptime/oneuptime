@@ -60,6 +60,7 @@ describe("DatabaseService.updateColumnsByIdIfUnlockedWithoutHooks", () => {
       cloudRegion: "cloudRegion",
       _id: "_id",
       updatedAt: "updatedAt",
+      deletedAt: "deletedAt",
     };
 
     getJestSpyOn(service, "getRepository").mockReturnValue({
@@ -333,6 +334,121 @@ describe("DatabaseService.updateColumnsByIdIfUnlockedWithoutHooks", () => {
         service.updateColumnsByIdIfUnlockedWithoutHooks({
           id: SERVICE_ID,
           data: {},
+        }),
+      ).resolves.toBe(false);
+
+      expect(captured).toHaveLength(0);
+    });
+  });
+
+  /*
+   * OneUptime issue #7194. The writes that must not wait for a busy row -
+   * a poll's rate baseline, a MAC learned from a router's ARP table - must
+   * still not land on a row deleted meanwhile, or over a value someone else
+   * just wrote. The guard rides in the locking sub-SELECT: a locking read
+   * re-checks its WHERE against the newest version of the row before it
+   * hands the row on, so the check is made on the row as it is when locked.
+   */
+  describe("the compare-and-set guard (expectedData)", () => {
+    it("puts every expected value in the locking sub-SELECT, null-safe, after the id", async () => {
+      const now: Date = new Date();
+
+      await service.updateColumnsByIdIfUnlockedWithoutHooks({
+        id: SERVICE_ID,
+        data: { lastSeenAt: now },
+        expectedData: {
+          serviceVersion: "1.2.3",
+          deletedAt: null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any,
+      });
+
+      expect(captured).toHaveLength(1);
+      expect(captured[0]!.sql).toContain(
+        `WHERE "_id" IN (SELECT "_id" FROM "Service" WHERE "_id" = $2 AND "serviceVersion" IS NOT DISTINCT FROM $3 AND "deletedAt" IS NOT DISTINCT FROM $4 FOR UPDATE SKIP LOCKED)`,
+      );
+      expect(captured[0]!.params).toEqual([
+        now,
+        SERVICE_ID.toString(),
+        "1.2.3",
+        null,
+      ]);
+    });
+
+    /*
+     * Outside the sub-SELECT the outer UPDATE would re-check it without the
+     * lock having been the thing that decided - and, worse, an outer WHERE
+     * on a column the sub-SELECT did not lock for is how the blocking read
+     * comes back. The UPDATE is driven by the locked ids alone.
+     */
+    it("leaves the outer UPDATE driven by the locked ids alone", async () => {
+      await service.updateColumnsByIdIfUnlockedWithoutHooks({
+        id: SERVICE_ID,
+        data: { lastSeenAt: new Date() },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        expectedData: { deletedAt: null } as any,
+      });
+
+      const sql: string = captured[0]!.sql;
+      const outerWhere: string = sql.slice(
+        sql.indexOf("WHERE"),
+        sql.indexOf("(SELECT"),
+      );
+
+      expect(outerWhere).toBe(`WHERE "_id" IN `);
+      expect(sql.match(/IS NOT DISTINCT FROM/g)).toHaveLength(1);
+    });
+
+    it("says nothing was written when the row no longer holds what was expected", async () => {
+      rowsToReturn = [];
+
+      await expect(
+        service.updateColumnsByIdIfUnlockedWithoutHooks({
+          id: SERVICE_ID,
+          data: { lastSeenAt: new Date() },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expectedData: { deletedAt: null } as any,
+        }),
+      ).resolves.toBe(false);
+    });
+
+    it("refuses an unknown expected column instead of generating invalid SQL", async () => {
+      await expect(
+        service.updateColumnsByIdIfUnlockedWithoutHooks({
+          id: SERVICE_ID,
+          data: { lastSeenAt: new Date() },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expectedData: { notAColumn: null } as any,
+        }),
+      ).rejects.toThrow(BadDataException);
+
+      expect(captured).toHaveLength(0);
+    });
+
+    it("refuses an SQL-expression expected value", async () => {
+      await expect(
+        service.updateColumnsByIdIfUnlockedWithoutHooks({
+          id: SERVICE_ID,
+          data: { lastSeenAt: new Date() },
+          expectedData: {
+            serviceVersion: () => {
+              return "now()";
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any,
+        }),
+      ).rejects.toThrow(BadDataException);
+
+      expect(captured).toHaveLength(0);
+    });
+
+    it("a guard with nothing to write issues nothing", async () => {
+      await expect(
+        service.updateColumnsByIdIfUnlockedWithoutHooks({
+          id: SERVICE_ID,
+          data: {},
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          expectedData: { deletedAt: null } as any,
         }),
       ).resolves.toBe(false);
 

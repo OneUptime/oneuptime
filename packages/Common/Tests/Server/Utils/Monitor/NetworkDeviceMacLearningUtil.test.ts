@@ -156,12 +156,17 @@ function mockServices(rows: Array<NetworkDevice> = []): void {
       },
     );
   hookFreeUpdateSpy = jest
-    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
-    .mockResolvedValue(undefined);
+    .spyOn(NetworkDeviceService, "updateColumnsByIdIfUnlockedWithoutHooks")
+    .mockResolvedValue(true);
   // The readings recorded in the devices' discovered details (issue #5185).
   mergeSpy = jest
     .spyOn(NetworkDeviceService, "mergeDiscoveredDetails")
-    .mockResolvedValue(0);
+    .mockImplementation((async (input: {
+      patches: Array<unknown>;
+    }): Promise<number> => {
+      // Every device written: none held by another writer.
+      return input.patches.length;
+    }) as never);
 }
 
 async function learn(
@@ -266,6 +271,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
     expect(result).toEqual({
       candidateDeviceCount: 0,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 0,
     });
   });
@@ -279,6 +285,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
     expect(result).toEqual({
       candidateDeviceCount: 0,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 0,
     });
   });
@@ -322,6 +329,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
     expect(result).toEqual({
       candidateDeviceCount: 2,
       plannedCount: 2,
+      learnedCount: 2,
       observationCount: 2,
     });
     expect(writtenDeviceIds().sort()).toEqual([REGISTER_ID, HANDSET_ID].sort());
@@ -341,6 +349,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the candidate re
     expect(result).toEqual({
       candidateDeviceCount: 0,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 0,
     });
     expect(hookFreeUpdateSpy).not.toHaveBeenCalled();
@@ -404,11 +413,12 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     expect(result).toEqual({
       candidateDeviceCount: 2,
       plannedCount: 2,
+      learnedCount: 2,
       observationCount: 2,
     });
   });
 
-  test("the write goes through updateColumnsByIdWithoutHooks and never the hooked update", async () => {
+  test("the write goes through updateColumnsByIdIfUnlockedWithoutHooks and never the hooked update", async () => {
     const hookedUpdateSpy: jest.SpyInstance = jest
       .spyOn(NetworkDeviceService, "updateOneById")
       .mockResolvedValue(1);
@@ -439,6 +449,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     expect(result).toEqual({
       candidateDeviceCount: 1,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 1,
     });
   });
@@ -455,6 +466,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     expect(result).toEqual({
       candidateDeviceCount: 1,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 0,
     });
   });
@@ -475,6 +487,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     expect(result).toEqual({
       candidateDeviceCount: 1,
       plannedCount: 1,
+      learnedCount: 1,
       observationCount: 1,
     });
     expect(writtenDeviceIds()).toEqual([REGISTER_ID]);
@@ -495,6 +508,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     expect(result).toEqual({
       candidateDeviceCount: 2,
       plannedCount: 1,
+      learnedCount: 1,
       observationCount: 1,
     });
   });
@@ -514,6 +528,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     expect(result).toEqual({
       candidateDeviceCount: 2,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 0,
     });
   });
@@ -531,6 +546,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
     expect(result).toEqual({
       candidateDeviceCount: 0,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 0,
     });
   });
@@ -546,7 +562,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — the write", () =
       deviceRow(HANDSET_ID, HANDSET_IP, { siteId: SITE_A }),
     ]);
     hookFreeUpdateSpy
-      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(true)
       .mockRejectedValueOnce(new Error("connection reset"));
 
     await expect(
@@ -594,6 +610,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — correcting a lea
     expect(result).toEqual({
       candidateDeviceCount: 1,
       plannedCount: 1,
+      learnedCount: 1,
       observationCount: 1,
     });
   });
@@ -614,6 +631,7 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings — correcting a lea
     expect(result).toEqual({
       candidateDeviceCount: 1,
       plannedCount: 0,
+      learnedCount: 0,
       observationCount: 1,
     });
   });
@@ -821,7 +839,77 @@ describe("NetworkDeviceMacLearningUtil.learnFromArpBindings - recording the read
     expect(result).toEqual({
       candidateDeviceCount: 1,
       plannedCount: 1,
+      learnedCount: 1,
       observationCount: 0,
     });
+  });
+
+  /*
+   * OneUptime issue #7194: a router's walk never waits for a device another
+   * writer holds - its readings are left for the router's next walk.
+   */
+  test("the readings never wait for a device another writer holds", async () => {
+    mockServices([
+      deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A }),
+      deviceRow(HANDSET_ID, HANDSET_IP, { siteId: SITE_A }),
+    ]);
+    // One of the two was held: the merge wrote the other.
+    mergeSpy.mockResolvedValueOnce(1);
+
+    const result: MacLearningResult = await learnAsRouter(
+      [binding(REGISTER_IP, REGISTER_MAC), binding(HANDSET_IP, HANDSET_MAC)],
+      SITE_A,
+    );
+
+    expect(mergeSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (mergeSpy.mock.calls[0]![0] as JSONObject)["skipLockedDevices"],
+    ).toBe(true);
+    // What was recorded, not what was planned.
+    expect(result.observationCount).toBe(1);
+  });
+});
+
+/*
+ * OneUptime issue #7194. The MAC write used to queue for each device's row
+ * lock in turn, inside the router's walk: one busy device stalled the rest
+ * of the plan, and a wait past lock_timeout threw the remainder away. Now a
+ * device another writer holds is skipped - the next walk plans it again,
+ * since its column still holds what this plan saw.
+ */
+describe("NetworkDeviceMacLearningUtil.learnFromArpBindings - a device another writer holds", () => {
+  test("is skipped, not waited for, and the rest of the plan still lands", async () => {
+    mockServices([
+      deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A }),
+      deviceRow(HANDSET_ID, HANDSET_IP, { siteId: SITE_A }),
+    ]);
+    // The first device is held: the skip-locked write answers false.
+    hookFreeUpdateSpy.mockResolvedValueOnce(false).mockResolvedValueOnce(true);
+
+    const result: MacLearningResult = await learn(
+      [binding(REGISTER_IP, REGISTER_MAC), binding(HANDSET_IP, HANDSET_MAC)],
+      { observingSiteId: SITE_A },
+    );
+
+    expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(2);
+    expect(result.plannedCount).toBe(2);
+    expect(result.learnedCount).toBe(1);
+  });
+
+  test("every write is the skip-locked compare-and-set, never the waiting one", async () => {
+    const waitingWriteSpy: jest.SpyInstance = jest
+      .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
+      .mockResolvedValue(undefined);
+    mockServices([deviceRow(REGISTER_ID, REGISTER_IP, { siteId: SITE_A })]);
+
+    await learn([binding(REGISTER_IP, REGISTER_MAC)], {
+      observingSiteId: SITE_A,
+    });
+
+    expect(waitingWriteSpy).not.toHaveBeenCalled();
+    expect(hookFreeUpdateSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (hookFreeUpdateSpy.mock.calls[0]![0] as JSONObject)["expectedData"],
+    ).toEqual({ macAddress: null, deletedAt: null });
   });
 });

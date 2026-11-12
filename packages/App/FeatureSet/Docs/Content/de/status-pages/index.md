@@ -2,6 +2,9 @@
 
 Eine Statusseite ist das öffentliche Gesicht von allem, was Sie überwachen: eine einzige URL, die Ihre Kunden aufrufen können, statt Ihnen zu schreiben und zu fragen, ob es nur bei ihnen klemmt. Sie zeigt den aktuellen Zustand der Dienste, die Sie sichtbar machen, die Vorfälle, an denen Sie gerade arbeiten, die Wartungen, die Sie geplant haben, und jede Ankündigung, die Sie oben anheften möchten. Um zwischen einer Statusseite und einem Dashboard zu wählen, lesen Sie [Was nehme ich wann?](/docs/introduction/which-one#dashboard-öffentliches-dashboard-oder-statusseite).
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Eine Statusseite veröffentlichen](/docs/guides/status-page).
+
 Wenn um 2 Uhr nachts etwas kaputtgeht, ist die Statusseite das Erste, was Ihre Support-Warteschlange verlinkt. Und sie ist die Quelle, aus der Ihre Abonnenten benachrichtigt werden – es lohnt sich also, sie einzurichten, bevor Sie sie brauchen, und nicht mitten im Ausfall.
 
 :::cards

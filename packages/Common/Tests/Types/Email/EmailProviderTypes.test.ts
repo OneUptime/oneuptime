@@ -1,4 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
+import AmazonSesAuthenticationType, {
+  isAmazonSesAuthenticationType,
+  toAmazonSesAuthenticationType,
+} from "../../../Types/Email/AmazonSesAuthenticationType";
 import { isMailgunDomain } from "../../../Types/Email/MailgunDomain";
 import MailgunRegion, {
   DEFAULT_MAILGUN_REGION,
@@ -16,9 +20,10 @@ import { generatedTexts } from "../../Helpers/GeneratedTexts";
 
 /*
  * THE WORDS THE EMAIL PROVIDERS ARE STORED AND CHECKED IN: the transports
- * (what a config sends through, as the API and Terraform write it), the
- * Mailgun region and its host, and what passes as a Mailgun sending domain
- * - which is part of the API's path, so nothing else may.
+ * (what a config sends through, as the API and Terraform write it), how the
+ * server's own Amazon SES signs in, the Mailgun region and its host, and
+ * what passes as a Mailgun sending domain - which is part of the API's
+ * path, so nothing else may.
  */
 
 describe("MailTransportType", () => {
@@ -62,6 +67,38 @@ describe("MailTransportType", () => {
     for (const value of [undefined, null, "", "smtp", "SES", 1, {}]) {
       expect(isMailTransportType(value)).toBe(false);
       expect(toMailTransportType(value)).toBe(MailTransportType.SMTP);
+    }
+  });
+});
+
+describe("AmazonSesAuthenticationType", () => {
+  test("the values the API stores, an access key first", () => {
+    expect(Object.values(AmazonSesAuthenticationType)).toEqual([
+      "Access Key",
+      "Server IAM Role",
+    ]);
+  });
+
+  test("a stored value reads as itself; anything else - nothing included - is an access key, as every config before the choice signs in (#7000)", () => {
+    for (const value of Object.values(AmazonSesAuthenticationType)) {
+      expect(isAmazonSesAuthenticationType(value)).toBe(true);
+      expect(toAmazonSesAuthenticationType(value)).toBe(value);
+    }
+
+    for (const value of [
+      undefined,
+      null,
+      "",
+      "server iam role",
+      "IAM Role",
+      "Instance Profile",
+      1,
+      {},
+    ]) {
+      expect(isAmazonSesAuthenticationType(value)).toBe(false);
+      expect(toAmazonSesAuthenticationType(value)).toBe(
+        AmazonSesAuthenticationType.AccessKey,
+      );
     }
   });
 });

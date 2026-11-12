@@ -6,6 +6,7 @@ import {
   getStepNumber,
   getStepState,
 } from "./GuidedSetupProgress";
+import SetupFeedback from "../Feedback/SetupFeedback";
 import {
   GuidedSetupEvents,
   useGuidedSetupEvents,
@@ -35,6 +36,11 @@ import React, { FunctionComponent, ReactElement, useEffect } from "react";
  * (guided_setup/started, step_reached, finished, left: #6830), so every
  * setup is measured the same way. The steps are a list, not a side rail,
  * so a phone draws the same page.
+ *
+ * The frame also asks how it went (#6832, Feedback/SetupFeedback): "How
+ * easy was that?" under the summary once the setup is finished, and a
+ * quiet "Stuck?" under the steps before then - for every setup, so a new
+ * one asks without a line of its own.
  */
 
 export interface GuidedSetupFrameStep extends GuidedSetupStepProgress {
@@ -217,6 +223,7 @@ const GuidedSetupFrame: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+      <SetupFeedback setup={props.setup} isFinished={props.isFinished} />
     </div>
   );
 };

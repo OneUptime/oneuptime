@@ -105,7 +105,7 @@ Quando qualcosa nella configurazione del progetto impedirebbe di avvisare le per
 
 ### Esplora OneUptime
 
-**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic.
+**Esplora OneUptime** mostra i prodotti del menu **Prodotti** una categoria alla volta, a partire dagli essenziali. Ogni prodotto dice a cosa serve e si apre quando ci fai clic. I prodotti che il tuo progetto nasconde non compaiono.
 
 ## Orientarsi
 
@@ -115,6 +115,9 @@ Tutto in OneUptime si trova sotto **Prodotti** nella barra in alto. Il menu pres
 - **Parti da dove sei.** Il gruppo della pagina in cui ti trovi si espande da solo, e i prodotti che hai aperto di recente sono elencati in alto.
 - **Le tue scelte restano.** Il menu ricorda, nel tuo browser, quali degli altri gruppi hai espanso o compresso. Gli essenziali sono di nuovo espansi ogni volta che apri il menu, anche se li avevi compressi.
 - **Su un telefono**, il pulsante del menu elenca i prodotti allo stesso modo: gli essenziali espansi in alto, e ogni altro gruppo come una riga che si apre con un tocco.
+- **Prodotti che il progetto non usa.** Un proprietario o un amministratore del progetto può nasconderli in **Impostazioni del progetto → Base → Prodotti**. Un prodotto nascosto passa in **Altri prodotti**, l'ultima riga del menu: la ricerca lo trova ancora, le sue pagine funzionano e i suoi dati continuano ad arrivare. Quando uno inizia a ricevere dati, la Home lo dice a chi può mostrarlo di nuovo.
+- **Fissare.** Tieni un prodotto nella barra in alto, accanto a **Home** e **Prodotti**: premi la puntina sulla sua scheda nel menu, oppure **Fissa** accanto al titolo della sua pagina. Puoi fissarne cinque, e ti seguono in ogni browser. Su un telefono, i prodotti fissati vengono per primi nel menu.
+- **Cosa è in uso.** In ogni gruppo tranne gli essenziali e le impostazioni, i prodotti che il tuo progetto usa vengono per primi, e uno che non hai ancora configurato dice **Non configurato**. Su OneUptime Cloud, un prodotto che il tuo piano non include nomina il piano che lo include.
 
 ### Le barre in alto
 

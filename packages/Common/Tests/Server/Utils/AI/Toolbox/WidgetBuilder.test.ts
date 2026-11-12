@@ -17,11 +17,15 @@ import {
   AI_ACTION_CARD_FACTS,
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
+  AI_READ_CARD_FACTS,
+  AI_READ_CARD_KINDS,
+  AI_READ_CARD_LINES,
   AIActionCardWords,
   aiActionCardFact,
   aiActionSentence,
   aiActionTerm,
 } from "../../../../../Types/AI/AIActionWords";
+import { getMonitorCardWords } from "../../../../../Server/Utils/AI/Toolbox/ReadCardWords";
 
 /*
  * WidgetBuilder is the factory the AI toolbox uses to attach inline widgets to
@@ -167,46 +171,65 @@ describe("WidgetBuilder", () => {
     expect((exception.data as JSONObject)["items"]).toBe(items);
   });
 
-  test("resourceCard() maps its heading/subheading/fields", () => {
-    const fields: Array<{ label: string; value: string }> = [
-      { label: "State", value: "Investigating" },
-    ];
+  /*
+   * A read's card is built from its words, as a write's is (issue #7175):
+   * the English it stores beside them - what the exports print - is the
+   * same words in English, so the two never say different things.
+   */
+  test("resourceCard() stores its words, and the same words in English", () => {
+    const words: AIActionCardWords = {
+      kind: aiActionTerm(AI_READ_CARD_KINDS.team),
+      line: [aiActionSentence(AI_READ_CARD_LINES.noMembers)],
+      facts: [
+        aiActionCardFact(AI_ACTION_CARD_FACTS.description, "Database people"),
+        aiActionCardFact(AI_READ_CARD_FACTS.ownerTeams, "SRE"),
+      ],
+    };
 
     const widget: AIChatWidget = WidgetBuilder.resourceCard({
-      title: "Incident",
-      resourceType: "Incident",
-      heading: "API is down",
-      subheading: "SEV1",
-      fields,
+      title: "Team",
+      heading: "DBA",
+      words,
     });
 
     expect(widget.type).toBe(AIChatWidgetType.ResourceCard);
     const data: JSONObject = widget.data as JSONObject;
-    expect(data["resourceType"]).toBe("Incident");
-    expect(data["heading"]).toBe("API is down");
-    expect(data["subheading"]).toBe("SEV1");
-    expect(data["fields"]).toEqual(fields);
+    expect(data["resourceType"]).toBe("Team");
+    expect(data["heading"]).toBe("DBA");
+    expect(data["subheading"]).toBe("No members");
+    expect(data["fields"]).toEqual([
+      { label: "Description", value: "Database people" },
+      { label: "Owner teams", value: "SRE" },
+    ]);
+    // Every fact kept: the words as given.
+    expect(widget.data.words).toBe(words);
   });
 
   /*
-   * Every write tool's card at once: a fact its heading or subheading
-   * already says is not saved under them again (Types/AI/ResourceCardFacts).
+   * Every tool's card at once: a fact its heading or line already says is
+   * not saved under them again (Types/AI/ResourceCardFacts) - in the
+   * English and in the words both, so a reader in any language sees it
+   * once.
    */
-  test("resourceCard() leaves out the facts its heading and subheading already say", () => {
+  test("resourceCard() leaves out the facts its heading and line already say, of both", () => {
     const widget: AIChatWidget = WidgetBuilder.resourceCard({
-      title: "Alert created",
-      resourceType: "Alert",
-      heading: "ALT-12 · High memory usage on test01",
-      subheading: "Severity: High",
-      fields: [
-        { label: "Number", value: "ALT-12" },
-        { label: "Severity", value: "High" },
-        { label: "State", value: "Created" },
-      ],
+      title: "Monitor Checkout API",
+      heading: "Checkout API",
+      words: getMonitorCardWords({
+        monitorType: "Website",
+        statusName: "Offline",
+        isMonitoringOff: false,
+        isArchived: false,
+      }),
     });
 
+    // The status is the line under the name: not a fact again.
+    expect(widget.data.subheading).toBe("Offline");
     expect((widget.data as JSONObject)["fields"]).toEqual([
-      { label: "State", value: "Created" },
+      { label: "Type", value: "Website" },
+    ]);
+    expect(widget.data.words!.facts).toEqual([
+      aiActionCardFact(AI_READ_CARD_FACTS.type, aiActionTerm("Website")),
     ]);
   });
 
@@ -259,31 +282,40 @@ describe("which kind of tool left a card (#6968)", () => {
     facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.description, "Disk full.")],
   };
 
-  // A monitor read by id, as query_monitors leaves it.
+  // A monitor read by id, as query_monitors leaves it: its status the line.
   function monitorCard(params: {
     subheading?: string | undefined;
     statusColor?: string | undefined;
   }): AIChatWidget {
     return WidgetBuilder.resourceCard({
       title: "Monitor Checkout API",
-      resourceType: "Monitor",
       heading: "Checkout API",
-      subheading: params.subheading,
+      words: getMonitorCardWords({
+        monitorType: "Website",
+        statusName: params.subheading,
+        isMonitoringOff: false,
+        isArchived: false,
+      }),
       statusColor: params.statusColor,
-      fields: [{ label: "Type", value: "Website" }],
       link,
     });
   }
 
-  test("resourceCard() leaves a read's card", () => {
+  test("resourceCard() leaves a read's card, with its words", () => {
     const widget: AIChatWidget = monitorCard({ subheading: "Offline" });
 
     expect(widget.type).toBe(AIChatWidgetType.ResourceCard);
     expect(widget.data.origin).toBe(AIChatResourceCardOrigin.Read);
     expect(widget.data.origin).toBe("Read");
     expect(isAIChatReadResourceCard(widget.data)).toBe(true);
-    // A read's card has no words: the read tools' cards are English still.
-    expect(Object.keys(widget.data)).not.toContain("words");
+    // In the reader's language since issue #7175.
+    expect(widget.data.words).toEqual({
+      kind: aiActionTerm(AI_READ_CARD_KINDS.monitor),
+      line: ["Offline"],
+      facts: [
+        aiActionCardFact(AI_READ_CARD_FACTS.type, aiActionTerm("Website")),
+      ],
+    });
   });
 
   test("actionCard() leaves a write's card, with its words, and never a status colour", () => {
@@ -311,10 +343,8 @@ describe("which kind of tool left a card (#6968)", () => {
     });
     const read: AIChatWidget = WidgetBuilder.resourceCard({
       title: "Alert created",
-      resourceType: write.data.resourceType!,
       heading: write.data.heading!,
-      subheading: write.data.subheading,
-      fields: write.data.fields!,
+      words: ALERT_WORDS,
       link,
     });
 
@@ -323,7 +353,6 @@ describe("which kind of tool left a card (#6968)", () => {
     ): AIChatWidgetData => {
       const rest: AIChatWidgetData = { ...data };
       delete rest.origin;
-      delete rest.words;
       return rest;
     };
 

@@ -493,6 +493,7 @@
     "subnet",
     "svc-backup",
     "syslog",
+    "team",
     "teams",
     "timeout|connection refused",
     "total",

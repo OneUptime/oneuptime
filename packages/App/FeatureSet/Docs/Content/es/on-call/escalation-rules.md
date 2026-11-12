@@ -2,6 +2,9 @@
 
 Una política de guardia avisa a las personas por niveles. Cada regla de escalado es un nivel: a quién se avisa y cuánto tiempo esperar a que alguien reconozca el aviso antes de avisar al siguiente nivel. Las reglas de una política aparecen, en orden, en su página **Reglas de escalado**.
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Recibir avisos por llamada, SMS o push](/docs/guides/paging).
+
 ```mermaid title="Una política de guardia avisa nivel a nivel hasta que alguien reconoce"
 flowchart TB
     trigger["Incidente o alerta"] --> level1["Level 1 avisa"]

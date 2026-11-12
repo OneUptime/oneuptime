@@ -2,6 +2,9 @@
 
 Een statuspagina is het publieke gezicht van alles wat u monitort: één URL die uw klanten kunnen openen in plaats van u te mailen met de vraag of het probleem alleen bij hen ligt. Ze toont de huidige status van de services die u wilt laten zien, de incidenten waaraan u werkt, het onderhoud dat u hebt gepland en elke aankondiging die u bovenaan wilt vastzetten. Om te kiezen tussen een statuspagina en een dashboard, zie [Welke gebruik ik?](/docs/introduction/which-one#dashboard-openbaar-dashboard-of-statuspagina).
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Een statuspagina publiceren](/docs/guides/status-page).
+
 Als er om 2 uur 's nachts iets kapotgaat, is de statuspagina het eerste waarnaar uw supportwachtrij verwijst. Het is ook de plek van waaruit uw abonnees bericht krijgen, dus het loont om haar in te richten voordat u haar nodig hebt, niet midden in de storing.
 
 :::cards

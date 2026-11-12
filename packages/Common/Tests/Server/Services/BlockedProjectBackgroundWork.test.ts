@@ -44,6 +44,7 @@ import Permission, {
 import TelemetryIngestionKeyPolicy from "../../../Types/Telemetry/TelemetryIngestionKeyPolicy";
 import {
   CapturedStatement,
+  captureClaimQueries,
   captureClaimStatements,
   normalizeSql,
 } from "../TestingUtils/PastDueMonitoringClaimSql";
@@ -120,8 +121,7 @@ describe("monitoring", () => {
 
   test("the probes' monitor claim hands out no monitor of a blocked project", async () => {
     const service: MonitorProbeServiceType = new MonitorProbeServiceType();
-    const statements: Array<CapturedStatement> =
-      captureClaimStatements(service);
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
 
     await service.claimMonitorProbesForProbing({
       probeId: PROBE_ID,
@@ -133,8 +133,7 @@ describe("monitoring", () => {
 
   test("the network device poll claim hands out no device of a blocked project", async () => {
     const service: NetworkDeviceServiceType = new NetworkDeviceServiceType();
-    const statements: Array<CapturedStatement> =
-      captureClaimStatements(service);
+    const statements: Array<CapturedStatement> = captureClaimQueries(service);
 
     await service.claimDevicesForPolling({ probeId: PROBE_ID, limit: 10 });
 

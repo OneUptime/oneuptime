@@ -2,6 +2,8 @@
 
 Denne guide fører dig fra en ny konto til en fungerende opsætning på omkring femten minutter: en monitor, der tjekker dit websted hvert femte minut, en vagtpolitik, der tilkalder dig, når webstedet går ned, og en statusside, der informerer dine kunder. Den følger tjeklisten **Velkommen til OneUptime 👋** på dit projekts startside.
 
+Kommer du fra et andet værktøj? [Importér din opsætning](/docs/introduction/getting-started#hvis-du-kommer-fra-et-andet-værktøj) først: dine monitorer, vagtplaner og statussider følger med.
+
 ```mermaid title="Det, du sætter op i denne guide"
 flowchart TB
     monitor["Webstedsmonitor"] -->|"webstedet er nede"| incident["Hændelse"]
@@ -80,6 +82,8 @@ Din login-e-mail er allerede en måde at kontakte dig på. For også at få SMS 
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vagtplaner](/docs/on-call/schedules) for flere niveauer, rotationer og hvor længe hvert niveau venter.
 
+Vil du tilkaldes via SMS, opkald og push, få den næste person tilkaldt, når ingen svarer, og se et testkald bevise, at det virker, så følg [Bliv tilkaldt via opkald, SMS eller push](/docs/guides/paging).
+
 ## Udgiv en statusside
 
 :::steps
@@ -97,6 +101,8 @@ Vælg **Oversigt** i sidemenuen. Kortet **Link til statussiden** linker til din 
 :::
 
 En ny statusside er offentlig: alle med adressen kan åbne den. Se [Statusside – branding og domæner](/docs/status-pages/branding-and-domains) for at give den dit eget domæne, logo og dine egne farver.
+
+Vil du have statussiden på dit eget domæne, over HTTPS, så følg [Udgiv en statusside](/docs/guides/status-page).
 
 ## Invitér dit team
 
