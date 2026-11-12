@@ -319,7 +319,7 @@ const LlmProviderExchanges: FunctionComponent<ComponentProps> = (
         >
           <Icon
             icon={isOpen ? IconProp.ChevronDown : IconProp.ChevronRight}
-            className="h-4 w-4 rtl:-scale-x-100"
+            className="h-4 w-4"
           />
           {isOpen
             ? translator.translateText("Hide request and response")
