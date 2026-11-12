@@ -8,6 +8,7 @@ import {
   SetUpPagingTool,
   SetUpWebsiteMonitoringTool,
   SetupReachMethod,
+  countMonitorsSetUpInPlan,
   describeReachForPerson,
   describeWebsiteMonitoringForPerson,
   getMonitorNamesSetUpInPlan,
@@ -33,6 +34,10 @@ import MonitorProbeService from "../../../../../Server/Services/MonitorProbeServ
 import MonitorService from "../../../../../Server/Services/MonitorService";
 import MonitorStatusService from "../../../../../Server/Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../../../Server/Services/OnCallDutyPolicyService";
+import PayAsYouGoBillingService, {
+  PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
+} from "../../../../../Server/Services/PayAsYouGoBillingService";
+import ActiveMonitorLimit from "../../../../../Server/Utils/Billing/ActiveMonitorLimit";
 import OnCallReadinessService, {
   ReadinessMethodType,
   ReadinessStatus,
@@ -99,8 +104,9 @@ import { afterEach, describe, expect, test } from "@jest/globals";
  *     who is paged and what is missing for the person to be reached, what a
  *     status page shows - a monitor the same plan sets up first included;
  *   - what cannot be made is said before any card (checkBeforeApproval):
- *     an address that is not one, paging the project has already, nobody to
- *     page, monitors or a status page that do not exist;
+ *     an address that is not one, a plan with no room for the monitors,
+ *     paging the project has already, nobody to page, monitors or a status
+ *     page that do not exist;
  *   - once approved, the records are the guided setups' (built in
  *     Common/Utils/GuidedSetup), written through the services as the
  *     person (props: ctx.props), with a card that links the record and
@@ -552,6 +558,106 @@ describe("set_up_website_monitoring", () => {
     expect(refused?.toldModel).toContain(
       "missing its monitor statuses or severities",
     );
+  });
+
+  test("a project whose plan has no room for the monitors its plan sets up is told the plan's own sentence, before any card", async () => {
+    stubSeeds();
+    const room: Spy = jest
+      .spyOn(ActiveMonitorLimit, "getRefusal")
+      .mockResolvedValue(
+        "This project has 4 active monitors and the Free plan allows 5, so it has room for 1 more, not 2. Upgrade the plan in Project Settings > Billing to add more." as never,
+      );
+
+    const refused: SetupActionRefusal | null =
+      await SetUpWebsiteMonitoringTool.checkBeforeApproval!(
+        { address: "example.com" },
+        {
+          ...ctx,
+          plannedCalls: [
+            {
+              name: SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+              arguments: { address: "example.com" },
+            },
+            {
+              name: SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+              arguments: { address: "api.example.com", isApi: true },
+            },
+            // Not an address: never made, so never counted.
+            {
+              name: SET_UP_WEBSITE_MONITORING_TOOL_NAME,
+              arguments: { address: "my website" },
+            },
+            { name: SET_UP_PAGING_TOOL_NAME, arguments: {} },
+          ],
+        },
+      );
+
+    // Asked for every monitor the plan sets up, not only the one checked.
+    expect(room).toHaveBeenCalledWith({ projectId: PROJECT_ID, adding: 2 });
+    expect(refused?.toldModel).toContain(
+      "so it has room for 1 more, not 2. Upgrade the plan in Project Settings > Billing to add more.",
+    );
+    expect(refused?.refusal).toBe(AIToolRefusal.Plan);
+  });
+
+  test("a project with no payment method for paid monitoring on OneUptime Cloud is told to add one, before any card", async () => {
+    stubSeeds();
+    jest
+      .spyOn(PayAsYouGoBillingService, "canUsePayAsYouGo")
+      .mockResolvedValue(false as never);
+    const room: Spy = jest.spyOn(ActiveMonitorLimit, "getRefusal");
+
+    const refused: SetupActionRefusal | null =
+      await SetUpWebsiteMonitoringTool.checkBeforeApproval!(
+        { address: "example.com" },
+        ctx,
+      );
+
+    expect(refused?.toldModel).toContain(
+      PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
+    );
+    expect(refused?.refusal).toBe(AIToolRefusal.Plan);
+    expect(room).not.toHaveBeenCalled();
+  });
+
+  test("room in the plan, or an install with no plans, lets the card show", async () => {
+    stubSeeds();
+
+    // This install bills nothing: no plan, so no limit.
+    expect(
+      await SetUpWebsiteMonitoringTool.checkBeforeApproval!(
+        { address: "example.com" },
+        ctx,
+      ),
+    ).toBeNull();
+
+    const room: Spy = jest
+      .spyOn(ActiveMonitorLimit, "getRefusal")
+      .mockResolvedValue(null as never);
+
+    expect(
+      await SetUpWebsiteMonitoringTool.checkBeforeApproval!(
+        { address: "example.com" },
+        ctx,
+      ),
+    ).toBeNull();
+    // Checked on its own, the monitor is one.
+    expect(room).toHaveBeenCalledWith({ projectId: PROJECT_ID, adding: 1 });
+    expect(countMonitorsSetUpInPlan(undefined)).toBe(1);
+  });
+
+  test("a plan that cannot be read lets the card show: running it says why", async () => {
+    stubSeeds();
+    jest
+      .spyOn(ActiveMonitorLimit, "getRefusal")
+      .mockRejectedValue(new Error("down") as never);
+
+    expect(
+      await SetUpWebsiteMonitoringTool.checkBeforeApproval!(
+        { address: "example.com" },
+        ctx,
+      ),
+    ).toBeNull();
   });
 
   test("a check that cannot read the project lets the card show", async () => {

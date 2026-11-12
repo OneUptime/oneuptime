@@ -36,7 +36,7 @@ import EventName from "../../Utils/EventName";
 import WorkflowChangesSeen from "./WorkflowChangedByAi";
 import {
   getSetupApprovedEvent,
-  getSetupProposedEvent,
+  takeNewSetupProposal,
 } from "./AskAiSetupEvents";
 import AIChatUnavailableReason, {
   getAIChatUnavailableReason,
@@ -465,18 +465,13 @@ export function useAiChat(options: {
          * answer: its parts and how many, never what they name.
          */
         for (const message of ordered) {
-          const messageId: string = message.id?.toString() || "";
-          const proposed: JSONObject | null = getSetupProposedEvent({
+          const proposed: JSONObject | null = takeNewSetupProposal({
             message: message,
+            seen: setupPlansSeenRef.current,
             permissionMode: String(permissionModeRef.current || ""),
           });
 
-          if (
-            proposed &&
-            messageId &&
-            !setupPlansSeenRef.current.has(messageId)
-          ) {
-            setupPlansSeenRef.current.add(messageId);
+          if (proposed) {
             ProductEvents.send(ProductEventName.AskAiSetupProposed, proposed);
           }
         }

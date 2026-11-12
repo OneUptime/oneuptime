@@ -26,6 +26,7 @@ import {
   getSetupApprovedEvent,
   getSetupProposedEvent,
   getSetupTestPageSentEvent,
+  takeNewSetupProposal,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiSetupEvents";
 import {
   AI_ACTION_LINES,
@@ -452,6 +453,80 @@ describe("what is counted, never what the parts name", () => {
         ],
       }),
     ).toEqual([]);
+  });
+
+  test("a plan is counted once per answer, however many polls bring it back", () => {
+    const seen: Set<string> = new Set<string>();
+    const waiting: (id: string) => {
+      id: string;
+      status: AIChatMessageStatus;
+      toolActions: Array<AIChatToolAction>;
+    } = (id: string) => {
+      return {
+        id: id,
+        status: AIChatMessageStatus.WaitingForApproval,
+        toolActions: [setupAction(`${id}-paging`, "set_up_paging")],
+      };
+    };
+
+    // The first poll that brings the answer counts its plan.
+    expect(
+      takeNewSetupProposal({
+        message: waiting("answer-1"),
+        seen: seen,
+        permissionMode: "AutoRun",
+      }),
+    ).toEqual({ parts: "paging", part_count: 1, permission_mode: "AutoRun" });
+
+    // Every poll after brings the same answer back: never counted again.
+    expect(
+      takeNewSetupProposal({
+        message: waiting("answer-1"),
+        seen: seen,
+        permissionMode: "AutoRun",
+      }),
+    ).toBeNull();
+
+    // Another answer's plan is its own.
+    expect(
+      takeNewSetupProposal({
+        message: waiting("answer-2"),
+        seen: seen,
+        permissionMode: "AutoRun",
+      }),
+    ).toEqual({ parts: "paging", part_count: 1, permission_mode: "AutoRun" });
+
+    /*
+     * An answer still being written, waiting on nothing, is not counted -
+     * nor remembered, so its plan counts once it waits on its card.
+     */
+    expect(
+      takeNewSetupProposal({
+        message: {
+          id: "answer-3",
+          status: AIChatMessageStatus.InProgress,
+          toolActions: [],
+        },
+        seen: seen,
+        permissionMode: "AutoRun",
+      }),
+    ).toBeNull();
+    expect(
+      takeNewSetupProposal({
+        message: waiting("answer-3"),
+        seen: seen,
+        permissionMode: "AutoRun",
+      }),
+    ).toEqual({ parts: "paging", part_count: 1, permission_mode: "AutoRun" });
+
+    // A message the poll could not name is never counted.
+    expect(
+      takeNewSetupProposal({
+        message: { ...waiting(""), id: undefined },
+        seen: seen,
+        permissionMode: "AutoRun",
+      }),
+    ).toBeNull();
   });
 
   test("the card answered: the parts approved, how many approved and skipped, other actions left out", () => {

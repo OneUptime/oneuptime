@@ -13,6 +13,7 @@ import {
   getSetupApprovedEvent,
   getSetupProposedEvent,
   getSetupTestPageSentEvent,
+  takeNewSetupProposal,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiSetupEvents";
 import {
   COMMON_PRODUCT_EVENT_PROPERTIES,
@@ -129,6 +130,20 @@ const BUILDER_KEYS: Record<string, () => Array<string>> = {
           status: AIChatMessageStatus.WaitingForApproval,
           toolActions: [SETUP_ACTION],
         },
+        permissionMode: "AskForApproval",
+      }) || {},
+    );
+  },
+  // The same event, taken once per answer by the panel's poll.
+  takeNewSetupProposal: (): Array<string> => {
+    return Object.keys(
+      takeNewSetupProposal({
+        message: {
+          id: "a-message",
+          status: AIChatMessageStatus.WaitingForApproval,
+          toolActions: [SETUP_ACTION],
+        },
+        seen: new Set<string>(),
         permissionMode: "AskForApproval",
       }) || {},
     );

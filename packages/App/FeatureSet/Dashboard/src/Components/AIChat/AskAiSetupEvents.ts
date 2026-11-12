@@ -52,9 +52,7 @@ export function getSetupProposedEvent(data: {
   };
   permissionMode: string;
 }): JSONObject | null {
-  const pending: Array<AIChatToolAction> = getPendingSetupActions(
-    data.message,
-  );
+  const pending: Array<AIChatToolAction> = getPendingSetupActions(data.message);
 
   if (pending.length === 0) {
     return null;
@@ -69,6 +67,39 @@ export function getSetupProposedEvent(data: {
     part_count: pending.length,
     permission_mode: data.permissionMode,
   };
+}
+
+/*
+ * ask_ai/setup_proposed, once per answer: the event for a message whose
+ * plan waits on its card, the first time a poll brings it, and null every
+ * time after. `seen` holds the answers already counted (useAiChat keeps it
+ * for the panel's life), and the message is added to it once counted.
+ */
+export function takeNewSetupProposal(data: {
+  message: {
+    id?: { toString: () => string } | null | undefined;
+    status?: AIChatMessageStatus | undefined;
+    toolActions?: Array<AIChatToolAction> | undefined;
+  };
+  seen: Set<string>;
+  permissionMode: string;
+}): JSONObject | null {
+  const messageId: string = data.message.id?.toString() || "";
+
+  if (!messageId || data.seen.has(messageId)) {
+    return null;
+  }
+
+  const proposed: JSONObject | null = getSetupProposedEvent({
+    message: data.message,
+    permissionMode: data.permissionMode,
+  });
+
+  if (proposed) {
+    data.seen.add(messageId);
+  }
+
+  return proposed;
 }
 
 /*

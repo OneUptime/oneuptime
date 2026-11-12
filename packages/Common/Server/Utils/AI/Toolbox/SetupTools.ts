@@ -76,6 +76,9 @@ import MonitorProbeService from "../../../Services/MonitorProbeService";
 import MonitorService from "../../../Services/MonitorService";
 import MonitorStatusService from "../../../Services/MonitorStatusService";
 import OnCallDutyPolicyService from "../../../Services/OnCallDutyPolicyService";
+import PayAsYouGoBillingService, {
+  PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE,
+} from "../../../Services/PayAsYouGoBillingService";
 import OnCallReadinessService, {
   ReadinessMethod,
   ReadinessMethodType,
@@ -88,6 +91,7 @@ import StatusPageResourceService from "../../../Services/StatusPageResourceServi
 import StatusPageService from "../../../Services/StatusPageService";
 import TeamMemberService from "../../../Services/TeamMemberService";
 import TeamService from "../../../Services/TeamService";
+import ActiveMonitorLimit from "../../Billing/ActiveMonitorLimit";
 import logger from "../../Logger";
 import ToolResultSerializer, { SerializedResult } from "./Serializer";
 import {
@@ -138,8 +142,9 @@ import WidgetBuilder from "./WidgetBuilder";
  * person can skip (Dashboard ToolApprovalCard). They make things that page
  * people or that customers see, so they ask in every mode, Auto-run
  * included, and are checked before the card is shown (checkBeforeApproval):
- * what is missing - a permission, an address, monitors - ends in an answer
- * that says what is needed, never in a card that fails once approved. Once
+ * what is missing - a permission, an address, monitors, room in the plan for
+ * a monitor - ends in an answer that says what is needed, never in a card
+ * that fails once approved. Once
  * approved, the parts run in their plan's order (setupAction.planOrder) -
  * who is paged, what is checked, where it is shown - so a status page finds
  * the monitor its plan set up; each says what it made, and a part that
@@ -355,6 +360,52 @@ export function getMonitorNamesSetUpInPlan(
   }
 
   return names;
+}
+
+/*
+ * How many monitors the same plan sets up: one for each website monitoring
+ * call whose address is one, and at least the one being checked.
+ */
+export function countMonitorsSetUpInPlan(
+  plannedCalls: ReadonlyArray<PlannedToolCall> | undefined,
+): number {
+  const count: number = (plannedCalls || []).filter(
+    (call: PlannedToolCall): boolean => {
+      return (
+        call.name === SET_UP_WEBSITE_MONITORING_TOOL_NAME &&
+        Boolean(
+          parseWebsiteAddress(
+            ToolArgs.getString(call.arguments || {}, "address") || "",
+          ),
+        )
+      );
+    },
+  ).length;
+
+  return Math.max(1, count);
+}
+
+/*
+ * What the project's plan says to the monitors a plan sets up, asked before
+ * its card so a project that may not add them is told now, not after an
+ * approval: the two answers MonitorService.create gives when it runs - and
+ * gives again then. OneUptime Cloud's pay as you go, which a website
+ * monitor needs on every plan, and room under the plan's active monitor
+ * limit for every monitor of the plan (ActiveMonitorLimit.getRefusal, an
+ * answer for now). Null on an install without billing, and when there is
+ * room.
+ */
+export async function readMonitorPlanRefusal(
+  ctx: ToolContext,
+): Promise<string | null> {
+  if (!(await PayAsYouGoBillingService.canUsePayAsYouGo(ctx.projectId))) {
+    return PAY_AS_YOU_GO_PAYMENT_REQUIRED_MESSAGE;
+  }
+
+  return await ActiveMonitorLimit.getRefusal({
+    projectId: ctx.projectId,
+    adding: countMonitorsSetUpInPlan(ctx.plannedCalls),
+  });
 }
 
 // A name in a card's list, as written, in quotes - a monitor's.
@@ -910,6 +961,19 @@ export const SetUpWebsiteMonitoringTool: ObservabilityTool = {
     try {
       if (!(await readWebsiteMonitorSeeds(ctx))) {
         return { toldModel: WEBSITE_MONITOR_SEEDS_MISSING };
+      }
+    } catch {
+      // Unreadable now: running it says why.
+    }
+
+    try {
+      const planRefusal: string | null = await readMonitorPlanRefusal(ctx);
+
+      if (planRefusal) {
+        return {
+          toldModel: `Nothing proposed: the project's plan does not allow it now. ${planRefusal} Tell the person what is needed, in these words.`,
+          refusal: AIToolRefusal.Plan,
+        };
       }
     } catch {
       // Unreadable now: running it says why.
