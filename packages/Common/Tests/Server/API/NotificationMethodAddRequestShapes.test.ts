@@ -1199,7 +1199,9 @@ describe("a code asked for with the project's own API key", () => {
     });
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe("Invalid user ID");
+    expect(errorOf(result)).toBe(
+      "Sign in again, then verify this notification method.",
+    );
     expect(numbers.repository.find.mock.calls).toHaveLength(0);
     expect(sent).toEqual([]);
     expect(numbers.updates).toEqual([]);
@@ -1228,7 +1230,9 @@ describe("a code asked for with the project's own API key", () => {
     });
 
     expect(result.status).toBe(400);
-    expect(errorOf(result)).toBe("Invalid user ID");
+    expect(errorOf(result)).toBe(
+      "Sign in again, then verify this notification method.",
+    );
     expect(numbers.repository.find.mock.calls).toHaveLength(0);
   });
 

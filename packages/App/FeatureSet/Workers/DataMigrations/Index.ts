@@ -171,6 +171,7 @@ import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
 import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusTimelines";
+import SettleOnCallNotificationsStuckBeforeUpgrade from "./SettleOnCallNotificationsStuckBeforeUpgrade";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1041,6 +1042,18 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new RecordMonitoringOffOnStatusTimelines(),
+  /*
+   * On-call notifications left at Sending from before the check for
+   * notifications that never got a result existed (issue #7085), longer ago
+   * than the day that check reads: settled once as not sent, with the
+   * check's own words, without hooks - their pages are long over - and over
+   * Sending only. After the schema migration
+   * AddUserOnCallLogTimelineSendingIndex, whose partial index serves its
+   * read; idempotent; no other ordering requirement, so it sits above the
+   * runbook migrations that keep their places before the last slot
+   * AddAuditLogMcpClientColumns asserts for itself.
+   */
+  new SettleOnCallNotificationsStuckBeforeUpgrade(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

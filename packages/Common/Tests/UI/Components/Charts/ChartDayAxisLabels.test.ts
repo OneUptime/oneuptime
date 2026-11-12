@@ -472,3 +472,76 @@ describe("a day with its year in the reader's language", () => {
     ]);
   });
 });
+
+/*
+ * A chart grouped by year (a dashboard's yearly aggregation, or a window of
+ * more than six years) names each tick by its year. It wrote the year with
+ * Latin digits in every language, so on a Persian page "2025" stood beside
+ * day and month ticks in Persian digits ("۱۲ اکتبر"). It is written as the
+ * reader's language writes a year alone now, as the month ticks are.
+ */
+describe("a year axis in the reader's language", () => {
+  function yearTicks(): Array<string> {
+    return ticks({
+      start: day("2023-01-01"),
+      end: day("2026-01-01"),
+      precision: XAxisPrecision.EVERY_YEAR,
+    });
+  }
+
+  test("English: the years as they were", () => {
+    expect(yearTicks()).toEqual(["2023", "2024", "2025", "2026"]);
+  });
+
+  test("Persian: Persian digits, and no Latin digit left", () => {
+    setDateDisplayLanguage("fa");
+
+    const labels: Array<string> = yearTicks();
+
+    expect(labels).toEqual(["۲۰۲۳", "۲۰۲۴", "۲۰۲۵", "۲۰۲۶"]);
+    for (const label of labels) {
+      expect(label).not.toMatch(LATIN_DIGIT);
+    }
+  });
+
+  test.each([
+    ["ja", ["2023年", "2024年", "2025年", "2026年"]],
+    ["ko", ["2023년", "2024년", "2025년", "2026년"]],
+    ["ar", ["2023", "2024", "2025", "2026"]],
+    ["de", ["2023", "2024", "2025", "2026"]],
+  ])(
+    "%s: as the language writes a year alone",
+    (language: string, expected: Array<string>) => {
+      setDateDisplayLanguage(language);
+
+      expect(yearTicks()).toEqual(expected);
+    },
+  );
+
+  test("the year is the reader's: New Year's Eve evening in New York is still the old year", () => {
+    OneUptimeDate.setUserTimezone(Timezone.AmericaNew_York);
+
+    const formatter: (value: Date) => string = XAxisUtil.getFormatter({
+      xAxisMin: day("2023-01-01"),
+      xAxisMax: day("2026-01-01"),
+      precision: XAxisPrecision.EVERY_YEAR,
+    });
+    // 03:00 UTC on 1 Jan 2026 is 22:00 on 31 Dec 2025 in New York.
+    const newYearInUtc: Date = new Date("2026-01-01T03:00:00.000Z");
+
+    expect(formatter(newYearInUtc)).toBe("2025");
+
+    setDateDisplayLanguage("fa");
+    forgetRememberedDateTexts();
+
+    expect(formatter(newYearInUtc)).toBe("۲۰۲۵");
+  });
+
+  test("remembered with its English, for a sentence still in English", () => {
+    setDateDisplayLanguage("ja");
+
+    expect(
+      getEnglishOf(OneUptimeDate.getDateAsLocalYearString(day("2026-06-15"))),
+    ).toBe("2026");
+  });
+});

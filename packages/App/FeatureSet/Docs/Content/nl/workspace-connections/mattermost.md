@@ -114,7 +114,7 @@ Mensen worden lid van het kanaal van een regel via het Mattermost-account dat ze
 
 Een incident, waarschuwing, episode of geplande onderhoudsgebeurtenis met een eigen kanaal heeft **Openen in Mattermost** in de kop van zijn pagina in OneUptime, naast de statusknoppen. Die opent dat kanaal in een nieuw tabblad, op je Mattermost-server. Een record met twee eigen kanalen toont ze allebei onder de knop. Een record dat ook kanalen in Slack of Microsoft Teams heeft, heeft in plaats daarvan één knop **Kanaal openen**, die ze allemaal toont. De bestaande kanalen waarin je regels posten, worden niet aangeboden.
 
-**Testregel** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zoals bij Slack.
+**Regel testen** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zoals bij Slack.
 
 De berichten van OneUptime sturen niemand een melding via wat ze citeren: een naam of een beschrijving met `@channel`, `@here` of `@someone` wordt getoond zoals die is geschreven, en pingt niemand.
 

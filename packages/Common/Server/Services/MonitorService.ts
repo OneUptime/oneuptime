@@ -2448,7 +2448,7 @@ export class Service extends ProjectReferencesService<Model> {
 
     if (!monitorStatus || !monitorStatus.id) {
       throw new BadDataException(
-        "Operational status not found for this project. Please add an operational status",
+        "This project has no monitor status marked as operational, so a new monitor has no status to start in. Add one under Monitors > Settings > Monitor Status, then create the monitor again.",
       );
     }
 
@@ -2581,15 +2581,15 @@ export class Service extends ProjectReferencesService<Model> {
     createdItem: Model,
   ): Promise<Model> {
     if (!createdItem.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The monitor has no project.");
     }
 
     if (!createdItem.id) {
-      throw new BadDataException("id is required");
+      throw new BadDataException("The new monitor has no ID.");
     }
 
     if (!createdItem.currentMonitorStatusId) {
-      throw new BadDataException("currentMonitorStatusId is required");
+      throw new BadDataException("The new monitor has no status to start in.");
     }
 
     /*
@@ -3010,7 +3010,7 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
   @CaptureSpan()
   public async findOwners(monitorId: ObjectID): Promise<Array<User>> {
     if (!monitorId) {
-      throw new BadDataException("monitorId is required");
+      throw new BadDataException("No monitor was named.");
     }
 
     const ownerUsers: Array<MonitorOwnerUser> =
@@ -3176,11 +3176,11 @@ ${FeedMarkdown.asMarkdown(createdItem.description?.trim() || "No description pro
     selectedProbeIds: Array<ObjectID> | undefined;
   }): Promise<void> {
     if (!data.projectId) {
-      throw new BadDataException("projectId is required");
+      throw new BadDataException("The monitor has no project.");
     }
 
     if (!data.monitorId) {
-      throw new BadDataException("monitorId is required");
+      throw new BadDataException("No monitor was named.");
     }
 
     if (data.selectedProbeIds === undefined) {

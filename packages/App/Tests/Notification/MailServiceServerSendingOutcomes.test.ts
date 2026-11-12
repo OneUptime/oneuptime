@@ -26,6 +26,8 @@ import ServerSendingOutcomes, {
 } from "Common/Server/Utils/ServerSending/ServerSendingOutcomes";
 import EmailLogService from "Common/Server/Services/EmailLogService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import MailService from "../../FeatureSet/Notification/Services/MailService";
 import SendGridMailProvider from "../../FeatureSet/Notification/Services/MailProviders/SendGridMailProvider";
 import "../../FeatureSet/Notification/Utils/Handlebars";
@@ -68,7 +70,10 @@ jest.mock("Common/Server/Services/EmailLogService", () => {
 });
 
 jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
-  return { __esModule: true, default: { updateOneById: jest.fn() } };
+  return {
+    __esModule: true,
+    default: { findOneById: jest.fn(), updateOneBy: jest.fn() },
+  };
 });
 
 jest.mock("Common/Models/DatabaseModels/EmailLog", () => {
@@ -230,9 +235,16 @@ beforeAll(async () => {
   }
 });
 
+// The page's on-call log row, written over Sending only (recordSendResult).
+let timeline: OnCallTimelineRows;
+
 beforeEach(() => {
   jest.clearAllMocks();
   outcomes.length = 0;
+
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
 
   ServerSendingOutcomes.register(
     async (outcome: ServerSendingOutcome): Promise<void> => {
@@ -411,13 +423,10 @@ describe("the server's own settings missing or incomplete", () => {
       );
 
       // And whoever waits on the on-call log reads the same.
-      expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            statusMessage: SERVER_EMAIL_NOT_SET_UP_MESSAGE,
-          }),
-        }),
-      );
+      expect(timeline.get(TIMELINE_ID)).toMatchObject({
+        status: UserNotificationStatus.Error,
+        statusMessage: SERVER_EMAIL_NOT_SET_UP_MESSAGE,
+      });
 
       // "Not set up" is read from the settings, never written as failing.
       expect(outcomes).toEqual([]);
