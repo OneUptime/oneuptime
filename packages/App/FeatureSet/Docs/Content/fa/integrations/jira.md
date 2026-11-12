@@ -306,8 +306,8 @@ Jira Cloud احراز هویت Basic را می‌پذیرد که از ایمیل
 ### باز کردن یک issue در Jira برای هر حادثه
 
 :::steps
-1. از صفر یک گردش کاری به نام `Incidents to Jira` بسازید. روی بلوک خط‌چین کلیک کنید و تریگر **On Create Incident** را اضافه کنید. **Fields to pass on** آن از پیش **عنوان** را دارد: روی **افزودن فیلد** کلیک کنید و **توضیحات** و **شماره حادثه** را برگزینید. شناسه همیشه منتقل می‌شود. **Identifier** آن را همان `incident-on-create-1` بگذارید.
-2. روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **Identifier** آن را روی `create-issue`، **URL** آن را روی `{{global.variables.JIRA_URL}}/rest/api/3/issue`، و زیر **فیلدهای بیشتر**، **Request Headers** آن را روی `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` بگذارید.
+1. از صفر یک گردش کاری به نام `Incidents to Jira` بسازید. روی بلوک خط‌چین کلیک کنید و تریگر **On Create Incident** را اضافه کنید. **Fields to pass on** آن از پیش **عنوان** را دارد: روی **افزودن فیلد** کلیک کنید و **توضیحات** و **شماره حادثه** را برگزینید. شناسه همیشه منتقل می‌شود. **شناسه** آن را همان `incident-on-create-1` بگذارید.
+2. روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **شناسه** آن را روی `create-issue`، **URL** آن را روی `{{global.variables.JIRA_URL}}/rest/api/3/issue`، و زیر **فیلدهای بیشتر**، **Request Headers** آن را روی `{"Authorization": "Basic {{global.variables.JIRA_AUTH}}", "Accept": "application/json"}` بگذارید.
 3. **Request Body** آن را روی issue بگذارید، و `OPS` و `Bug` را با کلید پروژه خودتان و یک نوع issue از آن پروژه جایگزین کنید:
 
    ```json
@@ -390,9 +390,9 @@ curl -u 'you@example.com:your_api_token' \
 این را به صورت یک گردش کاری دوم بسازید، تا شکستی در اینجا هرگز جلوی باز شدن issueها را نگیرد.
 
 :::steps
-1. گردش کاری‌ای به نام `Incident updates to Jira` با تریگر **On Update Incident** بسازید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **Current Incident State** را برگزینید. در **Fields to pass on** روی **افزودن فیلد** کلیک کنید، **Current Incident State** را باز کنید و **نام** را برگزینید.
+1. گردش کاری‌ای به نام `Incident updates to Jira` با تریگر **On Update Incident** بسازید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **حالت فعلی حادثه** را برگزینید. در **Fields to pass on** روی **افزودن فیلد** کلیک کنید، **حالت فعلی حادثه** را باز کنید و **نام** را برگزینید.
 2. یک بلوک **If / Else** اضافه کنید: **Value to check** برابر `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.name}}`، **Comparison** برابر **is equal to**، **Compare with** برابر `Resolved`، یا نام وضعیت رفع‌شده خودتان.
-3. پس از سمت **Yes** آن، issue را با یک بلوک **API Post (JSON)** پیدا کنید که **Identifier** آن `find-issue` است و به `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` می‌فرستد:
+3. پس از سمت **Yes** آن، issue را با یک بلوک **API Post (JSON)** پیدا کنید که **شناسه** آن `find-issue` است و به `{{global.variables.JIRA_URL}}/rest/api/3/search/jql` می‌فرستد:
 
    ```json
    {
@@ -548,7 +548,7 @@ Jira سرعت فراخوانی‌های شما را محدود می‌کند. پ
 :::
 
 :::details یک ارجاع همان‌طور که نوشته شده در یک issue در Jira نشان داده می‌شود
-ارجاعی که تحلیل نشود، به جای خالی شدن، همان‌طور که نوشته شده با آکولادهایش فرستاده می‌شود. در زبانه **گام‌ها** در صفحه اجرا، تنظیمی که ارجاع در آن بود با **Did not resolve** علامت می‌خورد: معمولاً یک شناسه بلوک اشتباه تایپ‌شده یا متغیری که نامش تغییر کرده.
+ارجاعی که تحلیل نشود، به جای خالی شدن، همان‌طور که نوشته شده با آکولادهایش فرستاده می‌شود. در زبانه **گام‌ها** در صفحه اجرا، تنظیمی که ارجاع در آن بود با **تفکیک نشد** علامت می‌خورد: معمولاً یک شناسه بلوک اشتباه تایپ‌شده یا متغیری که نامش تغییر کرده.
 :::
 
 ## گام‌های بعدی

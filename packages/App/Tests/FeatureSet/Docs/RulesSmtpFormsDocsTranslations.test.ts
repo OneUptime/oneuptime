@@ -1585,7 +1585,8 @@ describe("the helpers, on these pages' shapes", () => {
 
     expect(pluralButton("en", button)).toBe("Import 2 rules");
     expect(pluralButton("ja", button)).toBe("2 件のルールをインポート");
-    expect(toLatinDigits(pluralButton("fa", button))).toBe("Import 2 rules");
+    expect(pluralButton("fa", button)).toBe("وارد کردن ۲ قاعده");
+    expect(toLatinDigits(pluralButton("fa", button))).toBe("وارد کردن 2 قاعده");
   });
 
   it("name a rule that only inherits in the creator's language, and in English where the sentence is", () => {

@@ -5,7 +5,9 @@ import UserService from "../../../Services/UserService";
 import Query from "../../../Types/Database/Query";
 import QueryHelper from "../../../Types/Database/QueryHelper";
 import Select from "../../../Types/Database/Select";
+import logger from "../../Logger";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
+import { CodeTaskListStatement } from "./CodeTaskListQuery";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import User from "../../../../Models/DatabaseModels/User";
@@ -69,6 +71,29 @@ export interface CodeTaskTurnsRead {
   turns: Array<AIRun>;
   olderTurnsLeftOut: number;
 }
+
+// One of a task's replies, with its place in the task: the first turn is 1.
+export interface CodeTaskNumberedTurn {
+  turn: AIRun;
+  number: number;
+}
+
+// What a task's pull request is shown with, wherever Code shows one.
+export const CODE_TASK_PULL_REQUEST_SELECT: Select<AIAgentTaskPullRequest> = {
+  _id: true,
+  aiRunId: true,
+  codeRepositoryId: true,
+  title: true,
+  description: true,
+  pullRequestUrl: true,
+  pullRequestNumber: true,
+  pullRequestState: true,
+  headRefName: true,
+  baseRefName: true,
+  createdAt: true,
+  // What production showed once the fix merged.
+  ...FIX_PRODUCTION_REPORT_SELECT,
+};
 
 export default class CodeTaskThread {
   // The task (its first run) - null when it is not a code task of the project.
@@ -196,6 +221,10 @@ export default class CodeTaskThread {
    * than every reply it read. What the task's page still adds up over all
    * its turns - the files changed, how long AI worked - read with as little
    * as that needs (`select`). None when nothing was left out.
+   *
+   * At most LIMIT_PER_PROJECT of them, the newest: a task with more than
+   * that between its first turn and its newest has the oldest counted but
+   * not added up, and the log says so.
    */
   @CaptureSpan()
   public static async getTurnsLeftOut(data: {
@@ -211,7 +240,7 @@ export default class CodeTaskThread {
       return [];
     }
 
-    return await AIRunService.findBy({
+    const newestFirst: Array<AIRun> = await AIRunService.findBy({
       query: {
         ...CodeTaskThread.getRepliesQuery(data),
         createdAt: QueryHelper.lessThanEqualTo(new Date(oldestRead.createdAt)),
@@ -223,11 +252,20 @@ export default class CodeTaskThread {
         ),
       },
       select: data.select,
-      sort: { createdAt: SortOrder.Ascending },
+      sort: { createdAt: SortOrder.Descending },
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
     });
+
+    CodeTaskThread.logWhenCut({
+      projectId: data.projectId,
+      taskId: data.task.id,
+      read: newestFirst.length,
+      what: "turns its conversation does not show",
+    });
+
+    return [...newestFirst].reverse();
   }
 
   /*
@@ -248,6 +286,13 @@ export default class CodeTaskThread {
       limit: LIMIT_PER_PROJECT,
       skip: 0,
       props: { isRoot: true },
+    });
+
+    CodeTaskThread.logWhenCut({
+      projectId: data.projectId,
+      taskId: data.task.id,
+      read: replies.length,
+      what: "replies, for its pull requests",
     });
 
     return [
@@ -286,61 +331,6 @@ export default class CodeTaskThread {
     });
   }
 
-  /*
-   * The replies of many tasks at once, by task id, oldest first - what a
-   * list needs to tell each task's latest state.
-   */
-  @CaptureSpan()
-  public static async getRepliesByTask(data: {
-    projectId: ObjectID;
-    taskIds: Array<ObjectID>;
-  }): Promise<Map<string, Array<AIRun>>> {
-    const repliesByTask: Map<string, Array<AIRun>> = new Map<
-      string,
-      Array<AIRun>
-    >();
-
-    if (data.taskIds.length === 0) {
-      return repliesByTask;
-    }
-
-    const replies: Array<AIRun> = await AIRunService.findBy({
-      query: {
-        projectId: data.projectId,
-        runType: AIRunType.CodeFix,
-        codeTaskId: QueryHelper.any(data.taskIds),
-      },
-      select: {
-        _id: true,
-        codeTaskId: true,
-        status: true,
-        needsUserInput: true,
-        userId: true,
-        createdAt: true,
-        startedAt: true,
-        completedAt: true,
-        // A list row says why the latest turn failed, and its attempts.
-        errorMessage: true,
-        autoRetryCount: true,
-        nextAttemptAt: true,
-        retryReason: true,
-      },
-      sort: { createdAt: SortOrder.Ascending },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
-    });
-
-    for (const reply of replies) {
-      const taskId: string = reply.codeTaskId!.toString();
-      const list: Array<AIRun> = repliesByTask.get(taskId) || [];
-      list.push(reply);
-      repliesByTask.set(taskId, list);
-    }
-
-    return repliesByTask;
-  }
-
   // The pull requests the runs opened, newest first.
   @CaptureSpan()
   public static async getPullRequests(data: {
@@ -351,31 +341,27 @@ export default class CodeTaskThread {
       return [];
     }
 
-    return await AIAgentTaskPullRequestService.findBy({
-      query: {
-        projectId: data.projectId,
-        aiRunId: QueryHelper.any(data.runIds),
-      },
-      select: {
-        _id: true,
-        aiRunId: true,
-        codeRepositoryId: true,
-        title: true,
-        description: true,
-        pullRequestUrl: true,
-        pullRequestNumber: true,
-        pullRequestState: true,
-        headRefName: true,
-        baseRefName: true,
-        createdAt: true,
-        // What production showed once the fix merged.
-        ...FIX_PRODUCTION_REPORT_SELECT,
-      },
-      sort: { createdAt: SortOrder.Descending },
-      limit: LIMIT_PER_PROJECT,
-      skip: 0,
-      props: { isRoot: true },
+    const pullRequests: Array<AIAgentTaskPullRequest> =
+      await AIAgentTaskPullRequestService.findBy({
+        query: {
+          projectId: data.projectId,
+          aiRunId: QueryHelper.any(data.runIds),
+        },
+        select: CODE_TASK_PULL_REQUEST_SELECT,
+        sort: { createdAt: SortOrder.Descending },
+        limit: LIMIT_PER_PROJECT,
+        skip: 0,
+        props: { isRoot: true },
+      });
+
+    CodeTaskThread.logWhenCut({
+      projectId: data.projectId,
+      read: pullRequests.length,
+      what: "pull requests their runs opened",
+      details: { runCount: data.runIds.length },
     });
+
+    return pullRequests;
   }
 
   /*
@@ -424,6 +410,120 @@ export default class CodeTaskThread {
       pullRequests,
       codeRepositoryId: data.task.codeRepositoryId,
     });
+  }
+
+  /*
+   * One of the task's replies, by its run id, with its place in the task:
+   * what a link to a turn the conversation does not show opens (the Log
+   * page's `?turn=`). Null when the run is not a reply of this task -
+   * another task's, another project's, a chat's, or deleted.
+   */
+  @CaptureSpan()
+  public static async findReply(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    runId: ObjectID;
+    select?: Select<AIRun> | undefined;
+  }): Promise<CodeTaskNumberedTurn | null> {
+    const turn: AIRun | null = await AIRunService.findOneBy({
+      query: {
+        _id: data.runId.toString(),
+        projectId: data.projectId,
+        runType: AIRunType.CodeFix,
+        codeTaskId: data.task.id!,
+      },
+      select: data.select || CODE_TASK_TURN_SELECT,
+      props: { isRoot: true },
+    });
+
+    if (!turn?.id) {
+      return null;
+    }
+
+    const statement: CodeTaskListStatement =
+      CodeTaskThread.getRepliesBeforeStatement({
+        projectId: data.projectId,
+        taskId: data.task.id!,
+        replyId: turn.id,
+      });
+
+    const rows: Array<Record<string, unknown>> =
+      (await AIRunService.getRepository().manager.query(
+        statement.sql,
+        statement.parameters,
+      )) as Array<Record<string, unknown>>;
+
+    // The first turn, the replies before it, then the reply itself.
+    return {
+      turn,
+      number: 2 + CodeTaskThread.toCount(rows[0]?.["before"]),
+    };
+  }
+
+  /*
+   * How many of the task's replies come before one of them, in the order
+   * its conversation reads them (getTurns): asked earlier, or asked the
+   * same moment with the greater id - getTurns reads the newest first, and
+   * a tie by id. Compared with the reply's own row in Postgres, so no
+   * moment is rounded on its way: Postgres keeps microseconds, a
+   * JavaScript Date milliseconds. One row, "before".
+   */
+  public static getRepliesBeforeStatement(data: {
+    projectId: ObjectID;
+    taskId: ObjectID;
+    replyId: ObjectID;
+  }): CodeTaskListStatement {
+    return {
+      sql: `SELECT COUNT(*)::int AS "before"
+FROM "AIRun" AS "reply"
+JOIN "AIRun" AS "turn" ON "turn"."_id" = $4::uuid
+WHERE "reply"."projectId" = $1 AND "reply"."runType" = $2 AND "reply"."deletedAt" IS NULL
+  AND "reply"."codeTaskId" = $3::uuid
+  AND ("reply"."createdAt" < "turn"."createdAt"
+    OR ("reply"."createdAt" = "turn"."createdAt" AND "reply"."_id" > "turn"."_id"))`,
+      parameters: [
+        data.projectId.toString(),
+        AIRunType.CodeFix,
+        data.taskId.toString(),
+        data.replyId.toString(),
+      ],
+    };
+  }
+
+  /*
+   * A read that stopped at its limit left the rest unread. Never silently:
+   * the log says which task, and what was cut.
+   */
+  private static logWhenCut(data: {
+    projectId: ObjectID;
+    taskId?: ObjectID | null | undefined;
+    read: number;
+    what: string;
+    // What else the log says of the read.
+    details?: Record<string, number> | undefined;
+  }): void {
+    if (data.read < LIMIT_PER_PROJECT) {
+      return;
+    }
+
+    const subject: string = data.taskId
+      ? `Code task ${data.taskId.toString()}`
+      : "Code tasks";
+
+    logger.warn(
+      `${subject}: read the newest ${LIMIT_PER_PROJECT} ${data.what}; the older ones were not read.`,
+      {
+        projectId: data.projectId.toString(),
+        ...(data.taskId ? { codeTaskId: data.taskId.toString() } : {}),
+        ...(data.details || {}),
+      },
+    );
+  }
+
+  private static toCount(value: unknown): number {
+    const count: number = Number(value);
+
+    return Number.isFinite(count) && count > 0 ? Math.floor(count) : 0;
   }
 
   // The people who asked, by id: their name, or their email without one.

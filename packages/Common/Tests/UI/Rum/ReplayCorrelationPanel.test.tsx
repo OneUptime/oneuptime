@@ -660,7 +660,11 @@ describe("ReplayCorrelationPanel Session tab", () => {
       details: makeDetails({ identifiedUserLabel: null }),
     });
 
+    // Names the grant that shows it as the roles screen lists it (#7096).
     expect(screen.getByTestId("replay-details-end-user")).toHaveTextContent(
+      'Hidden - your role needs the "Watch Session Replays" permission',
+    );
+    expect(screen.getByTestId("replay-details-end-user")).not.toHaveTextContent(
       "identity permission",
     );
     unmount();
