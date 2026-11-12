@@ -165,7 +165,7 @@ Vad besökarna ser anges på ett enda kort: **Vad din statussida visar**, under 
 
 Om sidan visar ett objekt **Prenumerera** (**Visa prenumerantsida**, `showSubscriberPageOnStatusPage`, på som standard) och vilka kanaler besökare kan prenumerera via anges inte på den här skärmen: båda finns på kortet **Kanaler** under **Prenumeranter → Prenumerantinställningar** (se [Prenumerationskanaler](/docs/status-pages/subscribers#prenumerationskanaler)).
 
-Under kortet finns **Exportera Statussida som JSON**, som laddar ned statussidans egna inställningar till en fil du kan importera igen, och **Archive status page** (se [Arkivera en statussida](#arkivera-en-statussida)). Den totala upptidsprocenten och driftstoppsstatusarna var tidigare två egna kort här, vart och ett bakom en knapp **Redigera**; nu är de rader på kortet.
+Under kortet finns **Exportera Statussida som JSON**, som laddar ned statussidans egna inställningar till en fil du kan importera igen, och **Arkivera statussida** (se [Arkivera en statussida](#arkivera-en-statussida)). Den totala upptidsprocenten och driftstoppsstatusarna var tidigare två egna kort här, vart och ett bakom en knapp **Redigera**; nu är de rader på kortet.
 
 **Var färgerna finns.** Upptidsstaplarnas färger finns inte här: **Standardfärg för stapel** och färgreglerna för staplarna finns under **Fler inställningar** i **Statussidor → din sida → Varumärke → Varumärke**. Sidans **Tema** (ljust, mörkt eller som varje besökares enhet är inställd) är ett kort högt upp på samma sida. Det finns ingen inställning för varumärkesfärg; allt utöver de kontrollerna gör du med **Anpassad CSS**.
 
@@ -238,7 +238,7 @@ Arkivera en statussida för att ta den offline utan att ta bort den. En arkivera
 - **Försvinner från listan över statussidor.** Du hittar den under **Statussidor → Avancerad → Arkiverad**.
 - **Behåller allt.** Dess resurser, grupper, varumärke, domäner, privata användare och prenumeranter behålls, så när du avarkiverar den kommer sidan tillbaka online precis som den var.
 
-För att arkivera en statussida öppnar du den och går till **Avancerad → Avancerade inställningar → Archive status page**. För att arkivera flera markerar du dem i listan **Statussidor** och väljer **Arkivera**. För att få tillbaka en öppnar du **Statussidor → Avancerad → Arkiverad**, markerar den och väljer **Avarkivera**, eller öppnar den och klickar på **Avarkivera** i bannern högst upp på dess sidor.
+För att arkivera en statussida öppnar du den och går till **Avancerad → Avancerade inställningar → Arkivera statussida**. För att arkivera flera markerar du dem i listan **Statussidor** och väljer **Arkivera**. För att få tillbaka en öppnar du **Statussidor → Avancerad → Arkiverad**, markerar den och väljer **Avarkivera**, eller öppnar den och klickar på **Avarkivera** i bannern högst upp på dess sidor.
 
 ## Nästa steg
 

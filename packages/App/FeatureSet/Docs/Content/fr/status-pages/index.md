@@ -165,7 +165,7 @@ Ce que voient les visiteurs se règle dans une seule carte : **Ce que montre vot
 
 Le fait que la page affiche un élément **S'abonner** (**Afficher la page des abonnés**, `showSubscriberPageOnStatusPage`, activé par défaut), et les canaux par lesquels les visiteurs peuvent s'abonner, ne se règlent pas sur cet écran : les deux se trouvent dans la carte **Canaux** de **Abonnés → Paramètres des abonnés** (voir [Canaux d'abonnement](/docs/status-pages/subscribers#canaux-dabonnement)).
 
-Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui télécharge les paramètres propres de la page de statut dans un fichier que vous pouvez réimporter, et **Archive status page** (voir [Archiver une page de statut](#archiver-une-page-de-statut)). Le pourcentage de disponibilité global et les statuts d'indisponibilité étaient autrefois deux cartes à part ici, chacune derrière un bouton **Modifier** ; ce sont désormais des lignes de la carte.
+Sous la carte se trouvent **Exporter au format JSON : Page de statut**, qui télécharge les paramètres propres de la page de statut dans un fichier que vous pouvez réimporter, et **Archiver : page de statut** (voir [Archiver une page de statut](#archiver-une-page-de-statut)). Le pourcentage de disponibilité global et les statuts d'indisponibilité étaient autrefois deux cartes à part ici, chacune derrière un bouton **Modifier** ; ce sont désormais des lignes de la carte.
 
 **Où sont les couleurs.** Les couleurs des barres de disponibilité ne sont pas ici — la **Couleur de barre par défaut** et les règles de couleur des barres se trouvent sous **Plus de paramètres** sur **Pages de statut → votre page → Image de marque → Image de marque**. Le **Thème** de la page (clair, sombre, ou selon le réglage de l'appareil de chaque visiteur) est une carte en haut de cette même page. Il n'y a de réglage de couleur de marque nulle part ; tout ce qui va au-delà de ces contrôles se fait avec **CSS personnalisé**.
 
@@ -238,7 +238,7 @@ Archivez une page de statut pour la mettre hors ligne sans la supprimer. Une pag
 - **Quitte la liste des pages de statut.** Vous la retrouvez sous **Pages de statut → Avancé → Archivé**.
 - **Garde tout.** Ses ressources, groupes, image de marque, domaines, utilisateurs privés et abonnés sont conservés, si bien que la désarchiver remet la page en ligne exactement comme elle était.
 
-Pour archiver une page de statut, ouvrez-la et allez dans **Avancé → Paramètres avancés → Archive status page**. Pour en archiver plusieurs, sélectionnez-les dans la liste **Pages de statut** et choisissez **Archiver**. Pour en récupérer une, ouvrez **Pages de statut → Avancé → Archivé**, sélectionnez-la et choisissez **Désarchiver**, ou ouvrez-la et cliquez sur **Désarchiver** dans le bandeau en haut de ses pages.
+Pour archiver une page de statut, ouvrez-la et allez dans **Avancé → Paramètres avancés → Archiver : page de statut**. Pour en archiver plusieurs, sélectionnez-les dans la liste **Pages de statut** et choisissez **Archiver**. Pour en récupérer une, ouvrez **Pages de statut → Avancé → Archivé**, sélectionnez-la et choisissez **Désarchiver**, ou ouvrez-la et cliquez sur **Désarchiver** dans le bandeau en haut de ses pages.
 
 ## Étapes suivantes
 

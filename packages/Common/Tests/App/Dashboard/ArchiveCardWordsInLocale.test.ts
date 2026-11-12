@@ -233,6 +233,57 @@ describe.each(DASHBOARD_LANGUAGES)(
   },
 );
 
+describe("the card's title, a heading in every language", () => {
+  function title(
+    language: string,
+    singularName: string,
+    isArchived: boolean = false,
+  ): string {
+    return getArchiveCardWords({
+      singularName: singularName,
+      isArchived: isArchived,
+      copy: {},
+      translator: dashboardTranslator(language),
+    }).title;
+  }
+
+  test("starts with a capital where Dutch puts the name first", () => {
+    // nl words "service" as "dienst" and "Archive {{itemName}}" as "{{itemName}} archiveren".
+    expect(readDashboardLocale("nl")["service"]).toBe("dienst");
+    expect(title("nl", "service")).toBe("Dienst archiveren");
+    expect(title("nl", "service", true)).toBe("Dienst uit archief halen");
+  });
+
+  test("keeps a name's own case: vCenter", () => {
+    expect(title("nl", "vCenter")).toBe("vCenter archiveren");
+    expect(title("de", "vCenter")).toBe("vCenter archivieren");
+    expect(title("en", "vCenter")).toBe("Archive vCenter");
+  });
+
+  test.each(DASHBOARD_LANGUAGES)(
+    "no title in %s opens with a small letter",
+    (language: string) => {
+      const small: Array<string> = [];
+
+      for (const name of literalCardNames()) {
+        for (const isArchived of [false, true]) {
+          const drawn: string = title(language, name, isArchived);
+          const first: string = drawn.split(/\s/)[0]!;
+
+          if (
+            /^\p{Ll}/u.test(drawn) &&
+            !/^.+\p{Lu}/u.test(first) // "vCenter" keeps its case
+          ) {
+            small.push(drawn);
+          }
+        }
+      }
+
+      expect(small).toEqual([]);
+    },
+  );
+});
+
 describe("the check above, against words nobody has", () => {
   // Without these, a check that passed everything would look the same.
   test("a sentence no locale has is worded in none", () => {

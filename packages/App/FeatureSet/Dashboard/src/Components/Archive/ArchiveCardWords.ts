@@ -90,6 +90,37 @@ export interface ArchiveCardWords {
   confirmMessage: string;
 }
 
+// "vCenter", "iOS": a word with a capital after its first letter keeps its case.
+const INNER_CAPITAL: RegExp = /^.+\p{Lu}/u;
+
+/*
+ * A title starts with a capital, as a heading does. A language that puts
+ * the name first draws it as a sentence holds it - Dutch's "dienst
+ * archiveren" - so its first letter is raised: "Dienst archiveren". A name
+ * that keeps its case ("vCenter archiveren") is left as written.
+ */
+const asHeading: (text: string, language: string) => string = (
+  text: string,
+  language: string,
+): string => {
+  const firstWord: string = text.split(/\s/)[0] || "";
+
+  if (!text || INNER_CAPITAL.test(firstWord)) {
+    return text;
+  }
+
+  const first: string = String.fromCodePoint(text.codePointAt(0)!);
+  let raised: string = first;
+
+  try {
+    raised = first.toLocaleUpperCase(language);
+  } catch {
+    raised = first.toUpperCase();
+  }
+
+  return raised + text.slice(first.length);
+};
+
 /*
  * The card's title, description and confirmation for the state it is in,
  * in the reader's language: each of the resource's own sentences looked up,
@@ -126,9 +157,12 @@ export const getArchiveCardWords: (
 
   if (input.isArchived) {
     return {
-      title: translator.translateTemplate(UNARCHIVE_CARD_TITLE, {
-        itemName: name,
-      }),
+      title: asHeading(
+        translator.translateTemplate(UNARCHIVE_CARD_TITLE, {
+          itemName: name,
+        }),
+        translator.language,
+      ),
       description:
         own(input.copy.unarchiveCardDescription) ||
         translator.translateTemplate(TELEMETRY_UNARCHIVE_CARD_DESCRIPTION, {
@@ -143,9 +177,12 @@ export const getArchiveCardWords: (
   }
 
   return {
-    title: translator.translateTemplate(ARCHIVE_CARD_TITLE, {
-      itemName: name,
-    }),
+    title: asHeading(
+      translator.translateTemplate(ARCHIVE_CARD_TITLE, {
+        itemName: name,
+      }),
+      translator.language,
+    ),
     description:
       own(input.copy.archiveCardDescription) ||
       translator.translateTemplate(TELEMETRY_ARCHIVE_CARD_DESCRIPTION, {

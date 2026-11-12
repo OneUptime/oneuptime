@@ -173,6 +173,7 @@ const SOURCES: Record<string, string> = {
   settingsFields: `${DASHBOARD}/Pages/Slo/SloSettingsFormFields.ts`,
   evaluationCopy: `${DASHBOARD}/Components/Slo/SloEvaluationSwitchCopy.ts`,
   archiveCard: `${DASHBOARD}/Components/TelemetryResource/ArchiveResourceCard.tsx`,
+  archiveCardWords: `${DASHBOARD}/Components/Archive/ArchiveCardWords.ts`,
   statusTiles: `${DASHBOARD}/Components/Slo/SloStatusSummaryTiles.ts`,
   monitorsPage: `${DASHBOARD}/Pages/Slo/View/Monitors.tsx`,
   monitorRulesPage: `${DASHBOARD}/Pages/Slo/View/MonitorRules.tsx`,
@@ -893,7 +894,11 @@ describe("SLOs Overview, against the product", () => {
     expect(copy).toContain(
       'turnOnButton: translationKey("Turn evaluation on")',
     );
-    expect(archive).toContain("`Archive ${singularName}`");
+    // The card titles itself "Archive {{itemName}}" with the name (#7195).
+    expect(archive).toContain("getArchiveCardWords(");
+    expect(readSource("archiveCardWords")).toMatch(
+      /translationKey\(\s*"Archive \{\{itemName\}\}",?\s*\)/,
+    );
     expect(settings).toContain('singularName="SLO"');
 
     const fields: string = readSource("settingsFields");

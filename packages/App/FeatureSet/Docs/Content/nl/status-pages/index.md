@@ -165,7 +165,7 @@ Wat bezoekers zien, stelt u in op één kaart: **Wat uw statuspagina toont**, on
 
 Of de pagina een item **Abonneren** toont (**Abonneepagina weergeven**, `showSubscriberPageOnStatusPage`, standaard aan) en via welke kanalen bezoekers zich kunnen abonneren, stelt u niet op dit scherm in: beide staan op de kaart **Kanalen** onder **Abonnees → Abonneeinstellingen** (zie [Abonnementskanalen](/docs/status-pages/subscribers#abonnementskanalen)).
 
-Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instellingen van de statuspagina downloadt naar een bestand dat u opnieuw kunt importeren, en **Archive status page** (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)). Het totale uptimepercentage en de downtimestatussen waren hier vroeger twee eigen kaarten, elk achter een knop **Bewerken**; nu zijn het rijen van de kaart.
+Onder de kaart staan **Statuspagina exporteren als JSON**, dat de eigen instellingen van de statuspagina downloadt naar een bestand dat u opnieuw kunt importeren, en **Statuspagina archiveren** (zie [Een statuspagina archiveren](#een-statuspagina-archiveren)). Het totale uptimepercentage en de downtimestatussen waren hier vroeger twee eigen kaarten, elk achter een knop **Bewerken**; nu zijn het rijen van de kaart.
 
 **Waar de kleuren staan.** De kleuren van de uptimebalken staan hier niet: de **Standaard balkkleur** en de kleurregels voor de balken staan onder **Meer instellingen** in **Statuspagina's → uw pagina → Huisstijl → Huisstijl**. Het **Thema** van de pagina (licht, donker, of zoals het apparaat van elke bezoeker is ingesteld) is een kaart bovenaan diezelfde pagina. Er bestaat geen instelling voor een merkkleur; alles wat verder gaat dan die bedieningselementen doet u met **Aangepaste CSS**.
 
@@ -238,7 +238,7 @@ Archiveer een statuspagina om haar offline te halen zonder haar te verwijderen. 
 - **Verdwijnt uit de lijst met statuspagina's.** U vindt haar onder **Statuspagina's → Geavanceerd → Gearchiveerd**.
 - **Bewaart alles.** Haar resources, groepen, huisstijl, domeinen, privégebruikers en abonnees blijven bewaard, dus uit het archief halen zet de pagina precies zoals ze was weer online.
 
-Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Archive status page**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit archief halen**, of opent u haar en klikt u op **Uit archief halen** in de banner bovenaan haar pagina's.
+Om een statuspagina te archiveren, opent u haar en gaat u naar **Geavanceerd → Geavanceerde instellingen → Statuspagina archiveren**. Om er meerdere te archiveren, selecteert u ze in de lijst **Statuspagina's** en kiest u **Archiveren**. Om er een terug te halen, opent u **Statuspagina's → Geavanceerd → Gearchiveerd**, selecteert u haar en kiest u **Uit archief halen**, of opent u haar en klikt u op **Uit archief halen** in de banner bovenaan haar pagina's.
 
 ## Volgende stappen
 
