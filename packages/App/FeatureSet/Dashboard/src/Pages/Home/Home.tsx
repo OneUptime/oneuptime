@@ -8,6 +8,7 @@ import NeedsAttention from "../../Components/Home/NeedsAttention";
 import ProjectHealthCard from "../../Components/Home/ProjectHealthCard";
 import ProjectResources from "../../Components/Home/ProjectResources";
 import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
+import SetupCheckInCard from "../../Components/Feedback/SetupCheckInCard";
 import UpcomingMaintenance from "../../Components/Home/UpcomingMaintenance";
 import useHomeOverview, {
   UseHomeOverviewResult,
@@ -160,6 +161,21 @@ const Home: FunctionComponent<ComponentProps> = (
       <ServerSetupCard />
 
       <GettingStarted projectId={currentProjectId} className="!mb-0" />
+
+      {/*
+       * Is OneUptime set up the way you wanted? Once, for the project's
+       * creator in its first weeks, never while something is open (#6832).
+       */}
+      <SetupCheckInCard
+        projectId={currentProjectIdString}
+        isInIncident={
+          overview.data
+            ? overview.data.activeIncidents.count +
+                overview.data.activeAlerts.count >
+              0
+            : null
+        }
+      />
 
       <div data-testid="home-overview-row" className={HOME_ROW_CLASS_NAME}>
         <div

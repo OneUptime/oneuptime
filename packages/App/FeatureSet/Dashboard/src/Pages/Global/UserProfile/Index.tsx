@@ -1,13 +1,18 @@
 import PageComponentProps from "../../PageComponentProps";
 import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import CardModelDetail from "Common/UI/Components/ModelDetail/CardModelDetail";
+import ModelSwitchCard from "Common/UI/Components/ModelSwitch/ModelSwitchCard";
+import ProductFeedback, {
+  useProductFeedbackSettings,
+} from "Common/UI/Utils/ProductFeedback";
+import { ProductFeedbackSettings } from "Common/Types/ProductFeedback/ProductFeedback";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import UserUtil from "Common/UI/Utils/User";
 import User from "Common/Models/DatabaseModels/User";
 import { getUserChosenLanguage } from "Common/Types/UserLanguage";
-import React, { FunctionComponent, ReactElement } from "react";
+import React, { Fragment, FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 import TimezoneElement from "../../../Components/Timezone/TimezoneElement";
 import {
@@ -21,7 +26,15 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const translator: Translator = useTranslator();
   const { i18n } = useTranslation();
+  /*
+   * "Ask me how things went" (#6832), wherever the server asks people at
+   * all: a server whose admins switched feedback off asks nobody.
+   */
+  const feedbackSettings: ProductFeedbackSettings | null =
+    useProductFeedbackSettings();
+
   return (
+    <Fragment>
     <CardModelDetail
       cardProps={{
         title: "Basic Info",
@@ -163,6 +176,34 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
         modelId: UserUtil.getUserId(),
       }}
     />
+    {feedbackSettings?.isOn ? (
+      <ModelSwitchCard<User>
+        modelType={User}
+        modelId={UserUtil.getUserId()}
+        column="disableFeedbackQuestions"
+        isInverted={true}
+        cardTitle="Feedback Questions"
+        cardDescription="Now and then OneUptime asks how something went: at the end of a guided setup, under an explanation, and once in a new project's first weeks. At most one question a week, and never while something is down."
+        title="Ask me how things went"
+        getDescription={(isOn: boolean): string => {
+          return isOn
+            ? "OneUptime may ask you one short question now and then. Give feedback in Help works either way."
+            : "OneUptime never asks you. Give feedback in Help still works whenever you want to tell us something.";
+        }}
+        onSaved={(isOn: boolean) => {
+          const settings: ProductFeedbackSettings | null =
+            ProductFeedback.getSettings();
+
+          if (settings) {
+            ProductFeedback.setSettings({ ...settings, isAskingMe: isOn });
+          }
+        }}
+        dataTestId="user-profile-feedback-questions"
+      />
+    ) : (
+      <></>
+    )}
+    </Fragment>
   );
 };
 
