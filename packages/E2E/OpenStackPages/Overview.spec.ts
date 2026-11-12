@@ -8,6 +8,7 @@ import {
   VIEWPORTS,
   attentionRows,
   expect,
+  expectSizesNumberFirst,
   fixtureRecord,
   inLocale,
   openCloudPage,
@@ -1267,6 +1268,71 @@ test.describe("at every width, dark, in German and in Persian", () => {
     await openOverview(page, "lang=fa&estate=multi-region");
     await expectNoSidewaysScroll(page, { message: "Persian on a phone" });
     await screenshot(page, "overview-multi-region-persian-390");
+  });
+
+  /*
+   * A size is a number and a unit in Latin letters: drawn bare on a page read
+   * from the right, Top consumers wrote "TiB 6.0", unit first and in Latin
+   * digits, beside counts in Persian ones (issue #7191). Each size now reads
+   * its own way, in the reader's digits.
+   */
+  test("in Persian, every size is in Persian digits with its number before its unit, on a laptop and a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width: width, height: 900 });
+      await openOverview(page, "lang=fa");
+
+      const volumes: Locator = page
+        .getByTestId("openstack-top-consumers-list")
+        .locator('xpath=self::*[@data-key="projects-volumes"]');
+      const values: Locator = volumes.getByTestId(
+        "openstack-top-consumers-value",
+      );
+
+      await expect(values).toHaveText([
+        "۶٫۰ TiB",
+        "۲٫۰ TiB",
+        "۵۰۰ GiB",
+        "۲۰ GiB",
+      ]);
+      // Each value is a figure of its own, read left to right.
+      await expect(values.first()).toHaveAttribute("dir", "ltr");
+
+      const sizes: Array<{ text: string }> = await expectSizesNumberFirst(
+        volumes,
+        `Top consumers at ${width}`,
+      );
+      expect(
+        sizes.map((size: { text: string }): string => {
+          return size.text;
+        }),
+      ).toEqual(["۶٫۰ TiB", "۲٫۰ TiB", "۵۰۰ GiB", "۲۰ GiB"]);
+
+      // The tiles' "used of total", each size its own way in a Persian sentence.
+      for (const title of ["Memory allocated", "Storage used"]) {
+        const sublabel: Locator = tile(
+          page,
+          inLocale(PERSIAN, title),
+        ).getByTestId("golden-metric-tile-sublabel");
+
+        await expect(sublabel).not.toHaveText(/[0-9]/);
+        expect(
+          await expectSizesNumberFirst(sublabel, `${title} at ${width}`),
+        ).toHaveLength(2);
+      }
+
+      // Every figure of the card in Persian digits: counts, sizes and shares.
+      for (const figure of await page
+        .getByTestId("openstack-top-consumers-value")
+        .allTextContents()) {
+        expect(figure).not.toMatch(/[0-9]/);
+      }
+      await expectNoSidewaysScroll(page, { message: `Persian at ${width}` });
+      await screenshot(page, `overview-sizes-persian-${width}`);
+    }
   });
 });
 

@@ -38769,8 +38769,8 @@
   "This field holds up to {{count}} files. Remove one to add another.": "Dette felt kan indeholde op til {{count}} filer. Fjern en for at tilføje en anden.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" er ikke en filtype, som dette felt accepterer.",
   "These files are not a type this field takes: {{fileNames}}.": "Disse filer har en type, som dette felt ikke accepterer: {{fileNames}}.",
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP, op til 10 MB.",
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Op til 10 filer på hver 10 MB: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP, op til {{size}}.",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Op til 10 filer på hver {{size}}: PDF-, Office- og OpenDocument-filer, billeder, tekst, CSV, JSON, ZIP eller PCAP.",
   "Has files": "Har filer",
   "No files": "Ingen filer",
   "One file, such as a screenshot or a signed document.": "Én fil, fx et skærmbillede eller et underskrevet dokument.",
@@ -51634,5 +51634,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "Dette element ({{itemName}}) er arkiveret og skjult fra lister. Det indsamler stadig telemetri. Fjern det fra arkivet for at gøre det synligt igen.",
   "Unarchive {{count}} {{itemsName}}?": "Fjern {{count}} {{itemsName}} fra arkiv?",
   "Unarchive {{count}} {{itemsName}}?_one": "Fjern {{count}} {{itemName}} fra arkiv?",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLO'er, der fjernes fra arkivet, vises igen på SLO-listen og evalueres igen i næste cyklus. En SLO, der var deaktiveret, før den blev arkiveret, forbliver deaktiveret."
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLO'er, der fjernes fra arkivet, vises igen på SLO-listen og evalueres igen i næste cyklus. En SLO, der var deaktiveret, før den blev arkiveret, forbliver deaktiveret.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "Denne statusside er privat: kun personer, der logger ind på den eller kender dens adgangskode, kan læse den. Kun en offentlig statusside kan overvåges.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "Denne statusside lukker kun IP-adresserne på dens tilladelsesliste ind, og denne sondes adresse er ikke en af dem. Tilføj sondens adresse til tilladelseslisten, eller overvåg siden fra en sonde inden for det netværk."
 }

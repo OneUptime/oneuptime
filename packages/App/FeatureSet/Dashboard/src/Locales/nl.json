@@ -38769,8 +38769,8 @@
   "This field holds up to {{count}} files. Remove one to add another.": "Dit veld bevat maximaal {{count}} bestanden. Verwijder er een om een ander toe te voegen.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" is geen bestandstype dat dit veld accepteert.",
   "These files are not a type this field takes: {{fileNames}}.": "Deze bestanden hebben een type dat dit veld niet accepteert: {{fileNames}}.",
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP, tot 10 MB.",
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Tot 10 bestanden van elk 10 MB: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP, tot {{size}}.",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Tot 10 bestanden van elk {{size}}: PDF-, Office- en OpenDocument-bestanden, afbeeldingen, tekst, CSV, JSON, ZIP of PCAP.",
   "Has files": "Heeft bestanden",
   "No files": "Geen bestanden",
   "One file, such as a screenshot or a signed document.": "Eén bestand, zoals een schermafbeelding of een ondertekend document.",
@@ -51634,5 +51634,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "Dit item ({{itemName}}) is gearchiveerd en verborgen in lijsten. Het blijft telemetrie verzamelen. Haal het uit het archief om het weer zichtbaar te maken.",
   "Unarchive {{count}} {{itemsName}}?": "{{count}} {{itemsName}} uit archief halen?",
   "Unarchive {{count}} {{itemsName}}?_one": "{{count}} {{itemName}} uit archief halen?",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLO's die uit het archief zijn gehaald, verschijnen weer in de SLO-lijst en worden in de volgende cyclus opnieuw geëvalueerd. Een SLO die vóór het archiveren was uitgeschakeld, blijft uitgeschakeld."
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "SLO's die uit het archief zijn gehaald, verschijnen weer in de SLO-lijst en worden in de volgende cyclus opnieuw geëvalueerd. Een SLO die vóór het archiveren was uitgeschakeld, blijft uitgeschakeld.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "Deze statuspagina is privé: alleen mensen die erop inloggen of het wachtwoord kennen, kunnen haar lezen. Alleen een openbare statuspagina kan worden bewaakt.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "Deze statuspagina laat alleen de IP-adressen op haar toelatingslijst toe, en het adres van deze sonde hoort daar niet bij. Voeg het adres van de sonde toe aan de toelatingslijst, of bewaak de pagina vanaf een sonde binnen dat netwerk."
 }

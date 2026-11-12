@@ -38769,8 +38769,8 @@
   "This field holds up to {{count}} files. Remove one to add another.": "此欄位最多可包含 {{count}} 個檔案。請先移除一個，再新增其他檔案。",
   "\"{{fileName}}\" is not a type of file this field takes.": "「{{fileName}}」不是此欄位接受的檔案類型。",
   "These files are not a type this field takes: {{fileNames}}.": "以下檔案不是此欄位接受的類型：{{fileNames}}。",
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF、Office 和 OpenDocument 檔案、圖片、文字、CSV、JSON、ZIP 或 PCAP，最大 10 MB。",
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "最多 10 個檔案，每個最大 10 MB：PDF、Office 和 OpenDocument 檔案、圖片、文字、CSV、JSON、ZIP 或 PCAP。",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF、Office 和 OpenDocument 檔案、圖片、文字、CSV、JSON、ZIP 或 PCAP，最大 {{size}}。",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "最多 10 個檔案，每個最大 {{size}}：PDF、Office 和 OpenDocument 檔案、圖片、文字、CSV、JSON、ZIP 或 PCAP。",
   "Has files": "有檔案",
   "No files": "無檔案",
   "One file, such as a screenshot or a signed document.": "一個檔案，例如螢幕截圖或已簽署的文件。",
@@ -51634,5 +51634,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "此{{itemName}}已封存，並已從清單中隱藏。它仍在收集遙測資料。取消封存即可使其重新顯示。",
   "Unarchive {{count}} {{itemsName}}?": "要取消封存 {{count}} 個{{itemsName}}嗎？",
   "Unarchive {{count}} {{itemsName}}?_one": "要取消封存 {{count}} 個{{itemName}}嗎？",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "取消封存的 SLO 會重新出現在 SLO 清單中，並在下一個週期重新評估。封存前已停用的 SLO 將維持停用狀態。"
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "取消封存的 SLO 會重新出現在 SLO 清單中，並在下一個週期重新評估。封存前已停用的 SLO 將維持停用狀態。",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "此狀態頁面為私人頁面：只有登入該頁面或知道其密碼的人才能查看。只能監控公開的狀態頁面。",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "此狀態頁面只允許其 IP 允許清單中的 IP 位址存取，而此探測器的位址不在其中。請將探測器的位址新增至允許清單，或從該網路內的探測器監控此頁面。"
 }

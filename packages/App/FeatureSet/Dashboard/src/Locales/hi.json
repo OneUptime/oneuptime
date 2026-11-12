@@ -38769,8 +38769,8 @@
   "This field holds up to {{count}} files. Remove one to add another.": "इस फ़ील्ड में अधिकतम {{count}} फ़ाइलें रखी जा सकती हैं। दूसरी जोड़ने के लिए एक हटाएं।",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" ऐसी फ़ाइल नहीं है जिसे यह फ़ील्ड स्वीकार करता है।",
   "These files are not a type this field takes: {{fileNames}}.": "ये फ़ाइलें ऐसे प्रकार की नहीं हैं जिसे यह फ़ील्ड स्वीकार करता है: {{fileNames}}।",
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF, Office और OpenDocument फ़ाइलें, चित्र, टेक्स्ट, CSV, JSON, ZIP या PCAP, 10 MB तक।",
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "अधिकतम 10 फ़ाइलें, हर एक 10 MB तक: PDF, Office और OpenDocument फ़ाइलें, चित्र, टेक्स्ट, CSV, JSON, ZIP या PCAP।",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF, Office और OpenDocument फ़ाइलें, चित्र, टेक्स्ट, CSV, JSON, ZIP या PCAP, {{size}} तक।",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "अधिकतम 10 फ़ाइलें, हर एक {{size}} तक: PDF, Office और OpenDocument फ़ाइलें, चित्र, टेक्स्ट, CSV, JSON, ZIP या PCAP।",
   "Has files": "फ़ाइलें हैं",
   "No files": "कोई फ़ाइल नहीं",
   "One file, such as a screenshot or a signed document.": "एक फ़ाइल, जैसे स्क्रीनशॉट या हस्ताक्षरित दस्तावेज़।",
@@ -51634,5 +51634,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "यह {{itemName}} संग्रहीत है और सूचियों में नहीं दिखता। यह अब भी टेलीमेट्री इकट्ठा कर रहा है। इसे फिर से दिखाने के लिए संग्रह से निकालें।",
   "Unarchive {{count}} {{itemsName}}?": "{{count}} {{itemsName}} को संग्रह से निकालें?",
   "Unarchive {{count}} {{itemsName}}?_one": "{{count}} {{itemName}} को संग्रह से निकालें?",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "संग्रह से निकाले गए SLO, SLO सूची में फिर से दिखते हैं और अगले चक्र में उनका फिर से मूल्यांकन होता है। जो SLO संग्रहित करने से पहले अक्षम था, वह अक्षम ही रहता है।"
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "संग्रह से निकाले गए SLO, SLO सूची में फिर से दिखते हैं और अगले चक्र में उनका फिर से मूल्यांकन होता है। जो SLO संग्रहित करने से पहले अक्षम था, वह अक्षम ही रहता है।",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "यह स्थिति पृष्ठ निजी है: इसे केवल वे लोग पढ़ सकते हैं जो इसमें साइन इन करते हैं या इसका पासवर्ड जानते हैं। केवल सार्वजनिक स्थिति पृष्ठ की निगरानी की जा सकती है।",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "यह स्थिति पृष्ठ केवल अपनी अनुमति सूची में दर्ज IP पतों को आने देता है, और इस प्रोब का पता उनमें से एक नहीं है। प्रोब का पता अनुमति सूची में जोड़ें, या उस नेटवर्क के भीतर किसी प्रोब से पृष्ठ की निगरानी करें।"
 }

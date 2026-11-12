@@ -38769,8 +38769,8 @@
   "This field holds up to {{count}} files. Remove one to add another.": "Questo campo contiene al massimo {{count}} file. Rimuovine uno per aggiungerne un altro.",
   "\"{{fileName}}\" is not a type of file this field takes.": "\"{{fileName}}\" non è un tipo di file accettato da questo campo.",
   "These files are not a type this field takes: {{fileNames}}.": "Questi file non sono di un tipo accettato da questo campo: {{fileNames}}.",
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "File PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP, fino a 10 MB.",
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Fino a 10 file da 10 MB ciascuno: file PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP.",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "File PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP, fino a {{size}}.",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "Fino a 10 file da {{size}} ciascuno: file PDF, Office e OpenDocument, immagini, testo, CSV, JSON, ZIP o PCAP.",
   "Has files": "Con file",
   "No files": "Nessun file",
   "One file, such as a screenshot or a signed document.": "Un file, come uno screenshot o un documento firmato.",
@@ -51634,5 +51634,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "Questo elemento ({{itemName}}) è archiviato e nascosto dagli elenchi. Continua a raccogliere telemetria. Annullane l'archiviazione per renderlo di nuovo visibile.",
   "Unarchive {{count}} {{itemsName}}?": "Annullare l'archiviazione di {{count}} elementi ({{itemsName}})?",
   "Unarchive {{count}} {{itemsName}}?_one": "Annullare l'archiviazione di {{count}} elemento ({{itemName}})?",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "Gli SLO di cui è stata annullata l'archiviazione riappaiono nell'elenco degli SLO e vengono valutati di nuovo al prossimo ciclo. Uno SLO che era disabilitato prima di essere archiviato resta disabilitato."
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "Gli SLO di cui è stata annullata l'archiviazione riappaiono nell'elenco degli SLO e vengono valutati di nuovo al prossimo ciclo. Uno SLO che era disabilitato prima di essere archiviato resta disabilitato.",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "Questa pagina di stato è privata: solo chi vi accede o ne conosce la password può leggerla. Si può monitorare solo una pagina di stato pubblica.",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "Questa pagina di stato lascia entrare solo gli indirizzi IP della sua lista IP consentiti, e l'indirizzo di questa sonda non è tra questi. Aggiungi l'indirizzo della sonda alla lista IP consentiti, oppure monitora la pagina da una sonda all'interno di quella rete."
 }

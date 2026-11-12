@@ -65,6 +65,7 @@ import {
 import {
   formatOpenStackBytes,
   formatOpenStackCount,
+  formatOpenStackPercent,
 } from "../OpenStackResourceList";
 import {
   OpenStackPartRoutes,
@@ -169,11 +170,21 @@ function amountText(
   if (percent === null) {
     return translator.translateText("Not reported") || "Not reported";
   }
-  // The share first and short: a list of zones has little room, and the page has the rest.
-  return translator.translateTemplate("{{percent}} of {{total}}", {
-    total: format(capacity),
-    percent: `${Math.round(percent)}%`,
-  });
+  /*
+   * The share first and short: a list of zones has little room, and the page has the rest.
+   * Only ever drawn (a cell, a tile), so each value is set apart: "۱٫۰ TiB" keeps its number
+   * before its unit in a Persian sentence, both in the reader's digits (issue #7191).
+   */
+  return translator.translateTemplate(
+    "{{percent}} of {{total}}",
+    {
+      total: format(capacity),
+      percent: formatOpenStackPercent(percent, {
+        language: translator.language,
+      }),
+    },
+    { setsValuesApart: true },
+  );
 }
 
 function hypervisorsText(

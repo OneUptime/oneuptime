@@ -38769,8 +38769,8 @@
   "This field holds up to {{count}} files. Remove one to add another.": "このフィールドに入れられるファイルは最大 {{count}} 個です。別のファイルを追加するには、1 つ削除してください。",
   "\"{{fileName}}\" is not a type of file this field takes.": "「{{fileName}}」は、このフィールドで受け付けていない種類のファイルです。",
   "These files are not a type this field takes: {{fileNames}}.": "次のファイルは、このフィールドで受け付けていない種類です: {{fileNames}}。",
-  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 10 MB.": "PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP（最大 10 MB）。",
-  "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "最大 10 個、各 10 MB まで：PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP。",
+  "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to {{size}}.": "PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP（最大 {{size}}）。",
+  "Up to 10 files of {{size}} each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.": "最大 10 個、各 {{size}} まで：PDF、Office、OpenDocument のファイル、画像、テキスト、CSV、JSON、ZIP、PCAP。",
   "Has files": "ファイルあり",
   "No files": "ファイルなし",
   "One file, such as a screenshot or a signed document.": "1 つのファイル（スクリーンショットや署名済みの文書など）。",
@@ -51634,5 +51634,7 @@
   "This {{itemName}} is archived and hidden from lists. It is still collecting telemetry. Unarchive it to make it visible again.": "この{{itemName}}はアーカイブ済みで、一覧に表示されません。テレメトリーの収集は続いています。再び表示するには、アーカイブを解除してください。",
   "Unarchive {{count}} {{itemsName}}?": "{{itemsName}}を {{count}} 件アーカイブ解除しますか？",
   "Unarchive {{count}} {{itemsName}}?_one": "{{itemName}}を {{count}} 件アーカイブ解除しますか？",
-  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "アーカイブを解除した SLO は SLO 一覧に再び表示され、次のサイクルで再び評価されます。アーカイブ前に無効だった SLO は無効のままです。"
+  "Unarchived SLOs reappear in the SLO list and are evaluated again on the next cycle. An SLO that was disabled before it was archived stays disabled.": "アーカイブを解除した SLO は SLO 一覧に再び表示され、次のサイクルで再び評価されます。アーカイブ前に無効だった SLO は無効のままです。",
+  "This status page is private: only people who sign in to it, or who know its password, can read it. Only a public status page can be watched.": "このステータスページは非公開です。サインインした人またはパスワードを知っている人だけが閲覧できます。監視できるのは公開ステータスページだけです。",
+  "This status page lets in only the IP addresses on its allowlist, and this probe's address is not one of them. Add the probe's address to the allowlist, or watch the page from a probe inside that network.": "このステータスページは IP 許可リストにある IP アドレスからのアクセスだけを許可しており、このプローブのアドレスは含まれていません。プローブのアドレスを許可リストに追加するか、そのネットワーク内のプローブからページを監視してください。"
 }

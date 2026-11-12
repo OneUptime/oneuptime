@@ -13,9 +13,13 @@ import PostgresAppInstance from "../../../Server/Infrastructure/PostgresDatabase
 import OpenStackCloudCheckService from "../../../Server/Services/OpenStackCloudCheckService";
 import Encryption from "../../../Server/Utils/Encryption";
 import logger from "../../../Server/Utils/Logger";
-import { OpenStackCheckReportOutcome } from "../../../Server/Utils/OpenStack/OpenStackCheckStore";
+import OpenStackCheckStore, {
+  OpenStackCheckReportOutcome,
+} from "../../../Server/Utils/OpenStack/OpenStackCheckStore";
 import ObjectID from "../../../Types/ObjectID";
 import {
+  DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES,
+  DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES,
   OpenStackApiCheckJob,
   OpenStackApiCheckResult,
   OpenStackLifecycleCheckJob,
@@ -24,6 +28,12 @@ import {
   OpenStackLifecycleStep,
 } from "../../../Types/OpenStack/OpenStackCheck";
 import OpenStackCollectionMethod from "../../../Types/OpenStack/OpenStackCollectionMethod";
+import {
+  createReferencingTable,
+  expectClaimLocksHoldOnlyTheRow,
+  expectConcurrentClaimsHandOutEachRowOnce,
+  expectHeldRowSkipped,
+} from "../TestingUtils/Postgres/ClaimRowLocks";
 import { DataSource } from "typeorm";
 
 /*
@@ -99,6 +109,8 @@ describePostgres("OpenStack checks' SQL against Postgres", () => {
     .toString()
     .replace(DASHES, "")}`;
   let database: DataSource;
+  // Rows that name a check by a foreign key, as its run records do.
+  let referencingTable: string;
 
   const projectId: ObjectID = ObjectID.generate();
   const otherProjectId: ObjectID = ObjectID.generate();
@@ -152,6 +164,12 @@ describePostgres("OpenStack checks' SQL against Postgres", () => {
         `ALTER TABLE "${schema}"."${column.table_name}" ALTER COLUMN "${column.column_name}" DROP NOT NULL`,
       );
     }
+
+    referencingTable = await createReferencingTable({
+      database: database,
+      schema: schema,
+      parentTable: "OpenStackCloudCheck",
+    });
   });
 
   afterAll(async () => {
@@ -235,6 +253,8 @@ describePostgres("OpenStack checks' SQL against Postgres", () => {
     isSweepPending?: boolean;
     next?: Date;
     settingsVersion?: number;
+    apiIntervalInMinutes?: number | null;
+    lifecycleIntervalInMinutes?: number | null;
   }): Promise<ObjectID> {
     const id: ObjectID = ObjectID.generate();
     const probe: ObjectID | null =
@@ -249,7 +269,7 @@ describePostgres("OpenStack checks' SQL against Postgres", () => {
          "isLifecycleCheckEnabled", "lifecycleCheckIntervalInMinutes", "nextLifecycleCheckAt", "lifecycleProjectName",
          "isSweepPending", "osProfilerKey", "isOsProfilerKeySet", "settingsVersion", "createdAt", "updatedAt", "version")
        VALUES ($1, $2, $3, $4, $5, 'public', $6, 'applicationCredential', 'the-checks', $7, $8, $9,
-               $10, 1, $11, $12, 30, $11, 'oneuptime-checks', $13, $14, true, $15, now(), now(), 1)`,
+               $10, $16, $11, $12, $17, $11, 'oneuptime-checks', $13, $14, true, $15, now(), now(), 1)`,
       [
         id.toString(),
         projectId.toString(),
@@ -272,6 +292,10 @@ describePostgres("OpenStack checks' SQL against Postgres", () => {
         data.isSweepPending ?? false,
         await Encryption.encrypt("the-key"),
         data.settingsVersion ?? 3,
+        data.apiIntervalInMinutes === undefined ? 1 : data.apiIntervalInMinutes,
+        data.lifecycleIntervalInMinutes === undefined
+          ? 30
+          : data.lifecycleIntervalInMinutes,
       ],
     );
 
@@ -400,6 +424,271 @@ describePostgres("OpenStack checks' SQL against Postgres", () => {
 
       expect(jobs).toHaveLength(1);
       expect(jobs[0]!.isSweepOnly).toBe(true);
+    });
+
+    /*
+     * The claim moves each check on in SQL now, by getSafeApiInterval's
+     * and getSafeLifecycleInterval's rule: a whole minute or more is the
+     * check's own, anything else the default. The job is handed the same
+     * interval the row is moved by.
+     */
+    test("an API check is moved on by its own interval, or by the default when it has none", async () => {
+      // [interval stored, minutes to the next check]
+      const intervals: Array<[number | null, number]> = [
+        [null, DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES],
+        [-3, DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES],
+        [0, DEFAULT_OPENSTACK_API_CHECK_INTERVAL_IN_MINUTES],
+        [1, 1],
+        [2, 2],
+        [7, 7],
+        [61, 61],
+        [500, 500],
+      ];
+      const ids: Array<ObjectID> = [];
+
+      for (const [index, [stored]] of intervals.entries()) {
+        ids.push(
+          await insertCheck({
+            cloudId: await insertCloud(),
+            next: minutesFromNow(-30 + index),
+            apiIntervalInMinutes: stored,
+          }),
+        );
+      }
+
+      const before: number = Date.now();
+      const jobs: Array<OpenStackApiCheckJob> = await claimApi(probeId);
+      const after: number = Date.now();
+
+      expect(
+        jobs.map((job: OpenStackApiCheckJob): string => {
+          return job.openStackCloudCheckId;
+        }),
+      ).toEqual(
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      for (const [index, [stored, minutes]] of intervals.entries()) {
+        expect([
+          stored,
+          OpenStackCheckStore.getSafeApiInterval(stored),
+          jobs[index]!.intervalInMinutes,
+        ]).toEqual([stored, minutes, minutes]);
+
+        // The claim read its clock between before and after.
+        const row: Record<string, unknown> = await readCheck(ids[index]!);
+        const next: number = (row["nextApiCheckAt"] as Date).getTime();
+        expect([stored, Math.round((next - before) / 60_000)]).toEqual([
+          stored,
+          minutes,
+        ]);
+        expect(next).toBeGreaterThanOrEqual(before + minutes * 60_000);
+        expect(next).toBeLessThanOrEqual(after + minutes * 60_000);
+
+        // Only the API check's time moves.
+        expect((row["nextLifecycleCheckAt"] as Date).getTime()).toBeLessThan(
+          before,
+        );
+      }
+    });
+
+    test("a lifecycle check is moved on by its own interval, or by the default when it has none", async () => {
+      // [interval stored, minutes to the next check]
+      const intervals: Array<[number | null, number]> = [
+        [null, DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES],
+        [-3, DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES],
+        [0, DEFAULT_OPENSTACK_LIFECYCLE_CHECK_INTERVAL_IN_MINUTES],
+        [1, 1],
+        [45, 45],
+        [500, 500],
+      ];
+      const ids: Array<ObjectID> = [];
+
+      for (const [index, [stored]] of intervals.entries()) {
+        ids.push(
+          await insertCheck({
+            cloudId: await insertCloud(),
+            isLifecycleOn: true,
+            next: minutesFromNow(-30 + index),
+            lifecycleIntervalInMinutes: stored,
+          }),
+        );
+      }
+
+      const before: number = Date.now();
+      const jobs: Array<OpenStackLifecycleCheckJob> =
+        await claimLifecycle(probeId);
+      const after: number = Date.now();
+
+      expect(
+        jobs.map((job: OpenStackLifecycleCheckJob): string => {
+          return job.openStackCloudCheckId;
+        }),
+      ).toEqual(
+        ids.map((id: ObjectID): string => {
+          return id.toString();
+        }),
+      );
+
+      for (const [index, [stored, minutes]] of intervals.entries()) {
+        expect([
+          stored,
+          OpenStackCheckStore.getSafeLifecycleInterval(stored),
+          jobs[index]!.intervalInMinutes,
+        ]).toEqual([stored, minutes, minutes]);
+
+        const row: Record<string, unknown> = await readCheck(ids[index]!);
+        const next: number = (row["nextLifecycleCheckAt"] as Date).getTime();
+        expect([stored, Math.round((next - before) / 60_000)]).toEqual([
+          stored,
+          minutes,
+        ]);
+        expect(next).toBeGreaterThanOrEqual(before + minutes * 60_000);
+        expect(next).toBeLessThanOrEqual(after + minutes * 60_000);
+
+        // Only the lifecycle check's time moves.
+        expect((row["nextApiCheckAt"] as Date).getTime()).toBeLessThan(before);
+      }
+    });
+
+    test("four claims at once hand out each due check once, of either kind", async () => {
+      const apiChecks: Array<string> = [];
+      const lifecycleChecks: Array<string> = [];
+
+      for (let index: number = 0; index < 8; index++) {
+        apiChecks.push(
+          (
+            await insertCheck({
+              cloudId: await insertCloud(),
+              next: minutesFromNow(-20 + index),
+            })
+          ).toString(),
+        );
+        lifecycleChecks.push(
+          (
+            await insertCheck({
+              cloudId: await insertCloud(),
+              isApiOn: false,
+              isLifecycleOn: true,
+              next: minutesFromNow(-20 + index),
+            })
+          ).toString(),
+        );
+      }
+
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: apiChecks,
+        claim: async (limit: number): Promise<Array<string>> => {
+          return (
+            await OpenStackCloudCheckService.claimApiChecks({
+              probeId: probeId,
+              runningIds: [],
+              limit: limit,
+            })
+          ).map((job: OpenStackApiCheckJob): string => {
+            return job.openStackCloudCheckId;
+          });
+        },
+      });
+
+      await expectConcurrentClaimsHandOutEachRowOnce({
+        due: lifecycleChecks,
+        claim: async (limit: number): Promise<Array<string>> => {
+          return (
+            await OpenStackCloudCheckService.claimLifecycleChecks({
+              probeId: probeId,
+              runningIds: [],
+              limit: limit,
+            })
+          ).map((job: OpenStackLifecycleCheckJob): string => {
+            return job.openStackCloudCheckId;
+          });
+        },
+      });
+    });
+
+    test("a check another writer holds is skipped, not waited for, and is handed out once it is free", async () => {
+      const held: ObjectID = await insertCheck({
+        cloudId: await insertCloud(),
+        next: minutesFromNow(-9),
+      });
+      const free: Array<ObjectID> = [
+        await insertCheck({
+          cloudId: await insertCloud(),
+          next: minutesFromNow(-8),
+        }),
+        await insertCheck({
+          cloudId: await insertCloud(),
+          next: minutesFromNow(-7),
+        }),
+      ];
+
+      await expectHeldRowSkipped({
+        database: database,
+        schema: schema,
+        table: "OpenStackCloudCheck",
+        held: held,
+        free: free,
+        claim: async (): Promise<Array<string>> => {
+          return (await claimApi(probeId)).map(
+            (job: OpenStackApiCheckJob): string => {
+              return job.openStackCloudCheckId;
+            },
+          );
+        },
+      });
+    });
+
+    /*
+     * The failure OneUptime issue #7194 reported, at its root: a claim held
+     * every check it handed out FOR UPDATE for a whole transaction, and
+     * every row that names one waited for it, past lock_timeout on a busy
+     * database. Each kind of claim is its own statement.
+     */
+    test("while an API or a lifecycle claim's row locks are held, a row that names the check is still written; only the check row itself waits", async () => {
+      const apiCheck: ObjectID = await insertCheck({
+        cloudId: await insertCloud(),
+      });
+
+      await expectClaimLocksHoldOnlyTheRow({
+        database: database,
+        schema: schema,
+        service: OpenStackCloudCheckService,
+        table: "OpenStackCloudCheck",
+        referencingTable: referencingTable,
+        id: apiCheck,
+        claim: async (): Promise<Array<string>> => {
+          return (await claimApi(probeId)).map(
+            (job: OpenStackApiCheckJob): string => {
+              return job.openStackCloudCheckId;
+            },
+          );
+        },
+      });
+
+      const lifecycleCheck: ObjectID = await insertCheck({
+        cloudId: await insertCloud(),
+        isApiOn: false,
+        isLifecycleOn: true,
+      });
+
+      await expectClaimLocksHoldOnlyTheRow({
+        database: database,
+        schema: schema,
+        service: OpenStackCloudCheckService,
+        table: "OpenStackCloudCheck",
+        referencingTable: referencingTable,
+        id: lifecycleCheck,
+        claim: async (): Promise<Array<string>> => {
+          return (await claimLifecycle(probeId)).map(
+            (job: OpenStackLifecycleCheckJob): string => {
+              return job.openStackCloudCheckId;
+            },
+          );
+        },
+      });
     });
   });
 
