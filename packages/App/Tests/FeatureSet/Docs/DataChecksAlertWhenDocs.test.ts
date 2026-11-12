@@ -52,31 +52,32 @@ describe("the Alert When conditions the checks page quotes", () => {
     }
   });
 
-  test.each(DOCS_LANGUAGES.filter((language: string) => language !== "en"))(
-    "the %s page quotes each as its Dashboard draws it",
-    (language: string) => {
-      const page: string = readPage(language, PAGE);
+  test.each(
+    DOCS_LANGUAGES.filter((language: string) => {
+      return language !== "en";
+    }),
+  )("the %s page quotes each as its Dashboard draws it", (language: string) => {
+    const page: string = readPage(language, PAGE);
 
-      for (const [first, second] of CONDITIONS) {
-        const drawnFirst: string = drawnDashboardLabel(language, first!);
-        const drawnSecond: string = drawnDashboardLabel(language, second!);
+    for (const [first, second] of CONDITIONS) {
+      const drawnFirst: string = drawnDashboardLabel(language, first!);
+      const drawnSecond: string = drawnDashboardLabel(language, second!);
 
-        // The Dashboard draws the label in the language's own words.
-        expect({ language, label: first, drawn: drawnFirst }).not.toEqual({
-          language,
-          label: first,
-          drawn: first,
-        });
-        expect({
-          language,
-          pair: [first, second],
-          quoted: lineQuoting(page, drawnFirst, drawnSecond) !== "",
-        }).toEqual({ language, pair: [first, second], quoted: true });
-      }
+      // The Dashboard draws the label in the language's own words.
+      expect({ language, label: first, drawn: drawnFirst }).not.toEqual({
+        language,
+        label: first,
+        drawn: first,
+      });
+      expect({
+        language,
+        pair: [first, second],
+        quoted: lineQuoting(page, drawnFirst, drawnSecond) !== "",
+      }).toEqual({ language, pair: [first, second], quoted: true });
+    }
 
-      // And never in English any more.
-      expect(page).not.toContain("**Unusually High**");
-      expect(page).not.toContain("**Unusually Low**");
-    },
-  );
+    // And never in English any more.
+    expect(page).not.toContain("**Unusually High**");
+    expect(page).not.toContain("**Unusually Low**");
+  });
 });

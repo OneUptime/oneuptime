@@ -50,7 +50,8 @@ const PHRASES: Array<string> = Object.values(
 const EVERY_KEY: Array<string> = [...SENTENCES, ...LABELS, ...PHRASES];
 
 // A condition's English, as the old template filled it in (lowercased value).
-const ENGLISH_CONDITION_WORDS: RegExp = /\b(?:above|below|unusually|high|low)\b/i;
+const ENGLISH_CONDITION_WORDS: RegExp =
+  /\b(?:above|below|unusually|high|low)\b/i;
 
 // The English words of a condition left in a sentence: what #6976 found.
 function englishConditionWordsIn(text: string): Array<string> {
@@ -98,7 +99,9 @@ describe("every condition has its own words", () => {
 
   test("a phrase with the number for exactly the conditions that compare with one", () => {
     expect(Object.keys(DATA_CHECK_ALERT_THRESHOLD_PHRASES).sort()).toEqual(
-      DATA_CHECK_ALERT_CONDITIONS.filter(doesAlertConditionNeedThreshold).sort(),
+      DATA_CHECK_ALERT_CONDITIONS.filter(
+        doesAlertConditionNeedThreshold,
+      ).sort(),
     );
 
     for (const phrase of PHRASES) {
@@ -261,8 +264,11 @@ describe.each([...DASHBOARD_LANGUAGES])("in %s", (language: string) => {
         words(translator, condition, 0),
         words(translator, condition, null),
       ]) {
-        expect({ language, condition, english: englishConditionWordsIn(text) })
-          .toEqual({ language, condition, english: [] });
+        expect({
+          language,
+          condition,
+          english: englishConditionWordsIn(text),
+        }).toEqual({ language, condition, english: [] });
       }
     }
   });
@@ -371,9 +377,7 @@ describe("the number where each language puts it", () => {
     ) => {
       const translator: Translator = dashboardTranslator(language);
 
-      expect(sentence(translator, condition, threshold)).toBe(
-        expectedSentence,
-      );
+      expect(sentence(translator, condition, threshold)).toBe(expectedSentence);
       expect(words(translator, condition, threshold)).toBe(expectedWords);
     },
   );

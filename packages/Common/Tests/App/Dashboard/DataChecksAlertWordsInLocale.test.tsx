@@ -274,9 +274,7 @@ beforeEach(async () => {
   getJestSpyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(
     new ObjectID(PROJECT_ID),
   );
-  jest
-    .spyOn(DataObservabilityApi, "getTableSensitivity")
-    .mockResolvedValue([]);
+  jest.spyOn(DataObservabilityApi, "getTableSensitivity").mockResolvedValue([]);
   await inLanguage("en");
 });
 
@@ -322,7 +320,12 @@ describe("the checks' Alert column", () => {
   test.each([
     ["de", DataCheckAlertCondition.Above, 0, "Über 0"],
     ["de", DataCheckAlertCondition.Below, 5, "Unter 5"],
-    ["de", DataCheckAlertCondition.UnusuallyHigh, undefined, "Ungewöhnlich hoch"],
+    [
+      "de",
+      DataCheckAlertCondition.UnusuallyHigh,
+      undefined,
+      "Ungewöhnlich hoch",
+    ],
     ["ja", DataCheckAlertCondition.Above, 0, "0 を上回る"],
     ["ja", DataCheckAlertCondition.UnusuallyLow, undefined, "異常に低い"],
     ["ko", DataCheckAlertCondition.Above, 0, "0 초과"],
@@ -356,8 +359,11 @@ describe("the checks' Alert column", () => {
           alertThreshold: 3,
         });
 
-        expect({ condition, cell, english: ENGLISH_CONDITION_WORDS.test(cell) })
-          .toEqual({ condition, cell, english: false });
+        expect({
+          condition,
+          cell,
+          english: ENGLISH_CONDITION_WORDS.test(cell),
+        }).toEqual({ condition, cell, english: false });
       }
     },
   );
@@ -454,10 +460,7 @@ describe("the Alert When dropdown", () => {
 describe("a suggested check", () => {
   test("in English: its type, then the condition and its number, as before", async () => {
     expect(
-      await suggestionLine(
-        "en",
-        suggestion(DataCheckAlertCondition.Above, 0),
-      ),
+      await suggestionLine("en", suggestion(DataCheckAlertCondition.Above, 0)),
     ).toBe("Duplicate Percent · Above 0");
   });
 
@@ -466,7 +469,12 @@ describe("a suggested check", () => {
     ["ja", DataCheckAlertCondition.Above, 0, "0 を上回る"],
     ["ko", DataCheckAlertCondition.Above, 0, "0 초과"],
     ["hi", DataCheckAlertCondition.Above, 0, "0 से ऊपर"],
-    ["de", DataCheckAlertCondition.UnusuallyHigh, undefined, "Ungewöhnlich hoch"],
+    [
+      "de",
+      DataCheckAlertCondition.UnusuallyHigh,
+      undefined,
+      "Ungewöhnlich hoch",
+    ],
     ["ar", DataCheckAlertCondition.Below, 5, "أدنى من 5"],
   ])(
     "in %s, %s %s ends with %j",

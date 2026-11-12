@@ -478,8 +478,18 @@ describe("when the check alerts, in the issue's languages: the number where each
       5,
       "値が 5 を下回るときにアラートします。",
     ],
-    ["ko", DataCheckAlertCondition.Above, 0, "값이 0 초과일 때 알림을 보냅니다."],
-    ["ko", DataCheckAlertCondition.Below, 5, "값이 5 미만일 때 알림을 보냅니다."],
+    [
+      "ko",
+      DataCheckAlertCondition.Above,
+      0,
+      "값이 0 초과일 때 알림을 보냅니다.",
+    ],
+    [
+      "ko",
+      DataCheckAlertCondition.Below,
+      5,
+      "값이 5 미만일 때 알림을 보냅니다.",
+    ],
     [
       "hi",
       DataCheckAlertCondition.Above,
@@ -500,9 +510,7 @@ describe("when the check alerts, in the issue's languages: the number where each
       threshold: number,
       expected: string,
     ) => {
-      expect(await suggestionIn(language, condition, threshold)).toBe(
-        expected,
-      );
+      expect(await suggestionIn(language, condition, threshold)).toBe(expected);
     },
   );
 });
