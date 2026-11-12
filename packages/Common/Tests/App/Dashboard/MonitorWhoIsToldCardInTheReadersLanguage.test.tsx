@@ -82,6 +82,10 @@ import {
   OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+  LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+} from "../../../UI/Utils/LineDirection";
 import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 /*
@@ -1132,6 +1136,15 @@ describe("why somebody is paged, and why nobody is, in the reader's words (#7261
       for (const line of notPaged) {
         if (RIGHT_TO_LEFT_LANGUAGES.includes(language)) {
           expect(line).toHaveAttribute("dir", "ltr");
+          /*
+           * A sentence that may wrap: as wide as its words, at the page's
+           * start beside its warning, each of its lines from its own start
+           * - never each line lined up by its end, ragged where it starts.
+           */
+          expect(line).toHaveClass(
+            ...CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+          );
+          expect(line).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
         } else {
           expect(line).not.toHaveAttribute("dir");
         }

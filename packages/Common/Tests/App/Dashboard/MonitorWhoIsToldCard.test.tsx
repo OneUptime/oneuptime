@@ -1274,6 +1274,105 @@ describe("MonitorWhoIsToldCard", () => {
       expect(screen.getByTestId("who-is-told-person")).toBeInTheDocument();
       expect(textsOf("who-is-told-reached-through")).toEqual([]);
       expect(textsOf("who-is-told-not-paged")).toEqual([]);
+      expect(screen.queryByTestId("who-is-told-not-paged-row")).toBeNull();
+    });
+
+    /*
+     * A target that reaches nobody is a gap in who is paged, drawn as one:
+     * a row of the policy's own list after its people, the warning in the
+     * icon column a person who can't be paged has, the sentence where the
+     * names are - never a note under the list, read as one more line about
+     * the person above it. A policy whose first level reaches nobody at all
+     * draws its list of rows too.
+     */
+    test("each target that reaches nobody is a row of the policy's list, after its people, its warning beside it", async () => {
+      const nobody: WhoIsToldPolicy = policy({
+        id: "68102222-0000-4000-8000-0000000000a2",
+        name: "Database",
+        people: [],
+        notPaged: ["Team DBA has no members."],
+        notPagedCodes: [
+          {
+            code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+            teamName: "DBA",
+            message: "Team DBA has no members.",
+          },
+        ],
+      });
+
+      getForMonitor.mockResolvedValue(
+        result([
+          offline({
+            events: [event({ policies: [codedPolicy(), nobody] })],
+          }),
+        ]),
+      );
+      renderCard();
+
+      fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+      const blocks: Array<HTMLElement> =
+        screen.getAllByTestId("who-is-told-policy");
+
+      // One list a policy: who it reaches, then each target that reaches nobody.
+      const rowsOf: (block: HTMLElement) => Array<string> = (
+        block: HTMLElement,
+      ): Array<string> => {
+        expect(block.querySelectorAll("ul")).toHaveLength(1);
+
+        return Array.from(block.querySelectorAll("ul > li")).map(
+          (row: Element): string => {
+            return row.getAttribute("data-testid") || "";
+          },
+        );
+      };
+
+      expect(blocks).toHaveLength(2);
+      expect(rowsOf(blocks[0]!)).toEqual([
+        ...new Array<string>(4).fill("who-is-told-person"),
+        ...new Array<string>(5).fill("who-is-told-not-paged-row"),
+      ]);
+      expect(rowsOf(blocks[1]!)).toEqual(["who-is-told-not-paged-row"]);
+      expect(
+        within(blocks[1]!).getByTestId("who-is-told-not-paged"),
+      ).toHaveTextContent("Team DBA has no members.");
+
+      // No sentence is left outside a policy's list.
+      for (const block of blocks) {
+        for (const line of within(block).queryAllByTestId(
+          "who-is-told-not-paged",
+        )) {
+          expect(line.closest("li")).toHaveAttribute(
+            "data-testid",
+            "who-is-told-not-paged-row",
+          );
+        }
+      }
+
+      const personIcon: SVGElement = screen
+        .getAllByTestId("who-is-told-person")[0]!
+        .querySelector("svg")!;
+      const rows: Array<HTMLElement> = screen.getAllByTestId(
+        "who-is-told-not-paged-row",
+      );
+
+      expect(rows).toHaveLength(6);
+
+      for (const row of rows) {
+        const icon: SVGElement | null = row.children[0]!.querySelector("svg");
+        const words: HTMLElement = within(row).getByTestId(
+          "who-is-told-not-paged",
+        );
+
+        // The warning first, in the people's icon column, beside the words.
+        expect(row.children).toHaveLength(2);
+        expect(icon).not.toBeNull();
+        expect(icon).toHaveClass("text-amber-600", "h-4", "w-4", "shrink-0");
+        expect(personIcon).toHaveClass("h-4", "w-4", "shrink-0");
+        expect(row.children[1]).toBe(words);
+        expect(words.querySelector("svg")).toBeNull();
+        expect(words).toHaveClass("min-w-0", "break-words");
+      }
     });
   });
 
