@@ -28,3 +28,18 @@ grid of API in US, API in EU (Degraded) and Dashboard in US.
 
 The history bars and uptime percentages of a monitor whose monitoring is off
 are unchanged. How those count the time with monitoring off is #6480.
+
+## UI review
+
+Two more states, after the UI review of this change. The status page frames
+are from the same fixture, with every checked resource Operational and Email
+delivery's monitoring off. The Dashboard frames are the real monitor group
+Overview (`Pages/MonitorGroup/View`), bundled with the Dashboard's esbuild
+config, with the API answered in the page: a group of three monitors.
+
+| File | Shows |
+| --- | --- |
+| `all-monitored-operational-1280-before.png` | Before the review (1x): the banner said All Resources are Operational, right above Email delivery's Not monitored. |
+| `all-monitored-operational-1280-after.png` | After: the banner says All monitored Resources are Operational. A page whose every resource is checked still says All Resources are Operational. |
+| `monitor-group-uptime-some-off-1024-after.png` | Monitoring is off for 1 of 3 monitors: the Uptime Graph says monitors whose monitoring is off are left out. |
+| `monitor-group-uptime-all-off-1024-after.png` | Monitoring is off for every monitor: the Uptime Graph says why it has no uptime to show, above its empty days. |
