@@ -164,6 +164,8 @@ OneUptime이 보내는 다른 SMS(내가 소유한 인시던트의 변경이나 
 
 프로젝트 소유자는 잔액이 충전되거나 채널이 다시 켜질 때까지 이에 관한 이메일을 한 번 받습니다.
 
+OneUptime의 알림 서비스에 닿지 못한 호출에는 `Could not reach the Notification service to send this (ECONNREFUSED).` 메시지가 표시되며, 괄호 안은 네트워크 오류 코드입니다. 전송이 끝나지 않은 호출(예를 들어 전송 중에 서버가 다시 시작된 경우)에는 `Sending did not finish within 15 minutes, so this notification may not have been sent.` 메시지가 표시됩니다. 나중에라도 전송이 끝나면 그 결과가 이 메시지를 대신합니다.
+
 OneUptime Cloud에서는 SMS, 통화, WhatsApp, Telegram 메시지마다 **프로젝트 설정 > 알림 > 알림 설정** 에 있는 프로젝트 잔액에서 비용이 지불됩니다. 제공자가 메시지를 받으면 정확한 비용이 잔액에서 차감되며, 한꺼번에 나가는 메시지 수와는 관계가 없습니다.
 
 - 그곳에서 **자동 충전** 이 켜져 있으면, 잔액이 기준치 아래인 것을 발견한 메시지가 먼저 자동 충전에 설정된 금액을 추가하고 프로젝트의 카드에 청구합니다. 같은 순간에 잔액 부족을 발견한 메시지들은 카드에 한 번만 청구합니다.

@@ -164,6 +164,8 @@ OneUptime 发给你的其他短信，例如你作为所有者的事件发生变�
 
 项目所有者会就此收到一封电子邮件，直到余额充值或渠道重新开启。
 
+未能到达 OneUptime 通知服务的呼叫会显示 `Could not reach the Notification service to send this (ECONNREFUSED).` ，括号里是网络错误的代码。发送始终没有完成的呼叫（例如发送过程中服务器重启）会显示 `Sending did not finish within 15 minutes, so this notification may not have been sent.` 。如果发送最终完成，其结果会替换这条消息。
+
 在 OneUptime Cloud 上，每条短信、每次通话、每条 WhatsApp 和 Telegram 消息都从 **项目设置 > 通知 > 通知设置** 上的项目余额中支付：服务商接收消息时，确切费用从余额中扣除，无论同时发出多少条消息。
 
 - 如果那里开启了 **自动充值** ，发现余额低于阈值的那条消息会先充入自动充值设定的金额，并从项目的卡中扣款；同一时刻发现余额不足的多条消息只扣款一次。
