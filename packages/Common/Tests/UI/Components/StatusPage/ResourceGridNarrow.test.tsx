@@ -8,6 +8,7 @@ import {
   RESOURCE_GRID_CHIP_ACTIONS_CLASS_NAME,
   RESOURCE_GRID_CLASS_NAME,
   RESOURCE_GRID_HEAD_CLASS_NAME,
+  RESOURCE_GRID_MATRIX_VARIANT,
   RESOURCE_GRID_ROW_CLASS_NAME,
   RESOURCE_GRID_ROW_HEADING_CLASS_NAME,
   RESOURCE_GRID_STACK_VARIANT,
@@ -175,28 +176,46 @@ const tokensOf: (className: string) => Array<string> = (
   return className.split(" ").filter(Boolean);
 };
 
-// What a class draws outside the stack: its tokens not under the query.
-const matrixClassOf: (className: string) => string = (
+// What a class draws in both layouts: its tokens under neither query.
+const baseClassOf: (className: string) => string = (
   className: string,
 ): string => {
   return tokensOf(className)
     .filter((token: string): boolean => {
-      return !token.startsWith(RESOURCE_GRID_STACK_VARIANT);
+      return (
+        !token.startsWith(RESOURCE_GRID_STACK_VARIANT) &&
+        !token.startsWith(RESOURCE_GRID_MATRIX_VARIANT)
+      );
     })
     .join(" ");
 };
 
-// What a class adds in the stack: its tokens under the query, unprefixed.
-const stackClassOf: (className: string) => Array<string> = (
+// What a class adds under one query: its tokens under it, unprefixed.
+const underVariantOf: (className: string, variant: string) => Array<string> = (
   className: string,
+  variant: string,
 ): Array<string> => {
   return tokensOf(className)
     .filter((token: string): boolean => {
-      return token.startsWith(RESOURCE_GRID_STACK_VARIANT);
+      return token.startsWith(variant);
     })
     .map((token: string): string => {
-      return token.slice(RESOURCE_GRID_STACK_VARIANT.length);
+      return token.slice(variant.length);
     });
+};
+
+// What a class adds in the stack.
+const stackClassOf: (className: string) => Array<string> = (
+  className: string,
+): Array<string> => {
+  return underVariantOf(className, RESOURCE_GRID_STACK_VARIANT);
+};
+
+// What a class adds in the matrix only.
+const matrixOnlyClassOf: (className: string) => Array<string> = (
+  className: string,
+): Array<string> => {
+  return underVariantOf(className, RESOURCE_GRID_MATRIX_VARIANT);
 };
 
 const STACK_CLASS_NAMES: Record<string, string> = {
@@ -214,6 +233,10 @@ describe("ResourceGrid below 30rem of its own width: a stack (#7087)", () => {
     renderGrid();
 
     expect(RESOURCE_GRID_STACK_VARIANT).toBe("[@container(max-width:30rem)]:");
+    // The matrix: the same query, negated (Tailwind reads "_" as a space).
+    expect(RESOURCE_GRID_MATRIX_VARIANT).toBe(
+      "[@container_not_(max-width:30rem)]:",
+    );
     expect(grid().className).toBe(RESOURCE_GRID_CLASS_NAME);
     expect(grid()).toHaveClass("[container-type:inline-size]");
   });
@@ -272,21 +295,20 @@ describe("ResourceGrid below 30rem of its own width: a stack (#7087)", () => {
       "block",
       "last:border-b-0",
     ]);
-    expect(stackClassOf(RESOURCE_GRID_CELL_LABEL_CLASS_NAME)).toEqual([
-      "block",
-    ]);
+    // Drawn by default, so nothing to add in the stack.
+    expect(stackClassOf(RESOURCE_GRID_CELL_LABEL_CLASS_NAME)).toEqual([]);
   });
 
   test("from 30rem up the matrix keeps the classes it had", () => {
-    expect(matrixClassOf(RESOURCE_GRID_TABLE_CLASS_NAME)).toBe(
+    expect(baseClassOf(RESOURCE_GRID_TABLE_CLASS_NAME)).toBe(
       "min-w-full border-separate border-spacing-0",
     );
-    expect(matrixClassOf(RESOURCE_GRID_HEAD_CLASS_NAME)).toBe("");
-    expect(matrixClassOf(RESOURCE_GRID_BODY_CLASS_NAME)).toBe("");
-    expect(matrixClassOf(RESOURCE_GRID_ROW_HEADING_CLASS_NAME)).toBe(
+    expect(baseClassOf(RESOURCE_GRID_HEAD_CLASS_NAME)).toBe("");
+    expect(baseClassOf(RESOURCE_GRID_BODY_CLASS_NAME)).toBe("");
+    expect(baseClassOf(RESOURCE_GRID_ROW_HEADING_CLASS_NAME)).toBe(
       "sticky left-0 z-10 border-b border-r border-gray-200 bg-white px-3 py-3 text-left align-top text-xs font-semibold text-gray-800",
     );
-    expect(matrixClassOf(RESOURCE_GRID_CELL_CLASS_NAME)).toBe(
+    expect(baseClassOf(RESOURCE_GRID_CELL_CLASS_NAME)).toBe(
       "border-b border-gray-200 px-2 py-2 align-top",
     );
     /*
@@ -294,11 +316,28 @@ describe("ResourceGrid below 30rem of its own width: a stack (#7087)", () => {
      * whose borders are separate draws no border, and nothing outside the
      * query gives it a width.
      */
-    expect(matrixClassOf(RESOURCE_GRID_ROW_CLASS_NAME)).toBe("border-gray-200");
-    // The cell's column name is not drawn in the matrix.
-    expect(
-      tokensOf(matrixClassOf(RESOURCE_GRID_CELL_LABEL_CLASS_NAME))[0],
-    ).toBe("hidden");
+    expect(baseClassOf(RESOURCE_GRID_ROW_CLASS_NAME)).toBe("border-gray-200");
+
+    // Nothing but the cell's column name is told apart in the matrix...
+    for (const [part, className] of Object.entries(STACK_CLASS_NAMES)) {
+      expect(`${part}: ${matrixOnlyClassOf(className).join(" ")}`).toBe(
+        `${part}: ${part === "cellLabel" ? "hidden" : ""}`,
+      );
+    }
+  });
+
+  /*
+   * ...where it is hidden under the negated query, never written with a bare
+   * `hidden` that the stack's query shows again: a foreign
+   * .hidden{display:none !important} (Bootstrap 3, a browser extension)
+   * would keep such a label hidden in the stack too (ForeignHiddenRuleGuard).
+   */
+  test("nothing is hidden by a bare `hidden` that a query shows again", () => {
+    for (const [part, className] of Object.entries(STACK_CLASS_NAMES)) {
+      expect(`${part}: ${tokensOf(className).includes("hidden")}`).toBe(
+        `${part}: false`,
+      );
+    }
   });
 
   test("one query, and no colour under it: dark mode remaps a colour's own class, never one a variant names", () => {
@@ -308,13 +347,16 @@ describe("ResourceGrid below 30rem of its own width: a stack (#7087)", () => {
     for (const [part, className] of Object.entries(STACK_CLASS_NAMES)) {
       for (const token of tokensOf(className)) {
         if (token.includes("@container")) {
-          expect(`${part}: ${token}`).toBe(
-            `${part}: ${RESOURCE_GRID_STACK_VARIANT}${token.slice(RESOURCE_GRID_STACK_VARIANT.length)}`,
-          );
+          expect(
+            `${part}: ${token.startsWith(RESOURCE_GRID_STACK_VARIANT) || token.startsWith(RESOURCE_GRID_MATRIX_VARIANT)}`,
+          ).toBe(`${part}: true`);
         }
       }
 
-      for (const added of stackClassOf(className)) {
+      for (const added of [
+        ...stackClassOf(className),
+        ...matrixOnlyClassOf(className),
+      ]) {
         expect(`${part}: ${added} ${COLOUR_PATTERN.test(added)}`).toBe(
           `${part}: ${added} false`,
         );

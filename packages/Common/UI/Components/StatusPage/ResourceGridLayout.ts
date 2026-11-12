@@ -26,6 +26,16 @@
 export const RESOURCE_GRID_STACK_VARIANT: string =
   "[@container(max-width:30rem)]:";
 
+/*
+ * The same query, negated: the matrix. What only the stack draws is drawn
+ * by default and hidden here, never written with a bare `hidden` a query
+ * shows again - a foreign .hidden{display:none !important} (Bootstrap,
+ * a browser extension) would keep that hidden at every width
+ * (ForeignHiddenRuleGuard).
+ */
+export const RESOURCE_GRID_MATRIX_VARIANT: string =
+  "[@container_not_(max-width:30rem)]:";
+
 // The grid's box: what the query measures.
 export const RESOURCE_GRID_CLASS_NAME: string = "[container-type:inline-size]";
 
@@ -64,7 +74,7 @@ export const RESOURCE_GRID_CELL_CLASS_NAME: string =
  * heading names it.
  */
 export const RESOURCE_GRID_CELL_LABEL_CLASS_NAME: string =
-  "hidden px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 [@container(max-width:30rem)]:block";
+  "px-1 pb-1.5 text-[11px] font-semibold uppercase tracking-wide text-gray-500 [@container_not_(max-width:30rem)]:hidden";
 
 /*
  * A chip's Edit and ⋯ fade in on hover and on keyboard focus, so a cell
