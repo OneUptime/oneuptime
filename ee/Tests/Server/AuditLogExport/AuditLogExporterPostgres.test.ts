@@ -75,7 +75,9 @@ import RecordingDestination from "./Fakes/RecordingDestination";
  *   - a project's export reads its project only, the instance's every one;
  *   - a failure leaves the cursor and writes why, since when and when next;
  *   - a failure that lasts is told once: the try before, as the table
- *     remembers it, is what keeps the email from going again;
+ *     remembers it, is what keeps the email from going again; when the
+ *     entries waiting are deleted is read from their own stamps, after the
+ *     cursor the table remembers (#6563);
  *   - a new Export From, saved through the service, starts again from it;
  *   - deleting a project deletes its exports (the migrated foreign key).
  *
@@ -564,7 +566,9 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
       destinationType: AuditLogExportDestinationType.Webhook,
       startsAt: new Date("2026-10-24T09:00:00.000Z"),
     });
-    auditLog.add({ createdAt: "2026-10-24T10:00:00.000Z" });
+    const entry: string = String(
+      auditLog.add({ createdAt: "2026-10-24T10:00:00.000Z" })["_id"],
+    );
     webhook.failNext(
       10_000,
       new AuditLogExportDeliveryError(
@@ -617,7 +621,116 @@ describePostgres("the audit log exporter against a migrated Postgres", () => {
     expect(told[0]!.oldestUnsentAt!.toISOString()).toBe(
       "2026-10-24T10:00:00.000Z",
     );
+    // When it is deleted: the stamp on the entry itself.
+    expect(told[0]!.entriesLostAt!.toISOString()).toBe(
+      auditLog.stampOf(entry).toISOString(),
+    );
     expect((await storedRow(id))["consecutiveFailureCount"]).toBe(7);
+    // Read only once an email can be due: the tries 31 and 63 minutes in.
+    expect(
+      auditLog.soonestReads.map((read: { until: Date }): string => {
+        return read.until.toISOString();
+      }),
+    ).toEqual([
+      new Date(startedAt + 31 * 60 * 1000).toISOString(),
+      new Date(startedAt + 63 * 60 * 1000).toISOString(),
+    ]);
+  });
+
+  test("the stamps are read after the cursor the table remembers: an entry already sent, stamped sooner, does not count, nor the retention as it is now", async () => {
+    const id: ObjectID = await createExport({
+      projectId: PROJECT_A,
+      destinationType: AuditLogExportDestinationType.Webhook,
+      startsAt: new Date("2026-10-24T09:00:00.000Z"),
+    });
+    // Sent before the failures begin, and stamped to go sooner than anything waiting.
+    const sent: string = String(
+      auditLog.add({
+        createdAt: "2026-10-24T09:30:00.000Z",
+        retentionDate: new Date("2026-10-25T00:00:00.000Z"),
+      })["_id"],
+    );
+
+    await exporter().exportAll();
+
+    expect(webhook.deliveredIds()).toEqual([sent]);
+    expect((await storedRow(id))["cursorEntryId"]).toBe(sent);
+
+    // Recorded with a week's retention; the project keeps 30 days from then on.
+    const waiting: string = String(
+      auditLog.add({
+        createdAt: "2026-10-24T12:30:00.000Z",
+        retentionInDays: 7,
+      })["_id"],
+    );
+    // Another project's, stamped sooner still: not this export's.
+    auditLog.add({
+      createdAt: "2026-10-24T12:40:00.000Z",
+      projectId: PROJECT_B,
+      retentionDate: new Date("2026-10-26T00:00:00.000Z"),
+    });
+
+    clock = new Date("2026-10-24T13:00:00.000Z");
+    webhook.failNext(
+      10_000,
+      new AuditLogExportDeliveryError(
+        "The webhook endpoint refused the credential (HTTP 401).",
+        { retryable: false, status: 401 },
+      ),
+    );
+
+    const told: Array<AuditLogExportFailureNotification> = [];
+    const notifier: AuditLogExportNotifier = {
+      getRetentionInDays: async (): Promise<number> => {
+        return 30;
+      },
+      notifyFailure: async (
+        data: AuditLogExportFailureNotification,
+      ): Promise<void> => {
+        told.push(data);
+      },
+    };
+    const startedAt: number = clock.getTime();
+
+    for (;;) {
+      await exporter(freeLock, notifier).exportAll();
+
+      const next: Date = (await storedRow(id))["nextAttemptAt"] as Date;
+
+      if (next.getTime() > startedAt + 2 * 60 * 60 * 1000) {
+        break;
+      }
+
+      clock = next;
+    }
+
+    expect(
+      told.map(
+        (
+          data: AuditLogExportFailureNotification,
+        ): AuditLogExportFailureNotice => {
+          return data.notice;
+        },
+      ),
+    ).toEqual([AuditLogExportFailureNotice.Failing]);
+    expect(told[0]!.retentionInDays).toBe(30);
+    expect(told[0]!.oldestUnsentAt!.toISOString()).toBe(
+      "2026-10-24T12:30:00.000Z",
+    );
+    // Its own week, not the 30 days the project keeps now, nor the sent entry's stamp.
+    expect(told[0]!.entriesLostAt!.toISOString()).toBe(
+      auditLog.stampOf(waiting).toISOString(),
+    );
+    expect(auditLog.soonestReads.length).toBeGreaterThan(0);
+
+    for (const read of auditLog.soonestReads) {
+      expect({ ...read, until: null }).toEqual({
+        projectId: PROJECT_A,
+        startsAt: new Date("2026-10-24T09:00:00.000Z"),
+        until: null,
+        after: { createdAt: new Date("2026-10-24T09:30:00.000Z"), id: sent },
+      });
+    }
   });
 
   test("a new Export From, saved through the service, starts the export again from it", async () => {

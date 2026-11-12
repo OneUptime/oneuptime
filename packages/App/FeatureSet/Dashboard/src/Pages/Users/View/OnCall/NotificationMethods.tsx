@@ -49,6 +49,10 @@ import React, {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import NotificationMethodUtil from "Common/UI/Utils/NotificationMethodUtil";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 
 /*
  * Users > View > Notification Methods — where a project owner or admin can set
@@ -106,6 +110,49 @@ const CHANNEL_ICONS: Dictionary<IconProp> = {
   WhatsApp: IconProp.WhatsApp,
   Telegram: IconProp.Telegram,
   Webhook: IconProp.Webhook,
+};
+
+/*
+ * Whether a method's identifier is a phone number ("+1 ••• ••• 4821": SMS,
+ * Call, WhatsApp), which reads left to right in every language: printed
+ * as it was, an Arabic page drew it "4821 ••• ••• 1+" (PhoneNumberText).
+ */
+const isPhoneNumberChannel: (methodType: string) => boolean = (
+  methodType: string,
+): boolean => {
+  return NotificationMethodUtil.isPhoneNumberMethod(methodType);
+};
+
+/*
+ * A method's masked identifier as the page draws it: a phone number read
+ * +1 ••• ••• 4821 in every language, any other identifier - an address, a
+ * handle, a device's name - the way it is written (IsolatedText).
+ */
+interface MaskedIdentifierProps {
+  method: AdminMethodWire;
+  className?: string | undefined;
+}
+
+const MaskedIdentifier: FunctionComponent<MaskedIdentifierProps> = (
+  props: MaskedIdentifierProps,
+): ReactElement => {
+  if (isPhoneNumberChannel(props.method.methodType)) {
+    return (
+      <PhoneNumberText
+        phoneNumber={props.method.maskedIdentifier}
+        className={props.className}
+        dataTestId="admin-notification-method-identifier"
+      />
+    );
+  }
+
+  return (
+    <IsolatedText
+      text={props.method.maskedIdentifier}
+      className={props.className}
+      dataTestId="admin-notification-method-identifier"
+    />
+  );
 };
 
 /*
@@ -720,7 +767,7 @@ const UserViewNotificationMethods: FunctionComponent<
               <span className="font-medium text-gray-900">
                 {method.methodType}
               </span>
-              <span className="text-gray-500">{method.maskedIdentifier}</span>
+              <MaskedIdentifier method={method} className="text-gray-500" />
 
               {method.isVerified ? (
                 <span className="ml-auto inline-flex items-center rounded-md bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
@@ -847,10 +894,13 @@ const UserViewNotificationMethods: FunctionComponent<
   };
 
   const getDeletionDescription: () => ReactElement = (): ReactElement => {
-    const identifierElement: ReactElement = (
-      <span className="font-medium text-gray-900">
-        {methodToDelete?.maskedIdentifier}
-      </span>
+    const identifierElement: ReactElement = methodToDelete ? (
+      <MaskedIdentifier
+        method={methodToDelete}
+        className="font-medium text-gray-900"
+      />
+    ) : (
+      <></>
     );
 
     return (
@@ -1140,7 +1190,15 @@ const UserViewNotificationMethods: FunctionComponent<
           title="Resend verification code"
           description={translator.translateTemplate(
             "We will send a new verification code to {{identifier}}. Only {{name}} can read it and enter it.",
-            { identifier: resendMethod.maskedIdentifier, name: firstName },
+            {
+              identifier: isPhoneNumberChannel(resendMethod.methodType)
+                ? phoneNumberInLine(
+                    resendMethod.maskedIdentifier,
+                    translator.language,
+                  )
+                : resendMethod.maskedIdentifier,
+              name: firstName,
+            },
           )}
           submitButtonText="Resend code"
           isLoading={isSaving}

@@ -62,8 +62,8 @@ function render(data: {
       : "https://oneuptime.acme.test/dashboard/0f9e8d7c-6b5a-4493-8211-00aa11bb22cc/settings/audit-logs/export",
     healthPageButtonText: "Open Audit Log Export",
     remediation: data.isLosing
-      ? "From about Oct 31, 2026, 11:55 AM UTC, the entries this export has not sent are deleted as they pass the audit log's retention of 7 days, and are never sent. Fix the destination before then, and the export sends them, oldest first."
-      : "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log keeps each entry for 7 days.",
+      ? "From about Oct 31, 2026, 11:55 AM UTC, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first."
+      : "Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: the audit log starts deleting them from about Oct 31, 2026, 11:55 AM UTC.",
     detail1Title: "Export: ",
     detail1Text: "SIEM <webhook>",
     detail2Title: "Destination: ",

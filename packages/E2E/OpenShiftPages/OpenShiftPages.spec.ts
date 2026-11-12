@@ -1,6 +1,7 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -611,6 +612,32 @@ test.describe("a DeploymentConfig's page", () => {
     await expect(
       page.getByText("Scaled to zero", { exact: true }),
     ).toBeVisible();
+  });
+});
+
+/*
+ * What a card holds lines up with its title (#6956): the OpenShift card's
+ * row of facts and the Overview's quick links and Pod Health bar sat in a
+ * second padding. A healthy cluster's card ends at the card's padding, and
+ * a failing update's card with its reason and its operators as well.
+ */
+test.describe("the Overview's cards line up with their titles", () => {
+  test("healthy, and with a failing update to read, on a laptop and a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    for (const health of ["healthy", "failing"]) {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto(`${CLUSTER_PATH}?health=${health}`);
+
+      await expectCardsFit(page, [
+        page.getByTestId("openshift-health-card"),
+        page
+          .getByTestId("card")
+          .filter({ hasText: "Explore workload resources" }),
+      ]);
+    }
   });
 });
 

@@ -137,6 +137,7 @@ import {
   isProductAnalyticsWidgetLinked,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardProductAnalyticsWidget";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
+import { DashboardWidgetPreviewProvider } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetPreview";
 import ProductAnalyticsRetentionTable, {
   ProductAnalyticsRetentionTableFit,
   RETENTION_COHORT_COLUMN_CLASS_NAME,
@@ -557,7 +558,11 @@ function retentionComponent(): DashboardProductAnalyticsRetentionComponent {
   return component;
 }
 
-// The widget, on a card whose click a test can see.
+/*
+ * The widget, on a card whose click a test can see - or in the widget
+ * settings' live preview, which DashboardBaseComponentElement draws it in
+ * when the settings dialog asks (isPreview).
+ */
 function Board(props: {
   widgetProps: DashboardBaseComponentProps;
   onCardClick?: (() => void) | undefined;
@@ -570,10 +575,14 @@ function Board(props: {
           props.onCardClick?.();
         }}
       >
-        <DashboardProductAnalyticsRetentionComponentElement
-          {...props.widgetProps}
-          component={retentionComponent()}
-        />
+        <DashboardWidgetPreviewProvider
+          isPreview={Boolean(props.widgetProps.isPreview)}
+        >
+          <DashboardProductAnalyticsRetentionComponentElement
+            {...props.widgetProps}
+            component={retentionComponent()}
+          />
+        </DashboardWidgetPreviewProvider>
       </div>
     </MemoryRouter>
   );
@@ -912,6 +921,27 @@ describe("the Retention widget's periods in its width", () => {
     expect(
       within(screen.getByTestId(LEFT_OUT_TEST_ID)).queryByRole("link"),
     ).not.toBeInTheDocument();
+  });
+
+  test("in the widget settings' live preview, over a board being edited: the same words, no link (issue #6859)", async () => {
+    getItemMock.mockResolvedValue(
+      savedRetention(ProductAnalyticsRetentionPeriod.Week),
+    );
+    answerReads(8);
+
+    renderWidget({ isPreview: true });
+    await waitForTable();
+
+    expect(leftOutText()).toBe("2 more weeks");
+    expect(screen.queryByTestId(LEFT_OUT_LINK_TEST_ID)).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId(LEFT_OUT_TEST_ID)).queryByRole("link"),
+    ).not.toBeInTheDocument();
+    // Nor the corner's: nothing in the preview leaves the board.
+    expect(
+      screen.queryByTestId(`${RETENTION_WIDGET_TEST_ID}-open`),
+    ).not.toBeInTheDocument();
+    expect(screen.queryAllByRole("link")).toEqual([]);
   });
 
   test("on a playlist's screen, which nobody drives: the same words, no link", async () => {
@@ -1796,16 +1826,18 @@ describe("the widget's room and its words", () => {
     expect(getRetentionWidgetTableWidthInPx(10)).toBe(0);
   });
 
-  test("it links only once its saved table is read, and never while edited or on a playlist", () => {
+  test("it links only once its saved table is read, and never while edited, in the settings' preview or on a playlist", () => {
     const ready: {
       state: ProductAnalyticsWidgetState;
       hasView: boolean;
       isEditMode: boolean;
+      isPreview: boolean;
       isPlayback: boolean;
     } = {
       state: ProductAnalyticsWidgetState.Ready,
       hasView: true,
       isEditMode: false,
+      isPreview: false,
       isPlayback: false,
     };
 
@@ -1814,6 +1846,10 @@ describe("the widget's room and its words", () => {
       false,
     );
     expect(isProductAnalyticsWidgetLinked({ ...ready, isEditMode: true })).toBe(
+      false,
+    );
+    // Issue #6859: the preview is drawn over a board being edited.
+    expect(isProductAnalyticsWidgetLinked({ ...ready, isPreview: true })).toBe(
       false,
     );
     expect(isProductAnalyticsWidgetLinked({ ...ready, isPlayback: true })).toBe(

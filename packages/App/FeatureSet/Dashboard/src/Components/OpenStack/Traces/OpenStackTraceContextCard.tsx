@@ -192,7 +192,7 @@ const OpenStackTraceContextCard: FunctionComponent<ComponentProps> = (
       description="What this trace crossed and touched, each one step from its page."
     >
       <div
-        className="divide-y divide-gray-100 px-4 py-2"
+        className="divide-y divide-gray-100"
         data-testid="openstack-trace-context"
       >
         {cloudId ? (

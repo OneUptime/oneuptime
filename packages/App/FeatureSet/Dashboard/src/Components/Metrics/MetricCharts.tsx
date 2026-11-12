@@ -206,6 +206,13 @@ export interface ComponentProps {
    */
   enableSeriesActions?: boolean | undefined;
   /*
+   * An exemplar's click opens its menu - View trace, View logs - on by
+   * default. A dashboard widget's live preview passes false (issue #6859):
+   * it sits over a board being edited, and either would leave the page
+   * with what is not saved yet. The exemplars are still drawn.
+   */
+  enableExemplarActions?: boolean | undefined;
+  /*
    * Compare-to-previous-period overlays: results for the SAME queries
    * over the window shifted back by `compareOffsetMs`, index-aligned to
    * queryConfigs like metricResults. Rendered as dashed, faded ghost
@@ -3157,7 +3164,10 @@ const MetricCharts: FunctionComponent<ComponentProps> = (
         description: firstQuery.metricAliasData?.description || "",
         metricInfo,
         exemplarPoints: chartExemplars.length > 0 ? chartExemplars : undefined,
-        onExemplarClick: handleExemplarClick,
+        onExemplarClick:
+          props.enableExemplarActions === false
+            ? undefined
+            : handleExemplarClick,
         seriesControls: seriesControls,
         props: {
           data: renderSeries,

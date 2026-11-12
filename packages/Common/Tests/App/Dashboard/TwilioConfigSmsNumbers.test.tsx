@@ -1347,6 +1347,288 @@ describe("Send Test SMS and Send Test Call", () => {
   });
 });
 
+/*
+ * ISSUE #6605: ON A PERSIAN OR ARABIC PAGE THE TWILIO CONFIG TABLE'S
+ * NUMBERS READ 447700900123+.
+ *
+ * A number is a run of digits after a "+", with no letter to say which way
+ * it reads: on a page laid out right to left it took the page's way and
+ * its "+" went to the end. Each number is now an isolate that reads left
+ * to right (PhoneNumberText: bdi dir="ltr" - what a browser draws as
+ * +447700900123 on an rtl page, where a plain span drew 447700900123+), the
+ * icon still at the line's start beside it; the numbers "+2 more" lists on
+ * hover - a native tooltip, which can only be text - are each set apart
+ * in a left-to-right isolate (LRI ... PDI) and separated by the Arabic
+ * comma; and the dialog after a test names its number the same way.
+ */
+describe("a config's numbers on a page read right to left", () => {
+  const LRI: string = String.fromCharCode(0x2066);
+  const PDI: string = String.fromCharCode(0x2069);
+  const languages: Record<string, i18n> = {};
+
+  async function instanceFor(language: string): Promise<i18n> {
+    if (!languages[language]) {
+      const instance: i18n = createInstance();
+
+      await instance.init({
+        lng: language,
+        fallbackLng: "en",
+        resources: {
+          en: { translation: readLocale("en") },
+          [language]: { translation: readLocale(language) },
+        },
+        interpolation: { escapeValue: false },
+      });
+
+      languages[language] = instance;
+    }
+
+    return languages[language]!;
+  }
+
+  async function renderNumbers(
+    language: string,
+    config: Record<string, unknown>,
+  ): Promise<HTMLElement> {
+    const instance: i18n = await instanceFor(language);
+
+    render(
+      <I18nextProvider i18n={instance}>
+        <TwilioConfigPhoneNumbers config={config} />
+      </I18nextProvider>,
+    );
+
+    return screen.getByTestId("twilio-config-phone-numbers");
+  }
+
+  function withoutMarks(text: string): string {
+    return text.split(LRI).join("").split(PDI).join("");
+  }
+
+  beforeEach(() => {
+    document.documentElement.setAttribute("dir", "rtl");
+  });
+
+  afterEach(() => {
+    document.documentElement.removeAttribute("dir");
+  });
+
+  test.each(["fa", "ar"])(
+    "in %s each number is an isolate that reads left to right, its + in front",
+    async (language: string) => {
+      const cell: HTMLElement = await renderNumbers(language, {
+        twilioPrimaryPhoneNumber: new Phone(UK),
+        twilioSmsPhoneNumbers: `${SG_MOBILE}, ${US_NUMBER}`,
+      });
+      const numbers: Array<HTMLElement> = within(cell).getAllByTestId(
+        "twilio-config-phone-number",
+      );
+
+      expect(
+        numbers.map((number: HTMLElement): string => {
+          return `${number.tagName} ${number.getAttribute("dir")} ${number.textContent}`;
+        }),
+      ).toEqual([`BDI ltr ${UK}`, `BDI ltr ${SG_MOBILE}`]);
+      // Still a number that is never cut short, in the gray it always was.
+      for (const number of numbers) {
+        expect(number).toHaveClass("whitespace-nowrap", "text-gray-900");
+      }
+    },
+  );
+
+  test.each(["fa", "ar"])(
+    "in %s the icon still comes first on its line - the right edge of the page - and the number beside it",
+    async (language: string) => {
+      const words: Record<string, string> = readLocale(language);
+      const cell: HTMLElement = await renderNumbers(language, {
+        twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        twilioSmsPhoneNumbers: SG_MOBILE,
+      });
+
+      for (const [kind, number] of [
+        ["Phone Calls", SG_NATIONAL],
+        ["SMS", SG_MOBILE],
+      ] as Array<[string, string]>) {
+        const line: HTMLElement = within(cell).getByTitle(words[kind]!);
+        const icon: HTMLElement = within(line).getByRole("img", {
+          name: words[kind]!,
+        });
+        const value: HTMLElement = within(line).getByTestId(
+          "twilio-config-phone-number",
+        );
+
+        expect(value).toHaveTextContent(number);
+        expect(value).toHaveAttribute("dir", "ltr");
+        expect(
+          icon.compareDocumentPosition(value) &
+            Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+        // The line itself is the page's: only the number reads its own way.
+        expect(line).not.toHaveAttribute("dir");
+      }
+    },
+  );
+
+  test.each(["fa", "ar"])(
+    "in %s the numbers +2 more lists on hover each read left to right, separated by the Arabic comma",
+    async (language: string) => {
+      await renderNumbers(language, {
+        twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+        twilioSmsPhoneNumbers: `${SG_MOBILE}, +6590001111, ${UK}`,
+      });
+
+      const count: HTMLElement = screen.getByTestId(
+        "twilio-config-more-phone-numbers",
+      );
+      const title: string = count.getAttribute("title") || "";
+
+      expect(title).toBe(`${LRI}+6590001111${PDI}، ${LRI}${UK}${PDI}`);
+      // What it says is the two numbers, nothing more.
+      expect(withoutMarks(title)).toBe(`+6590001111، ${UK}`);
+    },
+  );
+
+  test("on an English page the hover lists the numbers as it always did, with no mark", async () => {
+    document.documentElement.removeAttribute("dir");
+
+    await renderNumbers("en", {
+      twilioPrimaryPhoneNumber: new Phone(SG_NATIONAL),
+      twilioSmsPhoneNumbers: `${SG_MOBILE}, +6590001111, ${UK}`,
+    });
+
+    const title: string =
+      screen
+        .getByTestId("twilio-config-more-phone-numbers")
+        .getAttribute("title") || "";
+
+    expect(title).toBe(`+6590001111, ${UK}`);
+    expect(title).toBe(withoutMarks(title));
+    // Each number itself is in its isolate on every page.
+    expect(
+      screen
+        .getAllByTestId("twilio-config-phone-number")
+        .map((number: HTMLElement): string => {
+          return `${number.getAttribute("dir")} ${number.textContent}`;
+        }),
+    ).toEqual([`ltr ${SG_NATIONAL}`, `ltr ${SG_MOBILE}`]);
+  });
+
+  test.each([
+    ["fa", "Send Test SMS", TwilioTestSendCopy.smsSentFrom, SG_MOBILE],
+    ["ar", "Send Test Call", TwilioTestSendCopy.callPlacedFrom, SG_NATIONAL],
+  ])(
+    "in %s the dialog after %s names its number set apart, reading left to right",
+    async (
+      language: string,
+      action: string,
+      template: string,
+      fromNumber: string,
+    ) => {
+      const words: Record<string, string> = readLocale(language);
+
+      stored = {
+        twilioPrimaryPhoneNumber: SG_NATIONAL,
+        twilioSmsPhoneNumbers: SG_MOBILE,
+      };
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValue(
+          new HTTPResponse(
+            200,
+            { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: fromNumber },
+            {},
+          ) as never,
+        );
+
+      render(
+        <I18nextProvider i18n={await instanceFor(language)}>
+          <MemoryRouter>
+            <CustomCallSMSTable />
+          </MemoryRouter>
+        </I18nextProvider>,
+      );
+      await settle();
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          screen.getByRole("button", { name: `Row action: ${action}` }),
+        );
+      });
+      await settle();
+
+      await act(async (): Promise<void> => {
+        fireEvent.change(
+          within(dialog()).getByLabelText(words["Phone Number"]!),
+          { target: { value: "+6598765432" } },
+        );
+      });
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(
+          within(dialog()).getByTestId("modal-footer-submit-button"),
+        );
+      });
+      await settle();
+
+      const description: string =
+        screen.getByTestId("confirm-modal-description").textContent || "";
+
+      expect(words[template]).toContain("{{phoneNumber}}");
+      expect(description).toBe(
+        words[template]!.replace(
+          "{{phoneNumber}}",
+          `${LRI}${fromNumber}${PDI}`,
+        ),
+      );
+      expect(description).toContain(`${LRI}${fromNumber}${PDI}`);
+    },
+  );
+
+  test("in English the dialog says the number as it always did, with no mark", async () => {
+    document.documentElement.removeAttribute("dir");
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(
+        new HTTPResponse(
+          200,
+          { [TEST_SEND_FROM_PHONE_NUMBER_FIELD]: SG_MOBILE },
+          {},
+        ) as never,
+      );
+
+    render(
+      <I18nextProvider i18n={await instanceFor("en")}>
+        <MemoryRouter>
+          <CustomCallSMSTable />
+        </MemoryRouter>
+      </I18nextProvider>,
+    );
+    await settle();
+
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        screen.getByRole("button", { name: "Row action: Send Test SMS" }),
+      );
+    });
+    await settle();
+    await act(async (): Promise<void> => {
+      fireEvent.change(within(dialog()).getByLabelText("Phone Number"), {
+        target: { value: "+6598765432" },
+      });
+    });
+    await act(async (): Promise<void> => {
+      fireEvent.click(
+        within(dialog()).getByTestId("modal-footer-submit-button"),
+      );
+    });
+    await settle();
+
+    expect(screen.getByTestId("confirm-modal-description").textContent).toBe(
+      `Twilio accepted the test SMS from ${SG_MOBILE}. It should arrive within a few minutes.`,
+    );
+  });
+});
+
 describe("the strings the form adds", () => {
   test("are Dashboard keys, translated in every language", () => {
     const english: Record<string, string> = readLocale("en");
