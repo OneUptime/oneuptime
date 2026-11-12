@@ -35,7 +35,10 @@ import {
   prose,
   toLatinDigits,
 } from "./DocsTranslationChecks";
-import { GETTING_STARTED_JOBS } from "./GettingStartedPage";
+import {
+  GETTING_STARTED_JOBS,
+  GETTING_STARTED_PLACES,
+} from "./GettingStartedPage";
 import {
   DOCS_GUIDES,
   DocsGuide,
@@ -524,6 +527,71 @@ describe.each(DOCS_LANGUAGES)("the guides in %s", (language: string) => {
     expect(pairs.size).toBe(1);
   });
 });
+
+/*
+ * The Quickstart stays the fifteen-minute tour, and sends each job on to its
+ * guide. Its first screen also offers the import, for whoever comes from
+ * another tool (#7031): the Getting Started half of that shipped with #6822.
+ */
+describe.each(DOCS_LANGUAGES)("the Quickstart in %s", (language: string) => {
+  it("offers the import from another tool on its first screen, at Getting Started's section on it", () => {
+    const opening: string = openingOf(
+      readPage(language, "introduction/quickstart"),
+    );
+    const comingFrom: DocsHeading | undefined = scanMarkdown(
+      readPage(language, "introduction/getting-started"),
+    ).headings.filter((heading: DocsHeading): boolean => {
+      return heading.level === 2;
+    })[GETTING_STARTED_PLACES.comingFrom];
+    const links: Array<DocsPageLink | null> = scanMarkdown(opening).links.map(
+      (link: DocsLink): DocsPageLink | null => {
+        return parseDocsLink(link.target);
+      },
+    );
+
+    expect(comingFrom).toBeDefined();
+    expect(links).toContainEqual({
+      page: "introduction/getting-started",
+      anchor: comingFrom!.slug,
+    });
+    if (language === "en") {
+      expect(opening).toContain("Coming from another tool? [Import it](");
+    }
+  });
+});
+
+/*
+ * Two pages describe the Kubernetes agent, in two sections (#6821 item 7).
+ * Each says in its first lines which one the reader wants, and links the
+ * other: the Helm install step by step, or the full reference.
+ */
+describe.each(DOCS_LANGUAGES)(
+  "the two Kubernetes agent pages in %s",
+  (language: string) => {
+    const pairs: Array<{ page: string; other: string }> = [
+      { page: "monitor/kubernetes-agent", other: "telemetry/kubernetes-agent" },
+      { page: "telemetry/kubernetes-agent", other: "monitor/kubernetes-agent" },
+    ];
+
+    it.each(pairs)(
+      "$page says which page the reader wants, and links $other",
+      ({ page, other }: { page: string; other: string }) => {
+        const opening: string = openingOf(readPage(language, page));
+        const note: Array<string> = opening
+          .split("\n")
+          .filter((line: string): boolean => {
+            return line.startsWith(">");
+          });
+
+        expect(scanMarkdown(opening).alerts).toEqual(["NOTE"]);
+        expect(note[0]).toBe("> [!NOTE]");
+        expect(pagesLinked(note.join("\n"))).toEqual([other]);
+        // The note is the first thing under the opening paragraph.
+        expect(opening.split("\n").indexOf("> [!NOTE]")).toBe(4);
+      },
+    );
+  },
+);
 
 describe.each(DOCS_GUIDES)("where people meet $navTitle", (guide: DocsGuide) => {
   it("is its job's card on Getting Started", () => {

@@ -2,6 +2,9 @@
 
 En statusside er det offentlige ansiktet til alt du overvåker: én URL som kundene dine kan åpne i stedet for å skrive til deg og spørre om problemet bare er hos dem. Den viser gjeldende status for tjenestene du velger å vise, hendelsene du jobber med, vedlikeholdet du har planlagt og enhver kunngjøring du vil feste øverst. Se [Hvilken skal jeg bruke?](/docs/introduction/which-one#dashbord-offentlig-dashbord-eller-statusside) for å velge mellom en statusside og et dashbord.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Publiser en statusside](/docs/guides/status-page).
+
 Når noe går i stykker klokken 2 om natten, er statussiden det første supportkøen din henviser til. Det er også derfra abonnentene dine blir varslet, så det lønner seg å sette den opp før du trenger den, ikke midt i nedetiden.
 
 :::cards
