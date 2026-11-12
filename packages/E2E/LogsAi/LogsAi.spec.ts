@@ -1658,7 +1658,11 @@ test.describe("Logs → the daily ingestion budget banner", () => {
       await expectAiSection(page, testInfo, "Insights");
 
       // The layout read today's budgets, was answered {}, and drew nothing.
-      await expect.poll(() => budgetReads(page)).toBe(1);
+      await expect
+        .poll((): Promise<number> => {
+          return budgetReads(page);
+        })
+        .toBe(1);
       await expect(page.getByTestId(BANNER_TEST_ID)).toHaveCount(0);
 
       if (isPhone(testInfo)) {
@@ -1681,40 +1685,46 @@ test.describe("Logs → the daily ingestion budget banner", () => {
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    await inBothThemes(page, `${AI}/insights?budget=used-up`, async (theme) => {
-      const banner: Locator = page.getByTestId(BANNER_TEST_ID);
+    await inBothThemes(
+      page,
+      `${AI}/insights?budget=used-up`,
+      async (theme: "light" | "dark"): Promise<void> => {
+        const banner: Locator = page.getByTestId(BANNER_TEST_ID);
 
-      await expect(banner).toBeVisible({ timeout: 60000 });
-      await expect(banner).toContainText(
-        "Logs: today's ingestion budget of 10 GB is used up, so new data is refused until the budget resets at",
-      );
+        await expect(banner).toBeVisible({ timeout: 60000 });
+        await expect(banner).toContainText(
+          "Logs: today's ingestion budget of 10 GB is used up, so new data is refused until the budget resets at",
+        );
 
-      const link: Locator = page.getByTestId(
-        "telemetry-ingestion-budget-banner-link",
-      );
-      await expect(link).toHaveText("See budgets");
-      await expect(link).toHaveAttribute(
-        "href",
-        `/dashboard/${PROJECT_ID}/settings/usage-history`,
-      );
+        const link: Locator = page.getByTestId(
+          "telemetry-ingestion-budget-banner-link",
+        );
+        await expect(link).toHaveText("See budgets");
+        await expect(link).toHaveAttribute(
+          "href",
+          `/dashboard/${PROJECT_ID}/settings/usage-history`,
+        );
 
-      // Above the page it is about: the problems found are still drawn.
-      const firstFinding: Locator = page.getByText(ERROR_TITLE);
-      await expect(firstFinding).toBeVisible();
-      const [bannerBox, findingBox] = await boxesInOneFrame([
-        banner,
-        firstFinding,
-      ]);
-      if (!bannerBox || !findingBox) {
-        throw new Error("The banner or the first finding is not drawn.");
-      }
-      expect(bannerBox.y + bannerBox.height).toBeLessThanOrEqual(findingBox.y);
+        // Above the page it is about: the problems found are still drawn.
+        const firstFinding: Locator = page.getByText(ERROR_TITLE);
+        await expect(firstFinding).toBeVisible();
+        const [bannerBox, findingBox] = await boxesInOneFrame([
+          banner,
+          firstFinding,
+        ]);
+        if (!bannerBox || !findingBox) {
+          throw new Error("The banner or the first finding is not drawn.");
+        }
+        expect(bannerBox.y + bannerBox.height).toBeLessThanOrEqual(
+          findingBox.y,
+        );
 
-      if (isPhone(testInfo)) {
-        await expectNoSidewaysScroll(page);
-      }
+        if (isPhone(testInfo)) {
+          await expectNoSidewaysScroll(page);
+        }
 
-      await screenshot(page, testInfo, `budget-banner-used-up-${theme}`);
-    });
+        await screenshot(page, testInfo, `budget-banner-used-up-${theme}`);
+      },
+    );
   });
 });
