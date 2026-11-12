@@ -387,7 +387,7 @@ describe("the records it reads", () => {
     ]);
 
     const args: Record<string, unknown> = getListSpy.mock
-      .calls[0]![0] as Record<string, unknown>;
+      .calls[0]![0] as unknown as Record<string, unknown>;
     expect(args["modelType"]).toBe(Service);
     expect(args["limit"]).toBe(5);
     expect(args["sort"]).toEqual({ lastSeenAt: "DESC" });

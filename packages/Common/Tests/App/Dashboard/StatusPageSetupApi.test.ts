@@ -146,7 +146,7 @@ describe("the monitors listed", () => {
     ]);
 
     const args: Record<string, unknown> = getListSpy.mock
-      .calls[0]![0] as Record<string, unknown>;
+      .calls[0]![0] as unknown as Record<string, unknown>;
     expect(args["modelType"]).toBe(Monitor);
     expect(args["query"]).toEqual({ projectId: PROJECT_ID });
     expect(args["sort"]).toEqual({ name: "ASC" });
@@ -211,7 +211,7 @@ describe("the page", () => {
     ).toEqual({ count: 7, names: ["API", "Website"] });
 
     const args: Record<string, unknown> = getListSpy.mock
-      .calls[0]![0] as Record<string, unknown>;
+      .calls[0]![0] as unknown as Record<string, unknown>;
     expect(args["modelType"]).toBe(StatusPageResource);
     expect(args["sort"]).toEqual({ order: "ASC" });
   });
