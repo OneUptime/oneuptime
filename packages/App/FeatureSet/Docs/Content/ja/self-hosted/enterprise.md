@@ -128,7 +128,7 @@ AWS Marketplace、Microsoft Marketplace、Google Cloud Marketplace で購入し�
 2. ライセンスキーを入力して検証します。
 :::
 
-インストールは OneUptime でキーを確認し、受け取ったライセンスを保存します。それ以降は、毎日の同期でライセンスを最新の状態に保ちます。追加のシートや更新などの変更をすぐに取得するには、同じページの **Refresh license** を使います。
+インストールは OneUptime でキーを確認し、受け取ったライセンスを保存します。それ以降は、毎日の同期でライセンスを最新の状態に保ちます。追加のシートや更新などの変更をすぐに取得するには、同じページの **ライセンスを再読み込み** を使います。
 
 オンラインでの有効化には、OneUptime サーバーから `https://oneuptime.com` への送信 HTTPS が必要です。サーバーが中継を通してしかインターネットに出られない場合は、`ENTERPRISE_LICENSE_SERVER_URL` に中継の `https://` アドレスを設定します。中継は `/api/enterprise-license/` を oneuptime.com に転送する必要があります。
 

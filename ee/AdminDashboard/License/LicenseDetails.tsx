@@ -11,7 +11,6 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import OneUptimeDate from "Common/Types/Date";
-import { getReaderDateLocale } from "Common/Types/DateLanguage";
 import EnterpriseLicenseInstanceSummary from "Common/Types/EnterpriseLicense/EnterpriseLicenseInstanceSummary";
 import IconProp from "Common/Types/Icon/IconProp";
 import { JSONObject } from "Common/Types/JSON";
@@ -21,7 +20,6 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   FIRST_REPORT_WITHIN,
   FIRST_REPORT_WITHIN_HOURS,
-  INSTANCE_USERS,
   INSTANCES,
   LicenseDetailsCopy,
   PER_INSTANCE_COUNTS,
@@ -111,7 +109,15 @@ const parseLicenseInstances: ParseLicenseInstancesFunction = (
 
 type FormatReportedAtFunction = (value: unknown) => string | null;
 
-// A report's time in the reader's language, or null when there is none.
+/*
+ * A report's time in the reader's language, or null when there is none:
+ * "Nov 11, 12:00 PM", "11. Nov., 12:00", with the year only when it is not
+ * this one - as every list writes a moment (OneUptimeDate's compact local
+ * string), in the zone and the 12- or 24-hour clock the reader picked. It
+ * was the browser's toLocaleString: the browser's zone rather than the
+ * reader's, seconds nobody needs, a numeric date beside the page's "31 May
+ * 2027", and a Latin comma inside a Persian sentence.
+ */
 const formatReportedAt: FormatReportedAtFunction = (
   value: unknown,
 ): string | null => {
@@ -125,7 +131,22 @@ const formatReportedAt: FormatReportedAtFunction = (
     return null;
   }
 
-  return reportedAt.toLocaleString(getReaderDateLocale());
+  return OneUptimeDate.getDateAsCompactLocalString(reportedAt);
+};
+
+/*
+ * A sentence that ends with a time whose half of the day is written with a
+ * dot of its own - Persian "۱۲:۰۰ ب.ظ.", Spanish "12:00 p. m." - ends with
+ * one full stop, not two.
+ */
+const DOUBLE_FULL_STOP_AT_THE_END: RegExp = /\.\.$/;
+
+type EndWithOneFullStopFunction = (sentence: string) => string;
+
+const endWithOneFullStop: EndWithOneFullStopFunction = (
+  sentence: string,
+): string => {
+  return sentence.replace(DOUBLE_FULL_STOP_AT_THE_END, ".");
 };
 
 type FormatInstanceReportedAtFunction = (
@@ -143,9 +164,11 @@ const formatInstanceReportedAt: FormatInstanceReportedAtFunction = (
     return translator.translateTemplate(LicenseDetailsCopy.noUsageReported);
   }
 
-  return translator.translateTemplate(LicenseDetailsCopy.lastReported, {
-    date: date,
-  });
+  return endWithOneFullStop(
+    translator.translateTemplate(LicenseDetailsCopy.lastReported, {
+      date: date,
+    }),
+  );
 };
 
 const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
@@ -378,9 +401,11 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
     activationMode === "offline"
       ? translator.translateTemplate(LicenseDetailsCopy.activatedOffline)
       : userCountUpdatedAtText
-        ? translator.translateTemplate(
-            LicenseDetailsCopy.lastReportedToOneUptime,
-            { date: userCountUpdatedAtText },
+        ? endWithOneFullStop(
+            translator.translateTemplate(
+              LicenseDetailsCopy.lastReportedToOneUptime,
+              { date: userCountUpdatedAtText },
+            ),
           )
         : translator.translatePlural(
             FIRST_REPORT_WITHIN,
@@ -805,14 +830,13 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
                       </p>
                     </div>
                     {/*
-                     * The count bolder than its word, where the reader's
-                     * language puts it ("7 users", "Пользователей: 7").
+                     * The count bolder than its label, where the reader's
+                     * language puts it ("Users: 7", "Пользователей: 7").
                      */}
                     <div className="flex shrink-0 items-baseline justify-end gap-1">
                       {typeof instance.userCount === "number" ? (
                         <TranslatedSentence
-                          template={INSTANCE_USERS}
-                          count={instance.userCount}
+                          template={LicenseDetailsCopy.instanceUsers}
                           slots={{
                             count: (
                               <span className="text-sm font-medium tabular-nums text-gray-900">
