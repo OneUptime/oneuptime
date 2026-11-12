@@ -4201,6 +4201,14 @@ test.describe("monitors looked up, and the monitors table", () => {
  * leaves the card of what it made, and the answer offers the test page of
  * the policy it made - or one to yourself, for a monitor alone.
  */
+
+// The decisions of the last approval card the fixture was sent.
+function lastDecisions(
+  fixtureState: FixtureState,
+): Array<{ toolCallId: string; approved: boolean }> | undefined {
+  return fixtureState.approvals[fixtureState.approvals.length - 1]?.decisions;
+}
+
 test.describe("a setup plan", () => {
   test("waits on one card, each part in plain words - the missing number said - and ends: nothing else changes", async ({
     page,
@@ -4266,7 +4274,7 @@ test.describe("a setup plan", () => {
     );
 
     const fixtureState: FixtureState = await state(page);
-    expect(fixtureState.approvals.at(-1)?.decisions).toEqual([
+    expect(lastDecisions(fixtureState)).toEqual([
       { toolCallId: "call_setup_monitor", approved: true },
       { toolCallId: "call_setup_paging", approved: true },
     ]);
@@ -4326,7 +4334,7 @@ test.describe("a setup plan", () => {
     );
 
     const fixtureState: FixtureState = await state(page);
-    expect(fixtureState.approvals.at(-1)?.decisions).toEqual([
+    expect(lastDecisions(fixtureState)).toEqual([
       { toolCallId: "call_setup_monitor", approved: true },
       { toolCallId: "call_setup_status_page", approved: true },
     ]);
@@ -4356,7 +4364,7 @@ test.describe("a setup plan", () => {
     await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
       "Send me a test page",
     );
-    expect((await state(page)).approvals.at(-1)?.decisions).toEqual([
+    expect(lastDecisions(await state(page))).toEqual([
       { toolCallId: "call_setup_monitor", approved: true },
       { toolCallId: "call_setup_paging", approved: false },
     ]);
