@@ -32,19 +32,181 @@ import { useTranslation } from "react-i18next";
  * Every docs page opens on this OneUptime instance (DOCS_URL), so it works
  * for self-hosted installs without internet access too, and in the
  * language the reader picked in the dashboard when the docs have it.
+ *
+ * The header's Help menu and the phone's menu (PhoneHelpMenu, #6816) are
+ * drawn from the same entries (useHelpEntries), so the two never drift.
  */
 
 export const HELP_LEARN_GROUP_TEST_ID: string = "help-learn";
 export const HELP_ASK_GROUP_TEST_ID: string = "help-ask";
 
-const Help: () => JSX.Element = (): ReactElement => {
+export interface HelpEntry {
+  // Stable, for keys and tests.
+  id: string;
+  // In the reader's language.
+  title: string;
+  icon: IconProp;
+  // A page to open, in a new tab.
+  url?: URL | undefined;
+  // Something to do instead, from where Help was opened.
+  onSelect?: (() => void) | undefined;
+  /*
+   * Drawn beside the title in the header's menu: the "?" keycap that opens
+   * the keyboard shortcuts.
+   */
+  rightElement?: ReactElement | undefined;
+  /*
+   * Only where there is a keyboard: the phone's menu leaves it out (the
+   * keyboard shortcuts, on a device with no keys).
+   */
+  isKeyboardOnly?: boolean | undefined;
+}
+
+export interface HelpEntries {
+  // The ways to learn, first.
+  learn: Array<HelpEntry>;
+  // The ways to ask, set apart below them.
+  ask: Array<HelpEntry>;
+}
+
+/*
+ * Help's entries, in the reader's language. Each one that opens something
+ * in place says where it was opened from (How OneUptime works records
+ * `from`).
+ */
+export const useHelpEntries: (
+  openedFrom: HowOneUptimeWorksOpenedFrom,
+) => HelpEntries = (openedFrom: HowOneUptimeWorksOpenedFrom): HelpEntries => {
   const { t, i18n } = useTranslation();
-  const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
   const language: string | undefined =
     i18n?.resolvedLanguage || i18n?.language || undefined;
 
+  return {
+    learn: [
+      /*
+       * The one docs page that goes from a new project to a working
+       * setup, start to finish.
+       */
+      {
+        id: "quickstart",
+        title: t("help.quickstart", "Quickstart"),
+        icon: IconProp.RocketLaunch,
+        url: URL.fromString(getDocsPageUrl(QUICKSTART_DOCS_PAGE, language)),
+      },
+      /*
+       * The map of the product - four products in the order a problem
+       * flows through them - from any page, in any project. It used to
+       * live only inside Home's Welcome checklist.
+       */
+      {
+        id: "how-oneuptime-works",
+        title: t("help.howOneUptimeWorks", "How OneUptime works"),
+        icon: IconProp.Map,
+        onSelect: () => {
+          openHowOneUptimeWorks(openedFrom);
+        },
+      },
+      /*
+       * Every word OneUptime uses, in a sentence or two: the same
+       * definitions a dotted word shows where it is used.
+       */
+      {
+        id: "glossary",
+        title: t("help.glossary", "Glossary"),
+        icon: IconProp.BookOpen,
+        url: URL.fromString(getDocsPageUrl(GLOSSARY_INDEX_DOCS_PAGE, language)),
+      },
+      {
+        id: "documentation",
+        title: t("help.documentation", "Documentation"),
+        icon: IconProp.Book,
+        url: URL.fromString(DOCS_URL.toString()),
+      },
+    ],
+    ask: [
+      /*
+       * "?" opens this dialog from anywhere, but only for people who
+       * already know that. Help is where someone looks when they do not,
+       * and the keycap beside it teaches the shortcut on the way past.
+       */
+      {
+        id: "keyboard-shortcuts",
+        title: t("keyboardShortcuts.title", "Keyboard shortcuts"),
+        icon: IconProp.Keyboard,
+        isKeyboardOnly: true,
+        rightElement: (
+          <KeyboardShortcut
+            keys={["?"]}
+            size={KeyboardShortcutSize.ExtraSmall}
+            variant={KeyboardShortcutVariant.Ghost}
+          />
+        ),
+        onSelect: () => {
+          GlobalEvents.dispatchEvent(EventName.KEYBOARD_SHORTCUTS_TOGGLE);
+        },
+      },
+      {
+        id: "support-email",
+        title: t("help.supportEmail"),
+        icon: IconProp.Email,
+        url: URL.fromString("mailto:support@oneuptime.com"),
+      },
+      {
+        id: "chat-slack",
+        title: t("help.chatSlack"),
+        icon: IconProp.Slack,
+        url: URL.fromString(
+          "https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA",
+        ),
+      },
+      {
+        id: "request-demo",
+        title: t("help.requestDemo"),
+        icon: IconProp.Window,
+        url: URL.fromString("https://oneuptime.com/enterprise/demo"),
+      },
+    ],
+  };
+};
+
+const Help: () => JSX.Element = (): ReactElement => {
+  const { t } = useTranslation();
+  const [isDropdownVisible, setIsDropdownVisible] = useState<boolean>(false);
+  const entries: HelpEntries = useHelpEntries(HowOneUptimeWorksOpenedFrom.Help);
+
   const close: () => void = (): void => {
     setIsDropdownVisible(false);
+  };
+
+  const item: (entry: HelpEntry) => ReactElement = (
+    entry: HelpEntry,
+  ): ReactElement => {
+    if (entry.url) {
+      return (
+        <IconDropdownItem
+          key={entry.id}
+          title={entry.title}
+          icon={entry.icon}
+          openInNewTab={true}
+          url={entry.url}
+          rightElement={entry.rightElement}
+          onClick={close}
+        />
+      );
+    }
+
+    return (
+      <IconDropdownItem
+        key={entry.id}
+        title={entry.title}
+        icon={entry.icon}
+        rightElement={entry.rightElement}
+        onClick={() => {
+          close();
+          entry.onSelect?.();
+        }}
+      />
+    );
   };
 
   return (
@@ -58,95 +220,10 @@ const Help: () => JSX.Element = (): ReactElement => {
     >
       <IconDropdownMenu>
         <IconDropdownRow dataTestId={HELP_LEARN_GROUP_TEST_ID}>
-          {/*
-           * The one docs page that goes from a new project to a working
-           * setup, start to finish.
-           */}
-          <IconDropdownItem
-            title={t("help.quickstart", "Quickstart")}
-            icon={IconProp.RocketLaunch}
-            openInNewTab={true}
-            url={URL.fromString(getDocsPageUrl(QUICKSTART_DOCS_PAGE, language))}
-            onClick={close}
-          />
-          {/*
-           * The map of the product - four products in the order a problem
-           * flows through them - from any page, in any project. It used to
-           * live only inside Home's Welcome checklist.
-           */}
-          <IconDropdownItem
-            title={t("help.howOneUptimeWorks", "How OneUptime works")}
-            icon={IconProp.Map}
-            onClick={() => {
-              close();
-              openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.Help);
-            }}
-          />
-          {/*
-           * Every word OneUptime uses, in a sentence or two: the same
-           * definitions a dotted word shows where it is used.
-           */}
-          <IconDropdownItem
-            title={t("help.glossary", "Glossary")}
-            icon={IconProp.BookOpen}
-            openInNewTab={true}
-            url={URL.fromString(
-              getDocsPageUrl(GLOSSARY_INDEX_DOCS_PAGE, language),
-            )}
-            onClick={close}
-          />
-          <IconDropdownItem
-            title={t("help.documentation", "Documentation")}
-            icon={IconProp.Book}
-            openInNewTab={true}
-            url={URL.fromString(DOCS_URL.toString())}
-            onClick={close}
-          />
+          {entries.learn.map(item)}
         </IconDropdownRow>
         <IconDropdownRow isSeparated={true} dataTestId={HELP_ASK_GROUP_TEST_ID}>
-          {/*
-           * "?" opens this dialog from anywhere, but only for people who
-           * already know that. Help is where someone looks when they do not,
-           * and the keycap beside it teaches the shortcut on the way past.
-           */}
-          <IconDropdownItem
-            title={t("keyboardShortcuts.title", "Keyboard shortcuts")}
-            icon={IconProp.Keyboard}
-            rightElement={
-              <KeyboardShortcut
-                keys={["?"]}
-                size={KeyboardShortcutSize.ExtraSmall}
-                variant={KeyboardShortcutVariant.Ghost}
-              />
-            }
-            onClick={() => {
-              close();
-              GlobalEvents.dispatchEvent(EventName.KEYBOARD_SHORTCUTS_TOGGLE);
-            }}
-          />
-          <IconDropdownItem
-            title={t("help.supportEmail")}
-            icon={IconProp.Email}
-            openInNewTab={true}
-            url={URL.fromString("mailto:support@oneuptime.com")}
-            onClick={close}
-          />
-          <IconDropdownItem
-            title={t("help.chatSlack")}
-            icon={IconProp.Slack}
-            openInNewTab={true}
-            onClick={close}
-            url={URL.fromString(
-              "https://join.slack.com/t/oneuptimesupport/shared_invite/zt-2pz5p1uhe-Fpmc7bv5ZE5xRMe7qJnwmA",
-            )}
-          />
-          <IconDropdownItem
-            title={t("help.requestDemo")}
-            icon={IconProp.Window}
-            onClick={close}
-            openInNewTab={true}
-            url={URL.fromString("https://oneuptime.com/enterprise/demo")}
-          />
+          {entries.ask.map(item)}
         </IconDropdownRow>
       </IconDropdownMenu>
     </HeaderIconDropdownButton>

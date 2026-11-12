@@ -3,6 +3,7 @@ import useDashboardNavigationItems, {
 } from "../../Utils/NavigationItems";
 import URL from "Common/Types/API/URL";
 import NavBar from "Common/UI/Components/Navbar/NavBar";
+import { PhoneMenuHelp, PhoneMenuSearch } from "./PhoneMenuEntries";
 import React, { FunctionComponent, ReactElement } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -61,6 +62,16 @@ const DashboardNavbar: FunctionComponent<ComponentProps> = (
        * products menu stays reachable via its button and the palette itself.
        */
       disableCommandKShortcut={true}
+      /*
+       * The header has no room for Search and Help on a phone (#6816):
+       * the phone's menu starts with Search and ends with Help.
+       */
+      mobileMenuTop={(closeMenu: () => void): ReactElement => {
+        return <PhoneMenuSearch closeMenu={closeMenu} />;
+      }}
+      mobileMenuBottom={(closeMenu: () => void): ReactElement => {
+        return <PhoneMenuHelp closeMenu={closeMenu} />;
+      }}
     />
   );
 };

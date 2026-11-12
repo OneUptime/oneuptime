@@ -51,6 +51,11 @@ export interface LoadedGlossary {
   direction: "ltr" | "rtl";
   // The entries, by id.
   definitions: Map<string, GlossaryDefinition>;
+  /*
+   * Each entry's other names ("Also called"), by id, in the entries'
+   * language: Search finds a term by them too (#6936).
+   */
+  alsoCalled: Map<string, Array<string>>;
 }
 
 // A docs address under DOCS_URL ("/docs/de/...") as a full address.
@@ -141,6 +146,7 @@ export const readGlossaryData: (data: unknown) => LoadedGlossary | null = (
       ? lang
       : DEFAULT_DOCS_LANGUAGE;
   const definitions: Map<string, GlossaryDefinition> = new Map();
+  const alsoCalled: Map<string, Array<string>> = new Map();
 
   for (const entry of data["entries"] as Array<unknown>) {
     if (
@@ -158,6 +164,17 @@ export const readGlossaryData: (data: unknown) => LoadedGlossary | null = (
       term: entry["term"],
       definition: entry["definition"],
     });
+
+    const otherNames: unknown = entry["alsoCalled"];
+
+    alsoCalled.set(
+      entry["id"],
+      Array.isArray(otherNames)
+        ? otherNames.filter((name: unknown): name is string => {
+            return typeof name === "string" && name.trim().length > 0;
+          })
+        : [],
+    );
   }
 
   if (definitions.size === 0) {
@@ -168,6 +185,7 @@ export const readGlossaryData: (data: unknown) => LoadedGlossary | null = (
     language: language,
     direction: getDocsLanguageDirection(language),
     definitions: definitions,
+    alsoCalled: alsoCalled,
   };
 };
 

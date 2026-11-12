@@ -50747,5 +50747,7 @@
   "Show every tool": "Show every tool",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.",
   "Was it flapping?": "Was it flapping?",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then."
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.",
+  "Switch to {{projectName}}": "Switch to {{projectName}}",
+  "Ask AI: {{question}}": "Ask AI: {{question}}"
 }

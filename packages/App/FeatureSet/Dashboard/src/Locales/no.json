@@ -50747,5 +50747,7 @@
   "Show every tool": "Vis alle verktøy",
   "Summarize this monitor's last reported status and its status timeline before its monitoring was turned off.": "Oppsummer sist rapporterte status for denne monitoren og statustidslinjen fram til overvåkingen ble slått av.",
   "Was it flapping?": "Skiftet den hele tiden?",
-  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Skiftet denne monitoren status hele tiden før overvåkingen ble slått av? Analyser statusendringene fram til da."
+  "Was this monitor flapping before its monitoring was turned off? Analyze the status changes it had before then.": "Skiftet denne monitoren status hele tiden før overvåkingen ble slått av? Analyser statusendringene fram til da.",
+  "Switch to {{projectName}}": "Bytt til {{projectName}}",
+  "Ask AI: {{question}}": "Spør AI: {{question}}"
 }

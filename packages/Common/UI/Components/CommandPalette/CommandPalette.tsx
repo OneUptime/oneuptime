@@ -53,6 +53,15 @@ export interface ComponentProps {
    * per search: the words typed on the way to it are not searches.
    */
   onSearchFoundNothing?: ((query: string) => void) | undefined;
+  /*
+   * What to offer when a search found nothing: called with the words once
+   * nothing matches and nothing is still searching, and its commands are
+   * listed in place of "No results found." - the Dashboard's "Ask AI: ..."
+   * for a question (#6816). The search still counts as one that found
+   * nothing (onSearchFoundNothing), and these are never remembered as
+   * recent: they are made of the words typed.
+   */
+  getFallbackCommands?: ((query: string) => Array<PaletteCommand>) | undefined;
 }
 
 /** One selectable row in the flattened keyboard order. */
@@ -134,6 +143,7 @@ interface PanelProps {
   onClose: () => void;
   recentStorageKey?: string | undefined;
   onSearchFoundNothing?: ((query: string) => void) | undefined;
+  getFallbackCommands?: ((query: string) => Array<PaletteCommand>) | undefined;
 }
 
 // How long an empty list stays empty before its search counts as one that found nothing.
@@ -272,7 +282,7 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
    */
   const trimmedQuery: string = query.trim();
 
-  const sections: Array<PaletteSectionView> = useMemo(() => {
+  const matchedSections: Array<PaletteSectionView> = useMemo(() => {
     const built: Array<PaletteSectionView> = [];
 
     type PushSectionFunction = (
@@ -442,6 +452,61 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
     return built;
   }, [trimmedQuery, query, props.commands, recentCommandIds, providerSections]);
 
+  /*
+   * A search that found nothing (props.onSearchFoundNothing): reported once
+   * the list has settled empty, or when the palette closes on it. What
+   * getFallbackCommands offers in its place is not a match.
+   */
+  const isShowingNothing: boolean =
+    trimmedQuery.length >= PROVIDER_SEARCH_MIN_QUERY_LENGTH &&
+    !matchedSections.some((section: PaletteSectionView): boolean => {
+      return section.entries.length > 0;
+    }) &&
+    !hasPendingSection(matchedSections);
+
+  const getFallbackCommands:
+    | ((query: string) => Array<PaletteCommand>)
+    | undefined = props.getFallbackCommands;
+
+  // What is offered in place of "No results found.", after nothing matched.
+  const sections: Array<PaletteSectionView> = useMemo(() => {
+    if (!isShowingNothing || !getFallbackCommands) {
+      return matchedSections;
+    }
+
+    let fallbackCommands: Array<PaletteCommand> = [];
+
+    try {
+      fallbackCommands = getFallbackCommands(trimmedQuery);
+    } catch {
+      // An offer is never worth breaking the palette.
+      fallbackCommands = [];
+    }
+
+    if (fallbackCommands.length === 0) {
+      return matchedSections;
+    }
+
+    return [
+      ...matchedSections,
+      {
+        id: "fallback",
+        title: fallbackCommands[0]!.category,
+        isPending: false,
+        // Nothing matched, so these are the whole keyboard order.
+        entries: fallbackCommands.map(
+          (command: PaletteCommand, index: number): FlatEntry => {
+            return {
+              ...commandToEntry(command, "fallback-"),
+              recentCommandId: null,
+              flatIndex: index,
+            };
+          },
+        ),
+      },
+    ];
+  }, [matchedSections, isShowingNothing, trimmedQuery, getFallbackCommands]);
+
   // Flattened list in render order — the keyboard walks this.
   const flatEntries: Array<FlatEntry> = useMemo(() => {
     return sections.reduce(
@@ -459,15 +524,6 @@ const CommandPalettePanel: FunctionComponent<PanelProps> = (
   useEffect(() => {
     setActiveIndex(0);
   }, [query]);
-
-  /*
-   * A search that found nothing (props.onSearchFoundNothing): reported once
-   * the list has settled empty, or when the palette closes on it.
-   */
-  const isShowingNothing: boolean =
-    trimmedQuery.length >= PROVIDER_SEARCH_MIN_QUERY_LENGTH &&
-    flatEntries.length === 0 &&
-    !hasPendingSection(sections);
 
   const onSearchFoundNothingRef: React.MutableRefObject<
     ((query: string) => void) | undefined
@@ -876,6 +932,7 @@ const CommandPalette: FunctionComponent<ComponentProps> = (
       onClose={props.onClose}
       recentStorageKey={props.recentStorageKey}
       onSearchFoundNothing={props.onSearchFoundNothing}
+      getFallbackCommands={props.getFallbackCommands}
     />,
     document.body,
   );

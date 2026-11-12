@@ -1,7 +1,11 @@
 import Icon from "../Icon/Icon";
 import useTranslateValue from "../../Utils/Translation";
 import IconProp from "../../../Types/Icon/IconProp";
-import { startsCollapsed } from "./SideMenuSectionState";
+import {
+  readRememberedSectionFold,
+  rememberSectionFold,
+  startsCollapsed,
+} from "./SideMenuSectionState";
 import {
   getDrawnLanguage,
   getMenuWordsBreakClassName,
@@ -47,6 +51,13 @@ export interface ComponentProps {
    * section the reader folded by hand stays folded until then.
    */
   currentPath?: string | undefined;
+  /*
+   * The menu this section is in, as remembered folds name it
+   * (getSideMenuFoldMemoryKey). SideMenu passes it in. With it, a section
+   * the reader folds or opens by hand stays that way on their next visit to
+   * this menu (#6816); without it, every visit starts from the defaults.
+   */
+  foldMemoryKey?: string | undefined;
 }
 
 /*
@@ -70,14 +81,17 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ) => {
   const { translateString, language } = useTranslateValue();
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(
-    startsCollapsed({
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    return startsCollapsed({
       title: props.title,
       defaultCollapsed: props.defaultCollapsed,
       collapsible: props.collapsible,
       isActive: props.isActive,
-    }),
-  );
+      rememberedOpen: props.foldMemoryKey
+        ? readRememberedSectionFold(props.foldMemoryKey, props.title)
+        : undefined,
+    });
+  });
   /*
    * Whether the section last opened by itself, for the page the reader
    * arrived on (below), rather than at the reader's press. Opened for the
@@ -128,10 +142,20 @@ const SideMenuSection: FunctionComponent<ComponentProps> = (
     }
   }, [props.currentPath]);
 
+  /*
+   * Only a toggle by hand is remembered: the section opening by itself for
+   * the page (above) is not, so a section opened for one visit to a page in
+   * it folds again on the next visit elsewhere.
+   */
   const handleToggle: () => void = (): void => {
     if (isCollapsible) {
       setIsOpenedForPage(false);
       setIsCollapsed(!isCollapsed);
+
+      if (props.foldMemoryKey) {
+        // Folded now means it opens, and the other way round.
+        rememberSectionFold(props.foldMemoryKey, props.title, isCollapsed);
+      }
     }
   };
 
