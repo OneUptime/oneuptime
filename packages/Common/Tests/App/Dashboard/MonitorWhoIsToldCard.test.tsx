@@ -39,6 +39,7 @@ import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
+import OneUptimeDate from "../../../Types/Date";
 import {
   WhoIsToldBreak,
   WhoIsToldBreakKind,
@@ -57,7 +58,11 @@ import {
 } from "../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
-import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+import {
+  OnCallTestPageNotPagedCode,
+  OnCallTestPageReachedThroughCode,
+  OnCallTestPageRecordKind,
+} from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
   createTranslator,
   getGlobalTranslator,
@@ -65,6 +70,7 @@ import {
 } from "../../../UI/Utils/TranslateTemplate";
 import fs from "fs";
 import path from "path";
+import { isolated } from "../../Helpers/IsolateMarks";
 
 /*
  * "WHEN THIS GOES DOWN" ON A MONITOR'S OVERVIEW (#6810): what happens and
@@ -1108,6 +1114,167 @@ describe("MonitorWhoIsToldCard", () => {
       `Ana Lopez${mark}Team Platform${mark}SMS, Email`,
       `Ben Ito${mark}Can't be paged`,
     ]);
+  });
+
+  /*
+   * Why each is paged and who is not, from the codes the server sends
+   * (#7261): in English, the server's own English, word for word - a name
+   * set apart only where it reads the other way.
+   */
+  describe("why each is paged and who is not", () => {
+    const AWAY_UNTIL: string = "2026-11-14T09:00:00.000Z";
+
+    function awayTime(): string {
+      return OneUptimeDate.getDateAsUserFriendlyFormattedString(
+        OneUptimeDate.fromString(AWAY_UNTIL),
+      );
+    }
+
+    function notPagedEnglish(): Array<string> {
+      return [
+        `Lee Park is away until ${awayTime()}, with nobody covering.`,
+        "Team Night shift has no members.",
+        "Nobody is next in the rotation of schedule Weekend.",
+        "Dana Wu is not a member of this project.",
+        "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
+      ];
+    }
+
+    function codedPolicy(): WhoIsToldPolicy {
+      const english: Array<string> = notPagedEnglish();
+
+      return policy({
+        levelCount: 2,
+        people: [
+          person({
+            reachedThrough: "Team Platform",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Team,
+              name: "Platform",
+            },
+          }),
+          person({
+            userId: BEN,
+            name: "Ben Ito",
+            reachedThrough: "Covering for Ana Lopez",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.CoveringFor,
+              name: "Ana Lopez",
+            },
+          }),
+          person({
+            userId: "68102222-0000-4000-8000-0000000000d3",
+            name: "Cho Park",
+            reachedThrough: "Schedule Primary",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Schedule,
+              name: "Primary",
+            },
+          }),
+          // A Persian team's name on an English page.
+          person({
+            userId: "68102222-0000-4000-8000-0000000000d4",
+            name: "Dan Moss",
+            reachedThrough: "Team \u0634\u0628",
+            reachedThroughCode: {
+              code: OnCallTestPageReachedThroughCode.Team,
+              name: "\u0634\u0628",
+            },
+          }),
+        ],
+        notPaged: english,
+        notPagedCodes: [
+          {
+            code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
+            userName: "Lee Park",
+            awayUntil: AWAY_UNTIL,
+            message: english[0]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+            teamName: "Night shift",
+            message: english[1]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.NobodyNextInRotation,
+            scheduleName: "Weekend",
+            message: english[2]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.NotProjectMember,
+            userName: "Dana Wu",
+            message: english[3]!,
+          },
+          {
+            code: OnCallTestPageNotPagedCode.LevelNamesNobody,
+            levelOrder: 1,
+            message: english[4]!,
+          },
+        ],
+      });
+    }
+
+    async function drawChain(paging: WhoIsToldPolicy): Promise<void> {
+      getForMonitor.mockResolvedValue(
+        result([offline({ events: [event({ policies: [paging] })] })]),
+      );
+      renderCard();
+
+      fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+    }
+
+    function textsOf(testId: string): Array<string> {
+      return screen
+        .queryAllByTestId(testId)
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        });
+    }
+
+    test("worded from the server's codes, they read as its English, word for word", async () => {
+      await drawChain(codedPolicy());
+
+      expect(textsOf("who-is-told-reached-through")).toEqual([
+        "Team Platform",
+        "Covering for Ana Lopez",
+        "Schedule Primary",
+        `Team ${isolated("\u0634\u0628")}`,
+      ]);
+      expect(textsOf("who-is-told-not-paged")).toEqual(notPagedEnglish());
+    });
+
+    test("a server that sends no codes: its English, as before", async () => {
+      const coded: WhoIsToldPolicy = codedPolicy();
+      const older: WhoIsToldPolicy = {
+        ...coded,
+        people: coded.people.map((item: WhoIsToldPerson): WhoIsToldPerson => {
+          const olderPerson: WhoIsToldPerson = { ...item };
+          delete olderPerson.reachedThroughCode;
+          return olderPerson;
+        }),
+      };
+      delete older.notPagedCodes;
+
+      await drawChain(older);
+
+      expect(textsOf("who-is-told-reached-through")).toEqual([
+        "Team Platform",
+        "Covering for Ana Lopez",
+        "Schedule Primary",
+        "Team \u0634\u0628",
+      ]);
+      expect(textsOf("who-is-told-not-paged")).toEqual(notPagedEnglish());
+    });
+
+    test("somebody the level names directly has no line of how, and a policy whose level reaches everyone none of who not", async () => {
+      await drawChain(
+        policy({ people: [person()], notPaged: [], notPagedCodes: [] }),
+      );
+
+      expect(screen.getByTestId("who-is-told-person")).toBeInTheDocument();
+      expect(textsOf("who-is-told-reached-through")).toEqual([]);
+      expect(textsOf("who-is-told-not-paged")).toEqual([]);
+    });
   });
 
   // An Icon draws a div of its own, which a paragraph can't hold.
