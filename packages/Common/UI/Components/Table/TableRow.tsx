@@ -62,7 +62,15 @@ import {
   LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
   LINE_OR_CLAMPED_LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
 } from "../../Utils/LineDirection";
-import { ReadingDirection } from "../../../Types/ReadingDirection";
+import {
+  getReadingDirection,
+  ReadingDirection,
+} from "../../../Types/ReadingDirection";
+import {
+  getPhoneNumberDirection,
+  getPhoneNumbersOfValue,
+  getPhoneNumberValueText,
+} from "../../../Types/PhoneNumberDirection";
 import React, { ReactElement, useState } from "react";
 import useIsBelowWidth, {
   PHONE_BELOW_WIDTH_IN_PX,
@@ -74,6 +82,8 @@ import type {
 import { DragAndDropLibrary } from "../DragAndDrop/DragAndDropLoader";
 import LongTextViewer from "../LongText/LongTextViewer";
 import IsolatedText from "../IsolatedText/IsolatedText";
+import PhoneNumberText from "../PhoneNumber/PhoneNumberText";
+import PhoneNumberTextList from "../PhoneNumber/PhoneNumberTextList";
 import InfoTooltip from "../Tooltip/InfoTooltip";
 import DragHandle from "./DragHandle";
 
@@ -384,6 +394,26 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
         ) : (
           <TableEmptyValue screenReaderText="No" />
         );
+      case FieldType.Phone: {
+        /*
+         * A phone number reads +447700900123 in every language: printed as
+         * it is, an Arabic table put its "+" at the end (PhoneNumberText).
+         * A list of them typed as one value is each of its numbers so.
+         */
+        const phoneNumbers: Array<string> = getPhoneNumbersOfValue(
+          getNestedValue(props.item, String(column.key)),
+        );
+
+        if (phoneNumbers.length > 1) {
+          return <PhoneNumberTextList phoneNumbers={phoneNumbers} />;
+        }
+
+        return phoneNumbers[0] ? (
+          <PhoneNumberText phoneNumber={phoneNumbers[0]} />
+        ) : (
+          getNoValue()
+        );
+      }
       default: {
         const text: string | undefined = getPlainCellText(column);
 
@@ -442,6 +472,25 @@ const TableRow: TableRowFunction = <T extends GenericObject>(
   ) => ReadingDirection | undefined = (
     column: Column<T>,
   ): ReadingDirection | undefined => {
+    /*
+     * A phone number's line reads left to right on a page read from the
+     * right, though it has no letter to say so (getPhoneNumberDirection):
+     * cut short, it keeps its "+44" and loses its last digits, and it still
+     * starts where the column's other values do. A cell that draws more
+     * than the number (an icon beside it) leaves its line the page's.
+     */
+    if (column.type === FieldType.Phone && column.key && !column.getElement) {
+      const phoneNumber: string = getPhoneNumberValueText(
+        getNestedValue(props.item, String(column.key)),
+      );
+      const direction: ReadingDirection = getPhoneNumberDirection(phoneNumber);
+
+      return phoneNumber &&
+        direction !== getReadingDirection(translator.language)
+        ? direction
+        : undefined;
+    }
+
     const text: string | undefined = column.getElement
       ? getElementLineText<T>(column, props.item)
       : getPlainCellText(column);
