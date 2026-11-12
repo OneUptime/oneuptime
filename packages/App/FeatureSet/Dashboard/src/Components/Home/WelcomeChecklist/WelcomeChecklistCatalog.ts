@@ -266,12 +266,12 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
       pageMap: PageMap.MONITOR_CREATE,
       modelType: Monitor,
     },
-    landing: {
-      pageMap: PageMap.MONITOR_VIEW,
-      doneText: translationKey(
-        "Monitor created. Its first check ticks the step off.",
-      ),
-    },
+    /*
+     * The guided setup (#6804): an address, who is told and a test page on
+     * one page, for whoever may create a monitor. It says what is next
+     * itself, so the step has no landing line.
+     */
+    guidedSetupPage: PageMap.MONITOR_GUIDED_SETUP,
   },
   {
     step: WelcomeStep.Infrastructure,
@@ -368,22 +368,26 @@ export const WELCOME_PLAN_PAGE: PageMap = PageMap.SETTINGS_BILLING;
  * permission snapshot that says whether a create form is open to this user
  * can arrive after it.
  *
- *   1. its guided setup, once one exists;
+ *   1. its guided setup, once one exists - for someone who may create
+ *      what the step asks for, when it has a create page: a setup whose
+ *      first save they cannot make would only fail at its first step;
  *   2. its create form, for someone who may create what it asks for;
  *   3. today's page.
  */
 export const getWelcomeStepPage: (entry: WelcomeStepEntry) => PageMap | null = (
   entry: WelcomeStepEntry,
 ): PageMap | null => {
-  if (entry.guidedSetupPage) {
+  const mayCreate: boolean = Boolean(
+    entry.createPage &&
+      PermissionGate.check(new entry.createPage.modelType(), ModelAction.Create)
+        .isAllowed,
+  );
+
+  if (entry.guidedSetupPage && (!entry.createPage || mayCreate)) {
     return entry.guidedSetupPage;
   }
 
-  if (
-    entry.createPage &&
-    PermissionGate.check(new entry.createPage.modelType(), ModelAction.Create)
-      .isAllowed
-  ) {
+  if (entry.createPage && mayCreate) {
     return entry.createPage.pageMap;
   }
 
