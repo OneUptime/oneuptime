@@ -51,6 +51,11 @@ import PermissionUtil from "../../../UI/Utils/Permission";
 import ProjectUtil from "../../../UI/Utils/Project";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import {
+  getInvestigationReasonPlace,
+  InvestigationReasonKind,
+  InvestigationReasonPlace,
+} from "../../Helpers/InvestigationReasonPlaces";
+import {
   resetRemediationStepStub,
   setRemediationStepReads,
 } from "./RemediationStepStub";
@@ -1274,6 +1279,50 @@ describe("which settings page each reason points at", () => {
   test("created already resolved: no setting would have changed it, so no settings page is offered", () => {
     expect(actionFor("created_resolved", "incident")).toBeNull();
     expect(actionFor("created_resolved", "alert")).toBeNull();
+  });
+
+  /*
+   * The server's English writes out the path of the page this link opens,
+   * for API readers who get no link (#6738): both are held to one table,
+   * InvestigationReasonPlaces, which the server's suite
+   * (InvestigationReasonCardParity) reads too.
+   */
+  test("every link opens the page the server's English names for the same reason", () => {
+    for (const code of WORDED_NOT_STARTED_CODES) {
+      for (const kind of [
+        "incident",
+        "alert",
+      ] as Array<InvestigationReasonKind>) {
+        for (const paused of [false, true]) {
+          const place: InvestigationReasonPlace = getInvestigationReasonPlace(
+            code,
+            kind,
+            { paused },
+          );
+          const action: SettingsAction | null = actionFor(code, kind);
+
+          /*
+           * Both ways: a link opens exactly the table's page, and no link
+           * (a fault, or nothing to change) means the table names none.
+           */
+          expect({ code, kind, page: action ? action.page : null }).toEqual({
+            code,
+            kind,
+            page: place.page,
+          });
+        }
+      }
+    }
+  });
+
+  test("no provider: the link says LLM provider, as the server's English does", () => {
+    const action: SettingsAction = actionFor("provider_missing")!;
+
+    expect(action.label).toBe("Set up an LLM provider");
+    expect(action.label).not.toMatch(/\bAI providers?\b/i);
+    expect(action.page).toBe(
+      getInvestigationReasonPlace("provider_missing", "incident").page,
+    );
   });
 
   test("no reason sends anyone to AI Credits to turn AI on", () => {

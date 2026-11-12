@@ -1001,7 +1001,7 @@ describe("startNow: someone starts a waiting investigation at once", () => {
 
   test.each([
     ["ai_disabled", "AI is turned off for this project"],
-    ["provider_missing", "no AI provider"],
+    ["provider_missing", "no LLM provider"],
     ["insufficient_ai_balance", "out of AI credits"],
     ["project_daily_limit_reached", "daily AI limit"],
   ])(
@@ -1022,6 +1022,15 @@ describe("startNow: someone starts a waiting investigation at once", () => {
       expect(result.isStarted).toBe(false);
       expect(result.isStarted === false && result.problem).toBe(code);
       expect(result.isStarted === false && result.message).toContain(words);
+      // The setting is LLM Providers, never an "AI provider" (#6738).
+      expect(result.isStarted === false && result.message).not.toMatch(
+        /\bAI providers?\b/i,
+      );
+      if (code === "provider_missing") {
+        expect(result.isStarted === false && result.message).toBe(
+          "This project has no LLM provider OneUptime AI can use (Project Settings → AI → LLM Providers).",
+        );
+      }
       expect(enqueue).not.toHaveBeenCalled();
       expect(mocks.incidentCas).not.toHaveBeenCalled();
     },
