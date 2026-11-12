@@ -1168,9 +1168,10 @@ describe("startNow: someone starts a waiting investigation at once", () => {
         problem: "daily_budget_exhausted",
         message: data.message,
       });
-      expect(result.message.includes("midnight")).toBe(
+      expect(data.message.includes("midnight")).toBe(
         data.budget.limitInTokens > 0,
       );
+      expect(data.message).not.toMatch(/tomorrow/i);
       expect(mocks.recordSkipped).not.toHaveBeenCalled();
     },
   );
