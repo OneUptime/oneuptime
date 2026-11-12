@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * "WAS THIS PAGE HELPFUL?" ON THE DOCS SERVER (Docs/Utils/DocsFeedback,
@@ -42,8 +43,8 @@ const mockConfig: {
   IsEnterpriseEdition: false,
 };
 
-const mockPost: jest.Mock = jest.fn();
-const mockLoggerError: jest.Mock = jest.fn();
+const mockPost: Mock = jest.fn();
+const mockLoggerError: Mock = jest.fn();
 
 jest.mock("Common/Server/EnvironmentConfig", () => {
   return {

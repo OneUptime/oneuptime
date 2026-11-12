@@ -11,6 +11,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * THE DOCS INDEX IS BUILT ONCE, AND NEVER WAITED FOR TWICE (issue #6822).
@@ -22,7 +23,8 @@ import {
  * fails leaves the old index answering.
  */
 
-type BuildSpy = jest.SpiedFunction<typeof DocsAIReader.build>;
+// jest-mock's spy, as @jest/globals' jest.spyOn returns it.
+type BuildSpy = SpyInstance<typeof DocsAIReader.build>;
 
 let now: number = 1_800_000_000_000;
 let builds: number = 0;

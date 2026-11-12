@@ -61,9 +61,16 @@ const searchFinds: (language: string) => Array<string> = (
   return list;
 };
 
+// The App compiles to a lib without Array.prototype.at.
+const lastOf: (list: Array<string>) => string = (
+  list: Array<string>,
+): string => {
+  return list[list.length - 1] || "";
+};
+
 describe("Home Page & Shortcuts: Search finds the docs", () => {
   it("says so last in what Search finds, under the Dashboard's word for the group", () => {
-    const last: string = searchFinds("en").at(-1) as string;
+    const last: string = lastOf(searchFinds("en"));
 
     expect(last.startsWith("- **The docs**")).toBe(true);
     expect(last).toContain(`*${dashboardWord("en")}*`);
@@ -92,11 +99,11 @@ describe("Home Page & Shortcuts: Search finds the docs", () => {
     "%s: says so in the same place, under this language's Dashboard word",
     (language: string) => {
       const list: Array<string> = searchFinds(language);
-      const last: string = list.at(-1) as string;
+      const last: string = lastOf(list);
 
       expect(list).toHaveLength(searchFinds("en").length);
       expect(last).toContain(`*${dashboardWord(language)}*`);
-      expect(last).not.toBe(searchFinds("en").at(-1));
+      expect(last).not.toBe(lastOf(searchFinds("en")));
     },
   );
 });

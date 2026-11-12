@@ -14,6 +14,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import { AddressInfo } from "net";
 import { createServer, Server } from "http";
 import type * as Path from "path";
@@ -36,7 +37,7 @@ const mockConfig: { AnalyticsKey: string; AnalyticsHost: string } = {
   AnalyticsKey: "",
   AnalyticsHost: "",
 };
-const mockPost: jest.Mock = jest.fn();
+const mockPost: Mock = jest.fn();
 
 jest.mock("../../../FeatureSet/Docs/Utils/Config", () => {
   const path: typeof Path = jest.requireActual("path") as typeof Path;

@@ -1,5 +1,3 @@
-import { DocsLanguage } from "Common/Types/Docs/DocsLanguage";
-
 /*
  * THE WORDS DOCS SEARCH FORGIVES (issue #6822).
  *
@@ -60,8 +58,9 @@ const ENGLISH: DocsSearchSynonyms = {
   sso: ["saml", "single sign-on"],
 };
 
+// By docs language code (SUPPORTED_DOCS_LANGUAGE_CODES): every language has a list.
 export const DOCS_SEARCH_SYNONYMS: Readonly<
-  Record<DocsLanguage, DocsSearchSynonyms>
+  Record<string, DocsSearchSynonyms>
 > = {
   en: ENGLISH,
   de: {
@@ -244,9 +243,7 @@ export const getDocsSearchSynonyms: (
 
   const synonyms: Map<string, Array<DocsSearchSynonym>> = new Map();
   const own: DocsSearchSynonyms | undefined =
-    language === "en"
-      ? undefined
-      : (DOCS_SEARCH_SYNONYMS as Record<string, DocsSearchSynonyms>)[language];
+    language === "en" ? undefined : DOCS_SEARCH_SYNONYMS[language];
 
   for (const list of [own, ENGLISH]) {
     if (!list) {
