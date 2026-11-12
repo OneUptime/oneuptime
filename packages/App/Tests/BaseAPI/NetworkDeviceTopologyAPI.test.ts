@@ -12,6 +12,8 @@ import Response from "Common/Server/Utils/Response";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
 import NetworkInterface from "Common/Models/DatabaseModels/NetworkInterface";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
+import Monitor from "Common/Models/DatabaseModels/Monitor";
+import NetworkDeviceLink from "Common/Models/DatabaseModels/NetworkDeviceLink";
 import NetworkDeviceMonitoringMethod, {
   LEGACY_SNMP_MONITORING_METHOD,
 } from "Common/Types/NetworkDevice/NetworkDeviceMonitoringMethod";
@@ -1760,5 +1762,238 @@ describe("POST /network-device/topology - roles from what discovery read", () =>
     await callTopology({});
 
     expect(roleOf("10.20.12.7")).toBe("router");
+  });
+});
+
+/*
+ * Issue #6965: a monitor nobody checks - its monitoring turned off, or
+ * archived - holds only the status its last check saw. A cable drawn by hand
+ * and bound to such a monitor is still a line on the map, but it is drawn as
+ * one nothing reports on, never red (or green) from that frozen status. The
+ * Network Map's site links follow the same rule (NetworkSiteHierarchy).
+ */
+describe("POST /network-device/topology - a hand-drawn link takes its monitor's status only while the monitor is checked", () => {
+  beforeEach(() => {
+    resetTopologyMocks();
+    deviceRoleService.findBy.mockResolvedValue([] as never);
+  });
+
+  function makeOfflineStatus(): MonitorStatus {
+    const status: MonitorStatus = new MonitorStatus(ObjectID.generate());
+    status.name = "Offline";
+    status.isOfflineState = true;
+    status.isOperationalState = false;
+    return status;
+  }
+
+  function makeLinkMonitor(data: {
+    statusId: ObjectID;
+    disableActiveMonitoring?: boolean | undefined;
+    isArchived?: boolean | undefined;
+  }): Monitor {
+    const monitor: Monitor = new Monitor(ObjectID.generate());
+    monitor.currentMonitorStatusId = data.statusId;
+
+    if (typeof data.disableActiveMonitoring === "boolean") {
+      monitor.disableActiveMonitoring = data.disableActiveMonitoring;
+    }
+
+    if (typeof data.isArchived === "boolean") {
+      monitor.isArchived = data.isArchived;
+    }
+
+    return monitor;
+  }
+
+  function makeManualLink(data: {
+    name: string;
+    from: NetworkDevice;
+    to: NetworkDevice;
+    monitor?: Monitor | undefined;
+  }): NetworkDeviceLink {
+    const link: NetworkDeviceLink = new NetworkDeviceLink(ObjectID.generate());
+    link.name = data.name;
+    link.fromDeviceId = data.from.id!;
+    link.toDeviceId = data.to.id!;
+
+    if (data.monitor) {
+      link.monitor = data.monitor;
+    }
+
+    return link;
+  }
+
+  function edgeByName(name: string): JSONObject {
+    const edge: JSONObject | undefined = (
+      lastResponseBody()["edges"] as Array<JSONObject>
+    ).find((candidate: JSONObject): boolean => {
+      return candidate["name"] === name;
+    });
+    expect(edge).toBeDefined();
+    return edge!;
+  }
+
+  test("the link query reads the two switches of the link's monitor beside its status", async () => {
+    await callTopology({});
+
+    const select: JSONObject = (
+      deviceLinkService.findBy.mock.calls[0]![0] as JSONObject
+    )["select"] as JSONObject;
+    expect(select["monitor"]).toEqual({
+      currentMonitorStatusId: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+    });
+  });
+
+  test("a link whose monitor is checked and Offline is drawn down", async () => {
+    const offline: MonitorStatus = makeOfflineStatus();
+    const core: NetworkDevice = makeDevice("core-sw1");
+    const access: NetworkDevice = makeDevice("access-sw1");
+
+    deviceService.findBy.mockResolvedValue([core, access] as never);
+    deviceLinkService.findBy.mockResolvedValue([
+      makeManualLink({
+        name: "Uplink",
+        from: access,
+        to: core,
+        monitor: makeLinkMonitor({
+          statusId: offline.id!,
+          disableActiveMonitoring: false,
+          isArchived: false,
+        }),
+      }),
+    ] as never);
+    monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+    await callTopology({});
+
+    expect(edgeByName("Uplink")["monitorState"]).toBe("down");
+  });
+
+  test.each([
+    {
+      label: "has its monitoring turned off",
+      flags: { disableActiveMonitoring: true, isArchived: false },
+    },
+    {
+      label: "is archived",
+      flags: { disableActiveMonitoring: false, isArchived: true },
+    },
+  ])(
+    "a link whose monitor $label is drawn with no status, and its frozen status is not even read",
+    async ({
+      flags,
+    }: {
+      flags: { disableActiveMonitoring: boolean; isArchived: boolean };
+    }) => {
+      const offline: MonitorStatus = makeOfflineStatus();
+      const core: NetworkDevice = makeDevice("core-sw1");
+      const access: NetworkDevice = makeDevice("access-sw1");
+
+      deviceService.findBy.mockResolvedValue([core, access] as never);
+      deviceLinkService.findBy.mockResolvedValue([
+        makeManualLink({
+          name: "Uplink",
+          from: access,
+          to: core,
+          monitor: makeLinkMonitor({
+            statusId: offline.id!,
+            ...flags,
+          }),
+        }),
+      ] as never);
+      monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+      await callTopology({});
+
+      const edge: JSONObject = edgeByName("Uplink");
+      // Still a line between the two devices...
+      expect(edge["protocols"]).toEqual(["manual"]);
+      // ...but not one the frozen Offline colors red.
+      expect(edge["monitorState"]).toBeUndefined();
+      /*
+       * Nothing else on this map holds a status, so the status lookup has no
+       * id to resolve: the frozen one never reaches it.
+       */
+      expect(monitorStatusService.findBy).not.toHaveBeenCalled();
+    },
+  );
+
+  test("one link's monitor turned off leaves the other link's checked monitor in charge of its color", async () => {
+    const offline: MonitorStatus = makeOfflineStatus();
+    const core: NetworkDevice = makeDevice("core-sw1");
+    const accessA: NetworkDevice = makeDevice("access-sw1");
+    const accessB: NetworkDevice = makeDevice("access-sw2");
+
+    deviceService.findBy.mockResolvedValue([core, accessA, accessB] as never);
+    deviceLinkService.findBy.mockResolvedValue([
+      makeManualLink({
+        name: "Turned off",
+        from: accessA,
+        to: core,
+        monitor: makeLinkMonitor({
+          statusId: offline.id!,
+          disableActiveMonitoring: true,
+          isArchived: false,
+        }),
+      }),
+      makeManualLink({
+        name: "Checked",
+        from: accessB,
+        to: core,
+        monitor: makeLinkMonitor({
+          statusId: offline.id!,
+          disableActiveMonitoring: false,
+          isArchived: false,
+        }),
+      }),
+    ] as never);
+    monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+    await callTopology({});
+
+    expect(edgeByName("Turned off")["monitorState"]).toBeUndefined();
+    expect(edgeByName("Checked")["monitorState"]).toBe("down");
+  });
+
+  /*
+   * A monitor row read without either switch - an older reader, or a row
+   * whose columns came back empty - is a monitor that is checked: the map
+   * goes on drawing what it drew before the switches were read.
+   */
+  test("a link monitor read without its switches still colors the link", async () => {
+    const offline: MonitorStatus = makeOfflineStatus();
+    const core: NetworkDevice = makeDevice("core-sw1");
+    const access: NetworkDevice = makeDevice("access-sw1");
+
+    deviceService.findBy.mockResolvedValue([core, access] as never);
+    deviceLinkService.findBy.mockResolvedValue([
+      makeManualLink({
+        name: "Uplink",
+        from: access,
+        to: core,
+        monitor: makeLinkMonitor({ statusId: offline.id! }),
+      }),
+    ] as never);
+    monitorStatusService.findBy.mockResolvedValue([offline] as never);
+
+    await callTopology({});
+
+    expect(edgeByName("Uplink")["monitorState"]).toBe("down");
+  });
+
+  test("a link with no monitor is drawn with no status, as before", async () => {
+    const core: NetworkDevice = makeDevice("core-sw1");
+    const access: NetworkDevice = makeDevice("access-sw1");
+
+    deviceService.findBy.mockResolvedValue([core, access] as never);
+    deviceLinkService.findBy.mockResolvedValue([
+      makeManualLink({ name: "Uplink", from: access, to: core }),
+    ] as never);
+
+    await callTopology({});
+
+    expect(edgeByName("Uplink")["monitorState"]).toBeUndefined();
   });
 });

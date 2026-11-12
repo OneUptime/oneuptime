@@ -53,6 +53,7 @@ import {
 import AIToolbox, { ToolCallOutcome } from "../Toolbox/Index";
 import {
   ObservabilityTool,
+  PlannedToolCall,
   PreparedMutation,
   ToolContext,
 } from "../Toolbox/ToolTypes";
@@ -833,8 +834,17 @@ export default class ChatAgentRunner {
       pageContext,
     );
 
-    // Apply the decisions: run approved actions, refuse denied ones.
-    for (const toolCall of pendingToolCalls) {
+    /*
+     * Apply the decisions: run approved actions, refuse denied ones - a
+     * plan's setup actions in their plan's order (orderForRun), with their
+     * results handed back to the model in the order it asked for them.
+     */
+    const resultMessages: Map<string, LLMMessage> = new Map<
+      string,
+      LLMMessage
+    >();
+
+    for (const toolCall of this.orderForRun(pendingToolCalls)) {
       /*
        * Cooperative cancellation: if POST /ai-chat/cancel-run took the run while
        * this batch was executing, it already finalized the assistant message
@@ -866,7 +876,7 @@ export default class ChatAgentRunner {
           toolCall,
         );
 
-        messages.push({
+        resultMessages.set(toolCall.id, {
           role: "tool",
           toolCallId: toolCall.id,
           content: resultText,
@@ -902,12 +912,22 @@ export default class ChatAgentRunner {
           toolArguments: toolCall.arguments,
         });
 
-        messages.push({
+        resultMessages.set(toolCall.id, {
           role: "tool",
           toolCallId: toolCall.id,
           content:
             "The user DENIED this action, so it was NOT performed. Do not attempt it again. Acknowledge that it was not done and continue helping with everything else you can.",
         });
+      }
+    }
+
+    for (const toolCall of pendingToolCalls) {
+      const resultMessage: LLMMessage | undefined = resultMessages.get(
+        toolCall.id,
+      );
+
+      if (resultMessage) {
+        messages.push(resultMessage);
       }
     }
 
@@ -1149,6 +1169,15 @@ export default class ChatAgentRunner {
         // What each call of this round returned, for loop detection.
         const roundCalls: Array<AgentLoopToolCall> = [];
 
+        /*
+         * The setup actions of this answer: one plan (#6829), whose parts
+         * a prepare and a check read each other's of - a status page that
+         * shows the monitor the same plan sets up first.
+         */
+        const plannedCalls: Array<PlannedToolCall> = this.getPlannedCalls(
+          response.toolCalls,
+        );
+
         for (const toolCall of response.toolCalls) {
           // Re-check between tools: a batch can run long and cancel must cut in.
           if (await this.isRunCancelled(request)) {
@@ -1217,12 +1246,60 @@ export default class ChatAgentRunner {
             ? await this.prepareMutation(toolCall, {
                 ...toolContext,
                 recordsSeen: recordsSeen,
+                plannedCalls: plannedCalls,
               })
             : undefined;
 
+          /*
+           * A setup action (#6829) that cannot be made - the person may not,
+           * the address is not one, the project pages people already - is
+           * never shown to be approved and then refused: no card, and the
+           * model is told what is needed, in every mode.
+           */
+          const isSetupAction: boolean =
+            isMutation && AIToolbox.isSetupAction(toolCall.name);
+
+          if (isSetupAction && !toolCall.argumentsParseError) {
+            const refused: ToolCallOutcome | null =
+              await AIToolbox.checkBeforeApproval({
+                name: toolCall.name,
+                args: toolCall.arguments,
+                ctx: { ...toolContext, plannedCalls: plannedCalls },
+              });
+
+            if (refused) {
+              state.toolCallCount++;
+              state.lastToolCallFailed = true;
+
+              await this.emitEvent(request, state, {
+                eventType: AIRunEventType.ToolCallFailed,
+                toolName: toolCall.name,
+                toolArguments: toolCall.arguments,
+                resultSummary: {
+                  errorMessage: refused.errorMessage,
+                  ...(refused.refusal ? { refusal: refused.refusal } : {}),
+                  isAction: true,
+                },
+              });
+
+              messages.push({
+                role: "tool",
+                toolCallId: toolCall.id,
+                content: refused.textForLlm,
+              });
+              continue;
+            }
+          }
+
+          /*
+           * Asked for approval: every action in Ask to act, and a setup
+           * action (#6829) in every mode - it makes something that pages
+           * people or that customers see, so Auto-run asks for it too.
+           */
           if (
             isMutation &&
-            request.permissionMode === AIChatPermissionMode.AskForApproval
+            (request.permissionMode === AIChatPermissionMode.AskForApproval ||
+              isSetupAction)
           ) {
             // Defer the action for the user to approve; do not run it yet.
             this.upsertToolAction(
@@ -1711,6 +1788,62 @@ export default class ChatAgentRunner {
           : records;
       }),
     ]);
+  }
+
+  /*
+   * The setup actions (#6829) the model asked for in one answer, in the
+   * order it asked: one plan, approved on one card. Calls whose arguments
+   * did not parse are left out, as they never run.
+   */
+  private static getPlannedCalls(
+    toolCalls: ReadonlyArray<LLMToolCall>,
+  ): Array<PlannedToolCall> {
+    return toolCalls
+      .filter((toolCall: LLMToolCall): boolean => {
+        return (
+          !toolCall.argumentsParseError &&
+          AIToolbox.isSetupAction(toolCall.name)
+        );
+      })
+      .map((toolCall: LLMToolCall): PlannedToolCall => {
+        return {
+          name: toolCall.name,
+          arguments: toolCall.arguments || {},
+        };
+      });
+  }
+
+  /*
+   * The order a turn's approved calls run in when it resumes: as asked,
+   * except a plan's setup actions (#6829), which run in their plan's order
+   * - who is paged, then what is checked, then where it is shown - so a
+   * status page finds the monitor its plan set up, whatever order the model
+   * asked in. Stable: calls of the same order keep theirs.
+   */
+  public static orderForRun(
+    toolCalls: ReadonlyArray<LLMToolCall>,
+  ): Array<LLMToolCall> {
+    return toolCalls
+      .map((toolCall: LLMToolCall, index: number) => {
+        return {
+          toolCall: toolCall,
+          index: index,
+          order: AIToolbox.isSetupAction(toolCall.name)
+            ? AIToolbox.getSetupPlanOrder(toolCall.name)
+            : Number.MAX_SAFE_INTEGER,
+        };
+      })
+      .sort(
+        (
+          a: { order: number; index: number },
+          b: { order: number; index: number },
+        ): number => {
+          return a.order - b.order || a.index - b.index;
+        },
+      )
+      .map((entry: { toolCall: LLMToolCall }): LLMToolCall => {
+        return entry.toolCall;
+      });
   }
 
   /*

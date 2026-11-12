@@ -6,9 +6,11 @@ import {
   DashboardGoToShortcut,
   DashboardKeyAction,
   DashboardKeyResolution,
-  getDashboardGoToShortcuts,
+  getListedDashboardGoToShortcuts,
   resolveDashboardKeyPress,
 } from "../../Utils/KeyboardShortcuts";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
 // The same ":"-guard the command palette navigates behind — one definition.
 import { isRoutePathNavigable } from "../CommandPalette/DashboardCommandPaletteHelpers";
 import Route from "Common/Types/API/Route";
@@ -52,6 +54,8 @@ import { useTranslation } from "react-i18next";
 const DashboardKeyboardShortcuts: FunctionComponent = (): ReactElement => {
   const { t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  // The products the project hides leave the dialog's list (#6814).
+  const products: ProjectProductsState = useProjectProducts();
 
   /*
    * A ref, not state: an armed leader changes nothing on screen, and re-
@@ -154,7 +158,7 @@ const DashboardKeyboardShortcuts: FunctionComponent = (): ReactElement => {
   }
 
   const goToShortcuts: Array<KeyboardShortcutDescription> =
-    getDashboardGoToShortcuts().map(
+    getListedDashboardGoToShortcuts(products.answer.hidden).map(
       (shortcut: DashboardGoToShortcut): KeyboardShortcutDescription => {
         return {
           id: `go-to-${shortcut.key}`,
