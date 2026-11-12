@@ -658,10 +658,12 @@ describe("one checklist for the project", () => {
       MEMBER_ID.toString(),
     ]);
     expect(
-      (await WelcomeChecklistService.getAnswer(MEMBER())).hasAcknowledgedTestPage,
+      (await WelcomeChecklistService.getAnswer(MEMBER()))
+        .hasAcknowledgedTestPage,
     ).toBe(true);
     expect(
-      (await WelcomeChecklistService.getAnswer(OWNER())).hasAcknowledgedTestPage,
+      (await WelcomeChecklistService.getAnswer(OWNER()))
+        .hasAcknowledgedTestPage,
     ).toBe(false);
 
     // A later acknowledgement reads the row and stops.

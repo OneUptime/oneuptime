@@ -153,11 +153,19 @@ function shift(
   };
 }
 
-function spansOf(shifts: Array<MaterializedShiftJson>): Array<UpcomingShiftSpan> {
-  return buildUpcomingShiftSpans(shifts, NOW, new Date(NOW.getTime() + 30 * DAY));
+function spansOf(
+  shifts: Array<MaterializedShiftJson>,
+): Array<UpcomingShiftSpan> {
+  return buildUpcomingShiftSpans(
+    shifts,
+    NOW,
+    new Date(NOW.getTime() + 30 * DAY),
+  );
 }
 
-function input(overrides?: Partial<MemberFirstStepsInput>): MemberFirstStepsInput {
+function input(
+  overrides?: Partial<MemberFirstStepsInput>,
+): MemberFirstStepsInput {
   return {
     checklist: checklistFor(),
     isChecklistLoading: false,
@@ -449,7 +457,9 @@ describe("the card's tiles", () => {
     );
 
     expect(reach.title).toBe(MEMBER_FIRST_STEPS_COPY.onlyEmailTitle);
-    expect(reach.description).toBe(MEMBER_FIRST_STEPS_COPY.onlyEmailDescription);
+    expect(reach.description).toBe(
+      MEMBER_FIRST_STEPS_COPY.onlyEmailDescription,
+    );
     expect(reach.pageMap).toBe(PageMap.USER_SETTINGS_NOTIFICATION_METHODS);
     expect(reach.isDone).toBe(false);
     expect(reach.isNext).toBe(true);
@@ -477,7 +487,9 @@ describe("the card's tiles", () => {
     );
 
     expect(beside.isDone).toBe(true);
-    expect(beside.description).toBe(MEMBER_FIRST_STEPS_COPY.reachedWithoutEmail);
+    expect(beside.description).toBe(
+      MEMBER_FIRST_STEPS_COPY.reachedWithoutEmail,
+    );
   });
 
   test("an unknown checklist asks the person to open it, and claims nothing", () => {
@@ -508,7 +520,10 @@ describe("the card's tiles", () => {
     const steps: MemberFirstSteps = buildMemberFirstSteps(
       input({
         checklist: checklistFor({
-          methods: [method(EMAIL_METHOD_TYPE, true), method(PUSH_METHOD_TYPE, true)],
+          methods: [
+            method(EMAIL_METHOD_TYPE, true),
+            method(PUSH_METHOD_TYPE, true),
+          ],
         }),
       }),
     );

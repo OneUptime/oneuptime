@@ -45,7 +45,7 @@ import Button, {
 import Card from "Common/UI/Components/Card/Card";
 import { FeedClock, getFeedClock } from "Common/UI/Components/Feed/FeedTime";
 import Icon from "Common/UI/Components/Icon/Icon";
-import QR from "Common/UI/Components/QR/QR";
+import QRCode from "Common/UI/Components/QR/QR";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
@@ -92,8 +92,11 @@ interface ShiftsRead {
   window: UpcomingShiftsWindow;
 }
 
-const MemberFirstStepsCard: FunctionComponent<ComponentProps> = (
-  props: ComponentProps,
+// The card itself: everything but the way back from hidden.
+type CardProps = Omit<ComponentProps, "onShow">;
+
+const MemberFirstStepsCard: FunctionComponent<CardProps> = (
+  props: CardProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
 
@@ -372,7 +375,9 @@ const MemberFirstStepsCard: FunctionComponent<ComponentProps> = (
           tile.step === MemberStep.MobileApp ? isMobileAppOpen : undefined
         }
         className={`group flex w-full items-start gap-4 rounded-lg border bg-white p-4 text-left transition hover:border-indigo-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-          tile.isNext ? "border-indigo-300 ring-1 ring-indigo-200" : "border-gray-200"
+          tile.isNext
+            ? "border-indigo-300 ring-1 ring-indigo-200"
+            : "border-gray-200"
         }`}
       >
         {content}
@@ -380,15 +385,15 @@ const MemberFirstStepsCard: FunctionComponent<ComponentProps> = (
     );
   };
 
-  const storeCode: (data: { name: string; url: string }) => ReactElement = (data: {
+  const storeCode: (data: {
     name: string;
     url: string;
-  }): ReactElement => {
+  }) => ReactElement = (data: { name: string; url: string }): ReactElement => {
     return (
       <div className="flex flex-col items-center gap-2">
         {/* A code is for a phone held up to a big screen, not for a phone. */}
         <div className="hidden h-28 w-28 sm:block">
-          <QR text={data.url} alt={data.name} />
+          <QRCode text={data.url} alt={data.name} />
         </div>
         <a
           href={data.url}
@@ -491,7 +496,9 @@ const MemberFirstSteps: FunctionComponent<ComponentProps> = (
     return (
       <div className={props.className} data-testid="member-first-steps-hidden">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
-          <span>{translator.translateText(MEMBER_FIRST_STEPS_COPY.hiddenLine)}</span>
+          <span>
+            {translator.translateText(MEMBER_FIRST_STEPS_COPY.hiddenLine)}
+          </span>
           <Button
             title={WELCOME_CHECKLIST_COPY.showButton}
             buttonStyle={ButtonStyleType.SECONDARY_LINK}
@@ -512,7 +519,16 @@ const MemberFirstSteps: FunctionComponent<ComponentProps> = (
     );
   }
 
-  return <MemberFirstStepsCard {...props} />;
+  return (
+    <MemberFirstStepsCard
+      answer={props.answer}
+      projectId={props.projectId}
+      className={props.className}
+      isSaving={props.isSaving}
+      error={props.error}
+      onHide={props.onHide}
+    />
+  );
 };
 
 export default MemberFirstSteps;

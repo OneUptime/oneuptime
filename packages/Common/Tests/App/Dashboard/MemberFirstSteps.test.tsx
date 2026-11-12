@@ -442,9 +442,9 @@ describe("can OneUptime reach me", () => {
 
     expect(reach).toHaveTextContent("Make sure OneUptime can reach you");
     expect(reach).toHaveTextContent("A few things still need setting up");
-    expect(screen.getByTestId("member-first-steps-reach-count")).toHaveTextContent(
-      /^1 step left in your setup checklist$/,
-    );
+    expect(
+      screen.getByTestId("member-first-steps-reach-count"),
+    ).toHaveTextContent(/^1 step left in your setup checklist$/);
     expect(reach).toHaveAttribute("data-next", "true");
 
     await press("member-first-steps-reach");
@@ -498,7 +498,9 @@ describe("can OneUptime reach me", () => {
 
   test("a checklist that could not be read claims nothing", async () => {
     checklistMock.mockReturnValue(
-      checklistState(null, { error: "Could not read your notification setup." }),
+      checklistState(null, {
+        error: "Could not read your notification setup.",
+      }),
     );
     await renderHome();
 
@@ -514,7 +516,9 @@ describe("when am I on call", () => {
     shiftsMock.mockResolvedValue(shifts([shift(-HOUR, 2 * HOUR)]));
     await renderHome();
 
-    const onCall: HTMLElement = screen.getByTestId("member-first-steps-on_call");
+    const onCall: HTMLElement = screen.getByTestId(
+      "member-first-steps-on_call",
+    );
 
     expect(onCall).toHaveTextContent("You are on call now");
     expect(onCall).toHaveTextContent("Primary on-call, until");
@@ -541,7 +545,9 @@ describe("when am I on call", () => {
   test("no shift and no policy: not on call, and nowhere to go", async () => {
     await renderHome();
 
-    const onCall: HTMLElement = screen.getByTestId("member-first-steps-on_call");
+    const onCall: HTMLElement = screen.getByTestId(
+      "member-first-steps-on_call",
+    );
 
     expect(onCall).toHaveTextContent("You are not on call");
     expect(onCall.tagName).toBe("DIV");
@@ -560,7 +566,9 @@ describe("the mobile app and the test page", () => {
   test("Get the mobile app opens its codes and this server's address", async () => {
     await renderHome();
 
-    const tile: HTMLElement = screen.getByTestId("member-first-steps-mobile_app");
+    const tile: HTMLElement = screen.getByTestId(
+      "member-first-steps-mobile_app",
+    );
 
     expect(tile).toHaveAttribute("aria-expanded", "false");
 
@@ -595,7 +603,9 @@ describe("the mobile app and the test page", () => {
   test("a push device ticks the mobile app", async () => {
     checklistMock.mockReturnValue(
       checklistState(
-        checklistFor({ methods: [method("Email", true), method("Push", true)] }),
+        checklistFor({
+          methods: [method("Email", true), method("Push", true)],
+        }),
       ),
     );
     await renderHome();
@@ -667,7 +677,9 @@ describe("Hide, Show and done", () => {
   });
 
   test("reached, and a test page has reached them: nothing left, nothing drawn", async () => {
-    fetchMock.mockResolvedValue(memberAnswer({ hasAcknowledgedTestPage: true }));
+    fetchMock.mockResolvedValue(
+      memberAnswer({ hasAcknowledgedTestPage: true }),
+    );
     await renderHome();
 
     expect(screen.queryByTestId("member-first-steps")).toBeNull();
@@ -675,7 +687,9 @@ describe("Hide, Show and done", () => {
   });
 
   test("a test page acknowledged, the checklist still loading: nothing drawn for a moment", async () => {
-    fetchMock.mockResolvedValue(memberAnswer({ hasAcknowledgedTestPage: true }));
+    fetchMock.mockResolvedValue(
+      memberAnswer({ hasAcknowledgedTestPage: true }),
+    );
     checklistMock.mockReturnValue(checklistState(null, { isLoading: true }));
     await renderHome();
 
@@ -683,7 +697,9 @@ describe("Hide, Show and done", () => {
   });
 
   test("a test page acknowledged, but only email while on call: the card stays", async () => {
-    fetchMock.mockResolvedValue(memberAnswer({ hasAcknowledgedTestPage: true }));
+    fetchMock.mockResolvedValue(
+      memberAnswer({ hasAcknowledgedTestPage: true }),
+    );
     checklistMock.mockReturnValue(
       checklistState(checklistFor({ reachedVia: ["Team"] })),
     );

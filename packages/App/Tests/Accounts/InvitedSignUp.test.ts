@@ -73,9 +73,7 @@ describe("what the sign-up form asks", () => {
     );
 
     expect(cloud).toBeGreaterThan(-1);
-    expect(REGISTER.indexOf("companyName: true", cloud)).toBeGreaterThan(
-      cloud,
-    );
+    expect(REGISTER.indexOf("companyName: true", cloud)).toBeGreaterThan(cloud);
     expect(REGISTER.indexOf("companyPhoneNumber: true", cloud)).toBeGreaterThan(
       cloud,
     );

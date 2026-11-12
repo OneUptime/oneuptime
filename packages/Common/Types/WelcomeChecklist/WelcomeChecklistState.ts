@@ -152,8 +152,9 @@ export const parseWelcomeChecklistState: (
     state.hiddenForUserIds = hiddenForUserIds;
   }
 
-  const testPageAcknowledgedByUserIds: Array<string> | undefined =
-    readUserIds(raw["testPageAcknowledgedByUserIds"]);
+  const testPageAcknowledgedByUserIds: Array<string> | undefined = readUserIds(
+    raw["testPageAcknowledgedByUserIds"],
+  );
 
   if (testPageAcknowledgedByUserIds) {
     state.testPageAcknowledgedByUserIds = testPageAcknowledgedByUserIds;
