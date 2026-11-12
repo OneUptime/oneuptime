@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Averigüe su versión actual
 
-Como administrador maestro, abra la etiqueta de edición en el encabezado del panel de administración: **This installation** muestra la versión que ejecuta. La instancia también la indica en `/version`:
+Como administrador maestro, abra la etiqueta de edición en el encabezado del panel de administración: **Esta instalación** muestra la versión que ejecuta. La instancia también la indica en `/version`:
 
 ```bash
 curl http://localhost/version
