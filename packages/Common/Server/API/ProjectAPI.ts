@@ -590,6 +590,13 @@ export default class ProjectAPI extends BaseAPI<Project, ProjectServiceType> {
              * read of its own (ModelTable/ProjectDefaultColumns).
              */
             defaultTableColumns: true,
+            /*
+             * The products the project hides (issue #6814,
+             * Project.productSettings): read with the project, so the
+             * products menu, Home and Search draw the project's products on
+             * their first paint, before the products answer arrives.
+             */
+            productSettings: true,
             paymentProviderMeteredSubscriptionStatus: true,
             paymentProviderSubscriptionStatus: true,
             /*

@@ -5,6 +5,7 @@ Project Settings holds what applies to the whole project: its name, the tools it
 :::cards
 - [Find a setting](#find-a-setting): What each section of the side menu holds.
 - [The project's details](#the-projects-details): Its name, its ID and support access.
+- [Products](#products): The products this project shows, and the ones it hides.
 - [Labels](#labels): Tags for resources, permissions and rules.
 - [Delete the project](#delete-the-project): What it takes, and what goes with it.
 :::
@@ -30,7 +31,7 @@ flowchart LR
 
 | Section | Pages | Where to read more |
 | --- | --- | --- |
-| **Basic** | **Project**, **Labels** | [The project's details](#the-projects-details), [Labels](#labels) |
+| **Basic** | **Project**, **Products**, **Labels** | [The project's details](#the-projects-details), [Products](#products), [Labels](#labels) |
 | **Workspace** | **Slack**, **Microsoft Teams**, **Mattermost**, **Video Calls** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Video Calls](/docs/workspace-connections/video-calls) |
 | **Telemetry & APM** | **Ingestion Keys**, **Data Retention**, **Usage** | [Ingestion Keys](/docs/telemetry/ingestion-keys), [Data Retention](/docs/telemetry/data-retention), [Telemetry Usage](/docs/telemetry/usage) |
 | **Notifications** | **Notification Settings**, **Notification Logs**, **Mobile Apps** | [Notifications](#notifications) |
@@ -54,6 +55,18 @@ flowchart LR
 - **Data Residency**: on OneUptime Cloud, where your project's data is meant to be kept, when OneUptime has recorded it. Only OneUptime sets it.
 
 **Customer Support Access**, on OneUptime Cloud, decides whether OneUptime's support team may open the project. Turn on **Let OneUptime support access this project** when you want their help: OneUptime asks first, because support can then see and change everything in the project, and you click **Let support in**. Turn it off once they have finished: it saves at once. Project Owners and Project Admins change it.
+
+## Products
+
+**Project Settings → Basic → Products** chooses the products this project shows in its **Products** menu, on Home and in Search's list. Each product has a switch that saves when you flip it: on shows the product. Users, Teams and Project Settings are always shown, and **Show Every Product** shows them all again.
+
+A hidden product is not switched off. It moves under **More products**, the last row of the **Products** menu: Search still finds it, its pages and API keep working, and its data keeps arriving. Anyone who pinned it keeps their pin.
+
+A new project starts from what its owner said it came to do on Home: the essentials, Settings and what those goals need are shown, and the rest are hidden. A project that skipped the question, or was created before it, shows every product. Once someone changes the list here, the goals no longer change it.
+
+Each product says what it is to this project: **In use**, **Not set up**, or, on OneUptime Cloud, the plan it needs. When a hidden product starts receiving data, Home tells the Project Owners and Admins and offers **Show It** or **Keep Hidden**.
+
+Project Owners, Project Admins and anyone who may edit the project change it; everyone else in the project can see it.
 
 ## Labels
 

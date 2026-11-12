@@ -92,6 +92,12 @@ export enum ProductEventName {
    */
   FeedbackGiven = "feedback/given",
 
+  // Products that fit the project: hidden, shown and pinned (#6814).
+  ProductHidden = "products/product_hidden",
+  ProductShown = "products/product_shown",
+  AllProductsShown = "products/all_products_shown",
+  ProductPinned = "products/product_pinned",
+  ProductUnpinned = "products/product_unpinned",
   // Setup health (#6812): what is misconfigured in the project.
   SetupHealthOpened = "setup_health/opened",
   SetupHealthFixOpened = "setup_health/fix_opened",
@@ -308,6 +314,36 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
         maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH,
       },
     ],
+  },
+  {
+    name: ProductEventName.ProductHidden,
+    description:
+      "A product was hidden in the project (Project Settings > Products, or Home's Keep hidden), and whether it had data.",
+    properties: [token("product"), token("source"), { name: "has_data" }],
+  },
+  {
+    name: ProductEventName.ProductShown,
+    description:
+      "A hidden product was shown again in the project (Project Settings > Products, or Home's Show it).",
+    properties: [token("product"), token("source")],
+  },
+  {
+    name: ProductEventName.AllProductsShown,
+    description:
+      "Every product was shown again in the project, and how many had been hidden.",
+    properties: [{ name: "hidden_count" }],
+  },
+  {
+    name: ProductEventName.ProductPinned,
+    description:
+      "Somebody pinned a product to the nav bar (from the products menu or the product's page), and how many they have pinned now.",
+    properties: [token("product"), token("source"), { name: "pin_count" }],
+  },
+  {
+    name: ProductEventName.ProductUnpinned,
+    description:
+      "Somebody unpinned a product from the nav bar, and how many they have pinned now.",
+    properties: [token("product"), token("source"), { name: "pin_count" }],
   },
   {
     name: ProductEventName.SetupHealthOpened,

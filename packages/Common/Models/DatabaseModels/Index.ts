@@ -127,6 +127,7 @@ import RumSessionPin from "./RumSessionPin";
 import RumProductAnalyticsSavedView from "./RumProductAnalyticsSavedView";
 // Activation milestones of a project (issue #6830)
 import ProjectMilestone from "./ProjectMilestone";
+import ProjectUserPreference from "./ProjectUserPreference";
 // API Keys
 import ApiKey from "./ApiKey";
 import ApiKeyCustomRole from "./ApiKeyCustomRole";
@@ -1318,6 +1319,7 @@ const AllModelTypes: Array<{
   RumSessionPin,
   RumProductAnalyticsSavedView,
   ProjectMilestone,
+  ProjectUserPreference,
   DeletedProject,
   MarketplaceSubscription,
   MarketplaceUsageReport,

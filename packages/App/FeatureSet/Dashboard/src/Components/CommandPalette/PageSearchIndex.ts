@@ -509,6 +509,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               },
             ],
           },
+          /*
+           * The products this project shows (#6814): found by what people
+           * call what it does - hiding what they do not use, choosing what
+           * the menu lists.
+           */
+          {
+            page: PageMap.SETTINGS_PRODUCTS,
+            title: "Products",
+            icon: IconProp.Squares,
+            keywords: [
+              "hide products",
+              "show products",
+              "hidden products",
+              "choose products",
+              "products menu",
+              "more products",
+              "customize menu",
+              "show every product",
+            ],
+          },
           {
             page: PageMap.SETTINGS_LABELS,
             title: "Labels",

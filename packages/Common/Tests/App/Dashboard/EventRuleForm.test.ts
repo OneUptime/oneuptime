@@ -6,6 +6,7 @@ import Runbook from "../../../Models/DatabaseModels/Runbook";
 import type Field from "../../../UI/Components/Forms/Types/Field";
 import {
   DEFAULT_REMINDER_INTERVAL_IN_MINUTES,
+  REMINDER_INTERVAL_VALIDATION,
   DEFAULT_SLA_RESOLUTION_TIME_IN_MINUTES,
   DEFAULT_SLA_RESPONSE_TIME_IN_MINUTES,
   ON_CALL_RULE_NAME_WORDING,
@@ -48,7 +49,16 @@ import {
   getMaintenanceReminderTiming,
   isMaintenanceReminderTiming,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/MaintenanceReminderTiming";
-import { getValuesForMaintenanceReminderTiming } from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/MaintenanceReminderRuleFields";
+import {
+  getMaintenanceReminderRuleActionFields,
+  getValuesForMaintenanceReminderTiming,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Reminders/MaintenanceReminderRuleFields";
+import Validation from "../../../UI/Components/Forms/Validation";
+import {
+  MAX_REMINDER_INTERVAL_IN_MINUTES,
+  MIN_REMINDER_INTERVAL_IN_MINUTES,
+  getReminderIntervalRefusal,
+} from "../../../Types/Reminder/ReminderInterval";
 
 /*
  * The rules of the on-call, privacy, SLA and reminder rule forms, read
@@ -710,5 +720,106 @@ describe("a maintenance reminder rule's one choice", () => {
         timing: MaintenanceReminderTiming.WhileInProgress,
       })["name"],
     ).toBe("Remind every 30 minutes while it is in progress");
+  });
+});
+
+/*
+ * Every reminder rule's interval box - an incident's, an alert's and a
+ * scheduled maintenance event's - takes a minute to a year, as the API does
+ * (Types/Reminder/ReminderInterval). It took 0, which the API refused as
+ * "reminderIntervalInMinutes is required", and -5, which the API saved and
+ * which reminded the owners every minute.
+ */
+describe("a reminder rule's interval box", () => {
+  const INTERVAL_BOXES: Array<[string, Field<Values>]> = [
+    ["an incident's", getReminderRuleActionFields<Values>("incident")[0]!],
+    ["an alert's", getReminderRuleActionFields<Values>("alert")[0]!],
+    [
+      "a scheduled maintenance event's",
+      getMaintenanceReminderRuleActionFields()[0]! as unknown as Field<Values>,
+    ],
+  ];
+
+  // What the form says about the box holding `value`, or undefined.
+  function errorFor(box: Field<Values>, value: unknown): string | undefined {
+    const errors: Record<string, string> = Validation.validate({
+      formFields: [{ ...box, name: "reminderIntervalInMinutes" }],
+      values: { reminderIntervalInMinutes: value } as never,
+      onValidate: undefined,
+      currentFormStepId: null,
+    }) as Record<string, string>;
+
+    return errors["reminderIntervalInMinutes"];
+  }
+
+  test("the boxes share one set of bounds: the API's", () => {
+    expect(REMINDER_INTERVAL_VALIDATION).toEqual({
+      minValue: MIN_REMINDER_INTERVAL_IN_MINUTES,
+      maxValue: MAX_REMINDER_INTERVAL_IN_MINUTES,
+    });
+    expect(REMINDER_INTERVAL_VALIDATION).toEqual({
+      minValue: 1,
+      maxValue: 525600,
+    });
+  });
+
+  test.each(INTERVAL_BOXES)(
+    "%s is the interval, a required number box with those bounds",
+    (_kind: string, box: Field<Values>) => {
+      expect(Object.keys(box.field || {})).toEqual([
+        "reminderIntervalInMinutes",
+      ]);
+      expect(box.fieldType).toBe(FormFieldSchemaType.Number);
+      expect(box.required).toBe(true);
+      expect(box.validation).toBe(REMINDER_INTERVAL_VALIDATION);
+    },
+  );
+
+  test.each(INTERVAL_BOXES)(
+    "%s says 0 and less are too few minutes, as typed or as a number",
+    (_kind: string, box: Field<Values>) => {
+      for (const value of [0, "0", -5, "-5", -1]) {
+        expect(errorFor(box, value)).toBe(
+          "Reminder Interval (minutes) should not be less than 1.",
+        );
+      }
+    },
+  );
+
+  test.each(INTERVAL_BOXES)(
+    "%s says more than a year is too many",
+    (_kind: string, box: Field<Values>) => {
+      expect(errorFor(box, 525601)).toBe(
+        "Reminder Interval (minutes) should not be more than 525600.",
+      );
+    },
+  );
+
+  test.each(INTERVAL_BOXES)(
+    "%s takes a minute, the default 30 and a year",
+    (_kind: string, box: Field<Values>) => {
+      for (const value of [1, "1", 30, "30", 1440, 525600]) {
+        expect(errorFor(box, value)).toBeUndefined();
+      }
+    },
+  );
+
+  test.each(INTERVAL_BOXES)(
+    "%s left empty is still required",
+    (_kind: string, box: Field<Values>) => {
+      expect(errorFor(box, "")).toBe(
+        "Reminder Interval (minutes) is required.",
+      );
+    },
+  );
+
+  test("every whole number the boxes take, the API takes, and every one they refuse, it refuses", () => {
+    const box: Field<Values> = INTERVAL_BOXES[0]![1];
+
+    for (const value of [-10, -1, 0, 1, 2, 30, 525599, 525600, 525601]) {
+      expect(errorFor(box, value) === undefined).toBe(
+        getReminderIntervalRefusal(value) === null,
+      );
+    }
   });
 });
