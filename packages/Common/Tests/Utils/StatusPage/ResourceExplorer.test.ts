@@ -622,6 +622,54 @@ describe("StatusPageResourceExplorerUtil", () => {
         ),
       ).toBe("Unknown resource");
     });
+
+    /*
+     * The hover title of a name cut short to fit its row or chip
+     * (ResourceList, ResourceGrid): the same name, and none for a resource
+     * left with no name at all - never an untranslated "Unknown resource"
+     * under the pointer on a page in another language.
+     */
+    test("the name it is known by, or none at all", () => {
+      expect(
+        StatusPageResourceExplorerUtil.getKnownResourceName(
+          makeResource({
+            id: "a",
+            monitorName: "API",
+            displayName: "Public API",
+          }),
+        ),
+      ).toBe("API");
+
+      expect(
+        StatusPageResourceExplorerUtil.getKnownResourceName(
+          makeResource({
+            id: "b",
+            monitorGroupName: "Edge",
+            displayName: "Public Edge",
+          }),
+        ),
+      ).toBe("Edge");
+
+      expect(
+        StatusPageResourceExplorerUtil.getKnownResourceName(
+          makeResource({ id: "c", displayName: "Public API" }),
+        ),
+      ).toBe("Public API");
+
+      expect(
+        StatusPageResourceExplorerUtil.getKnownResourceName(
+          makeResource({ id: "d" }),
+        ),
+      ).toBeUndefined();
+
+      // An empty display name is no name either.
+      const unnamed: StatusPageResource = makeResource({ id: "e" });
+      unnamed.displayName = "";
+
+      expect(
+        StatusPageResourceExplorerUtil.getKnownResourceName(unnamed),
+      ).toBeUndefined();
+    });
   });
 
   describe("filtering a group's resources", () => {

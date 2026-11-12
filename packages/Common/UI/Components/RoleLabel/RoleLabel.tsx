@@ -13,6 +13,19 @@ export interface ComponentProps {
   description?: string | undefined;
 }
 
+/*
+ * The role's name. In a table's row the cell keeps it to one line
+ * (whitespace-nowrap), and it ends in "..." at its own end; on a phone's
+ * card it wraps, breaking a name with no place to break anywhere rather
+ * than run past the card. Said to wrap ([overflow-wrap:anywhere]), a name
+ * that reads the other way from the page is as wide as its words beside
+ * its mark (IsolatedLine's CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME):
+ * aligned to its end, as a one-line box is, an English role's wrapped
+ * lines all lined up on the right of an Arabic card.
+ */
+export const ROLE_LABEL_NAME_CLASS_NAME: string =
+  "min-w-0 overflow-hidden text-ellipsis text-sm font-medium text-gray-900 [overflow-wrap:anywhere]";
+
 const RoleLabel: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -66,7 +79,8 @@ const RoleLabel: FunctionComponent<ComponentProps> = (
       <IsolatedLine
         as="span"
         text={props.name}
-        className="min-w-0 overflow-hidden text-ellipsis text-sm font-medium text-gray-900"
+        className={ROLE_LABEL_NAME_CLASS_NAME}
+        dataTestId="role-label-name"
       />
     </div>
   );

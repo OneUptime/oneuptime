@@ -1,4 +1,5 @@
 import Route from "Common/Types/API/Route";
+import { ReadingDirection } from "Common/Types/ReadingDirection";
 import React, { FunctionComponent, ReactElement } from "react";
 import { Link } from "react-router-dom";
 
@@ -15,6 +16,13 @@ export interface ComponentProps {
    * as the current page (aria-current).
    */
   isCurrentPage?: boolean | undefined;
+  /*
+   * A link that is a line of its own and holds only a name someone typed
+   * reads the way the name does (getIsolatedLine's dir): an English monitor
+   * name on an Arabic page, its lines from its own start. Left out, the
+   * link reads the page's way.
+   */
+  dir?: ReadingDirection | undefined;
 }
 
 const ReactDomLink: FunctionComponent<ComponentProps> = (
@@ -40,6 +48,7 @@ const ReactDomLink: FunctionComponent<ComponentProps> = (
       title={props.title}
       data-testid={props.dataTestId}
       aria-current={props.isCurrentPage ? "page" : undefined}
+      dir={props.dir}
     >
       {children}
     </Link>

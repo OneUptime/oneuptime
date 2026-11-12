@@ -9,8 +9,12 @@ import IsolatedLine, {
   isWrappingLineClassName,
 } from "../../../UI/Components/IsolatedText/IsolatedLine";
 import Pill from "../../../UI/Components/Pill/Pill";
-import ProbeElement from "../../../UI/Components/Probe/Probe";
-import RoleLabel from "../../../UI/Components/RoleLabel/RoleLabel";
+import ProbeElement, {
+  PROBE_NAME_CLASS_NAME,
+} from "../../../UI/Components/Probe/Probe";
+import RoleLabel, {
+  ROLE_LABEL_NAME_CLASS_NAME,
+} from "../../../UI/Components/RoleLabel/RoleLabel";
 import Probe from "../../../Models/DatabaseModels/Probe";
 import Color from "../../../Types/Color";
 import {
@@ -491,11 +495,23 @@ describe("a probe's and a role's name", () => {
     const name: HTMLElement = screen.getByTestId("probe-name");
 
     expect(name).toHaveAttribute("dir", "ltr");
+    /*
+     * A line that may wrap (a phone's card): as wide as its words at the
+     * page's start, each of its lines from its own start - never lined up
+     * by its end, which put an English probe's wrapped lines on the right
+     * of an Arabic card (#6866).
+     */
+    expect(name.className).toBe(
+      `${PROBE_NAME_CLASS_NAME} ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+    );
     expect(name).toHaveClass(
       "overflow-hidden",
       "text-ellipsis",
-      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+      "[overflow-wrap:anywhere]",
+      "w-fit",
+      "max-w-full",
     );
+    expect(name).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
     // The words read as they always did: the name, then the suffix.
     expect(name.textContent).toBe("Ohio (us-east-2) (2)");
     // Its box may shrink below its words, so the "..." can show.
@@ -530,14 +546,23 @@ describe("a probe's and a role's name", () => {
 
     const name: HTMLElement = screen.getByText("Incident Commander");
 
-    // Its own line, cut short at its own end where its cell is narrow.
+    /*
+     * Its own line, cut short at its own end where its cell is narrow, and
+     * wrapped from its own start on a phone's card (#6866): as wide as its
+     * words beside its mark, not lined up by its end.
+     */
     expect(name).toHaveAttribute("dir", "ltr");
+    expect(name).toHaveAttribute("data-testid", "role-label-name");
+    expect(name.className).toBe(
+      `${ROLE_LABEL_NAME_CLASS_NAME} ${CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+    );
     expect(name).toHaveClass(
       "min-w-0",
       "overflow-hidden",
       "text-ellipsis",
-      LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+      "[overflow-wrap:anywhere]",
     );
+    expect(name).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
     // Its mark beside it keeps the page's way.
     expect(name.parentElement).not.toHaveAttribute("dir");
     expect(name.parentElement).toHaveClass("min-w-0");
