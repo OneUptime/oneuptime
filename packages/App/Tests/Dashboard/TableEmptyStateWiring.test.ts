@@ -176,7 +176,21 @@ describe("tables under a facet bar tell their empty state about the chips", () =
            * A product list's first run (getProductFirstRunEmptyState): the
            * same, the Create button left to the explanation's.
            */
-          code.includes("emptyState={firstRun.getEmptyState(facetEmptyState)}"),
+          code.includes(
+            "emptyState={firstRun.getEmptyState(facetEmptyState)}",
+          ) ||
+          /*
+           * A list that offers the importer under its empty table (#6964,
+           * withToolImportOffer): either of those, with the importer's link
+           * after the list's own actions and the rest kept as it was
+           * (Common/Tests/App/Dashboard/ToolImportOffer.test.ts).
+           */
+          code.includes(
+            "emptyState={withToolImportOffer({ emptyState: facetEmptyState,",
+          ) ||
+          code.includes(
+            "emptyState={withToolImportOffer({ emptyState: firstRun.getEmptyState(facetEmptyState),",
+          ),
       ).toBe(true);
     },
   );
