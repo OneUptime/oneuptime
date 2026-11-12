@@ -59,7 +59,7 @@ Disabled in a tooltip drawn on the page beside it, outside the widget's card, wi
 covering it, in the dark theme and in German, and on the board while the board is in full
 screen, gone once it leaves full screen. Phone (Pixel 5, 390px) Chromium runs what a phone
 changes: reaching and pressing the headers, inside OneUptime and on the public dashboard,
-and the honeycomb's tooltip in a phone's window. Screenshots are under
+and the honeycomb's tooltip in a phone's window, in the light and the dark theme. Screenshots are under
 `output/playwright/dashboard-widget-sort-ui`.
 
 Each widget is drawn once, at its own size: every frame the page paints is recorded

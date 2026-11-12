@@ -1099,26 +1099,34 @@ test.describe("a honeycomb tile's tooltip", () => {
     expectBesideItsTile(await placeOf(page), await boxOf(red));
   });
 
-  test("in the dark theme the tooltip is drawn dark, and in German it says Deaktiviert", async ({
+  // At 1280 and in a phone's window, as the light theme's test above.
+  test("in the dark theme the tooltip is drawn dark, on the page beside its tile", async ({
     page,
   }: {
     page: Page;
   }, testInfo: TestInfo) => {
-    atDesktopOnly();
-
     await openHoneycomb(page, "&theme=dark");
-    let tile: Locator = await grayTile(page);
+    const tile: Locator = await grayTile(page);
     await pointAt(tile);
 
+    await expect(tooltip(page)).toHaveCount(1);
     await expect(tooltip(page)).toContainText("Disabled");
     const dark: TooltipPlace = await placeOf(page);
     expect(dark.parent).toBe("body");
     expect(dark.background).not.toBe("rgb(255, 255, 255)");
     expectBesideItsTile(dark, await boxOf(tile));
     await shoot(page, testInfo, "honeycomb-tooltip-dark", undefined);
+  });
+
+  test("in German the tooltip says Deaktiviert", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
 
     await openHoneycomb(page, "&lang=de");
-    tile = await grayTile(page);
+    const tile: Locator = await grayTile(page);
     await pointAt(tile);
 
     await expect(tooltip(page)).toContainText("Deaktiviert");
