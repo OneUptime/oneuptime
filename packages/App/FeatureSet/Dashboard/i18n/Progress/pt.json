@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51126,
-    "untranslated": 9607
+    "keys": 51296,
+    "untranslated": 9504
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -495,6 +495,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{name}} (monitor: {{monitor}})",
     "{{tokens}} tokens",
     "{{up}}/{{count}} OSD up",
     "{{up}}/{{count}} OSDs up",

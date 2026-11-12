@@ -25,6 +25,7 @@ import { wasLastInputFromKeyboard } from "../../Utils/InputModality";
 import { Translator, translationKey } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
 import Icon from "../Icon/Icon";
+import WasThisClear from "../Feedback/WasThisClear";
 import { TOOLTIP_PLUGINS } from "../Tooltip/TooltipEscape";
 
 /*
@@ -84,8 +85,22 @@ export const DEFINED_TERM_UNAVAILABLE_TEXT: string = translationKey(
 export const DEFINED_TERM_CLASS_NAME: string =
   "inline cursor-help rounded-sm bg-transparent p-0 text-start underline decoration-gray-400 decoration-dotted decoration-1 underline-offset-4 hover:decoration-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
 
+/*
+ * The popover is drawn inside its word's parent, so it would take on that
+ * parent's type: a card title's weight, or the capitals and wide letter
+ * spacing of a row name drawn in small capitals ("When this goes down"
+ * names its On-call policy row so). A definition reads in the popover's
+ * own type, whatever its word is in.
+ */
 export const DEFINED_TERM_POPOVER_CLASS_NAME: string =
-  "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm focus:outline-none";
+  "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm font-normal normal-case tracking-normal focus:outline-none";
+
+// The topic a definition's "Was this clear?" is kept under: "term.criteria".
+export const getDefinedTermFeedbackTopic: (term: GlossaryTerm) => string = (
+  term: GlossaryTerm,
+): string => {
+  return `term.${term}`;
+};
 
 type ReadState =
   | { status: "idle" }
@@ -185,6 +200,18 @@ const DefinedTermPopover: FunctionComponent<PopoverProps> = (
           className="h-3.5 w-3.5 flex-shrink-0"
         />
       </a>
+      {/*
+       * Whether the definition helped (#6832), once it is there to judge:
+       * a quiet thumb up or down, only where OneUptime may ask this person.
+       */}
+      {definition && props.read.status === "ready" ? (
+        <WasThisClear
+          topic={getDefinedTermFeedbackTopic(props.term)}
+          className="border-t border-gray-100 pt-1.5"
+        />
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

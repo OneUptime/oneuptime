@@ -4,6 +4,17 @@ import ActivationMilestone from "../../../Types/Analytics/ActivationMilestone";
 import { GuidedSetupEvents } from "../../../UI/Utils/GuidedSetupEvents";
 import { UtmPropertyKeys } from "../../../Types/Marketing/Attribution";
 import { JSONObject } from "../../../Types/JSON";
+import AIChatMessageStatus from "../../../Types/AI/AIChatMessageStatus";
+import {
+  AIChatToolAction,
+  AIChatToolActionStatus,
+} from "../../../Types/AI/AIChatTypes";
+import {
+  getSetupApprovedEvent,
+  getSetupProposedEvent,
+  getSetupTestPageSentEvent,
+  takeNewSetupProposal,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/AskAiSetupEvents";
 import {
   COMMON_PRODUCT_EVENT_PROPERTIES,
   PRODUCT_EVENTS,
@@ -65,6 +76,17 @@ const BROWSER_CAPTURES: Set<string> = new Set<string>([
   "send",
 ]);
 
+// A setup action waiting on its card, for the setup plans' builders below.
+const SETUP_ACTION: AIChatToolAction = {
+  id: "call-1",
+  toolName: "set_up_website_monitoring",
+  title: "Set up monitoring for example.com",
+  arguments: {},
+  isMutation: true,
+  requiresApproval: true,
+  status: AIChatToolActionStatus.Pending,
+};
+
 /*
  * The builders events are made with, and the names they return - read by
  * calling them, so a name added to one is scanned too.
@@ -99,6 +121,43 @@ const BUILDER_KEYS: Record<string, () => Array<string>> = {
   // The sign-up page's utm_event: the campaign values the visitor arrived with.
   getUtmParams: (): Array<string> => {
     return [...UtmPropertyKeys];
+  },
+  // Ask AI's setup plans (#6829): proposed, approved, then tested.
+  getSetupProposedEvent: (): Array<string> => {
+    return Object.keys(
+      getSetupProposedEvent({
+        message: {
+          status: AIChatMessageStatus.WaitingForApproval,
+          toolActions: [SETUP_ACTION],
+        },
+        permissionMode: "AskForApproval",
+      }) || {},
+    );
+  },
+  // The same event, taken once per answer by the panel's poll.
+  takeNewSetupProposal: (): Array<string> => {
+    return Object.keys(
+      takeNewSetupProposal({
+        message: {
+          id: "a-message",
+          status: AIChatMessageStatus.WaitingForApproval,
+          toolActions: [SETUP_ACTION],
+        },
+        seen: new Set<string>(),
+        permissionMode: "AskForApproval",
+      }) || {},
+    );
+  },
+  getSetupApprovedEvent: (): Array<string> => {
+    return Object.keys(
+      getSetupApprovedEvent({
+        toolActions: [SETUP_ACTION],
+        decisions: [{ toolCallId: SETUP_ACTION.id, approved: true }],
+      }) || {},
+    );
+  },
+  getSetupTestPageSentEvent: (): Array<string> => {
+    return Object.keys(getSetupTestPageSentEvent({ kind: "self" }));
   },
   toProductEventProperties: (): Array<string> => {
     return PRODUCT_EVENTS.flatMap(

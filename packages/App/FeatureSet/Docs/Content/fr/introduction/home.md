@@ -38,7 +38,7 @@ La ligne du haut nomme ce qui est ouvert de plus urgent, dans une couleur assort
 
 À côté, l'accueil indique quand il a chargé le projet pour la dernière fois, et **Actualiser** le recharge. Quand vous revenez sur un onglet de l'accueil après une minute ou plus, il s'actualise tout seul.
 
-Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Créez votre premier moniteur**, qui ouvre le formulaire de création d'un moniteur. Seules les personnes autorisées à créer des moniteurs le voient.
+Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Créez votre premier moniteur**, qui ouvre la configuration guidée **Savoir quand mon site web ou mon API est en panne**. Seules les personnes autorisées à créer des moniteurs le voient.
 
 ### Les cinq nombres
 
@@ -63,16 +63,16 @@ Chaque étape se coche d'elle-même quand la chose fonctionne, pas quand un enre
 | Étape | Terminée quand | Ouvre |
 | --- | --- | --- |
 | **Importer depuis votre outil actuel** | Une importation depuis un autre outil se termine. | **Importer depuis un autre outil** |
-| **Créez votre premier moniteur** | Sa première vérification arrive. | Le formulaire **Créer un moniteur**, ou la liste **Moniteurs** pour quelqu'un qui ne peut pas créer de moniteurs. |
+| **Créez votre premier moniteur** | Sa première vérification arrive. | La configuration guidée **Savoir quand mon site web ou mon API est en panne**, ou la liste **Moniteurs** pour quelqu'un qui ne peut pas créer de moniteurs. |
 | **Connecter un serveur ou un cluster** | Ses premières métriques arrivent. | **Hôtes** |
-| **Envoyer vos premiers logs, métriques ou traces** | Les premiers logs, métriques, traces, exceptions ou profils du projet arrivent. | **Journaux** |
-| **Configurez une politique d'astreinte** | Une alerte de test est acquittée, une alerte joint quelqu'un, ou une règle d'astreinte exécute une politique qui peut joindre quelqu'un. | **Astreinte** |
-| **Publiez une page de statut** | Une page de statut affiche un moniteur. | **Pages de statut** |
+| **Envoyer vos premiers logs, métriques ou traces** | Les premiers logs, métriques, traces, exceptions ou profils du projet arrivent. | La configuration guidée **Envoyer des journaux, des métriques et des traces, puis être alerté** |
+| **Configurez une politique d'astreinte** | Une alerte de test est acquittée, une alerte joint quelqu'un, ou une règle d'astreinte exécute une politique qui peut joindre quelqu'un. | La configuration guidée **Alerter la bonne personne quand quelque chose tombe en panne** |
+| **Publiez une page de statut** | Une page de statut affiche un moniteur. | La configuration guidée **Publiez une page de statut**, ou la liste **Pages de statut** pour quelqu'un qui ne peut pas créer de pages de statut. |
 | **Invitez votre équipe** | Quelqu'un accepte votre invitation. | **Utilisateurs** |
 
 L'étape à faire en premier est marquée **Étape suivante**. Avec l'offre Free d'OneUptime Cloud, qui comprend une personne, **Invitez votre équipe** indique qu'il faut l'offre Growth, et ouvre **Facturation**. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, les administrateurs du serveur voient d'abord **Ce serveur ne peut pas encore envoyer d'e-mails** ; cela ouvre le tableau de bord admin.
 
-Quand vous créez un moniteur, une page de statut ou une politique d'astreinte depuis une étape, la page où vous arrivez dit ce qui vient ensuite, avec **Retour à la configuration**.
+Une configuration guidée fait tout le travail sur une seule page, étape par étape, et se termine par ce qu'elle a configuré et ce qu'il faut faire ensuite. Pour en rouvrir une plus tard, recherchez son nom.
 
 Sous les étapes, **Comment fonctionne OneUptime** montre les quatre produits essentiels dans l'ordre où un problème les traverse : **Moniteurs**, **Incidents et alertes**, **Astreinte** et **Pages de statut**. Cliquez sur l'un d'eux pour l'ouvrir. En dessous, il indique ce qui alimente cette boucle, la télémétrie et l'infrastructure, avec des liens vers [Concepts clés](/docs/introduction/core-concepts) et [Glossaire](/docs/introduction/glossary).
 
@@ -93,6 +93,10 @@ La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la
 
 **Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste, qui ouvre la même liste que son nombre. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.
 
+### Santé de la configuration
+
+Quand quelque chose dans la configuration du projet empêcherait de prévenir les bonnes personnes, **Attention requise** se termine par **Configuration** : le nombre de points à examiner. Cette ligne ouvre **Santé de la configuration**, qui liste ce qui est mal configuré, le plus grave d'abord, sous **Les alertes n'arriveront pas**, **À corriger** et **Suggestions** : un moniteur qui n'alerte personne, une politique d'astreinte que rien ne déclenche, une personne qu'on ne peut pas alerter, les SMS désactivés, un planning d'astreinte où personne n'est de garde, une page de statut qui n'affiche aucun moniteur. Chaque constat dit en une phrase ce qui ne va pas, avec le bouton qui ouvre sa correction, et les constats d'un moniteur sont les ruptures que nomme sa carte **Quand il tombe en panne**. Un constat que votre équipe laisse tel quel exprès peut être masqué avec une raison, pour tout le monde, puis restauré depuis **Ignoré**. La recherche trouve la page sous le nom **Santé de la configuration**, et Demander à l'IA répond à « Ma configuration est-elle correcte ? » à partir d'elle.
+
 ### Votre projet
 
 **Votre projet** compte les **Moniteurs**, les **Pages de statut**, les **Politiques d'astreinte**, les **SLOs**, les **Services**, les **Tableaux de bord** et les **Flux de travail** du projet, sans les éléments archivés. Chaque ligne ouvre sa liste. Un type dont le projet n'a encore aucun élément affiche **Configurer** au lieu d'un nombre.
@@ -101,7 +105,7 @@ La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la
 
 ### Explorer OneUptime
 
-**Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus.
+**Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus. Les produits que votre projet masque n'y figurent pas.
 
 ## Se repérer
 
@@ -111,6 +115,9 @@ Tout dans OneUptime se trouve sous **Produits** dans la barre du haut. Le menu p
 - **Vous partez de là où vous êtes.** Le groupe de la page sur laquelle vous êtes se déplie tout seul, et les produits que vous avez ouverts récemment sont listés en haut.
 - **Vos choix restent.** Le menu retient, dans votre navigateur, quels autres groupes vous avez dépliés ou repliés. Les essentiels sont de nouveau dépliés chaque fois que vous ouvrez le menu, même si vous les aviez repliés.
 - **Sur un téléphone**, le bouton du menu liste les produits de la même façon : les essentiels dépliés en haut, et chaque autre groupe sous la forme d'une ligne qui s'ouvre d'un toucher.
+- **Les produits que le projet n'utilise pas.** Un propriétaire ou un administrateur du projet peut les masquer dans **Paramètres du projet → Basique → Produits**. Un produit masqué passe sous **Plus de produits**, la dernière ligne du menu : la recherche le trouve toujours, ses pages fonctionnent et ses données continuent d'arriver. Quand l'un d'eux commence à recevoir des données, l'accueil le signale aux personnes qui peuvent le réafficher.
+- **Épingler.** Gardez un produit dans la barre supérieure, à côté d'**Accueil** et de **Produits** : appuyez sur l'épingle de sa carte dans le menu, ou sur **Épingler** à côté du titre de sa page. Vous pouvez en épingler cinq, et ils vous suivent dans chaque navigateur. Sur un téléphone, vos produits épinglés viennent en premier dans le menu.
+- **Ce qui est utilisé.** Dans chaque groupe sauf les essentiels et les paramètres, les produits que votre projet utilise viennent en premier, et celui que vous n'avez pas encore configuré indique **Non configuré**. Sur OneUptime Cloud, un produit que votre offre n'inclut pas nomme l'offre qui l'inclut.
 
 ### Les barres du haut
 

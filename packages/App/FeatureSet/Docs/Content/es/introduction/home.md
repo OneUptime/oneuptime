@@ -38,7 +38,7 @@ La línea superior nombra lo más urgente que hay abierto, en un color acorde:
 
 Al lado, Inicio indica cuándo cargó el proyecto por última vez, y **Actualizar** lo vuelve a cargar. Cuando vuelves a una pestaña de Inicio después de un minuto o más, se actualiza sola.
 
-Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre el formulario para crear uno. Solo lo ven las personas que pueden crear monitores.
+Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre la configuración guiada **Saber cuándo cae mi sitio web o mi API**. Solo lo ven las personas que pueden crear monitores.
 
 ### Los cinco números
 
@@ -63,16 +63,16 @@ Cada paso se marca solo cuando la cosa funciona, no cuando existe un registro, y
 | Paso | Completado cuando | Abre |
 | --- | --- | --- |
 | **Importa desde tu herramienta actual** | Termina una importación desde otra herramienta. | **Importar desde otra herramienta** |
-| **Crea tu primer monitor** | Llega su primera comprobación. | El formulario **Crear monitor**, o la lista **Monitores** para quien no puede crear monitores. |
+| **Crea tu primer monitor** | Llega su primera comprobación. | La configuración guiada **Saber cuándo cae mi sitio web o mi API**, o la lista **Monitores** para quien no puede crear monitores. |
 | **Conecta un servidor o un clúster** | Llegan sus primeras métricas. | **Hosts** |
-| **Envía tus primeros logs, métricas o trazas** | Llegan los primeros logs, métricas, trazas, excepciones o perfiles del proyecto. | **Registros** |
-| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia ejecuta una política que puede llegar a alguien. | **Guardia** |
-| **Publica una página de estado** | Una página de estado muestra un monitor. | **Páginas de estado** |
+| **Envía tus primeros logs, métricas o trazas** | Llegan los primeros logs, métricas, trazas, excepciones o perfiles del proyecto. | La configuración guiada **Envía registros, métricas y trazas, y recibe alertas** |
+| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia ejecuta una política que puede llegar a alguien. | La configuración guiada **Avisar a la persona adecuada cuando algo falle** |
+| **Publica una página de estado** | Una página de estado muestra un monitor. | La configuración guiada **Publica una página de estado**, o la lista **Páginas de estado** para quien no puede crear páginas de estado. |
 | **Invita a tu equipo** | Alguien acepta tu invitación. | **Usuarios** |
 
 El paso que toca primero está marcado con **Siguiente paso**. En el plan Free de OneUptime Cloud, que incluye una persona, **Invita a tu equipo** indica que necesita el plan Growth y abre **Facturación**. En un servidor autoalojado que aún no puede enviar correos, los administradores del servidor ven primero **Este servidor aún no puede enviar correos electrónicos**, que abre el panel de administración.
 
-Cuando creas un monitor, una página de estado o una política de guardia desde un paso, la página a la que llegas dice qué sigue, con **Volver a la configuración**.
+Una configuración guiada hace todo el trabajo en una sola página, paso a paso, y termina con lo que configuró y qué hacer después. Para volver a abrirla más tarde, busca su nombre.
 
 Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo. Debajo dice qué alimenta ese ciclo, la telemetría y la infraestructura, y enlaza a [Conceptos básicos](/docs/introduction/core-concepts) y [Glosario](/docs/introduction/glossary).
 
@@ -93,6 +93,10 @@ La lista desaparece para todos cuando todos los pasos están hechos. Para oculta
 
 **Requiere atención** lista, por su nombre, lo que cuentan los números: los incidentes abiertos, las alertas abiertas, los monitores no operativos, los SLO en riesgo y los mantenimientos en curso, primero lo más urgente. Cada fila muestra su gravedad o su estado, dice cuándo empezó un incidente o una alerta y cuándo termina un mantenimiento, y abre el elemento. De cada tipo se muestran hasta cinco, con **Ver todo** para el resto, que abre la misma lista que su número. Cuando no hay nada abierto, dice **Nada requiere tu atención**.
 
+### Salud de la configuración
+
+Cuando algo en la configuración del proyecto impediría avisar a las personas, **Requiere atención** termina con **Configuración**: cuántas cosas conviene revisar. Abre **Salud de la configuración**, que lista lo que está mal configurado, lo más grave primero, bajo **Los avisos no llegarán**, **Conviene corregir** y **Sugerencias**: un monitor que no avisa a nadie, una política de guardia que nada ejecuta, una persona a la que no se puede avisar, los SMS desactivados, una programación de guardia sin nadie de guardia, una página de estado que no muestra ningún monitor. Cada hallazgo dice en una frase qué está mal, con el botón que abre su corrección, y los hallazgos de un monitor son los cortes que nombra su tarjeta **Cuando falla**. Un hallazgo que tu equipo deja así a propósito se puede descartar con un motivo, para todos, y restaurar desde **Descartado**. La búsqueda encuentra la página como **Salud de la configuración**, y Preguntar a la IA responde a "¿está bien mi configuración?" a partir de ella.
+
 ### Tu proyecto
 
 **Tu proyecto** cuenta los **Monitores**, las **Páginas de estado**, las **Políticas de guardia**, los **SLO**, los **Servicios**, los **Paneles** y los **Flujos de trabajo** del proyecto, sin contar los archivados. Cada fila abre su lista. Un tipo del que el proyecto no tiene ninguno muestra **Configurar** en lugar de un número.
@@ -101,7 +105,7 @@ La lista desaparece para todos cuando todos los pasos están hechos. Para oculta
 
 ### Explora OneUptime
 
-**Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él.
+**Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él. Los productos que tu proyecto oculta no aparecen.
 
 ## Orientarse
 
@@ -111,6 +115,9 @@ Todo en OneUptime está bajo **Productos** en la barra superior. El menú presen
 - **Empiezas donde estás.** El grupo de la página en la que estás se despliega solo, y los productos que abriste hace poco aparecen arriba.
 - **Tus elecciones se mantienen.** El menú recuerda, en tu navegador, qué otros grupos desplegaste o plegaste. Los esenciales vuelven a estar desplegados cada vez que abres el menú, aunque los hayas plegado.
 - **En un teléfono**, el botón del menú lista los productos de la misma manera: los esenciales desplegados arriba, y cada uno de los demás grupos como una fila que se abre con un toque.
+- **Productos que el proyecto no usa.** Un propietario o administrador del proyecto puede ocultarlos en **Ajustes del proyecto → Básico → Productos**. Un producto oculto pasa a **Más productos**, la última fila del menú: la búsqueda lo sigue encontrando, sus páginas siguen funcionando y sus datos siguen llegando. Cuando uno empieza a recibir datos, Inicio se lo dice a quienes pueden volver a mostrarlo.
+- **Fijar.** Mantén un producto en la barra superior, junto a **Inicio** y **Productos**: pulsa la chincheta de su tarjeta en el menú, o **Fijar** junto al título de su página. Puedes fijar cinco, y te acompañan en cada navegador. En un teléfono, tus productos fijados aparecen primero en el menú.
+- **Lo que se usa.** En cada grupo salvo los esenciales y Ajustes, los productos que usa tu proyecto aparecen primero, y uno que aún no has configurado dice **Sin configurar**. En OneUptime Cloud, un producto que tu plan no incluye nombra el plan que lo incluye.
 
 ### Las barras superiores
 

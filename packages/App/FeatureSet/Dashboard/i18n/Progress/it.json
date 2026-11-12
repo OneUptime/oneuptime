@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51126,
-    "untranslated": 9616
+    "keys": 51296,
+    "untranslated": 9513
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -452,6 +452,7 @@
     "svc-backup",
     "syslog",
     "tag",
+    "team",
     "thread",
     "timeout|connection refused",
     "tracing",
@@ -515,6 +516,7 @@
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",
+    "{{name}} (monitor: {{monitor}})",
     "{{observation}} in {{readings}}",
     "{{size}} in {{duration}}",
     "{{up}}/{{count}} OSD up",

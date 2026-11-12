@@ -8,6 +8,7 @@ import EmailTemplateType from "Common/Types/Email/EmailTemplateType";
 import NotificationSettingEventType from "Common/Types/NotificationSetting/NotificationSettingEventType";
 import ObjectID from "Common/Types/ObjectID";
 import ReminderStopState from "Common/Types/Reminder/ReminderStopState";
+import { getReminderIntervalInMinutes } from "Common/Types/Reminder/ReminderInterval";
 import { SMSMessage } from "Common/Types/SMS/SMS";
 import PushNotificationMessage from "Common/Types/PushNotification/PushNotificationMessage";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
@@ -129,11 +130,16 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     });
   };
 
-  if (
-    !rule ||
-    !rule.reminderIntervalInMinutes ||
-    alert.enableReminders === false
-  ) {
+  /*
+   * A rule with no interval a reminder can follow - none, or one below a
+   * minute, which only a rule saved before the check can hold - reminds
+   * nobody, rather than every minute (Types/Reminder/ReminderInterval).
+   */
+  const intervalInMinutes: number | null = getReminderIntervalInMinutes(
+    rule?.reminderIntervalInMinutes,
+  );
+
+  if (!rule || intervalInMinutes === null || alert.enableReminders === false) {
     return await stopReminders();
   }
 
@@ -164,7 +170,7 @@ const sendReminderForAlert: SendReminderForAlertFunction = async (
     data: {
       nextReminderNotificationAt: OneUptimeDate.addRemoveMinutes(
         OneUptimeDate.getCurrentDate(),
-        rule.reminderIntervalInMinutes,
+        intervalInMinutes,
       ),
       reminderNotificationSentCount:
         (alert.reminderNotificationSentCount || 0) + 1,

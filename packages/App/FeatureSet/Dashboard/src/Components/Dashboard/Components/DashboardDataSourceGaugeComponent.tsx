@@ -20,6 +20,11 @@ import DashboardVariable from "Common/Types/Dashboard/DashboardVariable";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import GaugeWidgetView from "./GaugeWidgetView";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
 import IconProp from "Common/Types/Icon/IconProp";
@@ -143,6 +148,16 @@ const DashboardDataSourceGaugeComponentElement: FunctionComponent<
     props.component.arguments.reduce,
   );
 
+  /*
+   * Until a query is written: a click only where it opens the settings
+   * (issue #7160). Read before the public dashboard's placeholder below,
+   * as every hook is.
+   */
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Query,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
+
   if (isPublicDashboard()) {
     return <DataSourceWidgetPlaceholder icon={IconProp.Gauge} />;
   }
@@ -162,7 +177,7 @@ const DashboardDataSourceGaugeComponentElement: FunctionComponent<
       }
       isConfigured={isConfigured}
       setupTitle={translationKey("Data Source Gauge")}
-      setupMessage={translationKey("Click to configure a query")}
+      setupMessage={setupMessage}
       title={props.component.arguments.gaugeTitle}
       rawUnit={props.component.arguments.unit || ""}
       /*

@@ -1067,12 +1067,12 @@ describe("CommonAPI.assertPermittedInProject", () => {
         }),
         allowedPermissions: [Permission.ProjectOwner],
         errorMessage:
-          "You do not have permission to read this project's AI providers.",
+          "You do not have permission to read this project's LLM providers.",
       });
     });
 
     expect((thrown as Exception).message).toBe(
-      "You do not have permission to read this project's AI providers.",
+      "You do not have permission to read this project's LLM providers.",
     );
   });
 
@@ -1133,7 +1133,7 @@ describe("CommonAPI.assertPermittedInProject", () => {
           databaseProps: { tenantId: ObjectID.generate() },
           allowedPermissions: [Permission.ProjectOwner],
           errorMessage:
-            "You do not have permission to read this project's AI providers.",
+            "You do not have permission to read this project's LLM providers.",
         });
       }),
     );

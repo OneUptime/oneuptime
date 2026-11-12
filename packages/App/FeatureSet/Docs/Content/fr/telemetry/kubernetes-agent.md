@@ -2,6 +2,9 @@
 
 L'agent Kubernetes de OneUptime est un chart Helm qui collecte les métriques, les événements et les journaux de pods de votre cluster et, avec eBPF, les traces, les métriques de requêtes, le graphe de services et les flux réseau de chaque pod, sans modification du code ni SDK. Il exécute aussi l'[agent IA Kubernetes](#agent-ia-kubernetes), qui permet à OneUptime AI d'exécuter `kubectl` en lecture seule pendant qu'elle enquête sur un incident ou une alerte. Un seul `helm install` le met en place ; les [moniteurs Kubernetes](/docs/monitor/kubernetes-monitor) déclenchent des alertes à partir de ce qu'il envoie.
 
+> [!NOTE]
+> Cette page est la référence complète de l'agent. Vous l'installez pour la première fois ? [Agent Kubernetes (installation Helm)](/docs/monitor/kubernetes-agent) le fait étape par étape, avec un preset pour votre plateforme.
+
 :::cards
 - [Installer l'agent](#installer-lagent): Quatre étapes avec Helm.
 - [Installer en tant que module complémentaire Amazon EKS](#installer-en-tant-que-module-complémentaire-amazon-eks): Depuis la console EKS, sans Helm.

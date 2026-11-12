@@ -5,7 +5,7 @@ import NetworkPathTrace, {
 } from "Common/Types/Monitor/NetworkMonitor/NetworkPathTrace";
 import React, { FunctionComponent, ReactElement } from "react";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { composedValue, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 
 export interface ComponentProps {
@@ -87,7 +87,10 @@ const NetworkPathView: FunctionComponent<ComponentProps> = (
                 template="{{host}} resolved to {{addresses}} in {{time}} ms"
                 values={{
                   host: trace.dnsLookup.hostName,
-                  time: trace.dnsLookup.resolvedInMS,
+                  // In the sentence's digits: Persian ones in a Persian sentence.
+                  time: composedValue((sentence: Translator): string => {
+                    return sentence.formatNumber(trace.dnsLookup!.resolvedInMS);
+                  }),
                 }}
                 slots={{
                   addresses: (

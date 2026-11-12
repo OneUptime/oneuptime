@@ -1,6 +1,7 @@
 import { GuidedSetupStepProgress } from "../GuidedSetupProgress";
 import PageMap from "../../../Utils/PageMap";
 import { PlanType } from "Common/Types/Billing/SubscriptionPlan";
+import { STATUS_PAGE_NAME_MIN_LENGTH as GUIDED_STATUS_PAGE_NAME_MIN_LENGTH } from "Common/Utils/GuidedSetup/StatusPageRecords";
 import {
   Translator,
   formatList,
@@ -35,6 +36,13 @@ import {
 
 export const STATUS_PAGE_SETUP: string = "status_page";
 
+/*
+ * The docs' start-to-finish guide to this job (#6821), linked from the page:
+ * it goes on to a domain of your own, which this setup leaves to the summary.
+ */
+export const STATUS_PAGE_SETUP_GUIDE_DOCS_PATH: string =
+  "/docs/guides/status-page";
+
 export enum StatusPageSetupStep {
   Pick = "pick",
   Review = "review",
@@ -45,8 +53,12 @@ export const STATUS_PAGE_SETUP_STEPS: ReadonlyArray<StatusPageSetupStep> = [
   StatusPageSetupStep.Review,
 ];
 
-// Create Status Page's own rule (StatusPageCreateForm): at least two letters.
-export const STATUS_PAGE_NAME_MIN_LENGTH: number = 2;
+/*
+ * Create Status Page's own rule (StatusPageCreateForm): at least two
+ * letters - Ask AI's publish_status_page keeps it too (Common).
+ */
+export const STATUS_PAGE_NAME_MIN_LENGTH: number =
+  GUIDED_STATUS_PAGE_NAME_MIN_LENGTH;
 
 export const STATUS_PAGE_SETUP_COPY: {
   setupTitle: string;

@@ -27,6 +27,7 @@ import DefinedTerm, {
   DEFINED_TERM_CLASS_NAME,
   DEFINED_TERM_DEFINITION_TEST_ID,
   DEFINED_TERM_LOADING_TEXT,
+  DEFINED_TERM_POPOVER_CLASS_NAME,
   DEFINED_TERM_POPOVER_TEST_ID,
   DEFINED_TERM_READ_MORE_TEST_ID,
   DEFINED_TERM_READ_MORE_TEXT,
@@ -590,6 +591,33 @@ describe("what the popover says", () => {
     expect(screen.getByTestId(DEFINED_TERM_READ_MORE_TEST_ID)).toHaveAttribute(
       "href",
       `${DOCS}/en/introduction/glossary#runbook`,
+    );
+  });
+
+  /*
+   * The popover is drawn inside its word's parent, so it would take on that
+   * parent's type: a row name in small capitals ("When this goes down" names
+   * its On-call policy row so), or a card title's weight.
+   */
+  test("reads in its own type, not in the capitals, spacing or weight around its word", async () => {
+    render(
+      <span className="text-xs font-semibold uppercase tracking-wide">
+        <DefinedTerm term={GlossaryTerm.Criteria}>Criteria</DefinedTerm>
+      </span>,
+    );
+
+    fireEvent.mouseEnter(word());
+    await definitionShown();
+
+    const box: HTMLElement = popover() as HTMLElement;
+
+    expect(box.closest(".uppercase")).not.toBeNull();
+    expect(box.className).toBe(DEFINED_TERM_POPOVER_CLASS_NAME);
+    expect(box).toHaveClass(
+      "text-sm",
+      "font-normal",
+      "normal-case",
+      "tracking-normal",
     );
   });
 });

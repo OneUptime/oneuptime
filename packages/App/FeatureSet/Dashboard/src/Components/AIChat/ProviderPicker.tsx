@@ -148,7 +148,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
         ref={buttonRef}
         type="button"
         disabled={props.disabled}
-        title={translator.translateText("Choose AI provider")}
+        title={translator.translateText("Choose LLM provider")}
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-controls={isOpen ? menuId : undefined}
@@ -187,7 +187,7 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
           ref={menuRef}
           id={menuId}
           role="menu"
-          aria-label={translator.translateText("AI provider")}
+          aria-label={translator.translateText("LLM provider")}
           data-menu-side={menuSide}
           className={`absolute left-2 z-50 w-72 max-w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg ${
             menuSide === "bottom" ? "top-full mt-1.5" : "bottom-full mb-1.5"
@@ -195,14 +195,14 @@ const ProviderPicker: FunctionComponent<ComponentProps> = (
         >
           <div className="border-b border-gray-100 px-3 py-2">
             <div className="text-[11px] font-medium uppercase tracking-wide text-gray-400">
-              {translator.translateText("AI provider")}
+              {translator.translateText("LLM provider")}
             </div>
           </div>
           <div className="max-h-72 overflow-y-auto overscroll-contain py-1">
             {props.providers.length === 0 && (
               <div className="px-3 py-3 text-xs text-gray-500">
                 {translator.translateText(
-                  "No AI providers configured yet. Add one in Project Settings → AI → LLM Providers.",
+                  "No LLM providers configured yet. Add one in Project Settings → AI → LLM Providers.",
                 )}
               </div>
             )}

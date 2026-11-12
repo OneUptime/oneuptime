@@ -2,6 +2,9 @@
 
 En aviseringsmetod är en adress som OneUptime får nå dig på i ett projekt: en e-postadress, ett telefonnummer för SMS eller samtal, ett WhatsApp-nummer, ett Telegram-konto, ditt Slack-, Microsoft Teams- eller Mattermost-konto, en telefon eller webbläsare för push-aviseringar, eller en webhook. Du lägger till dem under **Användarinställningar → Aviseringsmetoder**, verifierar dem, och OneUptime börjar genast använda dem för dina larm.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Bli larmad via samtal, SMS eller push](/docs/guides/paging).
+
 :::cards
 - [Välj en metod](#välj-en-metod): Vad varje metod behöver, och hur den verifieras.
 - [Lägg till och verifiera en metod](#lägg-till-och-verifiera-en-metod): E-post, SMS, samtal och WhatsApp, med en sexsiffrig kod.

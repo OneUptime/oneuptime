@@ -44,6 +44,12 @@
  *               without it, a new project skipped the question (the four
  *               steps, none done) and every other scenario finished it
  *   ?plan=      free: OneUptime Cloud's Free plan (the team step needs Growth)
+ *   ?setup=     Setup health (#6812: GET /setup-health and /setup-health/
+ *               summary), whose page (Pages/Home/SetupHealth) is mounted
+ *               under Home as App.tsx mounts it:
+ *                 busy    findings of every level, one check broken for
+ *                         five monitors, and one finding dismissed
+ *               without it, nothing to fix: Home says nothing of the setup
  *
  * A viewer was invited (#6807): Home draws their own first steps, from
  * their personal checklist's reads (readiness, the project's channel
@@ -83,6 +89,7 @@ import Help from "../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
 import HowOneUptimeWorksDialog from "../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
 import HomeLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
 import Home from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
+import SetupHealthPage from "../../../App/FeatureSet/Dashboard/src/Pages/Home/SetupHealth";
 import MovedHomeRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/MovedHomeRoutes";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
@@ -140,6 +147,17 @@ import {
   WelcomeAudience,
   buildWelcomeChecklist,
 } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
+import {
+  SETUP_HEALTH_WORDS,
+  SetupHealthCheck,
+  SetupHealthEventKind,
+  SetupHealthFix,
+  SetupHealthLevel,
+  SetupHealthRecordKind,
+  getSetupHealthCounts,
+  getSetupHealthDismissalId,
+  makeSetupHealthFinding,
+} from "Common/Types/SetupHealth/SetupHealth";
 
 /*
  * ---------------------------------------------------------------------------
@@ -1286,6 +1304,163 @@ function memberShifts() {
   };
 }
 
+/*
+ * Setup health (#6812): the project's findings, built with the real
+ * makeSetupHealthFinding, for the page (GET /setup-health) and the count
+ * Home's Needs attention says (GET /setup-health/summary).
+ */
+const setupMode = params.get("setup") || "";
+fixture.setupHealthRequests = [];
+
+const SETUP_POLICY_ID = uuid("60000000", 9);
+const SETUP_STATUS_PAGE_ID = uuid("61000000", 9);
+
+function setupFinding(data) {
+  return makeSetupHealthFinding(data);
+}
+
+function setupMonitorPagesNobody(index, name) {
+  return setupFinding({
+    check: SetupHealthCheck.MonitorPagesNobody,
+    level: SetupHealthLevel.WorthFixing,
+    subject: SetupHealthEventKind.Incident,
+    record: {
+      kind: SetupHealthRecordKind.Monitor,
+      id: ID.monitor(20 + index),
+      name: name,
+    },
+    fix: SetupHealthFix.IncidentOnCallRules,
+    words: SETUP_HEALTH_WORDS.monitorPagesNobody.incident,
+    values: { monitor: name },
+  });
+}
+
+function setupHealthFindings() {
+  if (setupMode !== "busy") {
+    return [];
+  }
+
+  const project = { kind: SetupHealthRecordKind.Project, id: PROJECT_ID, name: "" };
+
+  return [
+    setupFinding({
+      check: SetupHealthCheck.MonitorAlertsPageNobody,
+      level: SetupHealthLevel.PagesWillNotArrive,
+      record: {
+        kind: SetupHealthRecordKind.Monitor,
+        id: ID.monitor(19),
+        name: "Payments API",
+      },
+      fix: SetupHealthFix.AlertOnCallRules,
+      words: SETUP_HEALTH_WORDS.monitorAlertsPageNobody,
+      values: { monitor: "Payments API" },
+    }),
+    setupFinding({
+      check: SetupHealthCheck.PolicyReachesNobody,
+      level: SetupHealthLevel.PagesWillNotArrive,
+      record: {
+        kind: SetupHealthRecordKind.OnCallDutyPolicy,
+        id: SETUP_POLICY_ID,
+        name: "Weekend escalation",
+      },
+      fix: SetupHealthFix.OnCallPolicy,
+      fixRecordId: SETUP_POLICY_ID,
+      words: SETUP_HEALTH_WORDS.policyReachesNobody,
+      values: { policy: "Weekend escalation" },
+    }),
+    setupFinding({
+      check: SetupHealthCheck.ChannelOff,
+      level: SetupHealthLevel.PagesWillNotArrive,
+      subject: "SMS",
+      record: project,
+      fix: SetupHealthFix.ProjectNotificationSettings,
+      words: SETUP_HEALTH_WORDS.channelOff,
+      values: { channel: "SMS" },
+    }),
+    ...[
+      "Checkout API",
+      "Search API",
+      "Marketing site",
+      "Image CDN",
+      "Status webhook",
+    ].map((name, index) => {
+      return setupMonitorPagesNobody(index, name);
+    }),
+    setupFinding({
+      check: SetupHealthCheck.StatusPageShowsNoMonitor,
+      level: SetupHealthLevel.WorthFixing,
+      record: {
+        kind: SetupHealthRecordKind.StatusPage,
+        id: SETUP_STATUS_PAGE_ID,
+        name: "Partner status",
+      },
+      fix: SetupHealthFix.StatusPageResources,
+      fixRecordId: SETUP_STATUS_PAGE_ID,
+      words: SETUP_HEALTH_WORDS.statusPageShowsNoMonitor,
+      values: { statusPage: "Partner status" },
+    }),
+    setupFinding({
+      check: SetupHealthCheck.OneOwner,
+      level: SetupHealthLevel.Suggestion,
+      record: project,
+      fix: SetupHealthFix.ProjectOwners,
+      words: SETUP_HEALTH_WORDS.oneOwner,
+    }),
+  ];
+}
+
+function setupHealthDismissed() {
+  if (setupMode !== "busy") {
+    return [];
+  }
+
+  const finding = setupMonitorPagesNobody(9, "Staging API");
+
+  return [
+    {
+      finding,
+      dismissal: {
+        id: "70000000-0000-4000-8000-000000000068",
+        recommendationId: getSetupHealthDismissalId(finding),
+        resourceType: finding.record.kind,
+        resourceId: finding.record.id,
+        reason: "Staging never pages anybody.",
+        dismissedByName: "Maya Chen",
+        dismissedAt: NOW.toISOString(),
+      },
+    },
+  ];
+}
+
+function handleSetupHealth(method, url) {
+  const path = new URL(url).pathname;
+
+  if (!path.includes("/setup-health")) {
+    return null;
+  }
+
+  fixture.setupHealthRequests.push({ method, url });
+
+  const findings = setupHealthFindings();
+  const counts = getSetupHealthCounts(findings);
+
+  if (method === "GET" && path.endsWith("/setup-health/summary")) {
+    return ok({ counts, checkedAt: NOW.toISOString() });
+  }
+
+  if (method === "GET" && path.endsWith("/setup-health")) {
+    return ok({
+      findings,
+      dismissed: setupHealthDismissed(),
+      counts,
+      monitorCount: 14,
+      checkedAt: NOW.toISOString(),
+    });
+  }
+
+  return null;
+}
+
 function handleMember(method, url) {
   const path = new URL(url).pathname;
 
@@ -1323,6 +1498,12 @@ async function handleApi(method, options) {
 
   if (memberResponse) {
     return memberResponse;
+  }
+
+  const setupHealthResponse = handleSetupHealth(method, url);
+
+  if (setupHealthResponse) {
+    return setupHealthResponse;
   }
 
   fixture.unhandled.push({ kind: "api", method, url });
@@ -1395,6 +1576,12 @@ function HomePage() {
   );
 }
 
+// Setup health (#6812): the real page, as App.tsx mounts it under Home.
+function SetupHealthRoute() {
+  useNavigationHooks();
+  return <SetupHealthPage {...pageProps(PageMap.HOME_SETUP_HEALTH)} />;
+}
+
 // A page Home links to that is not modelled here: says where it is.
 function StubPage(props) {
   useNavigationHooks();
@@ -1459,6 +1646,11 @@ function FixtureApp() {
             element={<HomePage />}
           />
         </Route>
+        {/* Setup health (#6812), under Home, as App.tsx mounts it. */}
+        <Route
+          path={RouteMap[PageMap.HOME_SETUP_HEALTH].toString()}
+          element={<SetupHealthRoute />}
+        />
         {/* Home's old lists, forwarded to the products' own lists. */}
         <Route
           path={RouteMap[PageMap.MOVED_HOME_LISTS_ROOT].toString()}

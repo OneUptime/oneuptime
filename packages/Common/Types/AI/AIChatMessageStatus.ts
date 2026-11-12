@@ -3,8 +3,9 @@ enum AIChatMessageStatus {
   InProgress = "InProgress",
   /*
    * The turn paused because the agent wants to run one or more mutating tools
-   * and the conversation is in "Ask for approval" mode. The message carries the
-   * pending tool actions; the user approves or denies them to resume the turn.
+   * and the conversation is in "Ask for approval" mode - or they set things
+   * up (#6829), which waits in every mode. The message carries the pending
+   * tool actions; the user approves or denies them to resume the turn.
    */
   WaitingForApproval = "WaitingForApproval",
   Completed = "Completed",

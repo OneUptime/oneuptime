@@ -11,6 +11,7 @@ import {
   buildControllerReading,
 } from "../../../Types/NetworkDevice/NetworkDeviceDiscoveredDetails";
 import ObjectID from "../../../Types/ObjectID";
+import logger from "../../../Server/Utils/Logger";
 import {
   afterAll,
   afterEach,
@@ -21,7 +22,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { DataSource } from "typeorm";
+import { DataSource, QueryRunner } from "typeorm";
 
 /*
  * NetworkDeviceService.mergeDiscoveredDetails EXECUTED on Postgres
@@ -39,7 +40,13 @@ import { DataSource } from "typeorm";
  *   - two writers merging at once into the same row both land: the row lock
  *     serialises the statements, and neither reads a stale column;
  *   - a batch larger than one chunk is written whole;
- *   - it leaves updatedAt alone.
+ *   - it leaves updatedAt alone;
+ *   - it never waits for a device another writer holds while it holds
+ *     others (issue #7194): the batch takes the devices nobody holds and
+ *     commits them, and each held device is merged on its own afterwards -
+ *     or, with skipLockedDevices, left for the next reading; a device held
+ *     past lock_timeout is logged and left; and two merges of the same
+ *     devices in opposite orders never deadlock.
  *
  * And what a network controller connection (the Meraki dashboard) reads and
  * writes there (NetworkControllerInventory):
@@ -85,6 +92,8 @@ const KEPT_NOT_NULL: Array<string> = [
 
 const PROJECT_ID: ObjectID = ObjectID.generate();
 const OTHER_PROJECT_ID: ObjectID = ObjectID.generate();
+
+const LOCK_TIMEOUT_MS: number = 3000;
 
 const SCAN_READER: JSONObject = {
   type: "discoveryScan",
@@ -135,7 +144,15 @@ describePostgres("a device's discovered details merged on Postgres", () => {
       entities: Entities,
       schema,
       synchronize: false,
-      extra: { options: `-c search_path=${schema}` },
+      /*
+       * The product's own lock_timeout (DATABASE_LOCK_TIMEOUT_MS), for the
+       * device held past it below; several connections, so the merges made
+       * at once are made at once.
+       */
+      extra: {
+        options: `-c search_path=${schema} -c lock_timeout=${LOCK_TIMEOUT_MS}`,
+        max: 8,
+      },
     });
     await database.initialize();
     await database.query(`CREATE SCHEMA "${schema}"`);
@@ -421,6 +438,219 @@ describePostgres("a device's discovered details merged on Postgres", () => {
     expect(new Date(rows[0]!.updatedAt).toISOString()).toBe(
       "2026-10-01T00:00:00.000Z",
     );
+  });
+
+  /*
+   * ------------------------------------------------------------------
+   * A device another writer holds (OneUptime issue #7194)
+   * ------------------------------------------------------------------
+   *
+   * The merge used to lock every device of a batch in one statement, in
+   * whatever order the join gave, and wait for each one another writer
+   * held - with the others already locked: a router's ARP readings for
+   * hundreds of devices queued behind the polls of each of them, held
+   * every device it had reached while it waited, and past lock_timeout
+   * failed whole.
+   */
+  describe("a device another writer holds", () => {
+    // Another writer - a poll's own write, say - holding a device's row.
+    async function holdDevice(
+      id: ObjectID,
+    ): Promise<{ release: () => Promise<void> }> {
+      const holder: QueryRunner = database.createQueryRunner();
+      await holder.connect();
+      await holder.startTransaction();
+      await holder.query(
+        `SELECT "_id" FROM "${schema}"."NetworkDevice" WHERE "_id" = $1 FOR UPDATE`,
+        [id.toString()],
+      );
+
+      return {
+        release: async (): Promise<void> => {
+          await holder.rollbackTransaction();
+          await holder.release();
+        },
+      };
+    }
+
+    function sysNamePatch(
+      id: ObjectID,
+      name: string,
+    ): { deviceId: ObjectID; set: JSONObject } {
+      return {
+        deviceId: id,
+        set: { sysName: scanReading(name, "2026-11-12T07:00:00.000Z") },
+      };
+    }
+
+    // Until `id` has a record, or `withinMs` passes.
+    async function recordOf(
+      id: ObjectID,
+      withinMs: number,
+    ): Promise<JSONObject | null> {
+      const until: number = Date.now() + withinMs;
+
+      for (;;) {
+        const details: JSONObject | null = await detailsOf(id);
+
+        if (details || Date.now() > until) {
+          return details;
+        }
+
+        await new Promise<void>((resolve: () => void) => {
+          setTimeout(resolve, 50);
+        });
+      }
+    }
+
+    test("the devices nobody holds are written - and committed - while the held one is still waited for", async () => {
+      const free: ObjectID = await insertDevice({});
+      const held: ObjectID = await insertDevice({});
+      const lock: { release: () => Promise<void> } = await holdDevice(held);
+
+      let merged: Promise<number> | undefined = undefined;
+
+      try {
+        merged = NetworkDeviceService.mergeDiscoveredDetails({
+          projectId: PROJECT_ID,
+          patches: [
+            sysNamePatch(held, "held-sw"),
+            sysNamePatch(free, "free-sw"),
+          ],
+        });
+
+        // Visible from another connection: the batch has committed it.
+        expect(await recordOf(free, LOCK_TIMEOUT_MS / 2)).toEqual({
+          sysName: scanReading("free-sw", "2026-11-12T07:00:00.000Z"),
+        });
+        expect(await detailsOf(held)).toBeNull();
+      } finally {
+        await lock.release();
+      }
+
+      // Then the held one, on its own, once it is free.
+      expect(await merged).toBe(2);
+      expect(await detailsOf(held)).toEqual({
+        sysName: scanReading("held-sw", "2026-11-12T07:00:00.000Z"),
+      });
+    });
+
+    test("with skipLockedDevices a held device is left as it is, at once", async () => {
+      const free: ObjectID = await insertDevice({});
+      const held: ObjectID = await insertDevice({});
+      const lock: { release: () => Promise<void> } = await holdDevice(held);
+
+      let written: number | "blocked";
+      const startedAt: number = Date.now();
+
+      try {
+        written = await Promise.race([
+          NetworkDeviceService.mergeDiscoveredDetails({
+            projectId: PROJECT_ID,
+            patches: [
+              sysNamePatch(held, "held-sw"),
+              sysNamePatch(free, "free-sw"),
+            ],
+            skipLockedDevices: true,
+          }),
+          new Promise<"blocked">((resolve: (value: "blocked") => void) => {
+            setTimeout(() => {
+              resolve("blocked");
+            }, LOCK_TIMEOUT_MS / 2);
+          }),
+        ]);
+      } finally {
+        await lock.release();
+      }
+
+      expect(written).toBe(1);
+      expect(Date.now() - startedAt).toBeLessThan(LOCK_TIMEOUT_MS / 2);
+      expect(await detailsOf(free)).not.toBeNull();
+      expect(await detailsOf(held)).toBeNull();
+    });
+
+    test("a device held past lock_timeout is logged and left, and the devices around it are written", async () => {
+      const warn: ReturnType<typeof jest.spyOn> = jest
+        .spyOn(logger, "warn")
+        .mockImplementation((() => {
+          return undefined;
+        }) as never);
+      const first: ObjectID = await insertDevice({});
+      const held: ObjectID = await insertDevice({});
+      const last: ObjectID = await insertDevice({});
+      const lock: { release: () => Promise<void> } = await holdDevice(held);
+
+      let written: number;
+
+      try {
+        written = await NetworkDeviceService.mergeDiscoveredDetails({
+          projectId: PROJECT_ID,
+          patches: [
+            sysNamePatch(first, "first-sw"),
+            sysNamePatch(held, "held-sw"),
+            sysNamePatch(last, "last-sw"),
+          ],
+        });
+      } finally {
+        await lock.release();
+      }
+
+      expect(written).toBe(2);
+      expect(await detailsOf(first)).not.toBeNull();
+      expect(await detailsOf(last)).not.toBeNull();
+      expect(await detailsOf(held)).toBeNull();
+
+      const said: Array<string> = warn.mock.calls.map(
+        (call: Array<unknown>) => {
+          return String(call[0]);
+        },
+      );
+      expect(
+        said.some((line: string) => {
+          return line.includes(held.toString());
+        }),
+      ).toBe(true);
+    });
+
+    test("two merges of the same devices in opposite orders never deadlock, and both land on every device", async () => {
+      const ids: Array<ObjectID> = [];
+
+      for (let index: number = 0; index < 30; index++) {
+        ids.push(await insertDevice({}));
+      }
+
+      for (let round: number = 0; round < 5; round++) {
+        await Promise.all([
+          NetworkDeviceService.mergeDiscoveredDetails({
+            projectId: PROJECT_ID,
+            patches: ids.map((id: ObjectID) => {
+              return sysNamePatch(id, `round-${round}`);
+            }),
+          }),
+          NetworkDeviceService.mergeDiscoveredDetails({
+            projectId: PROJECT_ID,
+            patches: [...ids].reverse().map((id: ObjectID) => {
+              return {
+                deviceId: id,
+                set: {
+                  macAddress: arpReading(
+                    "00:1b:54:c2:7a:07",
+                    "2026-11-12T07:00:00.000Z",
+                  ),
+                },
+              };
+            }),
+          }),
+        ]);
+      }
+
+      for (const id of ids) {
+        expect(Object.keys((await detailsOf(id)) || {}).sort()).toEqual([
+          "macAddress",
+          "sysName",
+        ]);
+      }
+    });
   });
 
   /*

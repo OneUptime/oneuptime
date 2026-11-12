@@ -3,6 +3,7 @@ import { getHomeListRoute } from "./HomeListRoute";
 import { formatRelativeTime, toDate } from "./HomeRelativeTime";
 import { HOME_ROW_CARD_BODY_CLASS_NAME } from "./HomeRowCard";
 import AppLink from "../AppLink/AppLink";
+import { SETUP_HEALTH_HOME_WORDS } from "../SetupHealth/SetupHealthHomeWords";
 import { getSlosAtRiskQueryParams } from "../Slo/SloListFacetRoute";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -397,7 +398,18 @@ export interface ComponentProps {
   data: HomeOverviewData | null;
   isLoading: boolean;
   now: Date;
+  /*
+   * How many things in the project's setup need a look (Setup health,
+   * #6812): the card ends with a Setup section that opens Setup health
+   * while it is above zero. Null or left out says nothing of the setup.
+   */
+  setupHealthCount?: number | null | undefined;
 }
+
+// Where the Setup section opens: Setup health, saying it came from Home.
+export const getSetupHealthRouteFromHome: () => Route = (): Route => {
+  return getHomeListRoute(PageMap.HOME_SETUP_HEALTH, { from: "home" });
+};
 
 const NeedsAttention: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -523,6 +535,73 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
     );
   };
 
+  /*
+   * The project's setup (Setup health, #6812): one row that says how many
+   * things need a look and opens the page that lists them, each with its
+   * fix. Last, after what is open now.
+   */
+  const renderSetupSection: (count: number) => ReactElement = (
+    count: number,
+  ): ReactElement => {
+    const route: Route = getSetupHealthRouteFromHome();
+
+    return (
+      <section
+        data-testid="home-attention-group-setup"
+        aria-label={
+          translator.translateText(SETUP_HEALTH_HOME_WORDS.group) ||
+          SETUP_HEALTH_HOME_WORDS.group
+        }
+      >
+        <div className="flex items-center gap-2 bg-gray-50 px-5 py-2 md:px-6">
+          <Icon
+            icon={IconProp.Wrench}
+            className="h-4 w-4 flex-none text-amber-600"
+          />
+          <h3 className="truncate text-xs font-semibold uppercase tracking-wide text-gray-600">
+            {translator.translateText(SETUP_HEALTH_HOME_WORDS.group)}
+          </h3>
+          <span
+            data-testid="home-attention-group-setup-count"
+            className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold tabular-nums text-gray-700 ring-1 ring-inset ring-gray-200"
+          >
+            {translator.formatNumber(count)}
+          </span>
+        </div>
+        <ul className="divide-y divide-gray-100">
+          <li>
+            <AppLink
+              to={route}
+              className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-indigo-500 md:px-6"
+            >
+              <span
+                data-testid="home-attention-row-setup"
+                className="flex min-w-0 flex-1 items-center gap-3"
+              >
+                <span
+                  aria-hidden="true"
+                  data-ou-pill-dot=""
+                  className="h-9 w-1 flex-none rounded-full"
+                  style={getPillDotStyle(getPillColors(Amber500))}
+                ></span>
+                <span className="min-w-0 flex-1 text-sm font-medium text-gray-900">
+                  {translator.translatePlural(
+                    SETUP_HEALTH_HOME_WORDS.line,
+                    count,
+                  )}
+                </span>
+              </span>
+              <Icon
+                icon={IconProp.ChevronRight}
+                className="h-4 w-4 flex-none text-gray-400"
+              />
+            </AppLink>
+          </li>
+        </ul>
+      </section>
+    );
+  };
+
   const renderBody: () => ReactElement = (): ReactElement => {
     if (props.isLoading) {
       /*
@@ -565,6 +644,23 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
             isCompact={true}
             dataTestId="home-attention-unavailable-state"
           />
+        </div>
+      );
+    }
+
+    const setupCount: number = props.setupHealthCount || 0;
+
+    /*
+     * Nothing open, and something in the setup needs a look: the card is
+     * the Setup section, never "Nothing needs your attention" above it.
+     */
+    if (groups.length === 0 && setupCount > 0) {
+      return (
+        <div
+          data-testid="home-attention-groups"
+          className="divide-y divide-gray-100 border-t border-gray-100"
+        >
+          {renderSetupSection(setupCount)}
         </div>
       );
     }
@@ -653,6 +749,7 @@ const NeedsAttention: FunctionComponent<ComponentProps> = (
             </section>
           );
         })}
+        {setupCount > 0 ? renderSetupSection(setupCount) : <></>}
       </div>
     );
   };
