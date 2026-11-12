@@ -93,6 +93,10 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 
 **Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten, som öppnar samma lista som dess siffra. När inget är öppet står det **Inget kräver din uppmärksamhet**.
 
+### Inställningarnas hälsa
+
+När något i projektets inställningar skulle hindra att folk får veta, slutar **Kräver uppmärksamhet** med **Inställning**: hur många saker som behöver en titt. Den öppnar **Inställningarnas hälsa**, som listar vad som är felinställt, det allvarligaste först, under **Larm kommer inte fram**, **Värt att åtgärda** och **Förslag**: en monitor som inte larmar någon, en jourpolicy som ingenting kör, en person som inte kan larmas, sms avstängt, ett jourschema utan någon i jour, en statussida som inte visar någon monitor. Varje fynd säger i en mening vad som är fel, med knappen som öppnar åtgärden, och en monitors fynd är de avbrott som dess kort **När den går ner** nämner. Ett fynd som ert team medvetet låter vara kan döljas med en motivering, för alla, och återställas från **Avfärdad**. Sök hittar sidan som **Inställningarnas hälsa**, och Fråga AI svarar på ”är mina inställningar okej?” utifrån den.
+
 ### Ditt projekt
 
 **Ditt projekt** räknar projektets **Monitorer**, **Statussidor**, **Jourpolicyer**, **SLOs**, **Tjänster**, **Instrumentpaneler** och **Arbetsflöden**; arkiverade räknas inte. Varje rad öppnar sin lista. En typ som projektet saknar visar **Konfigurera** i stället för en siffra.

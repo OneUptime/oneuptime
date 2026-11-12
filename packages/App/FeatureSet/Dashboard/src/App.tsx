@@ -93,6 +93,9 @@ type LazyRoutes = React.LazyExoticComponent<
 const AICopilot: LazyRoutes = lazy(() => {
   return import("./Pages/AICopilot/AICopilot");
 });
+const SetupHealth: LazyRoutes = lazy(() => {
+  return import("./Pages/Home/SetupHealth");
+});
 const Sso: LazyRoutes = lazy(() => {
   return import("./Pages/Onboarding/SSO");
 });
@@ -694,6 +697,20 @@ const App: () => JSX.Element = () => {
                 }
               />
             </PageRoute>
+
+            {/*
+             * Setup health (#6812), under Home: its address outranks the
+             * forwarding of Home's old lists below.
+             */}
+            <PageRoute
+              path={RouteMap[PageMap.HOME_SETUP_HEALTH]?.toString() || ""}
+              element={
+                <SetupHealth
+                  {...commonPageProps}
+                  pageRoute={RouteMap[PageMap.HOME_SETUP_HEALTH] as Route}
+                />
+              }
+            />
 
             {/* Home's old lists, forwarded to the products' own lists */}
             <PageRoute

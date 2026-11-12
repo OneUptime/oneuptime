@@ -988,6 +988,38 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
     ],
   },
   {
+    /*
+     * The pages under Home: Setup health, what is misconfigured in the
+     * project (#6812), which no menu links to - Home's "Needs attention"
+     * does - so Search finds it by name and by what people ask.
+     */
+    id: "home",
+    title: "Home",
+    productPage: PageMap.HOME,
+    icon: IconProp.Home,
+    iconColor: "slate",
+    sections: [
+      {
+        pages: [
+          {
+            page: PageMap.HOME_SETUP_HEALTH,
+            title: "Setup Health",
+            icon: IconProp.Wrench,
+            keywords: [
+              "misconfigured",
+              "is my setup ok",
+              "setup check",
+              "health check",
+              "nobody is paged",
+              "what is broken",
+              "configuration problems",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
     id: "monitors",
     title: "Monitors",
     productPage: PageMap.MONITORS,

@@ -91,6 +91,11 @@ export enum ProductEventName {
   AllProductsShown = "products/all_products_shown",
   ProductPinned = "products/product_pinned",
   ProductUnpinned = "products/product_unpinned",
+  // Setup health (#6812): what is misconfigured in the project.
+  SetupHealthOpened = "setup_health/opened",
+  SetupHealthFixOpened = "setup_health/fix_opened",
+  SetupHealthFindingDismissed = "setup_health/finding_dismissed",
+  SetupHealthFindingRestored = "setup_health/finding_restored",
 }
 
 // The words of a search that found nothing, at most this long (Cloud only).
@@ -312,6 +317,35 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     description:
       "Somebody unpinned a product from the nav bar, and how many they have pinned now.",
     properties: [token("product"), token("source"), { name: "pin_count" }],
+  },
+  {
+    name: ProductEventName.SetupHealthOpened,
+    description:
+      'Setup health was opened, from where (?from= on its address, "direct" when it says nothing), and how many findings of each level it showed.',
+    properties: [
+      token("source"),
+      { name: "pages_will_not_arrive_count" },
+      { name: "worth_fixing_count" },
+      { name: "suggestion_count" },
+      { name: "dismissed_count" },
+    ],
+  },
+  {
+    name: ProductEventName.SetupHealthFixOpened,
+    description:
+      "The fix of a Setup health finding was opened: which check, at which level.",
+    properties: [token("check"), token("level")],
+  },
+  {
+    name: ProductEventName.SetupHealthFindingDismissed,
+    description:
+      "A Setup health finding was dismissed for everyone: which check, and whether a reason was given (never the reason).",
+    properties: [token("check"), { name: "has_reason" }],
+  },
+  {
+    name: ProductEventName.SetupHealthFindingRestored,
+    description: "A dismissed Setup health finding was restored.",
+    properties: [token("check")],
   },
 ];
 

@@ -93,6 +93,10 @@ A lista some para todos quando todas as etapas estão concluídas. Para ocultá-
 
 **Requer atenção** lista, pelo nome, o que os números contam: os incidentes abertos, os alertas abertos, os monitores que não estão operacionais, os SLOs em risco e as manutenções em andamento, os mais urgentes primeiro. Cada linha mostra a severidade ou o status, diz quando um incidente ou alerta começou e quando a manutenção termina, e abre o registro. Cada tipo mostra até cinco, com **Mostrar todos** para o resto, que abre a mesma lista que o seu número. Quando nada está aberto, diz **Nada precisa da sua atenção**.
 
+### Saúde da configuração
+
+Quando algo na configuração do projeto impediria que as pessoas fossem avisadas, **Requer atenção** termina com **Configuração**: quantas coisas precisam de uma olhada. Ela abre **Saúde da configuração**, que lista o que está mal configurado, o mais grave primeiro, em **Os acionamentos não chegarão**, **Vale corrigir** e **Sugestões**: um monitor que não aciona ninguém, uma política de plantão que nada executa, uma pessoa que não pode ser acionada, SMS desativado, um agendamento de plantão sem ninguém de plantão, uma página de status que não mostra nenhum monitor. Cada descoberta diz em uma frase o que está errado, com o botão que abre a correção, e as descobertas de um monitor são as falhas que o cartão **Quando cair** dele aponta. Uma descoberta que sua equipe deixa assim de propósito pode ser dispensada com um motivo, para todos, e restaurada em **Dispensado**. A pesquisa encontra a página como **Saúde da configuração**, e Pergunte à IA responde "minha configuração está OK?" a partir dela.
+
 ### Seu projeto
 
 **Seu projeto** conta os **Monitores**, as **Páginas de status**, as **Políticas de plantão**, os **SLOs**, os **Serviços**, os **Painéis** e os **Fluxos de trabalho** do projeto, sem contar os arquivados. Cada linha abre a sua lista. Quando o projeto não tem nenhum item de um tipo, a linha mostra **Configurar** em vez de um número.

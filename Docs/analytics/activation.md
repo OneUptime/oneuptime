@@ -98,6 +98,10 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `products/all_products_shown` | **Show every product** on Project Settings > Products | `hidden_count` | `ProductsSettings` |
 | `products/product_pinned` | Somebody pins a product to the nav bar, from its card in the products menu (`source` is `menu`) or beside its page's title (`page`) | `product`, `source`, `pin_count` (how many they have pinned now) | `DashboardNavbar`, `ProductPinButton` |
 | `products/product_unpinned` | Somebody unpins one | `product`, `source`, `pin_count` | Same |
+| `setup_health/opened` | Setup health is opened (#6812), with how many findings of each level it shows. Whether people open it says whether a weekly email of new findings is worth sending | `source` (`?from=` on its address: `home`, `search`; else `direct`), `pages_will_not_arrive_count`, `worth_fixing_count`, `suggestion_count`, `dismissed_count` | `SetupHealthView` |
+| `setup_health/fix_opened` | The fix of a finding is opened: which findings people act on, for the one-click fixes the issue leaves for later | `check`, `level` | `SetupHealthView` |
+| `setup_health/finding_dismissed` | A finding is dismissed for everyone in the project. The reason is never sent | `check`, `has_reason` | `SetupHealthView` |
+| `setup_health/finding_restored` | A dismissed finding is restored | `check` | `SetupHealthView` |
 
 ### The Welcome checklist and its goals
 

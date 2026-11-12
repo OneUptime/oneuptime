@@ -93,6 +93,10 @@ Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tid
 
 **Krever oppmerksomhet** viser ved navn det tallene teller: de åpne hendelsene, de åpne varslene, monitorene som ikke er i drift, SLO-ene i faresonen og vedlikeholdet som pågår, det mest presserende først. Hver rad viser alvorlighetsgrad eller status, sier når en hendelse eller et varsel startet og når vedlikeholdet slutter, og åpner oppføringen. Hver type viser opptil fem, med **Vis alle** for resten, som åpner den samme listen som tallet. Når ingenting er åpent, står det **Ingenting krever oppmerksomheten din**.
 
+### Oppsettets helse
+
+Når noe i prosjektets oppsett ville hindre at folk blir varslet, slutter **Krever oppmerksomhet** med **Oppsett**: hvor mange ting som bør ses på. Den åpner **Oppsettets helse**, som viser hva som er satt opp feil, det verste først, under **Varsler kommer ikke frem**, **Verdt å rette** og **Forslag**: en monitor som ikke varsler noen, en vaktpolicy som ingenting kjører, en person som ikke kan varsles, SMS slått av, en vakttidsplan uten noen på vakt, en statusside som ikke viser noen monitor. Hvert funn sier i én setning hva som er galt, med knappen som åpner rettingen, og funnene for en monitor er bruddene som kortet **Når den går ned** nevner. Et funn som teamet ditt lar være med vilje, kan skjules med en begrunnelse, for alle, og gjenopprettes fra **Avvist**. Søk finner siden som **Oppsettets helse**, og Spør AI svarer på «er oppsettet mitt i orden?» ut fra den.
+
 ### Prosjektet ditt
 
 **Prosjektet ditt** teller prosjektets **Monitorer**, **Statussider**, **Vaktretningslinjer**, **SLOs**, **Tjenester**, **Dashbord** og **Arbeidsflyter**, uten de arkiverte. Hver rad åpner listen sin. En type som prosjektet ikke har noen av, viser **Konfigurer** i stedet for et tall.
