@@ -2238,12 +2238,22 @@ describe("methods are a page of their own now, not a card on this one", () => {
       expect(container.textContent).not.toContain(retiredTitle);
     }
 
-    const rulesLink: HTMLElement | null = screen
-      .getByText("On-call rules")
-      .closest("a");
+    /*
+     * The rules tabs' line also says "On-call rules", as the glossary's
+     * defined term: a button that explains the words, not a link. The one
+     * link of that name is What you can change's.
+     */
+    const rulesLinks: Array<HTMLAnchorElement> = screen
+      .getAllByText("On-call rules")
+      .map((element: HTMLElement): HTMLAnchorElement | null => {
+        return element.closest("a");
+      })
+      .filter((link: HTMLAnchorElement | null): link is HTMLAnchorElement => {
+        return link !== null;
+      });
 
-    expect(rulesLink).not.toBeNull();
-    expect(rulesLink!.getAttribute("href")).toBe(
+    expect(rulesLinks).toHaveLength(1);
+    expect(rulesLinks[0]!.getAttribute("href")).toBe(
       `/dashboard/${PROJECT_ID_STRING}/users/${TARGET_USER_ID_STRING}/on-call-rules`,
     );
     expect(container.textContent).toContain(
