@@ -88,6 +88,13 @@ import YAxis, {
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
 
 export interface ComponentProps extends DashboardBaseComponentProps {
   component: DashboardSloComponent;
@@ -223,6 +230,8 @@ type GetPlaceholderFunction = (data: {
   // A title that holds the SLO's name, drawn as SloWidgetTitle draws it.
   titleElement?: ReactElement | undefined;
   message: string;
+  // The message's test id: the setup line's, while no SLO is picked.
+  messageTestId?: string | undefined;
 }) => ReactElement;
 
 const getPlaceholder: GetPlaceholderFunction = (data: {
@@ -232,6 +241,7 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
   title?: string | undefined;
   titleElement?: ReactElement | undefined;
   message: string;
+  messageTestId?: string | undefined;
 }): ReactElement => {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
@@ -255,7 +265,15 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
       ) : (
         <></>
       )}
-      <p className="text-xs text-gray-400 text-center max-w-40">
+      {/*
+       * The setup line's look for every state's sentence (no SLO picked,
+       * none to follow, could not be read): one widget, one way of saying
+       * what is wrong, dark enough to read.
+       */}
+      <p
+        className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+        data-testid={data.messageTestId}
+      >
         {translateText(data.message)}
       </p>
     </div>
@@ -310,6 +328,16 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
   const selectedSloName: string | undefined = source.sloName;
   const isFollowingSelection: boolean =
     sourceState === SloWidgetSourceState.FollowsSelection;
+
+  /*
+   * What the widget says while no SLO is picked, for where it is drawn: a
+   * click opens its settings only on the board being edited (issue
+   * #7160).
+   */
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Slo,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
 
   /*
    * The latest variables, read at request time. A public request for a
@@ -610,7 +638,8 @@ const DashboardSloComponentElement: FunctionComponent<ComponentProps> = (
       iconClassName: "text-emerald-300",
       iconBackgroundClassName: "bg-emerald-50",
       title: props.component.arguments.widgetTitle || "SLO Widget",
-      message: "Click to select an SLO",
+      message: setupMessage,
+      messageTestId: DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
     });
   }
 

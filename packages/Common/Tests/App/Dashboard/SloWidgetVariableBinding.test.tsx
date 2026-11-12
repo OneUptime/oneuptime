@@ -323,10 +323,14 @@ describe("SLO widget following a toolbar variable — waiting for a pick", () =>
     ).toBeInTheDocument();
     // The title tells six identical placeholders apart.
     expect(screen.getByText("SLI")).toBeInTheDocument();
-    // Never the edit-mode setup prompt, which does nothing in view mode.
+    /*
+     * Never the edit-mode setup prompt, which does nothing in view mode,
+     * nor the line of a widget with no SLO picked: one is (issue #7160).
+     */
     expect(
       screen.queryByText("Click to select an SLO"),
     ).not.toBeInTheDocument();
+    expect(screen.queryByText("No SLO picked yet.")).not.toBeInTheDocument();
     expect(countRequests()).toBe(0);
   });
 
@@ -359,7 +363,7 @@ describe("SLO widget following a toolbar variable — waiting for a pick", () =>
     expect(countRequests()).toBe(0);
   });
 
-  test("keeps the edit-mode setup prompt for a widget that follows nothing", async () => {
+  test("says no SLO is picked for a widget that follows nothing", async () => {
     render(
       buildElement({
         args: { displayType: SloWidgetDisplayType.Tile },
@@ -367,9 +371,14 @@ describe("SLO widget following a toolbar variable — waiting for a pick", () =>
       }),
     );
 
+    /*
+     * Out of edit mode a click opens nothing, so the reader is told what
+     * is missing, not to click (issue #7160).
+     */
+    expect(await screen.findByText("No SLO picked yet.")).toBeInTheDocument();
     expect(
-      await screen.findByText("Click to select an SLO"),
-    ).toBeInTheDocument();
+      screen.queryByText("Click to select an SLO"),
+    ).not.toBeInTheDocument();
     expect(countRequests()).toBe(0);
   });
 });

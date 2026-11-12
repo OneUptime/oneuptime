@@ -196,8 +196,11 @@ describe("the edition badge's words", () => {
         "Update available",
         "Read the upgrade guide",
         "Evaluation license",
-        "{{edition}}, Evaluation license, {{action}}",
       ]),
+    );
+    // The pill's name lists its words (#7133): no template of its own.
+    expect(BADGE_WORDS).not.toContain(
+      "{{edition}}, Evaluation license, {{action}}",
     );
     expect(ONE_FORMS.get("{{count}} days left_one")).toBe("{{count}} day left");
   });
@@ -210,7 +213,10 @@ describe("the edition badge's words", () => {
       expect({
         app,
         oldTag: "{{edition}}, Evaluation, {{action}}" in readLocale(app, "en"),
-      }).toEqual({ app, oldTag: false });
+        oldName:
+          "{{edition}}, Evaluation license, {{action}}" in
+          readLocale(app, "en"),
+      }).toEqual({ app, oldTag: false, oldName: false });
     }
 
     expect(readLocale("Dashboard", "de")["Evaluation license"]).toBe(
