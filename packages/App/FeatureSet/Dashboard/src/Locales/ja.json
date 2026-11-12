@@ -21519,7 +21519,7 @@
   "{{count}} required fields still empty": "未入力の必須フィールド {{count}} 個",
   "{{count}} required fields still empty_one": "{{count}} required field still empty",
   "{{count}} resources are not on the grid": "{{count}} 個のリソースがグリッドに配置されていません",
-  "{{count}} resources are not on the grid_one": "{{count}} resource is not on the grid",
+  "{{count}} resources are not on the grid_one": "{{count}} 個のリソースがグリッドに配置されていません",
   "{{count}} resources that are not in any group": "どのグループにも属していない {{count}} 個のリソース",
   "{{count}} resources that are not in any group_one": "{{count}} resource that is not in any group",
   "{{count}} resources you don't have permission to view are also attached ({{types}}). They will be kept.": "閲覧権限のない {{count}} 件のリソースも関連付けられています（{{types}}）。これらは保持されます。",
