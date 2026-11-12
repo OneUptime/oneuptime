@@ -32,10 +32,10 @@ export const SECURITY_EVENTS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Live"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Events"), value: "48,210" },
-      { label: translationKey("Cases"), value: "3" },
-      { label: translationKey("Sources"), value: "4" },
-      { label: translationKey("Critical"), value: "1" },
+      { label: translationKey("Events"), value: 48_210 },
+      { label: translationKey("Cases"), value: 3 },
+      { label: translationKey("Sources"), value: 4 },
+      { label: translationKey("Critical"), value: 1 },
     ],
     chart: {
       label: translationKey("Events"),
@@ -85,10 +85,10 @@ export const DATA_SECURITY_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Connected"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Tables"), value: "212" },
-      { label: translationKey("Columns"), value: "1,846" },
-      { label: translationKey("Data types"), value: "9" },
-      { label: translationKey("Issues"), value: "4" },
+      { label: translationKey("Tables"), value: 212 },
+      { label: translationKey("Columns"), value: 1846 },
+      { label: translationKey("Data types"), value: 9 },
+      { label: translationKey("Issues"), value: 4 },
     ],
     chart: {
       label: translationKey("Issues"),
@@ -138,10 +138,10 @@ export const AI_INSIGHTS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("New"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Insights"), value: "5" },
-      { label: translationKey("Services"), value: "12" },
-      { label: translationKey("Hosts"), value: "8" },
-      { label: translationKey("Resolved"), value: "17" },
+      { label: translationKey("Insights"), value: 5 },
+      { label: translationKey("Services"), value: 12 },
+      { label: translationKey("Hosts"), value: 8 },
+      { label: translationKey("Resolved"), value: 17 },
     ],
     chart: {
       label: translationKey("Latency"),
@@ -191,11 +191,11 @@ export const CODE_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Connected"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Tasks"), value: "12" },
-      { label: translationKey("Pull requests"), value: "9" },
-      { label: translationKey("Merged"), value: "7" },
+      { label: translationKey("Tasks"), value: 12 },
+      { label: translationKey("Pull requests"), value: 9 },
+      { label: translationKey("Merged"), value: 7 },
       // Not "Open": the Dashboard's Open is the verb (German "Öffnen").
-      { label: translationKey("Waiting for review"), value: "2" },
+      { label: translationKey("Waiting for review"), value: 2 },
     ],
     chart: {
       label: translationKey("Tasks"),

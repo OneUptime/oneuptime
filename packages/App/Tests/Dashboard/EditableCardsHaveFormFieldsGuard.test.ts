@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#a-records-overview
 import DatabaseBaseModel from "Common/Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
 import { ColumnAccessControl } from "Common/Types/BaseDatabase/AccessControl";
 import { describe, expect, jest, test } from "@jest/globals";

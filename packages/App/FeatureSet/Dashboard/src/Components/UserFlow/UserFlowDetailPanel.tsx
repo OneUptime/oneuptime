@@ -204,7 +204,7 @@ function NeighbourList(props: {
                   <span className="relative shrink-0 text-xs text-gray-500">
                     {formatUserFlowCount(item.sessions, translator)}
                     {getInlineSeparator(translator.language)}
-                    {formatUserFlowShare(share)}
+                    {formatUserFlowShare(share, translator)}
                   </span>
                 </button>
               </li>
@@ -335,6 +335,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
               source && source.sessions > 0
                 ? link.sessions / source.sessions
                 : 0,
+              translator,
             )}
           />
           <Stat
@@ -346,6 +347,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
               target && target.sessions > 0
                 ? link.sessions / target.sessions
                 : 0,
+              translator,
             )}
           />
           <Stat
@@ -353,6 +355,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailReturning}
             value={formatUserFlowShare(
               link.sessions > 0 ? link.revisitSessions / link.sessions : 0,
+              translator,
             )}
             tone={
               link.sessions > 0 && link.revisitSessions / link.sessions >= 0.5
@@ -503,6 +506,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
           hint={translator.translateTemplate("{{share}} of the step", {
             share: formatUserFlowShare(
               columnTotal > 0 ? node.sessions / columnTotal : 0,
+              translator,
             ),
           })}
           testId="user-flow-detail-sessions"
@@ -510,7 +514,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
         <Stat
           label={graph.anchorPage ? "Of anchored sessions" : "Of all sessions"}
           tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailOfAllSessions}
-          value={formatUserFlowShare(reachShare)}
+          value={formatUserFlowShare(reachShare, translator)}
           hint={
             node.step === 0
               ? translator.translateText("start of the map")
@@ -526,6 +530,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             value={formatUserFlowCount(node.terminal, translator)}
             hint={formatUserFlowShare(
               node.sessions > 0 ? node.terminal / node.sessions : 0,
+              translator,
             )}
           />
         ) : (
@@ -536,6 +541,7 @@ const UserFlowDetailPanel: FunctionComponent<ComponentProps> = (
             hint={translator.translateTemplate("{{share}} drop-off", {
               share: formatUserFlowShare(
                 node.sessions > 0 ? node.terminal / node.sessions : 0,
+                translator,
               ),
             })}
             tone={

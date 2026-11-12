@@ -23,6 +23,10 @@ Pull requests are the best way to propose changes to the codebase (we use [Githu
 5. Make sure your code lints.
 6. Issue that pull request!
 
+## Build Pages People Understand the First Time
+
+Before you change anything a person sees in OneUptime - a page, a form, a dialog, a menu, a sentence - read the [UX rulebook](../Docs/ux/README.md). It takes about fifteen minutes: the principles, the rules for forms, lists, dialogs and words, and the test that enforces each rule.
+
 ## Write Your Pull Request's Title for the Release Notes
 
 Every release's notes are written automatically from the titles of its pull requests, so your title is what people read on the [release page](https://github.com/OneUptime/oneuptime/releases). Write it as `type(area): what changed, for the person using OneUptime`, for example:

@@ -89,6 +89,7 @@ const EN: Record<string, string> = readLocale("en");
 const DE: Record<string, string> = readLocale("de");
 const AR: Record<string, string> = readLocale("ar");
 const RU: Record<string, string> = readLocale("ru");
+const HI: Record<string, string> = readLocale("hi");
 
 // The locale's own words for `key`, which must differ from the English.
 function worded(
@@ -277,6 +278,7 @@ beforeAll(async () => {
       de: { translation: DE },
       ar: { translation: AR },
       ru: { translation: RU },
+      hi: { translation: HI },
       en: { translation: EN },
     },
     interpolation: { escapeValue: false },
@@ -544,6 +546,245 @@ describe("a poll's window warnings in Russian", () => {
       );
       expect(plain(alert.textContent)).not.toContain(`больше ${records}`);
       expectNoEnglish(alert, ["This window held more", "the cursor stayed"]);
+    },
+  );
+});
+
+/*
+ * A poll's window warnings and a connection's historical import in Hindi
+ * (#6893). Hindi words Microsoft Sentinel's incidents as घटनाएं, a feminine
+ * plural, and every other connector's records as masculine ones (उल्लेखनीय
+ * इवेंट for Splunk's notable events). The sentences were written for the
+ * masculine ones - "इतने {{records}} बने", "पुराने {{records}} के लिए",
+ * "पहले से आयात किए गए {{records}} छोड़ दिए जाते हैं" - so a Sentinel
+ * connection read "इतने घटनाएं बने" and "पुराने घटनाएं के लिए". Each is
+ * now worded so nothing agrees with the records word and no postposition
+ * follows it, and reads the same with either kind of word: the reviewed
+ * Hindi below.
+ */
+describe("a connection's records in Hindi, for Microsoft Sentinel's incidents and Splunk's notable events", () => {
+  const WINDOW_END: string = "2026-09-10T12:00:00Z";
+
+  const HINDI_CONNECTIONS: Array<[string, string, string]> = [
+    ["Microsoft Sentinel", "incidents", "घटनाएं"],
+    ["Splunk Enterprise Security", "notable events", "उल्लेखनीय इवेंट"],
+  ];
+
+  // What a sentence wrote around the masculine records words, which misread.
+  function expectNoMasculineAgreement(text: string, records: string): void {
+    for (const wrong of [
+      `इतने ${records}`,
+      `नए ${records}`,
+      `पुराने ${records}`,
+      `${records} बने`,
+      `${records} थे`,
+      `${records} का `,
+      `${records} के `,
+      `तक के ${records}`,
+      `आयात किए गए ${records}`,
+      `कोई ${records} नहीं है`,
+    ]) {
+      expect({ wrong, found: text.includes(wrong) }).toEqual({
+        wrong,
+        found: false,
+      });
+    }
+  }
+
+  beforeEach(async () => {
+    await i18next.changeLanguage("hi");
+  });
+
+  test.each(HINDI_CONNECTIONS)(
+    "%s: polling moved past a minute it could not read",
+    (_provider: string, name: string, records: string) => {
+      render(
+        <MemoryRouter>
+          <ConnectionWindowProgress
+            recordsName={name}
+            result={{
+              status: "partial",
+              complete: false,
+              windowEnd: WINDOW_END,
+              chunkMinutes: 1,
+              nextChunkMinutes: 1,
+              forcedAdvance: true,
+            }}
+          />
+        </MemoryRouter>,
+      );
+
+      expect(worded(HI, name)).toBe(records);
+
+      const alert: HTMLElement = screen.getByRole("alert");
+      const paragraphs: Array<string> = Array.from(
+        alert.querySelectorAll("p"),
+      ).map((paragraph: HTMLParagraphElement): string => {
+        return plain(paragraph.textContent);
+      });
+
+      expect(paragraphs[0]).toBe(
+        `एक ही मिनट में एक पोल जितना पढ़ सकता है, उससे अधिक ${records} हैं। पोलिंग उस मिनट से आगे बढ़ गई, ताकि OneUptime नवीनतम ${records} आयात करता रहे; यह पोल उस मिनट में से बाकी ${records} नहीं पढ़ पाया, इसलिए उनका आयात नहीं हुआ।`,
+      );
+      expect(paragraphs[1]).toContain(
+        `के लिए ऐतिहासिक ${records} खोजें के अंतर्गत यह समय सीमा आयात करें का उपयोग करें। पहले से आयात हो चुका कोई भी रिकॉर्ड छोड़ दिया जाता है।`,
+      );
+      expectNoMasculineAgreement(plain(alert.textContent), records);
+      expectNoEnglish(alert, [
+        "were created in one minute",
+        "Polling moved past",
+        "To recover them",
+      ]);
+    },
+  );
+
+  test.each(HINDI_CONNECTIONS)(
+    "%s: the window held more than one poll can read",
+    (_provider: string, name: string, records: string) => {
+      render(
+        <MemoryRouter>
+          <ConnectionWindowProgress
+            recordsName={name}
+            result={{
+              status: "partial",
+              complete: false,
+              windowEnd: WINDOW_END,
+              chunkMinutes: 60,
+              nextChunkMinutes: 30,
+            }}
+          />
+        </MemoryRouter>,
+      );
+
+      const alert: HTMLElement = screen.getByRole("alert");
+      const text: string = plain(alert.textContent);
+
+      expectSentence(
+        alert,
+        HI,
+        "This window held more {{records}} than one poll can read, so the cursor stayed where it was. The next scheduled poll reads a window of {{window}} from the same starting point and widens it again as polls complete.",
+      );
+      expect(
+        text.startsWith(
+          `इस विंडो में एक पोल जितना पढ़ सकता है, उससे अधिक ${records} हैं, इसलिए कर्सर अपनी जगह पर रहा। अगला शेड्यूल किया गया पोल उसी शुरुआती बिंदु से `,
+        ),
+      ).toBe(true);
+      expectNoMasculineAgreement(text, records);
+      expectNoEnglish(alert, ["This window held more", "the cursor stayed"]);
+    },
+  );
+
+  function connectionOf(
+    provider: SecurityEventConnectorProvider,
+  ): SecurityEventConnection {
+    const value: SecurityEventConnection = new SecurityEventConnection();
+    value._id = CONNECTION_ID;
+    value.projectId = new ObjectID(PROJECT_ID);
+    value.name = "Contoso SOC";
+    value.provider = provider;
+    value.config = {};
+    value.isEnabled = true;
+    value.pollIntervalInMinutes = 5;
+    value.createdAt = new Date(NOW - 60_000);
+    return value;
+  }
+
+  const HINDI_DIAGNOSTICS: Array<
+    [string, SecurityEventConnectorProvider, string]
+  > = [
+    [
+      "Microsoft Sentinel",
+      SecurityEventConnectorProvider.MicrosoftSentinel,
+      "घटनाएं",
+    ],
+    [
+      "Splunk Enterprise Security",
+      SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+      "उल्लेखनीय इवेंट",
+    ],
+  ];
+
+  test.each(HINDI_DIAGNOSTICS)(
+    "%s: Find historical, its Preview button, its hint and the import confirmation",
+    async (
+      _title: string,
+      provider: SecurityEventConnectorProvider,
+      records: string,
+    ) => {
+      jest.useFakeTimers();
+      jest.setSystemTime(NOW);
+      jest.spyOn(ModelAPI, "getList").mockResolvedValue(history([]));
+      jest.spyOn(ModelAPI, "getItem").mockResolvedValue(connectionOf(provider));
+      jest
+        .spyOn(ModelAPI, "getCommonHeaders")
+        .mockReturnValue({ "project-id": PROJECT_ID });
+      jest
+        .spyOn(API, "post")
+        .mockResolvedValue(new HTTPResponse(200, { runId: RUN_ID }, {}));
+      jest.spyOn(RouteUtil, "populateRouteParams").mockImplementation(() => {
+        return new Route(`/dashboard/${PROJECT_ID}/security-events`);
+      });
+
+      render(
+        <MemoryRouter>
+          <SecurityEventConnectionDiagnostics
+            connection={connectionOf(provider)}
+            canRun={true}
+            onClose={(): void => {}}
+            onUpdated={(): void => {}}
+          />
+        </MemoryRouter>,
+      );
+      await screen.findByText(
+        worded(
+          HI,
+          "No runs recorded yet. Older polls may not have diagnostic history.",
+        ),
+      );
+
+      expect(
+        screen.getByRole("heading", { name: `ऐतिहासिक ${records} खोजें` }),
+      ).toBeVisible();
+      expect(
+        screen.getByRole("button", {
+          name: `पूर्वावलोकन में ${records} देखें`,
+        }),
+      ).toBeVisible();
+
+      const page: string = plain(document.body.textContent);
+
+      expect(page).toContain(
+        `पहला शेड्यूल किया गया पोल 24 घंटे पीछे तक देखता है; उससे पहले के समय से ${records} लाने के लिए ऐतिहासिक आयात चलाएँ।`,
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", {
+          name: worded(HI, "Import this time range"),
+        }),
+      );
+
+      const confirmation: HTMLElement = screen.getByRole("group", {
+        name: worded(HI, "Confirm historical import"),
+      });
+      const confirm: string = plain(confirmation.textContent);
+
+      expectSentence(
+        confirmation,
+        HI,
+        "Import {{what}} from {{start}} to {{end}} into OneUptime? Imported events become available to security rules and monitors. Already imported {{records}} are skipped.",
+      );
+      expect(confirm).toContain(`तक ${records} OneUptime में आयात करें?`);
+      expect(confirm).toContain(
+        `OneUptime पहले से आयातित ${records} छोड़ देता है।`,
+      );
+      expectNoMasculineAgreement(plain(document.body.textContent), records);
+      expectNoEnglish(document.body, [
+        "Find historical",
+        "Preview incidents",
+        "Preview notable events",
+        "older incidents need",
+        "Already imported",
+      ]);
     },
   );
 });

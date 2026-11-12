@@ -54,7 +54,7 @@ Clique em **Testar estas configurações** em **Testar antes de salvar**. O test
 | Configuração | O que informar |
 | --- | --- |
 | **URL de gerenciamento do Splunk** | A API REST do search head, por exemplo `https://splunk.example.com:8089`. Ela deve usar `https`, sem query string. Um caminho é mantido, para um proxy reverso que serve a API sob um caminho. |
-| **Pesquisar** | A pesquisa que escolhe o que importar, `index=notable` enquanto você não a mudar. Restrinja-a, por exemplo com `index=notable urgency IN (high, critical)`. O OneUptime adiciona o intervalo de tempo por conta própria, então a pesquisa não pode definir `earliest` nem `latest`, nem começar com um pipe. Um `search` inicial é removido. |
+| **Consulta de pesquisa** | A pesquisa que escolhe o que importar, `index=notable` enquanto você não a mudar. Restrinja-a, por exemplo com `index=notable urgency IN (high, critical)`. O OneUptime adiciona o intervalo de tempo por conta própria, então a pesquisa não pode definir `earliest` nem `latest`, nem começar com um pipe. Um `search` inicial é removido. |
 | **Nome de usuário** | O nome do usuário do Splunk, só se ele se autentica com senha. |
 | **Token de autenticação** | O token da primeira etapa. Quando há um token salvo, é ele que é usado, e não o nome de usuário nem a senha. |
 | **Senha** | A senha do usuário do Splunk, só quando nenhum token é usado. |
@@ -114,7 +114,7 @@ Uma consulta lê no máximo 10.000 linhas. Quando uma janela contém mais, a exe
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-A pesquisa ordena a janela por `_time`, da mais antiga para a mais nova, então o OneUptime move o cursor para o horário de criação da última linha lida, e a consulta seguinte começa ali, com o mesmo tamanho de janela. Um search head movimentado se atualiza 10.000 linhas por consulta, em vez de reler as mesmas. As linhas criadas no mesmo instante são lidas duas vezes, e a verificação de duplicatas descarta a segunda cópia. O Splunk ordena a janela inteira antes de devolver uma linha, então uma pesquisa em **Pesquisar** que encontra muito mais do que o necessário deixa cada consulta mais lenta. Mantenha-a focada.
+A pesquisa ordena a janela por `_time`, da mais antiga para a mais nova, então o OneUptime move o cursor para o horário de criação da última linha lida, e a consulta seguinte começa ali, com o mesmo tamanho de janela. Um search head movimentado se atualiza 10.000 linhas por consulta, em vez de reler as mesmas. As linhas criadas no mesmo instante são lidas duas vezes, e a verificação de duplicatas descarta a segunda cópia. O Splunk ordena a janela inteira antes de devolver uma linha, então uma **Consulta de pesquisa** que encontra muito mais do que o necessário deixa cada consulta mais lenta. Mantenha-a focada.
 
 Quando uma execução não consegue passar do cursor salvo de jeito nenhum, o OneUptime encurta a janela em vez disso:
 
@@ -141,8 +141,8 @@ Clique em **Diagnóstico** em uma conexão para ver as execuções recentes dela
 | --- | --- |
 | **Configuração** | Cada configuração está presente e bem formada. Nada é contatado quando isso falha. |
 | **Authenticate with Splunk** | O Splunk aceita o token, ou o nome de usuário e a senha, e informa o usuário e as funções dele, para que você os compare com a função que queria conceder. |
-| **Run the search on Splunk** | A pesquisa de **Pesquisar** roda sobre as últimas 24 horas, para uma linha, e informa qual endpoint de exportação respondeu. |
-| **Notable events available to import** | Quantas linhas a pesquisa de **Pesquisar** encontra nas últimas 24 horas e nos últimos 7 dias. Nenhuma em 7 dias é um aviso, não uma falha. |
+| **Run the search on Splunk** | Sua **Consulta de pesquisa** roda sobre as últimas 24 horas, para uma linha, e informa qual endpoint de exportação respondeu. |
+| **Notable events available to import** | Quantas linhas sua **Consulta de pesquisa** encontra nas últimas 24 horas e nos últimos 7 dias. Nenhuma em 7 dias é um aviso, não uma falha. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | O lado do próprio OneUptime: um processo pega os jobs da fila Worker, o job de consulta roda a cada minuto e o armazenamento de eventos de segurança responde. |
 | **Consulta agendada** | Para uma conexão salva: a consulta está ativada, nenhuma execução está presa esperando um worker e as consultas rodam no horário. |
 
@@ -183,7 +183,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 
 :::details Last Error começa com `Splunk Enterprise Security search export` ou `Splunk Enterprise Security count search`
 - `Splunk Enterprise Security search export failed (HTTP ...)`: o Splunk se recusou a executar a pesquisa.
-  - `HTTP 400`: o Splunk não consegue interpretar a pesquisa. Execute a pesquisa de **Pesquisar** no Splunk Web para ler o erro dela.
+  - `HTTP 400`: o Splunk não consegue interpretar a pesquisa. Execute sua **Consulta de pesquisa** no Splunk Web para ler o erro dela.
   - `HTTP 403`: falta à função do usuário a capacidade `search`, ou ela não consegue ler o índice. Adicione `notable`, ou o seu índice, aos índices em que a função pode pesquisar.
   - `HTTP 404`: nenhum dos dois endpoints de exportação existe nessa URL, então ela não é a porta de gerenciamento de um search head.
   - `HTTP 429` ou `HTTP 5xx`: o Splunk está limitando o usuário, está sobrecarregado, ou a pesquisa atingiu um dos limites dela. A consulta seguinte tenta de novo.
@@ -193,7 +193,7 @@ O **Último erro** da conexão guarda a mensagem de erro completa, com as creden
 :::
 
 :::details Last Error termina com `did not complete`
-`Splunk Enterprise Security search export did not complete`, e o mesmo para as outras etapas, significa que a requisição não recebeu resposta: um tempo limite esgotado, um nome que não resolve, um certificado em que o OneUptime não confia, ou um endereço privado recusado. Verifique se o aplicativo do OneUptime e os workers conseguem abrir uma conexão HTTPS para a porta de gerenciamento. Um search head que responde a outras requisições mas expira na pesquisa está ordenando demais: a consulta seguinte lê uma janela com a metade do tamanho, e uma pesquisa mais focada em **Pesquisar** resolve de vez.
+`Splunk Enterprise Security search export did not complete`, e o mesmo para as outras etapas, significa que a requisição não recebeu resposta: um tempo limite esgotado, um nome que não resolve, um certificado em que o OneUptime não confia, ou um endereço privado recusado. Verifique se o aplicativo do OneUptime e os workers conseguem abrir uma conexão HTTPS para a porta de gerenciamento. Um search head que responde a outras requisições mas expira na pesquisa está ordenando demais: a consulta seguinte lê uma janela com a metade do tamanho, e uma **Consulta de pesquisa** mais focada resolve de vez.
 :::
 
 :::details Last Polled é Never e Last Error está vazio
@@ -201,12 +201,12 @@ Nenhuma consulta terminou para essa conexão. Rode **Testar conexão**: as verif
 :::
 
 :::details Uma execução está Partial
-- `Stopped after collecting 10000 records; the window holds more`: a janela continha mais do que as 10.000 linhas que uma execução lê. Nada se perde: a consulta seguinte começa depois da última linha lida. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e os seus **Última consulta** e **Último evento importado** continuam avançando. Se ela nunca se atualiza, a pesquisa de **Pesquisar** encontra mais de 10.000 linhas por intervalo de consulta: restrinja-a, ou encurte o **Intervalo de consulta (minutos)**.
+- `Stopped after collecting 10000 records; the window holds more`: a janela continha mais do que as 10.000 linhas que uma execução lê. Nada se perde: a consulta seguinte começa depois da última linha lida. Uma conexão que continua **Parcial** consulta após consulta está se atualizando de um atraso, e os seus **Última consulta** e **Último evento importado** continuam avançando. Se ela nunca se atualiza, sua **Consulta de pesquisa** encontra mais de 10.000 linhas por intervalo de consulta: restrinja-a, ou encurte o **Intervalo de consulta (minutos)**.
 - `More records were created in the one minute from ... than one poll can read`: a consulta passou desse minuto. Importe-o com **Importar este intervalo de tempo** em **Diagnóstico**. Uma importação lê tanto quanto uma consulta.
 :::
 
 :::details O teste passa, mas nada é importado
-Leia **Notable events available to import** no relatório do teste. `0` nos últimos 7 dias significa que a pesquisa de **Pesquisar** não encontrou nada no Splunk: verifique no Incident Review se as pesquisas de correlação estão habilitadas e criam eventos notáveis, e se a pesquisa de **Pesquisar** não é mais restrita do que você queria.
+Leia **Notable events available to import** no relatório do teste. `0` nos últimos 7 dias significa que sua **Consulta de pesquisa** não encontrou nada no Splunk: verifique no Incident Review se as pesquisas de correlação estão habilitadas e criam eventos notáveis, e se a **Consulta de pesquisa** não é mais restrita do que você queria.
 :::
 
 ## O que você ganha

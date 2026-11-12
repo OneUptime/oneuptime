@@ -825,10 +825,10 @@ describe("User Flows detail panel texts match the map it explains", () => {
     const panel: string = squash(DETAIL_PANEL);
 
     expect(panel).toContain(
-      'label={translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, )}',
+      'label={translator.translateTemplate("Share of {{page}}", { page: sourceLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfSource} value={formatUserFlowShare( source && source.sessions > 0 ? link.sessions / source.sessions : 0, translator, )}',
     );
     expect(panel).toContain(
-      'label={translator.translateTemplate("Share of {{page}}", { page: targetLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, )}',
+      'label={translator.translateTemplate("Share of {{page}}", { page: targetLabel, })} tooltip={RUM_USER_FLOW_METRIC_DESCRIPTIONS.detailShareOfTarget} value={formatUserFlowShare( target && target.sessions > 0 ? link.sessions / target.sessions : 0, translator, )}',
     );
     // Source and target are in lived order, whichever way the map runs.
     expect(USER_FLOW_ENGINE).toContain(
@@ -871,7 +871,7 @@ describe("User Flows detail panel texts match the map it explains", () => {
       "graph.sessions > 0 ? node.sessions / graph.sessions : 0;",
     );
     expect(panel).toContain(
-      'hint={translator.translateTemplate("{{share}} of the step", { share: formatUserFlowShare( columnTotal > 0 ? node.sessions / columnTotal : 0, ), })}',
+      'hint={translator.translateTemplate("{{share}} of the step", { share: formatUserFlowShare( columnTotal > 0 ? node.sessions / columnTotal : 0, translator, ), })}',
     );
     // graph.sessions: the journeys the map draws, those with the anchor.
     expect(USER_FLOW_ENGINE).toContain("sessions: slices.length,");

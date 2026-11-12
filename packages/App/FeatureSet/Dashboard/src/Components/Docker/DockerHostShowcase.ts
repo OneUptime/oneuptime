@@ -66,10 +66,10 @@ const DOCKER_HOST_SHOWCASE: ResourceShowcase = {
     name: "prod-docker-01",
     subtitle: translationKey("23 containers · Ubuntu 24.04"),
     stats: [
-      { label: translationKey("Containers"), value: "23" },
-      { label: translationKey("Avg CPU"), value: "18%" },
-      { label: translationKey("Avg memory"), value: "41%" },
-      { label: translationKey("Processes"), value: "186" },
+      { label: translationKey("Containers"), value: 23 },
+      { label: translationKey("Avg CPU"), value: { percent: 18 } },
+      { label: translationKey("Avg memory"), value: { percent: 41 } },
+      { label: translationKey("Processes"), value: 186 },
     ],
     chart: {
       label: translationKey("Average CPU"),

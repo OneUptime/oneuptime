@@ -428,7 +428,11 @@ export const SecurityEventConnectorCatalog: Array<SecurityEventConnectorDefiniti
         },
         {
           key: "searchString",
-          title: translationKey("Search"),
+          /*
+           * A noun, as every other setting's title is: "Search" is the
+           * button's verb ("Suchen", "Rechercher") in most languages.
+           */
+          title: translationKey("Search query"),
           description: translationKey(
             "The SPL that selects the events to import. The connector adds the time range itself; do not include earliest or latest.",
           ),

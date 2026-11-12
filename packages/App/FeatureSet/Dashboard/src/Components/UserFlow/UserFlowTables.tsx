@@ -109,6 +109,8 @@ function PageChip(props: { page: string; onClick: () => void }): ReactElement {
 }
 
 function ShareBar(props: { share: number }): ReactElement {
+  const translator: Translator = useTranslator();
+
   return (
     <div className="flex items-center gap-2">
       <div className="h-1.5 w-16 overflow-hidden rounded-full bg-gray-100">
@@ -118,7 +120,7 @@ function ShareBar(props: { share: number }): ReactElement {
         />
       </div>
       <span className="text-xs text-gray-600">
-        {formatUserFlowShare(props.share)}
+        {formatUserFlowShare(props.share, translator)}
       </span>
     </div>
   );
@@ -408,7 +410,13 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                       data-path={path.pages.join(" > ")}
                       data-sessions={path.sessions}
                     >
-                      <td className={`${CELL} text-gray-400`}>{index + 1}</td>
+                      {/* The row's place, in the digits its counts are written in. */}
+                      <td
+                        className={`${CELL} text-gray-400`}
+                        data-testid="user-flow-path-rank"
+                      >
+                        {translator.formatNumber(index + 1)}
+                      </td>
                       <td className={CELL}>
                         <div className="flex flex-wrap items-center gap-1">
                           {path.pages.map(
@@ -465,6 +473,7 @@ const UserFlowTables: FunctionComponent<ComponentProps> = (
                           <span className="text-rose-700">
                             {formatUserFlowShare(
                               path.errorSessions / path.sessions,
+                              translator,
                             )}
                           </span>
                         ) : (

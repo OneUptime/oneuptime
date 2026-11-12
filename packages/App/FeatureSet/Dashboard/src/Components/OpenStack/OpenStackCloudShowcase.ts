@@ -68,10 +68,10 @@ const OPENSTACK_CLOUD_SHOWCASE: ResourceShowcase = {
     name: "openstack-prod",
     subtitle: translationKey("2 regions · 48 hypervisors · 1,204 instances"),
     stats: [
-      { label: translationKey("Services"), value: "212/214" },
-      { label: translationKey("Instances"), value: "1,204" },
-      { label: translationKey("vCPUs allocated"), value: "62%" },
-      { label: translationKey("Memory allocated"), value: "71%" },
+      { label: translationKey("Services"), value: { count: 212, outOf: 214 } },
+      { label: translationKey("Instances"), value: 1204 },
+      { label: translationKey("vCPUs allocated"), value: { percent: 62 } },
+      { label: translationKey("Memory allocated"), value: { percent: 71 } },
     ],
     chart: {
       label: translationKey("vCPUs allocated"),
