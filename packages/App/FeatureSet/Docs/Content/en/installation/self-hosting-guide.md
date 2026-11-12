@@ -125,7 +125,7 @@ To be paged by SMS and phone call, click **Set up SMS and calls** and add your T
 **It worked when** the SMS arrives and your phone rings, or the checklist shows your choice.
 :::
 
-The recommended items each say what to do, and the HTTPS item is done once the step above works.
+The HTTPS item is done once [Turn on HTTPS](#turn-on-https) works, and each recommended item says what to do.
 
 ## Check your installation
 
