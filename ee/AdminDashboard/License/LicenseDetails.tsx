@@ -21,7 +21,6 @@ import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   FIRST_REPORT_WITHIN,
   FIRST_REPORT_WITHIN_HOURS,
-  INSTANCE_USERS,
   INSTANCES,
   LicenseDetailsCopy,
   PER_INSTANCE_COUNTS,
@@ -805,14 +804,13 @@ const LicenseDetails: FunctionComponent<LicenseDetailsProps> = (
                       </p>
                     </div>
                     {/*
-                     * The count bolder than its word, where the reader's
-                     * language puts it ("7 users", "Пользователей: 7").
+                     * The count bolder than its label, where the reader's
+                     * language puts it ("Users: 7", "Пользователей: 7").
                      */}
                     <div className="flex shrink-0 items-baseline justify-end gap-1">
                       {typeof instance.userCount === "number" ? (
                         <TranslatedSentence
-                          template={INSTANCE_USERS}
-                          count={instance.userCount}
+                          template={LicenseDetailsCopy.instanceUsers}
                           slots={{
                             count: (
                               <span className="text-sm font-medium tabular-nums text-gray-900">

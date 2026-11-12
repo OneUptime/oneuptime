@@ -377,7 +377,7 @@ describe("the license details in the reader's language", () => {
       "Oder schreiben Sie direkt an sales@oneuptime.com.",
     );
     expect(drawn).toContain("2 Instanzen");
-    expect(drawn).toContain("7 Benutzer");
+    expect(drawn).toContain("Benutzer: 7");
     expect(drawn).toContain("Noch keine Nutzung gemeldet. Update verfügbar.");
     expect(
       screen.getByRole("button", { name: /Lizenz erweitern/ }),
@@ -456,23 +456,46 @@ describe("the license details in the reader's language", () => {
     );
   });
 
-  test("an instance's users are one sentence, the number drawn bolder", async () => {
-    await drawIn("Dashboard", "ru", breached());
+  /*
+   * A label and its figure, the number drawn bolder: in Russian the Admin
+   * Dashboard's row said "пользователей: 7", lowercase where the line
+   * begins, with the Backups page's mid-sentence count (#7134). Both apps
+   * draw the same line now, capitalised.
+   */
+  test.each(["AdminDashboard", "Dashboard"] as Array<App>)(
+    "%s: an instance's users begin their line in Russian, the number drawn bolder",
+    async (app: App) => {
+      await drawIn(app, "ru", breached());
 
-    const row: HTMLElement = screen
-      .getByText("oneuptime.acme.internal")
-      .closest("li") as HTMLElement;
+      const row: HTMLElement = screen
+        .getByText("oneuptime.acme.internal")
+        .closest("li") as HTMLElement;
+      const text: string = withoutIsolateMarks(row.textContent || "");
 
-    expect(withoutIsolateMarks(row.textContent || "")).toContain(
-      "Пользователей: 7",
-    );
+      expect(text).toContain("Пользователей: 7");
+      expect(text).not.toContain("пользователей: 7");
 
-    const count: HTMLElement | undefined = Array.from(
-      row.querySelectorAll("span.font-medium"),
-    ).find((element: Element): boolean => {
-      return element.textContent === "7";
-    }) as HTMLElement | undefined;
+      const count: HTMLElement | undefined = Array.from(
+        row.querySelectorAll("span.font-medium"),
+      ).find((element: Element): boolean => {
+        return element.textContent === "7";
+      }) as HTMLElement | undefined;
 
-    expect(count).toBeDefined();
-  });
+      expect(count).toBeDefined();
+    },
+  );
+
+  test.each([
+    ["de", "Benutzer: 7", "Benutzer: 1"],
+    ["fa", "کاربران: ۷", "کاربران: ۱"],
+    ["zh-CN", "用户数：7", "用户数：1"],
+  ])(
+    "%s: an instance's users read %s, and alike for one user",
+    async (language: string, seven: string, one: string) => {
+      const drawn: string = await drawIn("AdminDashboard", language, breached());
+
+      expect(drawn).toContain(seven);
+      expect(drawn).toContain(one);
+    },
+  );
 });
