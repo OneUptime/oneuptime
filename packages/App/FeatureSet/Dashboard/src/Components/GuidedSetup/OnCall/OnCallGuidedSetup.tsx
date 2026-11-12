@@ -1761,7 +1761,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
               className={linkClassName}
               dataTestId="on-call-setup-open-policy"
             >
-              {translator.translateText("Open On-Call Policy") || ""}
+              {translator.translateText(ON_CALL_SETUP_COPY.openPolicy) || ""}
             </AppLink>
           </li>
         ) : (

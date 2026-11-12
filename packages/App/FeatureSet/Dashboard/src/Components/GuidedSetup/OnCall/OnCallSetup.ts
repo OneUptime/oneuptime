@@ -154,6 +154,7 @@ export const ON_CALL_SETUP_COPY: {
   nextChat: string;
   nextWorkingHours: string;
   nextReadiness: string;
+  openPolicy: string;
   startOver: string;
 } = {
   pageTitle: translationKey("Page the right person when something breaks"),
@@ -267,6 +268,7 @@ export const ON_CALL_SETUP_COPY: {
     "Page only in working hours for less urgent incidents",
   ),
   nextReadiness: translationKey("See who can be paged"),
+  openPolicy: translationKey("Open the on-call policy"),
   startOver: translationKey("Set up another policy"),
 };
 
