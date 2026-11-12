@@ -61,6 +61,7 @@ import {
   AI_RULE_FIX_FIELD_COPY,
   AI_RULE_FIX_FIELD_KEY,
   AI_RULE_FIX_TEXT,
+  AI_RULE_TEST_IDS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 import {
   INVESTIGATION_RULE_TIMING_FIELD_KEY,
@@ -92,7 +93,6 @@ import Pill, {
 } from "../../../UI/Components/Pill/Pill";
 import { TABLE_SHRINKABLE_ATTRIBUTE } from "../../../UI/Components/Table/TableLayout";
 import { Blue } from "../../../Types/BrandColors";
-import { AI_RULE_TEST_IDS } from "../../../../App/FeatureSet/Dashboard/src/Components/AISettings/AiRuleCopy";
 
 type Values = FormValues<AutoRemediationRule>;
 
