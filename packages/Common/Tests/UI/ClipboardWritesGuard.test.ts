@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#what-never-to-write
 import {
   CLIPBOARD_WRITER_FILE,
   ClipboardWriteFinding,

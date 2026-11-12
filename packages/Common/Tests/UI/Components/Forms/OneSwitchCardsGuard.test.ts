@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#settings-and-danger
 import { describe, expect, test } from "@jest/globals";
 import path from "path";
 import {

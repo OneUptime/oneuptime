@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#a-records-overview
 import {
   CREATE_FROM_RECORD_KINDS,
   CREATE_PAGES,
