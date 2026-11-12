@@ -122,7 +122,7 @@ Två fält löper över toppen av varje sida.
 | Uppe till höger | **Sök** och **Fråga AI**, aviseringsklockan med det som behöver dig nu (aktiva incidenter och larm, jourpolicyerna du har jour i, väntande inbjudningar), **Hjälp**, och din bild, som öppnar menyn för ditt [konto](/docs/introduction/your-account). |
 | Under dem | **Hem** och **Produkter** till vänster, **Användarinställningar** till höger: hur OneUptime når dig i det här projektet. |
 
-**Hjälp** börjar med det som hjälper dig att lära dig: **Snabbstart**, **Så fungerar OneUptime**, **Ordlista** och den här dokumentationen (**Dokumentation**). Under dem finns listan **Keyboard shortcuts** och support via e-post och på Slack. På en smal skärm, som en telefon, utelämnas **Sök**, **Fråga AI** och **Hjälp** för att spara plats; klockan och din bild finns kvar.
+**Hjälp** börjar med det som hjälper dig att lära dig: **Snabbstart**, **Så fungerar OneUptime**, **Ordlista** och den här dokumentationen (**Dokumentation**). Under dem finns listan **Keyboard shortcuts** och support via e-post och på Slack. På en surfplatta eller i ett smalt fönster utelämnas **Fråga AI** för att spara plats: den finns bland åtgärderna i **Sök**. På en telefon flyttar **Sök** och **Hjälp** in i menyknappens lista, högst upp och längst ned; klockan och din bild finns kvar.
 
 Ett ord med en prickad linje under, som **Sonder** i formuläret för en ny monitor, berättar vad det betyder när du pekar på det, tabbar till det eller trycker på det. Dess **Läs mer** öppnar ordet i [Ordlista](/docs/introduction/glossary).
 

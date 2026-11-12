@@ -42172,7 +42172,6 @@
   "Written By": "書き込み元",
   "Changes Around It": "前後の変更",
   "Add Check": "チェックを追加",
-  "Alerts when its value is {{condition}} {{threshold}}.": "値が {{condition}} {{threshold}} のときにアラートします。",
   "Checked whether a table is fresh": "テーブルが新しいか確認しました",
   "Checking whether a table is fresh": "テーブルが新しいか確認しています",
   "Data table": "データテーブル",
@@ -51135,5 +51134,16 @@
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "毎月の {{percentage}}: {{days}} 日間の月で {{budget}} のダウンタイム",
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "AI は {{count}} 個のファイルを読みましたが、もうその内容の一部を持っておらず、AI のバージョンはファイル全体を置き換えます: {{files}}。",
   "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "AI はこのファイルを読みましたが、もうその内容の一部を持っておらず、AI のバージョンはファイル全体を置き換えます: {{files}}。",
-  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI はこのファイルを読みましたが、もうその内容の一部を持っておらず、AI のバージョンはファイル全体を置き換えます: {{files}}。"
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "AI はこのファイルを読みましたが、もうその内容の一部を持っておらず、AI のバージョンはファイル全体を置き換えます: {{files}}。",
+  "Above {{threshold}}": "{{threshold}} を上回る",
+  "Alerts when its value is above {{threshold}}.": "値が {{threshold}} を上回るときにアラートします。",
+  "Alerts when its value is below {{threshold}}.": "値が {{threshold}} を下回るときにアラートします。",
+  "Alerts when its value is unusually high.": "値が異常に高いときにアラートします。",
+  "Alerts when its value is unusually low.": "値が異常に低いときにアラートします。",
+  "Below {{threshold}}": "{{threshold}} を下回る",
+  "The status page does not show this resource's status.": "ステータスページにはこのリソースのステータスが表示されていません。",
+  "The status page shows this resource as not monitored.": "ステータスページではこのリソースは未監視と表示されています。",
+  "Under maintenance: {{events}}": "メンテナンス中: {{events}}",
+  "Unusually High": "異常に高い",
+  "Unusually Low": "異常に低い"
 }
