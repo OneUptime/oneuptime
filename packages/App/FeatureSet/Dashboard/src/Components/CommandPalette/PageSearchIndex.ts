@@ -4218,9 +4218,17 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
           },
           {
             page: PageMap.USER_SETTINGS_ON_CALL_RULES,
-            title: "On-Call Rules",
+            title: "How to Reach Me",
             icon: IconProp.BellRinging,
-            keywords: ["how i get paged", "my notification rules"],
+            // Its old name finds it still (#6817).
+            keywords: [
+              "on-call rules",
+              "how i get paged",
+              "my notification rules",
+              "paging ladder",
+              "escalation order",
+              "call after minutes",
+            ],
           },
           {
             page: PageMap.USER_SETTINGS_NOTIFICATION_SETTINGS,

@@ -2,6 +2,7 @@ import { getAllEnvVars, IsBillingEnabled } from "../EnvironmentConfig";
 import BaseService from "./BaseService";
 import LlmProviderService from "./LlmProviderService";
 import LlmLogService from "./LlmLogService";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import ProjectService, { CurrentPlan } from "./ProjectService";
 import Project from "../../Models/DatabaseModels/Project";
 import AIBillingService from "./AIBillingService";
@@ -581,7 +582,7 @@ export class Service extends BaseService {
   public async assertProjectAIEnabled(projectId: ObjectID): Promise<void> {
     const project: Project | null = await ProjectService.findOneById({
       id: projectId,
-      select: { enableAi: true },
+      select: { enableAi: true, isSampleProject: true },
       props: { isRoot: true },
     });
 
@@ -607,6 +608,15 @@ export class Service extends BaseService {
      */
     if (project.enableAi === false) {
       throw new BadDataException(AI_DISABLED_MESSAGE);
+    }
+
+    /*
+     * A sample project (issue #6808) never uses OneUptime AI: a call costs
+     * money, and nothing in a sample may. Read on the same row, by every
+     * caller of this verdict - the backstop in executeWithLogging included.
+     */
+    if (project.isSampleProject === true) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.ai);
     }
   }
 
@@ -1201,6 +1211,8 @@ export class Service extends BaseService {
       id: request.projectId,
       select: {
         enableAi: true,
+        // A sample project uses no AI (assertProjectAIEnabledOnRow).
+        isSampleProject: true,
         aiCurrentBalanceInUSDCents: true,
         /*
          * Auto Recharge, which refills used-up credits before the call, and

@@ -77,6 +77,7 @@ export const PRODUCT_ONBOARDINGS: Record<
     name: translationKey("Monitors"),
     showcase: MONITORS_SHOWCASE,
     docsRoute: docs("monitor/create-monitor"),
+    guideRoute: docs("guides/website-down"),
   },
   [ProductKey.Incidents]: {
     page: PageMap.INCIDENTS,

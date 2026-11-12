@@ -92,7 +92,7 @@ Het overzicht boven aan de pagina **Escalatieregels** toont de hele ladder: wann
 
 ### Hoe iedere persoon wordt bereikt
 
-Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Bereikbaarheidsregels**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Bereikbaarheidsregels**. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
+Iedere persoon die een niveau oproept, wordt bereikt zoals diens eigen bereikbaarheidsregels voorschrijven: **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**, met een tabblad voor incidenten, incidentepisodes, waarschuwingen en waarschuwingsepisodes, en per ernst een kaart die laat zien welke meldingsmethode na hoeveel tijd wordt geprobeerd. Een projectbeheerder kan de regels van een lid bekijken en wijzigen onder **Gebruikers** > het lid > **Hoe ik bereikbaar ben**. Zie [Persoonlijke bereikbaarheidsregels](/docs/notifications/on-call-rules).
 
 ```mermaid title="Wie een niveau oproept en hoe iedere persoon wordt bereikt"
 flowchart TB

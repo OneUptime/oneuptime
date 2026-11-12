@@ -7,10 +7,10 @@ import { MigrationInterface, QueryRunner } from "typeorm";
  * stays off everywhere until OneUptime Cloud's configuration turns it on.
  * A column with a constant default is added without rewriting the table.
  */
-export class AddDashboardRecordingSwitches1809123200000
+export class AddDashboardRecordingSwitches1809123600000
   implements MigrationInterface
 {
-  public name = "AddDashboardRecordingSwitches1809123200000";
+  public name = "AddDashboardRecordingSwitches1809123600000";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(

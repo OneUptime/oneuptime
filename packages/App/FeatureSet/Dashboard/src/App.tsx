@@ -381,6 +381,17 @@ const App: () => JSX.Element = () => {
         ProjectUtil.setCurrentProject(selectedProject);
       }
 
+      /*
+       * A sample project (issue #6808) is never billed and has no payment
+       * customer to ask about cards: nothing to count, and nothing to pay.
+       */
+      if (selectedProject?.isSampleProject) {
+        // Undefined: the header asks for no card (Header).
+        setPaymentMethodsCount(undefined);
+        setHasPaymentMethod(true);
+        return;
+      }
+
       if (selectedProject && selectedProject._id && BILLING_ENABLED) {
         const paymentMethodsCount: number = await ModelAPI.count({
           modelType: BillingPaymentMethod,
@@ -610,6 +621,9 @@ const App: () => JSX.Element = () => {
       showProjectModal={showProjectModal}
       onProjectModalClose={() => {
         setShowProjectModal(false);
+      }}
+      onCreateProject={() => {
+        setShowProjectModal(true);
       }}
       selectedProject={selectedProject}
       isSelectedProjectBlocked={BlockedProject.isSelectedProjectBlocked({

@@ -5,7 +5,10 @@ import WorkspaceType, {
 import DatabaseService from "./DatabaseService";
 import WorkspaceUserAuthTokenService from "./WorkspaceUserAuthTokenService";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnDelete, OnFind } from "../Types/Database/Hooks";
+import { OnCreate, OnDelete, OnFind } from "../Types/Database/Hooks";
+import CreateBy from "../Types/Database/CreateBy";
+import ProjectService from "./ProjectService";
+import { SAMPLE_PROJECT_REFUSALS } from "../../Types/SampleProject/SampleProject";
 import Model, {
   LegacyServerOnlyMiscDataKeys,
   MattermostConnectionTeam,
@@ -28,6 +31,26 @@ import logger from "../Utils/Logger";
 export class Service extends DatabaseService<Model> {
   public constructor() {
     super(Model);
+  }
+
+  /*
+   * A sample project (issue #6808) is never connected to Slack, Microsoft
+   * Teams or Mattermost: a connection posts as the project's bot - a
+   * welcome, every rule's message, every direct message - and nothing ever
+   * leaves a sample. Refused here, where every connection is first saved
+   * (refreshAuthToken creates through this), with what to do instead.
+   */
+  protected override async onBeforeCreate(
+    createBy: CreateBy<Model>,
+  ): Promise<OnCreate<Model>> {
+    const projectId: ObjectID | undefined =
+      createBy.data.projectId || createBy.props.tenantId;
+
+    if (projectId && (await ProjectService.isSampleProject(projectId))) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.workspace);
+    }
+
+    return { createBy, carryForward: null };
   }
 
   /*

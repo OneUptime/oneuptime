@@ -59,6 +59,8 @@ Keep the selected **Probes** and the **Monitoring Interval** of **Every 5 Minute
 
 To try the check before you save, click **Test Monitor** on the second step. Every other monitor type is described in [Creating a Monitor](/docs/monitor/create-monitor).
 
+To check an API as well, choose who is told and send a test page that proves the message reaches you, follow [Know When Your Website or API Is Down](/docs/guides/website-down).
+
 ## Get paged when it goes down
 
 As it is, an incident with no owners is emailed to the project's owners, and that includes you. To be paged until someone responds, create an on-call policy: the first one in a project pages for every new incident and alert.

@@ -61,6 +61,14 @@ import { RESOURCE_REDACTED_MARKER } from "../Common/Utils/AiRemediation/Resource
  *     certificate) or when PVE_CA_FILE names the cluster's CA.
  *   - A dedicated connection per call: never the proxy the agent uses to
  *     reach OneUptime, never a redirect followed.
+ *   - Every node: when PVE_HOST's API cannot be reached (the connection is
+ *     refused, the name does not resolve, or no TLS handshake completes
+ *     within PVE_CONNECT_ATTEMPT_TIMEOUT_MS), the call goes to the next node
+ *     of PVE_NODES — the list the collector reads every node from — and the
+ *     node that answered is tried first from then on. Only a call that
+ *     certainly never reached the API moves on: one that may have (a timeout
+ *     or a dropped connection after it was sent) is never repeated on
+ *     another node, so a write never lands twice.
  *   - The answer is read up to MAX_PVE_RESPONSE_BYTES; its data member (the
  *     API wraps every answer as {"data": ...}) is printed per
  *     --output-format (json-pretty by default), redacted with the policy
@@ -81,6 +89,12 @@ import { RESOURCE_REDACTED_MARKER } from "../Common/Utils/AiRemediation/Resource
 // ---- Settings (the collector's .env, plus the AI agent's own token) --------
 
 export const PVE_HOST_ENV: string = "PVE_HOST";
+/*
+ * Every node's own address, comma-separated in square brackets, as the
+ * collector reads it ([192.168.1.10,192.168.1.11]): the nodes to call, in
+ * order, when PVE_HOST's API cannot be reached.
+ */
+export const PVE_NODES_ENV: string = "PVE_NODES";
 export const PVE_PORT_ENV: string = "PVE_PORT";
 export const PVE_VERIFY_SSL_ENV: string = "PVE_VERIFY_SSL";
 export const PVE_CA_FILE_ENV: string = "PVE_CA_FILE";
@@ -131,6 +145,15 @@ export const MAX_TASK_LOG_LINES: number = 50;
  */
 export const POSTURE_REQUEST_TIMEOUT_MS: number = 6_000;
 
+/*
+ * How long a node gets to accept the connection and complete the TLS
+ * handshake while other nodes are left to try. A node that is down seldom
+ * refuses — its address simply stops answering — so without this the first
+ * try would spend the whole budget. Nothing is sent before the handshake,
+ * so moving on to the next node is always safe.
+ */
+export const PVE_CONNECT_ATTEMPT_TIMEOUT_MS: number = 5_000;
+
 // The longest text from the API (a status line, a parameter error) quoted.
 const MAX_API_MESSAGE_CHARS: number = 500;
 
@@ -162,18 +185,37 @@ const SCHEME_PATTERN: RegExp = /^([A-Za-z][A-Za-z0-9+.-]*):\/\//;
 const UPID_PATTERN: RegExp =
   /^UPID:([A-Za-z0-9][A-Za-z0-9.-]{0,62}):[0-9A-Fa-f]{8}:[0-9A-Fa-f]{8,9}:[0-9A-Fa-f]{8}:[A-Za-z0-9_-]{1,64}:[A-Za-z0-9_.@!-]{0,128}:[A-Za-z0-9_.@!-]{1,128}:$/;
 
+// What the transport says when a node's connection timed out on its own.
+const CONNECT_TIMEOUT_MESSAGE_PATTERN: RegExp = /^no connection within \d+ms$/;
+
 // Values of PVE_VERIFY_SSL that turn verification off.
 const VERIFY_OFF_VALUES: ReadonlyArray<string> = ["false", "0", "no", "off"];
 
 // Addresses that, inside the agent's container, are the container itself.
 const LOOPBACK_HOSTS: ReadonlyArray<string> = ["localhost", "::1"];
 
-export interface ProxmoxConnection {
-  // What to connect to: a host name or an IP address (IPv6 without brackets).
+// One node's API.
+export interface ProxmoxEndpoint {
+  // A host name or an IP address (IPv6 without brackets).
   host: string;
   port: number;
   // "https://host:port", for messages (IPv6 in brackets).
   endpoint: string;
+}
+
+export interface ProxmoxConnection {
+  // What to connect to first (PVE_HOST): a host name or an IP address (IPv6 without brackets).
+  host: string;
+  port: number;
+  // "https://host:port", for messages (IPv6 in brackets).
+  endpoint: string;
+  /*
+   * The other nodes of PVE_NODES, in its order, without PVE_HOST: called
+   * when PVE_HOST's API cannot be reached. Empty for a single node.
+   */
+  fallbacks: Array<ProxmoxEndpoint>;
+  // Entries of PVE_NODES that are not a node's address, left out.
+  ignoredNodes: Array<string>;
   tokenId: string;
   // Sent in the Authorization header only.
   tokenSecret: string;
@@ -291,6 +333,65 @@ export function parsePveHost(
 }
 
 /*
+ * PVE_NODES as the collector reads it — every node's own address,
+ * comma-separated in square brackets ([192.168.1.10,192.168.1.11]) — as the
+ * nodes to call, in its order. An entry without a port takes defaultPort
+ * (PVE_HOST's). The brackets are optional and quotes around an entry are
+ * dropped, as the collector's YAML reading drops them. An entry that is not
+ * a host name or address is left out and listed in ignored (one with an "@"
+ * by position only: it may carry a password).
+ */
+export function parsePveNodes(
+  raw: string,
+  defaultPort: number,
+): { endpoints: Array<ProxmoxEndpoint>; ignored: Array<string> } {
+  let value: string = raw.trim();
+
+  if (value.startsWith("[") && value.endsWith("]")) {
+    value = value.slice(1, -1);
+  }
+
+  const endpoints: Array<ProxmoxEndpoint> = [];
+  const ignored: Array<string> = [];
+  const seen: Set<string> = new Set<string>();
+
+  value.split(",").forEach((part: string, index: number): void => {
+    const entry: string = part
+      .trim()
+      .replace(/^["']+|["']+$/g, "")
+      .trim();
+
+    if (!entry) {
+      return;
+    }
+
+    const parsed: { host: string; port: number | null } | string =
+      parsePveHost(entry);
+
+    if (typeof parsed === "string") {
+      ignored.push(entry.includes("@") ? `entry ${index + 1}` : entry);
+      return;
+    }
+
+    const port: number = parsed.port ?? defaultPort;
+    const key: string = `${parsed.host.toLowerCase()}:${port}`;
+
+    if (seen.has(key)) {
+      return;
+    }
+
+    seen.add(key);
+    endpoints.push({
+      host: parsed.host,
+      port,
+      endpoint: formatEndpoint(parsed.host, port),
+    });
+  });
+
+  return { endpoints, ignored };
+}
+
+/*
  * Everything the agent needs to reach the API, from its own environment (the
  * executor's options.env — never process.env directly), or the first
  * problem in words an operator can act on.
@@ -401,11 +502,23 @@ export function resolveProxmoxConnection(
       ? true
       : verifySetting !== "" && !VERIFY_OFF_VALUES.includes(verifySetting);
 
+  // The other nodes, without PVE_HOST itself (the compose default lists it).
+  const nodes: { endpoints: Array<ProxmoxEndpoint>; ignored: Array<string> } =
+    parsePveNodes(readTrimmed(env, PVE_NODES_ENV), port);
+  const primaryKey: string = `${parsedHost.host.toLowerCase()}:${port}`;
+  const fallbacks: Array<ProxmoxEndpoint> = nodes.endpoints.filter(
+    (node: ProxmoxEndpoint): boolean => {
+      return `${node.host.toLowerCase()}:${node.port}` !== primaryKey;
+    },
+  );
+
   return {
     connection: {
       host: parsedHost.host,
       port,
       endpoint: formatEndpoint(parsedHost.host, port),
+      fallbacks,
+      ignoredNodes: nodes.ignored,
       tokenId,
       tokenSecret,
       tokenSource: idSource,
@@ -434,6 +547,12 @@ export interface ProxmoxHttpRequest {
   // PEM, trusted instead of the system CAs when verifying.
   ca: string | null;
   timeoutInMs: number;
+  /*
+   * Set while other nodes are left to try: the connection and the TLS
+   * handshake must complete within this, or the call fails as
+   * connect-timeout (never sent) instead of waiting out timeoutInMs.
+   */
+  connectTimeoutInMs?: number | undefined;
   maxResponseBytes: number;
 }
 
@@ -495,6 +614,51 @@ export type ProxmoxTransport = (
   request: ProxmoxHttpRequest,
 ) => Promise<ProxmoxHttpResponse>;
 
+// A node whose API could not be reached on the way to the one that answered.
+export interface ProxmoxUnreachableNode {
+  endpoint: ProxmoxEndpoint;
+  error: ProxmoxTransportError;
+}
+
+// An answer, and which node gave it.
+export interface ProxmoxSent {
+  response: ProxmoxHttpResponse;
+  answeredBy: ProxmoxEndpoint;
+  // The nodes tried before it, which could not be reached.
+  unreachable: Array<ProxmoxUnreachableNode>;
+}
+
+/*
+ * A call that got no answer: failure is what the last node tried (endpoint)
+ * failed with, unreachable the nodes tried before it.
+ */
+export class ProxmoxSendError extends Error {
+  public readonly failure: unknown;
+  public readonly endpoint: ProxmoxEndpoint;
+  public readonly unreachable: Array<ProxmoxUnreachableNode>;
+
+  public constructor(data: {
+    failure: unknown;
+    endpoint: ProxmoxEndpoint;
+    unreachable: Array<ProxmoxUnreachableNode>;
+  }) {
+    super(errorText(data.failure));
+    this.name = "ProxmoxSendError";
+    this.failure = data.failure;
+    this.endpoint = data.endpoint;
+    this.unreachable = data.unreachable;
+  }
+}
+
+// PVE_HOST's node, as an endpoint.
+function primaryEndpoint(connection: ProxmoxConnection): ProxmoxEndpoint {
+  return {
+    host: connection.host,
+    port: connection.port,
+    endpoint: connection.endpoint,
+  };
+}
+
 // Errors Node reports when the certificate or the TLS handshake is the problem.
 const TLS_ERROR_CODES: ReadonlyArray<string> = [
   "DEPTH_ZERO_SELF_SIGNED_CERT",
@@ -539,8 +703,9 @@ function isTlsErrorCode(code: string | null): boolean {
  * an agent of its own (never the global agent, which the agent's proxy
  * support may have pointed at the proxy it uses to reach OneUptime), no
  * redirect followed (https.request never follows one), the whole call —
- * connect, TLS, request, answer — bounded by timeoutInMs, the answer read up
- * to maxResponseBytes.
+ * connect, TLS, request, answer — bounded by timeoutInMs (and the connection
+ * and handshake by connectTimeoutInMs, when set), the answer read up to
+ * maxResponseBytes.
  */
 export function httpsTransport(
   request: ProxmoxHttpRequest,
@@ -558,6 +723,8 @@ export function httpsTransport(
       // The TLS handshake completed, so the request is (being) sent.
       let secured: boolean = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
+      // Bounds the connection and handshake alone (connectTimeoutInMs).
+      let connectTimer: ReturnType<typeof setTimeout> | null = null;
       let clientRequest: http.ClientRequest | null = null;
 
       const settle: (outcome: () => void) => void = (
@@ -571,6 +738,10 @@ export function httpsTransport(
 
         if (timer) {
           clearTimeout(timer);
+        }
+
+        if (connectTimer) {
+          clearTimeout(connectTimer);
         }
 
         outcome();
@@ -684,6 +855,11 @@ export function httpsTransport(
       clientRequest.on("socket", (socket: net.Socket): void => {
         socket.once("secureConnect", (): void => {
           secured = true;
+
+          if (connectTimer) {
+            clearTimeout(connectTimer);
+            connectTimer = null;
+          }
         });
       });
 
@@ -707,6 +883,25 @@ export function httpsTransport(
         },
         Math.max(1, Math.floor(request.timeoutInMs)),
       );
+
+      const connectTimeoutInMs: number | undefined = request.connectTimeoutInMs;
+
+      if (
+        connectTimeoutInMs !== undefined &&
+        connectTimeoutInMs < request.timeoutInMs
+      ) {
+        connectTimer = setTimeout(
+          (): void => {
+            if (!secured) {
+              fail(
+                "connect-timeout",
+                new Error(`no connection within ${connectTimeoutInMs}ms`),
+              );
+            }
+          },
+          Math.max(1, Math.floor(connectTimeoutInMs)),
+        );
+      }
 
       clientRequest.end(request.body === null ? undefined : request.body);
     },
@@ -1066,6 +1261,44 @@ function isLoopbackHost(host: string): boolean {
 }
 
 /*
+ * Why a node's API could not be reached (a connect or connect-timeout
+ * failure), as the clause after its address. budgetMs is the time the call
+ * had, when it went to that one node alone; null for a node of a list,
+ * which the error's own words time.
+ */
+function describeConnectFailure(
+  err: ProxmoxTransportError,
+  host: string,
+  budgetMs: number | null,
+): string {
+  const code: string = err.code ? ` (${err.code})` : "";
+
+  if (err.kind === "connect-timeout") {
+    if (budgetMs !== null) {
+      return `no connection within ${budgetMs}ms`;
+    }
+
+    return CONNECT_TIMEOUT_MESSAGE_PATTERN.test(err.message)
+      ? err.message
+      : "no connection in time";
+  }
+
+  if (err.code === "ECONNREFUSED") {
+    return "nothing is listening there (connection refused)";
+  }
+
+  if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN") {
+    return `the name "${host}" does not resolve${code}`;
+  }
+
+  if (err.code === "EHOSTUNREACH" || err.code === "ENETUNREACH") {
+    return `there is no route to it${code}`;
+  }
+
+  return `${shorten(err.message)}${code}`;
+}
+
+/*
  * The privilege a call typically needs, for a 401 or 403: what to grant the
  * token. Reads are covered by the PVEAuditor role on / except node logs and
  * the guest agent; writes need a role of their own.
@@ -1172,6 +1405,8 @@ export function parseProxmoxEnvelope(body: string): ProxmoxEnvelope | null {
 export interface ProxmoxExecutorInternals {
   transport?: ProxmoxTransport | undefined;
   pollIntervalMs?: number | undefined;
+  // PVE_CONNECT_ATTEMPT_TIMEOUT_MS unless a test shortens it.
+  connectAttemptTimeoutMs?: number | undefined;
   // Waits between task polls (a fake clock advances here).
   sleep?: ((ms: number) => Promise<void>) | undefined;
 }
@@ -1203,11 +1438,18 @@ function realSleep(ms: number): Promise<void> {
 export default class ProxmoxExecutor implements ResourceExecutor {
   private readonly transport: ProxmoxTransport;
   private readonly pollIntervalMs: number;
+  private readonly connectAttemptTimeoutMs: number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly secretNames: Map<string, boolean> = new Map<
     string,
     boolean
   >();
+  /*
+   * The endpoint of the node that answered last: tried first by the next
+   * call, so a node that went down costs one connect timeout, not one per
+   * call. Null until a call is answered.
+   */
+  private answeringEndpoint: string | null = null;
 
   public constructor(
     private readonly options: ExecutorOptions,
@@ -1216,6 +1458,8 @@ export default class ProxmoxExecutor implements ResourceExecutor {
     this.transport = internals.transport || httpsTransport;
     this.pollIntervalMs =
       internals.pollIntervalMs ?? DEFAULT_TASK_POLL_INTERVAL_MS;
+    this.connectAttemptTimeoutMs =
+      internals.connectAttemptTimeoutMs ?? PVE_CONNECT_ATTEMPT_TIMEOUT_MS;
     this.sleep = internals.sleep || realSleep;
   }
 
@@ -1349,10 +1593,10 @@ export default class ProxmoxExecutor implements ResourceExecutor {
       };
     }
 
-    let response: ProxmoxHttpResponse;
+    let sent: ProxmoxSent;
 
     try {
-      response = await this.send({
+      sent = await this.sendVia({
         connection: call.connection,
         ca,
         request: call.request,
@@ -1362,6 +1606,9 @@ export default class ProxmoxExecutor implements ResourceExecutor {
       return this.describeTransportFailure(call, err);
     }
 
+    const response: ProxmoxHttpResponse = sent.response;
+    // The node that answered: PVE_HOST's, or the node of PVE_NODES it fell back to.
+    const endpoint: string = sent.answeredBy.endpoint;
     const status: number = response.statusCode;
 
     if (status >= 300 && status < 400) {
@@ -1369,7 +1616,7 @@ export default class ProxmoxExecutor implements ResourceExecutor {
       return {
         success: false,
         output: "",
-        errorMessage: `The server at ${call.connection.endpoint} answered ${call.request.method} ${call.request.path} with a redirect (HTTP ${status}${
+        errorMessage: `The server at ${endpoint} answered ${call.request.method} ${call.request.path} with a redirect (HTTP ${status}${
           response.location
             ? ` to ${this.redactText(shorten(response.location))}`
             : ""
@@ -1378,7 +1625,7 @@ export default class ProxmoxExecutor implements ResourceExecutor {
     }
 
     if (status < 200 || status >= 300) {
-      return this.describeHttpFailure(call, response);
+      return this.describeHttpFailure(call, response, sent.answeredBy);
     }
 
     if (response.truncated) {
@@ -1402,7 +1649,7 @@ export default class ProxmoxExecutor implements ResourceExecutor {
         stderr: `HTTP ${status}: the answer is not the Proxmox VE API's JSON${
           response.contentType ? ` (${shorten(response.contentType)})` : ""
         }`,
-        errorMessage: `Exit code 1: the server at ${call.connection.endpoint} answered, but not as the Proxmox VE API does (its answer is not JSON). Check that ${PVE_HOST_ENV} and ${PVE_PORT_ENV} point at a Proxmox VE node's API (port ${DEFAULT_PVE_PORT} by default).`,
+        errorMessage: `Exit code 1: the server at ${endpoint} answered, but not as the Proxmox VE API does (its answer is not JSON). Check that ${PVE_HOST_ENV} and ${PVE_PORT_ENV} point at a Proxmox VE node's API (port ${DEFAULT_PVE_PORT} by default).`,
       });
     }
 
@@ -1453,13 +1700,55 @@ export default class ProxmoxExecutor implements ResourceExecutor {
     });
   }
 
-  // The request exactly as it goes out, then the transport.
-  private send(data: {
+  // The answer alone, for the reads that need no word on which node gave it.
+  private async send(data: {
     connection: ProxmoxConnection;
     ca: string | null;
     request: ProxmoxApiRequest;
     timeoutInMs: number;
   }): Promise<ProxmoxHttpResponse> {
+    return (await this.sendVia(data)).response;
+  }
+
+  /*
+   * The nodes to try, in order: the one that answered last, then PVE_HOST's,
+   * then the others of PVE_NODES in its order.
+   */
+  private endpointsFor(connection: ProxmoxConnection): Array<ProxmoxEndpoint> {
+    const all: Array<ProxmoxEndpoint> = [
+      primaryEndpoint(connection),
+      ...connection.fallbacks,
+    ];
+    const answering: ProxmoxEndpoint | undefined = all.find(
+      (candidate: ProxmoxEndpoint): boolean => {
+        return candidate.endpoint === this.answeringEndpoint;
+      },
+    );
+
+    return answering
+      ? [
+          answering,
+          ...all.filter((candidate: ProxmoxEndpoint): boolean => {
+            return candidate !== answering;
+          }),
+        ]
+      : all;
+  }
+
+  /*
+   * The request exactly as it goes out, to the first node whose API can be
+   * reached (endpointsFor), within one budget for every try. A node moves
+   * the call on only when the call certainly never reached it (connect,
+   * connect-timeout): a TLS failure is a setting to fix, and a call that may
+   * have been sent is never repeated on another node. Rejects with a
+   * ProxmoxSendError.
+   */
+  private async sendVia(data: {
+    connection: ProxmoxConnection;
+    ca: string | null;
+    request: ProxmoxApiRequest;
+    timeoutInMs: number;
+  }): Promise<ProxmoxSent> {
     const body: string | null =
       data.request.method === "POST"
         ? encodeProxmoxParams(data.request.params)
@@ -1476,23 +1765,103 @@ export default class ProxmoxExecutor implements ResourceExecutor {
     }
 
     const path: string = buildProxmoxRequestPath(data.request);
+    const endpoints: Array<ProxmoxEndpoint> = this.endpointsFor(
+      data.connection,
+    );
+    const budgetMs: number = Math.max(1, Math.floor(data.timeoutInMs));
+    const startedAtMs: number = this.nowMs();
+    const unreachable: Array<ProxmoxUnreachableNode> = [];
 
-    this.options.logger.debug("Calling the Proxmox VE API", {
-      method: data.request.method,
-      path,
-    });
+    for (let index: number = 0; index < endpoints.length; index++) {
+      const target: ProxmoxEndpoint = endpoints[index]!;
+      const isLast: boolean = index === endpoints.length - 1;
+      const remainingMs: number = budgetMs - (this.nowMs() - startedAtMs);
+      const previous: ProxmoxUnreachableNode | undefined =
+        unreachable[unreachable.length - 1];
 
-    return this.transport({
-      method: data.request.method,
-      hostname: data.connection.host,
-      port: data.connection.port,
-      path,
-      headers,
-      body,
-      verifyTls: data.connection.verifyTls,
-      ca: data.connection.verifyTls ? data.ca : null,
-      timeoutInMs: Math.max(1, Math.floor(data.timeoutInMs)),
-      maxResponseBytes: MAX_PVE_RESPONSE_BYTES,
+      if (remainingMs < 1 && previous) {
+        // The budget went on the nodes before: report the last of them.
+        throw new ProxmoxSendError({
+          failure: previous.error,
+          endpoint: previous.endpoint,
+          unreachable: unreachable.slice(0, -1),
+        });
+      }
+
+      const timeoutInMs: number = Math.max(1, Math.floor(remainingMs));
+
+      this.options.logger.debug("Calling the Proxmox VE API", {
+        method: data.request.method,
+        path,
+        endpoint: target.endpoint,
+      });
+
+      const httpRequest: ProxmoxHttpRequest = {
+        method: data.request.method,
+        hostname: target.host,
+        port: target.port,
+        path,
+        headers,
+        body,
+        verifyTls: data.connection.verifyTls,
+        ca: data.connection.verifyTls ? data.ca : null,
+        timeoutInMs,
+        maxResponseBytes: MAX_PVE_RESPONSE_BYTES,
+      };
+
+      if (!isLast) {
+        httpRequest.connectTimeoutInMs = Math.min(
+          this.connectAttemptTimeoutMs,
+          timeoutInMs,
+        );
+      }
+
+      try {
+        const response: ProxmoxHttpResponse = await this.transport(httpRequest);
+
+        if (unreachable.length > 0) {
+          this.options.logger.warn(
+            "The Proxmox VE API of a node could not be reached: calling another node of PVE_NODES",
+            {
+              answeredBy: target.endpoint,
+              unreachable: unreachable.map(
+                (node: ProxmoxUnreachableNode): string => {
+                  return node.endpoint.endpoint;
+                },
+              ),
+            },
+          );
+        }
+
+        this.answeringEndpoint = target.endpoint;
+
+        return { response, answeredBy: target, unreachable };
+      } catch (err: unknown) {
+        const neverSent: boolean =
+          err instanceof ProxmoxTransportError &&
+          (err.kind === "connect" || err.kind === "connect-timeout");
+
+        if (neverSent && !isLast) {
+          unreachable.push({
+            endpoint: target,
+            error: err as ProxmoxTransportError,
+          });
+          continue;
+        }
+
+        throw new ProxmoxSendError({
+          failure: err,
+          endpoint: target,
+          unreachable,
+        });
+      }
+    }
+
+    // Not reached: the loop answers or throws on its last node.
+    throw new ProxmoxSendError({
+      failure: new Error("no Proxmox VE node to call"),
+      endpoint: primaryEndpoint(data.connection),
+      unreachable,
     });
   }
 
@@ -1517,9 +1886,18 @@ export default class ProxmoxExecutor implements ResourceExecutor {
   // Why the call got no answer, in words an operator can act on.
   private describeTransportFailure(
     call: ProxmoxCall,
-    err: unknown,
+    sendError: unknown,
   ): ExecResult {
-    const endpoint: string = call.connection.endpoint;
+    // The node tried last, what it failed with, and the nodes tried before it.
+    const target: ProxmoxEndpoint =
+      sendError instanceof ProxmoxSendError
+        ? sendError.endpoint
+        : primaryEndpoint(call.connection);
+    const err: unknown =
+      sendError instanceof ProxmoxSendError ? sendError.failure : sendError;
+    const unreachable: Array<ProxmoxUnreachableNode> =
+      sendError instanceof ProxmoxSendError ? sendError.unreachable : [];
+    const endpoint: string = target.endpoint;
     const what: string = `${call.request.method} ${call.request.path}`;
     const mayHaveLanded: string =
       call.request.method === "POST"
@@ -1558,19 +1936,30 @@ export default class ProxmoxExecutor implements ResourceExecutor {
     }
 
     if (err.kind === "connect" || err.kind === "connect-timeout") {
-      let detail: string;
+      if (unreachable.length > 0) {
+        // Every node was tried, and none could be reached.
+        const nodes: string = [...unreachable, { endpoint: target, error: err }]
+          .map((node: ProxmoxUnreachableNode): string => {
+            return `${node.endpoint.endpoint}: ${describeConnectFailure(
+              node.error,
+              node.endpoint.host,
+              null,
+            )}`;
+          })
+          .join("; ");
 
-      if (err.kind === "connect-timeout") {
-        detail = `no connection within ${call.timeoutInMs}ms`;
-      } else if (err.code === "ECONNREFUSED") {
-        detail = "nothing is listening there (connection refused)";
-      } else if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN") {
-        detail = `the name "${call.connection.host}" does not resolve${code}`;
-      } else if (err.code === "EHOSTUNREACH" || err.code === "ENETUNREACH") {
-        detail = `there is no route to it${code}`;
-      } else {
-        detail = `${shorten(err.message)}${code}`;
+        return {
+          success: false,
+          output: "",
+          errorMessage: `Could not connect to the Proxmox VE API of any node. ${nodes}. Check ${PVE_HOST_ENV} and ${PVE_NODES_ENV} (every node's own address) and ${PVE_PORT_ENV} (${DEFAULT_PVE_PORT} by default), and that the agent's network reaches them.${loopbackHint}`,
+        };
       }
+
+      const detail: string = describeConnectFailure(
+        err,
+        target.host,
+        call.timeoutInMs,
+      );
 
       return {
         success: false,
@@ -1596,6 +1985,8 @@ export default class ProxmoxExecutor implements ResourceExecutor {
   private describeHttpFailure(
     call: ProxmoxCall,
     response: ProxmoxHttpResponse,
+    // The node that answered (PVE_HOST's unless the call fell back).
+    answeredBy: ProxmoxEndpoint = primaryEndpoint(call.connection),
   ): ExecResult {
     const status: number = response.statusCode;
     const envelope: ProxmoxEnvelope | null = response.truncated
@@ -1626,7 +2017,7 @@ export default class ProxmoxExecutor implements ResourceExecutor {
     } else if (status === 404 || status === 501) {
       advice = ` This Proxmox VE version may not have ${call.request.path}, or the node, guest or task it names does not exist.`;
     } else if (status === 595 || status === 596) {
-      advice = ` The node the agent talks to (${connection.host}) could not reach the node this call is for: that node may be offline or cut off from the cluster network.`;
+      advice = ` The node the agent talks to (${answeredBy.host}) could not reach the node this call is for: that node may be offline or cut off from the cluster network.`;
     }
 
     const stderr: string = `HTTP ${status}${said ? ` ${said}` : ""}`;
@@ -1969,6 +2360,21 @@ export default class ProxmoxExecutor implements ResourceExecutor {
       agentTokenConfigured: connection.isAgentToken,
       tlsVerified: connection.verifyTls,
     };
+
+    // With other nodes to call: PVE_HOST's endpoint, and theirs, in order.
+    if (connection.fallbacks.length > 0) {
+      details["configuredApiEndpoint"] = connection.endpoint;
+      details["failoverApiEndpoints"] = connection.fallbacks
+        .map((node: ProxmoxEndpoint): string => {
+          return node.endpoint;
+        })
+        .join(", ");
+    }
+
+    if (connection.ignoredNodes.length > 0) {
+      details["ignoredNodes"] = connection.ignoredNodes.join(", ");
+    }
+
     const unreachable: (reason: string) => ResourcePostureProbe = (
       reason: string,
     ): ResourcePostureProbe => {
@@ -2002,31 +2408,65 @@ export default class ProxmoxExecutor implements ResourceExecutor {
 
     const versionCall: ProxmoxCall = call("/version");
     let version: ProxmoxHttpResponse;
+    let answeredBy: ProxmoxEndpoint;
 
     try {
-      version = await this.send({
+      const sent: ProxmoxSent = await this.sendVia({
         connection,
         ca,
         request: versionCall.request,
         timeoutInMs: POSTURE_REQUEST_TIMEOUT_MS,
       });
+
+      version = sent.response;
+      answeredBy = sent.answeredBy;
+      // The node the agent calls now: PVE_HOST's, or the one it fell back to.
+      details["apiEndpoint"] = answeredBy.endpoint;
+
+      if (sent.unreachable.length > 0) {
+        details["unreachableApiEndpoints"] = sent.unreachable
+          .map((node: ProxmoxUnreachableNode): string => {
+            return node.endpoint.endpoint;
+          })
+          .join(", ");
+      }
     } catch (err: unknown) {
+      const failure: unknown =
+        err instanceof ProxmoxSendError ? err.failure : err;
+      const target: ProxmoxEndpoint =
+        err instanceof ProxmoxSendError
+          ? err.endpoint
+          : primaryEndpoint(connection);
+
+      if (err instanceof ProxmoxSendError && err.unreachable.length > 0) {
+        const lastUnreachable: boolean =
+          failure instanceof ProxmoxTransportError &&
+          (failure.kind === "connect" || failure.kind === "connect-timeout");
+
+        details["unreachableApiEndpoints"] = [
+          ...err.unreachable.map((node: ProxmoxUnreachableNode): string => {
+            return node.endpoint.endpoint;
+          }),
+          ...(lastUnreachable ? [target.endpoint] : []),
+        ].join(", ");
+      }
+
       return unreachable(
-        err instanceof ProxmoxTransportError && err.mayHaveBeenSent
-          ? `The Proxmox VE API at ${connection.endpoint} did not answer GET /version within ${POSTURE_REQUEST_TIMEOUT_MS}ms${
-              err.kind === "reset" ? " (the connection closed)" : ""
+        failure instanceof ProxmoxTransportError && failure.mayHaveBeenSent
+          ? `The Proxmox VE API at ${target.endpoint} did not answer GET /version within ${POSTURE_REQUEST_TIMEOUT_MS}ms${
+              failure.kind === "reset" ? " (the connection closed)" : ""
             }.`
           : this.describeTransportFailure(versionCall, err).errorMessage ||
-              errorText(err),
+              errorText(failure),
       );
     }
 
     if (version.statusCode < 200 || version.statusCode >= 300) {
       return unreachable(
         (version.statusCode >= 300 && version.statusCode < 400
-          ? `The server at ${connection.endpoint} answered /version with a redirect (HTTP ${version.statusCode}). Point ${PVE_HOST_ENV} at a Proxmox VE node's API itself.`
-          : this.describeHttpFailure(versionCall, version).errorMessage ||
-            `HTTP ${version.statusCode}`
+          ? `The server at ${answeredBy.endpoint} answered /version with a redirect (HTTP ${version.statusCode}). Point ${PVE_HOST_ENV} at a Proxmox VE node's API itself.`
+          : this.describeHttpFailure(versionCall, version, answeredBy)
+              .errorMessage || `HTTP ${version.statusCode}`
         ).replace(/^Exit code 1: /, ""),
       );
     }
@@ -2038,7 +2478,7 @@ export default class ProxmoxExecutor implements ResourceExecutor {
 
     if (!isPlainObject(versionData)) {
       return unreachable(
-        `The server at ${connection.endpoint} answered /version, but not as the Proxmox VE API does. Check that ${PVE_HOST_ENV} and ${PVE_PORT_ENV} point at a Proxmox VE node's API.`,
+        `The server at ${answeredBy.endpoint} answered /version, but not as the Proxmox VE API does. Check that ${PVE_HOST_ENV} and ${PVE_PORT_ENV} point at a Proxmox VE node's API.`,
       );
     }
 
