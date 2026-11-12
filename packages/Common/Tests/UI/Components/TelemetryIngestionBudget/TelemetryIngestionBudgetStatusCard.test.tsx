@@ -13,6 +13,7 @@ import TelemetryIngestionBudgetStatusCard, {
   TELEMETRY_INGESTION_BUDGET_STATUS_TEST_ID,
 } from "../../../../UI/Components/TelemetryIngestionBudget/TelemetryIngestionBudgetStatusCard";
 import {
+  readTelemetryIngestionBudgetStatus,
   TelemetryIngestionBudgetLimitSource,
   TelemetryIngestionBudgetState,
   TelemetryIngestionBudgetStatus,
@@ -20,6 +21,7 @@ import {
 import {
   budgeted,
   GB,
+  hostileAnswers,
   KEY_ID,
   LOGS,
   OTHER_KEY_ID,
@@ -259,5 +261,219 @@ describe("one key's page", () => {
     expect(
       screen.queryByTestId(TELEMETRY_INGESTION_BUDGET_STATUS_TEST_ID),
     ).toBeNull();
+  });
+});
+
+/*
+ * Issue #6486: the explorers' banner threw on an answer that was not a
+ * status, and so would this card, on Project Settings > Telemetry & APM >
+ * Usage, an ingestion key's page and the Admin Dashboard's project page,
+ * which read the same answer. Such an answer is said as a read that failed
+ * is, with Refresh, and the page under the card stays whole.
+ */
+describe("an answer that is not a status", () => {
+  const PAGE_TEST_ID: string = "page-under-the-card";
+  const UNREADABLE: string = "Something went wrong. Please try again.";
+
+  type ConsoleErrorSpy = ReturnType<typeof jest.spyOn>;
+
+  const spyOnConsoleErrors: () => ConsoleErrorSpy = (): ConsoleErrorSpy => {
+    return jest.spyOn(console, "error").mockImplementation(() => {
+      // Recorded, not printed: each test fails on any (errorsLogged).
+    });
+  };
+
+  /*
+   * What was logged as an error - React logs the error a component threw
+   * while it drew - but for React's own notice, once per run, that the
+   * act() the testing library calls is deprecated.
+   */
+  const errorsLogged: (spy: ConsoleErrorSpy) => Array<string> = (
+    spy: ConsoleErrorSpy,
+  ): Array<string> => {
+    return spy.mock.calls
+      .map((call: Array<unknown>): string => {
+        return String(call[0]);
+      })
+      .filter((text: string): boolean => {
+        return !text.includes("ReactDOMTestUtils.act");
+      });
+  };
+
+  const answeringAnything: (answer: unknown) => FetchStatus = (
+    answer: unknown,
+  ): FetchStatus => {
+    return jest.fn(async (): Promise<TelemetryIngestionBudgetStatus> => {
+      return answer as TelemetryIngestionBudgetStatus;
+    });
+  };
+
+  const drawOverPage: (
+    fetchStatus: FetchStatus,
+    props?: { ingestionKeyId?: string; hideWhenUnbudgeted?: boolean },
+  ) => void = (
+    fetchStatus: FetchStatus,
+    props?: { ingestionKeyId?: string; hideWhenUnbudgeted?: boolean },
+  ): void => {
+    render(
+      <div>
+        <TelemetryIngestionBudgetStatusCard
+          fetchStatus={fetchStatus}
+          ingestionKeyId={props?.ingestionKeyId}
+          hideWhenUnbudgeted={props?.hideWhenUnbudgeted}
+        />
+        <p data-testid={PAGE_TEST_ID}>Usage history</p>
+      </div>,
+    );
+  };
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test("{}: said as a failed read is, and Refresh reads it again", async () => {
+    const consoleErrors: ConsoleErrorSpy = spyOnConsoleErrors();
+    const fetchStatus: FetchStatus = answeringAnything({});
+    fetchStatus.mockImplementationOnce(
+      async (): Promise<TelemetryIngestionBudgetStatus> => {
+        return {} as TelemetryIngestionBudgetStatus;
+      },
+    );
+    fetchStatus.mockImplementationOnce(
+      async (): Promise<TelemetryIngestionBudgetStatus> => {
+        return BUSY_DAY;
+      },
+    );
+
+    drawOverPage(fetchStatus);
+
+    expect(await screen.findByText(UNREADABLE)).toBeInTheDocument();
+    expect(screen.getByTestId(PAGE_TEST_ID)).toHaveTextContent("Usage history");
+    // No sentence about a reset it could not read.
+    expect(
+      screen.getByTestId(TELEMETRY_INGESTION_BUDGET_STATUS_TEST_ID),
+    ).not.toHaveTextContent("resets at");
+
+    fireEvent.click(screen.getByTestId("refresh-button"));
+
+    expect(
+      await screen.findByTestId(
+        `telemetry-ingestion-budget-row-project-${LOGS}`,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(UNREADABLE)).toBeNull();
+    expect(fetchStatus).toHaveBeenCalledTimes(2);
+    expect(errorsLogged(consoleErrors)).toEqual([]);
+  });
+
+  test.each([
+    ["nothing", undefined],
+    ["null", null],
+    ["a list", []],
+    ["text", "ok"],
+    ["an error the server wrote", { message: "Not modelled" }],
+    ["a project with no signals", { project: {}, ingestionKeys: [] }],
+    [
+      "a project whose signals are not a list",
+      { ...BUSY_DAY, project: { scope: "project", signals: "logs" } },
+    ],
+    ["no reset time to tell", { ...BUSY_DAY, resetsAt: "" }],
+  ])(
+    "%s: said as a failed read is, and the page whole",
+    async (_name: string, answer: unknown) => {
+      const consoleErrors: ConsoleErrorSpy = spyOnConsoleErrors();
+
+      drawOverPage(answeringAnything(answer));
+
+      expect(await screen.findByText(UNREADABLE)).toBeInTheDocument();
+      expect(screen.getByTestId("refresh-button")).toBeInTheDocument();
+      expect(screen.getByTestId(PAGE_TEST_ID)).toBeInTheDocument();
+      expect(errorsLogged(consoleErrors)).toEqual([]);
+    },
+  );
+
+  test("a key's page that stays quiet without budgets says so too, as for a read that failed", async () => {
+    const consoleErrors: ConsoleErrorSpy = spyOnConsoleErrors();
+
+    drawOverPage(answeringAnything({}), {
+      ingestionKeyId: KEY_ID,
+      hideWhenUnbudgeted: true,
+    });
+
+    expect(await screen.findByText(UNREADABLE)).toBeInTheDocument();
+    expect(screen.getByTestId(PAGE_TEST_ID)).toBeInTheDocument();
+    expect(errorsLogged(consoleErrors)).toEqual([]);
+  });
+
+  test("an answer with parts it cannot read draws the rows it can", async () => {
+    const consoleErrors: ConsoleErrorSpy = spyOnConsoleErrors();
+    const sent: TelemetryIngestionBudgetStatus = JSON.parse(
+      JSON.stringify(BUSY_DAY),
+    ) as TelemetryIngestionBudgetStatus;
+
+    drawOverPage(
+      answeringAnything({
+        ...sent,
+        project: {
+          ...sent.project,
+          signals: [null, { signal: "Spans" }, ...sent.project.signals],
+        },
+        ingestionKeys: ["Edge collector", {}, ...sent.ingestionKeys],
+      }),
+    );
+
+    expect(
+      await screen.findByTestId(
+        `telemetry-ingestion-budget-row-project-${LOGS}`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`telemetry-ingestion-budget-row-project-${TRACES}`),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(`telemetry-ingestion-budget-row-${KEY_ID}-${LOGS}`),
+    ).toHaveTextContent("1 GB");
+    expect(screen.queryByText(UNREADABLE)).toBeNull();
+    expect(errorsLogged(consoleErrors)).toEqual([]);
+  });
+
+  test("answers drawn at random: the page under the card is never taken down", async () => {
+    const consoleErrors: ConsoleErrorSpy = spyOnConsoleErrors();
+    const answers: Array<unknown> = hostileAnswers({
+      from: JSON.parse(JSON.stringify(BUSY_DAY)) as unknown,
+      seed: 6486,
+      count: 600,
+    });
+    // As many that are no status as that still are one, drawn the same way.
+    const unreadable: Array<unknown> = answers
+      .filter((answer: unknown): boolean => {
+        return readTelemetryIngestionBudgetStatus(answer) === null;
+      })
+      .slice(0, 12);
+    const readable: Array<unknown> = answers
+      .filter((answer: unknown): boolean => {
+        return readTelemetryIngestionBudgetStatus(answer) !== null;
+      })
+      .slice(0, 12);
+
+    expect([unreadable.length, readable.length]).toEqual([12, 12]);
+
+    for (const answer of [...unreadable, ...readable]) {
+      drawOverPage(answeringAnything(answer));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId("component-loader")).toBeNull();
+      });
+
+      expect(screen.getByTestId(PAGE_TEST_ID)).toBeInTheDocument();
+      // The failed read's words exactly when the answer is no status.
+      expect(Boolean(screen.queryByText(UNREADABLE))).toBe(
+        unreadable.includes(answer),
+      );
+
+      cleanup();
+    }
+
+    expect(errorsLogged(consoleErrors)).toEqual([]);
   });
 });

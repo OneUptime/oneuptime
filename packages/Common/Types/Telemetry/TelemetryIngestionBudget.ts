@@ -971,6 +971,182 @@ export interface TelemetryIngestionBudgetStatus {
   ingestionKeys: Array<TelemetryIngestionBudgetScopeStatus>;
 }
 
+const isStatusRecord: (value: unknown) => value is Record<string, unknown> = (
+  value: unknown,
+): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+// A figure the API sends as a number; anything else is not known (null).
+const readStatusFigure: (value: unknown) => number | null = (
+  value: unknown,
+): number | null => {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+};
+
+// An ISO instant that reads as a date, else null.
+const readStatusInstant: (value: unknown) => string | null = (
+  value: unknown,
+): string | null => {
+  if (typeof value !== "string" || value.trim() === "") {
+    return null;
+  }
+
+  return Number.isFinite(Date.parse(value)) ? value : null;
+};
+
+const readStatusOneOf: <T extends string>(
+  value: unknown,
+  values: ReadonlyArray<T>,
+) => T | null = <T extends string>(
+  value: unknown,
+  values: ReadonlyArray<T>,
+): T | null => {
+  return values.includes(value as T) ? (value as T) : null;
+};
+
+const STATUS_STATES: ReadonlyArray<TelemetryIngestionBudgetState> =
+  Object.values(TelemetryIngestionBudgetState);
+const STATUS_SOURCES: ReadonlyArray<TelemetryIngestionBudgetLimitSource> =
+  Object.values(TelemetryIngestionBudgetLimitSource);
+const STATUS_SCOPES: ReadonlyArray<TelemetryIngestionBudgetScope> =
+  Object.values(TelemetryIngestionBudgetScope);
+
+/*
+ * One signal of a scope, or null when it is not one: not an object, or a
+ * signal no budget is set for. A state the reader does not know is Unknown,
+ * which nothing alarms anyone about.
+ */
+const readSignalStatus: (
+  value: unknown,
+) => TelemetryIngestionBudgetSignalStatus | null = (
+  value: unknown,
+): TelemetryIngestionBudgetSignalStatus | null => {
+  if (
+    !isStatusRecord(value) ||
+    !isTelemetryIngestionBudgetSignal(value["signal"])
+  ) {
+    return null;
+  }
+
+  return {
+    signal: value["signal"],
+    dailyBudgetBytes: readStatusFigure(value["dailyBudgetBytes"]),
+    dailyBudgetSource: readStatusOneOf(
+      value["dailyBudgetSource"],
+      STATUS_SOURCES,
+    ),
+    rateLimitBytesPerSecond: readStatusFigure(value["rateLimitBytesPerSecond"]),
+    rateLimitSource: readStatusOneOf(value["rateLimitSource"], STATUS_SOURCES),
+    usedBytes: readStatusFigure(value["usedBytes"]),
+    droppedBytes: readStatusFigure(value["droppedBytes"]),
+    droppedRequests: readStatusFigure(value["droppedRequests"]),
+    throttledRequests: readStatusFigure(value["throttledRequests"]),
+    percentUsed: readStatusFigure(value["percentUsed"]),
+    state:
+      readStatusOneOf(value["state"], STATUS_STATES) ||
+      TelemetryIngestionBudgetState.Unknown,
+    warningCrossedAt: readStatusInstant(value["warningCrossedAt"]),
+    exhaustedAt: readStatusInstant(value["exhaustedAt"]),
+  };
+};
+
+// A scope with its signals, or null when it has no list of signals.
+const readScopeStatus: (
+  value: unknown,
+  scope: TelemetryIngestionBudgetScope,
+) => TelemetryIngestionBudgetScopeStatus | null = (
+  value: unknown,
+  scope: TelemetryIngestionBudgetScope,
+): TelemetryIngestionBudgetScopeStatus | null => {
+  if (!isStatusRecord(value) || !Array.isArray(value["signals"])) {
+    return null;
+  }
+
+  const read: TelemetryIngestionBudgetScopeStatus = {
+    scope: readStatusOneOf(value["scope"], STATUS_SCOPES) || scope,
+    signals: value["signals"]
+      .map(readSignalStatus)
+      .filter(
+        (
+          signal: TelemetryIngestionBudgetSignalStatus | null,
+        ): signal is TelemetryIngestionBudgetSignalStatus => {
+          return signal !== null;
+        },
+      ),
+  };
+
+  if (typeof value["ingestionKeyId"] === "string") {
+    read.ingestionKeyId = value["ingestionKeyId"];
+  }
+
+  if (typeof value["ingestionKeyName"] === "string") {
+    read.ingestionKeyName = value["ingestionKeyName"];
+  }
+
+  return read;
+};
+
+/*
+ * A status as the reading side gets it: off the network, where a proxy, an
+ * older server or a test double can answer anything at all. null when the
+ * answer is not a status - no project with a list of its signals, or no
+ * reset time to tell - so the explorers' banner draws nothing and the
+ * budget card says the read failed, instead of a page that throws while it
+ * draws. Lenient past that, field by field, as a read must be: a figure that
+ * is not a number is not known (null), a state or a source it does not know
+ * is Unknown or none, an entry that is not a signal or a key is left out,
+ * and a time zone it does not know is UTC (the reset is an instant, written
+ * with its zone). A status the API sent reads back as itself.
+ */
+export const readTelemetryIngestionBudgetStatus: (
+  value: unknown,
+) => TelemetryIngestionBudgetStatus | null = (
+  value: unknown,
+): TelemetryIngestionBudgetStatus | null => {
+  if (!isStatusRecord(value)) {
+    return null;
+  }
+
+  const project: TelemetryIngestionBudgetScopeStatus | null = readScopeStatus(
+    value["project"],
+    TelemetryIngestionBudgetScope.Project,
+  );
+  const resetsAt: string | null = readStatusInstant(value["resetsAt"]);
+
+  if (!project || !resetsAt) {
+    return null;
+  }
+
+  const ingestionKeys: Array<unknown> = Array.isArray(value["ingestionKeys"])
+    ? value["ingestionKeys"]
+    : [];
+
+  return {
+    dayStartsAt: readStatusInstant(value["dayStartsAt"]) || "",
+    resetsAt: resetsAt,
+    resetTime: getTelemetryIngestionBudgetResetTime(value["resetTime"]),
+    timezone: getTelemetryIngestionBudgetTimezone(value["timezone"]),
+    warningPercent: getTelemetryIngestionBudgetWarningPercent(
+      value["warningPercent"],
+    ),
+    // Only an explicit false: it adds a warning, so nothing else implies it.
+    countersAvailable: value["countersAvailable"] !== false,
+    project: project,
+    ingestionKeys: ingestionKeys
+      .map((key: unknown): TelemetryIngestionBudgetScopeStatus | null => {
+        return readScopeStatus(key, TelemetryIngestionBudgetScope.IngestionKey);
+      })
+      .filter(
+        (
+          key: TelemetryIngestionBudgetScopeStatus | null,
+        ): key is TelemetryIngestionBudgetScopeStatus => {
+          return key !== null;
+        },
+      ),
+  };
+};
+
 export enum TelemetryIngestionBudgetRefusalKind {
   // The daily budget is used up: not retryable before the reset.
   DailyBudgetExhausted = "daily-budget-exhausted",
