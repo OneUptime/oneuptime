@@ -26,7 +26,12 @@
  *                    row of figures, a wide table and a trace; actions, one
  *                    waiting to post a public status update on incident
  *                    #42 and add a private note to it, each with its
- *                    arguments, which leave their two cards once run
+ *                    arguments, which leave their two cards once run;
+ *                    code, one waiting to commit three files whose card
+ *                    names what it would write over unseen - a file
+ *                    changed since Ask AI read it, one read in an earlier
+ *                    answer and one read earlier in this answer, left
+ *                    out of the conversation since (issue #6570)
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -87,10 +92,14 @@ import {
   AI_ACTION_CARD_FACTS,
   AI_ACTION_CARD_KINDS,
   AI_ACTION_CARD_LINES,
+  AI_ACTION_CODE_FILE,
   AI_ACTION_LINES,
+  AI_ACTION_PLURAL_LINES,
+  AI_ACTION_PLURAL_TITLES,
   AI_ACTION_TITLES,
   aiActionCardFact,
   aiActionList,
+  aiActionPluralSentence,
   aiActionResourceByName,
   aiActionSentence,
   aiActionTerm,
@@ -137,6 +146,7 @@ const threadKind = [
   "error",
   "rich",
   "actions",
+  "code",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -473,6 +483,75 @@ function incidentNoteActions(status) {
   ];
 }
 
+/*
+ * A commit of three files on fix/login, as the server stores it
+ * (CodeWriteTools, CodeFilesSeen): its title, and a caution for each kind
+ * of file it would write over unseen, in the order the card weighs them -
+ * a file changed on the branch since Ask AI read it, one read in an
+ * earlier answer, and one read earlier in this answer whose read the
+ * conversation has left out since (issue #6570). Ask AI writes each file
+ * whole, so the card names them before anyone approves it.
+ */
+const CODE_BRANCH = "fix/login";
+
+function codeFiles(paths) {
+  return aiActionList(
+    paths.map((file) => {
+      return aiActionSentence(AI_ACTION_CODE_FILE, { file });
+    }),
+  );
+}
+
+const CODE_CHANGE_WORDS = {
+  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 3, {
+    branch: CODE_BRANCH,
+  }),
+  description: [
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesChangedSinceRead,
+      1,
+      {
+        branch: CODE_BRANCH,
+        files: codeFiles(["src/billing/refund.ts"]),
+      },
+    ),
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesReadInEarlierAnswer,
+      1,
+      { files: codeFiles(["README.md"]) },
+    ),
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesReadEarlierInThisAnswer,
+      1,
+      { files: codeFiles(["src/billing/charge.ts"]) },
+    ),
+  ],
+};
+
+function codeChangeAction(status) {
+  const english = describeAIActionWords(CODE_CHANGE_WORDS);
+
+  return {
+    id: "call_commit_1",
+    toolName: "commit_code_to_branch",
+    title: english.title,
+    description: english.description,
+    words: CODE_CHANGE_WORDS,
+    arguments: {
+      branchName: CODE_BRANCH,
+      commitMessage: "fix: round charges and refunds to the cent",
+      changes: [
+        { filePath: "src/billing/refund.ts", content: "export {};\n" },
+        { filePath: "README.md", content: "# Billing\n" },
+        { filePath: "src/billing/charge.ts", content: "export {};\n" },
+      ],
+    },
+    isMutation: true,
+    requiresApproval: true,
+    status,
+  };
+}
+
 // The cards the two leave once run (WidgetBuilder.actionCard).
 function incidentNoteCards() {
   const heading = "#42 · Checkout latency above 2s";
@@ -529,6 +608,8 @@ const LATENCY_QUESTION = "Why did checkout latency spike this afternoon?";
 let richConversation = null;
 // The conversation waiting to post a status update and a note (?thread=actions).
 let actionsConversation = null;
+// The conversation waiting to commit three files (?thread=code).
+let codeConversation = null;
 
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
@@ -716,6 +797,21 @@ function seedHistory() {
     seedRichAnswer();
   }
 
+  if (threadKind === "code") {
+    codeConversation = conversationOf("Round billing to the cent", 4);
+    messageOf(codeConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown:
+        "Charges and refunds differ by a cent. Fix it on fix/login.",
+      createdAt: minutesAgo(4),
+    });
+    messageOf(codeConversation.id.toString(), AIChatMessageRole.Assistant, {
+      contentInMarkdown: "",
+      status: AIChatMessageStatus.WaitingForApproval,
+      toolActions: [codeChangeAction(AIChatToolActionStatus.Pending)],
+      createdAt: minutesAgo(4),
+    });
+  }
+
   if (threadKind === "actions") {
     actionsConversation = conversationOf("Update the status page", 5);
     messageOf(actionsConversation.id.toString(), AIChatMessageRole.User, {
@@ -771,6 +867,7 @@ fixture.conversationIds = {
   error: conversations[2]?.id.toString(),
   rich: richConversation?.id.toString(),
   actions: actionsConversation?.id.toString(),
+  code: codeConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------

@@ -42,7 +42,11 @@ An in-page server answers what the panel asks and records what it sends on
   address does (`openAskAi`); `?thread=rich` on an answer whose tools returned four figures, a
   table with long values in its first and last columns, and a trace; `?thread=actions` on one
   waiting to post a public status update on incident #42 (its note and Notify subscribers) and
-  add a private note to it, which leave their two cards (a status update, a note) once run.
+  add a private note to it, which leave their two cards (a status update, a note) once run;
+  `?thread=code` on one waiting to commit three files to `fix/login`, whose card names what it
+  would write over unseen: a file changed on the branch since Ask AI read it, one read in an
+  earlier answer, and one read earlier in this answer whose text the conversation has left out
+  since.
 - A question sent starts a run whose steps are written one per poll, then the answer; a
   question about an alert ends on an approval card, and one asking to fail ends on an error.
   `?run=hold` holds the run where it is until `window.__askAiFixture.addSteps(n)` and
@@ -112,6 +116,11 @@ fails on any uncaught page error:
 - an approval card in the reader's language, at 1280 and 390: its title, its line and its own
   words in German and in Persian - the alert's title and the host's name as written, set apart
   in the Persian sentences, each read right to left - with Allow and Skip beside the title in a
-  panel dragged wide and under its whole title on a phone, and the row a run leaves in German.
+  panel dragged wide and under its whole title on a phone, and the row a run leaves in German;
+- a code change's cautions: each file Ask AI would write over unseen a line of its own, marked
+  with the card's amber at the start the page reads from, level with its first line, in the order
+  the card weighs them and above the commit's message and files; the dark theme's amber; and on a
+  phone in Persian, each read right to left with its mark on the right, nothing wider than the
+  screen.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.

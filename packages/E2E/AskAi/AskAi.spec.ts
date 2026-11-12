@@ -3403,3 +3403,281 @@ test.describe("an action's arguments and the cards it leaves", () => {
     });
   });
 });
+
+/*
+ * ---------------------------------------------------------------------------
+ * A code change's cautions (issue #6570's UI review)
+ * ---------------------------------------------------------------------------
+ *
+ * Ask AI writes each file of a commit whole, so its card names the files it
+ * would write over unseen before anyone approves it. A long answer leaves out
+ * its oldest results, so a file read early in it can be one Ask AI no longer
+ * has - "read earlier in this answer", beside "read in an earlier answer"
+ * (#6365) and "changed since Ask AI read it". Run together as one paragraph
+ * the two that begin alike read as one sentence, and the files at their ends
+ * were lost in the middle; each is a caution of its own now: a line each,
+ * marked at its start, in the order the card weighs them.
+ */
+
+// The thread's three cautions, in the order the card weighs them (?thread=code).
+const CODE_CAUTION_KEYS: Array<[string, Record<string, string>]> = [
+  [
+    "These {{count}} files changed on {{branch}} after Ask AI read them, and Ask AI's versions undo those changes: {{files}}._one",
+    { branch: "fix/login", files: "src/billing/refund.ts" },
+  ],
+  [
+    "Ask AI read these {{count}} files in an earlier answer and no longer has their text, and its versions replace all of them: {{files}}._one",
+    { files: "README.md" },
+  ],
+  [
+    "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one",
+    { files: "src/billing/charge.ts" },
+  ],
+];
+
+const CODE_CAUTIONS: Array<string> = [
+  "This file changed on fix/login after Ask AI read it, and Ask AI's version undoes that change: src/billing/refund.ts.",
+  "Ask AI read this file in an earlier answer and no longer has its text, and its version replaces all of it: README.md.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: src/billing/charge.ts.",
+];
+
+// Each caution of the card: its line, its mark and its sentence.
+interface CautionBoxes {
+  line: Box;
+  mark: Box;
+  sentence: Box;
+}
+
+// The action's box and each of its cautions, read in one frame.
+interface CautionsRead {
+  action: Box;
+  cautions: Array<CautionBoxes>;
+}
+
+async function cautionBoxes(page: Page): Promise<CautionsRead> {
+  const action: Locator = page.getByTestId("tool-approval-action");
+  const cautions: Locator = action.getByTestId("tool-approval-caution");
+  const count: number = await cautions.count();
+  const locators: Array<Locator> = [action];
+
+  for (let index: number = 0; index < count; index++) {
+    const caution: Locator = cautions.nth(index);
+    locators.push(caution, caution.locator("svg"), caution.locator("> span"));
+  }
+
+  const boxes: Array<Box> = await boxesInOneFrame(locators);
+  const read: Array<CautionBoxes> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    read.push({
+      line: boxes[1 + index * 3]!,
+      mark: boxes[1 + index * 3 + 1]!,
+      sentence: boxes[1 + index * 3 + 2]!,
+    });
+  }
+
+  return { action: boxes[0]!, cautions: read };
+}
+
+// How tall a line of a caution's sentence is, as the card sets it.
+async function cautionLineHeight(page: Page): Promise<number> {
+  return page
+    .getByTestId("tool-approval-caution")
+    .first()
+    .locator("> span")
+    .evaluate((element: Element): number => {
+      return parseFloat(window.getComputedStyle(element).lineHeight);
+    });
+}
+
+// The colour each caution's mark is drawn in.
+async function markColours(page: Page): Promise<Array<string>> {
+  return page
+    .getByTestId("tool-approval-caution")
+    .locator("svg")
+    .evaluateAll((marks: Array<Element>): Array<string> => {
+      return marks.map((mark: Element): string => {
+        return window.getComputedStyle(mark).color;
+      });
+    });
+}
+
+/*
+ * Each caution its own line, stacked in order and inside the action's box -
+ * a long one wraps there, never running past the card; each mark beside its
+ * sentence, at the start the page reads from, level with the sentence's
+ * first line; and the marks in one column, the sentences in another. Gives
+ * back the cautions read, for a test to hold more of them.
+ */
+async function expectCautionsALineEach(
+  page: Page,
+  direction: "ltr" | "rtl",
+): Promise<Array<CautionBoxes>> {
+  const { action, cautions } = await cautionBoxes(page);
+  const lineHeight: number = await cautionLineHeight(page);
+
+  expect(cautions).toHaveLength(3);
+
+  for (const caution of cautions) {
+    for (const box of [caution.line, caution.mark, caution.sentence]) {
+      expect(box.x).toBeGreaterThanOrEqual(action.x - 0.5);
+      expect(box.x + box.width).toBeLessThanOrEqual(
+        action.x + action.width + 0.5,
+      );
+    }
+  }
+
+  for (let index: number = 1; index < cautions.length; index++) {
+    // Under the one before it, never beside it on its last line.
+    expect(cautions[index]!.line.y).toBeGreaterThanOrEqual(
+      cautions[index - 1]!.line.y + cautions[index - 1]!.line.height - 0.5,
+    );
+  }
+
+  for (const caution of cautions) {
+    if (direction === "ltr") {
+      expect(caution.mark.x + caution.mark.width).toBeLessThanOrEqual(
+        caution.sentence.x + 0.5,
+      );
+    } else {
+      expect(caution.mark.x).toBeGreaterThanOrEqual(
+        caution.sentence.x + caution.sentence.width - 0.5,
+      );
+    }
+
+    // Level with the sentence's first line, however many lines it wraps to.
+    expect(
+      Math.abs(
+        caution.mark.y +
+          caution.mark.height / 2 -
+          (caution.sentence.y + lineHeight / 2),
+      ),
+    ).toBeLessThanOrEqual(1.5);
+  }
+
+  // One column of marks, one of sentences.
+  const startOf: (box: Box) => number = (box: Box): number => {
+    return direction === "ltr" ? box.x : box.x + box.width;
+  };
+
+  for (const caution of cautions) {
+    expect(
+      Math.abs(startOf(caution.mark) - startOf(cautions[0]!.mark)),
+    ).toBeLessThanOrEqual(0.5);
+    expect(
+      Math.abs(startOf(caution.sentence) - startOf(cautions[0]!.sentence)),
+    ).toBeLessThanOrEqual(0.5);
+  }
+
+  return cautions;
+}
+
+test.describe("a code change's cautions", () => {
+  test("each caution is a line of its own, marked at its start, in the order the card weighs them", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=code");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const action: Locator = page.getByTestId("tool-approval-action");
+    await expect(action.getByTestId("tool-approval-title")).toHaveText(
+      "Commit 3 files to fix/login",
+    );
+
+    const cautions: Locator = action.getByTestId("tool-approval-caution");
+    await expect(cautions).toHaveCount(3);
+    for (let index: number = 0; index < CODE_CAUTIONS.length; index++) {
+      // Each keeps the space that went before it in the card's text.
+      expect((await wordsOf(cautions.nth(index))).trim()).toBe(
+        CODE_CAUTIONS[index],
+      );
+    }
+    await expect(action.getByTestId("tool-approval-cautions")).toHaveAttribute(
+      "role",
+      "list",
+    );
+
+    await expectCautionsALineEach(page, "ltr");
+
+    // Marked in the card's amber, the colour of its own heading.
+    expect(await markColours(page)).toEqual([
+      "rgb(217, 119, 6)",
+      "rgb(217, 119, 6)",
+      "rgb(217, 119, 6)",
+    ]);
+
+    // The commit's message and its files still read under its cautions.
+    expect(await argumentRows(action)).toEqual([
+      "Commit message: fix: round charges and refunds to the cent",
+      "Files: 3",
+    ]);
+
+    await screenshot(page, "code-cautions-1280");
+  });
+
+  test("in the dark, each mark takes the dark theme's amber", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "theme=dark&thread=code");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await expect(page.getByTestId("tool-approval-caution")).toHaveCount(3);
+    expect(await markColours(page)).toEqual([
+      "rgb(252, 211, 77)",
+      "rgb(252, 211, 77)",
+      "rgb(252, 211, 77)",
+    ]);
+
+    await screenshot(page, "code-cautions-1280-dark");
+  });
+
+  test.describe("on a phone, in Persian", () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test("each caution reads right to left, its mark at its start on the right, and nothing is wider than the screen", async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await load(page, "lang=fa&thread=code");
+      await expect(askAi(page)).toBeVisible();
+      await settle(page);
+
+      const words: Record<string, string> = dashboardWords("fa");
+      const cautions: Locator = page.getByTestId("tool-approval-caution");
+      await expect(cautions).toHaveCount(3);
+
+      for (let index: number = 0; index < CODE_CAUTION_KEYS.length; index++) {
+        const [key, values] = CODE_CAUTION_KEYS[index]!;
+        expect((await wordsOf(cautions.nth(index))).trim()).toBe(
+          filled(words, key, values),
+        );
+        await expect(cautions.nth(index).locator("bdi")).toHaveAttribute(
+          "dir",
+          "rtl",
+        );
+      }
+
+      const drawn: Array<CautionBoxes> = await expectCautionsALineEach(
+        page,
+        "rtl",
+      );
+      // Each is longer than a phone's line, so each wraps inside the card.
+      const lineHeight: number = await cautionLineHeight(page);
+      for (const caution of drawn) {
+        expect(caution.sentence.height).toBeGreaterThanOrEqual(
+          lineHeight * 2 - 1,
+        );
+      }
+
+      await expectNothingScrollsSideways(page);
+      await screenshot(page, "code-cautions-390-fa");
+    });
+  });
+});
