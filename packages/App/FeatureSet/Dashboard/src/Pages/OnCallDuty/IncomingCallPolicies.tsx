@@ -59,6 +59,17 @@ import {
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
+/*
+ * A row's Phone Numbers cell: the handset, the first number and "+2 more",
+ * 8px apart in every language. Spaced by the row's gap, never space-x: a
+ * number reads left to right in its own isolate (PhoneNumberText's
+ * dir="ltr"), so the start margin space-x gives it is its left one, and on
+ * a Persian or Arabic page the number touched the handset at its right
+ * while "+2 more" stood 16px off.
+ */
+export const PHONE_NUMBER_LINE_CLASS_NAME: string =
+  "flex items-center gap-2 min-w-0";
+
 const IncomingCallPoliciesPage: FunctionComponent<
   PageComponentProps
 > = (): ReactElement => {
@@ -360,7 +371,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
               ) {
                 if (legacyPhoneNumber) {
                   return (
-                    <div className="flex items-center space-x-2 min-w-0">
+                    <div className={PHONE_NUMBER_LINE_CLASS_NAME}>
                       <Icon
                         icon={IconProp.Call}
                         className="h-4 w-4 text-green-500 flex-shrink-0"
@@ -394,7 +405,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
 
               if (summary.visiblePhoneNumbers.length > 0) {
                 return (
-                  <div className="flex items-center space-x-2 min-w-0">
+                  <div className={PHONE_NUMBER_LINE_CLASS_NAME}>
                     <Icon
                       icon={IconProp.Call}
                       className="h-4 w-4 text-green-500 flex-shrink-0"
@@ -418,7 +429,7 @@ const IncomingCallPoliciesPage: FunctionComponent<
                 );
               }
               return (
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center gap-2">
                   <Icon
                     icon={IconProp.ExclaimationCircle}
                     className="h-4 w-4 text-yellow-500"

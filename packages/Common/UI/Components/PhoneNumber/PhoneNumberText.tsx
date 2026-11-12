@@ -31,6 +31,11 @@ export interface ComponentProps {
  * finds one printed as it is). A name in a number's place reads the way
  * most of its letters do (getPhoneNumberDirection). Nothing is drawn for
  * no number.
+ *
+ * Its start and end are its own, as its isolate reads left to right: a
+ * start margin (ml-2, or space-x-2 on the row it sits in) is its left on a
+ * Persian page too, where it should be its right. A row that holds one is
+ * spaced by its gap (flex gap-2), and the guard finds one spaced by a side.
  */
 const PhoneNumberText: FunctionComponent<ComponentProps> = (
   props: ComponentProps,

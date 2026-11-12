@@ -165,7 +165,9 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-import IncomingCallPoliciesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies";
+import IncomingCallPoliciesPage, {
+  PHONE_NUMBER_LINE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies";
 import IncomingCallPolicyOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/Index";
 import IncomingCallPolicySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/SideMenu";
 import OnCallDutyPolicySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutyPolicy/SideMenu";
@@ -628,6 +630,9 @@ describe("the Setup and Phone Numbers cards, on a phone", () => {
  * (PhoneNumberText), after the handset at the line's start, cut short at
  * its own end where the column is narrow.
  */
+// A space-x utility, with or without a breakpoint before it.
+const SPACE_X_CLASS_REGEX: RegExp = /(?:^|\s|:)space-x-/;
+
 describe("the list's Phone Numbers column", () => {
   function phoneNumbersColumn(): {
     getElement: (item: IncomingCallPolicy) => React.ReactElement;
@@ -714,6 +719,15 @@ describe("the list's Phone Numbers column", () => {
     expect(line.children[1]).toBe(number);
     expect(line.textContent).toBe("+447700900123+1 more");
     expect(line).not.toHaveAttribute("dir");
+    /*
+     * 8px between the handset, the number and "+1 more" in every language:
+     * spaced by the row's gap. The start margin space-x-2 gave the number
+     * is its own left one (it reads left to right, dir="ltr"), so on a
+     * Persian page it touched the handset and stood 16px off "+1 more".
+     */
+    expect(line.className).toBe(PHONE_NUMBER_LINE_CLASS_NAME);
+    expect(line).toHaveClass("flex", "gap-2");
+    expect(line.className).not.toMatch(SPACE_X_CLASS_REGEX);
   });
 
   test("draws the number the row carries the same way while the numbers load", async () => {
@@ -736,7 +750,37 @@ describe("the list's Phone Numbers column", () => {
     );
 
     expect(rowNumbers()).toEqual(["BDI ltr +447700900123"]);
+    expect(
+      screen.getByTestId("incoming-call-policy-row-phone-number").parentElement
+        ?.className,
+    ).toBe(PHONE_NUMBER_LINE_CLASS_NAME);
 
     await settle();
+  });
+
+  test("spaces a policy with no number the same way", async () => {
+    render(
+      <MemoryRouter>
+        <IncomingCallPoliciesPage {...PAGE_PROPS} />
+      </MemoryRouter>,
+    );
+    await settle();
+
+    await act(async (): Promise<void> => {
+      capturedTableProps["onFetchSuccess"]([policy()]);
+    });
+    await settle();
+
+    render(
+      <div data-testid="setup-needed-row">
+        {phoneNumbersColumn().getElement(policy())}
+      </div>,
+    );
+
+    const line: HTMLElement = screen.getByTestId("setup-needed-row")
+      .firstElementChild as HTMLElement;
+
+    expect(line).toHaveClass("flex", "gap-2");
+    expect(line.className).not.toMatch(SPACE_X_CLASS_REGEX);
   });
 });

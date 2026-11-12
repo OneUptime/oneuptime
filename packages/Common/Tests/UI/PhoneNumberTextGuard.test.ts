@@ -3,13 +3,14 @@ import {
   formatPhoneNumberPrintFindings,
   isPhoneNumberName,
   listPhoneNumberScanFiles,
+  PhoneNumberPrintFinding,
   PhoneNumberPrintKind,
   PhoneNumberPrintSite,
   REPOSITORY_ROOT,
   scanPhoneNumberPrints,
 } from "../PhoneNumberPrints";
 import { toRelativePath } from "../ForeignHiddenRuleGuard";
-import { describe, expect, test } from "@jest/globals";
+import { beforeAll, describe, expect, test } from "@jest/globals";
 
 /*
  * ISSUE #6605: NO PHONE NUMBER IS PRINTED AS IT IS.
@@ -24,6 +25,12 @@ import { describe, expect, test } from "@jest/globals";
  * text through phoneNumberInLine or phoneNumberListInLine. This guard reads
  * every browser module for a number printed any other way, so the next
  * one cannot come back unseen.
+ *
+ * And for a PhoneNumberText spaced by its start or end: its isolate reads
+ * left to right, so a start margin (ml-2, or space-x-2 on its row, both
+ * margin-inline-start here) is its left on a Persian page too. An incoming
+ * call policy's number sat against the handset before it that way, with
+ * 16px before "+1 more" after it.
  */
 
 function sitesOf(source: string): Array<string> {
@@ -35,9 +42,17 @@ function sitesOf(source: string): Array<string> {
 }
 
 describe("every browser module", () => {
+  let scanned: Array<PhoneNumberPrintFinding> = [];
+
+  beforeAll(() => {
+    scanned = scanPhoneNumberPrints();
+  });
+
   test("prints no phone number as it is", () => {
     const findings: string = formatPhoneNumberPrintFindings(
-      scanPhoneNumberPrints(),
+      scanned.filter((finding: PhoneNumberPrintFinding): boolean => {
+        return finding.kind !== PhoneNumberPrintKind.SideSpacing;
+      }),
     );
 
     /*
@@ -45,6 +60,22 @@ describe("every browser module", () => {
      * In a tooltip or a translated sentence's value: phoneNumberInLine(
      * number, translator.language), or phoneNumberListInLine for a list.
      * (Common/UI/Components/PhoneNumber, Common/Types/PhoneNumberDirection.)
+     */
+    expect(findings).toBe("");
+  });
+
+  test("spaces no phone number by its start or end", () => {
+    const findings: string = formatPhoneNumberPrintFindings(
+      scanned.filter((finding: PhoneNumberPrintFinding): boolean => {
+        return finding.kind === PhoneNumberPrintKind.SideSpacing;
+      }),
+    );
+
+    /*
+     * A row that holds a number is spaced by its gap (flex items-center
+     * gap-2), never by space-x, and the number itself has no margin or
+     * padding on one side: both would be its own left, as it reads left
+     * to right, on a page read from the right.
      */
     expect(findings).toBe("");
   });
@@ -136,6 +167,193 @@ describe("the code this issue was about is found", () => {
     ).toEqual([
       `${PhoneNumberPrintKind.SentenceValue}: destination: verifiedBySmsItem.phone?.toString() || ""`,
     ]);
+  });
+});
+
+describe("the row this review was about is found", () => {
+  test("an incoming call policy's row spaced with space-x", () => {
+    // IncomingCallPolicies before the review.
+    expect(
+      sitesOf(`
+        const row = (
+          <div className="flex items-center space-x-2">
+            <Icon icon={IconProp.Call} className="h-4 w-4 text-green-500 flex-shrink-0" />
+            <PhoneNumberText
+              phoneNumber={summary.visiblePhoneNumbers[0]}
+              className="font-mono truncate"
+            />
+            <span className="rounded-full px-2">+1 more</span>
+          </div>
+        );
+      `),
+    ).toEqual([
+      `${PhoneNumberPrintKind.SideSpacing}: className="flex items-center space-x-2"`,
+    ]);
+  });
+});
+
+describe("what counts as spacing a number by its start or end", () => {
+  test.each([
+    ["a start margin", '<PhoneNumberText phoneNumber={p} className="ml-2" />'],
+    ["an end margin", '<PhoneNumberText phoneNumber={p} className="mr-1" />'],
+    [
+      "a logical one at a breakpoint",
+      '<PhoneNumberText phoneNumber={p} className="text-sm sm:me-1" />',
+    ],
+    [
+      "a negative one",
+      '<PhoneNumberText phoneNumber={p} className="-ml-[22px]" />',
+    ],
+    [
+      "an important one",
+      '<PhoneNumberText phoneNumber={p} className="!ms-2" />',
+    ],
+    ["a side padding", '<PhoneNumberText phoneNumber={p} className="ps-2" />'],
+    [
+      "one on a branch of a ternary",
+      '<PhoneNumberText phoneNumber={p} className={wide ? "ml-2" : "truncate"} />',
+    ],
+    [
+      "one in a template",
+      "<PhoneNumberText phoneNumber={p} className={`truncate ${tone} mr-1`} />",
+    ],
+    [
+      "one in a class list's call",
+      '<PhoneNumberText phoneNumber={p} className={classNames("truncate", "ml-1")} />',
+    ],
+  ])("%s on the number", (_name: string, source: string) => {
+    const sites: Array<PhoneNumberPrintSite> = findPhoneNumberPrintSites(
+      "Snippet.tsx",
+      `const element = ${source};`,
+    );
+
+    expect(sites).toHaveLength(1);
+    expect(sites[0]!.kind).toBe(PhoneNumberPrintKind.SideSpacing);
+    expect(sites[0]!.text).toMatch(/^className=/);
+  });
+
+  test.each([
+    [
+      "its row",
+      '<div className="flex space-x-2"><Icon /><PhoneNumberText phoneNumber={p} /></div>',
+      'className="flex space-x-2"',
+    ],
+    [
+      "its row at a breakpoint",
+      '<span className="inline-flex sm:space-x-1"><b>x</b><PhoneNumberText phoneNumber={p} /></span>',
+      'className="inline-flex sm:space-x-1"',
+    ],
+    [
+      "its row, through a ternary",
+      '<span className="space-x-1"><b>x</b>{show ? <PhoneNumberText phoneNumber={p} /> : null}</span>',
+      'className="space-x-1"',
+    ],
+    [
+      "its row, through a fragment",
+      '<span className="space-x-1"><Fragment key={1}><b>x</b><PhoneNumberText phoneNumber={p} /></Fragment></span>',
+      'className="space-x-1"',
+    ],
+    [
+      "its row, through a list's map",
+      '<div className="space-x-1">{numbers.map((n) => { return <PhoneNumberText key={n} phoneNumber={n} />; })}</div>',
+      'className="space-x-1"',
+    ],
+    [
+      "its row, by a constant of the module",
+      "<div className={ROW}><Icon /><PhoneNumberText phoneNumber={p} /></div>",
+      "className={ROW}",
+    ],
+  ])("a space-x on %s", (_name: string, source: string, found: string) => {
+    expect(
+      sitesOf(
+        `const ROW: string = "flex items-center space-x-2";
+const element = ${source};`,
+      ),
+    ).toEqual([`${PhoneNumberPrintKind.SideSpacing}: ${found}`]);
+  });
+
+  test("a row with two numbers in it is one finding", () => {
+    expect(
+      sitesOf(`
+        const row = (
+          <div className="space-x-2">
+            <PhoneNumberText phoneNumber={a} />
+            <PhoneNumberText phoneNumber={b} />
+          </div>
+        );
+      `),
+    ).toEqual([`${PhoneNumberPrintKind.SideSpacing}: className="space-x-2"`]);
+  });
+
+  test("a finding reads as the module, the line, what it does and the code", () => {
+    expect(
+      formatPhoneNumberPrintFindings([
+        {
+          file: "packages/App/FeatureSet/Dashboard/src/X.tsx",
+          kind: PhoneNumberPrintKind.SideSpacing,
+          line: 40,
+          text: 'className="flex space-x-2"',
+        },
+      ]),
+    ).toBe(
+      'packages/App/FeatureSet/Dashboard/src/X.tsx:40 spaces a phone number by its start or end, its left and right on every page (side spacing): className="flex space-x-2"',
+    );
+  });
+});
+
+describe("what does not space a number by its start or end", () => {
+  test.each([
+    [
+      "a row spaced by its gap",
+      '<div className="flex items-center gap-2 min-w-0"><Icon /><PhoneNumberText phoneNumber={p} /></div>',
+    ],
+    [
+      "a row spaced by a constant gap",
+      "<div className={LINE}><Icon /><PhoneNumberText phoneNumber={p} /></div>",
+    ],
+    [
+      "a column spaced by space-y",
+      '<div className="space-y-1"><PhoneNumberText phoneNumber={a} /><PhoneNumberText phoneNumber={b} /></div>',
+    ],
+    [
+      "a space-x on an element further out",
+      '<div className="flex space-x-2"><Icon /><span><PhoneNumberText phoneNumber={p} /></span></div>',
+    ],
+    [
+      "a space-x-reverse alone",
+      '<div className="flex space-x-reverse"><PhoneNumberText phoneNumber={p} /></div>',
+    ],
+    [
+      "margins above, below or on both sides",
+      '<PhoneNumberText phoneNumber={p} className="mt-1 mb-2 my-1 mx-1 m-1 px-2 py-1 p-1" />',
+    ],
+    [
+      "a class that only starts like one",
+      '<PhoneNumberText phoneNumber={p} className="max-w-xs min-w-0 pointer-events-none" />',
+    ],
+    [
+      "a class it is handed",
+      "<PhoneNumberText phoneNumber={p} className={props.className} />",
+    ],
+    [
+      "a side margin on its row, or on another element",
+      '<div className="-ml-[22px] pl-[22px]"><IsolatedText text={t} className="ml-2" /><PhoneNumberText phoneNumber={p} /></div>',
+    ],
+    [
+      "a list of numbers, a box drawn the page's way",
+      '<div className="flex space-x-2"><Icon /><PhoneNumberTextList phoneNumbers={numbers} className="ml-1" /></div>',
+    ],
+    [
+      "a number handed to a slot, away from its row",
+      '<span className="space-x-1"><TranslatedSentence slots={{ value: <PhoneNumberText phoneNumber={p} /> }} /></span>',
+    ],
+  ])("%s", (_name: string, source: string) => {
+    expect(
+      sitesOf(
+        `const LINE: string = "flex items-center gap-2 min-w-0";
+const element = ${source};`,
+      ),
+    ).toEqual([]);
   });
 });
 
