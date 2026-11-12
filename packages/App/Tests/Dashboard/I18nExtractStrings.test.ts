@@ -1640,13 +1640,16 @@ describe("the real source roots", () => {
    * its new name: the license server's enterprise-only column titles would
    * reach every locale file, which a test in ee/ refuses, and so would the
    * instance's backups (#5241), which only the Enterprise Admin Dashboard
-   * shows, in words of its own (ee/AdminDashboard/Backups).
+   * shows, in words of its own (ee/AdminDashboard/Backups), and what people
+   * told OneUptime (#6832), which only the Admin Dashboard's Feedback page
+   * shows.
    */
-  test("skip only the license server's own table and the instance's backups, by paths that exist", () => {
+  test("skip only the license server's own table, the instance's backups and the product feedback, by paths that exist", () => {
     expect([...SKIPPED_SOURCE_FILES]).toEqual([
       "packages/Common/Models/DatabaseModels/EnterpriseLicense.ts",
       "packages/Common/Models/DatabaseModels/BackupSetting.ts",
       "packages/Common/Models/DatabaseModels/BackupRun.ts",
+      "packages/Common/Models/DatabaseModels/ProductFeedback.ts",
     ]);
 
     for (const file of SKIPPED_SOURCE_FILES) {
