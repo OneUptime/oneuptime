@@ -128,7 +128,7 @@ OneUptime Enterprise dat via AWS Marketplace, Microsoft Marketplace of Google Cl
 2. Voer uw licentiesleutel in en valideer hem.
 :::
 
-De installatie controleert de sleutel bij OneUptime en slaat de licentie op die ze ontvangt. Daarna houdt ze de licentie actueel met een dagelijkse synchronisatie. Gebruik **Refresh license** op dezelfde pagina om wijzigingen, zoals extra plaatsen of een verlenging, meteen op te halen.
+De installatie controleert de sleutel bij OneUptime en slaat de licentie op die ze ontvangt. Daarna houdt ze de licentie actueel met een dagelijkse synchronisatie. Gebruik **Licentie vernieuwen** op dezelfde pagina om wijzigingen, zoals extra plaatsen of een verlenging, meteen op te halen.
 
 Online activeren vereist uitgaand HTTPS van de OneUptime-server naar `https://oneuptime.com`. Bereikt de server het internet alleen via een relay, stel dan `ENTERPRISE_LICENSE_SERVER_URL` in op het `https://`-adres van de relay. De relay moet `/api/enterprise-license/` doorsturen naar oneuptime.com.
 

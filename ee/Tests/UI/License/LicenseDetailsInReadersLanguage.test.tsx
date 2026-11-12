@@ -8,7 +8,8 @@ import {
   DASHBOARD_LANGUAGES,
 } from "Common/Tests/Helpers/TranslatedLanguages";
 import { withoutIsolateMarks } from "Common/Tests/Helpers/IsolateMarks";
-import { getDateLocale } from "Common/Types/DateLanguage";
+import OneUptimeDate from "Common/Types/Date";
+import { withDateDisplayLanguage } from "Common/Types/DateLanguage";
 import { JSONObject } from "Common/Types/JSON";
 import { LicenseSnapshot } from "Common/UI/Components/EditionLabel/LicenseDetails";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
@@ -377,7 +378,7 @@ describe("the license details in the reader's language", () => {
       "Oder schreiben Sie direkt an sales@oneuptime.com.",
     );
     expect(drawn).toContain("2 Instanzen");
-    expect(drawn).toContain("7 Benutzer");
+    expect(drawn).toContain("Benutzer: 7");
     expect(drawn).toContain("Noch keine Nutzung gemeldet. Update verfügbar.");
     expect(
       screen.getByRole("button", { name: /Lizenz erweitern/ }),
@@ -392,18 +393,56 @@ describe("the license details in the reader's language", () => {
     );
   });
 
+  /*
+   * The report's moment is written as every other moment in the product: in
+   * the reader's timezone and clock, with no seconds, and the year only when
+   * it is not this one (it was the browser's long form, seconds and all).
+   */
   test("German: the dates are German dates", async () => {
     const drawn: string = await drawIn("AdminDashboard", "de", breached());
-    const german: string = new Date(REPORTED_AT).toLocaleString(
-      getDateLocale("de"),
-    );
-    const english: string = new Date(REPORTED_AT).toLocaleString("en-US");
+    const german: string = withDateDisplayLanguage("de", (): string => {
+      return OneUptimeDate.getDateAsCompactLocalString(REPORTED_AT);
+    });
+    const english: string = withDateDisplayLanguage("en", (): string => {
+      return OneUptimeDate.getDateAsCompactLocalString(REPORTED_AT);
+    });
 
     expect(german).not.toBe(english);
     expect(drawn).toContain(`Zuletzt am ${german} an OneUptime gemeldet.`);
     expect(drawn).toContain(`Zuletzt gemeldet am ${german}.`);
     expect(drawn).not.toContain(english);
+    expect(drawn).not.toContain(new Date(REPORTED_AT).toLocaleString("de-DE"));
   });
+
+  /*
+   * A 12-hour clock writes the half of the day with a dot of its own in
+   * Persian and Spanish: a sentence that ends with that time ends with one
+   * full stop, not two.
+   */
+  test.each(["fa", "es"])(
+    "%s: a sentence that ends with a 12-hour time ends with one full stop",
+    async (language: string) => {
+      const prefers12Hours: jest.SpyInstance = jest
+        .spyOn(OneUptimeDate, "getUserPrefers12HourFormat")
+        .mockReturnValue(true);
+
+      try {
+        const time: string = withDateDisplayLanguage(language, (): string => {
+          return OneUptimeDate.getDateAsCompactLocalString(REPORTED_AT);
+        });
+        const drawn: string = withoutIsolateMarks(
+          await drawIn("AdminDashboard", language, breached()),
+        );
+
+        // The case this is about: the time itself ends with a dot.
+        expect(time.endsWith(".")).toBe(true);
+        expect(drawn).toContain(time);
+        expect(drawn).not.toContain(`${time}.`);
+      } finally {
+        prefers12Hours.mockRestore();
+      }
+    },
+  );
 
   test("German: an unlimited license and the first report's hours", async () => {
     const drawn: string = await drawIn("Dashboard", "de", unlimited());
@@ -456,23 +495,50 @@ describe("the license details in the reader's language", () => {
     );
   });
 
-  test("an instance's users are one sentence, the number drawn bolder", async () => {
-    await drawIn("Dashboard", "ru", breached());
+  /*
+   * A label and its figure, the number drawn bolder: in Russian the Admin
+   * Dashboard's row said "пользователей: 7", lowercase where the line
+   * begins, with the Backups page's mid-sentence count (#7134). Both apps
+   * draw the same line now, capitalised.
+   */
+  test.each(["AdminDashboard", "Dashboard"] as Array<App>)(
+    "%s: an instance's users begin their line in Russian, the number drawn bolder",
+    async (app: App) => {
+      await drawIn(app, "ru", breached());
 
-    const row: HTMLElement = screen
-      .getByText("oneuptime.acme.internal")
-      .closest("li") as HTMLElement;
+      const row: HTMLElement = screen
+        .getByText("oneuptime.acme.internal")
+        .closest("li") as HTMLElement;
+      const text: string = withoutIsolateMarks(row.textContent || "");
 
-    expect(withoutIsolateMarks(row.textContent || "")).toContain(
-      "Пользователей: 7",
-    );
+      expect(text).toContain("Пользователей: 7");
+      expect(text).not.toContain("пользователей: 7");
 
-    const count: HTMLElement | undefined = Array.from(
-      row.querySelectorAll("span.font-medium"),
-    ).find((element: Element): boolean => {
-      return element.textContent === "7";
-    }) as HTMLElement | undefined;
+      const count: HTMLElement | undefined = Array.from(
+        row.querySelectorAll("span.font-medium"),
+      ).find((element: Element): boolean => {
+        return element.textContent === "7";
+      }) as HTMLElement | undefined;
 
-    expect(count).toBeDefined();
-  });
+      expect(count).toBeDefined();
+    },
+  );
+
+  test.each([
+    ["de", "Benutzer: 7", "Benutzer: 1"],
+    ["fa", "کاربران: ۷", "کاربران: ۱"],
+    ["zh-CN", "用户数：7", "用户数：1"],
+  ])(
+    "%s: an instance's users read %s, and alike for one user",
+    async (language: string, seven: string, one: string) => {
+      const drawn: string = await drawIn(
+        "AdminDashboard",
+        language,
+        breached(),
+      );
+
+      expect(drawn).toContain(seven);
+      expect(drawn).toContain(one);
+    },
+  );
 });

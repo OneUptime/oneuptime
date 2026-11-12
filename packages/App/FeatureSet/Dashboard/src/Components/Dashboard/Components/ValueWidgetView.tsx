@@ -38,6 +38,7 @@ import {
   getDashboardSpanLabeller,
   getDashboardSpanLabels,
 } from "../Utils/DashboardDateTime";
+import { DASHBOARD_WIDGET_SETUP_LINE_TEST_ID } from "./DashboardWidgetSetupCopy";
 
 /*
  * The big-number widget's PRESENTATION, with no opinion about where its
@@ -573,9 +574,11 @@ export interface ValueWidgetViewProps {
   noDataMessage: string;
 
   /*
-   * False while the widget has no query yet — renders the "click to
-   * configure" prompt rather than a no-data state, because nothing has been
-   * asked of the data source at all.
+   * False while the widget has no query yet — renders the setup prompt
+   * rather than a no-data state, because nothing has been asked of the data
+   * source at all. setupMessage is the host's line for where the widget is
+   * drawn (DashboardWidgetSetupCopy): a click only where one opens its
+   * settings.
    */
   isConfigured: boolean;
   setupTitle: string;
@@ -889,6 +892,23 @@ export const getSparklineSpanLabelsFit: (data: {
   );
 };
 
+/*
+ * The room a state's icon disc (40px and the 6px gap under it) and its
+ * name (one 16px line and its gap) take above its message, and one line of
+ * the message: what decides how many lines the message may take.
+ */
+const STATE_ICON_ROOM_IN_PX: number = 46;
+const STATE_TITLE_ROOM_IN_PX: number = 22;
+const STATE_MESSAGE_LINE_HEIGHT_IN_PX: number = 16;
+
+// Written out whole, so the stylesheet keeps each one.
+const STATE_MESSAGE_CLAMP_CLASS_NAMES: ReadonlyArray<string> = [
+  "line-clamp-1",
+  "line-clamp-2",
+  "line-clamp-3",
+  "line-clamp-4",
+];
+
 const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
   props: ValueWidgetViewProps,
 ): ReactElement => {
@@ -959,10 +979,28 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
 
   /*
    * A state's message wraps to a second line only where two lines fit; in a
-   * shorter box the second line was cut through the middle.
+   * shorter box the second line was cut through the middle. Where the tile
+   * holds more under its icon and name it takes up to four: two units tall,
+   * a German "Noch keine Metrik ausgewählt." was cut to "Noch keine
+   * Metrik..." at two lines with room for a third below it.
    */
-  const stateMessageClampClass: string =
-    contentBox.heightInPx >= 32 ? "line-clamp-2" : "line-clamp-1";
+  const getStateMessageClampClass: (hasTitle: boolean) => string = (
+    hasTitle: boolean,
+  ): string => {
+    const roomInPx: number =
+      contentBox.heightInPx -
+      (showStateIcon ? STATE_ICON_ROOM_IN_PX : 0) -
+      (hasTitle ? STATE_TITLE_ROOM_IN_PX : 0);
+    const lines: number = Math.min(
+      Math.max(
+        Math.floor(roomInPx / STATE_MESSAGE_LINE_HEIGHT_IN_PX),
+        contentBox.heightInPx >= 32 ? 2 : 1,
+      ),
+      STATE_MESSAGE_CLAMP_CLASS_NAMES.length,
+    );
+
+    return STATE_MESSAGE_CLAMP_CLASS_NAMES[lines - 1] || "line-clamp-1";
+  };
 
   /*
    * The states' words come from the hosts in English (each wraps them in
@@ -1044,8 +1082,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           <></>
         )}
         <p
-          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
+          className={`text-xs text-gray-500 text-center max-w-full ${getStateMessageClampClass(showStateTitle)} px-1`}
           title={setupMessage}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
         >
           {setupMessage}
         </p>
@@ -1068,7 +1107,7 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           </div>
         )}
         <p
-          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
+          className={`text-xs text-gray-500 text-center max-w-full ${getStateMessageClampClass(false)} px-1`}
           title={props.error}
         >
           {props.error}
@@ -1124,7 +1163,9 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           <></>
         )}
         <p
-          className={`text-xs text-gray-500 text-center max-w-full ${stateMessageClampClass} px-1`}
+          className={`text-xs text-gray-500 text-center max-w-full ${getStateMessageClampClass(
+            Boolean(showStateTitle && props.title),
+          )} px-1`}
           title={noDataMessage}
         >
           {noDataMessage}

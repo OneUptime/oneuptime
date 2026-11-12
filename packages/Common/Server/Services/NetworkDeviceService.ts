@@ -37,6 +37,9 @@ import DatabaseConfig from "../DatabaseConfig";
 import OneUptimeDate from "../../Types/Date";
 import CidrMatchUtil from "../../Utils/NetworkSite/CidrMatchUtil";
 import { normalizeMac } from "../../Utils/Monitor/EndpointAttachmentUtil";
+import MonitoringOff, {
+  MONITORED_SELECT,
+} from "../../Utils/Monitor/MonitoringOff";
 import { SiteAssignmentRuleRunResult } from "../../Types/NetworkAutomation/RuleRunResult";
 import { NetworkDeviceMonitoringMethodUtil } from "../../Types/NetworkDevice/NetworkDeviceMonitoringMethod";
 import RelationIdUtil from "../Utils/Database/RelationIdUtil";
@@ -2152,6 +2155,16 @@ export class Service extends ProjectReferencesService<Model> {
    * "Pending" the util renders for `undefined`. For a Probe device the poll
    * owns `isReachable`, and this method never touches it.
    *
+   * A bound monitor that is not checked - its monitoring turned off, or
+   * archived (MonitoringOff.isMonitored) - gives no verdict either: its
+   * status is only what its last check saw, frozen until it is checked
+   * again, so the device gets NULL for both, as if nothing were bound. That
+   * keeps the frozen status - "Offline", say - off the device list, the
+   * topology node, the site's roll-up and the site's alerts (issue #6965).
+   * When a monitor is turned off or on, archived or unarchived,
+   * MonitorService.onUpdateSuccess comes back here for every device bound
+   * to it (refreshStampsOfDevicesBoundToMonitors).
+   *
    * `clearWhenNotMonitorBacked` is for the write that moves a device OFF
    * monitor-backed: the ping monitor's verdict must not outlive the binding
    * (DeviceHealthStateUtil lets a stamped status beat reachability, so a
@@ -2275,13 +2288,17 @@ export class Service extends ProjectReferencesService<Model> {
           currentMonitorStatus: {
             isOfflineState: true,
           },
+          // Whether its status is live at all - see the note above.
+          ...MONITORED_SELECT,
         },
         props: {
           isRoot: true,
         },
       });
 
-      monitorStatusId = monitor?.currentMonitorStatusId || null;
+      if (monitor && MonitoringOff.isMonitored(monitor)) {
+        monitorStatusId = monitor.currentMonitorStatusId || null;
+      }
 
       if (monitorStatusId) {
         nextReachable = monitor?.currentMonitorStatus?.isOfflineState !== true;
@@ -2317,6 +2334,84 @@ export class Service extends ProjectReferencesService<Model> {
       await NetworkSiteService.recomputeRollupForSiteAndAncestors(
         device.siteId,
       );
+    }
+  }
+
+  /*
+   * Re-stamps every device bound to these monitors (NetworkDevice.monitorId)
+   * through refreshStampedMonitorStatus, which re-derives each stamp and its
+   * isReachable from the monitor as it is now, and refreshes the device's
+   * site chain when either moved.
+   *
+   * MonitorService.onUpdateSuccess calls it when an update turns a
+   * monitor's monitoring off or on, or archives or unarchives it (issue
+   * #6965). Turned off or archived, the monitor-backed devices it backs lose
+   * the status it was left at: each reads Pending, and its site rolls up
+   * without it - recovering, or clearing a site nothing else reports on,
+   * which resolves the site's alert either way. Turned on again or
+   * unarchived, each device follows the monitor's status at once: the
+   * status the monitor itself shows until its next check, so a problem
+   * still there counts again, as the monitor's own alerts open again on its
+   * next check.
+   *
+   * A probe-polled device is left as it is: its poll decides its health,
+   * and its stamp comes from the Network Device monitors that watch its
+   * walk, not from this column (refreshStampedMonitorStatus changes nothing
+   * on it without clearWhenNotMonitorBacked).
+   *
+   * Paged on id, as a monitor can back any number of devices; one device
+   * that fails is logged and the others are still re-stamped.
+   */
+  @CaptureSpan()
+  public async refreshStampsOfDevicesBoundToMonitors(data: {
+    monitorIds: Array<ObjectID>;
+  }): Promise<void> {
+    if (data.monitorIds.length === 0) {
+      return;
+    }
+
+    let skip: number = 0;
+
+    while (true) {
+      const devices: Array<Model> = await this.findBy({
+        query: {
+          monitorId: QueryHelper.any(data.monitorIds),
+        },
+        select: {
+          _id: true,
+        },
+        sort: {
+          _id: SortOrder.Ascending,
+        },
+        skip: skip,
+        limit: LIMIT_MAX,
+        props: {
+          isRoot: true,
+        },
+      });
+
+      for (const device of devices) {
+        if (!device.id) {
+          continue;
+        }
+
+        try {
+          await this.refreshStampedMonitorStatus({
+            deviceId: device.id,
+            clearWhenNotMonitorBacked: false,
+          });
+        } catch (error) {
+          logger.error(
+            `NetworkDeviceService.refreshStampsOfDevicesBoundToMonitors: could not re-stamp network device ${device.id.toString()}: ${error}`,
+          );
+        }
+      }
+
+      if (devices.length < LIMIT_MAX) {
+        break;
+      }
+
+      skip += devices.length;
     }
   }
 
