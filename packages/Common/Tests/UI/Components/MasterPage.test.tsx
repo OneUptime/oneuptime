@@ -28,7 +28,7 @@ describe("MasterPage", () => {
   });
 
   it("should render correctly with error", () => {
-    const error: string = "error";
+    const error: string = "Your project was deleted.";
     render(<MasterPage {...defaultProps} error={error} />);
 
     const errorElement: HTMLElement = screen.getByText(error);
