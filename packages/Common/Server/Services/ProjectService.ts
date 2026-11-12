@@ -916,7 +916,7 @@ export class ProjectService extends ProjectReferencesService<Model> {
     await super.onBeforeCreate(data);
 
     if (!data.data.name) {
-      throw new BadDataException("Project name is required");
+      throw new BadDataException("Give the project a name.");
     }
 
     this.applyDataResidencyRules(data.data);
@@ -1088,12 +1088,14 @@ export class ProjectService extends ProjectReferencesService<Model> {
           // check if the same user is creating the project.
           if (promoCode.userEmail?.toString() !== user.email?.toString()) {
             throw new BadDataException(
-              "This promocode is assigned to a different user and cannot be used.",
+              "This promo code belongs to another account. Leave Promo Code empty to create the project without it.",
             );
           }
 
           if (promoCode.isPromoCodeUsed) {
-            throw new BadDataException("This promocode has already been used.");
+            throw new BadDataException(
+              "This promo code has already been used. Leave Promo Code empty to create the project without it.",
+            );
           }
 
           if (promoCode.resellerPlan?.monitorLimit) {
@@ -1135,7 +1137,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
           data.data.paymentProviderPromoCode,
         ))
       ) {
-        throw new BadDataException("Promo code is invalid.");
+        throw new BadDataException(
+          "This promo code is not valid. Check it for typos, or leave Promo Code empty to create the project without it.",
+        );
       }
 
       // check if promocode is valid.
@@ -1168,7 +1172,9 @@ export class ProjectService extends ProjectReferencesService<Model> {
     }
 
     if (existingProjectWithSameNameCount > 0) {
-      throw new BadDataException("Project with the same name already exists");
+      throw new BadDataException(
+        "You already have a project with the same name. Choose another name.",
+      );
     }
 
     data.data.createdOwnerName = user.name!;

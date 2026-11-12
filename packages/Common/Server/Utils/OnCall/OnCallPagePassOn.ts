@@ -30,7 +30,6 @@ import {
   getOnCallPassOnLevelChoices,
 } from "../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationExecutionStatus from "../../../Types/UserNotification/UserNotificationExecutionStatus";
-import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import AlertEpisodeService from "../../Services/AlertEpisodeService";
 import AlertService from "../../Services/AlertService";
 import IncidentEpisodeService from "../../Services/IncidentEpisodeService";
@@ -39,7 +38,6 @@ import OnCallDutyPolicyEscalationRuleService from "../../Services/OnCallDutyPoli
 import OnCallDutyPolicyExecutionLogService from "../../Services/OnCallDutyPolicyExecutionLogService";
 import OnCallDutyPolicyExecutionLogTimelineService from "../../Services/OnCallDutyPolicyExecutionLogTimelineService";
 import UserOnCallLogService from "../../Services/UserOnCallLogService";
-import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
 import UserService from "../../Services/UserService";
 import QueryHelper from "../../Types/Database/QueryHelper";
 import Select from "../../Types/Database/Select";
@@ -54,6 +52,7 @@ import OnCallAcknowledgementTimeout, {
   OnCallTimeoutRecordStanding,
   OnCallTimeoutRecordState,
 } from "./OnCallAcknowledgementTimeout";
+import { recordPassOn } from "./OnCallNotificationStatus";
 import { isOnCallPageAgainRun } from "../../../Types/OnCallDutyPolicy/OnCallAcknowledgementTimeout";
 import { isOnCallObserverPage } from "../../../Types/OnCallDutyPolicy/OnCallObserverPage";
 import { isOnCallPersonPage } from "../../../Types/OnCallDutyPolicy/OnCallPersonPage";
@@ -293,18 +292,14 @@ export default class OnCallPagePassOn {
      * The notification they escalated it from first: the record's feed
      * names the channel they escalated it by - "escalated the page ... via
      * SMS" - and reads it from that notification when their page, below,
-     * says they escalated it.
+     * says they escalated it. Over what its send or its provider wrote
+     * only (OnCallNotificationStatus.recordPassOn): an acknowledgement
+     * from it stays, and so does an escalation from it written already.
      */
     if (data.viaUserOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: data.viaUserOnCallLogTimelineId,
-        data: {
-          status: UserNotificationStatus.PassedOn,
-          statusMessage: ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
-        },
-        props: {
-          isRoot: true,
-        },
+      await recordPassOn({
+        userOnCallLogTimelineId: data.viaUserOnCallLogTimelineId,
+        statusMessage: ON_CALL_PAGE_PASSED_ON_DELIVERY_MESSAGE,
       });
     }
 

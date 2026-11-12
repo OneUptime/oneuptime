@@ -609,7 +609,8 @@ describe("Billing page: choosing the payment method autopay charges", () => {
       expect(
         await screen.findByTestId("confirm-modal-description"),
       ).toHaveTextContent(
-        "Error connecting to server. Please try again in few minutes.",
+        // Drawn as what happened and what to do next (#6836).
+        "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
       );
       expect(completeActionMock).toHaveBeenCalledTimes(1);
       expect(refreshToggle()).toBe("0");

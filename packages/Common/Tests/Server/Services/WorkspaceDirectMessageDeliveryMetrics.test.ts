@@ -56,11 +56,13 @@ import MattermostUtil from "../../../Server/Utils/Workspace/Mattermost/Mattermos
 import logger from "../../../Server/Utils/Logger";
 import WorkspaceProjectAuthToken from "../../../Models/DatabaseModels/WorkspaceProjectAuthToken";
 import ObjectID from "../../../Types/ObjectID";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import {
   WorkspaceMessageBlock,
   WorkspacePayloadMarkdown,
 } from "../../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import OnCallTimelineRows from "../TestingUtils/OnCallTimelineRows";
 
 const PROJECT_ID: ObjectID = new ObjectID(
   "66002222-0000-4000-8000-000000000001",
@@ -110,9 +112,10 @@ beforeEach(() => {
   jest
     .spyOn(WorkspaceNotificationLogService, "createWorkspaceLog")
     .mockResolvedValue({} as never);
-  jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+  // The page's timeline row, as written when the page went out.
+  const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
 });
 
 afterEach(() => {
