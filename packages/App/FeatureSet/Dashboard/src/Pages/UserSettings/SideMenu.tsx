@@ -79,15 +79,16 @@ const DashboardSideMenu: () => ReactElement = (): ReactElement => {
           icon: IconProp.Bell,
         },
         /*
-         * Right after the methods, because a rule is which of those methods
-         * to try, and after how long, when you are paged on call. One page
-         * with a tab per kind (incidents, incident episodes, alerts, alert
-         * episodes): it was four pages in two sections of their own, and
-         * most people come here to change one delay.
+         * Right after the methods, because how you are reached is which of
+         * those methods to try, and after how long, when you are paged on
+         * call: one ladder for everything, with a tab per kind and a card
+         * per severity behind it (#6820). It was "On-Call Rules", also the
+         * name of the project's rules under Incidents and Alerts (#6817);
+         * Search still finds it by that name.
          */
         {
           link: {
-            title: "On-Call Rules",
+            title: "How to Reach Me",
             to: RouteUtil.populateRouteParams(
               RouteMap[PageMap.USER_SETTINGS_ON_CALL_RULES] as Route,
             ),

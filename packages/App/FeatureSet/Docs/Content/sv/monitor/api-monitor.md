@@ -2,6 +2,9 @@
 
 En API-monitor anropar en HTTP-slutpunkt enligt ett schema, med den metod, de huvuden och den kropp du väljer, och kontrollerar vad som kommer tillbaka: statuskoden, svarstiden, huvudena och kroppen. Använd den för REST-, JSON- och GraphQL-slutpunkter, hälsokontroller och alla anrop dina användare är beroende av.
 
+> [!TIP]
+> Ny här? Följ guiden först: [Få veta när din webbplats eller ditt API går ner](/docs/guides/website-down).
+
 :::cards
 - [Skapa monitorn](#skapa-en-api-monitor): Sex steg i instrumentpanelen.
 - [Konfigurationsalternativ](#konfigurationsalternativ): Metod, huvuden, kropp, omdirigeringar, certifikat, tidsgränser och återförsök.

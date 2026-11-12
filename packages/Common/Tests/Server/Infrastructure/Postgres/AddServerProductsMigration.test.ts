@@ -1,5 +1,5 @@
 import { AddProductFeedback1809123000000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123000000-AddProductFeedback";
-import { AddServerProducts1809123200000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123200000-AddServerProducts";
+import { AddServerProducts1809123600000 } from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/1809123600000-AddServerProducts";
 import SchemaMigrations from "../../../../Server/Infrastructure/Postgres/SchemaMigrations/Index";
 import GlobalConfig from "../../../../Models/DatabaseModels/GlobalConfig";
 import { getTableColumns } from "../../../../Types/Database/TableColumn";
@@ -23,7 +23,7 @@ import path from "path";
  * against the models.
  */
 
-const MIGRATION_TIMESTAMP: string = "1809123200000";
+const MIGRATION_TIMESTAMP: string = "1809123600000";
 const MIGRATION_BASE_NAME: string = "AddServerProducts";
 const MIGRATION_DIRECTORY: string = path.join(
   __dirname,
@@ -38,7 +38,7 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
       steps.push(sql);
     },
   } as unknown as QueryRunner;
-  const migration: MigrationInterface = new AddServerProducts1809123200000();
+  const migration: MigrationInterface = new AddServerProducts1809123600000();
 
   if (direction === "up") {
     await migration.up(runner);
@@ -49,7 +49,7 @@ async function record(direction: "up" | "down"): Promise<Array<string>> {
   return steps;
 }
 
-describe("AddServerProducts1809123200000", () => {
+describe("AddServerProducts1809123600000", () => {
   test("adds the one nullable jsonb column, rewriting no row", async () => {
     expect(await record("up")).toEqual([
       `ALTER TABLE "GlobalConfig" ADD "serverProducts" jsonb`,
@@ -89,17 +89,17 @@ describe("AddServerProducts1809123200000", () => {
         ),
       ),
     ).toBe(true);
-    expect(new AddServerProducts1809123200000().name).toBe(
+    expect(new AddServerProducts1809123600000().name).toBe(
       `${MIGRATION_BASE_NAME}${MIGRATION_TIMESTAMP}`,
     );
 
     const migrations: Array<unknown> = SchemaMigrations as Array<unknown>;
-    const index: number = migrations.indexOf(AddServerProducts1809123200000);
+    const index: number = migrations.indexOf(AddServerProducts1809123600000);
 
     expect(index).toBeGreaterThan(-1);
     expect(
       migrations.filter((migration: unknown): boolean => {
-        return migration === AddServerProducts1809123200000;
+        return migration === AddServerProducts1809123600000;
       }).length,
     ).toBe(1);
     expect(index).toBeGreaterThan(

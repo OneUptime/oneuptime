@@ -14,6 +14,7 @@ import {
   PROXMOX_EXAMPLE_CLUSTER_NAME,
   PROXMOX_EXAMPLE_NODES,
   PROXMOX_EXPORTER_CONTAINER,
+  PROXMOX_FAILOVER_CONTAINER,
   PROXMOX_NATIVE_PUSH_PATH,
   PROXMOX_PUSH_HOST_PLACEHOLDER,
   PROXMOX_TOKEN_ID,
@@ -490,7 +491,7 @@ describe.each(AGENT_METHODS)(
       ).toEqual(["Shell", "Proxmox web UI"]);
     });
 
-    test("the verify step lists the three containers and the ready line", () => {
+    test("the verify step lists the four containers and the ready line", () => {
       const verify: string =
         stepTitled(guide, "Verify the installation").markdown || "";
       expect(verify).toContain("docker compose ps");
@@ -499,6 +500,7 @@ describe.each(AGENT_METHODS)(
       );
       for (const container of [
         PROXMOX_AGENT_CONTAINER,
+        PROXMOX_FAILOVER_CONTAINER,
         PROXMOX_EXPORTER_CONTAINER,
         PROXMOX_AI_AGENT_CONTAINER,
       ]) {
@@ -526,11 +528,12 @@ describe.each(AGENT_METHODS)(
       }
     });
 
-    test("has Advanced topics for settings, exporter, data, config, logs, labels, AI and upgrades", () => {
+    test("has Advanced topics for settings, exporter, data, node failover, config, logs, labels, AI and upgrades", () => {
       expect(topicTitles(guide.advanced)).toEqual([
         "Environment variables",
         "Use your own prometheus-pve-exporter",
         "What the agent collects",
+        "When a node goes down",
         "The collector configuration",
         "Ship Proxmox service logs",
         "Tag the cluster with project labels",
@@ -1491,7 +1494,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
       "What the agent collects",
     ).markdown;
     expect(collected).toContain(
-      "The agent scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST`, and its node collectors once for each node in `PVE_NODES`.",
+      "The agent scrapes the exporter every 30 seconds: its cluster collectors once, at `PVE_HOST` (or the node it reads the cluster from while `PVE_HOST` is down), and its node collectors once for each node in `PVE_NODES`.",
     );
     expect(collected).toContain("| **Start-on-boot** | `pve_onboot_status`");
   });
@@ -1513,15 +1516,50 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     const clusterJob: Record<string, any> = jobs[0]!;
     const nodesJob: Record<string, any> = jobs[1]!;
 
-    test("the cluster collectors once, at PVE_HOST, with the node collectors off", () => {
-      expect(clusterJob["params"]).toEqual({
-        target: ["${env:PVE_HOST}"],
-        cluster: ["1"],
-        node: ["0"],
-      });
-      expect(clusterJob["static_configs"]).toEqual([
-        { targets: ["${env:PVE_EXPORTER_URL}"] },
+    /*
+     * The cluster collectors are read at the node pve-api-failover picked
+     * (PVE_HOST while its API answers, else the next node of PVE_NODES that
+     * does), from the file it writes: file_sd, with the chosen node as the
+     * exporter's target and the exporter as what is scraped. The instance
+     * stays the exporter's address, as it was with a static target, so a
+     * change of node changes nothing about the series.
+     */
+    test("the cluster collectors once, at the node pve-api-failover picked, with the node collectors off", () => {
+      expect(clusterJob["params"]).toEqual({ cluster: ["1"], node: ["0"] });
+      expect(clusterJob["static_configs"]).toBeUndefined();
+      expect(clusterJob["file_sd_configs"]).toEqual([
+        {
+          files: ["/etc/oneuptime/pve-api/target.json"],
+          refresh_interval: "30s",
+        },
       ]);
+      expect(clusterJob["relabel_configs"]).toEqual([
+        { source_labels: ["__address__"], target_label: "__param_target" },
+        {
+          target_label: "__address__",
+          replacement: "${env:PVE_EXPORTER_URL}",
+        },
+      ]);
+    });
+
+    test("the file the cluster scrape reads is the one pve-api-failover writes, through one volume", () => {
+      const compose: Record<string, any> = composeFile();
+      const collector: Record<string, any> =
+        compose["services"][PROXMOX_AGENT_CONTAINER];
+      const failover: Record<string, any> =
+        compose["services"]["pve-api-failover"];
+
+      expect(failover["container_name"]).toBe(PROXMOX_FAILOVER_CONTAINER);
+      expect(collector["volumes"]).toContain(
+        "pve-api-target:/etc/oneuptime/pve-api:ro",
+      );
+      expect(failover["volumes"]).toEqual([
+        "pve-api-target:/run/oneuptime/pve-api",
+      ]);
+      expect(failover["command"][0]).toContain("dir=/run/oneuptime/pve-api\n");
+      expect(failover["command"][0]).toContain('"$$dir/target.json"');
+      expect(compose["volumes"]["pve-api-target"]).toBeDefined();
+      expect(collector["depends_on"]).toEqual(["pve-api-failover"]);
     });
 
     test("the node collectors once per node in PVE_NODES, with the cluster collectors off", () => {
@@ -1772,6 +1810,7 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     expect(containers.sort()).toEqual(
       [
         PROXMOX_AGENT_CONTAINER,
+        PROXMOX_FAILOVER_CONTAINER,
         PROXMOX_EXPORTER_CONTAINER,
         PROXMOX_AI_AGENT_CONTAINER,
       ].sort(),
@@ -1802,5 +1841,126 @@ describe("drift guards against agents/ProxmoxAgent", () => {
     const script: string = readAgentFile("troubleshoot.sh");
     expect(script).toContain('-d|--dir)      DIR="${2:-}"; shift 2 ;;');
     expect(script).toContain(`DIR="${PROXMOX_AGENT_INSTALL_DIR}"`);
+  });
+});
+
+/*
+ * #6844: "what happens if the node the agent reads goes down?" The agent
+ * reads the cluster from the next node of PVE_NODES whose API answers
+ * (pve-api-failover for the collector, the AI agent's own failover), so the
+ * guide no longer sends anyone to set up a virtual IP for PVE_HOST, and says
+ * what is still a single point of failure: the machine the agent runs on.
+ */
+describe("when a node goes down", () => {
+  const agentMethods: Array<ProxmoxConnectMethod> = [
+    "install-script",
+    "docker-compose",
+  ];
+
+  test.each(agentMethods)(
+    "%s: the topic says the cluster is read from the next node, how to see which, and what it cannot cover",
+    (method: ProxmoxConnectMethod) => {
+      const topic: SetupGuideTopic = topicTitled(
+        guideFor(method).advanced,
+        "When a node goes down",
+      );
+
+      expect(topic.summary).toBe(
+        "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.",
+      );
+      expect(topic.markdown).toContain(
+        `\`${PROXMOX_FAILOVER_CONTAINER}\` container checks that node`,
+      );
+      expect(topic.markdown).toContain(
+        codeBlock("bash", `docker logs ${PROXMOX_FAILOVER_CONTAINER}`),
+      );
+      expect(topic.markdown).toContain("**Node Offline** fires for it");
+      expect(topic.markdown).toContain("**Cluster Stopped Reporting** fires");
+      expect(topic.markdown).toContain("`ha-manager add vm:<vmid>`");
+      expect(topic.markdown).toContain("run one agent per cluster");
+      expect(topic.markdown).toContain(
+        "(/docs/telemetry/proxmox#when-a-node-goes-down)",
+      );
+    },
+  );
+
+  test.each(agentMethods)(
+    "%s: nothing tells the reader to put a virtual IP in PVE_HOST any more",
+    (method: ProxmoxConnectMethod) => {
+      const markdown: string = getSetupGuideMarkdown(guideFor(method));
+
+      expect(markdown).not.toContain("or better a virtual IP");
+      expect(markdown).not.toContain("or better, a virtual IP");
+      expect(markdown).not.toContain("a virtual IP that fails over");
+      expect(markdown).not.toContain("goes dark exactly when that node dies");
+      // PVE_NODES is still each node's own address, never a virtual IP.
+      expect(markdown).toContain("never a virtual IP");
+    },
+  );
+
+  test("the install script step says the agent falls back to the other nodes", () => {
+    const install: SetupGuideStep = stepTitled(
+      guideFor("install-script"),
+      "Install the agent",
+    );
+
+    expect(install.details).toContain(
+      "While its API does not answer, the agent reads the cluster from the next node in the list below.",
+    );
+    expect(install.details).toContain(
+      "The agent also reads the cluster from these when the first node is down.",
+    );
+  });
+
+  test("the Docker Compose step says PVE_HOST needs no virtual IP", () => {
+    const install: string =
+      stepTitled(guideFor("docker-compose"), "Install the agent").markdown ||
+      "";
+
+    expect(install).toContain(
+      "Set `PVE_HOST` to any node of the cluster: while its API does not answer, the agent reads the cluster from the next node in `PVE_NODES`, so it needs no virtual IP.",
+    );
+  });
+
+  test("the environment table says both PVE_HOST and PVE_NODES are where the cluster is read from", () => {
+    const rows: Map<string, { required: string; description: string }> =
+      envTableRows(guideFor("install-script"));
+
+    expect(rows.get("PVE_HOST")?.description).toContain(
+      "While its API does not answer, both use the next node in `PVE_NODES` that does",
+    );
+    expect(rows.get("PVE_NODES")?.description).toContain(
+      "The agent also reads the cluster from the next of them when `PVE_HOST` goes down.",
+    );
+  });
+
+  test("the prerequisites say where the agent should run", () => {
+    const prerequisites: string = (
+      guideFor("install-script").prerequisites || []
+    ).join("\n");
+
+    expect(prerequisites).toContain(
+      "Ideally a machine outside the cluster, or a VM that Proxmox HA restarts on another node",
+    );
+  });
+
+  test("the native push shows no failover topic: every node pushes for itself", () => {
+    expect(topicTitles(guideFor("native-push").advanced)).not.toContain(
+      "When a node goes down",
+    );
+  });
+
+  test("the AI agent gets PVE_NODES, and the failover container every node to check and the token", () => {
+    expect(composeVariables(PROXMOX_AI_AGENT_CONTAINER).get("PVE_NODES")).toBe(
+      "",
+    );
+    const failover: Map<string, string | null> =
+      composeVariables("pve-api-failover");
+
+    expect(failover.get("PVE_HOST")).toBe("localhost");
+    expect(failover.get("PVE_NODES")).toBe("[${PVE_HOST:-localhost");
+    expect(failover.get("PVE_API_TOKEN_ID")).toBe("");
+    expect(failover.get("PVE_API_TOKEN_SECRET")).toBe("");
+    expect(failover.get("PVE_VERIFY_SSL")).toBe("false");
   });
 });

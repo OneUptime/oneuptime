@@ -753,7 +753,7 @@ export function buildEstate(scenario, loadedAt) {
         : new Date(loadedAt - (disconnected ? 3 * DAY : MINUTE)),
     pveVersion: estate === "new" ? undefined : "9.0.10",
     agentVersion:
-      estate === "native" || estate === "new" ? undefined : "0.161.1",
+      estate === "native" || estate === "new" ? undefined : "0.161.2",
     nodeCount: nodes.length,
     onlineNodeCount: nodes.filter((record) => {
       return record.isUp;

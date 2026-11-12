@@ -86,7 +86,7 @@ Filtrera listan efter **Användare**, **Status** eller **Team**. Klicka på en r
 | --- | --- |
 | **Profil** | Namn, e-postadress, bild och användar-ID. |
 | **Team** | Teamen personen är med i. Lägg till eller ta bort ett team här. |
-| **Beredskap**, **Aviseringsmetoder**, **Jourregler** | Om personen kan larmas, och hur. Visas för Project Owners, Project Admins, personen själv och alla som kan läsa andras aviseringsregler. Se [Beredskap och rapporter](/docs/on-call/readiness). |
+| **Beredskap**, **Aviseringsmetoder**, **Så når man mig** | Om personen kan larmas, och hur. Visas för Project Owners, Project Admins, personen själv och alla som kan läsa andras aviseringsregler. Se [Beredskap och rapporter](/docs/on-call/readiness). |
 | **Anpassade fält** | Projektets anpassade fält för personer, om det har några. |
 | **Ta bort från projekt** | Ta bort personen från projektet. |
 

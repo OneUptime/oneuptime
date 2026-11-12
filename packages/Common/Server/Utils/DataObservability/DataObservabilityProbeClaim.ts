@@ -64,6 +64,7 @@ export const CLAIM_DUE_TABLE_HEALTH_STORES_STATEMENT: string = `WITH "due" AS (
     AND pr."deletedAt" IS NULL
     AND p."deletedAt" IS NULL
     AND p."isBlocked" = false
+    AND p."isSampleProject" = false
     AND (p."paymentProviderSubscriptionStatus" IS NULL
          OR p."paymentProviderSubscriptionStatus" = ANY($5::text[]))
     AND (p."paymentProviderMeteredSubscriptionStatus" IS NULL

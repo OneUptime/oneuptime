@@ -100,7 +100,7 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Matter
 3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer som ett direktmeddelande från projektets bot.
 :::
 
-Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Mattermost från och med då. Ändra vilka larm den får under **Användarinställningar** > **Jourregler**. Varje larm har en länk för att bekräfta det och en för att eskalera det. När du kopplar från ditt Mattermost-konto tas den här metoden och jourreglerna som använder den bort.
+Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Mattermost från och med då. Ändra vilka larm den får under **Användarinställningar** > **Så når man mig**. Varje larm har en länk för att bekräfta det och en för att eskalera det. När du kopplar från ditt Mattermost-konto tas den här metoden och jourreglerna som använder den bort.
 
 ## Aviseringsregler
 
