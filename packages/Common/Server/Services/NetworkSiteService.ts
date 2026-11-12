@@ -39,6 +39,9 @@ import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCom
 import { FindWhereProperty } from "../../Types/BaseDatabase/Query";
 import BadDataException from "../../Types/Exception/BadDataException";
 import MonitorType from "../../Types/Monitor/MonitorType";
+import MonitoringOff, {
+  MONITORED_SELECT,
+} from "../../Utils/Monitor/MonitoringOff";
 import ObjectID from "../../Types/ObjectID";
 import OneUptimeDate from "../../Types/Date";
 import PositiveNumber from "../../Types/PositiveNumber";
@@ -243,6 +246,16 @@ interface ParentChangeCarryForward {
  */
 interface DeleteCarryForward {
   sitesToDelete: Array<Model>;
+}
+
+/*
+ * Why a site's alert was resolved when nothing at the site reports a status
+ * any more (NetworkSiteService.recomputeRollupForSite, issue #6965), in the
+ * words of the alert a monitor whose monitoring is turned off resolves
+ * (Server/Utils/Monitor/MonitorTurnedOff).
+ */
+export function getNothingReportsRootCause(siteName: string): string {
+  return mdText`No device at network site **${siteName}** reports a status any more: the monitors behind its devices have their monitoring turned off, are archived or were deleted. This alert was set to resolve on its own once the site recovered, and nothing checks the site now, so it was resolved now. If a device at the site reports a problem again, a new alert is opened.`.toString();
 }
 
 export class Service extends ProjectReferencesService<Model> {
@@ -2736,7 +2749,40 @@ export class Service extends ProjectReferencesService<Model> {
     const currentStatusId: string | null =
       site.currentMonitorStatusId?.toString() || null;
 
-    // No devices contribute -> leave the status alone, just stamp the run.
+    /*
+     * The subtree has devices and not one of them reports anything any
+     * more - none has a verdict, and none is held back by a maintenance
+     * window - while the site still holds the status they last rolled up
+     * to. That status is frozen: nothing will ever move it again. It
+     * happens when the monitor behind every device here has its monitoring
+     * turned off or is archived (issue #6965), or was deleted. So the site
+     * goes back to no status, and its open alert is resolved - as
+     * MonitorTurnedOff resolves a monitor's own - rather than an "Offline"
+     * nothing checks staying on the map and the alert staying open. A
+     * device that reports again rolls the site up again, and opens a new
+     * alert if it is unhealthy.
+     *
+     * Only then. A subtree with no devices at all keeps its status, as it
+     * always has; so does a project whose statuses could not be read, as
+     * a stamp is only a verdict once its status row is known - a device
+     * with one would otherwise read as one that reports nothing.
+     */
+    if (
+      !rolledUpStatusId &&
+      currentStatusId &&
+      deviceStates.length > 0 &&
+      priorityByStatusId.size > 0 &&
+      suppressedDeviceCount === 0 &&
+      SiteStatusRollupUtil.reportingDeviceCount(deviceStates, now) === 0
+    ) {
+      await this.clearStatusNothingReports({
+        site: site,
+        now: now,
+      });
+      return;
+    }
+
+    // Nothing to change -> leave the status alone, just stamp the run.
     if (!rolledUpStatusId || rolledUpStatusId === currentStatusId) {
       await this.updateColumnsByIdWithoutHooks({
         id: site.id,
@@ -2799,6 +2845,71 @@ export class Service extends ProjectReferencesService<Model> {
     } catch (err) {
       logger.error(
         `Network site rollup: error syncing alert for site ${site.id.toString()}:`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * A site nothing at it reports on any more (see recomputeRollupForSite)
+   * goes back to no status: the status, the open timeline row and the
+   * tracked alert all end now. The alert is resolved with the reason, and
+   * the tracked id is cleared, so the next transition to an unhealthy
+   * status opens a new one. Alert bookkeeping never breaks the rollup.
+   */
+  private async clearStatusNothingReports(data: {
+    site: Model;
+    now: Date;
+  }): Promise<void> {
+    const site: Model = data.site;
+
+    if (!site.id || !site.projectId) {
+      return;
+    }
+
+    await this.updateColumnsByIdWithoutHooks({
+      id: site.id,
+      data: {
+        currentMonitorStatusId: null,
+        lastRollupAt: data.now,
+      },
+    });
+
+    await NetworkSiteStatusTimelineService.updateBy({
+      query: {
+        siteId: site.id,
+        endsAt: QueryHelper.isNull(),
+      },
+      data: {
+        endsAt: data.now,
+      },
+      limit: LIMIT_MAX,
+      skip: 0,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!site.currentActiveAlertId) {
+      return;
+    }
+
+    try {
+      await this.resolveSiteAlert({
+        projectId: site.projectId,
+        alertId: site.currentActiveAlertId,
+        rootCause: getNothingReportsRootCause(site.name || "site"),
+      });
+
+      await this.updateColumnsByIdWithoutHooks({
+        id: site.id,
+        data: {
+          currentActiveAlertId: null,
+        },
+      });
+    } catch (err) {
+      logger.error(
+        `Network site rollup: error resolving the alert of site ${site.id.toString()}, which nothing reports on any more:`,
       );
       logger.error(err);
     }
@@ -3108,6 +3219,18 @@ export class Service extends ProjectReferencesService<Model> {
    * The status row is read at most once per call, and only when at least one
    * collected device is monitor-backed, so an all-SNMP estate costs no extra
    * query.
+   *
+   * A monitor that is not checked - its monitoring turned off, or archived
+   * (MonitoringOff.isMonitored) - can still change status: by hand, or by an
+   * incident someone declares on it. That status is no verdict on anything
+   * (issue #6965), so:
+   *
+   *   - a monitor-backed device bound to it is stamped empty - no status,
+   *     isReachable NULL, Pending - just as refreshStampedMonitorStatus
+   *     stamps it, so its site rolls up without it;
+   *   - a device it reaches only through its steps, or a probe-polled device
+   *     that names it in monitorId, is not stamped at all: its poll decides
+   *     its health, and the status a checked monitor stamped stays.
    */
   @CaptureSpan()
   public async onMonitorStatusChanged(data: {
@@ -3130,6 +3253,7 @@ export class Service extends ProjectReferencesService<Model> {
           _id: true,
           monitorType: true,
           monitorSteps: true,
+          ...MONITORED_SELECT,
         },
         limit: LIMIT_MAX,
         skip: 0,
@@ -3138,10 +3262,39 @@ export class Service extends ProjectReferencesService<Model> {
         },
       });
 
+      /*
+       * Whether each monitor is checked, by id. The Network Device monitors
+       * are known from the read above; any other monitor a device is bound
+       * to is read below, once, and only if a device is bound to one.
+       */
+      const isMonitoredById: Map<string, boolean> = new Map<string, boolean>();
+
+      for (const monitor of monitors) {
+        if (monitor.id) {
+          isMonitoredById.set(
+            monitor.id.toString(),
+            MonitoringOff.isMonitored(monitor),
+          );
+        }
+      }
+
+      // Only a checked Network Device monitor stamps the devices its steps name.
+      const checkedNetworkDeviceMonitors: Array<Monitor> = monitors.filter(
+        (monitor: Monitor): boolean => {
+          return MonitoringOff.isMonitored(monitor);
+        },
+      );
+
       const referencedDeviceIds: Array<string> =
-        monitors.length > 0
-          ? NetworkDeviceHydrationUtil.getReferencedNetworkDeviceIds(monitors)
+        checkedNetworkDeviceMonitors.length > 0
+          ? NetworkDeviceHydrationUtil.getReferencedNetworkDeviceIds(
+              checkedNetworkDeviceMonitors,
+            )
           : [];
+
+      const referencedByCheckedMonitor: Set<string> = new Set<string>(
+        referencedDeviceIds,
+      );
 
       /*
        * Deduplicated by id, because a device can legitimately be reached
@@ -3175,6 +3328,8 @@ export class Service extends ProjectReferencesService<Model> {
               siteId: true,
               // Decides whether isReachable is stamped alongside the status.
               monitoringMethod: true,
+              // Which monitor's verdict a monitor-backed device takes.
+              monitorId: true,
             },
             limit: LIMIT_MAX,
             skip: 0,
@@ -3196,6 +3351,8 @@ export class Service extends ProjectReferencesService<Model> {
             siteId: true,
             // Decides whether isReachable is stamped alongside the status.
             monitoringMethod: true,
+            // Which monitor's verdict a monitor-backed device takes.
+            monitorId: true,
           },
           limit: LIMIT_MAX,
           skip: 0,
@@ -3211,6 +3368,94 @@ export class Service extends ProjectReferencesService<Model> {
         return;
       }
 
+      const changedMonitorIds: Set<string> = new Set<string>(
+        data.monitorIds.map((monitorId: ObjectID): string => {
+          return monitorId.toString();
+        }),
+      );
+
+      // The changed monitor a device is bound to through monitorId, if any.
+      const getBoundChangedMonitorId: (
+        device: NetworkDevice,
+      ) => string | null = (device: NetworkDevice): string | null => {
+        const boundMonitorId: string | undefined = device.monitorId?.toString();
+
+        return boundMonitorId && changedMonitorIds.has(boundMonitorId)
+          ? boundMonitorId
+          : null;
+      };
+
+      const boundMonitorIdsToRead: Array<string> = Array.from(
+        new Set<string>(
+          devices
+            .map((device: NetworkDevice): string | null => {
+              return getBoundChangedMonitorId(device);
+            })
+            .filter((monitorId: string | null): monitorId is string => {
+              return monitorId !== null && !isMonitoredById.has(monitorId);
+            }),
+        ),
+      );
+
+      if (boundMonitorIdsToRead.length > 0) {
+        const boundMonitors: Array<Monitor> = await MonitorService.findBy({
+          query: {
+            _id: QueryHelper.any(boundMonitorIdsToRead),
+            projectId: data.projectId,
+          },
+          select: {
+            _id: true,
+            ...MONITORED_SELECT,
+          },
+          limit: LIMIT_MAX,
+          skip: 0,
+          props: {
+            isRoot: true,
+          },
+        });
+
+        for (const monitor of boundMonitors) {
+          if (monitor.id) {
+            isMonitoredById.set(
+              monitor.id.toString(),
+              MonitoringOff.isMonitored(monitor),
+            );
+          }
+        }
+      }
+
+      /*
+       * What each device gets: the status, an empty stamp (its own monitor
+       * is not checked), or nothing (only a monitor that is not checked
+       * reaches it). A monitor not found here counts as checked, as
+       * isMonitored reads it.
+       */
+      const devicesToStamp: Array<NetworkDevice> = [];
+      const devicesToEmpty: Array<NetworkDevice> = [];
+
+      for (const device of devices) {
+        if (!device.id) {
+          continue;
+        }
+
+        const boundMonitorId: string | null = getBoundChangedMonitorId(device);
+        const isBoundMonitorUnchecked: boolean =
+          boundMonitorId !== null &&
+          isMonitoredById.get(boundMonitorId) === false;
+
+        if (!isBoundMonitorUnchecked) {
+          devicesToStamp.push(device);
+        } else if (
+          NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
+            device.monitoringMethod,
+          )
+        ) {
+          devicesToEmpty.push(device);
+        } else if (referencedByCheckedMonitor.has(device.id.toString())) {
+          devicesToStamp.push(device);
+        }
+      }
+
       /*
        * Resolve the status row lazily - once, and only if a monitor-backed
        * device is in the set - because it is only needed to derive
@@ -3223,7 +3468,7 @@ export class Service extends ProjectReferencesService<Model> {
        * pill keeps moving; a stale reachability is the lesser harm next to
        * a device that stops reporting altogether.
        */
-      const hasMonitorBackedDevice: boolean = devices.some(
+      const hasMonitorBackedDevice: boolean = devicesToStamp.some(
         (device: NetworkDevice) => {
           return NetworkDeviceMonitoringMethodUtil.isMonitorBacked(
             device.monitoringMethod,
@@ -3262,11 +3507,18 @@ export class Service extends ProjectReferencesService<Model> {
         }
       }
 
-      for (const device of devices) {
-        if (!device.id) {
-          continue;
-        }
+      // Its own monitor is not checked: no verdict, as if nothing were bound.
+      for (const device of devicesToEmpty) {
+        await NetworkDeviceService.updateColumnsByIdWithoutHooks({
+          id: device.id!,
+          data: {
+            currentMonitorStatusId: null,
+            isReachable: null,
+          },
+        });
+      }
 
+      for (const device of devicesToStamp) {
         const stamp: PartialEntity<NetworkDevice> = {
           currentMonitorStatusId: data.monitorStatusId,
         };
@@ -3286,13 +3538,13 @@ export class Service extends ProjectReferencesService<Model> {
         }
 
         await NetworkDeviceService.updateColumnsByIdWithoutHooks({
-          id: device.id,
+          id: device.id!,
           data: stamp,
         });
       }
 
       const distinctSiteIds: Map<string, ObjectID> = new Map();
-      for (const device of devices) {
+      for (const device of [...devicesToEmpty, ...devicesToStamp]) {
         if (device.siteId) {
           distinctSiteIds.set(device.siteId.toString(), device.siteId);
         }

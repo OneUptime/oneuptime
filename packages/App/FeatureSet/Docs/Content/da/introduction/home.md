@@ -93,6 +93,10 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 
 **Kræver opmærksomhed** viser ved navn det, tallene tæller: de åbne hændelser, de åbne advarsler, de monitorer, der ikke er i drift, SLO'erne i fare og de igangværende vedligeholdelser, det mest presserende først. Hver række viser sin alvor eller status, siger, hvornår en hændelse eller advarsel begyndte, og hvornår vedligeholdelsen slutter, og åbner posten. Hver slags viser op til fem, med **Vis alle** for resten, som åbner den samme liste som dens tal. Når intet er åbent, står der **Intet kræver din opmærksomhed**.
 
+### Opsætningens tilstand
+
+Når noget i projektets opsætning ville forhindre, at folk får besked, slutter **Kræver opmærksomhed** med **Opsætning**: hvor mange ting der bør ses på. Den åbner **Opsætningens tilstand**, som viser, hvad der er sat forkert op, det værste først, under **Tilkald når ikke frem**, **Værd at rette** og **Forslag**: en monitor, der ikke tilkalder nogen, en vagtpolitik, som intet kører, en person, der ikke kan tilkaldes, SMS slået fra, en vagttidsplan uden nogen på vagt, en statusside, der ikke viser nogen monitor. Hvert fund siger med én sætning, hvad der er galt, med knappen, der åbner rettelsen, og en monitors fund er de brud, som dens kort **Når den går ned** nævner. Et fund, som jeres team bevidst lader være, kan skjules med en begrundelse, for alle, og gendannes fra **Afvist**. Søg finder siden som **Opsætningens tilstand**, og Spørg AI svarer på "er min opsætning i orden?" ud fra den.
+
 ### Dit projekt
 
 **Dit projekt** tæller projektets **Monitorer**, **Statussider**, **Vagtpolitikker**, **SLOs**, **Tjenester**, **Dashboards** og **Arbejdsgange**, uden de arkiverede. Hver række åbner sin liste. En slags, som projektet ikke har nogen af, viser **Konfigurer** i stedet for et tal.
