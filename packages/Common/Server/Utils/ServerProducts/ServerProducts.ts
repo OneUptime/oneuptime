@@ -238,7 +238,7 @@ export class ServerProductsClass {
   }): Promise<void> {
     if (!isServerProductsPreset(data.preset)) {
       throw new BadDataException(
-        "preset must be monitoring-and-status-pages, incident-response or everything.",
+        "Choose a preset: monitoring-and-status-pages, incident-response or everything.",
       );
     }
 
@@ -263,11 +263,15 @@ export class ServerProductsClass {
     byUserId: ObjectID | null;
   }): Promise<void> {
     if (!isProductKey(data.product)) {
-      throw new BadDataException("product must be one of the products.");
+      throw new BadDataException(
+        "Choose one of the products, by its key, such as logs or status-pages.",
+      );
     }
 
     if (typeof data.isOn !== "boolean") {
-      throw new BadDataException("isOn must be true or false.");
+      throw new BadDataException(
+        "Say whether to switch the product on: isOn must be true or false.",
+      );
     }
 
     if (!isSwitchableProduct(data.product)) {

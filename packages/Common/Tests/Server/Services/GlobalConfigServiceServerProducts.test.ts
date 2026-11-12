@@ -101,7 +101,7 @@ describe("who may write the server's products", () => {
 
       await expect(refusal).rejects.toBeInstanceOf(NotAuthorizedException);
       await expect(refusal).rejects.toThrow(
-        "serverProducts is changed on Admin Dashboard > Settings > Products, and cannot be written here.",
+        "The products switched off on this server are changed on Admin Dashboard > Settings > Products, and cannot be written here.",
       );
     },
   );

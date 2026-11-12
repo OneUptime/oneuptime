@@ -845,7 +845,7 @@ export class Service extends DatabaseService<Model> {
     }
 
     throw new NotAuthorizedException(
-      "serverProducts is changed on Admin Dashboard > Settings > Products, and cannot be written here.",
+      "The products switched off on this server are changed on Admin Dashboard > Settings > Products, and cannot be written here.",
     );
   }
 

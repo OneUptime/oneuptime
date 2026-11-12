@@ -296,8 +296,14 @@ describe("what an admin changes", () => {
   });
 
   test.each([
-    [{ product: "nope", isOn: false }, "product must be one of the products."],
-    [{ product: ProductKey.Logs, isOn: "no" }, "isOn must be true or false."],
+    [
+      { product: "nope", isOn: false },
+      "Choose one of the products, by its key, such as logs or status-pages.",
+    ],
+    [
+      { product: ProductKey.Logs, isOn: "no" },
+      "Say whether to switch the product on: isOn must be true or false.",
+    ],
     [
       { product: ProductKey.ProjectSettings, isOn: false },
       "Users, Teams and Project Settings are always on: every project needs them to run itself.",
