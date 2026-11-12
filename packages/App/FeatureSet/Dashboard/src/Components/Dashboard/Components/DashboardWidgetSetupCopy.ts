@@ -82,7 +82,10 @@ export const getDashboardWidgetPlace: (data: {
  * settings, is true there and in the preview alike.
  */
 export const DASHBOARD_WIDGET_SETUP_LINES: Readonly<
-  Record<DashboardWidgetSetupNeed, Readonly<Record<DashboardWidgetPlace, string>>>
+  Record<
+    DashboardWidgetSetupNeed,
+    Readonly<Record<DashboardWidgetPlace, string>>
+  >
 > = {
   [DashboardWidgetSetupNeed.Metric]: {
     [DashboardWidgetPlace.EditedBoard]: translationKey(
