@@ -4,6 +4,7 @@ import {
   getNestedEnglishEntries,
   NestedEnglishEntry,
   scanSourceRoots,
+  SOURCE_ROOTS,
   SourceScanResult,
 } from "../../FeatureSet/Dashboard/scripts/i18n/ExtractStrings";
 import { describe, expect, test } from "@jest/globals";
@@ -23,9 +24,10 @@ import { Translator } from "Common/Types/Translator";
  * their English: whole pages - archives, label and owner rules, setup
  * guides, billing, a user's on-call methods, monitor step summaries, AI
  * insights, the telemetry tables' columns - read in English under a menu and
- * headings in Persian. Every string the Dashboard's own pages and components
- * draw now reads in Persian, or stays as written on purpose: a name, a code
- * or an example, on a same-as-English list. The sentences with code that
+ * headings in Persian. Every string the Dashboard draws - its own pages and
+ * components, Common's components, the models' field names and the catalogs
+ * npm run i18n:extract reads - now reads in Persian, or stays as written on
+ * purpose: a name, a code or an example, on a same-as-English list. The sentences with code that
  * #6733 translates, and the authenticator apps help it names, are left to
  * it.
  *
@@ -253,10 +255,13 @@ function isLeftToIssue6733(key: string): boolean {
   );
 }
 
-// What the Dashboard's own pages and components draw, as npm run i18n:extract reads them.
-const SCAN: SourceScanResult = scanSourceRoots([
-  { directory: "packages/App/FeatureSet/Dashboard/src", kind: "ui" },
-]);
+/*
+ * What the Dashboard draws, read from every source npm run i18n:extract
+ * reads: its own pages and components, Common's components, the database
+ * and analytics models' field names, and the catalogs and helpers whose
+ * words it shows.
+ */
+const SCAN: SourceScanResult = scanSourceRoots(SOURCE_ROOTS);
 const PAGE_KEYS: Array<string> = Object.keys(
   getEnglishEntries(SCAN.strings),
 ).filter((key: string): boolean => {
@@ -266,12 +271,13 @@ const NESTED_KEYS: Array<NestedEnglishEntry> = getNestedEnglishEntries(
   SCAN.strings,
 );
 
-describe("the Dashboard's own pages and components, in Persian", () => {
-  test("the scan reads every page and component: tens of thousands of strings", () => {
-    expect(PAGE_KEYS.length).toBeGreaterThan(25000);
+describe("what the Dashboard draws, in Persian", () => {
+  test("the scan reads every source the extractor reads: tens of thousands of strings", () => {
+    expect(SOURCE_ROOTS.length).toBeGreaterThan(20);
+    expect(PAGE_KEYS.length).toBeGreaterThan(30000);
     expect(NESTED_KEYS.length).toBeGreaterThan(50);
 
-    // Pages #7089 met in English, each found by the scan.
+    // Pages, components and model fields #7089 met in English, each found by the scan.
     for (const key of [
       "Team Audit Logs",
       "Add notification method",
@@ -281,6 +287,11 @@ describe("the Dashboard's own pages and components, in Persian", () => {
       "Health Rollup",
       "{{count}} requests per minute",
       "{{count}} requests per minute_one",
+      // Common's components: the time picker and the table views.
+      "Save as New View",
+      // The models' field names and descriptions.
+      "Capacity Before (%)",
+      "Accepted Invitation At",
     ]) {
       expect({ key, drawn: PAGE_KEYS.includes(key) }).toEqual({
         key,
@@ -416,11 +427,30 @@ describe("Persian's Dashboard locale file", () => {
         "Every router in this cloud, and the L3 agents that hold each one. On OVN no agent holds a router, so that reads Not applicable.",
       ),
     ).toBe(
-      "هر روتر در این ابر و عامل‌های L3 که هر کدام را نگه می‌دارند. در OVN هیچ عاملی روتر را نگه نمی‌دارد، پس «قابل اعمال نیست» نشان داده می‌شود.",
+      "هر روتر در این ابر و عامل‌های L3 که هر کدام را نگه می‌دارند. در OVN هیچ عاملی روتر را نگه نمی‌دارد، پس «کاربرد ندارد» نشان داده می‌شود.",
     );
     expect(
       PERSIAN.get("Every read answers 401 with an access-rule credential"),
     ).toBe("هر خواندن با اعتبارنامه access-rule پاسخ 401 می‌دهد");
+  });
+
+  test("the router help quotes Not applicable as the router's agents cell draws it", () => {
+    const drawn: string = PERSIAN.get("Not applicable") as string;
+    const sentences: Array<string> = Array.from(ENGLISH.keys()).filter(
+      (key: string): boolean => {
+        return key.endsWith("reads Not applicable.");
+      },
+    );
+
+    expect(drawn).toBe("کاربرد ندارد");
+    expect(sentences.length).toBe(3);
+
+    for (const sentence of sentences) {
+      expect({
+        sentence,
+        quotes: (PERSIAN.get(sentence) as string).includes(`«${drawn}»`),
+      }).toEqual({ sentence, quotes: true });
+    }
   });
 
   test("writes Persian letters, and no Arabic-Indic digit", () => {
@@ -580,6 +610,98 @@ describe("the titles every resource repeats, worded alike", () => {
     expect(archives.length).toBeGreaterThan(30);
     expect(notWorded(feeds, /^فید /)).toEqual([]);
     expect(notWorded(archives, /بایگانی‌شده/)).toEqual([]);
+  });
+
+  /*
+   * A column that says when something happened reads "زمان ..." or "تاریخ
+   * ..." (the time, the date of ...), as most of the file's timestamp titles
+   * do: "زمان ارسال" for Sent At, never "ارسال در", a bare "at" a reader
+   * waits to see finished. A threshold says where to act, not when, and the
+   * older titles worded with a bare "در" before #7089 are #7289's to reword:
+   * those lists only shrink.
+   */
+  const THRESHOLD_TITLES: ReadonlyArray<string> = [
+    "Alert At",
+    "Open a Case At",
+  ];
+  const OLDER_TIMESTAMP_TITLES_ENDING_IN_AT: ReadonlyArray<string> = [
+    "End Announcement At",
+    "End Showing Announcement At",
+    "Ends At",
+    "Event Starts At",
+    "First Event Ends At",
+    "First Event Scheduled At",
+    "First Event Starts At",
+    "First Refused At",
+    "First Seen At",
+    "Last Alert Added At",
+    "Last Email Received At",
+    "Last Incident Added At",
+    "Last Monitored At",
+    "Last Ping At",
+    "Last Refused At",
+    "Last Request Received At",
+    "Last Seen At",
+    "Last Synced At",
+    "Logs Last Received At",
+    "Metrics Last Received At",
+    "Monitor Status Check At",
+    "Monitored At",
+    "Next Check At",
+    "Notification Sent At",
+    "Postmortem Published At",
+    "Scheduled At",
+    "Seen At",
+    "Send First Report At",
+    "Starts At",
+    "Traces Last Received At",
+  ];
+  const ENDS_IN_A_BARE_AT: RegExp = / در$/;
+
+  test("a timestamp column says when it happened: زمان or تاریخ, never a bare در at its end", () => {
+    const rows: Array<[string, string, string]> = titled(
+      /^[A-Z][A-Za-z0-9 ()/-]* At$/,
+    );
+
+    expect(rows.length).toBeGreaterThan(250);
+    expect(
+      rows
+        .filter(([, english, persian]: [string, string, string]): boolean => {
+          return (
+            ENDS_IN_A_BARE_AT.test(persian) &&
+            !THRESHOLD_TITLES.includes(english) &&
+            !OLDER_TIMESTAMP_TITLES_ENDING_IN_AT.includes(english)
+          );
+        })
+        .map(([, english, persian]: [string, string, string]): string => {
+          return `${english} => ${persian}`;
+        }),
+    ).toEqual([]);
+
+    // Each title on those lists is still there, and still ends that way.
+    for (const english of [
+      ...THRESHOLD_TITLES,
+      ...OLDER_TIMESTAMP_TITLES_ENDING_IN_AT,
+    ]) {
+      expect({
+        english,
+        bareAt: ENDS_IN_A_BARE_AT.test(PERSIAN.get(english) || ""),
+      }).toEqual({ english, bareAt: true });
+    }
+  });
+
+  test.each([
+    ["Sent At", "زمان ارسال"],
+    ["Deleted At", "زمان حذف"],
+    ["Executed At", "زمان اجرا"],
+    ["Last Active At", "زمان آخرین فعالیت"],
+    ["Enterprise License Expires At", "تاریخ انقضای مجوز سازمانی"],
+    ["Schedule First Event At", "زمان اولین رویداد زمان‌بندی‌شده"],
+    // The titles that were Persian before #7089 read the same way.
+    ["Created At", "تاریخ ساخت"],
+    ["Archived At", "زمان بایگانی"],
+  ])("%s reads %s", (english: string, persian: string) => {
+    expect(PERSIAN.get(english)).toBe(persian);
   });
 });
 
