@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51107,
-    "untranslated": 3753
+    "untranslated": 3493
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -283,6 +283,7 @@
     "failed password",
     "finance@yourcompany.com, accounting@yourcompany.com",
     "govc",
+    "hh",
     "history {{kind}}",
     "host:port",
     "ifIndex {{index}}",
