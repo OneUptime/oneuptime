@@ -605,10 +605,11 @@ describe("the SLO overview's KPI strip in German and Arabic", () => {
       }),
     );
     expect(tileText("slo-kpi-burn-rate")).toContain(
+      // The 1× is a value, written by the burn rate formatter (#6924).
       worded(
         DE,
-        "Over the last {{window}} · 1× spends the budget exactly over the window",
-        { window: formatDurationCompactInLanguage(3600, "de") },
+        "Over the last {{window}} · {{rate}} spends the budget exactly over the window",
+        { window: formatDurationCompactInLanguage(3600, "de"), rate: "1×" },
       ),
     );
     expectNoEnglishNotes();
