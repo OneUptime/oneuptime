@@ -1,5 +1,4 @@
 import TwilioPhoneNumbers from "./CallAndSMS/TwilioPhoneNumbers";
-import { LEFT_TO_RIGHT_ISOLATE } from "./CodeInSentence";
 import DatabaseProperty from "./Database/DatabaseProperty";
 import { JSONObject, ObjectType } from "./JSON";
 import {
@@ -34,7 +33,13 @@ import { getListSeparator } from "./Translator";
  * number, and reads left to right.
  */
 
-// RIGHT-TO-LEFT ISOLATE: what follows it, up to its PDI, reads from the right.
+/*
+ * LEFT-TO-RIGHT ISOLATE and RIGHT-TO-LEFT ISOLATE: what follows one, up to
+ * its PDI, reads that way. Written here, not read from CodeInSentence: that
+ * module loads only with Arabic or Persian words, and every table and
+ * detail card loads this one (Tests/UI/SignInFirstLoadBuild).
+ */
+const LEFT_TO_RIGHT_ISOLATE: string = String.fromCharCode(0x2066);
 const RIGHT_TO_LEFT_ISOLATE: string = String.fromCharCode(0x2067);
 
 /*
