@@ -43,6 +43,12 @@
  * an earlier turn as it hands what the model saw to a prepare
  * (fromEarlierAnswer): its version still says what Ask AI saw - a push
  * since is still a push since - but its lines are not in hand.
+ *
+ * Nor are all of this turn's (issue #6570): a long answer leaves out its
+ * oldest results once it outgrows what the model can take
+ * (AgentContextCompactor), and the model then has only a note in their
+ * place. The chat runner marks the records of those results the same way
+ * (fromLeftOutResult).
  */
 
 // The kinds of record a result can show the model, as the tool that changes them names them.
@@ -108,6 +114,15 @@ export interface AIChatRecordSeen {
    * it says of a version still counts; its lines are not in hand.
    */
   fromEarlierAnswer?: boolean | undefined;
+  /*
+   * A record of this turn whose result the conversation has left out since
+   * (issue #6570), as the chat runner hands it to a prepare - never as a
+   * citation stores it: a long answer leaves out its oldest results once it
+   * outgrows what the model can take, so the model no longer has that
+   * result's text. What it says of a version still counts; its lines are
+   * not in hand.
+   */
+  fromLeftOutResult?: boolean | undefined;
 }
 
 // What Ask AI knows of a record: its revision, and each part as last seen.
@@ -265,6 +280,7 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
   const isPartial: unknown = value["isPartial"];
   const linesShown: unknown = value["linesShown"];
   const fromEarlierAnswer: unknown = value["fromEarlierAnswer"];
+  const fromLeftOutResult: unknown = value["fromLeftOutResult"];
 
   if (
     !Object.values(AIChatRecordSeenType).includes(
@@ -280,7 +296,9 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
     !Array.isArray(parts) ||
     parts.length > MAX_RECORD_PARTS_SEEN ||
     (isPartial !== undefined && typeof isPartial !== "boolean") ||
-    (fromEarlierAnswer !== undefined && typeof fromEarlierAnswer !== "boolean")
+    (fromEarlierAnswer !== undefined &&
+      typeof fromEarlierAnswer !== "boolean") ||
+    (fromLeftOutResult !== undefined && typeof fromLeftOutResult !== "boolean")
   ) {
     return null;
   }
@@ -343,20 +361,36 @@ export const readAIChatRecordSeen: ReadRecordSeenFunction = (
     ...(isPartial === true ? { isPartial: true } : {}),
     ...(lines ? { linesShown: lines } : {}),
     ...(fromEarlierAnswer === true ? { fromEarlierAnswer: true } : {}),
+    ...(fromLeftOutResult === true ? { fromLeftOutResult: true } : {}),
   };
 };
 
-type FromEarlierAnswersFunction = (
+type IsRecordInHandFunction = (record: AIChatRecordSeen) => boolean;
+
+/*
+ * Whether the model still has the result a record was kept from in front
+ * of it: not from an earlier answer (issue #6365), and not left out of this
+ * one since (issue #6570).
+ */
+export const isAIChatRecordInHand: IsRecordInHandFunction = (
+  record: AIChatRecordSeen,
+): boolean => {
+  return !record.fromEarlierAnswer && !record.fromLeftOutResult;
+};
+
+type MarkRecordsFunction = (
   records: ReadonlyArray<unknown> | null | undefined,
 ) => Array<AIChatRecordSeen>;
 
-/*
- * The records of the turns before this one, as a prepare is handed them
- * (issue #6365): each well-formed one marked as from an earlier answer,
- * whose text the model no longer has. Stored records are never marked.
- */
-export const markAIChatRecordsFromEarlierAnswers: FromEarlierAnswersFunction = (
+type MarkRecordsWithFunction = (
   records: ReadonlyArray<unknown> | null | undefined,
+  mark: Pick<AIChatRecordSeen, "fromEarlierAnswer" | "fromLeftOutResult">,
+) => Array<AIChatRecordSeen>;
+
+// Each well-formed record, marked; anything not well formed is dropped, as everywhere.
+const markRecords: MarkRecordsWithFunction = (
+  records: ReadonlyArray<unknown> | null | undefined,
+  mark: Pick<AIChatRecordSeen, "fromEarlierAnswer" | "fromLeftOutResult">,
 ): Array<AIChatRecordSeen> => {
   const marked: Array<AIChatRecordSeen> = [];
 
@@ -364,11 +398,34 @@ export const markAIChatRecordsFromEarlierAnswers: FromEarlierAnswersFunction = (
     const record: AIChatRecordSeen | null = readAIChatRecordSeen(value);
 
     if (record) {
-      marked.push({ ...record, fromEarlierAnswer: true });
+      marked.push({ ...record, ...mark });
     }
   }
 
   return marked;
+};
+
+/*
+ * The records of the turns before this one, as a prepare is handed them
+ * (issue #6365): each well-formed one marked as from an earlier answer,
+ * whose text the model no longer has. Stored records are never marked.
+ */
+export const markAIChatRecordsFromEarlierAnswers: MarkRecordsFunction = (
+  records: ReadonlyArray<unknown> | null | undefined,
+): Array<AIChatRecordSeen> => {
+  return markRecords(records, { fromEarlierAnswer: true });
+};
+
+/*
+ * The records of this turn's results that the conversation has left out
+ * since, as a prepare is handed them (issue #6570): each well-formed one
+ * marked as from a left-out result, whose text the model no longer has.
+ * Stored records are never marked.
+ */
+export const markAIChatRecordsFromLeftOutResults: MarkRecordsFunction = (
+  records: ReadonlyArray<unknown> | null | undefined,
+): Array<AIChatRecordSeen> => {
+  return markRecords(records, { fromLeftOutResult: true });
 };
 
 type RecordKeyFunction = (
@@ -524,6 +581,12 @@ type LatestRecordsSeenFunction = (
  * the last that showed all of it, or to where Ask AI last saw another
  * version of the file there. A file always read whole keeps one record, as
  * it always did.
+ *
+ * And so does a last record whose result the model no longer has in hand
+ * (fromEarlierAnswer, fromLeftOutResult; issues #6365 and #6570), back to
+ * one it still has: a short read of a file can stay whole while a later,
+ * longer read of the same version is left out, and the lines the short
+ * one showed are still in front of the model.
  */
 export const getLatestAIChatRecordsSeen: LatestRecordsSeenFunction = (
   records: ReadonlyArray<unknown> | null | undefined,
@@ -561,7 +624,8 @@ export const getLatestAIChatRecordsSeen: LatestRecordsSeenFunction = (
 
     for (
       let index: number = last - 1;
-      index >= 0 && read[from]!.linesShown;
+      index >= 0 &&
+      (read[from]!.linesShown || !isAIChatRecordInHand(read[from]!));
       index--
     ) {
       const earlier: AIChatRecordSeen = read[index]!;
