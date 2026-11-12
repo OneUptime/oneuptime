@@ -50805,7 +50805,7 @@
   "Guided setup": "Configuración guiada",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Configuración guiada: comprueba una dirección, elige a quién se avisa y envía una prueba, en esta página.",
   "I did not get it": "No me ha llegado",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Si no responde, o responde con un error, OneUptime abre un incidente de gravedad {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Si no responde, o responde con un error, OneUptime abre un incidente ({{severity}}).",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Si no responde, o responde con un error, su estado cambia a «Sin conexión».",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Todavía ninguna ubicación comprueba {{host}}. Las sondas se añaden en Monitores > Ajustes > Sondas.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Aún no se ha probado. Envíate un aviso de prueba para asegurarte de que te llega.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoreo desactivado, desde {{start}}, {{duration}} hasta ahora. Activo actualmente.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoreo desactivado, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} turnos anteriores no se muestran",
-  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior no se muestra"
+  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior no se muestra",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Tu monitor «{{name}}» ya comprueba esta dirección, así que no se creó ningún monitor nuevo."
 }

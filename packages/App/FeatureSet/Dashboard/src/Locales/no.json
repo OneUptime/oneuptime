@@ -50805,7 +50805,7 @@
   "Guided setup": "Veiledet oppsett",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Veiledet oppsett: sjekk en adresse, velg hvem som får beskjed, og send en test, på denne siden.",
   "I did not get it": "Jeg fikk den ikke",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Hvis det ikke kommer svar, eller svaret er en feil, åpner OneUptime en hendelse med alvorlighetsgrad {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Hvis det ikke kommer svar, eller svaret er en feil, åpner OneUptime en hendelse ({{severity}}).",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Hvis det ikke kommer svar, eller svaret er en feil, endres statusen til Frakoblet.",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Ingen plassering sjekker {{host}} ennå. Sonder legges til under Monitorer > Innstillinger > Sonder.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Ikke testet ennå. Send deg selv et testoppkall for å være sikker på at det når frem til deg.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvåking slått av, siden {{start}}, {{duration}} så langt. Aktiv nå.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvåking slått av, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} tidligere turer vises ikke",
-  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Overvåkingen din «{{name}}» sjekker allerede denne adressen, så ingen ny overvåking ble opprettet."
 }

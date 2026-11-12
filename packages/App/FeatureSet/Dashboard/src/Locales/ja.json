@@ -50805,7 +50805,7 @@
   "Guided setup": "ガイド付きセットアップ",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "ガイド付きセットアップ: このページで、アドレスを確認し、通知先を選び、テストを送信します。",
   "I did not get it": "届いていません",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "応答がない場合、またはエラーが返された場合、OneUptime は重大度 {{severity}} のインシデントを作成します。",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "応答がない場合、またはエラーが返された場合、OneUptime はインシデント（{{severity}}）を作成します。",
   "If it does not answer, or answers with an error, its status changes to Offline.": "応答がない場合、またはエラーが返された場合、ステータスがオフラインに変わります。",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "{{host}} を確認している拠点はまだありません。プローブは「モニター > 設定 > プローブ」で追加します。",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "まだテストされていません。確実に届くように、自分にテスト呼び出しを送信してください。",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}、監視オフ、{{start}} から、{{duration}} 経過。現在アクティブ。",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}、監視オフ、{{start}} – {{end}}、{{duration}}",
   "{{count}} earlier turns are not shown": "以前の {{count}} ターンは表示されていません",
-  "{{count}} earlier turns are not shown_one": "以前の {{count}} ターンは表示されていません"
+  "{{count}} earlier turns are not shown_one": "以前の {{count}} ターンは表示されていません",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "あなたのモニター「{{name}}」がすでにこのアドレスを確認しているため、新しいモニターは作成されませんでした。"
 }

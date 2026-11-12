@@ -50805,7 +50805,7 @@
   "Guided setup": "Configuração guiada",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Configuração guiada: verifique um endereço, escolha quem será avisado e envie um teste, nesta página.",
   "I did not get it": "Não recebi",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Se não houver resposta, ou se a resposta for um erro, o OneUptime abre um incidente de gravidade {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Se não houver resposta, ou se a resposta for um erro, o OneUptime abre um incidente ({{severity}}).",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Se não houver resposta, ou se a resposta for um erro, o status muda para Offline.",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Nenhum local verifica {{host}} ainda. As sondas são adicionadas em Monitores > Configurações > Sondas.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Ainda não testado. Envie uma chamada de teste para você mesmo para ter certeza de que ela chega até você.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoramento desligado, desde {{start}}, {{duration}} até agora. Atualmente ativo.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoramento desligado, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} turnos anteriores não são mostrados",
-  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior não é mostrado"
+  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior não é mostrado",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Seu monitor \"{{name}}\" já verifica este endereço, então nenhum monitor novo foi criado."
 }

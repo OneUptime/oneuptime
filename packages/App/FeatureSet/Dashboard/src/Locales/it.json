@@ -50805,7 +50805,7 @@
   "Guided setup": "Configurazione guidata",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Configurazione guidata: controlla un indirizzo, scegli chi viene avvisato e invia un test, in questa pagina.",
   "I did not get it": "Non l'ho ricevuta",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Se non risponde, o risponde con un errore, OneUptime apre un incidente con gravità {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Se non risponde, o risponde con un errore, OneUptime apre un incidente ({{severity}}).",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Se non risponde, o risponde con un errore, il suo stato diventa Offline.",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Nessuna posizione controlla ancora {{host}}. Le sonde si aggiungono in Monitor > Impostazioni > Sonde.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Non ancora testato. Inviati una chiamata di test per assicurarti che ti raggiunga.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoraggio disattivato, da {{start}}, {{duration}} finora. Attualmente attivo.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoraggio disattivato, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} turni precedenti non sono mostrati",
-  "{{count}} earlier turns are not shown_one": "{{count}} turno precedente non è mostrato"
+  "{{count}} earlier turns are not shown_one": "{{count}} turno precedente non è mostrato",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Il tuo monitor «{{name}}» controlla già questo indirizzo, quindi non è stato creato un nuovo monitor."
 }

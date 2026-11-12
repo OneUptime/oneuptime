@@ -50805,7 +50805,7 @@
   "Guided setup": "Пошаговая настройка",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Пошаговая настройка: проверьте адрес, выберите, кого уведомлять, и отправьте тест на этой странице.",
   "I did not get it": "Мне ничего не пришло",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Если ответа нет или ответ с ошибкой, OneUptime открывает инцидент с серьёзностью {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Если ответа нет или ответ с ошибкой, OneUptime открывает инцидент ({{severity}}).",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Если ответа нет или ответ с ошибкой, статус меняется на «Не в сети».",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Пока {{host}} не проверяется ни из одного места. Зонды добавляются в разделе Мониторы > Настройки > Зонды.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Тест ещё не проводился. Отправьте себе тестовый вызов, чтобы убедиться, что он до вас доходит.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, мониторинг выключен, с {{start}}, уже {{duration}}. Сейчас активно.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, мониторинг выключен, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "Не показано более ранних ходов: {{count}}",
-  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан"
+  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Ваш монитор «{{name}}» уже проверяет этот адрес, поэтому новый монитор не создан."
 }

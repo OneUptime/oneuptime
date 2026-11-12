@@ -50805,7 +50805,7 @@
   "Guided setup": "راه‌اندازی گام‌به‌گام",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "راه‌اندازی گام‌به‌گام: در همین صفحه نشانی را بررسی کنید، انتخاب کنید چه کسی باخبر شود و یک آزمایش بفرستید.",
   "I did not get it": "به دستم نرسید",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "اگر پاسخی نیاید یا پاسخ همراه با خطا باشد، OneUptime یک حادثه با شدت {{severity}} باز می‌کند.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "اگر پاسخی نیاید یا پاسخ همراه با خطا باشد، OneUptime یک حادثه ({{severity}}) باز می‌کند.",
   "If it does not answer, or answers with an error, its status changes to Offline.": "اگر پاسخی نیاید یا پاسخ همراه با خطا باشد، وضعیت آن به آفلاین تغییر می‌کند.",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "هنوز هیچ مکانی {{host}} را بررسی نمی‌کند. پراب‌ها در مانیتورها > تنظیمات > پراب‌ها اضافه می‌شوند.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "هنوز آزمایش نشده است. برای اطمینان از اینکه به شما می‌رسد، یک فراخوان آزمایشی برای خودتان بفرستید.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، پایش خاموش، از {{start}}، تاکنون {{duration}}. در حال حاضر فعال.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، پایش خاموش، {{start}} – {{end}}، {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
-  "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود"
+  "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "مانیتور «{{name}}» شما از قبل این نشانی را بررسی می‌کند، بنابراین مانیتور جدیدی ساخته نشد."
 }

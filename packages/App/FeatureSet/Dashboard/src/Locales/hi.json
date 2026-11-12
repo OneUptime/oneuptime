@@ -50805,7 +50805,7 @@
   "Guided setup": "गाइडेड सेटअप",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "गाइडेड सेटअप: इसी पेज पर किसी पते की जाँच करें, चुनें कि किसे बताया जाए, और एक टेस्ट भेजें।",
   "I did not get it": "मुझे नहीं मिला",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "अगर जवाब नहीं आता, या जवाब में त्रुटि आती है, तो OneUptime {{severity}} गंभीरता वाली घटना खोलता है।",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "अगर जवाब नहीं आता, या जवाब में त्रुटि आती है, तो OneUptime एक घटना ({{severity}}) खोलता है।",
   "If it does not answer, or answers with an error, its status changes to Offline.": "अगर जवाब नहीं आता, या जवाब में त्रुटि आती है, तो इसकी स्थिति ऑफ़लाइन हो जाती है।",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "अभी कोई भी स्थान {{host}} को नहीं जाँच रहा है। प्रोब मॉनिटर > सेटिंग्स > प्रोब में जोड़े जाते हैं।",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "अभी परीक्षण नहीं हुआ है। पक्का करने के लिए कि वह आप तक पहुँचता है, खुद को एक परीक्षण पेज भेजें।",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, निगरानी बंद, {{start}} से, अब तक {{duration}}। वर्तमान में सक्रिय।",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, निगरानी बंद, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} पिछली बारियाँ नहीं दिखाई गई हैं",
-  "{{count}} earlier turns are not shown_one": "{{count}} पिछली बारी नहीं दिखाई गई है"
+  "{{count}} earlier turns are not shown_one": "{{count}} पिछली बारी नहीं दिखाई गई है",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "आपका मॉनिटर \"{{name}}\" पहले से इस पते की जाँच करता है, इसलिए कोई नया मॉनिटर नहीं बनाया गया।"
 }

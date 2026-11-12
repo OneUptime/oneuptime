@@ -50805,7 +50805,7 @@
   "Guided setup": "안내형 설정",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "안내형 설정: 이 페이지에서 주소를 확인하고, 알릴 사람을 선택하고, 테스트를 보냅니다.",
   "I did not get it": "받지 못했습니다",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "응답이 없거나 오류로 응답하면 OneUptime이 심각도 {{severity}} 인시던트를 엽니다.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "응답이 없거나 오류로 응답하면 OneUptime이 인시던트({{severity}})를 엽니다.",
   "If it does not answer, or answers with an error, its status changes to Offline.": "응답이 없거나 오류로 응답하면 상태가 오프라인으로 바뀝니다.",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "아직 {{host}} 주소를 확인하는 위치가 없습니다. 프로브는 모니터 > 설정 > 프로브에서 추가합니다.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "아직 테스트하지 않았습니다. 테스트 호출을 자신에게 보내 제대로 도착하는지 확인하세요.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, 모니터링 꺼짐, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "이전 차례 {{count}}개는 표시되지 않습니다",
-  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다"
+  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "이 주소는 이미 내 모니터 \"{{name}}\"에서 확인하고 있으므로 새 모니터를 만들지 않았습니다."
 }

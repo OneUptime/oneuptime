@@ -153,6 +153,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const [addressError, setAddressError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
+  // The address was one this person's monitor checks already (#7059).
+  const [isExistingMonitor, setIsExistingMonitor] = useState<boolean>(false);
 
   // Step 2's people: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
@@ -475,13 +477,31 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(true);
 
     try {
-      const monitorId: string = await WebsiteDownApi.createMonitor({
-        address: address,
-        isApi: isApi,
-        translator: translator,
-      });
-      saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
-      setMonitor(await WebsiteDownApi.loadMonitor(monitorId));
+      /*
+       * A monitor this person already has for the address is this run's:
+       * a run the browser lost (a private window, another device) or a
+       * start over makes no second one (#7059).
+       */
+      const existing: WebsiteDownMonitorRecord | null =
+        await WebsiteDownApi.findOwnMonitor({
+          address: address,
+          userId: userId,
+        });
+
+      if (existing) {
+        saveRun({ [WebsiteDownRunValue.MonitorId]: existing.id });
+        setIsExistingMonitor(true);
+        setMonitor(existing);
+      } else {
+        const monitorId: string = await WebsiteDownApi.createMonitor({
+          address: address,
+          isApi: isApi,
+          translator: translator,
+        });
+        saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
+        setIsExistingMonitor(false);
+        setMonitor(await WebsiteDownApi.loadMonitor(monitorId));
+      }
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
     }
@@ -500,6 +520,18 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       >
         {checkSentence?.text}
       </p>
+      {isExistingMonitor ? (
+        <p
+          className="text-sm text-gray-500"
+          data-testid="guided-setup-existing-monitor"
+        >
+          {translator.translateTemplate(WEBSITE_DOWN_COPY.existingMonitor, {
+            name: monitor.name,
+          })}
+        </p>
+      ) : (
+        <></>
+      )}
       <div className={ACTIONS_CLASS_NAME}>
         <Button
           title={WEBSITE_DOWN_COPY.continueButton}
@@ -607,6 +639,20 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(true);
 
     try {
+      /*
+       * Asked again before the policy is made: another tab or device may
+       * have made the project's first one since this page read it. Then the
+       * project's own policies decide, and nothing is made twice (#7059).
+       */
+      const latestFacts: WhoIsToldFacts =
+        await WebsiteDownApi.loadWhoIsToldFacts();
+
+      if (getWhoIsToldMode(latestFacts) === WhoIsToldMode.ExistingPolicy) {
+        setWhoFacts(latestFacts);
+        setIsSaving(false);
+        return;
+      }
+
       const policyId: string = await WebsiteDownApi.createPolicy({
         userIds: pickedUserIds,
         teamIds: pickedTeamIds,
@@ -951,6 +997,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             setSummaryExtras(null);
             setAddressText("");
             setIsApi(false);
+            setIsExistingMonitor(false);
             setShowNotReceivedHelp(false);
             setOpenStepKey(WebsiteDownStep.Check);
             // The project may have a policy now: who is told is asked afresh.

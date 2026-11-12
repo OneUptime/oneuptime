@@ -27,7 +27,10 @@ import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
  *      monitor starts with, every five minutes, and the type's criteria
  *      (offline when it does not answer, or answers outside 200 to 399,
  *      which opens an incident). The monitor's probes check it at once,
- *      and their first answer is said in a sentence.
+ *      and their first answer is said in a sentence. An address one of
+ *      this person's monitors already checks makes no second monitor: the
+ *      setup goes on with theirs, and says so (#7059) - whatever the
+ *      browser kept of the run.
  *   2. Who should be told? A project with no on-call policy gets one,
  *      paging the people picked - "You", to start with - for every new
  *      incident and alert (FirstResponders, EveryNewEventRules). A project
@@ -69,6 +72,7 @@ export const WEBSITE_DOWN_COPY: {
   addressError: string;
   isApiLabel: string;
   startChecking: string;
+  existingMonitor: string;
   continueButton: string;
   cannotCreateMonitor: string;
   whoTitle: string;
@@ -119,6 +123,13 @@ export const WEBSITE_DOWN_COPY: {
   ),
   isApiLabel: translationKey("This is an API endpoint"),
   startChecking: translationKey("Start checking"),
+  /*
+   * Said when the address is one this person's monitor already checks: the
+   * setup goes on with it, and makes no second (#7059).
+   */
+  existingMonitor: translationKey(
+    'Your monitor "{{name}}" already checks this address, so no new monitor was made.',
+  ),
   continueButton: translationKey("Continue"),
   cannotCreateMonitor: translationKey(
     "Creating a monitor needs permission you do not have in this project. Ask a project admin to give it to you, or to set this up.",
@@ -315,6 +326,87 @@ export const getMonitorAddress: (
   const destination: unknown = step?.data?.monitorDestination;
 
   return destination ? destination.toString() : "";
+};
+
+/*
+ * ONE ADDRESS, HOWEVER IT WAS TYPED (#7059): the scheme, the host, the port,
+ * the path and the query a check asks for. "acme.example" is
+ * "https://acme.example/", and a host's capitals or a path's trailing slash
+ * change nothing; http and https, www or not, another path or another query
+ * are other checks. Null for text that is not a web address.
+ */
+export const getWebsiteAddressIdentity: (text: string) => string | null = (
+  text: string,
+): string | null => {
+  const trimmed: string = (text || "").trim();
+
+  if (!trimmed || WHITESPACE.test(trimmed)) {
+    return null;
+  }
+
+  let parsed: globalThis.URL;
+
+  try {
+    parsed = new globalThis.URL(
+      SCHEME.test(trimmed) ? trimmed : `https://${trimmed}`,
+    );
+  } catch {
+    return null;
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return null;
+  }
+
+  // Trailing slashes, one at a time: a path is short, and no pattern runs on it.
+  let path: string = parsed.pathname;
+
+  while (path.endsWith("/")) {
+    path = path.slice(0, -1);
+  }
+
+  return `${parsed.protocol}//${parsed.host.toLowerCase()}${path}${parsed.search}`;
+};
+
+export const isSameWebsiteAddress: (left: string, right: string) => boolean = (
+  left: string,
+  right: string,
+): boolean => {
+  const leftIdentity: string | null = getWebsiteAddressIdentity(left);
+
+  return (
+    leftIdentity !== null && leftIdentity === getWebsiteAddressIdentity(right)
+  );
+};
+
+// What the setup reads of a monitor this person made, to know if it is theirs for an address.
+export interface OwnMonitorFacts {
+  monitorSteps: MonitorSteps | undefined | null;
+  isArchived?: boolean | undefined;
+  disableActiveMonitoring?: boolean | undefined;
+}
+
+/*
+ * Whether a monitor this person made checks the address now, so the setup
+ * goes on with it instead of making a second (#7059): its first step asks
+ * for the same address, and it is neither archived nor turned off - one
+ * that is no longer checked does not answer "is my website down?".
+ */
+export const isMonitorCheckingAddress: (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}) => boolean = (data: {
+  monitor: OwnMonitorFacts;
+  address: WebsiteAddress;
+}): boolean => {
+  if (data.monitor.isArchived || data.monitor.disableActiveMonitoring) {
+    return false;
+  }
+
+  return isSameWebsiteAddress(
+    getMonitorAddress(data.monitor.monitorSteps),
+    data.address.url,
+  );
 };
 
 /*

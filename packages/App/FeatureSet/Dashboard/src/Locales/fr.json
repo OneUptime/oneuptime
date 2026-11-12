@@ -50805,7 +50805,7 @@
   "Guided setup": "Configuration guidée",
   "Guided setup: check an address, choose who is told, and send a test, on this page.": "Configuration guidée : vérifiez une adresse, choisissez qui est prévenu et envoyez un test, sur cette page.",
   "I did not get it": "Je ne l'ai pas reçu",
-  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Si aucune réponse n'arrive, ou si la réponse est une erreur, OneUptime ouvre un incident de gravité {{severity}}.",
+  "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).": "Si aucune réponse n'arrive, ou si la réponse est une erreur, OneUptime ouvre un incident ({{severity}}).",
   "If it does not answer, or answers with an error, its status changes to Offline.": "Si aucune réponse n'arrive, ou si la réponse est une erreur, son statut passe à « Hors ligne ».",
   "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.": "Aucun emplacement ne vérifie encore {{host}}. Les sondes s'ajoutent dans Moniteurs > Paramètres > Sondes.",
   "Not tested yet. Send yourself a test page to be sure it reaches you.": "Pas encore testé. Envoyez-vous un appel de test pour vous assurer qu'il vous parvient.",
@@ -50975,5 +50975,6 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, surveillance désactivée, depuis {{start}}, {{duration}} jusqu'ici. Actuellement actif.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, surveillance désactivée, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} tours précédents ne sont pas affichés",
-  "{{count}} earlier turns are not shown_one": "{{count}} tour précédent n'est pas affiché"
+  "{{count}} earlier turns are not shown_one": "{{count}} tour précédent n'est pas affiché",
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Votre moniteur « {{name}} » vérifie déjà cette adresse, donc aucun nouveau moniteur n'a été créé."
 }
