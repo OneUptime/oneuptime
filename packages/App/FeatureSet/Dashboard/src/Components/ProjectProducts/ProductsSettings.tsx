@@ -12,7 +12,7 @@ import { getItemProduct } from "../../Utils/ProjectProducts/ProductsMenu";
 import ProjectProducts, {
   ProjectProductsState,
 } from "../../Utils/ProjectProducts/ProjectProductsStore";
-import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { useLoadedProjectProducts } from "../../Utils/ProjectProducts/UseProjectProducts";
 import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import ProductKey from "Common/Types/Product/ProductKey";
 import { ProductUsage } from "Common/Types/Product/ProductUsage";
@@ -54,7 +54,7 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
 const ProductsSettings: FunctionComponent = (): ReactElement => {
   const translator: Translator = useTranslator();
   const navigation: DashboardNavigationItems = useDashboardNavigationItems();
-  const products: ProjectProductsState = useProjectProducts();
+  const products: ProjectProductsState = useLoadedProjectProducts();
   const answer: ProjectProductsAnswer = products.answer;
 
   // A switch shows where it was flipped to while its change is saved.

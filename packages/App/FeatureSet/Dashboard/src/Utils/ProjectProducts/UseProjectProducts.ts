@@ -3,24 +3,38 @@ import ObjectID from "Common/Types/ObjectID";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { useEffect, useSyncExternalStore } from "react";
 
-/*
- * The current project's products (ProjectProductsStore), drawn again
- * whenever they change: the server's answer arriving, a product shown or
- * hidden, a pin. Asks the server once per page load, however many
- * components call it.
- */
-const useProjectProducts: (
-  projectId?: ObjectID | string | null | undefined,
-) => ProjectProductsState = (
-  projectId?: ObjectID | string | null | undefined,
-): ProjectProductsState => {
-  const key: string =
+type ProjectIdInput = ObjectID | string | null | undefined;
+
+const toKey: (projectId: ProjectIdInput | undefined) => string = (
+  projectId: ProjectIdInput | undefined,
+): string => {
+  return (
     (projectId === undefined
       ? ProjectUtil.getCurrentProjectId()
       : projectId
-    )?.toString() || "";
+    )?.toString() || ""
+  );
+};
 
-  const state: ProjectProductsState = useSyncExternalStore(
+/*
+ * The current project's products (ProjectProductsStore), drawn again
+ * whenever they change: the server's answer arriving, a product shown or
+ * hidden, a pin.
+ *
+ * Reading asks the server nothing. The navbar, which every project page
+ * draws, asks once per page load (useLoadedProjectProducts), and the pin
+ * beside a product page's title, Home's cards, Search and the keyboard
+ * shortcuts draw what it got - the remembered answer until it arrives. So a
+ * page drawn on its own makes no request it did not make before.
+ */
+const useProjectProducts: (
+  projectId?: ProjectIdInput,
+) => ProjectProductsState = (
+  projectId?: ProjectIdInput,
+): ProjectProductsState => {
+  const key: string = toKey(projectId);
+
+  return useSyncExternalStore(
     ProjectProducts.subscribe,
     (): ProjectProductsState => {
       return ProjectProducts.getState(key);
@@ -29,6 +43,20 @@ const useProjectProducts: (
       return ProjectProducts.getState(key);
     },
   );
+};
+
+/*
+ * The same, and asks the server for them once per page load, however many
+ * components call it: for the navbar, and for Project Settings > Products,
+ * which shows the latest wherever it is drawn.
+ */
+export const useLoadedProjectProducts: (
+  projectId?: ProjectIdInput,
+) => ProjectProductsState = (
+  projectId?: ProjectIdInput,
+): ProjectProductsState => {
+  const key: string = toKey(projectId);
+  const state: ProjectProductsState = useProjectProducts(key);
 
   useEffect(() => {
     ProjectProducts.load(key).catch(() => {

@@ -1,4 +1,5 @@
 import Icon from "../Icon/Icon";
+import { getHandDrawnButtonStateClassName } from "../Button/ButtonStates";
 import { Translator } from "../../Utils/TranslateTemplate";
 import { MAX_PINNED_PRODUCTS } from "../../../Types/Product/ProductPins";
 import useTranslator from "../../Utils/UseTranslator";
@@ -153,6 +154,9 @@ export interface ComponentProps {
 
 // The data-testid of a product card's pin.
 export const PRODUCT_PIN_BUTTON_TEST_ID: string = "navbar-menu-pin";
+
+// The data-testid of the box that draws the pin, or keeps it out of sight.
+export const PRODUCT_PIN_SLOT_TEST_ID: string = "navbar-menu-pin-slot";
 
 /*
  * One stop of the keyboard cursor, in the order the rows are on screen: a
@@ -767,8 +771,19 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
           /*
            * Beside the card's link, never inside it (no control inside
            * another): the pin keeps the product in the bar, beside Home and
-           * Products. A mouse press leaves focus in the search box.
+           * Products. A mouse press leaves focus in the search box. It is
+           * drawn when pinned, on the card under the pointer or the cursor,
+           * and when it has focus; with five pinned, a sixth is locked, in
+           * the shared locked look (ButtonStates).
            */
+          <span
+            data-testid={PRODUCT_PIN_SLOT_TEST_ID}
+            className={`absolute end-2 top-2 transition-opacity duration-150 focus-within:opacity-100 ${
+              isPinned || isActive
+                ? "opacity-100"
+                : "opacity-0 group-hover/card:opacity-100"
+            }`}
+          >
           <button
             type="button"
             data-testid={PRODUCT_PIN_BUTTON_TEST_ID}
@@ -800,18 +815,18 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
               event.stopPropagation();
               props.onTogglePin?.(item);
             }}
-            className={`absolute end-2 top-2 rounded-md p-1.5 transition-opacity duration-150 hover:bg-gray-100 focus:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:cursor-not-allowed disabled:opacity-50 ${
-              isPinned
-                ? "text-indigo-600 opacity-100"
-                : `text-gray-400 hover:text-gray-700 ${
-                    isActive
-                      ? "opacity-100"
-                      : "opacity-0 group-hover/card:opacity-100"
-                  }`
-            }`}
+            className={`block rounded-md p-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+              isPinned ? "text-indigo-600" : "text-gray-400"
+            } ${getHandDrawnButtonStateClassName({
+              isLocked: isPinLocked,
+              hoverClassName: isPinned
+                ? "hover:bg-gray-100"
+                : "hover:bg-gray-100 hover:text-gray-700",
+            })}`}
           >
             <Icon icon={IconProp.Pin} className="h-4 w-4" />
           </button>
+          </span>
         )}
       </div>
     );

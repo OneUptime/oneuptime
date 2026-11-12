@@ -1,6 +1,7 @@
 import { PRODUCT_PIN_PAGE_BUTTON_TEST_ID, ProductPinCopy } from "./ProjectProductsCopy";
 import {
   PRODUCT_TITLE_BUTTON_COLOR_CLASS_NAME,
+  PRODUCT_TITLE_BUTTON_HOVER_CLASS_NAME,
   PRODUCT_TITLE_BUTTON_SHAPE_CLASS_NAME,
 } from "../ProductOnboarding/ProductTitleButtonClassName";
 import {
@@ -15,6 +16,7 @@ import {
   MAX_PINNED_PRODUCTS,
   canPinAnotherProduct,
 } from "Common/Types/Product/ProductPins";
+import { getHandDrawnButtonStateClassName } from "Common/UI/Components/Button/ButtonStates";
 import Icon from "Common/UI/Components/Icon/Icon";
 import ProjectUtil from "Common/UI/Utils/Project";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -62,11 +64,15 @@ const ProductPinButton: FunctionComponent<ComponentProps> = (
   return (
     <button
       type="button"
-      className={`${PRODUCT_TITLE_BUTTON_SHAPE_CLASS_NAME} disabled:cursor-not-allowed disabled:opacity-50 ${
-        isPinned
-          ? "text-indigo-600 hover:text-indigo-700"
-          : PRODUCT_TITLE_BUTTON_COLOR_CLASS_NAME
-      }`}
+      className={`${PRODUCT_TITLE_BUTTON_SHAPE_CLASS_NAME} ${
+        isPinned ? "text-indigo-600" : PRODUCT_TITLE_BUTTON_COLOR_CLASS_NAME
+      } ${getHandDrawnButtonStateClassName({
+        isLocked: isLocked,
+        isBusy: isSaving,
+        hoverClassName: isPinned
+          ? "hover:bg-gray-100 hover:text-indigo-700"
+          : PRODUCT_TITLE_BUTTON_HOVER_CLASS_NAME,
+      })}`}
       aria-pressed={isPinned}
       title={tooltip}
       disabled={isLocked || isSaving}

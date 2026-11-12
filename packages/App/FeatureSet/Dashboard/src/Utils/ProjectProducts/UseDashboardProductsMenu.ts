@@ -3,7 +3,7 @@ import useDashboardNavigationItems, {
 } from "../NavigationItems";
 import { ProductsMenu, buildProductsMenu } from "./ProductsMenu";
 import { ProjectProductsState } from "./ProjectProductsStore";
-import useProjectProducts from "./UseProjectProducts";
+import { useLoadedProjectProducts } from "./UseProjectProducts";
 
 export interface DashboardProductsMenu extends DashboardNavigationItems {
   // The catalog fitted to the project and the person (ProductsMenu.ts).
@@ -14,13 +14,15 @@ export interface DashboardProductsMenu extends DashboardNavigationItems {
 
 /*
  * The Dashboard's catalog (useDashboardNavigationItems) and the current
- * project's products (useProjectProducts), put together: what the products
- * menu, the phone menu and Search list (#6814).
+ * project's products, put together: what the products menu, the phone menu
+ * and Search list (#6814). The navbar draws it on every project page, so
+ * this is where the products are asked for, once per page load
+ * (useLoadedProjectProducts); everything else reads what it got.
  */
 const useDashboardProductsMenu: () => DashboardProductsMenu =
   (): DashboardProductsMenu => {
     const navigation: DashboardNavigationItems = useDashboardNavigationItems();
-    const products: ProjectProductsState = useProjectProducts();
+    const products: ProjectProductsState = useLoadedProjectProducts();
 
     return {
       ...navigation,

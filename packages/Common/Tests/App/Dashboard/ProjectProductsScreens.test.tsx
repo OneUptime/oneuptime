@@ -74,7 +74,9 @@ import {
  *  - Home: a line about a hidden product with data, Explore and Your
  *    project without the hidden products;
  *  - the pin beside a product page's title;
- *  - the shortcuts list without the hidden products.
+ *  - the shortcuts list without the hidden products;
+ *  - who asks the server: the navbar and Project Settings > Products, once
+ *    per page load, and nothing else.
  */
 
 const translation: i18n = createInstance();
@@ -694,5 +696,90 @@ describe("the shortcuts list", () => {
     expect(listed).toContain(PageMap.HOME);
     expect(listed).toContain(PageMap.MONITORS);
     expect(getListedDashboardGoToShortcuts([])).toHaveLength(10);
+  });
+});
+
+describe("who asks the server", () => {
+  /*
+   * The navbar, which every project page draws (shown or not), asks once per
+   * page load, and so does Project Settings > Products. The pin beside a
+   * title and Home's cards read what it got, so a page drawn on its own
+   * makes no request it did not make before.
+   */
+  let asked: number;
+
+  beforeEach(() => {
+    asked = 0;
+    ProjectProducts.setFetcher(async (): Promise<ProjectProductsAnswer> => {
+      asked++;
+      return answer({ pinned: [ProductKey.Logs] });
+    });
+    jest.spyOn(ModelAPI, "count").mockResolvedValue(0);
+  });
+
+  test("the pin beside a title and Home's cards ask nothing, and draw what is known", async () => {
+    render(
+      wrapInRouter(
+        <>
+          <ProductPinButton product={ProductKey.Logs} />
+          <HiddenProductsWithData />
+          <ExploreProducts projectId={PROJECT_ID} />
+          <ProjectResources
+            projectId={new ObjectID(PROJECT_ID)}
+            totalMonitors={0}
+            totalSlos={0}
+          />
+        </>,
+      ),
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(asked).toBe(0);
+    expect(screen.getByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID)).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+  });
+
+  test("the navbar asks once, however many read the answer, and they all draw it", async () => {
+    render(
+      wrap(
+        <>
+          <DashboardNavbar show={true} />
+          <ProductPinButton product={ProductKey.Logs} />
+          <ProductPinButton product={ProductKey.Metrics} />
+        </>,
+      ),
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID)[0],
+      ).toHaveAttribute("aria-pressed", "true");
+    });
+    expect(
+      screen.getAllByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID)[1],
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getAllByTestId(NAVBAR_PINNED_ITEM_TEST_ID)).toHaveLength(1);
+    expect(asked).toBe(1);
+  });
+
+  test("a navbar the page hides still asks: it is drawn on every project page", async () => {
+    render(wrap(<DashboardNavbar show={false} />));
+
+    await waitFor(() => {
+      expect(asked).toBe(1);
+    });
+  });
+
+  test("Project Settings > Products asks on its own", async () => {
+    render(wrap(<ProductsSettings />));
+
+    await waitFor(() => {
+      expect(asked).toBe(1);
+    });
   });
 });
