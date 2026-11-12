@@ -133,10 +133,19 @@ export function getTurnSummaryLine(message: string): string {
   return `${firstLine.substring(0, MAX_TURN_SUMMARY_LENGTH - 1).trimEnd()}…`;
 }
 
-// A task's turns, in the order of its conversation.
+/*
+ * A task's turns, in the order of its conversation. A long task's page
+ * holds its first turn and its newest: the `turnsNotShown` between them
+ * still count, so each newer turn keeps its place - "Turn 1", then
+ * "Turn 7" when five are not shown.
+ */
 export function getCodeTaskLogTurns(
   turns: ReadonlyArray<CodeTaskTurnJSON>,
+  turnsNotShown: number = 0,
 ): Array<CodeTaskLogTurn> {
+  const skipped: number =
+    Number.isInteger(turnsNotShown) && turnsNotShown > 0 ? turnsNotShown : 0;
+
   return turns.map((turn: CodeTaskTurnJSON, index: number): CodeTaskLogTurn => {
     const isQueued: boolean =
       turn.state === CodeTaskState.Working &&
@@ -147,7 +156,7 @@ export function getCodeTaskLogTurns(
 
     return {
       runId: turn.runId,
-      number: index + 1,
+      number: index === 0 ? 1 : index + 1 + skipped,
       stateLabel: isQueued
         ? QUEUED_LABEL
         : CODE_TASK_STATE_COPY[turn.state]?.label ?? turn.state,

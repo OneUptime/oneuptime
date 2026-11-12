@@ -50931,5 +50931,7 @@
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "過去 90 日間のこのグループのステータス（1 日 1 本のバー）。各モニターは監視がオンの間だけ計算に含まれます。",
   "leaves out time with monitoring off": "監視がオフの時間を除く",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}、監視オフ、{{start}} から、{{duration}} 経過。現在アクティブ。",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}、監視オフ、{{start}} – {{end}}、{{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}、監視オフ、{{start}} – {{end}}、{{duration}}",
+  "{{count}} earlier turns are not shown": "以前の {{count}} ターンは表示されていません",
+  "{{count}} earlier turns are not shown_one": "以前の {{count}} ターンは表示されていません"
 }

@@ -50931,5 +50931,7 @@
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "पिछले 90 दिनों में इस समूह की स्थिति, हर दिन के लिए एक बार। हर मॉनिटर केवल तभी गिना जाता है जब उसकी निगरानी चालू हो।",
   "leaves out time with monitoring off": "निगरानी बंद रहने का समय शामिल नहीं",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, निगरानी बंद, {{start}} से, अब तक {{duration}}। वर्तमान में सक्रिय।",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, निगरानी बंद, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, निगरानी बंद, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} पिछली बारियाँ नहीं दिखाई गई हैं",
+  "{{count}} earlier turns are not shown_one": "{{count}} पिछली बारी नहीं दिखाई गई है"
 }

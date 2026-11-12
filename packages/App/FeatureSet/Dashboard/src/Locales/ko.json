@@ -50931,5 +50931,7 @@
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "지난 90일 동안 이 그룹의 상태입니다(하루에 막대 하나). 각 모니터는 모니터링이 켜져 있는 동안에만 계산됩니다.",
   "leaves out time with monitoring off": "모니터링이 꺼진 시간 제외",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, 모니터링 꺼짐, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "이전 차례 {{count}}개는 표시되지 않습니다",
+  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다"
 }
