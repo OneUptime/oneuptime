@@ -38,7 +38,9 @@
  *                    answered with two monitors read by id - one
  *                    Offline, one whose monitoring is off - and the
  *                    monitors table, its long names beside "Operational"
- *                    (issues #6968 and #6969)
+ *                    (issues #6968 and #6969); each card's words as
+ *                    query_monitors stores them, so they are drawn in
+ *                    the reader's language (issue #7175)
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -115,12 +117,14 @@ import {
 } from "Common/Types/AI/AIActionWords";
 import {
   AIChatCitationTargetType,
-  AIChatResourceCardOrigin,
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
+import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
 import Permission from "Common/Types/Permission";
+import WidgetBuilder from "Common/Server/Utils/AI/Toolbox/WidgetBuilder";
+import { getMonitorCardWords } from "Common/Server/Utils/AI/Toolbox/ReadCardWords";
 import API from "Common/UI/Utils/API/API";
 import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
@@ -631,27 +635,39 @@ let codeConversation = null;
 let monitorsConversation = null;
 
 /*
- * The card query_monitors leaves for a monitor read by id
- * (WidgetBuilder.resourceCard): a read's, drawn plain, with its status's
- * own colour - gray when its monitoring is off (issue #6968).
+ * The card query_monitors leaves for a monitor read by id, built as the
+ * tool builds it (WidgetBuilder.resourceCard): a read's, drawn plain, with
+ * its status's own colour - gray when its monitoring is off (issue #6968) -
+ * and its words, which the chat says in the reader's language: its type,
+ * "Last status" and "Off - not checked" OneUptime's words, its status as
+ * the project named it (issue #7175).
  */
-function monitorCard({ id, name, monitorId, status, statusColor, fields }) {
+function monitorCard({
+  id,
+  name,
+  monitorId,
+  monitorType,
+  statusName,
+  isMonitoringOff,
+  statusColor,
+}) {
   return {
-    id,
-    type: AIChatWidgetType.ResourceCard,
-    title: `Monitor ${name}`,
-    data: {
-      resourceType: "Monitor",
+    ...WidgetBuilder.resourceCard({
+      title: `Monitor ${name}`,
       heading: name,
-      subheading: status,
-      fields,
-      origin: AIChatResourceCardOrigin.Read,
+      words: getMonitorCardWords({
+        monitorType,
+        statusName,
+        isMonitoringOff,
+        isArchived: false,
+      }),
       statusColor,
       link: {
         type: AIChatCitationTargetType.MonitorView,
         params: { monitorId },
       },
-    },
+    }),
+    id,
   };
 }
 
@@ -675,21 +691,19 @@ function seedMonitorsAnswer() {
         id: "W1",
         name: "Checkout API",
         monitorId: "60000000-0000-4000-8000-000000000001",
-        status: "Offline",
+        monitorType: MonitorType.Website,
+        statusName: "Offline",
+        isMonitoringOff: false,
         statusColor: "#fd625e",
-        fields: [{ label: "Type", value: "Website" }],
       }),
       monitorCard({
         id: "W2",
         name: "Backup Job",
         monitorId: "60000000-0000-4000-8000-000000000004",
-        status: "Disabled",
+        monitorType: MonitorType.IncomingRequest,
+        statusName: "Operational",
+        isMonitoringOff: true,
         statusColor: "#6b7280",
-        fields: [
-          { label: "Type", value: "Incoming Request" },
-          { label: "Last status", value: "Operational" },
-          { label: "Monitoring", value: "Off - not checked" },
-        ],
       }),
       {
         id: "W3",

@@ -34,6 +34,12 @@ import SliType from "../../../../Types/ServiceLevelObjective/SliType";
 import SloStatus from "../../../../Types/ServiceLevelObjective/SloStatus";
 import SloWindowType from "../../../../Types/ServiceLevelObjective/SloWindowType";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
+import {
+  AIActionCardWords,
+  describeAIActionCardWords,
+} from "../../../../Types/AI/AIActionWords";
+import { dashboardTranslator } from "../../../Helpers/DashboardLocales";
+import { expectReadCardWorded } from "../../../Helpers/ReadCardWords";
 
 /*
  * query_slos surfaces SLO definitions plus the worker-persisted compliance
@@ -1603,5 +1609,118 @@ describe("query_slos — error budget policy", () => {
     expect(QuerySlosTool.description).toContain(
       "whether each freezes deployments",
     );
+  });
+});
+
+/*
+ * Issue #7175: the SLO's card said "Target", "Rolling 30-day window" and
+ * "none - monitors are picked by hand" in English on a German page. Its
+ * words are OneUptime's own now, its figures written the reader's way, and
+ * the English it stores the same words in English.
+ */
+describe("query_slos — the card, in the reader's language", () => {
+  async function sloCardWords(
+    slo: ServiceLevelObjective,
+  ): Promise<AIActionCardWords> {
+    jest
+      .spyOn(ServiceLevelObjectiveService, "findOneById")
+      .mockResolvedValue(slo as never);
+    jest
+      .spyOn(ServiceLevelObjectiveBurnRateRuleService, "findBy")
+      .mockResolvedValue([
+        buildRule({ name: "Fast burn", threshold: 14.4 }),
+        buildRule({ name: "Slow burn", threshold: 3 }),
+      ] as never);
+
+    const result: ToolExecutionResult = await QuerySlosTool.execute(
+      { sloId: SLO_ID.toString() },
+      ctx,
+    );
+
+    expect(result.widget!.data["heading"]).toBe("Checkout availability");
+
+    return expectReadCardWorded(result.widget);
+  }
+
+  test("every word worded in every language; its English the card's as before", async () => {
+    const words: AIActionCardWords = await sloCardWords(buildSlo());
+
+    expect(describeAIActionCardWords(words)).toEqual({
+      kind: "SLO",
+      line: "Checkout must stay reachable.",
+      facts: [
+        { label: "Target", value: "99.9%" },
+        { label: "Window", value: "Rolling 30-day window" },
+        { label: "SLI type", value: "Monitor uptime" },
+        { label: "Status", value: "Healthy" },
+        { label: "Current SLI", value: "99.95%" },
+        { label: "Error budget left", value: "47.3%" },
+        { label: "Burn rate", value: "0.8" },
+        { label: "Monitors", value: "Checkout API" },
+        { label: "Monitor rules", value: "none - monitors are picked by hand" },
+        { label: "Burn-rate rules", value: "2" },
+        { label: "Error budget policy tier", value: "no error budget policy" },
+        { label: "Deployments", value: "allowed" },
+      ],
+    });
+  });
+
+  test("in German: German words, German figures; the SLO's description and monitors as written", async () => {
+    const words: AIActionCardWords = await sloCardWords(buildSlo());
+    const drawn: {
+      kind: string;
+      line?: string | undefined;
+      facts: Array<{ label: string; value: string }>;
+    } = describeAIActionCardWords(words, dashboardTranslator("de"));
+    const noBreakSpace: string = String.fromCharCode(0x00a0);
+
+    expect(drawn.line).toBe("Checkout must stay reachable.");
+    expect(drawn.facts).toEqual(
+      expect.arrayContaining([
+        { label: "Ziel", value: `99,9${noBreakSpace}%` },
+        {
+          label: "Zeitfenster",
+          value: "Rollierendes Zeitfenster von 30 Tagen",
+        },
+        { label: "Burn-Rate", value: "0,8" },
+        { label: "Monitore", value: "Checkout API" },
+      ]),
+    );
+
+    for (const english of [
+      "Target",
+      "Rolling",
+      "Monitor uptime",
+      "Healthy",
+      "none - monitors are picked by hand",
+      "no error budget policy",
+      "allowed",
+    ]) {
+      expect(JSON.stringify(drawn)).not.toContain(english);
+    }
+  });
+
+  test("an SLO not evaluated yet says so in the reader's language, never 0%", async () => {
+    const words: AIActionCardWords = await sloCardWords(
+      buildSlo({ evaluated: false }),
+    );
+    const notEvaluated: Array<string> = describeAIActionCardWords(words)
+      .facts.filter((fact: { value: string }): boolean => {
+        return fact.value === "not evaluated yet";
+      })
+      .map((fact: { label: string }): string => {
+        return fact.label;
+      });
+
+    expect(notEvaluated).toEqual([
+      "Current SLI",
+      "Error budget left",
+      "Burn rate",
+    ]);
+    expect(
+      JSON.stringify(
+        describeAIActionCardWords(words, dashboardTranslator("fa")),
+      ),
+    ).not.toContain("not evaluated yet");
   });
 });

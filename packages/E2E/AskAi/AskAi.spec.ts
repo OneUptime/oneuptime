@@ -3840,7 +3840,7 @@ test.describe("a code change's cautions", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * Monitors looked up, and the monitors table (issues #6968 and #6969)
+ * Monitors looked up, and the monitors table (issues #6968, #6969 and #7175)
  * ---------------------------------------------------------------------------
  *
  * "Which monitors are down right now?", answered with two monitors read by
@@ -4192,4 +4192,123 @@ test.describe("monitors looked up, and the monitors table", () => {
 
     await screenshot(page, "monitors-table-url-390");
   });
+
+  /*
+   * Issue #7175: the cards said "MONITOR", "Type", "Website", "Disabled",
+   * "Last status" and "Off - not checked" in English on a German or
+   * Persian page. They say OneUptime's words in the reader's language now
+   * - the status the project named as named - and the dot stays before the
+   * line, on the side it reads from, on a phone and beside the page.
+   */
+  for (const language of ["de", "fa"]) {
+    test(`a monitor looked up, in ${language === "de" ? "German" : "Persian"} at 1280 and 390 pixels: every word of ours in the reader's language, the status as named, the dot before the line`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const words: Record<string, string> = dashboardWords(language);
+      const isRightToLeft: boolean = language === "fa";
+
+      for (const width of [1280, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        await load(page, `lang=${language}&thread=monitors`);
+        await expect(askAi(page)).toBeVisible();
+        await settle(page);
+
+        const cards: Locator = page.getByTestId("ai-chat-resource-card");
+        await expect(cards).toHaveCount(2);
+        const offline: Locator = cards.nth(0);
+        const disabled: Locator = cards.nth(1);
+        await offline.scrollIntoViewIfNeeded();
+        await settle(page);
+
+        const factsOf: (
+          card: Locator,
+          part: "label" | "value",
+        ) => Promise<Array<string>> = async (
+          card: Locator,
+          part: "label" | "value",
+        ): Promise<Array<string>> => {
+          const texts: Array<string> = [];
+          for (const fact of await card
+            .getByTestId(`ai-chat-resource-card-fact-${part}`)
+            .all()) {
+            texts.push(await wordsOf(fact));
+          }
+          return texts;
+        };
+
+        for (const card of [offline, disabled]) {
+          expect(
+            await wordsOf(card.getByTestId("ai-chat-resource-card-kind")),
+          ).toBe(filled(words, "Monitor"));
+        }
+
+        // The status the project named, as named; monitoring off in the reader's words.
+        expect(
+          await wordsOf(offline.getByTestId("ai-chat-resource-card-line")),
+        ).toBe("Offline");
+        expect(
+          await wordsOf(disabled.getByTestId("ai-chat-resource-card-line")),
+        ).toBe(filled(words, "Disabled"));
+
+        expect(await factsOf(offline, "label")).toEqual([
+          filled(words, "Type"),
+        ]);
+        expect(await factsOf(offline, "value")).toEqual([
+          filled(words, "Website"),
+        ]);
+        expect(await factsOf(disabled, "label")).toEqual([
+          filled(words, "Type"),
+          filled(words, "Last status"),
+          filled(words, "Monitoring"),
+        ]);
+        expect(await factsOf(disabled, "value")).toEqual([
+          filled(words, "Incoming Request"),
+          "Operational",
+          filled(words, "Off - not checked"),
+        ]);
+
+        // None of OneUptime's words left in English.
+        for (const card of [offline, disabled]) {
+          const text: string = await wordsOf(card);
+          for (const english of [
+            "Monitor",
+            "Disabled",
+            "Last status",
+            "Off - not checked",
+            "Incoming Request",
+            "Type",
+          ]) {
+            expect(text, `${language} ${width}: ${text}`).not.toContain(
+              english,
+            );
+          }
+        }
+
+        // The dot before the line's words, on the side they read from.
+        for (const card of [offline, disabled]) {
+          const drawn: StatusDot = await statusDotOf(card);
+          if (isRightToLeft) {
+            expect(drawn.dot.left).toBeGreaterThanOrEqual(drawn.words.right);
+            expect(drawn.dot.left - drawn.words.right).toBeLessThanOrEqual(8);
+          } else {
+            expect(drawn.dot.right).toBeLessThanOrEqual(drawn.words.left);
+            expect(drawn.words.left - drawn.dot.right).toBeLessThanOrEqual(8);
+          }
+          const middle: number = (drawn.dot.top + drawn.dot.bottom) / 2;
+          expect(middle).toBeGreaterThan(drawn.words.top);
+          expect(middle).toBeLessThan(drawn.words.bottom);
+
+          const look: CardLook = await cardLookOf(card);
+          expect(look.origin).toBe("read");
+          expect(look.checks).toBe(0);
+          expect(look.greens).toBe(0);
+        }
+
+        await expectNothingScrollsSideways(page);
+        await screenshot(page, `monitor-cards-${width}-${language}-words`);
+      }
+    });
+  }
 });
