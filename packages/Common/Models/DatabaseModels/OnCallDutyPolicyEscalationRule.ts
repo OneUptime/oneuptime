@@ -70,7 +70,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Escalation Rules",
   icon: IconProp.Call,
   tableDescription:
-    "Manage on-call duty escalation rule for the on-call policy.",
+    "Manage on-call escalation rule for the on-call policy.",
 })
 export default class OnCallDutyPolicyEscalationRule extends BaseModel {
   @ColumnAccessControl({

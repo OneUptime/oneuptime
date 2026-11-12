@@ -61,7 +61,7 @@
       "appPlatformsDescription": "ECS और Fargate, Cloud Run, App Service और अन्य प्रबंधित प्लेटफ़ॉर्म पर चलने वाले अपने ऐप्स की निगरानी करें।",
       "appPlatformsTitle": "ऐप प्लेटफ़ॉर्म",
       "alertsDescription": "ऐसी समस्याएँ जिन्हें उपयोगकर्ताओं के ध्यान में आने से पहले आपकी टीम को देखना चाहिए।",
-      "onCallDutyTitle": "ऑन-कॉल ड्यूटी",
+      "onCallDutyTitle": "ऑन-कॉल",
       "onCallDutyDescription": "किसे सूचना भेजी जाती है, और अगर कोई जवाब न दे तो अगला कौन है।",
       "scheduledMaintenanceTitle": "अनुसूचित रखरखाव",
       "scheduledMaintenanceDescription": "पहले से तय डाउनटाइम की घोषणा समय से पहले करें।",

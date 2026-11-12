@@ -679,9 +679,9 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "Alert On-Call Duty Policies",
+    title: "Alert On-Call Policies",
     description:
-      "On-call duty policies attached to alerts created by this burn rate rule. Incidents have their own list.",
+      "On-call policies attached to alerts created by this burn rate rule. Incidents have their own list.",
   })
   @ManyToMany(
     () => {
@@ -1138,9 +1138,9 @@ export default class ServiceLevelObjectiveBurnRateRule extends BaseModel {
     required: false,
     type: TableColumnType.EntityArray,
     modelType: OnCallDutyPolicy,
-    title: "Incident On-Call Duty Policies",
+    title: "Incident On-Call Policies",
     description:
-      "On-call duty policies attached to incidents declared by this burn rate rule.",
+      "On-call policies attached to incidents declared by this burn rate rule.",
   })
   @ManyToMany(
     () => {

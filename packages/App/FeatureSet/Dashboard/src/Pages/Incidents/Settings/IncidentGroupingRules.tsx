@@ -433,7 +433,7 @@ const IncidentGroupingRulesPage: FunctionComponent<
             field: {
               onCallDutyPolicies: true,
             },
-            title: "On-Call Duty Policies",
+            title: "On-Call Policies",
             stepId: "grouping",
             collapsibleSection: MORE_FIELDS,
             sectionTitle: "On-Call & Ownership",

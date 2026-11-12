@@ -61,7 +61,7 @@
       "appPlatformsDescription": "Bewaak de apps die je draait op ECS en Fargate, Cloud Run, App Service en andere beheerde platforms.",
       "appPlatformsTitle": "App-platforms",
       "alertsDescription": "Problemen die je team moet bekijken voordat gebruikers ze merken.",
-      "onCallDutyTitle": "Bereikbaarheidsdienst",
+      "onCallDutyTitle": "Bereikbaarheid",
       "onCallDutyDescription": "Wie er wordt opgeroepen, en wie de volgende is als niemand reageert.",
       "scheduledMaintenanceTitle": "Geplande onderhoud",
       "scheduledMaintenanceDescription": "Kondig geplande downtime vooraf aan.",

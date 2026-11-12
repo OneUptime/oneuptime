@@ -10,6 +10,7 @@ import SecurityCasePriority from "Common/Models/DatabaseModels/SecurityCasePrior
 import SecurityCaseStatus from "Common/Models/DatabaseModels/SecurityCaseStatus";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import NotificationRuleCondition, {
+  getCheckOnLabel,
   NotificationRuleConditionCheckOn,
 } from "Common/Types/Workspace/NotificationRules/NotificationRuleCondition";
 import React, { FunctionComponent, ReactElement } from "react";
@@ -378,7 +379,9 @@ const NotificationRuleConditionElement: FunctionComponent<ComponentProps> = (
     <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-6">
       <span className="font-medium text-gray-900">
         {translator.translateText(
-          props.notificationRuleCondition?.checkOn || "",
+          props.notificationRuleCondition?.checkOn
+            ? getCheckOnLabel(props.notificationRuleCondition.checkOn)
+            : "",
         )}
       </span>
       <span className="text-gray-500">

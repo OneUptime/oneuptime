@@ -61,7 +61,7 @@
       "appPlatformsDescription": "Monitor the apps you run on ECS and Fargate, Cloud Run, App Service and other managed platforms.",
       "appPlatformsTitle": "App Platforms",
       "alertsDescription": "Problems for your team to look into before users notice.",
-      "onCallDutyTitle": "On-Call Duty",
+      "onCallDutyTitle": "On-Call",
       "onCallDutyDescription": "Who gets paged, and who is next if nobody answers.",
       "scheduledMaintenanceTitle": "Scheduled Maintenance",
       "scheduledMaintenanceDescription": "Announce planned downtime ahead of time.",

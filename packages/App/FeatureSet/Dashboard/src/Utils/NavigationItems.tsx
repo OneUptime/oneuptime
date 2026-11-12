@@ -131,9 +131,14 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     {
       key: ProductKey.OnCall,
       title: t("navbar.items.onCallDutyTitle"),
+      /*
+       * The product was "On-Call Duty" until #6817 named it On-Call: its
+       * old name is a keyword, so people who learned it still find it.
+       */
       keywords: [
         "oncall",
         "on call",
+        "on-call duty",
         "pager",
         "paging",
         "escalation",

@@ -1674,7 +1674,7 @@ const IncidentView: FunctionComponent<
                       _id: true,
                     },
                   },
-                  title: "On-Call Duty Policies",
+                  title: "On-Call Policies",
                   fieldType: FieldType.Element,
                   getElement: (item: Incident): ReactElement => {
                     return (

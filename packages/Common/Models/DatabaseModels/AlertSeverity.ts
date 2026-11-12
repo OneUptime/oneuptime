@@ -93,7 +93,7 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
   pluralName: "Alert Severities",
   icon: IconProp.Alert,
   tableDescription:
-    "Manage alert severity for your project (Created, Acknowledged for example). Add / edit or remove severities.",
+    "How much an alert matters. A new project starts with High and Low: rename them, recolor them or add your own.",
 })
 @Entity({
   name: "AlertSeverity",

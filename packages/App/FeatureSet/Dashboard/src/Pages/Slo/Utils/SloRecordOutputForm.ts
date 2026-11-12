@@ -416,7 +416,7 @@ export function getSloAlertOutputFormFields<TModel extends BaseModel>(
     place<TModel>(
       {
         field: column<TModel>("onCallDutyPolicies"),
-        title: "Alert On-Call Duty Policies",
+        title: "Alert On-Call Policies",
         description: copy.onCallDescription,
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         dropdownModal: {
@@ -580,7 +580,7 @@ export function getSloIncidentOutputFormFields<TModel extends BaseModel>(
     place<TModel>(
       {
         field: column<TModel>("incidentOnCallDutyPolicies"),
-        title: "Incident On-Call Duty Policies",
+        title: "Incident On-Call Policies",
         description: copy.onCallDescription,
         fieldType: FormFieldSchemaType.MultiSelectDropdown,
         dropdownModal: {

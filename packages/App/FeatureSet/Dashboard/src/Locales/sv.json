@@ -61,7 +61,7 @@
       "appPlatformsDescription": "Övervaka apparna du kör på ECS och Fargate, Cloud Run, App Service och andra hanterade plattformar.",
       "appPlatformsTitle": "Appplattformar",
       "alertsDescription": "Problem som ditt team bör titta på innan användarna märker något.",
-      "onCallDutyTitle": "Jourtjänst",
+      "onCallDutyTitle": "Jour",
       "onCallDutyDescription": "Vem som larmas, och vem som är näst på tur om ingen svarar.",
       "scheduledMaintenanceTitle": "Schemalagt underhåll",
       "scheduledMaintenanceDescription": "Meddela planerade avbrott i förväg.",

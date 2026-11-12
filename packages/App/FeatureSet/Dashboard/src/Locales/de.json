@@ -61,7 +61,7 @@
       "appPlatformsDescription": "Überwachen Sie die Apps, die Sie auf ECS und Fargate, Cloud Run, App Service und anderen verwalteten Plattformen betreiben.",
       "appPlatformsTitle": "App-Plattformen",
       "alertsDescription": "Probleme, die Ihr Team prüfen sollte, bevor Nutzer sie bemerken.",
-      "onCallDutyTitle": "Bereitschaftsdienst",
+      "onCallDutyTitle": "Bereitschaft",
       "onCallDutyDescription": "Wer alarmiert wird und wer als Nächstes dran ist, wenn niemand antwortet.",
       "scheduledMaintenanceTitle": "Geplante Wartung",
       "scheduledMaintenanceDescription": "Kündigen Sie geplante Ausfallzeiten rechtzeitig an.",

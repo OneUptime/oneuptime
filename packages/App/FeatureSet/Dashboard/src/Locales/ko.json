@@ -61,7 +61,7 @@
       "appPlatformsDescription": "ECS 및 Fargate, Cloud Run, App Service 등 관리형 플랫폼에서 실행하는 앱을 모니터링합니다.",
       "appPlatformsTitle": "앱 플랫폼",
       "alertsDescription": "사용자가 알아채기 전에 팀이 살펴봐야 할 문제.",
-      "onCallDutyTitle": "온콜 듀티",
+      "onCallDutyTitle": "온콜",
       "onCallDutyDescription": "누구에게 호출이 가는지, 아무도 응답하지 않으면 다음은 누구인지.",
       "scheduledMaintenanceTitle": "예정된 유지 관리",
       "scheduledMaintenanceDescription": "계획된 중단을 미리 알립니다.",

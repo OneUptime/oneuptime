@@ -61,7 +61,7 @@
       "appPlatformsDescription": "Overvåg de apps, du kører på ECS og Fargate, Cloud Run, App Service og andre administrerede platforme.",
       "appPlatformsTitle": "App-platforme",
       "alertsDescription": "Problemer, som dit team skal se på, før brugerne opdager dem.",
-      "onCallDutyTitle": "Vagtordning",
+      "onCallDutyTitle": "Vagt",
       "onCallDutyDescription": "Hvem der bliver kaldt op, og hvem der er den næste, hvis ingen svarer.",
       "scheduledMaintenanceTitle": "Planlagt vedligeholdelse",
       "scheduledMaintenanceDescription": "Annoncer planlagt nedetid i god tid.",

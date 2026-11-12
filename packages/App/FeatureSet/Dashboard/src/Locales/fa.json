@@ -61,7 +61,7 @@
       "appPlatformsDescription": "برنامه‌هایی را که روی ECS و Fargate، Cloud Run، App Service و دیگر بسترهای مدیریت‌شده اجرا می‌کنید پایش کنید.",
       "appPlatformsTitle": "بسترهای برنامه",
       "alertsDescription": "مشکلاتی که تیم شما باید پیش از متوجه شدن کاربران بررسی کند.",
-      "onCallDutyTitle": "کشیک آنکال",
+      "onCallDutyTitle": "آنکال",
       "onCallDutyDescription": "چه کسی فراخوانده می‌شود، و اگر کسی پاسخ ندهد نفر بعدی کیست.",
       "scheduledMaintenanceTitle": "تعمیر و نگهداری زمان‌بندی‌شده",
       "scheduledMaintenanceDescription": "قطعی‌های برنامه‌ریزی‌شده را از قبل اعلام کنید.",

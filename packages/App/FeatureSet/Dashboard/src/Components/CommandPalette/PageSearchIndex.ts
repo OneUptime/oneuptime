@@ -1491,7 +1491,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
   },
   {
     id: "on-call-duty",
-    title: "On-Call Duty",
+    title: "On-Call",
     productPage: PageMap.ON_CALL_DUTY,
     icon: IconProp.Call,
     iconColor: "stone",
@@ -1510,6 +1510,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "paging policy",
               "pager",
               "create on-call policy",
+              // Its name before On-Call Duty became On-Call (#6817).
+              "on-call duty policies",
             ],
           },
           /*
@@ -1553,6 +1555,8 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "shifts",
               "who is on call",
               "create on-call schedule",
+              // Its name before On-Call Duty became On-Call (#6817).
+              "on-call duty schedules",
             ],
           },
           {
@@ -1612,7 +1616,7 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
         pages: [
           {
             page: PageMap.ON_CALLDUTY_USER_TIME_LOGS,
-            title: "User On Call Time",
+            title: "User On-Call Time",
             icon: IconProp.Clock,
             keywords: ["on-call hours", "time report"],
           },

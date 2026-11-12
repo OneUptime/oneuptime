@@ -24,6 +24,17 @@ export default (props: {
    * aliases of the new ones (Scripts/TerraformProvider OpenAPIParser).
    */
   formerSingularName?: string | undefined;
+  /*
+   * The names the model keeps outside the screens after the product renamed
+   * it (#6817: "On-Call Policy Schedule" is an On-Call Schedule on screen).
+   * Everything that calls or stores a model by name goes on using these:
+   * the OpenAPI spec's tag (so the Terraform provider's resource), the CLI's
+   * command, the MCP server's tools and the audit log's resource type
+   * (Common/Utils/ModelApiName). Leave them out and they are the singular
+   * and plural names, as for every model never renamed.
+   */
+  apiSingularName?: string | undefined;
+  apiPluralName?: string | undefined;
 }) => {
   return (ctr: GenericFunction) => {
     ctr.prototype.singularName = props.singularName;
@@ -39,6 +50,12 @@ export default (props: {
     }
     if (props.formerSingularName) {
       ctr.prototype.formerSingularName = props.formerSingularName;
+    }
+    if (props.apiSingularName) {
+      ctr.prototype.apiSingularName = props.apiSingularName;
+    }
+    if (props.apiPluralName) {
+      ctr.prototype.apiPluralName = props.apiPluralName;
     }
   };
 };
