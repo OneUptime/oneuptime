@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#side-menus
 import {
   afterEach,
   beforeEach,

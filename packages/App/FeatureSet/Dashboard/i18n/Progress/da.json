@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 50755,
-    "untranslated": 9729
+    "untranslated": 9706
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -340,6 +340,7 @@
     "Trigger",
     "Tunnel",
     "Type",
+    "Type: {{type}}",
     "UID",
     "USD",
     "UTC",

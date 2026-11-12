@@ -94,7 +94,11 @@ export const FILTERS_FIELD_DESCRIPTION: string = translationKey(
   "Kept beside the search, as picked in the Events sidebar. Remove one here, or change them on the hunt's page.",
 );
 
-export const SEARCH_STEP_TITLE: string = translationKey("Search");
+/*
+ * The step and the field are named as nouns, as Schedule is beside them: the
+ * Search key is the button's verb in most languages ("Suchen", "Rechercher").
+ */
+export const SEARCH_STEP_TITLE: string = translationKey("Search query");
 export const SCHEDULE_STEP_TITLE: string = translationKey("Schedule");
 
 export const NAME_FIELD_TITLE: string = translationKey("Name");
@@ -102,7 +106,7 @@ export const NAME_FIELD_PLACEHOLDER: string = translationKey(
   "e.g. Encoded PowerShell",
 );
 
-export const SEARCH_FIELD_TITLE: string = translationKey("Search");
+export const SEARCH_FIELD_TITLE: string = translationKey("Search query");
 export const SEARCH_FIELD_DESCRIPTION: string = translationKey(
   "What to look for, as you type it on Events: words in a message, fields such as user:alice or host:web-01, and attributes such as @threat.matched:true.",
 );

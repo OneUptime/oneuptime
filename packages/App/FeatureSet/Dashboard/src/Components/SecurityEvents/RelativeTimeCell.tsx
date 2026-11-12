@@ -10,6 +10,14 @@ export interface ComponentProps {
 export const RELATIVE_TIME_CELL_TEST_ID: string = "relative-time-cell";
 
 /*
+ * One time is one unit: never "2" at the end of a line and "minutes ago"
+ * on the next. Folded under another value with its column's name before it
+ * (Last Polled under Last Event Imported, where a connection's row does not
+ * fit), the time goes whole onto the line after the name.
+ */
+export const RELATIVE_TIME_CELL_CLASS_NAME: string = "whitespace-nowrap";
+
+/*
  * When something last happened, as a list of Security Events says it:
  * "5 minutes ago", with the date and time under the pointer, or "Never" in
  * the grey of a value that is not there.
@@ -25,7 +33,10 @@ const RelativeTimeCell: FunctionComponent<ComponentProps> = (
 
   if (!props.date) {
     return (
-      <span className="text-gray-400" data-testid={RELATIVE_TIME_CELL_TEST_ID}>
+      <span
+        className={`${RELATIVE_TIME_CELL_CLASS_NAME} text-gray-400`}
+        data-testid={RELATIVE_TIME_CELL_TEST_ID}
+      >
         {translator.translateText("Never")}
       </span>
     );
@@ -33,6 +44,7 @@ const RelativeTimeCell: FunctionComponent<ComponentProps> = (
 
   return (
     <span
+      className={RELATIVE_TIME_CELL_CLASS_NAME}
       title={OneUptimeDate.getDateAsUserFriendlyLocalFormattedString(
         props.date,
       )}

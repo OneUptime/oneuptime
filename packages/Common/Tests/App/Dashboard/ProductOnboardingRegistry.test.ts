@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#a-products-first-page
 import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";

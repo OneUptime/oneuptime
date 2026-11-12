@@ -21797,7 +21797,6 @@
   "Columns: {{columns}}. siteType must be one of this project's configured site types ({{siteTypes}}). parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "Columns: {{columns}}. siteType must be one of this project's configured site types ({{siteTypes}}). parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.",
   "Columns: {{columns}}. siteType must be one of this project's configured site types. parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "Columns: {{columns}}. siteType must be one of this project's configured site types. parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.",
   "Come back here and click Refresh Chats — then pick the chat in any notification rule.": "Come back here and click Refresh Chats — then pick the chat in any notification rule.",
-  "Complete when the number of ready pods matches the desired count and none are unavailable; In Progress otherwise, such as during a rollout or scale-up or while pods fail health checks. The bar shows ready pods out of desired.": "Complete when the number of ready pods matches the desired count and none are unavailable; In Progress otherwise, such as during a rollout or scale-up or while pods fail health checks. The bar shows ready pods out of desired.",
   "Completed Go garbage-collection cycles in each interval. Worked out from the highest running counter when several instances report, so it is approximate; as a tile it shows the total for the selected range.": "Completed Go garbage-collection cycles in each interval. Worked out from the highest running counter when several instances report, so it is approximate; as a tile it shows the total for the selected range.",
   "Condition: {{condition}}": "Condition: {{condition}}",
   "Conditions: {{conditions}}": "Conditions: {{conditions}}",
@@ -22585,7 +22584,6 @@
   "The highest share of the probe's regular pings that went unanswered in any one minute of the past hour. 0% means every ping in the hour got a reply.": "The highest share of the probe's regular pings that went unanswered in any one minute of the past hour. 0% means every ping in the hour got a reply.",
   "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.": "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.",
   "The key the {{collectorName}} already uses.": "The key the {{collectorName}} already uses.",
-  "The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on.": "The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on.",
   "The language this service runs on, from the telemetry.sdk.language attribute your OpenTelemetry SDK sends, else the runtime name or the tech stack you set. Shown here because no runtime metrics (CPU, memory, heap) arrived in the selected range.": "The language this service runs on, from the telemetry.sdk.language attribute your OpenTelemetry SDK sends, else the runtime name or the tech stack you set. Shown here because no runtime metrics (CPU, memory, heap) arrived in the selected range.",
   "The last poll could not reach this device — neither ping nor SNMP answered.": "The last poll could not reach this device — neither ping nor SNMP answered.",
   "The last poll reached this device (ping or SNMP).": "The last poll reached this device (ping or SNMP).",
@@ -22771,7 +22769,6 @@
   "We could not read who is in {{group}}, so nobody on that team has been checked.": "We could not read who is in {{group}}, so nobody on that team has been checked.",
   "We couldn't load profile attributes. {{error}}": "We couldn't load profile attributes. {{error}}",
   "We couldn't load telemetry services. {{error}}": "We couldn't load telemetry services. {{error}}",
-  "What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job.": "What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job.",
   "What the broker reports about this queue: backlog, consumer lag, dead letters and message age.": "What the broker reports about this queue: backlog, consumer lag, dead letters and message age.",
   "What this autoscaler watches and the level it aims for. For example, cpu (Utilization: 70) keeps average CPU near 70% of the pods' CPU requests; custom, external and per-container targets show only their type name.": "What this autoscaler watches and the level it aims for. For example, cpu (Utilization: 70) keeps average CPU near 70% of the pods' CPU requests; custom, external and per-container targets show only their type name.",
   "What this cluster spent in the selected range on node capacity that no workload requested or used.": "What this cluster spent in the selected range on node capacity that no workload requested or used.",
@@ -50770,6 +50767,9 @@
   "{{tab}} (closed)": "{{tab}} (closed)",
   "{{tab}} (still open)": "{{tab}} (still open)",
   "Closed tabs": "Closed tabs",
+  "Available when every pod it is set to run is available; Progressing while only some are, as during a rollout or scale-up; Unavailable when none are; Scaled to zero when it is set to run none; Paused while its rollouts are paused. Beside it, how many of those pods are ready.": "Available when every pod it is set to run is available; Progressing while only some are, as during a rollout or scale-up; Unavailable when none are; Scaled to zero when it is set to run none; Paused while its rollouts are paused. Beside it, how many of those pods are ready.",
+  "The kind of systemd unit, as systemd writes it at the end of the unit's name: service (a background program), socket, timer, mount, target and so on.": "The kind of systemd unit, as systemd writes it at the end of the unit's name: service (a background program), socket, timer, mount, target and so on.",
+  "What kind of unit this is, as systemd writes it at the end of the unit's name: for example service for a background program or timer for a scheduled job.": "What kind of unit this is, as systemd writes it at the end of the unit's name: for example service for a background program or timer for a scheduled job.",
   "less than {{percent}}": "less than {{percent}}",
   "{{count}} metrics": "{{count}} metrics",
   "{{count}} metrics_one": "{{count}} metric",
@@ -50793,5 +50793,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} is {{values}}, which is less than {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} is {{values}}, which is not equal to {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} is {{values}}, which starts with {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}} is {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}} is {{values}}.",
+  "Search query": "Search query"
 }

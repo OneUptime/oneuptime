@@ -277,8 +277,8 @@ const KubernetesClusterDeploymentConfigDetail: FunctionComponent<
             <StatusBadge text={state} type={STATE_BADGES[state]} />
             <span className="text-sm text-gray-600">
               {translator.translateTemplate("{{ready}}/{{total}} ready", {
-                ready: ready,
-                total: desired,
+                ready: translator.formatNumber(ready),
+                total: translator.formatNumber(desired),
               })}
             </span>
           </div>

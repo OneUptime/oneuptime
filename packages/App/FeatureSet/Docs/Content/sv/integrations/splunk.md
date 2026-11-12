@@ -54,7 +54,7 @@ Klicka på **Testa de här inställningarna** under **Testa innan du sparar**. T
 | Inställning | Vad du anger |
 | --- | --- |
 | **Splunk-hanterings-URL** | Search headens REST API, till exempel `https://splunk.example.com:8089`. Den måste använda `https`, utan frågesträng. En sökväg behålls, för en omvänd proxy som erbjuder API:t under en sökväg. |
-| **Sök** | Sökningen som väljer vad som ska importeras, `index=notable` tills du ändrar den. Begränsa den, till exempel med `index=notable urgency IN (high, critical)`. OneUptime lägger själv till tidsintervallet, så sökningen kan inte ange `earliest` eller `latest` och kan inte börja med en pipe. Ett inledande `search` tas bort. |
+| **Sökfråga** | Sökningen som väljer vad som ska importeras, `index=notable` tills du ändrar den. Begränsa den, till exempel med `index=notable urgency IN (high, critical)`. OneUptime lägger själv till tidsintervallet, så sökningen kan inte ange `earliest` eller `latest` och kan inte börja med en pipe. Ett inledande `search` tas bort. |
 | **Användarnamn** | Splunk-användarens namn, bara om den autentiserar med ett lösenord. |
 | **Autentiseringstoken** | Token från det första steget. När en token är sparad är det den som används, och inte användarnamnet eller lösenordet. |
 | **Lösenord** | Splunk-användarens lösenord, bara när ingen token används. |
@@ -114,7 +114,7 @@ En avsökning läser högst 10 000 rader. När ett fönster innehåller fler bli
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-Sökningen sorterar fönstret efter `_time`, de äldsta först, så OneUptime flyttar markören till skapandetiden för den senast lästa raden, och nästa avsökning börjar där med samma fönsterlängd. Ett upptaget search head kommer ikapp 10 000 rader per avsökning i stället för att läsa samma rader igen. Rader som skapades i samma ögonblick läses två gånger, och dubblettkontrollen tar bort den andra kopian. Splunk sorterar hela fönstret innan det returnerar en rad, så en sökning i **Sök** som hittar mycket mer än nödvändigt gör varje avsökning långsammare. Håll den fokuserad.
+Sökningen sorterar fönstret efter `_time`, de äldsta först, så OneUptime flyttar markören till skapandetiden för den senast lästa raden, och nästa avsökning börjar där med samma fönsterlängd. Ett upptaget search head kommer ikapp 10 000 rader per avsökning i stället för att läsa samma rader igen. Rader som skapades i samma ögonblick läses två gånger, och dubblettkontrollen tar bort den andra kopian. Splunk sorterar hela fönstret innan det returnerar en rad, så en **Sökfråga** som hittar mycket mer än nödvändigt gör varje avsökning långsammare. Håll den fokuserad.
 
 När en körning inte alls kommer förbi den sparade markören gör OneUptime i stället fönstret kortare:
 
@@ -141,8 +141,8 @@ Klicka på **Diagnostik** på en anslutning för att se dess senaste körningar 
 | --- | --- |
 | **Konfiguration** | Varje inställning finns och är korrekt formaterad. Ingenting kontaktas när detta misslyckas. |
 | **Authenticate with Splunk** | Splunk godtar token, eller användarnamnet och lösenordet, och namnger användaren och dess roller, så att du kan jämföra dem med den roll du ville ge. |
-| **Run the search on Splunk** | Sökningen i **Sök** körs över de senaste 24 timmarna för en rad och säger vilken exportslutpunkt som svarade. |
-| **Notable events available to import** | Hur många rader sökningen i **Sök** hittar under de senaste 24 timmarna och de senaste 7 dagarna. Inga på 7 dagar är en varning, inte ett fel. |
+| **Run the search on Splunk** | Din **Sökfråga** körs över de senaste 24 timmarna för en rad och säger vilken exportslutpunkt som svarade. |
+| **Notable events available to import** | Hur många rader din **Sökfråga** hittar under de senaste 24 timmarna och de senaste 7 dagarna. Inga på 7 dagar är en varning, inte ett fel. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptimes egen sida: en process tar jobben från Worker-kön, avsökningsjobbet körs varje minut och lagringen för säkerhetshändelser svarar. |
 | **Schemalagd hämtning** | För en sparad anslutning: avsökningen är påslagen, ingen körning har fastnat i väntan på en worker och avsökningar körs i tid. |
 
@@ -183,7 +183,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 
 :::details Last Error börjar med `Splunk Enterprise Security search export` eller `Splunk Enterprise Security count search`
 - `Splunk Enterprise Security search export failed (HTTP ...)`: Splunk vägrade köra sökningen.
-  - `HTTP 400`: Splunk kan inte tolka sökningen. Kör sökningen från **Sök** i Splunk Web för att läsa dess fel.
+  - `HTTP 400`: Splunk kan inte tolka sökningen. Kör din **Sökfråga** i Splunk Web för att läsa dess fel.
   - `HTTP 403`: användarens roll saknar capabilityn `search`, eller kan inte läsa indexet. Lägg till `notable`, eller ditt index, bland de index som rollen får söka i.
   - `HTTP 404`: ingen av de två exportslutpunkterna finns på den URL:en, så det är inte hanteringsporten på ett search head.
   - `HTTP 429` eller `HTTP 5xx`: Splunk begränsar användaren, är överbelastat, eller sökningen nådde en av sina gränser. Nästa avsökning försöker igen.
@@ -193,7 +193,7 @@ Anslutningens **Senaste fel** sparar hela felmeddelandet, med autentiseringsuppg
 :::
 
 :::details Last Error slutar med `did not complete`
-`Splunk Enterprise Security search export did not complete`, och samma sak för de andra stegen, betyder att begäran inte fick något svar: en tidsgräns, ett namn som inte kan slås upp, ett certifikat som OneUptime inte litar på, eller en avvisad privat adress. Kontrollera att OneUptime-appen och workerna kan öppna en HTTPS-anslutning till hanteringsporten. Ett search head som svarar på andra begäranden men får tidsgräns på sökningen sorterar för mycket: nästa avsökning läser ett fönster som är hälften så långt, och en mer fokuserad sökning i **Sök** löser det för gott.
+`Splunk Enterprise Security search export did not complete`, och samma sak för de andra stegen, betyder att begäran inte fick något svar: en tidsgräns, ett namn som inte kan slås upp, ett certifikat som OneUptime inte litar på, eller en avvisad privat adress. Kontrollera att OneUptime-appen och workerna kan öppna en HTTPS-anslutning till hanteringsporten. Ett search head som svarar på andra begäranden men får tidsgräns på sökningen sorterar för mycket: nästa avsökning läser ett fönster som är hälften så långt, och en mer fokuserad **Sökfråga** löser det för gott.
 :::
 
 :::details Last Polled är Never och Last Error är tom
@@ -201,12 +201,12 @@ Ingen avsökning har slutförts för den här anslutningen. Kör **Testa anslutn
 :::
 
 :::details En körning är Partial
-- `Stopped after collecting 10000 records; the window holds more`: fönstret innehöll mer än de 10 000 rader som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter den senast lästa raden. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta fram. Om den aldrig kommer ikapp hittar sökningen i **Sök** mer än 10 000 rader per avsökningsintervall: begränsa den, eller gör **Hämtningsintervall (minuter)** kortare.
+- `Stopped after collecting 10000 records; the window holds more`: fönstret innehöll mer än de 10 000 rader som en körning läser. Ingenting går förlorat: nästa avsökning börjar efter den senast lästa raden. En anslutning som förblir **Delvis** avsökning efter avsökning håller på att komma ikapp en eftersläpning, och dess **Senast hämtad** och **Senast importerade händelse** fortsätter att flytta fram. Om den aldrig kommer ikapp hittar din **Sökfråga** mer än 10 000 rader per avsökningsintervall: begränsa den, eller gör **Hämtningsintervall (minuter)** kortare.
 - `More records were created in the one minute from ... than one poll can read`: avsökningen gick förbi den minuten. Importera den med **Importera det här tidsintervallet** i **Diagnostik**. En import läser lika mycket som en avsökning.
 :::
 
 :::details Testet lyckas, men ingenting importeras
-Läs **Notable events available to import** i testets rapport. `0` de senaste 7 dagarna betyder att sökningen i **Sök** inte hittade något i Splunk: kontrollera i Incident Review att korrelationssökningarna är aktiverade och skapar notable events, och att sökningen i **Sök** inte är snävare än avsett.
+Läs **Notable events available to import** i testets rapport. `0` de senaste 7 dagarna betyder att din **Sökfråga** inte hittade något i Splunk: kontrollera i Incident Review att korrelationssökningarna är aktiverade och skapar notable events, och att din **Sökfråga** inte är snävare än avsett.
 :::
 
 ## Vad du får

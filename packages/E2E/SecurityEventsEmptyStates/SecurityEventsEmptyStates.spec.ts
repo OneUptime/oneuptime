@@ -314,8 +314,16 @@ interface OpenOptions {
   latest?: "none" | "pending" | "old" | undefined;
   // Three SIEMs in the Send to your SIEM table.
   siem?: "none" | "rows" | undefined;
-  // Three security tools in the Your security tools table.
-  tools?: "none" | "rows" | undefined;
+  /*
+   * Three security tools in the Your security tools table, or ten: a row in
+   * each state Health can say.
+   */
+  tools?: "none" | "rows" | "states" | undefined;
+  /*
+   * The Dashboard's German, Russian, Hindi, Arabic or Persian words (the
+   * fixture's ?lang=); Arabic and Persian read right to left.
+   */
+  lang?: "en" | "de" | "ru" | "hi" | "ar" | "fa" | undefined;
   // One event in the window, so its drawer can be opened.
   events?: "none" | "one" | undefined;
   /*
@@ -516,6 +524,9 @@ async function open(
   }
   if (options.save === "fail") {
     params.set("save", "fail");
+  }
+  if (options.lang && options.lang !== "en") {
+    params.set("lang", options.lang);
   }
   const query: string = params.toString();
   await page.goto(query ? `${pathname}?${query}` : pathname);
@@ -2651,6 +2662,269 @@ test.describe("connections: your logs and your SIEM", () => {
       clip: toolsCard(page),
     });
   });
+
+  /*
+   * "Your security tools: the Health pills are cut off in Russian at
+   * 1280px" (#6891). Russian, German and Hindi words for a poll's state run
+   * longer than the English, and the table found the room it lacked by
+   * cutting them to the 8rem a value gives way to: "Последний о...",
+   * "Частичный и...", "Расписание п...". A Health pill now wraps onto a
+   * next line instead, between its words and never inside one - held at
+   * 8rem, "приостановлено" broke into "приостановле / но" - so each state
+   * reads whole, every one of them (?tools=states), beside the side menu at
+   * 1280 and at 1440, in Arabic and Persian too, read from the right.
+   *
+   * And the table fits its card. In Russian at 1280 the row's
+   * "Проверить подключение" left it some 80px wider, and Last Event
+   * Imported ran under the sticky buttons ("3 мин", "Никог"): there Last
+   * Polled gives way (TableFit), drawn under Last Event Imported with its
+   * name before it and its time whole on one line. Where the rows fit, it
+   * keeps its column.
+   */
+  const HEALTH_STATES: ReadonlyArray<string> = [
+    "Last poll succeeded",
+    "Last poll failed",
+    "Schedule paused",
+    "Partial import",
+    "Polling, no events imported yet",
+    "Poll overdue",
+    "Catching up",
+    "Waiting for first poll",
+    "No records returned",
+    "Details unavailable",
+  ];
+
+  for (const language of ["ru", "de", "hi", "ar", "fa"] as const) {
+    test(`${language}: every Health state reads whole at 1280 and 1440, wrapping between its words`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      const locale: Record<string, string> = JSON.parse(
+        await fs.readFile(
+          path.join(DASHBOARD_LOCALES, `${language}.json`),
+          "utf8",
+        ),
+      ) as Record<string, string>;
+      const expected: Array<string> = HEALTH_STATES.map(
+        (state: string): string => {
+          const worded: string | undefined = locale[state];
+
+          expect(worded, `${language} words "${state}"`).toBeTruthy();
+          expect(worded).not.toBe(state);
+
+          return worded as string;
+        },
+      );
+
+      await open(page, CONNECTIONS_PATH, {
+        tools: "states",
+        lang: language,
+        width: 1280,
+      });
+      // The card's heading is in the page's language: found by its rows.
+      const card: Locator = page.getByTestId("card").filter({
+        has: page.getByTestId("security-event-connection-provider"),
+      });
+      await expect(card.locator("tbody tr")).toHaveCount(HEALTH_STATES.length, {
+        timeout: 30000,
+      });
+
+      interface HealthPill {
+        text: string;
+        give: string | null;
+        isCut: boolean;
+        // Each word drawn on more than one line.
+        brokenWords: Array<string>;
+        lines: number;
+      }
+
+      // Read in one frame, once the table has fitted itself to its card.
+      const read: () => Promise<Array<HealthPill>> = async (): Promise<
+        Array<HealthPill>
+      > => {
+        return await card.evaluate((element: Element): Array<HealthPill> => {
+          return Array.from(element.querySelectorAll("tbody tr")).map(
+            (row: Element): HealthPill => {
+              const pill: Element = row.querySelector(
+                "td [data-testid=pill]",
+              ) as Element;
+              const cell: Element = pill.closest("td") as Element;
+              const words: Element = pill.querySelector(
+                "[data-testid=pill-text]",
+              ) as Element;
+              const value: Element | null = pill.closest("[data-table-value]");
+              const node: Node = words.firstChild as Node;
+              const text: string = node.textContent || "";
+              const brokenWords: Array<string> = [];
+              const tops: Set<number> = new Set();
+              let start: number = 0;
+
+              // Each word's own boxes: one line each, or it was broken.
+              for (const word of text.split(" ")) {
+                const range: Range = document.createRange();
+                range.setStart(node, start);
+                range.setEnd(node, start + word.length);
+                const wordTops: Set<number> = new Set(
+                  Array.from(range.getClientRects())
+                    .filter((rect: DOMRect): boolean => {
+                      return rect.width > 0;
+                    })
+                    .map((rect: DOMRect): number => {
+                      return Math.round(rect.top / 4);
+                    }),
+                );
+                if (wordTops.size > 1) {
+                  brokenWords.push(word);
+                }
+                wordTops.forEach((top: number) => {
+                  tops.add(top);
+                });
+                start += word.length + 1;
+              }
+
+              return {
+                text: text,
+                give: value ? value.getAttribute("data-give") : null,
+                // Anything in the cell narrower than its own words.
+                isCut: Array.from(cell.querySelectorAll("*")).some(
+                  (part: Element): boolean => {
+                    return part.scrollWidth > part.clientWidth + 1;
+                  },
+                ),
+                brokenWords: brokenWords,
+                lines: tops.size,
+              };
+            },
+          );
+        });
+      };
+
+      for (const width of [1280, 1440]) {
+        await page.setViewportSize({ width, height: 1000 });
+
+        await expect
+          .poll(async (): Promise<Array<unknown>> => {
+            return (await read()).map((pill: HealthPill): unknown => {
+              return {
+                text: pill.text,
+                give: pill.give,
+                isCut: pill.isCut,
+                brokenWords: pill.brokenWords,
+              };
+            });
+          })
+          .toEqual(
+            expected.map((text: string): unknown => {
+              return { text, give: null, isCut: false, brokenWords: [] };
+            }),
+          );
+
+        // A state wraps only where it must: some read on one line.
+        const pills: Array<HealthPill> = await read();
+        expect(
+          pills.some((pill: HealthPill): boolean => {
+            return pill.lines === 1;
+          }),
+          `${language} ${width}: some state on one line`,
+        ).toBe(true);
+
+        // The table fits its card: nothing runs under the sticky buttons.
+        const overflow: number = await card
+          .getByTestId("table-scroll")
+          .evaluate((element: Element): number => {
+            return element.scrollWidth - element.clientWidth;
+          });
+        expect(overflow, `${language} ${width}`).toBeLessThanOrEqual(1);
+        await expectNoSidewaysScroll(page, { tolerance: 1 });
+
+        /*
+         * Last Polled keeps its column where the rows fit; in Russian at
+         * 1280 it is under Last Event Imported, named, its time whole.
+         */
+        const isFolded: boolean = language === "ru" && width === 1280;
+        const headers: Array<string> = (
+          await card.locator("thead th").allInnerTexts()
+        ).map((text: string): string => {
+          return text.replace(/\s+/g, " ").trim();
+        });
+        expect(
+          headers.includes(locale["Last Polled"] as string),
+          `${language} ${width}: Last Polled is a column`,
+        ).toBe(!isFolded);
+        expect(headers).toContain(
+          (locale["Last Event Imported"] as string).replace(/\s+/g, " "),
+        );
+
+        interface FoldedTime {
+          title: string;
+          lines: number;
+          isUnderLastEventImported: boolean;
+        }
+
+        const foldedTimes: Array<FoldedTime> = await card.evaluate(
+          (element: Element): Array<FoldedTime> => {
+            return Array.from(
+              element.querySelectorAll(
+                "tbody [data-testid=table-folded-value]",
+              ),
+            ).map((value: Element): FoldedTime => {
+              const time: Element | null = value.querySelector(
+                "[data-testid=relative-time-cell]",
+              );
+              const range: Range = document.createRange();
+              if (time) {
+                range.selectNodeContents(time);
+              }
+
+              return {
+                title:
+                  value.querySelector("[data-testid=table-folded-title]")
+                    ?.textContent || "",
+                lines: new Set(
+                  Array.from(range.getClientRects())
+                    .filter((rect: DOMRect): boolean => {
+                      return rect.width > 0;
+                    })
+                    .map((rect: DOMRect): number => {
+                      return Math.round(rect.top / 4);
+                    }),
+                ).size,
+                // The cell's own value, above it, is Last Event Imported's time.
+                isUnderLastEventImported: Boolean(
+                  value
+                    .closest("td")
+                    ?.querySelector(
+                      "[data-testid=table-folded-values] > div:first-child [data-testid=relative-time-cell]",
+                    ),
+                ),
+              };
+            });
+          },
+        );
+        expect(foldedTimes, `${language} ${width}: folded times`).toEqual(
+          isFolded
+            ? HEALTH_STATES.map((): FoldedTime => {
+                return {
+                  title: locale["Last Polled"] as string,
+                  lines: 1,
+                  isUnderLastEventImported: true,
+                };
+              })
+            : [],
+        );
+
+        await card.scrollIntoViewIfNeeded();
+        await screenshot(
+          page,
+          `connections-tools-health-${language}-${width}`,
+          {
+            clip: card,
+          },
+        );
+      }
+    });
+  }
 
   /*
    * The two tables of products on this page draw a product the same way: its

@@ -185,7 +185,7 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "Share of samples in the selected range in which the unit was Active (a service running, a socket listening, a timer waiting to fire); Reloading counts as not active. Only the newest 2,000 samples count, and the tile says capped when there are more.",
   ),
   unitType: translationKey(
-    "The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on.",
+    "The kind of systemd unit, as systemd writes it at the end of the unit's name: service (a background program), socket, timer, mount, target and so on.",
   ),
   unitStateChanges: translationKey(
     "How many times a sample in the selected range showed a different state from the one before it, such as Active to Failed. A failure and recovery that both happen between two samples is not seen.",
@@ -221,6 +221,6 @@ export const HOST_METRIC_DESCRIPTIONS: Record<HostMetric, string> = {
     "Each unit's state at its newest sample from the last 15 minutes. Active means running, listening or waiting to fire; Failed means it crashed or exited with an error; Unknown means no state was reported.",
   ),
   unitListType: translationKey(
-    "What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job.",
+    "What kind of unit this is, as systemd writes it at the end of the unit's name: for example service for a background program or timer for a scheduled job.",
   ),
 };

@@ -54,7 +54,7 @@ Klik op **Deze instellingen testen** onder **Testen voor het opslaan**. De test 
 | Instelling | Wat je invult |
 | --- | --- |
 | **Splunk-beheer-URL** | De REST API van de search head, bijvoorbeeld `https://splunk.example.com:8089`. Hij moet `https` gebruiken, zonder querystring. Een pad blijft behouden, voor een reverse proxy die de API onder een pad aanbiedt. |
-| **Zoeken** | De zoekopdracht die kiest wat er wordt geïmporteerd, `index=notable` zolang je hem niet wijzigt. Beperk hem, bijvoorbeeld met `index=notable urgency IN (high, critical)`. OneUptime voegt het tijdsbereik zelf toe, dus de zoekopdracht kan `earliest` en `latest` niet instellen en niet met een pipe beginnen. Een `search` vooraan wordt weggehaald. |
+| **Zoekopdracht** | De zoekopdracht die kiest wat er wordt geïmporteerd, `index=notable` zolang je hem niet wijzigt. Beperk hem, bijvoorbeeld met `index=notable urgency IN (high, critical)`. OneUptime voegt het tijdsbereik zelf toe, dus de zoekopdracht kan `earliest` en `latest` niet instellen en niet met een pipe beginnen. Een `search` vooraan wordt weggehaald. |
 | **Gebruikersnaam** | De naam van de Splunk-gebruiker, alleen als die met een wachtwoord authenticeert. |
 | **Authenticatietoken** | Het token uit de eerste stap. Wanneer er een token is opgeslagen, wordt dat gebruikt, en niet de gebruikersnaam of het wachtwoord. |
 | **Wachtwoord** | Het wachtwoord van de Splunk-gebruiker, alleen wanneer er geen token wordt gebruikt. |
@@ -114,7 +114,7 @@ Een poll leest hooguit 10.000 rijen. Wanneer een venster er meer bevat, is de ru
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-De zoekopdracht sorteert het venster op `_time`, de oudste eerst, dus OneUptime zet de cursor op de aanmaaktijd van de laatst gelezen rij, en de volgende poll begint daar met dezelfde vensterlengte. Een drukke search head haalt zo 10.000 rijen per poll in, in plaats van steeds dezelfde opnieuw te lezen. De rijen die op hetzelfde moment zijn gemaakt, worden twee keer gelezen, en de duplicaatcontrole verwijdert de tweede kopie. Splunk sorteert het hele venster voordat het een rij teruggeeft, dus een zoekopdracht in **Zoeken** die veel meer vindt dan nodig, maakt elke poll trager. Houd haar gericht.
+De zoekopdracht sorteert het venster op `_time`, de oudste eerst, dus OneUptime zet de cursor op de aanmaaktijd van de laatst gelezen rij, en de volgende poll begint daar met dezelfde vensterlengte. Een drukke search head haalt zo 10.000 rijen per poll in, in plaats van steeds dezelfde opnieuw te lezen. De rijen die op hetzelfde moment zijn gemaakt, worden twee keer gelezen, en de duplicaatcontrole verwijdert de tweede kopie. Splunk sorteert het hele venster voordat het een rij teruggeeft, dus een **Zoekopdracht** die veel meer vindt dan nodig, maakt elke poll trager. Houd haar gericht.
 
 Wanneer een run helemaal niet voorbij de opgeslagen cursor komt, maakt OneUptime het venster in plaats daarvan korter:
 
@@ -141,8 +141,8 @@ Klik op **Diagnose** bij een verbinding om haar recente runs te zien en er met d
 | --- | --- |
 | **Configuratie** | Elke instelling is aanwezig en goed gevormd. Er wordt niets benaderd als dit mislukt. |
 | **Authenticate with Splunk** | Splunk accepteert het token, of de gebruikersnaam en het wachtwoord, en noemt de gebruiker en zijn rollen, zodat je ze kunt vergelijken met de rol die je wilde toekennen. |
-| **Run the search on Splunk** | De zoekopdracht uit **Zoeken** draait over de laatste 24 uur, voor één rij, en zegt welk export-endpoint antwoordde. |
-| **Notable events available to import** | Hoeveel rijen de zoekopdracht uit **Zoeken** vindt in de laatste 24 uur en de laatste 7 dagen. Geen in 7 dagen is een waarschuwing, geen fout. |
+| **Run the search on Splunk** | Uw **Zoekopdracht** draait over de laatste 24 uur, voor één rij, en zegt welk export-endpoint antwoordde. |
+| **Notable events available to import** | Hoeveel rijen uw **Zoekopdracht** vindt in de laatste 24 uur en de laatste 7 dagen. Geen in 7 dagen is een waarschuwing, geen fout. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | De kant van OneUptime zelf: een proces neemt de jobs van de Worker-wachtrij af, de poll-job draait elke minuut en de opslag van beveiligingsgebeurtenissen antwoordt. |
 | **Geplande opvraging** | Voor een opgeslagen verbinding: pollen staat aan, geen run zit vast in afwachting van een worker en polls draaien op tijd. |
 
@@ -183,7 +183,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 
 :::details Last Error begint met `Splunk Enterprise Security search export` of `Splunk Enterprise Security count search`
 - `Splunk Enterprise Security search export failed (HTTP ...)`: Splunk weigerde de zoekopdracht uit te voeren.
-  - `HTTP 400`: Splunk kan de zoekopdracht niet ontleden. Voer de zoekopdracht uit **Zoeken** uit in Splunk Web om de fout te lezen.
+  - `HTTP 400`: Splunk kan de zoekopdracht niet ontleden. Voer uw **Zoekopdracht** uit in Splunk Web om de fout te lezen.
   - `HTTP 403`: de rol van de gebruiker mist de capability `search`, of kan de index niet lezen. Voeg `notable`, of je index, toe aan de indexen die de rol mag doorzoeken.
   - `HTTP 404`: geen van beide export-endpoints bestaat op die URL, dus het is niet de beheerpoort van een search head.
   - `HTTP 429` of `HTTP 5xx`: Splunk beperkt de gebruiker, is overbelast, of de zoekopdracht liep tegen een van haar limieten aan. De volgende poll probeert het opnieuw.
@@ -193,7 +193,7 @@ De **Laatste fout** van de verbinding bewaart de volledige foutmelding, met refe
 :::
 
 :::details Last Error eindigt op `did not complete`
-`Splunk Enterprise Security search export did not complete`, en hetzelfde voor de andere stappen, betekent dat het verzoek geen antwoord kreeg: een time-out, een naam die niet wordt omgezet, een certificaat dat OneUptime niet vertrouwt, of een geweigerd privéadres. Controleer of de OneUptime-app en de workers een HTTPS-verbinding met de beheerpoort kunnen openen. Een search head die andere verzoeken beantwoordt maar bij de zoekopdracht een time-out krijgt, sorteert te veel: de volgende poll leest een venster dat half zo lang is, en een gerichtere zoekopdracht in **Zoeken** lost het voorgoed op.
+`Splunk Enterprise Security search export did not complete`, en hetzelfde voor de andere stappen, betekent dat het verzoek geen antwoord kreeg: een time-out, een naam die niet wordt omgezet, een certificaat dat OneUptime niet vertrouwt, of een geweigerd privéadres. Controleer of de OneUptime-app en de workers een HTTPS-verbinding met de beheerpoort kunnen openen. Een search head die andere verzoeken beantwoordt maar bij de zoekopdracht een time-out krijgt, sorteert te veel: de volgende poll leest een venster dat half zo lang is, en een gerichtere **Zoekopdracht** lost het voorgoed op.
 :::
 
 :::details Last Polled is Never en Last Error is leeg
@@ -201,12 +201,12 @@ Er is voor deze verbinding nog geen poll voltooid. Voer **Verbinding testen** ui
 :::
 
 :::details Een run is Partial
-- `Stopped after collecting 10000 records; the window holds more`: het venster bevatte meer dan de 10.000 rijen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen rij. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan vindt de zoekopdracht uit **Zoeken** meer dan 10.000 rijen per pollinterval: beperk haar, of maak het **Opvraaginterval (minuten)** korter.
+- `Stopped after collecting 10000 records; the window holds more`: het venster bevatte meer dan de 10.000 rijen die één run leest. Er gaat niets verloren: de volgende poll begint na de laatst gelezen rij. Een verbinding die poll na poll **Gedeeltelijk** blijft, haalt een achterstand in, en haar **Laatst opgevraagd** en **Laatst geïmporteerde gebeurtenis** blijven vooruitgaan. Haalt ze die nooit in, dan vindt uw **Zoekopdracht** meer dan 10.000 rijen per pollinterval: beperk haar, of maak het **Opvraaginterval (minuten)** korter.
 - `More records were created in the one minute from ... than one poll can read`: het pollen ging voorbij die minuut. Importeer haar met **Dit tijdsbereik importeren** in **Diagnose**. Een import leest net zoveel als een poll.
 :::
 
 :::details De test slaagt, maar er wordt niets geïmporteerd
-Lees **Notable events available to import** in het testrapport. `0` in de laatste 7 dagen betekent dat de zoekopdracht uit **Zoeken** niets in Splunk vond: controleer in Incident Review of correlatiezoekopdrachten zijn ingeschakeld en notable events maken, en of de zoekopdracht uit **Zoeken** niet smaller is dan bedoeld.
+Lees **Notable events available to import** in het testrapport. `0` in de laatste 7 dagen betekent dat uw **Zoekopdracht** niets in Splunk vond: controleer in Incident Review of correlatiezoekopdrachten zijn ingeschakeld en notable events maken, en of de **Zoekopdracht** niet smaller is dan bedoeld.
 :::
 
 ## Wat je krijgt
