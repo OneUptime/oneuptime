@@ -166,7 +166,7 @@ Pour être alerté par message direct quand vous êtes d'astreinte, ajoutez Slac
 3. Cliquez sur **Send Test Message** sur sa ligne. Le message arrive dans vos messages directs Slack.
 :::
 
-L'ajouter l'ajoute aussitôt à vos règles d'astreinte, si bien que les alertes vous atteignent dans Slack dès lors. Changez les alertes qu'il reçoit dans **Paramètres utilisateur** > **Règles d'astreinte**.
+L'ajouter l'ajoute aussitôt à vos règles d'astreinte, si bien que les alertes vous atteignent dans Slack dès lors. Changez les alertes qu'il reçoit dans **Paramètres utilisateur** > **Comment me joindre**.
 
 ## Enregistrer des messages comme notes
 

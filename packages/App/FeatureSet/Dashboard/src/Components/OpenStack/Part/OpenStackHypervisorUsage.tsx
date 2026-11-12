@@ -25,7 +25,11 @@ import {
   fetchOpenStackHypervisorUsage,
 } from "../../../Pages/OpenStack/Utils/OpenStackUsageReads";
 import GoldenMetricTile from "../../Infrastructure/GoldenMetricTile";
-import { formatOpenStackBytes } from "../OpenStackResourceList";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
+import {
+  formatOpenStackBytes,
+  formatOpenStackPercent,
+} from "../OpenStackResourceList";
 import OpenStackPartNotice from "./OpenStackPartNotice";
 import { OpenStackPart } from "./UseOpenStackPart";
 import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
@@ -165,16 +169,27 @@ const OpenStackHypervisorUsage: FunctionComponent<{
           icon={IconProp.CPUChip}
           iconColor="blue"
           value={
-            load.cpuPercent === null ? "—" : `${Math.round(load.cpuPercent)}%`
+            load.cpuPercent === null
+              ? "—"
+              : formatOpenStackPercent(load.cpuPercent, {
+                  language: translator.language,
+                })
           }
           sublabel={
             usage.cpuCores === null
               ? "Not reported"
-              : translator.translateTemplate("{{count}} CPU threads in use", {
-                  count: usage.cpuCores.toFixed(1),
-                })
+              : translator.translateTemplate(
+                  "{{count}} CPU threads in use",
+                  {
+                    count: formatReaderFigure(usage.cpuCores, {
+                      decimals: 1,
+                      language: translator.language,
+                    }),
+                  },
+                  // Read the page's way, the count set apart (issue #7191).
+                  { setsValuesApart: true },
+                )
           }
-          isSublabelAsWritten={usage.cpuCores !== null}
           percent={load.cpuPercent}
           tone={load.isCpuSaturated ? "warning" : "positive"}
           description="What this hypervisor's instances really use, over the last quarter of an hour, against the CPU threads it has before any allocation ratio. The host's own processes aren't in this."
@@ -186,16 +201,24 @@ const OpenStackHypervisorUsage: FunctionComponent<{
           value={
             load.memoryPercent === null
               ? "—"
-              : `${Math.round(load.memoryPercent)}%`
+              : formatOpenStackPercent(load.memoryPercent, {
+                  language: translator.language,
+                })
           }
           sublabel={
             usage.memoryResidentBytes === null
               ? "This source doesn't say"
-              : translator.translateTemplate("{{amount}} held", {
-                  amount: formatOpenStackBytes(usage.memoryResidentBytes),
-                })
+              : translator.translateTemplate(
+                  "{{amount}} held",
+                  {
+                    amount: formatOpenStackBytes(usage.memoryResidentBytes, {
+                      language: translator.language,
+                    }),
+                  },
+                  // "۶٫۰ GiB" reads with its number first in a Persian sentence.
+                  { setsValuesApart: true },
+                )
           }
-          isSublabelAsWritten={usage.memoryResidentBytes !== null}
           percent={load.memoryPercent}
           tone={load.isMemoryPressured ? "warning" : "positive"}
           description="What this hypervisor's instances really hold of its memory, whatever they have been promised, against what it has before any allocation ratio."
@@ -252,14 +275,30 @@ const OpenStackHypervisorUsage: FunctionComponent<{
                             {vcpus === null
                               ? translator.translateTemplate(
                                   "{{count}} CPU threads",
-                                  { count: reading.cpuCores.toFixed(1) },
+                                  {
+                                    count: formatReaderFigure(
+                                      reading.cpuCores,
+                                      {
+                                        decimals: 1,
+                                        language: translator.language,
+                                      },
+                                    ),
+                                  },
+                                  { setsValuesApart: true },
                                 )
                               : translator.translateTemplate(
                                   "{{count}} CPU threads, of {{vcpus}} vCPUs it was given",
                                   {
-                                    count: reading.cpuCores.toFixed(1),
+                                    count: formatReaderFigure(
+                                      reading.cpuCores,
+                                      {
+                                        decimals: 1,
+                                        language: translator.language,
+                                      },
+                                    ),
                                     vcpus: translator.formatNumber(vcpus),
                                   },
+                                  { setsValuesApart: true },
                                 )}
                           </span>
                         )}
@@ -267,11 +306,16 @@ const OpenStackHypervisorUsage: FunctionComponent<{
                           <></>
                         ) : (
                           <span>
-                            {translator.translateTemplate("{{amount}} held", {
-                              amount: formatOpenStackBytes(
-                                reading.memoryResidentBytes,
-                              ),
-                            })}
+                            {translator.translateTemplate(
+                              "{{amount}} held",
+                              {
+                                amount: formatOpenStackBytes(
+                                  reading.memoryResidentBytes,
+                                  { language: translator.language },
+                                ),
+                              },
+                              { setsValuesApart: true },
+                            )}
                           </span>
                         )}
                         {reading.contentionPercent === null ? (
@@ -289,9 +333,9 @@ const OpenStackHypervisorUsage: FunctionComponent<{
                             {translator.translateTemplate(
                               "waiting {{percent}}%",
                               {
-                                percent: Math.round(
-                                  reading.contentionPercent,
-                                ).toString(),
+                                percent: translator.formatNumber(
+                                  Math.round(reading.contentionPercent),
+                                ),
                               },
                             )}
                           </span>

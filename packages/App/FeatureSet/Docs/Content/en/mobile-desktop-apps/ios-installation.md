@@ -68,7 +68,7 @@ In the dashboard, open **User Settings → Notification Methods** and the **Push
 Click **Test Notification** on the device's row. A notification arrives on the device; tap it to open the app.
 :::
 
-Your on-call rules decide which pages go to the device, and how soon: see **User Settings → On-Call Rules**. A new device gets the same default rules as any other method you add.
+Your on-call rules decide which pages go to the device, and how soon: see **User Settings → How to Reach Me**. A new device gets the same default rules as any other method you add.
 
 ## Ring through silent mode
 
@@ -132,7 +132,7 @@ The app could not reach `https://<your-oneuptime>/api/status`. Check the address
 - Check that **Allow Notifications** is on under **Settings → Notifications → OneUptime On-Call**, and that no Focus is holding pages back.
 - Check that the device is listed under **Push Notifications** in **User Settings → Notification Methods**, and send it a **Test Notification**.
 - If the device is marked **Not receiving notifications**, open the app while signed in. It registers the device again; see [When a phone has to register again](/docs/mobile-desktop-apps/faq-troubleshooting#when-a-phone-has-to-register-again).
-- Check your on-call rules under **User Settings → On-Call Rules**.
+- Check your on-call rules under **User Settings → How to Reach Me**.
 - On a self-hosted OneUptime, check that your server can reach its push relay: see [Push Notifications](/docs/self-hosted/push-notifications#network-access).
 :::
 

@@ -159,7 +159,7 @@ flowchart TB
 Quatre conditions doivent toutes être remplies pour qu'une alerte outrepasse le mode silencieux. S'il en manque une, l'alerte est quand même livrée – simplement en silence.
 
 1. **La personne l'a activé pour cet appareil.** Enregistré par appareil, désactivé par défaut, dans `UserPush.isCriticalAlertEnabled`. Le téléphone et la tablette d'une même personne sont des décisions distinctes. Les versions de l'application postérieures à 1.6.0 le signalent de nouveau à chaque ouverture, comme désactivé tant que les réglages du téléphone lui-même n'autorisent pas les alertes critiques, afin que la liste des appareils montre ce que le téléphone fera vraiment.
-2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Règles d'astreinte**, chaque règle qui notifie un téléphone est réglée sur « Alerte critique », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
+2. **La règle d'astreinte qui a envoyé l'alerte le demande.** Sous **Paramètres utilisateur > Comment me joindre**, chaque règle qui notifie un téléphone est réglée sur « Alerte critique », la valeur par défaut, ou sur « Standard », qui suit les réglages sonores du téléphone – ainsi une personne peut être réveillée pour un incident critique et prévenue en silence pour un incident mineur. Enregistré par règle dans `UserNotificationRule.pushNotificationLevel`.
 3. **Le serveur marque l'alerte comme critique.** Il envoie la charge utile de son critique d'APNs plus `interruptionLevel: critical` pour iOS, et cible un canal de notification critique pour Android : `oncall_critical`, ou le canal propre à l'alarme choisie (voir [Choisir le son d'alarme](#choisir-le-son-dalarme)).
 4. **Le système d'exploitation l'autorise**, et c'est là que les deux plateformes diffèrent.
 
@@ -204,7 +204,7 @@ Un appareil garde le son du système jusqu'à ce qu'il exécute une version de l
 
 ### Répéter une alerte jusqu'à sa prise en compte
 
-Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en compte. Sous **Paramètres utilisateur > Règles d'astreinte**, réglez **Répéter jusqu'à la prise en compte** en ajoutant une règle push, ou modifiez-le plus tard sur la ligne de la règle : chaque minute, ou toutes les 2, 3, 5, 10, 15 ou 30 minutes. L'alerte est renvoyée à cet intervalle, 10 fois de plus au maximum, et s'arrête dès que l'incident, l'alerte ou l'épisode est pris en compte. Enregistré par règle dans `UserNotificationRule.repeatEveryMinutes`, où 0, la valeur par défaut, envoie l'alerte une seule fois.
+Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en compte. Sous **Paramètres utilisateur > Comment me joindre**, réglez **Répéter jusqu'à la prise en compte** en ajoutant une règle push, ou modifiez-le plus tard sur la ligne de la règle : chaque minute, ou toutes les 2, 3, 5, 10, 15 ou 30 minutes. L'alerte est renvoyée à cet intervalle, 10 fois de plus au maximum, et s'arrête dès que l'incident, l'alerte ou l'épisode est pris en compte. Enregistré par règle dans `UserNotificationRule.repeatEveryMinutes`, où 0, la valeur par défaut, envoie l'alerte une seule fois.
 
 ## Dépannage
 
@@ -225,7 +225,7 @@ Une règle push peut renvoyer son alerte jusqu'à ce que quelqu'un la prenne en 
 ### Les alertes critiques n'outrepassent pas le mode silencieux
 
 - Vérifiez que l'interrupteur est activé pour **cet** appareil – le réglage est propre à chaque appareil, et une réinstallation ou un nouveau téléphone configuré de zéro crée un nouvel enregistrement d'appareil (un téléphone configuré à partir d'une sauvegarde de l'ancien reprend l'enregistrement de l'ancien téléphone dès que celui-ci ne reçoit plus de notifications, avec le réglage qu'avait l'application)
-- Vérifiez la règle d'astreinte de cette gravité sous **Paramètres utilisateur > Règles d'astreinte** : une règle push réglée sur « Standard » suit les réglages sonores du téléphone, quel que soit l'interrupteur de l'appareil
+- Vérifiez la règle d'astreinte de cette gravité sous **Paramètres utilisateur > Comment me joindre** : une règle push réglée sur « Standard » suit les réglages sonores du téléphone, quel que soit l'interrupteur de l'appareil
 - **iOS** : confirmez que la compilation porte l'entitlement d'alertes critiques d'Apple (voir ci-dessus), et que Critical Alerts est autorisé sous iOS Settings > Notifications > OneUptime On-Call
 - **Android** : confirmez que l'application a l'accès à Ne pas déranger sous Settings > Notifications > Do Not Disturb access
 - **Android** : si vous avez choisi un son d'alarme, le canal de notification propre à ce son doit lui aussi être autorisé à outrepasser Ne pas déranger ; l'écran Alarm sound de l'application indique quand ce n'est pas le cas

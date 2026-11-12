@@ -22,8 +22,8 @@
  *                         file of another kind
  *   save=fail             the save is refused, as the server refuses a file
  *                         it cannot find
- *   lang=de|fa            the Dashboard's German or Persian words (Persian
- *                         reads right to left)
+ *   lang=de|fa|ar         the Dashboard's German, Persian or Arabic words
+ *                         (Persian and Arabic read right to left)
  *   theme=dark            dark mode (set before the bundle by server.js)
  *
  * Recorded on window.__fixture: every upload (`uploads`: the name, type and
@@ -69,6 +69,7 @@ import ProjectUtil from "Common/UI/Utils/Project";
 import UserUtil from "Common/UI/Utils/User";
 import DE from "../../../App/FeatureSet/Dashboard/src/Locales/de.json";
 import FA from "../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
+import AR from "../../../App/FeatureSet/Dashboard/src/Locales/ar.json";
 
 const PROJECT_ID = "10000000-0000-4000-8000-0000000000c1";
 const INCIDENT_ID = "20000000-0000-4000-8000-0000000000c1";
@@ -82,7 +83,7 @@ const params = new URLSearchParams(window.location.search);
 const dataKind = params.get("data") || "files";
 const uploadMode = params.get("upload") || "";
 const saveMode = params.get("save") || "";
-const language = ["de", "fa"].includes(params.get("lang"))
+const language = ["de", "fa", "ar"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 
@@ -448,6 +449,7 @@ await i18next.use(initReactI18next).init({
     en: { translation: {} },
     de: { translation: DE },
     fa: { translation: FA },
+    ar: { translation: AR },
   },
   interpolation: { escapeValue: false },
   keySeparator: false,

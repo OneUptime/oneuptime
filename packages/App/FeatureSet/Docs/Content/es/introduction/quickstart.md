@@ -59,6 +59,8 @@ Mantén las **Sondas** seleccionadas y el **Intervalo de monitoreo** de **Cada 5
 
 Para probar la comprobación antes de guardar, haz clic en **Probar monitor** en el segundo paso. Todos los demás tipos de monitor se describen en [Crear un monitor](/docs/monitor/create-monitor).
 
+Para comprobar también una API, elegir a quién se avisa y enviar un aviso de prueba que demuestre que el mensaje te llega, sigue [Saber cuándo tu sitio web o tu API deja de funcionar](/docs/guides/website-down).
+
 ## Recibir un aviso cuando caiga
 
 Tal como está, un incidente sin propietarios se envía por correo a los propietarios del proyecto, y eso te incluye a ti. Para que te avisen hasta que alguien responda, crea una política de guardia: la primera de un proyecto se activa con cada nuevo incidente y cada nueva alerta.

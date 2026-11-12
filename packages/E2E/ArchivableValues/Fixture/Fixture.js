@@ -14,7 +14,7 @@
  *   - page=severities   Incidents > Settings > Incident Severity (default)
  *   - page=states       Incidents > Settings > Incident State
  *   - page=templates    Incidents > Settings > Incident Templates
- *   - page=on-call-rules  User Settings > On-Call Rules, where an archived
+ *   - page=on-call-rules  User Settings > How to Reach Me, where an archived
  *                       severity the person has rules for comes last - also
  *                       at its own address, which the Archive dialog's "See
  *                       your on-call rules" opens
@@ -704,7 +704,7 @@ const PAGES = {
   },
   "on-call-rules": {
     component: OnCallRulesPage,
-    trail: ["User Settings", "On-Call Rules"],
+    trail: ["User Settings", "How to Reach Me"],
   },
 };
 

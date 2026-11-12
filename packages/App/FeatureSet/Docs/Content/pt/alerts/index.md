@@ -158,7 +158,7 @@ Um episódio aberto por um alerta privado não é privado, então nunca mostra o
 
 ## Quem fica sabendo de um alerta
 
-- **O plantão.** As políticas de plantão do alerta acionam suas pessoas, cada uma do jeito que configurou em **Configurações do usuário → Regras de Plantão**, na aba **Alertas**. Responder ao acionamento confirma o alerta, e os acionamentos param.
+- **O plantão.** As políticas de plantão do alerta acionam suas pessoas, cada uma do jeito que configurou em **Configurações do usuário → Como me contatar**, na aba **Alertas**. Responder ao acionamento confirma o alerta, e os acionamentos param.
 - **Seus proprietários.** Por e-mail, a menos que tenham escolhido outros canais em **Configurações do usuário → Configurações de notificação**, na aba **Alertas**: **Alerta criado**, **Estado do alerta alterado** e **Lembrete de alerta** ficam ativados por padrão, e **Nota do alerta publicada** e **Adicionado como proprietário do alerta** ficam desativados até que alguém os ative. Um alerta sem proprietários notifica, em vez disso, os proprietários do projeto.
 - **Suas ferramentas de chat.** **Alertas → Espaço de trabalho** contém as regras do Slack e do Microsoft Teams que publicam alertas e episódios em canais. Veja [Slack](/docs/workspace-connections/slack) e [Microsoft Teams](/docs/workspace-connections/microsoft-teams).
 
