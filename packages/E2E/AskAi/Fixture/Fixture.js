@@ -31,7 +31,12 @@
  *                    names what it would write over unseen - a file
  *                    changed since Ask AI read it, one read in an earlier
  *                    answer and one read earlier in this answer, left
- *                    out of the conversation since (issue #6570)
+ *                    out of the conversation since (issue #6570); setup,
+ *                    one waiting on a setup plan - a website monitor and
+ *                    the project's first on-call policy, the SMS the
+ *                    person asked for missing a number (issue #6829) -
+ *                    whose approved parts leave their cards and the test
+ *                    page offer
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -147,6 +152,7 @@ const threadKind = [
   "rich",
   "actions",
   "code",
+  "setup",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -552,6 +558,167 @@ function codeChangeAction(status) {
   };
 }
 
+/*
+ * "Monitor example.com every minute and text me if it is down" (issue
+ * #6829): one plan on one card, as the server stores it (SetupTools) - a
+ * website monitor and the project's first on-call policy, each said in
+ * plain words, the paging part saying the number for texts is missing.
+ */
+const SETUP_QUESTION =
+  "Monitor example.com every minute and text me if it is down.";
+const SETUP_POLICY_NAME = "Default on-call policy";
+const SETUP_POLICY_ID = "70000000-0000-4000-8000-000000000001";
+const SETUP_MONITOR_ID = "60000000-0000-4000-8000-000000000001";
+
+const SETUP_MONITOR_WORDS = {
+  title: aiActionSentence(AI_ACTION_TITLES.setUpWebsiteMonitoring, {
+    address: "example.com",
+  }),
+  description: [
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.websiteMonitorChecks, 1, {
+      url: "https://example.com",
+    }),
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.checkedFromLocations, 2),
+    aiActionSentence(AI_ACTION_LINES.monitorOpensIncident, {
+      severity: "Critical Incident",
+    }),
+    aiActionSentence(AI_ACTION_LINES.monitorOwnerEmailed),
+  ],
+  describedArguments: ["address", "isApi", "checkEveryMinutes"],
+};
+
+const SETUP_PAGING_WORDS = {
+  title: aiActionSentence(AI_ACTION_TITLES.createOnCallPolicy, {
+    policy: JSON.stringify(SETUP_POLICY_NAME),
+  }),
+  description: [
+    aiActionSentence(AI_ACTION_LINES.pagesYouForEveryNewEvent),
+    aiActionSentence(AI_ACTION_LINES.noVerifiedPhoneForSms),
+  ],
+  describedArguments: [
+    "includeMe",
+    "reachMeBy",
+    "userIds",
+    "teamIds",
+    "otherPeople",
+    "pagedTeams",
+  ],
+};
+
+// The plan's two parts, each with the status the person's decision left it.
+function setupActions(monitorStatus, pagingStatus) {
+  const monitor = describeAIActionWords(SETUP_MONITOR_WORDS);
+  const paging = describeAIActionWords(SETUP_PAGING_WORDS);
+
+  return [
+    {
+      id: "call_setup_monitor",
+      toolName: "set_up_website_monitoring",
+      title: monitor.title,
+      description: monitor.description,
+      words: SETUP_MONITOR_WORDS,
+      ...(monitorStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W1" }
+        : {}),
+      arguments: {
+        address: "example.com",
+        checkEveryMinutes: 1,
+        isApi: false,
+      },
+      isMutation: true,
+      requiresApproval: true,
+      status: monitorStatus,
+    },
+    {
+      id: "call_setup_paging",
+      toolName: "set_up_paging",
+      title: paging.title,
+      description: paging.description,
+      words: SETUP_PAGING_WORDS,
+      ...(pagingStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W2" }
+        : {}),
+      arguments: {
+        reachMeBy: ["sms"],
+        includeMe: true,
+        userIds: [USER_ID],
+        teamIds: [],
+        otherPeople: [],
+        pagedTeams: [],
+      },
+      isMutation: true,
+      requiresApproval: true,
+      status: pagingStatus,
+    },
+  ];
+}
+
+// The cards the approved parts leave, each offering its test page.
+function setupCards(data) {
+  const cards = [];
+
+  if (data.monitor) {
+    cards.push([
+      "W1",
+      "Monitor set up",
+      "example.com",
+      {
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.monitor),
+        line: [
+          aiActionPluralSentence(AI_ACTION_PLURAL_LINES.checkedEveryMinutes, 1),
+        ],
+        facts: [
+          aiActionCardFact(AI_ACTION_CARD_FACTS.address, "https://example.com"),
+        ],
+      },
+      {
+        type: AIChatCitationTargetType.MonitorView,
+        params: { monitorId: SETUP_MONITOR_ID },
+      },
+      { kind: "self" },
+    ]);
+  }
+
+  if (data.paging) {
+    cards.push([
+      "W2",
+      "On-call policy created",
+      SETUP_POLICY_NAME,
+      {
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.onCallPolicy),
+        line: [aiActionSentence(AI_ACTION_CARD_LINES.pagesYouForEveryNewEvent)],
+      },
+      {
+        type: AIChatCitationTargetType.OnCallPolicyView,
+        params: { onCallDutyPolicyId: SETUP_POLICY_ID },
+      },
+      {
+        kind: "policy",
+        policyId: SETUP_POLICY_ID,
+        policyName: SETUP_POLICY_NAME,
+      },
+    ]);
+  }
+
+  return cards.map(([id, title, heading, words, link, testPage]) => {
+    const english = describeAIActionCardWords(words);
+    return {
+      id,
+      type: AIChatWidgetType.ResourceCard,
+      title,
+      data: {
+        resourceType: english.kind,
+        heading,
+        subheading: english.line,
+        fields: english.facts,
+        words,
+        link,
+        testPage,
+      },
+    };
+  });
+}
+
 // The cards the two leave once run (WidgetBuilder.actionCard).
 function incidentNoteCards() {
   const heading = "#42 · Checkout latency above 2s";
@@ -610,6 +777,8 @@ let richConversation = null;
 let actionsConversation = null;
 // The conversation waiting to commit three files (?thread=code).
 let codeConversation = null;
+// The conversation waiting on a setup plan (?thread=setup).
+let setupConversation = null;
 
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
@@ -812,6 +981,23 @@ function seedHistory() {
     });
   }
 
+  if (threadKind === "setup") {
+    setupConversation = conversationOf("Monitor example.com and text me", 2);
+    messageOf(setupConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: SETUP_QUESTION,
+      createdAt: minutesAgo(2),
+    });
+    messageOf(setupConversation.id.toString(), AIChatMessageRole.Assistant, {
+      contentInMarkdown: "",
+      status: AIChatMessageStatus.WaitingForApproval,
+      toolActions: setupActions(
+        AIChatToolActionStatus.Pending,
+        AIChatToolActionStatus.Pending,
+      ),
+      createdAt: minutesAgo(2),
+    });
+  }
+
   if (threadKind === "actions") {
     actionsConversation = conversationOf("Update the status page", 5);
     messageOf(actionsConversation.id.toString(), AIChatMessageRole.User, {
@@ -868,6 +1054,7 @@ fixture.conversationIds = {
   rich: richConversation?.id.toString(),
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
+  setup: setupConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------
@@ -1212,6 +1399,35 @@ function respondToApproval(data) {
   const approved = (data.decisions || []).some((decision) => {
     return decision.approved;
   });
+
+  /*
+   * A setup plan: each part as the person decided it - an approved one
+   * leaves its card, which offers its test page, a skipped one is not made.
+   */
+  if (data.conversationId === setupConversation?.id.toString()) {
+    const isApproved = (id) => {
+      return (data.decisions || []).some((decision) => {
+        return decision.toolCallId === id && decision.approved;
+      });
+    };
+    const monitor = isApproved("call_setup_monitor");
+    const paging = isApproved("call_setup_paging");
+    const statusOf = (approvedPart) => {
+      return approvedPart
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied;
+    };
+
+    message.toolActions = setupActions(statusOf(monitor), statusOf(paging));
+    message.status = AIChatMessageStatus.Completed;
+    message.contentInMarkdown =
+      monitor || paging
+        ? "example.com is checked every minute, and the Default on-call policy pages you for every new incident and alert. Texts reach you once you add and verify your phone number in Notification Methods. Send yourself a test page to be sure it works."
+        : "I did not set anything up.";
+    message.widgets = setupCards({ monitor, paging });
+    message.aiRunId = runOf({ toolCallCount: 4, totalTokens: 7310 }).id;
+    return {};
+  }
 
   // The status update and the note: both run, and leave their two cards.
   if (data.conversationId === actionsConversation?.id.toString()) {

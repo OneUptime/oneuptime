@@ -3681,3 +3681,154 @@ test.describe("a code change's cautions", () => {
     });
   });
 });
+
+/*
+ * "MONITOR EXAMPLE.COM EVERY MINUTE AND TEXT ME IF IT IS DOWN" (issue
+ * #6829): one plan on one card, each part a line in plain words with its
+ * own Allow and Skip, ending "Nothing else changes."; approved, each part
+ * leaves the card of what it made, and the answer offers the test page of
+ * the policy it made - or one to yourself, for a monitor alone.
+ */
+test.describe("a setup plan", () => {
+  test("waits on one card, each part in plain words - the missing number said - and ends: nothing else changes", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await expect(
+      askAi(page).getByText("The AI wants to perform 2 actions"),
+    ).toBeVisible();
+    const [monitor, paging] = [
+      page.getByTestId("tool-approval-action").nth(0),
+      page.getByTestId("tool-approval-action").nth(1),
+    ];
+    await expect(monitor.getByTestId("tool-approval-title")).toHaveText(
+      "Set up monitoring for example.com",
+    );
+    await expect(monitor.getByTestId("tool-approval-description")).toHaveText(
+      "A website monitor checks https://example.com every minute. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). You own this monitor, so you are emailed when its status changes.",
+    );
+    await expect(paging.getByTestId("tool-approval-title")).toHaveText(
+      'Create on-call policy "Default on-call policy"',
+    );
+    await expect(paging.getByTestId("tool-approval-description")).toHaveText(
+      "Pages you for every new incident and alert. You have no verified phone number for texts yet. Add one in Notification Methods, and pages reach you by SMS too.",
+    );
+    // What the card says in words is not said again as arguments.
+    await expect(page.getByTestId("tool-approval-arguments")).toHaveCount(0);
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      "Nothing else changes.",
+    );
+
+    await screenshot(page, "setup-plan-1280");
+  });
+
+  test("approved, each part leaves its card, and the answer offers the policy's test page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const cards: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(cards).toHaveCount(2);
+    await expect(
+      cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Checked every minute");
+    await expect(
+      cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Pages you for every new incident and alert");
+    await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
+      "Test this policy",
+    );
+    await expect(
+      page.getByTestId("tool-approval-setup-plan-end"),
+    ).toHaveCount(0);
+
+    const fixtureState: FixtureState = await state(page);
+    expect(fixtureState.approvals.at(-1)?.decisions).toEqual([
+      { toolCallId: "call_setup_monitor", approved: true },
+      { toolCallId: "call_setup_paging", approved: true },
+    ]);
+    expect(fixtureState.unhandled).toEqual([]);
+
+    await screenshot(page, "setup-done-1280");
+  });
+
+  test("a part skipped is not made, and a monitor alone offers a test page to yourself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    await page
+      .getByTestId("tool-approval-action")
+      .nth(1)
+      .getByRole("button", { name: "Skip" })
+      .click();
+    await page.getByRole("button", { name: "Run 1 action" }).click();
+
+    await expect(page.getByTestId("ai-chat-resource-card")).toHaveCount(1);
+    await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
+      "Send me a test page",
+    );
+    expect((await state(page)).approvals.at(-1)?.decisions).toEqual([
+      { toolCallId: "call_setup_monitor", approved: true },
+      { toolCallId: "call_setup_paging", approved: false },
+    ]);
+  });
+
+  test("in German, in the dark, and right to left on a phone in Persian, nothing wider than the screen", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "lang=de&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const german: Record<string, string> = dashboardWords("de");
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      german["Nothing else changes."]!,
+    );
+    await screenshot(page, "setup-plan-1280-de");
+
+    await load(page, "theme=dark&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+    await screenshot(page, "setup-plan-1280-dark");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "lang=fa&thread=setup");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const persian: Record<string, string> = dashboardWords("fa");
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      persian["Nothing else changes."]!,
+    );
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "setup-plan-390-fa");
+
+    await page.getByTestId("tool-approval-action").first().scrollIntoViewIfNeeded();
+    await page
+      .getByRole("button", {
+        name: persian["Run {{count}} actions"]!.replace("{{count}}", "۲"),
+      })
+      .click();
+    await expect(page.getByTestId("ai-chat-resource-card")).toHaveCount(2);
+    await expectNothingScrollsSideways(page);
+    await screenshot(page, "setup-done-390-fa");
+  });
+});

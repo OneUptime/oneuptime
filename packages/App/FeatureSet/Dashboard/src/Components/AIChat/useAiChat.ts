@@ -466,14 +466,16 @@ export function useAiChat(options: {
          */
         for (const message of ordered) {
           const messageId: string = message.id?.toString() || "";
-          const proposed: JSONObject | null = messageId
-            ? getSetupProposedEvent({
-                message: message,
-                permissionMode: String(permissionModeRef.current || ""),
-              })
-            : null;
+          const proposed: JSONObject | null = getSetupProposedEvent({
+            message: message,
+            permissionMode: String(permissionModeRef.current || ""),
+          });
 
-          if (proposed && !setupPlansSeenRef.current.has(messageId)) {
+          if (
+            proposed &&
+            messageId &&
+            !setupPlansSeenRef.current.has(messageId)
+          ) {
             setupPlansSeenRef.current.add(messageId);
             ProductEvents.send(ProductEventName.AskAiSetupProposed, proposed);
           }
@@ -978,12 +980,10 @@ export function useAiChat(options: {
         messagesRef.current.find((message: AIConversationMessage) => {
           return message.id?.toString() === assistantMessageId;
         });
-      const approved: JSONObject | null = answered
-        ? getSetupApprovedEvent({
-            toolActions: answered.toolActions || [],
-            decisions: decisions,
-          })
-        : null;
+      const approved: JSONObject | null = getSetupApprovedEvent({
+        toolActions: answered?.toolActions || [],
+        decisions: decisions,
+      });
 
       if (approved) {
         ProductEvents.send(ProductEventName.AskAiSetupApproved, approved);

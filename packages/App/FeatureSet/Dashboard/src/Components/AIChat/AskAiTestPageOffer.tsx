@@ -10,7 +10,10 @@ import {
 } from "Common/Types/AI/AIChatTypes";
 import ObjectID from "Common/Types/ObjectID";
 import { OnCallTestPageResult } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -91,7 +94,12 @@ const AskAiTestPageOffer: FunctionComponent<ComponentProps> = (
               }
             : { kind: "self" }
         }
-        buttonStyle={ButtonStyleType.NORMAL}
+        /*
+         * Sized to its label, in line with the cards above it: NORMAL keeps
+         * a dialog footer's margin and is a phone's whole width.
+         */
+        buttonStyle={ButtonStyleType.OUTLINE}
+        buttonSize={ButtonSize.Small}
         dataTestId="ask-ai-send-test-page"
         onSent={() => {
           setResult(null);
