@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-全体のステータスは、ページ上のモニターとモニターグループの現在のステータスのうち最も悪いもの、つまり優先度が最も高いものです。モニターのステータスは次のようになります。
+全体のステータスは、ページ上のモニターとモニターグループの現在のステータスのうち最も悪いもの、つまり優先度が最も高いものです。ページが **未監視** と表示するリソース (`notMonitoredResourceIds` に並ぶもの) は含まれません。モニターのステータスは次のようになります。
 
 ```json
 {
@@ -129,12 +129,13 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 
 | キー | 内容 |
 | --- | ------------- |
-| `overallStatus` | ページ全体のステータス。上と同じモニターのステータスで、ページに何もない場合は、プロジェクトで優先度が最も低いステータス。 |
+| `overallStatus` | ページ全体のステータス。上と同じモニターのステータスで、ページに何もない場合は、プロジェクトで優先度が最も低いステータス。リソースがすべて **未監視** のページでは `null`。 |
 | `statusPage` | ページの公開設定: タイトル、説明、ブランディング、表示する内容。 |
 | `statusPageResources` | 各リソース: 表示名、説明、グループ、モニターまたはモニターグループ、表示オプション。 |
 | `resourceGroups` | グループ。入れ子のグループには `parentStatusPageGroupId` が付きます。 |
 | `monitorStatuses` | プロジェクトのすべてのモニターのステータス。優先度の低いものから高いものの順。 |
 | `monitorGroupCurrentStatuses`、`monitorsInGroup` | ページ上の各モニターグループの現在のステータスと、そのグループ内のモニター。 |
+| `notMonitoredResourceIds` | ページが **未監視** と表示するリソースの ID。監視がオフのモニターや、すべてのモニターで監視がオフのモニターグループです。どのステータスも左右せず、そのようなグループは `monitorGroupCurrentStatuses` に含まれません。 |
 | `monitorStatusTimelines`、`uptimeDailyAggregate`、`monitorGroupUptimeDailyAggregate`、`monitorGroupMergedDowntime`、`statusPageHistoryChartBarColorRules` | 稼働率バーを描く元データと、ページのバーの色ルール。 |
 | `activeIncidents`、`incidentPublicNotes`、`incidentStateTimelines`、`incidentStates` | ページが表示する未解決のインシデント、その公開メモと状態の変化、そしてプロジェクトのインシデントの状態。 |
 | `timelineIncidents` | 稼働率バーの期間内のインシデント (解決済みを含む)。バーのツールチップ用です。 |
@@ -170,6 +171,7 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -190,12 +192,12 @@ curl https://oneuptime.com/status-page-api/summary/YOUR_STATUS_PAGE_ID
 
 | キー | サマリーの内容 |
 | --- | -------------- |
-| `overallStatus` | バナーが示すとおりのページ全体のステータス: `name`、`color`、`isOperational`。 |
-| `resources` | ページが表示する各リソース (ページの順): ページ上の `name`、上位のグループを含む `groupName`、`currentStatus`、`isUnderMaintenance`。 |
+| `overallStatus` | バナーが示すとおりのページ全体のステータス: `name`、`color`、`isOperational`。ページのすべてのリソースが **未監視** の場合は `null`。 |
+| `resources` | ページが表示する各リソース (ページの順): ページ上の `name`、上位のグループを含む `groupName`、`currentStatus`、`isMonitored`、`isUnderMaintenance`。 |
 | `activeIncidents` | ページが表示する未解決のインシデント。それぞれ、影響するリソースの `affectedResourceIds` が付きます。 |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | 進行中の計画メンテナンスのイベントと、これから始まるイベント。それぞれに `affectedResourceIds` が付きます。 |
 
-ページがリソースの `currentStatus` を表示しない場合、その値は `null` です。 `isUnderMaintenance` は、進行中のイベントがリソースのモニターか、そのモニターグループ内のモニターを指定している間、それらのモニターのステータスにかかわらず `true` です。
+ページがリソースの `currentStatus` を表示しない場合、その値は `null` です。`isMonitored` が `false` の場合も同じです。そのリソースは、モニターの監視がオフか、モニターグループのすべてのモニターで監視がオフのため何にもチェックされず、ページには **未監視** と表示されます。 `isUnderMaintenance` は、進行中のイベントがリソースのモニターか、そのモニターグループ内のモニターを指定している間、それらのモニターのステータスにかかわらず `true` です。
 
 ## 期間を指定した稼働率
 
@@ -278,7 +280,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -303,7 +306,8 @@ for group in uptime["groupUptimes"]:
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -313,7 +317,8 @@ for group in uptime["groupUptimes"]:
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -327,6 +332,7 @@ for group in uptime["groupUptimes"]:
 | `groupUptimes` | グループごとに 1 件。グループの `uptimePercent` と `currentStatus` は、入れ子のグループを含め、その下のすべてのリソースを対象にします。グループの `statusPageResourceUptimes` は、そのグループの直下にあるリソースだけを列挙します。ツリーは `parentStatusPageGroupId` で組み立て直します。 |
 | `uptimePercent` | リソースまたはグループ自身の精度で丸めた値。リソースやグループが稼働率を表示しない場合は `null`。 |
 | `currentStatus` | リソースやグループが現在のステータスを表示しない場合は `null`。 |
+| `isMonitored` | ページがリソースを **未監視** と表示する場合、またグループの場合はその下のすべてのリソースがそうである場合に `false`。そのとき `currentStatus` は `null`。 |
 
 モニターのステータスが、ページの **ダウンタイムとしてカウント** のステータスのいずれかである時間は、ダウンタイムとして数えられます。
 

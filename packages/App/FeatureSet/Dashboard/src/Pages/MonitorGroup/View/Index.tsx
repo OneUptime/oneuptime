@@ -95,6 +95,18 @@ const MonitorGroupView: FunctionComponent<
     }
 
     /*
+     * Nothing checks any of the group's monitors, so the group has no
+     * timeline to measure: monitors whose monitoring is off are left out of
+     * it, as from its status (issue #6478). No percentage, rather than the
+     * 100% an empty timeline reads as.
+     */
+    if (
+      MonitorGroupMonitoring.isMonitoringOffForEveryMonitor(monitoringSummary)
+    ) {
+      return <></>;
+    }
+
+    /*
      * this page reports the last 90 days (same range the uptime graph below is drawn over), so
      * measure over that window. Otherwise an open (endsAt = null) row that started before the
      * window contributes its whole duration and the denominator becomes "first event -> now"

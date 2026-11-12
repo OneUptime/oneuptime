@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "% Verfügbarkeit",
     "operational": "Betriebsbereit",
+    "notMonitored": "Nicht überwacht",
     "noResourcesInGroup": "Dieser Gruppe wurden keine Ressourcen hinzugefügt.",
     "activeIncidents": "Aktive Vorfälle",
     "scheduledMaintenanceEvents": "Geplante Wartungsereignisse",
@@ -51,6 +52,7 @@
     "allResourcesAre": "Alle Ressourcen sind {{status}}",
     "someResourcesAre": "Einige Ressourcen sind {{status}}",
     "someResourcesAreUnder": "Einige Ressourcen sind in {{status}}",
+    "noResourcesAreMonitored": "Derzeit werden keine Ressourcen überwacht",
     "oneSubGroup": "1 Gruppe",
     "subGroupCount": "{{total}} Gruppen"
   },

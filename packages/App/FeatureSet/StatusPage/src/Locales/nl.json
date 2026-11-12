@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "% uptime",
     "operational": "Operationeel",
+    "notMonitored": "Niet bewaakt",
     "noResourcesInGroup": "Geen bronnen toegevoegd aan deze groep.",
     "activeIncidents": "Actieve incidenten",
     "scheduledMaintenanceEvents": "Geplande onderhoudsgebeurtenissen",
@@ -51,6 +52,7 @@
     "allResourcesAre": "Alle bronnen zijn {{status}}",
     "someResourcesAre": "Sommige bronnen zijn {{status}}",
     "someResourcesAreUnder": "Sommige bronnen zijn in {{status}}",
+    "noResourcesAreMonitored": "Er worden momenteel geen bronnen bewaakt",
     "oneSubGroup": "1 groep",
     "subGroupCount": "{{total}} groepen"
   },

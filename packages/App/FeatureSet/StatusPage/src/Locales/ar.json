@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "% وقت التشغيل",
     "operational": "يعمل بشكل طبيعي",
+    "notMonitored": "غير مراقَب",
     "noResourcesInGroup": "لم تُضف أي موارد إلى هذه المجموعة.",
     "activeIncidents": "الحوادث النشطة",
     "scheduledMaintenanceEvents": "أحداث الصيانة المجدولة",
@@ -51,6 +52,7 @@
     "allResourcesAre": "حالة جميع الموارد: {{status}}",
     "someResourcesAre": "حالة بعض الموارد: {{status}}",
     "someResourcesAreUnder": "بعض الموارد في حالة: {{status}}",
+    "noResourcesAreMonitored": "لا يخضع أي مورد للمراقبة الآن",
     "oneSubGroup": "مجموعة واحدة",
     "subGroupCount": "المجموعات: {{total}}"
   },

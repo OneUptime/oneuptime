@@ -168,6 +168,9 @@ A component's status is the value its status on the page stands for, so the Comp
 | A status named `Maintenance` | `under_maintenance` |
 | Any other status | `degraded_performance` |
 | A status the page hides, with **Show current status** off | `unknown` |
+| A resource the page shows as **Not monitored**, its monitoring turned off | `unknown` |
+
+A resource the page shows as **Not monitored** is one nothing checks, so it counts toward no overall status, as on the page's own banner. When none of the components the monitor watches is monitored, and none has an incident open, the overall status is `unknown`.
 
 While a scheduled maintenance event in progress affects a resource, because it names one of the resource's monitors or a monitor in its monitor group, the component is `under_maintenance`, whatever status its monitors are in: a monitor is not checked while an event holds it. An event still to come, or over, changes nothing. The page's active incidents count for the resources they affect.
 

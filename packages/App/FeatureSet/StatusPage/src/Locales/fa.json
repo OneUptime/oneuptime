@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "٪ زمان کارکرد",
     "operational": "عملیاتی",
+    "notMonitored": "پایش نشده",
     "noResourcesInGroup": "هیچ منبعی به این گروه اضافه نشده است.",
     "activeIncidents": "حوادث فعال",
     "scheduledMaintenanceEvents": "رویدادهای تعمیر و نگهداری زمان‌بندی‌شده",
@@ -51,6 +52,7 @@
     "allResourcesAre": "همه منابع {{status}} هستند",
     "someResourcesAre": "برخی از منابع {{status}} هستند",
     "someResourcesAreUnder": "برخی از منابع در وضعیت {{status}} هستند",
+    "noResourcesAreMonitored": "در حال حاضر هیچ منبعی پایش نمی‌شود",
     "oneSubGroup": "۱ گروه",
     "subGroupCount": "{{total}} گروه"
   },

@@ -279,6 +279,94 @@ describe("the group's Current Status", () => {
   });
 });
 
+/*
+ * THE GROUP'S UPTIME, BESIDE ITS UPTIME GRAPH (issue #6478).
+ *
+ * Monitors whose monitoring is off are left out of the group's timeline, as
+ * from its status. A group none of whose monitors is checked has no
+ * timeline left to measure, so it shows no percentage at all, rather than
+ * the 100% an empty timeline would read as.
+ */
+function uptimePercent(): HTMLElement | null {
+  return screen.queryByText(/% uptime$/);
+}
+
+describe("the group's uptime, beside its Uptime Graph", () => {
+  test("some monitors still checked: the percentage is shown", async () => {
+    summary = { monitorCount: 3, monitoringOffCount: 2 };
+
+    await renderOverview();
+
+    expect(screen.getByText("Uptime Graph")).toBeVisible();
+    expect(uptimePercent()).not.toBeNull();
+    expect(uptimePercent()).toHaveTextContent(/^[0-9.]+% uptime$/);
+  });
+
+  test("every monitor checked: the percentage is shown, as before", async () => {
+    await renderOverview();
+
+    expect(uptimePercent()).not.toBeNull();
+  });
+
+  test("every monitor with monitoring off: no percentage, though the graph is still there", async () => {
+    summary = { monitorCount: 3, monitoringOffCount: 3 };
+
+    await renderOverview();
+
+    expect(screen.getByText("Uptime Graph")).toBeVisible();
+    expect(uptimePercent()).toBeNull();
+    expect(screen.queryByText(/100% uptime/)).toBeNull();
+  });
+
+  test("when the group's monitoring cannot be read, the percentage is shown as before", async () => {
+    summary = new Error("Server Error. Please try again");
+
+    await renderOverview();
+
+    expect(uptimePercent()).not.toBeNull();
+  });
+
+  test("monitoring turned off from the card: the percentage goes at once", async () => {
+    mockSetMonitoring.mockResolvedValue({
+      monitorCount: 3,
+      monitoringOffCount: 3,
+    } as never);
+
+    await renderOverview();
+    expect(uptimePercent()).not.toBeNull();
+
+    fireEvent.click(
+      screen.getByTestId(MONITOR_GROUP_TURN_MONITORING_OFF_TEST_ID),
+    );
+    fireEvent.click(
+      within(screen.getByRole("dialog")).getByRole("button", {
+        name: "Turn off monitoring",
+      }),
+    );
+    await flush();
+
+    expect(uptimePercent()).toBeNull();
+  });
+
+  test("monitoring turned back on from the card: the percentage is back", async () => {
+    summary = { monitorCount: 3, monitoringOffCount: 3 };
+    mockSetMonitoring.mockResolvedValue({
+      monitorCount: 3,
+      monitoringOffCount: 0,
+    } as never);
+
+    await renderOverview();
+    expect(uptimePercent()).toBeNull();
+
+    fireEvent.click(
+      screen.getByTestId(MONITOR_GROUP_TURN_MONITORING_ON_TEST_ID),
+    );
+    await flush();
+
+    expect(uptimePercent()).not.toBeNull();
+  });
+});
+
 describe("the Monitoring card", () => {
   test("is on the Overview of a group with monitors, saying how many are checked", async () => {
     summary = { monitorCount: 4, monitoringOffCount: 1 };

@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "% времени работы",
     "operational": "Работает",
+    "notMonitored": "Не отслеживается",
     "noResourcesInGroup": "В эту группу не добавлены ресурсы.",
     "activeIncidents": "Активные инциденты",
     "scheduledMaintenanceEvents": "Запланированные работы по обслуживанию",
@@ -51,6 +52,7 @@
     "allResourcesAre": "Все ресурсы — {{status}}",
     "someResourcesAre": "Некоторые ресурсы — {{status}}",
     "someResourcesAreUnder": "Некоторые ресурсы находятся в состоянии {{status}}",
+    "noResourcesAreMonitored": "Сейчас ни один ресурс не отслеживается",
     "oneSubGroup": "1 группа",
     "subGroupCount": "групп: {{total}}"
   },

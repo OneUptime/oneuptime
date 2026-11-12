@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "% drifttid",
     "operational": "Fungerar",
+    "notMonitored": "Inte övervakad",
     "noResourcesInGroup": "Inga resurser har lagts till i den här gruppen.",
     "activeIncidents": "Aktiva incidenter",
     "scheduledMaintenanceEvents": "Planerade underhållshändelser",
@@ -51,6 +52,7 @@
     "allResourcesAre": "Alla resurser är {{status}}",
     "someResourcesAre": "Vissa resurser är {{status}}",
     "someResourcesAreUnder": "Vissa resurser är under {{status}}",
+    "noResourcesAreMonitored": "Inga resurser övervakas just nu",
     "oneSubGroup": "1 grupp",
     "subGroupCount": "{{total}} grupper"
   },

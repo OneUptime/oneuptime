@@ -113,7 +113,7 @@ print((overview.get("overallStatus") or {}).get("name"))  # Operational
 ```
 :::
 
-Le statut global est le pire statut actuel des moniteurs et groupes de moniteurs de la page, celui qui a la priorité la plus élevée. Un statut de moniteur ressemble à ceci :
+Le statut global est le pire statut actuel des moniteurs et groupes de moniteurs de la page, celui qui a la priorité la plus élevée. Les ressources que la page affiche comme **Non surveillé**, listées dans `notMonitoredResourceIds`, en sont exclues. Un statut de moniteur ressemble à ceci :
 
 ```json
 {
@@ -129,12 +129,13 @@ Le statut global est le pire statut actuel des moniteurs et groupes de moniteurs
 
 | Clé | Ce qu'elle contient |
 | --- | ------------- |
-| `overallStatus` | Le statut global de la page, un statut de moniteur comme ci-dessus. Une page qui ne contient rien reçoit le statut du projet de la priorité la plus basse. |
+| `overallStatus` | Le statut global de la page, un statut de moniteur comme ci-dessus. Une page qui ne contient rien reçoit le statut du projet de la priorité la plus basse, et une page qui affiche toutes ses ressources comme **Non surveillé** reçoit `null`. |
 | `statusPage` | Les réglages publics de la page : son titre, sa description, sa personnalisation et ce qu'elle montre. |
 | `statusPageResources` | Chaque ressource : son nom d'affichage, sa description, son groupe, son moniteur ou groupe de moniteurs, et ses options d'affichage. |
 | `resourceGroups` | Les groupes, avec `parentStatusPageGroupId` pour les groupes imbriqués. |
 | `monitorStatuses` | Chaque statut de moniteur du projet, de la priorité la plus basse à la plus élevée. |
 | `monitorGroupCurrentStatuses`, `monitorsInGroup` | Le statut actuel de chaque groupe de moniteurs de la page, et les moniteurs qu'il contient. |
+| `notMonitoredResourceIds` | Les ID des ressources que la page affiche comme **Non surveillé** : un moniteur dont la surveillance est désactivée, ou un groupe de moniteurs dont tous les moniteurs l'ont désactivée. Elles ne décident d'aucun statut, et un tel groupe n'a pas d'entrée dans `monitorGroupCurrentStatuses`. |
 | `monitorStatusTimelines`, `uptimeDailyAggregate`, `monitorGroupUptimeDailyAggregate`, `monitorGroupMergedDowntime`, `statusPageHistoryChartBarColorRules` | Ce à partir de quoi les barres de disponibilité sont dessinées, et les règles de couleur des barres de la page. |
 | `activeIncidents`, `incidentPublicNotes`, `incidentStateTimelines`, `incidentStates` | Les incidents non résolus que la page montre, leurs notes publiques et leurs changements d'état, et les états d'incident du projet. |
 | `timelineIncidents` | Les incidents de la fenêtre des barres de disponibilité, résolus compris, pour les infobulles des barres. |
@@ -170,6 +171,7 @@ La réponse :
         "color": "#2ab57d",
         "isOperational": true
       },
+      "isMonitored": true,
       "isUnderMaintenance": true
     }
   ],
@@ -190,12 +192,12 @@ La réponse :
 
 | Clé | Dans le résumé |
 | --- | -------------- |
-| `overallStatus` | Le statut global de la page, tel que l'affiche sa bannière : `name`, `color` et `isOperational`. |
-| `resources` | Chaque ressource que montre la page, dans son ordre : son `name` sur la page, son `groupName` avec les groupes au-dessus, son `currentStatus`, et `isUnderMaintenance`. |
+| `overallStatus` | Le statut global de la page, tel que l'affiche sa bannière : `name`, `color` et `isOperational`. `null` quand la page affiche toutes ses ressources comme **Non surveillé**. |
+| `resources` | Chaque ressource que montre la page, dans son ordre : son `name` sur la page, son `groupName` avec les groupes au-dessus, son `currentStatus`, `isMonitored`, et `isUnderMaintenance`. |
 | `activeIncidents` | Les incidents non résolus que montre la page, chacun avec les `affectedResourceIds` des ressources qu'il touche. |
 | `ongoingScheduledMaintenance`, `upcomingScheduledMaintenance` | Les événements de maintenance planifiée en cours et encore à venir, chacun avec ses `affectedResourceIds`. |
 
-Le `currentStatus` d'une ressource vaut `null` quand la page ne l'affiche pas. `isUnderMaintenance` vaut `true` tant qu'un événement en cours nomme l'un des moniteurs de la ressource, ou un moniteur de son groupe de moniteurs, quel que soit le statut de ces moniteurs.
+Le `currentStatus` d'une ressource vaut `null` quand la page ne l'affiche pas, et quand `isMonitored` vaut `false` : rien ne vérifie la ressource, parce que la surveillance de son moniteur est désactivée ou que tous les moniteurs de son groupe de moniteurs l'ont désactivée, et la page l'affiche donc comme **Non surveillé**. `isUnderMaintenance` vaut `true` tant qu'un événement en cours nomme l'un des moniteurs de la ressource, ou un moniteur de son groupe de moniteurs, quel que soit le statut de ces moniteurs.
 
 ## Disponibilité sur une période
 
@@ -278,7 +280,8 @@ La réponse :
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "groupUptimes": [
@@ -303,7 +306,8 @@ La réponse :
             "color": { "_type": "Color", "value": "#2ab57d" },
             "isOperationalState": true,
             "priority": 1
-          }
+          },
+          "isMonitored": true
         }
       ],
       "statusPageGroupName": "Web",
@@ -313,7 +317,8 @@ La réponse :
         "color": { "_type": "Color", "value": "#2ab57d" },
         "isOperationalState": true,
         "priority": 1
-      }
+      },
+      "isMonitored": true
     }
   ],
   "startDate": "2026-09-01T00:00:00.000Z",
@@ -327,6 +332,7 @@ La réponse :
 | `groupUptimes` | Une entrée par groupe. `uptimePercent` et `currentStatus` d'un groupe couvrent chaque ressource en dessous de lui, groupes imbriqués compris ; son `statusPageResourceUptimes` ne liste que les ressources qui sont directement dedans. Reconstruisez l'arborescence avec `parentStatusPageGroupId`. |
 | `uptimePercent` | Arrondi à la précision propre de la ressource ou du groupe. `null` quand la ressource ou le groupe n'affiche pas de pourcentage de disponibilité. |
 | `currentStatus` | `null` quand la ressource ou le groupe n'affiche pas son statut actuel. |
+| `isMonitored` | `false` quand la page affiche la ressource comme **Non surveillé**, et pour un groupe quand c'est le cas de toutes les ressources en dessous. Son `currentStatus` vaut alors `null`. |
 
 Le temps compte comme indisponibilité quand son statut de moniteur fait partie des statuts **Compte comme indisponibilité** de la page.
 

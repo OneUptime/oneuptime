@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "% अपटाइम",
     "operational": "कार्यरत",
+    "notMonitored": "निगरानी नहीं",
     "noResourcesInGroup": "इस समूह में कोई संसाधन नहीं जोड़ा गया है।",
     "activeIncidents": "सक्रिय घटनाएँ",
     "scheduledMaintenanceEvents": "निर्धारित रखरखाव कार्यक्रम",
@@ -51,6 +52,7 @@
     "allResourcesAre": "सभी संसाधन {{status}} हैं",
     "someResourcesAre": "कुछ संसाधन {{status}} हैं",
     "someResourcesAreUnder": "कुछ संसाधन {{status}} में हैं",
+    "noResourcesAreMonitored": "अभी किसी भी संसाधन की निगरानी नहीं हो रही है",
     "oneSubGroup": "1 समूह",
     "subGroupCount": "{{total}} समूह"
   },

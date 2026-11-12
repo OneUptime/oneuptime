@@ -43,6 +43,7 @@
   "overview": {
     "uptimeSuffix": "% 正常运行时间",
     "operational": "运行正常",
+    "notMonitored": "未监控",
     "noResourcesInGroup": "此组中未添加任何资源。",
     "activeIncidents": "活动事件",
     "scheduledMaintenanceEvents": "计划维护事件",
@@ -51,6 +52,7 @@
     "allResourcesAre": "所有资源{{status}}",
     "someResourcesAre": "部分资源{{status}}",
     "someResourcesAreUnder": "部分资源处于{{status}}状态",
+    "noResourcesAreMonitored": "当前没有受监控的资源",
     "oneSubGroup": "1 个分组",
     "subGroupCount": "{{total}} 个分组"
   },
