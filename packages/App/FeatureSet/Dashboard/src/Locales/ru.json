@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "Поэтому сумма по экземплярам может превышать число уникальных пользователей, подсчитанных выше ({{count}}).",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "Поэтому сумма по экземплярам может превышать число уникальных пользователей, подсчитанных выше ({{count}}).",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, мониторинг выключен, с {{start}}, уже {{duration}}. Сейчас активно.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, мониторинг выключен, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, мониторинг выключен, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "Не показано более ранних ходов: {{count}}",
+  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан"
 }

@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "そのため、インスタンスごとの人数の合計は、上で数えた一意のユーザー {{count}} 人を超えることがあります。",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "そのため、インスタンスごとの人数の合計は、上で数えた一意のユーザー {{count}} 人を超えることがあります。",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}、監視オフ、{{start}} から、{{duration}} 経過。現在アクティブ。",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}、監視オフ、{{start}} – {{end}}、{{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}、監視オフ、{{start}} – {{end}}、{{duration}}",
+  "{{count}} earlier turns are not shown": "以前の {{count}} ターンは表示されていません",
+  "{{count}} earlier turns are not shown_one": "以前の {{count}} ターンは表示されていません"
 }

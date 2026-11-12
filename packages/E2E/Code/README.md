@@ -84,6 +84,12 @@ The suite drives the pages the way a person does, on a laptop and on a phone:
   question waiting for an answer, live steps ending in "Working on it…" and
   Stop, Try again, a failed turn and why, a task OneUptime started from an
   exception, a turn's Log and back, and the trail;
+- a task kept open for weeks, past 200 turns (`?long=1`: 207, read as the
+  server reads them): its first turn, a line saying how many turns are not
+  shown, then its newest 199, with the top still counting every turn's
+  work; a reply sent from the top of the page going to its end, where the
+  reply is drawn; its Log numbering each turn where it stands in the task
+  (Turn 1, then Turn 9); German;
 - each step reaching the page as it is announced (`?live=1`): read as its
   turn's new steps, never the whole task until the turn is done, rising
   into place, in a conversation a screen reader follows as a log; a turn

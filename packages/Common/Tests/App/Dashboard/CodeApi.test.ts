@@ -59,6 +59,7 @@ import CodeApi, {
   CodeTaskResponse,
   getIdBatches,
   getTaskListScopeBody,
+  parseTurnsNotShown,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi";
 
 const TASK_ID: string = "4c1d2e3f-5a6b-4c7d-8e9f-0a1b2c3d4e5f";
@@ -418,7 +419,60 @@ describe("every Code route", () => {
     expect(response.turns).toHaveLength(1);
     expect(response.repository).toBeNull();
     expect(response.canReadLogContent).toBe(true);
+    // A task shown whole: nothing is left out.
+    expect(response.turnsNotShown).toBeNull();
     expect(lastCall().url).toBe(apiUrl(`/get/${TASK_ID}`));
+  });
+
+  test("a long task's conversation says how many turns it does not show, and how long AI worked on them", async () => {
+    postMock.mockResolvedValue(
+      answer({
+        task: { id: TASK_ID, title: "Retry charges" },
+        turns: [{ runId: TASK_ID, steps: [], pullRequests: [] }],
+        turnsNotShown: { count: 5, workMilliseconds: 300000 },
+        repository: null,
+        canAsk: true,
+        canSeeChanges: true,
+        canReadLogContent: false,
+        blocker: null,
+      }) as never,
+    );
+
+    const response: CodeTaskResponse = await CodeApi.getTask(TASK_ID);
+
+    expect(response.turnsNotShown).toEqual({
+      count: 5,
+      workMilliseconds: 300000,
+    });
+  });
+
+  test("turns not shown read as none unless they are a whole count of one or more; a work time that is not one reads as none", () => {
+    expect(parseTurnsNotShown(undefined)).toBeNull();
+    expect(parseTurnsNotShown(null)).toBeNull();
+    expect(parseTurnsNotShown(5)).toBeNull();
+    expect(parseTurnsNotShown([{ count: 5 }])).toBeNull();
+    expect(parseTurnsNotShown({})).toBeNull();
+    expect(parseTurnsNotShown({ count: 0, workMilliseconds: 10 })).toBeNull();
+    expect(parseTurnsNotShown({ count: -2 })).toBeNull();
+    expect(parseTurnsNotShown({ count: 2.5 })).toBeNull();
+    expect(parseTurnsNotShown({ count: "5" })).toBeNull();
+    expect(parseTurnsNotShown({ count: 1 })).toEqual({
+      count: 1,
+      workMilliseconds: 0,
+    });
+    expect(parseTurnsNotShown({ count: 3, workMilliseconds: "60000" })).toEqual(
+      { count: 3, workMilliseconds: 0 },
+    );
+    expect(
+      parseTurnsNotShown({ count: 3, workMilliseconds: Number.NaN }),
+    ).toEqual({ count: 3, workMilliseconds: 0 });
+    expect(parseTurnsNotShown({ count: 3, workMilliseconds: -5 })).toEqual({
+      count: 3,
+      workMilliseconds: 0,
+    });
+    expect(parseTurnsNotShown({ count: 205, workMilliseconds: 61000 })).toEqual(
+      { count: 205, workMilliseconds: 61000 },
+    );
   });
 
   test("a working turn's progress: the turn and the last step the page has are sent, the steps and the state read back", async () => {

@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "Les décomptes par instance peuvent donc dépasser au total les {{count}} utilisateurs uniques comptés ci-dessus.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "Les décomptes par instance peuvent donc dépasser au total {{count}} utilisateur unique compté ci-dessus.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, surveillance désactivée, depuis {{start}}, {{duration}} jusqu'ici. Actuellement actif.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, surveillance désactivée, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, surveillance désactivée, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} tours précédents ne sont pas affichés",
+  "{{count}} earlier turns are not shown_one": "{{count}} tour précédent n'est pas affiché"
 }

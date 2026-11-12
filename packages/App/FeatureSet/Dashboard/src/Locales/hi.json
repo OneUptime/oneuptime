@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "इसलिए प्रति-इंस्टेंस गिनती का योग ऊपर गिने गए {{count}} अद्वितीय उपयोगकर्ताओं से अधिक हो सकता है।",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "इसलिए प्रति-इंस्टेंस गिनती का योग ऊपर गिने गए {{count}} अद्वितीय उपयोगकर्ता से अधिक हो सकता है।",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, निगरानी बंद, {{start}} से, अब तक {{duration}}। वर्तमान में सक्रिय।",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, निगरानी बंद, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, निगरानी बंद, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} पिछली बारियाँ नहीं दिखाई गई हैं",
+  "{{count}} earlier turns are not shown_one": "{{count}} पिछली बारी नहीं दिखाई गई है"
 }

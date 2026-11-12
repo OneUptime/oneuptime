@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "Tellingen per instantie kunnen daarom samen meer zijn dan de {{count}} unieke gebruikers die hierboven zijn geteld.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "Tellingen per instantie kunnen daarom samen meer zijn dan de {{count}} unieke gebruiker die hierboven is geteld.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, bewaking uit, sinds {{start}}, tot nu toe {{duration}}. Momenteel actief.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, bewaking uit, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, bewaking uit, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} eerdere beurten worden niet getoond",
+  "{{count}} earlier turns are not shown_one": "{{count}} eerdere beurt wordt niet getoond"
 }

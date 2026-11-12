@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "따라서 인스턴스별 사용자 수의 합계가 위에서 센 고유 사용자 {{count}}명보다 많을 수 있습니다.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "따라서 인스턴스별 사용자 수의 합계가 위에서 센 고유 사용자 {{count}}명보다 많을 수 있습니다.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, 모니터링 꺼짐, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "이전 차례 {{count}}개는 표시되지 않습니다",
+  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다"
 }

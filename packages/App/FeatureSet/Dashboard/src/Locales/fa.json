@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "از همین رو جمع شمارش‌های هر نمونه ممکن است از {{count}} کاربر یکتای شمرده‌شده در بالا بیشتر شود.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "از همین رو جمع شمارش‌های هر نمونه ممکن است از {{count}} کاربر یکتای شمرده‌شده در بالا بیشتر شود.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، پایش خاموش، از {{start}}، تاکنون {{duration}}. در حال حاضر فعال.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، پایش خاموش، {{start}} – {{end}}، {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، پایش خاموش، {{start}} – {{end}}، {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
+  "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود"
 }

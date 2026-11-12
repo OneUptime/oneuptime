@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "لذلك قد يزيد مجموع الأعداد لكل مثيل على عدد المستخدمين الفريدين المحسوب أعلاه ({{count}}).",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "لذلك قد يزيد مجموع الأعداد لكل مثيل على عدد المستخدمين الفريدين المحسوب أعلاه ({{count}}).",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، المراقبة متوقفة، منذ {{start}}، {{duration}} حتى الآن. نشط حاليًا.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}",
+  "{{count}} earlier turns are not shown": "جولات سابقة غير معروضة: {{count}}",
+  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة"
 }

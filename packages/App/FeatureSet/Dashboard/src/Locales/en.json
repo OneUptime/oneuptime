@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "Per-instance counts can therefore add up to more than the {{count}} unique user counted above.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} earlier turns are not shown",
+  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown"
 }

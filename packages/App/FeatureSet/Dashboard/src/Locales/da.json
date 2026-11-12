@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "Tallene pr. instans kan derfor tilsammen blive højere end de {{count}} unikke brugere, der er talt ovenfor.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "Tallene pr. instans kan derfor tilsammen blive højere end den {{count}} unikke bruger, der er talt ovenfor.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvågning slået fra, siden {{start}}, {{duration}} indtil nu. Aktiv nu.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvågning slået fra, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvågning slået fra, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} tidligere ture vises ikke",
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
 }

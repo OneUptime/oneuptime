@@ -1,16 +1,21 @@
 import AIAgentTaskPullRequestService from "../../../../../Server/Services/AIAgentTaskPullRequestService";
 import AIRunService from "../../../../../Server/Services/AIRunService";
 import UserService from "../../../../../Server/Services/UserService";
-import CodeTaskThread from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
+import CodeTaskThread, {
+  CodeTaskTurnsRead,
+  MAX_TURNS_PER_TASK,
+} from "../../../../../Server/Utils/AI/CodeTask/CodeTaskThread";
 import AIAgentTaskPullRequest from "../../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../../Models/DatabaseModels/AIRun";
 import User from "../../../../../Models/DatabaseModels/User";
 import AIRunType from "../../../../../Types/AI/AIRunType";
 import { CodeTaskPersonJSON } from "../../../../../Types/AI/CodeTask";
 import PullRequestState from "../../../../../Types/CodeRepository/PullRequestState";
+import { LIMIT_PER_PROJECT } from "../../../../../Types/Database/LimitMax";
 import Email from "../../../../../Types/Email";
 import Name from "../../../../../Types/Name";
 import ObjectID from "../../../../../Types/ObjectID";
+import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -126,22 +131,37 @@ describe("CodeTaskThread.findTask", () => {
 });
 
 describe("CodeTaskThread.getTurns", () => {
-  test("is the task, then its replies oldest first, in the project", async () => {
-    const replies: Array<AIRun> = [run(REPLY_ID, TASK_ID)];
+  test("is the task, then its replies oldest first, in the project - read newest first, as many as a conversation holds", async () => {
+    const LATER_ID: ObjectID = new ObjectID(
+      "7a3b6d5c-9e0f-4a1b-8c2d-4e5f6a7b8c9d",
+    );
+    const reply: AIRun = run(REPLY_ID, TASK_ID);
+    const later: AIRun = run(LATER_ID, TASK_ID);
+    // Newest first, as the read asks.
     const find: jest.SpiedFunction<typeof AIRunService.findBy> = jest
       .spyOn(AIRunService, "findBy")
-      .mockResolvedValue(replies);
+      .mockResolvedValue([later, reply]);
+    const count: jest.SpiedFunction<typeof AIRunService.countBy> = jest.spyOn(
+      AIRunService,
+      "countBy",
+    );
 
     const task: AIRun = run(TASK_ID);
-    const turns: Array<AIRun> = await CodeTaskThread.getTurns({
+    const read: CodeTaskTurnsRead = await CodeTaskThread.getTurns({
       projectId: PROJECT_ID,
       task,
     });
 
-    expect(turns).toEqual([task, replies[0]]);
+    expect(read.turns).toEqual([task, reply, later]);
+    expect(read.olderTurnsLeftOut).toBe(0);
+    // A read that is not full left nothing out: nothing is counted.
+    expect(count).not.toHaveBeenCalled();
 
-    const call: { query: Record<string, unknown>; sort: unknown } = find.mock
-      .calls[0]![0] as never;
+    const call: {
+      query: Record<string, unknown>;
+      sort: unknown;
+      limit: unknown;
+    } = find.mock.calls[0]![0] as never;
 
     expect((call.query["codeTaskId"] as ObjectID).toString()).toBe(
       TASK_ID.toString(),
@@ -149,7 +169,97 @@ describe("CodeTaskThread.getTurns", () => {
     expect((call.query["projectId"] as ObjectID).toString()).toBe(
       PROJECT_ID.toString(),
     );
-    expect(call.sort).toEqual({ createdAt: "ASC" });
+    expect(call.query["runType"]).toBe(AIRunType.CodeFix);
+    expect(call.sort).toEqual({ createdAt: "DESC" });
+    expect(call.limit).toBe(MAX_TURNS_PER_TASK - 1);
+    expect(call.query).not.toHaveProperty("createdAt");
+  });
+
+  test("a full read counts the task's replies: the ones not read are left out", async () => {
+    const replies: Array<AIRun> = [];
+
+    for (let index: number = 0; index < MAX_TURNS_PER_TASK - 1; index++) {
+      replies.push(run(ObjectID.generate(), TASK_ID));
+    }
+
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue(replies);
+    const count: jest.SpiedFunction<typeof AIRunService.countBy> = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(MAX_TURNS_PER_TASK - 1 + 31));
+
+    const read: CodeTaskTurnsRead = await CodeTaskThread.getTurns({
+      projectId: PROJECT_ID,
+      task: run(TASK_ID),
+    });
+
+    expect(read.turns).toHaveLength(MAX_TURNS_PER_TASK);
+    expect(read.olderTurnsLeftOut).toBe(31);
+
+    const counted: { query: Record<string, unknown>; props: unknown } = count
+      .mock.calls[0]![0] as never;
+
+    expect((counted.query["codeTaskId"] as ObjectID).toString()).toBe(
+      TASK_ID.toString(),
+    );
+    expect(counted.query["runType"]).toBe(AIRunType.CodeFix);
+    expect(counted.props).toEqual({ isRoot: true });
+  });
+
+  test("a count lower than the read - a reply deleted between the two - leaves none out, never a negative", async () => {
+    const replies: Array<AIRun> = [];
+
+    for (let index: number = 0; index < MAX_TURNS_PER_TASK - 1; index++) {
+      replies.push(run(ObjectID.generate(), TASK_ID));
+    }
+
+    jest.spyOn(AIRunService, "findBy").mockResolvedValue(replies);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(MAX_TURNS_PER_TASK - 3));
+
+    const read: CodeTaskTurnsRead = await CodeTaskThread.getTurns({
+      projectId: PROJECT_ID,
+      task: run(TASK_ID),
+    });
+
+    expect(read.olderTurnsLeftOut).toBe(0);
+  });
+
+  test("createdBefore reads only the replies asked before that moment, and counts the same", async () => {
+    const before: Date = new Date("2026-10-19T09:00:00.000Z");
+    const replies: Array<AIRun> = [];
+
+    for (let index: number = 0; index < MAX_TURNS_PER_TASK - 1; index++) {
+      replies.push(run(ObjectID.generate(), TASK_ID));
+    }
+
+    const find: jest.SpiedFunction<typeof AIRunService.findBy> = jest
+      .spyOn(AIRunService, "findBy")
+      .mockResolvedValue(replies);
+    const count: jest.SpiedFunction<typeof AIRunService.countBy> = jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(MAX_TURNS_PER_TASK - 1));
+
+    await CodeTaskThread.getTurns({
+      projectId: PROJECT_ID,
+      task: run(TASK_ID),
+      createdBefore: before,
+    });
+
+    for (const query of [
+      (find.mock.calls[0]![0] as { query: Record<string, unknown> }).query,
+      (count.mock.calls[0]![0] as { query: Record<string, unknown> }).query,
+    ]) {
+      const createdAt: {
+        getSql: (alias: string) => string;
+        objectLiteralParameters: Record<string, unknown>;
+      } = query["createdAt"] as never;
+
+      expect(createdAt.getSql("x")).toContain("x < ");
+      expect(Object.values(createdAt.objectLiteralParameters)).toEqual([
+        before,
+      ]);
+    }
   });
 });
 
@@ -233,7 +343,7 @@ describe("CodeTaskThread.getWorkingPullRequest", () => {
 
 describe("CodeTaskThread.findWorkingPullRequest", () => {
   test("reads the pull requests of every turn of the task", async () => {
-    jest
+    const findRuns: jest.SpiedFunction<typeof AIRunService.findBy> = jest
       .spyOn(AIRunService, "findBy")
       .mockResolvedValue([run(REPLY_ID, TASK_ID)]);
     const findPullRequests: jest.SpiedFunction<
@@ -262,6 +372,13 @@ describe("CodeTaskThread.findWorkingPullRequest", () => {
     )[0];
 
     expect(runIds).toEqual([TASK_ID.toString(), REPLY_ID.toString()]);
+
+    // Every run's id, however many - not a conversation's 200.
+    const idsRead: { select: unknown; limit: unknown } = findRuns.mock
+      .calls[0]![0] as never;
+
+    expect(idsRead.select).toEqual({ _id: true });
+    expect(idsRead.limit).toBe(LIMIT_PER_PROJECT);
   });
 });
 

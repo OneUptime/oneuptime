@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "Die Zahlen pro Instanz können daher zusammen mehr ergeben als die {{count}} oben gezählten eindeutigen Benutzer.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "Die Zahlen pro Instanz können daher zusammen mehr ergeben als der {{count}} oben gezählte eindeutige Benutzer.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, Überwachung aus, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} frühere Durchgänge werden nicht angezeigt",
+  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt"
 }

@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "因此，各实例的用户数相加可能超过上方统计的 {{count}} 位唯一用户。",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "因此，各实例的用户数相加可能超过上方统计的 {{count}} 位唯一用户。",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}，监控已关闭，自 {{start}} 起，已持续 {{duration}}。当前进行中。",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}，监控已关闭，{{start}} – {{end}}，{{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}，监控已关闭，{{start}} – {{end}}，{{duration}}",
+  "{{count}} earlier turns are not shown": "之前的 {{count}} 个回合未显示",
+  "{{count}} earlier turns are not shown_one": "之前的 {{count}} 个回合未显示"
 }

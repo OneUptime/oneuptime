@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "Antalen per instans kan därför sammanlagt bli fler än de {{count}} unika användare som räknats ovan.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "Antalen per instans kan därför sammanlagt bli fler än den {{count}} unika användare som räknats ovan.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, övervakning avstängd, sedan {{start}}, {{duration}} hittills. Aktiv nu.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, övervakning avstängd, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, övervakning avstängd, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} tidigare turer visas inte",
+  "{{count}} earlier turns are not shown_one": "{{count}} tidigare tur visas inte"
 }

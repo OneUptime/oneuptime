@@ -50973,5 +50973,7 @@
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above.": "I conteggi per istanza possono quindi superare in totale i {{count}} utenti unici contati sopra.",
   "Per-instance counts can therefore add up to more than the {{count}} unique users counted above._one": "I conteggi per istanza possono quindi superare in totale {{count}} utente unico contato sopra.",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoraggio disattivato, da {{start}}, {{duration}} finora. Attualmente attivo.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoraggio disattivato, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoraggio disattivato, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} turni precedenti non sono mostrati",
+  "{{count}} earlier turns are not shown_one": "{{count}} turno precedente non è mostrato"
 }
