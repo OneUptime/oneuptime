@@ -113,10 +113,19 @@ function describeOwners(owners: WhoIsToldOwners): string {
     }),
   ];
 
+  /*
+   * The resolver plans the project's owner rules on what opens, so it knows
+   * whether they add anyone: the project's owners are emailed only when
+   * nobody is named and no rule adds an owner.
+   */
   if (owners.source === WhoIsToldOwnersSource.ProjectOwners) {
-    return owners.hasOwnerRules
-      ? "the project's owners, unless its owner rules add owners"
-      : "the project's owners";
+    return "the project's owners";
+  }
+
+  if (owners.source === WhoIsToldOwnersSource.OwnerRules) {
+    return named.length > 0
+      ? `the owners added by owner rules (${named.join(", ")})`
+      : "the owners added by owner rules";
   }
 
   if (owners.source === WhoIsToldOwnersSource.MonitorOwners) {
