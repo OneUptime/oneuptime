@@ -157,6 +157,16 @@ function openingOf(markdown: string): string {
   return markdown.split("\n## ")[0] as string;
 }
 
+/*
+ * The links a reader could leave by: a picture of the screen is not one
+ * (#6823 puts a screenshot under a step's heading), a link to a page is.
+ */
+function linksOutOf(markdown: string): Array<DocsLink> {
+  return scanMarkdown(markdown).links.filter((link: DocsLink): boolean => {
+    return !link.isImage;
+  });
+}
+
 function h2s(markdown: string): Array<string> {
   return scanMarkdown(markdown)
     .headings.filter((heading: DocsHeading): boolean => {
@@ -285,7 +295,7 @@ describe.each(DOCS_GUIDES)("$navTitle, in English", (guide: DocsGuide) => {
     expect(fences[0]!.info).toContain(`title="${GUIDE_PICTURE_TITLE}"`);
     // Nothing else to choose from before the first step: no cards, no links.
     expect(cardLines(opening)).toEqual([]);
-    expect(scanMarkdown(opening).links).toEqual([]);
+    expect(linksOutOf(opening)).toEqual([]);
   });
 
   it("has the guides' sections, in their order", () => {
@@ -308,7 +318,7 @@ describe.each(DOCS_GUIDES)("$navTitle, in English", (guide: DocsGuide) => {
     ).toEqual(["steps"]);
     expect(containers[0]!.steps).toBe(stepHeadings.length);
     expect(stepHeadings.length).toBeGreaterThanOrEqual(4);
-    expect(scanMarkdown(steps).links).toEqual([]);
+    expect(linksOutOf(steps)).toEqual([]);
     // Steps are the only third-level headings: the rest of a guide is flat.
     expect(
       scanMarkdown(markdown).headings.filter((heading: DocsHeading) => {
