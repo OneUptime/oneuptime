@@ -18,7 +18,12 @@ const port: string = process.env["JOURNEYS_FIXTURE_PORT"] || "4831";
 
 export default defineConfig({
   testDir: "./Journeys",
-  testMatch: ["Journeys.spec.ts", "JourneyCounter.spec.ts"],
+  testMatch: [
+    "Journeys.spec.ts",
+    "JourneyCounter.spec.ts",
+    // The website-down setup's run, kept and lost (#7059): not counted.
+    "GuidedSetupRun.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   timeout: 180000,
