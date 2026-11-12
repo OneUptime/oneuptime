@@ -190,7 +190,7 @@ Jede Stelle, die ein Gerät zeigt — die Geräteliste, die Geräte-Seite eines 
 | --- | --- |
 | **Up** | Die letzte Abfrage (Ping oder SNMP) oder der gebundene Monitor hat das Gerät erreicht. |
 | **Ausgefallen** | Die letzte Abfrage (Ping oder SNMP) oder der gebundene Monitor konnte das Gerät nicht erreichen. |
-| **Ausstehend** | Noch kein Urteil: nie abgefragt, keine Sonde zugewiesen oder kein Monitor gebunden. |
+| **Ausstehend** | Noch kein Urteil: nie abgefragt, keine Sonde zugewiesen, kein Monitor gebunden, oder der gebundene Monitor ist ausgeschaltet oder archiviert. |
 
 | Zusatz | Erscheint, wenn | Was zu tun ist |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Jede Stelle, die ein Gerät zeigt — die Geräteliste, die Geräte-Seite eines 
 | **Keine Sonde** | Das Gerät wird von einer Sonde abgefragt, hat aber keine, oder seine Abfrage ist aus. | Weisen Sie eine Sonde zu, die es erreicht; bis dahin fragt nichts es ab. |
 | **Kein Monitor** | Das Gerät nutzt die [Überschreibung mit gebundenem Monitor](#die-überschreibung-mit-gebundenem-monitor), und nichts ist gebunden. | Binden Sie einen Monitor oder stellen Sie es wieder auf Sondenabfrage um. |
 | **SNMP schlägt fehl** | Per Ping erreichbar, aber der letzte SNMP-Walk ist fehlgeschlagen. | Prüfen Sie die Anmeldedaten, den SNMP-Agenten oder eine ACL. |
+| **Überwachung aus** | Die Überwachung des gebundenen Monitors ist ausgeschaltet, daher zeigt das Gerät **Ausstehend** statt des Status, bei dem der Monitor stehen blieb. | Schalten Sie die Überwachung des Monitors wieder ein, oder binden Sie einen anderen Monitor. |
+| **Monitor archiviert** | Der gebundene Monitor ist archiviert, daher zeigt das Gerät **Ausstehend** statt des Status, bei dem der Monitor stehen blieb. | Heben Sie die Archivierung des Monitors auf, oder binden Sie einen anderen Monitor. |
 
 Die Liste **Geräte** hat einen Filter **SNMP** mit drei Werten: **OK** (der letzte Walk war erfolgreich), **Fehlerhaft** (der letzte Walk ist fehlgeschlagen) und **Nicht konfiguriert** (nur angepingt, keine Anmeldedaten oder nie abgefragt). „Bei welchen Geräten funktionieren die Anmeldedaten nicht mehr“ ist damit ein Klick. Die Spalte **Schnittstellen (aktiv / ausgefallen)** der Liste zeigt **Kein SNMP** statt `0 / 0` für ein Gerät, das angepingt und nie abgefragt wird: Null funktionierende Ports wären eine andere Aussage, und eine falsche.
 

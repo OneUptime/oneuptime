@@ -128,7 +128,7 @@ AWS Marketplace, Microsoft Marketplace 또는 Google Cloud Marketplace에서 구
 2. 라이선스 키를 입력하고 검증합니다.
 :::
 
-설치는 OneUptime에서 키를 확인하고 받은 라이선스를 저장합니다. 그 뒤로는 매일 동기화하여 라이선스를 최신 상태로 유지합니다. 추가 좌석이나 갱신 같은 변경 사항을 바로 가져오려면 같은 페이지의 **Refresh license** 를 사용하십시오.
+설치는 OneUptime에서 키를 확인하고 받은 라이선스를 저장합니다. 그 뒤로는 매일 동기화하여 라이선스를 최신 상태로 유지합니다. 추가 좌석이나 갱신 같은 변경 사항을 바로 가져오려면 같은 페이지의 **라이선스 새로 고침**을 사용하십시오.
 
 온라인 활성화에는 OneUptime 서버에서 `https://oneuptime.com`으로 나가는 HTTPS가 필요합니다. 서버가 중계 서버를 통해서만 인터넷에 접속한다면 `ENTERPRISE_LICENSE_SERVER_URL`을 중계 서버의 `https://` 주소로 설정하십시오. 중계 서버는 `/api/enterprise-license/`를 oneuptime.com으로 전달해야 합니다.
 

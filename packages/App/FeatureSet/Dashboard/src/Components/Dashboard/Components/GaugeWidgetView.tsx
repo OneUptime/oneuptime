@@ -12,6 +12,11 @@ import {
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
 import DashboardWidgetLine from "./DashboardWidgetLine";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
+} from "./DashboardWidgetSetupCopy";
 
 // The row of the arc's bounds under it: the minimum, then the maximum.
 export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
@@ -98,7 +103,10 @@ export interface GaugeWidgetViewProps {
   /** Shown instead of a gauge when `value` is null. */
   noDataMessage: string;
 
-  /** False while the widget has no query yet — renders the setup prompt. */
+  /*
+   * False while the widget has no query yet — renders the setup prompt,
+   * the host's line for where the widget is drawn (DashboardWidgetSetupCopy).
+   */
   isConfigured: boolean;
   setupTitle: string;
   setupMessage: string;
@@ -169,8 +177,13 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
         <GaugeStateIcon tone="emerald" />
-        <p className="text-xs font-medium text-gray-500">{setupTitle}</p>
-        <p className="text-xs text-gray-400 text-center">{setupMessage}</p>
+        <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>{setupTitle}</p>
+        <p
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
+          data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
+        >
+          {setupMessage}
+        </p>
       </div>
     );
   }

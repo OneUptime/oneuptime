@@ -42,6 +42,12 @@ import ObjectID from "Common/Types/ObjectID";
  *     longer retention keeps only the entries recorded after the change,
  *     so the email does not offer it as a way to keep these.
  *
+ * When that moment has already passed by the try the email goes on - the
+ * export waits to send entries older than the retention they were recorded
+ * with, which the audit log keeps until a whole part of it has expired -
+ * the "losing entries" email says they are being lost now, and asks to fix
+ * the destination now rather than "before then" (#7185).
+ *
  * When that first entry is deleted is read from the entries themselves:
  * the soonest retentionDate stamped on the ones the export has not sent
  * (AuditLogService.findSoonestRetentionDateForExport). Reckoned from the
@@ -200,6 +206,26 @@ const formatDate: (date: Date) => string = (date: Date): string => {
 };
 
 /*
+ * Which of the three emails the words are: the export is failing and
+ * nothing is lost yet; it will start losing entries from a date still
+ * ahead; or it is losing them, since a date that has passed.
+ */
+type AuditLogExportEmailStage = "failing" | "losing" | "lost";
+
+// What the subject says the export does, after its name.
+const SUBJECT_ENDINGS: Record<AuditLogExportEmailStage, string> = {
+  failing: "is failing",
+  losing: "will start losing entries",
+  lost: "is losing entries",
+};
+
+const BADGE_TEXTS: Record<AuditLogExportEmailStage, string> = {
+  failing: "Export failing",
+  losing: "Entries about to be lost",
+  lost: "Entries being lost",
+};
+
+/*
  * The email's words, for a project's export or the instance's. Every value
  * a person wrote (the export's name, the destination's answer) goes in as
  * text: the template escapes it.
@@ -215,6 +241,16 @@ const formatDate: (date: Date) => string = (date: Date): string => {
  * retention they were recorded with, which a project may have changed since
  * (#6563). Only with nothing waiting does the "failing" email give the days
  * the audit log keeps an entry recorded from now on.
+ *
+ * That date can already have passed by the try the email goes on (`now`):
+ * the audit log drops a whole part of its entries only once every entry in
+ * it has passed its stamp, so the export can be waiting to send entries
+ * older than their retention. Then the email says entries are being lost,
+ * since about that date, and to fix the destination now so the export sends
+ * the ones still kept - never "will start losing entries" or "fix it before
+ * then" for a date nobody can still act before (#7185). Any email with such
+ * a date says so, the "failing" one too, which could otherwise say nothing
+ * is lost yet. A date still ahead, even by a second, keeps the words it had.
  */
 export function buildAuditLogExportFailureEmail(data: {
   notice: AuditLogExportFailureNotice;
@@ -225,6 +261,8 @@ export function buildAuditLogExportFailureEmail(data: {
   oldestUnsentAt: Date | null;
   // When the first of the entries the export has not sent is deleted (getAuditLogExportEntriesLostAt); null while none waits.
   entriesLostAt: Date | null;
+  // The time of the try the email goes on: whether entriesLostAt has passed.
+  now: Date;
   error: string;
   // The project's retention as it is now: how long an entry recorded from now on is kept.
   retentionInDays: number;
@@ -237,9 +275,18 @@ export function buildAuditLogExportFailureEmail(data: {
   const lostAt: Date | null = data.entriesLostAt
     ? new Date(data.entriesLostAt)
     : null;
-  const isLosing: boolean =
-    data.notice === AuditLogExportFailureNotice.LosingEntries &&
-    Boolean(lostAt);
+  /*
+   * Nothing waiting cannot say from when, so it reads as failing. The first
+   * of the entries waiting at or past its stamp by the try is being lost
+   * now, whichever notice is due.
+   */
+  const stage: AuditLogExportEmailStage = !lostAt
+    ? "failing"
+    : lostAt.getTime() <= new Date(data.now).getTime()
+      ? "lost"
+      : data.notice === AuditLogExportFailureNotice.LosingEntries
+        ? "losing"
+        : "failing";
   const givenName: string = data.exportName.trim();
   const name: string = givenName || "audit log export";
   const days: string = `${retentionInDays} days`;
@@ -251,9 +298,7 @@ export function buildAuditLogExportFailureEmail(data: {
   const whose: string = data.isInstanceExport
     ? ` of your ${product} instance`
     : "";
-  const subject: string = `${which}${whose} ${
-    isLosing ? "will start losing entries" : "is failing"
-  }`;
+  const subject: string = `${which}${whose} ${SUBJECT_ENDINGS[stage]}`;
 
   const details: Array<{ title: string; text: string }> = [
     { title: "Export: ", text: name },
@@ -268,9 +313,9 @@ export function buildAuditLogExportFailureEmail(data: {
     });
   }
 
-  if (isLosing && lostAt) {
+  if (stage !== "failing" && lostAt) {
     details.push({
-      title: "Entries lost from: ",
+      title: stage === "lost" ? "Entries lost since: " : "Entries lost from: ",
       text: `about ${formatDate(lostAt)}`,
     });
   }
@@ -294,17 +339,20 @@ export function buildAuditLogExportFailureEmail(data: {
   /*
    * Failing: what to do, then why nothing is lost yet. Losing entries: from
    * when, what to do before then, and why a longer retention does not help
-   * the entries already waiting.
+   * the entries already waiting. Being lost already: what to do now, which
+   * cannot wait, then since when, and the same about a longer retention.
    */
   const remediation: string =
-    isLosing && lostAt
-      ? `From about ${formatDate(lostAt)}, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first. ${longerRetention}`
-      : `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: ${keptFor}`;
+    stage === "lost" && lostAt
+      ? `Fix the destination now, and the export sends the entries the audit log still keeps, oldest first. Since about ${formatDate(lostAt)}, the entries this export has not sent are being deleted as they pass the audit log retention they were recorded with, and are never sent. ${longerRetention}`
+      : stage === "losing" && lostAt
+        ? `From about ${formatDate(lostAt)}, the entries this export has not sent are deleted as they pass the audit log retention they were recorded with, and are never sent. Fix the destination before then, and the export sends them, oldest first. ${longerRetention}`
+        : `Fix the destination, and the export sends every entry waiting for it, oldest first. Nothing is lost yet: ${keptFor}`;
 
   return {
     subject,
-    badgeType: isLosing ? "critical" : "warning",
-    badgeText: isLosing ? "Entries about to be lost" : "Export failing",
+    badgeType: stage === "failing" ? "warning" : "critical",
+    badgeText: BADGE_TEXTS[stage],
     details,
     remediation,
     buttonText: "Open Audit Log Export",
@@ -363,6 +411,8 @@ export interface AuditLogExportFailureNotification {
   oldestUnsentAt: Date | null;
   // When the first of the entries the export has not sent is deleted; null while none waits.
   entriesLostAt: Date | null;
+  // The time of the try the notice is due on: the email says whether entriesLostAt has passed by then.
+  now: Date;
   error: string;
   retentionInDays: number;
 }
@@ -416,6 +466,7 @@ export const auditLogExportEmailNotifier: AuditLogExportNotifier = {
       failingSince: data.failingSince,
       oldestUnsentAt: data.oldestUnsentAt,
       entriesLostAt: data.entriesLostAt,
+      now: data.now,
       error: data.error,
       retentionInDays: data.retentionInDays,
     });

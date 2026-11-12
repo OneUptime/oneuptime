@@ -382,7 +382,7 @@ describe("#1692: 'Error connecting to server' when verifying (self-hosted)", () 
 describe("#1774: 'Custom Domains not enabled', then a CNAME that would not verify (Kubernetes)", () => {
   test("the chart passes statusPage.cnameRecord through as STATUS_PAGE_CNAME_RECORD", () => {
     expect(read("HelmChart/Public/oneuptime/templates/_helpers.tpl")).toMatch(
-      /- name: STATUS_PAGE_CNAME_RECORD\n\s+value: \{\{ \$\.Values\.statusPage\.cnameRecord \}\}/,
+      /- name: STATUS_PAGE_CNAME_RECORD\n\s+value: \{\{ include "oneuptime\.envValue" \$\.Values\.statusPage\.cnameRecord \}\}/,
     );
   });
 
