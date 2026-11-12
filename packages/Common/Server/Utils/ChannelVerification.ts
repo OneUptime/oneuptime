@@ -137,6 +137,7 @@ export const SEND_FAILURE_NOT_EXPLAINED: string =
  */
 export const ChannelVerificationMessages: {
   noItem: string;
+  noCode: string;
   notSignedIn: string;
   notFound: string;
   alreadyVerified: string;
@@ -144,6 +145,7 @@ export const ChannelVerificationMessages: {
 } = {
   noItem:
     "The request did not say which notification method to verify. Reload the page and try again.",
+  noCode: "Enter the code from the message we sent.",
   notSignedIn: "Sign in again, then verify this notification method.",
   notFound:
     "This notification method is not in your list any more. Add it again, then verify it.",

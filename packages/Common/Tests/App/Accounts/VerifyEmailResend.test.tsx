@@ -62,7 +62,7 @@ const CONTINUE_TO_SIGN_IN: string = "Continue to sign in";
 const LINK_INVALID_TITLE: string = "This verification link is no longer valid";
 const REQUEST_NEW_LINK: string =
   "If your link has expired or stopped working, we can email you a new one.";
-const ERROR_TITLE: string = "Sorry, something went wrong!";
+const ERROR_TITLE: string = "Your email was not verified.";
 const TRY_AGAIN: string = "Try again";
 // Its own sentence, not "Return to sign in? Sign in." (fu-platform's review).
 const RETURN_TO_SIGN_IN: string = "Already verified your email?";
@@ -550,8 +550,9 @@ describe("Verify email page", () => {
 
       await renderPage();
 
+      // Says why and what to do next (#6836, ErrorExplanation).
       expect(errorBlock()).toHaveTextContent(
-        "Error connecting to server. Please try again in few minutes.",
+        "The OneUptime server did not answer. It may be starting or restarting. Try again in a few minutes.",
       );
       expect(screen.getByTestId("verify-email-try-again")).toBeInTheDocument();
     });

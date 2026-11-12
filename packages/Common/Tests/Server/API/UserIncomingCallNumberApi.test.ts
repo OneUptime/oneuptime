@@ -152,7 +152,7 @@ describe("UserIncomingCallNumberAPI", () => {
         expect(Response.sendErrorResponse).toHaveBeenCalledWith(
           mockRequest,
           mockResponse,
-          new BadDataException("Invalid user ID"),
+          new BadDataException("This notification method is not in your list any more. Add it again, then verify it."),
         );
       });
 
@@ -188,7 +188,7 @@ describe("UserIncomingCallNumberAPI", () => {
         expect(Response.sendErrorResponse).toHaveBeenCalledWith(
           mockRequest,
           mockResponse,
-          new BadDataException("Invalid user ID"),
+          new BadDataException("Sign in again, then verify this notification method."),
         );
         expect(
           UserIncomingCallNumberService.resendVerificationCode,
@@ -207,7 +207,7 @@ describe("UserIncomingCallNumberAPI", () => {
         expect(Response.sendErrorResponse).toHaveBeenCalledWith(
           mockRequest,
           mockResponse,
-          new BadDataException("Invalid user ID"),
+          new BadDataException("Sign in again, then verify this notification method."),
         );
         // An ownerless row and a nameless session are never compared.
         expect(
@@ -230,7 +230,7 @@ describe("UserIncomingCallNumberAPI", () => {
         expect(Response.sendErrorResponse).toHaveBeenCalledWith(
           mockRequest,
           mockResponse,
-          new BadDataException("Invalid user ID"),
+          new BadDataException("This notification method is not in your list any more. Add it again, then verify it."),
         );
         expect(
           UserIncomingCallNumberService.resendVerificationCode,
@@ -249,7 +249,7 @@ describe("UserIncomingCallNumberAPI", () => {
         expect(Response.sendErrorResponse).toHaveBeenCalledWith(
           mockRequest,
           mockResponse,
-          new BadDataException("Invalid user ID"),
+          new BadDataException("Sign in again, then verify this notification method."),
         );
         expect(
           UserIncomingCallNumberService.resendVerificationCode,
@@ -298,7 +298,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid item ID"),
+        new BadDataException("The request did not say which notification method to verify. Reload the page and try again."),
       );
       expect(
         UserIncomingCallNumberService.resendVerificationCode,
@@ -326,7 +326,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Item not found"),
+        new BadDataException("This notification method is not in your list any more. Add it again, then verify it."),
       );
       expect(
         UserIncomingCallNumberService.resendVerificationCode,
@@ -413,7 +413,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid item ID"),
+        new BadDataException("The request did not say which notification method to verify. Reload the page and try again."),
       );
     });
 
@@ -425,7 +425,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid code"),
+        new BadDataException("Enter the code from the message we sent."),
       );
     });
 
@@ -441,7 +441,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Item not found"),
+        new BadDataException("This notification method is not in your list any more. Add it again, then verify it."),
       );
     });
 
@@ -483,7 +483,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid user ID"),
+        new BadDataException("This notification method is not in your list any more. Add it again, then verify it."),
       );
       expect(
         UserIncomingCallNumberService.updateOneById,
@@ -508,7 +508,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Item not found"),
+        new BadDataException("This notification method is not in your list any more. Add it again, then verify it."),
       );
       expect(
         UserIncomingCallNumberService.updateOneById,
@@ -531,7 +531,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid code"),
+        new BadDataException("That code is not right. Enter the code from the latest message we sent, or send a new code."),
       );
       expect(
         UserIncomingCallNumberService.updateOneById,
@@ -553,7 +553,7 @@ describe("UserIncomingCallNumberAPI", () => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid code"),
+        new BadDataException("That code is not right. Enter the code from the latest message we sent, or send a new code."),
       );
     });
 

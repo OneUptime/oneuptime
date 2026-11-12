@@ -102,6 +102,7 @@ jest.mock("../../../UI/Utils/User", () => {
 
 import MonitorTestForm, {
   MONITOR_TEST_MAX_POLL_ATTEMPTS,
+  MONITOR_TEST_TIMED_OUT_MESSAGE,
   MONITOR_TEST_POLL_INTERVAL_IN_MS,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Form/Monitor/MonitorTest";
 import { MonitorStepProbeResponse } from "../../../Models/DatabaseModels/MonitorProbe";
@@ -466,7 +467,7 @@ describe("waiting for the probe to report", () => {
 
     expect(
       screen.getByText(
-        "Monitor Test took too long to complete. Please try again later.",
+        MONITOR_TEST_TIMED_OUT_MESSAGE,
       ),
     ).toBeInTheDocument();
 
@@ -498,7 +499,7 @@ describe("waiting for the probe to report", () => {
     expect(getItemMock).toHaveBeenCalledTimes(2);
     expect(
       screen.queryByText(
-        "Monitor Test took too long to complete. Please try again later.",
+        MONITOR_TEST_TIMED_OUT_MESSAGE,
       ),
     ).not.toBeInTheDocument();
   });
