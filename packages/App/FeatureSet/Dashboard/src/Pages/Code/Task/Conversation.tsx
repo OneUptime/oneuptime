@@ -25,6 +25,7 @@ import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
 import CodeTaskTurn, {
   CodeTaskTurnHost,
 } from "../../../Components/Code/CodeTaskTurn";
+import CodeTaskTurnsNotShown from "../../../Components/Code/CodeTaskTurnsNotShown";
 import CodeHostMark from "../../../Components/Code/CodeHostMark";
 import {
   getConversationGrowthKey,
@@ -664,8 +665,12 @@ const CodeTaskConversation: FunctionComponent<
           ) : (
             <></>
           )}
-          {/* How long AI has worked on it, over all its turns. */}
-          <CodeTaskWorkTime turns={turns} hasClock={true} />
+          {/* How long AI has worked on it, over all its turns - shown or not. */}
+          <CodeTaskWorkTime
+            turns={turns}
+            notShownMilliseconds={data.turnsNotShown?.workMilliseconds}
+            hasClock={true}
+          />
           {pullRequest &&
           (pullRequest.state === "merged" || pullRequest.state === "closed") ? (
             <span
@@ -723,46 +728,56 @@ const CodeTaskConversation: FunctionComponent<
       >
         {turns.map((turn: CodeTaskTurnJSON, index: number) => {
           return (
-            <CodeTaskTurn
-              key={turn.runId}
-              turn={turn}
-              isLatest={index === turns.length - 1}
-              origin={index === 0 ? data.task.origin : undefined}
-              repositorySettingsRoute={
-                /*
-                 * A slow queue points at the repository's Runner: its
-                 * settings open there, with More settings open.
-                 */
-                data.repository
-                  ? getRepositorySettingsRoute(
-                      data.repository.id,
-                      CodeRepositorySetting.Runner,
-                    )
-                  : undefined
-              }
-              onRetry={
-                canRetry
-                  ? () => {
-                      void retry();
-                    }
-                  : undefined
-              }
-              onRetryNow={
-                canRetryNow
-                  ? () => {
-                      void retry();
-                    }
-                  : undefined
-              }
-              isRetrying={isRetrying}
-              repositoryHost={repositoryHost}
-              logRoute={new Route(
-                RouteUtil.populateRouteParams(
-                  RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
-                  { modelId: new ObjectID(taskId) },
-                ).toString(),
-              ).addQueryParams({ turn: turn.runId })}
-            />
+            <React.Fragment key={turn.runId}>
+              <CodeTaskTurn
+                turn={turn}
+                isLatest={index === turns.length - 1}
+                origin={index === 0 ? data.task.origin : undefined}
+                repositorySettingsRoute={
+                  /*
+                   * A slow queue points at the repository's Runner: its
+                   * settings open there, with More settings open.
+                   */
+                  data.repository
+                    ? getRepositorySettingsRoute(
+                        data.repository.id,
+                        CodeRepositorySetting.Runner,
+                      )
+                    : undefined
+                }
+                onRetry={
+                  canRetry
+                    ? () => {
+                        void retry();
+                      }
+                    : undefined
+                }
+                onRetryNow={
+                  canRetryNow
+                    ? () => {
+                        void retry();
+                      }
+                    : undefined
+                }
+                isRetrying={isRetrying}
+                repositoryHost={repositoryHost}
+                logRoute={new Route(
+                  RouteUtil.populateRouteParams(
+                    RouteMap[PageMap.CODE_TASK_VIEW_LOG] as Route,
+                    { modelId: new ObjectID(taskId) },
+                  ).toString(),
+                ).addQueryParams({ turn: turn.runId })}
+              />
+              {/*
+               * A long task: its first turn, then how many turns are not
+               * shown, then its newest.
+               */}
+              {index === 0 && data.turnsNotShown ? (
+                <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />
+              ) : (
+                <></>
+              )}
+            </React.Fragment>
           );
         })}
       </ol>

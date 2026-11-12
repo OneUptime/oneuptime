@@ -50793,5 +50793,7 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}: {{values}}, что меньше {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}, что не равно {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}} — начинается с {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}}: {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
+  "{{count}} earlier turns are not shown": "Не показано более ранних ходов: {{count}}",
+  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан"
 }

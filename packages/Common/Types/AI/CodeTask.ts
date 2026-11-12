@@ -567,6 +567,28 @@ export interface CodeTaskTurnJSON {
 }
 
 /*
+ * The turns a long task's conversation does not show: the ones between its
+ * first turn and the newest it shows (a conversation reads at most 200).
+ * Its page says how many there are, where they are left out, and still
+ * counts how long AI worked on them.
+ */
+export interface CodeTaskTurnsNotShownJSON {
+  count: number;
+  // How long AI worked on them, in all.
+  workMilliseconds: number;
+}
+
+// A task's conversation, as its page is sent it (POST /code-task/get/:taskId).
+export interface CodeTaskConversationJSON {
+  // The task at the top: every turn's, the ones not shown included.
+  task: CodeTaskSummaryJSON;
+  // Its first turn, then its newest, oldest first.
+  turns: Array<CodeTaskTurnJSON>;
+  // Only for a task with more turns than its conversation shows.
+  turnsNotShown?: CodeTaskTurnsNotShownJSON | undefined;
+}
+
+/*
  * How a turn that AI is working on stands now, and the steps it took since
  * the page last read it (POST /code-task/progress/:taskId): what a task's
  * conversation reads as each step happens, instead of the whole task again.

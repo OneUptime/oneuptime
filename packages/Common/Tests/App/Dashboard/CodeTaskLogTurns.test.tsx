@@ -313,6 +313,39 @@ describe("a task's turns, as the Log page lists them", () => {
     expect(started!.isSummaryTranslated).toBe(true);
   });
 
+  /*
+   * A long task's page holds its first turn and its newest (issue #6529):
+   * the turns not shown between them still count, so each newer turn keeps
+   * its place in the conversation.
+   */
+  test("a long task's newer turns keep their places past the turns not shown", () => {
+    const turns: Array<CodeTaskLogTurn> = getCodeTaskLogTurns(THREE_TURNS, 5);
+
+    expect(
+      turns.map((each: CodeTaskLogTurn): number => {
+        return each.number;
+      }),
+    ).toEqual([1, 7, 8]);
+    // Only the numbers move: each turn is still itself.
+    expect(
+      turns.map((each: CodeTaskLogTurn): string => {
+        return each.runId;
+      }),
+    ).toEqual([TASK_ID, SECOND_RUN_ID, THIRD_RUN_ID]);
+  });
+
+  test("none not shown, or nonsense, numbers every turn in order", () => {
+    for (const notShown of [undefined, 0, -3, 2.5, Number.NaN]) {
+      expect(
+        getCodeTaskLogTurns(THREE_TURNS, notShown as never).map(
+          (each: CodeTaskLogTurn): number => {
+            return each.number;
+          },
+        ),
+      ).toEqual([1, 2, 3]);
+    }
+  });
+
   test("a long first line is cut to fit, with an ellipsis", () => {
     const long: string = "a".repeat(MAX_TURN_SUMMARY_LENGTH + 40);
 
@@ -552,6 +585,32 @@ describe("the Log page's turn picker", () => {
     );
     expect(options[1]).toHaveTextContent("Add a test for it");
     expect(options[1]).not.toHaveTextContent("behind a flag");
+  });
+
+  test("a long task's picker numbers its newer turns past the ones its page does not show", async () => {
+    getTaskMock.mockResolvedValue({
+      ...taskAnswer(THREE_TURNS),
+      turnsNotShown: { count: 197, workMilliseconds: 0 },
+    } as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    drawLog(`?turn=${THIRD_RUN_ID}`);
+
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 200 · Working…");
+    });
+
+    expect(
+      openPicker().map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual([
+      expect.stringContaining("Turn 1 · Done"),
+      expect.stringContaining("Turn 199 · Failed"),
+      expect.stringContaining("Turn 200 · Working…"),
+    ]);
   });
 
   test("picking another turn opens the page at it", async () => {

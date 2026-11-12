@@ -50793,5 +50793,7 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}為 {{values}}，小於 {{threshold}}。",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}為 {{values}}，不等於 {{threshold}}。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}為 {{values}}，以 {{threshold}} 開頭。",
-  "{{subject}} is {{values}}.": "{{subject}}：{{values}}。"
+  "{{subject}} is {{values}}.": "{{subject}}：{{values}}。",
+  "{{count}} earlier turns are not shown": "之前的 {{count}} 個回合未顯示",
+  "{{count}} earlier turns are not shown_one": "之前的 {{count}} 個回合未顯示"
 }

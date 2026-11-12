@@ -50793,5 +50793,7 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} : {{values}}, ce qui est inférieur à {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} : {{values}}, ce qui est différent de {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} : {{values}}, ce qui commence par {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}} : {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}} : {{values}}.",
+  "{{count}} earlier turns are not shown": "{{count}} tours précédents ne sont pas affichés",
+  "{{count}} earlier turns are not shown_one": "{{count}} tour précédent n'est pas affiché"
 }

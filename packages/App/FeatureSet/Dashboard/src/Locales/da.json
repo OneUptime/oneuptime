@@ -50793,5 +50793,7 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} er {{values}} og dermed mindre end {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} er {{values}} og dermed ikke lig med {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} er {{values}} og starter med {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}} er {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}} er {{values}}.",
+  "{{count}} earlier turns are not shown": "{{count}} tidligere ture vises ikke",
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
 }

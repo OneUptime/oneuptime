@@ -50793,5 +50793,7 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}: {{values}}, जो {{threshold}} से छोटा है।",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}, जो {{threshold}} के बराबर नहीं है।",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}}, जो {{threshold}} से शुरू होता है।",
-  "{{subject}} is {{values}}.": "{{subject}}: {{values}}।"
+  "{{subject}} is {{values}}.": "{{subject}}: {{values}}।",
+  "{{count}} earlier turns are not shown": "{{count}} पिछली बारियाँ नहीं दिखाई गई हैं",
+  "{{count}} earlier turns are not shown_one": "{{count}} पिछली बारी नहीं दिखाई गई है"
 }

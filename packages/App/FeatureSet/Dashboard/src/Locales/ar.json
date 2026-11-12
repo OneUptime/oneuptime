@@ -50793,5 +50793,7 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}: {{values}}، أي أصغر من {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}، أي لا يساوي {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}}، أي يبدأ بـ {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}}: {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
+  "{{count}} earlier turns are not shown": "جولات سابقة غير معروضة: {{count}}",
+  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة"
 }

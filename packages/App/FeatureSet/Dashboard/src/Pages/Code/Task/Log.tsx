@@ -665,7 +665,11 @@ const CodeTaskLogPage: FunctionComponent<
   });
 
   const turns: Array<CodeTaskLogTurn> = useMemo(() => {
-    return getCodeTaskLogTurns(task?.turns || []);
+    // A long task's newer turns keep their places past the ones not shown.
+    return getCodeTaskLogTurns(
+      task?.turns || [],
+      task?.turnsNotShown?.count || 0,
+    );
   }, [task]);
 
   // "this task", or "this turn" once the picker lists more than one.
