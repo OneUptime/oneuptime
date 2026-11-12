@@ -554,7 +554,7 @@ OneUptime آن لحظه را روی حادثه، و روی هشدار، به‌�
 
 Project Owner، ‏Project Admin و هر کسی با **Edit Project** می‌توانند پیشوندها را تغییر دهند. بقیه آن‌ها را با دکمه **به‌روزرسانی** قفل‌شده می‌بینند.
 
-هشدارها و رویدادهای نگهداری زمان‌بندی‌شده همین صفحه را دارند: **هشدارها → تنظیمات → شماره‌گذاری** برای شماره هشدارها و اپیزودهای هشدار (`ALT-` و `AE-` برای پروژه‌های تازه)، و **تعمیر و نگهداری زمان‌بندی‌شده → تنظیمات → شماره‌گذاری** برای شماره رویدادها (`SM-`). در هر سه، نشانی‌های قدیمی صفحه هنوز کار می‌کنند و **شماره‌گذاری** را باز می‌کنند: **More Settings** (`…/settings/more`) و **پیشوند شماره** (`…/settings/number-prefix`).
+هشدارها و رویدادهای نگهداری زمان‌بندی‌شده همین صفحه را دارند: **هشدارها → تنظیمات → شماره‌گذاری** برای شماره هشدارها و اپیزودهای هشدار (`ALT-` و `AE-` برای پروژه‌های تازه)، و **تعمیر و نگهداری زمان‌بندی‌شده → تنظیمات → شماره‌گذاری** برای شماره رویدادها (`SM-`). در هر سه، نشانی‌های قدیمی صفحه هنوز کار می‌کنند و **شماره‌گذاری** را باز می‌کنند: **تنظیمات بیشتر** (`…/settings/more`) و **پیشوند شماره** (`…/settings/number-prefix`).
 
 ## شماره‌های بعدی
 
@@ -736,7 +736,7 @@ flowchart TB
 
 ## راندن حادثه‌ها از گردش‌های کاری
 
-تریگرهای گردش کاری برای حادثه‌ها دست‌نویس نیستند — OneUptime آن‌ها را از مدل‌های داده تولید می‌کند، پس هر مدل از خانواده حادثه مؤلفه‌های **On Create X**، **On Update X**، **On Create or Update X** و **On Delete X** را می‌گیرد، که از نام مفرد مدل نام‌گذاری می‌شوند. اصلی‌ها **On Create Incident**، **On Update Incident**، **On Create or Update Incident** و **On Delete Incident** هستند. آن‌ها را در پنل **Add Trigger** در `/dashboard/{projectId}/workflows`، زیر **منابع OneUptime** → **Incident** می‌یابید؛ دو تای نخست زیر **محبوب** هم هستند.
+تریگرهای گردش کاری برای حادثه‌ها دست‌نویس نیستند — OneUptime آن‌ها را از مدل‌های داده تولید می‌کند، پس هر مدل از خانواده حادثه مؤلفه‌های **On Create X**، **On Update X**، **On Create or Update X** و **On Delete X** را می‌گیرد، که از نام مفرد مدل نام‌گذاری می‌شوند. اصلی‌ها **On Create Incident**، **On Update Incident**، **On Create or Update Incident** و **On Delete Incident** هستند. آن‌ها را در پنل **افزودن تریگر** در `/dashboard/{projectId}/workflows`، زیر **منابع OneUptime** → **حادثه** می‌یابید؛ دو تای نخست زیر **محبوب** هم هستند.
 
 همان تولید، تریگرهایی برای خود پیکربندی هم به شما می‌دهد: **On Create Incident State**، **On Update Incident Severity**، **On Create Incident Template**، **On Create Incident Note Template**، **On Create Incident State Timeline**، **On Create Incident Public Note**، **On Create Incident Internal Note**، **On Create Incident On-Call Rule**، **On Create Incident Role**، **On Create Incident Member** و بیشتر. هر مدل مؤلفه‌های کنش متناظر هم می‌گیرد — **Find One Incident**، **Create One Incident**، **Update One Incident**، **Delete One Incident** و معادل‌های چندسطری‌شان — پس تریگر و کنشی با نام‌های مشابه کنار هم در همان دسته می‌نشینند. **On Create Incident** گردش کاری را آغاز می‌کند؛ **Create One Incident** حادثه‌ای باز می‌کند.
 

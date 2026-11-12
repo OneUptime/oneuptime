@@ -90,7 +90,7 @@ const FULL_SECTION_LANGUAGES: ReadonlyArray<string> = ["en", "fa"];
 // What each language called More Settings, from the locale files before it went.
 const MORE_SETTINGS: Record<string, string> = {
   en: "More Settings",
-  fa: "More Settings",
+  fa: "تنظیمات بیشتر",
   da: "Flere indstillinger",
   de: "Weitere Einstellungen",
   es: "Más Ajustes",

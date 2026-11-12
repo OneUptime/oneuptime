@@ -77,6 +77,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   "incidents/declaring-incidents": [
     // The workflow step's setting: the workflow docs name it in English.
     "Incident Template",
+    /*
+     * A plan's name, which the Dashboard shows as written in every language
+     * (PlanPickerCopy, the plan pills), as on the invoice.
+     */
+    "Growth",
   ],
   "incidents/states-and-severities": [
     // Custom states a project might add: names people give.
@@ -104,12 +109,11 @@ const KEPT_IN_ENGLISH: Record<string, Array<string>> = {
   ],
   "incidents/settings": [
     /*
-     * The workflow builder's trigger names and ports, which are not
-     * translated. (The panel's own sections, Popular and OneUptime
-     * resources, are drawn in the reader's language.)
+     * A trigger's out-port, which the workflow docs name in English as a
+     * step's own output (WorkflowDocsTranslations' OUTPUTS). The Add
+     * Trigger panel, its sections and its Incident resource are drawn in
+     * the reader's language, and the page names them so.
      */
-    "Incident",
-    "Add Trigger",
     "Success",
     // The workflow step's setting.
     "Incident Template",

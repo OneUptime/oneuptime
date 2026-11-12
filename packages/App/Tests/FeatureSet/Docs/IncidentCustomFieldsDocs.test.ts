@@ -1198,11 +1198,13 @@ describe("incident custom fields docs", () => {
 
         expect(needs.has(PlanType.Scale)).toBe(true);
         expect(needs.has(PlanType.Growth)).toBe(true);
-        // The incident pages name the plan as the language's Dashboard draws it.
+        /*
+         * A plan's name is written as the Dashboard shows it in every
+         * language, as on the invoice - Persian included, although its
+         * locale has a word for growth.
+         */
         expect(
-          boldText(readPage(DECLARING_PAGE, language)).has(
-            drawnActionLabel(language, PlanType.Growth),
-          ),
+          boldText(readPage(DECLARING_PAGE, language)).has(PlanType.Growth),
         ).toBe(true);
       },
     );
