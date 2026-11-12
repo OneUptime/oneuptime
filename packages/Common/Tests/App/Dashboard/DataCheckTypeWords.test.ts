@@ -139,7 +139,7 @@ describe("getDataCheckTypeLabel", () => {
     ["fr", DataCheckType.OrphanCount, "Nombre de lignes orphelines"],
     ["ja", DataCheckType.FormatMismatchPercent, "形式不一致の割合"],
     ["ar", DataCheckType.DuplicatePercent, "نسبة التكرار"],
-    ["fa", DataCheckType.RowCount, "تعداد ردیف‌ها"],
+    ["fa", DataCheckType.RowCount, "تعداد سطرها"],
   ])("in %s, %s reads %j", (language: string, type: string, drawn: string) => {
     expect(
       getDataCheckTypeLabel({

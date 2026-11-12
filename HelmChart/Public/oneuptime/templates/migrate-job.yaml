@@ -135,7 +135,7 @@ spec:
               echo "postgres reachable at $PGHOST:$PGPORT"
           env:
             - name: PGHOST
-              value: {{ include "oneuptime.postgres.backendHost" . }}
+              value: {{ include "oneuptime.envValue" (include "oneuptime.postgres.backendHost" .) }}
             - name: PGPORT
               value: {{ include "oneuptime.postgres.backendPort" . | quote }}
       containers:

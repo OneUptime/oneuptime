@@ -128,7 +128,7 @@ OneUptime Enterprise comprado en AWS Marketplace, Microsoft Marketplace o Google
 2. Introduzca su clave de licencia y valídela.
 :::
 
-La instalación comprueba la clave con OneUptime y almacena la licencia que recibe. A partir de entonces mantiene la licencia al día con una sincronización diaria. Use **Refresh license** en la misma página para obtener de inmediato los cambios, como puestos adicionales o una renovación.
+La instalación comprueba la clave con OneUptime y almacena la licencia que recibe. A partir de entonces mantiene la licencia al día con una sincronización diaria. Use **Actualizar licencia** en la misma página para obtener de inmediato los cambios, como puestos adicionales o una renovación.
 
 La activación en línea necesita HTTPS saliente desde el servidor de OneUptime hacia `https://oneuptime.com`. Si el servidor solo llega a Internet a través de un relé, defina `ENTERPRISE_LICENSE_SERVER_URL` con la dirección `https://` del relé. El relé debe reenviar `/api/enterprise-license/` a oneuptime.com.
 

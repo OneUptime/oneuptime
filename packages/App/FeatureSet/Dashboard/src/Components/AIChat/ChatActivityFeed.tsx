@@ -365,6 +365,8 @@ export const friendlyToolNames: { [key: string]: string } = {
   check_workflow_draft: translationKey("Checking the workflow"),
   query_probes: translationKey("Checking probes"),
   query_teams: translationKey("Checking teams"),
+  // Whether the project's setup tells the right people (#6812).
+  get_setup_health: translationKey("Checking the setup health"),
   // OneUptime AI's own earlier work.
   get_ai_investigation: translationKey("Reading the AI investigation"),
   query_ai_insights: translationKey("Checking AI insights"),

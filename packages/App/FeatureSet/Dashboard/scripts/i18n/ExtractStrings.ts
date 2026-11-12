@@ -177,6 +177,14 @@ export const SOURCE_ROOTS: Array<SourceRoot> = [
   // A cron schedule in words: the monitor's interval, a workflow's schedule.
   { directory: "packages/Common/Utils/CronScheduleText.ts", kind: "ui" },
   /*
+   * What each Setup health finding says (#6812): the server sends its
+   * template, and the page says it in the reader's language.
+   */
+  {
+    directory: "packages/Common/Types/SetupHealth/SetupHealth.ts",
+    kind: "ui",
+  },
+  /*
    * Why an email was not sent when the server has no email set up: the
    * project's Email Logs show it in the reader's language. Only the words
    * the file marks are read.

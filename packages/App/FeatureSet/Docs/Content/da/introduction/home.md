@@ -38,7 +38,7 @@ Linjen øverst nævner det mest presserende, der er åbent, i en tilsvarende far
 
 Ved siden af siger Hjem, hvornår den sidst læste projektet, og **Opdater** læser det igen. Når du vender tilbage til en fane med Hjem efter et minut eller mere, opdaterer den sig selv.
 
-Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første overvågning**, som åbner formularen, der opretter en monitor. Kun personer, der har lov til at oprette monitorer, ser den.
+Så længe intet overvåges endnu, slutter linjen med knappen **Opret din første overvågning**, som åbner den guidede opsætning **Vide, når mit website eller API er nede**. Kun personer, der har lov til at oprette monitorer, ser den.
 
 ### De fem tal
 
@@ -63,16 +63,16 @@ Hvert trin krydser sig selv af, når tingen virker, ikke når en post findes, og
 | Trin | Gennemført, når | Åbner |
 | --- | --- | --- |
 | **Importér fra dit nuværende værktøj** | En import fra et andet værktøj er gennemført. | **Importér fra et andet værktøj** |
-| **Opret din første overvågning** | Den første kontrol kommer ind. | Formularen **Opret monitor**, eller listen **Monitorer** for den, der ikke må oprette overvågninger. |
+| **Opret din første overvågning** | Den første kontrol kommer ind. | Den guidede opsætning **Vide, når mit website eller API er nede**, eller listen **Monitorer** for den, der ikke må oprette overvågninger. |
 | **Forbind en server eller en klynge** | De første metrikker kommer ind. | **Værter** |
-| **Send dine første logs, metrikker eller traces** | Projektets første logs, metrikker, traces, undtagelser eller profiler kommer ind. | **Protokoller** |
-| **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel kører en politik, der kan nå nogen. | **Vagtordning** |
-| **Udgiv en statusside** | En statusside viser en overvågning. | **Statussider** |
+| **Send dine første logs, metrikker eller traces** | Projektets første logs, metrikker, traces, undtagelser eller profiler kommer ind. | Den guidede opsætning **Send protokoller, metrikker og spor, og få derefter advarsler** |
+| **Opsæt en vagtpolitik** | En testalarm bliver kvitteret, en alarm når nogen, eller en vagtregel kører en politik, der kan nå nogen. | Den guidede opsætning **Tilkalde den rette person, når noget går ned** |
+| **Udgiv en statusside** | En statusside viser en overvågning. | Den guidede opsætning **Udgiv en statusside**, eller listen **Statussider** for den, der ikke må oprette statussider. |
 | **Inviter dit team** | Nogen accepterer din invitation. | **Brugere** |
 
 Det trin, du skal tage først, er markeret med **Næste trin**. På OneUptime Clouds Free-abonnement, der har én person, siger **Inviter dit team**, at det kræver Growth-abonnementet, og åbner **Fakturering**. På en selvhostet server, der endnu ikke kan sende e-mail, ser serverens administratorer først **Denne server kan ikke sende e-mail endnu**; det åbner administrationsdashboardet.
 
-Når du opretter en overvågning, en statusside eller en vagtpolitik fra et trin, siger siden, du lander på, hvad der kommer bagefter, med **Tilbage til opsætningen**.
+En guidet opsætning klarer hele opgaven på én side, et trin ad gangen, og slutter med, hvad den har sat op, og hvad du kan gøre bagefter. Søg efter dens navn for at åbne den igen senere.
 
 Under trinene viser **Sådan virker OneUptime** de fire kerneprodukter i den rækkefølge, et problem bevæger sig gennem dem: **Monitorer**, **Hændelser og advarsler**, **Vagtordning** og **Statussider**. Klik på et for at åbne det. Under dem står, hvad der fodrer kredsløbet, telemetri og infrastruktur, med links til [Grundbegreber](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
@@ -92,6 +92,10 @@ Tjeklisten forsvinder for alle, når hvert trin er færdigt. For at skjule den f
 ### Kræver opmærksomhed
 
 **Kræver opmærksomhed** viser ved navn det, tallene tæller: de åbne hændelser, de åbne advarsler, de monitorer, der ikke er i drift, SLO'erne i fare og de igangværende vedligeholdelser, det mest presserende først. Hver række viser sin alvor eller status, siger, hvornår en hændelse eller advarsel begyndte, og hvornår vedligeholdelsen slutter, og åbner posten. Hver slags viser op til fem, med **Vis alle** for resten, som åbner den samme liste som dens tal. Når intet er åbent, står der **Intet kræver din opmærksomhed**.
+
+### Opsætningens tilstand
+
+Når noget i projektets opsætning ville forhindre, at folk får besked, slutter **Kræver opmærksomhed** med **Opsætning**: hvor mange ting der bør ses på. Den åbner **Opsætningens tilstand**, som viser, hvad der er sat forkert op, det værste først, under **Tilkald når ikke frem**, **Værd at rette** og **Forslag**: en monitor, der ikke tilkalder nogen, en vagtpolitik, som intet kører, en person, der ikke kan tilkaldes, SMS slået fra, en vagttidsplan uden nogen på vagt, en statusside, der ikke viser nogen monitor. Hvert fund siger med én sætning, hvad der er galt, med knappen, der åbner rettelsen, og en monitors fund er de brud, som dens kort **Når den går ned** nævner. Et fund, som jeres team bevidst lader være, kan skjules med en begrundelse, for alle, og gendannes fra **Afvist**. Søg finder siden som **Opsætningens tilstand**, og Spørg AI svarer på "er min opsætning i orden?" ud fra den.
 
 ### Dit projekt
 

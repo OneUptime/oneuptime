@@ -38,7 +38,7 @@ The line at the top names the most urgent thing that is open, in a matching colo
 
 Beside it, Home says when it last read the project, and **Refresh** reads it again. When you come back to a Home tab after a minute or more, it refreshes by itself.
 
-While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the form that creates one. Only people who are allowed to create monitors see it.
+While nothing is monitored yet, the line ends on **Create your first monitor**, which opens the guided setup **Know when my website or API is down**. Only people who are allowed to create monitors see it.
 
 ### The five numbers
 
@@ -63,16 +63,16 @@ Each step ticks itself off when the thing works, not when a record exists, and e
 | Step | Done when | Opens |
 | --- | --- | --- |
 | **Import from your current tool** | An import from another tool finishes. | **Import from another tool** |
-| **Create your first monitor** | Its first check comes in. | The **Create Monitor** form, or the **Monitors** list for someone who may not create monitors. |
+| **Create your first monitor** | Its first check comes in. | The guided setup **Know when my website or API is down**, or the **Monitors** list for someone who may not create monitors. |
 | **Connect a server or cluster** | Its first metrics arrive. | **Hosts** |
-| **Send your first logs, metrics or traces** | The project's first logs, metrics, traces, exceptions or profiles arrive. | **Logs** |
-| **Set up an on-call policy** | A test page is acknowledged, a page reaches someone, or an on-call rule runs a policy that can reach someone. | **On-Call Duty** |
-| **Publish a status page** | A status page shows a monitor. | **Status Pages** |
+| **Send your first logs, metrics or traces** | The project's first logs, metrics, traces, exceptions or profiles arrive. | The guided setup **Send logs, metrics and traces, then get alerted** |
+| **Set up an on-call policy** | A test page is acknowledged, a page reaches someone, or an on-call rule runs a policy that can reach someone. | The guided setup **Page the right person when something breaks** |
+| **Publish a status page** | A status page shows a monitor. | The guided setup **Publish a status page**, or the **Status Pages** list for someone who may not create status pages. |
 | **Invite your team** | Someone accepts your invitation. | **Users** |
 
 The step to do first is marked **Next step**. On OneUptime Cloud's Free plan, which has one person, **Invite your team** says it needs the Growth plan, and opens **Billing**. On a self-hosted server that cannot send email yet, the server's admins see **This server cannot send email yet** first; it opens the Admin Dashboard.
 
-When you create a monitor, a status page or an on-call policy from a step, the page you land on says what is next, with **Back to setup**.
+A guided setup does the whole job on one page, a step at a time, and ends with what it set up and what to do next. To open one again later, search for its name.
 
 Under the steps, **How OneUptime works** shows the four core products in the order a problem flows through them: **Monitors**, **Incidents & Alerts**, **On-Call Duty** and **Status Pages**. Click one to open it. Under them it says what feeds that loop, telemetry and infrastructure, and links to [Core Concepts](/docs/introduction/core-concepts) and the [Glossary](/docs/introduction/glossary).
 
@@ -92,6 +92,10 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 ### Needs attention
 
 **Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest, which opens the same list as its number. When nothing is open, it says **Nothing needs your attention**.
+
+### Setup health
+
+When something in the project's setup would stop people from being told, **Needs attention** ends with **Setup**: how many things need a look. It opens **Setup Health**, which lists what is misconfigured, worst first, under **Pages Will Not Arrive**, **Worth Fixing** and **Suggestions**: a monitor that pages nobody, an on-call policy nothing runs, a responder who can't be paged, SMS switched off, a schedule with nobody on call, a status page that shows no monitor. Each finding says what is wrong in one sentence, with the button that opens its fix, and a monitor's findings are the breaks its **When this goes down** card names. A finding your team leaves as it is on purpose can be dismissed with a reason, for everyone, and restored from **Dismissed**. Search finds the page as **Setup Health**, and Ask AI answers "is my setup OK?" from it.
 
 ### Your project
 

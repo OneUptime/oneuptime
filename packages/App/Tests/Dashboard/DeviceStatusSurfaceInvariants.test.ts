@@ -309,6 +309,55 @@ describe("every device-status surface selects the whole rule", () => {
   );
 
   /*
+   * The "Monitoring off" and "Monitor archived" qualifiers (issue #6965) are
+   * decided from the bound monitor's own two switches, which are not part of
+   * DEVICE_STATUS_SELECT either. Each surface that prints them spreads
+   * DEVICE_BOUND_MONITOR_SELECT after monitorId - the qualifier needs both -
+   * and decides them with getBoundMonitorNotCheckedQualifier; one that
+   * forgot the spread would print the bound monitor's "waiting for its
+   * first check" sentence for a device whose monitor will never check it.
+   */
+  test.each([
+    {
+      name: "the device list",
+      parts: ["Pages", "NetworkDevice", "Devices.tsx"],
+    },
+    {
+      name: "the device Overview hero",
+      parts: ["Components", "NetworkDevice", "DeviceStatusHero.tsx"],
+    },
+    {
+      name: "a site's Devices tab",
+      parts: ["Pages", "NetworkSite", "View", "Devices.tsx"],
+    },
+  ])(
+    "$name selects the bound monitor's switches after monitorId, and decides the qualifier with the shared function",
+    ({ parts }: { parts: Array<string> }) => {
+      const select: string = deviceSelectLiteral(...parts);
+
+      expect(select).toContain("...DEVICE_BOUND_MONITOR_SELECT");
+      expect(select.indexOf("...DEVICE_BOUND_MONITOR_SELECT")).toBeGreaterThan(
+        select.indexOf("monitorId: true"),
+      );
+      // Nothing after the spread narrows the relation back down.
+      expect(select).not.toMatch(/\bmonitor: \{/);
+
+      const source: string = readSource(...parts);
+      expect(source).toContain("getBoundMonitorNotCheckedQualifier(");
+
+      /*
+       * The words come from the shared qualifiers, never typed in place -
+       * comments aside, which name them to say what a line is for.
+       */
+      const code: string = readRawSource(...parts)
+        .replace(/\/\*[\s\S]*?\*\//g, "")
+        .replace(/^\s*\/\/.*$/gm, "");
+      expect(code).not.toContain("Monitoring off");
+      expect(code).not.toContain("Monitor archived");
+    },
+  );
+
+  /*
    * The regression in one assertion: the select the surfaces share has to
    * carry the monitor columns, not just the poll ones. Without these two a
    * correctly bound ping-only device reads "Pending" on every screen above.

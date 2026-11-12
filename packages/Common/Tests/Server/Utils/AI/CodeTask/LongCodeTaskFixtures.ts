@@ -31,6 +31,11 @@ import { FindOperator } from "typeorm";
  * count - not a stand-in for its answer. Every read is kept, in order, for
  * a test to say what was read.
  *
+ * One statement of SQL is answered too: how many of the task's replies
+ * come before one of them (CodeTaskThread.getRepliesBeforeStatement) - the
+ * place of a turn a link names. Its SQL runs on Postgres in
+ * CodeTaskLongThreadPostgres.test.ts; any other statement fails the test.
+ *
  * Turn n was asked n - 1 minutes after the first; AI started it 10 seconds
  * later and worked one minute on it; its reply changed src/turn-<n>.ts.
  */
@@ -81,8 +86,14 @@ export function askedAt(n: number): Date {
 
 export interface LongTaskRead {
   service: "AIRun" | "AIAgentTaskPullRequest";
-  method: "findBy" | "findOneBy" | "countBy" | "findOneById";
+  method: "findBy" | "findOneBy" | "countBy" | "findOneById" | "query";
   args: unknown;
+}
+
+// A statement of SQL a read ran, as the repository's manager was asked it.
+export interface LongTaskStatement {
+  sql: string;
+  parameters: Array<unknown>;
 }
 
 export interface LongCodeTask {
@@ -394,6 +405,62 @@ export function holdLongCodeTask(data: { turnCount: number }): LongCodeTask {
           : null;
       },
     );
+
+  /*
+   * How many of the task's replies come before one: asked earlier, or the
+   * same moment with the greater id - the order getTurns reads them in
+   * (newest first, a tie by id). Postgres orders uuids as their lower-case
+   * text does.
+   */
+  const countRepliesBefore: (parameters: Array<unknown>) => number = (
+    parameters: Array<unknown>,
+  ): number => {
+    const [projectId, runType, taskId, replyId] = parameters.map(
+      (value: unknown): string => {
+        return String(value).toLowerCase();
+      },
+    );
+    const reply: AIRun | undefined = runs.find((run: AIRun): boolean => {
+      return run.id!.toString().toLowerCase() === replyId;
+    });
+
+    if (!reply) {
+      return 0;
+    }
+
+    const asked: number = timeOf(reply.createdAt);
+    const replyKey: string = reply.id!.toString().toLowerCase();
+
+    return runs.filter((run: AIRun): boolean => {
+      const runKey: string = run.id!.toString().toLowerCase();
+      const runAsked: number = timeOf(run.createdAt);
+
+      return (
+        String(run.projectId).toLowerCase() === projectId &&
+        String(run.runType).toLowerCase() === runType &&
+        String(run.codeTaskId || "").toLowerCase() === taskId &&
+        (runAsked < asked || (runAsked === asked && runKey > replyKey))
+      );
+    }).length;
+  };
+
+  jest.spyOn(AIRunService, "getRepository").mockReturnValue({
+    manager: {
+      query: async (
+        sql: string,
+        parameters: Array<unknown>,
+      ): Promise<Array<Record<string, unknown>>> => {
+        const statement: LongTaskStatement = { sql, parameters };
+        reads.push({ service: "AIRun", method: "query", args: statement });
+
+        if (!sql.includes('AS "before"')) {
+          throw new Error(`A statement the fake does not answer: ${sql}`);
+        }
+
+        return [{ before: countRepliesBefore(parameters) }];
+      },
+    },
+  } as unknown as ReturnType<typeof AIRunService.getRepository>);
 
   jest
     .spyOn(AIAgentTaskPullRequestService, "findBy")
