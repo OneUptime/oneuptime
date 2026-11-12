@@ -829,6 +829,32 @@ export default class OneUptimeDate {
     );
   }
 
+  /*
+   * A moment's year on the reader's calendar (the configured timezone), as
+   * the reader's language writes a year alone: "2026"; "۲۰۲۶" in Persian;
+   * "2026年" in Japanese and Chinese; "2026년" in Korean. A yearly chart
+   * axis names its ticks with it, as its month ticks are named with
+   * getDateAsLocalMonthYearString ("2026年10月").
+   */
+  public static getDateAsLocalYearString(date: Date | string): string {
+    const instant: Date = this.fromString(date);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        return this.inCurrentTimezone(instant).year().toString();
+      },
+      (_language: string, locale: string): string | null => {
+        const format: Intl.DateTimeFormat | null = getDateTimeFormat({
+          locale,
+          timezones: this.getCurrentTimezoneNames(),
+          options: { year: "numeric" },
+        });
+
+        return format ? format.format(instant) : null;
+      },
+    );
+  }
+
   public static getMillisecondsBetweenTwoUnixNanoDates(
     startDate: number,
     endDate: number,

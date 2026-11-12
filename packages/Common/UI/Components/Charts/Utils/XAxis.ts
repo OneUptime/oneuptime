@@ -1165,11 +1165,14 @@ export default class XAxisUtil {
           );
         };
       case XAxisPrecision.EVERY_YEAR:
-        // "2026": the year on the configured calendar.
+        /*
+         * "2026": the year on the configured calendar, as the reader's
+         * language writes it ("۲۰۲۶" in Persian, "2026年" in Japanese), like
+         * the month and day ticks. Written with Latin digits on a Persian
+         * page, it stood apart from every other tick.
+         */
         return (value: Date) => {
-          return new Date(XAxisUtil.toClockReading(value.getTime()))
-            .getUTCFullYear()
-            .toString();
+          return OneUptimeDate.getDateAsLocalYearString(value);
         };
       default:
         throw new Error("Unsupported precision");

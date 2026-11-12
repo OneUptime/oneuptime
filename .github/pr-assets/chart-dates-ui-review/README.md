@@ -22,6 +22,12 @@ Before and after:
   windows under "Around this incident" in Traditional Chinese, Arabic and
   Russian. They broke wherever the line ran out ("上 / 午05:44", "ص" or
   "05:44" alone on a line); they break between their two ends now.
+- `years-fa-1280-before`, `years-fa-1280-after`: a chart of eight years,
+  one bar a year, in Persian. Its years were in Latin digits ("2019")
+  among Persian digits everywhere else; they are written as Persian
+  writes a year ("۲۰۱۹") now. `years-ja-1280-after` and
+  `years-ko-390-after`: the same in Japanese ("2019年") and in Korean on a
+  phone ("2019년"), as those languages name a month's ticks.
 
 As they are now:
 
