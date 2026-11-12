@@ -103,14 +103,19 @@ beforeEach(() => {
   ) as unknown as LooseSpy;
   getItemSpy = jest.spyOn(ModelAPI, "getItem") as unknown as LooseSpy;
   jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(PROJECT_ID);
-  jest.spyOn(PayAsYouGo, "isMonitorBatchConsentRequired").mockReturnValue(false);
+  jest
+    .spyOn(PayAsYouGo, "isMonitorBatchConsentRequired")
+    .mockReturnValue(false);
 
   getListSpy.mockImplementation((async (args: {
     modelType: { new (): unknown };
   }) => {
     if (args.modelType === MonitorStatus) {
       return list([
-        model(MonitorStatus, { _id: id(1).toString(), isOperationalState: true }),
+        model(MonitorStatus, {
+          _id: id(1).toString(),
+          isOperationalState: true,
+        }),
         model(MonitorStatus, { _id: id(2).toString(), isOfflineState: true }),
       ]);
     }
@@ -369,7 +374,11 @@ describe("the records it reads", () => {
   test("the services that have reported: this project's, latest first, five at most", async () => {
     getListSpy.mockResolvedValue(
       list([
-        model(Service, { _id: id(80).toString(), name: "api", lastSeenAt: new Date() }),
+        model(Service, {
+          _id: id(80).toString(),
+          name: "api",
+          lastSeenAt: new Date(),
+        }),
       ]) as never,
     );
 
@@ -377,10 +386,8 @@ describe("the records it reads", () => {
       { id: id(80).toString(), name: "api", hasReported: true },
     ]);
 
-    const args: Record<string, unknown> = getListSpy.mock.calls[0]![0] as Record<
-      string,
-      unknown
-    >;
+    const args: Record<string, unknown> = getListSpy.mock
+      .calls[0]![0] as Record<string, unknown>;
     expect(args["modelType"]).toBe(Service);
     expect(args["limit"]).toBe(5);
     expect(args["sort"]).toEqual({ lastSeenAt: "DESC" });
@@ -397,7 +404,9 @@ describe("the records it reads", () => {
     expect(getListSpy).not.toHaveBeenCalled();
 
     getListSpy.mockResolvedValue(
-      list([model(Monitor, { _id: id(101).toString(), name: "Error Burst" })]) as never,
+      list([
+        model(Monitor, { _id: id(101).toString(), name: "Error Burst" }),
+      ]) as never,
     );
     expect(
       await TelemetrySetupApi.loadMonitors([

@@ -270,7 +270,11 @@ describe("the words", () => {
 
       for (const word of words) {
         const value: string = table[word] || "";
-        expect({ language, word, isTranslated: Boolean(value) && value !== word }).toEqual({
+        expect({
+          language,
+          word,
+          isTranslated: Boolean(value) && value !== word,
+        }).toEqual({
           language,
           word,
           isTranslated: true,
@@ -284,7 +288,12 @@ describe("the words", () => {
             continue;
           }
 
-          expect({ language, word, placeholder, kept: value.includes(placeholder) }).toEqual({
+          expect({
+            language,
+            word,
+            placeholder,
+            kept: value.includes(placeholder),
+          }).toEqual({
             language,
             word,
             placeholder,

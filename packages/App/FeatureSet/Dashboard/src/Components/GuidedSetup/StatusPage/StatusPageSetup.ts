@@ -330,7 +330,10 @@ export const describeShownMonitors: (data: {
 
   if (more > 0) {
     return data.translator.translatePlural(
-      { one: "{{names}} and {{count}} more", other: "{{names}} and {{count}} more" },
+      {
+        one: "{{names}} and {{count}} more",
+        other: "{{names}} and {{count}} more",
+      },
       more,
       { names: list },
     );

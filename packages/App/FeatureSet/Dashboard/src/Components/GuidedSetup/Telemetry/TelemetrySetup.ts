@@ -116,7 +116,9 @@ export const TELEMETRY_SETUP_COPY: {
   cannotCreateMonitors: translationKey(
     "Creating monitors needs permission you do not have in this project. Ask a project admin to add them, or to give you the permission.",
   ),
-  nothingPicked: translationKey("Pick at least one monitor, or choose Not now."),
+  nothingPicked: translationKey(
+    "Pick at least one monitor, or choose Not now.",
+  ),
   notNow: translationKey("Not now"),
   continueButton: translationKey("Continue"),
   summaryTitle: translationKey("{{service}} is sending data"),

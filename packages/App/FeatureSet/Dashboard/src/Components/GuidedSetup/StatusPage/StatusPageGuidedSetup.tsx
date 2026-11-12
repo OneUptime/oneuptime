@@ -433,8 +433,7 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             to={routeOf(PageMap.STATUS_PAGE_VIEW_RESOURCES, statusPage.id)}
             className={linkClassName}
           >
-            {translator.translateText(STATUS_PAGE_SETUP_COPY.changeShown) ||
-              ""}
+            {translator.translateText(STATUS_PAGE_SETUP_COPY.changeShown) || ""}
           </AppLink>
         </div>
       </div>
@@ -553,7 +552,9 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
       className="list-disc space-y-1 ps-5 text-sm text-gray-700"
       data-testid="guided-setup-what-appears"
     >
-      <li>{translator.translateText(STATUS_PAGE_SETUP_COPY.incidentsAppear)}</li>
+      <li>
+        {translator.translateText(STATUS_PAGE_SETUP_COPY.incidentsAppear)}
+      </li>
       <li>{translator.translateText(STATUS_PAGE_SETUP_COPY.alertsNever)}</li>
       <li>{translator.translateText(STATUS_PAGE_SETUP_COPY.postedByYou)}</li>
     </ul>

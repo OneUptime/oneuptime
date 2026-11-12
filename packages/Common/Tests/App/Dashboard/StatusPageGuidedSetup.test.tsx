@@ -118,7 +118,12 @@ const RUN_KEY: string = getGuidedSetupRunKey({
 });
 
 const MONITORS: Array<Record<string, string>> = [
-  { id: "m-api", name: "API", statusName: "Operational", statusColor: "#10b981" },
+  {
+    id: "m-api",
+    name: "API",
+    statusName: "Operational",
+    statusColor: "#10b981",
+  },
   { id: "m-web", name: "Website", statusName: "Operational" },
   { id: "m-db", name: "Database" },
 ];
@@ -183,7 +188,9 @@ const sent: (name: ProductEventName) => Array<Record<string, unknown>> = (
 };
 
 const nameField: () => HTMLInputElement = (): HTMLInputElement => {
-  return screen.getByTestId("guided-setup-status-page-name") as HTMLInputElement;
+  return screen.getByTestId(
+    "guided-setup-status-page-name",
+  ) as HTMLInputElement;
 };
 
 beforeEach(() => {
@@ -459,9 +466,9 @@ describe("the summary", () => {
 
     const summary: HTMLElement = screen.getByTestId("guided-setup-summary");
     expect(summary).toHaveTextContent('"Acme Status" is live');
-    expect(
-      screen.getByTestId("guided-setup-summary-shows"),
-    ).toHaveTextContent("API, Database");
+    expect(screen.getByTestId("guided-setup-summary-shows")).toHaveTextContent(
+      "API, Database",
+    );
     expect(
       screen.getByTestId("guided-setup-summary-address"),
     ).toHaveTextContent(`/status-page/${PAGE_ID}`);
@@ -477,10 +484,14 @@ describe("the summary", () => {
       `/dashboard/${PROJECT_ID}/status-pages/${PAGE_ID}/domains`,
     );
     expect(
-      screen.getByTestId("guided-setup-extra-private").querySelector("a")
+      screen
+        .getByTestId("guided-setup-extra-private")
+        .querySelector("a")
         ?.getAttribute("href"),
     ).toContain(`/status-pages/${PAGE_ID}/`);
-    expect(screen.getByTestId("guided-setup-extra-branding")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("guided-setup-extra-branding"),
+    ).toBeInTheDocument();
     expect(
       screen.getByTestId("guided-setup-extra-subscribers"),
     ).toBeInTheDocument();

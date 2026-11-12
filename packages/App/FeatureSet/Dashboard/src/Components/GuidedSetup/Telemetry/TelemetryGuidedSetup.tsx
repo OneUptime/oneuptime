@@ -106,9 +106,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
   const [loadError, setLoadError] = useState<string>("");
   const [run, setRun] = useState<GuidedSetupRun>({});
   const [service, setService] = useState<TelemetrySetupService | null>(null);
-  const [reporting, setReporting] = useState<Array<TelemetrySetupService>>(
-    [],
-  );
+  const [reporting, setReporting] = useState<Array<TelemetrySetupService>>([]);
   const [monitors, setMonitors] = useState<Array<TelemetrySetupMonitor>>([]);
   const [whoMode, setWhoMode] = useState<WhoIsToldMode>(
     WhoIsToldMode.OwnerEmailOnly,
@@ -201,7 +199,8 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
           getTelemetrySetupProgress({
             hasReportingService: Boolean(loadedService?.hasReported),
             monitorCount: loadedMonitors.length,
-            isAlertSkipped: nextRun[TelemetrySetupRunValue.AlertSkipped] === true,
+            isAlertSkipped:
+              nextRun[TelemetrySetupRunValue.AlertSkipped] === true,
             isAlertConfirmed:
               nextRun[TelemetrySetupRunValue.AlertConfirmed] === true,
           }),
@@ -756,8 +755,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
               to={routeOf(PageMap.SERVICE_VIEW_METRICS, service.id)}
               className={linkClassName}
             >
-              {translator.translateText(TELEMETRY_SETUP_COPY.nextMetrics) ||
-                ""}
+              {translator.translateText(TELEMETRY_SETUP_COPY.nextMetrics) || ""}
             </AppLink>
           </li>
           <li>

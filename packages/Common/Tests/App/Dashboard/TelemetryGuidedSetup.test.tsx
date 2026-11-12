@@ -392,17 +392,17 @@ describe("2. Get alerted", () => {
   test("offers the three recommended monitors for the service, all ticked", async () => {
     await reachAlertStep();
 
-    expect(api["loadCoveredRecommendationIds"]!.mock.calls[0]![0]).toMatchObject(
-      { service: { id: "svc-new", name: "checkout" } },
-    );
+    expect(
+      api["loadCoveredRecommendationIds"]!.mock.calls[0]![0],
+    ).toMatchObject({ service: { id: "svc-new", name: "checkout" } });
     for (const recommendation of RECOMMENDATIONS) {
       expect(
         screen.getByTestId(`guided-setup-pick-${recommendation.templateId}`),
       ).toBeChecked();
     }
-    expect(screen.getByTestId("guided-setup-create-monitors")).toHaveTextContent(
-      "Create 3 monitors",
-    );
+    expect(
+      screen.getByTestId("guided-setup-create-monitors"),
+    ).toHaveTextContent("Create 3 monitors");
   });
 
   test("says these are alerts for the team, and who is told: the owners, with no on-call policy", async () => {
@@ -440,7 +440,9 @@ describe("2. Get alerted", () => {
     await reachAlertStep();
     await act(async () => {
       fireEvent.click(
-        screen.getByTestId(`guided-setup-pick-${RECOMMENDATIONS[1]!.templateId}`),
+        screen.getByTestId(
+          `guided-setup-pick-${RECOMMENDATIONS[1]!.templateId}`,
+        ),
       );
     });
     await press("guided-setup-create-monitors");
@@ -499,11 +501,13 @@ describe("2. Get alerted", () => {
       ),
     ).toHaveTextContent(TELEMETRY_SETUP_COPY.alreadyWatched);
     expect(
-      screen.queryByTestId(`guided-setup-pick-${RECOMMENDATIONS[0]!.templateId}`),
+      screen.queryByTestId(
+        `guided-setup-pick-${RECOMMENDATIONS[0]!.templateId}`,
+      ),
     ).not.toBeInTheDocument();
-    expect(screen.getByTestId("guided-setup-create-monitors")).toHaveTextContent(
-      "Create 2 monitors",
-    );
+    expect(
+      screen.getByTestId("guided-setup-create-monitors"),
+    ).toHaveTextContent("Create 2 monitors");
   });
 
   test("a service watched by all three already is confirmed with Continue", async () => {

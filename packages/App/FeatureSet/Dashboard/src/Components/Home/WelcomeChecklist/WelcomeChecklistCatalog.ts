@@ -406,8 +406,7 @@ export const getWelcomeStepPage: (entry: WelcomeStepEntry) => PageMap | null = (
   const maySetUp: boolean = setupModelType
     ? entry.createPage
       ? mayCreate
-      : PermissionGate.check(new setupModelType(), ModelAction.Create)
-          .isAllowed
+      : PermissionGate.check(new setupModelType(), ModelAction.Create).isAllowed
     : true;
 
   if (entry.guidedSetupPage && maySetUp) {

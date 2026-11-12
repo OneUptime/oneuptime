@@ -101,9 +101,10 @@ describe("the monitors picked", () => {
     expect(togglePickedMonitor({ picked: once, monitorId: "m-web" })).toEqual(
       [],
     );
-    expect(togglePickedMonitor({ picked: once, monitorId: "m-api" })).toEqual(
-      ["m-web", "m-api"],
-    );
+    expect(togglePickedMonitor({ picked: once, monitorId: "m-api" })).toEqual([
+      "m-web",
+      "m-api",
+    ]);
   });
 
   test("Select all picks every monitor listed", () => {
@@ -136,9 +137,7 @@ describe("which step is done", () => {
       { key: StatusPageSetupStep.Pick, isDone: false },
       { key: StatusPageSetupStep.Review, isDone: false },
     ]);
-    expect(getFirstOpenStepKey(getStatusPageSetupProgress(facts))).toBe(
-      "pick",
-    );
+    expect(getFirstOpenStepKey(getStatusPageSetupProgress(facts))).toBe("pick");
   });
 
   test("a page that shows nothing is not done: the setup never finishes with an empty page", () => {
@@ -151,9 +150,7 @@ describe("which step is done", () => {
     expect(isPickDone(facts)).toBe(false);
     expect(getStatusPageSetupProgress(facts)[1]!.isDone).toBe(false);
     expect(isStatusPageSetupFinished(facts)).toBe(false);
-    expect(getFirstOpenStepKey(getStatusPageSetupProgress(facts))).toBe(
-      "pick",
-    );
+    expect(getFirstOpenStepKey(getStatusPageSetupProgress(facts))).toBe("pick");
   });
 
   test("a page that shows a monitor opens the review next", () => {
@@ -229,7 +226,11 @@ describe("the summary's lines", () => {
       }),
     ).toBe("API and 2 more");
     expect(
-      describeShownMonitors({ translator: english, names: [], monitorCount: 4 }),
+      describeShownMonitors({
+        translator: english,
+        names: [],
+        monitorCount: 4,
+      }),
     ).toBe("4 monitors");
   });
 });
@@ -370,7 +371,12 @@ describe("the words", () => {
             continue;
           }
 
-          expect({ language, word, placeholder, kept: value!.includes(placeholder) }).toEqual({
+          expect({
+            language,
+            word,
+            placeholder,
+            kept: value!.includes(placeholder),
+          }).toEqual({
             language,
             word,
             placeholder,

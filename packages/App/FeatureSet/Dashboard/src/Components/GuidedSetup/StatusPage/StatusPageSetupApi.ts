@@ -30,8 +30,7 @@ export interface StatusPageSetupRecord {
 export const mayCreateStatusPage: () => boolean = (): boolean => {
   return (
     PermissionGate.check(new StatusPage(), ModelAction.Create).isAllowed &&
-    PermissionGate.check(new StatusPageResource(), ModelAction.Create)
-      .isAllowed
+    PermissionGate.check(new StatusPageResource(), ModelAction.Create).isAllowed
   );
 };
 
@@ -67,8 +66,7 @@ export default class StatusPageSetupApi {
         return Boolean(monitor._id);
       })
       .map((monitor: Monitor): StatusPageSetupMonitor => {
-        const status: MonitorStatus | undefined =
-          monitor.currentMonitorStatus;
+        const status: MonitorStatus | undefined = monitor.currentMonitorStatus;
 
         return {
           id: monitor._id!.toString(),
@@ -88,12 +86,11 @@ export default class StatusPageSetupApi {
     statusPage.name = name.trim();
     statusPage.projectId = getProjectId();
 
-    const response: HTTPResponse<StatusPage> = (await ModelAPI.create<StatusPage>(
-      {
+    const response: HTTPResponse<StatusPage> =
+      (await ModelAPI.create<StatusPage>({
         model: statusPage,
         modelType: StatusPage,
-      },
-    )) as HTTPResponse<StatusPage>;
+      })) as HTTPResponse<StatusPage>;
 
     const id: string | undefined = response.data?.id?.toString();
 
