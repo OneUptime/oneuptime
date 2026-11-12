@@ -863,9 +863,13 @@ describe("Inviting People", () => {
       expect(serverEmail).toContain(
         "invitedPill: INVITATION_LINK_COPY.invitedPill,",
       );
-      expect(invitationLink).toContain('invitedPill: translationKey("Invited"),');
+      expect(invitationLink).toContain(
+        'invitedPill: translationKey("Invited"),',
+      );
       // Only once the server is known not to send email: null while it is read.
-      expect(serverEmail).toContain("return serverEmail.canSendEmail === false;");
+      expect(serverEmail).toContain(
+        "return serverEmail.canSendEmail === false;",
+      );
       expect(NO_EMAIL_STEP).toContain(
         "On a self-hosted server that cannot send email yet, no email goes out, and they show as **Invited**.",
       );
@@ -1007,9 +1011,9 @@ describe("Inviting People", () => {
 
       expect(days).toBe(7);
       // The link a master admin is handed is minted as the email's is.
-      expect(
-        readCommonSource("Server/Utils/InvitationLink.ts"),
-      ).toContain("await UserRegistrationToken.generateRegistrationLink({");
+      expect(readCommonSource("Server/Utils/InvitationLink.ts")).toContain(
+        "await UserRegistrationToken.generateRegistrationLink({",
+      );
       // Spent the first time it is used.
       expect(collapsed(token)).toContain(
         "The delete is what makes it single-use",

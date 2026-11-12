@@ -810,7 +810,9 @@ describe("the English pages", () => {
     ]);
     expect(boldSpans(lines[NO_EMAIL_ANSWER_LINE] as string)).toEqual([]);
     expect(
-      numbersIn((lines[NO_EMAIL_ANSWER_LINE] as string).replace(LINK_TARGET, "]")),
+      numbersIn(
+        (lines[NO_EMAIL_ANSWER_LINE] as string).replace(LINK_TARGET, "]"),
+      ),
     ).toEqual(["7"]);
     // The step comes before the answer.
     expect(NO_EMAIL_STEP_LINE).toBeGreaterThan(0);
