@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50743,
-    "untranslated": 9734
+    "keys": 50746,
+    "untranslated": 9732
   },
   "sameAsEnglish": [
     "\"GET\"",
@@ -245,6 +245,7 @@
     "Trend",
     "Tunnel",
     "Type",
+    "Type: {{type}}",
     "UID",
     "USD",
     "UTC",

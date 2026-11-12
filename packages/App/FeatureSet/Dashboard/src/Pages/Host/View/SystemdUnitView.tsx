@@ -85,14 +85,12 @@ import {
   detectSystemdStateTransitions,
   systemdPlotRankLabel,
   systemdStatePlotRank,
-  unitTypeLabel,
+  unitTypeOf,
 } from "../Utils/SystemdUnits";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import {
-  TemplateValues,
-  translatableTerm,
-  Translator,
-} from "Common/UI/Utils/TranslateTemplate";
+import { TemplateValues, Translator } from "Common/UI/Utils/TranslateTemplate";
+import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
+import { EMPTY_VALUE_MARK } from "Common/UI/Components/Detail/EmptyValue";
 
 interface UnitIdentity {
   latestSampleAt: Date | null;
@@ -233,6 +231,8 @@ const HostSystemdUnitView: FunctionComponent<
   const unitName: string = decodeUnitNameFromUrl(
     Navigation.getLastParamAsString(),
   );
+  // The unit's kind as systemd writes it: "service", "timer" ("" for none).
+  const unitKind: string = unitTypeOf(unitName);
 
   const [host, setHost] = useState<Host | null>(null);
   const [identity, setIdentity] = useState<UnitIdentity | null>(null);
@@ -502,12 +502,15 @@ const HostSystemdUnitView: FunctionComponent<
       translator.translateTerm("host");
 
     const chips: Array<{ icon: IconProp; label: string }> = [];
-    chips.push({
-      icon: IconProp.Cog,
-      label: translator.translateTemplate("Type: {{type}}", {
-        type: translatableTerm(unitTypeLabel(unitName)),
-      }),
-    });
+    // The kind as systemd writes it (service, timer), never a looked-up word.
+    if (unitKind) {
+      chips.push({
+        icon: IconProp.Cog,
+        label: translator.translateTemplate("Type: {{type}}", {
+          type: unitKind,
+        }),
+      });
+    }
     if (identity?.latestSampleAt) {
       chips.push({
         icon: IconProp.Clock,
@@ -691,7 +694,13 @@ const HostSystemdUnitView: FunctionComponent<
           description={HOST_METRIC_DESCRIPTIONS.unitType}
           icon={IconProp.Cog}
           iconColor="violet"
-          value={translator.translateTerm(unitTypeLabel(unitName))}
+          value={
+            unitKind ? (
+              <SystemdUnitKind kind={unitKind} isFigure={true} />
+            ) : (
+              EMPTY_VALUE_MARK
+            )
+          }
           sublabel="systemd unit type"
         />
         <StatTile

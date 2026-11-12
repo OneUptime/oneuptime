@@ -20328,7 +20328,7 @@
   "{{readiness}} — CPU contention": "{{readiness}} – CPU-konkurrence",
   "{{ready}}/{{count}} nodes ready": "{{ready}}/{{count}} noder klar",
   "{{ready}}/{{count}} nodes ready_one": "{{ready}}/{{count}} node klar",
-  "{{ready}}/{{total}} ready": "{{ready}}/{{total}} ready",
+  "{{ready}}/{{total}} ready": "{{ready}}/{{total}} klar",
   "{{running}}/{{count}} guests running": "{{running}}/{{count}} gæster kører",
   "{{running}}/{{count}} guests running_one": "{{running}}/{{count}} gæst kører",
   "{{running}}/{{count}} tasks running": "{{running}}/{{count}} opgaver kører",
@@ -21797,7 +21797,6 @@
   "Columns: {{columns}}. siteType must be one of this project's configured site types ({{siteTypes}}). parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "Columns: {{columns}}. siteType must be one of this project's configured site types ({{siteTypes}}). parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.",
   "Columns: {{columns}}. siteType must be one of this project's configured site types. parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "Columns: {{columns}}. siteType must be one of this project's configured site types. parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.",
   "Come back here and click Refresh Chats — then pick the chat in any notification rule.": "Come back here and click Refresh Chats — then pick the chat in any notification rule.",
-  "Complete when the number of ready pods matches the desired count and none are unavailable; In Progress otherwise, such as during a rollout or scale-up or while pods fail health checks. The bar shows ready pods out of desired.": "Fuldført, når antallet af klare pods svarer til det ønskede antal, og ingen er utilgængelige; ellers I gang, fx under en udrulning eller opskalering, eller mens pods fejler sundhedstjek. Bjælken viser klare pods ud af de ønskede.",
   "Completed Go garbage-collection cycles in each interval. Worked out from the highest running counter when several instances report, so it is approximate; as a tile it shows the total for the selected range.": "Fuldførte garbage collection-cyklusser i Go i hvert interval. Udregnet ud fra den højeste løbende tæller, når flere instanser rapporterer, så tallet er omtrentligt; i feltet vises det samlede antal for det valgte tidsrum.",
   "Condition: {{condition}}": "Betingelse: {{condition}}",
   "Conditions: {{conditions}}": "Betingelser: {{conditions}}",
@@ -22585,7 +22584,6 @@
   "The highest share of the probe's regular pings that went unanswered in any one minute of the past hour. 0% means every ping in the hour got a reply.": "Den højeste andel af sondens regelmæssige pings, der ikke blev besvaret, i ét enkelt minut inden for den seneste time. 0 % betyder, at hvert ping i timen fik svar.",
   "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.": "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.",
   "The key the {{collectorName}} already uses.": "Den nøgle, {{collectorName}} allerede bruger.",
-  "The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on.": "Typen af systemd-enhed, aflæst ud fra slutningen af dens navn: Service (et baggrundsprogram), Socket, Timer, Mount, Target osv.",
   "The language this service runs on, from the telemetry.sdk.language attribute your OpenTelemetry SDK sends, else the runtime name or the tech stack you set. Shown here because no runtime metrics (CPU, memory, heap) arrived in the selected range.": "Det sprog, denne tjeneste kører på, ud fra attributten telemetry.sdk.language, som dit OpenTelemetry SDK sender, ellers runtime-navnet eller den teknologistak, du har angivet. Vises her, fordi der ikke kom nogen runtime-metrikker (CPU, hukommelse, heap) i det valgte tidsrum.",
   "The last poll could not reach this device — neither ping nor SNMP answered.": "The last poll could not reach this device — neither ping nor SNMP answered.",
   "The last poll reached this device (ping or SNMP).": "The last poll reached this device (ping or SNMP).",
@@ -22771,7 +22769,6 @@
   "We could not read who is in {{group}}, so nobody on that team has been checked.": "Vi kunne ikke læse, hvem der er i {{group}}, så ingen i det team er blevet kontrolleret.",
   "We couldn't load profile attributes. {{error}}": "Vi kunne ikke indlæse profilattributter. {{error}}",
   "We couldn't load telemetry services. {{error}}": "Vi kunne ikke indlæse telemetritjenester. {{error}}",
-  "What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job.": "Hvilken slags enhed det er, aflæst ud fra slutningen af dens navn, fx Service for et baggrundsprogram eller Timer for et planlagt job.",
   "What the broker reports about this queue: backlog, consumer lag, dead letters and message age.": "Hvad brokeren rapporterer om denne kø: backlog, forbrugerforsinkelse, dead letters og beskedalder.",
   "What this autoscaler watches and the level it aims for. For example, cpu (Utilization: 70) keeps average CPU near 70% of the pods' CPU requests; custom, external and per-container targets show only their type name.": "Hvad denne autoscaler overvåger, og det niveau, den sigter efter. For eksempel holder cpu (Utilization: 70) den gennemsnitlige CPU nær 70 % af pods' CPU-requests; brugerdefinerede, eksterne og containerspecifikke mål viser kun deres typenavn.",
   "What this cluster spent in the selected range on node capacity that no workload requested or used.": "Hvad denne klynge brugte i det valgte tidsrum på nodekapacitet, som ingen arbejdsbelastning anmodede om eller brugte.",
@@ -50784,5 +50781,8 @@
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Din rolle mangler tilladelsen \"{{permission}}\". Bed en projektadministrator om den.",
   "{{tab}} (closed)": "{{tab}} (lukket)",
   "{{tab}} (still open)": "{{tab}} (stadig åben)",
-  "Closed tabs": "Lukkede faner"
+  "Closed tabs": "Lukkede faner",
+  "Available when every pod it is set to run is available; Progressing while only some are, as during a rollout or scale-up; Unavailable when none are; Scaled to zero when it is set to run none; Paused while its rollouts are paused. Beside it, how many of those pods are ready.": "Tilgængelig, når alle de pods, den skal køre, er tilgængelige; I gang, mens kun nogle er det, fx under en udrulning eller opskalering; Ikke tilgængelig, når ingen er det; Skaleret til nul, når den er sat til at køre ingen; Sat på pause, mens dens udrulninger er sat på pause. Ved siden af står, hvor mange af disse pods der er klar.",
+  "The kind of systemd unit, as systemd writes it at the end of the unit's name: service (a background program), socket, timer, mount, target and so on.": "Typen af systemd-enhed, som systemd skriver den i slutningen af enhedens navn: service (et baggrundsprogram), socket, timer, mount, target osv.",
+  "What kind of unit this is, as systemd writes it at the end of the unit's name: for example service for a background program or timer for a scheduled job.": "Hvilken slags enhed det er, som systemd skriver den i slutningen af enhedens navn: fx service for et baggrundsprogram eller timer for et planlagt job."
 }

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50743,
-    "untranslated": 9753
+    "keys": 50746,
+    "untranslated": 9751
   },
   "sameAsEnglish": [
     " is",
@@ -457,6 +457,7 @@
     "Triggers",
     "Tunnel",
     "Type",
+    "Type: {{type}}",
     "UID",
     "USD",
     "UTC",

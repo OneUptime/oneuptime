@@ -21797,7 +21797,6 @@
   "Columns: {{columns}}. siteType must be one of this project's configured site types ({{siteTypes}}). parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "列: {{columns}}。siteType は、このプロジェクトで設定されたサイトタイプ（{{siteTypes}}）のいずれかである必要があります。parentName はどのタイプでも任意です。最上位のサイトの場合は空のままにするか、サイトタイプの階層でこのサイトより下にないサイトを指定してください。parentName が空または既存の行が先にインポートされ、次にその子がインポートされます — 親と子は同じファイルに含めることができます。親を解決できない行はスキップされ、報告されます。",
   "Columns: {{columns}}. siteType must be one of this project's configured site types. parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "列: {{columns}}。siteType は、このプロジェクトで設定されたサイトタイプのいずれかである必要があります。parentName はどのタイプでも任意です。最上位のサイトの場合は空のままにするか、サイトタイプの階層でこのサイトより下にないサイトを指定してください。parentName が空または既存の行が先にインポートされ、次にその子がインポートされます — 親と子は同じファイルに含めることができます。親を解決できない行はスキップされ、報告されます。",
   "Come back here and click Refresh Chats — then pick the chat in any notification rule.": "ここに戻って「チャットを更新」をクリックしてください — その後、任意の通知ルールでチャットを選択できます。",
-  "Complete when the number of ready pods matches the desired count and none are unavailable; In Progress otherwise, such as during a rollout or scale-up or while pods fail health checks. The bar shows ready pods out of desired.": "準備完了の Pod 数が希望数と一致し、利用不可の Pod がない場合は「完了」、それ以外（ロールアウト中、スケールアップ中、Pod がヘルスチェックに失敗している間など）は「進行中」です。バーは希望数に対する準備完了の Pod 数を示します。",
   "Completed Go garbage-collection cycles in each interval. Worked out from the highest running counter when several instances report, so it is approximate; as a tile it shows the total for the selected range.": "各区間で完了した Go のガベージコレクションのサイクル数です。複数のインスタンスが報告する場合は最も大きい累積カウンターから算出するため、概算です。タイルでは選択した範囲の合計を表示します。",
   "Condition: {{condition}}": "条件: {{condition}}",
   "Conditions: {{conditions}}": "条件: {{conditions}}",
@@ -22585,7 +22584,6 @@
   "The highest share of the probe's regular pings that went unanswered in any one minute of the past hour. 0% means every ping in the hour got a reply.": "過去 1 時間のいずれかの 1 分間で、プローブの定期的な ping が応答されなかった割合の最大値です。0% は、その 1 時間のすべての ping に応答があったことを意味します。",
   "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.": "インストールコマンドにはこのモニターのシークレットキーが含まれているため、モニターを編集できる人だけが閲覧できます。そのいずれかの人にセットアップを依頼してください。",
   "The key the {{collectorName}} already uses.": "{{collectorName}} がすでに使用しているキー。",
-  "The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on.": "名前の末尾から読み取った systemd ユニットの種類です: Service（バックグラウンドプログラム）、Socket、Timer、Mount、Target など。",
   "The language this service runs on, from the telemetry.sdk.language attribute your OpenTelemetry SDK sends, else the runtime name or the tech stack you set. Shown here because no runtime metrics (CPU, memory, heap) arrived in the selected range.": "このサービスが動作する言語で、OpenTelemetry SDK が送信する telemetry.sdk.language 属性、なければランタイム名または設定した技術スタックから取得します。選択した範囲にランタイムメトリクス（CPU、メモリ、ヒープ）が届かなかったため、ここに表示しています。",
   "The last poll could not reach this device — neither ping nor SNMP answered.": "直近のポーリングはこのデバイスに到達できませんでした — ping と SNMP のどちらにも応答がありませんでした。",
   "The last poll reached this device (ping or SNMP).": "直近のポーリングはこのデバイスに到達しました（ping または SNMP）。",
@@ -22771,7 +22769,6 @@
   "We could not read who is in {{group}}, so nobody on that team has been checked.": "{{group}} のメンバーを読み取れなかったため、そのチームのメンバーは誰も確認されていません。",
   "We couldn't load profile attributes. {{error}}": "プロファイルの属性を読み込めませんでした。{{error}}",
   "We couldn't load telemetry services. {{error}}": "テレメトリサービスを読み込めませんでした。{{error}}",
-  "What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job.": "名前の末尾から取得したユニットの種類です（例: バックグラウンドプログラムの Service、スケジュールされたジョブの Timer）。",
   "What the broker reports about this queue: backlog, consumer lag, dead letters and message age.": "ブローカーがこのキューについて報告する内容: バックログ、コンシューマーラグ、デッドレター、メッセージの経過時間。",
   "What this autoscaler watches and the level it aims for. For example, cpu (Utilization: 70) keeps average CPU near 70% of the pods' CPU requests; custom, external and per-container targets show only their type name.": "このオートスケーラーが監視する対象と、目標とするレベルです。例えば cpu（Utilization: 70）は、平均 CPU を Pod の CPU リクエストの 70% 付近に保ちます。custom、external、コンテナごとのターゲットは、種類の名前のみを表示します。",
   "What this cluster spent in the selected range on node capacity that no workload requested or used.": "選択した範囲で、このクラスターがどのワークロードも要求・使用しなかったノード容量に費やした金額です。",
@@ -50784,5 +50781,8 @@
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "あなたのロールには「{{permission}}」権限がありません。プロジェクト管理者に依頼してください。",
   "{{tab}} (closed)": "{{tab}}（閉じた）",
   "{{tab}} (still open)": "{{tab}}（開いたまま）",
-  "Closed tabs": "閉じたタブ"
+  "Closed tabs": "閉じたタブ",
+  "Available when every pod it is set to run is available; Progressing while only some are, as during a rollout or scale-up; Unavailable when none are; Scaled to zero when it is set to run none; Paused while its rollouts are paused. Beside it, how many of those pods are ready.": "実行すべき Pod がすべて利用可能なときは「利用可能」、一部だけのとき（ロールアウトやスケールアップの途中など）は「進行中」、ひとつもないときは「利用不可」、何も実行しないよう設定されているときは「ゼロにスケール済み」、ロールアウトが一時停止されている間は「一時停止中」です。その横には、それらの Pod のうち準備完了の数を示します。",
+  "The kind of systemd unit, as systemd writes it at the end of the unit's name: service (a background program), socket, timer, mount, target and so on.": "systemd ユニットの種類です。systemd がユニット名の末尾に書くとおりに表示します: service（バックグラウンドプログラム）、socket、timer、mount、target など。",
+  "What kind of unit this is, as systemd writes it at the end of the unit's name: for example service for a background program or timer for a scheduled job.": "このユニットの種類です。systemd がユニット名の末尾に書くとおりに表示します（例: バックグラウンドプログラムは service、スケジュールされたジョブは timer）。"
 }
