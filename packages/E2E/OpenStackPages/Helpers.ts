@@ -199,7 +199,7 @@ export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
     while (node) {
       const text: Text = node as Text;
       const pattern: RegExp =
-        /([0-9\u06F0-\u06F9][0-9.,\u06F0-\u06F9\u066B\u066C]*) (B|KiB|MiB|GiB|TiB)\b/g;
+        /(?<![0-9.,\u06F0-\u06F9\u066B\u066C])([0-9\u06F0-\u06F9][0-9.,\u06F0-\u06F9\u066B\u066C]*) (B|KiB|MiB|GiB|TiB)\b/g;
       let match: RegExpExecArray | null = pattern.exec(text.data);
 
       while (match) {
