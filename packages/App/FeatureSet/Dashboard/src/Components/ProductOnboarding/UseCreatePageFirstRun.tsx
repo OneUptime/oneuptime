@@ -9,7 +9,7 @@ import useFirstRecordWatch, {
   FirstRecordWatch,
 } from "../Infrastructure/UseFirstRecordWatch";
 import { ShowcaseAddButton } from "../ResourceShowcase/ResourceShowcaseCard";
-import { ProductKey } from "./ProductOnboarding";
+import { OnboardedProductKey } from "./ProductOnboarding";
 import ProductShowcase, { getProductStartButton } from "./ProductShowcase";
 import { getProductFirstRunEmptyState } from "./UseProductFirstRun";
 
@@ -37,7 +37,7 @@ export default function useCreatePageFirstRun<
   TBaseModel extends BaseModel,
 >(data: {
   modelType: { new (): TBaseModel };
-  product: ProductKey;
+  product: OnboardedProductKey;
   // English, as the table's own button says it: "Create Monitor".
   startTitle: string;
   createPage: PageMap;

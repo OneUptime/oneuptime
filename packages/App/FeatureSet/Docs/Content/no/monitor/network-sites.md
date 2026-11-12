@@ -141,6 +141,7 @@ Begge policyene er enige her, og det betyr mer enn det høres ut som:
 - Enheter som aldri har rapportert noe, stemmer aldri. En enhet som venter på første polling, er ikke bevis på et avbrudd, så den holdes utenfor begge sider av andelen, og en region som er halvveis gjennom innføringen, vurderes etter halvparten som har svart.
 - En sondepollet enhet, den vanlige typen, stemmer med utfallet av siste polling: tilgjengelig via ping eller SNMP, ikke hvor lenge siden den sist lyktes. En enhet som svarer på ping mens SNMP-walket feiler, er tilgjengelig og stemmer slik; lokasjonen sier at den er oppe, og enhetens rad sier **SNMP failing** slik at noen retter påloggingsinformasjonen.
 - En enhet med bundet monitor, en som er byttet til overstyringen med bundet monitor på siden Innstillinger, stemmer med statusen til monitoren som er bundet til den, fordi ingenting poller den. Uten noe bundet har den aldri rapportert, så den stemmer ikke i det hele tatt.
+- En enhet med bundet monitor der monitoren ikke kontrolleres, fordi overvåkingen er slått av eller den er arkivert, stemmer heller ikke: statusen monitoren har, er bare det den siste kontrollen så. Enheten står som **Venter**, med **Overvåking slått av** eller **Overvåking arkivert** ved siden av, til overvåkingen av monitoren slås på igjen eller den fjernes fra arkivet.
 
 En nettverksenhetsmonitor på en sondepollet enhet endrer ikke hvordan enheten stemmer. En monitor med et kriterium "grensesnitt nede, altså Offline" ville stemplet Offline på en svitsj som svarer på hvert ping, og én mørk port ville gjort en hel lokasjon rød mens hver enhetsrad under den viser Up: lokasjonen ville vært uenig med listen den oppsummerer. For en pollet enhet er pollingen kilden til helsen; monitoren er der for å opprette hendelser.
 
@@ -214,6 +215,8 @@ Kortet **Alerting** på en lokasjons side **Innstillinger** har **Alert When Unh
 
 Den varsler bare om endringen: å slå den på for en lokasjon som allerede er usunn, gjør klar for neste endring i stedet for å varsle om fortiden. Degraded er ikke i drift, så en lokasjon med prosentpolicyen varsler så snart én av de rapporterende enhetene er nede, slik en lokasjon med policyen for verste status gjør; varselet forblir åpent, uten et nytt, mens lokasjonen veksler mellom Degraded og Offline, og tittelen navngir statusen lokasjonen nådde først.
 
+Når ingenting på en lokasjon rapporterer en status lenger, fordi monitorene bak enhetene har overvåkingen slått av, er arkivert eller er slettet, går lokasjonen tilbake til ingen status i stedet for å beholde den siste, og det åpne varselet løses med den grunnen som årsak. En enhet som rapporterer et problem igjen, åpner et nytt varsel.
+
 ## Feilsøking
 
 :::details En region er alltid rød
@@ -225,7 +228,11 @@ Det har aldri kjørt en oppsummering for lokasjonen, så den har ingen tidslinje
 :::
 
 :::details En enhet teller ikke for lokasjonen sin
-Arkiverte enheter, og enheter som ikke har rapportert ennå, stemmer aldri. En enhet med bundet monitor uten noen monitor bundet har heller aldri rapportert. Sjekk enhetens status: en enhet som står som **Venter**, begynner å stemme etter første polling.
+Arkiverte enheter, og enheter som ikke har rapportert ennå, stemmer aldri. En enhet med bundet monitor uten noen monitor bundet har heller aldri rapportert. Sjekk enhetens status: en enhet som står som **Venter**, begynner å stemme etter første polling. En enhet med **Overvåking slått av** eller **Overvåking arkivert** ved siden av stemmer igjen så snart overvåkingen av monitoren slås på igjen eller monitoren fjernes fra arkivet.
+:::
+
+:::details En lokasjon har ikke lenger noen status
+Ingenting på lokasjonen rapporterer en status: monitorene bak enhetene har overvåkingen slått av, er arkivert eller er slettet, så lokasjonens siste status er fjernet og varselet løst. Slå på overvåkingen igjen for disse monitorene, eller fjern dem fra arkivet, så beregnes lokasjonens status igjen fra enhetene.
 :::
 
 :::details En lokasjons varsel ble ikke utløst

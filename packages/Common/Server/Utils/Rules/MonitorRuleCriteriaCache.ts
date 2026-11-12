@@ -13,6 +13,22 @@ export default class MonitorRuleCriteriaCache {
     Promise<Monitor | null>
   >();
 
+  /*
+   * Hands the cache a monitor read already, with the columns getMonitor
+   * reads (name, description, labels): a reader that matches the rules
+   * against many monitors it has read (WhoIsToldService.resolveProject)
+   * then reads none of them again.
+   */
+  public seed(monitor: Monitor): void {
+    const key: string | undefined = monitor.id?.toString();
+
+    if (!key) {
+      return;
+    }
+
+    this.monitorsById.set(key, Promise.resolve(monitor));
+  }
+
   public getMonitor(id: ObjectID): Promise<Monitor | null> {
     const key: string = id.toString();
     const cachedMonitor: Promise<Monitor | null> | undefined =

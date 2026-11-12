@@ -1,6 +1,8 @@
 import DeviceStatusUtil, {
   BOUND_MONITOR_PENDING_TOOLTIP,
+  DEVICE_BOUND_MONITOR_SELECT,
   DEVICE_STATUS_SELECT,
+  MONITOR_ARCHIVED_QUALIFIER,
   DeviceReachabilityResult,
   NEVER_POLLED_PENDING_TOOLTIP,
   NO_MONITOR_QUALIFIER,
@@ -11,6 +13,7 @@ import DeviceStatusUtil, {
   PROBE_POLLED_UP_TOOLTIP,
   SNMP_FAILING_QUALIFIER,
   UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+  getBoundMonitorNotCheckedQualifier,
   getStaleTooltip,
   hasNoSnmpInventory,
   isSnmpFailing,
@@ -21,11 +24,22 @@ import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import AppLink from "../AppLink/AppLink";
 import { NETWORK_DEVICE_METRIC_DESCRIPTIONS } from "../MetricDescriptions/NetworkDeviceMetricDescriptions";
+import MonitoringSwitchCopy, {
+  TURN_MONITORING_ON_BUTTON_TEST_ID,
+  TURN_MONITORING_ON_ERROR_TEST_ID,
+} from "../Monitor/MonitoringSwitchCopy";
+import useTurnMonitoringOn, {
+  TurnMonitoringOn,
+} from "../Monitor/useTurnMonitoringOn";
 import Route from "Common/Types/API/Route";
 import { Gray500, Green, Red500, Yellow500 } from "Common/Types/BrandColors";
 import ObjectID from "Common/Types/ObjectID";
 import OneUptimeDate from "Common/Types/Date";
 import NetworkDevice from "Common/Models/DatabaseModels/NetworkDevice";
+import Button, {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Pill, { PillSize } from "Common/UI/Components/Pill/Pill";
 import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import API from "Common/UI/Utils/API/API";
@@ -77,6 +91,117 @@ export const DeviceHeroTileTitle: FunctionComponent<
   );
 };
 
+export interface DeviceMonitorNotCheckedProps {
+  monitorId: ObjectID;
+  // Archived wins over turned off (getBoundMonitorNotCheckedQualifier).
+  isArchived: boolean;
+  // The monitor's own pages, where it is unarchived.
+  monitorRoute: Route;
+  // Reads the device again once its monitor's monitoring is back on.
+  readDeviceAgain: () => Promise<void>;
+}
+
+/*
+ * The Monitor Status tile of a device whose bound monitor nothing checks
+ * (issue #6965). Turned off, it says so in the words the monitor's own
+ * pages use and carries their "Turn monitoring on" (useTurnMonitoringOn,
+ * gated on the Monitoring switch's column): a one-press fix needs no trip to
+ * another page. Archived, it says so and opens the monitor, whose banner
+ * unarchives it - archiving is a bigger decision than a switch.
+ *
+ * The save stamps the device with its monitor's status before it answers
+ * (MonitorService.onUpdateSuccess), so the device is read again right after
+ * it, and the press stays busy until that read is in: the tile moves from
+ * "turned off" to the monitor's status, with no moment of a live button
+ * beside words that are no longer true.
+ */
+export const DeviceMonitorNotChecked: FunctionComponent<
+  DeviceMonitorNotCheckedProps
+> = (props: DeviceMonitorNotCheckedProps): ReactElement => {
+  const translator: Translator = useTranslator();
+  const [isReadingAgain, setIsReadingAgain] = useState<boolean>(false);
+
+  const turnMonitoringOn: TurnMonitoringOn = useTurnMonitoringOn({
+    monitorId: props.monitorId,
+    onTurnedOn: (): void => {
+      setIsReadingAgain(true);
+      props
+        .readDeviceAgain()
+        .catch(() => {
+          // The read keeps the hero as it was when it fails.
+        })
+        .finally(() => {
+          setIsReadingAgain(false);
+        });
+    },
+  });
+
+  /*
+   * Left out only while the permission snapshot has not arrived, as on the
+   * monitor's own pages: someone who may not turn monitoring on sees it
+   * locked, with why.
+   */
+  const showsTurnOn: boolean =
+    !props.isArchived &&
+    (turnMonitoringOn.gate.isAllowed ||
+      Boolean(turnMonitoringOn.gate.disabledReason));
+  const isBusy: boolean = turnMonitoringOn.isSaving || isReadingAgain;
+
+  return (
+    <div data-testid="device-hero-monitor-not-checked">
+      <div className="text-sm text-gray-500">
+        {translator.translateText(
+          props.isArchived
+            ? "Its monitor is archived"
+            : MonitoringSwitchCopy.bannerTitle,
+        )}
+      </div>
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 text-xs">
+        {showsTurnOn && (
+          /*
+           * A link's look and hover, as the tile's other ways out. Its
+           * spinner is drawn at the line's height and inside the tile's
+           * edge, so a press neither pushes the link below it down nor
+           * sticks out past the words above it. Its words start where the
+           * tile's do: a button centres them, and a narrow tile wraps a
+           * long one (German's Überwachung einschalten at 390px).
+           */
+          <Button
+            title={MonitoringSwitchCopy.turnOnButton}
+            buttonStyle={ButtonStyleType.LINK}
+            buttonSize={ButtonSize.ExtraSmall}
+            className={`text-start text-xs font-medium [&_svg]:me-1.5 [&_svg]:ms-0 [&_svg]:h-4 [&_svg]:w-4${
+              isBusy ? "" : " hover:underline"
+            }`}
+            dataTestId={TURN_MONITORING_ON_BUTTON_TEST_ID}
+            isLoading={isBusy}
+            disabled={!turnMonitoringOn.gate.isAllowed}
+            tooltip={turnMonitoringOn.gate.disabledReason}
+            onClick={turnMonitoringOn.turnOn}
+          />
+        )}
+        <AppLink
+          to={props.monitorRoute}
+          className="font-medium text-indigo-600 hover:underline"
+        >
+          {translator.translateText("Open monitor") || ""}
+        </AppLink>
+      </div>
+      {turnMonitoringOn.error ? (
+        <p
+          role="alert"
+          data-testid={TURN_MONITORING_ON_ERROR_TEST_ID}
+          className="mt-1 text-xs text-red-700"
+        >
+          {turnMonitoringOn.error}
+        </p>
+      ) : (
+        <></>
+      )}
+    </div>
+  );
+};
+
 /*
  * Status hero for the device Overview: answers "is this device OK right
  * now?" in one glance — reachability (from the probe's poll: a ping, plus
@@ -109,6 +234,8 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
           ...DEVICE_STATUS_SELECT,
           // For the "No monitor" qualifier and the Monitor Status tile's links.
           monitorId: true,
+          // For the "Monitoring off" and "Monitor archived" qualifiers.
+          ...DEVICE_BOUND_MONITOR_SELECT,
           lastRebootedAt: true,
           hostname: true,
           vendor: true,
@@ -205,6 +332,21 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
   const isUnbound: boolean =
     isMonitorBacked && isUnboundMonitorBackedDevice(device);
   /*
+   * Bound to a monitor that is not checked - its monitoring is off, or it
+   * is archived - so the device has no verdict from it (issue #6965). Only
+   * beside a Pending: the qualifier says why it will not change on its own.
+   */
+  const notCheckedQualifier: {
+    text: string;
+    tooltip: string;
+    pendingTooltip: string;
+  } | null =
+    reachability === NetworkDeviceStatus.Pending
+      ? getBoundMonitorNotCheckedQualifier(device)
+      : null;
+  const isBoundMonitorArchived: boolean =
+    notCheckedQualifier === MONITOR_ARCHIVED_QUALIFIER;
+  /*
    * The probe-polled counterparts. "No probe" is the Pending that never
    * resolves by itself on THIS kind of device; "SNMP failing" qualifies an
    * Up — the device answers ping, the walk does not, and the interfaces and
@@ -252,9 +394,11 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
         tooltip={
           isUnbound
             ? UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP
-            : isMonitorBacked
-              ? BOUND_MONITOR_PENDING_TOOLTIP
-              : NEVER_POLLED_PENDING_TOOLTIP
+            : notCheckedQualifier
+              ? notCheckedQualifier.pendingTooltip
+              : isMonitorBacked
+                ? BOUND_MONITOR_PENDING_TOOLTIP
+                : NEVER_POLLED_PENDING_TOOLTIP
         }
       />
     );
@@ -321,6 +465,12 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
   const alertPoliciesRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.NETWORK_DEVICE_SETTINGS_ALERT_POLICIES] as Route,
   );
+  // The bound monitor, where its monitoring is turned on again or it is unarchived.
+  const boundMonitorRoute: Route | null = device.monitorId
+    ? RouteUtil.populateRouteParams(RouteMap[PageMap.MONITOR_VIEW] as Route, {
+        modelId: new ObjectID(device.monitorId.toString()),
+      })
+    : null;
 
   const siteRoute: Route | null = device.site?._id
     ? RouteUtil.populateRouteParams(
@@ -413,6 +563,14 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                 tooltip={NO_MONITOR_QUALIFIER.tooltip}
               />
             )}
+            {notCheckedQualifier && (
+              <Pill
+                text={notCheckedQualifier.text}
+                color={Gray500}
+                size={PillSize.Normal}
+                tooltip={notCheckedQualifier.tooltip}
+              />
+            )}
             {isUnpolled && (
               <Pill
                 text={NO_PROBE_QUALIFIER.text}
@@ -441,21 +599,32 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
             )}
           </div>
           <div className="mt-1.5 text-xs text-gray-500">
+            {/*
+             * Not checked: the qualifier beside the verdict names why, and
+             * the Monitor Status tile says it in full, so this line says
+             * what it means for the verdict - it stays as it is until then.
+             */}
             {isUnbound
               ? translator.translateText("Nothing is bound to report on it yet")
-              : isMonitorBacked
+              : notCheckedQualifier
                 ? translator.translateText(
-                    "Reported by the monitor bound to this device",
+                    isBoundMonitorArchived
+                      ? "Not checked until its monitor is unarchived"
+                      : "Not checked until monitoring is back on",
                   )
-                : lastSeenAt
-                  ? translator.translateTemplate("Last seen {{time}}", {
-                      time: OneUptimeDate.fromNow(lastSeenAt),
-                    })
-                  : translator.translateText(
-                      isUnpolled
-                        ? "Nothing polls this device yet"
-                        : "Never answered a poll",
-                    )}
+                : isMonitorBacked
+                  ? translator.translateText(
+                      "Reported by the monitor bound to this device",
+                    )
+                  : lastSeenAt
+                    ? translator.translateTemplate("Last seen {{time}}", {
+                        time: OneUptimeDate.fromNow(lastSeenAt),
+                      })
+                    : translator.translateText(
+                        isUnpolled
+                          ? "Nothing polls this device yet"
+                          : "Never answered a poll",
+                      )}
           </div>
           {!isMonitorBacked && isPollNewerThanContact && lastPolledAt && (
             <div className="mt-0.5 text-xs text-gray-400">
@@ -509,6 +678,21 @@ const DeviceStatusHero: FunctionComponent<ComponentProps> = (
                   </AppLink>
                 </div>
               </div>
+            ) : notCheckedQualifier && boundMonitorRoute && device.monitorId ? (
+              /*
+               * A monitor is bound and nothing checks it - its monitoring
+               * is off, or it is archived - so there is no report to wait
+               * for: it reports again once it is checked, which is done
+               * right here, or on the monitor.
+               */
+              <DeviceMonitorNotChecked
+                monitorId={new ObjectID(device.monitorId.toString())}
+                isArchived={isBoundMonitorArchived}
+                monitorRoute={boundMonitorRoute}
+                readDeviceAgain={(): Promise<void> => {
+                  return fetchDevice({ keepsShownOnError: true });
+                }}
+              />
             ) : isMonitorBacked ? (
               /*
                * A monitor is bound and has not reported yet: it is the

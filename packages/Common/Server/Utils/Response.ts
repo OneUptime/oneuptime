@@ -20,6 +20,7 @@ import URL from "../../Types/API/URL";
 import { DEFAULT_LIMIT } from "../../Types/Database/LimitMax";
 import Dictionary from "../../Types/Dictionary";
 import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
+import BadDataExceptionWithDetails from "../../Types/Exception/BadDataExceptionWithDetails";
 import Exception from "../../Types/Exception/Exception";
 import { JSONArray, JSONObject } from "../../Types/JSON";
 import ListData from "../../Types/ListData";
@@ -355,7 +356,13 @@ export default class Response {
       return;
     }
 
-    oneUptimeResponse.status(status).send({ message: error.message });
+    // Anything the exception adds goes beside its message, never over it.
+    const details: JSONObject =
+      error instanceof BadDataExceptionWithDetails ? error.details : {};
+
+    oneUptimeResponse
+      .status(status)
+      .send({ ...details, message: error.message });
   }
 
   @CaptureSpan()

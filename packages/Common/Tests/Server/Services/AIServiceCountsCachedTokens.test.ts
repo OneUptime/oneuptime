@@ -547,7 +547,7 @@ describe("the incident daily token limit counts the lane's day by what it cost",
     };
 
     await expect(investigate()).rejects.toThrow(
-      "Daily autonomous AI token budget exhausted (1,000,000 of 200,000 tokens used today).",
+      "Automatic AI work for incidents used 1,000,000 of its Daily Incident AI Token Limit of 200,000 tokens today.",
     );
     expect(completion).not.toHaveBeenCalled();
   });

@@ -2,6 +2,9 @@
 
 A notification method is an address OneUptime may reach you at in one project: an email address, a phone number for SMS or calls, a WhatsApp number, a Telegram account, your Slack, Microsoft Teams or Mattermost account, a phone or browser for push notifications, or a webhook. You add them under **User Settings → Notification Methods**, verify them, and OneUptime starts using them for your pages straight away.
 
+> [!TIP]
+> New here? Follow the guide first: [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 :::cards
 - [Pick a method](#pick-a-method): What each method needs, and how it is verified.
 - [Add and verify a method](#add-and-verify-a-method): Email, SMS, calls and WhatsApp, with a 6-digit code.

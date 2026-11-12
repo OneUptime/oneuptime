@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes 에이전트는 클러스터의 메트릭, 이벤트, 파드 로그, eBPF로 수집한 애플리케이션 트레이스, 노드별 OS 메트릭을 수집해 OneUptime으로 보내는 Helm 차트입니다. `helm install` 한 번으로 배포되며 앱 코드를 바꿀 필요가 없습니다. [Kubernetes 모니터](/docs/monitor/kubernetes-monitor)는 에이전트가 보내는 데이터로 알림을 보냅니다.
 
+> [!NOTE]
+> 이 페이지는 플랫폼에 맞는 프리셋으로 Helm을 사용해 에이전트를 단계별로 설치합니다. 모든 옵션, Amazon EKS 추가 기능, OpenShift, Kubernetes AI 에이전트는 전체 레퍼런스에 있습니다: [Kubernetes 에이전트](/docs/telemetry/kubernetes-agent).
+
 :::cards
 - [에이전트 설치](#에이전트-설치): Helm을 사용한 네 단계.
 - [프리셋 선택](#프리셋-선택): 표준 클러스터, GKE Autopilot, EKS Fargate, OpenShift.
