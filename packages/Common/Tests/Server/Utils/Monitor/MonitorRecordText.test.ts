@@ -275,8 +275,12 @@ describe("MonitorTemplateUtil.buildStorageMapBeforeCheck", () => {
   });
 
   test("a monitor without a description or slug leaves them out, rather than saying undefined", () => {
+    const bare: Monitor = monitor();
+    delete bare.description;
+    delete bare.slug;
+
     const before: JSONObject = MonitorTemplateUtil.buildStorageMapBeforeCheck({
-      monitor: monitor({ description: undefined, slug: undefined }),
+      monitor: bare,
     });
 
     expect(Object.keys(before)).not.toContain("monitorDescription");

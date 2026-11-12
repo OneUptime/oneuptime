@@ -81,6 +81,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 /*
  * WHO "WHEN THIS GOES DOWN" SAYS IS EMAILED IS WHO A REAL INCIDENT'S OWNERS
@@ -699,7 +700,7 @@ const ENGINES: Array<EngineCase> = [
 describe.each(ENGINES)("$label", (engine: EngineCase) => {
   let facts: CaseFacts;
   let added: Added;
-  let errors: jest.SpiedFunction<typeof logger.error>;
+  let errors: SpyInstance<typeof logger.error>;
 
   // Everything both the card and the real record read, as the case says.
   function stubCase(): void {
@@ -863,7 +864,12 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       const alert: Alert = createBy.data;
       alert._id = ObjectID.generate().toString();
       // A create names the monitor in its ID column too (fillIdColumnsFromRelations).
-      alert.monitorId = alert.monitorId || alert.monitor?.id || undefined;
+      const monitorId: ObjectID | undefined =
+        alert.monitorId || alert.monitor?.id || undefined;
+
+      if (monitorId) {
+        alert.monitorId = monitorId;
+      }
       createdAlerts.push(alert);
       return alert;
     }) as never);

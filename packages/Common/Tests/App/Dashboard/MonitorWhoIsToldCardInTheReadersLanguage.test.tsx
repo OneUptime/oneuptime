@@ -1,0 +1,793 @@
+/** @timezone UTC */
+
+import "@testing-library/jest-dom";
+import { afterEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  RenderResult,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import fs from "fs";
+import type { SpyInstance } from "jest-mock";
+import path from "path";
+import React from "react";
+import { MemoryRouter } from "react-router-dom";
+
+/*
+ * The words the card is drawn in, read by the translation hook below:
+ * a Dashboard language's own locale file, or English's with each wording
+ * marked "⟦like this⟧". `asked` is every text the card looked up.
+ */
+const mockReader: {
+  language: string;
+  words: Record<string, unknown>;
+  asked: Set<string>;
+} = { language: "en", words: {}, asked: new Set<string>() };
+
+jest.mock("../../../UI/Utils/Translation", () => {
+  const lookup: (text: string | undefined) => string | undefined = (
+    text: string | undefined,
+  ): string | undefined => {
+    if (typeof text !== "string" || !text) {
+      return text;
+    }
+
+    mockReader.asked.add(text);
+
+    const value: unknown = mockReader.words[text];
+
+    return typeof value === "string" && value ? value : text;
+  };
+
+  return {
+    __esModule: true,
+    default: () => {
+      return {
+        language: mockReader.language,
+        translateString: lookup,
+        translateValue: (value: unknown): unknown => {
+          return typeof value === "string" ? lookup(value) : value;
+        },
+      };
+    },
+  };
+});
+
+import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
+import WhoIsToldApi from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi";
+import {
+  makeWhoIsToldBreak,
+  WhoIsToldBreak,
+  WhoIsToldBreakKind,
+  WhoIsToldChannels,
+  WhoIsToldCriteria,
+  WhoIsToldEvent,
+  WhoIsToldFix,
+  WhoIsToldOwnersSource,
+  WhoIsToldPerson,
+  WhoIsToldPersonProblem,
+  WhoIsToldPolicy,
+  WhoIsToldResult,
+  WhoIsToldServerChannel,
+} from "../../../Types/Monitor/WhoIsTold";
+import ObjectID from "../../../Types/ObjectID";
+import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
+import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
+
+/*
+ * "WHEN THIS GOES DOWN", DRAWN IN THE READER'S LANGUAGE (#7078).
+ *
+ * The words tests read the locale files key by key, and the paragraph
+ * tests run the card's sentences through them. This draws the card itself -
+ * the summary, every kind of break with its link, the chain opened with
+ * its rows, owner rules, status pages and the names a reader can't see,
+ * Recheck - and reads what the reader would read:
+ *
+ * - every word on it comes from the Dashboard's words (none written
+ *   straight into the page), so each one reaches the translators;
+ * - in Arabic, Persian, Hindi, Japanese, Korean, Russian and Chinese, no
+ *   English is left on it but the names it was given and the language's
+ *   own wording ("رسائل SMS");
+ * - in German, the rows #7076 and #7077 added read in German.
+ *
+ * Two things are not the card's words and stay out of it: the time
+ * ("5 minutes ago" is written by the dates of the page's language), and a
+ * policy's notPaged and a person's reachedThrough lines, which the server
+ * writes in English (OnCallTestPageService.readFirstLevel).
+ */
+
+const MONITOR_ID: ObjectID = new ObjectID(
+  "70780000-0000-4000-8000-000000000001",
+);
+const PRIMARY_ID: string = "70780000-0000-4000-8000-0000000000a1";
+const SECONDARY_ID: string = "70780000-0000-4000-8000-0000000000a2";
+const HIDDEN_POLICY_ID: string = "70780000-0000-4000-8000-0000000000a3";
+const ANA: string = "70780000-0000-4000-8000-0000000000d1";
+const BEN: string = "70780000-0000-4000-8000-0000000000d2";
+const CHO: string = "70780000-0000-4000-8000-0000000000d3";
+const DAN: string = "70780000-0000-4000-8000-0000000000d4";
+
+// The names the card is given: data, drawn as written in every language.
+const NAMES: ReadonlyArray<string> = [
+  "Checkout API is offline",
+  "Checkout API is slow",
+  "Checkout API",
+  "Checkout monitors",
+  "Every incident",
+  "Payments status",
+  "Public status",
+  "Ana Lopez",
+  "Ben Ito",
+  "Cho Park",
+  "Dan Moss",
+  "Owner One",
+  "Platform",
+  "Primary",
+  "Secondary",
+  "Offline",
+  "Degraded",
+  "Slow",
+  "Critical",
+  "Minor",
+];
+
+const LOCALES: string = path.join(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Locales",
+);
+
+function readWords(language: string): Record<string, unknown> {
+  return JSON.parse(
+    fs.readFileSync(path.join(LOCALES, `${language}.json`), "utf8"),
+  ) as Record<string, unknown>;
+}
+
+const ENGLISH: Record<string, unknown> = readWords("en");
+
+// English's words, each marked, so a word drawn without them stands out.
+function markedEnglish(): Record<string, unknown> {
+  const marked: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(ENGLISH)) {
+    marked[key] = typeof value === "string" ? `⟦${value}⟧` : value;
+  }
+
+  return marked;
+}
+
+function channels(): WhoIsToldChannels {
+  return {
+    isBillingEnabled: true,
+    isSmsOn: true,
+    isCallOn: true,
+    isWhatsAppOn: true,
+    isTelegramOn: true,
+    hasOwnTwilioForSms: false,
+    hasOwnTwilioForCalls: false,
+    serverCanSendEmail: null,
+    serverCanSendSms: null,
+    serverCanCall: null,
+  };
+}
+
+function person(overrides: Partial<WhoIsToldPerson> = {}): WhoIsToldPerson {
+  return {
+    userId: ANA,
+    name: "Ana Lopez",
+    channels: [OnCallPageChannel.SMS, OnCallPageChannel.Call],
+    isFallback: false,
+    isReachable: true,
+    ...overrides,
+  };
+}
+
+function policy(overrides: Partial<WhoIsToldPolicy> = {}): WhoIsToldPolicy {
+  return {
+    id: PRIMARY_ID,
+    name: "Primary",
+    isHidden: false,
+    isNamedByCriteria: false,
+    ruleIds: ["every-incident"],
+    levelCount: 2,
+    people: [person()],
+    notPaged: [],
+    ...overrides,
+  };
+}
+
+const HIDDEN_POLICY: WhoIsToldPolicy = policy({
+  id: HIDDEN_POLICY_ID,
+  name: "",
+  isHidden: true,
+  people: [],
+});
+
+function event(overrides: Partial<WhoIsToldEvent> = {}): WhoIsToldEvent {
+  return {
+    kind: OnCallTestPageRecordKind.Incident,
+    title: "Checkout API is offline",
+    severityName: "Critical",
+    owners: {
+      source: WhoIsToldOwnersSource.Named,
+      userNames: ["Ana Lopez", "Ben Ito"],
+      teamNames: ["Platform"],
+    },
+    ownerRules: [
+      { id: "checkout-monitors", name: "Checkout monitors" },
+      { id: "hidden-owner-rule", name: "" },
+    ],
+    rules: [
+      { id: "every-incident", name: "Every incident" },
+      { id: "hidden-rule", name: "" },
+    ],
+    policies: [
+      policy({
+        people: [
+          person(),
+          person({
+            userId: BEN,
+            name: "Ben Ito",
+            channels: [OnCallPageChannel.Email],
+            isFallback: true,
+          }),
+          person({
+            userId: CHO,
+            name: "Cho Park",
+            channels: [],
+            isReachable: false,
+            problem: WhoIsToldPersonProblem.OptedOut,
+          }),
+          person({ userId: DAN, name: "", channels: [OnCallPageChannel.Push] }),
+        ],
+      }),
+      HIDDEN_POLICY,
+    ],
+    statusPages: [
+      { id: "payments-status", name: "Payments status" },
+      { id: "public-status", name: "Public status" },
+      { id: "hidden-status-page", name: "" },
+    ],
+    ...overrides,
+  };
+}
+
+// One of each break, in each of its wordings.
+const EVERY_BREAK: Array<WhoIsToldBreak> = [
+  {
+    kind: WhoIsToldBreakKind.NothingHappens,
+    fix: WhoIsToldFix.MonitorCriteria,
+  },
+  {
+    kind: WhoIsToldBreakKind.NobodyPaged,
+    fix: WhoIsToldFix.IncidentOnCallRules,
+    recordKind: OnCallTestPageRecordKind.Incident,
+  },
+  {
+    kind: WhoIsToldBreakKind.NobodyPaged,
+    fix: WhoIsToldFix.AlertOnCallRules,
+    recordKind: OnCallTestPageRecordKind.Alert,
+  },
+  {
+    kind: WhoIsToldBreakKind.OnlyIncidentsHaveRules,
+    fix: WhoIsToldFix.AlertOnCallRules,
+  },
+  {
+    kind: WhoIsToldBreakKind.PolicyHasNoLevels,
+    fix: WhoIsToldFix.OnCallPolicy,
+    policyId: SECONDARY_ID,
+    policyName: "Secondary",
+  },
+  {
+    kind: WhoIsToldBreakKind.PolicyHasNoLevels,
+    fix: WhoIsToldFix.OnCallPolicy,
+    policyId: HIDDEN_POLICY_ID,
+  },
+  {
+    kind: WhoIsToldBreakKind.PolicyReachesNobody,
+    fix: WhoIsToldFix.OnCallPolicy,
+    policyId: SECONDARY_ID,
+    policyName: "Secondary",
+  },
+  {
+    kind: WhoIsToldBreakKind.PolicyReachesNobody,
+    fix: WhoIsToldFix.OnCallPolicy,
+    policyId: HIDDEN_POLICY_ID,
+  },
+  ...Object.values(WhoIsToldPersonProblem).map(
+    (problem: WhoIsToldPersonProblem): Omit<WhoIsToldBreak, "message"> => {
+      return {
+        kind: WhoIsToldBreakKind.PersonUnreachable,
+        fix: WhoIsToldFix.OnCallReadiness,
+        userId: CHO,
+        userName: "Cho Park",
+        problem: problem,
+      };
+    },
+  ),
+  {
+    kind: WhoIsToldBreakKind.PersonUnreachable,
+    fix: WhoIsToldFix.OnCallReadiness,
+    userId: DAN,
+  },
+  ...Object.values(OnCallPageChannel).map(
+    (channel: OnCallPageChannel): Omit<WhoIsToldBreak, "message"> => {
+      return {
+        kind: WhoIsToldBreakKind.ChannelOff,
+        fix: WhoIsToldFix.ProjectNotificationSettings,
+        channel: channel,
+      };
+    },
+  ),
+  { kind: WhoIsToldBreakKind.NoBalance, fix: WhoIsToldFix.ProjectBilling },
+  ...Object.values(WhoIsToldServerChannel).map(
+    (channel: WhoIsToldServerChannel): Omit<WhoIsToldBreak, "message"> => {
+      return {
+        kind: WhoIsToldBreakKind.ServerCannotSend,
+        fix: WhoIsToldFix.ServerSettings,
+        channel: channel,
+      };
+    },
+  ),
+].map((brk: Omit<WhoIsToldBreak, "message">): WhoIsToldBreak => {
+  return makeWhoIsToldBreak(brk);
+});
+
+function result(
+  criteria: Array<WhoIsToldCriteria>,
+  breaks: Array<WhoIsToldBreak> = [],
+): WhoIsToldResult {
+  return {
+    monitorId: MONITOR_ID.toString(),
+    monitorName: "Checkout API",
+    checkedAt: new Date().toISOString(),
+    criteria: criteria,
+    channels: channels(),
+    breaks: breaks,
+  };
+}
+
+const MANY_PEOPLE: Array<WhoIsToldPerson> = [
+  person(),
+  person({ userId: BEN, name: "Ben Ito" }),
+  person({ userId: CHO, name: "Cho Park" }),
+  person({ userId: DAN, name: "Dan Moss" }),
+];
+
+interface Answer {
+  name: string;
+  result: WhoIsToldResult;
+}
+
+// What the card can be asked to say, one answer each: every sentence it has.
+const ANSWERS: ReadonlyArray<Answer> = [
+  {
+    name: "a criteria per kind, owners named and added by rules, every break",
+    result: result(
+      [
+        {
+          id: "offline",
+          name: "Offline",
+          statusName: "Offline",
+          statusColor: "#ef4444",
+          events: [event()],
+        },
+        {
+          id: "slow",
+          name: "Slow",
+          events: [
+            event({
+              kind: OnCallTestPageRecordKind.Alert,
+              title: "Checkout API is slow",
+              severityName: "Minor",
+              owners: {
+                source: WhoIsToldOwnersSource.OwnerRules,
+                userNames: ["Owner One"],
+                teamNames: [],
+              },
+              ownerRules: [
+                { id: "checkout-monitors", name: "Checkout monitors" },
+              ],
+              rules: [],
+              policies: [],
+              statusPages: [],
+            }),
+          ],
+        },
+        {
+          id: "degraded",
+          name: "Degraded",
+          statusName: "Degraded",
+          statusOwners: {
+            source: WhoIsToldOwnersSource.MonitorOwners,
+            userNames: ["Owner One"],
+            teamNames: [],
+          },
+          events: [],
+        },
+      ],
+      EVERY_BREAK,
+    ),
+  },
+  {
+    name: "an alert, owners its rules add, paged through a policy you can't see",
+    result: result([
+      {
+        id: "slow",
+        name: "Slow",
+        events: [
+          event({
+            kind: OnCallTestPageRecordKind.Alert,
+            owners: {
+              source: WhoIsToldOwnersSource.OwnerRules,
+              userNames: [],
+              teamNames: [],
+            },
+            policies: [HIDDEN_POLICY],
+            statusPages: [],
+          }),
+        ],
+      },
+    ]),
+  },
+  {
+    name: "the project's owners, and nobody who can be paged",
+    result: result([
+      {
+        id: "offline",
+        name: "Offline",
+        statusName: "Offline",
+        events: [
+          event({
+            owners: {
+              source: WhoIsToldOwnersSource.ProjectOwners,
+              userNames: [],
+              teamNames: [],
+            },
+            ownerRules: [],
+            policies: [
+              policy({
+                people: [
+                  person({
+                    isReachable: false,
+                    channels: [],
+                    problem: WhoIsToldPersonProblem.NoVerifiedMethod,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      },
+      {
+        id: "slow",
+        name: "Slow",
+        events: [event({ kind: OnCallTestPageRecordKind.Alert })],
+      },
+      {
+        id: "degraded",
+        name: "Degraded",
+        events: [event({ severityName: "Minor" })],
+      },
+    ]),
+  },
+  {
+    name: "more owners and more people than it names, by name",
+    result: result([
+      {
+        id: "slow",
+        name: "Slow",
+        events: [
+          event({
+            owners: {
+              source: WhoIsToldOwnersSource.ProjectOwners,
+              userNames: ["Ana Lopez", "Ben Ito", "Cho Park", "Dan Moss"],
+              teamNames: ["Platform"],
+            },
+            policies: [policy({ people: MANY_PEOPLE })],
+          }),
+        ],
+      },
+    ]),
+  },
+  {
+    name: "nobody paged",
+    result: result([
+      {
+        id: "offline",
+        name: "Offline",
+        events: [event({ rules: [], policies: [] })],
+      },
+    ]),
+  },
+  {
+    name: "a status only",
+    result: result([
+      {
+        id: "degraded",
+        name: "Degraded",
+        statusName: "Degraded",
+        statusOwners: {
+          source: WhoIsToldOwnersSource.MonitorOwners,
+          userNames: [],
+          teamNames: [],
+        },
+        events: [],
+      },
+    ]),
+  },
+  {
+    name: "nothing happens",
+    result: result(
+      [],
+      [
+        makeWhoIsToldBreak({
+          kind: WhoIsToldBreakKind.NothingHappens,
+          fix: WhoIsToldFix.MonitorCriteria,
+        }),
+      ],
+    ),
+  },
+];
+
+function readIn(language: string, words: Record<string, unknown>): void {
+  mockReader.language = language;
+  mockReader.words = words;
+  mockReader.asked = new Set<string>();
+}
+
+// The card drawn with `answer`, its chain open when it has one.
+async function drawCard(answer: WhoIsToldResult): Promise<RenderResult> {
+  jest.spyOn(WhoIsToldApi, "getForMonitor").mockResolvedValue(answer);
+
+  const drawn: RenderResult = render(
+    <MemoryRouter>
+      <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+    </MemoryRouter>,
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByTestId("who-is-told-loading")).toBeNull();
+  });
+
+  const toggle: HTMLElement | null = screen.queryByTestId(
+    "who-is-told-chain-toggle",
+  );
+
+  if (toggle) {
+    fireEvent.click(toggle);
+    expect(screen.getByTestId("who-is-told-chain")).toBeInTheDocument();
+  }
+
+  return drawn;
+}
+
+/*
+ * What a reader reads on the card: its text, and each label a screen
+ * reader says - without the time, which the page's dates write.
+ */
+function readCard(drawn: RenderResult): Array<string> {
+  const copy: HTMLElement = drawn.container.cloneNode(true) as HTMLElement;
+
+  for (const time of Array.from(copy.querySelectorAll("time"))) {
+    time.remove();
+  }
+
+  const labels: Array<string> = Array.from(
+    copy.querySelectorAll("[aria-label]"),
+  ).map((element: Element): string => {
+    return element.getAttribute("aria-label") || "";
+  });
+
+  return [copy.textContent || "", ...labels];
+}
+
+// `text` without the marked words (innermost first) and the given names.
+function withoutWords(text: string, names: ReadonlyArray<string>): string {
+  let rest: string = text;
+  let before: string = "";
+
+  while (rest !== before) {
+    before = rest;
+    rest = rest.replace(/⟦[^⟦⟧]*⟧/g, " ");
+  }
+
+  for (const name of [...names].sort((a: string, b: string): number => {
+    return b.length - a.length;
+  })) {
+    rest = rest.split(name).join(" ");
+  }
+
+  return rest;
+}
+
+const HAS_A_LETTER: RegExp = /\p{L}/u;
+
+// The words of `text` that have letters.
+function wordsIn(text: string): Array<string> {
+  return text.split(/\s+/).filter((word: string): boolean => {
+    return HAS_A_LETTER.test(word);
+  });
+}
+
+afterEach(() => {
+  cleanup();
+  jest.restoreAllMocks();
+  readIn("en", {});
+});
+
+// The words left on what `read` holds once marked words and `names` are out.
+function unmarkedWords(
+  read: ReadonlyArray<string>,
+  names: ReadonlyArray<string>,
+): Array<string> {
+  return read.flatMap((text: string): Array<string> => {
+    return wordsIn(withoutWords(text, names));
+  });
+}
+
+describe("every word on the card comes from the Dashboard's words", () => {
+  test.each(ANSWERS)("$name", async (answer: Answer): Promise<void> => {
+    readIn("en", markedEnglish());
+    const drawn: RenderResult = await drawCard(answer.result);
+
+    const read: Array<string> = readCard(drawn);
+
+    // The marked words are the ones drawn: the hook is the card's.
+    expect(read.join(" ")).toContain("⟦");
+    expect(unmarkedWords(read, NAMES)).toEqual([]);
+  });
+
+  test("while it loads, while it checks again, and when it fails", async () => {
+    readIn("en", markedEnglish());
+    const getForMonitor: SpyInstance<typeof WhoIsToldApi.getForMonitor> =
+      jest.spyOn(WhoIsToldApi, "getForMonitor");
+
+    getForMonitor.mockReturnValueOnce(new Promise<WhoIsToldResult>(() => {}));
+
+    const loading: RenderResult = render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId("who-is-told-loading")).toBeInTheDocument();
+    expect(unmarkedWords(readCard(loading), [])).toEqual([]);
+    cleanup();
+
+    getForMonitor
+      .mockResolvedValueOnce(ANSWERS[0]!.result)
+      .mockReturnValueOnce(new Promise<WhoIsToldResult>(() => {}));
+
+    const checking: RenderResult = render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(await screen.findByTestId("who-is-told-recheck"));
+
+    expect(screen.getByTestId("who-is-told-recheck")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    expect(screen.getByTestId("who-is-told-recheck")).toHaveTextContent(
+      `⟦${ENGLISH["Checking..."] as string}⟧`,
+    );
+    expect(unmarkedWords(readCard(checking), NAMES)).toEqual([]);
+    cleanup();
+
+    getForMonitor.mockRejectedValueOnce(new Error("Gateway Timeout"));
+
+    const failed: RenderResult = render(
+      <MemoryRouter>
+        <MonitorWhoIsToldCard monitorId={MONITOR_ID} />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByTestId("who-is-told-error")).toBeInTheDocument();
+    expect(unmarkedWords(readCard(failed), ["Gateway Timeout"])).toEqual([]);
+  });
+});
+
+/*
+ * Languages written in another script: a word in Latin letters on the card
+ * is English that never went through the language's words - unless it is in
+ * a name the card was given, or in the language's own wording of what the
+ * card said (Arabic writes "رسائل SMS", Russian "Push-уведомление"). Which
+ * words a language may keep in English is WhoIsToldWordsInEveryLanguage's
+ * question; this one is whether all of them reach the reader.
+ */
+const OTHER_SCRIPTS: ReadonlyArray<string> = [
+  "ar",
+  "fa",
+  "hi",
+  "ja",
+  "ko",
+  "ru",
+  "zh-CN",
+  "zh-TW",
+];
+
+function latinWords(text: string): Array<string> {
+  return text.match(/[A-Za-z]+/g) || [];
+}
+
+describe("in a language written in another script, no English is left", () => {
+  test.each(OTHER_SCRIPTS)("%s", async (language: string): Promise<void> => {
+    const words: Record<string, unknown> = readWords(language);
+    const leftInEnglish: Array<string> = [];
+
+    for (const answer of ANSWERS) {
+      readIn(language, words);
+      const drawn: RenderResult = await drawCard(answer.result);
+      const read: Array<string> = readCard(drawn);
+
+      const ownLatinWords: Set<string> = new Set<string>(
+        Array.from(mockReader.asked).flatMap((text: string): Array<string> => {
+          const value: unknown = words[text];
+          return typeof value === "string" ? latinWords(value) : [];
+        }),
+      );
+
+      for (const text of read) {
+        for (const word of latinWords(withoutWords(text, NAMES))) {
+          if (!ownLatinWords.has(word)) {
+            leftInEnglish.push(`${answer.name}: ${word}`);
+          }
+        }
+      }
+
+      cleanup();
+      jest.restoreAllMocks();
+    }
+
+    expect(leftInEnglish).toEqual([]);
+  });
+});
+
+describe("in German, the rows #7076 and #7077 added", () => {
+  test("owner rules, status pages and the names a reader can't see", async () => {
+    const german: Record<string, unknown> = readWords("de");
+    readIn("de", german);
+
+    await drawCard(ANSWERS[0]!.result);
+
+    const ownerRules: HTMLElement = screen.getAllByTestId(
+      "who-is-told-owner-rules",
+    )[0]!;
+    const statusPages: HTMLElement = screen.getByTestId(
+      "who-is-told-status-pages",
+    );
+
+    for (const english of [
+      "Owner Rules",
+      "A rule you can't see",
+      "Status pages",
+      "A status page you can't see",
+    ]) {
+      expect(german[english]).toEqual(expect.any(String));
+      expect(german[english]).not.toBe(english);
+    }
+
+    expect(ownerRules).toHaveTextContent(german["Owner Rules"] as string);
+    expect(ownerRules).toHaveTextContent("Checkout monitors");
+    expect(ownerRules).toHaveTextContent(
+      german["A rule you can't see"] as string,
+    );
+    expect(statusPages).toHaveTextContent(german["Status pages"] as string);
+    expect(statusPages).toHaveTextContent("Payments status");
+    expect(statusPages).toHaveTextContent(
+      german["A status page you can't see"] as string,
+    );
+
+    const card: string = screen.getByTestId("monitor-who-is-told-card")
+      .textContent as string;
+
+    expect(card).not.toContain("Owner Rules");
+    expect(card).not.toContain("you can't see");
+    expect(card).not.toContain("Status pages");
+  });
+});
