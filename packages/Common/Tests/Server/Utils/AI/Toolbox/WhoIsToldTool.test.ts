@@ -15,9 +15,11 @@ import AIChatPermissionMode from "../../../../../Types/AI/AIChatPermissionMode";
 import {
   WhoIsToldBreakKind,
   WhoIsToldFix,
+  WhoIsToldOwners,
   WhoIsToldOwnersSource,
   WhoIsToldPersonProblem,
   WhoIsToldResult,
+  WhoIsToldRule,
 } from "../../../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -45,6 +47,9 @@ const ctx: ToolContext = {
 
 type Spy = jest.SpyInstance;
 
+// Words that say who, never a gap ("undefined", an empty string) or a hedge.
+const OWNERS_WORDS_PATTERN: RegExp = /^(?:its|the) [a-z' ]*owner[a-z ]*$/u;
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -62,18 +67,18 @@ const RESULT: WhoIsToldResult = {
         source: WhoIsToldOwnersSource.MonitorOwners,
         userNames: ["Me Myself"],
         teamNames: [],
-        hasOwnerRules: false,
       },
       events: [
         {
           kind: OnCallTestPageRecordKind.Incident,
+          title: "example.com is offline",
           severityName: "Critical Incident",
           owners: {
             source: WhoIsToldOwnersSource.ProjectOwners,
-            userNames: [],
+            userNames: ["Me Myself"],
             teamNames: [],
-            hasOwnerRules: false,
           },
+          ownerRules: [],
           rules: [{ id: "r1", name: "Page Default for every new incident" }],
           policies: [
             {
@@ -141,8 +146,8 @@ describe("describeWhoIsToldForModel", () => {
     expect(text).toContain(
       '- Criteria "Check if offline": sets status Offline; emails the monitor\'s owners (Me Myself) of the change',
     );
-    expect(text).toContain(
-      "  - opens an incident (Critical Incident); emails the project's owners",
+    expect(text.split("\n")).toContain(
+      "  - opens an incident (Critical Incident); emails the project's owners (Me Myself)",
     );
     expect(text).toContain(
       '    - pages on-call policy "Default on-call policy" (1 escalation level), whose first level pages: Me Myself: by email, SMS (their verified methods, as no rule of theirs covers this severity); Ana Lopez (Team Platform): cannot be reached by this page (NoVerifiedMethod)',
@@ -163,26 +168,28 @@ describe("describeWhoIsToldForModel", () => {
           events: [
             {
               kind: OnCallTestPageRecordKind.Alert,
+              title: "example.com is slow",
               severityName: "High",
               owners: {
                 source: WhoIsToldOwnersSource.Named,
                 userNames: [],
                 teamNames: ["Platform"],
-                hasOwnerRules: false,
               },
+              ownerRules: [],
               rules: [],
               policies: [],
               statusPages: [],
             },
             {
               kind: OnCallTestPageRecordKind.Incident,
+              title: "example.com is slow",
               severityName: "Low",
               owners: {
-                source: WhoIsToldOwnersSource.ProjectOwners,
-                userNames: [],
+                source: WhoIsToldOwnersSource.OwnerRules,
+                userNames: ["Dana Reyes"],
                 teamNames: [],
-                hasOwnerRules: true,
               },
+              ownerRules: [{ id: "o1", name: "Slow sites to Dana" }],
               rules: [],
               policies: [
                 {
@@ -204,12 +211,14 @@ describe("describeWhoIsToldForModel", () => {
       breaks: [],
     });
 
-    expect(text).toContain("  - opens an alert (High); emails team Platform");
+    expect(text.split("\n")).toContain(
+      "  - opens an alert (High); emails its owners (team Platform)",
+    );
     expect(text).toContain(
       "    - pages nobody: no on-call rule runs a policy for it",
     );
-    expect(text).toContain(
-      "the project's owners, unless its owner rules add owners",
+    expect(text.split("\n")).toContain(
+      "  - opens an incident (Low); emails the owners added by owner rules (Dana Reyes)",
     );
     expect(text).toContain(
       "an on-call policy the person may not read (paging is set up, and who is hidden)",
@@ -221,6 +230,244 @@ describe("describeWhoIsToldForModel", () => {
     expect(
       describeWhoIsToldForModel({ ...RESULT, criteria: [], breaks: [] }),
     ).toContain("- No criteria changes its status or opens anything.");
+  });
+});
+
+/*
+ * WHO IT EMAILS, FOR EACH SOURCE WHOISTOLD DEFINES (#7396).
+ *
+ * The resolver says where an event's owners come from - named on the
+ * criteria (or the network device), added only by the project's owner rules,
+ * the project's owners when nobody is either, or, for a status change, the
+ * monitor's own owners - and the monitor's "When this goes down" card says
+ * each in its own words. The tool says the same, one exact line per source,
+ * so Ask AI never tells someone the project's owners are emailed when an
+ * owner rule picks Dana.
+ */
+
+// A criteria that opens one incident, which emails `owners`.
+function opening(
+  owners: WhoIsToldOwners,
+  ownerRules: Array<WhoIsToldRule> = [],
+): WhoIsToldResult {
+  return {
+    ...RESULT,
+    criteria: [
+      {
+        id: "c3",
+        name: "Check if offline",
+        events: [
+          {
+            kind: OnCallTestPageRecordKind.Incident,
+            title: "example.com is offline",
+            severityName: "Critical Incident",
+            owners: owners,
+            ownerRules: ownerRules,
+            rules: [],
+            policies: [],
+            statusPages: [],
+          },
+        ],
+      },
+    ],
+    breaks: [],
+  };
+}
+
+// A criteria that only changes the status, which emails `owners` of it.
+function statusChange(owners: WhoIsToldOwners): WhoIsToldResult {
+  return {
+    ...RESULT,
+    criteria: [
+      {
+        id: "c4",
+        name: "Check if offline",
+        statusName: "Offline",
+        statusOwners: owners,
+        events: [],
+      },
+    ],
+    breaks: [],
+  };
+}
+
+function linesOf(result: WhoIsToldResult): Array<string> {
+  return describeWhoIsToldForModel(result).split("\n");
+}
+
+// Each source by itself, as the card's "It emails ..." says it with no names.
+const BARE_WORDS: Array<[WhoIsToldOwnersSource, string]> = [
+  [WhoIsToldOwnersSource.Named, "its owners"],
+  [WhoIsToldOwnersSource.OwnerRules, "the owners added by owner rules"],
+  [WhoIsToldOwnersSource.ProjectOwners, "the project's owners"],
+  [WhoIsToldOwnersSource.MonitorOwners, "the monitor's owners"],
+];
+
+const OPENS: string = "  - opens an incident (Critical Incident); emails ";
+const STATUS: string = '- Criteria "Check if offline": sets status Offline; emails ';
+
+describe("describeWhoIsToldForModel: who it emails, for each owners source", () => {
+  test("Named: the owners the criteria names, people first and then teams", () => {
+    const lines: Array<string> = linesOf(
+      opening({
+        source: WhoIsToldOwnersSource.Named,
+        userNames: ["Ben Ito", "Ana Lopez"],
+        teamNames: ["Checkout SRE"],
+      }),
+    );
+
+    expect(lines).toContain(
+      `${OPENS}its owners (Ben Ito, Ana Lopez, team Checkout SRE)`,
+    );
+    // No owner rule adds anyone, so none is named.
+    expect(lines.join("\n")).not.toContain("owner rule");
+  });
+
+  test("Named, with owner rules that add more owners: the rules are named right under it", () => {
+    const lines: Array<string> = linesOf(
+      opening(
+        {
+          source: WhoIsToldOwnersSource.Named,
+          userNames: ["Ben Ito", "Dana Reyes"],
+          teamNames: [],
+        },
+        [{ id: "o1", name: "Slow sites to Dana" }],
+      ),
+    );
+    const opens: number = lines.indexOf(
+      `${OPENS}its owners (Ben Ito, Dana Reyes)`,
+    );
+
+    expect(opens).toBeGreaterThan(-1);
+    expect(lines[opens + 1]).toBe(
+      '    - owner rules that add its owners: "Slow sites to Dana"',
+    );
+  });
+
+  test("OwnerRules: nobody is named, so only the owners the project's owner rules add - and which rules", () => {
+    const lines: Array<string> = linesOf(
+      opening(
+        {
+          source: WhoIsToldOwnersSource.OwnerRules,
+          userNames: ["Dana Reyes"],
+          teamNames: ["Platform"],
+        },
+        [
+          { id: "o1", name: "Slow sites to Dana" },
+          { id: "o2", name: "Everything to Platform" },
+        ],
+      ),
+    );
+
+    expect(lines).toEqual([
+      'Who is told when monitor "example.com" goes down (checked 2026-11-12T10:00:00.000Z):',
+      '- Criteria "Check if offline"',
+      `${OPENS}the owners added by owner rules (Dana Reyes, team Platform)`,
+      '    - owner rules that add its owners: "Slow sites to Dana", "Everything to Platform"',
+      "    - pages nobody: no on-call rule runs a policy for it",
+      "Nothing breaks the chain.",
+    ]);
+    // Never the project's owners, nor a guess about whether a rule adds anyone.
+    expect(lines.join("\n")).not.toContain("the project's owners");
+    expect(lines.join("\n")).not.toContain("unless");
+  });
+
+  test("ProjectOwners: nobody is named or added by a rule, so the project's owners - with nothing about owner rules", () => {
+    const lines: Array<string> = linesOf(
+      opening({
+        source: WhoIsToldOwnersSource.ProjectOwners,
+        userNames: ["Me Myself", "Ana Lopez"],
+        teamNames: [],
+      }),
+    );
+
+    expect(lines).toContain(`${OPENS}the project's owners (Me Myself, Ana Lopez)`);
+    // The resolver read the owner rules: none adds anyone, so nothing hedges.
+    expect(lines.join("\n")).not.toContain("owner rule");
+    expect(lines.join("\n")).not.toContain("unless");
+  });
+
+  test("MonitorOwners: a status change emails the monitor's own owners", () => {
+    expect(
+      linesOf(
+        statusChange({
+          source: WhoIsToldOwnersSource.MonitorOwners,
+          userNames: ["Me Myself"],
+          teamNames: [],
+        }),
+      ),
+    ).toContain(`${STATUS}the monitor's owners (Me Myself) of the change`);
+  });
+
+  test("ProjectOwners for a status change: a monitor with no owners of its own emails the project's", () => {
+    expect(
+      linesOf(
+        statusChange({
+          source: WhoIsToldOwnersSource.ProjectOwners,
+          userNames: ["Me Myself"],
+          teamNames: [],
+        }),
+      ),
+    ).toContain(`${STATUS}the project's owners (Me Myself) of the change`);
+  });
+
+  test.each(BARE_WORDS)(
+    "with no names to say, %s is still said by where its owners come from: %s",
+    (source: WhoIsToldOwnersSource, words: string) => {
+      const owners: WhoIsToldOwners = {
+        source: source,
+        userNames: [],
+        teamNames: [],
+      };
+
+      expect(linesOf(opening(owners))).toContain(`${OPENS}${words}`);
+      expect(linesOf(statusChange(owners))).toContain(
+        `${STATUS}${words} of the change`,
+      );
+    },
+  );
+
+  test("every source WhoIsTold defines is worded, and no two alike", () => {
+    const sources: Array<WhoIsToldOwnersSource> = Object.values(
+      WhoIsToldOwnersSource,
+    );
+    const said: Array<string> = sources.map(
+      (source: WhoIsToldOwnersSource): string => {
+        const line: string | undefined = linesOf(
+          opening({ source: source, userNames: [], teamNames: [] }),
+        ).find((item: string): boolean => {
+          return item.startsWith(OPENS);
+        });
+
+        return (line || "").slice(OPENS.length);
+      },
+    );
+
+    expect(sources).toHaveLength(4);
+    for (const words of said) {
+      expect(words).toMatch(OWNERS_WORDS_PATTERN);
+    }
+    expect(new Set(said).size).toBe(sources.length);
+  });
+
+  test("an owner rule the person may not read keeps its place, without its name", () => {
+    expect(
+      linesOf(
+        opening(
+          {
+            source: WhoIsToldOwnersSource.OwnerRules,
+            userNames: ["Dana Reyes"],
+            teamNames: [],
+          },
+          [
+            { id: "o1", name: "" },
+            { id: "o2", name: "Slow sites to Dana" },
+          ],
+        ),
+      ),
+    ).toContain(
+      '    - owner rules that add its owners: an owner rule the person may not read, "Slow sites to Dana"',
+    );
   });
 });
 
