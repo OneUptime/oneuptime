@@ -201,7 +201,7 @@ describe("InvestigationTryAgain.tryAgain", () => {
     ],
     [
       "provider_missing",
-      "This project has no AI provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
+      "This project has no LLM provider to investigate with. Add one in Project Settings > AI > LLM Providers, then try again.",
     ],
     // The shared words: who can add AI credits, and where.
     ["insufficient_ai_balance", PROJECT_AI_CREDITS_USED_UP_MESSAGE],

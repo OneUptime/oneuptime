@@ -101,12 +101,11 @@ jest.mock("../../../UI/Utils/ProductEvents", () => {
   };
 });
 
-import GettingStarted from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
+import GettingStarted, {
+  getStepAfter,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/GettingStarted";
 import { ADMIN_SERVER_SETUP_ROUTE } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog";
-import {
-  STEP_IN_PROGRESS_KEY,
-  readWelcomeStepInProgress,
-} from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeStepInProgress";
+import { STEP_IN_PROGRESS_KEY } from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeStepInProgress";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
@@ -334,18 +333,91 @@ describe("Create your first monitor", () => {
   });
 });
 
-describe("every other step opens today's page for its job", () => {
-  test.each([
-    [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY],
-    [WelcomeStep.StatusPage, PageMap.STATUS_PAGES],
-    [WelcomeStep.Telemetry, PageMap.LOGS],
-    [WelcomeStep.Infrastructure, PageMap.HOSTS],
-  ])("%s opens %s", async (key: WelcomeStep, pageMap: PageMap) => {
+describe("Set up an on-call policy", () => {
+  /*
+   * The guided setup (#6805) takes the step over: how you are reached, who
+   * else is on call, what if nobody answers and a test page, on one page.
+   * It is for everyone: its first step is the person's own methods, and it
+   * says itself what a member who may not make a policy can do.
+   */
+  test("opens the guided setup, whoever clicks it", async () => {
+    mayCreate = false;
     await renderGettingStarted();
-    click(key);
+    click(WelcomeStep.OnCall);
 
-    expect(navigatedTo()).toBe(routeOf(pageMap));
+    expect(navigatedTo()).toBe(routeOf(PageMap.ON_CALL_DUTY_GUIDED_SETUP));
+    expect(navigatedTo()).not.toBe(routeOf(PageMap.ON_CALL_DUTY));
   });
+
+  test("carries nothing: the setup says what is next", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.OnCall);
+
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
+  });
+});
+
+describe("Publish a status page", () => {
+  /*
+   * The guided setup (#6806) takes the step over: a name, the monitors it
+   * shows and what customers see on one page - for somebody who may create
+   * a status page, since its first step makes one.
+   */
+  test("opens the guided setup for someone who may create a status page", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.STATUS_PAGES_GUIDED_SETUP));
+  });
+
+  test("asks the permission gate about creating a StatusPage", async () => {
+    await renderGettingStarted();
+    checkSpy.mockClear();
+    click(WelcomeStep.StatusPage);
+
+    expect(checkSpy).toHaveBeenCalledTimes(1);
+    expect(
+      (checkSpy.mock.calls[0]![0] as PermissionCheckableModel).constructor.name,
+    ).toBe("StatusPage");
+  });
+
+  test("lands anyone else on the Status Pages list", async () => {
+    mayCreate = false;
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.STATUS_PAGES));
+  });
+
+  test("carries nothing: the setup says what is next", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.StatusPage);
+
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
+  });
+});
+
+describe("Send your first logs, metrics or traces", () => {
+  // The guided setup (#6806): the guide, the first data, then alerts on it.
+  test("opens the guided setup, which carries nothing", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.Telemetry);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.SERVICES_GUIDED_SETUP));
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
+  });
+});
+
+describe("every other step opens today's page for its job", () => {
+  test.each([[WelcomeStep.Infrastructure, PageMap.HOSTS]])(
+    "%s opens %s",
+    async (key: WelcomeStep, pageMap: PageMap) => {
+      await renderGettingStarted();
+      click(key);
+
+      expect(navigatedTo()).toBe(routeOf(pageMap));
+    },
+  );
 
   test("importing opens the importer, saying it was opened from the checklist", async () => {
     await renderGettingStarted();
@@ -383,17 +455,11 @@ describe("what a click records", () => {
     );
   });
 
-  test("a step whose record lands on a plain page is carried there, with the step after it", async () => {
-    await renderGettingStarted();
-    click(WelcomeStep.OnCall);
-
-    expect(readWelcomeStepInProgress()).toMatchObject({
-      projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
-      nextStep: WelcomeStep.StatusPage,
-    });
-  });
-
+  /*
+   * No step of the catalog lands on a record's page of its own since the
+   * guided setups (#6804, #6805, #6806): what a landing carries is held in
+   * WelcomeNextStep.test.tsx.
+   */
   test("a step that opens a guided setup carries nothing: the setup says what is next", async () => {
     await renderGettingStarted();
     click(WelcomeStep.Monitor);
@@ -401,18 +467,22 @@ describe("what a click records", () => {
     expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
   });
 
-  test("the step after the last one left wraps round to one still to do", async () => {
-    fetchMock.mockResolvedValue(
-      answer([
-        step(WelcomeStep.Monitor, { isNext: true }),
-        step(WelcomeStep.OnCall),
-        step(WelcomeStep.StatusPage),
-      ]),
-    );
-    await renderGettingStarted();
-    click(WelcomeStep.StatusPage);
+  /*
+   * What a landing page names as next (getStepAfter): no step of the
+   * catalog lands on a page of its own since the guided setups, so it is
+   * read here as the page would read it.
+   */
+  test("the step after the last one left wraps round to one still to do", () => {
+    const steps: Array<WelcomeChecklistStepState> = answer([
+      step(WelcomeStep.Monitor, { isNext: true }),
+      step(WelcomeStep.StatusPage),
+      step(WelcomeStep.OnCall),
+    ]).steps;
 
-    expect(readWelcomeStepInProgress()?.nextStep).toBe(WelcomeStep.Monitor);
+    expect(getStepAfter(steps, WelcomeStep.OnCall)).toBe(WelcomeStep.Monitor);
+    expect(getStepAfter(steps, WelcomeStep.Monitor)).toBe(
+      WelcomeStep.StatusPage,
+    );
   });
 
   test("a step with nothing to land on carries nothing", async () => {

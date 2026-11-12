@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Setzen Sie sie in `config.env` und führen Sie dann `npm start` aus. `DISABLE_TELEMETRY_FOR_APP` ist standardmäßig `true`, und dann wird nichts gesendet.
 :::
 
-OneUptime braucht sowohl den Endpunkt als auch die Header: Ohne Header sendet es nichts. Trennen Sie mehrere Header mit `;`. OneUptime hängt `/v1/metrics` selbst an den Endpunkt an, und dieselben Einstellungen senden auch seine eigenen Traces und Logs. Jede Metrik erscheint, sobald OneUptime sie zum ersten Mal erfasst: `notification.send.count` mit der ersten gesendeten Nachricht.
+OneUptime braucht sowohl den Endpunkt als auch die Header: Ohne Header sendet es nichts. Schreiben Sie jeden Header als `name=value` und trennen Sie mehrere mit `;`. Ein Wert darf `=` enthalten. OneUptime hängt `/v1/metrics` selbst an den Endpunkt an, und dieselben Einstellungen senden auch seine eigenen Traces und Logs. Jede Metrik erscheint, sobald OneUptime sie zum ersten Mal erfasst: `notification.send.count` mit der ersten gesendeten Nachricht.
 
 ### Deltas an ein OneUptime-Projekt senden
 
@@ -246,7 +246,7 @@ Die Formel `$b / $a * 100` ist der nicht zugestellte Anteil. Netzbetreiber und a
 ## Fehlerbehebung
 
 :::details Es kommen keine Benachrichtigungsmetriken an
-Prüfen Sie, dass `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` und `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` beide gesetzt sind und in Docker Compose `DISABLE_TELEMETRY_FOR_APP` auf `false` steht, und starten Sie OneUptime dann neu. Eine Metrik erscheint erst, wenn etwas erfasst wurde, senden Sie also zuerst eine Benachrichtigung.
+Prüfen Sie, dass `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` und `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` beide gesetzt sind und in Docker Compose `DISABLE_TELEMETRY_FOR_APP` auf `false` steht, und starten Sie OneUptime dann neu. Beim Start protokolliert OneUptime eine Warnung, wenn es einen Header nicht lesen kann oder wenn es nichts sendet. Eine Metrik erscheint erst, wenn etwas erfasst wurde, senden Sie also zuerst eine Benachrichtigung.
 :::
 
 :::details Eine Anzahl wächst nur, oder ein Perzentil bewegt sich kaum
