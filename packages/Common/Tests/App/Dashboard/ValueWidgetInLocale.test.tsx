@@ -102,7 +102,7 @@ function viewProps(
     noDataMessage: "No data for the selected time range",
     isConfigured: true,
     setupTitle: "Value Widget",
-    setupMessage: "Click to configure metric",
+    setupMessage: "Click to configure a metric",
     title: "Orders",
     rawUnit: "",
     metricName: "orders.count",
