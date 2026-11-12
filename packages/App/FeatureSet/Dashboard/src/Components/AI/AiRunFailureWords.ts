@@ -5,12 +5,14 @@ import {
   AIRunAttemptOutcome,
   AIRunFailureKind,
   classifyAIRunFailureMessage,
+  isRecordTokenLimitFailureKind,
   parseAIRunAttemptEnd,
 } from "Common/Types/AI/AIRunAttempt";
 import OneUptimeDate from "Common/Types/Date";
 import {
   composedValue,
   TemplateValue,
+  translationKey,
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 
@@ -22,6 +24,58 @@ import {
  * run that did not finish words it here: an insight's triage, an
  * incident's or alert's investigation, and any other kind of run.
  */
+
+/*
+ * An incident's or alert's own daily AI token limit stopped the run
+ * (#7157): what happened and what to do, for each record and each state -
+ * a limit of 0 pauses the work until it is raised, and waiting for
+ * midnight does not lift it; a limit used up today lifts at midnight UTC.
+ * The server's words, sentence for sentence (Types/AI/RecordAiTokenLimit:
+ * a test holds them equal). Never the project's daily AI limits, which are
+ * another setting, worded under LimitReached.
+ */
+export type RecordTokenLimitFailureKind =
+  | AIRunFailureKind.IncidentTokenLimitPaused
+  | AIRunFailureKind.IncidentTokenLimitUsedUp
+  | AIRunFailureKind.AlertTokenLimitPaused
+  | AIRunFailureKind.AlertTokenLimitUsedUp;
+
+export const RECORD_TOKEN_LIMIT_FAILURE_WORDS: Readonly<
+  Record<RecordTokenLimitFailureKind, { cause: string; fix: string }>
+> = {
+  [AIRunFailureKind.IncidentTokenLimitPaused]: {
+    cause: translationKey(
+      "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents.",
+    ),
+    fix: translationKey(
+      "Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    ),
+  },
+  [AIRunFailureKind.IncidentTokenLimitUsedUp]: {
+    cause: translationKey(
+      "Automatic AI work for incidents used up today's Daily Incident AI Token Limit.",
+    ),
+    fix: translationKey(
+      "Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    ),
+  },
+  [AIRunFailureKind.AlertTokenLimitPaused]: {
+    cause: translationKey(
+      "The Daily Alert AI Token Limit is set to 0, which pauses automatic AI work for alerts.",
+    ),
+    fix: translationKey(
+      "Raise it above 0 under Alerts → AI → Settings → More settings, or clear it, then try again.",
+    ),
+  },
+  [AIRunFailureKind.AlertTokenLimitUsedUp]: {
+    cause: translationKey(
+      "Automatic AI work for alerts used up today's Daily Alert AI Token Limit.",
+    ),
+    fix: translationKey(
+      "Raise or clear it under Alerts → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    ),
+  },
+};
 
 export interface AiRunFailure {
   failureKind: AIRunFailureKind;
@@ -78,12 +132,22 @@ export function readAiRunFailure(data: {
     timeoutInSeconds?: number | undefined;
   } = classifyAIRunFailureMessage(data.errorMessage || "");
 
-  const failureKind: AIRunFailureKind =
+  /*
+   * The event's kind, unless the message says more: an Other the message
+   * can name, or a LimitReached that a run stored before #7157 recorded for
+   * an incident's or alert's own token limit - "Daily autonomous AI token
+   * budget exhausted (0 of 0 ...)", which the message tells apart.
+   */
+  const isMessageMoreExact: boolean = Boolean(
     attemptEnd?.failureKind &&
-    !(
-      attemptEnd.failureKind === AIRunFailureKind.Other &&
-      fromMessage.failureKind !== AIRunFailureKind.Other
-    )
+      ((attemptEnd.failureKind === AIRunFailureKind.Other &&
+        fromMessage.failureKind !== AIRunFailureKind.Other) ||
+        (attemptEnd.failureKind === AIRunFailureKind.LimitReached &&
+          isRecordTokenLimitFailureKind(fromMessage.failureKind))),
+  );
+
+  const failureKind: AIRunFailureKind =
+    attemptEnd?.failureKind && !isMessageMoreExact
       ? attemptEnd.failureKind
       : fromMessage.failureKind;
 
@@ -107,21 +171,22 @@ export function describeAiRunFailureCause(
       return failure.timeoutInSeconds
         ? translator.translatePlural(
             {
-              one: "The AI provider did not answer within {{count}} second.",
-              other: "The AI provider did not answer within {{count}} seconds.",
+              one: "The LLM provider did not answer within {{count}} second.",
+              other:
+                "The LLM provider did not answer within {{count}} seconds.",
             },
             failure.timeoutInSeconds,
           )
         : (translator.translateText(
-            "The AI provider did not answer in time.",
+            "The LLM provider did not answer in time.",
           ) as string);
     case AIRunFailureKind.ProviderUnavailable:
       return translator.translateText(
-        "The AI provider could not be reached, or was too busy to answer.",
+        "The LLM provider could not be reached, or was too busy to answer.",
       ) as string;
     case AIRunFailureKind.ProviderRejected:
       return translator.translateText(
-        "The AI provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
+        "The LLM provider refused the request: its API key or model may be wrong, or its account may lack access or credit.",
       ) as string;
     case AIRunFailureKind.ContextWindow:
       return translator.translateText(
@@ -129,11 +194,18 @@ export function describeAiRunFailureCause(
       ) as string;
     case AIRunFailureKind.NotConfigured:
       return translator.translateText(
-        "There is no AI provider to use.",
+        "There is no LLM provider to use.",
       ) as string;
     case AIRunFailureKind.LimitReached:
       return translator.translateText(
         "The project reached its daily AI limit. OneUptime AI starts again at midnight UTC.",
+      ) as string;
+    case AIRunFailureKind.IncidentTokenLimitPaused:
+    case AIRunFailureKind.IncidentTokenLimitUsedUp:
+    case AIRunFailureKind.AlertTokenLimitPaused:
+    case AIRunFailureKind.AlertTokenLimitUsedUp:
+      return translator.translateText(
+        RECORD_TOKEN_LIMIT_FAILURE_WORDS[failure.failureKind].cause,
       ) as string;
     case AIRunFailureKind.CreditsUsedUp:
       return translator.translateText(
@@ -162,7 +234,7 @@ export function describeAiRunFailureFix(
       ) as string;
     case AIRunFailureKind.ProviderUnavailable:
       return translator.translateText(
-        "Check that the AI provider is up and that OneUptime can reach it, then try again.",
+        "Check that the LLM provider is up and that OneUptime can reach it, then try again.",
       ) as string;
     case AIRunFailureKind.ProviderRejected:
       return translator.translateText(
@@ -174,7 +246,7 @@ export function describeAiRunFailureFix(
       ) as string;
     case AIRunFailureKind.NotConfigured:
       return translator.translateText(
-        "Add an AI provider in Project Settings > AI > LLM Providers, then try again.",
+        "Add an LLM provider in Project Settings > AI > LLM Providers, then try again.",
       ) as string;
     /*
      * The limits and the credits are changed by fewer people than read this:
@@ -187,6 +259,14 @@ export function describeAiRunFailureFix(
     case AIRunFailureKind.CreditsUsedUp:
       return translator.translateText(
         "A project owner or someone with Manage Billing can add AI credits in Project Settings → AI → AI Credits.",
+      ) as string;
+    // The record's own limit, on the record's AI settings page.
+    case AIRunFailureKind.IncidentTokenLimitPaused:
+    case AIRunFailureKind.IncidentTokenLimitUsedUp:
+    case AIRunFailureKind.AlertTokenLimitPaused:
+    case AIRunFailureKind.AlertTokenLimitUsedUp:
+      return translator.translateText(
+        RECORD_TOKEN_LIMIT_FAILURE_WORDS[failure.failureKind].fix,
       ) as string;
     case AIRunFailureKind.ServerStopped:
       return translator.translateText(
@@ -220,6 +300,20 @@ export function describeAiRunFailure(
   };
 }
 
+/*
+ * The server's refusal of Try again or Investigate now, as the reader
+ * sees it: in the reader's language when the Dashboard words that very
+ * sentence - a record's own daily AI token limit (#7157) says the same
+ * sentence in the refusal as on the card, worded in every language - and
+ * as the server wrote it otherwise.
+ */
+export function describeAiRunRefusal(
+  message: string,
+  translator: Translator,
+): string {
+  return translator.translateText(message) || message;
+}
+
 // A time of day, as the reader's clock reads it: "14:05" or "2:05 PM".
 export function formatAiRunTime(date: Date): string {
   return OneUptimeDate.getLocalTimeString(date, {
@@ -229,7 +323,7 @@ export function formatAiRunTime(date: Date): string {
 
 /*
  * How an attempt ended, as one line of the run's activity: "Did not finish:
- * The AI provider did not answer within 120 seconds. Trying again at
+ * The LLM provider did not answer within 120 seconds. Trying again at
  * 14:05." The cause is the sentence the failure notice says, whole, so a
  * language words it once; it is put together in the line's language, so a
  * line still English reads English throughout.

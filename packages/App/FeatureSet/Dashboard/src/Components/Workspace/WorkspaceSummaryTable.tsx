@@ -49,7 +49,10 @@ import { MattermostConnectionTeam } from "Common/Models/DatabaseModels/Workspace
 import FilterCondition from "Common/Types/Filter/FilterCondition";
 import { isFilterConditionNeeded } from "Common/Types/Filter/FilterConditionUtil";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
-import WorkspaceSummarySetup from "Common/Utils/Workspace/WorkspaceSummarySetup";
+import WorkspaceSummarySetup, {
+  MAX_LOOKBACK_DAYS,
+  MIN_LOOKBACK_DAYS,
+} from "Common/Utils/Workspace/WorkspaceSummarySetup";
 import WorkspaceSummaryFirstSendPreview from "./WorkspaceSummaryFirstSendPreview";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
@@ -785,6 +788,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
              * until a number was typed.
              */
             defaultValue: 7,
+            /*
+             * 1 to 365 days, as the server holds every write to
+             * (WorkspaceSummarySetup): it took 0, which the server refused
+             * by the column's name, and -5, which it saved.
+             */
+            validation: {
+              minValue: MIN_LOOKBACK_DAYS,
+              maxValue: MAX_LOOKBACK_DAYS,
+            },
           },
           {
             field: {
@@ -1075,12 +1087,15 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
             },
             title: "Lookback",
             type: FieldType.Element,
+            // The days the summary covers, read as its report reads them.
             getElement: (value: WorkspaceNotificationSummary): ReactElement => {
               return (
                 <span>
                   {translator.translatePlural(
                     { one: "{{count}} day", other: "{{count}} days" },
-                    value.numberOfDaysOfData || 0,
+                    WorkspaceSummarySetup.getLookbackDays(
+                      value.numberOfDaysOfData,
+                    ),
                   )}
                 </span>
               );
@@ -1114,7 +1129,9 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
               other:
                 'Send the "{{name}}" summary to {{workspace}} now, with the last {{count}} days of data. The regular schedule is not affected.',
             },
-            testSummary.numberOfDaysOfData || 7,
+            WorkspaceSummarySetup.getLookbackDays(
+              testSummary.numberOfDaysOfData,
+            ),
             { name: testSummary.name || "", workspace: workspaceName },
           )}
           submitButtonText={"Send Now"}

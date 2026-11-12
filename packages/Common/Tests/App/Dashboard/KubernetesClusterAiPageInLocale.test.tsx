@@ -105,7 +105,88 @@ const TITLE: string = "Turn on automatic investigation?";
 const TURN_ON: string = "Turn on";
 const CANCEL: string = "Cancel";
 const OPEN_SETTINGS: string = "Open settings";
+const INCIDENT_AI_SETTINGS: string = "Incident AI settings";
+const ALERT_AI_SETTINGS: string = "Alert AI settings";
 const UNNAMED_PROJECT: string = "this project";
+
+/*
+ * The incidents' and the alerts' AI settings page, as each language's
+ * confirmations write the path, in its own menu words (#7158).
+ */
+const AI_SETTINGS_PATHS: Record<string, { incidents: string; alerts: string }> =
+  {
+    en: {
+      incidents: "Incidents → AI → Settings",
+      alerts: "Alerts → AI → Settings",
+    },
+    de: {
+      incidents: "Vorfälle → KI → Einstellungen",
+      alerts: "Warnungen → KI → Einstellungen",
+    },
+    fr: {
+      incidents: "Incidents → IA → Paramètres",
+      alerts: "Alertes → IA → Paramètres",
+    },
+    es: {
+      incidents: "Incidentes → IA → Ajustes",
+      alerts: "Alertas → IA → Ajustes",
+    },
+    it: {
+      incidents: "Incidenti → IA → Impostazioni",
+      alerts: "Avvisi → IA → Impostazioni",
+    },
+    pt: {
+      incidents: "Incidentes → IA → Configurações",
+      alerts: "Alertas → IA → Configurações",
+    },
+    nl: {
+      incidents: "Incidenten → AI → Instellingen",
+      alerts: "Waarschuwingen → AI → Instellingen",
+    },
+    da: {
+      incidents: "Hændelser → AI → Indstillinger",
+      alerts: "Advarsler → AI → Indstillinger",
+    },
+    no: {
+      incidents: "Hendelser → KI → Innstillinger",
+      alerts: "Varsler → KI → Innstillinger",
+    },
+    sv: {
+      incidents: "Incidenter → AI → Inställningar",
+      alerts: "Larm → AI → Inställningar",
+    },
+    ru: {
+      incidents: "Инциденты → ИИ → Настройки",
+      alerts: "Оповещения → ИИ → Настройки",
+    },
+    ja: {
+      incidents: "インシデント → AI → 設定",
+      alerts: "アラート → AI → 設定",
+    },
+    ko: { incidents: "인시던트 → AI → 설정", alerts: "알림 → AI → 설정" },
+    "zh-CN": {
+      incidents: "事件 → 人工智能 → 设置",
+      alerts: "警报 → 人工智能 → 设置",
+    },
+    "zh-TW": {
+      incidents: "事件 → 人工智慧 → 設定",
+      alerts: "警示 → 人工智慧 → 設定",
+    },
+    hi: {
+      incidents: "घटनाएं → एआई → सेटिंग्स",
+      alerts: "अलर्ट → एआई → सेटिंग्स",
+    },
+    fa: {
+      incidents: "حوادث ← هوش مصنوعی ← تنظیمات",
+      alerts: "هشدارها ← هوش مصنوعی ← تنظیمات",
+    },
+    ar: {
+      incidents: "الحوادث ← الذكاء الاصطناعي ← الإعدادات",
+      alerts: "التنبيهات ← الذكاء الاصطناعي ← الإعدادات",
+    },
+  };
+
+const ALL_LOCALES: Array<string> = Object.keys(AI_SETTINGS_PATHS);
 
 const LANGUAGES: Array<string> = ["de", "fr", "ja"];
 
@@ -450,12 +531,17 @@ describe("the automatic investigation dialog in the reader's language", () => {
           .getByTestId("modal-footer-close-button")
           .textContent?.trim(),
       ).toBe(wordingIn(code, CANCEL));
+      // Turning on both: a link to each kind's AI settings, each named.
       expect(
         within(dialog)
-          .getByText(wordingIn(code, OPEN_SETTINGS))
-          .closest("a")
-          ?.getAttribute("href"),
-      ).toBe(`/dashboard/${PROJECT_ID}/incidents/ai/settings`);
+          .getAllByRole("link")
+          .map((link: HTMLElement): string => {
+            return `${link.textContent} ${link.getAttribute("href")}`;
+          }),
+      ).toEqual([
+        `${wordingIn(code, INCIDENT_AI_SETTINGS)} /dashboard/${PROJECT_ID}/incidents/ai/settings`,
+        `${wordingIn(code, ALERT_AI_SETTINGS)} /dashboard/${PROJECT_ID}/alerts/ai/settings`,
+      ]);
 
       fireEvent.click(within(dialog).getByTestId("modal-footer-submit-button"));
 
@@ -485,28 +571,95 @@ describe("the automatic investigation dialog in the reader's language", () => {
       what: "incidents",
       settings: { incidents: false, alerts: true },
       template: AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidents,
+      page: "incidents",
     },
     {
       what: "alerts",
       settings: { incidents: true, alerts: false },
       template: AUTOMATIC_INVESTIGATION_CONFIRMATIONS.alerts,
+      page: "alerts",
     },
   ])(
-    "de: turning on $what alone reads its own sentence",
+    "de: turning on $what alone reads its own sentence, and opens its own settings",
     async (data: {
       what: string;
       settings: KubernetesClusterAiAccessStatus["automaticInvestigation"];
       template: string;
+      page: string;
     }) => {
       await setLanguage("de");
       serve(makeStatus({ automaticInvestigation: data.settings }));
       openAgentPage(acme());
 
-      expect(descriptionOf(await openConfirmation("de"))).toBe(
+      const dialog: HTMLElement = await openConfirmation("de");
+
+      expect(descriptionOf(dialog)).toBe(
         sentenceIn("de", data.template, PROJECT_NAME),
       );
+      expect(
+        within(dialog)
+          .getAllByRole("link")
+          .map((link: HTMLElement): string => {
+            return `${link.textContent} ${link.getAttribute("href")}`;
+          }),
+      ).toEqual([
+        `${wordingIn("de", OPEN_SETTINGS)} /dashboard/${PROJECT_ID}/${data.page}/ai/settings`,
+      ]);
     },
   );
+
+  /*
+   * #7158: each language names the page of each kind it turns on, in its
+   * own menu words, and only that page: the alerts' sentence never sends
+   * anyone to the incidents' AI settings.
+   */
+  test.each(ALL_LOCALES)(
+    "%s: the alerts' sentence names the alerts' AI settings, never the incidents'",
+    (code: string) => {
+      const words: Record<string, string> = readLocale(code);
+      const paths: { incidents: string; alerts: string } =
+        AI_SETTINGS_PATHS[code]!;
+      const alerts: string =
+        words[AUTOMATIC_INVESTIGATION_CONFIRMATIONS.alerts]!;
+      const incidents: string =
+        words[AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidents]!;
+      const both: string =
+        words[AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidentsAndAlerts]!;
+
+      expect({
+        alerts: {
+          namesAlerts: alerts.includes(paths.alerts),
+          namesIncidents: alerts.includes(paths.incidents),
+        },
+        incidents: {
+          namesAlerts: incidents.includes(paths.alerts),
+          namesIncidents: incidents.includes(paths.incidents),
+        },
+        both: {
+          namesAlerts: both.includes(paths.alerts),
+          namesIncidents: both.includes(paths.incidents),
+        },
+      }).toEqual({
+        alerts: { namesAlerts: true, namesIncidents: false },
+        incidents: { namesAlerts: false, namesIncidents: true },
+        both: { namesAlerts: true, namesIncidents: true },
+      });
+    },
+  );
+
+  test("the paths above cover every Dashboard language", () => {
+    expect(
+      fs
+        .readdirSync(LOCALES_DIR)
+        .filter((file: string): boolean => {
+          return file.endsWith(".json");
+        })
+        .map((file: string): string => {
+          return file.replace(/\.json$/, "");
+        })
+        .sort(),
+    ).toEqual([...ALL_LOCALES].sort());
+  });
 
   // Even without the project's name the sentence stays in one language.
   test("de: a project whose name the page does not know is this project, in German", async () => {
@@ -670,7 +823,7 @@ describe("the AI agent page in the reader's language", () => {
         ],
         [
           "llm_provider_missing",
-          "Add an AI provider for this project, or use OneUptime AI credits.",
+          "Add an LLM provider for this project, or use OneUptime AI credits.",
           "Open LLM Providers",
         ],
       ] as Array<[string, string, string]>) {

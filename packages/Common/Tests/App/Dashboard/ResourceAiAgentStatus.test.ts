@@ -1782,7 +1782,7 @@ describe("Needs attention's steps", () => {
     ["ai_disabled_for_project", "Turn on AI for this project."],
     [
       "llm_provider_missing",
-      "Add an AI provider for this project, or use OneUptime AI credits.",
+      "Add an LLM provider for this project, or use OneUptime AI credits.",
     ],
     // Not "or turn on auto-recharge": the gap shows when it cannot refill.
     ["ai_balance_insufficient", "Add AI credits to this project."],

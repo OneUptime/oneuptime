@@ -34,3 +34,4 @@ export * from "./ProfilesBreadcrumbs";
 export * from "./InventoryBreadcrumbs";
 export * from "./UsersBreadcrumbs";
 export * from "./TeamsBreadcrumbs";
+export * from "./HomeBreadcrumbs";

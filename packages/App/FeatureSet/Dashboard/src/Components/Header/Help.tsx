@@ -17,17 +17,25 @@ import {
 } from "Common/UI/Utils/Glossary";
 import EventName from "../../Utils/EventName";
 import {
+  GiveFeedbackOpenedFrom,
+  openGiveFeedback,
+} from "../Feedback/GiveFeedbackDialog";
+import {
   HowOneUptimeWorksOpenedFrom,
   openHowOneUptimeWorks,
 } from "../Home/HowOneUptimeWorksDialog";
+import ProductFeedback, {
+  useProductFeedbackSettings,
+} from "Common/UI/Utils/ProductFeedback";
 import React, { ReactElement, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 /*
  * Help starts with learning: the Quickstart, How OneUptime works, the
  * Glossary and the Documentation, in the order someone new reaches for
- * them. Then the ways to ask: the keyboard shortcuts, support by email and
- * on Slack, and a demo.
+ * them. Then the ways to ask: Give feedback (where the server takes it,
+ * #6832), the keyboard shortcuts, support by email and on Slack, and a
+ * demo.
  *
  * Every docs page opens on this OneUptime instance (DOCS_URL), so it works
  * for self-hosted installs without internet access too, and in the
@@ -80,6 +88,8 @@ export const useHelpEntries: (
   const { t, i18n } = useTranslation();
   const language: string | undefined =
     i18n?.resolvedLanguage || i18n?.language || undefined;
+  // Give feedback appears once the server says it takes feedback.
+  useProductFeedbackSettings();
 
   return {
     learn: [
@@ -124,6 +134,26 @@ export const useHelpEntries: (
       },
     ],
     ask: [
+      /*
+       * Tell OneUptime what was hard, from any page (#6832): kept on this
+       * server for its admins. Only where the server takes feedback.
+       */
+      ...(ProductFeedback.isOn()
+        ? [
+            {
+              id: "give-feedback",
+              title: t("help.giveFeedback", "Give feedback"),
+              icon: IconProp.ChatBubbleLeftRight,
+              onSelect: () => {
+                openGiveFeedback(
+                  openedFrom === HowOneUptimeWorksOpenedFrom.PhoneMenu
+                    ? GiveFeedbackOpenedFrom.PhoneMenu
+                    : GiveFeedbackOpenedFrom.Help,
+                );
+              },
+            } as HelpEntry,
+          ]
+        : []),
       /*
        * "?" opens this dialog from anywhere, but only for people who
        * already know that. Help is where someone looks when they do not,

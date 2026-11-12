@@ -267,10 +267,23 @@ describe("Home's frame", () => {
     ).toEqual(["Project", "Home"]);
   });
 
-  test("Home's pages are the overview and its frame, and no side menu", () => {
+  /*
+   * Setup Health (#6812) is the one page under Home besides the overview: a
+   * page of its own about the whole project, opened from Needs attention -
+   * not a copy of a product's list - with no side menu either.
+   */
+  test("Home's pages are the overview and its frame, Setup Health, and no side menu", () => {
     expect(
       fs.readdirSync(path.join(DASHBOARD_SRC, "Pages", "Home")).sort(),
-    ).toEqual(["Home.tsx", "Layout.tsx"]);
+    ).toEqual(["Home.tsx", "Layout.tsx", "SetupHealth.tsx"]);
+
+    const setupHealth: string = fs.readFileSync(
+      path.join(DASHBOARD_SRC, "Pages", "Home", "SetupHealth.tsx"),
+      "utf8",
+    );
+
+    expect(setupHealth).not.toMatch(/sideMenu\s*=/);
+    expect(setupHealth).not.toMatch(/SideMenu/);
 
     const frame: string = fs.readFileSync(
       path.join(DASHBOARD_SRC, "Pages", "Home", "Layout.tsx"),
@@ -281,7 +294,7 @@ describe("Home's frame", () => {
     expect(frame).not.toMatch(/SideMenu/);
   });
 
-  test("nothing in the RouteMap is under Home but Home and its forwards", () => {
+  test("nothing in the RouteMap is under Home but Home, Setup Health and the forwards", () => {
     const underHome: Array<string> = Object.keys(RouteMap).filter(
       (key: string): boolean => {
         return (RouteMap[key] as Route)
@@ -291,7 +304,14 @@ describe("Home's frame", () => {
     );
 
     expect(underHome.sort()).toEqual(
-      [PageMap.HOME, PageMap.MOVED_HOME_LISTS_ROOT].sort(),
+      [
+        PageMap.HOME,
+        PageMap.HOME_SETUP_HEALTH,
+        PageMap.MOVED_HOME_LISTS_ROOT,
+      ].sort(),
+    );
+    expect((RouteMap[PageMap.HOME_SETUP_HEALTH] as Route).toString()).toBe(
+      "/dashboard/:projectId/home/setup-health",
     );
     expect(HOME_ROUTE).toBe("/dashboard/:projectId/home/");
     expect(FORWARDS_ROUTE).toBe("/dashboard/:projectId/home/*");
