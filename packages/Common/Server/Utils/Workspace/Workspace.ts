@@ -1,4 +1,6 @@
-import WorkspaceType from "../../../Types/Workspace/WorkspaceType";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../../Types/Workspace/WorkspaceType";
 import WorkspaceBase, {
   WorkspaceChannel,
   WorkspaceSendMessageResponse,
@@ -27,6 +29,7 @@ import OneUptimeDate from "../../../Types/Date";
 import PromptText from "../../../Utils/AI/PromptText";
 import BlockedProjectNotifications from "../Notification/BlockedProjectNotifications";
 import WorkspaceDeliveryMetrics from "./WorkspaceDeliveryMetrics";
+import ProductBrandingText from "../ProductBrandingText";
 
 export interface WorkspaceChannelMessage {
   messageId: string;
@@ -302,15 +305,15 @@ export default class WorkspaceUtil {
     /*
      * A project a master admin blocked posts nothing as its bot
      * (BlockedProjectNotifications): answered as a project with no
-     * workspace connected is, one empty answer per payload. Each channel a
-     * payload names is not sent, for the platform's operator
-     * (WorkspaceDeliveryMetrics).
+     * workspace connected is, one empty answer per payload, which says why
+     * (notSentReason). Each channel a payload names is not sent, for the
+     * platform's operator (WorkspaceDeliveryMetrics).
      */
     if (await BlockedProjectNotifications.isBlocked(data.projectId)) {
-      logger.debug(
-        BlockedProjectNotifications.getNotSentReason("Workspace message"),
-        workspaceLogAttributes,
-      );
+      const blockedReason: string =
+        BlockedProjectNotifications.getNotSentReason("Workspace message");
+
+      logger.debug(blockedReason, workspaceLogAttributes);
 
       return data.messagePayloadsByWorkspace.map(
         (payload: WorkspaceMessagePayload): WorkspaceSendMessageResponse => {
@@ -319,7 +322,11 @@ export default class WorkspaceUtil {
             payload: payload,
           });
 
-          return { workspaceType: payload.workspaceType, threads: [] };
+          return {
+            workspaceType: payload.workspaceType,
+            threads: [],
+            notSentReason: blockedReason,
+          };
         },
       );
     }
@@ -335,6 +342,10 @@ export default class WorkspaceUtil {
         responses.push({
           workspaceType: messagePayloadByWorkspace.workspaceType,
           threads: [],
+          notSentReason: WorkspaceUtil.getCannotPostAsBotReason({
+            workspaceType: messagePayloadByWorkspace.workspaceType,
+            isConnected: false,
+          }),
         });
 
         continue;
@@ -352,6 +363,10 @@ export default class WorkspaceUtil {
           responses.push({
             workspaceType: workspaceType,
             threads: [],
+            notSentReason: WorkspaceUtil.getCannotPostAsBotReason({
+              workspaceType: workspaceType,
+              isConnected: true,
+            }),
           });
           continue;
         }
@@ -361,6 +376,10 @@ export default class WorkspaceUtil {
         responses.push({
           workspaceType: workspaceType,
           threads: [],
+          notSentReason: WorkspaceUtil.getCannotPostAsBotReason({
+            workspaceType: workspaceType,
+            isConnected: true,
+          }),
         });
         continue;
       }
@@ -387,6 +406,11 @@ export default class WorkspaceUtil {
         );
         logger.error(err, workspaceLogAttributes);
 
+        /*
+         * What was thrown, readable whatever it is: Slack's and Microsoft
+         * Graph's lookups throw their HTTP error response itself, which
+         * String() wrote as "[object Object]" (WorkspaceBase).
+         */
         responses.push({
           workspaceType: workspaceType,
           threads: [],
@@ -395,10 +419,7 @@ export default class WorkspaceUtil {
               channel: WorkspaceUtil.describePayloadDestination(
                 messagePayloadByWorkspace,
               ),
-              error:
-                err instanceof Error
-                  ? err.message
-                  : String(err || "Failed to send message"),
+              error: WorkspaceBase.getSendErrorMessage(err),
             },
           ],
         });
@@ -413,6 +434,24 @@ export default class WorkspaceUtil {
     logger.debug(JSON.stringify(responses, null, 2), workspaceLogAttributes);
 
     return responses;
+  }
+
+  /*
+   * Why nothing is posted as the project's bot in a workspace: the project
+   * is not connected to it, or its connection has nothing OneUptime can
+   * post with (no bot user, no token), which reconnecting gives it.
+   */
+  public static getCannotPostAsBotReason(data: {
+    workspaceType: WorkspaceType;
+    isConnected: boolean;
+  }): string {
+    const workspace: string = getWorkspaceTypeDisplayName(data.workspaceType);
+
+    if (!data.isConnected) {
+      return `This project is not connected to ${workspace}. Please ask a project admin to connect ${workspace} in Project Settings > Workspace > ${workspace}.`;
+    }
+
+    return `${ProductBrandingText.getProductName()} cannot post in ${workspace} with this project's connection. Please ask a project admin to reconnect ${workspace} in Project Settings > Workspace > ${workspace}.`;
   }
 
   // The destination a payload was addressed to, for error logs.

@@ -40,6 +40,16 @@ export interface WorkspaceSendMessageResponse {
     channel: WorkspaceChannel;
     error: string;
   }>;
+  /*
+   * Why nothing of the message was sent, when the workspace was never asked
+   * to send it (WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot): a
+   * project a master admin blocked, a workspace the project is not
+   * connected to, or a connection OneUptime cannot post with as its bot.
+   * Such a message has no threads and no errors, so a caller that reports
+   * each channel - a workspace summary's Notification Logs - says this
+   * rather than that it was sent.
+   */
+  notSentReason?: string | undefined;
 }
 
 export interface WorkspaceChannel {
