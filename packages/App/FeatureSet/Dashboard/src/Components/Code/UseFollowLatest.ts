@@ -111,6 +111,41 @@ export const scrollPageToEnd: () => void = (): void => {
 };
 
 /*
+ * The page to its end now, and once more on the next frame - unless the
+ * reader went back up meanwhile. What lays out a moment after the reply
+ * is drawn moves the end down below the window: the styles the page
+ * writes for elements it has not drawn before (its Tailwind runs in the
+ * browser, after each change), and the replies' Markdown when it comes in
+ * with the reply - a reply sent as a long task opened was drawn some 1,100
+ * pixels under the window. Returns what cancels the second.
+ */
+export const goToPageEnd: () => () => void = (): (() => void) => {
+  scrollPageToEnd();
+
+  const scroller: Element | null = getScroller();
+
+  if (
+    !scroller ||
+    typeof window === "undefined" ||
+    typeof window.requestAnimationFrame !== "function"
+  ) {
+    return (): void => {};
+  }
+
+  const scrolledTo: number = scroller.scrollTop;
+
+  const frame: number = window.requestAnimationFrame((): void => {
+    if (scroller.scrollTop >= scrolledTo) {
+      scrollPageToEnd();
+    }
+  });
+
+  return (): void => {
+    window.cancelAnimationFrame(frame);
+  };
+};
+
+/*
  * The page's sticky header, as tall as MasterPage measures it
  * (--app-header-height): what covers the top of the window.
  */

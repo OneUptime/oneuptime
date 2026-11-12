@@ -4464,6 +4464,66 @@ test.describe("a task of more than 200 turns", () => {
     ]);
   });
 
+  /*
+   * The page's Tailwind runs in the browser: it writes the styles of
+   * elements it has not drawn before just after React draws them, before
+   * the next frame. A reply sent as this task opened - its replies'
+   * Markdown coming in with the reply - was drawn some 1,100 pixels under
+   * the window, the page short of its end, so AI's steps were not followed
+   * either. Here the conversation grows 1,100 pixels at its end the same
+   * way, the moment the reply is drawn.
+   */
+  test("a reply ends at the end of the page even when more lays out just after it is drawn", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    // What it checks does not depend on the screen's width.
+    test.skip(isPhone(testInfo), "width-independent");
+    await openTask(page, LONG_TASK_ID, "long=1");
+    await expect(turnReplies(page).last()).toContainText(
+      "Nothing needed changing.",
+    );
+
+    await page.evaluate((): void => {
+      const list: HTMLElement | null = document.querySelector(
+        "[data-testid='code-task-turns']",
+      );
+      const observer: MutationObserver = new MutationObserver((): void => {
+        if (list && list.textContent?.includes("Now the ledger handler.")) {
+          observer.disconnect();
+          list.style.paddingBottom = "1100px";
+        }
+      });
+
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+      });
+    });
+
+    await composerInput(page).fill("Now the ledger handler.");
+    await sendButton(page).click();
+
+    await expect(
+      page.getByTestId("code-turn-request-message").last(),
+    ).toHaveText("Now the ledger handler.");
+    await expect(page.getByTestId("code-task-turns")).toHaveCSS(
+      "padding-bottom",
+      "1100px",
+    );
+    // At its end, 1,100 pixels further down than where the reply was drawn.
+    await expect
+      .poll(async (): Promise<number> => {
+        const position: { scrollY: number; maxScrollY: number } =
+          await scrollPosition(page);
+        return position.maxScrollY - position.scrollY;
+      })
+      .toBeLessThanOrEqual(1);
+    expect((await scrollPosition(page)).maxScrollY).toBeGreaterThan(60000);
+  });
+
   test("its Log numbers each turn where it stands in the task: Turn 1, then Turn 9", async ({
     page,
   }: {
@@ -4480,12 +4540,20 @@ test.describe("a task of more than 200 turns", () => {
 
     await picker.getByRole("combobox").click();
     const options: Locator = page.getByRole("option");
-    await expect(options).toHaveCount(200);
+    // The 200 turns the task's page shows, and the line between them.
+    await expect(options).toHaveCount(201);
     await expect(options.nth(0)).toContainText("Turn 1");
-    await expect(options.nth(1)).toContainText("Turn 9");
+    /*
+     * Where the conversation draws its line, the picker says the same, on
+     * a line that is never picked: Turn 1, then Turn 9, is the task's own
+     * numbering, not turns gone missing.
+     */
+    await expect(options.nth(1)).toHaveText("7 earlier turns are not shown");
+    await expect(options.nth(1)).toHaveAttribute("aria-disabled", "true");
+    await expect(options.nth(2)).toContainText("Turn 9");
     await expect(options.last()).toContainText("Turn 207");
 
-    await options.nth(1).click();
+    await options.nth(2).click();
     await expect(page).toHaveURL(
       `${taskPath(LONG_TASK_ID)}/log?turn=${LONG_TASK_TURN_9}`,
     );

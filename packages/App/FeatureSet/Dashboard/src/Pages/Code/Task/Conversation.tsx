@@ -35,7 +35,7 @@ import {
 } from "../../../Components/Code/CodeTaskLive";
 import useCodeTaskLive from "../../../Components/Code/UseCodeTaskLive";
 import useFollowLatest, {
-  scrollPageToEnd,
+  goToPageEnd,
 } from "../../../Components/Code/UseFollowLatest";
 import {
   CodePullRequestCopy,
@@ -144,6 +144,9 @@ const CodeTaskConversation: FunctionComponent<
    */
   const isGoingToEndRef: React.MutableRefObject<boolean> =
     useRef<boolean>(false);
+  // Cancels the second look at the end (goToPageEnd), if the page goes first.
+  const cancelGoingToEndRef: React.MutableRefObject<(() => void) | null> =
+    useRef<(() => void) | null>(null);
   // The conversation's turns: its last item is the latest turn's reply.
   const turnsRef: React.RefObject<HTMLOListElement> =
     useRef<HTMLOListElement>(null);
@@ -252,9 +255,10 @@ const CodeTaskConversation: FunctionComponent<
   /*
    * The reply just sent, drawn at the end of the conversation: the page
    * goes there before it is painted, from wherever the reader sent it - a
-   * long task's first turn is as near the reply box as its newest. Before
-   * useFollowLatest, which then finds the reader at the end, watching AI
-   * take up the reply.
+   * long task's first turn is as near the reply box as its newest - and
+   * again on the next frame, once what lays out a moment later is in.
+   * Before useFollowLatest, which then finds the reader at the end,
+   * watching AI take up the reply.
    */
   useLayoutEffect(() => {
     if (!data || !isGoingToEndRef.current) {
@@ -262,8 +266,15 @@ const CodeTaskConversation: FunctionComponent<
     }
 
     isGoingToEndRef.current = false;
-    scrollPageToEnd();
+    cancelGoingToEndRef.current?.();
+    cancelGoingToEndRef.current = goToPageEnd();
   }, [data]);
+
+  useEffect(() => {
+    return (): void => {
+      cancelGoingToEndRef.current?.();
+    };
+  }, []);
 
   useFollowLatest({
     growthKey: data ? getConversationGrowthKey(data.turns) : "",

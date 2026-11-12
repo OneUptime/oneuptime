@@ -93,6 +93,7 @@ jest.mock("../../../UI/Components/Markdown.tsx/LazyMarkdownViewer", () => {
 
 import CodeTaskConversation from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Conversation";
 import { CODE_TASK_TURNS_NOT_SHOWN_COPY } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeTaskTurnsNotShown";
+import { goToPageEnd } from "../../../../App/FeatureSet/Dashboard/src/Components/Code/UseFollowLatest";
 
 const TASK_ID: string = "7d8e9f0a-1b2c-4d3e-8f4a-5b6c7d8e9f0a";
 const REPOSITORY_ID: string = "6c7d8e9f-0a1b-4c2d-9e3f-4a5b6c7d8e9f";
@@ -394,6 +395,12 @@ describe("a long task's conversation", () => {
 describe("a reply sent from far up a long task", () => {
   const WINDOW_HEIGHT: number = 800;
   let scrollTop: number = 0;
+  /*
+   * What lays out after a commit, before the next frame: in a browser, the
+   * styles the page's Tailwind writes for elements it has not drawn before,
+   * or replies' Markdown drawn with the reply.
+   */
+  let laidOutLater: number = 0;
 
   /*
    * The page's height as drawn: 100 pixels for each turn up to the newest
@@ -409,11 +416,12 @@ describe("a reply sent from far up a long task", () => {
       )?.[1] || 0,
     );
 
-    return newest * 100 + 400;
+    return newest * 100 + 400 + laidOutLater;
   }
 
   beforeEach(() => {
     scrollTop = 0;
+    laidOutLater = 0;
     Object.defineProperty(document.documentElement, "scrollTop", {
       configurable: true,
       get: (): number => {
@@ -490,6 +498,50 @@ describe("a reply sent from far up a long task", () => {
     });
     // The end of the page with turn 206 drawn (20,200), not of the page before it (20,100).
     expect(scrollTop).toBe(206 * 100 + 400 - WINDOW_HEIGHT);
+  });
+
+  /*
+   * In a browser, a reply sent as a long task opened was drawn some 1,100
+   * pixels under the window: the replies' Markdown came in with it, and
+   * its styles after the page had gone to its end. The page looks at its
+   * end once more on the next frame.
+   */
+  test("what lays out after the reply is drawn still ends in view: the page goes to its end again on the next frame", async () => {
+    const frames: Array<FrameRequestCallback> = [];
+
+    jest.spyOn(window, "requestAnimationFrame").mockImplementation(((
+      callback: FrameRequestCallback,
+    ): number => {
+      frames.push(callback);
+      return frames.length;
+    }) as never);
+
+    await drawLongTask({ count: 201, workMilliseconds: 0 });
+    replyMock.mockResolvedValue(undefined as never);
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        turns: NEWEST_OF_206,
+        turnsNotShown: { count: 202, workMilliseconds: 0 },
+      }) as never,
+    );
+
+    await sendReply();
+    await waitFor(() => {
+      expect(scrollTop).toBe(206 * 100 + 400 - WINDOW_HEIGHT);
+    });
+
+    // Laid out after the commit: the end moves 1,100 pixels down.
+    laidOutLater = 1100;
+    expect(scrollTop).toBe(206 * 100 + 400 - WINDOW_HEIGHT);
+
+    // The next frame.
+    act(() => {
+      for (const frame of frames.splice(0)) {
+        frame(0);
+      }
+    });
+
+    expect(scrollTop).toBe(206 * 100 + 400 + 1100 - WINDOW_HEIGHT);
   });
 
   test("negative control: a reply the server refuses leaves the reader where they are - then and at the next read", async () => {
@@ -574,6 +626,108 @@ describe("a reply sent from far up a long task", () => {
     });
     await settle();
     expect(getTaskMock).toHaveBeenCalledTimes(3);
+    expect(scrollTop).toBe(0);
+  });
+});
+
+/*
+ * goToPageEnd: the page to its end now, and once more on the next frame,
+ * unless what asked for it is gone by then.
+ */
+describe("going to the end of the page", () => {
+  let scrollTop: number = 0;
+  let scrollHeight: number = 5000;
+
+  beforeEach(() => {
+    scrollTop = 0;
+    scrollHeight = 5000;
+    Object.defineProperty(document.documentElement, "scrollTop", {
+      configurable: true,
+      get: (): number => {
+        return scrollTop;
+      },
+      set: (value: number): void => {
+        scrollTop = value;
+      },
+    });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      get: (): number => {
+        return scrollHeight;
+      },
+    });
+    Object.defineProperty(document.documentElement, "clientHeight", {
+      configurable: true,
+      get: (): number => {
+        return 800;
+      },
+    });
+  });
+
+  afterEach(() => {
+    for (const key of ["scrollTop", "scrollHeight", "clientHeight"]) {
+      Reflect.deleteProperty(document.documentElement, key);
+    }
+  });
+
+  function holdFrames(): Array<FrameRequestCallback> {
+    const frames: Array<FrameRequestCallback> = [];
+
+    jest.spyOn(window, "requestAnimationFrame").mockImplementation(((
+      callback: FrameRequestCallback,
+    ): number => {
+      frames.push(callback);
+      return frames.length;
+    }) as never);
+
+    return frames;
+  }
+
+  test("goes there at once, and again on the next frame, to the end as it is then", () => {
+    const frames: Array<FrameRequestCallback> = holdFrames();
+
+    goToPageEnd();
+    expect(scrollTop).toBe(4200);
+    expect(frames).toHaveLength(1);
+
+    scrollHeight = 6100;
+    frames[0]!(0);
+
+    expect(scrollTop).toBe(5300);
+  });
+
+  test("negative control: a reader who went back up before the next frame is left there", () => {
+    const frames: Array<FrameRequestCallback> = holdFrames();
+
+    goToPageEnd();
+    expect(scrollTop).toBe(4200);
+
+    scrollHeight = 6100;
+    scrollTop = 1000;
+    frames[0]!(0);
+
+    expect(scrollTop).toBe(1000);
+  });
+
+  test("negative control: what it returns cancels the second look", () => {
+    const frames: Array<FrameRequestCallback> = holdFrames();
+    const cancelSpy: ReturnType<typeof jest.spyOn> = jest
+      .spyOn(window, "cancelAnimationFrame")
+      .mockImplementation((() => {}) as never);
+
+    const cancel: () => void = goToPageEnd();
+    cancel();
+
+    expect(cancelSpy).toHaveBeenCalledWith(1);
+    expect(frames).toHaveLength(1);
+  });
+
+  test("a page shorter than its window stays at its top", () => {
+    holdFrames();
+    scrollHeight = 600;
+
+    goToPageEnd();
+
     expect(scrollTop).toBe(0);
   });
 });
