@@ -50776,6 +50776,9 @@
   "{{count}} steps left in your setup checklist_one": "{{count}} trin tilbage i din opsætningstjekliste",
   "{{schedule}}, until at least {{time}}": "{{schedule}}, indtil mindst {{time}}",
   "{{schedule}}, until {{time}}": "{{schedule}}, indtil {{time}}",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "AI læste disse {{count}} filer tidligere i dette svar og har ikke længere deres tekst, og AI's versioner erstatter filerne helt: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "AI læste denne fil tidligere i dette svar og har ikke længere dens tekst, og AI's version erstatter hele filen: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "AI læste denne fil tidligere i dette svar og har ikke længere dens tekst, og AI's version erstatter hele filen: {{files}}.",
   "Monitoring is off for every monitor in this group, so it has no uptime to show.": "Overvågning er slået fra for alle monitorer i denne gruppe, så der er ingen oppetid at vise.",
   "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Denne gruppes status de seneste 90 dage, én bjælke pr. dag. Monitorer, hvor overvågning er slået fra, er udeladt."
 }

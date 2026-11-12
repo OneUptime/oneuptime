@@ -108,7 +108,14 @@ describe("Ask AI links what an incident or alert is about", () => {
 
     // The line the server prepared, in the reader's language (ToolActionWords).
     expect(card).toContain("getToolActionDescription(action, translator)");
-    expect(card).toContain("<ToolActionSentences sentences={description} />");
+    /*
+     * What an action links runs as one paragraph; only a code change's
+     * cautions are drawn a line each (issue #6570's UI review).
+     */
+    expect(card).toMatch(
+      /lineSentences: Array<DrawnActionSentence> =\s*description\.filter\(/,
+    );
+    expect(card).toContain("<ToolActionSentences sentences={lineSentences} />");
     expect(runner).toMatch(
       /await this\.prepareMutation\(toolCall, \{\s*\.\.\.toolContext,/,
     );

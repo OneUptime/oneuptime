@@ -50776,6 +50776,9 @@
   "{{count}} steps left in your setup checklist_one": "Остался {{count}} шаг в контрольном списке настройки",
   "{{schedule}}, until at least {{time}}": "{{schedule}}, как минимум до {{time}}",
   "{{schedule}}, until {{time}}": "{{schedule}}, до {{time}}",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}.": "ИИ прочитал эти файлы ({{count}}) раньше в этом же ответе и больше не видит их текста, а версии ИИ заменяют их целиком: {{files}}.",
+  "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}.",
+  "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}.",
   "Monitoring is off for every monitor in this group, so it has no uptime to show.": "Мониторинг выключен для всех мониторов этой группы, поэтому данных о доступности нет.",
   "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Статус этой группы за последние 90 дней, по одному столбцу на день. Мониторы с выключенным мониторингом не учитываются."
 }
