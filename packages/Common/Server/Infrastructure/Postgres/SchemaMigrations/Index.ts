@@ -972,6 +972,7 @@ import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "./18091226
 import { AddProjectProductsAndPins1809122700000 } from "./1809122700000-AddProjectProductsAndPins";
 import { AddProductFeedback1809123000000 } from "./1809123000000-AddProductFeedback";
 import { AddAmazonSesAuthenticationType1809123100000 } from "./1809123100000-AddAmazonSesAuthenticationType";
+import { AddDashboardRecordingSwitches1809123200000 } from "./1809123200000-AddDashboardRecordingSwitches";
 
 export default [
   InitialMigration,
@@ -1948,4 +1949,5 @@ export default [
   AddProjectProductsAndPins1809122700000,
   AddProductFeedback1809123000000,
   AddAmazonSesAuthenticationType1809123100000,
+  AddDashboardRecordingSwitches1809123200000,
 ];
