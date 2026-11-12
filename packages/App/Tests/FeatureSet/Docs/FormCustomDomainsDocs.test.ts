@@ -108,9 +108,7 @@ describe("Forms on custom domains (English docs)", () => {
     const adding: string = section(SHARING, "### Adding the domain");
 
     expect(adding).toContain(`Click **${CustomDomainCopy.addTitle}**.`);
-    expect(adding).not.toContain(
-      `**Create ${new FormDomain().singularName}**`,
-    );
+    expect(adding).not.toContain(`**Create ${new FormDomain().singularName}**`);
     expect(adding).toContain(
       `placeholder \`${FORM_CUSTOM_DOMAIN_COPY.addressPlaceholder}\``,
     );

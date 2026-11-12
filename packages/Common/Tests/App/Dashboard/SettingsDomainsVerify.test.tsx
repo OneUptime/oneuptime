@@ -52,29 +52,26 @@ jest.mock("../../../UI/Components/ModelTable/ModelTable", () => {
         domainVerificationText: "oneuptime-verification-abc",
       };
 
-      const actions: Array<{
+      type ActionButton = {
         title: string;
         onClick: (
           item: Record<string, unknown>,
           done: () => void,
           fail: () => void,
         ) => void;
-      }> = (props["actionButtons"] || []) as never;
+      };
+
+      const actions: Array<ActionButton> = (props["actionButtons"] ||
+        []) as never;
 
       return (
         <section data-testid="domains-table">
-          {actions.map((action: { title: string; onClick: never }) => {
+          {actions.map((action: ActionButton) => {
             return (
               <button
                 key={action.title}
                 onClick={() => {
-                  (
-                    action.onClick as (
-                      item: Record<string, unknown>,
-                      done: () => void,
-                      fail: () => void,
-                    ) => void
-                  )(
+                  action.onClick(
                     row,
                     () => {},
                     () => {},

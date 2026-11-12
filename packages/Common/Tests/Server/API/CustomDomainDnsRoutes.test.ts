@@ -231,24 +231,20 @@ function setUp(
 ): Spies {
   jest
     .spyOn(CommonAPI, "getDatabaseCommonInteractionProps")
-    .mockResolvedValue(
-      customDomainCaller({ permissions: kind.permissions }),
-    );
+    .mockResolvedValue(customDomainCaller({ permissions: kind.permissions }));
 
   return {
-    findOneBy: jest
-      .spyOn(kind.service as never, "findOneBy")
-      .mockResolvedValue(
-        (data.canSee === false
-          ? null
-          : {
-              _id: domainId.toString(),
-              id: domainId,
-              fullDomain: "status.acme.com",
-              isCustomCertificate: false,
-              isSslOrdered: false,
-            }) as never,
-      ) as unknown as MockedFn,
+    findOneBy: jest.spyOn(kind.service as never, "findOneBy").mockResolvedValue(
+      (data.canSee === false
+        ? null
+        : {
+            _id: domainId.toString(),
+            id: domainId,
+            fullDomain: "status.acme.com",
+            isCustomCertificate: false,
+            isSslOrdered: false,
+          }) as never,
+    ) as unknown as MockedFn,
     checkCname: jest
       .spyOn(kind.service as never, "checkCname")
       .mockResolvedValue(
@@ -278,7 +274,11 @@ async function callRoute(
 
   await mockRouter
     .match("GET", route)
-    .handlerFunction(req, {} as ExpressResponse, next as unknown as NextFunction);
+    .handlerFunction(
+      req,
+      {} as ExpressResponse,
+      next as unknown as NextFunction,
+    );
 
   return { next };
 }
@@ -311,7 +311,8 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-for (const kind of KINDS) {
+// One kind's routes. Its tests read the state each beforeEach sets.
+const describeKind: (kind: KindCase) => void = (kind: KindCase): void => {
   const CHECK_DNS: string = `${kind.crudApiPath}/check-dns/:id`;
   const VERIFY: string = `${kind.crudApiPath}/verify-cname/:id`;
   const READINESS: string = `${kind.crudApiPath}/server-readiness`;
@@ -439,7 +440,9 @@ for (const kind of KINDS) {
 
     test("on a self-hosted server, checks this kind's target and names its setting", async () => {
       setUp(kind, {});
-      jest.spyOn(kind.service as never, "findBy").mockResolvedValue([] as never);
+      jest
+        .spyOn(kind.service as never, "findBy")
+        .mockResolvedValue([] as never);
 
       const readiness: CustomDomainServerReadinessResult = {
         target: kind.target,
@@ -471,7 +474,9 @@ for (const kind of KINDS) {
     test("on OneUptime Cloud there is nothing to check", async () => {
       mockIsBillingEnabled = true;
       setUp(kind, {});
-      jest.spyOn(kind.service as never, "findBy").mockResolvedValue([] as never);
+      jest
+        .spyOn(kind.service as never, "findBy")
+        .mockResolvedValue([] as never);
 
       const check: MockedFn = jest.spyOn(
         CustomDomainServerReadiness,
@@ -481,9 +486,9 @@ for (const kind of KINDS) {
       await callRoute(READINESS, {});
 
       expect(check).not.toHaveBeenCalled();
-      expect(CustomDomainServerReadinessJSON.fromJSON(answered()).checks).toEqual(
-        [],
-      );
+      expect(
+        CustomDomainServerReadinessJSON.fromJSON(answered()).checks,
+      ).toEqual([]);
     });
 
     test("somebody who may not read this kind's domains is refused, and nothing is checked", async () => {
@@ -505,6 +510,10 @@ for (const kind of KINDS) {
       expect(refusal()).toBeInstanceOf(NotAuthorizedException);
     });
   });
+};
+
+for (const kind of KINDS) {
+  describeKind(kind);
 }
 
 describe("the refusal's words", () => {

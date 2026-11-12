@@ -2,6 +2,7 @@ import { PromiseVoidFunction } from "Common/Types/FunctionTypes";
 import { EVERY_HOUR } from "Common/Utils/CronTime";
 import fs from "fs";
 import path from "path";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 /*
  * `jest` deliberately NOT imported from @jest/globals: the `jest.Mock`
  * type annotations below must resolve to the same @types/jest global
@@ -150,7 +151,7 @@ describe.each(JOBS)("$name - wired into the worker", (job: Job) => {
 
     expect(indexSource).toMatch(
       new RegExp(
-        `^\\s*import\\s+["']\\./${job.file.replace(/\//g, "\\/")}["']\\s*;?\\s*$`,
+        `^\\s*import\\s+["']\\./${escapeRegExp(job.file)}["']\\s*;?\\s*$`,
         "m",
       ),
     );

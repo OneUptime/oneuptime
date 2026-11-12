@@ -3,6 +3,7 @@ import Event from "../../../Utils/Uptime/Event";
 import Color from "../../../Types/Color";
 import ObjectID from "../../../Types/ObjectID";
 import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 import { describe, expect, test } from "@jest/globals";
 
 /*
@@ -635,14 +636,25 @@ describe("WorstStatusTimeline.merge", () => {
       }
     }
 
-    const startedAt: number = Date.now();
-    const merged: Array<Event> = WorstStatusTimeline.merge(events);
-    const elapsed: number = Date.now() - startedAt;
+    /*
+     * Timed through FastestRun: up to three runs, the fastest counting, and
+     * leeway for a runner slower than usual - one run on a busy runner can
+     * stall for longer than the merge takes (OneAttemptTimingGuard, #6911).
+     * merge reads its events without changing them, so every run does the
+     * whole work again.
+     */
+    const timed: FastestRun<Array<Event>> = fastestRun({
+      run: (): Array<Event> => {
+        return WorstStatusTimeline.merge(events);
+      },
+      limitInMs: 2000,
+    });
+    const merged: Array<Event> = timed.result;
 
     expect(merged.length).toBeGreaterThan(0);
     expect(
       sum(secondsByStatus(merged, DAY_START, DAY_START + 2 * DAY_MS)),
     ).toBe((4320 * 20 + 9) * 1);
-    expect(elapsed).toBeLessThan(2000);
+    expect(timed.inMs).toBeLessThan(2000);
   });
 });

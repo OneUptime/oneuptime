@@ -1,10 +1,8 @@
 import DnsLookup, { DnsLookupAnswer } from "./DnsLookup";
 import Domain from "../../Types/Domain";
 import logger, { LogAttributes } from "../Logger";
-import {
-  EncryptionSecret,
-  issuesFreeCustomDomainCertificates,
-} from "../../EnvironmentConfig";
+import { issuesFreeCustomDomainCertificates } from "../../EnvironmentConfig";
+import TokenSigningKey from "../TokenSigningKey";
 import OneUptimeDate from "../../../Types/Date";
 import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../../Types/API/HTTPResponse";
@@ -27,8 +25,10 @@ import net from "net";
  *
  * Port 80 is checked with a request only this installation answers: the
  * status page API's custom-domain-readiness address answers 200 to a proof
- * signed with this installation's ENCRYPTION_SECRET (createProof,
- * isValidProof). So a proxy that answers the target itself - a 404 page, a
+ * signed with a key derived from this installation's TokenSigningKey for
+ * this purpose alone (createProof, isValidProof): never ENCRYPTION_SECRET
+ * itself, which is public on an installation still using a value this
+ * repository ships. So a proxy that answers the target itself - a 404 page, a
  * redirect, another site - is told apart from this OneUptime, which is what
  * #1521 and #1774 ran into: requests for the custom domain reached a proxy
  * that did not pass them on.
@@ -39,6 +39,9 @@ import net from "net";
 
 // A proof's nonce: 16 random bytes, as hex.
 const NONCE: RegExp = /^[0-9a-f]{32}$/;
+
+// What the proof's key is derived for (TokenSigningKey.deriveKey).
+const PROOF_KEY_LABEL: string = "custom-domain-readiness-proof";
 
 export interface ReadinessRequest {
   // The address CNAME records point to: STATUS_PAGE_CNAME_RECORD.
@@ -64,7 +67,7 @@ export default class CustomDomainServerReadiness {
 
   private static sign(nonce: string): string {
     return crypto
-      .createHmac("sha256", EncryptionSecret.toString())
+      .createHmac("sha256", TokenSigningKey.deriveKey(PROOF_KEY_LABEL))
       .update(`custom-domain-readiness:${nonce}`)
       .digest("hex");
   }

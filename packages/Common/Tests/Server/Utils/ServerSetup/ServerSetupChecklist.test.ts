@@ -6,6 +6,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * THE SERVER'S SETUP CHECKLIST, READ FROM WHAT THE SERVER IS (#6824).
@@ -20,15 +21,18 @@ import {
  * them. Every read and write is stood in for here.
  */
 
+// A stood-in service method, as @jest/globals' jest.fn() types it.
+type ServiceMethod = Mock<(...args: Array<unknown>) => unknown>;
+
 let storedConfig: Record<string, unknown> | null = null;
-const findOneById: jest.Mock = jest.fn();
-const writeServerSetupChoices: jest.Mock = jest.fn();
-const probeCountBy: jest.Mock = jest.fn();
-const backupFindOneBy: jest.Mock = jest.fn();
-const llmCountBy: jest.Mock = jest.fn();
-const ssoCountBy: jest.Mock = jest.fn();
-const oidcCountBy: jest.Mock = jest.fn();
-const userFindBy: jest.Mock = jest.fn();
+const findOneById: ServiceMethod = jest.fn();
+const writeServerSetupChoices: ServiceMethod = jest.fn();
+const probeCountBy: ServiceMethod = jest.fn();
+const backupFindOneBy: ServiceMethod = jest.fn();
+const llmCountBy: ServiceMethod = jest.fn();
+const ssoCountBy: ServiceMethod = jest.fn();
+const oidcCountBy: ServiceMethod = jest.fn();
+const userFindBy: ServiceMethod = jest.fn();
 let isEnterprise: boolean = false;
 
 const mockEnv: {
@@ -78,8 +82,8 @@ jest.mock("../../../../Server/EnvironmentConfig", () => {
   return mocked;
 });
 
-const service: (calls: Record<string, jest.Mock>) => unknown = (
-  calls: Record<string, jest.Mock>,
+const service: (calls: Record<string, ServiceMethod>) => unknown = (
+  calls: Record<string, ServiceMethod>,
 ): unknown => {
   const methods: Record<string, unknown> = {};
 

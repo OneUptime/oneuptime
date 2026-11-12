@@ -90,7 +90,7 @@ Abaixo disso, de cima para baixo:
 
 - **ID**, **Entradas** e **Outputs**, lado a lado — o identificador do bloco, de onde ele é alcançado e o que roda depois dele.
 - **Returns** — os dados que este bloco entrega aos passos seguintes. Cada valor mostra a referência exata que o lê, com um botão para copiá-la.
-- **How to use** — o que o bloco faz em uma frase, os passos para configurá-lo, um exemplo para copiar e os erros mais comuns. O exemplo é montado a partir do seu workflow: usa o ID deste bloco, e os valores do gatilho onde coloca dados em uma mensagem. **Learn more** abre a explicação mais longa, e os links levam ao guia completo. Todo bloco tem uma, e o botão **How to use** no topo da caixa de diálogo vai direto para ela.
+- **How to use** — o que o bloco faz em uma frase, os passos para configurá-lo, um exemplo para copiar e os erros mais comuns. O exemplo é montado a partir do seu workflow: usa o ID deste bloco, e os valores do gatilho onde coloca dados em uma mensagem. **Saiba mais** abre a explicação mais longa, e os links levam ao guia completo. Todo bloco tem uma, e o botão **How to use** no topo da caixa de diálogo vai direto para ela.
 
 O rodapé tem:
 

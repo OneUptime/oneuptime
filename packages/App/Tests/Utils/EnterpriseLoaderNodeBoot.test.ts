@@ -128,6 +128,7 @@ describe("EnterpriseLoader under real node + ts-node", () => {
         "AuditLogExport:ExportAuditLogs",
         "Backup:RunBackups",
         "OnCallDutyPolicy:AddCustomChannelToEveryonesRules",
+        "AuditLog:EndSessionsThatRanOut",
       ],
     });
   }, 180000);

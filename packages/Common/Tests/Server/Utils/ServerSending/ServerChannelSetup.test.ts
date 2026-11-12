@@ -33,6 +33,24 @@ import { TwilioMessageKind } from "../../../../Utils/Project/TwilioAccount";
  * Each problem names what is missing for the server's admin, never a value.
  */
 
+/*
+ * These settings with the named ones left blank: their keys taken out. The
+ * check reads a missing setting as it reads an undefined one, and the
+ * settings' type takes no `undefined` (exactOptionalPropertyTypes).
+ */
+function leftBlank(
+  settings: ServerChannelSetupSettings,
+  ...keys: Array<keyof ServerChannelSetupSettings>
+): ServerChannelSetupSettings {
+  const blanked: ServerChannelSetupSettings = { ...settings };
+
+  for (const key of keys) {
+    delete blanked[key];
+  }
+
+  return blanked;
+}
+
 function smtp(
   overrides: Partial<ServerChannelSetupSettings> = {},
 ): ServerChannelSetupSettings {
@@ -68,7 +86,7 @@ describe("email", () => {
     // No provider picked reads as Custom SMTP, as the sender reads it.
     expect(
       ServerChannelSetup.getEmailSetUpProblem(
-        smtp({ emailServerType: undefined }),
+        leftBlank(smtp(), "emailServerType"),
       ),
     ).toBeNull();
   });
@@ -105,10 +123,9 @@ describe("email", () => {
       ServerChannelSetup.getEmailSetUpProblem({ ...oauth, smtpScope: "" }),
     ).toBe("SMTP: the OAuth Scope is not set under Settings > Emails.");
     expect(
-      ServerChannelSetup.getEmailSetUpProblem({
-        ...oauth,
-        smtpClientSecret: undefined,
-      }),
+      ServerChannelSetup.getEmailSetUpProblem(
+        leftBlank(oauth, "smtpClientSecret"),
+      ),
     ).toBe("SMTP: the OAuth Client Secret is not set under Settings > Emails.");
   });
 
@@ -127,10 +144,7 @@ describe("email", () => {
 
     expect(ServerChannelSetup.getEmailSetUpProblem(graph)).toBeNull();
     expect(
-      ServerChannelSetup.getEmailSetUpProblem({
-        ...graph,
-        smtpClientId: undefined,
-      }),
+      ServerChannelSetup.getEmailSetUpProblem(leftBlank(graph, "smtpClientId")),
     ).toBe(
       "Microsoft Graph: the OAuth Client ID is not set under Settings > Emails.",
     );
@@ -160,10 +174,9 @@ describe("email", () => {
       }),
     ).toBe("SendGrid: the API Key is not set under Settings > Emails.");
     expect(
-      ServerChannelSetup.getEmailSetUpProblem({
-        ...sendgrid,
-        sendgridFromName: undefined,
-      }),
+      ServerChannelSetup.getEmailSetUpProblem(
+        leftBlank(sendgrid, "sendgridFromName"),
+      ),
     ).toBe("SendGrid: the From Name is not set under Settings > Emails.");
     // A full mail server does not stand in for the provider that is picked.
     expect(
@@ -261,11 +274,13 @@ describe("email", () => {
   );
 
   test("a problem never carries a value: a password, a key, an address", () => {
-    const secrets: ServerChannelSetupSettings = smtp({
-      smtpHost: undefined,
-      smtpPassword: "hunter2-password",
-      smtpUsername: "mailer-user",
-    });
+    const secrets: ServerChannelSetupSettings = leftBlank(
+      smtp({
+        smtpPassword: "hunter2-password",
+        smtpUsername: "mailer-user",
+      }),
+      "smtpHost",
+    );
 
     const problem: string = ServerChannelSetup.getEmailSetUpProblem(secrets)!;
 
@@ -301,12 +316,14 @@ describe("SMS and calls", () => {
   });
 
   test("an account used for SMS only makes no calls, and says why", () => {
-    const smsOnly: ServerChannelSetupSettings = {
-      ...twilio,
-      twilioUsedFor: TwilioConfigUse.SmsOnly,
-      twilioPrimaryPhoneNumber: undefined,
-      twilioSmsPhoneNumbers: "+14155550123",
-    };
+    const smsOnly: ServerChannelSetupSettings = leftBlank(
+      {
+        ...twilio,
+        twilioUsedFor: TwilioConfigUse.SmsOnly,
+        twilioSmsPhoneNumbers: "+14155550123",
+      },
+      "twilioPrimaryPhoneNumber",
+    );
 
     expect(
       ServerChannelSetup.getTwilioSetUpProblem(smsOnly, TwilioMessageKind.SMS),

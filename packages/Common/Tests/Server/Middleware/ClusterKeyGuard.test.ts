@@ -137,6 +137,8 @@ const TOKEN_SIGNING_KEY_USERS: Array<string> = [
   "packages/Common/Server/Utils/AI/Toolbox/CodeFilesSeen.ts",
   // Derives, under a label of its own, the key a workflow step's fingerprint is made with.
   "packages/Common/Server/Utils/AI/Toolbox/WorkflowBuilderTools.ts",
+  // Derives, under a label of its own, the key a custom domain's readiness proof is signed with.
+  "packages/Common/Server/Utils/CustomDomain/CustomDomainServerReadiness.ts",
   "packages/Common/Server/Utils/JsonWebToken.ts",
   "packages/Common/Server/Utils/Mcp/McpOAuthSignedToken.ts",
   // Derives, under a label of its own, the key a wrong component key's digest is made with.

@@ -76,7 +76,7 @@ När personen accepterar är den med i projektet direkt, med teamets behörighet
 | --- | --- |
 | **Användare** | Namn och e-postadress. |
 | **Team** | Vart och ett av projektets team som personen är med i eller inbjuden till. |
-| **Status** | **Medlem** när personen har gått med, med antalet inbjudningar till andra team som inte har accepterats ännu. **Inbjudan skickad** fram till dess. |
+| **Status** | **Medlem** när personen har gått med, med antalet inbjudningar till andra team som inte har accepterats ännu. **Inbjudan skickad** fram till dess. På en egenvärdad server som inte kan skicka e-post ännu visas **Inbjuden** i stället: inbjudan skapas, men inget mejl skickas. |
 
 Filtrera listan efter **Användare**, **Status** eller **Team**. Klicka på en rad för att öppna personens sida:
 

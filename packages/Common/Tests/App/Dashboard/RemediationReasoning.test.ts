@@ -7,7 +7,8 @@ import { getRemediationFixSteps } from "../../../../App/FeatureSet/Dashboard/src
 import AutoRemediationSuggestion from "../../../Models/DatabaseModels/AutoRemediationSuggestion";
 import AutoRemediationSuggestionStatus from "../../../Types/AutoRemediation/AutoRemediationSuggestionStatus";
 import AutoRemediationSuggestionType from "../../../Types/AutoRemediation/AutoRemediationSuggestionType";
-import { seededRandom } from "../../Helpers/SeededRandom";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
+import { FastestRun, fastestRun } from "../../Helpers/FastestRun";
 
 /*
  * A fix's reasoning, without the report around it (issue #6860).
@@ -192,20 +193,43 @@ describe("what a fix's reasoning opens to", () => {
   });
 
   test("a long run of spaces and stars is read at once (outside text)", () => {
-    const random: () => number = seededRandom(6860);
-    const started: number = Date.now();
-
-    for (let index: number = 0; index < 20; index++) {
-      const run: string = Array.from({ length: 20000 }, (): string => {
+    const random: SeededRandom = seededRandom(6860);
+    const runs: Array<string> = Array.from({ length: 20 }, (): string => {
+      return Array.from({ length: 20000 }, (): string => {
         const pick: number = random();
         return pick < 0.4 ? " " : pick < 0.8 ? "*" : "\t";
       }).join("");
+    });
 
-      getRemediationReasoningMarkdown(`#${run}\n${run}SelectedRunbook${run}x`);
-      getRemediationReasoningPreview(`${run}\n## ${run}`);
-    }
+    /*
+     * Timed through FastestRun: up to three runs, the fastest counting, and
+     * leeway for a runner slower than usual (OneAttemptTimingGuard). The
+     * texts are drawn once, before the clock starts; nothing is kept from
+     * one reading to the next, so every run reads them all again.
+     */
+    const timed: FastestRun<number> = fastestRun({
+      run: (): number => {
+        let read: number = 0;
 
-    expect(Date.now() - started).toBeLessThan(5000);
+        for (const run of runs) {
+          read += getRemediationReasoningMarkdown(
+            `#${run}\n${run}SelectedRunbook${run}x`,
+          ).length;
+          read += (getRemediationReasoningPreview(`${run}\n## ${run}`) || "")
+            .length;
+        }
+
+        return read;
+      },
+      limitInMs: 5000,
+    });
+
+    /*
+     * Read, not skipped: the second line has no ":" after its label, so it
+     * is no runbook pick, and its words stay.
+     */
+    expect(timed.result).toBeGreaterThan(0);
+    expect(timed.inMs).toBeLessThan(5000);
   });
 });
 

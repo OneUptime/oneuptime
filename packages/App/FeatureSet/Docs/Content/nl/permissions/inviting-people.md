@@ -76,7 +76,7 @@ Na het accepteren zit de persoon meteen in het project, met de machtigingen van 
 | --- | --- |
 | **Gebruiker** | Naam en e-mailadres. |
 | **Teams** | Elk team van het project waarin die persoon zit of waarvoor die is uitgenodigd. |
-| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan. |
+| **Status** | **Lid** zodra die persoon is toegetreden, met het aantal nog niet geaccepteerde uitnodigingen voor andere teams. **Uitnodiging verzonden** tot dan. Op een zelfgehoste server die nog geen e-mail kan versturen, in plaats daarvan **Uitgenodigd**: de uitnodiging wordt aangemaakt, maar er gaat geen e-mail uit. |
 
 Filter de lijst op **Gebruiker**, **Status** of **Team**. Klik op een rij om de pagina van die persoon te openen:
 
