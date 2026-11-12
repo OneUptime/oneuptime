@@ -769,3 +769,52 @@ export const summarizeProductFeedback: (
       },
     );
 };
+
+/*
+ * WHAT AN ANSWER WAS ABOUT, IN WORDS (the Admin Dashboard's Feedback page):
+ * a guided setup by its name, How OneUptime works, a term of the Glossary,
+ * the check-in, and where Give feedback was opened. English: the page
+ * translates what it shows.
+ */
+export const GUIDED_SETUP_TITLES: Readonly<Record<string, string>> = {
+  website_down: "Know when my website or API is down",
+  on_call: "Page the right person when something breaks",
+  status_page: "Publish a status page",
+  telemetry: "Send logs, metrics and traces, then get alerted",
+};
+
+export const PRODUCT_FEEDBACK_KIND_TITLES: Readonly<
+  Record<ProductFeedbackKind, string>
+> = {
+  [ProductFeedbackKind.SetupFlow]: "Guided setup",
+  [ProductFeedbackKind.General]: "Give feedback",
+  [ProductFeedbackKind.Explanation]: "Was this clear?",
+  [ProductFeedbackKind.CheckIn]: "First-week check-in",
+};
+
+export const getProductFeedbackTopicTitle: (data: {
+  kind: ProductFeedbackKind;
+  topic: string;
+}) => string = (data: { kind: ProductFeedbackKind; topic: string }): string => {
+  if (data.kind === ProductFeedbackKind.SetupFlow) {
+    return GUIDED_SETUP_TITLES[data.topic] || data.topic;
+  }
+
+  if (data.kind === ProductFeedbackKind.Explanation) {
+    if (data.topic === "how_oneuptime_works") {
+      return "How OneUptime works";
+    }
+
+    if (data.topic.startsWith("term.")) {
+      return `Glossary: ${data.topic.slice("term.".length).replace(/-/g, " ")}`;
+    }
+
+    return data.topic;
+  }
+
+  if (data.kind === ProductFeedbackKind.CheckIn) {
+    return "Is OneUptime set up the way you wanted?";
+  }
+
+  return data.topic;
+};
