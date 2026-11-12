@@ -51458,5 +51458,14 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Is Sample Project": "مشروع تجريبي",
+  "Sample Project": "المشروع التجريبي",
+  "Sample Project ID": "معرّف المشروع التجريبي",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "شاهد OneUptime وفيه بيانات: مراقبات وحوادث ومناوبة وصفحة حالة وقياس عن بُعد. لا شيء فيه حقيقي، ولا يُرسل إشعار إلى أحد.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "هذا مشروع تجريبي. لا شيء هنا حقيقي، ولا يُرسل إشعار إلى أحد.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "هل تريد بالتأكيد حذف {{project}}؟ ستُحذف مراقباته وحوادثه وأشخاصه وقياساته عن بُعد المختلقة نهائياً. يمكنك استكشاف مشروع تجريبي جديد في أي وقت.",
+  "Create Your Own Project": "أنشئ مشروعك الخاص",
+  "Delete Sample Project": "حذف المشروع التجريبي",
+  "Explore Sample Project": "استكشاف المشروع التجريبي"
 }

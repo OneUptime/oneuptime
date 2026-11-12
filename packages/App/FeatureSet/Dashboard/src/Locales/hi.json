@@ -51458,5 +51458,14 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Is Sample Project": "नमूना प्रोजेक्ट है",
+  "Sample Project": "नमूना प्रोजेक्ट",
+  "Sample Project ID": "नमूना प्रोजेक्ट आईडी",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "डेटा के साथ OneUptime देखें: मॉनिटर, घटनाएं, ऑन-कॉल, एक स्थिति पृष्ठ और टेलीमेट्री। इसमें कुछ भी असली नहीं है, और किसी को सूचना नहीं भेजी जाती।",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "यह एक नमूना प्रोजेक्ट है। यहां कुछ भी असली नहीं है, और किसी को सूचना नहीं भेजी जाती।",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "क्या आप वाकई {{project}} हटाना चाहते हैं? इसके काल्पनिक मॉनिटर, घटनाएं, लोग और टेलीमेट्री हमेशा के लिए हटा दिए जाएंगे। आप कभी भी नया नमूना देख सकते हैं।",
+  "Create Your Own Project": "अपना प्रोजेक्ट बनाएं",
+  "Delete Sample Project": "नमूना प्रोजेक्ट हटाएं",
+  "Explore Sample Project": "नमूना प्रोजेक्ट देखें"
 }

@@ -40,28 +40,6 @@ import React, { FunctionComponent, ReactElement, useState } from "react";
  * not a message inside it.
  */
 
-export const SAMPLE_PROJECT_BAR_COPY: {
-  readonly sentence: string;
-  readonly backTo: string;
-  readonly createOwnProject: string;
-  readonly deleteButton: string;
-  readonly howItWorks: string;
-  readonly deleteTitle: string;
-  readonly deleteDescription: string;
-  readonly deleteConfirm: string;
-} = {
-  sentence:
-    "This is a sample project. Nothing here is real, and nobody is notified.",
-  backTo: "Back to {{project}}",
-  createOwnProject: "Create Your Own Project",
-  deleteButton: "Delete Sample Project",
-  howItWorks: "How OneUptime Works",
-  deleteTitle: "Delete Sample Project",
-  deleteDescription:
-    "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.",
-  deleteConfirm: "Delete Sample Project",
-};
-
 export const SAMPLE_PROJECT_BAR_TEST_ID: string = "sample-project-bar";
 
 export interface ComponentProps {
@@ -85,6 +63,9 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
 
   const goBackTo: Project | null = getProjectToGoBackTo(props.projects);
   const projectName: string = props.project.name || "";
+  const sentence: string = translator.translateText(
+    "This is a sample project. Nothing here is real, and nobody is notified.",
+  );
 
   const deleteSample: () => Promise<void> = async (): Promise<void> => {
     if (!props.project.id) {
@@ -125,7 +106,7 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
     <div
       data-testid={SAMPLE_PROJECT_BAR_TEST_ID}
       role="region"
-      aria-label={translator.translateText(SAMPLE_PROJECT_BAR_COPY.sentence)}
+      aria-label={sentence}
       className="flex flex-col gap-2 bg-gray-900 px-4 py-2 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6"
     >
       <p className="flex min-w-0 items-start gap-2">
@@ -133,9 +114,7 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
           icon={IconProp.Beaker}
           className="mt-0.5 h-4 w-4 flex-none text-amber-300"
         />
-        <span className="min-w-0">
-          {translator.translateText(SAMPLE_PROJECT_BAR_COPY.sentence)}
-        </span>
+        <span className="min-w-0">{sentence}</span>
       </p>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <button
@@ -146,7 +125,7 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
             openHowOneUptimeWorks(HowOneUptimeWorksOpenedFrom.SampleProject);
           }}
         >
-          {translator.translateText(SAMPLE_PROJECT_BAR_COPY.howItWorks)}
+          {translator.translateText("How OneUptime works")}
         </button>
         {goBackTo?.id ? (
           <button
@@ -157,8 +136,8 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
               openProjectHome(goBackTo.id!);
             }}
           >
-            {translator.translateTemplate(SAMPLE_PROJECT_BAR_COPY.backTo, {
-              project: goBackTo.name || "",
+            {translator.translateTemplate("Back to {{name}}", {
+              name: goBackTo.name || "",
             })}
           </button>
         ) : (
@@ -168,11 +147,11 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
             className="font-medium text-white underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             onClick={props.onCreateProject}
           >
-            {translator.translateText(SAMPLE_PROJECT_BAR_COPY.createOwnProject)}
+            {translator.translateText("Create Your Own Project")}
           </button>
         )}
         <Button
-          title={SAMPLE_PROJECT_BAR_COPY.deleteButton}
+          title="Delete Sample Project"
           buttonStyle={ButtonStyleType.DANGER_OUTLINE}
           buttonSize={ButtonSize.Small}
           onClick={() => {
@@ -184,12 +163,12 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
       </div>
       {isConfirmingDelete ? (
         <ConfirmModal
-          title={SAMPLE_PROJECT_BAR_COPY.deleteTitle}
+          title="Delete Sample Project"
           description={translator.translateTemplate(
-            SAMPLE_PROJECT_BAR_COPY.deleteDescription,
+            "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.",
             { project: projectName },
           )}
-          submitButtonText={SAMPLE_PROJECT_BAR_COPY.deleteConfirm}
+          submitButtonText="Delete Sample Project"
           submitButtonType={ButtonStyleType.DANGER}
           isLoading={isDeleting}
           error={deleteError || undefined}

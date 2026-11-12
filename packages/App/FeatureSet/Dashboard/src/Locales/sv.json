@@ -51458,5 +51458,14 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Is Sample Project": "Är exempelprojekt",
+  "Sample Project": "Exempelprojekt",
+  "Sample Project ID": "Exempelprojektets ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "Se OneUptime med data: monitorer, incidenter, jour, en statussida och telemetri. Inget i det är på riktigt, och ingen meddelas.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "Det här är ett exempelprojekt. Inget här är på riktigt, och ingen meddelas.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Vill du verkligen ta bort {{project}}? Dess påhittade monitorer, incidenter, personer och telemetri tas bort för gott. Du kan utforska ett nytt exempel när som helst.",
+  "Create Your Own Project": "Skapa ditt eget projekt",
+  "Delete Sample Project": "Ta bort exempelprojekt",
+  "Explore Sample Project": "Utforska exempelprojekt"
 }

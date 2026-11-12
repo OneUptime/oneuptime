@@ -232,3 +232,28 @@ export interface SampleProjectCreateAnswer {
   // False when the person had a sample already, and it was opened instead.
   isNew: boolean;
 }
+
+/*
+ * Whether a sample nobody has opened for SAMPLE_PROJECT_IDLE_DAYS is due to
+ * be deleted (OneUptime Cloud's job): its last visit (Project.lastActive),
+ * or when it was made if nobody has opened it since.
+ */
+export const isSampleProjectIdle: (data: {
+  lastActive: Date | null | undefined;
+  createdAt: Date | null | undefined;
+  now: Date;
+}) => boolean = (data: {
+  lastActive: Date | null | undefined;
+  createdAt: Date | null | undefined;
+  now: Date;
+}): boolean => {
+  const lastVisit: Date | null | undefined = data.lastActive || data.createdAt;
+
+  if (!lastVisit) {
+    return false;
+  }
+
+  const idleForMs: number = data.now.getTime() - new Date(lastVisit).getTime();
+
+  return idleForMs >= SAMPLE_PROJECT_IDLE_DAYS * 24 * 60 * 60 * 1000;
+};

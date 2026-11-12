@@ -51458,5 +51458,14 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Is Sample Project": "是否為範例專案",
+  "Sample Project": "範例專案",
+  "Sample Project ID": "範例專案 ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "看看有資料的 OneUptime：監測器、事件、待命、狀態頁面和遙測。其中一切都是虛構的，不會通知任何人。",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "這是一個範例專案。這裡的一切都是虛構的，不會通知任何人。",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "確定要刪除 {{project}} 嗎？其中虛構的監測器、事件、人員和遙測將被永久刪除。您可以隨時探索新的範例。",
+  "Create Your Own Project": "建立您自己的專案",
+  "Delete Sample Project": "刪除範例專案",
+  "Explore Sample Project": "探索範例專案"
 }

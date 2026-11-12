@@ -51458,5 +51458,14 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Is Sample Project": "Ist Beispielprojekt",
+  "Sample Project": "Beispielprojekt",
+  "Sample Project ID": "Beispielprojekt-ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "Sehen Sie OneUptime mit Daten: Monitore, Vorfälle, Bereitschaft, eine Statusseite und Telemetrie. Nichts darin ist echt, und niemand wird benachrichtigt.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "Dies ist ein Beispielprojekt. Nichts hier ist echt, und niemand wird benachrichtigt.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Möchten Sie {{project}} wirklich löschen? Seine erfundenen Monitore, Vorfälle, Personen und Telemetrie werden endgültig gelöscht. Sie können jederzeit ein neues Beispiel erkunden.",
+  "Create Your Own Project": "Eigenes Projekt erstellen",
+  "Delete Sample Project": "Beispielprojekt löschen",
+  "Explore Sample Project": "Beispielprojekt erkunden"
 }

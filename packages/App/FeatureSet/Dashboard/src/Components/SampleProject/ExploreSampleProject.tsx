@@ -58,15 +58,6 @@ export const canExploreSampleProject: (data: {
   return !data.vars?.disableUserProjectCreation;
 };
 
-export const EXPLORE_SAMPLE_PROJECT_COPY: {
-  readonly button: string;
-  readonly description: string;
-} = {
-  button: "Explore Sample Project",
-  description:
-    "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.",
-};
-
 export interface ComponentProps {
   from: SampleProjectEntryPoint;
   buttonStyle?: ButtonStyleType | undefined;
@@ -140,12 +131,14 @@ const ExploreSampleProject: FunctionComponent<ComponentProps> = (
         <></>
       ) : (
         <p className="mb-3 text-sm text-gray-500">
-          {translator.translateText(EXPLORE_SAMPLE_PROJECT_COPY.description)}
+          {translator.translateText(
+            "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.",
+          )}
         </p>
       )}
       <Button
         icon={IconProp.Beaker}
-        title={EXPLORE_SAMPLE_PROJECT_COPY.button}
+        title="Explore Sample Project"
         buttonStyle={props.buttonStyle || ButtonStyleType.NORMAL}
         buttonSize={props.buttonSize || ButtonSize.Normal}
         isLoading={isOpening}
