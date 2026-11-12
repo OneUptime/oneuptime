@@ -143,8 +143,9 @@ export const toResponderReach: (user: UserReadinessWire) => ResponderReach = (
   };
 };
 
-const createdId: (response: HTTPResponse<unknown> | unknown) => string = (
-  response: HTTPResponse<unknown> | unknown,
+// The id a create answered with, or "" when it answered none.
+const createdId: (response: unknown) => string = (
+  response: unknown,
 ): string => {
   const data: { id?: { toString: () => string } | undefined } | undefined = (
     response as { data?: { id?: { toString: () => string } } } | undefined
