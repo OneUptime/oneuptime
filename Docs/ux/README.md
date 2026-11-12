@@ -62,6 +62,13 @@ learned one can find their way around the next.
 - **Do not ask for what is already done.** "Send your first logs" never sits above a page of logs, and
   there is one button for one job on a page, not the explanation's and the empty state's for the same
   setup. Not enforced: use judgement.
+- **A job that crosses products is a guided setup, on one page.** "Know when my website is down" needs a
+  monitor, who is told and a test page; three products would leave the person to find the chain. A
+  guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
+  records, coming back opens the first step not done, and it ends with a summary read from the
+  records and what to do next (`/monitors/setup`, #6804). Its journey gets a budget of its own, with
+  `"path": "guided"`. Enforced by
+  [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
 
 ### Side menus
 
