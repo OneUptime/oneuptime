@@ -43,6 +43,23 @@
         "words": 215
       }
     },
+    "website-down-guided": {
+      "title": "Know when my website or API is down (guided setup)",
+      "path": "guided",
+      "startsAt": "Home, in a new project",
+      "endsWhen": "the monitor checks the address, an on-call policy pages me for every new incident and alert, and my test page was acknowledged",
+      "budget": {
+        "screens": 2,
+        "dialogs": 1,
+        "clicks": 8,
+        "fieldsTyped": 1,
+        "products": 2,
+        "keystrokes": 29,
+        "defaultsKept": 2,
+        "choices": 0,
+        "words": 500
+      }
+    },
     "paged-by-phone": {
       "title": "Get paged by phone and escalate to a teammate (Cloud)",
       "path": "manual",
