@@ -51,6 +51,7 @@ import {
   UpdateWorkflowTool,
 } from "./WorkflowBuilderTools";
 import { QueryTeamsTool } from "./TeamTools";
+import { GetSetupHealthTool } from "./SetupHealthTools";
 import { CreateAlertNoteTool, CreateIncidentNoteTool } from "./NoteWriteTools";
 import { TopExceptionsTool } from "./ExceptionTools";
 import { LogHistogramTool, SearchLogsTool } from "./LogTools";
@@ -190,6 +191,12 @@ export default class AIToolbox {
     CheckWorkflowDraftTool,
     QueryProbesTool,
     QueryTeamsTool,
+    /*
+     * "Is my setup OK?" (#6812): what would stop the right people from
+     * being told, each with its fix - the Setup health list, as the
+     * person may see it (SetupHealthTools).
+     */
+    GetSetupHealthTool,
     /*
      * OneUptime itself (#6828): "how do I...?" answered from the docs this
      * installation serves, ending at the page of the project where it is

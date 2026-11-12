@@ -3,6 +3,10 @@ import { ProductEventName } from "Common/Types/Analytics/ProductEvent";
 import useDashboardNavigationItems, {
   DashboardNavigationItems,
 } from "../../Utils/NavigationItems";
+import { getItemPlacement } from "../../Utils/ProjectProducts/ProductsMenu";
+import { ProjectProductsState } from "../../Utils/ProjectProducts/ProjectProductsStore";
+import useProjectProducts from "../../Utils/ProjectProducts/UseProjectProducts";
+import { ProductPlacement } from "Common/Types/Product/ProjectProducts";
 import EventName from "../../Utils/EventName";
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
@@ -442,6 +446,13 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
     useDashboardNavigationItems();
 
   /*
+   * The project's products (#6814): one it hides is found by searching, and
+   * left out of what browsing lists; one switched off on the server is not
+   * offered at all.
+   */
+  const products: ProjectProductsState = useProjectProducts();
+
+  /*
    * Navigate to a PageMap entry, refusing routes whose populated path still
    * carries a ":param" placeholder (no project selected) — same guard the
    * breadcrumbs use. Closes the palette first so navigation feels instant.
@@ -491,8 +502,14 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
           templatePath: (item.activeRoute || item.route).toString(),
         };
       }),
-      ...moreMenuItems.map(
-        (item: MoreMenuItem): PaletteNavigationCatalogEntry => {
+      ...moreMenuItems
+        .filter((item: MoreMenuItem): boolean => {
+          return (
+            getItemPlacement({ item: item, answer: products.answer }) !==
+            ProductPlacement.Off
+          );
+        })
+        .map((item: MoreMenuItem): PaletteNavigationCatalogEntry => {
           return {
             title: item.title,
             description: item.description,
@@ -502,9 +519,11 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
             category: item.category || essentialsCategory,
             routePath: item.route.toString(),
             templatePath: (item.activeRoute || item.route).toString(),
+            isSearchOnly:
+              getItemPlacement({ item: item, answer: products.answer }) ===
+              ProductPlacement.Hidden,
           };
-        },
-      ),
+        }),
       {
         title: rightElement.title,
         description: rightElement.description,
@@ -528,6 +547,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
             icon: descriptor.icon,
             iconColor: descriptor.iconColor,
             category: descriptor.category,
+            isSearchOnly: descriptor.isSearchOnly,
             searchPriority: PALETTE_SEARCH_PRIORITY.product,
             onSelect: () => {
               closePalette();
