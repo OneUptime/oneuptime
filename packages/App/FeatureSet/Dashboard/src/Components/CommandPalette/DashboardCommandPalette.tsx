@@ -119,6 +119,7 @@ import React, {
 } from "react";
 import { useTranslation } from "react-i18next";
 import PermissionGate from "Common/UI/Utils/PermissionGate";
+import { isDashboardRecordingConfigured } from "../../Utils/DashboardRecording/DashboardRecordingConfig";
 
 /*
  * The dashboard's command palette host: always mounted (App.tsx, next to
@@ -875,6 +876,7 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
     pageAvailability = {
       isBillingEnabled: BILLING_ENABLED,
       isMonitorGroupsEnabled: isMonitorGroupsEnabled(),
+      isDashboardRecordingOn: isDashboardRecordingConfigured(),
       canDeleteProject:
         hasProjectSelected &&
         canDeleteProject({ held: heldPermissions, isMasterAdmin }),
