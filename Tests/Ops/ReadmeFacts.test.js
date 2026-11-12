@@ -686,9 +686,9 @@ describe("installing with Docker Compose", () => {
     "%s offers the one-line installer first, the command the Docker Compose guide gives",
     (_language, readme) => {
       expect(codeBlocksOf(readme.text)[INSTALLER_BLOCK]).toEqual([INSTALLER]);
-      expect(
-        read(`${DOCS_CONTENT}/en/${COMPOSE_GUIDE}`).split("\n"),
-      ).toContain(INSTALLER);
+      expect(read(`${DOCS_CONTENT}/en/${COMPOSE_GUIDE}`).split("\n")).toContain(
+        INSTALLER,
+      );
       // The website serves the script the command fetches, which asks for HOST.
       expect(read("packages/Home/Routes.ts")).toContain(
         'app.get("/install.sh", (_req: ExpressRequest, res: ExpressResponse) => {',

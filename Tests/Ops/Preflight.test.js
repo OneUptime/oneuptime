@@ -487,12 +487,14 @@ describe("HOST, HTTP_PROTOCOL and PROVISION_SSL", () => {
     ]);
   });
 
-  test.each(["<your-address>:8080", "<oneuptime.example.com>", "my-host>", "<"])(
-    "HOST=%s, holding a < or a >, stops the start",
-    (host) => {
-      expect(levelsOf(findingsFor([`HOST=${host}`]))).toEqual(["stop"]);
-    },
-  );
+  test.each([
+    "<your-address>:8080",
+    "<oneuptime.example.com>",
+    "my-host>",
+    "<",
+  ])("HOST=%s, holding a < or a >, stops the start", (host) => {
+    expect(levelsOf(findingsFor([`HOST=${host}`]))).toEqual(["stop"]);
+  });
 
   test("with no other address on the server, the placeholder's stop names the docs' example", () => {
     expect(
