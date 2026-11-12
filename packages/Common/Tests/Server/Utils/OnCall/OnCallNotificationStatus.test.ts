@@ -1,9 +1,9 @@
-import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import ObjectID from "../../../../Types/ObjectID";
+import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
 import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 import OnCallTimelineRows, {
   StoredOnCallNotification,
-} from "./Fixtures/OnCallTimelineRows";
+} from "../../TestingUtils/OnCallTimelineRows";
 
 /*
  * WHAT A PERSON'S ON-CALL TIMELINE SAYS OF ONE NOTIFICATION OF A PAGE, AS
@@ -16,27 +16,34 @@ import OnCallTimelineRows, {
  * that lands in between - the person acknowledging the page - is never
  * written over: the writer reads again, and decides again.
  *
+ * The stuck check settles a notification still Sending after 15 minutes as
+ * Error (OnCallStuckNotifications); a send that finishes after all writes
+ * its result over that verdict - and over no other Error (issue #6873).
+ *
  * The notification is stood in for by a row that a read returns as it is,
  * with its version, and that an update reaches only while it holds the
  * status and version the update names (OnCallTimelineRows).
  */
 
-jest.mock("Common/Server/Services/UserOnCallLogTimelineService", () => {
+jest.mock("../../../../Server/Services/UserOnCallLogTimelineService", () => {
   return {
     __esModule: true,
     default: { findOneById: jest.fn(), updateOneBy: jest.fn() },
   };
 });
 
-import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import UserOnCallLogTimelineService from "../../../../Server/Services/UserOnCallLogTimelineService";
 import {
+  isSettledAsStuck,
   MAX_NOTIFICATION_WRITE_ATTEMPTS,
   PROVIDER_REPORT_MOVES_ON_FROM,
   recordProviderReport,
   recordSendResult,
   SEND_RESULT_MOVES_ON_FROM,
+  STUCK_NOTIFICATION_AFTER_MINUTES,
+  STUCK_NOTIFICATION_STATUS_MESSAGE,
   writeNotificationStatusWhileStill,
-} from "../../FeatureSet/Notification/Utils/OnCallNotificationStatus";
+} from "../../../../Server/Utils/OnCall/OnCallNotificationStatus";
 
 const NOTIFICATION_ID: ObjectID = new ObjectID(
   "0c0c0000-0000-4000-8000-0000000000a1",
@@ -111,16 +118,17 @@ describe("the send's result (recordSendResult)", () => {
     });
   });
 
-  test("reads the notification as root - its status and version - and writes it at both, as root", async () => {
+  test("reads the notification as root - its status, version and message - and writes it at its status and version, as root", async () => {
     await recordSendResult({
       userOnCallLogTimelineId: NOTIFICATION_ID,
       isSent: true,
       statusMessage: "Message ID: SM1",
     });
 
+    // The message tells the stuck check's verdict from any other Error.
     expect(read).toHaveBeenCalledWith({
       id: NOTIFICATION_ID,
-      select: { _id: true, status: true, version: true },
+      select: { _id: true, status: true, version: true, statusMessage: true },
       props: { isRoot: true },
     });
     expect(write).toHaveBeenCalledWith({
@@ -417,5 +425,231 @@ describe("a notification read without its version", () => {
     expect(
       (write.mock.calls[0]![0] as { query: Record<string, unknown> }).query,
     ).not.toHaveProperty("version");
+  });
+});
+
+describe("the provider's report reads only what it decides by", () => {
+  test("its status and version, as root", async () => {
+    notification().status = UserNotificationStatus.Sent;
+
+    await recordProviderReport({
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+      status: UserNotificationStatus.Error,
+      statusMessage: "Delivery status: Failed.",
+    });
+
+    expect(read).toHaveBeenCalledWith({
+      id: NOTIFICATION_ID,
+      select: { _id: true, status: true, version: true },
+      props: { isRoot: true },
+    });
+  });
+});
+
+describe("the stuck check's verdict", () => {
+  function settledAsStuck(): void {
+    notification().status = UserNotificationStatus.Error;
+    notification().statusMessage = STUCK_NOTIFICATION_STATUS_MESSAGE;
+  }
+
+  test("says the send did not finish within 15 minutes, and that it may not have gone out", () => {
+    expect(STUCK_NOTIFICATION_AFTER_MINUTES).toBe(15);
+    expect(STUCK_NOTIFICATION_STATUS_MESSAGE).toBe(
+      "Sending did not finish within 15 minutes, so this notification may not have been sent.",
+    );
+  });
+
+  test("is told by its status and its exact message", () => {
+    expect(
+      isSettledAsStuck({
+        status: UserNotificationStatus.Error,
+        statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+      }),
+    ).toBe(true);
+
+    for (const status of ALL_STATUSES.filter(
+      (candidate: UserNotificationStatus) => {
+        return candidate !== UserNotificationStatus.Error;
+      },
+    )) {
+      expect(
+        isSettledAsStuck({
+          status: status,
+          statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+        }),
+      ).toBe(false);
+    }
+
+    expect(
+      isSettledAsStuck({
+        status: UserNotificationStatus.Error,
+        statusMessage: "Delivery status: Failed.",
+      }),
+    ).toBe(false);
+    expect(
+      isSettledAsStuck({
+        status: UserNotificationStatus.Error,
+        statusMessage: `${STUCK_NOTIFICATION_STATUS_MESSAGE} `,
+      }),
+    ).toBe(false);
+    expect(isSettledAsStuck({ status: UserNotificationStatus.Error })).toBe(
+      false,
+    );
+  });
+
+  test("a send that finished late writes its result over it: Sent", async () => {
+    settledAsStuck();
+
+    await expect(
+      recordSendResult({
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+        isSent: true,
+        statusMessage: "Call ID: CA1",
+      }),
+    ).resolves.toBe(true);
+
+    expect(notification()).toMatchObject({
+      status: UserNotificationStatus.Sent,
+      statusMessage: "Call ID: CA1",
+    });
+    expect(write).toHaveBeenCalledWith({
+      query: {
+        _id: NOTIFICATION_ID.toString(),
+        status: UserNotificationStatus.Error,
+        version: 1,
+      },
+      data: {
+        status: UserNotificationStatus.Sent,
+        statusMessage: "Call ID: CA1",
+      },
+      props: { isRoot: true },
+    });
+  });
+
+  test("a send that finished late and was refused says why instead", async () => {
+    settledAsStuck();
+
+    await recordSendResult({
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+      isSent: false,
+      statusMessage: "The 'To' number is not a valid phone number.",
+    });
+
+    expect(notification()).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "The 'To' number is not a valid phone number.",
+    });
+  });
+
+  test("any other Error stays: a provider's report, a refusal, a request that never reached the service", async () => {
+    notification().status = UserNotificationStatus.Error;
+    notification().statusMessage = "Delivery status: Undelivered.";
+
+    await expect(
+      recordSendResult({
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+        isSent: true,
+        statusMessage: "Message ID: SM1",
+      }),
+    ).resolves.toBe(false);
+
+    expect(write).not.toHaveBeenCalled();
+    expect(notification().statusMessage).toBe("Delivery status: Undelivered.");
+  });
+
+  test("a provider's report does not move on from it: it moves on from Sent or Sending only", async () => {
+    settledAsStuck();
+
+    await expect(
+      recordProviderReport({
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+        status: UserNotificationStatus.NotAnswered,
+        statusMessage: "The call was not answered.",
+      }),
+    ).resolves.toBe(false);
+
+    expect(write).not.toHaveBeenCalled();
+    expect(notification().statusMessage).toBe(
+      STUCK_NOTIFICATION_STATUS_MESSAGE,
+    );
+  });
+
+  test("a report landing on it between the send's read and its write stays: the write names the version read", async () => {
+    settledAsStuck();
+
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.statusMessage = "Delivery status: Failed.";
+    });
+
+    await expect(
+      recordSendResult({
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+        isSent: true,
+        statusMessage: "Message ID: SM1",
+      }),
+    ).resolves.toBe(false);
+
+    expect(notification()).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "Delivery status: Failed.",
+    });
+    expect(read).toHaveBeenCalledTimes(2);
+  });
+
+  test("an acknowledgement landing on it meanwhile stays", async () => {
+    settledAsStuck();
+
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.status = UserNotificationStatus.Acknowledged;
+      row.statusMessage = "Notification Acknowledged";
+    });
+
+    await recordSendResult({
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+      isSent: true,
+      statusMessage: "Message ID: SM1",
+    });
+
+    expect(notification().status).toBe(UserNotificationStatus.Acknowledged);
+  });
+
+  test("read without its version, it is left: an Error is only written over at the version read", async () => {
+    read.mockImplementationOnce((() => {
+      return Promise.resolve({
+        id: NOTIFICATION_ID,
+        status: UserNotificationStatus.Error,
+        statusMessage: STUCK_NOTIFICATION_STATUS_MESSAGE,
+      });
+    }) as never);
+
+    await expect(
+      recordSendResult({
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+        isSent: true,
+        statusMessage: "Message ID: SM1",
+      }),
+    ).resolves.toBe(false);
+
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  test("only with orSettledAsStuck: a write from Sending alone leaves it", async () => {
+    settledAsStuck();
+
+    await expect(
+      writeNotificationStatusWhileStill({
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+        from: [UserNotificationStatus.Sending],
+        status: UserNotificationStatus.Sent,
+        statusMessage: "Message ID: SM1",
+      }),
+    ).resolves.toBe(false);
+
+    expect(read).toHaveBeenCalledWith({
+      id: NOTIFICATION_ID,
+      select: { _id: true, status: true, version: true },
+      props: { isRoot: true },
+    });
+    expect(write).not.toHaveBeenCalled();
   });
 });

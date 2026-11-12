@@ -164,6 +164,8 @@ Eine nicht gesendete Alarmierung sagt unter **Bereitschaftsprotokolle** in den B
 
 Die Eigentümer des Projekts erhalten dazu einmal eine E-Mail, bis das Guthaben aufgeladen oder der Kanal wieder eingeschaltet ist.
 
+Eine Alarmierung, die den Benachrichtigungsdienst von OneUptime nicht erreichen konnte, sagt `Could not reach the Notification service to send this (ECONNREFUSED).`, mit dem Code des Netzwerkfehlers in den Klammern. Eine Alarmierung, deren Versand nie fertig wurde, etwa weil ein Server während des Versands neu gestartet ist, sagt `Sending did not finish within 15 minutes, so this notification may not have been sent.` Wird der Versand doch noch fertig, ersetzt sein Ergebnis diese Meldung.
+
 In OneUptime Cloud wird jede SMS, jeder Anruf, jede WhatsApp- und Telegram-Nachricht vom Guthaben des Projekts unter **Projekteinstellungen > Benachrichtigungen > Benachrichtigungseinstellungen** bezahlt: Ihre genauen Kosten werden abgebucht, wenn der Anbieter sie annimmt, egal wie viele Nachrichten gleichzeitig hinausgehen.
 
 - Ist dort **Automatisches Aufladen** eingeschaltet, lädt die Nachricht, die das Guthaben unter dem Schwellenwert vorfindet, zuerst den eingestellten Betrag auf und belastet die Karte des Projekts; Nachrichten, die es im selben Moment niedrig vorfinden, belasten die Karte nur einmal.

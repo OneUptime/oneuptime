@@ -43,6 +43,14 @@
  *               steps, none done) and every other scenario finished it
  *   ?plan=      free: OneUptime Cloud's Free plan (the team step needs Growth)
  *
+ * A viewer was invited (#6807): Home draws their own first steps, from
+ * their personal checklist's reads (readiness, the project's channel
+ * switches, notification settings, incoming-call numbers, chat workspaces,
+ * profile fields, the calendar link) and their shifts (/my-shifts). The
+ * fixture answers as for Grace, a member invited a minute ago: only her
+ * sign-in email, on a team that an on-call policy pages, her first shift
+ * tomorrow at 09:00 on "Primary on-call".
+ *
  * The header carries the Dashboard's Help menu, and the page the dialog
  * How OneUptime works opens in (App.tsx mounts it once), so Help and
  * Home's Explore OneUptime open it as they do in the product (#6819).
@@ -95,6 +103,14 @@ import Service from "Common/Models/DatabaseModels/Service";
 import ServiceLevelObjective from "Common/Models/DatabaseModels/ServiceLevelObjective";
 import StatusPage from "Common/Models/DatabaseModels/StatusPage";
 import TeamMember from "Common/Models/DatabaseModels/TeamMember";
+import TeamMemberCustomField from "Common/Models/DatabaseModels/TeamMemberCustomField";
+import IncomingCallPolicy from "Common/Models/DatabaseModels/IncomingCallPolicy";
+import ProjectUserProfile from "Common/Models/DatabaseModels/ProjectUserProfile";
+import UserIncomingCallNumber from "Common/Models/DatabaseModels/UserIncomingCallNumber";
+import UserNotificationSetting from "Common/Models/DatabaseModels/UserNotificationSetting";
+import WorkspaceProjectAuthToken from "Common/Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceUserAuthToken from "Common/Models/DatabaseModels/WorkspaceUserAuthToken";
+import NotificationRuleType from "Common/Types/NotificationRule/NotificationRuleType";
 import Workflow from "Common/Models/DatabaseModels/Workflow";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
@@ -1061,7 +1077,31 @@ ModelAPI.count = async (options) => {
   }).length;
 };
 
+/*
+ * What an invited member's personal checklist reads besides readiness: a
+ * new member has none of these yet (#6807).
+ */
+[
+  UserNotificationSetting,
+  IncomingCallPolicy,
+  UserIncomingCallNumber,
+  WorkspaceProjectAuthToken,
+  WorkspaceUserAuthToken,
+  TeamMemberCustomField,
+  ProjectUserProfile,
+].forEach((modelType) => {
+  table(modelType);
+});
+
 ModelAPI.getItem = async (options) => {
+  // The project's channel switches and fallback, for the personal checklist.
+  if (tableName(options.modelType) === "Project") {
+    return make(Project, {
+      _id: PROJECT_ID,
+      disableOnCallNotificationFallback: false,
+    });
+  }
+
   fixture.unhandled.push({
     kind: "getItem",
     modelName: tableName(options.modelType),
@@ -1168,6 +1208,109 @@ function handleWelcome(method, url, options) {
   return null;
 }
 
+/*
+ * An invited member's own reads (#6807): Grace, invited a minute ago - her
+ * sign-in email only, paged through a team, her first shift tomorrow.
+ */
+const MEMBER_SEVERITY_ID = "70000000-0000-4000-8000-000000000001";
+
+function memberReadiness() {
+  return {
+    userId: ID.user(1),
+    userName: "Maya Chen",
+    userEmail: "maya@acme-commerce.example",
+    status: "Ready",
+    methods: [
+      {
+        methodId: "70000000-0000-4000-8000-000000000002",
+        methodType: "Email",
+        maskedIdentifier: "m***@acme-commerce.example",
+        isVerified: true,
+      },
+    ],
+    coverage: [
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT,
+      NotificationRuleType.ON_CALL_EXECUTED_INCIDENT_EPISODE,
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT,
+      NotificationRuleType.ON_CALL_EXECUTED_ALERT_EPISODE,
+    ].map((ruleType) => {
+      return {
+        ruleType,
+        severityId: MEMBER_SEVERITY_ID,
+        severityName: "Critical",
+        hasRule: true,
+        isOptOut: false,
+      };
+    }),
+    reasons: [],
+    reachedVia: ["Team"],
+    teams: [],
+  };
+}
+
+function memberShifts() {
+  // Tomorrow, 09:00 to 17:00 UTC.
+  const start = new Date(
+    Date.UTC(
+      NOW.getUTCFullYear(),
+      NOW.getUTCMonth(),
+      NOW.getUTCDate() + 1,
+      9,
+    ),
+  );
+  const end = new Date(start.getTime() + 8 * HOUR);
+
+  return {
+    shifts: [
+      {
+        shiftKey: `70000000-0000-4000-8000-000000000003:${start.getTime() / 1000}`,
+        contentHash: "fixture",
+        projectId: PROJECT_ID,
+        projectName: "Acme Commerce",
+        scheduleId: "70000000-0000-4000-8000-000000000003",
+        scheduleName: "Primary on-call",
+        scheduleTimezone: "UTC",
+        userId: ID.user(1),
+        userName: "Maya Chen",
+        start: start.toISOString(),
+        end: end.toISOString(),
+        coverageSeconds: 8 * 3600,
+        layerId: "70000000-0000-4000-8000-000000000004",
+        layerName: "Layer 1",
+        policies: [],
+        isPast: false,
+        lastModifiedAt: ago(DAY).toISOString(),
+        shiftConfigVersion: 1,
+      },
+    ],
+    truncated: false,
+    generatedAt: NOW.toISOString(),
+  };
+}
+
+function handleMember(method, url) {
+  const path = new URL(url).pathname;
+
+  if (method !== "GET") {
+    return null;
+  }
+
+  if (path.includes("/on-call-readiness/user/")) {
+    return ok(memberReadiness());
+  }
+
+  if (path.endsWith("/on-call-calendar/my-shifts")) {
+    return ok(memberShifts());
+  }
+
+  // No calendar link yet, as an older API answers: the row is left out.
+  if (path.endsWith("/on-call-calendar/feed/current")) {
+    return fail(404, "Not found");
+  }
+
+  return null;
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   fixture.apiRequests.push({ method, url });
@@ -1176,6 +1319,12 @@ async function handleApi(method, options) {
 
   if (welcomeResponse) {
     return welcomeResponse;
+  }
+
+  const memberResponse = handleMember(method, url);
+
+  if (memberResponse) {
+    return memberResponse;
   }
 
   fixture.unhandled.push({ kind: "api", method, url });

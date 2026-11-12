@@ -54,11 +54,13 @@ import {
 import {
   WelcomeChecklistFinishedBy,
   WelcomeChecklistState,
+  hasAcknowledgedTestPage,
   isWelcomeChecklistFinished,
   isWelcomeChecklistHiddenFor,
   needsLegacyCheck,
   parseWelcomeChecklistState,
   toWelcomeChecklistStateJSON,
+  withTestPageAcknowledgedBy,
   withWelcomeChecklistFinished,
   withWelcomeChecklistHiddenFor,
 } from "../../Types/WelcomeChecklist/WelcomeChecklistState";
@@ -149,15 +151,27 @@ export default class WelcomeChecklistService {
         state,
         caller.userId.toString(),
       ),
+      hasAcknowledgedTestPage: hasAcknowledgedTestPage(
+        state,
+        caller.userId.toString(),
+      ),
     };
 
     /*
-     * An invited member gets nothing to draw: the owner's checklist is not
-     * theirs (#6807 gives them their own first hour), and nothing is read
-     * for them.
+     * An invited member gets no steps: the owner's checklist is not theirs.
+     * Home draws their own first hour (#6807) - can OneUptime reach me,
+     * when am I on call - from their personal checklist and their shifts,
+     * which the browser reads; all this answer adds is whether a test page
+     * has reached them (above) and, while their card shows, whether the
+     * server can send email. Nothing of the project's is read for them.
      */
     if (audience === WelcomeAudience.InvitedMember) {
       answer.isFinished = isWelcomeChecklistFinished(state);
+
+      if (!answer.isHiddenForMe) {
+        answer.canSendEmail = await this.canServerSendEmail();
+      }
+
       return answer;
     }
 
@@ -290,6 +304,42 @@ export default class WelcomeChecklistService {
         isHidden,
       ),
     );
+  }
+
+  /*
+   * Notes that a member acknowledged a test page in this project: a page
+   * reached them, and their first hour on Home is done (#6807). Written
+   * once per member - later acknowledgements read the row and stop.
+   */
+  public static async noteTestPageAcknowledged(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): Promise<void> {
+    const row: ProjectChecklistRow = await this.readProject(data.projectId);
+    const next: WelcomeChecklistState = withTestPageAcknowledgedBy(
+      row.state,
+      data.userId.toString(),
+    );
+
+    if (next === row.state) {
+      return;
+    }
+
+    await this.writeState(data.projectId, next);
+  }
+
+  /*
+   * The same, from the acknowledgement of a test page: never throws and
+   * never waits, so the acknowledgement does not fail because of it.
+   */
+  public static noteTestPageAcknowledgedInBackground(data: {
+    projectId: ObjectID;
+    userId: ObjectID;
+  }): void {
+    this.noteTestPageAcknowledged(data).catch((err: Error) => {
+      logger.error("Could not note the acknowledged test page:");
+      logger.error(err);
+    });
   }
 
   /*

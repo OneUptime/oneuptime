@@ -1,8 +1,8 @@
-import UserOnCallLogTimeline from "Common/Models/DatabaseModels/UserOnCallLogTimeline";
-import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
-import ColumnLength from "Common/Types/Database/ColumnLength";
-import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
+import UserOnCallLogTimelineService from "../../Services/UserOnCallLogTimelineService";
+import ColumnLength from "../../../Types/Database/ColumnLength";
+import ObjectID from "../../../Types/ObjectID";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 
 /*
  * What a person's on-call timeline says of one notification of a page
@@ -10,10 +10,15 @@ import UserNotificationStatus from "Common/Types/UserNotification/UserNotificati
  * it moves on. Several write it at about the same time:
  *
  *  - the send, once the provider has answered it (SmsService,
- *    WhatsAppService): Sent, or Error when the provider refused it;
+ *    WhatsAppService, CallService): Sent, or Error when the provider refused
+ *    it;
  *  - the provider's report of how the message ended (API/SMS.ts,
- *    API/WhatsApp.ts, API/Call.ts), which can land before the send's own
- *    write - Twilio calls back within milliseconds;
+ *    API/WhatsApp.ts, API/Call.ts, ExpoPushReceiptService), which can land
+ *    before the send's own write - Twilio calls back within milliseconds;
+ *  - the page's own request to the Notification service, when it failed
+ *    (OnCallSendFailure): Error, when it never reached the service;
+ *  - the check for notifications that never got a result
+ *    (OnCallStuckNotifications): Error, after STUCK_NOTIFICATION_AFTER_MINUTES;
  *  - the person, who acknowledges the page meanwhile, by another channel.
  *
  * Each writes only while the notification still has a status it may move
@@ -48,16 +53,47 @@ export const PROVIDER_REPORT_MOVES_ON_FROM: ReadonlyArray<UserNotificationStatus
   [UserNotificationStatus.Sent, UserNotificationStatus.Sending];
 
 /*
+ * How long a notification may say Sending before the stuck check settles
+ * it (OnCallStuckNotifications). A send takes seconds; the longest any
+ * sender waits on its provider is a few minutes.
+ */
+export const STUCK_NOTIFICATION_AFTER_MINUTES: number = 15;
+
+/*
+ * What the stuck check writes, with Error: no result came back, so the
+ * notification may well not have gone out. A send that finishes after all
+ * writes its own result over it (recordSendResult).
+ */
+export const STUCK_NOTIFICATION_STATUS_MESSAGE: string = `Sending did not finish within ${STUCK_NOTIFICATION_AFTER_MINUTES} minutes, so this notification may not have been sent.`;
+
+/*
+ * Whether a notification holds the stuck check's own verdict - and only
+ * that: an Error with any other message was written by someone who knew
+ * why.
+ */
+export function isSettledAsStuck(notification: {
+  status?: UserNotificationStatus | undefined;
+  statusMessage?: string | undefined;
+}): boolean {
+  return (
+    notification.status === UserNotificationStatus.Error &&
+    notification.statusMessage === STUCK_NOTIFICATION_STATUS_MESSAGE
+  );
+}
+
+/*
  * Writes the notification's status - when one is given - and message,
- * while it still has one of `from`. Whether it was written: false when the
- * notification is gone, says something else, or kept changing under every
- * try. A failure to read or write it throws.
+ * while it still has one of `from`, or - with `orSettledAsStuck` - while it
+ * holds the stuck check's verdict, at the version read. Whether it was
+ * written: false when the notification is gone, says something else, or
+ * kept changing under every try. A failure to read or write it throws.
  */
 export async function writeNotificationStatusWhileStill(data: {
   userOnCallLogTimelineId: ObjectID;
   from: ReadonlyArray<UserNotificationStatus>;
   status?: UserNotificationStatus | undefined;
   statusMessage: string;
+  orSettledAsStuck?: boolean | undefined;
 }): Promise<boolean> {
   for (
     let attempt: number = 0;
@@ -71,17 +107,32 @@ export async function writeNotificationStatusWhileStill(data: {
           _id: true,
           status: true,
           version: true,
+          // The stuck check's verdict is told by its message.
+          ...(data.orSettledAsStuck ? { statusMessage: true } : {}),
         },
         props: {
           isRoot: true,
         },
       });
 
-    if (
-      !notification ||
-      !notification.status ||
-      !data.from.includes(notification.status)
-    ) {
+    if (!notification || !notification.status) {
+      return false;
+    }
+
+    const hasVersion: boolean = typeof notification.version === "number";
+
+    /*
+     * The stuck check's verdict is an Error like any other to the database,
+     * so it is written over only at the version read: an Error written
+     * meanwhile - the provider's report - moves the version on.
+     */
+    const mayMoveOn: boolean =
+      data.from.includes(notification.status) ||
+      Boolean(
+        data.orSettledAsStuck && hasVersion && isSettledAsStuck(notification),
+      );
+
+    if (!mayMoveOn) {
       return false;
     }
 
@@ -91,9 +142,7 @@ export async function writeNotificationStatusWhileStill(data: {
           _id: data.userOnCallLogTimelineId.toString(),
           status: notification.status,
           // At the version read: a write landing meanwhile leaves no row to write.
-          ...(typeof notification.version === "number"
-            ? { version: notification.version }
-            : {}),
+          ...(hasVersion ? { version: notification.version } : {}),
         },
         data: {
           ...(data.status ? { status: data.status } : {}),
@@ -115,7 +164,9 @@ export async function writeNotificationStatusWhileStill(data: {
 
 /*
  * What the send found, once the provider answered it: Sent when the
- * provider took the message, Error when it did not - over Sending only.
+ * provider took the message, Error when it did not - over Sending only, or
+ * over the stuck check's verdict: a send that finished late says how it
+ * went after all.
  */
 export async function recordSendResult(data: {
   userOnCallLogTimelineId: ObjectID;
@@ -129,6 +180,7 @@ export async function recordSendResult(data: {
       ? UserNotificationStatus.Sent
       : UserNotificationStatus.Error,
     statusMessage: data.statusMessage,
+    orSettledAsStuck: true,
   });
 }
 

@@ -1,5 +1,9 @@
 import { SIGNUP_API_URL } from "../Utils/ApiPaths";
 import { fetchIsAwaitingFirstAccount } from "../Utils/FirstAccount";
+import {
+  isInvitedSignUp,
+  shouldAskForCompanyDetails,
+} from "../Utils/InvitedSignUp";
 import PasswordRequirements from "../Components/PasswordRequirements/PasswordRequirements";
 import VerifyEmailPending from "../Components/VerifyEmailPending/VerifyEmailPending";
 import Route from "Common/Types/API/Route";
@@ -338,7 +342,19 @@ const RegisterPage: () => JSX.Element = () => {
     },
   ];
 
-  if (BILLING_ENABLED) {
+  /*
+   * Somebody who was invited is asked for their name and a password only
+   * (InvitedSignUp): their project has a company, and a phone number is
+   * asked for where it is used, as a notification method.
+   */
+  const asksForCompanyDetails: boolean = shouldAskForCompanyDetails({
+    isInvitedSignUp: isInvitedSignUp({
+      email: Navigation.getQueryStringByName("email"),
+      token: Navigation.getQueryStringByName("token"),
+    }),
+  });
+
+  if (BILLING_ENABLED && asksForCompanyDetails) {
     formFields = formFields.concat([
       {
         field: {
@@ -368,7 +384,7 @@ const RegisterPage: () => JSX.Element = () => {
     }
   }
 
-  if (!BILLING_ENABLED) {
+  if (!BILLING_ENABLED && asksForCompanyDetails) {
     formFields = formFields.concat([
       {
         overrideField: {

@@ -23,7 +23,7 @@ import {
 import type { Mock } from "jest-mock";
 import OnCallTimelineRows, {
   StoredOnCallNotification,
-} from "./Fixtures/OnCallTimelineRows";
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 
 /*
  * POST /notification/whatsapp/webhook - HOW A WHATSAPP MESSAGE ENDED, AS

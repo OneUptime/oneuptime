@@ -1,4 +1,9 @@
 import { AI_AUTO_RECHARGE_RETRY_AFTER_IN_SECONDS } from "Common/Server/Services/AIBillingService";
+import { getNotReachedStatusMessage } from "Common/Server/Utils/OnCall/NotificationRequestFailure";
+import {
+  STUCK_NOTIFICATION_AFTER_MINUTES,
+  STUCK_NOTIFICATION_STATUS_MESSAGE,
+} from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import {
   getProjectBalanceWhoCanAddSentence,
   ProjectBalanceType,
@@ -21,7 +26,9 @@ import path from "path";
  * - the owners are emailed once each time the credits run out.
  *
  * And the on-call docs say a page that is not sent shows why in the
- * person's On-Call Logs, instead of "Sending" for ever.
+ * person's On-Call Logs, instead of "Sending" for ever - with the two
+ * messages of a page OneUptime itself could not finish sending, as the
+ * server writes them (issue #6873).
  */
 
 const DOCS_ROOT: string = path.join(
@@ -141,6 +148,19 @@ describe("Escalation rules: a page that is not sent", () => {
     );
     expect(page).toContain(
       "the channel is off in the project, and who can turn it on",
+    );
+  });
+
+  test("quotes what a page that never reached the notification service says, with its error's code", () => {
+    expect(page).toContain(
+      `A page that could not reach OneUptime's notification service says \`${getNotReachedStatusMessage("ECONNREFUSED")}\`, with the network error's code in the brackets.`,
+    );
+  });
+
+  test("quotes what a page whose send never finished says, and that a late result replaces it", () => {
+    expect(STUCK_NOTIFICATION_AFTER_MINUTES).toBe(15);
+    expect(page).toContain(
+      `A page whose send never finished, for example because a server restarted while sending it, says \`${STUCK_NOTIFICATION_STATUS_MESSAGE}\` If the send finishes after all, its result replaces that message.`,
     );
   });
 });

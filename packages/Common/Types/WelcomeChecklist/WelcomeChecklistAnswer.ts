@@ -51,6 +51,11 @@ export interface WelcomeChecklistAnswer {
   isFinished: boolean;
   // The server can send email (false only on a server known not to).
   canSendEmail: boolean;
+  /*
+   * This person acknowledged a test page in this project: a page reached
+   * them. An invited member's first hour ends there (#6807).
+   */
+  hasAcknowledgedTestPage: boolean;
   // The steps, in order; empty when the card shows none (finished, an invited member).
   steps: Array<WelcomeChecklistStepState>;
   doneCount: number;
@@ -68,6 +73,7 @@ export const getEmptyWelcomeChecklistAnswer: () => WelcomeChecklistAnswer =
       isHiddenForMe: false,
       isFinished: false,
       canSendEmail: true,
+      hasAcknowledgedTestPage: false,
       steps: [],
       doneCount: 0,
       totalCount: 0,
@@ -85,6 +91,7 @@ export const toWelcomeChecklistAnswerJSON: (
     isHiddenForMe: answer.isHiddenForMe,
     isFinished: answer.isFinished,
     canSendEmail: answer.canSendEmail,
+    hasAcknowledgedTestPage: answer.hasAcknowledgedTestPage,
     steps: answer.steps.map((state: WelcomeChecklistStepState): JSONObject => {
       return {
         step: state.step,
@@ -178,6 +185,7 @@ export const parseWelcomeChecklistAnswer: (
     isHiddenForMe: raw["isHiddenForMe"] === true,
     isFinished: raw["isFinished"] === true,
     canSendEmail: raw["canSendEmail"] !== false,
+    hasAcknowledgedTestPage: raw["hasAcknowledgedTestPage"] === true,
     steps: steps,
     doneCount: toCount(raw["doneCount"]),
     totalCount: toCount(raw["totalCount"]),
