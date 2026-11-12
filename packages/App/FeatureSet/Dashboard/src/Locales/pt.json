@@ -51506,5 +51506,9 @@
   "How OneUptime signs in to Amazon SES.": "Como o OneUptime entra no Amazon SES.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Enviar pelo Amazon SES com uma chave de acesso ou a função do IAM deste servidor.",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "A função que a AWS dá a este servidor no Amazon EKS, ECS ou EC2. Nenhuma chave é armazenada, e suas credenciais se renovam sozinhas.",
-  "This Server's IAM Role": "Função do IAM deste servidor"
+  "This Server's IAM Role": "Função do IAM deste servidor",
+  "Leave without saving?": "Sair sem salvar?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Você tem alterações não salvas neste painel. Se sair agora, elas serão perdidas.",
+  "Discard unsaved changes?": "Descartar alterações não salvas?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Você tem alterações não salvas neste painel. Se você descartá-las, o painel volta ao último estado salvo."
 }

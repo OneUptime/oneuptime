@@ -51506,5 +51506,9 @@
   "How OneUptime signs in to Amazon SES.": "OneUptime Amazon SES में कैसे साइन इन करता है।",
   "Send through Amazon SES with an access key or this server's IAM role.": "एक्सेस कुंजी या इस सर्वर की IAM भूमिका के साथ Amazon SES से भेजें।",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "वह भूमिका जो AWS इस सर्वर को Amazon EKS, ECS या EC2 पर देता है। कोई कुंजी संग्रहीत नहीं होती, और इसके क्रेडेंशियल अपने आप नवीनीकृत होते हैं।",
-  "This Server's IAM Role": "इस सर्वर की IAM भूमिका"
+  "This Server's IAM Role": "इस सर्वर की IAM भूमिका",
+  "Leave without saving?": "सहेजे बिना पेज छोड़ें?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "इस डैशबोर्ड में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।",
+  "Discard unsaved changes?": "सहेजे नहीं गए बदलाव रद्द करें?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "इस डैशबोर्ड में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप उन्हें रद्द करते हैं, तो डैशबोर्ड पिछली बार सहेजे गए रूप में लौट आएगा।"
 }

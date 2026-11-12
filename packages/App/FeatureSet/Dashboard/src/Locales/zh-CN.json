@@ -51506,5 +51506,9 @@
   "How OneUptime signs in to Amazon SES.": "OneUptime 登录 Amazon SES 的方式。",
   "Send through Amazon SES with an access key or this server's IAM role.": "使用访问密钥或此服务器的 IAM 角色通过 Amazon SES 发送。",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "AWS 在 Amazon EKS、ECS 或 EC2 上赋予此服务器的角色。不存储任何密钥，其凭证会自动续期。",
-  "This Server's IAM Role": "此服务器的 IAM 角色"
+  "This Server's IAM Role": "此服务器的 IAM 角色",
+  "Leave without saving?": "不保存就离开？",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您对此仪表板有未保存的更改。如果现在离开，这些更改将会丢失。",
+  "Discard unsaved changes?": "放弃未保存的更改？",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "您对此仪表板有未保存的更改。如果放弃这些更改，仪表板将恢复到上次保存时的状态。"
 }

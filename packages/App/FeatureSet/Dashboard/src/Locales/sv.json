@@ -51506,5 +51506,9 @@
   "How OneUptime signs in to Amazon SES.": "Hur OneUptime loggar in på Amazon SES.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Skicka via Amazon SES med en åtkomstnyckel eller den här serverns IAM-roll.",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Rollen som AWS ger den här servern på Amazon EKS, ECS eller EC2. Ingen nyckel lagras, och dess autentiseringsuppgifter förnyas av sig själva.",
-  "This Server's IAM Role": "Den här serverns IAM-roll"
+  "This Server's IAM Role": "Den här serverns IAM-roll",
+  "Leave without saving?": "Lämna utan att spara?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har osparade ändringar i denna instrumentpanel. Om du lämnar sidan nu går de förlorade.",
+  "Discard unsaved changes?": "Kasta osparade ändringar?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Du har osparade ändringar i denna instrumentpanel. Om du kastar dem återgår instrumentpanelen till den senast sparade versionen."
 }

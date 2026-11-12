@@ -51506,5 +51506,9 @@
   "How OneUptime signs in to Amazon SES.": "Как OneUptime входит в Amazon SES.",
   "Send through Amazon SES with an access key or this server's IAM role.": "Отправлять через Amazon SES с ключом доступа или ролью IAM этого сервера.",
   "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Роль, которую AWS выдаёт этому серверу в Amazon EKS, ECS или EC2. Ключ не хранится, а учётные данные обновляются сами.",
-  "This Server's IAM Role": "Роль IAM этого сервера"
+  "This Server's IAM Role": "Роль IAM этого сервера",
+  "Leave without saving?": "Уйти без сохранения?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "У вас есть несохранённые изменения на этой панели. Если вы уйдёте сейчас, они будут потеряны.",
+  "Discard unsaved changes?": "Отменить несохранённые изменения?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "У вас есть несохранённые изменения на этой панели. Если вы их отмените, панель вернётся к последней сохранённой версии."
 }
