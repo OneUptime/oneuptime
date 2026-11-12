@@ -15,6 +15,7 @@ import {
 } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/RumMetricDescriptions";
 import { SERVICE_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/ServiceMetricDescriptions";
 import { VMWARE_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/VMwareMetricDescriptions";
+import { HOST_METRIC_DESCRIPTIONS } from "../../FeatureSet/Dashboard/src/Components/MetricDescriptions/HostMetricDescriptions";
 import {
   DATABASE_SERVER_METRICS,
   DatabaseServerMetricDefinition,
@@ -568,6 +569,20 @@ const PRINTED_AS_WRITTEN: ReadonlyArray<{
     name: "a replay's Watched column: the value it prints",
     english: RUM_REPLAY_ACCESS_METRIC_DESCRIPTIONS.watched,
     keep: ["< 15s"],
+  },
+  /*
+   * #6731: a systemd unit's kind, which the Systemd Units list and a
+   * unit's page show as systemd writes it (Components/Host/SystemdUnitKind).
+   */
+  {
+    name: "a systemd unit's Unit Type tile: the kinds as systemd writes them",
+    english: HOST_METRIC_DESCRIPTIONS.unitType,
+    keep: ["service", "socket", "timer", "mount", "target"],
+  },
+  {
+    name: "the Systemd Units list's Type column: the kinds as systemd writes them",
+    english: HOST_METRIC_DESCRIPTIONS.unitListType,
+    keep: ["service", "timer"],
   },
 ];
 

@@ -9,7 +9,7 @@ import {
   activeStateMeta,
   computeSystemdAvailability,
   SystemdAvailability,
-  unitTypeLabel,
+  unitTypeOf,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Host/Utils/SystemdUnits";
 import {
   startupModeLabel,
@@ -651,12 +651,20 @@ describe("state texts quote the labels the pages render", () => {
     expect(D.unitListState).toContain(activeStateMeta(null).label);
   });
 
-  test("unit type texts use unitTypeLabel's labels", () => {
-    expect(D.unitType).toContain(unitTypeLabel("nginx.service"));
-    expect(D.unitType).toContain(unitTypeLabel("docker.socket"));
-    expect(D.unitType).toContain(unitTypeLabel("logrotate.timer"));
-    expect(D.unitListType).toContain(unitTypeLabel("nginx.service"));
-    expect(D.unitListType).toContain(unitTypeLabel("logrotate.timer"));
+  // #6731: the kinds as the page shows them - as systemd writes them.
+  test("unit type texts name the kinds as unitTypeOf reads them", () => {
+    expect(D.unitType).toContain(`: ${unitTypeOf("nginx.service")} (`);
+    expect(D.unitType).toContain(`, ${unitTypeOf("docker.socket")},`);
+    expect(D.unitType).toContain(`, ${unitTypeOf("logrotate.timer")},`);
+    expect(D.unitType).toContain(`, ${unitTypeOf("var-lib.mount")},`);
+    expect(D.unitType).toContain(` ${unitTypeOf("multi-user.target")} and`);
+    expect(D.unitListType).toContain(` ${unitTypeOf("nginx.service")} for`);
+    expect(D.unitListType).toContain(` ${unitTypeOf("logrotate.timer")} for`);
+    // Not the title-cased words the page no longer shows.
+    for (const word of ["Service", "Socket", "Timer", "Mount", "Target"]) {
+      expect(D.unitType).not.toContain(word);
+      expect(D.unitListType).not.toContain(word);
+    }
   });
 
   test("unit availability counts Reloading as not active, as the text says", () => {

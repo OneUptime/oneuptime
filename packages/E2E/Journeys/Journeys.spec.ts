@@ -210,6 +210,58 @@ journey(
 );
 
 /*
+ * 1 and 2, guided (#6804): the same job - a website monitor, and being told
+ * when it goes down - in the guided setup that Home's "Create your first
+ * monitor" opens (and its checklist, for the goal "Know when my website or
+ * API is down"). The address, who is told (me, to start with), and a test
+ * page to myself, acknowledged from the email. Ends on the summary.
+ */
+journey(
+  "website-down-guided",
+  async (person: Journey, page: Page) => {
+    await person.begin(
+      `${DASHBOARD}/home/`,
+      page.getByRole("heading", { name: "Home" }),
+    );
+    await person.press(/Create your first monitor/);
+    await person.type(
+      "Website or API address",
+      "https://acme-commerce.example",
+    );
+    await person.submit("Start checking");
+    await expect(page.getByTestId("guided-setup-first-check")).toContainText(
+      "answered 200 in 312 ms from 2 locations",
+    );
+    await person.press("Continue");
+    await person.press("Save and continue");
+    await person.press("Send me a test page");
+    // Acknowledged from the email: the dialog gives way to the result.
+    await person.submit("Send test page");
+    await person.press("Continue");
+    await expect(page.getByTestId("guided-setup-summary")).toContainText(
+      "acme-commerce.example is set up",
+    );
+  },
+  (log: FixtureLog) => {
+    const [monitor] = writesTo(log, "Monitor");
+    expect(monitor?.data["monitorType"]).toBe("Website");
+    expect(monitor?.data["name"]).toBe("acme-commerce.example");
+    expect(JSON.stringify(monitor?.data["monitorSteps"])).toContain(
+      "https://acme-commerce.example",
+    );
+    const [policy] = writesTo(log, "OnCallDutyPolicy");
+    expect(policy?.misc?.["users"]).toEqual([ADA]);
+    expect(policy?.misc?.["pageForEveryNewIncidentAndAlert"]).toBe(true);
+    // The test page went to me, and was acknowledged.
+    expect(
+      log.api.filter((call: FixtureApiCall) => {
+        return call.path.endsWith("/on-call-test-page/page-person");
+      }),
+    ).toHaveLength(1);
+  },
+);
+
+/*
  * 3. Get paged by phone and escalate to a teammate, on OneUptime Cloud:
  * phone calls on for the project and money in the balance that pays for
  * them, my number added and verified, a policy that calls me first, and a

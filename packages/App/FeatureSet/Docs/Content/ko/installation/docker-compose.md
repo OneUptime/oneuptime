@@ -477,7 +477,27 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 > [!CAUTION]
 > `--volumes`는 모든 모니터, 인시던트, 사용자, 텔레메트리를 영구히 삭제합니다. 그중 무엇이든 필요할 수 있다면 먼저 백업하세요.
 
+## 설치 확인하기
+
+무언가 동작하지 않으면 `oneuptime` 폴더에서 doctor를 실행하세요.
+
+```bash
+npm run doctor
+```
+
+잘못된 점을 심각한 것부터 나열하고 각 줄에 정확한 해결 방법을 보여 주며, 마지막에 **Everything looks right.** 또는 고칠 항목의 수를 표시합니다. 모든 컨테이너를 확인하고 실행 중이 아닌 컨테이너의 마지막 로그 줄을 보여 주며, `config.env`, `HOST`가 이 서버에 닿는지, `PROVISION_SSL`이 켜져 있을 때의 인증서, 남은 디스크 공간도 확인합니다. 또한 OneUptime이 스스로 보는 상태도 묻습니다. PostgreSQL, ClickHouse, Valkey, 마이그레이션, 대기열, 버전, 그리고 이메일과 프로브 같은 서버 설정 단계입니다. `npm start`도 같은 확인으로 끝나며 확인이 필요한 것만 알려 줍니다.
+
+각 서비스의 최근 오류도 서비스 이름과 함께 보려면 다음을 실행하세요.
+
+```bash
+npm run doctor -- --logs
+```
+
+✗ 표시된 항목을 고쳐야 하면 종료 코드 `1`로 끝나므로 스크립트에서도 실행할 수 있습니다. Admin Dashboard는 OneUptime이 스스로 보는 상태를 **OneUptime 상태** 맨 위에 보여 주고, Kubernetes에서는 `HelmChart/Public/diagnose.sh`가 출력합니다.
+
 ## 문제 해결
+
+먼저 `npm run doctor`를 실행하세요. 아래 문제 대부분을 해결 방법과 함께 알려 줍니다.
 
 :::details npm start가 OneUptime을 시작하기 전에 멈춤
 `npm start`는 먼저 서버를 확인하고, OneUptime이 동작하지 못하게 할 문제가 있으면 멈춥니다. Docker나 Compose 플러그인이 없거나, Docker가 실행 중이 아니거나 사용자가 쓸 수 없거나, 다른 프로그램이 포트를 쓰고 있거나, `HOST`가 어떤 브라우저도 열 수 없는 주소인 경우입니다. ✗로 표시된 줄마다 무엇을 바꿔야 하는지 나와 있습니다. 고친 다음 `npm start`를 다시 실행하세요. 검사가 서버를 잘못 판단한다면 검사 없이 시작하세요.

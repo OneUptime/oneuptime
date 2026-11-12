@@ -5,6 +5,14 @@ script. It inspects pods, databases (PostgreSQL, ClickHouse, Valkey), storage,
 logs, autoscaling, and the ingress, then prints a ranked list of findings with
 concrete action steps.
 
+It also prints what OneUptime says is wrong with itself, asked from inside the
+app pod: PostgreSQL, ClickHouse and Valkey answer, the migrations, ClickHouse's
+disks, the queues, the version, and the server's setup steps such as email and
+probes. These are the same findings `npm run doctor` prints on Docker Compose
+and the Admin Dashboard shows at the top of **OneUptime Health**. Unlike the
+doctor, it does not check the address people open from outside the cluster or
+its certificate: your ingress controller and cert-manager serve those.
+
 The script is **read-only** — it only runs `SELECT` queries and
 `kubectl get/logs/exec` commands. It does not modify any cluster state.
 

@@ -48,7 +48,9 @@ export interface ComponentProps {
 /*
  * The one primary button on Home, and only before anything is monitored: the
  * headline says to create a monitor, so it offers to. The Button component's
- * PRIMARY look, as a link so it opens in a new tab too.
+ * PRIMARY look, as a link so it opens in a new tab too. It opens the guided
+ * setup (#6804) - an address, who is told and a test page on one page -
+ * whose first step links to Create Monitor for every other type.
  */
 export const CREATE_FIRST_MONITOR_BUTTON_CLASS_NAME: string =
   "mt-4 inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2";
@@ -231,7 +233,7 @@ const ProjectHealthCard: FunctionComponent<ComponentProps> = (
                 props.canCreateMonitor ? (
                   <AppLink
                     to={RouteUtil.populateRouteParams(
-                      RouteMap[PageMap.MONITOR_CREATE] as Route,
+                      RouteMap[PageMap.MONITOR_GUIDED_SETUP] as Route,
                     )}
                     className={CREATE_FIRST_MONITOR_BUTTON_CLASS_NAME}
                   >

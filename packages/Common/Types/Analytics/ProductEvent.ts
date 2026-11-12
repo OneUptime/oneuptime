@@ -259,26 +259,22 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     name: ProductEventName.GuidedSetupStarted,
     description: "A guided setup was opened.",
     properties: [token("setup")],
-    reservedFor: "#6804",
   },
   {
     name: ProductEventName.GuidedSetupStepReached,
     description: "A guided setup moved on to a step.",
     properties: [token("setup"), token("step"), { name: "step_number" }],
-    reservedFor: "#6804",
   },
   {
     name: ProductEventName.GuidedSetupFinished,
     description:
       "A guided setup reached its end: the thing works and was tested.",
     properties: [token("setup"), { name: "seconds_taken" }],
-    reservedFor: "#6804",
   },
   {
     name: ProductEventName.GuidedSetupLeft,
     description: "A guided setup was left before its end, and at which step.",
     properties: [token("setup"), token("step"), { name: "step_number" }],
-    reservedFor: "#6804",
   },
 ];
 

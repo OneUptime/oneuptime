@@ -280,9 +280,21 @@ describe("chat messages as the project's bot", () => {
         ],
       });
 
+    // Each says why, for a caller that reports each channel (#6920).
+    const reason: string =
+      "Workspace message not sent: This project has been blocked. Please contact your administrator.";
+
     expect(responses).toEqual([
-      { workspaceType: WorkspaceType.Slack, threads: [] },
-      { workspaceType: WorkspaceType.MicrosoftTeams, threads: [] },
+      {
+        workspaceType: WorkspaceType.Slack,
+        threads: [],
+        notSentReason: reason,
+      },
+      {
+        workspaceType: WorkspaceType.MicrosoftTeams,
+        threads: [],
+        notSentReason: reason,
+      },
     ]);
     expect(getProjectAuth).not.toHaveBeenCalled();
   });

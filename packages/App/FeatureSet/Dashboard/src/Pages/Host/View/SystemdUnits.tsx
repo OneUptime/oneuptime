@@ -60,6 +60,9 @@ import {
 } from "../Utils/SystemdUnits";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import TableEmptyValue from "Common/UI/Components/Table/TableEmptyValue";
+import { EMPTY_VALUE_MARK } from "Common/UI/Components/Detail/EmptyValue";
+import SystemdUnitKind from "../../../Components/Host/SystemdUnitKind";
 
 /*
  * Like processes and Windows services, unit state is a point-in-time sample
@@ -257,19 +260,23 @@ const HostSystemdUnits: FunctionComponent<
       });
   }, [rows, translator.language]);
 
+  /*
+   * One option per kind, as systemd writes it (service, socket, timer) and
+   * as the Type column shows it: never a word looked up in the locale.
+   */
   const unitTypeOptions: Array<FilterChipDropdownOption> = useMemo(() => {
     const counts: Map<string, number> = new Map();
     for (const row of rows) {
-      counts.set(row.unitTypeLabel, (counts.get(row.unitTypeLabel) || 0) + 1);
+      counts.set(row.unitType, (counts.get(row.unitType) || 0) + 1);
     }
     return Array.from(counts.entries())
       .sort((a: [string, number], b: [string, number]) => {
         return a[0].localeCompare(b[0]);
       })
-      .map(([label, count]: [string, number]) => {
+      .map(([kind, count]: [string, number]) => {
         return {
-          value: label,
-          label: translator.translateTerm(label),
+          value: kind,
+          label: kind || EMPTY_VALUE_MARK,
           sublabel: translator.translatePlural(
             { one: "{{count}} unit", other: "{{count}} units" },
             count,
@@ -297,7 +304,7 @@ const HostSystemdUnits: FunctionComponent<
 
     if (unitTypeFilter.length > 0) {
       data = data.filter((row: SystemdUnitRow) => {
-        return unitTypeFilter.includes(row.unitTypeLabel);
+        return unitTypeFilter.includes(row.unitType);
       });
     }
 
@@ -307,13 +314,13 @@ const HostSystemdUnits: FunctionComponent<
         sortKey === "activeState"
           ? a.stateLabel
           : sortKey === "unitType"
-            ? a.unitTypeLabel
+            ? a.unitType
             : a.name;
       const bVal: string =
         sortKey === "activeState"
           ? b.stateLabel
           : sortKey === "unitType"
-            ? b.unitTypeLabel
+            ? b.unitType
             : b.name;
       const cmp: number = aVal.localeCompare(bVal, undefined, {
         sensitivity: "base",
@@ -382,10 +389,10 @@ const HostSystemdUnits: FunctionComponent<
         headerTooltip: HOST_METRIC_DESCRIPTIONS.unitListType,
         hideOnMobile: true,
         getElement: (row: SystemdUnitRow): ReactElement => {
-          return (
-            <span className="text-sm text-gray-600">
-              {translator.translateText(row.unitTypeLabel)}
-            </span>
+          return row.unitType ? (
+            <SystemdUnitKind kind={row.unitType} />
+          ) : (
+            <TableEmptyValue />
           );
         },
       },
