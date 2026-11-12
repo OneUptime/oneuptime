@@ -96,9 +96,9 @@ export const ON_CALL_SETUP_COPY: {
   pushHelp: string;
   pushLink: string;
   phoneLabel: string;
-  phoneSend: string;
+  sendSmsCode: string;
   phoneError: string;
-  turnOnPhone: string;
+  turnOnSmsAndCalls: string;
   phoneBalance: string;
   addBalance: string;
   whoCanAddBalance: string;
@@ -176,11 +176,11 @@ export const ON_CALL_SETUP_COPY: {
   ),
   pushLink: translationKey("Set up the app or this browser"),
   phoneLabel: translationKey("Your phone number"),
-  phoneSend: translationKey("Text me a code"),
+  sendSmsCode: translationKey("Text me a code"),
   phoneError: translationKey(
     "Enter the number with its country code, such as +15551234567.",
   ),
-  turnOnPhone: translationKey("Turn on SMS and phone calls"),
+  turnOnSmsAndCalls: translationKey("Turn on SMS and phone calls"),
   phoneBalance: translationKey(
     "Texts and calls are paid from this project's balance, which is {{balance}}. Adding a number sends a text, so the balance must be more than {{floor}}.",
   ),
