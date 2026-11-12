@@ -561,8 +561,7 @@ export enum OnCallTestPageLineCode {
    */
   PushDeviceNoLongerReceives = "PushDeviceNoLongerReceives",
 
-  // A PERSON'S, OR A TARGET'S, LINE.
-  // They opted out of pages of this severity.
+  // A PERSON'S, OR A TARGET'S, LINE. They opted out of pages of this severity.
   OptedOut = "OptedOut",
   // No rule covers the severity, and the project does not fall back.
   NoRuleNoFallback = "NoRuleNoFallback",
@@ -595,8 +594,7 @@ export enum OnCallTestPageLineCode {
   // The test does not say which kind and severity it tests.
   RunUnreadable = "RunUnreadable",
 
-  // THE TEST'S OWN LINE, once it ended or failed.
-  // It reached nobody.
+  // THE TEST'S OWN LINE, once it ended or failed. It reached nobody.
   NobodyPaged = "NobodyPaged",
   // Its first level reached nobody.
   FirstLevelReachedNobody = "FirstLevelReachedNobody",
