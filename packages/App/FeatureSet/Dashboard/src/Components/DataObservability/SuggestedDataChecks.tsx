@@ -25,6 +25,7 @@ import ObjectID from "Common/Types/ObjectID";
 import RecommendationType from "Common/Types/Recommendation/RecommendationType";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -49,6 +50,10 @@ export interface ComponentProps {
 
 // Dismissals of suggested checks are kept per table.
 export const SUGGESTION_RESOURCE_TYPE: string = "DataAsset";
+
+// A suggested check's name, and the line that says why it is suggested.
+export const SUGGESTED_CHECK_NAME_TEST_ID: string = "suggested-check-name";
+export const SUGGESTED_CHECK_REASON_TEST_ID: string = "suggested-check-reason";
 
 // The most other tables of the store read to find what a reference points at.
 const MAX_OTHER_TABLES: number = 1000;
@@ -313,9 +318,18 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
                 className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
               >
                 <div className="min-w-0 space-y-1">
-                  <span className="block font-medium text-gray-900">
-                    {suggestion.name}
-                  </span>
+                  {/*
+                   * The suggestion's name and reason are written in
+                   * English (DataCheckSuggestions): each line reads the way
+                   * it is written, so on an Arabic or Persian page the
+                   * reason keeps its full stop at its end.
+                   */}
+                  <IsolatedLine
+                    as="span"
+                    text={suggestion.name}
+                    className="block break-words font-medium text-gray-900"
+                    dataTestId={SUGGESTED_CHECK_NAME_TEST_ID}
+                  />
                   <span className="block text-xs text-gray-500">
                     {translator.translateText(suggestion.checkType) ||
                       suggestion.checkType}
@@ -326,9 +340,12 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
                       threshold: suggestion.alertThreshold,
                     })}
                   </span>
-                  <span className="block text-sm text-gray-600">
-                    {suggestion.reason}
-                  </span>
+                  <IsolatedLine
+                    as="span"
+                    text={suggestion.reason}
+                    className="block break-words text-sm text-gray-600"
+                    dataTestId={SUGGESTED_CHECK_REASON_TEST_ID}
+                  />
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Button

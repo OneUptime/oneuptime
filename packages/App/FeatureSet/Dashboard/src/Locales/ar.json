@@ -41442,7 +41442,7 @@
   "Shown with the check: why it matters, and what to do when it fails.": "يظهر مع الفحص: سبب أهميته، وما يجب فعله عند فشله.",
   "The column of that table it refers to.": "عمود ذلك الجدول الذي يشير إليه.",
   "The column the check reads.": "العمود الذي يقرؤه الفحص.",
-  "The value an Above or Below alert compares with.": "القيمة التي يقارن بها تنبيه «أعلى من» أو «أقل من».",
+  "The value an Above or Below alert compares with.": "القيمة التي يقارن بها تنبيه «أعلى من» أو «أدنى من».",
   "Turned off, the check stops running, and its alert goes quiet with it.": "عند إيقافه، يتوقف الفحص عن العمل، ويتوقف تنبيهه معه.",
   "Add All": "إضافة الكل",
   "Checks this table's columns call for, from their names and types. No row was read to suggest them.": "فحوصات تستدعيها أعمدة هذا الجدول، بناءً على أسمائها وأنواعها. لم يُقرأ أي صف لاقتراحها.",

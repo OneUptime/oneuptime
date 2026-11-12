@@ -93,7 +93,10 @@ jest.mock("../../../Types/DataObservability/DataCheckSuggestions", () => {
  */
 import DataObservabilityApi from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataObservabilityApi";
 import DataCheckTable from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTable";
-import SuggestedDataChecks from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/SuggestedDataChecks";
+import SuggestedDataChecks, {
+  SUGGESTED_CHECK_NAME_TEST_ID,
+  SUGGESTED_CHECK_REASON_TEST_ID,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/SuggestedDataChecks";
 import { DATA_CHECK_ALERT_CONDITION_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckAlertConditionWords";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import {
@@ -108,6 +111,7 @@ import Dropdown, {
   DropdownOption,
 } from "../../../UI/Components/Dropdown/Dropdown";
 import ProjectUtil from "../../../UI/Utils/Project";
+import { CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME } from "../../../UI/Utils/LineDirection";
 import {
   DASHBOARD_LANGUAGES,
   isWordedInDashboardLocale,
@@ -125,6 +129,7 @@ interface CapturedColumn {
 
 interface CapturedFormField {
   field?: Record<string, unknown>;
+  description?: string;
   dropdownOptions?: Array<DropdownOption>;
 }
 
@@ -137,6 +142,20 @@ const LANGUAGES: Array<string> = ["de", "ja", "ko", "hi", "ar", "fa"];
 // What a condition's English left on the page looks like.
 const ENGLISH_CONDITION_WORDS: RegExp =
   /\b(?:above|below|unusually|high|low)\b/i;
+
+// The Threshold field's description, naming the two conditions it serves.
+const THRESHOLD_DESCRIPTION: string =
+  "The value an Above or Below alert compares with.";
+
+// Above or Below left in English inside a translated description.
+const ENGLISH_ABOVE_OR_BELOW: RegExp = /\b(?:Above|Below)\b/;
+
+/*
+ * French, Spanish and Portuguese name the conditions Au-dessus de, Por
+ * encima de, Acima de: a sentence that names the option drops the "de"
+ * ("une alerte Au-dessus ou En dessous").
+ */
+const TRAILING_DE: RegExp = /\s+de$/u;
 
 async function inLanguage(language: string): Promise<void> {
   await act(async (): Promise<void> => {
@@ -172,6 +191,18 @@ function alertColumn(): CapturedColumn {
   expect(found).toBeDefined();
 
   return found!;
+}
+
+function formField(name: string): CapturedFormField {
+  const field: CapturedFormField | undefined = (
+    latestProps()["formFields"] as Array<CapturedFormField>
+  ).find((candidate: CapturedFormField): boolean => {
+    return Boolean(candidate.field?.[name]);
+  });
+
+  expect(field).toBeDefined();
+
+  return field!;
 }
 
 function alertWhenOptions(): Array<DropdownOption> {
@@ -457,6 +488,60 @@ describe("the Alert When dropdown", () => {
   );
 });
 
+describe("the Threshold field", () => {
+  test("names Above and Below as the Alert When dropdown does, in every language", async () => {
+    await act(async () => {
+      render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
+    });
+
+    expect(formField("alertThreshold").description).toBe(
+      THRESHOLD_DESCRIPTION,
+    );
+
+    for (const language of DASHBOARD_LANGUAGES) {
+      const locale: Record<string, string> = readDashboardLocale(language);
+      const said: string = locale[THRESHOLD_DESCRIPTION] || "";
+
+      expect({ language, english: ENGLISH_ABOVE_OR_BELOW.test(said) }).toEqual(
+        { language, english: false },
+      );
+
+      for (const condition of [
+        DataCheckAlertCondition.Above,
+        DataCheckAlertCondition.Below,
+      ]) {
+        const label: string =
+          locale[DATA_CHECK_ALERT_CONDITION_LABELS[condition]] || "";
+
+        expect({
+          language,
+          label,
+          named: said.includes(label.replace(TRAILING_DE, "")),
+        }).toEqual({ language, label, named: true });
+      }
+    }
+  });
+
+  test("the check above catches English left in, and a word the dropdown does not show", () => {
+    const hindi: Record<string, string> = readDashboardLocale("hi");
+    const arabic: Record<string, string> = readDashboardLocale("ar");
+
+    // The Hindi and Arabic descriptions before the dropdown was translated.
+    expect(
+      ENGLISH_ABOVE_OR_BELOW.test(
+        "वह मान जिससे Above या Below अलर्ट तुलना करता है।",
+      ),
+    ).toBe(true);
+    expect(
+      "القيمة التي يقارن بها تنبيه «أعلى من» أو «أقل من».".includes(
+        arabic["Below"] || "-",
+      ),
+    ).toBe(false);
+    expect(hindi[THRESHOLD_DESCRIPTION]).toContain(`“${hindi["Above"]}”`);
+    expect(arabic[THRESHOLD_DESCRIPTION]).toContain(`«${arabic["Below"]}»`);
+  });
+});
+
 describe("a suggested check", () => {
   test("in English: its type, then the condition and its number, as before", async () => {
     expect(
@@ -503,4 +588,56 @@ describe("a suggested check", () => {
     expect(line).not.toContain("上回る 0");
     expect(line.indexOf("0")).toBeLessThan(line.indexOf("上回る"));
   });
+});
+
+describe("a suggested check's own words", () => {
+  test.each(["ar", "fa"])(
+    "in %s, its English name and reason each read left to right, the reason's full stop at its end",
+    async (language: string) => {
+      await suggestionLine(
+        language,
+        suggestion(DataCheckAlertCondition.Above, 0),
+      );
+
+      const name: HTMLElement = screen.getByTestId(SUGGESTED_CHECK_NAME_TEST_ID);
+      const reason: HTMLElement = screen.getByTestId(
+        SUGGESTED_CHECK_REASON_TEST_ID,
+      );
+
+      expect(name).toHaveAttribute("dir", "ltr");
+      expect(name).toHaveTextContent("id is unique");
+      expect(reason).toHaveAttribute("dir", "ltr");
+      expect(reason.textContent).toBe(
+        "An id that repeats breaks every join and lookup on it.",
+      );
+      // A paragraph that wraps: as wide as its words, at the page's start.
+      expect(reason.className.split(" ")).toEqual(
+        expect.arrayContaining(
+          CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME.split(" "),
+        ),
+      );
+    },
+  );
+
+  test.each(["en", "de"])(
+    "in %s, the lines read the page's way and are drawn as before, with no dir of their own",
+    async (language: string) => {
+      await suggestionLine(
+        language,
+        suggestion(DataCheckAlertCondition.Above, 0),
+      );
+
+      for (const testId of [
+        SUGGESTED_CHECK_NAME_TEST_ID,
+        SUGGESTED_CHECK_REASON_TEST_ID,
+      ]) {
+        const line: HTMLElement = screen.getByTestId(testId);
+
+        expect(line).not.toHaveAttribute("dir");
+        expect(line.className).not.toContain(
+          CLAMPED_LINES_ALIGNED_AS_THE_PAGE_CLASS_NAME,
+        );
+      }
+    },
+  );
 });

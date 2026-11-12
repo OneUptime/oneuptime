@@ -41431,7 +41431,7 @@
   "Segment By": "Segmenter par",
   "The check is saved, but its alert could not be set up: {{reason}}": "La vérification est enregistrée, mais son alerte n'a pas pu être configurée : {{reason}}",
   "The table the column refers to, as schema.table.": "La table à laquelle la colonne fait référence, sous la forme schema.table.",
-  "Unusually high or low compares each value with its own learned baseline for that hour of the week. Leave empty for no alert.": "Anormalement élevée ou basse compare chaque valeur à sa propre base de référence apprise pour cette heure de la semaine. Laissez vide pour aucune alerte.",
+  "Unusually high or low compares each value with its own learned baseline for that hour of the week. Leave empty for no alert.": "Anormalement haut ou bas compare chaque valeur à sa propre base de référence apprise pour cette heure de la semaine. Laissez vide pour aucune alerte.",
   "What the check measures.": "Ce que mesure la vérification.",
   "Why it matters, and what to do when it fails.": "Pourquoi elle compte et que faire en cas d'échec.",
   "by {{column}}": "par {{column}}",

@@ -41442,7 +41442,7 @@
   "Shown with the check: why it matters, and what to do when it fails.": "همراه بررسی نمایش داده می‌شود: چرا مهم است و هنگام شکست چه باید کرد.",
   "The column of that table it refers to.": "ستونی از آن جدول که به آن ارجاع می‌دهد.",
   "The column the check reads.": "ستونی که بررسی می‌خواند.",
-  "The value an Above or Below alert compares with.": "مقداری که هشدار «بالاتر» یا «پایین‌تر» با آن مقایسه می‌کند.",
+  "The value an Above or Below alert compares with.": "مقداری که هشدار «بالاتر از» یا «پایین‌تر از» با آن مقایسه می‌کند.",
   "Turned off, the check stops running, and its alert goes quiet with it.": "وقتی خاموش شود، بررسی اجرا نمی‌شود و هشدارش هم ساکت می‌ماند.",
   "Add All": "افزودن همه",
   "Checks this table's columns call for, from their names and types. No row was read to suggest them.": "بررسی‌هایی که ستون‌های این جدول بر اساس نام و نوعشان لازم دارند. برای پیشنهاد آن‌ها هیچ ردیفی خوانده نشده است.",
