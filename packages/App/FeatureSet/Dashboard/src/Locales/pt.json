@@ -51238,5 +51238,16 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Para ver o que falhou, execute npm run doctor -- --logs na pasta oneuptime do servidor.",
   "Try again in a moment.": "Tente novamente daqui a pouco.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Tente novamente. Se continuar a falhar, contacte o suporte do OneUptime e indique esta referência:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Tente novamente. Se continuar a falhar, indique esta referência a quem gere o seu servidor do OneUptime:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Tente novamente. Se continuar a falhar, indique esta referência a quem gere o seu servidor do OneUptime:",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }

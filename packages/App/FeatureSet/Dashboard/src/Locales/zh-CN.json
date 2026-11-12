@@ -51238,5 +51238,16 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "要查看失败原因，请在服务器的 oneuptime 文件夹中运行 npm run doctor -- --logs。",
   "Try again in a moment.": "请稍后重试。",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "请重试。如果仍然失败，请联系 OneUptime 支持团队并提供这个参考编号：",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "请重试。如果仍然失败，请把这个参考编号提供给负责运行您的 OneUptime 服务器的人："
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "请重试。如果仍然失败，请把这个参考编号提供给负责运行您的 OneUptime 服务器的人：",
+  "Copy all": "Copy all",
+  "Hide request and response": "Hide request and response",
+  "No response": "No response",
+  "Request body": "Request body",
+  "Request headers": "Request headers",
+  "Request {{number}} of {{total}}": "Request {{number}} of {{total}}",
+  "Response body": "Response body",
+  "Response headers": "Response headers",
+  "Show request and response": "Show request and response",
+  "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
+  "{{count}} ms_one": "{{count}} ms"
 }
