@@ -72,7 +72,10 @@ export const getPhoneNumberValueText: (value: unknown) => string = (
   if (typeof value === "object" && !Array.isArray(value)) {
     const json: JSONObject = value as JSONObject;
 
-    if (json["_type"] === ObjectType.Phone && typeof json["value"] === "string") {
+    if (
+      json["_type"] === ObjectType.Phone &&
+      typeof json["value"] === "string"
+    ) {
       return json["value"].trim();
     }
   }

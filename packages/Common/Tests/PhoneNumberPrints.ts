@@ -78,6 +78,12 @@ const PHONE_NAME_REGEX: RegExp = /phone/i;
 const NOT_A_PHONE_NUMBER_NAME_REGEX: RegExp =
   /^(?:is|has|should|show|can|use)[A-Z_]|^[A-Z0-9_]+$|(?:Width|Height|Count|Length|Size|Index|Id|Ids|Sid|Error|Errors|Lock|Kind|Type|Label|Title|Description|Placeholder|Url|Route|Code|At|Date)$/;
 
+// A function that gives a number's text: getIncomingCallPolicyPhoneNumberText.
+const PHONE_NUMBER_TEXT_FUNCTION_REGEX: RegExp = /PhoneNumbers?Text$/;
+
+// A function that gives a number, or the numbers: getPhoneNumber(s).
+const GET_PHONE_NUMBER_FUNCTION_REGEX: RegExp = /^getPhoneNumbers?$/;
+
 // The calls that set a number apart for a line of text.
 export const PHONE_NUMBER_IN_LINE_FUNCTIONS: ReadonlyArray<string> = [
   "phoneNumberInLine",
@@ -216,7 +222,10 @@ function isPhoneNumberValue(expression: ts.Expression): boolean {
     }
 
     // getIncomingCallPolicyPhoneNumberText(x): a function that gives one.
-    return /PhoneNumbers?Text$/.test(name) || /^getPhoneNumbers?$/.test(name);
+    return (
+      PHONE_NUMBER_TEXT_FUNCTION_REGEX.test(name) ||
+      GET_PHONE_NUMBER_FUNCTION_REGEX.test(name)
+    );
   }
 
   if (ts.isTemplateExpression(target)) {

@@ -41,9 +41,12 @@ describe("which way a phone number reads", () => {
     ["a masked number", MASKED],
     ["a number in Persian digits", "+۹۸۹۱۲۳۴۵۶۷۸۹"],
     ["a number in Arabic-Indic digits", "+٩٧١٥٠١٢٣٤٥٦٧"],
-  ])("%s reads left to right, though it has no letter", (_name, number) => {
-    expect(getPhoneNumberDirection(number)).toBe(LEFT_TO_RIGHT);
-  });
+  ])(
+    "%s reads left to right, though it has no letter",
+    (_name: string, number: string) => {
+      expect(getPhoneNumberDirection(number)).toBe(LEFT_TO_RIGHT);
+    },
+  );
 
   test("a name given in a number's place reads the way its letters do", () => {
     // A Twilio number's friendly name, renamed by its owner.
