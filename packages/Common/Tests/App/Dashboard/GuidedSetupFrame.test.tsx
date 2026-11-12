@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import * as React from "react";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
@@ -172,9 +178,7 @@ describe("the steps", () => {
 
 describe("the setup's events", () => {
   test("started once, and each step as it opens", () => {
-    const { rerender } = render(
-      draw({ steps: steps(), openStepKey: "first" }),
-    );
+    const { rerender } = render(draw({ steps: steps(), openStepKey: "first" }));
     rerender(draw({ steps: steps(true), openStepKey: "second" }));
     // Drawn again on the same step: not a new step.
     rerender(draw({ steps: steps(true), openStepKey: "second" }));

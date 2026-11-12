@@ -13,10 +13,7 @@ import {
   OnCallTestPageStatus,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
 import ProbeMonitorResponse from "Common/Types/Probe/ProbeMonitorResponse";
-import {
-  Translator,
-  translationKey,
-} from "Common/UI/Utils/TranslateTemplate";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * GUIDED SETUP: KNOW WHEN MY WEBSITE OR API IS DOWN (issue #6804).
@@ -193,6 +190,7 @@ export interface WebsiteAddress {
 }
 
 const SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
+const WHITESPACE: RegExp = /\s/;
 export const MONITOR_NAME_MAX_LENGTH: number = 100;
 
 export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
@@ -200,7 +198,7 @@ export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
 ): WebsiteAddress | null => {
   const text: string = (input || "").trim();
 
-  if (!text || /\s/.test(text)) {
+  if (!text || WHITESPACE.test(text)) {
     return null;
   }
 
@@ -229,7 +227,10 @@ export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
   const host: string = parsed.hostname.toLowerCase();
 
   // A host is a name with a dot in it, localhost, or an IP address.
-  if (!host || (!host.includes(".") && !host.includes(":") && host !== "localhost")) {
+  if (
+    !host ||
+    (!host.includes(".") && !host.includes(":") && host !== "localhost")
+  ) {
     return null;
   }
 

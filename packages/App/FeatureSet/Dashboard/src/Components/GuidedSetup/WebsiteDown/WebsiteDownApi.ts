@@ -119,7 +119,12 @@ export default class WebsiteDownApi {
       },
     );
 
-    if (!operational?.id || !offline?.id || !incidentSeverity?.id || !alertSeverity?.id) {
+    if (
+      !operational?.id ||
+      !offline?.id ||
+      !incidentSeverity?.id ||
+      !alertSeverity?.id
+    ) {
       throw new Error(
         "This project is missing its monitor statuses or severities, so a monitor can't be made here. Create one from Create Monitor instead.",
       );
@@ -280,13 +285,12 @@ export default class WebsiteDownApi {
       [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
     };
 
-    const response: HTTPResponse<OnCallDutyPolicy> = (await ModelAPI.create<
-      OnCallDutyPolicy
-    >({
-      model: policy,
-      modelType: OnCallDutyPolicy,
-      miscDataProps: miscDataProps,
-    })) as HTTPResponse<OnCallDutyPolicy>;
+    const response: HTTPResponse<OnCallDutyPolicy> =
+      (await ModelAPI.create<OnCallDutyPolicy>({
+        model: policy,
+        modelType: OnCallDutyPolicy,
+        miscDataProps: miscDataProps,
+      })) as HTTPResponse<OnCallDutyPolicy>;
 
     const id: string | undefined = response.data?.id?.toString();
 

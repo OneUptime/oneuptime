@@ -95,10 +95,10 @@ interface SummaryExtras {
   isMonitorOwner: boolean;
 }
 
-const routeOf: (
+const routeOf: (page: PageMap, modelId?: string | undefined) => Route = (
   page: PageMap,
   modelId?: string | undefined,
-) => Route = (page: PageMap, modelId?: string | undefined): Route => {
+): Route => {
   return RouteUtil.populateRouteParams(RouteMap[page] as Route, {
     modelId: modelId,
   });
@@ -126,9 +126,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string>("");
   const [run, setRun] = useState<GuidedSetupRun>({});
-  const [monitor, setMonitor] = useState<WebsiteDownMonitorRecord | null>(
-    null,
-  );
+  const [monitor, setMonitor] = useState<WebsiteDownMonitorRecord | null>(null);
   const [check, setCheck] = useState<FirstCheckState | null>(null);
   const [whoFacts, setWhoFacts] = useState<WhoIsToldFacts | null>(null);
   const [policy, setPolicy] = useState<WebsiteDownPolicyRecord | null>(null);
@@ -623,9 +621,8 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       ? translator.translateText(
           "This project's on-call policies and rules decide who is paged.",
         ) || ""
-      : translator.translateText(
-          "You are emailed as the monitor's owner.",
-        ) || "";
+      : translator.translateText("You are emailed as the monitor's owner.") ||
+        "";
 
   const whoContent: ReactElement = (
     <div className="space-y-4">
@@ -657,14 +654,20 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             />
           </div>
           <p className="text-sm text-gray-500">
-            {translator.translateTemplate(WEBSITE_DOWN_COPY.whoCreatePolicyNote, {
-              policy: WEBSITE_DOWN_POLICY_NAME,
-            })}
+            {translator.translateTemplate(
+              WEBSITE_DOWN_COPY.whoCreatePolicyNote,
+              {
+                policy: WEBSITE_DOWN_POLICY_NAME,
+              },
+            )}
           </p>
         </>
       ) : (
         <>
-          <p className="text-sm text-gray-700" data-testid="guided-setup-who-help">
+          <p
+            className="text-sm text-gray-700"
+            data-testid="guided-setup-who-help"
+          >
             {translator.translateText(
               mode === WhoIsToldMode.ExistingPolicy
                 ? WEBSITE_DOWN_COPY.whoExistingHelp
@@ -758,7 +761,9 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         <div className="flex flex-wrap items-center gap-3">
           <SendTestPageButton
             target={{ kind: "self" }}
-            title={executionLogId ? WEBSITE_DOWN_COPY.testSendAnother : undefined}
+            title={
+              executionLogId ? WEBSITE_DOWN_COPY.testSendAnother : undefined
+            }
             buttonStyle={
               executionLogId ? ButtonStyleType.NORMAL : ButtonStyleType.PRIMARY
             }

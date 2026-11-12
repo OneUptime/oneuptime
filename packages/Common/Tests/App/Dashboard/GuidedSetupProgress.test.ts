@@ -155,9 +155,9 @@ describe("the run, kept in this browser", () => {
   test("another person's or project's run is not this one", () => {
     new GuidedSetupRunStore(who).save({ monitorId: "m-1" });
 
-    expect(new GuidedSetupRunStore({ ...who, userId: "user-2" }).read()).toEqual(
-      {},
-    );
+    expect(
+      new GuidedSetupRunStore({ ...who, userId: "user-2" }).read(),
+    ).toEqual({});
     expect(
       new GuidedSetupRunStore({ ...who, projectId: "project-2" }).read(),
     ).toEqual({});
@@ -206,8 +206,14 @@ describe("the run, kept in this browser", () => {
     const originalGet: Storage["getItem"] = storage.getItem;
     const originalRemove: Storage["removeItem"] = storage.removeItem;
 
-    Object.defineProperty(storage, "setItem", { value: failing, configurable: true });
-    Object.defineProperty(storage, "getItem", { value: failing, configurable: true });
+    Object.defineProperty(storage, "setItem", {
+      value: failing,
+      configurable: true,
+    });
+    Object.defineProperty(storage, "getItem", {
+      value: failing,
+      configurable: true,
+    });
     Object.defineProperty(storage, "removeItem", {
       value: failing,
       configurable: true,

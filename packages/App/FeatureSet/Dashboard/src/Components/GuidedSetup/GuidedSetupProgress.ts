@@ -161,7 +161,11 @@ export const readGuidedSetupRun: (value: JSONValue | null) => GuidedSetupRun = (
 export default class GuidedSetupRunStore {
   private readonly key: string;
 
-  public constructor(data: { setup: string; projectId: string; userId: string }) {
+  public constructor(data: {
+    setup: string;
+    projectId: string;
+    userId: string;
+  }) {
     this.key = getGuidedSetupRunKey(data);
   }
 

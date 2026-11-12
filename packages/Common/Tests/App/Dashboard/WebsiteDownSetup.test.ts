@@ -168,9 +168,9 @@ describe("the monitor made from it", () => {
     expect(getMonitorAddress(monitor.monitorSteps)).toBe(
       "https://example.com/",
     );
-    expect(
-      monitor.monitorSteps?.data?.defaultMonitorStatusId?.toString(),
-    ).toBe(seeds.operationalStatusId.toString());
+    expect(monitor.monitorSteps?.data?.defaultMonitorStatusId?.toString()).toBe(
+      seeds.operationalStatusId.toString(),
+    );
   });
 
   test("an API monitor when the person says it is an API endpoint", () => {
@@ -241,20 +241,20 @@ describe("the monitor made from it", () => {
     const names: (monitor: Monitor) => Array<string> = (
       monitor: Monitor,
     ): Array<string> => {
-      return monitor
-        .monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!.monitorCriteria.data!.monitorCriteriaInstanceArray.map(
-          (instance: MonitorCriteriaInstance): string => {
-            return instance.data?.name || "";
-          },
-        );
+      return monitor.monitorSteps!.data!.monitorStepsInstanceArray[0]!.data!.monitorCriteria.data!.monitorCriteriaInstanceArray.map(
+        (instance: MonitorCriteriaInstance): string => {
+          return instance.data?.name || "";
+        },
+      );
     };
 
     expect(names(inGerman)).not.toEqual(names(inEnglish));
   });
 });
 
-const log: (response: Partial<FirstCheckAnswer> & { isOnline: boolean }) =>
-  MonitorStepProbeResponse = (
+const log: (
+  response: Partial<FirstCheckAnswer> & { isOnline: boolean },
+) => MonitorStepProbeResponse = (
   response: Partial<FirstCheckAnswer> & { isOnline: boolean },
 ): MonitorStepProbeResponse => {
   return {
@@ -374,7 +374,9 @@ describe("what the first check found", () => {
         translator: english,
         host: "example.com",
         locationCount: 2,
-        answers: [{ isOnline: true, responseCode: 204, responseTimeInMs: 1234 }],
+        answers: [
+          { isOnline: true, responseCode: 204, responseTimeInMs: 1234 },
+        ],
       }).text,
     ).toBe("example.com answered 204 in 1,234 ms from 1 location.");
   });
@@ -475,7 +477,11 @@ describe("who is told", () => {
     // Whoever reads it, permission or not: nothing is made beside it.
     expect(
       getWhoIsToldMode(
-        whoFacts({ policyCount: 3, mayCreatePolicy: false, mayAddRules: false }),
+        whoFacts({
+          policyCount: 3,
+          mayCreatePolicy: false,
+          mayAddRules: false,
+        }),
       ),
     ).toBe(WhoIsToldMode.ExistingPolicy);
   });
@@ -819,14 +825,20 @@ describe("the summary, read from the records", () => {
     [null],
     [{ ...acknowledged, status: OnCallTestPageStatus.Paging }],
     [{ ...acknowledged, status: OnCallTestPageStatus.Ended }],
-  ])("a test not acknowledged (%j) is not claimed", (result: OnCallTestPageResult | null) => {
-    expect(
-      rowText(
-        getWebsiteDownSummaryRows(english, summaryFacts({ testResult: result })),
-        "tested",
-      ),
-    ).toBe(WEBSITE_DOWN_COPY.summaryNotTested);
-  });
+  ])(
+    "a test not acknowledged (%j) is not claimed",
+    (result: OnCallTestPageResult | null) => {
+      expect(
+        rowText(
+          getWebsiteDownSummaryRows(
+            english,
+            summaryFacts({ testResult: result }),
+          ),
+          "tested",
+        ),
+      ).toBe(WEBSITE_DOWN_COPY.summaryNotTested);
+    },
+  );
 });
 
 describe("its words", () => {
@@ -881,8 +893,11 @@ describe("its words", () => {
         const placeholders: Array<string> = word.match(/{{\w+}}/g) || [];
 
         for (const placeholder of placeholders) {
-          expect({ language, word, kept: table[word]!.includes(placeholder) })
-            .toEqual({ language, word, kept: true });
+          expect({
+            language,
+            word,
+            kept: table[word]!.includes(placeholder),
+          }).toEqual({ language, word, kept: true });
         }
       }
     }

@@ -124,7 +124,7 @@ jest.mock(
   () => {
     const actual: Record<string, unknown> = jest.requireActual(
       "../../../../App/FeatureSet/Dashboard/src/Components/OnCallTestPage/TestPageResult",
-    );
+    ) as Record<string, unknown>;
 
     return {
       __esModule: true,
@@ -136,55 +136,48 @@ jest.mock(
         reportTestResult = (result: unknown): void => {
           props.onResult?.(result);
         };
-        return (
-          <div data-testid="test-page-result">{props.executionLogId}</div>
-        );
+        return <div data-testid="test-page-result">{props.executionLogId}</div>;
       },
     };
   },
 );
 
-jest.mock(
-  "../../../UI/Components/PeoplePicker/LazyPeoplePicker",
-  () => {
-    return {
-      __esModule: true,
-      default: (props: {
-        value: Record<string, Array<string>>;
-        onChange: (value: Record<string, Array<string>>) => void;
-        error?: string;
-      }) => {
-        return (
-          <div data-testid="guided-setup-people">
-            <span data-testid="picked">
-              {JSON.stringify(props.value)}
-            </span>
-            <button
-              type="button"
-              onClick={() => {
-                props.onChange({
-                  user: [...(props.value["user"] || []), "user-grace"],
-                  team: ["team-platform"],
-                });
-              }}
-            >
-              Add Grace and Platform
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                props.onChange({});
-              }}
-            >
-              Remove everyone
-            </button>
-            {props.error ? <p>{props.error}</p> : <></>}
-          </div>
-        );
-      },
-    };
-  },
-);
+jest.mock("../../../UI/Components/PeoplePicker/LazyPeoplePicker", () => {
+  return {
+    __esModule: true,
+    default: (props: {
+      value: Record<string, Array<string>>;
+      onChange: (value: Record<string, Array<string>>) => void;
+      error?: string;
+    }) => {
+      return (
+        <div data-testid="guided-setup-people">
+          <span data-testid="picked">{JSON.stringify(props.value)}</span>
+          <button
+            type="button"
+            onClick={() => {
+              props.onChange({
+                user: [...(props.value["user"] || []), "user-grace"],
+                team: ["team-platform"],
+              });
+            }}
+          >
+            Add Grace and Platform
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              props.onChange({});
+            }}
+          >
+            Remove everyone
+          </button>
+          {props.error ? <p>{props.error}</p> : <></>}
+        </div>
+      );
+    },
+  };
+});
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/AppLink/AppLink",
@@ -229,6 +222,7 @@ import WebsiteDownGuidedSetup from "../../../../App/FeatureSet/Dashboard/src/Com
 import { getGuidedSetupRunKey } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/GuidedSetupProgress";
 import {
   WEBSITE_DOWN_COPY,
+  buildWebsiteMonitor,
   WebsiteAddress,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import { ProductEventName } from "../../../Types/Analytics/ProductEvent";
@@ -242,7 +236,6 @@ import {
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import ProjectUtil from "../../../UI/Utils/Project";
 import UserUtil from "../../../UI/Utils/User";
-import { buildWebsiteMonitor } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 
 const PROJECT_ID: string = "65f00000-0000-4000-8000-000000006804";
 const USER_ID: string = "40000000-0000-4000-8000-000000000001";
@@ -515,15 +508,16 @@ describe("1. What should we check?", () => {
   });
 
   test("says what the first check found, in a sentence, once a probe answers", async () => {
-    api["loadFirstCheck"]!
-      .mockResolvedValueOnce({ locationCount: 2, answers: [] })
-      .mockResolvedValue({
-        locationCount: 2,
-        answers: [
-          { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
-          { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
-        ],
-      });
+    api["loadFirstCheck"]!.mockResolvedValueOnce({
+      locationCount: 2,
+      answers: [],
+    }).mockResolvedValue({
+      locationCount: 2,
+      answers: [
+        { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
+        { isOnline: true, responseCode: 200, responseTimeInMs: 312 },
+      ],
+    });
 
     await renderSetup();
     typeAddress("acme.example");
@@ -585,7 +579,9 @@ describe("1. What should we check?", () => {
     expect(stepState("who_is_told")).toBe("open");
     expect(
       screen.getByTestId("guided-setup-step-check-done-line"),
-    ).toHaveTextContent("acme.example answered 200 in 312 ms from 2 locations.");
+    ).toHaveTextContent(
+      "acme.example answered 200 in 312 ms from 2 locations.",
+    );
     expect(sent(ProductEventName.GuidedSetupStepReached).pop()).toEqual({
       setup: "website_down",
       step: "who_is_told",
@@ -834,9 +830,9 @@ describe("3. Send a test", () => {
 
     expect(storedRun()).toMatchObject({ testSkipped: true });
     await waitFor(() => {
-      expect(screen.getByTestId("guided-setup-summary-tested")).toHaveTextContent(
-        WEBSITE_DOWN_COPY.summaryNotTested,
-      );
+      expect(
+        screen.getByTestId("guided-setup-summary-tested"),
+      ).toHaveTextContent(WEBSITE_DOWN_COPY.summaryNotTested);
     });
     expect(sent(ProductEventName.GuidedSetupFinished)).toEqual([]);
     expect(sent(ProductEventName.GuidedSetupStepReached).pop()).toMatchObject({
@@ -855,14 +851,16 @@ describe("the summary", () => {
     await renderSetup();
 
     await waitFor(() => {
-      expect(screen.getByTestId("guided-setup-summary-checked")).toHaveTextContent(
-        "Every 5 minutes, from 2 locations.",
-      );
+      expect(
+        screen.getByTestId("guided-setup-summary-checked"),
+      ).toHaveTextContent("Every 5 minutes, from 2 locations.");
     });
     expect(screen.getByTestId("guided-setup-summary")).toHaveTextContent(
       "acme.example is set up",
     );
-    expect(screen.getByTestId("guided-setup-summary-when_down")).toHaveTextContent(
+    expect(
+      screen.getByTestId("guided-setup-summary-when_down"),
+    ).toHaveTextContent(
       "If it does not answer, or answers with an error, OneUptime opens a Critical incident.",
     );
     expect(
@@ -896,7 +894,10 @@ describe("the summary", () => {
     ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/status-pages`);
     expect(
       screen.getByText(WEBSITE_DOWN_COPY.nextMonitor).closest("a"),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/monitors/${MONITOR_ID}`);
+    ).toHaveAttribute(
+      "href",
+      `/dashboard/${PROJECT_ID}/monitors/${MONITOR_ID}`,
+    );
   });
 
   test("Check another address starts a new run, the last one's records kept", async () => {
@@ -1056,9 +1057,9 @@ describe("permissions", () => {
     });
 
     await waitFor(() => {
-      expect(
-        screen.getByTestId("guided-setup-not-allowed"),
-      ).toHaveTextContent(WEBSITE_DOWN_COPY.cannotCreateMonitor);
+      expect(screen.getByTestId("guided-setup-not-allowed")).toHaveTextContent(
+        WEBSITE_DOWN_COPY.cannotCreateMonitor,
+      );
     });
     expect(screen.getByText("Go to Monitors").closest("a")).toHaveAttribute(
       "href",
