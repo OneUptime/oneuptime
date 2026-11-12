@@ -1,5 +1,9 @@
 import { VoidFunction } from "Common/Types/FunctionTypes";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatList,
+  getGlobalTranslator,
+  TemplateValues,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * Pure CSV parsing + import planning for the Network Sites bulk import
@@ -68,6 +72,28 @@ export interface SiteCsvError {
 export interface SiteCsvParseResult {
   rows: Array<ParsedSiteRow>;
   errors: Array<SiteCsvError>;
+}
+
+/*
+ * A problem with the file, or why a row was skipped, in the reader's
+ * language (#7097): each one is a whole sentence of its own, as the
+ * status page groups' import words them. They are drawn in the import
+ * dialog and nowhere else, so the values in them - a column's name, a
+ * cell as it was written, a site's name - are set apart: on an Arabic
+ * page a site named "Unit 1042" keeps its quotation marks around it.
+ */
+function translateSiteCsvError(
+  template: string,
+  values: TemplateValues = {},
+): string {
+  return getGlobalTranslator().translateTemplate(template, values, {
+    setsValuesApart: true,
+  });
+}
+
+// A line of the file, or a bound, in the reader's digits.
+function readerNumber(value: number): string {
+  return getGlobalTranslator().formatNumber(value);
 }
 
 export const SITE_CSV_COLUMNS: Array<string> = [
@@ -168,7 +194,9 @@ function lexCsv(text: string): CsvLexResult {
   if (inQuotes) {
     errors.push({
       line: recordStartLine,
-      message: "Unterminated quoted field — a closing quote is missing.",
+      message: translateSiteCsvError(
+        "Unterminated quoted field — a closing quote is missing.",
+      ),
     });
     return { records: records, errors: errors };
   }
@@ -337,10 +365,20 @@ function invertedParentTypeMessage(data: {
       : undefined;
 
   if (parentType?.isUnitLevel === true) {
-    return `Parent site "${data.parentName}" uses siteType "${parentTypeName}", which is the unit level of the hierarchy and cannot have child sites.`;
+    return translateSiteCsvError(
+      'Parent site "{{parent}}" uses siteType "{{parentType}}", which is the unit level of the hierarchy and cannot have child sites.',
+      { parent: data.parentName, parentType: parentTypeName },
+    );
   }
 
-  return `Parent site "${data.parentName}" uses siteType "${parentTypeName}", which sits below "${data.child.siteType}" in the site type hierarchy.`;
+  return translateSiteCsvError(
+    'Parent site "{{parent}}" uses siteType "{{parentType}}", which sits below "{{childType}}" in the site type hierarchy.',
+    {
+      parent: data.parentName,
+      parentType: parentTypeName,
+      childType: data.child.siteType,
+    },
+  );
 }
 
 type HeaderIndex = Map<string, number>;
@@ -365,7 +403,7 @@ function parseHeader(
     if (!canonical) {
       errors.push({
         line: record.line,
-        message: translateTemplate(
+        message: translateSiteCsvError(
           'Unknown column "{{column}}" in header. Expected columns: {{columns}}.',
           { column: cell.trim(), columns: SITE_CSV_COLUMNS.join(", ") },
         ),
@@ -376,9 +414,10 @@ function parseHeader(
     if (headerIndex.has(canonical)) {
       errors.push({
         line: record.line,
-        message: translateTemplate('Duplicate column "{{column}}" in header.', {
-          column: canonical,
-        }),
+        message: translateSiteCsvError(
+          'Duplicate column "{{column}}" in header.',
+          { column: canonical },
+        ),
       });
       hasErrors = true;
       return;
@@ -390,7 +429,7 @@ function parseHeader(
     if (!headerIndex.has(required)) {
       errors.push({
         line: record.line,
-        message: translateTemplate(
+        message: translateSiteCsvError(
           'Missing required column "{{column}}" in header.',
           { column: required },
         ),
@@ -431,12 +470,26 @@ function parseCoordinate(
   }
   const parsed: number = Number(raw);
   if (!isFinite(parsed)) {
-    return { value: undefined, error: `${label} "${raw}" is not a number.` };
+    return {
+      value: undefined,
+      error: translateSiteCsvError('{{column}} "{{value}}" is not a number.', {
+        column: label,
+        value: raw,
+      }),
+    };
   }
   if (parsed < min || parsed > max) {
     return {
       value: undefined,
-      error: `${label} ${parsed} is out of range (${min} to ${max}).`,
+      error: translateSiteCsvError(
+        "{{column}} {{value}} is out of range ({{min}} to {{max}}).",
+        {
+          column: label,
+          value: String(parsed),
+          min: readerNumber(min),
+          max: readerNumber(max),
+        },
+      ),
     };
   }
   return { value: parsed, error: null };
@@ -468,8 +521,9 @@ export function parseSiteCsv(
   if (siteTypeNames.length === 0) {
     errors.push({
       line: 0,
-      message:
+      message: translateSiteCsvError(
         "This project has no site types configured, so no row can be imported. Add them under Network > Settings > Site Types first.",
+      ),
     });
     return { rows: [], errors: errors };
   }
@@ -481,7 +535,10 @@ export function parseSiteCsv(
   }
 
   if (records.length === 0) {
-    errors.push({ line: 0, message: "The CSV is empty." });
+    errors.push({
+      line: 0,
+      message: translateSiteCsvError("The CSV is empty."),
+    });
     return { rows: [], errors: errors };
   }
 
@@ -495,7 +552,7 @@ export function parseSiteCsv(
   if (dataRecords.length === 0) {
     errors.push({
       line: 0,
-      message: "The CSV has a header but no data rows.",
+      message: translateSiteCsvError("The CSV has a header but no data rows."),
     });
     return { rows: [], errors: errors };
   }
@@ -509,11 +566,11 @@ export function parseSiteCsv(
     if (record.cells.length > headerRecord.cells.length) {
       errors.push({
         line: record.line,
-        message: translateTemplate(
+        message: translateSiteCsvError(
           "Row has {{values}} values but the header has {{columns}} columns.",
           {
-            values: record.cells.length,
-            columns: headerRecord.cells.length,
+            values: readerNumber(record.cells.length),
+            columns: readerNumber(headerRecord.cells.length),
           },
         ),
       });
@@ -522,7 +579,7 @@ export function parseSiteCsv(
 
     const name: string = cellAt(record, headerIndex, "name");
     if (name === "") {
-      rowErrors.push("name is required.");
+      rowErrors.push(translateSiteCsvError("name is required."));
     }
 
     const siteTypeRaw: string = cellAt(record, headerIndex, "siteType");
@@ -531,16 +588,20 @@ export function parseSiteCsv(
     if (!siteType) {
       rowErrors.push(
         siteTypeRaw === ""
-          ? "siteType is required."
-          : `Unknown siteType "${siteTypeRaw}". Valid values: ${siteTypeNames.join(
-              ", ",
-            )}.`,
+          ? translateSiteCsvError("siteType is required.")
+          : translateSiteCsvError(
+              'Unknown siteType "{{value}}". Valid values: {{values}}.',
+              {
+                value: siteTypeRaw,
+                values: formatList(siteTypeNames, getGlobalTranslator()),
+              },
+            ),
       );
     }
 
     const parentName: string = cellAt(record, headerIndex, "parentName");
     if (name !== "" && parentName === name) {
-      rowErrors.push("A site cannot be its own parent.");
+      rowErrors.push(translateSiteCsvError("A site cannot be its own parent."));
     }
 
     /*
@@ -579,14 +640,21 @@ export function parseSiteCsv(
       (latitudeResult.value === undefined) !==
         (longitudeResult.value === undefined)
     ) {
-      rowErrors.push("latitude and longitude must be provided together.");
+      rowErrors.push(
+        translateSiteCsvError(
+          "latitude and longitude must be provided together.",
+        ),
+      );
     }
 
     if (name !== "") {
       const firstLine: number | undefined = firstLineByName.get(name);
       if (firstLine !== undefined) {
         rowErrors.push(
-          `Duplicate site name "${name}" (first used on line ${firstLine}).`,
+          translateSiteCsvError(
+            'Duplicate site name "{{name}}" (first used on line {{line}}).',
+            { name: name, line: readerNumber(firstLine) },
+          ),
         );
       } else {
         firstLineByName.set(name, record.line);
@@ -721,7 +789,10 @@ export function planSiteImport(
     if (existing.has(row.name)) {
       skipped.push({
         row: row,
-        reason: `A site named "${row.name}" already exists in this project.`,
+        reason: translateSiteCsvError(
+          'A site named "{{name}}" already exists in this project.',
+          { name: row.name },
+        ),
       });
       continue;
     }
@@ -796,7 +867,10 @@ export function planSiteImport(
   for (const row of pending) {
     skipped.push({
       row: row,
-      reason: `Parent site "${row.parentName}" was not found in the file or the project.`,
+      reason: translateSiteCsvError(
+        'Parent site "{{parent}}" was not found in the file or the project.',
+        { parent: row.parentName },
+      ),
     });
   }
 

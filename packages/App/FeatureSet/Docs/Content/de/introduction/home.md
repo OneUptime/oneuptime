@@ -149,6 +149,7 @@ Drücken Sie **Cmd+K** (Mac) oder **Ctrl+K** (Windows und Linux), oder klicken S
 - **Die Einstellungen auf einer Seite**, unter dem Namen, den ihre Karte oder ihr Schalter zeigt: *SSO für die Anmeldung erzwingen* findet SSO, und *Benachrichtigungskanäle* findet Benachrichtigungseinstellungen. Tippen Sie den Namen auf Englisch oder in Ihrer Sprache.
 - **Aktionen**, nach dem, was Sie tun möchten: Vorfall melden, Monitor erstellen oder Projekt löschen, das die Gefahrenzone öffnet. Eine Aktion, die etwas ändert, wird nur Personen angeboten, die sie ausführen dürfen.
 - **Ihre Monitore, Vorfälle, Warnungen, Statusseiten und Bereitschaftsrichtlinien**, nach Namen, und Vorfälle und Warnungen auch nach Nummer, etwa `INC-42`. Jedes Ergebnis für einen Vorfall oder eine Warnung beginnt mit seiner Nummer, sodass sich zwei mit demselben Titel unterscheiden lassen.
+- **Die Dokumentation**, in einer Gruppe *Dokumentation* unter allem anderen: die Seiten und Abschnitte, deren Wörter zu Ihrer Eingabe passen, in Ihrer Sprache, auch mit Tippfehler. Jede öffnet sich in einem neuen Tab, damit Sie Ihren Platz behalten.
 
 Die Suche liest, was Sie tippen, so, wie Sie es meinen:
 

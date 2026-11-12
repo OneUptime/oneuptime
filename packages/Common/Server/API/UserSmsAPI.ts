@@ -12,6 +12,7 @@ import {
   OneUptimeRequest,
 } from "../Utils/Express";
 import ChannelVerification, {
+  ChannelVerificationMessages,
   ChannelVerificationOutcome,
   ChannelVerificationResult,
 } from "../Utils/ChannelVerification";
@@ -61,7 +62,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid item ID"),
+              new BadDataException(ChannelVerificationMessages.noItem),
             );
           }
 
@@ -69,7 +70,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid code"),
+              new BadDataException(ChannelVerificationMessages.noCode),
             );
           }
 
@@ -80,7 +81,7 @@ export default class UserSMSAPI extends BaseAPI<UserSMS, UserSMSServiceType> {
             return Response.sendErrorResponse(
               req,
               res,
-              new BadDataException("Invalid user ID"),
+              new BadDataException(ChannelVerificationMessages.notSignedIn),
             );
           }
 

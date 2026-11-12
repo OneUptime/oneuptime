@@ -12,8 +12,7 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import Permission from "Common/Types/Permission";
-import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
+import { getSessionReplayIdentityPermissionTitle } from "./SessionReplayPermissionTitle";
 import {
   FILTER_LABEL_CELL_CLASS_NAME,
   FILTER_LABEL_CLASS_NAME,
@@ -25,6 +24,7 @@ import {
   SessionReplayAdvancedFilters,
 } from "./SessionReplayListFilters";
 import {
+  describeSessionReplayFilterHint,
   SESSION_REPLAY_FILTER_FIELDS,
   SessionReplayFilterField,
   SessionReplayFilterKind,
@@ -178,14 +178,12 @@ const SessionReplayFilterModal: FunctionComponent<ComponentProps> = (
       return translator.translateTemplate(
         'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the "{{permission}}" permission.',
         {
-          permission: getSessionReplayPermissionTitle(
-            Permission.ReadRumSessionReplayPayload,
-          ),
+          permission: getSessionReplayIdentityPermissionTitle(),
         },
       );
     }
 
-    return field.hint ? translator.translateText(field.hint) || null : null;
+    return describeSessionReplayFilterHint(field, translator);
   };
 
   return (

@@ -64,7 +64,7 @@ Cada pessoa vincula a própria conta do Microsoft Teams em **Configurações do 
 
 ### Adicionar uma regra de notificação
 
-Vá para **Incidentes** > **Espaço de trabalho** > **Microsoft Teams**. A seção **Espaço de trabalho** lista apenas os espaços de chat que o seu projeto conectou, então **Microsoft Teams** aparece ali assim que é conectado. Crie uma regra, por exemplo uma que publique em um canal do Teams quando um incidente for criado, e depois clique em **Regra de teste** na linha dela.
+Vá para **Incidentes** > **Espaço de trabalho** > **Microsoft Teams**. A seção **Espaço de trabalho** lista apenas os espaços de chat que o seu projeto conectou, então **Microsoft Teams** aparece ali assim que é conectado. Crie uma regra, por exemplo uma que publique em um canal do Teams quando um incidente for criado, e depois clique em **Testar regra** na linha dela.
 :::
 
 > [!NOTE]
@@ -122,9 +122,9 @@ Uma regra de notificação pode pertencer a equipes. **Equipes responsáveis**, 
 
 ## Testar uma regra
 
-**Regra de teste** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, para você vê-la chegar. Se a regra cria um canal para cada evento, o teste também cria um e convida para ele as pessoas da regra.
+**Testar regra** na linha de uma regra publica uma mensagem de teste dessa regra nos canais que ela indica, para você vê-la chegar. Se a regra cria um canal para cada evento, o teste também cria um e convida para ele as pessoas da regra.
 
-Como **Enviar teste** ao lado de um canal em **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams**, ele requer permissão para criar regras de notificação: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações**, **Membro de configurações**, ou **Create Workspace Notification Rule** e **Read Workspace Notification Rule** em uma função personalizada. Para quem só pode ver as regras, como um **Visualizador**, **Regra de teste** fica bloqueado, e a sua dica diz o que é preciso; a API recusa o teste dessa pessoa com "You do not have permission to send test notifications in this project." No OneUptime Cloud, testar uma regra requer o plano **Growth**, assim como adicionar uma.
+Como **Enviar teste** ao lado de um canal em **Configurações do projeto** > **Espaço de trabalho** > **Microsoft Teams**, ele requer permissão para criar regras de notificação: **Proprietário do projeto**, **Administrador do projeto**, **Membro do projeto**, **Administrador de configurações**, **Membro de configurações**, ou **Create Workspace Notification Rule** e **Read Workspace Notification Rule** em uma função personalizada. Para quem só pode ver as regras, como um **Visualizador**, **Testar regra** fica bloqueado, e a sua dica diz o que é preciso; a API recusa o teste dessa pessoa com "You do not have permission to send test notifications in this project." No OneUptime Cloud, testar uma regra requer o plano **Growth**, assim como adicionar uma.
 
 No OneUptime Cloud, **Enviar teste** ao lado de um canal ou de um chat também requer o plano **Growth**, já que publicar em um canal é o que regras e resumos fazem. **Enviar teste agora** em um resumo requer permissão para criar resumos (**Create Workspace Notification Summary** e **Read Workspace Notification Summary** em uma função personalizada) e, no OneUptime Cloud, o plano **Growth**; para qualquer outra pessoa fica bloqueado, e a sua dica diz o que é preciso. Um cliente MCP conectado com acesso somente leitura não pode enviar nenhum teste.
 

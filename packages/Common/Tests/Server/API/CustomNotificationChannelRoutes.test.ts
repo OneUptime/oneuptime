@@ -29,6 +29,11 @@ import { expressErrorHandler } from "../../../Server/Utils/StartServer";
 import UserOnCallLogTimeline from "../../../Models/DatabaseModels/UserOnCallLogTimeline";
 import { JSONObject } from "../../../Types/JSON";
 import ObjectID from "../../../Types/ObjectID";
+import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../TestingUtils/OnCallTimelineRows";
 import {
   afterAll,
   afterEach,
@@ -122,6 +127,8 @@ function notification(id: ObjectID): UserOnCallLogTimeline {
   row.projectId = ObjectID.generate();
   row.userId = ObjectID.generate();
   row.isAcknowledged = false;
+  row.status = UserNotificationStatus.Sent;
+  row.version = 1;
   row.customNotificationChannelId = ObjectID.generate();
   row.triggeredByIncidentId = ObjectID.generate();
   return row;
@@ -160,14 +167,25 @@ describe("custom channel routes over HTTP", () => {
     jest.restoreAllMocks();
   });
 
+  /*
+   * The notification as the database holds it: an update lands only while
+   * it still holds the status and the version the update names
+   * (OnCallNotificationStatus's compare-and-set).
+   */
   function stubNotification(id: ObjectID): jest.SpyInstance {
+    const row: UserOnCallLogTimeline = notification(id);
+
     jest
       .spyOn(UserOnCallLogTimelineService, "findOneById")
-      .mockResolvedValue(notification(id));
+      .mockResolvedValue(row);
 
     return jest
-      .spyOn(UserOnCallLogTimelineService, "updateOneById")
-      .mockResolvedValue(undefined as never);
+      .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+      .mockImplementation((async (
+        updateBy: UpdateOneByInput,
+      ): Promise<number> => {
+        return updateNotificationWhileStill(row, updateBy);
+      }) as never);
   }
 
   test("acknowledges a page with the token in its link, and answers in JSON", async () => {

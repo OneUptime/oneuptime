@@ -165,13 +165,14 @@ function criteriaPaging(data: {
     events: [
       {
         kind: OnCallTestPageRecordKind.Incident,
+        title: "Checkout API is offline",
         severityName: "Critical",
         owners: {
           source: WhoIsToldOwnersSource.ProjectOwners,
           userNames: [],
           teamNames: [],
-          hasOwnerRules: false,
         },
+        ownerRules: [],
         rules: [],
         policies: [policy],
         statusPages: [],
@@ -654,13 +655,14 @@ describe("the monitors' chains, as findings", () => {
         events: [
           {
             kind: OnCallTestPageRecordKind.Alert,
+            title: "Checkout API is slow",
             severityName: "Warning",
             owners: {
               source: WhoIsToldOwnersSource.ProjectOwners,
               userNames: [],
               teamNames: [],
-              hasOwnerRules: false,
             },
+            ownerRules: [],
             rules: [],
             policies: [],
             statusPages: [],

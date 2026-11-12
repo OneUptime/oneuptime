@@ -76,7 +76,7 @@ export enum ProductEventName {
   // "Import from another tool" was opened.
   ImporterOpened = "importer/opened",
 
-  // "Was this page helpful?" on a docs page (#6822).
+  // "Was this page helpful?" on a docs page (#6822): sent by the docs server.
   DocsFeedbackGiven = "docs/feedback_given",
 
   // The guided setups (#6804, #6805, #6806).
@@ -257,9 +257,9 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
   },
   {
     name: ProductEventName.DocsFeedbackGiven,
-    description: 'A docs page was rated by "Was this page helpful?".',
-    properties: [token("page"), { name: "is_helpful" }],
-    reservedFor: "#6822",
+    description:
+      'A docs page was rated by "Was this page helpful?", on docs where product analytics is set up (OneUptime Cloud), with what went wrong when a no says (reason). Sent by the docs server (Docs/Utils/DocsFeedback).',
+    properties: [token("page"), { name: "is_helpful" }, token("reason")],
   },
   {
     name: ProductEventName.GuidedSetupStarted,
