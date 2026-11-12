@@ -1,4 +1,43 @@
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { DataStoreFamily } from "Common/Types/DataSecurity/DataStoreKind";
+import { Translator, translationKey } from "Common/UI/Utils/TranslateTemplate";
+
+/*
+ * WHAT KIND OF STORE A FAMILY IS, AS A NOUN (#7108).
+ *
+ * A family is stored as its English word (DataStoreFamily), and "Search"
+ * is also the Search button's key, which every language words as the
+ * verb: German "Suchen", French "Rechercher", Hindi "खोजें". Beside
+ * Database and Warehouse a family is a kind of store, so each one is
+ * drawn from a noun of its own: a search engine (Elasticsearch,
+ * OpenSearch) is "Search engine". The stored value stays "Search".
+ */
+export const DATA_STORE_FAMILY_TITLES: Readonly<
+  Record<DataStoreFamily, string>
+> = {
+  [DataStoreFamily.ObjectStorage]: translationKey("Object storage"),
+  [DataStoreFamily.Database]: translationKey("Database"),
+  [DataStoreFamily.Warehouse]: translationKey("Warehouse"),
+  [DataStoreFamily.Search]: translationKey("Search engine"),
+  [DataStoreFamily.Cache]: translationKey("Cache"),
+  [DataStoreFamily.FileSystem]: translationKey("File system"),
+  [DataStoreFamily.Snapshot]: translationKey("Snapshot"),
+  [DataStoreFamily.Telemetry]: translationKey("Telemetry"),
+};
+
+// A store's family in the reader's words; one it does not know, as stored.
+export function getDataStoreFamilyTitle(
+  translator: Translator,
+  family: DataStoreFamily | string | undefined,
+): string {
+  if (!family) {
+    return "";
+  }
+
+  const title: string | undefined =
+    DATA_STORE_FAMILY_TITLES[family as DataStoreFamily];
+
+  return title ? translator.translateText(title) || title : family;
+}
 
 /*
  * EVERY WORD OF DATA SECURITY'S CATALOGS, REGISTERED FOR TRANSLATION.
@@ -110,14 +149,8 @@ export const DATA_SECURITY_CATALOG_TERMS: ReadonlyArray<string> = [
   translationKey("Exceptions"),
   translationKey("Session Replays"),
   translationKey("AI Conversations"),
-  translationKey("Object storage"),
-  translationKey("Database"),
-  translationKey("Warehouse"),
-  translationKey("Search"),
-  translationKey("Cache"),
-  translationKey("File system"),
-  translationKey("Snapshot"),
-  translationKey("Telemetry"),
+  // Families, each as the noun it is drawn with
+  ...Object.values(DATA_STORE_FAMILY_TITLES),
   // Environments
   translationKey("Production"),
   translationKey("Staging"),
