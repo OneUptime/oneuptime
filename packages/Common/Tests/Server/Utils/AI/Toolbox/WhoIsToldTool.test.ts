@@ -20,6 +20,7 @@ import {
   WhoIsToldPersonProblem,
   WhoIsToldResult,
   WhoIsToldRule,
+  redactWhoIsTold,
 } from "../../../../../Types/Monitor/WhoIsTold";
 import ObjectID from "../../../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../../../Types/OnCallDutyPolicy/OnCallPageChannel";
@@ -470,6 +471,85 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
       ),
     ).toContain(
       '    - owner rules that add its owners: an owner rule the person may not read, "Slow sites to Dana"',
+    );
+  });
+
+  /*
+   * The owner-rules line is new text the model reads, so it is held to the
+   * resolver's own redaction (getForMonitor hands the tool redactWhoIsTold's
+   * answer): a rule the person may not read never reaches Ask AI by name,
+   * on an incident or an alert, and one they may read is named.
+   */
+  test("through redactWhoIsTold, an owner rule the person may not read is never named to the model", () => {
+    const answer: WhoIsToldResult = {
+      ...RESULT,
+      criteria: [
+        {
+          id: "c5",
+          name: "Check if offline",
+          events: [
+            {
+              kind: OnCallTestPageRecordKind.Incident,
+              title: "example.com is offline",
+              severityName: "Critical Incident",
+              owners: {
+                source: WhoIsToldOwnersSource.OwnerRules,
+                userNames: ["Dana Reyes"],
+                teamNames: [],
+              },
+              ownerRules: [
+                { id: "o1", name: "Secret escalation to Dana" },
+                { id: "o2", name: "Slow sites to Dana" },
+              ],
+              rules: [],
+              policies: [],
+              statusPages: [],
+            },
+            {
+              kind: OnCallTestPageRecordKind.Alert,
+              title: "example.com is offline",
+              severityName: "High",
+              owners: {
+                source: WhoIsToldOwnersSource.Named,
+                userNames: ["Ben Ito"],
+                teamNames: [],
+              },
+              ownerRules: [{ id: "o3", name: "Secret alert rule" }],
+              rules: [],
+              policies: [],
+              statusPages: [],
+            },
+          ],
+        },
+      ],
+      breaks: [],
+    };
+
+    const text: string = describeWhoIsToldForModel(
+      redactWhoIsTold({
+        result: answer,
+        readablePolicyIds: new Set<string>(),
+        readableRuleIds: new Set<string>(),
+        readableOwnerRuleIds: new Set<string>(["o2"]),
+        readableStatusPageIds: new Set<string>(),
+      }),
+    );
+    const lines: Array<string> = text.split("\n");
+
+    expect(text).not.toContain("Secret");
+    expect(lines).toContain(
+      '    - owner rules that add its owners: an owner rule the person may not read, "Slow sites to Dana"',
+    );
+    expect(lines).toContain(
+      "    - owner rules that add its owners: an owner rule the person may not read",
+    );
+    // Each event's rules sit under its own line, in order.
+    expect(
+      lines.indexOf("  - opens an alert (High); emails its owners (Ben Ito)"),
+    ).toBe(
+      lines.indexOf(
+        "    - owner rules that add its owners: an owner rule the person may not read",
+      ) - 1,
     );
   });
 });
