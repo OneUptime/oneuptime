@@ -38,7 +38,7 @@ Raden högst upp nämner det mest brådskande som är öppet, i en färg som pas
 
 Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
 
-Så länge inget övervakas ännu slutar raden med knappen **Skapa din första övervakare**, som öppnar formuläret som skapar en monitor. Bara den som får skapa monitorer ser den.
+Så länge inget övervakas ännu slutar raden med knappen **Skapa din första övervakare**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**. Bara den som får skapa monitorer ser den.
 
 ### De fem siffrorna
 
@@ -63,16 +63,16 @@ Varje steg bockar av sig självt när saken fungerar, inte när en post finns, o
 | Steg | Klart när | Öppnar |
 | --- | --- | --- |
 | **Importera från ditt nuvarande verktyg** | En import från ett annat verktyg är slutförd. | **Importera från ett annat verktyg** |
-| **Skapa din första övervakare** | Den första kontrollen kommer in. | Formuläret **Skapa monitor**, eller listan **Monitorer** för den som inte får skapa övervakare. |
+| **Skapa din första övervakare** | Den första kontrollen kommer in. | Den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, eller listan **Monitorer** för den som inte får skapa övervakare. |
 | **Anslut en server eller ett kluster** | De första mätvärdena kommer in. | **Värdar** |
-| **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | **Loggar** |
-| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | **Jourtjänst** |
-| **Publicera en statussida** | En statussida visar en övervakare. | **Statussidor** |
+| **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | Den guidade installationen **Skicka loggar, mätvärden och spår och få sedan larm** |
+| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | Den guidade installationen **Larma rätt person när något går sönder** |
+| **Publicera en statussida** | En statussida visar en övervakare. | Den guidade installationen **Publicera en statussida**, eller listan **Statussidor** för den som inte får skapa statussidor. |
 | **Bjud in ditt team** | Någon accepterar din inbjudan. | **Användare** |
 
 Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte kan skicka e-post ser serverns administratörer först **Den här servern kan inte skicka e-post än**; den öppnar administratörsdashboarden.
 
-När du skapar en övervakare, en statussida eller en jourpolicy från ett steg säger sidan du hamnar på vad som kommer härnäst, med **Tillbaka till konfigurationen**.
+En guidad installation gör hela jobbet på en sida, ett steg i taget, och slutar med vad den har konfigurerat och vad du gör härnäst. Sök på dess namn för att öppna den igen senare.
 
 Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jourtjänst** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
 
@@ -145,6 +145,7 @@ Tryck på **Cmd+K** (Mac) eller **Ctrl+K** (Windows och Linux), eller klicka på
 - **Inställningarna på en sida**, under namnet som deras kort eller reglage visar: *Kräv SSO för inloggning* hittar SSO, och *Aviseringskanaler* hittar Aviseringsinställningar. Skriv namnet på engelska eller på ditt eget språk.
 - **Åtgärder**, efter vad du vill göra: Deklarera incident, Skapa monitor eller Delete Project, som öppnar Farozon. En åtgärd som ändrar något erbjuds bara den som får utföra den.
 - **Dina monitorer, incidenter, larm, statussidor och jourpolicyer**, efter namn, och incidenter och larm även efter nummer, som `INC-42`. Varje resultat för en incident eller ett larm börjar med dess nummer, så att två med samma titel går att skilja åt.
+- **Dokumentationen**, i en grupp *Dokumentation* under allt annat: de sidor och avsnitt vars ord stämmer med det du skriver, på ditt språk, även med ett stavfel. Var och en öppnas i en ny flik, så att du behåller din plats.
 
 Sökningen läser det du skriver som du menar det:
 

@@ -899,6 +899,29 @@ describeWhenEnterprisePresent(
         "The first email goes after 30 minutes of failures, with what the destination answered. A second goes a day before the first of the entries the export has not sent is deleted, with when entries start to be lost.",
       );
 
+      /*
+       * #7185: when that moment has already passed, the second email is due
+       * with the first (never sooner than 30 minutes) and goes in its place,
+       * as the more pressing one, and says entries are being lost now: the
+       * email reads the date against the time of the try.
+       */
+      expect(notifications).toContain(
+        "lostAt - AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS * HOUR_IN_MS,",
+      );
+      expect(notifications).toContain(
+        "return AuditLogExportFailureNotice.LosingEntries;\n  }\n\n  const failingAt: number =",
+      );
+      expect(notifications).toContain(
+        "lostAt.getTime() <= new Date(data.now).getTime()",
+      );
+      expect(notifications).toContain('lost: "is losing entries",');
+      expect(exporter).toContain(
+        "entriesLostAt,\n        now: data.now,\n        error: data.message,",
+      );
+      expect(fails).toContain(
+        "If that moment has already passed, as when **Export from** reaches back further than the retention, the second email takes the place of the first, 30 minutes in, and says entries are being lost now.",
+      );
+
       // Once each while the failures go on: a delivery that works clears failingSince.
       expect(exporter).toContain(
         "failingSince: null as unknown as Date,\n            consecutiveFailureCount: 0,",

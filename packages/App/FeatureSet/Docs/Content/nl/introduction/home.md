@@ -38,7 +38,7 @@ De regel bovenaan noemt het dringendste dat openstaat, in een bijpassende kleur:
 
 Ernaast staat wanneer Start het project voor het laatst heeft gelezen, en **Vernieuwen** leest het opnieuw. Komt u na een minuut of langer terug op een tabblad met Start, dan vernieuwt Start zich vanzelf.
 
-Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die het formulier opent waarmee je er een maakt. Alleen wie monitoren mag maken, ziet hem.
+Zolang er nog niets wordt gemonitord, eindigt de regel met de knop **Maak je eerste monitor**, die de begeleide installatie **Weten wanneer mijn website of API plat ligt** opent. Alleen wie monitoren mag maken, ziet hem.
 
 ### De vijf getallen
 
@@ -63,16 +63,16 @@ Elke stap vinkt zichzelf af zodra het werkt, niet zodra er een record bestaat, e
 | Stap | Klaar wanneer | Opent |
 | --- | --- | --- |
 | **Importeer uit je huidige tool** | Een import uit een andere tool is afgerond. | **Importeren uit een andere tool** |
-| **Maak je eerste monitor** | De eerste controle komt binnen. | Het formulier **Monitor maken**, of de lijst **Monitoren** voor wie geen monitors mag maken. |
+| **Maak je eerste monitor** | De eerste controle komt binnen. | De begeleide installatie **Weten wanneer mijn website of API plat ligt**, of de lijst **Monitoren** voor wie geen monitors mag maken. |
 | **Verbind een server of cluster** | De eerste metrics komen binnen. | **Hosts** |
-| **Stuur je eerste logs, metrics of traces** | De eerste logs, metrics, traces, uitzonderingen of profielen van het project komen binnen. | **Logboeken** |
-| **Stel een bereikbaarheidsbeleid in** | Een testoproep wordt bevestigd, een oproep bereikt iemand, of een bereikbaarheidsregel voert een beleid uit dat iemand kan bereiken. | **Bereikbaarheidsdienst** |
-| **Publiceer een statuspagina** | Een statuspagina toont een monitor. | **Statuspagina's** |
+| **Stuur je eerste logs, metrics of traces** | De eerste logs, metrics, traces, uitzonderingen of profielen van het project komen binnen. | De begeleide installatie **Logboeken, metrieken en traces versturen en daarna waarschuwingen ontvangen** |
+| **Stel een bereikbaarheidsbeleid in** | Een testoproep wordt bevestigd, een oproep bereikt iemand, of een bereikbaarheidsregel voert een beleid uit dat iemand kan bereiken. | De begeleide installatie **De juiste persoon oproepen als er iets kapotgaat** |
+| **Publiceer een statuspagina** | Een statuspagina toont een monitor. | De begeleide installatie **Publiceer een statuspagina**, of de lijst **Statuspagina's** voor wie geen statuspagina's mag maken. |
 | **Nodig je team uit** | Iemand accepteert je uitnodiging. | **Gebruikers** |
 
 De stap die je eerst doet, is gemarkeerd met **Volgende stap**. In het Free-abonnement van OneUptime Cloud, met één persoon, zegt **Nodig je team uit** dat het het Growth-abonnement nodig heeft, en opent het **Facturering**. Op een zelfgehoste server die nog geen e-mail kan versturen, zien de beheerders van de server eerst **Deze server kan nog geen e-mail versturen**; dat opent het beheerdashboard.
 
-Als je vanuit een stap een monitor, een statuspagina of een bereikbaarheidsbeleid maakt, zegt de pagina waarop je terechtkomt wat er volgt, met **Terug naar de inrichting**.
+Een begeleide installatie doet het hele werk op één pagina, stap voor stap, en eindigt met wat ze heeft ingesteld en wat je daarna doet. Zoek later op de naam om er een opnieuw te openen.
 
 Onder de stappen toont **Hoe OneUptime werkt** de vier kernproducten in de volgorde waarin een probleem ze doorloopt: **Monitoren**, **Incidenten & waarschuwingen**, **Bereikbaarheidsdienst** en **Statuspagina's**. Klik op een ervan om het te openen. Daaronder staat wat die kringloop voedt, telemetrie en infrastructuur, met links naar [Kernbegrippen](/docs/introduction/core-concepts) en [Woordenlijst](/docs/introduction/glossary).
 
@@ -145,6 +145,7 @@ Druk op **Cmd+K** (Mac) of **Ctrl+K** (Windows en Linux), of klik op het zoekpic
 - **De instellingen op een pagina**, onder de naam die hun kaart of schakelaar toont: *SSO vereisen voor inloggen* vindt SSO, en *Meldingskanalen* vindt Meldingsinstellingen. Typ de naam in het Engels of in uw eigen taal.
 - **Acties**, naar wat u wilt doen: Incident melden, Monitor maken of Delete Project, dat de Gevarenzone opent. Een actie die iets verandert, wordt alleen aangeboden aan wie die mag uitvoeren.
 - **Uw monitoren, incidenten, waarschuwingen, statuspagina's en bereikbaarheidsbeleid**, op naam, en incidenten en waarschuwingen ook op nummer, zoals `INC-42`. Elk resultaat van een incident of waarschuwing begint met zijn nummer, zodat twee met dezelfde titel uit elkaar te houden zijn.
+- **De documentatie**, in een groep *Documentatie* onder al het andere: de pagina's en secties waarvan de woorden overeenkomen met wat u typt, in uw taal, ook met een typfout. Elke opent in een nieuw tabblad, zodat u uw plek houdt.
 
 Zoeken leest wat u typt zoals u het bedoelt:
 

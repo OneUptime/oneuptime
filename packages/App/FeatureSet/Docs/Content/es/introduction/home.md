@@ -38,7 +38,7 @@ La línea superior nombra lo más urgente que hay abierto, en un color acorde:
 
 Al lado, Inicio indica cuándo cargó el proyecto por última vez, y **Actualizar** lo vuelve a cargar. Cuando vuelves a una pestaña de Inicio después de un minuto o más, se actualiza sola.
 
-Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre el formulario para crear uno. Solo lo ven las personas que pueden crear monitores.
+Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea tu primer monitor**, que abre la configuración guiada **Saber cuándo cae mi sitio web o mi API**. Solo lo ven las personas que pueden crear monitores.
 
 ### Los cinco números
 
@@ -63,16 +63,16 @@ Cada paso se marca solo cuando la cosa funciona, no cuando existe un registro, y
 | Paso | Completado cuando | Abre |
 | --- | --- | --- |
 | **Importa desde tu herramienta actual** | Termina una importación desde otra herramienta. | **Importar desde otra herramienta** |
-| **Crea tu primer monitor** | Llega su primera comprobación. | El formulario **Crear monitor**, o la lista **Monitores** para quien no puede crear monitores. |
+| **Crea tu primer monitor** | Llega su primera comprobación. | La configuración guiada **Saber cuándo cae mi sitio web o mi API**, o la lista **Monitores** para quien no puede crear monitores. |
 | **Conecta un servidor o un clúster** | Llegan sus primeras métricas. | **Hosts** |
-| **Envía tus primeros logs, métricas o trazas** | Llegan los primeros logs, métricas, trazas, excepciones o perfiles del proyecto. | **Registros** |
-| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia ejecuta una política que puede llegar a alguien. | **Guardia** |
-| **Publica una página de estado** | Una página de estado muestra un monitor. | **Páginas de estado** |
+| **Envía tus primeros logs, métricas o trazas** | Llegan los primeros logs, métricas, trazas, excepciones o perfiles del proyecto. | La configuración guiada **Envía registros, métricas y trazas, y recibe alertas** |
+| **Configura una política de guardia** | Se confirma un aviso de prueba, un aviso llega a alguien, o una regla de guardia ejecuta una política que puede llegar a alguien. | La configuración guiada **Avisar a la persona adecuada cuando algo falle** |
+| **Publica una página de estado** | Una página de estado muestra un monitor. | La configuración guiada **Publica una página de estado**, o la lista **Páginas de estado** para quien no puede crear páginas de estado. |
 | **Invita a tu equipo** | Alguien acepta tu invitación. | **Usuarios** |
 
 El paso que toca primero está marcado con **Siguiente paso**. En el plan Free de OneUptime Cloud, que incluye una persona, **Invita a tu equipo** indica que necesita el plan Growth y abre **Facturación**. En un servidor autoalojado que aún no puede enviar correos, los administradores del servidor ven primero **Este servidor aún no puede enviar correos electrónicos**, que abre el panel de administración.
 
-Cuando creas un monitor, una página de estado o una política de guardia desde un paso, la página a la que llegas dice qué sigue, con **Volver a la configuración**.
+Una configuración guiada hace todo el trabajo en una sola página, paso a paso, y termina con lo que configuró y qué hacer después. Para volver a abrirla más tarde, busca su nombre.
 
 Bajo los pasos, **Cómo funciona OneUptime** muestra los cuatro productos principales en el orden en que un problema pasa por ellos: **Monitores**, **Incidentes y alertas**, **Guardia** y **Páginas de estado**. Haz clic en uno para abrirlo. Debajo dice qué alimenta ese ciclo, la telemetría y la infraestructura, y enlaza a [Conceptos básicos](/docs/introduction/core-concepts) y [Glosario](/docs/introduction/glossary).
 
@@ -145,6 +145,7 @@ Pulsa **Cmd+K** (Mac) o **Ctrl+K** (Windows y Linux), o haz clic en el icono de 
 - **Los ajustes de una página**, por el nombre que muestra su tarjeta o su interruptor: *Requerir SSO para iniciar sesión* encuentra SSO, y *Canales de notificación* encuentra Ajustes de notificaciones. Escribe el nombre en inglés o en tu idioma.
 - **Acciones**, por lo que quieres hacer: Declarar incidente, Crear monitor o Eliminar proyecto, que abre la Zona de peligro. Una acción que cambia algo solo se ofrece a quien tiene permiso para hacerla.
 - **Tus monitores, incidentes, alertas, páginas de estado y políticas de guardia**, por su nombre, y los incidentes y las alertas también por su número, como `INC-42`. Cada resultado de un incidente o una alerta empieza por su número, así que dos con el mismo título se distinguen.
+- **La documentación**, en un grupo *Documentación* debajo de todo lo demás: las páginas y secciones cuyas palabras coinciden con lo que escribes, en tu idioma, aunque haya una errata. Cada una se abre en una pestaña nueva, para que no pierdas tu sitio.
 
 La búsqueda lee lo que escribes como lo quieres decir:
 

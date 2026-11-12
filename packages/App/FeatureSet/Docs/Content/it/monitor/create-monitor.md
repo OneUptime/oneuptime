@@ -18,7 +18,7 @@ Andate in **Monitor** e fate clic su **Crea monitor**. Il modulo si apre sul pri
 
 La prima domanda è il **Tipo di monitor**: cosa volete monitorare?
 
-- I sei tipi che si creano più spesso vengono per primi: **Sito web**, **API**, **Ping**, **Porta**, **SSL Certificate** e **Richiesta in arrivo**, per gli heartbeat di cron job e webhook.
+- I sei tipi che si creano più spesso vengono per primi: **Sito web**, **API**, **Ping**, **Porta**, **Certificato SSL** e **Richiesta in arrivo**, per gli heartbeat di cron job e webhook.
 - **Altri tipi di monitor** elenca tutti gli altri tipi sotto la loro categoria, come **Infrastruttura** (Kubernetes, Docker, host) e **Telemetria** (registri, metriche, tracce). **Manuale**, un monitor di cui impostate voi lo stato, e **Stato della sonda**, che vi avvisa quando una sonda si disconnette, si trovano sotto **Altro**.
 - Oppure digitate nella casella di ricerca. Conosce le parole che già usate, come `k8s`, `postgres`, `heartbeat` o `tls`, e **Enter** sceglie il primo risultato.
 
@@ -76,7 +76,7 @@ Gli incidenti e gli avvisi impostati per risolversi automaticamente, come quelli
 
 ## Sonde e intervallo
 
-I monitor controllati dalle sonde terminano con questo passaggio: Sito web, API, Ping, IP, Porta, SSL Certificate, DNS, DNSSEC, NTP, Dominio, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code e External Status Page. Le **Sonde** sono le macchine che eseguono i controlli, e le sonde predefinite del vostro progetto partono selezionate. L'**Intervallo di monitoraggio** parte da **Ogni 5 minuti**.
+I monitor controllati dalle sonde terminano con questo passaggio: Sito web, API, Ping, IP, Porta, Certificato SSL, DNS, DNSSEC, NTP, Dominio, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code e External Status Page. Le **Sonde** sono le macchine che eseguono i controlli, e le sonde predefinite del vostro progetto partono selezionate. L'**Intervallo di monitoraggio** parte da **Ogni 5 minuti**.
 
 :::steps
 ### Scegliere le sonde
@@ -85,7 +85,7 @@ Mantenete le **Sonde** selezionate o sceglietene altre. Un monitor senza sonde n
 
 ### Scegliere la frequenza dei controlli
 
-Scegliete un **Intervallo di monitoraggio**, da **Ogni minuto** a **Ogni settimana**. Ai monitor Synthetic Monitor, Custom JavaScript Code e SSL Certificate vengono offerti intervalli di 5 minuti o più.
+Scegliete un **Intervallo di monitoraggio**, da **Ogni minuto** a **Ogni settimana**. Ai monitor Synthetic Monitor, Custom JavaScript Code e Certificato SSL vengono offerti intervalli di 5 minuti o più.
 
 ### Creare il monitor
 

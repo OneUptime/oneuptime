@@ -1,7 +1,20 @@
 import { ContentPath } from "./Config";
+import {
+  DocsSearchSynonym,
+  DocsVocabulary,
+  DocsVocabularyMatch,
+  foldDocsSearchWord,
+  getDocsSearchSynonyms,
+  getTypoAllowance,
+} from "./DocsSearchWords";
+import { DocsGlossaryEntry, GLOSSARY_PAGE, parseGlossary } from "./Glossary";
 import DocsNav, { NavGroup, NavLink } from "./Nav";
 import DocsPlaceholders from "./Placeholders";
-import { DocsPageSummary, summarizeDocsPage } from "./SearchIndex";
+import {
+  DocsPageSummary,
+  stripInlineMarkdown,
+  summarizeDocsPage,
+} from "./SearchIndex";
 import {
   DEFAULT_DOCS_LANGUAGE,
   isSupportedDocsLanguage,
@@ -33,11 +46,30 @@ import OneUptimeDate from "Common/Types/Date";
  * ("monitor", "OneUptime") weigh little; a page's title and headings weigh
  * most. Each hit names the section that matched best, so an answer can
  * send the reader to the section, not just the page.
+ *
+ * The same index answers the docs' own search box and Search (Cmd/Ctrl+K)'s
+ * Docs group (Utils/DocsSearch.ts, issue #6822). So it also keeps each
+ * section's text (for the line a result shows), every word with how many
+ * pages hold it (for a word typed with a wrong letter, or half typed), the
+ * Glossary's other names as sections of their own, and which pages are
+ * guides. A word a question misspells is read as the docs word it nearly
+ * spells, and a reader's word for what the docs call otherwise ("pager")
+ * as the docs' word (Utils/DocsSearchWords.ts).
  */
 
 export interface AIDocsIndexedSection extends AIDocsSection {
   terms: Map<string, number>;
   titleTerms: Set<string>;
+  /*
+   * What the section says, as plain text (plainTextOfDocs): the line a
+   * search result shows is cut from it.
+   */
+  text: string;
+  /*
+   * A name the Glossary gives a term besides its own ("Service Catalog
+   * (Service)"), as a section that opens the term: found by that name.
+   */
+  isOtherName?: boolean | undefined;
 }
 
 export interface AIDocsIndexedPage {
@@ -54,14 +86,20 @@ export interface AIDocsIndexedPage {
   // How many words its body holds.
   bodyLength: number;
   sections: Array<AIDocsIndexedSection>;
+  // A guide (NavLink.isGuide): docs search ranks it above a reference page for the same words.
+  isGuide: boolean;
 }
 
-interface AIDocsLanguageIndex {
+export interface AIDocsLanguageIndex {
+  // The language it was built for; a page not translated yet is its English copy.
+  language: string;
   pages: Array<AIDocsIndexedPage>;
   // How many pages hold each word.
   documentFrequency: Map<string, number>;
   // How many words a page's body holds, on average.
   averageBodyLength: number;
+  // Every word, laid out to find the ones a typed word starts or nearly spells.
+  vocabulary: DocsVocabulary;
 }
 
 const TTL_MS: number = 10 * 60 * 1000;
@@ -117,6 +155,8 @@ const UNSPACED_SCRIPT: RegExp =
 
 const cache: Map<string, { index: AIDocsLanguageIndex; at: number }> =
   new Map();
+// The builds under way, by language.
+const building: Map<string, Promise<AIDocsLanguageIndex>> = new Map();
 
 /*
  * A word as both a question and a page are compared by: lowercase, a
@@ -156,29 +196,89 @@ export const stemDocsWord: (word: string) => string = (
   return folded;
 };
 
-/*
- * Words a newcomer asks with that the docs say otherwise: "a text when my
- * site is down" is an SMS. Read into a question only, never into a page.
- */
-const OTHER_WORDS: ReadonlyMap<string, ReadonlyArray<string>> = new Map<
-  string,
-  ReadonlyArray<string>
->([
-  ["text", ["sms"]],
-  ["texts", ["sms"]],
-  ["2fa", ["two", "factor"]],
-]);
+// What is typed or written, cut where a word ends - but not at a hyphen.
+const NOT_A_WORD_OR_HYPHEN: RegExp = /[^\p{L}\p{M}\p{N}-]+/u;
+const ONLY_DIGITS: RegExp = /^\p{N}+$/u;
+// A hyphenated word of more parts than this (an id, a version) is not read joined.
+const MOST_JOINED_PARTS: number = 4;
 
-export const tokenizeQueryForDocs: (query: string) => Array<string> = (
-  query: string,
+/*
+ * The words of what was typed or written, as they come: each run of
+ * letters and digits between spaces and punctuation, a hyphenated word
+ * ("on-call") as one.
+ */
+export const splitDocsWords: (text: string) => Array<string> = (
+  text: string,
 ): Array<string> => {
-  const words: Array<string> = query
+  return text
     .normalize("NFKC")
     .toLowerCase()
-    .split(/[^\p{L}\p{M}\p{N}]+/u);
-  const otherWords: Array<string> = words.flatMap(
-    (word: string): ReadonlyArray<string> => {
-      return OTHER_WORDS.get(word) || [];
+    .split(NOT_A_WORD_OR_HYPHEN)
+    .filter((chunk: string): boolean => {
+      return chunk.replace(/-/g, "").length > 0;
+    });
+};
+
+/*
+ * A hyphenated word is also read joined: "on-call" as "oncall",
+ * "two-factor" as "twofactor", "Zwei-Faktor-Authentifizierung" as
+ * "zweifaktor" and the rest. So "oncall" finds "on-call", and a synonym can
+ * name the whole word ("pager" is "on-call") even where one of its parts
+ * ("on") is too common to be a word of its own.
+ */
+const joinedWords: (parts: Array<string>) => Array<string> = (
+  parts: Array<string>,
+): Array<string> => {
+  if (
+    parts.length < 2 ||
+    parts.length > MOST_JOINED_PARTS ||
+    parts.some((part: string): boolean => {
+      return UNSPACED_SCRIPT.test(part);
+    }) ||
+    parts.every((part: string): boolean => {
+      return ONLY_DIGITS.test(part);
+    })
+  ) {
+    return [];
+  }
+
+  const joined: Array<string> = [];
+
+  for (let size: number = 2; size <= parts.length; size++) {
+    for (let start: number = 0; start + size <= parts.length; start++) {
+      joined.push(stemDocsWord(parts.slice(start, start + size).join("")));
+    }
+  }
+
+  return joined;
+};
+
+/*
+ * A newcomer's words for what the docs say otherwise, read into a question
+ * only, never into a page: "a text when my site is down" is an SMS, "2fa"
+ * is two-factor authentication (DOCS_SEARCH_SYNONYMS, the list docs search
+ * reads too). A synonym that is a word's start ("vagt*") needs the docs'
+ * words to be read, so it is left to rank.
+ */
+export const tokenizeQueryForDocs: (
+  query: string,
+  language?: string | undefined,
+) => Array<string> = (
+  query: string,
+  language?: string | undefined,
+): Array<string> => {
+  const synonyms: Map<string, Array<DocsSearchSynonym>> = getDocsSearchSynonyms(
+    language || DEFAULT_DOCS_LANGUAGE,
+  );
+  const otherWords: Array<string> = splitDocsWords(query).flatMap(
+    (word: string): Array<string> => {
+      return (synonyms.get(foldDocsSearchWord(word)) || [])
+        .filter((synonym: DocsSearchSynonym): boolean => {
+          return !synonym.isWordStart;
+        })
+        .map((synonym: DocsSearchSynonym): string => {
+          return synonym.words;
+        });
     },
   );
 
@@ -193,36 +293,38 @@ export const tokenizeQueryForDocs: (query: string) => Array<string> = (
 export const tokenizeForDocs: (text: string) => Array<string> = (
   text: string,
 ): Array<string> => {
-  const words: Array<string> = text
-    .normalize("NFKC")
-    .toLowerCase()
-    .split(/[^\p{L}\p{M}\p{N}]+/u)
-    .filter((word: string): boolean => {
-      return word.length > 0;
-    });
-
   const terms: Array<string> = [];
 
-  for (const word of words) {
-    if (UNSPACED_SCRIPT.test(word)) {
-      const characters: Array<string> = Array.from(word);
+  for (const chunk of splitDocsWords(text)) {
+    const words: Array<string> = chunk
+      .split("-")
+      .filter((word: string): boolean => {
+        return word.length > 0;
+      });
 
-      if (characters.length === 1) {
-        terms.push(word);
+    for (const word of words) {
+      if (UNSPACED_SCRIPT.test(word)) {
+        const characters: Array<string> = Array.from(word);
+
+        if (characters.length === 1) {
+          terms.push(word);
+          continue;
+        }
+
+        for (let i: number = 0; i < characters.length - 1; i++) {
+          terms.push(`${characters[i]}${characters[i + 1]}`);
+        }
         continue;
       }
 
-      for (let i: number = 0; i < characters.length - 1; i++) {
-        terms.push(`${characters[i]}${characters[i + 1]}`);
+      if (word.length < 2 || QUESTION_WORDS.has(word)) {
+        continue;
       }
-      continue;
+
+      terms.push(stemDocsWord(word));
     }
 
-    if (word.length < 2 || QUESTION_WORDS.has(word)) {
-      continue;
-    }
-
-    terms.push(stemDocsWord(word));
+    terms.push(...joinedWords(words));
   }
 
   return terms;
@@ -242,6 +344,50 @@ const countTerms: (text: string) => Map<string, number> = (
 
 const termSet: (text: string) => Set<string> = (text: string): Set<string> => {
   return new Set<string>(tokenizeForDocs(text));
+};
+
+// A component's own line, keeping what follows its name (a collapsible's title).
+const COMPONENT_LINE: RegExp = /^:{3,}\s*[a-z-]*\s*/;
+// A table's rule: "| --- | :---: |".
+const TABLE_RULE: RegExp = /^\|?[\s:|-]*-[\s:|-]*\|?$/;
+// What opens a line without being its words: a heading's marks, a quote, a callout's marker, a list's bullet, a tab.
+const LINE_MARKER: RegExp =
+  /^(?:#{1,6}\s+|>\s*(?:\[![A-Z]+\]\s*)?|[-*+]\s+|\d+[.)]\s+|@tab\s+)/;
+
+/*
+ * What a page or a section says, as plain text: fenced code, tables' rules
+ * and components' own syntax left out, a collapsible's title kept, links
+ * and emphasis read as their words.
+ */
+export const plainTextOfDocs: (markdown: string) => string = (
+  markdown: string,
+): string => {
+  const lines: Array<string> = [];
+  let inFence: boolean = false;
+
+  for (const line of markdown.split("\n")) {
+    if (FENCE_LINE.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+
+    const trimmed: string = line.trim();
+
+    if (inFence || !trimmed || TABLE_RULE.test(trimmed)) {
+      continue;
+    }
+
+    const text: string = trimmed
+      .replace(COMPONENT_LINE, "")
+      .replace(LINE_MARKER, "")
+      .replace(/\|/g, " ");
+
+    if (text.trim()) {
+      lines.push(stripInlineMarkdown(text));
+    }
+  }
+
+  return lines.join(" ").replace(/\s+/g, " ").trim();
 };
 
 /*
@@ -375,7 +521,61 @@ export const splitDocsSections: (
   return sections;
 };
 
+/*
+ * The Glossary's other names, each as a section that opens its term by
+ * the term's English anchor (which the page answers in every language):
+ * "Service Catalog (Service)", saying the term's definition. A copy that
+ * is not the English page's shape gives the English names, as the Glossary
+ * data does.
+ */
+const glossaryOtherNameSections: (
+  language: string,
+  markdown: string,
+) => Promise<Array<AIDocsIndexedSection>> = async (
+  language: string,
+  markdown: string,
+): Promise<Array<AIDocsIndexedSection>> => {
+  const english: DocsCopy | null = await readCopy(
+    GLOSSARY_PAGE,
+    DEFAULT_DOCS_LANGUAGE,
+  );
+
+  if (!english) {
+    return [];
+  }
+
+  const entries: Array<DocsGlossaryEntry> =
+    parseGlossary(english.markdown, markdown, language) ||
+    parseGlossary(english.markdown, english.markdown, DEFAULT_DOCS_LANGUAGE) ||
+    [];
+
+  return entries.flatMap(
+    (entry: DocsGlossaryEntry): Array<AIDocsIndexedSection> => {
+      return entry.alsoCalled.map((name: string): AIDocsIndexedSection => {
+        const title: string = `${name} (${entry.term})`;
+
+        return {
+          title,
+          anchor: entry.id,
+          terms: countTerms(title),
+          titleTerms: termSet(title),
+          text: entry.definition,
+          isOtherName: true,
+        };
+      });
+    },
+  );
+};
+
 export default class DocsAIReader implements AIDocsReader {
+  /*
+   * A language's index, built the first time it is asked for. Building
+   * reads every page, which takes seconds, and the docs search box asks as
+   * someone types (#6822): so requests that arrive while it builds share the
+   * one build, and an index older than TTL_MS is still answered from while a
+   * new one is built behind it. Only the very first search in a language
+   * waits.
+   */
   public static async getIndex(language: string): Promise<AIDocsLanguageIndex> {
     const resolved: string = isSupportedDocsLanguage(language)
       ? language
@@ -384,13 +584,42 @@ export default class DocsAIReader implements AIDocsReader {
     const cached: { index: AIDocsLanguageIndex; at: number } | undefined =
       cache.get(resolved);
 
-    if (cached && now - cached.at < TTL_MS) {
+    if (cached) {
+      if (now - cached.at >= TTL_MS) {
+        DocsAIReader.buildOnce(resolved).catch((): void => {
+          // The old index keeps answering; the next request tries again.
+        });
+      }
       return cached.index;
     }
 
-    const index: AIDocsLanguageIndex = await DocsAIReader.build(resolved);
-    cache.set(resolved, { index, at: now });
-    return index;
+    return DocsAIReader.buildOnce(resolved);
+  }
+
+  // One build per language at a time, kept when it is done.
+  private static buildOnce(language: string): Promise<AIDocsLanguageIndex> {
+    const pending: Promise<AIDocsLanguageIndex> | undefined =
+      building.get(language);
+
+    if (pending) {
+      return pending;
+    }
+
+    const build: Promise<AIDocsLanguageIndex> = DocsAIReader.build(language)
+      .then((index: AIDocsLanguageIndex): AIDocsLanguageIndex => {
+        cache.set(language, {
+          index,
+          at: OneUptimeDate.getCurrentDate().getTime(),
+        });
+        return index;
+      })
+      .finally((): void => {
+        building.delete(language);
+      });
+
+    building.set(language, build);
+
+    return build;
   }
 
   public static async build(language: string): Promise<AIDocsLanguageIndex> {
@@ -410,6 +639,28 @@ export default class DocsAIReader implements AIDocsReader {
       const summary: DocsPageSummary = summarizeDocsPage(copy.markdown);
       const body: string = copy.markdown.split("\n").slice(1).join("\n");
 
+      const sections: Array<AIDocsIndexedSection> = splitDocsSections(body).map(
+        (section: {
+          title: string;
+          anchor: string;
+          body: string;
+        }): AIDocsIndexedSection => {
+          return {
+            title: section.title,
+            anchor: section.anchor,
+            terms: countTerms(section.body),
+            titleTerms: termSet(section.title),
+            text: plainTextOfDocs(section.body),
+          };
+        },
+      );
+
+      if (navPage.page === GLOSSARY_PAGE) {
+        sections.push(
+          ...(await glossaryOtherNameSections(language, copy.markdown)),
+        );
+      }
+
       const indexed: AIDocsIndexedPage = {
         page: navPage.page,
         title,
@@ -428,20 +679,8 @@ export default class DocsAIReader implements AIDocsReader {
         ),
         bodyTerms: countTerms(body),
         bodyLength: tokenizeForDocs(body).length,
-        sections: splitDocsSections(body).map(
-          (section: {
-            title: string;
-            anchor: string;
-            body: string;
-          }): AIDocsIndexedSection => {
-            return {
-              title: section.title,
-              anchor: section.anchor,
-              terms: countTerms(section.body),
-              titleTerms: termSet(section.title),
-            };
-          },
-        ),
+        sections,
+        isGuide: navPage.link.isGuide === true,
       };
 
       const allTerms: Set<string> = new Set<string>([
@@ -449,6 +688,9 @@ export default class DocsAIReader implements AIDocsReader {
         ...indexed.headingTerms,
         ...indexed.summaryTerms,
         ...indexed.bodyTerms.keys(),
+        ...sections.flatMap((section: AIDocsIndexedSection): Array<string> => {
+          return section.isOtherName ? Array.from(section.titleTerms) : [];
+        }),
       ]);
 
       for (const term of allTerms) {
@@ -463,7 +705,68 @@ export default class DocsAIReader implements AIDocsReader {
         return total + page.bodyLength;
       }, 0) / Math.max(1, pages.length);
 
-    return { pages, documentFrequency, averageBodyLength };
+    return {
+      language,
+      pages,
+      documentFrequency,
+      averageBodyLength,
+      vocabulary: new DocsVocabulary(documentFrequency),
+    };
+  }
+
+  /*
+   * The words of a question as `index` reads them: tokenizeQueryForDocs'
+   * words, a synonym that is a word's start as the docs' most used word it
+   * starts ("vagt*" is "vagtpolitik"), and a word no page holds as the docs
+   * word it spells with a wrong letter or two ("escalaton" is
+   * "escalation"), when there is one.
+   */
+  public static readQuestion(
+    index: AIDocsLanguageIndex,
+    query: string,
+  ): Array<string> {
+    const synonyms: Map<
+      string,
+      Array<DocsSearchSynonym>
+    > = getDocsSearchSynonyms(index.language);
+    const wordStarts: Array<string> = splitDocsWords(query).flatMap(
+      (word: string): Array<string> => {
+        return (synonyms.get(foldDocsSearchWord(word)) || [])
+          .filter((synonym: DocsSearchSynonym): boolean => {
+            return synonym.isWordStart;
+          })
+          .flatMap((synonym: DocsSearchSynonym): Array<string> => {
+            const start: string = foldDocsSearchWord(synonym.words);
+            const used: Array<DocsVocabularyMatch> =
+              index.vocabulary.startingWith(start, 1);
+
+            return index.vocabulary.has(start)
+              ? [start]
+              : used.map((match: DocsVocabularyMatch): string => {
+                  return match.term;
+                });
+          });
+      },
+    );
+
+    const terms: Array<string> = tokenizeQueryForDocs(
+      query,
+      index.language,
+    ).map((term: string): string => {
+      if (index.documentFrequency.has(term)) {
+        return term;
+      }
+
+      const near: Array<DocsVocabularyMatch> = index.vocabulary.near(
+        term,
+        getTypoAllowance(term),
+        1,
+      );
+
+      return near[0] ? near[0].term : term;
+    });
+
+    return Array.from(new Set<string>([...terms, ...wordStarts]));
   }
 
   /*
@@ -475,9 +778,7 @@ export default class DocsAIReader implements AIDocsReader {
     query: string,
     limit: number,
   ): Array<AIDocsSearchHit> {
-    const queryTerms: Array<string> = Array.from(
-      new Set<string>(tokenizeQueryForDocs(query)),
-    );
+    const queryTerms: Array<string> = DocsAIReader.readQuestion(index, query);
 
     if (queryTerms.length === 0) {
       return [];
@@ -651,5 +952,6 @@ export default class DocsAIReader implements AIDocsReader {
 
   public static clearCache(): void {
     cache.clear();
+    building.clear();
   }
 }

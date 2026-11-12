@@ -18,7 +18,7 @@ Gå till **Monitorer** och klicka på **Skapa monitor**. Formuläret öppnas på
 
 Den första frågan är **Monitortyp**: vad vill du övervaka?
 
-- De sex typer som flest skapar kommer först: **Webbplats**, **API**, **Ping**, **Port**, **SSL Certificate** och **Inkommande begäran**, för heartbeats från cron-jobb och webhooks.
+- De sex typer som flest skapar kommer först: **Webbplats**, **API**, **Ping**, **Port**, **SSL-certifikat** och **Inkommande begäran**, för heartbeats från cron-jobb och webhooks.
 - **Fler monitortyper** listar alla andra typer under sin kategori, som **Infrastruktur** (Kubernetes, Docker, värd) och **Telemetri** (loggar, mätvärden, spår). **Manuell**, en monitor vars status du själv sätter, och **Sondstatus**, som säger till när en prob tappar anslutningen, finns under **Annat**.
 - Eller skriv i sökrutan. Den känner till orden du redan använder, som `k8s`, `postgres`, `heartbeat` eller `tls`, och **Enter** väljer den första träffen.
 
@@ -76,7 +76,7 @@ Incidenter och larm som är inställda på att lösas automatiskt, som standardk
 
 ## Sonder och intervall
 
-Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL Certificate, DNS, DNSSEC, NTP, Domän, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code och External Status Page. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
+Monitorer som sonder kontrollerar avslutas med det här steget: Webbplats, API, Ping, IP, Port, SSL-certifikat, DNS, DNSSEC, NTP, Domän, SQL Query, Database Health, Synthetic Monitor, Custom JavaScript Code och External Status Page. **Sonder** är maskinerna som kör kontrollerna, och projektets standardsonder är förvalda. **Övervakningsintervall** börjar på **Var 5:e minut**.
 
 :::steps
 ### Välj sonderna
@@ -85,7 +85,7 @@ Behåll de valda **Sonder** eller välj andra. En monitor utan sonder kontroller
 
 ### Välj hur ofta kontrollen körs
 
-Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code och SSL Certificate erbjuds intervall på 5 minuter eller längre.
+Välj ett **Övervakningsintervall**, från **Varje minut** till **Varje vecka**. Monitorer av typen Synthetic Monitor, Custom JavaScript Code och SSL-certifikat erbjuds intervall på 5 minuter eller längre.
 
 ### Skapa monitorn
 

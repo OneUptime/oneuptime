@@ -1826,6 +1826,9 @@ openTelemetryExporter:
   # Write each header as name=value and separate headers with ';'. A value may
   # hold '=', as a Basic Authorization value does. Nothing is exported without
   # a header; one OneUptime cannot read is logged as a warning at startup.
+  # The chart hands the value to every pod exactly as set. In a values file,
+  # put a value that holds ': ' or ' #' in quotes: YAML reads those itself
+  # before the chart sees the value.
   headers:
   # Optional. Reported as k8s.cluster.name on OneUptime's own telemetry so its
   # pods group under this cluster in Topology. Pods always report their pod,

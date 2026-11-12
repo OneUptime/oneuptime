@@ -38,7 +38,7 @@ Linjen øverst nevner det mest presserende som er åpent, i en farge som passer:
 
 Ved siden av sier Hjem når den sist leste prosjektet, og **Oppdater** leser det på nytt. Når du kommer tilbake til en fane med Hjem etter ett minutt eller mer, oppdaterer den seg selv.
 
-Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første overvåker**, som åpner skjemaet som oppretter en monitor. Bare de som har lov til å opprette monitorer, ser den.
+Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din første overvåker**, som åpner det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**. Bare de som har lov til å opprette monitorer, ser den.
 
 ### De fem tallene
 
@@ -63,16 +63,16 @@ Hvert steg krysser seg selv av når tingen virker, ikke når en post finnes, og 
 | Steg | Fullført når | Åpner |
 | --- | --- | --- |
 | **Importer fra verktøyet du bruker nå** | En import fra et annet verktøy er fullført. | **Importer fra et annet verktøy** |
-| **Opprett din første overvåker** | Den første sjekken kommer inn. | Skjemaet **Opprett monitor**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
+| **Opprett din første overvåker** | Den første sjekken kommer inn. | Det veiledede oppsettet **Vite når nettstedet eller API-et mitt er nede**, eller listen **Monitorer** for den som ikke kan opprette overvåkere. |
 | **Koble til en server eller en klynge** | De første målingene kommer inn. | **Verter** |
-| **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | **Logger** |
-| **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | **Vakttjeneste** |
-| **Publiser en statusside** | En statusside viser en overvåker. | **Statussider** |
+| **Send de første loggene, målingene eller sporene dine** | Prosjektets første logger, målinger, spor, unntak eller profiler kommer inn. | Det veiledede oppsettet **Send logger, målinger og spor, og få deretter varsler** |
+| **Sett opp en vaktpolicy** | Et testvarsel blir kvittert, et varsel når noen, eller en vaktregel kjører en policy som kan nå noen. | Det veiledede oppsettet **Varsle rett person når noe går ned** |
+| **Publiser en statusside** | En statusside viser en overvåker. | Det veiledede oppsettet **Publiser en statusside**, eller listen **Statussider** for den som ikke kan opprette statussider. |
 | **Inviter teamet ditt** | Noen godtar invitasjonen din. | **Brukere** |
 
 Steget du skal ta først, er merket med **Neste steg**. På Free-abonnementet i OneUptime Cloud, som har én person, sier **Inviter teamet ditt** at det trenger Growth-abonnementet, og åpner **Fakturering**. På en selvhostet server som ennå ikke kan sende e-post, ser serverens administratorer først **Denne serveren kan ikke sende e-post ennå**; det åpner administrasjonsdashbordet.
 
-Når du oppretter en overvåker, en statusside eller en vaktpolicy fra et steg, sier siden du lander på hva som kommer etterpå, med **Tilbake til oppsettet**.
+Et veiledet oppsett gjør hele jobben på én side, ett steg om gangen, og avslutter med hva det har satt opp og hva du kan gjøre etterpå. Søk etter navnet for å åpne det igjen senere.
 
 Under stegene viser **Slik fungerer OneUptime** de fire kjerneproduktene i rekkefølgen et problem går gjennom dem: **Monitorer**, **Hendelser og varsler**, **Vakttjeneste** og **Statussider**. Klikk på ett for å åpne det. Under dem står det hva som mater kretsløpet, telemetri og infrastruktur, med lenker til [Grunnbegreper](/docs/introduction/core-concepts) og [Ordliste](/docs/introduction/glossary).
 
@@ -145,6 +145,7 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 - **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Varslingskanaler* finner Varselinnstillinger. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
+- **Dokumentasjonen**, i en gruppe *Dokumentasjon* under alt annet: sidene og avsnittene der ordene passer til det du skriver, på ditt språk, også med en skrivefeil. Hver åpnes i en ny fane, så du beholder plassen din.
 
 Søket leser det du skriver slik du mener det:
 

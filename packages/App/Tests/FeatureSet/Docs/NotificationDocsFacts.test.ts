@@ -22,6 +22,7 @@ import {
   WEBHOOK_SIGNATURE_HEADER,
 } from "./NotificationDocsPages";
 import { readPage, scanMarkdown } from "./DocsContentSupport";
+import { GETTING_STARTED_PLACES, exploreCardLines } from "./GettingStartedPage";
 import {
   MenuSection,
   menuSections,
@@ -499,14 +500,12 @@ describe("the Notifications group in the docs", () => {
   });
 
   it("is linked from Getting Started's Incident Response cards, right after On-call, and from Core Concepts' on-call section", () => {
-    const gettingStarted: Array<string> = section(
+    // Explore the docs folds each sidebar section since #6822.
+    const gettingStarted: Array<string> = exploreCardLines(
       readPage("en", "introduction/getting-started"),
-      "### Incident Response",
-    )
-      .split("\n")
-      .filter((line: string): boolean => {
-        return line.startsWith("- [");
-      });
+      GETTING_STARTED_PLACES.explore,
+      "Incident Response",
+    );
     // The On-call card opens the On Call group at its overview.
     const onCall: number = gettingStarted.findIndex((line: string): boolean => {
       return line.includes("(/docs/on-call/index)");
