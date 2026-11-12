@@ -1088,6 +1088,9 @@ interface ChecklistTask {
    * sends everyone to the same place.
    */
   gateModel: string | null;
+  // The two places that model is read from, as declared.
+  createModel: string | null;
+  setupModel: string | null;
   // Whether the step draws the next-step line where its record lands.
   hasLanding: boolean;
 }
@@ -1105,6 +1108,10 @@ function checklistTasks(): Array<ChecklistTask> {
       match.index,
       starts[index + 1]?.index ?? block.length,
     );
+    const createModel: string | null =
+      (chunk.match(TASK_CREATE_MODEL)?.[1] as string | undefined) || null;
+    const setupModel: string | null =
+      (chunk.match(TASK_GUIDED_SETUP_MODEL)?.[1] as string | undefined) || null;
 
     return {
       step: match[1] as string,
@@ -1115,13 +1122,28 @@ function checklistTasks(): Array<ChecklistTask> {
       guidedSetupPage:
         (chunk.match(TASK_GUIDED_SETUP_PAGE)?.[1] as string | undefined) ||
         null,
-      gateModel:
-        (chunk.match(TASK_CREATE_MODEL)?.[1] as string | undefined) ||
-        (chunk.match(TASK_GUIDED_SETUP_MODEL)?.[1] as string | undefined) ||
-        null,
+      gateModel: createModel || setupModel,
+      createModel: createModel,
+      setupModel: setupModel,
       hasLanding: TASK_LANDING.test(chunk),
     };
   });
+}
+
+/*
+ * How many lines of the catalog's step list declare a field, comments left
+ * out: what checklistTasks must have read, field by field.
+ */
+function declaredFieldLines(field: string): number {
+  return blockFrom(
+    CHECKLIST_CATALOG_SOURCE,
+    "export const WELCOME_STEPS",
+    "\n];",
+  )
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.trim().startsWith(`${field}:`);
+    }).length;
 }
 
 /*
@@ -1620,6 +1642,58 @@ describe("Home Page & Shortcuts", () => {
     expect((rows[6] as Array<string>)[1]).toBe(
       "Someone accepts your invitation.",
     );
+  });
+
+  it("reads every routing declaration the checklist's steps make", () => {
+    const tasks: Array<ChecklistTask> = checklistTasks();
+    const count: (keep: (task: ChecklistTask) => boolean) => number = (
+      keep: (task: ChecklistTask) => boolean,
+    ): number => {
+      return tasks.filter(keep).length;
+    };
+    const spreads: number = blockFrom(
+      CHECKLIST_CATALOG_SOURCE,
+      "export const WELCOME_STEPS",
+      "\n];",
+    )
+      .split("\n")
+      .filter((line: string): boolean => {
+        return line.trim().startsWith("...");
+      }).length;
+
+    /*
+     * The table is held to what checklistTasks reads, so a declaration it
+     * cannot read - written over two lines, in another order, or spread in
+     * from elsewhere - fails here instead of leaving a step's row checked
+     * against the wrong page.
+     */
+    expect({
+      step: declaredFieldLines("step"),
+      createPage: declaredFieldLines("createPage"),
+      modelType: declaredFieldLines("modelType"),
+      guidedSetupPage: declaredFieldLines("guidedSetupPage"),
+      guidedSetupModelType: declaredFieldLines("guidedSetupModelType"),
+      landing: declaredFieldLines("landing"),
+      spreads: spreads,
+    }).toEqual({
+      step: tasks.length,
+      createPage: count((task: ChecklistTask): boolean => {
+        return task.createPageMap !== null;
+      }),
+      modelType: count((task: ChecklistTask): boolean => {
+        return task.createModel !== null;
+      }),
+      guidedSetupPage: count((task: ChecklistTask): boolean => {
+        return task.guidedSetupPage !== null;
+      }),
+      guidedSetupModelType: count((task: ChecklistTask): boolean => {
+        return task.setupModel !== null;
+      }),
+      landing: count((task: ChecklistTask): boolean => {
+        return task.hasLanding;
+      }),
+      spreads: 0,
+    });
   });
 
   it("says which steps open a guided setup, for whom, and names each one as its page does", () => {
