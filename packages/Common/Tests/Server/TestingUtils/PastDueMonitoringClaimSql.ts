@@ -68,6 +68,83 @@ export function captureClaimStatements(
   return statements;
 }
 
+export interface ClaimQueryServiceLike {
+  getRepository: unknown;
+  executeTransaction: unknown;
+}
+
+/*
+ * The monitor probe and network device claims run as auto-committed
+ * statements on the service's own connection, never in a transaction
+ * (OneUptime issue #7194: a transaction held every claimed row's lock
+ * across the round trips between its statements). So they are captured at
+ * `getRepository().manager.query`, and executeTransaction is made to throw
+ * - a claim that opens one again fails here.
+ *
+ * The first statement answers `firstRows`. Every later one answers
+ * `laterRows(statement)` - by default the ids it was handed as its second
+ * parameter, as {_id} rows: every candidate still due and unlocked.
+ */
+export function captureClaimQueries(
+  service: ClaimQueryServiceLike,
+  firstRows: Array<Record<string, unknown>> = [],
+  laterRows?: (
+    statement: CapturedStatement,
+  ) => Array<Record<string, unknown>> | undefined,
+): Array<CapturedStatement> {
+  const statements: Array<CapturedStatement> = [];
+
+  jest
+    .spyOn(
+      service as { executeTransaction: () => Promise<unknown> },
+      "executeTransaction",
+    )
+    .mockImplementation((async (): Promise<never> => {
+      throw new Error(
+        "A claim must not open a transaction: its row locks would outlive its statements.",
+      );
+    }) as never);
+
+  jest
+    .spyOn(service as { getRepository: () => unknown }, "getRepository")
+    .mockReturnValue({
+      manager: {
+        query: async (
+          sql: string,
+          parameters?: Array<unknown>,
+        ): Promise<Array<Record<string, unknown>>> => {
+          const statement: CapturedStatement = {
+            sql,
+            parameters: parameters || [],
+          };
+          statements.push(statement);
+
+          if (statements.length === 1) {
+            return firstRows;
+          }
+
+          const answered: Array<Record<string, unknown>> | undefined = laterRows
+            ? laterRows(statement)
+            : undefined;
+
+          if (answered) {
+            return answered;
+          }
+
+          const ids: unknown = statement.parameters[1];
+
+          return Array.isArray(ids)
+            ? ids.map((id: unknown) => {
+                return { _id: id };
+              })
+            : [];
+        },
+      },
+    } as never);
+
+  return statements;
+}
+
 export function normalizeSql(sql: string): string {
   return sql
     .split("\n")
