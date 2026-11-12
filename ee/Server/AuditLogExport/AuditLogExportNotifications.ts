@@ -46,7 +46,7 @@ import ObjectID from "Common/Types/ObjectID";
  * the soonest retentionDate stamped on the ones the export has not sent
  * (AuditLogService.findSoonestRetentionDateForExport). Reckoned from the
  * retention as it is now, a retention lengthened from 7 days to 30 while
- * entries waited put the email 23 days after they were gone (#6563). Only
+ * entries waited put the email 22 days after they were gone (#6563). Only
  * when the stamps cannot be read is it reckoned that way, from the oldest
  * entry waiting (getAuditLogExportEntriesLostAt). So the emails say when
  * the entries waiting are deleted, never "a retention of N days" that they
@@ -64,7 +64,7 @@ import ObjectID from "Common/Types/ObjectID";
 // How long an export fails before its people are told.
 export const AUDIT_LOG_EXPORT_FAILING_NOTICE_AFTER_IN_MINUTES: number = 30;
 
-// How long before the oldest unsent entry is deleted that they are told again.
+// How long before the first unsent entry is deleted that they are told again.
 export const AUDIT_LOG_EXPORT_LOSING_NOTICE_LEAD_IN_HOURS: number = 24;
 
 /*

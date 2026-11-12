@@ -120,7 +120,7 @@ import RecordingDestination from "./Fakes/RecordingDestination";
  * with, sent or not, without anybody knowing.
  *
  *   - after 30 minutes of failures: "is failing", nothing lost yet;
- *   - a day before the oldest unsent entry is deleted (never sooner than
+ *   - a day before the first unsent entry is deleted (never sooner than
  *     the first email; never while nothing waits): "will start losing
  *     entries", from when, and that fixing it before then sends them - a
  *     longer retention keeps only entries recorded after the change, so it
@@ -411,8 +411,8 @@ describe("which email a failure is due", () => {
  * it, from the retention its project had when it was recorded. The export
  * reckoned the moment from the retention as it is NOW, so a retention
  * lengthened from 7 days to 30 while entries waited - what someone whose
- * export fails may do to buy time - put "will start losing entries" about
- * 23 days after those entries were gone. The export now reads the soonest
+ * export fails may do to buy time - put "will start losing entries" 22
+ * days after those entries were gone. The export now reads the soonest
  * stamp on the entries it has not sent, and reckons from today's retention
  * only when it cannot.
  */
@@ -477,7 +477,7 @@ describe("when entries are lost: the stamps on the entries waiting, not the rete
     }
   });
 
-  test("lengthened from 7 days to 30 while an entry waited: 'losing entries' 24 hours before its 7-day stamp, not 23 days after it is gone", () => {
+  test("lengthened from 7 days to 30 while an entry waited: 'losing entries' 24 hours before its 7-day stamp, not 22 days after it is gone", () => {
     const lostAt: Date = getAuditLogExportEntriesLostAt({
       oldestUnsentAt: OLDEST,
       retentionInDays: 30,
@@ -1544,7 +1544,7 @@ describe("the exporter tells people as its failures go on", () => {
    * #6563, as the issue's acceptance reads: entries recorded with a 7-day
    * retention, then the retention changed to 30. Each entry keeps the
    * 7-day retentionDate it was stamped with, and the "losing entries" email
-   * is due 24 hours before the first of them is deleted - not 23 days
+   * is due 24 hours before the first of them is deleted - not 22 days
    * after, as reckoning from the 30 days the project keeps entries now did.
    */
   test("a retention lengthened from 7 days to 30 while entries wait: 'losing entries' 24 hours before the first of them is deleted, by its own stamp", async () => {
