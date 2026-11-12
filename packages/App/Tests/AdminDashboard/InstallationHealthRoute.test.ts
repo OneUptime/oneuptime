@@ -345,11 +345,9 @@ describe("who may ask", () => {
           route?: { path: string; stack: Array<{ handle: unknown }> };
         }>;
       }
-    ).stack.find(
-      (candidate: { route?: { path: string } }): boolean => {
-        return candidate.route?.path === "/doctor";
-      },
-    );
+    ).stack.find((candidate: { route?: { path: string } }): boolean => {
+      return candidate.route?.path === "/doctor";
+    });
 
     expect(layer?.route?.stack[0]?.handle).toBe(installationHealthMiddleware);
     expect(layer?.route?.stack).toHaveLength(2);
@@ -432,22 +430,22 @@ describe("over HTTP", () => {
     jest.restoreAllMocks();
   });
 
-  const get: (
+  const get: (headers: Record<string, string>) => Promise<{
+    status: number;
+    answer: InstallationHealthAnswer | null;
+  }> = async (
     headers: Record<string, string>,
-  ) => Promise<{ status: number; answer: InstallationHealthAnswer | null }> =
-    async (
-      headers: Record<string, string>,
-    ): Promise<{ status: number; answer: InstallationHealthAnswer | null }> => {
-      const response: globalThis.Response = await fetch(
-        `${baseUrl}/api/admin/health/doctor`,
-        { headers },
-      );
+  ): Promise<{ status: number; answer: InstallationHealthAnswer | null }> => {
+    const response: globalThis.Response = await fetch(
+      `${baseUrl}/api/admin/health/doctor`,
+      { headers },
+    );
 
-      return {
-        status: response.status,
-        answer: InstallationHealthUtil.parseAnswer(await response.json()),
-      };
+    return {
+      status: response.status,
+      answer: InstallationHealthUtil.parseAnswer(await response.json()),
     };
+  };
 
   test("with the cluster key: every datastore that does not answer, worst first, and a proof to ask HOST for", async () => {
     const result: {

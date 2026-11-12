@@ -1107,8 +1107,7 @@ export function getPendingMigrationFailure(
       return {
         name: name,
         reason:
-          String(row["errorMessage"] || "").trim() ||
-          "no error was recorded",
+          String(row["errorMessage"] || "").trim() || "no error was recorded",
         at: typeof row["attemptedAt"] === "string" ? row["attemptedAt"] : null,
       };
     }

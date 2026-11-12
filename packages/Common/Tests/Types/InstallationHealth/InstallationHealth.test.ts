@@ -66,7 +66,9 @@ function channel(
   };
 }
 
-function setupFacts(overrides: Partial<ServerSetupFacts> = {}): ServerSetupFacts {
+function setupFacts(
+  overrides: Partial<ServerSetupFacts> = {},
+): ServerSetupFacts {
   return {
     isHttpsSetUp: true,
     areSignupsClosed: true,
@@ -77,7 +79,11 @@ function setupFacts(overrides: Partial<ServerSetupFacts> = {}): ServerSetupFacts
     smsSentThrough: "Twilio",
     callSentThrough: "Twilio",
     globalProbes: { total: 1, reporting: 1 },
-    updateChecks: { isDisabled: false, lastCheckedAt: EARLIER, lastFailure: null },
+    updateChecks: {
+      isDisabled: false,
+      lastCheckedAt: EARLIER,
+      lastFailure: null,
+    },
     lastBackup: { succeeded: true, finishedAt: EARLIER, error: null },
     hasScheduledBackups: true,
     isBrowserPushSetUp: true,
@@ -107,7 +113,11 @@ function healthyFacts(
     isValkeyConnected: true,
     migrations: { pending: 0, failure: null },
     clickhouseDisks: [
-      { name: "clickhouse default", freeInBytes: 80 * GB, totalInBytes: 100 * GB },
+      {
+        name: "clickhouse default",
+        freeInBytes: 80 * GB,
+        totalInBytes: 100 * GB,
+      },
     ],
     queues: [{ name: "Worker", waiting: 3 }],
     version: {
@@ -160,9 +170,21 @@ describe("a healthy server", () => {
 
 describe("the datastores", () => {
   test.each([
-    ["PostgreSQL", { isPostgresConnected: false }, InstallationHealthFindingId.Postgres],
-    ["ClickHouse", { isClickhouseConnected: false }, InstallationHealthFindingId.Clickhouse],
-    ["Valkey", { isValkeyConnected: false }, InstallationHealthFindingId.Valkey],
+    [
+      "PostgreSQL",
+      { isPostgresConnected: false },
+      InstallationHealthFindingId.Postgres,
+    ],
+    [
+      "ClickHouse",
+      { isClickhouseConnected: false },
+      InstallationHealthFindingId.Clickhouse,
+    ],
+    [
+      "Valkey",
+      { isValkeyConnected: false },
+      InstallationHealthFindingId.Valkey,
+    ],
   ])(
     "%s not answering is something to fix, with what stops and where to look",
     (
@@ -263,7 +285,9 @@ describe("ClickHouse's disk", () => {
 
   test(`at ${CLICKHOUSE_DISK_WARN_FREE_PERCENT}% free and above says nothing`, () => {
     expect(
-      InstallationHealthUtil.evaluate(withFree(CLICKHOUSE_DISK_WARN_FREE_PERCENT)),
+      InstallationHealthUtil.evaluate(
+        withFree(CLICKHOUSE_DISK_WARN_FREE_PERCENT),
+      ),
     ).toEqual([]);
   });
 
@@ -321,7 +345,9 @@ describe("the queues", () => {
   test(`${QUEUE_BACKLOG_LIMIT} waiting is not a backlog`, () => {
     expect(
       InstallationHealthUtil.evaluate(
-        healthyFacts({ queues: [{ name: "Worker", waiting: QUEUE_BACKLOG_LIMIT }] }),
+        healthyFacts({
+          queues: [{ name: "Worker", waiting: QUEUE_BACKLOG_LIMIT }],
+        }),
       ),
     ).toEqual([]);
   });
@@ -358,9 +384,15 @@ describe("the server setup checklist, in its own words", () => {
           serverSetup: checklist({
             isHttpsSetUp: false,
             areSignupsClosed: false,
-            email: channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp),
+            email: channel(
+              ServerSendingChannel.Email,
+              ServerSendingState.NotSetUp,
+            ),
             sms: channel(ServerSendingChannel.SMS, ServerSendingState.NotSetUp),
-            call: channel(ServerSendingChannel.Call, ServerSendingState.NotSetUp),
+            call: channel(
+              ServerSendingChannel.Call,
+              ServerSendingState.NotSetUp,
+            ),
             globalProbes: { total: 1, reporting: 0 },
             lastBackup: null,
             isBrowserPushSetUp: false,
@@ -400,7 +432,10 @@ describe("the server setup checklist, in its own words", () => {
     const finding: InstallationHealthFinding = only(
       healthyFacts({
         serverSetup: checklist({
-          email: channel(ServerSendingChannel.Email, ServerSendingState.Failing),
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.Failing,
+          ),
         }),
       }),
     );
@@ -417,7 +452,10 @@ describe("the server setup checklist, in its own words", () => {
         healthyFacts({
           serverSetup: checklist({
             sms: channel(ServerSendingChannel.SMS, ServerSendingState.NotSetUp),
-            call: channel(ServerSendingChannel.Call, ServerSendingState.NotSetUp),
+            call: channel(
+              ServerSendingChannel.Call,
+              ServerSendingState.NotSetUp,
+            ),
             choices: {
               choices: {
                 [ServerSetupCheckId.SmsAndCalls]: {
@@ -450,7 +488,10 @@ describe("worst first", () => {
             isUpdateCheckDisabled: false,
           },
           serverSetup: checklist({
-            email: channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp),
+            email: channel(
+              ServerSendingChannel.Email,
+              ServerSendingState.NotSetUp,
+            ),
           }),
         }),
       );
@@ -477,7 +518,9 @@ describe("the words", () => {
       }
 
       expect(words.title.length).toBeGreaterThan(0);
-      expect(words.words.endsWith(".") || words.words.endsWith("}}")).toBe(true);
+      expect(words.words.endsWith(".") || words.words.endsWith("}}")).toBe(
+        true,
+      );
       expect(words.fix.endsWith(".")).toBe(true);
     }
   });
@@ -511,7 +554,10 @@ describe("the answer, read back in a browser", () => {
       facts: healthyFacts({
         isClickhouseConnected: false,
         serverSetup: checklist({
-          email: channel(ServerSendingChannel.Email, ServerSendingState.NotSetUp),
+          email: channel(
+            ServerSendingChannel.Email,
+            ServerSendingState.NotSetUp,
+          ),
         }),
       }),
       addressProof: null,
