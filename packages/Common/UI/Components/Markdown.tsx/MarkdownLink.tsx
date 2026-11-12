@@ -30,6 +30,13 @@ import useTranslator from "../../Utils/UseTranslator";
 export const MARKDOWN_LINK_CLASS_NAME: string =
   "underline text-blue-600 hover:text-blue-800 font-medium transition-colors [overflow-wrap:anywhere]";
 
+/*
+ * A link drawn as its words (MarkdownViewer's showLinksAsText): as it
+ * looks, with no hover colour to say a click would do something.
+ */
+export const MARKDOWN_LINK_TEXT_CLASS_NAME: string =
+  "underline text-blue-600 font-medium [overflow-wrap:anywhere]";
+
 // What a link that opens a tab of its own tells a screen reader.
 export const NEW_TAB_DESCRIPTION: string = translationKey("Opens in a new tab");
 

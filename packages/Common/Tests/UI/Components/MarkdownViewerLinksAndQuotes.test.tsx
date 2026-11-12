@@ -74,6 +74,7 @@ import {
 } from "../../../UI/Components/Markdown.tsx/MarkdownQuote";
 import {
   MARKDOWN_LINK_CLASS_NAME,
+  MARKDOWN_LINK_TEXT_CLASS_NAME,
   NEW_TAB_DESCRIPTION,
 } from "../../../UI/Components/Markdown.tsx/MarkdownLink";
 import { remarkInlineReferences } from "../../../UI/Components/Markdown.tsx/InlineReferences";
@@ -110,6 +111,7 @@ const MOCK_TAG_BY_NODE_TYPE: Record<string, string> = {
   break: "br",
   inlineCode: "code",
   heading: "h2",
+  image: "img",
 };
 
 // hast's dataCallout reaches a component as data-callout.
@@ -168,6 +170,11 @@ function renderMockNode(
     if (node["title"]) {
       elementProps["title"] = node["title"];
     }
+  }
+
+  if (node.type === "image") {
+    elementProps["src"] = node["url"];
+    elementProps["alt"] = node["alt"];
   }
 
   const children: Array<React.ReactNode> =
@@ -247,13 +254,17 @@ function link(
   };
 }
 
+function image(url: string, alt: string): Node {
+  return { type: "image", url: url, alt: alt };
+}
+
 function root(...children: Array<Node>): Node {
   return { type: "root", children: children };
 }
 
 function showMarkdown(
   tree: Node,
-  props?: { safeMode?: boolean },
+  props?: { safeMode?: boolean; showLinksAsText?: boolean },
 ): ReturnType<typeof render> {
   mockMarkdownState.tree = tree;
   return render(<MarkdownViewer text="ignored" {...(props || {})} />);
@@ -865,6 +876,199 @@ describe("the Markdown never decides where a link opens", () => {
     expect(screen.queryByRole("link")).toBeNull();
     expect(screen.getByText("image.png")).not.toHaveAttribute("href");
     expect(screen.getByText("image.png")).not.toHaveAttribute("target");
+  });
+});
+
+/*
+ * A dashboard widget's live preview, in its settings dialog, sits over a
+ * board being edited, and nothing asks before leaving a board with widgets
+ * not saved yet (issue #6859). A text widget's links there are their words
+ * (showLinksAsText): drawn as a link is, with nothing to click and nowhere
+ * to go - and, unlike safe mode, everything else drawn as it is anywhere,
+ * images above all.
+ */
+describe("with showLinksAsText a link is its words, drawn as a link is", () => {
+  let navigate: Mock<(to: unknown) => void>;
+
+  beforeEach(() => {
+    navigate = jest.fn<(to: unknown) => void>();
+    Navigation.setNavigateHook(navigate as unknown as NavigateFunction);
+  });
+
+  afterEach(() => {
+    Navigation.setNavigateHook(undefined as unknown as NavigateFunction);
+  });
+
+  test.each([
+    ["another site", SLACK_FILE],
+    [
+      "another page of the app, written absolute",
+      `${window.location.origin}/dashboard/${PROJECT_ID}/incidents/1036`,
+    ],
+    ["a path from the root", `/dashboard/${PROJECT_ID}/monitors`],
+    ["a path relative to the page", "../monitors"],
+    ["an attachment", ATTACHMENT_PATH],
+    ["a section of the page", "#root-cause"],
+    ["an email address", "mailto:oncall@acme.example"],
+    ["a phone number", "tel:+15551234567"],
+  ])("%s: no link, nothing a click does", (_name: string, url: string) => {
+    const open: SpyInstance<typeof window.open> = jest
+      .spyOn(window, "open")
+      .mockImplementation((): Window | null => {
+        return null;
+      });
+
+    showMarkdown(
+      root(paragraph(text("See "), link(url, "the runbook"), text("."))),
+      { showLinksAsText: true },
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(document.querySelectorAll("a")).toHaveLength(0);
+
+    const words: HTMLElement = screen.getByTestId("markdown-link-text");
+
+    expect(words.tagName).toBe("SPAN");
+    expect(words).toHaveTextContent(/^the runbook$/);
+    expect(words.className).toBe(MARKDOWN_LINK_TEXT_CLASS_NAME);
+    expect(words).not.toHaveAttribute("href");
+    expect(words).not.toHaveAttribute("target");
+    expect(words).not.toHaveAttribute("rel");
+    expect(words).not.toHaveAttribute("aria-description");
+    // The sentence around it reads as it did.
+    expect(screen.getByTestId("react-markdown")).toHaveTextContent(
+      /^See the runbook\.$/,
+    );
+
+    const event: MouseEvent = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+      button: 0,
+    });
+    words.dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(navigate).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+    expect(window.location.pathname).toBe(DASHBOARD_PATH);
+  });
+
+  test("its look is a link's, less the hover colour and its transition", () => {
+    const linkClasses: Array<string> = MARKDOWN_LINK_CLASS_NAME.split(" ");
+    const wordClasses: Array<string> = MARKDOWN_LINK_TEXT_CLASS_NAME.split(" ");
+
+    expect(wordClasses).toEqual(
+      linkClasses.filter((className: string): boolean => {
+        return (
+          !className.startsWith("hover:") && className !== "transition-colors"
+        );
+      }),
+    );
+    // Underlined and blue, as a link reads, and wrapping as one does.
+    expect(wordClasses).toEqual(
+      expect.arrayContaining([
+        "underline",
+        "text-blue-600",
+        "[overflow-wrap:anywhere]",
+      ]),
+    );
+  });
+
+  test("a footnote's reference is its number, and the footnote stays", () => {
+    showMarkdown(
+      root(
+        paragraph(
+          text("Footnote"),
+          link("#user-content-fn-1", "1", {
+            id: "user-content-fnref-1",
+            "data-footnote-ref": "true",
+          }),
+        ),
+      ),
+      { showLinksAsText: true },
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByTestId("markdown-link-text")).toHaveTextContent(/^1$/);
+  });
+
+  test("an image is drawn as it is anywhere, where safe mode draws its words", () => {
+    const BADGE: string = "https://img.shields.io/badge/uptime-99.99%25-green";
+
+    showMarkdown(root(paragraph(image(BADGE, "Uptime badge"))), {
+      showLinksAsText: true,
+    });
+
+    expect(screen.getByRole("img", { name: "Uptime badge" })).toHaveAttribute(
+      "src",
+      BADGE,
+    );
+
+    cleanup();
+    showMarkdown(root(paragraph(image(BADGE, "Uptime badge"))), {
+      safeMode: true,
+    });
+
+    expect(screen.queryByRole("img")).toBeNull();
+    expect(screen.getByText("[image: Uptime badge]")).toBeInTheDocument();
+  });
+
+  test("an image that is a link: the image drawn, the link gone", () => {
+    const BADGE: string = "https://img.shields.io/badge/uptime-99.99%25-green";
+
+    showMarkdown(
+      root(
+        paragraph({
+          type: "link",
+          url: "https://status.acme.example",
+          children: [image(BADGE, "Uptime badge")],
+        }),
+      ),
+      { showLinksAsText: true },
+    );
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(
+      within(screen.getByTestId("markdown-link-text")).getByRole("img", {
+        name: "Uptime badge",
+      }),
+    ).toHaveAttribute("src", BADGE);
+  });
+
+  test("safe mode, asked for too, keeps its own dotted words", () => {
+    showMarkdown(root(paragraph(link(SLACK_FILE, "image.png"))), {
+      safeMode: true,
+      showLinksAsText: true,
+    });
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.queryByTestId("markdown-link-text")).toBeNull();
+    expect(screen.getByText("image.png")).toHaveClass("decoration-dotted");
+  });
+
+  test("left out or false, a link is a link; turned off again, the links come back", () => {
+    const tree: Node = root(paragraph(link(SLACK_FILE, "image.png")));
+
+    showMarkdown(tree);
+    expectOpensInNewTab(linkNamed("image.png"));
+    cleanup();
+
+    const { rerender } = showMarkdown(tree, { showLinksAsText: true });
+    expect(screen.queryByRole("link")).toBeNull();
+
+    rerender(<MarkdownViewer text="ignored" showLinksAsText={false} />);
+
+    const fileLink: HTMLElement = linkNamed("image.png");
+    expect(fileLink).toHaveAttribute("href", SLACK_FILE);
+    expectOpensInNewTab(fileLink);
+    expect(screen.queryByTestId("markdown-link-text")).toBeNull();
+
+    rerender(<MarkdownViewer text="ignored" showLinksAsText={true} />);
+
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByTestId("markdown-link-text")).toHaveTextContent(
+      "image.png",
+    );
   });
 });
 
