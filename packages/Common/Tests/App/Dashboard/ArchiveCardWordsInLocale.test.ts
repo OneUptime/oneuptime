@@ -3,6 +3,7 @@ import fs from "fs";
 import path from "path";
 import {
   ARCHIVE_CARD_TITLE,
+  ArchiveCardCopy,
   ArchiveCardWords,
   getArchiveCardWords,
   TELEMETRY_ARCHIVE_CARD_DESCRIPTION,
@@ -19,6 +20,14 @@ import {
   SLO_UNARCHIVE_CARD_DESCRIPTION,
   SLO_UNARCHIVE_CONFIRM_MESSAGE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/SloArchiveCopy";
+import {
+  DASHBOARD_ARCHIVE_COPY,
+  MONITOR_ARCHIVE_COPY,
+  ON_CALL_POLICY_ARCHIVE_COPY,
+  ResourceArchiveCopy,
+  STATUS_PAGE_ARCHIVE_COPY,
+  WORKFLOW_ARCHIVE_COPY,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
 import {
   BULK_ARCHIVE_TELEMETRY_SENTENCE,
   BULK_ARCHIVE_TELEMETRY_SENTENCE_ONE,
@@ -87,6 +96,45 @@ const SENTENCES: ReadonlyArray<{ key: string; english: string }> = [
         return { key: oneFormKey(template), english: template.one };
       },
     ),
+  );
+
+/*
+ * The resources whose Settings card says sentences of their own
+ * (ResourceArchiveCopy): a workflow stops running, a monitor stops being
+ * checked, a status page goes offline. Their card titles are worded with
+ * the name, so their sentences must be too - or the card reads "Arbeitsablauf
+ * archivieren" over an English paragraph.
+ */
+const OWN_COPY_KINDS: ReadonlyArray<{
+  kind: string;
+  copy: ResourceArchiveCopy;
+}> = [
+  { kind: "workflow", copy: WORKFLOW_ARCHIVE_COPY },
+  { kind: "monitor", copy: MONITOR_ARCHIVE_COPY },
+  { kind: "status page", copy: STATUS_PAGE_ARCHIVE_COPY },
+  { kind: "dashboard", copy: DASHBOARD_ARCHIVE_COPY },
+  { kind: "on-call policy", copy: ON_CALL_POLICY_ARCHIVE_COPY },
+];
+
+// Each of those cards' sentences, live and archived, and its dialogs'.
+const OWN_COPY_CARD_SENTENCES: ReadonlyArray<{ kind: string; key: string }> =
+  OWN_COPY_KINDS.flatMap(
+    ({
+      kind,
+      copy,
+    }: {
+      kind: string;
+      copy: ResourceArchiveCopy;
+    }): Array<{ kind: string; key: string }> => {
+      return [
+        copy.archiveCardDescription,
+        copy.unarchiveCardDescription,
+        copy.archiveConfirmMessage,
+        copy.unarchiveConfirmMessage,
+      ].map((key: string): { kind: string; key: string } => {
+        return { kind: kind, key: key };
+      });
+    },
   );
 
 function sourceFiles(directory: string): Array<string> {
@@ -198,8 +246,30 @@ describe.each(DASHBOARD_LANGUAGES)(
       expect(unworded).toEqual([]);
     });
 
-    test("the card's words for a service and an SLO are not the English", () => {
-      for (const [singularName, copy] of [
+    test.each(OWN_COPY_CARD_SENTENCES)(
+      "the $kind card's own sentence is worded: $key",
+      ({ key }: { kind: string; key: string }) => {
+        expect({
+          key,
+          worded: isWordedInDashboardLocale(key, language),
+        }).toEqual({ key, worded: true });
+      },
+    );
+
+    test("every name a card with sentences of its own says is worded", () => {
+      const unworded: Array<string> = OWN_COPY_KINDS.map(
+        ({ copy }: { kind: string; copy: ResourceArchiveCopy }): string => {
+          return copy.singularName;
+        },
+      ).filter((name: string): boolean => {
+        return !isWordedInDashboardLocale(name, language);
+      });
+
+      expect(unworded).toEqual([]);
+    });
+
+    test("the card's words for a service, an SLO and the five others are not the English", () => {
+      const cards: Array<[string, ArchiveCardCopy]> = [
         ["service", {}],
         [
           "SLO",
@@ -210,7 +280,19 @@ describe.each(DASHBOARD_LANGUAGES)(
             unarchiveConfirmMessage: SLO_UNARCHIVE_CONFIRM_MESSAGE,
           },
         ],
-      ] as const) {
+        ...OWN_COPY_KINDS.map(
+          ({
+            copy,
+          }: {
+            kind: string;
+            copy: ResourceArchiveCopy;
+          }): [string, ArchiveCardCopy] => {
+            return [copy.singularName, copy];
+          },
+        ),
+      ];
+
+      for (const [singularName, copy] of cards) {
         for (const isArchived of [false, true]) {
           const input: Parameters<typeof getArchiveCardWords>[0] = {
             singularName: singularName,
@@ -270,8 +352,16 @@ describe("the card's title, a heading in every language", () => {
     "no title in %s opens with a small letter",
     (language: string) => {
       const small: Array<string> = [];
+      const names: Array<string> = [
+        ...literalCardNames(),
+        ...OWN_COPY_KINDS.map(
+          ({ copy }: { kind: string; copy: ResourceArchiveCopy }): string => {
+            return copy.singularName;
+          },
+        ),
+      ];
 
-      for (const name of literalCardNames()) {
+      for (const name of names) {
         for (const isArchived of [false, true]) {
           const drawn: string = title(language, name, isArchived);
           const first: string = drawn.split(/\s/)[0]!;

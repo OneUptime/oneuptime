@@ -152,13 +152,26 @@ import {
   UNARCHIVE_CARD_TITLE,
   UNARCHIVE_CONFIRM_MESSAGE,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ArchiveCardWords";
+import {
+  DASHBOARD_ARCHIVE_COPY,
+  MONITOR_ARCHIVE_COPY,
+  ON_CALL_POLICY_ARCHIVE_COPY,
+  ResourceArchiveCopy,
+  STATUS_PAGE_ARCHIVE_COPY,
+  WORKFLOW_ARCHIVE_COPY,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
 import useSloBulkActions, {
   SloBulkActionsResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/useSloBulkActions";
 import ConfirmModal from "../../../UI/Components/Modal/ConfirmModal";
 import { BulkActionButtonSchema } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
+import Dashboard from "../../../Models/DatabaseModels/Dashboard";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
+import OnCallDutyPolicy from "../../../Models/DatabaseModels/OnCallDutyPolicy";
 import Service from "../../../Models/DatabaseModels/Service";
+import StatusPage from "../../../Models/DatabaseModels/StatusPage";
+import Workflow from "../../../Models/DatabaseModels/Workflow";
 import ServiceLevelObjective from "../../../Models/DatabaseModels/ServiceLevelObjective";
 import ObjectID from "../../../Types/ObjectID";
 import Permission from "../../../Types/Permission";
@@ -214,6 +227,41 @@ const SERVICE_CASE: CardCase = {
   archiveConfirm: TELEMETRY_ARCHIVE_CONFIRM_MESSAGE,
   unarchiveConfirm: UNARCHIVE_CONFIRM_MESSAGE,
 };
+
+/*
+ * The five resources whose Settings page passes sentences of their own
+ * (ResourceArchiveCopy), as their pages draw the card. Their titles are
+ * worded with their name, so their sentences must be too, or the card mixes
+ * two languages ("Arbeitsablauf archivieren" over an English paragraph).
+ */
+function ownCopyCase(
+  modelType: { new (): BaseModel },
+  copy: ResourceArchiveCopy,
+): CardCase {
+  return {
+    name: copy.singularName,
+    modelType: modelType,
+    singularName: copy.singularName,
+    copy: {
+      archiveCardDescription: copy.archiveCardDescription,
+      unarchiveCardDescription: copy.unarchiveCardDescription,
+      archiveConfirmMessage: copy.archiveConfirmMessage,
+      unarchiveConfirmMessage: copy.unarchiveConfirmMessage,
+    },
+    liveDescription: copy.archiveCardDescription,
+    archivedDescription: copy.unarchiveCardDescription,
+    archiveConfirm: copy.archiveConfirmMessage,
+    unarchiveConfirm: copy.unarchiveConfirmMessage,
+  };
+}
+
+const OWN_COPY_CASES: Array<CardCase> = [
+  ownCopyCase(Workflow, WORKFLOW_ARCHIVE_COPY),
+  ownCopyCase(Monitor, MONITOR_ARCHIVE_COPY),
+  ownCopyCase(StatusPage, STATUS_PAGE_ARCHIVE_COPY),
+  ownCopyCase(Dashboard, DASHBOARD_ARCHIVE_COPY),
+  ownCopyCase(OnCallDutyPolicy, ON_CALL_POLICY_ARCHIVE_COPY),
+];
 
 /*
  * A locale's wording of `key`, its {{placeholders}} filled. Fails, naming
@@ -407,7 +455,7 @@ describe.each(["de", "fa"])(
       await inLanguage(language);
     });
 
-    test.each([SLO_CASE, SERVICE_CASE])(
+    test.each([SLO_CASE, SERVICE_CASE, ...OWN_COPY_CASES])(
       "a live $name's card and its dialog",
       async (cardCase: CardCase) => {
         const name: string = nameIn(language, cardCase.singularName);
@@ -434,11 +482,13 @@ describe.each(["de", "fa"])(
         // Not a word of the English left in it.
         expect(drawn.title).not.toContain("Archive");
         expect(drawn.description).not.toContain("hidden from");
+        expect(drawn.description).not.toBe(cardCase.liveDescription);
         expect(drawn.dialogBody).not.toContain("Are you sure");
+        expect(drawn.dialogBody).not.toBe(cardCase.archiveConfirm);
       },
     );
 
-    test.each([SLO_CASE, SERVICE_CASE])(
+    test.each([SLO_CASE, SERVICE_CASE, ...OWN_COPY_CASES])(
       "an archived $name's card and its dialog",
       async (cardCase: CardCase) => {
         const name: string = nameIn(language, cardCase.singularName);
@@ -464,7 +514,9 @@ describe.each(["de", "fa"])(
 
         expect(drawn.title).not.toContain("Unarchive");
         expect(drawn.description).not.toContain("archived");
+        expect(drawn.description).not.toBe(cardCase.archivedDescription);
         expect(drawn.dialogBody).not.toContain("Are you sure");
+        expect(drawn.dialogBody).not.toBe(cardCase.unarchiveConfirm);
       },
     );
   },
@@ -484,6 +536,17 @@ describe("the German card, as a German reader reads it", () => {
     expect(drawn.description).toBe(
       "Archivieren Sie diesen Eintrag (Dienst), um ihn aus Listen auszublenden, während er weiterhin Telemetriedaten sammelt. Sie können ihn jederzeit aus dem Archiv holen.",
     );
+  });
+
+  test("a live workflow's card says the workflow's own sentence", async () => {
+    await renderCard(OWN_COPY_CASES[0]!, false);
+    const drawn: DrawnCard = readCard();
+
+    expect(drawn.title).toBe("Arbeitsablauf archivieren");
+    expect(drawn.description).toMatch(
+      /^Archivieren Sie diesen Arbeitsablauf, damit er nicht mehr ausgeführt wird/,
+    );
+    expect(drawn.dialogBody).toMatch(/^Diesen Arbeitsablauf archivieren\? /);
   });
 
   test("an archived SLO's card", async () => {
