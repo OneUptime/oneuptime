@@ -38,7 +38,7 @@ Die Zeile ganz oben nennt das Dringendste, was gerade offen ist, in einer passen
 
 Daneben zeigt die Startseite, wann sie das Projekt zuletzt geladen hat, und **Aktualisieren** lädt es neu. Wenn Sie nach einer Minute oder länger zu einem Tab mit der Startseite zurückkehren, aktualisiert sie sich von selbst.
 
-Solange noch nichts überwacht wird, endet die Zeile mit der Schaltfläche **Ersten Monitor erstellen**, die das Formular zum Erstellen eines Monitors öffnet. Nur wer Monitore erstellen darf, sieht sie.
+Solange noch nichts überwacht wird, endet die Zeile mit der Schaltfläche **Ersten Monitor erstellen**, die die geführte Einrichtung **Wissen, wenn meine Website oder API ausfällt** öffnet. Nur wer Monitore erstellen darf, sieht sie.
 
 ### Die fünf Zahlen
 
@@ -63,16 +63,16 @@ Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, w
 | Schritt | Erledigt, wenn | Öffnet |
 | --- | --- | --- |
 | **Aus Ihrem bisherigen Tool importieren** | Ein Import aus einem anderen Tool abgeschlossen ist. | **Import aus anderem Tool** |
-| **Ersten Monitor erstellen** | Seine erste Prüfung eintrifft. | Das Formular **Monitor erstellen**, oder die Liste **Monitore** für jemanden, der keine Monitore anlegen darf. |
+| **Ersten Monitor erstellen** | Seine erste Prüfung eintrifft. | Die geführte Einrichtung **Wissen, wenn meine Website oder API ausfällt**, oder die Liste **Monitore** für jemanden, der keine Monitore anlegen darf. |
 | **Server oder Cluster verbinden** | Seine ersten Metriken eintreffen. | **Hosts** |
-| **Erste Logs, Metriken oder Traces senden** | Die ersten Logs, Metriken, Traces, Ausnahmen oder Profile des Projekts eintreffen. | **Protokolle** |
-| **Bereitschaftsrichtlinie einrichten** | Eine Testalarmierung bestätigt wird, eine Alarmierung jemanden erreicht oder eine Bereitschaftsregel eine Richtlinie ausführt, die jemanden erreichen kann. | **Bereitschaftsdienst** |
-| **Statusseite veröffentlichen** | Eine Statusseite einen Monitor zeigt. | **Statusseiten** |
+| **Erste Logs, Metriken oder Traces senden** | Die ersten Logs, Metriken, Traces, Ausnahmen oder Profile des Projekts eintreffen. | Die geführte Einrichtung **Protokolle, Metriken und Traces senden und dann Warnungen erhalten** |
+| **Bereitschaftsrichtlinie einrichten** | Eine Testalarmierung bestätigt wird, eine Alarmierung jemanden erreicht oder eine Bereitschaftsregel eine Richtlinie ausführt, die jemanden erreichen kann. | Die geführte Einrichtung **Die richtige Person alarmieren, wenn etwas ausfällt** |
+| **Statusseite veröffentlichen** | Eine Statusseite einen Monitor zeigt. | Die geführte Einrichtung **Statusseite veröffentlichen**, oder die Liste **Statusseiten** für jemanden, der keine Statusseiten anlegen darf. |
 | **Team einladen** | Jemand Ihre Einladung annimmt. | **Benutzer** |
 
 Der Schritt, mit dem Sie beginnen, ist mit **Nächster Schritt** markiert. Im Free-Tarif von OneUptime Cloud, der eine Person umfasst, sagt **Team einladen**, dass es den Growth-Tarif braucht, und öffnet **Abrechnung**. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, sehen die Administratoren des Servers zuerst **Dieser Server kann noch keine E-Mails senden**; das öffnet das Admin-Dashboard.
 
-Wenn Sie aus einem Schritt heraus einen Monitor, eine Statusseite oder eine Bereitschaftsrichtlinie erstellen, sagt die Seite, auf der Sie landen, was als Nächstes kommt, mit **Zurück zur Einrichtung**.
+Eine geführte Einrichtung erledigt die ganze Aufgabe auf einer Seite, Schritt für Schritt, und endet damit, was sie eingerichtet hat und was als Nächstes zu tun ist. Um eine später wieder zu öffnen, suchen Sie nach ihrem Namen.
 
 Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaftsdienst** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
 

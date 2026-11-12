@@ -408,6 +408,77 @@ function sectionAt(markdown: string, sectionIndex: number): string {
   return lines.slice(start, end).join("\n");
 }
 
+/*
+ * The lines under the heading a page has where the English Home page has
+ * this one, up to the next heading: the headings of a translation sit at the
+ * English ones' places (each page's "headings, tables and list items").
+ */
+function homeSectionLike(markdown: string, englishHeading: string): string {
+  const englishHeadings: Array<DocsHeading> = scanMarkdown(
+    englishPage(HOME),
+  ).headings;
+  const index: number = englishHeadings.findIndex(
+    (heading: DocsHeading): boolean => {
+      return heading.text === englishHeading;
+    },
+  );
+
+  expect({ heading: englishHeading, found: index >= 0 }).toEqual({
+    heading: englishHeading,
+    found: true,
+  });
+
+  const headings: Array<DocsHeading> = scanMarkdown(markdown).headings;
+  const start: DocsHeading = headings[index] as DocsHeading;
+  const end: DocsHeading | undefined = headings[index + 1];
+
+  return markdown
+    .split("\n")
+    .slice(start.line - 1, end ? end.line - 1 : undefined)
+    .join("\n");
+}
+
+// The welcome checklist table's body rows: one per step.
+function welcomeChecklistRows(markdown: string): Array<string> {
+  return homeSectionLike(markdown, "The welcome checklist")
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.startsWith("| **");
+    });
+}
+
+// A table row's cells, trimmed.
+function rowCells(row: string): Array<string> {
+  return row
+    .slice(1, -1)
+    .split("|")
+    .map((cell: string): string => {
+      return cell.trim();
+    });
+}
+
+function drawnLabels(language: string, labels: Array<string>): Array<string> {
+  return labels.map((label: string): string => {
+    return drawnActionLabel(language, label);
+  });
+}
+
+// The headline section's line that names a bold label.
+function headlineLineWith(markdown: string, label: string): string {
+  const lines: Array<string> = homeSectionLike(markdown, "The headline")
+    .split("\n")
+    .filter((line: string): boolean => {
+      return line.includes(`**${label}**`);
+    });
+
+  expect({ label: label, lines: lines.length }).toEqual({
+    label: label,
+    lines: 1,
+  });
+
+  return lines[0] as string;
+}
+
 describe("the lists this test keeps", () => {
   it("name only bold Dashboard labels the English page has", () => {
     for (const page of Object.keys(PROSE)) {
@@ -872,6 +943,52 @@ describe.each(LANGUAGES)("%s", (language: string) => {
             );
           },
         ),
+      );
+    });
+
+    it("names the page each welcome checklist step opens, in the English order, as this language's Dashboard draws it", () => {
+      const englishRows: Array<string> = welcomeChecklistRows(
+        englishPage(HOME),
+      );
+      const translatedRows: Array<string> = welcomeChecklistRows(translated);
+
+      // Seven steps, four of them opening a guided setup (IntroductionDocsFacts).
+      expect(englishRows).toHaveLength(7);
+      expect(translatedRows).toHaveLength(englishRows.length);
+
+      englishRows.forEach((englishRow: string, index: number): void => {
+        const [englishStep, , englishOpens] = rowCells(englishRow);
+        const [translatedStep, , translatedOpens] = rowCells(
+          translatedRows[index] as string,
+        );
+
+        expect({
+          row: index,
+          step: boldSpans(translatedStep as string),
+          opens: boldSpans(translatedOpens as string),
+        }).toEqual({
+          row: index,
+          step: drawnLabels(language, boldSpans(englishStep as string)),
+          opens: drawnLabels(language, boldSpans(englishOpens as string)),
+        });
+      });
+    });
+
+    it("names the guided setup the headline's Create your first monitor opens, as this language's Dashboard draws it", () => {
+      const button: string = "Create your first monitor";
+      const englishLine: string = headlineLineWith(englishPage(HOME), button);
+      const translatedLine: string = headlineLineWith(
+        translated,
+        drawnActionLabel(language, button),
+      );
+
+      // The button, then the setup's title (IntroductionDocsFacts).
+      expect(boldSpans(englishLine)).toEqual([
+        button,
+        "Know when my website or API is down",
+      ]);
+      expect(boldSpans(translatedLine)).toEqual(
+        drawnLabels(language, boldSpans(englishLine)),
       );
     });
 
