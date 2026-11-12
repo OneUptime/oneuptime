@@ -579,8 +579,10 @@ describe("the note that the name is one of the reader's pages (#7252)", () => {
     for (const language of DASHBOARD_LANGUAGES) {
       const table: Record<string, string> = readDashboardLocale(language);
 
-      expect({ language, worded: isWordedInDashboardLocale(NOTE, language) })
-        .toEqual({ language, worded: true });
+      expect({
+        language,
+        worded: isWordedInDashboardLocale(NOTE, language),
+      }).toEqual({ language, worded: true });
       expect({
         language,
         problems: problemsOf({

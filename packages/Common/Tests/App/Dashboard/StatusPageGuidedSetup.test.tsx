@@ -362,9 +362,9 @@ describe("1. Name it, and pick what it shows", () => {
       name: "Acme Public Status",
       userId: USER_ID,
     });
-    expect(
-      api["findOwnStatusPage"]!.mock.invocationCallOrder[0]!,
-    ).toBeLessThan(api["createStatusPage"]!.mock.invocationCallOrder[0]!);
+    expect(api["findOwnStatusPage"]!.mock.invocationCallOrder[0]!).toBeLessThan(
+      api["createStatusPage"]!.mock.invocationCallOrder[0]!,
+    );
   });
 
   test("a run whose page is known adds to it and looks for nothing", async () => {
@@ -824,11 +824,12 @@ describe("a run the browser lost, or another tab (#7252)", () => {
   };
 
   // The browser forgets the run; the page stays on the server. Then the page opens again.
-  const loseTheRunAndOpenAgain: () => Promise<void> = async (): Promise<void> => {
-    window.localStorage.clear();
-    cleanup();
-    await renderSetup();
-  };
+  const loseTheRunAndOpenAgain: () => Promise<void> =
+    async (): Promise<void> => {
+      window.localStorage.clear();
+      cleanup();
+      await renderSetup();
+    };
 
   test("the run lost, the same name typed again: no second page, the monitors go on the page made, and step 2 says so first", async () => {
     await renderSetup();
@@ -1059,6 +1060,26 @@ describe("a run the browser lost, or another tab (#7252)", () => {
     await press("guided-setup-review-continue");
     await press("guided-setup-start-over");
     expect(nameField().value).toBe("");
+    await createWith({ name: "Acme Internal Status", monitorIds: ["m-db"] });
+
+    expect(serverPages).toHaveLength(2);
+    expect(stepState("review")).toBe("open");
+    expect(
+      screen.queryByTestId("guided-setup-existing-status-page"),
+    ).not.toBeInTheDocument();
+  });
+
+  test("Set up another status page right after a page was found: the next page, a new one, comes without the note", async () => {
+    madeOnServer({ name: "Acme Status", monitorIds: ["m-api"] });
+    await renderSetup();
+    await createWith({ name: "acme status", monitorIds: ["m-api"] });
+    expect(
+      screen.getByTestId("guided-setup-existing-status-page"),
+    ).toBeInTheDocument();
+
+    // No reload: the summary, then another page with its own name.
+    await press("guided-setup-review-continue");
+    await press("guided-setup-start-over");
     await createWith({ name: "Acme Internal Status", monitorIds: ["m-db"] });
 
     expect(serverPages).toHaveLength(2);

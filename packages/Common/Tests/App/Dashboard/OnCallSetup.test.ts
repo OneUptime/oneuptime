@@ -781,7 +781,9 @@ describe("its words", () => {
     expect(ON_CALL_SETUP_COPY.policyMadeElsewhere).toBe(
       "An on-call policy was added to this project while this page was open, so no new policy was made.",
     );
-    expect(ON_CALL_SETUP_COPY.couldNotSave).toBe(WEBSITE_DOWN_COPY.couldNotSave);
+    expect(ON_CALL_SETUP_COPY.couldNotSave).toBe(
+      WEBSITE_DOWN_COPY.couldNotSave,
+    );
     expect(ON_CALL_SETUP_COPY.couldNotSave).toBe(
       "That did not save. Check your connection and try again.",
     );

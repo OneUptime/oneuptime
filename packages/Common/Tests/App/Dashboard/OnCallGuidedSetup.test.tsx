@@ -1573,9 +1573,9 @@ describe("a policy made meanwhile, in another tab or on another device (#7252)",
 
     expect(api["loadPolicyChoices"]).toHaveBeenCalledTimes(2);
     expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
-    expect(
-      api["loadPolicyChoices"]!.mock.invocationCallOrder[1]!,
-    ).toBeLessThan(api["createPolicy"]!.mock.invocationCallOrder[0]!);
+    expect(api["loadPolicyChoices"]!.mock.invocationCallOrder[1]!).toBeLessThan(
+      api["createPolicy"]!.mock.invocationCallOrder[0]!,
+    );
     expect(
       screen.queryByTestId("on-call-setup-policy-made-elsewhere"),
     ).toBeNull();
@@ -1921,8 +1921,8 @@ describe("read in another language (#7252)", () => {
       await press("on-call-setup-who-save");
 
       const sentence: string = withoutIsolateMarks(
-        screen.getByTestId("on-call-setup-policy-made-elsewhere")
-          .textContent || "",
+        screen.getByTestId("on-call-setup-policy-made-elsewhere").textContent ||
+          "",
       );
 
       expect(sentence).toBe(

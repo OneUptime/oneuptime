@@ -217,10 +217,10 @@ export const getStatusPageNameIdentity: (name: string) => string = (
 };
 
 // Whether two names name one page; a name with no letters names none.
-export const isSameStatusPageName: (first: string, second: string) => boolean = (
+export const isSameStatusPageName: (
   first: string,
   second: string,
-): boolean => {
+) => boolean = (first: string, second: string): boolean => {
   const identity: string = getStatusPageNameIdentity(first);
 
   return identity.length > 0 && identity === getStatusPageNameIdentity(second);
