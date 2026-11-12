@@ -312,12 +312,12 @@ export const WELCOME_STEPS: ReadonlyArray<WelcomeStepEntry> = [
     icon: IconProp.Call,
     iconBackgroundClassName: "bg-rose-500",
     pageMap: PageMap.ON_CALL_DUTY,
-    landing: {
-      pageMap: PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
-      doneText: translationKey(
-        "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
-      ),
-    },
+    /*
+     * The guided setup (#6805): how you are reached, who else is on call,
+     * what if nobody answers and a test page, on one page. It says what is
+     * next itself, so the step has no landing line.
+     */
+    guidedSetupPage: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
   },
   {
     step: WelcomeStep.StatusPage,

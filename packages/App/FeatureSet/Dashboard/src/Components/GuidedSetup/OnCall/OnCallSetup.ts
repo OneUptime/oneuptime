@@ -131,6 +131,8 @@ export const ON_CALL_SETUP_COPY: {
   noAnswerWaitError: string;
   noAnswerSecondLevelLabel: string;
   noAnswerRepeatLabel: string;
+  noAnswerRepeatError: string;
+  nobodyElse: string;
   noAnswerFreePlan: string;
   noAnswerHasLevels: string;
   testTitle: string;
@@ -230,6 +232,8 @@ export const ON_CALL_SETUP_COPY: {
   noAnswerWaitError: translationKey("Enter a number of minutes from 1 to 1440."),
   noAnswerSecondLevelLabel: translationKey("Paged next"),
   noAnswerRepeatLabel: translationKey("Times to page again"),
+  noAnswerRepeatError: translationKey("Enter a number of times from 1 to 10."),
+  nobodyElse: translationKey("Nobody else is paged."),
   noAnswerFreePlan: translationKey(
     "Paging someone else is a second escalation rule, which needs a paid plan. On the Free plan, the page can repeat instead.",
   ),
@@ -663,6 +667,23 @@ export const parseWaitMinutes: (input: string) => number | null = (
   return minutes >= 1 && minutes <= MAX_WAIT_IN_MINUTES ? minutes : null;
 };
 
+// How many more times the page starts again: a whole number from 1 to 10.
+export const MAX_REPEAT_TIMES: number = 10;
+
+export const parseRepeatTimes: (input: string) => number | null = (
+  input: string,
+): number | null => {
+  const text: string = (input || "").trim();
+
+  if (!/^[0-9]+$/.test(text)) {
+    return null;
+  }
+
+  const times: number = Number(text);
+
+  return times >= 1 && times <= MAX_REPEAT_TIMES ? times : null;
+};
+
 /*
  * The choice the step starts on: someone else when a second escalation rule
  * may be added, the same people again when it may not (Cloud's Free plan).
@@ -818,7 +839,8 @@ export const getOnCallSummaryRows: (
     );
   } else {
     noAnswerText =
-      translator.translateText("Nobody else is paged.") || "Nobody else is paged.";
+      translator.translateText(ON_CALL_SETUP_COPY.nobodyElse) ||
+      ON_CALL_SETUP_COPY.nobodyElse;
   }
 
   rows.push({

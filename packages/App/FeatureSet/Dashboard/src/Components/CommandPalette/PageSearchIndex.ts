@@ -1460,6 +1460,25 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               "create on-call policy",
             ],
           },
+          /*
+           * The guided setup (#6805): how you are reached, who else is on
+           * call, what if nobody answers and a test page, on one page.
+           * Found by what people come to do.
+           */
+          {
+            page: PageMap.ON_CALL_DUTY_GUIDED_SETUP,
+            title: "Page the right person when something breaks",
+            icon: IconProp.Call,
+            keywords: [
+              "guided setup",
+              "get paged",
+              "page me by phone",
+              "sms",
+              "phone call",
+              "escalate",
+              "set up on-call",
+            ],
+          },
           {
             page: PageMap.ON_CALL_DUTY_READINESS,
             title: "Readiness",
