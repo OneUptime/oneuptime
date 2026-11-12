@@ -15,10 +15,16 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * The side card says what happens when the monitor fails and who is told,
  * names each break in the chain with a link to the page that fixes it, and
  * opens the chain link by link. The fixture answers GET /who-is-told/
- * monitor/:id as the resolver does (?whoIsTold=pages|nobody|hidden), its
- * breaks worked out by the same pure helper. Checked at 1440 and 390, in
- * the dark theme, and in German and Persian; screenshots go to
+ * monitor/:id as the resolver does (?whoIsTold=pages|nobody|hidden|rules),
+ * its breaks worked out by the same pure helper. Checked at 1440 and 390,
+ * in the dark theme, and in German and Persian; screenshots go to
  * output/playwright/monitor-overview-ui.
+ *
+ * The chain says the title the incident opens with and the owner rules
+ * that add the owners it emails (#7076), and every status page that shows
+ * the monitor, one that shows it through a monitor group among them
+ * (#7077). An owner rule or status page the reader may not see keeps its
+ * place without its name.
  */
 
 const PORT: string = process.env["MONITOR_OVERVIEW_FIXTURE_PORT"] || "4223";
@@ -85,7 +91,7 @@ test.afterEach(async ({ page }: { page: Page }) => {
 async function open(
   page: Page,
   options: {
-    whoIsTold?: "nobody" | "hidden";
+    whoIsTold?: "nobody" | "hidden" | "rules";
     theme?: "dark";
     lang?: "de" | "fa";
     width?: number;
@@ -125,6 +131,60 @@ async function shoot(locator: Locator, name: string): Promise<void> {
   });
 }
 
+/*
+ * Every row of the open chain draws its name inside its own column, clear
+ * of the row's value: a name wider than the column (German's
+ * "Eigentümerregeln", "Bereitschaftsrichtlinie") gives way rather than run
+ * over what the row says. Returns the names that do not, with how.
+ */
+async function getRowNamesOverValues(card: Locator): Promise<Array<string>> {
+  return await card.evaluate((element: Element): Array<string> => {
+    const problems: Array<string> = [];
+    const rows: Array<Element> = Array.from(
+      element.querySelectorAll('[data-testid="who-is-told-event"] > div'),
+    );
+
+    for (const row of rows) {
+      const label: Element | undefined = row.children[0];
+      const value: Element | undefined = row.children[1];
+
+      if (!label || !value) {
+        continue;
+      }
+
+      const labelBox: DOMRect = label.getBoundingClientRect();
+      const valueBox: DOMRect = value.getBoundingClientRect();
+      const range: Range = document.createRange();
+      range.selectNodeContents(label);
+
+      for (const text of Array.from(range.getClientRects())) {
+        if (text.width === 0) {
+          continue;
+        }
+
+        const name: string = (label.textContent || "").trim();
+
+        if (text.left < labelBox.left - 1 || text.right > labelBox.right + 1) {
+          problems.push(`${name}: wider than its column`);
+          break;
+        }
+
+        if (
+          text.left < valueBox.right &&
+          text.right > valueBox.left &&
+          text.top < valueBox.bottom &&
+          text.bottom > valueBox.top
+        ) {
+          problems.push(`${name}: over the row's value`);
+          break;
+        }
+      }
+    }
+
+    return problems;
+  });
+}
+
 test.describe("When this goes down", () => {
   test("says what happens and who is paged, and opens the chain link by link", async ({
     page,
@@ -148,7 +208,15 @@ test.describe("When this goes down", () => {
     await expect(chain.getByTestId("who-is-told-criteria")).toHaveCount(2);
     await expect(chain).toContainText("When Offline matches");
     await expect(chain).toContainText("Every incident");
-    await expect(chain).toContainText("Public Status");
+    // The title the incident opens with, under what opens.
+    await expect(chain.getByTestId("who-is-told-title")).toHaveText(
+      "Checkout API is offline",
+    );
+    await expect(chain.getByTestId("who-is-told-status-pages")).toContainText(
+      "Public Status",
+    );
+    // No owner rule adds anyone: the row is not drawn.
+    await expect(chain.getByTestId("who-is-told-owner-rules")).toHaveCount(0);
     await expect(chain.getByTestId("who-is-told-person")).toHaveCount(2);
     await expect(
       chain.getByRole("link", { name: "Primary On-Call" }),
@@ -199,6 +267,59 @@ test.describe("When this goes down", () => {
     await expect(card).not.toContainText("Ana Lopez and Ben Ito");
   });
 
+  test("names the owners an owner rule adds, the title it opens with, and a page that shows it through a group", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page, { whoIsTold: "rules" });
+
+    await expect(card.getByTestId("who-is-told-summary")).toHaveText(
+      "OneUptime marks it Offline and opens a Critical incident. It emails the owners its owner rules add (Ben Ito and Checkout SRE). It pages Ana Lopez and Ben Ito through Primary On-Call.",
+    );
+    await card.getByTestId("who-is-told-chain-toggle").click();
+
+    const chain: Locator = card.getByTestId("who-is-told-chain");
+    await expect(chain.getByTestId("who-is-told-title")).toHaveText(
+      "Checkout API is offline",
+    );
+    const ownerRules: Locator = chain.getByTestId("who-is-told-owner-rules");
+    await expect(ownerRules).toContainText("Owner Rules");
+    await expect(ownerRules).toContainText("Checkout monitors");
+    await expect(chain).toContainText("Ben Ito, Checkout SRE");
+    // The page that lists the monitor, and the one that lists its group.
+    await expect(chain.getByTestId("who-is-told-status-pages")).toContainText(
+      "Public Status, Payments Status",
+    );
+    expect(await getRowNamesOverValues(card)).toEqual([]);
+    await shoot(card, "rules-1440-chain");
+  });
+
+  test("an owner rule or a status page the reader may not see keeps its place, without its name", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const card: Locator = await open(page, { whoIsTold: "hidden" });
+
+    // Who it emails is what the incident will say, whoever reads it.
+    await expect(card.getByTestId("who-is-told-summary")).toContainText(
+      "It emails the owners its owner rules add (Ben Ito and Checkout SRE).",
+    );
+    await card.getByTestId("who-is-told-chain-toggle").click();
+
+    const chain: Locator = card.getByTestId("who-is-told-chain");
+    await expect(chain.getByTestId("who-is-told-owner-rules")).toContainText(
+      "A rule you can't see",
+    );
+    await expect(chain.getByTestId("who-is-told-status-pages")).toContainText(
+      "Public Status, A status page you can't see",
+    );
+    await expect(card).not.toContainText("Checkout monitors");
+    await expect(card).not.toContainText("Payments Status");
+    await shoot(card, "hidden-1440-chain");
+  });
+
   test("fits a phone, with the chain open, without sideways scroll", async ({
     page,
   }: {
@@ -239,5 +360,55 @@ test.describe("When this goes down", () => {
     );
     await expectNoSidewaysScroll(page, { message: "Persian, 390 wide" });
     await shoot(card, "nobody-fa-390");
+  });
+
+  test("says the owner rules and the status pages in German and in Persian", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    let card: Locator = await open(page, { whoIsTold: "rules", lang: "de" });
+    await expect(card.getByTestId("who-is-told-summary")).toContainText(
+      "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt (Ben Ito und Checkout SRE).",
+    );
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    await expect(card.getByTestId("who-is-told-owner-rules")).toContainText(
+      "Eigentümerregeln",
+    );
+    await expect(card.getByTestId("who-is-told-status-pages")).toContainText(
+      "Public Status, Payments Status",
+    );
+    // "Eigentümerregeln" and "Bereitschaftsrichtlinie" give way in their column.
+    expect(await getRowNamesOverValues(card)).toEqual([]);
+    await shoot(card, "rules-de-chain");
+
+    // Right to left, each name in its column and its value beside it.
+    card = await open(page, { whoIsTold: "rules", lang: "fa" });
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    await expect(card.getByTestId("who-is-told-owner-rules")).toContainText(
+      "Checkout monitors",
+    );
+    expect(await getRowNamesOverValues(card)).toEqual([]);
+
+    card = await open(page, { whoIsTold: "hidden", lang: "fa", width: 390 });
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(card.getByTestId("who-is-told-summary")).toContainText(
+      "به مالکانی که قواعد مالکیت اضافه می‌کنند ایمیل می‌زند",
+    );
+    await card.getByTestId("who-is-told-chain-toggle").click();
+    await expect(card.getByTestId("who-is-told-owner-rules")).toContainText(
+      "قاعده‌ای که نمی‌توانید ببینید",
+    );
+    await expect(card.getByTestId("who-is-told-status-pages")).toContainText(
+      "صفحه وضعیتی که نمی‌توانید ببینید",
+    );
+    // An English title keeps its own direction in a Persian page.
+    const title: Locator = card.getByTestId("who-is-told-title");
+    await expect(title).toHaveText("Checkout API is offline");
+    await expect(title).toHaveAttribute("dir", "ltr");
+    await expectNoSidewaysScroll(page, {
+      message: "Persian, 390 wide, chain open",
+    });
+    await shoot(card, "hidden-fa-390-chain");
   });
 });

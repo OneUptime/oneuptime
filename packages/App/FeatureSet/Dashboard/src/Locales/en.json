@@ -50975,5 +50975,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} earlier turns are not shown",
-  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown"
+  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown",
+  "A status page you can't see": "A status page you can't see",
+  "It emails the owners its owner rules add ({{names}}).": "It emails the owners its owner rules add ({{names}}).",
+  "It emails the owners its owner rules add.": "It emails the owners its owner rules add."
 }

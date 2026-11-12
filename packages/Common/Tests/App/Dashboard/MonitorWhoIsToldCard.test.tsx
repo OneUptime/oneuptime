@@ -31,6 +31,7 @@ import {
   getBreakSentence,
   getFixLink,
   getWhoIsToldSentences,
+  getWhoIsToldSummary,
   WhoIsToldFixLink,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldWords";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -58,9 +59,12 @@ import ObjectID from "../../../Types/ObjectID";
 import { OnCallPageChannel } from "../../../Types/OnCallDutyPolicy/OnCallPageChannel";
 import { OnCallTestPageRecordKind } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import {
+  createTranslator,
   getGlobalTranslator,
   Translator,
 } from "../../../UI/Utils/TranslateTemplate";
+import fs from "fs";
+import path from "path";
 
 /*
  * "WHEN THIS GOES DOWN" ON A MONITOR'S OVERVIEW (#6810): what happens and
@@ -76,6 +80,23 @@ const ANA: string = "68102222-0000-4000-8000-0000000000d1";
 const BEN: string = "68102222-0000-4000-8000-0000000000d2";
 
 const translator: Translator = getGlobalTranslator();
+
+const DASHBOARD_LOCALES: string = path.join(
+  __dirname,
+  "../../../../App/FeatureSet/Dashboard/src/Locales",
+);
+
+// The Dashboard's own words in `language`, as the card reads them there.
+function localeTranslator(language: string): Translator {
+  const words: Record<string, unknown> = JSON.parse(
+    fs.readFileSync(path.join(DASHBOARD_LOCALES, `${language}.json`), "utf8"),
+  ) as Record<string, unknown>;
+
+  return createTranslator((text: string): string | undefined => {
+    const value: unknown = words[text];
+    return typeof value === "string" ? value : undefined;
+  }, language);
+}
 
 function channels(): WhoIsToldChannels {
   return {
@@ -120,13 +141,14 @@ function policy(overrides: Partial<WhoIsToldPolicy> = {}): WhoIsToldPolicy {
 function event(overrides: Partial<WhoIsToldEvent> = {}): WhoIsToldEvent {
   return {
     kind: OnCallTestPageRecordKind.Incident,
+    title: "Checkout API is offline",
     severityName: "Critical",
     owners: {
       source: WhoIsToldOwnersSource.ProjectOwners,
       userNames: ["Owner One"],
       teamNames: [],
-      hasOwnerRules: false,
     },
+    ownerRules: [],
     rules: [{ id: "r", name: "Every incident" }],
     policies: [policy()],
     statusPages: [{ id: "s", name: "Public status" }],
@@ -199,7 +221,6 @@ describe("the card's first words", () => {
                   source: WhoIsToldOwnersSource.Named,
                   userNames: ["Ana Lopez"],
                   teamNames: ["Platform"],
-                  hasOwnerRules: false,
                 },
               }),
             ],
@@ -211,6 +232,52 @@ describe("the card's first words", () => {
       "OneUptime opens a Warning alert.",
       "It emails its owners (Ana Lopez and Platform).",
     ]);
+  });
+
+  // #7076: when only the project's owner rules add owners, the sentence says so.
+  test("owners only owner rules add are said to be theirs, named", () => {
+    expect(
+      getWhoIsToldSentences(
+        result([
+          offline({
+            events: [
+              event({
+                owners: {
+                  source: WhoIsToldOwnersSource.OwnerRules,
+                  userNames: ["Ben Ito"],
+                  teamNames: ["Checkout SRE"],
+                },
+                ownerRules: [{ id: "o", name: "Checkout monitors" }],
+              }),
+            ],
+          }),
+        ]),
+        translator,
+      )[1],
+    ).toBe(
+      "It emails the owners its owner rules add (Ben Ito and Checkout SRE).",
+    );
+  });
+
+  test("owner rules that add owners nobody can be named still say whose owners they are", () => {
+    expect(
+      getWhoIsToldSentences(
+        result([
+          offline({
+            events: [
+              event({
+                owners: {
+                  source: WhoIsToldOwnersSource.OwnerRules,
+                  userNames: [],
+                  teamNames: [],
+                },
+              }),
+            ],
+          }),
+        ]),
+        translator,
+      )[1],
+    ).toBe("It emails the owners its owner rules add.");
   });
 
   test("many people are counted rather than listed", () => {
@@ -280,7 +347,6 @@ describe("the card's first words", () => {
               source: WhoIsToldOwnersSource.MonitorOwners,
               userNames: ["Watcher"],
               teamNames: [],
-              hasOwnerRules: false,
             },
           }),
         ]),
@@ -303,6 +369,68 @@ describe("the card's first words", () => {
 
   test("nothing at all, when no criteria does anything", () => {
     expect(getWhoIsToldSentences(result([]), translator)).toEqual([]);
+    expect(getWhoIsToldSummary(result([]), translator)).toBe("");
+  });
+
+  /*
+   * #7078: the card reads in every language, and its first words read as
+   * one paragraph in each: Japanese and Chinese put nothing after their
+   * full-width stop, every other language a space after each sentence.
+   */
+  describe("as one paragraph, as the reader's script writes one", () => {
+    const owned: WhoIsToldResult = result([
+      offline({
+        events: [
+          event({
+            owners: {
+              source: WhoIsToldOwnersSource.OwnerRules,
+              userNames: ["Ben Ito"],
+              teamNames: [],
+            },
+            ownerRules: [{ id: "o", name: "Checkout monitors" }],
+          }),
+        ],
+      }),
+    ]);
+
+    test("English: a space after each sentence", () => {
+      expect(getWhoIsToldSummary(owned, translator)).toBe(
+        "OneUptime marks it Offline and opens a Critical incident. It emails the owners its owner rules add (Ben Ito). It pages Ana Lopez through Primary.",
+      );
+    });
+
+    test.each(["ja", "zh-CN", "zh-TW"])(
+      "%s: in its own words, nothing after a full-width stop",
+      (language: string) => {
+        const reader: Translator = localeTranslator(language);
+        const sentences: Array<string> = getWhoIsToldSentences(owned, reader);
+
+        expect(sentences).toHaveLength(3);
+
+        for (const sentence of sentences) {
+          // The language's own sentence, ended as it ends one.
+          expect(sentence).toMatch(/。$/u);
+          expect(sentence).not.toMatch(/\b(emails|pages|opens)\b/);
+        }
+
+        const summary: string = getWhoIsToldSummary(owned, reader);
+
+        expect(summary).toBe(sentences.join(""));
+        expect(summary).not.toContain("。 ");
+        expect(summary).toContain("Ben Ito");
+      },
+    );
+
+    test.each(["de", "fa", "ar", "da", "ko"])(
+      "%s: in its own words, a space after each sentence",
+      (language: string) => {
+        const reader: Translator = localeTranslator(language);
+        const sentences: Array<string> = getWhoIsToldSentences(owned, reader);
+
+        expect(sentences).not.toEqual(getWhoIsToldSentences(owned, translator));
+        expect(getWhoIsToldSummary(owned, reader)).toBe(sentences.join(" "));
+      },
+    );
   });
 });
 
@@ -587,6 +715,120 @@ describe("MonitorWhoIsToldCard", () => {
     fireEvent.click(toggle);
 
     expect(screen.queryByTestId("who-is-told-chain")).toBeNull();
+  });
+
+  /*
+   * #7076: the chain says the title what opens would get, and which owner
+   * rules add owners to it; #7077: every status page it shows on, a page
+   * the reader may not see without its name.
+   */
+  test("the chain says the title, the owner rules that add owners and every status page", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({
+          events: [
+            event({
+              owners: {
+                source: WhoIsToldOwnersSource.Named,
+                userNames: ["Ana Lopez", "Ben Ito"],
+                teamNames: [],
+              },
+              ownerRules: [{ id: "o", name: "Checkout monitors" }],
+              statusPages: [
+                { id: "s1", name: "Payments status" },
+                { id: "s2", name: "Public status" },
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    expect(screen.getByTestId("who-is-told-title")).toHaveTextContent(
+      "Checkout API is offline",
+    );
+    expect(screen.getByTestId("who-is-told-owner-rules")).toHaveTextContent(
+      "Owner Rules",
+    );
+    expect(screen.getByTestId("who-is-told-owner-rules")).toHaveTextContent(
+      "Checkout monitors",
+    );
+    expect(screen.getByTestId("who-is-told-chain")).toHaveTextContent(
+      "Ana Lopez, Ben Ito",
+    );
+    expect(screen.getByTestId("who-is-told-status-pages")).toHaveTextContent(
+      "Payments status, Public status",
+    );
+  });
+
+  test("an owner rule or a status page the reader may not see keeps its place, without its name", async () => {
+    getForMonitor.mockResolvedValue(
+      result([
+        offline({
+          events: [
+            event({
+              owners: {
+                source: WhoIsToldOwnersSource.OwnerRules,
+                userNames: ["Ben Ito"],
+                teamNames: [],
+              },
+              ownerRules: [{ id: "o", name: "" }],
+              statusPages: [
+                { id: "s1", name: "" },
+                { id: "s2", name: "Public status" },
+              ],
+            }),
+          ],
+        }),
+      ]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    expect(screen.getByTestId("who-is-told-owner-rules")).toHaveTextContent(
+      "A rule you can't see",
+    );
+    expect(screen.getByTestId("who-is-told-status-pages")).toHaveTextContent(
+      "A status page you can't see, Public status",
+    );
+    // Who it emails is what the incident will say.
+    expect(screen.getByTestId("who-is-told-chain")).toHaveTextContent(
+      "Ben Ito",
+    );
+  });
+
+  test("no owner rule adds anyone, no status page shows it, no title: none of those rows is drawn", async () => {
+    getForMonitor.mockResolvedValue(
+      result([offline({ events: [event({ title: "", statusPages: [] })] })]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    expect(screen.getByTestId("who-is-told-chain")).toHaveTextContent(
+      "A Critical incident",
+    );
+    expect(screen.queryByTestId("who-is-told-title")).toBeNull();
+    expect(screen.queryByTestId("who-is-told-owner-rules")).toBeNull();
+    expect(screen.queryByTestId("who-is-told-status-pages")).toBeNull();
+  });
+
+  test("a title in another script reads its own way, apart from the card's words", async () => {
+    getForMonitor.mockResolvedValue(
+      result([offline({ events: [event({ title: "واجهة الدفع متوقفة" })] })]),
+    );
+    renderCard();
+
+    fireEvent.click(await screen.findByTestId("who-is-told-chain-toggle"));
+
+    const title: HTMLElement = screen.getByTestId("who-is-told-title");
+
+    expect(title.tagName).toBe("P");
+    expect(title).toHaveAttribute("dir", "rtl");
   });
 
   test("somebody who can't be paged says so in the chain", async () => {

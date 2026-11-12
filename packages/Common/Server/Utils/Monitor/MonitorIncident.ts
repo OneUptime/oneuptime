@@ -41,7 +41,9 @@ import MonitorStep from "../../../Types/Monitor/MonitorStep";
 import MonitorEvaluationDetailsCapture, {
   GetEvaluationDetails,
 } from "./MonitorEvaluationDetailsCapture";
-import SeriesContextEnricher from "./SeriesContextEnricher";
+import MonitorRecordText, {
+  MonitorRecordTextResult,
+} from "./MonitorRecordText";
 import MonitorDependencySuppression, {
   DependencySuppressionResult,
 } from "./MonitorDependencySuppression";
@@ -830,41 +832,24 @@ export default class MonitorIncident {
               seriesLabels,
             });
 
-          // A title is one bounded line; see buildTitleStorageMap.
-          const titleStorageMap: JSONObject =
-            MonitorTemplateUtil.buildTitleStorageMap({
-              monitorType: input.monitor.monitorType!,
-              storageMap,
-            });
-
           /*
            * Render the criteria's template, then make it say WHICH
-           * series it is about. Mirrors MonitorAlert exactly - the two
-           * must agree, or the same breach reads differently depending
-           * on whether the criteria was configured to raise an alert or
-           * an incident. See SeriesContextEnricher for why this is not
-           * done inside the template itself.
+           * series it is about (MonitorRecordText). MonitorAlert renders
+           * there too - the two must agree, or the same breach reads
+           * differently depending on whether the criteria was configured
+           * to raise an alert or an incident. See SeriesContextEnricher
+           * for why this is not done inside the template itself.
            */
-          incident.title = SeriesContextEnricher.enrichTitle({
-            title: MonitorTemplateUtil.processTemplateString({
-              value: criteriaIncident.title,
-              storageMap: titleStorageMap,
-            }),
+          const text: MonitorRecordTextResult = MonitorRecordText.render({
+            titleTemplate: criteriaIncident.title,
+            descriptionTemplate: criteriaIncident.description,
+            monitorType: input.monitor.monitorType!,
+            storageMap,
             seriesLabels,
           });
-          /*
-           * The description and remediation notes are Markdown: what the
-           * monitored system sent goes into them as text
-           * (processMarkdownTemplateString).
-           */
-          incident.description = SeriesContextEnricher.enrichDescription({
-            description: MonitorTemplateUtil.processMarkdownTemplateString({
-              value: criteriaIncident.description,
-              storageMap,
-            }),
-            seriesLabels,
-            monitorType: input.monitor.monitorType,
-          });
+
+          incident.title = text.title;
+          incident.description = text.description;
 
           /*
            * Resolve the incident severity. `criteriaIncident.incidentSeverityId`

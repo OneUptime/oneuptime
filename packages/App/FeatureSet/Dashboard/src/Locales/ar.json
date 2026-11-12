@@ -50975,5 +50975,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، المراقبة متوقفة، منذ {{start}}، {{duration}} حتى الآن. نشط حاليًا.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}",
   "{{count}} earlier turns are not shown": "جولات سابقة غير معروضة: {{count}}",
-  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة"
+  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة",
+  "A status page you can't see": "صفحة حالة لا يمكنك رؤيتها",
+  "It emails the owners its owner rules add ({{names}}).": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين ({{names}}).",
+  "It emails the owners its owner rules add.": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين."
 }

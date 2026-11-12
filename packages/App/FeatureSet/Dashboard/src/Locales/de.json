@@ -50975,5 +50975,8 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, Überwachung aus, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} frühere Durchgänge werden nicht angezeigt",
-  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt"
+  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt",
+  "A status page you can't see": "Eine Statusseite, die Sie nicht sehen können",
+  "It emails the owners its owner rules add ({{names}}).": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt ({{names}}).",
+  "It emails the owners its owner rules add.": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt."
 }

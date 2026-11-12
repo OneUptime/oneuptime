@@ -96,7 +96,10 @@
  *              project's owners and pages Ana Lopez through Primary
  *              On-Call) | nobody (no on-call rule matches, so nobody is
  *              paged - the break and its Set Up Paging link) | hidden
- *              (paging runs through a policy the reader may not see).
+ *              (paging runs through a policy the reader may not see, an
+ *              owner rule and a status page they may not see) | rules
+ *              (owner rules add the owners it emails, and a second status
+ *              page shows it through a monitor group).
  *   ?settings=1  the subject monitor's Settings page
  *              (/monitors/<id>/settings) is the production one rather than
  *              the stub every other page has: its Monitoring card, and the
@@ -336,7 +339,9 @@ const securityMode = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
 // What "When this goes down" answers (?whoIsTold=).
-const whoIsToldMode = ["nobody", "hidden"].includes(params.get("whoIsTold"))
+const whoIsToldMode = ["nobody", "hidden", "rules"].includes(
+  params.get("whoIsTold"),
+)
   ? params.get("whoIsTold")
   : "pages";
 
@@ -3283,12 +3288,20 @@ function whoIsTold(monitorId) {
     return String(item._id) === monitorId;
   });
   const isHidden = whoIsToldMode === "hidden";
+  const hasOwnerRules = whoIsToldMode === "rules" || isHidden;
   const owners = {
     source: "ProjectOwners",
     userNames: ["Ana Lopez"],
     teamNames: [],
-    hasOwnerRules: false,
   };
+  // Who the incident emails: owner rules add Ben Ito and Checkout SRE.
+  const incidentOwners = hasOwnerRules
+    ? {
+        source: "OwnerRules",
+        userNames: ["Ben Ito"],
+        teamNames: ["Checkout SRE"],
+      }
+    : owners;
   const policy = {
     id: "5f000000-0000-4000-8000-0000000000a1",
     name: isHidden ? "" : "Primary On-Call",
@@ -3335,8 +3348,17 @@ function whoIsTold(monitorId) {
       events: [
         {
           kind: "Incident",
+          title: `${monitor ? monitor.name : "Monitor"} is offline`,
           severityName: "Critical",
-          owners: owners,
+          owners: incidentOwners,
+          ownerRules: hasOwnerRules
+            ? [
+                {
+                  id: "5f000000-0000-4000-8000-0000000000e1",
+                  name: isHidden ? "" : "Checkout monitors",
+                },
+              ]
+            : [],
           rules:
             whoIsToldMode === "nobody"
               ? []
@@ -3348,7 +3370,19 @@ function whoIsTold(monitorId) {
                 ],
           policies: whoIsToldMode === "nobody" ? [] : [policy],
           statusPages: [
-            { id: "5f000000-0000-4000-8000-0000000000d1", name: "Public Status" },
+            {
+              id: "5f000000-0000-4000-8000-0000000000d1",
+              name: "Public Status",
+            },
+            // Shows the monitor through a monitor group it is in.
+            ...(hasOwnerRules
+              ? [
+                  {
+                    id: "5f000000-0000-4000-8000-0000000000d2",
+                    name: isHidden ? "" : "Payments Status",
+                  },
+                ]
+              : []),
           ],
         },
       ],

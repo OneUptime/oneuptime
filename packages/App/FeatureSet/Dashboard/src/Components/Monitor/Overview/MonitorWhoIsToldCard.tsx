@@ -9,7 +9,7 @@ import {
   getBreakSentence,
   getChannelName,
   getFixLink,
-  getWhoIsToldSentences,
+  getWhoIsToldSummary,
 } from "./WhoIsToldWords";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
@@ -32,6 +32,7 @@ import { OnCallTestPageRecordKind } from "Common/Types/OnCallDutyPolicy/OnCallTe
 import Card from "Common/UI/Components/Card/Card";
 import DefinedTerm from "Common/UI/Components/Glossary/DefinedTerm";
 import Icon from "Common/UI/Components/Icon/Icon";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import Link from "Common/UI/Components/Link/Link";
 import { ADMIN_DASHBOARD_URL } from "Common/UI/Config";
 import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
@@ -69,8 +70,15 @@ type LoadState =
   | { status: "error"; message: string }
   | { status: "loaded"; result: WhoIsToldResult };
 
+/*
+ * A row's name. A word wider than its column - German's
+ * "Eigentümerregeln", "Bereitschaftsrichtlinie" - is hyphenated in the
+ * page's language, or else broken at the column's edge: never drawn over
+ * the row's value. "anywhere" rather than "break-word", so a defined term's
+ * button inside it gives way too.
+ */
 const ROW_LABEL_CLASS: string =
-  "w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-500";
+  "w-28 shrink-0 text-xs font-medium uppercase tracking-wide text-gray-500 hyphens-auto [overflow-wrap:anywhere]";
 
 // One line of the chain: what it is, then what it says.
 const ChainRow: FunctionComponent<{
@@ -202,6 +210,20 @@ function ownersText(owners: WhoIsToldOwners, translator: Translator): string {
   return translator.translateText("Nobody") || "Nobody";
 }
 
+// Rules or status pages by name; one the reader can't see, as hiddenName says.
+function namesText(data: {
+  items: ReadonlyArray<{ name: string }>;
+  hiddenName: string;
+  translator: Translator;
+}): string {
+  return formatList(
+    data.items.map((item: { name: string }): string => {
+      return item.name || data.hiddenName;
+    }),
+    data.translator,
+  );
+}
+
 const EventBlock: FunctionComponent<{
   event: WhoIsToldEvent;
   isFirstPolicyLabel: boolean;
@@ -228,29 +250,54 @@ const EventBlock: FunctionComponent<{
       data-kind={event.kind}
     >
       <ChainRow label={translator.translateText("Opens") || "Opens"}>
-        {translator.translateTemplate(
-          isAlert ? "A {{severity}} alert" : "A {{severity}} incident",
-          { severity: event.severityName },
+        <span>
+          {translator.translateTemplate(
+            isAlert ? "A {{severity}} alert" : "A {{severity}} incident",
+            { severity: event.severityName },
+          )}
+        </span>
+        {event.title ? (
+          <IsolatedLine
+            as="p"
+            text={event.title}
+            className="mt-0.5 text-xs text-gray-500 break-words"
+            dataTestId="who-is-told-title"
+          />
+        ) : (
+          <></>
         )}
       </ChainRow>
       <ChainRow label={translator.translateText("Emails") || "Emails"}>
         <span dir="auto">{ownersText(event.owners, translator)}</span>
       </ChainRow>
+      {event.ownerRules.length > 0 ? (
+        <ChainRow
+          label={translator.translateText("Owner Rules") || "Owner Rules"}
+          testId="who-is-told-owner-rules"
+        >
+          <span dir="auto">
+            {namesText({
+              items: event.ownerRules,
+              hiddenName:
+                translator.translateText("A rule you can't see") || "",
+              translator: translator,
+            })}
+          </span>
+        </ChainRow>
+      ) : (
+        <></>
+      )}
       <ChainRow
         label={translator.translateText("On-call rules") || "On-call rules"}
         testId="who-is-told-rules"
       >
         {event.rules.length > 0
-          ? formatList(
-              event.rules.map((rule: { name: string }): string => {
-                return (
-                  rule.name ||
-                  translator.translateText("A rule you can't see") ||
-                  ""
-                );
-              }),
-              translator,
-            )
+          ? namesText({
+              items: event.rules,
+              hiddenName:
+                translator.translateText("A rule you can't see") || "",
+              translator: translator,
+            })
           : translator.translateText("None match") || ""}
       </ChainRow>
       <ChainRow label={policyLabel}>
@@ -267,14 +314,17 @@ const EventBlock: FunctionComponent<{
         )}
       </ChainRow>
       {event.statusPages.length > 0 ? (
-        <ChainRow label={translator.translateText("Status pages") || ""}>
+        <ChainRow
+          label={translator.translateText("Status pages") || ""}
+          testId="who-is-told-status-pages"
+        >
           <span dir="auto">
-            {formatList(
-              event.statusPages.map((page: { name: string }): string => {
-                return page.name;
-              }),
-              translator,
-            )}
+            {namesText({
+              items: event.statusPages,
+              hiddenName:
+                translator.translateText("A status page you can't see") || "",
+              translator: translator,
+            })}
           </span>
         </ChainRow>
       ) : (
@@ -469,16 +519,16 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
     }
 
     const result: WhoIsToldResult = state.result;
-    const sentences: Array<string> = getWhoIsToldSentences(result, translator);
+    const summary: string = getWhoIsToldSummary(result, translator);
 
     return (
       <div>
-        {sentences.length > 0 ? (
+        {summary ? (
           <p
             className="text-sm text-gray-900"
             data-testid="who-is-told-summary"
           >
-            {sentences.join(" ")}
+            {summary}
           </p>
         ) : (
           <></>
