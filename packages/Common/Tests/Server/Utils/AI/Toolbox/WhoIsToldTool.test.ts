@@ -271,7 +271,9 @@ describe("who_is_told", () => {
     expect(result.dataForLlm).toContain(
       'Who is told when monitor "example.com" goes down',
     );
-    expect(result.citationLabel).toBe('Who is told when "example.com" goes down');
+    expect(result.citationLabel).toBe(
+      'Who is told when "example.com" goes down',
+    );
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.MonitorView,
       params: { monitorId: MONITOR_ID },
@@ -293,8 +295,8 @@ describe("who_is_told", () => {
 
     await WhoIsToldTool.execute({ monitor: MONITOR_ID }, ctx);
 
-    const asked: { query: { _id: string; projectId: ObjectID } } = findOne
-      .mock.calls[0]![0] as { query: { _id: string; projectId: ObjectID } };
+    const asked: { query: { _id: string; projectId: ObjectID } } = findOne.mock
+      .calls[0]![0] as { query: { _id: string; projectId: ObjectID } };
     expect(asked.query._id).toBe(MONITOR_ID);
     expect(asked.query.projectId).toBe(PROJECT_ID);
   });

@@ -110,8 +110,7 @@ export const ASK_AI_SETUP_REQUESTS: ReadonlyArray<SetupRequest> = [
     ],
   },
   {
-    request:
-      "If status.acme.example is down, page the Platform team, not me.",
+    request: "If status.acme.example is down, page the Platform team, not me.",
     project: SetupRequestProject.PagesNobody,
     expected: [
       {
@@ -135,8 +134,7 @@ export const ASK_AI_SETUP_REQUESTS: ReadonlyArray<SetupRequest> = [
     ],
   },
   {
-    request:
-      "Monitor docs.acme.example and put it on our Acme Status page.",
+    request: "Monitor docs.acme.example and put it on our Acme Status page.",
     project: SetupRequestProject.PagesPeople,
     expected: [
       {

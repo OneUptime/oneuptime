@@ -36,7 +36,9 @@
  *                    the project's first on-call policy, the SMS the
  *                    person asked for missing a number (issue #6829) -
  *                    whose approved parts leave their cards and the test
- *                    page offer
+ *                    page offer; setup-busy, the same in a busy project,
+ *                    which pages people already and has a status page: a
+ *                    website monitor, and that monitor put on the page
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -99,6 +101,8 @@ import {
   AI_ACTION_CARD_LINES,
   AI_ACTION_CODE_FILE,
   AI_ACTION_LINES,
+  AI_ACTION_NAME,
+  AI_ACTION_NEW_MONITOR,
   AI_ACTION_PLURAL_LINES,
   AI_ACTION_PLURAL_TITLES,
   AI_ACTION_TITLES,
@@ -153,6 +157,7 @@ const threadKind = [
   "actions",
   "code",
   "setup",
+  "setup-busy",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -653,30 +658,179 @@ function setupActions(monitorStatus, pagingStatus) {
   ];
 }
 
+// The card the approved monitor leaves: it offers a test page to yourself.
+function setupMonitorCard(minutes) {
+  return [
+    "W1",
+    "Monitor set up",
+    "example.com",
+    {
+      kind: aiActionTerm(AI_ACTION_CARD_KINDS.monitor),
+      line: [
+        aiActionPluralSentence(
+          AI_ACTION_PLURAL_LINES.checkedEveryMinutes,
+          minutes,
+        ),
+      ],
+      facts: [
+        aiActionCardFact(AI_ACTION_CARD_FACTS.address, "https://example.com"),
+      ],
+    },
+    {
+      type: AIChatCitationTargetType.MonitorView,
+      params: { monitorId: SETUP_MONITOR_ID },
+    },
+    { kind: "self" },
+  ];
+}
+
+// Cards as WidgetBuilder.actionCard writes them.
+function toSetupCards(cards) {
+  return cards.map(([id, title, heading, words, link, testPage]) => {
+    const english = describeAIActionCardWords(words);
+    return {
+      id,
+      type: AIChatWidgetType.ResourceCard,
+      title,
+      data: {
+        resourceType: english.kind,
+        heading,
+        subheading: english.line,
+        fields: english.facts,
+        words,
+        link,
+        ...(testPage ? { testPage } : {}),
+      },
+    };
+  });
+}
+
+/*
+ * The same kind of request in a busy project (?thread=setup-busy): its own
+ * on-call policies page people already, so no policy is proposed beside
+ * them, and it has a status page - "Monitor example.com and show it on our
+ * status page" is the monitor, checked every 5 minutes as nobody asked for
+ * another interval, and that monitor put on the project's status page.
+ */
+const SETUP_BUSY_QUESTION =
+  "Monitor example.com and show it on our status page.";
+const SETUP_STATUS_PAGE_NAME = "Acme status";
+const SETUP_STATUS_PAGE_ID = "80000000-0000-4000-8000-000000000001";
+
+const SETUP_BUSY_MONITOR_WORDS = {
+  ...SETUP_MONITOR_WORDS,
+  description: [
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.websiteMonitorChecks, 5, {
+      url: "https://example.com",
+    }),
+    aiActionPluralSentence(AI_ACTION_PLURAL_LINES.checkedFromLocations, 2),
+    aiActionSentence(AI_ACTION_LINES.monitorOpensIncident, {
+      severity: "Critical Incident",
+    }),
+    aiActionSentence(AI_ACTION_LINES.monitorOwnerEmailed),
+  ],
+};
+
+const SETUP_STATUS_PAGE_WORDS = {
+  title: aiActionSentence(AI_ACTION_TITLES.addMonitorsToStatusPage, {
+    statusPage: JSON.stringify(SETUP_STATUS_PAGE_NAME),
+  }),
+  description: [
+    aiActionSentence(AI_ACTION_LINES.adds, {
+      resources: aiActionList([
+        aiActionSentence(AI_ACTION_NEW_MONITOR, {
+          name: JSON.stringify("example.com"),
+        }),
+      ]),
+    }),
+  ],
+  namedArguments: ["statusPage", "statusPageId"],
+  describedArguments: ["monitors"],
+};
+
+// The busy project's plan: the monitor, and its place on the status page.
+function setupBusyActions(monitorStatus, statusPageStatus) {
+  const monitor = describeAIActionWords(SETUP_BUSY_MONITOR_WORDS);
+  const statusPage = describeAIActionWords(SETUP_STATUS_PAGE_WORDS);
+
+  return [
+    {
+      id: "call_setup_monitor",
+      toolName: "set_up_website_monitoring",
+      title: monitor.title,
+      description: monitor.description,
+      words: SETUP_BUSY_MONITOR_WORDS,
+      ...(monitorStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W1" }
+        : {}),
+      arguments: { address: "example.com", isApi: false },
+      isMutation: true,
+      requiresApproval: true,
+      status: monitorStatus,
+    },
+    {
+      id: "call_setup_status_page",
+      toolName: "add_monitors_to_status_page",
+      title: statusPage.title,
+      description: statusPage.description,
+      words: SETUP_STATUS_PAGE_WORDS,
+      ...(statusPageStatus === AIChatToolActionStatus.Executed
+        ? { widgetId: "W2" }
+        : {}),
+      arguments: {
+        statusPage: SETUP_STATUS_PAGE_NAME,
+        statusPageId: SETUP_STATUS_PAGE_ID,
+        monitors: ["example.com"],
+      },
+      isMutation: true,
+      requiresApproval: true,
+      status: statusPageStatus,
+    },
+  ];
+}
+
+// The cards the busy project's approved parts leave.
+function setupBusyCards(data) {
+  const cards = [];
+
+  if (data.monitor) {
+    cards.push(setupMonitorCard(5));
+  }
+
+  if (data.statusPage) {
+    cards.push([
+      "W2",
+      "Monitors added to the status page",
+      SETUP_STATUS_PAGE_NAME,
+      {
+        kind: aiActionTerm(AI_ACTION_CARD_KINDS.statusPage),
+        line: [
+          aiActionSentence(AI_ACTION_CARD_LINES.monitorsAdded, {
+            monitors: aiActionList([
+              aiActionSentence(AI_ACTION_NAME, {
+                name: JSON.stringify("example.com"),
+              }),
+            ]),
+          }),
+        ],
+      },
+      {
+        type: AIChatCitationTargetType.StatusPageView,
+        params: { statusPageId: SETUP_STATUS_PAGE_ID },
+      },
+      null,
+    ]);
+  }
+
+  return toSetupCards(cards);
+}
+
 // The cards the approved parts leave, each offering its test page.
 function setupCards(data) {
   const cards = [];
 
   if (data.monitor) {
-    cards.push([
-      "W1",
-      "Monitor set up",
-      "example.com",
-      {
-        kind: aiActionTerm(AI_ACTION_CARD_KINDS.monitor),
-        line: [
-          aiActionPluralSentence(AI_ACTION_PLURAL_LINES.checkedEveryMinutes, 1),
-        ],
-        facts: [
-          aiActionCardFact(AI_ACTION_CARD_FACTS.address, "https://example.com"),
-        ],
-      },
-      {
-        type: AIChatCitationTargetType.MonitorView,
-        params: { monitorId: SETUP_MONITOR_ID },
-      },
-      { kind: "self" },
-    ]);
+    cards.push(setupMonitorCard(1));
   }
 
   if (data.paging) {
@@ -700,23 +854,7 @@ function setupCards(data) {
     ]);
   }
 
-  return cards.map(([id, title, heading, words, link, testPage]) => {
-    const english = describeAIActionCardWords(words);
-    return {
-      id,
-      type: AIChatWidgetType.ResourceCard,
-      title,
-      data: {
-        resourceType: english.kind,
-        heading,
-        subheading: english.line,
-        fields: english.facts,
-        words,
-        link,
-        testPage,
-      },
-    };
-  });
+  return toSetupCards(cards);
 }
 
 // The cards the two leave once run (WidgetBuilder.actionCard).
@@ -779,6 +917,8 @@ let actionsConversation = null;
 let codeConversation = null;
 // The conversation waiting on a setup plan (?thread=setup).
 let setupConversation = null;
+// The same in a project that pages people already (?thread=setup-busy).
+let setupBusyConversation = null;
 
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
@@ -998,6 +1138,30 @@ function seedHistory() {
     });
   }
 
+  if (threadKind === "setup-busy") {
+    setupBusyConversation = conversationOf(
+      "Monitor example.com on our status page",
+      2,
+    );
+    messageOf(setupBusyConversation.id.toString(), AIChatMessageRole.User, {
+      contentInMarkdown: SETUP_BUSY_QUESTION,
+      createdAt: minutesAgo(2),
+    });
+    messageOf(
+      setupBusyConversation.id.toString(),
+      AIChatMessageRole.Assistant,
+      {
+        contentInMarkdown: "",
+        status: AIChatMessageStatus.WaitingForApproval,
+        toolActions: setupBusyActions(
+          AIChatToolActionStatus.Pending,
+          AIChatToolActionStatus.Pending,
+        ),
+        createdAt: minutesAgo(2),
+      },
+    );
+  }
+
   if (threadKind === "actions") {
     actionsConversation = conversationOf("Update the status page", 5);
     messageOf(actionsConversation.id.toString(), AIChatMessageRole.User, {
@@ -1055,6 +1219,7 @@ fixture.conversationIds = {
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
   setup: setupConversation?.id.toString(),
+  "setup-busy": setupBusyConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------
@@ -1426,6 +1591,35 @@ function respondToApproval(data) {
         : "I did not set anything up.";
     message.widgets = setupCards({ monitor, paging });
     message.aiRunId = runOf({ toolCallCount: 4, totalTokens: 7310 }).id;
+    return {};
+  }
+
+  // The busy project's plan: its own policies still decide who is paged.
+  if (data.conversationId === setupBusyConversation?.id.toString()) {
+    const isApproved = (id) => {
+      return (data.decisions || []).some((decision) => {
+        return decision.toolCallId === id && decision.approved;
+      });
+    };
+    const monitor = isApproved("call_setup_monitor");
+    const statusPage = isApproved("call_setup_status_page");
+    const statusOf = (approvedPart) => {
+      return approvedPart
+        ? AIChatToolActionStatus.Executed
+        : AIChatToolActionStatus.Denied;
+    };
+
+    message.toolActions = setupBusyActions(
+      statusOf(monitor),
+      statusOf(statusPage),
+    );
+    message.status = AIChatMessageStatus.Completed;
+    message.contentInMarkdown =
+      monitor || statusPage
+        ? "example.com is checked every 5 minutes and shown on Acme status. Your project's own on-call policies decide who is paged when it goes down: ask who is told when example.com goes down to see them. Send yourself a test page to be sure it reaches you."
+        : "I did not set anything up.";
+    message.widgets = setupBusyCards({ monitor, statusPage });
+    message.aiRunId = runOf({ toolCallCount: 5, totalTokens: 8120 }).id;
     return {};
   }
 

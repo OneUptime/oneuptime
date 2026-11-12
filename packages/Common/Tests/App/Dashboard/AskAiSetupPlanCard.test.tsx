@@ -8,7 +8,13 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+} from "@testing-library/react";
 import i18next from "i18next";
 import { initReactI18next } from "react-i18next";
 import * as React from "react";
@@ -213,9 +219,9 @@ describe("a setup plan's approval card", () => {
     expect(screen.getAllByTestId("tool-approval-title")[1]).toHaveTextContent(
       'Create on-call policy "Default on-call policy"',
     );
-    expect(screen.getByTestId("tool-approval-setup-plan-end")).toHaveTextContent(
-      "Nothing else changes.",
-    );
+    expect(
+      screen.getByTestId("tool-approval-setup-plan-end"),
+    ).toHaveTextContent("Nothing else changes.");
 
     // Skip the paging, run the rest: one press decides the whole plan.
     const skips: Array<HTMLElement> = screen.getAllByRole("button", {
@@ -283,9 +289,9 @@ describe("a setup plan's approval card", () => {
     );
 
     expect(DE[SETUP_PLAN_END]).toBe("Sonst ändert sich nichts.");
-    expect(screen.getByTestId("tool-approval-setup-plan-end")).toHaveTextContent(
-      "Sonst ändert sich nichts.",
-    );
+    expect(
+      screen.getByTestId("tool-approval-setup-plan-end"),
+    ).toHaveTextContent("Sonst ändert sich nichts.");
     expect(screen.getByTestId("tool-approval-title")).toHaveTextContent(
       'Bereitschaftsrichtlinie "Default on-call policy" erstellen',
     );
@@ -297,9 +303,9 @@ describe("a setup plan's approval card", () => {
 
   test("isSetupPlan: every waiting action a setup action, and at least one", () => {
     expect(isSetupPlan([])).toBe(false);
-    expect(
-      isSetupPlan([setupAction("a", "set_up_website_monitoring")]),
-    ).toBe(true);
+    expect(isSetupPlan([setupAction("a", "set_up_website_monitoring")])).toBe(
+      true,
+    );
     expect(
       isSetupPlan([
         setupAction("a", "publish_status_page"),
@@ -330,9 +336,9 @@ describe("the test page an answer that set something up offers", () => {
       policyId: POLICY_ID,
       policyName: "Default on-call policy",
     });
-    expect(getAnswerTestPageOffer([card({ testPage: { kind: "self" } })])).toEqual(
-      { kind: "self" },
-    );
+    expect(
+      getAnswerTestPageOffer([card({ testPage: { kind: "self" } })]),
+    ).toEqual({ kind: "self" });
   });
 
   test("is never a policy id that is not one, nor anything a card did not offer", () => {
@@ -445,11 +451,7 @@ describe("what is counted, never what the parts name", () => {
       getPendingSetupActions({
         status: AIChatMessageStatus.WaitingForApproval,
         toolActions: [
-          setupAction(
-            "a",
-            "set_up_paging",
-            AIChatToolActionStatus.Executed,
-          ),
+          setupAction("a", "set_up_paging", AIChatToolActionStatus.Executed),
         ],
       }),
     ).toEqual([]);

@@ -61,7 +61,10 @@ export interface StatusPageResourcePlacement {
 export const buildGuidedStatusPage: (data: {
   name: string;
   projectId: ObjectID;
-}) => StatusPage = (data: { name: string; projectId: ObjectID }): StatusPage => {
+}) => StatusPage = (data: {
+  name: string;
+  projectId: ObjectID;
+}): StatusPage => {
   const statusPage: StatusPage = new StatusPage();
   statusPage.name = data.name.trim();
   statusPage.projectId = data.projectId;

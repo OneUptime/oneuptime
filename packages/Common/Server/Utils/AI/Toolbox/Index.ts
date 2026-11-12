@@ -11,6 +11,7 @@ import { LLMToolDefinition } from "../../LLM/LLMService";
 import logger from "../../Logger";
 import {
   ObservabilityTool,
+  SetupActionRefusal,
   ToolContext,
   ToolExecutionResult,
 } from "./ToolTypes";
@@ -127,7 +128,6 @@ import {
 import { WhoIsToldTool } from "./WhoIsToldTools";
 import AIChatPermissionMode from "../../../../Types/AI/AIChatPermissionMode";
 import { AIToolRefusal } from "../../../../Types/AI/AIChatTypes";
-import { SetupActionRefusal } from "./ToolTypes";
 
 export interface ToolCallOutcome {
   success: boolean;

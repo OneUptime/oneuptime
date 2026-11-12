@@ -139,9 +139,14 @@ function describePerson(person: WhoIsToldPerson): string {
     }`;
   }
 
-  return `${person.name}${through}: by ${person.channels
+  const channels: string = person.channels
     .map(getOnCallPageChannelName)
-    .join(", ")}${person.isFallback ? " (their verified methods, as no rule of theirs covers this severity)" : ""}`;
+    .join(", ");
+  const fallback: string = person.isFallback
+    ? " (their verified methods, as no rule of theirs covers this severity)"
+    : "";
+
+  return `${person.name}${through}: by ${channels}${fallback}`;
 }
 
 function describePolicy(policy: WhoIsToldPolicy): string {
@@ -157,7 +162,9 @@ function describePolicy(policy: WhoIsToldPolicy): string {
   return `on-call policy "${policy.name}" (${policy.levelCount} escalation level${
     policy.levelCount === 1 ? "" : "s"
   }), whose first level pages: ${people}${
-    policy.notPaged.length > 0 ? `. Not paged: ${policy.notPaged.join("; ")}` : ""
+    policy.notPaged.length > 0
+      ? `. Not paged: ${policy.notPaged.join("; ")}`
+      : ""
   }`;
 }
 

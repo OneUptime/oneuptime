@@ -40,8 +40,9 @@ export const AI_SETUP_ACTION_PARTS: Readonly<Record<string, string>> = {
   [ADD_MONITORS_TO_STATUS_PAGE_TOOL_NAME]: "status_page_monitors",
 };
 
-export const AI_SETUP_ACTION_TOOL_NAMES: ReadonlyArray<string> =
-  Object.keys(AI_SETUP_ACTION_PARTS);
+export const AI_SETUP_ACTION_TOOL_NAMES: ReadonlyArray<string> = Object.keys(
+  AI_SETUP_ACTION_PARTS,
+);
 
 export function isAISetupAction(toolName: string | undefined): boolean {
   return Boolean(toolName) && AI_SETUP_ACTION_TOOL_NAMES.includes(toolName!);

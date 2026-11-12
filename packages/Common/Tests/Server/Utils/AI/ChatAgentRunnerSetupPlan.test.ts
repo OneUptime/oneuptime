@@ -99,12 +99,11 @@ const PAGING_CALL: { id: string; name: string; arguments: JSONObject } = {
   arguments: { reachMeBy: ["sms"] },
 };
 
-const STATUS_PAGE_CALL: { id: string; name: string; arguments: JSONObject } =
-  {
-    id: "call-status-page",
-    name: "publish_status_page",
-    arguments: { name: "Acme Status", monitors: ["example.com"] },
-  };
+const STATUS_PAGE_CALL: { id: string; name: string; arguments: JSONObject } = {
+  id: "call-status-page",
+  name: "publish_status_page",
+  arguments: { name: "Acme Status", monitors: ["example.com"] },
+};
 
 function response(data: {
   content?: string;
@@ -223,14 +222,12 @@ function installSpies(data?: {
     .mockResolvedValue([
       model(IncidentSeverity, { _id: severityId, name: "Critical Incident" }),
     ] as never);
-  jest
-    .spyOn(IncidentSeverityService, "findOneById")
-    .mockResolvedValue(
-      model(IncidentSeverity, {
-        _id: severityId,
-        name: "Critical Incident",
-      }) as never,
-    );
+  jest.spyOn(IncidentSeverityService, "findOneById").mockResolvedValue(
+    model(IncidentSeverity, {
+      _id: severityId,
+      name: "Critical Incident",
+    }) as never,
+  );
   jest
     .spyOn(AlertSeverityService, "findBy")
     .mockResolvedValue([
@@ -243,13 +240,11 @@ function installSpies(data?: {
       doNotAddGlobalProbesByDefaultOnNewMonitors: false,
     }) as never,
   );
-  jest
-    .spyOn(ProbeService, "countBy")
-    .mockImplementation((async (args: {
-      query: { isGlobalProbe: boolean };
-    }): Promise<PositiveNumber> => {
-      return new PositiveNumber(args.query.isGlobalProbe ? 2 : 0);
-    }) as never);
+  jest.spyOn(ProbeService, "countBy").mockImplementation((async (args: {
+    query: { isGlobalProbe: boolean };
+  }): Promise<PositiveNumber> => {
+    return new PositiveNumber(args.query.isGlobalProbe ? 2 : 0);
+  }) as never);
   jest
     .spyOn(MonitorProbeService, "countBy")
     .mockResolvedValue(new PositiveNumber(2) as never);
@@ -264,19 +259,17 @@ function installSpies(data?: {
   jest
     .spyOn(AlertOnCallRuleService, "countBy")
     .mockResolvedValue(new PositiveNumber(0) as never);
-  jest
-    .spyOn(OnCallReadinessService, "getReadinessForUser")
-    .mockResolvedValue({
-      status: ReadinessStatus.PartiallyReady,
-      methods: [
-        {
-          methodId: ObjectID.generate(),
-          methodType: ReadinessMethodType.Email,
-          maskedIdentifier: "•••",
-          isVerified: true,
-        },
-      ],
-    } as never);
+  jest.spyOn(OnCallReadinessService, "getReadinessForUser").mockResolvedValue({
+    status: ReadinessStatus.PartiallyReady,
+    methods: [
+      {
+        methodId: ObjectID.generate(),
+        methodType: ReadinessMethodType.Email,
+        maskedIdentifier: "•••",
+        isVerified: true,
+      },
+    ],
+  } as never);
 
   // The monitor exists once it is created: a status page finds it then.
   let monitorCreated: boolean = false;
@@ -288,13 +281,13 @@ function installSpies(data?: {
       created._id = MONITOR_ID;
       return created;
     }) as never);
-  jest
-    .spyOn(MonitorService, "findBy")
-    .mockImplementation((async (): Promise<Array<Monitor>> => {
-      return monitorCreated
-        ? [model(Monitor, { _id: MONITOR_ID, name: "example.com" })]
-        : [];
-    }) as never);
+  jest.spyOn(MonitorService, "findBy").mockImplementation((async (): Promise<
+    Array<Monitor>
+  > => {
+    return monitorCreated
+      ? [model(Monitor, { _id: MONITOR_ID, name: "example.com" })]
+      : [];
+  }) as never);
 
   const policyCreate: SpyInstance = jest
     .spyOn(OnCallDutyPolicyService, "create")
@@ -484,7 +477,10 @@ describe("one plan, one approval card", () => {
     const spies: Spies = installSpies();
     spies.executeWithLogging
       .mockResolvedValueOnce(
-        response({ stopReason: "tool_use", toolCalls: [MONITOR_CALL] }) as never,
+        response({
+          stopReason: "tool_use",
+          toolCalls: [MONITOR_CALL],
+        }) as never,
       )
       .mockResolvedValueOnce(response({ content: "Read-only." }) as never);
 
@@ -493,9 +489,11 @@ describe("one plan, one approval card", () => {
     );
 
     const offered: Array<string> = (
-      (spies.executeWithLogging.mock.calls[0]![0] as {
-        tools: Array<{ name: string }>;
-      }).tools || []
+      (
+        spies.executeWithLogging.mock.calls[0]![0] as {
+          tools: Array<{ name: string }>;
+        }
+      ).tools || []
     ).map((tool: { name: string }) => {
       return tool.name;
     });
@@ -533,7 +531,9 @@ describe("what cannot be made is never on the card", () => {
         }) as never,
       )
       .mockResolvedValueOnce(
-        response({ content: "You need a role that creates monitors." }) as never,
+        response({
+          content: "You need a role that creates monitors.",
+        }) as never,
       );
 
     await ChatAgentRunner.runTurn(
@@ -624,9 +624,7 @@ describe("what cannot be made is never on the card", () => {
     ).filter((message: JSONObject) => {
       return message["toolCallId"] === PAGING_CALL.id;
     });
-    expect(told[0]?.["content"]).toContain(
-      "this project already pages people",
-    );
+    expect(told[0]?.["content"]).toContain("this project already pages people");
   });
 });
 
@@ -635,7 +633,9 @@ describe("approved, the plan runs as the person, in its plan's order", () => {
     const run: AIRun = await proposeAndPause([MONITOR_CALL, PAGING_CALL]);
     const spies: Spies = installSpies({ run });
     spies.executeWithLogging.mockResolvedValueOnce(
-      response({ content: "Set up example.com and paging [C1] [C2]." }) as never,
+      response({
+        content: "Set up example.com and paging [C1] [C2].",
+      }) as never,
     );
     const decider: ChatTurnRequest = buildRequest();
 
@@ -666,8 +666,8 @@ describe("approved, the plan runs as the person, in its plan's order", () => {
     ]);
 
     // The results go back to the model in the order it asked for them.
-    const args: { messages: Array<JSONObject> } = spies.executeWithLogging
-      .mock.calls[0]![0] as { messages: Array<JSONObject> };
+    const args: { messages: Array<JSONObject> } = spies.executeWithLogging.mock
+      .calls[0]![0] as { messages: Array<JSONObject> };
     const order: Array<string> = args.messages
       .filter((message: JSONObject) => {
         return message["role"] === "tool";
@@ -719,7 +719,9 @@ describe("approved, the plan runs as the person, in its plan's order", () => {
     expect(told[PAGING_CALL.id]).toContain(
       "Escalation rule limit reached on this plan.",
     );
-    expect(told[MONITOR_CALL.id]).toContain('Created the Website monitor "example.com"');
+    expect(told[MONITOR_CALL.id]).toContain(
+      'Created the Website monitor "example.com"',
+    );
   });
 
   test("a status page asked for before its monitor still shows it: the monitor is made first", async () => {
@@ -736,8 +738,9 @@ describe("approved, the plan runs as the person, in its plan's order", () => {
     );
     expect(spies.resourceCreate).toHaveBeenCalledTimes(1);
     expect(
-      (spies.resourceCreate.mock.calls[0]![0] as { data: StatusPageResource })
-        .data.monitorId?.toString(),
+      (
+        spies.resourceCreate.mock.calls[0]![0] as { data: StatusPageResource }
+      ).data.monitorId?.toString(),
     ).toBe(MONITOR_ID);
   });
 

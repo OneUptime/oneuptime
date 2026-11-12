@@ -85,88 +85,100 @@ describe("the fixed list of setup requests", () => {
   });
 
   test.each(
-    ASK_AI_SETUP_REQUESTS.map((entry: SetupRequest, index: number) => {
-      return [`${index + 1}. ${entry.request}`, entry];
-    }),
-  )("%s: every call is one the toolbox takes, as written", (
-    _name: string,
-    entry: SetupRequest,
-  ) => {
-    for (const call of entry.expected) {
-      const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
-        call.tool,
-      );
+    ASK_AI_SETUP_REQUESTS.map(
+      (entry: SetupRequest, index: number): [string, SetupRequest] => {
+        return [`${index + 1}. ${entry.request}`, entry];
+      },
+    ),
+  )(
+    "%s: every call is one the toolbox takes, as written",
+    (_name: string, entry: SetupRequest) => {
+      for (const call of entry.expected) {
+        const tool: ObservabilityTool | undefined = AIToolbox.getToolByName(
+          call.tool,
+        );
 
-      expect({ call: call.tool, exists: Boolean(tool) }).toEqual({
-        call: call.tool,
-        exists: true,
-      });
-
-      const schema: {
-        properties: Record<string, JSONObject>;
-        required: Array<string>;
-      } = schemaOf(tool!);
-
-      for (const required of schema.required) {
-        expect({ call: call.tool, required, given: required in call.arguments })
-          .toEqual({ call: call.tool, required, given: true });
-      }
-
-      for (const [key, value] of Object.entries(call.arguments)) {
-        expect({ call: call.tool, key, known: key in schema.properties })
-          .toEqual({ call: call.tool, key, known: true });
-        expect({
+        expect({ call: call.tool, exists: Boolean(tool) }).toEqual({
           call: call.tool,
-          key,
-          fits: matchesType(value, schema.properties[key]!),
-        }).toEqual({ call: call.tool, key, fits: true });
+          exists: true,
+        });
+
+        const schema: {
+          properties: Record<string, JSONObject>;
+          required: Array<string>;
+        } = schemaOf(tool!);
+
+        for (const required of schema.required) {
+          expect({
+            call: call.tool,
+            required,
+            given: required in call.arguments,
+          }).toEqual({ call: call.tool, required, given: true });
+        }
+
+        for (const [key, value] of Object.entries(call.arguments)) {
+          expect({
+            call: call.tool,
+            key,
+            known: key in schema.properties,
+          }).toEqual({ call: call.tool, key, known: true });
+          expect({
+            call: call.tool,
+            key,
+            fits: matchesType(value, schema.properties[key]!),
+          }).toEqual({ call: call.tool, key, fits: true });
+        }
       }
-    }
-  });
+    },
+  );
 
   test.each(
-    ASK_AI_SETUP_REQUESTS.map((entry: SetupRequest, index: number) => {
-      return [`${index + 1}. ${entry.request}`, entry];
-    }),
-  )("%s: a plan is the setup actions alone, and runs in its plan's order", (
-    _name: string,
-    entry: SetupRequest,
-  ) => {
-    const setupCalls: Array<ExpectedSetupCall> = entry.expected.filter(
-      (call: ExpectedSetupCall) => {
-        return AIToolbox.isSetupAction(call.tool);
+    ASK_AI_SETUP_REQUESTS.map(
+      (entry: SetupRequest, index: number): [string, SetupRequest] => {
+        return [`${index + 1}. ${entry.request}`, entry];
       },
-    );
+    ),
+  )(
+    "%s: a plan is the setup actions alone, and runs in its plan's order",
+    (_name: string, entry: SetupRequest) => {
+      const setupCalls: Array<ExpectedSetupCall> = entry.expected.filter(
+        (call: ExpectedSetupCall) => {
+          return AIToolbox.isSetupAction(call.tool);
+        },
+      );
 
-    // A plan is setup actions only, so its card can say nothing else changes.
-    if (setupCalls.length > 0) {
-      expect(setupCalls).toHaveLength(entry.expected.length);
-    }
+      // A plan is setup actions only, so its card can say nothing else changes.
+      if (setupCalls.length > 0) {
+        expect(setupCalls).toHaveLength(entry.expected.length);
+      }
 
-    const asLlmCalls: Array<LLMToolCall> = entry.expected.map(
-      (call: ExpectedSetupCall, index: number): LLMToolCall => {
-        return {
-          id: `call-${index}`,
-          name: call.tool,
-          arguments: call.arguments,
-        };
-      },
-    );
-    const ran: Array<string> = ChatAgentRunner.orderForRun(asLlmCalls).map(
-      (call: LLMToolCall) => {
-        return call.name;
-      },
-    );
-    const byPlanOrder: Array<string> = [...entry.expected]
-      .map((call: ExpectedSetupCall) => {
-        return call.tool;
-      })
-      .sort((a: string, b: string): number => {
-        return AIToolbox.getSetupPlanOrder(a) - AIToolbox.getSetupPlanOrder(b);
-      });
+      const asLlmCalls: Array<LLMToolCall> = entry.expected.map(
+        (call: ExpectedSetupCall, index: number): LLMToolCall => {
+          return {
+            id: `call-${index}`,
+            name: call.tool,
+            arguments: call.arguments,
+          };
+        },
+      );
+      const ran: Array<string> = ChatAgentRunner.orderForRun(asLlmCalls).map(
+        (call: LLMToolCall) => {
+          return call.name;
+        },
+      );
+      const byPlanOrder: Array<string> = [...entry.expected]
+        .map((call: ExpectedSetupCall) => {
+          return call.tool;
+        })
+        .sort((a: string, b: string): number => {
+          return (
+            AIToolbox.getSetupPlanOrder(a) - AIToolbox.getSetupPlanOrder(b)
+          );
+        });
 
-    expect(ran).toEqual(byPlanOrder);
-  });
+      expect(ran).toEqual(byPlanOrder);
+    },
+  );
 
   test("a project that pages people already is never offered a second policy", () => {
     for (const entry of ASK_AI_SETUP_REQUESTS) {
@@ -191,9 +203,10 @@ describe("the fixed list of setup requests", () => {
           const address: ReturnType<typeof parseWebsiteAddress> =
             parseWebsiteAddress(call.arguments["address"] as string);
 
-          expect({ request: entry.request, parsed: Boolean(address) }).toEqual(
-            { request: entry.request, parsed: true },
-          );
+          expect({ request: entry.request, parsed: Boolean(address) }).toEqual({
+            request: entry.request,
+            parsed: true,
+          });
           monitorNames.push(address!.monitorName);
         }
       }

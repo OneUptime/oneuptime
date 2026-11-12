@@ -73,12 +73,13 @@ describe("AIToolbox.checkBeforeApproval", () => {
   test("a person whose role may not make it is told which permission it needs, and nothing runs", async () => {
     const execute: Spy = jest.spyOn(SETUP_TOOL, "execute");
 
-    const refused: ToolCallOutcome | null =
-      await AIToolbox.checkBeforeApproval({
+    const refused: ToolCallOutcome | null = await AIToolbox.checkBeforeApproval(
+      {
         name: "set_up_website_monitoring",
         args: { address: "example.com" },
         ctx: asMember([Permission.ReadProjectMonitor]),
-      });
+      },
+    );
 
     expect(refused?.success).toBe(false);
     expect(refused?.refusal).toBe(AIToolRefusal.Permission);
@@ -90,8 +91,8 @@ describe("AIToolbox.checkBeforeApproval", () => {
   });
 
   test("a team's block on the permission it needs is told as the block", async () => {
-    const refused: ToolCallOutcome | null =
-      await AIToolbox.checkBeforeApproval({
+    const refused: ToolCallOutcome | null = await AIToolbox.checkBeforeApproval(
+      {
         name: "set_up_website_monitoring",
         args: { address: "example.com" },
         ctx: {
@@ -102,7 +103,8 @@ describe("AIToolbox.checkBeforeApproval", () => {
             projectId: PROJECT_ID,
           }),
         },
-      });
+      },
+    );
 
     expect(refused?.refusal).toBe(AIToolRefusal.TeamBlock);
   });
@@ -135,12 +137,13 @@ describe("AIToolbox.checkBeforeApproval", () => {
   });
 
   test("a person who may make it gets the action's own check: an address that is not one is said, with no card", async () => {
-    const refused: ToolCallOutcome | null =
-      await AIToolbox.checkBeforeApproval({
+    const refused: ToolCallOutcome | null = await AIToolbox.checkBeforeApproval(
+      {
         name: "set_up_website_monitoring",
         args: { address: "the website" },
         ctx: asMember([Permission.ProjectMember]),
-      });
+      },
+    );
 
     expect(refused?.success).toBe(false);
     expect(refused?.refusal).toBeUndefined();
@@ -165,12 +168,15 @@ describe("AIToolbox.checkBeforeApproval", () => {
   });
 
   test("a check that throws lets the card show: running it says what went wrong", async () => {
-    const tool: { checkBeforeApproval: NonNullable<ObservabilityTool["checkBeforeApproval"]> } =
-      SetUpWebsiteMonitoringTool as unknown as {
-        checkBeforeApproval: NonNullable<
-          ObservabilityTool["checkBeforeApproval"]
-        >;
-      };
+    const tool: {
+      checkBeforeApproval: NonNullable<
+        ObservabilityTool["checkBeforeApproval"]
+      >;
+    } = SetUpWebsiteMonitoringTool as unknown as {
+      checkBeforeApproval: NonNullable<
+        ObservabilityTool["checkBeforeApproval"]
+      >;
+    };
     jest
       .spyOn(tool, "checkBeforeApproval")
       .mockRejectedValue(new Error("boom") as never);
@@ -185,12 +191,13 @@ describe("AIToolbox.checkBeforeApproval", () => {
   });
 
   test("arguments that are not an object are refused as running them would be", async () => {
-    const refused: ToolCallOutcome | null =
-      await AIToolbox.checkBeforeApproval({
+    const refused: ToolCallOutcome | null = await AIToolbox.checkBeforeApproval(
+      {
         name: "set_up_website_monitoring",
         args: [] as never,
         ctx: asMember([Permission.ProjectMember]),
-      });
+      },
+    );
 
     expect(refused?.textForLlm).toContain("must be a JSON object");
   });
@@ -201,12 +208,13 @@ describe("executeTool keeps its gates, now shared with the check", () => {
     const execute: Spy = jest.spyOn(SETUP_TOOL, "execute");
     const ctx: ToolContext = asMember([Permission.ReadProjectMonitor]);
 
-    const checked: ToolCallOutcome | null =
-      await AIToolbox.checkBeforeApproval({
+    const checked: ToolCallOutcome | null = await AIToolbox.checkBeforeApproval(
+      {
         name: "set_up_website_monitoring",
         args: { address: "example.com" },
         ctx,
-      });
+      },
+    );
     const ran: ToolCallOutcome = await AIToolbox.executeTool({
       name: "set_up_website_monitoring",
       args: { address: "example.com" },

@@ -50,7 +50,10 @@ function promptFor(data: {
 }
 
 describe("the setup section", () => {
-  test.each([AIChatPermissionMode.AskForApproval, AIChatPermissionMode.AutoRun])(
+  test.each([
+    AIChatPermissionMode.AskForApproval,
+    AIChatPermissionMode.AutoRun,
+  ])(
     "is in the %s prompt, once, before the results are read",
     (permissionMode: AIChatPermissionMode) => {
       const prompt: string = promptFor({ permissionMode });
@@ -149,7 +152,10 @@ describe("the setup section", () => {
 });
 
 describe("the rest of the prompt agrees", () => {
-  test.each([AIChatPermissionMode.AskForApproval, AIChatPermissionMode.AutoRun])(
+  test.each([
+    AIChatPermissionMode.AskForApproval,
+    AIChatPermissionMode.AutoRun,
+  ])(
     "the %s prompt lists setting things up among its actions",
     (permissionMode: AIChatPermissionMode) => {
       expect(promptFor({ permissionMode })).toContain(

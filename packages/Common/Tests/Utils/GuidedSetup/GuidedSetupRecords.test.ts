@@ -58,7 +58,12 @@ const SEEDS: WebsiteMonitorSeeds = {
 describe("the address", () => {
   test.each([
     ["example.com", "https://example.com", "example.com", "example.com"],
-    ["https://www.example.com/", "https://www.example.com/", "www.example.com", "example.com"],
+    [
+      "https://www.example.com/",
+      "https://www.example.com/",
+      "www.example.com",
+      "example.com",
+    ],
     [
       "http://example.com:8080/health/",
       "http://example.com:8080/health/",

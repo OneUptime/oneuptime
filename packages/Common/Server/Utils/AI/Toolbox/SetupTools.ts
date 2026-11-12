@@ -238,16 +238,17 @@ const getPagingPermissionGroups: () => Array<Array<Permission>> = (): Array<
 
 let cachedStatusPageGroups: Array<Array<Permission>> | null = null;
 // A status page and the monitors on it: both, as the guided setup asks.
-const getStatusPagePermissionGroups: () => Array<Array<Permission>> =
-  (): Array<Array<Permission>> => {
-    if (!cachedStatusPageGroups) {
-      cachedStatusPageGroups = [
-        new StatusPage().getCreatePermissions(),
-        new StatusPageResource().getCreatePermissions(),
-      ];
-    }
-    return cachedStatusPageGroups;
-  };
+const getStatusPagePermissionGroups: () => Array<Array<Permission>> = (): Array<
+  Array<Permission>
+> => {
+  if (!cachedStatusPageGroups) {
+    cachedStatusPageGroups = [
+      new StatusPage().getCreatePermissions(),
+      new StatusPageResource().getCreatePermissions(),
+    ];
+  }
+  return cachedStatusPageGroups;
+};
 
 let cachedStatusPageResourceCreate: Array<Permission> | null = null;
 const getStatusPageResourceCreatePermissions: () => Array<Permission> =
@@ -2003,7 +2004,9 @@ const NO_SUCH_STATUS_PAGE: (named: string) => string = (
   named: string,
 ): string => {
   return `Nothing proposed: ${
-    named ? `"${named}" is no status page of this project` : "no status page was named"
+    named
+      ? `"${named}" is no status page of this project`
+      : "no status page was named"
   }. Find it with query_status_pages, or propose publish_status_page to make one.`;
 };
 
@@ -2078,11 +2081,9 @@ export const AddMonitorsToStatusPageTool: ObservabilityTool = {
         }),
       );
       const toAdd: MonitorsToShow = {
-        existing: monitors.existing.filter(
-          (monitor: SetupMonitor): boolean => {
-            return !shownIds.has(monitor.id);
-          },
-        ),
+        existing: monitors.existing.filter((monitor: SetupMonitor): boolean => {
+          return !shownIds.has(monitor.id);
+        }),
         setUpInPlan: monitors.setUpInPlan,
         notFound: [],
       };

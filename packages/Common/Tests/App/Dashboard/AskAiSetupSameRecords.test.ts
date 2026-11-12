@@ -254,18 +254,17 @@ describe("the same records, for the same answers", () => {
       const fromGuidedSetup: Monitor = browserCreates()[0]!.model as Monitor;
 
       // Ask AI, on the server, for the same answers.
-      const serverCreate: SpyInstance<(...args: Array<never>) => unknown> =
-        jest
-          .spyOn(MonitorService, "create")
-          .mockImplementation((async (args: {
-            data: Monitor;
-          }): Promise<Monitor> => {
-            const created: Monitor = args.data;
-            created._id = MONITOR_ID;
-            return created;
-          }) as never) as unknown as SpyInstance<
-          (...args: Array<never>) => unknown
-        >;
+      const serverCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
+        .spyOn(MonitorService, "create")
+        .mockImplementation((async (args: {
+          data: Monitor;
+        }): Promise<Monitor> => {
+          const created: Monitor = args.data;
+          created._id = MONITOR_ID;
+          return created;
+        }) as never) as unknown as SpyInstance<
+        (...args: Array<never>) => unknown
+      >;
       await SetUpWebsiteMonitoringTool.execute(
         { address: address, isApi: isApi },
         ctx,
@@ -366,23 +365,24 @@ describe("the same records, for the same answers", () => {
         data: StatusPage;
       }): Promise<StatusPage> => {
         return model(StatusPage, { ...args.data, _id: STATUS_PAGE_ID });
-      }) as never) as unknown as SpyInstance<(...args: Array<never>) => unknown>;
+      }) as never) as unknown as SpyInstance<
+      (...args: Array<never>) => unknown
+    >;
     jest
       .spyOn(StatusPageService, "getStatusPageURL")
       .mockResolvedValue("https://oneuptime.example/status-page/x" as never);
     jest
       .spyOn(StatusPageResourceService, "findBy")
       .mockResolvedValue([] as never);
-    const resourceCreate: SpyInstance<(...args: Array<never>) => unknown> =
-      jest
-        .spyOn(StatusPageResourceService, "create")
-        .mockImplementation((async (args: {
-          data: StatusPageResource;
-        }): Promise<StatusPageResource> => {
-          return args.data;
-        }) as never) as unknown as SpyInstance<
-        (...args: Array<never>) => unknown
-      >;
+    const resourceCreate: SpyInstance<(...args: Array<never>) => unknown> = jest
+      .spyOn(StatusPageResourceService, "create")
+      .mockImplementation((async (args: {
+        data: StatusPageResource;
+      }): Promise<StatusPageResource> => {
+        return args.data;
+      }) as never) as unknown as SpyInstance<
+      (...args: Array<never>) => unknown
+    >;
 
     await PublishStatusPageTool.execute(
       { name: " Acme Status ", monitors: ["example.com"] },

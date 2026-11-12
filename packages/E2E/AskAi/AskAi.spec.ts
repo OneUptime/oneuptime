@@ -3749,9 +3749,9 @@ test.describe("a setup plan", () => {
     await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
       "Test this policy",
     );
-    await expect(
-      page.getByTestId("tool-approval-setup-plan-end"),
-    ).toHaveCount(0);
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveCount(
+      0,
+    );
 
     const fixtureState: FixtureState = await state(page);
     expect(fixtureState.approvals.at(-1)?.decisions).toEqual([
@@ -3761,6 +3761,67 @@ test.describe("a setup plan", () => {
     expect(fixtureState.unhandled).toEqual([]);
 
     await screenshot(page, "setup-done-1280");
+  });
+
+  test("in a busy project: no policy beside its own, the monitor put on its status page, and a test page to yourself", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await load(page, "thread=setup-busy");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const [monitor, statusPage] = [
+      page.getByTestId("tool-approval-action").nth(0),
+      page.getByTestId("tool-approval-action").nth(1),
+    ];
+    await expect(monitor.getByTestId("tool-approval-title")).toHaveText(
+      "Set up monitoring for example.com",
+    );
+    await expect(monitor.getByTestId("tool-approval-description")).toHaveText(
+      "A website monitor checks https://example.com every 5 minutes. It is checked from 2 locations. If it does not answer, or answers with an error, OneUptime opens an incident (Critical Incident). You own this monitor, so you are emailed when its status changes.",
+    );
+    await expect(statusPage.getByTestId("tool-approval-title")).toHaveText(
+      'Add monitors to status page "Acme status"',
+    );
+    await expect(
+      statusPage.getByTestId("tool-approval-description"),
+    ).toHaveText('Adds "example.com" (new).');
+    // The project pages people already: its own policies decide, none is proposed.
+    await expect(page.getByTestId("tool-approval-action")).toHaveCount(2);
+    await expect(askAi(page).getByText("Create on-call policy")).toHaveCount(0);
+    // The page and the monitor are named in words, not as arguments.
+    await expect(page.getByTestId("tool-approval-arguments")).toHaveCount(0);
+    await expect(page.getByTestId("tool-approval-setup-plan-end")).toHaveText(
+      "Nothing else changes.",
+    );
+    await screenshot(page, "setup-busy-plan-1280");
+
+    await page.getByRole("button", { name: "Run 2 actions" }).click();
+
+    const cards: Locator = page.getByTestId("ai-chat-resource-card");
+    await expect(cards).toHaveCount(2);
+    await expect(
+      cards.nth(0).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText("Checked every 5 minutes");
+    await expect(
+      cards.nth(1).getByTestId("ai-chat-resource-card-line"),
+    ).toHaveText('Added "example.com"');
+    // No policy was made: the test page goes to the person who set it up.
+    await expect(page.getByTestId("ask-ai-send-test-page")).toHaveText(
+      "Send me a test page",
+    );
+
+    const fixtureState: FixtureState = await state(page);
+    expect(fixtureState.approvals.at(-1)?.decisions).toEqual([
+      { toolCallId: "call_setup_monitor", approved: true },
+      { toolCallId: "call_setup_status_page", approved: true },
+    ]);
+    expect(fixtureState.unhandled).toEqual([]);
+    await expectNothingScrollsSideways(page);
+
+    await screenshot(page, "setup-busy-done-1280");
   });
 
   test("a part skipped is not made, and a monitor alone offers a test page to yourself", async ({
@@ -3821,7 +3882,10 @@ test.describe("a setup plan", () => {
     await expectNothingScrollsSideways(page);
     await screenshot(page, "setup-plan-390-fa");
 
-    await page.getByTestId("tool-approval-action").first().scrollIntoViewIfNeeded();
+    await page
+      .getByTestId("tool-approval-action")
+      .first()
+      .scrollIntoViewIfNeeded();
     await page
       .getByRole("button", {
         name: persian["Run {{count}} actions"]!.replace("{{count}}", "۲"),

@@ -90,7 +90,10 @@ import PositiveNumber from "../../../../../Types/PositiveNumber";
 import { GUIDED_SETUP_POLICY_NAME } from "../../../../../Utils/GuidedSetup/OnCallPolicyRecords";
 import { GUIDED_SETUP_RESOURCE_OPTIONS } from "../../../../../Utils/GuidedSetup/StatusPageRecords";
 import { GUIDED_SETUP_MONITORING_INTERVAL } from "../../../../../Utils/GuidedSetup/WebsiteMonitorRecords";
-import { actionLineText, actionTitleText } from "../../../../Helpers/AIActionText";
+import {
+  actionLineText,
+  actionTitleText,
+} from "../../../../Helpers/AIActionText";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -211,25 +214,23 @@ function stubLocations(data?: {
     }) as never,
   );
 
-  return jest
-    .spyOn(ProbeService, "countBy")
-    .mockImplementation((async (args: {
-      query: { isGlobalProbe: boolean };
-    }): Promise<PositiveNumber> => {
-      return new PositiveNumber(
-        args.query.isGlobalProbe ? (data?.global ?? 2) : (data?.project ?? 0),
-      );
-    }) as never);
+  return jest.spyOn(ProbeService, "countBy").mockImplementation((async (args: {
+    query: { isGlobalProbe: boolean };
+  }): Promise<PositiveNumber> => {
+    return new PositiveNumber(
+      args.query.isGlobalProbe ? data?.global ?? 2 : data?.project ?? 0,
+    );
+  }) as never);
 }
 
 function stubMonitorCreate(): Spy {
-  return jest
-    .spyOn(MonitorService, "create")
-    .mockImplementation((async (args: { data: Monitor }): Promise<Monitor> => {
-      const created: Monitor = args.data;
-      created._id = MONITOR_ID;
-      return created;
-    }) as never);
+  return jest.spyOn(MonitorService, "create").mockImplementation((async (args: {
+    data: Monitor;
+  }): Promise<Monitor> => {
+    const created: Monitor = args.data;
+    created._id = MONITOR_ID;
+    return created;
+  }) as never);
 }
 
 function stubPagingCounts(counts: {
@@ -317,9 +318,11 @@ function line(sentences: Array<AIActionSentence> | undefined): string {
 
 describe("the setup actions, together", () => {
   test("are the toolbox's mutations, each a setup action with its check, under the names the Dashboard knows them by", () => {
-    expect(SETUP_TOOLS.map((tool: ObservabilityTool) => {
-      return tool.name;
-    })).toEqual([...SETUP_TOOL_NAMES]);
+    expect(
+      SETUP_TOOLS.map((tool: ObservabilityTool) => {
+        return tool.name;
+      }),
+    ).toEqual([...SETUP_TOOL_NAMES]);
     expect([...SETUP_TOOL_NAMES]).toEqual([...AI_SETUP_ACTION_TOOL_NAMES]);
     expect(SETUP_TOOL_NAMES).toEqual([
       SET_UP_PAGING_TOOL_NAME,
@@ -382,12 +385,18 @@ describe("reading the arguments", () => {
 
   test("reads names trimmed, each once without regard to case, at most 25", () => {
     expect(
-      readNames({ names: [" Ana ", "ana", "Bob", "", 7] } as JSONObject, "names"),
+      readNames(
+        { names: [" Ana ", "ana", "Bob", "", 7] } as JSONObject,
+        "names",
+      ),
     ).toEqual(["Ana", "Bob"]);
 
-    const many: Array<string> = Array.from({ length: 40 }, (_v, i: number) => {
-      return `m${i}`;
-    });
+    const many: Array<string> = Array.from(
+      { length: 40 },
+      (_value: unknown, index: number): string => {
+        return `m${index}`;
+      },
+    );
     expect(readNames({ names: many }, "names")).toHaveLength(25);
     expect(readNames({}, "names")).toEqual([]);
   });
@@ -701,9 +710,9 @@ describe("set_up_website_monitoring", () => {
     expect(step?.data?.monitorDestination?.toString()).toBe(
       "https://example.com/",
     );
-    expect(args.data.monitorSteps?.data?.defaultMonitorStatusId?.toString()).toBe(
-      OPERATIONAL_ID.toString(),
-    );
+    expect(
+      args.data.monitorSteps?.data?.defaultMonitorStatusId?.toString(),
+    ).toBe(OPERATIONAL_ID.toString());
 
     expect(result.citationTarget).toEqual({
       type: AIChatCitationTargetType.MonitorView,
@@ -712,7 +721,9 @@ describe("set_up_website_monitoring", () => {
     expect(result.dataForLlm).toContain(
       'Created the Website monitor "example.com", checking https://example.com every minute from 2 locations.',
     );
-    expect(result.dataForLlm).toContain("opens an incident (Critical Incident)");
+    expect(result.dataForLlm).toContain(
+      "opens an incident (Critical Incident)",
+    );
     expect(result.dataForLlm).toContain("never say one was sent");
     expect(result.widget?.data.testPage).toEqual({ kind: "self" });
     expect(result.widget?.data.link).toEqual(result.citationTarget);
@@ -814,7 +825,7 @@ describe("set_up_paging", () => {
     );
 
     expect(line(prepared.description)).toBe(
-      'Pages you and Ana Lopez, the Platform team for every new incident and alert. Not in this project, so not paged: Zed, Nobody.',
+      "Pages you and Ana Lopez, the Platform team for every new incident and alert. Not in this project, so not paged: Zed, Nobody.",
     );
     expect(prepared.arguments["userIds"]).toEqual([USER_ID.toString(), ANA_ID]);
     expect(prepared.arguments["teamIds"]).toEqual([TEAM_ID]);
@@ -890,7 +901,10 @@ describe("set_up_paging", () => {
       "Nothing reaches you yet. Add a notification method in Notification Methods.",
     ]);
     expect(
-      describeReachForPerson({ asked: [SetupReachMethod.SMS], readiness: null }),
+      describeReachForPerson({
+        asked: [SetupReachMethod.SMS],
+        readiness: null,
+      }),
     ).toEqual([]);
   });
 
@@ -1092,7 +1106,9 @@ describe("publish_status_page", () => {
           ctx,
         )
       )?.toldModel,
-    ).toContain("none of the ones named (Billing) is a monitor of this project");
+    ).toContain(
+      "none of the ones named (Billing) is a monitor of this project",
+    );
     expect(
       (
         await PublishStatusPageTool.checkBeforeApproval!(
@@ -1230,9 +1246,11 @@ describe("add_monitors_to_status_page", () => {
       { id: MONITOR_ID, name: "example.com" },
       { id: API_MONITOR_ID, name: "API" },
     ]);
-    jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([
-      model(StatusPageResource, { monitorId: new ObjectID(API_MONITOR_ID) }),
-    ] as never);
+    jest
+      .spyOn(StatusPageResourceService, "findBy")
+      .mockResolvedValue([
+        model(StatusPageResource, { monitorId: new ObjectID(API_MONITOR_ID) }),
+      ] as never);
 
     const prepared: PreparedMutation =
       await AddMonitorsToStatusPageTool.prepareMutation!(
@@ -1295,9 +1313,11 @@ describe("add_monitors_to_status_page", () => {
       { id: MONITOR_ID, name: "example.com" },
       { id: API_MONITOR_ID, name: "API" },
     ]);
-    jest.spyOn(StatusPageResourceService, "findBy").mockResolvedValue([
-      model(StatusPageResource, { monitorId: new ObjectID(API_MONITOR_ID) }),
-    ] as never);
+    jest
+      .spyOn(StatusPageResourceService, "findBy")
+      .mockResolvedValue([
+        model(StatusPageResource, { monitorId: new ObjectID(API_MONITOR_ID) }),
+      ] as never);
     const createResource: Spy = jest
       .spyOn(StatusPageResourceService, "create")
       .mockImplementation((async (args: {
@@ -1313,9 +1333,9 @@ describe("add_monitors_to_status_page", () => {
       );
 
     expect(createResource).toHaveBeenCalledTimes(1);
-    expect(
-      (createResource.mock.calls[0]![0] as { props: unknown }).props,
-    ).toBe(ctx.props);
+    expect((createResource.mock.calls[0]![0] as { props: unknown }).props).toBe(
+      ctx.props,
+    );
     expect(result.dataForLlm).toContain(
       'Added "example.com" to the status page "Acme Status". It already showed "API".',
     );
@@ -1339,6 +1359,8 @@ describe("add_monitors_to_status_page", () => {
         { statusPage: "Acme Status", monitors: ["example.com"] },
         ctx,
       ),
-    ).rejects.toThrow('No monitor was added to "Acme Status": "example.com" (refused).');
+    ).rejects.toThrow(
+      'No monitor was added to "Acme Status": "example.com" (refused).',
+    );
   });
 });
