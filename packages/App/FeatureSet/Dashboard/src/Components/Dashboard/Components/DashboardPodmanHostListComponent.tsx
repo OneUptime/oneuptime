@@ -10,6 +10,7 @@ import DashboardPodmanHostListComponent from "Common/Types/Dashboard/DashboardCo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import {
@@ -235,14 +236,17 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
         key={id}
         className="hover:bg-gray-50/50 transition-colors duration-100 group"
       >
-        <td className="px-3 py-2 text-xs text-gray-700 truncate">
+        <ResourceListNameCell
+          name={name}
+          className="px-3 py-2 text-xs text-gray-700 truncate"
+        >
           <AppLink
             to={route}
             className="hover:underline text-gray-700 group-hover:text-blue-600"
           >
             {name}
           </AppLink>
-        </td>
+        </ResourceListNameCell>
         <td className="px-3 py-2">
           <span
             className="inline-flex items-center gap-1.5 text-xs font-medium"
@@ -278,10 +282,10 @@ const DashboardPodmanHostListComponentElement: FunctionComponent<
             </>
           ) : null}
         </td>
-        <td className="px-3 py-2 text-xs text-gray-500 truncate">
-          {osType}
-          {osVersion ? ` ${osVersion}` : ""}
-        </td>
+        <ResourceListNameCell
+          name={osVersion ? `${osType} ${osVersion}` : osType}
+          className="px-3 py-2 text-xs text-gray-500 truncate"
+        />
       </tr>
     );
   });

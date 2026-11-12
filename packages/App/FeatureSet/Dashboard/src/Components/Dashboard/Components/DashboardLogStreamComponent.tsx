@@ -29,6 +29,7 @@ import {
   LogFilter,
 } from "Common/Types/Log/LogQueryToFilter";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -238,11 +239,15 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
       }}
     >
       {props.component.arguments.title && (
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center justify-between gap-2 mb-2 px-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
             {props.component.arguments.title}
           </span>
-          <span className="text-xs text-gray-300 tabular-nums">
+          {/*
+           * One line beside a title that wraps, as a list's count is:
+           * squeezed by a long title, "12 entries" broke in two.
+           */}
+          <span className="shrink-0 whitespace-nowrap text-xs text-gray-300 tabular-nums">
             {translator.translatePlural(
               { one: "{{count}} entry", other: "{{count}} entries" },
               logs.length,
@@ -290,12 +295,17 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
                     {time.label}
                   </span>
                 )}
-                <span
-                  className="text-xs text-gray-600 truncate flex-1 font-mono"
-                  style={{ fontSize: "11px" }}
-                >
-                  {body}
-                </span>
+                {/*
+                 * The service's own words, English on an Arabic board as
+                 * often as not: read their way and cut at their own end,
+                 * where the board's way cut off the start that tells one
+                 * line from the next.
+                 */}
+                <DashboardWidgetLine
+                  as="span"
+                  text={body}
+                  className="text-[11px] leading-4 text-gray-600 truncate flex-1 font-mono"
+                />
               </div>
             );
           })}

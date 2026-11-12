@@ -3,6 +3,7 @@ import DashboardProxmoxGuestListComponent from "Common/Types/Dashboard/Dashboard
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
@@ -177,7 +178,12 @@ function renderGuestRow(r: ProxmoxResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
       <td className="px-3 py-2 text-xs text-gray-500">
         {r.vmid !== undefined && r.vmid !== null ? String(r.vmid) : "—"}
       </td>
@@ -196,12 +202,14 @@ function renderGuestRow(r: ProxmoxResource): ReactElement {
           <span style={{ color: status.textColor }}>{status.text}</span>
         </span>
       </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {(r.parentNodeName as string) || "—"}
-      </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {clusterName}
-      </td>
+      <ResourceListNameCell
+        name={(r.parentNodeName as string) || "—"}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
+      <ResourceListNameCell
+        name={clusterName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

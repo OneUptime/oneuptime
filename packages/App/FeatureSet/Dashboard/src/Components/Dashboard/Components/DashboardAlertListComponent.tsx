@@ -10,6 +10,7 @@ import DashboardAlertListComponent from "Common/Types/Dashboard/DashboardCompone
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
@@ -321,6 +322,9 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
     const created: DashboardDateTime = getDashboardDateTime(
       alert.createdAt as unknown as string | undefined,
     );
+    const title: string =
+      (alert.title as string) ||
+      (translator.translateText("Untitled") as string);
 
     const detailRoute: Route = RouteUtil.populateRouteParams(
       RouteMap[PageMap.ALERT_VIEW] as Route,
@@ -332,15 +336,17 @@ const DashboardAlertListComponentElement: FunctionComponent<ComponentProps> = (
         key={alertId}
         className="hover:bg-gray-50/50 transition-colors duration-100 group"
       >
-        <td className="px-3 py-2 text-xs text-gray-700 truncate">
+        <ResourceListNameCell
+          name={title}
+          className="px-3 py-2 text-xs text-gray-700 truncate"
+        >
           <AppLink
             to={detailRoute}
             className="hover:underline text-gray-700 group-hover:text-blue-600"
           >
-            {(alert.title as string) ||
-              (translator.translateText("Untitled") as string)}
+            {title}
           </AppLink>
-        </td>
+        </ResourceListNameCell>
         <td className="px-3 py-2">
           <span
             className="inline-flex items-center gap-1.5 text-xs font-medium"

@@ -3,6 +3,7 @@ import DashboardKubernetesNamespaceListComponent from "Common/Types/Dashboard/Da
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
@@ -62,10 +63,16 @@ function renderNamespaceRow(r: KubernetesResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {clusterName}
-      </td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
+      <ResourceListNameCell
+        name={clusterName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }
