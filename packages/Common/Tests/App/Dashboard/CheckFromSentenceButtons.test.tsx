@@ -550,3 +550,91 @@ describe("when the check alerts, from the right", () => {
     );
   });
 });
+
+/*
+ * THE SUGGESTION'S NAME AND EXPLANATION READ THE WAY THEY ARE WRITTEN.
+ *
+ * OneUptime AI names the check and says what it counts in whatever
+ * language it answers in - English for an English rule. On an Arabic or
+ * Persian page such a line was drawn the page's way: the explanation's
+ * full stop at its start, its lines lined up at their end. Each is now a
+ * line of its own (IsolatedLine): an English one reads left to right, as
+ * wide as its words at the page's start; a line in the page's language,
+ * and every line on an English page, is drawn as before.
+ */
+describe("the suggestion's name and explanation", () => {
+  // The suggestion's box: its name first, then its explanation.
+  function nameAndExplanation(): [HTMLElement, HTMLElement] {
+    const box: HTMLElement = screen.getByTestId(
+      CHECK_FROM_SENTENCE_ALERT_TEST_ID,
+    ).parentElement as HTMLElement;
+
+    return [box.children[0] as HTMLElement, box.children[1] as HTMLElement];
+  }
+
+  test("on an English page: paragraphs with no direction of their own", async () => {
+    await suggestionIn("en", DataCheckAlertCondition.Above, 0);
+
+    const [name, explanation] = nameAndExplanation();
+
+    expect(name.tagName).toBe("P");
+    expect(name).toHaveTextContent(SUGGESTION.name);
+    expect(name).not.toHaveAttribute("dir");
+    expect(name).toHaveClass("text-sm", "font-medium", "text-gray-900");
+    expect(explanation.tagName).toBe("P");
+    expect(explanation).toHaveTextContent(SUGGESTION.explanation);
+    expect(explanation).not.toHaveAttribute("dir");
+    expect(explanation).not.toHaveClass("w-fit");
+  });
+
+  test.each(["ar", "fa"])(
+    "on a %s page: English lines read left to right, as wide as their words",
+    async (language: string) => {
+      await suggestionIn(language, DataCheckAlertCondition.Above, 0);
+
+      const [name, explanation] = nameAndExplanation();
+
+      for (const line of [name, explanation]) {
+        expect(line.tagName).toBe("P");
+        expect(line).toHaveAttribute("dir", "ltr");
+        expect(line).toHaveClass("break-words", "w-fit", "max-w-full");
+        // Never text-end beside wrapping lines: each lines up at its own start.
+        expect(line).not.toHaveClass("text-end");
+      }
+
+      expect(explanation).toHaveTextContent(SUGGESTION.explanation);
+      // The alert line is the page's own words: the page's direction.
+      expect(
+        screen.getByTestId(CHECK_FROM_SENTENCE_ALERT_TEST_ID),
+      ).not.toHaveAttribute("dir");
+    },
+  );
+
+  test("on a Persian page, a Persian name keeps the page's direction", async () => {
+    suggestCheckMock.mockResolvedValue({
+      ...SUGGESTION,
+      name: "سفارش‌هایی با مجموع منفی",
+      explanation: "سفارش‌هایی را می‌شمارد که مجموعشان زیر صفر است.",
+    });
+
+    await inLanguage("fa");
+    renderCard();
+
+    const words: Record<string, string> = readDashboardLocale("fa");
+
+    fireEvent.change(
+      screen.getByRole("textbox", { name: words["The rule, in a sentence"]! }),
+      { target: { value: SENTENCE } },
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: words["Write the Check"]! }),
+    );
+    await screen.findByRole("button", { name: words["Add Check"]! });
+
+    const [name, explanation] = nameAndExplanation();
+
+    expect(name).not.toHaveAttribute("dir");
+    expect(explanation).not.toHaveAttribute("dir");
+    expect(name).not.toHaveClass("w-fit");
+  });
+});

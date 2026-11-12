@@ -13,6 +13,7 @@ import ObjectID from "Common/Types/ObjectID";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
 import CodeBlock from "Common/UI/Components/CodeBlock/CodeBlock";
+import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import API from "Common/UI/Utils/API/API";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import ProjectUtil from "Common/UI/Utils/Project";
@@ -167,11 +168,23 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
         {error ? <p className="text-sm text-red-600">{error}</p> : <></>}
         {suggestion ? (
           <div className="space-y-2 rounded-md border border-gray-200 p-4">
-            <p className="text-sm font-medium text-gray-900">
-              {suggestion.name}
-            </p>
+            {/*
+             * The check's name and what it counts are OneUptime AI's words,
+             * in whatever language they came back in: each line reads the
+             * way it is written, so an English explanation on an Arabic
+             * page keeps its full stop at its end.
+             */}
+            <IsolatedLine
+              as="p"
+              text={suggestion.name}
+              className="break-words text-sm font-medium text-gray-900"
+            />
             {suggestion.explanation ? (
-              <p className="text-sm text-gray-600">{suggestion.explanation}</p>
+              <IsolatedLine
+                as="p"
+                text={suggestion.explanation}
+                className="break-words text-sm text-gray-600"
+              />
             ) : (
               <></>
             )}

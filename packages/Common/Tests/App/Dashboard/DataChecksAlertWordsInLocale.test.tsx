@@ -76,9 +76,9 @@ jest.mock(
 );
 
 jest.mock("../../../Types/DataObservability/DataCheckSuggestions", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../Types/DataObservability/DataCheckSuggestions",
-  );
+  const actual: Record<string, unknown> = jest.requireActual<
+    Record<string, unknown>
+  >("../../../Types/DataObservability/DataCheckSuggestions");
 
   return {
     ...actual,
