@@ -82,7 +82,7 @@ export const INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES: Record<
   [InsightTriageNotEnqueuedReason.SwitchOff]:
     "AI Insights is switched off for this project, so no insight is triaged. A project owner or admin can turn on Watch telemetry for problems in AI → Insights → Settings.",
   [InsightTriageNotEnqueuedReason.NoProvider]:
-    "This project has no AI provider to triage with. Add one in Project Settings > AI > LLM Providers, then try again.",
+    "This project has no LLM provider to triage with. Add one in Project Settings > AI > LLM Providers, then try again.",
   [InsightTriageNotEnqueuedReason.AlreadyRunning]:
     "This insight is being triaged already.",
   [InsightTriageNotEnqueuedReason.NotQueued]:

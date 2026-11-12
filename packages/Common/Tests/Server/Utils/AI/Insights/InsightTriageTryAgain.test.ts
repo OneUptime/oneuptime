@@ -264,6 +264,22 @@ describe("InsightTriage.tryAgain", () => {
         InsightTriageNotEnqueuedReason.NoProvider
       ],
     ).toContain("Project Settings > AI > LLM Providers");
+    /*
+     * By the name that page gives it: an LLM provider, never an "AI
+     * provider", which no setting is called (#6738).
+     */
+    expect(
+      INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
+        InsightTriageNotEnqueuedReason.NoProvider
+      ],
+    ).toBe(
+      "This project has no LLM provider to triage with. Add one in Project Settings > AI > LLM Providers, then try again.",
+    );
+    for (const reason of Object.values(InsightTriageNotEnqueuedReason)) {
+      expect(INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[reason]).not.toMatch(
+        /\bAI providers?\b/i,
+      );
+    }
     // AI Insights' switch is on its own Settings page, not Project Settings.
     expect(
       INSIGHT_TRIAGE_NOT_ENQUEUED_MESSAGES[
