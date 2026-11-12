@@ -164,7 +164,7 @@ const OpenStackTopConsumersCard: FunctionComponent<ComponentProps> = (
         title="Top consumers"
         description="Who holds the most of this cloud, as Nova and Cinder report it: what is promised, not how busy it is."
       >
-        <div className="grid grid-cols-1 gap-4 px-5 pb-5 pt-1 md:px-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {lists.map((list: ConsumerList): ReactElement => {
             return (
               <div

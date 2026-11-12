@@ -198,7 +198,7 @@ const OpenShiftHealthCard: FunctionComponent<ComponentProps> = (
         title="OpenShift"
         description="The version this cluster runs, and what its cluster operators report."
       >
-        <div className="grid grid-cols-1 gap-4 pb-1 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div data-testid="openshift-version">
             <div className="text-sm text-gray-500">
               {translator.translateText("Version")}
