@@ -18,6 +18,7 @@ import { generatedTexts } from "../../Helpers/GeneratedTexts";
 import crypto from "crypto";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
+import { Renderer, marked } from "marked";
 
 /*
  * ISSUES #6481 AND #6962: WHAT A LINK REFERENCE DEFINITION COPIES INTO AN
@@ -1564,5 +1565,142 @@ describe("Markdown email renderer - a definition's title (#6962)", () => {
     expect(countOf(html, "<p>")).toBe(10000);
     expect(countOf(html, " title=")).toBe(1);
     expect(countOf(html, ">Run</a>")).toBe(1 + Math.floor(COPIED / 24));
+  });
+});
+
+describe("Markdown email renderer - the tokenizer's marks change nothing within the budgets (#6962)", () => {
+  /*
+   * The email's tokenizer gives marked a mark in place of each definition's
+   * address and title, and the renderer puts the definition back from the
+   * mark. Within the budgets, what it writes must be exactly what marked
+   * writes with the definition itself: wherever marked reads a definition -
+   * in a quote, a list item, with its title on a line of its own, its label
+   * in another case or with an escaped bracket - and wherever it reads one
+   * only as text: the second of a label, a paragraph's next line, a code
+   * block's. These generate texts of references, definitions of every kind
+   * and the blocks around them, and render each both ways.
+   */
+  const PIECES: ReadonlyArray<string> = [
+    "![Shot][home]",
+    "[Run][HOME]",
+    "[home][]",
+    "[Home]",
+    "![Runs][runs]",
+    "[runs]",
+    "[x][t]",
+    "![y][t]",
+    "[none]",
+    "[f][foo bar]",
+    "![g][FOO   BAR]",
+    "[e][a\\]b]",
+    "[![Shot][home]](https://example.com/page)",
+    '[a](https://example.com/a "A & b")',
+    "![b](https://example.com/b.png 'it''s')",
+    "[c](mailto:ops@example.com)",
+    "[d](javascript:alert(1))",
+    "[e][js]",
+    "![f][js]",
+    "[g][data]",
+    "![h][data]",
+    " ",
+    "word ",
+    "**bold** ",
+    "`[home]` ",
+    "\n",
+    "\n\n",
+    "> ",
+    "- ",
+    "1. ",
+    "| a | [home] |\n|---|---|\n| ![s][home] | [t] |\n",
+    "# Heading\n",
+    "Setext\n---\n",
+    "```\n",
+    "    ",
+    "<b>",
+    "&amp; ",
+    "\\[home] ",
+    "\n\n[home]: https://example.com/home.png \"Home &amp; <away> 'q' &copy; &#39;\"\n\n",
+    "\n\n[HOME]: <https://example.com/other one.png>\n\n",
+    "\n\n[runs]: /runs (Every run)\n\n",
+    "\n\n[t]: https://example.com/t 'single \"quoted\"'\n\n",
+    "\n\n[Foo  Bar]: https://example.com/foo\n  'On a line of its own'\n\n",
+    "\n\n[a\\]b]: https://example.com/escaped\n\n",
+    "\n[t]: https://example.com/continued\n",
+    "\n\n> [t]: https://example.com/quoted\n\n",
+    "\n\n- [runs]: https://example.com/in-list\n\n",
+    '\n\n[js]: javascript:alert(1) "x"\n\n',
+    `\n\n[data]: ${PNG_PREFIX}${ONE_PIXEL_PNG} "Shot"\n\n`,
+  ];
+
+  /*
+   * Whether `html` holds a character of Unicode's private use area: a mark,
+   * or the token of a held-back text, left in the email.
+   */
+  const holdsPrivateUseCharacter: (html: string) => boolean = (
+    html: string,
+  ): boolean => {
+    for (let index: number = 0; index < html.length; index++) {
+      const code: number = html.charCodeAt(index);
+
+      if (code >= 0xe000 && code <= 0xf8ff) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  test("generated texts render exactly as marked renders them with the definitions themselves, and no mark is ever left in the HTML", async () => {
+    // The renderer set up as convertToHTML sets it up.
+    await render("");
+
+    const emailRenderer: Renderer = Markdown["getEmailRenderer"]();
+    // An address only a definition gives, and the texts that rendered it.
+    const definedAddresses: Map<string, number> = new Map<string, number>([
+      ["https://example.com/home.png", 0],
+      ["https://example.com/other%20one.png", 0],
+      ["/runs", 0],
+      ["https://example.com/t", 0],
+      ["https://example.com/foo", 0],
+      ["https://example.com/escaped", 0],
+      ["https://example.com/quoted", 0],
+      ["https://example.com/in-list", 0],
+      [`${PNG_PREFIX}${ONE_PIXEL_PNG}`, 0],
+    ]);
+    const differences: Array<string> = [];
+    let marksLeft: number = 0;
+
+    for (const text of generatedTexts(3000, 7198, PIECES, 30)) {
+      const html: string = await render(text);
+      /*
+       * marked writes its options into the renderer it is given, so it is
+       * given one of its own, made from the email's.
+       */
+      const own: string = await marked(text, {
+        renderer: Object.create(emailRenderer) as Renderer,
+      });
+
+      if (holdsPrivateUseCharacter(html)) {
+        marksLeft++;
+      }
+
+      if (html !== own) {
+        differences.push(`${JSON.stringify(text)}\n${html}\n${own}`);
+      }
+
+      for (const [address, count] of definedAddresses) {
+        if (html.includes(`="${address}"`)) {
+          definedAddresses.set(address, count + 1);
+        }
+      }
+    }
+
+    expect(marksLeft).toBe(0);
+    expect(differences.slice(0, 3)).toEqual([]);
+
+    // The texts reach every definition, so each was put back from its mark.
+    for (const [address, count] of definedAddresses) {
+      expect(`${address}: ${count > 20}`).toBe(`${address}: true`);
+    }
   });
 });

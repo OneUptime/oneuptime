@@ -21,6 +21,7 @@ import {
   isDefined,
   readMarkedReferences,
 } from "../../Helpers/MarkedLinks";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * AN EMAIL FIELD IS NEVER MORE HTML THAN AN EMAIL CARRIES.
@@ -473,6 +474,217 @@ describe("Markdown email field - a screenshot defined once, cut to fit (#6963)",
     expect(email.inlineImages).toHaveLength(1);
     expect(email.html.includes("![Home")).toBe(false);
     expect(email.html.includes("base64")).toBe(false);
+  });
+});
+
+// A kind of definition the generated fields below are made of.
+interface GeneratedDefinitionKind {
+  // Whether its address is a screenshot, which goes out as an attachment.
+  isScreenshot: boolean;
+  // Whether it is light enough to come before the references.
+  mayComeFirst: boolean;
+  // Its definition of `label`.
+  write: (label: string) => string;
+}
+
+describe("Markdown email field - generated fields cut to fit (#6962, #6963)", () => {
+  /*
+   * Whole fields, generated: references in short paragraphs to up to four
+   * definitions of every kind - a screenshot, an https address of 60 KB or
+   * of 200 KB, a title of 2 KB, a short one - then up to a megabyte of one
+   * kind of block, and the definitions at the end, the light ones now and
+   * then at the top. Each renders as an email field does, cut to fit when
+   * it is more than a field keeps.
+   */
+  const screenshot: string = png(30 * 1024);
+
+  const KINDS: ReadonlyArray<GeneratedDefinitionKind> = [
+    {
+      isScreenshot: true,
+      mayComeFirst: true,
+      write: (label: string): string => {
+        return `[${label}]: data:image/png;base64,${screenshot}`;
+      },
+    },
+    {
+      isScreenshot: false,
+      mayComeFirst: false,
+      write: (label: string): string => {
+        return `[${label}]: https://example.com/${"a".repeat(60 * 1024)}`;
+      },
+    },
+    {
+      isScreenshot: false,
+      mayComeFirst: false,
+      write: (label: string): string => {
+        return `[${label}]: https://example.com/${"b".repeat(200 * 1024)}`;
+      },
+    },
+    {
+      isScreenshot: false,
+      mayComeFirst: true,
+      write: (label: string): string => {
+        return `[${label}]: https://example.com/x.png "${"Checkout failed. ".repeat(120)}"`;
+      },
+    },
+    {
+      isScreenshot: false,
+      mayComeFirst: true,
+      write: (label: string): string => {
+        return `[${label}]: https://example.com/short.png "Short"`;
+      },
+    },
+  ];
+
+  /*
+   * Each repeated up to 20,000 times: a log, tables, a list, code blocks -
+   * which a cut can end inside - fences that open and close in turn, so
+   * the definitions after them are code when the fences are odd, HTML and
+   * a quote.
+   */
+  const FILLERS: ReadonlyArray<string> = [
+    "The login form did not load in time.\n",
+    "| Step | Result |\n| --- | --- |\n| Login | Timed out |\n\n",
+    "- Retried the request\n- Timed out again\n\n",
+    "```\n2026-11-12T10:00:00Z ERROR request failed\n2026-11-12T10:00:01Z ERROR retry failed\n```\n\n",
+    "```\n2026-11-12T10:00:00Z ERROR request failed\n",
+    "<div>The checkout page</div>\n\n",
+    "> The probe reported a timeout.\n",
+  ];
+
+  /*
+   * Whether `html` holds a character of Unicode's private use area: a
+   * definition's mark, or the token of a held-back text, left in the email.
+   */
+  const holdsPrivateUseCharacter: (html: string) => boolean = (
+    html: string,
+  ): boolean => {
+    for (let index: number = 0; index < html.length; index++) {
+      const code: number = html.charCodeAt(index);
+
+      if (code >= 0xe000 && code <= 0xf8ff) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  test("every field fits, holds no mark nor base64, shows no reference to a definition as Markdown, and attaches a screenshot an image refers to", async () => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    const random: SeededRandom = seededRandom(7198);
+    const problems: Array<string> = [];
+    let cutFields: number = 0;
+    let screenshotFields: number = 0;
+
+    for (let round: number = 0; round < 24; round++) {
+      const labels: Array<string> = [];
+      const screenshotLabels: Set<string> = new Set<string>();
+      const first: Array<string> = [];
+      const last: Array<string> = [];
+      const definitionCount: number = 1 + random(4);
+
+      for (let index: number = 0; index < definitionCount; index++) {
+        const label: string = `l${index}`;
+        const kind: GeneratedDefinitionKind = KINDS[random(KINDS.length)]!;
+
+        labels.push(label);
+
+        if (kind.isScreenshot) {
+          screenshotLabels.add(label);
+        }
+
+        // At the end, as a description defines its screenshot; now and then first.
+        (kind.mayComeFirst && random(4) === 0 ? first : last).push(
+          kind.write(label),
+        );
+      }
+
+      // Paragraphs of one to ten references, each to any of the labels.
+      const paragraphs: Array<string> = [];
+      const screenshotImages: Set<string> = new Set<string>();
+      const referenceCount: number = 1 + random(300);
+      let written: number = 0;
+
+      while (written < referenceCount) {
+        const references: Array<string> = [];
+        const inParagraph: number = Math.min(
+          1 + random(10),
+          referenceCount - written,
+        );
+
+        for (let index: number = 0; index < inParagraph; index++) {
+          const label: string = labels[random(labels.length)]!;
+          const isImage: boolean = random(2) === 0;
+
+          if (isImage && screenshotLabels.has(label)) {
+            screenshotImages.add(label);
+          }
+
+          references.push(
+            isImage
+              ? `![Shot ${written}][${label}]`
+              : `[Run ${written}][${label}]`,
+          );
+          written++;
+        }
+
+        paragraphs.push(references.join(" "));
+      }
+
+      const filler: string = FILLERS[random(FILLERS.length)]!.repeat(
+        1 + random(20000),
+      );
+      const markdown: string = [...first, ...paragraphs, filler, ...last].join(
+        "\n\n",
+      );
+      const name: string = `round ${round} (${definitionCount} definitions, ${referenceCount} references, ${markdown.length} characters)`;
+
+      const html: string = await render(markdown);
+      const email: EmailHtmlWithInlineImages = EmailInlineImages.attach(html);
+      // The definitions marked reads of the whole text: none in a code block.
+      const full: MarkedReferences = readMarkedReferences(markdown);
+      const size: number = EmailSize.getFieldSizeInBytes(html);
+
+      if (html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)) {
+        cutFields++;
+      }
+
+      if (size > MAX_EMAIL_FIELD_HTML_BYTES) {
+        problems.push(`${name}: ${size} bytes`);
+      }
+
+      if (holdsPrivateUseCharacter(html)) {
+        problems.push(`${name}: a mark in the HTML`);
+      }
+
+      if (email.html.includes("base64")) {
+        problems.push(`${name}: base64 in the email`);
+      }
+
+      for (const label of labels) {
+        if (isDefined(full.links, label) && html.includes(`][${label}]`)) {
+          problems.push(`${name}: a reference to ${label} as Markdown`);
+        }
+      }
+
+      if (
+        Array.from(screenshotImages).some((label: string): boolean => {
+          return isDefined(full.links, label);
+        })
+      ) {
+        screenshotFields++;
+
+        if (email.inlineImages.length === 0) {
+          problems.push(`${name}: the screenshot is not attached`);
+        }
+      }
+    }
+
+    expect(problems).toEqual([]);
+    // The rounds reach what they test: most fields cut, many with a screenshot.
+    expect(cutFields).toBeGreaterThanOrEqual(16);
+    expect(screenshotFields).toBeGreaterThanOrEqual(8);
   });
 });
 
