@@ -32,6 +32,7 @@ import DashboardChartType from "Common/Types/Dashboard/Chart/ChartType";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
 import ExplorerLink from "../../Metrics/Utils/ExplorerLink";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 import InvestigationDrawer from "../../Telemetry/LazyInvestigationDrawer";
 import useEventTimeReferenceLines, {
   EventTimeReferenceLines,
@@ -388,15 +389,25 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
   const isPlayback: boolean = Boolean(props.isPlayback);
 
   /*
+   * The widget settings' live preview (issue #6859) is drawn over a board
+   * being edited: whatever would take the reader to another page - Open in
+   * Explorer, Investigate's links, a series' menu, an exemplar's, an
+   * incident's marker - would take the unsaved widgets with it. It draws
+   * the chart, and its zoom, with none of them.
+   */
+  const isPreview: boolean = useIsDashboardWidgetPreview();
+
+  /*
    * "Open in Explorer" deep link for this widget's queries. Suppressed on
    * the unauthenticated public dashboard (no project session, so the
-   * explorer route would just bounce to login), in edit mode (a
-   * navigation mid-edit would drop unsaved dashboard changes) and in a
-   * playlist's turn.
+   * explorer route would just bounce to login), in edit mode and in the
+   * live preview (a navigation mid-edit would drop unsaved dashboard
+   * changes) and in a playlist's turn.
    */
   const showOpenInExplorer: boolean =
     !isPublicDashboard() &&
     !props.isEditMode &&
+    !isPreview &&
     !isPlayback &&
     queryConfigs.length > 0;
 
@@ -465,7 +476,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
    * they follow the same gating as the Open in Explorer button.
    */
   const enableSeriesActions: boolean =
-    !isPublicDashboard() && !props.isEditMode && !isPlayback;
+    !isPublicDashboard() && !props.isEditMode && !isPreview && !isPlayback;
 
   /*
    * Incident/alert/change-event markers for this widget's window (the
@@ -479,6 +490,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
       window: effectiveStartAndEndDate,
       queryConfigs: queryConfigs,
       refreshTick: props.refreshTick,
+      opensEvents: !isPreview,
     });
 
   if (isLoading && metricResults.length === 0) {
@@ -711,6 +723,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           hideCard={true}
           topNOverrideScope={topNOverrideScope}
           enableSeriesActions={enableSeriesActions}
+          enableExemplarActions={!isPreview}
           chartSyncId={props.chartSyncId}
           timeReferenceLines={
             eventReferenceLines.length > 0 ? eventReferenceLines : undefined

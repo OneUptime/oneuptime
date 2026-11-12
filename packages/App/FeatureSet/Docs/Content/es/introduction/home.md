@@ -126,7 +126,7 @@ Dos barras recorren la parte superior de cada página.
 | Arriba a la derecha | **Buscar** y **Preguntar a la IA**, la campana de notificaciones con lo que te necesita ahora (incidentes y alertas activos, las políticas de guardia en las que estás de turno, invitaciones pendientes), **Ayuda**, y tu foto, que abre el menú de tu [cuenta](/docs/introduction/your-account). |
 | Debajo | **Inicio** y **Productos** a la izquierda, **Ajustes de usuario** a la derecha: cómo te localiza OneUptime en este proyecto. |
 
-**Ayuda** empieza por lo que te ayuda a aprender: **Inicio rápido**, **Cómo funciona OneUptime**, **Glosario** y esta documentación (**Documentación**). Debajo están la lista **Atajos de teclado** y el soporte por correo y en Slack. En una pantalla estrecha, como la de un teléfono, **Buscar**, **Preguntar a la IA** y **Ayuda** se quitan para ganar espacio; la campana y tu foto se quedan.
+**Ayuda** empieza por lo que te ayuda a aprender: **Inicio rápido**, **Cómo funciona OneUptime**, **Glosario** y esta documentación (**Documentación**). Debajo están la lista **Atajos de teclado** y el soporte por correo y en Slack. En una tableta o en una ventana estrecha, **Preguntar a la IA** se quita para ganar espacio: está entre las acciones de **Buscar**. En un teléfono, **Buscar** y **Ayuda** pasan a la lista del botón de menú, arriba del todo y abajo del todo; la campana y tu foto se quedan.
 
 Una palabra con una línea de puntos debajo, como **Sondas** en el formulario de un monitor nuevo, dice qué significa cuando la señalas, llegas a ella con Tab o la tocas. Su **Leer más** abre la palabra en el [Glosario](/docs/introduction/glossary).
 

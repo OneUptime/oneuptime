@@ -18,9 +18,14 @@ const ESBUILD_CONFIG: string = path.join(
   "UI",
   "esbuild-config.js",
 );
-const APP_LINK: string = path.join(
+/*
+ * AppLink's directory, not AppLink.tsx alone: the link imports its own
+ * siblings - AppLinkAsText, the words-only context a dashboard widget's
+ * live preview gives it (issue #6859) - and they are bundled with it.
+ */
+const APP_LINK_DIRECTORY: string = path.join(
   REPOSITORY_ROOT,
-  "packages/App/FeatureSet/Dashboard/src/Components/AppLink/AppLink.tsx",
+  "packages/App/FeatureSet/Dashboard/src/Components/AppLink",
 );
 const temporaryRoots: Array<string> = [];
 
@@ -58,7 +63,9 @@ function renderSharedLink(nodeEnv: string): RenderResult {
     }
   }
 
-  fs.copyFileSync(APP_LINK, path.join(root, "shared", "AppLink.tsx"));
+  fs.cpSync(APP_LINK_DIRECTORY, path.join(root, "shared"), {
+    recursive: true,
+  });
   const entry: string = path.join(root, "public", "Entry.tsx");
   /*
    * The entry renders through react-dom/server.browser rather than the bare

@@ -1852,7 +1852,7 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
-  it("names the Help menu's items, and what a narrow screen leaves out", () => {
+  it("names the Help menu's items, and what a tablet and a phone leave out of the header", () => {
     const help: string = dashboard("Components/Header/Help.tsx");
 
     // The ways to learn first, in the order the docs name them.
@@ -1883,28 +1883,68 @@ describe("Home Page & Shortcuts", () => {
     expect(help).toContain('t("help.supportEmail")');
     expect(help).toContain('t("help.chatSlack")');
 
+    const headerSource: string = dashboard("Components/Header/Header.tsx");
     const header: string = blockFrom(
-      dashboard("Components/Header/Header.tsx"),
+      headerSource,
       "rightComponents={",
       "\n      />",
     );
-    const hiddenOnNarrow: Array<string> = header
-      .split('className="max-lg:hidden')
-      .slice(1)
-      .map((chunk: string): string => {
-        return chunk.slice(0, chunk.indexOf("</div>"));
-      });
 
-    expect(hiddenOnNarrow.join(" ")).toContain("<Search />");
-    expect(hiddenOnNarrow.join(" ")).toContain("<AskAI />");
-    expect(hiddenOnNarrow.join(" ")).toContain("<Help />");
-    expect(hiddenOnNarrow.join(" ")).not.toContain("<NotificationBell");
-    expect(hiddenOnNarrow.join(" ")).not.toContain("<UserProfile");
-    expect(header).toContain("<NotificationBell");
-    expect(header).toContain("<UserProfile");
+    /*
+     * The rail's entries by the wrapper they are drawn in (#7037): from a
+     * tablet's width up (md) or from a laptop's (lg); the bell and the
+     * picture in none.
+     */
+    const drawnFrom: (wrapper: string) => string = (
+      wrapper: string,
+    ): string => {
+      return header
+        .split(`className={${wrapper}}`)
+        .slice(1)
+        .map((chunk: string): string => {
+          return chunk.slice(0, chunk.indexOf("</div>"));
+        })
+        .join(" ");
+    };
+    const fromTablet: string = drawnFrom("FROM_TABLET_WIDTH_CLASS_NAME");
+    const fromLaptop: string = drawnFrom("FROM_LAPTOP_WIDTH_CLASS_NAME");
+
+    expect(headerSource).toContain(
+      'FROM_TABLET_WIDTH_CLASS_NAME: string =\n  "max-md:hidden items-center md:flex"',
+    );
+    expect(headerSource).toContain(
+      'FROM_LAPTOP_WIDTH_CLASS_NAME: string =\n  "max-lg:hidden items-center lg:flex"',
+    );
+    expect(fromTablet).toContain("<Search />");
+    expect(fromTablet).toContain("<Help />");
+    expect(fromTablet).not.toContain("<AskAI />");
+    expect(fromLaptop).toContain("<AskAI />");
+    expect(fromLaptop).not.toContain("<Search />");
+    expect(fromLaptop).not.toContain("<Help />");
+
+    for (const always of ["<NotificationBell", "<UserProfile"]) {
+      expect(header).toContain(always);
+      expect(`${fromTablet} ${fromLaptop}`).not.toContain(always);
+    }
+
+    // Below md, the menu button's list starts with Search and ends with Help.
+    const navBar: string = oneLine(dashboard("Components/NavBar/NavBar.tsx"));
+
+    expect(navBar).toContain(
+      "return <PhoneMenuSearch closeMenu={closeMenu} />;",
+    );
+    expect(navBar).toContain("return <PhoneMenuHelp closeMenu={closeMenu} />;");
+    expect(readSource(COMMON_DIR, "UI/Components/Navbar/NavBar.tsx")).toContain(
+      "export const PHONE_MENU_BELOW_WIDTH_IN_PX: number = 768;",
+    );
+
+    // Ask AI, left out below lg, is one of Search's actions.
+    expect(
+      dashboard("Components/CommandPalette/DashboardCommandPalette.tsx"),
+    ).toContain('title: t("commandPalette.actions.askAi", "Ask AI"),');
 
     expect(HOME).toContain(
-      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a narrow screen, such as a phone, **Search**, **Ask AI** and **Help** are left out to save room; the bell and your picture stay.",
+      "**Help** starts with what helps you learn: the **Quickstart**, **How OneUptime works**, the **Glossary** and these docs (**Documentation**). Under them are the **Keyboard shortcuts** list and support by email and on Slack. On a tablet or in a narrow window, **Ask AI** is left out to save room: it is among the actions in **Search**. On a phone, **Search** and **Help** move into the menu button's list, at its top and at its bottom; the bell and your picture stay.",
     );
   });
 

@@ -41,7 +41,6 @@ const KNOWN_WITHOUT_INTER = [
   "SessionReplay/Fixture/server.js",
   "SloBurnRate/Fixture/server.js",
   "StatusPageSearch/server.js",
-  "Topology/server.js",
   "TraceDetail/Fixture/server.js",
   "UserFlows/Fixture/server.js",
   "WorkflowBuilder/Fixture/server.js",

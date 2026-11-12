@@ -2,6 +2,7 @@ import { expect, Locator, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -1108,6 +1109,26 @@ test.describe("the states a host can be in", () => {
     const panel: Locator = await openTab(page, "Virtual Machines");
     // The table's empty state draws the sentence without its full stop.
     await expect(panel).toContainText("This host runs no virtual machines");
+  });
+});
+
+/*
+ * What a card holds lines up with its title (#6956). The host's Details card
+ * is a ruled body - a rule across the card, its fields padded back in from
+ * the card's edges, as every details card draws them - which the guard over
+ * the sources reads through useCardRuledBodyClassName(); here it is read
+ * from the page, beside every other card of the host's Overview.
+ */
+test.describe("the Overview's cards line up with their titles", () => {
+  test("Details and every other card start under their titles, on a laptop and a phone", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openHost(page);
+    await waitForOverview(page);
+
+    await expectCardsFit(page, [page.getByTestId("vmware-host-details")]);
   });
 });
 

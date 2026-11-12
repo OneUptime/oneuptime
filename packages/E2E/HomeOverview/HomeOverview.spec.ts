@@ -7,6 +7,7 @@ import {
 } from "@playwright/test";
 import fs from "fs/promises";
 import path from "path";
+import { expectCardsFit } from "../SuiteHelpers/CardBodyFit";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -660,6 +661,59 @@ test.describe("a busy project", () => {
  * Find and start
  * ---------------------------------------------------------------------------
  */
+
+/*
+ * What a card holds lines up with its title (#6956). Explore's strip of
+ * categories scrolls sideways on a phone, so it clips what reaches past its
+ * edges: it reaches 4px past the card's padding all round and pads that
+ * back, so a focused tab's 2px ring shows whole - its top was cut - while
+ * the tabs still start under the title. Home's row of cards runs its lists
+ * to the cards' edges (HOME_ROW_CARD_BODY_CLASS_NAME), each row padded back.
+ */
+test.describe("Home's cards line up with their titles", () => {
+  test("Explore and the row under the health card, on a laptop and a phone; a tab's focus ring has room", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    await expectCardsFit(page, [
+      page.getByTestId("home-explore-products"),
+      page.getByTestId("home-needs-attention"),
+    ]);
+
+    for (const size of [
+      { width: 1280, height: 900 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(size);
+
+      // The room the strip leaves around its first tab, inside what it clips.
+      const room: { top: number; bottom: number; start: number } = await page
+        .getByRole("tablist", { name: "Product categories" })
+        .evaluate(
+          (list: Element): { top: number; bottom: number; start: number } => {
+            const strip: DOMRect = list.getBoundingClientRect();
+            const tab: DOMRect = list
+              .querySelector('[role="tab"]')!
+              .getBoundingClientRect();
+
+            return {
+              top: tab.top - strip.top,
+              bottom: strip.bottom - tab.bottom,
+              start: tab.left - strip.left,
+            };
+          },
+        );
+
+      // focus-visible:ring-2: two pixels on every side of a tab.
+      expect(room.top).toBeGreaterThanOrEqual(2);
+      expect(room.bottom).toBeGreaterThanOrEqual(2);
+      expect(room.start).toBeGreaterThanOrEqual(2);
+    }
+  });
+});
 
 test.describe("search and the create actions", () => {
   test("the search box opens the command palette, by mouse and by keyboard", async ({

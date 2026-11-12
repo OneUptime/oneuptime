@@ -30,6 +30,7 @@ import {
   ProjectNotificationChannel,
 } from "./ProjectNotificationChannelsCopy";
 import VerificationCodeModal from "./VerificationCodeModal";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 import {
   CALL_NUMBERS_VERIFIED_BY_SMS_EVENT,
   CallNumberVerifiedBySmsCopy,
@@ -248,7 +249,12 @@ const Call: () => JSX.Element = (): ReactElement => {
           title={CallNumberVerifiedBySmsCopy.title}
           description={translator.translateTemplate(
             CallNumberVerifiedBySmsCopy.description,
-            { destination: verifiedBySmsItem.phone?.toString() || "" },
+            {
+              destination: phoneNumberInLine(
+                verifiedBySmsItem.phone?.toString(),
+                translator.language,
+              ),
+            },
           )}
           submitButtonText={"Close"}
           onSubmit={() => {

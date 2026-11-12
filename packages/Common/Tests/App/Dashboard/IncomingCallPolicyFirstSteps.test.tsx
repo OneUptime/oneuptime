@@ -165,7 +165,9 @@ jest.mock("../../../UI/Utils/User", () => {
   };
 });
 
-import IncomingCallPoliciesPage from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies";
+import IncomingCallPoliciesPage, {
+  PHONE_NUMBER_LINE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicies";
 import IncomingCallPolicyOverview from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/Index";
 import IncomingCallPolicySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/IncomingCallPolicy/SideMenu";
 import OnCallDutyPolicySideMenu from "../../../../App/FeatureSet/Dashboard/src/Pages/OnCallDuty/OnCallDutyPolicy/SideMenu";
@@ -180,6 +182,7 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import Route from "../../../Types/API/Route";
 import ObjectID from "../../../Types/ObjectID";
+import Phone from "../../../Types/Phone";
 import IncomingCallPolicy from "../../../Models/DatabaseModels/IncomingCallPolicy";
 import Navigation from "../../../UI/Utils/Navigation";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -617,5 +620,167 @@ describe("the Setup and Phone Numbers cards, on a phone", () => {
     expect(wrapper.className).toContain("ml-auto");
     expect(wrapper.className).toContain("shrink-0");
     expect(row.className).toContain("flex-wrap");
+  });
+});
+
+/*
+ * Issue #6605: on a Persian or Arabic page the list's Phone Numbers column
+ * read 447700900123+ - a number printed as it is took the page's way, its
+ * "+" after its digits. Each is now an isolate that reads left to right
+ * (PhoneNumberText), after the handset at the line's start, cut short at
+ * its own end where the column is narrow.
+ */
+// A space-x utility, with or without a breakpoint before it.
+const SPACE_X_CLASS_REGEX: RegExp = /(?:^|\s|:)space-x-/;
+
+describe("the list's Phone Numbers column", () => {
+  function phoneNumbersColumn(): {
+    getElement: (item: IncomingCallPolicy) => React.ReactElement;
+  } {
+    return (
+      capturedTableProps["columns"] as Array<{
+        title: string;
+        getElement: (item: IncomingCallPolicy) => React.ReactElement;
+      }>
+    ).find((column: { title: string }): boolean => {
+      return column.title === "Phone Numbers";
+    })!;
+  }
+
+  function policy(routingPhoneNumber?: string): IncomingCallPolicy {
+    const item: IncomingCallPolicy = new IncomingCallPolicy();
+
+    item._id = POLICY_ID;
+    if (routingPhoneNumber) {
+      item.routingPhoneNumber = new Phone(routingPhoneNumber);
+    }
+
+    return item;
+  }
+
+  function rowNumbers(): Array<string> {
+    return screen
+      .getAllByTestId("incoming-call-policy-row-phone-number")
+      .map((number: HTMLElement): string => {
+        return `${number.tagName} ${number.getAttribute("dir")} ${number.textContent}`;
+      });
+  }
+
+  beforeEach(() => {
+    document.documentElement.setAttribute("dir", "rtl");
+  });
+
+  afterEach(() => {
+    document.documentElement.removeAttribute("dir");
+  });
+
+  test("draws a policy's first number as an isolate that reads left to right, after its handset", async () => {
+    phoneNumbers = [
+      {
+        _id: "7c000000-0000-4000-8000-0000000000c1",
+        incomingCallPolicyId: POLICY_ID,
+        phoneNumber: "+447700900123",
+      },
+      {
+        _id: "7c000000-0000-4000-8000-0000000000c2",
+        incomingCallPolicyId: POLICY_ID,
+        phoneNumber: "+14155550101",
+      },
+    ];
+
+    render(
+      <MemoryRouter>
+        <IncomingCallPoliciesPage {...PAGE_PROPS} />
+      </MemoryRouter>,
+    );
+    await settle();
+
+    await act(async (): Promise<void> => {
+      capturedTableProps["onFetchSuccess"]([policy()]);
+    });
+    await settle();
+
+    render(
+      <div data-testid="row">{phoneNumbersColumn().getElement(policy())}</div>,
+    );
+
+    expect(rowNumbers()).toEqual(["BDI ltr +447700900123"]);
+
+    const number: HTMLElement = screen.getByTestId(
+      "incoming-call-policy-row-phone-number",
+    );
+    const line: HTMLElement = number.parentElement as HTMLElement;
+
+    // Still cut short where the column is narrow - at its own end now.
+    expect(number).toHaveClass("font-mono", "truncate");
+    // The handset first, then the number, then how many more.
+    expect(line.firstElementChild?.querySelector("svg")).not.toBeNull();
+    expect(line.firstElementChild).not.toContainElement(number);
+    expect(line.children[1]).toBe(number);
+    expect(line.textContent).toBe("+447700900123+1 more");
+    expect(line).not.toHaveAttribute("dir");
+    /*
+     * 8px between the handset, the number and "+1 more" in every language:
+     * spaced by the row's gap. The start margin space-x-2 gave the number
+     * is its own left one (it reads left to right, dir="ltr"), so on a
+     * Persian page it touched the handset and stood 16px off "+1 more".
+     */
+    expect(line.className).toBe(PHONE_NUMBER_LINE_CLASS_NAME);
+    expect(line).toHaveClass("flex", "gap-2");
+    expect(line.className).not.toMatch(SPACE_X_CLASS_REGEX);
+  });
+
+  test("draws the number the row carries the same way while the numbers load", async () => {
+    render(
+      <MemoryRouter>
+        <IncomingCallPoliciesPage {...PAGE_PROPS} />
+      </MemoryRouter>,
+    );
+    await settle();
+
+    // The numbers are asked for; their answer has not come back yet.
+    act((): void => {
+      capturedTableProps["onFetchSuccess"]([policy("+447700900123")]);
+    });
+
+    render(
+      <div data-testid="row">
+        {phoneNumbersColumn().getElement(policy("+447700900123"))}
+      </div>,
+    );
+
+    expect(rowNumbers()).toEqual(["BDI ltr +447700900123"]);
+    expect(
+      screen.getByTestId("incoming-call-policy-row-phone-number").parentElement
+        ?.className,
+    ).toBe(PHONE_NUMBER_LINE_CLASS_NAME);
+
+    await settle();
+  });
+
+  test("spaces a policy with no number the same way", async () => {
+    render(
+      <MemoryRouter>
+        <IncomingCallPoliciesPage {...PAGE_PROPS} />
+      </MemoryRouter>,
+    );
+    await settle();
+
+    await act(async (): Promise<void> => {
+      capturedTableProps["onFetchSuccess"]([policy()]);
+    });
+    await settle();
+
+    render(
+      <div data-testid="setup-needed-row">
+        {phoneNumbersColumn().getElement(policy())}
+      </div>,
+    );
+
+    const line: HTMLElement = screen.getByTestId("setup-needed-row")
+      .firstElementChild as HTMLElement;
+
+    expect(line).toHaveClass("flex", "gap-2");
+    expect(line.className).not.toMatch(SPACE_X_CLASS_REGEX);
   });
 });
