@@ -653,73 +653,79 @@ const drawnFromTheRight: (text: string) => string = (text: string): string => {
   return getDrawnText(drawLine(text, "rtl"));
 };
 
-describe.each(
-  CASES.map((durationCase: DurationCase) => {
+// Each case under its name.
+const NAMED_CASES: Array<[string, DurationCase]> = CASES.map(
+  (durationCase: DurationCase): [string, DurationCase] => {
     return [durationCase.name, durationCase];
-  }),
-)("%s", (_name: string, durationCase: DurationCase) => {
-  test("in English, exactly as before: the figure, then 'ms'", () => {
-    const container: HTMLElement = drawCase(durationCase, "en");
+  },
+);
 
-    expect(durationCase.read(container, "en")).toEqual(
-      durationCase.figures.en.map((figure: string): string => {
-        return `${figure} ms`;
-      }),
-    );
-  });
+describe.each(NAMED_CASES)(
+  "%s",
+  (_name: string, durationCase: DurationCase) => {
+    test("in English, exactly as before: the figure, then 'ms'", () => {
+      const container: HTMLElement = drawCase(durationCase, "en");
 
-  test("in German: German separators, then 'ms'", () => {
-    const container: HTMLElement = drawCase(durationCase, "de");
-
-    expect(durationCase.read(container, "de")).toEqual(
-      durationCase.figures.de.map((figure: string): string => {
-        return `${figure} ms`;
-      }),
-    );
-  });
-
-  test("in Persian: Persian digits, then the Persian unit, nothing Latin", () => {
-    const container: HTMLElement = drawCase(durationCase, "fa");
-    const durations: Array<string> = durationCase.read(container, "fa");
-
-    expect(durations).toEqual(
-      durationCase.figures.fa.map((figure: string): string => {
-        return `${figure} ${UNIT.fa}`;
-      }),
-    );
-
-    durations.forEach((duration: string, index: number) => {
-      expect(duration).not.toMatch(LATIN_DIGIT);
-      expect(duration).not.toMatch(LATIN_LETTER);
-      // Read from the right, the figure comes first.
-      expect(
-        drawnFromTheRight(duration).endsWith(durationCase.figures.fa[index]!),
-      ).toBe(true);
+      expect(durationCase.read(container, "en")).toEqual(
+        durationCase.figures.en.map((figure: string): string => {
+          return `${figure} ms`;
+        }),
+      );
     });
 
-    expect(textOf(container)).not.toMatch(FIGURE_THEN_LATIN_MS);
-  });
+    test("in German: German separators, then 'ms'", () => {
+      const container: HTMLElement = drawCase(durationCase, "de");
 
-  test("in Arabic: the Arabic unit, never 'ms 411'", () => {
-    const container: HTMLElement = drawCase(durationCase, "ar");
-    const durations: Array<string> = durationCase.read(container, "ar");
-
-    expect(durations).toEqual(
-      durationCase.figures.ar.map((figure: string): string => {
-        return `${figure} ${UNIT.ar}`;
-      }),
-    );
-
-    durations.forEach((duration: string, index: number) => {
-      expect(duration).not.toMatch(LATIN_LETTER);
-      expect(
-        drawnFromTheRight(duration).endsWith(durationCase.figures.ar[index]!),
-      ).toBe(true);
+      expect(durationCase.read(container, "de")).toEqual(
+        durationCase.figures.de.map((figure: string): string => {
+          return `${figure} ms`;
+        }),
+      );
     });
 
-    expect(textOf(container)).not.toMatch(FIGURE_THEN_LATIN_MS);
-  });
-});
+    test("in Persian: Persian digits, then the Persian unit, nothing Latin", () => {
+      const container: HTMLElement = drawCase(durationCase, "fa");
+      const durations: Array<string> = durationCase.read(container, "fa");
+
+      expect(durations).toEqual(
+        durationCase.figures.fa.map((figure: string): string => {
+          return `${figure} ${UNIT.fa}`;
+        }),
+      );
+
+      durations.forEach((duration: string, index: number) => {
+        expect(duration).not.toMatch(LATIN_DIGIT);
+        expect(duration).not.toMatch(LATIN_LETTER);
+        // Read from the right, the figure comes first.
+        expect(
+          drawnFromTheRight(duration).endsWith(durationCase.figures.fa[index]!),
+        ).toBe(true);
+      });
+
+      expect(textOf(container)).not.toMatch(FIGURE_THEN_LATIN_MS);
+    });
+
+    test("in Arabic: the Arabic unit, never 'ms 411'", () => {
+      const container: HTMLElement = drawCase(durationCase, "ar");
+      const durations: Array<string> = durationCase.read(container, "ar");
+
+      expect(durations).toEqual(
+        durationCase.figures.ar.map((figure: string): string => {
+          return `${figure} ${UNIT.ar}`;
+        }),
+      );
+
+      durations.forEach((duration: string, index: number) => {
+        expect(duration).not.toMatch(LATIN_LETTER);
+        expect(
+          drawnFromTheRight(duration).endsWith(durationCase.figures.ar[index]!),
+        ).toBe(true);
+      });
+
+      expect(textOf(container)).not.toMatch(FIGURE_THEN_LATIN_MS);
+    });
+  },
+);
 
 describe("what sits beside the durations", () => {
   test("a ping's Packet Loss: the share and the pair in the reader's digits", () => {
