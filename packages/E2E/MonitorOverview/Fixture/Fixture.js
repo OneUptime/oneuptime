@@ -90,6 +90,13 @@
  *              card draws nothing. Only a monitor that checks a host (API,
  *              Website, SSL Certificate) asks, and only a role that may read
  *              security events.
+ *   ?whoIsTold=  what "When this goes down" answers for a monitor
+ *              (GET /who-is-told/monitor/:monitorId): pages (default: it
+ *              goes Offline, opens a Critical incident, emails the
+ *              project's owners and pages Ana Lopez through Primary
+ *              On-Call) | nobody (no on-call rule matches, so nobody is
+ *              paged - the break and its Set Up Paging link) | hidden
+ *              (paging runs through a policy the reader may not see).
  *   ?settings=1  the subject monitor's Settings page
  *              (/monitors/<id>/settings) is the production one rather than
  *              the stub every other page has: its Monitoring card, and the
@@ -195,6 +202,7 @@ import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
+import { getWhoIsToldBreaks } from "Common/Types/Monitor/WhoIsTold";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -327,6 +335,10 @@ const previewMode = ["empty", "fail"].includes(params.get("preview"))
 const securityMode = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
+// What "When this goes down" answers (?whoIsTold=).
+const whoIsToldMode = ["nobody", "hidden"].includes(params.get("whoIsTold"))
+  ? params.get("whoIsTold")
+  : "pages";
 
 /*
  * The components the External Status Page monitor watches with
@@ -3261,6 +3273,115 @@ function monitorSecurity(body) {
   });
 }
 
+/*
+ * GET /who-is-told/monitor/:monitorId (?whoIsTold=): the chain from the
+ * monitor to the people it reaches, as WhoIsToldService answers it, with
+ * the breaks worked out by the same pure helper.
+ */
+function whoIsTold(monitorId) {
+  const monitor = table(Monitor).find((item) => {
+    return String(item._id) === monitorId;
+  });
+  const isHidden = whoIsToldMode === "hidden";
+  const owners = {
+    source: "ProjectOwners",
+    userNames: ["Ana Lopez"],
+    teamNames: [],
+    hasOwnerRules: false,
+  };
+  const policy = {
+    id: "5f000000-0000-4000-8000-0000000000a1",
+    name: isHidden ? "" : "Primary On-Call",
+    isHidden: isHidden,
+    isNamedByCriteria: false,
+    ruleIds: ["5f000000-0000-4000-8000-0000000000b1"],
+    levelCount: isHidden ? 0 : 2,
+    people: isHidden
+      ? []
+      : [
+          {
+            userId: "5f000000-0000-4000-8000-0000000000c1",
+            name: "Ana Lopez",
+            channels: ["SMS", "Email"],
+            isFallback: false,
+            isReachable: true,
+          },
+          {
+            userId: "5f000000-0000-4000-8000-0000000000c2",
+            name: "Ben Ito",
+            reachedThrough: "Schedule Weekly Rotation",
+            channels: ["Push"],
+            isFallback: true,
+            isReachable: true,
+          },
+        ],
+    notPaged: [],
+  };
+  const criteria = [
+    {
+      id: "online",
+      name: "Online",
+      statusName: "Operational",
+      statusColor: "#10b981",
+      statusOwners: owners,
+      events: [],
+    },
+    {
+      id: "offline",
+      name: "Offline",
+      statusName: "Offline",
+      statusColor: "#ef4444",
+      statusOwners: owners,
+      events: [
+        {
+          kind: "Incident",
+          severityName: "Critical",
+          owners: owners,
+          rules:
+            whoIsToldMode === "nobody"
+              ? []
+              : [
+                  {
+                    id: "5f000000-0000-4000-8000-0000000000b1",
+                    name: isHidden ? "" : "Every incident",
+                  },
+                ],
+          policies: whoIsToldMode === "nobody" ? [] : [policy],
+          statusPages: [
+            { id: "5f000000-0000-4000-8000-0000000000d1", name: "Public Status" },
+          ],
+        },
+      ],
+    },
+  ];
+  const channels = {
+    isBillingEnabled: false,
+    isSmsOn: true,
+    isCallOn: true,
+    isWhatsAppOn: true,
+    isTelegramOn: true,
+    hasOwnTwilioForSms: false,
+    hasOwnTwilioForCalls: false,
+    serverCanSendEmail: true,
+    serverCanSendSms: true,
+    serverCanCall: true,
+  };
+
+  return {
+    monitorId: monitorId,
+    monitorName: monitor ? monitor.name : "",
+    checkedAt: new Date().toISOString(),
+    criteria: criteria,
+    channels: channels,
+    breaks: getWhoIsToldBreaks({
+      criteria: criteria,
+      channels: channels,
+      projectHasIncidentOnCallRules: whoIsToldMode !== "nobody",
+      projectHasAlertOnCallRules: false,
+    }),
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -3432,6 +3553,11 @@ async function handleApi(method, options) {
       startTime: range.startTime.toISOString(),
       endTime: range.endTime.toISOString(),
     });
+  }
+
+  // Who is told when a monitor goes down (?whoIsTold=).
+  if (method === "GET" && parsed.pathname.includes("/who-is-told/monitor/")) {
+    return ok(whoIsTold(parsed.pathname.split("/").pop()));
   }
 
   // What Security Events says about the hosts a monitor checks (?security=).

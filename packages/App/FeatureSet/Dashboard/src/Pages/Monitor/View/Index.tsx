@@ -25,6 +25,7 @@ import MonitorSetupCard from "../../../Components/Monitor/Overview/MonitorSetupC
 import MonitorStatusChangesCard from "../../../Components/Monitor/Overview/MonitorStatusChangesCard";
 import MonitorTelemetryPreview from "../../../Components/Monitor/Overview/MonitorTelemetryPreview";
 import MonitorUptimeHistoryCard from "../../../Components/Monitor/Overview/MonitorUptimeHistoryCard";
+import MonitorWhoIsToldCard from "../../../Components/Monitor/Overview/MonitorWhoIsToldCard";
 import useMonitorOpenWork from "../../../Components/Monitor/Overview/useMonitorOpenWork";
 import useMonitorOverviewData, {
   MONITOR_OVERVIEW_NOT_FOUND_MESSAGE,
@@ -479,6 +480,16 @@ const MonitorView: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
         <div className="min-w-0">
           <MonitorOpenWorkCard monitorId={modelId} openWork={openWork} />
+
+          {/*
+           * "When this goes down": what happens when this monitor fails and
+           * who is told, with every break in the chain named (#6810). Read
+           * again when the monitor is edited or refreshed.
+           */}
+          <MonitorWhoIsToldCard
+            monitorId={modelId}
+            refreshToken={`${detailsSaveCount}|${data.manualRefreshCount}`}
+          />
 
           {/*
            * What Security Events found about the hosts it checks this
