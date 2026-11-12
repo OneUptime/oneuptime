@@ -190,7 +190,7 @@ Hvert sted som viser en enhet — listen Enheter, en lokasjons Enheter-side, ove
 | --- | --- |
 | **Oppe** | Den siste pollingen (ping eller SNMP), eller den bundne monitoren, nådde enheten. |
 | **Nede** | Den siste pollingen (ping eller SNMP), eller den bundne monitoren, nådde ikke enheten. |
-| **Venter** | Ingen avgjørelse ennå: aldri pollet, ingen sonde tildelt eller ingen monitor bundet. |
+| **Venter** | Ingen avgjørelse ennå: aldri pollet, ingen sonde tildelt, ingen monitor bundet, eller den bundne monitoren er slått av eller arkivert. |
 
 | Tillegg | Vises når | Hva du gjør |
 | --- | --- | --- |
@@ -198,6 +198,8 @@ Hvert sted som viser en enhet — listen Enheter, en lokasjons Enheter-side, ove
 | **Ingen sonde** | Enheten polles av en sonde, men har ingen, eller pollingen er slått av. | Tildel en sonde som kan nå den; ingenting poller den før det. |
 | **Ingen overvåking** | Enheten bruker [overstyringen med bundet monitor](#overstyringen-med-bundet-monitor), og ingenting er bundet. | Bind en monitor, eller bytt den tilbake til polling med sonde. |
 | **SNMP failing** | Oppe på ping, men det siste SNMP-walket feilet. | Kontroller påloggingsinformasjonen, SNMP-agenten eller en ACL. |
+| **Overvåking slått av** | Overvåkingen av den bundne monitoren er slått av, så enheten viser **Venter** i stedet for statusen monitoren ble stående med. | Slå på overvåkingen av monitoren igjen, eller bind en annen monitor. |
+| **Overvåking arkivert** | Den bundne monitoren er arkivert, så enheten viser **Venter** i stedet for statusen monitoren ble stående med. | Hent monitoren ut av arkivet, eller bind en annen monitor. |
 
 Listen **Enheter** har et filter **SNMP** med tre verdier: **OK** (det siste walket lyktes), **Feiler** (det siste walket feilet) og **Not configured** (bare ping, ingen påloggingsinformasjon eller aldri pollet). "Hvilke enheter har påloggingsinformasjon som har sluttet å virke" er ett klikk unna. Listens kolonne **Interfaces (Up / Down)** viser **Ingen SNMP** i stedet for `0 / 0` for en enhet som pinges og aldri walkes: null fungerende porter ville vært en annen påstand, og en feil påstand.
 
