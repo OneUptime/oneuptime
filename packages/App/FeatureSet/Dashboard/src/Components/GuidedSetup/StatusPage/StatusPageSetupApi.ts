@@ -13,6 +13,10 @@ import ObjectID from "Common/Types/ObjectID";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import ProjectUtil from "Common/UI/Utils/Project";
+import {
+  GUIDED_SETUP_RESOURCE_OPTIONS,
+  buildGuidedStatusPage,
+} from "Common/Utils/GuidedSetup/StatusPageRecords";
 
 /*
  * THE RECORDS THE STATUS PAGE GUIDED SETUP READS AND WRITES (issue #6806),
@@ -82,9 +86,11 @@ export default class StatusPageSetupApi {
    * the server's defaults (public, at <host>/status-page/<id>).
    */
   public static async createStatusPage(name: string): Promise<string> {
-    const statusPage: StatusPage = new StatusPage();
-    statusPage.name = name.trim();
-    statusPage.projectId = getProjectId();
+    // Built as Ask AI's publish_status_page builds it (Common).
+    const statusPage: StatusPage = buildGuidedStatusPage({
+      name: name,
+      projectId: getProjectId(),
+    });
 
     const response: HTTPResponse<StatusPage> =
       (await ModelAPI.create<StatusPage>({
@@ -141,11 +147,8 @@ export default class StatusPageSetupApi {
             return resource.monitorId?.toString() || "";
           })
           .filter(Boolean),
-        resourceOptions: {
-          showCurrentStatus: true,
-          showUptimePercent: true,
-          showStatusHistoryChart: true,
-        },
+        // Shown as Ask AI's publish_status_page shows them (Common).
+        resourceOptions: GUIDED_SETUP_RESOURCE_OPTIONS,
       });
 
     if (result.succeeded.length + result.skipped.length === 0) {

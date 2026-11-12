@@ -32,7 +32,7 @@ export const getAIGenerateTextDocumentation: AIDocumentationFunction = (
     summary:
       "Asks your project's AI model to write text, such as a summary or a draft update, from data you choose.",
     steps: [
-      "Check that the project has an AI provider, under **Project Settings → AI → LLM Providers**.",
+      "Check that the project has an LLM provider, under **Project Settings → AI → LLM Providers**.",
       "Write the task in **Prompt**, and put the data it should work from in **Context**, as JSON.",
       "Use the answer in later steps: it is the **Response**.",
       "Connect **Error** to a fallback. It runs when the provider, a limit or the budget stops the request.",

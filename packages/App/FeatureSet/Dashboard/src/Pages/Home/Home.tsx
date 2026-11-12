@@ -9,6 +9,7 @@ import ProjectHealthCard from "../../Components/Home/ProjectHealthCard";
 import ProjectResources from "../../Components/Home/ProjectResources";
 import HiddenProductsWithData from "../../Components/ProjectProducts/HiddenProductsWithData";
 import ServerSetupCard from "../../Components/ServerSetup/ServerSetupCard";
+import SetupCheckInCard from "../../Components/Feedback/SetupCheckInCard";
 import useSetupHealthSummary from "../../Components/SetupHealth/UseSetupHealthSummary";
 import UpcomingMaintenance from "../../Components/Home/UpcomingMaintenance";
 import useHomeOverview, {
@@ -171,6 +172,22 @@ const Home: FunctionComponent<ComponentProps> = (
       <ServerSetupCard />
 
       <GettingStarted projectId={currentProjectId} className="!mb-0" />
+
+      {/*
+       * Is OneUptime set up the way you wanted? Once, for the project's
+       * creator in its first weeks, never while something is open (#6832).
+       */}
+      <SetupCheckInCard
+        projectId={currentProjectIdString}
+        isInIncident={
+          overview.data
+            ? overview.data.activeIncidents.count +
+                overview.data.activeAlerts.count >
+              0
+            : null
+        }
+        setupHealthCount={setupHealthCount}
+      />
 
       {/*
        * A product the project hides that started receiving data (#6814):

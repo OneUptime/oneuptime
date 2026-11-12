@@ -43,7 +43,7 @@ const PROVIDERS: Array<ChatProvider> = [
 ];
 
 function trigger(): HTMLElement {
-  return screen.getByTitle("Choose AI provider");
+  return screen.getByTitle("Choose LLM provider");
 }
 
 function renderPicker(
@@ -83,7 +83,9 @@ describe("ProviderPicker", () => {
 
     fireEvent.click(trigger());
 
-    const menu: HTMLElement = screen.getByRole("menu", { name: "AI provider" });
+    const menu: HTMLElement = screen.getByRole("menu", {
+      name: "LLM provider",
+    });
     expect(trigger()).toHaveAttribute("aria-expanded", "true");
     expect(trigger()).toHaveAttribute("aria-controls", menu.id);
     const items: Array<HTMLElement> =
