@@ -1049,3 +1049,109 @@ describe("a title that reads the other way from the page", () => {
     expect(title).not.toHaveAttribute("dir");
   });
 });
+
+describe("the project's setup (Setup health, #6812)", () => {
+  function renderWithSetup(
+    data: HomeOverviewData | null,
+    setupHealthCount: number | null | undefined,
+  ): void {
+    render(
+      <MemoryRouter>
+        <NeedsAttention
+          data={data}
+          isLoading={false}
+          now={NOW}
+          setupHealthCount={setupHealthCount}
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  beforeEach(() => {
+    activeLocale = EN;
+  });
+
+  test("things that need a look end the card with Setup, opening Setup health from Home", () => {
+    renderWithSetup(
+      overview({
+        activeIncidents: list([incident({ number: 1, title: "Down" })]),
+      }),
+      3,
+    );
+
+    const setup: HTMLElement = screen.getByTestId("home-attention-group-setup");
+
+    expect(setup).toHaveTextContent("Setup");
+    expect(
+      screen.getByTestId("home-attention-group-setup-count"),
+    ).toHaveTextContent("3");
+
+    const row: HTMLElement = screen.getByTestId("home-attention-row-setup");
+
+    expect(row).toHaveTextContent("3 things in your setup need a look.");
+    expect(linkOf(row)).toBe(
+      `/dashboard/${PROJECT_ID}/home/setup-health?from=home`,
+    );
+
+    // After what is open now.
+    const incidents: HTMLElement = screen.getByTestId(
+      `home-attention-group-${AttentionGroupKey.Incidents}`,
+    );
+
+    expect(
+      incidents.compareDocumentPosition(setup) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // The open count counts problems, never the setup.
+    expect(screen.getByTestId("home-attention-total")).toHaveTextContent(
+      "1 open",
+    );
+  });
+
+  test("one thing is said in the singular", () => {
+    renderWithSetup(overview(), 1);
+
+    expect(screen.getByTestId("home-attention-row-setup")).toHaveTextContent(
+      "1 thing in your setup needs a look.",
+    );
+  });
+
+  test("nothing open and something in the setup: the card is the Setup section, never all clear", () => {
+    renderWithSetup(overview(), 2);
+
+    expect(screen.getByTestId("home-attention-groups")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("home-attention-group-setup"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("home-attention-empty")).toBeNull();
+    expect(screen.queryByText(ALL_CLEAR_TITLE)).toBeNull();
+    expect(screen.queryByTestId("home-attention-total")).toBeNull();
+  });
+
+  test.each([
+    ["nothing in the setup", 0],
+    ["no count read", null],
+    ["no count asked for", undefined],
+  ])(
+    "%s: no Setup section, and the card is as it always was",
+    (_label: string, count: number | null | undefined) => {
+      renderWithSetup(overview(), count);
+
+      expect(screen.queryByTestId("home-attention-group-setup")).toBeNull();
+      expect(screen.getByTestId("home-attention-empty")).toHaveAttribute(
+        "data-state",
+        "all-clear",
+      );
+    },
+  );
+
+  test("in German, the section and its line are in the reader's words", () => {
+    activeLocale = DE;
+    renderWithSetup(overview(), 3);
+
+    const row: HTMLElement = screen.getByTestId("home-attention-row-setup");
+
+    expect(row).not.toHaveTextContent("things in your setup need a look");
+    expect(row).toHaveTextContent("3");
+  });
+});
