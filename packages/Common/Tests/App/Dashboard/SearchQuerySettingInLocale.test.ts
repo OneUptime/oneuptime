@@ -7,6 +7,7 @@ import {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/Hunts/HuntsCopy";
 import {
   ConnectorField,
+  SecurityEventConnectorDefinition,
   getSecurityEventConnectorDefinition,
 } from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorCatalog";
 import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connectors/SecurityEventConnectorProvider";
@@ -94,11 +95,18 @@ function searchQueryProblems(locale: Record<string, string>): Array<string> {
 }
 
 function splunkSearchSetting(): ConnectorField {
-  return getSecurityEventConnectorDefinition(
-    SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
-  ).configFields.find((field: ConnectorField): boolean => {
-    return field.key === "searchString";
-  }) as ConnectorField;
+  const splunk: SecurityEventConnectorDefinition | undefined =
+    getSecurityEventConnectorDefinition(
+      SecurityEventConnectorProvider.SplunkEnterpriseSecurity,
+    );
+
+  expect(splunk).toBeDefined();
+
+  return (splunk as SecurityEventConnectorDefinition).configFields.find(
+    (field: ConnectorField): boolean => {
+      return field.key === "searchString";
+    },
+  ) as ConnectorField;
 }
 
 describe("a search query's title, in every language", () => {

@@ -45,7 +45,8 @@ const WORKFLOW_ID: ObjectID = new ObjectID(
 
 const NOW: Date = new Date("2026-10-13T12:00:00.000Z");
 
-const HINDI: Record<string, string> = hindiLocale as Record<string, string>;
+// The flat keys a sentence is looked up by (the file also holds nested ones).
+const HINDI: Record<string, unknown> = hindiLocale as Record<string, unknown>;
 
 function infoFor(
   singularName: string,
@@ -122,7 +123,7 @@ async function emptyStateFor(info: RunRecordTriggerInfo): Promise<string> {
 
 describe("a project with no records yet, in Hindi", () => {
   test("the sentence is worded, with a plural verb and nothing that agrees with the records", () => {
-    const sentence: string | undefined = HINDI[RunRecordFieldCopy.noneYet];
+    const sentence: unknown = HINDI[RunRecordFieldCopy.noneYet];
 
     expect(sentence).toBe("इस प्रोजेक्ट में अभी तक {{records}} नहीं हैं।");
   });
