@@ -180,15 +180,15 @@ describe("what is carried", () => {
   test("a started step, with the one after it, for an hour", () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
-      nextStep: WelcomeStep.OnCall,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
       now: 1_000,
     });
 
     expect(readWelcomeStepInProgress(1_000 + 60_000)).toEqual({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
-      nextStep: WelcomeStep.OnCall,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
       startedAt: 1_000,
     });
     expect(
@@ -199,7 +199,7 @@ describe("what is carried", () => {
   test("only a step with a page to land on; any other forgets what was carried", () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
     rememberWelcomeStepStarted({
@@ -237,8 +237,39 @@ describe("what is carried", () => {
     expect(readWelcomeStepInProgress()).toBeNull();
   });
 
+  /*
+   * Create your first monitor opens its guided setup (#6804), which says
+   * what is next itself: nothing is carried, and the monitor's page shows
+   * no line.
+   */
+  test("a step that opens a guided setup carries nothing", () => {
+    rememberWelcomeStepStarted({
+      projectId: PROJECT_ID,
+      step: WelcomeStep.StatusPage,
+      nextStep: null,
+    });
+    rememberWelcomeStepStarted({
+      projectId: PROJECT_ID,
+      step: WelcomeStep.Monitor,
+      nextStep: WelcomeStep.OnCall,
+    });
+
+    expect(readWelcomeStepInProgress()).toBeNull();
+    expect(
+      getWelcomeNextStepLine({
+        inProgress: {
+          projectId: PROJECT_ID,
+          step: WelcomeStep.Monitor,
+          nextStep: WelcomeStep.OnCall,
+          startedAt: Date.now(),
+        },
+        path: pathOf(PageMap.MONITOR_VIEW),
+        projectId: PROJECT_ID,
+      }),
+    ).toBeNull();
+  });
+
   test.each([
-    [WelcomeStep.Monitor, PageMap.MONITOR_VIEW],
     [WelcomeStep.StatusPage, PageMap.STATUS_PAGE_VIEW],
     [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION],
   ])("%s lands on %s", (step: WelcomeStep, pageMap: PageMap) => {
@@ -261,11 +292,11 @@ describe("what is carried", () => {
       getWelcomeNextStepLine({
         inProgress: {
           projectId: OTHER_PROJECT_ID,
-          step: WelcomeStep.Monitor,
+          step: WelcomeStep.OnCall,
           nextStep: null,
           startedAt: Date.now(),
         },
-        path: pathOf(PageMap.MONITOR_VIEW),
+        path: pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION),
         projectId: PROJECT_ID,
       }),
     ).toBeNull();
@@ -273,23 +304,23 @@ describe("what is carried", () => {
 });
 
 describe("the line", () => {
-  test("on the monitor's page: what was done, what is next, and the way back to Home", async () => {
+  test("on the policy's page: what was done, what is next, and the way back to Home", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
-      nextStep: WelcomeStep.OnCall,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
     });
-    currentPath = pathOf(PageMap.MONITOR_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Monitor created. Its first check ticks the step off.",
+      "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
     );
     expect(screen.getByTestId("welcome-next-step-next")).toHaveTextContent(
-      "Next: Set up an on-call policy.",
+      "Next: Publish a status page.",
     );
     expect(
       screen.getByTestId("welcome-next-step-back").closest("a"),
@@ -323,8 +354,8 @@ describe("the line", () => {
     );
   });
 
-  test("is nowhere else: not on the create form, not with nothing started", async () => {
-    currentPath = pathOf(PageMap.MONITOR_VIEW);
+  test("is nowhere else: not on the list, not with nothing started", async () => {
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -334,10 +365,10 @@ describe("the line", () => {
     cleanup();
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.MONITOR_CREATE);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICIES);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -348,10 +379,10 @@ describe("the line", () => {
   test("closing it forgets the step", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.MONITOR_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -384,11 +415,11 @@ describe("the line", () => {
   test("a step started after one was closed gets its own line", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
+      step: WelcomeStep.OnCall,
       nextStep: null,
       now: Date.now() - 10_000,
     });
-    currentPath = pathOf(PageMap.MONITOR_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     let rerender: (ui: React.ReactElement) => void = () => {};
 

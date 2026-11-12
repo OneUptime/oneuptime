@@ -284,11 +284,17 @@ describe("Invite your team", () => {
 });
 
 describe("Create your first monitor", () => {
-  test("opens the create form for someone who may create a monitor", async () => {
+  /*
+   * The guided setup (#6804) takes the step over: an address, who is told
+   * and a test page on one page - for somebody who may create a monitor,
+   * since its first step makes one.
+   */
+  test("opens the guided setup for someone who may create a monitor", async () => {
     await renderGettingStarted();
     click(WelcomeStep.Monitor);
 
-    expect(navigatedTo()).toBe(routeOf(PageMap.MONITOR_CREATE));
+    expect(navigatedTo()).toBe(routeOf(PageMap.MONITOR_GUIDED_SETUP));
+    expect(navigatedTo()).not.toBe(routeOf(PageMap.MONITOR_CREATE));
   });
 
   test("asks the permission gate about creating a Monitor, and nothing else", async () => {
@@ -324,7 +330,7 @@ describe("Create your first monitor", () => {
     mayCreate = true;
     click(WelcomeStep.Monitor);
 
-    expect(navigatedTo()).toBe(routeOf(PageMap.MONITOR_CREATE));
+    expect(navigatedTo()).toBe(routeOf(PageMap.MONITOR_GUIDED_SETUP));
   });
 });
 
@@ -379,13 +385,20 @@ describe("what a click records", () => {
 
   test("a step whose record lands on a plain page is carried there, with the step after it", async () => {
     await renderGettingStarted();
-    click(WelcomeStep.Monitor);
+    click(WelcomeStep.OnCall);
 
     expect(readWelcomeStepInProgress()).toMatchObject({
       projectId: PROJECT_ID,
-      step: WelcomeStep.Monitor,
-      nextStep: WelcomeStep.Infrastructure,
+      step: WelcomeStep.OnCall,
+      nextStep: WelcomeStep.StatusPage,
     });
+  });
+
+  test("a step that opens a guided setup carries nothing: the setup says what is next", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.Monitor);
+
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
   });
 
   test("the step after the last one left wraps round to one still to do", async () => {

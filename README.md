@@ -57,9 +57,13 @@ Everything else is in the [docs](https://oneuptime.com/docs/introduction/getting
 
 ### Self-host with Docker Compose
 
-You need a Linux server with at least 8 GB of memory, and Docker, Docker Compose, Git and Node.js.
+You need a Linux server with at least 8 GB of memory. On a new Ubuntu, Debian or RHEL-based server, one command installs Docker, Git and Node.js where they are missing, asks for the address people will use and starts OneUptime:
 
-Before step 3, set `HOST` in `config.env` to the domain name or IP address people will use to reach OneUptime, without `http://`. Keep `localhost` only to try OneUptime on your own computer.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Or do it step by step, with Docker, Docker Compose, Git and Node.js installed. In step 3, put the domain name or IP address people will use to reach OneUptime in place of `<your-address>`, without `http://`: that is `HOST` in `config.env`. Keep `localhost` only to try OneUptime on your own computer.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` checks the server, gives every secret in `config.env` its own random value and starts OneUptime. When it prints **OneUptime is up!**, open `http://localhost`, or your server's address, and sign up. The first account becomes the instance's admin.
 
-The [Docker Compose guide](https://oneuptime.com/docs/installation/docker-compose) covers server sizes, HTTPS, backups and updates.
+Then follow the [Self-Hosting Guide](https://oneuptime.com/docs/installation/self-hosting-guide) through HTTPS, email and SMS to your first page. The [Docker Compose guide](https://oneuptime.com/docs/installation/docker-compose) covers server sizes, backups and updates.
 
 ### Kubernetes with Helm
 

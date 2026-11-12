@@ -355,6 +355,10 @@ export const friendlyToolNames: { [key: string]: string } = {
     "Checking status page announcements",
   ),
   query_slos: translationKey("Checking SLOs"),
+  // OneUptime itself: its docs, and the page a thing is done on (#6828).
+  search_docs: translationKey("Searching the docs"),
+  read_docs: translationKey("Reading the docs"),
+  find_dashboard_page: translationKey("Finding the page in OneUptime"),
   query_runbooks: translationKey("Checking runbooks"),
   query_workflows: translationKey("Checking workflows"),
   find_workflow_components: translationKey("Looking up workflow steps"),

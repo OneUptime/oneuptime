@@ -30,6 +30,7 @@ const { spawnSync } = require("child_process");
 const {
   SKIP_SETTING,
   DOCS_URL,
+  HOST_PLACEHOLDER,
   MINIMUM_MEMORY_BYTES,
   MINIMUM_FREE_DISK_BYTES,
   PUBLISHED_PORTS,
@@ -469,6 +470,46 @@ describe("HOST, HTTP_PROTOCOL and PROVISION_SSL", () => {
       },
     ]);
   });
+
+  /*
+   * The README's quick start writes HOST=<your-address> for the reader to
+   * edit: copied and run as it is, npm start stops on it, before it pulls
+   * anything, rather than starting OneUptime on an address nobody can open.
+   */
+  test("the README's placeholder in HOST stops the start, with an address to write instead", () => {
+    expect(HOST_PLACEHOLDER).toBe("<your-address>");
+    expect(findingsFor([`HOST=${HOST_PLACEHOLDER}`])).toEqual([
+      {
+        level: "stop",
+        message:
+          "HOST in config.env is <your-address>, which is not an address yet. Replace it with the domain name or IP address people will use to reach OneUptime, without http://, such as HOST=203.0.113.5.",
+      },
+    ]);
+  });
+
+  test.each([
+    "<your-address>:8080",
+    "<oneuptime.example.com>",
+    "my-host>",
+    "<",
+  ])("HOST=%s, holding a < or a >, stops the start", (host) => {
+    expect(levelsOf(findingsFor([`HOST=${host}`]))).toEqual(["stop"]);
+  });
+
+  test("with no other address on the server, the placeholder's stop names the docs' example", () => {
+    expect(
+      hostFindings(settingsWith([`HOST=${HOST_PLACEHOLDER}`]), {
+        lo: INTERFACES.lo,
+      })[0].message,
+    ).toContain("such as HOST=oneuptime.example.com.");
+  });
+
+  test.each(["oneuptime.example.com", "203.0.113.5:8080", "[2001:db8::1]"])(
+    "HOST=%s, an address, is not taken for the placeholder",
+    (host) => {
+      expect(levelsOf(findingsFor([`HOST=${host}`]))).not.toContain("stop");
+    },
+  );
 
   test.each(["HTTPS", "Http", "ftp", ""])(
     "HTTP_PROTOCOL=%p is said, not stopped: an existing install keeps starting",

@@ -144,6 +144,8 @@ Before the first start, replace the placeholder secrets yourself, as [Generate r
 Open `http://` followed by your `HOST` (for example `http://localhost`) and sign up. The first account on a new instance becomes its master admin, who can open the Admin Dashboard at `/admin`.
 
 Anyone who can reach the page can sign up after you. To stop that, open the Admin Dashboard, go to **Settings > Authentication** and turn off **Let people sign up**. People you invite to a project can still create their account.
+
+Then finish setting up the server at `/admin/setup`, where email, SMS and calls are set up and tested: see [Finish setting up the server](/docs/installation/self-hosting-guide#finish-setting-up-the-server).
 :::
 
 ### Generate random secrets
@@ -566,8 +568,8 @@ The Admin Dashboard lists the probe under **Settings > Monitoring > Global Probe
 ## Next steps
 
 :::cards
+- [Finish setting up the server](/docs/installation/self-hosting-guide#finish-setting-up-the-server): Email, then SMS and calls, each with a test.
+- [Quickstart](/docs/introduction/quickstart): Your first monitor, on-call policy and status page.
 - [Upgrading OneUptime](/docs/installation/upgrading): What each major version needs from you.
-- [Sizing & Capacity Planning](/docs/installation/sizing): Plan memory and disk for your telemetry.
 - [Self-Hosted Architecture](/docs/self-hosted/architecture): How the components fit together.
-- [Enterprise Edition](/docs/self-hosted/enterprise): What the Enterprise image adds, and its license.
 :::
