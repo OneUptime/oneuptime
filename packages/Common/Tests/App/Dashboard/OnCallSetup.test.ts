@@ -250,9 +250,9 @@ describe("which step a returning person lands on", () => {
       isNoAnswerDone: true,
     };
 
-    expect(doneKeys({ ...ready, testStatus: OnCallTestPageStatus.Sent })).not.toContain(
-      OnCallSetupStep.Test,
-    );
+    expect(
+      doneKeys({ ...ready, testStatus: OnCallTestPageStatus.Sent }),
+    ).not.toContain(OnCallSetupStep.Test);
     expect(doneKeys({ ...ready, isTestSkipped: true })).toContain(
       OnCallSetupStep.Test,
     );
@@ -313,19 +313,17 @@ describe("what stops a phone being paged", () => {
   test("Cloud, no balance: named, and no number (its code is a paid text)", () => {
     const facts: PhoneChannelFacts = cloud({ balanceInUSDCents: 0 });
 
-    expect(kinds(getPhoneBreaks(facts))).toEqual([WhoIsToldBreakKind.NoBalance]);
+    expect(kinds(getPhoneBreaks(facts))).toEqual([
+      WhoIsToldBreakKind.NoBalance,
+    ]);
     expect(isPhoneBalanceTooLow(facts)).toBe(true);
     expect(canAddPhone(facts)).toBe(false);
   });
 
   test("the balance floor is the server's: at it is too low, a cent above is not", () => {
     expect(PHONE_BALANCE_FLOOR_IN_USD_CENTS).toBe(100);
-    expect(
-      isPhoneBalanceTooLow(cloud({ balanceInUSDCents: 100 })),
-    ).toBe(true);
-    expect(
-      isPhoneBalanceTooLow(cloud({ balanceInUSDCents: 101 })),
-    ).toBe(false);
+    expect(isPhoneBalanceTooLow(cloud({ balanceInUSDCents: 100 }))).toBe(true);
+    expect(isPhoneBalanceTooLow(cloud({ balanceInUSDCents: 101 }))).toBe(false);
   });
 
   test("a balance not known is never called too low", () => {
@@ -336,9 +334,7 @@ describe("what stops a phone being paged", () => {
   });
 
   test("self-hosted pays no balance: a zero balance stops nothing", () => {
-    expect(
-      getPhoneBreaks(selfHosted({ balanceInUSDCents: 0 })),
-    ).toEqual([]);
+    expect(getPhoneBreaks(selfHosted({ balanceInUSDCents: 0 }))).toEqual([]);
   });
 
   test("self-hosted without Twilio: the server is named for SMS and calls", () => {
@@ -358,9 +354,7 @@ describe("what stops a phone being paged", () => {
   test("the server comes before the project's switches", () => {
     expect(
       kinds(
-        getPhoneBreaks(
-          selfHosted({ serverCanSendSms: false, isSmsOn: false }),
-        ),
+        getPhoneBreaks(selfHosted({ serverCanSendSms: false, isSmsOn: false })),
       ),
     ).toEqual([
       `${WhoIsToldBreakKind.ServerCannotSend}:${WhoIsToldServerChannel.SMS}`,
@@ -380,16 +374,16 @@ describe("what stops a phone being paged", () => {
   });
 
   test("OneUptime Cloud always has Twilio: a server status there is ignored", () => {
-    expect(
-      isServerWithoutTwilio(cloud({ serverCanSendSms: false })),
-    ).toBe(false);
+    expect(isServerWithoutTwilio(cloud({ serverCanSendSms: false }))).toBe(
+      false,
+    );
     expect(canAddPhone(cloud({ serverCanSendSms: false }))).toBe(true);
   });
 
   test("switches not known are the server's to refuse, not a break", () => {
-    expect(
-      getPhoneBreaks(cloud({ isSmsOn: null, isCallOn: null })),
-    ).toEqual([]);
+    expect(getPhoneBreaks(cloud({ isSmsOn: null, isCallOn: null }))).toEqual(
+      [],
+    );
     expect(canAddPhone(cloud({ isSmsOn: null }))).toBe(true);
   });
 
@@ -429,7 +423,11 @@ describe("the methods a page reaches", () => {
     expect(
       getVerifiedMethodsOfType(
         [
-          { methodType: "Email", maskedIdentifier: "a***@x.com", isVerified: true },
+          {
+            methodType: "Email",
+            maskedIdentifier: "a***@x.com",
+            isVerified: true,
+          },
           { methodType: "SMS", maskedIdentifier: "•••4821", isVerified: false },
           { methodType: "Call", maskedIdentifier: "•••4821", isVerified: true },
           { methodType: "Push", maskedIdentifier: "Pixel", isVerified: true },
@@ -479,7 +477,10 @@ describe("the breaks between a policy and its people", () => {
   test("no escalation rule: it pages nobody", () => {
     expect(
       kinds(
-        getPolicyBreaks({ policy: policyRecord({ levels: [] }), responders: [] }),
+        getPolicyBreaks({
+          policy: policyRecord({ levels: [] }),
+          responders: [],
+        }),
       ),
     ).toEqual([WhoIsToldBreakKind.PolicyHasNoLevels]);
   });
@@ -489,9 +490,9 @@ describe("the breaks between a policy and its people", () => {
     policy.levels[0]!.responderCount = 0;
     policy.levels[0]!.names = [];
 
-    expect(kinds(getPolicyBreaks({ policy: policy, responders: [] }))).toEqual(
-      [WhoIsToldBreakKind.PolicyReachesNobody],
-    );
+    expect(kinds(getPolicyBreaks({ policy: policy, responders: [] }))).toEqual([
+      WhoIsToldBreakKind.PolicyReachesNobody,
+    ]);
   });
 
   test("each person a page can't reach is named, and nobody reachable at all is said", () => {
@@ -521,9 +522,10 @@ describe("the breaks between a policy and its people", () => {
       incident: false,
       alert: false,
     });
-    expect(
-      getMissingRuleKinds(policyRecord({ alertRuleCount: 0 })),
-    ).toEqual({ incident: false, alert: true });
+    expect(getMissingRuleKinds(policyRecord({ alertRuleCount: 0 }))).toEqual({
+      incident: false,
+      alert: true,
+    });
     expect(
       getMissingRuleKinds(
         policyRecord({ incidentRuleCount: 0, alertRuleCount: 0 }),
@@ -584,7 +586,9 @@ describe("the summary", () => {
       responders: responders,
       breaks: [],
       testResult: testResult || null,
-      testResultSentence: testResult ? "Ana Lopez acknowledged it by SMS." : null,
+      testResultSentence: testResult
+        ? "Ana Lopez acknowledged it by SMS."
+        : null,
     })) {
       result[row.key] = row.text;
     }
@@ -684,7 +688,11 @@ describe("the summary", () => {
       summary.map((row: OnCallSummaryRow): string => {
         return `${row.key}:${row.label}`;
       }),
-    ).toEqual(["first:Who is paged", "no_answer:If nobody answers", "tested:Tested"]);
+    ).toEqual([
+      "first:Who is paged",
+      "no_answer:If nobody answers",
+      "tested:Tested",
+    ]);
   });
 
   test("the first level's names stand in when readiness could not be read", () => {

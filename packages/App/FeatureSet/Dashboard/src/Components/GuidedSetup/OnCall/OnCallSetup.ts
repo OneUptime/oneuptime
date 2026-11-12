@@ -211,7 +211,9 @@ export const ON_CALL_SETUP_COPY: {
   whoAddPeople: WEBSITE_DOWN_COPY.whoAddPeople,
   whoNobodyPicked: WEBSITE_DOWN_COPY.whoNobodyPicked,
   whoAddToLevel: translationKey("Add to the first escalation rule"),
-  whoAddRules: translationKey("Page this policy for every new incident and alert"),
+  whoAddRules: translationKey(
+    "Page this policy for every new incident and alert",
+  ),
   whoCannotCreate: translationKey(
     "Setting up an on-call policy needs permission you do not have in this project. Ask a project owner or admin to set it up; your own notification methods are ready above.",
   ),
@@ -226,7 +228,9 @@ export const ON_CALL_SETUP_COPY: {
   noAnswerRepeat: translationKey("Page the same people again"),
   noAnswerNothing: translationKey("Do nothing more"),
   noAnswerWaitLabel: translationKey("Minutes to wait"),
-  noAnswerWaitError: translationKey("Enter a number of minutes from 1 to 1440."),
+  noAnswerWaitError: translationKey(
+    "Enter a number of minutes from 1 to 1440.",
+  ),
   noAnswerSecondLevelLabel: translationKey("Paged next"),
   noAnswerRepeatLabel: translationKey("Times to page again"),
   noAnswerRepeatError: translationKey("Enter a number of times from 1 to 10."),
@@ -478,6 +482,12 @@ export const canAddPhone: (facts: PhoneChannelFacts) => boolean = (
   );
 };
 
+// A number with its country code: 7 to 15 digits, a + first or not.
+const PHONE_NUMBER_PATTERN: RegExp = /^\+?[0-9]{7,15}$/;
+
+// Digits only: a whole number of minutes or times.
+const WHOLE_NUMBER_PATTERN: RegExp = /^[0-9]+$/;
+
 /*
  * A phone number as typed: digits, with a + and the country code. Spaces,
  * dashes, dots and brackets are dropped. Null when it is not a number.
@@ -487,7 +497,7 @@ export const parsePhoneNumber: (input: string) => string | null = (
 ): string | null => {
   const text: string = (input || "").trim().replace(/[\s\-().]/g, "");
 
-  if (!/^\+?[0-9]{7,15}$/.test(text)) {
+  if (!PHONE_NUMBER_PATTERN.test(text)) {
     return null;
   }
 
@@ -656,7 +666,7 @@ export const parseWaitMinutes: (input: string) => number | null = (
 ): number | null => {
   const text: string = (input || "").trim();
 
-  if (!/^[0-9]+$/.test(text)) {
+  if (!WHOLE_NUMBER_PATTERN.test(text)) {
     return null;
   }
 
@@ -673,7 +683,7 @@ export const parseRepeatTimes: (input: string) => number | null = (
 ): number | null => {
   const text: string = (input || "").trim();
 
-  if (!/^[0-9]+$/.test(text)) {
+  if (!WHOLE_NUMBER_PATTERN.test(text)) {
     return null;
   }
 

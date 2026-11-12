@@ -333,7 +333,9 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     setResponders(people);
 
     // What still stands between the policy and its people; null when it is gone.
-    return loaded ? getPolicyBreaks({ policy: loaded, responders: people }) : null;
+    return loaded
+      ? getPolicyBreaks({ policy: loaded, responders: people })
+      : null;
   };
 
   const readReach: (refresh: boolean) => Promise<void> = async (
@@ -958,8 +960,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   /*
    * STEP 2: WHO ELSE IS ON CALL?
    */
-  const policies: Array<{ id: string; name: string }> =
-    choices?.policies || [];
+  const policies: Array<{ id: string; name: string }> = choices?.policies || [];
   const isExistingMode: boolean = !policy && policies.length > 0;
   const mayCreatePolicy: boolean = Boolean(choices?.mayCreatePolicy);
   const mayAddRules: boolean = Boolean(choices?.mayAddRules);
@@ -1123,11 +1124,9 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                       void OnCallSetupApi.sendSetupReminders([
                         person.userId,
                       ]).then((statuses: SetupReminderStatuses) => {
-                        setReminders(
-                          (previous: SetupReminderStatuses) => {
-                            return { ...previous, ...statuses };
-                          },
-                        );
+                        setReminders((previous: SetupReminderStatuses) => {
+                          return { ...previous, ...statuses };
+                        });
                       });
                     }}
                   />
@@ -1416,7 +1415,8 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
 
   if (maySecondLevel) {
     noAnswerOptions.push({
-      title: translator.translateText(ON_CALL_SETUP_COPY.noAnswerEscalate) || "",
+      title:
+        translator.translateText(ON_CALL_SETUP_COPY.noAnswerEscalate) || "",
       value: NoAnswerChoice.Escalate,
     });
   }
@@ -1434,7 +1434,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
 
   const noAnswerContent: ReactElement = secondLevel ? (
     <div className="space-y-4">
-      <p className="text-sm text-gray-700" data-testid="on-call-setup-has-levels">
+      <p
+        className="text-sm text-gray-700"
+        data-testid="on-call-setup-has-levels"
+      >
         {translator.translateText(ON_CALL_SETUP_COPY.noAnswerHasLevels)}
       </p>
       {errorLine}
@@ -1634,9 +1637,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                 policyId: policy.id,
                 policyName: policy.name,
               }}
-              title={executionLogId ? ON_CALL_SETUP_COPY.testSendAnother : undefined}
+              title={
+                executionLogId ? ON_CALL_SETUP_COPY.testSendAnother : undefined
+              }
               buttonStyle={
-                executionLogId ? ButtonStyleType.NORMAL : ButtonStyleType.PRIMARY
+                executionLogId
+                  ? ButtonStyleType.NORMAL
+                  : ButtonStyleType.PRIMARY
               }
               onSent={(id: string) => {
                 setTestResult(null);
@@ -1685,8 +1692,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             to={routeOf(PageMap.USER_SETTINGS_NOTIFICATION_METHODS)}
             className={linkClassName}
           >
-            {translator.translateText(ON_CALL_SETUP_COPY.testMethodsLink) ||
-              ""}
+            {translator.translateText(ON_CALL_SETUP_COPY.testMethodsLink) || ""}
           </AppLink>
         </div>
       ) : (
@@ -1801,8 +1807,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
                   ON_CALL_SETUP_COPY.nextScheduleNeedsPlan,
                   { plan: PlanType.Growth },
                 )
-              : translator.translateText(ON_CALL_SETUP_COPY.nextSchedule) ||
-                ""}
+              : translator.translateText(ON_CALL_SETUP_COPY.nextSchedule) || ""}
           </AppLink>
         </li>
         <li>
@@ -1833,7 +1838,10 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         {policy ? (
           <li>
             <AppLink
-              to={routeOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION, policy.id)}
+              to={routeOf(
+                PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION,
+                policy.id,
+              )}
               className={linkClassName}
               dataTestId="on-call-setup-open-policy"
             >

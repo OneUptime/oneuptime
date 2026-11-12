@@ -302,22 +302,23 @@ describe("what is carried", () => {
     ).toBeNull();
   });
 
-  test.each([
-    [WelcomeStep.StatusPage, PageMap.STATUS_PAGE_VIEW],
-  ])("%s lands on %s", (step: WelcomeStep, pageMap: PageMap) => {
-    expect(
-      getWelcomeNextStepLine({
-        inProgress: {
+  test.each([[WelcomeStep.StatusPage, PageMap.STATUS_PAGE_VIEW]])(
+    "%s lands on %s",
+    (step: WelcomeStep, pageMap: PageMap) => {
+      expect(
+        getWelcomeNextStepLine({
+          inProgress: {
+            projectId: PROJECT_ID,
+            step: step,
+            nextStep: WelcomeStep.Team,
+            startedAt: Date.now(),
+          },
+          path: pathOf(pageMap),
           projectId: PROJECT_ID,
-          step: step,
-          nextStep: WelcomeStep.Team,
-          startedAt: Date.now(),
-        },
-        path: pathOf(pageMap),
-        projectId: PROJECT_ID,
-      })?.step.step,
-    ).toBe(step);
-  });
+        })?.step.step,
+      ).toBe(step);
+    },
+  );
 
   test("the line belongs to the project the step was started in", () => {
     expect(

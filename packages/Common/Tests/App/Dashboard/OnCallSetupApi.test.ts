@@ -242,16 +242,21 @@ describe("the policy it makes", () => {
       addRules: false,
     });
 
-    expect(
-      callsFor(createSpy, OnCallDutyPolicy)[0]!["miscDataProps"],
-    ).toEqual({ users: [USER_ID], teams: [] });
+    expect(callsFor(createSpy, OnCallDutyPolicy)[0]!["miscDataProps"]).toEqual({
+      users: [USER_ID],
+      teams: [],
+    });
   });
 
   test("a create that answers no id is an error, not a policy", async () => {
     createSpy.mockResolvedValue({ data: {} });
 
     await expect(
-      OnCallSetupApi.createPolicy({ userIds: [], teamIds: [], addRules: false }),
+      OnCallSetupApi.createPolicy({
+        userIds: [],
+        teamIds: [],
+        addRules: false,
+      }),
     ).rejects.toThrow("can't be shown");
   });
 });
@@ -400,8 +405,11 @@ describe("the on-call rules that run a policy", () => {
     });
 
     expect(
-      (callsFor(createSpy, IncidentOnCallRule)[0]!["model"] as IncidentOnCallRule)
-        .name,
+      (
+        callsFor(createSpy, IncidentOnCallRule)[0]![
+          "model"
+        ] as IncidentOnCallRule
+      ).name,
     ).toBe("Page Ops for every incident");
     expect(callsFor(createSpy, AlertOnCallRule)).toHaveLength(1);
   });
@@ -451,9 +459,14 @@ describe("what happens if nobody answers", () => {
       OnCallDutyPolicyEscalationRule,
     )[0]!;
 
-    expect(created["miscDataProps"]).toEqual({ users: ["user-ben"], teams: [] });
+    expect(created["miscDataProps"]).toEqual({
+      users: ["user-ben"],
+      teams: [],
+    });
     expect(
-      (created["model"] as OnCallDutyPolicyEscalationRule).onCallDutyPolicyId?.toString(),
+      (
+        created["model"] as OnCallDutyPolicyEscalationRule
+      ).onCallDutyPolicyId?.toString(),
     ).toBe(POLICY_ID);
   });
 
@@ -501,13 +514,12 @@ describe("what happens if nobody answers", () => {
 
 describe("the phone", () => {
   test("SMS and calls are turned on in one save, and every switch hears it", async () => {
-    const dispatchSpy: SpyInstance<
-      (name: string, data?: unknown) => void
-    > = jest
-      .spyOn(GlobalEvents, "dispatchEvent")
-      .mockImplementation(() => {}) as unknown as SpyInstance<
-      (name: string, data?: unknown) => void
-    >;
+    const dispatchSpy: SpyInstance<(name: string, data?: unknown) => void> =
+      jest
+        .spyOn(GlobalEvents, "dispatchEvent")
+        .mockImplementation(() => {}) as unknown as SpyInstance<
+        (name: string, data?: unknown) => void
+      >;
 
     await OnCallSetupApi.turnOnPhoneChannels();
 
@@ -531,7 +543,12 @@ describe("the phone", () => {
 
   test("the balance is added through Notification Settings' recharge, for this project", async () => {
     const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
-    postSpy.mockResolvedValue({ data: {}, isFailure: () => false });
+    postSpy.mockResolvedValue({
+      data: {},
+      isFailure: () => {
+        return false;
+      },
+    });
 
     await OnCallSetupApi.rechargeBalance(20);
 
@@ -546,7 +563,9 @@ describe("the phone", () => {
     const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
     postSpy.mockResolvedValue({
       data: { message: "No payment method on file." },
-      isFailure: () => true,
+      isFailure: () => {
+        return true;
+      },
     });
 
     await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow();
@@ -557,9 +576,10 @@ describe("the phone", () => {
       data: { id: new ObjectID(LEVEL_1), isVerified: false },
     });
 
-    await expect(OnCallSetupApi.addSmsNumber("+15551234567")).resolves.toEqual(
-      { id: LEVEL_1, isVerified: false },
-    );
+    await expect(OnCallSetupApi.addSmsNumber("+15551234567")).resolves.toEqual({
+      id: LEVEL_1,
+      isVerified: false,
+    });
 
     const sms: UserSMS = callsFor(createSpy, UserSMS)[0]!["model"] as UserSMS;
 
@@ -573,11 +593,13 @@ describe("the phone", () => {
       data: { id: new ObjectID(LEVEL_2), isVerified: true },
     });
 
-    await expect(
-      OnCallSetupApi.addCallNumber("+15551234567"),
-    ).resolves.toEqual({ id: LEVEL_2, isVerified: true });
+    await expect(OnCallSetupApi.addCallNumber("+15551234567")).resolves.toEqual(
+      { id: LEVEL_2, isVerified: true },
+    );
     expect(
-      (callsFor(createSpy, UserCall)[0]!["model"] as UserCall).phone?.toString(),
+      (
+        callsFor(createSpy, UserCall)[0]!["model"] as UserCall
+      ).phone?.toString(),
     ).toBe("+15551234567");
   });
 

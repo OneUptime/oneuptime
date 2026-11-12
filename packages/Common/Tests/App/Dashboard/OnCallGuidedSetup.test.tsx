@@ -64,7 +64,7 @@ jest.mock(
       "loadMyReach",
       "loadProjectPhoneFacts",
       "turnOnPhoneChannels",
-  "rechargeBalance",
+      "rechargeBalance",
       "addSmsNumber",
       "addCallNumber",
       "loadPolicyChoices",
@@ -451,12 +451,15 @@ const RUN_KEY: string = getGuidedSetupRunKey({
   userId: USER_ID,
 });
 
-const EMAIL: { methodType: string; maskedIdentifier: string; isVerified: boolean } =
-  {
-    methodType: "Email",
-    maskedIdentifier: "a***@acme.example",
-    isVerified: true,
-  };
+const EMAIL: {
+  methodType: string;
+  maskedIdentifier: string;
+  isVerified: boolean;
+} = {
+  methodType: "Email",
+  maskedIdentifier: "a***@acme.example",
+  isVerified: true,
+};
 
 const policyRecord: (
   overrides?: Partial<OnCallPolicyRecord>,
@@ -684,12 +687,12 @@ describe("how should we reach you", () => {
   test("shows the verified email, and push not set up yet with where to set it up", async () => {
     await renderSetup();
 
-    expect(screen.getByTestId("on-call-setup-reach-email-value")).toHaveTextContent(
-      "Email · a***@acme.example",
-    );
-    expect(screen.getByTestId("on-call-setup-reach-push-value")).toHaveTextContent(
-      "Not set up.",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-reach-email-value"),
+    ).toHaveTextContent("Email · a***@acme.example");
+    expect(
+      screen.getByTestId("on-call-setup-reach-push-value"),
+    ).toHaveTextContent("Not set up.");
     expect(screen.getByTestId("on-call-setup-push-link")).toHaveAttribute(
       "href",
       expect.stringContaining("notification-methods"),
@@ -707,15 +710,21 @@ describe("how should we reach you", () => {
     expect(screen.getByTestId("on-call-setup-balance")).toHaveTextContent(
       "which is 5.00 USD",
     );
-    expect(screen.getByTestId("on-call-setup-break-ChannelOff-SMS")).toBeInTheDocument();
-    expect(screen.getByTestId("on-call-setup-break-ChannelOff-Call")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("on-call-setup-break-ChannelOff-SMS"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("on-call-setup-break-ChannelOff-Call"),
+    ).toBeInTheDocument();
     // No number before SMS is on.
     expect(screen.queryByTestId("on-call-setup-phone")).toBeNull();
 
     await press("on-call-setup-turn-on-phone");
 
     expect(api["turnOnPhoneChannels"]).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId("on-call-setup-break-ChannelOff-SMS")).toBeNull();
+    expect(
+      screen.queryByTestId("on-call-setup-break-ChannelOff-SMS"),
+    ).toBeNull();
     expect(screen.queryByTestId("on-call-setup-turn-on-phone")).toBeNull();
     expect(screen.getByTestId("on-call-setup-phone")).toBeInTheDocument();
   });
@@ -730,7 +739,9 @@ describe("how should we reach you", () => {
     await renderSetup();
 
     expect(screen.queryByTestId("on-call-setup-turn-on-phone")).toBeNull();
-    expect(screen.getByTestId("on-call-setup-who-can-turn-on")).toHaveTextContent(
+    expect(
+      screen.getByTestId("on-call-setup-who-can-turn-on"),
+    ).toHaveTextContent(
       "A project owner, a Billing Admin or someone with Manage Billing can turn it on",
     );
   });
@@ -835,8 +846,14 @@ describe("how should we reach you", () => {
     jest.spyOn(UserUtil, "isMasterAdmin").mockReturnValue(true);
     sendingStatus = {
       channels: [
-        { channel: ServerSendingChannel.SMS, state: ServerSendingState.NotSetUp },
-        { channel: ServerSendingChannel.Call, state: ServerSendingState.NotSetUp },
+        {
+          channel: ServerSendingChannel.SMS,
+          state: ServerSendingState.NotSetUp,
+        },
+        {
+          channel: ServerSendingChannel.Call,
+          state: ServerSendingState.NotSetUp,
+        },
       ],
       globalProbes: null,
     };
@@ -945,7 +962,9 @@ describe("how should we reach you", () => {
 
     await press("on-call-setup-reach-continue");
 
-    expect(screen.getByTestId("on-call-setup-not-reachable")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("on-call-setup-not-reachable"),
+    ).toBeInTheDocument();
     expect(stepState("reach_you")).toBe("open");
     expect(storedRun()["reachConfirmed"]).toBeUndefined();
   });
@@ -1003,7 +1022,9 @@ describe("who else is on call", () => {
     expect(stepState("no_answer")).toBe("open");
     expect(
       screen.getByTestId("guided-setup-step-who_else-done-line"),
-    ).toHaveTextContent('"Default on-call policy" pages Ana Lopez (Email, SMS).');
+    ).toHaveTextContent(
+      '"Default on-call policy" pages Ana Lopez (Email, SMS).',
+    );
   });
 
   test("someone a page can't reach gets a setup reminder; you never do", async () => {
@@ -1014,7 +1035,11 @@ describe("who else is on call", () => {
     ]);
     await renderSetup();
     await act(async () => {
-      fireEvent.click(screen.getByTestId("guided-setup-step-who_else").querySelector("button")!);
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
     });
 
     expect(
@@ -1037,7 +1062,9 @@ describe("who else is on call", () => {
     await pressText("Clear on-call-setup-people");
     await press("on-call-setup-who-save");
 
-    expect(screen.getByText("Pick at least one person or team.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Pick at least one person or team."),
+    ).toBeInTheDocument();
     expect(api["createPolicy"]).not.toHaveBeenCalled();
   });
 
@@ -1106,14 +1133,22 @@ describe("who else is on call", () => {
   });
 
   test("an existing policy nothing runs: Continue adds the missing rule, then moves on", async () => {
-    keepRun({ reachConfirmed: true, policyId: POLICY_ID, policyIsExisting: true });
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
     api["loadPolicy"]!.mockResolvedValue(policyRecord({ alertRuleCount: 0 }));
     await renderSetup();
 
     expect(stepState("who_else")).toBe("done");
     // Resumed past it; open it again to see the break.
     await act(async () => {
-      fireEvent.click(screen.getByTestId("guided-setup-step-who_else").querySelector("button")!);
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
     });
 
     expect(
@@ -1136,7 +1171,11 @@ describe("who else is on call", () => {
   });
 
   test("someone who may not add rules is shown the break and may go on", async () => {
-    keepRun({ reachConfirmed: true, policyId: POLICY_ID, policyIsExisting: true });
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+    });
     api["loadPolicyChoices"]!.mockResolvedValue({
       policies: [{ id: POLICY_ID, name: "Default on-call policy" }],
       mayCreatePolicy: false,
@@ -1148,7 +1187,11 @@ describe("who else is on call", () => {
     );
     await renderSetup();
     await act(async () => {
-      fireEvent.click(screen.getByTestId("guided-setup-step-who_else").querySelector("button")!);
+      fireEvent.click(
+        screen
+          .getByTestId("guided-setup-step-who_else")
+          .querySelector("button")!,
+      );
     });
 
     expect(
@@ -1175,27 +1218,26 @@ describe("what if nobody answers", () => {
   test("someone else after the wait: a second level, with the wait checked first", async () => {
     await atNoAnswer();
 
-    expect(screen.getByTestId("on-call-setup-no-answer-choice")).toHaveAttribute(
-      "data-value",
-      "escalate",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-no-answer-choice"),
+    ).toHaveAttribute("data-value", "escalate");
     expect(screen.getByTestId("on-call-setup-wait")).toHaveValue(30);
 
     fireEvent.change(screen.getByTestId("on-call-setup-wait"), {
       target: { value: "0" },
     });
     await press("on-call-setup-no-answer-save");
-    expect(screen.getByTestId("on-call-setup-no-answer-error")).toHaveTextContent(
-      "from 1 to 1440",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-no-answer-error"),
+    ).toHaveTextContent("from 1 to 1440");
 
     fireEvent.change(screen.getByTestId("on-call-setup-wait"), {
       target: { value: "15" },
     });
     await press("on-call-setup-no-answer-save");
-    expect(screen.getByTestId("on-call-setup-no-answer-error")).toHaveTextContent(
-      "Pick at least one person or team.",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-no-answer-error"),
+    ).toHaveTextContent("Pick at least one person or team.");
     expect(api["addSecondLevel"]).not.toHaveBeenCalled();
 
     await pressText("Add Ben to on-call-setup-next-people");
@@ -1220,10 +1262,9 @@ describe("what if nobody answers", () => {
       "needs a paid plan",
     );
     expect(screen.queryByTestId("choice-escalate")).toBeNull();
-    expect(screen.getByTestId("on-call-setup-no-answer-choice")).toHaveAttribute(
-      "data-value",
-      "repeat",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-no-answer-choice"),
+    ).toHaveAttribute("data-value", "repeat");
     expect(screen.getByTestId("on-call-setup-repeat")).toHaveValue(2);
 
     await press("on-call-setup-no-answer-save");
@@ -1246,9 +1287,9 @@ describe("what if nobody answers", () => {
     });
     await press("on-call-setup-no-answer-save");
 
-    expect(screen.getByTestId("on-call-setup-no-answer-error")).toHaveTextContent(
-      "from 1 to 10",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-no-answer-error"),
+    ).toHaveTextContent("from 1 to 10");
     expect(api["setRepeat"]).not.toHaveBeenCalled();
   });
 
@@ -1327,7 +1368,9 @@ describe("the test page", () => {
     });
     await press("on-call-setup-did-not-get-it");
 
-    expect(screen.getByTestId("on-call-setup-not-received")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("on-call-setup-not-received"),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId("on-call-setup-test-continue")).toBeNull();
   });
 
@@ -1338,9 +1381,9 @@ describe("the test page", () => {
     expect(storedRun()["testSkipped"]).toBe(true);
     expect(screen.getByTestId("guided-setup-summary")).toBeInTheDocument();
     expect(sent(ProductEventName.GuidedSetupFinished)).toEqual([]);
-    expect(screen.getByTestId("on-call-setup-summary-tested")).toHaveTextContent(
-      "Not tested yet",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-summary-tested"),
+    ).toHaveTextContent("Not tested yet");
   });
 });
 
@@ -1407,9 +1450,9 @@ describe("coming back", () => {
     ).toHaveTextContent(
       "If nobody acknowledges within 30 minutes, Ben Ito is paged.",
     );
-    expect(screen.getByTestId("on-call-setup-summary-tested")).toHaveTextContent(
-      "Ana Lopez",
-    );
+    expect(
+      screen.getByTestId("on-call-setup-summary-tested"),
+    ).toHaveTextContent("Ana Lopez");
     expect(screen.queryByTestId("on-call-setup-summary-breaks")).toBeNull();
     expect(screen.getByTestId("on-call-setup-open-policy")).toHaveAttribute(
       "href",
