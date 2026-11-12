@@ -33,6 +33,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesDaemonSetObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { formatKubernetesCount } from "../Utils/KubernetesCount";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
 } from "../Utils/KubernetesCpuUtils";
@@ -282,13 +283,13 @@ const KubernetesClusterDaemonSetDetail: FunctionComponent<
         title: "Desired Scheduled",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetDesiredScheduled,
-        value: String(objectData.status.desiredNumberScheduled ?? "N/A"),
+        value: formatKubernetesCount(objectData.status.desiredNumberScheduled),
       },
       {
         title: "Current Scheduled",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.daemonSetCurrentScheduled,
-        value: String(objectData.status.currentNumberScheduled ?? "N/A"),
+        value: formatKubernetesCount(objectData.status.currentNumberScheduled),
       },
       {
         title: "Number Ready",

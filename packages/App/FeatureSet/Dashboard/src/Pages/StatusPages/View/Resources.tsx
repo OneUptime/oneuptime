@@ -12,10 +12,14 @@ import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import IconProp from "Common/Types/Icon/IconProp";
+import Route from "Common/Types/API/Route";
 import ObjectID from "Common/Types/ObjectID";
 import StatusPageGroupViewMode from "Common/Types/StatusPage/StatusPageGroupViewMode";
 import UptimePrecision from "Common/Types/StatusPage/UptimePrecision";
-import { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import {
+  ButtonSize,
+  ButtonStyleType,
+} from "Common/UI/Components/Button/Button";
 import Card, { CardButtonSchema } from "Common/UI/Components/Card/Card";
 import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoader";
 import { DropdownOption } from "Common/UI/Components/Dropdown/Dropdown";
@@ -1194,7 +1198,25 @@ const StatusPageResources: FunctionComponent<PageComponentProps> = (
   const getCardButtons: GetCardButtonsFunction = (): Array<
     CardButtonSchema | ReactElement
   > => {
-    const buttons: Array<CardButtonSchema | ReactElement> = [];
+    /*
+     * The docs page for this screen (#6822), first, as a list's View
+     * Documentation is: what a status shows, groups, and monitor rules.
+     */
+    const buttons: Array<CardButtonSchema | ReactElement> = [
+      {
+        title: "View Documentation",
+        icon: IconProp.Book,
+        buttonStyle: ButtonStyleType.HOVER_PRIMARY_OUTLINE,
+        buttonSize: ButtonSize.Small,
+        className: "max-md:hidden md:flex",
+        onClick: () => {
+          Navigation.navigate(
+            Route.fromString("/docs/status-pages/resources-and-groups"),
+            { openInNewTab: true },
+          );
+        },
+      } as CardButtonSchema,
+    ];
 
     if (canCreateGroup) {
       buttons.push({
