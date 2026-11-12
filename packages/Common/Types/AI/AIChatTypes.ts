@@ -76,6 +76,20 @@ export enum AIChatCitationTargetType {
   DataTableView = "DataTableView",
   // Data Observability: one watched table's Lineage tab ({ dataAssetId }).
   DataTableLineageView = "DataTableLineageView",
+  /*
+   * A page of the installation's own docs, read by read_docs; params:
+   * { page, language, anchor? } - the page's address under /docs/<lang>/
+   * ("monitor/website-monitor"), the language it was read in, and the
+   * section's anchor. Opens the docs in a new tab (DocsTools).
+   */
+  DocsPage = "DocsPage",
+  /*
+   * A page of the Dashboard, found by find_dashboard_page in the catalog
+   * built from Search's page index; params: { path, title } - its route
+   * template ("/dashboard/:projectId/monitors/create"), which the Dashboard
+   * opens only when it is one of its own routes, and its English title.
+   */
+  DashboardPage = "DashboardPage",
 }
 
 export interface AIChatCitationTarget {

@@ -232,6 +232,31 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Teams",
     },
   ],
+  // OneUptime's own docs, and the page of the project a thing is done on (#6828).
+  [
+    "search_docs",
+    {
+      description: "Searched the docs",
+      icon: IconProp.Book,
+      category: "Docs",
+    },
+  ],
+  [
+    "read_docs",
+    {
+      description: "Read the docs",
+      icon: IconProp.Book,
+      category: "Docs",
+    },
+  ],
+  [
+    "find_dashboard_page",
+    {
+      description: "Found the page in OneUptime",
+      icon: IconProp.ArrowRight,
+      category: "Docs",
+    },
+  ],
   [
     "query_ai_insights",
     {
@@ -946,6 +971,9 @@ const TARGET_PAGE_NAMES: { [key in AIChatCitationTargetType]: string } = {
   [AIChatCitationTargetType.DataSecurityAccess]: translationKey(
     "Data Security access",
   ),
+  [AIChatCitationTargetType.DocsPage]: translationKey("Docs"),
+  // A page of the Dashboard an answer sends the reader to (#6828).
+  [AIChatCitationTargetType.DashboardPage]: translationKey("Page"),
 };
 
 // The page an evidence target opens, for "Open in <page>".

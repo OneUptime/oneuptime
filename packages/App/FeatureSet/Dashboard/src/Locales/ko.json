@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "테스트 요약이 어느 채널에도 게시되지 않았습니다(총 {{count}}개 채널).",
   "The test summary was not posted in any of its {{count}} channels._one": "The test summary was not posted.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "테스트 요약이 {{count}}개 채널 중 {{failed}}개 채널에 게시되지 않았습니다.",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel.",
+  "Finding the page in OneUptime": "OneUptime에서 페이지 찾는 중",
+  "Found the page in OneUptime": "OneUptime에서 페이지를 찾았습니다",
+  "Go to {{page}}": "{{page}}(으)로 이동",
+  "Read the docs": "문서를 읽었습니다",
+  "Reading the docs": "문서 읽는 중",
+  "Searched the docs": "문서를 검색했습니다",
+  "Searching the docs": "문서 검색 중"
 }

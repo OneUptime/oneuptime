@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "テストサマリーはどのチャネルにも投稿されませんでした（全 {{count}} チャネル）。",
   "The test summary was not posted in any of its {{count}} channels._one": "The test summary was not posted.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "テストサマリーは、{{count}} 件のチャネルのうち {{failed}} 件に投稿されませんでした。",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel.",
+  "Finding the page in OneUptime": "OneUptime のページを探しています",
+  "Found the page in OneUptime": "OneUptime のページが見つかりました",
+  "Go to {{page}}": "{{page}} へ移動",
+  "Read the docs": "ドキュメントを読みました",
+  "Reading the docs": "ドキュメントを読んでいます",
+  "Searched the docs": "ドキュメントを検索しました",
+  "Searching the docs": "ドキュメントを検索しています"
 }

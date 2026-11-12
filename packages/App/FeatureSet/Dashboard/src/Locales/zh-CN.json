@@ -50861,5 +50861,12 @@
   "The test summary was not posted in any of its {{count}} channels.": "测试摘要未发布到任何频道（共 {{count}} 个频道）。",
   "The test summary was not posted in any of its {{count}} channels._one": "The test summary was not posted.",
   "The test summary was not posted in {{failed}} of its {{count}} channels.": "测试摘要未发布到其 {{count}} 个频道中的 {{failed}} 个。",
-  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel."
+  "The test summary was not posted in {{failed}} of its {{count}} channels._one": "The test summary was not posted in {{failed}} of its {{count}} channel.",
+  "Finding the page in OneUptime": "正在 OneUptime 中查找页面",
+  "Found the page in OneUptime": "已在 OneUptime 中找到页面",
+  "Go to {{page}}": "前往 {{page}}",
+  "Read the docs": "已阅读文档",
+  "Reading the docs": "正在阅读文档",
+  "Searched the docs": "已搜索文档",
+  "Searching the docs": "正在搜索文档"
 }

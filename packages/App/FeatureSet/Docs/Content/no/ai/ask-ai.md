@@ -26,6 +26,12 @@ flowchart TB
 
 I modusen **Skrivebeskyttet** tilbys modellen aldri handlingene, så samtalen bare leser.
 
+## Spørsmål om OneUptime
+
+Spør AI svarer også på spørsmål om selve OneUptime: «Hvordan får jeg en SMS når nettstedet mitt er nede?», «Hva er en episode?», «Hvor legger jeg til et nummer til?». Svarene kommer fra denne dokumentasjonen, kopien din OneUptime selv leverer, så det virker uten internettilgang og sender ingenting til nye steder. Den leser en side på ditt språk når siden er oversatt, oppgir side og avsnitt for hvert trinn, og sier at dokumentasjonen ikke dekker noe i stedet for å gjette.
+
+Et svar på «hvordan gjør jeg» slutter med en knapp som åpner siden i prosjektet ditt der du gjør det, for eksempel **Opprett monitor** eller **Varselmetoder**. Den åpner bare sider OneUptime har: de Søk (`Ctrl` + `K`) finner.
+
 ## Åpne Spør AI
 
 | Hvor | Hvordan |
