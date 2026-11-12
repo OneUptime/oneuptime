@@ -27,10 +27,12 @@ import {
   getOnCallTestPagePersonTooSoonMessage,
   getOnCallTestPagePolicyTooSoonMessage,
   getOnCallTestPageRuleType,
+  getOnCallTestPageWalkStart,
   hasOnCallTestPageAnswerWindowPassed,
   isOnCallTestPage,
   isOnCallTestPageRecordKind,
   isOnCallTestPageResultFinal,
+  isOnCallTestPageWalkLevelReached,
   sortRulesAsAPageReachesThem,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
@@ -148,6 +150,77 @@ describe("how long a test waits", () => {
     expect(getOnCallTestPageEscalationWaitInMinutes(-5)).toBe(0);
     expect(getOnCallTestPageEscalationWaitInMinutes(undefined)).toBe(0);
     expect(getOnCallTestPageEscalationWaitInMinutes(null)).toBe(0);
+  });
+});
+
+describe("when a test that walks every level pages each one (#7016)", () => {
+  test("the next level starts once the one before has waited its wait, cut to a test's", () => {
+    expect(
+      getOnCallTestPageWalkStart({
+        previousStartsAfterMinutes: 0,
+        previousWaitInMinutes: 30,
+        previousPagesAnybody: true,
+      }),
+    ).toBe(2);
+    expect(
+      getOnCallTestPageWalkStart({
+        previousStartsAfterMinutes: 4,
+        previousWaitInMinutes: 1,
+        previousPagesAnybody: true,
+      }),
+    ).toBe(5);
+    expect(
+      getOnCallTestPageWalkStart({
+        previousStartsAfterMinutes: 4,
+        previousWaitInMinutes: undefined,
+        previousPagesAnybody: true,
+      }),
+    ).toBe(4);
+  });
+
+  test("a level that pages nobody is passed at once, whatever its wait", () => {
+    expect(
+      getOnCallTestPageWalkStart({
+        previousStartsAfterMinutes: 6,
+        previousWaitInMinutes: 30,
+        previousPagesAnybody: false,
+      }),
+    ).toBe(6);
+  });
+
+  test("a level is reached only if it starts before the test's fifteen minutes are up", () => {
+    expect(isOnCallTestPageWalkLevelReached(0)).toBe(true);
+    expect(
+      isOnCallTestPageWalkLevelReached(
+        ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES - 1,
+      ),
+    ).toBe(true);
+    expect(
+      isOnCallTestPageWalkLevelReached(
+        ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
+      ),
+    ).toBe(false);
+    expect(isOnCallTestPageWalkLevelReached(16)).toBe(false);
+  });
+
+  test("so a policy whose every level waits a test's two minutes reaches its first eight levels", () => {
+    const starts: Array<number> = [0];
+
+    for (;;) {
+      const next: number = getOnCallTestPageWalkStart({
+        previousStartsAfterMinutes: starts[starts.length - 1]!,
+        previousWaitInMinutes: 10,
+        previousPagesAnybody: true,
+      });
+
+      if (!isOnCallTestPageWalkLevelReached(next)) {
+        break;
+      }
+
+      starts.push(next);
+    }
+
+    expect(starts).toEqual([0, 2, 4, 6, 8, 10, 12, 14]);
   });
 });
 

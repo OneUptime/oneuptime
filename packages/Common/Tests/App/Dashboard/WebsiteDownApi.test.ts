@@ -7,8 +7,14 @@ import {
   test,
 } from "@jest/globals";
 import type { SpyInstance } from "jest-mock";
-import WebsiteDownApi from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
-import { parseWebsiteAddress } from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
+import WebsiteDownApi, {
+  OWN_MONITORS_READ_LIMIT,
+  WebsiteDownMonitorRecord,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownApi";
+import {
+  buildWebsiteMonitor,
+  parseWebsiteAddress,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/GuidedSetup/WebsiteDown/WebsiteDownSetup";
 import AlertOnCallRule from "../../../Models/DatabaseModels/AlertOnCallRule";
 import AlertSeverity from "../../../Models/DatabaseModels/AlertSeverity";
 import IncidentOnCallRule from "../../../Models/DatabaseModels/IncidentOnCallRule";
@@ -21,6 +27,8 @@ import OnCallDutyPolicyEscalationRuleTeam from "../../../Models/DatabaseModels/O
 import OnCallDutyPolicyEscalationRuleUser from "../../../Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import Team from "../../../Models/DatabaseModels/Team";
 import User from "../../../Models/DatabaseModels/User";
+import Includes from "../../../Types/BaseDatabase/Includes";
+import SortOrder from "../../../Types/BaseDatabase/SortOrder";
 import MonitorType from "../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../Types/ObjectID";
 import { createTranslator } from "../../../Types/Translator";
@@ -201,6 +209,210 @@ describe("the monitor", () => {
     jest.spyOn(ModelAPI, "getItem").mockResolvedValue(null);
 
     expect(await WebsiteDownApi.loadMonitor(id(99).toString())).toBeNull();
+  });
+});
+
+/*
+ * THIS PERSON'S OWN MONITOR FOR AN ADDRESS (#7059): looked for before a
+ * monitor is made, so a run the browser lost makes no second one.
+ */
+describe("this person's own monitor for an address", () => {
+  const ME: string = id(7).toString();
+
+  // A monitor as the list read answers it, made for `text` the way the setup makes one.
+  const monitorFor: (
+    n: number,
+    text: string,
+    values?: Record<string, unknown>,
+  ) => Monitor = (
+    n: number,
+    text: string,
+    values?: Record<string, unknown>,
+  ): Monitor => {
+    const made: Monitor = buildWebsiteMonitor({
+      address: parseWebsiteAddress(text)!,
+      isApi: false,
+      seeds: {
+        operationalStatusId: id(1),
+        offlineStatusId: id(3),
+        incidentSeverityId: id(11),
+        alertSeverityId: id(20),
+      },
+    });
+
+    return model(Monitor, {
+      _id: id(n).toString(),
+      name: made.name,
+      monitorSteps: made.monitorSteps,
+      monitoringInterval: made.monitoringInterval,
+      ...(values || {}),
+    });
+  };
+
+  const answer: (monitors: Array<Monitor>) => void = (
+    monitors: Array<Monitor>,
+  ): void => {
+    getListSpy.mockResolvedValue(list(monitors));
+  };
+
+  const find: (text: string) => Promise<WebsiteDownMonitorRecord | null> = (
+    text: string,
+  ): Promise<WebsiteDownMonitorRecord | null> => {
+    return WebsiteDownApi.findOwnMonitor({
+      address: parseWebsiteAddress(text)!,
+      userId: ME,
+    });
+  };
+
+  test("reads the newest Website and API monitors this person made, with what decides a match", async () => {
+    answer([]);
+
+    expect(await find("acme.example")).toBeNull();
+    expect(getListSpy).toHaveBeenCalledTimes(1);
+
+    const call: {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      limit: number;
+      skip: number;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+    } = getListSpy.mock.calls[0]![0] as unknown as {
+      modelType: unknown;
+      query: Record<string, unknown>;
+      limit: number;
+      skip: number;
+      select: Record<string, unknown>;
+      sort: Record<string, unknown>;
+    };
+
+    expect(call.modelType).toBe(Monitor);
+    // Made by this person: a teammate's monitor is not this run's.
+    expect(String(call.query["createdByUserId"])).toBe(ME);
+    expect(call.query["monitorType"]).toBeInstanceOf(Includes);
+    expect((call.query["monitorType"] as Includes).values).toEqual([
+      MonitorType.Website,
+      MonitorType.API,
+    ]);
+    expect(Object.keys(call.query).sort()).toEqual([
+      "createdByUserId",
+      "monitorType",
+    ]);
+    // The newest first: the one a lost run made is the newest.
+    expect(call.sort).toEqual({ createdAt: SortOrder.Descending });
+    expect(call.limit).toBe(OWN_MONITORS_READ_LIMIT);
+    expect(OWN_MONITORS_READ_LIMIT).toBe(100);
+    expect(call.skip).toBe(0);
+    expect(call.select).toEqual({
+      _id: true,
+      name: true,
+      monitorSteps: true,
+      monitoringInterval: true,
+      isArchived: true,
+      disableActiveMonitoring: true,
+    });
+  });
+
+  test("the newest that checks the address now, typed any way; archived, turned off and other addresses passed by", async () => {
+    const theirs: Monitor = monitorFor(7, "https://acme.example/", {
+      name: "Acme website",
+    });
+
+    // The newest first, as the read sorts them.
+    answer([
+      monitorFor(1, "acme.example", { isArchived: true }),
+      monitorFor(2, "acme.example", { disableActiveMonitoring: true }),
+      monitorFor(3, "status.acme.example"),
+      monitorFor(4, "http://acme.example"),
+      monitorFor(5, "www.acme.example"),
+      monitorFor(6, "acme.example/health"),
+      theirs,
+      monitorFor(8, "acme.example", { name: "An older one" }),
+    ]);
+
+    const found: WebsiteDownMonitorRecord | null = await find("ACME.example");
+
+    expect(found).toEqual({
+      id: id(7).toString(),
+      name: "Acme website",
+      monitorSteps: theirs.monitorSteps,
+      monitoringInterval: "*/5 * * * *",
+    });
+    // Its steps as read: the setup's first check and summary read them.
+    expect(found!.monitorSteps).toBe(theirs.monitorSteps);
+  });
+
+  test("an API monitor for the address is one too", async () => {
+    const made: Monitor = buildWebsiteMonitor({
+      address: parseWebsiteAddress("https://api.acme.example/health")!,
+      isApi: true,
+      seeds: {
+        operationalStatusId: id(1),
+        offlineStatusId: id(3),
+        incidentSeverityId: id(11),
+        alertSeverityId: id(20),
+      },
+    });
+    answer([
+      model(Monitor, {
+        _id: id(9).toString(),
+        name: made.name,
+        monitorSteps: made.monitorSteps,
+        monitoringInterval: made.monitoringInterval,
+      }),
+    ]);
+
+    expect((await find("api.acme.example/health/"))?.id).toBe(id(9).toString());
+  });
+
+  test("a monitor read without a name is named nothing, not undefined", async () => {
+    answer([monitorFor(3, "acme.example", { name: undefined })]);
+
+    expect((await find("acme.example"))?.name).toBe("");
+  });
+
+  test("none that checks it: null, and nothing else is read or made", async () => {
+    answer([
+      monitorFor(1, "status.acme.example"),
+      monitorFor(2, "acme.example", { isArchived: true }),
+    ]);
+
+    expect(await find("acme.example")).toBeNull();
+    expect(getListSpy).toHaveBeenCalledTimes(1);
+    expect(createSpy).not.toHaveBeenCalled();
+  });
+
+  test("a monitor with no first step, or no id, is passed by for the next one", async () => {
+    answer([
+      model(Monitor, { _id: id(1).toString(), name: "acme.example" }),
+      model(Monitor, {
+        name: "acme.example",
+        monitorSteps: monitorFor(2, "acme.example").monitorSteps,
+      }),
+      monitorFor(3, "acme.example"),
+    ]);
+
+    expect((await find("acme.example"))?.id).toBe(id(3).toString());
+
+    answer([model(Monitor, { _id: id(1).toString(), name: "acme.example" })]);
+
+    expect(await find("acme.example")).toBeNull();
+  });
+
+  test("with no one signed in there is nobody's monitor to look for: null, and nothing is read", async () => {
+    expect(
+      await WebsiteDownApi.findOwnMonitor({
+        address: parseWebsiteAddress("acme.example")!,
+        userId: "",
+      }),
+    ).toBeNull();
+    expect(getListSpy).not.toHaveBeenCalled();
+  });
+
+  test("a read that fails throws: a monitor is never made on a guess", async () => {
+    getListSpy.mockRejectedValue(new Error("offline"));
+
+    await expect(find("acme.example")).rejects.toThrow("offline");
   });
 });
 
