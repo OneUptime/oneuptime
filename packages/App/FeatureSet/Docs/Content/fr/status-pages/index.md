@@ -2,6 +2,9 @@
 
 Une page de statut est la vitrine publique de tout ce que vous surveillez : une URL unique que vos clients peuvent ouvrir au lieu de vous écrire pour demander si le problème vient d'eux. Elle montre l'état actuel des services que vous choisissez d'exposer, les incidents sur lesquels vous travaillez, la maintenance que vous avez prévue et toute annonce que vous souhaitez épingler en haut. Pour choisir entre une page de statut et un tableau de bord, consultez [Lequel choisir ?](/docs/introduction/which-one#tableau-de-bord-tableau-de-bord-public-ou-page-de-statut).
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Publier une page de statut](/docs/guides/status-page).
+
 Quand quelque chose casse à 2 h du matin, la page de statut est la première chose vers laquelle votre file de support renvoie. C'est aussi d'elle que partent les notifications à vos abonnés — elle vaut donc d'être mise en place avant d'en avoir besoin, pas pendant la panne.
 
 :::cards
