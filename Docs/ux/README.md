@@ -66,7 +66,7 @@ learned one can find their way around the next.
   monitor, who is told and a test page; three products would leave the person to find the chain. A
   guided setup draws its steps in `Components/GuidedSetup/GuidedSetupFrame`: each step saves real
   records, coming back opens the first step not done, and it ends with a summary read from the
-  records and what to do next (`/monitors/setup`, #6804). Its journey gets a budget of its own, with
+  records and what to do next (`/monitors/setup`, #6804; `/on-call-duty/setup`, #6805). Its journey gets a budget of its own, with
   `"path": "guided"`. Enforced by
   [GuidedSetupFrame](../../packages/Common/Tests/App/Dashboard/GuidedSetupFrame.test.tsx).
 
@@ -329,6 +329,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **A dialog is for a short job that returns the person where they were.** Creating a record from a
   list, a confirmation, a quick edit. Something people read, compare or come back to is a page. Not
   enforced: use judgement.
+- **A preview in a dialog never leaves the page.** It draws a thing as its reader will see it, over
+  work the dialog has not saved yet, so a click in it must not open another page and drop that work.
+  In a dashboard widget's Live Preview a link is its words, and a tile, a map's site, an incident's
+  marker or an exemplar opens nothing (#6859). Enforced by
+  [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
 
@@ -344,6 +349,9 @@ work out, starts from a default for everything else, and folds what most people 
   [DataObservabilityCardPaddingGuard](../../packages/Common/Tests/App/Dashboard/DataObservabilityCardPaddingGuard.test.ts).
 - **A row of cards ends on one line.** Enforced by
   [CardRowsGuard](../../packages/Common/Tests/UI/Components/CardRowsGuard.test.ts).
+- **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
+  the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
+  [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
@@ -407,6 +415,9 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
+  never by an hour or a step guessed from the window's length. Enforced by
+  [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
   yet". Use `TranslatedSentence` for a sentence with values in it. Not enforced: use judgement.
 
@@ -425,6 +436,9 @@ then `npm run i18n:validate` from the root.
   [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
   and
   [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+- **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
+  its digits; print it so it keeps its own direction. Enforced by
+  [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
 - **A right-to-left page reads right to left.** Use start and end, never an inline left or right; a
   canvas's panels are mirrored once, by the page; a name in a table reads the way its words do; a
   sentence in a flex row is one item of it. Enforced by

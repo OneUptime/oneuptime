@@ -294,6 +294,13 @@ export default function useEventTimeReferenceLines(input: {
    * opened. Changes are still found by the charts' filters.
    */
   monitorId?: string | undefined;
+  /*
+   * Whether a click on an incident's or an alert's marker opens it, as it
+   * does unless this is false. A dashboard widget's live preview says no
+   * (issue #6859): it sits over a board being edited, and the incident's
+   * page would take what is not saved yet with it.
+   */
+  opensEvents?: boolean | undefined;
 }): EventTimeReferenceLines {
   const [result, setResult] = useState<{
     requestKey: string;
@@ -551,6 +558,8 @@ export default function useEventTimeReferenceLines(input: {
     };
   }, [requestKey]);
 
+  const opensEvents: boolean = input.opensEvents !== false;
+
   const lines: Array<ChartTimeReferenceLineProps> =
     useMemo((): Array<ChartTimeReferenceLineProps> => {
       if (!enabled || result?.requestKey !== requestKey) {
@@ -565,15 +574,16 @@ export default function useEventTimeReferenceLines(input: {
             kind: marker.kind,
             subtitle: marker.subtitle,
             strokeDasharray: marker.strokeDasharray,
-            onClick: marker.route
-              ? () => {
-                  Navigation.navigate(marker.route!);
-                }
-              : undefined,
+            onClick:
+              marker.route && opensEvents
+                ? () => {
+                    Navigation.navigate(marker.route!);
+                  }
+                : undefined,
           };
         },
       );
-    }, [enabled, requestKey, result]);
+    }, [enabled, requestKey, result, opensEvents]);
 
   return { lines, markerCount: lines.length };
 }
