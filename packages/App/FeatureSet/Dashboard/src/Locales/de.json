@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Wählen Sie unten in den Einstellungen ein SLO aus.",
   "Write a query in the settings below.": "Schreiben Sie unten in den Einstellungen eine Abfrage.",
   "Leave without saving?": "Ohne Speichern verlassen?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an diesem Dashboard. Wenn Sie die Seite jetzt verlassen, gehen sie verloren."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Sie haben nicht gespeicherte Änderungen an diesem Dashboard. Wenn Sie die Seite jetzt verlassen, gehen sie verloren.",
+  "Discard unsaved changes?": "Nicht gespeicherte Änderungen verwerfen?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Sie haben nicht gespeicherte Änderungen an diesem Dashboard. Wenn Sie sie verwerfen, kehrt das Dashboard zum zuletzt gespeicherten Stand zurück."
 }

@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "اختر SLO في الإعدادات أدناه.",
   "Write a query in the settings below.": "اكتب استعلامًا في الإعدادات أدناه.",
   "Leave without saving?": "هل تريد المغادرة دون حفظ؟",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في لوحة المعلومات هذه. إذا غادرت الآن، فستُفقد."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في لوحة المعلومات هذه. إذا غادرت الآن، فستُفقد.",
+  "Discard unsaved changes?": "هل تريد تجاهل التغييرات غير المحفوظة؟",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "لديك تغييرات غير محفوظة في لوحة المعلومات هذه. إذا تجاهلتها، فستعود لوحة المعلومات إلى آخر حالة محفوظة."
 }

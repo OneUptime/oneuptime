@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "در تنظیمات زیر یک SLO انتخاب کنید.",
   "Write a query in the settings below.": "در تنظیمات زیر یک کوئری بنویسید.",
   "Leave without saving?": "بدون ذخیره خارج می‌شوید؟",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در این داشبورد دارید. اگر اکنون خارج شوید، از بین می‌روند."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در این داشبورد دارید. اگر اکنون خارج شوید، از بین می‌روند.",
+  "Discard unsaved changes?": "تغییرهای ذخیره‌نشده را نادیده می‌گیرید؟",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "تغییرهای ذخیره‌نشده‌ای در این داشبورد دارید. اگر آن‌ها را نادیده بگیرید، داشبورد به آخرین حالت ذخیره‌شده برمی‌گردد."
 }

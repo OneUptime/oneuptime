@@ -93,6 +93,10 @@ const OVERVIEW_PATH: string = `${APP_PATH}/overview`;
 const LEAVE_TITLE: string = "Leave without saving?";
 const LEAVE_DESCRIPTION: string =
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.";
+// And what the toolbar's Cancel asks then, in the same voice.
+const CANCEL_TITLE: string = "Discard unsaved changes?";
+const CANCEL_DESCRIPTION: string =
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.";
 
 /*
  * The fixture's rows, in the orders the database answers them. legacy-api's
@@ -1288,6 +1292,21 @@ test.describe("leaving a dashboard being edited (#7173)", () => {
     await expect(page.getByTitle("Save Changes")).toBeVisible();
     await expect(addedTextWidget(page)).toBeVisible();
     await expect(page).toHaveURL(APP_PATH);
+
+    // The toolbar's Cancel asks in the same voice; Keep Editing stays.
+    await press(page.getByTitle("Cancel", { exact: true }));
+
+    const cancelDialog: Locator = page.getByRole("dialog", {
+      name: CANCEL_TITLE,
+    });
+
+    await expect(cancelDialog).toBeVisible();
+    await expect(cancelDialog).toContainText(CANCEL_DESCRIPTION);
+    await shoot(page, testInfo, "cancel-unsaved-dialog", cancelDialog);
+    await press(cancelDialog.getByRole("button", { name: "Keep Editing" }));
+    await expect(cancelDialog).toHaveCount(0);
+    await expect(page.getByTitle("Save Changes")).toBeVisible();
+    await expect(addedTextWidget(page)).toBeVisible();
 
     // The browser's Back asks too, and the board stays where it is.
     await page.evaluate((): void => {

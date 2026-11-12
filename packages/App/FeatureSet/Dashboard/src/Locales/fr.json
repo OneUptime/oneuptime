@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Choisissez un SLO dans les paramètres ci-dessous.",
   "Write a query in the settings below.": "Écrivez une requête dans les paramètres ci-dessous.",
   "Leave without saving?": "Quitter sans enregistrer ?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur ce tableau de bord. Si vous quittez la page maintenant, elles seront perdues."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Vous avez des modifications non enregistrées sur ce tableau de bord. Si vous quittez la page maintenant, elles seront perdues.",
+  "Discard unsaved changes?": "Annuler les modifications non enregistrées ?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Vous avez des modifications non enregistrées sur ce tableau de bord. Si vous les annulez, le tableau de bord revient à son dernier état enregistré."
 }

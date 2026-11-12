@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Velg en SLO i innstillingene nedenfor.",
   "Write a query in the settings below.": "Skriv en spørring i innstillingene nedenfor.",
   "Leave without saving?": "Forlate uten å lagre?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har ulagrede endringer på dette dashbordet. Hvis du forlater siden nå, går de tapt."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har ulagrede endringer på dette dashbordet. Hvis du forlater siden nå, går de tapt.",
+  "Discard unsaved changes?": "Forkaste ulagrede endringer?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Du har ulagrede endringer på dette dashbordet. Hvis du forkaster dem, går dashbordet tilbake til den sist lagrede versjonen."
 }

@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Välj ett SLO i inställningarna nedan.",
   "Write a query in the settings below.": "Skriv en fråga i inställningarna nedan.",
   "Leave without saving?": "Lämna utan att spara?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har osparade ändringar i denna instrumentpanel. Om du lämnar sidan nu går de förlorade."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har osparade ändringar i denna instrumentpanel. Om du lämnar sidan nu går de förlorade.",
+  "Discard unsaved changes?": "Kasta osparade ändringar?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Du har osparade ändringar i denna instrumentpanel. Om du kastar dem återgår instrumentpanelen till den senast sparade versionen."
 }

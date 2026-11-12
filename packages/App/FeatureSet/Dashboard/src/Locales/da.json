@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Vælg et SLO i indstillingerne nedenfor.",
   "Write a query in the settings below.": "Skriv en forespørgsel i indstillingerne nedenfor.",
   "Leave without saving?": "Forlad uden at gemme?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har ikke-gemte ændringer på dette dashboard. Hvis du forlader siden nu, går de tabt."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har ikke-gemte ændringer på dette dashboard. Hvis du forlader siden nu, går de tabt.",
+  "Discard unsaved changes?": "Kassér ikke-gemte ændringer?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Du har ikke-gemte ændringer på dette dashboard. Hvis du kasserer dem, vender dashboardet tilbage til den senest gemte version."
 }

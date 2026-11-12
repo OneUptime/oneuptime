@@ -68,9 +68,9 @@ export interface ComponentProps {
   dashboardMode: DashboardMode;
   /*
    * Whether the board being edited differs from the one editing started
-   * from. Cancel asks before it throws changes away; with none, it goes back
-   * to view mode at once - "You have unsaved changes" would not be true.
-   * Left out, Cancel always asks.
+   * from. Cancel asks before it throws changes away ("Discard unsaved
+   * changes?"); with none, it goes back to view mode at once - "You have
+   * unsaved changes" would not be true. Left out, Cancel always asks.
    */
   hasUnsavedChanges?: boolean | undefined;
   onAddComponentClick: (type: DashboardComponentType) => void;
@@ -846,11 +846,18 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
+      {/*
+       * Cancel with unsaved changes. The question says what Discard Changes
+       * does, and opens with the sentence leaving the board opens with
+       * ("Leave without saving?", DashboardView). It was "Are you sure?" -
+       * "Are you sure you want to cancel?": asked twice, and "cancel" could
+       * mean the edit or the question.
+       */}
       {showCancelModal ? (
         <ConfirmModal
-          title={`Are you sure?`}
+          title={"Discard unsaved changes?"}
           description={
-            "You have unsaved changes. Are you sure you want to cancel?"
+            "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved."
           }
           submitButtonType={ButtonStyleType.DANGER}
           submitButtonText={"Discard Changes"}

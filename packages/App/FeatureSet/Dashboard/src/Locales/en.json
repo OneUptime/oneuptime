@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Pick an SLO in the settings below.",
   "Write a query in the settings below.": "Write a query in the settings below.",
   "Leave without saving?": "Leave without saving?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "You have unsaved changes to this dashboard. If you leave now, they will be lost."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "You have unsaved changes to this dashboard. If you leave now, they will be lost.",
+  "Discard unsaved changes?": "Discard unsaved changes?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved."
 }

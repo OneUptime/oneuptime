@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Scegli uno SLO nelle impostazioni qui sotto.",
   "Write a query in the settings below.": "Scrivi una query nelle impostazioni qui sotto.",
   "Leave without saving?": "Uscire senza salvare?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Hai modifiche non salvate in questa dashboard. Se esci ora, andranno perse."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Hai modifiche non salvate in questa dashboard. Se esci ora, andranno perse.",
+  "Discard unsaved changes?": "Annullare le modifiche non salvate?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Hai modifiche non salvate in questa dashboard. Se le annulli, la dashboard torna com'era all'ultimo salvataggio."
 }

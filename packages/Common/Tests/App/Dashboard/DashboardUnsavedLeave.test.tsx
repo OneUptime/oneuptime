@@ -164,7 +164,17 @@ import PermissionGate from "../../../UI/Utils/PermissionGate";
 const LEAVE_TITLE: string = "Leave without saving?";
 const LEAVE_DESCRIPTION: string =
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.";
+/*
+ * The toolbar Cancel's question, in the leave question's voice: both open
+ * with the same sentence (DashboardLeaveQuestionInLocale holds every
+ * language to it).
+ */
+const CANCEL_TITLE: string = "Discard unsaved changes?";
 const CANCEL_DESCRIPTION: string =
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.";
+// What Cancel asked before: "Are you sure?" twice over.
+const OLD_CANCEL_TITLE: string = "Are you sure?";
+const OLD_CANCEL_DESCRIPTION: string =
   "You have unsaved changes. Are you sure you want to cancel?";
 
 /*
@@ -369,6 +379,7 @@ describe("a dashboard opened for editing and left as it was", () => {
     });
     await settle();
 
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(screen.queryByText(CANCEL_DESCRIPTION)).toBeNull();
     expect(isEditing()).toBe(false);
   });
@@ -513,7 +524,7 @@ describe("a dashboard with an unsaved widget", () => {
     expect(UnsavedChanges.hasUnsavedChanges()).toBe(true);
   });
 
-  test("the toolbar's Cancel still asks before throwing the widget away", async () => {
+  test("the toolbar's Cancel still asks before throwing the widget away, in the leave question's voice", async () => {
     await openBoardFromList();
     await enterEditMode();
     await addTextWidget();
@@ -522,7 +533,30 @@ describe("a dashboard with an unsaved widget", () => {
       fireEvent.click(screen.getByTitle("Cancel"));
     });
 
-    expect(screen.getByText(CANCEL_DESCRIPTION)).toBeInTheDocument();
+    const dialog: HTMLElement = screen.getByRole("dialog", {
+      name: CANCEL_TITLE,
+    });
+
+    expect(within(dialog).getByText(CANCEL_DESCRIPTION)).toBeInTheDocument();
+    expect(within(dialog).getByText("Keep Editing")).toBeInTheDocument();
+    expect(within(dialog).getByText("Discard Changes")).toBeInTheDocument();
+    // Not "Are you sure?" twice over any more.
+    expect(within(dialog).queryByText(OLD_CANCEL_TITLE)).toBeNull();
+    expect(within(dialog).queryByText(OLD_CANCEL_DESCRIPTION)).toBeNull();
+    // It opens as leaving the board does.
+    expect(
+      CANCEL_DESCRIPTION.startsWith(LEAVE_DESCRIPTION.split(". ")[0]!),
+    ).toBe(true);
+
+    // Keep Editing keeps the widget, still being edited.
+    await act(async () => {
+      fireEvent.click(within(dialog).getByText("Keep Editing"));
+    });
+    await settle();
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(isEditing()).toBe(true);
+    expect(widgetCount()).toBe("2");
   });
 });
 

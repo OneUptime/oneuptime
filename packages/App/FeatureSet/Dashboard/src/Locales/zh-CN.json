@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "请在下方的设置中选择一个 SLO。",
   "Write a query in the settings below.": "请在下方的设置中编写查询。",
   "Leave without saving?": "不保存就离开？",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您对此仪表板有未保存的更改。如果现在离开，这些更改将会丢失。"
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您对此仪表板有未保存的更改。如果现在离开，这些更改将会丢失。",
+  "Discard unsaved changes?": "放弃未保存的更改？",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "您对此仪表板有未保存的更改。如果放弃这些更改，仪表板将恢复到上次保存时的状态。"
 }

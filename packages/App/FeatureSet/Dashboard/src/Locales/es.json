@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Elige un SLO en la configuración de abajo.",
   "Write a query in the settings below.": "Escribe una consulta en la configuración de abajo.",
   "Leave without saving?": "¿Salir sin guardar?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Tienes cambios sin guardar en este panel. Si sales ahora, se perderán."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Tienes cambios sin guardar en este panel. Si sales ahora, se perderán.",
+  "Discard unsaved changes?": "¿Descartar los cambios sin guardar?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "Tienes cambios sin guardar en este panel. Si los descartas, el panel vuelve a su último estado guardado."
 }

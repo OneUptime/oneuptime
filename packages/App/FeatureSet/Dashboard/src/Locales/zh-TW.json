@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "請在下方的設定中選擇一個 SLO。",
   "Write a query in the settings below.": "請在下方的設定中撰寫查詢。",
   "Leave without saving?": "不儲存就離開？",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您對此儀表板有未儲存的變更。如果現在離開，這些變更將會遺失。"
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您對此儀表板有未儲存的變更。如果現在離開，這些變更將會遺失。",
+  "Discard unsaved changes?": "捨棄未儲存的變更？",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "您對此儀表板有未儲存的變更。如果捨棄這些變更，儀表板將恢復為上次儲存時的狀態。"
 }

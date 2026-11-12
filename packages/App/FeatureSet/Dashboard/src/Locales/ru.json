@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Выберите SLO в настройках ниже.",
   "Write a query in the settings below.": "Напишите запрос в настройках ниже.",
   "Leave without saving?": "Уйти без сохранения?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "У вас есть несохранённые изменения на этой панели. Если вы уйдёте сейчас, они будут потеряны."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "У вас есть несохранённые изменения на этой панели. Если вы уйдёте сейчас, они будут потеряны.",
+  "Discard unsaved changes?": "Отменить несохранённые изменения?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "У вас есть несохранённые изменения на этой панели. Если вы их отмените, панель вернётся к последней сохранённой версии."
 }

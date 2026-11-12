@@ -51253,5 +51253,7 @@
   "Pick an SLO in the settings below.": "Kies een SLO in de instellingen hieronder.",
   "Write a query in the settings below.": "Schrijf een query in de instellingen hieronder.",
   "Leave without saving?": "Verlaten zonder op te slaan?",
-  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in dit dashboard. Als u nu weggaat, gaan ze verloren."
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in dit dashboard. Als u nu weggaat, gaan ze verloren.",
+  "Discard unsaved changes?": "Niet-opgeslagen wijzigingen verwerpen?",
+  "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved.": "U hebt niet-opgeslagen wijzigingen in dit dashboard. Als u ze verwerpt, gaat het dashboard terug naar de laatst opgeslagen versie."
 }

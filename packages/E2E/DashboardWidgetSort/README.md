@@ -77,10 +77,12 @@ left by the side menu at once, with no question. With a widget added and not sav
 leaving asks "Leave without saving?" (Keep Editing, Discard Changes): by the side menu,
 where Keep Editing keeps the board as it was being edited, and by the browser's Back,
 which the board takes back before the router moves - Keep Editing stays, Discard Changes
-goes to the page before it with nothing saved. A reload raises the browser's own
-question while the change is unsaved, and staying keeps the board as edited; after Save
-Changes a reload asks nothing and opens the board as saved, and the side menu leaves at
-once. A screenshot of the question is saved with the others.
+goes to the page before it with nothing saved. The toolbar's Cancel then asks in the same
+voice, "Discard unsaved changes?", and Keep Editing there keeps the board too. A reload
+raises the browser's own question while the change is unsaved, and staying keeps the
+board as edited; after Save Changes a reload asks nothing and opens the board as saved,
+and the side menu leaves at once. Screenshots of both questions are saved with the
+others.
 
 This checks real browser rendering and the widgets' handling of their sorts; the API,
 the database and the deployed app's routing are outside this fixture (the public
