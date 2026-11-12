@@ -908,7 +908,7 @@ describe("the summary", () => {
 
     expect(
       screen.getByText(WEBSITE_DOWN_COPY.nextStatusPage).closest("a"),
-    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/status-pages`);
+    ).toHaveAttribute("href", `/dashboard/${PROJECT_ID}/status-pages/setup`);
     expect(
       screen.getByText(WEBSITE_DOWN_COPY.nextMonitor).closest("a"),
     ).toHaveAttribute(
