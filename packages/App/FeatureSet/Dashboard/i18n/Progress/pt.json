@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50831,
-    "untranslated": 9566
+    "keys": 51203,
+    "untranslated": 9543
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -48,6 +48,7 @@
     "CPU Ready",
     "CPU Ready {{percent}}",
     "CPUs",
+    "Cache",
     "Canonical Sunbeam",
     "Celsius",
     "Chat",

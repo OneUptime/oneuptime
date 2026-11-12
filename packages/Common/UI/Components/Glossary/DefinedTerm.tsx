@@ -84,8 +84,15 @@ export const DEFINED_TERM_UNAVAILABLE_TEXT: string = translationKey(
 export const DEFINED_TERM_CLASS_NAME: string =
   "inline cursor-help rounded-sm bg-transparent p-0 text-start underline decoration-gray-400 decoration-dotted decoration-1 underline-offset-4 hover:decoration-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1";
 
+/*
+ * The popover is drawn inside its word's parent, so it would take on that
+ * parent's type: a card title's weight, or the capitals and wide letter
+ * spacing of a row name drawn in small capitals ("When this goes down"
+ * names its On-call policy row so). A definition reads in the popover's
+ * own type, whatever its word is in.
+ */
 export const DEFINED_TERM_POPOVER_CLASS_NAME: string =
-  "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm focus:outline-none";
+  "w-72 max-w-full space-y-1.5 px-1 py-1 text-start text-sm font-normal normal-case tracking-normal focus:outline-none";
 
 type ReadState =
   | { status: "idle" }
