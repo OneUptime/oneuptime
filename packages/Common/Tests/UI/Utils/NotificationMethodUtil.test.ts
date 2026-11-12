@@ -768,3 +768,72 @@ describe("NotificationMethodUtil.setSelectedMethodOnRule", () => {
     expect(returned).toBe(rule);
   });
 });
+
+// ================================================ isPhoneNumberMethod
+
+/*
+ * Issue #6605: a method reached at a phone number shows that number, which
+ * reads +447700900123 in every language (PhoneNumberText) - printed as it
+ * was, an Arabic page put its "+" after its digits. Which methods those are
+ * is read from the relations themselves, so a renamed or new one cannot
+ * drift from a list kept somewhere else.
+ */
+describe("NotificationMethodUtil.isPhoneNumberMethod", () => {
+  test.each(["SMS", "Call", "WhatsApp"])(
+    "%s is reached at a phone number",
+    (methodName: string) => {
+      expect(NotificationMethodUtil.isPhoneNumberMethod(methodName)).toBe(true);
+    },
+  );
+
+  test.each([
+    "Email",
+    "Telegram",
+    "Slack",
+    "Microsoft Teams",
+    "Mattermost",
+    "Webhook",
+    "Custom Channel",
+    "Push",
+  ])("%s is not", (methodName: string) => {
+    expect(NotificationMethodUtil.isPhoneNumberMethod(methodName)).toBe(false);
+  });
+
+  test("a name is matched exactly: no other case, no part of one, nothing", () => {
+    for (const methodName of ["sms", "CALL", "Whats", "SMS ", "", "Phone"]) {
+      expect(NotificationMethodUtil.isPhoneNumberMethod(methodName)).toBe(
+        false,
+      );
+    }
+  });
+
+  test.each([
+    ["userSms", "SMS"],
+    ["userCall", "Call"],
+    ["userWhatsApp", "WhatsApp"],
+  ])(
+    "the display line of a %s method is one it names, holding the number",
+    (column: string, title: string) => {
+      const items: Array<NotificationMethodDisplayItem> =
+        NotificationMethodUtil.getDisplayItems(
+          reader({ [column]: { phone: new Phone("+447700900123") } }),
+        );
+
+      expect(items).toEqual([{ title: title, value: "+447700900123" }]);
+      expect(NotificationMethodUtil.isPhoneNumberMethod(items[0]!.title)).toBe(
+        true,
+      );
+    },
+  );
+
+  test("the display line of an email method is not", () => {
+    const items: Array<NotificationMethodDisplayItem> =
+      NotificationMethodUtil.getDisplayItems(
+        reader({ userEmail: { email: "jane@example.com" } }),
+      );
+
+    expect(NotificationMethodUtil.isPhoneNumberMethod(items[0]!.title)).toBe(
+      false,
+    );
+  });
+});

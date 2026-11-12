@@ -475,7 +475,7 @@ const TelemetryGuidedSetup: FunctionComponent = (): ReactElement => {
           <></>
         ) : (
           <AppLink
-            to={routeOf(PageMap.ON_CALL_DUTY)}
+            to={routeOf(PageMap.ON_CALL_DUTY_GUIDED_SETUP)}
             className={linkClassName}
             dataTestId="guided-setup-page-someone"
           >

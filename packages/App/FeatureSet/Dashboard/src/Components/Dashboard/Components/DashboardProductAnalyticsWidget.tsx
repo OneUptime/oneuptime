@@ -29,6 +29,7 @@ import DashboardResourceList from "../Utils/DashboardResourceList";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import WidgetPlaceholder from "./WidgetPlaceholder";
 import DashboardWidgetLine from "./DashboardWidgetLine";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 
 /*
  * What the Funnel and Retention widgets share (issue #6630): each shows a
@@ -233,20 +234,23 @@ export function useProductAnalyticsWidgetPeriod(
 
 /*
  * Whether a widget links to its page: once its saved one is read, and not
- * while the board is edited (a navigation would drop the edit) nor on a
- * playlist's screen, which nobody drives. A public dashboard reads no
- * saved one, so never there either.
+ * while the board is edited (a navigation would drop the edit) nor in the
+ * widget settings' live preview, which is drawn over a board being edited
+ * (issue #6859), nor on a playlist's screen, which nobody drives. A public
+ * dashboard reads no saved one, so never there either.
  */
 export function isProductAnalyticsWidgetLinked(data: {
   state: ProductAnalyticsWidgetState;
   hasView: boolean;
   isEditMode: boolean;
+  isPreview: boolean;
   isPlayback: boolean;
 }): boolean {
   return (
     data.hasView &&
     data.state === ProductAnalyticsWidgetState.Ready &&
     !data.isEditMode &&
+    !data.isPreview &&
     !data.isPlayback
   );
 }
@@ -314,8 +318,9 @@ export interface ProductAnalyticsWidgetFrameProps<
 /*
  * The widget's box: its title over what it shows, with the link to the
  * page - left out on a public dashboard (no session to open it in), while
- * the board is edited (a navigation would drop the edit) and on a
- * playlist's screen, which nobody drives.
+ * the board is edited (a navigation would drop the edit), in the widget
+ * settings' live preview, which is drawn over a board being edited, and on
+ * a playlist's screen, which nobody drives.
  */
 export function ProductAnalyticsWidgetFrame<
   T extends ProductAnalyticsSavedViewType,
@@ -325,10 +330,12 @@ export function ProductAnalyticsWidgetFrame<
     PRODUCT_ANALYTICS_WIDGET_WORDS[props.viewType];
   const view: ProductAnalyticsSavedView<T> | null = props.saved.view;
   const title: string = props.title?.trim() || view?.name || "";
+  const isPreview: boolean = useIsDashboardWidgetPreview();
   const isLinked: boolean = isProductAnalyticsWidgetLinked({
     state: props.saved.state,
     hasView: Boolean(view),
     isEditMode: props.isEditMode,
+    isPreview: isPreview,
     isPlayback: props.isPlayback,
   });
 
