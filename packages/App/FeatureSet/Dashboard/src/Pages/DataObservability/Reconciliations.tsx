@@ -49,6 +49,14 @@ import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 
 type FormSide = "source" | "target";
 
+/*
+ * The line under a reconciliation's name - "Row Count against Row Count,
+ * within 0.5%" - small and grey, wrapping between its words: a table's cell
+ * keeps its words on one line (whitespace-nowrap) unless told otherwise.
+ */
+export const RECONCILIATION_MEASURES_LINE_CLASS_NAME: string =
+  "block whitespace-normal break-words text-xs text-gray-500";
+
 const MEASURE_OPTIONS: Array<DropdownOption> = DATA_RECONCILIATION_MEASURES.map(
   (measure: DataReconciliationMeasure): DropdownOption => {
     return { value: measure, label: measure };
@@ -355,7 +363,13 @@ const DataObservabilityReconciliationsPage: FunctionComponent<
                     text={item.name || ""}
                     className="block truncate font-medium text-gray-900"
                   />
-                  <span className="block truncate text-xs text-gray-500">
+                  {/*
+                   * What is compared, wrapping under the name: cut short at
+                   * the column's 20rem, the measures in German ("Anzahl
+                   * eindeutiger Werte gegen Anzahl eindeutiger...") left no
+                   * room for the tolerance, and held the column at its cap.
+                   */}
+                  <span className={RECONCILIATION_MEASURES_LINE_CLASS_NAME}>
                     {translator.translateTemplate(
                       "{{source}} against {{target}}, within {{tolerance}}",
                       {

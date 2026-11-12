@@ -91,12 +91,22 @@ import DataObservabilityApi from "../../../../App/FeatureSet/Dashboard/src/Compo
 import DataCheckTable, {
   DATA_CHECK_FACTS_TEST_ID,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTable";
+import {
+  DATA_CHECK_FACT_CLASS_NAME,
+  DATA_CHECK_FACTS_LINE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckFactsLine";
 import { DATA_CHECK_TYPE_LABELS } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/DataCheckTypeWords";
 import SuggestedDataChecks, {
+  SUGGESTED_CHECK_BUTTONS_CLASS_NAME,
+  SUGGESTED_CHECK_FACTS_TEST_ID,
   SUGGESTED_CHECK_NAME_TEST_ID,
   SUGGESTED_CHECK_REASON_TEST_ID,
+  SUGGESTED_CHECK_ROW_CLASS_NAME,
+  SUGGESTED_CHECKS_LIST_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/SuggestedDataChecks";
-import DataObservabilityReconciliationsPage from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Reconciliations";
+import DataObservabilityReconciliationsPage, {
+  RECONCILIATION_MEASURES_LINE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Pages/DataObservability/Reconciliations";
 import DataAsset from "../../../Models/DatabaseModels/DataAsset";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
 import DataReconciliation from "../../../Models/DatabaseModels/DataReconciliation";
@@ -401,11 +411,20 @@ function check(fields: Record<string, unknown>): DataCheck {
   return row;
 }
 
+// The line under a check's name, as drawn.
+interface DrawnFactsLine {
+  text: string;
+  facts: Array<string>;
+  // The line's classes, and the classes of the box each fact is drawn in.
+  lineClassName: string;
+  boxClassNames: Array<string>;
+}
+
 // The line under a check's name in the Checks table, in `language`.
 async function factsLine(
   language: string,
   fields: Record<string, unknown>,
-): Promise<{ text: string; facts: Array<string> }> {
+): Promise<DrawnFactsLine> {
   await inLanguage(language);
   await act(async () => {
     render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
@@ -427,6 +446,12 @@ async function factsLine(
     facts: Array.from(line.querySelectorAll("bdi")).map(
       (fact: HTMLElement): string => {
         return fact.textContent || "";
+      },
+    ),
+    lineClassName: line.className,
+    boxClassNames: Array.from(line.querySelectorAll("bdi")).map(
+      (fact: HTMLElement): string => {
+        return fact.parentElement?.className || "";
       },
     ),
   };
@@ -465,6 +490,14 @@ async function reconciliationLine(
   language: string,
   item: DataReconciliation,
 ): Promise<string> {
+  return (await reconciliationCell(language, item)).textContent || "";
+}
+
+// A reconciliation's Reconciliation cell - its name, and the line under it.
+async function reconciliationCell(
+  language: string,
+  item: DataReconciliation,
+): Promise<HTMLElement> {
   await inLanguage(language);
   await act(async () => {
     render(
@@ -488,7 +521,7 @@ async function reconciliationLine(
 
   const { container } = render(<MemoryRouter>{element}</MemoryRouter>);
 
-  return container.textContent || "";
+  return container;
 }
 
 function reconciliation(): DataReconciliation {
@@ -758,6 +791,70 @@ describe("Suggested Checks (#7221)", () => {
     expect(added!.description).toBe(reason.slice(0, 500));
   });
 
+  /*
+   * Keyed to the viewport (md), Add and Dismiss stood beside a
+   * suggestion's words from 768px, where the card beside the table's side
+   * menu is some 430px wide: the words had 150px, and a German reason ran
+   * to seven lines. The row follows the card's width now, and its facts
+   * wrap between themselves as the Checks list's do.
+   */
+  test("in German, each suggestion puts its buttons under its words until the card has room beside them", async () => {
+    const items: Array<HTMLElement> = await drawSuggestions("de");
+
+    expect(items[0]!.parentElement?.className).toBe(
+      SUGGESTED_CHECKS_LIST_CLASS_NAME,
+    );
+
+    for (const item of items) {
+      expect(item.className).toBe(SUGGESTED_CHECK_ROW_CLASS_NAME);
+
+      const facts: HTMLElement = within(item).getByTestId(
+        SUGGESTED_CHECK_FACTS_TEST_ID,
+      );
+
+      expect(facts.className).toBe(DATA_CHECK_FACTS_LINE_CLASS_NAME);
+      expect(
+        Array.from(facts.querySelectorAll("bdi")).map(
+          (fact: HTMLElement): string => {
+            return fact.parentElement?.className || "";
+          },
+        ),
+      ).toEqual([DATA_CHECK_FACT_CLASS_NAME, DATA_CHECK_FACT_CLASS_NAME]);
+
+      // Add, then Dismiss, in a row of their own.
+      const buttons: Array<HTMLElement> = within(item).getAllByRole("button");
+
+      expect(buttons).toHaveLength(2);
+      for (const button of buttons) {
+        expect(button.parentElement?.className).toBe(
+          SUGGESTED_CHECK_BUTTONS_CLASS_NAME,
+        );
+      }
+    }
+
+    // The card's width decides, not the window's.
+    expect(SUGGESTED_CHECKS_LIST_CLASS_NAME.split(" ")).toContain(
+      "[container-type:inline-size]",
+    );
+    expect(SUGGESTED_CHECK_ROW_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining([
+        "flex-col",
+        "[@container(min-width:36rem)]:flex-row",
+      ]),
+    );
+    expect(SUGGESTED_CHECK_ROW_CLASS_NAME).not.toMatch(
+      /(^|\s)(sm|md|lg|xl):flex-row(\s|$)/,
+    );
+
+    /*
+     * Under the words, Add starts where they do: a NORMAL button keeps a
+     * dialog footer's margin from md up (md:ml-3).
+     */
+    expect(SUGGESTED_CHECK_BUTTONS_CLASS_NAME.split(" ")).toEqual(
+      expect.arrayContaining(["[&>button]:md:ml-0", "[&>*>button]:md:ml-0"]),
+    );
+  });
+
   test("in English, Add saves the name and reason exactly as before", async () => {
     const items: Array<HTMLElement> = await drawSuggestions("en");
 
@@ -829,6 +926,29 @@ describe("what a check measures, under its name (#7223)", () => {
       }
     },
   );
+
+  /*
+   * One line cut short with an ellipsis, a German check's line lost its
+   * last fact on a phone and at 768px ("... · Aus ei..."), and held the
+   * Name column at its 20rem cap at 1280px (DataCheckFactsLine).
+   */
+  test("in German, the line wraps between its facts, each a box of its own", async () => {
+    const line: DrawnFactsLine = await factsLine("de", {
+      ...FIELDS,
+      columnName: "customer_account_reference_id",
+    });
+
+    expect(line.lineClassName).toBe(DATA_CHECK_FACTS_LINE_CLASS_NAME);
+    expect(line.boxClassNames).toEqual([
+      DATA_CHECK_FACT_CLASS_NAME,
+      DATA_CHECK_FACT_CLASS_NAME,
+      DATA_CHECK_FACT_CLASS_NAME,
+      DATA_CHECK_FACT_CLASS_NAME,
+    ]);
+    expect(withoutIsolateMarks(line.text)).toBe(
+      "Anteil NULL-Werte · customer_account_reference_id · nach tenant_id · Aus einer Datei",
+    );
+  });
 
   test("a check with only a type says only that", async () => {
     const line: { text: string; facts: Array<string> } = await factsLine("de", {
@@ -923,4 +1043,30 @@ describe("a reconciliation's measures (#7223)", () => {
       expect(line).not.toMatch(/Distinct Count|Row Count/);
     },
   );
+
+  /*
+   * Cut short at the column's 20rem, the German line lost its tolerance -
+   * "Anzahl eindeutiger Werte gegen Anzahl eindeutiger..." - and held the
+   * column at its cap. It wraps under the name now.
+   */
+  test("in German, the line wraps under the name, its tolerance never cut off", async () => {
+    const cell: HTMLElement = await reconciliationCell("de", reconciliation());
+    const lines: Array<HTMLElement> = Array.from(
+      cell.querySelectorAll("span"),
+    ).filter((span: HTMLElement): boolean => {
+      return span.className === RECONCILIATION_MEASURES_LINE_CLASS_NAME;
+    });
+
+    expect(lines).toHaveLength(1);
+    expect(withoutIsolateMarks(lines[0]!.textContent || "")).toMatch(/5 ?%$/);
+
+    const classes: Array<string> =
+      RECONCILIATION_MEASURES_LINE_CLASS_NAME.split(" ");
+
+    // A table's cell keeps its words on one line unless told otherwise.
+    expect(classes).toEqual(
+      expect.arrayContaining(["block", "whitespace-normal", "break-words"]),
+    );
+    expect(classes).not.toContain("truncate");
+  });
 });

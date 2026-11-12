@@ -1,6 +1,7 @@
 import DataObservabilityApi from "./DataObservabilityApi";
 import { getDataCheckAlertConditionWords } from "./DataCheckAlertConditionWords";
 import { getDataCheckTypeLabel } from "./DataCheckTypeWords";
+import DataCheckFactsLine from "./DataCheckFactsLine";
 import RecommendationDismissalUtil from "../Recommendations/RecommendationDismissalUtil";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -39,7 +40,6 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   dataAssetId: ObjectID;
@@ -53,9 +53,37 @@ export interface ComponentProps {
 // Dismissals of suggested checks are kept per table.
 export const SUGGESTION_RESOURCE_TYPE: string = "DataAsset";
 
-// A suggested check's name, and the line that says why it is suggested.
+/*
+ * A suggested check's name, what it measures and when it alerts, and the
+ * line that says why it is suggested.
+ */
 export const SUGGESTED_CHECK_NAME_TEST_ID: string = "suggested-check-name";
+export const SUGGESTED_CHECK_FACTS_TEST_ID: string = "suggested-check-facts";
 export const SUGGESTED_CHECK_REASON_TEST_ID: string = "suggested-check-reason";
+
+/*
+ * Each suggestion's row: its words, and its Add and Dismiss beside them
+ * once the card is wide enough for both (a container query, 36rem), under
+ * them before that. Keyed to the viewport (md), the buttons stood beside
+ * the words from 768px, where the card beside the table's side menu is
+ * some 430px wide: the words had 150px, a German column's name broke
+ * mid-word ("primary_billing_conta / ct_email") and a reason ran to seven
+ * lines.
+ */
+export const SUGGESTED_CHECKS_LIST_CLASS_NAME: string =
+  "divide-y divide-gray-100 [container-type:inline-size]";
+
+export const SUGGESTED_CHECK_ROW_CLASS_NAME: string =
+  "flex flex-col gap-3 py-3 [@container(min-width:36rem)]:flex-row [@container(min-width:36rem)]:items-center [@container(min-width:36rem)]:justify-between [@container(min-width:36rem)]:gap-4";
+
+/*
+ * The row's buttons, at the start of their line under the words: a NORMAL
+ * button keeps a dialog footer's margin from md up (Button's md:ml-3), and
+ * Add stood 12px in from the words above it. The * covers a button a
+ * tooltip wraps.
+ */
+export const SUGGESTED_CHECK_BUTTONS_CLASS_NAME: string =
+  "flex shrink-0 gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
 
 // The most other tables of the store read to find what a reference points at.
 const MAX_OTHER_TABLES: number = 1000;
@@ -342,14 +370,14 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
     >
       <div>
         {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : <></>}
-        <ul className="divide-y divide-gray-100">
+        <ul className={SUGGESTED_CHECKS_LIST_CLASS_NAME}>
           {suggestions.map((suggestion: DataCheckSuggestion): ReactElement => {
             return (
               <li
                 key={suggestion.id}
-                className="flex flex-col gap-2 py-3 md:flex-row md:items-center md:justify-between"
+                className={SUGGESTED_CHECK_ROW_CLASS_NAME}
               >
-                <div className="min-w-0 space-y-1">
+                <div className="min-w-0 space-y-1 [@container(min-width:36rem)]:flex-1">
                   {/*
                    * The suggestion's name and reason, in the reader's
                    * language with the names it gives set apart: each line
@@ -363,18 +391,20 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
                     className="block break-words font-medium text-gray-900"
                     dataTestId={SUGGESTED_CHECK_NAME_TEST_ID}
                   />
-                  <span className="block text-xs text-gray-500">
-                    {getDataCheckTypeLabel({
-                      translator: translator,
-                      checkType: suggestion.checkType,
-                    })}
-                    <InlineSeparator />
-                    {getDataCheckAlertConditionWords({
-                      translator: translator,
-                      condition: suggestion.alertCondition,
-                      threshold: suggestion.alertThreshold,
-                    })}
-                  </span>
+                  <DataCheckFactsLine
+                    facts={[
+                      getDataCheckTypeLabel({
+                        translator: translator,
+                        checkType: suggestion.checkType,
+                      }),
+                      getDataCheckAlertConditionWords({
+                        translator: translator,
+                        condition: suggestion.alertCondition,
+                        threshold: suggestion.alertThreshold,
+                      }),
+                    ]}
+                    dataTestId={SUGGESTED_CHECK_FACTS_TEST_ID}
+                  />
                   <IsolatedLine
                     as="span"
                     text={wordsOf(suggestion.reasonWords, { isDrawn: true })}
@@ -382,7 +412,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
                     dataTestId={SUGGESTED_CHECK_REASON_TEST_ID}
                   />
                 </div>
-                <div className="flex shrink-0 gap-2">
+                <div className={SUGGESTED_CHECK_BUTTONS_CLASS_NAME}>
                   <Button
                     title="Add"
                     buttonStyle={ButtonStyleType.NORMAL}

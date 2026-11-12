@@ -1,6 +1,7 @@
 import AppLink from "../AppLink/AppLink";
 import DataObservabilityApi from "./DataObservabilityApi";
 import FailingRowsModal from "./FailingRowsModal";
+import DataCheckFactsLine from "./DataCheckFactsLine";
 import {
   DATA_CHECK_ALERT_CONDITION_LABELS,
   getDataCheckAlertConditionWords,
@@ -60,7 +61,6 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import React, { FunctionComponent, ReactElement, useState } from "react";
 import { drawsItsOwnLines } from "Common/UI/Components/Table/ColumnLineText";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
-import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
 
 export interface ComponentProps {
   // One table's checks, with its columns to choose from; or every check of the project.
@@ -684,23 +684,13 @@ const DataCheckTable: FunctionComponent<ComponentProps> = (
                    * What the check measures, in the reader's words (#7223),
                    * then the column it reads, its segments and where it came
                    * from: each fact in its own direction, set apart the way
-                   * the reader's language sets facts apart.
+                   * the reader's language sets facts apart, the line
+                   * wrapping between two facts rather than losing the last.
                    */}
-                  <span
-                    className="block truncate text-xs text-gray-500"
-                    data-testid={DATA_CHECK_FACTS_TEST_ID}
-                  >
-                    {getCheckFacts(check).map(
-                      (fact: string, index: number): ReactElement => {
-                        return (
-                          <React.Fragment key={index}>
-                            {index > 0 ? <InlineSeparator /> : <></>}
-                            <bdi>{fact}</bdi>
-                          </React.Fragment>
-                        );
-                      },
-                    )}
-                  </span>
+                  <DataCheckFactsLine
+                    facts={getCheckFacts(check)}
+                    dataTestId={DATA_CHECK_FACTS_TEST_ID}
+                  />
                 </div>
               );
             },
