@@ -389,7 +389,8 @@ const ZERO_IS_NOT_A_VALUE: Record<string, string> = {
   "UserOnCallShiftReminder.minutesBeforeShift":
     "a reminder at least 15 minutes before a shift, which the service holds it to first",
   "WorkflowVersion.versionNumber": "versions count from 1",
-  "WorkspaceNotificationSummary.numberOfDaysOfData": "a summary of no days",
+  "WorkspaceNotificationSummary.numberOfDaysOfData":
+    "a summary of no days, which the service refuses first",
 };
 
 // Services/Index's, and the ones it does not list.
