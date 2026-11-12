@@ -181,12 +181,13 @@ describe("reading an answer", () => {
 
 describe("the event", () => {
   test("is the catalog's docs/feedback_given, no longer reserved, with a reason", () => {
-    expect(getProductEventDefinition(ProductEventName.DocsFeedbackGiven)).toEqual(
-      expect.objectContaining({
-        name: "docs/feedback_given",
-        reservedFor: undefined,
-      }),
-    );
+    expect(
+      getProductEventDefinition(ProductEventName.DocsFeedbackGiven)?.name,
+    ).toBe("docs/feedback_given");
+    expect(
+      getProductEventDefinition(ProductEventName.DocsFeedbackGiven)
+        ?.reservedFor,
+    ).toBeUndefined();
     expect(
       getProductEventDefinition(
         ProductEventName.DocsFeedbackGiven,

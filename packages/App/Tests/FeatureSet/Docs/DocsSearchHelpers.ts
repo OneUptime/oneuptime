@@ -5,6 +5,7 @@ import {
   tokenizeForDocs,
 } from "../../../FeatureSet/Docs/Utils/AIDocsReader";
 import { DocsVocabulary } from "../../../FeatureSet/Docs/Utils/DocsSearchWords";
+import { slugifyMarkdownHeading } from "Common/Server/Types/MarkdownSlugify";
 
 /*
  * A small docs index made by hand, laid out as AIDocsReader.build lays out
@@ -43,10 +44,7 @@ const terms: (text: string) => Set<string> = (text: string): Set<string> => {
 };
 
 const anchorOf: (title: string) => string = (title: string): string => {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
+  return slugifyMarkdownHeading(title);
 };
 
 export const makeDocsIndex: (
