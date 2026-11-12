@@ -33,6 +33,15 @@ const mockExporterConfigs: {
 
 const mockSdkStarts: { count: number } = { count: 0 };
 
+// What the stand-in log exporter was handed: the records OneUptime exports.
+interface ExportedLogRecord {
+  body: unknown;
+  severityNumber?: number;
+  attributes?: Record<string, unknown>;
+}
+
+const mockExportedLogs: Array<ExportedLogRecord> = [];
+
 jest.mock("@opentelemetry/exporter-trace-otlp-proto", () => {
   return {
     OTLPTraceExporter: class {
@@ -91,9 +100,10 @@ jest.mock("@opentelemetry/exporter-logs-otlp-http", () => {
       }
 
       public export(
-        _items: unknown,
+        items: Array<ExportedLogRecord>,
         done: (result: { code: number }) => void,
       ): void {
+        mockExportedLogs.push(...items);
         done({ code: 0 });
       }
 
@@ -169,6 +179,8 @@ import OpenTelemetryAPI from "@opentelemetry/api";
 import { logs } from "@opentelemetry/api-logs";
 import Telemetry from "../../../Server/Utils/Telemetry";
 import logger, { EXTERNAL_FAULT } from "../../../Server/Utils/Logger";
+import ConfigLogLevel from "../../../Server/Types/ConfigLogLevel";
+import { SeverityNumber } from "@opentelemetry/api-logs";
 import * as EnvironmentConfig from "../../../Server/EnvironmentConfig";
 import { NOTHING_EXPORTED_WITHOUT_A_HEADER } from "../../../Server/Utils/Telemetry/OtlpExporterHeaders";
 
@@ -185,7 +197,10 @@ interface TelemetryInternals {
   sdk: unknown;
   meter: unknown;
   meterProvider: { shutdown: () => Promise<void> } | null;
-  loggerProvider: { shutdown: () => Promise<void> } | null;
+  loggerProvider: {
+    shutdown: () => Promise<void>;
+    forceFlush: () => Promise<void>;
+  } | null;
   metricReader: unknown;
   spanExportEnabled: boolean;
   hasWarnedAboutUnreadableHeaders: boolean;
@@ -232,6 +247,7 @@ beforeEach(() => {
   mockExporterConfigs.metrics.length = 0;
   mockExporterConfigs.logs.length = 0;
   mockSdkStarts.count = 0;
+  mockExportedLogs.length = 0;
 
   delete process.env[ENDPOINT];
   delete process.env[HEADERS];
@@ -368,6 +384,57 @@ describe("Telemetry.init with a header it cannot read", () => {
     for (const call of loggerError.mock.calls) {
       expect(call[1]).toBe(EXTERNAL_FAULT);
     }
+  });
+
+  /*
+   * The operator of a OneUptime that exports with its other headers may look
+   * for the reason in the backend those headers reach, not in the process's
+   * output: the warning is logged once the logger provider is in place, so it
+   * is exported with the rest, at WARN, under LOG_LEVEL=ERROR too.
+   */
+  test("sends the warning to the exported logs too, when the other headers can be sent", async () => {
+    loggerError.mockRestore();
+    jest.spyOn(logger, "getLogLevel").mockReturnValue(ConfigLogLevel.ERROR);
+    jest.spyOn(console, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+
+    process.env[ENDPOINT] = "https://collector.example.com/otlp";
+    process.env[HEADERS] =
+      "x-oneuptime-token=key;Authorization: Bearer the-secret";
+
+    Telemetry.init({ serviceName: "app" });
+
+    await internals.loggerProvider?.forceFlush();
+
+    const warnings: Array<ExportedLogRecord> = mockExportedLogs.filter(
+      (record: ExportedLogRecord): boolean => {
+        return String(record.body).includes(
+          "OneUptime cannot read header 2 of 2, so it does not send it.",
+        );
+      },
+    );
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0]?.severityNumber).toBe(SeverityNumber.WARN);
+
+    for (const record of mockExportedLogs) {
+      expect(String(record.body)).not.toContain("the-secret");
+    }
+  });
+
+  test("warns about a header it cannot read without an endpoint too, but not that nothing is sent", () => {
+    process.env[HEADERS] = "x-oneuptime-token=key;broken";
+
+    Telemetry.init({ serviceName: "app" });
+
+    expect(exportersBuilt()).toBe(0);
+    expect(loggedLines()).toEqual([
+      "OPENTELEMETRY_EXPORTER_OTLP_HEADERS (openTelemetryExporter.headers in the Helm chart): " +
+        "OneUptime cannot read header 2 of 2, so it does not send it. " +
+        "Header 2 has no '=' between a name and a value. " +
+        "Write each header as name=value, and separate headers with ';'.",
+    ]);
   });
 
   test("does not say it twice when the headers are read again after init", () => {

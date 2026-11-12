@@ -2084,8 +2084,17 @@ describe("the page's words", () => {
       "As it starts, OneUptime logs a warning when it cannot read a header, or when it sends nothing.",
     );
 
-    // init reads the headers, which warns about one it cannot read...
-    expect(init).toContain("this.getHeaders();");
+    /*
+     * init reads the headers as getHeaders() does, and warns about one it
+     * cannot read...
+     */
+    expect(init).toContain(
+      "const headersRead: OtlpExporterHeaders = this.readHeaders();",
+    );
+    expect(telemetry).toContain(
+      "const read: OtlpExporterHeaders = this.readHeaders();",
+    );
+    expect(init).toContain("this.warnAboutUnreadableHeaders(headersRead);");
     expect(telemetry).toContain(
       "const unreadable: string | null = describeUnreadableOtlpHeaders(read);",
     );

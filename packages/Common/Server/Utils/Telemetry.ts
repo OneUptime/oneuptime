@@ -137,8 +137,8 @@ export default class Telemetry {
   }
 
   /*
-   * Whether getHeaders() has told the operator about a header it cannot read.
-   * It does so once a process, however often the headers are read.
+   * Whether the operator has been told about a header OneUptime cannot read.
+   * They are told once a process, however often the headers are read.
    */
   private static hasWarnedAboutUnreadableHeaders: boolean = false;
 
@@ -148,26 +148,34 @@ export default class Telemetry {
    * value may hold '=' (see OtlpExporterHeaders).
    */
   public static getHeaders(): Dictionary<string> {
-    const read: OtlpExporterHeaders = readOtlpExporterHeaders(
-      process.env[OTLP_EXPORTER_HEADERS_SETTING],
-    );
+    const read: OtlpExporterHeaders = this.readHeaders();
 
-    const unreadable: string | null = describeUnreadableOtlpHeaders(read);
-
-    if (unreadable && !this.hasWarnedAboutUnreadableHeaders) {
-      this.hasWarnedAboutUnreadableHeaders = true;
-
-      /*
-       * Logged at WARN severity, through error(): EXTERNAL_FAULT marks a
-       * setting the operator wrote, so the line is a warning and never an
-       * Issue, yet it still prints under LOG_LEVEL=ERROR, the level
-       * config.example.env ships, where warn() would print nothing. The line
-       * names each header by its place only, never by a name or a value.
-       */
-      logger.error(unreadable, EXTERNAL_FAULT);
-    }
+    this.warnAboutUnreadableHeaders(read);
 
     return read.headers;
+  }
+
+  private static readHeaders(): OtlpExporterHeaders {
+    return readOtlpExporterHeaders(process.env[OTLP_EXPORTER_HEADERS_SETTING]);
+  }
+
+  private static warnAboutUnreadableHeaders(read: OtlpExporterHeaders): void {
+    const unreadable: string | null = describeUnreadableOtlpHeaders(read);
+
+    if (!unreadable || this.hasWarnedAboutUnreadableHeaders) {
+      return;
+    }
+
+    this.hasWarnedAboutUnreadableHeaders = true;
+
+    /*
+     * Logged at WARN severity, through error(): EXTERNAL_FAULT marks a
+     * setting the operator wrote, so the line is a warning and never an
+     * Issue, yet it still prints under LOG_LEVEL=ERROR, the level
+     * config.example.env ships, where warn() would print nothing. The line
+     * names each header by its place only, never by a name or a value.
+     */
+    logger.error(unreadable, EXTERNAL_FAULT);
   }
 
   public static getOtlpEndpoint(): URL | null {
@@ -243,18 +251,17 @@ export default class Telemetry {
     }
 
     if (!this.sdk) {
-      const headers: Dictionary<string> = this.getHeaders();
+      /*
+       * Read quietly here: the operator is told about a header OneUptime
+       * cannot read once the logger provider below is in place, so that,
+       * when the other headers can be sent, the warning reaches the exported
+       * logs too, not only the process's own output.
+       */
+      const headersRead: OtlpExporterHeaders = this.readHeaders();
+
+      const headers: Dictionary<string> = headersRead.headers;
 
       const hasHeaders: boolean = Object.keys(headers).length > 0;
-
-      /*
-       * Every signal below is exported only with a header. An endpoint set
-       * without one used to send nothing and say nothing, so the operator
-       * found an empty backend and no reason for it.
-       */
-      if (this.getOtlpEndpoint() && !hasHeaders) {
-        logger.error(NOTHING_EXPORTED_WITHOUT_A_HEADER, EXTERNAL_FAULT);
-      }
 
       let traceExporter: SpanExporter | undefined = undefined;
 
@@ -328,6 +335,17 @@ export default class Telemetry {
       this.loggerProvider = new LoggerProvider(loggerProviderConfig);
 
       logs.setGlobalLoggerProvider(this.loggerProvider);
+
+      this.warnAboutUnreadableHeaders(headersRead);
+
+      /*
+       * Every signal is exported only with a header. An endpoint set without
+       * one used to send nothing and say nothing, so the operator found an
+       * empty backend and no reason for it.
+       */
+      if (this.getOtlpEndpoint() && !hasHeaders) {
+        logger.error(NOTHING_EXPORTED_WITHOUT_A_HEADER, EXTERNAL_FAULT);
+      }
 
       const nodeSdkConfiguration: Partial<opentelemetry.NodeSDKConfiguration> =
         {
