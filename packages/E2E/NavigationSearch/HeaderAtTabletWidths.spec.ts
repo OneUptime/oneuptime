@@ -278,6 +278,52 @@ test.describe("Help at a tablet's width", () => {
     }
   });
 
+  test("at a tablet's width each menu is named by its own button, and Escape puts it away with the focus back on the button", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    const words: HeaderWords = wordsOf("en");
+    await open(page, 900);
+
+    /*
+     * Help and the profile button used to share one id, and every menu was
+     * labelled by it: the profile menu read as Help's to a screen reader.
+     */
+    const ids: Array<string> = await page
+      .locator("[id]")
+      .evaluateAll((elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return element.id;
+        });
+      });
+    expect(new Set(ids).size, "no id twice on the page").toBe(ids.length);
+
+    const profile: Locator = page
+      .getByTestId("dashboard-top-section")
+      .getByRole("button", { name: words.profile })
+      .first();
+
+    for (const [opener, name] of [
+      [button(page, words.help), words.help],
+      [profile, words.profile],
+    ] as Array<[Locator, string]>) {
+      // Opened with the keyboard: Enter on the button, Tab into the menu.
+      await opener.focus();
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("menu", { name: name })).toBeVisible();
+      await expect(page.getByRole("menu")).toHaveCount(1);
+      await expect(opener).toHaveAttribute("aria-expanded", "true");
+      await page.keyboard.press("Tab");
+      await expect(page.getByRole("menu").locator(":focus")).toHaveCount(1);
+
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("menu")).toHaveCount(0);
+      await expect(opener).toBeFocused();
+      await expect(opener).toHaveAttribute("aria-expanded", "false");
+    }
+  });
+
   test("Search opens Search from the header at a tablet's width", async ({
     page,
   }: {
@@ -412,6 +458,8 @@ test.describe("Help at a tablet's width", () => {
 
       await button(page, words.help).click();
       await expect(helpMenu(page).locator("a, button")).toHaveText(words.learn);
+      // A screen reader names the menu after its button, in Arabic.
+      await expect(page.getByRole("menu", { name: words.help })).toBeVisible();
       const menu: FrameBox = (
         await boxesInOneFrame([page.getByRole("menu")])
       )[0]!;

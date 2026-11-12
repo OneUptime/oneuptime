@@ -1,4 +1,5 @@
-import React, { FunctionComponent, ReactElement } from "react";
+import { HeaderMenuButtonIdContext } from "../HeaderMenuContext";
+import React, { FunctionComponent, ReactElement, useContext } from "react";
 
 export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
@@ -23,12 +24,15 @@ export const ICON_DROPDOWN_MENU_WIDTH_CLASS_NAME: string =
 const IconDropdown: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
+  // Named by the button it hangs from (HeaderMenuContext).
+  const buttonId: string | undefined = useContext(HeaderMenuButtonIdContext);
+
   return (
     <div
       className={`absolute right-0 z-10 mt-2 ${ICON_DROPDOWN_MENU_WIDTH_CLASS_NAME} origin-top-right rounded-xl bg-white py-2 shadow-lg ring-1 ring-gray-200 focus:outline-none transform opacity-100 scale-100 animate-in fade-in slide-in-from-top-1 duration-150`}
       role="menu"
       aria-orientation="vertical"
-      aria-labelledby="user-menu-button"
+      aria-labelledby={buttonId}
     >
       {props.children}
     </div>

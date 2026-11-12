@@ -382,6 +382,39 @@ describe("the top of a page at a tablet's width (900px)", () => {
     }
   });
 
+  test("Help's menu and the profile menu beside it are each named by their own button, and Escape puts Help away", async () => {
+    await renderTopOfPage();
+
+    const help: HTMLElement = headerHelp();
+    const profile: HTMLElement = screen.getByRole("button", {
+      name: /User Profile/,
+    });
+
+    /*
+     * Both used to carry the id "user-menu-button", and both menus were
+     * labelled by it: a screen reader read the profile menu as Help's.
+     */
+    expect(help.id).not.toBe(profile.id);
+    expect(document.getElementById("user-menu-button")).toBeNull();
+
+    fireEvent.click(profile);
+    expect(screen.getByRole("menu")).toHaveAttribute(
+      "aria-labelledby",
+      profile.id,
+    );
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(screen.queryByRole("menu")).toBeNull();
+
+    fireEvent.click(help);
+    expect(screen.getByRole("menu", { name: "Help" })).toBe(
+      screen.getByTestId(HELP_LEARN_GROUP_TEST_ID).closest('[role="menu"]'),
+    );
+    help.focus();
+    fireEvent.keyDown(help, { key: "Escape" });
+    expect(screen.queryByTestId(HELP_LEARN_GROUP_TEST_ID)).toBeNull();
+    expect(document.activeElement).toBe(help);
+  });
+
   test("the Glossary and the Quickstart open on this instance's docs, in a new tab", async () => {
     await renderTopOfPage();
 
