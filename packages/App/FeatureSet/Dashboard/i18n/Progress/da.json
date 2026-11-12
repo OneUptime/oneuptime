@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51231,
-    "untranslated": 9536
+    "keys": 51296,
+    "untranslated": 9524
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -397,6 +397,7 @@
     "container",
     "customer facing|tier-1",
     "dashboard",
+    "dashboards",
     "database",
     "datastore",
     "db-primary",
@@ -501,6 +502,7 @@
     "vSphere Client",
     "vertical pod autoscaler",
     "workflow",
+    "workflows",
     "writesets",
     "x86",
     "z",

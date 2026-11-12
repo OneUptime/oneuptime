@@ -163,6 +163,9 @@ import {
 import useSloBulkActions, {
   SloBulkActionsResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Slo/useSloBulkActions";
+import useBulkArchiveActions, {
+  BulkArchiveActionsResult,
+} from "../../../UI/Components/BulkUpdate/BulkArchiveActions";
 import ConfirmModal from "../../../UI/Components/Modal/ConfirmModal";
 import { BulkActionButtonSchema } from "../../../UI/Components/BulkUpdate/BulkUpdateForm";
 import BaseModel from "../../../Models/DatabaseModels/DatabaseBaseModel/DatabaseBaseModel";
@@ -595,19 +598,21 @@ function slos(count: number): Array<ServiceLevelObjective> {
   return items;
 }
 
-function onlyAction(actions: Array<SloAction>): SloAction {
+function onlyAction<T extends BaseModel>(
+  actions: Array<BulkActionButtonSchema<T>>,
+): BulkActionButtonSchema<T> {
   expect(actions).toHaveLength(1);
   return actions[0]!;
 }
 
 /*
- * The dialog the SLO list's bulk action opens, as BulkUpdateForm draws it:
- * its title from confirmTitle, its body from confirmMessage, its button the
+ * The dialog a list's bulk action opens, as BulkUpdateForm draws it: its
+ * title from confirmTitle, its body from confirmMessage, its button the
  * action's title.
  */
-function readBulkDialog(
-  action: SloAction,
-  items: Array<ServiceLevelObjective>,
+function readBulkDialog<T extends BaseModel>(
+  action: BulkActionButtonSchema<T>,
+  items: Array<T>,
 ): { title: string; body: string; submit: string } {
   render(
     <ConfirmModal
@@ -675,6 +680,64 @@ describe("the SLO list's bulk Archive and Unarchive, in German", () => {
       submit: worded("de", "Unarchive"),
     });
     expect(drawn.body).toMatch(/^Aus dem Archiv geholte SLOs /);
+  });
+});
+
+/*
+ * The Workflows list's bulk actions, as its page asks for them: its names
+ * and its own sentences, from ResourceArchiveCopy.
+ */
+function renderWorkflowActions(): BulkArchiveActionsResult<Workflow> {
+  return renderHook(() => {
+    return useBulkArchiveActions<Workflow>({
+      modelType: Workflow,
+      singularName: WORKFLOW_ARCHIVE_COPY.singularName,
+      pluralName: WORKFLOW_ARCHIVE_COPY.pluralName,
+      archiveConfirmMessage: WORKFLOW_ARCHIVE_COPY.bulkArchiveConfirmMessage,
+      unarchiveConfirmMessage:
+        WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    });
+  }).result.current;
+}
+
+function workflows(count: number): Array<Workflow> {
+  const items: Array<Workflow> = [];
+
+  for (let index: number = 0; index < count; index++) {
+    items.push(new Workflow(ObjectID.generate()));
+  }
+
+  return items;
+}
+
+describe("a list with sentences of its own: bulk Archive on Workflows, in German", () => {
+  beforeAll(async () => {
+    await inLanguage("de");
+  });
+
+  test("the title and the sentence are both German", () => {
+    const result: BulkArchiveActionsResult<Workflow> = renderWorkflowActions();
+    const archive: { title: string; body: string; submit: string } =
+      readBulkDialog(onlyAction(result.archiveBulkActions), workflows(3));
+
+    expect(archive).toEqual({
+      title: "3 Arbeitsabläufe archivieren?",
+      body: worded("de", WORKFLOW_ARCHIVE_COPY.bulkArchiveConfirmMessage),
+      submit: "Archivieren",
+    });
+    expect(archive.body).toMatch(/^Archivierte Arbeitsabläufe werden /);
+    cleanup();
+
+    const unarchive: { title: string; body: string; submit: string } =
+      readBulkDialog(onlyAction(result.unarchiveBulkActions), workflows(1));
+
+    expect(unarchive.title).toBe("1 Arbeitsablauf aus dem Archiv holen?");
+    expect(unarchive.body).toBe(
+      worded("de", WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage),
+    );
+    expect(unarchive.body).not.toBe(
+      WORKFLOW_ARCHIVE_COPY.bulkUnarchiveConfirmMessage,
+    );
   });
 });
 

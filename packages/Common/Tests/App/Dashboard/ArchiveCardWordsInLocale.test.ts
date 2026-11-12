@@ -36,7 +36,7 @@ import {
   BULK_UNARCHIVE_SENTENCE_ONE,
   BULK_UNARCHIVE_TITLE,
 } from "../../../UI/Components/BulkUpdate/BulkArchiveActions";
-import { PluralTemplate } from "../../../Types/Translator";
+import { PluralTemplate, translatableTerm } from "../../../Types/Translator";
 import {
   DASHBOARD_LANGUAGES,
   dashboardTranslator,
@@ -116,8 +116,11 @@ const OWN_COPY_KINDS: ReadonlyArray<{
   { kind: "on-call policy", copy: ON_CALL_POLICY_ARCHIVE_COPY },
 ];
 
-// Each of those cards' sentences, live and archived, and its dialogs'.
-const OWN_COPY_CARD_SENTENCES: ReadonlyArray<{ kind: string; key: string }> =
+/*
+ * Each of those cards' sentences, live and archived, its dialogs', and the
+ * sentence of their lists' bulk dialogs, whose title is worded too.
+ */
+const OWN_COPY_SENTENCES: ReadonlyArray<{ kind: string; key: string }> =
   OWN_COPY_KINDS.flatMap(
     ({
       kind,
@@ -131,6 +134,8 @@ const OWN_COPY_CARD_SENTENCES: ReadonlyArray<{ kind: string; key: string }> =
         copy.unarchiveCardDescription,
         copy.archiveConfirmMessage,
         copy.unarchiveConfirmMessage,
+        copy.bulkArchiveConfirmMessage,
+        copy.bulkUnarchiveConfirmMessage,
       ].map((key: string): { kind: string; key: string } => {
         return { kind: kind, key: key };
       });
@@ -246,8 +251,8 @@ describe.each(DASHBOARD_LANGUAGES)(
       expect(unworded).toEqual([]);
     });
 
-    test.each(OWN_COPY_CARD_SENTENCES)(
-      "the $kind card's own sentence is worded: $key",
+    test.each(OWN_COPY_SENTENCES)(
+      "the $kind card's or list's own sentence is worded: $key",
       ({ key }: { kind: string; key: string }) => {
         expect({
           key,
@@ -256,10 +261,19 @@ describe.each(DASHBOARD_LANGUAGES)(
       },
     );
 
-    test("every name a card with sentences of its own says is worded", () => {
-      const unworded: Array<string> = OWN_COPY_KINDS.map(
-        ({ copy }: { kind: string; copy: ResourceArchiveCopy }): string => {
-          return copy.singularName;
+    /*
+     * The card's title says the singular; those lists' bulk dialog titles
+     * say the plural ("3 Arbeitsabläufe archivieren?").
+     */
+    test("every name a card or list with sentences of its own says is worded", () => {
+      const unworded: Array<string> = OWN_COPY_KINDS.flatMap(
+        ({
+          copy,
+        }: {
+          kind: string;
+          copy: ResourceArchiveCopy;
+        }): Array<string> => {
+          return [copy.singularName, copy.pluralName];
         },
       ).filter((name: string): boolean => {
         return !isWordedInDashboardLocale(name, language);
@@ -314,6 +328,45 @@ describe.each(DASHBOARD_LANGUAGES)(
     });
   },
 );
+
+describe("the bulk dialog's title on a list with sentences of its own", () => {
+  // As useBulkArchiveActions says it: the list's names, in the reader's language.
+  function bulkTitle(
+    language: string,
+    copy: ResourceArchiveCopy,
+    count: number,
+  ): string {
+    return dashboardTranslator(language).translatePlural(
+      BULK_ARCHIVE_TITLE,
+      count,
+      {
+        itemName: translatableTerm(copy.singularName),
+        itemsName: translatableTerm(copy.pluralName),
+      },
+    );
+  }
+
+  test("names the workflows and dashboards in the reader's language", () => {
+    expect(bulkTitle("ru", WORKFLOW_ARCHIVE_COPY, 3)).toBe(
+      "Архивировать элементы (рабочие процессы): 3?",
+    );
+    expect(bulkTitle("ko", DASHBOARD_ARCHIVE_COPY, 3)).toBe(
+      "대시보드 3개를 보관하시겠습니까?",
+    );
+    expect(bulkTitle("zh-TW", WORKFLOW_ARCHIVE_COPY, 1)).toBe(
+      "要封存 1 個工作流程嗎？",
+    );
+  });
+
+  test("English reads as before", () => {
+    expect(bulkTitle("en", WORKFLOW_ARCHIVE_COPY, 3)).toBe(
+      "Archive 3 workflows?",
+    );
+    expect(bulkTitle("en", DASHBOARD_ARCHIVE_COPY, 1)).toBe(
+      "Archive 1 dashboard?",
+    );
+  });
+});
 
 // A title that opens with a small letter: "dienst archiveren".
 const STARTS_SMALL: RegExp = /^\p{Ll}/u;
