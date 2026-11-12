@@ -9,6 +9,7 @@ import {
 } from "Common/Server/EnvironmentConfig";
 import GlobalConfigService from "Common/Server/Services/GlobalConfigService";
 import UserService from "Common/Server/Services/UserService";
+import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import GlobalConfig from "Common/Models/DatabaseModels/GlobalConfig";
 import User from "Common/Models/DatabaseModels/User";
 import ObjectID from "Common/Types/ObjectID";
@@ -48,7 +49,10 @@ const getUserEmailHashes: GetUserEmailHashesFunction = async (): Promise<
 
   for (;;) {
     const users: Array<User> = await UserService.findBy({
-      query: {},
+      // Real people only: a sample person (issue #6808) is nobody.
+      query: {
+        sampleProjectId: QueryHelper.isNull(),
+      },
       select: {
         email: true,
       },

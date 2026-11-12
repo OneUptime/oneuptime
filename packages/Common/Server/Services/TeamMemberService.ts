@@ -26,6 +26,10 @@ import BillingService from "./BillingService";
 import ProjectReferencesService from "./ProjectReferencesService";
 import MailService from "./MailService";
 import ProjectService from "./ProjectService";
+import {
+  SAMPLE_PROJECT_REFUSALS,
+  isSamplePersonEmail,
+} from "../../Types/SampleProject/SampleProject";
 import TeamPermissionService from "./TeamPermissionService";
 import TeamService from "./TeamService";
 import UserNotificationRuleService from "./UserNotificationRuleService";
@@ -186,6 +190,56 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
   }
 
   @CaptureSpan()
+  /*
+   * THE RULES A SAMPLE PROJECT KEEPS FOR ITS MEMBERS (issue #6808):
+   *
+   *   - nobody joins a sample but the person it was made for and its sample
+   *     people, whom OneUptime writes as root when it is made: an invitation
+   *     is an email, and nobody is ever notified from a sample;
+   *   - a sample person joins no other project: they are made up, and a
+   *     member takes a seat. Asked by the address an invitation names, and
+   *     by the person a request names.
+   *
+   * Refused with what to do instead. OneUptime itself (root) is let
+   * through: it writes the sample's own members.
+   */
+  public async assertSampleProjectRules(data: {
+    createBy: CreateBy<TeamMember>;
+    projectId: ObjectID;
+    invitedEmail: Email | null;
+    namedUserId: ObjectID | null;
+  }): Promise<void> {
+    if (data.createBy.props.isRoot) {
+      return;
+    }
+
+    if (await ProjectService.isSampleProject(data.projectId)) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.member);
+    }
+
+    if (data.invitedEmail && isSamplePersonEmail(data.invitedEmail)) {
+      throw new BadDataException(SAMPLE_PROJECT_REFUSALS.samplePersonElsewhere);
+    }
+
+    if (data.namedUserId) {
+      const namedUser: User | null = await UserService.findOneById({
+        id: data.namedUserId,
+        select: {
+          sampleProjectId: true,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+
+      if (namedUser?.sampleProjectId) {
+        throw new BadDataException(
+          SAMPLE_PROJECT_REFUSALS.samplePersonElsewhere,
+        );
+      }
+    }
+  }
+
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {
@@ -311,6 +365,13 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
           },
         })
       : null;
+
+    await this.assertSampleProjectRules({
+      createBy: createBy,
+      projectId: projectId,
+      invitedEmail: invitedEmail,
+      namedUserId: namedUserId,
+    });
 
     /*
      * Check if this project can have more people: early, so a project at

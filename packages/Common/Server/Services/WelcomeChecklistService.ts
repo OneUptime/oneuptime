@@ -165,6 +165,18 @@ export default class WelcomeChecklistService {
     };
 
     /*
+     * A sample project (issue #6808) has no checklist: it was made set up,
+     * with made-up records, and nothing done in it is a step of anyone's
+     * own setup. Home shows no Welcome card there, and the goal question
+     * is never asked.
+     */
+    if (await ProjectService.isSampleProject(caller.projectId)) {
+      answer.canChooseGoals = false;
+      answer.isFinished = true;
+      return answer;
+    }
+
+    /*
      * An invited member gets no steps: the owner's checklist is not theirs.
      * Home draws their own first hour (#6807) - can OneUptime reach me,
      * when am I on call - from their personal checklist and their shifts,
