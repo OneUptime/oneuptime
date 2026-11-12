@@ -203,7 +203,8 @@ function toModel(
   service: AnyService,
   row: Record<string, unknown>,
 ): BaseModel {
-  const model: BaseModel = service.getModel();
+  // A fresh row each time: getModel() hands back the service's one instance.
+  const model: BaseModel = new service.modelType();
 
   for (const key of Object.keys(row)) {
     (model as unknown as Record<string, unknown>)[key] = row[key];

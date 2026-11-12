@@ -103,6 +103,14 @@
  *              owner rule and a status page they may not see) | rules
  *              (owner rules add the owners it emails, and a second status
  *              page shows it through a monitor group).
+ *   ?usedBy=   what "Used by" answers for a monitor (GET /used-by/
+ *              monitor/:monitorId, and /:relation for See all's pages):
+ *              none (default: nothing refers to it, so the card says what
+ *              to do next) | used (five status pages - one more the reader
+ *              may not see - a monitor group, an SLO, maintenance coming up
+ *              and two workflows the reader may not see; See all pages the
+ *              status pages fifty at a time). ?fail=used-by fails the FIRST
+ *              read, as a gateway's 502 does; Try again reads it again.
  *   ?settings=1  the subject monitor's Settings page
  *              (/monitors/<id>/settings) is the production one rather than
  *              the stub every other page has: its Monitoring card, and the
@@ -209,6 +217,11 @@ import Probe, {
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
 import { getWhoIsToldBreaks } from "Common/Types/Monitor/WhoIsTold";
+import {
+  UsedByRecordKind,
+  UsedByRelation,
+  getUsedByRelations,
+} from "Common/Types/UsedBy/UsedBy";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -341,6 +354,8 @@ const previewMode = ["empty", "fail"].includes(params.get("preview"))
 const securityMode = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
+// What "Used by" answers (?usedBy=).
+const usedByMode = params.get("usedBy") === "used" ? "used" : "none";
 // What "When this goes down" answers (?whoIsTold=).
 const whoIsToldMode = ["nobody", "hidden", "rules"].includes(
   params.get("whoIsTold"),
@@ -3211,6 +3226,105 @@ AnalyticsModelAPI.aggregate = async (options) => {
 let hasFailedUptimeSummary = false;
 let hasFailedPreview = false;
 let hasFailedWhoIsTold = false;
+let hasFailedUsedBy = false;
+
+/*
+ * What refers to a monitor, as UsedByService answers it: every relation of
+ * the kind in its order, each with how many the reader may see, how many
+ * they may not, and its rows. With ?usedBy=used, the subject monitor is on
+ * five status pages (and one the reader may not see), in a monitor group,
+ * measured by an SLO, named by maintenance coming up, and named by two
+ * workflows the reader may not see. Nothing refers to any other monitor.
+ */
+function usedById(index) {
+  return `71300000-0000-4000-8000-${String(index).padStart(12, "0")}`;
+}
+
+const USED_BY_ROWS = {
+  [UsedByRelation.MonitorStatusPages]: {
+    hiddenCount: 1,
+    rows: [
+      "Acme public status",
+      "Acme partner status",
+      "Checkout status",
+      "EU customers",
+      "Internal operations",
+    ].map((name, index) => {
+      return { id: usedById(100 + index), name: name };
+    }),
+  },
+  [UsedByRelation.MonitorGroups]: {
+    hiddenCount: 0,
+    rows: [{ id: usedById(200), name: "Checkout path" }],
+  },
+  [UsedByRelation.MonitorSlos]: {
+    hiddenCount: 0,
+    rows: [{ id: usedById(300), name: "Checkout availability 99.9%" }],
+  },
+  [UsedByRelation.MonitorScheduledMaintenance]: {
+    hiddenCount: 0,
+    rows: [
+      { id: usedById(400), name: "Load balancer patching", number: "SM-12" },
+    ],
+  },
+  [UsedByRelation.MonitorWorkflows]: { hiddenCount: 2, rows: [] },
+};
+
+function usedByRowsOf(monitorId, relation) {
+  const isSubject =
+    monitorId === ID.monitor(MONITOR_DEFINITIONS[subjectType].number);
+
+  if (usedByMode !== "used" || !isSubject) {
+    return { hiddenCount: 0, rows: [] };
+  }
+
+  return USED_BY_ROWS[relation] || { hiddenCount: 0, rows: [] };
+}
+
+// GET /used-by/monitor/:monitorId[/:relation][?skip=&limit=].
+function usedBy(parsed) {
+  const parts = parsed.pathname.split("/used-by/")[1].split("/");
+  const monitorId = parts[1];
+  const relation = parts[2];
+
+  if (relation) {
+    const found = usedByRowsOf(monitorId, relation);
+    const skip = Number(parsed.searchParams.get("skip")) || 0;
+    const limit = Number(parsed.searchParams.get("limit")) || 50;
+
+    return {
+      recordKind: UsedByRecordKind.Monitor,
+      recordId: monitorId,
+      relation: relation,
+      rowKind: getUsedByRelations(UsedByRecordKind.Monitor).find(
+        (description) => {
+          return description.relation === relation;
+        },
+      ).rowKind,
+      count: found.rows.length,
+      hiddenCount: found.hiddenCount,
+      skip: skip,
+      limit: limit,
+      rows: found.rows.slice(skip, skip + limit),
+    };
+  }
+
+  return {
+    recordKind: UsedByRecordKind.Monitor,
+    recordId: monitorId,
+    groups: getUsedByRelations(UsedByRecordKind.Monitor).map((description) => {
+      const found = usedByRowsOf(monitorId, description.relation);
+
+      return {
+        relation: description.relation,
+        rowKind: description.rowKind,
+        count: found.rows.length,
+        hiddenCount: found.hiddenCount,
+        rows: found.rows.slice(0, 3),
+      };
+    }),
+  };
+}
 
 /*
  * POST /security-case/resource-security for a monitor, as the server answers
@@ -3605,6 +3719,16 @@ async function handleApi(method, options) {
     }
 
     return ok(whoIsTold(parsed.pathname.split("/").pop()));
+  }
+
+  // What refers to a monitor (?usedBy=).
+  if (method === "GET" && parsed.pathname.includes("/used-by/monitor/")) {
+    if (failures.has("used-by") && !hasFailedUsedBy) {
+      hasFailedUsedBy = true;
+      return fail(502, "Bad Gateway");
+    }
+
+    return ok(usedBy(parsed));
   }
 
   // What Security Events says about the hosts a monitor checks (?security=).
