@@ -728,6 +728,8 @@ jobs:
           # Pods, StatefulSets, DaemonSets, Jobs and CronJobs lists, at 1280
           # and 390 pixels, dark, German and Persian) joined it the same day,
           # after Discovery left: about 21.5.
+          # Kubernetes Pages' Overview cards lined up with their titles (#6956,
+          # about 4 seconds locally): planned as 2.2, this group about 21.9.
           - group: 6
             suites: >-
               test-status-page-theme-ui
@@ -1429,6 +1431,9 @@ jobs:
           # VMware Host Page (1.4) joined VMware Pages here from group 8 on
           # 2026-11-06, when the Azure and Google Cloud streaming tests grew
           # Cloud Connect: about 21.6.
+          # The host's Overview cards lined up with their titles (#6956, about
+          # 3 seconds locally): VMware Host Page planned as 1.5, this group
+          # about 21.7.
           - group: 14
             suites: >-
               test-list-delete-ui
@@ -1461,6 +1466,9 @@ jobs:
           # see group 4: about 6.7 on a runner) and Metrics AI to 3.5 (a
           # Prometheus metric's long name breaking after its underscores):
           # this group 22.5. Host Pages (1.6) moved to group 20: about 20.9.
+          # The Overview's OpenShift card and quick links lined up with their
+          # titles, healthy and with a failing update (#6956, about 5 seconds
+          # locally): OpenShift Pages planned as 2.9, this group about 21.0.
           - group: 15
             model_tables_shard: 2/2
             suites: >-
@@ -1510,6 +1518,10 @@ jobs:
           # on map, 320 devices selected at once, a phone, and the list at four
           # widths, dark, German and Persian), which took Discovery from 5.5 to
           # about 6.6 and this group to about 21.4.
+          # Six tests of how a card's body lines up with its title (#6956: a
+          # ruled table, a body bled to the card's edges, centred states,
+          # bulleted lists), in Chromium and Firefox, about 4 seconds locally:
+          # Suite Helpers planned as 0.6, this group about 21.7.
           - group: 16
             monitor_overview_shard: 2/2
             suites: >-
@@ -1556,6 +1568,9 @@ jobs:
           # a word's definition on hover, from the keyboard and on a phone,
           # dark, German and Persian) on 2026-11-11: 3.0. Storage Array Pages
           # (1.4) moved to group 5 to make the room: 21.5.
+          # Home's cards lined up with their titles and a category tab's focus
+          # ring (#6956, about 3 seconds locally): Home Overview planned as
+          # 3.1, this group about 21.6.
           - group: 17
             suites: >-
               test-snmp-walk-ui
@@ -1637,6 +1652,12 @@ jobs:
           # Product Onboarding, 27 tests now, is planned at the 1.1 minutes App
           # Test measured on the two runs that reached it (0.97 and 1.20)
           # rather than the 0.7 of a local run: about 21.3.
+          # Eight tests of OpenStack cards lining up with their titles (#6956,
+          # OpenStackPages/CardBodyFit.spec.ts, 55 seconds locally) made the
+          # suite 594 tests, 198 a third. Sorted first, they all run in this
+          # third, which hands its last six tests (Instance Usage, about 5
+          # seconds each) to the second, and the second its last three to the
+          # third: planned at 17.5, 16.3 and 18.1, this group about 21.7.
           - group: 19
             openstack_pages_shard: 1/3
             suites: >-
@@ -1667,15 +1688,18 @@ jobs:
           # Persian sentences (#6705) gave Reading Direction 12 more tests,
           # its screenshots among them: planned as 5.9, this group about
           # 21.9.
+          # Reading Direction (5.9) moved to group 22, the group with the most
+          # room, when this third grew to 16.3 (#6956, see group 19): about
+          # 16.3.
           - group: 20
             openstack_pages_shard: 2/3
             suites: >-
               test-openstack-pages-ui
-              test-reading-direction-ui
           # Added on 2026-11-10 for the last third of the OpenStack pages (195
           # tests, 17.8 minutes, see group 19): no group had the room for it.
           # Global Runners (2.2) from group 19 and Host Pages (1.6) from group
-          # 20 joined it: about 21.6.
+          # 20 joined it: about 21.6. This third planned as 18.1 (#6956, see
+          # group 19): about 21.9.
           - group: 21
             openstack_pages_shard: 3/3
             suites: >-
@@ -1689,13 +1713,18 @@ jobs:
           # two bundles). No group had the room: the most was group 4's 1.5.
           # The rest of the group is room for the journeys the guided setups
           # of #6802 add.
+          # Reading Direction (5.9) joined it from group 20 on 2026-11-12, when
+          # the OpenStack pages' second third grew (#6956, see group 19): about
+          # 8.2, the rest still room for those journeys.
           # The website-down guided setup's run, kept and lost (#7059), joined
-          # it on 2026-11-12: Journeys/GuidedSetupRun.spec.ts, 3 tests that are
-          # not journeys (nothing counted), the third a long address at 390
-          # pixels, about 37 seconds locally - planned as 2.9.
+          # the journeys the same day: Journeys/GuidedSetupRun.spec.ts, 3 tests
+          # that are not journeys (nothing counted), the third a long address
+          # at 390 pixels, about 37 seconds locally - test-journeys-ui planned
+          # as 2.9, this group about 8.8.
           - group: 22
             suites: >-
               test-journeys-ui
+              test-reading-direction-ui
     steps:
       - uses: actions/checkout@v4
       # Core is the Community Edition by construction: it must build and pass
