@@ -1,5 +1,7 @@
 import ProductKey, { PRODUCT_KEYS, parseProductKeys } from "./ProductKey";
-import ProjectGoal, { parseProjectGoals } from "../WelcomeChecklist/ProjectGoal";
+import ProjectGoal, {
+  parseProjectGoals,
+} from "../WelcomeChecklist/ProjectGoal";
 import { JSONObject } from "../JSON";
 
 /*
@@ -67,9 +69,8 @@ export const isHideableProduct: (product: ProductKey) => boolean = (
 };
 
 // Every product a project may hide, in the menu's order.
-export const HIDEABLE_PRODUCTS: ReadonlyArray<ProductKey> = PRODUCT_KEYS.filter(
-  isHideableProduct,
-);
+export const HIDEABLE_PRODUCTS: ReadonlyArray<ProductKey> =
+  PRODUCT_KEYS.filter(isHideableProduct);
 
 /*
  * What each goal needs beyond Essentials (#6803's question "What do you want
@@ -195,8 +196,7 @@ export const parseProjectProductSettings: (
     chosenBy: isChosenBy(json["chosenBy"])
       ? json["chosenBy"]
       : ProjectProductsChosenBy.Member,
-    changedAt:
-      typeof json["changedAt"] === "string" ? json["changedAt"] : null,
+    changedAt: typeof json["changedAt"] === "string" ? json["changedAt"] : null,
     changedByUserId:
       typeof json["changedByUserId"] === "string"
         ? json["changedByUserId"]
@@ -294,7 +294,10 @@ export const getProjectProductSettingsFromGoals: (data: {
   inUse: ReadonlyArray<ProductKey>;
   now: Date;
 }): ProjectProductSettings | null => {
-  if (data.current && data.current.chosenBy === ProjectProductsChosenBy.Member) {
+  if (
+    data.current &&
+    data.current.chosenBy === ProjectProductsChosenBy.Member
+  ) {
     return null;
   }
 

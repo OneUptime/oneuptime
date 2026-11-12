@@ -786,49 +786,49 @@ const NavBarMenuModal: FunctionComponent<ComponentProps> = (
                 : "opacity-0 group-hover/card:opacity-100"
             }`}
           >
-          <button
-            type="button"
-            tabIndex={-1}
-            data-testid={PRODUCT_PIN_BUTTON_TEST_ID}
-            aria-pressed={isPinned}
-            aria-label={translator.translateTemplate(
-              isPinned ? "Unpin {{product}}" : "Pin {{product}}",
-              { product: item.title },
-            )}
-            title={
-              isPinLocked
-                ? translator.translatePlural(
-                    {
-                      one: "You can pin up to {{count}} product. Unpin one first.",
-                      other:
-                        "You can pin up to {{count}} products. Unpin one first.",
-                    },
-                    MAX_PINNED_PRODUCTS,
-                  )
-                : translator.translateTemplate(
-                    isPinned ? "Unpin {{product}}" : "Pin {{product}}",
-                    { product: item.title },
-                  )
-            }
-            disabled={isPinLocked}
-            onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
-              event.preventDefault();
-            }}
-            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-              event.stopPropagation();
-              props.onTogglePin?.(item);
-            }}
-            className={`block rounded-md p-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
-              isPinned ? "text-indigo-600" : "text-gray-400"
-            } ${getHandDrawnButtonStateClassName({
-              isLocked: isPinLocked,
-              hoverClassName: isPinned
-                ? "hover:bg-gray-100"
-                : "hover:bg-gray-100 hover:text-gray-700",
-            })}`}
-          >
-            <Icon icon={IconProp.Pin} className="h-4 w-4" />
-          </button>
+            <button
+              type="button"
+              tabIndex={-1}
+              data-testid={PRODUCT_PIN_BUTTON_TEST_ID}
+              aria-pressed={isPinned}
+              aria-label={translator.translateTemplate(
+                isPinned ? "Unpin {{product}}" : "Pin {{product}}",
+                { product: item.title },
+              )}
+              title={
+                isPinLocked
+                  ? translator.translatePlural(
+                      {
+                        one: "You can pin up to {{count}} product. Unpin one first.",
+                        other:
+                          "You can pin up to {{count}} products. Unpin one first.",
+                      },
+                      MAX_PINNED_PRODUCTS,
+                    )
+                  : translator.translateTemplate(
+                      isPinned ? "Unpin {{product}}" : "Pin {{product}}",
+                      { product: item.title },
+                    )
+              }
+              disabled={isPinLocked}
+              onMouseDown={(event: React.MouseEvent<HTMLButtonElement>) => {
+                event.preventDefault();
+              }}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                event.stopPropagation();
+                props.onTogglePin?.(item);
+              }}
+              className={`block rounded-md p-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
+                isPinned ? "text-indigo-600" : "text-gray-400"
+              } ${getHandDrawnButtonStateClassName({
+                isLocked: isPinLocked,
+                hoverClassName: isPinned
+                  ? "hover:bg-gray-100"
+                  : "hover:bg-gray-100 hover:text-gray-700",
+              })}`}
+            >
+              <Icon icon={IconProp.Pin} className="h-4 w-4" />
+            </button>
           </span>
         )}
       </div>

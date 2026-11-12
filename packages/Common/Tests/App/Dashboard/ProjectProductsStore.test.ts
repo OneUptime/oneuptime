@@ -223,7 +223,9 @@ describe("changing the products", () => {
   test("showing or hiding records the server's answer", async () => {
     const after: ProjectProductsAnswer = { ...ANSWER, hidden: [] };
     const post: jest.SpiedFunction<typeof ProjectProductsApi.postProductShown> =
-      jest.spyOn(ProjectProductsApi, "postProductShown").mockResolvedValue(after);
+      jest
+        .spyOn(ProjectProductsApi, "postProductShown")
+        .mockResolvedValue(after);
 
     await ProjectProducts.setProductShown(PROJECT_A, {
       product: ProductKey.Kubernetes,
@@ -268,15 +270,19 @@ describe("pins", () => {
     await ProjectProducts.load(PROJECT_A);
 
     let release: (answer: ProjectProductsAnswer) => void = () => {};
-    jest.spyOn(ProjectProductsApi, "postPinnedProducts").mockImplementation(
-      (pinned: ReadonlyArray<ProductKey>): Promise<ProjectProductsAnswer> => {
-        return new Promise((resolve: (value: ProjectProductsAnswer) => void) => {
-          release = (): void => {
-            resolve({ ...ANSWER, pinned: [...pinned] });
-          };
-        });
-      },
-    );
+    jest
+      .spyOn(ProjectProductsApi, "postPinnedProducts")
+      .mockImplementation(
+        (pinned: ReadonlyArray<ProductKey>): Promise<ProjectProductsAnswer> => {
+          return new Promise(
+            (resolve: (value: ProjectProductsAnswer) => void) => {
+              release = (): void => {
+                resolve({ ...ANSWER, pinned: [...pinned] });
+              };
+            },
+          );
+        },
+      );
 
     const pinning: Promise<Array<ProductKey>> =
       ProjectProducts.setProductPinned(PROJECT_A, {
@@ -318,8 +324,9 @@ describe("pins", () => {
 
   test("a pin that changes nothing sends nothing", async () => {
     await ProjectProducts.load(PROJECT_A);
-    const post: jest.SpiedFunction<typeof ProjectProductsApi.postPinnedProducts> =
-      jest.spyOn(ProjectProductsApi, "postPinnedProducts");
+    const post: jest.SpiedFunction<
+      typeof ProjectProductsApi.postPinnedProducts
+    > = jest.spyOn(ProjectProductsApi, "postPinnedProducts");
 
     expect(
       await ProjectProducts.setProductPinned(PROJECT_A, {
@@ -332,10 +339,11 @@ describe("pins", () => {
 
   test("unpinning sends the pins left, in order", async () => {
     await ProjectProducts.load(PROJECT_A);
-    const post: jest.SpiedFunction<typeof ProjectProductsApi.postPinnedProducts> =
-      jest
-        .spyOn(ProjectProductsApi, "postPinnedProducts")
-        .mockResolvedValue({ ...ANSWER, pinned: [] });
+    const post: jest.SpiedFunction<
+      typeof ProjectProductsApi.postPinnedProducts
+    > = jest
+      .spyOn(ProjectProductsApi, "postPinnedProducts")
+      .mockResolvedValue({ ...ANSWER, pinned: [] });
 
     await ProjectProducts.setProductPinned(PROJECT_A, {
       product: ProductKey.Logs,

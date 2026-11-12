@@ -64,12 +64,14 @@ export const withProductMarks: (
   };
 };
 
-const isInUse: (item: MoreMenuItem, answer: ProjectProductsAnswer) => boolean =
-  (item: MoreMenuItem, answer: ProjectProductsAnswer): boolean => {
-    const product: ProductKey | null = getItemProduct(item);
+const isInUse: (
+  item: MoreMenuItem,
+  answer: ProjectProductsAnswer,
+) => boolean = (item: MoreMenuItem, answer: ProjectProductsAnswer): boolean => {
+  const product: ProductKey | null = getItemProduct(item);
 
-    return Boolean(product && answer.usage[product] === ProductUsage.InUse);
-  };
+  return Boolean(product && answer.usage[product] === ProductUsage.InUse);
+};
 
 /*
  * The items with the ones in use first in their category, each category

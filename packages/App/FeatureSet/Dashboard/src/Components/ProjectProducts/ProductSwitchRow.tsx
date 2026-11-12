@@ -150,7 +150,10 @@ const ProductSwitchRow: FunctionComponent<ComponentProps> = (
             ariaLabel={props.title}
             description={props.description}
             value={props.isShown}
-            disabled={Boolean(props.lockedReason) || props.saveState === ProductSwitchSaveState.Saving}
+            disabled={
+              Boolean(props.lockedReason) ||
+              props.saveState === ProductSwitchSaveState.Saving
+            }
             tooltip={props.lockedReason}
             error={props.error}
             dataTestId={props.dataTestId}

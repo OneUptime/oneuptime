@@ -888,7 +888,8 @@ describe("the explanation is where each product is", () => {
   test("a telemetry product's button is its first step, and its setup guide waits for that telemetry", () => {
     for (const [product, firstRun] of Object.entries(TELEMETRY_FIRST_RUNS)) {
       const steps: Array<string> =
-        PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase.steps || [];
+        PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase.steps ||
+        [];
 
       expect(steps[0]).toBe(firstRun.startText);
       expect(firstRun.viewPage.startsWith("SERVICE_VIEW")).toBe(true);

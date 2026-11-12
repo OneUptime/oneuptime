@@ -1,7 +1,11 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
-import { MigrationInterface, QueryRunner, getMetadataArgsStorage } from "typeorm";
+import {
+  MigrationInterface,
+  QueryRunner,
+  getMetadataArgsStorage,
+} from "typeorm";
 import { IndexMetadataArgs } from "typeorm/metadata-args/IndexMetadataArgs";
 import { RelationMetadataArgs } from "typeorm/metadata-args/RelationMetadataArgs";
 import AllModelTypes from "../../../../Models/DatabaseModels/Index";
@@ -122,7 +126,9 @@ describe("executing it", () => {
     // Beyond the new table, it only adds the project's column.
     for (const statement of statements) {
       expect(statement).toMatch(
-        new RegExp(`(TABLE|ON) "${TABLE}"|^ALTER TABLE "Project" ADD "productSettings" jsonb$`),
+        new RegExp(
+          `(TABLE|ON) "${TABLE}"|^ALTER TABLE "Project" ADD "productSettings" jsonb$`,
+        ),
       );
     }
   });
@@ -175,7 +181,9 @@ describe("the table it makes", () => {
     const indexes: Array<IndexMetadataArgs> =
       getMetadataArgsStorage().indices.filter(
         (index: IndexMetadataArgs): boolean => {
-          return index.target === ProjectUserPreference && Boolean(index.unique);
+          return (
+            index.target === ProjectUserPreference && Boolean(index.unique)
+          );
         },
       );
 
@@ -273,10 +281,10 @@ describe("registering it", () => {
       const timestamp: string | undefined = earlier.match(CLASS_TIMESTAMP)?.[1];
 
       if (timestamp) {
-        expect([earlier, Number(timestamp) < Number(MIGRATION_TIMESTAMP)]).toEqual([
+        expect([
           earlier,
-          true,
-        ]);
+          Number(timestamp) < Number(MIGRATION_TIMESTAMP),
+        ]).toEqual([earlier, true]);
       }
     }
   });

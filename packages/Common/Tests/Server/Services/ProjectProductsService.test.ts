@@ -443,9 +443,9 @@ describe("the plan each product needs", () => {
   test("without billing, nothing", async () => {
     row.planName = PlanType.Free;
 
-    expect((await ProjectProductsService.getAnswer(OWNER())).neededPlans).toEqual(
-      {},
-    );
+    expect(
+      (await ProjectProductsService.getAnswer(OWNER())).neededPlans,
+    ).toEqual({});
   });
 
   test("on the Free plan, the products whose records need Growth say so", async () => {
@@ -474,9 +474,9 @@ describe("the plan each product needs", () => {
     mockIsBillingEnabled = true;
     row.planName = PlanType.Growth;
 
-    expect((await ProjectProductsService.getAnswer(OWNER())).neededPlans).toEqual(
-      {},
-    );
+    expect(
+      (await ProjectProductsService.getAnswer(OWNER())).neededPlans,
+    ).toEqual({});
   });
 
   test("plans that are not set up say nothing", async () => {
@@ -488,9 +488,9 @@ describe("the plan each product needs", () => {
         throw new BadDataException("Invalid Plan");
       }) as never);
 
-    expect((await ProjectProductsService.getAnswer(OWNER())).neededPlans).toEqual(
-      {},
-    );
+    expect(
+      (await ProjectProductsService.getAnswer(OWNER())).neededPlans,
+    ).toEqual({});
   });
 });
 
@@ -568,8 +568,10 @@ describe("showing and hiding a product", () => {
   });
 
   test("hiding writes the member's list straight to the project's row", async () => {
-    const update: SpyInstance<typeof ProjectService.updateOneById> =
-      jest.spyOn(ProjectService, "updateOneById");
+    const update: SpyInstance<typeof ProjectService.updateOneById> = jest.spyOn(
+      ProjectService,
+      "updateOneById",
+    );
 
     await ProjectProductsService.setProductShown(OWNER(), {
       product: ProductKey.Kubernetes,

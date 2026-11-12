@@ -967,10 +967,7 @@ describe("what a browser remembered of the old checklist", () => {
 
 describe("the products the goals need (#6814)", () => {
   test("choosing the goals gives the project the products they need", async () => {
-    await WelcomeChecklistService.chooseGoals(OWNER(), [
-      "telemetry",
-      "uptime",
-    ]);
+    await WelcomeChecklistService.chooseGoals(OWNER(), ["telemetry", "uptime"]);
 
     expect(applyGoalsSpy).toHaveBeenCalledTimes(1);
     expect(applyGoalsSpy).toHaveBeenCalledWith({

@@ -34,7 +34,18 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Navigation search regression</title><script>window.process={env:{HOST:"localhost",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><style>body{margin:0;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+// Left and right follow the reading direction, as every index.ejs loads it.
+const readingDirection = path.join(
+  repository,
+  "packages/Common/UI/Styles/TailwindReadingDirection.js",
+);
+/*
+ * HOST is this server, so the Dashboard's API requests stay on the page's
+ * origin (connect-src 'self'): the navbar asks for the project's products
+ * (/api/project-products, issue #6814), answered below with nothing hidden
+ * and nothing pinned unless a spec answers it itself (page.route).
+ */
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Navigation search regression</title><script>window.process={env:{HOST:"127.0.0.1:${port}",HTTP_PROTOCOL:"http",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><style>body{margin:0;background:#f8fafc;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -52,6 +63,31 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    if (url.pathname === "/tailwind-reading-direction.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      fs.createReadStream(readingDirection).pipe(response);
+      return;
+    }
+    // The API: a project with nothing hidden or pinned, and no records.
+    if (url.pathname.startsWith("/api/")) {
+      response.setHeader("Content-Type", "application/json");
+      response.end(
+        JSON.stringify(
+          url.pathname === "/api/project-products"
+            ? {
+                hidden: [],
+                chosenBy: null,
+                pinned: [],
+                usage: {},
+                neededPlans: {},
+                canChooseProducts: false,
+                hiddenWithData: [],
+              }
+            : { data: [], count: 0, skip: 0, limit: 10 },
+        ),
+      );
       return;
     }
     if (url.pathname.startsWith("/dist/")) {

@@ -28,7 +28,9 @@ export class AddProjectProductsAndPins1809122700000
     await queryRunner.query(
       `CREATE UNIQUE INDEX "IDX_e666615983252ceb3531f97493" ON "ProjectUserPreference" ("projectId", "userId") `,
     );
-    await queryRunner.query(`ALTER TABLE "Project" ADD "productSettings" jsonb`);
+    await queryRunner.query(
+      `ALTER TABLE "Project" ADD "productSettings" jsonb`,
+    );
     await queryRunner.query(
       `ALTER TABLE "ProjectUserPreference" ADD CONSTRAINT "FK_49ae6608f8de4ee84259754f932" FOREIGN KEY ("projectId") REFERENCES "Project"("_id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );

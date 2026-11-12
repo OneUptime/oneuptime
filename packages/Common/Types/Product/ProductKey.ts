@@ -197,7 +197,9 @@ export const parseProductKeys: (value: unknown) => Array<ProductKey> = (
 // The same keys, in the products menu's order.
 export const sortProductKeys: (
   keys: ReadonlyArray<ProductKey>,
-) => Array<ProductKey> = (keys: ReadonlyArray<ProductKey>): Array<ProductKey> => {
+) => Array<ProductKey> = (
+  keys: ReadonlyArray<ProductKey>,
+): Array<ProductKey> => {
   return PRODUCT_KEYS.filter((key: ProductKey): boolean => {
     return keys.includes(key);
   });

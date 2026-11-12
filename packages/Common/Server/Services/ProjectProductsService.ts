@@ -41,7 +41,9 @@ import VMwareVCenter from "../../Models/DatabaseModels/VMwareVCenter";
 import Workflow from "../../Models/DatabaseModels/Workflow";
 import ActivationMilestone from "../../Types/Analytics/ActivationMilestone";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
-import SubscriptionPlan, { PlanType } from "../../Types/Billing/SubscriptionPlan";
+import SubscriptionPlan, {
+  PlanType,
+} from "../../Types/Billing/SubscriptionPlan";
 import OneUptimeDate from "../../Types/Date";
 import BadDataException from "../../Types/Exception/BadDataException";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
@@ -222,9 +224,7 @@ export class ProjectProductsServiceClass {
       return true;
     }
 
-    return CallerPermission.holdsAnyOf(props, [
-      ...CHOOSE_PRODUCTS_PERMISSIONS,
-    ]);
+    return CallerPermission.holdsAnyOf(props, [...CHOOSE_PRODUCTS_PERMISSIONS]);
   }
 
   public async getAnswer(
@@ -292,14 +292,12 @@ export class ProjectProductsServiceClass {
     const product: ProductKey = data.product;
     const isShown: boolean = data.isShown;
 
-    const [row, usage]: [ProjectProductsRow, ProjectUsage] = await Promise.all(
-      [
-        this.readProject(caller.projectId),
-        isShown
-          ? Promise.resolve({} as ProjectUsage)
-          : this.getProjectUsageSafely(caller.projectId),
-      ],
-    );
+    const [row, usage]: [ProjectProductsRow, ProjectUsage] = await Promise.all([
+      this.readProject(caller.projectId),
+      isShown
+        ? Promise.resolve({} as ProjectUsage)
+        : this.getProjectUsageSafely(caller.projectId),
+    ]);
 
     await this.writeSettings(
       caller.projectId,
@@ -416,7 +414,11 @@ export class ProjectProductsServiceClass {
     const now: number = OneUptimeDate.getCurrentDate().getTime();
     const cached: CachedUsage | undefined = this.usageCache.get(key);
 
-    if (!options?.isFreshRead && cached && now - cached.readAt < USAGE_TTL_IN_MS) {
+    if (
+      !options?.isFreshRead &&
+      cached &&
+      now - cached.readAt < USAGE_TTL_IN_MS
+    ) {
       return cached.usage;
     }
 
@@ -500,14 +502,17 @@ export class ProjectProductsServiceClass {
         continue;
       }
 
-      const productPlan: PlanType | null = new modelType().getCreateBillingPlan();
+      const productPlan: PlanType | null =
+        new modelType().getCreateBillingPlan();
 
       if (!productPlan) {
         continue;
       }
 
       try {
-        if (!SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(productPlan, plan)) {
+        if (
+          !SubscriptionPlan.isFeatureAccessibleOnCurrentPlan(productPlan, plan)
+        ) {
           needed[product] = productPlan;
         }
       } catch {
@@ -526,7 +531,9 @@ export class ProjectProductsServiceClass {
     }
   }
 
-  private async getProjectUsageSafely(projectId: ObjectID): Promise<ProjectUsage> {
+  private async getProjectUsageSafely(
+    projectId: ObjectID,
+  ): Promise<ProjectUsage> {
     try {
       return await this.getProjectUsage(projectId);
     } catch (err) {
@@ -563,7 +570,8 @@ export class ProjectProductsServiceClass {
 
       if (PRODUCT_USAGE_MILESTONES[product]) {
         usage[product] =
-          isUsedByMilestones({ product: product, reached: milestones }) === true;
+          isUsedByMilestones({ product: product, reached: milestones }) ===
+          true;
       }
     }
 

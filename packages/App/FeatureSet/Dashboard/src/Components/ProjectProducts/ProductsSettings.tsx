@@ -64,9 +64,7 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
   const [saveStates, setSaveStates] = useState<
     Partial<Record<ProductKey, ProductSwitchSaveState>>
   >({});
-  const [errors, setErrors] = useState<Partial<Record<ProductKey, string>>>(
-    {},
-  );
+  const [errors, setErrors] = useState<Partial<Record<ProductKey, string>>>({});
   const [isShowingAll, setIsShowingAll] = useState<boolean>(false);
   const [showAllError, setShowAllError] = useState<string>("");
 
@@ -83,85 +81,87 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
     return pending !== undefined ? pending : !answer.hidden.includes(product);
   };
 
-  const change: (product: ProductKey, shown: boolean) => Promise<void> =
-    async (product: ProductKey, shown: boolean): Promise<void> => {
-      setPendingShown(
-        (
-          current: Partial<Record<ProductKey, boolean>>,
-        ): Partial<Record<ProductKey, boolean>> => {
-          return { ...current, [product]: shown };
-        },
-      );
-      setSaveStates(
-        (
-          current: Partial<Record<ProductKey, ProductSwitchSaveState>>,
-        ): Partial<Record<ProductKey, ProductSwitchSaveState>> => {
-          return { ...current, [product]: ProductSwitchSaveState.Saving };
-        },
-      );
+  const change: (product: ProductKey, shown: boolean) => Promise<void> = async (
+    product: ProductKey,
+    shown: boolean,
+  ): Promise<void> => {
+    setPendingShown(
+      (
+        current: Partial<Record<ProductKey, boolean>>,
+      ): Partial<Record<ProductKey, boolean>> => {
+        return { ...current, [product]: shown };
+      },
+    );
+    setSaveStates(
+      (
+        current: Partial<Record<ProductKey, ProductSwitchSaveState>>,
+      ): Partial<Record<ProductKey, ProductSwitchSaveState>> => {
+        return { ...current, [product]: ProductSwitchSaveState.Saving };
+      },
+    );
+    setErrors(
+      (
+        current: Partial<Record<ProductKey, string>>,
+      ): Partial<Record<ProductKey, string>> => {
+        const next: Partial<Record<ProductKey, string>> = { ...current };
+        delete next[product];
+        return next;
+      },
+    );
+
+    let saved: boolean = false;
+
+    try {
+      await ProjectProducts.setProductShown(projectId, {
+        product: product,
+        isShown: shown,
+      });
+      saved = true;
+
+      if (shown) {
+        ProductEvents.send(ProductEventName.ProductShown, {
+          product: product,
+          source: "settings",
+        });
+      } else {
+        ProductEvents.send(ProductEventName.ProductHidden, {
+          product: product,
+          source: "settings",
+          has_data: answer.usage[product] === ProductUsage.InUse,
+        });
+      }
+    } catch (err) {
       setErrors(
         (
           current: Partial<Record<ProductKey, string>>,
         ): Partial<Record<ProductKey, string>> => {
-          const next: Partial<Record<ProductKey, string>> = { ...current };
-          delete next[product];
-          return next;
+          return { ...current, [product]: API.getFriendlyMessage(err) };
         },
       );
+    }
 
-      let saved: boolean = false;
-
-      try {
-        await ProjectProducts.setProductShown(projectId, {
-          product: product,
-          isShown: shown,
-        });
-        saved = true;
-
-        if (shown) {
-          ProductEvents.send(ProductEventName.ProductShown, {
-            product: product,
-            source: "settings",
-          });
-        } else {
-          ProductEvents.send(ProductEventName.ProductHidden, {
-            product: product,
-            source: "settings",
-            has_data: answer.usage[product] === ProductUsage.InUse,
-          });
-        }
-      } catch (err) {
-        setErrors(
-          (
-            current: Partial<Record<ProductKey, string>>,
-          ): Partial<Record<ProductKey, string>> => {
-            return { ...current, [product]: API.getFriendlyMessage(err) };
-          },
-        );
-      }
-
-      setSaveStates(
-        (
-          current: Partial<Record<ProductKey, ProductSwitchSaveState>>,
-        ): Partial<Record<ProductKey, ProductSwitchSaveState>> => {
-          return {
-            ...current,
-            [product]: saved
-              ? ProductSwitchSaveState.Saved
-              : ProductSwitchSaveState.Idle,
-          };
-        },
-      );
-      setPendingShown(
-        (
-          current: Partial<Record<ProductKey, boolean>>,
-        ): Partial<Record<ProductKey, boolean>> => {
-          const next: Partial<Record<ProductKey, boolean>> = { ...current };
-          delete next[product];
-          return next;
-        },
-      );
-    };
+    setSaveStates(
+      (
+        current: Partial<Record<ProductKey, ProductSwitchSaveState>>,
+      ): Partial<Record<ProductKey, ProductSwitchSaveState>> => {
+        return {
+          ...current,
+          [product]: saved
+            ? ProductSwitchSaveState.Saved
+            : ProductSwitchSaveState.Idle,
+        };
+      },
+    );
+    setPendingShown(
+      (
+        current: Partial<Record<ProductKey, boolean>>,
+      ): Partial<Record<ProductKey, boolean>> => {
+        const next: Partial<Record<ProductKey, boolean>> = { ...current };
+        delete next[product];
+        return next;
+      },
+    );
+  };
 
   const showEveryProduct: () => Promise<void> = async (): Promise<void> => {
     const hiddenCount: number = answer.hidden.length;
@@ -242,7 +242,9 @@ const ProductsSettings: FunctionComponent = (): ReactElement => {
         }
       >
         <div className="space-y-2 text-sm text-gray-600">
-          <p>{translator.translateText(ProductsSettingsCopy.hiddenExplanation)}</p>
+          <p>
+            {translator.translateText(ProductsSettingsCopy.hiddenExplanation)}
+          </p>
           {answer.chosenBy === ProjectProductsChosenBy.Goals &&
           answer.hidden.length > 0 ? (
             <p data-testid="products-settings-from-goals">

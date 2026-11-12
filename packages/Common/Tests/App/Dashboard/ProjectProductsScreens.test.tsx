@@ -54,6 +54,7 @@ import { NAVBAR_PINNED_ITEM_TEST_ID } from "../../../UI/Components/Navbar/NavBar
 import { PRODUCT_PIN_BUTTON_TEST_ID } from "../../../UI/Components/Navbar/NavBarMenuModal";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import Navigation from "../../../UI/Utils/Navigation";
+import ProjectUtil from "../../../UI/Utils/Project";
 import ProductEvents from "../../../UI/Utils/ProductEvents";
 import {
   DESKTOP_WIDTH,
@@ -82,10 +83,13 @@ import {
 const translation: i18n = createInstance();
 const ORIGINAL_WIDTH: number = window.innerWidth;
 
-const answer: (extra: Partial<ProjectProductsAnswer>) => ProjectProductsAnswer =
-  (extra: Partial<ProjectProductsAnswer>): ProjectProductsAnswer => {
-    return { ...getEmptyProjectProductsAnswer(), ...extra };
-  };
+const answer: (
+  extra: Partial<ProjectProductsAnswer>,
+) => ProjectProductsAnswer = (
+  extra: Partial<ProjectProductsAnswer>,
+): ProjectProductsAnswer => {
+  return { ...getEmptyProjectProductsAnswer(), ...extra };
+};
 
 function given(extra: Partial<ProjectProductsAnswer>): ProjectProductsAnswer {
   const value: ProjectProductsAnswer = answer(extra);
@@ -125,11 +129,12 @@ beforeEach(() => {
   goTo(`/dashboard/${PROJECT_ID}/home`);
   jest.spyOn(Navigation, "navigate").mockImplementation((): void => {});
   sent = [];
-  jest
-    .spyOn(ProductEvents, "send")
-    .mockImplementation(((name: string, properties: unknown): void => {
-      sent.push({ name: name, properties: properties });
-    }) as never);
+  jest.spyOn(ProductEvents, "send").mockImplementation(((
+    name: string,
+    properties: unknown,
+  ): void => {
+    sent.push({ name: name, properties: properties });
+  }) as never);
 });
 
 afterEach(() => {
@@ -169,10 +174,14 @@ describe("the nav bar", () => {
     render(wrap(<DashboardNavbar show={true} />));
     const menu: HTMLElement = openProducts();
 
-    fireEvent.click(within(menu).getByRole("button", { name: "Infrastructure" }));
+    fireEvent.click(
+      within(menu).getByRole("button", { name: "Infrastructure" }),
+    );
     expect(within(menu).queryByText("Kubernetes")).toBeNull();
 
-    fireEvent.click(within(menu).getByRole("button", { name: "More products" }));
+    fireEvent.click(
+      within(menu).getByRole("button", { name: "More products" }),
+    );
     expect(within(menu).getByText("Kubernetes")).toBeInTheDocument();
     expect(within(menu).getByText("Docker")).toBeInTheDocument();
     expect(
@@ -185,7 +194,9 @@ describe("the nav bar", () => {
 
     render(wrap(<DashboardNavbar show={true} />));
     const menu: HTMLElement = openProducts();
-    fireEvent.click(within(menu).getByRole("button", { name: "More products" }));
+    fireEvent.click(
+      within(menu).getByRole("button", { name: "More products" }),
+    );
 
     expect(
       within(menu).getByText(
@@ -199,16 +210,17 @@ describe("the nav bar", () => {
 
   test("a pin from a card keeps the product for the person, and says so", async () => {
     given({ pinned: [] });
-    const post: jest.SpiedFunction<typeof ProjectProductsApi.postPinnedProducts> =
-      jest
-        .spyOn(ProjectProductsApi, "postPinnedProducts")
-        .mockImplementation(
-          async (
-            pinned: ReadonlyArray<ProductKey>,
-          ): Promise<ProjectProductsAnswer> => {
-            return answer({ pinned: [...pinned] });
-          },
-        );
+    const post: jest.SpiedFunction<
+      typeof ProjectProductsApi.postPinnedProducts
+    > = jest
+      .spyOn(ProjectProductsApi, "postPinnedProducts")
+      .mockImplementation(
+        async (
+          pinned: ReadonlyArray<ProductKey>,
+        ): Promise<ProjectProductsAnswer> => {
+          return answer({ pinned: [...pinned] });
+        },
+      );
 
     render(wrap(<DashboardNavbar show={true} />));
     const menu: HTMLElement = openProducts();
@@ -260,7 +272,9 @@ describe("the nav bar", () => {
     render(wrap(<DashboardNavbar show={true} />));
     const menu: HTMLElement = openProducts();
 
-    expect(within(menu).getByTestId("navbar-menu-not-set-up")).toBeInTheDocument();
+    expect(
+      within(menu).getByTestId("navbar-menu-not-set-up"),
+    ).toBeInTheDocument();
   });
 });
 
@@ -284,7 +298,9 @@ describe("Project Settings > Products", () => {
       screen.queryByTestId(getProductSwitchTestId(ProductKey.ProjectSettings)),
     ).toBeNull();
     expect(
-      screen.getByTestId(`${getProductSwitchTestId(ProductKey.ProjectSettings)}-row`),
+      screen.getByTestId(
+        `${getProductSwitchTestId(ProductKey.ProjectSettings)}-row`,
+      ),
     ).toHaveTextContent("Always shown");
     // Each category says how many it shows.
     expect(screen.getByText("11 of 12 shown")).toBeInTheDocument();
@@ -295,7 +311,9 @@ describe("Project Settings > Products", () => {
     const post: jest.SpiedFunction<typeof ProjectProductsApi.postProductShown> =
       jest
         .spyOn(ProjectProductsApi, "postProductShown")
-        .mockResolvedValue(answer({ hidden: [ProductKey.Kubernetes], canChooseProducts: true }));
+        .mockResolvedValue(
+          answer({ hidden: [ProductKey.Kubernetes], canChooseProducts: true }),
+        );
 
     render(wrap(<ProductsSettings />));
 
@@ -311,7 +329,9 @@ describe("Project Settings > Products", () => {
     });
     await waitFor(() => {
       expect(
-        screen.getByTestId(`${getProductSwitchTestId(ProductKey.Kubernetes)}-status`),
+        screen.getByTestId(
+          `${getProductSwitchTestId(ProductKey.Kubernetes)}-status`,
+        ),
       ).toHaveTextContent("Saved");
     });
     expect(
@@ -319,7 +339,11 @@ describe("Project Settings > Products", () => {
     ).toHaveAttribute("aria-checked", "false");
     expect(sent).toContainEqual({
       name: ProductEventName.ProductHidden,
-      properties: { product: "kubernetes", source: "settings", has_data: false },
+      properties: {
+        product: "kubernetes",
+        source: "settings",
+        has_data: false,
+      },
     });
   });
 
@@ -327,7 +351,11 @@ describe("Project Settings > Products", () => {
     given({ canChooseProducts: true });
     jest
       .spyOn(ProjectProductsApi, "postProductShown")
-      .mockRejectedValue(new Error("Only someone who may edit the project can choose the products it shows."));
+      .mockRejectedValue(
+        new Error(
+          "Only someone who may edit the project can choose the products it shows.",
+        ),
+      );
 
     render(wrap(<ProductsSettings />));
 
@@ -375,7 +403,9 @@ describe("Project Settings > Products", () => {
     render(wrap(<ProductsSettings />));
 
     // A list the goals set says so.
-    expect(screen.getByTestId("products-settings-from-goals")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("products-settings-from-goals"),
+    ).toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByTestId(SHOW_EVERY_PRODUCT_TEST_ID));
@@ -406,13 +436,19 @@ describe("Project Settings > Products", () => {
     render(wrap(<ProductsSettings />));
 
     expect(
-      screen.getByTestId(`${getProductSwitchTestId(ProductKey.Monitors)}-in-use`),
+      screen.getByTestId(
+        `${getProductSwitchTestId(ProductKey.Monitors)}-in-use`,
+      ),
     ).toHaveTextContent("In use");
     expect(
-      screen.getByTestId(`${getProductSwitchTestId(ProductKey.Hosts)}-not-set-up`),
+      screen.getByTestId(
+        `${getProductSwitchTestId(ProductKey.Hosts)}-not-set-up`,
+      ),
     ).toHaveTextContent("Not set up");
     expect(
-      screen.getByTestId(`${getProductSwitchTestId(ProductKey.Workflows)}-plan`),
+      screen.getByTestId(
+        `${getProductSwitchTestId(ProductKey.Workflows)}-plan`,
+      ),
     ).toHaveTextContent("Growth Plan");
   });
 });
@@ -447,8 +483,12 @@ describe("Home's line about a hidden product with data", () => {
     const line: HTMLElement = screen.getByTestId(
       HIDDEN_PRODUCTS_WITH_DATA_TEST_ID,
     );
-    expect(line).toHaveTextContent("Logs is hidden in this project and has data.");
-    expect(within(line).getByRole("button", { name: "Show It" })).toBeInTheDocument();
+    expect(line).toHaveTextContent(
+      "Logs is hidden in this project and has data.",
+    );
+    expect(
+      within(line).getByRole("button", { name: "Show It" }),
+    ).toBeInTheDocument();
   });
 
   test("several: they are hidden and have data", () => {
@@ -466,7 +506,9 @@ describe("Home's line about a hidden product with data", () => {
     expect(line).toHaveTextContent(
       "Logs and Traces are hidden in this project and have data.",
     );
-    expect(within(line).getByRole("button", { name: "Show Them" })).toBeInTheDocument();
+    expect(
+      within(line).getByRole("button", { name: "Show Them" }),
+    ).toBeInTheDocument();
   });
 
   test("Show It shows each one, and the line goes", async () => {
@@ -483,12 +525,19 @@ describe("Home's line about a hidden product with data", () => {
     render(wrap(<HiddenProductsWithData />));
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId(`${HIDDEN_PRODUCTS_WITH_DATA_TEST_ID}-show`));
+      fireEvent.click(
+        screen.getByTestId(`${HIDDEN_PRODUCTS_WITH_DATA_TEST_ID}-show`),
+      );
     });
 
-    expect(post).toHaveBeenCalledWith({ product: ProductKey.Logs, isShown: true });
+    expect(post).toHaveBeenCalledWith({
+      product: ProductKey.Logs,
+      isShown: true,
+    });
     await waitFor(() => {
-      expect(screen.queryByTestId(HIDDEN_PRODUCTS_WITH_DATA_TEST_ID)).toBeNull();
+      expect(
+        screen.queryByTestId(HIDDEN_PRODUCTS_WITH_DATA_TEST_ID),
+      ).toBeNull();
     });
     expect(sent).toContainEqual({
       name: ProductEventName.ProductShown,
@@ -505,17 +554,26 @@ describe("Home's line about a hidden product with data", () => {
     const post: jest.SpiedFunction<typeof ProjectProductsApi.postProductShown> =
       jest
         .spyOn(ProjectProductsApi, "postProductShown")
-        .mockResolvedValue(answer({ hidden: [ProductKey.Logs], canChooseProducts: true }));
+        .mockResolvedValue(
+          answer({ hidden: [ProductKey.Logs], canChooseProducts: true }),
+        );
 
     render(wrap(<HiddenProductsWithData />));
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId(`${HIDDEN_PRODUCTS_WITH_DATA_TEST_ID}-keep`));
+      fireEvent.click(
+        screen.getByTestId(`${HIDDEN_PRODUCTS_WITH_DATA_TEST_ID}-keep`),
+      );
     });
 
-    expect(post).toHaveBeenCalledWith({ product: ProductKey.Logs, isShown: false });
+    expect(post).toHaveBeenCalledWith({
+      product: ProductKey.Logs,
+      isShown: false,
+    });
     await waitFor(() => {
-      expect(screen.queryByTestId(HIDDEN_PRODUCTS_WITH_DATA_TEST_ID)).toBeNull();
+      expect(
+        screen.queryByTestId(HIDDEN_PRODUCTS_WITH_DATA_TEST_ID),
+      ).toBeNull();
     });
     expect(sent).toContainEqual({
       name: ProductEventName.ProductHidden,
@@ -536,11 +594,15 @@ describe("Home's line about a hidden product with data", () => {
     render(wrap(<HiddenProductsWithData />));
 
     await act(async () => {
-      fireEvent.click(screen.getByTestId(`${HIDDEN_PRODUCTS_WITH_DATA_TEST_ID}-show`));
+      fireEvent.click(
+        screen.getByTestId(`${HIDDEN_PRODUCTS_WITH_DATA_TEST_ID}-show`),
+      );
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("alert")).toHaveTextContent("The server is busy.");
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "The server is busy.",
+      );
     });
   });
 });
@@ -551,14 +613,18 @@ describe("the pin beside a product page's title", () => {
     jest
       .spyOn(ProjectProductsApi, "postPinnedProducts")
       .mockImplementation(
-        async (pinned: ReadonlyArray<ProductKey>): Promise<ProjectProductsAnswer> => {
+        async (
+          pinned: ReadonlyArray<ProductKey>,
+        ): Promise<ProjectProductsAnswer> => {
           return answer({ pinned: [...pinned] });
         },
       );
 
     render(wrap(<ProductPinButton product={ProductKey.Logs} />));
 
-    const button: HTMLElement = screen.getByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID);
+    const button: HTMLElement = screen.getByTestId(
+      PRODUCT_PIN_PAGE_BUTTON_TEST_ID,
+    );
     expect(button).toHaveTextContent("Pin");
     expect(button).toHaveAttribute("aria-pressed", "false");
 
@@ -601,7 +667,9 @@ describe("the pin beside a product page's title", () => {
 
     render(wrap(<ProductPinButton product={ProductKey.Logs} />));
 
-    const button: HTMLElement = screen.getByTestId(PRODUCT_PIN_PAGE_BUTTON_TEST_ID);
+    const button: HTMLElement = screen.getByTestId(
+      PRODUCT_PIN_PAGE_BUTTON_TEST_ID,
+    );
     expect(button).toBeDisabled();
     expect(button).toHaveAttribute(
       "title",
@@ -611,13 +679,7 @@ describe("the pin beside a product page's title", () => {
 
   test("outside a project there is nothing to pin", () => {
     goTo("/dashboard");
-    jest
-      .spyOn(
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        require("../../../UI/Utils/Project").default,
-        "getCurrentProjectId",
-      )
-      .mockReturnValue(null);
+    jest.spyOn(ProjectUtil, "getCurrentProjectId").mockReturnValue(null);
 
     render(wrap(<ProductPinButton product={ProductKey.Logs} />));
 
@@ -628,7 +690,11 @@ describe("the pin beside a product page's title", () => {
 describe("Home without the hidden products", () => {
   test("Explore leaves hidden products out, and a category all hidden has no tab", () => {
     given({
-      hidden: [ProductKey.SecurityEvents, ProductKey.DataSecurity, ProductKey.Logs],
+      hidden: [
+        ProductKey.SecurityEvents,
+        ProductKey.DataSecurity,
+        ProductKey.Logs,
+      ],
     });
 
     render(wrapInRouter(<ExploreProducts projectId={PROJECT_ID} />));
@@ -638,7 +704,11 @@ describe("Home without the hidden products", () => {
       .map((tab: HTMLElement): string => {
         return tab.textContent ?? "";
       });
-    expect(tabs.some((tab: string) => tab.startsWith("Security"))).toBe(false);
+    expect(
+      tabs.some((tab: string) => {
+        return tab.startsWith("Security");
+      }),
+    ).toBe(false);
 
     fireEvent.click(
       screen.getAllByTestId("home-explore-tab").find((tab: HTMLElement) => {
@@ -675,7 +745,9 @@ describe("Home without the hidden products", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByTestId("home-resource-dashboards-count")).toBeInTheDocument();
+      expect(
+        screen.getByTestId("home-resource-dashboards-count"),
+      ).toBeInTheDocument();
     });
     expect(screen.queryByTestId("home-resource-workflows")).toBeNull();
     expect(screen.getByTestId("home-resource-monitors")).toBeInTheDocument();

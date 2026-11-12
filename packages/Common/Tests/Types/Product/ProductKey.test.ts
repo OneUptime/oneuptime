@@ -42,8 +42,10 @@ describe("ProductKey", () => {
   });
 
   test("every key is lower case words joined by dashes", () => {
+    const wordsJoinedByDashes: RegExp = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
     for (const key of PRODUCT_KEYS) {
-      expect([key, /^[a-z0-9]+(-[a-z0-9]+)*$/.test(key)]).toEqual([key, true]);
+      expect([key, wordsJoinedByDashes.test(key)]).toEqual([key, true]);
     }
   });
 
@@ -60,9 +62,9 @@ describe("ProductKey", () => {
       expect(ONBOARDED_PRODUCT_KEYS).not.toContain(key);
     }
 
-    expect([...ONBOARDED_PRODUCT_KEYS, ...NOT_ONBOARDED_PRODUCT_KEYS].sort()).toEqual(
-      [...PRODUCT_KEYS].sort(),
-    );
+    expect(
+      [...ONBOARDED_PRODUCT_KEYS, ...NOT_ONBOARDED_PRODUCT_KEYS].sort(),
+    ).toEqual([...PRODUCT_KEYS].sort());
   });
 
   test("isProductKey knows a key, and nothing else", () => {
@@ -79,7 +81,15 @@ describe("ProductKey", () => {
 
   test("parseProductKeys keeps the known keys once, in the order given", () => {
     expect(
-      parseProductKeys(["logs", "monitors", "nope", "logs", 7, null, "kubernetes"]),
+      parseProductKeys([
+        "logs",
+        "monitors",
+        "nope",
+        "logs",
+        7,
+        null,
+        "kubernetes",
+      ]),
     ).toEqual([ProductKey.Logs, ProductKey.Monitors, ProductKey.Kubernetes]);
   });
 

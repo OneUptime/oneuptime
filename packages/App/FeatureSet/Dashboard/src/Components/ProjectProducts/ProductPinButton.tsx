@@ -1,4 +1,7 @@
-import { PRODUCT_PIN_PAGE_BUTTON_TEST_ID, ProductPinCopy } from "./ProjectProductsCopy";
+import {
+  PRODUCT_PIN_PAGE_BUTTON_TEST_ID,
+  ProductPinCopy,
+} from "./ProjectProductsCopy";
 import {
   PRODUCT_TITLE_BUTTON_COLOR_CLASS_NAME,
   PRODUCT_TITLE_BUTTON_HOVER_CLASS_NAME,

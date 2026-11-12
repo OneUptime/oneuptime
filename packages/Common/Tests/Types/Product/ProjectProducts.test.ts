@@ -90,14 +90,22 @@ describe("reading what a project stored", () => {
   });
 
   test("unknown products, and the ones always shown, are left out", () => {
-    const settings: ProjectProductSettings | null =
-      parseProjectProductSettings({
-        hidden: ["kubernetes", "nope", "project-settings", "users", "docker", "kubernetes"],
+    const settings: ProjectProductSettings | null = parseProjectProductSettings(
+      {
+        hidden: [
+          "kubernetes",
+          "nope",
+          "project-settings",
+          "users",
+          "docker",
+          "kubernetes",
+        ],
         keptHiddenWithData: ["docker", "logs"],
         chosenBy: "member",
         changedAt: NOW.toISOString(),
         changedByUserId: "user-1",
-      });
+      },
+    );
 
     expect(settings).toEqual({
       // In the menu's order.
@@ -441,7 +449,11 @@ describe("the hidden products Home asks about", () => {
     expect(
       getHiddenProductsWithData({
         settings: {
-          ...member([ProductKey.Logs, ProductKey.Traces, ProductKey.Kubernetes]),
+          ...member([
+            ProductKey.Logs,
+            ProductKey.Traces,
+            ProductKey.Kubernetes,
+          ]),
           keptHiddenWithData: [ProductKey.Traces],
         },
         inUse: [ProductKey.Logs, ProductKey.Traces, ProductKey.Monitors],

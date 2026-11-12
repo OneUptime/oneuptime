@@ -103,7 +103,13 @@ const KUBERNETES: MoreMenuItem = product(
 );
 const DOCKER: MoreMenuItem = product("docker", "Docker", "Infrastructure");
 
-const LISTED: Array<MoreMenuItem> = [MONITORS, INCIDENTS, LOGS, WORKFLOWS, HOSTS];
+const LISTED: Array<MoreMenuItem> = [
+  MONITORS,
+  INCIDENTS,
+  LOGS,
+  WORKFLOWS,
+  HOSTS,
+];
 const HIDDEN: Array<MoreMenuItem> = [KUBERNETES, DOCKER];
 
 function goTo(pathname: string): void {
@@ -311,9 +317,7 @@ describe("pinning from the products menu", () => {
     const option: HTMLElement = screen
       .getAllByRole("option")
       .find((candidate: HTMLElement): boolean => {
-        return (
-          candidate.querySelector("span.truncate")?.textContent === title
-        );
+        return candidate.querySelector("span.truncate")?.textContent === title;
       }) as HTMLElement;
 
     return within(option).getByTestId(PRODUCT_PIN_BUTTON_TEST_ID);
@@ -322,9 +326,7 @@ describe("pinning from the products menu", () => {
   test("without a way to pin, cards have no pin", () => {
     renderMenu();
 
-    expect(screen.queryAllByTestId(PRODUCT_PIN_BUTTON_TEST_ID)).toHaveLength(
-      0,
-    );
+    expect(screen.queryAllByTestId(PRODUCT_PIN_BUTTON_TEST_ID)).toHaveLength(0);
   });
 
   test("each card has a pin that says whether it is pinned", () => {
@@ -380,10 +382,11 @@ describe("pinning from the products menu", () => {
   });
 
   test("an item with no key cannot be pinned", () => {
-    const { key: _key, ...withoutKey } = LOGS;
+    const withoutKey: MoreMenuItem = { ...LOGS };
+    delete withoutKey.key;
 
     renderMenu({
-      items: [MONITORS, withoutKey as MoreMenuItem],
+      items: [MONITORS, withoutKey],
       hiddenItems: [],
       onTogglePin: () => {},
       canPinMore: true,
@@ -416,13 +419,15 @@ describe("what a product is to the project", () => {
         return option.textContent?.startsWith("Monitors") === true;
       }) as HTMLElement;
 
-    expect(within(hosts).getByTestId("navbar-menu-not-set-up")).toHaveTextContent(
-      "Not set up",
-    );
+    expect(
+      within(hosts).getByTestId("navbar-menu-not-set-up"),
+    ).toHaveTextContent("Not set up");
     expect(within(workflows).getByTestId("navbar-menu-plan")).toHaveTextContent(
       "Growth Plan",
     );
-    expect(within(workflows).queryByTestId("navbar-menu-not-set-up")).toBeNull();
+    expect(
+      within(workflows).queryByTestId("navbar-menu-not-set-up"),
+    ).toBeNull();
     expect(within(monitors).queryByTestId("navbar-menu-not-set-up")).toBeNull();
     expect(within(monitors).queryByTestId("navbar-menu-plan")).toBeNull();
   });
@@ -483,9 +488,9 @@ describe("the phone's menu", () => {
 
     renderPhoneMenu({ pinnedItems: [LOGS] });
 
-    expect(linkTitles(screen.getByTestId(MOBILE_MENU_RECENT_TEST_ID))).toEqual(
-      ["Hosts"],
-    );
+    expect(linkTitles(screen.getByTestId(MOBILE_MENU_RECENT_TEST_ID))).toEqual([
+      "Hosts",
+    ]);
   });
 
   test("no pins, no pinned group", () => {
@@ -511,7 +516,9 @@ describe("the phone's menu", () => {
 
     fireEvent.click(toggles[toggles.length - 1]!);
 
-    expect(screen.getByRole("link", { name: /Kubernetes/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /Kubernetes/ }),
+    ).toBeInTheDocument();
   });
 
   test("a product's row carries its marks", () => {
@@ -598,7 +605,9 @@ describe("the bar", () => {
 
     renderBar();
 
-    expect(screen.getByRole("button", { name: /Kubernetes/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Kubernetes/ }),
+    ).toBeInTheDocument();
   });
 
   test("on a phone the pins come first in the menu, not in the bar", () => {

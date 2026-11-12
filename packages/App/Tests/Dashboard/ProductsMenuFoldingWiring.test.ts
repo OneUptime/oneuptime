@@ -212,7 +212,9 @@ describe("the Dashboard's products menu always opens on Essentials", () => {
     expect(NAVBAR_MODAL).toContain(
       "useCategoryFolds(menuItems,props.categoriesOpenByDefault,)",
     );
-    expect(NAVBAR_MODAL).toContain("getMenuItemsWithHidden({items:props.items,");
+    expect(NAVBAR_MODAL).toContain(
+      "getMenuItemsWithHidden({items:props.items,",
+    );
     expect(NAVBAR_MOBILE_MENU).toContain(
       "useCategoryFolds(menuItems,props.categoriesOpenByDefault,)",
     );

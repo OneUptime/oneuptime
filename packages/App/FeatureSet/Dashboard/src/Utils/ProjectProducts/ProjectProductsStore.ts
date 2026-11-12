@@ -264,8 +264,7 @@ export default class ProjectProducts {
     data: { product: ProductKey; isPinned: boolean },
   ): Promise<Array<ProductKey>> {
     const key: string = toProjectKey(projectId);
-    const before: ProjectProductsAnswer =
-      ProjectProducts.getState(key).answer;
+    const before: ProjectProductsAnswer = ProjectProducts.getState(key).answer;
     const pinned: Array<ProductKey> = withProductPinned({
       pinned: before.pinned,
       product: data.product,

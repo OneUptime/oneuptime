@@ -44,7 +44,9 @@ describe("reading a person's pins", () => {
   });
 
   test("no row is no pins", async () => {
-    jest.spyOn(ProjectUserPreferenceService, "findOneBy").mockResolvedValue(null);
+    jest
+      .spyOn(ProjectUserPreferenceService, "findOneBy")
+      .mockResolvedValue(null);
 
     expect(
       await ProjectUserPreferenceService.getPinnedProducts({
@@ -66,7 +68,9 @@ describe("reading a person's pins", () => {
       ProductKey.OnCall,
       ProductKey.StatusPages,
     ];
-    jest.spyOn(ProjectUserPreferenceService, "findOneBy").mockResolvedValue(row);
+    jest
+      .spyOn(ProjectUserPreferenceService, "findOneBy")
+      .mockResolvedValue(row);
 
     expect(
       await ProjectUserPreferenceService.getPinnedProducts({

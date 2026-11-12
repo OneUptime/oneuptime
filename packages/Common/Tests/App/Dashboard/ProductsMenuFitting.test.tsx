@@ -103,14 +103,12 @@ describe("every entry of the products menu has a key", () => {
     const keyOf: (page: PageMap) => string | undefined = (
       page: PageMap,
     ): string | undefined => {
-      return navigation.moreMenuItems.find(
-        (item: MoreMenuItem): boolean => {
-          return (
-            item.route.toString() ===
-            RouteUtil.populateRouteParams(RouteMap[page] as Route).toString()
-          );
-        },
-      )?.key;
+      return navigation.moreMenuItems.find((item: MoreMenuItem): boolean => {
+        return (
+          item.route.toString() ===
+          RouteUtil.populateRouteParams(RouteMap[page] as Route).toString()
+        );
+      })?.key;
     };
 
     expect(keyOf(PageMap.AI_COPILOT)).toBe(ProductKey.AIChat);
