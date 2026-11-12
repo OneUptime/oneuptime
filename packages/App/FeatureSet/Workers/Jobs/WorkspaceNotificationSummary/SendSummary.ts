@@ -2,6 +2,7 @@ import RunCron from "../../Utils/Cron";
 import OneUptimeDate from "Common/Types/Date";
 import { EVERY_MINUTE } from "Common/Utils/CronTime";
 import WorkspaceSummaryScheduleUtil from "Common/Utils/Workspace/WorkspaceSummarySchedule";
+import { WorkspaceSummaryNotSendableException } from "Common/Utils/Workspace/WorkspaceSummarySetup";
 import WorkspaceNotificationSummaryService from "Common/Server/Services/WorkspaceNotificationSummaryService";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import logger from "Common/Server/Utils/Logger";
@@ -72,6 +73,27 @@ RunCron(
           `WorkspaceNotificationSummary:SendSummary: Sent summary ${summary.id?.toString()}`,
         );
       } catch (err) {
+        /*
+         * A summary that cannot be sent as it is set up - no channel to
+         * post in, nothing to include - would fail again a minute later,
+         * and every minute after: its next send stays moved on, to be
+         * tried at its next time, and it is said once, as a warning. Its
+         * Notification Logs say why (sendSummary). Anything else - the
+         * database, for a moment - is tried again on the next run.
+         *
+         * Why is a sentence ("The summary has no channel to post in."): it
+         * is said in brackets without its full stop.
+         */
+        if (err instanceof WorkspaceSummaryNotSendableException) {
+          const reason: string = err.message.replace(/\.$/, "");
+
+          logger.warn(
+            `WorkspaceNotificationSummary:SendSummary: Did not send summary ${summary.id?.toString()}, as it cannot be sent as it is set up (${reason}). It is tried again at its next scheduled send.`,
+          );
+
+          continue;
+        }
+
         logger.error(
           `WorkspaceNotificationSummary:SendSummary: Error sending summary ${summary.id?.toString()}`,
         );

@@ -281,7 +281,7 @@ Gli ID client sono pubblici: vengono inviati alla dashboard perché sappia quali
 ## Risoluzione dei problemi
 
 :::details Non è partita nessuna chiamata per un incidente
-Controlla che la regola corrispondesse all'incidente (**Regola di test**), che il suo passaggio **Video Call** sia attivo e che l'incidente sia stato dichiarato in corso: un incidente creato già risolto non riceve chiamate. Una regola che ha già avviato una chiamata per l'incidente con quella connessione non ne avvia un'altra.
+Controlla che la regola corrispondesse all'incidente (**Testa la regola**), che il suo passaggio **Video Call** sia attivo e che l'incidente sia stato dichiarato in corso: un incidente creato già risolto non riceve chiamate. Una regola che ha già avviato una chiamata per l'incidente con quella connessione non ne avvia un'altra.
 :::
 
 :::details Il feed dice che la chiamata non è potuta partire

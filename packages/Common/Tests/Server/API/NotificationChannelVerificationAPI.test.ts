@@ -330,14 +330,18 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
       expect(Response.sendErrorResponse).toHaveBeenCalledWith(
         mockRequest,
         mockResponse,
-        new BadDataException("Invalid item ID"),
+        new BadDataException(
+          "The request did not say which notification method to verify. Reload the page and try again.",
+        ),
       );
     });
 
     it("requires a code", async () => {
       await callVerify({ itemId: ITEM_ID });
 
-      expect(lastError().message).toBe("Invalid code");
+      expect(lastError().message).toBe(
+        "Enter the code from the message we sent.",
+      );
     });
 
     it("refuses an unknown item", async () => {
@@ -345,7 +349,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-      expect(lastError().message).toBe("Item not found");
+      expect(lastError().message).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
     });
 
     /*
@@ -360,14 +366,18 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-      expect(lastError().message).toBe("Invalid user ID");
+      expect(lastError().message).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       expect(store.current?.isVerified).toBeFalsy();
     });
 
     it("refuses a wrong code", async () => {
       await callVerify({ itemId: ITEM_ID, code: "111111" });
 
-      expect(lastError().message).toBe("Invalid code");
+      expect(lastError().message).toBe(
+        "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+      );
       expect(store.current?.isVerified).toBeFalsy();
     });
 
@@ -382,7 +392,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-      expect(lastError().message).toBe("Item not found");
+      expect(lastError().message).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       expect(store.current?.isVerified).toBe(false);
       expect(store.current?.verificationFailedAttempts).toBe(0);
       expect(Response.sendEmptySuccessResponse).not.toHaveBeenCalled();
@@ -432,7 +444,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
         code: store.current?.verificationCode as string,
       });
 
-      expect(lastError().message).toBe("Invalid code");
+      expect(lastError().message).toBe(
+        "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+      );
       expect(store.current?.isVerified).toBeFalsy();
     });
 
@@ -465,7 +479,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callVerify({ itemId: ITEM_ID, code: CORRECT_CODE });
 
-      expect(lastError().message).toBe("This is already verified");
+      expect(lastError().message).toBe(
+        "This notification method is already verified. You can close this dialog.",
+      );
     });
 
     /*
@@ -482,7 +498,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
             code: i.toString().padStart(6, "0"),
           });
 
-          expect(lastError().message).toBe("Invalid code");
+          expect(lastError().message).toBe(
+            "That code is not right. Enter the code from the latest message we sent, or send a new code.",
+          );
         }
 
         await callVerify({ itemId: ITEM_ID, code: "999999" });
@@ -564,7 +582,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
     it("requires an item ID", async () => {
       await callResend({});
 
-      expect(lastError().message).toBe("Invalid item ID");
+      expect(lastError().message).toBe(
+        "The request did not say which notification method to verify. Reload the page and try again.",
+      );
     });
 
     it("refuses an unknown item", async () => {
@@ -572,7 +592,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callResend({ itemId: ITEM_ID });
 
-      expect(lastError().message).toBe("Item not found");
+      expect(lastError().message).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       expect(
         (channel.service as AnyService)["resendVerificationCode"],
       ).not.toHaveBeenCalled();
@@ -589,7 +611,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callResend({ itemId: ITEM_ID });
 
-      expect(lastError().message).toBe("Invalid user ID");
+      expect(lastError().message).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       expect(
         (channel.service as AnyService)["resendVerificationCode"],
       ).not.toHaveBeenCalled();
@@ -606,7 +630,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callResend({ itemId: ITEM_ID });
 
-      expect(lastError().message).toBe("Invalid user ID");
+      expect(lastError().message).toBe(
+        "Sign in again, then verify this notification method.",
+      );
       expect(
         (channel.service as AnyService)["findOneById"],
       ).not.toHaveBeenCalled();
@@ -620,7 +646,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callResend({ itemId: ITEM_ID });
 
-      expect(lastError().message).toBe("Invalid user ID");
+      expect(lastError().message).toBe(
+        "Sign in again, then verify this notification method.",
+      );
       expect(
         (channel.service as AnyService)["findOneById"],
       ).not.toHaveBeenCalled();
@@ -634,7 +662,9 @@ describe.each(CHANNELS)("$name verification routes", (channel: Channel) => {
 
       await callResend({ itemId: ITEM_ID });
 
-      expect(lastError().message).toBe("Invalid user ID");
+      expect(lastError().message).toBe(
+        "This notification method is not in your list any more. Add it again, then verify it.",
+      );
       expect(
         (channel.service as AnyService)["resendVerificationCode"],
       ).not.toHaveBeenCalled();

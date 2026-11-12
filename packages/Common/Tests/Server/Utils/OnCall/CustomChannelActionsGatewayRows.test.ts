@@ -24,6 +24,10 @@ import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedExc
 import ObjectID from "../../../../Types/ObjectID";
 import { OnCallPassOnAnswer } from "../../../../Types/OnCallDutyPolicy/OnCallPagePassOn";
 import UserNotificationStatus from "../../../../Types/UserNotification/UserNotificationStatus";
+import {
+  UpdateOneByInput,
+  updateNotificationWhileStill,
+} from "../../TestingUtils/OnCallTimelineRows";
 import { afterEach, describe, expect, test } from "@jest/globals";
 
 jest.mock("../../../../Server/Utils/Logger");
@@ -84,6 +88,10 @@ function notification(
   row.projectId = PROJECT_ID;
   row.userId = USER_ID;
   row.isAcknowledged = Boolean(options.isAcknowledged);
+  row.status = options.isAcknowledged
+    ? UserNotificationStatus.Acknowledged
+    : UserNotificationStatus.Sent;
+  row.version = 1;
   row.onCallDutyPolicyExecutionLogId = EXECUTION_LOG_ID;
   row.triggeredByIncidentId = ObjectID.generate();
   row.user = new User();
@@ -106,14 +114,23 @@ function setUp(
   update: jest.SpyInstance;
 } {
   const id: ObjectID = ObjectID.generate();
+  const row: UserOnCallLogTimeline = notification(id, sentAs, options);
 
   const find: jest.SpyInstance = jest
     .spyOn(UserOnCallLogTimelineService, "findOneById")
-    .mockResolvedValue(notification(id, sentAs, options));
+    .mockResolvedValue(row);
 
+  /*
+   * An update lands only while the notification still holds the status
+   * and the version it names (OnCallNotificationStatus's compare-and-set).
+   */
   const update: jest.SpyInstance = jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+    .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+    .mockImplementation((async (
+      updateBy: UpdateOneByInput,
+    ): Promise<number> => {
+      return updateNotificationWhileStill(row, updateBy);
+    }) as never);
 
   return {
     id: id,
@@ -152,7 +169,11 @@ describe("a page sent as an SMS or a call through the gateway", () => {
         unknown
       >;
 
-      expect((call["id"] as ObjectID).toString()).toBe(id.toString());
+      expect(call["query"]).toEqual({
+        _id: id.toString(),
+        status: UserNotificationStatus.Sent,
+        version: 1,
+      });
       expect(data["isAcknowledged"]).toBe(true);
       expect(data["status"]).toBe(UserNotificationStatus.Acknowledged);
       expect(call["props"]).toEqual({ isRoot: true });

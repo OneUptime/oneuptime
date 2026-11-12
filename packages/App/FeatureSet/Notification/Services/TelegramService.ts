@@ -5,7 +5,6 @@ import {
 } from "../Config";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import TelegramMessage from "Common/Types/Telegram/TelegramMessage";
 import TelegramStatus from "Common/Types/TelegramStatus";
 import { JSONObject } from "Common/Types/JSON";
@@ -13,6 +12,7 @@ import { IsBillingEnabled } from "Common/Server/EnvironmentConfig";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import TelegramLogService from "Common/Server/Services/TelegramLogService";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
@@ -460,23 +460,27 @@ export default class TelegramService {
       });
     }
 
+    /*
+     * Written only while the page's timeline entry still says Sending
+     * (OnCallNotificationStatus): the person may have acknowledged the page,
+     * or escalated it, meanwhile - from another of its messages.
+     */
     if (options.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        id: options.userOnCallLogTimelineId,
-        data: {
-          status: [
-            TelegramStatus.Success,
-            TelegramStatus.Sent,
-            TelegramStatus.Delivered,
-            TelegramStatus.Read,
-          ].includes(telegramLog.status || TelegramStatus.Error)
-            ? UserNotificationStatus.Sent
-            : UserNotificationStatus.Error,
-          statusMessage: telegramLog.statusMessage,
-        },
-        props: {
-          isRoot: true,
-        },
+      const isSent: boolean = [
+        TelegramStatus.Success,
+        TelegramStatus.Sent,
+        TelegramStatus.Delivered,
+        TelegramStatus.Read,
+      ].includes(telegramLog.status || TelegramStatus.Error);
+
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: isSent,
+        statusMessage:
+          telegramLog.statusMessage ||
+          (isSent
+            ? "Telegram message sent successfully"
+            : "Failed to send Telegram message."),
       });
     }
 
