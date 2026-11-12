@@ -1301,22 +1301,15 @@ describe("which settings page each reason points at", () => {
           );
           const action: SettingsAction | null = actionFor(code, kind);
 
-          if (place.page) {
-            expect({ code, kind, page: action?.page }).toEqual({
-              code,
-              kind,
-              page: place.page,
-            });
-          }
-
-          // No link, no page named: a fault, or nothing to change.
-          if (!action) {
-            expect({ code, kind, page: place.page }).toEqual({
-              code,
-              kind,
-              page: null,
-            });
-          }
+          /*
+           * Both ways: a link opens exactly the table's page, and no link
+           * (a fault, or nothing to change) means the table names none.
+           */
+          expect({ code, kind, page: action ? action.page : null }).toEqual({
+            code,
+            kind,
+            page: place.page,
+          });
         }
       }
     }

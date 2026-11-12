@@ -17,10 +17,13 @@ import { InvestigationNotStartedCode } from "../../Types/AI/InvestigationNotStar
  *
  *   - `names`: what both next steps name, as the Dashboard draws it - the
  *     setting, or the step when there is no setting to change.
- *   - `page`: the page the card's settings link opens, whose path the
- *     server's English writes out instead (it has no link). null when the
- *     server names no page: a fault someone has to look at, a record
- *     created already resolved, or nothing recorded at all.
+ *   - `page`: the page the card's settings link opens - exactly that page,
+ *     and null exactly when the card offers no link - whose path the
+ *     server's English writes out instead (it has no link). null for a
+ *     fault someone has to look at, or a record created already resolved.
+ *   - `alsoPages`: the pages a step names by name besides the link's page,
+ *     whose paths the server's English writes out too: the AI Logs, when
+ *     nothing was recorded at all.
  *
  * Read by Tests/Server/Utils/AI/InvestigationReasonCardParity (the server's
  * English beside the card's) and Tests/App/Dashboard/InvestigationNotStarted
@@ -32,6 +35,7 @@ export type InvestigationReasonKind = "incident" | "alert";
 export interface InvestigationReasonPlace {
   names: ReadonlyArray<string>;
   page: PageMap | null;
+  alsoPages?: ReadonlyArray<PageMap> | undefined;
 }
 
 /*
@@ -48,6 +52,8 @@ export const INVESTIGATION_REASON_PAGE_PATHS: ReadonlyMap<PageMap, string> =
     ],
     [PageMap.INCIDENTS_SETTINGS_AI, "Incidents → AI → Settings"],
     [PageMap.ALERTS_SETTINGS_AI, "Alerts → AI → Settings"],
+    [PageMap.INCIDENTS_AI_LOGS, "Incidents → AI → Logs"],
+    [PageMap.ALERTS_AI_LOGS, "Alerts → AI → Logs"],
   ]);
 
 // The page every record's own AI settings are on, by its kind.
@@ -57,6 +63,18 @@ export function getRecordAiSettingsPage(
   return kind === "alert"
     ? PageMap.ALERTS_SETTINGS_AI
     : PageMap.INCIDENTS_SETTINGS_AI;
+}
+
+// The page of what OneUptime AI did for a record's kind: its AI Logs.
+export function getRecordAiLogsPage(kind: InvestigationReasonKind): PageMap {
+  return kind === "alert" ? PageMap.ALERTS_AI_LOGS : PageMap.INCIDENTS_AI_LOGS;
+}
+
+// Every page a reason's server English writes out, the link's page first.
+export function getInvestigationReasonPagesNamed(
+  place: InvestigationReasonPlace,
+): Array<PageMap> {
+  return [...(place.page ? [place.page] : []), ...(place.alsoPages || [])];
 }
 
 // The path of a page of the table, or a test failure for any other page.
@@ -140,8 +158,16 @@ export function getInvestigationReasonPlace(
         names: ["project administrator", "AI settings"],
         page: null,
       },
-      // Nothing was recorded: the AI Logs say what happened to new records.
-      no_run_recorded: { names: ["AI Logs"], page: null },
+      /*
+       * Nothing was recorded: the card links to the record's AI settings,
+       * and its step names the AI Logs, which say what happened to new
+       * records.
+       */
+      no_run_recorded: {
+        names: ["AI Logs"],
+        page: ownSettings,
+        alsoPages: [getRecordAiLogsPage(kind)],
+      },
     };
 
   return places[code];

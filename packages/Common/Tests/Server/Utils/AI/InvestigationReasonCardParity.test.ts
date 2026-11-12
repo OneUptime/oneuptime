@@ -22,11 +22,13 @@ import {
 } from "../../../../../App/FeatureSet/Dashboard/src/Components/AI/InvestigationNotStartedWords";
 import {
   getInvestigationReasonPagePath,
+  getInvestigationReasonPagesNamed,
   getInvestigationReasonPlace,
   INVESTIGATION_REASON_PAGE_PATHS,
   InvestigationReasonKind,
   InvestigationReasonPlace,
 } from "../../../Helpers/InvestigationReasonPlaces";
+import PageMap from "../../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
@@ -405,14 +407,44 @@ describe("the server's next step writes out the page the card's link opens, and 
     );
     const named: Array<string> = Array.from(
       INVESTIGATION_REASON_PAGE_PATHS.values(),
-    ).filter((pagePath: string): boolean => {
-      return reason.nextStep.includes(pagePath);
-    });
+    )
+      .filter((pagePath: string): boolean => {
+        return reason.nextStep.includes(pagePath);
+      })
+      .sort();
 
     expect(named).toEqual(
-      place.page ? [getInvestigationReasonPagePath(place.page)] : [],
+      getInvestigationReasonPagesNamed(place)
+        .map((page: PageMap): string => {
+          return getInvestigationReasonPagePath(page);
+        })
+        .sort(),
     );
   });
+
+  /*
+   * Nothing was recorded: the card's link opens the record's AI settings,
+   * and its step sends the reader to the AI Logs - the English names both.
+   */
+  test.each(KINDS)(
+    "nothing recorded for an %s: the step names its AI settings and its AI Logs",
+    (kind: InvestigationReasonKind) => {
+      const own: string = kind === "alert" ? "Alerts" : "Incidents";
+
+      for (const reason of [
+        InvestigationEligibility.reason("no_run_recorded", subjectOf(kind)),
+        InvestigationEligibility["buildReason"](
+          "current_configuration",
+          "no_run_recorded",
+          subjectOf(kind),
+        ),
+      ]) {
+        expect(reason.nextStep).toBe(
+          `Automatic investigations are triggered when a record is created, so enabling investigation later under ${own} → AI → Settings does not backfill existing records. Check the AI Logs under ${own} → AI → Logs and service health if new eligible records are also missing investigations.`,
+        );
+      }
+    },
+  );
 
   /*
    * A record's own settings are its kind's: an alert's reason never sends
@@ -421,10 +453,9 @@ describe("the server's next step writes out the page the card's link opens, and 
   test.each(KINDS)(
     "a reason about an %s names only its own AI settings",
     (kind: InvestigationReasonKind) => {
-      const otherPage: string =
-        kind === "alert"
-          ? "Incidents → AI → Settings"
-          : "Alerts → AI → Settings";
+      // The other kind's AI section: its Settings, its Logs, any page of it.
+      const otherSection: string =
+        kind === "alert" ? "Incidents → AI →" : "Alerts → AI →";
 
       for (const reasonCase of CASES.filter((candidate: ReasonCase) => {
         return candidate.kind === kind;
@@ -438,7 +469,7 @@ describe("the server's next step writes out the page the card's link opens, and 
             reason.description,
             reason.nextStep,
           ].some((line: string): boolean => {
-            return line.includes(otherPage);
+            return line.includes(otherSection);
           }),
         }).toEqual({ name: reasonCase.name, namesTheOtherKind: false });
       }

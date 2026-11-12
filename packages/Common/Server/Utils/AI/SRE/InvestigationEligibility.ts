@@ -80,6 +80,9 @@ export default class InvestigationEligibility {
     const aiSettingsPage: string =
       kind === "alert" ? "Alerts → AI → Settings" : "Incidents → AI → Settings";
     const moreSettings: string = `${aiSettingsPage} → More settings`;
+    // What OneUptime AI did for the record's kind, beside its settings.
+    const aiLogsPage: string =
+      kind === "alert" ? "Alerts → AI → Logs" : "Incidents → AI → Logs";
     // The record's own switch, as its AI settings page titles it.
     const investigateSwitch: string = `Investigate new ${kind}s`;
     // Its daily token limit, under that page's More settings.
@@ -279,11 +282,14 @@ export default class InvestigationEligibility {
         nextStep:
           "Ask a project administrator to check service health and AI settings. No automatic retry is scheduled for this record.",
       },
+      /*
+       * The card links to the record's AI settings here, and its step names
+       * the AI Logs: the English writes out both pages' paths.
+       */
       no_run_recorded: {
         title: "No investigation was recorded",
         description: `This ${kind} passes the current automatic investigation checks, but no investigation or original skip decision was found. Settings may have changed since it was created, or automatic investigation may not have started when this record was created.`,
-        nextStep:
-          "Automatic investigations are triggered when a record is created. Enabling investigation later does not backfill existing records; check the AI Logs and service health if new eligible records are also missing investigations.",
+        nextStep: `Automatic investigations are triggered when a record is created, so enabling investigation later under ${aiSettingsPage} does not backfill existing records. Check the AI Logs under ${aiLogsPage} and service health if new eligible records are also missing investigations.`,
       },
     };
     const facts: InvestigationNotStartedFacts | null = this.getFacts(
