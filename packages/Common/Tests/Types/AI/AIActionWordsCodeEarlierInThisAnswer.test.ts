@@ -222,7 +222,7 @@ describe("what the model is told in Auto-run, and the action's record", () => {
     expect(told).not.toContain("tell the user it changed");
   });
 
-  test("among other reasons, the general opening, and the read-again instruction still said", () => {
+  test("among other reasons, the general opening - and what Ask AI no longer has, never only what it did not read (#6984) - and the read-again instruction still said", () => {
     const told: string = describeCodeFilesUnseenForModel({
       change: CodeChangeKind.Commit,
       branchName: "fix/login",
@@ -236,7 +236,7 @@ describe("what the model is told in Auto-run, and the action's record", () => {
     });
 
     expect(told.split("\n")[0]).toBe(
-      "Not done: nothing was committed to fix/login, because writing these files whole would undo or replace what you have not read there:",
+      "Not done: nothing was committed to fix/login, because writing these files whole would undo or replace what you have not read there, or no longer have:",
     );
     expect(told).toContain(
       "- src/billing/charge.ts: you read it earlier in this answer, and its text has been left out of this conversation since",

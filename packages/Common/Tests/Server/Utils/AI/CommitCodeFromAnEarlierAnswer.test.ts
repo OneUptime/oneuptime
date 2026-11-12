@@ -427,7 +427,7 @@ describe("the issue's case: read whole in one turn, committed without a read in 
 });
 
 describe("what an earlier answer still counts for, and what it does not", () => {
-  test("read again in part: read in part, never both - the lines from before are not in hand", async () => {
+  test("the first half read in the turn before, the second now (#6984): read all of it, and the half from before no longer in hand - never said as not read", async () => {
     serveOnGitHub(
       makeRepository({ files: { "fix/login": { [CHARGE]: shortLines(800) } } }),
     );
@@ -446,19 +446,24 @@ describe("what an earlier answer still counts for, and what it does not", () => 
     );
 
     expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
-      `Ask AI read only part of this file, and its version replaces all of it: ${CHARGE}.`,
+      `Ask AI read this file and no longer has part of its text, and its version replaces all of it: ${CHARGE}.`,
     );
     expect(proposedOnOf(prepared)!.unseen).toEqual([
       {
         filePath: CHARGE,
-        unseen: CodeFileUnseen.ReadInPart,
+        unseen: CodeFileUnseen.PartNoLongerInHand,
         lineCount: 800,
-        linesNotRead: [{ first: 1, last: 400 }],
+        linesNoLongerInHand: [{ first: 1, last: 400 }],
       },
     ]);
+    expect(prepared.notRunWithoutApproval!.summary).toBe(
+      CODE_UNSEEN_SUMMARIES[CodeChangeKind.Commit][
+        CodeFileUnseen.PartNoLongerInHand
+      ],
+    );
   });
 
-  test("two halves read in two turns: the half from before is not in hand", async () => {
+  test("two halves read in two turns: the model is told it read the half from before and no longer has it (#6984)", async () => {
     serveOnGitHub(
       makeRepository({ files: { "fix/login": { [CHARGE]: shortLines(800) } } }),
     );
@@ -478,8 +483,39 @@ describe("what an earlier answer still counts for, and what it does not", () => 
           commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
         )
       ).notRunWithoutApproval!.toldModel,
-    ).toContain(
-      `- ${CHARGE} has 800 lines on fix/login, and you have not read lines 1-400 of it.`,
+    ).toBe(
+      [
+        "Not done: nothing was committed to fix/login, because you read these files before and no longer have all of their text:",
+        `- ${CHARGE} has 800 lines on fix/login, and you read lines 1-400 earlier and no longer have them.`,
+        'Read the lines you no longer have again now, on fix/login with read_code_file, branchName "fix/login", startLine and endLine, and write each file whole right after you read them: a commit replaces each file whole, and you no longer have the text you read of those lines before.',
+      ].join("\n"),
+    );
+  });
+
+  test("a part read in the turn before, a part now, the rest never: the card says read in part, the model each run as what it is", async () => {
+    serveOnGitHub(
+      makeRepository({ files: { "fix/login": { [CHARGE]: shortLines(800) } } }),
+    );
+    const conversation: Conversation = new Conversation(GITHUB_CONTEXT);
+
+    await conversation.read(CHARGE, { branchName: "fix/login" });
+    conversation.newTurn();
+    await conversation.read(CHARGE, {
+      startLine: 401,
+      endLine: 600,
+      branchName: "fix/login",
+    });
+
+    const prepared: PreparedMutation = await conversation.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
+    );
+
+    expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
+      `Ask AI read only part of this file, and its version replaces all of it: ${CHARGE}.`,
+    );
+    expect(prepared.notRunWithoutApproval!.toldModel).toContain(
+      `- ${CHARGE} has 800 lines on fix/login, and you have not read lines 601-800 of it; you read lines 1-400 earlier and no longer have them.`,
     );
   });
 
@@ -694,7 +730,7 @@ describe("open_code_pull_request, from an earlier answer's read of the default b
         "---",
         "_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._",
         "",
-        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:",
+        "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read, or no longer had:",
         `- \`${CHARGE}\`: AI read it in an earlier answer and no longer had its text when it wrote the whole file.`,
       ].join("\n"),
     );
