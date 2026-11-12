@@ -278,13 +278,27 @@ test.describe("Help at a tablet's width", () => {
     }
   });
 
-  test("at a tablet's width each menu is named by its own button, and Escape puts it away with the focus back on the button", async ({
+  test("at a tablet's width Search opens Search, and Help's and the profile's menus are each named by their own button and put away with Escape", async ({
     page,
   }: {
     page: Page;
   }) => {
     const words: HeaderWords = wordsOf("en");
     await open(page, 900);
+
+    await searchButton(page, words).click();
+
+    await expect
+      .poll(async () => {
+        return page.evaluate(() => {
+          return (
+            window as unknown as {
+              __headerFixture: { paletteToggles: number };
+            }
+          ).__headerFixture.paletteToggles;
+        });
+      })
+      .toBe(1);
 
     /*
      * Help and the profile button used to share one id, and every menu was
@@ -322,29 +336,6 @@ test.describe("Help at a tablet's width", () => {
       await expect(opener).toBeFocused();
       await expect(opener).toHaveAttribute("aria-expanded", "false");
     }
-  });
-
-  test("Search opens Search from the header at a tablet's width", async ({
-    page,
-  }: {
-    page: Page;
-  }) => {
-    const words: HeaderWords = wordsOf("en");
-    await open(page, 900);
-
-    await searchButton(page, words).click();
-
-    await expect
-      .poll(async () => {
-        return page.evaluate(() => {
-          return (
-            window as unknown as {
-              __headerFixture: { paletteToggles: number };
-            }
-          ).__headerFixture.paletteToggles;
-        });
-      })
-      .toBe(1);
   });
 
   test("at 1024px the desktop rail is as it was: Search, Ask AI, the bell, Help, the picture", async ({
