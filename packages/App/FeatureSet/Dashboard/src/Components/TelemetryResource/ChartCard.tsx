@@ -287,26 +287,44 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
             return props.yFormatter!(value);
           }
         : (value: number): string => {
-            return String(Math.round(value));
+            /*
+             * A count as the page's tiles and the time axis write numbers
+             * in the reader's language: "20,000", "20.000", "۲۰٬۰۰۰" - never
+             * a bare "20000" beside a "12,480" tile.
+             */
+            return translator.formatNumber(Math.round(value));
           },
     },
   };
 
+  /*
+   * The chart sits at the foot of the card. Cards side by side in a row
+   * grow to the tallest one - a title on two lines, a legend on three - and
+   * their plots and time axes still line up, as the hover line they share
+   * (syncId) runs across them.
+   */
   return (
-    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
-      <LineChartElement
-        data={withTranslatedSeriesNames(props.series, translator)}
-        xAxis={xAxis}
-        yAxis={yAxis}
-        curve={ChartCurve.MONOTONE}
-        sync={true}
-        syncid={props.syncId}
-        heightInPx={176}
-        showLegend={props.showLegend ?? false}
-        allowDecimals={props.yAllowDecimals}
-        timeReferenceLines={props.timeReferenceLines}
-      />
+      <div className="mt-auto" data-testid="chart-card-chart">
+        <LineChartElement
+          data={withTranslatedSeriesNames(props.series, translator)}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          curve={ChartCurve.MONOTONE}
+          sync={true}
+          syncid={props.syncId}
+          heightInPx={176}
+          /*
+           * A legend that wraps (three long series names on a phone, or in
+           * German) adds its lines to the card instead of squeezing the plot.
+           */
+          growsWhenLegendWraps={true}
+          showLegend={props.showLegend ?? false}
+          allowDecimals={props.yAllowDecimals}
+          timeReferenceLines={props.timeReferenceLines}
+        />
+      </div>
     </div>
   );
 };
