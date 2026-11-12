@@ -15,8 +15,11 @@ import OnCallDutyPolicyScheduleService from "../../../Server/Services/OnCallDuty
 import OnCallDutyPolicyService from "../../../Server/Services/OnCallDutyPolicyService";
 import OnCallTestPageService, {
   ON_CALL_TEST_PAGE_NOT_AUTHORIZED_MESSAGE,
+  getNotPagedMessage,
   getPreviewMethodsOfRule,
+  getPreviewWarningCodes,
   getPreviewWarnings,
+  getReachedThroughText,
   getResultStatus,
   getStepStatus,
   toDelivery,
@@ -49,11 +52,14 @@ import {
   OnCallTestPageDeliveryStatus,
   OnCallTestPageFix,
   OnCallTestPageKind,
+  OnCallTestPageNotPagedCode,
   OnCallTestPagePreview,
+  OnCallTestPageReachedThroughCode,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
   OnCallTestPageStatus,
   OnCallTestPageStepStatus,
+  OnCallTestPageWarningCode,
   getOnCallTestPagePersonTooSoonMessage,
   getOnCallTestPagePolicyTooSoonMessage,
 } from "../../../Types/OnCallDutyPolicy/OnCallTestPage";
@@ -652,6 +658,35 @@ describe("what a test will send, before it is sent", () => {
     ]);
   });
 
+  test("the same warnings come as codes, with what each is about, for the Dashboard to word (#7015)", async () => {
+    const preview: OnCallTestPagePreview =
+      await OnCallTestPageService.getPreview({
+        projectId: PROJECT,
+        callerUserId: ANA,
+        recordKind: OnCallTestPageRecordKind.Incident,
+        severityId: SEVERITY,
+      });
+
+    expect(preview.people[0]!.warningCodes).toEqual([
+      {
+        code: OnCallTestPageWarningCode.ChannelOff,
+        channel: OnCallPageChannel.Call,
+        message: getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.Call,
+        ),
+      },
+      {
+        code: OnCallTestPageWarningCode.MethodNotVerified,
+        channel: OnCallPageChannel.Email,
+        message: "This Email method is not verified, so the test can't use it.",
+      },
+    ]);
+    // A test of a person has no "why them", and no levels to walk.
+    expect(preview.people[0]!.reachedThroughCode).toBeUndefined();
+    expect(preview.notPagedCodes).toEqual([]);
+    expect(preview.walkLevels).toBeUndefined();
+  });
+
   test("for a member: no addresses of theirs, and a member's kind", async () => {
     const preview: OnCallTestPagePreview =
       await OnCallTestPageService.getPreview({
@@ -686,6 +721,9 @@ describe("what a test will send, before it is sent", () => {
     expect(preview.people[0]!.warnings[0]).toBe(
       "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
     );
+    expect(preview.people[0]!.warningCodes![0]!.code).toBe(
+      OnCallTestPageWarningCode.NoRuleFallsBack,
+    );
 
     jest
       .spyOn(UserNotificationRuleService, "findOneBy")
@@ -702,6 +740,13 @@ describe("what a test will send, before it is sent", () => {
     expect(preview.people[0]!.warnings[0]).toBe(
       "Opted out of pages of this severity, so the test sends nothing.",
     );
+    expect(preview.people[0]!.warningCodes).toEqual([
+      {
+        code: OnCallTestPageWarningCode.OptedOut,
+        message:
+          "Opted out of pages of this severity, so the test sends nothing.",
+      },
+    ]);
   });
 
   test("its cost counts the texts and calls it sends", async () => {
@@ -794,6 +839,33 @@ describe("who a policy's first level pages right now", () => {
     ]);
     expect(level.notPaged).toEqual(["Dan Wu is not a member of this project."]);
     expect(level.levelCount).toBe(2);
+
+    // The same, as codes the Dashboard words in its reader's language (#7015).
+    expect(
+      level.targets.map(
+        (target: {
+          reachedThroughCode?:
+            | { code: OnCallTestPageReachedThroughCode; name: string }
+            | undefined;
+        }) => {
+          return target.reachedThroughCode;
+        },
+      ),
+    ).toEqual([
+      { code: OnCallTestPageReachedThroughCode.Team, name: "Platform" },
+      { code: OnCallTestPageReachedThroughCode.Team, name: "Platform" },
+      {
+        code: OnCallTestPageReachedThroughCode.Schedule,
+        name: "Primary rotation",
+      },
+    ]);
+    expect(level.notPagedCodes).toEqual([
+      {
+        code: OnCallTestPageNotPagedCode.NotProjectMember,
+        userName: "Dan Wu",
+        message: "Dan Wu is not a member of this project.",
+      },
+    ]);
   });
 
   test("somebody away with a cover is paged through who covers them; away with nobody covering, is said", async () => {
@@ -827,12 +899,25 @@ describe("who a policy's first level pages right now", () => {
     expect(level.targets[0]).toEqual({
       userId: CARA,
       reachedThrough: "Covering for Ana Lopez",
+      reachedThroughCode: {
+        code: OnCallTestPageReachedThroughCode.CoveringFor,
+        name: "Ana Lopez",
+      },
     });
     expect(level.notPaged).toContainEqual(
       expect.stringMatching(
         /^Bob Stone is away until .+, with nobody covering\.$/,
       ),
     );
+    // When they are back goes as a date, for the reader's own clock.
+    expect(level.notPagedCodes).toContainEqual({
+      code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
+      userName: "Bob Stone",
+      awayUntil: "2026-11-12T09:00:00.000Z",
+      message: expect.stringMatching(
+        /^Bob Stone is away until .+, with nobody covering\.$/,
+      ),
+    });
   });
 
   test("a schedule with nobody on call, and a team with nobody in it, are said", async () => {
@@ -856,6 +941,114 @@ describe("who a policy's first level pages right now", () => {
         "Nobody is on call in schedule Primary rotation now.",
       ]),
     );
+    expect(level.notPagedCodes).toEqual(
+      expect.arrayContaining([
+        {
+          code: OnCallTestPageNotPagedCode.TeamHasNoMembers,
+          teamName: "Platform",
+          message: "Team Platform has no members.",
+        },
+        {
+          code: OnCallTestPageNotPagedCode.NobodyOnCall,
+          scheduleName: "Primary rotation",
+          message: "Nobody is on call in schedule Primary rotation now.",
+        },
+      ]),
+    );
+  });
+
+  test("a schedule paged by its rotation: who is next, or that nobody is", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+      .mockResolvedValue([
+        {
+          onCallDutyPolicyScheduleId: SCHEDULE,
+          onCallDutyPolicySchedule: { name: "Primary rotation" },
+          pageNextInRotation: true,
+        },
+      ] as never);
+    const next: jest.SpyInstance = jest
+      .spyOn(OnCallDutyPolicyScheduleService, "getNextInRotationInSchedule")
+      .mockResolvedValue({ nextUserId: CARA } as never);
+
+    let level: Awaited<
+      ReturnType<typeof OnCallTestPageService.readFirstLevel>
+    > = await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    expect(level.targets[2]).toEqual({
+      userId: CARA,
+      reachedThrough: "Schedule Primary rotation (next in rotation)",
+      reachedThroughCode: {
+        code: OnCallTestPageReachedThroughCode.ScheduleNextInRotation,
+        name: "Primary rotation",
+      },
+    });
+
+    next.mockResolvedValue(null as never);
+
+    level = await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    expect(level.notPagedCodes).toContainEqual({
+      code: OnCallTestPageNotPagedCode.NobodyNextInRotation,
+      scheduleName: "Primary rotation",
+      message: "Nobody is next in the rotation of schedule Primary rotation.",
+    });
+  });
+
+  test("a first level that names nobody says so, as the first", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const level: Awaited<
+      ReturnType<typeof OnCallTestPageService.readFirstLevel>
+    > = await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    expect(level.targets).toEqual([]);
+    expect(level.notPagedCodes).toEqual([
+      {
+        code: OnCallTestPageNotPagedCode.LevelNamesNobody,
+        levelOrder: 1,
+        message:
+          "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
+      },
+    ]);
+  });
+
+  test("a team with no name gives no reason, rather than half of one", async () => {
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleTeamService, "findBy")
+      .mockResolvedValue([{ teamId: TEAM, team: { name: "" } }] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleUserService, "findBy")
+      .mockResolvedValue([] as never);
+    jest
+      .spyOn(OnCallDutyPolicyEscalationRuleScheduleService, "findBy")
+      .mockResolvedValue([] as never);
+
+    const level: Awaited<
+      ReturnType<typeof OnCallTestPageService.readFirstLevel>
+    > = await OnCallTestPageService.readFirstLevel({
+      projectId: PROJECT,
+      policyId: POLICY,
+    });
+
+    expect(level.targets).toEqual([{ userId: ANA }, { userId: BOB }]);
   });
 
   test("a policy with no escalation rules pages nobody, and says so", async () => {
@@ -872,6 +1065,13 @@ describe("who a policy's first level pages right now", () => {
       targets: [],
       notPaged: [
         "This policy has no escalation rules yet, so a test pages nobody.",
+      ],
+      notPagedCodes: [
+        {
+          code: OnCallTestPageNotPagedCode.PolicyHasNoLevels,
+          message:
+            "This policy has no escalation rules yet, so a test pages nobody.",
+        },
       ],
       levelCount: 0,
     });
@@ -1294,5 +1494,113 @@ describe("the result's words, from the records", () => {
     ).toEqual([
       "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing.",
     ]);
+    expect(
+      getPreviewWarningCodes({
+        methods: [],
+        project: { disableOnCallNotificationFallback: true } as never,
+        hasNoRule: true,
+        isOptedOut: false,
+      }),
+    ).toEqual([
+      {
+        code: OnCallTestPageWarningCode.NoRuleNoFallback,
+        message:
+          "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing.",
+      },
+    ]);
+  });
+
+  test("a custom channel that is off is said to be off, with its channel's code", () => {
+    expect(
+      getPreviewWarningCodes({
+        methods: [
+          {
+            channel: OnCallPageChannel.CustomChannel,
+            notifyAfterMinutes: 0,
+            isVerified: false,
+            canAcknowledge: false,
+          },
+          {
+            channel: OnCallPageChannel.WhatsApp,
+            notifyAfterMinutes: 0,
+            isVerified: true,
+            canAcknowledge: true,
+          },
+        ],
+        project: {
+          enableWhatsAppNotifications: false,
+        } as never,
+        hasNoRule: false,
+        isOptedOut: false,
+      }),
+    ).toEqual([
+      {
+        code: OnCallTestPageWarningCode.ChannelOff,
+        channel: OnCallPageChannel.WhatsApp,
+        message: getProjectNotificationChannelOffMessage(
+          ProjectNotificationChannel.WhatsApp,
+        ),
+      },
+      {
+        code: OnCallTestPageWarningCode.MethodNotVerified,
+        channel: OnCallPageChannel.CustomChannel,
+        message: "This custom channel is turned off, so the test can't use it.",
+      },
+    ]);
+  });
+
+  test("why a person is paged, in English, as the preview always said it", () => {
+    expect(
+      [
+        OnCallTestPageReachedThroughCode.Team,
+        OnCallTestPageReachedThroughCode.Schedule,
+        OnCallTestPageReachedThroughCode.ScheduleNextInRotation,
+        OnCallTestPageReachedThroughCode.CoveringFor,
+      ].map((code: OnCallTestPageReachedThroughCode): string => {
+        return getReachedThroughText({ code: code, name: "Ops" });
+      }),
+    ).toEqual([
+      "Team Ops",
+      "Schedule Ops",
+      "Schedule Ops (next in rotation)",
+      "Covering for Ops",
+    ]);
+  });
+
+  test("why a target reaches nobody, in English, as the preview always said it - a later level by its number", () => {
+    expect(
+      [
+        { code: OnCallTestPageNotPagedCode.PolicyHasNoLevels },
+        { code: OnCallTestPageNotPagedCode.LevelNamesNobody, levelOrder: 1 },
+        { code: OnCallTestPageNotPagedCode.LevelNamesNobody, levelOrder: 3 },
+        { code: OnCallTestPageNotPagedCode.TeamHasNoMembers, teamName: "Ops" },
+        {
+          code: OnCallTestPageNotPagedCode.NobodyNextInRotation,
+          scheduleName: "Nights",
+        },
+        { code: OnCallTestPageNotPagedCode.NobodyOnCall, scheduleName: "Days" },
+        {
+          code: OnCallTestPageNotPagedCode.NotProjectMember,
+          userName: "Dan Wu",
+        },
+      ].map((notPaged: Parameters<typeof getNotPagedMessage>[0]): string => {
+        return getNotPagedMessage(notPaged);
+      }),
+    ).toEqual([
+      "This policy has no escalation rules yet, so a test pages nobody.",
+      "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
+      "Escalation rule 3 pages nobody yet. Add people, a team or a schedule to it.",
+      "Team Ops has no members.",
+      "Nobody is next in the rotation of schedule Nights.",
+      "Nobody is on call in schedule Days now.",
+      "Dan Wu is not a member of this project.",
+    ]);
+    expect(
+      getNotPagedMessage({
+        code: OnCallTestPageNotPagedCode.AwayWithNobodyCovering,
+        userName: "Bob Stone",
+        awayUntil: "2026-11-12T09:00:00.000Z",
+      }),
+    ).toMatch(/^Bob Stone is away until .+, with nobody covering\.$/);
   });
 });

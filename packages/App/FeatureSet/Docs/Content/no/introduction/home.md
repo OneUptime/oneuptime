@@ -122,7 +122,7 @@ To linjer går over toppen av hver side.
 | Øverst til høyre | **Søk** og **Spør AI**, varselklokken med det som trenger deg nå (aktive hendelser og varsler, vaktpolicyene du har vakt i, ventende invitasjoner), **Hjelp**, og bildet ditt, som åpner menyen for [kontoen](/docs/introduction/your-account) din. |
 | Under dem | **Hjem** og **Produkter** til venstre, **Brukerinnstillinger** til høyre: hvordan OneUptime når deg i dette prosjektet. |
 
-**Hjelp** starter med det som hjelper deg å lære: **Hurtigstart**, **Slik fungerer OneUptime**, **Ordliste** og denne dokumentasjonen (**Dokumentasjon**). Under dem ligger listen **Keyboard shortcuts** og støtte på e-post og på Slack. På en smal skjerm, som en telefon, er **Søk**, **Spør AI** og **Hjelp** utelatt for å spare plass; klokken og bildet ditt blir værende.
+**Hjelp** starter med det som hjelper deg å lære: **Hurtigstart**, **Slik fungerer OneUptime**, **Ordliste** og denne dokumentasjonen (**Dokumentasjon**). Under dem ligger listen **Keyboard shortcuts** og støtte på e-post og på Slack. På et nettbrett eller i et smalt vindu er **Spør AI** utelatt for å spare plass: den finnes blant handlingene i **Søk**. På en telefon flytter **Søk** og **Hjelp** inn i listen til menyknappen, øverst og nederst; klokken og bildet ditt blir værende.
 
 Et ord med en prikket linje under, som **Sonder** i skjemaet for en ny monitor, forteller hva det betyr når du peker på det, tabber til det eller trykker på det. **Les mer** åpner ordet i [Ordliste](/docs/introduction/glossary).
 
@@ -145,6 +145,7 @@ Trykk **Cmd+K** (Mac) eller **Ctrl+K** (Windows og Linux), eller klikk på søke
 - **Innstillingene på en side**, under navnet kortet eller bryteren deres viser: *Krev SSO for innlogging* finner SSO, og *Varslingskanaler* finner Varselinnstillinger. Skriv navnet på engelsk eller på ditt eget språk.
 - **Handlinger**, etter hva du vil gjøre: Erklær hendelse, Opprett monitor eller Delete Project, som åpner Faresone. En handling som endrer noe, tilbys bare dem som har lov til å utføre den.
 - **Monitorene, hendelsene, varslene, statussidene og vaktpolicyene dine**, etter navn, og hendelser og varsler også etter nummer, for eksempel `INC-42`. Hvert resultat for en hendelse eller et varsel begynner med nummeret, så to med samme tittel kan skilles fra hverandre.
+- **Dokumentasjonen**, i en gruppe *Dokumentasjon* under alt annet: sidene og avsnittene der ordene passer til det du skriver, på ditt språk, også med en skrivefeil. Hver åpnes i en ny fane, så du beholder plassen din.
 
 Søket leser det du skriver slik du mener det:
 

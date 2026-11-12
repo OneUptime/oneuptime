@@ -19,6 +19,7 @@ import {
   strayMarkers,
   tableShape,
 } from "./DocsTranslationChecks";
+import { GETTING_STARTED_PLACES, cardTargetsAt } from "./GettingStartedPage";
 import {
   GLOSSARY,
   cardLinkTargets,
@@ -180,14 +181,11 @@ describe("Which One Do I Use?, in English", () => {
       urls.indexOf(`/docs/${GLOSSARY}`) + 1,
     );
     expect(ENGLISH.split("\n")[0]).toBe("# Which One Do I Use?");
-    // Getting Started's first screen opens it.
+    // Getting Started's first screen opens it: New to OneUptime?, under the eight jobs (#6822).
     expect(
-      cardTargets(
-        cardLines(
-          readPage("en", "introduction/getting-started").split(
-            "## ",
-          )[0] as string,
-        ),
+      cardTargetsAt(
+        readPage("en", "introduction/getting-started"),
+        GETTING_STARTED_PLACES.newcomers,
       ),
     ).toContain(`/docs/${WHICH_ONE}`);
   });

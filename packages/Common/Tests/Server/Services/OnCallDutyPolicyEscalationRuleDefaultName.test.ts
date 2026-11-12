@@ -362,7 +362,7 @@ describe("the rest of the create hook", () => {
     delete (rule as Partial<OnCallDutyPolicyEscalationRule>).onCallDutyPolicyId;
 
     await expect(runOnBeforeCreate(createBy)).rejects.toThrow(
-      "onCallDutyPolicyId is required",
+      "Pick the on-call policy this escalation rule belongs to.",
     );
   });
 });

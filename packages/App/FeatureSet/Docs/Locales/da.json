@@ -11,6 +11,7 @@
     "searchPlaceholder": "Søg i dokumentation...",
     "searchTypeToSearch": "Skriv for at søge i dokumentationen...",
     "searchNoResults": "Ingen resultater fundet for \"{{query}}\"",
+    "searchSearching": "Søger…",
     "onThisPage": "På denne side",
     "skipToContent": "Gå til indhold",
     "toggleTheme": "Skift tema",
@@ -62,7 +63,18 @@
     "calloutDanger": "Fare",
     "detailsSummary": "Detaljer",
     "copyPage": "Kopiér side",
-    "viewAsMarkdown": "Vis som Markdown"
+    "viewAsMarkdown": "Vis som Markdown",
+    "feedbackQuestion": "Var denne side nyttig?",
+    "feedbackYes": "Ja",
+    "feedbackNo": "Nej",
+    "feedbackThanks": "Tak, fordi du sagde det.",
+    "feedbackWhatWentWrong": "Tak. Hvad var galt?",
+    "feedbackReasonUnclear": "Svær at følge",
+    "feedbackReasonMissing": "Der mangler noget",
+    "feedbackReasonWrong": "Forkert eller forældet",
+    "feedbackReasonNotFound": "Ikke det, jeg ledte efter",
+    "feedbackTellUs": "Tak. Fortæl os, hvad vi skal rette, så forbedrer vi siden.",
+    "feedbackTellUsOnGithub": "Fortæl os det på GitHub"
   },
   "navSections": {
     "Get Started": "Kom i gang",

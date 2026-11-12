@@ -10,6 +10,7 @@ import { MONITORING_OFF_TEXT } from "../StateTimeline/MonitoringOffIndicator";
 import { formatDurationInSeconds } from "../../Utils/UseLiveDuration";
 import { getInlineSeparator, Translator } from "../../Utils/TranslateTemplate";
 import useTranslator from "../../Utils/UseTranslator";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -25,6 +26,36 @@ export interface ComponentProps {
    */
   showShare: boolean;
 }
+
+/*
+ * A status's figures - its share, how long it lasted, how many times - one
+ * after the other, set apart the reader's way (a bullet beside Persian
+ * digits), each in an isolate of its own. Written as one line, an Arabic
+ * share ("99.96%", which Intl writes with left-to-right marks so its sign
+ * stays after the number) took the duration's first number with it: the
+ * line drew "99.96% · 30" beside the status's name and "يومًا و23 س" after
+ * it, the 30 days cut from their days. An English status name in an Arabic
+ * or Persian legend did the same, so the name is set apart too.
+ */
+const StatusTimelineLegendFigures: FunctionComponent<{
+  parts: Array<string>;
+  separator: string;
+}> = (props: { parts: Array<string>; separator: string }): ReactElement => {
+  return (
+    <>
+      {props.parts
+        .filter(Boolean)
+        .map((part: string, index: number): ReactElement => {
+          return (
+            <React.Fragment key={index}>
+              {index > 0 ? props.separator : ""}
+              <IsolatedText text={part} />
+            </React.Fragment>
+          );
+        })}
+    </>
+  );
+};
 
 /*
  * The band's legend: what each colour is, and how long the record spent in
@@ -99,25 +130,27 @@ const StatusTimelineLegend: FunctionComponent<ComponentProps> = (
                 aria-hidden="true"
               ></span>
               <span className="mr-2 font-medium text-gray-900">
-                {item.name}
+                <IsolatedText text={item.name} />
               </span>
               <span className="tabular-nums text-gray-500">
-                {[
-                  props.showShare ? formatStatusTimelineShare(item.share) : "",
-                  duration,
-                  item.count > 1 && !isBaseline
-                    ? translator.translatePlural(
-                        {
-                          one: "{{count}} time",
-                          other: "{{count}} times",
-                        },
-                        item.count,
-                      )
-                    : "",
-                ]
-                  .filter(Boolean)
-                  // Set apart the reader's way: a bullet beside Persian digits.
-                  .join(getInlineSeparator(translator.language))}
+                <StatusTimelineLegendFigures
+                  parts={[
+                    props.showShare
+                      ? formatStatusTimelineShare(item.share, translator)
+                      : "",
+                    duration,
+                    item.count > 1 && !isBaseline
+                      ? translator.translatePlural(
+                          {
+                            one: "{{count}} time",
+                            other: "{{count}} times",
+                          },
+                          item.count,
+                        )
+                      : "",
+                  ]}
+                  separator={getInlineSeparator(translator.language)}
+                />
               </span>
             </li>
           );

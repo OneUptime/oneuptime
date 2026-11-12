@@ -90,6 +90,8 @@ const TelemetryIngestionKeys: FunctionComponent<
         isViewable={true}
         singularName="Ingestion Key"
         userPreferencesKey="telemetry-ingestion-keys-table"
+        /* The docs page for this list (#6822): which key each agent and SDK takes, and how to rotate one. */
+        documentationLink={Route.fromString("/docs/telemetry/ingestion-keys")}
         cardProps={{
           title: "Telemetry Ingestion Keys",
           description:

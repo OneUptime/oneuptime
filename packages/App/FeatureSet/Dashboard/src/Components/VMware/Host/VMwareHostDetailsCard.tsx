@@ -148,15 +148,18 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
         props.virtualMachines.total === 0
           ? tx("None")
           : props.virtualMachineStatesKnown === false
-            ? String(props.virtualMachines.total)
+            ? translator.formatNumber(props.virtualMachines.total)
             : translator.translateTemplate(
                 "{{total}} ({{running}} running, {{off}} off)",
                 {
-                  total: props.virtualMachines.total,
-                  running: props.virtualMachines.running,
-                  off:
+                  total: translator.formatNumber(props.virtualMachines.total),
+                  running: translator.formatNumber(
+                    props.virtualMachines.running,
+                  ),
+                  off: translator.formatNumber(
                     props.virtualMachines.poweredOff +
-                    props.virtualMachines.unknown,
+                      props.virtualMachines.unknown,
+                  ),
                 },
               ),
     });
@@ -165,7 +168,7 @@ const VMwareHostDetailsCard: FunctionComponent<ComponentProps> = (
       rows.push({
         key: "templates",
         label: "VM templates",
-        value: String(props.virtualMachines.templates),
+        value: translator.formatNumber(props.virtualMachines.templates),
       });
     }
   }

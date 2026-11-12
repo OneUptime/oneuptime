@@ -161,7 +161,9 @@ describe("ChannelVerificationResendRoute.register", () => {
   it("requires an item ID, before reading anything", async () => {
     await call({});
 
-    expect(lastError()?.message).toBe("Invalid item ID");
+    expect(lastError()?.message).toBe(
+      "The request did not say which notification method to verify. Reload the page and try again.",
+    );
     expect(service["findOneById"]).not.toHaveBeenCalled();
   });
 
@@ -175,7 +177,9 @@ describe("ChannelVerificationResendRoute.register", () => {
 
     await call({ itemId: ITEM_ID });
 
-    expect(lastError()?.message).toBe("Invalid user ID");
+    expect(lastError()?.message).toBe(
+      "Sign in again, then verify this notification method.",
+    );
     expect(service["findOneById"]).not.toHaveBeenCalled();
     expect(service["resendVerificationCode"]).not.toHaveBeenCalled();
   });
@@ -185,7 +189,9 @@ describe("ChannelVerificationResendRoute.register", () => {
 
     await call({ itemId: ITEM_ID });
 
-    expect(lastError()?.message).toBe("Invalid user ID");
+    expect(lastError()?.message).toBe(
+      "Sign in again, then verify this notification method.",
+    );
     expect(service["findOneById"]).not.toHaveBeenCalled();
   });
 
@@ -194,7 +200,9 @@ describe("ChannelVerificationResendRoute.register", () => {
 
     await call({ itemId: ITEM_ID });
 
-    expect(lastError()?.message).toBe("Item not found");
+    expect(lastError()?.message).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(service["resendVerificationCode"]).not.toHaveBeenCalled();
   });
 
@@ -205,7 +213,9 @@ describe("ChannelVerificationResendRoute.register", () => {
 
     await call({ itemId: ITEM_ID });
 
-    expect(lastError()?.message).toBe("Invalid user ID");
+    expect(lastError()?.message).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(service["resendVerificationCode"]).not.toHaveBeenCalled();
   });
 
@@ -214,7 +224,9 @@ describe("ChannelVerificationResendRoute.register", () => {
 
     await call({ itemId: ITEM_ID });
 
-    expect(lastError()?.message).toBe("Invalid user ID");
+    expect(lastError()?.message).toBe(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     expect(service["resendVerificationCode"]).not.toHaveBeenCalled();
   });
 
@@ -240,7 +252,9 @@ describe("ChannelVerificationResendRoute.register", () => {
   });
 
   it("hands a refusal of the channel's resend - not a member any more, say - to the error handler", async () => {
-    const refusal: BadDataException = new BadDataException("Item not found");
+    const refusal: BadDataException = new BadDataException(
+      "This notification method is not in your list any more. Add it again, then verify it.",
+    );
     service["resendVerificationCode"]!.mockRejectedValue(refusal);
 
     await call({ itemId: ITEM_ID });

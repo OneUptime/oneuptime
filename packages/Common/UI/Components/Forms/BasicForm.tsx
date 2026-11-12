@@ -22,6 +22,9 @@ import {
 } from "../Dropdown/Dropdown";
 import { getDropdownChange } from "../Dropdown/DropdownChange";
 import ErrorMessage from "../ErrorMessage/ErrorMessage";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "../ErrorMessage/ErrorExplanation";
 import CollapsibleFormSection from "./CollapsibleFormSection";
 import FormField from "./Fields/FormField";
 import { loadFormFieldControls } from "./Fields/FormFieldControls";
@@ -161,6 +164,12 @@ export interface BaseComponentProps<T> {
   disableAutofocus?: undefined | boolean;
   hideSubmitButton?: undefined | boolean;
   error?: string | undefined;
+  /*
+   * What the form was doing, in the reader's language - "The monitor was
+   * not saved." - said first when the error is one nobody explained
+   * (ErrorExplanation).
+   */
+  whatFailed?: string | undefined;
   onFormStepChange?: undefined | ((stepId: string) => void);
   /*
    * Whether the step on screen is the last one. A host that draws its own
@@ -1536,7 +1545,19 @@ const BasicForm: ForwardRefExoticComponent<any> = forwardRef(
                 )}
                 {props.error && !serverErrorFieldName && (
                   <div className="mb-3">
-                    <Alert title={props.error} type={AlertType.DANGER} />
+                    <Alert
+                      title={
+                        isUnexplainedErrorMessage(props.error) ? (
+                          <ErrorExplanation
+                            message={props.error}
+                            whatFailed={props.whatFailed}
+                          />
+                        ) : (
+                          props.error
+                        )
+                      }
+                      type={AlertType.DANGER}
+                    />
                   </div>
                 )}
 

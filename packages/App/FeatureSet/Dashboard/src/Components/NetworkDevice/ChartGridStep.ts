@@ -15,9 +15,11 @@ import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecisi
  *
  * A day and coarser are left out on purpose: those steps follow the calendar
  * in the viewer's timezone (a month is 28 to 31 days), so no bucket size
- * maps onto them. The hour-based steps are walked on the viewer's wall
- * clock too, so the one step a daylight-saving change falls in is an hour
- * longer or shorter than listed; every other step is exactly this wide.
+ * maps onto them. The steps of two to twelve hours are blocks of the
+ * viewer's clock (00:00-02:00, 02:00-04:00), so the one block a
+ * daylight-saving change falls in is an hour longer or shorter than listed;
+ * a step of an hour or less is exactly this wide (save the one hour Lord
+ * Howe Island's half-hour change falls in).
  */
 
 export interface ChartGridStep {

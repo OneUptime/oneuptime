@@ -38,7 +38,7 @@ Een sonde die haar eigen netwerkverbinding kwijt is, meldt geen resultaat en kan
 :::steps
 ### Een nieuwe monitor beginnen
 
-Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **SSL Certificate**.
+Ga naar **Monitoren** en klik op **Monitor maken**. Kies onder **Monitortype** het type **SSL-certificaat**.
 
 ### Hem een naam geven
 
