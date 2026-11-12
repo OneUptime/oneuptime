@@ -206,14 +206,22 @@ describe("the checks themselves", () => {
       },
     );
 
-    // Basic starts open, and holds the project itself and its labels only.
+    /*
+     * Basic starts open, and holds the project itself, the products it
+     * shows (#6814) and its labels only.
+     */
     expect(foldedPages).not.toContain("Project");
+    expect(foldedPages).not.toContain("Products");
     expect(foldedPages).not.toContain("Labels");
     expect(
       MENU.sections.find((menuSection: SettingsMenuSection): boolean => {
         return menuSection.title === BASIC;
       }),
-    ).toEqual({ title: BASIC, items: ["Project", "Labels"], folded: false });
+    ).toEqual({
+      title: BASIC,
+      items: ["Project", "Products", "Labels"],
+      folded: false,
+    });
   });
 
   it.each([

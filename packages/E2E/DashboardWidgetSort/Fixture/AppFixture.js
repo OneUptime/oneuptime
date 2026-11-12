@@ -17,6 +17,7 @@
  *                   security events list (Boards.js buildNarrowConfig)
  *   - titles=long   the first incident's title a long sentence, as an
  *                   incident's often is (Boards.js incidents)
+ *   - view=honeycomb  the monitor list drawn as a honeycomb (#6966)
  *
  * Everything the page asks for is recorded on window.__dashboardWidgetSortFixture:
  * every list read with its sort, phase and limit (lists), every trace table
@@ -80,7 +81,13 @@ const language = params.get("lang") === "de" ? "de" : "en";
 const isNarrowBoard = params.get("board") === "narrow";
 // ?titles=long: an incident's title a long sentence (Boards.js incidents).
 const hasLongTitles = params.get("titles") === "long";
-const BOARD_KEY = isNarrowBoard ? `${SERVER_KEY}-narrow` : SERVER_KEY;
+// ?view=honeycomb: the monitor list drawn as a honeycomb (Boards.js buildConfig).
+const isHoneycomb = params.get("view") === "honeycomb";
+const BOARD_KEY = isNarrowBoard
+  ? `${SERVER_KEY}-narrow`
+  : isHoneycomb
+    ? `${SERVER_KEY}-honeycomb`
+    : SERVER_KEY;
 
 // The fixture's clock: rows are minutes and hours before it.
 const NOW = Date.now();
@@ -112,7 +119,7 @@ function storedConfig() {
     // Nothing kept: the dashboard as created.
   }
 
-  return isNarrowBoard ? buildNarrowConfig() : buildConfig();
+  return isNarrowBoard ? buildNarrowConfig() : buildConfig({ isHoneycomb });
 }
 
 function storeConfig(config) {

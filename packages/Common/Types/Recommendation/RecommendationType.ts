@@ -19,6 +19,12 @@ enum RecommendationType {
   DataCheck = "DataCheck",
   // A database the project knows of with no connection (Server/Utils/DataObservability/DataSourceSuggestions).
   DataSource = "DataSource",
+  /*
+   * A Setup health finding the team hides on purpose ("We do not page for
+   * this on purpose"): the check as the recommendation, the record it is
+   * about as the resource (Types/SetupHealth/SetupHealth).
+   */
+  SetupHealth = "SetupHealth",
 }
 
 export default RecommendationType;

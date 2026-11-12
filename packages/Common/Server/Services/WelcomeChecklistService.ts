@@ -8,6 +8,7 @@ import OnCallReadinessService, {
 import ProjectMilestoneService, {
   ReachedMilestone,
 } from "./ProjectMilestoneService";
+import ProjectProductsService from "./ProjectProductsService";
 import ProjectService from "./ProjectService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
@@ -297,6 +298,16 @@ export default class WelcomeChecklistService {
       },
       { goals: chosen },
     );
+
+    /*
+     * The products the goals need (#6814): Essentials and what the goals
+     * name are shown, the rest move under More products - unless a member
+     * already chose the project's products. Never throws.
+     */
+    await ProjectProductsService.applyGoals({
+      projectId: caller.projectId,
+      goals: chosen,
+    });
 
     return chosen;
   }

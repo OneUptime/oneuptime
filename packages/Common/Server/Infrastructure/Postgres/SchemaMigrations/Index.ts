@@ -969,6 +969,7 @@ import { AddProjectGoalsAndWelcomeChecklist1809110900000 } from "./1809110900000
 import { AddServerSetupChoices1809110968240 } from "./1809110968240-AddServerSetupChoices";
 import { AddUserOnCallLogTimelineSendingIndex1809120200000 } from "./1809120200000-AddUserOnCallLogTimelineSendingIndex";
 import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "./1809122600000-AddMonitorStatusTimelineIsMonitoringOff";
+import { AddProjectProductsAndPins1809122700000 } from "./1809122700000-AddProjectProductsAndPins";
 
 export default [
   InitialMigration,
@@ -1942,4 +1943,5 @@ export default [
   AddServerSetupChoices1809110968240,
   AddUserOnCallLogTimelineSendingIndex1809120200000,
   AddMonitorStatusTimelineIsMonitoringOff1809122600000,
+  AddProjectProductsAndPins1809122700000,
 ];

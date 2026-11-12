@@ -270,7 +270,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 :::steps
 1. از صفر یک گردش کاری به نام `Incidents to Dynamics 365` بسازید. روی بلوک خط‌چین کلیک کنید و تریگر **On Create Incident** را اضافه کنید. **Fields to pass on** آن از پیش **عنوان** را دارد: روی **افزودن فیلد** کلیک کنید و **توضیحات** و **شماره حادثه** را برگزینید. شناسه همیشه منتقل می‌شود.
-2. روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **Identifier** آن را روی `create-case`، و **URL** آن را روی `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` بگذارید.
+2. روی **افزودن مؤلفه** کلیک کنید، یک بلوک **API Post (JSON)** اضافه کنید، و نقطه **Success** تریگر را به آن وصل کنید. **شناسه** آن را روی `create-case`، و **URL** آن را روی `https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid,ticketnumber` بگذارید.
 3. زیر **فیلدهای بیشتر**، **Request Headers** آن را روی این بگذارید:
 
    ```json
@@ -323,9 +323,9 @@ Dynamics 365 ستون `severitycode` را با تنها یک گزینه عرضه
 این را به صورت یک گردش کاری دوم بسازید، تا شکستی در اینجا هرگز جلوی باز شدن پرونده‌ها را نگیرد.
 
 :::steps
-1. گردش کاری‌ای به نام `Close Dynamics 365 cases` با تریگر **On Update Incident** بسازید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **Current Incident State** را برگزینید. در **Fields to pass on** روی **افزودن فیلد** کلیک کنید، **Current Incident State** را باز کنید و **Is Resolved State** را برگزینید.
+1. گردش کاری‌ای به نام `Close Dynamics 365 cases` با تریگر **On Update Incident** بسازید. در **Fields to watch** روی **افزودن فیلد** کلیک کنید و **حالت فعلی حادثه** را برگزینید. در **Fields to pass on** روی **افزودن فیلد** کلیک کنید، **حالت فعلی حادثه** را باز کنید و **حالت برطرف‌شده است** را برگزینید.
 2. یک بلوک **If / Else** اضافه کنید: **Value to check** برابر `{{local.components.incident-on-update-1.returnValues.model.currentIncidentState.isResolvedState}}`، **Comparison** برابر **is true**.
-3. پس از سمت **Yes** آن، یک بلوک **API Get (JSON)** با **Identifier** برابر `find-case`، همان سرآیندها بدون `Prefer`، و این **URL** اضافه کنید:
+3. پس از سمت **Yes** آن، یک بلوک **API Get (JSON)** با **شناسه** برابر `find-case`، همان سرآیندها بدون `Prefer`، و این **URL** اضافه کنید:
 
    ```text
    https://yourorg.crm.dynamics.com/api/data/v9.2/incidents?$select=incidentid&$filter=new_oneuptimelink%20eq%20'oneuptime-incident-{{local.components.incident-on-update-1.returnValues.model._id}}'

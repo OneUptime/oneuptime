@@ -232,6 +232,15 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
       category: "Teams",
     },
   ],
+  // Whether the project's setup tells the right people (#6812).
+  [
+    "get_setup_health",
+    {
+      description: "Checked the setup health",
+      icon: IconProp.Wrench,
+      category: "Setup Health",
+    },
+  ],
   // OneUptime's own docs, and the page of the project a thing is done on (#6828).
   [
     "search_docs",
@@ -800,6 +809,47 @@ const TOOL_DESCRIPTIONS: Map<string, EvidenceToolDescription> = new Map<
     {
       description: "Paged an on-call policy",
       icon: IconProp.Call,
+      category: "On-call",
+    },
+  ],
+  // Setting things up by conversation (#6829), and who it reaches.
+  [
+    "set_up_website_monitoring",
+    {
+      description: "Set up monitoring",
+      icon: IconProp.Heartbeat,
+      category: "Monitors",
+    },
+  ],
+  [
+    "set_up_paging",
+    {
+      description: "Set up paging",
+      icon: IconProp.Call,
+      category: "On-call",
+    },
+  ],
+  [
+    "publish_status_page",
+    {
+      description: "Published a status page",
+      icon: IconProp.Globe,
+      category: "Status pages",
+    },
+  ],
+  [
+    "add_monitors_to_status_page",
+    {
+      description: "Added monitors to a status page",
+      icon: IconProp.Globe,
+      category: "Status pages",
+    },
+  ],
+  [
+    "who_is_told",
+    {
+      description: "Checked who is told",
+      icon: IconProp.Team,
       category: "On-call",
     },
   ],

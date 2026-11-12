@@ -265,6 +265,14 @@ describe("AIToolbox contract", () => {
         "run_security_playbook",
         "start_investigation",
         "update_workflow",
+        /*
+         * Setting things up by conversation (#6829): asked for approval in
+         * every mode, Auto-run included.
+         */
+        "set_up_paging",
+        "set_up_website_monitoring",
+        "publish_status_page",
+        "add_monitors_to_status_page",
       ].sort(),
     );
   });

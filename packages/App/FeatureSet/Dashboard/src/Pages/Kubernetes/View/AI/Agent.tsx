@@ -14,6 +14,7 @@ import {
   AiAgentGapAction,
   AiAgentStatusPill,
   AiAgentMeta,
+  AutomaticInvestigationSettingsLink,
   getAiAgentAttention,
   getAiAgentCardCommand,
   getAiAgentMeta,
@@ -23,6 +24,7 @@ import {
   getAiAgentSummary,
   getAutomaticInvestigation,
   getAutomaticInvestigationConfirmation,
+  getAutomaticInvestigationSettingsLinks,
   getAutomaticRemediation,
   getAutomaticInvestigationLine,
   getAutomaticInvestigationTurnOnChanges,
@@ -1308,15 +1310,31 @@ const KubernetesClusterAiAgent: FunctionComponent<PageComponentProps> = (
             });
           }}
         >
-          <Link
-            to={RouteUtil.populateRouteParams(
-              RouteMap[PageMap.INCIDENTS_SETTINGS_AI] as Route,
+          {/*
+           * The AI settings page of each kind it turns on, as the sentence
+           * names them: the alerts' limits are on the alerts' page (#7158).
+           * Right under the sentence (the dialog spaces it already), and
+           * two links as far apart as a notice's actions, so they read as
+           * two where their arrows point left.
+           */}
+          <div className="flex flex-wrap gap-x-5 gap-y-1">
+            {getAutomaticInvestigationSettingsLinks(automaticInvestigation).map(
+              (link: AutomaticInvestigationSettingsLink) => {
+                return (
+                  <Link
+                    key={link.page}
+                    to={RouteUtil.populateRouteParams(
+                      RouteMap[link.page] as Route,
+                    )}
+                    className="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                  >
+                    <span>{translator.translateText(link.label)}</span>
+                    <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
+                  </Link>
+                );
+              },
             )}
-            className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
-          >
-            <span>{translator.translateText("Open settings")}</span>
-            <Icon icon={IconProp.ArrowRight} className="h-3.5 w-3.5" />
-          </Link>
+          </div>
         </ConfirmModal>
       );
     }

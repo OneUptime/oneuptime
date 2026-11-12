@@ -1,8 +1,8 @@
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";
+import { BACKUP_PLURALS } from "../../../AdminDashboard/Backups/BackupsCopy";
 import {
-  INSTANCE_USERS,
   INSTANCES,
   LICENSE_DETAILS_PLURALS,
   LicenseDetailsCopy,
@@ -173,17 +173,6 @@ const ADMIN_OWN_WORDING: ReadonlyArray<string> = [
   `fa/${LicenseDetailsCopy.thisInstance}`,
 ];
 
-/*
- * An instance's users ("7 users") the Admin Dashboard had before these
- * details, for its backups (ee/AdminDashboard/Backups): worded its own way
- * in some languages ("7 个用户" beside the Dashboard's "7 位用户"), both
- * right.
- */
-const ADMIN_HAD_BEFORE: ReadonlyArray<string> = [
-  INSTANCE_USERS.other,
-  `${INSTANCE_USERS.other}_one`,
-];
-
 // A word: two letters or more, in any script.
 const WORD: RegExp = /\p{L}{2,}/u;
 
@@ -261,7 +250,7 @@ describe("the license details' words", () => {
       expect.arrayContaining([
         { key: "Licensed seats", english: "Licensed seats" },
         { key: "/ {{count}} seats_one", english: "/ {{count}} seat" },
-        { key: "{{count}} users_one", english: "{{count}} user" },
+        { key: "Users: {{count}}", english: "Users: {{count}}" },
       ]),
     );
     expect(APP_LANGUAGES.length).toBeGreaterThan(30);
@@ -305,8 +294,7 @@ describe("the license details' words", () => {
       const apart: Array<string> = ENTRIES.filter((entry: Entry): boolean => {
         return (
           admin[entry.key] !== dashboard[entry.key] &&
-          !ADMIN_OWN_WORDING.includes(`${language}/${entry.key}`) &&
-          !ADMIN_HAD_BEFORE.includes(entry.key)
+          !ADMIN_OWN_WORDING.includes(`${language}/${entry.key}`)
         );
       }).map((entry: Entry): string => {
         return entry.key;
@@ -379,12 +367,11 @@ describe("the license details' words", () => {
     },
   );
 
-  test("the instances and an instance's users are both apps' existing words", () => {
+  test("the instances are both apps' existing words", () => {
     for (const app of Object.keys(APPS) as Array<App>) {
-      const english: Locale = readLocale(app, "en");
-
-      expect(english[INSTANCES.other]).toBe("{{count}} instances");
-      expect(english[`${INSTANCE_USERS.other}_one`]).toBe("{{count}} user");
+      expect(readLocale(app, "en")[INSTANCES.other]).toBe(
+        "{{count}} instances",
+      );
     }
   });
 
@@ -395,6 +382,104 @@ describe("the license details' words", () => {
     expect(copyWrittenOut(source)).toEqual([]);
     // The scan reads the details (negative control below: it would see text).
     expect(source).toContain("LicenseDetailsCopy.seatsTitle");
+  });
+});
+
+/*
+ * AN INSTANCE'S USERS BEGIN THEIR LINE (#7134).
+ *
+ * The end of an instance's row said its users with the Backups page's count
+ * ("{{count}} users"), worded to sit inside a sentence ("3 projects, 12 users
+ * and 140 monitors"): in Russian "пользователей: 7", lowercase where the
+ * row's line begins. The row has a key of its own now, a label and its
+ * figure ("Users: 7"), worded as a line's start in every language and alike
+ * in both apps; the Backups count keeps its mid-sentence wording.
+ */
+describe("an instance's users (#7134)", () => {
+  // The first letter of a line, in any script.
+  const firstLetterOf: (text: string) => string = (text: string): string => {
+    return (text.match(/\p{L}/u) || [""])[0] as string;
+  };
+
+  test("are a key of their own, not the Backups page's count", () => {
+    expect(LicenseDetailsCopy.instanceUsers).toBe("Users: {{count}}");
+    expect(LicenseDetailsCopy.instanceUsers).not.toBe(
+      BACKUP_PLURALS.users.other,
+    );
+
+    const source: string = fs.readFileSync(DETAILS_SOURCE, "utf8");
+
+    expect(source).toContain("LicenseDetailsCopy.instanceUsers");
+    expect(source).not.toContain('"{{count}} users"');
+    expect(source).not.toContain("INSTANCE_USERS");
+  });
+
+  test.each(APP_LANGUAGES)(
+    "%s: %s begins the line with its label, never a lowercase letter",
+    (app: App, language: string) => {
+      const line: string = String(
+        readLocale(app, language)[LicenseDetailsCopy.instanceUsers],
+      );
+
+      expect({ language, line, label: !line.startsWith("{{") }).toEqual({
+        language,
+        line,
+        label: true,
+      });
+      expect({ language, line, lower: (/\p{Ll}/u).test(firstLetterOf(line)) })
+        .toEqual({ language, line, lower: false });
+    },
+  );
+
+  test("Russian: the line starts a line, and the Backups count stays mid-sentence", () => {
+    for (const app of Object.keys(APPS) as Array<App>) {
+      expect(readLocale(app, "ru")[LicenseDetailsCopy.instanceUsers]).toBe(
+        "Пользователей: {{count}}",
+      );
+    }
+
+    expect(readLocale("AdminDashboard", "ru")[BACKUP_PLURALS.users.other]).toBe(
+      "пользователей: {{count}}",
+    );
+  });
+
+  test("Chinese: both apps count users the same way", () => {
+    for (const key of [
+      BACKUP_PLURALS.users.other,
+      `${BACKUP_PLURALS.users.other}_one`,
+    ]) {
+      expect(readLocale("AdminDashboard", "zh-CN")[key]).toBe(
+        readLocale("Dashboard", "zh-CN")[key],
+      );
+      expect(readLocale("AdminDashboard", "zh-CN")[key]).toBe(
+        "{{count}} 位用户",
+      );
+    }
+  });
+
+  test("only Russian's Admin words the users count apart from its Dashboard, for the Backups sentence", () => {
+    const apart: Array<string> = ADMIN_DASHBOARD_LANGUAGES.filter(
+      (language: string): boolean => {
+        return [
+          BACKUP_PLURALS.users.other,
+          `${BACKUP_PLURALS.users.other}_one`,
+        ].some((key: string): boolean => {
+          return (
+            readLocale("AdminDashboard", language)[key] !==
+            readLocale("Dashboard", language)[key]
+          );
+        });
+      },
+    );
+
+    expect(apart).toEqual(["ru"]);
+  });
+
+  test("the check sees a line that begins lowercase (negative control)", () => {
+    expect((/\p{Ll}/u).test(firstLetterOf("пользователей: {{count}}"))).toBe(
+      true,
+    );
+    expect((/\p{Ll}/u).test(firstLetterOf("用户数：{{count}}"))).toBe(false);
   });
 });
 

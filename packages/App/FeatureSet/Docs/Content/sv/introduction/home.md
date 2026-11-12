@@ -38,7 +38,7 @@ Raden högst upp nämner det mest brådskande som är öppet, i en färg som pas
 
 Bredvid den visar Hem när projektet senast lästes in, och **Uppdatera** läser in det igen. När du kommer tillbaka till en flik med Hem efter en minut eller mer uppdateras den av sig själv.
 
-Så länge inget övervakas ännu slutar raden med knappen **Skapa din första övervakare**, som öppnar formuläret som skapar en monitor. Bara den som får skapa monitorer ser den.
+Så länge inget övervakas ännu slutar raden med knappen **Skapa din första övervakare**, som öppnar den guidade installationen **Veta när min webbplats eller mitt API ligger nere**. Bara den som får skapa monitorer ser den.
 
 ### De fem siffrorna
 
@@ -63,16 +63,16 @@ Varje steg bockar av sig självt när saken fungerar, inte när en post finns, o
 | Steg | Klart när | Öppnar |
 | --- | --- | --- |
 | **Importera från ditt nuvarande verktyg** | En import från ett annat verktyg är slutförd. | **Importera från ett annat verktyg** |
-| **Skapa din första övervakare** | Den första kontrollen kommer in. | Formuläret **Skapa monitor**, eller listan **Monitorer** för den som inte får skapa övervakare. |
+| **Skapa din första övervakare** | Den första kontrollen kommer in. | Den guidade installationen **Veta när min webbplats eller mitt API ligger nere**, eller listan **Monitorer** för den som inte får skapa övervakare. |
 | **Anslut en server eller ett kluster** | De första mätvärdena kommer in. | **Värdar** |
-| **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | **Loggar** |
-| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | **Jourtjänst** |
-| **Publicera en statussida** | En statussida visar en övervakare. | **Statussidor** |
+| **Skicka dina första loggar, mätvärden eller spår** | Projektets första loggar, mätvärden, spår, undantag eller profiler kommer in. | Den guidade installationen **Skicka loggar, mätvärden och spår och få sedan larm** |
+| **Konfigurera en jourpolicy** | Ett testlarm kvitteras, ett larm når någon, eller en jourregel kör en policy som kan nå någon. | Den guidade installationen **Larma rätt person när något går sönder** |
+| **Publicera en statussida** | En statussida visar en övervakare. | Den guidade installationen **Publicera en statussida**, eller listan **Statussidor** för den som inte får skapa statussidor. |
 | **Bjud in ditt team** | Någon accepterar din inbjudan. | **Användare** |
 
 Steget du ska ta först är markerat med **Nästa steg**. På OneUptime Clouds Free-plan, som har en person, säger **Bjud in ditt team** att den behöver Growth-planen, och öppnar **Fakturering**. På en egen server som ännu inte kan skicka e-post ser serverns administratörer först **Den här servern kan inte skicka e-post än**; den öppnar administratörsdashboarden.
 
-När du skapar en övervakare, en statussida eller en jourpolicy från ett steg säger sidan du hamnar på vad som kommer härnäst, med **Tillbaka till konfigurationen**.
+En guidad installation gör hela jobbet på en sida, ett steg i taget, och slutar med vad den har konfigurerat och vad du gör härnäst. Sök på dess namn för att öppna den igen senare.
 
 Under stegen visar **Så fungerar OneUptime** de fyra kärnprodukterna i den ordning ett problem går igenom dem: **Monitorer**, **Incidenter och larm**, **Jourtjänst** och **Statussidor**. Klicka på en för att öppna den. Under dem står vad som matar kretsloppet, telemetri och infrastruktur, med länkar till [Grundbegrepp](/docs/introduction/core-concepts) och [Ordlista](/docs/introduction/glossary).
 
@@ -93,6 +93,10 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 
 **Kräver uppmärksamhet** listar med namn det som siffrorna räknar: de öppna incidenterna, de öppna larmen, monitorerna som inte fungerar, SLO:erna i riskzonen och underhållet som pågår, det mest brådskande först. Varje rad visar sin allvarlighetsgrad eller status, säger när en incident eller larm började och när ett underhåll slutar, och öppnar posten. Varje typ visar upp till fem, med **Visa alla** för resten, som öppnar samma lista som dess siffra. När inget är öppet står det **Inget kräver din uppmärksamhet**.
 
+### Inställningarnas hälsa
+
+När något i projektets inställningar skulle hindra att folk får veta, slutar **Kräver uppmärksamhet** med **Inställning**: hur många saker som behöver en titt. Den öppnar **Inställningarnas hälsa**, som listar vad som är felinställt, det allvarligaste först, under **Larm kommer inte fram**, **Värt att åtgärda** och **Förslag**: en monitor som inte larmar någon, en jourpolicy som ingenting kör, en person som inte kan larmas, sms avstängt, ett jourschema utan någon i jour, en statussida som inte visar någon monitor. Varje fynd säger i en mening vad som är fel, med knappen som öppnar åtgärden, och en monitors fynd är de avbrott som dess kort **När den går ner** nämner. Ett fynd som ert team medvetet låter vara kan döljas med en motivering, för alla, och återställas från **Avfärdad**. Sök hittar sidan som **Inställningarnas hälsa**, och Fråga AI svarar på ”är mina inställningar okej?” utifrån den.
+
 ### Ditt projekt
 
 **Ditt projekt** räknar projektets **Monitorer**, **Statussidor**, **Jourpolicyer**, **SLOs**, **Tjänster**, **Instrumentpaneler** och **Arbetsflöden**; arkiverade räknas inte. Varje rad öppnar sin lista. En typ som projektet saknar visar **Konfigurera** i stället för en siffra.
@@ -101,7 +105,7 @@ Checklistan försvinner för alla när varje steg är klart. För att dölja den
 
 ### Utforska OneUptime
 
-**Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den.
+**Utforska OneUptime** visar produkterna i menyn **Produkter**, en kategori i taget, med början i det grundläggande. Varje produkt säger vad den är till för, och öppnas när du klickar på den. Produkterna som ditt projekt döljer är inte med.
 
 ## Hitta rätt
 
@@ -111,6 +115,9 @@ Allt i OneUptime finns under **Produkter** i toppfältet. Menyn visar sina grupp
 - **Du börjar där du är.** Gruppen för sidan du är på fälls ut av sig själv, och produkterna du nyligen har öppnat står överst.
 - **Dina val ligger kvar.** Menyn kommer ihåg i din webbläsare vilka av de andra grupperna du har fällt ut eller ihop. Det grundläggande är utfällt igen varje gång du öppnar menyn, även om du fällde ihop det.
 - **På en telefon** visar menyknappen produkterna på samma sätt: det grundläggande utfällt överst och varje annan grupp som en rad som öppnas med ett tryck.
+- **Produkter som projektet inte använder.** En projektägare eller -administratör kan dölja dem under **Projektinställningar → Grundläggande → Produkter**. En dold produkt flyttas till **Fler produkter**, menyns sista rad: Sök hittar den fortfarande, dess sidor fungerar och dess data fortsätter att komma in. När en av dem börjar ta emot data säger Hem det till dem som kan visa den igen.
+- **Fäst.** Behåll en produkt i det övre fältet, bredvid **Hem** och **Produkter**: tryck på nålen på dess kort i menyn, eller på **Fäst** bredvid dess sidrubrik. Du kan fästa fem, och de följer med dig till alla webbläsare. På en telefon kommer dina fästa produkter först i menyn.
+- **Vad som används.** I varje grupp utom det grundläggande och inställningarna kommer produkterna som ditt projekt använder först, och en som du inte har konfigurerat ännu säger **Inte konfigurerad**. I OneUptime Cloud nämner en produkt som din plan inte omfattar den plan som omfattar den.
 
 ### Fälten högst upp
 

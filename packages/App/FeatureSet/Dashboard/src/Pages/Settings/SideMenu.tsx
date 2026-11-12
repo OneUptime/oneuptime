@@ -31,6 +31,20 @@ const DashboardSideMenu: () => JSX.Element = (): ReactElement => {
           },
           icon: IconProp.Folder,
         },
+        /*
+         * The products this project shows (#6814): a choice about the
+         * whole project, made once and revisited when the team takes up
+         * something new, so it sits with the project itself.
+         */
+        {
+          link: {
+            title: "Products",
+            to: RouteUtil.populateRouteParams(
+              RouteMap[PageMap.SETTINGS_PRODUCTS] as Route,
+            ),
+          },
+          icon: IconProp.Squares,
+        },
         {
           link: {
             title: "Labels",

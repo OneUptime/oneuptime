@@ -964,7 +964,7 @@ export function getResourceAiAttentionStepText(
       return translateTemplate("Turn on AI for this project.");
     case "llm_provider_missing":
       return translateTemplate(
-        "Add an AI provider for this project, or use OneUptime AI credits.",
+        "Add an LLM provider for this project, or use OneUptime AI credits.",
       );
     /*
      * Adding credits, whatever Auto Recharge is doing: the server reports
