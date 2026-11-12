@@ -83,14 +83,17 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
     }
 
     /*
-     * Only the monitors that are checked: an archived monitor, or one whose
-     * monitoring is turned off, holds a frozen status, so neither its status
-     * now nor its history speaks for the group's timeline and uptime
-     * (FrozenMonitorResources, issue #6478). A group whose monitors are all
-     * off has no timeline: the Dashboard draws it as Disabled.
+     * Every monitor of the group but an archived one, which is retired: its
+     * frozen status speaks for nothing (FrozenMonitorResources, issue #6478).
+     * A monitor whose monitoring is off keeps its history up to the moment
+     * it was turned off (issue #6987): its rows from then on mark monitoring
+     * off (isMonitoringOff, issue #6480), and uptime and the Uptime Graph
+     * leave that time out (UptimeUtil), so its frozen status counts for
+     * nothing while the monitors still checked speak for the group. Turned
+     * back on, it counts again from that moment.
      */
     const monitorGroupResources: Array<MonitorGroupResource> =
-      FrozenMonitorResources.withoutFrozenMonitors(
+      FrozenMonitorResources.withoutArchivedMonitors(
         await MonitorGroupResourceService.findBy({
           query: {
             monitorGroupId: monitorGroup.id!,
@@ -101,7 +104,6 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
             monitorId: true,
             monitor: {
               isArchived: true,
-              ...MONITORING_OFF_SELECT,
             },
           },
           props: {
@@ -140,6 +142,8 @@ export class Service extends ProjectReferencesService<MonitorGroup> {
           monitorId: true,
           startsAt: true,
           endsAt: true,
+          // The time with the monitor's monitoring off, which uptime leaves out.
+          isMonitoringOff: true,
           monitorStatus: {
             name: true,
             color: true,

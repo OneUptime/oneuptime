@@ -50758,9 +50758,7 @@
   "Also: {{facts}}.": "此外：{{facts}}。",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "為具名人員設定錄製屬於擷取政策變更，因此需要「{{permission}}」權限（專案擁有者、管理員和遙測管理員擁有此權限）。請專案管理員代你設定目標。",
   "CSV line": "CSV 行",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "此群組中所有監測器的監測均已關閉，因此沒有可顯示的正常運作時間。",
   "Reading recording health needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.": "讀取錄製健康狀況需要「{{permission}}」權限（專案擁有者、管理員和遙測管理員擁有此權限）。請向專案管理員申請此權限，或請他們代你執行此檢查。",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "此群組過去 90 天的狀態，每天一根長條。已關閉監測的監測器不計入其中。",
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "你的角色無法讀取終端使用者身分，因此伺服器捨棄了使用者篩選條件 \"{{user}}\"，此清單並未限縮到該使用者。請向專案管理員申請「{{permission}}」權限，或改依 URL、標籤或裝置篩選。",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "你的角色無法讀取終端使用者身分，因此伺服器會忽略此篩選條件。請向專案管理員申請「{{permission}}」權限。",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "你的角色缺少「{{permission}}」權限。請向專案管理員申請。",
@@ -50927,5 +50925,13 @@
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
   "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
-  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity."
+  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
+  "Monitoring Off": "監測已關閉",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "此群組過去 90 天的狀態，每天一根長條，截至其所有監測器的監測被關閉時為止。",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "此群組過去 90 天的狀態，每天一根長條。每個監測器僅在其監測開啟期間計入。",
+  "leaves out time with monitoring off": "不含監測關閉的時間",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}，監測已關閉，自 {{start}} 起，已持續 {{duration}}。目前進行中。",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}，監測已關閉，{{start}} – {{end}}，{{duration}}",
+  "{{count}} earlier turns are not shown": "之前的 {{count}} 個回合未顯示",
+  "{{count}} earlier turns are not shown_one": "之前的 {{count}} 個回合未顯示"
 }

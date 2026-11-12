@@ -41,6 +41,12 @@
  *                       (the Profiler's AI section): its request is
  *                       OneUptime's, its origin the finding, and it opened
  *                       pull request #431
+ *   - long=1            checkout-api has a task kept open as a working
+ *                       thread for three weeks (issue #6529): 207 turns,
+ *                       every reply pushed to its pull request - #402 until
+ *                       it was merged, then #455. As the server reads it,
+ *                       its page gets the first turn and the newest 199, and
+ *                       how many turns are not shown between them
  *   - hosts=1           repositories beyond GitHub too, each through its
  *                       connection: billing-service on GitLab (gitlab.com)
  *                       with merge request !12, status-widgets on Forgejo
@@ -256,6 +262,8 @@ const TASK_IDS = {
   terraform: "40000000-0000-4000-8000-0000000000d9",
   // insight=1: started by OneUptime, from slow code it found.
   insight: "40000000-0000-4000-8000-0000000000da",
+  // long=1: a working thread of 207 turns (its first turn's id).
+  long: "40000000-0000-4000-8000-0000000000db",
 };
 
 const RECORD_IDS = {
@@ -294,6 +302,7 @@ const reposParam = params.get("repos") || "some";
 const isGitHubGone = params.get("connected") === "none";
 const hasNoTasks = params.get("tasks") === "none";
 const hasInsightTask = params.get("insight") === "1";
+const hasLongTask = params.get("long") === "1";
 const hasManyBranches = params.get("branches") === "many";
 const hasLongNames = params.get("names") === "long";
 const blockerParam = params.get("blocker");
@@ -2144,6 +2153,241 @@ if (hasInsightTask && !hasNoTasks) {
 }
 
 /*
+ * long=1: a task kept open as a working thread (issue #6529). Grace asked
+ * AI to move checkout-api's handlers to the new error format one at a
+ * time, then kept asking in the same task for three weeks: 207 turns, each
+ * reply pushed to the task's open pull request - #402 until it was merged
+ * after turn 120, then #455, which turn 121 opened. The server reads such
+ * a task's first turn and its newest 199 (conversationOf, below).
+ */
+const LONG_TASK_TURN_COUNT = 207;
+
+// The follow-ups are about these handlers, each in turn.
+const LONG_TASK_HANDLERS = [
+  "carts",
+  "coupons",
+  "refunds",
+  "orders",
+  "invoices",
+  "taxes",
+  "shipping",
+  "inventory",
+  "receipts",
+  "webhooks",
+  "customers",
+  "addresses",
+  "discounts",
+  "gift-cards",
+  "subscriptions",
+  "wallets",
+  "payouts",
+  "disputes",
+  "quotes",
+  "returns",
+  "loyalty",
+  "sessions",
+  "prices",
+];
+
+// What Grace asked of each handler, round after round, and what AI said.
+const LONG_TASK_ASKS = [
+  (handler) => {
+    return {
+      message: `Now the ${handler} handler.`,
+      summary: `Done: \`src/handlers/${handler}.ts\` throws \`CheckoutError\` with a code now, and its tests check the codes.`,
+      files: [`src/handlers/${handler}.ts`, `test/handlers/${handler}.test.ts`],
+    };
+  },
+  (handler) => {
+    return {
+      message: `Add tests for the ${handler} handler's error paths: a missing field, a bad id and a gateway timeout.`,
+      summary: `Added the three cases to \`test/handlers/${handler}.test.ts\`. Each answers with its own code, and the tests pass.`,
+      files: [`test/handlers/${handler}.test.ts`],
+    };
+  },
+  (handler) => {
+    return {
+      message: `Log the ${handler} handler's errors at warn, with the request's id.`,
+      summary: `The ${handler} handler logs each error at warn level now, with the request's id.`,
+      files: [`src/handlers/${handler}.ts`],
+    };
+  },
+  (handler) => {
+    return {
+      message: `Validate the ${handler} handler's body before it reads the database.`,
+      summary: `The ${handler} handler checks its body first now, and answers 400 with what is wrong before any read.`,
+      files: [`src/handlers/${handler}.ts`, `test/handlers/${handler}.test.ts`],
+    };
+  },
+  (handler) => {
+    return {
+      message: `Put a span around each database call in the ${handler} handler.`,
+      summary: `Each database call in \`src/handlers/${handler}.ts\` runs in a span named after its query now.`,
+      files: [`src/handlers/${handler}.ts`],
+    };
+  },
+  (handler) => {
+    return {
+      message: `Remove the ${handler} handler's old error codes if nothing reads them.`,
+      summary: `Nothing read them any more, so I removed the old codes from \`src/handlers/${handler}.ts\`.`,
+      files: [`src/handlers/${handler}.ts`],
+    };
+  },
+  (handler) => {
+    return {
+      message: `Make the ${handler} handler's error messages say what to do next.`,
+      summary: `Each of the ${handler} handler's errors ends with what to do next now, such as "Check the card number and try again."`,
+      files: [`src/handlers/${handler}.ts`],
+    };
+  },
+  (handler) => {
+    return {
+      message: `List the ${handler} handler's error codes in docs/errors.md.`,
+      summary: `Added the ${handler} handler's codes to \`docs/errors.md\`, each with when it is sent.`,
+      files: ["docs/errors.md"],
+    };
+  },
+  (handler) => {
+    return {
+      message: `Check the ${handler} handler against the new lint rule for errors.`,
+      summary: `The lint rule passes on \`src/handlers/${handler}.ts\`. Nothing needed changing.`,
+      files: [],
+    };
+  },
+];
+
+const PULL_REQUEST_402 = {
+  number: 402,
+  url: "https://github.com/acme/checkout-api/pull/402",
+  title: "Move checkout-api's handlers to the new error format",
+  state: "merged",
+  branch: "oneuptime-task-5-7e6d5c4b",
+};
+
+const PULL_REQUEST_455 = {
+  number: 455,
+  url: "https://github.com/acme/checkout-api/pull/455",
+  title: "Move the rest of checkout-api's handlers to the new error format",
+  state: "open",
+  branch: "oneuptime-task-5-3f2e1d0c",
+};
+
+// The index'th turn of the long task: the first, then each follow-up.
+function longTaskTurn(index) {
+  // Every two and a half hours, the newest 20 minutes ago.
+  const askedMinutesAgo = (LONG_TASK_TURN_COUNT - 1 - index) * 150 + 20;
+  const took = 2 + (index % 4);
+  const times = {
+    status: AIRunStatus.Completed,
+    createdAt: minutesAgo(askedMinutesAgo),
+    startedAt: minutesAgo(askedMinutesAgo - 1),
+    completedAt: minutesAgo(askedMinutesAgo - 1 - took),
+    userId: GRACE_ID,
+  };
+  if (index === 0) {
+    return turn({
+      ...times,
+      runId: TASK_IDS.long,
+      request: {
+        message:
+          "Move checkout-api's handlers to the new error format (`CheckoutError` in src/errors.ts), one handler at a time. Start with payments, and keep the changes in one pull request.",
+        context: [],
+      },
+      steps: [
+        step(1, CodeTaskStepKind.Read, "src/errors.ts"),
+        step(2, CodeTaskStepKind.Edited, "src/handlers/payments.ts"),
+        step(3, CodeTaskStepKind.Ran, "npm test -- handlers"),
+        step(4, CodeTaskStepKind.PullRequest, "Opened pull request #402"),
+      ],
+      outcome: {
+        summary:
+          "Done for payments: `src/handlers/payments.ts` throws `CheckoutError` with a code now, and its tests check the codes. I opened pull request #402, and I will push each next handler to it.",
+        filesChanged: [
+          {
+            path: "src/handlers/payments.ts",
+            status: CodeTaskFileStatus.Modified,
+            additions: 12,
+            deletions: 7,
+          },
+        ],
+        branchName: PULL_REQUEST_402.branch,
+        pullRequestNumber: 402,
+        pullRequestUrl: PULL_REQUEST_402.url,
+        openedPullRequest: true,
+      },
+      pullRequests: [PULL_REQUEST_402],
+    });
+  }
+  const handler = LONG_TASK_HANDLERS[(index - 1) % LONG_TASK_HANDLERS.length];
+  const ask =
+    LONG_TASK_ASKS[Math.floor((index - 1) / LONG_TASK_HANDLERS.length)](
+      handler,
+    );
+  const opensPullRequest = index === 120;
+  const pullRequest = index < 120 ? PULL_REQUEST_402 : PULL_REQUEST_455;
+  const file = ask.files[0] || `src/handlers/${handler}.ts`;
+  const steps = [step(1, CodeTaskStepKind.Read, file)];
+  if (ask.files.length > 0) {
+    steps.push(step(2, CodeTaskStepKind.Edited, file));
+    steps.push(step(3, CodeTaskStepKind.Ran, "npm test -- handlers"));
+  } else {
+    steps.push(step(2, CodeTaskStepKind.Ran, "npm run lint -- src/handlers"));
+  }
+  if (opensPullRequest) {
+    steps.push(
+      step(
+        steps.length + 1,
+        CodeTaskStepKind.PullRequest,
+        "Opened pull request #455",
+      ),
+    );
+  }
+  let summary = ask.summary;
+  if (opensPullRequest) {
+    summary += ` Pull request #402 is merged, so I opened pull request #455 for this and the handlers after it.`;
+  } else if (ask.files.length > 0) {
+    summary += ` I pushed it to pull request #${pullRequest.number}.`;
+  }
+  const outcome = {
+    summary,
+    filesChanged: ask.files.map((path, position) => {
+      return {
+        path,
+        status: CodeTaskFileStatus.Modified,
+        additions: 2 + ((index + position) % 9),
+        deletions: (index + position) % 4,
+      };
+    }),
+  };
+  if (ask.files.length > 0) {
+    outcome.branchName = pullRequest.branch;
+    outcome.pullRequestNumber = pullRequest.number;
+    outcome.pullRequestUrl = pullRequest.url;
+    outcome.openedPullRequest = opensPullRequest;
+  }
+  return turn({
+    ...times,
+    runId: `41000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+    request: { message: ask.message, context: [] },
+    steps,
+    outcome,
+    pullRequests: opensPullRequest ? [PULL_REQUEST_455] : [],
+  });
+}
+
+if (hasLongTask && !hasNoTasks) {
+  tasks.push({
+    id: TASK_IDS.long,
+    repositoryId: REPOSITORY_IDS.checkout,
+    taskNumber: 5,
+    title: "Move checkout-api's handlers to the new error format",
+    turns: Array.from({ length: LONG_TASK_TURN_COUNT }, (_, index) => {
+      return longTaskTurn(index);
+    }),
+  });
+}
+
+/*
  * hosts=1: billing-service's task opened GitLab's merge request !12, and
  * infra-scripts' pushed a branch - OneUptime opens no pull request on a
  * Git server - saying where to open one (Runner PushedBranches).
@@ -2790,6 +3034,38 @@ function turnJSON(task, item, index, canSeeChanges) {
   return json;
 }
 
+/*
+ * A task's conversation as the server reads it (CodeTaskThread.getTurns,
+ * MAX_TURNS_PER_TASK): every turn of a task of up to 200, and of a longer
+ * one its first turn and its newest 199, with how many turns are left out
+ * between them and how long AI worked on those (CodeTaskPresenter's
+ * turnsNotShown). The task's summary still counts every turn.
+ */
+const MAX_TURNS_PER_TASK = 200;
+
+function conversationOf(task) {
+  if (task.turns.length <= MAX_TURNS_PER_TASK) {
+    return { turns: task.turns, turnsNotShown: null };
+  }
+  const firstNewest = task.turns.length - (MAX_TURNS_PER_TASK - 1);
+  const notShown = task.turns.slice(1, firstNewest);
+  let workMilliseconds = 0;
+  for (const item of notShown) {
+    if (!item.startedAt || !item.completedAt) {
+      continue;
+    }
+    const took =
+      new Date(item.completedAt).getTime() - new Date(item.startedAt).getTime();
+    if (took > 0) {
+      workMilliseconds += took;
+    }
+  }
+  return {
+    turns: [task.turns[0], ...task.turns.slice(firstNewest)],
+    turnsNotShown: { count: notShown.length, workMilliseconds },
+  };
+}
+
 function statsOf(repositoryId) {
   // A pull request's production review is not one of a repository's tasks.
   const own = tasks.filter((task) => {
@@ -3190,21 +3466,23 @@ async function answer(path, body) {
     }
     advance(task, task.turns[task.turns.length - 1]);
     const repository = repositoryOf(task);
-    return new HTTPResponse(
-      200,
-      {
-        task: summaryOf(task),
-        turns: task.turns.map((item, index) => {
-          return turnJSON(task, item, index, CAN_ASK);
-        }),
-        repository: repository ? withProductionReview(repository) : null,
-        canAsk: Boolean(repository) && CAN_ASK,
-        canSeeChanges: Boolean(repository) && CAN_ASK,
-        canReadLogContent: role === "owner",
-        blocker: repository ? blockerFor(repository) : null,
-      },
-      {},
-    );
+    const conversation = conversationOf(task);
+    const response = {
+      task: summaryOf(task),
+      turns: conversation.turns.map((item, index) => {
+        return turnJSON(task, item, index, CAN_ASK);
+      }),
+      repository: repository ? withProductionReview(repository) : null,
+      canAsk: Boolean(repository) && CAN_ASK,
+      canSeeChanges: Boolean(repository) && CAN_ASK,
+      canReadLogContent: role === "owner",
+      blocker: repository ? blockerFor(repository) : null,
+    };
+    // As the server: said only when the read leaves turns out.
+    if (conversation.turnsNotShown) {
+      response.turnsNotShown = conversation.turnsNotShown;
+    }
+    return new HTTPResponse(200, response, {});
   }
 
   if (path === "/create") {

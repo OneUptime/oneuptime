@@ -50758,9 +50758,7 @@
   "Also: {{facts}}.": "I tillegg: {{facts}}.",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "Å aktivere et opptak av en navngitt person er en endring i opptakspolicyen, så det krever tillatelsen «{{permission}}» (prosjekteiere, administratorer og telemetriadministratorer har den). Be en prosjektadministrator om å aktivere målet for deg.",
   "CSV line": "CSV-linje",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "Overvåking er slått av for alle monitorer i denne gruppen, så det er ingen oppetid å vise.",
   "Reading recording health needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.": "For å lese opptakets tilstand trenger du tillatelsen «{{permission}}» (prosjekteiere, administratorer og telemetriadministratorer har den). Be en prosjektadministrator om å gi deg den, eller om å kjøre denne kontrollen for deg.",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Denne gruppens status de siste 90 dagene, én stolpe per dag. Monitorer der overvåking er slått av, er utelatt.",
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "Rollen din kan ikke lese sluttbrukeridentitet, så serveren forkastet brukerfilteret \"{{user}}\", og denne listen er IKKE begrenset til den brukeren. Be en prosjektadministrator om tillatelsen «{{permission}}», eller filtrer etter URL, tagg eller enhet i stedet.",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Rollen din kan ikke lese sluttbrukeridentitet, så serveren ignorerer dette filteret. Be en prosjektadministrator om tillatelsen «{{permission}}».",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Rollen din mangler tillatelsen «{{permission}}». Be en prosjektadministrator om den.",
@@ -50927,5 +50925,13 @@
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.",
   "{{name}} has no verified notification method.": "{{name}} has no verified notification method.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} is reached only by channels that are off in this project.",
-  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity."
+  "{{name}} opted out of pages of this severity.": "{{name}} opted out of pages of this severity.",
+  "Monitoring Off": "Overvåking slått av",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "Denne gruppens status de siste 90 dagene, én stolpe per dag, frem til overvåkingen ble slått av for alle monitorene i den.",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "Denne gruppens status de siste 90 dagene, én stolpe per dag. Hver monitor teller bare mens overvåkingen av den er slått på.",
+  "leaves out time with monitoring off": "utelater tid med overvåking slått av",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvåking slått av, siden {{start}}, {{duration}} så langt. Aktiv nå.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvåking slått av, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} tidligere turer vises ikke",
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
 }

@@ -32,6 +32,7 @@ import {
   useDeferredChartClick,
 } from "../Utils/DoubleClick";
 import useChartBucketsChange from "../Utils/UseChartBucketsChange";
+import { LegendItemRank, useLegendItemRank } from "../Utils/LegendOrder";
 import FormattedReferenceRegion from "../Types/FormattedReferenceRegion";
 import FormattedTimeReferenceLine from "../Types/FormattedTimeReferenceLine";
 import type { AxisDomain } from "recharts/types/util/types";
@@ -791,6 +792,8 @@ const BarChart: React.ForwardRefExoticComponent<
     );
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+    // The legend names the series in the order the page gives them.
+    const legendItemRank: LegendItemRank = useLegendItemRank(categories);
 
     /*
      * Every click on the plot waits out the double-click window while a
@@ -1197,6 +1200,11 @@ const BarChart: React.ForwardRefExoticComponent<
                    * hovered and clicked. The items above it take it back.
                    */
                   wrapperStyle={{ pointerEvents: "none" }}
+                  /*
+                   * In the order of `categories`, never recharts' default
+                   * alphabetical one; see LegendOrder.
+                   */
+                  itemSorter={legendItemRank}
                   content={({ payload }: any) => {
                     return ChartLegend(
                       { payload },

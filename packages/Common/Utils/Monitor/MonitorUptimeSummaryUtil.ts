@@ -38,10 +38,16 @@ export type UptimeWindowKind = "Measured" | "NoData";
  * Why the time in a window may not have been measured, even though the
  * status timeline covers it: the open timeline row keeps the last status
  * while monitoring is paused, while nothing is checking, and before the
- * first check has completed. See
+ * first check has completed. Or why a window may be measured over less than
+ * its length: time with the monitor's monitoring turned off is left out of
+ * it (MonitorStatusTimeline.isMonitoringOff, issue #6480). See
  * MonitorOverviewPresentationUtil.getUptimeCaveat.
  */
-export type MonitorUptimeCaveat = "paused" | "not-checking" | "no-results";
+export type MonitorUptimeCaveat =
+  | "paused"
+  | "not-checking"
+  | "no-results"
+  | "monitoring-off";
 
 /*
  * What each caveat adds to a window's description, as a phrase of its own
@@ -51,6 +57,7 @@ const CAVEAT_TEXT: Record<MonitorUptimeCaveat, string> = {
   paused: translationKey("includes paused time"),
   "not-checking": translationKey("includes time with no checks running"),
   "no-results": translationKey("no check has completed yet"),
+  "monitoring-off": translationKey("leaves out time with monitoring off"),
 };
 
 // English, word for word as the windows always read: no lookup.

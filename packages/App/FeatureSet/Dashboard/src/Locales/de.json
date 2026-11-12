@@ -50758,9 +50758,7 @@
   "Also: {{facts}}.": "Außerdem: {{facts}}.",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "Die Aktivierung einer Aufzeichnung für eine bestimmte Person ist eine Änderung der Erfassungsrichtlinie und erfordert daher die Berechtigung „{{permission}}“ (Projekteigentümer, Administratoren und Telemetrie-Administratoren haben sie). Bitten Sie einen Projektadministrator, das Ziel für Sie zu aktivieren.",
   "CSV line": "CSV-Zeile",
-  "Monitoring is off for every monitor in this group, so it has no uptime to show.": "Die Überwachung ist für jeden Monitor in dieser Gruppe ausgeschaltet, daher gibt es keine Verfügbarkeit anzuzeigen.",
   "Reading recording health needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.": "Zum Lesen des Aufzeichnungszustands ist die Berechtigung „{{permission}}“ erforderlich (Projekteigentümer, Administratoren und Telemetrie-Administratoren haben sie). Bitten Sie einen Projektadministrator, sie Ihnen zu erteilen oder diese Prüfung für Sie auszuführen.",
-  "This group's status over the last 90 days, one bar per day. Monitors whose monitoring is off are left out.": "Der Status dieser Gruppe in den letzten 90 Tagen, ein Balken pro Tag. Monitore mit ausgeschalteter Überwachung sind nicht enthalten.",
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "Ihre Rolle kann keine Endbenutzeridentitäten lesen, daher hat der Server den Benutzerfilter \"{{user}}\" verworfen, und diese Liste ist NICHT auf diesen Benutzer eingegrenzt. Bitten Sie einen Projektadministrator um die Berechtigung „{{permission}}“, oder filtern Sie stattdessen nach URL, Tag oder Gerät.",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Ihre Rolle kann keine Endbenutzeridentitäten lesen, daher ignoriert der Server diesen Filter. Bitten Sie einen Projektadministrator um die Berechtigung „{{permission}}“.",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Ihrer Rolle fehlt die Berechtigung „{{permission}}“. Bitten Sie einen Projektadministrator darum.",
@@ -50927,5 +50925,13 @@
   "{{name}} has no on-call rule for this severity, and this project doesn't fall back to verified methods.": "{{name}} hat keine Bereitschaftsregel für diesen Schweregrad, und dieses Projekt greift nicht auf verifizierte Methoden zurück.",
   "{{name}} has no verified notification method.": "{{name}} hat keine verifizierte Benachrichtigungsmethode.",
   "{{name}} is reached only by channels that are off in this project.": "{{name}} ist nur über Kanäle erreichbar, die in diesem Projekt ausgeschaltet sind.",
-  "{{name}} opted out of pages of this severity.": "{{name}} hat Alarmierungen dieses Schweregrads abbestellt."
+  "{{name}} opted out of pages of this severity.": "{{name}} hat Alarmierungen dieses Schweregrads abbestellt.",
+  "Monitoring Off": "Überwachung aus",
+  "This group's status over the last 90 days, one bar per day, up to when monitoring was turned off for all of its monitors.": "Der Status dieser Gruppe in den letzten 90 Tagen, ein Balken pro Tag, bis die Überwachung für alle ihre Monitore ausgeschaltet wurde.",
+  "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "Der Status dieser Gruppe in den letzten 90 Tagen, ein Balken pro Tag. Jeder Monitor zählt nur, solange seine Überwachung eingeschaltet ist.",
+  "leaves out time with monitoring off": "ohne Zeit mit ausgeschalteter Überwachung",
+  "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, Überwachung aus, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} frühere Durchgänge werden nicht angezeigt",
+  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt"
 }

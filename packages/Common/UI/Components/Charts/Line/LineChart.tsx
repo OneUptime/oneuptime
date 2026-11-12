@@ -132,6 +132,15 @@ export interface ComponentProps {
    * across missing points as they always have.
    */
   connectNulls?: boolean | undefined;
+  /*
+   * true keeps the plot as tall as heightInPx gives it when the legend
+   * wraps onto more lines than one: the chart grows by those lines, instead
+   * of taking them from the plot. Three long series names on a phone took a
+   * 176px card chart's plot from 78px down to 30px (Product Analytics'
+   * Active users). Unset, the legend's lines come out of heightInPx, for a
+   * chart that has to fit a box of its own size (a dashboard widget).
+   */
+  growsWhenLegendWraps?: boolean | undefined;
 }
 
 export interface LineInternalProps extends ComponentProps {
@@ -142,6 +151,18 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
   props: LineInternalProps,
 ): ReactElement => {
   const [records, setRecords] = React.useState<Array<ChartDataPoint>>([]);
+  /*
+   * How much taller than one line the legend is, as the chart last measured
+   * it: the height the chart grows by when growsWhenLegendWraps is on.
+   */
+  const [legendExtraRowsHeight, setLegendExtraRowsHeight] =
+    React.useState<number>(0);
+  const isGrownByLegend: boolean = Boolean(
+    props.growsWhenLegendWraps && props.showLegend !== false,
+  );
+  const chartHeightInPx: number | undefined = props.heightInPx
+    ? props.heightInPx + (isGrownByLegend ? legendExtraRowsHeight : 0)
+    : undefined;
 
   /*
    * Drag-to-zoom: the host's own handlers, or else the enclosing page's
@@ -292,7 +313,7 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
           ? "relative isolate flex"
           : "relative isolate flex flex-1"
       }
-      style={props.heightInPx ? { height: `${props.heightInPx}px` } : undefined}
+      style={chartHeightInPx ? { height: `${chartHeightInPx}px` } : undefined}
     >
       <LineChart
         data={records}
@@ -337,6 +358,9 @@ const LineChartElement: FunctionComponent<LineInternalProps> = (
         ghostCategories={props.ghostSeriesNames}
         // The legend under the plot follows the time axis's labels closely.
         isFollowedByLegend={hasLabelLegend}
+        onLegendExtraRowsHeightChange={
+          isGrownByLegend ? setLegendExtraRowsHeight : undefined
+        }
       />
       {hasNoData && <NoDataMessage />}
     </div>

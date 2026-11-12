@@ -69,12 +69,14 @@ const entry: (data: {
   to: number | null;
   id?: string;
   rank?: number | undefined;
+  isMonitoringOff?: boolean | undefined;
 }) => StatusTimelineEntry = (data: {
   status?: "operational" | "offline" | "degraded";
   from: number;
   to: number | null;
   id?: string;
   rank?: number | undefined;
+  isMonitoringOff?: boolean | undefined;
 }): StatusTimelineEntry => {
   idCounter++;
   const status: "operational" | "offline" | "degraded" =
@@ -101,6 +103,9 @@ const entry: (data: {
           : status === "degraded"
             ? 2
             : 3,
+    ...(data.isMonitoringOff !== undefined
+      ? { isMonitoringOff: data.isMonitoringOff }
+      : {}),
   };
 };
 
@@ -678,6 +683,129 @@ describe("layoutStatusTimelineBand: blips that run together are one cluster", ()
   });
 });
 
+/*
+ * Time with a monitor's monitoring turned off (issue #6480): turning it off
+ * or on starts an entry with the same status, marked isMonitoringOff while
+ * it is off. Nothing checked the monitor then, so the band never draws that
+ * time in a status's colour.
+ */
+describe("layoutStatusTimelineBand: time with monitoring off", () => {
+  test("an entry held with monitoring off is drawn as such; the entries around it are not", () => {
+    const bandLayout: StatusTimelineBandLayout = layout({
+      entries: [
+        entry({ from: -30 * DAY, to: -20 * DAY, id: "before" }),
+        entry({
+          from: -20 * DAY,
+          to: -17 * DAY,
+          id: "off",
+          isMonitoringOff: true,
+        }),
+        entry({
+          from: -17 * DAY,
+          to: null,
+          id: "after",
+          isMonitoringOff: false,
+        }),
+      ],
+      window: windowOf(-30 * DAY, 0),
+    });
+
+    expect(markFor(bandLayout, "before").isMonitoringOff).toBe(false);
+    expect(markFor(bandLayout, "off").isMonitoringOff).toBe(true);
+    expect(markFor(bandLayout, "after").isMonitoringOff).toBe(false);
+    // Its own mark, as wide as the time it covers.
+    expect(markFor(bandLayout, "off").isCluster).toBe(false);
+    expect(markFor(bandLayout, "off").width).toBeCloseTo(10, 5);
+  });
+
+  test("a status left standing with monitoring off never colours a cluster with a checked one", () => {
+    const bandLayout: StatusTimelineBandLayout = layout({
+      entries: [
+        entry({ from: -30 * DAY, to: -10 * DAY }),
+        entry({
+          status: "offline",
+          from: -10 * DAY,
+          to: -10 * DAY + MINUTE,
+          id: "checked",
+        }),
+        // Offline, frozen for a second by turning monitoring off.
+        entry({
+          status: "offline",
+          from: -10 * DAY + MINUTE,
+          to: -10 * DAY + MINUTE + SECOND,
+          id: "frozen",
+          isMonitoringOff: true,
+        }),
+        entry({
+          status: "degraded",
+          from: -10 * DAY + MINUTE + SECOND,
+          to: -10 * DAY + 2 * MINUTE,
+          id: "degraded",
+        }),
+        entry({ from: -10 * DAY + 2 * MINUTE, to: null }),
+      ],
+      window: windowOf(-30 * DAY, 0),
+    });
+    const cluster: StatusTimelineBandMark = markFor(bandLayout, "frozen");
+
+    expect(cluster.isCluster).toBe(true);
+    expect(cluster.entryIds).toEqual(["checked", "frozen", "degraded"]);
+    // Coloured by what was checked: the Offline, then the Degraded.
+    expect(cluster.color).toBe(RED);
+    expect(cluster.isMonitoringOff).toBe(false);
+
+    const onlyFrozenOffline: StatusTimelineBandLayout = layout({
+      entries: [
+        entry({ from: -30 * DAY, to: -10 * DAY }),
+        entry({
+          from: -10 * DAY,
+          to: -10 * DAY + MINUTE,
+          id: "checked-up",
+        }),
+        entry({
+          status: "offline",
+          from: -10 * DAY + MINUTE,
+          to: -10 * DAY + 2 * MINUTE,
+          id: "frozen-offline",
+          isMonitoringOff: true,
+        }),
+        entry({ from: -10 * DAY + 2 * MINUTE, to: null }),
+      ],
+      window: windowOf(-30 * DAY, 0),
+    });
+
+    // Without the rule an Offline nobody saw would paint an outage red.
+    expect(markFor(onlyFrozenOffline, "frozen-offline").color).toBe(GREEN);
+  });
+
+  test("a cluster of nothing but time with monitoring off is drawn as such", () => {
+    const bandLayout: StatusTimelineBandLayout = layout({
+      entries: [
+        entry({ from: -30 * DAY, to: -10 * DAY }),
+        entry({
+          status: "offline",
+          from: -10 * DAY,
+          to: -10 * DAY + MINUTE,
+          id: "off-1",
+          isMonitoringOff: true,
+        }),
+        entry({
+          from: -10 * DAY + MINUTE,
+          to: -10 * DAY + 2 * MINUTE,
+          id: "off-2",
+          isMonitoringOff: true,
+        }),
+        entry({ from: -10 * DAY + 2 * MINUTE, to: null }),
+      ],
+      window: windowOf(-30 * DAY, 0),
+    });
+    const cluster: StatusTimelineBandMark = markFor(bandLayout, "off-1");
+
+    expect(cluster.isCluster).toBe(true);
+    expect(cluster.isMonitoringOff).toBe(true);
+  });
+});
+
 describe("getClusterColor", () => {
   test("the most serious status wins", () => {
     expect(
@@ -1088,7 +1216,74 @@ describe("summarizeStatusTimeline: the legend", () => {
       now: NOW,
     });
 
-    expect(summary).toEqual({ items: [], measuredMs: 0 });
+    expect(summary).toEqual({
+      items: [],
+      measuredMs: 0,
+      monitoringOffMs: 0,
+      monitoringOffCount: 0,
+    });
+  });
+
+  /*
+   * Issue #6480: the legend said "Operational 99.84%" counting days nothing
+   * checked the monitor. Time with monitoring off is counted apart, and the
+   * shares are of the time something did check it - as uptime is.
+   */
+  test("time with monitoring off is in no status's time or share, and is counted apart", () => {
+    const summary: StatusTimelineSummary = summarizeStatusTimeline({
+      entries: resolveStatusTimelineEntries(
+        [
+          entry({ from: -200 * HOUR, to: -60 * HOUR }),
+          entry({ from: -60 * HOUR, to: -40 * HOUR, isMonitoringOff: true }),
+          entry({ from: -40 * HOUR, to: -10 * HOUR }),
+          entry({ status: "offline", from: -10 * HOUR, to: -5 * HOUR }),
+          entry({
+            status: "offline",
+            from: -5 * HOUR,
+            to: null,
+            isMonitoringOff: true,
+          }),
+        ],
+        NOW,
+      ),
+      window: windowOf(-100 * HOUR, 0),
+      now: NOW,
+    });
+
+    expect(summary.measuredMs).toBe(75 * HOUR);
+    expect(summary.monitoringOffMs).toBe(25 * HOUR);
+    expect(summary.monitoringOffCount).toBe(2);
+    expect(
+      summary.items.map((item: StatusTimelineSummaryItem) => {
+        return {
+          name: item.name,
+          hours: item.durationMs / HOUR,
+          share: item.share,
+          count: item.count,
+        };
+      }),
+    ).toEqual([
+      { name: "Operational", hours: 70, share: 70 / 75, count: 2 },
+      { name: "Offline", hours: 5, share: 5 / 75, count: 1 },
+    ]);
+  });
+
+  test("a window with only time with monitoring off has no statuses, only that time", () => {
+    const summary: StatusTimelineSummary = summarizeStatusTimeline({
+      entries: resolveStatusTimelineEntries(
+        [entry({ from: -5 * HOUR, to: null, isMonitoringOff: true })],
+        NOW,
+      ),
+      window: windowOf(-HOUR, 0),
+      now: NOW,
+    });
+
+    expect(summary).toEqual({
+      items: [],
+      measuredMs: 0,
+      monitoringOffMs: HOUR,
+      monitoringOffCount: 1,
+    });
   });
 });
 
@@ -1120,6 +1315,26 @@ describe("formatStatusTimelineCompactDuration", () => {
     expect(formatStatusTimelineCompactDuration("1 hour 2 mins 3 secs")).toBe(
       "1 hour 2 mins",
     );
+  });
+
+  /*
+   * German lists its units with commas ("26 Tg., 22 Std., 5 Min. und
+   * 3 Sek."): cut to two units, the legend read "26 Tg., 22 Std.,".
+   */
+  test("a list comma after the second unit goes with the units cut", () => {
+    expect(
+      formatStatusTimelineCompactDuration("26 Tg., 22 Std., 5 Min. und 3 Sek."),
+    ).toBe("26 Tg., 22 Std.");
+    expect(
+      formatStatusTimelineCompactDuration(
+        "3 \u0623\u064a\u0627\u0645\u060c 4 \u0633\u060c 5 \u062f",
+      ),
+    ).toBe("3 \u0623\u064a\u0627\u0645\u060c 4 \u0633");
+    expect(
+      formatStatusTimelineCompactDuration(
+        "26 \u65e5\u3001 22 \u6642\u9593\u3001 5 \u5206",
+      ),
+    ).toBe("26 \u65e5\u3001 22 \u6642\u9593");
   });
 
   test("a short duration reads whole", () => {

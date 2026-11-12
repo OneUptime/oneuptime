@@ -56,6 +56,15 @@ export interface StatusTimelineEntry {
    * cluster takes the colour of the status it spent longest in.
    */
   rank?: number | undefined;
+  /*
+   * Nothing checked the record while it was in this status: a monitor
+   * whose monitoring was turned off (MonitorStatusTimeline.isMonitoringOff,
+   * issue #6480), whose status is only what its last check saw before
+   * then. The band draws that time as not monitored rather than in the
+   * status's colour, and the legend counts it apart, in no status's share
+   * - as uptime leaves it out.
+   */
+  isMonitoringOff?: boolean | undefined;
 }
 
 export interface StatusTimelineWindow {
@@ -94,6 +103,19 @@ export const NOW_TOLERANCE_MS: number = 60 * 1000;
 export const MIN_MARK_PX: number = 4;
 
 /*
+ * Time with monitoring off (isMonitoringOff, issue #6480), wherever the
+ * timeline draws it - its marks on the band, the legend's swatch, the
+ * tooltip's: not a status's colour but the band's look for time nothing
+ * measured, the fine stripes of a stretch with no status on a gray a shade
+ * darker than the band's own ground. A Tailwind class, so the dark theme
+ * recolours it (Theme.css) as it does the band.
+ */
+export const MONITORING_OFF_CLASS_NAME: string = "bg-gray-300";
+
+export const MONITORING_OFF_STRIPES: string =
+  "repeating-linear-gradient(135deg, rgba(75, 85, 99, 0.4) 0, rgba(75, 85, 99, 0.4) 1px, transparent 1px, transparent 5px)";
+
+/*
  * The width the band is laid out for until it has been measured (the first
  * paint, a test without layout): about what it is on a laptop.
  */
@@ -107,6 +129,26 @@ export const DEFAULT_BAND_WIDTH_PX: number = 800;
 export const MIN_GAP_MS: number = 1000;
 
 const WHITESPACE: RegExp = /\s+/;
+
+/*
+ * A list comma left at the end of a duration cut to its two largest units:
+ * German writes "26 Tg., 22 Std., 5 Min. und 3 Sek.", whose first four
+ * words end "22 Std.,". Latin, Arabic-script and East Asian commas -
+ * dropped one character at a time, with no pattern to backtrack over.
+ */
+const LIST_COMMAS: Array<string> = [",", "\u060C", "\u3001", "\uFF0C"];
+
+const withoutTrailingListComma: (text: string) => string = (
+  text: string,
+): string => {
+  let end: number = text.length;
+
+  while (end > 0 && LIST_COMMAS.includes(text.charAt(end - 1))) {
+    end--;
+  }
+
+  return text.slice(0, end);
+};
 
 const time: (date: Date) => number = (date: Date): number => {
   return date.getTime();
@@ -196,6 +238,11 @@ export interface StatusTimelineBandMark {
   // The entry began before the window, or ends after it.
   continuesBefore: boolean;
   continuesAfter: boolean;
+  /*
+   * Every entry it stands for has monitoring off (isMonitoringOff): drawn
+   * as time not monitored, not in a status's colour.
+   */
+  isMonitoringOff: boolean;
 }
 
 export enum StatusTimelineGapKind {
@@ -411,6 +458,7 @@ export const layoutStatusTimelineBand: (
         isWidened: false,
         continuesBefore: time(item.entry.startsAt) < windowStart,
         continuesAfter: continuesPastWindow(item.entry),
+        isMonitoringOff: item.entry.isMonitoringOff === true,
       });
     } else {
       narrow.push(item);
@@ -446,6 +494,19 @@ export const layoutStatusTimelineBand: (
     const first: PlacedEntry = cluster.placed[0]!;
     const isCluster: boolean = cluster.placed.length > 1;
 
+    /*
+     * A status held with monitoring off was not seen by anything, so it
+     * never colours a cluster that holds a status that was: an Offline left
+     * standing when monitoring was turned off does not paint an outage.
+     */
+    const monitored: Array<PlacedEntry> = cluster.placed.filter(
+      (item: PlacedEntry): boolean => {
+        return item.entry.isMonitoringOff !== true;
+      },
+    );
+    const coloured: Array<PlacedEntry> =
+      monitored.length > 0 ? monitored : cluster.placed;
+
     marks.push({
       key: isCluster
         ? `cluster-${first.entry.id}-${cluster.placed.length}`
@@ -471,7 +532,7 @@ export const layoutStatusTimelineBand: (
       left: toPercent(cluster.x0),
       width: toPercent(cluster.x1 - cluster.x0),
       color: getClusterColor(
-        cluster.placed.map((item: PlacedEntry) => {
+        coloured.map((item: PlacedEntry) => {
           return {
             color: item.entry.color,
             rank: item.entry.rank,
@@ -490,6 +551,7 @@ export const layoutStatusTimelineBand: (
       continuesAfter: cluster.placed.some((item: PlacedEntry): boolean => {
         return continuesPastWindow(item.entry);
       }),
+      isMonitoringOff: monitored.length === 0,
     });
   }
 
@@ -639,8 +701,19 @@ export interface StatusTimelineSummaryItem {
 
 export interface StatusTimelineSummary {
   items: Array<StatusTimelineSummaryItem>;
-  // The time inside the window, up to now, that has a status.
+  /*
+   * The time inside the window, up to now, that has a status - with
+   * monitoring on: each status's share is of this time.
+   */
   measuredMs: number;
+  /*
+   * The time inside the window, up to now, with monitoring off (entries
+   * marked isMonitoringOff): in no status's time or share, as uptime leaves
+   * it out (issue #6480), and named on its own in the legend.
+   */
+  monitoringOffMs: number;
+  // How many entries with monitoring off the window holds.
+  monitoringOffCount: number;
 }
 
 /*
@@ -653,6 +726,10 @@ export interface StatusTimelineSummary {
  * Statuses are listed best first when they have ranks (Operational, then
  * Degraded, then Offline), else in the order the record first entered them
  * (Created, Acknowledged, Resolved).
+ *
+ * Time with monitoring off (isMonitoringOff) is no status's: nothing
+ * checked the record then. It is counted apart (monitoringOffMs), so the
+ * shares are of the time something did check it, as uptime is.
  */
 export const summarizeStatusTimeline: (data: {
   entries: Array<ResolvedStatusTimelineEntry>;
@@ -677,6 +754,8 @@ export const summarizeStatusTimeline: (data: {
   >();
   const order: Array<string> = [];
   let measuredMs: number = 0;
+  let monitoringOffMs: number = 0;
+  let monitoringOffCount: number = 0;
 
   for (const entry of data.entries) {
     const start: number = Math.max(time(entry.startsAt), windowStart);
@@ -692,6 +771,13 @@ export const summarizeStatusTimeline: (data: {
     }
 
     const durationMs: number = Math.max(0, end - start);
+
+    if (entry.isMonitoringOff === true) {
+      monitoringOffMs += durationMs;
+      monitoringOffCount += 1;
+      continue;
+    }
+
     measuredMs += durationMs;
 
     let item: StatusTimelineSummaryItem | undefined = byStatus.get(
@@ -754,7 +840,12 @@ export const summarizeStatusTimeline: (data: {
     );
   }
 
-  return { items: items, measuredMs: measuredMs };
+  return {
+    items: items,
+    measuredMs: measuredMs,
+    monitoringOffMs: monitoringOffMs,
+    monitoringOffCount: monitoringOffCount,
+  };
 };
 
 /*
@@ -802,7 +893,7 @@ export const formatStatusTimelineCompactDuration: (
     return words.join(" ");
   }
 
-  return words.slice(0, 4).join(" ");
+  return withoutTrailingListComma(words.slice(0, 4).join(" "));
 };
 
 /*
