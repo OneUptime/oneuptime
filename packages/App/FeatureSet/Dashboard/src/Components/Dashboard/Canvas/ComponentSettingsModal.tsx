@@ -77,6 +77,10 @@ export const WIDGET_SETTINGS_TYPE_BADGE_TEST_ID: string =
 
 export const WIDGET_SETTINGS_SIZE_TEST_ID: string = "widget-settings-size";
 
+// The Live Preview's box, which the widget is drawn in.
+export const WIDGET_SETTINGS_PREVIEW_TEST_ID: string =
+  "widget-settings-preview";
+
 /*
  * The line under the dialog's title: which kind of widget it is and its
  * size, wrapping onto a second line before either is cut on a phone.
@@ -384,6 +388,7 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
             <div
               ref={previewContainerRef}
               className="rounded-xl border border-gray-200 bg-gradient-to-br from-gray-50 to-white p-4 shadow-inner"
+              data-testid={WIDGET_SETTINGS_PREVIEW_TEST_ID}
             >
               {previewWidth > 0 && (
                 <div
@@ -399,7 +404,13 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
                   <DashboardBaseComponentElement
                     variables={props.variables}
                     componentId={props.componentId}
+                    /*
+                     * Drawn as a reader sees it (out of edit mode), over a
+                     * board being edited: nothing in it may leave the page
+                     * and take the unsaved widgets with it (issue #6859).
+                     */
                     isEditMode={false}
+                    isPreview={true}
                     isSelected={false}
                     key={`preview-${props.componentId.toString()}`}
                     onClick={() => {}}

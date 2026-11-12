@@ -1363,7 +1363,11 @@ const AreaChart: React.ForwardRefExoticComponent<
                * lives in the chip's hover card.
                */}
               {annotations.layer}
-              {/* Exemplar dots - clickable markers linking to traces */}
+              {/*
+               * Exemplar dots - clickable markers linking to traces, unless
+               * the host offers no click (a dashboard widget's live
+               * preview): then no pointer says otherwise.
+               */}
               {formattedExemplarPoints?.map(
                 (exemplar: FormattedExemplarPoint, exemplarIndex: number) => {
                   return (
@@ -1375,7 +1379,9 @@ const AreaChart: React.ForwardRefExoticComponent<
                       fill="#7c3aed"
                       stroke="var(--ou-chart-marker-ring, #ffffff)"
                       strokeWidth={2}
-                      style={{ cursor: "pointer" }}
+                      style={{
+                        cursor: onExemplarClick ? "pointer" : "default",
+                      }}
                       onClick={(...args: Array<unknown>) => {
                         // Never let an exemplar click also pin a bucket.
                         stopChartEventPropagation(...args);
