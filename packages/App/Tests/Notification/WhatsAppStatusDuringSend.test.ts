@@ -30,7 +30,7 @@ import {
   test,
 } from "@jest/globals";
 import type { Mock } from "jest-mock";
-import OnCallTimelineRows from "./Fixtures/OnCallTimelineRows";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 
 /*
  * A STATUS META REPORTS BEFORE THE SEND'S RESULT IS WRITTEN (issue #6684),

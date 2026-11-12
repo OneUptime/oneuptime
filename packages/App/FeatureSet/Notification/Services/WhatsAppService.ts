@@ -4,7 +4,7 @@ import {
   MetaWhatsAppConfig,
   DEFAULT_META_WHATSAPP_API_VERSION,
 } from "../Config";
-import { recordSendResult } from "../Utils/OnCallNotificationStatus";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import ObjectID from "Common/Types/ObjectID";
 import WhatsAppMessage from "Common/Types/WhatsApp/WhatsAppMessage";

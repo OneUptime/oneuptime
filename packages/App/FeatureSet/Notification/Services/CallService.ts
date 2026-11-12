@@ -25,7 +25,6 @@ import OneUptimeDate from "Common/Types/Date";
 import BadDataException from "Common/Types/Exception/BadDataException";
 import JSONFunctions from "Common/Types/JSONFunctions";
 import ObjectID from "Common/Types/ObjectID";
-import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import {
   Host,
   HttpProtocol,
@@ -35,6 +34,7 @@ import CallLogService from "Common/Server/Services/CallLogService";
 import NotificationService from "Common/Server/Services/NotificationService";
 import ProjectService from "Common/Server/Services/ProjectService";
 import UserOnCallLogTimelineService from "Common/Server/Services/UserOnCallLogTimelineService";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import JSONWebToken from "Common/Server/Utils/JsonWebToken";
 import logger, { EXTERNAL_FAULT } from "Common/Server/Utils/Logger";
 import ProjectNotificationChannelOwnerNotice from "Common/Server/Utils/ProjectNotificationChannelOwnerNotice";
@@ -760,18 +760,17 @@ export default class CallService {
     }
 
     if (options.userOnCallLogTimelineId) {
-      await UserOnCallLogTimelineService.updateOneById({
-        data: {
-          status:
-            callLog.status === CallStatus.Success
-              ? UserNotificationStatus.Sent
-              : UserNotificationStatus.Error,
-          statusMessage: callLog.statusMessage!,
-        },
-        id: options.userOnCallLogTimelineId,
-        props: {
-          isRoot: true,
-        },
+      /*
+       * Placed is "Sent": how the call ended comes later, by its status
+       * callback. Written only while the page's timeline entry still says
+       * Sending (OnCallNotificationStatus): a call not answered or failed
+       * that the callback - which can land first - wrote there, or the
+       * person's acknowledgement, stays.
+       */
+      await recordSendResult({
+        userOnCallLogTimelineId: options.userOnCallLogTimelineId,
+        isSent: callLog.status === CallStatus.Success,
+        statusMessage: callLog.statusMessage!,
       });
     }
 

@@ -45,6 +45,16 @@ import WorkspaceType from "../../../../Types/Workspace/WorkspaceType";
 import { WorkspacePayloadMarkdown } from "../../../../Types/Workspace/WorkspaceMessagePayload";
 import { ExecuteNotificationRuleOptions } from "../../../../Server/Services/UserNotificationRuleService";
 import { withoutIsolateMarks } from "../../../Helpers/IsolateMarks";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "../../TestingUtils/OnCallTimelineRows";
+import {
+  hungUpRequestError,
+  refusedRequestError,
+  resetRequestError,
+  timedOutRequestError,
+  unresolvedNameRequestError,
+} from "../../TestingUtils/NotificationRequestErrors";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -332,30 +342,159 @@ describe("email", () => {
       "Email notification not sent because email ana@example.com is not verified.",
     );
   });
+});
 
-  test("a send that fails before its sender says so marks its row Error, with the reason", async () => {
-    (MailService.sendMail as jest.Mock).mockRejectedValue(
-      new Error("SMTP refused") as never,
-    );
+/*
+ * A send that throws (issue #6873) is handed to the handler of its kind, as
+ * every page's send is (OnCallSendFailure): its row is written over Sending
+ * only, at the version read - and not at all for a request to the
+ * Notification service that got no answer, which may still go out.
+ */
+describe("a send that fails", () => {
+  let timeline: OnCallTimelineRows;
+
+  const EMAIL: Record<string, unknown> = {
+    userEmail: {
+      id: METHOD_ID,
+      email: new Email("ana@example.com"),
+      isVerified: true,
+    },
+  };
+
+  beforeEach(() => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {
+      return undefined;
+    });
+
+    timeline = new OnCallTimelineRows();
+    timeline.standIn(UserOnCallLogTimelineService);
+
+    // Each row the test writes, held as written - Sending - for its handler.
+    (UserOnCallLogTimelineService.create as jest.Mock).mockImplementation(((
+      createBy: unknown,
+    ): Promise<UserOnCallLogTimeline> => {
+      const data: UserOnCallLogTimeline = (
+        createBy as { data: UserOnCallLogTimeline }
+      ).data;
+      rowCounter++;
+      createdRows.push(data);
+      data.id = new ObjectID(
+        `aaaaaaaa-aaaa-4aaa-8aaa-${String(rowCounter).padStart(12, "0")}`,
+      );
+      timeline.add(data.id, data.status || null, {
+        statusMessage: data.statusMessage,
+      });
+      return Promise.resolve(data);
+    }) as never);
+  });
+
+  // The sends are not awaited: let a rejection, and its row's read and write, settle.
+  async function settle(): Promise<void> {
+    for (let i: number = 0; i < 5; i++) {
+      await new Promise<void>((resolve: () => void) => {
+        setTimeout(resolve, 0);
+      });
+    }
+  }
+
+  async function emailThatFails(error: unknown): Promise<ObjectID> {
+    (MailService.sendMail as jest.Mock).mockRejectedValue(error as never);
+
+    await deliver(EMAIL);
+    await settle();
+
+    expect(createdRows).toHaveLength(1);
+    // Never the blind write by id.
+    expect(UserOnCallLogTimelineService.updateOneById).not.toHaveBeenCalled();
+
+    return createdRows[0]!.id!;
+  }
+
+  test("a send that fails before its request: Error, in the failure's words", async () => {
+    const id: ObjectID = await emailThatFails(new Error("SMTP refused"));
+
+    expect(timeline.get(id)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "SMTP refused",
+    });
+  });
+
+  test("a failure with no words: the method named", async () => {
+    const id: ObjectID = await emailThatFails(new Error(""));
+
+    expect(timeline.get(id)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "Error sending email.",
+    });
+  });
+
+  test.each([
+    ["refused", refusedRequestError, "ECONNREFUSED"],
+    [
+      "a name that did not resolve",
+      (): Error => {
+        return unresolvedNameRequestError("EAI_AGAIN");
+      },
+      "EAI_AGAIN",
+    ],
+  ])(
+    "a request that never reached the Notification service (%s): Error, saying it could not be reached - not where",
+    async (_name: string, error: () => Error, code: string) => {
+      const id: ObjectID = await emailThatFails(error());
+
+      expect(timeline.get(id)).toMatchObject({
+        status: UserNotificationStatus.Error,
+        statusMessage: `Could not reach the Notification service to send this (${code}).`,
+      });
+    },
+  );
+
+  test.each([
+    ["reset", resetRequestError],
+    ["hung up", hungUpRequestError],
+    ["timed out", timedOutRequestError],
+  ])(
+    "a request that got no answer (%s): the row stays Sending - the email may still go out, and the Notification service writes how it went",
+    async (_name: string, error: () => Error) => {
+      const id: ObjectID = await emailThatFails(error());
+
+      expect(timeline.get(id)!.status).toBe(UserNotificationStatus.Sending);
+      expect(timeline.writes).toEqual([]);
+      expect(UserOnCallLogTimelineService.findOneById).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the person acknowledging the test between the read and the write: their answer stays", async () => {
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.status = UserNotificationStatus.Acknowledged;
+    });
+
+    const id: ObjectID = await emailThatFails(refusedRequestError());
+
+    expect(timeline.get(id)!.status).toBe(UserNotificationStatus.Acknowledged);
+    expect(timeline.writes).toEqual([]);
+  });
+
+  test("a push that throws before writing its own result: Error, in its words, over Sending only", async () => {
+    (
+      PushNotificationService.sendPushNotification as jest.Mock
+    ).mockRejectedValue(new Error("No devices provided") as never);
 
     await deliver({
-      userEmail: {
+      userPush: {
         id: METHOD_ID,
-        email: new Email("ana@example.com"),
+        deviceToken: "token",
+        deviceType: PushDeviceType.iOS,
         isVerified: true,
       },
     });
+    await settle();
 
-    expect(UserOnCallLogTimelineService.updateOneById).toHaveBeenCalledWith({
-      id: createdRows[0]!.id,
-      data: {
-        status: UserNotificationStatus.Error,
-        statusMessage: "SMTP refused",
-      },
-      props: {
-        isRoot: true,
-      },
+    expect(timeline.get(createdRows[0]!.id!)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "No devices provided",
     });
+    expect(UserOnCallLogTimelineService.updateOneById).not.toHaveBeenCalled();
   });
 });
 

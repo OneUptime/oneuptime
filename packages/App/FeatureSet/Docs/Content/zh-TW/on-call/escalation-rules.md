@@ -164,6 +164,8 @@ OneUptime 傳給你的其他簡訊，例如你作為擁有者的事件有所變�
 
 專案擁有者會就此收到一封電子郵件，直到餘額加值或管道重新開啟。
 
+未能抵達 OneUptime 通知服務的呼叫會顯示 `Could not reach the Notification service to send this (ECONNREFUSED).` ，括號裡是網路錯誤的代碼。傳送始終沒有完成的呼叫（例如傳送過程中伺服器重新啟動）會顯示 `Sending did not finish within 15 minutes, so this notification may not have been sent.` 。如果傳送最終完成，其結果會取代這則訊息。
+
 在 OneUptime Cloud 上，每則簡訊、每通電話、每則 WhatsApp 和 Telegram 訊息都從 **專案設定 > 通知 > 通知設定** 上的專案餘額支付：服務供應商接受訊息時，確切費用就會從餘額扣除，不論同時送出多少則訊息。
 
 - 若那裡開啟了 **自動儲值** ，發現餘額低於門檻的那則訊息會先儲值自動儲值所設定的金額，並向專案的卡片扣款；在同一時刻發現餘額不足的多則訊息只會扣款一次。

@@ -32,7 +32,7 @@ import {
 } from "@jest/globals";
 import OnCallTimelineRows, {
   OnCallNotificationWrite,
-} from "./Fixtures/OnCallTimelineRows";
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import type { Mock } from "jest-mock";
 import Twilio from "twilio";
 

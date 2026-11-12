@@ -7,7 +7,7 @@ import {
 } from "../Utils/CallOutcome";
 import { isStatusCallbackTokenValid } from "../Utils/StatusCallbackToken";
 import { getProviderConfigOfCallback } from "../Utils/StatusCallbackProviderConfig";
-import { recordProviderReport } from "../Utils/OnCallNotificationStatus";
+import { recordProviderReport } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,

@@ -5,13 +5,13 @@ import PushNotificationService, {
   RelayPushReceiptsResult,
 } from "./PushNotificationService";
 import PushNotificationLogService from "./PushNotificationLogService";
-import UserOnCallLogTimelineService from "./UserOnCallLogTimelineService";
 import DefaultExpoPushReceiptQueue, {
   ClaimedExpoPushReceipts,
   ExpoPushReceiptQueue,
   PendingExpoPushReceipt,
 } from "../Infrastructure/ExpoPushReceiptQueue";
 import logger from "../Utils/Logger";
+import { recordProviderReport } from "../Utils/OnCall/OnCallNotificationStatus";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,
@@ -19,6 +19,7 @@ import NotificationDeliveryMetrics, {
   NotificationProviderConfig,
 } from "../Utils/Telemetry/NotificationDeliveryMetrics";
 import ColumnLength from "../../Types/Database/ColumnLength";
+import ObjectID from "../../Types/ObjectID";
 import PushStatus from "../../Types/PushNotification/PushStatus";
 import UserNotificationStatus from "../../Types/UserNotification/UserNotificationStatus";
 
@@ -517,8 +518,10 @@ export default class ExpoPushReceiptService {
   /*
    * The push log and the on-call timeline row said the push was sent; they
    * now say it was not delivered, and why. Only while they still say it
-   * was sent: a page that was acknowledged meanwhile keeps saying so. Each
-   * failure is logged and the other still written.
+   * was sent - the timeline row, or that it is going out - and the row at
+   * the version read: a page that was acknowledged meanwhile, even between
+   * the read and the write, keeps saying so. Each failure is logged and the
+   * other still written.
    */
   private static async recordNotDelivered(
     entry: PendingExpoPushReceipt,
@@ -549,19 +552,16 @@ export default class ExpoPushReceiptService {
     }
 
     if (entry.userOnCallLogTimelineId) {
+      /*
+       * A provider's report like an SMS's: over Sent or Sending only, at the
+       * version read (OnCallNotificationStatus), so the person's
+       * acknowledgement - by another channel, meanwhile - stays.
+       */
       try {
-        await UserOnCallLogTimelineService.updateOneBy({
-          query: {
-            _id: entry.userOnCallLogTimelineId,
-            status: UserNotificationStatus.Sent,
-          },
-          data: {
-            status: UserNotificationStatus.Error,
-            statusMessage: statusMessage,
-          },
-          props: {
-            isRoot: true,
-          },
+        await recordProviderReport({
+          userOnCallLogTimelineId: new ObjectID(entry.userOnCallLogTimelineId),
+          status: UserNotificationStatus.Error,
+          statusMessage: statusMessage,
         });
       } catch (err) {
         logger.error(

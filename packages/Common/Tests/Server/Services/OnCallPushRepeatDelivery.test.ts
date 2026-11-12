@@ -32,6 +32,8 @@ import PushDeviceType from "../../../Types/PushNotification/PushDeviceType";
 import PushNotificationRequest from "../../../Types/PushNotification/PushNotificationRequest";
 import UserNotificationEventType from "../../../Types/UserNotification/UserNotificationEventType";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows from "../TestingUtils/OnCallTimelineRows";
+import { refusedRequestError } from "../TestingUtils/NotificationRequestErrors";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 
 /*
@@ -581,36 +583,119 @@ describe("the on-call log's timeline says which push went out", () => {
     );
   });
 
-  test("a push that fails after the timeline row is written still marks that row, repeat or not", async () => {
-    stubs.push.mockRejectedValue(new Error("Expo is unavailable") as never);
+  /*
+   * The send is not awaited: its rejection lands after the run, and the
+   * handler reads the row and writes it (OnCallSendFailure).
+   */
+  async function settle(): Promise<void> {
+    for (let i: number = 0; i < 5; i++) {
+      await new Promise<void>((resolve: () => void): void => {
+        setTimeout(resolve, 0);
+      });
+    }
+  }
 
-    const timelineUpdate: jest.SpyInstance = jest.spyOn(
-      UserOnCallLogTimelineService,
-      "updateOneById",
-    );
+  test.each([
+    ["the first push", undefined],
+    ["repeat 2", 2],
+    ["the tenth and last repeat", MAX_NOTIFICATION_REPEATS],
+  ])(
+    "a push that fails after the timeline row is written still marks that row: %s",
+    async (_label: string, repeatNumber: number | undefined) => {
+      stubs.push.mockRejectedValue(new Error("Expo is unavailable") as never);
+
+      const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+      timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+      timeline.standIn(UserOnCallLogTimelineService);
+
+      await UserNotificationRuleService.executeNotificationRuleItem(
+        RULE_ID,
+        executeOptions(UserNotificationEventType.IncidentCreated, repeatNumber),
+      );
+      await settle();
+
+      expect(timelineRows[0]!.statusMessage).toBe(
+        expectedStatusMessage(repeatNumber),
+      );
+      // Over Sending only, at the version read - never the blind write by id.
+      expect(UserOnCallLogTimelineService.updateOneById).not.toHaveBeenCalled();
+      expect(timeline.writes).toEqual([
+        {
+          id: TIMELINE_ID.toString(),
+          data: {
+            status: UserNotificationStatus.Error,
+            statusMessage: "Expo is unavailable",
+          },
+        },
+      ]);
+    },
+  );
+
+  test("a push sent in this process says what it threw - even a request error, which is its own, not the Notification service's", async () => {
+    const thrown: Error = refusedRequestError();
+    stubs.push.mockRejectedValue(thrown as never);
+
+    const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
 
     await UserNotificationRuleService.executeNotificationRuleItem(
       RULE_ID,
-      executeOptions(UserNotificationEventType.IncidentCreated, 2),
+      executeOptions(UserNotificationEventType.IncidentCreated, 3),
     );
+    await settle();
 
-    // The send is not awaited; let its rejection land.
-    await new Promise<void>((resolve: () => void): void => {
-      setTimeout(resolve, 0);
-    });
-
-    expect(timelineRows[0]!.statusMessage).toBe(expectedStatusMessage(2));
-    expect(timelineUpdate).toHaveBeenCalledTimes(1);
-    expect(
-      (
-        timelineUpdate.mock.calls[0]![0] as {
-          data: { status: UserNotificationStatus; statusMessage: string };
-        }
-      ).data,
-    ).toEqual({
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
       status: UserNotificationStatus.Error,
-      statusMessage: "Expo is unavailable",
+      statusMessage: thrown.message,
     });
+  });
+
+  test("a push that wrote its own result before it threw - its devices all refused - keeps it", async () => {
+    const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
+
+    stubs.push.mockImplementation(async () => {
+      timeline.get(TIMELINE_ID)!.status = UserNotificationStatus.Error;
+      timeline.get(TIMELINE_ID)!.statusMessage =
+        "Push notification not delivered: no device took it.";
+      throw new Error("Failed to send push notification");
+    });
+
+    await UserNotificationRuleService.executeNotificationRuleItem(
+      RULE_ID,
+      executeOptions(UserNotificationEventType.IncidentCreated, 1),
+    );
+    await settle();
+
+    expect(timeline.get(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: "Push notification not delivered: no device took it.",
+    });
+    expect(timeline.writes).toEqual([]);
+  });
+
+  test("a push acknowledged by another channel before its failure is handled keeps the acknowledgement", async () => {
+    stubs.push.mockRejectedValue(new Error("Expo is unavailable") as never);
+
+    const timeline: OnCallTimelineRows = new OnCallTimelineRows();
+    timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
+    timeline.standIn(UserOnCallLogTimelineService);
+    timeline.whenRead((row: { status: UserNotificationStatus | null }) => {
+      row.status = UserNotificationStatus.Acknowledged;
+    });
+
+    await UserNotificationRuleService.executeNotificationRuleItem(
+      RULE_ID,
+      executeOptions(UserNotificationEventType.AlertCreated, 4),
+    );
+    await settle();
+
+    expect(timeline.get(TIMELINE_ID)!.status).toBe(
+      UserNotificationStatus.Acknowledged,
+    );
+    expect(timeline.writes).toEqual([]);
   });
 });
 
