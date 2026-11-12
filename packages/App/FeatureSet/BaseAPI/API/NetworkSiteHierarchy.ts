@@ -29,6 +29,9 @@ import NetworkSiteStatusTimeline from "Common/Models/DatabaseModels/NetworkSiteS
 import NetworkDeviceService from "Common/Server/Services/NetworkDeviceService";
 import MonitorService from "Common/Server/Services/MonitorService";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
+import MonitoringOff, {
+  MONITORED_SELECT,
+} from "Common/Utils/Monitor/MonitoringOff";
 import MonitorStatusService from "Common/Server/Services/MonitorStatusService";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
 import SiteUptimeUtil, {
@@ -201,6 +204,11 @@ async function fetchStatusesByIds(
  * Links with no monitor simply have no entry here. They are still returned
  * — a link is part of the network's shape whether or not anybody has
  * pointed a monitor at it, and the monitor only decides the color.
+ *
+ * Nor does a monitor that is not checked - its monitoring turned off, or
+ * archived (MonitoringOff.isMonitored): the status it holds is only what
+ * its last check saw, so its link is drawn as one with no status rather
+ * than in a frozen "Offline" (issue #6965).
  */
 async function fetchStatusIdsByLinkMonitorId(
   projectId: ObjectID,
@@ -233,6 +241,7 @@ async function fetchStatusIdsByLinkMonitorId(
     select: {
       _id: true,
       currentMonitorStatusId: true,
+      ...MONITORED_SELECT,
     },
     limit: LIMIT_PER_PROJECT,
     skip: 0,
@@ -240,6 +249,10 @@ async function fetchStatusIdsByLinkMonitorId(
   });
 
   for (const monitor of monitors) {
+    if (!MonitoringOff.isMonitored(monitor)) {
+      continue;
+    }
+
     if (monitor._id && monitor.currentMonitorStatusId) {
       statusIdByMonitorId.set(
         monitor._id.toString(),

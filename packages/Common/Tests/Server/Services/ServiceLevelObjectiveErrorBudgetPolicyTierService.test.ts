@@ -1405,42 +1405,162 @@ describe("Use the recommended policy", () => {
     );
   });
 
-  it("the first create that fails stops the request; the tiers added stay", async () => {
-    let calls: number = 0;
-    createSpy.mockImplementation((async (
-      createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier>,
-    ): Promise<ServiceLevelObjectiveErrorBudgetPolicyTier> => {
-      calls++;
+  describe("all or nothing", () => {
+    // Each removal of a tier, as the delete was asked for.
+    let deleteSpy: jest.SpyInstance;
 
-      if (calls === 2) {
-        throw new BadDataException("refused");
-      }
+    beforeEach(() => {
+      deleteSpy = jest
+        .spyOn(ServiceLevelObjectiveErrorBudgetPolicyTierService, "deleteOneBy")
+        .mockImplementation((async (deleteBy: {
+          query: Record<string, unknown>;
+        }): Promise<number> => {
+          const before: number = storedTiers.length;
+          storedTiers = storedTiers.filter(
+            (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): boolean => {
+              return tier._id !== deleteBy.query["_id"];
+            },
+          );
+          return before - storedTiers.length;
+        }) as never);
+    });
 
-      storedTiers.push(createBy.data);
-      return createBy.data;
-    }) as never);
+    // The create of the `failing`th tier (counting from 1) is refused.
+    function refuseCreate(failing: number): void {
+      let calls: number = 0;
+      createSpy.mockImplementation((async (
+        createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier>,
+      ): Promise<ServiceLevelObjectiveErrorBudgetPolicyTier> => {
+        calls++;
 
-    await expect(
-      ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
-        { serviceLevelObjectiveId: SLO_ID, props: caller() },
-      ),
-    ).rejects.toThrow("refused");
+        if (calls === failing) {
+          throw new BadDataException("refused");
+        }
 
-    expect(storedTiers).toHaveLength(1);
+        createBy.data._id = ObjectID.generate().toString();
+        storedTiers.push(createBy.data);
+        return createBy.data;
+      }) as never);
+    }
 
-    // Asking again adds only what is still missing.
-    createSpy.mockImplementation((async (
-      createBy: CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier>,
-    ): Promise<ServiceLevelObjectiveErrorBudgetPolicyTier> => {
-      storedTiers.push(createBy.data);
-      return createBy.data;
-    }) as never);
+    it("a create that fails stops the request, and the tiers it added are removed again", async () => {
+      refuseCreate(3);
 
-    const retried: SloAddedRecommendedPolicyTiers =
-      await ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
-        { serviceLevelObjectiveId: SLO_ID, props: caller() },
+      await expect(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
+          { serviceLevelObjectiveId: SLO_ID, props: caller() },
+        ),
+      ).rejects.toThrow("refused");
+
+      expect(createSpy).toHaveBeenCalledTimes(3);
+      expect(storedTiers).toEqual([]);
+      expect(deleteSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it("removes them as OneUptime, by their ids, on their SLO in their project", async () => {
+      refuseCreate(2);
+
+      await expect(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
+          { serviceLevelObjectiveId: SLO_ID, props: caller() },
+        ),
+      ).rejects.toThrow("refused");
+
+      const addedId: string = (
+        createSpy.mock
+          .calls[0]![0] as CreateBy<ServiceLevelObjectiveErrorBudgetPolicyTier>
+      ).data._id as string;
+
+      expect(deleteSpy).toHaveBeenCalledTimes(1);
+      expect(deleteSpy.mock.calls[0]![0]).toEqual({
+        query: {
+          _id: addedId,
+          projectId: PROJECT_ID,
+          serviceLevelObjectiveId: SLO_ID,
+        },
+        props: {
+          isRoot: true,
+        },
+      });
+    });
+
+    it("leaves the tiers the SLO already had", async () => {
+      storedTiers = [storedTier(TIER_ID, 50, { name: "Yellow" })];
+      refuseCreate(2);
+
+      await expect(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
+          { serviceLevelObjectiveId: SLO_ID, props: caller() },
+        ),
+      ).rejects.toThrow("refused");
+
+      expect(
+        storedTiers.map(
+          (tier: ServiceLevelObjectiveErrorBudgetPolicyTier): string => {
+            return tier.name as string;
+          },
+        ),
+      ).toEqual(["Yellow"]);
+    });
+
+    it("so asking again adds the whole policy", async () => {
+      refuseCreate(3);
+
+      await expect(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
+          { serviceLevelObjectiveId: SLO_ID, props: caller() },
+        ),
+      ).rejects.toThrow("refused");
+
+      refuseCreate(0);
+
+      const retried: SloAddedRecommendedPolicyTiers =
+        await ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
+          { serviceLevelObjectiveId: SLO_ID, props: caller() },
+        );
+
+      expect(retried.tiers).toHaveLength(3);
+      expect(storedTiers).toHaveLength(3);
+    });
+
+    it("a removal that fails is logged, the rest are still removed, and the create's refusal is the one passed on", async () => {
+      refuseCreate(3);
+      deleteSpy.mockRejectedValueOnce(new Error("gone away"));
+
+      await expect(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
+          { serviceLevelObjectiveId: SLO_ID, props: caller() },
+        ),
+      ).rejects.toThrow("refused");
+
+      expect(deleteSpy).toHaveBeenCalledTimes(2);
+      expect(storedTiers).toHaveLength(1);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining("the SLO keeps it: Error: gone away"),
+        expect.anything(),
       );
+    });
 
-    expect(retried.tiers).toHaveLength(2);
+    it("removes them while it still holds the lock, so a request waiting for it finds the SLO as it was", async () => {
+      refuseCreate(3);
+
+      // Each removal lands in the lock's own record, so the order is the real one.
+      deleteSpy.mockImplementation((async (): Promise<number> => {
+        locks.events.push("remove");
+        return 1;
+      }) as never);
+
+      await expect(
+        ServiceLevelObjectiveErrorBudgetPolicyTierService.addMissingRecommendedTiers(
+          { serviceLevelObjectiveId: SLO_ID, props: caller() },
+        ),
+      ).rejects.toThrow("refused");
+
+      expect(
+        locks.events.map((event: string): string => {
+          return event.split(":")[0]!;
+        }),
+      ).toEqual(["lock", "remove", "remove", "release"]);
+    });
   });
 });

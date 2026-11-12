@@ -26,6 +26,9 @@ import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components
 import EventName from "../../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import ProjectProducts from "../../../../App/FeatureSet/Dashboard/src/Utils/ProjectProducts/ProjectProductsStore";
+import ProductKey from "../../../Types/Product/ProductKey";
+import { getEmptyProjectProductsAnswer } from "../../../Types/Product/ProjectProductsAnswer";
 import GlobalEvents from "../../../UI/Utils/GlobalEvents";
 import LeaveGuard, { LeavePageFunction } from "../../../UI/Utils/LeaveGuard";
 import Project from "../../../Models/DatabaseModels/Project";
@@ -1218,5 +1221,42 @@ describe("DashboardCommandPalette project switch while a page holds unsaved work
     asked[0]!();
 
     expect(selected).toEqual(["Acme Staging"]);
+  });
+});
+
+describe("DashboardCommandPalette and the products a project hides (#6814)", () => {
+  afterEach(() => {
+    ProjectProducts.reset();
+  });
+
+  test("a hidden product is not listed while browsing, and Search still finds and opens it", () => {
+    getCurrentProjectIdMock.mockReturnValue(new ObjectID("project-a"));
+    const kubernetes: string =
+      "command-palette-option-nav-dashboard-projectid-kubernetes";
+
+    // Listed while browsing, as long as the project shows it.
+    const shown: ReturnType<typeof render> = render(
+      <DashboardCommandPalette />,
+    );
+    pressChord({ key: "k", metaKey: true });
+    expect(screen.getByTestId(kubernetes)).toHaveTextContent("Kubernetes");
+    shown.unmount();
+
+    ProjectProducts.setAnswer("project-a", {
+      ...getEmptyProjectProductsAnswer(),
+      hidden: [ProductKey.Kubernetes],
+    });
+    render(<DashboardCommandPalette />);
+    pressChord({ key: "k", metaKey: true });
+    expect(screen.queryByTestId(kubernetes)).toBeNull();
+
+    const input: HTMLElement = screen.getByTestId("command-palette-input");
+    fireEvent.change(input, { target: { value: "k8s" } });
+    expect(screen.getAllByRole("option")[0]).toHaveTextContent("Kubernetes");
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(navigateMock).toHaveBeenCalledWith(
+      new Route("/dashboard/project-a/kubernetes"),
+    );
   });
 });

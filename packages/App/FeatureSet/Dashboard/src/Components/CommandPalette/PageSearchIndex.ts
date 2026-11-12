@@ -509,6 +509,26 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
               },
             ],
           },
+          /*
+           * The products this project shows (#6814): found by what people
+           * call what it does - hiding what they do not use, choosing what
+           * the menu lists.
+           */
+          {
+            page: PageMap.SETTINGS_PRODUCTS,
+            title: "Products",
+            icon: IconProp.Squares,
+            keywords: [
+              "hide products",
+              "show products",
+              "hidden products",
+              "choose products",
+              "products menu",
+              "more products",
+              "customize menu",
+              "show every product",
+            ],
+          },
           {
             page: PageMap.SETTINGS_LABELS,
             title: "Labels",
@@ -961,6 +981,38 @@ export const PAGE_SEARCH_AREAS: ReadonlyArray<PageSearchArea> = [
                 keywords: ["remove project", "close project"],
                 permission: PageSearchPermission.DeleteProject,
               },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    /*
+     * The pages under Home: Setup health, what is misconfigured in the
+     * project (#6812), which no menu links to - Home's "Needs attention"
+     * does - so Search finds it by name and by what people ask.
+     */
+    id: "home",
+    title: "Home",
+    productPage: PageMap.HOME,
+    icon: IconProp.Home,
+    iconColor: "slate",
+    sections: [
+      {
+        pages: [
+          {
+            page: PageMap.HOME_SETUP_HEALTH,
+            title: "Setup Health",
+            icon: IconProp.Wrench,
+            keywords: [
+              "misconfigured",
+              "is my setup ok",
+              "setup check",
+              "health check",
+              "nobody is paged",
+              "what is broken",
+              "configuration problems",
             ],
           },
         ],
