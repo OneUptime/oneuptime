@@ -21579,7 +21579,6 @@
   "{{down}} down · {{count}} sites": "{{down}} down · {{count}} sites",
   "{{down}} down · {{count}} sites_one": "{{down}} down · {{count}} site",
   "{{duration}} so far": "{{duration}} so far",
-  "{{edition}}, Evaluation, {{action}}": "{{edition}}, Evaluation, {{action}}",
   "{{engine}} does not report these, so this group collects nothing here.": "{{engine}} does not report these, so this group collects nothing here.",
   "{{engine}} is a managed service: its engine metrics come from the provider's monitoring API, not from a connection to the database. The Documentation tab shows how to bring them into a collector and attach them to this database.": "{{engine}} is a managed service: its engine metrics come from the provider's monitoring API, not from a connection to the database. The Documentation tab shows how to bring them into a collector and attach them to this database.",
   "{{engine}} runs inside your application's process, so there is no database server to collect engine metrics from. This page shows what your applications report about it: the queries they send and the services that call it.": "{{engine}} runs inside your application's process, so there is no database server to collect engine metrics from. This page shows what your applications report about it: the queries they send and the services that call it.",
@@ -50794,5 +50793,6 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} is {{values}}, which is not equal to {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} is {{values}}, which starts with {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}} is {{values}}.",
-  "Search query": "Search query"
+  "Search query": "Search query",
+  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, Evaluation license, {{action}}"
 }

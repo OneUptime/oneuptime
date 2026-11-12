@@ -21073,7 +21073,7 @@
   "Running query": "جارٍ تشغيل الاستعلام",
   "Running {{tool}}": "جارٍ تشغيل {{tool}}",
   "Runtime — {{platform}}": "بيئة التشغيل — {{platform}}",
-  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "تسجيل الدخول الموحّد (SSO) عبر SAML وOIDC للمشاريع وصفحات الحالة والنسخة بأكملها، بما في ذلك «طلب SSO لتسجيل الدخول».",
+  "SAML and OIDC single sign-on (SSO) for projects, status pages, and the whole instance, including \"Require SSO for login\".": "تسجيل الدخول الموحّد (SSO) عبر SAML وOIDC للمشاريع وصفحات الحالة والنسخة بأكملها، بما في ذلك «اشتراط SSO لتسجيل الدخول».",
   "SCIM provisioning is off and your identity provider's SCIM requests are refused. Audit logging is not recording. Enterprise configuration is read-only and the enterprise admin dashboards are locked. Everything resumes, without a restart, as soon as a valid license is added, and core monitoring is never affected.": "توفير SCIM متوقف وتُرفض طلبات SCIM من موفّر الهوية لديك. تسجيل التدقيق لا يسجّل. إعدادات المؤسسات للقراءة فقط ولوحات معلومات المسؤول الخاصة بالمؤسسات مقفلة. يُستأنف كل شيء، دون إعادة تشغيل، فور إضافة ترخيص صالح، ولا تتأثر المراقبة الأساسية أبدًا.",
   "SCIM provisioning stops, audit logging stops recording, enterprise configuration becomes read-only and the enterprise admin dashboards are locked. Everything resumes as soon as a license is activated, and core monitoring is never affected.": "يتوقف توفير SCIM، ويتوقف تسجيل التدقيق، وتصبح إعدادات المؤسسات للقراءة فقط، وتُقفل لوحات معلومات المسؤول الخاصة بالمؤسسات. يُستأنف كل شيء فور تفعيل ترخيص، ولا تتأثر المراقبة الأساسية أبدًا.",
   "SLOs are linked automatically when their burn rate rules fire.": "تُربط أهداف SLO تلقائيًا عندما تُطلق قواعد معدل الاستهلاك الخاصة بها.",
@@ -21579,7 +21579,6 @@
   "{{down}} down · {{count}} sites": "المتوقفة: {{down}} · المواقع: {{count}}",
   "{{down}} down · {{count}} sites_one": "المتوقفة: {{down}} · {{count}} موقع",
   "{{duration}} so far": "{{duration}} حتى الآن",
-  "{{edition}}, Evaluation, {{action}}": "{{edition}}، تقييم، {{action}}",
   "{{engine}} does not report these, so this group collects nothing here.": "لا يبلغ {{engine}} عن هذه، لذا لا تجمع هذه المجموعة شيئًا هنا.",
   "{{engine}} is a managed service: its engine metrics come from the provider's monitoring API, not from a connection to the database. The Documentation tab shows how to bring them into a collector and attach them to this database.": "{{engine}} خدمة مُدارة: تأتي مقاييس المحرك الخاصة بها من API المراقبة لدى الموفّر، لا من اتصال بقاعدة البيانات. توضح علامة التبويب «التوثيق» كيفية إدخالها إلى مجمّع وإرفاقها بقاعدة البيانات هذه.",
   "{{engine}} runs inside your application's process, so there is no database server to collect engine metrics from. This page shows what your applications report about it: the queries they send and the services that call it.": "يعمل {{engine}} داخل عملية تطبيقك، لذا لا يوجد خادم قاعدة بيانات لجمع مقاييس المحرك منه. تعرض هذه الصفحة ما تُبلغ عنه تطبيقاتك بشأنه: الاستعلامات التي ترسلها والخدمات التي تستدعيه.",
@@ -50794,5 +50793,6 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}، أي لا يساوي {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}}، أي يبدأ بـ {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
-  "Search query": "استعلام البحث"
+  "Search query": "استعلام البحث",
+  "{{edition}}, Evaluation license, {{action}}": "{{edition}}، ترخيص تقييم، {{action}}"
 }

@@ -21437,7 +21437,7 @@
   "{{count}} day retention for both.": "いずれも保持期間は {{count}} 日です。",
   "{{count}} day retention for both._one": "{{count}} day retention for both.",
   "{{count}} days left": "残り {{count}} 日",
-  "{{count}} days left_one": "{{count}} day left",
+  "{{count}} days left_one": "残り {{count}} 日",
   "{{count}} empty filters": "空のフィルター {{count}} 個",
   "{{count}} empty filters hidden": "非表示の空のフィルター {{count}} 個",
   "{{count}} empty filters hidden_one": "{{count}} empty filter hidden",
@@ -21579,7 +21579,6 @@
   "{{down}} down · {{count}} sites": "ダウン {{down}} か所 · {{count}} か所のサイト",
   "{{down}} down · {{count}} sites_one": "{{down}} down · {{count}} site",
   "{{duration}} so far": "{{duration}} 経過",
-  "{{edition}}, Evaluation, {{action}}": "{{edition}}、評価版、{{action}}",
   "{{engine}} does not report these, so this group collects nothing here.": "{{engine}} はこれらを報告しないため、このグループではここで何も収集されません。",
   "{{engine}} is a managed service: its engine metrics come from the provider's monitoring API, not from a connection to the database. The Documentation tab shows how to bring them into a collector and attach them to this database.": "{{engine}} はマネージドサービスです。エンジンのメトリクスはデータベースへの接続ではなく、プロバイダーの監視 API から取得されます。「ドキュメント」タブで、メトリクスをコレクターに取り込み、このデータベースに関連付ける方法を説明しています。",
   "{{engine}} runs inside your application's process, so there is no database server to collect engine metrics from. This page shows what your applications report about it: the queries they send and the services that call it.": "{{engine}} はアプリケーションのプロセス内で動作するため、エンジンのメトリクスを収集するデータベースサーバーはありません。このページには、アプリケーションが報告する内容（送信するクエリと、それを呼び出すサービス）が表示されます。",
@@ -50794,5 +50793,6 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} と等しくありません。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} で始まっています。",
   "{{subject}} is {{values}}.": "{{subject}}は {{values}} です。",
-  "Search query": "検索クエリ"
+  "Search query": "検索クエリ",
+  "{{edition}}, Evaluation license, {{action}}": "{{edition}}、評価版ライセンス、{{action}}"
 }

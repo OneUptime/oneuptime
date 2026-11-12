@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50755,
-    "untranslated": 9729
+    "keys": 50756,
+    "untranslated": 9612
   },
   "sameAsEnglish": [
     " is",
@@ -92,6 +92,7 @@
     "Collector",
     "Commit",
     "Commits",
+    "Community Edition",
     "Compliance",
     "Component",
     "Component: {{component}}",
@@ -142,6 +143,7 @@
     "Endpoint",
     "Endpoints",
     "Engine",
+    "Enterprise Edition",
     "Episode",
     "Export",
     "Fahrenheit",

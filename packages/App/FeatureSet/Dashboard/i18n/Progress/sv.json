@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50755,
-    "untranslated": 9700
+    "keys": 50756,
+    "untranslated": 9583
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -51,6 +51,7 @@
     "CloudWatch Metric Streams",
     "Commit",
     "Commits",
+    "Community Edition",
     "Container",
     "Container {{container}}: {{reason}}",
     "Container {{id}}",
@@ -76,6 +77,7 @@
     "Element",
     "Embedding",
     "Endpoint",
+    "Enterprise Edition",
     "Export",
     "Fahrenheit",
     "Failover",

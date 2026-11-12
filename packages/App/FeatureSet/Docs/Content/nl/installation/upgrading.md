@@ -31,7 +31,7 @@ flowchart TB
 :::steps
 ### Zoek uw huidige versie op
 
-Open als hoofdbeheerder het editielabel in de kop van het Admin-dashboard: **This installation** toont de versie die u draait. De instantie meldt die ook op `/version`:
+Open als hoofdbeheerder het editielabel in de kop van het Admin-dashboard: **Deze installatie** toont de versie die u draait. De instantie meldt die ook op `/version`:
 
 ```bash
 curl http://localhost/version

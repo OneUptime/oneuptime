@@ -1151,7 +1151,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
 
   /*
    * The pill tag is shown whenever a valid evaluation license is active, so an
-   * admin sees "Evaluation" without opening the modal.
+   * admin sees "Evaluation license" without opening the modal.
    */
   const showEvaluationTag: boolean =
     IS_ENTERPRISE_EDITION && licenseValid && isEvaluationLicense;
@@ -1484,7 +1484,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
       "Last usage report accepted {{date}}: {{quantity}} user-hours.",
       {
         date: date.toLocaleString(getReaderDateLocale()),
-        quantity: String(quantity),
+        quantity: translator.formatNumber(quantity),
       },
     );
   })();
@@ -1656,8 +1656,11 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                 : translator.translateText(
                     "Enterprise features stay fully available, counted from the first time this installation ran the Enterprise Edition.",
                   ),
+              // The number in the reader's digits, as the days left are.
               translator.translateTemplate(TRIAL_ENFORCEMENT_TEMPLATE, {
-                days: ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+                days: translator.formatNumber(
+                  ENTERPRISE_LICENSE_TRIAL_PERIOD_IN_DAYS,
+                ),
               }),
             ].join(" ")}
           </p>
@@ -1722,7 +1725,9 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
                     "Every enterprise feature keeps working until the grace period ends.",
                   ),
               translator.translateTemplate(GRACE_ENFORCEMENT_TEMPLATE, {
-                days: ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+                days: translator.formatNumber(
+                  ENTERPRISE_LICENSE_GRACE_PERIOD_IN_DAYS,
+                ),
               }),
             ].join(" ")}
           </p>
@@ -2134,7 +2139,7 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
          */
         aria-label={translator.translateTemplate(
           showEvaluationTag
-            ? "{{edition}}, Evaluation, {{action}}"
+            ? "{{edition}}, Evaluation license, {{action}}"
             : "{{edition}}, {{action}}",
           {
             edition: editionName,
@@ -2158,9 +2163,15 @@ const EditionLabel: FunctionComponent<ComponentProps> = (
           className={`h-2 w-2 rounded-full transition group-hover:scale-110 ${indicatorColor}`}
         ></span>
         <span className="tracking-wide">{editionName}</span>
+        {/*
+         * "Evaluation license", the dialog's own heading for it, and not
+         * "Evaluation": that word is also an SLO card's title, which a
+         * language words as assessing (German "Auswertung"), never as a
+         * license for trying the product out.
+         */}
         {showEvaluationTag && (
           <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-700">
-            {translator.translateText("Evaluation")}
+            {translator.translateText("Evaluation license")}
           </span>
         )}
         <span className={pillCtaTextClassName}>
