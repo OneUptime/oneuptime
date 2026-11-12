@@ -168,7 +168,8 @@ describe("the menu the paths are held to, read from its source", () => {
   });
 
   test.each([
-    ["Basic", ["Project", "Labels"]],
+    // Products: the products the project shows (#6814).
+    ["Basic", ["Project", "Products", "Labels"]],
     ["Workspace", ["Slack", "Microsoft Teams", "Mattermost", "Video Calls"]],
     /*
      * Usage is on every install, billing on or off: it was Billing and
