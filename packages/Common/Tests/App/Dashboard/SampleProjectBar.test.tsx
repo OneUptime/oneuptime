@@ -182,6 +182,22 @@ describe("drawn for a sample project alone", () => {
     expect(bar.className).toContain("bg-gray-900");
     expect(bar.className).not.toMatch(/bg-(blue|sky|indigo|cyan)-50/);
   });
+
+  test("is valid markup on every page it frames: no block inside a paragraph", () => {
+    render(
+      <SampleProjectBar
+        project={sample}
+        projects={[own, sample]}
+        onCreateProject={() => {}}
+      />,
+    );
+
+    const bar: HTMLElement = screen.getByTestId(SAMPLE_PROJECT_BAR_TEST_ID);
+
+    // The Beaker icon draws a div: a paragraph around it is invalid HTML.
+    expect(bar.querySelector("svg")).not.toBeNull();
+    expect(bar.querySelectorAll("p div, p p, p ul, p section")).toHaveLength(0);
+  });
 });
 
 describe("the ways out", () => {

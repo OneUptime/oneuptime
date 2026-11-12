@@ -63,9 +63,10 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
 
   const goBackTo: Project | null = getProjectToGoBackTo(props.projects);
   const projectName: string = props.project.name || "";
-  const sentence: string = translator.translateText(
-    "This is a sample project. Nothing here is real, and nobody is notified.",
-  );
+  const sentence: string =
+    translator.translateText(
+      "This is a sample project. Nothing here is real, and nobody is notified.",
+    ) || "";
 
   const deleteSample: () => Promise<void> = async (): Promise<void> => {
     if (!props.project.id) {
@@ -107,13 +108,14 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
       aria-label={sentence}
       className="flex flex-col gap-2 bg-gray-900 px-4 py-2 text-sm text-white sm:flex-row sm:items-center sm:justify-between sm:px-6"
     >
-      <p className="flex min-w-0 items-start gap-2">
+      {/* A div, not a p: the Icon draws a div of its own. */}
+      <div className="flex min-w-0 items-start gap-2">
         <Icon
           icon={IconProp.Beaker}
           className="mt-0.5 h-4 w-4 flex-none text-amber-300"
         />
         <span className="min-w-0">{sentence}</span>
-      </p>
+      </div>
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <button
           type="button"

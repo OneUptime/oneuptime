@@ -190,7 +190,6 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     return count.toNumber() > 0;
   }
 
-  @CaptureSpan()
   /*
    * THE RULES A SAMPLE PROJECT KEEPS FOR ITS MEMBERS (issue #6808):
    *
@@ -204,6 +203,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
    * Refused with what to do instead. OneUptime itself (root) is let
    * through: it writes the sample's own members.
    */
+  @CaptureSpan()
   public async assertSampleProjectRules(data: {
     createBy: CreateBy<TeamMember>;
     projectId: ObjectID;
@@ -242,6 +242,7 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
     }
   }
 
+  @CaptureSpan()
   protected override async onBeforeCreate(
     createBy: CreateBy<TeamMember>,
   ): Promise<OnCreate<TeamMember>> {

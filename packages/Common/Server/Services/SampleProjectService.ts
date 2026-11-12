@@ -1,4 +1,8 @@
 import DatabaseConfig from "../DatabaseConfig";
+import Semaphore, {
+  SemaphoreLockTimeoutError,
+  SemaphoreMutex,
+} from "../Infrastructure/Semaphore";
 import ProjectService from "./ProjectService";
 import UserService from "./UserService";
 import logger from "../Utils/Logger";
@@ -38,6 +42,23 @@ import {
  * anyone else: a sample is a project on that server, with members, records
  * and telemetry, and the admin decided who may make projects.
  */
+
+// Making one person's sample, one at a time (createForUser).
+export const SAMPLE_PROJECT_MAKING_LOCK_NAMESPACE: string =
+  "SampleProjectService.createForUser";
+
+/*
+ * Held while a sample is made, which takes seconds; kept on a timer while
+ * the making goes on, so it only runs out when the server making it stops.
+ */
+export const SAMPLE_PROJECT_MAKING_LOCK_TIMEOUT_IN_MS: number = 60 * 1000;
+
+// How long a second click waits for the first to finish.
+export const SAMPLE_PROJECT_MAKING_WAIT_IN_MS: number = 45 * 1000;
+
+export const SAMPLE_PROJECT_STILL_BEING_MADE_MESSAGE: string =
+  "Your sample project is still being made. Open it again in a minute.";
+
 export default class SampleProjectService {
   // The sample this person made and still has, if any.
   public static async findSampleOf(userId: ObjectID): Promise<ObjectID | null> {
@@ -71,8 +92,80 @@ export default class SampleProjectService {
     return !(await DatabaseConfig.shouldDisableUserProjectCreation());
   }
 
+  /*
+   * One person's sample is made one at a time, on every server: a second
+   * tab's click waits for the first to finish, then opens what it made,
+   * instead of making a second sample beside it.
+   */
   @CaptureSpan()
   public static async createForUser(data: {
+    userId: ObjectID;
+    now?: Date | undefined;
+  }): Promise<SampleProjectCreateAnswer> {
+    const lock: SemaphoreMutex | null =
+      await SampleProjectService.lockMakingFor(data.userId);
+
+    try {
+      return await SampleProjectService.findOrMake(data);
+    } finally {
+      await SampleProjectService.unlockMaking(lock);
+    }
+  }
+
+  /*
+   * The lock on making this person's sample. Null when Valkey cannot be
+   * reached: making it matters more than the rare second sample two tabs
+   * could make at the same moment, which is deleted like any other (the
+   * Dashboard's own button already waits for its answer).
+   */
+  private static async lockMakingFor(
+    userId: ObjectID,
+  ): Promise<SemaphoreMutex | null> {
+    try {
+      return await Semaphore.lock({
+        key: userId.toString(),
+        namespace: SAMPLE_PROJECT_MAKING_LOCK_NAMESPACE,
+        lockTimeout: SAMPLE_PROJECT_MAKING_LOCK_TIMEOUT_IN_MS,
+        acquireTimeout: SAMPLE_PROJECT_MAKING_WAIT_IN_MS,
+        retryInterval: 500,
+        // Lost half way (a Valkey restart): the making goes on, unlocked.
+        onLockLost: (err: Error): void => {
+          logger.warn(
+            `Lost the lock on making the sample project of user ${userId.toString()}; making it goes on.`,
+          );
+          logger.warn(err);
+        },
+      });
+    } catch (err) {
+      if (err instanceof SemaphoreLockTimeoutError) {
+        throw new BadDataException(SAMPLE_PROJECT_STILL_BEING_MADE_MESSAGE);
+      }
+
+      logger.error(
+        `Could not lock making the sample project of user ${userId.toString()}; making it unlocked.`,
+      );
+      logger.error(err);
+      return null;
+    }
+  }
+
+  private static async unlockMaking(
+    lock: SemaphoreMutex | null,
+  ): Promise<void> {
+    if (!lock) {
+      return;
+    }
+
+    try {
+      await Semaphore.release(lock);
+    } catch (err) {
+      // It runs out on its own (SAMPLE_PROJECT_MAKING_LOCK_TIMEOUT_IN_MS).
+      logger.error("Could not unlock making a sample project.");
+      logger.error(err);
+    }
+  }
+
+  private static async findOrMake(data: {
     userId: ObjectID;
     now?: Date | undefined;
   }): Promise<SampleProjectCreateAnswer> {
