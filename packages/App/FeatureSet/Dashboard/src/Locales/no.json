@@ -51241,5 +51241,7 @@
   "It emails the owners added by owner rules.": "Eierne som eierreglene legger til, får e-post.",
   "Hidden - your role needs the \"{{permission}}\" permission": "Skjult – rollen din trenger tillatelsen «{{permission}}»",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Rollen din kan ikke lese sluttbrukeridentitet. Be en prosjektadministrator om tillatelsen «{{permission}}».",
-  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Den nøyaktige referansen siden din ga til identify(). Krever tillatelsen «{{permission}}»; skrives aldri i URL-en."
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Den nøyaktige referansen siden din ga til identify(). Krever tillatelsen «{{permission}}»; skrives aldri i URL-en.",
+  "That turn is not part of this task": "Den turen hører ikke til denne oppgaven",
+  "The task's first turn is shown instead.": "Oppgavens første tur vises i stedet."
 }

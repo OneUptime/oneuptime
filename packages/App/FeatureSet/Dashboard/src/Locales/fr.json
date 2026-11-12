@@ -51241,5 +51241,7 @@
   "It emails the owners added by owner rules.": "Il envoie un e-mail aux propriétaires ajoutés par les règles de propriétaire.",
   "Hidden - your role needs the \"{{permission}}\" permission": "Masqué - votre rôle a besoin de l'autorisation « {{permission}} »",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Votre rôle ne peut pas lire l'identité de l'utilisateur final. Demandez à un administrateur du projet l'autorisation « {{permission}} ».",
-  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "La référence exacte que votre page a transmise à identify(). Nécessite l'autorisation « {{permission}} » ; n'est jamais écrite dans l'URL."
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "La référence exacte que votre page a transmise à identify(). Nécessite l'autorisation « {{permission}} » ; n'est jamais écrite dans l'URL.",
+  "That turn is not part of this task": "Ce tour ne fait pas partie de cette tâche",
+  "The task's first turn is shown instead.": "Le premier tour de la tâche est affiché à la place."
 }

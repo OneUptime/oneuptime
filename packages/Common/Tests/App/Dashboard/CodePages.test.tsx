@@ -3319,7 +3319,8 @@ describe("a task's conversation", () => {
           }),
         ).toEqual(["Project", "Code", "checkout-api", "Task #12", "Log"]);
       });
-      expect(getTaskMock).toHaveBeenCalledWith(TASK_ID);
+      // The address names no turn, so the task's read asks for none.
+      expect(getTaskMock).toHaveBeenCalledWith(TASK_ID, {});
       const trail: Array<Link> = trails[trails.length - 1] || [];
       expect(trail[1]?.to.toString()).toBe(`/dashboard/${PROJECT_ID}/code`);
       expect(trail[3]?.to.toString()).toBe(

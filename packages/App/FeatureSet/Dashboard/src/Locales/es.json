@@ -51241,5 +51241,7 @@
   "It emails the owners added by owner rules.": "Envía un correo a los propietarios añadidos por las reglas del propietario.",
   "Hidden - your role needs the \"{{permission}}\" permission": "Oculto: tu rol necesita el permiso «{{permission}}»",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Tu rol no puede leer la identidad del usuario final. Pide a un administrador del proyecto el permiso «{{permission}}».",
-  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "La referencia exacta que tu página pasó a identify(). Requiere el permiso «{{permission}}»; nunca se escribe en la URL."
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "La referencia exacta que tu página pasó a identify(). Requiere el permiso «{{permission}}»; nunca se escribe en la URL.",
+  "That turn is not part of this task": "Ese turno no forma parte de esta tarea",
+  "The task's first turn is shown instead.": "En su lugar se muestra el primer turno de la tarea."
 }
