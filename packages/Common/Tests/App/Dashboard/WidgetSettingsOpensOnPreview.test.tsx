@@ -27,7 +27,9 @@ import React from "react";
  *
  * And the widget in the preview is drawn as wide as its box is inside the
  * box's padding: it came out 32 pixels narrower, with three times the gap
- * after it as before it.
+ * after it as before it. On a phone, a chart's preview is as tall as a
+ * phone's board draws a chart (400 pixels): at 240 its title, series and
+ * legend left its plot a line.
  */
 
 jest.setTimeout(120000);
@@ -83,6 +85,7 @@ import DashboardProductAnalyticsFunnelComponentUtil from "../../../Utils/Dashboa
 import DashboardSloListComponentUtil from "../../../Utils/Dashboard/Components/DashboardSloListComponent";
 import DashboardTableComponentUtil from "../../../Utils/Dashboard/Components/DashboardTableComponent";
 import DashboardTextComponentUtil from "../../../Utils/Dashboard/Components/DashboardTextComponent";
+import { DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX } from "../../../Utils/Dashboard/DashboardBoardLayout";
 import {
   PREVIEW_WIDGET_ID,
   PreviewResizeObserver,
@@ -191,19 +194,93 @@ describe("the field that takes the focus as a widget's settings open", () => {
   });
 });
 
-describe("the Live Preview's width", () => {
+// The box the previewed widget is drawn in, sized by the dialog.
+function previewedWidgetBox(): HTMLElement {
+  const box: HTMLElement | null =
+    previewBox().querySelector<HTMLElement>("div[style]");
+
+  expect(box).not.toBeNull();
+
+  return box!;
+}
+
+// A widget of the given kind, 6 units wide and 4 tall, as the board's one.
+function widgetOnTheBoard(
+  makeWidget: () => DashboardBaseComponent,
+): DashboardBaseComponent {
+  const widget: DashboardBaseComponent = makeWidget();
+  widget.componentId = PREVIEW_WIDGET_ID;
+  widget.widthInDashboardUnits = 6;
+  widget.heightInDashboardUnits = 4;
+
+  return widget;
+}
+
+function makeChart(): DashboardBaseComponent {
+  return DashboardChartComponentUtil.getDefaultComponent();
+}
+
+function makeText(): DashboardBaseComponent {
+  return DashboardTextComponentUtil.getDefaultComponent();
+}
+
+// A ResizeObserver that measures a phone's preview: 326 pixels inside the padding.
+class PhonePreviewResizeObserver extends PreviewResizeObserver {
+  private phoneCallback: ResizeObserverCallback;
+
+  public constructor(callback: ResizeObserverCallback) {
+    super(callback);
+    this.phoneCallback = callback;
+  }
+
+  public override observe(): void {
+    this.phoneCallback(
+      [{ contentRect: { width: 326 } } as unknown as ResizeObserverEntry],
+      this as unknown as ResizeObserver,
+    );
+  }
+}
+
+describe("the Live Preview's size", () => {
   test("the widget is drawn as wide as the preview box is inside its padding", () => {
     // The stand-in ResizeObserver measures 800 pixels inside the padding.
-    const text: DashboardBaseComponent =
-      DashboardTextComponentUtil.getDefaultComponent();
-    text.componentId = PREVIEW_WIDGET_ID;
+    openWidgetSettings(widgetOnTheBoard(makeText));
 
-    openWidgetSettings(text);
+    expect(previewedWidgetBox().style.width).toBe("800px");
+  });
 
-    const drawnAt: HTMLElement | null =
-      previewBox().querySelector<HTMLElement>("div[style]");
+  test("a chart, wide: its shape, up to 420 pixels tall", () => {
+    openWidgetSettings(widgetOnTheBoard(makeChart));
 
-    expect(drawnAt).not.toBeNull();
-    expect(drawnAt!.style.width).toBe("800px");
+    expect(previewedWidgetBox().style.height).toBe("420px");
+  });
+
+  describe("on a phone", () => {
+    beforeAll(() => {
+      (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+        PhonePreviewResizeObserver;
+    });
+
+    afterAll(() => {
+      (globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver =
+        PreviewResizeObserver;
+    });
+
+    test("a chart is as tall as a phone's board draws one", () => {
+      openWidgetSettings(widgetOnTheBoard(makeChart));
+
+      const box: HTMLElement = previewedWidgetBox();
+
+      expect(box.style.width).toBe("326px");
+      expect(box.style.height).toBe(
+        `${DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX}px`,
+      );
+    });
+
+    test("a text widget keeps its shape, 240 pixels at the least", () => {
+      openWidgetSettings(widgetOnTheBoard(makeText));
+
+      expect(previewedWidgetBox().style.height).toBe("240px");
+    });
   });
 });

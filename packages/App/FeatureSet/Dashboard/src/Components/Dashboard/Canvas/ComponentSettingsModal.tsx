@@ -11,6 +11,10 @@ import React, {
   useState,
 } from "react";
 import { withDashboardWidgetSavedSort } from "Common/Utils/Dashboard/DashboardWidgetSorts";
+import DashboardBoardLayoutUtil, {
+  DASHBOARD_STACKED_BELOW_WIDTH_IN_PX,
+  DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX,
+} from "Common/Utils/Dashboard/DashboardBoardLayout";
 import { DashboardWidgetSortColumns } from "Common/Types/Dashboard/DashboardWidgetSort";
 import DashboardBaseComponent from "Common/Types/Dashboard/DashboardComponents/DashboardBaseComponent";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
@@ -276,9 +280,20 @@ const ComponentSettingsModal: FunctionComponent<ComponentProps> = (
   const aspectRatio: number =
     (component.widthInDashboardUnits || 1) /
     (component.heightInDashboardUnits || 1);
+  /*
+   * The widget's shape, from 240 to 420 pixels tall. A chart in a preview
+   * as narrow as a board that stacks its widgets (a phone) is at least as
+   * tall as that board draws a chart: its title, series and legend take
+   * about 200 pixels, and at 240 its plot was a line.
+   */
+  const previewMinHeight: number =
+    previewWidth < DASHBOARD_STACKED_BELOW_WIDTH_IN_PX &&
+    DashboardBoardLayoutUtil.isChart(component.componentType)
+      ? DASHBOARD_STACKED_CHART_MIN_HEIGHT_IN_PX
+      : 240;
   const previewHeight: number = Math.min(
     420,
-    Math.max(240, previewWidth / aspectRatio),
+    Math.max(previewMinHeight, previewWidth / aspectRatio),
   );
 
   return (
