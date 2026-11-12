@@ -172,16 +172,19 @@ export const PUBLIC_RESOURCE_GRID_PARTS: PublicResourceGridParts = {
  * The head's own cells, drawn only in the matrix (the head is not drawn in
  * the stack). The corner over the rows' values and the row axis's name are
  * held at the start of the line with the rows' values, so the head does not
- * scroll away from them.
+ * scroll away from them. Their gradient fades to gray-50/80, which a column
+ * heading scrolled under them showed through: they are drawn over white
+ * (the card's own ground, and its dark surface in the dark theme), so they
+ * look as the other headings do and nothing shows through.
  */
 export const PUBLIC_RESOURCE_GRID_CORNER_CLASS_NAME: string =
-  "sticky start-0 z-10 min-w-[10rem] border-e border-gray-200 bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pb-1.5 pt-3";
+  "sticky start-0 z-10 min-w-[10rem] border-e border-gray-200 bg-white bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pb-1.5 pt-3";
 
 export const PUBLIC_RESOURCE_GRID_COLUMN_AXIS_CLASS_NAME: string =
   "bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 pb-1.5 pt-3 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400";
 
 export const PUBLIC_RESOURCE_GRID_ROW_AXIS_CLASS_NAME: string =
-  "sticky start-0 z-10 min-w-[10rem] border-b border-e border-gray-200 bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400";
+  "sticky start-0 z-10 min-w-[10rem] border-b border-e border-gray-200 bg-white bg-gradient-to-b from-gray-50 to-gray-50/80 px-4 py-3 text-start text-[10px] font-semibold uppercase tracking-[0.18em] text-gray-400";
 
 export const PUBLIC_RESOURCE_GRID_COLUMN_HEADING_CLASS_NAME: string =
   "min-w-[8.75rem] border-b border-gray-200 bg-gradient-to-b from-gray-50 to-gray-50/80 px-3 py-3 text-center text-sm font-semibold text-gray-900";

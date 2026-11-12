@@ -486,12 +486,12 @@ describe("the rows' values, held at the start of the line in every reading direc
       expect(tokens).toEqual(
         expect.arrayContaining(["sticky", "start-0", "z-10", "border-e"]),
       );
-      // Over the cells it is held above as they scroll under it.
-      expect(
-        tokens.some((token: string): boolean => {
-          return token.startsWith("bg-");
-        }),
-      ).toBe(true);
+      /*
+       * Over the cells it is held above as they scroll under it, on a
+       * ground nothing shows through (white, the card's: a gradient that
+       * fades to gray-50/80 showed the column heading under it).
+       */
+      expect(tokens).toContain("bg-white");
     },
   );
 
