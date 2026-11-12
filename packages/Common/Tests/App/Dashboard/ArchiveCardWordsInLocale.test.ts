@@ -155,7 +155,7 @@ describe("the pages the Archive card is read from", () => {
 
     const unnamed: Array<string> = calls
       .filter((call: { file: string; props: string }): boolean => {
-        return !/singularName=/.test(call.props);
+        return !call.props.includes("singularName=");
       })
       .map((call: { file: string; props: string }): string => {
         return call.file;
@@ -233,6 +233,12 @@ describe.each(DASHBOARD_LANGUAGES)(
   },
 );
 
+// A title that opens with a small letter: "dienst archiveren".
+const STARTS_SMALL: RegExp = /^\p{Ll}/u;
+
+// "vCenter", "iOS": a word with a capital after its first letter keeps its case.
+const KEEPS_ITS_CASE: RegExp = /^.+\p{Lu}/u;
+
 describe("the card's title, a heading in every language", () => {
   function title(
     language: string,
@@ -270,10 +276,7 @@ describe("the card's title, a heading in every language", () => {
           const drawn: string = title(language, name, isArchived);
           const first: string = drawn.split(/\s/)[0]!;
 
-          if (
-            /^\p{Ll}/u.test(drawn) &&
-            !/^.+\p{Lu}/u.test(first) // "vCenter" keeps its case
-          ) {
+          if (STARTS_SMALL.test(drawn) && !KEEPS_ITS_CASE.test(first)) {
             small.push(drawn);
           }
         }
@@ -306,7 +309,7 @@ describe("the check above, against words nobody has", () => {
       (key: string): boolean => {
         return (
           german[key] === english[key] &&
-          /\s/.test(key) &&
+          key.includes(" ") &&
           !isWordedInDashboardLocale(key, "de")
         );
       },
