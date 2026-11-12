@@ -50933,5 +50933,13 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, мониторинг выключен, с {{start}}, уже {{duration}}. Сейчас активно.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, мониторинг выключен, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "Не показано более ранних ходов: {{count}}",
-  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан"
+  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "Порог риска должен быть процентом от {{min}} до {{max}}.",
+  "At-risk threshold must be a whole number.": "Порог риска должен быть целым числом.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "За последние {{window}} · {{rate}} тратит бюджет ровно за окно",
+  "Target must be greater than {{min}} and at most {{max}}.": "Цель должна быть больше {{min}} и не больше {{max}}.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Доля времени, в течение которой его мониторы должны работать. За {{days}} дней цель {{target}} допускает {{minutes}} минуты простоя, а {{stricterTarget}} — около {{stricterMinutes}}.",
+  "Window must be a whole number of days.": "Окно должно быть целым числом дней.",
+  "Window must be between {{min}} and {{max}} days.": "Окно должно быть от {{min}} до {{max}} дней.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} каждого месяца: {{budget}} простоя в месяце из {{days}} дней"
 }

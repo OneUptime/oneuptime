@@ -50933,5 +50933,13 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} earlier turns are not shown",
-  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown"
+  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "At-risk threshold must be a percentage between {{min}} and {{max}}.",
+  "At-risk threshold must be a whole number.": "At-risk threshold must be a whole number.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "Over the last {{window}} · {{rate}} spends the budget exactly over the window",
+  "Target must be greater than {{min}} and at most {{max}}.": "Target must be greater than {{min}} and at most {{max}}.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.",
+  "Window must be a whole number of days.": "Window must be a whole number of days.",
+  "Window must be between {{min}} and {{max}} days.": "Window must be between {{min}} and {{max}} days.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month"
 }

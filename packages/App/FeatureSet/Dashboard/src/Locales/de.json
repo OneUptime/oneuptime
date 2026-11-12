@@ -50933,5 +50933,13 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, Überwachung aus, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} frühere Durchgänge werden nicht angezeigt",
-  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt"
+  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "Der Risikoschwellenwert muss ein Prozentsatz zwischen {{min}} und {{max}} sein.",
+  "At-risk threshold must be a whole number.": "Der Risikoschwellenwert muss eine ganze Zahl sein.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "Über die letzten {{window}} · {{rate}} verbraucht das Budget genau über das Zeitfenster",
+  "Target must be greater than {{min}} and at most {{max}}.": "Das Ziel muss größer als {{min}} und höchstens {{max}} sein.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Der Anteil der Zeit, in der seine Monitore verfügbar sein müssen. Bei {{target}} sind über {{days}} Tage {{minutes}} Minuten Ausfallzeit erlaubt, bei {{stricterTarget}} etwa {{stricterMinutes}}.",
+  "Window must be a whole number of days.": "Das Zeitfenster muss eine ganze Zahl von Tagen sein.",
+  "Window must be between {{min}} and {{max}} days.": "Das Zeitfenster muss zwischen {{min}} und {{max}} Tagen liegen.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} jedes Monats: {{budget}} Ausfallzeit in einem Monat mit {{days}} Tagen"
 }

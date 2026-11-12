@@ -50933,5 +50933,13 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoreo desactivado, desde {{start}}, {{duration}} hasta ahora. Activo actualmente.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoreo desactivado, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} turnos anteriores no se muestran",
-  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior no se muestra"
+  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior no se muestra",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "El umbral de riesgo debe ser un porcentaje entre {{min}} y {{max}}.",
+  "At-risk threshold must be a whole number.": "El umbral de riesgo debe ser un número entero.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "En las últimas {{window}} · {{rate}} gasta el presupuesto exactamente en la ventana",
+  "Target must be greater than {{min}} and at most {{max}}.": "El objetivo debe ser mayor que {{min}} y como máximo {{max}}.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "La parte del tiempo en que sus monitores deben estar activos. En {{days}} días, {{target}} permite {{minutes}} minutos de tiempo de inactividad y {{stricterTarget}}, unos {{stricterMinutes}}.",
+  "Window must be a whole number of days.": "La ventana debe ser un número entero de días.",
+  "Window must be between {{min}} and {{max}} days.": "La ventana debe tener entre {{min}} y {{max}} días.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} de cada mes: {{budget}} de tiempo de inactividad en un mes de {{days}} días"
 }

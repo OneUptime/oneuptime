@@ -13,9 +13,15 @@ import { ModelField } from "Common/UI/Components/Forms/ModelForm";
 import type { RadioButton } from "Common/UI/Components/RadioButtons/GroupRadioButtons";
 import TimezoneUtil from "Common/UI/Utils/Timezone";
 import {
-  translateTemplate,
+  getGlobalTranslator,
   translationKey,
+  Translator,
 } from "Common/UI/Utils/TranslateTemplate";
+import {
+  formatSloNumber,
+  formatSloPercent,
+  SLI_DECIMALS,
+} from "Common/Utils/Slo/SloWidgetFormat";
 
 /*
  * The SLO form's field list and its client-side validators, kept in a plain
@@ -34,9 +40,142 @@ import {
 /*
  * The examples are the part people actually need: "99.9" means nothing
  * until it is translated into how much downtime it allows.
+ *
+ * One sentence with its figures as values, each written the reader's way:
+ * "99,9 %" in German, "۹۹٫۹٪" in Persian (formatSloPercent). Written into
+ * the English text, the help was no key of the locales and read in English,
+ * with English figures, in every language (#6925). English reads it word
+ * for word as before.
  */
-const SLO_TARGET_HELP_TEXT: string =
-  "The share of time its monitors must be up. Over 30 days, 99.9% allows 43 minutes of downtime and 99.99% about 4.";
+export const SLO_TARGET_HELP_TEMPLATE: string = translationKey(
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.",
+);
+
+// The help's second example: one more nine.
+export const SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE: number = 99.99;
+
+const MINUTES_PER_DAY: number = 24 * 60;
+
+type DowntimeMinutesFunction = (data: {
+  targetPercentage: number;
+  windowDays: number;
+}) => number;
+
+// The whole minutes of downtime a target allows over a window: 99.9% of 30 days, 43.
+const getAllowedDowntimeMinutes: DowntimeMinutesFunction = (data: {
+  targetPercentage: number;
+  windowDays: number;
+}): number => {
+  return Math.round(
+    (data.windowDays * MINUTES_PER_DAY * (100 - data.targetPercentage)) / 100,
+  );
+};
+
+export type GetSloTargetHelpTextFunction = (
+  translator?: Translator | undefined,
+) => string;
+
+/*
+ * The target field's help, in the reader's language: the reader's Translator,
+ * or the language of the moment outside React (the forms are built from a
+ * plain module).
+ */
+export const getSloTargetHelpText: GetSloTargetHelpTextFunction = (
+  translator?: Translator | undefined,
+): string => {
+  const reader: Translator = translator || getGlobalTranslator();
+  const days: number = DEFAULT_ROLLING_WINDOW_DAYS;
+
+  return reader.translateTemplate(SLO_TARGET_HELP_TEMPLATE, {
+    days: formatSloNumber(days, 0, reader) ?? String(days),
+    target:
+      formatSloPercent(SLO_SUGGESTED_TARGET_PERCENTAGE, SLI_DECIMALS, reader) ??
+      `${SLO_SUGGESTED_TARGET_PERCENTAGE}%`,
+    minutes:
+      formatSloNumber(
+        getAllowedDowntimeMinutes({
+          targetPercentage: SLO_SUGGESTED_TARGET_PERCENTAGE,
+          windowDays: days,
+        }),
+        0,
+        reader,
+      ) ?? "",
+    stricterTarget:
+      formatSloPercent(
+        SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE,
+        SLI_DECIMALS,
+        reader,
+      ) ?? `${SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE}%`,
+    stricterMinutes:
+      formatSloNumber(
+        getAllowedDowntimeMinutes({
+          targetPercentage: SLO_TARGET_HELP_STRICTER_TARGET_PERCENTAGE,
+          windowDays: days,
+        }),
+        0,
+        reader,
+      ) ?? "",
+  });
+};
+
+/*
+ * The limits the form's checks name, which the server holds too
+ * (ServiceLevelObjectiveService): a target above 0 and at most 99.999, an
+ * at-risk threshold from 0 to 100, a rolling window of 1 to 366 days.
+ */
+export const SLO_MAX_TARGET_PERCENTAGE: number = 99.999;
+export const SLO_MAX_WINDOW_DAYS: number = 366;
+
+/*
+ * What each check says, one sentence with its limits as values, so a German
+ * reader is told "99,999" and a Persian one "۹۹٫۹۹۹". Returned from a
+ * check, a message is no key the extractor finds unless it is marked here.
+ */
+export const SLO_FORM_ERRORS: {
+  target: string;
+  atRiskThresholdRange: string;
+  atRiskThresholdWhole: string;
+  windowDaysRange: string;
+  windowDaysWhole: string;
+} = {
+  target: translationKey(
+    "Target must be greater than {{min}} and at most {{max}}.",
+  ),
+  atRiskThresholdRange: translationKey(
+    "At-risk threshold must be a percentage between {{min}} and {{max}}.",
+  ),
+  atRiskThresholdWhole: translationKey(
+    "At-risk threshold must be a whole number.",
+  ),
+  windowDaysRange: translationKey(
+    "Window must be between {{min}} and {{max}} days.",
+  ),
+  windowDaysWhole: translationKey("Window must be a whole number of days."),
+};
+
+type RangeErrorFunction = (
+  template: string,
+  range: { min: number; max: number; maxDecimals: number },
+) => string;
+
+// A check's sentence with its limits, the way the reader writes them.
+const rangeError: RangeErrorFunction = (
+  template: string,
+  range: { min: number; max: number; maxDecimals: number },
+): string => {
+  const reader: Translator = getGlobalTranslator();
+
+  return reader.translateTemplate(template, {
+    min: formatSloNumber(range.min, range.maxDecimals, reader) ?? "",
+    max: formatSloNumber(range.max, range.maxDecimals, reader) ?? "",
+  });
+};
+
+type WordedErrorFunction = (text: string) => string;
+
+const wordedError: WordedErrorFunction = (text: string): string => {
+  return getGlobalTranslator().translateText(text) || text;
+};
 
 /*
  * The create form is one page of three rows: the SLO's name, its target,
@@ -193,10 +332,13 @@ export const getSloAdvancedSummary: GetSloAdvancedSummaryFunction = (
     return undefined;
   }
 
+  const reader: Translator = getGlobalTranslator();
+
+  // "۳۰" and "۲۰" on a Persian page: the reader's digits.
   return [
-    translateTemplate(SLO_ADVANCED_DEFAULTS_SUMMARY, {
-      days: DEFAULT_ROLLING_WINDOW_DAYS,
-      threshold: DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE,
+    reader.translateTemplate(SLO_ADVANCED_DEFAULTS_SUMMARY, {
+      days: reader.formatNumber(DEFAULT_ROLLING_WINDOW_DAYS),
+      threshold: reader.formatNumber(DEFAULT_AT_RISK_THRESHOLD_PERCENTAGE),
     }),
   ];
 };
@@ -267,6 +409,10 @@ export const getSloWindowTypeChoices: GetSloWindowTypeChoicesFunction =
  * and validateAtRiskThresholdPercentage. Without them the only feedback on a
  * bad number was a failed round-trip rendering the raw server exception, and
  * the whole create modal had to be re-submitted to find out.
+ *
+ * Each says what is wrong in the reader's language, with its limits written
+ * the reader's way (SLO_FORM_ERRORS). An English reader reads the sentences
+ * word for word as before.
  */
 export type ValidateTargetPercentageFunction = (
   value: FormValues<ServiceLevelObjective>,
@@ -277,8 +423,12 @@ export const validateTargetPercentage: ValidateTargetPercentageFunction = (
 ): string | null => {
   const target: number = Number(value.targetPercentage);
 
-  if (!isFinite(target) || target <= 0 || target > 99.999) {
-    return "Target must be greater than 0 and at most 99.999.";
+  if (!isFinite(target) || target <= 0 || target > SLO_MAX_TARGET_PERCENTAGE) {
+    return rangeError(SLO_FORM_ERRORS.target, {
+      min: 0,
+      max: SLO_MAX_TARGET_PERCENTAGE,
+      maxDecimals: 3,
+    });
   }
 
   return null;
@@ -294,7 +444,11 @@ export const validateAtRiskThreshold: ValidateAtRiskThresholdFunction = (
   const threshold: number = Number(value.atRiskThresholdPercentage);
 
   if (!isFinite(threshold) || threshold < 0 || threshold > 100) {
-    return "At-risk threshold must be a percentage between 0 and 100.";
+    return rangeError(SLO_FORM_ERRORS.atRiskThresholdRange, {
+      min: 0,
+      max: 100,
+      maxDecimals: 0,
+    });
   }
 
   /*
@@ -302,7 +456,7 @@ export const validateAtRiskThreshold: ValidateAtRiskThresholdFunction = (
    * fail the INSERT with a raw driver error the user cannot act on.
    */
   if (!Number.isInteger(threshold)) {
-    return "At-risk threshold must be a whole number.";
+    return wordedError(SLO_FORM_ERRORS.atRiskThresholdWhole);
   }
 
   return null;
@@ -321,12 +475,20 @@ export const validateWindowDays: ValidateWindowDaysFunction = (
    */
   const windowDays: number = Number(value.windowDays);
 
-  if (!isFinite(windowDays) || windowDays < 1 || windowDays > 366) {
-    return "Window must be between 1 and 366 days.";
+  if (
+    !isFinite(windowDays) ||
+    windowDays < 1 ||
+    windowDays > SLO_MAX_WINDOW_DAYS
+  ) {
+    return rangeError(SLO_FORM_ERRORS.windowDaysRange, {
+      min: 1,
+      max: SLO_MAX_WINDOW_DAYS,
+      maxDecimals: 0,
+    });
   }
 
   if (!Number.isInteger(windowDays)) {
-    return "Window must be a whole number of days.";
+    return wordedError(SLO_FORM_ERRORS.windowDaysWhole);
   }
 
   return null;
@@ -370,7 +532,8 @@ export const getSloFormFields: GetSloFormFieldsFunction = (): Array<
         targetPercentage: true,
       },
       title: "Target (%)",
-      description: SLO_TARGET_HELP_TEXT,
+      // Filled in now, in the language of the moment: a sentence, not a key.
+      description: getSloTargetHelpText(),
       fieldType: FormFieldSchemaType.Number,
       required: true,
       placeholder: "99.9",

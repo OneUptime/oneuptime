@@ -50933,5 +50933,13 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, övervakning avstängd, sedan {{start}}, {{duration}} hittills. Aktiv nu.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, övervakning avstängd, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} tidigare turer visas inte",
-  "{{count}} earlier turns are not shown_one": "{{count}} tidigare tur visas inte"
+  "{{count}} earlier turns are not shown_one": "{{count}} tidigare tur visas inte",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "Tröskeln för riskzon måste vara en procentsats mellan {{min}} och {{max}}.",
+  "At-risk threshold must be a whole number.": "Tröskeln för riskzon måste vara ett heltal.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "Under de senaste {{window}} · {{rate}} förbrukar budgeten exakt under fönstret",
+  "Target must be greater than {{min}} and at most {{max}}.": "Målet måste vara större än {{min}} och högst {{max}}.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Den andel av tiden som dess monitorer måste vara uppe. Vid {{target}} tillåts {{minutes}} minuters driftstopp under {{days}} dagar, vid {{stricterTarget}} ungefär {{stricterMinutes}}.",
+  "Window must be a whole number of days.": "Fönstret måste vara ett helt antal dagar.",
+  "Window must be between {{min}} and {{max}} days.": "Fönstret måste vara mellan {{min}} och {{max}} dagar.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} av varje månad: {{budget}} driftstopp i en månad på {{days}} dagar"
 }

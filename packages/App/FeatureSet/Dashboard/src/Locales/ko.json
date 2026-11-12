@@ -50933,5 +50933,13 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, 모니터링 꺼짐, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "이전 차례 {{count}}개는 표시되지 않습니다",
-  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다"
+  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "위험 임계값은 {{min}}에서 {{max}} 사이의 백분율이어야 합니다.",
+  "At-risk threshold must be a whole number.": "위험 임계값은 정수여야 합니다.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "최근 {{window}} · {{rate}}는 기간 동안 정확히 예산을 모두 사용합니다",
+  "Target must be greater than {{min}} and at most {{max}}.": "목표는 {{min}}보다 크고 {{max}} 이하여야 합니다.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "모니터가 정상이어야 하는 시간의 비율입니다. {{days}}일 동안 {{target}}이면 {{minutes}}분, {{stricterTarget}}이면 약 {{stricterMinutes}}분의 다운타임이 허용됩니다.",
+  "Window must be a whole number of days.": "기간은 정수 일수여야 합니다.",
+  "Window must be between {{min}} and {{max}} days.": "기간은 {{min}}일에서 {{max}}일 사이여야 합니다.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "매월 {{percentage}}: {{days}}일 기준 한 달에 다운타임 {{budget}}"
 }

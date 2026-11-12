@@ -50933,5 +50933,13 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvågning slået fra, siden {{start}}, {{duration}} indtil nu. Aktiv nu.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvågning slået fra, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} tidligere ture vises ikke",
-  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "Risikotærsklen skal være en procentdel mellem {{min}} og {{max}}.",
+  "At-risk threshold must be a whole number.": "Risikotærsklen skal være et helt tal.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "Over de seneste {{window}} · {{rate}} bruger budgettet præcis over vinduet",
+  "Target must be greater than {{min}} and at most {{max}}.": "Målet skal være større end {{min}} og højst {{max}}.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Den andel af tiden, hvor dets monitorer skal være oppe. Ved {{target}} er {{minutes}} minutters nedetid tilladt over {{days}} dage, ved {{stricterTarget}} omkring {{stricterMinutes}}.",
+  "Window must be a whole number of days.": "Vinduet skal være et helt antal dage.",
+  "Window must be between {{min}} and {{max}} days.": "Vinduet skal være mellem {{min}} og {{max}} dage.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} af hver måned: {{budget}} nedetid i en måned på {{days}} dage"
 }
