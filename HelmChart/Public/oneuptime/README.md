@@ -37,6 +37,11 @@ on a status page. This Helm chart runs all of OneUptime on Kubernetes.
    running, and sign up. The first account becomes the admin of this
    OneUptime.
 
+4. **Finish setting up the server** at `/admin/setup`: email, then SMS and
+   calls, each with a test. Until then OneUptime cannot email or page anyone.
+   The [Self-Hosting Guide](https://oneuptime.com/docs/installation/self-hosting-guide)
+   walks every step, from here to a test page.
+
 That's the whole happy path. For details, prerequisites, and upgrades, see the
 [Installation guide](https://github.com/OneUptime/oneuptime/blob/main/HelmChart/Public/oneuptime/docs/installation.md).
 

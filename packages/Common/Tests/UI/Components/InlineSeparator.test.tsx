@@ -179,6 +179,9 @@ const summaryOf: (name: string) => StatusTimelineSummary = (
       },
     ],
     measuredMs: 12 * 3600 * 1000,
+    // Monitoring was on throughout (issue #6480).
+    monitoringOffMs: 0,
+    monitoringOffCount: 0,
   };
 };
 

@@ -290,6 +290,11 @@ function sortRows(
         return (left - right) * sign;
       }
 
+      // In time, as Postgres orders a timestamp - not by the text of the day's name.
+      if (left instanceof Date && right instanceof Date) {
+        return (left.getTime() - right.getTime()) * sign;
+      }
+
       return String(left).localeCompare(String(right)) * sign;
     }
 

@@ -144,6 +144,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 `http://` 뒤에 `HOST`를 붙인 주소(예: `http://localhost`)를 열고 가입합니다. 새 인스턴스의 첫 계정은 마스터 관리자가 되며, `/admin`에서 Admin Dashboard를 열 수 있습니다.
 
 페이지에 접근할 수 있는 사람은 누구나 여러분 다음에 가입할 수 있습니다. 이를 막으려면 Admin Dashboard를 열고 **설정 > 인증**으로 가서 **가입 허용**을 끄세요. 프로젝트에 초대한 사람은 여전히 계정을 만들 수 있습니다.
+
+그다음 `/admin/setup`에서 서버 설정을 마칩니다. 여기서 이메일, SMS, 전화를 설정하고 테스트합니다: [서버 설정 마치기](/docs/installation/self-hosting-guide#서버-설정-마치기)를 참고하세요.
 :::
 
 ### 임의의 비밀 값 생성
@@ -566,8 +568,8 @@ Admin Dashboard는 **설정 > 모니터링 > 글로벌 프로브**에서 프로�
 ## 다음 단계
 
 :::cards
+- [서버 설정 마치기](/docs/installation/self-hosting-guide#서버-설정-마치기): 이메일, 그다음 SMS와 전화, 각각 테스트와 함께.
+- [빠른 시작](/docs/introduction/quickstart): 첫 모니터, 첫 온콜 정책, 첫 상태 페이지.
 - [OneUptime 업그레이드](/docs/installation/upgrading): 메이저 버전마다 필요한 작업입니다.
-- [사이징 및 용량 계획](/docs/installation/sizing): 텔레메트리에 필요한 메모리와 디스크를 계획합니다.
 - [자체 호스팅 아키텍처](/docs/self-hosted/architecture): 구성 요소가 어떻게 맞물리는지 설명합니다.
-- [엔터프라이즈 에디션](/docs/self-hosted/enterprise): Enterprise 이미지가 더하는 것과 그 라이선스입니다.
 :::

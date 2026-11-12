@@ -26,6 +26,12 @@ flowchart TB
 
 En mode **Lecture seule**, les actions ne sont jamais proposées au modèle : la conversation ne fait que lire.
 
+## Questions sur OneUptime
+
+Demander à l'IA répond aussi aux questions sur OneUptime lui-même : « Comment recevoir un SMS quand mon site tombe ? », « Qu'est-ce qu'un épisode ? », « Où ajouter un deuxième numéro de téléphone ? ». Ses réponses viennent de cette documentation, la copie que sert votre OneUptime : cela fonctionne sans accès à Internet et n'envoie rien à un nouvel endroit. Il lit une page dans votre langue quand elle est traduite, cite la page et la section de chaque étape, et dit que la documentation ne couvre pas un point plutôt que de deviner.
+
+Une réponse à « comment faire » se termine par un bouton qui ouvre la page de votre projet où vous le faites, comme **Créer un moniteur** ou **Méthodes de notification**. Il n'ouvre que des pages qu'OneUptime possède : celles que trouve la recherche (`Ctrl` + `K`).
+
 ## Ouvrir Demander à l'IA
 
 | Où | Comment |

@@ -5,6 +5,7 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import {
   XAxis as ChartXAxis,
@@ -107,6 +108,15 @@ export interface ChartCardProps {
    * Drawn in the same grey box, which grows to hold it.
    */
   emptyContent?: ReactElement | undefined;
+  /*
+   * The step of the time axis, when the page knows it: a chart of one point
+   * a day (Product Analytics) passes XAxisPrecision.EVERY_DAY, so its ticks
+   * name days ("07 Nov") however short or long the window is - never the
+   * clock times a window of a few days gets ("07 Nov, 00:00"), and never
+   * days averaged into weeks or months over a long one. Unset, the axis
+   * picks its step from the window's length, as every other card's does.
+   */
+  xAxisPrecision?: XAxisPrecision | undefined;
 }
 
 const ChartCard: FunctionComponent<ChartCardProps> = (
@@ -261,6 +271,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
       min: props.windowStart,
       max: props.windowEnd,
       aggregateType: XAxisAggregateType.Average,
+      precision: props.xAxisPrecision,
     },
   };
 
@@ -276,26 +287,44 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
             return props.yFormatter!(value);
           }
         : (value: number): string => {
-            return String(Math.round(value));
+            /*
+             * A count as the page's tiles and the time axis write numbers
+             * in the reader's language: "20,000", "20.000", "۲۰٬۰۰۰" - never
+             * a bare "20000" beside a "12,480" tile.
+             */
+            return translator.formatNumber(Math.round(value));
           },
     },
   };
 
+  /*
+   * The chart sits at the foot of the card. Cards side by side in a row
+   * grow to the tallest one - a title on two lines, a legend on three - and
+   * their plots and time axes still line up, as the hover line they share
+   * (syncId) runs across them.
+   */
   return (
-    <div className="group/zoomhint rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="group/zoomhint flex flex-col rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       {header}
-      <LineChartElement
-        data={withTranslatedSeriesNames(props.series, translator)}
-        xAxis={xAxis}
-        yAxis={yAxis}
-        curve={ChartCurve.MONOTONE}
-        sync={true}
-        syncid={props.syncId}
-        heightInPx={176}
-        showLegend={props.showLegend ?? false}
-        allowDecimals={props.yAllowDecimals}
-        timeReferenceLines={props.timeReferenceLines}
-      />
+      <div className="mt-auto" data-testid="chart-card-chart">
+        <LineChartElement
+          data={withTranslatedSeriesNames(props.series, translator)}
+          xAxis={xAxis}
+          yAxis={yAxis}
+          curve={ChartCurve.MONOTONE}
+          sync={true}
+          syncid={props.syncId}
+          heightInPx={176}
+          /*
+           * A legend that wraps (three long series names on a phone, or in
+           * German) adds its lines to the card instead of squeezing the plot.
+           */
+          growsWhenLegendWraps={true}
+          showLegend={props.showLegend ?? false}
+          allowDecimals={props.yAllowDecimals}
+          timeReferenceLines={props.timeReferenceLines}
+        />
+      </div>
     </div>
   );
 };

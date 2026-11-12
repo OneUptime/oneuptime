@@ -1236,6 +1236,163 @@ test.describe("a monitor's Status Timeline", () => {
   });
 });
 
+/*
+ * Issue #6480: turning a monitor's monitoring off or on starts a status
+ * event with the status it holds (scenario=monitoring-off: off for three
+ * days last month, and again since yesterday). The page read the switch as
+ * "Operational ... by Ada Lovelace" twice in a row, drew the days nothing
+ * checked the monitor in green, and counted them in the legend's share.
+ */
+test.describe("a monitor's Status Timeline with monitoring turned off", () => {
+  // The fixture's rows of that history, newest first.
+  const OFF_SINCE_YESTERDAY: string = eventId(1);
+  const OFFLINE_WHEN_TURNED_OFF: string = eventId(2);
+  const OFFLINE_CHECKED: string = eventId(3);
+  const BACK_ON: string = eventId(4);
+  const OFF_LAST_MONTH: string = eventId(5);
+
+  test("each event held with monitoring off is marked, drawn as time nothing checked, and left out of the legend's shares", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openMonitor(page, "?scenario=monitoring-off");
+
+    // The shares are of the time something checked the monitor.
+    await expect(legendItems(page)).toHaveText([
+      "Operational99.81% · 25 days 21 hours",
+      "Offline0.19% · 1 hour 12 mins",
+    ]);
+    await expect(
+      page.getByTestId("status-timeline-legend-monitoring-off"),
+    ).toHaveText("Monitoring Off4 days 1 hour");
+
+    // On the band: striped gray, never the status's green.
+    for (const id of [OFF_LAST_MONTH, OFF_SINCE_YESTERDAY]) {
+      await expect(mark(page, id)).toHaveAttribute(
+        "data-monitoring-off",
+        "true",
+      );
+      await expect(mark(page, id)).toHaveCSS(
+        "background-color",
+        "rgb(209, 213, 219)",
+      );
+      await expect(mark(page, id)).toHaveCSS(
+        "background-image",
+        /repeating-linear-gradient/,
+      );
+    }
+    await expect(mark(page, BACK_ON)).toHaveAttribute(
+      "data-monitoring-off",
+      "false",
+    );
+    await expect(mark(page, BACK_ON)).toHaveCSS(
+      "background-color",
+      "rgb(16, 185, 129)",
+    );
+    /*
+     * The Offline the switch froze lasted two seconds, one cluster with the
+     * Offline before it: red for the outage that was checked.
+     */
+    const cluster: Locator = page
+      .getByTestId("status-timeline-band")
+      .locator(
+        `[data-entry-ids="${OFFLINE_CHECKED},${OFFLINE_WHEN_TURNED_OFF}"]`,
+      );
+    await expect(cluster).toHaveAttribute("data-monitoring-off", "false");
+    await expect(cluster).toHaveCSS("background-color", "rgb(239, 68, 68)");
+
+    // A screen reader hears it, and so does the pointer.
+    await expect(mark(page, OFF_LAST_MONTH)).toHaveAttribute(
+      "aria-label",
+      /^Operational, monitoring off, Sep 24, 8:36\sAM – Sep 27, 8:36\sAM, 3 days$/,
+    );
+    await mark(page, OFF_LAST_MONTH).hover();
+    await expect(
+      page.getByRole("tooltip").getByTestId("monitoring-off-indicator"),
+    ).toHaveText("Monitoring Off");
+
+    // In the list: beside the status, before Currently Active.
+    for (const id of [
+      OFF_SINCE_YESTERDAY,
+      OFFLINE_WHEN_TURNED_OFF,
+      OFF_LAST_MONTH,
+    ]) {
+      await expect(
+        entry(page, id).getByTestId("monitoring-off-indicator"),
+      ).toHaveText("Monitoring Off");
+    }
+    for (const id of [OFFLINE_CHECKED, BACK_ON]) {
+      await expect(
+        entry(page, id).getByTestId("monitoring-off-indicator"),
+      ).toHaveCount(0);
+    }
+    await expect(
+      entry(page, OFF_SINCE_YESTERDAY).locator(
+        '[data-testid="monitoring-off-indicator"] ~ [data-testid="currently-active-indicator"]',
+      ),
+    ).toHaveCount(1);
+    await screenshot(page, "monitor-monitoring-off");
+  });
+
+  test("the table marks the same events in its Monitor Status column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openMonitor(page, "?scenario=monitoring-off");
+    await page.getByTestId("status-timeline-view-table").first().click();
+
+    const rows: Locator = page.locator("tbody tr");
+    await expect(rows).toHaveCount(6);
+    await expect(rows.getByTestId("monitoring-off-indicator")).toHaveCount(3);
+    await expect(
+      rows.nth(0).getByTestId("monitoring-off-indicator"),
+    ).toHaveText("Monitoring Off");
+    await expect(
+      rows.nth(2).getByTestId("monitoring-off-indicator"),
+    ).toHaveCount(0);
+
+    // The table reads the column with its rows.
+    const tableReads: Array<ListRequest> = (await timelineReads(page)).filter(
+      (request: ListRequest): boolean => {
+        return request.selectKeys.includes("rootCause");
+      },
+    );
+    expect(tableReads.length).toBeGreaterThan(0);
+    for (const request of tableReads) {
+      expect(request.selectKeys).toContain("isMonitoringOff");
+    }
+    await screenshot(page, "monitor-monitoring-off-table");
+  });
+
+  test("in Arabic, right to left, the legend and the marks are in the reader's words", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openMonitor(page, "?scenario=monitoring-off&lang=ar");
+
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expect(
+      page.getByTestId("status-timeline-legend-monitoring-off"),
+    ).toContainText(
+      "\u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0645\u062a\u0648\u0642\u0641\u0629",
+    );
+    await expect(
+      entry(page, OFF_LAST_MONTH).getByTestId("monitoring-off-indicator"),
+    ).toHaveText(
+      "\u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0645\u062a\u0648\u0642\u0641\u0629",
+    );
+    await expect(mark(page, OFF_LAST_MONTH)).toHaveAttribute(
+      "aria-label",
+      /\u060c \u0627\u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0645\u062a\u0648\u0642\u0641\u0629\u060c /,
+    );
+    await expectNoSidewaysScroll(page);
+    await screenshot(page, "monitor-monitoring-off-arabic");
+  });
+});
+
 test.describe("a monitor's Status Timeline in German", () => {
   test("the timeline's own words are the reader's language", async ({
     page,

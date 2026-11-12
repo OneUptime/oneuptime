@@ -187,6 +187,14 @@ export interface ComponentProps<TBaseModel extends BaseModel> {
   noLogsText?: string | undefined;
   showViewIdButton?: boolean | undefined;
 
+  /*
+   * A boolean column that says nothing checked the record while a row's
+   * status held: a monitor's isMonitoringOff (issue #6480). Its entries are
+   * marked Monitoring Off, and the band and the legend draw and count that
+   * time apart from the statuses'.
+   */
+  monitoringOffColumn?: string | undefined;
+
   // More fields of each row, for renderEntryDetails.
   selectMoreFields?: Select<TBaseModel> | undefined;
   // Under an entry: what the page adds (a notification's status, say).
@@ -314,11 +322,15 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
       fields["createdByUser"] = { _id: true, name: true, email: true };
     }
 
+    if (props.monitoringOffColumn) {
+      fields[props.monitoringOffColumn] = true;
+    }
+
     return {
       ...fields,
       ...((props.selectMoreFields as JSONObject | undefined) || {}),
     } as Select<TBaseModel>;
-  }, [props.stateColumn, model]);
+  }, [props.stateColumn, props.monitoringOffColumn, model]);
 
   const sort: Sort<TBaseModel> = {
     startsAt: SortOrder.Descending,
@@ -564,6 +576,9 @@ const ModelStatusTimeline: ModelStatusTimelineFunction = <
         endsAt: readDate(readValue(row, "endsAt")),
         rank: props.getStateRank ? props.getStateRank(state) : undefined,
         changedBy: userName || undefined,
+        isMonitoringOff: props.monitoringOffColumn
+          ? readValue(row, props.monitoringOffColumn) === true
+          : undefined,
       });
     }
 

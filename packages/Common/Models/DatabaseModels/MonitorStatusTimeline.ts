@@ -500,6 +500,48 @@ export default class MonitorStatusTimeline extends BaseModel {
   })
   public isOwnerNotified?: boolean = undefined;
 
+  /*
+   * Whether the monitor's monitoring was turned off (Monitor
+   * disableActiveMonitoring) for the time this status event covers. Nothing
+   * checked the monitor then, so the status is only what its last check saw
+   * before that: uptime, status page bars, SLOs and monitor group graphs
+   * leave the time out instead of counting it as that status (issues #6480
+   * and #6987). OneUptime decides it, never a write
+   * (MonitorStatusTimelineService): turning monitoring off or on starts a
+   * status event of its own, with the status the monitor holds.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.MonitorAdmin,
+      Permission.MonitorMember,
+      Permission.MonitorViewer,
+      Permission.ReadMonitorStatusTimeline,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    type: TableColumnType.Boolean,
+    computed: true,
+    required: true,
+    isDefaultValueColumn: true,
+    title: "Monitoring Off",
+    description:
+      "Was the monitor's monitoring turned off for this status event? Uptime, status pages and SLOs leave this time out.",
+    defaultValue: false,
+    example: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: false,
+    default: false,
+  })
+  public isMonitoringOff?: boolean = undefined;
+
   @ColumnAccessControl({
     create: [],
     read: [

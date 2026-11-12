@@ -9,8 +9,12 @@ import MonitorCheckScheduleUtil from "./MonitorCheckScheduleUtil";
  * drifted from the timeline, and the "Recent status changes" list.
  *
  * The server refuses a timeline row whose status equals its neighbour's
- * (MonitorStatusTimelineService), so the newest open row with the current
- * status marks exactly when that status began.
+ * (MonitorStatusTimelineService), except where monitoring was turned off or
+ * back on: that starts a row of the same status, marked isMonitoringOff
+ * while it is off (issue #6480). So the newest open row with the current
+ * status marks when that status began, or when monitoring was last turned
+ * off or on - nothing checked the monitor while it was off, so its status
+ * holds only from then.
  */
 
 export interface MonitorStatusChangeRow {
@@ -20,6 +24,11 @@ export interface MonitorStatusChangeRow {
   startsAt: Date;
   endsAt: Date | undefined;
   isOngoing: boolean;
+  /*
+   * The status was held with the monitor's monitoring turned off: only what
+   * its last check saw, and left out of uptime (issue #6480).
+   */
+  isMonitoringOff: boolean;
 }
 
 // #rgb, #rgba, #rrggbb and #rrggbbaa.
@@ -135,6 +144,7 @@ export default class MonitorStatusHistoryUtil {
         startsAt: startsAt,
         endsAt: rowEndsAt ?? successorStartsAt,
         isOngoing: i === 0 && !rowEndsAt,
+        isMonitoringOff: row.isMonitoringOff === true,
       });
     }
 

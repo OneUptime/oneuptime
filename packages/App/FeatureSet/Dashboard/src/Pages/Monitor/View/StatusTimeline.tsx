@@ -47,6 +47,7 @@ import {
   getStateTimelineEndsAtColumn,
 } from "Common/UI/Components/StateTimeline/StateTimelineColumns";
 import Statusbubble from "Common/UI/Components/StatusBubble/StatusBubble";
+import MonitoringOffIndicator from "Common/UI/Components/StateTimeline/MonitoringOffIndicator";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import Navigation from "Common/UI/Utils/Navigation";
 import MonitorStatus from "Common/Models/DatabaseModels/MonitorStatus";
@@ -532,6 +533,11 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
           onFetchSuccess={() => {
             void loadDeleteLock();
           }}
+          /*
+           * Time with the monitor's monitoring off (issue #6480): marked on
+           * its entries, and drawn and counted apart from its statuses.
+           */
+          monitoringOffColumn="isMonitoringOff"
           causeColumn="rootCause"
           noCauseText={NO_ROOT_CAUSE_TEXT}
           logColumn="statusChangeLog"
@@ -578,6 +584,7 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
         selectMoreFields={{
           statusChangeLog: true,
           rootCause: true,
+          isMonitoringOff: true,
         }}
         actionButtons={[
           {
@@ -683,12 +690,21 @@ const StatusTimeline: FunctionComponent<PageComponentProps> = (
                 throw new BadDataException("Monitor Status not found");
               }
 
+              /*
+               * A status held with monitoring off says so, as the timeline's
+               * entry does (issue #6480): turning monitoring off or on
+               * starts a status event with the same status. The table's
+               * pill size, as Currently Active's in the Ends At column.
+               */
               return (
-                <Statusbubble
-                  color={item.monitorStatus.color || Black}
-                  shouldAnimate={false}
-                  text={item.monitorStatus.name || "Unknown"}
-                />
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <Statusbubble
+                    color={item.monitorStatus.color || Black}
+                    shouldAnimate={false}
+                    text={item.monitorStatus.name || "Unknown"}
+                  />
+                  {item.isMonitoringOff ? <MonitoringOffIndicator /> : <></>}
+                </div>
               );
             },
           },

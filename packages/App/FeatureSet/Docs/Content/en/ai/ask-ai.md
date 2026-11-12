@@ -26,6 +26,12 @@ flowchart TB
 
 In **Read-only** mode the actions are never offered to the model, so the conversation only reads.
 
+## Questions about OneUptime
+
+Ask AI also answers questions about OneUptime itself: "How do I get a text when my site is down?", "What is an episode?", "Where do I add a second phone number?". It answers them from these docs, the copy your OneUptime serves, so it works without internet access and sends nothing anywhere new. It reads a page in your language where the page is translated, cites the page and section for every step, and says the docs do not cover something rather than guess.
+
+An answer to a "how do I" ends with a button that opens the page of your project where you do it, such as **Create Monitor** or **Notification Methods**. It only opens pages OneUptime has: the ones Search (`Ctrl` + `K`) finds.
+
 ## Open Ask AI
 
 | Where | How |

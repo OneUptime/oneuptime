@@ -5245,6 +5245,149 @@ describe("Slo:EvaluateSlos worker", () => {
     });
   });
 
+  describe("time with a monitor's monitoring off (#6480)", () => {
+    /*
+     * Nothing checks a monitor whose monitoring is off, so the status it
+     * holds is only what its last check saw. Turning it off starts a status
+     * event that says so (isMonitoringOff), and the SLI leaves that time out:
+     * a monitor turned off while Offline beside one still checked spends
+     * none of the budget for it, and burns nothing.
+     */
+    function frozenOffline(data: {
+      startsAt: Date;
+      isMonitoringOff: boolean;
+    }): MonitorStatusTimeline {
+      const row: MonitorStatusTimeline = down(
+        data.startsAt,
+        undefined,
+        MONITOR_B_ID,
+      );
+      row.isMonitoringOff = data.isMonitoringOff;
+      return row;
+    }
+
+    function twoMonitorSlo(
+      multiMonitorMode: SloMultiMonitorMode = SloMultiMonitorMode.AnyDown,
+    ): void {
+      sloService.getDueSlos.mockResolvedValue([
+        makeSlo({
+          monitors: [new Monitor(MONITOR_A_ID), new Monitor(MONITOR_B_ID)],
+          multiMonitorMode: multiMonitorMode,
+        }),
+      ]);
+
+      const turnedOff: Monitor = enabledMonitor(MONITOR_B_ID);
+      turnedOff.disableActiveMonitoring = true;
+
+      monitorService.findBy.mockResolvedValue([
+        enabledMonitor(MONITOR_A_ID),
+        turnedOff,
+      ]);
+      burnRuleService.findBy.mockResolvedValue([makeRule()]);
+    }
+
+    test("the status events are read with the switch they were recorded under", async () => {
+      sloService.getDueSlos.mockResolvedValue([makeSlo()]);
+      stubTimelines({ [MONITOR_A_ID.toString()]: [up(daysAgo(10))] });
+
+      await runWorkerTick();
+
+      expect(timelineService.findAllBy).toHaveBeenCalledTimes(1);
+
+      const select: Record<string, unknown> = (
+        timelineService.findAllBy.mock.calls[0]![0] as {
+          select: Record<string, unknown>;
+        }
+      ).select;
+
+      expect(select["isMonitoringOff"]).toBe(true);
+    });
+
+    test("a monitor turned off while Offline, beside one still checked, spends nothing for its time off: Healthy, 100%, no alert", async () => {
+      twoMonitorSlo();
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [up(daysAgo(10), undefined, MONITOR_A_ID)],
+        [MONITOR_B_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(3), MONITOR_B_ID),
+          frozenOffline({ startsAt: hoursAgo(3), isMonitoringOff: true }),
+        ],
+      });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.Healthy);
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBe(100);
+      expect(persistedStateUpdate()["currentBurnRate"]).toBe(0);
+      expect(alertService.create).not.toHaveBeenCalled();
+      expect(incidentService.create).not.toHaveBeenCalled();
+    });
+
+    test("control: the same frozen Offline, recorded before the switch was marked, spends the budget and pages", async () => {
+      twoMonitorSlo();
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [up(daysAgo(10), undefined, MONITOR_A_ID)],
+        [MONITOR_B_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(3), MONITOR_B_ID),
+          frozenOffline({ startsAt: hoursAgo(3), isMonitoringOff: false }),
+        ],
+      });
+
+      await runWorkerTick();
+
+      expect(persistedSloStatus()).toBe(SloStatus.BudgetExhausted);
+      // Three hours of 24 bad.
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBeCloseTo(
+        (21 / 24) * 100,
+        8,
+      );
+      expect(alertService.create).toHaveBeenCalledTimes(1);
+    });
+
+    test("the Offline time it was checked before the switch still counts, and the time off does not burn", async () => {
+      twoMonitorSlo();
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [up(daysAgo(10), undefined, MONITOR_A_ID)],
+        [MONITOR_B_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(5), MONITOR_B_ID),
+          down(hoursAgo(5), hoursAgo(3), MONITOR_B_ID),
+          frozenOffline({ startsAt: hoursAgo(3), isMonitoringOff: true }),
+        ],
+      });
+
+      await runWorkerTick();
+
+      // Two checked hours of 24 bad: the budget (1% of a day) is spent.
+      expect(persistedSloStatus()).toBe(SloStatus.BudgetExhausted);
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBeCloseTo(
+        (22 / 24) * 100,
+        8,
+      );
+      // The last hour is all time off beside a monitor that is up: no burn.
+      expect(persistedStateUpdate()["currentBurnRate"]).toBe(0);
+      expect(alertService.create).not.toHaveBeenCalled();
+    });
+
+    test("MonitorSecondsAverage leaves out the turned-off monitor's own time off: 24 of one, 21 of the other", async () => {
+      twoMonitorSlo(SloMultiMonitorMode.MonitorSecondsAverage);
+      stubTimelines({
+        [MONITOR_A_ID.toString()]: [up(daysAgo(10), undefined, MONITOR_A_ID)],
+        [MONITOR_B_ID.toString()]: [
+          up(daysAgo(10), hoursAgo(5), MONITOR_B_ID),
+          down(hoursAgo(5), hoursAgo(3), MONITOR_B_ID),
+          frozenOffline({ startsAt: hoursAgo(3), isMonitoringOff: true }),
+        ],
+      });
+
+      await runWorkerTick();
+
+      // Two bad hours of 24 + 21 measured.
+      expect(persistedStateUpdate()["currentSliPercentage"]).toBeCloseTo(
+        (43 / 45) * 100,
+        8,
+      );
+    });
+  });
+
   describe("error budget SECOND columns are Postgres integers (fix 7)", () => {
     /*
      * THE REGRESSION: errorBudgetRemainingSeconds / errorBudgetTotalSeconds are

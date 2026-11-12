@@ -384,7 +384,25 @@ describe("monitor update payment admission", () => {
     (EnvironmentConfig as { IsBillingEnabled: boolean }).IsBillingEnabled =
       false;
     await hooks.onBeforeUpdate(updateInput({ disableActiveMonitoring: false }));
-    expect(MonitorService.findBy).not.toHaveBeenCalled();
+
+    /*
+     * No monitor is read to bill it. The one read is of the switch the
+     * monitors hold, so that turning monitoring back on is marked on their
+     * status timelines (#6480).
+     */
+    expect(
+      (
+        MonitorService.findBy as unknown as {
+          mock: { calls: Array<Array<{ select?: Record<string, unknown> }>> };
+        }
+      ).mock.calls.map(
+        (
+          call: Array<{ select?: Record<string, unknown> }>,
+        ): Record<string, unknown> | undefined => {
+          return call[0]?.select;
+        },
+      ),
+    ).toEqual([{ _id: true, disableActiveMonitoring: true }]);
   });
 });
 
