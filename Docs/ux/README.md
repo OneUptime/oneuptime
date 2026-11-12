@@ -345,8 +345,9 @@ work out, starts from a default for everything else, and folds what most people 
   [CardHeaderActionsGuard](../../packages/Common/Tests/UI/Components/CardHeaderActionsGuard.test.tsx).
 - **A card's description sits right under its title,** with no gap. Enforced by
   [CardDescriptionUnderTitleGuard](../../packages/Common/Tests/UI/Components/CardDescriptionUnderTitleGuard.test.tsx).
-- **What a card holds lines up with its title.** Enforced by
-  [DataObservabilityCardPaddingGuard](../../packages/Common/Tests/App/Dashboard/DataObservabilityCardPaddingGuard.test.ts).
+- **What a card holds lines up with its title,** in every product: the card pads its body, and the
+  body does not pad it again. Enforced by
+  [CardBodyPaddingGuard](../../packages/Common/Tests/App/Dashboard/CardBodyPaddingGuard.test.ts).
 - **A row of cards ends on one line.** Enforced by
   [CardRowsGuard](../../packages/Common/Tests/UI/Components/CardRowsGuard.test.ts).
 - **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
