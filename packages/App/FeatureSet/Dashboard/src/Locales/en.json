@@ -51238,5 +51238,8 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.",
   "Try again in a moment.": "Try again in a moment.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Try again. If it keeps failing, contact OneUptime support and give them this reference:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
+  "A status page you can't see": "A status page you can't see",
+  "It emails the owners added by owner rules ({{names}}).": "It emails the owners added by owner rules ({{names}}).",
+  "It emails the owners added by owner rules.": "It emails the owners added by owner rules."
 }
