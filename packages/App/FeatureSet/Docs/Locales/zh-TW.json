@@ -62,7 +62,18 @@
     "calloutDanger": "危險",
     "detailsSummary": "詳細資訊",
     "copyPage": "複製頁面",
-    "viewAsMarkdown": "以 Markdown 檢視"
+    "viewAsMarkdown": "以 Markdown 檢視",
+    "feedbackQuestion": "這個頁面有幫助嗎?",
+    "feedbackYes": "是",
+    "feedbackNo": "否",
+    "feedbackThanks": "感謝你的回饋。",
+    "feedbackWhatWentWrong": "謝謝。哪裡有問題?",
+    "feedbackReasonUnclear": "難以理解",
+    "feedbackReasonMissing": "缺少內容",
+    "feedbackReasonWrong": "有誤或已過時",
+    "feedbackReasonNotFound": "不是我要找的",
+    "feedbackTellUs": "謝謝。告訴我們需要修正什麼，我們會改進這個頁面。",
+    "feedbackTellUsOnGithub": "在 GitHub 上告訴我們"
   },
   "navSections": {
     "Get Started": "快速入門",

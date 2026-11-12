@@ -62,7 +62,18 @@
     "calloutDanger": "Gefahr",
     "detailsSummary": "Details",
     "copyPage": "Seite kopieren",
-    "viewAsMarkdown": "Als Markdown anzeigen"
+    "viewAsMarkdown": "Als Markdown anzeigen",
+    "feedbackQuestion": "War diese Seite hilfreich?",
+    "feedbackYes": "Ja",
+    "feedbackNo": "Nein",
+    "feedbackThanks": "Danke für Ihre Rückmeldung.",
+    "feedbackWhatWentWrong": "Danke. Was hat nicht gepasst?",
+    "feedbackReasonUnclear": "Schwer zu verstehen",
+    "feedbackReasonMissing": "Es fehlt etwas",
+    "feedbackReasonWrong": "Falsch oder veraltet",
+    "feedbackReasonNotFound": "Nicht das, was ich gesucht habe",
+    "feedbackTellUs": "Danke. Sagen Sie uns, was wir verbessern sollen, dann überarbeiten wir die Seite.",
+    "feedbackTellUsOnGithub": "Auf GitHub mitteilen"
   },
   "navSections": {
     "Get Started": "Erste Schritte",

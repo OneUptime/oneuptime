@@ -62,7 +62,18 @@
     "calloutDanger": "Fare",
     "detailsSummary": "Detaljer",
     "copyPage": "Kopier side",
-    "viewAsMarkdown": "Vis som Markdown"
+    "viewAsMarkdown": "Vis som Markdown",
+    "feedbackQuestion": "Var denne siden nyttig?",
+    "feedbackYes": "Ja",
+    "feedbackNo": "Nei",
+    "feedbackThanks": "Takk for at du sa ifra.",
+    "feedbackWhatWentWrong": "Takk. Hva var galt?",
+    "feedbackReasonUnclear": "Vanskelig å følge",
+    "feedbackReasonMissing": "Noe mangler",
+    "feedbackReasonWrong": "Feil eller utdatert",
+    "feedbackReasonNotFound": "Ikke det jeg lette etter",
+    "feedbackTellUs": "Takk. Fortell oss hva vi bør rette, så forbedrer vi siden.",
+    "feedbackTellUsOnGithub": "Fortell oss det på GitHub"
   },
   "navSections": {
     "Get Started": "Kom i gang",

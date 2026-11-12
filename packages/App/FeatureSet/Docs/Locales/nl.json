@@ -62,7 +62,18 @@
     "calloutDanger": "Gevaar",
     "detailsSummary": "Details",
     "copyPage": "Pagina kopiëren",
-    "viewAsMarkdown": "Bekijken als Markdown"
+    "viewAsMarkdown": "Bekijken als Markdown",
+    "feedbackQuestion": "Was deze pagina nuttig?",
+    "feedbackYes": "Ja",
+    "feedbackNo": "Nee",
+    "feedbackThanks": "Bedankt voor uw reactie.",
+    "feedbackWhatWentWrong": "Bedankt. Wat ging er mis?",
+    "feedbackReasonUnclear": "Moeilijk te volgen",
+    "feedbackReasonMissing": "Er ontbreekt iets",
+    "feedbackReasonWrong": "Onjuist of verouderd",
+    "feedbackReasonNotFound": "Niet wat ik zocht",
+    "feedbackTellUs": "Bedankt. Laat ons weten wat er beter moet, dan verbeteren we de pagina.",
+    "feedbackTellUsOnGithub": "Laat het ons weten op GitHub"
   },
   "navSections": {
     "Get Started": "Aan de slag",

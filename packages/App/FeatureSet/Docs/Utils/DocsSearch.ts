@@ -68,11 +68,11 @@ const PAGE_TEXT_WEIGHT: number = 1.5;
  * How much each way of matching a typed word counts, against the word
  * itself. A word with a synonym is a reader's word for the docs' one:
  * "pager" means on-call, not "page" (which its stem shares), so the
- * synonym counts in full and the word itself for half.
+ * synonym counts in full and the word itself for a little.
  */
 const SYNONYM_WEIGHT: number = 1;
 const WORD_START_SYNONYM_WEIGHT: number = 0.95;
-const WORD_WITH_SYNONYM_WEIGHT: number = 0.5;
+const WORD_WITH_SYNONYM_WEIGHT: number = 0.3;
 const HYPHEN_PARTS_WEIGHT: number = 0.6;
 // The start of a word no page holds as it is typed ("kube").
 const WORD_START_WEIGHT: number = 0.7;

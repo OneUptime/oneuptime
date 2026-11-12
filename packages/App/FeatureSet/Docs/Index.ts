@@ -13,6 +13,7 @@ import DocsSearchIndex, {
 } from "./Utils/SearchIndex";
 import DocsSitemap from "./Utils/Sitemap";
 import DocsSearch, { DocsSearchAnswer } from "./Utils/DocsSearch";
+import DocsFeedback, { DocsFeedbackAnswer } from "./Utils/DocsFeedback";
 import DocsAIReader from "./Utils/AIDocsReader";
 import AIDocsLibrary from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DocsTranslations from "./Utils/Translations";
@@ -36,6 +37,7 @@ import FeatureSet from "Common/Server/Types/FeatureSet";
 import Express, {
   ExpressApplication,
   ExpressRequest,
+  ExpressJson,
   ExpressResponse,
   ExpressStatic,
   NextFunction,
@@ -328,6 +330,29 @@ const DocsFeatureSet: FeatureSet = {
           logger.error(err);
           return next(err);
         }
+      },
+    );
+
+    /*
+     * "Was this page helpful?": a page's answer, which goes on to product
+     * analytics only where it is set up (OneUptime Cloud). Anywhere else
+     * the page never posts here, and an answer that arrives is dropped: it
+     * answers 204 either way, and 400 for anything that is not an answer
+     * (Utils/DocsFeedback.ts). Its body is a few dozen bytes.
+     */
+    app.post(
+      "/docs/feedback",
+      ExpressJson({ limit: "2kb" }),
+      async (req: ExpressRequest, res: ExpressResponse) => {
+        const answer: DocsFeedbackAnswer | null = DocsFeedback.read(req.body);
+
+        if (!answer) {
+          return res.status(400).json({});
+        }
+
+        await DocsFeedback.send(answer);
+
+        return res.status(204).end();
       },
     );
 
@@ -971,6 +996,16 @@ const DocsFeatureSet: FeatureSet = {
             pageDescription: summarizeDocsPage(content.markdown).description,
             markdownUrl: `/docs/as-markdown/${lang}/${fullPath}`,
             githubPath: fullPath,
+            // "Was this page helpful?" (Views/Partials/PageFeedback.ejs, Utils/DocsFeedback.ts).
+            feedback: {
+              page: fullPath,
+              isSent: DocsFeedback.isSent(),
+              githubIssueUrl: DocsFeedback.getGitHubIssueUrl({
+                page: fullPath,
+                title: currentNavLink.title,
+                lang: lang,
+              }),
+            },
             enableGoogleTagManager: GoogleTagManagerEnabled,
             prevLink: prevRaw ? translateFlatLink(prevRaw) : null,
             nextLink: nextRaw ? translateFlatLink(nextRaw) : null,
