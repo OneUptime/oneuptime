@@ -381,11 +381,12 @@ describe("Monitor overview page", () => {
     expect(MAIN_COLUMN_CODE).not.toMatch(/\? \( <MonitorActivityCard/);
   });
 
-  test("side column: open work, status changes, the family card, details, custom fields", () => {
+  test("side column: open work, who is told, status changes, the family card, details, custom fields", () => {
     expect(SIDE_COLUMN_START).toBeGreaterThan(MAIN_COLUMN_START);
 
     expectInOrder(SIDE_COLUMN_CODE, [
       "<MonitorOpenWorkCard",
+      "<MonitorWhoIsToldCard",
       "<MonitorStatusChangesCard",
       "<MonitorProbesCard",
       "<MonitorConnectionCard",
@@ -443,6 +444,7 @@ describe("Monitor overview data flow", () => {
         "Overview/MonitorStatusDot",
         "Overview/MonitorTelemetryPreview",
         "Overview/MonitorUptimeHistoryCard",
+        "Overview/MonitorWhoIsToldCard",
         "Overview/useMonitorOpenWork",
         "Overview/useMonitorOverviewData",
         "Overview/useMonitorOwners",
@@ -728,6 +730,7 @@ describe("Monitor overview data flow", () => {
 describe("Monitor overview side cards", () => {
   const SIDE_CARDS: Array<string> = [
     "Overview/MonitorOpenWorkCard",
+    "Overview/MonitorWhoIsToldCard",
     "Overview/MonitorStatusChangesCard",
     "Overview/MonitorProbesCard",
     "Overview/MonitorConnectionCard",

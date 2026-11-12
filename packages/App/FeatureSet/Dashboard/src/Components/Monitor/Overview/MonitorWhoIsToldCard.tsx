@@ -251,7 +251,7 @@ const EventBlock: FunctionComponent<{
               }),
               translator,
             )
-          : translator.translateText("None match") || "None match"}
+          : translator.translateText("None match") || ""}
       </ChainRow>
       <ChainRow label={policyLabel}>
         {event.policies.length > 0 ? (
@@ -574,7 +574,7 @@ const MonitorWhoIsToldCard: FunctionComponent<ComponentProps> = (
   return (
     <Card
       title="When this goes down"
-      description="What OneUptime does when this monitor fails, who is told, and what would stop them."
+      description="Who is told when this monitor fails, and what would stop it."
       headerLayout="stacked"
     >
       <div data-testid="monitor-who-is-told-card">{getBody()}</div>

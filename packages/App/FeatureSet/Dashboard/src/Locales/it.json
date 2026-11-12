@@ -50843,7 +50843,7 @@
   "This server can't make phone calls yet, so call pages are not sent.": "This server can't make phone calls yet, so call pages are not sent.",
   "This server can't send SMS yet, so SMS pages are not sent.": "This server can't send SMS yet, so SMS pages are not sent.",
   "This server can't send email yet, so nobody is emailed.": "This server can't send email yet, so nobody is emailed.",
-  "What OneUptime does when this monitor fails, who is told, and what would stop them.": "What OneUptime does when this monitor fails, who is told, and what would stop them.",
+  "Who is told when this monitor fails, and what would stop it.": "Who is told when this monitor fails, and what would stop it.",
   "What stops people being told": "What stops people being told",
   "When this goes down": "When this goes down",
   "When {{criteria}} matches": "When {{criteria}} matches",
