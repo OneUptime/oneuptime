@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51094,
-    "untranslated": 6193
+    "untranslated": 5958
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -29,6 +29,7 @@
     "Aggregate",
     "Airbyte",
     "Amazon Athena",
+    "Amazon EKS",
     "Amazon Redshift",
     "Amphora",
     "Apache Kafka · kafka-1:9092",
@@ -38,8 +39,10 @@
     "Auth, Priv",
     "Availability Zone",
     "Azure",
+    "Azure AKS",
     "Azure CLI",
     "Azure Functions",
+    "Azure Kubernetes Service.",
     "Azure portal",
     "Bare Metal",
     "Brute force detected",
@@ -70,6 +73,7 @@
     "Docker Compose",
     "Down + In",
     "Down + Out",
+    "EKS Fargate",
     "Edge",
     "Elasticsearch",
     "Enterprise Edition",
@@ -130,6 +134,7 @@
     "OpenShift",
     "OpenStack-Ansible",
     "OpenStack-Helm",
+    "OpenTelemetry SDK",
     "OpenTofu",
     "Oracle",
     "Orchestration",
@@ -220,6 +225,7 @@
     "aggregate",
     "alice",
     "alice@example.com",
+    "amd64",
     "amphora",
     "analytics",
     "arm",
@@ -278,6 +284,7 @@
     "resolved",
     "s",
     "security-alerts",
+    "sensor-001",
     "share",
     "storage-01 · RegionOne",
     "storefront-web",
