@@ -51242,6 +51242,8 @@
   "Hidden - your role needs the \"{{permission}}\" permission": "پنهان؛ نقش شما به مجوز «{{permission}}» نیاز دارد",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "نقش شما نمی‌تواند هویت کاربر نهایی را بخواند. مجوز «{{permission}}» را از یک مدیر پروژه بخواهید.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "همان مرجعی که صفحه شما به identify() داد. به مجوز «{{permission}}» نیاز دارد؛ هرگز در نشانی نوشته نمی‌شود.",
+  "That turn is not part of this task": "آن نوبت بخشی از این وظیفه نیست",
+  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود.",
   "Leave without saving?": "بدون ذخیره خارج می‌شوید؟",
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در این داشبورد دارید. اگر اکنون خارج شوید، از بین می‌روند."
 }

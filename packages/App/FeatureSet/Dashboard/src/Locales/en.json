@@ -51242,6 +51242,8 @@
   "Hidden - your role needs the \"{{permission}}\" permission": "Hidden - your role needs the \"{{permission}}\" permission",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.",
+  "That turn is not part of this task": "That turn is not part of this task",
+  "The task's first turn is shown instead.": "The task's first turn is shown instead.",
   "Leave without saving?": "Leave without saving?",
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "You have unsaved changes to this dashboard. If you leave now, they will be lost."
 }

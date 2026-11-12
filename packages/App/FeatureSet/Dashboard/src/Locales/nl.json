@@ -51242,6 +51242,8 @@
   "Hidden - your role needs the \"{{permission}}\" permission": "Verborgen - uw rol heeft de machtiging \"{{permission}}\" nodig",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Uw rol kan de identiteit van eindgebruikers niet lezen. Vraag een projectbeheerder om de machtiging \"{{permission}}\".",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "De exacte referentie die uw pagina aan identify() heeft doorgegeven. Vereist de machtiging \"{{permission}}\"; wordt nooit in de URL gezet.",
+  "That turn is not part of this task": "Die beurt hoort niet bij deze taak",
+  "The task's first turn is shown instead.": "In plaats daarvan wordt de eerste beurt van de taak getoond.",
   "Leave without saving?": "Verlaten zonder op te slaan?",
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in dit dashboard. Als u nu weggaat, gaan ze verloren."
 }

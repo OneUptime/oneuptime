@@ -51242,6 +51242,8 @@
   "Hidden - your role needs the \"{{permission}}\" permission": "छिपा हुआ - आपकी भूमिका को \"{{permission}}\" अनुमति चाहिए",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "आपकी भूमिका अंतिम उपयोगकर्ता की पहचान नहीं पढ़ सकती। किसी प्रोजेक्ट एडमिन से \"{{permission}}\" अनुमति माँगें।",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "वह सटीक संदर्भ जो आपके पेज ने identify() को दिया। \"{{permission}}\" अनुमति चाहिए; कभी URL में नहीं लिखा जाता।",
+  "That turn is not part of this task": "वह बारी इस कार्य का हिस्सा नहीं है",
+  "The task's first turn is shown instead.": "इसके बजाय कार्य की पहली बारी दिखाई जा रही है।",
   "Leave without saving?": "सहेजे बिना पेज छोड़ें?",
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "इस डैशबोर्ड में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।"
 }

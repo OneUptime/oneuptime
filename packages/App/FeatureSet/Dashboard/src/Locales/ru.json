@@ -51242,6 +51242,8 @@
   "Hidden - your role needs the \"{{permission}}\" permission": "Скрыто — вашей роли нужно разрешение «{{permission}}»",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Ваша роль не может просматривать личность конечных пользователей. Попросите администратора проекта выдать разрешение «{{permission}}».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Точная ссылка, которую ваша страница передала в identify(). Требуется разрешение «{{permission}}»; никогда не записывается в URL.",
+  "That turn is not part of this task": "Этот ход не входит в эту задачу",
+  "The task's first turn is shown instead.": "Вместо него показан первый ход задачи.",
   "Leave without saving?": "Уйти без сохранения?",
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "У вас есть несохранённые изменения на этой панели. Если вы уйдёте сейчас, они будут потеряны."
 }

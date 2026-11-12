@@ -51242,6 +51242,8 @@
   "Hidden - your role needs the \"{{permission}}\" permission": "숨김 - 현재 역할에 \"{{permission}}\" 권한이 필요함",
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "현재 역할로는 최종 사용자 신원을 읽을 수 없습니다. 프로젝트 관리자에게 \"{{permission}}\" 권한을 요청하세요.",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "페이지가 identify()에 전달한 정확한 참조 값입니다. \"{{permission}}\" 권한이 필요하며 URL에는 절대 기록되지 않습니다.",
+  "That turn is not part of this task": "그 차례는 이 작업에 속하지 않습니다",
+  "The task's first turn is shown instead.": "대신 작업의 첫 번째 차례를 표시합니다.",
   "Leave without saving?": "저장하지 않고 나가시겠습니까?",
   "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "이 대시보드에 저장되지 않은 변경 사항이 있습니다. 지금 나가면 변경 사항이 사라집니다."
 }
