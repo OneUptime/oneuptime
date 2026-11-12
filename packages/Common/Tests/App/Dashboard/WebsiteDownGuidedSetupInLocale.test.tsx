@@ -401,4 +401,48 @@ describe.each(LANGUAGES)("read in %s", (language: string) => {
     expect(note).not.toContain("already checks this address");
     expect(api["createMonitor"]).not.toHaveBeenCalled();
   });
+
+  test("a policy added while the page was open: the step says so in their words (#7059)", async () => {
+    window.localStorage.setItem(
+      RUN_KEY,
+      JSON.stringify({ monitorId: MONITOR_ID }),
+    );
+    await renderSetup();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-who-continue"),
+      ).toBeInTheDocument();
+    });
+
+    // Another tab made the project's first policy since the step opened.
+    api["loadWhoIsToldFacts"]!.mockResolvedValue({
+      policyCount: 1,
+      incidentRuleCount: 1,
+      alertRuleCount: 1,
+      mayCreatePolicy: true,
+      mayAddEscalationRules: true,
+      mayAddRules: true,
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("guided-setup-who-continue"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("guided-setup-policy-made-elsewhere"),
+      ).toBeInTheDocument();
+    });
+
+    const note: string = withoutIsolateMarks(
+      screen.getByTestId("guided-setup-policy-made-elsewhere").textContent ||
+        "",
+    );
+
+    expect(note).toBe(
+      fill(language, WEBSITE_DOWN_COPY.policyMadeElsewhere, {}),
+    );
+    expect(note).not.toContain("while this page was open");
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+  });
 });

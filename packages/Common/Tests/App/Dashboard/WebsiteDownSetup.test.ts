@@ -15,6 +15,7 @@ import {
   WebsiteMonitorSeeds,
   WhoIsToldFacts,
   WhoIsToldMode,
+  areWhoIsToldCountsKnown,
   buildWebsiteMonitor,
   describeFirstCheck,
   getIncidentSeverityId,
@@ -697,8 +698,37 @@ describe("who is told", () => {
       expect(getWhoIsToldMode(whoFacts(extra))).toBe(
         WhoIsToldMode.OwnerEmailOnly,
       );
+      // And say so, so the step can ask again rather than guess (#7059).
+      expect(areWhoIsToldCountsKnown(whoFacts(extra))).toBe(false);
     },
   );
+
+  test("counts read, none or some, whoever reads them, are known", () => {
+    expect(areWhoIsToldCountsKnown(whoFacts())).toBe(true);
+    expect(
+      areWhoIsToldCountsKnown(
+        whoFacts({ policyCount: 2, incidentRuleCount: 1, alertRuleCount: 0 }),
+      ),
+    ).toBe(true);
+    expect(
+      areWhoIsToldCountsKnown(
+        whoFacts({
+          mayCreatePolicy: false,
+          mayAddEscalationRules: false,
+          mayAddRules: false,
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      areWhoIsToldCountsKnown(
+        whoFacts({
+          policyCount: null,
+          incidentRuleCount: null,
+          alertRuleCount: null,
+        }),
+      ),
+    ).toBe(false);
+  });
 });
 
 const progressFacts: (

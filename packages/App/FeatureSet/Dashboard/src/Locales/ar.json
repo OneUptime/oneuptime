@@ -51125,5 +51125,6 @@
   "{{service}} is already watched by these monitors.": "الخدمة {{service}} مراقَبة بالفعل بواسطة هذه المراقبات.",
   "{{service}} is sending data": "الخدمة {{service}} ترسل البيانات",
   "{{service}} is sending data.": "الخدمة {{service}} ترسل البيانات.",
-  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "مراقبتك «{{name}}» تفحص هذا العنوان بالفعل، لذا لم تُنشأ مراقبة جديدة."
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "مراقبتك «{{name}}» تفحص هذا العنوان بالفعل، لذا لم تُنشأ مراقبة جديدة.",
+  "An on-call policy was added to this project while this page was open, so no new policy was made.": "أُضيفت سياسة مناوبة إلى هذا المشروع بينما كانت هذه الصفحة مفتوحة، لذا لم تُنشأ سياسة جديدة."
 }

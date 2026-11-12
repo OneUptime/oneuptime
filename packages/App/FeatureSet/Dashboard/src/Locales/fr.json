@@ -51125,5 +51125,6 @@
   "{{service}} is already watched by these monitors.": "{{service}} est déjà surveillé par ces moniteurs.",
   "{{service}} is sending data": "{{service}} envoie des données",
   "{{service}} is sending data.": "{{service}} envoie des données.",
-  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Votre moniteur « {{name}} » vérifie déjà cette adresse, donc aucun nouveau moniteur n'a été créé."
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Votre moniteur « {{name}} » vérifie déjà cette adresse, donc aucun nouveau moniteur n'a été créé.",
+  "An on-call policy was added to this project while this page was open, so no new policy was made.": "Une politique d'astreinte a été ajoutée à ce projet pendant que cette page était ouverte, donc aucune nouvelle politique n'a été créée."
 }

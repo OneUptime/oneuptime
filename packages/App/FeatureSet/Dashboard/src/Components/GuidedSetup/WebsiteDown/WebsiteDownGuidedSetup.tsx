@@ -16,6 +16,7 @@ import {
   WebsiteDownSummaryRow,
   WhoIsToldFacts,
   WhoIsToldMode,
+  areWhoIsToldCountsKnown,
   describeFirstCheck,
   getIncidentSeverityId,
   getMonitorAddress,
@@ -161,6 +162,9 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     [PeoplePickerKind.User]: userId ? [userId] : [],
   });
   const [peopleError, setPeopleError] = useState<string>("");
+  // Save and continue found a policy made meanwhile elsewhere (#7059).
+  const [isPolicyMadeElsewhere, setIsPolicyMadeElsewhere] =
+    useState<boolean>(false);
 
   // Step 3.
   const [showNotReceivedHelp, setShowNotReceivedHelp] =
@@ -508,20 +512,15 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
     setIsSaving(false);
   };
 
+  /*
+   * A monitor found rather than made says so first, then what its check
+   * found. A name or host typed as one long word wraps inside the step.
+   */
   const checkContent: ReactElement = monitor ? (
     <div className="space-y-4">
-      <p
-        className={`text-sm ${
-          checkSentence?.isDown ? "text-amber-700" : "text-gray-700"
-        }`}
-        data-testid="guided-setup-first-check"
-        aria-live="polite"
-      >
-        {checkSentence?.text}
-      </p>
       {isExistingMonitor ? (
         <p
-          className="text-sm text-gray-500"
+          className="break-words text-sm text-gray-500"
           data-testid="guided-setup-existing-monitor"
         >
           {translator.translateTemplate(WEBSITE_DOWN_COPY.existingMonitor, {
@@ -531,6 +530,15 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       ) : (
         <></>
       )}
+      <p
+        className={`break-words text-sm ${
+          checkSentence?.isDown ? "text-amber-700" : "text-gray-700"
+        }`}
+        data-testid="guided-setup-first-check"
+        aria-live="polite"
+      >
+        {checkSentence?.text}
+      </p>
       <div className={ACTIONS_CLASS_NAME}>
         <Button
           title={WEBSITE_DOWN_COPY.continueButton}
@@ -641,13 +649,26 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
       /*
        * Asked again before the policy is made: another tab or device may
        * have made the project's first one since this page read it. Then the
-       * project's own policies decide, and nothing is made twice (#7059).
+       * project's own policies decide, the step says why, and nothing is
+       * made twice (#7059). Counts that cannot be read now make nothing on
+       * a guess: the step stays open to try again.
        */
       const latestFacts: WhoIsToldFacts =
         await WebsiteDownApi.loadWhoIsToldFacts();
 
-      if (getWhoIsToldMode(latestFacts) === WhoIsToldMode.ExistingPolicy) {
+      if (!areWhoIsToldCountsKnown(latestFacts)) {
+        setSaveError(
+          translator.translateText(WEBSITE_DOWN_COPY.couldNotSave) || "",
+        );
+        setIsSaving(false);
+        return;
+      }
+
+      const latestMode: WhoIsToldMode = getWhoIsToldMode(latestFacts);
+
+      if (latestMode !== WhoIsToldMode.CreatePolicy) {
         setWhoFacts(latestFacts);
+        setIsPolicyMadeElsewhere(latestMode === WhoIsToldMode.ExistingPolicy);
         setIsSaving(false);
         return;
       }
@@ -728,6 +749,16 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
         </>
       ) : (
         <>
+          {isPolicyMadeElsewhere && mode === WhoIsToldMode.ExistingPolicy ? (
+            <p
+              className="text-sm text-gray-500"
+              data-testid="guided-setup-policy-made-elsewhere"
+            >
+              {translator.translateText(WEBSITE_DOWN_COPY.policyMadeElsewhere)}
+            </p>
+          ) : (
+            <></>
+          )}
           <p
             className="text-sm text-gray-700"
             data-testid="guided-setup-who-help"
@@ -1004,6 +1035,7 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
             setAddressText("");
             setIsApi(false);
             setIsExistingMonitor(false);
+            setIsPolicyMadeElsewhere(false);
             setShowNotReceivedHelp(false);
             setOpenStepKey(WebsiteDownStep.Check);
             // The project may have a policy now: who is told is asked afresh.

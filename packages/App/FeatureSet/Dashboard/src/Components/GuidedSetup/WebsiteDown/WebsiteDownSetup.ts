@@ -83,6 +83,7 @@ export const WEBSITE_DOWN_COPY: {
   whoNobodyPicked: string;
   whoSave: string;
   whoExistingHelp: string;
+  policyMadeElsewhere: string;
   whoOwnerOnlyHelp: string;
   whoOnCallRulesLink: string;
   noEmail: string;
@@ -147,6 +148,14 @@ export const WEBSITE_DOWN_COPY: {
   whoSave: translationKey("Save and continue"),
   whoExistingHelp: translationKey(
     "This project already pages people through its on-call policies and on-call rules, so they decide who is paged when this monitor opens an incident. You own this monitor, so you are also emailed when it goes down.",
+  ),
+  /*
+   * Said when Save and continue finds a policy another tab or device made
+   * since the step opened: why the people picked are gone, and that nothing
+   * was made twice (#7059).
+   */
+  policyMadeElsewhere: translationKey(
+    "An on-call policy was added to this project while this page was open, so no new policy was made.",
   ),
   whoOwnerOnlyHelp: translationKey(
     "You own this monitor, so you are emailed when it goes down. Paging a team needs a project admin: ask one to set up an on-call policy.",
@@ -661,14 +670,34 @@ export interface WhoIsToldFacts {
   mayAddRules: boolean;
 }
 
+// Facts whose policies and rules were counted.
+export interface CountedWhoIsToldFacts extends WhoIsToldFacts {
+  policyCount: number;
+  incidentRuleCount: number;
+  alertRuleCount: number;
+}
+
+/*
+ * Whether the project's on-call policies and rules could be counted: when
+ * they could not, nothing says the project has none, so no policy is made
+ * on that read (#7059).
+ */
+export const areWhoIsToldCountsKnown: (
+  facts: WhoIsToldFacts,
+) => facts is CountedWhoIsToldFacts = (
+  facts: WhoIsToldFacts,
+): facts is CountedWhoIsToldFacts => {
+  return (
+    facts.policyCount !== null &&
+    facts.incidentRuleCount !== null &&
+    facts.alertRuleCount !== null
+  );
+};
+
 export const getWhoIsToldMode: (facts: WhoIsToldFacts) => WhoIsToldMode = (
   facts: WhoIsToldFacts,
 ): WhoIsToldMode => {
-  if (
-    facts.policyCount === null ||
-    facts.incidentRuleCount === null ||
-    facts.alertRuleCount === null
-  ) {
+  if (!areWhoIsToldCountsKnown(facts)) {
     return WhoIsToldMode.OwnerEmailOnly;
   }
 

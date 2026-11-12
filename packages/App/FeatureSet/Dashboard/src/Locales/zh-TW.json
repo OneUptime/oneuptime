@@ -51125,5 +51125,6 @@
   "{{service}} is already watched by these monitors.": "{{service}} 已受這些監測器監控。",
   "{{service}} is sending data": "{{service}} 正在傳送資料",
   "{{service}} is sending data.": "{{service}} 正在傳送資料。",
-  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "你的監測器「{{name}}」已在檢查此位址，因此沒有建立新的監測器。"
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "你的監測器「{{name}}」已在檢查此位址，因此沒有建立新的監測器。",
+  "An on-call policy was added to this project while this page was open, so no new policy was made.": "此頁面開啟期間，此專案中已新增了待命策略，因此沒有建立新的策略。"
 }

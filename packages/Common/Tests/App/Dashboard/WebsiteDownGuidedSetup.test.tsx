@@ -1249,6 +1249,38 @@ describe("a run the browser lost (#7059)", () => {
     expect(stepState("who_is_told")).toBe("open");
   });
 
+  test("the note comes first, then what the check found, and both wrap a long name inside the step", async () => {
+    // One long word, as a monitor named after a long path is.
+    const longAddress: WebsiteAddress = {
+      url: "https://acme.example/api/v1/health/checks/storefront-checkout-and-payments-readiness-probe",
+      host: "acme.example",
+      monitorName:
+        "acme.example/api/v1/health/checks/storefront-checkout-and-payments-readiness-probe",
+    };
+    madeOnServer(longAddress);
+
+    await renderSetup();
+    await checkAddress(`${longAddress.url}/`);
+
+    const note: HTMLElement = screen.getByTestId(
+      "guided-setup-existing-monitor",
+    );
+    const check: HTMLElement = screen.getByTestId("guided-setup-first-check");
+
+    expect(note).toHaveTextContent(
+      `Your monitor "${longAddress.monitorName}" already checks this address, so no new monitor was made.`,
+    );
+    // Why nothing new appeared, then what the monitor found.
+    expect(
+      note.compareDocumentPosition(check) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(note.parentElement).toBe(check.parentElement);
+    // A word longer than the step is broken, not drawn past its edge.
+    expect(note).toHaveClass("break-words");
+    expect(check).toHaveClass("break-words");
+    expect(api["createMonitor"]).not.toHaveBeenCalled();
+  });
+
   test("storage cleared, then the page opened again: the same address makes no second monitor", async () => {
     const first: { unmount: () => void } = await renderSetup();
     await checkAddress("acme.example");
@@ -1469,6 +1501,19 @@ describe("a policy made meanwhile, in another tab or on another device (#7059)",
     expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
       WEBSITE_DOWN_COPY.whoExistingHelp,
     );
+    // Why the people picked are gone, said first.
+    const note: HTMLElement = screen.getByTestId(
+      "guided-setup-policy-made-elsewhere",
+    );
+    expect(note).toHaveTextContent(
+      "An on-call policy was added to this project while this page was open, so no new policy was made.",
+    );
+    expect(
+      note.compareDocumentPosition(
+        screen.getByTestId("guided-setup-who-help"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.queryByRole("alert")).toBeNull();
     expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
 
     await press("guided-setup-who-continue");
@@ -1500,5 +1545,133 @@ describe("a policy made meanwhile, in another tab or on another device (#7059)",
     expect(api["createPolicy"]).not.toHaveBeenCalled();
     expect(stepState("who_is_told")).toBe("open");
     expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+  });
+
+  /*
+   * What WebsiteDownApi.loadWhoIsToldFacts answers when a count fails: it
+   * never throws, it gives counts it could not read as null.
+   */
+  const COUNTS_NOT_READ: Record<string, unknown> = {
+    policyCount: null,
+    incidentRuleCount: null,
+    alertRuleCount: null,
+    mayCreatePolicy: true,
+    mayAddEscalationRules: true,
+    mayAddRules: true,
+  };
+
+  test("counts the server could not give just before: no policy is made on a guess, the step says to try again, and trying again makes one", async () => {
+    await toWhoIsTold();
+    api["loadWhoIsToldFacts"]!.mockResolvedValueOnce(COUNTS_NOT_READ);
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "That did not save. Check your connection and try again.",
+    );
+    expect(stepState("who_is_told")).toBe("open");
+    // The people picked stay, to save again; nothing claims a policy appeared.
+    expect(screen.getByTestId("guided-setup-people")).toBeInTheDocument();
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-continue")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoSave,
+    );
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID });
+
+    // The counts read again: the policy is made, once.
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(storedRun()).toEqual({ monitorId: MONITOR_ID, policyId: POLICY_ID });
+    expect(stepState("who_is_told")).toBe("done");
+  });
+
+  test("permission to page taken away meanwhile: nothing is made, and the step says the person is emailed as the owner", async () => {
+    await toWhoIsTold();
+    api["loadWhoIsToldFacts"]!.mockResolvedValue({
+      policyCount: 0,
+      incidentRuleCount: 0,
+      alertRuleCount: 0,
+      mayCreatePolicy: false,
+      mayAddEscalationRules: false,
+      mayAddRules: false,
+    });
+    await press("guided-setup-who-continue");
+
+    expect(api["createPolicy"]).not.toHaveBeenCalled();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoOwnerOnlyHelp,
+    );
+    // No policy appeared, so none is said to have.
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+    expect(stepState("who_is_told")).toBe("open");
+  });
+
+  test("a project that paged people when the page opened says nothing of a policy made meanwhile", async () => {
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+    await toWhoIsTold();
+
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+
+    await press("guided-setup-who-continue");
+
+    expect(stepState("test")).toBe("open");
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
+  });
+
+  test("the note stays with the step for this page, and Check another address starts without it", async () => {
+    await toWhoIsTold();
+    api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
+    await press("guided-setup-who-continue");
+    expect(
+      screen.getByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeInTheDocument();
+
+    // Done, then opened again to look: still why nothing was made.
+    await press("guided-setup-who-continue");
+    expect(stepState("who_is_told")).toBe("done");
+    await act(async () => {
+      fireEvent.click(screen.getByText(WEBSITE_DOWN_COPY.whoTitle));
+    });
+    expect(stepState("who_is_told")).toBe("open");
+    expect(
+      screen.getByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeInTheDocument();
+
+    // To the summary, then a new run for another address.
+    await press("guided-setup-who-continue");
+    await press("guided-setup-skip-test");
+    await press("guided-setup-start-over");
+
+    typeAddress("status.acme.example");
+    await startChecking();
+    await waitFor(() => {
+      expect(stepState("check")).toBe("open");
+      expect(
+        screen.getByTestId("guided-setup-first-check"),
+      ).toBeInTheDocument();
+    });
+    await press("guided-setup-check-continue");
+
+    expect(stepState("who_is_told")).toBe("open");
+    expect(screen.getByTestId("guided-setup-who-help")).toHaveTextContent(
+      WEBSITE_DOWN_COPY.whoExistingHelp,
+    );
+    expect(
+      screen.queryByTestId("guided-setup-policy-made-elsewhere"),
+    ).toBeNull();
   });
 });

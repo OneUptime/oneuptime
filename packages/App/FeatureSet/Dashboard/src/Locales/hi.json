@@ -51125,5 +51125,6 @@
   "{{service}} is already watched by these monitors.": "{{service}} पर पहले से ये मॉनिटर नज़र रख रहे हैं।",
   "{{service}} is sending data": "{{service}} डेटा भेज रहा है",
   "{{service}} is sending data.": "{{service}} डेटा भेज रहा है।",
-  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "आपका मॉनिटर \"{{name}}\" पहले से इस पते की जाँच करता है, इसलिए कोई नया मॉनिटर नहीं बनाया गया।"
+  "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "आपका मॉनिटर \"{{name}}\" पहले से इस पते की जाँच करता है, इसलिए कोई नया मॉनिटर नहीं बनाया गया।",
+  "An on-call policy was added to this project while this page was open, so no new policy was made.": "यह पृष्ठ खुला रहने के दौरान इस प्रोजेक्ट में एक ऑन-कॉल नीति जोड़ी गई, इसलिए कोई नई नीति नहीं बनाई गई।"
 }
