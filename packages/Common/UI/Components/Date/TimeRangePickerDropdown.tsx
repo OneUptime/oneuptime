@@ -162,6 +162,12 @@ function formatDateShort(date: Date, showYear: boolean): string {
 }
 
 /*
+ * What stands between a custom range's two ends ("Mar 1, 10:00 – Mar 2,
+ * 13:30").
+ */
+export const TIME_RANGE_LABEL_SEPARATOR: string = " – ";
+
+/*
  * A range's English label: its preset's ("Past 5 Minutes"), or the range
  * itself ("Custom"). Look it up in the reader's language where it is shown.
  */
@@ -202,10 +208,36 @@ export function getTimeRangeButtonLabel(
       value.startAndEndDate.endValue,
       showYear,
     );
-    return `${start} – ${end}`;
+    return `${start}${TIME_RANGE_LABEL_SEPARATOR}${end}`;
   }
 
   return getTimeRangeLabel(value.range);
+}
+
+/*
+ * A moment's window under its name. When it does not fit on one line, it
+ * breaks between its two ends and nowhere else: "5 нояб. 2025 г., 04:44 –"
+ * over "5 нояб. 2025 г., 05:44". As one run of text it broke wherever the
+ * line ran out, and the dropdown left a time ("05:44"), an "AM" ("ص") or
+ * part of one ("午05:44") alone on the next line in Russian, Arabic or
+ * Chinese, whose dates are longer than English ones. A window that is not
+ * two ends is written as it comes; the text is the same either way.
+ */
+export function renderTimeRangeDetail(detail: string): ReactElement {
+  const ends: Array<string> = detail.split(TIME_RANGE_LABEL_SEPARATOR);
+
+  if (ends.length !== 2) {
+    return <>{detail}</>;
+  }
+
+  return (
+    <>
+      <span className="whitespace-nowrap">
+        {`${ends[0]}${TIME_RANGE_LABEL_SEPARATOR.trimEnd()}`}
+      </span>{" "}
+      <span className="whitespace-nowrap">{ends[1]}</span>
+    </>
+  );
 }
 
 const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
@@ -397,7 +429,7 @@ const TimeRangePickerDropdown: FunctionComponent<ComponentProps> = (
                             isActive ? "text-indigo-600" : "text-gray-500"
                           }`}
                         >
-                          {option.detail}
+                          {renderTimeRangeDetail(option.detail)}
                         </span>
                       ) : null}
                     </button>
