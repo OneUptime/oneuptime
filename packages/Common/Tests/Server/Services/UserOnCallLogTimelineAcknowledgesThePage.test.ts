@@ -27,6 +27,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 
 jest.mock("../../../Server/Utils/Logger");
 
@@ -73,7 +74,7 @@ const ACKNOWLEDGED_AT: Date = new Date("2026-11-12T09:02:00.000Z");
 type AcknowledgePage = typeof UserOnCallLogTimelineService.acknowledgePage;
 
 let table: InMemoryTable;
-let acknowledgePage: jest.SpiedFunction<AcknowledgePage>;
+let acknowledgePage: SpyInstance<AcknowledgePage>;
 
 // Ana's SMS of a page about an incident, as its page wrote it.
 function notificationRow(
