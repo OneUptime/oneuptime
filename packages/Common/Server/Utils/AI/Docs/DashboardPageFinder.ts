@@ -140,14 +140,28 @@ export default class DashboardPageFinder {
       }
 
       // Named exactly so: the page asked for, before every page that merely mentions its words.
+      /*
+       * Named by its place and its name - "Incidents Custom Fields": every
+       * word of its name, and the rest words of where it is.
+       */
+      const restOfQuery: Array<string> = queryTerms.filter(
+        (term: string): boolean => {
+          return !titleSet.has(term);
+        },
+      );
+      const isNamedWithItsPlace: boolean =
+        titleTerms.length > 0 &&
+        titleTerms.every((term: string): boolean => {
+          return queryTerms.includes(term);
+        }) &&
+        restOfQuery.length > 0 &&
+        restOfQuery.every((term: string): boolean => {
+          return whereSet.has(term);
+        });
+
       if (sameWords(titleTerms, queryTerms)) {
-        score += 20;
-      } else if (
-        sameWords(
-          tokenizePageName(`${page.where.join(" ")} ${page.title}`),
-          queryTerms,
-        )
-      ) {
+        score += 26;
+      } else if (isNamedWithItsPlace) {
         score += 24;
       }
 

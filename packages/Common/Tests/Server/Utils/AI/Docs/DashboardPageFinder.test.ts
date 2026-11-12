@@ -94,6 +94,27 @@ describe("DashboardPageFinder.find", () => {
     );
   });
 
+  test("a page named by its place and name comes before one whose own name merely holds the words", () => {
+    const found: Array<AIDashboardPage> = DashboardPageFinder.find({
+      query: "Incidents Custom Fields",
+      limit: 2,
+      isBillingEnabled: true,
+      pages: [
+        {
+          title: "Incidents Custom Fields Report",
+          where: ["Reports"],
+          path: "/dashboard/:projectId/reports",
+          kind: AIDashboardPageKind.Page,
+        },
+        PAGES[0]!,
+      ],
+    });
+
+    expect(found[0]?.path).toBe(
+      "/dashboard/:projectId/incidents/settings/custom-fields",
+    );
+  });
+
   test("finds a setting by its own name, and by words of it", () => {
     expect(find("Phone Numbers for SMS Notifications")[0]).toBe(
       "User Settings > Alerts & Notifications > Notification Methods > Phone Numbers for SMS Notifications",
