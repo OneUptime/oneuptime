@@ -32,6 +32,7 @@ import InfrastructureExplorer, {
   INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME,
   INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME,
   INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME,
+  INFRASTRUCTURE_TREE_LIST_CLASS_NAME,
   INFRASTRUCTURE_TREE_PANE_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer";
 import type {
@@ -1888,6 +1889,33 @@ describe("the list fits its pane (#7103)", () => {
       "xl:border-r",
     );
     expect(tree().className).not.toMatch(/(?:^|\s)lg:/);
+  });
+
+  /*
+   * Over the list (below 1280 pixels, and so now at 1024 to 1279 too) a large
+   * estate's tree, as tall as 60vh, put the list - what the page is for - a
+   * screen further down: 460px of tree at 1024 by 768. There it is held to
+   * 18rem, some nine rows, and scrolls; beside the list it keeps 60vh.
+   */
+  test("over the list the tree's own scroll is held to 18rem, and beside it to 60vh", () => {
+    renderExplorer();
+
+    // The tree's outer list (each open row nests one of its own).
+    const list: HTMLElement = tree().querySelector("ul") as HTMLElement;
+
+    expect(list).not.toBeNull();
+    expect(list.parentElement).toBe(tree());
+    expect(list.className).toBe(INFRASTRUCTURE_TREE_LIST_CLASS_NAME);
+    expect(list).toHaveClass(
+      "relative",
+      "overflow-y-auto",
+      "max-h-72",
+      "xl:max-h-[60vh]",
+    );
+    // No height of 60vh where the tree is over the list.
+    expect(list).not.toHaveClass("max-h-[60vh]");
+    // The same breakpoint as the panes': beside the list from xl only.
+    expect(INFRASTRUCTURE_PANES_CLASS_NAME).toContain("xl:flex-row");
   });
 
   /*

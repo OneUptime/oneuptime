@@ -202,6 +202,16 @@ export const INFRASTRUCTURE_PANES_CLASS_NAME: string =
 export const INFRASTRUCTURE_TREE_PANE_CLASS_NAME: string =
   "border-b border-gray-200 bg-gray-50/70 p-3 xl:w-72 xl:flex-shrink-0 xl:border-b-0 xl:border-r";
 
+/*
+ * The tree's own scroll. Beside the list it may be as tall as the list
+ * (60vh); over it, it is held to 18rem - some nine rows - so a large estate's
+ * tree does not push the list, which is what the page is for, a screen
+ * further down (at 1024 by 768 a 60vh tree was 460px over it). It scrolls
+ * to the open row either way.
+ */
+export const INFRASTRUCTURE_TREE_LIST_CLASS_NAME: string =
+  "relative max-h-72 overflow-y-auto xl:max-h-[60vh]";
+
 function iconForNode(node: InfrastructureNode): IconProp {
   if (node.kind === "category") {
     return IconProp.Folder;
@@ -1894,7 +1904,7 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
               </button>
               <ul
                 ref={treeListRef}
-                className="relative max-h-[60vh] overflow-y-auto"
+                className={INFRASTRUCTURE_TREE_LIST_CLASS_NAME}
               >
                 {model.rootIds.map((rootId: string): ReactElement | null => {
                   return renderTree(rootId, 0);
