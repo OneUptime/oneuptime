@@ -66,10 +66,10 @@ const KUBERNETES_CLUSTER_SHOWCASE: ResourceShowcase = {
     name: "prod-eu-west",
     subtitle: translationKey("12 nodes · 248 pods · 9 namespaces"),
     stats: [
-      { label: translationKey("Availability"), value: "99.98%" },
-      { label: translationKey("CPU"), value: "63%" },
-      { label: translationKey("Memory"), value: "312 GB" },
-      { label: translationKey("Filesystem"), value: "41%" },
+      { label: translationKey("Availability"), value: { percent: 99.98 } },
+      { label: translationKey("CPU"), value: { percent: 63 } },
+      { label: translationKey("Memory"), value: { gigabytes: 312 } },
+      { label: translationKey("Filesystem"), value: { percent: 41 } },
     ],
     chart: {
       label: translationKey("Cluster CPU"),

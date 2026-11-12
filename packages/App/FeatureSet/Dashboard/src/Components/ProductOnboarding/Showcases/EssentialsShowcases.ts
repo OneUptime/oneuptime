@@ -33,10 +33,10 @@ export const MONITORS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Operational"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Availability"), value: "99.98%" },
-      { label: translationKey("Response time"), value: "182 ms" },
+      { label: translationKey("Availability"), value: { percent: 99.98 } },
+      { label: translationKey("Response time"), value: { milliseconds: 182 } },
       { label: translationKey("Status Code"), value: "200" },
-      { label: translationKey("Probes"), value: "3" },
+      { label: translationKey("Probes"), value: 3 },
     ],
     chart: {
       label: translationKey("Response time"),
@@ -92,9 +92,9 @@ export const INCIDENTS_SHOWCASE: ResourceShowcase = {
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
       { label: translationKey("Severity"), value: "SEV 1" },
-      { label: translationKey("Duration"), value: "00:21:07" },
-      { label: translationKey("Monitors"), value: "2" },
-      { label: translationKey("Subscribers"), value: "1,284" },
+      { label: translationKey("Duration"), value: { clock: "00:21:07" } },
+      { label: translationKey("Monitors"), value: 2 },
+      { label: translationKey("Subscribers"), value: 1284 },
     ],
     chart: {
       label: translationKey("Error rate"),
@@ -146,9 +146,9 @@ export const ALERTS_SHOWCASE: ResourceShowcase = {
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
       { label: translationKey("Severity"), value: "P2" },
-      { label: translationKey("Disk usage"), value: "91%" },
-      { label: translationKey("Monitors"), value: "1" },
-      { label: translationKey("Open alerts"), value: "3" },
+      { label: translationKey("Disk usage"), value: { percent: 91 } },
+      { label: translationKey("Monitors"), value: 1 },
+      { label: translationKey("Open alerts"), value: 3 },
     ],
     chart: {
       label: translationKey("Disk usage"),
@@ -202,10 +202,10 @@ export const ON_CALL_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Active"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Rules"), value: "3" },
-      { label: translationKey("Schedules"), value: "2" },
-      { label: translationKey("Users"), value: "8" },
-      { label: translationKey("Teams"), value: "2" },
+      { label: translationKey("Rules"), value: 3 },
+      { label: translationKey("Schedules"), value: 2 },
+      { label: translationKey("Users"), value: 8 },
+      { label: translationKey("Teams"), value: 2 },
     ],
     chart: {
       label: translationKey("Pages sent"),
@@ -255,10 +255,10 @@ export const STATUS_PAGES_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Operational"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Availability"), value: "99.95%" },
-      { label: translationKey("Components"), value: "6" },
-      { label: translationKey("Subscribers"), value: "1,284" },
-      { label: translationKey("Incidents"), value: "1" },
+      { label: translationKey("Availability"), value: { percent: 99.95 } },
+      { label: translationKey("Components"), value: 6 },
+      { label: translationKey("Subscribers"), value: 1284 },
+      { label: translationKey("Incidents"), value: 1 },
     ],
     chart: {
       label: translationKey("Availability"),
@@ -308,10 +308,10 @@ export const SCHEDULED_MAINTENANCE_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Scheduled"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Monitors"), value: "4" },
-      { label: translationKey("Status Pages"), value: "2" },
-      { label: translationKey("Subscribers"), value: "1,284" },
-      { label: translationKey("Duration"), value: "02:00:00" },
+      { label: translationKey("Monitors"), value: 4 },
+      { label: translationKey("Status Pages"), value: 2 },
+      { label: translationKey("Subscribers"), value: 1284 },
+      { label: translationKey("Duration"), value: { clock: "02:00:00" } },
     ],
     chart: {
       label: translationKey("Requests"),
@@ -361,10 +361,10 @@ export const SLOS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Healthy"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Target"), value: "99.9%" },
-      { label: translationKey("Current"), value: "99.96%" },
-      { label: translationKey("Error budget"), value: "61%" },
-      { label: translationKey("Burn rate"), value: "0.4x" },
+      { label: translationKey("Target"), value: { percent: 99.9 } },
+      { label: translationKey("Current"), value: { percent: 99.96 } },
+      { label: translationKey("Error budget"), value: { percent: 61 } },
+      { label: translationKey("Burn rate"), value: { burnRate: 0.4 } },
     ],
     chart: {
       label: translationKey("Error budget"),

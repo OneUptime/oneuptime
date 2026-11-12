@@ -66,10 +66,10 @@ const VMWARE_VCENTER_SHOWCASE: ResourceShowcase = {
     name: "vcenter-prod",
     subtitle: translationKey("2 clusters · 8 ESXi hosts · 156 VMs"),
     stats: [
-      { label: translationKey("Hosts"), value: "8/8" },
-      { label: translationKey("Host CPU"), value: "41.3%" },
-      { label: translationKey("Host memory"), value: "68.9%" },
-      { label: translationKey("Fullest datastore"), value: "86.7%" },
+      { label: translationKey("Hosts"), value: { count: 8, outOf: 8 } },
+      { label: translationKey("Host CPU"), value: { percent: 41.3 } },
+      { label: translationKey("Host memory"), value: { percent: 68.9 } },
+      { label: translationKey("Fullest datastore"), value: { percent: 86.7 } },
     ],
     chart: {
       label: translationKey("Host CPU"),

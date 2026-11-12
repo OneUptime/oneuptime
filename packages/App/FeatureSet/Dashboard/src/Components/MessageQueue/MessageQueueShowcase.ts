@@ -66,10 +66,10 @@ const MESSAGE_QUEUE_SHOWCASE: ResourceShowcase = {
     name: "orders",
     subtitle: translationKey("Apache Kafka · kafka-1:9092"),
     stats: [
-      { label: translationKey("Published"), value: "1.82M" },
-      { label: translationKey("Consumed"), value: "1.79M" },
-      { label: translationKey("Errors"), value: "12" },
-      { label: translationKey("p95 processing"), value: "184 ms" },
+      { label: translationKey("Published"), value: { abbreviated: 1_820_000 } },
+      { label: translationKey("Consumed"), value: { abbreviated: 1_790_000 } },
+      { label: translationKey("Errors"), value: 12 },
+      { label: translationKey("p95 processing"), value: { milliseconds: 184 } },
     ],
     chart: {
       label: translationKey("Messages"),

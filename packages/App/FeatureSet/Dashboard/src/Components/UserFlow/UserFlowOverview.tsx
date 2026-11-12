@@ -184,7 +184,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
         />
         <Tile
           label="Single-page sessions"
-          value={formatUserFlowShare(summary.bounceRate)}
+          value={formatUserFlowShare(summary.bounceRate, translator)}
           hint={translator.translateTemplate("{{count}} never navigated", {
             count: formatUserFlowCount(
               summary.sessions - summary.navigatingSessions,
@@ -207,6 +207,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
                       summary.sessions > 0
                         ? summary.topEntryPage.sessions / summary.sessions
                         : 0,
+                      translator,
                     ),
                   },
                 )
@@ -227,6 +228,7 @@ const UserFlowOverview: FunctionComponent<ComponentProps> = (
                     summary.sessions > 0
                       ? summary.topExitPage.sessions / summary.sessions
                       : 0,
+                    translator,
                   ),
                 })
               : translator.translateText("no sessions") || "no sessions"

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50743,
-    "untranslated": 9724
+    "keys": 50755,
+    "untranslated": 9723
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -291,7 +291,6 @@
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
-    "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
     "VMID {{vmid}}",
     "VMware vCenter",
