@@ -26,6 +26,12 @@ flowchart TB
 
 Im Modus **Nur Lesezugriff** werden dem Modell keine Aktionen angeboten, die Unterhaltung liest also nur.
 
+## Fragen zu OneUptime
+
+KI fragen beantwortet auch Fragen zu OneUptime selbst: „Wie bekomme ich eine SMS, wenn meine Website ausfällt?“, „Was ist eine Episode?“, „Wo füge ich eine zweite Telefonnummer hinzu?“. Die Antworten stammen aus dieser Dokumentation, der Kopie, die Ihr OneUptime selbst ausliefert: Das funktioniert ohne Internetzugang und schickt nichts an neue Stellen. Eine übersetzte Seite liest es in Ihrer Sprache, zu jedem Schritt nennt es Seite und Abschnitt, und steht etwas nicht in der Dokumentation, sagt es das, statt zu raten.
+
+Eine Antwort auf „Wie mache ich …?“ endet mit einer Schaltfläche, die die Seite Ihres Projekts öffnet, auf der Sie es tun, etwa **Monitor erstellen** oder **Benachrichtigungsmethoden**. Sie öffnet nur Seiten, die OneUptime hat: die, die die Suche (`Ctrl` + `K`) findet.
+
 ## KI fragen öffnen
 
 | Wo | Wie |

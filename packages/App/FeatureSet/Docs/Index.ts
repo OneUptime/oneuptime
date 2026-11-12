@@ -12,6 +12,8 @@ import DocsSearchIndex, {
   summarizeDocsPage,
 } from "./Utils/SearchIndex";
 import DocsSitemap from "./Utils/Sitemap";
+import DocsAIReader from "./Utils/AIDocsReader";
+import AIDocsLibrary from "Common/Server/Utils/AI/Docs/AIDocsLibrary";
 import DocsTranslations from "./Utils/Translations";
 import { DocsPageSeo, getDocsPageSeo } from "./Utils/Seo";
 import {
@@ -184,6 +186,12 @@ function renderNotFound(
 const DocsFeatureSet: FeatureSet = {
   init: async (): Promise<void> => {
     const app: ExpressApplication = Express.getExpressApp();
+
+    /*
+     * Ask AI answers "how do I...?" from these docs (issue #6828): its
+     * docs tools (Common's Toolbox/DocsTools) read them through this.
+     */
+    AIDocsLibrary.setReader(new DocsAIReader());
 
     /*
      * The docs' built Tailwind stylesheet, when the image built one: the

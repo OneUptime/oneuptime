@@ -267,7 +267,13 @@ describe("Upgrading: how to upgrade, held to what does it", () => {
     expect(scripts["update"]).toContain("docker compose pull");
     expect(scripts["update"]).toMatch(/npm run start$/);
     expect(scripts["start"]).toContain("docker compose up --remove-orphans");
-    expect(scripts["start"]).toMatch(/npm run status-check$/);
+    /*
+     * The status check prints "OneUptime is up!"; only the doctor's quiet
+     * run, which names what still needs attention, follows it (#6826).
+     */
+    expect(scripts["start"]).toMatch(
+      /npm run status-check && node \.\/Scripts\/Install\/Doctor\.js --after-start$/,
+    );
     // Update.js merges config.env with the template before the images are pulled.
     expect(source("Scripts/Install/Update.js")).toContain(
       '} = require("./MergeEnvTemplate");',

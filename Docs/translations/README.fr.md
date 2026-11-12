@@ -57,9 +57,13 @@ Tout le reste se trouve dans la [documentation](https://oneuptime.com/docs/fr/in
 
 ### Auto-héberger avec Docker Compose
 
-Il vous faut un serveur Linux avec au moins 8 Go de mémoire, ainsi que Docker, Docker Compose, Git et Node.js.
+Il vous faut un serveur Linux avec au moins 8 Go de mémoire. Sur un nouveau serveur Ubuntu, Debian ou basé sur RHEL, une seule commande installe Docker, Git et Node.js là où ils manquent, demande l'adresse qu'on utilisera et démarre OneUptime :
 
-Avant l'étape 3, réglez `HOST` dans `config.env` sur le nom de domaine ou l'adresse IP qu'on utilisera pour joindre OneUptime, sans `http://`. Ne gardez `localhost` que pour essayer OneUptime sur votre propre ordinateur.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Ou procédez étape par étape, avec Docker, Docker Compose, Git et Node.js installés. À l'étape 3, mettez à la place de `<your-address>` le nom de domaine ou l'adresse IP qu'on utilisera pour joindre OneUptime, sans `http://` : c'est `HOST` dans `config.env`. Ne gardez `localhost` que pour essayer OneUptime sur votre propre ordinateur.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` vérifie le serveur, donne à chaque secret de `config.env` sa propre valeur aléatoire et démarre OneUptime. Quand `npm start` affiche **OneUptime is up!**, ouvrez `http://localhost`, ou l'adresse de votre serveur, et inscrivez-vous. Le premier compte devient l'administrateur de l'instance.
 
-Le [guide Docker Compose](https://oneuptime.com/docs/fr/installation/docker-compose) couvre la taille des serveurs, HTTPS, les sauvegardes et les mises à jour.
+Suivez ensuite le [Guide de l'auto-hébergement](https://oneuptime.com/docs/fr/installation/self-hosting-guide) à travers HTTPS, l'e-mail et les SMS, jusqu'à ce que OneUptime puisse vous alerter. Le [guide Docker Compose](https://oneuptime.com/docs/fr/installation/docker-compose) couvre la taille des serveurs, les sauvegardes et les mises à jour.
 
 ### Kubernetes avec Helm
 

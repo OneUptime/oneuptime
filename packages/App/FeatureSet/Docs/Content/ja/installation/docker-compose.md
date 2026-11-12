@@ -144,6 +144,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 `http://` に続けて `HOST` を開き (例: `http://localhost`)、サインアップします。新しいインスタンスの最初のアカウントはマスター管理者になり、`/admin` で Admin Dashboard を開けます。
 
 ページにアクセスできる人は誰でも、あなたのあとにサインアップできます。それを止めるには、Admin Dashboard を開いて **設定 > 認証** に移動し、 **サインアップを許可** をオフにします。プロジェクトに招待した人は引き続きアカウントを作成できます。
+
+続いて `/admin/setup` でサーバーのセットアップを完了します。ここでメール、SMS、電話を設定してテストします。[サーバーのセットアップを完了する](/docs/installation/self-hosting-guide#サーバーのセットアップを完了する)を参照してください。
 :::
 
 ### ランダムなシークレットを生成する
@@ -566,8 +568,8 @@ Admin Dashboard は **設定 > 監視 > グローバルプローブ** でプロ�
 ## 次のステップ
 
 :::cards
+- [サーバーのセットアップを完了する](/docs/installation/self-hosting-guide#サーバーのセットアップを完了する): メール、次に SMS と電話。それぞれテスト付きです。
+- [クイックスタート](/docs/introduction/quickstart): 最初のモニター、オンコールポリシー、ステータスページ。
 - [OneUptime のアップグレード](/docs/installation/upgrading): 各メジャーバージョンで必要な作業。
-- [サイジングとキャパシティプランニング](/docs/installation/sizing): テレメトリに必要なメモリとディスクを計画します。
 - [セルフホストのアーキテクチャ](/docs/self-hosted/architecture): コンポーネントの組み合わさり方。
-- [エンタープライズ版](/docs/self-hosted/enterprise): Enterprise イメージで追加されるものと、そのライセンス。
 :::

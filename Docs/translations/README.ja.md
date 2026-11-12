@@ -57,9 +57,13 @@ OneUptime はオープンソースのオブザーバビリティプラットフ�
 
 ### Docker Compose でセルフホストする
 
-8 GB 以上のメモリを持つ Linux サーバーと、Docker、Docker Compose、Git、Node.js が必要です。
+8 GB 以上のメモリを持つ Linux サーバーが必要です。新しい Ubuntu、Debian、RHEL 系のサーバーなら、1 つのコマンドで、足りない Docker、Git、Node.js をインストールし、アクセスに使うアドレスを尋ね、OneUptime を起動できます:
 
-手順 3 の前に、`config.env` の `HOST` に OneUptime へのアクセスに使うドメイン名または IP アドレスを `http://` なしで設定します。`localhost` のままにするのは、自分のコンピューターで OneUptime を試す場合だけにしてください。
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+手順を追って進める場合は、Docker、Docker Compose、Git、Node.js をインストールしておきます。手順 3 では、`<your-address>` を OneUptime へのアクセスに使うドメイン名または IP アドレスに `http://` なしで置き換えます。これが `config.env` の `HOST` になります。`localhost` のままにするのは、自分のコンピューターで OneUptime を試す場合だけにしてください。
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` はサーバーを確認し、`config.env` のすべてのシークレットにそれぞれランダムな値を設定して、OneUptime を起動します。`npm start` が **OneUptime is up!** と表示したら、`http://localhost` またはサーバーのアドレスを開いてサインアップします。最初のアカウントがインスタンスの管理者になります。
 
-サーバーのサイズ、HTTPS、バックアップ、更新については [Docker Compose ガイド](https://oneuptime.com/docs/ja/installation/docker-compose)を参照してください。
+続いて [セルフホスティングガイド](https://oneuptime.com/docs/ja/installation/self-hosting-guide)に沿って、OneUptime から通知を受け取れるまで HTTPS、メール、SMS を設定します。サーバーのサイズ、バックアップ、更新については [Docker Compose ガイド](https://oneuptime.com/docs/ja/installation/docker-compose)を参照してください。
 
 ### Helm で Kubernetes にインストールする
 

@@ -111,7 +111,7 @@ Die Dokumentation ist wie die Seitenleiste in neun Bereiche gegliedert. Wählen 
 ### Selbst hosten
 
 :::cards
-- [Installation](/docs/installation/docker-compose): Ihr eigenes OneUptime installieren, dimensionieren und aktualisieren.
+- [Installation](/docs/installation/self-hosting-guide): Ihr eigenes OneUptime installieren, dimensionieren und aktualisieren.
 - [Selbst gehostete Einrichtung](/docs/self-hosted/architecture): Architektur, Integrationen und Enterprise-Funktionen für Ihre eigene Installation.
 :::
 

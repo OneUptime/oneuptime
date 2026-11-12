@@ -57,9 +57,13 @@ Tutto il resto è nella [documentazione](https://oneuptime.com/docs/it/introduct
 
 ### Self-hosting con Docker Compose
 
-Ti serve un server Linux con almeno 8 GB di memoria, e Docker, Docker Compose, Git e Node.js.
+Ti serve un server Linux con almeno 8 GB di memoria. Su un server nuovo con Ubuntu, Debian o una distribuzione basata su RHEL, un solo comando installa Docker, Git e Node.js dove mancano, chiede l'indirizzo che verrà usato e avvia OneUptime:
 
-Prima del passaggio 3, imposta `HOST` in `config.env` sul nome di dominio o sull'indirizzo IP che verrà usato per raggiungere OneUptime, senza `http://`. Lascia `localhost` solo per provare OneUptime sul tuo computer.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Oppure procedi passo per passo, con Docker, Docker Compose, Git e Node.js installati. Al passaggio 3, metti al posto di `<your-address>` il nome di dominio o l'indirizzo IP che verrà usato per raggiungere OneUptime, senza `http://`: è `HOST` in `config.env`. Lascia `localhost` solo per provare OneUptime sul tuo computer.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` controlla il server, dà a ogni segreto di `config.env` un valore casuale tutto suo e avvia OneUptime. Quando `npm start` stampa **OneUptime is up!**, apri `http://localhost`, o l'indirizzo del tuo server, e registrati. Il primo account diventa l'amministratore dell'istanza.
 
-La [guida a Docker Compose](https://oneuptime.com/docs/it/installation/docker-compose) copre le dimensioni del server, HTTPS, i backup e gli aggiornamenti.
+Poi segui la [Guida al self-hosting](https://oneuptime.com/docs/it/installation/self-hosting-guide) attraverso HTTPS, email e SMS, finché OneUptime non può avvisarti. La [guida a Docker Compose](https://oneuptime.com/docs/it/installation/docker-compose) copre le dimensioni del server, i backup e gli aggiornamenti.
 
 ### Kubernetes con Helm
 

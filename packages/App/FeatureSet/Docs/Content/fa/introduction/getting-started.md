@@ -111,7 +111,7 @@ flowchart TB
 ### خودمیزبانی
 
 :::cards
-- [نصب](/docs/installation/docker-compose): OneUptime خودتان را نصب کنید، اندازه‌اش را تعیین کنید و ارتقا دهید.
+- [نصب](/docs/installation/self-hosting-guide): OneUptime خودتان را نصب کنید، اندازه‌اش را تعیین کنید و ارتقا دهید.
 - [راه‌اندازی خودمیزبان](/docs/self-hosted/architecture): معماری، یکپارچه‌سازی‌ها و قابلیت‌های Enterprise برای نصب خودتان.
 :::
 

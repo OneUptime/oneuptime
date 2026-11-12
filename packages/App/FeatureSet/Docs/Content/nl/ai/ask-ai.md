@@ -26,6 +26,12 @@ flowchart TB
 
 In de modus **Alleen-lezen** krijgt het model nooit acties aangeboden, dus het gesprek leest alleen.
 
+## Vragen over OneUptime
+
+AI vragen beantwoordt ook vragen over OneUptime zelf: 'Hoe krijg ik een sms als mijn site plat ligt?', 'Wat is een episode?', 'Waar voeg ik een tweede telefoonnummer toe?'. Het antwoordt uit deze documentatie, de kopie die uw OneUptime zelf serveert, dus het werkt zonder internettoegang en stuurt niets naar nieuwe plekken. Een vertaalde pagina leest het in uw taal, bij elke stap noemt het de pagina en de sectie, en staat iets niet in de documentatie, dan zegt het dat in plaats van te gokken.
+
+Een antwoord op 'hoe doe ik' eindigt met een knop die de pagina van uw project opent waar u het doet, zoals **Monitor maken** of **Meldingsmethoden**. Die opent alleen pagina's die OneUptime heeft: de pagina's die Zoeken (`Ctrl` + `K`) vindt.
+
 ## AI vragen openen
 
 | Waar | Hoe |

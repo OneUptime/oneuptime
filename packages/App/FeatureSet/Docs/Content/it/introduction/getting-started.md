@@ -111,7 +111,7 @@ La documentazione è organizzata come la barra laterale, in nove sezioni. Scegli
 ### Self-hosting
 
 :::cards
-- [Installazione](/docs/installation/docker-compose): Installare, dimensionare e aggiornare il tuo OneUptime.
+- [Installazione](/docs/installation/self-hosting-guide): Installare, dimensionare e aggiornare il tuo OneUptime.
 - [Configurazione self-hosted](/docs/self-hosted/architecture): Architettura, integrazioni e funzionalità Enterprise per la tua installazione.
 :::
 

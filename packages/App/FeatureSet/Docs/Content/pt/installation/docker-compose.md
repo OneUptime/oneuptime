@@ -144,6 +144,8 @@ O `npm start` verifica primeiro o servidor: o Docker, a memória, o espaço em d
 Abra `http://` seguido do seu `HOST` (por exemplo `http://localhost`) e cadastre-se. A primeira conta de uma instância nova passa a ser o administrador principal dela, que pode abrir o Admin Dashboard em `/admin`.
 
 Qualquer pessoa que consiga acessar a página pode se cadastrar depois de você. Para impedir isso, abra o Admin Dashboard, vá em **Configurações > Autenticação** e desative **Permitir cadastro**. As pessoas que você convidar para um projeto ainda podem criar a conta.
+
+Depois termine de configurar o servidor em `/admin/setup`, onde e-mail, SMS e chamadas são configurados e testados: veja [Terminar de configurar o servidor](/docs/installation/self-hosting-guide#terminar-de-configurar-o-servidor).
 :::
 
 ### Gere segredos aleatórios
@@ -566,8 +568,8 @@ O Admin Dashboard lista a sonda em **Configurações > Monitoramento > Sondas gl
 ## Próximos passos
 
 :::cards
+- [Terminar de configurar o servidor](/docs/installation/self-hosting-guide#terminar-de-configurar-o-servidor): O e-mail, depois SMS e chamadas, cada um com um teste.
+- [Início rápido](/docs/introduction/quickstart): Seu primeiro monitor, sua primeira política de plantão e sua primeira página de status.
 - [Atualizar o OneUptime para uma nova versão](/docs/installation/upgrading): O que cada versão principal exige de você.
-- [Dimensionamento e planejamento de capacidade](/docs/installation/sizing): Planeje memória e disco para a sua telemetria.
 - [Arquitetura auto-hospedada](/docs/self-hosted/architecture): Como os componentes se encaixam.
-- [Edição Enterprise](/docs/self-hosted/enterprise): O que a imagem Enterprise acrescenta, e a licença dela.
 :::

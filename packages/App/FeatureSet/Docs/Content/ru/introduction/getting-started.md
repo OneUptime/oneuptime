@@ -111,7 +111,7 @@ flowchart TB
 ### Самостоятельный хостинг
 
 :::cards
-- [Установка](/docs/installation/docker-compose): Установить, рассчитать мощности и обновить свой OneUptime.
+- [Установка](/docs/installation/self-hosting-guide): Установить, рассчитать мощности и обновить свой OneUptime.
 - [Самостоятельная установка](/docs/self-hosted/architecture): Архитектура, интеграции и функции Enterprise для вашей установки.
 :::
 

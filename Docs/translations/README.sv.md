@@ -57,9 +57,13 @@ Allt annat finns i [dokumentationen](https://oneuptime.com/docs/sv/introduction/
 
 ### Drifta själv med Docker Compose
 
-Du behöver en Linux-server med minst 8 GB minne, och Docker, Docker Compose, Git och Node.js.
+Du behöver en Linux-server med minst 8 GB minne. På en ny Ubuntu-, Debian- eller RHEL-baserad server installerar ett enda kommando Docker, Git och Node.js där de saknas, frågar efter adressen folk ska använda och startar OneUptime:
 
-Före steg 3 sätter du `HOST` i `config.env` till det domännamn eller den IP-adress som folk ska använda för att nå OneUptime, utan `http://`. Behåll `localhost` bara för att prova OneUptime på din egen dator.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Eller gör det steg för steg, med Docker, Docker Compose, Git och Node.js installerade. I steg 3 skriver du det domännamn eller den IP-adress som folk ska använda för att nå OneUptime i stället för `<your-address>`, utan `http://`: det är `HOST` i `config.env`. Behåll `localhost` bara för att prova OneUptime på din egen dator.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` kontrollerar servern, ger varje hemlighet i `config.env` ett eget slumpvärde och startar OneUptime. När `npm start` skriver ut **OneUptime is up!** öppnar du `http://localhost` eller serverns adress och registrerar dig. Det första kontot blir instansens administratör.
 
-[Guiden för Docker Compose](https://oneuptime.com/docs/sv/installation/docker-compose) tar upp serverstorlekar, HTTPS, säkerhetskopior och uppdateringar.
+Följ sedan [Guide för självhosting](https://oneuptime.com/docs/sv/installation/self-hosting-guide) genom HTTPS, e-post och sms, tills OneUptime kan larma dig. [Guiden för Docker Compose](https://oneuptime.com/docs/sv/installation/docker-compose) tar upp serverstorlekar, säkerhetskopior och uppdateringar.
 
 ### Kubernetes med Helm
 
