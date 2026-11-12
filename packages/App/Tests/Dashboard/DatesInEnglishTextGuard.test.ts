@@ -45,6 +45,8 @@ const DISPLAY_HELPERS: ReadonlySet<string> = new Set<string>([
   // A list's cell: "Oct 22, 7:25 AM", "22. Okt., 07:25" (TableDate).
   "getDateAsCompactLocalString",
   "getDateAsLocalDayMonthString",
+  // A day of a year-long chart axis: "12 Nov 2025", "12. Nov. 2025".
+  "getDateAsLocalDayMonthYearString",
   "getDateAsLocalDayMonthHourString",
   "getDateAsLocalDayMonthTimeString",
   "getDateAsLocalMonthYearString",

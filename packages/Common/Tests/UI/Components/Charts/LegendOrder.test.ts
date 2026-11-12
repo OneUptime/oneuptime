@@ -23,7 +23,11 @@ function item(
   value: string | undefined,
   dataKey?: LegendPayload["dataKey"],
 ): LegendPayload {
-  return { value: value, dataKey: dataKey, type: "line" };
+  return {
+    value: value,
+    type: "line",
+    ...(dataKey === undefined ? {} : { dataKey: dataKey }),
+  };
 }
 
 // The items in recharts' order: by rank, keeping the order they came in on a tie.
