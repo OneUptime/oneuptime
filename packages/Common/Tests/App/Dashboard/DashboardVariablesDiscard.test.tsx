@@ -23,6 +23,7 @@ import DashboardVariable, {
 import DashboardViewConfig from "../../../Types/Dashboard/DashboardViewConfig";
 import DefaultDashboardSize from "../../../Types/Dashboard/DashboardSize";
 import DashboardTextComponentUtil from "../../../Utils/Dashboard/Components/DashboardTextComponent";
+import DashboardComponentType from "../../../Types/Dashboard/DashboardComponentType";
 
 /*
  * "Discard Changes" on a dashboard has to put the board back exactly as the
@@ -384,6 +385,36 @@ const discardEdits: DiscardEditsFunction = async (): Promise<void> => {
   await settle();
 };
 
+type CancelUnchangedEditFunction = () => Promise<void>;
+
+/*
+ * Cancel on a board that changed nothing: back to view mode at once, with
+ * no question - there is nothing to throw away (issue #7173). It still
+ * reads the dashboard again, as Discard Changes does.
+ */
+const cancelUnchangedEdit: CancelUnchangedEditFunction =
+  async (): Promise<void> => {
+    await act(async () => {
+      fireEvent.click(screen.getByTitle("Cancel"));
+    });
+    expect(screen.queryByText("Discard Changes")).toBeNull();
+    await settle();
+  };
+
+type AddTextWidgetFunction = () => Promise<void>;
+
+// A change that has nothing to do with variables: a widget added.
+const addTextWidget: AddTextWidgetFunction = async (): Promise<void> => {
+  await act(async () => {
+    fireEvent.click(screen.getByTitle("Add Widget"));
+  });
+  await act(async () => {
+    fireEvent.click(
+      screen.getByTestId(`widget-card-${DashboardComponentType.Text}`),
+    );
+  });
+};
+
 type KeepEditingFunction = () => Promise<void>;
 
 /** Open the cancel confirmation and then back out of it. */
@@ -683,7 +714,26 @@ describe("DashboardView — discarding edits reconciles dashboard variables", ()
       expect(canvasVariableSelections()).toEqual(["cluster=prod"]);
 
       await enterEditMode();
+      await addTextWidget();
       await discardEdits();
+
+      expect(canvasVariableNames()).toEqual(["cluster"]);
+      expect(canvasVariableSelections()).toEqual(["cluster=prod"]);
+      expect(currentVarParams()).toEqual({ "var-cluster": "prod" });
+    });
+
+    test("a selection made in view mode survives an edit that changed nothing, ended with Cancel", async () => {
+      await renderDashboard();
+
+      await screen.findByRole("option", { name: ATTRIBUTE_VALUE });
+      await act(async () => {
+        fireEvent.change(screen.getByRole("combobox"), {
+          target: { value: ATTRIBUTE_VALUE },
+        });
+      });
+
+      await enterEditMode();
+      await cancelUnchangedEdit();
 
       expect(canvasVariableNames()).toEqual(["cluster"]);
       expect(canvasVariableSelections()).toEqual(["cluster=prod"]);
