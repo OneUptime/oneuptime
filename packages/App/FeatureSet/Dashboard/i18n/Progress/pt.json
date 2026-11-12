@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9683
+    "keys": 50831,
+    "untranslated": 9566
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -61,6 +61,7 @@
     "Clusters",
     "Commit",
     "Commits",
+    "Community Edition",
     "Configs",
     "Console",
     "Content Security Policy",
@@ -90,6 +91,7 @@
     "Endpoint",
     "Endpoints",
     "Enter",
+    "Enterprise Edition",
     "Fahrenheit",
     "Failover",
     "Fatal",
