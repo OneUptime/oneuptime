@@ -50985,7 +50985,7 @@
   "Text me a code": "أرسل لي رمزًا برسالة نصية",
   "Texts and calls are paid from this project's balance, which is {{balance}}. Adding a number sends a text, so the balance must be more than {{floor}}.": "تُدفع الرسائل النصية والمكالمات من رصيد هذا المشروع، وهو {{balance}}. إضافة رقم ترسل رسالة نصية، لذا يجب أن يزيد الرصيد على {{floor}}.",
   "The on-call policy \"{{policy}}\" pages nobody yet.": "سياسة المناوبة «{{policy}}» لا تستدعي أحدًا بعد.",
-  "The page starts again, {{count}} more times at most.": "يبدأ الاستدعاء من جديد، مرات إضافية عددها {{count}} على الأكثر.",
+  "The page starts again, {{count}} more times at most.": "يبدأ الاستدعاء من جديد، بحد أقصى للمرات الإضافية: {{count}}.",
   "The page starts again, {{count}} more times at most._one": "يبدأ الاستدعاء من جديد، {{count}} مرة إضافية على الأكثر.",
   "This makes the on-call policy \"{{policy}}\". It pages these people first, for every new incident and alert in this project.": "ينشئ هذا سياسة المناوبة «{{policy}}». تستدعي هؤلاء الأشخاص أولًا عند كل حادثة جديدة وكل تنبيه جديد في هذا المشروع.",
   "This policy already pages someone else when nobody answers.": "تستدعي هذه السياسة شخصًا آخر بالفعل عندما لا يُجيب أحد.",
