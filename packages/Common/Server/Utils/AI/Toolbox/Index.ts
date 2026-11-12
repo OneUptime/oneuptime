@@ -1,4 +1,11 @@
 import { JSONObject } from "../../../../Types/JSON";
+import ServerProducts from "../../ServerProducts/ServerProducts";
+import { getToolProducts } from "./ToolProducts";
+import ProductKey from "../../../../Types/Product/ProductKey";
+import {
+  ServerProductOffReason,
+  getProductOffMessage,
+} from "../../../../Types/Product/ServerProducts";
 import Permission, { PermissionHelper } from "../../../../Types/Permission";
 import ConflictException from "../../../../Types/Exception/ConflictException";
 import NotAuthorizedException from "../../../../Types/Exception/NotAuthorizedException";
@@ -387,6 +394,14 @@ export default class AIToolbox {
       return refusedByGates;
     }
 
+    // A product switched off on the server: no card for it (#6815).
+    const refusedAsOff: ToolCallOutcome | null =
+      await this.refuseProductsOffOnServer(tool);
+
+    if (refusedAsOff) {
+      return refusedAsOff;
+    }
+
     if (!tool.checkBeforeApproval) {
       return null;
     }
@@ -567,6 +582,13 @@ export default class AIToolbox {
       return refusedByGates;
     }
 
+    const refusedAsOff: ToolCallOutcome | null =
+      await this.refuseProductsOffOnServer(tool);
+
+    if (refusedAsOff) {
+      return refusedAsOff;
+    }
+
     try {
       const result: ToolExecutionResult = await Promise.race([
         tool.execute(data.args, data.ctx),
@@ -711,6 +733,34 @@ export default class AIToolbox {
     }
 
     return null;
+  }
+
+  /*
+   * A tool of a product switched off on this server (#6815, ToolProducts):
+   * not run, and - for a setup action - not proposed. The model is told
+   * what happened and who can switch it on, and to say so rather than try
+   * again. Null when every product the tool names is on, or it names none.
+   */
+  public static async refuseProductsOffOnServer(
+    tool: ObservabilityTool,
+  ): Promise<ToolCallOutcome | null> {
+    const products: ReadonlyArray<ProductKey> = getToolProducts(tool.name);
+
+    const off: { product: ProductKey; reason: ServerProductOffReason } | null =
+      await ServerProducts.getFirstOff(products);
+
+    if (!off) {
+      return null;
+    }
+
+    const message: string = getProductOffMessage(off);
+
+    return {
+      success: false,
+      textForLlm: `Not done: ${message} Do not retry it, and do not offer to set it up another way. Tell the user plainly that it was not done, and who can switch it on.`,
+      errorMessage: message,
+      refusal: AIToolRefusal.ProductOff,
+    };
   }
 
   /*

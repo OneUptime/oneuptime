@@ -893,6 +893,15 @@ export const DisableTelemetryIngestion: boolean =
   process.env["DISABLE_TELEMETRY_INGESTION"] === "true";
 
 /*
+ * The products this server starts with (#6815, Types/Product/
+ * ServerProducts): "everything" (or empty), a preset's name, or the
+ * products to keep on. Only a starting value: once an admin saves Admin
+ * Dashboard > Settings > Products, what they saved applies.
+ */
+export const ServerProductsStartingValue: string =
+  process.env["SERVER_PRODUCTS"] || "";
+
+/*
  * When true, this process does NOT register any BullMQ queue consumers
  * (the "api" role). Background jobs — telemetry ingestion processing, the
  * general Worker/cron jobs, Workflow runs and Runbook executions — are
