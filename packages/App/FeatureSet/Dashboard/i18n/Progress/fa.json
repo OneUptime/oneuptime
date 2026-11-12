@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51107,
-    "untranslated": 4013
+    "untranslated": 3753
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -24,6 +24,7 @@
     "A-Z",
     "AES",
     "AES-256",
+    "AKIAIOSFODNN7EXAMPLE",
     "AWS ECS · us-east-1 · 123456789012",
     "AWS Lambda",
     "Active + Clean",
@@ -33,6 +34,7 @@
     "Amazon Athena",
     "Amazon EKS",
     "Amazon Redshift",
+    "Amazon SES",
     "Amphora",
     "Apache Kafka · kafka-1:9092",
     "Application credential",
@@ -81,6 +83,7 @@
     "Down + In",
     "Down + Out",
     "EKS Fargate",
+    "EU",
     "Edge",
     "Elasticsearch",
     "Enterprise Edition",
@@ -129,6 +132,7 @@
     "MITRE ATT&CK",
     "MITRE ATT&CK Enterprise v{{version}}",
     "MTU",
+    "Mailgun",
     "Markdown",
     "Mbps",
     "Memcached",
@@ -172,6 +176,7 @@
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",
     "PostgreSQL db.prod.internal:5432",
+    "Postmark",
     "Powered by OneUptime",
     "Project view",
     "Provision State",
@@ -207,6 +212,7 @@
     "SSID",
     "SSN",
     "ScheduledMaintenance",
+    "SendGrid",
     "Service Mesh",
     "Slug",
     "Snowflake",
@@ -219,6 +225,7 @@
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
     "Traceroute",
     "UID",
+    "US",
     "USD",
     "UTC",
     "Up + In",
@@ -267,6 +274,8 @@
     "db-replica.prod.internal:5432",
     "dbt",
     "device_name=\"SFW\" log_component=\"IPSec\" con_name=\"HQ-Branch1\" status=\"Terminated\"",
+    "email@company.com",
+    "emailuser@company.com",
     "eth0",
     "eu-*",
     "exports/orders/\nevents/2026/",
