@@ -1938,7 +1938,7 @@ describe("a summary that cannot be sent as it is set up", () => {
       workspaceType: WorkspaceType.Slack,
       channelNames: ["#ops"],
     });
-    currentSummary!.projectId = undefined;
+    delete currentSummary!.projectId;
 
     const refusal: unknown = await scheduledRefusal();
 

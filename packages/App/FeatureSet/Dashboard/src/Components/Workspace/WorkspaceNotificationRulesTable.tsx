@@ -1342,7 +1342,7 @@ const WorkspaceNotificationRuleTable: FunctionComponent<ComponentProps> = (
           error={testError}
           description={
             testError
-              ? translator.translateText(
+              ? translator.translateTemplate(
                   "Fix the problem above, then test the rule again.",
                 )
               : translator.translateTemplate(

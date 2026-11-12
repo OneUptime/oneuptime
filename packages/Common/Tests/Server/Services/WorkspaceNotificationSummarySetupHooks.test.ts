@@ -205,9 +205,9 @@ describe("creating a summary", () => {
   });
 
   test("without channel names or items leaves them to the check every create of a required column gets", async () => {
-    const summary: WorkspaceNotificationSummary = newSummary({});
-    summary.channelNames = undefined;
-    summary.summaryItems = undefined;
+    const summary: WorkspaceNotificationSummary =
+      new WorkspaceNotificationSummary();
+    summary.name = "Weekly Incident Summary";
 
     const created: WorkspaceNotificationSummary = await create(summary);
 
