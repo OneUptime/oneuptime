@@ -15935,7 +15935,7 @@
   "Send Test Email Status": "Stato dell'email di prova",
   "Send Test Message": "Send Test Message",
   "Send Test Report": "Invia report di prova",
-  "Send Test Summary Now": "Send Test Summary Now",
+  "Send Test Summary Now": "Invia riepilogo di prova ora",
   "Send You Have Subscribed Message": "Send You Have Subscribed Message",
   "Send a notification to the Slack channels confirming the subscription.": "Send a notification to the Slack channels confirming the subscription.",
   "Send a notification to the Teams channels confirming the subscription.": "Send a notification to the Teams channels confirming the subscription.",
@@ -16682,7 +16682,7 @@
   "Summary Description": "Summary Description",
   "Summary Items": "Summary Items",
   "Summary Quantiles": "Summary Quantiles",
-  "Summary Sent": "Summary Sent",
+  "Summary Sent": "Riepilogo inviato",
   "Summary Type": "Summary Type",
   "Summary Values": "Summary Values",
   "Support bundle downloaded. Review it, then attach it to your email.": "Pacchetto di supporto scaricato. Controllalo, poi allegalo alla tua e-mail.",
@@ -16879,7 +16879,7 @@
   "Test Command": "Comando di test",
   "Test Data Source": "Test Data Source",
   "Test Executed Successfully": "Test Executed Successfully",
-  "Test Failed": "Test Failed",
+  "Test Failed": "Test non riuscito",
   "Test LLM Provider": "Testa il provider LLM",
   "Test Message": "Test Message",
   "Test Notification Failed": "Notifica di prova non riuscita",
@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}: {{values}} (minore di {{threshold}}).",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}} (diverso da {{threshold}}).",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}} (inizia con {{threshold}}).",
-  "{{subject}} is {{values}}.": "{{subject}}: {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
+  "Fix the cause named above, then send the test again.": "Correggi la causa indicata qui sopra, poi invia di nuovo la prova."
 }

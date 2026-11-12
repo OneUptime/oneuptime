@@ -15935,7 +15935,7 @@
   "Send Test Email Status": "테스트 이메일 상태",
   "Send Test Message": "Send Test Message",
   "Send Test Report": "테스트 보고서 보내기",
-  "Send Test Summary Now": "Send Test Summary Now",
+  "Send Test Summary Now": "지금 테스트 요약 보내기",
   "Send You Have Subscribed Message": "Send You Have Subscribed Message",
   "Send a notification to the Slack channels confirming the subscription.": "Send a notification to the Slack channels confirming the subscription.",
   "Send a notification to the Teams channels confirming the subscription.": "Send a notification to the Teams channels confirming the subscription.",
@@ -16682,7 +16682,7 @@
   "Summary Description": "Summary Description",
   "Summary Items": "Summary Items",
   "Summary Quantiles": "Summary Quantiles",
-  "Summary Sent": "Summary Sent",
+  "Summary Sent": "요약을 보냈습니다",
   "Summary Type": "Summary Type",
   "Summary Values": "Summary Values",
   "Support bundle downloaded. Review it, then attach it to your email.": "지원 번들을 내려받았습니다. 검토한 뒤 이메일에 첨부하세요.",
@@ -16879,7 +16879,7 @@
   "Test Command": "테스트 명령",
   "Test Data Source": "Test Data Source",
   "Test Executed Successfully": "Test Executed Successfully",
-  "Test Failed": "Test Failed",
+  "Test Failed": "테스트 실패",
   "Test LLM Provider": "LLM 제공자 테스트",
   "Test Message": "Test Message",
   "Test Notification Failed": "테스트 알림 실패",
@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}보다 작습니다.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}과(와) 같지 않습니다.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}(으)로 시작합니다.",
-  "{{subject}} is {{values}}.": "{{subject}}은(는) {{values}}입니다."
+  "{{subject}} is {{values}}.": "{{subject}}은(는) {{values}}입니다.",
+  "Fix the cause named above, then send the test again.": "위에 나온 원인을 해결한 다음 테스트를 다시 보내세요."
 }

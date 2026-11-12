@@ -145,7 +145,13 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
   const [testSummary, setTestSummary] = React.useState<
     WorkspaceNotificationSummary | undefined
   >(undefined);
-  const [showTestSuccessModal, setShowTestSuccessModal] =
+  /*
+   * What the test came to, once it is sent: Summary Sent, or Test Failed
+   * with what the server said - each channel the summary was not posted
+   * in, and why. A test that failed in one channel may have been posted in
+   * the others, so it is reported, not offered again to send.
+   */
+  const [showTestResultModal, setShowTestResultModal] =
     React.useState<boolean>(false);
 
   // The time zones the Timezone field offers: worked out once, not per render.
@@ -294,20 +300,21 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           headers: ModelAPI.getCommonHeaders(),
         });
 
-      if (response.isSuccess()) {
-        setIsTestLoading(false);
-        setShowTestModal(false);
-        setShowTestSuccessModal(true);
-      }
-
       if (response instanceof HTTPErrorResponse) {
         throw response;
       }
 
       setIsTestLoading(false);
+
+      if (response.isSuccess()) {
+        setShowTestModal(false);
+        setShowTestResultModal(true);
+      }
     } catch (err) {
       setTestError(API.getFriendlyErrorMessage(err as Exception));
       setIsTestLoading(false);
+      setShowTestModal(false);
+      setShowTestResultModal(true);
     }
   };
 
@@ -1046,7 +1053,6 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
       {showTestModal && testSummary ? (
         <ConfirmModal
           title={`Send Test Summary Now`}
-          error={testError}
           description={translator.translatePlural(
             {
               one: 'Send the "{{name}}" summary to {{workspace}} now, with the last {{count}} day of data. The regular schedule is not affected.',
@@ -1074,13 +1080,21 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
         <></>
       )}
 
-      {showTestSuccessModal ? (
+      {/*
+       * No onClose: a dialog that only reports an outcome needs one way
+       * out, and "Close" is it (SendTestNotificationButton's, the same).
+       * A failure names each channel the summary was not posted in, and
+       * why, above the next step.
+       */}
+      {showTestResultModal ? (
         <ConfirmModal
           title={testError ? `Test Failed` : `Summary Sent`}
           error={testError}
           description={
             testError
-              ? `The test summary could not be sent. Please check your channel names and workspace connection settings.`
+              ? translator.translateText(
+                  "Fix the cause named above, then send the test again.",
+                )
               : translator.translateTemplate(
                   "The test summary was sent successfully. Check your {{workspace}} channel to see how it looks.",
                   { workspace: workspaceName },
@@ -1089,10 +1103,10 @@ const WorkspaceSummaryTable: FunctionComponent<ComponentProps> = (
           submitButtonType={ButtonStyleType.NORMAL}
           submitButtonText={"Close"}
           onSubmit={async () => {
-            setShowTestSuccessModal(false);
+            setShowTestResultModal(false);
             setTestSummary(undefined);
             setShowTestModal(false);
-            setTestError("");
+            setTestError(undefined);
           }}
         />
       ) : (

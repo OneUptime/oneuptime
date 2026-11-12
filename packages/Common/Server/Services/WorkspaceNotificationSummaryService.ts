@@ -38,6 +38,23 @@ import WorkspaceMessagePayload, {
   WorkspacePayloadMarkdown,
 } from "../../Types/Workspace/WorkspaceMessagePayload";
 import WorkspaceUtil from "../Utils/Workspace/Workspace";
+import MicrosoftTeamsUtil from "../Utils/Workspace/MicrosoftTeams/MicrosoftTeams";
+import BlockedProjectNotifications from "../Utils/Notification/BlockedProjectNotifications";
+import WorkspaceProjectAuthTokenService from "./WorkspaceProjectAuthTokenService";
+import WorkspaceProjectAuthToken, {
+  MicrosoftTeamsMiscData,
+  MicrosoftTeamsTeam,
+} from "../../Models/DatabaseModels/WorkspaceProjectAuthToken";
+import WorkspaceBase, {
+  WorkspaceChannel,
+  WorkspaceSendMessageResponse,
+  WorkspaceThread,
+} from "../Utils/Workspace/WorkspaceBase";
+import WorkspaceType, {
+  getWorkspaceTypeDisplayName,
+} from "../../Types/Workspace/WorkspaceType";
+import ColumnLength from "../../Types/Database/ColumnLength";
+import ProductBrandingText from "../Utils/ProductBrandingText";
 import CaptureSpan from "../Utils/Telemetry/CaptureSpan";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
 import URL from "../../Types/API/URL";
@@ -160,6 +177,50 @@ export interface WorkspaceSummaryTimezoneBackfillResult {
 
 // How many summaries one pass of the backfill reads.
 const TIMEZONE_BACKFILL_BATCH_SIZE: number = 100;
+
+/*
+ * What became of a summary in one of the channels it names (sendSummary):
+ * posted, with the message the workspace gave back, or not, with why in the
+ * workspace's own words.
+ */
+export interface WorkspaceSummaryChannelResult {
+  // The channel as the summary names it.
+  channelName: string;
+  isPosted: boolean;
+  // The channel's id in the workspace, once the workspace found it.
+  channelId?: string | undefined;
+  // The message posted in it.
+  threadId?: string | undefined;
+  // Why nothing was posted in it.
+  reason?: string | undefined;
+}
+
+// A failure the workspace gave no words for.
+const SEND_FAILED_REASON: string = "Failed to send message";
+
+// The end of a sentence, for reasons said one after another.
+const SENTENCE_END: RegExp = /[.!?]$/;
+
+// The # a Slack channel's name may be written with (SlackUtil.sendMessage).
+const SLACK_CHANNEL_PREFIX: RegExp = /^#/;
+
+// The # or ~ a Mattermost channel's name may be written with (findChannelByName).
+const MATTERMOST_CHANNEL_PREFIX: RegExp = /^[#~]/;
+
+// A Microsoft Teams team's id, as Microsoft Graph writes it: a GUID.
+const MICROSOFT_TEAMS_TEAM_ID: RegExp =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/*
+ * The Microsoft Teams team a summary's channels are in, as Microsoft Graph
+ * knows it - or why there is none to post in.
+ */
+export interface MicrosoftTeamsTeamOfSummary {
+  // The team's id: what Microsoft Teams finds the channels by.
+  teamId?: string | undefined;
+  // Why no channel is posted in: no team named, or none of the name.
+  notPostedReason?: string | undefined;
+}
 
 export class Service extends DatabaseService<WorkspaceNotificationSummary> {
   public constructor() {
@@ -515,6 +576,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     return timezones;
   }
 
+  /*
+   * Send Test Now: the summary, posted in its channels right away. It
+   * fails when a channel did not get it, saying which and why
+   * (getTestNotPostedMessage), so the dialog never says a summary was sent
+   * that a channel never got. Its Notification Logs name who sent it.
+   */
   @CaptureSpan()
   public async testSummary(data: {
     summaryId: ObjectID;
@@ -522,13 +589,36 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     testByUserId: ObjectID;
     props: DatabaseCommonInteractionProps;
   }): Promise<void> {
-    await this.sendSummary({ summaryId: data.summaryId, isTest: true });
+    await this.sendSummary({
+      summaryId: data.summaryId,
+      isTest: true,
+      testByUserId: data.testByUserId,
+    });
   }
 
+  /*
+   * Posts a summary in each channel it names, and writes one Notification
+   * Log per channel by what happened to it there: Success, or Error with
+   * the workspace's own words - a channel not found, a private one the bot
+   * is not in, a team the bot left, a project not connected.
+   *
+   * Each channel is posted in on its own (postSummaryInChannel), so what
+   * the workspace answers is that channel's: a channel is not matched to
+   * an answer by its name, which each workspace writes its own way (Slack
+   * without its #, Mattermost by its handle, Microsoft Teams as its team
+   * shows it), and a failure of a whole message - which names only its
+   * first channel (WorkspaceUtil.describePayloadDestination) - is the one
+   * channel's it was.
+   *
+   * A test (Send Test Now) fails when any channel did not get it. A
+   * scheduled send does not: see the end.
+   */
   @CaptureSpan()
   public async sendSummary(data: {
     summaryId: ObjectID;
     isTest?: boolean;
+    // Who sent a test, for its Notification Logs.
+    testByUserId?: ObjectID | undefined;
   }): Promise<void> {
     const summary: WorkspaceNotificationSummary | null = await this.findOneById(
       {
@@ -561,7 +651,12 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
       throw new BadDataException("Summary project ID not found");
     }
 
-    if (!summary.channelNames || summary.channelNames.length === 0) {
+    const channelNames: Array<string> = Service.getChannelNamesToPostIn({
+      workspaceType: summary.workspaceType,
+      channelNames: summary.channelNames || [],
+    });
+
+    if (channelNames.length === 0) {
       throw new BadDataException("No channel names configured for summary");
     }
 
@@ -572,81 +667,585 @@ export class Service extends DatabaseService<WorkspaceNotificationSummary> {
     const messageBlocks: Array<WorkspaceMessageBlock> =
       await this.buildSummaryMessageBlocks({ summary });
 
-    const messagePayload: WorkspaceMessagePayload = {
-      _type: "WorkspaceMessagePayload",
-      channelNames: summary.channelNames,
-      channelIds: [],
-      messageBlocks: messageBlocks,
-      workspaceType: summary.workspaceType!,
-      /*
-       * The team its channels are in: a Microsoft Teams team's name, or a
-       * Mattermost team's id. Mattermost looks for the channels only in
-       * the team named, and for none in the default team first, then in
-       * the bot's other teams; a team that is not a Mattermost id names
-       * none (MattermostUtil.findChannelByName).
-       */
+    const results: Array<WorkspaceSummaryChannelResult> = [];
+
+    /*
+     * What was thrown while a channel was posted in: not the workspace,
+     * whose failures it answers, but what is read before it is asked (the
+     * project's connection, whether the project is blocked) - the
+     * database. That channel's failure, said in its Notification Log; the
+     * channels after it are still posted in.
+     */
+    const thrownErrors: Array<unknown> = [];
+
+    /*
+     * The team its channels are in: a Mattermost team's id, as the form
+     * saves it, or the id of the Microsoft Teams team its Team Name names
+     * (getMicrosoftTeamsTeamOfSummary) - looked up once for all of its
+     * channels. A lookup that threw (the database) is each channel's
+     * failure, as a channel's send that threw is.
+     */
+    let teamOfChannels: MicrosoftTeamsTeamOfSummary = {
       teamId: summary.teamName || undefined,
     };
 
-    try {
+    if (summary.workspaceType === WorkspaceType.MicrosoftTeams) {
+      try {
+        teamOfChannels = await this.getMicrosoftTeamsTeamOfSummary(summary);
+      } catch (err) {
+        logger.error(
+          `Could not find the Microsoft Teams team of the workspace summary ${data.summaryId.toString()}.`,
+        );
+        logger.error(err);
+
+        thrownErrors.push(err);
+
+        teamOfChannels = {
+          notPostedReason: WorkspaceBase.getSendErrorMessage(err),
+        };
+      }
+    }
+
+    for (const channelName of channelNames) {
+      if (teamOfChannels.notPostedReason) {
+        results.push({
+          channelName: channelName,
+          isPosted: false,
+          reason: teamOfChannels.notPostedReason,
+        });
+
+        continue;
+      }
+
+      try {
+        results.push(
+          await this.postSummaryInChannel({
+            summary: summary,
+            channelName: channelName,
+            messageBlocks: messageBlocks,
+            teamId: teamOfChannels.teamId,
+          }),
+        );
+      } catch (err) {
+        logger.error(
+          `Could not post a workspace summary in the channel ${channelName}.`,
+        );
+        logger.error(err);
+
+        thrownErrors.push(err);
+
+        results.push({
+          channelName: channelName,
+          isPosted: false,
+          reason: WorkspaceBase.getSendErrorMessage(err),
+        });
+      }
+    }
+
+    for (const result of results) {
+      await this.logSummaryInChannel({
+        summary: summary,
+        result: result,
+        isTest: Boolean(data.isTest),
+        testByUserId: data.testByUserId,
+      });
+    }
+
+    const isPostedSomewhere: boolean = results.some(
+      (result: WorkspaceSummaryChannelResult): boolean => {
+        return result.isPosted;
+      },
+    );
+
+    if (data.isTest) {
+      if (
+        results.some((result: WorkspaceSummaryChannelResult): boolean => {
+          return !result.isPosted;
+        })
+      ) {
+        throw new BadDataException(Service.getTestNotPostedMessage(results));
+      }
+
+      return;
+    }
+
+    /*
+     * A scheduled send that a channel did not get does not fail: the
+     * report worker moved its next send on before it sent it, and a send
+     * that throws is put back to be sent again a minute later - which
+     * would post the summary again in every channel that did get it, each
+     * minute, until the broken one is fixed. The channel's Notification
+     * Log says what went wrong, and the summary is posted again at its
+     * next time.
+     *
+     * lastSentAt ("Last Sent") is when the summary last reached a channel:
+     * it moves when at least one channel got it, and stays as it was when
+     * none did, so the summaries list never says a summary went out that
+     * no one got.
+     *
+     * A send that reached no channel because something threw - the
+     * database, for a moment - throws, as every send that threw did: the
+     * worker sends it again a minute later, and no channel gets it twice.
+     */
+    if (!isPostedSomewhere) {
+      if (thrownErrors.length > 0) {
+        throw thrownErrors[0];
+      }
+
+      return;
+    }
+
+    await this.updateOneById({
+      id: data.summaryId,
+      data: {
+        lastSentAt: OneUptimeDate.getCurrentDate(),
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+  }
+
+  /*
+   * Posts the summary in one of its channels, as the project's bot, and
+   * says what became of it there. Throws what is thrown before the
+   * workspace is asked (sendSummary says it as that channel's failure).
+   */
+  private async postSummaryInChannel(data: {
+    summary: WorkspaceNotificationSummary;
+    channelName: string;
+    messageBlocks: Array<WorkspaceMessageBlock>;
+    /*
+     * The team its channels are in: a Microsoft Teams team's id, or a
+     * Mattermost team's id. Mattermost looks for the channels only in
+     * the team named, and for none in the default team first, then in
+     * the bot's other teams; a team that is not a Mattermost id names
+     * none (MattermostUtil.findChannelByName).
+     */
+    teamId: string | undefined;
+  }): Promise<WorkspaceSummaryChannelResult> {
+    const messagePayload: WorkspaceMessagePayload = {
+      _type: "WorkspaceMessagePayload",
+      channelNames: [data.channelName],
+      channelIds: [],
+      messageBlocks: data.messageBlocks,
+      workspaceType: data.summary.workspaceType!,
+      teamId: data.teamId,
+    };
+
+    const responses: Array<WorkspaceSendMessageResponse> =
       await WorkspaceUtil.postMessageToAllWorkspaceChannelsAsBot({
-        projectId: summary.projectId,
+        projectId: data.summary.projectId!,
         messagePayloadsByWorkspace: [messagePayload],
       });
 
-      // Log successful send
-      for (const channelName of summary.channelNames) {
-        await WorkspaceNotificationLogService.createWorkspaceLog(
-          {
-            projectId: summary.projectId!,
-            workspaceType: summary.workspaceType!,
-            channelName: channelName,
-            actionType: WorkspaceNotificationActionType.SendMessage,
-            status: WorkspaceNotificationStatus.Success,
-            statusMessage: data.isTest
-              ? "Test summary sent successfully"
-              : "Summary sent successfully",
-            message: `${summary.summaryType || ""} summary "${summary.name || "Untitled"}" sent to channel "${channelName}"`,
-          },
-          { isRoot: true },
-        );
-      }
-    } catch (err) {
-      // Log failed send
-      for (const channelName of summary.channelNames) {
-        await WorkspaceNotificationLogService.createWorkspaceLog(
-          {
-            projectId: summary.projectId!,
-            workspaceType: summary.workspaceType!,
-            channelName: channelName,
-            actionType: WorkspaceNotificationActionType.SendMessage,
-            status: WorkspaceNotificationStatus.Error,
-            statusMessage: err instanceof Error ? err.message : "Unknown error",
-            message: `Failed to send ${summary.summaryType || ""} summary "${summary.name || "Untitled"}" to channel "${channelName}"`,
-          },
-          { isRoot: true },
-        ).catch((logErr: unknown) => {
-          logger.error(
-            "Failed to create workspace notification log for summary send failure",
-          );
-          logger.error(logErr);
-        });
-      }
+    return Service.getChannelResult({
+      channelName: data.channelName,
+      workspaceType: data.summary.workspaceType!,
+      responses: responses,
+    });
+  }
 
-      throw err; // Re-throw so caller knows it failed
+  /*
+   * The Microsoft Teams team a summary's channels are in. Its Team Name is
+   * typed as the form asks for it - the team's name, "Engineering Team" -
+   * while Microsoft Graph finds a team's channels by the team's id: the
+   * name is looked up among the teams of the project's connection
+   * (availableTeams, getMicrosoftTeamsTeamsNamed), whatever its case, and,
+   * when none is named so, among the teams read again from Graph - a team
+   * made since they were read. An id is taken as it is. Left empty, the
+   * team is the one the connection was saved with, if any, or its only
+   * team.
+   *
+   * Not looked up for a project that is blocked, not connected, or whose
+   * connection cannot post: each channel then says so, as WorkspaceUtil
+   * says it, and Graph is not asked.
+   */
+  private async getMicrosoftTeamsTeamOfSummary(
+    summary: WorkspaceNotificationSummary,
+  ): Promise<MicrosoftTeamsTeamOfSummary> {
+    const teamName: string = (summary.teamName || "").trim();
+    const projectId: ObjectID = summary.projectId!;
+
+    if (await BlockedProjectNotifications.isBlocked(projectId)) {
+      return { teamId: teamName || undefined };
     }
 
-    if (!data.isTest) {
-      await this.updateOneById({
-        id: data.summaryId,
-        data: {
-          lastSentAt: OneUptimeDate.getCurrentDate(),
-        },
-        props: {
-          isRoot: true,
-        },
+    const projectAuth: WorkspaceProjectAuthToken | null =
+      await WorkspaceProjectAuthTokenService.getProjectAuth({
+        projectId: projectId,
+        workspaceType: WorkspaceType.MicrosoftTeams,
+      });
+
+    if (!projectAuth || !projectAuth.authToken) {
+      return { teamId: teamName || undefined };
+    }
+
+    const miscData: MicrosoftTeamsMiscData = (projectAuth.miscData ||
+      {}) as MicrosoftTeamsMiscData;
+
+    let teams: Array<MicrosoftTeamsTeam> = Object.values(
+      miscData.availableTeams || {},
+    );
+
+    if (!teamName) {
+      const connectionTeamId: string =
+        typeof miscData.teamId === "string" ? miscData.teamId.trim() : "";
+
+      if (connectionTeamId) {
+        return { teamId: connectionTeamId };
+      }
+
+      const onlyTeam: MicrosoftTeamsTeam | undefined =
+        teams.length === 1 ? teams[0] : undefined;
+
+      if (onlyTeam?.id) {
+        return { teamId: onlyTeam.id };
+      }
+
+      return {
+        notPostedReason:
+          "This summary does not name the Microsoft Teams team its channels are in. Please enter the team's name in the summary's Team Name.",
+      };
+    }
+
+    let named: Array<MicrosoftTeamsTeam> = Service.getMicrosoftTeamsTeamsNamed({
+      teamName: teamName,
+      teams: teams,
+    });
+
+    if (named.length === 0) {
+      try {
+        teams = Object.values(
+          await MicrosoftTeamsUtil.refreshTeams({ projectId: projectId }),
+        );
+      } catch (err) {
+        logger.error(
+          `Could not read the Microsoft Teams teams of project ${projectId.toString()} to find the team of a workspace summary.`,
+        );
+        logger.error(err);
+
+        if (MICROSOFT_TEAMS_TEAM_ID.test(teamName)) {
+          return { teamId: teamName };
+        }
+
+        return {
+          notPostedReason: `The teams of this project's Microsoft Teams connection could not be read to find the team "${teamName}". ${Service.asSentences([WorkspaceBase.getSendErrorMessage(err)])}`,
+        };
+      }
+
+      named = Service.getMicrosoftTeamsTeamsNamed({
+        teamName: teamName,
+        teams: teams,
       });
     }
+
+    if (named.length === 1) {
+      return { teamId: named[0]!.id };
+    }
+
+    if (named.length > 1) {
+      return {
+        notPostedReason: `${named.length} Microsoft Teams teams are named "${teamName}". Please enter the id of the one to post in as the summary's Team Name: the groupId in the link to the team.`,
+      };
+    }
+
+    /*
+     * An id Graph did not list - its list ends at the last page read
+     * (MICROSOFT_TEAMS_MAX_PAGES): Graph answers for it.
+     */
+    if (MICROSOFT_TEAMS_TEAM_ID.test(teamName)) {
+      return { teamId: teamName };
+    }
+
+    return {
+      notPostedReason: `The Microsoft Teams team "${teamName}" was not found. Please enter the team's name, as Microsoft Teams shows it, in the summary's Team Name.`,
+    };
+  }
+
+  /*
+   * The teams a summary's Team Name names, among a connection's: the team
+   * of that id, or else each of that name - whatever its case, and the
+   * spaces around it. Two or more when Microsoft Teams teams share it.
+   */
+  public static getMicrosoftTeamsTeamsNamed(data: {
+    teamName: string;
+    teams: Array<MicrosoftTeamsTeam>;
+  }): Array<MicrosoftTeamsTeam> {
+    const typed: string = (data.teamName || "").trim().toLowerCase();
+
+    if (!typed) {
+      return [];
+    }
+
+    const teams: Array<MicrosoftTeamsTeam> = (data.teams || []).filter(
+      (team: MicrosoftTeamsTeam): boolean => {
+        return Boolean(team && typeof team.id === "string" && team.id);
+      },
+    );
+
+    const ofId: MicrosoftTeamsTeam | undefined = teams.find(
+      (team: MicrosoftTeamsTeam): boolean => {
+        return team.id.toLowerCase() === typed;
+      },
+    );
+
+    if (ofId) {
+      return [ofId];
+    }
+
+    return teams.filter((team: MicrosoftTeamsTeam): boolean => {
+      return (
+        typeof team.name === "string" &&
+        team.name.trim().toLowerCase() === typed
+      );
+    });
+  }
+
+  /*
+   * The Notification Log of the summary in one of its channels. Written
+   * best-effort: a log that cannot be written never turns a summary that
+   * was posted into one that failed.
+   */
+  private async logSummaryInChannel(data: {
+    summary: WorkspaceNotificationSummary;
+    result: WorkspaceSummaryChannelResult;
+    isTest: boolean;
+    testByUserId?: ObjectID | undefined;
+  }): Promise<void> {
+    const summaryLabel: string = `${data.summary.summaryType || ""} summary "${data.summary.name || "Untitled"}"`;
+    const channelName: string = data.result.channelName;
+
+    try {
+      await WorkspaceNotificationLogService.createWorkspaceLog(
+        {
+          projectId: data.summary.projectId!,
+          workspaceType: data.summary.workspaceType!,
+          // Column limits: an over-long value fails the whole insert.
+          channelName: channelName.substring(0, ColumnLength.ShortText),
+          channelId: data.result.channelId?.substring(
+            0,
+            ColumnLength.ShortText,
+          ),
+          threadId: data.result.threadId?.substring(0, ColumnLength.ShortText),
+          actionType: WorkspaceNotificationActionType.SendMessage,
+          status: data.result.isPosted
+            ? WorkspaceNotificationStatus.Success
+            : WorkspaceNotificationStatus.Error,
+          statusMessage: data.result.isPosted
+            ? data.isTest
+              ? "Test summary sent successfully"
+              : "Summary sent successfully"
+            : (data.result.reason || SEND_FAILED_REASON).substring(
+                0,
+                ColumnLength.LongText,
+              ),
+          message: data.result.isPosted
+            ? `${summaryLabel} sent to channel "${channelName}"`
+            : `Failed to send ${summaryLabel} to channel "${channelName}"`,
+          userId: data.isTest ? data.testByUserId : undefined,
+        },
+        { isRoot: true },
+      );
+    } catch (err) {
+      logger.error(
+        `Could not write the Notification Log of a workspace summary in the channel ${channelName}.`,
+      );
+      logger.error(err);
+    }
+  }
+
+  /*
+   * The channels a summary is posted in: each it names, once, in its
+   * order, and none left empty. Two names the workspace reads as one
+   * channel - "#ops" and "ops" in Slack, "~ops" and "ops" in Mattermost,
+   * "Ops" and "ops" in any of them, as each looks a channel up whatever
+   * its case - are one channel, posted in once, as the first is written.
+   */
+  public static getChannelNamesToPostIn(data: {
+    workspaceType: WorkspaceType | undefined;
+    channelNames: Array<string>;
+  }): Array<string> {
+    const keys: Set<string> = new Set<string>();
+    const channelNames: Array<string> = [];
+
+    for (const channelName of data.channelNames) {
+      const name: string =
+        typeof channelName === "string" ? channelName.trim() : "";
+
+      if (!name) {
+        continue;
+      }
+
+      let key: string = name;
+
+      if (data.workspaceType === WorkspaceType.Slack) {
+        key = key.replace(SLACK_CHANNEL_PREFIX, "");
+      }
+
+      if (data.workspaceType === WorkspaceType.Mattermost) {
+        key = key.replace(MATTERMOST_CHANNEL_PREFIX, "");
+      }
+
+      key = key.toLowerCase();
+
+      if (keys.has(key)) {
+        continue;
+      }
+
+      keys.add(key);
+      channelNames.push(name);
+    }
+
+    return channelNames;
+  }
+
+  /*
+   * What became of the summary in a channel, from what the workspace
+   * answered for that channel alone: its errors, when it gave any - in its
+   * own words; the message it posted, when it gave one back; else why
+   * nothing was sent (notSentReason: a project not connected, or blocked),
+   * or, when it said nothing at all, the channel not found.
+   */
+  public static getChannelResult(data: {
+    channelName: string;
+    workspaceType: WorkspaceType;
+    responses: Array<WorkspaceSendMessageResponse>;
+  }): WorkspaceSummaryChannelResult {
+    const errors: Array<{ channel: WorkspaceChannel; error: string }> = [];
+    const threads: Array<WorkspaceThread> = [];
+    let notSentReason: string | undefined = undefined;
+
+    for (const response of data.responses) {
+      errors.push(...(response.errors || []));
+      threads.push(...(response.threads || []));
+      notSentReason = notSentReason || response.notSentReason || undefined;
+    }
+
+    if (errors.length > 0) {
+      const channelId: string | undefined = errors
+        .map((error: { channel: WorkspaceChannel; error: string }) => {
+          return error.channel?.id || "";
+        })
+        .find((id: string): boolean => {
+          return Boolean(id);
+        });
+
+      const reasons: Array<string> = errors.map(
+        (error: { channel: WorkspaceChannel; error: string }): string => {
+          return (error.error || "").trim() || SEND_FAILED_REASON;
+        },
+      );
+
+      return {
+        channelName: data.channelName,
+        isPosted: false,
+        channelId: channelId,
+        // One reason as the workspace wrote it; several, a sentence each.
+        reason:
+          reasons.length === 1 ? reasons[0]! : Service.asSentences(reasons),
+      };
+    }
+
+    const thread: WorkspaceThread | undefined = threads[0];
+
+    if (thread) {
+      return {
+        channelName: data.channelName,
+        isPosted: true,
+        channelId: thread.channel?.id || undefined,
+        threadId: thread.threadId || undefined,
+      };
+    }
+
+    return {
+      channelName: data.channelName,
+      isPosted: false,
+      reason:
+        notSentReason ||
+        Service.getChannelNotPostedReason({
+          workspaceType: data.workspaceType,
+          channelName: data.channelName,
+        }),
+    };
+  }
+
+  /*
+   * Why the summary was not posted in a channel its workspace said nothing
+   * of. Slack leaves out a channel it cannot find - renamed, deleted, or
+   * private without the bot in it - where Microsoft Teams and Mattermost
+   * say so (SlackUtil.sendMessage).
+   */
+  public static getChannelNotPostedReason(data: {
+    workspaceType: WorkspaceType;
+    channelName: string;
+  }): string {
+    if (data.workspaceType === WorkspaceType.Slack) {
+      return `The Slack channel ${data.channelName} was not found. If it is a private channel, invite ${ProductBrandingText.getProductName()}'s bot to it in Slack.`;
+    }
+
+    const workspace: string = getWorkspaceTypeDisplayName(data.workspaceType);
+
+    return `Nothing was posted in the ${workspace} channel ${data.channelName}, and ${workspace} did not say why.`;
+  }
+
+  /*
+   * What Send Test Now answers when a channel did not get the test
+   * summary: how many did not, and each with why - or, when every channel
+   * failed for one reason (a project not connected), that reason once.
+   */
+  public static getTestNotPostedMessage(
+    results: Array<WorkspaceSummaryChannelResult>,
+  ): string {
+    const notPosted: Array<WorkspaceSummaryChannelResult> = results.filter(
+      (result: WorkspaceSummaryChannelResult): boolean => {
+        return !result.isPosted;
+      },
+    );
+
+    const reasonOf: (result: WorkspaceSummaryChannelResult) => string = (
+      result: WorkspaceSummaryChannelResult,
+    ): string => {
+      return Service.asSentences([result.reason || SEND_FAILED_REASON]);
+    };
+
+    if (results.length === 1 && notPosted.length === 1) {
+      return `The test summary was not posted in ${notPosted[0]!.channelName}. ${reasonOf(notPosted[0]!)}`;
+    }
+
+    const lead: string =
+      notPosted.length === results.length
+        ? `The test summary was not posted in any of its ${results.length} channels.`
+        : `The test summary was not posted in ${notPosted.length} of its ${results.length} channels.`;
+
+    const reasons: Array<string> = notPosted.map(reasonOf);
+
+    const isOneReason: boolean =
+      notPosted.length === results.length &&
+      reasons.every((reason: string): boolean => {
+        return reason === reasons[0];
+      });
+
+    if (isOneReason) {
+      return `${lead} ${reasons[0]}`;
+    }
+
+    return `${lead} ${notPosted
+      .map((result: WorkspaceSummaryChannelResult, index: number): string => {
+        return `${result.channelName}: ${reasons[index]}`;
+      })
+      .join(" ")}`;
+  }
+
+  // Texts as sentences, one after another: each ends as a sentence does.
+  private static asSentences(texts: Array<string>): string {
+    return texts
+      .map((text: string): string => {
+        const trimmed: string = (text || "").trim() || SEND_FAILED_REASON;
+
+        return SENTENCE_END.test(trimmed) ? trimmed : `${trimmed}.`;
+      })
+      .join(" ");
   }
 
   // ───────────────────────── helpers ─────────────────────────

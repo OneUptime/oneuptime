@@ -15935,7 +15935,7 @@
   "Send Test Email Status": "測試郵件狀態",
   "Send Test Message": "Send Test Message",
   "Send Test Report": "寄送測試報告",
-  "Send Test Summary Now": "Send Test Summary Now",
+  "Send Test Summary Now": "立即傳送測試摘要",
   "Send You Have Subscribed Message": "Send You Have Subscribed Message",
   "Send a notification to the Slack channels confirming the subscription.": "Send a notification to the Slack channels confirming the subscription.",
   "Send a notification to the Teams channels confirming the subscription.": "Send a notification to the Teams channels confirming the subscription.",
@@ -16682,7 +16682,7 @@
   "Summary Description": "Summary Description",
   "Summary Items": "Summary Items",
   "Summary Quantiles": "Summary Quantiles",
-  "Summary Sent": "Summary Sent",
+  "Summary Sent": "摘要已傳送",
   "Summary Type": "Summary Type",
   "Summary Values": "Summary Values",
   "Support bundle downloaded. Review it, then attach it to your email.": "支援套件已下載。請檢查後再附加到你的郵件中。",
@@ -16879,7 +16879,7 @@
   "Test Command": "測試命令",
   "Test Data Source": "Test Data Source",
   "Test Executed Successfully": "Test Executed Successfully",
-  "Test Failed": "Test Failed",
+  "Test Failed": "測試失敗",
   "Test LLM Provider": "測試 LLM 提供商",
   "Test Message": "Test Message",
   "Test Notification Failed": "測試通知失敗",
@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}為 {{values}}，小於 {{threshold}}。",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}為 {{values}}，不等於 {{threshold}}。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}為 {{values}}，以 {{threshold}} 開頭。",
-  "{{subject}} is {{values}}.": "{{subject}}：{{values}}。"
+  "{{subject}} is {{values}}.": "{{subject}}：{{values}}。",
+  "Fix the cause named above, then send the test again.": "修正上方指出的原因，然後再次傳送測試。"
 }

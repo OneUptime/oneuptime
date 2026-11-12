@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}: {{values}}، أي أصغر من {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}}، أي لا يساوي {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}}، أي يبدأ بـ {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}}: {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
+  "Fix the cause named above, then send the test again.": "أصلح السبب المذكور أعلاه، ثم أرسل الاختبار مرة أخرى."
 }

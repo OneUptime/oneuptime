@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} 未満です。",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} と等しくありません。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}は {{values}} で、{{threshold}} で始まっています。",
-  "{{subject}} is {{values}}.": "{{subject}}は {{values}} です。"
+  "{{subject}} is {{values}}.": "{{subject}}は {{values}} です。",
+  "Fix the cause named above, then send the test again.": "上に示された原因を修正してから、もう一度テストを送信してください。"
 }

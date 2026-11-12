@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}}: {{values}} (menor que {{threshold}}).",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}: {{values}} (distinto de {{threshold}}).",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}: {{values}} (empieza por {{threshold}}).",
-  "{{subject}} is {{values}}.": "{{subject}}: {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}}: {{values}}.",
+  "Fix the cause named above, then send the test again.": "Corrige la causa indicada arriba y vuelve a enviar la prueba."
 }

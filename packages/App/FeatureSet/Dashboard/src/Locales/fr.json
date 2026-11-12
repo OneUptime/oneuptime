@@ -15935,7 +15935,7 @@
   "Send Test Email Status": "État de l'e-mail de test",
   "Send Test Message": "Send Test Message",
   "Send Test Report": "Envoyer un rapport de test",
-  "Send Test Summary Now": "Send Test Summary Now",
+  "Send Test Summary Now": "Envoyer un résumé de test maintenant",
   "Send You Have Subscribed Message": "Send You Have Subscribed Message",
   "Send a notification to the Slack channels confirming the subscription.": "Send a notification to the Slack channels confirming the subscription.",
   "Send a notification to the Teams channels confirming the subscription.": "Send a notification to the Teams channels confirming the subscription.",
@@ -16682,7 +16682,7 @@
   "Summary Description": "Summary Description",
   "Summary Items": "Summary Items",
   "Summary Quantiles": "Summary Quantiles",
-  "Summary Sent": "Summary Sent",
+  "Summary Sent": "Résumé envoyé",
   "Summary Type": "Summary Type",
   "Summary Values": "Summary Values",
   "Support bundle downloaded. Review it, then attach it to your email.": "Pack de support téléchargé. Vérifiez-le, puis joignez-le à votre e-mail.",
@@ -16879,7 +16879,7 @@
   "Test Command": "Commande de test",
   "Test Data Source": "Test Data Source",
   "Test Executed Successfully": "Test Executed Successfully",
-  "Test Failed": "Test Failed",
+  "Test Failed": "Échec du test",
   "Test LLM Provider": "Tester le fournisseur LLM",
   "Test Message": "Test Message",
   "Test Notification Failed": "Échec de la notification de test",
@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} : {{values}}, ce qui est inférieur à {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} : {{values}}, ce qui est différent de {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} : {{values}}, ce qui commence par {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}} : {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}} : {{values}}.",
+  "Fix the cause named above, then send the test again.": "Corrigez la cause indiquée ci-dessus, puis envoyez de nouveau le test."
 }

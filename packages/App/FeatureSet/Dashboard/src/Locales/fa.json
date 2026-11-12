@@ -15935,7 +15935,7 @@
   "Send Test Email Status": "وضعیت ایمیل آزمایشی",
   "Send Test Message": "Send Test Message",
   "Send Test Report": "ارسال گزارش آزمایشی",
-  "Send Test Summary Now": "Send Test Summary Now",
+  "Send Test Summary Now": "ارسال فوری خلاصه آزمایشی",
   "Send You Have Subscribed Message": "Send You Have Subscribed Message",
   "Send a notification to the Slack channels confirming the subscription.": "Send a notification to the Slack channels confirming the subscription.",
   "Send a notification to the Teams channels confirming the subscription.": "Send a notification to the Teams channels confirming the subscription.",
@@ -16682,7 +16682,7 @@
   "Summary Description": "Summary Description",
   "Summary Items": "Summary Items",
   "Summary Quantiles": "Summary Quantiles",
-  "Summary Sent": "Summary Sent",
+  "Summary Sent": "خلاصه ارسال شد",
   "Summary Type": "Summary Type",
   "Summary Values": "Summary Values",
   "Support bundle downloaded. Review it, then attach it to your email.": "بسته پشتیبانی دانلود شد. آن را بررسی کنید و سپس به ایمیل خود پیوست کنید.",
@@ -16879,7 +16879,7 @@
   "Test Command": "فرمان آزمون",
   "Test Data Source": "Test Data Source",
   "Test Executed Successfully": "Test Executed Successfully",
-  "Test Failed": "Test Failed",
+  "Test Failed": "آزمایش ناموفق بود",
   "Test LLM Provider": "آزمایش ارائه‌دهنده LLM",
   "Test Message": "Test Message",
   "Test Notification Failed": "اعلان آزمایشی ناموفق بود",
@@ -50784,5 +50784,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} {{values}} است که کوچک‌تر از {{threshold}} است.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} برابر نیست.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} شروع می‌شود.",
-  "{{subject}} is {{values}}.": "{{subject}} {{values}} است."
+  "{{subject}} is {{values}}.": "{{subject}} {{values}} است.",
+  "Fix the cause named above, then send the test again.": "علتی را که در بالا آمده برطرف کنید، سپس آزمایش را دوباره ارسال کنید."
 }
