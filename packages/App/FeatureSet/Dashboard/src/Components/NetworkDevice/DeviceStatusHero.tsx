@@ -162,13 +162,15 @@ export const DeviceMonitorNotChecked: FunctionComponent<
            * A link's look and hover, as the tile's other ways out. Its
            * spinner is drawn at the line's height and inside the tile's
            * edge, so a press neither pushes the link below it down nor
-           * sticks out past the words above it.
+           * sticks out past the words above it. Its words start where the
+           * tile's do: a button centres them, and a narrow tile wraps a
+           * long one (German's Überwachung einschalten at 390px).
            */
           <Button
             title={MonitoringSwitchCopy.turnOnButton}
             buttonStyle={ButtonStyleType.LINK}
             buttonSize={ButtonSize.ExtraSmall}
-            className={`text-xs font-medium [&_svg]:me-1.5 [&_svg]:ms-0 [&_svg]:h-4 [&_svg]:w-4${
+            className={`text-start text-xs font-medium [&_svg]:me-1.5 [&_svg]:ms-0 [&_svg]:h-4 [&_svg]:w-4${
               isBusy ? "" : " hover:underline"
             }`}
             dataTestId={TURN_MONITORING_ON_BUTTON_TEST_ID}

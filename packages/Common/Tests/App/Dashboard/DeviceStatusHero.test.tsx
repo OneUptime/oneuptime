@@ -933,6 +933,8 @@ describe("the device Overview status hero", () => {
           "[&_svg]:w-4",
           "[&_svg]:ms-0",
         );
+        // Wrapped in a narrow tile, its words start where the tile's do.
+        expect(button).toHaveClass("text-start");
       });
 
       test("a press turns the bound monitor's monitoring on, stays busy until the device is read again, then shows the monitor's status", async () => {
