@@ -37,7 +37,7 @@ Elke controle draait elke 15 minuten, elk uur, elke 6 uur of elke dag, als één
 
 Stel **Waarschuwen wanneer** in om op een controle te waarschuwen:
 
-- **Unusually High** of **Unusually Low** vergelijkt elke waarde met haar eigen geleerde basislijn voor dat uur van de week.
+- **Ongewoon hoog** of **Ongewoon laag** vergelijkt elke waarde met haar eigen geleerde basislijn voor dat uur van de week.
 - **Boven** of **Onder** vergelijkt haar met een drempel.
 
 Bij het opslaan van de controle wordt er een metrics-monitor voor gemaakt, op jouw naam en met jouw machtigingen. Als je de voorwaarde wist, wordt de monitor verwijderd.
