@@ -51057,5 +51057,15 @@
   "{{project}} Status": "Statut {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} est déjà surveillé par ces moniteurs.",
   "{{service}} is sending data": "{{service}} envoie des données",
-  "{{service}} is sending data.": "{{service}} envoie des données."
+  "{{service}} is sending data.": "{{service}} envoie des données.",
+  "Its monitor is archived": "Son moniteur est archivé",
+  "Monitor archived": "Moniteur archivé",
+  "Monitoring is off for its monitor": "La surveillance est désactivée pour son moniteur",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "La surveillance est désactivée pour le moniteur lié à cet appareil, donc rien ne le vérifie : l'appareil n'a pas de statut, et son site ne le prend pas en compte. Réactivez la surveillance du moniteur pour qu'il rende compte à nouveau.",
+  "Monitoring off": "Surveillance désactivée",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "Rien ne vérifie cet appareil — la surveillance est désactivée pour le moniteur qui lui est lié.",
+  "Nothing checks this device — the monitor bound to it is archived.": "Rien ne vérifie cet appareil — le moniteur qui lui est lié est archivé.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "Le moniteur lié à cet appareil est archivé, donc rien ne le vérifie : l'appareil n'a pas de statut, et son site ne le prend pas en compte. Désarchivez le moniteur, ou liez-en un autre dans les paramètres de l'appareil.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Pas encore de verdict — jamais interrogé, aucune sonde attribuée, aucun moniteur lié, ou le moniteur lié est désactivé ou archivé",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "Pas encore de verdict — jamais interrogé, aucune sonde attribuée, aucun moniteur lié, ou le moniteur lié est désactivé ou archivé."
 }

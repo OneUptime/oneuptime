@@ -51057,5 +51057,15 @@
   "{{project}} Status": "Stato di {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} è già monitorato da questi monitor.",
   "{{service}} is sending data": "{{service}} sta inviando dati",
-  "{{service}} is sending data.": "{{service}} sta inviando dati."
+  "{{service}} is sending data.": "{{service}} sta inviando dati.",
+  "Its monitor is archived": "Il suo monitor è archiviato",
+  "Monitor archived": "Monitor archiviato",
+  "Monitoring is off for its monitor": "Il monitoraggio è disattivato per il suo monitor",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Il monitoraggio è disattivato per il monitor associato a questo dispositivo, quindi nulla lo controlla: il dispositivo non ha uno stato e il suo sito lo esclude. Riattiva il monitoraggio del monitor perché torni a segnalarlo.",
+  "Monitoring off": "Monitoraggio disattivato",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "Nulla controlla questo dispositivo — il monitoraggio è disattivato per il monitor associato.",
+  "Nothing checks this device — the monitor bound to it is archived.": "Nulla controlla questo dispositivo — il monitor associato è archiviato.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "Il monitor associato a questo dispositivo è archiviato, quindi nulla lo controlla: il dispositivo non ha uno stato e il suo sito lo esclude. Annulla l'archiviazione del monitor o associane un altro nelle Impostazioni del dispositivo.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Ancora nessun verdetto — mai interrogato, nessuna sonda assegnata, nessun monitor associato, oppure il monitor associato è disattivato o archiviato",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "Ancora nessun verdetto — mai interrogato, nessuna sonda assegnata, nessun monitor associato, oppure il monitor associato è disattivato o archiviato."
 }

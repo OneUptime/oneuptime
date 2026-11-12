@@ -141,6 +141,7 @@ Beide soorten beleid zijn het hierover eens, en het doet er meer toe dan het lij
 - Apparaten die nog nooit iets hebben gemeld, stemmen nooit. Een apparaat dat op zijn eerste poll wacht, is geen bewijs van een storing, dus het blijft buiten beide kanten van het aandeel, en een regio die halverwege de onboarding is, wordt beoordeeld op de helft die heeft geantwoord.
 - Een door een sonde gepold apparaat, de normale soort, stemt met de uitkomst van zijn laatste poll: bereikbaar via ping of SNMP, niet hoe lang geleden het voor het laatst slaagde. Een apparaat dat op ping antwoordt terwijl zijn SNMP-walk mislukt, is bereikbaar en stemt zo; de locatie zegt dat het werkt, en de rij van het apparaat zegt **SNMP failing** zodat iemand de inloggegevens repareert.
 - Een apparaat met een gekoppelde monitor, een dat op zijn pagina Instellingen naar de override met gekoppelde monitor is gezet, stemt met de status van de monitor die eraan gekoppeld is, omdat niets het pollt. Zonder gekoppelde monitor heeft het nooit gemeld, dus stemt het helemaal niet.
+- Een apparaat met een gekoppelde monitor waarvan de monitor niet wordt gecontroleerd, omdat de bewaking ervan uit staat of hij gearchiveerd is, stemt ook niet: de status van die monitor is alleen wat zijn laatste controle zag. Het apparaat staat op **In behandeling**, met **Bewaking uit** of **Monitor gearchiveerd** ernaast, totdat de bewaking van de monitor weer aan staat of hij uit het archief is gehaald.
 
 Een netwerkapparaat-monitor op een door een sonde gepold apparaat verandert niet hoe het apparaat stemt. Een monitor met een criterium "interface uitgevallen, dus Offline" zou Offline stempelen op een switch die op elke ping antwoordt, en één donkere poort zou een hele locatie rood maken terwijl elke apparaatrij eronder Up toont: de locatie zou het oneens zijn met de lijst die ze samenvat. Voor een gepold apparaat is de poll de bron van zijn gezondheid; de monitor is er om incidenten te openen.
 
@@ -214,6 +215,8 @@ De kaart **Alerting** op de pagina **Instellingen** van een locatie heeft **Aler
 
 Er wordt alleen op de wijziging gewaarschuwd: het aanzetten voor een locatie die al ongezond is, wacht op de volgende wijziging in plaats van over het verleden te waarschuwen. Degraded is niet operationeel, dus een locatie met het percentagebeleid waarschuwt zodra een van haar meldende apparaten uitvalt, net als een locatie met het beleid van de slechtste status; de waarschuwing blijft open, zonder een tweede, terwijl de locatie tussen Degraded en Offline wisselt, en haar titel noemt de status die de locatie als eerste bereikte.
 
+Als niets op een locatie nog een status meldt, omdat de monitors achter haar apparaten hun bewaking uit hebben staan, gearchiveerd zijn of verwijderd zijn, gaat de locatie terug naar geen status in plaats van haar laatste te houden, en haar open waarschuwing wordt opgelost met die reden als oorzaak. Een apparaat dat opnieuw een probleem meldt, opent een nieuwe waarschuwing.
+
 ## Problemen oplossen
 
 :::details Een regio is altijd rood
@@ -225,7 +228,11 @@ Er heeft nog nooit een samenvatting gedraaid voor de locatie, dus ze heeft geen 
 :::
 
 :::details Een apparaat telt niet mee voor zijn locatie
-Gearchiveerde apparaten, en apparaten die nog niet hebben gemeld, stemmen nooit. Een apparaat met een gekoppelde monitor waaraan geen monitor is gekoppeld, heeft ook nooit gemeld. Controleer de status van het apparaat: een apparaat **In behandeling** begint te stemmen na zijn eerste poll.
+Gearchiveerde apparaten, en apparaten die nog niet hebben gemeld, stemmen nooit. Een apparaat met een gekoppelde monitor waaraan geen monitor is gekoppeld, heeft ook nooit gemeld. Controleer de status van het apparaat: een apparaat **In behandeling** begint te stemmen na zijn eerste poll. Een apparaat met **Bewaking uit** of **Monitor gearchiveerd** ernaast stemt weer zodra de bewaking van zijn monitor weer aan staat of de monitor uit het archief is gehaald.
+:::
+
+:::details Een locatie heeft geen status meer
+Niets op de locatie meldt een status: de monitors achter haar apparaten hebben hun bewaking uit staan, zijn gearchiveerd of zijn verwijderd, dus de laatste status van de locatie is gewist en haar waarschuwing opgelost. Zet de bewaking van die monitors weer aan, of haal ze uit het archief, en de status van de locatie wordt weer uit haar apparaten berekend.
 :::
 
 :::details De waarschuwing van een locatie ging niet af

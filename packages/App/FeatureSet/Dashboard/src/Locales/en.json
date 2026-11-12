@@ -51057,5 +51057,15 @@
   "{{project}} Status": "{{project}} Status",
   "{{service}} is already watched by these monitors.": "{{service}} is already watched by these monitors.",
   "{{service}} is sending data": "{{service}} is sending data",
-  "{{service}} is sending data.": "{{service}} is sending data."
+  "{{service}} is sending data.": "{{service}} is sending data.",
+  "Its monitor is archived": "Its monitor is archived",
+  "Monitor archived": "Monitor archived",
+  "Monitoring is off for its monitor": "Monitoring is off for its monitor",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.",
+  "Monitoring off": "Monitoring off",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "Nothing checks this device — monitoring is turned off for the monitor bound to it.",
+  "Nothing checks this device — the monitor bound to it is archived.": "Nothing checks this device — the monitor bound to it is archived.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived."
 }

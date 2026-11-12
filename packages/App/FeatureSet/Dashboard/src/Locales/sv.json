@@ -51057,5 +51057,15 @@
   "{{project}} Status": "Status för {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} övervakas redan av dessa monitorer.",
   "{{service}} is sending data": "{{service}} skickar data",
-  "{{service}} is sending data.": "{{service}} skickar data."
+  "{{service}} is sending data.": "{{service}} skickar data.",
+  "Its monitor is archived": "Dess övervakning är arkiverad",
+  "Monitor archived": "Övervakning arkiverad",
+  "Monitoring is off for its monitor": "Dess övervakning är avstängd",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Övervakningen som är kopplad till den här enheten är avstängd, så inget kontrollerar den: enheten har ingen status och dess plats räknar inte med den. Slå på övervakningen igen för att den ska rapportera igen.",
+  "Monitoring off": "Övervakning avstängd",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "Inget kontrollerar den här enheten — övervakningen som är kopplad till den är avstängd.",
+  "Nothing checks this device — the monitor bound to it is archived.": "Inget kontrollerar den här enheten — övervakningen som är kopplad till den är arkiverad.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "Övervakningen som är kopplad till den här enheten är arkiverad, så inget kontrollerar den: enheten har ingen status och dess plats räknar inte med den. Avarkivera övervakningen, eller koppla en annan under enhetens inställningar.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Inget utslag än — aldrig avsökt, ingen sond tilldelad, ingen monitor bunden, eller så är den bundna monitorn avstängd eller arkiverad",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "Inget utslag än — aldrig avsökt, ingen sond tilldelad, ingen monitor bunden, eller så är den bundna monitorn avstängd eller arkiverad."
 }

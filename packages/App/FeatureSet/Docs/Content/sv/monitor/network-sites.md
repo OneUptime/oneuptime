@@ -141,6 +141,7 @@ Båda policyerna är överens här, och det spelar större roll än det låter:
 - Enheter som aldrig har rapporterat något röstar aldrig. En enhet som väntar på sin första avsökning är inget bevis på ett avbrott, så den hålls utanför båda sidorna av andelen, och en region som är halvvägs genom introduktionen bedöms efter den halva som har svarat.
 - En sondavsökt enhet, den normala sorten, röstar med utfallet av sin senaste avsökning: nåbar via ping eller SNMP, inte hur länge sedan den senast lyckades. En enhet som svarar på ping medan dess SNMP-walk misslyckas är nåbar och röstar så; platsen säger att den är uppe, och enhetens rad säger **SNMP failing** så att någon rättar autentiseringsuppgifterna.
 - En enhet med bunden monitor, en som har bytts till åsidosättningen med bunden monitor på sin sida Inställningar, röstar med statusen för den monitor som är bunden till den, eftersom inget avsöker den. Utan något bundet har den aldrig rapporterat, så den röstar inte alls.
+- En enhet med bunden monitor vars monitor inte kontrolleras, eftersom dess övervakning är avstängd eller den är arkiverad, röstar inte heller: den status monitorn har är bara det dess senaste kontroll såg. Enheten står som **Väntar**, med **Övervakning avstängd** eller **Övervakning arkiverad** bredvid, tills monitorns övervakning slås på igen eller den avarkiveras.
 
 En nätverksenhetsmonitor på en sondavsökt enhet ändrar inte hur enheten röstar. En monitor med ett kriterium "gränssnitt nere, alltså Offline" skulle stämpla Offline på en switch som svarar på varje ping, och en enda mörk port skulle göra en hel plats röd medan varje enhetsrad under den visar Up: platsen skulle säga emot den lista som den sammanfattar. För en avsökt enhet är avsökningen källan till dess hälsa; monitorn finns där för att skapa incidenter.
 
@@ -214,6 +215,8 @@ Kortet **Alerting** på en plats sida **Inställningar** har **Alert When Unheal
 
 Den varnar bara för ändringen: att slå på den för en plats som redan är ohälsosam förbereder nästa ändring i stället för att varna om det förflutna. Degraded är inte i drift, så en plats med procentpolicyn varnar så snart en av dess rapporterande enheter är nere, precis som en plats med policyn för sämsta status; larmet förblir öppen, utan en andra, medan platsen växlar mellan Degraded och Offline, och dess titel namnger den status som platsen nådde först.
 
+När inget på en plats rapporterar en status längre, eftersom monitorerna bakom dess enheter har övervakningen avstängd, är arkiverade eller har tagits bort, går platsen tillbaka till ingen status i stället för att behålla den senaste, och dess öppna larm löses med det som orsak. En enhet som rapporterar ett problem igen öppnar ett nytt larm.
+
 ## Felsökning
 
 :::details En region är alltid röd
@@ -225,7 +228,11 @@ Ingen sammanfattning har någonsin körts för platsen, så den har inga tidslin
 :::
 
 :::details En enhet räknas inte för sin plats
-Arkiverade enheter, och enheter som inte har rapporterat än, röstar aldrig. En enhet med bunden monitor utan någon monitor bunden har inte heller rapporterat. Kontrollera enhetens status: en enhet som står som **Väntar** börjar rösta efter sin första avsökning.
+Arkiverade enheter, och enheter som inte har rapporterat än, röstar aldrig. En enhet med bunden monitor utan någon monitor bunden har inte heller rapporterat. Kontrollera enhetens status: en enhet som står som **Väntar** börjar rösta efter sin första avsökning. En enhet med **Övervakning avstängd** eller **Övervakning arkiverad** bredvid röstar igen så snart dess monitors övervakning slås på igen eller monitorn avarkiveras.
+:::
+
+:::details En plats har ingen status längre
+Inget på platsen rapporterar en status: monitorerna bakom dess enheter har övervakningen avstängd, är arkiverade eller har tagits bort, så platsens senaste status togs bort och dess larm löstes. Slå på övervakningen igen för de monitorerna, eller avarkivera dem, så beräknas platsens status igen utifrån dess enheter.
 :::
 
 :::details En plats larm utlöstes inte

@@ -51057,5 +51057,15 @@
   "{{project}} Status": "{{project}} ステータス",
   "{{service}} is already watched by these monitors.": "{{service}} はすでにこれらのモニターで監視されています。",
   "{{service}} is sending data": "{{service}} がデータを送信しています",
-  "{{service}} is sending data.": "{{service}} がデータを送信しています。"
+  "{{service}} is sending data.": "{{service}} がデータを送信しています。",
+  "Its monitor is archived": "モニターはアーカイブされています",
+  "Monitor archived": "モニターはアーカイブ済み",
+  "Monitoring is off for its monitor": "モニターの監視がオフです",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "このデバイスに紐付けられたモニターの監視がオフのため、何もチェックしていません: デバイスにはステータスがなく、サイトもこのデバイスを除外します。再び報告させるには、モニターの監視をオンに戻してください。",
+  "Monitoring off": "監視オフ",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "このデバイスをチェックするものはありません — 紐付けられたモニターの監視がオフです。",
+  "Nothing checks this device — the monitor bound to it is archived.": "このデバイスをチェックするものはありません — 紐付けられたモニターはアーカイブ済みです。",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "このデバイスに紐付けられたモニターはアーカイブ済みのため、何もチェックしていません: デバイスにはステータスがなく、サイトもこのデバイスを除外します。モニターのアーカイブを解除するか、デバイスの設定で別のモニターを紐付けてください。",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "まだ判定はありません — 一度もポーリングされていないか、プローブが割り当てられていないか、モニターが紐付けられていないか、紐付けられたモニターの監視がオフかアーカイブ済みです",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "まだ判定はありません — 一度もポーリングされていないか、プローブが割り当てられていないか、モニターが紐付けられていないか、紐付けられたモニターの監視がオフかアーカイブ済みです。"
 }

@@ -141,6 +141,7 @@ Les deux politiques s'accordent sur ce point, et il compte plus qu'il n'y paraî
 - Les équipements qui n'ont encore jamais rien rapporté ne votent jamais. Un équipement qui attend sa première interrogation n'est pas la preuve d'une panne : il sort donc des deux côtés de la proportion, et une région à moitié intégrée est notée sur la moitié qui a répondu.
 - Un équipement interrogé par sonde, le cas normal, vote avec le résultat de sa dernière interrogation : joignable par ping ou par SNMP, et non selon l'ancienneté de son dernier succès. Un équipement qui répond au ping alors que son parcours SNMP échoue est joignable et vote comme tel ; le site se dit joignable, et la ligne de l'équipement indique **SNMP failing** pour que quelqu'un répare les identifiants.
 - Un équipement adossé à un moniteur, passé en remplacement par un moniteur lié sur sa page Paramètres, vote avec le statut du moniteur qui lui est lié, car rien ne l'interroge. Sans moniteur lié, il n'a jamais rien rapporté et ne vote pas du tout.
+- Un équipement adossé à un moniteur dont le moniteur n'est pas vérifié, parce que sa surveillance est désactivée ou qu'il est archivé, ne vote pas non plus : le statut de ce moniteur n'est que ce que sa dernière vérification a vu. L'équipement est **En attente**, avec **Surveillance désactivée** ou **Moniteur archivé** à côté, jusqu'à ce que la surveillance du moniteur soit réactivée ou qu'il soit désarchivé.
 
 Un moniteur Équipement réseau sur un équipement interrogé par sonde ne change pas sa façon de voter. Un moniteur avec un critère « interface hors service, donc Offline » mettrait Offline sur un commutateur qui répond à chaque ping, et un seul port éteint ferait virer tout un site au rouge alors que chaque ligne d'équipement en dessous indique Up : le site contredirait la liste qu'il résume. Pour un équipement interrogé, c'est l'interrogation qui fait foi pour sa santé ; le moniteur est là pour déclencher des incidents.
 
@@ -214,6 +215,8 @@ La carte **Alertes** de la page **Paramètres** d'un site a **Alerter en cas de 
 
 Elle n'alerte que sur le changement : l'activer pour un site déjà en mauvaise santé arme le prochain changement au lieu d'alerter sur le passé. Degraded n'est pas opérationnel : un site sous la politique de proportion alerte donc dès qu'un des équipements qui rendent compte est hors service, comme un site sous la politique du pire statut ; l'alerte reste ouverte, sans seconde alerte, pendant que le site passe de Degraded à Offline et inversement, et son titre nomme le statut que le site a atteint en premier.
 
+Quand plus rien sur un site ne rapporte de statut, parce que les moniteurs derrière ses équipements ont leur surveillance désactivée, sont archivés ou ont été supprimés, le site revient à aucun statut au lieu de garder le dernier, et son alerte ouverte se résout avec cette raison comme cause. Un équipement qui rapporte de nouveau un problème ouvre une nouvelle alerte.
+
 ## Dépannage
 
 :::details Une région est toujours rouge
@@ -225,7 +228,11 @@ Aucune agrégation n'a jamais eu lieu pour le site, il n'a donc aucune ligne de 
 :::
 
 :::details Un équipement ne compte pas pour son site
-Les équipements archivés, et les équipements qui n'ont encore rien rapporté, ne votent jamais. Un équipement adossé à un moniteur sans moniteur lié n'a jamais rien rapporté non plus. Vérifiez le statut de l'équipement : un équipement **En attente** vote après sa première interrogation.
+Les équipements archivés, et les équipements qui n'ont encore rien rapporté, ne votent jamais. Un équipement adossé à un moniteur sans moniteur lié n'a jamais rien rapporté non plus. Vérifiez le statut de l'équipement : un équipement **En attente** vote après sa première interrogation. Un équipement avec **Surveillance désactivée** ou **Moniteur archivé** à côté vote de nouveau dès que la surveillance de son moniteur est réactivée ou qu'il est désarchivé.
+:::
+
+:::details Un site n'a plus de statut
+Plus rien sur le site ne rapporte de statut : les moniteurs derrière ses équipements ont leur surveillance désactivée, sont archivés ou ont été supprimés, donc le dernier statut du site a été effacé et son alerte résolue. Réactivez la surveillance de ces moniteurs, ou désarchivez-les, et le statut du site se calcule de nouveau à partir de ses équipements.
 :::
 
 :::details L'alerte d'un site ne s'est pas déclenchée

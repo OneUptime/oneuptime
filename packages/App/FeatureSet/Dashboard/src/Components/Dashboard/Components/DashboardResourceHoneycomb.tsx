@@ -45,6 +45,8 @@ export interface DashboardResourceHoneycombProps {
 
 export const HONEYCOMB_TILE_TEST_ID: string = "dashboard-honeycomb-tile";
 
+export const HONEYCOMB_TOOLTIP_TEST_ID: string = "dashboard-honeycomb-tooltip";
+
 const MIN_HEX_WIDTH: number = 28;
 const MAX_HEX_WIDTH: number = 56;
 const HEX_GAP: number = 3;
@@ -182,6 +184,31 @@ interface TooltipState {
 const TOOLTIP_WIDTH: number = 240;
 const TOOLTIP_OFFSET: number = 8;
 
+/**
+ * Where a tile's tooltip is drawn: outside the widget's card, on the
+ * full-screen element while there is one and on the page's body otherwise.
+ *
+ * Never inside the card. The card is overflow-hidden and transformed
+ * (DashboardBaseComponent scales it, scale(1) when still), and any transform
+ * makes the card the containing block of a position:fixed descendant: the
+ * tooltip was placed against the card, not the window, and the card cut it
+ * off - nobody saw it, so a gray tile never said it was a monitor whose
+ * monitoring is off (issue #6966).
+ *
+ * Not on the body while the board is in full screen (DashboardView puts its
+ * canvas there with requestFullscreen): the browser then draws only the
+ * full-screen element's subtree, and a tooltip on the body is not drawn.
+ * The theme class and the reading direction are set on <html>, so the
+ * tooltip keeps both wherever it is drawn.
+ */
+export function getHoneycombTooltipContainer(): HTMLElement {
+  const fullscreenElement: Element | null = document.fullscreenElement;
+
+  return fullscreenElement instanceof HTMLElement
+    ? fullscreenElement
+    : document.body;
+}
+
 const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
   state,
 }: {
@@ -222,15 +249,17 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
   const details: Array<HoneycombTileDetail> = state.tile.tooltip.details || [];
 
   /*
-   * Drawn on the page's body, where its viewport coordinates hold: a
-   * widget's card is overflow-hidden and transformed (scale), which makes
-   * position:fixed relative to the card - so the card cut the tooltip off,
-   * and on an Arabic or Persian board it was drawn past the card's right
-   * edge, out of sight.
+   * Drawn outside the widget's card, where its viewport coordinates hold
+   * (getHoneycombTooltipContainer): a widget's card is overflow-hidden and
+   * transformed (scale), which makes position:fixed relative to the card -
+   * so the card cut the tooltip off, and on an Arabic or Persian board it
+   * was drawn past the card's right edge, out of sight.
    */
   return ReactDOM.createPortal(
     <div
       ref={ref}
+      role="tooltip"
+      data-testid={HONEYCOMB_TOOLTIP_TEST_ID}
       className="fixed z-50 pointer-events-none rounded-lg border border-gray-200 bg-white shadow-xl"
       style={{
         left: `${position.left}px`,
@@ -282,7 +311,7 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
         )}
       </div>
     </div>,
-    document.body,
+    getHoneycombTooltipContainer(),
   );
 };
 
@@ -397,6 +426,24 @@ const DashboardResourceHoneycomb: FunctionComponent<
   const onHoverEnd: () => void = () => {
     setTooltipState(null);
   };
+
+  /*
+   * Entering or leaving full screen moves the board, and where its tooltip
+   * is drawn (getHoneycombTooltipContainer): the place the tooltip was set
+   * at from the tile no longer holds, so it closes, and the next hover
+   * opens it again where the tile now is.
+   */
+  useEffect(() => {
+    const onFullscreenChange: () => void = (): void => {
+      setTooltipState(null);
+    };
+
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+
+    return () => {
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
+    };
+  }, []);
 
   return (
     <div

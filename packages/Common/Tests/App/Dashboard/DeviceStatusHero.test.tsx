@@ -79,6 +79,8 @@ jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
 import DeviceStatusHero from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkDevice/DeviceStatusHero";
 import {
   BOUND_MONITOR_PENDING_TOOLTIP,
+  MONITORING_OFF_QUALIFIER,
+  MONITOR_ARCHIVED_QUALIFIER,
   NO_MONITOR_QUALIFIER,
   NO_PROBE_QUALIFIER,
   SNMP_FAILING_QUALIFIER,
@@ -88,6 +90,7 @@ import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap, {
   RouteUtil,
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
+import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import NetworkDevice from "../../../Models/DatabaseModels/NetworkDevice";
 import Route from "../../../Types/API/Route";
@@ -217,6 +220,26 @@ function boundReportingMonitorBackedDevice(): NetworkDevice {
     monitorId: MONITOR_ID,
     status: { name: "Operational", isOfflineState: false },
   });
+}
+
+/**
+ * (f) Monitor-backed and bound, but nothing checks the bound monitor - its
+ * monitoring turned off, or archived (issue #6965). The server leaves such
+ * a device's stamp empty, so it arrives with no status, as here.
+ */
+function boundToMonitorNotChecked(switches: {
+  disableActiveMonitoring: boolean;
+  isArchived: boolean;
+}): NetworkDevice {
+  const row: NetworkDevice = device({
+    monitoringMethod: NetworkDeviceMonitoringMethod.Monitor,
+    monitorId: MONITOR_ID,
+  });
+  const monitor: Monitor = new Monitor();
+  monitor.disableActiveMonitoring = switches.disableActiveMonitoring;
+  monitor.isArchived = switches.isArchived;
+  row.monitor = monitor;
+  return row;
 }
 
 async function renderHero(row: NetworkDevice): Promise<void> {
@@ -587,6 +610,200 @@ describe("the device Overview status hero", () => {
 
       expect(snmpLine).toContain("Not configured");
       expect(snmpLine).not.toContain("Failing");
+    });
+  });
+
+  /*
+   * Issue #6965. A bound monitor nothing checks gives the device no verdict,
+   * and will not give one until it is checked again: the hero must not say
+   * "waiting for its monitor to report" - nothing will - but why it is
+   * Pending, and where it is put right: on the monitor.
+   */
+  describe("a monitor-backed device whose bound monitor is not checked", () => {
+    const MONITOR_VIEW_HREF: string = RouteUtil.populateRouteParams(
+      RouteMap[PageMap.MONITOR_VIEW] as Route,
+      { modelId: MONITOR_ID },
+    ).toString();
+
+    test.each([
+      {
+        label: "monitoring turned off",
+        switches: { disableActiveMonitoring: true, isArchived: false },
+        qualifier: MONITORING_OFF_QUALIFIER,
+        caption: "Monitoring is off for its monitor",
+      },
+      {
+        label: "archived",
+        switches: { disableActiveMonitoring: false, isArchived: true },
+        qualifier: MONITOR_ARCHIVED_QUALIFIER,
+        caption: "Its monitor is archived",
+      },
+      {
+        label: "archived with its monitoring off as well",
+        switches: { disableActiveMonitoring: true, isArchived: true },
+        qualifier: MONITOR_ARCHIVED_QUALIFIER,
+        caption: "Its monitor is archived",
+      },
+    ])(
+      "$label: Pending with its qualifier, a caption that says why, and the monitor one click away",
+      async ({
+        switches,
+        qualifier,
+        caption,
+      }: {
+        switches: { disableActiveMonitoring: boolean; isArchived: boolean };
+        qualifier: { text: string; tooltip: string; pendingTooltip: string };
+        caption: string;
+      }) => {
+        await renderHero(boundToMonitorNotChecked(switches));
+
+        expect(pillTexts()).toEqual(["Pending", qualifier.text]);
+
+        // The caption and the Monitor Status tile both say it.
+        expect(screen.getAllByText(caption)).toHaveLength(2);
+
+        const tile: HTMLElement = screen.getByTestId(
+          "device-hero-monitor-not-checked",
+        );
+        expect(tile).toHaveTextContent(caption);
+        expect(linkHref("Open monitor")).toBe(MONITOR_VIEW_HREF);
+
+        // Nothing it says belongs to a monitor that is about to report.
+        expect(screen.queryByTestId("device-hero-monitor-waiting")).toBeNull();
+        expect(
+          screen.queryByText("Reported by the monitor bound to this device"),
+        ).toBeNull();
+        // Nor to a device with nothing bound.
+        expect(screen.queryByText(NO_MONITOR_QUALIFIER.text)).toBeNull();
+        expect(screen.queryByText("No monitor bound")).toBeNull();
+        expect(screen.queryByText("Create Ping monitor")).toBeNull();
+        expect(screen.queryByText("Bind a monitor")).toBeNull();
+      },
+    );
+
+    test("explains Pending as a monitor nothing checks, and the qualifier as what to do", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: true,
+          isArchived: false,
+        }),
+      );
+
+      const pendingTooltips: Array<string> = tooltipsAfterHovering("Pending");
+      expect(pendingTooltips).toContain(
+        MONITORING_OFF_QUALIFIER.pendingTooltip,
+      );
+      expect(pendingTooltips).not.toContain(BOUND_MONITOR_PENDING_TOOLTIP);
+      expect(pendingTooltips).not.toContain(
+        UNBOUND_MONITOR_BACKED_PENDING_TOOLTIP,
+      );
+
+      expect(tooltipsAfterHovering(MONITORING_OFF_QUALIFIER.text)).toContain(
+        MONITORING_OFF_QUALIFIER.tooltip,
+      );
+    });
+
+    test("an archived monitor's tooltips say archived, not off", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: false,
+          isArchived: true,
+        }),
+      );
+
+      expect(tooltipsAfterHovering("Pending")).toContain(
+        MONITOR_ARCHIVED_QUALIFIER.pendingTooltip,
+      );
+      expect(tooltipsAfterHovering(MONITOR_ARCHIVED_QUALIFIER.text)).toContain(
+        MONITOR_ARCHIVED_QUALIFIER.tooltip,
+      );
+    });
+
+    /*
+     * Both switches as a checked monitor has them: the bound-and-quiet case
+     * above, word for word - the qualifier is only for a monitor nobody
+     * checks.
+     */
+    test("a bound monitor that is checked and has not reported keeps waiting for it", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: false,
+          isArchived: false,
+        }),
+      );
+
+      expect(pillTexts()).toEqual(["Pending"]);
+      expect(
+        screen.getByTestId("device-hero-monitor-waiting"),
+      ).toHaveTextContent("Waiting for its monitor to report");
+      expect(
+        screen.queryByTestId("device-hero-monitor-not-checked"),
+      ).toBeNull();
+      expect(tooltipsAfterHovering("Pending")).toContain(
+        BOUND_MONITOR_PENDING_TOOLTIP,
+      );
+    });
+
+    /*
+     * The qualifier explains a Pending and nothing else. A row that still
+     * carries a status - read before the server took the stamp off it -
+     * shows that status as every other surface does, with nothing beside it
+     * claiming it has none.
+     */
+    test("a device that still carries its monitor's status shows it, with no qualifier", async () => {
+      const row: NetworkDevice = boundToMonitorNotChecked({
+        disableActiveMonitoring: true,
+        isArchived: false,
+      });
+      const status: MonitorStatus = new MonitorStatus();
+      status.name = "Operational";
+      status.color = Green;
+      status.isOfflineState = false;
+      row.currentMonitorStatus = status;
+
+      await renderHero(row);
+
+      expect(pillTexts()).toEqual(["Up", "Operational"]);
+      expect(
+        screen.queryByTestId("device-hero-monitor-not-checked"),
+      ).toBeNull();
+      expect(screen.queryByText(MONITORING_OFF_QUALIFIER.text)).toBeNull();
+    });
+
+    // A probe-polled device's poll decides it, whatever its monitor's switches.
+    test("a probe-polled device pointing at a monitor that is off is not qualified by it", async () => {
+      const row: NetworkDevice = device({
+        monitoringMethod: NetworkDeviceMonitoringMethod.Probe,
+        monitorId: MONITOR_ID,
+        probeId: PROBE_ID,
+        isPollingEnabled: true,
+      });
+      const monitor: Monitor = new Monitor();
+      monitor.disableActiveMonitoring = true;
+      monitor.isArchived = false;
+      row.monitor = monitor;
+
+      await renderHero(row);
+
+      expect(pillTexts()).toEqual(["Pending"]);
+      expect(screen.queryByText(MONITORING_OFF_QUALIFIER.text)).toBeNull();
+      expect(
+        screen.queryByTestId("device-hero-monitor-not-checked"),
+      ).toBeNull();
+    });
+
+    test("the hero asks for the bound monitor's two switches", async () => {
+      await renderHero(
+        boundToMonitorNotChecked({
+          disableActiveMonitoring: true,
+          isArchived: false,
+        }),
+      );
+
+      expect(getItemRequests[0]!.select).toMatchObject({
+        monitorId: true,
+        monitor: { disableActiveMonitoring: true, isArchived: true },
+      });
     });
   });
 

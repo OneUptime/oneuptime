@@ -51057,5 +51057,15 @@
   "{{project}} Status": "Status van {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} wordt al bewaakt door deze monitoren.",
   "{{service}} is sending data": "{{service}} verstuurt gegevens",
-  "{{service}} is sending data.": "{{service}} verstuurt gegevens."
+  "{{service}} is sending data.": "{{service}} verstuurt gegevens.",
+  "Its monitor is archived": "Zijn monitor is gearchiveerd",
+  "Monitor archived": "Monitor gearchiveerd",
+  "Monitoring is off for its monitor": "Bewaking staat uit voor zijn monitor",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Bewaking staat uit voor de monitor die aan dit apparaat is gekoppeld, dus niets controleert het: het apparaat heeft geen status en zijn locatie laat het buiten beschouwing. Zet de bewaking voor de monitor weer aan om het weer te laten rapporteren.",
+  "Monitoring off": "Bewaking uit",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "Niets controleert dit apparaat — de bewaking staat uit voor de monitor die eraan is gekoppeld.",
+  "Nothing checks this device — the monitor bound to it is archived.": "Niets controleert dit apparaat — de monitor die eraan is gekoppeld, is gearchiveerd.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "De monitor die aan dit apparaat is gekoppeld, is gearchiveerd, dus niets controleert het: het apparaat heeft geen status en zijn locatie laat het buiten beschouwing. Haal de monitor uit het archief, of koppel een andere onder de Instellingen van het apparaat.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Nog geen oordeel — nooit gepolld, geen sonde toegewezen, geen monitor gekoppeld, of de gekoppelde monitor staat uit of is gearchiveerd",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "Nog geen oordeel — nooit gepolld, geen sonde toegewezen, geen monitor gekoppeld, of de gekoppelde monitor staat uit of is gearchiveerd."
 }

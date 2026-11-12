@@ -865,6 +865,315 @@ test.describe("a list on the dashboard inside OneUptime", () => {
 });
 
 /*
+ * A monitor list drawn as a honeycomb (?view=honeycomb, #6966): a tile per
+ * monitor, which says what it is only in the tooltip under the pointer.
+ * legacy-api, whose monitoring is off, is the gray tile, and the honeycomb
+ * has no legend: the tooltip is the one place that says gray is Disabled.
+ *
+ * The tooltip is position:fixed, at the tile's place in the window. A
+ * widget's card is overflow-hidden and transformed, which makes a fixed
+ * layer inside it fixed to the card - so the tooltip is drawn outside the
+ * card: on the body, or on the board while the board is in full screen
+ * (the browser draws nothing else then).
+ */
+test.describe("a honeycomb tile's tooltip", () => {
+  // Gray500, the color of a monitor whose monitoring is off.
+  const GRAY: string = "rgb(107, 114, 128)";
+
+  interface Box {
+    left: number;
+    top: number;
+    right: number;
+    bottom: number;
+  }
+
+  // Where the tooltip is drawn, and what of it can be seen.
+  interface TooltipPlace {
+    parent: "body" | "full-screen element" | "elsewhere";
+    box: Box;
+    window: { width: number; height: number };
+    // The tooltip's center and four corners, each drawn on top of the page.
+    pointsOnTop: number;
+    background: string;
+  }
+
+  const tiles: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("dashboard-honeycomb-tile");
+  };
+
+  const tooltip: (page: Page) => Locator = (page: Page): Locator => {
+    return page.getByTestId("dashboard-honeycomb-tooltip");
+  };
+
+  const openHoneycomb: (page: Page, search?: string) => Promise<void> = async (
+    page: Page,
+    search?: string,
+  ): Promise<void> => {
+    await page.goto(`${APP_PATH}?view=honeycomb${search || ""}`);
+    // A tile for every monitor listed; archived-cdn is not.
+    await expect(tiles(page)).toHaveCount(MONITORS_BY_NAME.length, {
+      timeout: 60000,
+    });
+  };
+
+  // The one gray tile: legacy-api's.
+  const grayTile: (page: Page) => Promise<Locator> = async (
+    page: Page,
+  ): Promise<Locator> => {
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+
+    expect(
+      colors.filter((color: string): boolean => {
+        return color === GRAY;
+      }),
+    ).toHaveLength(1);
+
+    return tiles(page).nth(colors.indexOf(GRAY));
+  };
+
+  const boxOf: (locator: Locator) => Promise<Box> = async (
+    locator: Locator,
+  ): Promise<Box> => {
+    return locator.evaluate((element: Element): Box => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      return {
+        left: rect.left,
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+      };
+    });
+  };
+
+  /*
+   * The tooltip lets the pointer through (pointer-events: none), so the
+   * check of what is drawn on top of it lets it take the pointer for the
+   * moment of the check.
+   */
+  const placeOf: (page: Page) => Promise<TooltipPlace> = async (
+    page: Page,
+  ): Promise<TooltipPlace> => {
+    return tooltip(page).evaluate((element: HTMLElement): TooltipPlace => {
+      const rect: DOMRect = element.getBoundingClientRect();
+      const inset: number = 4;
+      const points: Array<[number, number]> = [
+        [(rect.left + rect.right) / 2, (rect.top + rect.bottom) / 2],
+        [rect.left + inset, rect.top + inset],
+        [rect.right - inset, rect.top + inset],
+        [rect.left + inset, rect.bottom - inset],
+        [rect.right - inset, rect.bottom - inset],
+      ];
+
+      element.style.pointerEvents = "auto";
+      const pointsOnTop: number = points.filter(
+        ([x, y]: [number, number]): boolean => {
+          const hit: Element | null = document.elementFromPoint(x, y);
+          return Boolean(hit && element.contains(hit));
+        },
+      ).length;
+      element.style.pointerEvents = "";
+
+      const parent: HTMLElement | null = element.parentElement;
+
+      return {
+        parent:
+          parent === document.body
+            ? "body"
+            : parent && parent === document.fullscreenElement
+              ? "full-screen element"
+              : "elsewhere",
+        box: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+        },
+        window: { width: window.innerWidth, height: window.innerHeight },
+        pointsOnTop,
+        background: window.getComputedStyle(element).backgroundColor,
+      };
+    });
+  };
+
+  /*
+   * The pointer on a tile. On a phone the board shows one widget under
+   * another, so the tile is scrolled to first.
+   */
+  const pointAt: (tile: Locator) => Promise<void> = async (
+    tile: Locator,
+  ): Promise<void> => {
+    await tile.scrollIntoViewIfNeeded();
+    await tile.hover();
+  };
+
+  /*
+   * All of the tooltip in the window, on top of everything, beside its tile
+   * (above it, or below when there is no room above) and over it from side
+   * to side, as far as the window's 8px margins let it be.
+   */
+  const expectBesideItsTile: (place: TooltipPlace, tile: Box) => void = (
+    place: TooltipPlace,
+    tile: Box,
+  ): void => {
+    expect(place.box.left).toBeGreaterThanOrEqual(0);
+    expect(place.box.top).toBeGreaterThanOrEqual(0);
+    expect(place.box.right).toBeLessThanOrEqual(place.window.width);
+    expect(place.box.bottom).toBeLessThanOrEqual(place.window.height);
+    expect(place.pointsOnTop).toBe(5);
+
+    const isAbove: boolean = place.box.bottom <= tile.top + 1;
+    const gap: number = isAbove
+      ? tile.top - place.box.bottom
+      : place.box.top - tile.bottom;
+
+    /*
+     * 8px from the tile, as it is placed. It measures its own height once,
+     * when it opens, so a line that settles after that can move its far
+     * edge by a pixel or two - never by the card's distance from the window.
+     */
+    expect(gap).toBeGreaterThanOrEqual(-1);
+    expect(gap).toBeLessThanOrEqual(16);
+    expect(place.box.left).toBeLessThan(tile.right);
+    expect(place.box.right).toBeGreaterThan(tile.left);
+  };
+
+  test("a gray tile says it is Disabled, in a tooltip on the page beside it that nothing covers, gone when the pointer leaves", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    await openHoneycomb(page);
+
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toBeVisible();
+    await expect(tooltip(page)).toContainText("legacy-api");
+    await expect(tooltip(page)).toContainText("Disabled");
+    await expect(tooltip(page)).toContainText("Click to open");
+
+    const place: TooltipPlace = await placeOf(page);
+    expect(place.parent).toBe("body");
+    expectBesideItsTile(place, await boxOf(tile));
+
+    await shoot(page, testInfo, "honeycomb-tooltip", undefined);
+
+    // Off the board, and the tooltip goes with the pointer.
+    await page.mouse.move(1, 1);
+    await expect(tooltip(page)).toHaveCount(0);
+  });
+
+  test("a checked tile's tooltip says its status, the one tooltip on the page", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    const gray: Locator = await grayTile(page);
+    await pointAt(gray);
+    await expect(tooltip(page)).toContainText("Disabled");
+
+    // auth is Offline: red, and checked.
+    const colors: Array<string> = await tiles(page).evaluateAll(
+      (elements: Array<Element>): Array<string> => {
+        return elements.map((element: Element): string => {
+          return window.getComputedStyle(element).backgroundColor;
+        });
+      },
+    );
+    const red: Locator = tiles(page).nth(colors.indexOf("rgb(239, 68, 68)"));
+
+    await pointAt(red);
+    await expect(tooltip(page)).toHaveCount(1);
+    await expect(tooltip(page)).toContainText("Offline");
+    await expect(tooltip(page)).not.toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(red));
+  });
+
+  test("in the dark theme the tooltip is drawn dark, and in German it says Deaktiviert", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+
+    await openHoneycomb(page, "&theme=dark");
+    let tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toContainText("Disabled");
+    const dark: TooltipPlace = await placeOf(page);
+    expect(dark.parent).toBe("body");
+    expect(dark.background).not.toBe("rgb(255, 255, 255)");
+    expectBesideItsTile(dark, await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-dark", undefined);
+
+    await openHoneycomb(page, "&lang=de");
+    tile = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toContainText("Deaktiviert");
+    await expect(tooltip(page)).toContainText("Zum Öffnen klicken");
+    await expect(tooltip(page)).not.toContainText("Disabled");
+    expectBesideItsTile(await placeOf(page), await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-german", undefined);
+  });
+
+  test("in full screen the tooltip is drawn on the board, and leaving full screen takes it away", async ({
+    page,
+  }: {
+    page: Page;
+  }, testInfo: TestInfo) => {
+    atDesktopOnly();
+    await openHoneycomb(page);
+
+    await press(page.getByRole("button", { name: "More dashboard options" }));
+    await press(page.getByRole("menuitem", { name: "Full Screen" }));
+    await expect
+      .poll(async (): Promise<boolean> => {
+        return page.evaluate((): boolean => {
+          return document.fullscreenElement !== null;
+        });
+      })
+      .toBe(true);
+
+    const tile: Locator = await grayTile(page);
+    await pointAt(tile);
+
+    await expect(tooltip(page)).toBeVisible();
+    await expect(tooltip(page)).toContainText("Disabled");
+    const place: TooltipPlace = await placeOf(page);
+    expect(place.parent).toBe("full-screen element");
+    expectBesideItsTile(place, await boxOf(tile));
+    await shoot(page, testInfo, "honeycomb-tooltip-full-screen", undefined);
+
+    /*
+     * Out of full screen the board moves back into the page, and the
+     * tooltip it opened in full screen is gone.
+     */
+    await page.evaluate(async (): Promise<void> => {
+      await document.exitFullscreen();
+    });
+    await expect(tooltip(page)).toHaveCount(0);
+
+    // The next tooltip is on the page's body again.
+    await page.mouse.move(1, 1);
+    await pointAt(tile);
+    await expect(tooltip(page)).toBeVisible();
+    expect((await placeOf(page)).parent).toBe("body");
+  });
+});
+
+/*
  * A sortable header takes no more room than the plain one it replaced: its
  * words wrap as before, and its arrow and hint hang in the cell's padding.
  * So a table that fitted its widget still fits it (#5122's UI review), and

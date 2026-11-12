@@ -51057,5 +51057,15 @@
   "{{project}} Status": "{{project}} 상태",
   "{{service}} is already watched by these monitors.": "{{service}} 서비스는 이미 이 모니터들이 감시하고 있습니다.",
   "{{service}} is sending data": "{{service}} 서비스가 데이터를 보내고 있습니다",
-  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다."
+  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다.",
+  "Its monitor is archived": "모니터가 보관되었습니다",
+  "Monitor archived": "모니터 보관됨",
+  "Monitoring is off for its monitor": "모니터의 모니터링이 꺼져 있습니다",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "이 디바이스에 연결된 모니터의 모니터링이 꺼져 있어 아무것도 확인하지 않습니다: 디바이스에 상태가 없으며 사이트에서도 제외됩니다. 다시 보고하게 하려면 모니터의 모니터링을 다시 켜세요.",
+  "Monitoring off": "모니터링 꺼짐",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "이 디바이스를 확인하는 것이 없습니다 — 연결된 모니터의 모니터링이 꺼져 있습니다.",
+  "Nothing checks this device — the monitor bound to it is archived.": "이 디바이스를 확인하는 것이 없습니다 — 연결된 모니터가 보관되었습니다.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "이 디바이스에 연결된 모니터가 보관되어 아무것도 확인하지 않습니다: 디바이스에 상태가 없으며 사이트에서도 제외됩니다. 모니터 보관을 취소하거나 디바이스의 설정에서 다른 모니터를 연결하세요.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "아직 판정이 없습니다 — 폴링된 적이 없거나, 할당된 프로브가 없거나, 바인딩된 모니터가 없거나, 바인딩된 모니터의 모니터링이 꺼져 있거나 보관되었습니다",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "아직 판정이 없습니다 — 폴링된 적이 없거나, 할당된 프로브가 없거나, 바인딩된 모니터가 없거나, 바인딩된 모니터의 모니터링이 꺼져 있거나 보관되었습니다."
 }

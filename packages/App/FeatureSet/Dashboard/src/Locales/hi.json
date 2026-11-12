@@ -51057,5 +51057,15 @@
   "{{project}} Status": "{{project}} स्थिति",
   "{{service}} is already watched by these monitors.": "{{service}} पर पहले से ये मॉनिटर नज़र रख रहे हैं।",
   "{{service}} is sending data": "{{service}} डेटा भेज रहा है",
-  "{{service}} is sending data.": "{{service}} डेटा भेज रहा है।"
+  "{{service}} is sending data.": "{{service}} डेटा भेज रहा है।",
+  "Its monitor is archived": "इसका मॉनिटर संग्रहीत है",
+  "Monitor archived": "मॉनिटर संग्रहीत",
+  "Monitoring is off for its monitor": "इसके मॉनिटर की निगरानी बंद है",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "इस डिवाइस से जुड़े मॉनिटर की निगरानी बंद है, इसलिए कुछ भी इसकी जाँच नहीं करता: डिवाइस की कोई स्थिति नहीं है, और इसकी साइट इसे शामिल नहीं करती। इसे फिर से रिपोर्ट करवाने के लिए मॉनिटर की निगरानी फिर से चालू करें।",
+  "Monitoring off": "निगरानी बंद",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "कुछ भी इस डिवाइस की जाँच नहीं करता — इससे जुड़े मॉनिटर की निगरानी बंद है।",
+  "Nothing checks this device — the monitor bound to it is archived.": "कुछ भी इस डिवाइस की जाँच नहीं करता — इससे जुड़ा मॉनिटर संग्रहीत है।",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "इस डिवाइस से जुड़ा मॉनिटर संग्रहीत है, इसलिए कुछ भी इसकी जाँच नहीं करता: डिवाइस की कोई स्थिति नहीं है, और इसकी साइट इसे शामिल नहीं करती। मॉनिटर को अनसंग्रहीत करें, या डिवाइस की सेटिंग्स में कोई दूसरा मॉनिटर जोड़ें।",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "अभी कोई फ़ैसला नहीं — कभी पोल नहीं हुआ, कोई प्रोब असाइन नहीं है, कोई मॉनिटर बाउंड नहीं है, या बाउंड मॉनिटर की निगरानी बंद है या वह संग्रहीत है",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "अभी कोई फ़ैसला नहीं — कभी पोल नहीं हुआ, कोई प्रोब असाइन नहीं है, कोई मॉनिटर बाउंड नहीं है, या बाउंड मॉनिटर की निगरानी बंद है या वह संग्रहीत है।"
 }

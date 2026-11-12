@@ -32,7 +32,7 @@ registry (`Common/Utils/Dashboard/DashboardWidgetSorts`), kept to the rows the r
 policy keeps it to (a monitor list's query from
 `Common/Utils/Dashboard/MonitorListWidgetFormat`). Saves are kept for the tab,
 so a reload opens what was saved. `?theme=dark` and `?lang=de` set the theme and the
-Dashboard's words.
+Dashboard's words, and `?view=honeycomb` draws the monitor list as a honeycomb.
 
 Desktop (1280px) Chromium covers: a list opening in its own order with every sortable
 column a header and the sorted one marked (aria-sort, an arrow, a hint); Status sorting
@@ -52,10 +52,15 @@ units, in a 1440px window, where the board's units are 70px or wider as a list's
 default width was chosen on: the board fits its column now, and beside the side menu at
 1280 its units are about 60px); the Sort setting saving the order everyone sees, kept
 by Save Changes and a reload; a click on a header in the Live Preview setting the Sort;
-and, on the public dashboard, the visitor's sort travelling as `widgetSort` with the
-server reading a pod list's phases rank by rank. Phone (Pixel 5, 390px) Chromium runs
-what a phone changes: reaching and pressing the headers, inside OneUptime and on the
-public dashboard. Screenshots are under `output/playwright/dashboard-widget-sort-ui`.
+on the public dashboard, the visitor's sort travelling as `widgetSort` with the
+server reading a pod list's phases rank by rank; and a honeycomb tile's tooltip
+(`?view=honeycomb`, #6966): the gray tile of the monitor whose monitoring is off saying
+Disabled in a tooltip drawn on the page beside it, outside the widget's card, with nothing
+covering it, in the dark theme and in German, and on the board while the board is in full
+screen, gone once it leaves full screen. Phone (Pixel 5, 390px) Chromium runs what a phone
+changes: reaching and pressing the headers, inside OneUptime and on the public dashboard,
+and the honeycomb's tooltip in a phone's window. Screenshots are under
+`output/playwright/dashboard-widget-sort-ui`.
 
 Each widget is drawn once, at its own size: every frame the page paints is recorded
 from its first (`SuiteHelpers/DrawnBoxes`), and each widget and the board must be drawn

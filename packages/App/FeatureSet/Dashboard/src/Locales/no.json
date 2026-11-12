@@ -51057,5 +51057,15 @@
   "{{project}} Status": "Status for {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} overvåkes allerede av disse monitorene.",
   "{{service}} is sending data": "{{service}} sender data",
-  "{{service}} is sending data.": "{{service}} sender data."
+  "{{service}} is sending data.": "{{service}} sender data.",
+  "Its monitor is archived": "Overvåkingen er arkivert",
+  "Monitor archived": "Overvåking arkivert",
+  "Monitoring is off for its monitor": "Overvåkingen er slått av",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Overvåkingen som er bundet til denne enheten, er slått av, så ingenting kontrollerer den: enheten har ingen status, og lokasjonen ser bort fra den. Slå overvåkingen på igjen for at den skal rapportere igjen.",
+  "Monitoring off": "Overvåking slått av",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "Ingenting kontrollerer denne enheten — overvåkingen som er bundet til den, er slått av.",
+  "Nothing checks this device — the monitor bound to it is archived.": "Ingenting kontrollerer denne enheten — overvåkingen som er bundet til den, er arkivert.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "Overvåkingen som er bundet til denne enheten, er arkivert, så ingenting kontrollerer den: enheten har ingen status, og lokasjonen ser bort fra den. Fjern overvåkingen fra arkivet, eller bind en annen under enhetens innstillinger.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Ingen avgjørelse ennå — aldri pollet, ingen sonde tildelt, ingen monitor bundet, eller den bundne monitoren er slått av eller arkivert",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "Ingen avgjørelse ennå — aldri pollet, ingen sonde tildelt, ingen monitor bundet, eller den bundne monitoren er slått av eller arkivert."
 }

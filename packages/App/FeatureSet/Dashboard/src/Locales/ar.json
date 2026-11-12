@@ -51057,5 +51057,15 @@
   "{{project}} Status": "حالة {{project}}",
   "{{service}} is already watched by these monitors.": "الخدمة {{service}} مراقَبة بالفعل بواسطة هذه المراقبات.",
   "{{service}} is sending data": "الخدمة {{service}} ترسل البيانات",
-  "{{service}} is sending data.": "الخدمة {{service}} ترسل البيانات."
+  "{{service}} is sending data.": "الخدمة {{service}} ترسل البيانات.",
+  "Its monitor is archived": "مراقبته مؤرشفة",
+  "Monitor archived": "المراقبة مؤرشفة",
+  "Monitoring is off for its monitor": "المراقبة متوقفة للمراقبة المرتبطة به",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "المراقبة متوقفة للمراقبة المرتبطة بهذا الجهاز، لذا لا شيء يفحصه: ليس للجهاز حالة، ولا يحتسبه موقعه. أعد تشغيل المراقبة لتلك المراقبة لكي تُبلغ عنه مجددًا.",
+  "Monitoring off": "المراقبة متوقفة",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "لا شيء يفحص هذا الجهاز — المراقبة متوقفة للمراقبة المرتبطة به.",
+  "Nothing checks this device — the monitor bound to it is archived.": "لا شيء يفحص هذا الجهاز — المراقبة المرتبطة به مؤرشفة.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "المراقبة المرتبطة بهذا الجهاز مؤرشفة، لذا لا شيء يفحصه: ليس للجهاز حالة، ولا يحتسبه موقعه. ألغِ أرشفة المراقبة، أو اربط مراقبة أخرى من إعدادات الجهاز.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "لا حكم بعد — لم يُستطلع قط، أو لا يوجد مسبار مُسند، أو لا توجد مراقبة مرتبطة، أو المراقبة المرتبطة متوقفة أو مؤرشفة",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "لا حكم بعد — لم يُستطلع قط، أو لا يوجد مسبار مُسند، أو لا توجد مراقبة مرتبطة، أو المراقبة المرتبطة متوقفة أو مؤرشفة."
 }

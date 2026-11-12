@@ -51057,5 +51057,15 @@
   "{{project}} Status": "Status von {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} wird bereits von diesen Monitoren überwacht.",
   "{{service}} is sending data": "{{service}} sendet Daten",
-  "{{service}} is sending data.": "{{service}} sendet Daten."
+  "{{service}} is sending data.": "{{service}} sendet Daten.",
+  "Its monitor is archived": "Sein Monitor ist archiviert",
+  "Monitor archived": "Monitor archiviert",
+  "Monitoring is off for its monitor": "Für seinen Monitor ist die Überwachung aus",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Für den an dieses Gerät gebundenen Monitor ist die Überwachung ausgeschaltet, daher prüft ihn nichts: Das Gerät hat keinen Status, und sein Standort lässt es außen vor. Schalten Sie die Überwachung für den Monitor wieder ein, damit er wieder meldet.",
+  "Monitoring off": "Überwachung aus",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "Nichts prüft dieses Gerät — für den daran gebundenen Monitor ist die Überwachung ausgeschaltet.",
+  "Nothing checks this device — the monitor bound to it is archived.": "Nichts prüft dieses Gerät — der daran gebundene Monitor ist archiviert.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "Der an dieses Gerät gebundene Monitor ist archiviert, daher prüft ihn nichts: Das Gerät hat keinen Status, und sein Standort lässt es außen vor. Holen Sie den Monitor aus dem Archiv, oder binden Sie unter den Einstellungen des Geräts einen anderen.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Noch kein Ergebnis — nie abgefragt, keine Sonde zugewiesen, kein Monitor gebunden, oder der gebundene Monitor ist ausgeschaltet oder archiviert",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "Noch kein Ergebnis — nie abgefragt, keine Sonde zugewiesen, kein Monitor gebunden, oder der gebundene Monitor ist ausgeschaltet oder archiviert."
 }

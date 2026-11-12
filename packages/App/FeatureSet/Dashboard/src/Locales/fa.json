@@ -51057,5 +51057,15 @@
   "{{project}} Status": "وضعیت {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} از قبل توسط این مانیتورها پایش می‌شود.",
   "{{service}} is sending data": "{{service}} در حال ارسال داده است",
-  "{{service}} is sending data.": "{{service}} در حال ارسال داده است."
+  "{{service}} is sending data.": "{{service}} در حال ارسال داده است.",
+  "Its monitor is archived": "مانیتور آن بایگانی شده است",
+  "Monitor archived": "مانیتور بایگانی‌شده",
+  "Monitoring is off for its monitor": "پایش برای مانیتور آن خاموش است",
+  "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "پایش برای مانیتوری که به این دستگاه متصل است خاموش است، پس چیزی آن را بررسی نمی‌کند: دستگاه وضعیتی ندارد و سایت آن، آن را به حساب نمی‌آورد. پایش را برای مانیتور دوباره روشن کنید تا دوباره گزارش دهد.",
+  "Monitoring off": "پایش خاموش",
+  "Nothing checks this device — monitoring is turned off for the monitor bound to it.": "چیزی این دستگاه را بررسی نمی‌کند — پایش برای مانیتوری که به آن متصل است خاموش است.",
+  "Nothing checks this device — the monitor bound to it is archived.": "چیزی این دستگاه را بررسی نمی‌کند — مانیتوری که به آن متصل است بایگانی شده است.",
+  "The monitor bound to this device is archived, so nothing checks it: the device has no status, and its site leaves it out. Unarchive the monitor, or bind another one under the device's Settings.": "مانیتوری که به این دستگاه متصل است بایگانی شده است، پس چیزی آن را بررسی نمی‌کند: دستگاه وضعیتی ندارد و سایت آن، آن را به حساب نمی‌آورد. مانیتور را از بایگانی خارج کنید، یا در تنظیمات دستگاه مانیتور دیگری متصل کنید.",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "هنوز حکمی نیست — هرگز سرکشی نشده، پرابی تخصیص نیافته، مانیتوری مقید نشده، یا پایش مانیتور مقید خاموش است یا آن مانیتور بایگانی شده است",
+  "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived.": "هنوز حکمی نیست — هرگز سرکشی نشده، پرابی تخصیص نیافته، مانیتوری مقید نشده، یا پایش مانیتور مقید خاموش است یا آن مانیتور بایگانی شده است."
 }

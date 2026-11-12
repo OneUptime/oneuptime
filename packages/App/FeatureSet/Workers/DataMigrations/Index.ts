@@ -130,6 +130,7 @@ import RecordApproversAskedAboutWaitingPublicNotes from "./RecordApproversAskedA
 import RestoreNamespaceMetricMonitorTotals from "./RestoreNamespaceMetricMonitorTotals";
 import RedactLatestIncomingRequests from "./RedactLatestIncomingRequests";
 import ClearMonitorGroupOnMonitorStatusPageResources from "./ClearMonitorGroupOnMonitorStatusPageResources";
+import RestampDevicesOfMonitorsNotChecked from "./RestampDevicesOfMonitorsNotChecked";
 import AddAuditLogMcpClientColumns from "./AddAuditLogMcpClientColumns";
 import BackfillProjectMilestones from "./BackfillProjectMilestones";
 import AddNetworkTrafficUsageUplinkHealthColumns from "./AddNetworkTrafficUsageUplinkHealthColumns";
@@ -1074,6 +1075,17 @@ const DataMigrations: Array<DataMigrationBase> = [
    * AddAuditLogMcpClientColumns asserts for itself.
    */
   new RemoveRunbookCredentials(),
+  /*
+   * A network device takes no status from a monitor that is not checked -
+   * its monitoring turned off, or archived (issue #6965). The devices of
+   * monitors turned off or archived before that kept the status their
+   * monitor was left at; this stamps them again, which takes it off their
+   * sites' roll-ups and resolves those sites' alerts. After
+   * BackfillMonitorBackedDeviceReachability, whose stamps it corrects;
+   * idempotent; it sits before the last slot AddAuditLogMcpClientColumns
+   * asserts for itself.
+   */
+  new RestampDevicesOfMonitorsNotChecked(),
   /*
    * OAuth sign-in for the MCP server: adds the two audit-log columns that
    * say a change was made through a connected MCP client, and which one
