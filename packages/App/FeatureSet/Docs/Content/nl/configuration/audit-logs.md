@@ -88,6 +88,7 @@ Alles wat mensen in een project maken, wijzigen of verwijderen, wordt vastgelegd
 | Activiteitenfeeds | Een feed toont wijzigingen die het auditlogboek al vastlegt. |
 | De werkstatus van OneUptime | Sessies van lezers van statuspagina's, taken in de wachtrij en andere status die OneUptime bijhoudt terwijl het werkt. |
 | De eigen meldingsinstellingen van een persoon | De adressen, nummers en persoonlijke piketregels van ieder persoon zijn alleen van hem of haar. |
+| De eigen voorkeuren van een persoon | De producten die ieder persoon in de eigen bovenbalk vastzet, zijn alleen van hem of haar, en alleen die persoon ziet ze. |
 
 Ook wordt vastgelegd wanneer een beheerder een meldingsmethode of een persoonlijke piketregel aan het account van iemand anders toevoegt of ervan verwijdert, zonder het adres of nummer zelf.
 

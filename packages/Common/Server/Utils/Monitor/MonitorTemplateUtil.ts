@@ -822,59 +822,110 @@ export default class MonitorTemplateUtil {
       storageMap["seriesLabels"] = data.seriesLabels;
     }
 
-    /*
-     * Ready-made renderings of the series identity.
-     *
-     * These are set unconditionally - to "" when the monitor is not
-     * grouped, or when its labels carry no usable value - and that is
-     * the whole point. `VMUtil.replaceValueInPlace` leaves a placeholder
-     * it cannot resolve in the output verbatim, so a title written as
-     * `"Pod CPU high{{seriesResourceSuffix}}"` would otherwise render
-     * with the braces still in it on any monitor without a group-by.
-     * Always defining them makes the variables safe to use in a shipped
-     * template that has to work for grouped and ungrouped monitors
-     * alike.
-     */
-    storageMap["seriesResourceSuffix"] = SeriesLabelDisplay.buildTitleSuffix(
-      data.seriesLabels,
-    );
-    storageMap["seriesResourceSummary"] = SeriesLabelDisplay.buildInlineSummary(
-      data.seriesLabels,
-    );
-    storageMap["seriesResourceBlock"] = SeriesLabelDisplay.buildMarkdownBlock(
-      data.seriesLabels,
-    );
-    storageMap["seriesDebugCommands"] = SeriesDebugHints.buildMarkdownBlock({
+    MonitorTemplateUtil.setSeriesRenderings({
+      storageMap: storageMap,
       monitorType: data.monitorType,
       seriesLabels: data.seriesLabels,
     });
 
-    /*
-     * Monitor identity fields. Always exposed (when a monitor is provided),
-     * independent of monitorType, so templates like `{{monitorName}}` work
-     * uniformly across Server/VM, Probe, Synthetic, Metric monitors, etc.
-     */
     if (data.monitor) {
-      if (data.monitor.name) {
-        storageMap["monitorName"] = data.monitor.name;
-      }
-      if (data.monitor.id) {
-        storageMap["monitorId"] = data.monitor.id.toString();
-      }
-      if (data.monitor.description) {
-        storageMap["monitorDescription"] = data.monitor.description;
-      }
-      if (data.monitor.slug) {
-        storageMap["monitorSlug"] = data.monitor.slug;
-      }
-      if (data.monitor.monitorType) {
-        storageMap["monitorType"] = data.monitor.monitorType;
-      }
+      MonitorTemplateUtil.setMonitorIdentity({
+        storageMap: storageMap,
+        monitor: data.monitor,
+      });
     }
 
     logger.debug(`Storage Map: ${JSON.stringify(storageMap, null, 2)}`);
 
     return storageMap;
+  }
+
+  /**
+   * The storage map of a monitor before any check has run: what an incident
+   * or alert title and description can say of the monitor itself
+   * ({{monitorName}}, {{monitorId}}, {{monitorDescription}}, {{monitorSlug}},
+   * {{monitorType}}), and the series renderings of a monitor that is not
+   * grouped ({{seriesResourceSuffix}} and the rest, "" each) - every value
+   * set exactly as buildTemplateStorageMap sets it. What a check reports is
+   * not known yet, so a placeholder for it is left as written.
+   *
+   * "When this goes down" (WhoIsToldService) renders a criteria's title and
+   * description with it, to match the project's rules on the words an
+   * incident or alert would get.
+   */
+  public static buildStorageMapBeforeCheck(data: {
+    monitor: Monitor;
+  }): JSONObject {
+    const storageMap: JSONObject = {};
+
+    MonitorTemplateUtil.setSeriesRenderings({
+      storageMap: storageMap,
+      monitorType: data.monitor.monitorType,
+      seriesLabels: undefined,
+    });
+
+    MonitorTemplateUtil.setMonitorIdentity({
+      storageMap: storageMap,
+      monitor: data.monitor,
+    });
+
+    return storageMap;
+  }
+
+  /*
+   * Ready-made renderings of the series identity.
+   *
+   * These are set unconditionally - to "" when the monitor is not grouped,
+   * or when its labels carry no usable value - and that is the whole point.
+   * `VMUtil.replaceValueInPlace` leaves a placeholder it cannot resolve in
+   * the output verbatim, so a title written as
+   * `"Pod CPU high{{seriesResourceSuffix}}"` would otherwise render with the
+   * braces still in it on any monitor without a group-by. Always defining
+   * them makes the variables safe to use in a shipped template that has to
+   * work for grouped and ungrouped monitors alike.
+   */
+  private static setSeriesRenderings(data: {
+    storageMap: JSONObject;
+    monitorType: MonitorType | undefined;
+    seriesLabels: JSONObject | undefined;
+  }): void {
+    data.storageMap["seriesResourceSuffix"] =
+      SeriesLabelDisplay.buildTitleSuffix(data.seriesLabels);
+    data.storageMap["seriesResourceSummary"] =
+      SeriesLabelDisplay.buildInlineSummary(data.seriesLabels);
+    data.storageMap["seriesResourceBlock"] =
+      SeriesLabelDisplay.buildMarkdownBlock(data.seriesLabels);
+    data.storageMap["seriesDebugCommands"] =
+      SeriesDebugHints.buildMarkdownBlock({
+        monitorType: data.monitorType,
+        seriesLabels: data.seriesLabels,
+      });
+  }
+
+  /*
+   * Monitor identity fields. Always exposed (when a monitor is provided),
+   * independent of monitorType, so templates like `{{monitorName}}` work
+   * uniformly across Server/VM, Probe, Synthetic, Metric monitors, etc.
+   */
+  private static setMonitorIdentity(data: {
+    storageMap: JSONObject;
+    monitor: Monitor;
+  }): void {
+    if (data.monitor.name) {
+      data.storageMap["monitorName"] = data.monitor.name;
+    }
+    if (data.monitor.id) {
+      data.storageMap["monitorId"] = data.monitor.id.toString();
+    }
+    if (data.monitor.description) {
+      data.storageMap["monitorDescription"] = data.monitor.description;
+    }
+    if (data.monitor.slug) {
+      data.storageMap["monitorSlug"] = data.monitor.slug;
+    }
+    if (data.monitor.monitorType) {
+      data.storageMap["monitorType"] = data.monitor.monitorType;
+    }
   }
 
   /**

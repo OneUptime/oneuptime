@@ -5,7 +5,10 @@ import {
   SkippedSiteRow,
   planSiteImport,
 } from "./NetworkSiteCsv";
-import { translateTemplate } from "Common/UI/Utils/TranslateTemplate";
+import {
+  translateTemplate,
+  translateText,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * The create-loop behind the Network Sites bulk import, kept react-free and
@@ -206,7 +209,9 @@ export async function runSiteImport(
           errorMessage:
             err instanceof Error && err.message
               ? err.message
-              : "Something went wrong while creating this site.",
+              : translateText(
+                  "Something went wrong while creating this site.",
+                ) || "Something went wrong while creating this site.",
         };
       }
 

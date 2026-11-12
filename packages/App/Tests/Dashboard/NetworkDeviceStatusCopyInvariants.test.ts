@@ -135,6 +135,29 @@ describe("the counts describe both kinds of device", () => {
   });
 
   /*
+   * A monitor-backed device whose bound monitor is turned off or archived
+   * is stamped with no verdict (issue #6965): it lands in Pending, tagged
+   * "Monitoring off" or "Monitor archived". The tile and the chip that count
+   * it there say so, in the same words, and the tile's caption is the chip's
+   * sublabel as a sentence.
+   */
+  test("the Pending tile and chip say a bound monitor that is turned off or archived is another way to be pending", () => {
+    const pendingTile: string =
+      DEVICE_SUMMARY_TILES.find((tile: DeviceSummaryTile) => {
+        return tile.key === "devices-pending";
+      })?.caption || "";
+    const pendingOption: string =
+      DEVICE_STATUS_FACET_OPTIONS.find((option: FilterChipDropdownOption) => {
+        return option.label === "Pending";
+      })?.sublabel || "";
+
+    expect(pendingOption).toContain(
+      "the bound monitor is turned off or archived",
+    );
+    expect(pendingTile).toBe(`${pendingOption}.`);
+  });
+
+  /*
    * The card ranks every unreachable device in the project, and there are
    * three ways to become one: a failed PING, a failed SNMP walk, or a bound
    * monitor reporting offline. Naming SNMP is wrong twice over now — a

@@ -884,6 +884,70 @@ describe("the audit log exporter", () => {
         }),
       ).toBe(true);
     });
+
+    /*
+     * #7185: the first entry waiting can be past its stamp already - the
+     * audit log drops a whole part only once every entry in it has passed
+     * its own - and the email must then say entries are being lost rather
+     * than "fix the destination before" a date in the past. It can tell
+     * only from the time of the try, which the exporter hands on with the
+     * moment: the clock the try ran on, never the one the email is sent on.
+     */
+    test("an entry past its own stamp: the notifier is handed that stamp with the try's own time, which it has passed", async () => {
+      retentionNow = 30;
+      // Recorded nine days ago with a week's retention: past its stamp, not dropped yet.
+      const expired: string = recorded({
+        secondsAgo: 9 * 24 * 60 * 60,
+        retentionInDays: 7,
+      });
+      recorded({ secondsAgo: 300, retentionInDays: 30 });
+      const row: StoredExport = webhookExport({
+        startsAt: new Date(NOW.getTime() - 30 * DAY),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+
+      await tryUntil(exports, row, new Date(NOW.getTime() + 2 * HOUR));
+
+      expect(notices()).toEqual([AuditLogExportFailureNotice.LosingEntries]);
+      expect(told[0]!.entriesLostAt!.toISOString()).toBe(
+        auditLog.stampOf(expired).toISOString(),
+      );
+      // The try it was due on, the first 30 minutes in: its own clock, not today's.
+      expect(told[0]!.now.toISOString()).toBe(told[0]!.at.toISOString());
+      expect(told[0]!.now.getTime()).toBeGreaterThanOrEqual(
+        NOW.getTime() + 30 * MINUTE,
+      );
+      expect(told[0]!.now.getTime()).toBeLessThan(NOW.getTime() + HOUR);
+      expect(told[0]!.entriesLostAt!.getTime()).toBeLessThan(
+        told[0]!.now.getTime(),
+      );
+    });
+
+    test("every notification carries the time of the try it was due on, a date still ahead of it included", async () => {
+      const first: string = recorded({ secondsAgo: 300, retentionInDays: 7 });
+      const row: StoredExport = webhookExport({
+        startsAt: new Date(NOW.getTime() - HOUR),
+      });
+      const exports: InMemoryExports = useInMemoryExports([row]);
+      const losingAt: number = auditLog.stampOf(first).getTime() - 24 * HOUR;
+
+      await tryUntil(exports, row, new Date(losingAt + HOUR));
+
+      expect(notices()).toEqual([
+        AuditLogExportFailureNotice.Failing,
+        AuditLogExportFailureNotice.LosingEntries,
+      ]);
+
+      for (const notification of told) {
+        expect(notification.now.toISOString()).toBe(
+          notification.at.toISOString(),
+        );
+        // A day ahead, or more: the email keeps "will start losing entries".
+        expect(
+          notification.entriesLostAt!.getTime() - notification.now.getTime(),
+        ).toBeGreaterThanOrEqual(23 * HOUR);
+      }
+    });
   });
 
   describe("when the cursor moves elsewhere", () => {

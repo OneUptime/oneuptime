@@ -320,10 +320,16 @@ describe("ReplayTabSwitcher strip", () => {
   it("hides the page below sm rather than wrapping the pill", () => {
     renderSwitcher();
 
+    /*
+     * "· /checkout", the page in an isolate of its own (it reads left to
+     * right on an Arabic or Persian page too).
+     */
     const page: HTMLElement = within(
       screen.getAllByTestId("replay-tab-pill")[0] as HTMLElement,
-    ).getByText("· /checkout");
+    ).getByTestId("replay-tab-pill-page");
 
+    expect(page).toHaveTextContent("· /checkout");
+    expect(page.querySelector("bdi")).toHaveTextContent("/checkout");
     expect(page.className).toContain("sm:inline");
     expect(page.className).toContain("truncate");
     expect(isVisibleAtWidth(page, PHONE_WIDTH_IN_PX)).toBe(false);

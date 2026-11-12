@@ -747,10 +747,12 @@ describe("Code", () => {
       dashboardSource("Components/Code/CodeTaskLogTurns.ts"),
     );
 
-    // The picker lists the task's turns, and shows only with more than one.
+    /*
+     * The picker lists the task's turns, and shows only with more than one
+     * listed - a long task's turn a link names among them (issue #7130).
+     */
     expect(turns).toContain('label: translationKey("Turn"),');
-    expect(log).toContain("<CodeTaskLogTurnPicker");
-    expect(log).toContain("turns.length > 1");
+    expect(log).toContain("{listedTurnCount > 1 ? ( <CodeTaskLogTurnPicker");
     expect(
       flat(englishSection(CODE_PAGE, "## A task's conversation")),
     ).toContain(
@@ -796,7 +798,7 @@ describe("Code", () => {
 
     // The top of the page counts every turn: the ones not shown too.
     expect(presenter).toContain(
-      "summary.turnCount = turns.length + read.olderTurnsLeftOut;",
+      "turnCount: turns.length + read.olderTurnsLeftOut,",
     );
     expect(conversation).toContain(
       "notShownMilliseconds={data.turnsNotShown?.workMilliseconds}",

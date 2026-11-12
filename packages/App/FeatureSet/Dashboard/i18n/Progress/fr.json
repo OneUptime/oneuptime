@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50831,
+    "keys": 50940,
     "untranslated": 5332
   },
   "sameAsEnglish": [
@@ -118,6 +118,7 @@
     "CPU Ready {{percent}}",
     "CPU.*high",
     "CSS",
+    "Cache",
     "Canada",
     "Canada (+1)",
     "Canonical Sunbeam",
@@ -491,6 +492,7 @@
     "Stacks",
     "Standard",
     "StatusPage",
+    "Suggestions",
     "Switch",
     "TLS",
     "TTL",
