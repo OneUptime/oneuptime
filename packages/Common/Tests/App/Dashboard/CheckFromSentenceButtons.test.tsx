@@ -6,9 +6,13 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import React from "react";
+import i18next from "i18next";
+import { initReactI18next } from "react-i18next";
+import React, { act } from "react";
 import {
+  afterAll,
   afterEach,
+  beforeAll,
   beforeEach,
   describe,
   expect,
@@ -80,13 +84,19 @@ jest.mock("../../../UI/Utils/Project", () => {
  * The component comes last: requiring it runs the factories above.
  */
 import CheckFromSentence, {
+  CHECK_FROM_SENTENCE_ALERT_TEST_ID,
   CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/DataObservability/CheckFromSentence";
 import { CARD_HEADER_ACTION_CLASS_NAME } from "../../../UI/Components/Card/Card";
 import ObjectID from "../../../Types/ObjectID";
-import { DataCheckAlertCondition } from "../../../Types/DataObservability/DataCheckType";
+import {
+  DATA_CHECK_ALERT_CONDITIONS,
+  DataCheckAlertCondition,
+} from "../../../Types/DataObservability/DataCheckType";
 import { DataObservabilityCheckSuggestion } from "../../../Types/DataObservability/DataObservabilityApiTypes";
 import DataCheck from "../../../Models/DatabaseModels/DataCheck";
+import { readDashboardLocale } from "../../Helpers/DashboardLocales";
+import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
 
 const TABLE: string = "8b000000-0000-4000-8000-000000000002";
 const SENTENCE: string = "Orders never have a negative total";
@@ -138,16 +148,46 @@ async function writeTheCheck(): Promise<void> {
   await screen.findByRole("button", { name: "Add Check" });
 }
 
-beforeEach(() => {
+// The languages the page is read in below, from the locale files themselves.
+const LANGUAGES: Array<string> = ["de", "ja", "ko", "hi", "ar", "fa"];
+
+async function inLanguage(language: string): Promise<void> {
+  await act(async (): Promise<void> => {
+    await i18next.changeLanguage(language);
+  });
+}
+
+beforeAll(async () => {
+  // English unless a test reads the page in another language: with no English file, each word is its own.
+  await i18next.use(initReactI18next).init({
+    lng: "en",
+    fallbackLng: "en",
+    resources: Object.fromEntries(
+      LANGUAGES.map((language: string) => {
+        return [language, { translation: readDashboardLocale(language) }];
+      }),
+    ),
+    interpolation: { escapeValue: false },
+    keySeparator: false,
+    nsSeparator: false,
+  });
+});
+
+beforeEach(async () => {
   suggestCheckMock.mockReset();
   syncCheckAlertMock.mockReset();
   createMock.mockReset();
   suggestCheckMock.mockResolvedValue(SUGGESTION);
   syncCheckAlertMock.mockResolvedValue(undefined);
+  await inLanguage("en");
 });
 
 afterEach(() => {
   cleanup();
+});
+
+afterAll(async () => {
+  await inLanguage("en");
 });
 
 describe("a row of the card's buttons", () => {
@@ -283,5 +323,222 @@ describe("the suggestion's Add Check and Discard", () => {
     expect(
       screen.queryByRole("button", { name: "Add Check" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * WHEN THE CHECK ALERTS, IN THE READER'S LANGUAGE (#6976).
+ *
+ * The suggestion's last line said "Alerts when its value is
+ * {{condition}} {{threshold}}." filled with the condition's English
+ * value, lowercased: "Alarmiert, wenn ihr Wert above 0 ist.",
+ * "値が above 0 のときにアラートします。". It is now one whole sentence
+ * per condition (DataCheckAlertConditionWords), with the number where
+ * each language puts it, read here as the card draws it in each
+ * language, from the locale files themselves.
+ */
+
+// What a condition's English left in a line looks like.
+const ENGLISH_CONDITION_WORDS: RegExp = /\b(?:above|below|unusually)\b/i;
+
+const SENTENCE_OF: Record<DataCheckAlertCondition, string> = {
+  [DataCheckAlertCondition.Above]:
+    "Alerts when its value is above {{threshold}}.",
+  [DataCheckAlertCondition.Below]:
+    "Alerts when its value is below {{threshold}}.",
+  [DataCheckAlertCondition.UnusuallyHigh]:
+    "Alerts when its value is unusually high.",
+  [DataCheckAlertCondition.UnusuallyLow]:
+    "Alerts when its value is unusually low.",
+};
+
+// The Intl locale a language writes its numbers in: Latin digits in Arabic.
+function numberLocale(language: string): string {
+  return language === "ar" ? "ar-u-nu-latn" : language;
+}
+
+// The card in `language`, a suggestion of `condition` and `threshold` written.
+async function suggestionIn(
+  language: string,
+  condition: DataCheckAlertCondition,
+  threshold: number,
+): Promise<string> {
+  suggestCheckMock.mockResolvedValue({
+    ...SUGGESTION,
+    alertCondition: condition,
+    alertThreshold: threshold,
+  });
+
+  await inLanguage(language);
+  renderCard();
+
+  const words: Record<string, string> =
+    language === "en" ? {} : readDashboardLocale(language);
+  const said: (text: string) => string = (text: string): string => {
+    return words[text] || text;
+  };
+
+  fireEvent.change(
+    screen.getByRole("textbox", { name: said("The rule, in a sentence") }),
+    { target: { value: SENTENCE } },
+  );
+  fireEvent.click(
+    screen.getByRole("button", { name: said("Write the Check") }),
+  );
+  await screen.findByRole("button", { name: said("Add Check") });
+
+  return withoutIsolateMarks(
+    screen.getByTestId(CHECK_FROM_SENTENCE_ALERT_TEST_ID).textContent || "",
+  );
+}
+
+describe("when the check alerts, in English", () => {
+  test.each([
+    [DataCheckAlertCondition.Above, 0, "Alerts when its value is above 0."],
+    [DataCheckAlertCondition.Below, 5, "Alerts when its value is below 5."],
+    [
+      DataCheckAlertCondition.Above,
+      1500,
+      "Alerts when its value is above 1,500.",
+    ],
+    [
+      DataCheckAlertCondition.UnusuallyHigh,
+      0,
+      "Alerts when its value is unusually high.",
+    ],
+    [
+      DataCheckAlertCondition.UnusuallyLow,
+      0,
+      "Alerts when its value is unusually low.",
+    ],
+  ])(
+    "%s %d reads %j",
+    async (
+      condition: DataCheckAlertCondition,
+      threshold: number,
+      expected: string,
+    ) => {
+      expect(await suggestionIn("en", condition, threshold)).toBe(expected);
+    },
+  );
+
+  test("the line is the suggestion's, after its query and before its buttons", async () => {
+    await suggestionIn("en", DataCheckAlertCondition.Above, 0);
+
+    const line: HTMLElement = screen.getByTestId(
+      CHECK_FROM_SENTENCE_ALERT_TEST_ID,
+    );
+
+    expect(line.tagName).toBe("P");
+    expect(line).toHaveClass("text-sm", "text-gray-600");
+    expect(line.nextElementSibling?.className).toBe(
+      CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME,
+    );
+  });
+
+  test("a condition that is none a check can have draws no line, rather than its English", async () => {
+    suggestCheckMock.mockResolvedValue({
+      ...SUGGESTION,
+      alertCondition: "Sideways" as DataCheckAlertCondition,
+    });
+
+    renderCard();
+    await writeTheCheck();
+
+    expect(
+      screen.queryByTestId(CHECK_FROM_SENTENCE_ALERT_TEST_ID),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Check" })).toBeEnabled();
+  });
+});
+
+describe("when the check alerts, in the issue's languages: the number where each puts it", () => {
+  test.each([
+    [
+      "de",
+      DataCheckAlertCondition.Above,
+      0,
+      "Alarmiert, wenn ihr Wert über 0 liegt.",
+    ],
+    [
+      "de",
+      DataCheckAlertCondition.Below,
+      5,
+      "Alarmiert, wenn ihr Wert unter 5 liegt.",
+    ],
+    [
+      "ja",
+      DataCheckAlertCondition.Above,
+      0,
+      "値が 0 を上回るときにアラートします。",
+    ],
+    [
+      "ja",
+      DataCheckAlertCondition.Below,
+      5,
+      "値が 5 を下回るときにアラートします。",
+    ],
+    ["ko", DataCheckAlertCondition.Above, 0, "값이 0 초과일 때 알림을 보냅니다."],
+    ["ko", DataCheckAlertCondition.Below, 5, "값이 5 미만일 때 알림을 보냅니다."],
+    [
+      "hi",
+      DataCheckAlertCondition.Above,
+      0,
+      "अलर्ट करता है जब इसका मान 0 से ऊपर हो।",
+    ],
+    [
+      "hi",
+      DataCheckAlertCondition.Below,
+      5,
+      "अलर्ट करता है जब इसका मान 5 से नीचे हो।",
+    ],
+  ])(
+    "%s, %s %d",
+    async (
+      language: string,
+      condition: DataCheckAlertCondition,
+      threshold: number,
+      expected: string,
+    ) => {
+      expect(await suggestionIn(language, condition, threshold)).toBe(
+        expected,
+      );
+    },
+  );
+});
+
+describe.each(LANGUAGES)("when the check alerts, in %s", (language: string) => {
+  const locale: Record<string, string> = readDashboardLocale(language);
+
+  test.each([...DATA_CHECK_ALERT_CONDITIONS])(
+    "%s reads the language's own sentence, with no English condition word",
+    async (condition: DataCheckAlertCondition) => {
+      const line: string = await suggestionIn(language, condition, 3);
+      const own: string = locale[SENTENCE_OF[condition]]!;
+
+      expect(own).toBeDefined();
+      expect(own).not.toBe(SENTENCE_OF[condition]);
+      expect(line).toBe(
+        own.replace(
+          "{{threshold}}",
+          (3).toLocaleString(numberLocale(language)),
+        ),
+      );
+      expect(line).not.toMatch(ENGLISH_CONDITION_WORDS);
+    },
+  );
+});
+
+describe("when the check alerts, from the right", () => {
+  test("Persian writes the number in its own digits", async () => {
+    expect(
+      await suggestionIn("fa", DataCheckAlertCondition.Above, 25),
+    ).toContain("۲۵");
+  });
+
+  test("Arabic writes Latin digits", async () => {
+    expect(await suggestionIn("ar", DataCheckAlertCondition.Below, 25)).toBe(
+      "ينبّه عندما تكون قيمته أدنى من 25.",
+    );
   });
 });

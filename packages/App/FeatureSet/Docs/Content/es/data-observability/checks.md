@@ -37,7 +37,7 @@ Cada comprobación se ejecuta cada 15 minutos, cada hora, cada 6 horas o cada d�
 
 Configura **Alertar cuando** para alertar sobre una comprobación:
 
-- **Unusually High** o **Unusually Low** compara cada valor con su propia línea base aprendida para esa hora de la semana.
+- **Inusualmente alto** o **Inusualmente bajo** compara cada valor con su propia línea base aprendida para esa hora de la semana.
 - **Por encima de** o **Por debajo de** lo compara con un umbral.
 
 Al guardar la comprobación se crea un monitor de métricas para ella, en tu nombre y con tus permisos. Si vacías la condición, se elimina el monitor.
