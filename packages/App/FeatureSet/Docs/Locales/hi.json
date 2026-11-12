@@ -11,6 +11,7 @@
     "searchPlaceholder": "दस्तावेज़ीकरण खोजें...",
     "searchTypeToSearch": "दस्तावेज़ीकरण खोजने के लिए टाइप करें...",
     "searchNoResults": "\"{{query}}\" के लिए कोई परिणाम नहीं मिला",
+    "searchSearching": "खोजा जा रहा है…",
     "onThisPage": "इस पृष्ठ पर",
     "skipToContent": "सामग्री पर जाएं",
     "toggleTheme": "थीम बदलें",
@@ -62,7 +63,18 @@
     "calloutDanger": "खतरा",
     "detailsSummary": "विवरण",
     "copyPage": "पेज कॉपी करें",
-    "viewAsMarkdown": "Markdown के रूप में देखें"
+    "viewAsMarkdown": "Markdown के रूप में देखें",
+    "feedbackQuestion": "क्या यह पेज उपयोगी था?",
+    "feedbackYes": "हाँ",
+    "feedbackNo": "नहीं",
+    "feedbackThanks": "बताने के लिए धन्यवाद।",
+    "feedbackWhatWentWrong": "धन्यवाद। क्या गड़बड़ थी?",
+    "feedbackReasonUnclear": "समझना मुश्किल",
+    "feedbackReasonMissing": "कुछ छूट गया है",
+    "feedbackReasonWrong": "गलत या पुराना",
+    "feedbackReasonNotFound": "जो ढूँढ रहा था वह नहीं",
+    "feedbackTellUs": "धन्यवाद। बताइए क्या ठीक करना है, हम पेज को बेहतर बनाएँगे।",
+    "feedbackTellUsOnGithub": "GitHub पर बताएँ"
   },
   "navSections": {
     "Get Started": "शुरुआत करें",
