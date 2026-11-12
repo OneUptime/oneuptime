@@ -248,7 +248,8 @@ describe("the page is reachable", () => {
       'title: "Security"',
     );
 
-    expect(titlesIn(basic)).toEqual(["Basic", "Project", "Labels"]);
+    // Products, the products the project shows, joined Basic (#6814).
+    expect(titlesIn(basic)).toEqual(["Basic", "Project", "Products", "Labels"]);
     expect(basic).not.toContain(`PageMap.${PAGE_ID}]`);
 
     expect(titlesIn(advanced)).toEqual([
@@ -358,7 +359,7 @@ describe("the page is reachable", () => {
       return section.title === "Basic";
     });
 
-    expect(pageTitlesOf(basic)).toEqual(["Project", "Labels"]);
+    expect(pageTitlesOf(basic)).toEqual(["Project", "Products", "Labels"]);
     expect(
       SEARCH_ENTRIES.filter((candidate: PageSearchIndexEntry): boolean => {
         return candidate.page.page === PAGE_ID;

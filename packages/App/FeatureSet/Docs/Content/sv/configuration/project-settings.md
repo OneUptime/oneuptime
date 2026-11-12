@@ -5,6 +5,7 @@ Projektinställningar innehåller det som gäller för hela projektet: namnet, v
 :::cards
 - [Hitta en inställning](#hitta-en-inställning): Vad varje avsnitt i sidomenyn innehåller.
 - [Projektets detaljer](#projektets-detaljer): Namnet, ID:t och supportåtkomst.
+- [Produkter](#produkter): Produkterna som det här projektet visar, och de som det döljer.
 - [Etiketter](#etiketter): Taggar för resurser, behörigheter och regler.
 - [Ta bort projektet](#ta-bort-projektet): Vad det kräver och vad som försvinner med det.
 :::
@@ -30,7 +31,7 @@ flowchart LR
 
 | Avsnitt | Sidor | Läs mer |
 | --- | --- | --- |
-| **Grundläggande** | **Projekt**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Etiketter](#etiketter) |
+| **Grundläggande** | **Projekt**, **Produkter**, **Etiketter** | [Projektets detaljer](#projektets-detaljer), [Produkter](#produkter), [Etiketter](#etiketter) |
 | **Arbetsyta** | **Slack**, **Microsoft Teams**, **Mattermost**, **Videosamtal** | [Slack](/docs/workspace-connections/slack), [Microsoft Teams](/docs/workspace-connections/microsoft-teams), [Mattermost](/docs/workspace-connections/mattermost), [Videosamtal](/docs/workspace-connections/video-calls) |
 | **Telemetri och APM** | **Intagningsnycklar**, **Datalagring**, **Användning** | [Intagningsnycklar](/docs/telemetry/ingestion-keys), [Datalagring](/docs/telemetry/data-retention), [Telemetrianvändning](/docs/telemetry/usage) |
 | **Aviseringar** | **Aviseringsinställningar**, **Aviseringsloggar**, **Mobilappar** | [Aviseringar](#aviseringar) |
@@ -54,6 +55,18 @@ flowchart LR
 - **Data Residency**: i OneUptime Cloud, var ditt projekts data ska ligga, när OneUptime har registrerat det. Bara OneUptime anger det.
 
 **Åtkomst för kundsupport** avgör i OneUptime Cloud om OneUptimes supportteam får öppna projektet. Slå på **Ge OneUptimes support åtkomst till det här projektet** när du vill ha hjälp: OneUptime frågar först, eftersom supporten då kan se och ändra allt i projektet, och du klickar på **Släpp in support**. Stäng av det när de är klara: det sparas direkt. Project Owners och Project Admins ändrar det.
+
+## Produkter
+
+**Projektinställningar → Grundläggande → Produkter** väljer de produkter som det här projektet visar i menyn **Produkter**, på Hem och i Söks lista. Varje produkt har en brytare som sparar när du slår om den: på visar produkten. Användare, Team och Projektinställningar visas alltid, och **Visa alla produkter** visar alla igen.
+
+En dold produkt är inte avstängd. Den flyttas till **Fler produkter**, den sista raden i menyn **Produkter**: Sök hittar den fortfarande, dess sidor och API fungerar, och dess data fortsätter att komma in. Den som har fäst den behåller sin fästning.
+
+Ett nytt projekt börjar med det som ägaren sade på Hem att det ska användas till: det grundläggande, inställningarna och det som de målen behöver visas, och resten döljs. Ett projekt som hoppade över frågan, eller som skapades före den, visar alla produkter. Så snart någon ändrar listan här ändrar målen den inte längre.
+
+Varje produkt säger vad den är för det här projektet: **Används**, **Inte konfigurerad** eller, i OneUptime Cloud, den plan den behöver. När en dold produkt börjar ta emot data säger Hem det till projektets ägare och administratörer och erbjuder **Visa den** eller **Behåll dold**.
+
+Projektägare, projektadministratörer och alla som får redigera projektet ändrar den; alla andra i projektet kan se den.
 
 ## Etiketter
 

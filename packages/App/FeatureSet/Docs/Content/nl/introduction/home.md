@@ -105,7 +105,7 @@ Als iets in de inrichting van het project zou verhinderen dat mensen een melding
 
 ### Verken OneUptime
 
-**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt.
+**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt. De producten die uw project verbergt, ontbreken daar.
 
 ## Uw weg vinden
 
@@ -115,6 +115,9 @@ Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.
 - **Uw keuzes blijven.** Het menu onthoudt in uw browser welke van de andere groepen u hebt uit- of ingeklapt. De essenties zijn elke keer dat u het menu opent weer uitgeklapt, ook als u ze had ingeklapt.
 - **Op een telefoon** toont de menuknop de producten op dezelfde manier: de essenties uitgeklapt bovenaan, en elke andere groep als één rij die met een tik opent.
+- **Producten die het project niet gebruikt.** Een projecteigenaar of -beheerder kan ze verbergen onder **Projectinstellingen → Basis → Producten**. Een verborgen product verhuist naar **Meer producten**, de laatste rij van het menu: Zoeken vindt het nog steeds, de pagina's blijven werken en de gegevens blijven binnenkomen. Zodra er een gegevens ontvangt, meldt Start dat aan wie het weer kan tonen.
+- **Vastzetten.** Houd een product in de bovenbalk, naast **Start** en **Producten**: druk op de punaise op zijn kaart in het menu, of op **Vastzetten** naast de titel van zijn pagina. U kunt er vijf vastzetten, en ze volgen u in elke browser. Op een telefoon staan uw vastgezette producten bovenaan in het menu.
+- **Wat in gebruik is.** In elke groep behalve de essenties en de instellingen staan de producten die uw project gebruikt vooraan, en een product dat u nog niet hebt ingesteld zegt **Niet ingesteld**. In OneUptime Cloud noemt een product dat uw abonnement niet bevat het abonnement dat het wel bevat.
 
 ### De balken bovenaan
 
