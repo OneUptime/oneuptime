@@ -145,17 +145,17 @@ beforeEach(() => {
       recorded.push({ domain: data.domain, verified: data.cnameStatus });
     }) as never);
 
-  jest
-    .spyOn(DnsLookup, "resolveCname")
-    .mockImplementation((async (name: string): Promise<DnsLookupAnswer> => {
-      return world.cname.get(name) || noRecords;
-    }) as never);
+  jest.spyOn(DnsLookup, "resolveCname").mockImplementation((async (
+    name: string,
+  ): Promise<DnsLookupAnswer> => {
+    return world.cname.get(name) || noRecords;
+  }) as never);
 
-  jest
-    .spyOn(DnsLookup, "resolveAddresses")
-    .mockImplementation((async (name: string): Promise<DnsLookupAnswer> => {
-      return world.addresses.get(name) || noRecords;
-    }) as never);
+  jest.spyOn(DnsLookup, "resolveAddresses").mockImplementation((async (
+    name: string,
+  ): Promise<DnsLookupAnswer> => {
+    return world.addresses.get(name) || noRecords;
+  }) as never);
 
   jest
     .spyOn(Domain, "getForDomainVerification")
@@ -193,10 +193,9 @@ describe("#1521: a right CNAME behind a proxy that answers 404 (self-hosted)", (
     mockIsBillingEnabled = false;
     // config.env: STATUS_PAGE_CNAME_RECORD=oneuptimestatuspage.mydomain.com
     mockCnameRecord = "oneuptimestatuspage.mydomain.com";
-    world.cname.set(
-      "status.mydomain.com",
-      { values: ["oneuptimestatuspage.mydomain.com"] },
-    );
+    world.cname.set("status.mydomain.com", {
+      values: ["oneuptimestatuspage.mydomain.com"],
+    });
     // "DNS is resolving and when being accessed it returns 404."
     world.http = 404;
   });
@@ -208,8 +207,9 @@ describe("#1521: a right CNAME behind a proxy that answers 404 (self-hosted)", (
     expect(recorded).toEqual([
       { domain: "status.mydomain.com", verified: true },
     ]);
-    expect(await StatusPageDomainService.isCnameValid("status.mydomain.com"))
-      .toBe(true);
+    expect(
+      await StatusPageDomainService.isCnameValid("status.mydomain.com"),
+    ).toBe(true);
   });
 
   test("and DNS Setup says requests do not reach OneUptime yet, and what to change", async () => {
@@ -236,7 +236,9 @@ describe("#1521: a right CNAME behind a proxy that answers 404 (self-hosted)", (
   test("OneUptime's own ingress answers every hostname, and passes the verification path on", () => {
     const nginx: string = read("packages/Nginx/default.conf.template");
 
-    expect(nginx).toMatch(/listen \$\{NGINX_LISTEN_ADDRESS\}7849 default_server/);
+    expect(nginx).toMatch(
+      /listen \$\{NGINX_LISTEN_ADDRESS\}7849 default_server/,
+    );
     expect(nginx).toMatch(/server_name\s+_;/);
     expect(nginx).toContain("location /status-page-api/ {");
     expect(nginx).toContain(
@@ -451,9 +453,9 @@ describe("on OneUptime Cloud", () => {
   });
 
   test("a domain the check cannot even read is recorded unverified, and says so", async () => {
-    (StatusPageDomainService.findOneBy as unknown as MockedFn).mockRejectedValue(
-      new Error("database is down") as never,
-    );
+    (
+      StatusPageDomainService.findOneBy as unknown as MockedFn
+    ).mockRejectedValue(new Error("database is down") as never);
 
     const check: DnsRecordCheck = await checkNow("status.acme.com");
 
@@ -462,9 +464,9 @@ describe("on OneUptime Cloud", () => {
   });
 
   test("a name that is not one of ours is not looked up, and records nothing", async () => {
-    (StatusPageDomainService.findOneBy as unknown as MockedFn).mockResolvedValue(
-      null as never,
-    );
+    (
+      StatusPageDomainService.findOneBy as unknown as MockedFn
+    ).mockResolvedValue(null as never);
 
     const check: DnsRecordCheck = await checkNow("status.acme.com");
 

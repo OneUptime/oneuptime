@@ -193,6 +193,20 @@ jest.mock("reactflow", () => {
     getBezierPath: () => {
       return ["M0,0 C50,0 50,0 100,0", 50, 0];
     },
+    /*
+     * React Flow's store, as the drawing's keyboard focus reads it: no
+     * element of React Flow's here, so it follows nothing.
+     */
+    useStore: (selector: (state: { domNode: null }) => unknown): unknown => {
+      return selector({ domNode: null });
+    },
+    useStoreApi: () => {
+      return {
+        getState: () => {
+          return { domNode: null };
+        },
+      };
+    },
   };
 });
 

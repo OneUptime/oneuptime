@@ -258,6 +258,8 @@ export interface LineageDiagramBodyProps {
    * page, its ways - said before the column's own sentences.
    */
   highlightNotes?: ReadonlyArray<LineageHighlightNote> | undefined;
+  // On an alert's page, whether the alert was open when its drawing was read.
+  isAlertOpen?: boolean | undefined;
 }
 
 // A sentence over the drawing about what it picks out.
@@ -741,6 +743,7 @@ export const LineageDiagramBody: FunctionComponent<LineageDiagramBodyProps> = (
         growth={isGrown ? grown!.growth : null}
         columnTrail={columnTrail}
         figureRef={figureRef}
+        isAlertOpen={props.isAlertOpen}
       />
       <LineageLegend />
       {lineage.isTruncated || lineage.hiddenDashboardCount > 0 ? (

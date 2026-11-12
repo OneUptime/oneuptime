@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import {
   act,
   cleanup,
@@ -59,7 +60,8 @@ jest.mock("../../../UI/Config", () => {
   return mocked;
 });
 
-const mockSendServerTest: jest.Mock = jest.fn();
+const mockSendServerTest: Mock<(...args: Array<unknown>) => Promise<unknown>> =
+  jest.fn();
 
 jest.mock("../../../UI/Utils/ServerSetupChecklist", () => {
   const actual: Record<string, unknown> = jest.requireActual(
@@ -357,7 +359,7 @@ describe("a test send", () => {
 
   test("accepted: sent to that address, the dialog closes, and the page is told", async () => {
     mockSendServerTest.mockResolvedValue(ACCEPTED);
-    const onAnswer: jest.Mock = jest.fn();
+    const onAnswer: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
 
     render(
       <ServerTestSendButton
@@ -383,7 +385,7 @@ describe("a test send", () => {
       message: "535 5.7.8 Username and Password not accepted",
     };
     mockSendServerTest.mockResolvedValue(refused);
-    const onAnswer: jest.Mock = jest.fn();
+    const onAnswer: Mock<(...args: Array<unknown>) => unknown> = jest.fn();
 
     render(
       <ServerTestSendButton

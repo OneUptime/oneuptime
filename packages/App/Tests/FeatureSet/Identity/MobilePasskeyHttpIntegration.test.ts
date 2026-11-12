@@ -73,6 +73,24 @@ jest.mock("Common/Server/Services/DatabaseService", () => {
     default: class {
       public findOneBy: jest.Mock = jest.fn();
       public updateOneById: jest.Mock = jest.fn();
+
+      /*
+       * The base class's configuration helpers, which services the router
+       * imports call from their constructors (for example the incident
+       * episode state timeline's keepRowsOnDeleteByQuery). Without them the
+       * suite fails to load.
+       */
+      public hardDeleteItemsOlderThanInDays(): void {
+        // no-op
+      }
+
+      public setDoNotAllowDelete(): void {
+        // no-op
+      }
+
+      public keepRowsOnDeleteByQuery(): void {
+        // no-op
+      }
     },
   };
 });

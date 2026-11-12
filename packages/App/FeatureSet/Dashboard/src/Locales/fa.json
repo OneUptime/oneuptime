@@ -50475,7 +50475,7 @@
   "Requests to {{name}} reach OneUptime.": "درخواست‌ها به {{name}} به OneUptime می‌رسند.",
   "See global probes": "دیدن پراب‌های سراسری",
   "Send them their invitation link": "پیوند دعوتشان را بفرستید",
-  "Server Sending Health": "وضعیت ارسال سرور",
+  "Server Sending Health": "سلامت ارسال سرور",
   "Set up email": "راه‌اندازی ایمیل",
   "Shows this project owns {{domain}}. You add it once, for every address on {{domain}}.": "نشان می‌دهد این پروژه مالک {{domain}} است. آن را یک بار اضافه می‌کنید، برای همهٔ نشانی‌های روی {{domain}}.",
   "The address people will open. Next, we show the DNS records to add: a CNAME record for this address, and a TXT record for its domain if this project has not verified it yet.": "نشانی‌ای که مردم باز خواهند کرد. سپس رکوردهای DNS را که باید اضافه کنید نشان می‌دهیم: یک رکورد CNAME برای این نشانی، و اگر این پروژه هنوز دامنهٔ آن را تأیید نکرده است، یک رکورد TXT برای آن دامنه.",

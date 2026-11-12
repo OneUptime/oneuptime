@@ -7,6 +7,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { SpyInstance } from "jest-mock";
 import { act, cleanup, render, screen } from "@testing-library/react";
 import React from "react";
 import ServerSendingTopAlert, {
@@ -39,6 +40,14 @@ import {
  * anybody who is not a master admin, and when the answer cannot be read.
  * That is what keeps it an exception, as NoAlwaysOnInfoBannersGuard wants.
  */
+
+/*
+ * A spy on API.fetch: its parameters and answer, without the type parameter
+ * a spy's type cannot carry.
+ */
+type FetchSpy = SpyInstance<
+  (...args: Parameters<typeof API.fetch>) => ReturnType<typeof API.fetch>
+>;
 
 function channel(
   name: ServerSendingChannel,
@@ -272,7 +281,7 @@ describe("as drawn", () => {
 describe("who it is read for", () => {
   test("anybody but a master admin: nothing is asked, nothing drawn", async () => {
     jest.spyOn(User, "isMasterAdmin").mockReturnValue(false);
-    const fetch: jest.SpyInstance = jest.spyOn(API, "fetch");
+    const fetch: FetchSpy = jest.spyOn(API, "fetch");
 
     await act(async () => {
       render(
@@ -289,7 +298,7 @@ describe("who it is read for", () => {
 
   test("a master admin: GET /global-config/sending-status, once, and its answer drawn", async () => {
     jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
-    const fetch: jest.SpyInstance = jest
+    const fetch: FetchSpy = jest
       .spyOn(API, "fetch")
       .mockResolvedValue(
         new HTTPResponse<JSONObject>(
@@ -326,7 +335,7 @@ describe("who it is read for", () => {
 
   test("an answer that is refused draws nothing, and is asked again next time", async () => {
     jest.spyOn(User, "isMasterAdmin").mockReturnValue(true);
-    const fetch: jest.SpyInstance = jest
+    const fetch: FetchSpy = jest
       .spyOn(API, "fetch")
       .mockResolvedValue(
         new HTTPErrorResponse(403, { message: "Forbidden" }, {}) as never,

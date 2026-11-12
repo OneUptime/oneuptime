@@ -889,7 +889,7 @@ const ServerSetupChecklist: FunctionComponent<ComponentProps> = (
             <span className="flex items-center gap-2">
               <Icon
                 icon={isFolded ? IconProp.ChevronRight : IconProp.ChevronDown}
-                className="h-3.5 w-3.5 text-gray-400 rtl:rotate-180"
+                className="h-3.5 w-3.5 text-gray-400"
               />
               {heading}
             </span>

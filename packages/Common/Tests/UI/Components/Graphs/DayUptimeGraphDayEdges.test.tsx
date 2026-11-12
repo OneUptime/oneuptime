@@ -18,6 +18,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 import DayUptimeGraph, {
   UptimeBarDaySummary,
 } from "../../../../UI/Components/Graphs/DayUptimeGraph";
@@ -82,7 +83,7 @@ function summaryOf(data: {
   incidents?: Array<UptimeBarTooltipIncident> | undefined;
   dayLabel: string;
 }): UptimeBarDaySummary {
-  const onBarClick: jest.Mock<OnBarClick> = jest.fn<OnBarClick>();
+  const onBarClick: Mock<OnBarClick> = jest.fn<OnBarClick>();
 
   render(
     <DayUptimeGraph
@@ -356,7 +357,7 @@ describe("MonitorUptimeGraph: a monitor group's day from its monitors' rows", ()
       }),
     );
 
-    const onBarClick: jest.Mock<OnBarClick> = jest.fn<OnBarClick>();
+    const onBarClick: Mock<OnBarClick> = jest.fn<OnBarClick>();
 
     render(
       <MonitorUptimeGraph

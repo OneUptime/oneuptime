@@ -23,11 +23,11 @@ import {
 } from "reactflow";
 import FlowViewportGuard, {
   ComponentProps,
-  isKeyboardFocus,
   measuredRectOf,
   renderedPaneSize,
   selectDrawingInView,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/FlowViewportGuard";
+import { isKeyboardFocus } from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/FlowKeyboardFocus";
 import {
   FlowExtent,
   FlowRect,

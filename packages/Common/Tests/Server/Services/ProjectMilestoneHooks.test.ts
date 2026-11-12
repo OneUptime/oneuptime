@@ -252,14 +252,13 @@ describe("where each activation milestone is set", () => {
     };
 
     test("subscribers who confirm reach it for each of their projects, read as confirmed and subscribed", async () => {
-      const findBySpy: SpyInstance<
-        typeof StatusPageSubscriberService.findBy
-      > = jest
-        .spyOn(StatusPageSubscriberService, "findBy")
-        .mockResolvedValue([
-          Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_A }),
-          Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_B }),
-        ]);
+      const findBySpy: SpyInstance<typeof StatusPageSubscriberService.findBy> =
+        jest
+          .spyOn(StatusPageSubscriberService, "findBy")
+          .mockResolvedValue([
+            Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_A }),
+            Object.assign(new StatusPageSubscriber(), { projectId: PROJECT_B }),
+          ]);
 
       await noteConfirmed([ObjectID.generate(), ObjectID.generate()]);
 

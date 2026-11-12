@@ -1211,7 +1211,10 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
   }
 
   async function addAddress(page: Page, address: string): Promise<Locator> {
-    await page.getByRole("button", { name: "Add Custom Domain" }).first().click();
+    await page
+      .getByRole("button", { name: "Add Custom Domain" })
+      .first()
+      .click();
 
     const dialog: Locator = page.getByTestId("modal");
 
@@ -1247,11 +1250,9 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
 
     // The project's domain was added for the person, and nothing else yet.
     expect(
-      (await fixture(page)).created.map(
-        (entry: { tableName: string }) => {
-          return entry.tableName;
-        },
-      ),
+      (await fixture(page)).created.map((entry: { tableName: string }) => {
+        return entry.tableName;
+      }),
     ).toEqual(["Domain"]);
 
     await page.waitForTimeout(200);
@@ -1300,11 +1301,9 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
 
     // The custom domain was added once the TXT was found: the table lists it.
     expect(
-      (await fixture(page)).created.map(
-        (entry: { tableName: string }) => {
-          return entry.tableName;
-        },
-      ),
+      (await fixture(page)).created.map((entry: { tableName: string }) => {
+        return entry.tableName;
+      }),
     ).toEqual(["StatusPageDomain"]);
 
     await page.waitForTimeout(200);
@@ -1342,7 +1341,10 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
   }) => {
     await openDomains(page, "readiness=notready");
 
-    await page.getByRole("button", { name: "Add Custom Domain" }).first().click();
+    await page
+      .getByRole("button", { name: "Add Custom Domain" })
+      .first()
+      .click();
 
     const notice: Locator = page.getByTestId("custom-domain-server-readiness");
 
@@ -1394,7 +1396,9 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
       await expect(
         dialog.getByTestId("custom-domain-server-readiness"),
       ).toBeVisible();
-      await dialog.getByPlaceholder("status.example.com").fill("status.acme.com");
+      await dialog
+        .getByPlaceholder("status.example.com")
+        .fill("status.acme.com");
       await dialog.getByTestId("modal-footer-submit-button").click();
 
       await expect(dialog.getByTestId("dns-setup-txt-record")).toBeVisible();
@@ -1404,10 +1408,13 @@ test.describe("a status page's Custom Domains page: Add Custom Domain and DNS Se
         }),
       ).toBe(variant.lang === "fa" ? "rtl" : "ltr");
       // A record's value is DNS: it reads left to right in every language.
-      await expect(
-        dialog.getByTestId("dns-setup-txt-record-value"),
-      ).toHaveText("oneuptime-verification-3kd8f2hq9x");
-      await expectNothingRunsOff(page, `DNS Setup with two records (${variant.name})`);
+      await expect(dialog.getByTestId("dns-setup-txt-record-value")).toHaveText(
+        "oneuptime-verification-3kd8f2hq9x",
+      );
+      await expectNothingRunsOff(
+        page,
+        `DNS Setup with two records (${variant.name})`,
+      );
       await page.waitForTimeout(200);
       await screenshot(page, `custom-domain-two-records-${variant.name}`);
     }

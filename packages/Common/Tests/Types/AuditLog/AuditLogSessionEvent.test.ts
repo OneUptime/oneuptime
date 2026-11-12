@@ -22,7 +22,7 @@ import UserSession from "../../../Models/DatabaseModels/UserSession";
 import User from "../../../Models/DatabaseModels/User";
 import { SessionEndCause } from "../../../Types/UserSession/SessionEndCause";
 import { DEFAULT_SESSION_IDLE_DAYS } from "../../../Types/UserSession/SessionLength";
-import { JSONArray } from "../../../Types/JSON";
+import { JSONValue } from "../../../Types/JSON";
 
 /*
  * People's sessions in the audit log (issue #6762): the actions, what each
@@ -149,7 +149,11 @@ describe("the fields of a session entry", () => {
   });
 
   test("are read from an entry's changes, the text ones only", () => {
-    const changes: JSONArray = [
+    /*
+     * Anything a JSON column holds, not only changes: the reading steps
+     * over what is not one.
+     */
+    const changes: Array<JSONValue> = [
       { field: "signInMethod", newValue: "Password" },
       { field: "ipAddress", newValue: "203.0.113.7" },
       // Not a session field: left out.

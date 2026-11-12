@@ -304,7 +304,7 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
           title="Data"
           description="What this alert is about in Data Observability, what caused it upstream, and what changed around it."
         >
-          <dl className="space-y-4 px-6 pb-6 text-sm text-gray-700">
+          <dl className="space-y-4 text-sm text-gray-700">
             <div>
               {label(translationKey("About"))}
               <dd className="mt-1">{subject(own)}</dd>
@@ -436,7 +436,7 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
           title="Downstream Impact"
           description="The alerts on tables and pipelines built from this alert's, each a consequence of it: they started acknowledged, so this alert is the one that paged."
         >
-          <ul className="divide-y divide-gray-100 px-6 pb-6">
+          <ul className="divide-y divide-gray-100">
             {impact.map((row: DataAlert) => {
               return (
                 <li
@@ -459,7 +459,7 @@ const DataAlertLineage: FunctionComponent<ComponentProps> = (
             })}
           </ul>
           {impactCount > impact.length ? (
-            <p className="px-6 pb-6 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-gray-500">
               {translator.translateTemplate("And {{count}} more.", {
                 count: impactCount - impact.length,
               })}

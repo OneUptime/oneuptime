@@ -120,7 +120,7 @@ OneUptime → Dynamics 365 템플릿은 직접 켜지 않는 한 **비공개 인
 
 **템플릿이 로그인하는 방식.** 마법사는 테넌트, 클라이언트 ID, 시크릿을 워크플로의 **워크플로 변수** 아래에 있는 [OAuth 2.0 변수](/docs/workflows/variables#oauth-20-변수스스로-갱신되는-토큰) 하나, `dynamicsAccessToken`에 저장합니다. 그 내용은 Client Credentials, 토큰 URL `https://login.microsoftonline.com/<tenant>/oauth2/v2.0/token`, 범위 `<environment URL>/.default`, 그리고 요청 본문으로 전송되고 암호화되어 저장되는 클라이언트 시크릿입니다. Dynamics 365에 대한 모든 호출은 `Authorization: Bearer {{local.variables.dynamicsAccessToken}}`을 보냅니다. OneUptime은 단계가 처음 토큰을 필요로 할 때 토큰을 가져오고, 만료되기 전에 새 토큰을 가져오며, 실행 로그와 단계 추적에서는 토큰을 `[REDACTED]`로 바꿉니다.
 
-무엇이든 실행하기 전에 로그인을 확인하려면 **워크플로 변수**를 열고 `dynamicsAccessToken`에서 **보기**를 클릭한 다음 **지금 새로고침**을 클릭하세요. **Access Token Fetched**가 표시되면 앱 등록이 올바른 것입니다. 그렇지 않으면 `AADSTS7000215: Invalid client secret provided`처럼 Microsoft Entra ID의 오류가 무엇이 잘못되었는지 알려 줍니다.
+무엇이든 실행하기 전에 로그인을 확인하려면 **워크플로 변수**를 열고 `dynamicsAccessToken`에서 **보기**를 클릭한 다음 **지금 새로고침**을 클릭하세요. **액세스 토큰을 받았습니다**가 표시되면 앱 등록이 올바른 것입니다. 그렇지 않으면 `AADSTS7000215: Invalid client secret provided`처럼 Microsoft Entra ID의 오류가 무엇이 잘못되었는지 알려 줍니다.
 
 각 워크플로는 이 값의 사본을 따로 가집니다. 클라이언트 시크릿을 교체할 때는 모든 Dynamics 365 워크플로에서 `dynamicsAccessToken`을 열고 **자격 증명 업데이트**를 사용하세요.
 
@@ -258,7 +258,7 @@ More than one Dynamics 365 case holds the link oneuptime-incident-<id> (CAS-0100
 
 모든 워크플로에서 쓸 토큰을 [OAuth 2.0 변수](/docs/workflows/variables#oauth-20-변수스스로-갱신되는-토큰)로 한 번만 만듭니다:
 
-1. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기** 옆의 **더보기** 메뉴(**⋯**)를 열고 **OAuth 2.0 변수 만들기**을 고릅니다. 이름을 `DYNAMICS_TOKEN`으로 정합니다.
+1. **워크플로 → 전역 변수**로 이동해 **워크플로 변수 만들기** 옆의 **더보기** 메뉴(**⋯**)를 열고 **OAuth 2.0 변수 만들기**를 고릅니다. 이름을 `DYNAMICS_TOKEN`으로 정합니다.
 2. **공급자**에서 **Microsoft Entra ID**를 고르고, **토큰 URL**의 `{tenant-id}`를 Directory (tenant) ID로 바꾼 다음 **Client Credentials**를 고릅니다.
 3. **자격 증명**에서 **클라이언트 ID**와 **클라이언트 시크릿**을 입력합니다. **고급**에서 범위를 `https://yourorg.crm.dynamics.com/.default`로 설정한 다음 변수를 만듭니다.
 

@@ -109,7 +109,7 @@ const TableOverviewPage: FunctionComponent<
         title="Details"
         description="Where this table lives and when OneUptime last read it."
       >
-        <dl className="grid grid-cols-1 gap-4 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {fact("Database", dataAsset.dataStoreName || "")}
           {fact("Engine", dataAsset.dataStoreKind || "")}
           {fact("Schema", dataAsset.schemaName || "")}
@@ -158,7 +158,7 @@ const TableOverviewPage: FunctionComponent<
           title="dbt"
           description="What your dbt project says of this table, from the last artifacts it uploaded."
         >
-          <dl className="grid grid-cols-1 gap-4 px-6 pb-6 sm:grid-cols-2 lg:grid-cols-3">
+          <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {fact("dbt Node", dataAsset.dbtNode.uniqueId)}
             {fact("Project", dataAsset.dbtNode.projectName)}
             {fact("Materialized", dataAsset.dbtNode.materialized || "")}
@@ -190,7 +190,7 @@ const TableOverviewPage: FunctionComponent<
         title="Description"
         description="What this table holds and who relies on it. Edit it on Settings."
       >
-        <div className="px-6 pb-6 text-sm text-gray-700">
+        <div className="text-sm text-gray-700">
           {dataAsset.description ? (
             <MarkdownViewer text={dataAsset.description} />
           ) : (

@@ -26,6 +26,7 @@ import {
   it,
   jest,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 /*
  * The product's definitions read the docs' Glossary as data
@@ -37,7 +38,7 @@ import {
 
 const DOCS: string = DOCS_URL.toString();
 
-type FetchMock = jest.Mock<(url: string) => Promise<unknown>>;
+type FetchMock = Mock<(url: string) => Promise<unknown>>;
 
 const answer: (body: unknown, status?: number) => Promise<unknown> = (
   body: unknown,

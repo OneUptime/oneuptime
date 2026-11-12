@@ -391,8 +391,12 @@ const MemberFirstStepsCard: FunctionComponent<CardProps> = (
   }) => ReactElement = (data: { name: string; url: string }): ReactElement => {
     return (
       <div className="flex flex-col items-center gap-2">
-        {/* A code is for a phone held up to a big screen, not for a phone. */}
-        <div className="hidden sm:block">
+        {/*
+         * A code is for a phone held up to a big screen, not for a phone.
+         * max-sm:hidden, not a bare hidden: a foreign .hidden rule would
+         * hide the code at every width.
+         */}
+        <div className="max-sm:hidden sm:block">
           <QRCode text={data.url} alt={data.name} />
         </div>
         <a

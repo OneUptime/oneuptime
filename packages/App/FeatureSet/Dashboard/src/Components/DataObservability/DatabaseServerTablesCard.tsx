@@ -61,7 +61,7 @@ const DatabaseServerTablesCard: FunctionComponent<ComponentProps> = (
       title="Tables"
       description="How the tables on this server are, as Data Observability reads them."
     >
-      <ul className="divide-y divide-gray-100 px-6 pb-6">
+      <ul className="divide-y divide-gray-100">
         {stores.map((store: DataObservabilityStoreSummary): ReactElement => {
           return (
             <li
