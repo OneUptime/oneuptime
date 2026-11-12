@@ -1,133 +1,27 @@
 import PageMap from "../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
 import PageComponentProps from "../PageComponentProps";
-import DashboardSideMenu from "./SideMenu";
 import Link from "Common/Types/Link";
 import Route from "Common/Types/API/Route";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Page from "Common/UI/Components/Page/Page";
 import React, { FunctionComponent, ReactElement, Suspense } from "react";
-import { matchPath, Outlet, useLocation } from "react-router-dom";
+import { Outlet } from "react-router-dom";
 
-interface HomePagePresentation {
-  title: string;
-  breadcrumb?: Link | undefined;
-}
-
-const normalizePath: (path: string) => string = (path: string): string => {
-  return path.replace(/\/+$/, "");
-};
-
-const HomeLayout: FunctionComponent<PageComponentProps> = (
-  props: PageComponentProps,
-): ReactElement => {
-  const location: ReturnType<typeof useLocation> = useLocation();
+/*
+ * Home's frame. Home is one page, the overview, and it has no side menu: it
+ * draws what needs attention itself, and each thing it counts - active
+ * incidents, active alerts, monitors that are not operational, maintenance
+ * in progress, SLOs at risk - opens that product's own list, where its side
+ * menu, filters and actions are. Home used to keep copies of six such lists
+ * under a menu of its own, so its Active Alerts opened a Home page instead of
+ * the one in Alerts; their addresses forward to the products' lists now
+ * (Routes/MovedHomeRoutes).
+ */
+const HomeLayout: FunctionComponent<PageComponentProps> = (): ReactElement => {
   const homeRoute: Route = RouteUtil.populateRouteParams(
     RouteMap[PageMap.HOME] as Route,
   );
-
-  const routePresentation: Array<{
-    route: Route;
-    presentation: HomePagePresentation;
-  }> = [
-    {
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
-      ),
-      presentation: {
-        title: "Active Incidents",
-        breadcrumb: {
-          title: "Active Incidents",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route,
-          ),
-        },
-      },
-    },
-    {
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.HOME_ACTIVE_ALERTS] as Route,
-      ),
-      presentation: { title: "Active Alerts" },
-    },
-    {
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.HOME_ACTIVE_EPISODES] as Route,
-      ),
-      presentation: {
-        title: "Active Alert Episodes",
-        breadcrumb: {
-          title: "Active Episodes",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.HOME_ACTIVE_EPISODES] as Route,
-          ),
-        },
-      },
-    },
-    {
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES] as Route,
-      ),
-      presentation: {
-        title: "Active Incident Episodes",
-        breadcrumb: {
-          title: "Active Incident Episodes",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.HOME_ACTIVE_INCIDENT_EPISODES] as Route,
-          ),
-        },
-      },
-    },
-    {
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
-      ),
-      presentation: {
-        title: "Not Operational Monitors",
-        breadcrumb: {
-          title: "Not Operational Monitors",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[PageMap.HOME_NOT_OPERATIONAL_MONITORS] as Route,
-          ),
-        },
-      },
-    },
-    {
-      route: RouteUtil.populateRouteParams(
-        RouteMap[PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS] as Route,
-      ),
-      presentation: {
-        title: "Ongoing Scheduled Maintenance",
-        breadcrumb: {
-          title: "Ongoing Scheduled Maintenance",
-          to: RouteUtil.populateRouteParams(
-            RouteMap[
-              PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS
-            ] as Route,
-          ),
-        },
-      },
-    },
-  ];
-
-  const currentPath: string = normalizePath(location.pathname);
-  const presentation: HomePagePresentation = routePresentation.find(
-    (item: { route: Route; presentation: HomePagePresentation }): boolean => {
-      return normalizePath(item.route.toString()) === currentPath;
-    },
-  )?.presentation || { title: "Home" };
-
-  /*
-   * The overview draws every list this menu holds, each with its count, so it
-   * takes the full width. Every other Home page is a list it opens, and keeps
-   * the menu: it moves between them, holds the two Active Episodes lists, and
-   * leads back to Overview.
-   */
-  const isOverview: boolean =
-    matchPath(
-      { path: (RouteMap[PageMap.HOME] as Route).toString(), end: true },
-      location.pathname,
-    ) !== null;
 
   const breadcrumbLinks: Array<Link> = [
     {
@@ -140,20 +34,8 @@ const HomeLayout: FunctionComponent<PageComponentProps> = (
     },
   ];
 
-  if (presentation.breadcrumb) {
-    breadcrumbLinks.push(presentation.breadcrumb);
-  }
-
   return (
-    <Page
-      title={presentation.title}
-      breadcrumbLinks={breadcrumbLinks}
-      sideMenu={
-        isOverview ? undefined : (
-          <DashboardSideMenu project={props.currentProject || undefined} />
-        )
-      }
-    >
+    <Page title="Home" breadcrumbLinks={breadcrumbLinks}>
       <Suspense fallback={<PageLoader isVisible={true} />}>
         <Outlet />
       </Suspense>

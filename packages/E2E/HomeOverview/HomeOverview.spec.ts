@@ -211,6 +211,134 @@ async function stripCells(page: Page): Promise<Array<StripCell>> {
     });
 }
 
+// Where the page is: its path, query and hash.
+async function whereIs(
+  page: Page,
+): Promise<{ pathname: string; search: string; hash: string }> {
+  const url: URL = new URL(page.url());
+
+  return { pathname: url.pathname, search: url.search, hash: url.hash };
+}
+
+/*
+ * The query of the address a link opened, read the way the list reads it:
+ * each parameter's value decoded and parsed. Nothing, when there is none.
+ */
+function listStateIn(search: string): Record<string, unknown> | null {
+  const params: URLSearchParams = new URLSearchParams(search);
+  const names: Array<string> = Array.from(params.keys());
+
+  if (names.length === 0) {
+    return null;
+  }
+
+  return Object.fromEntries(
+    names.map((name: string): [string, unknown] => {
+      return [name, JSON.parse(params.get(name) || "null")];
+    }),
+  );
+}
+
+/*
+ * Home is one page with no side menu, and keeps no lists of its own
+ * (#6857): each number and each View all opens the list in the product it
+ * belongs to, and the addresses of Home's old copies forward there.
+ */
+interface ProductList {
+  stat: string;
+  group: string;
+  path: string;
+  page: string;
+  /*
+   * The list's own filters the link sets, decoded, when that list holds
+   * more than Home counted: the SLOs list's Status and Enabled chips.
+   */
+  state: Record<string, unknown> | null;
+}
+
+// The SLOs list's chips that show the SLOs at risk, as its bar reads them.
+const SLOS_AT_RISK_STATE: Record<string, unknown> = {
+  "slos-table-facets": {
+    facetSelections: {
+      sloEnabled: ["true"],
+      sloStatus: ["At Risk", "Budget Exhausted"],
+    },
+    facetOperators: { sloEnabled: "is", sloStatus: "is" },
+  },
+};
+
+const PRODUCT_LISTS: Array<ProductList> = [
+  {
+    stat: "active-incidents",
+    group: "incidents",
+    path: `/dashboard/${PROJECT_ID}/incidents/unresolved`,
+    page: "UNRESOLVED_INCIDENTS",
+    state: null,
+  },
+  {
+    stat: "active-alerts",
+    group: "alerts",
+    path: `/dashboard/${PROJECT_ID}/alerts/unresolved`,
+    page: "UNRESOLVED_ALERTS",
+    state: null,
+  },
+  {
+    stat: "not-operational-monitors",
+    group: "monitors",
+    path: `/dashboard/${PROJECT_ID}/monitors/inoperational`,
+    page: "MONITORS_INOPERATIONAL",
+    state: null,
+  },
+  {
+    stat: "ongoing-maintenance",
+    group: "maintenance",
+    path: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/ongoing`,
+    page: "ONGOING_SCHEDULED_MAINTENANCE_EVENTS",
+    state: null,
+  },
+  {
+    stat: "slos-needing-attention",
+    group: "slos",
+    path: `/dashboard/${PROJECT_ID}/slos`,
+    page: "SLOS",
+    state: SLOS_AT_RISK_STATE,
+  },
+];
+
+// Home's old lists: the address under Home, and where it goes now.
+const OLD_HOME_LISTS: Array<{ old: string; path: string; page: string }> = [
+  {
+    old: "active-incidents",
+    path: `/dashboard/${PROJECT_ID}/incidents/unresolved`,
+    page: "UNRESOLVED_INCIDENTS",
+  },
+  {
+    old: "active-incident-episodes",
+    path: `/dashboard/${PROJECT_ID}/incidents/episodes/unresolved`,
+    page: "UNRESOLVED_INCIDENT_EPISODES",
+  },
+  {
+    old: "active-alerts",
+    path: `/dashboard/${PROJECT_ID}/alerts/unresolved`,
+    page: "UNRESOLVED_ALERTS",
+  },
+  {
+    old: "active-episodes",
+    path: `/dashboard/${PROJECT_ID}/alerts/episodes/unresolved`,
+    page: "UNRESOLVED_ALERT_EPISODES",
+  },
+  {
+    old: "monitors-inoperational",
+    path: `/dashboard/${PROJECT_ID}/monitors/inoperational`,
+    page: "MONITORS_INOPERATIONAL",
+  },
+  {
+    old: "scheduled-maintenance-ongoing",
+    path: `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/ongoing`,
+    page: "ONGOING_SCHEDULED_MAINTENANCE_EVENTS",
+  },
+];
+
 async function attentionGroups(page: Page): Promise<Array<string>> {
   return page
     .locator('[data-testid^="home-attention-group-"]')
@@ -321,45 +449,124 @@ test.describe("a busy project", () => {
     );
   });
 
-  test("the strip's cells open Home's own lists, which have the side menu the overview leaves out", async ({
+  test("each number opens its product's own list, and Back comes home to one page with no side menu", async ({
     page,
   }: {
     page: Page;
   }) => {
     await openReady(page);
 
-    // The overview draws every list itself, so its cards take the full width.
+    // One page: no side menu, so no menu sections and no Overview link.
     const menuSections: Locator = page.locator("h6");
     await expect(menuSections).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Overview" })).toHaveCount(0);
 
-    await stat(page, "active-incidents").click();
+    for (const list of PRODUCT_LISTS) {
+      await stat(page, list.stat).click();
 
-    await expect(page).toHaveURL(
-      new RegExp(`/dashboard/${PROJECT_ID}/home/active-incidents$`),
-    );
-    await expect(page.getByTestId("stub-page")).toHaveAttribute(
-      "data-page",
-      "HOME_ACTIVE_INCIDENTS",
-    );
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "Active Incidents",
-    );
-    await expect(menuSections).toHaveText([
-      "Home",
-      "Incidents",
-      "Alerts",
-      "Monitors",
-      "Scheduled Events",
-    ]);
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        list.page,
+      );
 
-    // Overview leads back, and the overview is again without the menu.
-    await page.getByRole("link", { name: "Overview" }).click();
-    await expect(page).toHaveURL(
-      new RegExp(`/dashboard/${PROJECT_ID}/home/?$`),
-    );
-    await expect(page.getByTestId("home-project-health")).toBeVisible();
-    await expect(menuSections).toHaveCount(0);
+      const where: { pathname: string; search: string; hash: string } =
+        await whereIs(page);
+
+      expect({
+        pathname: where.pathname,
+        state: listStateIn(where.search),
+        hash: where.hash,
+      }).toEqual({ pathname: list.path, state: list.state, hash: "" });
+
+      await page.goBack();
+      await expect(page.getByTestId("home-overview-stats")).toBeVisible();
+      expect((await whereIs(page)).pathname).toBe(HOME);
+      await expect(menuSections).toHaveCount(0);
+    }
+  });
+
+  test("each View all in Needs attention opens the same list as its number", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    for (const list of PRODUCT_LISTS) {
+      await page
+        .getByTestId(`home-attention-group-${list.group}-view-all`)
+        .click();
+
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        list.page,
+      );
+
+      const where: { pathname: string; search: string; hash: string } =
+        await whereIs(page);
+
+      expect({
+        pathname: where.pathname,
+        state: listStateIn(where.search),
+      }).toEqual({ pathname: list.path, state: list.state });
+
+      await page.goBack();
+      await expect(page.getByTestId("home-attention-total")).toBeVisible();
+    }
+  });
+
+  test("the addresses of Home's old lists forward to the products' own, keeping the query and the hash", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page);
+
+    for (const [index, list] of OLD_HOME_LISTS.entries()) {
+      await page.goto(`${HOME}${list.old}?page=2#top`);
+
+      await expect(page.getByTestId("stub-page")).toHaveAttribute(
+        "data-page",
+        list.page,
+        { timeout: 60000 },
+      );
+      expect(await whereIs(page)).toEqual({
+        pathname: list.path,
+        search: "?page=2",
+        hash: "#top",
+      });
+      // Home's frame never drew on the way.
+      await expect(page.getByTestId("home-overview-stats")).toHaveCount(0);
+
+      if (index === 0) {
+        // The old address is replaced: Back skips it, and comes home.
+        await page.goBack();
+        await expect(page.getByTestId("home-overview-stats")).toBeVisible({
+          timeout: 60000,
+        });
+        expect((await whereIs(page)).pathname).toBe(HOME);
+      }
+    }
+  });
+
+  test("Home without its slash is Home, and an address under Home that never was a page lands on Home", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.clock.setFixedTime(NOW);
+    await page.goto(HOME.replace(/\/$/, ""));
+    await expect(page.getByTestId("home-overview-stats")).toBeVisible({
+      timeout: 60000,
+    });
+    expect((await whereIs(page)).pathname).toBe(HOME.replace(/\/$/, ""));
+
+    await page.goto(`${HOME}not-a-page`);
+    await expect(page.getByTestId("home-overview-stats")).toBeVisible({
+      timeout: 60000,
+    });
+    expect((await whereIs(page)).pathname).toBe(HOME);
+    await expect(page.getByTestId("stub-page")).toHaveCount(0);
   });
 
   test("lists what the project is made of, and what is coming up", async ({
@@ -538,6 +745,31 @@ test.describe("the verdicts", () => {
     await expect(page.getByTestId("home-upcoming-row")).toHaveCount(1);
 
     await screenshot(page, "home-healthy");
+  });
+
+  test("healthy: with no SLO at risk, the SLO number opens the whole SLOs list", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=healthy");
+
+    await expect(stat(page, "slos-needing-attention")).toHaveText("0");
+    await expect(statStatus(page, "slos-needing-attention")).toHaveText(
+      "Budgets healthy",
+    );
+
+    await stat(page, "slos-needing-attention").click();
+
+    await expect(page.getByTestId("stub-page")).toHaveAttribute(
+      "data-page",
+      "SLOS",
+    );
+    expect(await whereIs(page)).toEqual({
+      pathname: `/dashboard/${PROJECT_ID}/slos`,
+      search: "",
+      hash: "",
+    });
   });
 
   test("needs attention: alerts, a degraded monitor and an SLO at risk", async ({

@@ -11,7 +11,7 @@ Die Startseite ist die erste Seite, die Sie in einem Projekt sehen. Sie zeigt au
 
 ## Was die Startseite zeigt
 
-Öffnen Sie **Startseite** in der Leiste oben, oder drücken Sie von überall `g` und dann `h`. Die Startseite ist die Übersicht Ihres Projekts. Von oben nach unten zeigt sie:
+Öffnen Sie **Startseite** in der Leiste oben, oder drücken Sie von überall `g` und dann `h`. Die Startseite ist die Übersicht Ihres Projekts, eine einzige Seite ohne Seitenmenü. Von oben nach unten zeigt sie:
 
 1. Ein Suchfeld, daneben **Vorfall melden** und **Erstellen**.
 2. Eine Zeile, die sagt, ob etwas nicht stimmt, über fünf Zahlen, die zählen, was Aufmerksamkeit braucht.
@@ -42,17 +42,17 @@ Solange noch nichts überwacht wird, endet die Zeile mit der Schaltfläche **Ers
 
 ### Die fünf Zahlen
 
-Jede Zahl zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet die Liste dahinter.
+Jede Zahl zählt etwas, sagt, ob das Ihre Aufmerksamkeit braucht, und öffnet die Liste dahinter, in dem Produkt, zu dem sie gehört.
 
-| Zahl | Was sie zählt | Wenn die Zahl null ist |
-| --- | --- | --- |
-| **Aktive Vorfälle** | Vorfälle, die nicht behoben sind | **Alles in Ordnung** |
-| **Aktive Warnungen** | Warnungen, die nicht behoben sind | **Alles in Ordnung** |
-| **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore und Monitore mit ausgeschalteter Überwachung zählen nicht mit. | **Alle betriebsbereit** |
-| **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** |
-| **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** |
+| Zahl | Was sie zählt | Wenn die Zahl null ist | Öffnet |
+| --- | --- | --- | --- |
+| **Aktive Vorfälle** | Vorfälle, die nicht behoben sind | **Alles in Ordnung** | **Vorfälle → Aktive Vorfälle** |
+| **Aktive Warnungen** | Warnungen, die nicht behoben sind | **Alles in Ordnung** | **Warnungen → Aktive Warnungen** |
+| **Nicht betriebsbereite Monitore** | Monitore, deren Status kein betriebsbereiter ist. Archivierte Monitore und Monitore mit ausgeschalteter Überwachung zählen nicht mit. | **Alle betriebsbereit** | **Monitore → Nicht betriebsbereit** |
+| **Laufende Wartung** | Geplante Wartungsereignisse, die gerade laufen | **Keine laufenden** | **Geplante Wartung → Laufende Ereignisse** |
+| **Gefährdete SLOs** | Eingeschaltete SLOs, die gefährdet sind oder ihr Fehlerbudget aufgebraucht haben | **Budgets in Ordnung** | **SLOs** |
 
-Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Ein Projekt ohne Monitore sieht **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
+Eine Zahl über null zeigt **Erfordert Aufmerksamkeit**, bei Wartung und SLOs **Läuft gerade** und **Budget wird verbraucht**. Solange ein SLO gefährdet ist, öffnet **Gefährdete SLOs** die Liste **SLOs**, gefiltert auf genau diese SLOs. Ein Projekt ohne Monitore sieht **Noch keine Monitore**, eines ohne SLOs **Noch keine SLOs**: Ein leeres Projekt ist nicht dasselbe wie ein gesundes. Diese beiden öffnen dann die Listen **Monitore** und **SLOs**, in denen Sie einen anlegen.
 
 ### Die Willkommens-Checkliste
 
@@ -91,7 +91,7 @@ Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie
 
 ### Erfordert Aufmerksamkeit
 
-**Erfordert Aufmerksamkeit** führt mit Namen auf, was die Zahlen zählen: die offenen Vorfälle, die offenen Warnungen, die nicht betriebsbereiten Monitore, die gefährdeten SLOs und die laufenden Wartungen, das Dringendste zuerst. Jede Zeile zeigt ihren Schweregrad oder Status, sagt, wann ein Vorfall oder eine Warnung begonnen hat und wann eine Wartung endet, und öffnet den Eintrag. Von jeder Art erscheinen bis zu fünf, mit **Alle anzeigen** für den Rest. Wenn nichts offen ist, steht dort **Nichts erfordert Ihre Aufmerksamkeit**.
+**Erfordert Aufmerksamkeit** führt mit Namen auf, was die Zahlen zählen: die offenen Vorfälle, die offenen Warnungen, die nicht betriebsbereiten Monitore, die gefährdeten SLOs und die laufenden Wartungen, das Dringendste zuerst. Jede Zeile zeigt ihren Schweregrad oder Status, sagt, wann ein Vorfall oder eine Warnung begonnen hat und wann eine Wartung endet, und öffnet den Eintrag. Von jeder Art erscheinen bis zu fünf, mit **Alle anzeigen** für den Rest: Es öffnet dieselbe Liste wie die Zahl dieser Art. Wenn nichts offen ist, steht dort **Nichts erfordert Ihre Aufmerksamkeit**.
 
 ### Ihr Projekt
 
@@ -102,20 +102,6 @@ Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie
 ### OneUptime erkunden
 
 **OneUptime erkunden** zeigt die Produkte des Menüs **Produkte** Kategorie für Kategorie, beginnend mit den Grundlagen. Jedes Produkt sagt, wofür es da ist, und öffnet sich, wenn Sie darauf klicken.
-
-### Das Seitenmenü der Startseite
-
-Die Startseite selbst hat kein Seitenmenü: Sie zeigt bereits alles, was das Menü zeigen würde. Die Listen, die sie öffnet, teilen sich eines, das jede Liste mit ihrer Anzahl zeigt und über **Übersicht** zur Startseite zurückführt:
-
-| Abschnitt | Seiten |
-| --- | --- |
-| **Startseite** | **Übersicht** |
-| **Vorfälle** | **Aktive Vorfälle** und **Aktive Episoden** |
-| **Warnungen** | **Aktive Warnungen** und **Aktive Episoden** |
-| **Monitore** | **Nicht betriebsbereit** |
-| **Geplante Ereignisse** | **Laufend** |
-
-Eine Episode fasst zusammengehörige Vorfälle oder Warnungen zusammen, damit Sie sie als eins bearbeiten. Siehe [Grundkonzepte](/docs/introduction/core-concepts#vorfälle-und-warnungen).
 
 ## Sich zurechtfinden
 

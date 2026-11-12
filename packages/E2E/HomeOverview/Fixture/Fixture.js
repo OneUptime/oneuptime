@@ -1,10 +1,12 @@
 /*
  * Offline fixture for the real dashboard Home page.
  *
- * The Home Layout (Page + the Home side menu) and the Home page are the
- * production components from this branch, mounted under their real RouteMap
- * patterns. Only the data boundary (ModelAPI / API) and the signed-in user
- * are replaced.
+ * The Home Layout (Page, with no side menu: Home is one page, #6857), the
+ * Home page and the forwards from Home's old list addresses
+ * (Routes/MovedHomeRoutes) are the production components from this branch,
+ * mounted under their real RouteMap patterns as App.tsx mounts them. Only
+ * the data boundary (ModelAPI / API) and the signed-in user are replaced.
+ * The products' lists Home opens are stubs that say which list they are.
  *
  * Every record is fabricated for a generic "Acme Commerce" workspace. The
  * clock is pinned: every date is relative to NOW = 2026-10-13T12:00:00Z and
@@ -81,6 +83,7 @@ import Help from "../../../App/FeatureSet/Dashboard/src/Components/Header/Help";
 import HowOneUptimeWorksDialog from "../../../App/FeatureSet/Dashboard/src/Components/Home/HowOneUptimeWorksDialog";
 import HomeLayout from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
 import Home from "../../../App/FeatureSet/Dashboard/src/Pages/Home/Home";
+import MovedHomeRoutes from "../../../App/FeatureSet/Dashboard/src/Routes/MovedHomeRoutes";
 import EventName from "../../../App/FeatureSet/Dashboard/src/Utils/EventName";
 import RouteMap from "../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import PageMap from "../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
@@ -1251,12 +1254,7 @@ function memberReadiness() {
 function memberShifts() {
   // Tomorrow, 09:00 to 17:00 UTC.
   const start = new Date(
-    Date.UTC(
-      NOW.getUTCFullYear(),
-      NOW.getUTCMonth(),
-      NOW.getUTCDate() + 1,
-      9,
-    ),
+    Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), NOW.getUTCDate() + 1, 9),
   );
   const end = new Date(start.getTime() + 8 * HOUR);
 
@@ -1416,38 +1414,19 @@ function StubPage(props) {
 }
 
 /*
- * One of Home's own lists, drawn inside the Home layout, whose Page already
- * has the list's title as its heading: says where it is, with no heading of
- * its own.
+ * The products' own lists Home opens: its numbers, View all and the old
+ * addresses of Home's copies of them (#6857). Each is a stub that names
+ * the list, so the spec can tell where a click or a forward ended up.
  */
-function InLayoutStubPage(props) {
-  useNavigationHooks();
-  const location = useLocation();
-  return (
-    <p
-      data-testid="stub-page"
-      data-page={props.pageKey}
-      className="rounded-xl border border-gray-200 bg-white p-6 font-mono text-sm text-gray-600"
-    >
-      {location.pathname}
-    </p>
-  );
-}
-
-// Home's own lists, drawn in the Home layout beside its side menu.
-const HOME_TABS = [
-  [PageMap.HOME_ACTIVE_INCIDENTS, "Active Incidents"],
-  [PageMap.HOME_ACTIVE_ALERTS, "Active Alerts"],
-  [PageMap.HOME_ACTIVE_EPISODES, "Active Alert Episodes"],
-  [PageMap.HOME_ACTIVE_INCIDENT_EPISODES, "Active Incident Episodes"],
-  [PageMap.HOME_NOT_OPERATIONAL_MONITORS, "Not Operational Monitors"],
-  [
-    PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
-    "Ongoing Scheduled Maintenance",
-  ],
-].filter(([pageKey]) => {
-  return Boolean(pageKey && RouteMap[pageKey]);
-});
+const PRODUCT_LISTS = [
+  [PageMap.UNRESOLVED_INCIDENTS, "Active Incidents"],
+  [PageMap.UNRESOLVED_INCIDENT_EPISODES, "Active Incident Episodes"],
+  [PageMap.UNRESOLVED_ALERTS, "Active Alerts"],
+  [PageMap.UNRESOLVED_ALERT_EPISODES, "Active Alert Episodes"],
+  [PageMap.MONITORS_INOPERATIONAL, "Not Operational Monitors"],
+  [PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS, "Ongoing Events"],
+  [PageMap.SLOS, "SLOs"],
+];
 
 function FixtureApp() {
   useNavigationHooks();
@@ -1479,16 +1458,21 @@ function FixtureApp() {
             path={RouteMap[PageMap.HOME].toString()}
             element={<HomePage />}
           />
-          {HOME_TABS.map(([pageKey]) => {
-            return (
-              <Route
-                key={pageKey}
-                path={RouteMap[pageKey].toString()}
-                element={<InLayoutStubPage pageKey={pageKey} />}
-              />
-            );
-          })}
         </Route>
+        {/* Home's old lists, forwarded to the products' own lists. */}
+        <Route
+          path={RouteMap[PageMap.MOVED_HOME_LISTS_ROOT].toString()}
+          element={<MovedHomeRoutes />}
+        />
+        {PRODUCT_LISTS.map(([pageKey, title]) => {
+          return (
+            <Route
+              key={pageKey}
+              path={RouteMap[pageKey].toString()}
+              element={<StubPage pageKey={pageKey} title={title} />}
+            />
+          );
+        })}
         <Route
           path="*"
           element={<StubPage pageKey="other" title="Not modelled" />}

@@ -334,6 +334,42 @@ export const getSloStatusSummaryTileSelections: GetSloStatusSummaryTileSelection
   };
 
 /*
+ * The statuses that mean a reliability target is in trouble: the error budget
+ * is below the at-risk threshold, or spent. Misconfigured and Paused are a
+ * setup problem, not a burning budget, and stay out. Home's SLOs at risk
+ * counts the turned-on SLOs in these, and opens this list showing exactly
+ * those (getSlosAtRiskSelections).
+ */
+export const SLO_STATUSES_AT_RISK: Array<SloStatus> = [
+  SloStatus.AtRisk,
+  SloStatus.BudgetExhausted,
+];
+
+/*
+ * The chips that show the SLOs at risk, as the tiles' own chips do: Status on
+ * both statuses, and Enabled on turned-on SLOs only - a turned-off SLO keeps
+ * its last status, but the list shows it as Disabled and nothing counts it as
+ * burning. Built fresh on every call so no caller can change another's.
+ */
+export type GetSlosAtRiskSelectionsFunction = () => Array<FacetTileSelection>;
+
+export const getSlosAtRiskSelections: GetSlosAtRiskSelectionsFunction =
+  (): Array<FacetTileSelection> => {
+    return [
+      {
+        facetKey: SLO_ENABLED_FACET_KEY,
+        values: [SloEnabledFacetValue.Enabled],
+        operator: "is",
+      },
+      {
+        facetKey: SLO_STATUS_FACET_KEY,
+        values: [...SLO_STATUSES_AT_RISK],
+        operator: "is",
+      },
+    ];
+  };
+
+/*
  * Is the bar already showing exactly what this tile describes? Drives both the
  * tile's pressed state and its toggle-off, so a tile that looks lit is always
  * the one a second click turns off.

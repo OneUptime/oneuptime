@@ -55,9 +55,10 @@ import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.j
  * no `hidden` on its way up, which is why it survived and the page looked half
  * broken rather than broken.
  *
- * These render the real nav bar, the real master page and the real Home side
- * menu (on Active Incidents: Home's overview draws every list itself and has
- * no menu), and resolve what a browser with that rule would paint. Each group ends
+ * These render the real nav bar, the real master page and a real product's
+ * side menu - Alerts', on Active Alerts, the list Home's Active alerts number
+ * opens (Home itself is one page with no side menu) - and resolve what a
+ * browser with that rule would paint. Each group ends
  * with a control that puts the pre-fix class strings back on the rendered
  * markup and shows the same assertion failing — so the tests are proven to
  * catch the regression, not merely to pass.
@@ -76,8 +77,8 @@ jest.mock("../../../UI/Images/logos/OneUptimeSVG/3-transparent.svg", () => {
 const countMock: MockFunction = getJestMockFunction();
 
 /*
- * The header counts incidents and alerts, and the Home side menu counts what
- * is active; none of those numbers bears on what is painted.
+ * The header counts incidents and alerts, and the Alerts side menu counts
+ * what is active; none of those numbers bears on what is painted.
  */
 jest.mock("../../../UI/Utils/ModelAPI/ModelAPI", () => {
   return {
@@ -166,7 +167,7 @@ import { JSONObject } from "../../../Types/JSON";
 import Project from "../../../Models/DatabaseModels/Project";
 import DashboardNavbar from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/NavBar";
 import DashboardMasterPage from "../../../../App/FeatureSet/Dashboard/src/Components/MasterPage/MasterPage";
-import HomeLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Home/Layout";
+import AlertsLayout from "../../../../App/FeatureSet/Dashboard/src/Pages/Alerts/Layout";
 import PageMap from "../../../../App/FeatureSet/Dashboard/src/Utils/PageMap";
 import RouteMap from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 
@@ -191,8 +192,8 @@ const PROJECT_NAME: string = "Acme Production";
 
 const HOME_PATH: string = `/dashboard/${PROJECT_ID}/home`;
 
-// One of the lists Home opens, which carry Home's side menu.
-const HOME_LIST_PATH: string = `/dashboard/${PROJECT_ID}/home/active-incidents`;
+// The list Home's Active alerts number opens, under the Alerts side menu.
+const ALERTS_LIST_PATH: string = `/dashboard/${PROJECT_ID}/alerts/unresolved`;
 
 type VisibleWithRuleFunction = (width: number) => string;
 
@@ -259,32 +260,31 @@ const renderMasterPage: RenderFunction = async (): Promise<void> => {
 };
 
 /*
- * The Home layout with its real side menu on Active Incidents, routed as
- * App.tsx routes it: a pathless layout route wrapping the list's own route.
+ * The Alerts layout with its real side menu on Active Alerts, routed the way
+ * its route group routes it: a pathless layout route wrapping the list's own
+ * route.
  */
-const renderHomeLayout: RenderFunction = async (): Promise<void> => {
+const renderAlertsLayout: RenderFunction = async (): Promise<void> => {
   // The menu fills its links from the address, as on any page.
-  goTo(HOME_LIST_PATH);
+  goTo(ALERTS_LIST_PATH);
 
   await act(async () => {
     render(
-      <MemoryRouter initialEntries={[HOME_LIST_PATH]}>
+      <MemoryRouter initialEntries={[ALERTS_LIST_PATH]}>
         <I18nextProvider i18n={translation}>
           <Routes>
             <PageRoute
               element={
-                <HomeLayout
+                <AlertsLayout
                   currentProject={buildProject()}
                   hasPaymentMethod={true}
-                  pageRoute={RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route}
+                  pageRoute={RouteMap[PageMap.UNRESOLVED_ALERTS] as Route}
                 />
               }
             >
               <PageRoute
-                path={(
-                  RouteMap[PageMap.HOME_ACTIVE_INCIDENTS] as Route
-                ).toString()}
-                element={<div>Active Incidents content</div>}
+                path={(RouteMap[PageMap.UNRESOLVED_ALERTS] as Route).toString()}
+                element={<div>Active Alerts content</div>}
               />
             </PageRoute>
           </Routes>
@@ -316,7 +316,7 @@ const getProjectPicker: GetElementFunction = (): HTMLElement => {
   return picker;
 };
 
-const getHomeSideMenu: GetElementFunction = (): HTMLElement => {
+const getSideMenu: GetElementFunction = (): HTMLElement => {
   return screen.getByRole("navigation", { name: "Main navigation" });
 };
 
@@ -529,23 +529,23 @@ describe("customer regression: with one project, the picker and the nav bar are 
   });
 });
 
-describe("the Home page's side menu under a foreign .hidden rule", () => {
+describe("a product's side menu under a foreign .hidden rule", () => {
   test.each(DESKTOP_WIDTHS_IN_PX)(
     "at %ipx the side menu and its links are on screen with the rule",
     async (width: number) => {
       // The side menu, too, picks its layout from the window width.
       setViewportWidth(width);
 
-      await renderHomeLayout();
+      await renderAlertsLayout();
 
-      const sideMenu: HTMLElement = getHomeSideMenu();
+      const sideMenu: HTMLElement = getSideMenu();
 
       expect(
         describeVisibility(sideMenu, width, WITH_FOREIGN_HIDDEN_RULE),
       ).toBe(visibleWithRule(width));
       expect(
         describeVisibility(
-          within(sideMenu).getByRole("link", { name: /Active Incidents/ }),
+          within(sideMenu).getByRole("link", { name: /Active Alerts/ }),
           width,
           WITH_FOREIGN_HIDDEN_RULE,
         ),
@@ -556,7 +556,7 @@ describe("the Home page's side menu under a foreign .hidden rule", () => {
   test("below md it hands over to its phone toggle, which the rule leaves alone", async () => {
     setViewportWidth(MD_WIDTH_IN_PX - 1);
 
-    await renderHomeLayout();
+    await renderAlertsLayout();
 
     expect(
       describeVisibility(
@@ -570,11 +570,11 @@ describe("the Home page's side menu under a foreign .hidden rule", () => {
   test("control: with the pre-fix `hidden md:block` put back, the side menu vanishes at 1917px", async () => {
     setViewportWidth(WIDE_DESKTOP_WIDTH_IN_PX);
 
-    await renderHomeLayout();
+    await renderAlertsLayout();
 
     restorePreFixMarkup();
 
-    const sideMenu: HTMLElement = getHomeSideMenu();
+    const sideMenu: HTMLElement = getSideMenu();
 
     expect(sideMenu.getAttribute("class")).toMatch(/^hidden md:block /);
     expect(
