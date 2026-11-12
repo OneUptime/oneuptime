@@ -96,11 +96,15 @@ const WorkspaceLogsTable: FunctionComponent<WorkspaceLogsTableProps> = (
         );
       },
     },
+    /*
+     * A row in no channel - a summary that cannot be sent as it is set up
+     * (#7116) - shows the quiet dash an empty cell has, as User does: a
+     * "-" of its own was drawn as dark as a channel's name.
+     */
     {
       field: { channelName: true },
       title: "Channel",
       type: FieldType.Text,
-      noValueMessage: "-",
     },
     {
       field: {

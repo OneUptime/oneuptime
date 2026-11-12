@@ -143,6 +143,7 @@ import MicrosoftTeamsProjectChoice, {
 } from "./MicrosoftTeamsProjectChoice";
 import { WorkspaceProjectChoiceTaken } from "../WorkspaceProjectChoiceStore";
 import WorkspaceInlineImages from "../WorkspaceInlineImages";
+import WorkspaceChannelNotFound from "../WorkspaceChannelNotFound";
 import ChatInlineImages from "../../../../Utils/Markdown/ChatInlineImages";
 import { replacePipeTables } from "../../../../Utils/Markdown/PipeTables";
 import { cutToLength } from "../../../../Utils/Markdown/OverLongText";
@@ -1982,7 +1983,10 @@ export default class MicrosoftTeamsUtil extends WorkspaceBase {
             workspaceType: WorkspaceType.MicrosoftTeams,
             teamId: data.workspaceMessagePayload.teamId,
           },
-          error: `Channel "${channelName}" was not found in this Microsoft Teams team. It may have been renamed or deleted.`,
+          error: WorkspaceChannelNotFound.getReason({
+            workspaceType: WorkspaceType.MicrosoftTeams,
+            channelName: channelName,
+          }),
         });
       }
     }

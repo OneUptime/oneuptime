@@ -361,7 +361,7 @@ Verleen **TeamsAppInstallation.ReadForTeam.All** (stap 2), zodat OneUptime je ve
 
 Installatie gebeurt per team. OneUptime aan één team toevoegen doet niets voor een ander team, en de integratie verbinden ook niet: dat verleent tenantbrede Graph-*leestoegang*, en daarom kan de kanaalkiezer je kanalen tonen uit teams waarin de bot niet kan posten. Voer **stap 9** uit in elk team waarin je meldingen wilt.
 
-### "Testregel" werkt, maar echte meldingen komen nooit aan
+### "Regel testen" werkt, maar echte meldingen komen nooit aan
 
 Controleer welke bestemmingen de regel werkelijk heeft ingeschakeld. Een regel test alleen waarvoor hij is ingesteld: met **Een kanaal aanmaken voor elk incident** aan maakt de test een kanaal en post daarin, wat bewijst dat de bot kan posten *in het team waarin dat kanaal is gemaakt*, en niets over enig ander team. **Projectinstellingen > Meldingen > Meldingslogboeken** legt elke testverzending vast, inclusief de exacte fout van Microsoft als er een mislukt.
 
