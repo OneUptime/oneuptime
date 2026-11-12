@@ -3,6 +3,7 @@ import DashboardKubernetesPodListComponent from "Common/Types/Dashboard/Dashboar
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardKubernetesResourceListBase from "./DashboardKubernetesResourceListBase";
@@ -129,8 +130,16 @@ function renderPodRow(r: KubernetesResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">{namespace}</td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
+      <ResourceListNameCell
+        name={namespace}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
       <td className="px-3 py-2">
         <span
           className="inline-flex items-center gap-1.5 text-xs font-medium"
@@ -143,9 +152,10 @@ function renderPodRow(r: KubernetesResource): ReactElement {
           <span style={{ color: phaseStyle.text }}>{phase}</span>
         </span>
       </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {clusterName}
-      </td>
+      <ResourceListNameCell
+        name={clusterName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

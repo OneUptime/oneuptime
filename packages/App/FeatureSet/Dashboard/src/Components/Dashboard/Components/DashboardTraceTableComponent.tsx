@@ -19,6 +19,7 @@ import ComponentLoader from "Common/UI/Components/ComponentLoader/ComponentLoade
 import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import IconProp from "Common/Types/Icon/IconProp";
 import WidgetPlaceholder from "./WidgetPlaceholder";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import { RangeStartAndEndDateTimeUtil } from "Common/Types/Time/RangeStartAndEndDateTime";
 import InBetween from "Common/Types/BaseDatabase/InBetween";
 import JSONFunctions from "Common/Types/JSONFunctions";
@@ -333,16 +334,16 @@ const DashboardTraceTableComponentElement: FunctionComponent<ComponentProps> = (
                   </td>
                   {groupKeys.map((key: string) => {
                     return (
-                      <td
+                      <DashboardWidgetLine
                         key={key}
-                        className="max-w-[280px] truncate whitespace-nowrap px-3 py-2 text-sm text-gray-700"
-                      >
-                        {displayGroupValue(
+                        as="td"
+                        text={displayGroupValue(
                           key,
                           row.groupValues[key] || "",
                           translator,
                         )}
-                      </td>
+                        className="max-w-[280px] truncate whitespace-nowrap px-3 py-2 text-sm text-gray-700"
+                      />
                     );
                   })}
                   <td className="whitespace-nowrap px-3 py-2 text-right font-mono text-sm font-semibold tabular-nums text-gray-800">

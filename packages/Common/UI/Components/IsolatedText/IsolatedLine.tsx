@@ -39,6 +39,31 @@ const ONE_LINE_CLASS_NAME_PATTERN: RegExp =
   /(?:^|\s)(?:truncate|whitespace-nowrap|text-nowrap)(?=\s|$)/;
 
 /*
+ * A box whose line sits in its middle (text-center): a gauge's or a
+ * tile's title on a dashboard. It is in the middle whichever way it
+ * reads, so it keeps its place: aligned to its end, a short English title
+ * on an Arabic tile would leave the middle for the tile's side.
+ */
+const CENTRED_CLASS_NAME_PATTERN: RegExp = /(?:^|\s)text-center(?=\s|$)/;
+
+/*
+ * Whether a box of these classes centres its line. Such a box reading the
+ * other way from the page takes only its dir: centred as it was, and,
+ * when its words are too long for it, run from their own start and cut at
+ * their own end, as every line too long for its box is. Exported for its
+ * tests.
+ */
+export const isCentredLineClassName: (
+  className: string | null | undefined,
+) => boolean = (className: string | null | undefined): boolean => {
+  if (!className) {
+    return false;
+  }
+
+  return CENTRED_CLASS_NAME_PATTERN.test(className);
+};
+
+/*
  * Whether a box of these classes says its words wrap (and nothing keeps
  * them to one line). Such a box aligned to its end, as a one-line box is,
  * lines up every one of its lines by its end: an English paragraph on an
@@ -78,6 +103,11 @@ export const getIsolatedLine: (data: {
 
   if (!dir) {
     return { dir: undefined, className: className };
+  }
+
+  // Centred: in the middle whichever way it reads (isCentredLineClassName).
+  if (isCentredLineClassName(className)) {
+    return { dir: dir, className: className };
   }
 
   /*

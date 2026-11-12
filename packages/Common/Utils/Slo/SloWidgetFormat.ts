@@ -7,6 +7,7 @@ import {
 import { isRightToLeftLanguage } from "../../Types/ReadingDirection";
 import SloStatus from "../../Types/ServiceLevelObjective/SloStatus";
 import {
+  fillTemplate,
   PluralTemplate,
   SentenceOptions,
   translationKey,
@@ -438,12 +439,8 @@ export const getSloHistoryMetricName: GetSloHistoryMetricNameFunction = (
   return "sli.percent";
 };
 
-/**
- * Widget header: the author's title wins; otherwise fall back to the SLO
- * name plus the metric label so an unnamed widget still says what it is.
- * A whitespace-only title counts as empty.
- */
-export type GetSloWidgetTitleFunction = (data: {
+/** What the widget's header is made of (getSloWidgetTitle). */
+export interface SloWidgetTitleData {
   widgetTitle?: string | undefined | null;
   sloName?: string | undefined | null;
   sloMetric?: SloWidgetMetric | undefined | null;
@@ -460,46 +457,88 @@ export type GetSloWidgetTitleFunction = (data: {
    * between two facts on a line (getInlineSeparator).
    */
   translator?: Translator | undefined;
-}) => string;
+}
 
-export const getSloWidgetTitle: GetSloWidgetTitleFunction = (data: {
-  widgetTitle?: string | undefined | null;
-  sloName?: string | undefined | null;
-  sloMetric?: SloWidgetMetric | undefined | null;
-  followsSelection?: boolean | undefined;
-  translator?: Translator | undefined;
-}): string => {
+/**
+ * A header that holds the SLO's name, in pieces: the sentence around the
+ * name - its English template, a key of the locales - and the name, as
+ * written.
+ *
+ * Drawn as one line, the sentence reads the reader's way, so on an Arabic
+ * dashboard an English name in it lost its START where the tile cut the
+ * line ("...T AVAILABILITY (EU WEST, 30 DAYS)"), and took the metric after
+ * it out of sight. The widget draws a name that reads the other way in a
+ * box of its own (TranslatedSentence), cut at its own end.
+ */
+export interface SloWidgetTitleSentence {
+  template: string;
+  name: string;
+  // The sentence's other value: the metric's label, or the author's title.
+  values: Record<string, string>;
+}
+
+export type GetSloWidgetTitleSentenceFunction = (
+  data: SloWidgetTitleData,
+) => SloWidgetTitleSentence | null;
+
+/*
+ * Null for a header of one piece: the author's own title on a pinned
+ * widget, or the metric's label before the SLO's name is known.
+ */
+export const getSloWidgetTitleSentence: GetSloWidgetTitleSentenceFunction = (
+  data: SloWidgetTitleData,
+): SloWidgetTitleSentence | null => {
   const trimmedTitle: string = (data.widgetTitle || "").trim();
   const trimmedName: string = (data.sloName || "").trim();
-  const translator: Translator | undefined = data.translator;
+
+  if (!trimmedName || (trimmedTitle && !data.followsSelection)) {
+    return null;
+  }
 
   if (trimmedTitle) {
-    if (!data.followsSelection || !trimmedName) {
-      return trimmedTitle;
-    }
-
-    return translator
-      ? translator.translateTemplate(
-          "{{name}} · {{title}}",
-          { name: trimmedName, title: trimmedTitle },
-          TITLE_OPTIONS,
-        )
-      : `${trimmedName} · ${trimmedTitle}`;
+    return {
+      template: "{{name}} · {{title}}",
+      name: trimmedName,
+      values: { title: trimmedTitle },
+    };
   }
 
-  const metricLabel: string = getSloMetricLabel(data.sloMetric, translator);
+  return {
+    template: "{{name}} · {{metric}}",
+    name: trimmedName,
+    values: { metric: getSloMetricLabel(data.sloMetric, data.translator) },
+  };
+};
 
-  if (!trimmedName) {
-    return metricLabel;
+/**
+ * Widget header: the author's title wins; otherwise fall back to the SLO
+ * name plus the metric label so an unnamed widget still says what it is.
+ * A whitespace-only title counts as empty.
+ */
+export type GetSloWidgetTitleFunction = (data: SloWidgetTitleData) => string;
+
+export const getSloWidgetTitle: GetSloWidgetTitleFunction = (
+  data: SloWidgetTitleData,
+): string => {
+  const translator: Translator | undefined = data.translator;
+  const sentence: SloWidgetTitleSentence | null =
+    getSloWidgetTitleSentence(data);
+
+  if (!sentence) {
+    return (
+      (data.widgetTitle || "").trim() ||
+      getSloMetricLabel(data.sloMetric, translator)
+    );
   }
+
+  const values: Record<string, string> = {
+    name: sentence.name,
+    ...sentence.values,
+  };
 
   return translator
-    ? translator.translateTemplate(
-        "{{name}} · {{metric}}",
-        { name: trimmedName, metric: metricLabel },
-        TITLE_OPTIONS,
-      )
-    : `${trimmedName} · ${metricLabel}`;
+    ? translator.translateTemplate(sentence.template, values, TITLE_OPTIONS)
+    : fillTemplate(sentence.template, values);
 };
 
 /**

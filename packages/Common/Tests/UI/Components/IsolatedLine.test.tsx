@@ -6,6 +6,7 @@ import React, { ReactElement } from "react";
 import { I18nextProvider } from "react-i18next";
 import IsolatedLine, {
   getIsolatedLine,
+  isCentredLineClassName,
   isWrappingLineClassName,
 } from "../../../UI/Components/IsolatedText/IsolatedLine";
 import Pill from "../../../UI/Components/Pill/Pill";
@@ -445,6 +446,117 @@ describe("a line whose classes say it wraps", () => {
     expect(screen.getByTestId("one-line")).toHaveClass(
       LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME,
     );
+  });
+});
+
+/*
+ * A LINE IN THE MIDDLE OF ITS BOX (#6858).
+ *
+ * A gauge's and an SLO tile's title sit centred over the tile
+ * (text-center). Aligned to its end as a one-line box is, a short English
+ * title on an Arabic board would leave the middle for the tile's right
+ * side; it keeps its place and takes only its dir, which is what cuts a
+ * long one at its own end: a line too long for its box runs from its own
+ * start, wherever it is aligned.
+ */
+describe("a line centred in its box", () => {
+  const TITLE_CLASS_NAME: string =
+    "text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center";
+
+  test.each(["ar", "fa"])(
+    "an English title on a %s page reads left to right and stays centred",
+    (language: string) => {
+      expect(isCentredLineClassName(TITLE_CLASS_NAME)).toBe(true);
+      expect(
+        getIsolatedLine({
+          text: ENGLISH_NAME,
+          pageLanguage: language,
+          className: TITLE_CLASS_NAME,
+        }),
+      ).toEqual({ dir: "ltr", className: TITLE_CLASS_NAME });
+    },
+  );
+
+  test("an Arabic title on an English page reads right to left and stays centred", () => {
+    expect(
+      getIsolatedLine({
+        text: ARABIC_NAME,
+        pageLanguage: "en",
+        className: "truncate text-center",
+      }),
+    ).toEqual({ dir: "rtl", className: "truncate text-center" });
+  });
+
+  test("a centred line cut to a few lines keeps its place as well", () => {
+    expect(
+      getIsolatedLine({
+        text: ENGLISH_NAME,
+        pageLanguage: "ar",
+        className: "line-clamp-2 text-center",
+      }),
+    ).toEqual({ dir: "ltr", className: "line-clamp-2 text-center" });
+  });
+
+  test("words that read the page's way are drawn exactly as they were", () => {
+    expect(
+      getIsolatedLine({
+        text: ARABIC_NAME,
+        pageLanguage: "ar",
+        className: TITLE_CLASS_NAME,
+      }),
+    ).toEqual({ dir: undefined, className: TITLE_CLASS_NAME });
+    expect(
+      getIsolatedLine({
+        text: ENGLISH_NAME,
+        pageLanguage: "en",
+        className: TITLE_CLASS_NAME,
+      }),
+    ).toEqual({ dir: undefined, className: TITLE_CLASS_NAME });
+  });
+
+  test("only the whole class counts: a variant's, a look-alike's or the start's and end's do not", () => {
+    for (const className of [
+      "md:text-center",
+      "hover:text-center",
+      "text-center-x",
+      "xtext-center",
+      "text-start",
+      "text-end",
+      "text-left",
+      "items-center justify-center",
+      "",
+    ]) {
+      expect(isCentredLineClassName(className)).toBe(false);
+    }
+
+    expect(isCentredLineClassName(undefined)).toBe(false);
+    expect(isCentredLineClassName(null)).toBe(false);
+    // A variant's centring is the page's at the other widths: aligned to its end.
+    expect(
+      getIsolatedLine({
+        text: ENGLISH_NAME,
+        pageLanguage: "ar",
+        className: "truncate md:text-center",
+      }).className,
+    ).toBe(`truncate md:text-center ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`);
+  });
+
+  test("drawn on a Persian page, the title is a centred line read left to right", () => {
+    drawOn(
+      "fa",
+      <IsolatedLine
+        text="Checkout availability"
+        className={TITLE_CLASS_NAME}
+        dataTestId="centred-title"
+      />,
+    );
+
+    const title: HTMLElement = screen.getByTestId("centred-title");
+
+    expect(title).toHaveAttribute("dir", "ltr");
+    expect(title).toHaveClass("text-center", "truncate");
+    expect(title).not.toHaveClass(LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME);
+    expect(title.className).toBe(TITLE_CLASS_NAME);
   });
 });
 

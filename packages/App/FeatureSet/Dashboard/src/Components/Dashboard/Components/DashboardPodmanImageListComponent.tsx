@@ -10,6 +10,7 @@ import DashboardPodmanImageListComponent from "Common/Types/Dashboard/DashboardC
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
@@ -198,13 +199,18 @@ const DashboardPodmanImageListComponentElement: FunctionComponent<
         key={id}
         className="hover:bg-gray-50/50 transition-colors duration-100 group"
       >
-        <td className="px-3 py-2 text-xs text-gray-700 truncate font-mono">
-          {name}
-        </td>
-        <td className="px-3 py-2 text-xs text-gray-500 truncate font-mono">
-          {imageId}
-        </td>
-        <td className="px-3 py-2 text-xs text-gray-500 truncate">{hostName}</td>
+        <ResourceListNameCell
+          name={name}
+          className="px-3 py-2 text-xs text-gray-700 truncate font-mono"
+        />
+        <ResourceListNameCell
+          name={imageId}
+          className="px-3 py-2 text-xs text-gray-500 truncate font-mono"
+        />
+        <ResourceListNameCell
+          name={hostName}
+          className="px-3 py-2 text-xs text-gray-500 truncate"
+        />
       </tr>
     );
   });

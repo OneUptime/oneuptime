@@ -1,4 +1,8 @@
-import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
+import {
+  SentenceOptions,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 import RangeStartAndEndDateTime from "Common/Types/Time/RangeStartAndEndDateTime";
 import { ProductAnalyticsEventKind } from "Common/Types/Rum/ProductAnalyticsEvents";
 import {
@@ -63,7 +67,16 @@ export const SESSION_START_EVENT: ProductAnalyticsEventRef = {
  * An event as the reader reads it: a session's start in their language, a
  * page view as "Viewed /pricing", one of the application's own events by
  * the name it sent.
+ *
+ * A page's path is set apart from the sentence around it (setsValuesApart):
+ * in "شاهد /pricing" its leading "/" sits between an Arabic word and a
+ * Latin one and took the sentence's way, so a funnel's step and the Events
+ * page read "pricing/". An English or German sentence is filled as it was.
+ * The label is only ever drawn (a funnel's step, the Events page's list),
+ * never sent or stored, so the isolate's marks go nowhere else.
  */
+const PAGE_VIEW_OPTIONS: SentenceOptions = { setsValuesApart: true };
+
 export function describeProductAnalyticsEvent(
   event: ProductAnalyticsEventRef,
   translator: Translator,
@@ -73,9 +86,11 @@ export function describeProductAnalyticsEvent(
   }
 
   if (event.kind === ProductAnalyticsEventKind.Page) {
-    return translator.translateTemplate(PAGE_VIEW_TEMPLATE, {
-      page: event.name,
-    });
+    return translator.translateTemplate(
+      PAGE_VIEW_TEMPLATE,
+      { page: event.name },
+      PAGE_VIEW_OPTIONS,
+    );
   }
 
   return event.name;
