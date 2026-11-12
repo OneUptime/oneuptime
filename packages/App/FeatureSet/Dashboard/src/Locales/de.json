@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "Was, wenn niemand antwortet?",
   "Who else is on call?": "Wer hat sonst Bereitschaft?",
   "Your phone number": "Deine Telefonnummer",
-  "{{name}} (not reachable yet)": "{{name}} (noch nicht erreichbar)"
+  "{{name}} (not reachable yet)": "{{name}} (noch nicht erreichbar)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Seine Bereitschaftsregeln entscheiden, welche Vorfälle und Warnungen „{{policy}}“ ausführen; es alarmiert {{people}}."
 }

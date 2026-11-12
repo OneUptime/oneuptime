@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "Hva om ingen svarer?",
   "Who else is on call?": "Hvem andre har vakt?",
   "Your phone number": "Telefonnummeret ditt",
-  "{{name}} (not reachable yet)": "{{name}} (kan ikke nås ennå)"
+  "{{name}} (not reachable yet)": "{{name}} (kan ikke nås ennå)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Vaktreglene avgjør hvilke hendelser og varsler som kjører «{{policy}}», som tilkaller {{people}}."
 }

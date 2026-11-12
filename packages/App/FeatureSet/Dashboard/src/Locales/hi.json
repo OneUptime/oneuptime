@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "अगर कोई जवाब न दे तो?",
   "Who else is on call?": "और कौन ऑन-कॉल है?",
   "Your phone number": "आपका फ़ोन नंबर",
-  "{{name}} (not reachable yet)": "{{name}} (अभी पहुँच से बाहर)"
+  "{{name}} (not reachable yet)": "{{name}} (अभी पहुँच से बाहर)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "कौन-सी घटनाएँ और अलर्ट \"{{policy}}\" चलाएँगे, यह इसके ऑन-कॉल नियम तय करते हैं; यह {{people}} को पेज करती है।"
 }

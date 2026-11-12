@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "ماذا لو لم يُجب أحد؟",
   "Who else is on call?": "من غيرك في المناوبة؟",
   "Your phone number": "رقم هاتفك",
-  "{{name}} (not reachable yet)": "{{name}} (لا يمكن الوصول إليه بعد)"
+  "{{name}} (not reachable yet)": "{{name}} (لا يمكن الوصول إليه بعد)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "تحدد قواعد المناوبة أي الحوادث والتنبيهات تشغّل «{{policy}}»، التي تستدعي {{people}}."
 }

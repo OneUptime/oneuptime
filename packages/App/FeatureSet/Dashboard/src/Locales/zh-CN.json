@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "如果无人响应怎么办？",
   "Who else is on call?": "还有谁值班？",
   "Your phone number": "你的电话号码",
-  "{{name}} (not reachable yet)": "{{name}}（暂时无法联系）"
+  "{{name}} (not reachable yet)": "{{name}}（暂时无法联系）",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "由值班规则决定哪些事件和警报运行“{{policy}}”，它会呼叫 {{people}}。"
 }

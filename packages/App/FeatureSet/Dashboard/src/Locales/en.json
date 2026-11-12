@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "What if nobody answers?",
   "Who else is on call?": "Who else is on call?",
   "Your phone number": "Your phone number",
-  "{{name}} (not reachable yet)": "{{name}} (not reachable yet)"
+  "{{name}} (not reachable yet)": "{{name}} (not reachable yet)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}."
 }

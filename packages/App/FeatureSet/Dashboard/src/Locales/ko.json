@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "아무도 응답하지 않으면?",
   "Who else is on call?": "다른 온콜 담당자는 누구인가요?",
   "Your phone number": "내 전화번호",
-  "{{name}} (not reachable yet)": "{{name}}(아직 연락 불가)"
+  "{{name}} (not reachable yet)": "{{name}}(아직 연락 불가)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "어떤 인시던트와 경고가 \"{{policy}}\"를 실행할지는 온콜 규칙이 정하며, 이 정책은 {{people}}을(를) 호출합니다."
 }

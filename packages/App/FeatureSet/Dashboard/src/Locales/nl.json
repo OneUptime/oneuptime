@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "Wat als niemand antwoordt?",
   "Who else is on call?": "Wie is er nog meer bereikbaar?",
   "Your phone number": "Je telefoonnummer",
-  "{{name}} (not reachable yet)": "{{name}} (nog niet bereikbaar)"
+  "{{name}} (not reachable yet)": "{{name}} (nog niet bereikbaar)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "De bereikbaarheidsregels bepalen welke incidenten en waarschuwingen \"{{policy}}\" uitvoeren, dat {{people}} oproept."
 }

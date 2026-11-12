@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "Что, если никто не ответит?",
   "Who else is on call?": "Кто ещё дежурит?",
   "Your phone number": "Ваш номер телефона",
-  "{{name}} (not reachable yet)": "{{name}} (пока недоступен)"
+  "{{name}} (not reachable yet)": "{{name}} (пока недоступен)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Правила дежурства решают, какие инциденты и оповещения запускают «{{policy}}», которая вызывает {{people}}."
 }

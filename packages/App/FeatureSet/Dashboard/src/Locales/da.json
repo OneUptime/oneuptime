@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "Hvad hvis ingen svarer?",
   "Who else is on call?": "Hvem har ellers vagt?",
   "Your phone number": "Dit telefonnummer",
-  "{{name}} (not reachable yet)": "{{name}} (kan ikke nås endnu)"
+  "{{name}} (not reachable yet)": "{{name}} (kan ikke nås endnu)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Dens vagtregler afgør, hvilke hændelser og advarsler der kører \"{{policy}}\", som tilkalder {{people}}."
 }

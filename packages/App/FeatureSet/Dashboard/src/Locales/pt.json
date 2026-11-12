@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "E se ninguém responder?",
   "Who else is on call?": "Quem mais está de plantão?",
   "Your phone number": "Seu número de telefone",
-  "{{name}} (not reachable yet)": "{{name}} (ainda sem contato)"
+  "{{name}} (not reachable yet)": "{{name}} (ainda sem contato)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "As regras de plantão decidem quais incidentes e alertas executam \"{{policy}}\", que aciona {{people}}."
 }

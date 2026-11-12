@@ -1744,6 +1744,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         policy: policy,
         responders: responders,
         breaks: policyBreaks,
+        isCatchAll: run[OnCallRunValue.PolicyIsExisting] !== true,
         testResult: testResult,
         testResultSentence: testResult
           ? getResultSentence(translator, testResult)

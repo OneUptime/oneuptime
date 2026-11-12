@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "Tänk om ingen svarar?",
   "Who else is on call?": "Vem mer har jour?",
   "Your phone number": "Ditt telefonnummer",
-  "{{name}} (not reachable yet)": "{{name}} (kan inte nås än)"
+  "{{name}} (not reachable yet)": "{{name}} (kan inte nås än)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Jourreglerna avgör vilka incidenter och larm som kör ”{{policy}}”, som larmar {{people}}."
 }

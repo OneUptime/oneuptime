@@ -1364,7 +1364,7 @@ describe("the test page", () => {
     await atTest();
     await press("send-test-page");
     await act(async () => {
-      reportTestResult(result(OnCallTestPageStatus.Sent));
+      reportTestResult(result(OnCallTestPageStatus.Paging));
     });
     await press("on-call-setup-did-not-get-it");
 
@@ -1395,7 +1395,7 @@ describe("coming back", () => {
       noAnswerDone: true,
       testExecutionLogId: "log-1",
     });
-    getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Sent));
+    getResultMock.mockResolvedValue(result(OnCallTestPageStatus.Paging));
     await renderSetup();
 
     expect(stepState("reach_you")).toBe("done");
@@ -1457,6 +1457,21 @@ describe("coming back", () => {
     expect(screen.getByTestId("on-call-setup-open-policy")).toHaveAttribute(
       "href",
       expect.stringContaining(`/on-call-duty/policies/${POLICY_ID}/escalation`),
+    );
+  });
+
+  test("a policy the project had: its own rules decide, never 'any new incident'", async () => {
+    keepRun({
+      reachConfirmed: true,
+      policyId: POLICY_ID,
+      policyIsExisting: true,
+      noAnswerDone: true,
+      testSkipped: true,
+    });
+    await renderSetup();
+
+    expect(screen.getByTestId("on-call-setup-summary-first")).toHaveTextContent(
+      'Its on-call rules decide which incidents and alerts run "Default on-call policy"',
     );
   });
 

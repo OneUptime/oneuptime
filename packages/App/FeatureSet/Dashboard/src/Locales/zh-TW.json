@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "如果無人回應怎麼辦？",
   "Who else is on call?": "還有誰待命？",
   "Your phone number": "你的電話號碼",
-  "{{name}} (not reachable yet)": "{{name}}（暫時無法聯絡）"
+  "{{name}} (not reachable yet)": "{{name}}（暫時無法聯絡）",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "由待命規則決定哪些事件和警示執行「{{policy}}」，它會呼叫 {{people}}。"
 }

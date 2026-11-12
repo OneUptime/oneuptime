@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "¿Y si nadie responde?",
   "Who else is on call?": "¿Quién más está de guardia?",
   "Your phone number": "Tu número de teléfono",
-  "{{name}} (not reachable yet)": "{{name}} (todavía no localizable)"
+  "{{name}} (not reachable yet)": "{{name}} (todavía no localizable)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Sus reglas de guardia deciden qué incidentes y alertas ejecutan «{{policy}}», que avisa a {{people}}."
 }

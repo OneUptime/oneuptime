@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "اگر کسی پاسخ ندهد چه؟",
   "Who else is on call?": "چه کسان دیگری آنکال هستند؟",
   "Your phone number": "شمارهٔ تلفن شما",
-  "{{name}} (not reachable yet)": "{{name}} (هنوز در دسترس نیست)"
+  "{{name}} (not reachable yet)": "{{name}} (هنوز در دسترس نیست)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "قواعد آنکال تعیین می‌کنند کدام حادثه‌ها و هشدارها «{{policy}}» را اجرا کنند؛ این سیاست {{people}} را فرا می‌خواند."
 }

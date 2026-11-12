@@ -144,6 +144,7 @@ export const ON_CALL_SETUP_COPY: {
   summaryTitle: string;
   summaryFirst: string;
   summaryNoAnswer: string;
+  summaryExistingRules: string;
   summaryTested: string;
   summaryNotTested: string;
   summaryNeedsAttention: string;
@@ -253,6 +254,9 @@ export const ON_CALL_SETUP_COPY: {
   summaryTitle: translationKey("Paging is set up"),
   summaryFirst: translationKey("Who is paged"),
   summaryNoAnswer: translationKey("If nobody answers"),
+  summaryExistingRules: translationKey(
+    'Its on-call rules decide which incidents and alerts run "{{policy}}", which pages {{people}}.',
+  ),
   summaryTested: WEBSITE_DOWN_COPY.summaryTested,
   summaryNotTested: translationKey(
     "Not tested yet. Test the policy to be sure a page reaches someone.",
@@ -711,6 +715,12 @@ export interface OnCallSummaryFacts {
   breaks: ReadonlyArray<WhoIsToldBreak>;
   testResultSentence: string | null;
   testResult: OnCallTestPageResult | null;
+  /*
+   * The setup made this policy, with the rules that run it for every new
+   * incident and alert. A policy the project had is run by its own rules,
+   * which may match only some incidents: the summary says so, not "any".
+   */
+  isCatchAll: boolean;
 }
 
 export interface OnCallSummaryRow {
@@ -800,6 +810,14 @@ export const getOnCallSummaryRows: (
         'The on-call policy "{{policy}}" pages nobody yet.',
         { policy: policy.name },
       ) || "";
+  } else if (
+    !facts.isCatchAll &&
+    (policy.incidentRuleCount > 0 || policy.alertRuleCount > 0)
+  ) {
+    firstText = translator.translateTemplate(
+      ON_CALL_SETUP_COPY.summaryExistingRules,
+      { policy: policy.name, people: people },
+    );
   } else if (policy.incidentRuleCount > 0 && policy.alertRuleCount > 0) {
     firstText = translator.translateTemplate(
       'Any new incident or alert runs "{{policy}}", which pages {{people}}.',

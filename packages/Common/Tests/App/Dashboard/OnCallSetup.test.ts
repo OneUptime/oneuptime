@@ -251,7 +251,7 @@ describe("which step a returning person lands on", () => {
     };
 
     expect(
-      doneKeys({ ...ready, testStatus: OnCallTestPageStatus.Sent }),
+      doneKeys({ ...ready, testStatus: OnCallTestPageStatus.Paging }),
     ).not.toContain(OnCallSetupStep.Test);
     expect(doneKeys({ ...ready, isTestSkipped: true })).toContain(
       OnCallSetupStep.Test,
@@ -378,6 +378,9 @@ describe("what stops a phone being paged", () => {
       false,
     );
     expect(canAddPhone(cloud({ serverCanSendSms: false }))).toBe(true);
+    expect(
+      getPhoneBreaks(cloud({ serverCanSendSms: false, serverCanCall: false })),
+    ).toEqual([]);
   });
 
   test("switches not known are the server's to refuse, not a break", () => {
@@ -574,10 +577,12 @@ describe("the summary", () => {
     policy: OnCallPolicyRecord,
     responders: Array<ResponderReach>,
     testResult?: OnCallTestPageResult | null,
+    isCatchAll?: boolean,
   ) => Record<string, string> = (
     policy: OnCallPolicyRecord,
     responders: Array<ResponderReach>,
     testResult?: OnCallTestPageResult | null,
+    isCatchAll: boolean = true,
   ): Record<string, string> => {
     const result: Record<string, string> = {};
 
@@ -585,6 +590,7 @@ describe("the summary", () => {
       policy: policy,
       responders: responders,
       breaks: [],
+      isCatchAll: isCatchAll,
       testResult: testResult || null,
       testResultSentence: testResult
         ? "Ana Lopez acknowledged it by SMS."
@@ -599,6 +605,12 @@ describe("the summary", () => {
   test("says who any new incident or alert pages, and by what", () => {
     expect(rows(policyRecord(), [ana])["first"]).toBe(
       'Any new incident or alert runs "Default on-call policy", which pages Ana Lopez (Email, SMS, Phone call).',
+    );
+  });
+
+  test("a policy the project had is run by its own rules: never claimed for any incident", () => {
+    expect(rows(policyRecord(), [ana], null, false)["first"]).toBe(
+      'Its on-call rules decide which incidents and alerts run "Default on-call policy", which pages Ana Lopez (Email, SMS, Phone call).',
     );
   });
 
@@ -680,6 +692,7 @@ describe("the summary", () => {
       policy: policyRecord(),
       responders: [ana],
       breaks: [],
+      isCatchAll: true,
       testResult: null,
       testResultSentence: null,
     });

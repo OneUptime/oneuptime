@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "Et si personne ne répond ?",
   "Who else is on call?": "Qui d'autre est d'astreinte ?",
   "Your phone number": "Votre numéro de téléphone",
-  "{{name}} (not reachable yet)": "{{name}} (pas encore joignable)"
+  "{{name}} (not reachable yet)": "{{name}} (pas encore joignable)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "Ses règles d'astreinte décident quels incidents et alertes exécutent « {{policy}} », qui alerte {{people}}."
 }

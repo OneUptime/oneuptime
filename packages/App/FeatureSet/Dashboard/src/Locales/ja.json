@@ -50997,5 +50997,6 @@
   "What if nobody answers?": "誰も応答しなかったら?",
   "Who else is on call?": "ほかに誰がオンコールですか?",
   "Your phone number": "あなたの電話番号",
-  "{{name}} (not reachable yet)": "{{name}}(まだ連絡できません)"
+  "{{name}} (not reachable yet)": "{{name}}(まだ連絡できません)",
+  "Its on-call rules decide which incidents and alerts run \"{{policy}}\", which pages {{people}}.": "どのインシデントやアラートで「{{policy}}」を実行するかはオンコールルールが決めます。このポリシーは {{people}} を呼び出します。"
 }
