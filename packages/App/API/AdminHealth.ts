@@ -988,15 +988,40 @@ export interface InstallationHealthReaders {
   serverSetup: () => Promise<ServerSetupChecklistAnswer>;
 }
 
+/*
+ * Each datastore is asked through the connection this process already holds
+ * (no connection: it does not answer), as the support bundle's probes do.
+ */
 const DEFAULT_INSTALLATION_HEALTH_READERS: InstallationHealthReaders = {
-  isPostgresConnected: (): Promise<boolean> => {
-    return PostgresAppInstance.checkConnnectionStatus();
+  isPostgresConnected: async (): Promise<boolean> => {
+    const dataSource: ReturnType<typeof PostgresAppInstance.getDataSource> =
+      PostgresAppInstance.getDataSource();
+
+    if (!dataSource) {
+      return false;
+    }
+
+    await dataSource.query("SELECT 1");
+    return true;
   },
-  isClickhouseConnected: (): Promise<boolean> => {
-    return ClickhouseAppInstance.checkConnnectionStatus();
+  isClickhouseConnected: async (): Promise<boolean> => {
+    const client: ReturnType<typeof ClickhouseAppInstance.getDataSource> =
+      ClickhouseAppInstance.getDataSource();
+
+    if (!client) {
+      return false;
+    }
+
+    return (await client.ping()).success;
   },
-  isValkeyConnected: (): Promise<boolean> => {
-    return Redis.checkConnnectionStatus();
+  isValkeyConnected: async (): Promise<boolean> => {
+    const client: ReturnType<typeof Redis.getClient> = Redis.getClient();
+
+    if (!client) {
+      return false;
+    }
+
+    return (await client.ping()) === "PONG";
   },
   migrations: (): Promise<JSONObject> => {
     return getMigrationStatus();
