@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51086,
-    "untranslated": 7373
+    "untranslated": 7125
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -103,6 +103,7 @@
     "MITRE ATT&CK Enterprise v{{version}}",
     "MTU",
     "Markdown",
+    "Mbps",
     "Memcached",
     "Mirantis MOSK",
     "MongoDB",
