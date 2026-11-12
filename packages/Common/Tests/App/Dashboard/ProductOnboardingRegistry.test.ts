@@ -609,7 +609,11 @@ describe("each explanation is complete", () => {
 
     // The jobs that have a guide today; each new guide adds its product.
     expect(guided).toEqual(
-      expect.arrayContaining([ProductKey.OnCall, ProductKey.StatusPages]),
+      expect.arrayContaining([
+        ProductKey.Monitors,
+        ProductKey.OnCall,
+        ProductKey.StatusPages,
+      ]),
     );
   });
 

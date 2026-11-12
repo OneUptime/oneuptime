@@ -29,7 +29,7 @@ flowchart TB
 | Side | Hvad den indeholder | Spørgsmålet, den besvarer |
 | --- | --- | --- |
 | **Notifikationsmetoder** | Dine e-mailadresser, telefonnumre, WhatsApp-numre, Telegram-, Slack-, Microsoft Teams- og Mattermost-konti, push-enheder og webhooks | Hvor kan OneUptime nå mig? |
-| **Vagtregler** | For hver slags tilkald og hver alvorlighed: hvilken metode der prøves, og efter hvor lang tid | Hvordan bliver jeg tilkaldt, mens jeg har vagt? |
+| **Sådan når man mig** | For hver slags tilkald og hver alvorlighed: hvilken metode der prøves, og efter hvor lang tid | Hvordan bliver jeg tilkaldt, mens jeg har vagt? |
 | **Notifikationsindstillinger** | For hver begivenhed om noget, du ejer, eller om dine vagter: hvilke kanaler der bruges | Hvad hører jeg ellers om, og hvor? |
 
 De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger** tilkalder dig aldrig, og en metode, du ikke har bekræftet, bliver aldrig brugt, uanset hvad dine regler siger.
@@ -44,7 +44,7 @@ De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger
 | Sektion | Sider |
 | --- | --- |
 | **Kom godt i gang** | **Opsætningstjekliste**: hvad der mangler at blive sat op, i den rækkefølge, der tæller |
-| **Advarsler og notifikationer** | **Notifikationsmetoder**, **Vagtregler**, **Notifikationsindstillinger** og **E-mailindstillinger**, hvor du bestemmer, hvor mange e-mails dine nyheder bliver til |
+| **Advarsler og notifikationer** | **Notifikationsmetoder**, **Sådan når man mig**, **Notifikationsindstillinger** og **E-mailindstillinger**, hvor du bestemmer, hvor mange e-mails dine nyheder bliver til |
 | **Vagtlogs** | **Vagtlogs**: hver gang du blev tilkaldt i dette projekt, og hvad der blev sendt |
 | **Indgående opkaldspolitik** | **Indgående telefonnumre**: det nummer, en politik for indgående opkald ringer dig op på |
 | **Kalender** | **Kalenderfeed**: dine vagter i din kalenderapp, og påmindelser, før de starter |
@@ -53,14 +53,14 @@ De er adskilt med vilje. At slå alle kanaler til i **Notifikationsindstillinger
 
 **Kom godt i gang** og **Advarsler og notifikationer** er åbne; de andre sektioner starter foldet sammen, og en sektion åbner af sig selv, når du er på en af dens sider. **Arbejdsområde** vises kun, når projektet har forbundet Slack, Microsoft Teams eller Mattermost.
 
-Projektejere og administratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Vagtregler**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
+Projektejere og administratorer kan også se din opsætning: Under **Brugere** åbner de din række og dens sektion **Vagt**, med **Parathed**, **Notifikationsmetoder** og **Sådan når man mig**. De kan tilføje en metode for dig der, men koden går til selve metoden, så kun du kan bekræfte den.
 
 ## Det starter du med
 
 Når du bliver medlem af et projekt med en bekræftet login-e-mail, sætter OneUptime dig op, så et tilkald altid kan nå dig:
 
 1. Din login-e-mail tilføjes som en bekræftet e-mailmetode.
-2. For hver alvorlighed, på hver af de fire faner i **Vagtregler**, sender en regel dig en e-mail, så snart du bliver tilkaldt.
+2. For hver alvorlighed, på hver af de fire faner i **Sådan når man mig**, sender en regel dig en e-mail, så snart du bliver tilkaldt.
 3. En række nyheder om det, du ejer, og om dine vagter, er slået til via e-mail. Se [Notifikationsindstillinger](/docs/notifications/notification-settings#hvad-der-er-slået-til-for-et-nyt-medlem).
 
 Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvorlighed, sendt så snart du bliver tilkaldt. At bekræfte et telefonnummer til sms betyder altså, at hvert tilkald også sender dig en sms. Vil du kun have sms ved kritiske tilkald, så slet sms-reglerne for de andre alvorligheder. Se [Personlige vagtregler](/docs/notifications/on-call-rules#de-regler-du-starter-med).
@@ -72,7 +72,7 @@ Hver metode, du bekræfter senere, får de samme regler: en regel for hver alvor
 | Sektion | Hvad den tjekker |
 | --- | --- |
 | **So we can reach you** | Du har en metode, hver tilføjet metode er bekræftet, og mindst én af dem er på en kanal, projektet har slået til |
-| **How you want to be paged** | Hver alvorlighed har en regel, på hver af de fire faner i **Vagtregler** |
+| **How you want to be paged** | Hver alvorlighed har en regel, på hver af de fire faner i **Sådan når man mig** |
 | **Staying informed** | Du får besked, når en vagt starter, og bag hver kanal, du har slået til i **Notifikationsindstillinger**, står en bekræftet metode |
 | **Nice to have** | Et nummer til indgående opkald, dine Slack- og Microsoft Teams-konti, et kalenderlink og dine profilfelter |
 

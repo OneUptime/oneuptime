@@ -1,4 +1,3 @@
-import { EntityManager } from "typeorm";
 import { expect } from "@jest/globals";
 import { escapeRegExp } from "../../../Utils/RegExpEscape";
 
@@ -20,61 +19,14 @@ export interface CapturedStatement {
   parameters: Array<unknown>;
 }
 
-export interface ClaimServiceLike {
-  executeTransaction: unknown;
-}
-
-type RunInTransactionFunction<TResult> = (
-  entityManager: EntityManager,
-) => Promise<TResult>;
-
-/*
- * Replaces executeTransaction on the given service instance with one that
- * hands the callback a fake EntityManager. The first query (the claim SELECT)
- * resolves to `selectRows`; every later one (the UPDATE) resolves to [].
- */
-export function captureClaimStatements(
-  service: ClaimServiceLike,
-  selectRows: Array<Record<string, unknown>> = [],
-): Array<CapturedStatement> {
-  const statements: Array<CapturedStatement> = [];
-
-  jest
-    .spyOn(
-      service as { executeTransaction: () => Promise<unknown> },
-      "executeTransaction",
-    )
-    .mockImplementation((async <TResult>(
-      runInTransaction: RunInTransactionFunction<TResult>,
-    ): Promise<TResult> => {
-      const entityManager: {
-        query: (
-          sql: string,
-          parameters?: Array<unknown>,
-        ) => Promise<Array<Record<string, unknown>>>;
-      } = {
-        query: async (
-          sql: string,
-          parameters?: Array<unknown>,
-        ): Promise<Array<Record<string, unknown>>> => {
-          statements.push({ sql, parameters: parameters || [] });
-          return statements.length === 1 ? selectRows : [];
-        },
-      };
-
-      return await runInTransaction(entityManager as unknown as EntityManager);
-    }) as never);
-
-  return statements;
-}
-
 export interface ClaimQueryServiceLike {
   getRepository: unknown;
   executeTransaction: unknown;
 }
 
 /*
- * The monitor probe and network device claims run as auto-committed
+ * The probes' claims - monitor probes, network devices, VMware vCenters,
+ * OpenStack clouds and checks, data stores - run as auto-committed
  * statements on the service's own connection, never in a transaction
  * (OneUptime issue #7194: a transaction held every claimed row's lock
  * across the round trips between its statements). So they are captured at

@@ -2,6 +2,9 @@
 
 Un monitor de API llama a un endpoint HTTP según una programación, con el método, los encabezados y el cuerpo que usted elija, y comprueba lo que vuelve: el código de estado, el tiempo de respuesta, los encabezados y el cuerpo. Úselo para endpoints REST, JSON y GraphQL, comprobaciones de salud y cualquier llamada de la que dependan sus usuarios.
 
+> [!TIP]
+> ¿Eres nuevo? Sigue primero la guía: [Saber cuándo tu sitio web o tu API deja de funcionar](/docs/guides/website-down).
+
 :::cards
 - [Crear el monitor](#crear-un-monitor-de-api): Seis pasos en el panel.
 - [Opciones de configuración](#opciones-de-configuración): Método, encabezados, cuerpo, redirecciones, certificados, tiempos de espera y reintentos.

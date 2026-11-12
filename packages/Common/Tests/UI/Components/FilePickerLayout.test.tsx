@@ -432,7 +432,13 @@ describe("the files it lists", () => {
     render(<FilePicker initialValue={chosen} />);
 
     // Never "0.1 KB".
-    expect(screen.getByText("TXT • 100 B")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("file-picker-file-facts")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["TXT · 100 B"]);
   });
 
   test("a stored file, which comes without its bytes: its size as the page was told it", () => {
@@ -448,7 +454,13 @@ describe("the files it lists", () => {
       />,
     );
 
-    expect(screen.getByText("PDF • 47 KB")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("file-picker-file-facts")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["PDF · 47 KB", "PNG"]);
     // One it was not told the size of says its type alone.
     expect(screen.getByText("PNG")).toBeInTheDocument();
   });
@@ -489,7 +501,13 @@ describe("the files it lists", () => {
     await waitFor(() => {
       expect(screen.getByText("latency.png")).toBeInTheDocument();
     });
-    expect(screen.getByText("PNG • 2 KB")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("file-picker-file-facts")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["PNG · 2 KB"]);
   });
 });
 

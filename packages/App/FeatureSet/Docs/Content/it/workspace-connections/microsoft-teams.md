@@ -150,7 +150,7 @@ Per essere chiamato con un messaggio diretto quando sei di reperibilità, aggiun
 3. Fai clic su **Send Test Message** nella sua riga. Il messaggio arriva nelle tue chat di Microsoft Teams.
 :::
 
-Aggiungerlo lo inserisce subito nelle tue regole di reperibilità, quindi da quel momento le chiamate ti raggiungono in Microsoft Teams. Cambia quali chiamate riceve in **Impostazioni utente** > **Regole di reperibilità**.
+Aggiungerlo lo inserisce subito nelle tue regole di reperibilità, quindi da quel momento le chiamate ti raggiungono in Microsoft Teams. Cambia quali chiamate riceve in **Impostazioni utente** > **Come contattarmi**.
 
 ## Salvare i messaggi come note
 

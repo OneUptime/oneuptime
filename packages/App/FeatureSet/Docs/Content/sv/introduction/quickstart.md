@@ -59,6 +59,8 @@ Behåll de valda **Sonder** och **Övervakningsintervall** **Var 5:e minut**, oc
 
 Vill du prova kontrollen innan du sparar, klickar du på **Testa monitor** i det andra steget. Alla andra monitortyper beskrivs i [Skapa en monitor](/docs/monitor/create-monitor).
 
+För att också kontrollera ett API, välja vem som får veta och skicka ett testlarm som visar att meddelandet når fram till dig, följer du [Få veta när din webbplats eller ditt API går ner](/docs/guides/website-down).
+
 ## Bli larmad när den går ner
 
 Som det är nu skickas en incident utan ägare med e-post till projektets ägare, och det inkluderar dig. För att bli larmad tills någon svarar skapar du en jourpolicy: den första i ett projekt utlöses vid varje ny incident och varje nytt larm.

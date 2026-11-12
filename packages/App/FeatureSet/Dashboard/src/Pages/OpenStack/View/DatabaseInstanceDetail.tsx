@@ -14,7 +14,10 @@ import Link from "Common/UI/Components/Link/Link";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
 import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
-import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  formatOpenStackBytes,
+  formatOpenStackPercent,
+} from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackPartPage from "../../../Components/OpenStack/Part/OpenStackPartPage";
 import OpenStackServicePartOverview from "../../../Components/OpenStack/Part/OpenStackServicePartOverview";
 import useOpenStackPart, {
@@ -167,7 +170,9 @@ const OpenStackCloudDatabaseInstanceDetail: FunctionComponent<
                   title="Volume used"
                   icon={IconProp.Disc}
                   iconColor="emerald"
-                  value={percent === null ? "—" : `${Math.round(percent)}%`}
+                  value={
+                    percent === null ? "—" : formatOpenStackPercent(percent)
+                  }
                   percent={percent}
                   thresholds={{
                     warn: OPENSTACK_DATABASE_VOLUME_WARNING_PERCENT,

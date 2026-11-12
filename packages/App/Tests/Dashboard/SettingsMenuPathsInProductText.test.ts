@@ -296,8 +296,8 @@ describe("a written path, as a reader follows it", () => {
       [["User Settings", "On-Call Logs"]],
     ],
     [
-      "Ask them to add a rule in User Settings &gt; On-Call Rules, or remove them.",
-      [["User Settings", "On-Call Rules"]],
+      "Ask them to add a rule in User Settings &gt; How to Reach Me, or remove them.",
+      [["User Settings", "How to Reach Me"]],
     ],
     [
       "Open OneUptime → User Settings → Notification Methods → Telegram to grab your link.",

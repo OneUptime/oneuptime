@@ -1,5 +1,6 @@
 import Icon from "../Icon/Icon";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import {
   CustomFieldFile,
   formatCustomFieldFileSize,
@@ -51,6 +52,10 @@ export interface ComponentProps {
  */
 export const CUSTOM_FIELD_FILE_NAME_CLASS_NAME: string =
   "min-w-0 flex-1 break-words font-medium text-gray-800 [overflow-wrap:anywhere]";
+
+// A file's size beside its name: never squeezed, its digits all one width.
+export const CUSTOM_FIELD_FILE_SIZE_CLASS_NAME: string =
+  "shrink-0 text-xs tabular-nums text-gray-500";
 
 /*
  * A name that reads the other way from the page - "Q3 vendor contract
@@ -232,10 +237,17 @@ const CustomFieldFileList: FunctionComponent<ComponentProps> = (
                 file.name
               )}
             </span>
+            {/*
+             * The size in the reader's digits, reading its own way: "۴۷ KB"
+             * with its number first on a page read from the right, where a
+             * bare "47 KB" was drawn "KB 47" (issue #7233).
+             */}
             {size ? (
-              <span className="shrink-0 text-xs tabular-nums text-gray-500">
-                {size}
-              </span>
+              <IsolatedText
+                text={size}
+                className={CUSTOM_FIELD_FILE_SIZE_CLASS_NAME}
+                dataTestId="custom-field-file-size"
+              />
             ) : (
               <></>
             )}

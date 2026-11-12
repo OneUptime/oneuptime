@@ -409,11 +409,11 @@ describe("User Settings: the checklist and how you are reached start open", () =
   });
 
   /*
-   * Your on-call rules are one page, with a tab per kind, among the pages
-   * people come here for: it opens nothing folded, and no section of its
-   * own is left behind for it.
+   * How you are reached is one page (How to Reach Me, #6820: one ladder,
+   * with a tab per kind behind it), among the pages people come here for:
+   * it opens nothing folded, and no section of its own is left behind for it.
    */
-  test("On-Call Rules sits in Alerts & Notifications, right after the methods it uses", async () => {
+  test("How to Reach Me sits in Alerts & Notifications, right after the methods it uses", async () => {
     await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_SETUP);
 
     expect(linksIn("Alerts & Notifications")).toEqual([
@@ -422,7 +422,7 @@ describe("User Settings: the checklist and how you are reached start open", () =
         href: routeFor(PageMap.USER_SETTINGS_NOTIFICATION_METHODS),
       },
       {
-        title: "On-Call Rules",
+        title: "How to Reach Me",
         href: routeFor(PageMap.USER_SETTINGS_ON_CALL_RULES),
       },
       {
@@ -438,10 +438,10 @@ describe("User Settings: the checklist and how you are reached start open", () =
     expect(sectionTitlesInOrder()).not.toContain("Alert On-Call");
   });
 
-  test("the On-Call Rules page marks its entry and opens nothing folded", async () => {
+  test("the How to Reach Me page marks its entry and opens nothing folded", async () => {
     await renderUserSettingsMenuAt(PageMap.USER_SETTINGS_ON_CALL_RULES);
 
-    expect(activeLinkTitles()).toEqual(["On-Call Rules"]);
+    expect(activeLinkTitles()).toEqual(["How to Reach Me"]);
     expect(isExpanded("Alerts & Notifications")).toBe(true);
     expect(isExpanded("On-Call Logs")).toBe(false);
   });

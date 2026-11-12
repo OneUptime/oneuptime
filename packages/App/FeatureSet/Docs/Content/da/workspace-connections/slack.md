@@ -166,7 +166,7 @@ For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Slack s
 3. Klik på **Send Test Message** i dens række. Beskeden ankommer i dine direkte beskeder i Slack.
 :::
 
-At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Slack fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Vagtregler**.
+At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Slack fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Sådan når man mig**.
 
 ## Gem beskeder som noter
 

@@ -83,6 +83,13 @@ export interface ComponentProps {
    */
   userPreferencesKeyPrefix: string;
   noItemsMessage?: string | undefined;
+  /*
+   * The cards that differ from the person's ladder (How to Reach Me, by
+   * getPagingLadderCellKey), marked on their title, and what to call when a
+   * rule is added, changed or removed, so the ladder above reads them again.
+   */
+  differingCellKeys?: ReadonlySet<string> | undefined;
+  onRulesChanged?: (() => void) | undefined;
 }
 
 const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
@@ -146,6 +153,8 @@ const OnCallRulesTabs: FunctionComponent<ComponentProps> = (
             noItemsMessage={props.noItemsMessage}
             cardDescription={getCardDescription(definition)}
             archivedCardDescription={getArchivedCardDescription(definition)}
+            differingCellKeys={props.differingCellKeys}
+            onRulesChanged={props.onRulesChanged}
           />
         ),
       };

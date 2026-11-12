@@ -150,7 +150,7 @@ To be paged by direct message when you are on call, add Microsoft Teams as one o
 3. Click **Send Test Message** on its row. The message arrives in your Microsoft Teams chats.
 :::
 
-Adding it adds it to your on-call rules straight away, so pages reach you in Microsoft Teams from then on. Change which pages it gets under **User Settings** > **On-Call Rules**.
+Adding it adds it to your on-call rules straight away, so pages reach you in Microsoft Teams from then on. Change which pages it gets under **User Settings** > **How to Reach Me**.
 
 ## Saving messages as notes
 

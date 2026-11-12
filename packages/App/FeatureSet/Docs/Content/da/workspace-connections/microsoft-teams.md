@@ -150,7 +150,7 @@ For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Microso
 3. Klik på **Send Test Message** i dens række. Beskeden ankommer i dine chats i Microsoft Teams.
 :::
 
-At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Microsoft Teams fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Vagtregler**.
+At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Microsoft Teams fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Sådan når man mig**.
 
 ## Gem beskeder som noter
 

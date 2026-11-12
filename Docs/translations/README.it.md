@@ -47,6 +47,8 @@ Puoi usarlo su [OneUptime Cloud](https://oneuptime.com) oppure eseguirlo sui tuo
 - **[API, CLI e Terraform](https://oneuptime.com/docs/it/api-reference/api-reference)**: Automatizzare OneUptime dai tuoi script e dalla tua CI, e gestire monitor, pagine di stato e reperibilità come codice.
 - **[Server MCP](https://oneuptime.com/docs/it/ai/mcp-server)** (`https://oneuptime.com/mcp`): Collega Claude, Cursor, VS Code con GitHub Copilot o qualsiasi altro client del Model Context Protocol (MCP), e chiedigli di esaminare un incidente, interrogare log e tracce, confermare un avviso o configurare un monitor.
 
+Le guide passo passo ti accompagnano in un'attività dall'inizio alla fine, su OneUptime Cloud o sul tuo server: [Sapere quando il tuo sito web o la tua API smette di funzionare](https://oneuptime.com/docs/it/guides/website-down), [Essere avvisati per chiamata, SMS o push](https://oneuptime.com/docs/it/guides/paging) e [Pubblicare una pagina di stato](https://oneuptime.com/docs/it/guides/status-page).
+
 Tutto il resto è nella [documentazione](https://oneuptime.com/docs/it/introduction/getting-started).
 
 ## Per iniziare
