@@ -20,12 +20,12 @@ i18next uses the general key for 0, 2, 3-10, 11-99 and 100+, and the general
 form must read right for every one of those counts. It does so in one of
 these shapes:
 
-| Shape                                  | Example                                                                 |
-| -------------------------------------- | ----------------------------------------------------------------------- |
-| A label and its count                  | `المراقبات: {{count}}`, `(العدد: {{count}})`                            |
-| "count of the things"                  | `{{count}} من المراقبات الأخرى`, `تم إنشاء {{count}} من {{itemsName}}`  |
+| Shape | Example |
+| --- | --- |
+| A label and its count | `المراقبات: {{count}}`, `(العدد: {{count}})` |
+| "count of the things" | `{{count}} من المراقبات الأخرى`, `تم إنشاء {{count}} من {{itemsName}}` |
 | A short unit, the same for every count | `{{count}} ث` (seconds), `{{count}} د` (minutes), `{{count}} س` (hours) |
-| The count after the noun               | `خلال الأيام الـ{{days}} الماضية`                                       |
+| The count after the noun | `خلال الأيام الـ{{days}} الماضية` |
 
 The `_one` form keeps `{{count}}` and a singular noun: `{{count}} مراقبة`.
 Where the English `_one` has no `{{count}}` ("A fix is waiting for
@@ -164,94 +164,94 @@ font is fetched from another site). Latin text keeps Inter.
 
 ## Glossary
 
-| English                                              | Arabic                                                         |
-| ---------------------------------------------------- | -------------------------------------------------------------- |
-| Monitor                                              | المراقبة (المراقبات)                                           |
-| Incident                                             | الحادثة (الحوادث)                                              |
-| Alert                                                | التنبيه (التنبيهات)                                            |
-| Status page                                          | صفحة الحالة                                                    |
-| Scheduled maintenance                                | الصيانة المجدولة                                               |
-| On-Call, On-Call Duty                                | المناوبة                                                       |
-| On call (a person)                                   | مناوب                                                          |
-| Page (verb)                                          | يستدعي، استدعاء                                                |
-| Acknowledge                                          | الإقرار                                                        |
-| Severity                                             | الخطورة                                                        |
-| State (incident, alert)                              | الحالة                                                         |
-| Case status (security)                               | الوضع (الأوضاع)                                                |
-| Security case                                        | الحالة الأمنية                                                 |
-| Episode                                              | الحلقة                                                         |
-| Postmortem                                           | تقرير ما بعد الحادثة                                           |
-| Owners                                               | المالكون                                                       |
-| Labels                                               | التسميات                                                       |
-| Tags                                                 | الوسوم                                                         |
-| Workflow                                             | سير العمل (مهام سير العمل)                                     |
-| Trigger (noun)                                       | المحفّز (المحفّزات)                                            |
-| Runner                                               | المشغّل (المشغّلات)                                            |
-| Runbook                                              | دليل التشغيل (أدلة التشغيل)                                    |
-| Playbook                                             | دليل الإجراءات (أدلة الإجراءات)                                |
-| Dashboard                                            | لوحة المعلومات                                                 |
-| Insights                                             | الرؤى                                                          |
-| Telemetry                                            | القياس عن بُعد                                                 |
-| Trace                                                | التتبع                                                         |
-| Span                                                 | الامتداد                                                       |
-| Span Type / Span Kind                                | نوع الامتداد / صنف الامتداد                                    |
-| Waterfall                                            | المخطط الشلالي                                                 |
-| Latency                                              | زمن الانتقال                                                   |
-| Response time (a monitor's request)                  | زمن الاستجابة                                                  |
-| Response time (SLA, to acknowledge)                  | وقت الاستجابة                                                  |
-| Grouping rule                                        | قاعدة التجميع                                                  |
-| Parent monitor                                       | المراقبة الأم                                                  |
-| Suppressed (alerts)                                  | مكتومة                                                         |
-| Re-investigation cooldown                            | فترة التهدئة قبل إعادة التحقيق                                 |
-| Measurement                                          | القياس                                                         |
-| Criteria (a monitor's)                               | المعيار (المعايير)                                             |
-| Filters (of a criteria, a list)                      | عوامل التصفية                                                  |
-| Matched / Did not match                              | مطابق / غير مطابق                                              |
-| Investigation (AI)                                   | التحقيق                                                        |
-| Triage (an investigation step, a state)              | الفرز                                                          |
-| Remediation                                          | المعالجة                                                       |
-| Verdict                                              | الحكم                                                          |
-| Tokens (AI)                                          | الرموز                                                         |
-| Prompt (AI)                                          | المطالبة (المطالبات)                                           |
-| LLM provider                                         | موفّر LLM (موفّرو LLM)                                         |
-| OneUptime AI                                         | OneUptime AI (a product name)                                  |
-| Responders                                           | المستجيبون                                                     |
-| Feed (an incident's, an alert's)                     | الموجز                                                         |
-| Incident Commander                                   | قائد الحادثة                                                   |
-| Call transcript                                      | النص المكتوب للمكالمة                                          |
-| Ingestion key                                        | مفتاح الاستيعاب                                                |
-| Probe                                                | المسبار (المسابير)                                             |
-| Collector                                            | المجمّع (OpenTelemetry Collector stays Latin)                  |
-| Pipeline (telemetry) / Pipeline (data)               | مسار المعالجة / مسار البيانات                                  |
-| Host                                                 | المضيف (المضيفون)                                              |
-| Instance (cloud, database, VM)                       | المثيل (المثيلات)                                              |
-| Instance (a OneUptime installation)                  | النسخة                                                         |
-| Inventory                                            | الجرد                                                          |
-| Workload                                             | حمل العمل (أحمال العمل)                                        |
-| Container                                            | الحاوية (الحاويات)                                             |
-| Bucket (object storage)                              | حاوية التخزين; الحاوية alone once S3 or Cloud Storage is named |
-| Pool                                                 | المجمّع (المجمّعات)                                            |
-| Availability / High availability / Availability zone | التوفر / التوفر العالي / منطقة التوفر                          |
-| Serverless function                                  | دالة بلا خادم                                                  |
-| Walk (SNMP)                                          | الاستعراض                                                      |
-| Release (a software version)                         | الإصدار                                                        |
-| Threat intel                                         | استخبارات التهديدات                                            |
-| Receiver                                             | مستقبِل                                                        |
-| Workspace                                            | مساحة العمل                                                    |
-| Connect                                              | ربط                                                            |
-| Project Settings                                     | إعدادات المشروع                                                |
-| Advanced                                             | متقدم                                                          |
-| Detection rule                                       | قاعدة كشف                                                      |
-| Entity risk                                          | مخاطر الكيانات                                                 |
-| Observable                                           | المُلاحَظ                                                      |
-| Storage array                                        | مصفوفة التخزين                                                 |
-| Data store, Datastore (VMware)                       | مخزن البيانات (مخازن البيانات)                                 |
-| Merge request / Pull request                         | طلب دمج / طلب سحب                                              |
-| Operational / Degraded / Offline                     | يعمل بشكل طبيعي / متدهور / غير متصل                            |
-| Turn on / Turn off                                   | تفعيل / إيقاف                                                  |
-| Webhook (in a sentence)                              | خطاف الويب                                                     |
-| Code (the product, a code block)                     | التعليمات البرمجية                                             |
-| Huddle (Slack's)                                     | huddle                                                         |
+| English | Arabic |
+| --- | --- |
+| Monitor | المراقبة (المراقبات) |
+| Incident | الحادثة (الحوادث) |
+| Alert | التنبيه (التنبيهات) |
+| Status page | صفحة الحالة |
+| Scheduled maintenance | الصيانة المجدولة |
+| On-Call, On-Call Duty | المناوبة |
+| On call (a person) | مناوب |
+| Page (verb) | يستدعي، استدعاء |
+| Acknowledge | الإقرار |
+| Severity | الخطورة |
+| State (incident, alert) | الحالة |
+| Case status (security) | الوضع (الأوضاع) |
+| Security case | الحالة الأمنية |
+| Episode | الحلقة |
+| Postmortem | تقرير ما بعد الحادثة |
+| Owners | المالكون |
+| Labels | التسميات |
+| Tags | الوسوم |
+| Workflow | سير العمل (مهام سير العمل) |
+| Trigger (noun) | المحفّز (المحفّزات) |
+| Runner | المشغّل (المشغّلات) |
+| Runbook | دليل التشغيل (أدلة التشغيل) |
+| Playbook | دليل الإجراءات (أدلة الإجراءات) |
+| Dashboard | لوحة المعلومات |
+| Insights | الرؤى |
+| Telemetry | القياس عن بُعد |
+| Trace | التتبع |
+| Span | الامتداد |
+| Span Type / Span Kind | نوع الامتداد / صنف الامتداد |
+| Waterfall | المخطط الشلالي |
+| Latency | زمن الانتقال |
+| Response time (a monitor's request) | زمن الاستجابة |
+| Response time (SLA, to acknowledge) | وقت الاستجابة |
+| Grouping rule | قاعدة التجميع |
+| Parent monitor | المراقبة الأم |
+| Suppressed (alerts) | مكتومة |
+| Re-investigation cooldown | فترة التهدئة قبل إعادة التحقيق |
+| Measurement | القياس |
+| Criteria (a monitor's) | المعيار (المعايير) |
+| Filters (of a criteria, a list) | عوامل التصفية |
+| Matched / Did not match | مطابق / غير مطابق |
+| Investigation (AI) | التحقيق |
+| Triage (an investigation step, a state) | الفرز |
+| Remediation | المعالجة |
+| Verdict | الحكم |
+| Tokens (AI) | الرموز |
+| Prompt (AI) | المطالبة (المطالبات) |
+| LLM provider | موفّر LLM (موفّرو LLM) |
+| OneUptime AI | OneUptime AI (a product name) |
+| Responders | المستجيبون |
+| Feed (an incident's, an alert's) | الموجز |
+| Incident Commander | قائد الحادثة |
+| Call transcript | النص المكتوب للمكالمة |
+| Ingestion key | مفتاح الاستيعاب |
+| Probe | المسبار (المسابير) |
+| Collector | المجمّع (OpenTelemetry Collector stays Latin) |
+| Pipeline (telemetry) / Pipeline (data) | مسار المعالجة / مسار البيانات |
+| Host | المضيف (المضيفون) |
+| Instance (cloud, database, VM) | المثيل (المثيلات) |
+| Instance (a OneUptime installation) | النسخة |
+| Inventory | الجرد |
+| Workload | حمل العمل (أحمال العمل) |
+| Container | الحاوية (الحاويات) |
+| Bucket (object storage) | حاوية التخزين; الحاوية alone once S3 or Cloud Storage is named |
+| Pool | المجمّع (المجمّعات) |
+| Availability / High availability / Availability zone | التوفر / التوفر العالي / منطقة التوفر |
+| Serverless function | دالة بلا خادم |
+| Walk (SNMP) | الاستعراض |
+| Release (a software version) | الإصدار |
+| Threat intel | استخبارات التهديدات |
+| Receiver | مستقبِل |
+| Workspace | مساحة العمل |
+| Connect | ربط |
+| Project Settings | إعدادات المشروع |
+| Advanced | متقدم |
+| Detection rule | قاعدة كشف |
+| Entity risk | مخاطر الكيانات |
+| Observable | المُلاحَظ |
+| Storage array | مصفوفة التخزين |
+| Data store, Datastore (VMware) | مخزن البيانات (مخازن البيانات) |
+| Merge request / Pull request | طلب دمج / طلب سحب |
+| Operational / Degraded / Offline | يعمل بشكل طبيعي / متدهور / غير متصل |
+| Turn on / Turn off | تفعيل / إيقاف |
+| Webhook (in a sentence) | خطاف الويب |
+| Code (the product, a code block) | التعليمات البرمجية |
+| Huddle (Slack's) | huddle |
 
 Kept in Latin letters: product, vendor and protocol names, plan names, the
 default teams Owners, Admin and Members, and units such as `ms` and `GB`.
