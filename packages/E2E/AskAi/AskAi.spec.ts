@@ -1468,6 +1468,90 @@ async function yAxisLabels(
     );
 }
 
+/*
+ * A table cell's text as it was laid out: the text of each line, how wide
+ * its text may be, and each break that fell inside a part of a word - not
+ * at a space, a hyphen or a slash - with how wide that part is. A part is
+ * a text of its own: the words between a long word's or a path's places
+ * to wrap (DataTableWidget draws a <wbr> between them), or a run of words.
+ * A part broken inside is wider than the room, give or take the half
+ * pixel its letters' boxes are rounded by (PART_ROUNDING).
+ */
+const PART_ROUNDING: number = 0.5;
+
+interface CellLayout {
+  lines: Array<string>;
+  room: number;
+  brokenParts: Array<{ part: string; width: number }>;
+}
+
+async function cellLayoutOf(cell: Locator): Promise<CellLayout> {
+  return cell.evaluate((element: Element): CellLayout => {
+    const style: CSSStyleDeclaration = window.getComputedStyle(element);
+    // To the fraction of a pixel: clientWidth is rounded to a whole one.
+    const room: number =
+      element.getBoundingClientRect().width -
+      parseFloat(style.paddingLeft) -
+      parseFloat(style.paddingRight) -
+      parseFloat(style.borderLeftWidth) -
+      parseFloat(style.borderRightWidth);
+    // Where a line may end without breaking a part: a space, a hyphen, a slash.
+    const wrapsAfter: RegExp = /[\s/\\-]/;
+    const lines: Array<string> = [];
+    const brokenParts: Array<{ part: string; width: number }> = [];
+    let line: string = "";
+    let top: number | null = null;
+    const walker: TreeWalker = document.createTreeWalker(
+      element,
+      NodeFilter.SHOW_TEXT,
+    );
+
+    for (
+      let node: Node | null = walker.nextNode();
+      node;
+      node = walker.nextNode()
+    ) {
+      const text: string = node.textContent || "";
+      for (let index: number = 0; index < text.length; index++) {
+        const letter: Range = document.createRange();
+        letter.setStart(node, index);
+        letter.setEnd(node, index + 1);
+        const box: DOMRect | undefined = Array.from(
+          letter.getClientRects(),
+        ).find((rect: DOMRect): boolean => {
+          return rect.width > 0;
+        });
+
+        if (box) {
+          const boxTop: number = Math.round(box.top);
+          if (top !== null && boxTop > top + 2) {
+            lines.push(line);
+            line = "";
+            if (index > 0 && !wrapsAfter.test(text[index - 1]!)) {
+              const part: Range = document.createRange();
+              part.selectNodeContents(node);
+              brokenParts.push({
+                part: text,
+                width: Array.from(part.getClientRects()).reduce(
+                  (sum: number, rect: DOMRect): number => {
+                    return sum + rect.width;
+                  },
+                  0,
+                ),
+              });
+            }
+          }
+          top = boxTop;
+        }
+        line += text[index];
+      }
+    }
+    lines.push(line);
+
+    return { lines, room, brokenParts };
+  });
+}
+
 test.describe("what an answer carries fits where it is drawn", () => {
   test("a citation reads as a footnote, never as inline code", async ({
     page,
@@ -1589,6 +1673,52 @@ test.describe("what an answer carries fits where it is drawn", () => {
     );
 
     await screenshot(page, "rich-table-390");
+  });
+
+  /*
+   * A path - an endpoint, a URL - has no spaces to wrap at. Kept whole when
+   * its parts were short, "POST /ledger/entries" was as wide as a long word,
+   * and the table above no longer fit a 390 pixel phone (issue #6969). It
+   * may break anywhere now, after its slashes first: never "/ledger/en"
+   * over "tries", and a part of it is broken only when it is wider than
+   * its column.
+   */
+  test("on a phone a path wraps after its slashes, and a part of it breaks only when it is wider than its column", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await load(page, "thread=rich");
+    await expect(askAi(page)).toBeVisible();
+    await settle(page);
+
+    const table: Locator = page.locator("table").filter({
+      hasText: "Endpoint",
+    });
+    await table.scrollIntoViewIfNeeded();
+    await settle(page);
+
+    // Four columns a row: the endpoints are the first.
+    const cells: Locator = table.getByTestId("ai-chat-table-cell");
+    const ledger: Locator = cells.nth(8);
+    await expect(ledger).toHaveAttribute("title", "POST /ledger/entries");
+
+    const ledgerLayout: CellLayout = await cellLayoutOf(ledger);
+    expect(ledgerLayout.lines.join("")).toBe("POST /ledger/entries");
+    expect(ledgerLayout.lines.length).toBeGreaterThanOrEqual(2);
+    for (const line of ledgerLayout.lines.slice(0, -1)) {
+      expect(line, JSON.stringify(ledgerLayout.lines)).toMatch(/[\s/]$/);
+    }
+
+    for (const row of [0, 1, 2]) {
+      const layout: CellLayout = await cellLayoutOf(cells.nth(row * 4));
+      for (const broken of layout.brokenParts) {
+        expect(broken.width, broken.part).toBeGreaterThan(
+          layout.room - PART_ROUNDING,
+        );
+      }
+    }
   });
 
   /*
@@ -3697,8 +3827,8 @@ test.describe("a code change's cautions", () => {
  *     names it: the Offline red, and gray for monitoring off.
  *   - The table let every word break anywhere, and on a 360 pixel phone
  *     its Status column drew "Operational" as "Operationa" over "l". A
- *     word is whole now; only a long one - a URL, an endpoint - may break
- *     anywhere.
+ *     word is whole now; only a long one, or a path - a URL, an endpoint -
+ *     may break anywhere, after its slashes first.
  */
 
 interface StatusDot {
@@ -3946,13 +4076,28 @@ test.describe("monitors looked up, and the monitors table", () => {
         "Disabled",
       ]);
 
-      // The URL has no spaces to wrap at: it wraps anywhere, inside the table.
+      /*
+       * The URL has no spaces to wrap at: it wraps inside the table, after
+       * its slashes first, and anywhere in a part wider than its column.
+       * Its scheme stays with its host: "https://" alone took a line of
+       * the three a cell shows, and said nothing.
+       */
       const url: Locator = rows.nth(1).getByTestId("ai-chat-table-cell").nth(0);
       await expect(url).toHaveAttribute(
         "title",
         "https://payments.example.com/api/v2/health/checkout",
       );
       expect(await linesOfCell(url)).toBeGreaterThanOrEqual(2);
+      const urlLayout: CellLayout = await cellLayoutOf(url);
+      expect(urlLayout.lines.join("")).toBe(
+        "https://payments.example.com/api/v2/health/checkout",
+      );
+      expect(urlLayout.lines[0]!.length).toBeGreaterThan("https://".length);
+      for (const broken of urlLayout.brokenParts) {
+        expect(broken.width, broken.part).toBeGreaterThan(
+          urlLayout.room - PART_ROUNDING,
+        );
+      }
       const tableBox: Box = await boxOf(table);
       const urlBox: Box = await boxOf(url);
       expect(urlBox.x + urlBox.width).toBeLessThanOrEqual(

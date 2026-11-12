@@ -120,10 +120,10 @@ export function getChatTableCellText(
 /*
  * The most letters a word of a table cell keeps whole on a narrow screen
  * (issue #6969): "Operational", "Investigating", "Kubernetes". A longer
- * one - an endpoint, an id, a host name - has nothing to wrap at, and
- * whole it would push the table's other columns out of view, so it may
- * break anywhere. A word wraps after each of its hyphens anyway, so its
- * longest part between them is what counts ("legacy-payments-api").
+ * one - an id, a host name - has nothing to wrap at, and whole it would
+ * push the table's other columns out of view, so it may break anywhere.
+ * A word wraps after each of its hyphens anyway, so its longest part
+ * between them is what counts ("legacy-payments-api").
  */
 export const CHAT_TABLE_WHOLE_WORD_LENGTH: number = 16;
 
@@ -132,6 +132,37 @@ const CHAT_TABLE_SPACES: RegExp = /(\s+)/;
 
 // Where a word may wrap on its own: after each hyphen.
 const CHAT_TABLE_WORD_HYPHEN: string = "-";
+
+/*
+ * What makes a word a path, as an endpoint, a URL or a file has one: a
+ * slash ("/ledger/entries", "C:\Windows\System32"). A path may break
+ * anywhere however short its parts, and wraps after its slashes first
+ * (getChatTableWordParts). Kept whole, "POST /ledger/entries" was as wide
+ * as a long word, and a phone's table of endpoints no longer fit its card.
+ * A short one ("N/A") never breaks: a text column is at least 5rem wide.
+ */
+const CHAT_TABLE_PATH_SLASHES: ReadonlyArray<string> = ["/", "\\"];
+
+function isChatTablePathSlash(letter: string | undefined): boolean {
+  return letter !== undefined && CHAT_TABLE_PATH_SLASHES.includes(letter);
+}
+
+// Whether a word of a cell may break anywhere: a path, or a word too long to keep whole.
+function mayBreakAnywhere(word: string): boolean {
+  const isPath: boolean = CHAT_TABLE_PATH_SLASHES.some(
+    (slash: string): boolean => {
+      return word.includes(slash);
+    },
+  );
+
+  return (
+    isPath ||
+    word.split(CHAT_TABLE_WORD_HYPHEN).some((wrapsAlone: string): boolean => {
+      // Letters as a person counts them, not UTF-16 units.
+      return Array.from(wrapsAlone).length > CHAT_TABLE_WHOLE_WORD_LENGTH;
+    })
+  );
+}
 
 // A run of a table cell's text, and whether it may break between any two letters.
 export interface ChatTableCellPiece {
@@ -143,9 +174,9 @@ export interface ChatTableCellPiece {
  * A text cell of DataTableWidget in runs (issue #6969): its words of up to
  * CHAT_TABLE_WHOLE_WORD_LENGTH letters - between hyphens - kept whole,
  * which the cell breaks only when one is wider than the whole column, and
- * each longer word on its own, which may break anywhere. Breaking every
- * word anywhere let a phone's table make a column narrower than its
- * words, and "Operational" was drawn as "Operationa" and "l".
+ * each longer word, or path, on its own, which may break anywhere.
+ * Breaking every word anywhere let a phone's table make a column narrower
+ * than its words, and "Operational" was drawn as "Operationa" and "l".
  */
 export function getChatTableCellPieces(
   text: string,
@@ -163,12 +194,7 @@ export function getChatTableCellPieces(
     }
 
     const isSpace: boolean = index % 2 === 1;
-    const breaksAnywhere: boolean =
-      !isSpace &&
-      part.split(CHAT_TABLE_WORD_HYPHEN).some((wrapsAlone: string): boolean => {
-        // Letters as a person counts them, not UTF-16 units.
-        return Array.from(wrapsAlone).length > CHAT_TABLE_WHOLE_WORD_LENGTH;
-      });
+    const breaksAnywhere: boolean = !isSpace && mayBreakAnywhere(part);
     const last: ChatTableCellPiece | undefined = pieces[pieces.length - 1];
 
     if (last && !last.breaksAnywhere && !breaksAnywhere) {
@@ -179,6 +205,54 @@ export function getChatTableCellPieces(
   }
 
   return pieces;
+}
+
+/*
+ * A word that may break anywhere, in the parts it wraps between first
+ * (issue #6969): after each run of slashes inside it, so a path wraps as
+ * "/api/", "v2/" and "checkout", and a part breaks only when it is wider
+ * than the whole column. Broken anywhere, "/ledger/entries" was drawn as
+ * "/ledger/en" and "tries". The slashes a word starts with stay with its
+ * first part ("/api/"), and so do those after a colon, with the name after
+ * them ("https://payments.example.com/", "C:\Windows\"): alone on a line
+ * they say nothing, and take a line of the three a cell shows. A word with
+ * no slash is one part, and the parts put together are the word.
+ */
+export function getChatTableWordParts(word: string): Array<string> {
+  if (!word) {
+    return [];
+  }
+
+  const parts: Array<string> = [];
+  let start: number = 0;
+  // Whether the part being read has a letter yet, not only slashes.
+  let hasLetter: boolean = false;
+
+  // By UTF-16 unit: a slash is one, and is never half of a pair.
+  for (let index: number = 0; index < word.length; index++) {
+    if (isChatTablePathSlash(word[index])) {
+      continue;
+    }
+
+    if (hasLetter && isChatTablePathSlash(word[index - 1])) {
+      // The letter before the run of slashes just read.
+      let before: number = index - 1;
+      while (isChatTablePathSlash(word[before])) {
+        before--;
+      }
+
+      if (word[before] !== ":") {
+        parts.push(word.slice(start, index));
+        start = index;
+      }
+    }
+
+    hasLetter = true;
+  }
+
+  parts.push(word.slice(start));
+
+  return parts;
 }
 
 /*

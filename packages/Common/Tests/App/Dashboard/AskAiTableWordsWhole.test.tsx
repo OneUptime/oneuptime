@@ -9,8 +9,10 @@ import {
   CHAT_TABLE_WHOLE_WORD_LENGTH,
   ChatTableCellPiece,
   getChatTableCellPieces,
+  getChatTableWordParts,
 } from "../../../UI/Utils/AIChatExport/ChatWidgetData";
 import { AIChatWidget, AIChatWidgetType } from "../../../Types/AI/AIChatTypes";
+import { SeededRandom, seededRandom } from "../../Helpers/SeededRandom";
 
 /*
  * A TABLE'S SHORT WORDS STAY WHOLE ON A PHONE (issue #6969).
@@ -24,14 +26,19 @@ import { AIChatWidget, AIChatWidgetType } from "../../../Types/AI/AIChatTypes";
  * A cell's words are kept whole now: each wraps after its spaces and
  * hyphens, and is broken only when it is wider than the whole column. A
  * word longer than CHAT_TABLE_WHOLE_WORD_LENGTH letters between hyphens -
- * an endpoint, an id, a URL - is set apart, and only it may break
- * anywhere. Real Chromium measures the same at 360 px in packages/E2E/AskAi
- * (thread=monitors).
+ * an id, a long host name - is set apart, and only it may break anywhere;
+ * so is a path - an endpoint, a URL - however short its parts, which
+ * wraps after its slashes first: "POST /ledger/entries" kept whole was as
+ * wide as a long word, and a phone's table of endpoints no longer fit.
+ * Real Chromium measures the same at 360 and 390 px in packages/E2E/AskAi
+ * (thread=monitors, thread=rich).
  */
 
 // A run of spaces, and one space, as a cell's text has them.
 const SPACES: RegExp = /\s+/;
 const SPACE: RegExp = /\s/;
+// A slash of a path, either way it leans.
+const SLASH: RegExp = /[/\\]/;
 
 beforeAll(async () => {
   await i18next.use(initReactI18next).init({
@@ -133,6 +140,20 @@ describe("a cell's words, in runs (getChatTableCellPieces)", () => {
     ]);
   });
 
+  test("a path is a run of its own, which may break anywhere however short its parts", () => {
+    expect(pieces("POST /ledger/entries")).toEqual([
+      ["POST ", false],
+      ["/ledger/entries", true],
+    ]);
+    expect(pieces("api/v2")).toEqual([["api/v2", true]]);
+    expect(pieces("C:\\Windows\\System32 on host-01")).toEqual([
+      ["C:\\Windows\\System32", true],
+      [" on host-01", false],
+    ]);
+    // Short, and never broken all the same: a text column is 5rem at least.
+    expect(pieces("N/A")).toEqual([["N/A", true]]);
+  });
+
   test("a word wraps after its hyphens, so its longest part between them is what counts", () => {
     expect(pieces("legacy-payments-api")).toEqual([
       ["legacy-payments-api", false],
@@ -184,6 +205,8 @@ describe("a cell's words, in runs (getChatTableCellPieces)", () => {
       "a",
       "b",
       "/",
+      "\\",
+      ":",
       "-",
       " ",
       " ",
@@ -191,19 +214,15 @@ describe("a cell's words, in runs (getChatTableCellPieces)", () => {
       "é",
       "\u{1F642}",
     ];
-    let seed: number = 6969;
-    const next: () => number = (): number => {
-      seed = (seed * 1103515245 + 12345) % 2147483648;
-      return seed;
-    };
+    const random: SeededRandom = seededRandom(6969);
 
     for (let round: number = 0; round < 2000; round++) {
-      const length: number = next() % 60;
+      const length: number = random(60);
       let text: string = "";
       for (let index: number = 0; index < length; index++) {
         // Runs of one letter now and then, long enough to pass the limit.
-        const letter: string = alphabet[next() % alphabet.length]!;
-        text += next() % 7 === 0 ? letter.repeat(next() % 20) : letter;
+        const letter: string = alphabet[random(alphabet.length)]!;
+        text += random(7) === 0 ? letter.repeat(random(20)) : letter;
       }
 
       const runs: Array<ChatTableCellPiece> = getChatTableCellPieces(text);
@@ -230,14 +249,165 @@ describe("a cell's words, in runs (getChatTableCellPieces)", () => {
         );
 
         if (run.breaksAnywhere) {
-          // One word, with a part past the limit.
+          // One word: a path, or with a part past the limit.
           expect(run.text.trim()).toBe(run.text);
           expect(run.text).not.toMatch(SPACE);
-          expect(longest).toBeGreaterThan(CHAT_TABLE_WHOLE_WORD_LENGTH);
+          expect(
+            SLASH.test(run.text) || longest > CHAT_TABLE_WHOLE_WORD_LENGTH,
+          ).toBe(true);
         } else {
+          expect(run.text).not.toMatch(SLASH);
           expect(longest).toBeLessThanOrEqual(CHAT_TABLE_WHOLE_WORD_LENGTH);
           if (index > 0) {
             expect(runs[index - 1]!.breaksAnywhere).toBe(true);
+          }
+        }
+      }
+    }
+  });
+});
+
+describe("a long word's parts, which it wraps between first (getChatTableWordParts)", () => {
+  test("a path wraps after each run of slashes inside it", () => {
+    expect(
+      getChatTableWordParts("/api/v2/checkout/sessions/{sessionId}/confirm"),
+    ).toEqual([
+      "/api/",
+      "v2/",
+      "checkout/",
+      "sessions/",
+      "{sessionId}/",
+      "confirm",
+    ]);
+    expect(getChatTableWordParts("/ledger/entries")).toEqual([
+      "/ledger/",
+      "entries",
+    ]);
+    expect(getChatTableWordParts("src//lib/index.ts")).toEqual([
+      "src//",
+      "lib/",
+      "index.ts",
+    ]);
+    expect(getChatTableWordParts("C:\\Windows\\System32\\svchost.exe")).toEqual(
+      ["C:\\Windows\\", "System32\\", "svchost.exe"],
+    );
+  });
+
+  test("the slashes a word starts with stay with its first part: alone on a line they say nothing", () => {
+    expect(getChatTableWordParts("/ledger")).toEqual(["/ledger"]);
+    expect(getChatTableWordParts("//cdn.example.com/app.js")).toEqual([
+      "//cdn.example.com/",
+      "app.js",
+    ]);
+  });
+
+  test("the slashes after a colon stay with the name after them: a URL's scheme with its host", () => {
+    expect(
+      getChatTableWordParts(
+        "https://payments.example.com/api/v2/health/checkout",
+      ),
+    ).toEqual([
+      "https://payments.example.com/",
+      "api/",
+      "v2/",
+      "health/",
+      "checkout",
+    ]);
+    expect(
+      getChatTableWordParts("(https://payments.example.com/health)"),
+    ).toEqual(["(https://payments.example.com/", "health)"]);
+    // A port's colon is not before a slash: the path still wraps after it.
+    expect(getChatTableWordParts("db-01:5432/payments")).toEqual([
+      "db-01:5432/",
+      "payments",
+    ]);
+  });
+
+  test("a slash at the end stays with the last part", () => {
+    expect(getChatTableWordParts("api/v2/")).toEqual(["api/", "v2/"]);
+    expect(getChatTableWordParts("https://example.com/")).toEqual([
+      "https://example.com/",
+    ]);
+  });
+
+  test("a word with no slash is one part, slashes alone are one, and nothing is none", () => {
+    expect(getChatTableWordParts("svc-0123456789abcdef0123")).toEqual([
+      "svc-0123456789abcdef0123",
+    ]);
+    expect(getChatTableWordParts("//")).toEqual(["//"]);
+    expect(getChatTableWordParts("")).toEqual([]);
+  });
+
+  test("letters as a person counts them are never split: a slash is never half of one", () => {
+    expect(getChatTableWordParts("\u{1F642}/\u{1F642}/監視")).toEqual([
+      "\u{1F642}/",
+      "\u{1F642}/",
+      "監視",
+    ]);
+  });
+
+  test("any word: its parts put back together are the word, each ends after a run of slashes not after a colon, and none could wrap sooner", () => {
+    const alphabet: Array<string> = [
+      "a",
+      "/",
+      "\\",
+      ":",
+      ".",
+      "-",
+      "é",
+      "\u{1F642}",
+    ];
+    const random: SeededRandom = seededRandom(69690);
+
+    for (let round: number = 0; round < 2000; round++) {
+      const length: number = random(30);
+      let word: string = "";
+      for (let index: number = 0; index < length; index++) {
+        const letter: string = alphabet[random(alphabet.length)]!;
+        word += random(5) === 0 ? letter.repeat(1 + random(3)) : letter;
+      }
+
+      const parts: Array<string> = getChatTableWordParts(word);
+
+      expect(parts.join("")).toBe(word);
+      if (!word) {
+        expect(parts).toEqual([]);
+        continue;
+      }
+
+      for (let index: number = 0; index < parts.length; index++) {
+        const part: string = parts[index]!;
+        const letters: Array<string> = Array.from(part);
+        expect(part).not.toBe("");
+
+        if (index < parts.length - 1) {
+          // Ends after a run of slashes, which a colon is not just before...
+          expect(letters[letters.length - 1]).toMatch(SLASH);
+          const beforeRun: string | undefined = letters
+            .slice(0, letters.length)
+            .reverse()
+            .find((letter: string): boolean => {
+              return !SLASH.test(letter);
+            });
+          expect(beforeRun).toBeDefined();
+          expect(beforeRun).not.toBe(":");
+          // ...and the next part starts with a letter, not a slash.
+          expect(parts[index + 1]![0]).not.toMatch(SLASH);
+        }
+
+        /*
+         * None could wrap sooner: inside a part, a slash before a letter
+         * is one of the slashes it starts with, or comes after a colon.
+         */
+        for (let at: number = 1; at < letters.length; at++) {
+          if (SLASH.test(letters[at - 1]!) && !SLASH.test(letters[at]!)) {
+            const before: Array<string> = letters
+              .slice(0, at)
+              .filter((letter: string): boolean => {
+                return !SLASH.test(letter);
+              });
+            const lastBefore: string | undefined = before[before.length - 1];
+            expect(lastBefore === undefined || lastBefore === ":").toBe(true);
           }
         }
       }
@@ -281,6 +451,53 @@ describe("the monitors table's cells (#6969)", () => {
       within(name).getByTestId("ai-chat-table-cell-long-word"),
     ).toHaveClass("[overflow-wrap:anywhere]");
     expect(name).toHaveClass("min-w-[5rem]");
+  });
+
+  test("a path is drawn with a place to wrap after its slashes, its letters as they are", () => {
+    const widget: AIChatWidget = monitorsTable();
+    widget.data.rows = [
+      {
+        name: "https://payments.example.com/api/v2/health/checkout",
+        type: "Website",
+        currentStatus: "Offline",
+      },
+      {
+        name: "POST /ledger/entries",
+        type: "API",
+        currentStatus: "Operational",
+      },
+      {
+        name: "svc-0123456789abcdef0123",
+        type: "API",
+        currentStatus: "Operational",
+      },
+    ];
+
+    render(<DataTableWidget widget={widget} />);
+
+    const url: HTMLElement = within(cellsOfRow(0)[0]!).getByTestId(
+      "ai-chat-table-cell-long-word",
+    );
+    expect(url.textContent).toBe(
+      "https://payments.example.com/api/v2/health/checkout",
+    );
+    expect(url.innerHTML).toBe(
+      "https://payments.example.com/<wbr>api/<wbr>v2/<wbr>health/<wbr>checkout",
+    );
+
+    const endpoint: HTMLElement = cellsOfRow(1)[0]!;
+    expect(endpoint.textContent).toBe("POST /ledger/entries");
+    expect(longWordsOf(endpoint)).toEqual(["/ledger/entries"]);
+    expect(
+      within(endpoint).getByTestId("ai-chat-table-cell-long-word").innerHTML,
+    ).toBe("/ledger/<wbr>entries");
+
+    // A long word with no slash has no place to wrap but anywhere.
+    const id: HTMLElement = within(cellsOfRow(2)[0]!).getByTestId(
+      "ai-chat-table-cell-long-word",
+    );
+    expect(id.innerHTML).toBe("svc-0123456789abcdef0123");
+    expect(id.querySelector("wbr")).toBeNull();
   });
 
   test("a hyphenated name and words with spaces wrap whole, as they read", () => {

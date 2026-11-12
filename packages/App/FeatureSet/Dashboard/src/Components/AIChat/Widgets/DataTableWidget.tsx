@@ -12,6 +12,7 @@ import {
   ChatTableCellText,
   getChatTableCellPieces,
   getChatTableCellText,
+  getChatTableWordParts,
 } from "Common/UI/Utils/AIChatExport/ChatWidgetData";
 import React, { FunctionComponent, ReactElement } from "react";
 
@@ -121,10 +122,11 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                    * wide, the first column of a table filled a phone and
                    * pushed the others out of sight, with nothing to say
                    * they were there. A word wraps whole, broken only when
-                   * it is wider than its column; a long one - an endpoint
-                   * has no spaces to wrap at - anywhere (issue #6969):
-                   * broken anywhere, every word let a phone's table split
-                   * "Operational" into "Operationa" and "l".
+                   * it is wider than its column; a long one, or a path - an
+                   * endpoint has no spaces to wrap at - anywhere, after its
+                   * slashes first (issue #6969): broken anywhere, every
+                   * word let a phone's table split "Operational" into
+                   * "Operationa" and "l".
                    *
                    * A date is written as every table writes one, "Oct 14,
                    * 11:57 AM" (Table/TableDate), and whole under the
@@ -157,13 +159,30 @@ const DataTableWidget: FunctionComponent<ComponentProps> = (
                               piece: ChatTableCellPiece,
                               index: number,
                             ): ReactElement => {
+                              /*
+                               * A path wraps after its slashes first: the
+                               * browser breaks anywhere only in a part
+                               * with no <wbr> left that fits the line.
+                               */
                               return piece.breaksAnywhere ? (
                                 <span
                                   key={index}
                                   data-testid="ai-chat-table-cell-long-word"
                                   className="[overflow-wrap:anywhere]"
                                 >
-                                  {piece.text}
+                                  {getChatTableWordParts(piece.text).map(
+                                    (
+                                      part: string,
+                                      partIndex: number,
+                                    ): ReactElement => {
+                                      return (
+                                        <React.Fragment key={partIndex}>
+                                          {partIndex > 0 ? <wbr /> : null}
+                                          {part}
+                                        </React.Fragment>
+                                      );
+                                    },
+                                  )}
                                 </span>
                               ) : (
                                 <React.Fragment key={index}>
