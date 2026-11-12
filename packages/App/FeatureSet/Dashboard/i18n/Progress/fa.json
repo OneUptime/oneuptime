@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51019,
-    "untranslated": 9091
+    "untranslated": 8881
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -26,6 +26,7 @@
     "Application credential {{id}}",
     "Atmosphere",
     "Availability Zone",
+    "Azure",
     "Bare Metal",
     "Brute force detected",
     "CIDR",
@@ -54,6 +55,7 @@
     "Down + In",
     "Down + Out",
     "Edge",
+    "Elasticsearch",
     "Enterprise Edition",
     "Fivetran",
     "Floating IP",
@@ -71,9 +73,11 @@
     "HTTP {{status}}",
     "Heat Stack",
     "Hello world",
+    "IBAN",
     "ICMP (ping)",
     "IOPS",
     "IP",
+    "ISO/IEC 27001:2022",
     "Infrastructure only",
     "IoT",
     "Job",
@@ -103,8 +107,10 @@
     "OpenShift",
     "OpenStack-Ansible",
     "OpenStack-Helm",
+    "OpenTofu",
     "Oracle",
     "Orchestration",
+    "PCI DSS v4.0",
     "PV",
     "PVC",
     "Passthrough",
@@ -125,6 +131,7 @@
     "Re-encrypt",
     "Red Hat OpenShift",
     "Red Hat OpenStack on OpenShift",
+    "Redis",
     "RegionOne",
     "Reserved Instances",
     "Resource Class",
