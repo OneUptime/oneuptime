@@ -520,6 +520,37 @@ describe("the breaks between a policy and its people", () => {
     ).toEqual([WhoIsToldBreakKind.PersonUnreachable]);
   });
 
+  test("a first level that names a team is never said to reach nobody for its people's sake", () => {
+    const policy: OnCallPolicyRecord = policyRecord();
+    policy.levels[0]!.userIds = [];
+    policy.levels[0]!.names = ["Platform"];
+
+    expect(
+      kinds(getPolicyBreaks({ policy: policy, responders: [ben] })),
+    ).toEqual([WhoIsToldBreakKind.PersonUnreachable]);
+  });
+
+  test("someone reachable on a later level does not make the first level reach anyone", () => {
+    const policy: OnCallPolicyRecord = policyRecord();
+    policy.levels[0]!.userIds = ["user-ben"];
+    policy.levels[0]!.names = ["Ben Ito"];
+    policy.levels.push({
+      id: "level-2",
+      order: 2,
+      escalateAfterInMinutes: 30,
+      userIds: ["user-ana"],
+      names: ["Ana Lopez"],
+      responderCount: 1,
+    });
+
+    expect(
+      kinds(getPolicyBreaks({ policy: policy, responders: [ana, ben] })),
+    ).toEqual([
+      WhoIsToldBreakKind.PolicyReachesNobody,
+      WhoIsToldBreakKind.PersonUnreachable,
+    ]);
+  });
+
   test("the rules still to add are the kinds nothing runs it for", () => {
     expect(getMissingRuleKinds(policyRecord())).toEqual({
       incident: false,
@@ -612,6 +643,26 @@ describe("the summary", () => {
     expect(rows(policyRecord(), [ana], null, false)["first"]).toBe(
       'Its on-call rules decide which incidents and alerts run "Default on-call policy", which pages Ana Lopez (Email, SMS, Phone call).',
     );
+  });
+
+  test("names only the first level's people as paged first, never a later level's", () => {
+    const policy: OnCallPolicyRecord = policyRecord();
+    policy.levels.push({
+      id: "level-2",
+      order: 2,
+      escalateAfterInMinutes: 30,
+      userIds: ["user-ben"],
+      names: ["Ben Ito"],
+      responderCount: 1,
+    });
+
+    const first: string = rows(policy, [
+      ana,
+      { ...ben, isReachable: true, channels: ["Email"] },
+    ])["first"]!;
+
+    expect(first).toContain("Ana Lopez (Email, SMS, Phone call)");
+    expect(first).not.toContain("Ben Ito");
   });
 
   test("names a team as it is, beside the people it describes", () => {

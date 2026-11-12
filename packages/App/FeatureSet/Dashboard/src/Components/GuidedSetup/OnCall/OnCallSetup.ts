@@ -549,6 +549,19 @@ export interface ResponderReach {
   channels: Array<string>;
 }
 
+// The people a level names, as On-Call Readiness reports them.
+export const getFirstLevelPeople: (data: {
+  level: PolicyLevel;
+  responders: ReadonlyArray<ResponderReach>;
+}) => Array<ResponderReach> = (data: {
+  level: PolicyLevel;
+  responders: ReadonlyArray<ResponderReach>;
+}): Array<ResponderReach> => {
+  return data.responders.filter((person: ResponderReach): boolean => {
+    return data.level.userIds.includes(person.userId);
+  });
+};
+
 /*
  * The breaks between the policy and the people it pages: nothing runs it,
  * a first level nobody is on, and each person a page can't reach.
@@ -598,13 +611,27 @@ export const getPolicyBreaks: (data: {
     return breaks;
   }
 
-  const reachable: Array<ResponderReach> = data.responders.filter(
-    (person: ResponderReach): boolean => {
-      return person.isReachable;
-    },
-  );
+  /*
+   * On-Call Readiness answers for everyone the policy pages, on every
+   * level: the first level is the people named on it. A level that also
+   * names a team or a schedule reaches people it does not list, so it is
+   * said to reach nobody only when it names people alone and none of them
+   * can be reached.
+   */
+  const firstLevelPeople: Array<ResponderReach> = getFirstLevelPeople({
+    level: first,
+    responders: data.responders,
+  });
+  const namesPeopleOnly: boolean =
+    first.userIds.length > 0 && first.userIds.length === first.responderCount;
+  const reachesNobody: boolean =
+    first.responderCount === 0 ||
+    (namesPeopleOnly &&
+      !firstLevelPeople.some((person: ResponderReach): boolean => {
+        return person.isReachable;
+      }));
 
-  if (first.responderCount === 0 || reachable.length === 0) {
+  if (reachesNobody) {
     breaks.push(
       makeWhoIsToldBreak({
         kind: WhoIsToldBreakKind.PolicyReachesNobody,
@@ -771,7 +798,11 @@ export const describeFirstLevel: (
   const parts: Array<string> = [];
   const described: Set<string> = new Set<string>();
 
-  for (const person of data.responders) {
+  // Only the first level's people: a later level is said on its own row.
+  for (const person of getFirstLevelPeople({
+    level: data.level,
+    responders: data.responders,
+  })) {
     parts.push(describeResponder(translator, person));
     described.add(person.name);
   }
