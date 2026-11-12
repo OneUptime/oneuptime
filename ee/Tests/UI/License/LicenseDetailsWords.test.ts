@@ -184,20 +184,48 @@ const ADMIN_HAD_BEFORE: ReadonlyArray<string> = [
   `${INSTANCE_USERS.other}_one`,
 ];
 
+// A word: two letters or more, in any script.
+const WORD: RegExp = /\p{L}{2,}/u;
+
+// The source without its comments: block comments, and lines that are one.
+const withoutComments: (source: string) => string = (
+  source: string,
+): string => {
+  let code: string = "";
+  let at: number = 0;
+
+  while (at < source.length) {
+    const start: number = source.indexOf("/*", at);
+
+    if (start < 0) {
+      code += source.slice(at);
+      break;
+    }
+
+    code += source.slice(at, start);
+
+    const end: number = source.indexOf("*/", start + 2);
+
+    at = end < 0 ? source.length : end + 2;
+  }
+
+  return code
+    .split("\n")
+    .filter((line: string): boolean => {
+      return !line.trimStart().startsWith("//");
+    })
+    .join("\n");
+};
+
 /*
  * JSX text with words in it - a sentence drawn as written, in English:
  * ">Licensed seats<". Comments are read out first, so a comment's words do
  * not count; a value drawn in braces ({seatsRemainingText}) is not text.
  */
-// A word: two letters or more, in any script.
-const WORD: RegExp = /\p{L}{2,}/u;
-
 const englishInJsx: (source: string) => Array<string> = (
   source: string,
 ): Array<string> => {
-  const code: string = source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/^\s*\/\/.*$/gm, "");
+  const code: string = withoutComments(source);
 
   // Not an arrow's ">" (=> Array<string>): JSX text follows a tag's ">".
   return Array.from(code.matchAll(/(?<![=-])>([^<>{}();=]*)</g))
