@@ -32,6 +32,11 @@
  */
 
 import moment from "moment-timezone";
+import {
+  ENGLISH_DATE_LANGUAGE,
+  formatReaderFigure,
+} from "../../../Types/DateLanguage";
+import { translationKey, Translator } from "../../../Types/Translator";
 
 // One status (or state) the record was in.
 export interface StatusTimelineEntry {
@@ -849,26 +854,72 @@ export const summarizeStatusTimeline: (data: {
 };
 
 /*
+ * "Less than" a share too small to write: the Dashboard's own sentence,
+ * worded in every language - the sign in German, French or Russian
+ * ("<0,01 %"), words in Persian and Arabic ("کمتر از ۰٫۰۱٪": a "<" beside
+ * a number read from the right is drawn mirrored), Japanese, Korean,
+ * Chinese and Hindi ("0.01%未満"). English writes the sign: "<0.01%".
+ */
+export const STATUS_TIMELINE_SHARE_LESS_THAN: string = translationKey(
+  "less than {{percent}}",
+);
+
+/*
  * A share as the legend writes it: two decimals at most, trailing zeros
  * dropped, and never rounded to a claim it is not - a status held for all
  * but a second of the month is "99.99%", not "100%", and one held for a
  * second is "<0.01%", not "0%".
+ *
+ * Given the reader's Translator, written the reader's way (issue #7113):
+ * its digits, decimal sign and percent sign - "99,81 %" in German,
+ * "۹۹٫۸۱٪" in Persian beside the durations' Persian digits, Latin digits
+ * in Arabic with Intl's percent sign. Without one, and for an English
+ * reader, exactly as it always read: "99.81%".
  */
-export const formatStatusTimelineShare: (share: number) => string = (
+export const formatStatusTimelineShare: (
   share: number,
-): string => {
+  translator?: Translator | undefined,
+) => string = (share: number, translator?: Translator | undefined): string => {
+  const language: string = translator?.language || ENGLISH_DATE_LANGUAGE;
+
+  const write: (percent: number) => string = (percent: number): string => {
+    return formatReaderFigure(percent, {
+      decimals: 2,
+      dropTrailingZeros: true,
+      isPercent: true,
+      language: language,
+    });
+  };
+
   if (!isFinite(share) || share <= 0) {
-    return "0%";
+    return write(0);
   }
 
   if (share >= 1) {
-    return "100%";
+    return write(100);
   }
 
   const percent: number = share * 100;
 
   if (percent < 0.01) {
-    return "<0.01%";
+    const smallest: string = write(0.01);
+
+    /*
+     * The figure set apart in its sentence, so a Persian legend draws its
+     * percent sign where every other share there has it: "کمتر از ۰٫۰۱٪"
+     * beside "۹۹٫۹۶٪", not "٪۰٫۰۱" after the words. The legend is the
+     * only place this is drawn, so the isolate's marks go nowhere else.
+     */
+    return translator &&
+      translator.hasTranslation(STATUS_TIMELINE_SHARE_LESS_THAN)
+      ? translator.translateTemplate(
+          STATUS_TIMELINE_SHARE_LESS_THAN,
+          {
+            percent: smallest,
+          },
+          { setsValuesApart: true },
+        )
+      : `<${smallest}`;
   }
 
   // Down, not to nearest, near the top: 99.996 is not 100.
@@ -877,7 +928,7 @@ export const formatStatusTimelineShare: (share: number) => string = (
       ? Math.floor(percent * 100) / 100
       : Math.round(percent * 100) / 100;
 
-  return `${Number(rounded.toFixed(2)).toString()}%`;
+  return write(rounded);
 };
 
 /*

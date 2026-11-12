@@ -43,6 +43,13 @@ import {
   MODEL_TABLE_PHONE_SEARCH_CLASS_NAME,
 } from "../../../../UI/Components/ModelTable/BaseModelTable";
 import IconProp from "../../../../Types/Icon/IconProp";
+import InBetween from "../../../../Types/BaseDatabase/InBetween";
+import TimeRange from "../../../../Types/Time/TimeRange";
+import { TimeRangePickerSize } from "../../../../UI/Components/Date/TimeRangePickerDropdown";
+import TelemetryTimeRangePicker, {
+  TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX,
+} from "../../../../UI/Components/TelemetryViewer/components/TelemetryTimeRangePicker";
+import { getBoxesThatCannotShrink } from "../../../Helpers/ShrinkToRow";
 
 /*
  * The controls at the right of a table's card header - its search, its
@@ -594,6 +601,62 @@ describe("TableHeaderToolbar", () => {
     expect(box()).not.toBeEmptyDOMElement();
     expect(box()).toBe(screen.getByText("Create").parentElement);
     expect(box()).toHaveClass(...TABLE_HEADER_BUTTONS_CLASS_NAME.split(" "));
+  });
+
+  /*
+   * A list whose header holds a time range (Session Replay's sessions and
+   * Users, User Flows, Product Analytics): a custom range that names its years
+   * ("Nov 12, 2025, 9:49 AM – Nov 12, 2026, 9:49 AM", issue #7124) is wider
+   * than a phone's card. The button cuts it short, the whole range its
+   * tooltip, only when every box from its label to the row may be narrower
+   * than the label's one line; the box of buttons kept the whole line, and
+   * the button ran 49px past the card's left edge at 390px.
+   */
+  test("a time range too long for a phone's card is cut short: every box from the button's label to the row may shrink", () => {
+    render(
+      <TableHeaderToolbar dataTestId="time-range-toolbar">
+        <TelemetryTimeRangePicker
+          value={{
+            range: TimeRange.CUSTOM,
+            startAndEndDate: new InBetween<Date>(
+              new Date("2025-11-12T09:49:00.000Z"),
+              new Date("2026-11-12T09:49:00.000Z"),
+            ),
+          }}
+          onChange={() => {
+            return undefined;
+          }}
+          size={TimeRangePickerSize.Header}
+        />
+        {renderTableHeaderMoreMenu([], {
+          dataTestId: "time-range-more",
+          sections: [
+            <MoreMenuItem
+              key="refresh"
+              text="Refresh"
+              icon={IconProp.Refresh}
+              onClick={() => {
+                return undefined;
+              }}
+            />,
+          ],
+        })}
+      </TableHeaderToolbar>,
+    );
+
+    const button: HTMLElement = screen.getByTestId(
+      `${TELEMETRY_TIME_RANGE_PICKER_TEST_ID_PREFIX}-button`,
+    );
+    const label: Element = button.querySelector(".truncate") as Element;
+
+    expect(label).not.toBeNull();
+    expect(button.getAttribute("title")).toBe(label.textContent);
+    expect(
+      getBoxesThatCannotShrink({
+        label,
+        row: screen.getByTestId("time-range-toolbar"),
+      }),
+    ).toEqual([]);
   });
 });
 

@@ -21,6 +21,7 @@ import {
   prose,
   strayMarkers,
 } from "./DocsTranslationChecks";
+import { GETTING_STARTED_PLACES, cardTargetsAt } from "./GettingStartedPage";
 import {
   menuSections,
   readCommonSource,
@@ -346,12 +347,10 @@ describe("the Glossary, in English", () => {
   });
 
   it("is linked from Getting Started's first screen, from Core Concepts and from the Quickstart's next steps", () => {
-    const startHere: Array<string> = cardTargets(
-      cardLines(
-        readPage("en", "introduction/getting-started").split(
-          "## ",
-        )[0] as string,
-      ),
+    // Getting Started's first screen: New to OneUptime?, right under the eight jobs (#6822).
+    const startHere: Array<string> = cardTargetsAt(
+      readPage("en", "introduction/getting-started"),
+      GETTING_STARTED_PLACES.newcomers,
     );
 
     expect(startHere).toContain(`/docs/${GLOSSARY}`);

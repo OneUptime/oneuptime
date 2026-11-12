@@ -45,6 +45,11 @@ export interface CustomDomainKind {
   // The environment variable that sets it, named when it is not set.
   cnameRecordVariable: string;
   copy: CustomDomainKindCopy;
+  /*
+   * The docs section that explains this kind of custom domain, as the docs
+   * address it: the list's View Documentation opens it (#6822).
+   */
+  docsPath: string;
 }
 
 export const STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = {
@@ -59,6 +64,7 @@ export const STATUS_PAGE_CUSTOM_DOMAINS: CustomDomainKind = {
   },
   cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD",
   copy: STATUS_PAGE_CUSTOM_DOMAIN_COPY,
+  docsPath: "/docs/status-pages/branding-and-domains#custom-domains",
 };
 
 export const DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = {
@@ -73,6 +79,7 @@ export const DASHBOARD_CUSTOM_DOMAINS: CustomDomainKind = {
   },
   cnameRecordVariable: "DASHBOARD_CNAME_RECORD",
   copy: DASHBOARD_CUSTOM_DOMAIN_COPY,
+  docsPath: "/docs/dashboards/sharing#custom-domains",
 };
 
 /*
@@ -92,6 +99,7 @@ export const FORM_CUSTOM_DOMAINS: CustomDomainKind = {
   },
   cnameRecordVariable: "STATUS_PAGE_CNAME_RECORD",
   copy: FORM_CUSTOM_DOMAIN_COPY,
+  docsPath: "/docs/forms/sharing-and-security#custom-domains",
 };
 
 /*

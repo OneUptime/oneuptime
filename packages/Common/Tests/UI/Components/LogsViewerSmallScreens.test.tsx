@@ -99,6 +99,9 @@ import { COLUMN_SELECTOR_PANEL_TEST_ID } from "../../../UI/Components/LogsViewer
 import { KEYBOARD_SHORTCUTS_HELP_TEST_ID } from "../../../UI/Components/LogsViewer/components/KeyboardShortcutsHelp";
 import { FACET_SIDEBAR_RESIZE_HANDLE_TEST_ID } from "../../../UI/Components/TelemetryViewer/components/FacetSidebarResizeHandle";
 import { FACET_SIDEBAR_WIDTH_CLASS_NAME } from "../../../UI/Components/TelemetryViewer/FacetSidebarWidth";
+import InBetween from "../../../Types/BaseDatabase/InBetween";
+import TimeRange from "../../../Types/Time/TimeRange";
+import { getBoxesThatCannotShrink } from "../../Helpers/ShrinkToRow";
 
 const FACET_DATA: FacetData = {
   severityText: [
@@ -384,6 +387,36 @@ describe("the toolbar row below md", () => {
 
     const leftGroup: Element = toolbar().firstElementChild!;
     expect(leftGroup.firstElementChild).toBe(filtersToggle());
+  });
+
+  /*
+   * A custom range that names its years ("Nov 12, 2025, 9:49 AM – Nov 12,
+   * 2026, 9:49 AM", issue #7124) is wider than a phone's row. The time
+   * range button cuts it short, the whole range its tooltip, only when
+   * every box from its label to the toolbar may be narrower than the
+   * label's one line. The picker's group and the toolbar's right group
+   * kept the whole line, and the button ran past the card at 390px.
+   */
+  test("a custom range too long for a phone's row is cut short: every box from the button's label to the toolbar may shrink", async () => {
+    await renderViewer({
+      timeRange: {
+        range: TimeRange.CUSTOM,
+        startAndEndDate: new InBetween<Date>(
+          new Date("2025-11-12T09:49:00.000Z"),
+          new Date("2026-11-12T09:49:00.000Z"),
+        ),
+      },
+      onTimeRangeChange: jest.fn(),
+    });
+
+    const button: HTMLElement = screen.getByTestId(
+      "log-time-range-picker-button",
+    );
+    const label: Element = button.querySelector(".truncate") as Element;
+
+    expect(label).not.toBeNull();
+    expect(button.getAttribute("title")).toBe(label.textContent);
+    expect(getBoxesThatCannotShrink({ label, row: toolbar() })).toEqual([]);
   });
 });
 

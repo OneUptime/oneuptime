@@ -22,6 +22,8 @@ export interface ResourceColumn {
   getValue?: (resource: KubernetesResource) => string;
   // What the column's values mean, in an (i) beside the header.
   description?: string | undefined;
+  // A count, drawn in the reader's digits (ResourceTable's isCount).
+  isCount?: boolean | undefined;
 }
 
 export interface ComponentProps {
