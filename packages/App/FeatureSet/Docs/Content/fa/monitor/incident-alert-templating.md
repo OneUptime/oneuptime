@@ -196,7 +196,7 @@ Alerts for payments:
 | `requestMethod` | متد HTTP، مانند `POST`. | `string` |
 | `incomingRequestReceivedAt` | زمان دریافت درخواست، به‌صورت یک مهر زمانی ISO 8601. | `string` |
 
-وقتی معیار گزینه **Group incidents and alerts by a payload field** را روشن داشته باشد، کلید گروه‌بندی هم یک متغیر است، که نامش از **آخرین بخش** مسیر گروه‌بندی می‌آید: گروه‌بندی بر پایه `requestBody.alerts[*].labels.alertname` متغیر `{{alertname}}` را می‌دهد، و گروه‌بندی بر پایه `requestBody.alerts[*].fingerprint` متغیر `{{fingerprint}}` را. کل `requestBody` همچنان کنار آن هست.
+وقتی معیار گزینه **گروه‌بندی حوادث و هشدارها بر اساس یک فیلد payload** را روشن داشته باشد، کلید گروه‌بندی هم یک متغیر است، که نامش از **آخرین بخش** مسیر گروه‌بندی می‌آید: گروه‌بندی بر پایه `requestBody.alerts[*].labels.alertname` متغیر `{{alertname}}` را می‌دهد، و گروه‌بندی بر پایه `requestBody.alerts[*].fingerprint` متغیر `{{fingerprint}}` را. کل `requestBody` همچنان کنار آن هست.
 
 > [!NOTE]
 > `[*]` فقط در فیلدهای مسیر گروه‌بندی کار می‌کند. در یک قالب چیزی نمی‌خواند، پس جای‌نگهدار همان‌طور که نوشته شده می‌ماند. `{{requestBody.alerts[0].annotations.summary}}` همیشه نخستین هشدار payload را می‌خواند، نه آنی را که حادثه برایش باز شد: از متغیر گروه‌بندی و فیلدهای مشترک payload، مانند `commonLabels` و `commonAnnotations`، استفاده کنید. [مانیتور درخواست ورودی](/docs/monitor/incoming-request-monitor) را ببینید.

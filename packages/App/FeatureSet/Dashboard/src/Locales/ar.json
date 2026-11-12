@@ -32989,7 +32989,6 @@
   "View all warnings": "عرض كل التحذيرات",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "يُشار (@) إلى من يكون في المناوبة في هذه الجداول عند إنشاء القناة، فيُخطره Microsoft Teams. لا يُستدعى أحد.",
   "About the same as in the first half of the time range": "تقريبًا كما في النصف الأول من النطاق الزمني",
-  "Click to configure metric": "انقر لتهيئة المقياس",
   "Data Source Value": "قيمة مصدر البيانات",
   "Down from 0 in the first half of the time range": "انخفاض من 0 في النصف الأول من النطاق الزمني",
   "Down {{percent}} from the first half of the time range": "انخفاض بنسبة {{percent}} عن النصف الأول من النطاق الزمني",
@@ -51243,5 +51242,14 @@
   "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "لا يستطيع دورك قراءة هوية المستخدم النهائي. اطلب من مسؤول المشروع إذن «{{permission}}».",
   "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "المرجع الدقيق الذي مرّرته صفحتك إلى identify(). يتطلب إذن «{{permission}}»؛ ولا يُكتب أبدًا في عنوان URL.",
   "That turn is not part of this task": "تلك الجولة ليست جزءًا من هذه المهمة",
-  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها."
+  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها.",
+  "Click to configure a metric": "انقر لتهيئة مقياس",
+  "No SLO picked yet.": "لم يُختر أي SLO بعد.",
+  "No metric picked yet.": "لم يُختر أي مقياس بعد.",
+  "No query set up yet.": "لم يُعدّ أي استعلام بعد.",
+  "No saved funnel picked yet.": "لم يُختر أي مسار تحويل محفوظ بعد.",
+  "No saved retention table picked yet.": "لم يُختر أي جدول احتفاظ محفوظ بعد.",
+  "Pick a metric in the settings below.": "اختر مقياسًا في الإعدادات أدناه.",
+  "Pick an SLO in the settings below.": "اختر SLO في الإعدادات أدناه.",
+  "Write a query in the settings below.": "اكتب استعلامًا في الإعدادات أدناه."
 }
