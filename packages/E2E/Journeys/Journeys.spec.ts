@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#journey-budgets
 import { expect, Page, Route, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";

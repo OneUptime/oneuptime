@@ -352,9 +352,9 @@ work out, starts from a default for everything else, and folds what most people 
   and [TimelineIconGuard](../../packages/App/Tests/Dashboard/TimelineIconGuard.test.ts).
 - **A person has one colour** on every on-call screen. Enforced by
   [OnCallPersonColorGuard](../../packages/Common/Tests/App/Dashboard/OnCallPersonColorGuard.test.ts).
-- **Every page works in the dark theme.** Enforced for the sign-in pages by
-  [AccountsDarkModeGuard](../../packages/App/Tests/Accounts/AccountsDarkModeGuard.test.ts); look at
-  everything else in both themes before you open a pull request.
+- **Every page works in the dark theme.** Enforced by
+  [AccountsDarkModeGuard](../../packages/App/Tests/Accounts/AccountsDarkModeGuard.test.ts) for the
+  sign-in pages; look at everything else in both themes before you open a pull request.
 
 ## Words
 
