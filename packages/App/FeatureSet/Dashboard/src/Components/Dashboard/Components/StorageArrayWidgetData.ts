@@ -13,6 +13,7 @@ import {
   translationKey,
   Translator,
 } from "Common/Types/Translator";
+import { formatReaderFigure } from "Common/Types/DateLanguage";
 
 /*
  * Pure, React-free helpers behind the Storage Array volume and hardware
@@ -186,9 +187,15 @@ export function formatIops(value: unknown): string {
 
 /*
  * Bytes in binary units, up to PiB: array volumes and drives run to tens of
- * terabytes, past where the generic memory formatter stops at GB.
+ * terabytes, past where the generic memory formatter stops at GB. Given a
+ * translator, the number is in its reader's digits and decimal sign
+ * ("۳٫۵ TiB" in Persian, "3,5 TiB" in German), as a temperature beside it
+ * is; the unit is the same in every language.
  */
-export function formatStorageBytes(value: unknown): string {
+export function formatStorageBytes(
+  value: unknown,
+  translator?: Translator,
+): string {
   const numeric: number | undefined = toFiniteNumber(value);
   if (numeric === undefined) {
     return "—";
@@ -200,7 +207,14 @@ export function formatStorageBytes(value: unknown): string {
     scaled = scaled / 1024;
     unitIndex++;
   }
-  return `${scaled.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+  const decimals: number = unitIndex === 0 ? 0 : 1;
+  const figure: string = translator
+    ? formatReaderFigure(scaled, {
+        decimals: decimals,
+        language: translator.language,
+      })
+    : scaled.toFixed(decimals);
+  return `${figure} ${units[unitIndex]}`;
 }
 
 /*
@@ -474,7 +488,8 @@ export interface HardwareDetailInput {
  * controller's mode and model, a hardware component's temperature. Values
  * the array did not report are left out rather than shown as dashes. In
  * the reader's language: a mode it knows in its words (any other as the
- * array reports it), a temperature in its digits, and its separator.
+ * array reports it), a drive's size and a temperature in its digits, and
+ * its separator.
  */
 export function getHardwareDetail(
   input: HardwareDetailInput,
@@ -485,7 +500,7 @@ export function getHardwareDetail(
   if (input.kind === StorageArrayResourceKind.Drive) {
     const capacity: number | undefined = toFiniteNumber(input.capacityBytes);
     if (capacity !== undefined) {
-      parts.push(formatStorageBytes(capacity));
+      parts.push(formatStorageBytes(capacity, translator));
     }
   } else if (input.kind === StorageArrayResourceKind.Controller) {
     if (typeof input.statusDetail === "string" && input.statusDetail) {

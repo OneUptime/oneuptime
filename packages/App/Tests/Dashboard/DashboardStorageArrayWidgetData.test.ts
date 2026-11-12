@@ -516,6 +516,34 @@ describe("the hardware list's words, in the reader's language", () => {
     ).toBe([words["Primary"], "FA-X70R3"].join(getInlineSeparator("fa")));
   });
 
+  /*
+   * A drive's size sits in the Detail column beside a component's
+   * temperature: written in Latin digits, a Persian board read "3.5 TiB"
+   * one row from "۲۸ °C".
+   */
+  test("a drive's size is in the reader's digits and decimal sign, as a temperature beside it is", () => {
+    const drive: { kind: StorageArrayResourceKind; capacityBytes: number } = {
+      kind: StorageArrayResourceKind.Drive,
+      capacityBytes: 3.84 * 1024 ** 4,
+    };
+
+    expect(getHardwareDetail(drive, persian)).toBe("۳٫۸ TiB");
+    expect(getHardwareDetail(drive, german)).toBe("3,8 TiB");
+    expect(getHardwareDetail(drive, createTranslator(undefined, "ar"))).toBe(
+      "3.8 TiB",
+    );
+    expect(getHardwareDetail(drive)).toBe("3.8 TiB");
+  });
+
+  test("formatStorageBytes writes the reader's number when it is handed a translator", () => {
+    expect(formatStorageBytes(512, persian)).toBe("۵۱۲ B");
+    expect(formatStorageBytes(2 * 1024 ** 5, german)).toBe("2,0 PiB");
+    expect(formatStorageBytes(4096 * 1024 ** 5, german)).toBe("4.096,0 PiB");
+    expect(formatStorageBytes(undefined, persian)).toBe("—");
+    // Not handed one, it writes as it always has.
+    expect(formatStorageBytes(4096 * 1024 ** 5)).toBe("4096.0 PiB");
+  });
+
   test("a translator with no words of its own writes English, as before", () => {
     const wordless: Translator = createTranslator(undefined, "de");
 

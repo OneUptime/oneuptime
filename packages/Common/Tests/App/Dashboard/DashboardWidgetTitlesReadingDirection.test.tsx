@@ -930,6 +930,22 @@ describe("a Network Map widget's title", () => {
     },
   );
 
+  /*
+   * As plain as the title beside it, as a list's count is: gray-300 all but
+   * vanished on a light board and outshone the title on a dark one.
+   */
+  test("the sites' count is drawn in its title's gray", async () => {
+    await drawMap(ENGLISH_TITLE);
+
+    const summary: HTMLElement = screen.getByTestId(
+      "network-map-widget-summary",
+    );
+
+    expect(lineOf(ENGLISH_TITLE)).toHaveClass("text-gray-400");
+    expect(summary).toHaveClass("text-gray-400");
+    expect(summary).not.toHaveClass("text-gray-300");
+  });
+
   test("on an Arabic board the widget's own name, in Arabic, is drawn as it was", async () => {
     await inLanguage("ar");
     await drawMap(undefined);
