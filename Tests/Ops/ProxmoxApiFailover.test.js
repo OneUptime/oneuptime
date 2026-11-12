@@ -670,3 +670,44 @@ describe("pve-api-failover's script, run against a stand-in cluster", () => {
     expect(Date.now() - stoppedAt).toBeLessThan(5000);
   });
 });
+
+/* ======================================================= the real containers */
+
+describe("the real containers' run", () => {
+  test("proxmox-agent-failover-behaviour.sh runs in the Ops workflow, on the node image the workflow warms", () => {
+    const workflow = fs.readFileSync(
+      path.join(REPO_ROOT, ".github", "workflows", "test.ops.yaml"),
+      "utf8",
+    );
+    const script = fs.readFileSync(
+      path.join(__dirname, "proxmox-agent-failover-behaviour.sh"),
+      "utf8",
+    );
+    const run = workflow.indexOf(
+      "- run: bash Tests/Ops/proxmox-agent-failover-behaviour.sh",
+    );
+    const nodeImage = script.match(/^NODE_IMAGE="([^"]+)"$/m)[1];
+    const warm = workflow.indexOf(`warm_base_images.sh --image ${nodeImage}`);
+
+    expect(run).toBeGreaterThan(-1);
+    expect(warm).toBeGreaterThan(-1);
+    expect(warm).toBeLessThan(run);
+    // It runs the shipped files, changing only how often the collector scrapes.
+    expect(script).toContain(
+      'cp "${AGENT_DIR}/docker-compose.yml" "${WORK_DIR}/docker-compose.yml"',
+    );
+    expect(script).toContain(
+      "sed 's/scrape_interval: 30s/scrape_interval: 5s/'",
+    );
+  });
+
+  test("proxmox-agent-failover-behaviour.sh passes bash -n", () => {
+    const result = spawnSync(
+      "bash",
+      ["-n", path.join(__dirname, "proxmox-agent-failover-behaviour.sh")],
+      { encoding: "utf8" },
+    );
+    expect(result.stderr).toBe("");
+    expect(result.status).toBe(0);
+  });
+});
