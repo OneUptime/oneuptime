@@ -218,7 +218,10 @@ export const AiRuleFixCell: FunctionComponent<AiRuleFixCellProps> = (
     >
       {/*
        * On a second line rather than cut short: a longer language's
-       * "Asks before fixing" is wider than the column.
+       * "Asks before fixing" is wider than the column. Its words wrap
+       * between one another, never inside one (isKeepingWordsWhole): in a
+       * column held narrow, [overflow-wrap:anywhere] broke a Russian or
+       * German word in the middle (#7111).
        */}
       <Pill
         color={
@@ -230,6 +233,7 @@ export const AiRuleFixCell: FunctionComponent<AiRuleFixCellProps> = (
         }
         text={AI_RULE_FIX_TEXT[shownFix]}
         isWrapping={true}
+        isKeepingWordsWhole={true}
       />
       {fixWith ? (
         <span

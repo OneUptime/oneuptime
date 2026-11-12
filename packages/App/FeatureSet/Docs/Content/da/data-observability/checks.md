@@ -37,7 +37,7 @@ Hvert tjek kører hvert 15. minut, hver time, hver 6. time eller hver dag som é
 
 Indstil **Advar, når** for at advare på et tjek:
 
-- **Unusually High** eller **Unusually Low** sammenligner hver værdi med dens egen lærte basislinje for den time på ugen.
+- **Usædvanligt høj** eller **Usædvanligt lav** sammenligner hver værdi med dens egen lærte basislinje for den time på ugen.
 - **Over** eller **Under** sammenligner den med en tærskel.
 
 Når du gemmer tjekket, oprettes en metrik-monitor for det, i dit navn og med dine tilladelser. Rydder du betingelsen, fjernes monitoren.

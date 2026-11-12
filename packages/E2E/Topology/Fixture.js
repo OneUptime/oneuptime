@@ -21,6 +21,8 @@ import { TopologyApiLimits } from "Common/Types/Topology/TopologyApi";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import API from "Common/UI/Utils/API/API";
 import Navigation from "Common/UI/Utils/Navigation";
+import { followLanguageForDates } from "Common/UI/Utils/DateDisplayLanguage";
+import { followLanguageForPage } from "Common/UI/Utils/PageLanguage";
 import { loadDataset } from "./Datasets";
 import { seededRandom } from "Common/Tests/Helpers/SeededRandom";
 import {
@@ -494,10 +496,57 @@ API.post = async ({ url, data }) => {
 };
 API.get = async () => ({ data: { data: [], count: 0 } });
 
+/*
+ * ?lang=: the Dashboard's German, French, Russian, Hindi, Arabic or Persian
+ * locale, loaded and switched to, so a spec can measure the Infrastructure
+ * list in the longer languages (#6693, #7103). Each loads only when ?lang=
+ * names it - a locale is some four megabytes of JSON, which every page the
+ * suite opens would parse if it were bundled into the entry - and by one
+ * static import per language, so the value only ever chooses among these.
+ */
+function loadLocale(language) {
+  switch (language) {
+    case "de":
+      return import("../../App/FeatureSet/Dashboard/src/Locales/de.json");
+    case "fr":
+      return import("../../App/FeatureSet/Dashboard/src/Locales/fr.json");
+    case "ru":
+      return import("../../App/FeatureSet/Dashboard/src/Locales/ru.json");
+    case "hi":
+      return import("../../App/FeatureSet/Dashboard/src/Locales/hi.json");
+    case "ar":
+      return import("../../App/FeatureSet/Dashboard/src/Locales/ar.json");
+    case "fa":
+      return import("../../App/FeatureSet/Dashboard/src/Locales/fa.json");
+    default:
+      return null;
+  }
+}
+const LANGUAGES = ["de", "fr", "ru", "hi", "ar", "fa"];
+const requestedLanguage = new URLSearchParams(window.location.search).get(
+  "lang",
+);
+const language = LANGUAGES.includes(requestedLanguage)
+  ? requestedLanguage
+  : "en";
+const resources = { en: { translation: {} } };
+if (language !== "en") {
+  resources[language] = {
+    translation: (await loadLocale(language)).default,
+  };
+}
+/*
+ * Times, and <html lang> and <html dir>, follow the language as the
+ * Dashboard's own start-up has them (Utils/i18n.ts): "83 дня назад" on a
+ * Russian page, and an Arabic or Persian page laid out right to left.
+ */
+followLanguageForDates(i18next);
+followLanguageForPage(i18next);
+
 await i18next.use(initReactI18next).init({
-  lng: "en",
+  lng: language,
   fallbackLng: "en",
-  resources: { en: { translation: {} } },
+  resources,
   interpolation: { escapeValue: false },
 });
 /*

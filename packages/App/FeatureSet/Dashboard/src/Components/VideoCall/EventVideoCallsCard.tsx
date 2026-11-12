@@ -15,7 +15,9 @@ import ErrorMessage from "Common/UI/Components/ErrorMessage/ErrorMessage";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedLine from "Common/UI/Components/IsolatedText/IsolatedLine";
 import ConfirmModal from "Common/UI/Components/Modal/ConfirmModal";
+import TranslatedSentence from "Common/UI/Components/TranslatedSentence/TranslatedSentence";
 import API from "Common/UI/Utils/API/API";
+import { getLineDirection } from "Common/UI/Utils/LineDirection";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, {
   ModelAction,
@@ -26,6 +28,8 @@ import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope"
 import {
   TranslatableTerm,
   Translator,
+  formatInline,
+  getInlineSeparator,
   translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -127,6 +131,37 @@ export function getVideoCallHeadline(call: EventVideoCall): string {
   }
 }
 
+// The line under a call that says who started it and when: one line of text.
+export const EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME: string =
+  "mt-0.5 truncate text-xs text-gray-500";
+
+/*
+ * The same line when the name in it reads the other way from the page: a
+ * row of boxes on one line, in the page's direction. The words around the
+ * name and the time keep their width; the name gives way (min-w-0) and is
+ * cut short at its own end.
+ */
+export const EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME: string =
+  "mt-0.5 flex min-w-0 overflow-hidden whitespace-nowrap text-xs text-gray-500";
+
+export const EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME: string =
+  "min-w-0 truncate";
+
+/*
+ * A piece of that row's words - "Started by ", " · 3 minutes ago" - as a
+ * box that keeps its width and its spaces (a flex row drops the spaces at
+ * the ends of loose text), so the line still has a space between its
+ * words, and its text reads as one sentence to a screen reader.
+ */
+export const EVENT_VIDEO_CALL_STARTED_ROW_TEXT_CLASS_NAME: string =
+  "shrink-0 whitespace-pre";
+
+function renderStartedRowText(text: string): ReactElement {
+  return (
+    <span className={EVENT_VIDEO_CALL_STARTED_ROW_TEXT_CLASS_NAME}>{text}</span>
+  );
+}
+
 interface CallRowProps {
   call: EventVideoCall;
   isPrimary: boolean;
@@ -154,17 +189,42 @@ const CallRow: FunctionComponent<CallRowProps> = (
   // No Join link for a link that is not an http or https address.
   const openableJoinUrl: string | undefined = getOpenableJoinUrl(joinUrl);
 
+  // The person who started it: their name, or their email without one.
+  const starterName: string = call.workspaceNotificationRuleId
+    ? ""
+    : call.createdByUser?.name?.toString() ||
+      call.createdByUser?.email?.toString() ||
+      "";
+
+  /*
+   * Who started it. A person's name is set apart from the sentence
+   * (setsValuesApart): an English name in an Arabic or Persian sentence
+   * keeps its own order and its punctuation, and the time after it stays
+   * where the sentence puts it.
+   */
   const startedBy: string = call.workspaceNotificationRuleId
     ? translator.translateText("Started automatically by a workspace rule") ||
       ""
-    : call.createdByUser?.name || call.createdByUser?.email
-      ? translator.translateTemplate("Started by {{name}}", {
-          name:
-            call.createdByUser?.name?.toString() ||
-            call.createdByUser?.email?.toString() ||
-            "",
-        })
+    : starterName
+      ? translator.translateTemplate(
+          "Started by {{name}}",
+          { name: starterName },
+          { setsValuesApart: true },
+        )
       : translator.translateText("Started from the API") || "";
+
+  /*
+   * A name that reads the other way from the page - an English name on an
+   * Arabic or Persian page. Inside the sentence's one line, cut short where
+   * the card ends, such a name lost its start: that line ends at the left,
+   * where an English name starts ("...SRE, EU West on-call)"). So the line
+   * is drawn as a row of boxes instead, and the name is a box of its own
+   * that reads its way and is cut at its own end ("Maya Chen-Rodriguez
+   * (Pla...").
+   */
+  const starterNameDirection: string | undefined = starterName
+    ? getLineDirection(starterName, translator.language)
+    : undefined;
 
   // "5 minutes ago" in the reader's language, as the transcript's line says it.
   const startedAt: string = call.createdAt
@@ -228,9 +288,47 @@ const CallRow: FunctionComponent<CallRowProps> = (
                 dataTestId="event-video-call-title"
               />
             )}
-          <p className="mt-0.5 truncate text-xs text-gray-500">
-            {startedAt ? `${startedBy} · ${startedAt}` : startedBy}
-          </p>
+          {/*
+           * Who started it and when, set off from each other as the
+           * reader's language does (formatInline): a bullet beside
+           * Persian digits, whose zero is a dot.
+           */}
+          {starterNameDirection ? (
+            <p
+              className={EVENT_VIDEO_CALL_STARTED_ROW_CLASS_NAME}
+              data-testid="event-video-call-started"
+            >
+              <TranslatedSentence
+                template="Started by {{name}}"
+                slots={{
+                  name: (
+                    <IsolatedLine
+                      as="span"
+                      text={starterName}
+                      className={EVENT_VIDEO_CALL_STARTER_NAME_CLASS_NAME}
+                      title={starterName}
+                      dataTestId="event-video-call-started-by-name"
+                    />
+                  ),
+                }}
+                renderText={renderStartedRowText}
+              />
+              {startedAt
+                ? renderStartedRowText(
+                    `${getInlineSeparator(translator.language)}${startedAt}`,
+                  )
+                : null}
+            </p>
+          ) : (
+            <p
+              className={EVENT_VIDEO_CALL_STARTED_LINE_CLASS_NAME}
+              data-testid="event-video-call-started"
+            >
+              {startedAt
+                ? formatInline([startedBy, startedAt], translator)
+                : startedBy}
+            </p>
+          )}
           {props.isPrimary ? <></> : transcriptBlock}
         </div>
         {!props.isPrimary && openableJoinUrl && (

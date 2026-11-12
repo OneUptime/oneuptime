@@ -27,7 +27,14 @@ import HTTPErrorResponse from "../../../Types/API/HTTPErrorResponse";
 import Navigation from "../../../UI/Utils/Navigation";
 import RangeStartAndEndDateTime from "../../../Types/Time/RangeStartAndEndDateTime";
 import TimeRange from "../../../Types/Time/TimeRange";
-import InfrastructureExplorer from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer";
+import InfrastructureExplorer, {
+  INFRASTRUCTURE_PANES_CLASS_NAME,
+  INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME,
+  INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME,
+  INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME,
+  INFRASTRUCTURE_TREE_LIST_CLASS_NAME,
+  INFRASTRUCTURE_TREE_PANE_CLASS_NAME,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Topology/InfrastructureExplorer";
 import type {
   CollectionPage,
   CollectionPageRequest,
@@ -1752,5 +1759,227 @@ describe("collection request failures", () => {
     );
     fireEvent.click(within(alert).getByRole("button", { name: "Reload page" }));
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+});
+
+/*
+ * The list fits its pane (#7103). At 16px a side (32px between columns) the
+ * Russian resources list was 622px in its 608px pane at 1280 pixels, and the
+ * pane scrolled 14px to reach each row's chevron; beside a 1024 pixel
+ * window's side menu the tree left the list 352px, where every language
+ * scrolled. The cells are now spaced as Common's tables are (12px a side,
+ * the name 16px in from the box), and the tree sits beside the list only
+ * from 1280 pixels (xl), over it below that.
+ *
+ * What the browser draws is checked by the Topology suite in real Chromium
+ * (TopologyExperience.spec.ts); here, the classes that draw it, and the sum
+ * that has to fit.
+ */
+describe("the list fits its pane (#7103)", () => {
+  // The Tailwind spacing scale: 1 is 4px.
+  const SPACING_UNIT_IN_PX: number = 4;
+  // A horizontal padding class: pl-4, pr-3 or px-3 (both sides).
+  const HORIZONTAL_PADDING_PATTERN: RegExp = /(?:^|\s)p([lrx])-(\d+)(?=\s|$)/g;
+
+  // The px a cell's classes pad it with, start and end together.
+  const horizontalPaddingOf: (className: string) => number = (
+    className: string,
+  ): number => {
+    let total: number = 0;
+    for (const match of className.matchAll(HORIZONTAL_PADDING_PATTERN)) {
+      const sides: number = match[1] === "x" ? 2 : 1;
+      total += sides * Number(match[2]) * SPACING_UNIT_IN_PX;
+    }
+    return total;
+  };
+
+  // Name first, the chevron last, and what is between them.
+  const expectSpacedAsTables: (table: HTMLElement, columns: number) => void = (
+    table: HTMLElement,
+    columns: number,
+  ): void => {
+    const rowsOfCells: Array<Array<HTMLElement>> = Array.from(
+      table.querySelectorAll("tr"),
+    ).map((row: Element): Array<HTMLElement> => {
+      return Array.from(row.children) as Array<HTMLElement>;
+    });
+    // The header, and at least one row under it.
+    expect(rowsOfCells.length).toBeGreaterThan(1);
+
+    for (const cells of rowsOfCells) {
+      expect(cells).toHaveLength(columns);
+      cells.forEach((cell: HTMLElement, index: number) => {
+        const expected: string =
+          index === 0
+            ? INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME
+            : index === cells.length - 1
+              ? INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME
+              : INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME;
+        expect(cell).toHaveClass(...expected.split(" "));
+        // The 16px a side that took the Russian list past its pane.
+        expect(cell).not.toHaveClass("px-4");
+      });
+    }
+  };
+
+  test("the paddings are Common's: 12px a side, the name 16px in, the chevron 12px from the end", () => {
+    expect(INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME).toBe("pl-4 pr-3");
+    expect(INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME).toBe("pl-3 pr-3");
+    expect(INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME).toBe("px-3");
+    expect(
+      horizontalPaddingOf(INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME),
+    ).toBe(28);
+    expect(
+      horizontalPaddingOf(INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME),
+    ).toBe(24);
+    expect(
+      horizontalPaddingOf(INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME),
+    ).toBe(24);
+  });
+
+  test("every header and cell of the resources list is spaced so", () => {
+    renderExplorer();
+
+    // Name, Contains, Services running, Last seen and the chevron.
+    expectSpacedAsTables(screen.getByTestId("infrastructure-table"), 5);
+  });
+
+  test("every header and cell of a collection's list is spaced so", async () => {
+    mockFetchCollectionPage.mockResolvedValueOnce(
+      page(
+        [
+          entity("iot-1", EntityType.IoTDevice, "sensor-001"),
+          entity("iot-2", EntityType.IoTDevice, "sensor-002"),
+        ],
+        4200,
+        { name: "sensor-002", key: "iot-2" },
+      ),
+    );
+    renderExplorer({ data: withCollection() });
+    fireEvent.click(screen.getByRole("button", { name: "Open IoT Devices" }));
+    await waitFor(() => {
+      expect(
+        screen.getAllByTestId("infrastructure-collection-row"),
+      ).toHaveLength(2);
+    });
+
+    // Name, Last seen and the chevron.
+    expectSpacedAsTables(
+      screen.getByTestId("infrastructure-collection-table"),
+      3,
+    );
+  });
+
+  test("the tree is beside the list from 1280 pixels (xl), and over it below", () => {
+    renderExplorer();
+
+    const panes: HTMLElement = screen.getByTestId("infrastructure-panes");
+    expect(panes.className).toBe(INFRASTRUCTURE_PANES_CLASS_NAME);
+    expect(panes).toHaveClass("flex", "flex-col", "xl:flex-row");
+    expect(panes).not.toHaveClass("lg:flex-row");
+
+    expect(tree()).toBe(panes.firstElementChild);
+    expect(tree().className).toBe(INFRASTRUCTURE_TREE_PANE_CLASS_NAME);
+    // Over the list, a line under it; beside it, 18rem with a line at its side.
+    expect(tree()).toHaveClass(
+      "border-b",
+      "xl:w-72",
+      "xl:flex-shrink-0",
+      "xl:border-b-0",
+      "xl:border-r",
+    );
+    expect(tree().className).not.toMatch(/(?:^|\s)lg:/);
+  });
+
+  /*
+   * Over the list (below 1280 pixels, and so now at 1024 to 1279 too) a large
+   * estate's tree, as tall as 60vh, put the list - what the page is for - a
+   * screen further down: 460px of tree at 1024 by 768. There it is held to
+   * 18rem, some nine rows, and scrolls; beside the list it keeps 60vh.
+   */
+  test("over the list the tree's own scroll is held to 18rem, and beside it to 60vh", () => {
+    renderExplorer();
+
+    // The tree's outer list (each open row nests one of its own).
+    const list: HTMLElement = tree().querySelector("ul") as HTMLElement;
+
+    expect(list).not.toBeNull();
+    expect(list.parentElement).toBe(tree());
+    expect(list.className).toBe(INFRASTRUCTURE_TREE_LIST_CLASS_NAME);
+    expect(list).toHaveClass(
+      "relative",
+      "overflow-y-auto",
+      "max-h-72",
+      "xl:max-h-[60vh]",
+    );
+    // No height of 60vh where the tree is over the list.
+    expect(list).not.toHaveClass("max-h-[60vh]");
+    // The same breakpoint as the panes': beside the list from xl only.
+    expect(INFRASTRUCTURE_PANES_CLASS_NAME).toContain("xl:flex-row");
+  });
+
+  /*
+   * Each column's least width with no padding, as Chromium drew the self-hosted
+   * estate's list at 1280 pixels in the Topology fixture with the product's
+   * fonts: the name at its 10rem floor (with its 36px icon and 12px gap), the
+   * others at their header's longest word or a value that stays whole ("83
+   * дня назад"), and the 16px chevron. The pane beside the tree is 608px at
+   * 1280 pixels, and 640px over it at 1024.
+   */
+  const LEAST_CONTENT_WIDTHS_IN_PX: Record<string, Array<number>> = {
+    en: [208, 52, 53, 88, 16],
+    de: [208, 39, 57, 93, 16],
+    fr: [208, 50, 71, 91, 16],
+    ru: [208, 67, 79, 100, 16],
+    hi: [208, 28, 22, 72, 16],
+    ar: [208, 30, 41, 71, 16],
+    fa: [208, 27, 59, 71, 16],
+  };
+  const PANE_BESIDE_THE_TREE_AT_1280_IN_PX: number = 608;
+  const PANE_UNDER_THE_TREE_AT_1024_IN_PX: number = 640;
+
+  const leastListWidth: (
+    widths: Array<number>,
+    paddings: Array<string>,
+  ) => number = (widths: Array<number>, paddings: Array<string>): number => {
+    return widths.reduce((sum: number, width: number, index: number) => {
+      return sum + width + horizontalPaddingOf(paddings[index]!);
+    }, 0);
+  };
+  const PADDINGS: Array<string> = [
+    INFRASTRUCTURE_TABLE_NAME_CELL_PADDING_CLASS_NAME,
+    INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME,
+    INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME,
+    INFRASTRUCTURE_TABLE_CELL_PADDING_CLASS_NAME,
+    INFRASTRUCTURE_TABLE_OPEN_CELL_PADDING_CLASS_NAME,
+  ];
+
+  test.each(Object.keys(LEAST_CONTENT_WIDTHS_IN_PX))(
+    "%s: the list at its narrowest fits its pane at 1280 and at 1024 pixels",
+    (language: string) => {
+      const least: number = leastListWidth(
+        LEAST_CONTENT_WIDTHS_IN_PX[language]!,
+        PADDINGS,
+      );
+
+      expect(least).toBeLessThanOrEqual(PANE_BESIDE_THE_TREE_AT_1280_IN_PX);
+      expect(least).toBeLessThanOrEqual(PANE_UNDER_THE_TREE_AT_1024_IN_PX);
+    },
+  );
+
+  test("Russian at its narrowest: 594px, 14px to spare", () => {
+    expect(leastListWidth(LEAST_CONTENT_WIDTHS_IN_PX["ru"]!, PADDINGS)).toBe(
+      594,
+    );
+  });
+
+  test("negative control: 16px a side, as before, takes the Russian list 14px past its pane", () => {
+    const before: Array<string> = ["px-4", "px-4", "px-4", "px-4", "px-3"];
+
+    expect(leastListWidth(LEAST_CONTENT_WIDTHS_IN_PX["ru"]!, before)).toBe(622);
+    expect(
+      leastListWidth(LEAST_CONTENT_WIDTHS_IN_PX["ru"]!, before) -
+        PANE_BESIDE_THE_TREE_AT_1280_IN_PX,
+    ).toBe(14);
   });
 });

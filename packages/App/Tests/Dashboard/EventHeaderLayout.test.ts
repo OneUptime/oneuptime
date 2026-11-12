@@ -20,6 +20,8 @@ import {
   EVENT_HEADER_PRIMARY_BUTTON_HOVER_CLASS_NAME,
   EVENT_HEADER_TEST_IDS,
   EVENT_HEADER_TITLE_CLASS_NAME,
+  EVENT_HEADER_TITLE_WORDS_CLASS_NAME,
+  EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME,
   EventHeaderActionWidthInput,
   EventHeaderNoticeTone,
   EventHeaderTopRowClassNames,
@@ -121,6 +123,7 @@ describe("the header is a size container", () => {
       chips: "event-header-chips",
       number: "event-header-number",
       title: "event-header-title",
+      titleWords: "event-header-title-words",
       actions: "event-header-actions",
       buttons: "event-header-buttons",
       morePlace: "event-header-more-place",
@@ -166,6 +169,39 @@ describe("the number and the title", () => {
         return name.startsWith("line-clamp");
       }),
     ).toBe(false);
+  });
+
+  /*
+   * A title that reads the other way from the page (#7086) is a box of its
+   * own inside the heading: a block, so it is a line of its own, that says
+   * its words wrap, so IsolatedLine sizes it to its words at the page's
+   * start rather than lining each wrapped line up by its end. Its size,
+   * weight and line-height are the heading's, which it inherits.
+   */
+  test("keep a title read the other way whole too, on lines of its own", () => {
+    const classes: Array<string> = classesOf(
+      EVENT_HEADER_TITLE_WORDS_CLASS_NAME,
+    );
+
+    expect(classes).toEqual(["block", "[overflow-wrap:anywhere]"]);
+    expect(
+      classes.some((name: string): boolean => {
+        return (
+          name === "truncate" ||
+          name.startsWith("line-clamp") ||
+          name.startsWith("text-") ||
+          name.startsWith("font-") ||
+          name.startsWith("leading-")
+        );
+      }),
+    ).toBe(false);
+  });
+
+  test("label a fact with words that wrap, never cut short", () => {
+    expect(classesOf(EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME)).toEqual([
+      "min-w-0",
+      "break-words",
+    ]);
   });
 });
 

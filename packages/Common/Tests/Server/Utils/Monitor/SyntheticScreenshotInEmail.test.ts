@@ -16,6 +16,11 @@ import SyntheticMonitorResponse from "../../../../Types/Monitor/SyntheticMonitor
 import MonitorType from "../../../../Types/Monitor/MonitorType";
 import ObjectID from "../../../../Types/ObjectID";
 import ProbeMonitorResponse from "../../../../Types/Probe/ProbeMonitorResponse";
+import EmailSize, {
+  EMAIL_TRUNCATED_TEXT_NOTE_HTML,
+  MAX_EMAIL_FIELD_HTML_BYTES,
+} from "../../../../Server/Utils/Mail/EmailSize";
+import logger from "../../../../Server/Utils/Logger";
 import { SeededRandom, seededRandom } from "../../../Helpers/SeededRandom";
 import { FastestRun, fastestRunAsync } from "../../../Helpers/FastestRun";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
@@ -786,6 +791,49 @@ describe("a screenshot a description references many times, from the probe to th
     expect(email.html).not.toContain("[Open the screenshot");
     expect(email.html).toContain("</p>\n<p>Open the screenshot 1</p>\n");
     expect(email.html.endsWith("<p>Open the screenshot 200</p>\n")).toBe(true);
+  });
+
+  /*
+   * A description longer than an email field keeps is cut to fit, and marked
+   * reads a definition wherever it is: the cut kept "![Home][home]" and
+   * dropped the screenshot's definition at the end, so the email showed the
+   * reference as text and attached nothing. The definition comes along now.
+   */
+  test("a description cut to fit: the screenshot defined at its end is attached and shown, and the error is cut with the note (#6963)", async () => {
+    jest.spyOn(logger, "warn").mockImplementation((): void => {});
+    const shot: string = jpegOfSize(30 * KB);
+    const error: string =
+      "Timeout 30000ms exceeded waiting for the login form ".repeat(6000);
+    const description: string = describeIncident(
+      [
+        "Monitor is down",
+        "![Home][home]",
+        "",
+        "{{syntheticResponses.0.scriptError}}",
+        "",
+        "[home]: data:image/jpeg;base64,{{syntheticResponses.0.screenshots.home}}",
+      ].join("\n"),
+      [run({ scriptError: error, screenshots: { home: shot } })],
+    );
+
+    // The error is more than an email field keeps.
+    expect(description.length).toBeGreaterThan(MAX_EMAIL_FIELD_HTML_BYTES);
+
+    const email: EmailHtmlWithInlineImages = await emailFor(description);
+
+    expect(email.inlineImages).toHaveLength(1);
+    expect(email.inlineImages[0]!.base64 === shot).toBe(true);
+    expect(
+      email.html.startsWith(
+        `<p>Monitor is down\n<img src="cid:${email.inlineImages[0]!.contentId}" alt="Home" style="max-width:100%;height:auto;"></p>\n<p>Timeout 30000ms exceeded waiting for the login form `,
+      ),
+    ).toBe(true);
+    expect(email.html.endsWith(EMAIL_TRUNCATED_TEXT_NOTE_HTML)).toBe(true);
+    expect(EmailSize.getHtmlSizeInBytes(email.html)).toBeLessThanOrEqual(
+      MAX_EMAIL_FIELD_HTML_BYTES,
+    );
+    expect(email.html).not.toContain("![Home");
+    expect(email.html).not.toContain("[home]");
   });
 
   /*
