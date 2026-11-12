@@ -17,6 +17,7 @@ import {
 import { KUBERNETES_AGENT_HELM_NAMESPACE } from "./DocumentationMarkdown";
 import { readAiSettingsSource } from "../../../Components/AiAccess/AiAccessModes";
 import { ADD_AI_CREDITS_STEP } from "../../../Components/ProjectBalance/ProjectBalanceCopy";
+import PageMap from "../../../Utils/PageMap";
 import {
   AgentAiSettingsSource,
   isAgentAiSettingsSourceAgent,
@@ -815,7 +816,7 @@ export function getAiAgentAttentionStepText(
       return translateTemplate("Turn on AI for this project.");
     case "llm_provider_missing":
       return translateTemplate(
-        "Add an AI provider for this project, or use OneUptime AI credits.",
+        "Add an LLM provider for this project, or use OneUptime AI credits.",
       );
     /*
      * Adding credits, whatever Auto Recharge is doing: the server reports
@@ -977,25 +978,95 @@ export function getAutomaticInvestigationTurnOnChanges(
 }
 
 /*
+ * Which opt-ins the confirm dialog turns on: the ones that are off. The
+ * dialog is offered only while one is off, so with neither off it reads as
+ * the alerts' (the last one a project turns on).
+ */
+export type AutomaticInvestigationTurnOn =
+  | "incidentsAndAlerts"
+  | "incidents"
+  | "alerts";
+
+export function getAutomaticInvestigationTurnOn(
+  settings: KubernetesAiAutomaticInvestigationSettings,
+): AutomaticInvestigationTurnOn {
+  if (!settings.incidents && !settings.alerts) {
+    return "incidentsAndAlerts";
+  }
+
+  return settings.incidents ? "alerts" : "incidents";
+}
+
+/*
  * What the confirm dialog says before turning them on: one whole sentence
  * for each set of opt-ins it turns on, so a locale words each one its own
- * way and puts the project's name where its grammar wants it.
+ * way and puts the project's name where its grammar wants it. Each names
+ * the AI settings page of each kind it turns on, where that kind's limits
+ * are (the Daily Alert AI Token Limit is on the alerts' page, never on the
+ * incidents'), and no other (#7158).
  */
-export const AUTOMATIC_INVESTIGATION_CONFIRMATIONS: {
-  incidentsAndAlerts: string;
-  incidents: string;
-  alerts: string;
-} = {
+export const AUTOMATIC_INVESTIGATION_CONFIRMATIONS: Record<
+  AutomaticInvestigationTurnOn,
+  string
+> = {
   incidentsAndAlerts: translationKey(
-    "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+    "This applies to every new incident and alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings and Alerts → AI → Settings.",
   ),
   incidents: translationKey(
     "This applies to every new incident in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
   ),
   alerts: translationKey(
-    "This applies to every new alert in {{project}}, not just this cluster. Limits live under Incidents → AI → Settings.",
+    "This applies to every new alert in {{project}}, not just this cluster. Limits live under Alerts → AI → Settings.",
   ),
 };
+
+/*
+ * The dialog's links, to the same pages its sentence names: one page reads
+ * "Open settings"; both are named, so the reader can tell which link is
+ * whose.
+ */
+export interface AutomaticInvestigationSettingsLink {
+  page: PageMap.INCIDENTS_SETTINGS_AI | PageMap.ALERTS_SETTINGS_AI;
+  label: string;
+}
+
+export const AUTOMATIC_INVESTIGATION_SETTINGS_LINKS: Readonly<
+  Record<
+    AutomaticInvestigationTurnOn,
+    ReadonlyArray<AutomaticInvestigationSettingsLink>
+  >
+> = {
+  incidentsAndAlerts: [
+    {
+      page: PageMap.INCIDENTS_SETTINGS_AI,
+      label: translationKey("Incident AI settings"),
+    },
+    {
+      page: PageMap.ALERTS_SETTINGS_AI,
+      label: translationKey("Alert AI settings"),
+    },
+  ],
+  incidents: [
+    {
+      page: PageMap.INCIDENTS_SETTINGS_AI,
+      label: translationKey("Open settings"),
+    },
+  ],
+  alerts: [
+    {
+      page: PageMap.ALERTS_SETTINGS_AI,
+      label: translationKey("Open settings"),
+    },
+  ],
+};
+
+export function getAutomaticInvestigationSettingsLinks(
+  settings: KubernetesAiAutomaticInvestigationSettings,
+): ReadonlyArray<AutomaticInvestigationSettingsLink> {
+  return AUTOMATIC_INVESTIGATION_SETTINGS_LINKS[
+    getAutomaticInvestigationTurnOn(settings)
+  ];
+}
 
 // The project in the confirmation when the page does not know its name.
 const UNNAMED_PROJECT: string = translationKey("this project");
@@ -1005,11 +1076,9 @@ export function getAutomaticInvestigationConfirmation(data: {
   projectName?: string | undefined;
 }): string {
   const template: string =
-    !data.settings.incidents && !data.settings.alerts
-      ? AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidentsAndAlerts
-      : !data.settings.incidents
-        ? AUTOMATIC_INVESTIGATION_CONFIRMATIONS.incidents
-        : AUTOMATIC_INVESTIGATION_CONFIRMATIONS.alerts;
+    AUTOMATIC_INVESTIGATION_CONFIRMATIONS[
+      getAutomaticInvestigationTurnOn(data.settings)
+    ];
 
   return translateTemplate(template, {
     project: data.projectName || translatableTerm(UNNAMED_PROJECT),

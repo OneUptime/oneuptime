@@ -420,6 +420,11 @@ describe("Test, on the customer's own provider: whoever may change it tests it",
         success: true,
         supportsToolCalling: true,
         message: CONNECTED,
+        /*
+         * What went over the wire (#7080): none here, where LLMService is
+         * mocked and nothing is sent (LlmProviderTestExchanges covers it).
+         */
+        exchanges: [],
       });
 
       const request: LLMCompletionRequest = sentRequests()[0]!;

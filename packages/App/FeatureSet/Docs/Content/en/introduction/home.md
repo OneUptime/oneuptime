@@ -93,6 +93,10 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 
 **Needs attention** lists, by name, what the numbers count: the open incidents, the open alerts, the monitors that are not operational, the SLOs at risk and the maintenance in progress, the most urgent first. Each row shows its severity or status, says when an incident or alert started and when maintenance ends, and opens the record. Each kind shows up to five, with **View all** for the rest, which opens the same list as its number. When nothing is open, it says **Nothing needs your attention**.
 
+### Setup health
+
+When something in the project's setup would stop people from being told, **Needs attention** ends with **Setup**: how many things need a look. It opens **Setup Health**, which lists what is misconfigured, worst first, under **Pages Will Not Arrive**, **Worth Fixing** and **Suggestions**: a monitor that pages nobody, an on-call policy nothing runs, a responder who can't be paged, SMS switched off, a schedule with nobody on call, a status page that shows no monitor. Each finding says what is wrong in one sentence, with the button that opens its fix, and a monitor's findings are the breaks its **When this goes down** card names. A finding your team leaves as it is on purpose can be dismissed with a reason, for everyone, and restored from **Dismissed**. Search finds the page as **Setup Health**, and Ask AI answers "is my setup OK?" from it.
+
 ### Your project
 
 **Your project** counts the project's **Monitors**, **Status Pages**, **On-Call Policies**, **SLOs**, **Services**, **Dashboards** and **Workflows**, leaving archived ones out. Each row opens its list. A kind the project has none of says **Set up** instead of a number.
@@ -101,7 +105,7 @@ The checklist goes away for everyone once every step is done. To hide it sooner,
 
 ### Explore OneUptime
 
-**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it.
+**Explore OneUptime** shows the products of the **Products** menu one category at a time, starting with the essentials. Each product says what it is for and opens it when you click it. The products your project hides are left out.
 
 ## Finding your way around
 
@@ -111,6 +115,9 @@ Everything in OneUptime is under **Products** in the top bar. The menu lists its
 - **You start where you are.** The group of the page you are on opens by itself, and the products you opened recently are listed at the top.
 - **Your choices stay.** The menu remembers, on your browser, which of the other groups you opened or folded. The essentials are open again each time you open the menu, even if you folded them.
 - **On a phone**, the menu button lists the products the same way: the essentials open at the top, and every other group as one row that opens on a tap.
+- **Products the project does not use.** A Project Owner or Admin can hide them on **Project Settings → Basic → Products**. A hidden product moves under **More products**, the last row of the menu: Search still finds it, its pages keep working and its data keeps arriving. When one starts receiving data, Home says so to the people who can show it again.
+- **Pins.** Keep a product in the top bar, beside **Home** and **Products**: press the pin on its card in the menu, or **Pin** beside its page's title. You can pin five, and they follow you to every browser. On a phone, your pins come first in the menu.
+- **What is in use.** In each group but the essentials and Settings, the products your project uses come first, and one you have not set up yet says **Not set up**. On OneUptime Cloud, a product your plan does not include names the plan that does.
 
 ### The bars at the top
 

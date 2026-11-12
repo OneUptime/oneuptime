@@ -5445,4 +5445,47 @@ export default class Project extends TenantModel {
     unique: false,
   })
   public welcomeChecklistState?: JSONObject = undefined;
+
+  /*
+   * The products the project hides (issue #6814,
+   * Types/Product/ProjectProducts): left out of the products menu's
+   * categories, Home and Search's list, and kept under More products. Null:
+   * nothing chosen, every product shown - every project from before this,
+   * and a new one until its goals are chosen. Read it with
+   * parseProjectProductSettings.
+   *
+   * Every member reads it, with the project (ProjectAPI's
+   * list-user-projects), so the menu draws the project's products on its
+   * first paint. Nobody writes it through the API: Project Settings >
+   * Products changes it through ProjectProductsAPI, which checks who may and
+   * what is in use, and choosing the goals sets it (ProjectProductsService).
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [
+      Permission.ProjectOwner,
+      Permission.ProjectAdmin,
+      Permission.ProjectMember,
+      Permission.Viewer,
+      Permission.ReadProject,
+      Permission.UnAuthorizedSsoUser,
+      Permission.ProjectUser,
+    ],
+    update: [],
+  })
+  @TableColumn({
+    required: false,
+    type: TableColumnType.JSON,
+    title: "Product Settings",
+    description:
+      "The products this project hides from its menu, Home and Search's list, and where that list came from (its goals, or a member). A hidden product still works and is found by Search. Not set: every product is shown.",
+    example:
+      '{"hidden": ["kubernetes", "docker"], "keptHiddenWithData": [], "chosenBy": "member"}',
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+    unique: false,
+  })
+  public productSettings?: JSONObject = undefined;
 }

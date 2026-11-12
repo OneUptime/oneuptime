@@ -101,6 +101,25 @@
     "billing": true
   },
   {
+    "title": "Products",
+    "where": [
+      "Project Settings",
+      "Basic"
+    ],
+    "keywords": [
+      "hide products",
+      "show products",
+      "hidden products",
+      "choose products",
+      "products menu",
+      "more products",
+      "customize menu",
+      "show every product"
+    ],
+    "path": "/dashboard/:projectId/settings/products",
+    "kind": "page"
+  },
+  {
     "title": "Labels",
     "where": [
       "Project Settings",
@@ -1198,6 +1217,23 @@
       "remove project"
     ],
     "path": "/dashboard/:projectId/settings/danger-zone",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Health",
+    "where": [
+      "Home"
+    ],
+    "keywords": [
+      "misconfigured",
+      "is my setup ok",
+      "setup check",
+      "health check",
+      "nobody is paged",
+      "what is broken",
+      "configuration problems"
+    ],
+    "path": "/dashboard/:projectId/home/setup-health",
     "kind": "page"
   },
   {

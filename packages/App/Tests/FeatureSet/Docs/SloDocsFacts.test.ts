@@ -2413,11 +2413,16 @@ describe("Error Budget Policy, against the policy, the worker and the API", () =
     expect(adding).toContain("await Semaphore.lock({");
     expect(adding).toContain("await this.getMissingRecommendedTiers(data);");
     expect(adding).toContain("props: data.props,");
+    // All or nothing: a create that fails takes the tiers added before it back out.
+    expect(adding).toContain("await this.removeRecommendedTiersAdded({");
 
     const recommended: string = section(page, "The recommended policy");
 
     expect(recommended).toContain(
       "It adds only the tiers the SLO does not have: a tier with the same name, or with the same threshold, counts as there, whether it is on or off.",
+    );
+    expect(recommended).toContain(
+      "If one of the tiers cannot be added, none is: the SLO is left as it was, and you can try again.",
     );
     expect(recommended).toContain(
       "Each tier it adds is recorded in the SLO's audit logs as added by you.",
