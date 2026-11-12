@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} har ingen verifisert varselmetode ennå. Send en påminnelse om oppsett fra siden Beredskap.",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Når du lagrer, gjelder rekkefølgen for alle alvorlighetsgrader: kortene som avviker nå, mister det som gjør dem annerledes.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Agenten leser klyngen fra neste node som har et API som svarer, uten en virtuell IP å sette opp.",
-  "When a node goes down": "Når en node går ned"
+  "When a node goes down": "Når en node går ned",
+  "Is Sample Project": "Er eksempelprosjekt",
+  "Sample Project": "Eksempelprosjekt",
+  "Sample Project ID": "Eksempelprosjektets ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "Se OneUptime med data: monitorer, hendelser, vakt, en statusside og telemetri. Ingenting i det er ekte, og ingen blir varslet.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "Dette er et eksempelprosjekt. Ingenting her er ekte, og ingen blir varslet.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Er du sikker på at du vil slette {{project}}? De oppdiktede monitorene, hendelsene, personene og telemetrien slettes for godt. Du kan utforske et nytt eksempel når som helst.",
+  "Create Your Own Project": "Opprett ditt eget prosjekt",
+  "Delete Sample Project": "Slett eksempelprosjekt",
+  "Explore Sample Project": "Utforsk eksempelprosjekt"
 }

@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}}에게는 아직 인증된 알림 방법이 없습니다. 준비 상태 페이지에서 설정 알림을 보내세요.",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "저장하면 이 연락 순서가 모든 심각도에 쓰이고, 지금 다른 카드는 다른 점을 잃습니다.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "에이전트는 API가 응답하는 다음 노드에서 클러스터를 읽으므로 가상 IP를 설정할 필요가 없습니다.",
-  "When a node goes down": "노드가 다운되면"
+  "When a node goes down": "노드가 다운되면",
+  "Is Sample Project": "샘플 프로젝트 여부",
+  "Sample Project": "샘플 프로젝트",
+  "Sample Project ID": "샘플 프로젝트 ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "데이터가 들어 있는 OneUptime을 살펴보세요. 모니터, 인시던트, 온콜, 상태 페이지, 텔레메트리가 있습니다. 모두 가상이며 아무에게도 알림이 가지 않습니다.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "샘플 프로젝트입니다. 여기 있는 것은 모두 가상이며 아무에게도 알림이 가지 않습니다.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "{{project}}을(를) 삭제하시겠습니까? 가상의 모니터, 인시던트, 사람, 텔레메트리가 영구적으로 삭제됩니다. 새 샘플은 언제든지 둘러볼 수 있습니다.",
+  "Create Your Own Project": "내 프로젝트 만들기",
+  "Delete Sample Project": "샘플 프로젝트 삭제",
+  "Explore Sample Project": "샘플 프로젝트 둘러보기"
 }

@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} 還沒有已驗證的通知方式。請在其就緒狀態頁面傳送設定提醒。",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "儲存後，此聯絡順序用於每個嚴重程度：目前不同的卡片將失去其不同之處。",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "代理程式會從下一個 API 有回應的節點讀取叢集，無需設定虛擬 IP。",
-  "When a node goes down": "當節點當機時"
+  "When a node goes down": "當節點當機時",
+  "Is Sample Project": "是否為範例專案",
+  "Sample Project": "範例專案",
+  "Sample Project ID": "範例專案 ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "看看有資料的 OneUptime：監測器、事件、待命、狀態頁面和遙測。其中一切都是虛構的，不會通知任何人。",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "這是一個範例專案。這裡的一切都是虛構的，不會通知任何人。",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "確定要刪除 {{project}} 嗎？其中虛構的監測器、事件、人員和遙測將被永久刪除。您可以隨時探索新的範例。",
+  "Create Your Own Project": "建立您自己的專案",
+  "Delete Sample Project": "刪除範例專案",
+  "Explore Sample Project": "探索範例專案"
 }

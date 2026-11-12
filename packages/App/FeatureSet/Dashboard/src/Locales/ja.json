@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} には確認済みの通知方法がまだありません。準備状況のページから設定のリマインダーを送ってください。",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "保存すると、この連絡手順がすべての重大度に使われ、今異なっているカードはその違いを失います。",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "エージェントは API が応答する次のノードからクラスターを読み取るため、仮想 IP を設定する必要はありません。",
-  "When a node goes down": "ノードが停止したとき"
+  "When a node goes down": "ノードが停止したとき",
+  "Is Sample Project": "サンプルプロジェクトかどうか",
+  "Sample Project": "サンプルプロジェクト",
+  "Sample Project ID": "サンプルプロジェクト ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "データが入った OneUptime を見てみましょう。モニター、インシデント、オンコール、ステータスページ、テレメトリがあります。すべて架空のもので、誰にも通知されません。",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "これはサンプルプロジェクトです。ここにあるものはすべて架空で、誰にも通知されません。",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "{{project}} を削除しますか？架空のモニター、インシデント、メンバー、テレメトリは完全に削除されます。新しいサンプルはいつでも試せます。",
+  "Create Your Own Project": "自分のプロジェクトを作成",
+  "Delete Sample Project": "サンプルプロジェクトを削除",
+  "Explore Sample Project": "サンプルプロジェクトを試す"
 }

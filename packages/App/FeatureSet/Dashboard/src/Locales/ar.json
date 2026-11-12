@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "ليست لدى {{name}} طريقة إشعار مُتحقق منها بعد. أرسل تذكير الإعداد من صفحة الجاهزية الخاصة به.",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "عند الحفظ يُستخدم هذا التسلسل لكل درجات الخطورة: تفقد البطاقات المختلفة الآن ما يميّزها.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "يقرأ الوكيل العنقود من العقدة التالية التي تجيب واجهة API الخاصة بها، دون عنوان IP افتراضي لإعداده.",
-  "When a node goes down": "عندما تتعطل عقدة"
+  "When a node goes down": "عندما تتعطل عقدة",
+  "Is Sample Project": "مشروع تجريبي",
+  "Sample Project": "المشروع التجريبي",
+  "Sample Project ID": "معرّف المشروع التجريبي",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "شاهد OneUptime وفيه بيانات: مراقبات وحوادث ومناوبة وصفحة حالة وقياس عن بُعد. لا شيء فيه حقيقي، ولا يُرسل إشعار إلى أحد.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "هذا مشروع تجريبي. لا شيء هنا حقيقي، ولا يُرسل إشعار إلى أحد.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "هل تريد بالتأكيد حذف {{project}}؟ ستُحذف مراقباته وحوادثه وأشخاصه وقياساته عن بُعد المختلقة نهائياً. يمكنك استكشاف مشروع تجريبي جديد في أي وقت.",
+  "Create Your Own Project": "أنشئ مشروعك الخاص",
+  "Delete Sample Project": "حذف المشروع التجريبي",
+  "Explore Sample Project": "استكشاف المشروع التجريبي"
 }

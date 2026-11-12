@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.",
-  "When a node goes down": "When a node goes down"
+  "When a node goes down": "When a node goes down",
+  "Is Sample Project": "Is Sample Project",
+  "Sample Project": "Sample Project",
+  "Sample Project ID": "Sample Project ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "This is a sample project. Nothing here is real, and nobody is notified.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.",
+  "Create Your Own Project": "Create Your Own Project",
+  "Delete Sample Project": "Delete Sample Project",
+  "Explore Sample Project": "Explore Sample Project"
 }

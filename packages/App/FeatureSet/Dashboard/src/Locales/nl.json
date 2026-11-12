@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} heeft nog geen geverifieerde meldingsmethode. Stuur een herinnering om alles in te stellen vanaf de pagina Gereedheid.",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Bij opslaan geldt deze reeks voor elk ernstniveau: de kaarten die nu afwijken, verliezen wat ze anders maakt.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "De agent leest het cluster via de volgende node waarvan de API antwoordt, zonder virtueel IP om in te stellen.",
-  "When a node goes down": "Als een node uitvalt"
+  "When a node goes down": "Als een node uitvalt",
+  "Is Sample Project": "Is voorbeeldproject",
+  "Sample Project": "Voorbeeldproject",
+  "Sample Project ID": "ID van voorbeeldproject",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "Bekijk OneUptime met gegevens: monitoren, incidenten, bereikbaarheid, een statuspagina en telemetrie. Niets erin is echt, en niemand krijgt een melding.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "Dit is een voorbeeldproject. Niets hier is echt, en niemand krijgt een melding.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Weet u zeker dat u {{project}} wilt verwijderen? De verzonnen monitoren, incidenten, mensen en telemetrie worden definitief verwijderd. U kunt op elk moment een nieuw voorbeeld verkennen.",
+  "Create Your Own Project": "Uw eigen project maken",
+  "Delete Sample Project": "Voorbeeldproject verwijderen",
+  "Explore Sample Project": "Voorbeeldproject verkennen"
 }

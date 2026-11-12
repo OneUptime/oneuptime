@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} hat noch keine verifizierte Benachrichtigungsmethode. Senden Sie über die Einsatzbereitschaft eine Einrichtungserinnerung.",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "Beim Speichern gilt dieser Ablauf für jeden Schweregrad: Die Karten, die jetzt abweichen, verlieren ihre Abweichung.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Der Agent liest den Cluster vom nächsten Knoten, dessen API antwortet – ohne virtuelle IP, die eingerichtet werden muss.",
-  "When a node goes down": "Wenn ein Knoten ausfällt"
+  "When a node goes down": "Wenn ein Knoten ausfällt",
+  "Is Sample Project": "Ist Beispielprojekt",
+  "Sample Project": "Beispielprojekt",
+  "Sample Project ID": "Beispielprojekt-ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "Sehen Sie OneUptime mit Daten: Monitore, Vorfälle, Bereitschaft, eine Statusseite und Telemetrie. Nichts darin ist echt, und niemand wird benachrichtigt.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "Dies ist ein Beispielprojekt. Nichts hier ist echt, und niemand wird benachrichtigt.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Möchten Sie {{project}} wirklich löschen? Seine erfundenen Monitore, Vorfälle, Personen und Telemetrie werden endgültig gelöscht. Sie können jederzeit ein neues Beispiel erkunden.",
+  "Create Your Own Project": "Eigenes Projekt erstellen",
+  "Delete Sample Project": "Beispielprojekt löschen",
+  "Explore Sample Project": "Beispielprojekt erkunden"
 }

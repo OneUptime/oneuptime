@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} 还没有已验证的通知方式。请在其就绪情况页面发送设置提醒。",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "保存后，此联系顺序用于每个严重程度：目前不同的卡片将失去其不同之处。",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "代理会从下一个 API 有响应的节点读取集群，无需设置虚拟 IP。",
-  "When a node goes down": "当节点宕机时"
+  "When a node goes down": "当节点宕机时",
+  "Is Sample Project": "是否为示例项目",
+  "Sample Project": "示例项目",
+  "Sample Project ID": "示例项目 ID",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "看看有数据的 OneUptime：监视器、事件、值班、状态页和遥测。其中一切都是虚构的，不会通知任何人。",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "这是一个示例项目。这里的一切都是虚构的，不会通知任何人。",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "确定要删除 {{project}} 吗？其中虚构的监视器、事件、人员和遥测将被永久删除。您可以随时探索一个新的示例。",
+  "Create Your Own Project": "创建您自己的项目",
+  "Delete Sample Project": "删除示例项目",
+  "Explore Sample Project": "探索示例项目"
 }

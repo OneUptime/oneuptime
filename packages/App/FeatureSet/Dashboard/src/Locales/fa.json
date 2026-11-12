@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "{{name}} هنوز هیچ روش اعلان تأییدشده‌ای ندارد. از صفحهٔ آمادگی او یادآور راه‌اندازی بفرستید.",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "با ذخیره، این ترتیب تماس برای همهٔ شدت‌ها به کار می‌رود: کارت‌هایی که اکنون متفاوت‌اند، تفاوت خود را از دست می‌دهند.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "عامل خوشه را از گره بعدی که API آن پاسخ می‌دهد می‌خواند و نیازی به راه‌اندازی IP مجازی نیست.",
-  "When a node goes down": "وقتی یک گره از کار می‌افتد"
+  "When a node goes down": "وقتی یک گره از کار می‌افتد",
+  "Is Sample Project": "پروژه نمونه است",
+  "Sample Project": "پروژه نمونه",
+  "Sample Project ID": "شناسه پروژه نمونه",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "OneUptime را با داده ببینید: مانیتورها، حوادث، آنکال، یک صفحه وضعیت و تله‌متری. هیچ‌چیز در آن واقعی نیست و به هیچ‌کس اطلاع داده نمی‌شود.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "این یک پروژه نمونه است. هیچ‌چیز اینجا واقعی نیست و به هیچ‌کس اطلاع داده نمی‌شود.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "آیا مطمئن هستید که می‌خواهید {{project}} را حذف کنید؟ مانیتورها، حوادث، افراد و تله‌متری ساختگی آن برای همیشه حذف می‌شوند. هر زمان می‌توانید یک نمونه تازه را ببینید.",
+  "Create Your Own Project": "ساخت پروژه خودتان",
+  "Delete Sample Project": "حذف پروژه نمونه",
+  "Explore Sample Project": "دیدن پروژه نمونه"
 }

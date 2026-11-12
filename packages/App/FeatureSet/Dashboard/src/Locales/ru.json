@@ -51682,5 +51682,14 @@
   "{{name}} has no verified notification method yet. Send them a setup reminder from their Readiness page.": "У {{name}} пока нет подтверждённого метода уведомлений. Отправьте напоминание о настройке со страницы «Готовность».",
   "Saving uses this ladder for every severity: the cards that differ now lose what makes them different.": "После сохранения эта последовательность действует для любой серьёзности: карточки, которые сейчас отличаются, теряют свои отличия.",
   "The agent reads the cluster from the next node whose API answers, with no virtual IP to set up.": "Агент читает кластер со следующего узла, чей API отвечает, и виртуальный IP настраивать не нужно.",
-  "When a node goes down": "Когда узел выходит из строя"
+  "When a node goes down": "Когда узел выходит из строя",
+  "Is Sample Project": "Пример проекта",
+  "Sample Project": "Пример проекта",
+  "Sample Project ID": "ID примера проекта",
+  "See OneUptime with data in it: monitors, incidents, on-call, a status page and telemetry. Nothing in it is real, and nobody is notified.": "Посмотрите OneUptime с данными: мониторы, инциденты, дежурства, страница статуса и телеметрия. Ничего из этого не настоящее, и никто не получает уведомлений.",
+  "This is a sample project. Nothing here is real, and nobody is notified.": "Это пример проекта. Здесь нет ничего настоящего, и никто не получает уведомлений.",
+  "Are you sure you want to delete {{project}}? Its made-up monitors, incidents, people and telemetry are deleted for good. You can explore a new sample at any time.": "Удалить {{project}}? Его вымышленные мониторы, инциденты, люди и телеметрия будут удалены навсегда. Вы можете в любой момент открыть новый пример.",
+  "Create Your Own Project": "Создать свой проект",
+  "Delete Sample Project": "Удалить пример проекта",
+  "Explore Sample Project": "Открыть пример проекта"
 }
