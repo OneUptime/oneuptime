@@ -34,7 +34,8 @@ export const WAS_THIS_CLEAR_YES_TEST_ID: string = "was-this-clear-yes";
 export const WAS_THIS_CLEAR_NO_TEST_ID: string = "was-this-clear-no";
 export const WAS_THIS_CLEAR_THANKS_TEST_ID: string = "was-this-clear-thanks";
 
-export const WAS_THIS_CLEAR_QUESTION: string = translationKey("Was this clear?");
+export const WAS_THIS_CLEAR_QUESTION: string =
+  translationKey("Was this clear?");
 export const WAS_THIS_CLEAR_YES: string = translationKey("Yes, it was clear");
 export const WAS_THIS_CLEAR_NO: string = translationKey("No, it was not clear");
 export const WAS_THIS_CLEAR_THANKS: string = translationKey(

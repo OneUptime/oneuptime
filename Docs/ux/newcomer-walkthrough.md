@@ -74,12 +74,17 @@ walk the guided path first, then the manual path. The steps the offline journeys
 | 4 | Publish a status page that shows the monitor | Home | the public status page shows the monitor |
 | 5 | Send first telemetry and get an alert on it | Home | the first logs arrived, and a monitor alerts on them |
 | 6 | As an invited member, make myself reachable | an invitation, as a second new account | the member's phone number is verified for SMS |
-| 7 | As a self-hosted admin, make the server able to send email (self-hosted walk only) | where the first admin lands (Admin Dashboard > Server Setup) | the SMTP server is saved and a test email arrived |
+| 7 | As a self-hosted admin, make the server able to send email (self-hosted walk only) | where the first admin lands: Home, with its "This server is not finished" card, which leads to Admin Dashboard > Server Setup | the SMTP server is saved and a test email arrived |
+
+On the self-hosted walk, do job 7 first: until the server can send email, the test page of job 1
+cannot reach you. On the Cloud walk, note when a job needs a payment method or a paid plan before
+it can finish, and what told you so.
 
 Then, in the time that is left:
 
-- Answer the question at the end of each guided setup ("How easy was that?") as you honestly
-  would, and check that it shows in Admin Dashboard > Feedback.
+- Answer the question at the end of a guided setup ("How easy was that?") as you honestly would,
+  and check that it shows in Admin Dashboard > Feedback. It is asked at most once a week per
+  person, so expect it after the first setup you finish, and not after the others.
 - Open Help and try **Give feedback** once, at 390 pixels wide too, where Help is in the phone's
   menu.
 - Open each product of the products menu once, and note any whose first page does not say what

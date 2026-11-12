@@ -745,29 +745,27 @@ export const summarizeProductFeedback: (
         };
       },
     )
-    .sort(
-      (a: ProductFeedbackTopicSummary, b: ProductFeedbackTopicSummary) => {
-        const byKind: number =
-          kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind);
+    .sort((a: ProductFeedbackTopicSummary, b: ProductFeedbackTopicSummary) => {
+      const byKind: number =
+        kindOrder.indexOf(a.kind) - kindOrder.indexOf(b.kind);
 
-        if (byKind !== 0) {
-          return byKind;
-        }
+      if (byKind !== 0) {
+        return byKind;
+      }
 
-        if (a.kind === ProductFeedbackKind.SetupFlow) {
-          return (a.averageScore ?? 0) - (b.averageScore ?? 0);
-        }
+      if (a.kind === ProductFeedbackKind.SetupFlow) {
+        return (a.averageScore ?? 0) - (b.averageScore ?? 0);
+      }
 
-        if (a.kind === ProductFeedbackKind.Explanation) {
-          return (
-            b.negativeAnswers / b.answers - a.negativeAnswers / a.answers ||
-            b.answers - a.answers
-          );
-        }
+      if (a.kind === ProductFeedbackKind.Explanation) {
+        return (
+          b.negativeAnswers / b.answers - a.negativeAnswers / a.answers ||
+          b.answers - a.answers
+        );
+      }
 
-        return b.answers - a.answers;
-      },
-    );
+      return b.answers - a.answers;
+    });
 };
 
 /*

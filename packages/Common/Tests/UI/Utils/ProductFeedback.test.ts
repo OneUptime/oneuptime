@@ -1,4 +1,11 @@
-import { afterEach, beforeEach, describe, expect, jest, test } from "@jest/globals";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  jest,
+  test,
+} from "@jest/globals";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 
 /*
@@ -74,9 +81,10 @@ const ok: (data: JSONObject) => HTTPResponse<JSONObject> = (
   return new HTTPResponse<JSONObject>(200, data, {});
 };
 
-const lastCall: (
-  mock: MockFunction,
-) => { url: { toString: () => string }; data: JSONObject } = (
+const lastCall: (mock: MockFunction) => {
+  url: { toString: () => string };
+  data: JSONObject;
+} = (
   mock: MockFunction,
 ): { url: { toString: () => string }; data: JSONObject } => {
   return mock.mock.calls[mock.mock.calls.length - 1]![0] as {
@@ -268,7 +276,9 @@ describe("what an answer is sent with", () => {
       details: "Where is the importer?",
     });
 
-    expect(lastCall(postMock).data["page"]).toBe("/dashboard/:id/incidents/:id");
+    expect(lastCall(postMock).data["page"]).toBe(
+      "/dashboard/:id/incidents/:id",
+    );
   });
 
   test("feedback/given carries the score, the kind and the page, never the words", async () => {

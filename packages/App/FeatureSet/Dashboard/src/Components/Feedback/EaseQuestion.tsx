@@ -16,12 +16,7 @@ import { BILLING_ENABLED } from "Common/UI/Config";
 import ProductFeedback from "Common/UI/Utils/ProductFeedback";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useId,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useId, useState } from "react";
 
 /*
  * "HOW EASY WAS THAT?" (issue #6832): the one question at the end of a
@@ -64,6 +59,12 @@ export interface ComponentProps {
 
 type Stage = "score" | "details" | "sent";
 
+/*
+ * From this score up the setup was easy, and the box asks what could be
+ * easier rather than what got in the way (the first walkthrough, #6832).
+ */
+export const EASY_SCORE: number = 4;
+
 const EaseQuestion: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
@@ -75,6 +76,8 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
   const [sentDetails, setSentDetails] = useState<string>("");
   const [isSending, setIsSending] = useState<boolean>(false);
   const [hasFailed, setHasFailed] = useState<boolean>(false);
+  // The score given: an easy one is not asked what got in the way.
+  const [score, setScore] = useState<number>(0);
 
   const answer: (score: number) => Promise<void> = async (
     score: number,
@@ -96,6 +99,7 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
     }
 
     setAnswerId(id);
+    setScore(score);
     setStage("details");
   };
 
@@ -138,7 +142,11 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
           {stage === "score"
             ? question
             : stage === "details"
-              ? translator.translateText("Thanks. What got in the way?")
+              ? score >= EASY_SCORE
+                ? translator.translateText(
+                    "Thanks. Anything we could make easier?",
+                  )
+                : translator.translateText("Thanks. What got in the way?")
               : translator.translateText("Thanks for telling us.")}
         </p>
         <button
@@ -154,11 +162,7 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
 
       {stage === "score" ? (
         <div className="mt-3 inline-flex flex-col">
-          <div
-            className="flex gap-2"
-            role="group"
-            aria-labelledby={questionId}
-          >
+          <div className="flex gap-2" role="group" aria-labelledby={questionId}>
             {PRODUCT_FEEDBACK_SCORES.map((score: number): ReactElement => {
               return (
                 <button
@@ -216,7 +220,10 @@ const EaseQuestion: FunctionComponent<ComponentProps> = (
       )}
 
       {stage === "sent" ? (
-        <div className="mt-2 space-y-2" data-testid={EASE_QUESTION_THANKS_TEST_ID}>
+        <div
+          className="mt-2 space-y-2"
+          data-testid={EASE_QUESTION_THANKS_TEST_ID}
+        >
           {!BILLING_ENABLED && sentDetails ? (
             <a
               href={getFeedbackGitHubIssueUrl({

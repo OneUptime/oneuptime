@@ -296,7 +296,11 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
       { name: "score" },
       { name: "is_positive" },
       { name: "has_details" },
-      { name: "page", isToken: true, maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH },
+      {
+        name: "page",
+        isToken: true,
+        maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH,
+      },
     ],
   },
 ];

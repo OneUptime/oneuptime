@@ -84,27 +84,19 @@ jest.mock("../../../UI/Config", () => {
 });
 
 jest.mock("../../../UI/Utils/API/API", () => {
-  const actual: Record<string, unknown> = jest.requireActual(
-    "../../../UI/Utils/API/API",
-  ) as Record<string, unknown>;
-  const actualDefault: Record<string, unknown> = actual["default"] as Record<
-    string,
-    unknown
-  >;
-
   return {
     __esModule: true,
-    default: Object.assign(
-      Object.create(actualDefault as object) as Record<string, unknown>,
-      {
-        get: (...args: Array<unknown>) => {
-          return getMock(...args);
-        },
-        post: (...args: Array<unknown>) => {
-          return postMock(...args);
-        },
+    default: {
+      get: (...args: Array<unknown>) => {
+        return getMock(...args);
       },
-    ),
+      post: (...args: Array<unknown>) => {
+        return postMock(...args);
+      },
+      getFriendlyMessage: (err: unknown): string => {
+        return String(err);
+      },
+    },
   };
 });
 
@@ -282,7 +274,9 @@ const steps: (isDone: boolean) => Array<GuidedSetupFrameStep> = (
   ];
 };
 
-const drawSetup: (isFinished: boolean) => void = (isFinished: boolean): void => {
+const drawSetup: (isFinished: boolean) => void = (
+  isFinished: boolean,
+): void => {
   render(
     <GuidedSetupFrame
       setup="website_down"
@@ -358,13 +352,17 @@ describe("the end of a guided setup asks once", () => {
       ProductFeedback.setSettings({ isOn: true, isAskingMe: true });
     });
 
-    expect(await screen.findByTestId(EASE_QUESTION_TEST_ID)).toBeInTheDocument();
+    expect(
+      await screen.findByTestId(EASE_QUESTION_TEST_ID),
+    ).toBeInTheDocument();
     expect(postsTo(PRODUCT_FEEDBACK_ASK_ROUTE).length).toBe(1);
   });
 
   test("one click answers it: the score is kept at once, then the words are optional", async () => {
     drawSetup(true);
-    fireEvent.click(await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-2`));
+    fireEvent.click(
+      await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-2`),
+    );
 
     await screen.findByTestId(EASE_QUESTION_DETAILS_TEST_ID);
     expect(postsTo(PRODUCT_FEEDBACK_ROUTE)).toEqual([
@@ -399,7 +397,9 @@ describe("the end of a guided setup asks once", () => {
 
   test("self-hosted: once words are sent, the person may also tell OneUptime on GitHub - a pre-filled issue they read first", async () => {
     drawSetup(true);
-    fireEvent.click(await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-1`));
+    fireEvent.click(
+      await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-1`),
+    );
     await screen.findByTestId(EASE_QUESTION_DETAILS_TEST_ID);
     fireEvent.change(
       screen
@@ -426,7 +426,9 @@ describe("the end of a guided setup asks once", () => {
   test("on OneUptime Cloud there is no GitHub link: the answer already reached the team", async () => {
     billingEnabled = true;
     drawSetup(true);
-    fireEvent.click(await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-1`));
+    fireEvent.click(
+      await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-1`),
+    );
     await screen.findByTestId(EASE_QUESTION_DETAILS_TEST_ID);
     fireEvent.change(
       screen
@@ -455,7 +457,9 @@ describe("the end of a guided setup asks once", () => {
     });
 
     drawSetup(true);
-    fireEvent.click(await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-3`));
+    fireEvent.click(
+      await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-3`),
+    );
 
     expect(
       await screen.findByTestId(EASE_QUESTION_FAILED_TEST_ID),
@@ -477,6 +481,21 @@ describe("the end of a guided setup asks once", () => {
     expect(
       (updateByIdMock.mock.calls[0]![0] as { data: JSONObject }).data,
     ).toEqual({ disableFeedbackQuestions: true });
+  });
+
+  test("an easy score is not asked what got in the way, but what could be easier", async () => {
+    drawSetup(true);
+    fireEvent.click(
+      await screen.findByTestId(`${EASE_QUESTION_SCORE_TEST_ID}-5`),
+    );
+
+    await screen.findByTestId(EASE_QUESTION_DETAILS_TEST_ID);
+    expect(screen.getByTestId(EASE_QUESTION_TEST_ID)).toHaveTextContent(
+      "Thanks. Anything we could make easier?",
+    );
+    expect(screen.getByTestId(EASE_QUESTION_TEST_ID)).not.toHaveTextContent(
+      "What got in the way?",
+    );
   });
 
   test("the X puts it away, and nothing is kept", async () => {
@@ -530,13 +549,15 @@ describe("Give feedback, from any page", () => {
   test("says what it is sent with - the page as a route and the version - before anything is sent", () => {
     openDialog();
 
-    expect(screen.getByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID)).toBeInTheDocument();
-    expect(screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID)).toHaveTextContent(
-      "/dashboard/:projectId/monitors/setup",
-    );
-    expect(screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID)).toHaveTextContent(
-      ProductFeedback.getVersion(),
-    );
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).toHaveTextContent("/dashboard/:projectId/monitors/setup");
+    expect(
+      screen.getByTestId(GIVE_FEEDBACK_ATTACHED_TEST_ID),
+    ).toHaveTextContent(ProductFeedback.getVersion());
     expect(screen.getByTestId(GIVE_FEEDBACK_DIALOG_TEST_ID)).toHaveTextContent(
       "this server's admins",
     );
@@ -867,7 +888,9 @@ describe("the first-week check-in on Home", () => {
       { target: { value: "Nobody on my team gets paged yet." } },
     );
     await waitFor(() => {
-      expect(screen.getByTestId(SETUP_CHECK_IN_SEND_TEST_ID)).not.toBeDisabled();
+      expect(
+        screen.getByTestId(SETUP_CHECK_IN_SEND_TEST_ID),
+      ).not.toBeDisabled();
     });
     fireEvent.click(screen.getByTestId(SETUP_CHECK_IN_SEND_TEST_ID));
 
@@ -891,7 +914,11 @@ describe("the first-week check-in on Home", () => {
     project.createdByUserId = new ObjectID(USER_ID);
 
     expect(
-      isCheckInForReader({ project: project, userId: USER_ID, now: new Date() }),
+      isCheckInForReader({
+        project: project,
+        userId: USER_ID,
+        now: new Date(),
+      }),
     ).toBe(true);
     expect(
       isCheckInForReader({
@@ -918,9 +945,9 @@ describe("the page an answer carries", () => {
   ];
 
   test("the pattern of the Dashboard route the address matched, never the address", () => {
-    expect(getFeedbackPageFor(`/dashboard/${PROJECT_ID}/monitors`, ROUTES)).toBe(
-      "/dashboard/:projectId/monitors",
-    );
+    expect(
+      getFeedbackPageFor(`/dashboard/${PROJECT_ID}/monitors`, ROUTES),
+    ).toBe("/dashboard/:projectId/monitors");
     expect(
       getFeedbackPageFor(
         `/dashboard/${PROJECT_ID}/monitors/50000000-0000-4000-8000-000000000001/criteria?x=1`,

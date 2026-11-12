@@ -212,7 +212,9 @@ export class Service extends DatabaseService<Model> {
   }
 
   // Keeps an answer: these fields and nothing else. Answers with its id.
-  public async submit(submission: ProductFeedbackSubmission): Promise<ObjectID> {
+  public async submit(
+    submission: ProductFeedbackSubmission,
+  ): Promise<ObjectID> {
     const answer: Model = new Model();
     answer.kind = submission.kind;
     answer.topic = submission.topic;
@@ -293,7 +295,9 @@ export class Service extends DatabaseService<Model> {
   }
 
   // The answers of the last PRODUCT_FEEDBACK_SUMMARY_DAYS days, by question, and Ask AI's thumbs.
-  public async getAdminSummary(now: Date): Promise<ProductFeedbackAdminSummary> {
+  public async getAdminSummary(
+    now: Date,
+  ): Promise<ProductFeedbackAdminSummary> {
     const since: Date = new Date(
       now.getTime() - PRODUCT_FEEDBACK_SUMMARY_DAYS * MS_PER_DAY,
     );

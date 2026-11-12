@@ -255,7 +255,8 @@ router.post(
 
       await assertMayAnswer(userId);
 
-      const answerId: ObjectID = await ProductFeedbackService.submit(submission);
+      const answerId: ObjectID =
+        await ProductFeedbackService.submit(submission);
 
       return Response.sendJsonObjectResponse(req, res, {
         answerId: answerId.toString(),

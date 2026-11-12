@@ -104,7 +104,10 @@ describe("a question OneUptime asks goes through the rules", () => {
     for (const setup of setups) {
       const source: string = withoutComments(fs.readFileSync(setup, "utf8"));
 
-      expect({ setup: relative(setup), usesFrame: /<GuidedSetupFrame\b/.test(source) }).toEqual({
+      expect({
+        setup: relative(setup),
+        usesFrame: /<GuidedSetupFrame\b/.test(source),
+      }).toEqual({
         setup: relative(setup),
         usesFrame: true,
       });
@@ -126,7 +129,10 @@ describe("a question OneUptime asks goes through the rules", () => {
     const found: Array<string> = [
       ...SOURCE_FILES,
       ...listFiles(
-        path.join(REPOSITORY_ROOT, "packages/App/FeatureSet/AdminDashboard/src"),
+        path.join(
+          REPOSITORY_ROOT,
+          "packages/App/FeatureSet/AdminDashboard/src",
+        ),
       ),
     ]
       .filter((file: string): boolean => {
@@ -165,7 +171,10 @@ describe("an answer carries the answer, the page and the version - nothing else"
       "page",
       "productVersion",
     ]);
-    expect(model).not.toMatch(/@TenantColumn|@ManyToOne|projectId|userId/);
+    // No key to a project or a person, by a decorator or a column of its own.
+    expect(model).not.toMatch(
+      /@TenantColumn|@ManyToOne|@JoinColumn|public (project|user|createdByUser)\w*\?:/,
+    );
   });
 
   test("the Dashboard posts only those fields", () => {
@@ -174,9 +183,9 @@ describe("an answer carries the answer, the page and the version - nothing else"
     );
 
     const submit: string =
-      client.slice(client.indexOf("public static async submit(")).split(
-        "public static async addDetails(",
-      )[0] || "";
+      client
+        .slice(client.indexOf("public static async submit("))
+        .split("public static async addDetails(")[0] || "";
     const posted: string =
       submit.slice(submit.indexOf("data: {")).split("},")[0] || "";
 

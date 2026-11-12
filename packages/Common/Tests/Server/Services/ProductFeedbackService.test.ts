@@ -70,9 +70,7 @@ const PROJECT_ID: ObjectID = new ObjectID(
 const ANSWER_ID: ObjectID = new ObjectID(
   "33333333-3333-4333-8333-333333333333",
 );
-const STATE_ID: ObjectID = new ObjectID(
-  "44444444-4444-4444-8444-444444444444",
-);
+const STATE_ID: ObjectID = new ObjectID("44444444-4444-4444-8444-444444444444");
 const NOW: Date = new Date("2026-11-12T12:00:00.000Z");
 const DAY_MS: number = 24 * 60 * 60 * 1000;
 
@@ -136,9 +134,11 @@ beforeEach(() => {
     .mockImplementation((async () => {
       return new PositiveNumber(openIncidents);
     }) as never);
-  alertCount = jest.spyOn(AlertService, "countBy").mockImplementation((async () => {
-    return new PositiveNumber(openAlerts);
-  }) as never);
+  alertCount = jest
+    .spyOn(AlertService, "countBy")
+    .mockImplementation((async () => {
+      return new PositiveNumber(openAlerts);
+    }) as never);
 
   create = jest
     .spyOn(ProductFeedbackService, "create")
@@ -208,7 +208,9 @@ describe("asking a question", () => {
     expect(updateUser).toHaveBeenCalledTimes(1);
 
     const written: JSONObject = (
-      updateUser.mock.calls[0]![0] as { data: { feedbackQuestionsAsked: JSONObject } }
+      updateUser.mock.calls[0]![0] as {
+        data: { feedbackQuestionsAsked: JSONObject };
+      }
     ).data.feedbackQuestionsAsked;
 
     expect(written).toEqual({ "setup_flow:website_down": NOW.toISOString() });
@@ -230,7 +232,9 @@ describe("asking a question", () => {
   test("at most one question a week: another this week waits", async () => {
     user = makeUser({
       feedbackQuestionsAsked: {
-        "setup_flow:on_call": new Date(NOW.getTime() - 2 * DAY_MS).toISOString(),
+        "setup_flow:on_call": new Date(
+          NOW.getTime() - 2 * DAY_MS,
+        ).toISOString(),
       },
     });
 
@@ -302,7 +306,7 @@ describe("keeping an answer", () => {
       version: "14.0.108",
     });
 
-    expect(id).toBe(ANSWER_ID);
+    expect(id.toString()).toBe(ANSWER_ID.toString());
 
     const row: ProductFeedback = (
       create.mock.calls[0]![0] as { data: ProductFeedback; props: JSONObject }
@@ -315,9 +319,9 @@ describe("keeping an answer", () => {
     expect(row.details).toBe("Fine.");
     expect(row.page).toBe("/dashboard/:projectId/monitors/setup");
     expect(row.productVersion).toBe("14.0.108");
-    expect(
-      (create.mock.calls[0]![0] as { props: JSONObject }).props,
-    ).toEqual({ isRoot: true });
+    expect((create.mock.calls[0]![0] as { props: JSONObject }).props).toEqual({
+      isRoot: true,
+    });
   });
 
   test("words are added to a fresh one-click answer that has none", async () => {
@@ -382,14 +386,15 @@ describe("keeping an answer", () => {
 });
 
 describe("Ask AI's thumbs", () => {
-  const ratedDownAnswer: () => AIConversationMessage = (): AIConversationMessage => {
-    const answer: AIConversationMessage = new AIConversationMessage();
-    answer.id = ANSWER_ID;
-    answer.conversationId = PROJECT_ID;
-    answer.createdAt = new Date(NOW.getTime() - DAY_MS);
-    answer.updatedAt = new Date(NOW.getTime() - DAY_MS);
-    return answer;
-  };
+  const ratedDownAnswer: () => AIConversationMessage =
+    (): AIConversationMessage => {
+      const answer: AIConversationMessage = new AIConversationMessage();
+      answer.id = ANSWER_ID;
+      answer.conversationId = PROJECT_ID;
+      answer.createdAt = new Date(NOW.getTime() - DAY_MS);
+      answer.updatedAt = new Date(NOW.getTime() - DAY_MS);
+      return answer;
+    };
 
   beforeEach(() => {
     jest

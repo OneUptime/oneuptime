@@ -60,174 +60,174 @@ const Home: FunctionComponent<PageComponentProps> = (): ReactElement => {
 
   return (
     <Fragment>
-    <CardModelDetail
-      cardProps={{
-        title: "Basic Info",
-        description:
-          "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.",
-      }}
-      name="User Profile > Basic Info"
-      onSaveSuccess={(user: User) => {
-        if (user.timezone) {
-          UserUtil.setSavedUserTimezone(user.timezone);
-        }
+      <CardModelDetail
+        cardProps={{
+          title: "Basic Info",
+          description:
+            "Your name and email as your team sees them, and the time zone and language OneUptime uses with you.",
+        }}
+        name="User Profile > Basic Info"
+        onSaveSuccess={(user: User) => {
+          if (user.timezone) {
+            UserUtil.setSavedUserTimezone(user.timezone);
+          }
 
-        /*
-         * The language they picked is the Dashboard's at once, as it is on
-         * every browser they sign in on (UserLanguageInit). Cleared, the
-         * page stays in the language it shows.
-         */
-        void followUserLanguage(i18n, getUserChosenLanguage(user));
-      }}
-      isEditable={true}
-      formFields={[
-        {
-          field: {
-            email: true,
-          },
-          fieldType: FormFieldSchemaType.Email,
-          placeholder: "jeff@example.com",
-          required: true,
-          title: "Email",
-          description:
-            "You will have to verify your email again if you change it",
-          disableSpellCheck: true,
-        },
-        {
-          field: {
-            name: true,
-          },
-          fieldType: FormFieldSchemaType.Text,
-          placeholder: "Jeff Smith",
-          required: true,
-          title: "Full Name",
-        },
-        {
-          field: {
-            timezone: true,
-          },
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
-          placeholder: "Select Timezone",
-          description:
-            "Select your timezone. This will be used for all date and time related notifications sent out to you.",
-          required: false,
-          title: "Timezone",
-        },
-        {
-          field: {
-            language: true,
-          },
-          fieldType: FormFieldSchemaType.Dropdown,
-          dropdownOptions: USER_LANGUAGE_OPTIONS,
-          placeholder: "Not set (English)",
-          description:
-            "Your on-call pages and the Dashboard use this language, on every browser.",
-          required: false,
-          title: "Language",
-        },
-      ]}
-      modelDetailProps={{
-        showDetailsInNumberOfColumns: 2,
-        modelType: User,
-        id: "user-profile",
-        fields: [
-          {
-            field: {
-              name: true,
-            },
-            title: "Name",
-            placeholder: "No name added",
-          },
+          /*
+           * The language they picked is the Dashboard's at once, as it is on
+           * every browser they sign in on (UserLanguageInit). Cleared, the
+           * page stays in the language it shows.
+           */
+          void followUserLanguage(i18n, getUserChosenLanguage(user));
+        }}
+        isEditable={true}
+        formFields={[
           {
             field: {
               email: true,
             },
+            fieldType: FormFieldSchemaType.Email,
+            placeholder: "jeff@example.com",
+            required: true,
             title: "Email",
-            placeholder: "No email added",
+            description:
+              "You will have to verify your email again if you change it",
+            disableSpellCheck: true,
+          },
+          {
+            field: {
+              name: true,
+            },
+            fieldType: FormFieldSchemaType.Text,
+            placeholder: "Jeff Smith",
+            required: true,
+            title: "Full Name",
           },
           {
             field: {
               timezone: true,
             },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: TimezoneUtil.getTimezoneDropdownOptions(),
+            placeholder: "Select Timezone",
+            description:
+              "Select your timezone. This will be used for all date and time related notifications sent out to you.",
+            required: false,
             title: "Timezone",
-            placeholder: "No timezone selected",
-            fieldType: FieldType.Element,
-            getElement: (user: User) => {
-              // Unset reads as quiet text, as Language beside it does.
-              if (!user.timezone) {
-                return (
-                  <p className="text-gray-500">
-                    {translator.translateText("No timezone selected")}
-                  </p>
-                );
-              }
-
-              return <TimezoneElement timezone={user.timezone} />;
-            },
           },
           {
             field: {
               language: true,
             },
+            fieldType: FormFieldSchemaType.Dropdown,
+            dropdownOptions: USER_LANGUAGE_OPTIONS,
+            placeholder: "Not set (English)",
+            description:
+              "Your on-call pages and the Dashboard use this language, on every browser.",
+            required: false,
             title: "Language",
-            fieldType: FieldType.Element,
-            getElement: (user: User) => {
-              const language: string = getUserChosenLanguage(user);
+          },
+        ]}
+        modelDetailProps={{
+          showDetailsInNumberOfColumns: 2,
+          modelType: User,
+          id: "user-profile",
+          fields: [
+            {
+              field: {
+                name: true,
+              },
+              title: "Name",
+              placeholder: "No name added",
+            },
+            {
+              field: {
+                email: true,
+              },
+              title: "Email",
+              placeholder: "No email added",
+            },
+            {
+              field: {
+                timezone: true,
+              },
+              title: "Timezone",
+              placeholder: "No timezone selected",
+              fieldType: FieldType.Element,
+              getElement: (user: User) => {
+                // Unset reads as quiet text, as Language beside it does.
+                if (!user.timezone) {
+                  return (
+                    <p className="text-gray-500">
+                      {translator.translateText("No timezone selected")}
+                    </p>
+                  );
+                }
 
-              if (!language) {
+                return <TimezoneElement timezone={user.timezone} />;
+              },
+            },
+            {
+              field: {
+                language: true,
+              },
+              title: "Language",
+              fieldType: FieldType.Element,
+              getElement: (user: User) => {
+                const language: string = getUserChosenLanguage(user);
+
+                if (!language) {
+                  return (
+                    <p
+                      className="text-gray-500"
+                      data-testid="user-profile-language-not-set"
+                    >
+                      {translator.translateText("Not set (English)")}
+                    </p>
+                  );
+                }
+
                 return (
-                  <p
-                    className="text-gray-500"
-                    data-testid="user-profile-language-not-set"
-                  >
-                    {translator.translateText("Not set (English)")}
+                  <p>
+                    <IsolatedText
+                      text={getUserLanguageLabelOfCode(language)}
+                      dataTestId="user-profile-language"
+                    />
                   </p>
                 );
-              }
-
-              return (
-                <p>
-                  <IsolatedText
-                    text={getUserLanguageLabelOfCode(language)}
-                    dataTestId="user-profile-language"
-                  />
-                </p>
-              );
+              },
             },
-          },
-        ],
+          ],
 
-        modelId: UserUtil.getUserId(),
-      }}
-    />
-    {feedbackSettings?.isOn ? (
-      <ModelSwitchCard<User>
-        modelType={User}
-        modelId={UserUtil.getUserId()}
-        column="disableFeedbackQuestions"
-        isInverted={true}
-        cardTitle={FEEDBACK_QUESTIONS_COPY.cardTitle}
-        cardDescription={FEEDBACK_QUESTIONS_COPY.cardDescription}
-        title={FEEDBACK_QUESTIONS_COPY.title}
-        getDescription={(isOn: boolean): string => {
-          return isOn
-            ? FEEDBACK_QUESTIONS_COPY.onDescription
-            : FEEDBACK_QUESTIONS_COPY.offDescription;
+          modelId: UserUtil.getUserId(),
         }}
-        onSaved={(isOn: boolean) => {
-          const settings: ProductFeedbackSettings | null =
-            ProductFeedback.getSettings();
-
-          if (settings) {
-            ProductFeedback.setSettings({ ...settings, isAskingMe: isOn });
-          }
-        }}
-        dataTestId="user-profile-feedback-questions"
       />
-    ) : (
-      <></>
-    )}
+      {feedbackSettings?.isOn ? (
+        <ModelSwitchCard<User>
+          modelType={User}
+          modelId={UserUtil.getUserId()}
+          column="disableFeedbackQuestions"
+          isInverted={true}
+          cardTitle={FEEDBACK_QUESTIONS_COPY.cardTitle}
+          cardDescription={FEEDBACK_QUESTIONS_COPY.cardDescription}
+          title={FEEDBACK_QUESTIONS_COPY.title}
+          getDescription={(isOn: boolean): string => {
+            return isOn
+              ? FEEDBACK_QUESTIONS_COPY.onDescription
+              : FEEDBACK_QUESTIONS_COPY.offDescription;
+          }}
+          onSaved={(isOn: boolean) => {
+            const settings: ProductFeedbackSettings | null =
+              ProductFeedback.getSettings();
+
+            if (settings) {
+              ProductFeedback.setSettings({ ...settings, isAskingMe: isOn });
+            }
+          }}
+          dataTestId="user-profile-feedback-questions"
+        />
+      ) : (
+        <></>
+      )}
     </Fragment>
   );
 };

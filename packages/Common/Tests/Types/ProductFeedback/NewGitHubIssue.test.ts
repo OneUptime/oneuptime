@@ -49,9 +49,12 @@ describe("a new GitHub issue, filled in", () => {
   });
 
   test("a body too long for GitHub is cut at a line, under the most GitHub reads", () => {
-    const body: string = Array.from({ length: 400 }, (_: unknown, index: number) => {
-      return `Line ${index}: what got in the way of the setup.`;
-    }).join("\n");
+    const body: string = Array.from(
+      { length: 400 },
+      (_: unknown, index: number) => {
+        return `Line ${index}: what got in the way of the setup.`;
+      },
+    ).join("\n");
 
     const url: string = getNewGitHubIssueUrl({
       title: "Feedback",

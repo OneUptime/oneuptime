@@ -360,9 +360,9 @@ describe("when OneUptime asks a question", () => {
   });
 
   test("each question once per person, however long ago", () => {
-    expect(
-      decide({ asked: { "setup_flow:website_down": daysAgo(300) } }),
-    ).toBe(FeedbackQuestionDecision.AlreadyAsked);
+    expect(decide({ asked: { "setup_flow:website_down": daysAgo(300) } })).toBe(
+      FeedbackQuestionDecision.AlreadyAsked,
+    );
   });
 
   test("never while the project has an open incident or alert", () => {
@@ -425,9 +425,9 @@ describe("the first-week check-in's window", () => {
 
 describe("the settings the Dashboard reads", () => {
   test("both switches, or nothing", () => {
-    expect(readProductFeedbackSettings({ isOn: true, isAskingMe: false })).toEqual(
-      { isOn: true, isAskingMe: false },
-    );
+    expect(
+      readProductFeedbackSettings({ isOn: true, isAskingMe: false }),
+    ).toEqual({ isOn: true, isAskingMe: false });
     // What an endpoint over nothing answers (the journeys' fixture): off.
     expect(readProductFeedbackSettings({ data: [], count: 0 })).toBeNull();
     expect(readProductFeedbackSettings({ isOn: "yes", isAskingMe: true })).toBe(
@@ -524,7 +524,10 @@ describe("the Admin Dashboard's summary", () => {
       positiveAnswers: 0,
       negativeAnswers: 1,
     });
-    expect(summary[2]).toMatchObject({ negativeAnswers: 1, answersWithDetails: 1 });
+    expect(summary[2]).toMatchObject({
+      negativeAnswers: 1,
+      answersWithDetails: 1,
+    });
   });
 
   test("nothing answered is an empty summary", () => {

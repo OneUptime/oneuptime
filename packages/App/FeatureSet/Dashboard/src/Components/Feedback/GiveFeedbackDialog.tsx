@@ -196,10 +196,7 @@ const GiveFeedbackDialog: FunctionComponent = (): ReactElement => {
       error={error || undefined}
     >
       <div className="space-y-3" data-testid={GIVE_FEEDBACK_DIALOG_TEST_ID}>
-        <label
-          id={labelId}
-          className="block text-sm font-medium text-gray-700"
-        >
+        <label id={labelId} className="block text-sm font-medium text-gray-700">
           {translator.translateText(
             "What were you trying to do, and what happened?",
           )}
