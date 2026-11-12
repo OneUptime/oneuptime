@@ -204,6 +204,23 @@ const SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
 const WHITESPACE: RegExp = /\s/;
 export const MONITOR_NAME_MAX_LENGTH: number = 100;
 
+/*
+ * A path without its trailing slashes, taken one at a time: what a person
+ * typed is short, and no pattern runs on it (a run of slashes in the middle
+ * made /\/+$/ try again at every one of them).
+ */
+const withoutTrailingSlashes: (path: string) => string = (
+  path: string,
+): string => {
+  let end: number = path.length;
+
+  while (end > 0 && path[end - 1] === "/") {
+    end--;
+  }
+
+  return path.slice(0, end);
+};
+
 export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
   input: string,
 ): WebsiteAddress | null => {
@@ -251,7 +268,7 @@ export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
     return null;
   }
 
-  const path: string = parsed.pathname.replace(/\/+$/, "");
+  const path: string = withoutTrailingSlashes(parsed.pathname);
   const name: string = `${host.replace(/^www\./, "")}${parsed.port ? `:${parsed.port}` : ""}${path}`;
 
   return {
@@ -363,14 +380,7 @@ export const getWebsiteAddressIdentity: (text: string) => string | null = (
     return null;
   }
 
-  // Trailing slashes, one at a time: a path is short, and no pattern runs on it.
-  let path: string = parsed.pathname;
-
-  while (path.endsWith("/")) {
-    path = path.slice(0, -1);
-  }
-
-  return `${parsed.protocol}//${parsed.host.toLowerCase()}${path}${parsed.search}`;
+  return `${parsed.protocol}//${parsed.host.toLowerCase()}${withoutTrailingSlashes(parsed.pathname)}${parsed.search}`;
 };
 
 export const isSameWebsiteAddress: (left: string, right: string) => boolean = (

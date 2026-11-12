@@ -131,6 +131,22 @@ describe("the address", () => {
     });
   });
 
+  test("trailing slashes, however many, are not part of the name; slashes inside it are", () => {
+    expect(parseWebsiteAddress("acme.example/health///")?.monitorName).toBe(
+      "acme.example/health",
+    );
+    expect(parseWebsiteAddress("acme.example//a//")?.monitorName).toBe(
+      "acme.example//a",
+    );
+    expect(parseWebsiteAddress("acme.example////")?.monitorName).toBe(
+      "acme.example",
+    );
+    // A long run of them in the middle is read once, not again at each one.
+    expect(
+      parseWebsiteAddress(`acme.example/a${"/".repeat(20000)}b/`)?.monitorName,
+    ).toBe(`acme.example/a${"/".repeat(MONITOR_NAME_MAX_LENGTH - 14)}`);
+  });
+
   test("a port stays in the name", () => {
     expect(parseWebsiteAddress("localhost:8080/status")?.monitorName).toBe(
       "localhost:8080/status",

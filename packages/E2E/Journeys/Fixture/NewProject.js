@@ -335,6 +335,19 @@ export function dashboardHooks(project) {
       }
 
       /*
+       * Made by who is signed in (DatabaseService stamps createdByUserId): the
+       * guided setup looks for this person's own monitor for an address
+       * before it makes one (#7059).
+       */
+      if (!record.createdByUserId) {
+        store.update(Monitor, record._id, {
+          createdByUserId: new ObjectID(
+            project.signedInAs === "member" ? GRACE_ID : ADA_ID,
+          ),
+        });
+      }
+
+      /*
        * Its creator owns it (DatabaseService's auto-owner), and the probes a
        * new monitor starts with check it - each answering at once, as a
        * reachable website does (MonitorProbe's lastMonitoringLog), for the

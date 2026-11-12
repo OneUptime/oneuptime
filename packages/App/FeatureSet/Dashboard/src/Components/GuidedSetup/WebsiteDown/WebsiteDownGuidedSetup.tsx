@@ -499,7 +499,6 @@ const WebsiteDownGuidedSetup: FunctionComponent<ComponentProps> = (
           translator: translator,
         });
         saveRun({ [WebsiteDownRunValue.MonitorId]: monitorId });
-        setIsExistingMonitor(false);
         setMonitor(await WebsiteDownApi.loadMonitor(monitorId));
       }
     } catch (err) {
