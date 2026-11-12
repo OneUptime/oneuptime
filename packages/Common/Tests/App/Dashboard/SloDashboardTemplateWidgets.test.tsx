@@ -492,6 +492,7 @@ describe("SLO dashboard template — as created, with the toolbar on All", () =>
       await expectRendered({ label, text: SLO_WIDGET_NO_SELECTION_TEXT });
       await expectRendered({ label, text: label });
       expectNotRendered({ label, text: "Click to select an SLO" });
+      expectNotRendered({ label, text: "No SLO picked yet." });
       expectNotRendered({ label, text: SLO_NOT_EVALUATED_TEXT });
 
       expect(`${label}: ${countRequests() - requestsBefore} requests`).toBe(

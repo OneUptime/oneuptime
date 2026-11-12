@@ -107,6 +107,10 @@ import {
   setPublicDashboardContext,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
 import { ProductAnalyticsRead } from "../../../../App/FeatureSet/Dashboard/src/Components/ProductAnalytics/useProductAnalyticsRead";
+import {
+  DashboardWidgetPlace,
+  getDashboardWidgetSetupLine,
+} from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardWidgetSetupCopy";
 
 const PROJECT_ID: string = "6a305555-0000-4000-8000-000000000001";
 const APP_ID: string = "6a305555-0000-4000-8000-000000000002";
@@ -685,15 +689,25 @@ describe("the Funnel widget", () => {
     },
   );
 
-  test("none picked: says where to pick one, and reads nothing", async () => {
+  /*
+   * Out of edit mode a reader cannot open the widget's settings, and may
+   * not be allowed to: the widget says what is missing (issue #7160).
+   */
+  test("none picked: says so on a reader's board, and reads nothing", async () => {
     renderFunnel({});
 
     expect(
       await screen.findByText(
-        PRODUCT_ANALYTICS_WIDGET_WORDS[ProductAnalyticsSavedViewType.Funnel]
-          .setup,
+        getDashboardWidgetSetupLine(
+          PRODUCT_ANALYTICS_WIDGET_WORDS[ProductAnalyticsSavedViewType.Funnel]
+            .setupNeed,
+          DashboardWidgetPlace.Board,
+        ),
       ),
-    ).toHaveTextContent("Pick a saved funnel in this widget's settings.");
+    ).toHaveTextContent("No saved funnel picked yet.");
+    expect(
+      screen.queryByText("Pick a saved funnel in this widget's settings."),
+    ).not.toBeInTheDocument();
     expect(getItemMock).not.toHaveBeenCalled();
     expect(postMock).not.toHaveBeenCalled();
     // Nothing to name it by, nothing to open.
@@ -702,11 +716,23 @@ describe("the Funnel widget", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("none picked, on the board being edited: says where to pick one", async () => {
+    renderFunnel({}, { isEditMode: true });
+
+    expect(
+      await screen.findByText("Pick a saved funnel in this widget's settings."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("No saved funnel picked yet."),
+    ).not.toBeInTheDocument();
+    expect(getItemMock).not.toHaveBeenCalled();
+  });
+
   test("an id that is no id is none picked", async () => {
     renderFunnel({ savedViewId: "not-an-id" });
 
     expect(
-      await screen.findByText("Pick a saved funnel in this widget's settings."),
+      await screen.findByText("No saved funnel picked yet."),
     ).toBeInTheDocument();
     expect(getItemMock).not.toHaveBeenCalled();
   });
@@ -1089,8 +1115,17 @@ describe("the Retention widget", () => {
     expect(postMock).not.toHaveBeenCalled();
   });
 
-  test("none picked: says where to pick one", async () => {
+  test("none picked: says so on a reader's board", async () => {
     renderRetention({});
+
+    expect(
+      await screen.findByText("No saved retention table picked yet."),
+    ).toBeInTheDocument();
+    expect(getItemMock).not.toHaveBeenCalled();
+  });
+
+  test("none picked, on the board being edited: says where to pick one", async () => {
+    renderRetention({}, { isEditMode: true });
 
     expect(
       await screen.findByText(

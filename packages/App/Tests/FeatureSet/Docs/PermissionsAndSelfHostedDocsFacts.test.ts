@@ -209,7 +209,7 @@ const CONFIG_LINE: RegExp = /^([A-Z][A-Z0-9_]*)=(.*)$/;
  * the key it names, or else vapid.privateKey as it always was.
  */
 const VAPID_PRIVATE_KEY_FROM_SECRET_OR_VALUE: RegExp =
-  /^ *\{\{- if \$vapidPrivateKeySecret \}\}\n *valueFrom:\n *secretKeyRef:\n *name: \{\{ \$vapidPrivateKeySecret \| quote \}\}\n *key: \{\{ include "oneuptime\.vapid\.privateKeyKey" \$ \| quote \}\}\n *\{\{- else \}\}\n *value: \{\{ \$\.Values\.vapid\.privateKey \}\}\n *\{\{- end \}\}\n*$/;
+  /^ *\{\{- if \$vapidPrivateKeySecret \}\}\n *valueFrom:\n *secretKeyRef:\n *name: \{\{ \$vapidPrivateKeySecret \| quote \}\}\n *key: \{\{ include "oneuptime\.vapid\.privateKeyKey" \$ \| quote \}\}\n *\{\{- else \}\}\n *value: \{\{ include "oneuptime\.envValue" \$\.Values\.vapid\.privateKey \}\}\n *\{\{- end \}\}\n*$/;
 
 // "  services:" and each "  name:" under it, in a compose file.
 const COMPOSE_SERVICE: RegExp = /^ {2}([a-z0-9-]+):$/;
