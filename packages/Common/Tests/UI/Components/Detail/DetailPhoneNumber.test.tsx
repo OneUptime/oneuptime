@@ -218,7 +218,7 @@ describe.each(["fa", "ar"])("a phone field on a %s page", (code: string) => {
     const container: HTMLElement = renderDetail(
       code,
       { phone: "" },
-      { ...phoneField, placeholder: undefined },
+      { key: "phone", title: "From Number", fieldType: FieldType.Phone },
     );
 
     expect(container.querySelector("bdi")).toBeNull();
