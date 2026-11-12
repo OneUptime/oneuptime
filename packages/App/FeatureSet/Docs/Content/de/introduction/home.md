@@ -122,7 +122,7 @@ Zwei Leisten ziehen sich oben über jede Seite.
 | Oben rechts | **Suchen** und **KI fragen**, die Benachrichtigungsglocke mit dem, was Sie jetzt braucht (aktive Vorfälle und Warnungen, die Bereitschaftsrichtlinien, in denen Sie Dienst haben, offene Einladungen), **Hilfe**, und Ihr Bild, das Ihr [Konto](/docs/introduction/your-account)-Menü öffnet. |
 | Darunter | **Startseite** und **Produkte** links, **Benutzereinstellungen** rechts: wie OneUptime Sie in diesem Projekt erreicht. |
 
-**Hilfe** beginnt mit dem, was beim Lernen hilft: **Schnellstart**, **So funktioniert OneUptime**, **Glossar** und diese Dokumentation (**Dokumentation**). Darunter folgen die Liste **Tastenkürzel** und Support per E-Mail und auf Slack. Auf einem schmalen Bildschirm, etwa einem Telefon, fallen **Suchen**, **KI fragen** und **Hilfe** weg, um Platz zu sparen; die Glocke und Ihr Bild bleiben.
+**Hilfe** beginnt mit dem, was beim Lernen hilft: **Schnellstart**, **So funktioniert OneUptime**, **Glossar** und diese Dokumentation (**Dokumentation**). Darunter folgen die Liste **Tastenkürzel** und Support per E-Mail und auf Slack. Auf einem Tablet oder in einem schmalen Fenster fällt **KI fragen** weg, um Platz zu sparen: Sie finden es unter den Aktionen in **Suchen**. Auf einem Telefon wandern **Suchen** und **Hilfe** in die Liste der Menüschaltfläche, ganz nach oben und ganz nach unten; die Glocke und Ihr Bild bleiben.
 
 Ein Wort mit gepunkteter Linie darunter, etwa **Sonden** im Formular eines neuen Monitors, sagt, was es bedeutet, wenn Sie darauf zeigen, mit der Tabulatortaste dorthin wechseln oder darauf tippen. Sein **Mehr lesen** öffnet das Wort im [Glossar](/docs/introduction/glossary).
 
