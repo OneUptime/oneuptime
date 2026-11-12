@@ -6,8 +6,9 @@
  *
  * A new guide is one entry here, its page in Content/<language>/guides/ in
  * all 17 languages, its link in Utils/Nav.ts's Guides group (with isGuide),
- * its job's card on Getting Started (GETTING_STARTED_JOBS), and a "New
- * here?" line on the reference pages it replaces for a newcomer.
+ * its job's card on Getting Started (GETTING_STARTED_JOBS), a "New here?"
+ * line on the reference pages it replaces for a newcomer, and its link on
+ * the README's "Step-by-step guides" line (and its 16 translations).
  */
 
 export interface DocsGuide {
@@ -72,6 +73,55 @@ export const GUIDE_WORD_LIMIT: number = 1200;
 export const NEW_HERE_LEAD: string = "New here? Follow the guide first:";
 
 export const DOCS_GUIDES: ReadonlyArray<DocsGuide> = [
+  {
+    page: "guides/website-down",
+    navTitle: "Know When Your Website or API Is Down",
+    job: "Know when your website or API is down",
+    dashboardLabels: [
+      "Know when my website or API is down",
+      "Owners",
+      "Home",
+      "What do you want to do first?",
+      "Continue",
+      "Create your first monitor",
+      "Welcome to OneUptime 👋",
+      "What should we check?",
+      "Website or API address",
+      "This is an API endpoint",
+      "Start checking",
+      "Who should be told?",
+      "Who is paged",
+      "Add teammates",
+      "Save and continue",
+      "Send a test",
+      "Send me a test page",
+      "Severity",
+      "Send test page",
+      "Done",
+      "Checked",
+      "When it goes down",
+      "Who is told",
+      "Tested",
+      "Open the monitor",
+      "Show the chain",
+      "When this goes down",
+      "Nothing stops the chain.",
+      "Check another address",
+      "Monitors → Settings → Probes",
+      "Set up email",
+      "Send another test",
+      "Skip the test",
+      "I did not get it",
+    ],
+    referencePages: ["monitor/website-monitor", "monitor/api-monitor"],
+    quickstartSection: "Monitor your website",
+    products: ["Monitors"],
+    guidedSetup: {
+      copyFile: "Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts",
+      constant: "WEBSITE_DOWN_SETUP_GUIDE_DOCS_PATH",
+      pageFile: "Components/GuidedSetup/WebsiteDown/WebsiteDownGuidedSetup.tsx",
+    },
+  },
   {
     page: "guides/paging",
     navTitle: "Get Paged by Phone, SMS or Push",

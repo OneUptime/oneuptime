@@ -100,7 +100,7 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Matte
 3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan als direct bericht van de bot van het project.
 :::
 
-Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Mattermost. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Bereikbaarheidsregels**. Elke oproep bevat een link om hem te bevestigen en een om hem te escaleren. Als je je Mattermost-account ontkoppelt, verdwijnen deze methode en de bereikbaarheidsregels die hem gebruiken.
+Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Mattermost. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**. Elke oproep bevat een link om hem te bevestigen en een om hem te escaleren. Als je je Mattermost-account ontkoppelt, verdwijnen deze methode en de bereikbaarheidsregels die hem gebruiken.
 
 ## Meldingsregels
 

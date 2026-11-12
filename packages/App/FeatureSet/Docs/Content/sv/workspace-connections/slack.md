@@ -166,7 +166,7 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Slack 
 3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer i dina direktmeddelanden i Slack.
 :::
 
-Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Slack från och med då. Ändra vilka larm den får under **Användarinställningar** > **Jourregler**.
+Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Slack från och med då. Ändra vilka larm den får under **Användarinställningar** > **Så når man mig**.
 
 ## Spara meddelanden som anteckningar
 

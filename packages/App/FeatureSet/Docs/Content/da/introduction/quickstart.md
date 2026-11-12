@@ -59,6 +59,8 @@ Behold de valgte **Sonder** og **Overvågningsinterval** **Hvert 5. minut**, og 
 
 Vil du prøve tjekket, før du gemmer, så klik på **Test monitor** i det andet trin. Alle andre monitortyper er beskrevet i [Opret en monitor](/docs/monitor/create-monitor).
 
+Vil du også tjekke et API, vælge, hvem der får besked, og sende et testkald, der beviser, at beskeden når frem til dig, så følg [Få besked, når dit websted eller API går ned](/docs/guides/website-down).
+
 ## Bliv tilkaldt, når det går ned
 
 Som det er nu, sendes en hændelse uden ejere med e-mail til projektets ejere, og det omfatter dig. For at blive tilkaldt, indtil nogen reagerer, opretter du en vagtpolitik: et projekts første udløses ved hver ny hændelse og hver ny advarsel.
