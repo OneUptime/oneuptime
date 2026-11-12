@@ -29,7 +29,7 @@ import {
   totalTraceDuration,
 } from "Common/UI/Utils/AIChatExport/ChatWidgetData";
 import PdfChart, { CHART_BLOCK_HEIGHT } from "./PdfChart";
-import PdfDocument, { PDF_COLORS } from "./PdfDocument";
+import PdfDocument, { PAGE_MARGIN, PDF_COLORS } from "./PdfDocument";
 import { PdfTable } from "./PdfTable";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 
@@ -59,6 +59,79 @@ export const PDF_STATUS_DOT: { radius: number; indent: number } = {
 };
 
 /*
+ * How many lines each part of a resource card may take in the export
+ * (issue #7202). The card drew the first line of its heading, its status
+ * line and each fact's value and left the rest out, with nothing to say
+ * so: a long description, an on-call rule's targets, a status page's
+ * resources ended mid-sentence. It draws them whole now, up to these -
+ * the heading three, as the chat clamps it - and a part cut short ends
+ * its last line with "...". A card taller than a page draws its values in
+ * fewer lines, so it still moves to the next page whole.
+ */
+export const PDF_RESOURCE_CARD_MAX_LINES: {
+  kind: number;
+  heading: number;
+  line: number;
+  label: number;
+  value: number;
+} = { kind: 1, heading: 3, line: 4, label: 3, value: 8 };
+
+// The most of the card's inner width a fact's name takes: the rest is its value's.
+export const PDF_RESOURCE_CARD_LABEL_SHARE: number = 0.4;
+
+// The most lines a stat's value takes, as the chat's stat card wraps it (issue #7202).
+export const PDF_STAT_VALUE_MAX_LINES: number = 2;
+
+// What ends a line cut short: three dots, as the core font has no ellipsis.
+export const PDF_CUT_MARK: string = "...";
+
+// A resource card's room, in points: its edge, and the height of each of its lines.
+export const PDF_RESOURCE_CARD_SPACING: {
+  padding: number;
+  kind: number;
+  heading: number;
+  line: number;
+  fact: number;
+  factExtraLine: number;
+  after: number;
+} = {
+  padding: 10,
+  kind: 10,
+  heading: 12,
+  line: 11,
+  fact: 11,
+  factExtraLine: 9.5,
+  after: 6,
+};
+
+// A stat card's height with a one-line value, and each further line's.
+const STAT_CARD_HEIGHT: number = 38;
+const STAT_VALUE_LINE_HEIGHT: number = 14;
+
+// The least room a fact's name takes, and the gap after it.
+const FACT_LABEL_MIN_WIDTH: number = 70;
+const FACT_LABEL_GAP: number = 8;
+
+// A fact as the export lays it out: its name and its value, line by line.
+interface PdfResourceCardFactLayout {
+  labelLines: Array<string>;
+  valueLines: Array<string>;
+  // Where its value starts, from the card's inner edge.
+  labelWidth: number;
+  height: number;
+}
+
+// A resource card as the export lays it out, measured before it is painted.
+interface PdfResourceCardLayout {
+  kindLines: Array<string>;
+  headingLines: Array<string>;
+  statusLines: Array<string>;
+  statusColor: string | null;
+  facts: Array<PdfResourceCardFactLayout>;
+  height: number;
+}
+
+/*
  * Draws the inline widgets an assistant message produced.
  *
  * Each widget is rebuilt from its typed data rather than captured from the
@@ -72,6 +145,28 @@ export const PDF_STATUS_DOT: { radius: number; indent: number } = {
 const TITLE_SIZE: number = 9.5;
 const BODY_SIZE: number = 8.5;
 const SMALL_SIZE: number = 7.5;
+
+// The styles a card's and a stat's parts are measured and drawn in.
+const CARD_KIND_STYLE: { size: number; fontStyle: "bold" } = {
+  size: 6.5,
+  fontStyle: "bold",
+};
+const CARD_HEADING_STYLE: { size: number; fontStyle: "bold" } = {
+  size: 10,
+  fontStyle: "bold",
+};
+const CARD_LINE_STYLE: { size: number } = { size: BODY_SIZE };
+const CARD_FACT_STYLE: { size: number } = { size: SMALL_SIZE };
+const STAT_LABEL_STYLE: {
+  size: number;
+  fontStyle: "bold";
+  color: string;
+} = { size: 6.5, fontStyle: "bold", color: PDF_COLORS.faint };
+const STAT_VALUE_STYLE: {
+  size: number;
+  fontStyle: "bold";
+  color: string;
+} = { size: 12, fontStyle: "bold", color: PDF_COLORS.heading };
 
 export default class PdfWidgets {
   private readonly pdf: PdfDocument;
@@ -105,8 +200,14 @@ export default class PdfWidgets {
     if (widget.type === AIChatWidgetType.StatCards) {
       return 44;
     }
+    /*
+     * A card is atomic: the whole of it, so it moves to the next page with
+     * its title rather than being cut by the page's end (issue #7202).
+     */
     if (widget.type === AIChatWidgetType.ResourceCard) {
-      return 56;
+      return (
+        this.fitResourceCard(widget).height + PDF_RESOURCE_CARD_SPACING.after
+      );
     }
     return 42;
   }
@@ -186,46 +287,87 @@ export default class PdfWidgets {
     const gap: number = 6;
     const cardWidth: number =
       (this.pdf.contentWidth - gap * (columns - 1)) / columns;
-    const cardHeight: number = 38;
+    const textWidth: number = cardWidth - 14;
 
     for (let index: number = 0; index < stats.length; index += columns) {
       const row: Array<AIChatWidgetStat> = stats.slice(index, index + columns);
+
+      /*
+       * Measured before the row is painted (issue #7202): a value takes up
+       * to two lines, the last one cut with "..." when it had more - it
+       * drew its first line alone - and the row is as tall as its tallest
+       * card, so the cards beside it keep one height. The label is one
+       * line, cut the same way.
+       */
+      const laidOut: Array<{ label: string; valueLines: Array<string> }> =
+        row.map((stat: AIChatWidgetStat) => {
+          /*
+           * The label is uppercased here because on screen that is a CSS
+           * transform, not the stored text.
+           */
+          this.pdf.setStyle(STAT_LABEL_STYLE);
+          const label: string =
+            this.clampLines(
+              this.pdf.wrap(
+                this.pdf.sanitize(stat.label.toUpperCase()),
+                textWidth,
+              ),
+              1,
+              textWidth,
+            )[0] || "";
+
+          this.pdf.setStyle(STAT_VALUE_STYLE);
+          const valueLines: Array<string> = this.clampLines(
+            this.pdf.wrap(this.pdf.sanitize(formatStatValue(stat)), textWidth),
+            PDF_STAT_VALUE_MAX_LINES,
+            textWidth,
+          );
+
+          return { label, valueLines };
+        });
+
+      const cardHeight: number =
+        STAT_CARD_HEIGHT +
+        (Math.max(
+          1,
+          ...laidOut.map(
+            (stat: { label: string; valueLines: Array<string> }): number => {
+              return stat.valueLines.length;
+            },
+          ),
+        ) -
+          1) *
+          STAT_VALUE_LINE_HEIGHT;
+
       this.pdf.ensureSpace(cardHeight + gap);
       const rowY: number = this.pdf.y;
 
-      row.forEach((stat: AIChatWidgetStat, column: number) => {
-        const x: number = this.pdf.left + column * (cardWidth + gap);
+      laidOut.forEach(
+        (
+          stat: { label: string; valueLines: Array<string> },
+          column: number,
+        ) => {
+          const x: number = this.pdf.left + column * (cardWidth + gap);
 
-        this.pdf.rect(x, rowY, cardWidth, cardHeight, {
-          fill: PDF_COLORS.surface,
-          stroke: PDF_COLORS.border,
-          radius: 3,
-        });
+          this.pdf.rect(x, rowY, cardWidth, cardHeight, {
+            fill: PDF_COLORS.surface,
+            stroke: PDF_COLORS.border,
+            radius: 3,
+          });
 
-        /*
-         * The label is uppercased here because on screen that is a CSS
-         * transform, not the stored text.
-         */
-        this.pdf.setStyle({
-          size: 6.5,
-          color: PDF_COLORS.faint,
-          fontStyle: "bold",
-        });
-        this.pdf.drawLine(
-          this.pdf.sanitize(stat.label.toUpperCase()),
-          x + 7,
-          rowY + 7,
-        );
+          this.pdf.setStyle(STAT_LABEL_STYLE);
+          this.pdf.drawLine(stat.label, x + 7, rowY + 7);
 
-        this.pdf.setStyle({
-          size: 12,
-          fontStyle: "bold",
-          color: PDF_COLORS.heading,
-        });
-        const value: string = this.pdf.sanitize(formatStatValue(stat));
-        const lines: Array<string> = this.pdf.wrap(value, cardWidth - 14);
-        this.pdf.drawLine(lines[0] || value, x + 7, rowY + 19);
-      });
+          this.pdf.setStyle(STAT_VALUE_STYLE);
+          stat.valueLines.forEach((line: string, lineIndex: number) => {
+            this.pdf.drawLine(
+              line,
+              x + 7,
+              rowY + 19 + lineIndex * STAT_VALUE_LINE_HEIGHT,
+            );
+          });
+        },
+      );
 
       this.pdf.y = rowY + cardHeight + gap;
     }
@@ -233,31 +375,229 @@ export default class PdfWidgets {
     this.pdf.moveDown(2);
   }
 
-  private drawResourceCard(widget: AIChatWidget): void {
-    // Each fact once, as the card draws it (Types/AI/ResourceCardFacts).
+  /*
+   * At most `max` of a text's wrapped lines (issue #7202). When it had
+   * more, the last one kept ends with "...", shortened until it fits
+   * `width`, so a part cut short never reads as the whole of it. Measured
+   * in the style set now, as the lines were wrapped.
+   */
+  private clampLines(
+    lines: Array<string>,
+    max: number,
+    width: number,
+  ): Array<string> {
+    if (lines.length <= max) {
+      return lines;
+    }
+
+    const kept: Array<string> = lines.slice(0, Math.max(1, max));
+    let last: string = kept[kept.length - 1]!.trimEnd();
+
+    while (
+      last.length > 0 &&
+      this.pdf.textWidth(`${last}${PDF_CUT_MARK}`) > width
+    ) {
+      last = last.slice(0, -1).trimEnd();
+    }
+
+    kept[kept.length - 1] = `${last}${PDF_CUT_MARK}`;
+
+    return kept;
+  }
+
+  /*
+   * A card as the export draws it: every part wrapped to the card's width
+   * and measured, before its surface is painted - the stored English, as
+   * the exports print it, each fact once (Types/AI/ResourceCardFacts). A
+   * fact's value takes up to `valueMaxLines`, and its name as many, up to
+   * three.
+   */
+  private layoutResourceCard(
+    widget: AIChatWidget,
+    valueMaxLines: number,
+  ): PdfResourceCardLayout {
+    const spacing: typeof PDF_RESOURCE_CARD_SPACING = PDF_RESOURCE_CARD_SPACING;
+    const innerWidth: number = this.pdf.contentWidth - spacing.padding * 2;
+
     const fields: Array<ResourceCardFact> = getFactsNotInHeading({
       heading: widget.data.heading,
       subheading: widget.data.subheading,
       fields: widget.data.fields,
     });
 
-    const padding: number = 10;
+    /*
+     * The status the line names in its own colour, a dot before it, as
+     * the chat draws it (issue #6968): Offline in its red, monitoring off
+     * in gray. A stored colour that is not one draws none, and no line
+     * none: the colour belongs to the status the line names.
+     */
+    const statusColor: string | null = widget.data.subheading
+      ? getAIChatResourceCardStatusColor(widget.data.statusColor)
+      : null;
+    const statusWidth: number =
+      innerWidth - (statusColor ? PDF_STATUS_DOT.indent : 0);
+
+    // Wrapped in its style, at most `max` lines.
+    const linesOf: (
+      text: string | undefined,
+      style: { size: number; fontStyle?: "bold" | undefined },
+      width: number,
+      max: number,
+    ) => Array<string> = (
+      text: string | undefined,
+      style: { size: number; fontStyle?: "bold" | undefined },
+      width: number,
+      max: number,
+    ): Array<string> => {
+      if (!text) {
+        return [];
+      }
+
+      this.pdf.setStyle(style);
+
+      return this.clampLines(
+        this.pdf.wrap(this.pdf.sanitize(text), width),
+        max,
+        width,
+      );
+    };
+
+    const kindLines: Array<string> = linesOf(
+      widget.data.resourceType
+        ? widget.data.resourceType.toUpperCase()
+        : undefined,
+      CARD_KIND_STYLE,
+      innerWidth,
+      PDF_RESOURCE_CARD_MAX_LINES.kind,
+    );
+    const headingLines: Array<string> = linesOf(
+      widget.data.heading,
+      CARD_HEADING_STYLE,
+      innerWidth,
+      PDF_RESOURCE_CARD_MAX_LINES.heading,
+    );
+    const statusLines: Array<string> = linesOf(
+      widget.data.subheading,
+      CARD_LINE_STYLE,
+      statusWidth,
+      PDF_RESOURCE_CARD_MAX_LINES.line,
+    );
+
+    const labelMaxWidth: number = innerWidth * PDF_RESOURCE_CARD_LABEL_SHARE;
+    const labelMaxLines: number = Math.min(
+      PDF_RESOURCE_CARD_MAX_LINES.label,
+      valueMaxLines,
+    );
+
+    const facts: Array<PdfResourceCardFactLayout> = fields.map(
+      (field: ResourceCardFact): PdfResourceCardFactLayout => {
+        /*
+         * A name takes its own width, at least 70pt, so short names line
+         * their values up; a long one wraps within 40% of the card, and
+         * its value has the rest.
+         */
+        const labelLines: Array<string> = linesOf(
+          `${field.label}`,
+          CARD_FACT_STYLE,
+          labelMaxWidth - FACT_LABEL_GAP,
+          labelMaxLines,
+        );
+        this.pdf.setStyle(CARD_FACT_STYLE);
+        const labelWidth: number =
+          labelLines.length > 1
+            ? labelMaxWidth
+            : Math.min(
+                labelMaxWidth,
+                Math.max(
+                  this.pdf.textWidth(labelLines[0] || "") + FACT_LABEL_GAP,
+                  FACT_LABEL_MIN_WIDTH,
+                ),
+              );
+        const valueLines: Array<string> = linesOf(
+          field.value,
+          CARD_FACT_STYLE,
+          innerWidth - labelWidth,
+          valueMaxLines,
+        );
+
+        return {
+          labelLines,
+          valueLines,
+          labelWidth,
+          height:
+            spacing.fact +
+            (Math.max(1, labelLines.length, valueLines.length) - 1) *
+              spacing.factExtraLine,
+        };
+      },
+    );
+
+    return {
+      kindLines,
+      headingLines,
+      statusLines,
+      statusColor,
+      facts,
+      height:
+        spacing.padding * 2 +
+        kindLines.length * spacing.kind +
+        headingLines.length * spacing.heading +
+        statusLines.length * spacing.line +
+        facts.reduce(
+          (total: number, fact: PdfResourceCardFactLayout): number => {
+            return total + fact.height;
+          },
+          0,
+        ),
+    };
+  }
+
+  /*
+   * The card laid out to fit one page with its title (issue #7202): its
+   * values in fewer lines while it does not, so it always moves to the
+   * next page whole rather than running past the page's end. A card saved
+   * with more facts than a page holds even then keeps those that fit.
+   */
+  private fitResourceCard(widget: AIChatWidget): PdfResourceCardLayout {
+    const room: number =
+      this.pdf.bottomLimit -
+      PAGE_MARGIN.top -
+      this.headerHeight(widget) -
+      PDF_RESOURCE_CARD_SPACING.after;
+
+    let layout: PdfResourceCardLayout = this.layoutResourceCard(
+      widget,
+      PDF_RESOURCE_CARD_MAX_LINES.value,
+    );
+
+    for (
+      let valueMaxLines: number = PDF_RESOURCE_CARD_MAX_LINES.value - 1;
+      layout.height > room && valueMaxLines >= 1;
+      valueMaxLines--
+    ) {
+      layout = this.layoutResourceCard(widget, valueMaxLines);
+    }
+
+    while (layout.height > room && layout.facts.length > 0) {
+      const dropped: PdfResourceCardFactLayout = layout.facts.pop()!;
+      layout.height -= dropped.height;
+    }
+
+    return layout;
+  }
+
+  private drawResourceCard(widget: AIChatWidget): void {
+    const spacing: typeof PDF_RESOURCE_CARD_SPACING = PDF_RESOURCE_CARD_SPACING;
 
     // Measure first so the surface can be painted behind the text.
-    this.pdf.setStyle({ size: BODY_SIZE });
-    const estimatedHeight: number =
-      padding * 2 +
-      (widget.data.resourceType ? 10 : 0) +
-      12 +
-      (widget.data.subheading ? 11 : 0) +
-      fields.length * 11;
+    const layout: PdfResourceCardLayout = this.fitResourceCard(widget);
 
     /*
      * The card is drawn from a captured origin, so the origin must be read
      * AFTER any page break — otherwise the surface lands at the previous
      * page's cursor.
      */
-    this.pdf.ensureSpace(estimatedHeight);
+    this.pdf.ensureSpace(layout.height);
     const startY: number = this.pdf.y;
 
     /*
@@ -269,85 +609,64 @@ export default class PdfWidgets {
         ? PDF_RESOURCE_CARD_LOOKS.read
         : PDF_RESOURCE_CARD_LOOKS.write;
 
-    this.pdf.rect(
-      this.pdf.left,
-      startY,
-      this.pdf.contentWidth,
-      estimatedHeight,
-      { fill: look.fill, stroke: look.stroke, radius: 5 },
-    );
+    this.pdf.rect(this.pdf.left, startY, this.pdf.contentWidth, layout.height, {
+      fill: look.fill,
+      stroke: look.stroke,
+      radius: 5,
+    });
 
-    let y: number = startY + padding;
-    const x: number = this.pdf.left + padding;
-    const innerWidth: number = this.pdf.contentWidth - padding * 2;
+    let y: number = startY + spacing.padding;
+    const x: number = this.pdf.left + spacing.padding;
 
-    if (widget.data.resourceType) {
-      this.pdf.setStyle({ size: 6.5, fontStyle: "bold", color: look.kind });
-      this.pdf.drawLine(
-        this.pdf.sanitize(widget.data.resourceType.toUpperCase()),
-        x,
-        y,
-      );
-      y += 10;
+    this.pdf.setStyle({ ...CARD_KIND_STYLE, color: look.kind });
+    for (const line of layout.kindLines) {
+      this.pdf.drawLine(line, x, y);
+      y += spacing.kind;
     }
 
-    if (widget.data.heading) {
-      this.pdf.setStyle({
-        size: 10,
-        fontStyle: "bold",
-        color: PDF_COLORS.heading,
-      });
-      const headingLines: Array<string> = this.pdf.wrap(
-        this.pdf.sanitize(widget.data.heading),
-        innerWidth,
-      );
-      this.pdf.drawLine(headingLines[0] || "", x, y);
-      y += 12;
+    this.pdf.setStyle({ ...CARD_HEADING_STYLE, color: PDF_COLORS.heading });
+    for (const line of layout.headingLines) {
+      this.pdf.drawLine(line, x, y);
+      y += spacing.heading;
     }
 
-    if (widget.data.subheading) {
-      this.pdf.setStyle({ size: BODY_SIZE, color: PDF_COLORS.muted });
-      /*
-       * The status the line names in its own colour, a dot before it, as
-       * the chat draws it (issue #6968): Offline in its red, monitoring
-       * off in gray. A stored colour that is not one draws none.
-       */
-      const statusColor: string | null = getAIChatResourceCardStatusColor(
-        widget.data.statusColor,
-      );
-      const indent: number = statusColor ? PDF_STATUS_DOT.indent : 0;
-      if (statusColor) {
+    if (layout.statusLines.length > 0) {
+      // The dot beside the line's first line; the lines after it keep its indent.
+      const indent: number = layout.statusColor ? PDF_STATUS_DOT.indent : 0;
+      if (layout.statusColor) {
         this.pdf.circle(
           x + PDF_STATUS_DOT.radius,
           y + BODY_SIZE / 2,
           PDF_STATUS_DOT.radius,
-          statusColor,
+          layout.statusColor,
         );
       }
-      const subLines: Array<string> = this.pdf.wrap(
-        this.pdf.sanitize(widget.data.subheading),
-        innerWidth - indent,
-      );
-      this.pdf.drawLine(subLines[0] || "", x + indent, y);
-      y += 11;
+      this.pdf.setStyle({ ...CARD_LINE_STYLE, color: PDF_COLORS.muted });
+      for (const line of layout.statusLines) {
+        this.pdf.drawLine(line, x + indent, y);
+        y += spacing.line;
+      }
     }
 
-    for (const field of fields) {
-      this.pdf.setStyle({ size: SMALL_SIZE, color: PDF_COLORS.faint });
-      const label: string = this.pdf.sanitize(`${field.label}`);
-      this.pdf.drawLine(label, x, y);
-      const labelWidth: number = Math.max(this.pdf.textWidth(label) + 8, 70);
+    for (const fact of layout.facts) {
+      this.pdf.setStyle({ ...CARD_FACT_STYLE, color: PDF_COLORS.faint });
+      fact.labelLines.forEach((line: string, index: number) => {
+        this.pdf.drawLine(line, x, y + index * spacing.factExtraLine);
+      });
 
-      this.pdf.setStyle({ size: SMALL_SIZE, color: PDF_COLORS.text });
-      const valueLines: Array<string> = this.pdf.wrap(
-        this.pdf.sanitize(field.value),
-        innerWidth - labelWidth,
-      );
-      this.pdf.drawLine(valueLines[0] || "", x + labelWidth, y);
-      y += 11;
+      this.pdf.setStyle({ ...CARD_FACT_STYLE, color: PDF_COLORS.text });
+      fact.valueLines.forEach((line: string, index: number) => {
+        this.pdf.drawLine(
+          line,
+          x + fact.labelWidth,
+          y + index * spacing.factExtraLine,
+        );
+      });
+
+      y += fact.height;
     }
 
-    this.pdf.y = startY + estimatedHeight + 6;
+    this.pdf.y = startY + layout.height + spacing.after;
   }
 
   private drawEntityList(widget: AIChatWidget): void {

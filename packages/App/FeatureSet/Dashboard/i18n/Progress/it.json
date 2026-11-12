@@ -449,6 +449,7 @@
     "svc-backup",
     "syslog",
     "tag",
+    "team",
     "thread",
     "timeout|connection refused",
     "tracing",

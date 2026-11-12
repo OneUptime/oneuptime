@@ -17,6 +17,7 @@ import PdfDocument, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Export/PdfDocument";
 import { PdfTable } from "../../../../App/FeatureSet/Dashboard/src/Components/AIChat/Export/PdfTable";
 import WidgetBuilder from "../../../Server/Utils/AI/Toolbox/WidgetBuilder";
+import { getMonitorCardWords } from "../../../Server/Utils/AI/Toolbox/ReadCardWords";
 import {
   AI_ACTION_CARD_FACTS,
   AI_ACTION_CARD_KINDS,
@@ -49,19 +50,27 @@ import { Gray500, Red } from "../../../Types/BrandColors";
 
 const MONITOR_ID: string = "40000000-0000-4000-8000-000000000101";
 
-// A monitor read by id, as query_monitors leaves it.
+/*
+ * A monitor read by id, as query_monitors leaves it: its status the line
+ * under its name, or "Disabled" when its monitoring is off.
+ */
 function monitorCard(params: {
   subheading?: string | undefined;
   statusColor?: string | undefined;
 }): AIChatWidget {
+  const isMonitoringOff: boolean = params.subheading === "Disabled";
+
   return {
     ...WidgetBuilder.resourceCard({
       title: "Monitor Checkout API",
-      resourceType: "Monitor",
       heading: "Checkout API",
-      subheading: params.subheading,
+      words: getMonitorCardWords({
+        monitorType: "Website",
+        statusName: isMonitoringOff ? undefined : params.subheading,
+        isMonitoringOff,
+        isArchived: false,
+      }),
       statusColor: params.statusColor,
-      fields: [{ label: "Type", value: "Website" }],
       link: {
         type: AIChatCitationTargetType.MonitorView,
         params: { monitorId: MONITOR_ID },

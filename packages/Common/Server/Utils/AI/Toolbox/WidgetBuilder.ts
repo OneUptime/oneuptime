@@ -12,6 +12,7 @@ import {
 } from "../../../../Types/AI/AIChatTypes";
 import { getFactsNotInHeading } from "../../../../Types/AI/ResourceCardFacts";
 import {
+  AIActionCardFact,
   AIActionCardWords,
   describeAIActionCardWords,
 } from "../../../../Types/AI/AIActionWords";
@@ -161,19 +162,22 @@ export default class WidgetBuilder {
   /*
    * The card a read leaves under the answer: a record as it is - a
    * monitor, an SLO, a team - drawn plain (issue #6968), with its status's
-   * own colour beside the line that names it when it has one. A fact its
-   * heading or its subheading already says ("#42" in "#42 · Payment API
-   * down", "High" in "Severity: High") is left out of its fields: each fact
-   * once, for every tool at once (Types/AI/ResourceCardFacts).
+   * own colour beside the line that names it when it has one. Its kind, its
+   * line and its facts are words of Types/AI/AIActionWords, which the
+   * Dashboard says in the reader's language (issue #7175), as a write's
+   * card's are: a monitor's name, a status name the project chose and a URL
+   * are data in them. The English it stores beside them - what the exports
+   * print, and what a Dashboard that cannot read the words draws - is the
+   * same words in English (actionCard). A fact its heading or its line
+   * already says ("Offline" under a monitor's name) is left out, of both:
+   * each fact once, for every tool at once (Types/AI/ResourceCardFacts).
    */
   public static resourceCard(params: {
     title: string;
-    resourceType: string;
     heading: string;
-    subheading?: string | undefined;
-    fields: Array<{ label: string; value: string }>;
+    words: AIActionCardWords;
     link?: AIChatCitationTarget | undefined;
-    // The status the subheading names, in its own colour ("#ef4444").
+    // The status the line names, in its own colour ("#ef4444").
     statusColor?: string | undefined;
   }): AIChatWidget {
     return this.card({
@@ -184,21 +188,52 @@ export default class WidgetBuilder {
 
   /*
    * Either card: what a read or a write left, which the Dashboard draws
-   * plain or as done (issue #6968). The status colour is kept only when it
-   * is one ("#rrggbb"): the card draws it as is.
+   * plain or as done (issue #6968), from its words. The status colour is
+   * kept only when it is one ("#rrggbb") and the card has a line to draw
+   * it beside: the card draws it as is.
    */
   private static card(params: {
     title: string;
-    resourceType: string;
     heading: string;
-    subheading?: string | undefined;
-    fields: Array<{ label: string; value: string }>;
+    words: AIActionCardWords;
     link?: AIChatCitationTarget | undefined;
-    // The same card as words the Dashboard says in the reader's language.
-    words?: AIActionCardWords | undefined;
     statusColor?: string | undefined;
     origin: AIChatResourceCardOrigin;
   }): AIChatWidget {
+    const english: {
+      kind: string;
+      line?: string | undefined;
+      facts: Array<{ label: string; value: string }>;
+    } = describeAIActionCardWords(params.words);
+
+    // Each fact once: a fact the heading or the line says is left out of both.
+    const keptFacts: Array<number> = [];
+
+    english.facts.forEach(
+      (fact: { label: string; value: string }, index: number): void => {
+        if (
+          getFactsNotInHeading({
+            heading: params.heading,
+            subheading: english.line,
+            fields: [fact],
+          }).length > 0
+        ) {
+          keptFacts.push(index);
+        }
+      },
+    );
+
+    // The words as given when every fact is kept.
+    const words: AIActionCardWords =
+      params.words.facts && keptFacts.length < params.words.facts.length
+        ? {
+            ...params.words,
+            facts: keptFacts.map((index: number): AIActionCardFact => {
+              return params.words.facts![index]!;
+            }),
+          }
+        : params.words;
+
     const statusColor: string | null = getAIChatResourceCardStatusColor(
       params.statusColor,
     );
@@ -208,17 +243,17 @@ export default class WidgetBuilder {
       type: AIChatWidgetType.ResourceCard,
       title: params.title,
       data: {
-        resourceType: params.resourceType,
+        resourceType: english.kind,
         heading: params.heading,
-        subheading: params.subheading,
-        fields: getFactsNotInHeading({
-          heading: params.heading,
-          subheading: params.subheading,
-          fields: params.fields,
-        }),
-        ...(params.words ? { words: params.words } : {}),
+        subheading: english.line,
+        fields: keptFacts.map(
+          (index: number): { label: string; value: string } => {
+            return english.facts[index]!;
+          },
+        ),
+        words,
         origin: params.origin,
-        ...(statusColor && params.subheading ? { statusColor } : {}),
+        ...(statusColor && english.line ? { statusColor } : {}),
         link: params.link,
       },
     };
@@ -242,20 +277,8 @@ export default class WidgetBuilder {
     words: AIActionCardWords;
     link?: AIChatCitationTarget | undefined;
   }): AIChatWidget {
-    const english: {
-      kind: string;
-      line?: string | undefined;
-      facts: Array<{ label: string; value: string }>;
-    } = describeAIActionCardWords(params.words);
-
     return this.card({
-      title: params.title,
-      resourceType: english.kind,
-      heading: params.heading,
-      subheading: english.line,
-      fields: english.facts,
-      link: params.link,
-      words: params.words,
+      ...params,
       origin: AIChatResourceCardOrigin.Write,
     });
   }
