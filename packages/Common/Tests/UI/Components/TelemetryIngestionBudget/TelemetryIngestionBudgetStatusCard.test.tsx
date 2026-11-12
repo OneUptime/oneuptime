@@ -437,6 +437,60 @@ describe("an answer that is not a status", () => {
     expect(errorsLogged(consoleErrors)).toEqual([]);
   });
 
+  /*
+   * Each row is keyed by its key's id (the project's by "project") and its
+   * signal: a key with no id, or a second entry for a signal or a key,
+   * would be a second row under the same key, which React draws over the
+   * first and complains about. The server never sends one; the card reads
+   * the first of each and leaves a key with no id out.
+   */
+  test("a key with no id, or a signal or key sent twice, is drawn once and never over another row", async () => {
+    const consoleErrors: ConsoleErrorSpy = spyOnConsoleErrors();
+    const sent: TelemetryIngestionBudgetStatus = JSON.parse(
+      JSON.stringify(BUSY_DAY),
+    ) as TelemetryIngestionBudgetStatus;
+    const edge: Record<string, unknown> = {
+      ...sent.ingestionKeys[0],
+    };
+
+    drawOverPage(
+      answeringAnything({
+        ...sent,
+        project: {
+          ...sent.project,
+          signals: [
+            ...sent.project.signals,
+            { ...sent.project.signals[0], usedBytes: 0, percentUsed: 0 },
+          ],
+        },
+        ingestionKeys: [
+          { ...edge, ingestionKeyId: undefined, ingestionKeyName: "No id" },
+          edge,
+          { ...edge, ingestionKeyName: "Edge collector, again" },
+        ],
+      }),
+    );
+
+    expect(
+      await screen.findAllByTestId(
+        `telemetry-ingestion-budget-row-project-${LOGS}`,
+      ),
+    ).toHaveLength(1);
+    // The first Logs entry is the one drawn: used up, not the copy at 0.
+    expect(
+      screen.getByTestId(`telemetry-ingestion-budget-row-project-${LOGS}`),
+    ).toHaveTextContent("Used up");
+    expect(
+      screen.getAllByTestId(`telemetry-ingestion-budget-row-${KEY_ID}-${LOGS}`),
+    ).toHaveLength(1);
+    expect(
+      screen.getByTestId(`telemetry-ingestion-budget-row-${KEY_ID}-${LOGS}`),
+    ).toHaveTextContent("Edge collector");
+    expect(screen.queryByText("No id")).toBeNull();
+    expect(screen.queryByText("Edge collector, again")).toBeNull();
+    expect(errorsLogged(consoleErrors)).toEqual([]);
+  });
+
   test("answers drawn at random: the page under the card is never taken down", async () => {
     const consoleErrors: ConsoleErrorSpy = spyOnConsoleErrors();
     const answers: Array<unknown> = hostileAnswers({

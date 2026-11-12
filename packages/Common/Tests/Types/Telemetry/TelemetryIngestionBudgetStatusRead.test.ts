@@ -245,6 +245,16 @@ const scopeProblems: (
     }
   }
 
+  const signals: Array<string> = scopeStatus.signals.map(
+    (signal: TelemetryIngestionBudgetSignalStatus): string => {
+      return String(signal.signal);
+    },
+  );
+
+  if (new Set(signals).size !== signals.length) {
+    problems.push(`a signal twice in ${signals.join(", ")}`);
+  }
+
   return problems;
 };
 
@@ -282,12 +292,37 @@ const statusProblems: (
 
   problems.push(...scopeProblems(read.project));
 
+  if (
+    read.project.scope !== TelemetryIngestionBudgetScope.Project ||
+    read.project.ingestionKeyId !== undefined
+  ) {
+    problems.push("the project read as a key");
+  }
+
   if (!Array.isArray(read.ingestionKeys)) {
     return [...problems, "ingestionKeys is not a list"];
   }
 
   for (const key of read.ingestionKeys) {
     problems.push(...scopeProblems(key));
+
+    if (
+      key.scope !== TelemetryIngestionBudgetScope.IngestionKey ||
+      typeof key.ingestionKeyId !== "string" ||
+      key.ingestionKeyId.trim() === ""
+    ) {
+      problems.push(`a key with no id: ${String(key.ingestionKeyId)}`);
+    }
+  }
+
+  const keyIds: Array<string> = read.ingestionKeys.map(
+    (key: TelemetryIngestionBudgetScopeStatus): string => {
+      return String(key.ingestionKeyId);
+    },
+  );
+
+  if (new Set(keyIds).size !== keyIds.length) {
+    problems.push(`a key twice in ${keyIds.join(", ")}`);
   }
 
   return problems;
@@ -483,7 +518,7 @@ describe("read leniently past that, field by field", () => {
     }
   });
 
-  test("a state, source or scope the Dashboard does not know: Unknown, none, the scope it was read as", () => {
+  test("a state or source the Dashboard does not know: Unknown, none; a scope is where it sits", () => {
     const read: TelemetryIngestionBudgetStatus = readOrFail({
       ...withProjectSignals([
         {
@@ -573,23 +608,91 @@ describe("read leniently past that, field by field", () => {
     expect(read.project).toEqual(BUSY_DAY.project);
   });
 
-  test("a key's id or name that is not text is left out, the key kept", () => {
+  test("a key's name that is not text is left out, the key kept", () => {
+    for (const ingestionKeyName of [undefined, null, 42, {}, ["Edge"]]) {
+      const read: TelemetryIngestionBudgetStatus = readOrFail(
+        withField("ingestionKeys", [
+          { ...BUSY_DAY.ingestionKeys[0], ingestionKeyName: ingestionKeyName },
+        ]),
+      );
+
+      expect(read.ingestionKeys).toHaveLength(1);
+      expect(read.ingestionKeys[0]!.ingestionKeyId).toBe(KEY_ID);
+      expect(read.ingestionKeys[0]).not.toHaveProperty("ingestionKeyName");
+      expect(read.ingestionKeys[0]!.signals).toEqual(
+        BUSY_DAY.ingestionKeys[0]!.signals,
+      );
+    }
+
+    // An empty name is still the name the key was given.
+    expect(
+      readOrFail(
+        withField("ingestionKeys", [
+          { ...BUSY_DAY.ingestionKeys[0], ingestionKeyName: "" },
+        ]),
+      ).ingestionKeys[0]!.ingestionKeyName,
+    ).toBe("");
+  });
+
+  /*
+   * The server lists only keys it has an id for, and the budget card keys
+   * each key's rows by that id: a key without one could not be told from
+   * the project's own rows, nor found on its own page.
+   */
+  test("a key with no id to tell it by is left out, the rest kept", () => {
+    for (const ingestionKeyId of [undefined, null, 42, {}, "", "  "]) {
+      const read: TelemetryIngestionBudgetStatus = readOrFail(
+        withField("ingestionKeys", [
+          { ...BUSY_DAY.ingestionKeys[0], ingestionKeyId: ingestionKeyId },
+          BUSY_DAY.ingestionKeys[1],
+        ]),
+      );
+
+      expect(read.ingestionKeys).toEqual([BUSY_DAY.ingestionKeys[1]]);
+    }
+  });
+
+  test("the project has no key id or name, whatever the answer says", () => {
     const read: TelemetryIngestionBudgetStatus = readOrFail(
-      withField("ingestionKeys", [
-        {
-          ...BUSY_DAY.ingestionKeys[0],
-          ingestionKeyId: 42,
-          ingestionKeyName: {},
-        },
-      ]),
+      withField("project", {
+        ...BUSY_DAY.project,
+        ingestionKeyId: KEY_ID,
+        ingestionKeyName: "Edge collector",
+      }),
     );
 
-    expect(read.ingestionKeys).toHaveLength(1);
-    expect(read.ingestionKeys[0]).not.toHaveProperty("ingestionKeyId");
-    expect(read.ingestionKeys[0]).not.toHaveProperty("ingestionKeyName");
-    expect(read.ingestionKeys[0]!.signals).toEqual(
-      BUSY_DAY.ingestionKeys[0]!.signals,
-    );
+    expect(read.project).toEqual(BUSY_DAY.project);
+    expect(read.project).not.toHaveProperty("ingestionKeyId");
+    expect(read.project).not.toHaveProperty("ingestionKeyName");
+  });
+
+  /*
+   * The server sends each signal of a scope once, and each key once. The
+   * card draws a row per key and signal, keyed by both: a second entry
+   * would be drawn over the first, so the first is the one read.
+   */
+  test("a second entry for the same signal or the same key is left out, the first kept", () => {
+    const logs: TelemetryIngestionBudgetSignalStatus =
+      BUSY_DAY.project.signals[0]!;
+    const traces: TelemetryIngestionBudgetSignalStatus =
+      BUSY_DAY.project.signals[1]!;
+
+    const read: TelemetryIngestionBudgetStatus = readOrFail({
+      ...withProjectSignals([
+        logs,
+        { ...logs, state: TelemetryIngestionBudgetState.Ok, usedBytes: 0 },
+        traces,
+        logs,
+      ]),
+      ingestionKeys: [
+        BUSY_DAY.ingestionKeys[0],
+        BUSY_DAY.ingestionKeys[1],
+        { ...BUSY_DAY.ingestionKeys[0], ingestionKeyName: "A second copy" },
+      ],
+    });
+
+    expect(read.project.signals).toEqual([logs, traces]);
+    expect(read.ingestionKeys).toEqual(BUSY_DAY.ingestionKeys);
   });
 });
 
