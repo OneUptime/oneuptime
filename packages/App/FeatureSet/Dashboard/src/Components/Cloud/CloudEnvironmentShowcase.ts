@@ -76,10 +76,10 @@ const CLOUD_ENVIRONMENT_SHOWCASE: ResourceShowcase = {
     name: "AWS ECS · us-east-1 · 123456789012",
     subtitle: translationKey("AWS · 12 running tasks"),
     stats: [
-      { label: translationKey("CPU"), value: "48%" },
-      { label: translationKey("Memory"), value: "6.4 GB" },
-      { label: translationKey("Instances"), value: "12" },
-      { label: translationKey("Error rate"), value: "0.3%" },
+      { label: translationKey("CPU"), value: { percent: 48 } },
+      { label: translationKey("Memory"), value: { gigabytes: 6.4 } },
+      { label: translationKey("Instances"), value: 12 },
+      { label: translationKey("Error rate"), value: { percent: 0.3 } },
     ],
     chart: {
       label: translationKey("Requests"),

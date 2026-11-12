@@ -282,6 +282,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
         {
           share: formatUserFlowShare(
             columnTotal > 0 ? node.sessions / columnTotal : 0,
+            translator,
           ),
         },
       )}`,
@@ -296,7 +297,10 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
             )
           : translator.translateTemplate("{{count}} left here ({{share}})", {
               count: formatUserFlowCount(node.terminal, translator),
-              share: formatUserFlowShare(node.terminal / node.sessions),
+              share: formatUserFlowShare(
+                node.terminal / node.sessions,
+                translator,
+              ),
             }),
       );
     }
@@ -348,6 +352,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
               {
                 share: formatUserFlowShare(
                   link.sessions / source.node.sessions,
+                  translator,
                 ),
                 page: labelOf(source.node),
               },
@@ -361,7 +366,10 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
         translator.translateTemplate(
           "{{share}} were returning to a page they had already seen",
           {
-            share: formatUserFlowShare(link.revisitSessions / link.sessions),
+            share: formatUserFlowShare(
+              link.revisitSessions / link.sessions,
+              translator,
+            ),
           },
         ),
       );
@@ -706,6 +714,7 @@ const UserFlowMap: FunctionComponent<ComponentProps> = (
                     {separator}
                     {formatUserFlowShare(
                       columnTotal > 0 ? node.sessions / columnTotal : 0,
+                      translator,
                     )}
                   </text>
                   {node.errorSessions > 0 ? (

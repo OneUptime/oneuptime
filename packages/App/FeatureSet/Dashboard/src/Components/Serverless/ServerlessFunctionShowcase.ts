@@ -66,10 +66,10 @@ const SERVERLESS_FUNCTION_SHOWCASE: ResourceShowcase = {
     name: "checkout-handler",
     subtitle: translationKey("aws_lambda · us-east-1 · nodejs 20"),
     stats: [
-      { label: translationKey("Invocations"), value: "42.2k" },
-      { label: translationKey("Error rate"), value: "0.4%" },
-      { label: translationKey("p95 duration"), value: "208 ms" },
-      { label: translationKey("Instances"), value: "6" },
+      { label: translationKey("Invocations"), value: { abbreviated: 42_200 } },
+      { label: translationKey("Error rate"), value: { percent: 0.4 } },
+      { label: translationKey("p95 duration"), value: { milliseconds: 208 } },
+      { label: translationKey("Instances"), value: 6 },
     ],
     chart: {
       label: translationKey("Invocations"),

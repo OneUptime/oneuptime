@@ -1,4 +1,11 @@
 import IconProp from "Common/Types/Icon/IconProp";
+import {
+  getNumberLocale,
+  isEnglishDateLanguage,
+  writeDigitsInLocale,
+} from "Common/Types/DateLanguage";
+import { translationKey, Translator } from "Common/Types/Translator";
+import { formatSloBurnRate } from "Common/Utils/Slo/SloWidgetFormat";
 
 /*
  * What a resource list shows under its empty table while the project has
@@ -20,9 +27,391 @@ import IconProp from "Common/Types/Icon/IconProp";
  * resource's words.
  *
  * Words are English translation keys (translationKey), looked up when they
- * are drawn. The example's own data - a name, a value, a term the software
- * itself shows ("CrashLoopBackOff") - is drawn as written in every language.
+ * are drawn. The example's own data - a name, a term the software itself
+ * shows ("CrashLoopBackOff"), a code ("SEV 1") - is drawn as written in every
+ * language. Its numbers are figures (ShowcaseFigure), written the way the
+ * reader's language writes numbers, as the rest of the Dashboard writes
+ * them: "1,284" in English is "1.284" in German and "۱٬۲۸۴" in Persian.
  */
+
+/*
+ * A number the example shows, written when it is drawn the way the reader's
+ * language writes it (formatShowcaseFigure). Never English text: "1,284"
+ * reads as one point two eight four to a German, Spanish or French reader,
+ * whose languages write the decimal sign as a comma (issue #6535).
+ *
+ *   1284                          "1,284"   "1.284" (de)   "۱٬۲۸۴" (fa)
+ *   { percent: 99.98 }            "99.98%"  "99,98 %"      "۹۹٫۹۸٪"
+ *   { milliseconds: 184 }         "184 ms"  "184 ms"       "۱۸۴ میلی‌ثانیه"
+ *   { seconds: 1.24 }             "1.24 s"  "1,24 Sek."
+ *   { megabytes: 412 }            "412 MB"
+ *   { gigabytes: 6.4 }            "6.4 GB"  "6,4 GB"
+ *   { gigabitsPerSecond: 1.2 }    "1.2 Gbps" "1,2 Gb/s"
+ *   { dBm: -67 }                  "-67 dBm"
+ *   { abbreviated: 1820000 }      "1.82M"   "1,82 Mio."    "۱٫۸۲ میلیون"
+ *   { usDollars: 4120 }           "$4,120"  "4.120 $"
+ *   { burnRate: 0.4 }             "0.4×"    "0,4×"         as the SLO pages
+ *   { toOne: 4.3 }                "4.3:1"   "4,3:1"
+ *   { count: 11, outOf: 12 }      "11/12"                  "۱۱/۱۲"
+ *   { percentUsed: 71 }           "71% used" "71 % belegt"
+ *   { clock: "00:21:07" }         "00:21:07"               "۰۰:۲۱:۰۷"
+ *
+ * English reads as the product's own English always has: its units are
+ * the short symbols the rest of the product writes ("1.24 s", not Intl's
+ * "1.24 sec"); every other language takes Intl's words for the unit, as a
+ * duration on any other page does (formatDurationCompactInLanguage).
+ */
+export type ShowcaseFigure =
+  // A count, or a reading with no unit (a load average: 2.14).
+  | number
+  | { percent: number }
+  | { milliseconds: number }
+  | { seconds: number }
+  | { megabytes: number }
+  | { gigabytes: number }
+  | { gigabitsPerSecond: number }
+  // Signal strength, which has no unit of Intl's: its symbol as written.
+  | { dBm: number }
+  // A count too large to read whole: a million and more, or thousands.
+  | { abbreviated: number }
+  | { usDollars: number }
+  // An SLO's burn rate, written as the SLO pages write it (formatSloBurnRate).
+  | { burnRate: number }
+  // A ratio to one: a storage array's data reduction.
+  | { toOne: number }
+  // So many of so many: nodes ready, services up.
+  | { count: number; outOf: number }
+  /*
+   * A time OneUptime writes as a clock, "00:21:07": in the digits the
+   * reader's language writes (writeDigitsInLocale), as every time of day
+   * the Dashboard writes is.
+   */
+  | { clock: string }
+  /*
+   * A share of a disk or a pool in use: "71% used", in the words the
+   * Dashboard's own pages say it in (SHOWCASE_PERCENT_USED).
+   */
+  | { percentUsed: number };
+
+/*
+ * "71% used": the Dashboard's sentence for a disk's or a datastore's share
+ * in use (the VMware and topology pages say it so), its percent written the
+ * reader's way. Each language words it around the percent: "Занято 71 %",
+ * "已使用 71%".
+ */
+export const SHOWCASE_PERCENT_USED: string = translationKey("{{percent}} used");
+
+/*
+ * A stat's value or a row's state: a figure, or text drawn as written - a
+ * code ("SEV 1", "P2", an HTTP status "200") - never a number or a clock
+ * written as text (ProductOnboardingRegistry's guard).
+ */
+export type ShowcaseValue = ShowcaseFigure | string;
+
+export function isShowcaseFigure(
+  value: ShowcaseValue | undefined,
+): value is ShowcaseFigure {
+  return value !== undefined && typeof value !== "string";
+}
+
+// Figures keep up to two decimals: "99.98%", "2.14", "1.24 s".
+const SHOWCASE_FRACTION_DIGITS: number = 2;
+
+// A large count keeps three digits: "1.82M", "42.2K", "482K".
+const SHOWCASE_ABBREVIATED_DIGITS: number = 3;
+
+// `value` as `language` writes it, with `options`; English if Intl cannot.
+const writeNumber: (
+  value: number,
+  language: string,
+  options: Intl.NumberFormatOptions,
+) => string = (
+  value: number,
+  language: string,
+  options: Intl.NumberFormatOptions,
+): string => {
+  try {
+    return new Intl.NumberFormat(getNumberLocale(language), options).format(
+      value,
+    );
+  } catch {
+    return new Intl.NumberFormat("en", options).format(value);
+  }
+};
+
+const writeDecimal: (value: number, language: string) => string = (
+  value: number,
+  language: string,
+): string => {
+  return writeNumber(value, language, {
+    maximumFractionDigits: SHOWCASE_FRACTION_DIGITS,
+  });
+};
+
+/*
+ * A figure in the two parts a stat tile draws: its amount in the tile's
+ * size, and its unit after it, smaller and grey, as the Dashboard's value
+ * widgets draw a unit (ValueWidgetView). So a unit a language writes long
+ * ("میلی‌ثانیه", "Gb در ثانیه", "غيغابت/ث") never pushes the number onto a
+ * second line or breaks inside itself. Joined, the parts are the figure as
+ * formatShowcaseFigure writes it.
+ */
+export interface ShowcaseFigureParts {
+  // "184", "1,24", "۱٫۲", "99.98%", "$4,120", "1.82M".
+  amount: string;
+  // What the language writes between the two: " ", or "" ("184毫秒").
+  separator: string;
+  // "ms", "Sek.", "میلی‌ثانیه"; "" for a figure without a unit.
+  unit: string;
+}
+
+// A figure with no unit of its own: its whole text is its amount.
+const withoutUnit: (amount: string) => ShowcaseFigureParts = (
+  amount: string,
+): ShowcaseFigureParts => {
+  return { amount, separator: "", unit: "" };
+};
+
+/*
+ * Intl's parts of an amount of a unit, split where the unit starts: "1,24"
+ * " " "Sek.". Null when the language writes the unit first or Intl wrote no
+ * unit, so the caller keeps its own.
+ */
+const splitAtUnit: (
+  parts: Array<Intl.NumberFormatPart>,
+) => ShowcaseFigureParts | null = (
+  parts: Array<Intl.NumberFormatPart>,
+): ShowcaseFigureParts | null => {
+  const unitStart: number = parts.findIndex(
+    (part: Intl.NumberFormatPart): boolean => {
+      return part.type === "unit";
+    },
+  );
+  let separatorStart: number = unitStart;
+
+  while (separatorStart > 0 && parts[separatorStart - 1]?.type === "literal") {
+    separatorStart--;
+  }
+
+  if (unitStart < 0 || separatorStart === 0) {
+    return null;
+  }
+
+  const join: (from: number, to: number) => string = (
+    from: number,
+    to: number,
+  ): string => {
+    return parts
+      .slice(from, to)
+      .map((part: Intl.NumberFormatPart): string => {
+        return part.value;
+      })
+      .join("");
+  };
+
+  return {
+    amount: join(0, separatorStart),
+    separator: join(separatorStart, unitStart),
+    unit: join(unitStart, parts.length),
+  };
+};
+
+/*
+ * An amount of a unit: the product's own English symbol in English ("1.24
+ * s"), Intl's short unit in every other language ("1,24 Sek."). An engine
+ * without the unit writes the number the reader's way and the symbol as
+ * written.
+ */
+const writeUnit: (data: {
+  amount: number;
+  // Intl's unit: "millisecond".
+  intlUnit: string;
+  // The product's English symbol: "ms".
+  englishSymbol: string;
+  language: string;
+}) => ShowcaseFigureParts = (data: {
+  amount: number;
+  intlUnit: string;
+  englishSymbol: string;
+  language: string;
+}): ShowcaseFigureParts => {
+  const asWritten: ShowcaseFigureParts = {
+    amount: writeDecimal(data.amount, data.language),
+    separator: " ",
+    unit: data.englishSymbol,
+  };
+
+  if (isEnglishDateLanguage(data.language)) {
+    return asWritten;
+  }
+
+  try {
+    return (
+      splitAtUnit(
+        new Intl.NumberFormat(getNumberLocale(data.language), {
+          style: "unit",
+          unit: data.intlUnit,
+          unitDisplay: "short",
+          maximumFractionDigits: SHOWCASE_FRACTION_DIGITS,
+        }).formatToParts(data.amount),
+      ) || asWritten
+    );
+  } catch {
+    return asWritten;
+  }
+};
+
+/*
+ * A figure as the reader's language writes it: its digits (Persian's own,
+ * Latin in Arabic - getNumberLocale), its grouping and decimal signs, its
+ * percent sign and spacing, its unit words and its abbreviations.
+ */
+export function formatShowcaseFigure(
+  figure: ShowcaseFigure,
+  translator: Translator,
+): string {
+  const parts: ShowcaseFigureParts = formatShowcaseFigureParts(
+    figure,
+    translator,
+  );
+
+  return `${parts.amount}${parts.separator}${parts.unit}`;
+}
+
+// The same figure, its amount and its unit apart (ShowcaseFigureParts).
+export function formatShowcaseFigureParts(
+  figure: ShowcaseFigure,
+  translator: Translator,
+): ShowcaseFigureParts {
+  const language: string = translator.language;
+
+  if (typeof figure === "number") {
+    return withoutUnit(writeDecimal(figure, language));
+  }
+
+  if ("percent" in figure) {
+    return withoutUnit(
+      writeNumber(figure.percent / 100, language, {
+        style: "percent",
+        maximumFractionDigits: SHOWCASE_FRACTION_DIGITS,
+      }),
+    );
+  }
+
+  if ("percentUsed" in figure) {
+    return withoutUnit(
+      translator.translateTemplate(SHOWCASE_PERCENT_USED, {
+        percent: formatShowcaseFigure(
+          { percent: figure.percentUsed },
+          translator,
+        ),
+      }),
+    );
+  }
+
+  if ("count" in figure) {
+    // Two counts joined by a slash read as one number, as written.
+    return withoutUnit(
+      `${writeDecimal(figure.count, language)}/${writeDecimal(
+        figure.outOf,
+        language,
+      )}`,
+    );
+  }
+
+  if ("clock" in figure) {
+    return withoutUnit(writeDigitsInLocale(figure.clock, language));
+  }
+
+  if ("milliseconds" in figure) {
+    return writeUnit({
+      amount: figure.milliseconds,
+      intlUnit: "millisecond",
+      englishSymbol: "ms",
+      language,
+    });
+  }
+
+  if ("seconds" in figure) {
+    return writeUnit({
+      amount: figure.seconds,
+      intlUnit: "second",
+      englishSymbol: "s",
+      language,
+    });
+  }
+
+  if ("megabytes" in figure) {
+    return writeUnit({
+      amount: figure.megabytes,
+      intlUnit: "megabyte",
+      englishSymbol: "MB",
+      language,
+    });
+  }
+
+  if ("gigabytes" in figure) {
+    return writeUnit({
+      amount: figure.gigabytes,
+      intlUnit: "gigabyte",
+      englishSymbol: "GB",
+      language,
+    });
+  }
+
+  if ("gigabitsPerSecond" in figure) {
+    return writeUnit({
+      amount: figure.gigabitsPerSecond,
+      intlUnit: "gigabit-per-second",
+      englishSymbol: "Gbps",
+      language,
+    });
+  }
+
+  if ("dBm" in figure) {
+    return {
+      amount: writeDecimal(figure.dBm, language),
+      separator: " ",
+      unit: "dBm",
+    };
+  }
+
+  if ("abbreviated" in figure) {
+    return withoutUnit(
+      writeNumber(figure.abbreviated, language, {
+        notation: "compact",
+        maximumSignificantDigits: SHOWCASE_ABBREVIATED_DIGITS,
+      }),
+    );
+  }
+
+  if ("usDollars" in figure) {
+    const cents: number = Number.isInteger(figure.usDollars)
+      ? 0
+      : SHOWCASE_FRACTION_DIGITS;
+
+    return withoutUnit(
+      writeNumber(figure.usDollars, language, {
+        style: "currency",
+        currency: "USD",
+        minimumFractionDigits: cents,
+        maximumFractionDigits: cents,
+      }),
+    );
+  }
+
+  if ("burnRate" in figure) {
+    return withoutUnit(
+      formatSloBurnRate(figure.burnRate, translator) ||
+        writeDecimal(figure.burnRate, language),
+    );
+  }
+
+  // A ratio to one: "4.3:1".
+  return withoutUnit(
+    `${writeDecimal(figure.toOne, language)}:${writeDecimal(1, language)}`,
+  );
+}
 
 export enum ShowcaseStatus {
   Healthy = "healthy",
@@ -40,8 +429,11 @@ export interface ShowcaseFeature {
 export interface ShowcaseStat {
   // English translation key: "Pods".
   label: string;
-  // As drawn in every language: "248", "63%".
-  value: string;
+  /*
+   * A figure, written the reader's way (248, { percent: 63 }, { clock:
+   * "00:21:07" }), or a code drawn as written ("SEV 1").
+   */
+  value: ShowcaseValue;
 }
 
 export interface ShowcaseRow {
@@ -50,8 +442,11 @@ export interface ShowcaseRow {
   // English translation key: "Deployment · payments".
   detail: string;
   status: ShowcaseStatus;
-  // English translation key, or a term drawn as written: "CrashLoopBackOff".
-  statusText: string;
+  /*
+   * English translation key, or a term drawn as written: "CrashLoopBackOff".
+   * Or a figure, written the reader's way: { milliseconds: 120 }.
+   */
+  statusText: ShowcaseValue;
 }
 
 // What OneUptime raised about the example: the warning row, as an alert.

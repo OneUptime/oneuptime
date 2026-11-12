@@ -66,10 +66,10 @@ const PODMAN_HOST_SHOWCASE: ResourceShowcase = {
     name: "prod-podman-01",
     subtitle: translationKey("14 containers · RHEL 9.4"),
     stats: [
-      { label: translationKey("Containers"), value: "14" },
-      { label: translationKey("Avg CPU"), value: "12%" },
-      { label: translationKey("Avg memory"), value: "47%" },
-      { label: translationKey("Processes"), value: "96" },
+      { label: translationKey("Containers"), value: 14 },
+      { label: translationKey("Avg CPU"), value: { percent: 12 } },
+      { label: translationKey("Avg memory"), value: { percent: 47 } },
+      { label: translationKey("Processes"), value: 96 },
     ],
     chart: {
       label: translationKey("Average CPU"),
