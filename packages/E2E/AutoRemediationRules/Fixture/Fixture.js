@@ -86,7 +86,7 @@
  *   - ruleContext=1   the saved rule "Fix database incidents" carries notes
  *                     for OneUptime AI, its AI context; none by default
  *   - lang=de         the Dashboard's German words (fa: Persian, right to
- *                     left)
+ *                     left; ru: Russian, loaded only when asked for)
  *   - theme=dark      dark mode (set before the bundle by server.js)
  *
  * What the page sends is recorded on window.__fixture: `creates` (each
@@ -170,7 +170,7 @@ const hasHiddenRepository = params.get("hiddenRepository") === "1";
 const runbookCount = params.get("runbooks") === "0" ? 0 : 3;
 const hasMcpServers = params.get("mcpServers") !== "0";
 const role = params.get("role") === "viewer" ? "viewer" : "owner";
-const language = ["de", "fa"].includes(params.get("lang"))
+const language = ["de", "fa", "ru"].includes(params.get("lang"))
   ? params.get("lang")
   : "en";
 const providerSet = ["project", "none", "denied"].includes(
@@ -1047,14 +1047,29 @@ API.get = async () => new HTTPResponse(200, {}, {});
  * separators i18next reads in a key (the "." and ":" of a sentence) are
  * turned off, as the Dashboard's own setup does.
  */
+/*
+ * Russian, whose words are among the Dashboard's longest (a fix pill's
+ * "Спрашивает перед исправлением", #7111), loaded only when ?lang=ru asks
+ * for it: a locale is some four megabytes of JSON, which every other page
+ * of the suite would parse if it were bundled into the entry.
+ */
+const resources = {
+  en: { translation: {} },
+  de: { translation: DE },
+  fa: { translation: FA },
+};
+if (language === "ru") {
+  resources.ru = {
+    translation: (
+      await import("../../../App/FeatureSet/Dashboard/src/Locales/ru.json")
+    ).default,
+  };
+}
+
 await i18next.use(initReactI18next).init({
   lng: language,
   fallbackLng: language,
-  resources: {
-    en: { translation: {} },
-    de: { translation: DE },
-    fa: { translation: FA },
-  },
+  resources,
   interpolation: { escapeValue: false },
   keySeparator: false,
   nsSeparator: false,

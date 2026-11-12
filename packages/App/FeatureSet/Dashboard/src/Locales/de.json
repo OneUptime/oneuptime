@@ -42173,7 +42173,6 @@
   "Written By": "Geschrieben von",
   "Changes Around It": "Änderungen um diese Zeit",
   "Add Check": "Prüfung hinzufügen",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Alarmiert, wenn ihr Wert {{condition}} {{threshold}} ist.",
   "Checked whether a table is fresh": "Geprüft, ob eine Tabelle aktuell ist",
   "Checking whether a table is fresh": "Prüft, ob eine Tabelle aktuell ist",
   "Data table": "Datentabelle",
@@ -51134,5 +51133,19 @@
   "Window must be between {{min}} and {{max}} days.": "Das Zeitfenster muss zwischen {{min}} und {{max}} Tagen liegen.",
   "Your monitor \"{{name}}\" already checks this address, so no new monitor was made.": "Ihr Monitor „{{name}}“ prüft diese Adresse bereits, daher wurde kein neuer Monitor erstellt.",
   "An on-call policy was added to this project while this page was open, so no new policy was made.": "Diesem Projekt wurde eine Bereitschaftsrichtlinie hinzugefügt, während diese Seite geöffnet war, daher wurde keine neue Richtlinie erstellt.",
-  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} jedes Monats: {{budget}} Ausfallzeit in einem Monat mit {{days}} Tagen"
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} jedes Monats: {{budget}} Ausfallzeit in einem Monat mit {{days}} Tagen",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "Die KI hat diese {{count}} Dateien gelesen und kennt einen Teil ihres Textes nicht mehr, und die Versionen der KI ersetzen die Dateien ganz: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "Die KI hat diese Datei gelesen und kennt einen Teil ihres Textes nicht mehr, und die Version der KI ersetzt die ganze Datei: {{files}}.",
+  "Above {{threshold}}": "Über {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Alarmiert, wenn ihr Wert über {{threshold}} liegt.",
+  "Alerts when its value is below {{threshold}}.": "Alarmiert, wenn ihr Wert unter {{threshold}} liegt.",
+  "Alerts when its value is unusually high.": "Alarmiert, wenn ihr Wert ungewöhnlich hoch ist.",
+  "Alerts when its value is unusually low.": "Alarmiert, wenn ihr Wert ungewöhnlich niedrig ist.",
+  "Below {{threshold}}": "Unter {{threshold}}",
+  "The status page does not show this resource's status.": "Die Statusseite zeigt den Status dieser Ressource nicht an.",
+  "The status page shows this resource as not monitored.": "Die Statusseite zeigt diese Ressource als nicht überwacht an.",
+  "Under maintenance: {{events}}": "In Wartung: {{events}}",
+  "Unusually High": "Ungewöhnlich hoch",
+  "Unusually Low": "Ungewöhnlich niedrig"
 }

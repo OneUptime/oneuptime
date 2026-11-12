@@ -257,7 +257,7 @@ describe("what a commit says of a file read in an earlier answer", () => {
     ).toBeNull();
   });
 
-  test("read again in part: only part of it in hand - read in part, never both", () => {
+  test("read whole before, again in part now: the rest was read and is no longer in hand (#6984) - never said as not read", () => {
     expect(
       decide({
         records: [
@@ -267,13 +267,13 @@ describe("what a commit says of a file read in an earlier answer", () => {
         now: file("a"),
       }),
     ).toEqual({
-      unseen: CodeFileUnseen.ReadInPart,
+      unseen: CodeFileUnseen.PartNoLongerInHand,
       lineCount: 800,
-      linesNotRead: [range(1, 400)],
+      linesNoLongerInHand: [range(1, 400)],
     });
   });
 
-  test("two halves, one in the turn before and one now: the half from before is not in hand", () => {
+  test("two halves, one in the turn before and one now: read all of it, and the half from before is no longer in hand (#6984)", () => {
     expect(
       decide({
         records: [
@@ -283,9 +283,26 @@ describe("what a commit says of a file read in an earlier answer", () => {
         now: file("a"),
       }),
     ).toEqual({
+      unseen: CodeFileUnseen.PartNoLongerInHand,
+      lineCount: 800,
+      linesNoLongerInHand: [range(1, 400)],
+    });
+  });
+
+  test("a part read before, a part now, the rest never: each said as what it is (#6984)", () => {
+    expect(
+      decide({
+        records: [
+          earlier(see("fix/login", "a", lines(800, 1, 400))),
+          see("fix/login", "a", lines(800, 401, 600)),
+        ],
+        now: file("a"),
+      }),
+    ).toEqual({
       unseen: CodeFileUnseen.ReadInPart,
       lineCount: 800,
-      linesNotRead: [range(1, 400)],
+      linesNotRead: [range(601, 800)],
+      linesNoLongerInHand: [range(1, 400)],
     });
   });
 
@@ -437,9 +454,17 @@ const oracle: (data: {
     return on[on.length - 1];
   };
 
-  // Lines in hand of a version: this turn's events of it, on each branch since another version was seen there.
-  const linesInHand: (version: string) => "none" | "all" | Set<number> = (
+  /*
+   * Lines of a version on each branch since another version was seen
+   * there: in hand, this turn's events of it; ever read, every turn's
+   * (issue #6984).
+   */
+  const linesInHand: (
     version: string,
+    everyTurn?: boolean,
+  ) => "none" | "all" | Set<number> = (
+    version: string,
+    everyTurn?: boolean,
   ): "none" | "all" | Set<number> => {
     const shown: Set<number> = new Set<number>();
     let any: boolean = false;
@@ -457,7 +482,7 @@ const oracle: (data: {
       }
 
       for (const event of on.slice(from)) {
-        if (event.turn !== data.lastTurn) {
+        if (!everyTurn && event.turn !== data.lastTurn) {
           continue;
         }
 
@@ -495,26 +520,45 @@ const oracle: (data: {
       return null;
     }
 
+    const ever: "none" | "all" | Set<number> = linesInHand(version, true);
     const lineCount: number = data.lineCounts.get(version)!;
     const notRead: Array<AIChatLineRange> = [];
+    const notInHand: Array<AIChatLineRange> = [];
 
     for (let line: number = 1; line <= lineCount; line++) {
       if (inHand.has(line)) {
         continue;
       }
 
-      const previous: AIChatLineRange | undefined = notRead[notRead.length - 1];
+      const runs: Array<AIChatLineRange> =
+        ever === "all" || (ever !== "none" && ever.has(line))
+          ? notInHand
+          : notRead;
+      const previous: AIChatLineRange | undefined = runs[runs.length - 1];
 
       if (previous && previous.last === line - 1) {
         previous.last = line;
       } else {
-        notRead.push(range(line, line));
+        runs.push(range(line, line));
       }
     }
 
-    return notRead.length === 0
+    if (notRead.length > 0) {
+      return {
+        unseen: CodeFileUnseen.ReadInPart,
+        lineCount,
+        linesNotRead: notRead,
+        ...(notInHand.length > 0 ? { linesNoLongerInHand: notInHand } : {}),
+      };
+    }
+
+    return notInHand.length === 0
       ? null
-      : { unseen: CodeFileUnseen.ReadInPart, lineCount, linesNotRead: notRead };
+      : {
+          unseen: CodeFileUnseen.PartNoLongerInHand,
+          lineCount,
+          linesNoLongerInHand: notInHand,
+        };
   };
 
   const target: OracleEvent | undefined = lastOn(data.branchName);
@@ -568,7 +612,7 @@ describe("every history of turns, against an oracle", () => {
     const random: SeededRandom = seededRandom(63650);
     const said: Record<string, number> = {};
 
-    for (let round: number = 0; round < 600; round++) {
+    for (let round: number = 0; round < 2000; round++) {
       const lineCounts: Map<string, number> = new Map();
       let versions: number = 0;
       const newVersion: () => string = (): string => {
@@ -669,7 +713,12 @@ describe("every history of turns, against an oracle", () => {
           found: expected,
         });
 
-        const outcome: string = expected ? expected.unseen : "nothing";
+        const outcome: string = !expected
+          ? "nothing"
+          : expected.linesNoLongerInHand &&
+              expected.unseen === CodeFileUnseen.ReadInPart
+            ? "ReadInPart and PartNoLongerInHand"
+            : expected.unseen;
         said[outcome] = (said[outcome] || 0) + 1;
       }
     }
@@ -678,6 +727,8 @@ describe("every history of turns, against an oracle", () => {
       "nothing",
       CodeFileUnseen.ReadInEarlierAnswer,
       CodeFileUnseen.ReadInPart,
+      CodeFileUnseen.PartNoLongerInHand,
+      "ReadInPart and PartNoLongerInHand",
       CodeFileUnseen.ChangedSinceRead,
       CodeFileUnseen.ReadOnAnotherBranch,
       CodeFileUnseen.NotRead,
