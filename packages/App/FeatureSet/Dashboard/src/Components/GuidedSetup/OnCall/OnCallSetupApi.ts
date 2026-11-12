@@ -277,6 +277,29 @@ export default class OnCallSetupApi {
     }
   }
 
+  /*
+   * OneUptime Cloud: adds to the balance SMS and calls are paid from,
+   * charged to the project's card - Notification Settings' Recharge Balance
+   * (a project owner or Manage Billing; the server checks).
+   */
+  public static async rechargeBalance(amountInUSD: number): Promise<void> {
+    const response: HTTPResponse<JSONObject> | HTTPErrorResponse =
+      await API.post<JSONObject>({
+        url: URL.fromString(APP_API_URL.toString()).addRoute(
+          "/notification/recharge",
+        ),
+        data: {
+          amount: amountInUSD,
+          projectId: currentProjectId().toString(),
+        },
+        headers: ModelAPI.getCommonHeaders(),
+      });
+
+    if (response instanceof HTTPErrorResponse || response.isFailure()) {
+      throw new Error(API.getFriendlyMessage(response));
+    }
+  }
+
   // Adds the person's number for SMS: its code is texted (UserSmsService).
   public static async addSmsNumber(phone: string): Promise<AddedNumber> {
     const sms: UserSMS = new UserSMS();

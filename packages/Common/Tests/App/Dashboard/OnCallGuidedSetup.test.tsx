@@ -35,6 +35,7 @@ const API_NAMES: Array<string> = [
   "loadMyReach",
   "loadProjectPhoneFacts",
   "turnOnPhoneChannels",
+  "rechargeBalance",
   "addSmsNumber",
   "addCallNumber",
   "loadPolicyChoices",
@@ -63,6 +64,7 @@ jest.mock(
       "loadMyReach",
       "loadProjectPhoneFacts",
       "turnOnPhoneChannels",
+  "rechargeBalance",
       "addSmsNumber",
       "addCallNumber",
       "loadPolicyChoices",
@@ -109,6 +111,7 @@ jest.mock("../../../UI/Config", () => {
 
 let mayChangeChannels: boolean = true;
 let mayAddBalance: boolean = true;
+let marketplace: string | null = null;
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/NotificationMethods/ProjectNotificationChannels",
@@ -132,6 +135,9 @@ jest.mock(
       __esModule: true,
       canAddProjectBalance: (): boolean => {
         return mayAddBalance;
+      },
+      getCurrentProjectBillingMarketplace: (): string | null => {
+        return marketplace;
       },
     };
   },
@@ -238,6 +244,34 @@ jest.mock(
     };
   },
 );
+
+// The recharge dialog: its form is the real one's; here one press sends 20.
+jest.mock("../../../UI/Components/FormModal/BasicFormModal", () => {
+  return {
+    __esModule: true,
+    default: (props: {
+      title: string;
+      onSubmit: (item: Record<string, unknown>) => void;
+      formProps: { error?: string };
+    }) => {
+      return (
+        <div data-testid="recharge-dialog">
+          <span>{props.title}</span>
+          {props.formProps.error ? <p>{props.formProps.error}</p> : <></>}
+          <button
+            type="button"
+            data-testid="recharge-submit"
+            onClick={() => {
+              props.onSubmit({ amount: 20 });
+            }}
+          >
+            Recharge
+          </button>
+        </div>
+      );
+    },
+  };
+});
 
 jest.mock("../../../UI/Components/PeoplePicker/LazyPeoplePicker", () => {
   return {
@@ -566,6 +600,7 @@ beforeEach(() => {
   maySecondLevel = true;
   mayChangeChannels = true;
   mayAddBalance = true;
+  marketplace = null;
   canSendEmail = true;
   sendingStatus = null;
   jest
@@ -585,6 +620,7 @@ beforeEach(() => {
     balanceInUSDCents: 2000,
   });
   api["turnOnPhoneChannels"]!.mockResolvedValue(undefined);
+  api["rechargeBalance"]!.mockResolvedValue(undefined);
   api["addSmsNumber"]!.mockResolvedValue({ id: "sms-1", isVerified: false });
   api["addCallNumber"]!.mockResolvedValue({ id: "call-1", isVerified: true });
   api["loadPolicyChoices"]!.mockResolvedValue({
@@ -713,11 +749,57 @@ describe("how should we reach you", () => {
     expect(screen.getByTestId("on-call-setup-balance")).toHaveTextContent(
       "more than 1.00 USD",
     );
-    expect(screen.getByTestId("on-call-setup-add-balance")).toHaveAttribute(
-      "href",
-      expect.stringContaining("notification-settings"),
+    expect(screen.queryByTestId("on-call-setup-phone")).toBeNull();
+
+    // The owner adds balance in the step, and the number field appears.
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 2000,
+    });
+    await press("on-call-setup-add-balance");
+    await press("recharge-submit");
+
+    expect(api["rechargeBalance"]).toHaveBeenCalledWith(20);
+    expect(screen.queryByTestId("recharge-dialog")).toBeNull();
+    expect(screen.getByTestId("on-call-setup-balance")).toHaveTextContent(
+      "which is 20.00 USD",
+    );
+    expect(screen.getByTestId("on-call-setup-phone")).toBeInTheDocument();
+  });
+
+  test("a recharge the server refuses keeps the dialog open with its reason", async () => {
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    api["rechargeBalance"]!.mockRejectedValue(
+      new Error("No payment method on file."),
+    );
+    await renderSetup();
+    await press("on-call-setup-add-balance");
+    await press("recharge-submit");
+
+    expect(screen.getByTestId("recharge-dialog")).toHaveTextContent(
+      "No payment method on file.",
     );
     expect(screen.queryByTestId("on-call-setup-phone")).toBeNull();
+  });
+
+  test("a project a cloud marketplace bills is sent to Notification Settings to add balance", async () => {
+    marketplace = "aws";
+    api["loadProjectPhoneFacts"]!.mockResolvedValue({
+      isSmsOn: true,
+      isCallOn: true,
+      balanceInUSDCents: 0,
+    });
+    await renderSetup();
+
+    expect(screen.queryByTestId("on-call-setup-add-balance")).toBeNull();
+    expect(
+      screen.getByTestId("on-call-setup-add-balance-link"),
+    ).toHaveAttribute("href", expect.stringContaining("notification-settings"));
   });
 
   test("no balance, for someone who may not add it: who can, and no button", async () => {
@@ -910,6 +992,18 @@ describe("who else is on call", () => {
     expect(
       screen.getByTestId("on-call-setup-responder-user-ben"),
     ).toHaveTextContent("Ben Ito (not reachable yet)");
+  });
+
+  test("everyone reached and the policy runs: it moves straight on", async () => {
+    await reachDone();
+    await press("on-call-setup-who-save");
+
+    expect(api["createPolicy"]).toHaveBeenCalledTimes(1);
+    expect(stepState("who_else")).toBe("done");
+    expect(stepState("no_answer")).toBe("open");
+    expect(
+      screen.getByTestId("guided-setup-step-who_else-done-line"),
+    ).toHaveTextContent('"Default on-call policy" pages Ana Lopez (Email, SMS).');
   });
 
   test("someone a page can't reach gets a setup reminder; you never do", async () => {

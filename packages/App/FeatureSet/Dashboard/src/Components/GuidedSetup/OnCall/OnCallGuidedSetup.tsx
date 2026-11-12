@@ -73,7 +73,16 @@ import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
 import TestPageResult, {
   getResultSentence,
 } from "../../OnCallTestPage/TestPageResult";
-import { canAddProjectBalance } from "../../ProjectBalance/ProjectBalanceAccess";
+import {
+  canAddProjectBalance,
+  getCurrentProjectBillingMarketplace,
+} from "../../ProjectBalance/ProjectBalanceAccess";
+import {
+  RECHARGE_AMOUNT_DESCRIPTION,
+  RECHARGE_AMOUNT_TITLE,
+} from "../../ProjectBalance/ProjectBalanceCopy";
+import BasicFormModal from "Common/UI/Components/FormModal/BasicFormModal";
+import FormFieldSchemaType from "Common/UI/Components/Forms/Types/FormFieldSchemaType";
 import PageMap from "../../../Utils/PageMap";
 import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import {
@@ -236,6 +245,9 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
     phone: string;
   } | null>(null);
   const [reachError, setReachError] = useState<string>("");
+  const [showRecharge, setShowRecharge] = useState<boolean>(false);
+  const [isRecharging, setIsRecharging] = useState<boolean>(false);
+  const [rechargeError, setRechargeError] = useState<string>("");
 
   // Step 2: you, to start with.
   const [people, setPeople] = useState<PeoplePickerValue>({
@@ -299,32 +311,29 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   const readPolicy: (
     policyId: string,
     refresh: boolean,
-  ) => Promise<OnCallPolicyRecord | null> = async (
+  ) => Promise<Array<WhoIsToldBreak> | null> = async (
     policyId: string,
     refresh: boolean,
-  ): Promise<OnCallPolicyRecord | null> => {
+  ): Promise<Array<WhoIsToldBreak> | null> => {
     const loaded: OnCallPolicyRecord | null = await OnCallSetupApi.loadPolicy(
       policyId,
     ).catch(() => {
       return null;
     });
-
-    setPolicy(loaded);
-
-    if (loaded) {
-      setResponders(
-        await OnCallSetupApi.loadPolicyReadiness({
+    const people: Array<ResponderReach> = loaded
+      ? await OnCallSetupApi.loadPolicyReadiness({
           policyId: policyId,
           refresh: refresh,
         }).catch(() => {
           return [];
-        }),
-      );
-    } else {
-      setResponders([]);
-    }
+        })
+      : [];
 
-    return loaded;
+    setPolicy(loaded);
+    setResponders(people);
+
+    // What still stands between the policy and its people; null when it is gone.
+    return loaded ? getPolicyBreaks({ policy: loaded, responders: people }) : null;
   };
 
   const readReach: (refresh: boolean) => Promise<void> = async (
@@ -654,13 +663,28 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       )}
       {isPhoneBalanceTooLow(channelFacts) ? (
         canAddProjectBalance(ProjectBalanceType.SmsOrCall) ? (
-          <AppLink
-            to={routeOf(PageMap.SETTINGS_NOTIFICATION_SETTINGS)}
-            className={linkClassName}
-            dataTestId="on-call-setup-add-balance"
-          >
-            {translator.translateText(ON_CALL_SETUP_COPY.addBalance) || ""}
-          </AppLink>
+          getCurrentProjectBillingMarketplace() ? (
+            // A marketplace bills the recharge: Notification Settings says how.
+            <AppLink
+              to={routeOf(PageMap.SETTINGS_NOTIFICATION_SETTINGS)}
+              className={linkClassName}
+              dataTestId="on-call-setup-add-balance-link"
+            >
+              {translator.translateText(ON_CALL_SETUP_COPY.addBalance) || ""}
+            </AppLink>
+          ) : (
+            <div className={ACTIONS_CLASS_NAME}>
+              <Button
+                title={ON_CALL_SETUP_COPY.addBalance}
+                buttonStyle={ButtonStyleType.NORMAL}
+                dataTestId="on-call-setup-add-balance"
+                onClick={() => {
+                  setRechargeError("");
+                  setShowRecharge(true);
+                }}
+              />
+            </div>
+          )
         ) : (
           <p
             className="text-sm text-gray-700"
@@ -871,6 +895,47 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           }}
         />
       </div>
+      {showRecharge ? (
+        <BasicFormModal
+          title={ON_CALL_SETUP_COPY.addBalance}
+          onClose={() => {
+            setShowRecharge(false);
+          }}
+          isLoading={isRecharging}
+          submitButtonText="Recharge"
+          onSubmit={async (item: JSONObject) => {
+            setIsRecharging(true);
+            setRechargeError("");
+
+            try {
+              await OnCallSetupApi.rechargeBalance(Number(item["amount"]));
+              setPhoneFacts(await OnCallSetupApi.loadProjectPhoneFacts());
+              setShowRecharge(false);
+            } catch (err) {
+              setRechargeError(API.getFriendlyMessage(err));
+            }
+
+            setIsRecharging(false);
+          }}
+          formProps={{
+            name: "Add balance",
+            error: rechargeError,
+            fields: [
+              {
+                title: RECHARGE_AMOUNT_TITLE,
+                description: RECHARGE_AMOUNT_DESCRIPTION,
+                field: { amount: true },
+                placeholder: "20",
+                required: true,
+                validation: { minValue: 20, maxValue: 1000 },
+                fieldType: FormFieldSchemaType.Number,
+              },
+            ],
+          }}
+        />
+      ) : (
+        <></>
+      )}
       {verifying ? (
         <VerificationCodeModal
           channel={VerificationCodeChannel.SMS}
@@ -958,8 +1023,19 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
         saveRun({ [OnCallRunValue.PolicyId]: policyId });
       }
 
-      // The step stays open: whether a page reaches each person is said now.
-      await readPolicy(policyId, true);
+      /*
+       * Everyone reached and the policy runs: on to the next step. Otherwise
+       * the step stays open on what stands in the way - who a page can't
+       * reach, with a setup reminder, or the rules it still needs.
+       */
+      const breaks: Array<WhoIsToldBreak> | null = await readPolicy(
+        policyId,
+        true,
+      );
+
+      if (breaks && breaks.length === 0) {
+        openNextStep(OnCallSetupStep.WhoElse);
+      }
     } catch (err) {
       setSaveError(API.getFriendlyMessage(err));
     }

@@ -529,6 +529,29 @@ describe("the phone", () => {
     ).toEqual(["enableSmsNotifications", "enableCallNotifications"]);
   });
 
+  test("the balance is added through Notification Settings' recharge, for this project", async () => {
+    const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
+    postSpy.mockResolvedValue({ data: {}, isFailure: () => false });
+
+    await OnCallSetupApi.rechargeBalance(20);
+
+    const args: { url: unknown; data: unknown } = postSpy.mock
+      .calls[0]![0] as unknown as { url: unknown; data: unknown };
+
+    expect(String(args.url)).toContain("/notification/recharge");
+    expect(args.data).toEqual({ amount: 20, projectId: PROJECT_ID });
+  });
+
+  test("a refused recharge is an error, never a silent success", async () => {
+    const postSpy: LooseSpy = jest.spyOn(API, "post") as unknown as LooseSpy;
+    postSpy.mockResolvedValue({
+      data: { message: "No payment method on file." },
+      isFailure: () => true,
+    });
+
+    await expect(OnCallSetupApi.rechargeBalance(20)).rejects.toThrow();
+  });
+
   test("the number is added for SMS as the person's own", async () => {
     createSpy.mockResolvedValue({
       data: { id: new ObjectID(LEVEL_1), isVerified: false },
