@@ -59,10 +59,31 @@ export default class WhoIsToldApi {
 
     const body: JSONValue = response.data as JSONValue;
 
-    if (!body || typeof body !== "object" || Array.isArray(body)) {
+    if (!isWhoIsToldResult(body)) {
       throw new WhoIsToldApiError("Couldn't read who is told.");
     }
 
-    return body as unknown as WhoIsToldResult;
+    return body;
   }
+}
+
+/*
+ * Whether an answer has the shape the card reads: a server that answers
+ * something else (an older one, a proxy's page) is an error to show, never
+ * a chain to draw.
+ */
+export function isWhoIsToldResult(body: unknown): body is WhoIsToldResult {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return false;
+  }
+
+  const result: Partial<WhoIsToldResult> = body as Partial<WhoIsToldResult>;
+
+  return (
+    Array.isArray(result.criteria) &&
+    Array.isArray(result.breaks) &&
+    Boolean(result.channels) &&
+    typeof result.channels === "object" &&
+    typeof result.checkedAt === "string"
+  );
 }

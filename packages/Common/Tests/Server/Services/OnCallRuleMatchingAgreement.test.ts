@@ -284,6 +284,8 @@ interface EngineCase {
   stubRules: (rules: Array<RuleFacts>) => void;
   // The policies of the rules the resolver's matching returns.
   resolverPolicies: (record: RecordFacts) => Promise<Array<string>>;
+  // How many rules the resolver's matching returns.
+  resolverRuleCount: (record: RecordFacts) => Promise<number>;
   // The policies the engine pages.
   enginePolicies: (record: RecordFacts) => Promise<Array<string>>;
   stubAttach: (attached: Array<string>) => void;
@@ -356,6 +358,13 @@ const ENGINES: Array<EngineCase> = [
         ),
       );
     },
+    resolverRuleCount: async (record: RecordFacts): Promise<number> => {
+      return (
+        await IncidentOnCallRuleEngineService.getMatchingRules(
+          toIncident(record, false),
+        )
+      ).length;
+    },
     enginePolicies: async (record: RecordFacts): Promise<Array<string>> => {
       return pagedIds(
         await IncidentOnCallRuleEngineService.applyRulesToIncident(
@@ -387,6 +396,13 @@ const ENGINES: Array<EngineCase> = [
           toAlert(record, false),
         ),
       );
+    },
+    resolverRuleCount: async (record: RecordFacts): Promise<number> => {
+      return (
+        await AlertOnCallRuleEngineService.getMatchingRules(
+          toAlert(record, false),
+        )
+      ).length;
     },
     enginePolicies: async (record: RecordFacts): Promise<Array<string>> => {
       return pagedIds(
@@ -483,14 +499,16 @@ describe.each(ENGINES)("$label", (engine: EngineCase) => {
       },
     ]);
 
-    expect(
-      await engine.resolverPolicies({
-        severity: SEVERITIES[0]!,
-        monitor: MONITORS[0]!,
-        labels: [],
-        title: TITLES[0]!,
-      }),
-    ).toEqual([]);
+    const record: RecordFacts = {
+      severity: SEVERITIES[0]!,
+      monitor: MONITORS[0]!,
+      labels: [],
+      title: TITLES[0]!,
+    };
+
+    expect(await engine.resolverPolicies(record)).toEqual([]);
+    // Not listed either: "When this goes down" shows only rules that page.
+    expect(await engine.resolverRuleCount(record)).toBe(0);
   });
 
   test("the resolver's matching changes nothing: no policy is attached and no feed is written", async () => {

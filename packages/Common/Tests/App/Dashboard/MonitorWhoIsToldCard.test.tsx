@@ -23,6 +23,7 @@ import { MemoryRouter } from "react-router-dom";
 import MonitorWhoIsToldCard from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/MonitorWhoIsToldCard";
 import WhoIsToldApi, {
   getWhoIsToldUrl,
+  isWhoIsToldResult,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Monitor/Overview/WhoIsToldApi";
 import {
   BREAK_SENTENCES,
@@ -469,6 +470,19 @@ describe("the request", () => {
     expect(
       getWhoIsToldUrl({ monitorId: MONITOR_ID, refresh: true }).toString(),
     ).toContain("refresh=true");
+  });
+});
+
+describe("the answer's shape", () => {
+  test("only an answer with criteria, breaks, channels and a time is drawn", () => {
+    expect(isWhoIsToldResult(result([offline()]))).toBe(true);
+    expect(isWhoIsToldResult({ data: [], count: 0 })).toBe(false);
+    expect(isWhoIsToldResult(null)).toBe(false);
+    expect(isWhoIsToldResult([])).toBe(false);
+    expect(isWhoIsToldResult({ ...result([]), channels: undefined })).toBe(
+      false,
+    );
+    expect(isWhoIsToldResult({ ...result([]), checkedAt: 5 })).toBe(false);
   });
 });
 
