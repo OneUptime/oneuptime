@@ -334,7 +334,16 @@ describe("describeUnreadableOtlpHeaders", () => {
 
       const line: string = describeUnreadableOtlpHeaders(headers) as string;
 
-      expect(line).toMatch(/Header 1 has [^.]+\./);
+      // "Header 1 has <the reason>." and then the advice, every time.
+      const reasonStart: number = line.indexOf("Header 1 has ");
+
+      expect(reasonStart).toBeGreaterThan(0);
+      expect(
+        line.indexOf(
+          ". Write each header as name=value",
+          reasonStart + "Header 1 has ".length + 1,
+        ),
+      ).toBeGreaterThan(reasonStart);
       expect(line).not.toContain("undefined");
     }
   });
