@@ -116,8 +116,8 @@ export const MEMBER_FIRST_STEPS_COPY: {
     "Open your setup checklist to see what is left.",
   ),
   stepsLeft: {
-    one: translationKey("{{count}} step left in your setup checklist"),
-    other: translationKey("{{count}} steps left in your setup checklist"),
+    one: "{{count}} step left in your setup checklist",
+    other: "{{count}} steps left in your setup checklist",
   },
   emailCannotReachTitle: translationKey("Email cannot reach you here"),
   emailCannotReachDescription: translationKey(
