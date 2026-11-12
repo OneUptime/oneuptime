@@ -1,6 +1,7 @@
 import AggregationInterval from "../../../../Types/BaseDatabase/AggregationInterval";
 import OneUptimeDate from "../../../../Types/Date";
 import NotImplementedException from "../../../../Types/Exception/NotImplementedException";
+import Timezone from "../../../../Types/Timezone";
 import SeriesPoints from "../Types/SeriesPoints";
 import XAxisMaxMin from "../Types/XAxis/XAxisMaxMin";
 import XAxisPrecision from "../Types/XAxis/XAxisPrecision";
@@ -126,6 +127,58 @@ export default class XAxisUtil {
       withDate: wrapsTheClock || clocksGoBack,
       withZone: clocksGoBack,
     };
+  }
+
+  /**
+   * Whether a day-and-month label ("12 Nov") has to carry its year to name
+   * exactly one day inside this window.
+   *
+   * Once a window holds a year, one day of the calendar falls in it twice:
+   * "Past 1 Year" on 12 Nov 2026 runs from 12 Nov 2025, so both ends read
+   * "12 Nov". A label is a bucket's identity (see above), so the two days
+   * became one bucket - this year's point joined last year's, and the slot
+   * at the right-hand end stayed empty. The day tiers only came from the
+   * duration ladder for windows of six weeks or less, where this never
+   * happens; a caller that pins them to its bucket size (a chart of one
+   * point a day, issue #6564; an SLO's daily history) can draw a year.
+   *
+   * The test is the calendar's, in the configured timezone: the window
+   * reaches the start of its first day a year on. A window that starts on
+   * 29 February reaches "a year on" (28 February) a day early, so it shows
+   * years one day sooner than it must, which reads just as well.
+   */
+  private static getDayLabelNeedsYear(data: {
+    xAxisMin: XAxisMaxMin;
+    xAxisMax: XAxisMaxMin;
+  }): boolean {
+    if (
+      typeof data.xAxisMin === "number" ||
+      typeof data.xAxisMax === "number"
+    ) {
+      return false;
+    }
+
+    const startDate: Date = OneUptimeDate.fromString(data.xAxisMin);
+    const endDate: Date = OneUptimeDate.fromString(data.xAxisMax);
+    const timezone: Timezone = OneUptimeDate.getCurrentTimezone();
+
+    const firstDayAYearOn: Date = OneUptimeDate.addRemoveYears(
+      OneUptimeDate.getStartOfDay(startDate, timezone),
+      1,
+      timezone,
+    );
+
+    return firstDayAYearOn.getTime() <= endDate.getTime();
+  }
+
+  /**
+   * The label for a bucket of a day or longer that starts on `value`:
+   * "12 Nov", or "12 Nov 2025" in a window of a year or more.
+   */
+  private static getDayLabel(value: Date, withYear: boolean): string {
+    return withYear
+      ? OneUptimeDate.getDateAsLocalDayMonthYearString(value)
+      : OneUptimeDate.getDateAsLocalDayMonthString(value);
   }
 
   /**
@@ -605,6 +658,14 @@ export default class XAxisUtil {
      */
     const labelDetail: { withDate: boolean; withZone: boolean } =
       XAxisUtil.getWallClockLabelDetail(data);
+    // Asked of the day and week tiers alone: the finer ones never use it.
+    const isDayTier: boolean =
+      precision === XAxisPrecision.EVERY_DAY ||
+      precision === XAxisPrecision.EVERY_TWO_DAYS ||
+      precision === XAxisPrecision.EVERY_WEEK ||
+      precision === XAxisPrecision.EVERY_TWO_WEEKS;
+    const isDayLabelWithYear: boolean =
+      isDayTier && XAxisUtil.getDayLabelNeedsYear(data);
 
     switch (precision) {
       case XAxisPrecision.EVERY_SECOND:
@@ -746,7 +807,7 @@ export default class XAxisUtil {
       case XAxisPrecision.EVERY_DAY:
         // round down to nearest day
         return (value: Date) => {
-          return OneUptimeDate.getDateAsLocalDayMonthString(value);
+          return XAxisUtil.getDayLabel(value, isDayLabelWithYear);
         };
       case XAxisPrecision.EVERY_TWO_DAYS:
         // round down to nearest 2 days
@@ -756,7 +817,7 @@ export default class XAxisUtil {
           const roundedDays: number = Math.floor(days / 2) * 2;
           roundedValue.setDate(roundedDays);
 
-          return OneUptimeDate.getDateAsLocalDayMonthString(roundedValue);
+          return XAxisUtil.getDayLabel(roundedValue, isDayLabelWithYear);
         };
       case XAxisPrecision.EVERY_WEEK:
         /*
@@ -766,7 +827,7 @@ export default class XAxisUtil {
          * midnight got a day from one date and a month from another.
          */
         return (value: Date) => {
-          return OneUptimeDate.getDateAsLocalDayMonthString(value);
+          return XAxisUtil.getDayLabel(value, isDayLabelWithYear);
         };
       case XAxisPrecision.EVERY_TWO_WEEKS:
         // round down to nearest 2 weeks. // DD MMM
@@ -777,7 +838,7 @@ export default class XAxisUtil {
           roundedValue.setDate(roundedDays);
 
           // Day and month both in the configured zone; see EVERY_WEEK.
-          return OneUptimeDate.getDateAsLocalDayMonthString(roundedValue);
+          return XAxisUtil.getDayLabel(roundedValue, isDayLabelWithYear);
         };
       case XAxisPrecision.EVERY_MONTH:
         // round down to nearest month // MM YYYY
