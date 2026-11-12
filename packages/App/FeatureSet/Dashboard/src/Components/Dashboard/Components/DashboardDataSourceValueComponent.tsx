@@ -28,6 +28,11 @@ import {
   ValueWidgetTrend,
 } from "Common/Utils/Dashboard/ValueWidgetSeries";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
 import ValueWidgetView, { SparklinePoint } from "./ValueWidgetView";
 import DataSourceWidgetPlaceholder from "./DataSourceWidgetPlaceholder";
 import { isPublicDashboard } from "../Utils/PublicDashboardContext";
@@ -223,6 +228,16 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
   const timeRangeZoom: DashboardWidgetTimeRangeZoomHandlers =
     DashboardWidgetTimeRangeZoom.getHandlers(props);
 
+  /*
+   * Until a query is written: a click only where it opens the settings
+   * (issue #7160). Read before the public dashboard's placeholder below,
+   * as every hook is.
+   */
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Query,
+    useDashboardWidgetPlace(props.isEditMode),
+  );
+
   if (isPublicDashboard()) {
     return <DataSourceWidgetPlaceholder icon={IconProp.Hashtag} />;
   }
@@ -244,7 +259,7 @@ const DashboardDataSourceValueComponentElement: FunctionComponent<
       }
       isConfigured={isConfigured}
       setupTitle={translationKey("Data Source Value")}
-      setupMessage={translationKey("Click to configure a query")}
+      setupMessage={setupMessage}
       title={props.component.arguments.title}
       rawUnit={props.component.arguments.unit || ""}
       /*
