@@ -172,11 +172,18 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
 
     expect(steps.match(/OnCallSetupStep\.\w+,/g)).toHaveLength(places.length);
     expect(places).not.toContain(-1);
-    expect([...places].sort((a: number, b: number) => a - b)).toEqual(places);
+    expect(
+      [...places].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(places);
   });
 
   it("gives the setup's defaults: 30 minutes before the next person, 2 more pages on the Free plan, and the policy's name", () => {
-    const repeat: number = numberConstant(ON_CALL_SETUP, "DEFAULT_REPEAT_TIMES");
+    const repeat: number = numberConstant(
+      ON_CALL_SETUP,
+      "DEFAULT_REPEAT_TIMES",
+    );
 
     expect(DEFAULT_ESCALATE_AFTER_IN_MINUTES).toBe(30);
     expect(PAGING).toContain(
@@ -245,7 +252,9 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
     expect(column).toContain("defaultValue: false,");
     expect(updaters).toContain("Permission.ProjectOwner");
     expect(updaters).not.toContain("Permission.ProjectAdmin");
-    expect(PAGING).toContain("New projects start with SMS and phone calls off.");
+    expect(PAGING).toContain(
+      "New projects start with SMS and phone calls off.",
+    );
     expect(PAGING).toContain("turning SMS and calls on takes its owner");
     expect(copyValue(ON_CALL_SETUP, "turnOnSmsAndCalls")).toBe(
       "Turn on SMS and phone calls",
@@ -258,9 +267,10 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
       OnCallPageChannel.Call,
       OnCallPageChannel.Email,
     ]) {
-      expect({ channel, ok: canAcknowledgeOnCallTestPageBy(channel) }).toEqual(
-        { channel, ok: true },
-      );
+      expect({ channel, ok: canAcknowledgeOnCallTestPageBy(channel) }).toEqual({
+        channel,
+        ok: true,
+      });
     }
     expect(canAcknowledgeOnCallTestPageBy(OnCallPageChannel.Push)).toBe(false);
 
@@ -380,7 +390,11 @@ describe("Publish a Status Page, against the product", () => {
     });
 
     expect(places).not.toContain(-1);
-    expect([...places].sort((a: number, b: number) => a - b)).toEqual(places);
+    expect(
+      [...places].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(places);
   });
 
   it("opens Custom Domains from the summary's own domain line, which needs no plan", () => {

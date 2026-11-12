@@ -1,7 +1,4 @@
-import DocsNav, {
-  NavGroup,
-  NavLink,
-} from "../../../FeatureSet/Docs/Utils/Nav";
+import DocsNav, { NavGroup, NavLink } from "../../../FeatureSet/Docs/Utils/Nav";
 import { getDocsNavIcon } from "../../../FeatureSet/Docs/Utils/NavIcons";
 import { getDocsCategoryFirstPage } from "../../../FeatureSet/Docs/Utils/Redirects";
 import {
@@ -19,10 +16,7 @@ import {
   readPage,
   scanMarkdown,
 } from "./DocsContentSupport";
-import {
-  drawnDashboardLabel,
-  isDashboardLabel,
-} from "./DocsDashboardLabels";
+import { drawnDashboardLabel, isDashboardLabel } from "./DocsDashboardLabels";
 import {
   CARD_LINE,
   anchorProblems,
@@ -147,11 +141,16 @@ function h2s(markdown: string): Array<string> {
     });
 }
 
+const WORD_CHARACTER: RegExp = /\w/;
+// A digit, then a separator before exactly three more digits: "1,000".
+const THOUSANDS_SEPARATOR: RegExp = /(\d)[.,\s](?=\d{3}(?!\d))/g;
+const NUMBER: RegExp = /\d+(?:\.\d+)?/g;
+
 function wordsOf(markdown: string): number {
   return prose(markdown)
     .split(/\s+/)
     .filter((word: string): boolean => {
-      return /\w/.test(word);
+      return WORD_CHARACTER.test(word);
     }).length;
 }
 
@@ -214,7 +213,11 @@ describe("the Guides group", () => {
     );
 
     expect(places).not.toContain(-1);
-    expect([...places].sort((a: number, b: number) => a - b)).toEqual(places);
+    expect(
+      [...places].sort((a: number, b: number) => {
+        return a - b;
+      }),
+    ).toEqual(places);
   });
 
   it("opens the first guide at /docs/guides, and holds guides only", () => {
@@ -487,16 +490,17 @@ describe.each(
     it("keeps the numbers the English gives, amounts as the product writes them", () => {
       /*
        * A thousands separator is the language's own ("1,000", "1.000",
-       * "1 000"); an amount keeps the product's "1.00 USD" in every
-       * language, as formatProjectBalanceAmount writes it.
+       * "1 000", where \s covers the no-break spaces); an amount keeps the
+       * product's "1.00 USD" in every language, as
+       * formatProjectBalanceAmount writes it.
        */
       const numbers: (text: string) => Array<string> = (
         text: string,
       ): Array<string> => {
         return (
           toLatinDigits(prose(text))
-            .replace(/(\d)[.,\s  ](?=\d{3}(?!\d))/g, "$1")
-            .match(/\d+(?:\.\d+)?/g) || []
+            .replace(THOUSANDS_SEPARATOR, "$1")
+            .match(NUMBER) || []
         ).sort();
       };
 
@@ -593,68 +597,71 @@ describe.each(DOCS_LANGUAGES)(
   },
 );
 
-describe.each(DOCS_GUIDES)("where people meet $navTitle", (guide: DocsGuide) => {
-  it("is its job's card on Getting Started", () => {
-    expect(
-      GETTING_STARTED_JOBS.find((job: { job: string }): boolean => {
-        return job.job === guide.job;
-      })?.target,
-    ).toBe(guideUrl(guide));
-  });
+describe.each(DOCS_GUIDES)(
+  "where people meet $navTitle",
+  (guide: DocsGuide) => {
+    it("is its job's card on Getting Started", () => {
+      expect(
+        GETTING_STARTED_JOBS.find((job: { job: string }): boolean => {
+          return job.job === guide.job;
+        })?.target,
+      ).toBe(guideUrl(guide));
+    });
 
-  it.each(DOCS_LANGUAGES)(
-    "is what each reference page it replaces offers a newcomer first, in %s",
-    (language: string) => {
-      for (const page of guide.referencePages) {
-        const opening: string = openingOf(readPage(language, page));
-        const tip: Array<string> = opening
-          .split("\n")
-          .filter((line: string): boolean => {
-            return line.startsWith(">");
+    it.each(DOCS_LANGUAGES)(
+      "is what each reference page it replaces offers a newcomer first, in %s",
+      (language: string) => {
+        for (const page of guide.referencePages) {
+          const opening: string = openingOf(readPage(language, page));
+          const tip: Array<string> = opening
+            .split("\n")
+            .filter((line: string): boolean => {
+              return line.startsWith(">");
+            });
+
+          expect({ page, alerts: scanMarkdown(opening).alerts }).toEqual({
+            page,
+            alerts: ["TIP"],
           });
+          expect({ page, linksGuide: pagesLinked(tip.join("\n")) }).toEqual({
+            page,
+            linksGuide: [guide.page],
+          });
+          expect(tip.join("\n")).toContain(
+            `[${language === "en" ? guide.navTitle : navTitle(language, guide.navTitle)}](${guideUrl(guide)})`,
+          );
 
-        expect({ page, alerts: scanMarkdown(opening).alerts }).toEqual({
-          page,
-          alerts: ["TIP"],
-        });
-        expect({ page, linksGuide: pagesLinked(tip.join("\n")) }).toEqual({
-          page,
-          linksGuide: [guide.page],
-        });
-        expect(tip.join("\n")).toContain(
-          `[${language === "en" ? guide.navTitle : navTitle(language, guide.navTitle)}](${guideUrl(guide)})`,
-        );
-
-        if (language === "en") {
-          expect(tip).toEqual([
-            "> [!TIP]",
-            `> ${NEW_HERE_LEAD} [${guide.navTitle}](${guideUrl(guide)}).`,
-          ]);
+          if (language === "en") {
+            expect(tip).toEqual([
+              "> [!TIP]",
+              `> ${NEW_HERE_LEAD} [${guide.navTitle}](${guideUrl(guide)}).`,
+            ]);
+          }
         }
-      }
-    },
-  );
+      },
+    );
 
-  it.each(DOCS_LANGUAGES)(
-    "ends its Quickstart section with a link to it, in %s",
-    (language: string) => {
-      if (!guide.quickstartSection) {
-        return;
-      }
+    it.each(DOCS_LANGUAGES)(
+      "ends its Quickstart section with a link to it, in %s",
+      (language: string) => {
+        if (!guide.quickstartSection) {
+          return;
+        }
 
-      const english: string = readPage("en", "introduction/quickstart");
-      const place: number = h2s(english).indexOf(guide.quickstartSection);
-      const section: Array<string> = sectionAt(
-        readPage(language, "introduction/quickstart"),
-        place,
-      )
-        .trimEnd()
-        .split("\n");
+        const english: string = readPage("en", "introduction/quickstart");
+        const place: number = h2s(english).indexOf(guide.quickstartSection);
+        const section: Array<string> = sectionAt(
+          readPage(language, "introduction/quickstart"),
+          place,
+        )
+          .trimEnd()
+          .split("\n");
 
-      expect(place).toBeGreaterThan(-1);
-      expect(pagesLinked(section[section.length - 1] as string)).toEqual([
-        guide.page,
-      ]);
-    },
-  );
-});
+        expect(place).toBeGreaterThan(-1);
+        expect(pagesLinked(section[section.length - 1] as string)).toEqual([
+          guide.page,
+        ]);
+      },
+    );
+  },
+);
