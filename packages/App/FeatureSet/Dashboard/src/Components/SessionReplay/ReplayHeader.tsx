@@ -33,6 +33,7 @@ import {
   ReplayToolbarDivider,
 } from "./ReplayUi";
 import ReplayTabSwitcher from "./ReplayTabSwitcher";
+import { getSessionReplayIdentityPermissionTitle } from "./SessionReplayPermissionTitle";
 import { ReplayTabSummary } from "./ReplayTabs";
 import ReplayUserSessionsMenu from "./ReplayUserSessionsMenu";
 import {
@@ -414,8 +415,10 @@ const ReplayHeaderComponent: React.ForwardRefRenderFunction<
 
   if (props.identity.label === null) {
     identityText = translateLine("Identity hidden");
-    identityTitle = translateLine(
-      "The end user's identity needs the identity permission to view.",
+    // The grant that shows it, by the title the roles screen lists (#7096).
+    identityTitle = translator.translateTemplate(
+      'Seeing who this end user is needs the "{{permission}}" permission.',
+      { permission: getSessionReplayIdentityPermissionTitle() },
     );
     identityClassName = "text-gray-500";
   } else if (props.identity.label.length === 0) {

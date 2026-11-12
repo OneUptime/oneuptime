@@ -11,6 +11,12 @@ import React, {
 import Icon from "Common/UI/Components/Icon/Icon";
 import IconProp from "Common/Types/Icon/IconProp";
 import useComponentOutsideClick from "Common/UI/Types/UseComponentOutsideClick";
+import {
+  DropdownPlacement,
+  getDropdownAlignmentClassName,
+  getDropdownShiftStyle,
+  useDropdownPlacement,
+} from "Common/UI/Utils/DropdownAlignment";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import {
   composedValue,
@@ -119,6 +125,18 @@ const NAME_WITH_STATUS: Record<ReplayTabStatus, string | null> = {
 };
 
 const ENGLISH: Translator = createTranslator(undefined, DEFAULT_LANGUAGE);
+
+/*
+ * The picker is 28rem wide, room for a tab's name, page, opening and
+ * length on one row, and never wider than the screen between the 8px
+ * gutters every dropdown keeps (DEFAULT_DROPDOWN_VIEWPORT_MARGIN_IN_PX):
+ * 374px on a 390px phone, which useDropdownPlacement slides onto the
+ * screen wherever its button sits.
+ */
+export const REPLAY_TAB_PICKER_WIDTH_IN_PX: number = 448;
+
+export const REPLAY_TAB_PICKER_WIDTH_CLASS_NAME: string =
+  "w-[28rem] max-w-[calc(100vw-1rem)]";
 
 /*
  * The page a tab is showing: its LAST url, falling back to its first.
@@ -235,6 +253,20 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
 
   const pickerButtonRef: React.RefObject<HTMLButtonElement> =
     useRef<HTMLButtonElement>(null);
+  const pickerPanelRef: React.RefObject<HTMLDivElement> =
+    useRef<HTMLDivElement>(null);
+  /*
+   * The picker hangs from the edge of its button with room for it, and
+   * slides along the line when neither edge has (a button in the middle of
+   * a phone): on a page that reads right to left as well, where its start is
+   * the button's right edge (#7098).
+   */
+  const pickerPlacement: DropdownPlacement = useDropdownPlacement({
+    isOpen: isPickerOpen,
+    anchorRef: pickerButtonRef,
+    dropdownRef: pickerPanelRef,
+    dropdownWidthInPx: REPLAY_TAB_PICKER_WIDTH_IN_PX,
+  });
   const searchRef: React.RefObject<HTMLInputElement> =
     useRef<HTMLInputElement>(null);
   const optionRefs: React.MutableRefObject<Array<HTMLButtonElement | null>> =
@@ -771,7 +803,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
               )}
               className="shrink-0 rounded-full bg-rose-50 px-1.5 text-[11px] font-medium text-rose-700"
             >
-              {errorCount}
+              {translator.formatNumber(errorCount)}
             </span>
           )}
           {frustrationCount > 0 && (
@@ -786,7 +818,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
               )}
               className="shrink-0 rounded-full bg-amber-50 px-1.5 text-[11px] font-medium text-amber-800"
             >
-              {frustrationCount}
+              {translator.formatNumber(frustrationCount)}
             </span>
           )}
           {tab.isActive && (
@@ -872,8 +904,13 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
 
               {isPickerOpen && (
                 <div
+                  ref={pickerPanelRef}
                   data-testid="replay-tab-picker"
-                  className="absolute left-0 z-30 mt-1 w-[28rem] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-1 shadow-lg"
+                  data-align={pickerPlacement.alignment}
+                  className={`absolute ${getDropdownAlignmentClassName(
+                    pickerPlacement.alignment,
+                  )} z-30 mt-1 ${REPLAY_TAB_PICKER_WIDTH_CLASS_NAME} rounded-xl border border-gray-200 bg-white p-1 shadow-lg`}
+                  style={getDropdownShiftStyle(pickerPlacement)}
                 >
                   <div className="p-1">
                     <input

@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "Der Umgebungsschlüssel hat ein leeres Kontosegment",
   "The error cause referred back to an earlier error.": "Die Fehlerursache verwies auf einen früheren Fehler zurück.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "Die genaue docker-compose.yml und otel-collector-config.yaml, die der Agent ausführt.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "Die genaue Referenz, die Ihre Seite an identify() übergeben hat. Erfordert die Berechtigung für Endbenutzeridentitäten; wird nie in die URL geschrieben.",
   "The exporter returns 401 or 595 errors": "Der Exporter gibt 401- oder 595-Fehler zurück",
   "The field ends with the value.": "Das Feld endet mit dem Wert.",
   "The field matches a regular expression (RE2 syntax).": "Das Feld entspricht einem regulären Ausdruck (RE2-Syntax).",
@@ -47999,7 +47998,6 @@
   "None: every element is recorded (subject to masking)": "Keine: Jedes Element wird aufgezeichnet (vorbehaltlich der Maskierung)",
   "None: every uncaught error can trigger an upload": "Keine: Jeder nicht abgefangene Fehler kann einen Upload auslösen",
   "None: no cross-origin request gets a traceparent": "Keine: Keine Cross-Origin-Anfrage erhält einen traceparent",
-  "Not shown - viewing identity needs the identity permission": "Nicht angezeigt - zum Anzeigen der Identität ist die Identitätsberechtigung erforderlich",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "Es trifft nichts ein, bis eine Seite OneUptimeReplay.grantConsent() aufruft. Erteilen Sie auf einer instrumentierten Seite die Einwilligung und laden Sie dann neu.",
   "Nothing can arrive while sampling is 0%.": "Solange das Sampling 0 % beträgt, kann nichts eintreffen.",
   "Nothing is broken or late right now.": "Gerade ist nichts defekt oder verspätet.",
@@ -48163,7 +48161,6 @@
   "The data broke this check, and its alert is open.": "Die Daten verletzen diese Prüfung, und ihre Warnung ist offen.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "Die Bereitstellung liefert eine fehlerhafte Recorder-Version aus; nur der Betreiber dieser Bereitstellung kann das beheben.",
   "The drop counter store was unreachable; this is not the same as zero.": "Der Speicher für die Verwerfungszähler war nicht erreichbar; das ist nicht dasselbe wie null.",
-  "The end user's identity needs the identity permission to view.": "Zum Anzeigen der Identität des Endbenutzers ist die Identitätsberechtigung erforderlich.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "Der End-to-End-Pfad funktioniert: Ein Recorder auf Ihrer Website hat diesen Server erreicht, und sein Chunk wurde angenommen.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "Die Zustandsanfrage ist fehlgeschlagen, daher zeigt hier nichts an, ob die Aufzeichnung funktioniert. Sie wird automatisch wiederholt; die nächste Abfrage kann erfolgreich sein.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "Der Integritätsstatus konnte nicht geladen werden, daher zeigt hier nichts an, ob die Aufzeichnung funktioniert. Laden Sie die Seite neu, um es erneut zu versuchen.",
@@ -51057,5 +51054,8 @@
   "{{project}} Status": "Status von {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} wird bereits von diesen Monitoren überwacht.",
   "{{service}} is sending data": "{{service}} sendet Daten",
-  "{{service}} is sending data.": "{{service}} sendet Daten."
+  "{{service}} is sending data.": "{{service}} sendet Daten.",
+  "Not shown - seeing who this is needs the \"{{permission}}\" permission": "Nicht angezeigt - um zu sehen, wer das ist, ist die Berechtigung „{{permission}}“ erforderlich",
+  "Seeing who this end user is needs the \"{{permission}}\" permission.": "Um zu sehen, wer dieser Endbenutzer ist, ist die Berechtigung „{{permission}}“ erforderlich.",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Die genaue Referenz, die Ihre Seite an identify() übergeben hat. Erfordert die Berechtigung „{{permission}}“; wird nie in die URL geschrieben."
 }

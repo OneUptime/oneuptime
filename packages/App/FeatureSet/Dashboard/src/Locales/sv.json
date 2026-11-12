@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "Miljönyckeln har ett tomt kontosegment",
   "The error cause referred back to an earlier error.": "The error cause referred back to an earlier error.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "Den exakta docker-compose.yml och otel-collector-config.yaml som agenten kör.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "Den exakta referens som din sida skickade till identify(). Kräver behörigheten för slutanvändaridentitet; skrivs aldrig i URL:en.",
   "The exporter returns 401 or 595 errors": "The exporter returns 401 or 595 errors",
   "The field ends with the value.": "Fältet slutar med värdet.",
   "The field matches a regular expression (RE2 syntax).": "Fältet matchar ett reguljärt uttryck (RE2-syntax).",
@@ -47999,7 +47998,6 @@
   "None: every element is recorded (subject to masking)": "Inga: alla element spelas in (med förbehåll för maskering)",
   "None: every uncaught error can trigger an upload": "Inga: alla ofångade fel kan utlösa en uppladdning",
   "None: no cross-origin request gets a traceparent": "Inga: ingen förfrågan till ett annat ursprung får en traceparent",
-  "Not shown - viewing identity needs the identity permission": "Visas inte – identitetsbehörigheten krävs för att se identiteten",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "Inget kommer fram förrän en sida anropar OneUptimeReplay.grantConsent(). Ge samtycke på en instrumenterad sida och ladda sedan om.",
   "Nothing can arrive while sampling is 0%.": "Inget kan komma fram medan samplingen är 0 %.",
   "Nothing is broken or late right now.": "Inget är trasigt eller sent just nu.",
@@ -48163,7 +48161,6 @@
   "The data broke this check, and its alert is open.": "Datan bröt mot den här kontrollen, och dess larm är öppet.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "Driftsättningen levererar en felaktig inspelarversion; bara den som driver den här driftsättningen kan åtgärda det.",
   "The drop counter store was unreachable; this is not the same as zero.": "Lagret för bortfallsräknarna gick inte att nå; det är inte samma sak som noll.",
-  "The end user's identity needs the identity permission to view.": "Identitetsbehörigheten krävs för att se slutanvändarens identitet.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "Hela kedjan fungerar: en inspelare på din webbplats nådde den här servern och dess block godkändes.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "Begäran om hälsostatus misslyckades, så inget här visar om inspelningen fungerar. Den försöker igen av sig själv; nästa avfrågning kan lyckas.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "Hälsostatusen kunde inte läsas in, så inget här visar om inspelningen fungerar. Ladda om för att försöka igen.",
@@ -51057,5 +51054,8 @@
   "{{project}} Status": "Status för {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} övervakas redan av dessa monitorer.",
   "{{service}} is sending data": "{{service}} skickar data",
-  "{{service}} is sending data.": "{{service}} skickar data."
+  "{{service}} is sending data.": "{{service}} skickar data.",
+  "Not shown - seeing who this is needs the \"{{permission}}\" permission": "Visas inte – behörigheten ”{{permission}}” krävs för att se vem det är",
+  "Seeing who this end user is needs the \"{{permission}}\" permission.": "Behörigheten ”{{permission}}” krävs för att se vem slutanvändaren är.",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Den exakta referens som din sida skickade till identify(). Kräver behörigheten ”{{permission}}”; skrivs aldrig i URL:en."
 }

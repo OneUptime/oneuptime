@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "A chave do ambiente tem um segmento de conta vazio",
   "The error cause referred back to an earlier error.": "The error cause referred back to an earlier error.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "O docker-compose.yml e o otel-collector-config.yaml exatos que o agente executa.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "A referência exata que sua página passou para identify(). Exige a permissão de identidade do usuário final; nunca é escrita na URL.",
   "The exporter returns 401 or 595 errors": "The exporter returns 401 or 595 errors",
   "The field ends with the value.": "O campo termina com o valor.",
   "The field matches a regular expression (RE2 syntax).": "O campo corresponde a uma expressão regular (sintaxe RE2).",
@@ -47999,7 +47998,6 @@
   "None: every element is recorded (subject to masking)": "Nenhum: todos os elementos são gravados (sujeitos ao mascaramento)",
   "None: every uncaught error can trigger an upload": "Nenhum: qualquer erro não capturado pode disparar um envio",
   "None: no cross-origin request gets a traceparent": "Nenhuma: nenhuma solicitação de outra origem recebe um traceparent",
-  "Not shown - viewing identity needs the identity permission": "Não exibido: ver a identidade exige a permissão de identidade",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "Nada chega até que uma página chame OneUptimeReplay.grantConsent(). Conceda o consentimento em uma página instrumentada e recarregue.",
   "Nothing can arrive while sampling is 0%.": "Nada pode chegar enquanto a amostragem for 0%.",
   "Nothing is broken or late right now.": "Nada está quebrado ou atrasado agora.",
@@ -48163,7 +48161,6 @@
   "The data broke this check, and its alert is open.": "Os dados quebraram esta verificação, e o alerta dela está aberto.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "A implantação está servindo uma versão defeituosa do gravador; só o operador desta implantação pode corrigir isso.",
   "The drop counter store was unreachable; this is not the same as zero.": "O armazenamento do contador de descartes estava inacessível; isso não é o mesmo que zero.",
-  "The end user's identity needs the identity permission to view.": "Ver a identidade do usuário final exige a permissão de identidade.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "O caminho de ponta a ponta funciona: um gravador no seu site chegou a este servidor e o bloco dele foi aceito.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "A solicitação de saúde falhou, então nada aqui indica se a gravação funciona. Ela é repetida automaticamente; a próxima consulta pode dar certo.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "Não foi possível carregar o status de saúde, então nada aqui indica se a gravação funciona. Recarregue para tentar novamente.",
@@ -51057,5 +51054,8 @@
   "{{project}} Status": "Status de {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} já é vigiado por estes monitores.",
   "{{service}} is sending data": "{{service}} está enviando dados",
-  "{{service}} is sending data.": "{{service}} está enviando dados."
+  "{{service}} is sending data.": "{{service}} está enviando dados.",
+  "Not shown - seeing who this is needs the \"{{permission}}\" permission": "Não exibido: ver quem é exige a permissão \"{{permission}}\"",
+  "Seeing who this end user is needs the \"{{permission}}\" permission.": "Ver quem é este usuário final exige a permissão \"{{permission}}\".",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "A referência exata que sua página passou para identify(). Exige a permissão \"{{permission}}\"; nunca é escrita na URL."
 }
