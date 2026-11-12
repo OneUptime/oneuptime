@@ -59,6 +59,8 @@ Mantenha as **Sondas** selecionadas e o **Intervalo de monitoramento** de **A ca
 
 Para testar a verificação antes de salvar, clique em **Testar monitor** na segunda etapa. Todos os outros tipos de monitor estão descritos em [Criar um monitor](/docs/monitor/create-monitor).
 
+Para verificar também uma API, escolher quem é avisado e enviar um acionamento de teste que comprove que a mensagem chega até você, siga [Saber quando seu site ou sua API cai](/docs/guides/website-down).
+
 ## Ser acionado quando cair
 
 Do jeito que está, um incidente sem proprietários é enviado por e-mail aos proprietários do projeto, e isso inclui você. Para ser acionado até que alguém responda, crie uma política de plantão: a primeira de um projeto é disparada a cada novo incidente e a cada novo alerta.
