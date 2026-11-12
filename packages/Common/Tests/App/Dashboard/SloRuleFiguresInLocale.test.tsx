@@ -82,7 +82,10 @@ function worded(
 const LATIN_DIGIT: RegExp = /[0-9]/;
 
 // The marks a sentence sets its values apart with, and those of a burn rate.
-const BIDI_MARKS: RegExp = /[‎‏⁦-⁩]/g;
+const BIDI_MARKS: RegExp = new RegExp(
+  `[${String.fromCharCode(0x200e, 0x200f)}${String.fromCharCode(0x2066)}-${String.fromCharCode(0x2069)}]`,
+  "g",
+);
 
 function withoutMarks(text: string): string {
   return text.replace(BIDI_MARKS, "");
@@ -550,7 +553,7 @@ describe("the Burn Rate Rules page's Windows column (#6924)", () => {
         worded(DE, BURN_RATE_RULE_SUPPRESSION_TEMPLATE, { minutes: "1.440" }),
       ],
     ]);
-    expect(windowsCells().flat().join("\n")).not.toMatch(/\d+m\b/);
+    expect(windowsCells().flat().join("\n")).not.toMatch(/\dm\b/);
   });
 
   test("Arabic: the figures as Arabic's own number format writes them", async () => {

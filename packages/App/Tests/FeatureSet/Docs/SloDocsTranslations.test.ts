@@ -305,6 +305,9 @@ const BUDGET_FIGURES_IN_PROSE: Record<string, Array<string>> = {
   [ERROR_BUDGET]: ["44m 38s"],
 };
 
+// An English compact unit right after its figure: "43m", "12s".
+const ENGLISH_UNIT: RegExp = /\d[dhms]\b/;
+
 /*
  * What the pages print as they are whatever the reader's language.
  */
@@ -905,7 +908,7 @@ describe("the lists this test keeps", () => {
           language,
           duration,
           drawn: drawn !== null,
-          inEnglish: drawn === duration || /\d[dhms]\b/.test(drawn || ""),
+          inEnglish: drawn === duration || ENGLISH_UNIT.test(drawn || ""),
         });
       }
     }

@@ -77,9 +77,7 @@ const SloRecommendedBurnRateRulesModal: FunctionComponent<ComponentProps> = (
               <div className="mt-1 text-xs text-gray-500">
                 {windows.windows}
               </div>
-              <div className="text-xs text-gray-500">
-                {windows.suppression}
-              </div>
+              <div className="text-xs text-gray-500">{windows.suppression}</div>
               <div className="text-xs text-gray-500">
                 {translator.translateTemplate("Alert: {{severity}}", {
                   severity: getNamesOrNothingPicked(

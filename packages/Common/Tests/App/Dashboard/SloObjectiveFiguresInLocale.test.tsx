@@ -118,7 +118,7 @@ function worded(
 }
 
 // German sets its percent sign apart with a no-break space: "99,9 %".
-const NO_BREAK_SPACE: string = " ";
+const NO_BREAK_SPACE: string = String.fromCharCode(0xa0);
 
 function germanPercent(figure: string): string {
   return `${figure}${NO_BREAK_SPACE}%`;

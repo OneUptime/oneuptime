@@ -331,7 +331,9 @@ describe("in German, the page helpers and Utils translate whole sentences", () =
         targetPercentage: 99.9,
         windowType: SloWindowType.CalendarMonth,
       }),
-    ).toBe(`0,1 % jedes Monats: ${budget} Ausfallzeit in einem 30-Tage-Monat`);
+    ).toBe(
+      `0,1${String.fromCharCode(0xa0)}% jedes Monats: ${budget} Ausfallzeit in einem 30-Tage-Monat`,
+    );
   });
 
   test("the burn rate form's description is read in the language of the moment", () => {
