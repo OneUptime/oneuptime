@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50830,
-    "untranslated": 9647
+    "keys": 50831,
+    "untranslated": 9530
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -30,6 +30,7 @@
     "ClickHouse",
     "CloudKitty",
     "CloudWatch Metric Streams",
+    "Community Edition",
     "Control Plane",
     "CrowdStrike",
     "DE",
@@ -46,6 +47,7 @@
     "Down + In",
     "Down + Out",
     "Edge",
+    "Enterprise Edition",
     "Floating IP",
     "Fluent Bit",
     "Full view",
