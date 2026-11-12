@@ -192,6 +192,9 @@ function trailingSpace(text: string): string {
   return text.slice(text.trimEnd().length);
 }
 
+// An abbreviation's dots at the end of a name: "U.S.".
+const ABBREVIATION_AT_END: RegExp = new RegExp("(?:\\b[A-Z]\\.){2,}$");
+
 // Whether `persian` ends as `english` does: its stop, its question, its three dots.
 function endsAsEnglishDoes(english: string, persian: string): boolean {
   const englishEnd: string = english.trimEnd();
@@ -203,6 +206,14 @@ function endsAsEnglishDoes(english: string, persian: string): boolean {
 
   if (englishEnd.endsWith("?")) {
     return persianEnd.endsWith(PERSIAN_QUESTION_MARK);
+  }
+
+  /*
+   * A name that ends in an abbreviation ("Virgin Islands, U.S.") has no full
+   * stop of its own: Persian writes the name out ("... ایالات متحده").
+   */
+  if (ABBREVIATION_AT_END.test(englishEnd)) {
+    return !persianEnd.endsWith(".");
   }
 
   for (const stop of [".", ":", "!"]) {
