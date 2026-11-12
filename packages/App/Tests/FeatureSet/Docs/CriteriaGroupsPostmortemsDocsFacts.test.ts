@@ -2815,8 +2815,13 @@ describe("creating a monitor group", () => {
   it("shows the group's status now and over the last 90 days, one bar per day", () => {
     expect(GROUP_OVERVIEW_PAGE).toContain('title: "Current Status",');
     expect(GROUP_OVERVIEW_PAGE).toContain('title="Uptime Graph"');
+    /*
+     * The graph's description, as it reads while every monitor of the group
+     * is checked; with monitoring off for some or all of them it says so
+     * instead (#6478).
+     */
     expect(GROUP_OVERVIEW_PAGE).toContain(
-      'description="This group\'s status over the last 90 days, one bar per day."',
+      ': "This group\'s status over the last 90 days, one bar per day."',
     );
     expect(GROUP_OVERVIEW_PAGE).toContain(
       "startDate={OneUptimeDate.getSomeDaysAgo(90)}",
