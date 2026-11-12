@@ -456,7 +456,7 @@ describe("the Chart widget with no metric says what it needs, under its title", 
 
     expect(
       await screen.findByTestId(DASHBOARD_WIDGET_SETUP_LINE_TEST_ID),
-    ).toHaveTextContent("Click to configure metric");
+    ).toHaveTextContent("Click to configure a metric");
     expect(fetchResultsMock).not.toHaveBeenCalled();
     expect(document.body.textContent || "").not.toMatch(OLD_CHART_LINES);
   });
@@ -586,7 +586,7 @@ describe("the Value widget with a metric and no aggregation shows the metric's a
 
     expect(
       await screen.findByTestId(DASHBOARD_WIDGET_SETUP_LINE_TEST_ID),
-    ).toHaveTextContent("Click to configure metric");
+    ).toHaveTextContent("Click to configure a metric");
     expect(fetchResultsMock).not.toHaveBeenCalled();
   });
 });

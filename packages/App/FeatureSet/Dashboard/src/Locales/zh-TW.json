@@ -32990,7 +32990,7 @@
   "View all warnings": "檢視所有警告",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "建立頻道時，這些待命排程中正在待命的人會在頻道中被 @提及，因此 Microsoft Teams 會通知他們。不會呼叫任何人。",
   "About the same as in the first half of the time range": "與時間範圍前半段大致相同",
-  "Click to configure metric": "點擊以設定指標",
+  "Click to configure a metric": "點擊以設定指標",
   "Data Source Value": "資料來源值",
   "Down from 0 in the first half of the time range": "從時間範圍前半段的 0 下降",
   "Down {{percent}} from the first half of the time range": "比時間範圍前半段下降 {{percent}}",

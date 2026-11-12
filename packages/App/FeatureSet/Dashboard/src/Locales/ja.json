@@ -32990,7 +32990,7 @@
   "View all warnings": "すべての警告を表示",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "チャネルの作成時点でこれらのスケジュールのオンコール担当者がチャネル内で @メンションされ、Microsoft Teams がその人に通知します。誰も呼び出されません。",
   "About the same as in the first half of the time range": "時間範囲の前半とほぼ同じ",
-  "Click to configure metric": "クリックしてメトリクスを設定",
+  "Click to configure a metric": "クリックしてメトリクスを設定",
   "Data Source Value": "データソースの値",
   "Down from 0 in the first half of the time range": "時間範囲の前半の 0 から減少",
   "Down {{percent}} from the first half of the time range": "時間範囲の前半より {{percent}} 減少",

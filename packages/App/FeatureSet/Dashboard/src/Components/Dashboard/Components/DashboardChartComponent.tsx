@@ -37,6 +37,7 @@ import {
   useIsDashboardWidgetPreview,
 } from "./DashboardWidgetPreview";
 import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DashboardWidgetSetupNeed,
   getDashboardWidgetSetupLine,
@@ -540,7 +541,7 @@ const DashboardChartComponentElement: FunctionComponent<ComponentProps> = (
           title={setupTitle}
         />
         <p
-          className="text-xs text-gray-400 text-center max-w-48"
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
           data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
         >
           {translator.translateText(setupMessage)}

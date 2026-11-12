@@ -32990,7 +32990,7 @@
   "View all warnings": "Se alle advarsler",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har vakt i disse vaktplanene når kanalen opprettes, blir @nevnt i den, slik at Microsoft Teams varsler dem. Ingen blir tilkalt.",
   "About the same as in the first half of the time range": "Omtrent det samme som i første halvdel av tidsrommet",
-  "Click to configure metric": "Klikk for å konfigurere en metrikk",
+  "Click to configure a metric": "Klikk for å konfigurere en metrikk",
   "Data Source Value": "Datakildeverdi",
   "Down from 0 in the first half of the time range": "Falt fra 0 i første halvdel av tidsrommet",
   "Down {{percent}} from the first half of the time range": "{{percent}} lavere enn i første halvdel av tidsrommet",

@@ -52,7 +52,9 @@ import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnW
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
 import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
 import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
   DashboardWidgetSetupNeed,
   getDashboardWidgetSetupLine,
 } from "./DashboardWidgetSetupCopy";
@@ -322,11 +324,11 @@ const DashboardDataSourceTableComponent: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.TableCells} />
           </div>
         </div>
-        <p className="text-xs font-medium text-gray-500">
+        <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>
           {title || translator.translateText("Data Source Table")}
         </p>
         <p
-          className="text-xs text-gray-400 text-center"
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
           data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
         >
           {translator.translateText(setupMessage)}

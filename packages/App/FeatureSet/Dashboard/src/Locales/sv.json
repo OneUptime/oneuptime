@@ -32990,7 +32990,7 @@
   "View all warnings": "Visa alla varningar",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "De som har jour i dessa scheman när kanalen skapas @nämns i den, så att Microsoft Teams aviserar dem. Ingen larmas.",
   "About the same as in the first half of the time range": "Ungefär som i första halvan av tidsintervallet",
-  "Click to configure metric": "Klicka för att konfigurera ett mätvärde",
+  "Click to configure a metric": "Klicka för att konfigurera ett mätvärde",
   "Data Source Value": "Datakällvärde",
   "Down from 0 in the first half of the time range": "Ned från 0 i första halvan av tidsintervallet",
   "Down {{percent}} from the first half of the time range": "{{percent}} lägre än i första halvan av tidsintervallet",

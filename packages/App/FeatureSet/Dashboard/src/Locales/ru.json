@@ -32990,7 +32990,7 @@
   "View all warnings": "Все предупреждения",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Тех, кто дежурит по этим расписаниям на момент создания канала, @упоминают в нём, чтобы Microsoft Teams их уведомил. Никого не вызывают.",
   "About the same as in the first half of the time range": "Примерно как в первой половине периода",
-  "Click to configure metric": "Нажмите, чтобы настроить метрику",
+  "Click to configure a metric": "Нажмите, чтобы настроить метрику",
   "Data Source Value": "Значение из источника данных",
   "Down from 0 in the first half of the time range": "Снижение с 0 в первой половине периода",
   "Down {{percent}} from the first half of the time range": "На {{percent}} меньше, чем в первой половине периода",

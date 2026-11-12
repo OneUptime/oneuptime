@@ -90,6 +90,7 @@ import { translateText, Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
 import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
   DashboardWidgetSetupNeed,
   getDashboardWidgetSetupLine,
@@ -264,8 +265,13 @@ const getPlaceholder: GetPlaceholderFunction = (data: {
       ) : (
         <></>
       )}
+      {/*
+       * The setup line's look for every state's sentence (no SLO picked,
+       * none to follow, could not be read): one widget, one way of saying
+       * what is wrong, dark enough to read.
+       */}
       <p
-        className="text-xs text-gray-400 text-center max-w-40"
+        className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
         data-testid={data.messageTestId}
       >
         {translateText(data.message)}

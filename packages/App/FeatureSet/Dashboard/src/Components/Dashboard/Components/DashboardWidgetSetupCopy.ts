@@ -77,9 +77,11 @@ export const getDashboardWidgetPlace: (data: {
 
 /*
  * Each need's line in each place. On the board being edited the widgets
- * keep the lines they had there (a click does open their settings); the
- * Funnel and User Retention widgets' line, which names this widget's
- * settings, is true there and in the preview alike.
+ * keep the lines they had there (a click does open their settings), each
+ * naming what it asks for as "a metric", "a query", "an SLO" - the metric's
+ * was "Click to configure metric" beside "Click to configure a query" on
+ * one board. The Funnel and User Retention widgets' line, which names this
+ * widget's settings, is true there and in the preview alike.
  */
 export const DASHBOARD_WIDGET_SETUP_LINES: Readonly<
   Record<
@@ -89,7 +91,7 @@ export const DASHBOARD_WIDGET_SETUP_LINES: Readonly<
 > = {
   [DashboardWidgetSetupNeed.Metric]: {
     [DashboardWidgetPlace.EditedBoard]: translationKey(
-      "Click to configure metric",
+      "Click to configure a metric",
     ),
     [DashboardWidgetPlace.SettingsPreview]: translationKey(
       "Pick a metric in the settings below.",
@@ -153,3 +155,23 @@ export const getDashboardWidgetSetupLine: (
  */
 export const DASHBOARD_WIDGET_SETUP_LINE_TEST_ID: string =
   "dashboard-widget-setup-line";
+
+/*
+ * How the line looks in the widgets that draw it under an icon and a name
+ * (Gauge, Chart, the Data Source Gauge, Table and Chart, SLO): dark enough
+ * to read on the widget (gray-500 is 4.5:1 on white, gray-400 2.5:1, as
+ * the Value widget's and every public placeholder's already are), centred,
+ * and balanced across its lines, so a wide Live Preview never leaves
+ * "below." alone on a second line.
+ */
+export const DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME: string =
+  "text-xs text-gray-500 text-center text-balance max-w-xs px-2";
+
+/*
+ * The widget's name above the line ("Gauge Widget", "Data Source Table" or
+ * its own title): centred on every line it takes, so a German
+ * "Datenquellen-Messwert" that wraps in a narrow tile is not drawn flush
+ * left over a centred line.
+ */
+export const DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME: string =
+  "text-xs font-medium text-gray-500 text-center text-balance break-words max-w-full px-2";

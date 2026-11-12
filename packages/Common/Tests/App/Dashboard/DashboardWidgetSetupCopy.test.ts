@@ -38,6 +38,7 @@ const NAMES_THE_SETTINGS: RegExp = /settings/;
 const SAYS_WHAT_IS_MISSING: RegExp = /^No .+ yet\.$/;
 const ASKS_SOMETHING: RegExp = /\b(pick|write|select|configure|settings)\b/i;
 const DIRECTION_MARKS: RegExp = /[\u200E\u200F\u061C]/;
+const CLICK_NAMES_A_THING: RegExp = /^Click to \w+ (?:a|an) \w+$/;
 
 function everyLine(): Array<{
   need: DashboardWidgetSetupNeed;
@@ -104,7 +105,7 @@ describe("each need has a line in each place", () => {
         DashboardWidgetSetupNeed.Metric,
         DashboardWidgetPlace.EditedBoard,
       ),
-    ).toBe("Click to configure metric");
+    ).toBe("Click to configure a metric");
     expect(
       getDashboardWidgetSetupLine(
         DashboardWidgetSetupNeed.Query,
@@ -117,6 +118,32 @@ describe("each need has a line in each place", () => {
         DashboardWidgetPlace.EditedBoard,
       ),
     ).toBe("Click to select an SLO");
+  });
+
+  /*
+   * One board drew "Click to configure metric" beside "Click to configure a
+   * query": each click line names what it asks for as a thing - a metric, a
+   * query, an SLO - as every other place's line does.
+   */
+  test("each click line names what it asks for with its article", () => {
+    for (const need of NEEDS) {
+      const line: string = getDashboardWidgetSetupLine(
+        need,
+        DashboardWidgetPlace.EditedBoard,
+      );
+
+      if (!ASKS_FOR_A_CLICK.test(line)) {
+        continue;
+      }
+
+      expect({ need, line, named: CLICK_NAMES_A_THING.test(line) }).toEqual({
+        need,
+        line,
+        named: true,
+      });
+    }
+
+    expect(CLICK_NAMES_A_THING.test("Click to configure metric")).toBe(false);
   });
 
   test("the Live Preview points at the settings below it, which are there", () => {

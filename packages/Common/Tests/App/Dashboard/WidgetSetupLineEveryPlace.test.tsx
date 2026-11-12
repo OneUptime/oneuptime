@@ -537,6 +537,57 @@ describe("a public dashboard: a visitor is told what is missing, or why the widg
   );
 });
 
+/*
+ * The line is the only thing a widget that is not set up yet has to say,
+ * so it is drawn to be read: gray-500 (4.5:1 on the widget), as the Value
+ * widget's and every public placeholder's already were, never the
+ * gray-400 (2.5:1) the Gauge, Chart, Data Source and SLO widgets drew it
+ * in. And a name above it that wraps in a narrow tile is centred over it,
+ * never flush to one side.
+ */
+describe("every widget's setup line is dark enough to read, under a centred name", () => {
+  const SINGLE_LINE: RegExp = /\b(?:truncate|line-clamp-1)\b/;
+
+  test.each(
+    WIDGET_KINDS.map((kind: WidgetKind): [string, WidgetKind] => {
+      return [kind.type, kind];
+    }),
+  )("%s", async (_type: string, kind: WidgetKind) => {
+    for (const isEditMode of [false, true]) {
+      drawWidgetOnBoard(widgetOf(kind), { isEditMode });
+
+      const line: HTMLElement = await setupLineIn(boardCard);
+
+      expect({ widget: kind.type, isEditMode, className: line.className })
+        .toEqual({
+          widget: kind.type,
+          isEditMode,
+          className: expect.stringContaining("text-gray-500"),
+        });
+      expect(line).not.toHaveClass("text-gray-400");
+      expect(line).toHaveClass("text-center");
+
+      const name: Element | null = line.previousElementSibling;
+
+      if (name && name.tagName === "P") {
+        expect({
+          widget: kind.type,
+          name: name.textContent,
+          centredOrOneLine:
+            name.classList.contains("text-center") ||
+            SINGLE_LINE.test(name.className),
+        }).toEqual({
+          widget: kind.type,
+          name: name.textContent,
+          centredOrOneLine: true,
+        });
+      }
+
+      cleanup();
+    }
+  });
+});
+
 describe("one widget, as its board goes in and out of edit mode, says each place's line", () => {
   test.each(
     WIDGET_KINDS.map((kind: WidgetKind): [string, WidgetKind] => {

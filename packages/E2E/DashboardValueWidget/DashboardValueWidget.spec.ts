@@ -1171,7 +1171,7 @@ test.describe("the Value widgets on the dashboard inside OneUptime", () => {
     // Editing, the drag handle takes 16px more off a tile one unit tall.
     await expect(page.getByText("Save Changes")).toBeVisible();
     // Editing, a click on it opens its settings: it says so.
-    await expect(setup).toContainText("Click to configure metric");
+    await expect(setup).toContainText("Click to configure a metric");
     await expect(setup).not.toContainText("No metric picked yet.");
     // The widget's generic name gives way to what to do.
     await expect(setup).not.toContainText("Value Widget");

@@ -32990,7 +32990,7 @@
   "View all warnings": "Ver todas las advertencias",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Cuando se crea el canal, se @menciona en él a quien esté de guardia en estas programaciones, para que Microsoft Teams le envíe una notificación. No se avisa a nadie.",
   "About the same as in the first half of the time range": "Más o menos igual que en la primera mitad del intervalo de tiempo",
-  "Click to configure metric": "Haz clic para configurar una métrica",
+  "Click to configure a metric": "Haz clic para configurar una métrica",
   "Data Source Value": "Valor de fuente de datos",
   "Down from 0 in the first half of the time range": "Bajó desde 0 en la primera mitad del intervalo de tiempo",
   "Down {{percent}} from the first half of the time range": "{{percent}} menos que en la primera mitad del intervalo de tiempo",

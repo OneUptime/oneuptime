@@ -12,7 +12,11 @@ import {
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
 import DashboardWidgetLine from "./DashboardWidgetLine";
-import { DASHBOARD_WIDGET_SETUP_LINE_TEST_ID } from "./DashboardWidgetSetupCopy";
+import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
+  DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
+} from "./DashboardWidgetSetupCopy";
 
 // The row of the arc's bounds under it: the minimum, then the maximum.
 export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
@@ -173,9 +177,9 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
     return (
       <div className="flex flex-col items-center justify-center w-full h-full gap-1.5">
         <GaugeStateIcon tone="emerald" />
-        <p className="text-xs font-medium text-gray-500">{setupTitle}</p>
+        <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>{setupTitle}</p>
         <p
-          className="text-xs text-gray-400 text-center"
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
           data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
         >
           {setupMessage}

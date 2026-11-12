@@ -32990,7 +32990,7 @@
   "View all warnings": "모든 경고 보기",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "채널을 만들 때 이 스케줄의 온콜 담당자가 채널에서 @멘션되므로 Microsoft Teams가 그 사람에게 알립니다. 아무도 호출되지 않습니다.",
   "About the same as in the first half of the time range": "기간 전반부와 거의 같음",
-  "Click to configure metric": "클릭하여 메트릭 구성",
+  "Click to configure a metric": "클릭하여 메트릭 구성",
   "Data Source Value": "데이터 소스 값",
   "Down from 0 in the first half of the time range": "기간 전반부의 0에서 감소",
   "Down {{percent}} from the first half of the time range": "기간 전반부보다 {{percent}} 감소",

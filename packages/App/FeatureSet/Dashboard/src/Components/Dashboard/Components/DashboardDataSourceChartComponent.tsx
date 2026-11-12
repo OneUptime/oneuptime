@@ -36,7 +36,9 @@ import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
 import {
+  DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME,
   DASHBOARD_WIDGET_SETUP_LINE_TEST_ID,
+  DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME,
   DashboardWidgetSetupNeed,
   getDashboardWidgetSetupLine,
 } from "./DashboardWidgetSetupCopy";
@@ -290,12 +292,12 @@ const DashboardDataSourceChartComponent: FunctionComponent<ComponentProps> = (
             <Icon icon={IconProp.ChartBar} />
           </div>
         </div>
-        <p className="text-xs font-medium text-gray-500">
+        <p className={DASHBOARD_WIDGET_SETUP_NAME_CLASS_NAME}>
           {props.component.arguments.chartTitle?.trim() ||
             translator.translateText("Data Source Chart")}
         </p>
         <p
-          className="text-xs text-gray-400 text-center"
+          className={DASHBOARD_WIDGET_SETUP_LINE_CLASS_NAME}
           data-testid={DASHBOARD_WIDGET_SETUP_LINE_TEST_ID}
         >
           {translator.translateText(setupMessage)}

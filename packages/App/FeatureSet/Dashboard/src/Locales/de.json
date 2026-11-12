@@ -32990,7 +32990,7 @@
   "View all warnings": "Alle Warnungen anzeigen",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "Wer beim Erstellen des Kanals in diesen Bereitschaftsplänen Bereitschaft hat, wird darin mit @ erwähnt und so von Microsoft Teams benachrichtigt. Niemand wird alarmiert.",
   "About the same as in the first half of the time range": "Etwa gleich wie in der ersten Hälfte des Zeitraums",
-  "Click to configure metric": "Klicken, um eine Metrik zu konfigurieren",
+  "Click to configure a metric": "Klicken, um eine Metrik zu konfigurieren",
   "Data Source Value": "Datenquellen-Wert",
   "Down from 0 in the first half of the time range": "Von 0 in der ersten Hälfte des Zeitraums gesunken",
   "Down {{percent}} from the first half of the time range": "{{percent}} weniger als in der ersten Hälfte des Zeitraums",

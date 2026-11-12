@@ -32990,7 +32990,7 @@
   "View all warnings": "عرض كل التحذيرات",
   "Whoever is on call in these schedules when the channel is created is @mentioned in it, so Microsoft Teams notifies them. Nobody is paged.": "يُشار (@) إلى من يكون في المناوبة في هذه الجداول عند إنشاء القناة، فيُخطره Microsoft Teams. لا يُستدعى أحد.",
   "About the same as in the first half of the time range": "تقريبًا كما في النصف الأول من النطاق الزمني",
-  "Click to configure metric": "انقر لتهيئة المقياس",
+  "Click to configure a metric": "انقر لتهيئة مقياس",
   "Data Source Value": "قيمة مصدر البيانات",
   "Down from 0 in the first half of the time range": "انخفاض من 0 في النصف الأول من النطاق الزمني",
   "Down {{percent}} from the first half of the time range": "انخفاض بنسبة {{percent}} عن النصف الأول من النطاق الزمني",
