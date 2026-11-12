@@ -33,11 +33,11 @@ import XAxisUtil from "../../../../UI/Components/Charts/Utils/XAxis";
  * tier named the hour a fall-back repeats twice with the same label.
  *
  * These cases run in four files, one for each zone the browser (the
- * process) is in: UTC, London, New York and Auckland, each with a
- * @timezone docblock. Every expectation is the same in all four: the
- * instants are worked out here from the platform's own clock (Intl), not
- * from the code under test, so a case that passes in one file and fails
- * in another is a slot that still follows the browser.
+ * process) is in: UTC, London, New York and Auckland, each naming its zone
+ * in its first comment, where Jest reads it. Every expectation is the same
+ * in all four: the instants are worked out here from the platform's own
+ * clock (Intl), not from the code under test, so a case that passes in one
+ * file and fails in another is a slot that still follows the browser.
  */
 
 const MINUTE: number = 60 * 1000;
