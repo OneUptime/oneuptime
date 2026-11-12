@@ -80,6 +80,34 @@ const wait: (window: DOMWindow, ms: number) => Promise<void> = (
   });
 };
 
+/*
+ * Until the search box has asked the server and shown what it got: a slow
+ * machine takes longer than the box's own delay, so the tests wait for the
+ * answer rather than for a fixed time.
+ */
+const searchSettled: (page: OpenedPage) => Promise<void> = async (
+  page: OpenedPage,
+): Promise<void> => {
+  const started: number = Date.now();
+
+  while (Date.now() - started < 5000) {
+    const asked: boolean = page.fetches.some((call: FetchCall): boolean => {
+      return call.url.startsWith("/docs/search/");
+    });
+    const pending: boolean = Boolean(
+      page.document.querySelector("[data-search-pending]"),
+    );
+
+    if (asked && !pending) {
+      // One more turn, for an answer that is drawn as it lands.
+      await wait(page.window, 30);
+      return;
+    }
+
+    await wait(page.window, 20);
+  }
+};
+
 const render: (file: string, locals: Record<string, unknown>) => string = (
   file: string,
   locals: Record<string, unknown>,
@@ -298,7 +326,7 @@ describe("the docs search box", () => {
 
     openSearch(page);
     type(page, "escalaton");
-    await wait(page.window, 250);
+    await searchSettled(page);
 
     expect(searchFetches(page)).toEqual(["/docs/search/en.json?q=escalaton"]);
     expect(resultTitles(page)).toEqual(["Adding an escalation rule"]);
@@ -334,7 +362,13 @@ describe("the docs search box", () => {
     type(page, "escalation");
     expect(resultTitles(page)).toEqual(["Escalation Rules"]);
 
-    await wait(page.window, 700);
+    await searchSettled(page);
+    for (let round: number = 0; round < 100; round++) {
+      if (resultTitles(page)[0] === "Adding an escalation rule") {
+        break;
+      }
+      await wait(page.window, 50);
+    }
     expect(resultTitles(page)).toEqual(["Adding an escalation rule"]);
   });
 
@@ -349,7 +383,7 @@ describe("the docs search box", () => {
     type(page, "e");
     type(page, "es");
     type(page, "esc");
-    await wait(page.window, 250);
+    await searchSettled(page);
 
     expect(searchFetches(page)).toEqual(["/docs/search/en.json?q=esc"]);
   });
@@ -384,6 +418,10 @@ describe("the docs search box", () => {
     await wait(page.window, 1000);
 
     expect(resultTitles(page)).toEqual(["Answer to schedules"]);
+
+    // And the late answer to "sched" was not kept: the box draws the answer to what it says at once.
+    type(page, "schedules");
+    expect(resultTitles(page)).toEqual(["Answer to schedules"]);
   });
 
   test("keeps answering from the page titles when the server cannot be reached", async () => {
@@ -391,7 +429,7 @@ describe("the docs search box", () => {
 
     openSearch(page);
     type(page, "schedules");
-    await wait(page.window, 250);
+    await searchSettled(page);
 
     expect(resultTitles(page)).toEqual(["On-Call Schedules"]);
     expect(page.errors).toEqual([]);
@@ -414,7 +452,7 @@ describe("the docs search box", () => {
       "ui.searchSearching",
     );
 
-    await wait(page.window, 600);
+    await searchSettled(page);
     expect(
       page.document.getElementById("search-results")?.textContent,
     ).toContain("ui.searchNoResults");
@@ -425,7 +463,7 @@ describe("the docs search box", () => {
 
     openSearch(page);
     type(page, "zzqxv");
-    await wait(page.window, 250);
+    await searchSettled(page);
 
     expect(
       page.document.getElementById("search-results")?.textContent,
@@ -454,7 +492,7 @@ describe("the docs search box", () => {
 
     openSearch(page);
     type(page, "x");
-    await wait(page.window, 250);
+    await searchSettled(page);
 
     const results: HTMLElement = page.document.getElementById(
       "search-results",

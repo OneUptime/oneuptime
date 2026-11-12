@@ -162,6 +162,40 @@ const INDEX: AIDocsLanguageIndex = makeDocsIndex([
     ],
   },
   {
+    // Says the phrase's words over and over, but never as the phrase.
+    page: "monitor/api-monitor",
+    title: "API Monitor",
+    group: "Monitor",
+    summary: "An API monitor calls an endpoint.",
+    sections: [
+      {
+        title: "Status codes",
+        text: "Site down. Site down. Site down. Counts as counts as counts as.",
+      },
+    ],
+  },
+  // Pages that mention Kubernetes in passing: it is a word many pages use.
+  {
+    page: "telemetry/hosts",
+    title: "Hosts",
+    summary: "Add hosts, Docker machines and Kubernetes nodes.",
+  },
+  {
+    page: "monitor/docker-monitor",
+    title: "Docker Monitor",
+    summary: "Docker and Kubernetes containers.",
+  },
+  {
+    page: "telemetry/openshift",
+    title: "OpenShift",
+    summary: "OpenShift is Kubernetes for the enterprise.",
+  },
+  {
+    page: "probe/custom-probe",
+    title: "Custom Probes",
+    summary: "Probes run on Kubernetes or on a virtual machine.",
+  },
+  {
     page: "introduction/glossary",
     title: "Glossary",
     group: "Introduction",
@@ -215,6 +249,7 @@ describe("docs search finds the docs' word", () => {
   });
 
   it("for the start of a word being typed, the most used word it starts first: kube is Kubernetes", () => {
+    // kubectl is the rarer word, so it weighs more; Kubernetes is on five pages, so it is what kube means.
     const answer: DocsSearchAnswer = DocsSearch.rank(INDEX, "kube");
 
     expect(urls(answer)[0]).toBe("/docs/en/telemetry/kubernetes-agent");
@@ -340,6 +375,7 @@ describe("reading what was typed", () => {
 
 describe("ranking", () => {
   it("needs every word typed: a section that holds them all beats a page that holds one", () => {
+    // Four other pages say Kubernetes; only the agent's page says Helm too.
     const answer: DocsSearchAnswer = DocsSearch.rank(INDEX, "kubernetes helm ");
 
     expect(urls(answer).length).toBeGreaterThan(0);
@@ -369,6 +405,7 @@ describe("ranking", () => {
   });
 
   it("lands a phrase typed word for word on the section it is from", () => {
+    // API Monitor's Status codes section says every one of these words more often, never in this order.
     expect(
       urls(DocsSearch.rank(INDEX, "when the site counts as down "))[0],
     ).toBe("/docs/en/monitor/website-monitor#criteria");
