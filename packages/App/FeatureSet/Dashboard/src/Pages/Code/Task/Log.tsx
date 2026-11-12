@@ -718,7 +718,16 @@ const CodeTaskLogPage: FunctionComponent<
   const [status, setStatus] = useState<AIRunStatus | undefined>(undefined);
   const [canReadContent, setCanReadContent] = useState<boolean>(false);
   const [error, setError] = useState<string | undefined>(undefined);
-  const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
+  /*
+   * The turn whose record the page holds - read, or failed to read. The
+   * record is drawn only under that turn: the render that moves the page
+   * to another turn (a pick, or the task's first turn taking the place of
+   * another task's run the address named) still holds the record before,
+   * until an effect clears it, and drawn then, it was on the screen for a
+   * frame under the wrong turn - another task's steps under this task's
+   * name.
+   */
+  const [loadedRunId, setLoadedRunId] = useState<string | null>(null);
   const signatureRef: React.MutableRefObject<string> = useRef<string>("");
 
   // The task the address names, as its reads are keyed.
@@ -753,6 +762,7 @@ const CodeTaskLogPage: FunctionComponent<
       !isTaskIdValid || taskReadFailedFor === `${taskKey}:${turnKey}`,
   });
   const runId: string = shownTurn.runId;
+  const hasLoadedOnce: boolean = loadedRunId === runId;
 
   const pickerEntries: Array<CodeTaskLogPickerEntry> = useMemo(() => {
     // A long task's newer turns keep their places past the ones not shown.
@@ -789,7 +799,7 @@ const CodeTaskLogPage: FunctionComponent<
     setLlmCalls([]);
     setStatus(undefined);
     setError(undefined);
-    setHasLoadedOnce(false);
+    setLoadedRunId(null);
   }, [runId]);
 
   /*
@@ -918,7 +928,7 @@ const CodeTaskLogPage: FunctionComponent<
         }
 
         setError(undefined);
-        setHasLoadedOnce(true);
+        setLoadedRunId(runId);
       } catch (err) {
         if (shownRunIdRef.current !== runId) {
           return;
@@ -928,7 +938,7 @@ const CodeTaskLogPage: FunctionComponent<
         if (!signatureRef.current) {
           setError(API.getFriendlyMessage(err));
         }
-        setHasLoadedOnce(true);
+        setLoadedRunId(runId);
       }
     }, [runId]);
 
@@ -1001,10 +1011,12 @@ const CodeTaskLogPage: FunctionComponent<
     <></>
   );
 
+  // Said as soon as it is known, while the first turn's record is read.
   if (!hasLoadedOnce || !shownTurn.isKnown) {
     return (
       <div className="space-y-5">
         {header}
+        {notOfTask}
         <PageLoader isVisible={true} />
       </div>
     );

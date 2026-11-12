@@ -1405,6 +1405,119 @@ describe("a link to a turn a long task's page does not show", () => {
   });
 
   /*
+   * Stricter: not even for one render. The other run's record is in by
+   * the time the task's read says it is not the task's, and the page then
+   * shows the task's first turn: drawn once with the record it held, before
+   * an effect cleared it, the other task's steps were on the screen for a
+   * frame, under this task's name and the notice. Everything ever added to
+   * the page is watched.
+   */
+  test("another task's run's record never reaches the page - not even for one render as the first turn takes its place", async () => {
+    let answerTask: (value: unknown) => void = () => {};
+    getTaskMock.mockImplementation(() => {
+      return new Promise((resolve: (value: unknown) => void) => {
+        answerTask = resolve;
+      });
+    });
+    const postSpy: SpyInstance<typeof API.post> = jest
+      .spyOn(API, "post")
+      .mockImplementation(logOfEachRun() as never) as unknown as SpyInstance<
+      typeof API.post
+    >;
+
+    const drawn: Array<string> = [];
+    const observer: MutationObserver = new MutationObserver(
+      (records: Array<MutationRecord>): void => {
+        for (const record of records) {
+          record.addedNodes.forEach((node: Node): void => {
+            drawn.push(node.textContent || "");
+          });
+        }
+      },
+    );
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    try {
+      drawLog(`?turn=${OTHER_TASK_RUN_ID}`);
+
+      await waitFor(() => {
+        expect(logReads(postSpy)).toEqual([OTHER_TASK_RUN_ID]);
+      });
+      await act(async () => {
+        await postSpy.mock.results[0]!.value;
+        await new Promise((resolve: (value: unknown) => void) => {
+          setTimeout(resolve, 20);
+        });
+      });
+
+      await act(async () => {
+        answerTask(taskAnswer(THREE_TURNS));
+      });
+
+      expect(
+        await screen.findByText(`step of ${TASK_ID}`),
+      ).toBeInTheDocument();
+      expect(notOfTask()).not.toBeNull();
+    } finally {
+      observer.disconnect();
+    }
+
+    // The first turn's record was drawn; the other run's, never.
+    expect(
+      drawn.some((text: string): boolean => {
+        return text.includes(`step of ${TASK_ID}`);
+      }),
+    ).toBe(true);
+    expect(
+      drawn.filter((text: string): boolean => {
+        return text.includes(`step of ${OTHER_TASK_RUN_ID}`);
+      }),
+    ).toEqual([]);
+  });
+
+  test("the notice is said as soon as the task's read says so, while the first turn's record is still on its way", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
+
+    let answerFirst: (value: HTTPResponse<JSONObject>) => void = () => {};
+    const firstAnswer: Promise<HTTPResponse<JSONObject>> = new Promise(
+      (resolve: (value: HTTPResponse<JSONObject>) => void) => {
+        answerFirst = resolve;
+      },
+    );
+
+    jest.spyOn(API, "post").mockImplementation((async (data: {
+      url: URL;
+    }): Promise<HTTPResponse<JSONObject>> => {
+      const runId: string =
+        data.url.toString().split("/code-fix-run/logs/")[1] || "";
+
+      if (runId === TASK_ID) {
+        return firstAnswer;
+      }
+
+      return logAnswer(`step of ${runId}`);
+    }) as never);
+
+    drawLog(`?turn=${OTHER_TASK_RUN_ID}`);
+
+    await waitFor(() => {
+      expect(notOfTask()).not.toBeNull();
+    });
+    expect(shownTurn()).toBe("Turn 1 · Done");
+    // Nothing of a record yet: neither the other run's nor the first turn's.
+    expect(screen.queryByText(`step of ${OTHER_TASK_RUN_ID}`)).toBeNull();
+    expect(screen.queryByText("Session Log")).toBeNull();
+
+    await act(async () => {
+      answerFirst(logAnswer(`step of ${TASK_ID}`));
+      await firstAnswer;
+    });
+
+    expect(await screen.findByText(`step of ${TASK_ID}`)).toBeInTheDocument();
+    expect(notOfTask()).toHaveTextContent(NOT_OF_TASK_TITLE);
+  });
+
+  /*
    * Back and forth between two links before a read is in: turn 5 (held),
    * then turn 6 (asked for), then turn 5 again. Turn 6's answer, coming in
    * last, is not the page's any more - taken in, it would leave the page
