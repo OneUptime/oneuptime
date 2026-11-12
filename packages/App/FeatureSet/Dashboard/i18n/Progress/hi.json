@@ -92,6 +92,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Ping",
     "Placement Groups",
     "PostgreSQL",
     "PostgreSQL 16.4 · Kubernetes · prod-us-east",

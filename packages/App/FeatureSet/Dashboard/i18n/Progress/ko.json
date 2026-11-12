@@ -96,6 +96,7 @@
     "PV",
     "PVC",
     "Passthrough",
+    "Ping",
     "Pod · data",
     "Pod · production",
     "PostgreSQL",
