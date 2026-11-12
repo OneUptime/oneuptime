@@ -45,7 +45,7 @@ const TEMPLATES_DIR: string = Path.resolve(NOTIFICATION_DIR, "Templates");
 /** A metric-monitor root cause, as the evaluator actually writes it. */
 const ROOT_CAUSE_HTML: string = [
   "<p><strong>Filter Conditions Met</strong>: Metric Value is 1.07 GB",
-  " which is greater than 1 GB.</p>",
+  ", which is greater than 1 GB.</p>",
   '<table cellpadding="0" cellspacing="0" border="0" width="100%"',
   ' style="border-collapse:collapse;"><thead><tr>',
   '<th style="padding:8px 10px;">Timestamp</th>',

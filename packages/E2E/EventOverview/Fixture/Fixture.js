@@ -2128,7 +2128,7 @@ function incidentEvaluationDetails() {
           filterType: "Contains",
           value: "miss",
           met: true,
-          message: "Response header value contains miss.",
+          message: "A response header has the value miss.",
           field: "x-cache",
           actual: "MISS",
         },

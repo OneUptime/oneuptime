@@ -67,7 +67,7 @@ Båda är heltal som jämförs med **Större än**, **Mindre än**, **Lika med**
 
 ### Vänta längre före en incident
 
-En prob är frånkopplad först efter tre minuters tystnad, så en snabb omstart öppnar ingenting. För att vänta längre kryssar du i **Utvärdera dessa kriterier över en tidsperiod** under filtret, väljer **All Values** under **Utvärdera** och ett fönster under **Under de senaste (i minuter)**. Med fem minuter måste en prob vara frånkopplad i ytterligare fem minuter innan incidenten deklareras.
+En prob är frånkopplad först efter tre minuters tystnad, så en snabb omstart öppnar ingenting. För att vänta längre kryssar du i **Utvärdera dessa kriterier över en tidsperiod** under filtret, väljer **Alla värden** under **Utvärdera** och ett fönster under **Under de senaste (i minuter)**. Med fem minuter måste en prob vara frånkopplad i ytterligare fem minuter innan incidenten deklareras.
 
 ## Mätvärden
 

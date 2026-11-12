@@ -496,7 +496,7 @@ describe("CompareCriteria", () => {
 
       const quoted: string = `${`FATAL: password authentication failed (password=[REDACTED]) HINT: check ${"x".repeat(400)}`.slice(0, 300)}…`;
 
-      expect(message).toContain(` is ${quoted} which is starts with`);
+      expect(message).toBe(`SQL Query Error is ${quoted}, which starts with FATAL.`);
       expect(message).not.toContain("hunter2");
       expect(message).not.toContain("\n");
     });
@@ -1126,7 +1126,7 @@ describe("CompareCriteria", () => {
         unit: "By",
       });
 
-      expect(message).toContain("is Infinity which is");
+      expect(message).toBe("Metric Value is Infinity, which is greater than 1 KB.");
       expect(message).not.toContain("InfinityP");
     });
 

@@ -716,7 +716,9 @@ export default class CompareCriteria {
    * What getCompareMessage says, as the sentence (EvaluationSentence) its
    * English is filled from: every word of it a template, every value - the
    * check's name, the readings, the threshold - a value of the sentence. The
-   * English is word for word what this method wrote as text before.
+   * English is what this method wrote as text before, but for its "which"
+   * findings: "..., which contains ..." since issue #6581, where they said
+   * "... which is contains ...".
    */
   public static getCompareSentence(data: {
     values: Array<number | boolean> | number | boolean | string;
@@ -838,59 +840,70 @@ export default class CompareCriteria {
       threshold: threshold,
     };
 
+    /*
+     * "Response Body is "...", which contains "App Title".": what was read,
+     * then what about it met the filter, as one sentence (issue #6581). The
+     * engine wrote "which is contains" here until then; a sentence stored
+     * that way is read through its current wording
+     * (RetiredEvaluationTemplates).
+     */
     switch (data.criteriaFilter.filterType) {
       case FilterType.GreaterThan:
         return translatableSentence(
-          "{{subject}} is {{values}} which is greater than {{threshold}}.",
+          "{{subject}} is {{values}}, which is greater than {{threshold}}.",
           compared,
         );
       case FilterType.GreaterThanOrEqualTo:
         return translatableSentence(
-          "{{subject}} is {{values}} which is greater than or equal to {{threshold}}.",
+          "{{subject}} is {{values}}, which is greater than or equal to {{threshold}}.",
           compared,
         );
       case FilterType.LessThan:
         return translatableSentence(
-          "{{subject}} is {{values}} which is less than {{threshold}}.",
+          "{{subject}} is {{values}}, which is less than {{threshold}}.",
           compared,
         );
       case FilterType.LessThanOrEqualTo:
         return translatableSentence(
-          "{{subject}} is {{values}} which is less than or equal to {{threshold}}.",
+          "{{subject}} is {{values}}, which is less than or equal to {{threshold}}.",
           compared,
         );
       case FilterType.NotEqualTo:
         return translatableSentence(
-          "{{subject}} is {{values}} which is not equal to {{threshold}}.",
+          "{{subject}} is {{values}}, which is not equal to {{threshold}}.",
           compared,
         );
       case FilterType.EqualTo:
         return translatableSentence(
-          "{{subject}} is {{values}} which is equal to {{threshold}}.",
+          "{{subject}} is {{values}}, which is equal to {{threshold}}.",
           compared,
         );
       case FilterType.Contains:
         return translatableSentence(
-          "{{subject}} is {{values}} which is contains {{threshold}}.",
+          "{{subject}} is {{values}}, which contains {{threshold}}.",
           { ...compared, threshold: textThreshold },
         );
       case FilterType.NotContains:
         return translatableSentence(
-          "{{subject}} is {{values}} which is does not contain {{threshold}}.",
+          "{{subject}} is {{values}}, which does not contain {{threshold}}.",
           { ...compared, threshold: textThreshold },
         );
       case FilterType.StartsWith:
         return translatableSentence(
-          "{{subject}} is {{values}} which is starts with {{threshold}}.",
+          "{{subject}} is {{values}}, which starts with {{threshold}}.",
           { ...compared, threshold: textThreshold },
         );
       case FilterType.EndsWith:
         return translatableSentence(
-          "{{subject}} is {{values}} which is ends with {{threshold}}.",
+          "{{subject}} is {{values}}, which ends with {{threshold}}.",
           { ...compared, threshold: textThreshold },
         );
       default:
-        return translatableSentence("{{subject}} is {{values}} which is", {
+        /*
+         * A condition none of the above names: what was read, as a whole
+         * sentence. Nothing in the engine asks for one today.
+         */
+        return translatableSentence("{{subject}} is {{values}}.", {
           subject: subject,
           values: values,
         });
