@@ -2248,7 +2248,7 @@
   "{{count}} users over your licensed seats_one": "{{count}} مستخدم فوق المقاعد المرخّصة",
   "Only {{count}} seats left on your license": "لم يتبقَّ في ترخيصك سوى {{count}} من المقاعد",
   "Only {{count}} seats left on your license_one": "لم يتبقَّ في ترخيصك سوى {{count}} مقعد",
-  "User count has not been reported to OneUptime yet. The first report will be sent within {{count}} hours.": "لم يُبلَغ OneUptime بعدد المستخدمين بعد. سيُرسَل أول تقرير خلال {{count}} ساعة.",
+  "User count has not been reported to OneUptime yet. The first report will be sent within {{count}} hours.": "لم يُبلَغ OneUptime بعدد المستخدمين بعد. سيُرسَل أول تقرير خلال {{count}} س.",
   "User count has not been reported to OneUptime yet. The first report will be sent within {{count}} hours._one": "لم يُبلَغ OneUptime بعدد المستخدمين بعد. سيُرسَل أول تقرير خلال {{count}} ساعة.",
   "Seats are counted uniquely across all {{count}} instances that share this license — the same person on multiple instances uses one seat.": "تُحتسب المقاعد مرة واحدة لكل مستخدم عبر كل المثيلات التي تتشارك هذا الترخيص (عددها {{count}}) — الشخص نفسه على عدة مثيلات يشغل مقعدًا واحدًا.",
   "Seats are counted uniquely across all {{count}} instances that share this license — the same person on multiple instances uses one seat._one": "تُحتسب المقاعد مرة واحدة لكل مستخدم عبر {{count}} مثيل يستخدم هذا الترخيص — الشخص نفسه على عدة مثيلات يشغل مقعدًا واحدًا.",
