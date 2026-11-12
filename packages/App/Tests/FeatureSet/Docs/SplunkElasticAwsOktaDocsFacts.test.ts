@@ -482,9 +482,10 @@ describe("Splunk Enterprise Security", () => {
         language,
         distinct: true,
       });
-      expect({ language, quotes: searchSettingQuotes(markdown, drawn) }).toEqual(
-        { language, quotes: english },
-      );
+      expect({
+        language,
+        quotes: searchSettingQuotes(markdown, drawn),
+      }).toEqual({ language, quotes: english });
       expect({ language, verb: markdown.includes(bold(verb)) }).toEqual({
         language,
         verb: false,
