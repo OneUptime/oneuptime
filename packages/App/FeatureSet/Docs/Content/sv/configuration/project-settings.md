@@ -62,7 +62,7 @@ flowchart LR
 
 En dold produkt är inte avstängd. Den flyttas till **Fler produkter**, den sista raden i menyn **Produkter**: Sök hittar den fortfarande, dess sidor och API fungerar, och dess data fortsätter att komma in. Den som har fäst den behåller sin fästning.
 
-På en självhostad server kan en huvudadministratör också stänga av en produkt för alla projekt, under **Inställningar > Produkter** i Admin Dashboard (se [Kör bara det du behöver](/docs/installation/docker-compose#kör-bara-det-du-behöver)). En sådan produkt har ingen brytare här: den visar **Avstängd på den här servern** och vem som kan slå på den.
+På en självhostad server kan en huvudadministratör också stänga av en produkt för alla projekt, under **Inställningar → Produkter** i Admin Dashboard (se [Kör bara det du behöver](/docs/installation/docker-compose#kör-bara-det-du-behöver)). En sådan produkt har ingen brytare här: den visar **Avstängd på den här servern** och vem som kan slå på den.
 
 Ett nytt projekt börjar med det som ägaren sade på Hem att det ska användas till: det grundläggande, inställningarna och det som de målen behöver visas, och resten döljs. Ett projekt som hoppade över frågan, eller som skapades före den, visar alla produkter. Så snart någon ändrar listan här ändrar målen den inte längre.
 

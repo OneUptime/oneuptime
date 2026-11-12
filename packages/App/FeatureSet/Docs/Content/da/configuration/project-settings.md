@@ -62,7 +62,7 @@ flowchart LR
 
 Et skjult produkt er ikke slået fra. Det flytter ned under **Flere produkter**, den sidste række i menuen **Produkter**: Søgning finder det stadig, dets sider og API virker fortsat, og dets data bliver ved med at komme. Den, der har fastgjort det, beholder sin fastgørelse.
 
-På en selv-hostet server kan en masteradministrator også slå et produkt fra for alle projekter under **Indstillinger > Produkter** i Admin Dashboard (se [Kør kun det, du har brug for](/docs/installation/docker-compose#kør-kun-det-du-har-brug-for)). Sådan et produkt har ingen kontakt her: Der står **Slået fra på denne server** sammen med, hvem der kan slå det til.
+På en selv-hostet server kan en masteradministrator også slå et produkt fra for alle projekter under **Indstillinger → Produkter** i Admin Dashboard (se [Kør kun det, du har brug for](/docs/installation/docker-compose#kør-kun-det-du-har-brug-for)). Sådan et produkt har ingen kontakt her: Der står **Slået fra på denne server** sammen med, hvem der kan slå det til.
 
 Et nyt projekt starter med det, ejeren sagde på Hjem, at det skal bruges til: det grundlæggende, indstillingerne og det, de mål kræver, vises, og resten skjules. Et projekt, der sprang spørgsmålet over, eller som blev oprettet før det, viser alle produkter. Så snart nogen ændrer listen her, ændrer målene den ikke længere.
 

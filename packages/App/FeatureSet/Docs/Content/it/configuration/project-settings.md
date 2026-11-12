@@ -62,7 +62,7 @@ flowchart LR
 
 Un prodotto nascosto non è disattivato. Passa in **Altri prodotti**, l'ultima riga del menu **Prodotti**: la ricerca lo trova ancora, le sue pagine e la sua API funzionano, e i suoi dati continuano ad arrivare. Chi lo ha fissato lo tiene fissato.
 
-Su un server self-hosted, un amministratore principale può anche disattivare un prodotto per tutti i progetti, in **Impostazioni > Prodotti** nell'Admin Dashboard (vedi [Esegui solo ciò che ti serve](/docs/installation/docker-compose#esegui-solo-ciò-che-ti-serve)). Un prodotto così non ha un interruttore qui: mostra **Disattivato su questo server**, con chi può attivarlo.
+Su un server self-hosted, un amministratore principale può anche disattivare un prodotto per tutti i progetti, in **Impostazioni → Prodotti** nell'Admin Dashboard (vedi [Esegui solo ciò che ti serve](/docs/installation/docker-compose#esegui-solo-ciò-che-ti-serve)). Un prodotto così non ha un interruttore qui: mostra **Disattivato su questo server**, con chi può attivarlo.
 
 Un nuovo progetto parte da ciò che il suo proprietario ha detto di voler fare nella Home: sono mostrati gli essenziali, le impostazioni e ciò che servono a quegli obiettivi, e il resto è nascosto. Un progetto che ha saltato la domanda, o creato prima di essa, mostra tutti i prodotti. Appena qualcuno cambia l'elenco qui, gli obiettivi non lo cambiano più.
 

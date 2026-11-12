@@ -62,7 +62,7 @@ flowchart LR
 
 Ein ausgeblendetes Produkt ist nicht ausgeschaltet. Es wandert unter **Weitere Produkte**, die letzte Zeile des Menüs **Produkte**: Die Suche findet es weiterhin, seine Seiten und seine API funktionieren, und seine Daten kommen weiter an. Wer es fixiert hat, behält seine Fixierung.
 
-Auf einem selbst gehosteten Server kann ein Master-Administrator ein Produkt außerdem für alle Projekte ausschalten, im Admin Dashboard unter **Einstellungen > Produkte** (siehe [Nur betreiben, was Sie brauchen](/docs/installation/docker-compose#nur-betreiben-was-sie-brauchen)). Ein solches Produkt hat hier keinen Schalter: Es zeigt **Auf diesem Server ausgeschaltet** an und nennt, wer es einschalten kann.
+Auf einem selbst gehosteten Server kann ein Master-Administrator ein Produkt außerdem für alle Projekte ausschalten, im Admin Dashboard unter **Einstellungen → Produkte** (siehe [Nur betreiben, was Sie brauchen](/docs/installation/docker-compose#nur-betreiben-was-sie-brauchen)). Ein solches Produkt hat hier keinen Schalter: Es zeigt **Auf diesem Server ausgeschaltet** an und nennt, wer es einschalten kann.
 
 Ein neues Projekt beginnt mit dem, wofür es laut seinem Inhaber auf der Startseite da ist: Die Grundlagen, die Einstellungen und was diese Ziele brauchen, werden angezeigt, der Rest wird ausgeblendet. Ein Projekt, das die Frage übersprungen hat oder vor ihr angelegt wurde, zeigt alle Produkte. Sobald jemand die Liste hier ändert, ändern die Ziele sie nicht mehr.
 

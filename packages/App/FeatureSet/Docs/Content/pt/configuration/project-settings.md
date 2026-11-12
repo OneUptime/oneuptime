@@ -62,7 +62,7 @@ flowchart LR
 
 Um produto oculto não é desativado. Ele vai para **Mais produtos**, a última linha do menu **Produtos**: a pesquisa ainda o encontra, suas páginas e sua API continuam funcionando, e seus dados continuam chegando. Quem o fixou mantém a fixação.
 
-Em um servidor auto-hospedado, um administrador master também pode desativar um produto para todos os projetos, em **Configurações > Produtos** no Admin Dashboard (veja [Execute só o que você precisa](/docs/installation/docker-compose#execute-só-o-que-você-precisa)). Um produto assim não tem botão aqui: ele mostra **Desativado neste servidor**, com quem pode ativá-lo.
+Em um servidor auto-hospedado, um administrador master também pode desativar um produto para todos os projetos, em **Configurações → Produtos** no Admin Dashboard (veja [Execute só o que você precisa](/docs/installation/docker-compose#execute-só-o-que-você-precisa)). Um produto assim não tem botão aqui: ele mostra **Desativado neste servidor**, com quem pode ativá-lo.
 
 Um projeto novo começa pelo que o proprietário disse no Início que veio fazer: os essenciais, as configurações e o que esses objetivos precisam são mostrados, e o resto fica oculto. Um projeto que pulou a pergunta, ou que foi criado antes dela, mostra todos os produtos. Depois que alguém altera a lista aqui, os objetivos não a alteram mais.
 
