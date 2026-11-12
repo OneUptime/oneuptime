@@ -284,8 +284,9 @@ describe("IRCMessageText.prepare — too many lines", () => {
 describe("IRCMessageText.prepare — megabyte-long values", () => {
   /*
    * A synthetic monitor's screenshot reaches a message as base64 of several
-   * megabytes on one line (AGENTS.md, "Megabyte-long values"). Only what the
-   * capped lines can hold is ever read past the first scan for a line break.
+   * megabytes on one line (Docs/notifications/README.md, "Megabyte-long
+   * values"). Only what the capped lines can hold is ever read past the first
+   * scan for a line break.
    */
   test("a several-megabyte line is cut short quickly", () => {
     const screenshot: string = `Screenshot: data:image/png;base64,${"iVBORw0KGgo".repeat(400_000)}`;

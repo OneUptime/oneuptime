@@ -11,9 +11,9 @@ import path from "path";
  * expression with a backtracking stack that can grow with every character a
  * quantifier takes, and a process that has compiled enough code compiles
  * regular expressions unoptimized, where that stack runs out on about three
- * megabytes (AGENTS.md, "Megabyte-long values"). The scanner keeps every
- * detector's quantifiers bounded and hands each pattern a window of 64 KB,
- * so neither shape can do that.
+ * megabytes (Docs/notifications/README.md, "Megabyte-long values"). The scanner
+ * keeps every detector's quantifiers bounded and hands each pattern a window of
+ * 64 KB, so neither shape can do that.
  *
  * So both run here in a node process started with --no-regexp-optimization,
  * the state such a process reaches, with TextScanner bundled by esbuild as

@@ -22,7 +22,7 @@
  * loop, never a regular expression with a quantifier, and never reads a stretch twice:
  * the search for a word goes on from where its value stopped, so a thousand opening quotes
  * cost what one does, and the time this takes is in line with the line, whatever the line
- * holds (AGENTS.md).
+ * holds (Docs/notifications/README.md, "Megabyte-long values").
  */
 
 export const OPENSTACK_SCRUBBED_VALUE: string = "[REDACTED]";
