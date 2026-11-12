@@ -558,12 +558,15 @@ describe("every widget's setup line is dark enough to read, under a centred name
 
       const line: HTMLElement = await setupLineIn(boardCard);
 
-      expect({ widget: kind.type, isEditMode, className: line.className })
-        .toEqual({
-          widget: kind.type,
-          isEditMode,
-          className: expect.stringContaining("text-gray-500"),
-        });
+      expect({
+        widget: kind.type,
+        isEditMode,
+        className: line.className,
+      }).toEqual({
+        widget: kind.type,
+        isEditMode,
+        className: expect.stringContaining("text-gray-500"),
+      });
       expect(line).not.toHaveClass("text-gray-400");
       expect(line).toHaveClass("text-center");
 
