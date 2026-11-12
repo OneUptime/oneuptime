@@ -93,6 +93,10 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 **Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest, dat dezelfde lijst opent als het getal ervan. Als er niets openstaat, staat er **Niets vraagt je aandacht**.
 
+### Inrichtingsstatus
+
+Als iets in de inrichting van het project zou verhinderen dat mensen een melding krijgen, eindigt **Vraagt aandacht** met **Instellen**: hoeveel dingen een blik nodig hebben. Die regel opent **Inrichtingsstatus**, met wat er verkeerd is ingericht, het ergste eerst, onder **Oproepen komen niet aan**, **Het oplossen waard** en **Suggesties**: een monitor die niemand oproept, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, iemand die niet kan worden opgeroepen, sms uitgeschakeld, een bereikbaarheidsschema zonder iemand van dienst, een statuspagina die geen monitor toont. Elke bevinding zegt in één zin wat er mis is, met de knop die de oplossing opent, en de bevindingen van een monitor zijn de onderbrekingen die zijn kaart **Als dit uitvalt** noemt. Een bevinding die je team bewust zo laat, kun je met een reden voor iedereen verbergen en terugzetten vanuit **Genegeerd**. Zoeken vindt de pagina als **Inrichtingsstatus**, en AI vragen beantwoordt "is mijn inrichting in orde?" op basis ervan.
+
 ### Je project
 
 **Je project** telt de **Monitoren**, **Statuspagina's**, **Bereikbaarheidsbeleid**, **SLOs**, **Services**, **Dashboards** en **Workflows** van het project, zonder de gearchiveerde. Elke rij opent de bijbehorende lijst. Een soort waarvan het project er nog geen heeft, toont **Instellen** in plaats van een getal.
@@ -101,7 +105,7 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 ### Verken OneUptime
 
-**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt.
+**Verken OneUptime** toont de producten van het menu **Producten** één categorie tegelijk, te beginnen met de essenties. Elk product zegt waarvoor het dient en opent als u erop klikt. De producten die uw project verbergt, ontbreken daar.
 
 ## Uw weg vinden
 
@@ -111,6 +115,9 @@ Alles in OneUptime staat onder **Producten** in de bovenste balk. Het menu toont
 - **U begint waar u bent.** De groep van de pagina waarop u bent, klapt vanzelf uit, en de producten die u onlangs hebt geopend, staan bovenaan.
 - **Uw keuzes blijven.** Het menu onthoudt in uw browser welke van de andere groepen u hebt uit- of ingeklapt. De essenties zijn elke keer dat u het menu opent weer uitgeklapt, ook als u ze had ingeklapt.
 - **Op een telefoon** toont de menuknop de producten op dezelfde manier: de essenties uitgeklapt bovenaan, en elke andere groep als één rij die met een tik opent.
+- **Producten die het project niet gebruikt.** Een projecteigenaar of -beheerder kan ze verbergen onder **Projectinstellingen → Basis → Producten**. Een verborgen product verhuist naar **Meer producten**, de laatste rij van het menu: Zoeken vindt het nog steeds, de pagina's blijven werken en de gegevens blijven binnenkomen. Zodra er een gegevens ontvangt, meldt Start dat aan wie het weer kan tonen.
+- **Vastzetten.** Houd een product in de bovenbalk, naast **Start** en **Producten**: druk op de punaise op zijn kaart in het menu, of op **Vastzetten** naast de titel van zijn pagina. U kunt er vijf vastzetten, en ze volgen u in elke browser. Op een telefoon staan uw vastgezette producten bovenaan in het menu.
+- **Wat in gebruik is.** In elke groep behalve de essenties en de instellingen staan de producten die uw project gebruikt vooraan, en een product dat u nog niet hebt ingesteld zegt **Niet ingesteld**. In OneUptime Cloud noemt een product dat uw abonnement niet bevat het abonnement dat het wel bevat.
 
 ### De balken bovenaan
 

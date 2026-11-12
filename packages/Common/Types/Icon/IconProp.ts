@@ -248,6 +248,8 @@ enum IconProp {
   MagnifyingGlassPlus = "MagnifyingGlassPlus",
   Map = "Map",
   MapPin = "MapPin",
+  // A drawing pin: something kept in reach, such as a product pinned to the nav bar.
+  Pin = "Pin",
   Megaphone = "Megaphone",
   Microphone = "Microphone",
   Moon = "Moon",

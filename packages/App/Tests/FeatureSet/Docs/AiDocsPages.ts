@@ -252,6 +252,15 @@ export const PROSE: Readonly<Record<string, ReadonlyArray<string>>> = {
     "An LLM provider.",
     "The Growth plan, on OneUptime Cloud.",
     "AI turned on for the project.",
+    // Setting things up by conversation (#6829).
+    "One plan, one approval.",
+    "Always asked.",
+    "The guided setups' records.",
+    "Who is paged.",
+    "What is missing.",
+    "What each part needs.",
+    "Then test it.",
+    "Who is told.",
   ],
   [AI_SRE]: [
     "strictly read-only",
