@@ -49,9 +49,33 @@ const DATA_MIGRATIONS_DIR: string = path.resolve(
   "../../../FeatureSet/Workers/DataMigrations",
 );
 
-// A block comment, which may name a migration without registering it.
-const BLOCK_COMMENT: RegExp = /\/\*[\s\S]*?\*\//g;
 const REGISTERED_MIGRATION: RegExp = /new ([A-Za-z0-9]+)\(\)/g;
+
+/*
+ * The source without its block comments, which may name a migration without
+ * registering it. Read with indexOf, in time linear in the source.
+ */
+function withoutBlockComments(source: string): string {
+  let kept: string = "";
+  let from: number = 0;
+
+  for (;;) {
+    const start: number = source.indexOf("/*", from);
+
+    if (start === -1) {
+      return kept + source.slice(from);
+    }
+
+    const end: number = source.indexOf("*/", start + 2);
+
+    if (end === -1) {
+      return kept + source.slice(from, start);
+    }
+
+    kept += `${source.slice(from, start)} `;
+    from = end + 2;
+  }
+}
 
 type Settle = typeof settleNotificationsStuckBeforeTheCheck;
 
@@ -96,7 +120,7 @@ describe("SettleOnCallNotificationsStuckBeforeUpgrade", () => {
     );
 
     const registered: Array<string> = Array.from(
-      index.replace(BLOCK_COMMENT, " ").matchAll(REGISTERED_MIGRATION),
+      withoutBlockComments(index).matchAll(REGISTERED_MIGRATION),
     ).map((match: RegExpMatchArray): string => {
       return match[1]!;
     });
