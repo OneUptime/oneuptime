@@ -4,6 +4,10 @@ import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import HTTPResponse from "../../Types/API/HTTPResponse";
 import { JSONObject } from "../../Types/JSON";
 import LlmProvider from "../../Models/DatabaseModels/LlmProvider";
+import {
+  LLMProviderExchange,
+  readLLMProviderExchanges,
+} from "../../Types/LLM/LLMProviderExchange";
 import { APP_API_URL } from "../Config";
 import API from "./API/API";
 import { LLM_PROVIDER_TEST_REFUSED_SENTENCE } from "./LlmProviderTestCopy";
@@ -20,6 +24,12 @@ export interface LLMProviderTestResult {
    * Undefined for an older server that does not report it.
    */
   supportsToolCalling?: boolean | undefined;
+  /*
+   * What the test sent the provider and what came back, secrets masked
+   * (issue #7080): the dialog's "Request and response". Empty when the test
+   * never reached the provider - a refusal, a server that does not say.
+   */
+  exchanges: Array<LLMProviderExchange>;
 }
 
 export default class TestLLMProvider {
@@ -65,6 +75,9 @@ export default class TestLLMProvider {
         return {
           success: false,
           message: API.getFriendlyMessage(response),
+          exchanges: readLLMProviderExchanges(
+            (response.data as JSONObject | undefined)?.["exchanges"],
+          ),
         };
       }
 
@@ -75,6 +88,7 @@ export default class TestLLMProvider {
         message:
           (responseData["message"] as string) ||
           "Connection successful. The LLM provider responded to a test prompt.",
+        exchanges: readLLMProviderExchanges(responseData["exchanges"]),
         ...(typeof responseData["supportsToolCalling"] === "boolean"
           ? { supportsToolCalling: responseData["supportsToolCalling"] }
           : {}),
@@ -83,6 +97,7 @@ export default class TestLLMProvider {
       return {
         success: false,
         message: API.getFriendlyMessage(err),
+        exchanges: [],
       };
     }
   }

@@ -2,6 +2,9 @@
 
 On-call is how OneUptime gets a person onto a problem, at any hour. When an incident, an alert or an episode needs someone, its on-call policies page people level by level until somebody acknowledges, and each person is reached the way they chose: a push notification, a text, a call, an email or a chat message. This page shows how the pieces fit together and where each one lives. The [Glossary](/docs/introduction/glossary#on-call-policy) explains each word on-call uses in a sentence or two.
 
+> [!TIP]
+> New here? Follow the guide first: [Get Paged by Phone, SMS or Push](/docs/guides/paging).
+
 :::cards
 - [How a page reaches someone](#how-a-page-reaches-someone): From a new incident to the person who answers.
 - [The building blocks](#the-building-blocks): Policies, escalation rules, schedules, overrides and personal rules.

@@ -2,6 +2,9 @@
 
 Ihre Statusseite ist der eine OneUptime-Bildschirm, den Ihre Kunden ansehen; sie sollte also wie Ihre eigene aussehen und unter Ihrer eigenen Domain erreichbar sein, etwa `status.yourcompany.com`. Diese Seite geht die Seite **Branding** Karte für Karte durch und bringt die Statusseite dann auf Ihre Domain: Domain hinzufügen, ihre DNS-Einträge hinzufügen, und das kostenlose SSL-Zertifikat folgt von selbst.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Eine Statusseite veröffentlichen](/docs/guides/status-page).
+
 :::cards
 - [Die Seite Branding](#die-seite-branding): Logo, Design, Titel, Favicon, Links, Fußzeile, Farben und Sprachen.
 - [Eigenes HTML, CSS und JavaScript](#eigenes-html-css-und-javascript): Alles, was die eingebauten Einstellungen nicht abdecken.

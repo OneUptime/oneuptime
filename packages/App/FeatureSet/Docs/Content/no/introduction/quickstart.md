@@ -2,6 +2,8 @@
 
 Denne guiden tar deg fra en ny konto til et oppsett som virker, på omtrent femten minutter: en monitor som sjekker nettstedet ditt hvert femte minutt, en vaktpolicy som varsler deg når nettstedet går ned, og en statusside som informerer kundene dine. Den følger sjekklisten **Velkommen til OneUptime 👋** på prosjektets startside.
 
+Kommer du fra et annet verktøy? [Importer oppsettet ditt](/docs/introduction/getting-started#hvis-du-kommer-fra-et-annet-verktøy) først: monitorene, vaktplanene og statussidene dine blir med.
+
 ```mermaid title="Det du setter opp i denne guiden"
 flowchart TB
     monitor["Nettstedsmonitor"] -->|"nettstedet er nede"| incident["Hendelse"]
@@ -80,6 +82,8 @@ E-posten du logger inn med, er allerede en måte å nå deg på. For også å f�
 
 Se [Eskaleringsregler](/docs/on-call/escalation-rules) og [Vaktplaner](/docs/on-call/schedules) for flere nivåer, rotasjoner og hvor lenge hvert nivå venter.
 
+For å bli varslet med SMS, anrop og push, der den neste personen varsles når ingen svarer, og med et testoppkall som beviser det, følger du [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 ## Publiser en statusside
 
 :::steps
@@ -97,6 +101,8 @@ Velg **Oversikt** i sidemenyen. Kortet **Lenke til statussiden** lenker til stat
 :::
 
 En ny statusside er offentlig: alle med adressen kan åpne den. Se [Statusside – merkevare og domener](/docs/status-pages/branding-and-domains) for å gi den ditt eget domene, logo og farger.
+
+For å legge statussiden på ditt eget domene, over HTTPS, følger du [Publiser en statusside](/docs/guides/status-page).
 
 ## Inviter teamet ditt
 
