@@ -342,7 +342,9 @@ export function dashboardHooks(project) {
        */
       store.create(MonitorOwnerUser, {
         monitorId: new ObjectID(record._id),
-        userId: new ObjectID(project.signedInAs === "member" ? GRACE_ID : ADA_ID),
+        userId: new ObjectID(
+          project.signedInAs === "member" ? GRACE_ID : ADA_ID,
+        ),
       });
       for (const probe of store.table(Probe)) {
         store.create(MonitorProbe, {

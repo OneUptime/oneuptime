@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#a-products-first-page
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 import "@testing-library/jest-dom";
 import {
