@@ -21,6 +21,12 @@ import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInter
 import MetricType from "Common/Models/DatabaseModels/MetricType";
 import GaugeWidgetView from "./GaugeWidgetView";
 import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import { useDashboardWidgetPlace } from "./DashboardWidgetPreview";
+import {
+  DashboardWidgetSetupNeed,
+  getDashboardWidgetSetupLine,
+} from "./DashboardWidgetSetupCopy";
+import { isMetricWidgetQuerySet } from "./MetricWidgetQuery";
 import {
   aggregateValues,
   collectDataPoints,
@@ -174,11 +180,14 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
       return item.name?.toString() === metricName;
     })?.unit || "";
 
-  const isConfigured: boolean = Boolean(
-    props.component.arguments.metricQueryConfig?.metricQueryData?.filterData &&
-      Object.keys(
-        props.component.arguments.metricQueryConfig.metricQueryData.filterData,
-      ).length > 0,
+  const isConfigured: boolean = isMetricWidgetQuerySet(
+    props.component.arguments.metricQueryConfig,
+  );
+
+  // Until a metric is picked: a click only where it opens the settings.
+  const setupMessage: string = getDashboardWidgetSetupLine(
+    DashboardWidgetSetupNeed.Metric,
+    useDashboardWidgetPlace(props.isEditMode),
   );
 
   return (
@@ -196,7 +205,7 @@ const DashboardGaugeComponentElement: FunctionComponent<ComponentProps> = (
       }
       isConfigured={isConfigured}
       setupTitle={translationKey("Gauge Widget")}
-      setupMessage={translationKey("Click to configure metric")}
+      setupMessage={setupMessage}
       title={props.component.arguments.gaugeTitle}
       rawUnit={rawUnit}
       metricName={metricName}

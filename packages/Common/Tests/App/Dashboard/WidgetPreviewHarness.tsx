@@ -105,6 +105,11 @@ export function boardOf(
 
 export interface WidgetDrawOptions {
   range?: RangeStartAndEndDateTime | undefined;
+  /*
+   * The board while it is edited, where a click on a widget opens its
+   * settings (issue #7160). Out of edit mode unless asked.
+   */
+  isEditMode?: boolean | undefined;
 }
 
 /*
@@ -142,17 +147,21 @@ export function previewBox(): HTMLElement {
 
 export const BOARD_CARD_TEST_ID: string = "widget-preview-board-card";
 
-// The same widget on the board, out of edit mode: as a reader sees it.
-export function drawWidgetOnBoard(
+/*
+ * The same widget on the board, out of edit mode: as a reader sees it - or,
+ * with isEditMode, as the board being edited draws it. A test that moves
+ * the board in or out of edit mode rerenders this in place.
+ */
+export function widgetOnBoard(
   component: DashboardBaseComponent,
   options?: WidgetDrawOptions,
-): RenderResult {
-  return render(
+): React.ReactElement {
+  return (
     <div data-testid={BOARD_CARD_TEST_ID} style={{ width: 768 }}>
       <DashboardBaseComponentElement
         componentId={component.componentId}
         key={component.componentId.toString()}
-        isEditMode={false}
+        isEditMode={Boolean(options?.isEditMode)}
         isSelected={false}
         onClick={() => {}}
         onComponentUpdate={() => {}}
@@ -174,9 +183,15 @@ export function drawWidgetOnBoard(
         onMovePointerDown={() => {}}
         onResizePointerDown={() => {}}
       />
-    </div>,
-    { wrapper: InRouter },
+    </div>
   );
+}
+
+export function drawWidgetOnBoard(
+  component: DashboardBaseComponent,
+  options?: WidgetDrawOptions,
+): RenderResult {
+  return render(widgetOnBoard(component, options), { wrapper: InRouter });
 }
 
 export function boardCard(): HTMLElement {

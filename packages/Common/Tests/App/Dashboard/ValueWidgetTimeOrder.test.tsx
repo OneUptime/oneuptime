@@ -874,7 +874,7 @@ const baseViewProps: ValueWidgetViewProps = {
   noDataMessage: "No data for the selected time range",
   isConfigured: true,
   setupTitle: "Value Widget",
-  setupMessage: "Click to configure metric",
+  setupMessage: "Click to configure a metric",
   title: "Latency",
   rawUnit: "ms",
   metricName: "checkout.latency",
@@ -1182,11 +1182,11 @@ describe("the Value widget's view", () => {
       );
 
       /*
-       * "Value Widget" over "Click to configure metric" needed 38px and the
+       * "Value Widget" over "Click to configure a metric" needed 38px and the
        * edit-mode tile has 30: both lines lost their bottoms.
        */
       expect(screen.queryByText("Value Widget")).toBeNull();
-      expect(messageOf("Click to configure metric")).toHaveClass(
+      expect(messageOf("Click to configure a metric")).toHaveClass(
         "line-clamp-1",
       );
 
@@ -1201,7 +1201,7 @@ describe("the Value widget's view", () => {
       );
 
       expect(screen.queryByText("Value Widget")).toBeNull();
-      expect(messageOf("Click to configure metric")).toHaveClass(
+      expect(messageOf("Click to configure a metric")).toHaveClass(
         "line-clamp-2",
       );
 
@@ -1217,7 +1217,7 @@ describe("the Value widget's view", () => {
       );
 
       expect(screen.getByText("Value Widget")).toBeInTheDocument();
-      expect(messageOf("Click to configure metric")).toBeInTheDocument();
+      expect(messageOf("Click to configure a metric")).toBeInTheDocument();
       expect(screen.getByTestId(VALUE_WIDGET_TEST_ID)).toHaveAttribute(
         "data-state",
         "setup",
@@ -1262,6 +1262,86 @@ describe("the Value widget's view", () => {
       expect(
         messageOf("The metrics service did not answer in time."),
       ).toHaveClass("line-clamp-2");
+    });
+  });
+
+  /*
+   * Two units tall, a German "Noch keine Metrik ausgewählt." took three
+   * lines in a narrow tile and was cut to "Noch keine Metrik..." at two,
+   * with room for the third under it. A message takes the lines its tile
+   * holds under the icon and the name, up to four.
+   */
+  describe("on a taller tile", () => {
+    // Three units by two: 128px of content while viewing, 112 while editing.
+    const TWO_UNITS_TALL: { widthInPx: number; heightInPx: number } = {
+      widthInPx: 236,
+      heightInPx: 154,
+    };
+
+    function messageOf(text: string): HTMLElement {
+      return screen.getByText(text);
+    }
+
+    test("the setup prompt takes the third line it has room for under the icon and the name", () => {
+      const { rerender } = render(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...TWO_UNITS_TALL}
+          isConfigured={false}
+          title={undefined}
+        />,
+      );
+
+      // 128px: the 46px icon and 22px name leave 60px, three lines.
+      expect(screen.getByText("Value Widget")).toBeInTheDocument();
+      expect(messageOf("Click to configure a metric")).toHaveClass(
+        "line-clamp-3",
+      );
+
+      // Editing, the drag handle takes 16px more: 44px, two lines.
+      rerender(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...TWO_UNITS_TALL}
+          isEditMode={true}
+          isConfigured={false}
+          title={undefined}
+        />,
+      );
+
+      expect(messageOf("Click to configure a metric")).toHaveClass(
+        "line-clamp-2",
+      );
+
+      // Three units tall there is room for many; four at most.
+      rerender(
+        <ValueWidgetView
+          {...baseViewProps}
+          widthInPx={236}
+          heightInPx={236}
+          isConfigured={false}
+          title={undefined}
+        />,
+      );
+
+      expect(messageOf("Click to configure a metric")).toHaveClass(
+        "line-clamp-4",
+      );
+    });
+
+    test("the error, which draws no name, takes the name's room as well", () => {
+      render(
+        <ValueWidgetView
+          {...baseViewProps}
+          {...TWO_UNITS_TALL}
+          error="The metrics service did not answer in time."
+        />,
+      );
+
+      // 128px less the icon's 46px: five lines' room, four at most.
+      expect(
+        messageOf("The metrics service did not answer in time."),
+      ).toHaveClass("line-clamp-4");
     });
   });
 });
