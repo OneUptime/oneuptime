@@ -83,7 +83,9 @@ image:
 # Empty runs them as the namespace's default service account. On Amazon EKS
 # the AWS Marketplace edition runs them as a service account with an IAM role
 # (IAM roles for service accounts): that role is how the installation bills
-# its users through AWS Marketplace.
+# its users through AWS Marketplace. The server's own email can sign in to
+# Amazon SES as that role too, with no access key stored: Admin Dashboard >
+# Settings > Emails > Amazon SES > This Server's IAM Role.
 serviceAccount:
   # Create the service account, named `name` (or "<release>-oneuptime").
   create: false
