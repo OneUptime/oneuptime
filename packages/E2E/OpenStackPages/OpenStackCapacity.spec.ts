@@ -5,6 +5,7 @@ import {
   FixtureRecord,
   VIEWPORTS,
   expect,
+  expectSizesNumberFirst,
   fixtureRecord,
   openCloudPage,
   screenshot,
@@ -376,9 +377,77 @@ test.describe("on a phone", () => {
 
       await expectNoSidewaysScroll(page, { tolerance: 1 });
 
+      // Each zone's "used / total" keeps every size whole, its unit beside its number.
+      await expectSizesNumberFirst(
+        page.getByTestId("openstack-capacity-zones"),
+        `The zones at ${viewport.width}`,
+      );
+
       await screenshot(page, `capacity-${viewport.width}`);
     });
   }
+
+  /*
+   * A narrow column broke a zone's "674 GiB / 762 GiB (88%)" inside a size,
+   * its unit alone on the line under its number, and a Persian or German
+   * page's longer words narrowed it more. Each part of the cell is kept
+   * whole; the line breaks between them.
+   */
+  for (const language of ["fa", "de"]) {
+    test(`in ${language} on a phone, a zone's sizes keep their units beside their numbers`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({ width: 390, height: 844 });
+      await openCloudPage(page, "capacity", `capacity=short&lang=${language}`);
+
+      await expectSizesNumberFirst(
+        page.getByTestId("openstack-capacity-zones"),
+        `The zones in ${language}`,
+      );
+      await expectNoSidewaysScroll(page, { tolerance: 1 });
+      await screenshot(page, `capacity-${language}-390`);
+    });
+  }
+});
+
+test.describe("in Persian", () => {
+  /*
+   * The zones' table in Persian: a zone's name was broken at its hyphen
+   * ("zone-" over "a"), and its lost and disabled hosts, like the days
+   * "What is short" counts to, were written in Latin digits beside Persian
+   * ones.
+   */
+  test("in Persian, a zone's name is one line, and every count in the table is in Persian digits", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openCloudPage(page, "capacity", "capacity=short&lang=fa");
+
+    const zones: Locator = page.getByTestId("openstack-capacity-zones");
+    const names: Locator = zones
+      .getByTestId("openstack-capacity-zone")
+      .locator("a bdi");
+
+    await expect(names).toHaveText(["zone-a", "zone-b"]);
+    for (const name of await names.all()) {
+      expect(
+        await name.evaluate((element: Element): number => {
+          return element.getClientRects().length;
+        }),
+      ).toBe(1);
+    }
+
+    // zone-b has a lost host: "۱ ازدست‌رفته، ۰ غیرفعال".
+    await expect(zones).toContainText("۱");
+    await expect(zones).not.toContainText(/[0-9]/);
+    await expect(page.getByTestId("openstack-capacity-short")).toContainText(
+      "۱۴",
+    );
+    await screenshot(page, "capacity-fa-1280");
+  });
 });
 
 test("the side menu reaches it", async ({ page }: { page: Page }) => {

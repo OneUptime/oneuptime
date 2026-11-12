@@ -263,7 +263,12 @@ describe("the preview of a file question", () => {
     const shot: HTMLElement = screen.getByTestId("form-preview-field-shot");
 
     expect(within(shot).getByText("Upload a file")).toBeInTheDocument();
-    expect(within(shot).getByText(CUSTOM_FIELD_FILE_HINT)).toBeInTheDocument();
+    // Its limit is the picker's, filled into the sentence.
+    expect(
+      within(shot).getByText(
+        CUSTOM_FIELD_FILE_HINT.replace("{{size}}", "10 MB"),
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.getByTestId("form-preview-field-contract"),
     ).toBeInTheDocument();

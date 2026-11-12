@@ -184,10 +184,16 @@ export const getFilePickerPromptWords: (
      * it, so a page read from the right draws "۱۰ MB", never "MB 10" - as
      * a limit written into the words ("Max 10MB each.") was drawn on Arabic
      * and Persian pages (issue #7233). Drawn on the page only, so its
-     * isolate marks never reach a record.
+     * isolate marks never reach a record. A hint the picker is given (a
+     * custom field's "... up to {{size}}.") names the same limit: its
+     * {{size}} is this picker's.
      */
     hint: data.hint
-      ? translator.translateText(data.hint)
+      ? translator.translateTemplate(
+          data.hint,
+          { size: maxFileSize },
+          { setsValuesApart: true },
+        )
       : data.mimeTypes && data.mimeTypes.length > 0
         ? translator.translateTemplate(
             "Types: {{types}}. Max {{size}} each.",

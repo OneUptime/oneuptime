@@ -21,10 +21,20 @@ import VideoCallProvider from "../../../Types/VideoCall/VideoCallProvider";
 import CustomFieldFileList, {
   CUSTOM_FIELD_FILE_SIZE_CLASS_NAME,
 } from "../../../UI/Components/CustomFields/CustomFieldFileList";
+import {
+  CUSTOM_FIELD_FILE_HINT,
+  CUSTOM_FIELD_FILES_HINT,
+} from "../../../UI/Components/CustomFields/CustomFieldFormFields";
 import FilePicker from "../../../UI/Components/FilePicker/FilePicker";
 import { FILE_PICKER_FILE_NAME_CLASS_NAME } from "../../../UI/Components/FilePicker/FilePickerLayout";
+import fs from "fs";
+import path from "path";
 import { readDashboardLocale } from "../../Helpers/DashboardLocales";
-import { withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import { isolated, withoutIsolateMarks } from "../../Helpers/IsolateMarks";
+import {
+  ACCOUNTS_LANGUAGES,
+  DASHBOARD_LANGUAGES,
+} from "../../Helpers/TranslatedLanguages";
 
 /*
  * A FILE'S SIZE, IN THE READER'S DIGITS AND READ ITS OWN WAY (issue #7233).
@@ -421,4 +431,144 @@ describe("Add transcript's chosen file", () => {
       `${FIRST_STRONG_ISOLATE}۵ MB${POP_DIRECTIONAL_ISOLATE}`,
     );
   });
+});
+
+/*
+ * A file custom field's picker, and a public form's file question, say
+ * what they take in a sentence of their own (CUSTOM_FIELD_FILE_HINT,
+ * CUSTOM_FIELD_FILES_HINT). Its limit was written into the words as "10
+ * MB": in Latin digits on a Persian page, drawn unit first on an Arabic or
+ * Persian one ("MB 10"), and 10 MB on a form question that takes less. It
+ * is now the sentence's {{size}}: the picker's own limit, in the reader's
+ * digits, set apart from the words where a page reads from the right.
+ */
+describe("a file custom field's hint", () => {
+  const hintOf: () => HTMLElement = (): HTMLElement => {
+    return screen.getByText((text: string): boolean => {
+      return withoutIsolateMarks(text).includes("PCAP");
+    });
+  };
+
+  // The sentence in `language`, its {{size}} filled with `size` as the page sets it.
+  const sentenceIn: (language: string, key: string, size: string) => string = (
+    language: string,
+    key: string,
+    size: string,
+  ): string => {
+    const words: string = readDashboardLocale(language)[key] || key;
+
+    return words.replace("{{size}}", size);
+  };
+
+  test("en: as English wrote it, with nothing set apart", () => {
+    draw(
+      "en",
+      <FilePicker isMultiFilePicker={true} hint={CUSTOM_FIELD_FILES_HINT} />,
+    );
+
+    expect(hintOf().textContent).toBe(
+      "Up to 10 files of 10 MB each: PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP.",
+    );
+  });
+
+  test.each([
+    ["ar", "10 MB"],
+    ["fa", "۱۰ MB"],
+  ])(
+    "%s: the limit is the reader's, set apart from the words",
+    (language: string, size: string) => {
+      draw(
+        language,
+        <FilePicker isMultiFilePicker={true} hint={CUSTOM_FIELD_FILES_HINT} />,
+      );
+
+      expect(hintOf().textContent).toBe(
+        sentenceIn(language, CUSTOM_FIELD_FILES_HINT, isolated(size)),
+      );
+    },
+  );
+
+  test("fa: no Latin digit, the count of files included", () => {
+    draw("fa", <FilePicker hint={CUSTOM_FIELD_FILE_HINT} />);
+    expect(withoutIsolateMarks(hintOf().textContent || "")).not.toMatch(
+      LATIN_DIGIT,
+    );
+    cleanup();
+
+    draw(
+      "fa",
+      <FilePicker isMultiFilePicker={true} hint={CUSTOM_FIELD_FILES_HINT} />,
+    );
+    expect(withoutIsolateMarks(hintOf().textContent || "")).not.toMatch(
+      LATIN_DIGIT,
+    );
+  });
+
+  test("a picker with a limit of its own, as a form question may have, says that limit", () => {
+    draw(
+      "en",
+      <FilePicker
+        hint={CUSTOM_FIELD_FILE_HINT}
+        maxFileSizeInBytes={5 * 1024 * 1024}
+      />,
+    );
+    expect(hintOf().textContent).toBe(
+      "PDF, Office and OpenDocument files, pictures, text, CSV, JSON, ZIP or PCAP, up to 5 MB.",
+    );
+    cleanup();
+
+    draw(
+      "fa",
+      <FilePicker
+        hint={CUSTOM_FIELD_FILE_HINT}
+        maxFileSizeInBytes={5 * 1024 * 1024}
+      />,
+    );
+    expect(hintOf().textContent).toBe(
+      sentenceIn("fa", CUSTOM_FIELD_FILE_HINT, isolated("۵ MB")),
+    );
+  });
+
+  /*
+   * Every language's sentences leave their limit to the picker: one
+   * {{size}} each, and no size of their own ("10 MB", "10MB", "10 Mo",
+   * "10 МБ").
+   */
+  const ACCOUNTS_LOCALES: string = path.resolve(
+    __dirname,
+    "../../../../App/FeatureSet/Accounts/src/Locales",
+  );
+
+  const accountsWords: (language: string) => Record<string, string> = (
+    language: string,
+  ): Record<string, string> => {
+    return JSON.parse(
+      fs.readFileSync(path.join(ACCOUNTS_LOCALES, `${language}.json`), "utf8"),
+    ) as Record<string, string>;
+  };
+
+  test.each([
+    ...DASHBOARD_LANGUAGES.map((language: string): [string, string] => {
+      return ["Dashboard", language];
+    }),
+    ...ACCOUNTS_LANGUAGES.map((language: string): [string, string] => {
+      return ["Accounts", language];
+    }),
+  ])(
+    "%s %s: both sentences leave their limit to the picker",
+    (app: string, language: string) => {
+      const words: Record<string, string> =
+        app === "Dashboard"
+          ? readDashboardLocale(language)
+          : accountsWords(language);
+
+      for (const key of [CUSTOM_FIELD_FILE_HINT, CUSTOM_FIELD_FILES_HINT]) {
+        const sentence: string | undefined = words[key];
+
+        expect(sentence).toBeDefined();
+        expect(sentence!.split("{{size}}")).toHaveLength(2);
+        expect(sentence).not.toMatch(/[0-9۰-۹]\s?(MB|Mo|МБ)/);
+      }
+    },
+  );
 });

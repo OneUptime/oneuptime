@@ -171,13 +171,14 @@ function locale(language: string): Record<string, string> {
   ) as Record<string, string>;
 }
 
-// The Dashboard's German and Persian words, as the fixture draws them.
 /*
- * Where each size in an element is drawn - "۶٫۰ TiB", a number in Persian
- * digits and a unit - measured with a text Range over its number and one
- * over its unit (issue #7191). On a page read from the right a size drawn
- * as bare text put its unit first ("TiB ۶٫۰"); read its own way, its
- * number's box ends left of its unit's.
+ * Where each size in an element is drawn - "۶٫۰ TiB" or "6.0 TiB", a number
+ * in Persian or Latin digits and a unit - measured with a text Range over
+ * its number and one over its unit (issue #7191). On a page read from the
+ * right a size drawn as bare text put its unit first ("TiB ۶٫۰"); read its
+ * own way, its number's box ends left of its unit's. In a narrow column a
+ * size drawn as two words broke between them, its unit alone on the next
+ * line; kept whole, its number and unit share a line.
  */
 export interface DrawnSize {
   text: string;
@@ -198,7 +199,7 @@ export async function drawnSizes(locator: Locator): Promise<Array<DrawnSize>> {
     while (node) {
       const text: Text = node as Text;
       const pattern: RegExp =
-        /([\u06F0-\u06F9][\u06F0-\u06F9\u066B\u066C]*) (B|KiB|MiB|GiB|TiB)\b/g;
+        /([0-9\u06F0-\u06F9][0-9.,\u06F0-\u06F9\u066B\u066C]*) (B|KiB|MiB|GiB|TiB)\b/g;
       let match: RegExpExecArray | null = pattern.exec(text.data);
 
       while (match) {
@@ -253,8 +254,10 @@ export async function expectSizesNumberFirst(
   return sizes;
 }
 
+// The Dashboard's German, Persian and Arabic words, as the fixture draws them.
 export const GERMAN: Record<string, string> = locale("de");
 export const PERSIAN: Record<string, string> = locale("fa");
+export const ARABIC: Record<string, string> = locale("ar");
 
 // A word as a locale draws it: the English while it has no translation of its own.
 export function inLocale(

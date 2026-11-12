@@ -156,7 +156,10 @@ function AllocatedCell(props: {
 
   /*
    * Each amount reads its own way ("۶٫۰ TiB", its number first on a page
-   * read from the right) and the cell the page's way (issue #7191).
+   * read from the right) and the cell the page's way (issue #7191). A
+   * narrow column breaks the line between the cell's parts - "674 GiB",
+   * "/ 762 GiB", "(88%)" - never inside one, where it left a unit alone on
+   * the line under its number.
    */
   return (
     <span data-testid="openstack-capacity-allocated">
@@ -165,9 +168,10 @@ function AllocatedCell(props: {
           resource.resourceClass,
           resource.used,
         )}
+        className="whitespace-nowrap"
         dataTestId="openstack-capacity-allocated-used"
       />{" "}
-      <span className="text-gray-400">
+      <span className="whitespace-nowrap text-gray-400">
         /{" "}
         <IsolatedText
           text={formatOpenStackCapacityAmount(
@@ -178,7 +182,7 @@ function AllocatedCell(props: {
         />
       </span>
       {resource.percent !== null ? (
-        <span className="ms-1 text-gray-500">
+        <span className="ms-1 whitespace-nowrap text-gray-500">
           ({formatOpenStackPercent(resource.percent)})
         </span>
       ) : (
@@ -384,7 +388,7 @@ const ZonesTable: FunctionComponent<{
                       )}
                       className={LINK_CLASS_NAME}
                     >
-                      <bdi>{zone.name}</bdi>
+                      <bdi className="whitespace-nowrap">{zone.name}</bdi>
                     </Link>
                   ) : (
                     zoneTitle(zone.name, translator)
@@ -404,8 +408,12 @@ const ZonesTable: FunctionComponent<{
                       {translator.translateTemplate(
                         "{{lost}} lost, {{disabled}} disabled",
                         {
-                          lost: String(zone.lostHostCount),
-                          disabled: String(zone.disabledHostCount),
+                          lost: zone.lostHostCount.toLocaleString(
+                            getReaderNumberLocale(),
+                          ),
+                          disabled: zone.disabledHostCount.toLocaleString(
+                            getReaderNumberLocale(),
+                          ),
                         },
                       )}
                     </div>
@@ -1206,7 +1214,11 @@ const OpenStackCloudCapacity: FunctionComponent<
           title={translationKey("What is short")}
           description={translator.translateTemplate(
             "Soonest first. What is at the alert templates' line, under {{days}} days, is in red. All of it is allocation: what has been promised, not what is busy.",
-            { days: String(OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS) },
+            {
+              days: OPENSTACK_CAPACITY_FORECAST_WARNING_DAYS.toLocaleString(
+                getReaderNumberLocale(),
+              ),
+            },
           )}
         >
           {shortages.length > 0 ? (
