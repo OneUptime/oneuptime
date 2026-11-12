@@ -45,9 +45,9 @@ import {
 
 const BUTTON_WIDTH_IN_PX: number = 92;
 
-// A side class written into the picker's own class list.
+// A side class written into the picker's own class list (bounded: linear).
 const SIDE_CLASS_NAME: RegExp =
-  /(?:^|[\s"'`])-?(?:left|right|start|end)-(?:0|px|\d+|\[[^\]]*\])(?=[\s"'`]|$)/;
+  /(?:^|[\s"'`])-?(?:left|right|start|end)-(?:px|\d{1,4}|\[[^\]\s]{1,40}\])(?=[\s"'`]|$)/;
 
 const SWITCHER_SOURCE: string = path.resolve(
   __dirname,
