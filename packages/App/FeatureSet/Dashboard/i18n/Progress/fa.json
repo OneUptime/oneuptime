@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51094,
-    "untranslated": 6680
+    "untranslated": 6439
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -17,10 +17,12 @@
     "2xx",
     "3xx",
     "4xx",
+    "5432 (PostgreSQL), 3306 (MySQL), 1433 (SQL Server), 8123 (ClickHouse)",
     "5xx",
     "@alice",
     "A-Z",
     "AES",
+    "AWS ECS · us-east-1 · 123456789012",
     "AWS Lambda",
     "Active + Clean",
     "Add custom connector",
@@ -160,6 +162,7 @@
     "Resource class",
     "Runner",
     "SELECT * FROM orders WHERE total < 0",
+    "SELECT COUNT(*) AS value FROM orders WHERE created_at < now() - interval '1 hour'",
     "SELECT COUNT(*) FROM orders WHERE status = 'CANCELLED'",
     "SELECT COUNT(*) FROM orders WHERE total < 0",
     "SHA",
@@ -212,6 +215,7 @@
     "alice",
     "alice@example.com",
     "amphora",
+    "analytics",
     "arm",
     "arm64",
     "aws_lambda · us-east-1 · nodejs 20",
@@ -221,7 +225,9 @@
     "compute-07 · RegionOne",
     "customer facing|tier-1",
     "db-primary",
+    "dbt",
     "device_name=\"SFW\" log_component=\"IPSec\" con_name=\"HQ-Branch1\" status=\"Terminated\"",
+    "exports/orders/\nevents/2026/",
     "f3a1c0d2e4b64f7c8a9d0e1f2a3b4c5d",
     "failed password",
     "govc",
@@ -248,6 +254,7 @@
     "oneuptime-reader",
     "ops/s",
     "ops@example.com",
+    "orders_.*",
     "p95",
     "p95 {{latency}}",
     "pending\npaid\nrefunded",
