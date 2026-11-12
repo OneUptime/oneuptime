@@ -11,6 +11,7 @@ import React, {
 import { DashboardValueTrendDirection } from "Common/Types/Dashboard/DashboardComponents/DashboardValueComponent";
 import Icon from "Common/UI/Components/Icon/Icon";
 import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import IconProp from "Common/Types/Icon/IconProp";
 import Tooltip from "Common/UI/Components/Tooltip/Tooltip";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -1033,12 +1034,12 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           </div>
         )}
         {showStateTitle ? (
-          <p
+          <DashboardWidgetLine
+            as="p"
+            text={setupTitle}
             className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
             title={setupTitle}
-          >
-            {setupTitle}
-          </p>
+          />
         ) : (
           <></>
         )}
@@ -1113,12 +1114,12 @@ const ValueWidgetView: FunctionComponent<ValueWidgetViewProps> = (
           </div>
         )}
         {showStateTitle && props.title ? (
-          <p
+          <DashboardWidgetLine
+            as="p"
+            text={props.title}
             className="text-xs font-medium text-gray-500 max-w-full line-clamp-1 px-1"
             title={props.title}
-          >
-            {props.title}
-          </p>
+          />
         ) : (
           <></>
         )}

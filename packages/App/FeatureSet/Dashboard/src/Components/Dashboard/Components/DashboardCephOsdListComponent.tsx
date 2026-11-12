@@ -3,6 +3,7 @@ import DashboardCephOsdListComponent from "Common/Types/Dashboard/DashboardCompo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
@@ -239,10 +240,16 @@ function renderOsdRow(r: CephResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {(r.hostname as string) || "—"}
-      </td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
+      <ResourceListNameCell
+        name={(r.hostname as string) || "—"}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
       <td className="px-3 py-2">
         <span
           className="inline-flex items-center gap-1.5 text-xs font-medium"
@@ -256,9 +263,10 @@ function renderOsdRow(r: CephResource): ReactElement {
         </span>
       </td>
       <td className="px-3 py-2">{renderUsageBar(getUsedPercent(r))}</td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {clusterName}
-      </td>
+      <ResourceListNameCell
+        name={clusterName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

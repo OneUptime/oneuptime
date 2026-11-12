@@ -3,6 +3,7 @@ import DashboardProxmoxNodeListComponent from "Common/Types/Dashboard/DashboardC
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
@@ -159,7 +160,12 @@ function renderNodeRow(r: ProxmoxResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
       <td className="px-3 py-2">
         <span
           className="inline-flex items-center gap-1.5 text-xs font-medium"
@@ -178,9 +184,10 @@ function renderNodeRow(r: ProxmoxResource): ReactElement {
       <td className="px-3 py-2 text-xs text-gray-500">
         {formatPercent(r.latestMemoryPercent as number | undefined)}
       </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {clusterName}
-      </td>
+      <ResourceListNameCell
+        name={clusterName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

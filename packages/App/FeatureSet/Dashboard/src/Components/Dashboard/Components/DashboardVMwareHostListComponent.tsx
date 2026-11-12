@@ -3,6 +3,7 @@ import DashboardVMwareHostListComponent from "Common/Types/Dashboard/DashboardCo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import DashboardModelResourceListBase from "../../Infrastructure/DashboardModelResourceListBase";
@@ -262,7 +263,12 @@ function renderHostRow(r: VMwareResource): ReactElement {
       key={id}
       className="hover:bg-gray-50/50 transition-colors duration-100 group"
     >
-      <td className="px-3 py-2 text-xs text-gray-700 truncate">{detailLink}</td>
+      <ResourceListNameCell
+        name={name}
+        className="px-3 py-2 text-xs text-gray-700 truncate"
+      >
+        {detailLink}
+      </ResourceListNameCell>
       <td
         className="px-3 py-2 text-xs"
         style={{ color: getPercentTextColor(r.latestCpuPercent) }}
@@ -281,15 +287,15 @@ function renderHostRow(r: VMwareResource): ReactElement {
       >
         {formatPercent(r.latestMemoryPercent)}
       </td>
-      <td
+      <ResourceListNameCell
+        name={clusterName}
         className="px-3 py-2 text-xs text-gray-500 truncate"
         title={(r.datacenterName as string) || undefined}
-      >
-        {clusterName}
-      </td>
-      <td className="px-3 py-2 text-xs text-gray-500 truncate">
-        {vcenterName}
-      </td>
+      />
+      <ResourceListNameCell
+        name={vcenterName}
+        className="px-3 py-2 text-xs text-gray-500 truncate"
+      />
     </tr>
   );
 }

@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50698,
-    "untranslated": 9756
+    "keys": 50743,
+    "untranslated": 9753
   },
   "sameAsEnglish": [
     " is",
@@ -783,6 +783,7 @@
     "{{minutes}} min",
     "{{monitorName}} is offline",
     "{{size}} in {{duration}}",
+    "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",
     "{{subject}} was {{value}}",
     "{{tokens}} tokens",

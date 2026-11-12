@@ -52,6 +52,8 @@ import {
   SessionReplaySummary,
 } from "./SessionReplayTable";
 import InlineSeparator from "Common/UI/Components/InlineSeparator/InlineSeparator";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
 
 /*
  * "Watch what the user saw" - the embeddable card for the exception and
@@ -89,10 +91,12 @@ export interface ReplayCardFailure {
 /*
  * The card's words, in English: it draws each in the reader's language
  * (Locales/README.md). Its dates already follow the reader, and so do Show
- * all and Show fewer.
+ * all and Show fewer. The permission one's {{permission}} is the list
+ * permission as the roles screen names it (describeReplayCardFailure fills
+ * it).
  */
 export const REPLAY_CARD_PERMISSION_COPY: string = translationKey(
-  "A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the Read Session Replay permission.",
+  'A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the "{{permission}}" permission.',
 );
 
 export const REPLAY_CARD_PLAN_COPY: string = translationKey(
@@ -210,6 +214,14 @@ export function describeReplayCardFailure(
       },
       { setsValuesApart: true },
     );
+  }
+
+  if (failure.kind === "permission") {
+    return translator.translateTemplate(failure.message, {
+      permission: getSessionReplayPermissionTitle(
+        Permission.ReadRumSessionReplay,
+      ),
+    });
   }
 
   return translator.translateText(failure.message) || failure.message;

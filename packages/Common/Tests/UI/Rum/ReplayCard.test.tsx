@@ -537,7 +537,13 @@ describe("ReplayCard failures (correlation-15)", () => {
     const hint: HTMLElement = await screen.findByTestId("replay-card-hint");
 
     expect(hint).toHaveAttribute("data-failure-kind", "permission");
-    expect(hint).toHaveTextContent(REPLAY_CARD_PERMISSION_COPY);
+    // The permission as the roles screen names it, in its place.
+    expect(hint).toHaveTextContent(
+      REPLAY_CARD_PERMISSION_COPY.replace(
+        "{{permission}}",
+        "List Session Replays",
+      ),
+    );
     expect(screen.queryByTestId("replay-card-retry")).toBeNull();
   });
 

@@ -122,7 +122,7 @@ export default class LogMonitorCriteria {
     return null;
   }
 
-  // "For con_name = HQ-Branch1: Log Count is 3 which is greater than 0."
+  // "For con_name = HQ-Branch1: Log Count was 3, above the 0 threshold."
   private static forGroup(
     group: LogMonitorGroupResult,
     message: string,

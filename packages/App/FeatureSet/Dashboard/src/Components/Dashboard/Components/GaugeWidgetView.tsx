@@ -1,7 +1,7 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import ValueFormatter from "Common/Utils/ValueFormatter";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import { Translator } from "Common/UI/Utils/TranslateTemplate";
+import { translationKey, Translator } from "Common/UI/Utils/TranslateTemplate";
 import {
   GaugeArcGeometry,
   computeGaugeArcGeometry,
@@ -11,6 +11,10 @@ import {
   computeGaugeValueFontPx,
   gaugeAngleForPercentage,
 } from "./GaugeArcData";
+import DashboardWidgetLine from "./DashboardWidgetLine";
+
+// The row of the arc's bounds under it: the minimum, then the maximum.
+export const GAUGE_BOUNDS_TEST_ID: string = "gauge-bounds";
 
 /*
  * The radial gauge's PRESENTATION, with no opinion about where its number
@@ -307,19 +311,22 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
   const valueFontPx: number = baseValueFontPx * widthScale;
   const unitFontPx: number = baseUnitFontPx * widthScale;
 
-  // Status label derived from threshold state
-  let statusLabel: string = "Healthy";
+  /*
+   * Status label derived from threshold state, read out in the reader's
+   * words: it was "HEALTHY" under an Arabic or a German gauge.
+   */
+  let statusLabel: string = translationKey("Healthy");
   let statusTextColor: string = "text-emerald-600";
   let statusDotColor: string = "#10b981";
   if (criticalThreshold !== undefined && scaledValue >= criticalThreshold) {
-    statusLabel = "Critical";
+    statusLabel = translationKey("Critical");
     statusTextColor = "text-red-600";
     statusDotColor = "#ef4444";
   } else if (
     warningThreshold !== undefined &&
     scaledValue >= warningThreshold
   ) {
-    statusLabel = "Warning";
+    statusLabel = translationKey("Warning");
     statusTextColor = "text-amber-600";
     statusDotColor = "#f59e0b";
   }
@@ -398,9 +405,10 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
       }}
     >
       {props.title && (
-        <div className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center">
-          {props.title}
-        </div>
+        <DashboardWidgetLine
+          text={props.title}
+          className="text-[11px] font-medium text-gray-400 truncate uppercase tracking-wider w-full text-center"
+        />
       )}
 
       <div
@@ -512,14 +520,21 @@ const GaugeWidgetView: FunctionComponent<GaugeWidgetViewProps> = (
               }}
             />
             <span className="font-medium tracking-wide uppercase">
-              {statusLabel}
+              {translator.translateText(statusLabel) || statusLabel}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Min/Max footer */}
+      {/*
+       * Min/Max footer, under the arc's two ends. The arc fills from the
+       * left in every language, as a chart's time runs, so its bounds are
+       * laid out left to right too: mirrored on an Arabic board, "100" sat
+       * under the end the fill starts from.
+       */}
       <div
+        dir="ltr"
+        data-testid={GAUGE_BOUNDS_TEST_ID}
         className="flex justify-between w-full text-[10px] text-gray-400 tabular-nums"
         style={{ maxWidth: `${gaugeSize}px` }}
       >

@@ -66,6 +66,8 @@ import {
   Translator,
 } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
 import Columns from "Common/UI/Components/Table/Types/Columns";
 import FieldType from "Common/UI/Components/Types/FieldType";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
@@ -2810,8 +2812,14 @@ const SessionReplayTable: FunctionComponent<SessionReplayTableProps> = (
                 dataTestId="identity-filter-ignored"
                 strongTitle="User filter ignored"
                 title={translator.translateTemplate(
-                  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a project admin for the session replay identity permission, or filter by URL, tag or device instead.',
-                  { user: advancedFilters.identifiedUserRef.trim() },
+                  'Your role cannot read end-user identity, so the server dropped the user filter "{{user}}" and this list is NOT narrowed to that user. Ask a project admin for the "{{permission}}" permission, or filter by URL, tag or device instead.',
+                  {
+                    user: advancedFilters.identifiedUserRef.trim(),
+                    // End-user identity is read with the watch permission.
+                    permission: getSessionReplayPermissionTitle(
+                      Permission.ReadRumSessionReplayPayload,
+                    ),
+                  },
                 )}
               />
             )}

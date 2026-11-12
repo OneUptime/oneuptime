@@ -128,10 +128,10 @@ describe("describeReplayTabCounts", () => {
 
   test("looks every count up whole and sets them off the language's way", () => {
     expect(describeReplayTabCounts(tabs, MARKED)).toBe(
-      "⟦6 tabs⟧ · ⟦2 open⟧ · ⟦2 closed⟧ · ⟦2 without footage⟧",
+      "⟦6 tabs⟧ · ⟦2 still open⟧ · ⟦2 closed⟧ · ⟦2 without footage⟧",
     );
     expect(describeReplayTabCounts(tabs)).toBe(
-      "6 tabs · 2 open · 2 closed · 2 without footage",
+      "6 tabs · 2 still open · 2 closed · 2 without footage",
     );
   });
 

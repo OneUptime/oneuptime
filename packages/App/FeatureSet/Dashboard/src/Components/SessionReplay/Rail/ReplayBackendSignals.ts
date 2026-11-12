@@ -10,7 +10,8 @@ import Query from "Common/Types/BaseDatabase/Query";
 import Select from "Common/Types/BaseDatabase/Select";
 import Sort from "Common/Types/BaseDatabase/Sort";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import Permission, { PermissionHelper } from "Common/Types/Permission";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "../SessionReplayPermissionTitle";
 import {
   createTranslator,
   TranslatableTerm,
@@ -640,13 +641,9 @@ export type ReplayBackendSignalsFailure =
   | { status: "locked"; lockedPermission: string }
   | { status: "error"; errorMessage: string };
 
+// The permission as the roles screen names it.
 function permissionTitle(permission: Permission): string {
-  try {
-    return PermissionHelper.getTitle(permission);
-  } catch {
-    /* A permission without props is a programming error; the enum value still names it. */
-    return String(permission);
-  }
+  return getSessionReplayPermissionTitle(permission);
 }
 
 function readStatusCode(error: unknown): number | null {

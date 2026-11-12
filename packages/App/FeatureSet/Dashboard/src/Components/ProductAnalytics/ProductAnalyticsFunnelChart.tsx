@@ -167,12 +167,33 @@ const ProductAnalyticsFunnelChart: FunctionComponent<{
                     className="min-w-0 truncate text-sm font-medium text-gray-900"
                     dir="auto"
                     title={row.label}
+                    data-testid={`${props.dataTestId}-label`}
                   >
                     {row.label}
                   </span>
-                  <span className="flex-none text-sm tabular-nums text-gray-900">
-                    {row.people}
-                    <span className="ms-2 text-gray-500">{row.share}</span>
+                  {/*
+                   * The people and their share as two boxes a gap apart:
+                   * Arabic writes the count last ("الأشخاص: 4,210"), and
+                   * as one line with the share after it the two numbers
+                   * met in one run, "4,210100%", the margin between them
+                   * drawn outside it.
+                   */}
+                  <span
+                    className="flex flex-none items-baseline gap-2 text-sm tabular-nums"
+                    data-testid={`${props.dataTestId}-figures`}
+                  >
+                    <span
+                      className="text-gray-900"
+                      data-testid={`${props.dataTestId}-people`}
+                    >
+                      {row.people}
+                    </span>
+                    <span
+                      className="text-gray-500"
+                      data-testid={`${props.dataTestId}-share`}
+                    >
+                      {row.share}
+                    </span>
                   </span>
                 </div>
                 <div

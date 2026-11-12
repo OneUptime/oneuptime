@@ -1951,7 +1951,7 @@ test("the tab strip leads with the tabs that are still open", async ({
 
   await expect(page.getByTestId("replay-tab-switcher")).toBeVisible();
   await expect(page.getByTestId("replay-tab-summary")).toHaveText(
-    "8 tabs · 2 open · 5 closed · 1 without footage",
+    "8 tabs · 2 still open · 5 closed · 1 without footage",
   );
 
   const pills: Locator = page.getByTestId("replay-tab-pill");
@@ -1972,7 +1972,7 @@ test("the tab strip leads with the tabs that are still open", async ({
   expect(statuses.length).toBeLessThanOrEqual(6);
   expect(statuses).toEqual(["open", "open", "closed"]);
   await expect(page.getByTestId("replay-tab-strip-divider")).toHaveText(
-    "Closed",
+    "Closed tabs",
   );
 
   /* Each pill says which page its tab was on. */
@@ -1996,10 +1996,11 @@ test("the tab picker groups every tab and searches them by page and number", asy
   await openPlayer(page, "?tabs=many");
   await openTabPicker(page);
 
+  /* Each heading counts its tabs, as the summary line does. */
   await expect(page.getByTestId("replay-tab-group")).toHaveText([
-    "Open · 2",
-    "Closed · 5",
-    "No footage · 1",
+    "2 still open",
+    "5 closed",
+    "1 without footage",
   ]);
   await expect(page.getByTestId("replay-tab-option")).toHaveCount(8);
   /* A tab that stored nothing is listed, and cannot be opened. */

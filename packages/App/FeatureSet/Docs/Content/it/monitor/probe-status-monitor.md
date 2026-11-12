@@ -67,7 +67,7 @@ Entrambi sono numeri interi, confrontati con **Maggiore di**, **Minore di**, **U
 
 ### Aspettare di più prima di un incidente
 
-Una sonda è disconnessa solo dopo tre minuti di silenzio, quindi un rapido riavvio non apre nulla. Per aspettare di più, spunta **Valuta questo criterio su un periodo di tempo** sotto il filtro, scegli **All Values** in **Valuta** e una finestra in **Per gli ultimi (in minuti)**. Con cinque minuti, una sonda deve restare disconnessa per altri cinque minuti prima che l'incidente venga dichiarato.
+Una sonda è disconnessa solo dopo tre minuti di silenzio, quindi un rapido riavvio non apre nulla. Per aspettare di più, spunta **Valuta questo criterio su un periodo di tempo** sotto il filtro, scegli **Tutti i valori** in **Valuta** e una finestra in **Per gli ultimi (in minuti)**. Con cinque minuti, una sonda deve restare disconnessa per altri cinque minuti prima che l'incidente venga dichiarato.
 
 ## Metriche
 

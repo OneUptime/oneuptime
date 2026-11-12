@@ -67,7 +67,7 @@ Os dois são números inteiros, comparados com **Maior que**, **Menor que**, **I
 
 ### Esperar mais antes de um incidente
 
-Uma sonda só fica desconectada após três minutos de silêncio, então um reinício rápido não abre nada. Para esperar mais, marque **Avaliar este critério durante um período de tempo** abaixo do filtro, escolha **All Values** em **Avaliar** e uma janela em **Nos últimos (em minutos)**. Com cinco minutos, uma sonda precisa continuar desconectada por mais cinco minutos antes que o incidente seja declarado.
+Uma sonda só fica desconectada após três minutos de silêncio, então um reinício rápido não abre nada. Para esperar mais, marque **Avaliar este critério durante um período de tempo** abaixo do filtro, escolha **Todos os valores** em **Avaliar** e uma janela em **Nos últimos (em minutos)**. Com cinco minutos, uma sonda precisa continuar desconectada por mais cinco minutos antes que o incidente seja declarado.
 
 ## Métricas
 
