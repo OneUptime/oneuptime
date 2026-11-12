@@ -19,6 +19,7 @@ check, from what the fixture's server kept, that the job was really done.
 | --- | --- | --- |
 | Create a website monitor | Home, in a new project | the monitor's page opens, its probes checking the address |
 | Make sure I am told when the monitor goes down | the website monitor's page | an on-call policy pages me for every new incident and alert |
+| Know when my website or API is down (guided setup) | Home, in a new project | the monitor checks the address, an on-call policy pages me for every new incident and alert, and my test page was acknowledged |
 | Get paged by phone and escalate to a teammate (Cloud) | Home, on OneUptime Cloud | calls are on and paid for, my number is verified, and a policy calls me, then pages Grace |
 | Publish a status page that shows the monitor | Home, with the website monitor | the status page shows the monitor |
 | Send first telemetry and get an alert on it | Home, in a new project | the first logs are in and a Logs monitor alerts on them |
@@ -141,7 +142,8 @@ same pages.
 
 `?seed=monitor` adds the website monitor, `?seed=phones` turns SMS and calls on with
 money in the balance, `?as=member` signs in as Grace and `?billing=on` draws OneUptime
-Cloud.
+Cloud. A new monitor is checked at once by both probes (each answering 200 in 312 ms),
+and a test page to yourself is acknowledged at once.
 
 ## Run it
 

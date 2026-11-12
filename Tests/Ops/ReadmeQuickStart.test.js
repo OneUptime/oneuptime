@@ -24,6 +24,7 @@ const path = require("path");
 const { spawnSync } = require("child_process");
 const GenerateDatabasePassword = require("../../Scripts/Install/GenerateDatabasePassword");
 const ReplacePlaceholderSecrets = require("../../Scripts/Install/ReplacePlaceholderSecrets");
+const Preflight = require("../../Scripts/Install/Preflight");
 
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
 const TRANSLATIONS_DIR = "Docs/translations";
@@ -31,6 +32,15 @@ const PLACEHOLDER = "please-change-this-to-random-value";
 const PLACEHOLDER_MARK = "please-change-this";
 const CONFIG_STEP = "# 2. Create your config";
 const COPY_LINE = "cp config.example.env config.env";
+const HOST_STEP = "# 3. Set HOST to the address people will use";
+/*
+ * Step 3 writes the README's placeholder into HOST, for the reader to replace
+ * before they run it. Run as it was copied, npm start stops on it
+ * (Preflight's HOST_PLACEHOLDER), so the block cannot start OneUptime on an
+ * address nobody set. -i.bak and rm, not -i alone: macOS's sed needs the
+ * suffix, and no backup of config.env is left behind.
+ */
+const HOST_LINE = `sed -i.bak "s/^HOST=.*/HOST=${Preflight.HOST_PLACEHOLDER}/" config.env && rm config.env.bak`;
 const UP_LINE = "OneUptime is up!";
 const RANDOM_VALUE = /^[0-9a-f]{64}$/;
 const README_TRANSLATION = /^README\.[\w-]+\.md$/;
@@ -43,7 +53,10 @@ const EXPECTED_QUICK_START = [
   CONFIG_STEP,
   COPY_LINE,
   "",
-  "# 3. Start everything",
+  HOST_STEP,
+  HOST_LINE,
+  "",
+  "# 4. Start everything",
   "npm start",
 ];
 
@@ -130,7 +143,7 @@ describe("the README quick start", () => {
   });
 
   test.each(readmes())(
-    "%s clones the release branch, creates config.env and runs npm start",
+    "%s clones the release branch, creates config.env, sets HOST and runs npm start",
     (readme) => {
       expect(quickStartOf(readme)).toEqual([EXPECTED_QUICK_START]);
     },
@@ -346,4 +359,127 @@ describe("running the quick start on config.example.env, up to npm start's secre
     expect(second.replaced).toEqual([]);
     expect(dockerCalls).toHaveLength(1);
   });
+});
+
+describe("running the quick start's step 3, which sets HOST", () => {
+  const ADDRESS = "oneuptime.example.com";
+  let template;
+
+  // Steps 2 and 3 of the block, with `address` in place of the placeholder.
+  function runHostSteps(address) {
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), "oneuptime-host-"));
+
+    try {
+      fs.copyFileSync(
+        path.join(REPO_ROOT, "config.example.env"),
+        path.join(directory, "config.example.env"),
+      );
+      const steps = EXPECTED_QUICK_START.slice(
+        EXPECTED_QUICK_START.indexOf(CONFIG_STEP),
+        EXPECTED_QUICK_START.indexOf(HOST_LINE) + 1,
+      ).map((line) => {
+        return line.split(Preflight.HOST_PLACEHOLDER).join(address);
+      });
+      const run = spawnSync("bash", ["-e", "-c", steps.join("\n")], {
+        cwd: directory,
+        encoding: "utf8",
+      });
+
+      return {
+        run,
+        config: fs.readFileSync(path.join(directory, "config.env"), "utf8"),
+        files: fs.readdirSync(directory).sort(),
+      };
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
+  }
+
+  // config.env's KEY=value lines as a Map, as npm start's check reads them.
+  function settingsOf(config) {
+    return new Map(
+      config
+        .split("\n")
+        .filter((line) => {
+          return /^[A-Z_][A-Z0-9_]*=/.test(line);
+        })
+        .map((line) => {
+          return [
+            line.slice(0, line.indexOf("=")),
+            line.slice(line.indexOf("=") + 1),
+          ];
+        }),
+    );
+  }
+
+  beforeAll(() => {
+    template = read("config.example.env");
+  });
+
+  test("with an address in place of the placeholder, HOST is that address and no other line changes", () => {
+    const { run, config, files } = runHostSteps(ADDRESS);
+    const before = template.split("\n");
+    const after = config.split("\n");
+
+    expect(run.stderr).toBe("");
+    expect(run.status).toBe(0);
+    expect(after).toHaveLength(before.length);
+    for (let index = 0; index < before.length; index++) {
+      if (before[index] === "HOST=localhost") {
+        expect(after[index]).toBe(`HOST=${ADDRESS}`);
+      } else {
+        expect(after[index]).toBe(before[index]);
+      }
+    }
+    // HOST is set once, and the template ships it as localhost.
+    expect(
+      before.filter((line) => {
+        return line.startsWith("HOST=");
+      }),
+    ).toEqual(["HOST=localhost"]);
+    // No config.env.bak is left beside config.env.
+    expect(files).toEqual(["config.env", "config.example.env"]);
+  });
+
+  test("npm start's check takes the address it set", () => {
+    const settings = settingsOf(runHostSteps(ADDRESS).config);
+
+    expect(settings.get("HOST")).toBe(ADDRESS);
+    expect(
+      Preflight.hostFindings(settings, {}).filter((finding) => {
+        return finding.level === "stop";
+      }),
+    ).toEqual([]);
+  });
+
+  test("copied and run as it is, it leaves the placeholder in HOST, and npm start stops on it before starting anything", () => {
+    const { run, config } = runHostSteps(Preflight.HOST_PLACEHOLDER);
+    const settings = settingsOf(config);
+
+    expect(run.status).toBe(0);
+    expect(settings.get("HOST")).toBe(Preflight.HOST_PLACEHOLDER);
+    expect(Preflight.hostFindings(settings, {})).toEqual([
+      {
+        level: "stop",
+        message: expect.stringContaining(
+          `HOST in config.env is ${Preflight.HOST_PLACEHOLDER}, which is not an address yet.`,
+        ),
+      },
+    ]);
+    // npm start runs that check first, before the secrets and Docker Compose.
+    expect(startSteps()[0]).toBe("node ./Scripts/Install/Preflight.js");
+  });
+
+  test.each(readmes())(
+    "%s says, right above the block, what to put in place of the placeholder",
+    (readme) => {
+      const markdown = read(readme);
+      const block = markdown.indexOf(`\`\`\`bash\n${EXPECTED_QUICK_START[0]}`);
+      const paragraph = markdown.slice(0, block).trim().split("\n\n").pop();
+
+      expect(block).toBeGreaterThan(0);
+      expect(paragraph).toContain(`\`${Preflight.HOST_PLACEHOLDER}\``);
+      expect(paragraph).toContain("`HOST`");
+    },
+  );
 });

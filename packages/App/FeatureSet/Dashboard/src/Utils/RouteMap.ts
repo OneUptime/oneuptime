@@ -11,6 +11,7 @@ import { MOVED_CODE_ROOT_PATHS } from "../Routes/MovedPagePaths";
 export const MonitorsRoutePath: Dictionary<string> = {
   [PageMap.MONITORS_INOPERATIONAL]: "inoperational",
   [PageMap.MONITOR_CREATE]: "create",
+  [PageMap.MONITOR_GUIDED_SETUP]: "setup",
   [PageMap.MONITORS_DISABLED]: "disabled",
   [PageMap.MONITORS_ARCHIVED]: "archived",
   [PageMap.MONITORS_PROBE_DISCONNECTED]: "probe-disconnected",
@@ -1776,6 +1777,12 @@ const RouteMap: Dictionary<Route> = {
   [PageMap.MONITOR_CREATE]: new Route(
     `/dashboard/${RouteParams.ProjectID}/monitors/${
       MonitorsRoutePath[PageMap.MONITOR_CREATE]
+    }`,
+  ),
+
+  [PageMap.MONITOR_GUIDED_SETUP]: new Route(
+    `/dashboard/${RouteParams.ProjectID}/monitors/${
+      MonitorsRoutePath[PageMap.MONITOR_GUIDED_SETUP]
     }`,
   ),
 

@@ -111,7 +111,7 @@ La documentation est organisée comme la barre latérale, en neuf sections. Choi
 ### Auto-hébergement
 
 :::cards
-- [Installation](/docs/installation/docker-compose): Installer, dimensionner et mettre à jour votre propre OneUptime.
+- [Installation](/docs/installation/self-hosting-guide): Installer, dimensionner et mettre à jour votre propre OneUptime.
 - [Configuration auto-hébergée](/docs/self-hosted/architecture): Architecture, intégrations et fonctionnalités Enterprise pour votre propre installation.
 :::
 

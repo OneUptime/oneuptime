@@ -111,7 +111,7 @@ De documentatie is net als de zijbalk ingedeeld in negen secties. Kies het deel 
 ### Zelf hosten
 
 :::cards
-- [Installatie](/docs/installation/docker-compose): Uw eigen OneUptime installeren, dimensioneren en bijwerken.
+- [Installatie](/docs/installation/self-hosting-guide): Uw eigen OneUptime installeren, dimensioneren en bijwerken.
 - [Zelf-gehoste inrichting](/docs/self-hosted/architecture): Architectuur, integraties en Enterprise-functies voor uw eigen installatie.
 :::
 

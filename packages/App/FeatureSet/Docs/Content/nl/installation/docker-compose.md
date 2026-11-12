@@ -144,6 +144,8 @@ Vervang vóór de eerste start zelf de tijdelijke geheimen, zoals [Genereer will
 Open `http://` gevolgd door uw `HOST` (bijvoorbeeld `http://localhost`) en registreer u. Het eerste account van een nieuwe instantie wordt de hoofdbeheerder ervan, die het Admin Dashboard op `/admin` kan openen.
 
 Iedereen die de pagina kan bereiken, kan zich na u registreren. Om dat te voorkomen, opent u het Admin Dashboard, gaat u naar **Instellingen > Authenticatie** en schakelt u **Registratie toestaan** uit. Mensen die u voor een project uitnodigt, kunnen nog steeds hun account aanmaken.
+
+Maak daarna de server af op `/admin/setup`, waar e-mail, sms en oproepen worden ingesteld en getest: zie [De server afmaken](/docs/installation/self-hosting-guide#de-server-afmaken).
 :::
 
 ### Genereer willekeurige geheimen
@@ -566,8 +568,8 @@ Het Admin Dashboard toont de probe onder **Instellingen > Bewaking > Globale pro
 ## Volgende stappen
 
 :::cards
+- [De server afmaken](/docs/installation/self-hosting-guide#de-server-afmaken): E-mail, dan sms en oproepen, elk met een test.
+- [Snelstart](/docs/introduction/quickstart): Uw eerste monitor, uw eerste dienstbeleid en uw eerste statuspagina.
 - [OneUptime upgraden](/docs/installation/upgrading): Wat elke hoofdversie van u vraagt.
-- [Sizing en capaciteitsplanning](/docs/installation/sizing): Plan geheugen en schijf voor uw telemetrie.
 - [Zelf gehoste architectuur](/docs/self-hosted/architecture): Hoe de onderdelen samenwerken.
-- [Enterprise Edition](/docs/self-hosted/enterprise): Wat de Enterprise-image toevoegt, en de licentie ervan.
 :::

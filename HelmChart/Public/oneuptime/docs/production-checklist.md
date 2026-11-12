@@ -2,6 +2,26 @@
 
 Work through this list to make your OneUptime installation production-ready.
 
+## Reach people
+
+A new server cannot email or page anyone until you set it up. Sign in as the
+first account (the master admin) and open `https://<host>/admin/setup`, the
+Admin Dashboard's server setup checklist. It walks you through each of these,
+with a test for each:
+
+- [ ] **Set up email** under **Settings > Notifications > Emails**, then click
+  **Send test email**. Until email works, OneUptime cannot send invitations,
+  sign-in links or notifications.
+- [ ] **Set up SMS and calls** (a Twilio account) under
+  **Settings > Notifications > Call and SMS**, then click **Send test SMS** and
+  **Make test call**, or choose **Use email and push only**.
+- [ ] **Choose who can sign up**: turn off **Let people sign up** under
+  **Settings > Authentication** once your team has its accounts.
+- [ ] **Serve OneUptime over HTTPS** and set `httpProtocol: https`.
+
+The [Self-Hosting Guide](https://oneuptime.com/docs/installation/self-hosting-guide)
+goes through the same steps in order, from installing the chart to a test page.
+
 ## Pin versions
 
 - [ ] **Pin the OneUptime version.** This prevents breaking changes from
