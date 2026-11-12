@@ -20,6 +20,7 @@ import RouteMap, {
 } from "../../../../App/FeatureSet/Dashboard/src/Utils/RouteMap";
 import {
   MOVED_AI_SECTION_PATHS,
+  MOVED_HOME_LIST_PATHS,
   MOVED_INCIDENT_FORM_PATHS,
   MOVED_RUNNER_SETTINGS_PATHS,
   MOVED_USERS_SETTINGS_PATHS,
@@ -81,17 +82,6 @@ const NOT_OFFERED: Readonly<Partial<Record<PageMap, string>>> = {
   [PageMap.INIT_PROJECT]: "a project's address: it opens Home",
   [PageMap.WELCOME]: "the first-run welcome, shown once",
   [PageMap.PROJECT_SSO]: "the sign-in step of a project that requires SSO",
-  [PageMap.HOME_ACTIVE_INCIDENTS]:
-    "a Home tab: Incidents > Active Incidents is offered",
-  [PageMap.HOME_NOT_OPERATIONAL_MONITORS]:
-    "a Home tab: Monitors > Not Operational is offered",
-  [PageMap.HOME_ACTIVE_ALERTS]: "a Home tab: Alerts > Active Alerts is offered",
-  [PageMap.HOME_ACTIVE_EPISODES]:
-    "a Home tab: Alerts > Active Episodes is offered",
-  [PageMap.HOME_ACTIVE_INCIDENT_EPISODES]:
-    "a Home tab: Incidents > Active Episodes is offered",
-  [PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS]:
-    "a Home tab: Scheduled Maintenance > Ongoing Events is offered",
   [PageMap.MONITORS_WORKSPACE_CONNECTIONS]:
     "Connect a workspace: connected from Project Settings > Slack / Microsoft Teams / Mattermost",
   [PageMap.INCIDENTS_WORKSPACE_CONNECTIONS]:
@@ -282,6 +272,9 @@ describe("every page that needs no record is offered by Search, or says why not"
       }),
       ...Object.values(MOVED_AI_SECTION_PATHS).flatMap((part: string) => {
         return [`/incidents/${part}`, `/alerts/${part}`];
+      }),
+      ...Object.values(MOVED_HOME_LIST_PATHS).map((part: string) => {
+        return `/home/${part}`;
       }),
     ];
 

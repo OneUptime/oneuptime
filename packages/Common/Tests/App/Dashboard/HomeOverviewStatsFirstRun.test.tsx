@@ -655,7 +655,7 @@ describe("a brand-new project", () => {
      * form would open even for someone who cannot submit it.
      */
     expect(route).not.toBe(routeOf(PageMap.MONITOR_CREATE));
-    expect(route).not.toBe(routeOf(PageMap.HOME_NOT_OPERATIONAL_MONITORS));
+    expect(route).not.toBe(routeOf(PageMap.MONITORS_INOPERATIONAL));
   });
 
   test("the SLO cell opens the SLOs page, where one is created", async () => {
@@ -664,18 +664,36 @@ describe("a brand-new project", () => {
     expect(hrefOf("slos-needing-attention")).toBe(routeOf(PageMap.SLOS));
   });
 
-  test("the other cells open their lists, Active Incidents its own page now", async () => {
+  /*
+   * Each in the product it belongs to, with that product's side menu: Home
+   * keeps no lists of its own (#6857).
+   */
+  test("the other cells open their lists in their own products", async () => {
     await renderStats();
 
     expect(hrefOf("active-incidents")).toBe(
-      routeOf(PageMap.HOME_ACTIVE_INCIDENTS),
+      routeOf(PageMap.UNRESOLVED_INCIDENTS),
     );
-    // Home itself is the overview, not the incidents list.
-    expect(hrefOf("active-incidents")).not.toBe(routeOf(PageMap.HOME));
-    expect(hrefOf("active-alerts")).toBe(routeOf(PageMap.HOME_ACTIVE_ALERTS));
+    expect(hrefOf("active-incidents")).toBe(
+      `/dashboard/${PROJECT_ID}/incidents/unresolved`,
+    );
+    expect(hrefOf("active-alerts")).toBe(routeOf(PageMap.UNRESOLVED_ALERTS));
+    expect(hrefOf("active-alerts")).toBe(
+      `/dashboard/${PROJECT_ID}/alerts/unresolved`,
+    );
     expect(hrefOf("ongoing-maintenance")).toBe(
-      routeOf(PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS),
+      routeOf(PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS),
     );
+    expect(hrefOf("ongoing-maintenance")).toBe(
+      `/dashboard/${PROJECT_ID}/scheduled-maintenance-events/ongoing`,
+    );
+
+    for (const key of STAT_TILE_KEYS) {
+      expect({ key, href: hrefOf(key).includes("/home") }).toEqual({
+        key,
+        href: false,
+      });
+    }
   });
 });
 
@@ -695,7 +713,7 @@ describe("a project with monitors", () => {
       "text-emerald-600",
     );
     expect(hrefOf("not-operational-monitors")).toBe(
-      routeOf(PageMap.HOME_NOT_OPERATIONAL_MONITORS),
+      routeOf(PageMap.MONITORS_INOPERATIONAL),
     );
   });
 
@@ -715,7 +733,7 @@ describe("a project with monitors", () => {
     );
     expect(statusOf("not-operational-monitors")).toHaveClass("text-red-600");
     expect(hrefOf("not-operational-monitors")).toBe(
-      routeOf(PageMap.HOME_NOT_OPERATIONAL_MONITORS),
+      routeOf(PageMap.MONITORS_INOPERATIONAL),
     );
   });
 

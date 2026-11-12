@@ -11,7 +11,7 @@ Inicio es la primera página que ves en un proyecto. Te dice de un vistazo si al
 
 ## Qué muestra Inicio
 
-Abre **Inicio** en la barra superior, o pulsa `g` y luego `h` desde cualquier sitio. Inicio es la vista general de tu proyecto. De arriba abajo, muestra:
+Abre **Inicio** en la barra superior, o pulsa `g` y luego `h` desde cualquier sitio. Inicio es la vista general de tu proyecto, una sola página sin menú lateral. De arriba abajo, muestra:
 
 1. Un cuadro de búsqueda, con **Declarar incidente** y **Crear** al lado.
 2. Una línea que dice si algo va mal, sobre cinco números que cuentan lo que necesita atención.
@@ -42,15 +42,15 @@ Mientras todavía no se monitoriza nada, la línea termina con el botón **Crea 
 
 ### Los cinco números
 
-Cada número cuenta algo, dice si eso te necesita y abre la lista que hay detrás.
+Cada número cuenta algo, dice si eso te necesita y abre la lista que hay detrás, en el producto al que pertenece.
 
-| Número | Qué cuenta | Cuando el número es cero |
-| --- | --- | --- |
-| **Incidentes activos** | Incidentes que no están resueltos | **Todo en orden** |
-| **Alertas activas** | Alertas que no están resueltas | **Todo en orden** |
-| **Monitores no operativos** | Monitores cuyo estado no es uno operativo. Los monitores archivados, y los que tienen el monitoreo desactivado, no cuentan. | **Todos operativos** |
-| **Mantenimiento en curso** | Eventos de mantenimiento programado en curso | **Ninguno en curso** |
-| **SLO en riesgo** | SLO activados que están en riesgo o han agotado su presupuesto de error | **Presupuestos en buen estado** |
+| Número | Qué cuenta | Cuando el número es cero | Abre |
+| --- | --- | --- | --- |
+| **Incidentes activos** | Incidentes que no están resueltos | **Todo en orden** | **Incidentes → Incidentes activos** |
+| **Alertas activas** | Alertas que no están resueltas | **Todo en orden** | **Alertas → Alertas activas** |
+| **Monitores no operativos** | Monitores cuyo estado no es uno operativo. Los monitores archivados, y los que tienen el monitoreo desactivado, no cuentan. | **Todos operativos** | **Monitores → No operativo** |
+| **Mantenimiento en curso** | Eventos de mantenimiento programado en curso | **Ninguno en curso** | **Mantenimiento programado → Eventos en curso** |
+| **SLO en riesgo** | SLO activados que están en riesgo o han agotado su presupuesto de error | **Presupuestos en buen estado** | **SLO** |
 
 Un número mayor que cero muestra **Requiere atención**, o **En curso** y **Presupuesto agotándose** para el mantenimiento y los SLO. Un proyecto sin monitores ve **Aún no hay monitores**, y uno sin SLO ve **Aún no hay SLO**: un proyecto vacío no es lo mismo que uno sano. Esos dos abren entonces las listas **Monitores** y **SLO**, donde creas uno.
 
@@ -91,7 +91,7 @@ La lista desaparece para todos cuando todos los pasos están hechos. Para oculta
 
 ### Requiere atención
 
-**Requiere atención** lista, por su nombre, lo que cuentan los números: los incidentes abiertos, las alertas abiertas, los monitores no operativos, los SLO en riesgo y los mantenimientos en curso, primero lo más urgente. Cada fila muestra su gravedad o su estado, dice cuándo empezó un incidente o una alerta y cuándo termina un mantenimiento, y abre el elemento. De cada tipo se muestran hasta cinco, con **Ver todo** para el resto. Cuando no hay nada abierto, dice **Nada requiere tu atención**.
+**Requiere atención** lista, por su nombre, lo que cuentan los números: los incidentes abiertos, las alertas abiertas, los monitores no operativos, los SLO en riesgo y los mantenimientos en curso, primero lo más urgente. Cada fila muestra su gravedad o su estado, dice cuándo empezó un incidente o una alerta y cuándo termina un mantenimiento, y abre el elemento. De cada tipo se muestran hasta cinco, con **Ver todo** para el resto, que abre la misma lista que su número. Cuando no hay nada abierto, dice **Nada requiere tu atención**.
 
 ### Tu proyecto
 
@@ -102,20 +102,6 @@ La lista desaparece para todos cuando todos los pasos están hechos. Para oculta
 ### Explora OneUptime
 
 **Explora OneUptime** muestra los productos del menú **Productos** una categoría cada vez, empezando por los esenciales. Cada producto dice para qué sirve y se abre al hacer clic en él.
-
-### El menú lateral de Inicio
-
-Inicio no tiene menú lateral: ya muestra todo lo que mostraría el menú. Las listas que abre comparten uno, que muestra cada lista con su contador y vuelve a Inicio desde **Vista general**:
-
-| Sección | Páginas |
-| --- | --- |
-| **Inicio** | **Vista general** |
-| **Incidentes** | **Incidentes activos** y **Episodios activos** |
-| **Alertas** | **Alertas activas** y **Episodios activos** |
-| **Monitores** | **No operativo** |
-| **Eventos programados** | **En curso** |
-
-Un episodio agrupa incidentes o alertas relacionados para que los trabajes como uno solo. Consulta [Conceptos básicos](/docs/introduction/core-concepts#incidentes-y-alertas).
 
 ## Orientarse
 

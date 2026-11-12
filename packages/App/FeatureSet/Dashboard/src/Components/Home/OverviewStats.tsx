@@ -11,7 +11,9 @@ import React, { FunctionComponent, ReactElement } from "react";
 
 /*
  * The five numbers under Home's health headline: what is open right now, one
- * cell per kind, each opening the list it counts.
+ * cell per kind, each opening the list it counts - in its own product, with
+ * that product's side menu, filters and actions (Alerts > Active Alerts for
+ * active alerts). Home is one page and keeps no lists of its own.
  *
  * The counts come in from Home's one parallel batch (HomeOverviewData), which
  * also feeds the headline and the attention list, so the strip makes no
@@ -76,7 +78,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
   {
     key: "active-incidents",
     label: "Active incidents",
-    pageMap: PageMap.HOME_ACTIVE_INCIDENTS,
+    pageMap: PageMap.UNRESOLVED_INCIDENTS,
     count: (counts: HomeCounts): number => {
       return counts.activeIncidents;
     },
@@ -88,7 +90,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
   {
     key: "active-alerts",
     label: "Active alerts",
-    pageMap: PageMap.HOME_ACTIVE_ALERTS,
+    pageMap: PageMap.UNRESOLVED_ALERTS,
     count: (counts: HomeCounts): number => {
       return counts.activeAlerts;
     },
@@ -100,7 +102,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
   {
     key: "not-operational-monitors",
     label: "Not operational monitors",
-    pageMap: PageMap.HOME_NOT_OPERATIONAL_MONITORS,
+    pageMap: PageMap.MONITORS_INOPERATIONAL,
     count: (counts: HomeCounts): number => {
       return counts.notOperationalMonitors;
     },
@@ -124,7 +126,7 @@ const STAT_TILE_DEFINITIONS: Array<StatTileDefinition> = [
   {
     key: "ongoing-maintenance",
     label: "Ongoing maintenance",
-    pageMap: PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+    pageMap: PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
     count: (counts: HomeCounts): number => {
       return counts.ongoingMaintenance;
     },

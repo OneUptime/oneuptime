@@ -11,7 +11,7 @@ Hjem er den første siden du ser i et prosjekt. Den viser med et blikk om noe tr
 
 ## Hva Hjem viser
 
-Åpne **Hjem** i linjen øverst, eller trykk `g` og deretter `h` hvor som helst. Hjem er oversikten over prosjektet ditt. Fra topp til bunn viser den:
+Åpne **Hjem** i linjen øverst, eller trykk `g` og deretter `h` hvor som helst. Hjem er oversikten over prosjektet ditt, én side uten sidemeny. Fra topp til bunn viser den:
 
 1. Et søkefelt, med **Erklær hendelse** og **Opprett** ved siden av.
 2. Én linje som sier om noe er galt, over fem tall som teller det som trenger oppmerksomhet.
@@ -42,15 +42,15 @@ Så lenge ingenting overvåkes ennå, slutter linjen med knappen **Opprett din f
 
 ### De fem tallene
 
-Hvert tall teller noe, sier om det trenger deg, og åpner listen bak det.
+Hvert tall teller noe, sier om det trenger deg, og åpner listen bak det i produktet den hører til.
 
-| Tall | Hva det teller | Når tallet er null |
-| --- | --- | --- |
-| **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** |
-| **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** |
-| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer, og monitorer med overvåking slått av, telles ikke. | **Alle i drift** |
-| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** |
-| **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** |
+| Tall | Hva det teller | Når tallet er null | Åpner |
+| --- | --- | --- | --- |
+| **Aktive hendelser** | Hendelser som ikke er løst | **Alt er i orden** | **Hendelser → Aktive hendelser** |
+| **Aktive varsler** | Varsler som ikke er løst | **Alt er i orden** | **Varsler → Aktive varsler** |
+| **Ikke-operative monitorer** | Monitorer med en status som ikke er en driftsstatus. Arkiverte monitorer, og monitorer med overvåking slått av, telles ikke. | **Alle i drift** | **Monitorer → Ikke operativ** |
+| **Pågående vedlikehold** | Planlagte vedlikehold som pågår | **Ingen pågår** | **Planlagt vedlikehold → Pågående hendelser** |
+| **SLO-er i faresonen** | Påslåtte SLO-er som er i faresonen eller har brukt opp feilbudsjettet | **Budsjettene er sunne** | **SLOs** |
 
 Et tall over null viser **Krever oppmerksomhet**, eller **Pågår** og **Budsjettet brukes opp** for vedlikehold og SLO-er. Et prosjekt uten monitorer ser **Ingen monitorer ennå**, og ett uten SLO-er ser **Ingen SLO-er ennå**: et tomt prosjekt er ikke det samme som et sunt. De to åpner da listene **Monitorer** og **SLOs**, der du oppretter en.
 
@@ -91,7 +91,7 @@ Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tid
 
 ### Krever oppmerksomhet
 
-**Krever oppmerksomhet** viser ved navn det tallene teller: de åpne hendelsene, de åpne varslene, monitorene som ikke er i drift, SLO-ene i faresonen og vedlikeholdet som pågår, det mest presserende først. Hver rad viser alvorlighetsgrad eller status, sier når en hendelse eller et varsel startet og når vedlikeholdet slutter, og åpner oppføringen. Hver type viser opptil fem, med **Vis alle** for resten. Når ingenting er åpent, står det **Ingenting krever oppmerksomheten din**.
+**Krever oppmerksomhet** viser ved navn det tallene teller: de åpne hendelsene, de åpne varslene, monitorene som ikke er i drift, SLO-ene i faresonen og vedlikeholdet som pågår, det mest presserende først. Hver rad viser alvorlighetsgrad eller status, sier når en hendelse eller et varsel startet og når vedlikeholdet slutter, og åpner oppføringen. Hver type viser opptil fem, med **Vis alle** for resten, som åpner den samme listen som tallet. Når ingenting er åpent, står det **Ingenting krever oppmerksomheten din**.
 
 ### Prosjektet ditt
 
@@ -102,20 +102,6 @@ Sjekklisten forsvinner for alle når hvert steg er ferdig. For å skjule den tid
 ### Utforsk OneUptime
 
 **Utforsk OneUptime** viser produktene i menyen **Produkter** én kategori om gangen, og begynner med det grunnleggende. Hvert produkt sier hva det er til, og åpnes når du klikker på det.
-
-### Sidemenyen til Hjem
-
-Hjem har ikke selv en sidemeny: siden viser allerede alt menyen ville vist. Listene den åpner, deler én sidemeny, som viser hver liste med antallet sitt og fører tilbake til Hjem fra **Oversikt**:
-
-| Del | Sider |
-| --- | --- |
-| **Hjem** | **Oversikt** |
-| **Hendelser** | **Aktive hendelser** og **Aktive episoder** |
-| **Varsler** | **Aktive varsler** og **Aktive episoder** |
-| **Monitorer** | **Ikke operativ** |
-| **Planlagte hendelser** | **Pågående** |
-
-En episode samler relaterte hendelser eller varsler, så du jobber med dem som én. Se [Grunnbegreper](/docs/introduction/core-concepts#hendelser-og-varsler).
 
 ## Finn frem
 

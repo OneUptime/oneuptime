@@ -362,22 +362,43 @@ describe("the groups", () => {
     expect(screen.queryByTestId("home-attention-group-maintenance")).toBeNull();
   });
 
-  test("each kind says its total and opens its full list", () => {
+  /*
+   * In the product the kind belongs to, with that product's side menu: Home
+   * keeps no lists of its own (#6857), so Active alerts' View all is Alerts >
+   * Active Alerts, never a page under Home.
+   */
+  test("each kind says its total and opens its full list, in its own product", () => {
     renderCard(busy());
 
-    const expected: Array<[AttentionGroupKey, string, PageMap]> = [
-      [AttentionGroupKey.Incidents, "2", PageMap.HOME_ACTIVE_INCIDENTS],
-      [AttentionGroupKey.Alerts, "1", PageMap.HOME_ACTIVE_ALERTS],
-      [AttentionGroupKey.Monitors, "1", PageMap.HOME_NOT_OPERATIONAL_MONITORS],
-      [AttentionGroupKey.Slos, "2", PageMap.SLOS],
+    const expected: Array<[AttentionGroupKey, string, PageMap, string]> = [
+      [
+        AttentionGroupKey.Incidents,
+        "2",
+        PageMap.UNRESOLVED_INCIDENTS,
+        "incidents/unresolved",
+      ],
+      [
+        AttentionGroupKey.Alerts,
+        "1",
+        PageMap.UNRESOLVED_ALERTS,
+        "alerts/unresolved",
+      ],
+      [
+        AttentionGroupKey.Monitors,
+        "1",
+        PageMap.MONITORS_INOPERATIONAL,
+        "monitors/inoperational",
+      ],
+      [AttentionGroupKey.Slos, "2", PageMap.SLOS, "slos"],
       [
         AttentionGroupKey.Maintenance,
         "1",
-        PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+        PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+        "scheduled-maintenance-events/ongoing",
       ],
     ];
 
-    for (const [key, count, pageMap] of expected) {
+    for (const [key, count, pageMap, address] of expected) {
       expect(
         screen.getByTestId(`home-attention-group-${key}-count`),
       ).toHaveTextContent(count);
@@ -386,6 +407,8 @@ describe("the groups", () => {
       );
       expect(viewAll).toHaveTextContent("View all");
       expect(linkOf(viewAll)).toBe(routeOf(pageMap));
+      expect(linkOf(viewAll)).toBe(`/dashboard/${PROJECT_ID}/${address}`);
+      expect(linkOf(viewAll)).not.toContain("/home");
     }
   });
 

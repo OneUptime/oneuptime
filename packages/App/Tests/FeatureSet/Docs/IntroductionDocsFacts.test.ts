@@ -107,7 +107,6 @@ const HEADING_LINE: RegExp = /^(#{1,6}) /;
 const TABLE_SEPARATOR_CELL: RegExp = /^:?-+:?$/;
 const LINK_IN_CELL: RegExp = /^\[([^\]]+)\]\(([^)]+)\)$/;
 const INLINE_CODE_SPAN: RegExp = /`([^`]+)`/g;
-const BOLD_TEXT: RegExp = /\*\*([^*]+)\*\*/g;
 const WHITESPACE_RUN: RegExp = /\s+/g;
 const DOUBLE_QUOTE: RegExp = /"/g;
 
@@ -1030,6 +1029,10 @@ const TILE_KEY: RegExp = /^ {4}key: "([^"]+)",$/gm;
 const TILE_FIELD: (field: string) => RegExp = (field: string): RegExp => {
   return new RegExp(`^ {4}${field}: "([^"]+)",$`, "m");
 };
+// A tile's own page, not its not-set-up one (that is indented deeper).
+const TILE_PAGE_MAP: RegExp = /^ {4}pageMap: PageMap\.(\w+),$/m;
+const ATTENTION_GROUP_TITLE: RegExp = /title: translationKey\("([^"]+)"\)/;
+const ATTENTION_GROUP_VIEW_ALL: RegExp = /viewAll: PageMap\.(\w+),/;
 const TILE_NOT_SET_UP_LABEL: RegExp =
   /notSetUp: \(counts: HomeCounts\): NotSetUpState => \{\s*return \{[^}]*label: (\w+),/;
 const STRING_CONSTANT: (name: string) => RegExp = (name: string): RegExp => {
@@ -1086,6 +1089,8 @@ function checklistTasks(): Array<ChecklistTask> {
 interface HomeTile {
   key: string;
   label: string;
+  // The page the number opens: a product's own list (#6857).
+  pageMap: string;
   attentionLabel: string;
   allClearLabel: string;
   notSetUpLabel: string | null;
@@ -1113,6 +1118,7 @@ function homeTiles(): Array<HomeTile> {
       label: (
         chunk.match(TILE_FIELD("label")) as RegExpMatchArray
       )[1] as string,
+      pageMap: (chunk.match(TILE_PAGE_MAP) as RegExpMatchArray)[1] as string,
       attentionLabel: (
         chunk.match(TILE_FIELD("attentionLabel")) as RegExpMatchArray
       )[1] as string,
@@ -1599,37 +1605,148 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
-  it("gives Home's side menu its sections and pages, in order", () => {
-    const sections: Array<MenuSection> = sideMenuSections(
-      dashboard("Pages/Home/SideMenu.tsx"),
-    );
-    const rows: Array<Array<string>> = onlyTableOf(
-      sectionOf(HOME, "### Home's side menu"),
-    );
+  /*
+   * Home is one page with no side menu and no lists of its own (#6857): each
+   * number, and each View all, opens the list in the product it belongs to.
+   */
+  it("says Home is one page with no side menu, as its layout draws it", () => {
+    const layout: string = dashboard("Pages/Home/Layout.tsx");
 
-    expect(sections.length).toBe(5);
-    expect(sections[0]).toEqual({ title: "Home", items: ["Overview"] });
+    expect(layout).not.toContain("sideMenu");
+    expect(layout).not.toContain("SideMenu");
+    expect(
+      fs.existsSync(path.join(DASHBOARD_DIR, "Pages/Home/SideMenu.tsx")),
+    ).toBe(false);
+    expect(whatHomeShows).toContain(
+      "Home is the overview of your project, one page with no side menu.",
+    );
+    expect(HOME).not.toContain("side menu:");
+    expect(HOME).not.toContain("### Home's side menu");
+  });
 
-    // Home itself has none: the layout leaves the menu off the overview only.
-    expect(dashboard("Pages/Home/Layout.tsx")).toMatch(
-      /sideMenu=\{\s*isOverview \? undefined : \(\s*<DashboardSideMenu/,
+  it("names the list each number opens the way the Products menu and that product's own menu name it", () => {
+    const tiles: Array<HomeTile> = homeTiles();
+    const tileSection: string = sectionOf(HOME, "### The five numbers");
+    const rows: Array<Array<string>> = onlyTableOf(tileSection);
+    const products: Record<string, string> = (
+      JSON.parse(dashboard("Locales/en.json")) as {
+        navbar: { items: Record<string, string> };
+      }
+    ).navbar.items;
+    // Each list a number opens: its product in the Products menu, and that product's own menu.
+    const owners: Record<string, { product: string; menu: string }> = {
+      UNRESOLVED_INCIDENTS: {
+        product: "incidentsTitle",
+        menu: "Pages/Incidents/SideMenu.tsx",
+      },
+      UNRESOLVED_ALERTS: {
+        product: "alertsTitle",
+        menu: "Pages/Alerts/SideMenu.tsx",
+      },
+      MONITORS_INOPERATIONAL: {
+        product: "monitorsTitle",
+        menu: "Pages/Monitor/SideMenu.tsx",
+      },
+      ONGOING_SCHEDULED_MAINTENANCE_EVENTS: {
+        product: "scheduledMaintenanceTitle",
+        menu: "Pages/ScheduledMaintenanceEvents/SideMenu.tsx",
+      },
+      SLOS: { product: "slosTitle", menu: "Pages/Slo/SideMenu.tsx" },
+    };
+
+    expect(tileSection).toContain(
+      "| Number | What it counts | When the count is zero | Opens |",
     );
-    expect(sectionOf(HOME, "### Home's side menu")).toContain(
-      "Home itself has no side menu: it already shows everything the menu would.",
+    expect(tileSection).toContain(
+      "Each number counts something, says whether that needs you, and opens the list behind it, in the product it belongs to.",
     );
+    // Every number opens a product's own list, never a page of Home's.
+    expect(
+      tiles.map((tile: HomeTile): string => {
+        return tile.pageMap;
+      }),
+    ).toEqual(Object.keys(owners));
+
+    const opens: Array<string> = tiles.map((tile: HomeTile): string => {
+      const owner: { product: string; menu: string } | undefined =
+        owners[tile.pageMap];
+
+      expect({ tile: tile.key, owned: Boolean(owner) }).toEqual({
+        tile: tile.key,
+        owned: true,
+      });
+
+      const product: string = products[owner!.product] as string;
+      const item: string | undefined = oneLine(dashboard(owner!.menu)).match(
+        new RegExp(
+          `title: "([^"]+)", to: RouteUtil\\.populateRouteParams\\( ?RouteMap\\[ ?PageMap\\.${tile.pageMap} ?\\] as Route`,
+        ),
+      )?.[1];
+
+      expect({
+        tile: tile.key,
+        product: typeof product,
+        item: typeof item,
+      }).toEqual({
+        tile: tile.key,
+        product: "string",
+        item: "string",
+      });
+
+      // A product's front list goes by the product's name alone.
+      return item === product ? `**${product}**` : `**${product} → ${item}**`;
+    });
 
     expect(
-      rows.map((row: Array<string>): MenuSection => {
-        return {
-          title: boldSpans(row[0] as string)[0] as string,
-          items: Array.from((row[1] as string).matchAll(BOLD_TEXT)).map(
-            (match: RegExpMatchArray): string => {
-              return match[1] as string;
-            },
-          ),
-        };
+      rows.map((row: Array<string>): string => {
+        return row[3] as string;
       }),
-    ).toEqual(sections);
+    ).toEqual(opens);
+    expect(opens).toEqual([
+      "**Incidents → Active Incidents**",
+      "**Alerts → Active Alerts**",
+      "**Monitors → Not Operational**",
+      "**Scheduled Maintenance → Ongoing Events**",
+      "**SLOs**",
+    ]);
+  });
+
+  it("opens the same list from each View all in Needs attention as from its number", () => {
+    const tiles: Array<HomeTile> = homeTiles();
+    const groups: Array<{ title: string; viewAll: string }> = blockFrom(
+      ATTENTION_SOURCE,
+      "const groups: Array<AttentionGroup>",
+      "];",
+    )
+      .split("key: AttentionGroupKey.")
+      .slice(1)
+      .map((chunk: string): { title: string; viewAll: string } => {
+        return {
+          title: (chunk.match(ATTENTION_GROUP_TITLE) as RegExpMatchArray)[1]!,
+          viewAll: (
+            chunk.match(ATTENTION_GROUP_VIEW_ALL) as RegExpMatchArray
+          )[1]!,
+        };
+      });
+
+    expect(groups.length).toBe(5);
+
+    for (const group of groups) {
+      const tile: HomeTile | undefined = tiles.find(
+        (candidate: HomeTile): boolean => {
+          return candidate.label === group.title;
+        },
+      );
+
+      expect({ kind: group.title, viewAll: group.viewAll }).toEqual({
+        kind: group.title,
+        viewAll: tile?.pageMap,
+      });
+    }
+
+    expect(sectionOf(HOME, "### Needs attention")).toContain(
+      "Each kind shows up to five, with **View all** for the rest, which opens the same list as its number.",
+    );
   });
 
   it("names the Help menu's items, and what a narrow screen leaves out", () => {

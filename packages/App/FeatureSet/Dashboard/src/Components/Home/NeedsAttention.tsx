@@ -316,7 +316,8 @@ const maintenanceRow: (event: ScheduledMaintenance) => AttentionRow = (
 /*
  * The groups with something open, most urgent kind first: incidents affect
  * users, alerts and failing monitors are next, a burning budget after them,
- * and maintenance - planned - last.
+ * and maintenance - planned - last. Each group's View all opens the whole
+ * list in its own product, as the strip's cells do.
  */
 export const getAttentionGroups: (
   data: HomeOverviewData,
@@ -333,7 +334,7 @@ export const getAttentionGroups: (
       iconClassName: "text-red-600",
       count: data.activeIncidents.count,
       rows: data.activeIncidents.items.map(incidentRow),
-      viewAll: PageMap.HOME_ACTIVE_INCIDENTS,
+      viewAll: PageMap.UNRESOLVED_INCIDENTS,
     },
     {
       key: AttentionGroupKey.Alerts,
@@ -342,7 +343,7 @@ export const getAttentionGroups: (
       iconClassName: "text-amber-600",
       count: data.activeAlerts.count,
       rows: data.activeAlerts.items.map(alertRow),
-      viewAll: PageMap.HOME_ACTIVE_ALERTS,
+      viewAll: PageMap.UNRESOLVED_ALERTS,
     },
     {
       key: AttentionGroupKey.Monitors,
@@ -351,7 +352,7 @@ export const getAttentionGroups: (
       iconClassName: "text-red-600",
       count: data.notOperationalMonitors.count,
       rows: data.notOperationalMonitors.items.map(monitorRow),
-      viewAll: PageMap.HOME_NOT_OPERATIONAL_MONITORS,
+      viewAll: PageMap.MONITORS_INOPERATIONAL,
     },
     {
       key: AttentionGroupKey.Slos,
@@ -373,7 +374,7 @@ export const getAttentionGroups: (
       iconClassName: "text-indigo-600",
       count: data.ongoingMaintenance.count,
       rows: data.ongoingMaintenance.items.map(maintenanceRow),
-      viewAll: PageMap.HOME_ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
+      viewAll: PageMap.ONGOING_SCHEDULED_MAINTENANCE_EVENTS,
     },
   ];
 

@@ -246,8 +246,8 @@ export const fetchNotOperationalMonitors: (
  * In progress: in the project's ongoing state, or in a state of its own
  * placed between Ongoing and Ended, such as "Verifying"
  * (Common/Utils/ScheduledMaintenanceStart) - the events the Ongoing list
- * shows. The state list is the one the Home side menu reads on the same
- * mount, through ModelListCache, so it is one request for both.
+ * shows. The state list comes through ModelListCache, the same read the
+ * Scheduled Maintenance menu's Ongoing Events badge and that list make.
  */
 export const fetchOngoingMaintenance: (
   projectId: ObjectID,

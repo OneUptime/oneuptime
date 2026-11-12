@@ -11,7 +11,7 @@ L'accueil est la première page que vous voyez dans un projet. Il vous dit d'un 
 
 ## Ce que montre l'accueil
 
-Ouvrez **Accueil** dans la barre du haut, ou appuyez sur `g` puis `h` depuis n'importe où. L'accueil est la vue d'ensemble de votre projet. De haut en bas, il affiche :
+Ouvrez **Accueil** dans la barre du haut, ou appuyez sur `g` puis `h` depuis n'importe où. L'accueil est la vue d'ensemble de votre projet, une seule page sans menu latéral. De haut en bas, il affiche :
 
 1. Un champ de recherche, avec **Déclarer un incident** et **Créer** à côté.
 2. Une ligne qui dit si quelque chose ne va pas, au-dessus de cinq nombres qui comptent ce qui demande de l'attention.
@@ -42,15 +42,15 @@ Tant que rien n'est encore surveillé, la ligne se termine par le bouton **Crée
 
 ### Les cinq nombres
 
-Chaque nombre compte quelque chose, dit si cela demande votre attention, et ouvre la liste qui se cache derrière lui.
+Chaque nombre compte quelque chose, dit si cela demande votre attention, et ouvre la liste qui se cache derrière lui, dans le produit auquel elle appartient.
 
-| Nombre | Ce qu'il compte | Quand le nombre est zéro |
-| --- | --- | --- |
-| **Incidents actifs** | Les incidents qui ne sont pas résolus | **Tout va bien** |
-| **Alertes actives** | Les alertes qui ne sont pas résolues | **Tout va bien** |
-| **Moniteurs non opérationnels** | Les moniteurs dont l'état n'est pas un état opérationnel. Les moniteurs archivés, et ceux dont la surveillance est désactivée, ne comptent pas. | **Tous opérationnels** |
-| **Maintenance en cours** | Les événements de maintenance planifiée en cours | **Aucune en cours** |
-| **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** |
+| Nombre | Ce qu'il compte | Quand le nombre est zéro | Ouvre |
+| --- | --- | --- | --- |
+| **Incidents actifs** | Les incidents qui ne sont pas résolus | **Tout va bien** | **Incidents → Incidents actifs** |
+| **Alertes actives** | Les alertes qui ne sont pas résolues | **Tout va bien** | **Alertes → Alertes actives** |
+| **Moniteurs non opérationnels** | Les moniteurs dont l'état n'est pas un état opérationnel. Les moniteurs archivés, et ceux dont la surveillance est désactivée, ne comptent pas. | **Tous opérationnels** | **Moniteurs → Non opérationnel** |
+| **Maintenance en cours** | Les événements de maintenance planifiée en cours | **Aucune en cours** | **Maintenance planifiée → Événements en cours** |
+| **SLO à risque** | Les SLO activés qui sont à risque ou ont épuisé leur budget d'erreur | **Budgets sains** | **SLOs** |
 
 Un nombre supérieur à zéro affiche **Attention requise**, ou **En cours** et **Budget qui s'épuise** pour la maintenance et les SLO. Un projet sans moniteur voit **Aucun moniteur pour l'instant**, et un projet sans SLO voit **Aucun SLO pour l'instant** : un projet vide n'est pas un projet en bonne santé. Ces deux-là ouvrent alors les listes **Moniteurs** et **SLOs**, où vous en créez un.
 
@@ -91,7 +91,7 @@ La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la
 
 ### Attention requise
 
-**Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.
+**Attention requise** liste par leur nom ce que les nombres comptent : les incidents ouverts, les alertes ouvertes, les moniteurs non opérationnels, les SLO à risque et les maintenances en cours, les plus urgents d'abord. Chaque ligne affiche sa gravité ou son état, indique quand un incident ou une alerte a commencé et quand une maintenance se termine, et ouvre l'élément. Chaque type en montre jusqu'à cinq, avec **Tout afficher** pour le reste, qui ouvre la même liste que son nombre. Quand rien n'est ouvert, la section affiche **Rien ne nécessite votre attention**.
 
 ### Votre projet
 
@@ -102,20 +102,6 @@ La liste disparaît pour tout le monde une fois chaque étape terminée. Pour la
 ### Explorer OneUptime
 
 **Explorer OneUptime** présente les produits du menu **Produits** une catégorie à la fois, en commençant par les essentiels. Chaque produit indique à quoi il sert et s'ouvre quand vous cliquez dessus.
-
-### Le menu latéral de l'accueil
-
-L'accueil lui-même n'a pas de menu latéral : il montre déjà tout ce que le menu montrerait. Les listes qu'il ouvre en partagent un, qui donne à chaque liste son compteur et ramène à l'accueil depuis **Vue d'ensemble** :
-
-| Section | Pages |
-| --- | --- |
-| **Accueil** | **Vue d'ensemble** |
-| **Incidents** | **Incidents actifs** et **Épisodes actifs** |
-| **Alertes** | **Alertes actives** et **Épisodes actifs** |
-| **Moniteurs** | **Non opérationnel** |
-| **Événements planifiés** | **En cours** |
-
-Un épisode regroupe des incidents ou des alertes liés pour que vous les traitiez comme un seul. Consultez [Concepts clés](/docs/introduction/core-concepts#incidents-et-alertes).
 
 ## Se repérer
 
