@@ -940,8 +940,10 @@ describe("MonitorWhoIsToldCard", () => {
       fireEvent.click(recheck);
     });
 
-    // Busy: it cannot be pressed again, says what it is doing, keeps its
-    // colour, and neither underlines under the pointer nor fades as if locked.
+    /*
+     * Busy: it cannot be pressed again, says what it is doing, keeps its
+     * colour, and neither underlines under the pointer nor fades as if locked.
+     */
     const busy: HTMLElement = screen.getByTestId("who-is-told-recheck");
     expect(busy).toBeDisabled();
     expect(busy).toHaveAttribute("aria-busy", "true");
