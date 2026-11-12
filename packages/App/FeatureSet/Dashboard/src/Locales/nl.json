@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "Het kanaal {{channel}} staat uit in dit project, dus oproepen via dit kanaal worden niet verstuurd.",
   "{{count}} more criteria open incidents or alerts.": "Nog {{count}} criteria openen incidenten of waarschuwingen.",
   "{{count}} more criteria open incidents or alerts._one": "Nog {{count}} criterium opent een incident of waarschuwing.",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, evaluatielicentie, {{action}}",
   "Licensed seats": "Gelicentieerde plaatsen",
   "Unique users across every instance on this license.": "Unieke gebruikers op alle instanties van deze licentie.",
   "Limit exceeded": "Limiet overschreden",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "Nog geen opgeslagen retentietabel gekozen.",
   "Pick a metric in the settings below.": "Kies een metriek in de instellingen hieronder.",
   "Pick an SLO in the settings below.": "Kies een SLO in de instellingen hieronder.",
-  "Write a query in the settings below.": "Schrijf een query in de instellingen hieronder."
+  "Write a query in the settings below.": "Schrijf een query in de instellingen hieronder.",
+  "Users: {{count}}": "Gebruikers: {{count}}"
 }

@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "此專案已關閉 {{channel}}，因此不會傳送使用它的呼叫。",
   "{{count}} more criteria open incidents or alerts.": "另有 {{count}} 項條件會開啟事件或警示。",
   "{{count}} more criteria open incidents or alerts._one": "另有 {{count}} 項條件會開啟事件或警示。",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}，評估授權，{{action}}",
   "Licensed seats": "授權席次",
   "Unique users across every instance on this license.": "此授權下所有執行個體中的不重複使用者數。",
   "Limit exceeded": "已超出上限",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "尚未選擇已儲存的留存表。",
   "Pick a metric in the settings below.": "請在下方的設定中選擇一個指標。",
   "Pick an SLO in the settings below.": "請在下方的設定中選擇一個 SLO。",
-  "Write a query in the settings below.": "請在下方的設定中撰寫查詢。"
+  "Write a query in the settings below.": "請在下方的設定中撰寫查詢。",
+  "Users: {{count}}": "使用者數：{{count}}"
 }

@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "이 프로젝트에서 {{channel}} 채널이 꺼져 있어 이 채널을 사용하는 호출은 보내지 않습니다.",
   "{{count}} more criteria open incidents or alerts.": "기준 {{count}}개가 더 인시던트나 경고를 엽니다.",
   "{{count}} more criteria open incidents or alerts._one": "기준 {{count}}개가 더 인시던트나 경고를 엽니다.",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, 평가용 라이선스, {{action}}",
   "Licensed seats": "라이선스 좌석",
   "Unique users across every instance on this license.": "이 라이선스의 모든 인스턴스에 걸친 고유 사용자 수입니다.",
   "Limit exceeded": "한도 초과",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "아직 선택된 저장된 리텐션 표가 없습니다.",
   "Pick a metric in the settings below.": "아래 설정에서 메트릭을 선택하세요.",
   "Pick an SLO in the settings below.": "아래 설정에서 SLO를 선택하세요.",
-  "Write a query in the settings below.": "아래 설정에서 쿼리를 작성하세요."
+  "Write a query in the settings below.": "아래 설정에서 쿼리를 작성하세요.",
+  "Users: {{count}}": "사용자 수: {{count}}"
 }

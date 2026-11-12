@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "Kanalen {{channel}} er slått av i dette prosjektet, så varsler via den sendes ikke.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} kriterier til åpner hendelser eller varsler.",
   "{{count}} more criteria open incidents or alerts._one": "{{count}} kriterium til åpner en hendelse eller et varsel.",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, evalueringslisens, {{action}}",
   "Licensed seats": "Lisensierte plasser",
   "Unique users across every instance on this license.": "Unike brukere på tvers av alle instanser på denne lisensen.",
   "Limit exceeded": "Grensen er overskredet",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "Ingen lagret lojalitetstabell valgt ennå.",
   "Pick a metric in the settings below.": "Velg en metrikk i innstillingene nedenfor.",
   "Pick an SLO in the settings below.": "Velg en SLO i innstillingene nedenfor.",
-  "Write a query in the settings below.": "Skriv en spørring i innstillingene nedenfor."
+  "Write a query in the settings below.": "Skriv en spørring i innstillingene nedenfor.",
+  "Users: {{count}}": "Brukere: {{count}}"
 }

@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "O canal {{channel}} está desativado neste projeto, então os acionamentos que o usam não são enviados.",
   "{{count}} more criteria open incidents or alerts.": "Mais {{count}} critérios abrem incidentes ou alertas.",
   "{{count}} more criteria open incidents or alerts._one": "Mais {{count}} critério abre um incidente ou alerta.",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, licença de avaliação, {{action}}",
   "Licensed seats": "Assentos licenciados",
   "Unique users across every instance on this license.": "Usuários únicos em todas as instâncias desta licença.",
   "Limit exceeded": "Limite excedido",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "Nenhuma tabela de retenção salva escolhida ainda.",
   "Pick a metric in the settings below.": "Escolha uma métrica nas configurações abaixo.",
   "Pick an SLO in the settings below.": "Escolha um SLO nas configurações abaixo.",
-  "Write a query in the settings below.": "Escreva uma consulta nas configurações abaixo."
+  "Write a query in the settings below.": "Escreva uma consulta nas configurações abaixo.",
+  "Users: {{count}}": "Usuários: {{count}}"
 }

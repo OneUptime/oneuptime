@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "इस प्रोजेक्ट में {{channel}} बंद है, इसलिए इसका उपयोग करने वाले पेज नहीं भेजे जाते।",
   "{{count}} more criteria open incidents or alerts.": "{{count}} और मानदंड घटनाएँ या अलर्ट खोलते हैं।",
   "{{count}} more criteria open incidents or alerts._one": "{{count}} और मानदंड एक घटना या अलर्ट खोलता है।",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, मूल्यांकन लाइसेंस, {{action}}",
   "Licensed seats": "लाइसेंस वाली सीटें",
   "Unique users across every instance on this license.": "इस लाइसेंस के सभी इंस्टेंस में अद्वितीय उपयोगकर्ता।",
   "Limit exceeded": "सीमा पार",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "अभी तक कोई सहेजी गई रिटेंशन तालिका नहीं चुनी गई।",
   "Pick a metric in the settings below.": "नीचे दी गई सेटिंग में कोई मीट्रिक चुनें।",
   "Pick an SLO in the settings below.": "नीचे दी गई सेटिंग में कोई SLO चुनें।",
-  "Write a query in the settings below.": "नीचे दी गई सेटिंग में कोई क्वेरी लिखें।"
+  "Write a query in the settings below.": "नीचे दी गई सेटिंग में कोई क्वेरी लिखें।",
+  "Users: {{count}}": "उपयोगकर्ता: {{count}}"
 }

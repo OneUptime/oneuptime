@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "このプロジェクトでは {{channel}} がオフのため、それを使う呼び出しは送信されません。",
   "{{count}} more criteria open incidents or alerts.": "ほかに {{count}} 件の条件がインシデントまたはアラートを開きます。",
   "{{count}} more criteria open incidents or alerts._one": "ほかに {{count}} 件の条件がインシデントまたはアラートを開きます。",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}、評価版ライセンス、{{action}}",
   "Licensed seats": "ライセンスのシート数",
   "Unique users across every instance on this license.": "このライセンスのすべてのインスタンスをまたいだ一意のユーザー数です。",
   "Limit exceeded": "上限超過",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "保存済みのリテンションテーブルがまだ選択されていません。",
   "Pick a metric in the settings below.": "下の設定でメトリクスを選択してください。",
   "Pick an SLO in the settings below.": "下の設定で SLO を選択してください。",
-  "Write a query in the settings below.": "下の設定でクエリを記述してください。"
+  "Write a query in the settings below.": "下の設定でクエリを記述してください。",
+  "Users: {{count}}": "ユーザー数: {{count}}"
 }

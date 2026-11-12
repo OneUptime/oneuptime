@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "Kanalen {{channel}} er slået fra i dette projekt, så tilkaldelser via den sendes ikke.",
   "{{count}} more criteria open incidents or alerts.": "{{count}} kriterier mere åbner hændelser eller advarsler.",
   "{{count}} more criteria open incidents or alerts._one": "{{count}} kriterium mere åbner en hændelse eller advarsel.",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, evalueringslicens, {{action}}",
   "Licensed seats": "Licenserede pladser",
   "Unique users across every instance on this license.": "Unikke brugere på tværs af alle instanser på denne licens.",
   "Limit exceeded": "Grænse overskredet",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "Ingen gemt fastholdelsestabel valgt endnu.",
   "Pick a metric in the settings below.": "Vælg en metrik i indstillingerne nedenfor.",
   "Pick an SLO in the settings below.": "Vælg et SLO i indstillingerne nedenfor.",
-  "Write a query in the settings below.": "Skriv en forespørgsel i indstillingerne nedenfor."
+  "Write a query in the settings below.": "Skriv en forespørgsel i indstillingerne nedenfor.",
+  "Users: {{count}}": "Brugere: {{count}}"
 }

@@ -50916,7 +50916,6 @@
   "{{channel}} is off in this project, so pages that use it are not sent.": "Канал {{channel}} отключён в этом проекте, поэтому оповещения через него не отправляются.",
   "{{count}} more criteria open incidents or alerts.": "Ещё критериев, открывающих инциденты или оповещения: {{count}}.",
   "{{count}} more criteria open incidents or alerts._one": "Ещё {{count}} критерий открывает инцидент или оповещение.",
-  "{{edition}}, Evaluation license, {{action}}": "{{edition}}, ознакомительная лицензия, {{action}}",
   "Licensed seats": "Лицензированные места",
   "Unique users across every instance on this license.": "Уникальные пользователи во всех экземплярах по этой лицензии.",
   "Limit exceeded": "Лимит превышен",
@@ -51251,5 +51250,6 @@
   "No saved retention table picked yet.": "Сохранённая таблица удержания ещё не выбрана.",
   "Pick a metric in the settings below.": "Выберите метрику в настройках ниже.",
   "Pick an SLO in the settings below.": "Выберите SLO в настройках ниже.",
-  "Write a query in the settings below.": "Напишите запрос в настройках ниже."
+  "Write a query in the settings below.": "Напишите запрос в настройках ниже.",
+  "Users: {{count}}": "Пользователей: {{count}}"
 }
