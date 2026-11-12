@@ -6,6 +6,7 @@ import ProjectMembership from "./TeamMember/ProjectMembership";
 import VerificationCode from "./VerificationCode";
 import HTTPErrorResponse from "../../Types/API/HTTPErrorResponse";
 import BadDataException from "../../Types/Exception/BadDataException";
+import { isEmptyErrorPhrase } from "../../Types/Exception/ErrorMessageRule";
 import NotAuthorizedException from "../../Types/Exception/NotAuthorizedException";
 import { JSONObject } from "../../Types/JSON";
 import VerificationCodeStatusJSON, {
@@ -119,6 +120,13 @@ export const RESEND_COOLDOWN_SECONDS: number = parsePositiveIntFromEnv(
   "NOTIFICATION_VERIFICATION_RESEND_COOLDOWN_SECONDS",
   60,
 );
+
+/*
+ * Why a code did not go out, when the service that should have sent it did
+ * not say why: it follows "The verification code was not sent to <number>."
+ */
+export const SEND_FAILURE_NOT_EXPLAINED: string =
+  "The message service did not say why. Try again in a moment.";
 
 /*
  * The verification-related columns every channel model carries. Structural
@@ -571,9 +579,12 @@ export default class ChannelVerification {
 
     reason = (reason || "").trim();
 
-    // What the server says about a failure it does not explain.
-    if (!reason || reason === "Server Error") {
-      return "Something went wrong while sending it. Please try again in a moment.";
+    /*
+     * What a server says about a failure it does not explain: "Server
+     * Error", "Internal Server Error", nothing (ErrorMessageRule).
+     */
+    if (isEmptyErrorPhrase(reason)) {
+      return SEND_FAILURE_NOT_EXPLAINED;
     }
 
     const endsAsSentence: RegExp = /[.!?]$/;

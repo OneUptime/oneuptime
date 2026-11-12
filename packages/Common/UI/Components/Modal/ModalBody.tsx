@@ -1,4 +1,7 @@
 import Alert, { AlertType } from "../Alerts/Alert";
+import ErrorExplanation, {
+  isUnexplainedErrorMessage,
+} from "../ErrorMessage/ErrorExplanation";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
@@ -21,7 +24,13 @@ const ModalBody: FunctionComponent<ComponentProps> = (
     <div className="modal-body">
       {props.error && (
         <Alert
-          title={props.error}
+          title={
+            isUnexplainedErrorMessage(props.error) ? (
+              <ErrorExplanation message={props.error} />
+            ) : (
+              props.error
+            )
+          }
           type={AlertType.DANGER}
           className="mb-4"
           dataTestId="modal-error"
