@@ -1,6 +1,7 @@
 /*
  * Offline fixture server for the real dashboard Home page
- * (Pages/Home/Layout + Home). No app/API server needed.
+ * (Pages/Home/Layout + Home, and Routes/MovedHomeRoutes for the addresses of
+ * Home's old lists). No app/API server needed.
  */
 const fs = require("fs");
 const http = require("http");
@@ -8,7 +9,10 @@ const path = require("path");
 const { createConfig } = require("../../../Common/UI/esbuild-config.js");
 const esbuild = require("../../../Common/node_modules/esbuild");
 const repository = path.resolve(__dirname, "../../../..");
-const output = path.join(repository, "output/playwright/home-overview-ui/fixture");
+const output = path.join(
+  repository,
+  "output/playwright/home-overview-ui/fixture",
+);
 const port = Number(process.env.HOME_OVERVIEW_FIXTURE_PORT || 4224);
 const config = createConfig({
   serviceName: "home-overview-fixture",

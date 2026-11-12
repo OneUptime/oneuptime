@@ -2,9 +2,10 @@
 
 An offline harness for the real dashboard Home page:
 
-| Page | Route (from `RouteMap`)          | Production components                                                                                                                                                                                                                                                              |
-| ---- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Home | `HOME` `/dashboard/:projectId/home/` | `Pages/Home/{Layout,Home}` and every card they mount: `Components/Home/HomeCommandBar`, `ProjectHealthCard` (with `OverviewStats`), `GettingStarted` (with `HowOneUptimeWorks`), `NeedsAttention`, `ProjectResources`, `UpcomingMaintenance` and `ExploreProducts` |
+| Page             | Route (from `RouteMap`)                                | Production components                                                                                                                                                                                                                                              |
+| ---------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Home             | `HOME` `/dashboard/:projectId/home/`                   | `Pages/Home/{Layout,Home}` and every card they mount: `Components/Home/HomeCommandBar`, `ProjectHealthCard` (with `OverviewStats`), `GettingStarted` (with `HowOneUptimeWorks`), `NeedsAttention`, `ProjectResources`, `UpcomingMaintenance` and `ExploreProducts` |
+| Home's old lists | `MOVED_HOME_LISTS_ROOT` `/dashboard/:projectId/home/*` | `Routes/MovedHomeRoutes`: the addresses of the lists Home used to hold forward to the products' own lists, as `App.tsx` mounts it                                                                                                                                  |
 
 `Fixture/server.js` bundles the production layout and page with esbuild, serves them with the
 same Tailwind build, `tailwind.config` and `Theme.css` production uses, and listens on
@@ -35,9 +36,11 @@ Every count and list is answered by an in-memory evaluator of the very query the
 (`Includes`, nested relation filters, `isArchived`, sorts and limits), so the numbers are what
 the queries mean.
 
-Pages Home links to are not modelled: Home's own lists render a stub inside the Home layout
-(`data-testid="stub-page"`, `data-page="<PageMap key>"`), and every other page a stub of its own
-with its path. The Search box's event is counted (`paletteToggles`) instead of opening the
+Pages Home links to are not modelled. Home is one page with no side menu (#6857): the products'
+lists its numbers and View all open (Active Incidents and Alerts and their episodes, Not
+Operational monitors, Ongoing maintenance and SLOs) render a stub that names the list
+(`data-testid="stub-page"`, `data-page="<PageMap key>"`), and every other page a stub with its
+path. The Search box's event is counted (`paletteToggles`) instead of opening the
 command palette.
 
 ## Scenarios
@@ -60,9 +63,10 @@ command palette.
   (archived monitors and disabled or archived SLOs left out) and their status lines; the open
   work in urgency order with its "9 open" total, an incident row's number, severity, state and
   age, a monitor row, an SLO with no budget left, a window that ends in 40 minutes, and a row
-  opening its incident; a number opening Home's own Active Incidents, which has the side menu the
-  overview leaves out, and its Overview leading back; Your
-  project's counts with Set up for workflows; the three windows coming up, soonest first; two
+  opening its incident; Home with no side menu, each number and each View all opening its
+  product's own list and Back coming home; the six addresses of Home's old lists forwarding to
+  the products' lists with the query and the hash, Back skipping them; Home without its slash,
+  and an address under Home that never was a page landing on Home; Your project's counts with Set up for workflows; the three windows coming up, soonest first; two
   columns at 1440px; Explore opening on Essentials, a tab click and the arrow keys.
 - **Search and create**: the search box opens the palette by mouse and by keyboard; Declare
   Incident and the Create menu's three items, one opening Create Monitor; a viewer gets no
