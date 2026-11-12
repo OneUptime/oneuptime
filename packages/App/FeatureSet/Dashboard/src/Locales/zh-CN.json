@@ -51124,5 +51124,7 @@
   "{{project}} Status": "{{project}} 状态",
   "{{service}} is already watched by these monitors.": "{{service}} 已被这些监视器监控。",
   "{{service}} is sending data": "{{service}} 正在发送数据",
-  "{{service}} is sending data.": "{{service}} 正在发送数据。"
+  "{{service}} is sending data.": "{{service}} 正在发送数据。",
+  "That turn is not part of this task": "该回合不属于此任务",
+  "The task's first turn is shown instead.": "已改为显示此任务的第一回合。"
 }

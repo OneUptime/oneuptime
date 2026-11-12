@@ -51124,5 +51124,7 @@
   "{{project}} Status": "Status de {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} já é vigiado por estes monitores.",
   "{{service}} is sending data": "{{service}} está enviando dados",
-  "{{service}} is sending data.": "{{service}} está enviando dados."
+  "{{service}} is sending data.": "{{service}} está enviando dados.",
+  "That turn is not part of this task": "Esse turno não faz parte desta tarefa",
+  "The task's first turn is shown instead.": "Em vez dele, é mostrado o primeiro turno da tarefa."
 }

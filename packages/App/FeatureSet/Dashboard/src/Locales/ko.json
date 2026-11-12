@@ -51124,5 +51124,7 @@
   "{{project}} Status": "{{project}} 상태",
   "{{service}} is already watched by these monitors.": "{{service}} 서비스는 이미 이 모니터들이 감시하고 있습니다.",
   "{{service}} is sending data": "{{service}} 서비스가 데이터를 보내고 있습니다",
-  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다."
+  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다.",
+  "That turn is not part of this task": "그 차례는 이 작업에 속하지 않습니다",
+  "The task's first turn is shown instead.": "대신 작업의 첫 번째 차례를 표시합니다."
 }

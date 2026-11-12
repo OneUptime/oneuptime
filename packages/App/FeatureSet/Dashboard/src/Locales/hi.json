@@ -51124,5 +51124,7 @@
   "{{project}} Status": "{{project}} स्थिति",
   "{{service}} is already watched by these monitors.": "{{service}} पर पहले से ये मॉनिटर नज़र रख रहे हैं।",
   "{{service}} is sending data": "{{service}} डेटा भेज रहा है",
-  "{{service}} is sending data.": "{{service}} डेटा भेज रहा है।"
+  "{{service}} is sending data.": "{{service}} डेटा भेज रहा है।",
+  "That turn is not part of this task": "वह बारी इस कार्य का हिस्सा नहीं है",
+  "The task's first turn is shown instead.": "इसके बजाय कार्य की पहली बारी दिखाई जा रही है।"
 }

@@ -51124,5 +51124,7 @@
   "{{project}} Status": "Status för {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} övervakas redan av dessa monitorer.",
   "{{service}} is sending data": "{{service}} skickar data",
-  "{{service}} is sending data.": "{{service}} skickar data."
+  "{{service}} is sending data.": "{{service}} skickar data.",
+  "That turn is not part of this task": "Den turen hör inte till den här uppgiften",
+  "The task's first turn is shown instead.": "Uppgiftens första tur visas i stället."
 }

@@ -54,12 +54,16 @@ import CodeApi, { CodeTaskResponse } from "../../../Components/Code/CodeApi";
 import { getCodeTaskTrail } from "../../../Components/Code/CodeTaskTrail";
 import {
   CODE_TASK_LOG_TURN_COPY,
+  CodeTaskLogPickerEntry,
   CodeTaskLogRecordCopy,
+  CodeTaskLogShownTurn,
   CodeTaskLogTurn,
+  getCodeTaskLogPickerEntries,
   getCodeTaskLogRecordCopy,
+  getCodeTaskLogShownTurn,
+  getCodeTaskLogTurnKey,
   getCodeTaskLogTurnRoute,
-  getCodeTaskLogTurns,
-  getShownTurnRunId,
+  isCodeTaskLogTurnOf,
 } from "../../../Components/Code/CodeTaskLogTurns";
 import { CODE_TASK_TURNS_NOT_SHOWN_COPY } from "../../../Components/Code/CodeTaskTurnsNotShown";
 import Dropdown, {
@@ -84,9 +88,23 @@ export const CODE_TASK_LOG_TURN_PICKER_TEST_ID: string =
 
 /*
  * The value of the picker's line where a long task's turns are not listed
- * - never picked, so never a turn's.
+ * - never picked, so never a turn's. A turn a link names between them
+ * splits the line in two: the second line's value ends "-2".
  */
 export const CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE: string = "turns-not-shown";
+
+// The page's word that the turn its address names is not one of the task's.
+export const CODE_TASK_LOG_TURN_NOT_OF_TASK_TEST_ID: string =
+  "code-task-log-turn-not-of-task";
+
+// A read of the task: what came back, and what it was read for.
+interface CodeTaskLogTaskRead {
+  response: CodeTaskResponse;
+  // The task it is of, its id in lower case.
+  taskId: string;
+  // The address's turn it was read for (getCodeTaskLogTurnKey: "" for none).
+  turn: string;
+}
 
 /*
  * A task's Log page in Code: everything recorded about one of its turns (one
@@ -96,7 +114,9 @@ export const CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE: string = "turns-not-shown";
  * query parameter (the conversation links each turn's Log); without one,
  * the task's first turn. A task of more than one turn lists them all in a
  * picker at the top (CodeTaskLogTurns), so another turn's record is one
- * pick away.
+ * pick away. A long task's turn its conversation does not show is asked for
+ * by name, so a link to it opens it (issue #7130); a link to a run of
+ * another task opens the task's first turn, and says so.
  *
  * Two things are worth knowing about the data:
  *
@@ -577,24 +597,45 @@ const LlmCallRow: FunctionComponent<{ call: LlmCallLog }> = (props: {
  * newest - and between them, where the conversation draws its line, the
  * same words on a line that is never picked: "7 earlier turns are not
  * shown". Turn 1 then Turn 9 reads as the task's own numbering, not as
- * turns gone missing.
+ * turns gone missing. A turn between them that the address names is
+ * listed at its place, with a line on each side of it.
  */
 const CodeTaskLogTurnPicker: FunctionComponent<{
   taskId: string;
-  turns: Array<CodeTaskLogTurn>;
+  entries: Array<CodeTaskLogPickerEntry>;
   shownRunId: string;
-  // How many turns between the first and the newest are not listed.
-  turnsNotShown: number;
 }> = (props: {
   taskId: string;
-  turns: Array<CodeTaskLogTurn>;
+  entries: Array<CodeTaskLogPickerEntry>;
   shownRunId: string;
-  turnsNotShown: number;
 }): ReactElement => {
   const translator: Translator = useTranslator();
 
-  const turnOptions: Array<DropdownOption> = props.turns.map(
-    (turn: CodeTaskLogTurn): DropdownOption => {
+  let lines: number = 0;
+
+  const options: Array<DropdownOption> = props.entries.map(
+    (entry: CodeTaskLogPickerEntry): DropdownOption => {
+      if (entry.kind === "turnsNotShown") {
+        lines++;
+
+        return {
+          value:
+            lines === 1
+              ? CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE
+              : `${CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE}-${lines}`,
+          label: translator.translatePlural(
+            CODE_TASK_TURNS_NOT_SHOWN_COPY,
+            entry.count,
+          ),
+          // Never picked: the Dropdown passes it by.
+          isDisabled: true,
+          // Translated here, whole: drawn as it is, the page's way.
+          isUserContent: true,
+          isInPageDirection: true,
+        };
+      }
+
+      const turn: CodeTaskLogTurn = entry.turn;
       const description: string = turn.isSummaryTranslated
         ? translator.translateText(turn.summary) || turn.summary
         : turn.summary;
@@ -611,29 +652,10 @@ const CodeTaskLogTurnPicker: FunctionComponent<{
     },
   );
 
-  const options: Array<DropdownOption> =
-    props.turnsNotShown > 0 && turnOptions.length > 1
-      ? [
-          turnOptions[0]!,
-          {
-            value: CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE,
-            label: translator.translatePlural(
-              CODE_TASK_TURNS_NOT_SHOWN_COPY,
-              props.turnsNotShown,
-            ),
-            // Never picked: the Dropdown passes it by.
-            isDisabled: true,
-            // Translated here, whole: drawn as it is, the page's way.
-            isUserContent: true,
-            isInPageDirection: true,
-          },
-          ...turnOptions.slice(1),
-        ]
-      : turnOptions;
-
-  const shown: DropdownOption | undefined = turnOptions.find(
+  const shown: DropdownOption | undefined = options.find(
     (option: DropdownOption): boolean => {
       return (
+        !option.isDisabled &&
         String(option.value).toLowerCase() === props.shownRunId.toLowerCase()
       );
     },
@@ -680,6 +702,9 @@ const CodeTaskLogPage: FunctionComponent<
   const translator: Translator = useTranslator();
   const { id } = useParams();
   const turnParam: string | null = Navigation.getQueryStringByName("turn");
+  // The turn the address names, as the task is asked for it ("" for none).
+  const turnKey: string = getCodeTaskLogTurnKey(turnParam);
+  const isTaskIdValid: boolean = Boolean(id && ObjectID.isValidUUID(id));
 
   const [entries, setEntries] = useState<Array<LogEntry>>([]);
   const [llmCalls, setLlmCalls] = useState<Array<LlmCallLog>>([]);
@@ -688,30 +713,58 @@ const CodeTaskLogPage: FunctionComponent<
   const [error, setError] = useState<string | undefined>(undefined);
   const [hasLoadedOnce, setHasLoadedOnce] = useState<boolean>(false);
   const signatureRef: React.MutableRefObject<string> = useRef<string>("");
-  const [task, setTask] = useState<CodeTaskResponse | null>(null);
+
+  // The task the address names, as its reads are keyed.
+  const taskKey: string = (id || "").toLowerCase();
 
   /*
-   * The turn shown: the one the address names when it is one of the task's
-   * turns (once they are read), else the task's first.
+   * The task as read, with the address's turn it was read for: a turn its
+   * conversation does not show is asked for by name (linkedTurn). A read
+   * of another task - the page stays on the screen when a link opens
+   * another task's Log - is no read of this one.
    */
-  const runId: string = getShownTurnRunId({
+  const [taskRead, setTaskRead] = useState<CodeTaskLogTaskRead | null>(null);
+  // The task and turn ("task:turn") whose read failed.
+  const [taskReadFailedFor, setTaskReadFailedFor] = useState<string | null>(
+    null,
+  );
+  const currentRead: CodeTaskLogTaskRead | null =
+    taskRead && taskRead.taskId === taskKey ? taskRead : null;
+  const task: CodeTaskResponse | null = currentRead?.response || null;
+
+  /*
+   * The turn shown: the one the address names once the task's read says
+   * it is one of the task's turns, else the task's first - said so on the
+   * page. Its record is read meanwhile, but not shown until then.
+   */
+  const shownTurn: CodeTaskLogShownTurn = getCodeTaskLogShownTurn({
     taskId: id || "",
     turnParam,
-    turns: task?.turns,
+    task,
+    taskReadFor: currentRead?.turn,
+    hasTaskReadFailed:
+      !isTaskIdValid || taskReadFailedFor === `${taskKey}:${turnKey}`,
   });
+  const runId: string = shownTurn.runId;
 
-  const turns: Array<CodeTaskLogTurn> = useMemo(() => {
+  const pickerEntries: Array<CodeTaskLogPickerEntry> = useMemo(() => {
     // A long task's newer turns keep their places past the ones not shown.
-    return getCodeTaskLogTurns(
-      task?.turns || [],
-      task?.turnsNotShown?.count || 0,
-    );
+    return getCodeTaskLogPickerEntries({
+      turns: task?.turns || [],
+      turnsNotShown: task?.turnsNotShown?.count || 0,
+      linkedTurn: task?.linkedTurn,
+    });
   }, [task]);
 
+  const listedTurnCount: number = pickerEntries.filter(
+    (entry: CodeTaskLogPickerEntry): boolean => {
+      return entry.kind === "turn";
+    },
+  ).length;
+
   // "this task", or "this turn" once the picker lists more than one.
-  const recordCopy: CodeTaskLogRecordCopy = getCodeTaskLogRecordCopy(
-    turns.length,
-  );
+  const recordCopy: CodeTaskLogRecordCopy =
+    getCodeTaskLogRecordCopy(listedTurnCount);
 
   /*
    * Another turn picked: its record starts from nothing, so nothing of the
@@ -733,23 +786,61 @@ const CodeTaskLogPage: FunctionComponent<
   }, [runId]);
 
   /*
-   * The task, read once for the trail - Code > the repository > Task #42 >
-   * Log - which the address alone cannot name. A task that cannot be read
-   * keeps the address's trail.
+   * The task, read for its turns and for the trail - Code > the repository
+   * > Task #42 > Log - which the address alone cannot name. Read again for
+   * an address that names another task, or a turn the read does not hold.
+   * A task that cannot be read keeps the address's trail.
    */
+  const taskReadRef: React.MutableRefObject<CodeTaskLogTaskRead | null> =
+    useRef<CodeTaskLogTaskRead | null>(null);
+  taskReadRef.current = taskRead;
+
+  /*
+   * The read the page wants ("task:turn"): an answer to any other - one
+   * still on its way when the address moved on - is dropped.
+   */
+  const wantedReadRef: React.MutableRefObject<string | null> = useRef<
+    string | null
+  >(null);
+
   useEffect(() => {
     if (!id || !ObjectID.isValidUUID(id)) {
       return;
     }
 
-    CodeApi.getTask(id)
+    const read: CodeTaskLogTaskRead | null = taskReadRef.current;
+
+    if (
+      read &&
+      read.taskId === taskKey &&
+      (read.turn === turnKey || isCodeTaskLogTurnOf(read.response, turnKey))
+    ) {
+      // The read the page has holds the turn: nothing on its way is wanted.
+      wantedReadRef.current = `${read.taskId}:${read.turn}`;
+      return;
+    }
+
+    const wanted: string = `${taskKey}:${turnKey}`;
+    wantedReadRef.current = wanted;
+
+    CodeApi.getTask(id, turnKey ? { turn: turnKey } : {})
       .then((response: CodeTaskResponse) => {
-        setTask(response);
+        if (wantedReadRef.current !== wanted) {
+          return;
+        }
+
+        setTaskRead({ response, taskId: taskKey, turn: turnKey });
+        setTaskReadFailedFor(null);
       })
       .catch(() => {
-        // The trail stays Code > Task > Log.
+        if (wantedReadRef.current !== wanted) {
+          return;
+        }
+
+        // The trail stays Code > Task > Log, and the address's turn is shown.
+        setTaskReadFailedFor(wanted);
       });
-  }, [id]);
+  }, [id, taskKey, turnKey]);
 
   const breadcrumbs: Array<Link> | null = useMemo(() => {
     if (!task || !id) {
@@ -875,12 +966,11 @@ const CodeTaskLogPage: FunctionComponent<
           {translator.translateText("Back to the conversation")}
         </>
       </LinkComponent>
-      {turns.length > 1 ? (
+      {listedTurnCount > 1 ? (
         <CodeTaskLogTurnPicker
           taskId={id || ""}
-          turns={turns}
+          entries={pickerEntries}
           shownRunId={runId}
-          turnsNotShown={task?.turnsNotShown?.count || 0}
         />
       ) : (
         <></>
@@ -888,7 +978,22 @@ const CodeTaskLogPage: FunctionComponent<
     </div>
   );
 
-  if (!hasLoadedOnce) {
+  /*
+   * The address named a run that is not one of the task's turns - another
+   * task's, or one gone: the task's first turn is shown, and said so.
+   */
+  const notOfTask: ReactElement = shownTurn.isNotOfTask ? (
+    <Alert
+      type={AlertType.WARNING}
+      strongTitle="That turn is not part of this task"
+      title="The task's first turn is shown instead."
+      dataTestId={CODE_TASK_LOG_TURN_NOT_OF_TASK_TEST_ID}
+    />
+  ) : (
+    <></>
+  );
+
+  if (!hasLoadedOnce || !shownTurn.isKnown) {
     return (
       <div className="space-y-5">
         {header}
@@ -906,6 +1011,7 @@ const CodeTaskLogPage: FunctionComponent<
     return (
       <div className="space-y-5">
         {header}
+        {notOfTask}
         <ErrorMessage
           message={error}
           onRefreshClick={(): void => {
@@ -922,6 +1028,8 @@ const CodeTaskLogPage: FunctionComponent<
     <Fragment>
       <div className="space-y-5">
         {header}
+
+        {notOfTask}
 
         {!canReadContent ? (
           <Alert

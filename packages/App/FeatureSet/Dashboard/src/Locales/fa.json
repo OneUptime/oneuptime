@@ -51124,5 +51124,7 @@
   "{{project}} Status": "وضعیت {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} از قبل توسط این مانیتورها پایش می‌شود.",
   "{{service}} is sending data": "{{service}} در حال ارسال داده است",
-  "{{service}} is sending data.": "{{service}} در حال ارسال داده است."
+  "{{service}} is sending data.": "{{service}} در حال ارسال داده است.",
+  "That turn is not part of this task": "آن نوبت بخشی از این وظیفه نیست",
+  "The task's first turn is shown instead.": "به جای آن، نخستین نوبت وظیفه نمایش داده می‌شود."
 }

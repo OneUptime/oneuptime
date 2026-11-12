@@ -51124,5 +51124,7 @@
   "{{project}} Status": "حالة {{project}}",
   "{{service}} is already watched by these monitors.": "الخدمة {{service}} مراقَبة بالفعل بواسطة هذه المراقبات.",
   "{{service}} is sending data": "الخدمة {{service}} ترسل البيانات",
-  "{{service}} is sending data.": "الخدمة {{service}} ترسل البيانات."
+  "{{service}} is sending data.": "الخدمة {{service}} ترسل البيانات.",
+  "That turn is not part of this task": "تلك الجولة ليست جزءًا من هذه المهمة",
+  "The task's first turn is shown instead.": "تُعرض الجولة الأولى من المهمة بدلًا منها."
 }

@@ -51124,5 +51124,7 @@
   "{{project}} Status": "Статус {{project}}",
   "{{service}} is already watched by these monitors.": "За сервисом {{service}} уже следят эти мониторы.",
   "{{service}} is sending data": "{{service}} отправляет данные",
-  "{{service}} is sending data.": "{{service}} отправляет данные."
+  "{{service}} is sending data.": "{{service}} отправляет данные.",
+  "That turn is not part of this task": "Этот ход не входит в эту задачу",
+  "The task's first turn is shown instead.": "Вместо него показан первый ход задачи."
 }
