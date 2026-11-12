@@ -42173,7 +42173,6 @@
   "Written By": "लिखने वाले",
   "Changes Around It": "उसके आसपास के बदलाव",
   "Add Check": "चेक जोड़ें",
-  "Alerts when its value is {{condition}} {{threshold}}.": "अलर्ट करता है जब इसका मान {{condition}} {{threshold}} हो।",
   "Checked whether a table is fresh": "जाँचा कि टेबल ताज़ा है या नहीं",
   "Checking whether a table is fresh": "जाँच रहा है कि टेबल ताज़ा है या नहीं",
   "Data table": "डेटा टेबल",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, निगरानी बंद, {{start}} से, अब तक {{duration}}। वर्तमान में सक्रिय।",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, निगरानी बंद, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} पिछली बारियाँ नहीं दिखाई गई हैं",
-  "{{count}} earlier turns are not shown_one": "{{count}} पिछली बारी नहीं दिखाई गई है"
+  "{{count}} earlier turns are not shown_one": "{{count}} पिछली बारी नहीं दिखाई गई है",
+  "Above {{threshold}}": "{{threshold}} से ऊपर",
+  "Alerts when its value is above {{threshold}}.": "अलर्ट करता है जब इसका मान {{threshold}} से ऊपर हो।",
+  "Alerts when its value is below {{threshold}}.": "अलर्ट करता है जब इसका मान {{threshold}} से नीचे हो।",
+  "Alerts when its value is unusually high.": "अलर्ट करता है जब इसका मान असामान्य रूप से ऊँचा हो।",
+  "Alerts when its value is unusually low.": "अलर्ट करता है जब इसका मान असामान्य रूप से नीचा हो।",
+  "Below {{threshold}}": "{{threshold}} से नीचे",
+  "The status page does not show this resource's status.": "स्थिति पृष्ठ इस संसाधन की स्थिति नहीं दिखाता।",
+  "The status page shows this resource as not monitored.": "स्थिति पृष्ठ दिखाता है कि इस संसाधन की निगरानी नहीं हो रही है।",
+  "Under maintenance: {{events}}": "रखरखाव में: {{events}}",
+  "Unusually High": "असामान्य रूप से ऊँचा",
+  "Unusually Low": "असामान्य रूप से नीचा"
 }

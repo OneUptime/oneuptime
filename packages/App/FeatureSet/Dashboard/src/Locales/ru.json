@@ -42173,7 +42173,6 @@
   "Written By": "Записывают",
   "Changes Around It": "Изменения в это время",
   "Add Check": "Добавить проверку",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Оповещает, когда значение {{condition}} {{threshold}}.",
   "Checked whether a table is fresh": "Проверено, актуальна ли таблица",
   "Checking whether a table is fresh": "Проверяется, актуальна ли таблица",
   "Data table": "Таблица данных",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, мониторинг выключен, с {{start}}, уже {{duration}}. Сейчас активно.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, мониторинг выключен, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "Не показано более ранних ходов: {{count}}",
-  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан"
+  "{{count}} earlier turns are not shown_one": "{{count}} более ранний ход не показан",
+  "Above {{threshold}}": "Выше {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Оповещает, когда значение выше {{threshold}}.",
+  "Alerts when its value is below {{threshold}}.": "Оповещает, когда значение ниже {{threshold}}.",
+  "Alerts when its value is unusually high.": "Оповещает, когда значение необычно высокое.",
+  "Alerts when its value is unusually low.": "Оповещает, когда значение необычно низкое.",
+  "Below {{threshold}}": "Ниже {{threshold}}",
+  "The status page does not show this resource's status.": "Страница статуса не показывает статус этого ресурса.",
+  "The status page shows this resource as not monitored.": "Страница статуса показывает, что этот ресурс не отслеживается.",
+  "Under maintenance: {{events}}": "На обслуживании: {{events}}",
+  "Unusually High": "Необычно высоко",
+  "Unusually Low": "Необычно низко"
 }

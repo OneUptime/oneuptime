@@ -42173,7 +42173,6 @@
   "Written By": "Escrito por",
   "Changes Around It": "Mudanças nesse período",
   "Add Check": "Adicionar verificação",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Alerta quando o valor é {{condition}} {{threshold}}.",
   "Checked whether a table is fresh": "Verificou se uma tabela está atualizada",
   "Checking whether a table is fresh": "Verificando se uma tabela está atualizada",
   "Data table": "Tabela de dados",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoramento desligado, desde {{start}}, {{duration}} até agora. Atualmente ativo.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoramento desligado, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} turnos anteriores não são mostrados",
-  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior não é mostrado"
+  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior não é mostrado",
+  "Above {{threshold}}": "Acima de {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Alerta quando o valor está acima de {{threshold}}.",
+  "Alerts when its value is below {{threshold}}.": "Alerta quando o valor está abaixo de {{threshold}}.",
+  "Alerts when its value is unusually high.": "Alerta quando o valor está incomumente alto.",
+  "Alerts when its value is unusually low.": "Alerta quando o valor está incomumente baixo.",
+  "Below {{threshold}}": "Abaixo de {{threshold}}",
+  "The status page does not show this resource's status.": "A página de status não mostra o status deste recurso.",
+  "The status page shows this resource as not monitored.": "A página de status mostra este recurso como não monitorado.",
+  "Under maintenance: {{events}}": "Em manutenção: {{events}}",
+  "Unusually High": "Incomumente alto",
+  "Unusually Low": "Incomumente baixo"
 }

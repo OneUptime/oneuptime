@@ -42173,7 +42173,6 @@
   "Written By": "Written By",
   "Changes Around It": "Changes Around It",
   "Add Check": "Add Check",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Alerts when its value is {{condition}} {{threshold}}.",
   "Checked whether a table is fresh": "Checked whether a table is fresh",
   "Checking whether a table is fresh": "Checking whether a table is fresh",
   "Data table": "Data table",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} earlier turns are not shown",
-  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown"
+  "{{count}} earlier turns are not shown_one": "{{count}} earlier turn is not shown",
+  "Above {{threshold}}": "Above {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Alerts when its value is above {{threshold}}.",
+  "Alerts when its value is below {{threshold}}.": "Alerts when its value is below {{threshold}}.",
+  "Alerts when its value is unusually high.": "Alerts when its value is unusually high.",
+  "Alerts when its value is unusually low.": "Alerts when its value is unusually low.",
+  "Below {{threshold}}": "Below {{threshold}}",
+  "The status page does not show this resource's status.": "The status page does not show this resource's status.",
+  "The status page shows this resource as not monitored.": "The status page shows this resource as not monitored.",
+  "Under maintenance: {{events}}": "Under maintenance: {{events}}",
+  "Unusually High": "Unusually High",
+  "Unusually Low": "Unusually Low"
 }

@@ -42173,7 +42173,6 @@
   "Written By": "Geschreven door",
   "Changes Around It": "Wijzigingen rond dat moment",
   "Add Check": "Controle toevoegen",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Waarschuwt wanneer de waarde {{condition}} {{threshold}} is.",
   "Checked whether a table is fresh": "Gecontroleerd of een tabel actueel is",
   "Checking whether a table is fresh": "Controleert of een tabel actueel is",
   "Data table": "Gegevenstabel",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, bewaking uit, sinds {{start}}, tot nu toe {{duration}}. Momenteel actief.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, bewaking uit, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} eerdere beurten worden niet getoond",
-  "{{count}} earlier turns are not shown_one": "{{count}} eerdere beurt wordt niet getoond"
+  "{{count}} earlier turns are not shown_one": "{{count}} eerdere beurt wordt niet getoond",
+  "Above {{threshold}}": "Boven {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Waarschuwt wanneer de waarde boven {{threshold}} ligt.",
+  "Alerts when its value is below {{threshold}}.": "Waarschuwt wanneer de waarde onder {{threshold}} ligt.",
+  "Alerts when its value is unusually high.": "Waarschuwt wanneer de waarde ongewoon hoog is.",
+  "Alerts when its value is unusually low.": "Waarschuwt wanneer de waarde ongewoon laag is.",
+  "Below {{threshold}}": "Onder {{threshold}}",
+  "The status page does not show this resource's status.": "De statuspagina toont de status van deze bron niet.",
+  "The status page shows this resource as not monitored.": "De statuspagina toont deze bron als niet bewaakt.",
+  "Under maintenance: {{events}}": "In onderhoud: {{events}}",
+  "Unusually High": "Ongewoon hoog",
+  "Unusually Low": "Ongewoon laag"
 }

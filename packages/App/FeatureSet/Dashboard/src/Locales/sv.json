@@ -42173,7 +42173,6 @@
   "Written By": "Skrivs av",
   "Changes Around It": "Ändringar kring tidpunkten",
   "Add Check": "Lägg till kontroll",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Larmar när värdet är {{condition}} {{threshold}}.",
   "Checked whether a table is fresh": "Kontrollerade om en tabell är färsk",
   "Checking whether a table is fresh": "Kontrollerar om en tabell är färsk",
   "Data table": "Datatabell",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, övervakning avstängd, sedan {{start}}, {{duration}} hittills. Aktiv nu.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, övervakning avstängd, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} tidigare turer visas inte",
-  "{{count}} earlier turns are not shown_one": "{{count}} tidigare tur visas inte"
+  "{{count}} earlier turns are not shown_one": "{{count}} tidigare tur visas inte",
+  "Above {{threshold}}": "Över {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Larmar när värdet är över {{threshold}}.",
+  "Alerts when its value is below {{threshold}}.": "Larmar när värdet är under {{threshold}}.",
+  "Alerts when its value is unusually high.": "Larmar när värdet är ovanligt högt.",
+  "Alerts when its value is unusually low.": "Larmar när värdet är ovanligt lågt.",
+  "Below {{threshold}}": "Under {{threshold}}",
+  "The status page does not show this resource's status.": "Statussidan visar inte den här resursens status.",
+  "The status page shows this resource as not monitored.": "Statussidan visar den här resursen som inte övervakad.",
+  "Under maintenance: {{events}}": "Under underhåll: {{events}}",
+  "Unusually High": "Ovanligt hög",
+  "Unusually Low": "Ovanligt låg"
 }

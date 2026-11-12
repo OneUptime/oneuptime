@@ -1,4 +1,5 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import { getDataCheckAlertConditionWords } from "./DataCheckAlertConditionWords";
 import RecommendationDismissalUtil from "../Recommendations/RecommendationDismissalUtil";
 import DataAsset from "Common/Models/DatabaseModels/DataAsset";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
@@ -319,11 +320,11 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
                     {translator.translateText(suggestion.checkType) ||
                       suggestion.checkType}
                     <InlineSeparator />
-                    {translator.translateText(suggestion.alertCondition) ||
-                      suggestion.alertCondition}
-                    {suggestion.alertThreshold !== undefined
-                      ? ` ${suggestion.alertThreshold}`
-                      : ""}
+                    {getDataCheckAlertConditionWords({
+                      translator: translator,
+                      condition: suggestion.alertCondition,
+                      threshold: suggestion.alertThreshold,
+                    })}
                   </span>
                   <span className="block text-sm text-gray-600">
                     {suggestion.reason}

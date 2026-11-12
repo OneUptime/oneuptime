@@ -42173,7 +42173,6 @@
   "Written By": "كتبه",
   "Changes Around It": "التغييرات حوله",
   "Add Check": "إضافة فحص",
-  "Alerts when its value is {{condition}} {{threshold}}.": "ينبّه عندما تكون قيمته {{condition}} {{threshold}}.",
   "Checked whether a table is fresh": "فُحص ما إذا كان جدول محدَّثًا",
   "Checking whether a table is fresh": "جارٍ التحقق مما إذا كان جدول حديثًا",
   "Data table": "جدول البيانات",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، المراقبة متوقفة، منذ {{start}}، {{duration}} حتى الآن. نشط حاليًا.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}",
   "{{count}} earlier turns are not shown": "جولات سابقة غير معروضة: {{count}}",
-  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة"
+  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة",
+  "Above {{threshold}}": "أعلى من {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "ينبّه عندما تكون قيمته أعلى من {{threshold}}.",
+  "Alerts when its value is below {{threshold}}.": "ينبّه عندما تكون قيمته أدنى من {{threshold}}.",
+  "Alerts when its value is unusually high.": "ينبّه عندما تكون قيمته مرتفعة على غير العادة.",
+  "Alerts when its value is unusually low.": "ينبّه عندما تكون قيمته منخفضة على غير العادة.",
+  "Below {{threshold}}": "أدنى من {{threshold}}",
+  "The status page does not show this resource's status.": "لا تعرض صفحة الحالة حالة هذا المورد.",
+  "The status page shows this resource as not monitored.": "تعرض صفحة الحالة هذا المورد على أنه غير مراقَب.",
+  "Under maintenance: {{events}}": "قيد الصيانة: {{events}}",
+  "Unusually High": "مرتفع على غير العادة",
+  "Unusually Low": "منخفض على غير العادة"
 }

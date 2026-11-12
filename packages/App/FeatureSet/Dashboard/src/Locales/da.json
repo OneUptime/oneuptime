@@ -42173,7 +42173,6 @@
   "Written By": "Skrevet af",
   "Changes Around It": "Ændringer omkring tidspunktet",
   "Add Check": "Tilføj tjek",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Alarmerer, når værdien er {{condition}} {{threshold}}.",
   "Checked whether a table is fresh": "Tjekkede, om en tabel er frisk",
   "Checking whether a table is fresh": "Tjekker, om en tabel er frisk",
   "Data table": "Datatabel",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvågning slået fra, siden {{start}}, {{duration}} indtil nu. Aktiv nu.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvågning slået fra, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} tidligere ture vises ikke",
-  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke",
+  "Above {{threshold}}": "Over {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Alarmerer, når værdien er over {{threshold}}.",
+  "Alerts when its value is below {{threshold}}.": "Alarmerer, når værdien er under {{threshold}}.",
+  "Alerts when its value is unusually high.": "Alarmerer, når værdien er usædvanligt høj.",
+  "Alerts when its value is unusually low.": "Alarmerer, når værdien er usædvanligt lav.",
+  "Below {{threshold}}": "Under {{threshold}}",
+  "The status page does not show this resource's status.": "Statussiden viser ikke denne ressources status.",
+  "The status page shows this resource as not monitored.": "Statussiden viser denne ressource som ikke overvåget.",
+  "Under maintenance: {{events}}": "Under vedligeholdelse: {{events}}",
+  "Unusually High": "Usædvanligt høj",
+  "Unusually Low": "Usædvanligt lav"
 }

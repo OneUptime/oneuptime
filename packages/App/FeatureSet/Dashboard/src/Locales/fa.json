@@ -42173,7 +42173,6 @@
   "Written By": "نوشته‌شده توسط",
   "Changes Around It": "تغییرات پیرامون آن",
   "Add Check": "افزودن بررسی",
-  "Alerts when its value is {{condition}} {{threshold}}.": "وقتی مقدار آن {{condition}} {{threshold}} باشد هشدار می‌دهد.",
   "Checked whether a table is fresh": "بررسی کرد که جدول تازه است یا نه",
   "Checking whether a table is fresh": "در حال بررسی تازه بودن جدول",
   "Data table": "جدول داده",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، پایش خاموش، از {{start}}، تاکنون {{duration}}. در حال حاضر فعال.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، پایش خاموش، {{start}} – {{end}}، {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
-  "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود"
+  "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
+  "Above {{threshold}}": "بالاتر از {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "وقتی مقدار آن بالاتر از {{threshold}} باشد هشدار می‌دهد.",
+  "Alerts when its value is below {{threshold}}.": "وقتی مقدار آن پایین‌تر از {{threshold}} باشد هشدار می‌دهد.",
+  "Alerts when its value is unusually high.": "وقتی مقدار آن به‌طور غیرعادی بالا باشد هشدار می‌دهد.",
+  "Alerts when its value is unusually low.": "وقتی مقدار آن به‌طور غیرعادی پایین باشد هشدار می‌دهد.",
+  "Below {{threshold}}": "پایین‌تر از {{threshold}}",
+  "The status page does not show this resource's status.": "صفحه وضعیت، وضعیت این منبع را نشان نمی‌دهد.",
+  "The status page shows this resource as not monitored.": "صفحه وضعیت این منبع را پایش نشده نشان می‌دهد.",
+  "Under maintenance: {{events}}": "در حال تعمیر و نگهداری: {{events}}",
+  "Unusually High": "به‌طور غیرعادی بالا",
+  "Unusually Low": "به‌طور غیرعادی پایین"
 }

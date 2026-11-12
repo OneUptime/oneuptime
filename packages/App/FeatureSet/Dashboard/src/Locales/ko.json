@@ -42173,7 +42173,6 @@
   "Written By": "쓰는 서비스",
   "Changes Around It": "전후 변경 사항",
   "Add Check": "검사 추가",
-  "Alerts when its value is {{condition}} {{threshold}}.": "값이 {{condition}} {{threshold}}일 때 알림을 보냅니다.",
   "Checked whether a table is fresh": "테이블이 최신인지 확인함",
   "Checking whether a table is fresh": "테이블이 최신인지 확인하는 중",
   "Data table": "데이터 테이블",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, 모니터링 꺼짐, {{start}}부터, 현재까지 {{duration}}. 현재 활성.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, 모니터링 꺼짐, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "이전 차례 {{count}}개는 표시되지 않습니다",
-  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다"
+  "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다",
+  "Above {{threshold}}": "{{threshold}} 초과",
+  "Alerts when its value is above {{threshold}}.": "값이 {{threshold}} 초과일 때 알림을 보냅니다.",
+  "Alerts when its value is below {{threshold}}.": "값이 {{threshold}} 미만일 때 알림을 보냅니다.",
+  "Alerts when its value is unusually high.": "값이 비정상적으로 높을 때 알림을 보냅니다.",
+  "Alerts when its value is unusually low.": "값이 비정상적으로 낮을 때 알림을 보냅니다.",
+  "Below {{threshold}}": "{{threshold}} 미만",
+  "The status page does not show this resource's status.": "상태 페이지에 이 리소스의 상태가 표시되지 않습니다.",
+  "The status page shows this resource as not monitored.": "상태 페이지에 이 리소스가 모니터링되지 않음으로 표시됩니다.",
+  "Under maintenance: {{events}}": "유지 관리 중: {{events}}",
+  "Unusually High": "비정상적으로 높음",
+  "Unusually Low": "비정상적으로 낮음"
 }

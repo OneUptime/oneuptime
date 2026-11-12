@@ -1,4 +1,5 @@
 import DataObservabilityApi from "./DataObservabilityApi";
+import { getDataCheckAlertConditionSentence } from "./DataCheckAlertConditionWords";
 import DataCheck from "Common/Models/DatabaseModels/DataCheck";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import {
@@ -34,6 +35,10 @@ export interface ComponentProps {
  */
 export const CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME: string =
   "flex flex-wrap gap-2 [&>button]:ml-0 [&>button]:md:ml-0 [&>*>button]:ml-0 [&>*>button]:md:ml-0";
+
+// The suggestion's last line: when the check it writes alerts.
+export const CHECK_FROM_SENTENCE_ALERT_TEST_ID: string =
+  "check-from-sentence-alert";
 
 /*
  * "Orders never have a negative total": a rule the team knows, as a check,
@@ -116,6 +121,18 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
     }
   };
 
+  /*
+   * When the check alerts, as one whole sentence in the reader's language,
+   * with the number where that language puts it (DataCheckAlertConditionWords).
+   */
+  const alertSentence: string | null = suggestion
+    ? getDataCheckAlertConditionSentence({
+        translator: translator,
+        condition: suggestion.alertCondition,
+        threshold: suggestion.alertThreshold,
+      })
+    : null;
+
   return (
     <Card
       title="Write a Check from a Sentence"
@@ -164,15 +181,16 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
               showCopyButton={true}
               wrapLongLines={true}
             />
-            <p className="text-sm text-gray-600">
-              {translator.translateTemplate(
-                "Alerts when its value is {{condition}} {{threshold}}.",
-                {
-                  condition: suggestion.alertCondition.toLowerCase(),
-                  threshold: suggestion.alertThreshold,
-                },
-              )}
-            </p>
+            {alertSentence ? (
+              <p
+                className="text-sm text-gray-600"
+                data-testid={CHECK_FROM_SENTENCE_ALERT_TEST_ID}
+              >
+                {alertSentence}
+              </p>
+            ) : (
+              <></>
+            )}
             <div className={CHECK_FROM_SENTENCE_BUTTONS_CLASS_NAME}>
               <Button
                 title="Add Check"

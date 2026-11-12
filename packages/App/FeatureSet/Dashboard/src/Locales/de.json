@@ -42173,7 +42173,6 @@
   "Written By": "Geschrieben von",
   "Changes Around It": "Änderungen um diese Zeit",
   "Add Check": "Prüfung hinzufügen",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Alarmiert, wenn ihr Wert {{condition}} {{threshold}} ist.",
   "Checked whether a table is fresh": "Geprüft, ob eine Tabelle aktuell ist",
   "Checking whether a table is fresh": "Prüft, ob eine Tabelle aktuell ist",
   "Data table": "Datentabelle",
@@ -50975,5 +50974,16 @@
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, Überwachung aus, seit {{start}}, bisher {{duration}}. Derzeit aktiv.",
   "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, Überwachung aus, {{start}} – {{end}}, {{duration}}",
   "{{count}} earlier turns are not shown": "{{count}} frühere Durchgänge werden nicht angezeigt",
-  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt"
+  "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt",
+  "Above {{threshold}}": "Über {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Alarmiert, wenn ihr Wert über {{threshold}} liegt.",
+  "Alerts when its value is below {{threshold}}.": "Alarmiert, wenn ihr Wert unter {{threshold}} liegt.",
+  "Alerts when its value is unusually high.": "Alarmiert, wenn ihr Wert ungewöhnlich hoch ist.",
+  "Alerts when its value is unusually low.": "Alarmiert, wenn ihr Wert ungewöhnlich niedrig ist.",
+  "Below {{threshold}}": "Unter {{threshold}}",
+  "The status page does not show this resource's status.": "Die Statusseite zeigt den Status dieser Ressource nicht an.",
+  "The status page shows this resource as not monitored.": "Die Statusseite zeigt diese Ressource als nicht überwacht an.",
+  "Under maintenance: {{events}}": "In Wartung: {{events}}",
+  "Unusually High": "Ungewöhnlich hoch",
+  "Unusually Low": "Ungewöhnlich niedrig"
 }
