@@ -516,6 +516,31 @@ then `npm run i18n:validate` from the root.
   "Inoperational"; neutral model names (chat-large), not a vendor's model ids. Not enforced: use
   judgement.
 
+## Asking people
+
+People who are lost leave quietly, so the product asks them, in five seconds, what was hard
+(#6832). Answers stay on the server, for its master admins (Admin Dashboard > Feedback).
+
+- **Ask at most one question a week, once per question, and never while something is down.** A
+  question OneUptime asks goes through `ProductFeedback.ask` (`Common/UI/Utils/ProductFeedback`),
+  and the server decides: never once the person or the server has switched questions off, never
+  while the project has an open incident or alert, and never a question the person was asked
+  before. The end of every guided setup already asks once, from `GuidedSetupFrame`, so a new setup
+  needs no question of its own. A new place that asks is added to the guard's list, with the
+  reason. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Ask what to fix, not how much people like OneUptime.** "How easy was that?" at the end of a
+  flow says what to fix. A product-wide score, the "how likely are you to recommend" kind, does
+  not, so the product asks none. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **An answer carries the page as a route with no ids, and the version, and nothing else.** No
+  person, no project, no address. Say where it goes where it is given: to the server's admins on a
+  self-hosted server, and to the OneUptime team on Cloud. Enforced by
+  [FeedbackQuestionsGuard](../../packages/App/Tests/Dashboard/FeedbackQuestionsGuard.test.ts).
+- **Before each release, someone who has not seen the changes walks the core jobs as a newcomer**,
+  and posts what made them hesitate, guess or go back on the epic #6802:
+  [the newcomer walkthrough](newcomer-walkthrough.md). Not enforced: use judgement.
+
 ## Before you open a pull request
 
 - **Look at it as a newcomer would.** At 1280 and 390 pixels wide (and at 1024 and 768 beside the side

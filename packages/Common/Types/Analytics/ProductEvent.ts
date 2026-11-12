@@ -90,6 +90,13 @@ export enum ProductEventName {
   GuidedSetupFinished = "guided_setup/finished",
   GuidedSetupLeft = "guided_setup/left",
 
+  /*
+   * Somebody told OneUptime how something went (#6832): "How easy was
+   * that?" at the end of a guided setup, Give feedback, "Was this clear?"
+   * or the first-week check-in. Never the words they wrote.
+   */
+  FeedbackGiven = "feedback/given",
+
   // Products that fit the project: hidden, shown and pinned (#6814).
   ProductHidden = "products/product_hidden",
   ProductShown = "products/product_shown",
@@ -111,6 +118,9 @@ export const SEARCH_QUERY_MAX_LENGTH: number = 40;
 
 // A word-like value (a step's key, where something was opened from) is cut to this.
 export const PRODUCT_EVENT_TOKEN_MAX_LENGTH: number = 60;
+
+// The page a feedback answer was given on: a route with no ids, cut to this.
+export const FEEDBACK_PAGE_TOKEN_MAX_LENGTH: number = 200;
 
 export interface ProductEventPropertySpec {
   name: string;
@@ -321,6 +331,23 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     name: ProductEventName.GuidedSetupLeft,
     description: "A guided setup was left before its end, and at which step.",
     properties: [token("setup"), token("step"), { name: "step_number" }],
+  },
+  {
+    name: ProductEventName.FeedbackGiven,
+    description:
+      'Somebody answered "How easy was that?" at the end of a guided setup, sent Give feedback, rated an explanation ("Was this clear?") or answered the first-week check-in: the kind, what it was about (topic), the score or thumbs, whether they wrote anything (has_details) and the page as a route with no ids. Never what they wrote.',
+    properties: [
+      token("kind"),
+      token("topic"),
+      { name: "score" },
+      { name: "is_positive" },
+      { name: "has_details" },
+      {
+        name: "page",
+        isToken: true,
+        maxLength: FEEDBACK_PAGE_TOKEN_MAX_LENGTH,
+      },
+    ],
   },
   {
     name: ProductEventName.ProductHidden,

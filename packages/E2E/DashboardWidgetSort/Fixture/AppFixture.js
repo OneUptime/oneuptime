@@ -19,6 +19,11 @@
  *                   incident's often is (Boards.js incidents)
  *   - view=honeycomb  the monitor list drawn as a honeycomb (#6966)
  *
+ * The side menu's other pages (Overview, Settings...) and the breadcrumbs'
+ * addresses open a stand-in that says only where it is (fixture-elsewhere),
+ * so leaving the board - and its question while it has unsaved changes
+ * (#7173) - is the product's.
+ *
  * Everything the page asks for is recorded on window.__dashboardWidgetSortFixture:
  * every list read with its sort, phase and limit (lists), every trace table
  * request's tableSort (traceTables), every save with the config it wrote
@@ -449,6 +454,34 @@ function Page() {
 }
 
 /*
+ * Where the side menu and the breadcrumbs lead besides the board: a page
+ * that says only which address it is at - one of the dashboard's other
+ * pages inside the view layout, or a page of its own (the dashboards list).
+ * Leaving a board that has unsaved changes asks first (#7173).
+ */
+function ElsewherePage() {
+  const location = useLocation();
+
+  return (
+    <p data-testid="fixture-elsewhere" className="p-6 text-sm text-gray-700">
+      {location.pathname}
+    </p>
+  );
+}
+
+function ElsewhereShell() {
+  Navigation.setNavigateHook(useNavigate());
+  Navigation.setLocation(useLocation());
+  Navigation.setParams(useParams());
+
+  return (
+    <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-8">
+      <ElsewherePage />
+    </main>
+  );
+}
+
+/*
  * Navigates as the Dashboard does (its src/Index.tsx): each navigation renders
  * at once, not in a React transition (Tests/Ops/E2EFixtureRouters).
  */
@@ -460,7 +493,9 @@ createRoot(document.getElementById("root")).render(
         element={<LayoutShell />}
       >
         <PageRoute index element={<Page />} />
+        <PageRoute path="*" element={<ElsewherePage />} />
       </PageRoute>
+      <PageRoute path="*" element={<ElsewhereShell />} />
     </Routes>
   </BrowserRouter>,
 );

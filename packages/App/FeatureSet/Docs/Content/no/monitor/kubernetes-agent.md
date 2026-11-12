@@ -2,6 +2,9 @@
 
 OneUptimes Kubernetes-agent er et Helm-chart som samler inn metrikkene, hendelsene og pod-loggene i clusteret ditt, applikasjonsspor fanget med eBPF og operativsystemmetrikkene til hver node, og sender dem til OneUptime. Én `helm install` setter den opp, uten kodeendringer i appene dine. [Kubernetes-monitorer](/docs/monitor/kubernetes-monitor) varsler ut fra det den sender.
 
+> [!NOTE]
+> Denne siden installerer agenten med Helm, trinn for trinn, med et preset for plattformen din. Alle innstillinger, Amazon EKS-tillegget, OpenShift og Kubernetes-AI-agenten står på [Kubernetes-agent](/docs/telemetry/kubernetes-agent), den fullstendige referansen.
+
 :::cards
 - [Installer agenten](#installer-agenten): Fire trinn med Helm.
 - [Velg et preset](#velg-et-preset): Standardclustere, GKE Autopilot, EKS Fargate eller OpenShift.

@@ -2,6 +2,9 @@
 
 Uma política de plantão aciona as pessoas por níveis. Cada regra de escalonamento é um nível: quem é acionado e quanto tempo esperar que alguém confirme antes de acionar o próximo nível. As regras de uma política aparecem, em ordem, na página **Regras de escalonamento** dela.
 
+> [!TIP]
+> Novo por aqui? Siga primeiro o guia: [Ser acionado por telefone, SMS ou push](/docs/guides/paging).
+
 ```mermaid title="Uma política de plantão aciona nível a nível até alguém confirmar"
 flowchart TB
     trigger["Incidente ou alerta"] --> level1["Level 1 aciona"]

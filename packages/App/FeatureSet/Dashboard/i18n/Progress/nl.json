@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 51203,
-    "untranslated": 9585
+    "keys": 51296,
+    "untranslated": 9546
   },
   "sameAsEnglish": [
     " is",
@@ -533,6 +533,7 @@
     "cursors",
     "customer facing|tier-1",
     "dashboard",
+    "dashboards",
     "database",
     "databases",
     "datastore",
@@ -655,6 +656,7 @@
     "svc-backup",
     "syslog",
     "tag",
+    "team",
     "teams",
     "thread",
     "threads",
@@ -672,6 +674,7 @@
     "volume",
     "volumes",
     "workflow",
+    "workflows",
     "workload",
     "writesets",
     "x86",
@@ -788,6 +791,7 @@
     "{{in}} in",
     "{{minutes}} min",
     "{{monitorName}} is offline",
+    "{{name}} (monitor: {{monitor}})",
     "{{size}} in {{duration}}",
     "{{subject}} is {{values}}.",
     "{{subject}} is {{value}}.",

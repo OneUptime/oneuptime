@@ -2,6 +2,9 @@
 
 En vaktretningslinje varsler folk i nivåer. Hver eskaleringsregel er ett nivå: hvem som varsles, og hvor lenge det ventes på at noen bekrefter før neste nivå varsles. Reglene i en retningslinje står i rekkefølge på siden **Eskaleringsregler**.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Bli varslet via telefon, SMS eller push](/docs/guides/paging).
+
 ```mermaid title="En vaktretningslinje varsler nivå for nivå til noen bekrefter"
 flowchart TB
     trigger["Hendelse eller varsel"] --> level1["Level 1 varsler"]

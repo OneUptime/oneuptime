@@ -77,6 +77,20 @@ error event on the window, "ResizeObserver loop completed with undelivered
 notifications" among them: the board once laid its widgets out inside its observer's
 call, where the side menu's observer of the page's body shared the frame.
 
+Leaving a board being edited (#7173), at 1280: the side menu's other pages and the
+breadcrumbs' addresses open a stand-in that says only where it is (`fixture-elsewhere`).
+A board opened for editing and not changed stops editing at the toolbar's Cancel and is
+left by the side menu at once, with no question. With a widget added and not saved,
+leaving asks "Leave without saving?" (Keep Editing, Discard Changes): by the side menu,
+where Keep Editing keeps the board as it was being edited, and by the browser's Back,
+which the board takes back before the router moves - Keep Editing stays, Discard Changes
+goes to the page before it with nothing saved. The toolbar's Cancel then asks in the same
+voice, "Discard unsaved changes?", and Keep Editing there keeps the board too. A reload
+raises the browser's own question while the change is unsaved, and staying keeps the
+board as edited; after Save Changes a reload asks nothing and opens the board as saved,
+and the side menu leaves at once. Screenshots of both questions are saved with the
+others.
+
 This checks real browser rendering and the widgets' handling of their sorts; the API,
 the database and the deployed app's routing are outside this fixture (the public
 route's order is tested against Postgres in

@@ -2,6 +2,9 @@
 
 Eine Bereitschaftsrichtlinie alarmiert Personen in Stufen. Jede Eskalationsregel ist eine Stufe: wer alarmiert wird und wie lange auf eine Bestätigung gewartet wird, bevor die nächste Stufe alarmiert wird. Die Regeln einer Richtlinie stehen der Reihe nach auf ihrer Seite **Eskalationsregeln**.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
+
 ```mermaid title="Eine Bereitschaftsrichtlinie alarmiert Stufe für Stufe, bis jemand bestätigt"
 flowchart TB
     trigger["Vorfall oder Warnung"] --> level1["Level 1 alarmiert"]

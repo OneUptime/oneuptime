@@ -6,8 +6,8 @@ OneUptime is een opensource-observabilityplatform. Het controleert of uw website
 
 :::cards
 - [Weten wanneer uw website of API uitvalt](/docs/monitor/website-monitor): Laat hem controleren vanaf sondes over de hele wereld, en krijg een e-mail of een oproep als hij uitvalt.
-- [Opgeroepen worden via telefoon, sms of push, en escaleren](/docs/on-call/index): Roep op wie bereikbaar is, en de volgende persoon als niemand reageert.
-- [Een statuspagina op uw eigen domein publiceren](/docs/status-pages/index): Vertel uw klanten wat er aan de hand is, op een eigen adres.
+- [Opgeroepen worden via telefoon, sms of push, en escaleren](/docs/guides/paging): Roep op wie bereikbaar is, en de volgende persoon als niemand reageert.
+- [Een statuspagina op uw eigen domein publiceren](/docs/guides/status-page): Vertel uw klanten wat er aan de hand is, op een eigen adres.
 - [Logs, metrics en traces versturen](/docs/telemetry/open-telemetry): Verstuur de telemetrie van uw applicaties met OpenTelemetry, doorzoek die, en krijg er meldingen over.
 - [Een server monitoren](/docs/telemetry/hosts): Voeg een host toe met één opdracht, en houd de CPU, het geheugen en de schijven in de gaten.
 - [Een Kubernetes-cluster monitoren](/docs/telemetry/kubernetes-agent): Installeer de agent met Helm, en houd elke node en pod in de gaten.

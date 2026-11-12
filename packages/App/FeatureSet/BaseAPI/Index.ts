@@ -2092,6 +2092,7 @@ import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
 import ProjectProductsAPI from "Common/Server/API/ProjectProductsAPI";
 import TelemetryUsageAPI from "Common/Server/API/TelemetryUsageAPI";
+import ProductFeedbackAPI from "Common/Server/API/ProductFeedbackAPI";
 import TelemetryIngestionBudgetAPI from "Common/Server/API/TelemetryIngestionBudgetAPI";
 import ToolImportAPI from "Common/Server/API/ToolImportAPI";
 import NetworkDeviceDiscoveryImportAPI from "Common/Server/API/NetworkDeviceDiscoveryImportAPI";
@@ -6609,6 +6610,16 @@ const BaseAPIFeatureSet: FeatureSet = {
      * own checks are the gate.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, WelcomeChecklistAPI);
+
+    /*
+     * Asking people how things went (issue #6832): the question at the end
+     * of a guided setup, Give feedback, Was this clear? and the first-week
+     * check-in, kept on this server for its master admins (Admin Dashboard
+     * > Feedback). A bare router for the same reason as OnCallReadinessAPI:
+     * ProductFeedback has no CRUD API, and the service writes as root, so
+     * the router's own checks are the gate.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, ProductFeedbackAPI);
 
     /*
      * A project's products (issue #6814): the ones it hides, the ones the

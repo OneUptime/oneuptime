@@ -66,6 +66,13 @@ export interface ComponentProps {
   onCancelEditClick: () => void;
   onFullScreenClick: () => void;
   dashboardMode: DashboardMode;
+  /*
+   * Whether the board being edited differs from the one editing started
+   * from. Cancel asks before it throws changes away ("Discard unsaved
+   * changes?"); with none, it goes back to view mode at once - "You have
+   * unsaved changes" would not be true. Left out, Cancel always asks.
+   */
+  hasUnsavedChanges?: boolean | undefined;
   onAddComponentClick: (type: DashboardComponentType) => void;
   isSaving: boolean;
   dashboardName: string;
@@ -713,6 +720,11 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
                         type="button"
                         className="inline-flex items-center h-8 px-3 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors cursor-pointer"
                         onClick={() => {
+                          if (props.hasUnsavedChanges === false) {
+                            props.onCancelEditClick();
+                            return;
+                          }
+
                           setShowCancelModal(true);
                         }}
                         title={translator.translateText("Cancel")}
@@ -834,11 +846,18 @@ const DashboardToolbar: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
+      {/*
+       * Cancel with unsaved changes. The question says what Discard Changes
+       * does, and opens with the sentence leaving the board opens with
+       * ("Leave without saving?", DashboardView). It was "Are you sure?" -
+       * "Are you sure you want to cancel?": asked twice, and "cancel" could
+       * mean the edit or the question.
+       */}
       {showCancelModal ? (
         <ConfirmModal
-          title={`Are you sure?`}
+          title={"Discard unsaved changes?"}
           description={
-            "You have unsaved changes. Are you sure you want to cancel?"
+            "You have unsaved changes to this dashboard. If you discard them, the dashboard goes back to how it was last saved."
           }
           submitButtonType={ButtonStyleType.DANGER}
           submitButtonText={"Discard Changes"}

@@ -112,12 +112,14 @@ function mockPipeline(options?: {
   /*
    * The delta baseline is persisted by a hook-free single-statement UPDATE:
    * the log is ~25 KB of jsonb and the hooked path would re-SELECT (and
-   * re-detoast) the previous one before every write. See
-   * NetworkDeviceWalkLogWritePath.test.ts for the full contract.
+   * re-detoast) the previous one before every write. It skips a device
+   * another writer holds rather than waiting for it (issue #7194); true:
+   * written. See NetworkDeviceWalkLogWritePath.test.ts for the full
+   * contract.
    */
   deviceUpdateSpy = jest
-    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
-    .mockResolvedValue(undefined);
+    .spyOn(NetworkDeviceService, "updateColumnsByIdIfUnlockedWithoutHooks")
+    .mockResolvedValue(true);
   jest.spyOn(QueryHelper, "any").mockImplementation(((
     values: Array<string | ObjectID | number>,
   ): MonitorLinkQuery => {
