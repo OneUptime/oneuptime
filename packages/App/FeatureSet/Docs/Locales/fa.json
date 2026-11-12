@@ -11,6 +11,7 @@
     "searchPlaceholder": "جستجو در مستندات...",
     "searchTypeToSearch": "برای جستجو در مستندات تایپ کنید...",
     "searchNoResults": "هیچ نتیجه‌ای برای «{{query}}» یافت نشد",
+    "searchSearching": "در حال جستجو…",
     "onThisPage": "در این صفحه",
     "skipToContent": "رفتن به محتوا",
     "toggleTheme": "تغییر پوسته",
@@ -62,7 +63,18 @@
     "calloutDanger": "خطر",
     "detailsSummary": "جزئیات",
     "copyPage": "کپی صفحه",
-    "viewAsMarkdown": "مشاهده به‌صورت Markdown"
+    "viewAsMarkdown": "مشاهده به‌صورت Markdown",
+    "feedbackQuestion": "آیا این صفحه مفید بود؟",
+    "feedbackYes": "بله",
+    "feedbackNo": "خیر",
+    "feedbackThanks": "از اینکه گفتید سپاسگزاریم.",
+    "feedbackWhatWentWrong": "سپاس. چه چیزی درست نبود؟",
+    "feedbackReasonUnclear": "دنبال‌کردنش سخت است",
+    "feedbackReasonMissing": "چیزی کم است",
+    "feedbackReasonWrong": "نادرست یا قدیمی است",
+    "feedbackReasonNotFound": "آن چیزی نبود که دنبالش بودم",
+    "feedbackTellUs": "سپاس. به ما بگویید چه چیزی را درست کنیم تا صفحه را بهتر کنیم.",
+    "feedbackTellUsOnGithub": "در GitHub به ما بگویید"
   },
   "navSections": {
     "Get Started": "شروع کار",

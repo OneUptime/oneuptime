@@ -1002,7 +1002,7 @@ describe("collections", () => {
       limit: 50,
     });
     expect(options.signal).toBeInstanceOf(AbortSignal);
-    expect(screen.getByText("Page 1 of 84 · 4,200 IoT devices")).toBeVisible();
+    expect(screen.getByText("Page 1 of 84 · 4,200 resources")).toBeVisible();
     // An item that went quiet says so.
     expect(
       screen.getAllByTestId("infrastructure-collection-row")[1],
@@ -1010,9 +1010,7 @@ describe("collections", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await waitFor(() => {
-      expect(
-        screen.getByText("Page 2 of 84 · 4,200 IoT devices"),
-      ).toBeVisible();
+      expect(screen.getByText("Page 2 of 84 · 4,200 resources")).toBeVisible();
     });
     expect(
       (mockFetchCollectionPage.mock.calls[1]![1] as CollectionPageRequest)
@@ -1024,9 +1022,7 @@ describe("collections", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
     await waitFor(() => {
-      expect(
-        screen.getByText("Page 1 of 84 · 4,200 IoT devices"),
-      ).toBeVisible();
+      expect(screen.getByText("Page 1 of 84 · 4,200 resources")).toBeVisible();
     });
     expect(
       (mockFetchCollectionPage.mock.calls[2]![1] as CollectionPageRequest)
@@ -1053,7 +1049,7 @@ describe("collections", () => {
     renderExplorer({ data: withCollection() });
     fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
     await waitFor(() => {
-      expect(screen.getByText("Page 1 of 1 · 1 IoT device")).toBeVisible();
+      expect(screen.getByText("Page 1 of 1 · 1 resource")).toBeVisible();
     });
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
   });
@@ -1132,7 +1128,7 @@ describe("collections", () => {
     const match: HTMLElement = await screen.findByTestId(
       "infrastructure-collection-match",
     );
-    expect(match).toHaveTextContent("1,234 matching IoT devices");
+    expect(match).toHaveTextContent("1,234 matches");
     expect(match).toHaveTextContent("in IoT Devices");
     // Nothing in the tree matches, but the collection does: not a miss.
     expect(
@@ -1160,11 +1156,24 @@ describe("collections", () => {
       (mockFetchCollectionPage.mock.calls[0]![1] as CollectionPageRequest)
         .nameTerms,
     ).toEqual(["sensor"]);
-    expect(screen.getByText("Names containing “sensor”")).toBeVisible();
+    // The terms are chips of their own, as typed, in one whole sentence.
+    const filterNote: HTMLElement = screen.getByTestId(
+      "infrastructure-collection-filter-note",
+    );
+    expect(filterNote).toHaveTextContent("Names containing sensor");
+    expect(
+      within(filterNote)
+        .getAllByTestId("infrastructure-collection-filter-term")
+        .map((term: HTMLElement): string => {
+          return term.textContent || "";
+        }),
+    ).toEqual(["sensor"]);
 
     // Clearing the filter lists the whole collection again.
     fireEvent.click(
-      screen.getByRole("button", { name: "Show all IoT devices" }),
+      within(filterNote.parentElement!).getByRole("button", {
+        name: "Show all",
+      }),
     );
     await waitFor(() => {
       expect(mockFetchCollectionPage).toHaveBeenCalledTimes(2);
@@ -1199,7 +1208,7 @@ describe("collections", () => {
     const match: HTMLElement = screen.getByTestId(
       "infrastructure-collection-match",
     );
-    expect(match).toHaveTextContent("4,200 matching IoT devices");
+    expect(match).toHaveTextContent("4,200 matches");
     expect(mockFetchCollectionSearchCounts).not.toHaveBeenCalled();
   });
 
@@ -1244,7 +1253,7 @@ describe("collections", () => {
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(
       await screen.findByTestId("infrastructure-collection-match"),
-    ).toHaveTextContent("9 matching IoT devices");
+    ).toHaveTextContent("9 matches");
   });
 
   test("resources and collection matches are counted together", async () => {
@@ -1469,11 +1478,11 @@ describe("collection paging", () => {
     serveIotPages();
     renderExplorer({ data: withCollection() });
     fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 2 of 84 · 4,200 resources");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 3 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 3 of 84 · 4,200 resources");
     expect(lastPageRequest().cursor).toEqual({
       name: "sensor-004",
       key: "iot-4",
@@ -1485,42 +1494,42 @@ describe("collection paging", () => {
       "All infrastructure",
     );
     fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     expect(lastPageRequest().cursor).toBeNull();
 
     // The collection's own tree row, while it is open.
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 2 of 84 · 4,200 resources");
     fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     expect(lastPageRequest().cursor).toBeNull();
 
     // Its breadcrumb.
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 2 of 84 · 4,200 resources");
     fireEvent.click(
       within(
         screen.getByRole("navigation", { name: "Infrastructure location" }),
       ).getByRole("button", { name: "IoT Devices" }),
     );
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     expect(lastPageRequest().cursor).toBeNull();
 
     // A search match that lists the whole collection.
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 2 of 84 · 4,200 resources");
     search("iot");
     fireEvent.click(screen.getByTestId("infrastructure-collection-match"));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     expect(lastPageRequest().cursor).toBeNull();
 
     // Its card on the overview map.
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 2 of 84 · 4,200 resources");
     fireEvent.click(screen.getByTestId("infrastructure-tree-root"));
     fireEvent.click(screen.getByTestId("infrastructure-view-map"));
     fireEvent.click(screen.getByTestId(`map-card-${IOT}`));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     expect(lastPageRequest().cursor).toBeNull();
   });
 
@@ -1528,7 +1537,7 @@ describe("collection paging", () => {
     serveIotPages({ emptyAfter: 2 });
     renderExplorer({ data: withCollection() });
     fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
     const empty: HTMLElement = await screen.findByTestId(
@@ -1539,14 +1548,14 @@ describe("collection paging", () => {
       screen.queryByText("Nothing inside this resource."),
     ).not.toBeInTheDocument();
     // The pager is still there, with the way back.
-    expect(screen.getByText("Page 2 of 83 · 4,150 IoT devices")).toBeVisible();
+    expect(screen.getByText("Page 2 of 83 · 4,150 resources")).toBeVisible();
     expect(screen.getByRole("button", { name: "Previous" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
 
     fireEvent.click(
       within(empty).getByRole("button", { name: "Back to the first page" }),
     );
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     expect(lastPageRequest().cursor).toBeNull();
     expect(screen.getAllByTestId("infrastructure-collection-row")).toHaveLength(
       2,
@@ -1556,7 +1565,7 @@ describe("collection paging", () => {
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await screen.findByTestId("infrastructure-collection-page-empty");
     fireEvent.click(screen.getByRole("button", { name: "Previous" }));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
   });
 
   test("an emptied page never claims to be past the last page", async () => {
@@ -1564,12 +1573,12 @@ describe("collection paging", () => {
     serveIotPages({ emptyAfter: 4, emptyTotal: 60 });
     renderExplorer({ data: withCollection() });
     fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 2 of 84 · 4,200 resources");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     await screen.findByTestId("infrastructure-collection-page-empty");
-    expect(screen.getByText("Page 3 of 3 · 60 IoT devices")).toBeVisible();
+    expect(screen.getByText("Page 3 of 3 · 60 resources")).toBeVisible();
     expect(screen.queryByText(/Page 3 of 2/)).not.toBeInTheDocument();
   });
 
@@ -1592,12 +1601,12 @@ describe("Show inactive with a collection open or searched", () => {
     const data: Fixture = withCollection();
     const view: RenderResult = renderExplorer({ data });
     fireEvent.click(screen.getByTestId(`infrastructure-tree-${IOT}`));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    await expectPageLabel("Page 2 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 2 of 84 · 4,200 resources");
 
     view.rerender(explorer({ data, includeInactive: true }));
-    await expectPageLabel("Page 1 of 100 · 5,000 IoT devices");
+    await expectPageLabel("Page 1 of 100 · 5,000 resources");
     expect(lastPageRequest()).toEqual({
       entityType: EntityType.IoTDevice,
       includeInactive: true,
@@ -1615,7 +1624,7 @@ describe("Show inactive with a collection open or searched", () => {
      */
     const before: number = mockFetchCollectionPage.mock.calls.length;
     view.rerender(explorer({ data, includeInactive: false }));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     const after: number = mockFetchCollectionPage.mock.calls.length;
     expect(after).toBeGreaterThan(before);
     for (let index: number = before; index < after; index++) {
@@ -1653,21 +1662,26 @@ describe("Show inactive with a collection open or searched", () => {
     search("sensor");
     expect(
       await screen.findByTestId("infrastructure-collection-match"),
-    ).toHaveTextContent("1,234 matching IoT devices");
+    ).toHaveTextContent("1,234 matches");
     expect(mockFetchCollectionSearchCounts).toHaveBeenCalledTimes(1);
 
     view.rerender(explorer({ data, includeInactive: true }));
     await waitFor(() => {
       expect(
         screen.getByTestId("infrastructure-collection-match"),
-      ).toHaveTextContent("1,500 matching IoT devices");
+      ).toHaveTextContent("1,500 matches");
     });
     expect(mockFetchCollectionSearchCounts).toHaveBeenCalledTimes(2);
     expect(mockFetchCollectionSearchCounts.mock.calls[1]![1]).toEqual({
       includeInactive: true,
       types: [{ entityType: EntityType.IoTDevice, nameTerms: ["sensor"] }],
     });
-    expect(screen.getByText("1,500 matches")).toBeVisible();
+    // The search's status line counts them too, as the match card does.
+    expect(
+      screen.getAllByRole("status").find((status: HTMLElement): boolean => {
+        return status.textContent === "1,500 matches";
+      }),
+    ).toBeVisible();
   });
 });
 
@@ -1697,7 +1711,7 @@ describe("collection request failures", () => {
       within(alert).queryByRole("button", { name: "Reload page" }),
     ).not.toBeInTheDocument();
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
-    await expectPageLabel("Page 1 of 84 · 4,200 IoT devices");
+    await expectPageLabel("Page 1 of 84 · 4,200 resources");
     expect(mockFetchCollectionPage).toHaveBeenCalledTimes(2);
   });
 
@@ -1720,7 +1734,7 @@ describe("collection request failures", () => {
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(
       await screen.findByTestId("infrastructure-collection-match"),
-    ).toHaveTextContent("9 matching IoT devices");
+    ).toHaveTextContent("9 matches");
   });
 
   test("a newer server format offers a reload, since trying again cannot help", async () => {

@@ -403,6 +403,7 @@ export const NOT_PAGE_CATEGORIES: Array<string> = [
   "static",
   "as-markdown",
   "search-index",
+  "search",
 ];
 
 /*

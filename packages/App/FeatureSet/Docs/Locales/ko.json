@@ -11,6 +11,7 @@
     "searchPlaceholder": "문서 검색...",
     "searchTypeToSearch": "문서를 검색하려면 입력하세요...",
     "searchNoResults": "\"{{query}}\"에 대한 결과를 찾을 수 없습니다",
+    "searchSearching": "검색 중…",
     "onThisPage": "이 페이지에서",
     "skipToContent": "본문으로 건너뛰기",
     "toggleTheme": "테마 전환",
@@ -62,7 +63,18 @@
     "calloutDanger": "위험",
     "detailsSummary": "자세히",
     "copyPage": "페이지 복사",
-    "viewAsMarkdown": "Markdown으로 보기"
+    "viewAsMarkdown": "Markdown으로 보기",
+    "feedbackQuestion": "이 페이지가 도움이 되었나요?",
+    "feedbackYes": "예",
+    "feedbackNo": "아니요",
+    "feedbackThanks": "알려 주셔서 감사합니다.",
+    "feedbackWhatWentWrong": "감사합니다. 무엇이 문제였나요?",
+    "feedbackReasonUnclear": "이해하기 어려움",
+    "feedbackReasonMissing": "내용이 부족함",
+    "feedbackReasonWrong": "틀렸거나 오래됨",
+    "feedbackReasonNotFound": "찾던 내용이 아님",
+    "feedbackTellUs": "감사합니다. 고칠 점을 알려 주시면 페이지를 개선하겠습니다.",
+    "feedbackTellUsOnGithub": "GitHub에서 알리기"
   },
   "navSections": {
     "Get Started": "시작하기",
