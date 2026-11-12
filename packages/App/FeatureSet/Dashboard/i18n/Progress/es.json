@@ -1,6 +1,6 @@
 {
   "baseline": {
-    "keys": 50746,
+    "keys": 50755,
     "untranslated": 2303
   },
   "sameAsEnglish": [
@@ -438,7 +438,6 @@
     "VM 102 · pve2",
     "VM · esx-01",
     "VM · esx-02",
-    "VM · esx-03 · CPU ready 12.4%",
     "VM · esx-04",
     "VMID",
     "VMID {{vmid}}",
@@ -660,6 +659,7 @@
     "{{count}} vCPU",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}}+ spans",
     "{{gigabytes}} GB",
     "{{in}} in",
     "{{minutes}} min",

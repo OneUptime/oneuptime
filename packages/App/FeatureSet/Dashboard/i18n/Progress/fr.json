@@ -1,7 +1,7 @@
 {
   "baseline": {
-    "keys": 50746,
-    "untranslated": 5453
+    "keys": 50755,
+    "untranslated": 5452
   },
   "sameAsEnglish": [
     " incidents",
@@ -287,7 +287,6 @@
     "Investigation",
     "Investigations",
     "Invocation · 182 ms",
-    "Invocation · 3.9 s",
     "Invocation · 41 ms",
     "Invocation · 96 ms",
     "Invocations",
@@ -756,6 +755,9 @@
     "{{count}} volumes",
     "{{count}} worker",
     "{{count}} workers",
+    "{{count}}+ exceptions",
+    "{{count}}+ spans",
+    "{{count}}+ traces",
     "{{in}} in",
     "{{minutes}} min",
     "{{protocol}} port {{port}}",

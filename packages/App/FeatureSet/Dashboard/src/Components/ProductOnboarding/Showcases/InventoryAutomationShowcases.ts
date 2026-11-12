@@ -32,10 +32,10 @@ export const INVENTORY_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Live"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Hosts"), value: "42" },
-      { label: translationKey("Services"), value: "18" },
-      { label: translationKey("Databases"), value: "6" },
-      { label: translationKey("Devices"), value: "120" },
+      { label: translationKey("Hosts"), value: 42 },
+      { label: translationKey("Services"), value: 18 },
+      { label: translationKey("Databases"), value: 6 },
+      { label: translationKey("Devices"), value: 120 },
     ],
     chart: {
       label: translationKey("Assets"),
@@ -85,10 +85,10 @@ export const NETWORK_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Up"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Interfaces"), value: "48" },
-      { label: translationKey("Traffic"), value: "1.2 Gbps" },
-      { label: translationKey("Errors"), value: "0" },
-      { label: translationKey("CPU"), value: "12%" },
+      { label: translationKey("Interfaces"), value: 48 },
+      { label: translationKey("Traffic"), value: { gigabitsPerSecond: 1.2 } },
+      { label: translationKey("Errors"), value: 0 },
+      { label: translationKey("CPU"), value: { percent: 12 } },
     ],
     chart: {
       label: translationKey("Traffic"),
@@ -137,10 +137,10 @@ export const DASHBOARDS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Live"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Requests"), value: "1,920" },
-      { label: translationKey("Error rate"), value: "0.4%" },
-      { label: translationKey("Latency"), value: "184 ms" },
-      { label: translationKey("Availability"), value: "99.98%" },
+      { label: translationKey("Requests"), value: 1920 },
+      { label: translationKey("Error rate"), value: { percent: 0.4 } },
+      { label: translationKey("Latency"), value: { milliseconds: 184 } },
+      { label: translationKey("Availability"), value: { percent: 99.98 } },
     ],
     chart: {
       label: translationKey("Requests"),
@@ -189,10 +189,10 @@ export const WORKFLOWS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Enabled"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Runs"), value: "214" },
-      { label: translationKey("Succeeded"), value: "211" },
-      { label: translationKey("Failed"), value: "3" },
-      { label: translationKey("Steps"), value: "4" },
+      { label: translationKey("Runs"), value: 214 },
+      { label: translationKey("Succeeded"), value: 211 },
+      { label: translationKey("Failed"), value: 3 },
+      { label: translationKey("Steps"), value: 4 },
     ],
     chart: {
       label: translationKey("Runs"),
@@ -242,10 +242,10 @@ export const RUNBOOKS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Enabled"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Steps"), value: "4" },
-      { label: translationKey("Executions"), value: "38" },
-      { label: translationKey("Succeeded"), value: "36" },
-      { label: translationKey("Failed"), value: "2" },
+      { label: translationKey("Steps"), value: 4 },
+      { label: translationKey("Executions"), value: 38 },
+      { label: translationKey("Succeeded"), value: 36 },
+      { label: translationKey("Failed"), value: 2 },
     ],
     chart: {
       label: translationKey("Executions"),
@@ -297,10 +297,10 @@ export const FORMS_SHOWCASE: ResourceShowcase = {
     badge: translationKey("Published"),
     description: PRODUCT_EXAMPLE_DESCRIPTION,
     stats: [
-      { label: translationKey("Questions"), value: "5" },
-      { label: translationKey("Submissions"), value: "48" },
-      { label: translationKey("Incidents"), value: "31" },
-      { label: translationKey("This week"), value: "6" },
+      { label: translationKey("Questions"), value: 5 },
+      { label: translationKey("Submissions"), value: 48 },
+      { label: translationKey("Incidents"), value: 31 },
+      { label: translationKey("This week"), value: 6 },
     ],
     chart: {
       label: translationKey("Submissions"),

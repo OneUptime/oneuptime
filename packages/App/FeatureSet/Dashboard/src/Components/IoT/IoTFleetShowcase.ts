@@ -66,10 +66,10 @@ const IOT_FLEET_SHOWCASE: ResourceShowcase = {
     name: "building-a-sensors",
     subtitle: translationKey("40 devices · MQTT"),
     stats: [
-      { label: translationKey("Online"), value: "38/40" },
-      { label: translationKey("Devices"), value: "40" },
-      { label: translationKey("Avg battery"), value: "72%" },
-      { label: translationKey("Avg signal"), value: "-67 dBm" },
+      { label: translationKey("Online"), value: { count: 38, outOf: 40 } },
+      { label: translationKey("Devices"), value: 40 },
+      { label: translationKey("Avg battery"), value: { percent: 72 } },
+      { label: translationKey("Avg signal"), value: { dBm: -67 } },
     ],
     chart: {
       label: translationKey("Battery level"),

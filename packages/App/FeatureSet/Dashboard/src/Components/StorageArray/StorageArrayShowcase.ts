@@ -66,10 +66,10 @@ const STORAGE_ARRAY_SHOWCASE: ResourceShowcase = {
     name: "fa-prod-01",
     subtitle: translationKey("Purity//FA 6.7.3 · 48 volumes · 12 hosts"),
     stats: [
-      { label: translationKey("Capacity used"), value: "71.8%" },
-      { label: translationKey("Data reduction"), value: "4.3:1" },
-      { label: translationKey("Open alerts"), value: "1" },
-      { label: translationKey("Failed parts"), value: "1" },
+      { label: translationKey("Capacity used"), value: { percent: 71.8 } },
+      { label: translationKey("Data reduction"), value: { toOne: 4.3 } },
+      { label: translationKey("Open alerts"), value: 1 },
+      { label: translationKey("Failed parts"), value: 1 },
     ],
     chart: {
       label: translationKey("Read latency"),

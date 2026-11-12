@@ -40,6 +40,8 @@ import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_EXAMPLE_LABEL,
   RESOURCE_SHOWCASE_FEATURES_TITLE,
   RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
+  RESOURCE_SHOWCASE_ROW_STATE_TEST_ID,
+  RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID,
   RESOURCE_SHOWCASE_TEST_ID,
   SHOWCASE_CHART_RANGE_TEXT,
   getShowcaseAlertStatus,
@@ -113,10 +115,11 @@ const SHOWCASE: ResourceShowcase = {
     name: "widget-prod",
     subtitle: "Widget 2.0 · 3 gears",
     stats: [
-      { label: "Gears", value: "3" },
-      { label: "Spins", value: "1,204" },
-      { label: "Wobble", value: "2%" },
-      { label: "Heat", value: "41°C" },
+      { label: "Gears", value: 3 },
+      { label: "Spins", value: 1204 },
+      { label: "Wobble", value: { percent: 2 } },
+      // A code, drawn as written.
+      { label: "Model", value: "WX-2" },
     ],
     chart: { label: "Spin rate", values: [1, 3, 2, 5, 4, 6] },
     rows: [
@@ -136,7 +139,7 @@ const SHOWCASE: ResourceShowcase = {
         name: "gear-c",
         detail: "Gear · side",
         status: ShowcaseStatus.Healthy,
-        statusText: "Turning",
+        statusText: { milliseconds: 120 },
       },
     ],
     alert: {
@@ -213,14 +216,27 @@ describe("the showcase", () => {
     expect(preview).toHaveTextContent("Connected");
     for (const stat of SHOWCASE.preview.stats) {
       expect(preview).toHaveTextContent(stat.label);
-      expect(preview).toHaveTextContent(stat.value);
     }
+    // Its figures written as English writes them, a code as written.
+    expect(
+      within(preview)
+        .getAllByTestId(RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID)
+        .map((value: HTMLElement): string => {
+          return value.textContent || "";
+        }),
+    ).toEqual(["3", "1,204", "2%", "WX-2"]);
     expect(preview).toHaveTextContent(SHOWCASE.preview.chart.label);
     for (const row of SHOWCASE.preview.rows) {
       expect(preview).toHaveTextContent(row.name);
       expect(preview).toHaveTextContent(row.detail);
-      expect(preview).toHaveTextContent(row.statusText);
     }
+    expect(
+      within(preview)
+        .getAllByTestId(RESOURCE_SHOWCASE_ROW_STATE_TEST_ID)
+        .map((state: HTMLElement): string => {
+          return state.textContent || "";
+        }),
+    ).toEqual(["Turning", "Stuck", "120 ms"]);
     expect(preview).toHaveTextContent(SHOWCASE.preview.alert!.title);
     expect(preview).toHaveTextContent(SHOWCASE.preview.alert!.description);
     // The chart is drawn: a line and the area under it.
