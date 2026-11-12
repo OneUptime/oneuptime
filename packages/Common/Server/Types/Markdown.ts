@@ -186,7 +186,11 @@ export const MAX_EMAIL_COPIED_HTML_IN_REFERENCES: number =
  * emphasis, code spans, links or escapes would make it look ahead through
  * them for too long, and blocks nested too deep, are written as text.
  * marked reads lines, lists and tables in linear time, so their number is
- * not limited.
+ * not limited. A block is counted as marked reads it (countAsMarked,
+ * #7228): a link or a reference whose label closes costs it a copy of the
+ * block, and a link's address and title, or a definition's, are read once -
+ * so a paragraph of a thousand references, or a link to an address with a
+ * long query, reaches marked and renders as links.
  */
 export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   maxInlineWork: SLOW_MARKDOWN_MAX_INLINE_WORK,
@@ -199,6 +203,7 @@ export const EMAIL_SLOW_MARKDOWN_LIMITS: SlowMarkdownLimits = {
   holdBackCodeBlockContent: false,
   countUrlLiterals: false,
   countWordUnderscores: false,
+  countAsMarked: true,
 };
 
 /*
