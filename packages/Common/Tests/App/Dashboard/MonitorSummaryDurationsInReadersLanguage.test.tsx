@@ -86,9 +86,11 @@ const UNIT: Record<Language, string> = {
 const LATIN_DIGIT: RegExp = /[0-9]/;
 const LATIN_LETTER: RegExp = /[A-Za-z]/;
 
-// A figure, in any digits, then Latin "ms": a duration written by hand.
-const FIGURE_THEN_LATIN_MS: RegExp =
-  /[0-9\u{06F0}-\u{06F9}][0-9\u{06F0}-\u{06F9}\u{066B}\u{066C}.,]*\s?ms(?![A-Za-z])/u;
+/*
+ * A figure's last digit, in any digits, then Latin "ms": a duration written
+ * by hand ("412 ms", "۴۱۲ ms", "1,234ms").
+ */
+const FIGURE_THEN_LATIN_MS: RegExp = /[0-9\u{06F0}-\u{06F9}]\s?ms(?![A-Za-z])/u;
 
 const MONITORED_AT: Date = new Date(Date.UTC(2026, 10, 12, 9, 30));
 
