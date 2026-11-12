@@ -57,6 +57,9 @@ import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
 
 export const ON_CALL_SETUP: string = "on_call";
 
+// The docs' start-to-finish guide to this job (#6821), linked from the page.
+export const ON_CALL_SETUP_GUIDE_DOCS_PATH: string = "/docs/guides/paging";
+
 export enum OnCallSetupStep {
   ReachYou = "reach_you",
   WhoElse = "who_else",

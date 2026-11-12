@@ -263,6 +263,29 @@ describe("NetworkInventoryUtil.recordResolvedAddress", () => {
       id: PROBE_ID.toString(),
     });
   });
+
+  /*
+   * OneUptime issue #7194. The merge never waits for the device: held by
+   * another writer, it is left as it is, and the next poll - finding the
+   * same stale record - writes it then.
+   */
+  test("never waits for a device another writer holds, and says it wrote nothing", async () => {
+    mockServices();
+    // The merge skipped the device: written to none.
+    mergeSpy.mockResolvedValueOnce(0);
+
+    expect(
+      await record(deviceAt("core-fw-01.acme.example"), {
+        hostname: "core-fw-01.acme.example",
+        address: "10.0.0.1",
+      }),
+    ).toBe(false);
+
+    const input: { skipLockedDevices?: boolean } = mergeSpy.mock
+      .calls[0]![0] as never;
+
+    expect(input.skipLockedDevices).toBe(true);
+  });
 });
 
 describe("the poll pipeline records it", () => {

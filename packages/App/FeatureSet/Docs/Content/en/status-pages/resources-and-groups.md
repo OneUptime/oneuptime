@@ -2,6 +2,9 @@
 
 A resource is one row on your status page: a monitor, or a monitor group, with a name your customers understand, its current status and, if you like, its uptime and history. Groups are sections that hold resources, so a page with forty monitors reads as "API", "Web app" and "Data pipeline" instead of one endless list. You build both on one screen: open a status page and pick **Resources** in its side menu.
 
+> [!TIP]
+> New here? Follow the guide first: [Publish a Status Page](/docs/guides/status-page).
+
 :::cards
 - [Add a monitor](#add-a-monitor): Put a monitor on the page, with the name visitors read.
 - [Groups](#groups): Split the page into sections, and nest them.

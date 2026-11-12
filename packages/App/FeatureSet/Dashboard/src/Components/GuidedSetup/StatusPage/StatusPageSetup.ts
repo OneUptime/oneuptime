@@ -39,6 +39,13 @@ import {
 
 export const STATUS_PAGE_SETUP: string = "status_page";
 
+/*
+ * The docs' start-to-finish guide to this job (#6821), linked from the page:
+ * it goes on to a domain of your own, which this setup leaves to the summary.
+ */
+export const STATUS_PAGE_SETUP_GUIDE_DOCS_PATH: string =
+  "/docs/guides/status-page";
+
 export enum StatusPageSetupStep {
   Pick = "pick",
   Review = "review",

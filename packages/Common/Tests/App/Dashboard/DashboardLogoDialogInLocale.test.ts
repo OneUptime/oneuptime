@@ -16,9 +16,11 @@ import { DASHBOARD_LANGUAGES } from "../../Helpers/TranslatedLanguages";
  * language now draws it, naming the logo in the word its Logo field uses.
  *
  * Under each logo's drop zone the file picker says which files it takes and
- * how big ("Types: PNG, JPG, SVG. Max 10MB each."). Fourteen languages said
+ * how big ("Types: PNG, JPG, SVG. Max 10 MB each."). Fourteen languages said
  * that in English while translating the same sentence for a picker with a
- * limit of its own ("Max {{size}} each."); they now say both alike.
+ * limit of its own ("Max {{size}} each."). Every limit, the everyday 10 MB
+ * too, is now that sentence's value, in the reader's digits (issue #7233),
+ * so each language says it once, with its {{size}}.
  *
  * Read from the Dashboard's locale files themselves, so a key that loses its
  * translation, keeps the English or loses a placeholder is caught.
@@ -52,20 +54,23 @@ const LOGO_WORDS: Array<string> = [
   DashboardBrandingCopy.noDarkThemeLogo,
 ];
 
-// The picker's line under a drop zone, with the default limit and with a limit of its own.
-const SIZE_LINES: Array<{ withDefaultLimit: string; withOwnLimit: string }> = [
-  {
-    withDefaultLimit: "Types: {{types}}. Max 10MB each.",
-    withOwnLimit: "Types: {{types}}. Max {{size}} each.",
-  },
-  {
-    withDefaultLimit: "Max 10MB each.",
-    withOwnLimit: "Max {{size}} each.",
-  },
+// The picker's line under a drop zone: whatever its limit, one value of the sentence.
+const SIZE_LINES: Array<string> = [
+  "Types: {{types}}. Max {{size}} each.",
+  "Max {{size}} each.",
 ];
 
-// The default limit as a language writes it: "10 MB", or "10MB" in Japanese.
-const DEFAULT_LIMIT: RegExp = /10\s?MB/;
+// The picker's words as its code writes them, without the comments that tell their story.
+const FILE_PICKER_LAYOUT: string = fs
+  .readFileSync(
+    path.resolve(
+      __dirname,
+      "../../../UI/Components/FilePicker/FilePickerLayout.ts",
+    ),
+    "utf8",
+  )
+  .replace(/\/\*[\s\S]*?\*\//g, "")
+  .replace(/^\s*\/\/.*$/gm, "");
 
 describe("the Logo card and its dialog in English", () => {
   test("every word is an English key of its own", () => {
@@ -74,9 +79,19 @@ describe("the Logo card and its dialog in English", () => {
     }
 
     for (const line of SIZE_LINES) {
-      expect(ENGLISH[line.withDefaultLimit]).toBe(line.withDefaultLimit);
-      expect(ENGLISH[line.withOwnLimit]).toBe(line.withOwnLimit);
+      expect(ENGLISH[line]).toBe(line);
     }
+  });
+
+  test("the picker writes no limit into its words: the default 10 MB is the sentence's {{size}} too", () => {
+    for (const line of SIZE_LINES) {
+      expect(FILE_PICKER_LAYOUT).toContain(`"${line}"`);
+    }
+    // Negative control: the words that wrote the default limit in Latin digits are gone.
+    expect(FILE_PICKER_LAYOUT).not.toContain('"Max 10MB each."');
+    expect(FILE_PICKER_LAYOUT).not.toContain(
+      '"Types: {{types}}. Max 10MB each."',
+    );
   });
 });
 
@@ -104,20 +119,18 @@ describe.each(LANGUAGES)(
       expect(editLogo).not.toBe(locale["Edit Dashboard"]);
     });
 
-    test("the picker says the default limit as it says a limit of its own, with the file types kept", () => {
+    test("the picker says its limit in the language's own words, with the size and the file types kept", () => {
       for (const line of SIZE_LINES) {
-        const withDefaultLimit: string = locale[line.withDefaultLimit]!;
-        const withOwnLimit: string = locale[line.withOwnLimit]!;
+        const translated: string = locale[line]!;
 
-        expect(withDefaultLimit).toBeTruthy();
-        expect(withDefaultLimit).not.toBe(line.withDefaultLimit);
-        expect(withOwnLimit).toContain("{{size}}");
-        expect(withDefaultLimit.replace(DEFAULT_LIMIT, "{{size}}")).toBe(
-          withOwnLimit,
-        );
+        expect(translated).toBeTruthy();
+        expect(translated).not.toBe(line);
+        expect(translated).toContain("{{size}}");
+        // No limit of its own written into the words.
+        expect(translated).not.toMatch(/10\s?MB/);
 
-        if (line.withOwnLimit.includes("{{types}}")) {
-          expect(withDefaultLimit).toContain("{{types}}");
+        if (line.includes("{{types}}")) {
+          expect(translated).toContain("{{types}}");
         }
       }
     });

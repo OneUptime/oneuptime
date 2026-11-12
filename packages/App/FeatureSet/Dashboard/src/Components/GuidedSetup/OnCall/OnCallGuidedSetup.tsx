@@ -13,6 +13,7 @@ import {
   ON_CALL_POLICY_NAME,
   ON_CALL_SETUP,
   ON_CALL_SETUP_COPY,
+  ON_CALL_SETUP_GUIDE_DOCS_PATH,
   OnCallPolicyRecord,
   OnCallProgressFacts,
   OnCallRunValue,
@@ -1971,6 +1972,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       }}
       summary={summary}
       isFinished={isOnCallSetupFinished(facts)}
+      guideDocsPath={ON_CALL_SETUP_GUIDE_DOCS_PATH}
     />
   );
 };

@@ -718,7 +718,12 @@ export default class NetworkInventoryUtil {
       return false;
     }
 
-    await NetworkDeviceService.mergeDiscoveredDetails({
+    /*
+     * Never waits for the device (skipLockedDevices): held by another
+     * writer, it is left as it is, and the next poll - reading the same MAC
+     * against the same old record - writes it then.
+     */
+    const written: number = await NetworkDeviceService.mergeDiscoveredDetails({
       projectId: data.projectId,
       patches: [
         {
@@ -726,9 +731,10 @@ export default class NetworkInventoryUtil {
           set: { [NetworkDeviceDiscoveredField.OwnMacAddress]: entry },
         },
       ],
+      skipLockedDevices: true,
     });
 
-    return true;
+    return written > 0;
   }
 
   /*
@@ -828,7 +834,12 @@ export default class NetworkInventoryUtil {
       return false;
     }
 
-    await NetworkDeviceService.mergeDiscoveredDetails({
+    /*
+     * Never waits for the device (skipLockedDevices): held by another
+     * writer, it is left as it is, and the next poll - finding the same
+     * stale record - writes it then.
+     */
+    const written: number = await NetworkDeviceService.mergeDiscoveredDetails({
       projectId: data.projectId,
       patches: [
         {
@@ -836,8 +847,9 @@ export default class NetworkInventoryUtil {
           set: { [NetworkDeviceDiscoveredField.IpAddress]: entry },
         },
       ],
+      skipLockedDevices: true,
     });
 
-    return true;
+    return written > 0;
   }
 }
