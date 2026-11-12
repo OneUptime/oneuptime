@@ -1110,6 +1110,33 @@ describe("KubernetesClusterAiAccessService.getStatusForClusterModel", () => {
     expect(status.isRemediationReady).toBe(false);
   });
 
+  /*
+   * The setting is LLM Providers (#6738): the gap names it so, for API
+   * readers and a Dashboard that does not word the gap itself - never an
+   * "AI provider", which no page is called.
+   */
+  it("llm_provider_missing names an LLM provider and the LLM Providers page, never an AI provider", async () => {
+    jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
+
+    const status: KubernetesClusterAiAccessStatus =
+      await KubernetesClusterAiAccessService.getStatusForClusterModel({
+        cluster: fakeCluster(),
+        gates: { ...READY_GATES, hasLlmProvider: false },
+      });
+
+    expect(gapCodes(status)).toEqual(["llm_provider_missing"]);
+    expect(status.gaps[0]).toEqual({
+      code: "llm_provider_missing",
+      title: "No LLM provider is configured",
+      description:
+        "OneUptime AI needs an LLM provider to investigate or remediate anything.",
+      nextStep:
+        "Add an LLM provider under Project Settings → AI → LLM Providers (or use OneUptime AI credits).",
+      blocks: "both",
+    });
+    expect(JSON.stringify(status.gaps[0])).not.toMatch(/\bAI providers?\b/i);
+  });
+
   it("ai_balance_insufficient carries the reason, blocks both and says where credits are added", async () => {
     jest.spyOn(RunnerService, "findOneBy").mockResolvedValue(fakeRunner());
 

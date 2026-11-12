@@ -60,6 +60,48 @@ tests:
           content:
             name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
 
+  # A Basic Authorization value ends in base64 padding, and many tokens end
+  # in '='. The server reads each header up to its FIRST '=' as the name, so
+  # the chart must hand the value over whole, padding and all, and every
+  # workload that exports its own telemetry must get the same value.
+  - it: hands a header value that holds '=' to the app whole
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+
+  - it: hands a header value that holds '=' to the worker whole
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: https://collector.example.com/otlp
+        headers: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: Authorization=Basic dXNlcjpwYXNzd29yZA==;x-scope=tenant=eu
+
   - it: keeps public browser settings under browser-only environment names
     templates:
       - templates/app.yaml

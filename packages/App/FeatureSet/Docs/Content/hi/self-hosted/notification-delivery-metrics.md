@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 इन्हें `config.env` में सेट करें, फिर `npm start` चलाएँ। `DISABLE_TELEMETRY_FOR_APP` डिफ़ॉल्ट रूप से `true` होता है, और तब कुछ भी नहीं भेजा जाता।
 :::
 
-OneUptime को एंडपॉइंट और हेडर दोनों चाहिए: हेडर के बिना वह कुछ नहीं भेजता। कई हेडर को `;` से अलग करें। OneUptime एंडपॉइंट में `/v1/metrics` ख़ुद जोड़ता है, और यही सेटिंग्स उसके अपने ट्रेस और लॉग भी भेजती हैं। हर मेट्रिक तब दिखता है जब OneUptime उसे पहली बार दर्ज करता है: `notification.send.count` पहला संदेश भेजे जाने पर।
+OneUptime को एंडपॉइंट और हेडर दोनों चाहिए: हेडर के बिना वह कुछ नहीं भेजता। हर हेडर को `name=value` के रूप में लिखें, और कई हेडर को `;` से अलग करें। किसी मान में `=` हो सकता है। OneUptime एंडपॉइंट में `/v1/metrics` ख़ुद जोड़ता है, और यही सेटिंग्स उसके अपने ट्रेस और लॉग भी भेजती हैं। हर मेट्रिक तब दिखता है जब OneUptime उसे पहली बार दर्ज करता है: `notification.send.count` पहला संदेश भेजे जाने पर।
 
 ### OneUptime प्रोजेक्ट को डेल्टा भेजें
 
@@ -246,7 +246,7 @@ services:
 ## समस्या निवारण
 
 :::details कोई सूचना मेट्रिक्स नहीं आते
-जाँचें कि `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` और `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` दोनों सेट हैं, और Docker Compose में `DISABLE_TELEMETRY_FOR_APP` `false` है, फिर OneUptime को रीस्टार्ट करें। कोई मेट्रिक तभी दिखता है जब कुछ दर्ज हो, इसलिए पहले एक सूचना भेजें।
+जाँचें कि `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` और `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` दोनों सेट हैं, और Docker Compose में `DISABLE_TELEMETRY_FOR_APP` `false` है, फिर OneUptime को रीस्टार्ट करें। शुरू होते समय, जब OneUptime कोई हेडर नहीं पढ़ पाता या कुछ नहीं भेजता, तो वह लॉग में एक चेतावनी लिखता है। कोई मेट्रिक तभी दिखता है जब कुछ दर्ज हो, इसलिए पहले एक सूचना भेजें।
 :::
 
 :::details गिनती बस बढ़ती ही जाती है, या पर्सेंटाइल मुश्किल से हिलता है

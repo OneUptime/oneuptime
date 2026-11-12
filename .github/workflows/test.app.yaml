@@ -1352,6 +1352,11 @@ jobs:
           # Dashboard Templates (2.5) joined it from group 20 on 2026-11-10,
           # the group with the most room, when the OpenStack pages went to
           # thirds (see group 19): about 21.3.
+          # Logs AI gained its ingestion budget banner tests on 2026-11-12
+          # (#6486: 4 tests, about 25 seconds locally - the banner over a
+          # used-up Logs budget and none for an answer that is not a status,
+          # at 1280 and 390 pixels, light and dark), planned at 2.7: about
+          # 21.7.
           - group: 13
             suites: >-
               test-logs-ai-ui

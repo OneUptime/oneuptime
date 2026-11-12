@@ -103,7 +103,7 @@ import {
   rehypeBlocksReadTheirOwnWay,
 } from "./MarkdownReadingDirection";
 import { ReadingDirection } from "../../../Types/ReadingDirection";
-import MarkdownLink from "./MarkdownLink";
+import MarkdownLink, { MARKDOWN_LINK_TEXT_CLASS_NAME } from "./MarkdownLink";
 import MarkdownBlockquote, { useMarkdownTextClassName } from "./MarkdownQuote";
 import { remarkMarkdownCallouts } from "./MarkdownCallouts";
 import OneUptimeDate from "../../../Types/Date";
@@ -341,6 +341,14 @@ export interface ComponentProps {
    * left to right, its numbers on the wrong side.
    */
   readingDirection?: ReadingDirection | undefined;
+  /*
+   * Every link drawn as it looks, as its words alone: nothing to click and
+   * nowhere to go. A dashboard widget's live preview asks for it (issue
+   * #6859) - it sits over a board being edited, and a link that left the
+   * page would take what is not saved yet with it. Unlike safeMode,
+   * everything else - images above all - draws as it does anywhere.
+   */
+  showLinksAsText?: boolean | undefined;
 }
 
 /*
@@ -840,6 +848,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
 ): ReactElement => {
   // Captured here because the component overrides below shadow `props`.
   const safeMode: boolean = props.safeMode === true;
+  const showLinksAsText: boolean = props.showLinksAsText === true;
   const inlineReferences: MarkdownInlineReferenceRenderers | undefined =
     props.inlineReferences;
 
@@ -928,6 +937,17 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
           // Keep the link text, drop the href: no navigation, no exfil.
           return (
             <span className="underline decoration-dotted text-gray-700 font-medium">
+              {children}
+            </span>
+          );
+        }
+        if (showLinksAsText) {
+          // As the link looks, with nothing to click (showLinksAsText).
+          return (
+            <span
+              className={MARKDOWN_LINK_TEXT_CLASS_NAME}
+              data-testid="markdown-link-text"
+            >
               {children}
             </span>
           );
@@ -1148,7 +1168,7 @@ const MarkdownViewer: FunctionComponent<ComponentProps> = (
         );
       },
     };
-  }, [safeMode, hasInlineReferences]);
+  }, [safeMode, showLinksAsText, hasInlineReferences]);
 
   /*
    * Each block of a note reads the way most of its letters do
