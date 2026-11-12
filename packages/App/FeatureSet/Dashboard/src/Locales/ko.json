@@ -23757,7 +23757,7 @@
   "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.": "여기서 한도를 설정하지 않으면 조사는 바로 시작되어 프로젝트의 실행당 시간 제한 안에서 끝날 때까지 실행됩니다.",
   "It works on alerts on its own. Turn off anything you do not want it to do.": "OneUptime AI가 경고를 스스로 처리합니다. 원하지 않는 작업은 끄세요.",
   "It works on incidents on its own. Turn off anything you do not want it to do.": "OneUptime AI가 인시던트를 스스로 처리합니다. 원하지 않는 작업은 끄세요.",
-  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left.": "최근 {{days}}일의 롤링 기간으로 측정하며, 오류 예산이 {{threshold}}% 미만으로 남으면 위험 상태가 됩니다.",
+  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}} of the error budget is left.": "최근 {{days}}일의 롤링 기간으로 측정하며, 오류 예산이 {{threshold}} 미만으로 남으면 위험 상태가 됩니다.",
   "Needs a repository connected through the GitHub App.": "GitHub App으로 연결된 저장소가 필요합니다.",
   "None of this project's LLM providers is its default, and OneUptime AI uses the default.": "이 프로젝트의 LLM 공급자 중 기본값으로 지정된 것이 없으며, OneUptime AI는 기본값을 사용합니다.",
   "OneUptime AI is off for this project, so nothing on this page runs.": "이 프로젝트에서 OneUptime AI가 꺼져 있어 이 페이지의 기능이 실행되지 않습니다.",
@@ -46400,7 +46400,7 @@
   "Changes saved after this was proposed were kept": "이 제안 이후에 저장된 변경 사항은 유지되었습니다",
   "Add recommended rules": "추천 규칙 추가",
   "Add rules": "규칙 추가",
-  "Fires when about {{percent}}% of the error budget burns in {{duration}}": "오류 예산의 약 {{percent}}%가 {{duration}} 동안 소진되면 실행",
+  "Fires when about {{percent}} of the error budget burns in {{duration}}": "오류 예산의 약 {{percent}}가 {{duration}} 동안 소진되면 실행",
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "이 SLO에 아직 없는 규칙: {{rules}}. 확인하기 전에는 아무것도 추가되지 않습니다. 비활성화된 규칙도 설정된 것으로 보므로, 원하지 않는 규칙은 삭제하지 말고 비활성화하세요.",
   "Recommended rules not set up": "추천 규칙이 설정되지 않음",
   "Copy a link to this time range": "이 시간 범위로 가는 링크 복사",
@@ -51124,5 +51124,13 @@
   "{{project}} Status": "{{project}} 상태",
   "{{service}} is already watched by these monitors.": "{{service}} 서비스는 이미 이 모니터들이 감시하고 있습니다.",
   "{{service}} is sending data": "{{service}} 서비스가 데이터를 보내고 있습니다",
-  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다."
+  "{{service}} is sending data.": "{{service}} 서비스가 데이터를 보내고 있습니다.",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "위험 임계값은 {{min}}에서 {{max}} 사이의 백분율이어야 합니다.",
+  "At-risk threshold must be a whole number.": "위험 임계값은 정수여야 합니다.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "최근 {{window}} · {{rate}}는 기간 동안 정확히 예산을 모두 사용합니다",
+  "Target must be greater than {{min}} and at most {{max}}.": "목표는 {{min}}보다 크고 {{max}} 이하여야 합니다.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "모니터가 정상이어야 하는 시간의 비율입니다. {{days}}일 동안 {{target}}이면 {{minutes}}분, {{stricterTarget}}이면 약 {{stricterMinutes}}분의 다운타임이 허용됩니다.",
+  "Window must be a whole number of days.": "기간은 정수 일수여야 합니다.",
+  "Window must be between {{min}} and {{max}} days.": "기간은 {{min}}일에서 {{max}}일 사이여야 합니다.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "매월 {{percentage}}: {{days}}일 기준 한 달에 다운타임 {{budget}}"
 }

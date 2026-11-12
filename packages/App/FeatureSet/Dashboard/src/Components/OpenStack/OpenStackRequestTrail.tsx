@@ -206,7 +206,7 @@ const OpenStackRequestTrail: FunctionComponent<ComponentProps> = (
         description="Every line holding this request's ID or its global ID, across every service, in time order."
         buttons={[]}
       >
-        <div className="p-4 text-sm" data-testid="openstack-request-trail">
+        <div className="text-sm" data-testid="openstack-request-trail">
           <div className="mb-3">
             <Link
               className="text-indigo-600 hover:underline"
