@@ -413,7 +413,10 @@ export function parseStatusPageGroupCsv(
   }
 
   if (records.length === 0) {
-    errors.push({ line: 0, message: translateCsvError("The CSV is empty.", {}) });
+    errors.push({
+      line: 0,
+      message: translateCsvError("The CSV is empty.", {}),
+    });
     return { rows: [], errors: errors };
   }
 
@@ -461,7 +464,9 @@ export function parseStatusPageGroupCsv(
 
     const parentName: string = cellAt(record, headerIndex, "parentName");
     if (name !== "" && parentName === name) {
-      rowErrors.push(translateCsvError("A group cannot be its own parent.", {}));
+      rowErrors.push(
+        translateCsvError("A group cannot be its own parent.", {}),
+      );
     }
 
     const description: string = cellAt(record, headerIndex, "description");

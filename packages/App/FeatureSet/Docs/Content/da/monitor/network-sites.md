@@ -38,7 +38,7 @@ Hver lokations status kommer fra hver enhed i dens undertræ, vurderet efter lok
 
 ## Hierarkiet
 
-Lokationer danner et træ. Hver lokation har en **Site Type** og eventuelt en overordnet lokation. Lokationstyper er projektets egen liste, under **Netværk → Indstillinger → Lokationstyper**, og et nyt projekt starter med Account Type, Region, Franchisee, Market og Unit, i den rækkefølge oppefra, plus Data Center og Other. Typerne danner deres eget hierarki (**Parent Site Type**), som afgør, hvilke lokationer der kan være forælder til en lokation. En type, der er markeret som **Is Unit Level**, er det nederste niveau i dit miljø, den enkelte butik eller filial: dens lokationer rummer enheder, ikke andre lokationer.
+Lokationer danner et træ. Hver lokation har en **Lokationstype** og eventuelt en overordnet lokation. Lokationstyper er projektets egen liste, under **Netværk → Indstillinger → Lokationstyper**, og et nyt projekt starter med Account Type, Region, Franchisee, Market og Unit, i den rækkefølge oppefra, plus Data Center og Other. Typerne danner deres eget hierarki (**Parent Site Type**), som afgør, hvilke lokationer der kan være forælder til en lokation. En type, der er markeret som **Is Unit Level**, er det nederste niveau i dit miljø, den enkelte butik eller filial: dens lokationer rummer enheder, ikke andre lokationer.
 
 En lokations type, navn, beskrivelse, forælder og placering redigeres ét sted: kortet **Site Settings** på lokationens side **Indstillinger**. Lokationens oversigt viser dem med et link **Rediger i Indstillinger**, og listen **Lokationer** tilføjer lokationer, men redigerer dem ikke.
 
@@ -54,7 +54,7 @@ Hver enhed knyttes til én lokation. En lokations undertræ er lokationen selv p
 Gå til **Netværk → Lokationer**, og klik på **Tilføj Lokation**.
 
 ### Sig, hvad lokationen er
-I trinnet **Site Details** vælger du **Site Type** (hvilken slags sted det er: en region, en butik, et datacenter) og skriver et **Navn**. Feltet **Lokationskode**, beskrivelsen, adressen og den bredde- og længdegrad, der placerer lokationen på kortet, er foldet sammen under **Flere felter**: udfyld dem nu eller senere. En lokationskode er en kort kode som et butiks- eller afdelingsnummer (`1216`); [navngivningsregler](/docs/monitor/network-device-monitor#navngiv-enheder-efter-din-navngivningskonvention) sætter den ind i enhedsnavne med `{site.code}`.
+I trinnet **Site Details** vælger du **Lokationstype** (hvilken slags sted det er: en region, en butik, et datacenter) og skriver et **Navn**. Feltet **Lokationskode**, beskrivelsen, adressen og den bredde- og længdegrad, der placerer lokationen på kortet, er foldet sammen under **Flere felter**: udfyld dem nu eller senere. En lokationskode er en kort kode som et butiks- eller afdelingsnummer (`1216`); [navngivningsregler](/docs/monitor/network-device-monitor#navngiv-enheder-efter-din-navngivningskonvention) sætter den ind i enhedsnavne med `{site.code}`.
 
 ### Placér den i træet
 I trinnet **Hierarchy** vælger du **Parent Site**, hvis lokationen ligger under en anden. Lad det være tomt for at holde lokationen på øverste niveau.

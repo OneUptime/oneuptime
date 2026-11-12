@@ -38,7 +38,7 @@ Lo stato di ogni sito deriva da tutti i dispositivi del suo sottoalbero, giudica
 
 ## La gerarchia
 
-I siti formano un albero. Ogni sito ha un **Site Type** e, facoltativamente, un sito padre. I tipi di sito sono l'elenco del progetto, in **Rete → Impostazioni → Tipi di sito**, e un nuovo progetto parte con Account Type, Region, Franchisee, Market e Unit, in quest'ordine dall'alto, più Data Center e Other. I tipi formano una propria gerarchia (**Parent Site Type**), che decide quali siti possono essere padre di un sito. Un tipo contrassegnato come **Is Unit Level** è il livello foglia del tuo parco, il singolo negozio o la singola filiale: i suoi siti contengono dispositivi, non altri siti.
+I siti formano un albero. Ogni sito ha un **Tipo di sito** e, facoltativamente, un sito padre. I tipi di sito sono l'elenco del progetto, in **Rete → Impostazioni → Tipi di sito**, e un nuovo progetto parte con Account Type, Region, Franchisee, Market e Unit, in quest'ordine dall'alto, più Data Center e Other. I tipi formano una propria gerarchia (**Parent Site Type**), che decide quali siti possono essere padre di un sito. Un tipo contrassegnato come **Is Unit Level** è il livello foglia del tuo parco, il singolo negozio o la singola filiale: i suoi siti contengono dispositivi, non altri siti.
 
 Il tipo, il nome, la descrizione, il padre e la posizione di un sito si modificano in un unico punto: la scheda **Site Settings** nella pagina **Impostazioni** del sito. La panoramica del sito li mostra con un link **Modifica nelle impostazioni**, e l'elenco **Siti** aggiunge siti ma non li modifica.
 
@@ -54,7 +54,7 @@ Ogni dispositivo è collegato a un sito. Il sottoalbero di un sito è il sito st
 Vai su **Rete → Siti** e fai clic su **Aggiungi: Sito**.
 
 ### Dire cos'è il sito
-Nel passaggio **Site Details**, scegli il **Site Type** (che tipo di luogo è: una regione, un negozio, un data center) e digita un **Nome**. Il **Codice del sito**, la descrizione, l'indirizzo e la latitudine e la longitudine che collocano il sito sulla mappa sono chiusi sotto **Altri campi**: compilali ora o più tardi. Il codice di un sito è un codice breve, come il numero di un negozio o di un punto vendita (`1216`); le [regole di denominazione](/docs/monitor/network-device-monitor#dare-un-nome-ai-dispositivi-secondo-la-tua-convenzione-di-denominazione) lo inseriscono nei nomi dei dispositivi con `{site.code}`.
+Nel passaggio **Site Details**, scegli il **Tipo di sito** (che tipo di luogo è: una regione, un negozio, un data center) e digita un **Nome**. Il **Codice del sito**, la descrizione, l'indirizzo e la latitudine e la longitudine che collocano il sito sulla mappa sono chiusi sotto **Altri campi**: compilali ora o più tardi. Il codice di un sito è un codice breve, come il numero di un negozio o di un punto vendita (`1216`); le [regole di denominazione](/docs/monitor/network-device-monitor#dare-un-nome-ai-dispositivi-secondo-la-tua-convenzione-di-denominazione) lo inseriscono nei nomi dei dispositivi con `{site.code}`.
 
 ### Collocarlo nell'albero
 Nel passaggio **Hierarchy**, scegli il **Parent Site** se il sito si trova sotto un altro. Lascialo vuoto per tenere il sito al livello più alto.

@@ -535,7 +535,10 @@ export function parseSiteCsv(
   }
 
   if (records.length === 0) {
-    errors.push({ line: 0, message: translateSiteCsvError("The CSV is empty.") });
+    errors.push({
+      line: 0,
+      message: translateSiteCsvError("The CSV is empty."),
+    });
     return { rows: [], errors: errors };
   }
 

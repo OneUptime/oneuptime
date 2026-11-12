@@ -38,7 +38,7 @@ O status de cada site vem de todos os dispositivos da subárvore dele, avaliados
 
 ## A hierarquia
 
-Os sites formam uma árvore. Cada site tem um **Site Type** e, opcionalmente, um site pai. Os tipos de site são a lista do próprio projeto, em **Rede → Configurações → Tipos de site**, e um projeto novo começa com Account Type, Region, Franchisee, Market e Unit, nessa ordem de cima para baixo, mais Data Center e Other. Os tipos formam uma hierarquia própria (**Parent Site Type**), que decide quais sites podem ser pai de um site. Um tipo marcado como **Is Unit Level** é o nível folha do seu parque, a loja ou a filial individual: os sites dele contêm dispositivos, não outros sites.
+Os sites formam uma árvore. Cada site tem um **Tipo de site** e, opcionalmente, um site pai. Os tipos de site são a lista do próprio projeto, em **Rede → Configurações → Tipos de site**, e um projeto novo começa com Account Type, Region, Franchisee, Market e Unit, nessa ordem de cima para baixo, mais Data Center e Other. Os tipos formam uma hierarquia própria (**Parent Site Type**), que decide quais sites podem ser pai de um site. Um tipo marcado como **Is Unit Level** é o nível folha do seu parque, a loja ou a filial individual: os sites dele contêm dispositivos, não outros sites.
 
 O tipo, o nome, a descrição, o pai e a localização de um site são editados em um só lugar: o cartão **Site Settings** na página **Configurações** do site. A visão geral do site os mostra com um link **Editar nas configurações**, e a lista **Sites** adiciona sites, mas não os edita.
 
@@ -54,7 +54,7 @@ Cada dispositivo se liga a um site. A subárvore de um site é o próprio site m
 Acesse **Rede → Sites** e clique em **Adicionar: Site**.
 
 ### Dizer o que o site é
-Na etapa **Site Details**, escolha o **Site Type** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. O **Código do site**, a descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois. Um código de site é um código curto, como o número de uma loja ou de uma unidade (`1216`); as [regras de nomenclatura](/docs/monitor/network-device-monitor#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) o colocam nos nomes dos dispositivos com `{site.code}`.
+Na etapa **Site Details**, escolha o **Tipo de site** (que tipo de lugar é: uma região, uma loja, um data center) e digite um **Nome**. O **Código do site**, a descrição, o endereço e a latitude e a longitude que posicionam o site no mapa ficam recolhidos em **Mais campos**: preencha agora ou depois. Um código de site é um código curto, como o número de uma loja ou de uma unidade (`1216`); as [regras de nomenclatura](/docs/monitor/network-device-monitor#nomear-dispositivos-pela-sua-convenção-de-nomenclatura) o colocam nos nomes dos dispositivos com `{site.code}`.
 
 ### Posicioná-lo na árvore
 Na etapa **Hierarchy**, escolha o **Parent Site** se o site fica abaixo de outro. Deixe vazio para manter o site no nível mais alto.

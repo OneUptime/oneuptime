@@ -1315,10 +1315,13 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
         </div>
         {pageCount > 1 &&
           renderPager({
-            label: translator.translateTemplate("Page {{current}} of {{total}}", {
-              current: translator.formatNumber(currentPage + 1),
-              total: translator.formatNumber(pageCount),
-            }),
+            label: translator.translateTemplate(
+              "Page {{current}} of {{total}}",
+              {
+                current: translator.formatNumber(currentPage + 1),
+                total: translator.formatNumber(pageCount),
+              },
+            ),
             canGoBack: currentPage > 0,
             canGoForward: currentPage + 1 < pageCount,
             onBack: () => {
@@ -2011,7 +2014,10 @@ const InfrastructureExplorer: FunctionComponent<ComponentProps> = (
                     <p role="status" className="mt-0.5 text-xs text-gray-500">
                       {searching
                         ? translator.translatePlural(
-                            { one: "{{count}} match", other: "{{count}} matches" },
+                            {
+                              one: "{{count}} match",
+                              other: "{{count}} matches",
+                            },
                             results.length + collectionMatchCount,
                           )
                         : scope

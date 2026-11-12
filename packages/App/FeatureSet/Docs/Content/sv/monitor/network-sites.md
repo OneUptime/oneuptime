@@ -38,7 +38,7 @@ Varje plats status kommer från varje enhet i dess underträd, bedömda enligt p
 
 ## Hierarkin
 
-Platser bildar ett träd. Varje plats har en **Site Type** och eventuellt en överordnad plats. Platstyperna är projektets egen lista, under **Nätverk → Inställningar → Platstyper**, och ett nytt projekt börjar med Account Type, Region, Franchisee, Market och Unit, i den ordningen uppifrån, plus Data Center och Other. Typerna bildar en egen hierarki (**Parent Site Type**), som avgör vilka platser som kan vara förälder till en plats. En typ som är markerad som **Is Unit Level** är den lägsta nivån i din miljö, den enskilda butiken eller filialen: dess platser innehåller enheter, inte andra platser.
+Platser bildar ett träd. Varje plats har en **Platstyp** och eventuellt en överordnad plats. Platstyperna är projektets egen lista, under **Nätverk → Inställningar → Platstyper**, och ett nytt projekt börjar med Account Type, Region, Franchisee, Market och Unit, i den ordningen uppifrån, plus Data Center och Other. Typerna bildar en egen hierarki (**Parent Site Type**), som avgör vilka platser som kan vara förälder till en plats. En typ som är markerad som **Is Unit Level** är den lägsta nivån i din miljö, den enskilda butiken eller filialen: dess platser innehåller enheter, inte andra platser.
 
 En plats typ, namn, beskrivning, förälder och läge redigeras på ett ställe: kortet **Site Settings** på platsens sida **Inställningar**. Platsens översikt visar dem med en länk **Redigera i Inställningar**, och listan **Platser** lägger till platser men redigerar dem inte.
 
@@ -54,7 +54,7 @@ Varje enhet kopplas till en plats. En plats underträd är platsen själv plus v
 Gå till **Nätverk → Platser** och klicka på **Lägg till Plats**.
 
 ### Ange vad platsen är
-I steget **Site Details** väljer du **Site Type** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Fältet **Platskod**, beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare. En platskod är en kort kod, till exempel ett butiks- eller filialnummer (`1216`); [namngivningsregler](/docs/monitor/network-device-monitor#namnge-enheter-enligt-din-namngivningskonvention) sätter in den i enhetsnamn med `{site.code}`.
+I steget **Site Details** väljer du **Platstyp** (vilken sorts plats det är: en region, en butik, ett datacenter) och skriver ett **Namn**. Fältet **Platskod**, beskrivningen, adressen och den latitud och longitud som fäster platsen på kartan är hopfällda under **Fler fält**: fyll i dem nu eller senare. En platskod är en kort kod, till exempel ett butiks- eller filialnummer (`1216`); [namngivningsregler](/docs/monitor/network-device-monitor#namnge-enheter-enligt-din-namngivningskonvention) sätter in den i enhetsnamn med `{site.code}`.
 
 ### Placera den i trädet
 I steget **Hierarchy** väljer du **Parent Site** om platsen ligger under en annan. Lämna det tomt för att hålla platsen på översta nivån.
