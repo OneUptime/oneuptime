@@ -2132,7 +2132,7 @@ describe("the composer asks only what there is to choose", () => {
 
     await toggle();
 
-    expect(screen.queryByTitle("Choose AI provider")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Choose LLM provider")).not.toBeInTheDocument();
     expect(
       screen.getByTitle("Choose what the AI is allowed to do"),
     ).toBeInTheDocument();
@@ -2144,15 +2144,17 @@ describe("the composer asks only what there is to choose", () => {
     await toggle();
 
     await act(async () => {
-      fireEvent.click(screen.getByTitle("Choose AI provider"));
+      fireEvent.click(screen.getByTitle("Choose LLM provider"));
     });
-    const menu: HTMLElement = screen.getByRole("menu", { name: "AI provider" });
+    const menu: HTMLElement = screen.getByRole("menu", {
+      name: "LLM provider",
+    });
     expect(within(menu).getAllByRole("menuitemradio")).toHaveLength(2);
 
     await pressKeys("Escape", {}, menu);
 
     expect(
-      screen.queryByRole("menu", { name: "AI provider" }),
+      screen.queryByRole("menu", { name: "LLM provider" }),
     ).not.toBeInTheDocument();
     expect(askAi()).not.toBeNull();
   });

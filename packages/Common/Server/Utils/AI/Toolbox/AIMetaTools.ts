@@ -15,6 +15,9 @@ import AIRunStatus, {
   AIRunStatusHelper,
 } from "../../../../Types/AI/AIRunStatus";
 import AIInsightStatus from "../../../../Types/AI/AIInsightStatus";
+import { InvestigationNotStartedCode } from "../../../../Types/AI/InvestigationNotStartedReason";
+import { getRecordAiTokenLimitMessage } from "../../../../Types/AI/RecordAiTokenLimit";
+import { AutonomousBudgetStatus } from "../../../Services/AIService";
 import { AIChatCitationTargetType } from "../../../../Types/AI/AIChatTypes";
 import AIRunService from "../../../Services/AIRunService";
 import AIInsightService from "../../../Services/AIInsightService";
@@ -958,6 +961,14 @@ export const StartInvestigationTool: ObservabilityTool = {
       subjectId: (incidentId || alertId)!,
     };
     let startedAfterWait: StartNowResult | null = null;
+    /*
+     * The incident's (alert's) own daily AI token limit, when it is what
+     * stopped the enqueue: said as Try again says it (#7157), so the answer
+     * names the setting, and a limit of 0 is never "try again later".
+     */
+    const notEnqueued: { tokenLimitBudget: AutonomousBudgetStatus | null } = {
+      tokenLimitBudget: null,
+    };
 
     if (await InvestigationRuleWait.getWaiting(waitSubject)) {
       startedAfterWait = await InvestigationRuleWait.startNow(waitSubject);
@@ -979,6 +990,18 @@ export const StartInvestigationTool: ObservabilityTool = {
           subjectIncidentId: incidentId,
           subjectAlertId: alertId,
           subjectMonitorId: subject.monitorId,
+          onNotEnqueued: async (
+            code: InvestigationNotStartedCode,
+            budget?: AutonomousBudgetStatus,
+          ): Promise<void> => {
+            if (code === "daily_budget_exhausted") {
+              notEnqueued.tokenLimitBudget = budget || {
+                exhausted: true,
+                limitInTokens: null,
+                usedTokensToday: 0,
+              };
+            }
+          },
           /*
            * The LLM provider the subject's investigation rules pick: an
            * investigation someone asked for uses it too.
@@ -995,7 +1018,12 @@ export const StartInvestigationTool: ObservabilityTool = {
         dataForLlm:
           startedAfterWait && !startedAfterWait.isStarted
             ? `The investigation for ${subject.label} could not be started: ${startedAfterWait.message}`
-            : `The investigation for ${subject.label} could not be enqueued — the project's daily autonomous AI token budget may be exhausted, or the enqueue failed. Try again later.`,
+            : notEnqueued.tokenLimitBudget
+              ? `The investigation for ${subject.label} could not be started: ${getRecordAiTokenLimitMessage(
+                  incidentId ? "incident" : "alert",
+                  notEnqueued.tokenLimitBudget,
+                )}`
+              : `The investigation for ${subject.label} could not be enqueued — the project may have reached its daily AI limit, or the enqueue failed. Try again later.`,
         rowCount: 0,
         citationLabel: `Investigation not enqueued for ${subject.label}`,
         citationTarget: {
