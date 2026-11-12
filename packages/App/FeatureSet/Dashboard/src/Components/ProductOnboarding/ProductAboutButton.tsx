@@ -9,7 +9,7 @@ import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import ResourceShowcaseCard from "../ResourceShowcase/ResourceShowcaseCard";
 import {
   PRODUCT_ABOUT_TEXT,
-  ProductKey,
+  OnboardedProductKey,
   ProductOnboarding,
 } from "./ProductOnboarding";
 import { getProductOnboarding } from "./ProductOnboardings";
@@ -28,7 +28,7 @@ export const PRODUCT_ABOUT_BUTTON_CLASS_NAME: string =
   "inline-flex flex-shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500";
 
 export interface ComponentProps {
-  product: ProductKey;
+  product: OnboardedProductKey;
 }
 
 const ProductAboutButton: FunctionComponent<ComponentProps> = (

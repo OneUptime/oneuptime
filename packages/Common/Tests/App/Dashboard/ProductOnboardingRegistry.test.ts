@@ -3,6 +3,7 @@ import { describe, expect, test } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
 import {
+  OnboardedProductKey,
   PRODUCTS_WITHOUT_ONBOARDING,
   PRODUCT_ABOUT_TEXT,
   PRODUCT_EXAMPLE_DESCRIPTION,
@@ -73,9 +74,10 @@ function read(relativePath: string): string {
   return fs.readFileSync(path.join(DASHBOARD_SRC, relativePath), "utf8");
 }
 
-const ONBOARDINGS: Array<[ProductKey, ProductOnboarding]> = Object.entries(
-  PRODUCT_ONBOARDINGS,
-) as Array<[ProductKey, ProductOnboarding]>;
+const ONBOARDINGS: Array<[OnboardedProductKey, ProductOnboarding]> =
+  Object.entries(PRODUCT_ONBOARDINGS) as Array<
+    [OnboardedProductKey, ProductOnboarding]
+  >;
 
 // The products of the products menu, by the page each one opens.
 const MENU_ROUTE_PATTERN: RegExp =
@@ -120,7 +122,7 @@ const isResource: (product: ProductKey) => boolean = (
 };
 
 // Each product's layout: the one file that draws its page title.
-const LAYOUTS: Record<ProductKey, string> = {
+const LAYOUTS: Record<OnboardedProductKey, string> = {
   [ProductKey.Monitors]: "Pages/Monitor/Layout.tsx",
   [ProductKey.Incidents]: "Pages/Incidents/Layout.tsx",
   [ProductKey.Alerts]: "Pages/Alerts/Layout.tsx",
@@ -172,7 +174,10 @@ const LAYOUTS: Record<ProductKey, string> = {
  * product's own showcase (a list's, a telemetry explorer's, an overview's),
  * or the resource's showcase it already drew.
  */
-const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
+const FIRST_PAGES: Record<
+  OnboardedProductKey,
+  { file: string; draws: string }
+> = {
   [ProductKey.Monitors]: {
     file: "Pages/Monitor/Monitors.tsx",
     draws: "product: ProductKey.Monitors,",
@@ -350,7 +355,7 @@ const FIRST_PAGES: Record<ProductKey, { file: string; draws: string }> = {
 };
 
 // The lists: each draws its explanation under its own empty table.
-const LISTS_UNDER_A_TABLE: Array<ProductKey> = [
+const LISTS_UNDER_A_TABLE: Array<OnboardedProductKey> = [
   ProductKey.Monitors,
   ProductKey.Incidents,
   ProductKey.Alerts,
@@ -514,7 +519,7 @@ describe("every product of the products menu explains itself", () => {
 
   test("a resource's explanation is the showcase its empty list already draws", () => {
     for (const [product, showcase] of Object.entries(RESOURCE_SHOWCASES)) {
-      expect(PRODUCT_ONBOARDINGS[product as ProductKey].showcase).toBe(
+      expect(PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase).toBe(
         showcase,
       );
     }
@@ -524,7 +529,7 @@ describe("every product of the products menu explains itself", () => {
 describe("each explanation is complete", () => {
   test.each(ONBOARDINGS)(
     "%s: a pitch, how to start, an example, and a documentation page that exists",
-    (product: ProductKey, onboarding: ProductOnboarding) => {
+    (product: OnboardedProductKey, onboarding: ProductOnboarding) => {
       const showcase: ResourceShowcase = onboarding.showcase;
 
       expect(onboarding.name.trim()).not.toBe("");
@@ -719,7 +724,7 @@ function getNumbersWrittenAsText(showcase: ResourceShowcase): Array<string> {
 describe("an example's numbers are written in the reader's language", () => {
   test.each(ONBOARDINGS)(
     "%s: its example's numbers are figures, not English text",
-    (_product: ProductKey, onboarding: ProductOnboarding) => {
+    (_product: OnboardedProductKey, onboarding: ProductOnboarding) => {
       expect(getNumbersWrittenAsText(onboarding.showcase)).toEqual([]);
     },
   );
@@ -810,7 +815,7 @@ describe("an example's numbers are written in the reader's language", () => {
 describe("the explanation is where each product is", () => {
   test.each(ONBOARDINGS)(
     "%s: How it works sits beside its page's title",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const layout: string = read(LAYOUTS[product]);
       const about: RegExp = new RegExp(
         `titleRight=\\{\\s*<ProductAboutButton\\s+product=\\{[^}]*ProductKey\\.${
@@ -824,7 +829,7 @@ describe("the explanation is where each product is", () => {
 
   test.each(ONBOARDINGS)(
     "%s: its first page draws it while there is nothing yet",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
 
       expect(read(firstPage.file)).toContain(firstPage.draws);
@@ -840,7 +845,7 @@ describe("the explanation is where each product is", () => {
    */
   test.each([...LISTS_UNDER_A_TABLE, ProductKey.Code])(
     "%s: under the page's own words, its showcase leaves its description to them",
-    (product: ProductKey) => {
+    (product: OnboardedProductKey) => {
       const firstPage: { file: string; draws: string } = FIRST_PAGES[product];
       const source: string = read(firstPage.file);
 
@@ -883,7 +888,7 @@ describe("the explanation is where each product is", () => {
   test("a telemetry product's button is its first step, and its setup guide waits for that telemetry", () => {
     for (const [product, firstRun] of Object.entries(TELEMETRY_FIRST_RUNS)) {
       const steps: Array<string> =
-        PRODUCT_ONBOARDINGS[product as ProductKey].showcase.steps || [];
+        PRODUCT_ONBOARDINGS[product as OnboardedProductKey].showcase.steps || [];
 
       expect(steps[0]).toBe(firstRun.startText);
       expect(firstRun.viewPage.startsWith("SERVICE_VIEW")).toBe(true);

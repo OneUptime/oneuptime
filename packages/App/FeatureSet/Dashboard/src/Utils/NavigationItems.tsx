@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "./RouteMap";
 import RouteParams from "./RouteParams";
 import Route from "Common/Types/API/Route";
 import IconProp from "Common/Types/Icon/IconProp";
+import ProductKey from "Common/Types/Product/ProductKey";
 import { NavItem, MoreMenuItem } from "Common/UI/Components/Navbar/NavBar";
 import { useTranslation } from "react-i18next";
 
@@ -76,6 +77,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * the same story, so keep the two in step.
      */
     {
+      key: ProductKey.Monitors,
       title: t("navbar.items.monitorsTitle"),
       keywords: [
         "uptime",
@@ -97,6 +99,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: essentialsCategory,
     },
     {
+      key: ProductKey.Incidents,
       title: t("navbar.items.incidentsTitle"),
       keywords: ["outage", "downtime", "incident response", "postmortem"],
       description: t("navbar.items.incidentsDescription"),
@@ -109,6 +112,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: essentialsCategory,
     },
     {
+      key: ProductKey.Alerts,
       title: t("navbar.items.alertsTitle"),
       keywords: ["notifications", "alarms", "thresholds", "warnings"],
       description: t("navbar.items.alertsDescription"),
@@ -119,6 +123,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: essentialsCategory,
     },
     {
+      key: ProductKey.OnCall,
       title: t("navbar.items.onCallDutyTitle"),
       keywords: [
         "oncall",
@@ -142,6 +147,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: essentialsCategory,
     },
     {
+      key: ProductKey.StatusPages,
       title: t("navbar.items.statusPagesTitle"),
       keywords: [
         "statuspage",
@@ -159,6 +165,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: essentialsCategory,
     },
     {
+      key: ProductKey.ScheduledMaintenance,
       title: t("navbar.items.scheduledMaintenanceTitle"),
       keywords: [
         "maintenance window",
@@ -175,6 +182,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: essentialsCategory,
     },
     {
+      key: ProductKey.Slos,
       title: t("navbar.items.slosTitle", "SLOs"),
       keywords: [
         "service level objectives",
@@ -196,6 +204,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     // Observability
     {
+      key: ProductKey.Logs,
       title: t("navbar.items.logsTitle"),
       keywords: ["logging", "log search", "log explorer", "syslog"],
       description: t("navbar.items.logsDescription"),
@@ -206,6 +215,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      key: ProductKey.Metrics,
       title: t("navbar.items.metricsTitle"),
       keywords: [
         "timeseries",
@@ -223,6 +233,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      key: ProductKey.Traces,
       title: t("navbar.items.tracesTitle"),
       keywords: [
         "distributed tracing",
@@ -239,6 +250,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      key: ProductKey.Profiles,
       title: t("navbar.items.performanceProfilesTitle"),
       keywords: [
         "profiling",
@@ -257,6 +269,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      key: ProductKey.Exceptions,
       title: t("navbar.items.exceptionsTitle"),
       keywords: ["errors", "error tracking", "bugs", "crashes", "stack traces"],
       description: t("navbar.items.exceptionsDescription"),
@@ -269,6 +282,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      key: ProductKey.Llm,
       title: t("navbar.items.llmObservabilityTitle", "AI / LLM"),
       keywords: [
         "large language models",
@@ -291,6 +305,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      key: ProductKey.DataObservability,
       title: t("navbar.items.dataObservabilityTitle", "Data Observability"),
       keywords: [
         "data quality",
@@ -316,6 +331,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: observabilityCategory,
     },
     {
+      key: ProductKey.Topology,
       title: t("navbar.items.topologyTitle"),
       keywords: [
         "service map",
@@ -335,6 +351,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * they had a category of their own, so they are found where they were.
      */
     {
+      key: ProductKey.SecurityEvents,
       title: t("navbar.items.securityEventsTitle", "Security Events"),
       keywords: [
         "siem",
@@ -362,6 +379,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: securityCategory,
     },
     {
+      key: ProductKey.DataSecurity,
       title: t("navbar.items.dataSecurityTitle", "Data Security"),
       keywords: [
         "dspm",
@@ -390,6 +408,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     // AI
     {
+      key: ProductKey.AIChat,
       title: t("navbar.items.aiChatTitle", "Chat"),
       keywords: ["ai chat", "copilot", "assistant", "ask ai"],
       description: t(
@@ -405,6 +424,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: aiCategory,
     },
     {
+      key: ProductKey.AIInsights,
       title: t("navbar.items.sentinelInsightsTitle", "Insights"),
       keywords: [
         "sentinel",
@@ -434,6 +454,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * keywords, so people who learned them still find it.)
      */
     {
+      key: ProductKey.Code,
       title: t("navbar.items.codeTitle", "Code"),
       keywords: [
         "tasks",
@@ -464,6 +485,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     // Resources — the catalogs that span every kind of infrastructure
     {
+      key: ProductKey.Inventory,
       title: t("navbar.items.inventoryTitle", "Inventory"),
       keywords: ["assets", "entities", "resource catalog", "cmdb"],
       description: t(
@@ -483,6 +505,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: resourcesCategory,
     },
     {
+      key: ProductKey.Services,
       title: t("navbar.items.servicesTitle"),
       keywords: [
         "apm",
@@ -507,6 +530,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * must still narrow the catalog to exactly one product.
      */
     {
+      key: ProductKey.Databases,
       title: t("navbar.items.databasesTitle", "Databases"),
       keywords: [
         "database",
@@ -541,6 +565,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * alias must still narrow the catalog to exactly one product.
      */
     {
+      key: ProductKey.Queues,
       title: t("navbar.items.queuesTitle", "Queues"),
       keywords: [
         "queue",
@@ -578,6 +603,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: resourcesCategory,
     },
     {
+      key: ProductKey.Rum,
       title: t("navbar.items.rumTitle"),
       keywords: [
         "rum",
@@ -599,6 +625,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     // Infrastructure — one product per platform, most common first
     {
+      key: ProductKey.Hosts,
       title: t("navbar.items.hostsTitle"),
       keywords: ["servers", "machines", "infrastructure", "linux", "windows"],
       description: t("navbar.items.hostsDescription"),
@@ -609,6 +636,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.Kubernetes,
       title: t("navbar.items.kubernetesTitle"),
       keywords: ["k8s", "kube", "kubectl", "pods", "containers", "clusters"],
       description: t("navbar.items.kubernetesDescription"),
@@ -621,6 +649,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.Docker,
       title: t("navbar.items.dockerTitle"),
       keywords: ["containers", "container monitoring", "docker hosts"],
       description: t("navbar.items.dockerDescription"),
@@ -633,6 +662,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.DockerSwarm,
       title: t("navbar.items.dockerSwarmTitle", "Docker Swarm"),
       keywords: ["swarm", "container orchestration", "swarm clusters"],
       description: t(
@@ -648,6 +678,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.Podman,
       title: t("navbar.items.podmanTitle"),
       keywords: ["containers", "container monitoring", "rootless containers"],
       description: t("navbar.items.podmanDescription"),
@@ -660,6 +691,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.Proxmox,
       title: t("navbar.items.proxmoxTitle", "Proxmox"),
       keywords: [
         "pve",
@@ -681,6 +713,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.OpenStack,
       title: t("navbar.items.openstackTitle", "OpenStack"),
       keywords: [
         "private cloud",
@@ -705,6 +738,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.VMware,
       title: t("navbar.items.vmwareTitle", "VMware"),
       keywords: [
         "vcenter",
@@ -727,6 +761,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.Ceph,
       title: t("navbar.items.cephTitle", "Ceph"),
       keywords: ["storage", "osd", "rados", "storage pools"],
       description: t(
@@ -742,6 +777,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.StorageArrays,
       title: t("navbar.items.storageArraysTitle", "Storage Arrays"),
       keywords: [
         "storage",
@@ -766,6 +802,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.Network,
       title: t("navbar.items.networkTitle", "Network"),
       keywords: [
         "snmp",
@@ -790,6 +827,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: infrastructureCategory,
     },
     {
+      key: ProductKey.IoT,
       title: t("navbar.items.iotTitle", "IoT"),
       keywords: ["internet of things", "devices", "sensors", "fleets"],
       description: t(
@@ -811,6 +849,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * every page under /cloud keeps it lit.
      */
     {
+      key: ProductKey.Cloud,
       title: t("navbar.items.cloudTitle"),
       keywords: [
         "aws",
@@ -858,6 +897,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * (RunnerProductSearch).
      */
     {
+      key: ProductKey.AppPlatforms,
       title: t("navbar.items.appPlatformsTitle", "App Platforms"),
       keywords: [
         "paas",
@@ -893,6 +933,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: cloudCategory,
     },
     {
+      key: ProductKey.Serverless,
       title: t("navbar.items.serverlessTitle"),
       keywords: [
         "lambda",
@@ -912,6 +953,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     // Dashboards & Automation
     {
+      key: ProductKey.Dashboards,
       title: t("navbar.items.dashboardsTitle"),
       keywords: ["charts", "graphs", "widgets", "visualizations"],
       description: t("navbar.items.dashboardsDescription"),
@@ -924,6 +966,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: analyticsAutomationCategory,
     },
     {
+      key: ProductKey.Workflows,
       title: t("navbar.items.workflowsTitle"),
       keywords: ["automation", "automations", "integrations", "triggers"],
       description: t("navbar.items.workflowsDescription"),
@@ -936,6 +979,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: analyticsAutomationCategory,
     },
     {
+      key: ProductKey.Runbooks,
       title: t("navbar.items.runbooksTitle"),
       /*
        * "runners": Runners are set up inside Runbooks, and someone who only
@@ -961,6 +1005,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
      * the way a workflow turns an event into actions.
      */
     {
+      key: ProductKey.Forms,
       title: t("navbar.items.formsTitle", "Forms"),
       keywords: [
         "form",
@@ -987,6 +1032,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
     },
     // Settings
     {
+      key: ProductKey.Users,
       title: t("navbar.items.usersTitle"),
       keywords: ["members", "people", "teammates", "invite"],
       description: t("navbar.items.usersDescription"),
@@ -997,6 +1043,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: settingsCategory,
     },
     {
+      key: ProductKey.Teams,
       title: t("navbar.items.teamsTitle"),
       keywords: ["groups", "departments", "team members"],
       description: t("navbar.items.teamsDescription"),
@@ -1007,6 +1054,7 @@ export function useDashboardNavigationItems(): DashboardNavigationItems {
       category: settingsCategory,
     },
     {
+      key: ProductKey.ProjectSettings,
       title: t("navbar.items.projectSettingsTitle"),
       keywords: [
         "configuration",
