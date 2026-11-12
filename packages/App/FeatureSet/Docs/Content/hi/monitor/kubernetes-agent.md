@@ -2,6 +2,9 @@
 
 OneUptime Kubernetes एजेंट एक Helm चार्ट है जो आपके क्लस्टर के मेट्रिक्स, इवेंट और पॉड लॉग, eBPF से कैप्चर किए गए एप्लिकेशन ट्रेस, और हर नोड के OS मेट्रिक्स इकट्ठा करके OneUptime को भेजता है। एक `helm install` इसे लगा देता है, आपके ऐप के कोड में कोई बदलाव किए बिना। [Kubernetes मॉनिटर](/docs/monitor/kubernetes-monitor) इसके भेजे डेटा पर अलर्ट करते हैं।
 
+> [!NOTE]
+> यह पेज Helm से एजेंट को चरण-दर-चरण इंस्टॉल करता है, आपके प्लेटफ़ॉर्म के लिए एक प्रीसेट के साथ। हर विकल्प, Amazon EKS ऐड-ऑन, OpenShift और Kubernetes AI एजेंट [Kubernetes एजेंट](/docs/telemetry/kubernetes-agent) पर हैं, जो इसका पूरा संदर्भ है।
+
 :::cards
 - [एजेंट इंस्टॉल करें](#एजेंट-इंस्टॉल-करें): Helm के साथ चार चरण।
 - [प्रीसेट चुनें](#प्रीसेट-चुनें): मानक क्लस्टर, GKE Autopilot, EKS Fargate या OpenShift।

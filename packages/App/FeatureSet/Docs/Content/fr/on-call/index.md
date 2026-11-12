@@ -2,6 +2,9 @@
 
 L'astreinte, c'est la façon dont OneUptime amène quelqu'un sur un problème, à toute heure. Quand un incident, une alerte ou un épisode a besoin de quelqu'un, ses politiques d'astreinte alertent des personnes niveau par niveau jusqu'à ce que quelqu'un prenne en compte, et chaque personne est jointe comme elle l'a choisi : notification push, SMS, appel, e-mail ou message de chat. Cette page montre comment les éléments s'articulent et où se trouve chacun d'eux. Le [Glossaire](/docs/introduction/glossary#politique-dastreinte) explique en une phrase ou deux chaque mot qu'utilise l'astreinte.
 
+> [!TIP]
+> Vous débutez ? Suivez d'abord le guide : [Être alerté par appel, SMS ou push](/docs/guides/paging).
+
 :::cards
 - [Comment une alerte joint quelqu'un](#comment-une-alerte-joint-quelquun): D'un nouvel incident à la personne qui répond.
 - [Les éléments de base](#les-éléments-de-base): Politiques, règles d'escalade, plannings, remplacements et règles personnelles.

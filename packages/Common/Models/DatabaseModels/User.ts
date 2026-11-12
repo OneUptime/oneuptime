@@ -1066,6 +1066,56 @@ class User extends UserModel {
     default: false,
   })
   public enableTwoFactorAuth?: boolean = undefined;
+
+  /*
+   * "Ask me how things went" (issue #6832), on while this is false: the
+   * question at the end of a guided setup, Was this clear? and the
+   * first-week check-in. Their own to switch off, on User Profile or with
+   * "Don't ask me again" on a question. Give feedback in Help stays: the
+   * person opens it.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [Permission.CurrentUser],
+    update: [Permission.CurrentUser],
+  })
+  @TableColumn({
+    title: "Disable Feedback Questions",
+    description:
+      "When true, OneUptime never asks this person how things went: no question at the end of a guided setup, no Was this clear?, no first-week check-in.",
+    type: TableColumnType.Boolean,
+    defaultValue: false,
+  })
+  @Column({
+    type: ColumnType.Boolean,
+    nullable: true,
+    default: false,
+  })
+  public disableFeedbackQuestions?: boolean = undefined;
+
+  /*
+   * The questions OneUptime asked this person, and when: question key
+   * (`setup_flow:website_down`, `check_in:<project id>`) to an ISO date
+   * (Types/ProductFeedback/ProductFeedback, readAskedQuestions). Each is
+   * asked once, and at most one a week. Written by OneUptime only
+   * (ProductFeedbackService, as root), when it asks.
+   */
+  @ColumnAccessControl({
+    create: [],
+    read: [],
+    update: [],
+  })
+  @TableColumn({
+    title: "Feedback Questions Asked",
+    description:
+      "The questions OneUptime asked this person about how things went, and when, so none is asked twice and at most one a week.",
+    type: TableColumnType.JSON,
+  })
+  @Column({
+    type: ColumnType.JSON,
+    nullable: true,
+  })
+  public feedbackQuestionsAsked?: JSONObject = undefined;
 }
 
 export default User;

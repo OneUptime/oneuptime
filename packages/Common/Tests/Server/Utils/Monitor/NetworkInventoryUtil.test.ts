@@ -131,15 +131,17 @@ function mockServices(
    * Device MAC learning follows the endpoint upsert on any walk that
    * carried ARP bindings: one findBy for the devices registered at the
    * bound addresses, then a hook-free compare-and-set write per device the
-   * planner picked. Stubbed here so the ARP cases never reach a database;
-   * the learning block seeds findBy with real rows where it matters.
+   * planner picked - one that skips a device another writer holds instead
+   * of waiting for it (issue #7194). Stubbed here so the ARP cases never
+   * reach a database; the learning block seeds findBy with real rows where
+   * it matters.
    */
   deviceLookupSpy = jest
     .spyOn(NetworkDeviceService, "findBy")
     .mockResolvedValue([]);
   macWriteSpy = jest
-    .spyOn(NetworkDeviceService, "updateColumnsByIdWithoutHooks")
-    .mockResolvedValue(undefined);
+    .spyOn(NetworkDeviceService, "updateColumnsByIdIfUnlockedWithoutHooks")
+    .mockResolvedValue(true);
 }
 
 function deviceUpdatePayload(): DeviceUpdatePayload {

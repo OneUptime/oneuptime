@@ -2,6 +2,9 @@
 
 Eine Benachrichtigungsmethode ist eine Adresse, unter der OneUptime Sie in einem Projekt erreichen darf: eine E-Mail-Adresse, eine Telefonnummer für SMS oder Anrufe, eine WhatsApp-Nummer, ein Telegram-Konto, Ihr Slack-, Microsoft Teams- oder Mattermost-Konto, ein Telefon oder Browser für Push-Benachrichtigungen oder ein Webhook. Sie fügen sie unter **Benutzereinstellungen → Benachrichtigungsmethoden** hinzu, verifizieren sie, und OneUptime nutzt sie sofort für Ihre Alarme.
 
+> [!TIP]
+> Neu hier? Folgen Sie zuerst der Anleitung: [Per Anruf, SMS oder Push alarmiert werden](/docs/guides/paging).
+
 :::cards
 - [Eine Methode wählen](#eine-methode-wählen): Was jede Methode braucht, und wie sie verifiziert wird.
 - [Eine Methode hinzufügen und verifizieren](#eine-methode-hinzufügen-und-verifizieren): E-Mail, SMS, Anrufe und WhatsApp, mit einem 6-stelligen Code.

@@ -2,6 +2,9 @@
 
 Een bereikbaarheidsbeleid roept mensen op in niveaus. Elke escalatieregel is één niveau: wie wordt opgeroepen en hoe lang er wordt gewacht tot iemand bevestigt voordat het volgende niveau wordt opgeroepen. De regels van een beleid staan op volgorde op de pagina **Escalatieregels** ervan.
 
+> [!TIP]
+> Nieuw hier? Volg eerst de handleiding: [Opgeroepen worden via telefoon, sms of push](/docs/guides/paging).
+
 ```mermaid title="Een bereikbaarheidsbeleid roept niveau na niveau op tot iemand bevestigt"
 flowchart TB
     trigger["Incident of waarschuwing"] --> level1["Level 1 roept op"]

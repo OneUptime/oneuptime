@@ -1,4 +1,7 @@
-import { Service as MonitorProbeServiceType } from "../../../Server/Services/MonitorProbeService";
+import {
+  CLAIM_CANDIDATES_PER_MONITOR_PROBE,
+  Service as MonitorProbeServiceType,
+} from "../../../Server/Services/MonitorProbeService";
 import SubscriptionStatus, {
   SubscriptionStatusUtil,
 } from "../../../Types/Billing/SubscriptionStatus";
@@ -7,7 +10,7 @@ import {
   CapturedStatement,
   SUBSCRIPTION_COLUMNS,
   SubscriptionColumn,
-  captureClaimStatements,
+  captureClaimQueries,
   claimAdmitsProject,
   expectPlaceholdersMatchParameters,
   getBoundStatusList,
@@ -58,18 +61,28 @@ const ALL_VALUES: Array<SubscriptionStatus | null> = [
   ...Object.values(SubscriptionStatus),
 ];
 
+/*
+ * `selectRows` is what the candidate read answers; the claim statement then
+ * answers every candidate it was handed, unless `claimedRows` says which.
+ */
 async function captureClaim(
   selectRows: Array<Record<string, unknown>> = [],
   limit: number = 25,
+  claimedRows?: Array<Record<string, unknown>>,
 ): Promise<{
   statements: Array<CapturedStatement>;
   select: CapturedStatement;
   claimed: Array<ObjectID>;
 }> {
   const service: MonitorProbeServiceType = new MonitorProbeServiceType();
-  const statements: Array<CapturedStatement> = captureClaimStatements(
+  const statements: Array<CapturedStatement> = captureClaimQueries(
     service,
     selectRows,
+    claimedRows
+      ? () => {
+          return claimedRows;
+        }
+      : undefined,
   );
 
   const claimed: Array<ObjectID> = await service.claimMonitorProbesForProbing({
@@ -242,13 +255,17 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
   });
 
   describe("the statement itself", () => {
-    test("binds probeId, now, limit and the active statuses, in that order", async () => {
+    test("binds probeId, now, the candidate count and the active statuses, in that order", async () => {
       const { select } = await captureClaim([], 42);
 
       expect(select.parameters).toHaveLength(4);
       expect(select.parameters[0]).toBe(PROBE_ID.toString());
       expect(select.parameters[1]).toBeInstanceOf(Date);
-      expect(select.parameters[2]).toBe(42);
+      // More candidates than the limit: see CLAIM_CANDIDATES_PER_MONITOR_PROBE.
+      expect(CLAIM_CANDIDATES_PER_MONITOR_PROBE).toBeGreaterThan(1);
+      expect(select.parameters[2]).toBe(
+        42 * CLAIM_CANDIDATES_PER_MONITOR_PROBE,
+      );
       expect(select.parameters[3]).toEqual(
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       );
@@ -293,11 +310,12 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
     });
 
     /*
-     * The fix must not disturb what the claim is otherwise for: the row lock
-     * stays on MonitorProbe alone, disabled / deleted monitors and deleted
-     * projects stay out, and the order and limit are unchanged.
+     * The fix must not disturb what the claim is otherwise for: disabled /
+     * deleted monitors and deleted projects stay out, and the order is
+     * unchanged. The candidate read locks nothing (issue #7194); the claim
+     * statement after it locks MonitorProbe rows alone - see below.
      */
-    test("keeps the rest of the claim predicate and locking intact", async () => {
+    test("keeps the rest of the claim predicate intact, and the candidate read locks nothing", async () => {
       const { select } = await captureClaim();
       const sql: string = normalizeSql(select.sql);
 
@@ -315,7 +333,8 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
       expect(sql).toContain('AND p."deletedAt" IS NULL');
       expect(sql).toContain('ORDER BY mp."nextPingAt" ASC NULLS FIRST');
       expect(sql).toContain("LIMIT $3");
-      expect(sql).toContain("FOR UPDATE OF mp SKIP LOCKED");
+      expect(sql).not.toContain("FOR UPDATE");
+      expect(sql).not.toContain("FOR NO KEY UPDATE");
     });
   });
 
@@ -328,10 +347,10 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
     });
 
     /*
-     * The select gained a fourth parameter; the update is a separate
+     * The select gained a fourth parameter; the claim is a separate
      * statement that numbers its own. Pin that it still lines up.
      */
-    test("claims the selected rows and the update's own numbering still lines up", async () => {
+    test("claims the selected rows in one statement whose numbering lines up", async () => {
       const firstId: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
       const secondId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
@@ -342,21 +361,92 @@ describe("MonitorProbeService.claimMonitorProbesForProbing keeps past_due projec
 
       expect(statements).toHaveLength(2);
 
-      const update: CapturedStatement = statements[1]!;
+      const claim: CapturedStatement = statements[1]!;
 
-      expect(normalizeSql(update.sql)).toContain('UPDATE "MonitorProbe"');
-      expect(update.parameters).toHaveLength(4);
-      expect(update.parameters[1]).toEqual([firstId, secondId]);
-      expect(update.parameters).not.toContainEqual(
+      expect(normalizeSql(claim.sql)).toContain('UPDATE "MonitorProbe" AS mp');
+      // now, the candidates, their next runs, the probe, the limit.
+      expect(claim.parameters).toHaveLength(5);
+      expect(claim.parameters[0]).toBeInstanceOf(Date);
+      expect(claim.parameters[1]).toEqual([firstId, secondId]);
+      expect(claim.parameters[2]).toHaveLength(2);
+      expect(claim.parameters[3]).toBe(PROBE_ID.toString());
+      expect(claim.parameters[4]).toBe(25);
+      expect(claim.parameters).not.toContainEqual(
         SubscriptionStatusUtil.getActiveSubscriptionStatuses(),
       );
-      expectPlaceholdersMatchParameters(update);
+      expectPlaceholdersMatchParameters(claim);
 
       expect(
         claimed.map((id: ObjectID) => {
           return id.toString();
         }),
       ).toEqual([firstId, secondId]);
+    });
+
+    /*
+     * Issue #7194. The claim locks only for its own statement, and only rows
+     * that are still due when it locks them and that nobody else holds - so
+     * an instance that raced this one for the same rows hands out none of
+     * them twice.
+     */
+    test("locks only MonitorProbe rows nobody holds, re-checked as still due", async () => {
+      const { statements } = await captureClaim([
+        {
+          _id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          monitoringInterval: "* * * * *",
+        },
+      ]);
+
+      const sql: string = normalizeSql(statements[1]!.sql);
+
+      expect(sql).toContain("FOR NO KEY UPDATE OF mp SKIP LOCKED");
+      expect(sql).toContain('WHERE mp."_id" = ANY($2::uuid[])');
+      expect(sql).toContain('AND mp."probeId" = $4');
+      expect(sql).toContain('AND mp."isEnabled" = true');
+      expect(sql).toContain('AND mp."deletedAt" IS NULL');
+      expect(sql).toContain(
+        'AND (mp."nextPingAt" IS NULL OR mp."nextPingAt" <= $1::timestamptz)',
+      );
+      expect(sql).toContain("LIMIT $5");
+      expect(sql).toContain('AND mp."_id" IN (SELECT "_id" FROM "claimable")');
+      // A SELECT of what it wrote, so TypeORM answers with the rows.
+      expect(sql).toContain('SELECT "_id" FROM "claimed"');
+    });
+
+    test("hands out only what the claim statement wrote, not every candidate", async () => {
+      const firstId: string = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+      const secondId: string = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+      // Another instance claimed the first between the read and the claim.
+      const { claimed } = await captureClaim(
+        [
+          { _id: firstId, monitoringInterval: "* * * * *" },
+          { _id: secondId, monitoringInterval: "* * * * *" },
+        ],
+        25,
+        [{ _id: secondId }],
+      );
+
+      expect(
+        claimed.map((id: ObjectID) => {
+          return id.toString();
+        }),
+      ).toEqual([secondId]);
+    });
+
+    test("never opens a transaction", async () => {
+      const service: MonitorProbeServiceType = new MonitorProbeServiceType();
+      captureClaimQueries(service, [
+        {
+          _id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          monitoringInterval: "* * * * *",
+        },
+      ]);
+
+      // captureClaimQueries makes executeTransaction throw.
+      await expect(
+        service.claimMonitorProbesForProbing({ probeId: PROBE_ID, limit: 5 }),
+      ).resolves.toHaveLength(1);
     });
   });
 });
