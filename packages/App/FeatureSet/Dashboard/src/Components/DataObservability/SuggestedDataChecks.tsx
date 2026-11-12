@@ -77,6 +77,9 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
   const [suggestions, setSuggestions] = useState<Array<DataCheckSuggestion>>(
     [],
   );
+  const [readCount, setReadCount] = useState<number>(0);
+  const [working, setWorking] = useState<Set<string>>(new Set());
+  const [error, setError] = useState<string>("");
 
   /*
    * A suggestion's name or reason in the reader's language (#7221), with
@@ -97,9 +100,6 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
       options.isDrawn ? { setsValuesApart: true } : undefined,
     );
   };
-  const [readCount, setReadCount] = useState<number>(0);
-  const [working, setWorking] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string>("");
 
   useEffect(() => {
     let isCurrent: boolean = true;
