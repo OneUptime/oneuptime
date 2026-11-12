@@ -985,7 +985,7 @@ export class Service extends DatabaseService<Model> {
     for (const affectedKey of affectedKeys) {
       if (affectedKey.keyType === TelemetryIngestionKeyType.Browser) {
         throw new BadDataException(
-          `A Browser ingestion key must keep at least one allowed origin. Clearing the list would stop the key accepting any telemetry - turn the key off or delete it instead. (Key ID: ${affectedKey._id})`,
+          `A Browser ingestion key must keep at least one allowed origin. Clearing the list would stop the key accepting any telemetry - turn the key off or delete it instead. The key's ID is ${affectedKey._id}.`,
         );
       }
     }

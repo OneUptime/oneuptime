@@ -50,7 +50,7 @@ flowchart TB
 | `app` | `oneuptime/app` | डैशबोर्ड, API, स्टेटस पेज, टेलीमेट्री इनजेस्ट और बैकग्राउंड वर्कर। |
 | `probe-1` | `oneuptime/probe` | एक ग्लोबल प्रोब जो आपके मॉनिटरों की जाँच चलाता है। यह होस्ट का नेटवर्क इस्तेमाल करता है। |
 | `global-runner` | `oneuptime/runner` | साथ आने वाला ग्लोबल Runner, जो हर प्रोजेक्ट के लिए रनबुक के JavaScript चरण और OneUptime AI के कोड सुधार चलाता है। |
-| `postgres` | `postgres:15` | कॉन्फ़िगरेशन और स्थिति: मॉनिटर, इंसिडेंट, उपयोगकर्ता। `postgres` वॉल्यूम में रखा जाता है। |
+| `postgres` | `postgres:15` | कॉन्फ़िगरेशन और स्थिति: मॉनिटर, घटनाएं, उपयोगकर्ता। `postgres` वॉल्यूम में रखा जाता है। |
 | `clickhouse` | `clickhouse/clickhouse-server:26.7` | टेलीमेट्री: लॉग, मेट्रिक्स, ट्रेस और एक्सेप्शन। `clickhouse` वॉल्यूम में रखी जाती है। |
 | `valkey` | `valkey/valkey:9.1-alpine` | कैश और कतारें। यह डिस्क पर कुछ नहीं रखती। |
 
@@ -398,7 +398,7 @@ npm start
 
 ## बैकअप और रीस्टोर
 
-PostgreSQL में वह सब है जो आप कॉन्फ़िगर करते हैं: मॉनिटर, इंसिडेंट, स्टेटस पेज, उपयोगकर्ता। `npm run backup` उसका डंप `Backups` फ़ोल्डर की एक फ़ाइल में लिखता है। Enterprise Edition, Admin Dashboard से PostgreSQL और ClickHouse का शेड्यूल पर आपके अपने स्टोरेज में बैकअप भी ले सकता है: [बैकअप](/docs/installation/backups) देखें।
+PostgreSQL में वह सब है जो आप कॉन्फ़िगर करते हैं: मॉनिटर, घटनाएं, स्टेटस पेज, उपयोगकर्ता। `npm run backup` उसका डंप `Backups` फ़ोल्डर की एक फ़ाइल में लिखता है। Enterprise Edition, Admin Dashboard से PostgreSQL और ClickHouse का शेड्यूल पर आपके अपने स्टोरेज में बैकअप भी ले सकता है: [बैकअप](/docs/installation/backups) देखें।
 
 :::steps
 ### बैकअप स्क्रिप्ट को डेटाबेस पासवर्ड दें
@@ -477,7 +477,7 @@ sh Scripts/Install/WithConfig.sh docker compose down --volumes --remove-orphans
 फिर `oneuptime` फ़ोल्डर मिटा दें।
 
 > [!CAUTION]
-> `--volumes` हर मॉनिटर, इंसिडेंट, उपयोगकर्ता और सारी टेलीमेट्री हमेशा के लिए मिटा देता है। अगर इनमें से किसी की ज़रूरत पड़ सकती है, तो पहले बैकअप लें।
+> `--volumes` हर मॉनिटर, घटना, उपयोगकर्ता और सारी टेलीमेट्री हमेशा के लिए मिटा देता है। अगर इनमें से किसी की ज़रूरत पड़ सकती है, तो पहले बैकअप लें।
 
 ## अपना इंस्टॉलेशन जाँचें
 

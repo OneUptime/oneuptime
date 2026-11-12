@@ -18,6 +18,7 @@ import {
   SEEDED_TEXT,
 } from "./AlertDocsPages";
 import { readPage } from "./DocsContentSupport";
+import { GETTING_STARTED_PLACES, exploreCardLines } from "./GettingStartedPage";
 import {
   MenuSection,
   developerSection,
@@ -312,15 +313,12 @@ describe("the Alerts group in the docs", () => {
       "en",
       "introduction/getting-started",
     );
-    const incidentResponse: string = section(
+    // Explore the docs folds each sidebar section since #6822.
+    const cards: Array<string> = exploreCardLines(
       gettingStarted,
-      "### Incident Response",
+      GETTING_STARTED_PLACES.explore,
+      "Incident Response",
     );
-    const cards: Array<string> = incidentResponse
-      .split("\n")
-      .filter((line: string): boolean => {
-        return line.startsWith("- [");
-      });
     const incidentsCard: number = cards.findIndex((line: string): boolean => {
       return line.includes("(/docs/incidents/index)");
     });

@@ -304,6 +304,8 @@ export function isNarrowedByReader(data: {
  */
 export function getEmptyMessageWithTimeRange(
   timeRange: RangeStartAndEndDateTime | undefined,
+  // The moment "this year" is read from: now, unless a caller says.
+  now?: Date | undefined,
 ): string {
   if (!timeRange) {
     return "Adjust filters or check again later.";
@@ -316,12 +318,20 @@ export function getEmptyMessageWithTimeRange(
      * Same shape, clock and timezone as the label on the picker button that
      * set this window - pinning en-US here handed a US viewer AM/PM even on a
      * 24-hour machine, and read the digits in the browser's zone rather than
-     * the one configured in User Settings.
+     * the one configured in User Settings. And the same years: both ends
+     * carry theirs unless the window is all in this year (issue #7124).
      */
+    const showYear: boolean = !OneUptimeDate.isWindowInTheCurrentYear({
+      start: startDate,
+      end: endDate,
+      now: now,
+    });
     const fmt: (d: Date) => string = (d: Date): string => {
       // In English, as the sentence it goes into is.
       return inEnglishDates((): string => {
-        return OneUptimeDate.getDateAsLocalShortDateTimeString(d);
+        return OneUptimeDate.getDateAsLocalShortDateTimeString(d, {
+          showYear,
+        });
       });
     };
 

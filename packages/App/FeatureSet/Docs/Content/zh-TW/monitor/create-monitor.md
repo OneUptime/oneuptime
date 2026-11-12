@@ -18,7 +18,7 @@
 
 第一個問題是 **監測器類型**：您想監測什麼？
 
-- 最常建立的六種類型排在最前面：**網站**、**API**、**Ping**、**連接埠**、**SSL Certificate**，以及用於 cron 工作和 webhook 心跳訊號的 **傳入請求**。
+- 最常建立的六種類型排在最前面：**網站**、**API**、**Ping**、**連接埠**、**SSL 憑證**，以及用於 cron 工作和 webhook 心跳訊號的 **傳入請求**。
 - **更多監測器類型** 會依類別列出所有其他類型，例如 **基礎設施**（Kubernetes、Docker、主機）和 **遙測**（日誌、指標、追蹤）。由您自行設定狀態的監測器 **手動**，以及在探針中斷時通知您的 **探測器狀態**，都位於 **其他** 之下。
 - 也可以在搜尋方塊中輸入。它認得您平常使用的詞，例如 `k8s`、`postgres`、`heartbeat` 或 `tls`，按下 **Enter** 即會選取第一個結果。
 
@@ -76,7 +76,7 @@ flowchart TB
 
 ## 探測器與間隔
 
-由探測器檢查的監測器以這個步驟結束：網站、API、Ping、IP、連接埠、SSL Certificate、DNS、DNSSEC、NTP、網域、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探測器** 是執行檢查的機器，您專案的預設探測器已預先選取。**監測間隔** 從 **每 5 分鐘** 開始。
+由探測器檢查的監測器以這個步驟結束：網站、API、Ping、IP、連接埠、SSL 憑證、DNS、DNSSEC、NTP、網域、SQL Query、Database Health、Synthetic Monitor、Custom JavaScript Code 和 External Status Page。**探測器** 是執行檢查的機器，您專案的預設探測器已預先選取。**監測間隔** 從 **每 5 分鐘** 開始。
 
 :::steps
 ### 選擇探測器
@@ -85,7 +85,7 @@ flowchart TB
 
 ### 選擇檢查頻率
 
-選擇 **監測間隔**，從 **每分鐘** 到 **每週**。Synthetic Monitor、Custom JavaScript Code 和 SSL Certificate 監測器只提供 5 分鐘或更長的間隔。
+選擇 **監測間隔**，從 **每分鐘** 到 **每週**。Synthetic Monitor、Custom JavaScript Code 和 SSL 憑證 監測器只提供 5 分鐘或更長的間隔。
 
 ### 完成建立
 

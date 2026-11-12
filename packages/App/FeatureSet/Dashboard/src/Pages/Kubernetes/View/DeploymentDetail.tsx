@@ -35,6 +35,7 @@ import KubernetesMetricsTab from "../../../Components/Kubernetes/KubernetesMetri
 import { KubernetesDeploymentObject } from "../Utils/KubernetesObjectParser";
 import { fetchLatestK8sObject } from "../Utils/KubernetesObjectFetcher";
 import KubernetesResourceUtils from "../Utils/KubernetesResourceUtils";
+import { formatKubernetesCount } from "../Utils/KubernetesCount";
 import KubernetesCpuUtils, {
   NodeAllocatableCpu,
 } from "../Utils/KubernetesCpuUtils";
@@ -291,19 +292,19 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
         title: "Desired Replicas",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentDesiredReplicas,
-        value: String(desired),
+        value: formatKubernetesCount(desired),
       },
       {
         title: "Ready Replicas",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentReadyReplicas,
-        value: String(ready),
+        value: formatKubernetesCount(ready),
       },
       {
         title: "Available",
         description:
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentAvailableReplicas,
-        value: String(available),
+        value: formatKubernetesCount(available),
       },
     );
 
@@ -314,7 +315,7 @@ const KubernetesClusterDeploymentDetail: FunctionComponent<
           KUBERNETES_RESOURCE_METRIC_DESCRIPTIONS.deploymentUnavailableReplicas,
         value: (
           <StatusBadge
-            text={String(unavailable)}
+            text={formatKubernetesCount(unavailable)}
             type={StatusBadgeType.Danger}
           />
         ),

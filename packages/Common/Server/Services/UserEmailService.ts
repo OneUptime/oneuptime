@@ -14,6 +14,7 @@ import BadDataException from "../../Types/Exception/BadDataException";
 import ObjectID from "../../Types/ObjectID";
 import TooManyRequestsException from "../../Types/Exception/TooManyRequestsException";
 import ChannelVerification, {
+  ChannelVerificationMessages,
   ChannelVerificationStatus,
 } from "../Utils/ChannelVerification";
 import Model from "../../Models/DatabaseModels/UserEmail";
@@ -84,7 +85,9 @@ export class Service extends DatabaseService<Model> {
     createBy: CreateBy<Model>,
   ): Promise<OnCreate<Model>> {
     if (!createBy.props.isRoot && createBy.data.isVerified) {
-      throw new BadDataException("isVerified cannot be set to true");
+      throw new BadDataException(
+        "A notification method is verified with the code sent to it, so it cannot be created as verified. Leave isVerified out.",
+      );
     }
 
     return {
@@ -181,9 +184,7 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (!item) {
-      throw new BadDataException(
-        "Item with ID " + itemId.toString() + " not found",
-      );
+      throw new BadDataException(ChannelVerificationMessages.notFound);
     }
 
     /*
@@ -197,7 +198,9 @@ export class Service extends DatabaseService<Model> {
     });
 
     if (item.isVerified) {
-      throw new BadDataException("Email already verified");
+      throw new BadDataException(
+        "This email address is already verified. You can close this dialog.",
+      );
     }
 
     /*
