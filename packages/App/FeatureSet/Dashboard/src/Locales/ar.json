@@ -51257,7 +51257,7 @@
   "No on-call rule covers this severity, and paging the verified methods instead failed.": "لا تغطي أي قاعدة مناوبة هذه الخطورة، وفشل استدعاء الطرق المتحقق منها بدلًا من ذلك.",
   "Nobody at this level could be paged, so the policy moved on at once.": "تعذّر استدعاء أي أحد في هذا المستوى، لذا انتقلت السياسة إلى ما بعده فورًا.",
   "Test ended: it went through every escalation level and nobody acknowledged it.": "انتهى الاختبار: مرّ بكل مستويات التصعيد ولم يُقرّ به أحد.",
-  "Test ended: nobody acknowledged it within {{count}} minutes.": "انتهى الاختبار: لم يُقرّ به أحد خلال {{count}} دقيقة.",
+  "Test ended: nobody acknowledged it within {{count}} minutes.": "انتهى الاختبار: لم يُقرّ به أحد خلال {{count}} د.",
   "Test ended: nobody acknowledged it within {{count}} minutes._one": "انتهى الاختبار: لم يُقرّ به أحد خلال {{count}} دقيقة.",
   "Test ended: the first escalation level reached nobody. Each person's line says why.": "انتهى الاختبار: لم يصل مستوى التصعيد الأول إلى أحد. يوضح سطر كل شخص السبب.",
   "The test page reached nobody. Each person's line says why.": "لم يصل استدعاء الاختبار إلى أحد. يوضح سطر كل شخص السبب.",
