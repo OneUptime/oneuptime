@@ -195,7 +195,7 @@ De pagina **Instellingen** brengt samen hoe een SLO meet, één kaart per onderd
 
 | Kaart | Wat u wijzigt | Goed om te weten |
 | --- | --- | --- |
-| **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43m 12s downtime per venster van 30 dagen". |
+| **Doelstelling** | **Doel (%)** en **Risicodrempel (%)**, met **Doelstelling bewerken**. | Toont de downtime die het doel toestaat, bijvoorbeeld "43 min, 12 sec downtime per venster van 30 dagen". |
 | **Nalevingsperiode** | **Type venster**, **Venster (dagen)** en **Tijdzone**, met **Periode bewerken**. | Regels voor verbruikssnelheid houden hun drempels als het venster verandert, dus controleer ze daarna. |
 | **Downtimeberekening** | **Modus voor meerdere monitoren** en **Downtime-monitorstatussen**, met **Downtimeberekening bewerken**. | Zonder statussen tellen alle niet-operationele statussen, ook statussen die later worden toegevoegd. |
 | **Evaluatie** | De schakelaar **Dit SLO evalueren**, die opslaat zodra u hem omzet. | Uitzetten vraagt om bevestiging, omdat het ook de open waarschuwingen en incidenten voor verbruikssnelheid van de SLO oplost. |
