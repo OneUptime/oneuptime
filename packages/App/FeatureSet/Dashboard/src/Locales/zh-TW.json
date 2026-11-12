@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "環境鍵的帳戶部分為空",
   "The error cause referred back to an earlier error.": "The error cause referred back to an earlier error.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "代理程式執行的 docker-compose.yml 和 otel-collector-config.yaml 原文。",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "你的頁面傳給 identify() 的確切參照值。需要終端使用者身分權限；絕不會寫入 URL。",
   "The exporter returns 401 or 595 errors": "The exporter returns 401 or 595 errors",
   "The field ends with the value.": "欄位以該值結尾。",
   "The field matches a regular expression (RE2 syntax).": "欄位符合正規表示式（RE2 語法）。",
@@ -47998,7 +47997,6 @@
   "None: every element is recorded (subject to masking)": "無：每個元素都會被錄製（仍受遮蔽影響）",
   "None: every uncaught error can trigger an upload": "無：每個未捕捉的錯誤都可能觸發上傳",
   "None: no cross-origin request gets a traceparent": "無：任何跨來源請求都不會取得 traceparent",
-  "Not shown - viewing identity needs the identity permission": "未顯示——檢視身分需要身分權限",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "在頁面呼叫 OneUptimeReplay.grantConsent() 之前，不會有任何內容送達。請在已檢測的頁面上授予同意，然後重新載入。",
   "Nothing can arrive while sampling is 0%.": "取樣為 0% 時，不會有任何內容送達。",
   "Nothing is broken or late right now.": "目前沒有任何損壞或延遲。",
@@ -48162,7 +48160,6 @@
   "The data broke this check, and its alert is open.": "資料違反了此檢查，其警示尚未解決。",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "此部署提供的錄製器版本有問題；只有此部署的營運方能修正此問題。",
   "The drop counter store was unreachable; this is not the same as zero.": "無法連線到捨棄計數器儲存區；這不等於零。",
-  "The end user's identity needs the identity permission to view.": "檢視終端使用者的身分需要身分權限。",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "端對端路徑運作正常：你網站上的錄製器已連到此伺服器，且其資料區塊已被接受。",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "健康狀況請求失敗，因此這裡無法判斷錄製是否正常運作。它會自動重試；下一次輪詢可能就會成功。",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "無法載入健康狀況，因此這裡無法說明錄製是否正常。請重新載入以再試一次。",
@@ -51241,5 +51238,8 @@
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "請再試一次。如果仍然失敗，請把這個參考編號提供給負責執行您的 OneUptime 伺服器的人：",
   "A status page you can't see": "您無法檢視的狀態頁面",
   "It emails the owners added by owner rules ({{names}}).": "寄送電子郵件給擁有者規則新增的擁有者（{{names}}）。",
-  "It emails the owners added by owner rules.": "寄送電子郵件給擁有者規則新增的擁有者。"
+  "It emails the owners added by owner rules.": "寄送電子郵件給擁有者規則新增的擁有者。",
+  "Hidden - your role needs the \"{{permission}}\" permission": "已隱藏——你的角色需要「{{permission}}」權限",
+  "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "你的角色無法讀取終端使用者身分。請向專案管理員申請「{{permission}}」權限。",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "你的頁面傳給 identify() 的確切參照值。需要「{{permission}}」權限；絕不會寫入 URL。"
 }

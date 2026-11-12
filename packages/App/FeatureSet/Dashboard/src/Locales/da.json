@@ -17030,7 +17030,6 @@
   "The environment key has an empty account segment": "Miljønøglen har et tomt kontosegment",
   "The error cause referred back to an earlier error.": "The error cause referred back to an earlier error.",
   "The exact docker-compose.yml and otel-collector-config.yaml the agent runs.": "Den præcise docker-compose.yml og otel-collector-config.yaml, som agenten kører.",
-  "The exact reference your page passed to identify(). Needs the end-user identity permission; never written to the URL.": "Den præcise reference, din side gav til identify(). Kræver tilladelsen til slutbrugeridentitet; skrives aldrig i URL'en.",
   "The exporter returns 401 or 595 errors": "The exporter returns 401 or 595 errors",
   "The field ends with the value.": "Feltet slutter med værdien.",
   "The field matches a regular expression (RE2 syntax).": "Feltet matcher et regulært udtryk (RE2-syntaks).",
@@ -47998,7 +47997,6 @@
   "None: every element is recorded (subject to masking)": "Ingen: alle elementer optages (med forbehold for maskering)",
   "None: every uncaught error can trigger an upload": "Ingen: enhver ufanget fejl kan udløse en upload",
   "None: no cross-origin request gets a traceparent": "Ingen: ingen anmodning på tværs af oprindelser får en traceparent",
-  "Not shown - viewing identity needs the identity permission": "Vises ikke – visning af identitet kræver identitetstilladelsen",
   "Nothing arrives until a page calls OneUptimeReplay.grantConsent(). Grant consent on an instrumented page, then reload.": "Intet kommer frem, før en side kalder OneUptimeReplay.grantConsent(). Giv samtykke på en instrumenteret side, og genindlæs derefter.",
   "Nothing can arrive while sampling is 0%.": "Intet kan komme frem, så længe stikprøveprocenten er 0 %.",
   "Nothing is broken or late right now.": "Intet er i stykker eller forsinket lige nu.",
@@ -48162,7 +48160,6 @@
   "The data broke this check, and its alert is open.": "Dataene brød denne kontrol, og dens advarsel er åben.",
   "The deployment is serving a bad recorder version; only the operator of this deployment can fix that.": "Udrulningen leverer en defekt optagerversion; kun den, der driver denne udrulning, kan rette det.",
   "The drop counter store was unreachable; this is not the same as zero.": "Lageret med kasseringstællere kunne ikke nås; det er ikke det samme som nul.",
-  "The end user's identity needs the identity permission to view.": "Slutbrugerens identitet kræver identitetstilladelsen for at kunne ses.",
   "The end-to-end path works: a recorder on your site reached this server and its chunk was accepted.": "Hele kæden virker: En optager på dit websted nåede denne server, og dens blok blev accepteret.",
   "The health request failed, so nothing here says whether recording works. It retries on its own; the next poll may succeed.": "Anmodningen om sundhedsstatus mislykkedes, så intet her siger, om optagelsen virker. Den prøver igen af sig selv; den næste forespørgsel lykkes måske.",
   "The health status could not be loaded, so nothing here says whether recording works. Reload to try again.": "Tilstanden kunne ikke indlæses, så intet her viser, om optagelsen virker. Genindlæs for at prøve igen.",
@@ -51241,5 +51238,8 @@
   "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Prøv igen. Hvis det bliver ved med at fejle, så giv denne reference til den, der driver jeres OneUptime-server:",
   "A status page you can't see": "En statusside, du ikke kan se",
   "It emails the owners added by owner rules ({{names}}).": "De ejere, som ejerreglerne tilføjer, får besked på e-mail ({{names}}).",
-  "It emails the owners added by owner rules.": "De ejere, som ejerreglerne tilføjer, får besked på e-mail."
+  "It emails the owners added by owner rules.": "De ejere, som ejerreglerne tilføjer, får besked på e-mail.",
+  "Hidden - your role needs the \"{{permission}}\" permission": "Skjult – din rolle mangler tilladelsen \"{{permission}}\"",
+  "Your role cannot read end-user identity. Ask a project admin for the \"{{permission}}\" permission.": "Din rolle kan ikke læse slutbrugeridentitet. Bed en projektadministrator om tilladelsen \"{{permission}}\".",
+  "The exact reference your page passed to identify(). Needs the \"{{permission}}\" permission; never written to the URL.": "Den præcise reference, din side gav til identify(). Kræver tilladelsen \"{{permission}}\"; skrives aldrig i URL'en."
 }
