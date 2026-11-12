@@ -5,6 +5,7 @@ import InfoTooltip from "Common/UI/Components/Tooltip/InfoTooltip";
 import LineChartElement from "Common/UI/Components/Charts/Line/LineChart";
 import ChartCurve from "Common/UI/Components/Charts/Types/ChartCurve";
 import XAxisType from "Common/UI/Components/Charts/Types/XAxis/XAxisType";
+import XAxisPrecision from "Common/UI/Components/Charts/Types/XAxis/XAxisPrecision";
 import YAxisType from "Common/UI/Components/Charts/Types/YAxis/YAxisType";
 import {
   XAxis as ChartXAxis,
@@ -107,6 +108,15 @@ export interface ChartCardProps {
    * Drawn in the same grey box, which grows to hold it.
    */
   emptyContent?: ReactElement | undefined;
+  /*
+   * The step of the time axis, when the page knows it: a chart of one point
+   * a day (Product Analytics) passes XAxisPrecision.EVERY_DAY, so its ticks
+   * name days ("07 Nov") however short or long the window is - never the
+   * clock times a window of a few days gets ("07 Nov, 00:00"), and never
+   * days averaged into weeks or months over a long one. Unset, the axis
+   * picks its step from the window's length, as every other card's does.
+   */
+  xAxisPrecision?: XAxisPrecision | undefined;
 }
 
 const ChartCard: FunctionComponent<ChartCardProps> = (
@@ -261,6 +271,7 @@ const ChartCard: FunctionComponent<ChartCardProps> = (
       min: props.windowStart,
       max: props.windowEnd,
       aggregateType: XAxisAggregateType.Average,
+      precision: props.xAxisPrecision,
     },
   };
 

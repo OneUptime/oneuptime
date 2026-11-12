@@ -28,6 +28,9 @@ import PermissionGate, {
 import ProjectUtil from "../../../UI/Utils/Project";
 import { ProductAnalyticsDerivedMetric } from "../../../Types/Rum/ProductAnalyticsEvents";
 import getJestMockFunction, { MockFunction } from "../../MockType";
+import { XAxis as ChartXAxis } from "../../../UI/Components/Charts/Types/XAxis/XAxis";
+import XAxisPrecision from "../../../UI/Components/Charts/Types/XAxis/XAxisPrecision";
+import XAxisType from "../../../UI/Components/Charts/Types/XAxis/XAxisType";
 import { getJestSpyOn } from "../../Spy";
 
 /*
@@ -378,6 +381,13 @@ function searchParams(): URLSearchParams {
   return new URLSearchParams(window.location.search);
 }
 
+/* The time axis each drawing of a chart asked for, first to last. */
+function chartAxes(): Array<ChartXAxis> {
+  return lineChartMock.mock.calls.map((call: Array<unknown>): ChartXAxis => {
+    return (call[0] as { xAxis: ChartXAxis }).xAxis;
+  });
+}
+
 beforeEach(() => {
   postMock.mockReset();
   getItemMock.mockReset();
@@ -459,6 +469,27 @@ describe("ProductAnalyticsEvents: the event", () => {
         "Events,Users",
       );
     });
+  });
+
+  it("its chart asks for a day axis: its ticks name days, never clock times", async () => {
+    // One point a day (issue #6564).
+    mockReads({});
+
+    renderPage();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("line-chart")).toHaveTextContent(
+        "Events,Users",
+      );
+    });
+
+    const axes: Array<ChartXAxis> = chartAxes();
+
+    expect(axes.length).toBeGreaterThan(0);
+    for (const axis of axes) {
+      expect(axis.options.type).toBe(XAxisType.Time);
+      expect(axis.options.precision).toBe(XAxisPrecision.EVERY_DAY);
+    }
   });
 
   it("an event nobody did has no per-user line, and an unread trend shows dashes", () => {
