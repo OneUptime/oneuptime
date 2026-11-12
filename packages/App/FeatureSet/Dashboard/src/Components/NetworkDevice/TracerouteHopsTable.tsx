@@ -9,6 +9,7 @@ import ResizableHeaderCell from "Common/UI/Components/Table/ColumnResize/Resizab
 import { ColumnWidthKind } from "Common/UI/Components/Table/ColumnResize/ColumnWidths";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
+import { formatMilliseconds } from "../../Utils/Milliseconds";
 
 export interface ComponentProps {
   hops: Array<TraceRouteHop>;
@@ -112,9 +113,7 @@ const TracerouteHopsTable: FunctionComponent<ComponentProps> = (
                 </td>
                 <td className="py-1">
                   {hop.roundTripTimeInMS !== undefined
-                    ? translator.translateTemplate("{{latency}} ms", {
-                        latency: hop.roundTripTimeInMS,
-                      })
+                    ? formatMilliseconds(translator, hop.roundTripTimeInMS)
                     : "-"}
                 </td>
               </tr>

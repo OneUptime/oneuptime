@@ -255,6 +255,12 @@ font is fetched from another site). Latin text keeps Inter.
 
 Kept in Latin letters: product, vendor and protocol names, plan names, the
 default teams Owners, Admin and Members, and units such as `ms` and `GB`.
+A duration drawn on its own, the `{{value}} ms` every monitor summary
+writes (`Dashboard/src/Utils/Milliseconds`), is the exception: it reads
+Intl's short unit, `{{value}} ملي ث`, as the durations `DateLanguage`
+writes do, so a page read from the right never reads "ms 411". The
+network path's DNS sentence (`... خلال {{time}} ملي ث`) uses the same
+unit as the traceroute hops listed under it.
 The Dashboard's list of texts Arabic writes as English on purpose is
 `sameAsEnglish` in `../../i18n/Progress/ar.json`.
 
