@@ -645,7 +645,10 @@ const App: () => JSX.Element = () => {
       <UseTimezoneInitElement />
       <UserLanguageInit />
       <AskAiPanel />
-      <DashboardCommandPalette />
+      <DashboardCommandPalette
+        projects={projects}
+        onProjectSelected={onProjectSelected}
+      />
       <DashboardKeyboardShortcuts />
       <HowOneUptimeWorksDialog />
       {/*

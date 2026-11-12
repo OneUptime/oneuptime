@@ -220,6 +220,10 @@ beforeEach(() => {
   jest
     .spyOn(SmsLogService, "updateColumnsByIdWithoutHooks")
     .mockResolvedValue(undefined as never);
+  // The send's result, written while the log still says Sending.
+  jest
+    .spyOn(SmsLogService, "compareAndSetColumnsByIdWithoutHooks")
+    .mockResolvedValue(true as never);
   jest.spyOn(CallLogService, "create").mockImplementation(((data: {
     data: CallLog;
   }) => {
@@ -227,9 +231,13 @@ beforeEach(() => {
     row._id = ObjectID.generate().toString();
     return Promise.resolve(row);
   }) as never);
+  // An on-call notification is read, then written over Sending only.
   jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockResolvedValue(undefined as never);
+    .spyOn(UserOnCallLogTimelineService, "findOneById")
+    .mockResolvedValue(null as never);
+  jest
+    .spyOn(UserOnCallLogTimelineService, "updateOneBy")
+    .mockResolvedValue(0 as never);
   jest
     .spyOn(UserOnCallLogTimelineService, "markNotSent")
     .mockResolvedValue(undefined as never);

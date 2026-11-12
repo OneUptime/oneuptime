@@ -1,10 +1,36 @@
 // Tailwind
+import PageMap from "../../Utils/PageMap";
+import RouteMap, { RouteUtil } from "../../Utils/RouteMap";
+import Route from "Common/Types/API/Route";
+import Link from "Common/UI/Components/Link/Link";
 import ProductLogo from "Common/UI/Components/ProductLogo/ProductLogo";
 import React, { FunctionComponent, ReactElement } from "react";
 
 export interface ComponentProps {
-  onClick: () => void;
+  /*
+   * Called as the logo is followed. It goes to the project's Home either
+   * way (getLogoDestination): it was drawn as something to click, with a
+   * pointer and a hover, and did nothing (#6816).
+   */
+  onClick?: (() => void) | undefined;
 }
+
+export const HEADER_LOGO_TEST_ID: string = "header-logo";
+
+/*
+ * Where the logo goes: the project's Home, as in almost every web app. With
+ * no project selected yet (a new account, a project being picked), Home has
+ * no address, so the logo goes to the Dashboard's start, which picks one.
+ */
+export const getLogoDestination: () => Route = (): Route => {
+  const home: Route = RouteUtil.populateRouteParams(RouteMap[PageMap.HOME]!);
+
+  if (home.toString().includes(":")) {
+    return RouteMap[PageMap.INIT]!;
+  }
+
+  return home;
+};
 
 const Logo: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
@@ -19,19 +45,25 @@ const Logo: FunctionComponent<ComponentProps> = (
      * the same height and to a width that leaves the header its buttons; its
      * name, as tall as the logo, when it goes by a name of its own and has no
      * logo.
+     *
+     * A link, not an image with a click handler: it is reached with Tab,
+     * opened with Enter, and opened in a new tab with a middle click. A
+     * screen reader names it by the logo, the product's name, as sites
+     * name their logo's link: the nav bar's Home, just below, is the link
+     * named Home.
      */
     <div className="relative z-10 flex items-center border-r border-gray-200 pr-2 mr-2 -ml-2 sm:pr-4 sm:mr-4 sm:-ml-5">
-      <div className="flex flex-shrink-0 items-center">
+      <Link
+        to={getLogoDestination()}
+        onClick={props.onClick}
+        dataTestId={HEADER_LOGO_TEST_ID}
+        className="flex flex-shrink-0 items-center rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+      >
         <ProductLogo
-          className="oneuptime-dashboard-logo block h-6 w-auto max-w-[8rem] object-contain cursor-pointer hover:opacity-80 transition-opacity sm:h-8 sm:max-w-[12rem]"
-          nameClassName="block max-w-[8rem] truncate text-base font-semibold leading-6 tracking-tight text-gray-900 cursor-pointer hover:opacity-80 transition-opacity sm:max-w-[12rem] sm:text-lg sm:leading-8"
-          onClick={() => {
-            if (props.onClick) {
-              props.onClick();
-            }
-          }}
+          className="oneuptime-dashboard-logo block h-6 w-auto max-w-[8rem] object-contain hover:opacity-80 transition-opacity sm:h-8 sm:max-w-[12rem]"
+          nameClassName="block max-w-[8rem] truncate text-base font-semibold leading-6 tracking-tight text-gray-900 hover:opacity-80 transition-opacity sm:max-w-[12rem] sm:text-lg sm:leading-8"
         />
-      </div>
+      </Link>
     </div>
   );
 };

@@ -13,6 +13,9 @@ import { NotificationProviderConfig } from "Common/Server/Utils/Telemetry/Notifi
 import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
 import Phone from "Common/Types/Phone";
+import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
+import { STUCK_NOTIFICATION_STATUS_MESSAGE } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import Twilio from "twilio";
 
@@ -104,6 +107,8 @@ import {
 const PROJECT_ID: ObjectID = new ObjectID(
   "6c0e0000-0000-4000-8000-000000000b01",
 );
+let timeline: OnCallTimelineRows;
+
 const NOTIFICATION_ID: ObjectID = new ObjectID(
   "6c0e0000-0000-4000-8000-000000000b02",
 );
@@ -182,6 +187,16 @@ beforeEach(() => {
     callLogs.push(data.data);
     return Promise.resolve(data.data);
   }) as never);
+  /*
+   * The on-call notification the call was made for, Sending as its page
+   * wrote it. The send's result is written over Sending only, at the version
+   * read (OnCallNotificationStatus).
+   */
+  timeline = new OnCallTimelineRows();
+  timeline.add(NOTIFICATION_ID, UserNotificationStatus.Sending);
+  timeline.standIn(UserOnCallLogTimelineService);
+
+  // The blind write by id the send once made: never made now.
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneById")
     .mockResolvedValue(undefined as never);
@@ -246,6 +261,111 @@ describe("a project's call through Twilio", () => {
 
     expect(callLogs[0]!.userOnCallLogTimelineId?.toString()).toBe(
       NOTIFICATION_ID.toString(),
+    );
+  });
+
+  test("the on-call notification says the call was placed: Sent, over Sending, at the version read", async () => {
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    expect(UserOnCallLogTimelineService.updateOneBy).toHaveBeenCalledWith({
+      query: {
+        _id: NOTIFICATION_ID.toString(),
+        status: UserNotificationStatus.Sending,
+        version: 1,
+      },
+      data: {
+        status: UserNotificationStatus.Sent,
+        statusMessage: callLogs[0]!.statusMessage,
+      },
+      props: { isRoot: true },
+    });
+    expect(timeline.get(NOTIFICATION_ID)!.status).toBe(
+      UserNotificationStatus.Sent,
+    );
+  });
+
+  /*
+   * Twilio's status callback can land before the send's own write - a call
+   * that is not answered ends in seconds - and the person can acknowledge
+   * the page by another channel meanwhile. The send never undoes either
+   * (issue #6873): it once wrote Sent by id, over both.
+   */
+  test.each([
+    [UserNotificationStatus.NotAnswered, "Call not answered (no-answer)."],
+    [UserNotificationStatus.Error, "Call failed (failed)."],
+    [UserNotificationStatus.Acknowledged, "Acknowledged by SMS."],
+  ])(
+    "a notification the callback or the person already moved to %s stays",
+    async (status: UserNotificationStatus, message: string) => {
+      timeline.get(NOTIFICATION_ID)!.status = status;
+      timeline.get(NOTIFICATION_ID)!.statusMessage = message;
+
+      await CallService.makeCall(pageCall(), {
+        projectId: PROJECT_ID,
+        userOnCallLogTimelineId: NOTIFICATION_ID,
+      });
+
+      expect(timeline.get(NOTIFICATION_ID)).toMatchObject({
+        status: status,
+        statusMessage: message,
+      });
+      expect(timeline.writes).toEqual([]);
+      expect(UserOnCallLogTimelineService.updateOneById).not.toHaveBeenCalled();
+    },
+  );
+
+  test("the callback landing between the send's read and its write stays: read again, and left", async () => {
+    timeline.whenRead((row: { status: UserNotificationStatus | null }) => {
+      row.status = UserNotificationStatus.NotAnswered;
+    });
+
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    expect(timeline.get(NOTIFICATION_ID)!.status).toBe(
+      UserNotificationStatus.NotAnswered,
+    );
+    expect(timeline.writes).toEqual([]);
+    expect(UserOnCallLogTimelineService.findOneById).toHaveBeenCalledTimes(2);
+  });
+
+  test("a call that finished after the stuck check gave up on it says how it went after all", async () => {
+    timeline.get(NOTIFICATION_ID)!.status = UserNotificationStatus.Error;
+    timeline.get(NOTIFICATION_ID)!.statusMessage =
+      STUCK_NOTIFICATION_STATUS_MESSAGE;
+
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    });
+
+    expect(timeline.get(NOTIFICATION_ID)!.status).toBe(
+      UserNotificationStatus.Sent,
+    );
+  });
+
+  test("a call Twilio refused: the notification says it failed, in Twilio's words, over Sending", async () => {
+    createCall.mockRejectedValue(
+      Object.assign(new Error("Authenticate"), { code: 20003, status: 401 }),
+    );
+
+    await CallService.makeCall(pageCall(), {
+      projectId: PROJECT_ID,
+      userOnCallLogTimelineId: NOTIFICATION_ID,
+    }).catch(() => {
+      // Thrown or not, the notification is what is read here.
+    });
+
+    expect(timeline.get(NOTIFICATION_ID)!.status).toBe(
+      UserNotificationStatus.Error,
+    );
+    expect(timeline.get(NOTIFICATION_ID)!.statusMessage).toContain(
+      "Authenticate",
     );
   });
 

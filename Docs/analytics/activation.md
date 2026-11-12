@@ -81,6 +81,8 @@ These are sent from the Dashboard with `ProductEvents.send(ProductEventName.X, {
 | `home/checklist_step_completed` | This browser first sees a step of the Welcome checklist go from not done to done | `step`, `goals` | `ChecklistEvents`, from Home's checklist |
 | `home/checklist_finished` | The last step does | `step_count`, `goals` | `ChecklistEvents` |
 | `home/checklist_dismissed` | Somebody hides the Welcome checklist for themselves | `done_count`, `step_count`, `goals` | `GettingStarted` |
+| `home/member_step_started` | An invited member opens one of their own first steps on Home: their setup checklist (`reach`), a test page to themselves (`test_page`), their shifts (`on_call`) or the mobile app (`mobile_app`) | `step` | `MemberFirstSteps` |
+| `home/member_steps_dismissed` | An invited member hides their own first steps on Home | `open_count` | `MemberFirstSteps` |
 | `how_it_works/opened` | A product's "How it works" is opened, or How OneUptime works (`product` is `oneuptime`) | `product`, and for How OneUptime works `source` (`help`, `home`) | `ProductAboutButton`, `HowOneUptimeWorksDialog` |
 | `search/no_results` | A command palette search settles with nothing found. Only searches of 2 characters or more count, after one second, or when the palette closes on them | `source`, `query_length`, and on Cloud `query` (40 characters at most) | `DashboardCommandPalette` |
 | `ask_ai/question_asked` | Ask AI takes a question. The question itself is never sent | `is_new_conversation`, `permission_mode` | `useAiChat` |

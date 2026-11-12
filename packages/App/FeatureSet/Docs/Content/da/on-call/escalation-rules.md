@@ -164,6 +164,8 @@ Et tilkald, der ikke sendes, siger hvorfor i personens **Vagtlogs** (Brugerindst
 
 Projektets ejere får én e-mail om det, indtil saldoen er fyldt op, eller kanalen er slået til igen.
 
+Et tilkald, der ikke kunne nå OneUptimes notifikationstjeneste, siger `Could not reach the Notification service to send this (ECONNREFUSED).`, med netværksfejlens kode i parentesen. Et tilkald, hvis afsendelse aldrig blev færdig, for eksempel fordi en server genstartede under afsendelsen, siger `Sending did not finish within 15 minutes, so this notification may not have been sent.` Bliver afsendelsen alligevel færdig, erstatter resultatet den besked.
+
 På OneUptime Cloud betales hver SMS, hvert opkald, hver WhatsApp- og Telegram-besked af projektets saldo på **Projektindstillinger > Notifikationer > Notifikationsindstillinger**: den præcise pris trækkes fra saldoen, når udbyderen tager imod beskeden, uanset hvor mange beskeder der går ud på én gang.
 
 - Er **Automatisk genopfyldning** slået til dér, lægger den besked, der finder saldoen under tærsklen, først det beløb til, som automatisk genopfyldning er sat til, og trækker det på projektets kort; beskeder, der finder saldoen lav i samme øjeblik, trækker på kortet én gang.

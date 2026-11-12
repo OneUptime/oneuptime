@@ -63,7 +63,7 @@ import {
 } from "Common/Utils/Project/TwilioAccount";
 import TwilioSendError, { TwilioSendKind } from "../Utils/TwilioSendError";
 import { withProviderConfig } from "../Utils/StatusCallbackProviderConfig";
-import { recordSendResult } from "../Utils/OnCallNotificationStatus";
+import { recordSendResult } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import Project from "Common/Models/DatabaseModels/Project";
 import SmsLog from "Common/Models/DatabaseModels/SmsLog";
 import Twilio from "twilio";

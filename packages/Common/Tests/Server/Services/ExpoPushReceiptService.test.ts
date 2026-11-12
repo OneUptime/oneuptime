@@ -49,6 +49,11 @@ import PushStatus from "../../../Types/PushNotification/PushStatus";
 import UserNotificationStatus from "../../../Types/UserNotification/UserNotificationStatus";
 import API, { APIRequestOptions } from "../../../Utils/API";
 import FakeSortedSetRedis from "../TestingUtils/Redis/FakeSortedSetRedis";
+import OnCallTimelineRows, {
+  StoredOnCallNotification,
+} from "../TestingUtils/OnCallTimelineRows";
+import { STUCK_NOTIFICATION_STATUS_MESSAGE } from "../../../Server/Utils/OnCall/OnCallNotificationStatus";
+import ObjectID from "../../../Types/ObjectID";
 import { Expo, ExpoPushReceipt } from "expo-server-sdk";
 
 /*
@@ -74,10 +79,16 @@ import { Expo, ExpoPushReceipt } from "expo-server-sdk";
  *    budget; one that is not ready, or could not be fetched, is looked for
  *    again later until Expo has cleared it; one that cannot be asked for at
  *    all is dropped;
- *  - the push token reaches no log line and no row.
+ *  - the push token reaches no log line and no row;
+ *  - the timeline row is written as any provider's report is
+ *    (OnCallNotificationStatus.recordProviderReport): over Sent or Sending
+ *    only, at the version read - a page acknowledged meanwhile, even
+ *    between the read and the write, keeps saying so (issue #6873).
  *
- * Expo, the relay and the database are stood in for; the queue is the real
- * one, on an in-memory Redis (FakeSortedSetRedis).
+ * Expo, the relay and the database are stood in for - the timeline rows by
+ * OnCallTimelineRows, read with their version and written only at the
+ * status and version an update names; the queue is the real one, on an
+ * in-memory Redis (FakeSortedSetRedis).
  */
 
 type MockedFn = ReturnType<typeof jest.fn>;
@@ -95,6 +106,7 @@ const OTHER_TOKEN: string = "ExponentPushToken[receipt-other-0000002]";
 
 const LOG_ID: string = "7f000000-0000-4000-8000-000000000201";
 const TIMELINE_ID: string = "7f000000-0000-4000-8000-000000000202";
+const OTHER_TIMELINE_ID: string = "7f000000-0000-4000-8000-000000000299";
 
 const GONE_MESSAGE: string =
   "Push notification not delivered. Expo says this device is no longer registered for push notifications (DeviceNotRegistered): the mobile app was removed from it, or its push token is no longer valid. The device is marked as not receiving notifications; open the mobile app on it to register it again.";
@@ -180,6 +192,13 @@ let timelineUpdates: Array<{
   data: Record<string, unknown>;
   props: Record<string, unknown>;
 }>;
+// The pages' timeline rows, each Sent as the push left it.
+let timeline: OnCallTimelineRows;
+let timelineReads: SpyInstance<typeof UserOnCallLogTimelineService.findOneById>;
+
+function timelineRow(id: string): StoredOnCallNotification {
+  return timeline.get(new ObjectID(id))!;
+}
 
 async function check(): Promise<ExpoPushReceiptCheckSummary> {
   return await ExpoPushReceiptService.checkDueReceipts({
@@ -296,12 +315,27 @@ beforeEach(() => {
       return 1;
     }) as never);
 
+  timeline = new OnCallTimelineRows();
+  timeline.add(new ObjectID(TIMELINE_ID), UserNotificationStatus.Sent, {
+    statusMessage: "Push notification sent.",
+  });
+  timeline.add(new ObjectID(OTHER_TIMELINE_ID), UserNotificationStatus.Sent, {
+    statusMessage: "Push notification sent.",
+  });
+
+  timelineReads = jest
+    .spyOn(UserOnCallLogTimelineService, "findOneById")
+    .mockImplementation((async (input: { id: ObjectID }) => {
+      return timeline.read(input);
+    }) as never);
+
+  // Each update asked for, and - at the status and version it names - made.
   timelineUpdates = [];
   jest
     .spyOn(UserOnCallLogTimelineService, "updateOneBy")
     .mockImplementation((async (updateBy: (typeof timelineUpdates)[number]) => {
       timelineUpdates.push(updateBy);
-      return 1;
+      return timeline.update(updateBy);
     }) as never);
 });
 
@@ -378,9 +412,19 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
         props: { isRoot: true },
       },
     ]);
+    // Read as root - its status and version - and written at both.
+    expect(timelineReads).toHaveBeenCalledWith({
+      id: new ObjectID(TIMELINE_ID),
+      select: { _id: true, status: true, version: true },
+      props: { isRoot: true },
+    });
     expect(timelineUpdates).toEqual([
       {
-        query: { _id: TIMELINE_ID, status: UserNotificationStatus.Sent },
+        query: {
+          _id: TIMELINE_ID,
+          status: UserNotificationStatus.Sent,
+          version: 1,
+        },
         data: {
           status: UserNotificationStatus.Error,
           statusMessage: GONE_MESSAGE,
@@ -388,6 +432,10 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
         props: { isRoot: true },
       },
     ]);
+    expect(timelineRow(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: GONE_MESSAGE,
+    });
     expect(GONE_MESSAGE).toBe(
       `Push notification not delivered. ${PushNotificationService.EXPO_PUSH_TOKEN_GONE_MESSAGE}`,
     );
@@ -621,7 +669,7 @@ describe("receipts of pushes sent with this deployment's Expo access token", () 
       }),
       pendingReceipt(2, {
         deviceToken: OTHER_TOKEN,
-        userOnCallLogTimelineId: "7f000000-0000-4000-8000-000000000299",
+        userOnCallLogTimelineId: OTHER_TIMELINE_ID,
       }),
     ]);
     expoReceipts.set(receiptIdOf(1), deviceNotRegistered(GONE_TOKEN));
@@ -1254,5 +1302,144 @@ describe("a request for receipts that does not answer", () => {
     expect(relayPosts[0]!.options).toEqual({
       timeout: EXPO_PUSH_RECEIPTS_REQUEST_TIMEOUT_MS,
     });
+  });
+});
+
+describe("the page's timeline row: a provider's report, written as any other (#6873)", () => {
+  async function notDelivered(): Promise<ExpoPushReceiptCheckSummary> {
+    await keep([
+      pendingReceipt(1, {
+        pushNotificationLogId: LOG_ID,
+        userOnCallLogTimelineId: TIMELINE_ID,
+      }),
+    ]);
+    expoReceipts.set(receiptIdOf(1), deviceNotRegistered(GONE_TOKEN));
+
+    return await check();
+  }
+
+  test("a row still Sending - the push's own write never landed - says it was not delivered too", async () => {
+    timelineRow(TIMELINE_ID).status = UserNotificationStatus.Sending;
+
+    await notDelivered();
+
+    expect(timelineRow(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: GONE_MESSAGE,
+    });
+    expect(timelineUpdates[0]!.query).toEqual({
+      _id: TIMELINE_ID,
+      status: UserNotificationStatus.Sending,
+      version: 1,
+    });
+  });
+
+  test.each([
+    [UserNotificationStatus.Acknowledged, "Acknowledged by SMS."],
+    [UserNotificationStatus.NotAnswered, "Call not answered."],
+    [UserNotificationStatus.Error, "Push notification not delivered."],
+    [UserNotificationStatus.Skipped, "Skipped."],
+    [UserNotificationStatus.PassedOn, "Passed on to Alice."],
+    [UserNotificationStatus.Error, STUCK_NOTIFICATION_STATUS_MESSAGE],
+  ])(
+    "a row that says %s (%s) stays: the person's answer, or a result written first",
+    async (status: UserNotificationStatus, message: string) => {
+      timelineRow(TIMELINE_ID).status = status;
+      timelineRow(TIMELINE_ID).statusMessage = message;
+
+      const summary: ExpoPushReceiptCheckSummary = await notDelivered();
+
+      expect(summary.notDelivered).toBe(1);
+      expect(timelineUpdates).toEqual([]);
+      expect(timelineRow(TIMELINE_ID)).toMatchObject({
+        status: status,
+        statusMessage: message,
+        version: 1,
+      });
+      // The push log still says it was not delivered.
+      expect(logUpdates).toHaveLength(1);
+    },
+  );
+
+  test("the person acknowledging between the read and the write: the write names no row, the row is read again, and left", async () => {
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.status = UserNotificationStatus.Acknowledged;
+      row.statusMessage = "Acknowledged by SMS.";
+    });
+
+    await notDelivered();
+
+    expect(timelineReads).toHaveBeenCalledTimes(2);
+    expect(timelineUpdates).toHaveLength(1);
+    expect(timelineUpdates[0]!.query).toMatchObject({
+      status: UserNotificationStatus.Sent,
+      version: 1,
+    });
+    expect(timeline.writes).toEqual([]);
+    expect(timelineRow(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Acknowledged,
+      statusMessage: "Acknowledged by SMS.",
+    });
+  });
+
+  test("a message written between the read and the write, the row still Sent: read again, and written at the new version", async () => {
+    timeline.whenRead((row: StoredOnCallNotification) => {
+      row.statusMessage = "Push notification sent to 2 devices.";
+    });
+
+    await notDelivered();
+
+    expect(timelineUpdates).toHaveLength(2);
+    expect(timelineUpdates[1]!.query).toEqual({
+      _id: TIMELINE_ID,
+      status: UserNotificationStatus.Sent,
+      version: 2,
+    });
+    expect(timelineRow(TIMELINE_ID)).toMatchObject({
+      status: UserNotificationStatus.Error,
+      statusMessage: GONE_MESSAGE,
+    });
+  });
+
+  test("a row that is gone - its log deleted - is not written, and the run goes on", async () => {
+    timeline.rows.clear();
+
+    const summary: ExpoPushReceiptCheckSummary = await notDelivered();
+
+    expect(summary.notDelivered).toBe(1);
+    expect(timelineUpdates).toEqual([]);
+    expect(logUpdates).toHaveLength(1);
+    expect(markAsGone).toHaveBeenCalledTimes(1);
+  });
+
+  test("a read of the row that fails is logged; the push log and the phone are still written", async () => {
+    timelineReads.mockRejectedValue(new Error("database unavailable"));
+
+    const summary: ExpoPushReceiptCheckSummary = await notDelivered();
+
+    expect(summary.notDelivered).toBe(1);
+    expect(timelineUpdates).toEqual([]);
+    expect(logUpdates).toHaveLength(1);
+    expect(markAsGone).toHaveBeenCalledTimes(1);
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.stringContaining(TIMELINE_ID),
+    );
+  });
+
+  test("two receipts for one page's row: the first says it, the second finds it said and leaves it", async () => {
+    await keep([
+      pendingReceipt(1, { userOnCallLogTimelineId: TIMELINE_ID }),
+      pendingReceipt(2, {
+        deviceToken: OTHER_TOKEN,
+        userOnCallLogTimelineId: TIMELINE_ID,
+      }),
+    ]);
+    expoReceipts.set(receiptIdOf(1), deviceNotRegistered(GONE_TOKEN));
+    expoReceipts.set(receiptIdOf(2), deviceNotRegistered(OTHER_TOKEN));
+
+    await check();
+
+    expect(timeline.writes).toHaveLength(1);
+    expect(timelineRow(TIMELINE_ID).status).toBe(UserNotificationStatus.Error);
   });
 });

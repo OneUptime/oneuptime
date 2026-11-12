@@ -1007,6 +1007,106 @@ test.describe("what do you want to do first?", () => {
 
 /*
  * ---------------------------------------------------------------------------
+ * An invited member's first steps (#6807)
+ * ---------------------------------------------------------------------------
+ */
+
+test.describe("an invited member's first steps", () => {
+  for (const width of [1280, 390]) {
+    test(`at ${width}px: when they are on call, and that only email reaches them`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await page.setViewportSize({
+        width: width,
+        height: width === 390 ? 844 : 900,
+      });
+      await openReady(page, "scenario=new&role=viewer");
+
+      const card: Locator = page.getByTestId("member-first-steps");
+
+      await expect(card).toBeVisible();
+      await expect(page.getByText("Your first steps here")).toBeVisible();
+      // The reader's clock: en-US writes 12-hour times.
+      await expect(page.getByTestId("member-first-steps-on_call")).toHaveText(
+        /Your next shift: Tomorrow, 9:00\sAM.*Primary on-call, until 5:00\sPM/,
+      );
+      await expect(page.getByTestId("member-first-steps-reach")).toContainText(
+        "Add a faster way to reach you",
+      );
+      await expect(
+        page.getByTestId("member-first-steps-reach"),
+      ).toHaveAttribute("data-next", "true");
+      await expect(card).not.toContainText("Create your first monitor");
+      await expect(page.getByTestId("getting-started")).toHaveCount(0);
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `home-member-first-steps-${width}`);
+
+      await page.getByTestId("member-first-steps-mobile_app").click();
+
+      await expect(
+        page.getByTestId("member-first-steps-mobile-app-panel"),
+      ).toBeVisible();
+      await expect(
+        page.getByTestId("member-first-steps-server-url"),
+      ).toHaveText(/^http/);
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `home-member-first-steps-app-${width}`);
+    });
+  }
+
+  test("Hide keeps it hidden for this person, and Show brings it back", async ({
+    page,
+  }: {
+    page: Page;
+  }) => {
+    await openReady(page, "scenario=new&role=viewer");
+
+    await page.getByTestId("member-first-steps-hide").click();
+
+    await expect(page.getByTestId("member-first-steps-hidden")).toContainText(
+      "You hid your first steps.",
+    );
+    await expect(page.getByTestId("member-first-steps")).toHaveCount(0);
+
+    await page.getByTestId("member-first-steps-show").click();
+
+    await expect(page.getByTestId("member-first-steps")).toBeVisible();
+    expect(
+      (await welcomeRequests(page)).map(
+        (request: { method: string; path: string }): string => {
+          return `${request.method} ${request.path}`;
+        },
+      ),
+    ).toEqual([
+      "GET /api/welcome-checklist",
+      "POST /api/welcome-checklist/hide",
+      "POST /api/welcome-checklist/show",
+    ]);
+  });
+
+  for (const [query, name, title] of [
+    ["lang=de&theme=dark", "de-dark", "Ihre ersten Schritte hier"],
+    ["lang=fa", "fa", "نخستین گام‌های شما در اینجا"],
+  ]) {
+    test(`in ${name}: the card in the reader's language`, async ({
+      page,
+    }: {
+      page: Page;
+    }) => {
+      await openReady(page, `scenario=new&role=viewer&${query}`);
+
+      await expect(page.getByTestId("member-first-steps")).toBeVisible();
+      await expect(page.getByText(title as string)).toBeVisible();
+      await expectNoSidewaysScroll(page);
+      await screenshot(page, `home-member-first-steps-${name}`);
+    });
+  }
+});
+
+/*
+ * ---------------------------------------------------------------------------
  * Failures and refresh
  * ---------------------------------------------------------------------------
  */

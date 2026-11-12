@@ -166,7 +166,14 @@ const MAPPING_CASES: Array<MappingCase> = [
       monitorTypes: ["Ping"],
       labelIds: ["label"],
     },
+    /*
+     * Archived monitors are never published, and a status filter matches only
+     * the monitors that are checked: "non-operational" is the app's Not
+     * Operational rule (NotOperationalMonitorQuery, issue #6476).
+     */
     expectedQuery: {
+      isArchived: false,
+      disableActiveMonitoring: false,
       currentMonitorStatus: { isOperationalState: false },
       currentMonitorStatusId: new Includes(["status"]),
       monitorType: new Includes(["Ping"]),
@@ -1729,6 +1736,72 @@ describe("PublicDashboardResourceListPolicy", () => {
     });
   });
 
+  /*
+   * Issue #6476: a monitor whose monitoring is turned off keeps the status
+   * its last check saw, so no status filter on a public page matches it -
+   * each filter alone, not only beside picked statuses - and an archived
+   * monitor is never published. The board's widget builds the same query
+   * (Tests/App/Dashboard/MonitorListWidgetMonitoringOff).
+   */
+  describe("a Monitor List and monitors whose monitoring is off", () => {
+    function monitorQuery(argumentsObject: JSONObject): JSONObject {
+      return build({
+        componentType: DashboardComponentType.MonitorList,
+        argumentsObject,
+      }).query;
+    }
+
+    it("with no status filter, lists every monitor but the archived ones, a monitor whose monitoring is off too", () => {
+      expect(monitorQuery({})).toEqual({ isArchived: false });
+      expect(monitorQuery({ statusFilter: "" })).toEqual({
+        isArchived: false,
+      });
+      expect(monitorQuery({ monitorStatusIds: [] })).toEqual({
+        isArchived: false,
+      });
+    });
+
+    it("'non-operational' alone is the app's Not Operational rule", () => {
+      expect(monitorQuery({ statusFilter: "non-operational" })).toEqual({
+        isArchived: false,
+        disableActiveMonitoring: false,
+        currentMonitorStatus: { isOperationalState: false },
+      });
+    });
+
+    it("'operational' alone matches only monitors whose monitoring is on", () => {
+      expect(monitorQuery({ statusFilter: "operational" })).toEqual({
+        isArchived: false,
+        disableActiveMonitoring: false,
+        currentMonitorStatus: { isOperationalState: true },
+      });
+    });
+
+    it("picked statuses alone match only monitors whose monitoring is on", () => {
+      expect(monitorQuery({ monitorStatusIds: ["status"] })).toEqual({
+        isArchived: false,
+        disableActiveMonitoring: false,
+        currentMonitorStatusId: new Includes(["status"]),
+      });
+    });
+
+    it("refuses a status filter the widget's settings never offer, as before", () => {
+      for (const statusFilter of ["down", "Operational", ["operational"], 1]) {
+        expect(() => {
+          return monitorQuery({ statusFilter } as JSONObject);
+        }).toThrow(BadDataException);
+      }
+    });
+
+    it("reads whether monitoring is off, so the page draws such a monitor as Disabled", () => {
+      expect(
+        build({ componentType: DashboardComponentType.MonitorList }).select[
+          "disableActiveMonitoring"
+        ],
+      ).toBe(true);
+    });
+  });
+
   describe("monitor project label variables", () => {
     const firstLabelId: string = ObjectID.generate().toString();
     const secondLabelId: string = ObjectID.generate().toString();
@@ -1751,7 +1824,10 @@ describe("PublicDashboardResourceListPolicy", () => {
         storedVariables: [labelVariable],
       });
 
-      expect(result.query).toEqual({ labels: new Includes([firstLabelId]) });
+      expect(result.query).toEqual({
+        isArchived: false,
+        labels: new Includes([firstLabelId]),
+      });
     });
 
     it("uses the selected label ID while retaining the saved widget filters", () => {
@@ -1769,6 +1845,8 @@ describe("PublicDashboardResourceListPolicy", () => {
       });
 
       expect(result.query).toEqual({
+        isArchived: false,
+        disableActiveMonitoring: false,
         labels: new Includes([secondLabelId]),
         currentMonitorStatus: { isOperationalState: true },
         monitorType: new Includes(["Ping"]),
@@ -1779,11 +1857,14 @@ describe("PublicDashboardResourceListPolicy", () => {
       /*
        * The status's priority is read too (issue #5082): the Status column
        * sorts by it, and an ordered list must select what it is ordered by.
+       * And whether monitoring is off, so the page says Disabled for such a
+       * monitor instead of the status its last check left (issue #6476).
        */
       expect(result.select).toEqual({
         _id: true,
         name: true,
         monitorType: true,
+        disableActiveMonitoring: true,
         currentMonitorStatus: { name: true, color: true, priority: true },
       });
     });
@@ -2601,7 +2682,7 @@ describe("PublicDashboardResourceListPolicy", () => {
             storedVariables: stored,
             requestedVariables: [{ id: "unit", selectedValue: labelId }],
           }).query,
-        ).toEqual({ labels: new Includes([labelId]) });
+        ).toEqual({ isArchived: false, labels: new Includes([labelId]) });
       });
 
       /*
@@ -2934,7 +3015,7 @@ describe("PublicDashboardResourceListPolicy", () => {
 
         expect(
           monitorsBy([{ id: teamId!, selectedValue: teamLabel }])().query,
-        ).toEqual({ labels: new Includes([teamLabel]) });
+        ).toEqual({ isArchived: false, labels: new Includes([teamLabel]) });
 
         // The other variable's choice is no choice of this one.
         expect(
@@ -2943,10 +3024,13 @@ describe("PublicDashboardResourceListPolicy", () => {
           "refused: Choose up to 100 labels offered by this dashboard variable, or select All.",
         );
 
-        // And the other variable's pick, under its own id, never reaches it.
+        /*
+         * And the other variable's pick, under its own id, never reaches it:
+         * the list is every monitor that is not archived (issue #6476).
+         */
         expect(
           monitorsBy([{ id: unitId!, selectedValue: unitLabel }])().query,
-        ).toEqual({});
+        ).toEqual({ isArchived: false });
       });
 
       it("refuses an over-long or over-many selection under a derived id as under any other", () => {

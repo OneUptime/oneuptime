@@ -16,7 +16,7 @@ import Select from "Common/Server/Types/Database/Select";
 import QueryHelper from "Common/Server/Types/Database/QueryHelper";
 import OneUptimeDate from "Common/Types/Date";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
-import { recordProviderReport } from "../Utils/OnCallNotificationStatus";
+import { recordProviderReport } from "Common/Server/Utils/OnCall/OnCallNotificationStatus";
 import NotificationDeliveryMetrics, {
   NotificationDeliveryChannel,
   NotificationDeliveryProvider,

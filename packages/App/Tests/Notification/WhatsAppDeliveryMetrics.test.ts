@@ -19,7 +19,7 @@ import WhatsAppStatus from "Common/Types/WhatsAppStatus";
 import logger from "Common/Server/Utils/Logger";
 import OnCallTimelineRows, {
   StoredOnCallNotification,
-} from "./Fixtures/OnCallTimelineRows";
+} from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 
 /*
  * HOW EVERY WHATSAPP MESSAGE WENT, FOR THE PLATFORM'S OPERATOR (issue #6600).

@@ -30,6 +30,7 @@ import ErrorClass, {
 } from "Common/Types/Telemetry/ErrorClass";
 import UserNotificationStatus from "Common/Types/UserNotification/UserNotificationStatus";
 import API from "Common/Utils/API";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
 import Twilio from "twilio";
 
@@ -185,7 +186,12 @@ let ssrf: jest.SpyInstance;
 let createCall: jest.Mock;
 let project: Project | null;
 let callLogs: Array<CallLog>;
-let timelineUpdates: Array<Record<string, unknown>>;
+/*
+ * The person's on-call notification the call was made for, Sending as its
+ * page wrote it: written over Sending only, at the version read
+ * (OnCallNotificationStatus).
+ */
+let timeline: OnCallTimelineRows;
 let actionLinks: jest.SpyInstance;
 let pay: jest.SpyInstance;
 
@@ -275,7 +281,8 @@ beforeEach(() => {
   pay = jest.spyOn(MessagingBalance, "payForSentMessage").mockResolvedValue(0);
 
   callLogs = [];
-  timelineUpdates = [];
+  timeline = new OnCallTimelineRows();
+  timeline.add(TIMELINE_ID, UserNotificationStatus.Sending);
 
   jest.spyOn(CallLogService, "create").mockImplementation(((data: {
     data: CallLog;
@@ -283,12 +290,7 @@ beforeEach(() => {
     callLogs.push(data.data);
     return Promise.resolve(data.data);
   }) as never);
-  jest
-    .spyOn(UserOnCallLogTimelineService, "updateOneById")
-    .mockImplementation(((data: Record<string, unknown>) => {
-      timelineUpdates.push(data);
-      return Promise.resolve();
-    }) as never);
+  timeline.standIn(UserOnCallLogTimelineService);
   jest
     .spyOn(UserOnCallLogTimelineService, "markNotSent")
     .mockResolvedValue(undefined as never);
@@ -542,11 +544,10 @@ describe("a call through the server's own gateway", () => {
       userOnCallLogTimelineId: TIMELINE_ID,
     });
 
-    expect(timelineUpdates).toEqual([
+    expect(timeline.writes).toEqual([
       {
+        id: TIMELINE_ID.toString(),
         data: { status: UserNotificationStatus.Sent, statusMessage: SENT },
-        id: TIMELINE_ID,
-        props: { isRoot: true },
       },
     ]);
   });
@@ -590,7 +591,7 @@ describe("a call the gateway does not take", () => {
     expect(callLogs[0]!.status).toBe(CallStatus.Error);
     expect(callLogs[0]!.statusMessage).toBe(reason);
     expect(callLogs[0]!.callCostInUSDCents).toBe(0);
-    expect(timelineUpdates[0]).toMatchObject({
+    expect(timeline.writes[0]).toMatchObject({
       data: { status: UserNotificationStatus.Error, statusMessage: reason },
     });
     expect(pay).not.toHaveBeenCalled();

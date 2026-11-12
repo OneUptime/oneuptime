@@ -164,6 +164,8 @@ Un aviso que no se envía indica el motivo en los **Registros de guardia** de la
 
 Los propietarios del proyecto reciben un correo sobre ello una vez, hasta que se recargue el saldo o el canal vuelva a estar encendido.
 
+Un aviso que no pudo llegar al servicio de notificaciones de OneUptime dice `Could not reach the Notification service to send this (ECONNREFUSED).`, con el código del error de red entre los paréntesis. Un aviso cuyo envío nunca terminó, por ejemplo porque un servidor se reinició mientras lo enviaba, dice `Sending did not finish within 15 minutes, so this notification may not have been sent.` Si el envío termina después de todo, su resultado sustituye ese mensaje.
+
 En OneUptime Cloud, cada SMS, llamada, mensaje de WhatsApp y de Telegram se paga con el saldo del proyecto en **Ajustes del proyecto > Notificaciones > Ajustes de notificaciones**: su coste exacto se descuenta del saldo cuando el proveedor lo acepta, sin importar cuántos mensajes salgan a la vez.
 
 - Con la **Recarga automática** activada allí, el mensaje que encuentra el saldo por debajo de su umbral añade primero la cantidad configurada en la recarga automática, con cargo a la tarjeta del proyecto; los mensajes que lo encuentran bajo en el mismo momento cargan la tarjeta una sola vez.

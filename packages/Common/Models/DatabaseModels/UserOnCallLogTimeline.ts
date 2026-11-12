@@ -78,6 +78,15 @@ import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
 @Index(["onCallDutyPolicyExecutionLogId", "status"])
 @Index(["projectId", "status"])
 /*
+ * The notifications still going out, oldest first: what the stuck check
+ * reads every five minutes (OnCallStuckNotifications). Only those that say
+ * Sending are in it - a handful at any moment, where the table keeps every
+ * notification ever sent - and the check's read implies its predicate.
+ */
+@Index(["createdAt"], {
+  where: `"status" = 'Sending' AND "deletedAt" IS NULL`,
+})
+/*
  * The history of the pages sent to a person: who was paged, when, through
  * which of their notification rules and methods, and how it went. The rule
  * and the method are the person's own settings, which go when they remove

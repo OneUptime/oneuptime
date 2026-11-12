@@ -30,7 +30,7 @@ import {
 } from "Common/Utils/MessageFit";
 import API from "Common/Utils/API";
 import { afterEach, beforeEach, describe, expect, test } from "@jest/globals";
-import OnCallTimelineRows from "./Fixtures/OnCallTimelineRows";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import crypto from "crypto";
 import Twilio from "twilio";
 

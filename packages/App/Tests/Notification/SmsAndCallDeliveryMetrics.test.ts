@@ -30,7 +30,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
-import OnCallTimelineRows from "./Fixtures/OnCallTimelineRows";
+import OnCallTimelineRows from "Common/Tests/Server/TestingUtils/OnCallTimelineRows";
 import type { SpyInstance } from "jest-mock";
 import Twilio from "twilio";
 
