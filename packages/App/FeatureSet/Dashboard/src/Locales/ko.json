@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "상태 페이지에 이 리소스가 모니터링되지 않음으로 표시됩니다.",
   "Under maintenance: {{events}}": "유지 관리 중: {{events}}",
   "Unusually High": "비정상적으로 높음",
-  "Unusually Low": "비정상적으로 낮음"
+  "Unusually Low": "비정상적으로 낮음",
+  "Leave without saving?": "저장하지 않고 나가시겠습니까?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "이 대시보드에 저장되지 않은 변경 사항이 있습니다. 지금 나가면 변경 사항이 사라집니다."
 }

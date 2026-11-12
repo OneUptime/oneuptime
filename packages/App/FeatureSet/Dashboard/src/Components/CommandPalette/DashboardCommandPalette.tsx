@@ -71,6 +71,7 @@ import KeyboardKey from "Common/UI/Components/KeyboardShortcut/KeyboardKey";
 import { ADMIN_DASHBOARD_URL, BILLING_ENABLED } from "Common/UI/Config";
 import GlobalEvents from "Common/UI/Utils/GlobalEvents";
 import ModelAPI from "Common/UI/Utils/ModelAPI/ModelAPI";
+import LeaveGuard from "Common/UI/Utils/LeaveGuard";
 import Navigation from "Common/UI/Utils/Navigation";
 import ProjectUtil from "Common/UI/Utils/Project";
 import ThemeUtil, {
@@ -827,9 +828,21 @@ const DashboardCommandPalette: FunctionComponent<ComponentProps> = (
 
               closePalette();
 
-              if (project) {
-                onProjectSelected(project);
+              if (!project) {
+                return;
               }
+
+              /*
+               * The switch reloads the app in the other project: a page
+               * holding unsaved work asks first, before anything switches
+               * (LeaveGuard), as the project picker's own switch does.
+               */
+              LeaveGuard.whenLeaving(
+                `/dashboard/${descriptor.projectId}`,
+                () => {
+                  onProjectSelected(project);
+                },
+              );
             },
           };
         })

@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "状态页将此资源显示为未监控。",
   "Under maintenance: {{events}}": "维护中：{{events}}",
   "Unusually High": "异常偏高",
-  "Unusually Low": "异常偏低"
+  "Unusually Low": "异常偏低",
+  "Leave without saving?": "不保存就离开？",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您对此仪表板有未保存的更改。如果现在离开，这些更改将会丢失。"
 }

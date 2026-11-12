@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "狀態頁面將此資源顯示為未監控。",
   "Under maintenance: {{events}}": "維護中：{{events}}",
   "Unusually High": "異常偏高",
-  "Unusually Low": "異常偏低"
+  "Unusually Low": "異常偏低",
+  "Leave without saving?": "不儲存就離開？",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "您對此儀表板有未儲存的變更。如果現在離開，這些變更將會遺失。"
 }

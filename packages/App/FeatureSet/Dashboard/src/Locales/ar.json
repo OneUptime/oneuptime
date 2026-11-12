@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "تعرض صفحة الحالة هذا المورد على أنه غير مراقَب.",
   "Under maintenance: {{events}}": "قيد الصيانة: {{events}}",
   "Unusually High": "مرتفع على غير العادة",
-  "Unusually Low": "منخفض على غير العادة"
+  "Unusually Low": "منخفض على غير العادة",
+  "Leave without saving?": "هل تريد المغادرة دون حفظ؟",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "لديك تغييرات غير محفوظة في لوحة المعلومات هذه. إذا غادرت الآن، فستُفقد."
 }

@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "Statussidan visar den här resursen som inte övervakad.",
   "Under maintenance: {{events}}": "Under underhåll: {{events}}",
   "Unusually High": "Ovanligt hög",
-  "Unusually Low": "Ovanligt låg"
+  "Unusually Low": "Ovanligt låg",
+  "Leave without saving?": "Lämna utan att spara?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har osparade ändringar i denna instrumentpanel. Om du lämnar sidan nu går de förlorade."
 }

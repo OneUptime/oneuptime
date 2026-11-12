@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "The status page shows this resource as not monitored.",
   "Under maintenance: {{events}}": "Under maintenance: {{events}}",
   "Unusually High": "Unusually High",
-  "Unusually Low": "Unusually Low"
+  "Unusually Low": "Unusually Low",
+  "Leave without saving?": "Leave without saving?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "You have unsaved changes to this dashboard. If you leave now, they will be lost."
 }

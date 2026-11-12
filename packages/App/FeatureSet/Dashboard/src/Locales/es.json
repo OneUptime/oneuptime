@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "La página de estado muestra este recurso como no monitoreado.",
   "Under maintenance: {{events}}": "En mantenimiento: {{events}}",
   "Unusually High": "Inusualmente alto",
-  "Unusually Low": "Inusualmente bajo"
+  "Unusually Low": "Inusualmente bajo",
+  "Leave without saving?": "¿Salir sin guardar?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Tienes cambios sin guardar en este panel. Si sales ahora, se perderán."
 }

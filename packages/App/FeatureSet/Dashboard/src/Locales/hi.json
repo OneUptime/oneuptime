@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "स्थिति पृष्ठ दिखाता है कि इस संसाधन की निगरानी नहीं हो रही है।",
   "Under maintenance: {{events}}": "रखरखाव में: {{events}}",
   "Unusually High": "असामान्य रूप से ऊँचा",
-  "Unusually Low": "असामान्य रूप से नीचा"
+  "Unusually Low": "असामान्य रूप से नीचा",
+  "Leave without saving?": "सहेजे बिना पेज छोड़ें?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "इस डैशबोर्ड में आपके कुछ बदलाव सहेजे नहीं गए हैं। अगर आप अभी पेज छोड़ते हैं, तो वे खो जाएँगे।"
 }

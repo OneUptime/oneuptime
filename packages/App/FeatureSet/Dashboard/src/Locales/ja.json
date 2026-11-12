@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "ステータスページではこのリソースは未監視と表示されています。",
   "Under maintenance: {{events}}": "メンテナンス中: {{events}}",
   "Unusually High": "異常に高い",
-  "Unusually Low": "異常に低い"
+  "Unusually Low": "異常に低い",
+  "Leave without saving?": "保存せずにページを離れますか？",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "このダッシュボードに保存されていない変更があります。今ページを離れると、変更は失われます。"
 }

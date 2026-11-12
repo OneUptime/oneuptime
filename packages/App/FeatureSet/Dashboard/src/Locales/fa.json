@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "صفحه وضعیت این منبع را پایش نشده نشان می‌دهد.",
   "Under maintenance: {{events}}": "در حال تعمیر و نگهداری: {{events}}",
   "Unusually High": "به‌طور غیرعادی بالا",
-  "Unusually Low": "به‌طور غیرعادی پایین"
+  "Unusually Low": "به‌طور غیرعادی پایین",
+  "Leave without saving?": "بدون ذخیره خارج می‌شوید؟",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "تغییرهای ذخیره‌نشده‌ای در این داشبورد دارید. اگر اکنون خارج شوید، از بین می‌روند."
 }

@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "Страница статуса показывает, что этот ресурс не отслеживается.",
   "Under maintenance: {{events}}": "На обслуживании: {{events}}",
   "Unusually High": "Необычно высоко",
-  "Unusually Low": "Необычно низко"
+  "Unusually Low": "Необычно низко",
+  "Leave without saving?": "Уйти без сохранения?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "У вас есть несохранённые изменения на этой панели. Если вы уйдёте сейчас, они будут потеряны."
 }

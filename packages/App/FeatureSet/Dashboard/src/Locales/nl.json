@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "De statuspagina toont deze bron als niet bewaakt.",
   "Under maintenance: {{events}}": "In onderhoud: {{events}}",
   "Unusually High": "Ongewoon hoog",
-  "Unusually Low": "Ongewoon laag"
+  "Unusually Low": "Ongewoon laag",
+  "Leave without saving?": "Verlaten zonder op te slaan?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "U hebt niet-opgeslagen wijzigingen in dit dashboard. Als u nu weggaat, gaan ze verloren."
 }

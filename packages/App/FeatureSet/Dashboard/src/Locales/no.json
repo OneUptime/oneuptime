@@ -51145,5 +51145,7 @@
   "The status page shows this resource as not monitored.": "Statussiden viser denne ressursen som ikke overvåket.",
   "Under maintenance: {{events}}": "Under vedlikehold: {{events}}",
   "Unusually High": "Uvanlig høy",
-  "Unusually Low": "Uvanlig lav"
+  "Unusually Low": "Uvanlig lav",
+  "Leave without saving?": "Forlate uten å lagre?",
+  "You have unsaved changes to this dashboard. If you leave now, they will be lost.": "Du har ulagrede endringer på dette dashbordet. Hvis du forlater siden nå, går de tapt."
 }
