@@ -23757,7 +23757,7 @@
   "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.": "除非你在此设置限制，否则调查会立即开始，并在项目的每次运行时间上限内一直运行到完成。",
   "It works on alerts on its own. Turn off anything you do not want it to do.": "OneUptime AI 会自动处理警报。关闭你不希望它做的事情。",
   "It works on incidents on its own. Turn off anything you do not want it to do.": "OneUptime AI 会自动处理事件。关闭你不希望它做的事情。",
-  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left.": "按最近 {{days}} 天的滚动窗口衡量；错误预算剩余不足 {{threshold}}% 时变为“有风险”。",
+  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}} of the error budget is left.": "按最近 {{days}} 天的滚动窗口衡量；错误预算剩余不足 {{threshold}} 时变为“有风险”。",
   "Needs a repository connected through the GitHub App.": "需要通过 GitHub App 连接的存储库。",
   "None of this project's LLM providers is its default, and OneUptime AI uses the default.": "此项目的 LLM 提供商中没有默认提供商，而 OneUptime AI 使用默认提供商。",
   "OneUptime AI is off for this project, so nothing on this page runs.": "此项目已关闭 OneUptime AI，因此此页面上的功能都不会运行。",
@@ -46400,7 +46400,7 @@
   "Changes saved after this was proposed were kept": "保留了此提议之后保存的更改",
   "Add recommended rules": "添加推荐规则",
   "Add rules": "添加规则",
-  "Fires when about {{percent}}% of the error budget burns in {{duration}}": "当约 {{percent}}% 的错误预算在 {{duration}} 内被消耗时触发",
+  "Fires when about {{percent}} of the error budget burns in {{duration}}": "当约 {{percent}} 的错误预算在 {{duration}} 内被消耗时触发",
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "此 SLO 尚缺的规则：{{rules}}。在您确认之前不会添加任何内容。已禁用的规则也算已设置，因此对于不想要的规则，请将其禁用而不是删除。",
   "Recommended rules not set up": "推荐规则尚未设置",
   "Copy a link to this time range": "复制指向此时间范围的链接",
@@ -51124,5 +51124,13 @@
   "{{project}} Status": "{{project}} 状态",
   "{{service}} is already watched by these monitors.": "{{service}} 已被这些监视器监控。",
   "{{service}} is sending data": "{{service}} 正在发送数据",
-  "{{service}} is sending data.": "{{service}} 正在发送数据。"
+  "{{service}} is sending data.": "{{service}} 正在发送数据。",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "风险阈值必须是 {{min}} 到 {{max}} 之间的百分比。",
+  "At-risk threshold must be a whole number.": "风险阈值必须是整数。",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "最近 {{window}} · {{rate}} 表示预算恰好在窗口内用完",
+  "Target must be greater than {{min}} and at most {{max}}.": "目标必须大于 {{min}} 且不超过 {{max}}。",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "其监视器必须正常运行的时间占比。在 {{days}} 天内，{{target}} 允许 {{minutes}} 分钟停机时间，{{stricterTarget}} 约允许 {{stricterMinutes}} 分钟。",
+  "Window must be a whole number of days.": "窗口必须是整数天。",
+  "Window must be between {{min}} and {{max}} days.": "窗口必须介于 {{min}} 到 {{max}} 天之间。",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "每月的 {{percentage}}：{{days}} 天的月份中有 {{budget}} 停机时间"
 }

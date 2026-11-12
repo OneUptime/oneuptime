@@ -23757,7 +23757,7 @@
   "Investigations start right away and run until they are done, within the project's time limit per run, unless you set a limit here.": "Utredningar startar direkt och körs tills de är klara, inom projektets tidsgräns per körning, om du inte sätter en gräns här.",
   "It works on alerts on its own. Turn off anything you do not want it to do.": "OneUptime AI arbetar med larm på egen hand. Stäng av det du inte vill att den ska göra.",
   "It works on incidents on its own. Turn off anything you do not want it to do.": "OneUptime AI arbetar med incidenter på egen hand. Stäng av det du inte vill att den ska göra.",
-  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left.": "Mäts över ett rullande fönster på {{days}} dagar och är i riskzonen när mindre än {{threshold}} % av felbudgeten återstår.",
+  "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}} of the error budget is left.": "Mäts över ett rullande fönster på {{days}} dagar och är i riskzonen när mindre än {{threshold}} av felbudgeten återstår.",
   "Needs a repository connected through the GitHub App.": "Kräver ett repository som är anslutet via GitHub App.",
   "None of this project's LLM providers is its default, and OneUptime AI uses the default.": "Ingen av projektets LLM-leverantörer är standard, och OneUptime AI använder standarden.",
   "OneUptime AI is off for this project, so nothing on this page runs.": "OneUptime AI är avstängd för det här projektet, så ingenting på den här sidan körs.",
@@ -46400,7 +46400,7 @@
   "Changes saved after this was proposed were kept": "Ändringar som sparades efter det här förslaget behölls",
   "Add recommended rules": "Lägg till rekommenderade regler",
   "Add rules": "Lägg till regler",
-  "Fires when about {{percent}}% of the error budget burns in {{duration}}": "Utlöses när ungefär {{percent}} % av felbudgeten förbrukas på {{duration}}",
+  "Fires when about {{percent}} of the error budget burns in {{duration}}": "Utlöses när ungefär {{percent}} av felbudgeten förbrukas på {{duration}}",
   "Not on this SLO yet: {{rules}}. Nothing is added until you confirm. A disabled rule counts as set up, so disable a rule you do not want instead of deleting it.": "Regler som detta SLO inte har ännu: {{rules}}. Inget läggs till förrän du bekräftar. En inaktiverad regel räknas som konfigurerad, så inaktivera en regel som du inte vill ha i stället för att ta bort den.",
   "Recommended rules not set up": "Rekommenderade regler är inte konfigurerade",
   "Copy a link to this time range": "Kopiera en länk till det här tidsintervallet",
@@ -51124,5 +51124,13 @@
   "{{project}} Status": "Status för {{project}}",
   "{{service}} is already watched by these monitors.": "{{service}} övervakas redan av dessa monitorer.",
   "{{service}} is sending data": "{{service}} skickar data",
-  "{{service}} is sending data.": "{{service}} skickar data."
+  "{{service}} is sending data.": "{{service}} skickar data.",
+  "At-risk threshold must be a percentage between {{min}} and {{max}}.": "Tröskeln för riskzon måste vara en procentsats mellan {{min}} och {{max}}.",
+  "At-risk threshold must be a whole number.": "Tröskeln för riskzon måste vara ett heltal.",
+  "Over the last {{window}} · {{rate}} spends the budget exactly over the window": "Under de senaste {{window}} · {{rate}} förbrukar budgeten exakt under fönstret",
+  "Target must be greater than {{min}} and at most {{max}}.": "Målet måste vara större än {{min}} och högst {{max}}.",
+  "The share of time its monitors must be up. Over {{days}} days, {{target}} allows {{minutes}} minutes of downtime and {{stricterTarget}} about {{stricterMinutes}}.": "Den andel av tiden som dess monitorer måste vara uppe. Vid {{target}} tillåts {{minutes}} minuters driftstopp under {{days}} dagar, vid {{stricterTarget}} ungefär {{stricterMinutes}}.",
+  "Window must be a whole number of days.": "Fönstret måste vara ett helt antal dagar.",
+  "Window must be between {{min}} and {{max}} days.": "Fönstret måste vara mellan {{min}} och {{max}} dagar.",
+  "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} av varje månad: {{budget}} driftstopp i en månad på {{days}} dagar"
 }
