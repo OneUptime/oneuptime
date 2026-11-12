@@ -26,6 +26,7 @@ import { usePrivateRecordGateOptions } from "Common/UI/Utils/PrivateRecordScope"
 import {
   TranslatableTerm,
   Translator,
+  formatInline,
   translatableTerm,
   translationKey,
 } from "Common/UI/Utils/TranslateTemplate";
@@ -154,16 +155,26 @@ const CallRow: FunctionComponent<CallRowProps> = (
   // No Join link for a link that is not an http or https address.
   const openableJoinUrl: string | undefined = getOpenableJoinUrl(joinUrl);
 
+  /*
+   * Who started it. A person's name is set apart from the sentence
+   * (setsValuesApart): an English name in an Arabic or Persian sentence
+   * keeps its own order and its punctuation, and the time after it stays
+   * where the sentence puts it.
+   */
   const startedBy: string = call.workspaceNotificationRuleId
     ? translator.translateText("Started automatically by a workspace rule") ||
       ""
     : call.createdByUser?.name || call.createdByUser?.email
-      ? translator.translateTemplate("Started by {{name}}", {
-          name:
-            call.createdByUser?.name?.toString() ||
-            call.createdByUser?.email?.toString() ||
-            "",
-        })
+      ? translator.translateTemplate(
+          "Started by {{name}}",
+          {
+            name:
+              call.createdByUser?.name?.toString() ||
+              call.createdByUser?.email?.toString() ||
+              "",
+          },
+          { setsValuesApart: true },
+        )
       : translator.translateText("Started from the API") || "";
 
   // "5 minutes ago" in the reader's language, as the transcript's line says it.
@@ -228,8 +239,18 @@ const CallRow: FunctionComponent<CallRowProps> = (
                 dataTestId="event-video-call-title"
               />
             )}
-          <p className="mt-0.5 truncate text-xs text-gray-500">
-            {startedAt ? `${startedBy} · ${startedAt}` : startedBy}
+          {/*
+           * Who started it and when, set off from each other as the
+           * reader's language does (formatInline): a bullet beside
+           * Persian digits, whose zero is a dot.
+           */}
+          <p
+            className="mt-0.5 truncate text-xs text-gray-500"
+            data-testid="event-video-call-started"
+          >
+            {startedAt
+              ? formatInline([startedBy, startedAt], translator)
+              : startedBy}
           </p>
           {props.isPrimary ? <></> : transcriptBlock}
         </div>
