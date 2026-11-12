@@ -114,6 +114,11 @@ const DocsNav: NavGroup[] = [
     section: "Get Started",
     links: [
       {
+        title: "Know When Your Website or API Is Down",
+        url: "/docs/guides/website-down",
+        isGuide: true,
+      },
+      {
         title: "Get Paged by Phone, SMS or Push",
         url: "/docs/guides/paging",
         isGuide: true,

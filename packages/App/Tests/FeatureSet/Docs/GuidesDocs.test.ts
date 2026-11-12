@@ -53,6 +53,15 @@ const DASHBOARD_DIR: string = path.resolve(
   "../../../FeatureSet/Dashboard/src",
 );
 
+/*
+ * The repository's README. Its 16 translations keep its links line for line,
+ * each in its own language (Tests/Ops/ReadmeFacts), so English is enough here.
+ */
+const README: string = fs.readFileSync(
+  path.resolve(__dirname, "../../../../../README.md"),
+  "utf8",
+);
+
 // A Dashboard source file, read as text: its copy files load the browser's config.
 function dashboardFile(relativePath: string): string {
   return fs.readFileSync(path.join(DASHBOARD_DIR, relativePath), "utf8");
@@ -669,6 +678,18 @@ describe.each(DOCS_GUIDES)(
         `export const ${guide.guidedSetup.constant}: string = "${guideUrl(guide)}";`,
       );
       expect(page).toContain(`guideDocsPath={${guide.guidedSetup.constant}}`);
+    });
+
+    it("is linked from the README, by its title, on the line that lists the guides", () => {
+      const line: string | undefined = README.split("\n").find(
+        (entry: string): boolean => {
+          return entry.startsWith("Step-by-step guides ");
+        },
+      );
+
+      expect(line).toContain(
+        `[${guide.navTitle}](https://oneuptime.com${guideUrl(guide)})`,
+      );
     });
 
     it.each(DOCS_LANGUAGES)(

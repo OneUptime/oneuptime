@@ -126,7 +126,7 @@ Adgangsnøgler kræver, at dit OneUptimes adresse starter med `https://`, og en 
 - Tjek, at telefonen tillader notifikationer fra OneUptime On-Call, og at Forstyr ikke eller et Fokus ikke holder dem tilbage.
 - Tjek under **Brugerindstillinger → Notifikationsmetoder** på fanen **Push-notifikationer**, at telefonen står på listen, og send den en **Testnotifikation**.
 - Er den markeret som **Modtager ikke notifikationer**, så åbn appen, mens du er logget ind: se [Når en telefon skal registreres igen](#når-en-telefon-skal-registreres-igen).
-- Tjek dine vagtregler under **Brugerindstillinger → Vagtregler**: de bestemmer, hvilke alarmer der når hvilken metode.
+- Tjek dine vagtregler under **Brugerindstillinger → Sådan når man mig**: de bestemmer, hvilke alarmer der når hvilken metode.
 - På et selv-hostet OneUptime skal du tjekke, at serveren kan nå sit push-relæ: se [Push-notifikationer](/docs/self-hosted/push-notifications#netværksadgang).
 :::
 
@@ -135,7 +135,7 @@ Sæt appens batteriforbrug til **Ubegrænset** i Androids indstillinger for OneU
 :::
 
 :::details Kritiske advarsler ringer ikke igennem lydløs
-Åbn **Settings** i appen: linjen under **Critical On-Call Alerts** siger, hvad der mangler på den telefon. Tjek derefter under **Brugerindstillinger → Vagtregler**, at den vagtregel, der sendte alarmen, er sat til **Kritisk advarsel**, ikke **Normal**. Hver telefon har sin egen kontakt.
+Åbn **Settings** i appen: linjen under **Critical On-Call Alerts** siger, hvad der mangler på den telefon. Tjek derefter under **Brugerindstillinger → Sådan når man mig**, at den vagtregel, der sendte alarmen, er sat til **Kritisk advarsel**, ikke **Normal**. Hver telefon har sin egen kontakt.
 :::
 
 ### Desktop-app

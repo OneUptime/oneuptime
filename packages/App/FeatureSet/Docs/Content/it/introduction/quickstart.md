@@ -59,6 +59,8 @@ Mantieni le **Sonde** selezionate e l'**Intervallo di monitoraggio** di **Ogni 5
 
 Per provare il controllo prima di salvare, fai clic su **Testa il monitor** nel secondo passaggio. Tutti gli altri tipi di monitor sono descritti in [Creare un monitor](/docs/monitor/create-monitor).
 
+Per controllare anche un'API, scegliere chi viene avvisato e inviare una chiamata di test che dimostra che il messaggio ti raggiunge, segui [Sapere quando il tuo sito web o la tua API smette di funzionare](/docs/guides/website-down).
+
 ## Essere avvisati quando va giù
 
 Così com'è, un incidente senza proprietari viene inviato via e-mail ai proprietari del progetto, e tra loro ci sei tu. Per essere avvisato finché qualcuno non risponde, crea una policy di reperibilità: la prima di un progetto si attiva per ogni nuovo incidente e ogni nuovo avviso.

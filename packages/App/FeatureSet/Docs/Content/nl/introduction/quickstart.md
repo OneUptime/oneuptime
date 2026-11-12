@@ -59,6 +59,8 @@ Laat de gekozen **Sondes** en het **Bewakingsinterval** **Elke 5 minuten** staan
 
 Om de controle te proberen voordat u opslaat, klikt u in de tweede stap op **Monitor testen**. Alle andere monitortypen staan beschreven in [Een monitor maken](/docs/monitor/create-monitor).
 
+Wilt u ook een API controleren, kiezen wie er wordt ingelicht en een testoproep sturen die bewijst dat het bericht u bereikt, volg dan de handleiding [Weten wanneer uw website of API uitvalt](/docs/guides/website-down).
+
 ## Opgeroepen worden bij uitval
 
 Zoals het nu is, wordt een incident zonder eigenaren per e-mail naar de eigenaren van het project gestuurd, en daar hoort u bij. Om opgeroepen te worden tot iemand reageert, maakt u een bereikbaarheidsbeleid aan: het eerste van een project wordt bij elk nieuw incident en elke nieuwe waarschuwing geactiveerd.

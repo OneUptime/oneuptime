@@ -988,7 +988,7 @@ describe("the helpers, on these pages' shapes", () => {
           return segments.join(PATH_SEPARATOR);
         },
       ),
-    ).toContain("User Settings → On-Call Rules");
+    ).toContain("User Settings → How to Reach Me");
   });
 
   it("read the numbers a row states, in any digits, code left out", () => {

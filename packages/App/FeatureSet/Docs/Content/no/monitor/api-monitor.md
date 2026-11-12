@@ -2,6 +2,9 @@
 
 En API-monitor kaller et HTTP-endepunkt etter en tidsplan, med metoden, hodene og brødteksten du velger, og sjekker det som kommer tilbake: statuskoden, svartiden, hodene og brødteksten. Bruk den for REST-, JSON- og GraphQL-endepunkter, helsesjekker og alle kall brukerne dine er avhengige av.
 
+> [!TIP]
+> Ny her? Følg guiden først: [Få beskjed når nettstedet eller API-et ditt går ned](/docs/guides/website-down).
+
 :::cards
 - [Opprett monitoren](#opprett-en-api-monitor): Seks trinn i dashbordet.
 - [Konfigurasjonsalternativer](#konfigurasjonsalternativer): Metode, hoder, brødtekst, omdirigeringer, sertifikater, tidsavbrudd og nye forsøk.
