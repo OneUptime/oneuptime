@@ -54,7 +54,7 @@ OneUptime은 1분마다, 폴링 간격이 지난 활성화된 연결을 각각 �
 | 설정 | 입력할 값 |
 | --- | --- |
 | **Splunk 관리 URL** | 검색 헤드의 REST API. 예: `https://splunk.example.com:8089`. `https`를 사용해야 하며 쿼리 문자열은 붙이지 않습니다. 경로 아래에서 API를 제공하는 리버스 프록시를 위해 경로는 유지됩니다. |
-| **검색** | 무엇을 가져올지 고르는 검색으로, 바꾸지 않는 한 `index=notable`입니다. 예를 들어 `index=notable urgency IN (high, critical)`처럼 좁힙니다. 시간 범위는 OneUptime이 직접 추가하므로 검색에서 `earliest`나 `latest`를 지정하거나 파이프로 시작할 수 없습니다. 앞쪽의 `search`는 제거됩니다. |
+| **검색 쿼리** | 무엇을 가져올지 고르는 검색으로, 바꾸지 않는 한 `index=notable`입니다. 예를 들어 `index=notable urgency IN (high, critical)`처럼 좁힙니다. 시간 범위는 OneUptime이 직접 추가하므로 검색에서 `earliest`나 `latest`를 지정하거나 파이프로 시작할 수 없습니다. 앞쪽의 `search`는 제거됩니다. |
 | **사용자 이름** | Splunk 사용자의 이름. 비밀번호로 인증하는 경우에만 필요합니다. |
 | **인증 토큰** | 첫 단계의 토큰. 토큰이 저장되어 있으면 사용자 이름과 비밀번호 대신 토큰이 사용됩니다. |
 | **비밀번호** | Splunk 사용자의 비밀번호. 토큰을 쓰지 않을 때만 필요합니다. |
@@ -114,7 +114,7 @@ POST {Splunk management URL}/services/search/v2/jobs/export
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-검색은 구간을 `_time` 기준으로 오래된 것부터 정렬하므로, OneUptime은 커서를 마지막으로 읽은 행의 생성 시각으로 옮기고, 다음 폴링은 같은 구간 길이로 거기서 시작합니다. 바쁜 검색 헤드는 같은 행을 다시 읽는 대신 폴링마다 10,000개씩 따라잡습니다. 같은 순간에 만들어진 행은 두 번 읽히며, 중복 검사가 두 번째 사본을 걸러 냅니다. Splunk는 행을 반환하기 전에 구간 전체를 정렬하므로, 필요한 것보다 훨씬 많이 찾는 **검색**의 검색은 모든 폴링을 느리게 만듭니다. 검색은 좁게 유지하세요.
+검색은 구간을 `_time` 기준으로 오래된 것부터 정렬하므로, OneUptime은 커서를 마지막으로 읽은 행의 생성 시각으로 옮기고, 다음 폴링은 같은 구간 길이로 거기서 시작합니다. 바쁜 검색 헤드는 같은 행을 다시 읽는 대신 폴링마다 10,000개씩 따라잡습니다. 같은 순간에 만들어진 행은 두 번 읽히며, 중복 검사가 두 번째 사본을 걸러 냅니다. Splunk는 행을 반환하기 전에 구간 전체를 정렬하므로, 필요한 것보다 훨씬 많이 찾는 **검색 쿼리**는 모든 폴링을 느리게 만듭니다. 검색은 좁게 유지하세요.
 
 실행이 저장된 커서를 전혀 넘어서지 못하면, OneUptime은 대신 구간을 줄입니다:
 
@@ -141,8 +141,8 @@ Splunk의 오류로 실행이 완전히 실패하면, 커서와 구간 길이는
 | --- | --- |
 | **구성** | 모든 설정이 있고 올바른 형식인지. 이 검사가 실패하면 아무 곳에도 연결하지 않습니다. |
 | **Authenticate with Splunk** | Splunk가 토큰, 또는 사용자 이름과 비밀번호를 받아들이고, 사용자와 그 역할을 알려 줍니다. 부여하려던 역할과 비교할 수 있습니다. |
-| **Run the search on Splunk** | **검색**의 검색이 지난 24시간을 대상으로 한 행만큼 실행되고, 어느 내보내기 엔드포인트가 응답했는지 알려 줍니다. |
-| **Notable events available to import** | **검색**의 검색이 지난 24시간과 지난 7일 동안 찾은 행의 수. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. |
+| **Run the search on Splunk** | **검색 쿼리**가 지난 24시간을 대상으로 한 행만큼 실행되고, 어느 내보내기 엔드포인트가 응답했는지 알려 줍니다. |
+| **Notable events available to import** | **검색 쿼리**가 지난 24시간과 지난 7일 동안 찾은 행의 수. 7일 동안 하나도 없으면 실패가 아니라 경고입니다. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime 쪽: Worker 큐의 작업을 가져가는 프로세스가 있고, 폴링 작업이 매분 실행되고, 보안 이벤트 저장소가 응답하는지. |
 | **예약된 폴링** | 저장된 연결의 경우: 폴링이 켜져 있고, 워커를 기다리며 멈춘 실행이 없고, 폴링이 제때 실행되는지. |
 
@@ -183,7 +183,7 @@ Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열�
 
 :::details Last Error가 `Splunk Enterprise Security search export` 또는 `Splunk Enterprise Security count search`로 시작함
 - `Splunk Enterprise Security search export failed (HTTP ...)`: Splunk가 검색 실행을 거부했습니다.
-  - `HTTP 400`: Splunk가 검색을 해석할 수 없습니다. 오류를 확인하려면 **검색**의 검색을 Splunk Web에서 실행하세요.
+  - `HTTP 400`: Splunk가 검색을 해석할 수 없습니다. 오류를 확인하려면 **검색 쿼리**를 Splunk Web에서 실행하세요.
   - `HTTP 403`: 사용자의 역할에 `search` 기능이 없거나 인덱스를 읽을 수 없습니다. 역할이 검색할 수 있는 인덱스에 `notable` 또는 사용하는 인덱스를 추가하세요.
   - `HTTP 404`: 그 URL에는 두 내보내기 엔드포인트 모두 없으므로, 검색 헤드의 관리 포트가 아닙니다.
   - `HTTP 429` 또는 `HTTP 5xx`: Splunk가 사용자를 제한하고 있거나, 과부하 상태이거나, 검색이 한도 중 하나에 도달했습니다. 다음 폴링에서 다시 시도합니다.
@@ -193,7 +193,7 @@ Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열�
 :::
 
 :::details Last Error가 `did not complete`로 끝남
-`Splunk Enterprise Security search export did not complete`(다른 단계도 마찬가지)는 요청이 응답을 받지 못했다는 뜻입니다. 시간 초과, 확인할 수 없는 이름, OneUptime이 신뢰하지 않는 인증서, 또는 거부된 사설 주소입니다. OneUptime 앱과 워커가 관리 포트로 HTTPS 연결을 열 수 있는지 확인하세요. 다른 요청에는 응답하면서 검색에서만 시간이 초과되는 검색 헤드는 정렬하는 양이 너무 많습니다. 다음 폴링은 절반 길이의 구간을 읽으며, **검색**의 검색을 더 좁히면 근본적으로 해결됩니다.
+`Splunk Enterprise Security search export did not complete`(다른 단계도 마찬가지)는 요청이 응답을 받지 못했다는 뜻입니다. 시간 초과, 확인할 수 없는 이름, OneUptime이 신뢰하지 않는 인증서, 또는 거부된 사설 주소입니다. OneUptime 앱과 워커가 관리 포트로 HTTPS 연결을 열 수 있는지 확인하세요. 다른 요청에는 응답하면서 검색에서만 시간이 초과되는 검색 헤드는 정렬하는 양이 너무 많습니다. 다음 폴링은 절반 길이의 구간을 읽으며, **검색 쿼리**를 더 좁히면 근본적으로 해결됩니다.
 :::
 
 :::details Last Polled가 Never이고 Last Error가 비어 있음
@@ -201,12 +201,12 @@ Splunk Web에서 **Settings → Data inputs → HTTP Event Collector** 를 열�
 :::
 
 :::details 실행이 Partial임
-- `Stopped after collecting 10000 records; the window holds more`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 행이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 행 다음부터 시작합니다. 폴링할 때마다 **부분**으로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 **검색**의 검색이 폴링 간격마다 10,000개가 넘는 행을 찾고 있는 것입니다. 검색을 좁히거나 **폴링 간격(분)** 값을 줄이세요.
+- `Stopped after collecting 10000 records; the window holds more`: 구간에 한 번의 실행이 읽는 10,000개보다 많은 행이 있었습니다. 잃는 것은 없습니다. 다음 폴링은 마지막으로 읽은 행 다음부터 시작합니다. 폴링할 때마다 **부분**으로 남는 연결은 밀린 분량을 따라잡는 중이며, **마지막 폴링**과 **마지막으로 가져온 이벤트**는 계속 앞으로 나아갑니다. 끝내 따라잡지 못한다면 **검색 쿼리**가 폴링 간격마다 10,000개가 넘는 행을 찾고 있는 것입니다. 검색을 좁히거나 **폴링 간격(분)** 값을 줄이세요.
 - `More records were created in the one minute from ... than one poll can read`: 폴링이 그 1분을 넘어갔습니다. **진단**에서 **이 시간 범위 가져오기**로 그 1분을 가져오세요. 가져오기는 한 번의 폴링만큼 읽습니다.
 :::
 
 :::details 테스트는 통과하지만 아무것도 가져오지 않음
-테스트 보고서에서 **Notable events available to import**를 읽으세요. 지난 7일 동안 `0`이면 **검색**의 검색이 Splunk에서 아무것도 찾지 못한 것입니다. Incident Review에서 상관 검색이 활성화되어 notable event를 만들고 있는지, 그리고 **검색**의 검색이 의도보다 좁지 않은지 확인하세요.
+테스트 보고서에서 **Notable events available to import**를 읽으세요. 지난 7일 동안 `0`이면 **검색 쿼리**가 Splunk에서 아무것도 찾지 못한 것입니다. Incident Review에서 상관 검색이 활성화되어 notable event를 만들고 있는지, 그리고 **검색 쿼리**가 의도보다 좁지 않은지 확인하세요.
 :::
 
 ## 얻을 수 있는 것

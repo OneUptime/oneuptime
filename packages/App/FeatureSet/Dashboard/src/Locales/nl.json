@@ -50794,6 +50794,7 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} is {{values}} en daarmee niet gelijk aan {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} is {{values}} en begint met {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}} is {{values}}.",
+  "Search query": "Zoekopdracht",
   "{{count}} earlier turns are not shown": "{{count}} eerdere beurten worden niet getoond",
   "{{count}} earlier turns are not shown_one": "{{count}} eerdere beurt wordt niet getoond"
 }

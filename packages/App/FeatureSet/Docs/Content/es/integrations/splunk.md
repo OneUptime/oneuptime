@@ -54,7 +54,7 @@ Haz clic en **Probar esta configuración** en **Probar antes de guardar**. La pr
 | Ajuste | Qué introducir |
 | --- | --- |
 | **URL de administración de Splunk** | La API REST del search head, por ejemplo `https://splunk.example.com:8089`. Debe usar `https`, sin cadena de consulta. Se conserva una ruta, para un proxy inverso que sirva la API bajo una ruta. |
-| **Buscar** | La búsqueda que elige qué importar, `index=notable` mientras no la cambies. Restríngela, por ejemplo con `index=notable urgency IN (high, critical)`. OneUptime añade el intervalo de tiempo por sí mismo, así que la búsqueda no puede fijar `earliest` ni `latest`, ni empezar con una barra vertical. Se quita un `search` inicial. |
+| **Consulta de búsqueda** | La búsqueda que elige qué importar, `index=notable` mientras no la cambies. Restríngela, por ejemplo con `index=notable urgency IN (high, critical)`. OneUptime añade el intervalo de tiempo por sí mismo, así que la búsqueda no puede fijar `earliest` ni `latest`, ni empezar con una barra vertical. Se quita un `search` inicial. |
 | **Nombre de usuario** | El nombre del usuario de Splunk, solo si se autentica con contraseña. |
 | **Token de autenticación** | El token del primer paso. Cuando hay un token guardado, es el que se usa, y no el nombre de usuario ni la contraseña. |
 | **Contraseña** | La contraseña del usuario de Splunk, solo cuando no se usa ningún token. |
@@ -114,7 +114,7 @@ Un sondeo lee como mucho 10.000 filas. Cuando una ventana contiene más, la ejec
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-La búsqueda ordena la ventana por `_time`, de más antiguas a más nuevas, así que OneUptime mueve el cursor a la hora de creación de la última fila leída, y el siguiente sondeo empieza ahí, con la misma longitud de ventana. Un search head con mucha actividad se pone al día 10.000 filas por sondeo, en lugar de volver a leer las mismas. Las filas creadas en el mismo instante se leen dos veces, y la comprobación de duplicados descarta la segunda copia. Splunk ordena toda la ventana antes de devolver una fila, así que una búsqueda en **Buscar** que encuentra mucho más de lo necesario ralentiza cada sondeo. Mantenla acotada.
+La búsqueda ordena la ventana por `_time`, de más antiguas a más nuevas, así que OneUptime mueve el cursor a la hora de creación de la última fila leída, y el siguiente sondeo empieza ahí, con la misma longitud de ventana. Un search head con mucha actividad se pone al día 10.000 filas por sondeo, en lugar de volver a leer las mismas. Las filas creadas en el mismo instante se leen dos veces, y la comprobación de duplicados descarta la segunda copia. Splunk ordena toda la ventana antes de devolver una fila, así que una **Consulta de búsqueda** que encuentra mucho más de lo necesario ralentiza cada sondeo. Mantenla acotada.
 
 Cuando una ejecución no consigue avanzar en absoluto más allá del cursor guardado, OneUptime acorta la ventana en su lugar:
 
@@ -141,8 +141,8 @@ Haz clic en **Diagnósticos** en una conexión para ver sus ejecuciones reciente
 | --- | --- |
 | **Configuración** | Cada ajuste está presente y bien formado. No se contacta con nada cuando esto falla. |
 | **Authenticate with Splunk** | Splunk acepta el token, o el nombre de usuario y la contraseña, y nombra al usuario y sus roles, para que los compares con el rol que querías conceder. |
-| **Run the search on Splunk** | La búsqueda de **Buscar** se ejecuta sobre las últimas 24 horas, para una fila, e indica qué endpoint de exportación respondió. |
-| **Notable events available to import** | Cuántas filas encuentra la búsqueda de **Buscar** en las últimas 24 horas y en los últimos 7 días. Ninguna en 7 días es un aviso, no un fallo. |
+| **Run the search on Splunk** | Tu **Consulta de búsqueda** se ejecuta sobre las últimas 24 horas, para una fila, e indica qué endpoint de exportación respondió. |
+| **Notable events available to import** | Cuántas filas encuentra tu **Consulta de búsqueda** en las últimas 24 horas y en los últimos 7 días. Ninguna en 7 días es un aviso, no un fallo. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | El lado del propio OneUptime: un proceso toma los trabajos de la cola Worker, el trabajo de sondeo se ejecuta cada minuto y el almacén de eventos de seguridad responde. |
 | **Sondeo programado** | Para una conexión guardada: el sondeo está activado, ninguna ejecución está atascada esperando a un worker y los sondeos se ejecutan a tiempo. |
 
@@ -183,7 +183,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 
 :::details Último error empieza por `Splunk Enterprise Security search export` o `Splunk Enterprise Security count search`
 - `Splunk Enterprise Security search export failed (HTTP ...)`: Splunk se negó a ejecutar la búsqueda.
-  - `HTTP 400`: Splunk no puede analizar la búsqueda. Ejecuta la búsqueda de **Buscar** en Splunk Web para leer su error.
+  - `HTTP 400`: Splunk no puede analizar la búsqueda. Ejecuta tu **Consulta de búsqueda** en Splunk Web para leer su error.
   - `HTTP 403`: al rol del usuario le falta la capacidad `search`, o no puede leer el índice. Añade `notable`, o tu índice, a los índices en los que el rol puede buscar.
   - `HTTP 404`: ninguno de los dos endpoints de exportación existe en esa URL, así que no es el puerto de gestión de un search head.
   - `HTTP 429` o `HTTP 5xx`: Splunk está limitando al usuario, está sobrecargado, o la búsqueda alcanzó uno de sus límites. El siguiente sondeo lo vuelve a intentar.
@@ -193,7 +193,7 @@ El **Último error** de la conexión guarda el mensaje de error completo, con la
 :::
 
 :::details Último error termina en `did not complete`
-`Splunk Enterprise Security search export did not complete`, y lo mismo para los demás pasos, significa que la solicitud no obtuvo respuesta: un tiempo de espera agotado, un nombre que no se resuelve, un certificado en el que OneUptime no confía, o una dirección privada rechazada. Comprueba que la aplicación de OneUptime y los workers pueden abrir una conexión HTTPS al puerto de gestión. Un search head que responde a otras solicitudes pero agota el tiempo en la búsqueda está ordenando demasiado: el siguiente sondeo lee una ventana de la mitad de larga, y una búsqueda más acotada en **Buscar** lo arregla del todo.
+`Splunk Enterprise Security search export did not complete`, y lo mismo para los demás pasos, significa que la solicitud no obtuvo respuesta: un tiempo de espera agotado, un nombre que no se resuelve, un certificado en el que OneUptime no confía, o una dirección privada rechazada. Comprueba que la aplicación de OneUptime y los workers pueden abrir una conexión HTTPS al puerto de gestión. Un search head que responde a otras solicitudes pero agota el tiempo en la búsqueda está ordenando demasiado: el siguiente sondeo lee una ventana de la mitad de larga, y una **Consulta de búsqueda** más acotada lo arregla del todo.
 :::
 
 :::details Último sondeo indica Never y Último error está vacío
@@ -201,12 +201,12 @@ Ningún sondeo ha terminado para esta conexión. Ejecuta **Probar conexión**: s
 :::
 
 :::details Una ejecución es Parcial
-- `Stopped after collecting 10000 records; the window holds more`: la ventana contenía más que las 10.000 filas que lee una ejecución. No se pierde nada: el siguiente sondeo empieza después de la última fila leída. Una conexión que sigue **Parcial** sondeo tras sondeo se está poniendo al día con un atraso, y su **Último sondeo** y su **Último evento importado** siguen avanzando. Si nunca se pone al día, la búsqueda de **Buscar** encuentra más de 10.000 filas por intervalo de sondeo: restríngela, o acorta el **Intervalo de sondeo (minutos)**.
+- `Stopped after collecting 10000 records; the window holds more`: la ventana contenía más que las 10.000 filas que lee una ejecución. No se pierde nada: el siguiente sondeo empieza después de la última fila leída. Una conexión que sigue **Parcial** sondeo tras sondeo se está poniendo al día con un atraso, y su **Último sondeo** y su **Último evento importado** siguen avanzando. Si nunca se pone al día, tu **Consulta de búsqueda** encuentra más de 10.000 filas por intervalo de sondeo: restríngela, o acorta el **Intervalo de sondeo (minutos)**.
 - `More records were created in the one minute from ... than one poll can read`: el sondeo pasó de largo ese minuto. Impórtalo con **Importar este intervalo de tiempo** en **Diagnósticos**. Una importación lee tanto como un sondeo.
 :::
 
 :::details La prueba pasa, pero no se importa nada
-Lee **Notable events available to import** en el informe de la prueba. `0` en los últimos 7 días significa que la búsqueda de **Buscar** no encontró nada en Splunk: comprueba en Incident Review que las búsquedas de correlación están habilitadas y crean eventos notables, y que la búsqueda de **Buscar** no es más estrecha de lo que querías.
+Lee **Notable events available to import** en el informe de la prueba. `0` en los últimos 7 días significa que tu **Consulta de búsqueda** no encontró nada en Splunk: comprueba en Incident Review que las búsquedas de correlación están habilitadas y crean eventos notables, y que la **Consulta de búsqueda** no es más estrecha de lo que querías.
 :::
 
 ## Qué obtienes

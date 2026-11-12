@@ -50794,6 +50794,7 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} ist {{values}} und damit ungleich {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} ist {{values}} und beginnt mit {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}} ist {{values}}.",
+  "Search query": "Suchabfrage",
   "{{count}} earlier turns are not shown": "{{count}} frühere Durchgänge werden nicht angezeigt",
   "{{count}} earlier turns are not shown_one": "{{count}} früherer Durchgang wird nicht angezeigt"
 }

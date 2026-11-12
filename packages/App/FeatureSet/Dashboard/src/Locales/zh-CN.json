@@ -50794,6 +50794,7 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}为 {{values}}，不等于 {{threshold}}。",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}为 {{values}}，以 {{threshold}} 开头。",
   "{{subject}} is {{values}}.": "{{subject}}：{{values}}。",
+  "Search query": "搜索查询",
   "{{count}} earlier turns are not shown": "之前的 {{count}} 个回合未显示",
   "{{count}} earlier turns are not shown_one": "之前的 {{count}} 个回合未显示"
 }

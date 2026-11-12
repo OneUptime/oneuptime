@@ -50794,6 +50794,7 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} برابر نیست.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} شروع می‌شود.",
   "{{subject}} is {{values}}.": "{{subject}} {{values}} است.",
+  "Search query": "عبارت جستجو",
   "{{count}} earlier turns are not shown": "{{count}} نوبت قبلی نمایش داده نمی‌شود",
   "{{count}} earlier turns are not shown_one": "{{count}} نوبت قبلی نمایش داده نمی‌شود"
 }

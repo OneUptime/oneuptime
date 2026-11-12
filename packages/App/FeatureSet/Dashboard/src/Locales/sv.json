@@ -50794,6 +50794,7 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} är {{values}}, vilket inte är lika med {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} är {{values}}, vilket börjar med {{threshold}}.",
   "{{subject}} is {{values}}.": "{{subject}} är {{values}}.",
+  "Search query": "Sökfråga",
   "{{count}} earlier turns are not shown": "{{count}} tidigare turer visas inte",
   "{{count}} earlier turns are not shown_one": "{{count}} tidigare tur visas inte"
 }

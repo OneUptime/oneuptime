@@ -50794,6 +50794,7 @@
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}과(와) 같지 않습니다.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}}은(는) {{values}}(으)로, {{threshold}}(으)로 시작합니다.",
   "{{subject}} is {{values}}.": "{{subject}}은(는) {{values}}입니다.",
+  "Search query": "검색 쿼리",
   "{{count}} earlier turns are not shown": "이전 차례 {{count}}개는 표시되지 않습니다",
   "{{count}} earlier turns are not shown_one": "이전 차례 {{count}}개는 표시되지 않습니다"
 }
