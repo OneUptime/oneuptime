@@ -38,7 +38,7 @@ Die Zeile ganz oben nennt das Dringendste, was gerade offen ist, in einer passen
 
 Daneben zeigt die Startseite, wann sie das Projekt zuletzt geladen hat, und **Aktualisieren** lädt es neu. Wenn Sie nach einer Minute oder länger zu einem Tab mit der Startseite zurückkehren, aktualisiert sie sich von selbst.
 
-Solange noch nichts überwacht wird, endet die Zeile mit der Schaltfläche **Ersten Monitor erstellen**, die das Formular zum Erstellen eines Monitors öffnet. Nur wer Monitore erstellen darf, sieht sie.
+Solange noch nichts überwacht wird, endet die Zeile mit der Schaltfläche **Ersten Monitor erstellen**, die die geführte Einrichtung **Wissen, wenn meine Website oder API ausfällt** öffnet. Nur wer Monitore erstellen darf, sieht sie.
 
 ### Die fünf Zahlen
 
@@ -63,16 +63,16 @@ Jeder Schritt hakt sich selbst ab, sobald die Sache funktioniert, nicht schon, w
 | Schritt | Erledigt, wenn | Öffnet |
 | --- | --- | --- |
 | **Aus Ihrem bisherigen Tool importieren** | Ein Import aus einem anderen Tool abgeschlossen ist. | **Import aus anderem Tool** |
-| **Ersten Monitor erstellen** | Seine erste Prüfung eintrifft. | Das Formular **Monitor erstellen**, oder die Liste **Monitore** für jemanden, der keine Monitore anlegen darf. |
+| **Ersten Monitor erstellen** | Seine erste Prüfung eintrifft. | Die geführte Einrichtung **Wissen, wenn meine Website oder API ausfällt**, oder die Liste **Monitore** für jemanden, der keine Monitore anlegen darf. |
 | **Server oder Cluster verbinden** | Seine ersten Metriken eintreffen. | **Hosts** |
-| **Erste Logs, Metriken oder Traces senden** | Die ersten Logs, Metriken, Traces, Ausnahmen oder Profile des Projekts eintreffen. | **Protokolle** |
-| **Bereitschaftsrichtlinie einrichten** | Eine Testalarmierung bestätigt wird, eine Alarmierung jemanden erreicht oder eine Bereitschaftsregel eine Richtlinie ausführt, die jemanden erreichen kann. | **Bereitschaftsdienst** |
-| **Statusseite veröffentlichen** | Eine Statusseite einen Monitor zeigt. | **Statusseiten** |
+| **Erste Logs, Metriken oder Traces senden** | Die ersten Logs, Metriken, Traces, Ausnahmen oder Profile des Projekts eintreffen. | Die geführte Einrichtung **Protokolle, Metriken und Traces senden und dann Warnungen erhalten** |
+| **Bereitschaftsrichtlinie einrichten** | Eine Testalarmierung bestätigt wird, eine Alarmierung jemanden erreicht oder eine Bereitschaftsregel eine Richtlinie ausführt, die jemanden erreichen kann. | Die geführte Einrichtung **Die richtige Person alarmieren, wenn etwas ausfällt** |
+| **Statusseite veröffentlichen** | Eine Statusseite einen Monitor zeigt. | Die geführte Einrichtung **Statusseite veröffentlichen**, oder die Liste **Statusseiten** für jemanden, der keine Statusseiten anlegen darf. |
 | **Team einladen** | Jemand Ihre Einladung annimmt. | **Benutzer** |
 
 Der Schritt, mit dem Sie beginnen, ist mit **Nächster Schritt** markiert. Im Free-Tarif von OneUptime Cloud, der eine Person umfasst, sagt **Team einladen**, dass es den Growth-Tarif braucht, und öffnet **Abrechnung**. Auf einem selbst gehosteten Server, der noch keine E-Mails senden kann, sehen die Administratoren des Servers zuerst **Dieser Server kann noch keine E-Mails senden**; das öffnet das Admin-Dashboard.
 
-Wenn Sie aus einem Schritt heraus einen Monitor, eine Statusseite oder eine Bereitschaftsrichtlinie erstellen, sagt die Seite, auf der Sie landen, was als Nächstes kommt, mit **Zurück zur Einrichtung**.
+Eine geführte Einrichtung erledigt die ganze Aufgabe auf einer Seite, Schritt für Schritt, und endet damit, was sie eingerichtet hat und was als Nächstes zu tun ist. Um eine später wieder zu öffnen, suchen Sie nach ihrem Namen.
 
 Unter den Schritten zeigt **So funktioniert OneUptime** die vier Kernprodukte in der Reihenfolge, in der ein Problem sie durchläuft: **Monitore**, **Vorfälle & Warnungen**, **Bereitschaftsdienst** und **Statusseiten**. Klicken Sie auf eines, um es zu öffnen. Darunter steht, was diesen Kreislauf speist, Telemetrie und Infrastruktur, mit Links zu den Seiten [Grundkonzepte](/docs/introduction/core-concepts) und [Glossar](/docs/introduction/glossary).
 
@@ -93,6 +93,10 @@ Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie
 
 **Erfordert Aufmerksamkeit** führt mit Namen auf, was die Zahlen zählen: die offenen Vorfälle, die offenen Warnungen, die nicht betriebsbereiten Monitore, die gefährdeten SLOs und die laufenden Wartungen, das Dringendste zuerst. Jede Zeile zeigt ihren Schweregrad oder Status, sagt, wann ein Vorfall oder eine Warnung begonnen hat und wann eine Wartung endet, und öffnet den Eintrag. Von jeder Art erscheinen bis zu fünf, mit **Alle anzeigen** für den Rest: Es öffnet dieselbe Liste wie die Zahl dieser Art. Wenn nichts offen ist, steht dort **Nichts erfordert Ihre Aufmerksamkeit**.
 
+### Einrichtungsstatus
+
+Wenn etwas in der Einrichtung des Projekts verhindern würde, dass die richtigen Leute Bescheid bekommen, endet **Erfordert Aufmerksamkeit** mit **Einrichtung**: wie viele Dinge einen Blick brauchen. Die Zeile öffnet **Einrichtungsstatus**, eine Liste dessen, was falsch eingerichtet ist, das Schlimmste zuerst, unter **Alarmierungen kommen nicht an**, **Sollte behoben werden** und **Vorschläge**: ein Monitor, der niemanden alarmiert, eine Bereitschaftsrichtlinie, die nie ausgelöst wird, eine Person, die nicht alarmiert werden kann, ausgeschaltete SMS, ein Bereitschaftszeitplan, in dem niemand Dienst hat, eine Statusseite, die keinen Monitor zeigt. Jeder Befund sagt in einem Satz, was nicht stimmt, mit der Schaltfläche, die die Behebung öffnet, und die Befunde eines Monitors sind die Lücken, die seine Karte **Wenn das ausfällt** nennt. Einen Befund, den Ihr Team absichtlich so lässt, können Sie mit einer Begründung für alle ausblenden und unter **Verworfen** wiederherstellen. Die Suche findet die Seite als **Einrichtungsstatus**, und KI fragen beantwortet „Ist meine Einrichtung in Ordnung?“ anhand dieser Seite.
+
 ### Ihr Projekt
 
 **Ihr Projekt** zählt die **Monitore**, **Statusseiten**, **Bereitschaftsrichtlinien**, **SLOs**, **Dienste**, **Dashboards** und **Arbeitsabläufe** des Projekts, ohne die archivierten. Jede Zeile öffnet ihre Liste. Hat das Projekt von einer Art noch nichts, steht dort statt einer Zahl **Einrichten**.
@@ -101,7 +105,7 @@ Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie
 
 ### OneUptime erkunden
 
-**OneUptime erkunden** zeigt die Produkte des Menüs **Produkte** Kategorie für Kategorie, beginnend mit den Grundlagen. Jedes Produkt sagt, wofür es da ist, und öffnet sich, wenn Sie darauf klicken.
+**OneUptime erkunden** zeigt die Produkte des Menüs **Produkte** Kategorie für Kategorie, beginnend mit den Grundlagen. Jedes Produkt sagt, wofür es da ist, und öffnet sich, wenn Sie darauf klicken. Die Produkte, die Ihr Projekt ausblendet, fehlen dort.
 
 ## Sich zurechtfinden
 
@@ -111,6 +115,9 @@ Alles in OneUptime liegt unter **Produkte** in der oberen Leiste. Das Menü füh
 - **Sie beginnen dort, wo Sie sind.** Die Gruppe der Seite, auf der Sie sind, klappt von selbst auf, und die Produkte, die Sie zuletzt geöffnet haben, stehen oben.
 - **Ihre Auswahl bleibt.** Das Menü merkt sich in Ihrem Browser, welche der anderen Gruppen Sie auf- oder zugeklappt haben. Die Grundlagen sind bei jedem Öffnen des Menüs wieder aufgeklappt, auch wenn Sie sie zugeklappt hatten.
 - **Auf dem Telefon** listet die Menüschaltfläche die Produkte genauso auf: die Grundlagen aufgeklappt oben und jede andere Gruppe als eine Zeile, die sich mit einem Tippen öffnet.
+- **Produkte, die das Projekt nicht nutzt.** Ein Projektinhaber oder -administrator kann sie unter **Projekteinstellungen → Grundlegend → Produkte** ausblenden. Ein ausgeblendetes Produkt wandert unter **Weitere Produkte**, die letzte Zeile des Menüs: Die Suche findet es weiterhin, seine Seiten funktionieren und seine Daten kommen weiter an. Sobald eines Daten empfängt, sagt die Startseite es denen, die es wieder anzeigen können.
+- **Fixieren.** Behalten Sie ein Produkt in der oberen Leiste, neben **Startseite** und **Produkte**: Drücken Sie die Nadel auf seiner Karte im Menü oder **Fixieren** neben dem Titel seiner Seite. Sie können fünf fixieren, und sie folgen Ihnen in jeden Browser. Auf dem Telefon stehen Ihre fixierten Produkte im Menü ganz oben.
+- **Was verwendet wird.** In jeder Gruppe außer den Grundlagen und den Einstellungen stehen die Produkte, die Ihr Projekt verwendet, vorn, und eines, das Sie noch nicht eingerichtet haben, zeigt **Nicht eingerichtet**. In OneUptime Cloud nennt ein Produkt, das Ihr Tarif nicht enthält, den Tarif, der es enthält.
 
 ### Die Leisten oben
 

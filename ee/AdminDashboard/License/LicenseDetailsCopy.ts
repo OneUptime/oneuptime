@@ -49,6 +49,7 @@ export const LicenseDetailsCopy: {
   noUsageReported: string;
   lastReported: string;
   updateAvailable: string;
+  instanceUsers: string;
 } = {
   seatsTitle: translationKey("Licensed seats"),
   seatsDescription: translationKey(
@@ -99,6 +100,16 @@ export const LicenseDetailsCopy: {
   noUsageReported: translationKey("No usage reported yet."),
   lastReported: translationKey("Last reported {{date}}."),
   updateAvailable: translationKey("Update available."),
+  /*
+   * An instance's users, at the end of its row, the number drawn bolder
+   * than the word: "Users: 7", "Benutzer: 7", "Пользователей: 7". A label
+   * and its figure, so it reads the same for every count and starts with a
+   * capital in every language. A key of its own: "{{count}} users" is also
+   * a count inside a sentence ("3 projects, 12 users and 140 monitors" on
+   * the Admin Dashboard's Backups page), worded to sit mid-sentence - in
+   * Russian "пользователей: 12" - where this line begins one (#7134).
+   */
+  instanceUsers: translationKey("Users: {{count}}"),
 };
 
 /*
@@ -165,12 +176,6 @@ export const PER_INSTANCE_COUNTS: PluralTemplate = {
   ),
 };
 
-// An instance's users: the number is drawn bolder than the word.
-export const INSTANCE_USERS: PluralTemplate = {
-  one: translationKey("{{count}} user"),
-  other: translationKey("{{count}} users"),
-};
-
 export const LICENSE_DETAILS_PLURALS: ReadonlyArray<PluralTemplate> = [
   SEAT_LIMIT,
   SEATS_REMAINING,
@@ -181,7 +186,6 @@ export const LICENSE_DETAILS_PLURALS: ReadonlyArray<PluralTemplate> = [
   INSTANCES,
   SEATS_COUNTED_UNIQUELY,
   PER_INSTANCE_COUNTS,
-  INSTANCE_USERS,
 ];
 
 // A new installation's first daily usage report goes out within a day.

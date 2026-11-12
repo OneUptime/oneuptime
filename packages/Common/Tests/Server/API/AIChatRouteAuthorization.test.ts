@@ -592,7 +592,7 @@ describe("POST /ai-chat/providers - membership alone is not read authorization",
 
     expect(call.thrown).toBeInstanceOf(NotAuthorizedException);
     expect((call.thrown as NotAuthorizedException).message).toBe(
-      "You do not have permission to read this project's AI providers.",
+      "You do not have permission to read this project's LLM providers.",
     );
     expect(providerLookupsRan()).toBe(false);
   });

@@ -286,8 +286,9 @@ check_layout() {
     # Sanity for the two lines above: the entry reader does see plain values.
     assert_present "[${label}] (the entry reader sees the plain values it is meant to refuse)" "$(entries_other_than "$plain_dir" "every-entry-is-listed")" ":value=${SENTINEL}"
 
-    # The public key is no secret: it stays a plain value beside the Secret.
-    assert_present "[${label}] the public key stays a plain value beside the Secret" "$(cat "${WORK_DIR}/${label}-secret.yaml")" "value: public-key-for-${label}"
+    # The public key is no secret: it stays a plain value beside the Secret,
+    # written as a quoted YAML string like every env value of the chart.
+    assert_present "[${label}] the public key stays a plain value beside the Secret" "$(cat "${WORK_DIR}/${label}-secret.yaml")" "value: \"public-key-for-${label}\""
 }
 
 check_layout "standalone-db"
