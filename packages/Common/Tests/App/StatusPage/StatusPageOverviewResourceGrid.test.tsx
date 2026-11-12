@@ -584,7 +584,9 @@ describe("the public status page's resource grid: a matrix where it fits, a stac
         // Dashboard has nothing in the EU.
         const isEmpty: boolean = rowIndex === 1 && columnIndex === 1;
 
-        expect(`${ROWS[rowIndex]} / ${COLUMNS[columnIndex]}: ${cell.className}`).toBe(
+        expect(
+          `${ROWS[rowIndex]} / ${COLUMNS[columnIndex]}: ${cell.className}`,
+        ).toBe(
           `${ROWS[rowIndex]} / ${COLUMNS[columnIndex]}: ${layout.getCell({
             isLastRow: isLastRow,
             isLastColumn: columnIndex === COLUMNS.length - 1,
@@ -750,9 +752,11 @@ describe("the public status page's resource grid: a matrix where it fits, a stac
       "Resource",
       ...GULF_COLUMNS,
     ]);
-    expect(parts.rows.map((row: HTMLElement): string => {
-      return textOf(row.firstElementChild as HTMLElement);
-    })).toEqual(GULF_ROWS);
+    expect(
+      parts.rows.map((row: HTMLElement): string => {
+        return textOf(row.firstElementChild as HTMLElement);
+      }),
+    ).toEqual(GULF_ROWS);
 
     parts.rows.forEach((row: HTMLElement, index: number) => {
       expect((row.firstElementChild as HTMLElement).className).toBe(
@@ -775,12 +779,7 @@ describe("the public status page's resource grid: a matrix where it fits, a stac
     const regionValues: Array<string> = isolatesIn(regions).map(textOf);
 
     expect(regionValues).toEqual(
-      expect.arrayContaining([
-        "Region",
-        "Service",
-        ...COLUMNS,
-        ...ROWS,
-      ]),
+      expect.arrayContaining(["Region", "Service", ...COLUMNS, ...ROWS]),
     );
 
     for (const isolate of isolatesIn(regions)) {

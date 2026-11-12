@@ -166,6 +166,8 @@ const isContainerQueryParseError: (args: Array<unknown>) => boolean = (
 };
 
 beforeAll(async () => {
+  // Every other complaint still reaches the test's output.
+  // eslint-disable-next-line no-console
   const originalError: typeof console.error = console.error;
 
   consoleError = jest

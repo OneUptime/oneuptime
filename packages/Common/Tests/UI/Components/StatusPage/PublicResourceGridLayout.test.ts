@@ -81,7 +81,9 @@ const isStackIn: (data: {
   columns: number;
   boxInPx: number;
 }) => boolean = (data: { columns: number; boxInPx: number }): boolean => {
-  return data.boxInPx / 16 <= getPublicResourceGridMatrixWidthInRem(data.columns);
+  return (
+    data.boxInPx / 16 <= getPublicResourceGridMatrixWidthInRem(data.columns)
+  );
 };
 
 const COLOUR_PATTERN: RegExp =

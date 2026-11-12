@@ -1,4 +1,4 @@
-import { expect, Page, test, TestInfo } from "@playwright/test";
+import { expect, Page, test } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
@@ -142,8 +142,9 @@ interface GridLayout {
 const gridLayoutOf: (page: Page) => Promise<GridLayout> = async (
   page: Page,
 ): Promise<GridLayout> => {
-  return page.getByTestId("status-page-grid").evaluate(
-    (grid: Element): GridLayout => {
+  return page
+    .getByTestId("status-page-grid")
+    .evaluate((grid: Element): GridLayout => {
       const table: HTMLTableElement = grid.querySelector("table")!;
       const scroller: HTMLElement = table.parentElement!;
       const direction: string = getComputedStyle(grid).direction;
@@ -205,14 +206,13 @@ const gridLayoutOf: (page: Page) => Promise<GridLayout> = async (
       return {
         direction: direction,
         isStack: getComputedStyle(table).display === "block",
-        headShown: getComputedStyle(table.querySelector("thead")!).display !==
-          "none",
+        headShown:
+          getComputedStyle(table.querySelector("thead")!).display !== "none",
         scrollerWidth: scroller.clientWidth,
         sideways: scroller.scrollWidth - scroller.clientWidth,
         rows: rows,
       };
-    },
-  );
+    });
 };
 
 const shoot: (page: Page, name: string) => Promise<void> = async (
@@ -224,12 +224,10 @@ const shoot: (page: Page, name: string) => Promise<void> = async (
     .screenshot({ path: `${SCREENSHOTS}/grid-${name}.png` });
 };
 
-test.beforeEach(async ({}, testInfo: TestInfo) => {
-  test.skip(
-    testInfo.project.name !== "chromium",
-    "Each test sets its own window; the phone project would run them twice.",
-  );
-});
+// Each test sets its own window; the phone project would run them twice.
+test.skip(({ isMobile }: { isMobile: boolean }): boolean => {
+  return isMobile;
+}, "Each test sets its own window.");
 
 test.afterEach(async ({ page }: { page: Page }) => {
   const unexpected: Array<string> = await page
@@ -389,73 +387,80 @@ test.describe("the public status page's resource grid (#7238)", () => {
       const placeOfHeadings: (toEnd: boolean) => Promise<HeadingPlace> = async (
         toEnd: boolean,
       ): Promise<HeadingPlace> => {
-        return page.getByTestId("status-page-grid").evaluate(
-          async (grid: Element, toTheEnd: boolean): Promise<HeadingPlace> => {
-            const table: HTMLTableElement = grid.querySelector("table")!;
-            const scroller: HTMLElement = table.parentElement!;
-            const isRightToLeft: boolean =
-              getComputedStyle(scroller).direction === "rtl";
-            const reach: number = scroller.scrollWidth - scroller.clientWidth;
+        return page
+          .getByTestId("status-page-grid")
+          .evaluate(
+            async (grid: Element, toTheEnd: boolean): Promise<HeadingPlace> => {
+              const table: HTMLTableElement = grid.querySelector("table")!;
+              const scroller: HTMLElement = table.parentElement!;
+              const isRightToLeft: boolean =
+                getComputedStyle(scroller).direction === "rtl";
+              const reach: number = scroller.scrollWidth - scroller.clientWidth;
 
-            // The end of the line: the right in English, the left in Arabic.
-            scroller.scrollLeft = toTheEnd ? (isRightToLeft ? -reach : reach) : 0;
+              // The end of the line: the right in English, the left in Arabic.
+              scroller.scrollLeft = toTheEnd
+                ? isRightToLeft
+                  ? -reach
+                  : reach
+                : 0;
 
-            await new Promise<void>((resolve: () => void): void => {
-              requestAnimationFrame((): void => {
-                resolve();
+              await new Promise<void>((resolve: () => void): void => {
+                requestAnimationFrame((): void => {
+                  resolve();
+                });
               });
-            });
 
-            const box: DOMRect = scroller.getBoundingClientRect();
-            const headings: Array<HTMLElement> = [
-              table.querySelector("thead tr:last-child th") as HTMLElement,
-              ...(Array.from(
-                table.querySelectorAll("tbody th"),
-              ) as Array<HTMLElement>),
-            ];
-            const firstRowValue: CSSStyleDeclaration = getComputedStyle(
-              headings[1]!,
-            );
+              const box: DOMRect = scroller.getBoundingClientRect();
+              const headings: Array<HTMLElement> = [
+                table.querySelector("thead tr:last-child th") as HTMLElement,
+                ...(Array.from(
+                  table.querySelectorAll("tbody th"),
+                ) as Array<HTMLElement>),
+              ];
+              const firstRowValue: CSSStyleDeclaration = getComputedStyle(
+                headings[1]!,
+              );
 
-            return {
-              shown: headings.map((heading: HTMLElement): number => {
-                const rect: DOMRect = heading.getBoundingClientRect();
+              return {
+                shown: headings.map((heading: HTMLElement): number => {
+                  const rect: DOMRect = heading.getBoundingClientRect();
 
-                return Math.max(
-                  0,
-                  Math.min(rect.right, box.right) -
-                    Math.max(rect.left, box.left),
-                );
-              }),
-              widths: headings.map((heading: HTMLElement): number => {
-                return heading.getBoundingClientRect().width;
-              }),
-              fromStart: headings.map((heading: HTMLElement): number => {
-                const rect: DOMRect = heading.getBoundingClientRect();
+                  return Math.max(
+                    0,
+                    Math.min(rect.right, box.right) -
+                      Math.max(rect.left, box.left),
+                  );
+                }),
+                widths: headings.map((heading: HTMLElement): number => {
+                  return heading.getBoundingClientRect().width;
+                }),
+                fromStart: headings.map((heading: HTMLElement): number => {
+                  const rect: DOMRect = heading.getBoundingClientRect();
 
-                return isRightToLeft
-                  ? box.right - rect.right
-                  : rect.left - box.left;
-              }),
-              borderLeft: firstRowValue.borderLeftWidth,
-              borderRight: firstRowValue.borderRightWidth,
-              textAlign: firstRowValue.textAlign,
-              scrolled: Math.abs(scroller.scrollLeft),
-              opaque: headings.map((heading: HTMLElement): boolean => {
-                const ground: string = getComputedStyle(heading).backgroundColor;
-                const parts: Array<string> = ground
-                  .slice(ground.indexOf("(") + 1, ground.lastIndexOf(")"))
-                  .split(",");
+                  return isRightToLeft
+                    ? box.right - rect.right
+                    : rect.left - box.left;
+                }),
+                borderLeft: firstRowValue.borderLeftWidth,
+                borderRight: firstRowValue.borderRightWidth,
+                textAlign: firstRowValue.textAlign,
+                scrolled: Math.abs(scroller.scrollLeft),
+                opaque: headings.map((heading: HTMLElement): boolean => {
+                  const ground: string =
+                    getComputedStyle(heading).backgroundColor;
+                  const parts: Array<string> = ground
+                    .slice(ground.indexOf("(") + 1, ground.lastIndexOf(")"))
+                    .split(",");
 
-                return (
-                  ground.startsWith("rgb") &&
-                  (parts.length === 3 || Number(parts[3]) === 1)
-                );
-              }),
-            };
-          },
-          toEnd,
-        );
+                  return (
+                    ground.startsWith("rgb") &&
+                    (parts.length === 3 || Number(parts[3]) === 1)
+                  );
+                }),
+              };
+            },
+            toEnd,
+          );
       };
 
       for (const toEnd of [false, true]) {
@@ -467,9 +472,7 @@ test.describe("the public status page's resource grid (#7238)", () => {
 
         place.shown.forEach((shown: number, index: number) => {
           // Whole, and at the start of the box.
-          expect(Math.abs(shown - place.widths[index]!)).toBeLessThanOrEqual(
-            1,
-          );
+          expect(Math.abs(shown - place.widths[index]!)).toBeLessThanOrEqual(1);
           expect(Math.abs(place.fromStart[index]!)).toBeLessThanOrEqual(1);
         });
 
@@ -481,9 +484,11 @@ test.describe("the public status page's resource grid (#7238)", () => {
         ).toEqual(["1px", "0px"]);
         expect(place.textAlign).toBe("start");
         // Nothing scrolled under them shows through.
-        expect(place.opaque).toEqual(place.shown.map((): boolean => {
-          return true;
-        }));
+        expect(place.opaque).toEqual(
+          place.shown.map((): boolean => {
+            return true;
+          }),
+        );
       }
 
       if (language.lang !== "fa") {
