@@ -112,6 +112,7 @@ import ResourceShowcaseCard, {
   RESOURCE_SHOWCASE_FEATURES_TITLE,
   RESOURCE_SHOWCASE_HIGHLIGHTS_TEST_ID,
   RESOURCE_SHOWCASE_PREVIEW_TEST_ID,
+  RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID,
   RESOURCE_SHOWCASE_STEPS_TEST_ID,
   RESOURCE_SHOWCASE_TEST_ID,
   SHOWCASE_BARE_CLASS_NAME,
@@ -338,6 +339,28 @@ describe("the showcase, as a product draws it", () => {
     );
     expect(within(preview).queryByText("Connected")).toBeNull();
     expect(within(preview).getByText("shop.example.com")).toBeInTheDocument();
+  });
+
+  /*
+   * An example's numbers are figures, written the reader's way (#6535): the
+   * English this suite reads is the English they always read. German,
+   * Persian and Arabic are ShowcaseFiguresInLocale.test.tsx's, from the
+   * shipped locale files.
+   */
+  test("its example's numbers read as English writes them", async () => {
+    await renderInRouter(
+      <ResourceShowcaseCard
+        showcase={PRODUCT_ONBOARDINGS[ProductKey.StatusPages].showcase}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByTestId(RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID)
+        .map((value: HTMLElement): string => {
+          return value.textContent || "";
+        }),
+    ).toEqual(["99.95%", "6", "1,284", "1"]);
   });
 
   test("a product with no feature grid draws no What you get heading", async () => {

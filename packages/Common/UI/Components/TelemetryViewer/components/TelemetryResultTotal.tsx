@@ -1,6 +1,5 @@
 import React, { FunctionComponent, ReactElement } from "react";
 import {
-  PluralTemplate,
   TemplateValues,
   translatableTerm,
   Translator,
@@ -15,7 +14,9 @@ import {
 } from "../../../Utils/Telemetry/ResultTotal";
 import {
   TelemetryItemLabels,
+  TelemetryTotalTemplates,
   getTelemetryItemLabels,
+  getTelemetryTotalTemplates,
 } from "./TelemetryItemLabel";
 import InlineSeparator from "../../InlineSeparator/InlineSeparator";
 
@@ -40,18 +41,6 @@ const UNAVAILABLE_EXPLANATION: Record<ResultTotalUnavailableReason, string> = {
   ),
 };
 
-// "1,234 spans": the count picks the form, and the item words go with it.
-const EXACT_TOTAL: PluralTemplate = {
-  one: "{{count}} {{itemName}}",
-  other: "{{count}} {{itemsName}}",
-};
-
-// "50+ spans": all an uncounted total can vouch for.
-const LOWER_BOUND_TOTAL: PluralTemplate = {
-  one: "{{count}}+ {{itemsName}}",
-  other: "{{count}}+ {{itemsName}}",
-};
-
 /*
  * The size of the result set, at the head of the list it describes: the
  * number a reader looks for to judge volume and to check that a filter did
@@ -64,6 +53,13 @@ const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
 ): ReactElement => {
   const translator: Translator = useTranslator();
   const labels: TelemetryItemLabels = getTelemetryItemLabels(props.itemLabel);
+  /*
+   * "1,234 spans" and "50+ spans" in the kind's own sentences, which each
+   * language words around its noun: "الامتدادات: 1,234" in Arabic.
+   */
+  const totals: TelemetryTotalTemplates = getTelemetryTotalTemplates(
+    props.itemLabel,
+  );
   const status: ResultTotalStatus = props.total.status;
   const itemWords: TemplateValues = {
     itemName: translatableTerm(labels.singular, { inSentence: true }),
@@ -77,7 +73,7 @@ const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
 
     content = (
       <TranslatedSentence
-        template={EXACT_TOTAL}
+        template={totals.exact}
         count={count}
         values={itemWords}
         slots={{
@@ -96,8 +92,7 @@ const TelemetryResultTotal: FunctionComponent<TelemetryResultTotalProps> = (
     content = (
       <>
         <TranslatedSentence
-          template={LOWER_BOUND_TOTAL}
-          count={props.rowsThroughPage}
+          template={totals.lowerBound}
           values={itemWords}
           slots={{
             count: (

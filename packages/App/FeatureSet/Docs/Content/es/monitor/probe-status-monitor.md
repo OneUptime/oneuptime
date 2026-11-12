@@ -67,7 +67,7 @@ Ambos son números enteros y se comparan con **Mayor que**, **Menor que**, **Igu
 
 ### Esperar más antes de un incidente
 
-Una sonda solo está desconectada tras tres minutos de silencio, así que un reinicio rápido no abre nada. Para esperar más, marque **Evaluar estos criterios durante un periodo de tiempo** bajo el filtro, elija **All Values** en **Evaluar** y una ventana en **Durante los últimos (en minutos)**. Con cinco minutos, una sonda tiene que seguir desconectada cinco minutos más antes de que se declare el incidente.
+Una sonda solo está desconectada tras tres minutos de silencio, así que un reinicio rápido no abre nada. Para esperar más, marque **Evaluar estos criterios durante un periodo de tiempo** bajo el filtro, elija **Todos los valores** en **Evaluar** y una ventana en **Durante los últimos (en minutos)**. Con cinco minutos, una sonda tiene que seguir desconectada cinco minutos más antes de que se declare el incidente.
 
 ## Métricas
 

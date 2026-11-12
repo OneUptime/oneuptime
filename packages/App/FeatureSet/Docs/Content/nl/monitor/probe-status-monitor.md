@@ -67,7 +67,7 @@ Beide zijn gehele getallen, vergeleken met **Groter dan**, **Kleiner dan**, **Ge
 
 ### Langer wachten voor een incident
 
-Een probe is pas losgekoppeld na drie minuten stilte, dus een snelle herstart opent niets. Om langer te wachten, vinkt u onder het filter **Evalueer deze criteria over een bepaalde periode** aan, kiest u **All Values** onder **Evalueren** en een venster onder **Voor de laatste (in minuten)**. Met vijf minuten moet een probe nog vijf minuten losgekoppeld blijven voordat het incident wordt gemeld.
+Een probe is pas losgekoppeld na drie minuten stilte, dus een snelle herstart opent niets. Om langer te wachten, vinkt u onder het filter **Evalueer deze criteria over een bepaalde periode** aan, kiest u **Alle waarden** onder **Evalueren** en een venster onder **Voor de laatste (in minuten)**. Met vijf minuten moet een probe nog vijf minuten losgekoppeld blijven voordat het incident wordt gemeld.
 
 ## Metrieken
 

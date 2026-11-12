@@ -14,11 +14,16 @@ import {
   ResourceShowcase,
   ShowcaseChartPaths,
   ShowcaseFeature,
+  ShowcaseFigure,
+  ShowcaseFigureParts,
   ShowcasePreview,
   ShowcaseRow,
   ShowcaseStat,
   ShowcaseStatus,
+  formatShowcaseFigure,
+  formatShowcaseFigureParts,
   getShowcaseChartPaths,
+  isShowcaseFigure,
 } from "./ResourceShowcase";
 
 /*
@@ -79,6 +84,12 @@ export const RESOURCE_SHOWCASE_DESCRIPTION_TEST_ID: string =
   "resource-showcase-description";
 export const RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID: string =
   "resource-showcase-docs-link";
+export const RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID: string =
+  "resource-showcase-stat-value";
+export const RESOURCE_SHOWCASE_ROW_STATE_TEST_ID: string =
+  "resource-showcase-row-state";
+export const RESOURCE_SHOWCASE_STAT_UNIT_TEST_ID: string =
+  "resource-showcase-stat-unit";
 
 // Over the feature grid.
 export const RESOURCE_SHOWCASE_FEATURES_TITLE: string =
@@ -201,13 +212,52 @@ const ALERT_CLASS_NAMES: Record<
   },
 };
 
+/*
+ * A stat's figure: its amount in the tile's size, its unit after it smaller
+ * and grey, as the Dashboard's value widgets draw a unit (ValueWidgetView).
+ * A unit a language writes long ("۱۸۴ میلی‌ثانیه", "1.2 غيغابت/ث") then
+ * fits beside its number; where a tile is too narrow even so, the whole
+ * unit goes under the number, never a part of it ("غيغابت/" over "ث").
+ */
+const ShowcaseStatFigure: FunctionComponent<{
+  figure: ShowcaseFigure;
+  translator: Translator;
+}> = (props: {
+  figure: ShowcaseFigure;
+  translator: Translator;
+}): ReactElement => {
+  const parts: ShowcaseFigureParts = formatShowcaseFigureParts(
+    props.figure,
+    props.translator,
+  );
+
+  return (
+    <>
+      {parts.amount}
+      {parts.unit ? (
+        <>
+          {parts.separator}
+          <span
+            className="whitespace-nowrap text-xs font-medium text-gray-500"
+            data-testid={RESOURCE_SHOWCASE_STAT_UNIT_TEST_ID}
+          >
+            {parts.unit}
+          </span>
+        </>
+      ) : null}
+    </>
+  );
+};
+
 const ShowcasePreviewPanel: FunctionComponent<{
   icon: IconProp;
   preview: ShowcasePreview;
+  translator: Translator;
   translate: (text: string) => string;
 }> = (props: {
   icon: IconProp;
   preview: ShowcasePreview;
+  translator: Translator;
   translate: (text: string) => string;
 }): ReactElement => {
   const translate: (text: string) => string = props.translate;
@@ -282,8 +332,19 @@ const ShowcasePreviewPanel: FunctionComponent<{
                   <div className="hyphens-auto break-words text-[11px] font-medium leading-snug text-gray-500">
                     {translate(stat.label)}
                   </div>
-                  <div className="truncate text-base font-semibold tabular-nums text-gray-900">
-                    {stat.value}
+                  <div
+                    className="break-words text-base font-semibold tabular-nums text-gray-900"
+                    data-testid={RESOURCE_SHOWCASE_STAT_VALUE_TEST_ID}
+                  >
+                    {/* A figure the reader's way ("1.284" in German), a code as written. */}
+                    {isShowcaseFigure(stat.value) ? (
+                      <ShowcaseStatFigure
+                        figure={stat.value}
+                        translator={props.translator}
+                      />
+                    ) : (
+                      stat.value
+                    )}
                   </div>
                 </div>
               );
@@ -356,8 +417,11 @@ const ShowcasePreviewPanel: FunctionComponent<{
                     className={`flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ring-1 ring-inset ${
                       STATUS_PILL_CLASS_NAMES[row.status]
                     }`}
+                    data-testid={RESOURCE_SHOWCASE_ROW_STATE_TEST_ID}
                   >
-                    {translate(row.statusText)}
+                    {isShowcaseFigure(row.statusText)
+                      ? formatShowcaseFigure(row.statusText, props.translator)
+                      : translate(row.statusText)}
                   </span>
                 </li>
               );
@@ -549,6 +613,7 @@ const ResourceShowcaseCard: FunctionComponent<ComponentProps> = (
           <ShowcasePreviewPanel
             icon={showcase.icon}
             preview={showcase.preview}
+            translator={translator}
             translate={translate}
           />
         </div>

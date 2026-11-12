@@ -371,7 +371,8 @@ export const hasFoundValues: (
 };
 
 /*
- * Whether a filter's own sentence shows - the evaluation's, in English
+ * Whether a filter's own sentence shows - the evaluation's, in the
+ * reader's language as far as the sentence stored with it goes
  * ("Response Status Code was 200 (expected to be greater than 499).").
  * Where the section can say what the filter found, the sentence only says
  * it again ("Response body contains degraded."), so it shows:

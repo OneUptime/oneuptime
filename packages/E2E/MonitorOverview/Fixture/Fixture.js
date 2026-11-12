@@ -1471,8 +1471,8 @@ function probeStatusLogBody(data) {
           filterCondition: FilterCondition.Any,
           met: true,
           message: isDown
-            ? "Disconnected Probes is 1 which is greater than 0. Singapore (ap-southeast-1) is disconnected."
-            : "Disconnected Probes is 0 which is equal to 0. All 2 probes are connected.",
+            ? "Disconnected Probes is 1, which is greater than 0. Singapore (ap-southeast-1) is disconnected."
+            : "Disconnected Probes is 0, which is equal to 0. All 2 probes are connected.",
           filters: [
             {
               checkOn: CheckOn.DisconnectedProbes,

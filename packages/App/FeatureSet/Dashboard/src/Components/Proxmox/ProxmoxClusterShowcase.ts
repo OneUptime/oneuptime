@@ -66,10 +66,10 @@ const PROXMOX_CLUSTER_SHOWCASE: ResourceShowcase = {
     name: "pve-prod",
     subtitle: translationKey("Proxmox VE 8.2.4 · 3 nodes · 44 guests"),
     stats: [
-      { label: translationKey("Nodes online"), value: "3/3" },
-      { label: translationKey("CPU"), value: "34.6%" },
-      { label: translationKey("Memory"), value: "62.1%" },
-      { label: translationKey("Backed up"), value: "42/44" },
+      { label: translationKey("Nodes online"), value: { count: 3, outOf: 3 } },
+      { label: translationKey("CPU"), value: { percent: 34.6 } },
+      { label: translationKey("Memory"), value: { percent: 62.1 } },
+      { label: translationKey("Backed up"), value: { count: 42, outOf: 44 } },
     ],
     chart: {
       label: translationKey("Cluster CPU"),
