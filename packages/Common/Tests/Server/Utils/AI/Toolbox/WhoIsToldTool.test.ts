@@ -304,7 +304,8 @@ const BARE_WORDS: Array<[WhoIsToldOwnersSource, string]> = [
 ];
 
 const OPENS: string = "  - opens an incident (Critical Incident); emails ";
-const STATUS: string = '- Criteria "Check if offline": sets status Offline; emails ';
+const STATUS: string =
+  '- Criteria "Check if offline": sets status Offline; emails ';
 
 describe("describeWhoIsToldForModel: who it emails, for each owners source", () => {
   test("Named: the owners the criteria names, people first and then teams", () => {
@@ -381,7 +382,9 @@ describe("describeWhoIsToldForModel: who it emails, for each owners source", () 
       }),
     );
 
-    expect(lines).toContain(`${OPENS}the project's owners (Me Myself, Ana Lopez)`);
+    expect(lines).toContain(
+      `${OPENS}the project's owners (Me Myself, Ana Lopez)`,
+    );
     // The resolver read the owner rules: none adds anyone, so nothing hedges.
     expect(lines.join("\n")).not.toContain("owner rule");
     expect(lines.join("\n")).not.toContain("unless");

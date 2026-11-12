@@ -135,6 +135,22 @@ const STATUS_LEAD: string =
   '- Criteria "Check if offline": sets status Offline; emails ';
 const STATUS_TAIL: string = " of the change";
 
+// test.each's table: one row per source.
+function rows(
+  sources: ReadonlyArray<WhoIsToldOwnersSource>,
+): Array<[WhoIsToldOwnersSource]> {
+  return sources.map(
+    (source: WhoIsToldOwnersSource): [WhoIsToldOwnersSource] => {
+      return [source];
+    },
+  );
+}
+
+// Each source with no name to say, then with one.
+function noNameThenOne(name: string): Array<Array<string>> {
+  return [[], [name]];
+}
+
 function owners(
   source: WhoIsToldOwnersSource,
   userNames: Array<string>,
@@ -146,13 +162,15 @@ describe("Ask AI's who_is_told and the When this goes down card", () => {
   test("between them, every owners source WhoIsTold defines is compared", () => {
     expect(
       new Set<WhoIsToldOwnersSource>([...EVENT_SOURCES, ...STATUS_SOURCES]),
-    ).toEqual(new Set<WhoIsToldOwnersSource>(Object.values(WhoIsToldOwnersSource)));
+    ).toEqual(
+      new Set<WhoIsToldOwnersSource>(Object.values(WhoIsToldOwnersSource)),
+    );
   });
 
-  test.each(EVENT_SOURCES.map((source: WhoIsToldOwnersSource) => [source]))(
+  test.each(rows(EVENT_SOURCES))(
     "what opens, emailing %s: the same owners in the same words",
     (source: WhoIsToldOwnersSource) => {
-      for (const names of [[], ["Ben Ito"]]) {
+      for (const names of noNameThenOne("Ben Ito")) {
         const result: WhoIsToldResult = opening(owners(source, names));
         const tool: string = toolSays(result, OPENS_LEAD);
 
@@ -164,10 +182,10 @@ describe("Ask AI's who_is_told and the When this goes down card", () => {
     },
   );
 
-  test.each(STATUS_SOURCES.map((source: WhoIsToldOwnersSource) => [source]))(
+  test.each(rows(STATUS_SOURCES))(
     "a status change, emailing %s: the same owners in the same words",
     (source: WhoIsToldOwnersSource) => {
-      for (const names of [[], ["Me Myself"]]) {
+      for (const names of noNameThenOne("Me Myself")) {
         const result: WhoIsToldResult = statusChange(owners(source, names));
         const tool: string = toolSays(result, STATUS_LEAD, STATUS_TAIL);
 
