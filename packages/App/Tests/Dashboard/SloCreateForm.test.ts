@@ -443,7 +443,7 @@ describe("the folded Advanced section's summary", () => {
 
   test("is worded from the defaults themselves, as one sentence to translate", () => {
     expect(SLO_ADVANCED_DEFAULTS_SUMMARY).toBe(
-      "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}}% of the error budget is left.",
+      "Measured over a rolling {{days}}-day window, and At Risk when less than {{threshold}} of the error budget is left.",
     );
   });
 

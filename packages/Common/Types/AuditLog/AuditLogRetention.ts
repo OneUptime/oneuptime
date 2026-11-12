@@ -8,8 +8,10 @@ import { coerceNumericColumnValue } from "../Database/NumericColumnValue";
  * (Project.auditLogsRetentionInDays): a whole number of days from 7 to 180,
  * and 7 until someone sets another. The recorder stamps each entry with it
  * as it records it - the entry's retentionDate, which the AuditLog table's
- * TTL deletes it on - and a failing audit log export reckons with it when
- * the entries it has not sent are deleted, to warn a day before.
+ * TTL deletes it on. A failing audit log export reads those stamps back to
+ * warn a day before the first of the entries it has not sent is deleted,
+ * and reckons with the retention as it is now only when it cannot read
+ * them: a retention changed since moves no stamp (#6563).
  *
  * The two used to work it out each their own way, and the server took any
  * value: the settings form checked 7 to 180, but the API took -3, 0 or 3.
@@ -24,8 +26,9 @@ import { coerceNumericColumnValue } from "../Database/NumericColumnValue";
  *     from 7 to 180 - -3, 0 and 3 as 7, 500 as 180;
  *   - getAuditLogRetentionDate: when an entry recorded at a moment is
  *     deleted, that many calendar days later by the server's clock
- *     (OneUptimeDate.addRemoveDays) - the retentionDate the recorder stamps
- *     and the moment a failing export reckons;
+ *     (OneUptimeDate.addRemoveDays) - the retentionDate the recorder stamps,
+ *     and the moment a failing export reckons when it cannot read the
+ *     stamps;
  *   - getAuditLogRetentionError: why a value cannot be saved, which
  *     ProjectService refuses a create or an update with. The settings form
  *     checks the same range in the browser.

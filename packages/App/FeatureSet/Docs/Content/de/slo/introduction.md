@@ -195,7 +195,7 @@ Die Seite **Einstellungen** enthält, wie ein SLO misst, je eine Karte:
 
 | Karte | Was Sie ändern | Gut zu wissen |
 | --- | --- | --- |
-| **Ziel** | **Ziel (%)** und **Risikoschwellenwert (%)**, mit **Ziel bearbeiten**. | Zeigt die Ausfallzeit, die das Ziel erlaubt, zum Beispiel „43m 12s Ausfallzeit pro 30-Tage-Zeitfenster“. |
+| **Ziel** | **Ziel (%)** und **Risikoschwellenwert (%)**, mit **Ziel bearbeiten**. | Zeigt die Ausfallzeit, die das Ziel erlaubt, zum Beispiel „43 Min., 12 Sek. Ausfallzeit pro Zeitfenster von 30 Tagen“. |
 | **Compliance-Zeitraum** | **Typ des Zeitfensters**, **Zeitfenster (Tage)** und **Zeitzone**, mit **Zeitraum bearbeiten**. | Burn-Rate-Regeln behalten ihre Schwellenwerte, wenn sich das Zeitfenster ändert, prüfen Sie sie also danach. |
 | **Berechnung der Ausfallzeit** | **Multi-Monitor-Modus** und **Ausfallzeit-Monitorstatus**, mit **Berechnung der Ausfallzeit bearbeiten**. | Leere Status zählen jeden nicht betriebsbereiten Status, auch später hinzugefügte. |
 | **Auswertung** | Der Schalter **Dieses SLO auswerten**, der sofort speichert, wenn Sie ihn umlegen. | Beim Ausschalten fragt er zuerst, denn das löst auch die offenen Burn-Rate-Warnungen und -Vorfälle des SLO auf. |
