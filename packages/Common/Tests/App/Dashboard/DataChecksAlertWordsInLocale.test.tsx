@@ -494,17 +494,16 @@ describe("the Threshold field", () => {
       render(<DataCheckTable dataAssetId={new ObjectID(TABLE)} />);
     });
 
-    expect(formField("alertThreshold").description).toBe(
-      THRESHOLD_DESCRIPTION,
-    );
+    expect(formField("alertThreshold").description).toBe(THRESHOLD_DESCRIPTION);
 
     for (const language of DASHBOARD_LANGUAGES) {
       const locale: Record<string, string> = readDashboardLocale(language);
       const said: string = locale[THRESHOLD_DESCRIPTION] || "";
 
-      expect({ language, english: ENGLISH_ABOVE_OR_BELOW.test(said) }).toEqual(
-        { language, english: false },
-      );
+      expect({ language, english: ENGLISH_ABOVE_OR_BELOW.test(said) }).toEqual({
+        language,
+        english: false,
+      });
 
       for (const condition of [
         DataCheckAlertCondition.Above,
@@ -599,7 +598,9 @@ describe("a suggested check's own words", () => {
         suggestion(DataCheckAlertCondition.Above, 0),
       );
 
-      const name: HTMLElement = screen.getByTestId(SUGGESTED_CHECK_NAME_TEST_ID);
+      const name: HTMLElement = screen.getByTestId(
+        SUGGESTED_CHECK_NAME_TEST_ID,
+      );
       const reason: HTMLElement = screen.getByTestId(
         SUGGESTED_CHECK_REASON_TEST_ID,
       );
