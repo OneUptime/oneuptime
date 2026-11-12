@@ -51501,6 +51501,12 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "نوع احراز هویت Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "شناسه کلید دسترسی و کلید دسترسی محرمانه یک کاربر IAM، که به‌صورت رمزگذاری‌شده نگهداری می‌شوند.",
+  "How OneUptime signs in to Amazon SES.": "اینکه OneUptime چگونه وارد Amazon SES می‌شود.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "ارسال از راه Amazon SES با یک کلید دسترسی یا نقش IAM این سرور.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "نقشی که AWS روی Amazon EKS، ECS یا EC2 به این سرور می‌دهد. هیچ کلیدی نگهداری نمی‌شود و اعتبارنامه‌های آن خودبه‌خود تمدید می‌شوند.",
+  "This Server's IAM Role": "نقش IAM این سرور",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد و هیچ روش تأییدشده‌ای را نمی‌توان به‌جای آن به کار برد: آزمایش چیزی نمی‌فرستد.",
   "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "هیچ قاعده آنکالی این شدت را پوشش نمی‌دهد: مانند یک فراخوان واقعی، آزمایش به روش‌های بالا برمی‌گردد."
 }

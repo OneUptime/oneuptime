@@ -62,18 +62,18 @@ const RESULT: WhoIsToldResult = {
         source: WhoIsToldOwnersSource.MonitorOwners,
         userNames: ["Me Myself"],
         teamNames: [],
-        hasOwnerRules: false,
       },
       events: [
         {
           kind: OnCallTestPageRecordKind.Incident,
+          title: "example.com is offline",
           severityName: "Critical Incident",
           owners: {
             source: WhoIsToldOwnersSource.ProjectOwners,
             userNames: [],
             teamNames: [],
-            hasOwnerRules: false,
           },
+          ownerRules: [],
           rules: [{ id: "r1", name: "Page Default for every new incident" }],
           policies: [
             {
@@ -163,26 +163,28 @@ describe("describeWhoIsToldForModel", () => {
           events: [
             {
               kind: OnCallTestPageRecordKind.Alert,
+              title: "example.com is slow",
               severityName: "High",
               owners: {
                 source: WhoIsToldOwnersSource.Named,
                 userNames: [],
                 teamNames: ["Platform"],
-                hasOwnerRules: false,
               },
+              ownerRules: [],
               rules: [],
               policies: [],
               statusPages: [],
             },
             {
               kind: OnCallTestPageRecordKind.Incident,
+              title: "example.com is slow",
               severityName: "Low",
               owners: {
-                source: WhoIsToldOwnersSource.ProjectOwners,
-                userNames: [],
+                source: WhoIsToldOwnersSource.OwnerRules,
+                userNames: ["Dana Reyes"],
                 teamNames: [],
-                hasOwnerRules: true,
               },
+              ownerRules: [{ id: "o1", name: "Slow sites to Dana" }],
               rules: [],
               policies: [
                 {
@@ -209,7 +211,7 @@ describe("describeWhoIsToldForModel", () => {
       "    - pages nobody: no on-call rule runs a policy for it",
     );
     expect(text).toContain(
-      "the project's owners, unless its owner rules add owners",
+      "  - opens an incident (Low); emails the owners added by owner rules (Dana Reyes)",
     );
     expect(text).toContain(
       "an on-call policy the person may not read (paging is set up, and who is hidden)",

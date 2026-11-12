@@ -51501,6 +51501,12 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Autentiseringstype for Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "Tilgangsnøkkel-ID-en og den hemmelige tilgangsnøkkelen til en IAM-bruker, lagret kryptert.",
+  "How OneUptime signs in to Amazon SES.": "Hvordan OneUptime logger inn på Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Send via Amazon SES med en tilgangsnøkkel eller denne serverens IAM-rolle.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Rollen AWS gir denne serveren på Amazon EKS, ECS eller EC2. Ingen nøkkel lagres, og legitimasjonen fornyes av seg selv.",
+  "This Server's IAM Role": "Denne serverens IAM-rolle",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ingen vaktregel dekker denne alvorlighetsgraden, og ingen verifisert metode kan brukes i stedet: testen sender ingenting.",
   "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ingen vaktregel dekker denne alvorlighetsgraden: som ved et ekte oppkall faller testen tilbake på metodene ovenfor."
 }

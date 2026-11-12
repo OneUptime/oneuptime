@@ -51501,6 +51501,12 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "نوع مصادقة Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "معرّف مفتاح الوصول ومفتاح الوصول السري لمستخدم IAM، ويُخزَّنان مشفّرَين.",
+  "How OneUptime signs in to Amazon SES.": "كيف يسجّل OneUptime الدخول إلى Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "الإرسال عبر Amazon SES بمفتاح وصول أو بدور IAM لهذا الخادم.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "الدور الذي تمنحه AWS لهذا الخادم على Amazon EKS أو ECS أو EC2. لا يُخزَّن أي مفتاح، وتتجدّد بيانات اعتماده تلقائيًا.",
+  "This Server's IAM Role": "دور IAM لهذا الخادم",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "لا تغطي أي قاعدة مناوبة هذه الخطورة، ولا يمكن استخدام أي طريقة متحقق منها بدلًا منها: لا يرسل الاختبار شيئًا.",
   "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "لا تغطي أي قاعدة مناوبة هذه الخطورة: كما في الاستدعاء الحقيقي، يرجع الاختبار إلى الطرق المذكورة أعلاه."
 }

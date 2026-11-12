@@ -51501,6 +51501,12 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Tipo de autenticación de Amazon SES",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "El ID de clave de acceso y la clave de acceso secreta de un usuario de IAM, guardados cifrados.",
+  "How OneUptime signs in to Amazon SES.": "Cómo inicia sesión OneUptime en Amazon SES.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Enviar a través de Amazon SES con una clave de acceso o el rol de IAM de este servidor.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "El rol que AWS da a este servidor en Amazon EKS, ECS o EC2. No se guarda ninguna clave y sus credenciales se renuevan solas.",
+  "This Server's IAM Role": "Rol de IAM de este servidor",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "Ninguna regla de guardia cubre esta gravedad y no se puede usar ningún método verificado en su lugar: la prueba no envía nada.",
   "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "Ninguna regla de guardia cubre esta gravedad: como un aviso real, la prueba recurre a los métodos de arriba."
 }

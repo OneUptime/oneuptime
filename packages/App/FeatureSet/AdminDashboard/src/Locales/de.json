@@ -519,7 +519,7 @@
         "pillNoFromEmail": "Nicht aktiviert. Bitte fügen Sie die Absender-E-Mail hinzu.",
         "pillNoFromName": "Nicht aktiviert. Bitte fügen Sie den Absendernamen hinzu.",
         "amazonSesCardTitle": "Amazon SES-Einstellungen",
-        "amazonSesCardDescription": "Ihr Amazon SES-Zugriffsschlüssel und die Region sowie der Absender der E-Mails.",
+        "amazonSesCardDescription": "Wie sich dieser Server bei Amazon SES anmeldet, die Region sowie der Absender der E-Mails.",
         "amazonSesEditButton": "Amazon SES bearbeiten",
         "mailgunCardTitle": "Mailgun-Einstellungen",
         "mailgunCardDescription": "Ihr Mailgun-API-Schlüssel und die Versanddomäne sowie der Absender der E-Mails.",
@@ -2409,5 +2409,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "Geben Sie den Workern mehr Arbeitsspeicher und CPU, und suchen Sie im Log der App nach Aufgaben, die immer wieder fehlschlagen.",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "Auf diesem Server läuft OneUptime {{current}}. {{latest}} ist erschienen.",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "Erstellen Sie ein Backup und aktualisieren Sie dann: npm run update mit Docker Compose, helm upgrade auf Kubernetes.",
-  "Finish it on the Server setup page.": "Schließen Sie es auf der Seite „Server-Einrichtung“ ab."
+  "Finish it on the Server setup page.": "Schließen Sie es auf der Seite „Server-Einrichtung“ ab.",
+  "How OneUptime signs in to Amazon SES.": "Wie sich OneUptime bei Amazon SES anmeldet.",
+  "Access Key": "Zugriffsschlüssel",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "Zugriffsschlüssel-ID und geheimer Zugriffsschlüssel eines IAM-Benutzers, verschlüsselt gespeichert.",
+  "This Server's IAM Role": "IAM-Rolle dieses Servers",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Die Rolle, die AWS diesem Server auf Amazon EKS, ECS oder EC2 gibt. Es wird kein Schlüssel gespeichert, und die Anmeldedaten erneuern sich von selbst.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Über Amazon SES mit einem Zugriffsschlüssel oder der IAM-Rolle dieses Servers senden."
 }

@@ -51501,6 +51501,12 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Amazon SES の認証タイプ",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM ユーザーのアクセスキー ID とシークレットアクセスキーです。暗号化して保存されます。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime が Amazon SES にサインインする方法です。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "アクセスキーまたはこのサーバーの IAM ロールを使って Amazon SES から送信します。",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS、ECS、EC2 で AWS がこのサーバーに与えるロールです。キーは保存されず、認証情報は自動で更新されます。",
+  "This Server's IAM Role": "このサーバーの IAM ロール",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "この重大度に該当するオンコールルールがなく、代わりに使える確認済みの方法もありません。テストでは何も送信されません。",
   "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "この重大度に該当するオンコールルールがありません。実際の呼び出しと同様に、テストは上記の方法にフォールバックします。"
 }

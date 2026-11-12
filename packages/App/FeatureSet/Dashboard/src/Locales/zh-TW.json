@@ -51501,6 +51501,12 @@
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
   "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Amazon SES 驗證類型",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 使用者的存取金鑰 ID 和私密存取金鑰，會加密儲存。",
+  "How OneUptime signs in to Amazon SES.": "OneUptime 登入 Amazon SES 的方式。",
+  "Send through Amazon SES with an access key or this server's IAM role.": "使用存取金鑰或此伺服器的 IAM 角色透過 Amazon SES 傳送。",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "AWS 在 Amazon EKS、ECS 或 EC2 上賦予此伺服器的角色。不會儲存任何金鑰，其憑證會自動更新。",
+  "This Server's IAM Role": "此伺服器的 IAM 角色",
   "No on-call rule covers this severity, and no verified method can be used instead: the test sends nothing.": "沒有待命規則涵蓋此嚴重程度，也沒有可改用的已驗證方式：測試不會傳送任何內容。",
   "No on-call rule covers this severity: like a real page, the test falls back to the methods above.": "沒有待命規則涵蓋此嚴重程度：與真實呼叫一樣，測試會改用上方的方式。"
 }
