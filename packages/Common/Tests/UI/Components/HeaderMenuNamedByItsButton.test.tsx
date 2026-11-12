@@ -117,11 +117,11 @@ describe("each header menu is named by its own button", () => {
     expect(help.id).not.toBe(profile.id);
     expect(document.getElementById("user-menu-button")).toBeNull();
 
-    const ids: Array<string> = Array.from(document.querySelectorAll("[id]")).map(
-      (element: Element): string => {
-        return element.id;
-      },
-    );
+    const ids: Array<string> = Array.from(
+      document.querySelectorAll("[id]"),
+    ).map((element: Element): string => {
+      return element.id;
+    });
     expect(new Set(ids).size).toBe(ids.length);
   });
 
