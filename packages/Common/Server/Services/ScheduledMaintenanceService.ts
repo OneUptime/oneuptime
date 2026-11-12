@@ -58,6 +58,7 @@ import ScheduledMaintenanceStateTimeline from "../../Models/DatabaseModels/Sched
 import User from "../../Models/DatabaseModels/User";
 import Recurring from "../../Types/Events/Recurring";
 import OneUptimeDate from "../../Types/Date";
+import { getReminderIntervalInMinutes } from "../../Types/Reminder/ReminderInterval";
 import UpdateBy from "../Types/Database/UpdateBy";
 import Dictionary from "../../Types/Dictionary";
 import EmailTemplateType from "../../Types/Email/EmailTemplateType";
@@ -2127,9 +2128,14 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
           }),
         });
 
+      // A rule with no interval a reminder can follow reminds nobody.
+      const intervalInMinutes: number | null = getReminderIntervalInMinutes(
+        matchingRule?.reminderIntervalInMinutes,
+      );
+
       if (
         matchingRule &&
-        matchingRule.reminderIntervalInMinutes &&
+        intervalInMinutes !== null &&
         !(await this.isScheduledMaintenanceCompleted({
           scheduledMaintenanceId: data.scheduledMaintenanceId,
         }))
@@ -2151,7 +2157,7 @@ ${SubscriberMessageText.chatLinks(translator, { statusPageUrl: statusPageURL, un
 
         nextReminderNotificationAt = OneUptimeDate.addRemoveMinutes(
           referenceDate,
-          matchingRule.reminderIntervalInMinutes,
+          intervalInMinutes,
         );
 
         const startsAtBefore: Date | null | undefined =
