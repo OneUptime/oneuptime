@@ -461,8 +461,11 @@ describe("getErrorReader: the page's reader", () => {
       path.resolve(__dirname, "../../../UI/Utils/ErrorInSentence.ts"),
       "utf8",
     );
+    // `from "x"`, a bare `import "x"`, `import("x")` and `require("x")`.
     const imported: Array<string> = Array.from(
-      source.matchAll(/from\s+"([^"]+)"/g),
+      source.matchAll(
+        /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)"([^"]+)"/g,
+      ),
     ).map((match: RegExpMatchArray): string => {
       return match[1]!;
     });
