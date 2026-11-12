@@ -55,7 +55,7 @@ Gå til **Hendelser** > **Arbeidsområde** > **Slack**. Seksjonen **Arbeidsområ
 
 ### Test regelen
 
-Klikk på **Testregel** i regelens rad. En testmelding kommer i kanalene regelen nevner. Se [Teste en regel](#teste-en-regel).
+Klikk på **Test regel** i regelens rad. En testmelding kommer i kanalene regelen nevner. Se [Teste en regel](#teste-en-regel).
 :::
 
 ## Slack Enterprise-organisasjoner
@@ -67,7 +67,7 @@ Med Slack Enterprise Grid kan ett prosjekt jobbe i flere workspacer i organisasj
 3. Kortet **Slack-arbeidsområder** viser disse workspacene. Klikk på **Oppdater** etter at OneUptime er lagt til i et nytt workspace.
 
 - **Hvilket workspace en regel bruker.** Varslingsregler velger **Slack-arbeidsområde** for kanalene sine. Står feltet tomt, bruker regelen standard-workspacet og leter først der etter kanalene den nevner. **Gjør til standard** på kortet endrer standarden. Fjernes OneUptime fra standard-workspacet, blir det første av de gjenværende workspacene i alfabetisk rekkefølge standard. Det forblir standard når OneUptime legges til i det gamle workspacet igjen.
-- **Et workspace OneUptime er fjernet fra.** En regel som velger det, poster ikke i et annet workspace i stedet: kortet til regelen, **Testregel** og varselloggene sier at OneUptime ikke lenger er lagt til i det. Kortet **Slack-kanal** sier det også når kanalen ligger i det workspacet. Legg OneUptime til i det workspacet igjen i organisasjonsinnstillingene i Slack, eller velg et annet workspace i regelen.
+- **Et workspace OneUptime er fjernet fra.** En regel som velger det, poster ikke i et annet workspace i stedet: kortet til regelen, **Test regel** og varselloggene sier at OneUptime ikke lenger er lagt til i det. Kortet **Slack-kanal** sier det også når kanalen ligger i det workspacet. Legg OneUptime til i det workspacet igjen i organisasjonsinnstillingene i Slack, eller velg et annet workspace i regelen.
 - **Hvor OneUptime fungerer.** Knapper, kommandoer, Home-fanen og OneUptime AI fungerer i hvert av disse workspacene, og medlemmer kobler til sin egen Slack-konto fra hvilket som helst av dem.
 - **Et prosjekt som er koblet til ett workspace.** Hører det workspacet til organisasjonen, beholder prosjektet reglene, kanalene og de tilkoblede kontoene sine når det installeres for hele organisasjonen med **Installer for organisasjonen** på samme side. Det workspacet blir standard.
 - **På en selvhostet server** tillater en Slack-app som er laget fra manifestet til OneUptime, dette allerede: manifestet setter `org_deploy_enabled`.
@@ -138,9 +138,9 @@ OneUptime-appen legger dem til, slik den legger til personene i kanalen til en r
 
 ## Teste en regel
 
-**Testregel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en og inviterer regelens folk inn i den.
+**Test regel** i en regels rad publiserer en testmelding for den regelen i kanalene den nevner, så du ser at den kommer frem. Hvis regelen oppretter en kanal for hver hendelse, oppretter testen også en og inviterer regelens folk inn i den.
 
-I likhet med **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** krever den tillatelse til å opprette varslingsregler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem**, eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For en som bare kan se reglene, som en **Leser**, er **Testregel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det **Growth**-planen å teste en regel, på samme måte som å legge til en.
+I likhet med **Send test** ved siden av en kanal i **Prosjektinnstillinger** > **Arbeidsområde** > **Slack** krever den tillatelse til å opprette varslingsregler: **Prosjekteier**, **Prosjektadministrator**, **Prosjektmedlem**, **Innstillingsadministrator**, **Innstillingsmedlem**, eller **Create Workspace Notification Rule** og **Read Workspace Notification Rule** i en egendefinert rolle. For en som bare kan se reglene, som en **Leser**, er **Test regel** låst, og verktøytipset sier hva som kreves; API-et avviser testen med "You do not have permission to send test notifications in this project." På OneUptime Cloud krever det **Growth**-planen å teste en regel, på samme måte som å legge til en.
 
 På OneUptime Cloud krever **Send test** ved siden av en kanal også **Growth**-planen, siden det å publisere i en kanal er det regler og sammendrag gjør. **Send test nå** på et sammendrag krever tillatelse til å opprette sammendrag (**Create Workspace Notification Summary** og **Read Workspace Notification Summary** i en egendefinert rolle) og, på OneUptime Cloud, **Growth**-planen; for alle andre er den låst, og verktøytipset sier hva som kreves. En MCP-klient som er koblet til med skrivebeskyttet tilgang, kan ikke sende noen test.
 
@@ -333,7 +333,7 @@ Det OneUptime tar vare på av dette — navnet på arbeidsområdet, kanalene, Sl
 ## Feilsøking
 
 :::details En regel publiserer ingenting
-Sjekk regelens betingelser med **Testregel**: hvis testen kommer frem, passet ikke regelens betingelser på hendelsen. Hvis den ikke gjør det, sier Slack-siden hvorfor. For en privat kanal må du først invitere OneUptime-appen inn i den i Slack. Hver melding OneUptime publiserer, og hver melding Slack avviste, vises i **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
+Sjekk regelens betingelser med **Test regel**: hvis testen kommer frem, passet ikke regelens betingelser på hendelsen. Hvis den ikke gjør det, sier Slack-siden hvorfor. For en privat kanal må du først invitere OneUptime-appen inn i den i Slack. Hver melding OneUptime publiserer, og hver melding Slack avviste, vises i **Prosjektinnstillinger** > **Varsler** > **Varsellogger**, på fanen **Arbeidsområde**.
 :::
 
 :::details Noen mangler i en regels kanal
