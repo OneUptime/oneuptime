@@ -302,9 +302,8 @@ describe("the picker's length column is drawn in the row's own font", () => {
           .map((option: HTMLElement): [string, string] => {
             return [
               option.getAttribute("data-tab-id") || "",
-              option.querySelector(
-                '[data-testid="replay-tab-option-duration"]',
-              )?.textContent || "",
+              option.querySelector('[data-testid="replay-tab-option-duration"]')
+                ?.textContent || "",
             ];
           }),
       );

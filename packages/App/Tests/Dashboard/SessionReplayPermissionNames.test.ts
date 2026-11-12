@@ -543,7 +543,8 @@ describe("no Session Replay line names the identity permission", () => {
     const tooltip: string = IDENTITY_HIDDEN_SENTENCES[1] as string;
     const filterLine: string =
       'Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the "{{permission}}" permission.';
-    const ask: string = 'Ask a project admin for the "{{permission}}" permission.';
+    const ask: string =
+      'Ask a project admin for the "{{permission}}" permission.';
 
     expect(tooltip.endsWith(` ${ask}`)).toBe(true);
     expect(filterLine.endsWith(` ${ask}`)).toBe(true);
