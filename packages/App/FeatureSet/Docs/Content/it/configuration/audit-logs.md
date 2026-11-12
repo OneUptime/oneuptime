@@ -88,6 +88,7 @@ Viene registrato tutto ciò che le persone creano, modificano o eliminano in un 
 | Feed di attività | Un feed mostra modifiche che il registro di audit registra già. |
 | Lo stato di lavoro di OneUptime | Sessioni dei lettori delle pagine di stato, job in coda e altri stati che OneUptime conserva mentre lavora. |
 | La configurazione delle notifiche di una persona | Gli indirizzi, i numeri e le regole di reperibilità personali di ogni persona sono solo suoi. |
+| Le preferenze di una persona | I prodotti che ogni persona fissa nella propria barra in alto sono solo suoi, e solo quella persona li vede. |
 
 Viene registrato anche quando un amministratore aggiunge o rimuove un metodo di notifica o una regola di reperibilità personale sull'account di un'altra persona, senza l'indirizzo o il numero stesso.
 

@@ -101,6 +101,25 @@
     "billing": true
   },
   {
+    "title": "Products",
+    "where": [
+      "Project Settings",
+      "Basic"
+    ],
+    "keywords": [
+      "hide products",
+      "show products",
+      "hidden products",
+      "choose products",
+      "products menu",
+      "more products",
+      "customize menu",
+      "show every product"
+    ],
+    "path": "/dashboard/:projectId/settings/products",
+    "kind": "page"
+  },
+  {
     "title": "Labels",
     "where": [
       "Project Settings",

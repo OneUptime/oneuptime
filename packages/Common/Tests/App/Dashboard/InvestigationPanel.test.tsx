@@ -866,7 +866,7 @@ describe("InvestigationPanel report lifecycle", () => {
      * error waits under Details.
      */
     expect(screen.getByTestId("investigation-error-cause")).toHaveTextContent(
-      "The AI provider did not answer in time.",
+      "The LLM provider did not answer in time.",
     );
     expect(screen.getByText("The model provider timed out.")).not.toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Details" }));
@@ -5445,7 +5445,7 @@ describe("InvestigationPanel says what happened in a notice, not a box", () => {
 
     const failure: HTMLElement = screen.getByTestId("investigation-error");
     expect(failure).toHaveTextContent(
-      "The investigation stopped before it could report.The AI provider did not answer in time.",
+      "The investigation stopped before it could report.The LLM provider did not answer in time.",
     );
     // The provider's own words are a quoted line under Details, not a box.
     expect(screen.getByTestId("investigation-error-details")).toHaveTextContent(

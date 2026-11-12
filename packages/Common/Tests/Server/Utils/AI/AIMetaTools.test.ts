@@ -603,6 +603,108 @@ describe("start_investigation", () => {
     expect(result.widget).toBeUndefined();
   });
 
+  /*
+   * #7157: the incident's own daily AI token limit stopped it. The answer
+   * names that setting, and a limit of 0 - which pauses the work until
+   * someone raises it - never reads as "try again later".
+   */
+  test.each([
+    {
+      name: "a limit of 0",
+      budget: { exhausted: true, limitInTokens: 0, usedTokensToday: 0 },
+      words:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      name: "a limit below 0",
+      budget: { exhausted: true, limitInTokens: -1, usedTokensToday: 0 },
+      words:
+        "The Daily Incident AI Token Limit is set to 0, which pauses automatic AI work for incidents. Raise it above 0 under Incidents → AI → Settings → More settings, or clear it, then try again.",
+    },
+    {
+      name: "a used-up limit",
+      budget: { exhausted: true, limitInTokens: 900, usedTokensToday: 950 },
+      words:
+        "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    },
+    {
+      // The queue handed no budget over: used up, the only other way.
+      name: "a limit the queue did not hand over",
+      budget: undefined,
+      words:
+        "Automatic AI work for incidents used up today's Daily Incident AI Token Limit. Raise or clear it under Incidents → AI → Settings → More settings, or wait until midnight UTC, when it resets. Then try again.",
+    },
+  ])(
+    "$name: the incident's daily AI token limit is named, not the project's",
+    async (data: {
+      name: string;
+      budget:
+        | { exhausted: boolean; limitInTokens: number; usedTokensToday: number }
+        | undefined;
+      words: string;
+    }) => {
+      jest
+        .spyOn(IncidentService, "findOneById")
+        .mockResolvedValue(buildIncident() as never);
+      jest
+        .spyOn(AIRunService, "countBy")
+        .mockResolvedValue(new PositiveNumber(0) as never);
+      jest
+        .spyOn(AIInvestigationQueue, "enqueue")
+        .mockImplementation(
+          async (
+            enqueue: Parameters<typeof AIInvestigationQueue.enqueue>[0],
+          ): Promise<ObjectID | null> => {
+            await enqueue.onNotEnqueued?.(
+              "daily_budget_exhausted",
+              data.budget,
+            );
+            return null;
+          },
+        );
+
+      const result: ToolExecutionResult = await StartInvestigationTool.execute(
+        { incidentId: INCIDENT_ID.toString() },
+        ctx,
+      );
+
+      expect(result.rowCount).toBe(0);
+      expect(result.dataForLlm).toBe(
+        `The investigation for Incident #12 could not be started: ${data.words}`,
+      );
+      expect(result.dataForLlm).not.toContain("Try again later");
+      expect(result.dataForLlm).not.toContain("project");
+    },
+  );
+
+  test("any other enqueue the queue skipped stays the honest fallback", async () => {
+    jest
+      .spyOn(IncidentService, "findOneById")
+      .mockResolvedValue(buildIncident() as never);
+    jest
+      .spyOn(AIRunService, "countBy")
+      .mockResolvedValue(new PositiveNumber(0) as never);
+    jest
+      .spyOn(AIInvestigationQueue, "enqueue")
+      .mockImplementation(
+        async (
+          enqueue: Parameters<typeof AIInvestigationQueue.enqueue>[0],
+        ): Promise<ObjectID | null> => {
+          await enqueue.onNotEnqueued?.("enqueue_failed");
+          return null;
+        },
+      );
+
+    const result: ToolExecutionResult = await StartInvestigationTool.execute(
+      { incidentId: INCIDENT_ID.toString() },
+      ctx,
+    );
+
+    expect(result.dataForLlm).toBe(
+      "The investigation for Incident #12 could not be enqueued — the project may have reached its daily AI limit, or the enqueue failed. Try again later.",
+    );
+  });
+
   test("rejects missing/ambiguous subject arguments", async () => {
     await expect(StartInvestigationTool.execute({}, ctx)).rejects.toThrow(
       BadDataException,
