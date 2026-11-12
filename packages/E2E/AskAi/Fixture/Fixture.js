@@ -27,11 +27,18 @@
  *                    waiting to post a public status update on incident
  *                    #42 and add a private note to it, each with its
  *                    arguments, which leave their two cards once run;
- *                    code, one waiting to commit three files whose card
+ *                    code, one waiting to commit four files whose card
  *                    names what it would write over unseen - a file
  *                    changed since Ask AI read it, one read in an earlier
- *                    answer and one read earlier in this answer, left
- *                    out of the conversation since (issue #6570)
+ *                    answer, one read earlier in this answer, left out of
+ *                    the conversation since (issue #6570), and one read
+ *                    whole in two parts, the first left out since (issue
+ *                    #6984);
+ *                    monitors, "Which monitors are down right now?"
+ *                    answered with two monitors read by id - one
+ *                    Offline, one whose monitoring is off - and the
+ *                    monitors table, its long names beside "Operational"
+ *                    (issues #6968 and #6969)
  *   - run=hold       an answer being written stays written-so-far until
  *                    window.__askAiFixture.finish() is called (it finishes
  *                    on its own, a step a poll, by default)
@@ -108,6 +115,7 @@ import {
 } from "Common/Types/AI/AIActionWords";
 import {
   AIChatCitationTargetType,
+  AIChatResourceCardOrigin,
   AIChatToolActionStatus,
   AIChatWidgetType,
 } from "Common/Types/AI/AIChatTypes";
@@ -147,6 +155,7 @@ const threadKind = [
   "rich",
   "actions",
   "code",
+  "monitors",
 ].includes(params.get("thread"))
   ? params.get("thread")
   : "";
@@ -484,13 +493,15 @@ function incidentNoteActions(status) {
 }
 
 /*
- * A commit of three files on fix/login, as the server stores it
+ * A commit of four files on fix/login, as the server stores it
  * (CodeWriteTools, CodeFilesSeen): its title, and a caution for each kind
  * of file it would write over unseen, in the order the card weighs them -
  * a file changed on the branch since Ask AI read it, one read in an
- * earlier answer, and one read earlier in this answer whose read the
- * conversation has left out since (issue #6570). Ask AI writes each file
- * whole, so the card names them before anyone approves it.
+ * earlier answer, one read earlier in this answer whose read the
+ * conversation has left out since (issue #6570), and one Ask AI read all
+ * of in two parts, the first of them left out since: read, and no longer
+ * all in hand - never "read only part of" (issue #6984). Ask AI writes
+ * each file whole, so the card names them before anyone approves it.
  */
 const CODE_BRANCH = "fix/login";
 
@@ -503,7 +514,7 @@ function codeFiles(paths) {
 }
 
 const CODE_CHANGE_WORDS = {
-  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 3, {
+  title: aiActionPluralSentence(AI_ACTION_PLURAL_TITLES.commitFiles, 4, {
     branch: CODE_BRANCH,
   }),
   description: [
@@ -525,6 +536,11 @@ const CODE_CHANGE_WORDS = {
       1,
       { files: codeFiles(["src/billing/charge.ts"]) },
     ),
+    aiActionPluralSentence(
+      AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand,
+      1,
+      { files: codeFiles(["src/billing/ledger.ts"]) },
+    ),
   ],
 };
 
@@ -544,6 +560,7 @@ function codeChangeAction(status) {
         { filePath: "src/billing/refund.ts", content: "export {};\n" },
         { filePath: "README.md", content: "# Billing\n" },
         { filePath: "src/billing/charge.ts", content: "export {};\n" },
+        { filePath: "src/billing/ledger.ts", content: "export {};\n" },
       ],
     },
     isMutation: true,
@@ -610,6 +627,109 @@ let richConversation = null;
 let actionsConversation = null;
 // The conversation waiting to commit three files (?thread=code).
 let codeConversation = null;
+// The conversation that looked monitors up (?thread=monitors).
+let monitorsConversation = null;
+
+/*
+ * The card query_monitors leaves for a monitor read by id
+ * (WidgetBuilder.resourceCard): a read's, drawn plain, with its status's
+ * own colour - gray when its monitoring is off (issue #6968).
+ */
+function monitorCard({ id, name, monitorId, status, statusColor, fields }) {
+  return {
+    id,
+    type: AIChatWidgetType.ResourceCard,
+    title: `Monitor ${name}`,
+    data: {
+      resourceType: "Monitor",
+      heading: name,
+      subheading: status,
+      fields,
+      origin: AIChatResourceCardOrigin.Read,
+      statusColor,
+      link: {
+        type: AIChatCitationTargetType.MonitorView,
+        params: { monitorId },
+      },
+    },
+  };
+}
+
+/*
+ * "Which monitors are down right now?", answered: the two monitors it read
+ * by id, and the monitors table query_monitors lists them in - a monitor
+ * named by its URL, with no spaces to wrap at, beside statuses that are
+ * one word each (issue #6969).
+ */
+function seedMonitorsAnswer() {
+  monitorsConversation = conversationOf("Monitors down right now", 2);
+  messageOf(monitorsConversation.id.toString(), AIChatMessageRole.User, {
+    contentInMarkdown: "Which monitors are down right now?",
+    createdAt: minutesAgo(3),
+  });
+  messageOf(monitorsConversation.id.toString(), AIChatMessageRole.Assistant, {
+    contentInMarkdown:
+      "One monitor is down: **Checkout API** has been Offline since its last check. **Backup Job** is not checked: its monitoring is off, so its status is the last one it had.",
+    widgets: [
+      monitorCard({
+        id: "W1",
+        name: "Checkout API",
+        monitorId: "60000000-0000-4000-8000-000000000001",
+        status: "Offline",
+        statusColor: "#fd625e",
+        fields: [{ label: "Type", value: "Website" }],
+      }),
+      monitorCard({
+        id: "W2",
+        name: "Backup Job",
+        monitorId: "60000000-0000-4000-8000-000000000004",
+        status: "Disabled",
+        statusColor: "#6b7280",
+        fields: [
+          { label: "Type", value: "Incoming Request" },
+          { label: "Last status", value: "Operational" },
+          { label: "Monitoring", value: "Off - not checked" },
+        ],
+      }),
+      {
+        id: "W3",
+        type: AIChatWidgetType.Table,
+        title: "Monitors (4)",
+        data: {
+          columns: [
+            { key: "name", title: "Monitor", type: "text" },
+            { key: "type", title: "Type", type: "text" },
+            { key: "currentStatus", title: "Status", type: "text" },
+          ],
+          rows: [
+            {
+              name: "Checkout API",
+              type: "Website",
+              currentStatus: "Offline",
+            },
+            {
+              name: "https://payments.example.com/api/v2/health/checkout",
+              type: "Website",
+              currentStatus: "Operational",
+            },
+            {
+              name: "legacy-payments-api",
+              type: "API",
+              currentStatus: "Operational",
+            },
+            {
+              name: "Backup Job",
+              type: "Incoming Request",
+              currentStatus: "Disabled",
+            },
+          ],
+          link: { type: AIChatCitationTargetType.Monitors },
+        },
+      },
+    ],
+    createdAt: minutesAgo(2),
+  });
+}
 
 function seedRichAnswer() {
   richConversation = conversationOf("Payments health this week", 3);
@@ -827,6 +947,10 @@ function seedHistory() {
     });
   }
 
+  if (threadKind === "monitors") {
+    seedMonitorsAnswer();
+  }
+
   if (historyKind === "none") {
     return;
   }
@@ -868,6 +992,7 @@ fixture.conversationIds = {
   rich: richConversation?.id.toString(),
   actions: actionsConversation?.id.toString(),
   code: codeConversation?.id.toString(),
+  monitors: monitorsConversation?.id.toString(),
 };
 
 // ---- a run, written step by step as the dialog polls --------------------------

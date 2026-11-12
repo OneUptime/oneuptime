@@ -43,10 +43,14 @@ An in-page server answers what the panel asks and records what it sends on
   table with long values in its first and last columns, and a trace; `?thread=actions` on one
   waiting to post a public status update on incident #42 (its note and Notify subscribers) and
   add a private note to it, which leave their two cards (a status update, a note) once run;
-  `?thread=code` on one waiting to commit three files to `fix/login`, whose card names what it
+  `?thread=code` on one waiting to commit four files to `fix/login`, whose card names what it
   would write over unseen: a file changed on the branch since Ask AI read it, one read in an
-  earlier answer, and one read earlier in this answer whose text the conversation has left out
-  since.
+  earlier answer, one read earlier in this answer whose text the conversation has left out
+  since, and one read whole in two parts whose first part was left out since (said to be read
+  and no longer all in hand, never "read only part of"); `?thread=monitors` on "Which monitors
+  are down right now?", answered with two monitors read by id, one Offline and one whose
+  monitoring is off, each on a read's plain card with its status a dot in its own colour, and
+  the monitors table, a monitor named by its URL beside one-word statuses ("Operational").
 - A question sent starts a run whose steps are written one per poll, then the answer; a
   question about an alert ends on an approval card, and one asking to fail ends on an error.
   `?run=hold` holds the run where it is until `window.__askAiFixture.addSteps(n)` and
@@ -119,8 +123,14 @@ fails on any uncaught page error:
   panel dragged wide and under its whole title on a phone, and the row a run leaves in German;
 - a code change's cautions: each file Ask AI would write over unseen a line of its own inside the
   card, marked with the card's amber at the start the page reads from, level with its first line,
-  in the order the card weighs them and above the commit's message and files; the dark theme's
-  amber; and on a phone in Persian, each read right to left with its mark on the right, wrapping
-  inside the card, nothing wider than the screen.
+  in the order the card weighs them and above the commit's message and files, a file read whole
+  and partly lost since said to be read; the dark theme's amber; and on a phone in Persian, each
+  read right to left with its mark on the right, wrapping inside the card, nothing wider than the
+  screen;
+- monitors looked up: each card a read leaves drawn plain, with no green and no check, its status
+  a dot in its own colour before the line that names it (red for Offline, gray for monitoring
+  off), in light and dark, and at the line's right on a Persian phone; the monitors table keeping
+  "Operational" whole on a 360 pixel phone while a monitor's URL wraps inside the table, after
+  its slashes and before its host's dots, at every width.
 
 Screenshots of each state land in `output/playwright/ask-ai-ui/`.

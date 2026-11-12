@@ -37,7 +37,7 @@ Hver sjekk kjører hvert 15. minutt, hver time, hver 6. time eller hver dag, som
 
 Sett **Varsle når** for å varsle på en sjekk:
 
-- **Unusually High** eller **Unusually Low** sammenligner hver verdi med sin egen innlærte grunnlinje for den timen i uken.
+- **Uvanlig høy** eller **Uvanlig lav** sammenligner hver verdi med sin egen innlærte grunnlinje for den timen i uken.
 - **Over** eller **Under** sammenligner den med en terskel.
 
 Når du lagrer sjekken, opprettes en metrikkmonitor for den, som deg og med dine tillatelser. Fjerner du betingelsen, fjernes monitoren.

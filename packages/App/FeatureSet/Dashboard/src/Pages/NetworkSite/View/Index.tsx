@@ -3,6 +3,7 @@ import RouteMap, { RouteUtil } from "../../../Utils/RouteMap";
 import PageComponentProps from "../../PageComponentProps";
 import EditInSettingsLink from "../../../Components/TelemetryResource/EditInSettingsLink";
 import SiteStatusHero from "../../../Components/NetworkSite/SiteStatusHero";
+import SiteCoordinates from "../../../Components/NetworkSite/SiteCoordinates";
 import MonitorStatusElement from "../../../Components/MonitorStatus/MonitorStatusElement";
 import Route from "Common/Types/API/Route";
 import NetworkSite from "Common/Models/DatabaseModels/NetworkSite";
@@ -203,9 +204,13 @@ const NetworkSiteView: FunctionComponent<
                     </span>
                   );
                 }
+                // Left to right in every language (SiteCoordinates).
                 return (
                   <span>
-                    {item.latitude}, {item.longitude}
+                    <SiteCoordinates
+                      latitude={item.latitude}
+                      longitude={item.longitude}
+                    />
                   </span>
                 );
               },
