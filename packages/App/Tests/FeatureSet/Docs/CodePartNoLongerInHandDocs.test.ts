@@ -175,22 +175,22 @@ describe("the Ask AI page on a file Ask AI read in parts and no longer has some 
 
   it("keeps what it says of a file read all of, and of one read again, around it", () => {
     const bullet: string = codeBulletOf("en");
-    const said: string = bullet.indexOf(
+    const said: number = bullet.indexOf(
       "If Ask AI read the file in several parts",
     );
+    const readAll: number = bullet.indexOf(
+      "Once Ask AI has read all of the file, in one read or in several, the card says nothing of it.",
+    );
+    const readAgain: number = bullet.indexOf(
+      `"${describeAIActionSentence(PART_NO_LONGER_IN_HAND)}" Once Ask AI reads the file again in the answer that changes it, the card says nothing of it.`,
+    );
 
+    expect(said).toBeGreaterThan(-1);
     // Read all of it, every part still had: nothing - said before.
-    expect(
-      bullet.indexOf(
-        "Once Ask AI has read all of the file, in one read or in several, the card says nothing of it.",
-      ),
-    ).toBeLessThan(said);
+    expect(readAll).toBeGreaterThan(-1);
+    expect(readAll).toBeLessThan(said);
     // Read again in the answer that changes it: nothing - said right after.
-    expect(
-      bullet.indexOf(
-        `"${describeAIActionSentence(PART_NO_LONGER_IN_HAND)}" Once Ask AI reads the file again in the answer that changes it, the card says nothing of it.`,
-      ),
-    ).toBeGreaterThan(said);
+    expect(readAgain).toBeGreaterThan(said);
   });
 
   it("is true of the code", () => {
