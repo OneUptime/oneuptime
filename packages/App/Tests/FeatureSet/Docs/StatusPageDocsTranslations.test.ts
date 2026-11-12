@@ -8,9 +8,11 @@ import {
 import {
   dashboardLocale,
   drawnActionLabel,
+  drawnArchiveCardTitle,
   drawnCreateButton,
   isActionLabel,
 } from "./DocsDashboardLabels";
+import { STATUS_PAGE_ARCHIVE_COPY } from "../../../FeatureSet/Dashboard/src/Components/Archive/ResourceArchiveCopy";
 import {
   PATH_SEPARATOR,
   boldLabels,
@@ -63,7 +65,9 @@ import path from "path";
  *     that is not a label, such as "your page", is worded in the language.
  *     A few labels are drawn from a template (TEMPLATES), from one flat
  *     lookup of a key that differs from the label (FLAT_LOOKUP), or are the
- *     first sentence of a longer message (MESSAGE_LEADS).
+ *     first sentence of a longer message (MESSAGE_LEADS); the Settings
+ *     page's Archive card is titled as the card draws it
+ *     (ARCHIVE_CARD_TITLES).
  *   - The public status page, which visitors see in their own language: its
  *     nav, its Subscribe page, its subscription pages and its announcement
  *     list are drawn from the status page app's own locale
@@ -196,6 +200,43 @@ const FLAT_LOOKUP: Record<string, Array<FlatLookupLabel>> = {
     },
   ],
 };
+
+/*
+ * The Settings page's Archive card, which titles itself "Archive
+ * {{itemName}}" with the name the page hands it (#7195): no locale has the
+ * title as a key, and each page names it - on its own and as the last step
+ * of a menu path - as its language's card draws it (drawnArchiveCardTitle).
+ */
+interface ArchiveCardTitle {
+  label: string;
+  singularName: string;
+}
+
+const ARCHIVE_CARD_TITLES: Record<string, Array<ArchiveCardTitle>> = {
+  [OVERVIEW]: [
+    {
+      label: "Archive status page",
+      singularName: STATUS_PAGE_ARCHIVE_COPY.singularName,
+    },
+  ],
+};
+
+function archiveCardLabels(page: string): Array<string> {
+  return listed(ARCHIVE_CARD_TITLES, page).map(
+    (entry: ArchiveCardTitle): string => {
+      return entry.label;
+    },
+  );
+}
+
+// An Archive card's title as a menu path's segment names it, on any page.
+function archiveCardInPath(segment: string): ArchiveCardTitle | undefined {
+  return Object.values(ARCHIVE_CARD_TITLES)
+    .flat()
+    .find((entry: ArchiveCardTitle): boolean => {
+      return entry.label === segment;
+    });
+}
 
 // Labels that are the first sentence of a longer message on the screen.
 const MESSAGE_LEADS: Record<string, Array<FlatLookupLabel>> = {
@@ -402,8 +443,6 @@ const KEPT_IN_ENGLISH: Array<string> = [
   "Updated Note",
   "Mark as Complete",
   "Create One Incident",
-  // The archive card titles itself "Archive " + its item, with no locale key.
-  "Archive status page",
   "×",
 ];
 
@@ -671,6 +710,7 @@ function listed<T>(lists: Record<string, Array<T>>, page: string): Array<T> {
 function accountedFor(page: string, span: string): boolean {
   const named: Array<string> = [
     ...listed(CREATE_BUTTONS, page),
+    ...archiveCardLabels(page),
     ...listed(TEMPLATES, page).map((entry: TemplateLabel): string => {
       return entry.english;
     }),
@@ -700,6 +740,7 @@ function accountedFor(page: string, span: string): boolean {
 function dashboardLabels(page: string): Array<string> {
   const special: Array<string> = [
     ...listed(CREATE_BUTTONS, page),
+    ...archiveCardLabels(page),
     ...listed(TEMPLATES, page).map((entry: TemplateLabel): string => {
       return entry.english;
     }),
@@ -753,6 +794,15 @@ function pathPattern(language: string, segments: Array<string>): RegExp {
           return escapeRegExp(drawnActionLabel(language, segment));
         }
 
+        const archiveCard: ArchiveCardTitle | undefined =
+          archiveCardInPath(segment);
+
+        if (archiveCard) {
+          return escapeRegExp(
+            drawnArchiveCardTitle(language, archiveCard.singularName),
+          );
+        }
+
         return segment === "your page" && YOUR_PAGE[language]
           ? escapeRegExp(YOUR_PAGE[language] as string)
           : "[^*→\\n]+?";
@@ -772,9 +822,29 @@ describe("the lists this test keeps", () => {
       ALSO_ON_THE_DASHBOARD,
       STATUS_PAGE_APP_MESSAGES,
       PROSE,
+      ARCHIVE_CARD_TITLES,
     ]) {
       for (const page of Object.keys(lists)) {
         expect(PAGE_NAMES).toContain(page);
+      }
+    }
+  });
+
+  it("draw the Archive card's title as the English page writes it, and worded anew in every language (#7195)", () => {
+    for (const page of Object.keys(ARCHIVE_CARD_TITLES)) {
+      for (const entry of listed(ARCHIVE_CARD_TITLES, page)) {
+        expect(drawnArchiveCardTitle("en", entry.singularName)).toBe(
+          entry.label,
+        );
+        // No locale has the title itself: it is drawn, not looked up.
+        expect(isActionLabel(entry.label)).toBe(false);
+
+        for (const language of LANGUAGES) {
+          expect({
+            language,
+            drawn: drawnArchiveCardTitle(language, entry.singularName),
+          }).not.toEqual({ language, drawn: entry.label });
+        }
       }
     }
   });
@@ -797,6 +867,7 @@ describe("the lists this test keeps", () => {
       const stale: Array<string> = [
         ...listed(PROSE, page),
         ...listed(CREATE_BUTTONS, page),
+        ...archiveCardLabels(page),
         ...listed(TEMPLATES, page).map((entry: TemplateLabel): string => {
           return entry.english;
         }),
@@ -1083,6 +1154,11 @@ describe.each(LANGUAGES)("%s", (language: string) => {
         ...listed(CREATE_BUTTONS, entry.page).map((button: string): string => {
           return drawnCreateButton(language, button);
         }),
+        ...listed(ARCHIVE_CARD_TITLES, entry.page).map(
+          (card: ArchiveCardTitle): string => {
+            return drawnArchiveCardTitle(language, card.singularName);
+          },
+        ),
         ...listed(TEMPLATES, entry.page).map(
           (template: TemplateLabel): string => {
             return drawnTemplate(language, template);

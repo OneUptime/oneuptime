@@ -25,6 +25,7 @@ import {
   getSloBudgetRunwayTextInLanguage,
 } from "../../../FeatureSet/Dashboard/src/Components/Slo/SloOverviewTextInLanguage";
 import { describeSloErrorBudget } from "../../../FeatureSet/Dashboard/src/Pages/Slo/SloSettingsFormFields";
+import { getArchiveCardWords } from "../../../FeatureSet/Dashboard/src/Components/Archive/ArchiveCardWords";
 
 /*
  * How each docs language names a piece of the Dashboard.
@@ -242,6 +243,29 @@ export const dashboardTranslator: (language: string) => Translator = (
 
     return typeof value === "string" ? value : undefined;
   }, language);
+};
+
+/*
+ * The title of a Settings page's Archive card, as the card draws it in this
+ * language (#7195): "Archive SLO", "SLO archivieren", "بایگانی صفحه وضعیت".
+ * It is built from "Archive {{itemName}}" and the name the page hands the
+ * card, so no locale has it as a key and a page cannot look it up.
+ */
+export const drawnArchiveCardTitle: (
+  language: string,
+  singularName: string,
+  isArchived?: boolean,
+) => string = (
+  language: string,
+  singularName: string,
+  isArchived?: boolean,
+): string => {
+  return getArchiveCardWords({
+    singularName: singularName,
+    isArchived: Boolean(isArchived),
+    copy: {},
+    translator: dashboardTranslator(language),
+  }).title;
 };
 
 // The seconds of each unit of an English compact duration: "4d 23m", "12m 30s".
