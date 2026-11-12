@@ -15,15 +15,8 @@ Before you build or change a page, a form, a dialog, a menu or the words on one,
 
 ### Migrations
 
-Before you change a database model or write a migration, read the migration guide, [Docs/migrations/README.md](Docs/migrations/README.md). In short: Postgres schema migrations are generated with `npm run generate-postgres-migration`, never written by hand, and registered in `packages/Common/Server/Infrastructure/Postgres/SchemaMigrations/Index.ts`. ClickHouse and data migrations are written by hand in `packages/App/FeatureSet/Workers/DataMigrations` and registered in that folder's `Index.ts`.
+Before you change a database model or write a migration, read the migration guide, [Docs/migrations/README.md](Docs/migrations/README.md). 
 
-### Notifications and text from outside
-
-Feed items, chat messages and emails carry text that people and monitored systems wrote. Before you write one, or code that reads or converts such text, read [Docs/notifications/README.md](Docs/notifications/README.md). In short:
-
-- **Feed and chat Markdown**: build it with the `mdText` tag from `packages/Common/Utils/Markdown/FeedMarkdown.ts`, which escapes people's text.
-- **Megabyte-long values**: such text can be megabytes long, so handle it in linear time, with no regular expression that has an unbounded quantifier.
-- **Emails load nothing from outside the installation**: no CDN, web font or tracking pixel; images travel inside the email.
 
 ## After you make a change
 
@@ -35,7 +28,6 @@ Feed items, chat messages and emails carry text that people and monitored system
 
 - Write extensive tests: unit and integration tests for a new feature, a regression test for a bug fix.
 - Run only the tests relevant to your change: the ones you added or changed, and the ones that read or scan the files you changed (search the test folders for those files' paths and names). Never run whole test folders or packages (such as `packages/App/Tests/Dashboard`, `packages/Common/Tests/UI`, `packages/App/Tests/FeatureSet/Docs` or the `packages/Home` tests), and don't re-run them after merging `main` into your branch. CI runs everything, and failures on `main` are fixed together there.
-- Random inputs for property tests, fuzz sweeps and generated fixtures come from `seededRandom(seed)` and `shuffled` in `packages/Common/Tests/Helpers/SeededRandom.ts`, and generated texts from `generatedTexts` in `packages/Common/Tests/Helpers/GeneratedTexts.ts`, so every failure can be run again. Don't write a generator of your own: `SeededRandomGuard.test.ts` fails a test file that rolls an LCG, mulberry32 or xorshift.
 - Helm charts (`HelmChart/Public/oneuptime`, the product; `HelmChart/Public/kubernetes-agent`, the Kubernetes agent): `npm run test-helm-chart` runs their helm-unittest tests, and `npm run test-helm-chart-all` adds lint and the KinD-cluster suites in `HelmChart/Tests/suites` ([HelmChart/README.md](HelmChart/README.md) says how to add one). The agent chart writes the OpenTelemetry collector configuration, where a mistake shows up as wrong data rather than a failed deploy: cover a change there with a render assertion.
 
 ## Pull requests
