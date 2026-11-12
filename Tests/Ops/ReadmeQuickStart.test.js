@@ -166,7 +166,11 @@ describe("the README quick start", () => {
     expect(read("Tests/Scripts/status-check.sh")).toContain(
       `echo "🚀 ${UP_LINE} 🚀"`,
     );
-    expect(startSteps()[startSteps().length - 1]).toBe("npm run status-check");
+    // Then only the doctor's quiet run, which says what needs attention (#6826).
+    expect(startSteps().slice(-2)).toEqual([
+      "npm run status-check",
+      "node ./Scripts/Install/Doctor.js --after-start",
+    ]);
   });
 
   test("npm start checks the server, then makes the secrets, then starts Compose", () => {
