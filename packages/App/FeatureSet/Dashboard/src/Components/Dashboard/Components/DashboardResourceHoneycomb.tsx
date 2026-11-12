@@ -7,6 +7,7 @@ import React, {
   useRef,
   useState,
 } from "react";
+import ReactDOM from "react-dom";
 import Route from "Common/Types/API/Route";
 import Navigation from "Common/UI/Utils/Navigation";
 import useTranslator from "Common/UI/Utils/UseTranslator";
@@ -216,7 +217,14 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
 
   const details: Array<HoneycombTileDetail> = state.tile.tooltip.details || [];
 
-  return (
+  /*
+   * Drawn on the page's body, where its viewport coordinates hold: a
+   * widget's card is overflow-hidden and transformed (scale), which makes
+   * position:fixed relative to the card - so the card cut the tooltip off,
+   * and on an Arabic or Persian board it was drawn past the card's right
+   * edge, out of sight.
+   */
+  return ReactDOM.createPortal(
     <div
       ref={ref}
       className="fixed z-50 pointer-events-none rounded-lg border border-gray-200 bg-white shadow-xl"
@@ -269,7 +277,8 @@ const HoneycombTooltip: FunctionComponent<{ state: TooltipState }> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

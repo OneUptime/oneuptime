@@ -30,6 +30,7 @@ import DashboardResourceHoneycomb, {
   HoneycombTile,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardResourceHoneycomb";
 import GaugeWidgetView, {
+  GAUGE_BOUNDS_TEST_ID,
   GaugeWidgetViewProps,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/GaugeWidgetView";
 import ValueWidgetView, {
@@ -714,6 +715,75 @@ describe("a Gauge's title, centred over the gauge", () => {
     expectDrawnAsItWas(lineOf(ENGLISH_TITLE));
     expect(lineOf(ENGLISH_TITLE)).toHaveClass("text-center");
   });
+
+  /*
+   * The arc fills from the left in every language, as a chart's time runs,
+   * so its bounds under it are laid out left to right too: mirrored on an
+   * Arabic board, "100" sat under the end the fill starts from.
+   */
+  test.each(["ar", "fa", "de", "en"])(
+    "on a %s board the minimum sits under the arc's left end and the maximum under its right",
+    async (language: string) => {
+      await inLanguage(language);
+      render(<GaugeWidgetView {...GAUGE_PROPS} />);
+
+      const bounds: HTMLElement = screen.getByTestId(GAUGE_BOUNDS_TEST_ID);
+
+      expect(bounds).toHaveAttribute("dir", "ltr");
+      expect(
+        Array.from(bounds.children).map((bound: Element): string => {
+          return bound.textContent || "";
+        }),
+      ).toEqual(["0", "100"]);
+    },
+  );
+
+  // It said "HEALTHY", "WARNING" or "CRITICAL" under every gauge.
+  test.each([
+    ["ar", 10, "Healthy"],
+    ["fa", 50, "Warning"],
+    ["de", 90, "Critical"],
+  ])(
+    "on a %s board the gauge's state at %s is the board's word for %s",
+    async (language: string, value: number, state: string) => {
+      await inLanguage(language);
+      render(
+        <GaugeWidgetView
+          {...GAUGE_PROPS}
+          value={value}
+          warningThreshold={40}
+          criticalThreshold={80}
+        />,
+      );
+
+      const word: string | undefined = readDashboardLocale(language)[state];
+
+      expect(word).toBeTruthy();
+      expect(word).not.toBe(state);
+      expect(screen.getByText(word as string)).toBeInTheDocument();
+      expect(screen.queryByText(state)).not.toBeInTheDocument();
+    },
+  );
+
+  test("on an English board the gauge's states read as they always did", async () => {
+    for (const [value, state] of [
+      [10, "Healthy"],
+      [50, "Warning"],
+      [90, "Critical"],
+    ] as Array<[number, string]>) {
+      render(
+        <GaugeWidgetView
+          {...GAUGE_PROPS}
+          value={value}
+          warningThreshold={40}
+          criticalThreshold={80}
+        />,
+      );
+
+      expect(screen.getByText(state)).toBeInTheDocument();
+      cleanup();
+    }
+  });
 });
 
 describe("a Value widget's title over its states", () => {
@@ -936,5 +1006,26 @@ describe("a list's honeycomb: a tile's name over its tooltip", () => {
 
     expectDrawnAsItWas(title);
     expect(title).toHaveClass("truncate");
+  });
+
+  /*
+   * A widget's card is overflow-hidden and transformed (scale), which makes
+   * position:fixed relative to the card: drawn inside it, the tooltip was
+   * cut off by the card, and on an Arabic or Persian board drawn past its
+   * right edge, out of sight. It is drawn on the page's body.
+   */
+  test("the tooltip is drawn on the page's body, outside the widget's card, and goes with the pointer", async () => {
+    await inLanguage("ar");
+    const { container } = render(<DashboardResourceHoneycomb tiles={TILES} />);
+
+    const tooltip: HTMLElement = hoverTile(container, 0);
+
+    expect(tooltip).not.toBeNull();
+    expect(tooltip.parentElement).toBe(document.body);
+    expect(container.contains(tooltip)).toBe(false);
+
+    fireEvent.mouseLeave(container.querySelectorAll("div.select-none")[0]!);
+
+    expect(document.querySelector("div.fixed.z-50")).toBeNull();
   });
 });

@@ -29,6 +29,7 @@ import {
   LogFilter,
 } from "Common/Types/Log/LogQueryToFilter";
 import DashboardVariableInterpolation from "Common/Utils/Dashboard/VariableInterpolation";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 
@@ -290,12 +291,17 @@ const DashboardLogStreamComponentElement: FunctionComponent<ComponentProps> = (
                     {time.label}
                   </span>
                 )}
-                <span
-                  className="text-xs text-gray-600 truncate flex-1 font-mono"
-                  style={{ fontSize: "11px" }}
-                >
-                  {body}
-                </span>
+                {/*
+                 * The service's own words, English on an Arabic board as
+                 * often as not: read their way and cut at their own end,
+                 * where the board's way cut off the start that tells one
+                 * line from the next.
+                 */}
+                <DashboardWidgetLine
+                  as="span"
+                  text={body}
+                  className="text-[11px] leading-4 text-gray-600 truncate flex-1 font-mono"
+                />
               </div>
             );
           })}

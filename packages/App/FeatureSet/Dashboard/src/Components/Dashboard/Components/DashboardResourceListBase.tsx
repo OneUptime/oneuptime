@@ -66,6 +66,9 @@ export const DASHBOARD_LIST_TABLE_CLASS_NAME: string =
 export const DASHBOARD_LIST_SIZED_TABLE_CLASS_NAME: string =
   "w-max text-sm text-left [&_td.truncate]:max-w-0 [&_td.truncate]:min-w-[6rem]";
 
+// The count beside a list's title: "12 pods".
+export const RESOURCE_LIST_COUNT_TEST_ID: string = "resource-list-count";
+
 const NOT_AN_ID_CHARACTER: RegExp = /[^a-z0-9]+/g;
 
 /*
@@ -270,11 +273,18 @@ const DashboardResourceListBase: FunctionComponent<
       }}
     >
       {props.title && (
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex items-center justify-between gap-2 mb-2 px-1">
           <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
             {props.title}
           </span>
-          <span className="text-xs text-gray-300 tabular-nums">
+          {/*
+           * The count stays one line beside a title that wraps: squeezed
+           * by a long title in a narrow widget, "3 sites" broke in two.
+           */}
+          <span
+            className="shrink-0 whitespace-nowrap text-xs text-gray-300 tabular-nums"
+            data-testid={RESOURCE_LIST_COUNT_TEST_ID}
+          >
             {props.count} {props.pluralLabel}
           </span>
         </div>
