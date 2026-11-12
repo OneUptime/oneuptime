@@ -1,3 +1,5 @@
+import UsedByCard from "../../../Components/UsedBy/UsedByCard";
+import { UsedByRecordKind } from "Common/Types/UsedBy/UsedBy";
 import PageComponentProps from "../../PageComponentProps";
 import ObjectID from "Common/Types/ObjectID";
 import Route from "Common/Types/API/Route";
@@ -653,6 +655,11 @@ const ServiceView: FunctionComponent<PageComponentProps> = (): ReactElement => {
          * What Security Events found about it this week, for whoever
          * may read it (Components/SecurityConnections).
          */}
+        {/*
+         * "Used by" (#6813): the monitors watching this service, and the
+         * SLOs that measure them.
+         */}
+        <UsedByCard recordKind={UsedByRecordKind.Service} recordId={modelId} />
         <OpenStackPlacementOfService serviceId={modelId} />
         <ResourceSecurityCard
           kind={SecurityConnectionKind.Service}

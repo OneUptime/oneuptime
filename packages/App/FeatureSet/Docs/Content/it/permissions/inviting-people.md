@@ -86,7 +86,7 @@ Filtra l'elenco per **Utente**, **Stato** o **Team**. Fai clic su una riga per a
 | --- | --- |
 | **Profilo** | Il suo nome, l'indirizzo email, la foto e l'ID utente. |
 | **Team** | I team di cui fa parte. Qui aggiungi o rimuovi un team. |
-| **Prontezza**, **Metodi di notifica**, **Regole di reperibilità** | Se può essere chiamata, e come. Visibile ai Project Owner, ai Project Admin, alla persona stessa e a chi può leggere le regole di notifica degli altri. Vedi [Prontezza e report](/docs/on-call/readiness). |
+| **Prontezza**, **Metodi di notifica**, **Come contattarmi** | Se può essere chiamata, e come. Visibile ai Project Owner, ai Project Admin, alla persona stessa e a chi può leggere le regole di notifica degli altri. Vedi [Prontezza e report](/docs/on-call/readiness). |
 | **Campi personalizzati** | I campi personalizzati del progetto per le persone, se ne ha. |
 | **Rimuovi dal progetto** | Toglierla dal progetto. |
 

@@ -150,7 +150,7 @@ Om met een direct bericht te worden opgeroepen als je dienst hebt, voeg je Micro
 3. Klik op **Send Test Message** in de rij ervan. Het bericht komt aan in je chats in Microsoft Teams.
 :::
 
-Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Microsoft Teams. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Bereikbaarheidsregels**.
+Toevoegen zet het meteen in je bereikbaarheidsregels, dus vanaf dan bereiken oproepen je in Microsoft Teams. Wijzig welke oproepen het krijgt onder **Gebruikersinstellingen** > **Hoe ik bereikbaar ben**.
 
 ## Berichten als notities opslaan
 

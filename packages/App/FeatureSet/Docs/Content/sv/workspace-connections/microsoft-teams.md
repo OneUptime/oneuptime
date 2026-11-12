@@ -150,7 +150,7 @@ För att bli larmad via direktmeddelande när du har jour lägger du till Micros
 3. Klicka på **Send Test Message** på dess rad. Meddelandet kommer i dina chattar i Microsoft Teams.
 :::
 
-Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Microsoft Teams från och med då. Ändra vilka larm den får under **Användarinställningar** > **Jourregler**.
+Att lägga till den lägger in den i dina jourregler direkt, så larm når dig i Microsoft Teams från och med då. Ändra vilka larm den får under **Användarinställningar** > **Så når man mig**.
 
 ## Spara meddelanden som anteckningar
 

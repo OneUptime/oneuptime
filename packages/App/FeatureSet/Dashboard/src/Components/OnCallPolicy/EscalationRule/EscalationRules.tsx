@@ -1,4 +1,7 @@
 import SendTestPageButton from "../../OnCallTestPage/SendTestPageButton";
+import EscalationRuleNotifyNote, {
+  PreviousEscalationLevel,
+} from "./EscalationRuleNotifyNote";
 import { getTestPolicyGate } from "../../OnCallTestPage/OnCallTestPageAccess";
 import {
   ON_CALL_SECTION_LABEL_ON_WHITE_CLASS_NAME,
@@ -1854,18 +1857,39 @@ const EscalationRules: FunctionComponent<ComponentProps> = (
       return Boolean(editRuleId) && rule.id?.toString() === editRuleId;
     }) + 1 || 1;
 
+  /*
+   * The level a new rule comes after, and its wait: when the new level is
+   * paged, said under its Notify field (#7373).
+   */
+  const lastRule: OnCallDutyEscalationRule | undefined =
+    rules[rules.length - 1];
+  const previousLevel: PreviousEscalationLevel | undefined = lastRule
+    ? {
+        name: resolveEscalationRuleName(lastRule.name, rules.length),
+        escalateAfterInMinutes: Number(lastRule.escalateAfterInMinutes) || 0,
+      }
+    : undefined;
+
   const createFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
       return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
         level: rules.length + 1,
+        notifyFooterElement: (
+          <EscalationRuleNotifyNote previousLevel={previousLevel} />
+        ),
       });
-    }, [rules.length]);
+    }, [
+      rules.length,
+      previousLevel?.name,
+      previousLevel?.escalateAfterInMinutes,
+    ]);
 
   const editFormFields: Array<ModelField<OnCallDutyEscalationRule>> =
     useMemo((): Array<ModelField<OnCallDutyEscalationRule>> => {
       return getEscalationRuleFormFields<OnCallDutyEscalationRule>({
         level: editRuleLevel,
         isEditing: true,
+        notifyFooterElement: <EscalationRuleNotifyNote />,
       });
     }, [editRuleLevel]);
 

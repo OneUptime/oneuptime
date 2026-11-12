@@ -166,7 +166,7 @@ To be paged by direct message when you are on call, add Slack as one of your not
 3. Click **Send Test Message** on its row. The message arrives in your Slack direct messages.
 :::
 
-Adding it adds it to your on-call rules straight away, so pages reach you in Slack from then on. Change which pages it gets under **User Settings** > **On-Call Rules**.
+Adding it adds it to your on-call rules straight away, so pages reach you in Slack from then on. Change which pages it gets under **User Settings** > **How to Reach Me**.
 
 ## Saving messages as notes
 

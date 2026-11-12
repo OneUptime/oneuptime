@@ -78,7 +78,7 @@ Die App zeigt jeweils ein Projekt: Tippen Sie oben auf einem Bildschirm auf den 
 Klicken Sie in der Zeile des Telefons auf **Testbenachrichtigung**. Auf dem Telefon kommt eine Benachrichtigung an; tippen Sie darauf, um die App zu öffnen.
 :::
 
-Ihre Bereitschaftsregeln entscheiden, welche Alarme an das Telefon gehen und wie schnell: siehe **Benutzereinstellungen → Bereitschaftsregeln**. Ein neues Telefon bekommt dieselben Standardregeln wie jede andere Methode, die Sie hinzufügen.
+Ihre Bereitschaftsregeln entscheiden, welche Alarme an das Telefon gehen und wie schnell: siehe **Benutzereinstellungen → Wie ich erreichbar bin**. Ein neues Telefon bekommt dieselben Standardregeln wie jede andere Methode, die Sie hinzufügen.
 
 ## Den Stummmodus durchbrechen
 
@@ -139,7 +139,7 @@ Die App konnte `https://<your-oneuptime>/api/status` nicht erreichen. Prüfen Si
 - Prüfen Sie in den Android-Einstellungen, dass Benachrichtigungen für die App an sind, und dass „Bitte nicht stören“ aus ist oder kritische Warnungen an sind.
 - Prüfen Sie, dass das Telefon unter **Push-Benachrichtigungen** in **Benutzereinstellungen → Benachrichtigungsmethoden** steht, und senden Sie ihm eine **Testbenachrichtigung**.
 - Ist das Telefon mit **Keine Benachrichtigungen** markiert, öffnen Sie die App, während Sie angemeldet sind. Sie registriert das Telefon erneut; siehe [Wenn sich ein Telefon neu registrieren muss](/docs/mobile-desktop-apps/faq-troubleshooting#wenn-sich-ein-telefon-neu-registrieren-muss).
-- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Bereitschaftsregeln**.
+- Prüfen Sie Ihre Bereitschaftsregeln unter **Benutzereinstellungen → Wie ich erreichbar bin**.
 - Prüfen Sie bei einem selbst gehosteten OneUptime, dass Ihr Server sein Push-Relay erreicht: siehe [Push-Benachrichtigungen](/docs/self-hosted/push-notifications#netzwerkzugriff).
 :::
 

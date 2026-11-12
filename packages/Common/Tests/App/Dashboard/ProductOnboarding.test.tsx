@@ -657,10 +657,15 @@ describe("About, beside a product page's title", () => {
   });
 
   /*
-   * On-Call's and Status Pages' jobs have a guide in the docs (#6821): their
-   * About links it first, as their empty lists do.
+   * Monitors', On-Call's and Status Pages' jobs have a guide in the docs
+   * (#6821): their About links it first, as their empty lists do.
    */
   test.each([
+    [
+      ProductKey.Monitors,
+      "/docs/guides/website-down",
+      "/docs/monitor/create-monitor",
+    ],
     [ProductKey.OnCall, "/docs/guides/paging", "/docs/on-call/index"],
     [
       ProductKey.StatusPages,
