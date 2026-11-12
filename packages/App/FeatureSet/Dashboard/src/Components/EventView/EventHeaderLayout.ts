@@ -49,6 +49,7 @@ export const EVENT_HEADER_TEST_IDS: {
   chips: string;
   number: string;
   title: string;
+  titleWords: string;
   actions: string;
   buttons: string;
   morePlace: string;
@@ -61,6 +62,7 @@ export const EVENT_HEADER_TEST_IDS: {
   chips: "event-header-chips",
   number: "event-header-number",
   title: "event-header-title",
+  titleWords: "event-header-title-words",
   actions: "event-header-actions",
   buttons: "event-header-buttons",
   morePlace: "event-header-more-place",
@@ -90,6 +92,19 @@ export const EVENT_HEADER_NUMBER_CLASS_NAME: string =
  */
 export const EVENT_HEADER_TITLE_CLASS_NAME: string =
   "min-w-0 basis-full break-words text-xl font-semibold leading-snug text-gray-900 [overflow-wrap:anywhere]";
+
+/*
+ * A title that reads the other way from the page - an English title on an
+ * Arabic or Persian page - is a line of its own inside the heading, which
+ * keeps its place in the header (EventStatusPanel). The heading wraps, so
+ * its words take IsolatedLine's box for wrapping words: as wide as they
+ * are, at the page's start, each wrapped line from the title's own start
+ * and its full stop or bracket at its own end. Drawn with the heading's
+ * line-height, size and weight, which it inherits. A title that reads the
+ * page's way has no box of its own.
+ */
+export const EVENT_HEADER_TITLE_WORDS_CLASS_NAME: string =
+  "block [overflow-wrap:anywhere]";
 
 /*
  * Below this width the header is a phone's, or a narrow window's beside the
@@ -352,6 +367,10 @@ export const EVENT_HEADER_FACT_LABEL_CLASS_NAME: string =
 
 export const EVENT_HEADER_FACT_LABEL_ICON_CLASS_NAME: string =
   "mt-px h-3.5 w-3.5 flex-shrink-0 text-gray-400";
+
+// The label's words, beside its icon: wrapped, never cut short.
+export const EVENT_HEADER_FACT_LABEL_TEXT_CLASS_NAME: string =
+  "min-w-0 break-words";
 
 // The value, and under it the space before the next row of facts.
 export const EVENT_HEADER_FACT_VALUE_CLASS_NAME: string =

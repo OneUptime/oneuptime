@@ -154,7 +154,7 @@
     }
   },
   "help": {
-    "label": "Помощь",
+    "label": "Справка",
     "quickstart": "Быстрый старт",
     "documentation": "Документация",
     "glossary": "Глоссарий",
@@ -205,7 +205,7 @@
     "onDutyOne": "Дежурите по {{count}} политике",
     "onDutyOther": "Дежурите по {{count}} политикам",
     "onDutyTooltip": "Политики дежурства, по которым вы дежурите",
-    "search": "Search",
+    "search": "Поиск",
     "invitationsPendingOne": "{{count}} Ожидающее приглашение",
     "invitationsPendingOther": "{{count}} Ожидающие приглашения",
     "invitationsTooltip": "Похоже, у вас есть ожидающие приглашения в проект. Нажмите здесь, чтобы просмотреть и принять их.",
@@ -42173,7 +42173,6 @@
   "Written By": "Записывают",
   "Changes Around It": "Изменения в это время",
   "Add Check": "Добавить проверку",
-  "Alerts when its value is {{condition}} {{threshold}}.": "Оповещает, когда значение {{condition}} {{threshold}}.",
   "Checked whether a table is fresh": "Проверено, актуальна ли таблица",
   "Checking whether a table is fresh": "Проверяется, актуальна ли таблица",
   "Data table": "Таблица данных",
@@ -51133,7 +51132,21 @@
   "Window must be a whole number of days.": "Окно должно быть целым числом дней.",
   "Window must be between {{min}} and {{max}} days.": "Окно должно быть от {{min}} до {{max}} дней.",
   "{{percentage}} of each month: {{budget}} of downtime in a {{days}}-day month": "{{percentage}} каждого месяца: {{budget}} простоя в месяце из {{days}} дней",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}.": "ИИ прочитал эти файлы ({{count}}) и больше не видит части их текста, а версии ИИ заменяют их целиком: {{files}}.",
+  "Ask AI read these {{count}} files and no longer has part of their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}.",
+  "Ask AI read this file and no longer has part of its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл и больше не видит части его текста, а версия ИИ заменяет его целиком: {{files}}.",
+  "Above {{threshold}}": "Выше {{threshold}}",
+  "Alerts when its value is above {{threshold}}.": "Оповещает, когда значение выше {{threshold}}.",
+  "Alerts when its value is below {{threshold}}.": "Оповещает, когда значение ниже {{threshold}}.",
+  "Alerts when its value is unusually high.": "Оповещает, когда значение необычно высокое.",
+  "Alerts when its value is unusually low.": "Оповещает, когда значение необычно низкое.",
+  "Below {{threshold}}": "Ниже {{threshold}}",
   "Fix the problem above, then test the rule again.": "Устраните проблему, указанную выше, затем проверьте правило снова.",
   "Check {{workspace}} to confirm the test notification for the rule \"{{rule}}\" arrived.": "Проверьте {{workspace}}, чтобы убедиться, что тестовое уведомление для правила «{{rule}}» пришло.",
-  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Отправить тестовое уведомление для правила «{{rule}}» в {{workspace}}."
+  "Send a test notification for the rule \"{{rule}}\" to {{workspace}}.": "Отправить тестовое уведомление для правила «{{rule}}» в {{workspace}}.",
+  "The status page does not show this resource's status.": "Страница статуса не показывает статус этого ресурса.",
+  "The status page shows this resource as not monitored.": "Страница статуса показывает, что этот ресурс не отслеживается.",
+  "Under maintenance: {{events}}": "На обслуживании: {{events}}",
+  "Unusually High": "Необычно высоко",
+  "Unusually Low": "Необычно низко"
 }
