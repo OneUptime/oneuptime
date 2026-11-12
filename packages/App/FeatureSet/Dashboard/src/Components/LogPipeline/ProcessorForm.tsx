@@ -1,6 +1,7 @@
 import React, {
   FunctionComponent,
   ReactElement,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -47,7 +48,9 @@ import TranslatedSentence from "Common/UI/Components/TranslatedSentence/Translat
 
 export interface ComponentProps {
   pipelineId: ObjectID;
-  onProcessorCreated: () => void;
+  existingProcessor?: LogPipelineProcessor | undefined;
+  onProcessorCreated?: () => void;
+  onProcessorSaved?: () => void;
   onCancel: () => void;
 }
 
@@ -117,6 +120,26 @@ interface KeyValueTestResult {
  * user typed one. Mirrors LogPipelineService.normalizeTargetPrefix -
  * this is only used to render the preview of the resulting keys.
  */
+const asString: (value: JSONValue | undefined, fallback: string) => string = (
+  value: JSONValue | undefined,
+  fallback: string,
+): string => {
+  if (typeof value === "string") {
+    return value;
+  }
+  return fallback;
+};
+
+const asBoolean: (
+  value: JSONValue | undefined,
+  fallback: boolean,
+) => boolean = (value: JSONValue | undefined, fallback: boolean): boolean => {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  return fallback;
+};
+
 function previewAttributeKey(targetPrefix: string, fieldName: string): string {
   const prefix: string = targetPrefix.trim();
 
@@ -140,15 +163,36 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
   props: ComponentProps,
 ): ReactElement => {
   const translator: Translator = useTranslator();
+  const isEditMode: boolean = Boolean(props.existingProcessor);
+  const existingConfig: JSONObject =
+    (props.existingProcessor?.configuration as JSONObject) || {};
+  const existingType: ProcessorType =
+    (props.existingProcessor?.processorType as ProcessorType) || "";
+
   // Common fields
-  const [name, setName] = useState<string>("");
-  const [processorType, setProcessorType] = useState<ProcessorType>("");
-  const [isEnabled, setIsEnabled] = useState<boolean>(true);
+  const [name, setName] = useState<string>(props.existingProcessor?.name || "");
+  const [processorType, setProcessorType] =
+    useState<ProcessorType>(existingType);
+  const [isEnabled, setIsEnabled] = useState<boolean>(
+    props.existingProcessor?.isEnabled ?? true,
+  );
 
   // Grok Parser fields
-  const [grokSource, setGrokSource] = useState<string>("body");
-  const [grokPattern, setGrokPattern] = useState<string>("");
-  const [grokTargetPrefix, setGrokTargetPrefix] = useState<string>("");
+  const [grokSource, setGrokSource] = useState<string>(
+    existingType === "GrokParser"
+      ? asString(existingConfig["source"], "body")
+      : "body",
+  );
+  const [grokPattern, setGrokPattern] = useState<string>(
+    existingType === "GrokParser"
+      ? asString(existingConfig["pattern"], "")
+      : "",
+  );
+  const [grokTargetPrefix, setGrokTargetPrefix] = useState<string>(
+    existingType === "GrokParser"
+      ? asString(existingConfig["targetPrefix"], "")
+      : "",
+  );
   const [grokSample, setGrokSample] = useState<string>("");
   const [showGrokPatternList, setShowGrokPatternList] =
     useState<boolean>(false);
@@ -158,35 +202,116 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
    * whitespace", which is what Sophos, Fortinet and logfmt use, so it is
    * left out of the saved configuration rather than saved as "".
    */
-  const [keyValueSource, setKeyValueSource] = useState<string>("body");
-  const [keyValueTargetPrefix, setKeyValueTargetPrefix] = useState<string>("");
-  const [keyValuePairDelimiter, setKeyValuePairDelimiter] =
-    useState<string>("");
+  const [keyValueSource, setKeyValueSource] = useState<string>(
+    existingType === "KeyValueParser"
+      ? asString(existingConfig["source"], "body")
+      : "body",
+  );
+  const [keyValueTargetPrefix, setKeyValueTargetPrefix] = useState<string>(
+    existingType === "KeyValueParser"
+      ? asString(existingConfig["targetPrefix"], "")
+      : "",
+  );
+  const [keyValuePairDelimiter, setKeyValuePairDelimiter] = useState<string>(
+    existingType === "KeyValueParser"
+      ? asString(existingConfig["pairDelimiter"], "")
+      : "",
+  );
   const [keyValueDelimiter, setKeyValueDelimiter] = useState<string>(
     DEFAULT_KEY_VALUE_DELIMITER,
   );
   const [keyValueOverrideOnConflict, setKeyValueOverrideOnConflict] =
     useState<boolean>(false);
+
+  useEffect(() => {
+    if (existingType === "KeyValueParser") {
+      if (typeof existingConfig["keyValueDelimiter"] === "string") {
+        setKeyValueDelimiter(existingConfig["keyValueDelimiter"]);
+      }
+      if (typeof existingConfig["overrideOnConflict"] === "boolean") {
+        setKeyValueOverrideOnConflict(existingConfig["overrideOnConflict"]);
+      }
+    }
+  }, [props.existingProcessor]);
   const [keyValueSample, setKeyValueSample] = useState<string>("");
 
   // Severity Remapper fields
-  const [severitySourceKey, setSeveritySourceKey] = useState<string>("level");
+  const [severitySourceKey, setSeveritySourceKey] = useState<string>(
+    existingType === "SeverityRemapper"
+      ? asString(existingConfig["sourceKey"], "level")
+      : "level",
+  );
   const [severityMappings, setSeverityMappings] = useState<
     Array<SeverityMapping>
-  >([{ matchValue: "", severityText: "", severityNumber: 0 }]);
+  >(() => {
+    if (
+      existingType === "SeverityRemapper" &&
+      Array.isArray(existingConfig["mappings"])
+    ) {
+      const parsedMappings: Array<SeverityMapping> = (
+        existingConfig["mappings"] as Array<JSONObject>
+      ).map((m: JSONObject) => {
+        return {
+          matchValue: asString(m["matchValue"], ""),
+          severityText: asString(m["severityText"], ""),
+          severityNumber:
+            typeof m["severityNumber"] === "number" ? m["severityNumber"] : 0,
+        };
+      });
+      if (parsedMappings.length > 0) {
+        return parsedMappings;
+      }
+    }
+    return [{ matchValue: "", severityText: "", severityNumber: 0 }];
+  });
 
   // Attribute Remapper fields
-  const [attrSourceKey, setAttrSourceKey] = useState<string>("");
-  const [attrTargetKey, setAttrTargetKey] = useState<string>("");
-  const [preserveSource, setPreserveSource] = useState<boolean>(false);
-  const [overrideOnConflict, setOverrideOnConflict] = useState<boolean>(true);
+  const [attrSourceKey, setAttrSourceKey] = useState<string>(
+    existingType === "AttributeRemapper"
+      ? asString(existingConfig["sourceKey"], "")
+      : "",
+  );
+  const [attrTargetKey, setAttrTargetKey] = useState<string>(
+    existingType === "AttributeRemapper"
+      ? asString(existingConfig["targetKey"], "")
+      : "",
+  );
+  const [preserveSource, setPreserveSource] = useState<boolean>(
+    existingType === "AttributeRemapper"
+      ? asBoolean(existingConfig["preserveSource"], false)
+      : false,
+  );
+  const [overrideOnConflict, setOverrideOnConflict] = useState<boolean>(
+    existingType === "AttributeRemapper"
+      ? asBoolean(existingConfig["overrideOnConflict"], true)
+      : true,
+  );
 
   // Category Processor fields
-  const [categoryTargetKey, setCategoryTargetKey] =
-    useState<string>("category");
-  const [categories, setCategories] = useState<Array<CategoryRule>>([
-    { name: "", filterQuery: "" },
-  ]);
+  const [categoryTargetKey, setCategoryTargetKey] = useState<string>(
+    existingType === "CategoryProcessor"
+      ? asString(existingConfig["targetKey"], "category")
+      : "category",
+  );
+  const [categories, setCategories] = useState<Array<CategoryRule>>(() => {
+    if (
+      existingType === "CategoryProcessor" &&
+      Array.isArray(existingConfig["categories"])
+    ) {
+      const parsedCategories: Array<CategoryRule> = (
+        existingConfig["categories"] as Array<JSONObject>
+      ).map((c: JSONObject) => {
+        return {
+          name: asString(c["name"], ""),
+          filterQuery: asString(c["filterQuery"], ""),
+        };
+      });
+      if (parsedCategories.length > 0) {
+        return parsedCategories;
+      }
+    }
+    return [{ name: "", filterQuery: "" }];
+  });
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -413,20 +538,42 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
     setError("");
 
     try {
-      const processor: LogPipelineProcessor = new LogPipelineProcessor();
-      processor.name = name;
-      processor.processorType = processorType;
-      processor.configuration = buildConfiguration();
-      processor.isEnabled = isEnabled;
-      processor.logPipelineId = props.pipelineId;
-      processor.sortOrder = 1;
+      if (
+        isEditMode &&
+        props.existingProcessor &&
+        props.existingProcessor._id
+      ) {
+        const processor: LogPipelineProcessor = new LogPipelineProcessor();
+        processor._id = props.existingProcessor._id;
+        processor.name = name.trim();
+        processor.processorType = processorType;
+        processor.configuration = buildConfiguration();
+        processor.isEnabled = isEnabled;
 
-      await ModelAPI.create({
-        model: processor,
-        modelType: LogPipelineProcessor,
-      });
+        await ModelAPI.update({
+          model: processor,
+          modelType: LogPipelineProcessor,
+        });
+      } else {
+        const processor: LogPipelineProcessor = new LogPipelineProcessor();
+        processor.name = name.trim();
+        processor.processorType = processorType;
+        processor.configuration = buildConfiguration();
+        processor.isEnabled = isEnabled;
+        processor.logPipelineId = props.pipelineId;
+        processor.sortOrder = 1;
 
-      props.onProcessorCreated();
+        await ModelAPI.create({
+          model: processor,
+          modelType: LogPipelineProcessor,
+        });
+      }
+
+      if (props.onProcessorSaved) {
+        props.onProcessorSaved();
+      } else if (props.onProcessorCreated) {
+        props.onProcessorCreated();
+      }
     } catch (err) {
       /*
        * The API validates the grok pattern too, and ModelAPI throws an
@@ -442,10 +589,10 @@ const ProcessorForm: FunctionComponent<ComponentProps> = (
 
   return (
     <Modal
-      title="Add Processor"
+      title={isEditMode ? "Edit Processor" : "Add Processor"}
       description="Processors change logs before they are stored. They run in order, after the pipeline's filter matches."
       modalWidth={ModalWidth.Large}
-      submitButtonText="Create Processor"
+      submitButtonText={isEditMode ? "Save Changes" : "Create Processor"}
       onSubmit={handleSave}
       isLoading={isSaving}
       onClose={props.onCancel}
