@@ -106,6 +106,7 @@ const drawHeader: (
     identifier: "INC-42",
     currentStateId: "created",
     actions: [],
+    onActionClick: (): void => {},
     ...overrides,
   };
 
