@@ -91,6 +91,26 @@ const getScroller: () => Element | null = (): Element | null => {
 };
 
 /*
+ * Takes the page to its end at once: where a reply just sent is drawn,
+ * however far up the reader sent it from. The reply box is held at the
+ * bottom of the window, so it is in view - and used - anywhere on the
+ * page: scrolling the box itself into view moved nothing, and a reply sent
+ * from a long task's first turn was drawn out of sight (issue #6529).
+ */
+export const scrollPageToEnd: () => void = (): void => {
+  const scroller: Element | null = getScroller();
+
+  if (!scroller) {
+    return;
+  }
+
+  scroller.scrollTop = Math.max(
+    0,
+    scroller.scrollHeight - scroller.clientHeight,
+  );
+};
+
+/*
  * The page's sticky header, as tall as MasterPage measures it
  * (--app-header-height): what covers the top of the window.
  */

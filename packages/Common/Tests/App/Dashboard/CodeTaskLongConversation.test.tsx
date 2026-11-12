@@ -8,7 +8,15 @@ import {
   test,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createInstance, i18n } from "i18next";
 import React, { ReactElement } from "react";
 import { I18nextProvider, initReactI18next } from "react-i18next";
@@ -43,6 +51,8 @@ import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
 const getTaskMock: MockFunction = getJestMockFunction();
 const getTurnProgressMock: MockFunction = getJestMockFunction();
+const replyMock: MockFunction = getJestMockFunction();
+const retryMock: MockFunction = getJestMockFunction();
 
 jest.mock(
   "../../../../App/FeatureSet/Dashboard/src/Components/Code/CodeApi",
@@ -56,6 +66,12 @@ jest.mock(
         },
         getTurnProgress: (...args: Array<unknown>) => {
           return getTurnProgressMock(...args);
+        },
+        reply: (...args: Array<unknown>) => {
+          return replyMock(...args);
+        },
+        retry: (...args: Array<unknown>) => {
+          return retryMock(...args);
         },
       },
     };
@@ -127,6 +143,8 @@ beforeAll(async () => {
 beforeEach(() => {
   getTaskMock.mockReset();
   getTurnProgressMock.mockReset();
+  replyMock.mockReset();
+  retryMock.mockReset();
   jest.spyOn(Navigation, "navigate").mockImplementation((() => {}) as never);
   goTo(`/dashboard/${PROJECT_ID}/code/tasks/${TASK_ID}`);
 });
@@ -362,6 +380,201 @@ describe("a long task's conversation", () => {
     expect(screen.getByTestId("code-task-work-time")).toHaveTextContent(
       "worked 7 minutes",
     );
+  });
+});
+
+/*
+ * The reply box is held at the bottom of the window, so a reply can be sent
+ * from anywhere on the page - from a long task's first turn, where it
+ * opens. The page used to scroll the box into view after a reply, which it
+ * always is, so nothing moved: in a browser, a reply sent from the top of a
+ * task of 207 turns was drawn some 67,000 pixels below (Code.spec.ts). The
+ * page now goes to its end once the reply is drawn there.
+ */
+describe("a reply sent from far up a long task", () => {
+  const WINDOW_HEIGHT: number = 800;
+  let scrollTop: number = 0;
+
+  /*
+   * The page's height as drawn: 100 pixels for each turn up to the newest
+   * one drawn, so it grows when the reply's turn is drawn.
+   */
+  function drawnHeight(): number {
+    const requests: Array<Element> = Array.from(
+      document.querySelectorAll("[data-testid='code-turn-request']"),
+    );
+    const newest: number = Number(
+      (requests[requests.length - 1]?.textContent || "").match(
+        /Turn (\d+)/,
+      )?.[1] || 0,
+    );
+
+    return newest * 100 + 400;
+  }
+
+  beforeEach(() => {
+    scrollTop = 0;
+    Object.defineProperty(document.documentElement, "scrollTop", {
+      configurable: true,
+      get: (): number => {
+        return scrollTop;
+      },
+      set: (value: number): void => {
+        scrollTop = value;
+      },
+    });
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      get: drawnHeight,
+    });
+    Object.defineProperty(document.documentElement, "clientHeight", {
+      configurable: true,
+      get: (): number => {
+        return WINDOW_HEIGHT;
+      },
+    });
+  });
+
+  afterEach(() => {
+    for (const key of ["scrollTop", "scrollHeight", "clientHeight"]) {
+      Reflect.deleteProperty(document.documentElement, key);
+    }
+  });
+
+  // Turn 206 asked: turn 203 is not shown any more.
+  const NEWEST_OF_206: Array<CodeTaskTurnJSON> = [
+    turn(1),
+    turn(204),
+    turn(205),
+    turn(206),
+  ];
+
+  async function sendReply(): Promise<void> {
+    await userEvent.type(
+      screen.getByTestId("code-composer-input"),
+      "Keep going{Enter}",
+    );
+  }
+
+  // Try again finishes after the read it waits for: its last update.
+  async function settle(): Promise<void> {
+    await act(async () => {
+      await Promise.resolve();
+    });
+  }
+
+  test("the page goes to its end once the reply is drawn there - not before", async () => {
+    await drawLongTask({ count: 201, workMilliseconds: 0 });
+    // A task opens where it starts: at its first turn.
+    expect(scrollTop).toBe(0);
+
+    replyMock.mockResolvedValue(undefined as never);
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        turns: NEWEST_OF_206,
+        turnsNotShown: { count: 202, workMilliseconds: 0 },
+      }) as never,
+    );
+
+    await sendReply();
+
+    expect(replyMock).toHaveBeenCalledWith({
+      taskId: TASK_ID,
+      message: "Keep going",
+      context: [],
+    });
+    await waitFor(() => {
+      expect(wordsOf(screen.getByTestId("code-task-turns-not-shown"))).toBe(
+        "202 earlier turns are not shown",
+      );
+    });
+    // The end of the page with turn 206 drawn (20,200), not of the page before it (20,100).
+    expect(scrollTop).toBe(206 * 100 + 400 - WINDOW_HEIGHT);
+  });
+
+  test("negative control: a reply the server refuses leaves the reader where they are - then and at the next read", async () => {
+    // The newest turn failed: Try again is offered beside the reply box.
+    await drawLongTask({ count: 201, workMilliseconds: 0 }, [
+      ...NEWEST_OF_205.slice(0, 3),
+      turn(205, {
+        status: AIRunStatus.Error,
+        state: CodeTaskState.Failed,
+        errorMessage: "The Runner could not clone the repository.",
+      }),
+    ]);
+    replyMock.mockRejectedValue(
+      new Error("This project used its daily AI token limit.") as never,
+    );
+
+    await sendReply();
+
+    await waitFor(() => {
+      expect(replyMock).toHaveBeenCalledTimes(1);
+    });
+    expect(getTaskMock).toHaveBeenCalledTimes(1);
+    expect(scrollTop).toBe(0);
+
+    // The page read again (Try again): no reply was drawn, so it stays put.
+    retryMock.mockResolvedValue(undefined as never);
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        turns: NEWEST_OF_205,
+        turnsNotShown: { count: 201, workMilliseconds: 0 },
+      }) as never,
+    );
+
+    await userEvent.click(screen.getByTestId("code-turn-retry"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("code-turn-retry")).toBeNull();
+    });
+    await settle();
+    expect(getTaskMock).toHaveBeenCalledTimes(2);
+    expect(scrollTop).toBe(0);
+  });
+
+  test("the page goes there once: a later read leaves the reader where they scrolled to", async () => {
+    await drawLongTask({ count: 201, workMilliseconds: 0 });
+    replyMock.mockResolvedValue(undefined as never);
+    // The reply's turn failed at once, so Try again is offered on it.
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        turns: [
+          ...NEWEST_OF_206.slice(0, 3),
+          turn(206, {
+            status: AIRunStatus.Error,
+            state: CodeTaskState.Failed,
+            errorMessage: "The Runner could not clone the repository.",
+          }),
+        ],
+        turnsNotShown: { count: 202, workMilliseconds: 0 },
+      }) as never,
+    );
+
+    await sendReply();
+    await waitFor(() => {
+      expect(scrollTop).toBe(206 * 100 + 400 - WINDOW_HEIGHT);
+    });
+
+    // The reader goes back up to the first turn, then tries the turn again.
+    scrollTop = 0;
+    window.dispatchEvent(new Event("scroll"));
+    retryMock.mockResolvedValue(undefined as never);
+    getTaskMock.mockResolvedValue(
+      taskAnswer({
+        turns: NEWEST_OF_206,
+        turnsNotShown: { count: 202, workMilliseconds: 0 },
+      }) as never,
+    );
+
+    await userEvent.click(screen.getByTestId("code-turn-retry"));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("code-turn-retry")).toBeNull();
+    });
+    await settle();
+    expect(getTaskMock).toHaveBeenCalledTimes(3);
+    expect(scrollTop).toBe(0);
   });
 });
 

@@ -34,7 +34,9 @@ import {
   mergeTurnProgress,
 } from "../../../Components/Code/CodeTaskLive";
 import useCodeTaskLive from "../../../Components/Code/UseCodeTaskLive";
-import useFollowLatest from "../../../Components/Code/UseFollowLatest";
+import useFollowLatest, {
+  scrollPageToEnd,
+} from "../../../Components/Code/UseFollowLatest";
 import {
   CodePullRequestCopy,
   getPullRequestCopy,
@@ -71,6 +73,7 @@ import React, {
   ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -135,8 +138,12 @@ const CodeTaskConversation: FunctionComponent<
   const [isStopping, setIsStopping] = useState<boolean>(false);
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [isAskingAgain, setIsAskingAgain] = useState<boolean>(false);
-  const bottomRef: React.RefObject<HTMLDivElement> =
-    useRef<HTMLDivElement>(null);
+  /*
+   * A reply was just sent: the page goes to its end, where the reply is
+   * drawn, once the task is read again with it.
+   */
+  const isGoingToEndRef: React.MutableRefObject<boolean> =
+    useRef<boolean>(false);
   // The conversation's turns: its last item is the latest turn's reply.
   const turnsRef: React.RefObject<HTMLOListElement> =
     useRef<HTMLOListElement>(null);
@@ -241,6 +248,22 @@ const CodeTaskConversation: FunctionComponent<
     isWorking,
     refresh: refreshLive,
   });
+
+  /*
+   * The reply just sent, drawn at the end of the conversation: the page
+   * goes there before it is painted, from wherever the reader sent it - a
+   * long task's first turn is as near the reply box as its newest. Before
+   * useFollowLatest, which then finds the reader at the end, watching AI
+   * take up the reply.
+   */
+  useLayoutEffect(() => {
+    if (!data || !isGoingToEndRef.current) {
+      return;
+    }
+
+    isGoingToEndRef.current = false;
+    scrollPageToEnd();
+  }, [data]);
 
   useFollowLatest({
     growthKey: data ? getConversationGrowthKey(data.turns) : "",
@@ -490,8 +513,8 @@ const CodeTaskConversation: FunctionComponent<
             message: reply.message,
             context: reply.context,
           });
+          isGoingToEndRef.current = true;
           await load();
-          bottomRef.current?.scrollIntoView?.({ block: "end" });
         }}
         footer={
           /*
@@ -787,7 +810,6 @@ const CodeTaskConversation: FunctionComponent<
        * conversation scrolls - its ground is the page's, faded above it.
        */}
       <div
-        ref={bottomRef}
         data-testid="code-task-footer"
         className="sticky bottom-0 z-10 mt-8 pb-4"
         style={STICKY_FOOTER_STYLE}
