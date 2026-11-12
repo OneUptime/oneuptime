@@ -1657,10 +1657,10 @@ describe("turning them on", () => {
     expect(exporter).toMatch(/^ {2}endpoint:/m);
     expect(exporter).toMatch(/^ {2}headers:/m);
     expect(common).toContain(
-      "- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT\n  value: {{ $.Values.openTelemetryExporter.endpoint | quote }}",
+      '- name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT\n  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
     );
     expect(common).toContain(
-      "- name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS\n  value: {{ $.Values.openTelemetryExporter.headers | quote }}",
+      '- name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS\n  value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
     );
 
     for (const service of ["app", "worker"]) {

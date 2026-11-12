@@ -185,10 +185,11 @@ tests:
   # the line a mapping (the render fails), ' #' starts a comment (everything
   # after it is silently dropped, so the collector refuses a shortened key),
   # and a leading '*', '&' or '!' is an alias, anchor or tag. Every template
-  # that hands a workload the exporter settings writes them through `quote`,
-  # so each value below must reach the app, the worker, every probe and the
-  # global runner exactly as it was set. Tests/Ops/HelmEnvValuesQuoted.test.js
-  # holds every other env value of the chart to the same rule.
+  # that hands a workload the exporter settings writes them through the
+  # chart's oneuptime.envValue helper, a quoted string, so each value below
+  # must reach the app, the worker, every probe and the global runner exactly
+  # as it was set. Tests/Ops/HelmEnvValuesQuoted.test.js holds every other env
+  # value of the chart to the same rule.
   # ---------------------------------------------------------------------------
   - it: renders the probe's exporter variables empty when none is set
     templates:
@@ -964,3 +965,98 @@ tests:
             name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
             value: "https://[fd00::4318]:4318/otlp?tenant=eu&tier=1#exporter"
 
+
+  # ---------------------------------------------------------------------------
+  # A header list read from a file (helm --set-file, Terraform's file()) ends
+  # in a newline. Written unquoted, YAML always left the whitespace around a
+  # value out, so the pods got the list without it; quoted, they still do.
+  # ---------------------------------------------------------------------------
+  - it: "hands the app a header list read from a file without the whitespace around it"
+    templates:
+      - templates/app.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp
+
+  - it: "hands the worker a header list read from a file without the whitespace around it"
+    templates:
+      - templates/worker.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      worker:
+        enabled: true
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp
+
+  - it: "hands the probe a header list read from a file without the whitespace around it"
+    templates:
+      - templates/probe.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp
+
+  - it: "hands the global runner a header list read from a file without the whitespace around it"
+    templates:
+      - templates/global-runner.yaml
+    documentSelector:
+      path: kind
+      value: Deployment
+    set:
+      openTelemetryExporter:
+        endpoint: "https://collector.example.com/otlp\n"
+        headers: "  x-oneuptime-token=key-from-a-file\n"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
+            value: "x-oneuptime-token=key-from-a-file"
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
+            value: https://collector.example.com/otlp

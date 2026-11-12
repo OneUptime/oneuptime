@@ -1198,12 +1198,15 @@ credentials and free text: `: ` fails the render, ` #` starts a comment that
 silently drops the rest of the value, a leading `*`, `&` or `!` is an alias,
 anchor or tag, and `123456`, `yes` or `0x1F` become a number or a boolean
 Kubernetes refuses. #7163 found it in the telemetry exporter's headers. This
-holds both charts to writing every such value through `quote`:
+holds both charts to writing every such value as a quoted string:
 
 - the source: in every template under `HelmChart/`, an env value written as
-  one template action ends its pipeline in `quote` (or `squote`, which the
-  charts keep for numbers and switches); a value built from several pieces,
-  such as a Service's DNS name, is left alone;
+  one template action goes through the `oneuptime.envValue` helper or ends its
+  pipeline in `quote` (or `squote`, which the charts keep for numbers and
+  switches); a value built from several pieces, such as a Service's DNS
+  name, is left alone. The helper also leaves the whitespace around a value
+  out, as YAML always did, so a secret read from a file with its final newline
+  stays the secret the pods had;
 - the render: the `oneuptime` chart with every workload on, in the built-in and
   the external database layouts, with each credential and free-text setting
   it hands its pods set to a value full of YAML syntax and to number, boolean

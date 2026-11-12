@@ -16,19 +16,28 @@
  * #7163 found it in the telemetry exporter's headers, where a value such as
  * 'x-a=one #two' reached the pods as 'x-a=one'.
  *
+ * The oneuptime chart writes a setting through its helper
+ * `oneuptime.envValue`, which quotes it and leaves out the whitespace around
+ * it: YAML always left that out of an unquoted value, so a secret read from a
+ * file with its final newline (helm --set-file, Terraform's file()) stays the
+ * secret the pods had before. A changed ENCRYPTION_SECRET would make every
+ * value encrypted with the old one unreadable.
+ *
  * 1. The source. In every chart template, an env value written as one
- *    template action ends its pipeline with `quote`, or with `squote`, which
- *    the charts keep for numbers and switches. A value built from several
- *    pieces, a Service's address from the release name, the namespace and
- *    the cluster domain, is not one action, and is left as it is: those are
- *    DNS names, which hold none of YAML's syntax.
+ *    template action goes through `oneuptime.envValue`, or ends its pipeline
+ *    with `quote`, or with `squote`, which the charts keep for numbers and
+ *    switches. A value built from several pieces, a Service's address from
+ *    the release name, the namespace and the cluster domain, is not one
+ *    action, and is left as it is: those are DNS names, which hold none of
+ *    YAML's syntax.
  * 2. The render (helm on PATH; CI has it). The oneuptime chart, with every
  *    workload on and in each database layout, renders with every credential
  *    and free-text setting it hands its pods set to a value full of YAML's
- *    syntax, and then to values YAML would read as a number, a boolean or
- *    null. Every env entry of every workload that carries one of them holds
- *    it exactly, and the exporter's headers reach every workload that sends
- *    OneUptime's own telemetry.
+ *    syntax, then to values YAML would read as a number, a boolean or null,
+ *    and then wrapped in whitespace and a final newline. Every env entry of
+ *    every workload that carries one of them holds it exactly (without the
+ *    whitespace around it), and the exporter's headers reach every workload
+ *    that sends OneUptime's own telemetry.
  *
  * The chart's helm-unittest suite tests/telemetry-exporter-isolation_test.yaml
  * holds the exporter's settings in the app, the worker, the probes and the
@@ -57,6 +66,9 @@ const VALUE_LINE = /^\s*(?:-\s+)?value:\s*(.*?)\s*$/;
 const ONE_ACTION = /^\{\{-?\s*((?:(?!\}\}).)*?)\s*-?\}\}$/;
 // The action ends its pipeline in quote or squote.
 const QUOTED = /\|\s*s?quote$/;
+// The action is the oneuptime chart's env value helper, given one argument.
+const ENV_VALUE_HELPER = /^include "oneuptime\.envValue" \S/;
+const HELPERS = "HelmChart/Public/oneuptime/templates/_helpers.tpl";
 // `{{- $pairs := list -}}`: a variable declared on the value line, the value
 // itself built over the lines that follow (the agent's ONEUPTIME_LABELS,
 // which quotes what it joins).
@@ -110,7 +122,7 @@ function unquotedValues(source, seen = { actions: 0, quoted: 0 }) {
 
     seen.actions += 1;
 
-    if (QUOTED.test(action[1])) {
+    if (QUOTED.test(action[1]) || ENV_VALUE_HELPER.test(action[1])) {
       seen.quoted += 1;
     } else {
       found.push(`${index + 1}: ${line.trim()}`);
@@ -144,15 +156,25 @@ describe("the scan of env values reads the lines it is meant to", () => {
     "    value: {{ $.Release.Namespace }}",
     "  - name: K",
     '    value: "3874"',
+    "  - name: L",
+    '    value: {{ include "oneuptime.envValue" $.Values.l }}',
+    "  - name: M",
+    '    value: {{ include "oneuptime.envValue" ($val.m | default "x") }}',
+    "  - name: N",
+    '    value: {{ include "oneuptime.envValueX" $.Values.n }}',
+    "  - name: O",
+    '    value: {{ include "oneuptime.envValue" }}',
   ].join("\n");
 
-  test("finds each single-action value whose pipeline does not end in quote", () => {
+  test("finds each single-action value that is neither quoted nor written by the helper", () => {
     expect(unquotedValues(sample)).toEqual([
       "3: value: {{ $.Values.a }}",
       "9: value: {{- $.Values.d -}}",
       '15: value: {{ include "chart.host" . }}',
       "18: value: {{ $val.key | quote | indent 2 }}",
       "20: value: {{ $.Release.Namespace }}",
+      '28: value: {{ include "oneuptime.envValueX" $.Values.n }}',
+      '30: value: {{ include "oneuptime.envValue" }}',
     ]);
   });
 
@@ -161,7 +183,23 @@ describe("the scan of env values reads the lines it is meant to", () => {
 
     unquotedValues(sample, seen);
 
-    expect(seen).toEqual({ actions: 7, quoted: 2 });
+    expect(seen).toEqual({ actions: 11, quoted: 4 });
+  });
+});
+
+describe("the oneuptime chart's env value helper quotes what it is given", () => {
+  const helpers = fs.readFileSync(path.join(REPO_ROOT, HELPERS), "utf8");
+
+  test("renders nothing for an unset value, and the value trimmed and quoted otherwise", () => {
+    expect(helpers).toContain(
+      [
+        '{{- define "oneuptime.envValue" -}}',
+        '{{- if not (kindIs "invalid" .) -}}',
+        "{{- toString . | trim | quote -}}",
+        "{{- end -}}",
+        "{{- end -}}",
+      ].join("\n"),
+    );
   });
 });
 
@@ -215,12 +253,12 @@ describe("every env value a chart template writes as one action is quoted", () =
 
     expect(values.sort()).toEqual(
       [
-        "HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ $.Values.openTelemetryExporter.endpoint | quote }}",
-        "HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ $.Values.openTelemetryExporter.headers | quote }}",
-        "HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ $.Values.openTelemetryExporter.endpoint | quote }}",
-        "HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ $.Values.openTelemetryExporter.headers | quote }}",
-        "HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ $.Values.openTelemetryExporter.endpoint | quote }}",
-        "HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ $.Values.openTelemetryExporter.headers | quote }}",
+        'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
+        'HelmChart/Public/oneuptime/templates/_helpers.tpl: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
+        'HelmChart/Public/oneuptime/templates/global-runner.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
+        'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.endpoint }}',
+        'HelmChart/Public/oneuptime/templates/probe.yaml: value: {{ include "oneuptime.envValue" $.Values.openTelemetryExporter.headers }}',
       ].sort(),
     );
   });
@@ -493,14 +531,21 @@ function envEntries(documents) {
 /*
  * What each env entry named in `expected` holds, where it does not hold the
  * expected value exactly, as "<workload> <name>: <what it holds>"; and the
- * names no workload got at all, as "<name>: in no workload".
+ * names no workload got at all, as "<name>: in no workload". `skip` leaves
+ * out the workloads it is true for.
  */
-function misread(documents, expected) {
+function misread(
+  documents,
+  expected,
+  skip = () => {
+    return false;
+  },
+) {
   const wrong = [];
   const seen = new Set();
 
   for (const [workload, entry] of envEntries(documents)) {
-    if (!(entry.name in expected)) {
+    if (!(entry.name in expected) || skip(workload)) {
       continue;
     }
 
@@ -589,6 +634,76 @@ describe("the oneuptime chart hands every credential and free-text setting to it
           misread(documents, byEnvName(EXTERNAL_DATABASE_SETTINGS, values)),
         ).toEqual([]);
       }
+    },
+  );
+
+  /*
+   * YAML always left the whitespace around an unquoted value out, so a value
+   * read from a file with its final newline reached the pods without it. The
+   * helper keeps it so: an ENCRYPTION_SECRET that gained a newline would
+   * leave every value encrypted with the old one unreadable. The built-in
+   * ClickHouse's own StatefulSet takes its user as written, as it always did,
+   * so it is left out here; the render above holds it to the app's.
+   */
+  testWithHelm(
+    "a value wrapped in whitespace and a final newline reaches every env entry without them, as it always did",
+    () => {
+      const wrap = (value) => {
+        return ` \t ${value} \n`;
+      };
+
+      for (const [settings, layout] of [
+        [{ ...SETTINGS, ...BUILT_IN_DATABASE_SETTINGS }, {}],
+        [EXTERNAL_DATABASE_SETTINGS, EXTERNAL_DATABASES],
+      ]) {
+        const values = assign(settings, syntaxValue, 7);
+        const wrapped = Object.fromEntries(
+          Object.entries(values).map(([setting, value]) => {
+            return [setting, wrap(value)];
+          }),
+        );
+        const documents = render(deepMerge(ALL_ON, layout, nest(wrapped)));
+        const datastore = (workload) => {
+          return workload.startsWith("StatefulSet/");
+        };
+
+        expect(
+          misread(documents, byEnvName(settings, values), datastore),
+        ).toEqual([]);
+      }
+    },
+  );
+
+  testWithHelm(
+    "an unset setting renders an empty env value, never the word for nothing",
+    () => {
+      const documents = render(ALL_ON);
+      const words = [];
+      const empty = new Set();
+
+      for (const [workload, entry] of envEntries(documents)) {
+        if (["<nil>", "<no value>", "null"].includes(entry.value)) {
+          words.push(`${workload} ${entry.name}: ${entry.value}`);
+        }
+        if (entry.value === null || entry.value === undefined) {
+          empty.add(entry.name);
+        }
+      }
+
+      expect(words).toEqual([]);
+      // Settings the chart ships unset, each written through the helper.
+      expect([...empty]).toEqual(
+        expect.arrayContaining([
+          "OPENTELEMETRY_EXPORTER_OTLP_HEADERS",
+          "OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT",
+          "STATUS_PAGE_CNAME_RECORD",
+          "DASHBOARD_CNAME_RECORD",
+          "ANALYTICS_KEY",
+          "BILLING_PRIVATE_KEY",
+          "LETS_ENCRYPT_ACCOUNT_KEY",
+          "NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER",
+        ]),
+      );
     },
   );
 
