@@ -384,11 +384,13 @@ describePostgres(
       currentMonitorStatusId: string;
       createdAt?: Date | undefined;
       deletedAt?: Date | undefined;
+      disableActiveMonitoring?: boolean | undefined;
     }) => Promise<string> = async (data: {
       projectId: string;
       currentMonitorStatusId: string;
       createdAt?: Date | undefined;
       deletedAt?: Date | undefined;
+      disableActiveMonitoring?: boolean | undefined;
     }): Promise<string> => {
       const id: string = ObjectID.generate().toString();
 
@@ -404,6 +406,14 @@ describePostgres(
           data.deletedAt || null,
         ],
       );
+
+      // Its monitoring switch, as written (the column's default otherwise).
+      if (data.disableActiveMonitoring !== undefined) {
+        await query(
+          `UPDATE "${schema}"."Monitor" SET "disableActiveMonitoring" = $2 WHERE "_id" = $1`,
+          [id, data.disableActiveMonitoring],
+        );
+      }
 
       return id;
     };
@@ -1939,6 +1949,95 @@ describePostgres(
           aggregate.monitors[0]!.buckets.slice(0, -1);
         expect(buckets.length).toBeGreaterThan(80);
         for (const bucket of buckets) {
+          expect(Math.round(bucket.coveredSeconds)).toBe(bucket.daySeconds);
+        }
+      });
+
+      test("a monitor whose monitoring is off gets a row that says so, which its days leave out; one on, or never switched, a row that counts (#6480)", async () => {
+        const project: Project = await addProjectWithStatuses();
+
+        const turnedOff: string = await addMonitor({
+          projectId: project.projectId,
+          currentMonitorStatusId: project.offline,
+          createdAt: daysAgo(100),
+          disableActiveMonitoring: true,
+        });
+        const turnedOn: string = await addMonitor({
+          projectId: project.projectId,
+          currentMonitorStatusId: project.offline,
+          createdAt: daysAgo(100),
+          disableActiveMonitoring: false,
+        });
+        // Never switched: the column's default, on.
+        const neverSwitched: string = await addMonitor({
+          projectId: project.projectId,
+          currentMonitorStatusId: project.offline,
+          createdAt: daysAgo(100),
+        });
+
+        const result: RestoreMissingStatusTimelinesResult =
+          await MonitorStatusTimelineReconciler.restoreMissingStatusTimelines(
+            {},
+          );
+        expect(
+          sorted(
+            result.restoredMonitorIds.map((id: ObjectID) => {
+              return id.toString();
+            }),
+          ),
+        ).toEqual(sorted([turnedOff, turnedOn, neverSwitched]));
+
+        const switchOf: (monitorId: string) => Promise<Array<JSONObject>> = (
+          monitorId: string,
+        ): Promise<Array<JSONObject>> => {
+          return query(
+            `SELECT "monitorStatusId", "isMonitoringOff", "endsAt" FROM "${schema}"."MonitorStatusTimeline" WHERE "monitorId" = $1 AND "deletedAt" IS NULL`,
+            [monitorId],
+          );
+        };
+
+        expect(await switchOf(turnedOff)).toEqual([
+          {
+            monitorStatusId: project.offline,
+            isMonitoringOff: true,
+            endsAt: null,
+          },
+        ]);
+
+        for (const monitorId of [turnedOn, neverSwitched]) {
+          expect(await switchOf(monitorId)).toEqual([
+            {
+              monitorStatusId: project.offline,
+              isMonitoringOff: false,
+              endsAt: null,
+            },
+          ]);
+        }
+
+        // The status page: no day of the one that is off is drawn as Offline.
+        const aggregate: UptimeDailyAggregate =
+          await MonitorStatusTimelineService.getDailyUptimeAggregate({
+            monitorIds: [new ObjectID(turnedOff), new ObjectID(turnedOn)],
+            startDate: daysAgo(30),
+            endDate: new Date(),
+            timezone: "UTC",
+          });
+
+        const daysOf: (monitorId: string) => Array<UptimeDayBucket> = (
+          monitorId: string,
+        ): Array<UptimeDayBucket> => {
+          return aggregate.monitors.find((monitor: { monitorId: ObjectID }) => {
+            return monitor.monitorId.toString() === monitorId;
+          })!.buckets;
+        };
+
+        for (const bucket of daysOf(turnedOff)) {
+          expect(bucket.coveredSeconds).toBe(0);
+          expect(bucket.statusDurations).toEqual([]);
+        }
+
+        // The one on is Offline every full day.
+        for (const bucket of daysOf(turnedOn).slice(1, -1)) {
           expect(Math.round(bucket.coveredSeconds)).toBe(bucket.daySeconds);
         }
       });

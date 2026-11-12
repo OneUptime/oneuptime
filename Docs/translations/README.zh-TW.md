@@ -57,9 +57,13 @@ OneUptime 是一個開源的可觀測性平台。它檢查你的網站、API 和
 
 ### 用 Docker Compose 自行託管
 
-你需要一台記憶體至少 8 GB 的 Linux 伺服器，並裝有 Docker、Docker Compose、Git 和 Node.js。
+你需要一台記憶體至少 8 GB 的 Linux 伺服器。在全新的 Ubuntu、Debian 或以 RHEL 為基礎的伺服器上，一個指令就能裝好缺少的 Docker、Git 和 Node.js，詢問大家將使用的位址，並啟動 OneUptime：
 
-在第 3 步之前，把 `config.env` 中的 `HOST` 設為大家連到 OneUptime 時使用的網域名稱或 IP 位址，不要加上 `http://`。只有在自己的電腦上試用 OneUptime 時才保留 `localhost`。
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+也可以一步步來，先裝好 Docker、Docker Compose、Git 和 Node.js。在第 3 步中，把 `<your-address>` 換成大家連到 OneUptime 時使用的網域名稱或 IP 位址，不要加上 `http://`：這就是 `config.env` 中的 `HOST`。只有在自己的電腦上試用 OneUptime 時才保留 `localhost`。
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` 會先檢查伺服器，為 `config.env` 中的每個密鑰產生各自的隨機值，然後啟動 OneUptime。當 `npm start` 輸出 **OneUptime is up!** 後，開啟 `http://localhost` 或伺服器的位址並註冊。第一個帳號會成為這個執行個體的管理員。
 
-[Docker Compose 指南](https://oneuptime.com/docs/zh-TW/installation/docker-compose)介紹了伺服器規格、HTTPS、備份和更新。
+接著依照[自架部署指南](https://oneuptime.com/docs/zh-TW/installation/self-hosting-guide)完成 HTTPS、電子郵件和簡訊設定，直到 OneUptime 能向你傳送告警。[Docker Compose 指南](https://oneuptime.com/docs/zh-TW/installation/docker-compose)介紹了伺服器規格、備份和更新。
 
 ### 用 Helm 部署到 Kubernetes
 

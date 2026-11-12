@@ -57,9 +57,13 @@ Alt annet står i [dokumentasjonen](https://oneuptime.com/docs/no/introduction/g
 
 ### Drift selv med Docker Compose
 
-Du trenger en Linux-server med minst 8 GB minne, og Docker, Docker Compose, Git og Node.js.
+Du trenger en Linux-server med minst 8 GB minne. På en ny Ubuntu-, Debian- eller RHEL-basert server installerer én kommando Docker, Git og Node.js der de mangler, spør etter adressen folk skal bruke, og starter OneUptime:
 
-Før trinn 3 setter du `HOST` i `config.env` til domenenavnet eller IP-adressen folk skal bruke for å nå OneUptime, uten `http://`. Behold `localhost` bare for å prøve OneUptime på din egen datamaskin.
+```bash
+curl -fsSL https://oneuptime.com/install.sh | bash
+```
+
+Eller gjør det trinn for trinn, med Docker, Docker Compose, Git og Node.js installert. I trinn 3 skriver du domenenavnet eller IP-adressen folk skal bruke for å nå OneUptime i stedet for `<your-address>`, uten `http://`: det er `HOST` i `config.env`. Behold `localhost` bare for å prøve OneUptime på din egen datamaskin.
 
 ```bash
 # 1. Clone the release branch
@@ -69,13 +73,16 @@ cd oneuptime
 # 2. Create your config
 cp config.example.env config.env
 
-# 3. Start everything
+# 3. Set HOST to the address people will use
+sed -i.bak "s/^HOST=.*/HOST=<your-address>/" config.env && rm config.env.bak
+
+# 4. Start everything
 npm start
 ```
 
 `npm start` sjekker serveren, gir hver hemmelighet i `config.env` sin egen tilfeldige verdi og starter OneUptime. Når `npm start` skriver ut **OneUptime is up!**, åpner du `http://localhost` eller adressen til serveren din og registrerer deg. Den første kontoen blir administratoren for instansen.
 
-[Veiledningen for Docker Compose](https://oneuptime.com/docs/no/installation/docker-compose) dekker serverstørrelser, HTTPS, sikkerhetskopier og oppdateringer.
+Følg deretter [Selv-hosting-veiledningen](https://oneuptime.com/docs/no/installation/self-hosting-guide) gjennom HTTPS, e-post og SMS, til OneUptime kan varsle deg. [Veiledningen for Docker Compose](https://oneuptime.com/docs/no/installation/docker-compose) dekker serverstørrelser, sikkerhetskopier og oppdateringer.
 
 ### Kubernetes med Helm
 

@@ -540,6 +540,42 @@ describe("what a monitor's timeline reads", () => {
     });
   });
 
+  /*
+   * Issue #6480: turning a monitor's monitoring off or on starts a row with
+   * the same status, marked isMonitoringOff while it is off. The page names
+   * the column; it is read with the list, and its rows are marked.
+   */
+  test("a monitoring-off column is read with the list, and the rows it is true for are marked", async () => {
+    const turnedOff: MonitorStatusTimeline = monitorRow({
+      status: OPERATIONAL,
+      from: -2 * DAY,
+      to: null,
+      changedBy: "Ada Lovelace",
+    });
+    turnedOff.isMonitoringOff = true;
+    rowsInStore = [
+      monitorRow({ status: OPERATIONAL, from: -60 * DAY, to: -2 * DAY }),
+      turnedOff,
+    ];
+
+    await renderMonitor({ monitoringOffColumn: "isMonitoringOff" });
+
+    expect(timelineReads().length).toBeGreaterThan(0);
+    for (const call of timelineReads()) {
+      expect(call.select).toHaveProperty("isMonitoringOff", true);
+    }
+
+    expect(
+      within(entryRow(0)).getByTestId("monitoring-off-indicator"),
+    ).toHaveTextContent(/^Monitoring Off$/);
+    expect(
+      within(entryRow(1)).queryByTestId("monitoring-off-indicator"),
+    ).toBeNull();
+    expect(
+      screen.getByTestId("status-timeline-legend-monitoring-off"),
+    ).toHaveTextContent(/^Monitoring Off2 days$/);
+  });
+
   test("the cause and the log are not read with the list: they are read when asked for", async () => {
     await renderMonitor();
 

@@ -86,6 +86,11 @@ import {
 } from "./ProfileTools";
 import { LookupContextTool } from "./ContextTools";
 import {
+  FindDashboardPageTool,
+  ReadDocsTool,
+  SearchDocsTool,
+} from "./DocsTools";
+import {
   FindCodeForExceptionTool,
   ListCodeRepositoriesTool,
   ReadCodeFileTool,
@@ -185,6 +190,14 @@ export default class AIToolbox {
     CheckWorkflowDraftTool,
     QueryProbesTool,
     QueryTeamsTool,
+    /*
+     * OneUptime itself (#6828): "how do I...?" answered from the docs this
+     * installation serves, ending at the page of the project where it is
+     * done (DocsTools).
+     */
+    SearchDocsTool,
+    ReadDocsTool,
+    FindDashboardPageTool,
     /*
      * The AI's own prior work: autonomous investigation results and insight
      * findings. Chat reads these first instead of re-deriving a root cause

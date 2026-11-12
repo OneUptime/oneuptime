@@ -90,6 +90,13 @@
  *              card draws nothing. Only a monitor that checks a host (API,
  *              Website, SSL Certificate) asks, and only a role that may read
  *              security events.
+ *   ?whoIsTold=  what "When this goes down" answers for a monitor
+ *              (GET /who-is-told/monitor/:monitorId): pages (default: it
+ *              goes Offline, opens a Critical incident, emails the
+ *              project's owners and pages Ana Lopez through Primary
+ *              On-Call) | nobody (no on-call rule matches, so nobody is
+ *              paged - the break and its Set Up Paging link) | hidden
+ *              (paging runs through a policy the reader may not see).
  *   ?settings=1  the subject monitor's Settings page
  *              (/monitors/<id>/settings) is the production one rather than
  *              the stub every other page has: its Monitoring card, and the
@@ -195,6 +202,7 @@ import Probe, {
   ProbeConnectionStatus,
 } from "Common/Models/DatabaseModels/Probe";
 import Project from "Common/Models/DatabaseModels/Project";
+import { getWhoIsToldBreaks } from "Common/Types/Monitor/WhoIsTold";
 import ScheduledMaintenance from "Common/Models/DatabaseModels/ScheduledMaintenance";
 import ScheduledMaintenanceState from "Common/Models/DatabaseModels/ScheduledMaintenanceState";
 import Service from "Common/Models/DatabaseModels/Service";
@@ -327,6 +335,10 @@ const previewMode = ["empty", "fail"].includes(params.get("preview"))
 const securityMode = ["news", "quiet"].includes(params.get("security"))
   ? params.get("security")
   : "none";
+// What "When this goes down" answers (?whoIsTold=).
+const whoIsToldMode = ["nobody", "hidden"].includes(params.get("whoIsTold"))
+  ? params.get("whoIsTold")
+  : "pages";
 
 /*
  * The components the External Status Page monitor watches with
@@ -1539,9 +1551,37 @@ const PAST_OUTAGES = [
 const LAST_RECOVERY = ago(3 * DAY + 4 * HOUR + 12 * MINUTE);
 const LAST_DEGRADATION_MINUTES = 35;
 
+// "disabled": when monitoring was turned off, as the probes last ran.
+const MONITORING_TURNED_OFF_AGO = 6 * HOUR;
+
 /*
- * The status changes of one monitor, oldest first: [{ status, start, end }],
- * the last one still open (end undefined).
+ * Monitoring turned off at turnedOffAt, as MonitorStatusTimelineService
+ * records it (issue #6480): the status held then starts a row of its own
+ * marked isMonitoringOff, and so does any status set after it.
+ */
+function withMonitoringTurnedOff(segments, turnedOffAt) {
+  const result = [];
+  for (const segment of segments) {
+    if ((segment.end || NOW).getTime() <= turnedOffAt.getTime()) {
+      result.push(segment);
+    } else if (segment.start.getTime() >= turnedOffAt.getTime()) {
+      result.push({ ...segment, isMonitoringOff: true });
+    } else {
+      result.push({ ...segment, end: turnedOffAt });
+      result.push({
+        status: segment.status,
+        start: turnedOffAt,
+        end: segment.end,
+        isMonitoringOff: true,
+      });
+    }
+  }
+  return result;
+}
+
+/*
+ * The status changes of one monitor, oldest first: [{ status, start, end,
+ * isMonitoringOff }], the last one still open (end undefined).
  */
 function buildSegments(scenario, createdAt) {
   const outages = [];
@@ -1607,7 +1647,7 @@ function buildSegments(scenario, createdAt) {
     }
   }
 
-  return changes.map((change, index) => {
+  const segments = changes.map((change, index) => {
     const next = changes[index + 1];
     return {
       status: change.status,
@@ -1615,6 +1655,10 @@ function buildSegments(scenario, createdAt) {
       end: next ? next.at : undefined,
     };
   });
+
+  return scenario.flags.has("disabled")
+    ? withMonitoringTurnedOff(segments, ago(MONITORING_TURNED_OFF_AGO))
+    : segments;
 }
 
 /*
@@ -1663,7 +1707,7 @@ function lastRunAgo(scenario) {
     return 2 * DAY;
   }
   if (scenario.flags.has("disabled")) {
-    return 6 * HOUR;
+    return MONITORING_TURNED_OFF_AGO;
   }
   if (scenario.flags.has("disconnected")) {
     return 52 * MINUTE;
@@ -1914,6 +1958,7 @@ function defineMonitor(typeKey) {
       monitorStatus: statuses[segment.status],
       startsAt: segment.start,
       endsAt: segment.end,
+      isMonitoringOff: segment.isMonitoringOff === true,
       createdAt: segment.start,
     });
   }
@@ -2483,6 +2528,10 @@ function durationsIn(segments, start, end) {
   const secondsByStatus = new Map();
   let covered = 0;
   for (const segment of segments) {
+    // Time with monitoring off is left out, as the server leaves it out.
+    if (segment.isMonitoringOff) {
+      continue;
+    }
     const from = Math.max(segment.start.getTime(), start.getTime());
     const to = Math.min((segment.end || NOW).getTime(), end.getTime());
     if (to > from) {
@@ -3010,6 +3059,8 @@ function createStatusEvent(model, data) {
     monitorStatus: statuses[statusKey],
     startsAt: now,
     createdAt: now,
+    // A status set while monitoring is off is held with it off.
+    isMonitoringOff: Boolean(monitorRecord.disableActiveMonitoring),
     rootCause: "Monitor status created by **Maya Chen**",
   });
 
@@ -3021,7 +3072,12 @@ function createStatusEvent(model, data) {
   if (open) {
     open.end = now;
   }
-  segments.push({ status: statusKey, start: now, end: undefined });
+  segments.push({
+    status: statusKey,
+    start: now,
+    end: undefined,
+    isMonitoringOff: Boolean(monitorRecord.disableActiveMonitoring),
+  });
 
   const definition = STATUS_DEFINITIONS[statusKey];
   insert(MonitorFeed, {
@@ -3217,6 +3273,115 @@ function monitorSecurity(body) {
   });
 }
 
+/*
+ * GET /who-is-told/monitor/:monitorId (?whoIsTold=): the chain from the
+ * monitor to the people it reaches, as WhoIsToldService answers it, with
+ * the breaks worked out by the same pure helper.
+ */
+function whoIsTold(monitorId) {
+  const monitor = table(Monitor).find((item) => {
+    return String(item._id) === monitorId;
+  });
+  const isHidden = whoIsToldMode === "hidden";
+  const owners = {
+    source: "ProjectOwners",
+    userNames: ["Ana Lopez"],
+    teamNames: [],
+    hasOwnerRules: false,
+  };
+  const policy = {
+    id: "5f000000-0000-4000-8000-0000000000a1",
+    name: isHidden ? "" : "Primary On-Call",
+    isHidden: isHidden,
+    isNamedByCriteria: false,
+    ruleIds: ["5f000000-0000-4000-8000-0000000000b1"],
+    levelCount: isHidden ? 0 : 2,
+    people: isHidden
+      ? []
+      : [
+          {
+            userId: "5f000000-0000-4000-8000-0000000000c1",
+            name: "Ana Lopez",
+            channels: ["SMS", "Email"],
+            isFallback: false,
+            isReachable: true,
+          },
+          {
+            userId: "5f000000-0000-4000-8000-0000000000c2",
+            name: "Ben Ito",
+            reachedThrough: "Schedule Weekly Rotation",
+            channels: ["Push"],
+            isFallback: true,
+            isReachable: true,
+          },
+        ],
+    notPaged: [],
+  };
+  const criteria = [
+    {
+      id: "online",
+      name: "Online",
+      statusName: "Operational",
+      statusColor: "#10b981",
+      statusOwners: owners,
+      events: [],
+    },
+    {
+      id: "offline",
+      name: "Offline",
+      statusName: "Offline",
+      statusColor: "#ef4444",
+      statusOwners: owners,
+      events: [
+        {
+          kind: "Incident",
+          severityName: "Critical",
+          owners: owners,
+          rules:
+            whoIsToldMode === "nobody"
+              ? []
+              : [
+                  {
+                    id: "5f000000-0000-4000-8000-0000000000b1",
+                    name: isHidden ? "" : "Every incident",
+                  },
+                ],
+          policies: whoIsToldMode === "nobody" ? [] : [policy],
+          statusPages: [
+            { id: "5f000000-0000-4000-8000-0000000000d1", name: "Public Status" },
+          ],
+        },
+      ],
+    },
+  ];
+  const channels = {
+    isBillingEnabled: false,
+    isSmsOn: true,
+    isCallOn: true,
+    isWhatsAppOn: true,
+    isTelegramOn: true,
+    hasOwnTwilioForSms: false,
+    hasOwnTwilioForCalls: false,
+    serverCanSendEmail: true,
+    serverCanSendSms: true,
+    serverCanCall: true,
+  };
+
+  return {
+    monitorId: monitorId,
+    monitorName: monitor ? monitor.name : "",
+    checkedAt: new Date().toISOString(),
+    criteria: criteria,
+    channels: channels,
+    breaks: getWhoIsToldBreaks({
+      criteria: criteria,
+      channels: channels,
+      projectHasIncidentOnCallRules: whoIsToldMode !== "nobody",
+      projectHasAlertOnCallRules: false,
+    }),
+  };
+}
+
 async function handleApi(method, options) {
   const url = options.url.toString();
   const body = serialize(options.data) || {};
@@ -3388,6 +3553,11 @@ async function handleApi(method, options) {
       startTime: range.startTime.toISOString(),
       endTime: range.endTime.toISOString(),
     });
+  }
+
+  // Who is told when a monitor goes down (?whoIsTold=).
+  if (method === "GET" && parsed.pathname.includes("/who-is-told/monitor/")) {
+    return ok(whoIsTold(parsed.pathname.split("/").pop()));
   }
 
   // What Security Events says about the hosts a monitor checks (?security=).

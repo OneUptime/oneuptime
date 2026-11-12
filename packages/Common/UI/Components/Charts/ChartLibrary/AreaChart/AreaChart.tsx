@@ -58,6 +58,7 @@ import {
   useDeferredChartClick,
 } from "../Utils/DoubleClick";
 import useChartBucketsChange from "../Utils/UseChartBucketsChange";
+import { LegendItemRank, useLegendItemRank } from "../Utils/LegendOrder";
 import { getYAxisDomain } from "../Utils/GetYAxisDomain";
 import { hasOnlyOneValueForKey } from "../Utils/HasOnlyOneValueForKey";
 import {
@@ -768,6 +769,8 @@ const AreaChart: React.ForwardRefExoticComponent<
     });
     const categoryColors: Map<string, ChartColorValue> =
       constructCategoryColors(categories, colors);
+    // The legend names the series in the order the page gives them.
+    const legendItemRank: LegendItemRank = useLegendItemRank(categories);
 
     /*
      * Annotations are drawn onto the categorical axis, so the layer needs
@@ -1157,6 +1160,11 @@ const AreaChart: React.ForwardRefExoticComponent<
                    * hovered and clicked. The items above it take it back.
                    */
                   wrapperStyle={{ pointerEvents: "none" }}
+                  /*
+                   * In the order of `categories`, never recharts' default
+                   * alphabetical one; see LegendOrder.
+                   */
+                  itemSorter={legendItemRank}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   content={({ payload }: any) => {
                     return ChartLegend(

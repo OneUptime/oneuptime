@@ -102,6 +102,7 @@ interface RecordedProps {
   selectMoreFields?: Record<string, unknown>;
   causeColumn?: string;
   logColumn?: string;
+  monitoringOffColumn?: string;
   // The table's own.
   cardProps?: { title?: string; rightElement?: ReactElement };
   selectMoreFieldsOfTable?: Record<string, unknown>;
@@ -346,6 +347,11 @@ interface PageCase {
   // The row's cause and log, where the table had View Cause and View Logs.
   causeColumn: string | undefined;
   logColumn: string | undefined;
+  /*
+   * A monitor's rows say whether its monitoring was off (issue #6480): the
+   * timeline marks them, and the table reads the column for its own mark.
+   */
+  monitoringOffColumn?: string | undefined;
   // The subscriber notification under each state change.
   hasSubscriberNotification: boolean;
   /*
@@ -430,6 +436,7 @@ const PAGES: Array<PageCase> = [
     isDeleteable: true,
     causeColumn: "rootCause",
     logColumn: "statusChangeLog",
+    monitoringOffColumn: "isMonitoringOff",
     hasSubscriberNotification: false,
     onlyRowRefusal: ONLY_STATUS_EVENT_MESSAGE,
     finalStates: undefined,
@@ -825,6 +832,16 @@ describe.each(PAGES)("$name", (pageCase: PageCase) => {
     // View Cause and View Logs, where the table had them.
     expect(timelineProps.causeColumn).toBe(pageCase.causeColumn);
     expect(timelineProps.logColumn).toBe(pageCase.logColumn);
+    // A monitor's rows held with monitoring off, marked in both views.
+    expect(timelineProps.monitoringOffColumn).toBe(
+      pageCase.monitoringOffColumn,
+    );
+    if (pageCase.monitoringOffColumn) {
+      expect(tableProps.selectMoreFields).toHaveProperty(
+        pageCase.monitoringOffColumn,
+        true,
+      );
+    }
   });
 
   test("a record still open runs to now: its project's own list of states says which states it is done in", async () => {

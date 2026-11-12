@@ -169,6 +169,7 @@ import AddTagsColumnToCloudCost from "./AddTagsColumnToCloudCost";
 import AddRequestColumnsToSecurityEvent from "./AddRequestColumnsToSecurityEvent";
 import AddDefaultPostmortemStatusesToExistingProjects from "./AddDefaultPostmortemStatusesToExistingProjects";
 import AddIsEntrySpanToSpanTable from "./AddIsEntrySpanToSpanTable";
+import RecordMonitoringOffOnStatusTimelines from "./RecordMonitoringOffOnStatusTimelines";
 
 // This is the order in which the migrations will be run. Add new migrations to the end of the array.
 
@@ -1026,6 +1027,19 @@ const DataMigrations: Array<DataMigrationBase> = [
    * itself.
    */
   new BackfillProjectMilestones(),
+  /*
+   * Turning a monitor's monitoring off or back on starts a status event that
+   * says so (MonitorStatusTimeline.isMonitoringOff, issue #6480), and uptime,
+   * status pages and SLOs leave out the time it is off. Every monitor whose
+   * monitoring was off before that gets one now, with the status it holds,
+   * so its frozen status stops counting from here; the time before stays as
+   * it was counted. After the schema migration
+   * AddMonitorStatusTimelineIsMonitoringOff; idempotent; no other ordering
+   * requirement, so it sits above the runbook migrations that keep their
+   * places before the last slot AddAuditLogMcpClientColumns asserts for
+   * itself.
+   */
+  new RecordMonitoringOffOnStatusTimelines(),
   /*
    * A runbook step's approval moved to the step it guards ("Require approval
    * before running this step"): every stored runbook's approval after step

@@ -144,6 +144,8 @@ sh Scripts/Install/WithConfig.sh docker compose up --remove-orphans -d
 開啟 `http://` 加上你的 `HOST`（例如 `http://localhost`）並註冊。新執行個體上的第一個帳號會成為它的主要管理員，可以在 `/admin` 開啟 Admin Dashboard。
 
 在你之後，任何能連到該頁面的人都可以註冊。若要阻止這種情況，請開啟 Admin Dashboard，前往 **設定 > 驗證**，並關閉 **允許註冊**。你邀請加入專案的人仍然可以建立帳號。
+
+然後在 `/admin/setup` 完成伺服器設定，在那裡設定並測試電子郵件、簡訊和電話：請參閱[完成伺服器設定](/docs/installation/self-hosting-guide#完成伺服器設定)。
 :::
 
 ### 產生隨機密鑰
@@ -566,8 +568,8 @@ Admin Dashboard 在 **設定 > 監控 > 全域探針** 下列出該探針。它�
 ## 後續步驟
 
 :::cards
+- [完成伺服器設定](/docs/installation/self-hosting-guide#完成伺服器設定): 先是電子郵件，然後是簡訊和電話，每一項都附測試。
+- [快速開始](/docs/introduction/quickstart): 你的第一個監控器、第一個值班政策和第一個狀態頁面。
 - [升級 OneUptime](/docs/installation/upgrading): 每個主要版本需要你做的事。
-- [規模與容量規劃](/docs/installation/sizing): 為你的遙測資料規劃記憶體與磁碟。
 - [自行託管架構](/docs/self-hosted/architecture): 各元件如何搭配運作。
-- [企業版](/docs/self-hosted/enterprise): Enterprise 映像檔增加了什麼，以及它的授權。
 :::

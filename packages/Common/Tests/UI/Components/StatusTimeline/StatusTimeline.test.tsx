@@ -61,12 +61,14 @@ const entry: (data: {
   to: number | null;
   id?: string;
   changedBy?: string;
+  isMonitoringOff?: boolean;
 }) => StatusTimelineDisplayEntry = (data: {
   offline?: boolean;
   from: number;
   to: number | null;
   id?: string;
   changedBy?: string;
+  isMonitoringOff?: boolean;
 }): StatusTimelineDisplayEntry => {
   counter++;
 
@@ -79,6 +81,7 @@ const entry: (data: {
     endsAt: data.to === null ? null : at(data.to),
     rank: data.offline ? 3 : 1,
     changedBy: data.changedBy,
+    isMonitoringOff: data.isMonitoringOff,
   };
 };
 
@@ -229,6 +232,154 @@ describe("the legend", () => {
     expect(screen.getByTestId("status-timeline-legend-note")).toHaveTextContent(
       "Since Oct 9, 08:36:",
     );
+  });
+});
+
+/*
+ * Issue #6480: turning a monitor's monitoring off or on starts an entry
+ * with the same status, marked isMonitoringOff while it is off. The page
+ * read "Operational ... by Ada Lovelace" twice in a row, drew the days
+ * nothing checked the monitor in the status's green, and counted them in
+ * the legend's 99.84%.
+ */
+describe("time with monitoring off", () => {
+  // Monitoring off for three days, and again since yesterday, while Offline.
+  const WITH_MONITORING_OFF: Array<StatusTimelineDisplayEntry> = [
+    entry({ from: -40 * DAY, to: -20 * DAY, id: "up-1" }),
+    entry({
+      from: -20 * DAY,
+      to: -17 * DAY,
+      id: "off-1",
+      isMonitoringOff: true,
+      changedBy: "Ada Lovelace",
+    }),
+    entry({
+      from: -17 * DAY,
+      to: -2 * DAY,
+      id: "up-2",
+      changedBy: "Ada Lovelace",
+    }),
+    entry({ offline: true, from: -2 * DAY, to: -DAY, id: "down" }),
+    entry({
+      offline: true,
+      from: -DAY,
+      to: null,
+      id: "off-2",
+      isMonitoringOff: true,
+      changedBy: "Ada Lovelace",
+    }),
+  ];
+
+  test("the legend's shares are of the time something checked; the time with monitoring off is named last, with no share", () => {
+    renderTimeline({ entries: WITH_MONITORING_OFF });
+
+    expect(
+      screen
+        .getAllByTestId("status-timeline-legend-item")
+        .map((item: HTMLElement): string | null => {
+          return item.textContent;
+        }),
+    ).toEqual(["Operational96.15% · 25 days", "Offline3.85% · 1 day"]);
+
+    const off: HTMLElement = screen.getByTestId(
+      "status-timeline-legend-monitoring-off",
+    );
+
+    expect(off).toHaveTextContent(/^Monitoring Off4 days$/);
+    // Last, after every status.
+    expect(off.parentElement!.lastElementChild).toBe(off);
+    expect(off.querySelector("[aria-hidden='true']")).toHaveClass(
+      "bg-gray-300",
+    );
+  });
+
+  test("a legend with nothing but time with monitoring off still says so", () => {
+    renderTimeline({
+      entries: [
+        entry({
+          from: -40 * DAY,
+          to: null,
+          id: "off-all-month",
+          isMonitoringOff: true,
+        }),
+      ],
+    });
+
+    expect(screen.queryAllByTestId("status-timeline-legend-item")).toEqual([]);
+    expect(
+      screen.getByTestId("status-timeline-legend-monitoring-off"),
+    ).toHaveTextContent(/^Monitoring Off30 days$/);
+  });
+
+  test("the band draws it as time not monitored, never in the status's colour", () => {
+    renderTimeline({ entries: WITH_MONITORING_OFF });
+
+    for (const id of ["off-1", "off-2"]) {
+      const segment: HTMLElement = segmentFor(id);
+
+      /*
+       * Its stripes are a gradient, which jsdom does not keep: the
+       * browser suite (E2E StatusTimeline) checks them.
+       */
+      expect(segment).toHaveAttribute("data-monitoring-off", "true");
+      expect(segment).toHaveClass("bg-gray-300");
+      expect(segment.style.backgroundColor).toBe("");
+    }
+
+    for (const id of ["up-1", "up-2", "down"]) {
+      const segment: HTMLElement = segmentFor(id);
+
+      expect(segment).toHaveAttribute("data-monitoring-off", "false");
+      expect(segment).not.toHaveClass("bg-gray-300");
+    }
+
+    expect(segmentFor("down").style.backgroundColor).toBe("rgb(239, 68, 68)");
+  });
+
+  test("a screen reader hears that monitoring was off", () => {
+    renderTimeline({ entries: WITH_MONITORING_OFF });
+
+    expect(segmentFor("off-1")).toHaveAccessibleName(
+      "Operational, monitoring off, Sep 24, 08:36 – Sep 27, 08:36, 3 days",
+    );
+    expect(segmentFor("off-2")).toHaveAccessibleName(
+      "Offline, monitoring off, since Oct 13, 08:36, 1 day so far. Currently Active.",
+    );
+    expect(segmentFor("up-2")).toHaveAccessibleName(
+      "Operational, Sep 27, 08:36 – Oct 12, 08:36, 15 days",
+    );
+  });
+
+  test("the list marks each entry held with monitoring off, beside its status", () => {
+    renderTimeline({ entries: WITH_MONITORING_OFF });
+
+    for (const id of ["off-1", "off-2"]) {
+      const row: HTMLElement = entryRow(id);
+      const indicator: HTMLElement = within(row).getByTestId(
+        "monitoring-off-indicator",
+      );
+
+      expect(indicator).toHaveTextContent(/^Monitoring Off$/);
+      expect(indicator.parentElement).toBe(
+        within(row).getByTestId("status-timeline-entry-name").parentElement,
+      );
+    }
+
+    for (const id of ["up-1", "up-2", "down"]) {
+      expect(
+        within(entryRow(id)).queryByTestId("monitoring-off-indicator"),
+      ).toBeNull();
+    }
+
+    // Before Currently Active, as the status comes before both.
+    const current: HTMLElement = entryRow("off-2");
+    expect(
+      within(current)
+        .getByTestId("monitoring-off-indicator")
+        .compareDocumentPosition(
+          within(current).getByTestId("currently-active-indicator"),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 });
 

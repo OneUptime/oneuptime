@@ -144,6 +144,8 @@ Prima del primo avvio, sostituisci tu i secret segnaposto, come mostra [Genera s
 Apri `http://` seguito dal tuo `HOST` (per esempio `http://localhost`) e registrati. Il primo account di una nuova istanza ne diventa l'amministratore principale, che può aprire l'Admin Dashboard su `/admin`.
 
 Chiunque possa raggiungere la pagina può registrarsi dopo di te. Per impedirlo, apri l'Admin Dashboard, vai in **Impostazioni > Autenticazione** e disattiva **Consenti la registrazione**. Le persone che inviti in un progetto possono comunque creare il proprio account.
+
+Poi completa la configurazione del server su `/admin/setup`, dove si configurano e si provano email, SMS e chiamate: vedi [Completare la configurazione del server](/docs/installation/self-hosting-guide#completare-la-configurazione-del-server).
 :::
 
 ### Genera secret casuali
@@ -566,8 +568,8 @@ L'Admin Dashboard elenca la sonda in **Impostazioni > Monitoraggio > Sonde globa
 ## Passi successivi
 
 :::cards
+- [Completare la configurazione del server](/docs/installation/self-hosting-guide#completare-la-configurazione-del-server): L'email, poi SMS e chiamate, ciascuno con una prova.
+- [Guida rapida](/docs/introduction/quickstart): Il tuo primo monitor, la prima policy di reperibilità e la prima pagina di stato.
 - [Aggiornamento di OneUptime](/docs/installation/upgrading): Cosa ti chiede ogni versione major.
-- [Dimensionamento e pianificazione della capacità](/docs/installation/sizing): Pianifica memoria e disco per la tua telemetria.
 - [Architettura self-hosted](/docs/self-hosted/architecture): Come si incastrano i componenti.
-- [Edizione Enterprise](/docs/self-hosted/enterprise): Cosa aggiunge l'immagine Enterprise, e la sua licenza.
 :::

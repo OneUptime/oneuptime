@@ -53,12 +53,14 @@ const row: (data: {
   color: string;
   startsAt: Date;
   endsAt?: Date | undefined;
+  isMonitoringOff?: boolean | undefined;
 }) => MonitorStatusTimeline = (data: {
   id: string;
   name: string;
   color: string;
   startsAt: Date;
   endsAt?: Date | undefined;
+  isMonitoringOff?: boolean | undefined;
 }): MonitorStatusTimeline => {
   const status: MonitorStatus = new MonitorStatus();
   status.name = data.name;
@@ -67,6 +69,10 @@ const row: (data: {
   const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
   timeline._id = data.id;
   timeline.startsAt = data.startsAt;
+
+  if (data.isMonitoringOff !== undefined) {
+    timeline.isMonitoringOff = data.isMonitoringOff;
+  }
 
   if (data.endsAt) {
     timeline.endsAt = data.endsAt;
@@ -219,6 +225,57 @@ describe("MonitorStatusChangesCard", () => {
     expect(within(indicator).getByTestId("pill-dot-pulse")).toHaveClass(
       "motion-safe:animate-ping",
     );
+  });
+
+  /*
+   * Turning monitoring off or on starts a row of the same status (issue
+   * #6480). Without a mark the card read "Operational, Operational" with
+   * nothing to tell the two apart.
+   */
+  test("a status held with monitoring off is marked Monitoring Off, beside its name", () => {
+    renderCard(
+      loaded([
+        row({
+          id: "bbbbbbbb-0000-4000-8000-000000000001",
+          name: "Operational",
+          color: "#10B981",
+          startsAt: hoursAgo(2),
+          isMonitoringOff: true,
+        }),
+        row({
+          id: "bbbbbbbb-0000-4000-8000-000000000002",
+          name: "Operational",
+          color: "#10B981",
+          startsAt: hoursAgo(5),
+          endsAt: hoursAgo(2),
+          isMonitoringOff: false,
+        }),
+      ]),
+    );
+
+    const rows: Array<HTMLElement> = screen.getAllByTestId(
+      "monitor-status-change-row",
+    );
+
+    expect(screen.getAllByTestId("monitoring-off-indicator")).toHaveLength(1);
+
+    const indicator: HTMLElement = within(rows[0]!).getByTestId(
+      "monitoring-off-indicator",
+    );
+    expect(indicator).toHaveTextContent(/^Monitoring Off$/);
+    // On the status's line, before Currently Active.
+    expect(indicator.parentElement).toBe(
+      within(rows[0]!).getByText("Operational").parentElement,
+    );
+    expect(
+      indicator.compareDocumentPosition(
+        within(rows[0]!).getByTestId("currently-active-indicator"),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    expect(
+      within(rows[1]!).queryByTestId("monitoring-off-indicator"),
+    ).toBeNull();
   });
 
   test("the ongoing row's duration keeps counting while the page is open", () => {

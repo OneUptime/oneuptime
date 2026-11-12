@@ -556,6 +556,37 @@ export default class OneUptimeDate {
   }
 
   /*
+   * A day with its month and its year, as a chart's axis names a day when
+   * its window holds a year or more: "02 Mar 2026" in English. In such a
+   * window "12 Nov" is two days, a year apart (XAxisUtil).
+   *
+   * In another language, as that language writes a short date with its year
+   * (Intl): "2. März 2026", "2 mars 2026", "2026年3月2日", "۲ مارس ۲۰۲۶".
+   */
+  public static getDateAsLocalDayMonthYearString(date: Date | string): string {
+    const instant: Date = this.fromString(date);
+
+    return writeInDateDisplayLanguage(
+      (): string => {
+        const local: moment.Moment = this.inCurrentTimezone(instant);
+        const day: string = this.padDatePart(local.date());
+        const month: string = this.getLocalShortMonthName(instant);
+
+        return `${day} ${month} ${local.year()}`;
+      },
+      (language: string, locale: string): string | null => {
+        // "2. März 2026", "2 mars 2026", "2026年3月2日", "۲ مارس ۲۰۲۶".
+        return this.getLocalizedDateText({
+          date: instant,
+          language,
+          locale,
+          shape: { onlyShowDate: true },
+        });
+      },
+    );
+  }
+
+  /*
    * The hour a chart's bucket starts at, with its day: "02 Mar, 14:00" in
    * English.
    *

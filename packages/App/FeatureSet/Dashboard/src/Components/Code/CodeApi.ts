@@ -11,6 +11,7 @@ import {
   CodeTaskSummaryJSON,
   CodeTaskTurnJSON,
   CodeTaskTurnProgressJSON,
+  CodeTaskTurnsNotShownJSON,
   MAX_CODE_TASKS_PER_REQUEST,
 } from "Common/Types/AI/CodeTask";
 import HTTPErrorResponse from "Common/Types/API/HTTPErrorResponse";
@@ -76,13 +77,53 @@ export interface CodeTaskRetryManyResponse {
 
 export interface CodeTaskResponse {
   task: CodeTaskSummaryJSON;
+  // Its first turn, then its newest, oldest first.
   turns: Array<CodeTaskTurnJSON>;
   repository: CodeTaskRepositoryJSON | null;
   canAsk: boolean;
   canSeeChanges: boolean;
   canReadLogContent: boolean;
   blocker: CodeTaskBlocker | null;
+  /*
+   * A task with more turns than its page shows (a conversation reads at
+   * most 200): how many between its first turn and its newest are not
+   * shown, and how long AI worked on them. None for a task shown whole.
+   */
+  turnsNotShown?: CodeTaskTurnsNotShownJSON | null | undefined;
 }
+
+/*
+ * The turns a task's page is told it does not show: a whole count of one or
+ * more, and how long AI worked on them (none or nonsense: nothing). Null
+ * for anything else - a task shown whole.
+ */
+export const parseTurnsNotShown: (
+  value: unknown,
+) => CodeTaskTurnsNotShownJSON | null = (
+  value: unknown,
+): CodeTaskTurnsNotShownJSON | null => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+
+  const count: unknown = (value as JSONObject)["count"];
+
+  if (typeof count !== "number" || !Number.isInteger(count) || count < 1) {
+    return null;
+  }
+
+  const workMilliseconds: unknown = (value as JSONObject)["workMilliseconds"];
+
+  return {
+    count,
+    workMilliseconds:
+      typeof workMilliseconds === "number" &&
+      Number.isFinite(workMilliseconds) &&
+      workMilliseconds > 0
+        ? workMilliseconds
+        : 0,
+  };
+};
 
 export const CODE_TASK_API_PATH: string = "/code-task";
 
@@ -251,6 +292,7 @@ export default class CodeApi {
       canSeeChanges: data["canSeeChanges"] === true,
       canReadLogContent: data["canReadLogContent"] === true,
       blocker: (data["blocker"] as unknown as CodeTaskBlocker | null) || null,
+      turnsNotShown: parseTurnsNotShown(data["turnsNotShown"]),
     };
   }
 

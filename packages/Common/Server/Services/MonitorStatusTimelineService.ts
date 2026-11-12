@@ -4,7 +4,11 @@ import StateChangeFollowOn from "../Utils/StateChangeFollowOn";
 import Exception from "../../Types/Exception/Exception";
 import CreateBy from "../Types/Database/CreateBy";
 import DeleteBy from "../Types/Database/DeleteBy";
-import { OnCreate, OnDelete } from "../Types/Database/Hooks";
+import {
+  DatabaseTriggerType,
+  OnCreate,
+  OnDelete,
+} from "../Types/Database/Hooks";
 import QueryHelper from "../Types/Database/QueryHelper";
 import logger, { LogAttributes } from "../Utils/Logger";
 import ProjectScopedReferenceValidator from "../Utils/Database/ProjectScopedReferenceValidator";
@@ -47,7 +51,15 @@ import {
 import { LIMIT_PER_PROJECT } from "../../Types/Database/LimitMax";
 import MonitorUptimeSummaryUtil from "../../Utils/Monitor/MonitorUptimeSummaryUtil";
 import UptimeDailyAggregateUtil from "../../Utils/StatusPage/UptimeDailyAggregateUtil";
-import FeedMarkdown, { mdText } from "../../Utils/Markdown/FeedMarkdown";
+import FeedMarkdown, {
+  MarkdownText,
+  mdText,
+} from "../../Utils/Markdown/FeedMarkdown";
+import MonitoringOff, {
+  MONITORING_OFF_SELECT,
+} from "../../Utils/Monitor/MonitoringOff";
+import Monitor from "../../Models/DatabaseModels/Monitor";
+import { JSONObject } from "../../Types/JSON";
 import StateTimelineRowsKept from "../Utils/Database/StateTimelineRowsKept";
 import MonitorStatusEventDelete, {
   StatusEventDeleteDecision,
@@ -70,6 +82,26 @@ export const MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE: string =
  */
 export const MONITOR_STATUS_TIMELINE_LOCK_ERROR_MESSAGE: string =
   "Could not acquire the monitor status timeline lock for this monitor.";
+
+/*
+ * THE STATUS EVENTS THAT ONLY MARK MONITORING TURNED OFF OR BACK ON.
+ *
+ * A monitor's monitoring turned off or on starts a status event of its own,
+ * with the status the monitor holds and isMonitoringOff saying which
+ * (recordMonitoringSwitch, issue #6480): uptime, status pages and SLOs then
+ * leave out the time between. No status changed, so such a create posts no
+ * feed item, stamps no network device and starts no workflow. Its create is
+ * kept here from onBeforeCreate (buildOnCreate) on - DatabaseService hands
+ * every hook the same CreateBy - and its row's id while the create runs, for
+ * onTriggerWorkflow, which is told the id alone.
+ */
+const monitoringSwitchCreates: WeakSet<CreateBy<MonitorStatusTimeline>> =
+  new WeakSet<CreateBy<MonitorStatusTimeline>>();
+const monitoringSwitchRowIdByCreate: WeakMap<
+  CreateBy<MonitorStatusTimeline>,
+  string
+> = new WeakMap<CreateBy<MonitorStatusTimeline>, string>();
+const monitoringSwitchRowIds: Set<string> = new Set<string>();
 
 // One window for getRollingUptimeTotals. Every window ends at its endDate.
 export interface RollingUptimeWindowRequest {
@@ -214,6 +246,16 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *    short. Coverage is compared with a tolerance by the client rather than
    *    for exact equality.
    *
+   * 4. Time with the monitor's monitoring turned off (`isMonitoringOff`,
+   *    issue #6480) is no status: nothing checked the monitor, so its row
+   *    holds only what the last check saw. Such a row is dropped AFTER the
+   *    LEAD, never before it - filtered first, the open row before the switch
+   *    would run on across the time monitoring was off. It leaves that time
+   *    uncovered, so a day it fills reads as no data, and a day it fills in
+   *    part is measured over the rest. getMonitorGroupDailyUptimeAggregate,
+   *    getMergedDowntimeSeconds and getRollingUptimeTotals drop it the same
+   *    way.
+   *
    * A trap that is worth recording even though this SQL no longer contains it:
    * PostgreSQL's LEAST/GREATEST IGNORE NULLs, returning the smallest or
    * largest NON-NULL argument. An earlier draft joined rows to buckets, and on
@@ -265,6 +307,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       src AS (
         SELECT t."monitorId" AS monitor_id,
                t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                GREATEST(t."startsAt", p.win_start) AS s,
                LEAST(
                  COALESCE(
@@ -299,6 +342,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
           interval '1 day'
         ) AS gs
         WHERE src.e > src.s
+          AND NOT src.is_off
       ),
       agg AS (
         SELECT monitor_id,
@@ -646,6 +690,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       src AS (
         SELECT t."monitorId" AS monitor_id,
                t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                GREATEST(t."startsAt", p.win_start) AS s,
                LEAST(
                  COALESCE(
@@ -677,6 +722,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         JOIN ranks rk ON rk.status_id = src.status_id
         CROSS JOIN grid g
         WHERE src.e > src.s
+          AND NOT src.is_off
       ),
       split AS (
         SELECT group_key,
@@ -875,7 +921,10 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    *
    * Downtime statuses are picked out AFTER that LEAD, never before it.
    * Filtered first, an open Offline row would run on to the next Offline
-   * row's start, across the Operational rows in between.
+   * row's start, across the Operational rows in between. So are the rows
+   * that mark a monitor's monitoring off, which cover nothing (see
+   * getDailyUptimeAggregate): the group is recorded at an instant when one
+   * of its monitors was checked then.
    *
    * THE MERGE
    *
@@ -927,6 +976,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ),
       src AS (
         SELECT t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                GREATEST(t."startsAt", p.win_start) AS s,
                LEAST(
                  COALESCE(
@@ -952,6 +1002,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                status_id = ANY($4::uuid[]) AS is_downtime
         FROM src
         WHERE e > s
+          AND NOT is_off
       ),
       reach AS (
         SELECT s,
@@ -1046,7 +1097,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
    * would in that window's own aggregate call. Seconds are summed as double
    * precision and never rounded. There is no day split: splitting a period
    * into days and adding the days back up gives the same total, and a
-   * rolling window has no day boundaries to report.
+   * rolling window has no day boundaries to report. A row that marks the
+   * monitor's monitoring off is dropped after the LEAD, as the aggregate
+   * drops it, so a window with monitoring off is measured over the rest.
    *
    * On an exact startsAt tie a closed row sorts before an open one. The
    * aggregate leaves ties in whatever order the plan produces; putting the
@@ -1124,6 +1177,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       ),
       src_rows AS (
         SELECT t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                t."startsAt" AS starts_at,
                t."endsAt" AS ends_at
         FROM "MonitorStatusTimeline" t
@@ -1136,6 +1190,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
           AND (t."endsAt" >= wd.win_start OR t."endsAt" IS NULL)
         UNION ALL
         SELECT t."monitorStatusId" AS status_id,
+               t."isMonitoringOff" IS TRUE AS is_off,
                t."startsAt" AS starts_at,
                t."endsAt" AS ends_at
         FROM "MonitorStatusTimeline" t
@@ -1149,6 +1204,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
       src AS (
         SELECT w.window_no,
                r.status_id,
+               r.is_off,
                GREATEST(r.starts_at, w.win_start) AS s,
                LEAST(
                  COALESCE(
@@ -1172,6 +1228,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
                SUM(EXTRACT(EPOCH FROM (e - s)))::double precision AS seconds
         FROM src
         WHERE e > s
+          AND NOT is_off
         GROUP BY window_no, status_id
       )
       SELECT w.window_key AS "windowKey",
@@ -1428,9 +1485,26 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
   public override async create(
     createBy: CreateBy<MonitorStatusTimeline>,
   ): Promise<MonitorStatusTimeline> {
-    const createdItem: MonitorStatusTimeline = await super.create(createBy);
+    let createdItem: MonitorStatusTimeline;
+
+    try {
+      createdItem = await super.create(createBy);
+    } catch (error) {
+      Service.forgetMonitoringSwitchRow(createBy);
+      throw error;
+    }
+
+    Service.forgetMonitoringSwitchRow(createBy);
 
     if (createBy.props.ignoreHooks) {
+      return createdItem;
+    }
+
+    /*
+     * Only the monitoring switch changed, not the status: no device to
+     * stamp, no status change for the feed (monitoringSwitchCreates).
+     */
+    if (monitoringSwitchCreates.has(createBy)) {
       return createdItem;
     }
 
@@ -1458,6 +1532,161 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     await this.createStatusChangeFeedItem(createdItem, createBy);
 
     return createdItem;
+  }
+
+  /*
+   * Marks on the monitor's status timeline that its monitoring was turned
+   * off, or back on (issue #6480): a status event starts now with the status
+   * the monitor holds, and isMonitoringOff saying which. Uptime, status page
+   * bars, SLOs and monitor group graphs leave out the time from a status
+   * event that marks it off to the next one that does not. Nothing checks
+   * the monitor in between, so its status is only what the last check saw.
+   *
+   * MonitorService calls this once an update has turned the switch, before
+   * anything the switch leads to - the incidents turning it off resolves -
+   * writes a status change of its own. Nothing is written when the latest
+   * status event already says what the switch says, nor for a monitor with
+   * no status yet: its first status event takes the switch as it is
+   * (buildOnCreate). Returns the status event written, or null.
+   */
+  @CaptureSpan()
+  public async recordMonitoringSwitch(data: {
+    monitorId: ObjectID;
+    isMonitoringOff: boolean;
+    // Who turned the switch, when a person did: named in the root cause.
+    switchedByUserId?: ObjectID | null | undefined;
+  }): Promise<MonitorStatusTimeline | null> {
+    const latest: MonitorStatusTimeline | null = await this.findOneBy({
+      query: {
+        monitorId: data.monitorId,
+      },
+      sort: {
+        startsAt: SortOrder.Descending,
+      },
+      select: {
+        _id: true,
+        projectId: true,
+        monitorStatusId: true,
+        isMonitoringOff: true,
+      },
+      props: {
+        isRoot: true,
+      },
+    });
+
+    if (!latest || !latest.projectId || !latest.monitorStatusId) {
+      return null;
+    }
+
+    if ((latest.isMonitoringOff === true) === data.isMonitoringOff) {
+      return null;
+    }
+
+    const switchedBy: MarkdownText = data.switchedByUserId
+      ? await UserService.getUserMarkdownString({
+          userId: data.switchedByUserId,
+          projectId: latest.projectId,
+        })
+      : FeedMarkdown.empty();
+
+    const statusEvent: MonitorStatusTimeline = new MonitorStatusTimeline();
+    statusEvent.projectId = latest.projectId;
+    statusEvent.monitorId = data.monitorId;
+    statusEvent.monitorStatusId = latest.monitorStatusId;
+    statusEvent.startsAt = OneUptimeDate.getCurrentDate();
+    // The status did not change: nobody is told it did.
+    statusEvent.isOwnerNotified = true;
+    statusEvent.rootCause = Service.getMonitoringSwitchRootCause({
+      isMonitoringOff: data.isMonitoringOff,
+      switchedBy: switchedBy,
+    });
+
+    if (data.switchedByUserId) {
+      statusEvent.createdByUserId = data.switchedByUserId;
+    }
+
+    try {
+      return await this.create({
+        data: statusEvent,
+        props: {
+          isRoot: true,
+        },
+      });
+    } catch (error) {
+      /*
+       * Another write marked the switch first, under the monitor's lock:
+       * the latest status event says what this one would.
+       */
+      if (
+        error instanceof BadDataException &&
+        error.message === MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE
+      ) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  /*
+   * Once a create is over, however it ended, its workflow trigger has run
+   * or will not: the id of the row that marks the switch is forgotten, so a
+   * later On Create for it is not held back (monitoringSwitchCreates).
+   */
+  private static forgetMonitoringSwitchRow(
+    createBy: CreateBy<MonitorStatusTimeline>,
+  ): void {
+    const switchRowId: string | undefined =
+      monitoringSwitchRowIdByCreate.get(createBy);
+
+    if (switchRowId) {
+      monitoringSwitchRowIds.delete(switchRowId);
+    }
+  }
+
+  /*
+   * Why the status event that marks the switch starts, on the monitor's
+   * Status Timeline: Markdown, with the person's name placed as text.
+   */
+  public static getMonitoringSwitchRootCause(data: {
+    isMonitoringOff: boolean;
+    switchedBy: MarkdownText;
+  }): string {
+    if (data.isMonitoringOff) {
+      const turnedOff: MarkdownText = data.switchedBy.isEmpty()
+        ? mdText`Monitoring is off.`
+        : mdText`${data.switchedBy} turned off monitoring.`;
+
+      return mdText`${turnedOff} Nothing checks the monitor until it is turned back on, so its status stays at the last one recorded, and uptime, status pages and SLOs leave this time out.`.toString();
+    }
+
+    const turnedOn: MarkdownText = data.switchedBy.isEmpty()
+      ? mdText`Monitoring was turned back on.`
+      : mdText`${data.switchedBy} turned monitoring back on.`;
+
+    return mdText`${turnedOn} Uptime, status pages and SLOs count the monitor's time again from here.`.toString();
+  }
+
+  /*
+   * A status event that only marks monitoring turned off or on starts no
+   * workflow: no status changed (monitoringSwitchCreates). Every other
+   * status event's On Create, and every update and delete, as before.
+   */
+  @CaptureSpan()
+  public override async onTriggerWorkflow(
+    id: ObjectID,
+    projectId: ObjectID,
+    triggerType: DatabaseTriggerType,
+    miscData?: JSONObject | undefined,
+  ): Promise<void> {
+    if (
+      triggerType === "on-create" &&
+      monitoringSwitchRowIds.has(id.toString())
+    ) {
+      return;
+    }
+
+    return await super.onTriggerWorkflow(id, projectId, triggerType, miscData);
   }
 
   @CaptureSpan()
@@ -1651,6 +1880,7 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         monitorStatusId: true,
         startsAt: true,
         endsAt: true,
+        isMonitoringOff: true,
       },
     });
 
@@ -1661,33 +1891,6 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
     if (!stateBeforeThis) {
       // since this is the first status, do not notify the owner.
       createBy.data.isOwnerNotified = true;
-    }
-
-    /*
-     * check if this new state and the previous state are same.
-     * if yes, then throw bad data exception.
-     */
-
-    if (stateBeforeThis && stateBeforeThis.monitorStatusId && monitorStatusId) {
-      if (
-        stateBeforeThis.monitorStatusId.toString() ===
-        monitorStatusId.toString()
-      ) {
-        /*
-         * Logged above debug on purpose. This is the exact point at which an
-         * orphaned (endsAt = NULL) row would have been created had the mutex
-         * fallen through unlocked, so it is the signal to alert on: a sustained
-         * rate here means two writers are racing for the same monitor.
-         */
-        logger.warn(
-          `MonitorStatusTimeline: rejecting duplicate status ${monitorStatusId.toString()} for monitor ${monitorId.toString()}. The preceding status starting at ${stateBeforeThis.startsAt?.toString()} is already this status.`,
-          logAttributes,
-        );
-
-        throw new BadDataException(
-          MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
-        );
-      }
     }
 
     const stateAfterThis: MonitorStatusTimeline | null = await this.findOneBy({
@@ -1705,8 +1908,60 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         monitorStatusId: true,
         startsAt: true,
         endsAt: true,
+        isMonitoringOff: true,
       },
     });
+
+    // Whether the monitor's monitoring is off for the time this row covers.
+    const isMonitoringOff: boolean = await this.isMonitoringOffForNewRow({
+      monitorId: monitorId,
+      stateBeforeThis: stateBeforeThis,
+      stateAfterThis: stateAfterThis,
+    });
+
+    createBy.data.isMonitoringOff = isMonitoringOff;
+
+    /*
+     * check if this new state and the previous state are same.
+     * if yes, then throw bad data exception.
+     *
+     * The same status is a change of its own when the monitoring switch
+     * differs: the row then marks monitoring turned off or back on
+     * (recordMonitoringSwitch). Nobody is told of it as a status change
+     * (monitoringSwitchCreates).
+     */
+
+    if (stateBeforeThis && stateBeforeThis.monitorStatusId && monitorStatusId) {
+      const isSameStatus: boolean =
+        stateBeforeThis.monitorStatusId.toString() ===
+        monitorStatusId.toString();
+
+      if (
+        isSameStatus &&
+        (stateBeforeThis.isMonitoringOff === true) === isMonitoringOff
+      ) {
+        /*
+         * Logged above debug on purpose. This is the exact point at which an
+         * orphaned (endsAt = NULL) row would have been created had the mutex
+         * fallen through unlocked, so it is the signal to alert on: a sustained
+         * rate here means two writers are racing for the same monitor.
+         */
+        logger.warn(
+          `MonitorStatusTimeline: rejecting duplicate status ${monitorStatusId.toString()} for monitor ${monitorId.toString()}. The preceding status starting at ${stateBeforeThis.startsAt?.toString()} is already this status.`,
+          logAttributes,
+        );
+
+        throw new BadDataException(
+          MONITOR_STATUS_SAME_AS_PREVIOUS_ERROR_MESSAGE,
+        );
+      }
+
+      // The same status, the switch turned: the row marks only that.
+      if (isSameStatus) {
+        monitoringSwitchCreates.add(createBy);
+        createBy.data.isOwnerNotified = true;
+      }
+    }
 
     // compute ends at. It's the start of the next status.
     if (stateAfterThis && stateAfterThis.startsAt) {
@@ -1720,7 +1975,9 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
 
     if (stateAfterThis && stateAfterThis.monitorStatusId && monitorStatusId) {
       if (
-        stateAfterThis.monitorStatusId.toString() === monitorStatusId.toString()
+        stateAfterThis.monitorStatusId.toString() ===
+          monitorStatusId.toString() &&
+        (stateAfterThis.isMonitoringOff === true) === isMonitoringOff
       ) {
         throw new BadDataException(
           "Monitor Status cannot be same as next status.",
@@ -1738,6 +1995,42 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
         statusTimelineAfterThisStatus: stateAfterThis || null,
       },
     };
+  }
+
+  /*
+   * Whether the monitor's monitoring is off for the time a new row covers
+   * (MonitorStatusTimeline.isMonitoringOff), decided by OneUptime whoever
+   * writes the row:
+   *
+   *   - A row with a row after it is written into the timeline's past, over
+   *     time the row before it covered: it takes that row's switch, since
+   *     turning the switch starts a row of its own (recordMonitoringSwitch).
+   *     Before the monitor's first row, the first row's.
+   *   - A row with none after it starts the monitor's current status: it
+   *     takes the monitor's switch as it is now. A status change while
+   *     monitoring is off - an incident resolved by hand, a manual monitor's
+   *     status set - is not checked either.
+   */
+  private async isMonitoringOffForNewRow(data: {
+    monitorId: ObjectID;
+    stateBeforeThis: MonitorStatusTimeline | null;
+    stateAfterThis: MonitorStatusTimeline | null;
+  }): Promise<boolean> {
+    if (data.stateAfterThis) {
+      return (
+        (data.stateBeforeThis || data.stateAfterThis).isMonitoringOff === true
+      );
+    }
+
+    const monitor: Monitor | null = await MonitorService.findOneById({
+      id: data.monitorId,
+      select: MONITORING_OFF_SELECT,
+      props: {
+        isRoot: true,
+      },
+    });
+
+    return MonitoringOff.isOff(monitor);
   }
 
   /*
@@ -1916,6 +2209,19 @@ export class Service extends ProjectReferencesService<MonitorStatusTimeline> {
        * and the bridge can be slow. create() runs it via bridgeIfCurrent
        * right after the mutex is released.
        */
+    }
+
+    /*
+     * A row that only marks the monitoring switch: its On Create workflows
+     * are not started (onTriggerWorkflow), which DatabaseService asks for
+     * once this hook returns.
+     */
+    if (monitoringSwitchCreates.has(onCreate.createBy) && createdItem.id) {
+      monitoringSwitchRowIdByCreate.set(
+        onCreate.createBy,
+        createdItem.id.toString(),
+      );
+      monitoringSwitchRowIds.add(createdItem.id.toString());
     }
 
     // The predecessor is closed and the monitor's status written.

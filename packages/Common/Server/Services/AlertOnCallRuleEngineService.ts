@@ -63,9 +63,12 @@ class AlertOnCallRuleEngineServiceClass {
     }
 
     try {
-      const rules: Array<AlertOnCallRule> = await this.findEnabledRules(
-        alert.projectId,
-      );
+      /*
+       * The rules that match it and page a policy - the one matching "When
+       * this goes down" (WhoIsToldService) reads too, so what it shows a
+       * monitor's alerts would page is what they page.
+       */
+      const rules: Array<AlertOnCallRule> = await this.getMatchingRules(alert);
 
       if (rules.length === 0) {
         return noHolds;
@@ -84,11 +87,6 @@ class AlertOnCallRuleEngineServiceClass {
       let aiHold: AiHoldDecision | undefined = undefined;
 
       for (const rule of rules) {
-        const matches: boolean = await this.doesAlertMatchRule(alert, rule);
-        if (!matches) {
-          continue;
-        }
-
         if (rule.onCallDutyPolicies && rule.onCallDutyPolicies.length > 0) {
           if (
             rule.whenToPage === OnCallRuleWhenToPage.AfterOneUptimeAI &&
@@ -291,6 +289,36 @@ class AlertOnCallRuleEngineServiceClass {
     }
 
     return pagingNow;
+  }
+
+  /*
+   * The project's enabled rules that match the alert and page a policy, in
+   * the order they are read. Reads only: nothing is attached, paged or
+   * written. The engine pages what they name (applyRulesToAlert), and
+   * "When this goes down" (WhoIsToldService) shows them for an alert a
+   * monitor's criteria would open, held in memory - so the two answer from
+   * one matching and never disagree.
+   */
+  @CaptureSpan()
+  @RuleEvaluation()
+  public async getMatchingRules(alert: Alert): Promise<Array<AlertOnCallRule>> {
+    if (!alert.projectId) {
+      return [];
+    }
+
+    const matching: Array<AlertOnCallRule> = [];
+
+    for (const rule of await this.findEnabledRules(alert.projectId)) {
+      if (!rule.onCallDutyPolicies || rule.onCallDutyPolicies.length === 0) {
+        continue;
+      }
+
+      if (await this.doesAlertMatchRule(alert, rule)) {
+        matching.push(rule);
+      }
+    }
+
+    return matching;
   }
 
   // The project's enabled alert on-call rules, with what matching them needs.

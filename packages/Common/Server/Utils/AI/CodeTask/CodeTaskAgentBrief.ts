@@ -1,6 +1,7 @@
 import AIRunService from "../../../Services/AIRunService";
 import TelemetryExceptionService from "../../../Services/TelemetryExceptionService";
 import { DashboardClientUrl } from "../../../EnvironmentConfig";
+import Select from "../../../Types/Database/Select";
 import CaptureSpan from "../../Telemetry/CaptureSpan";
 import {
   sanitizeExceptionMessage,
@@ -9,7 +10,10 @@ import {
 import ToolResultSerializer from "../Toolbox/Serializer";
 import PromptText from "../../../../Utils/AI/PromptText";
 import CodeTaskOrigin, { CodeTaskOriginSubjects } from "./CodeTaskOrigin";
-import CodeTaskThread, { CODE_TASK_TURN_SELECT } from "./CodeTaskThread";
+import CodeTaskThread, {
+  CODE_TASK_TURN_SELECT,
+  CodeTaskTurnsRead,
+} from "./CodeTaskThread";
 import AIAgentTaskPullRequest from "../../../../Models/DatabaseModels/AIAgentTaskPullRequest";
 import AIRun from "../../../../Models/DatabaseModels/AIRun";
 import CodeRepository from "../../../../Models/DatabaseModels/CodeRepository";
@@ -54,11 +58,37 @@ import { getAiInsightDashboardPath } from "../../../../Types/AI/TelemetryAi";
  * request's own words, its notes, the AI's earlier replies, an exception's
  * message and stack. Record snapshots were redacted when they were taken.
  * The conversation is capped, newest kept, so a long task cannot crowd the
- * code out of the prompt.
+ * code out of the prompt: a task of more turns than are read
+ * (MAX_TURNS_PER_TASK) is read from its first turn and its newest, and the
+ * brief says how many were left out between them.
  */
 
 export const MAX_CONVERSATION_LENGTH: number = 40000;
 export const MAX_EARLIER_REPLY_LENGTH: number = 6000;
+
+/*
+ * The conversation's entries a reply's turn makes: what the person asked,
+ * and what AI answered (describeTurn). A reply is always a request from
+ * Code (CodeTaskRuns.addTurn), so a turn left out unread leaves out two.
+ */
+export const ENTRIES_PER_REPLY_TURN: number = 2;
+
+// What an earlier turn is read with: what was asked, and what AI answered.
+const TURN_SELECT: Select<AIRun> = {
+  _id: true,
+  codeFixTaskType: true,
+  codeTaskId: true,
+  createdAt: true,
+  status: true,
+  userId: true,
+  errorMessage: true,
+  taskContext: true,
+  taskOutcome: true,
+  triggeredByTelemetryExceptionId: true,
+  triggeredByIncidentId: true,
+  triggeredByAlertId: true,
+  triggeredByAiInsightId: true,
+};
 const MAX_ORIGIN_DETAIL_LENGTH: number = 6000;
 // An insight's title, as the pull request names the finding.
 const MAX_FINDING_LENGTH: number = 300;
@@ -100,47 +130,38 @@ export default class CodeTaskAgentBrief {
       throw new Error("This task no longer exists.");
     }
 
-    const allTurns: Array<AIRun> = await CodeTaskThread.getTurns({
+    /*
+     * The task's first turn and its newest: the turn being worked on is the
+     * newest (a task takes one turn at a time), so the turns right before
+     * it are among them however long the conversation is.
+     */
+    const newest: CodeTaskTurnsRead = await CodeTaskThread.getTurns({
       projectId,
       task,
-      select: {
-        _id: true,
-        codeFixTaskType: true,
-        codeTaskId: true,
-        createdAt: true,
-        status: true,
-        userId: true,
-        errorMessage: true,
-        taskContext: true,
-        taskOutcome: true,
-        triggeredByTelemetryExceptionId: true,
-        triggeredByIncidentId: true,
-        triggeredByAlertId: true,
-        triggeredByAiInsightId: true,
-      },
+      select: TURN_SELECT,
     });
 
-    // The turns before this one.
-    const runIndex: number = allTurns.findIndex((turn: AIRun): boolean => {
-      return turn.id!.toString() === run.id!.toString();
+    const before: CodeTaskTurnsRead = await CodeTaskAgentBrief.getTurnsBefore({
+      projectId,
+      task,
+      run,
+      newest,
     });
 
-    const earlierTurns: Array<AIRun> =
-      runIndex >= 0 ? allTurns.slice(0, runIndex) : allTurns;
+    const earlierTurns: Array<AIRun> = before.turns;
 
     const [pullRequests, people, subjects]: [
       Array<AIAgentTaskPullRequest>,
       Map<string, CodeTaskPersonJSON>,
       CodeTaskOriginSubjects,
     ] = await Promise.all([
-      CodeTaskThread.getPullRequests({
-        projectId,
-        runIds: allTurns.map((turn: AIRun): ObjectID => {
-          return turn.id!;
-        }),
-      }),
+      /*
+       * Every pull request of the task, not only the turns read: the one a
+       * reply pushes to may have been opened by a turn long left out.
+       */
+      CodeTaskThread.getTaskPullRequests({ projectId, task, read: newest }),
       CodeTaskThread.getPeople(
-        allTurns
+        [...earlierTurns, run]
           .filter((turn: AIRun): boolean => {
             return Boolean(turn.userId);
           })
@@ -231,8 +252,74 @@ export default class CodeTaskAgentBrief {
         ),
       },
       conversation: capped.turns,
-      omittedTurns: capped.omitted,
+      /*
+       * What the conversation leaves out, in its own entries: the ones cut
+       * to fit, and each older turn not read - a request and its reply -
+       * so the Runner's prompt says the conversation is longer than shown.
+       */
+      omittedTurns:
+        capped.omitted + before.olderTurnsLeftOut * ENTRIES_PER_REPLY_TURN,
     };
+  }
+
+  /*
+   * The turns before `run`, oldest first, and how many older ones were left
+   * out: the newest turns up to it. Almost always the turns read already
+   * hold it, as the task's newest; a turn older than every one read (a turn
+   * asked while another was still working, when the task could not be
+   * locked) has the turns before it read on their own. The task's first
+   * turn has none.
+   */
+  private static async getTurnsBefore(data: {
+    projectId: ObjectID;
+    task: AIRun;
+    run: AIRun;
+    newest: CodeTaskTurnsRead;
+  }): Promise<CodeTaskTurnsRead> {
+    const runIndex: number = data.newest.turns.findIndex(
+      (turn: AIRun): boolean => {
+        return turn.id!.toString() === data.run.id!.toString();
+      },
+    );
+
+    if (runIndex >= 0) {
+      return {
+        turns: data.newest.turns.slice(0, runIndex),
+        // The turns left out come after the first turn: none is before it.
+        olderTurnsLeftOut: runIndex === 0 ? 0 : data.newest.olderTurnsLeftOut,
+      };
+    }
+
+    const createdAt: Date | null = await CodeTaskAgentBrief.getCreatedAt(
+      data.run,
+    );
+
+    if (!createdAt) {
+      // Nothing says when it was asked: only the turn that says what the task is about.
+      return { turns: [data.task], olderTurnsLeftOut: 0 };
+    }
+
+    return await CodeTaskThread.getTurns({
+      projectId: data.projectId,
+      task: data.task,
+      select: TURN_SELECT,
+      createdBefore: createdAt,
+    });
+  }
+
+  // When a turn was asked: as read with it, or read now.
+  private static async getCreatedAt(run: AIRun): Promise<Date | null> {
+    if (run.createdAt) {
+      return new Date(run.createdAt);
+    }
+
+    const read: AIRun | null = await AIRunService.findOneById({
+      id: run.id!,
+      select: { _id: true, createdAt: true },
+      props: { isRoot: true },
+    });
+
+    return read?.createdAt ? new Date(read.createdAt) : null;
   }
 
   /*

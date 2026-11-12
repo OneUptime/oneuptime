@@ -2879,8 +2879,40 @@ describe("status page resources", () => {
       }),
     ).toEqual(["monitor-off", "group-off"]);
 
+    /*
+     * Its history bars, and a group's bars and uptime, keep the time up to
+     * when monitoring was turned off and leave out the time after (#6480,
+     * #6987): the rows that mark it off are dropped after the LEAD of every
+     * SQL statement a status page's bars and uptime are read with, and the
+     * rows the page reads for a percentage carry the mark.
+     */
+    const timelineService: string = readSource(
+      "Common/Server/Services/MonitorStatusTimelineService.ts",
+    );
+    const dropsOffRows: RegExp = /AND NOT (src\.)?is_off/;
+    for (const method of [
+      "public async getDailyUptimeAggregate(",
+      "public async getMonitorGroupDailyUptimeAggregate(",
+      "public async getMergedDowntimeSeconds(",
+    ]) {
+      const start: number = timelineService.indexOf(method);
+      const body: string = timelineService.slice(
+        start,
+        // To the next method.
+        timelineService.indexOf("  public async ", start + method.length),
+      );
+      expect({
+        method: method,
+        reads: body.includes('t."isMonitoringOff" IS TRUE AS is_off'),
+        drops: dropsOffRows.test(body),
+      }).toEqual({ method: method, reads: true, drops: true });
+    }
+    expect(readSource("Common/Server/Services/StatusPageService.ts")).toContain(
+      "isMonitoringOff: true,",
+    );
+
     expect(RESOURCES).toContain(
-      "- **A monitor whose monitoring is off shows Not monitored.** Nothing checks it, so the status it last had says nothing now: its row shows **Not monitored** in gray, and counts toward neither the group above it nor the overall status banner. A monitor group counts only its monitors whose monitoring is on, and shows **Not monitored** when it is off for all of them. When nothing on the page is monitored, the banner says so.",
+      "- **A monitor whose monitoring is off shows Not monitored.** Nothing checks it, so the status it last had says nothing now: its row shows **Not monitored** in gray, and counts toward neither the group above it nor the overall status banner. Its history bars keep its history up to when its monitoring was turned off and leave out the time after. A monitor group counts only its monitors whose monitoring is on, and shows **Not monitored** when it is off for all of them; its bars and uptime leave out each monitor's time with monitoring off. When nothing on the page is monitored, the banner says so.",
     );
   });
 });

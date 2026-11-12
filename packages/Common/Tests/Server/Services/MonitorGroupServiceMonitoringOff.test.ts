@@ -11,12 +11,20 @@
  * (Utils/StatusPage/FrozenMonitorResources), on every path that reads them:
  *
  *   - getCurrentStatus, behind the Dashboard's Current Status;
- *   - getStatusTimeline, behind its uptime bars and percentage;
  *   - getCurrentStatusesForMonitorGroups, behind a status page's groups;
  *   - getMonitorGroupResourcesByGroupIds, which keeps the members whose
  *     monitoring is off - their incidents and maintenance still show on a
  *     status page, which draws a group whose monitors all have it off as Not
  *     monitored - and reads the switch so the paths above can tell.
+ *
+ * getStatusTimeline, behind the Dashboard's Uptime Graph and percentage,
+ * reads the history of every member but an archived one (issue #6987): a
+ * member whose monitoring is off keeps what it recorded up to the moment it
+ * was turned off, and its rows from then on mark monitoring off
+ * (MonitorStatusTimeline.isMonitoringOff, issue #6480), which uptime and the
+ * graph leave out (UptimeUtil). Before, the whole member was dropped, so a
+ * day it was Offline ten days ago vanished from the group's graph the moment
+ * its monitoring was turned off.
  *
  * All service reads are spied on - no database is touched.
  */
@@ -33,7 +41,10 @@ import MonitorStatusTimeline from "../../../Models/DatabaseModels/MonitorStatusT
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import Dictionary from "../../../Types/Dictionary";
 import ObjectID from "../../../Types/ObjectID";
+import Event from "../../../Utils/Uptime/Event";
 import FrozenMonitorResources from "../../../Utils/StatusPage/FrozenMonitorResources";
+import UptimeUtil from "../../../Utils/Uptime/UptimeUtil";
+import UptimePrecision from "../../../Types/StatusPage/UptimePrecision";
 import { afterEach, describe, expect, jest, test } from "@jest/globals";
 
 type AnySpy = jest.SpyInstance;
@@ -242,16 +253,28 @@ describe("a monitor group's status leaves out monitors whose monitoring is off",
     });
   });
 
-  describe("getStatusTimeline (the Dashboard's uptime bars and percentage)", () => {
+  describe("getStatusTimeline (the Dashboard's Uptime Graph and percentage)", () => {
     function spyOnTimelines(rows: Array<MonitorStatusTimeline>): AnySpy {
       return (
         jest.spyOn(MonitorStatusTimelineService, "findBy") as unknown as AnySpy
       ).mockResolvedValue(rows as never);
     }
 
-    test("reads the timeline of the checked monitors only", async () => {
+    function readTimeline(
+      groupId: ObjectID,
+    ): Promise<Array<MonitorStatusTimeline>> {
+      return MonitorGroupService.getStatusTimeline(
+        groupId,
+        new Date("2026-08-01T00:00:00Z"),
+        new Date("2026-11-01T00:00:00Z"),
+        { isRoot: true },
+      );
+    }
+
+    test("reads the timeline of every member but the archived ones, those whose monitoring is off included", async () => {
       const groupId: ObjectID = ObjectID.generate();
       const checkedA: ObjectID = ObjectID.generate();
+      const off: ObjectID = ObjectID.generate();
       const checkedB: ObjectID = ObjectID.generate();
       spyOnGroup();
       spyOnMembers([
@@ -261,7 +284,12 @@ describe("a monitor group's status leaves out monitors whose monitoring is off",
           flags: CHECKED,
           monitorId: checkedA,
         }),
-        member({ monitorGroupId: groupId, status: OFFLINE, flags: OFF }),
+        member({
+          monitorGroupId: groupId,
+          status: OFFLINE,
+          flags: OFF,
+          monitorId: off,
+        }),
         member({ monitorGroupId: groupId, status: OFFLINE, flags: ARCHIVED }),
         member({
           monitorGroupId: groupId,
@@ -277,63 +305,386 @@ describe("a monitor group's status leaves out monitors whose monitoring is off",
       const row: MonitorStatusTimeline = new MonitorStatusTimeline();
       const timelines: AnySpy = spyOnTimelines([row]);
 
-      const result: Array<MonitorStatusTimeline> =
-        await MonitorGroupService.getStatusTimeline(
-          groupId,
-          new Date("2026-08-01T00:00:00Z"),
-          new Date("2026-11-01T00:00:00Z"),
-          { isRoot: true },
-        );
+      const result: Array<MonitorStatusTimeline> = await readTimeline(groupId);
 
       expect(result).toEqual([row]);
       expect(timelines).toHaveBeenCalledTimes(1);
       expect(toStrings(anySpy.mock.calls[0]![0] as Array<ObjectID>)).toEqual(
-        toStrings([checkedA, checkedB]),
+        toStrings([checkedA, off, checkedB]),
       );
       expect(firstCallArg(timelines)["query"]["monitorId"]).toBe(
         anySpy.mock.results[0]!.value,
       );
     });
 
-    test("every monitor off: no timeline at all, and nothing read for one", async () => {
+    test("every monitor off: their timelines are still read, so what they recorded before the switch still shows", async () => {
+      const groupId: ObjectID = ObjectID.generate();
+      const first: ObjectID = ObjectID.generate();
+      const second: ObjectID = ObjectID.generate();
+      spyOnGroup();
+      spyOnMembers([
+        member({
+          monitorGroupId: groupId,
+          status: OFFLINE,
+          flags: OFF,
+          monitorId: first,
+        }),
+        member({
+          monitorGroupId: groupId,
+          status: OPERATIONAL,
+          flags: OFF,
+          monitorId: second,
+        }),
+      ]);
+      const anySpy: AnySpy = jest.spyOn(
+        QueryHelper,
+        "any",
+      ) as unknown as AnySpy;
+      const row: MonitorStatusTimeline = new MonitorStatusTimeline();
+      const timelines: AnySpy = spyOnTimelines([row]);
+
+      expect(await readTimeline(groupId)).toEqual([row]);
+      expect(timelines).toHaveBeenCalledTimes(1);
+      expect(toStrings(anySpy.mock.calls[0]![0] as Array<ObjectID>)).toEqual(
+        toStrings([first, second]),
+      );
+    });
+
+    test("every monitor archived: no timeline at all, and nothing read for one", async () => {
       const groupId: ObjectID = ObjectID.generate();
       spyOnGroup();
       spyOnMembers([
-        member({ monitorGroupId: groupId, status: OFFLINE, flags: OFF }),
-        member({ monitorGroupId: groupId, status: OPERATIONAL, flags: OFF }),
+        member({ monitorGroupId: groupId, status: OFFLINE, flags: ARCHIVED }),
+        member({
+          monitorGroupId: groupId,
+          status: OPERATIONAL,
+          flags: ARCHIVED,
+        }),
       ]);
       const timelines: AnySpy = spyOnTimelines([]);
 
-      expect(
-        await MonitorGroupService.getStatusTimeline(
-          groupId,
-          new Date("2026-08-01T00:00:00Z"),
-          new Date("2026-11-01T00:00:00Z"),
-          { isRoot: true },
-        ),
-      ).toEqual([]);
+      expect(await readTimeline(groupId)).toEqual([]);
       expect(timelines).not.toHaveBeenCalled();
     });
 
-    test("reads whether each member is archived and whether its monitoring is off", async () => {
+    test("a group with no members reads nothing", async () => {
+      const groupId: ObjectID = ObjectID.generate();
+      spyOnGroup();
+      spyOnMembers([]);
+      const timelines: AnySpy = spyOnTimelines([]);
+
+      expect(await readTimeline(groupId)).toEqual([]);
+      expect(timelines).not.toHaveBeenCalled();
+    });
+
+    test("reads whether each member is archived, and nothing it does not need", async () => {
       const groupId: ObjectID = ObjectID.generate();
       spyOnGroup();
       const findBy: AnySpy = spyOnMembers([]);
       spyOnTimelines([]);
 
-      await MonitorGroupService.getStatusTimeline(
-        groupId,
-        new Date("2026-08-01T00:00:00Z"),
-        new Date("2026-11-01T00:00:00Z"),
-        { isRoot: true },
-      );
+      await readTimeline(groupId);
 
       expect(firstCallArg(findBy)["select"]).toEqual({
         monitorId: true,
         monitor: {
           isArchived: true,
-          disableActiveMonitoring: true,
         },
+      });
+    });
+
+    test("reads which rows have monitoring off, so uptime and the graph can leave that time out", async () => {
+      const groupId: ObjectID = ObjectID.generate();
+      spyOnGroup();
+      spyOnMembers([
+        member({ monitorGroupId: groupId, status: OFFLINE, flags: OFF }),
+      ]);
+      const timelines: AnySpy = spyOnTimelines([]);
+
+      await readTimeline(groupId);
+
+      const select: Dictionary<unknown> = firstCallArg(timelines)["select"];
+
+      expect(select["isMonitoringOff"]).toBe(true);
+      expect(select["startsAt"]).toBe(true);
+      expect(select["endsAt"]).toBe(true);
+      expect(select["monitorId"]).toBe(true);
+    });
+
+    describe("the issue's member: Offline for a day ten days ago, with monitoring off since yesterday", () => {
+      /*
+       * The window the Uptime Graph draws: the last 90 days to "now" - a
+       * moment in the past, so an open row runs past it and is cut at it.
+       */
+      const NOW: Date = new Date("2026-11-01T12:00:00.000Z");
+
+      function daysAgo(days: number): Date {
+        return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000);
+      }
+
+      const WINDOW_START: Date = daysAgo(90);
+
+      function row(data: {
+        monitorId: ObjectID;
+        status: MonitorStatus;
+        startsAt: Date;
+        endsAt?: Date | undefined;
+        isMonitoringOff?: boolean | undefined;
+      }): MonitorStatusTimeline {
+        const timeline: MonitorStatusTimeline = new MonitorStatusTimeline();
+        timeline.monitorId = data.monitorId;
+        timeline.monitorStatusId = data.status.id!;
+        timeline.monitorStatus = data.status;
+        timeline.startsAt = data.startsAt;
+
+        if (data.endsAt) {
+          timeline.endsAt = data.endsAt;
+        }
+
+        timeline.isMonitoringOff = Boolean(data.isMonitoringOff);
+        return timeline;
+      }
+
+      /*
+       * The group: one monitor still checked, Operational throughout, and the
+       * issue's member - Offline for a day ten days ago, Offline again the day
+       * before yesterday, and then turned off yesterday, holding that Offline
+       * frozen from then on.
+       */
+      function issueRows(data: {
+        checked: ObjectID;
+        member: ObjectID;
+      }): Array<MonitorStatusTimeline> {
+        return [
+          row({
+            monitorId: data.checked,
+            status: OPERATIONAL,
+            startsAt: daysAgo(100),
+          }),
+          row({
+            monitorId: data.member,
+            status: OPERATIONAL,
+            startsAt: daysAgo(100),
+            endsAt: daysAgo(10),
+          }),
+          row({
+            monitorId: data.member,
+            status: OFFLINE,
+            startsAt: daysAgo(10),
+            endsAt: daysAgo(9),
+          }),
+          row({
+            monitorId: data.member,
+            status: OPERATIONAL,
+            startsAt: daysAgo(9),
+            endsAt: daysAgo(2),
+          }),
+          row({
+            monitorId: data.member,
+            status: OFFLINE,
+            startsAt: daysAgo(2),
+            endsAt: daysAgo(1),
+          }),
+          // The switch: monitoring turned off yesterday, the Offline frozen.
+          row({
+            monitorId: data.member,
+            status: OFFLINE,
+            startsAt: daysAgo(1),
+            isMonitoringOff: true,
+          }),
+        ];
+      }
+
+      async function groupTimeline(data: {
+        checkedFlags: MemberFlags;
+      }): Promise<{
+        rows: Array<MonitorStatusTimeline>;
+        checked: ObjectID;
+        member: ObjectID;
+      }> {
+        const groupId: ObjectID = ObjectID.generate();
+        const checked: ObjectID = ObjectID.generate();
+        const offMember: ObjectID = ObjectID.generate();
+        const all: Array<MonitorStatusTimeline> = issueRows({
+          checked,
+          member: offMember,
+        });
+
+        spyOnGroup();
+        spyOnMembers([
+          member({
+            monitorGroupId: groupId,
+            status: OPERATIONAL,
+            flags: data.checkedFlags,
+            monitorId: checked,
+          }),
+          member({
+            monitorGroupId: groupId,
+            status: OFFLINE,
+            flags: OFF,
+            monitorId: offMember,
+          }),
+        ]);
+
+        // The database returns the rows of the monitors it is asked for.
+        const anySpy: AnySpy = jest.spyOn(
+          QueryHelper,
+          "any",
+        ) as unknown as AnySpy;
+        (
+          jest.spyOn(
+            MonitorStatusTimelineService,
+            "findBy",
+          ) as unknown as AnySpy
+        ).mockImplementation((): Promise<Array<MonitorStatusTimeline>> => {
+          const asked: Array<string> = toStrings(
+            (anySpy.mock.calls[0]?.[0] as Array<ObjectID>) || [],
+          );
+          return Promise.resolve(
+            all.filter((timeline: MonitorStatusTimeline): boolean => {
+              return asked.includes(timeline.monitorId!.toString());
+            }),
+          );
+        });
+
+        return {
+          rows: await MonitorGroupService.getStatusTimeline(
+            groupId,
+            WINDOW_START,
+            NOW,
+            { isRoot: true },
+          ),
+          checked,
+          member: offMember,
+        };
+      }
+
+      function graphEvents(rows: Array<MonitorStatusTimeline>): Array<Event> {
+        return UptimeUtil.getNonOverlappingMonitorEvents(
+          rows,
+          { startDate: WINDOW_START, endDate: NOW },
+          { downtimeMonitorStatusIds: [OFFLINE.id!.toString()] },
+        );
+      }
+
+      function offlineSpans(events: Array<Event>): Array<[string, string]> {
+        return events
+          .filter((event: Event): boolean => {
+            return event.eventStatusId.toString() === OFFLINE.id!.toString();
+          })
+          .map((event: Event): [string, string] => {
+            return [
+              new Date(event.startDate).toISOString(),
+              new Date(event.endDate).toISOString(),
+            ];
+          });
+      }
+
+      test("the group's timeline still holds the Offline day, and nothing of the member after the switch", async () => {
+        const read: {
+          rows: Array<MonitorStatusTimeline>;
+          checked: ObjectID;
+          member: ObjectID;
+        } = await groupTimeline({ checkedFlags: CHECKED });
+
+        // The member's rows are read: its history before the switch is there.
+        expect(
+          read.rows.filter((timeline: MonitorStatusTimeline): boolean => {
+            return timeline.monitorId!.toString() === read.member.toString();
+          }),
+        ).toHaveLength(5);
+
+        const events: Array<Event> = graphEvents(read.rows);
+
+        // The day ten days ago, and the day before yesterday - nothing after the switch.
+        expect(offlineSpans(events)).toEqual([
+          [daysAgo(10).toISOString(), daysAgo(9).toISOString()],
+          [daysAgo(2).toISOString(), daysAgo(1).toISOString()],
+        ]);
+
+        // After the switch, only the monitor still checked speaks for the group.
+        const afterSwitch: Array<Event> = events.filter(
+          (event: Event): boolean => {
+            return new Date(event.endDate).getTime() > daysAgo(1).getTime();
+          },
+        );
+
+        expect(afterSwitch).toHaveLength(1);
+        expect(afterSwitch[0]!.eventStatusId.toString()).toBe(
+          OPERATIONAL.id!.toString(),
+        );
+        expect(new Date(afterSwitch[0]!.startDate).toISOString()).toBe(
+          daysAgo(1).toISOString(),
+        );
+        expect(new Date(afterSwitch[0]!.endDate).toISOString()).toBe(
+          NOW.toISOString(),
+        );
+
+        // And none of the member's own events runs past the switch.
+        const memberEvents: Array<Event> = UptimeUtil.getMonitorEventsForId(
+          read.member,
+          read.rows,
+          { startDate: WINDOW_START, endDate: NOW },
+        );
+
+        expect(
+          Math.max(
+            ...memberEvents.map((event: Event): number => {
+              return new Date(event.endDate).getTime();
+            }),
+          ),
+        ).toBe(daysAgo(1).getTime());
+      });
+
+      test("the group's uptime counts the two Offline days of the 90 and not the frozen one: 97.777%", async () => {
+        const read: {
+          rows: Array<MonitorStatusTimeline>;
+          checked: ObjectID;
+          member: ObjectID;
+        } = await groupTimeline({ checkedFlags: CHECKED });
+
+        expect(
+          UptimeUtil.calculateUptimePercentageOfMonitoredTime(
+            read.rows,
+            UptimePrecision.THREE_DECIMAL,
+            [OFFLINE],
+            { startDate: WINDOW_START, endDate: NOW },
+          ),
+          // 88 of 90 days up, cut (not rounded) to three decimals.
+        ).toBe(97.777);
+      });
+
+      test("the other member archived too: the group's uptime ends at the switch, with both Offline days in it", async () => {
+        const read: {
+          rows: Array<MonitorStatusTimeline>;
+          checked: ObjectID;
+          member: ObjectID;
+        } = await groupTimeline({ checkedFlags: ARCHIVED });
+
+        // Only the off member is read; the archived one is retired.
+        expect(
+          new Set(
+            read.rows.map((timeline: MonitorStatusTimeline): string => {
+              return timeline.monitorId!.toString();
+            }),
+          ),
+        ).toEqual(new Set([read.member.toString()]));
+
+        // 89 monitored days (the 90 less the day since the switch), 2 of them Offline.
+        expect(
+          UptimeUtil.calculateUptimePercentageOfMonitoredTime(
+            read.rows,
+            UptimePrecision.THREE_DECIMAL,
+            [OFFLINE],
+            { startDate: WINDOW_START, endDate: NOW },
+          ),
+          // 87 of 89 days up, cut (not rounded) to three decimals.
+        ).toBe(97.752);
+
+        expect(offlineSpans(graphEvents(read.rows))).toEqual([
+          [daysAgo(10).toISOString(), daysAgo(9).toISOString()],
+          [daysAgo(2).toISOString(), daysAgo(1).toISOString()],
+        ]);
       });
     });
   });

@@ -111,7 +111,7 @@ flowchart TB
 ### 자체 호스팅
 
 :::cards
-- [설치](/docs/installation/docker-compose): 자체 OneUptime을 설치하고, 규모를 정하고, 업그레이드합니다.
+- [설치](/docs/installation/self-hosting-guide): 자체 OneUptime을 설치하고, 규모를 정하고, 업그레이드합니다.
 - [자체 호스팅 환경](/docs/self-hosted/architecture): 자체 설치의 아키텍처, 통합, Enterprise 기능.
 :::
 

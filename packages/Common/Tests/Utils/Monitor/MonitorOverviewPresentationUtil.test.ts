@@ -3506,8 +3506,49 @@ describe("MonitorOverviewPresentationUtil.getUptimeCaveat", () => {
       [string, MonitorOverviewPresentationInput, string | null]
     > = [
       ["running", running(MonitorType.API), null],
-      ["disabled", SCENARIOS[1]!.input, "paused"],
+      /*
+       * Monitoring turned off: that time is left out of the windows, not
+       * counted as the last status (issue #6480).
+       */
+      ["disabled", SCENARIOS[1]!.input, "monitoring-off"],
       ["paused by an incident", SCENARIOS[2]!.input, "paused"],
+      ["paused by scheduled maintenance", SCENARIOS[3]!.input, "paused"],
+      [
+        "archived",
+        running(MonitorType.API, {
+          pause: {
+            isArchived: true,
+            isDisabled: false,
+            byManualIncident: false,
+            byScheduledMaintenance: false,
+          },
+        }),
+        "paused",
+      ],
+      // Archived with monitoring off too: the time since it was turned off is left out.
+      [
+        "archived with monitoring off",
+        running(MonitorType.API, {
+          pause: {
+            isArchived: true,
+            isDisabled: true,
+            byManualIncident: false,
+            byScheduledMaintenance: false,
+          },
+        }),
+        "monitoring-off",
+      ],
+      [
+        "monitoring off and paused by an incident",
+        running(MonitorType.Logs, {
+          pause: {
+            isDisabled: true,
+            byManualIncident: true,
+            byScheduledMaintenance: false,
+          },
+        }),
+        "monitoring-off",
+      ],
       ["no probe enabled", SCENARIOS[4]!.input, "not-checking"],
       ["every probe disconnected", SCENARIOS[5]!.input, "not-checking"],
       ["no criteria", SCENARIOS[6]!.input, "not-checking"],
@@ -3569,6 +3610,30 @@ describe("MonitorOverviewPresentationUtil.getUptimeCaveat", () => {
         }),
       ),
     ).toBeNull();
+  });
+
+  /*
+   * A manual monitor's monitoring can still be turned off - from a group's
+   * Monitoring card, or the API - and its windows leave that time out too.
+   */
+  it("a manual monitor with monitoring off: its windows leave that time out", () => {
+    expect(
+      caveatOf(
+        running(MonitorType.Manual, {
+          pause: {
+            isDisabled: true,
+            byManualIncident: false,
+            byScheduledMaintenance: false,
+          },
+        }),
+      ),
+    ).toBe("monitoring-off");
+  });
+
+  it("the presentation says whether monitoring is off, and only an explicit switch does", () => {
+    expect(build(SCENARIOS[1]!.input).isMonitoringOff).toBe(true);
+    expect(build(SCENARIOS[2]!.input).isMonitoringOff).toBe(false);
+    expect(build(running(MonitorType.API)).isMonitoringOff).toBe(false);
   });
 });
 

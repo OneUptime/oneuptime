@@ -144,6 +144,8 @@ Antes del primer arranque, sustituye tú mismo los secretos de marcador, como mu
 Abre `http://` seguido de tu `HOST` (por ejemplo `http://localhost`) y regístrate. La primera cuenta de una instancia nueva pasa a ser su administrador principal, que puede abrir el Admin Dashboard en `/admin`.
 
 Cualquiera que pueda llegar a la página puede registrarse después de ti. Para impedirlo, abre el Admin Dashboard, ve a **Ajustes > Autenticación** y desactiva **Permitir el registro**. Las personas que invites a un proyecto pueden seguir creando su cuenta.
+
+Después termina de configurar el servidor en `/admin/setup`, donde se configuran y prueban el correo, los SMS y las llamadas: consulta [Terminar de configurar el servidor](/docs/installation/self-hosting-guide#terminar-de-configurar-el-servidor).
 :::
 
 ### Genera secretos aleatorios
@@ -566,8 +568,8 @@ El Admin Dashboard muestra la sonda en **Ajustes > Monitoreo > Sondas globales**
 ## Próximos pasos
 
 :::cards
+- [Terminar de configurar el servidor](/docs/installation/self-hosting-guide#terminar-de-configurar-el-servidor): El correo, luego los SMS y las llamadas, cada uno con una prueba.
+- [Inicio rápido](/docs/introduction/quickstart): Tu primer monitor, tu primera política de guardia y tu primera página de estado.
 - [Actualizar a una nueva versión de OneUptime](/docs/installation/upgrading): Lo que cada versión mayor necesita de ti.
-- [Dimensionamiento y planificación de capacidad](/docs/installation/sizing): Planifica la memoria y el disco para tu telemetría.
 - [Arquitectura autoalojada](/docs/self-hosted/architecture): Cómo encajan los componentes.
-- [Edición Enterprise](/docs/self-hosted/enterprise): Lo que añade la imagen Enterprise, y su licencia.
 :::

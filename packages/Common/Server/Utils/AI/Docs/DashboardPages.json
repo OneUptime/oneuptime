@@ -1,0 +1,8809 @@
+[
+  {
+    "title": "Declare Incident",
+    "where": [
+      "Incidents"
+    ],
+    "keywords": [
+      "create incident",
+      "new incident",
+      "report outage"
+    ],
+    "path": "/dashboard/:projectId/incidents/create",
+    "kind": "action"
+  },
+  {
+    "title": "Create Monitor",
+    "where": [
+      "Monitors"
+    ],
+    "keywords": [
+      "new monitor",
+      "add monitor",
+      "uptime check",
+      "website check"
+    ],
+    "path": "/dashboard/:projectId/monitors/create",
+    "kind": "action"
+  },
+  {
+    "title": "Create Alert",
+    "where": [
+      "Alerts"
+    ],
+    "keywords": [
+      "new alert",
+      "add alert"
+    ],
+    "path": "/dashboard/:projectId/alerts/create",
+    "kind": "action"
+  },
+  {
+    "title": "Create Scheduled Maintenance",
+    "where": [
+      "Scheduled Maintenance"
+    ],
+    "keywords": [
+      "new maintenance",
+      "downtime window",
+      "planned maintenance"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/create",
+    "kind": "action"
+  },
+  {
+    "title": "Create Announcement",
+    "where": [
+      "Status Pages"
+    ],
+    "keywords": [
+      "new announcement",
+      "status page announcement",
+      "post update"
+    ],
+    "path": "/dashboard/:projectId/status-pages/announcements/create",
+    "kind": "action"
+  },
+  {
+    "title": "Project",
+    "where": [
+      "Project Settings",
+      "Basic"
+    ],
+    "keywords": [
+      "project name",
+      "rename project",
+      "project id",
+      "data residency"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "page"
+  },
+  {
+    "title": "Project Details",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting"
+  },
+  {
+    "title": "Customer Support Access",
+    "where": [
+      "Project Settings",
+      "Basic",
+      "Project"
+    ],
+    "path": "/dashboard/:projectId/settings/",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Labels",
+    "where": [
+      "Project Settings",
+      "Basic"
+    ],
+    "keywords": [
+      "tags",
+      "create label"
+    ],
+    "path": "/dashboard/:projectId/settings/labels",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "Project Settings",
+      "Workspace"
+    ],
+    "keywords": [
+      "connect slack",
+      "slack integration",
+      "chat"
+    ],
+    "path": "/dashboard/:projectId/settings/slack-integration",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "Project Settings",
+      "Workspace"
+    ],
+    "keywords": [
+      "connect microsoft teams",
+      "ms teams",
+      "teams integration",
+      "chat"
+    ],
+    "path": "/dashboard/:projectId/settings/microsoft-teams-integration",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "Project Settings",
+      "Workspace"
+    ],
+    "keywords": [
+      "connect mattermost",
+      "mattermost integration",
+      "chat"
+    ],
+    "path": "/dashboard/:projectId/settings/mattermost-integration",
+    "kind": "page"
+  },
+  {
+    "title": "Video Calls",
+    "where": [
+      "Project Settings",
+      "Workspace"
+    ],
+    "keywords": [
+      "zoom",
+      "google meet",
+      "teams meeting",
+      "slack huddle",
+      "meeting link",
+      "conference bridge",
+      "war room"
+    ],
+    "path": "/dashboard/:projectId/settings/video-calls",
+    "kind": "page"
+  },
+  {
+    "title": "Call transcripts",
+    "where": [
+      "Project Settings",
+      "Workspace",
+      "Video Calls"
+    ],
+    "path": "/dashboard/:projectId/settings/video-calls",
+    "kind": "setting"
+  },
+  {
+    "title": "Ingestion Keys",
+    "where": [
+      "Project Settings",
+      "Telemetry & APM"
+    ],
+    "keywords": [
+      "telemetry ingestion keys",
+      "opentelemetry",
+      "otel",
+      "otlp",
+      "send telemetry"
+    ],
+    "path": "/dashboard/:projectId/settings/telemetry-ingestion-keys",
+    "kind": "page"
+  },
+  {
+    "title": "Telemetry Ingestion Keys",
+    "where": [
+      "Project Settings",
+      "Telemetry & APM",
+      "Ingestion Keys"
+    ],
+    "path": "/dashboard/:projectId/settings/telemetry-ingestion-keys",
+    "kind": "setting"
+  },
+  {
+    "title": "Data Retention",
+    "where": [
+      "Project Settings",
+      "Telemetry & APM"
+    ],
+    "keywords": [
+      "retention",
+      "telemetry settings",
+      "how long data is kept"
+    ],
+    "path": "/dashboard/:projectId/settings/telemetry-settings",
+    "kind": "page"
+  },
+  {
+    "title": "Telemetry Data Retention",
+    "where": [
+      "Project Settings",
+      "Telemetry & APM",
+      "Data Retention"
+    ],
+    "path": "/dashboard/:projectId/settings/telemetry-settings",
+    "kind": "setting"
+  },
+  {
+    "title": "Retention by Telemetry Type",
+    "where": [
+      "Project Settings",
+      "Telemetry & APM",
+      "Data Retention"
+    ],
+    "path": "/dashboard/:projectId/settings/telemetry-settings#retention-by-telemetry-type",
+    "kind": "setting"
+  },
+  {
+    "title": "Usage",
+    "where": [
+      "Project Settings",
+      "Telemetry & APM"
+    ],
+    "keywords": [
+      "usage history",
+      "telemetry usage",
+      "data ingested",
+      "how much data",
+      "gb per day"
+    ],
+    "path": "/dashboard/:projectId/settings/usage-history",
+    "kind": "page"
+  },
+  {
+    "title": "Telemetry Usage History",
+    "where": [
+      "Project Settings",
+      "Telemetry & APM",
+      "Usage"
+    ],
+    "path": "/dashboard/:projectId/settings/usage-history",
+    "kind": "setting"
+  },
+  {
+    "title": "Notification Settings",
+    "where": [
+      "Project Settings",
+      "Notifications"
+    ],
+    "keywords": [
+      "sms",
+      "phone call",
+      "whatsapp",
+      "telegram",
+      "custom smtp",
+      "email server",
+      "twilio",
+      "balance",
+      "auto recharge"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings",
+    "kind": "page"
+  },
+  {
+    "title": "Custom SMTP Configs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Settings"
+    ],
+    "keywords": [
+      "smtp",
+      "custom smtp",
+      "mail server",
+      "email server",
+      "own email server",
+      "microsoft graph"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings#custom-smtp-configs",
+    "kind": "action"
+  },
+  {
+    "title": "Twilio Config",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Settings"
+    ],
+    "keywords": [
+      "twilio",
+      "own twilio account",
+      "sms provider",
+      "phone numbers"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings#twilio-config",
+    "kind": "action"
+  },
+  {
+    "title": "Notification Channels",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Settings"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings",
+    "kind": "setting"
+  },
+  {
+    "title": "Current Balance",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Settings"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Auto Recharge",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Settings"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-settings",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Notification Logs",
+    "where": [
+      "Project Settings",
+      "Notifications"
+    ],
+    "keywords": [
+      "sms logs",
+      "email logs",
+      "call logs",
+      "delivery"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "page"
+  },
+  {
+    "title": "Email Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "SMS Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "WhatsApp Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "Telegram Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "Webhook Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "Call Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "Push Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "Workspace Logs",
+    "where": [
+      "Project Settings",
+      "Notifications",
+      "Notification Logs"
+    ],
+    "path": "/dashboard/:projectId/settings/notification-logs",
+    "kind": "setting"
+  },
+  {
+    "title": "Mobile Apps",
+    "where": [
+      "Project Settings",
+      "Notifications"
+    ],
+    "keywords": [
+      "ios",
+      "android",
+      "push notifications",
+      "phone app"
+    ],
+    "path": "/dashboard/:projectId/settings/mobile-apps",
+    "kind": "page"
+  },
+  {
+    "title": "AI Features",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "enable ai",
+      "turn on ai",
+      "artificial intelligence",
+      "two-person approval",
+      "second approval"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features",
+    "kind": "page"
+  },
+  {
+    "title": "Enable AI",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features",
+    "kind": "setting"
+  },
+  {
+    "title": "AI context",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features",
+    "kind": "setting"
+  },
+  {
+    "title": "Daily limits",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#DailyLimits",
+    "kind": "setting"
+  },
+  {
+    "title": "Daily AI Token Limit",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#DailyLimits",
+    "kind": "setting"
+  },
+  {
+    "title": "Daily AI Spend Limit (USD)",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#DailyLimits",
+    "kind": "setting"
+  },
+  {
+    "title": "Limits per run",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#LimitsPerRun",
+    "kind": "setting"
+  },
+  {
+    "title": "Model Calls per Run",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#LimitsPerRun",
+    "kind": "setting"
+  },
+  {
+    "title": "Tool Calls per Run",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#LimitsPerRun",
+    "kind": "setting"
+  },
+  {
+    "title": "Tokens per Run",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#LimitsPerRun",
+    "kind": "setting"
+  },
+  {
+    "title": "Time Limit per Run (Minutes)",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#LimitsPerRun",
+    "kind": "setting"
+  },
+  {
+    "title": "Fix approvals",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#FixApprovals",
+    "kind": "setting"
+  },
+  {
+    "title": "Two people approve riskier fixes",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Features"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-features#FixApprovals",
+    "kind": "setting"
+  },
+  {
+    "title": "LLM Providers",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "openai",
+      "anthropic",
+      "claude",
+      "gpt",
+      "model provider",
+      "ai provider"
+    ],
+    "path": "/dashboard/:projectId/settings/llm-providers",
+    "kind": "page"
+  },
+  {
+    "title": "Global LLM Providers",
+    "where": [
+      "Project Settings",
+      "AI",
+      "LLM Providers"
+    ],
+    "path": "/dashboard/:projectId/settings/llm-providers",
+    "kind": "setting"
+  },
+  {
+    "title": "External MCP Servers",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "mcp tools",
+      "model context protocol",
+      "aws",
+      "azure",
+      "github",
+      "ai tools"
+    ],
+    "path": "/dashboard/:projectId/settings/external-mcp-servers",
+    "kind": "page"
+  },
+  {
+    "title": "AI Credits",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "buy ai credits",
+      "ai usage"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-credits",
+    "kind": "page",
+    "billing": true
+  },
+  {
+    "title": "Current Balance",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Credits"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-credits",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Auto Recharge",
+    "where": [
+      "Project Settings",
+      "AI",
+      "AI Credits"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-credits",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "AI Logs",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "llm logs",
+      "ai usage"
+    ],
+    "path": "/dashboard/:projectId/settings/ai-logs",
+    "kind": "page"
+  },
+  {
+    "title": "MCP Server",
+    "where": [
+      "Project Settings",
+      "AI"
+    ],
+    "keywords": [
+      "model context protocol",
+      "cursor",
+      "ai assistant"
+    ],
+    "path": "/dashboard/:projectId/settings/mcp-server",
+    "kind": "page"
+  },
+  {
+    "title": "Connected MCP Clients",
+    "where": [
+      "Project Settings",
+      "AI",
+      "MCP Server"
+    ],
+    "path": "/dashboard/:projectId/settings/mcp-server",
+    "kind": "setting"
+  },
+  {
+    "title": "What agents can do",
+    "where": [
+      "Project Settings",
+      "AI",
+      "MCP Server"
+    ],
+    "path": "/dashboard/:projectId/settings/mcp-server",
+    "kind": "setting"
+  },
+  {
+    "title": "Domains",
+    "where": [
+      "Project Settings",
+      "Advanced"
+    ],
+    "keywords": [
+      "custom domain",
+      "verify domain",
+      "dns",
+      "txt record"
+    ],
+    "path": "/dashboard/:projectId/settings/domains",
+    "kind": "page"
+  },
+  {
+    "title": "API Keys",
+    "where": [
+      "Project Settings",
+      "Advanced"
+    ],
+    "keywords": [
+      "api token",
+      "access token",
+      "create api key",
+      "new api key"
+    ],
+    "path": "/dashboard/:projectId/settings/api-keys",
+    "kind": "page"
+  },
+  {
+    "title": "Feature Flags",
+    "where": [
+      "Project Settings",
+      "Advanced"
+    ],
+    "keywords": [
+      "beta features",
+      "experimental",
+      "early access"
+    ],
+    "path": "/dashboard/:projectId/settings/feature-flags",
+    "kind": "page"
+  },
+  {
+    "title": "Monitor Groups",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Feature Flags"
+    ],
+    "path": "/dashboard/:projectId/settings/feature-flags",
+    "kind": "setting"
+  },
+  {
+    "title": "Import from another tool",
+    "where": [
+      "Project Settings",
+      "Advanced"
+    ],
+    "keywords": [
+      "import",
+      "migrate",
+      "migration",
+      "move to oneuptime",
+      "switch to oneuptime"
+    ],
+    "path": "/dashboard/:projectId/settings/import",
+    "kind": "page"
+  },
+  {
+    "title": "Import from Opsgenie",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=OpsGenie",
+    "kind": "action"
+  },
+  {
+    "title": "Import from PagerDuty",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=PagerDuty",
+    "kind": "action"
+  },
+  {
+    "title": "Import from Splunk On-Call",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "keywords": [
+      "victorops"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=SplunkOnCall",
+    "kind": "action"
+  },
+  {
+    "title": "Import from Grafana OnCall",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "keywords": [
+      "grafana irm"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=GrafanaOnCall",
+    "kind": "action"
+  },
+  {
+    "title": "Import from UptimeRobot",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "keywords": [
+      "uptime robot"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=UptimeRobot",
+    "kind": "action"
+  },
+  {
+    "title": "Import from Atlassian Statuspage",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "keywords": [
+      "statuspage.io"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=AtlassianStatuspage",
+    "kind": "action"
+  },
+  {
+    "title": "Import from Better Stack",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "keywords": [
+      "betterstack",
+      "better uptime"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=BetterStack",
+    "kind": "action"
+  },
+  {
+    "title": "Import from Pingdom",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=Pingdom",
+    "kind": "action"
+  },
+  {
+    "title": "Import from StatusCake",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=StatusCake",
+    "kind": "action"
+  },
+  {
+    "title": "Import from Uptime Kuma",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "path": "/dashboard/:projectId/settings/import?from=search&tool=UptimeKuma",
+    "kind": "action"
+  },
+  {
+    "title": "Start a new import",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "path": "/dashboard/:projectId/settings/import",
+    "kind": "setting"
+  },
+  {
+    "title": "Earlier imports",
+    "where": [
+      "Project Settings",
+      "Advanced",
+      "Import from another tool"
+    ],
+    "path": "/dashboard/:projectId/settings/import",
+    "kind": "setting"
+  },
+  {
+    "title": "Billing",
+    "where": [
+      "Project Settings",
+      "Billing and Invoices"
+    ],
+    "keywords": [
+      "plan",
+      "subscription",
+      "upgrade",
+      "change plan",
+      "payment method",
+      "credit card"
+    ],
+    "path": "/dashboard/:projectId/settings/billing",
+    "kind": "page",
+    "billing": true
+  },
+  {
+    "title": "Current Plan",
+    "where": [
+      "Project Settings",
+      "Billing and Invoices",
+      "Billing"
+    ],
+    "path": "/dashboard/:projectId/settings/billing",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Payment Methods",
+    "where": [
+      "Project Settings",
+      "Billing and Invoices",
+      "Billing"
+    ],
+    "path": "/dashboard/:projectId/settings/billing",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Business Details / Billing Address",
+    "where": [
+      "Project Settings",
+      "Billing and Invoices",
+      "Billing"
+    ],
+    "path": "/dashboard/:projectId/settings/billing",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Customer Balance",
+    "where": [
+      "Project Settings",
+      "Billing and Invoices",
+      "Billing"
+    ],
+    "path": "/dashboard/:projectId/settings/billing",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Cancel Plan",
+    "where": [
+      "Project Settings",
+      "Billing and Invoices",
+      "Billing"
+    ],
+    "path": "/dashboard/:projectId/settings/billing",
+    "kind": "setting",
+    "billing": true
+  },
+  {
+    "title": "Invoices",
+    "where": [
+      "Project Settings",
+      "Billing and Invoices"
+    ],
+    "keywords": [
+      "receipts",
+      "payments"
+    ],
+    "path": "/dashboard/:projectId/settings/invoices",
+    "kind": "page",
+    "billing": true
+  },
+  {
+    "title": "SSO",
+    "where": [
+      "Project Settings",
+      "Security"
+    ],
+    "keywords": [
+      "single sign-on",
+      "saml",
+      "okta",
+      "azure ad",
+      "entra id",
+      "identity provider",
+      "oidc",
+      "openid connect",
+      "oauth"
+    ],
+    "path": "/dashboard/:projectId/settings/sso",
+    "kind": "page"
+  },
+  {
+    "title": "SAML",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SSO"
+    ],
+    "path": "/dashboard/:projectId/settings/sso",
+    "kind": "setting"
+  },
+  {
+    "title": "OpenID Connect (OIDC)",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SSO"
+    ],
+    "path": "/dashboard/:projectId/settings/sso",
+    "kind": "setting"
+  },
+  {
+    "title": "Test Single Sign On (SSO)",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SSO"
+    ],
+    "path": "/dashboard/:projectId/settings/sso",
+    "kind": "setting"
+  },
+  {
+    "title": "SSO Settings",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SSO"
+    ],
+    "path": "/dashboard/:projectId/settings/sso",
+    "kind": "setting"
+  },
+  {
+    "title": "Require SSO for Login",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SSO"
+    ],
+    "path": "/dashboard/:projectId/settings/sso",
+    "kind": "setting"
+  },
+  {
+    "title": "SCIM",
+    "where": [
+      "Project Settings",
+      "Security"
+    ],
+    "keywords": [
+      "user provisioning",
+      "directory sync",
+      "sync users"
+    ],
+    "path": "/dashboard/:projectId/settings/scim",
+    "kind": "page"
+  },
+  {
+    "title": "SCIM (System for Cross-domain Identity Management)",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SCIM"
+    ],
+    "path": "/dashboard/:projectId/settings/scim",
+    "kind": "setting"
+  },
+  {
+    "title": "SCIM User Provisioning",
+    "where": [
+      "Project Settings",
+      "Security",
+      "SCIM"
+    ],
+    "path": "/dashboard/:projectId/settings/scim",
+    "kind": "setting"
+  },
+  {
+    "title": "Audit Logs",
+    "where": [
+      "Project Settings"
+    ],
+    "keywords": [
+      "activity log",
+      "audit trail",
+      "who changed"
+    ],
+    "path": "/dashboard/:projectId/settings/audit-logs",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Project Settings",
+      "Audit Logs"
+    ],
+    "keywords": [
+      "audit log settings",
+      "audit log retention"
+    ],
+    "path": "/dashboard/:projectId/settings/audit-logs/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Audit Logs Settings",
+    "where": [
+      "Project Settings",
+      "Audit Logs",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/settings/audit-logs/settings",
+    "kind": "setting"
+  },
+  {
+    "title": "Export",
+    "where": [
+      "Project Settings",
+      "Audit Logs"
+    ],
+    "keywords": [
+      "export audit logs",
+      "audit log export",
+      "s3",
+      "siem",
+      "syslog"
+    ],
+    "path": "/dashboard/:projectId/settings/audit-logs/export",
+    "kind": "page"
+  },
+  {
+    "title": "Export Audit Logs",
+    "where": [
+      "Project Settings",
+      "Audit Logs",
+      "Export"
+    ],
+    "path": "/dashboard/:projectId/settings/audit-logs/export",
+    "kind": "setting"
+  },
+  {
+    "title": "Danger Zone",
+    "where": [
+      "Project Settings"
+    ],
+    "keywords": [
+      "delete project",
+      "remove project"
+    ],
+    "path": "/dashboard/:projectId/settings/danger-zone",
+    "kind": "page"
+  },
+  {
+    "title": "All Monitors",
+    "where": [
+      "Monitors"
+    ],
+    "path": "/dashboard/:projectId/monitors",
+    "kind": "page"
+  },
+  {
+    "title": "Know when my website or API is down",
+    "where": [
+      "Monitors"
+    ],
+    "keywords": [
+      "guided setup",
+      "get started",
+      "website down",
+      "api down",
+      "uptime",
+      "monitor my website"
+    ],
+    "path": "/dashboard/:projectId/monitors/setup",
+    "kind": "page"
+  },
+  {
+    "title": "Not Operational",
+    "where": [
+      "Monitors",
+      "Attention Required"
+    ],
+    "keywords": [
+      "down monitors",
+      "offline monitors",
+      "failing"
+    ],
+    "path": "/dashboard/:projectId/monitors/inoperational",
+    "kind": "page"
+  },
+  {
+    "title": "Disabled",
+    "where": [
+      "Monitors",
+      "Attention Required"
+    ],
+    "keywords": [
+      "disabled monitors",
+      "paused monitors"
+    ],
+    "path": "/dashboard/:projectId/monitors/disabled",
+    "kind": "page"
+  },
+  {
+    "title": "Probe Disconnected",
+    "where": [
+      "Monitors",
+      "Attention Required"
+    ],
+    "path": "/dashboard/:projectId/monitors/probe-disconnected",
+    "kind": "page"
+  },
+  {
+    "title": "Probe Disabled",
+    "where": [
+      "Monitors",
+      "Attention Required"
+    ],
+    "path": "/dashboard/:projectId/monitors/probe-disabled",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "Monitors",
+      "Workspace"
+    ],
+    "keywords": [
+      "slack channel",
+      "slack notifications"
+    ],
+    "path": "/dashboard/:projectId/monitors/workspace-connection-slack",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "Monitors",
+      "Workspace"
+    ],
+    "keywords": [
+      "ms teams",
+      "teams channel",
+      "teams notifications"
+    ],
+    "path": "/dashboard/:projectId/monitors/workspace-connection-microsoft-teams",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "Monitors",
+      "Workspace"
+    ],
+    "keywords": [
+      "mattermost channel",
+      "mattermost notifications"
+    ],
+    "path": "/dashboard/:projectId/monitors/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Monitor Status",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "keywords": [
+      "monitor statuses",
+      "operational",
+      "degraded"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/status",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Secrets",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "keywords": [
+      "monitor secrets",
+      "credentials",
+      "passwords"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/secrets",
+    "kind": "page"
+  },
+  {
+    "title": "Templates",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "keywords": [
+      "monitor templates"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/templates",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Probes",
+    "where": [
+      "Monitors",
+      "Settings"
+    ],
+    "keywords": [
+      "custom probe",
+      "private probe",
+      "probe locations"
+    ],
+    "path": "/dashboard/:projectId/monitors/settings/probes",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Monitors",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/monitors/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Monitors",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/monitors/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Monitors",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/monitors/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Monitors",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/monitors/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Monitors",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/monitors/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Incidents",
+    "where": [
+      "Incidents",
+      "Overview"
+    ],
+    "path": "/dashboard/:projectId/incidents",
+    "kind": "page"
+  },
+  {
+    "title": "Active Incidents",
+    "where": [
+      "Incidents",
+      "Overview"
+    ],
+    "keywords": [
+      "open incidents",
+      "ongoing incidents",
+      "unresolved"
+    ],
+    "path": "/dashboard/:projectId/incidents/unresolved",
+    "kind": "page"
+  },
+  {
+    "title": "Postmortems",
+    "where": [
+      "Incidents",
+      "Overview"
+    ],
+    "keywords": [
+      "post mortem",
+      "post-incident review",
+      "retrospective",
+      "rca",
+      "postmortem reports",
+      "postmortems owed"
+    ],
+    "path": "/dashboard/:projectId/incidents/postmortems",
+    "kind": "page"
+  },
+  {
+    "title": "All Episodes",
+    "where": [
+      "Incidents",
+      "Episodes"
+    ],
+    "keywords": [
+      "incident episodes",
+      "grouped incidents"
+    ],
+    "path": "/dashboard/:projectId/incidents/episodes",
+    "kind": "page"
+  },
+  {
+    "title": "Active Episodes",
+    "where": [
+      "Incidents",
+      "Episodes"
+    ],
+    "path": "/dashboard/:projectId/incidents/episodes/unresolved",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "Incidents",
+      "Workspace"
+    ],
+    "keywords": [
+      "slack channel",
+      "slack notifications"
+    ],
+    "path": "/dashboard/:projectId/incidents/workspace-connection-slack",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "Incidents",
+      "Workspace"
+    ],
+    "keywords": [
+      "ms teams",
+      "teams channel",
+      "teams notifications"
+    ],
+    "path": "/dashboard/:projectId/incidents/workspace-connection-microsoft-teams",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "Incidents",
+      "Workspace"
+    ],
+    "keywords": [
+      "mattermost channel",
+      "mattermost notifications"
+    ],
+    "path": "/dashboard/:projectId/incidents/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Grouping Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "episode rules",
+      "group incidents",
+      "deduplicate"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/grouping-rules",
+    "kind": "page"
+  },
+  {
+    "title": "On-Call Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "who gets paged",
+      "paging",
+      "page on-call"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/on-call-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Runbook Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/runbook-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Privacy Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "private incidents",
+      "visibility"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/privacy-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "SLA Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "service level agreement",
+      "response time"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/sla-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Reminder Rules",
+    "where": [
+      "Incidents",
+      "Rules"
+    ],
+    "keywords": [
+      "reminders"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/reminder-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Incident State",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "acknowledged",
+      "resolved",
+      "incident status"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/state",
+    "kind": "page"
+  },
+  {
+    "title": "Incident Severity",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "priority",
+      "sev1",
+      "p1"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/severity",
+    "kind": "page"
+  },
+  {
+    "title": "Incident Templates",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/templates",
+    "kind": "page"
+  },
+  {
+    "title": "Note Templates",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/note-templates",
+    "kind": "page"
+  },
+  {
+    "title": "Postmortem Templates",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "post mortem",
+      "retrospective",
+      "rca"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/postmortem-templates",
+    "kind": "page"
+  },
+  {
+    "title": "Postmortem Statuses",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "post mortem status",
+      "custom postmortem statuses",
+      "in review",
+      "not needed"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/postmortem-statuses",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Incident Roles",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "incident commander"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/roles",
+    "kind": "page"
+  },
+  {
+    "title": "Measurements",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "mttr",
+      "mtta",
+      "time to resolve",
+      "time to mitigate"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/measurements",
+    "kind": "page"
+  },
+  {
+    "title": "Linked Alerts",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/linked-alerts",
+    "kind": "page"
+  },
+  {
+    "title": "Public Note Approval",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "approve public notes",
+      "review status page updates",
+      "approval steps",
+      "approvers"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/public-note-approval",
+    "kind": "page"
+  },
+  {
+    "title": "Episode Membership",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "episode settings",
+      "one episode",
+      "only one episode",
+      "several episodes"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/episode-membership",
+    "kind": "page"
+  },
+  {
+    "title": "Numbering",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "incident number",
+      "number prefix",
+      "next incident number",
+      "starting number"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/numbering",
+    "kind": "page"
+  },
+  {
+    "title": "Data Retention",
+    "where": [
+      "Incidents",
+      "Settings"
+    ],
+    "keywords": [
+      "incident retention",
+      "delete old incidents",
+      "delete resolved incidents",
+      "how long incidents are kept",
+      "database size"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/data-retention",
+    "kind": "page"
+  },
+  {
+    "title": "Resolved Incidents",
+    "where": [
+      "Incidents",
+      "Settings",
+      "Data Retention"
+    ],
+    "path": "/dashboard/:projectId/incidents/settings/data-retention",
+    "kind": "setting"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Incidents",
+      "AI"
+    ],
+    "keywords": [
+      "ai insights",
+      "recurring problems",
+      "root causes",
+      "what ai found"
+    ],
+    "path": "/dashboard/:projectId/incidents/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Logs",
+    "where": [
+      "Incidents",
+      "AI"
+    ],
+    "keywords": [
+      "ai logs",
+      "ai activity",
+      "ai investigations",
+      "ai fixes",
+      "ai commands"
+    ],
+    "path": "/dashboard/:projectId/incidents/ai/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Incidents",
+      "AI"
+    ],
+    "keywords": [
+      "ai settings",
+      "ai rules",
+      "ai investigation",
+      "root cause",
+      "ai limits",
+      "auto remediation rules",
+      "investigation rules",
+      "self healing",
+      "auto fix"
+    ],
+    "path": "/dashboard/:projectId/incidents/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Incidents",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/incidents/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Incidents",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/incidents/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Incidents",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/incidents/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Incidents",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/incidents/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Alerts",
+    "where": [
+      "Alerts"
+    ],
+    "path": "/dashboard/:projectId/alerts",
+    "kind": "page"
+  },
+  {
+    "title": "Active Alerts",
+    "where": [
+      "Alerts"
+    ],
+    "keywords": [
+      "open alerts",
+      "unresolved"
+    ],
+    "path": "/dashboard/:projectId/alerts/unresolved",
+    "kind": "page"
+  },
+  {
+    "title": "All Episodes",
+    "where": [
+      "Alerts",
+      "Episodes"
+    ],
+    "keywords": [
+      "alert episodes",
+      "grouped alerts"
+    ],
+    "path": "/dashboard/:projectId/alerts/episodes",
+    "kind": "page"
+  },
+  {
+    "title": "Active Episodes",
+    "where": [
+      "Alerts",
+      "Episodes"
+    ],
+    "path": "/dashboard/:projectId/alerts/episodes/unresolved",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "Alerts",
+      "Workspace"
+    ],
+    "keywords": [
+      "slack channel",
+      "slack notifications"
+    ],
+    "path": "/dashboard/:projectId/alerts/workspace-connection-slack",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "Alerts",
+      "Workspace"
+    ],
+    "keywords": [
+      "ms teams",
+      "teams channel",
+      "teams notifications"
+    ],
+    "path": "/dashboard/:projectId/alerts/workspace-connection-microsoft-teams",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "Alerts",
+      "Workspace"
+    ],
+    "keywords": [
+      "mattermost channel",
+      "mattermost notifications"
+    ],
+    "path": "/dashboard/:projectId/alerts/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Grouping Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "episode rules",
+      "group alerts",
+      "deduplicate"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/grouping-rules",
+    "kind": "page"
+  },
+  {
+    "title": "On-Call Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "who gets paged",
+      "paging",
+      "page on-call"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/on-call-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Incident Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "escalate to incident",
+      "declare incident automatically",
+      "alert to incident"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/incident-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Runbook Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/runbook-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Privacy Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "private alerts",
+      "visibility"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/privacy-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Reminder Rules",
+    "where": [
+      "Alerts",
+      "Rules"
+    ],
+    "keywords": [
+      "reminders"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/reminder-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Alert State",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "keywords": [
+      "acknowledged",
+      "resolved",
+      "alert status"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/state",
+    "kind": "page"
+  },
+  {
+    "title": "Alert Severity",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "keywords": [
+      "priority"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/severity",
+    "kind": "page"
+  },
+  {
+    "title": "Note Templates",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/note-templates",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Measurements",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "keywords": [
+      "mtta",
+      "time to resolve"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/measurements",
+    "kind": "page"
+  },
+  {
+    "title": "Episode Membership",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "keywords": [
+      "episode settings",
+      "one episode",
+      "only one episode",
+      "several episodes"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/episode-membership",
+    "kind": "page"
+  },
+  {
+    "title": "Numbering",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "keywords": [
+      "alert number",
+      "number prefix",
+      "next alert number",
+      "starting number"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/numbering",
+    "kind": "page"
+  },
+  {
+    "title": "Data Retention",
+    "where": [
+      "Alerts",
+      "Settings"
+    ],
+    "keywords": [
+      "alert retention",
+      "delete old alerts",
+      "delete resolved alerts",
+      "how long alerts are kept",
+      "database size"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/data-retention",
+    "kind": "page"
+  },
+  {
+    "title": "Resolved Alerts",
+    "where": [
+      "Alerts",
+      "Settings",
+      "Data Retention"
+    ],
+    "path": "/dashboard/:projectId/alerts/settings/data-retention",
+    "kind": "setting"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Alerts",
+      "AI"
+    ],
+    "keywords": [
+      "ai insights",
+      "recurring problems",
+      "root causes",
+      "what ai found"
+    ],
+    "path": "/dashboard/:projectId/alerts/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Logs",
+    "where": [
+      "Alerts",
+      "AI"
+    ],
+    "keywords": [
+      "ai logs",
+      "ai activity",
+      "ai investigations",
+      "ai fixes",
+      "ai commands"
+    ],
+    "path": "/dashboard/:projectId/alerts/ai/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Alerts",
+      "AI"
+    ],
+    "keywords": [
+      "ai settings",
+      "ai rules",
+      "ai investigation",
+      "root cause",
+      "ai limits",
+      "auto remediation rules",
+      "investigation rules",
+      "self healing",
+      "auto fix"
+    ],
+    "path": "/dashboard/:projectId/alerts/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Alerts",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/alerts/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Alerts",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/alerts/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Alerts",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/alerts/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Alerts",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/alerts/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "On-Call Policies",
+    "where": [
+      "On-Call Duty",
+      "Policies"
+    ],
+    "keywords": [
+      "escalation",
+      "escalation policies",
+      "escalation rules",
+      "paging policy",
+      "pager",
+      "create on-call policy"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/policies",
+    "kind": "page"
+  },
+  {
+    "title": "Readiness",
+    "where": [
+      "On-Call Duty",
+      "Policies"
+    ],
+    "keywords": [
+      "can be paged",
+      "coverage",
+      "unreachable responders"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/readiness",
+    "kind": "page"
+  },
+  {
+    "title": "On-Call Schedules",
+    "where": [
+      "On-Call Duty",
+      "Schedules"
+    ],
+    "keywords": [
+      "rota",
+      "rotation",
+      "roster",
+      "shifts",
+      "who is on call",
+      "create on-call schedule"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/schedules",
+    "kind": "page"
+  },
+  {
+    "title": "Schedule Timeline",
+    "where": [
+      "On-Call Duty",
+      "Schedules"
+    ],
+    "keywords": [
+      "rota",
+      "who is on call",
+      "calendar"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/schedule-timeline",
+    "kind": "page"
+  },
+  {
+    "title": "Calendar Feeds",
+    "where": [
+      "On-Call Duty",
+      "Schedules"
+    ],
+    "keywords": [
+      "ical",
+      "ics",
+      "google calendar",
+      "outlook"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/calendar-feeds",
+    "kind": "page"
+  },
+  {
+    "title": "Incoming Call Policies",
+    "where": [
+      "On-Call Duty",
+      "Incoming Calls"
+    ],
+    "keywords": [
+      "hotline",
+      "phone number",
+      "call routing"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/incoming-call-policies",
+    "kind": "page"
+  },
+  {
+    "title": "User Overrides",
+    "where": [
+      "On-Call Duty",
+      "Advanced"
+    ],
+    "keywords": [
+      "vacation",
+      "time off",
+      "cover",
+      "swap shift"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/user-overrides",
+    "kind": "page"
+  },
+  {
+    "title": "Execution Logs",
+    "where": [
+      "On-Call Duty",
+      "Advanced"
+    ],
+    "keywords": [
+      "paging logs",
+      "escalation logs",
+      "policy logs"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/execution-logs",
+    "kind": "page"
+  },
+  {
+    "title": "Archived Policies",
+    "where": [
+      "On-Call Duty",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/policies/archived",
+    "kind": "page"
+  },
+  {
+    "title": "User On Call Time",
+    "where": [
+      "On-Call Duty",
+      "Reports"
+    ],
+    "keywords": [
+      "on-call hours",
+      "time report"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/user-time-logs",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "On-Call Duty",
+      "Workspace"
+    ],
+    "keywords": [
+      "slack channel",
+      "slack notifications"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/workspace-connection-slack",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "On-Call Duty",
+      "Workspace"
+    ],
+    "keywords": [
+      "ms teams",
+      "teams channel",
+      "teams notifications"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/workspace-connection-microsoft-teams",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "On-Call Duty",
+      "Workspace"
+    ],
+    "keywords": [
+      "mattermost channel",
+      "mattermost notifications"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "On-Call Duty",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "On-Call Duty",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "On-Call Duty",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "On-Call Duty",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/policies/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "On-Call Duty",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/policies/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "On-Call Duty",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/policies/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "On-Call Duty",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/policies/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Status Pages",
+    "where": [
+      "Status Pages"
+    ],
+    "keywords": [
+      "create status page",
+      "public status page"
+    ],
+    "path": "/dashboard/:projectId/status-pages",
+    "kind": "page"
+  },
+  {
+    "title": "Announcements",
+    "where": [
+      "Status Pages",
+      "More"
+    ],
+    "keywords": [
+      "status page notice",
+      "post an update"
+    ],
+    "path": "/dashboard/:projectId/status-pages/announcements",
+    "kind": "page"
+  },
+  {
+    "title": "Announcement Templates",
+    "where": [
+      "Status Pages",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/announcement-templates",
+    "kind": "page"
+  },
+  {
+    "title": "Subscriber Templates",
+    "where": [
+      "Status Pages",
+      "Settings"
+    ],
+    "keywords": [
+      "subscriber emails",
+      "subscriber notification"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/subscriber-notification-templates",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Status Pages",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Status Pages",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Status Pages",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/status-pages/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Status Pages",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/status-pages/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Status Pages",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/status-pages/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Status Pages",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/status-pages/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Status Pages",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/status-pages/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Status Pages",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/status-pages/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Events",
+    "where": [
+      "Scheduled Maintenance",
+      "Overview"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events",
+    "kind": "page"
+  },
+  {
+    "title": "Ongoing Events",
+    "where": [
+      "Scheduled Maintenance",
+      "Overview"
+    ],
+    "keywords": [
+      "maintenance in progress"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/ongoing",
+    "kind": "page"
+  },
+  {
+    "title": "Maintenance Calendar",
+    "where": [
+      "Scheduled Maintenance",
+      "Calendar"
+    ],
+    "keywords": [
+      "calendar view",
+      "maintenance schedule",
+      "subscribe to calendar",
+      "ical feed"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/calendar",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "Scheduled Maintenance",
+      "Workspace"
+    ],
+    "keywords": [
+      "slack channel",
+      "slack notifications"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-slack",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "Scheduled Maintenance",
+      "Workspace"
+    ],
+    "keywords": [
+      "ms teams",
+      "teams channel",
+      "teams notifications"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-microsoft-teams",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "Scheduled Maintenance",
+      "Workspace"
+    ],
+    "keywords": [
+      "mattermost channel",
+      "mattermost notifications"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Scheduled Maintenance",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Runbook Rules",
+    "where": [
+      "Scheduled Maintenance",
+      "Rules"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/runbook-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Scheduled Maintenance",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Reminder Rules",
+    "where": [
+      "Scheduled Maintenance",
+      "Rules"
+    ],
+    "keywords": [
+      "reminders"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/reminder-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Event State",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "keywords": [
+      "maintenance states"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/state",
+    "kind": "page"
+  },
+  {
+    "title": "Event Templates",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "keywords": [
+      "maintenance templates"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/templates",
+    "kind": "page"
+  },
+  {
+    "title": "Note Templates",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/note-templates",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Measurements",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/measurements",
+    "kind": "page"
+  },
+  {
+    "title": "Public Note Approval",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "keywords": [
+      "approve public notes",
+      "review status page updates",
+      "approval steps",
+      "approvers"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/public-note-approval",
+    "kind": "page"
+  },
+  {
+    "title": "Calendar Settings",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "keywords": [
+      "external calendars",
+      "add external calendar",
+      "ics feed",
+      "public holidays",
+      "change freeze"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/calendar",
+    "kind": "page"
+  },
+  {
+    "title": "Numbering",
+    "where": [
+      "Scheduled Maintenance",
+      "Settings"
+    ],
+    "keywords": [
+      "maintenance number",
+      "number prefix",
+      "next maintenance number",
+      "starting number"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/settings/numbering",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Scheduled Maintenance",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Scheduled Maintenance",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Scheduled Maintenance",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Scheduled Maintenance",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/scheduled-maintenance-events/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "SLOs",
+    "where": [
+      "SLOs",
+      "Service Level Objectives"
+    ],
+    "path": "/dashboard/:projectId/slos",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "SLOs",
+      "Workspace"
+    ],
+    "keywords": [
+      "slack channel",
+      "slack notifications"
+    ],
+    "path": "/dashboard/:projectId/slos/workspace-connection-slack",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "SLOs",
+      "Workspace"
+    ],
+    "keywords": [
+      "ms teams",
+      "teams channel",
+      "teams notifications"
+    ],
+    "path": "/dashboard/:projectId/slos/workspace-connection-microsoft-teams",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "SLOs",
+      "Workspace"
+    ],
+    "keywords": [
+      "mattermost channel",
+      "mattermost notifications"
+    ],
+    "path": "/dashboard/:projectId/slos/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "SLOs",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/slos/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "SLOs",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/slos/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "SLOs",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/slos/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "SLOs",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/slos/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "SLOs",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/slos/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "SLOs",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/slos/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "SLOs",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/slos/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Viewer",
+    "where": [
+      "Logs"
+    ],
+    "keywords": [
+      "log search",
+      "log explorer",
+      "search logs"
+    ],
+    "path": "/dashboard/:projectId/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Logs"
+    ],
+    "keywords": [
+      "log patterns",
+      "top errors"
+    ],
+    "path": "/dashboard/:projectId/logs/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Guide",
+    "where": [
+      "Logs"
+    ],
+    "keywords": [
+      "documentation",
+      "install",
+      "how to send data"
+    ],
+    "path": "/dashboard/:projectId/logs/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Pipelines",
+    "where": [
+      "Logs",
+      "Log Settings"
+    ],
+    "keywords": [
+      "log pipelines",
+      "parse logs",
+      "processors"
+    ],
+    "path": "/dashboard/:projectId/logs/settings/pipelines",
+    "kind": "page"
+  },
+  {
+    "title": "Drop Filters",
+    "where": [
+      "Logs",
+      "Log Settings"
+    ],
+    "keywords": [
+      "drop logs",
+      "reduce log volume"
+    ],
+    "path": "/dashboard/:projectId/logs/settings/drop-filters",
+    "kind": "page"
+  },
+  {
+    "title": "Scrub Rules",
+    "where": [
+      "Logs",
+      "Log Settings"
+    ],
+    "keywords": [
+      "pii",
+      "redact",
+      "mask sensitive data"
+    ],
+    "path": "/dashboard/:projectId/logs/settings/scrub-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Recording Rules",
+    "where": [
+      "Logs",
+      "Log Settings"
+    ],
+    "keywords": [
+      "log metrics",
+      "logs to metrics",
+      "derived metrics"
+    ],
+    "path": "/dashboard/:projectId/logs/settings/recording-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Logs",
+      "AI"
+    ],
+    "keywords": [
+      "ai insights",
+      "what ai found",
+      "error logs",
+      "missing logging",
+      "noisy logs",
+      "unlogged failures",
+      "logs without trace id"
+    ],
+    "path": "/dashboard/:projectId/logs/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Activity",
+    "where": [
+      "Logs",
+      "AI"
+    ],
+    "keywords": [
+      "ai logs",
+      "ai activity",
+      "fix pull requests"
+    ],
+    "path": "/dashboard/:projectId/logs/ai/activity",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Logs",
+      "AI"
+    ],
+    "keywords": [
+      "ai settings",
+      "ai rules",
+      "find and fix error, missing and noisy logs",
+      "log remediation",
+      "auto fix"
+    ],
+    "path": "/dashboard/:projectId/logs/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Viewer",
+    "where": [
+      "Metrics"
+    ],
+    "keywords": [
+      "metric explorer",
+      "search metrics"
+    ],
+    "path": "/dashboard/:projectId/metrics",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Metrics"
+    ],
+    "path": "/dashboard/:projectId/metrics/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Guide",
+    "where": [
+      "Metrics"
+    ],
+    "keywords": [
+      "documentation",
+      "install",
+      "how to send data"
+    ],
+    "path": "/dashboard/:projectId/metrics/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Pipeline Rules",
+    "where": [
+      "Metrics",
+      "Metric Settings"
+    ],
+    "keywords": [
+      "metric pipelines",
+      "drop metrics"
+    ],
+    "path": "/dashboard/:projectId/metrics/settings/pipeline-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Recording Rules",
+    "where": [
+      "Metrics",
+      "Metric Settings"
+    ],
+    "keywords": [
+      "derived metrics",
+      "prometheus recording rules"
+    ],
+    "path": "/dashboard/:projectId/metrics/settings/recording-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Metrics",
+      "AI"
+    ],
+    "keywords": [
+      "ai insights",
+      "what ai found",
+      "high cardinality",
+      "too many series",
+      "histogram buckets",
+      "missing metrics",
+      "metric naming"
+    ],
+    "path": "/dashboard/:projectId/metrics/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Logs",
+    "where": [
+      "Metrics",
+      "AI"
+    ],
+    "keywords": [
+      "ai logs",
+      "ai activity",
+      "fix pull requests"
+    ],
+    "path": "/dashboard/:projectId/metrics/ai/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Metrics",
+      "AI"
+    ],
+    "keywords": [
+      "ai settings",
+      "ai rules",
+      "improve metrics and add missing ones",
+      "metrics remediation",
+      "auto fix"
+    ],
+    "path": "/dashboard/:projectId/metrics/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Viewer",
+    "where": [
+      "Traces"
+    ],
+    "keywords": [
+      "trace search",
+      "spans",
+      "search traces"
+    ],
+    "path": "/dashboard/:projectId/traces",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Traces"
+    ],
+    "path": "/dashboard/:projectId/traces/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Guide",
+    "where": [
+      "Traces"
+    ],
+    "keywords": [
+      "documentation",
+      "install",
+      "how to send data"
+    ],
+    "path": "/dashboard/:projectId/traces/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Pipelines",
+    "where": [
+      "Traces",
+      "Trace Settings"
+    ],
+    "keywords": [
+      "trace pipelines",
+      "span processors"
+    ],
+    "path": "/dashboard/:projectId/traces/settings/pipelines",
+    "kind": "page"
+  },
+  {
+    "title": "Drop Filters",
+    "where": [
+      "Traces",
+      "Trace Settings"
+    ],
+    "keywords": [
+      "drop spans",
+      "sampling"
+    ],
+    "path": "/dashboard/:projectId/traces/settings/drop-filters",
+    "kind": "page"
+  },
+  {
+    "title": "Scrub Rules",
+    "where": [
+      "Traces",
+      "Trace Settings"
+    ],
+    "keywords": [
+      "pii",
+      "redact",
+      "mask sensitive data"
+    ],
+    "path": "/dashboard/:projectId/traces/settings/scrub-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Recording Rules",
+    "where": [
+      "Traces",
+      "Trace Settings"
+    ],
+    "keywords": [
+      "span metrics"
+    ],
+    "path": "/dashboard/:projectId/traces/settings/recording-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Traces",
+      "AI"
+    ],
+    "keywords": [
+      "ai insights",
+      "what ai found",
+      "slow operations",
+      "failing operations",
+      "slow endpoints",
+      "missing tracing",
+      "n+1 queries"
+    ],
+    "path": "/dashboard/:projectId/traces/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Logs",
+    "where": [
+      "Traces",
+      "AI"
+    ],
+    "keywords": [
+      "ai logs",
+      "ai activity",
+      "fix pull requests"
+    ],
+    "path": "/dashboard/:projectId/traces/ai/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Traces",
+      "AI"
+    ],
+    "keywords": [
+      "ai settings",
+      "ai rules",
+      "find and fix slow and failing operations",
+      "performance remediation",
+      "auto fix"
+    ],
+    "path": "/dashboard/:projectId/traces/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "Performance Profiles",
+      "Profiler"
+    ],
+    "keywords": [
+      "flame graph",
+      "cpu profiling"
+    ],
+    "path": "/dashboard/:projectId/profiles",
+    "kind": "page"
+  },
+  {
+    "title": "All profiles",
+    "where": [
+      "Performance Profiles",
+      "Profiler"
+    ],
+    "path": "/dashboard/:projectId/profiles/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Performance Profiles",
+      "AI"
+    ],
+    "keywords": [
+      "ai insights",
+      "what ai found",
+      "slow code",
+      "slow functions",
+      "performance problems",
+      "hot functions"
+    ],
+    "path": "/dashboard/:projectId/profiles/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Logs",
+    "where": [
+      "Performance Profiles",
+      "AI"
+    ],
+    "keywords": [
+      "ai logs",
+      "ai activity",
+      "fix pull requests"
+    ],
+    "path": "/dashboard/:projectId/profiles/ai/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Performance Profiles",
+      "AI"
+    ],
+    "keywords": [
+      "ai settings",
+      "ai rules",
+      "find and fix slow code",
+      "performance remediation",
+      "auto fix"
+    ],
+    "path": "/dashboard/:projectId/profiles/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Setup guide",
+    "where": [
+      "Performance Profiles",
+      "Help"
+    ],
+    "keywords": [
+      "documentation",
+      "install"
+    ],
+    "path": "/dashboard/:projectId/profiles/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Exceptions",
+    "where": [
+      "Exceptions"
+    ],
+    "path": "/dashboard/:projectId/exceptions/unresolved",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Exceptions"
+    ],
+    "keywords": [
+      "error trends",
+      "top errors"
+    ],
+    "path": "/dashboard/:projectId/exceptions/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Guide",
+    "where": [
+      "Exceptions"
+    ],
+    "keywords": [
+      "documentation",
+      "install",
+      "how to send data"
+    ],
+    "path": "/dashboard/:projectId/exceptions/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Exceptions",
+      "AI"
+    ],
+    "keywords": [
+      "ai insights",
+      "what ai found",
+      "new exceptions",
+      "rising exceptions",
+      "exception spikes",
+      "missing stack traces"
+    ],
+    "path": "/dashboard/:projectId/exceptions/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Logs",
+    "where": [
+      "Exceptions",
+      "AI"
+    ],
+    "keywords": [
+      "ai logs",
+      "ai activity",
+      "fix pull requests"
+    ],
+    "path": "/dashboard/:projectId/exceptions/ai/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Exceptions",
+      "AI"
+    ],
+    "keywords": [
+      "ai settings",
+      "ai rules",
+      "find and fix new and rising exceptions",
+      "exception remediation",
+      "auto fix"
+    ],
+    "path": "/dashboard/:projectId/exceptions/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Conversations",
+    "where": [
+      "AI / LLM"
+    ],
+    "keywords": [
+      "chats",
+      "sessions",
+      "replay",
+      "prompts",
+      "answers",
+      "transcript"
+    ],
+    "path": "/dashboard/:projectId/llm/conversations",
+    "kind": "page"
+  },
+  {
+    "title": "Calls",
+    "where": [
+      "AI / LLM"
+    ],
+    "keywords": [
+      "llm calls",
+      "prompts",
+      "completions"
+    ],
+    "path": "/dashboard/:projectId/llm/calls",
+    "kind": "page"
+  },
+  {
+    "title": "Usage",
+    "where": [
+      "AI / LLM"
+    ],
+    "keywords": [
+      "tokens",
+      "llm cost"
+    ],
+    "path": "/dashboard/:projectId/llm/usage",
+    "kind": "page"
+  },
+  {
+    "title": "Alerts",
+    "where": [
+      "AI / LLM"
+    ],
+    "keywords": [
+      "ai alerts",
+      "bad answers",
+      "refusals",
+      "hallucination",
+      "ai monitor"
+    ],
+    "path": "/dashboard/:projectId/llm/alerts",
+    "kind": "page"
+  },
+  {
+    "title": "Budgets",
+    "where": [
+      "AI / LLM"
+    ],
+    "keywords": [
+      "llm spend limit"
+    ],
+    "path": "/dashboard/:projectId/llm/budgets",
+    "kind": "page"
+  },
+  {
+    "title": "Pricing",
+    "where": [
+      "AI / LLM"
+    ],
+    "keywords": [
+      "model prices",
+      "token prices"
+    ],
+    "path": "/dashboard/:projectId/llm/pricing",
+    "kind": "page"
+  },
+  {
+    "title": "Connect",
+    "where": [
+      "AI / LLM"
+    ],
+    "keywords": [
+      "setup guide",
+      "documentation",
+      "openai",
+      "anthropic",
+      "azure openai",
+      "foundry",
+      "bedrock",
+      "vertex ai",
+      "claude enterprise",
+      "copilot",
+      "employee chats"
+    ],
+    "path": "/dashboard/:projectId/llm/connect",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "Security Events"
+    ],
+    "keywords": [
+      "soc",
+      "security operations",
+      "mttr",
+      "mean time",
+      "get started",
+      "set up security"
+    ],
+    "path": "/dashboard/:projectId/security-events/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Open Cases",
+    "where": [
+      "Security Events",
+      "Security Cases"
+    ],
+    "keywords": [
+      "security cases",
+      "case queue",
+      "security incidents",
+      "triage",
+      "investigations",
+      "alerts queue"
+    ],
+    "path": "/dashboard/:projectId/security-events/cases",
+    "kind": "page"
+  },
+  {
+    "title": "Assigned to Me",
+    "where": [
+      "Security Events",
+      "Security Cases"
+    ],
+    "keywords": [
+      "my cases",
+      "my security cases",
+      "mine"
+    ],
+    "path": "/dashboard/:projectId/security-events/cases/assigned-to-me",
+    "kind": "page"
+  },
+  {
+    "title": "Unassigned",
+    "where": [
+      "Security Events",
+      "Security Cases"
+    ],
+    "keywords": [
+      "unassigned cases",
+      "nobody assigned",
+      "pick up"
+    ],
+    "path": "/dashboard/:projectId/security-events/cases/unassigned",
+    "kind": "page"
+  },
+  {
+    "title": "Closed Cases",
+    "where": [
+      "Security Events",
+      "Security Cases"
+    ],
+    "keywords": [
+      "verdicts",
+      "false positives",
+      "resolved cases"
+    ],
+    "path": "/dashboard/:projectId/security-events/cases/closed",
+    "kind": "page"
+  },
+  {
+    "title": "All Cases",
+    "where": [
+      "Security Events",
+      "Security Cases"
+    ],
+    "keywords": [
+      "every case",
+      "case history"
+    ],
+    "path": "/dashboard/:projectId/security-events/cases/all",
+    "kind": "page"
+  },
+  {
+    "title": "Events",
+    "where": [
+      "Security Events"
+    ],
+    "keywords": [
+      "siem",
+      "security logs"
+    ],
+    "path": "/dashboard/:projectId/security-events",
+    "kind": "page"
+  },
+  {
+    "title": "Hunts",
+    "where": [
+      "Security Events",
+      "Events"
+    ],
+    "keywords": [
+      "threat hunting",
+      "saved searches",
+      "scheduled searches",
+      "hunting queries",
+      "bookmarks"
+    ],
+    "path": "/dashboard/:projectId/security-events/hunts",
+    "kind": "page"
+  },
+  {
+    "title": "Hunt Library",
+    "where": [
+      "Security Events",
+      "Events"
+    ],
+    "keywords": [
+      "starter hunts",
+      "hunt templates",
+      "ready-made searches",
+      "hunting queries",
+      "threat hunting"
+    ],
+    "path": "/dashboard/:projectId/security-events/hunt-library",
+    "kind": "page"
+  },
+  {
+    "title": "Campaigns",
+    "where": [
+      "Security Events",
+      "Events"
+    ],
+    "keywords": [
+      "attackers",
+      "scanners",
+      "web attacks",
+      "sql injection",
+      "path traversal"
+    ],
+    "path": "/dashboard/:projectId/security-events/campaigns",
+    "kind": "page"
+  },
+  {
+    "title": "Entity Risk",
+    "where": [
+      "Security Events",
+      "Events"
+    ],
+    "keywords": [
+      "risk score",
+      "risk based alerting",
+      "rba",
+      "user risk",
+      "host risk",
+      "riskiest entities",
+      "risky users",
+      "risky hosts",
+      "ueba",
+      "entities",
+      "entity lookup"
+    ],
+    "path": "/dashboard/:projectId/security-events/entity-risk",
+    "kind": "page"
+  },
+  {
+    "title": "Correlate",
+    "where": [
+      "Security Events",
+      "Events"
+    ],
+    "path": "/dashboard/:projectId/security-events/correlate",
+    "kind": "page"
+  },
+  {
+    "title": "Detection Rules",
+    "where": [
+      "Security Events",
+      "Detections"
+    ],
+    "keywords": [
+      "sigma rules",
+      "threat detection",
+      "retrohunt",
+      "run on past events",
+      "backtest"
+    ],
+    "path": "/dashboard/:projectId/security-events/detection-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Exceptions",
+    "where": [
+      "Security Events",
+      "Detections"
+    ],
+    "keywords": [
+      "detection exceptions",
+      "allow list",
+      "suppressions",
+      "false positives",
+      "tuning"
+    ],
+    "path": "/dashboard/:projectId/security-events/rule-exceptions",
+    "kind": "page"
+  },
+  {
+    "title": "Watchlists",
+    "where": [
+      "Security Events",
+      "Detections"
+    ],
+    "keywords": [
+      "reference lists",
+      "value lists",
+      "lookups",
+      "vip users",
+      "critical hosts",
+      "known-bad hashes"
+    ],
+    "path": "/dashboard/:projectId/security-events/watchlists",
+    "kind": "page"
+  },
+  {
+    "title": "Rule Library",
+    "where": [
+      "Security Events",
+      "Detections"
+    ],
+    "keywords": [
+      "detection library",
+      "curated detections",
+      "sigma"
+    ],
+    "path": "/dashboard/:projectId/security-events/rule-library",
+    "kind": "page"
+  },
+  {
+    "title": "Threat Intel",
+    "where": [
+      "Security Events",
+      "Detections"
+    ],
+    "keywords": [
+      "threat intelligence",
+      "indicators of compromise",
+      "ioc"
+    ],
+    "path": "/dashboard/:projectId/security-events/threat-intel",
+    "kind": "page"
+  },
+  {
+    "title": "ATT&CK Coverage",
+    "where": [
+      "Security Events",
+      "Detections"
+    ],
+    "keywords": [
+      "mitre",
+      "attack matrix",
+      "tactics",
+      "techniques"
+    ],
+    "path": "/dashboard/:projectId/security-events/attack-coverage",
+    "kind": "page"
+  },
+  {
+    "title": "Playbooks",
+    "where": [
+      "Security Events"
+    ],
+    "keywords": [
+      "soar",
+      "automated response",
+      "response automation"
+    ],
+    "path": "/dashboard/:projectId/security-events/playbooks",
+    "kind": "page"
+  },
+  {
+    "title": "Approvals",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "waiting for approval",
+      "pending approvals",
+      "approve a step"
+    ],
+    "path": "/dashboard/:projectId/security-events/playbook-runs",
+    "kind": "page"
+  },
+  {
+    "title": "Playbook Runs",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "run history",
+      "soar runs"
+    ],
+    "path": "/dashboard/:projectId/security-events/playbook-runs/all",
+    "kind": "page"
+  },
+  {
+    "title": "Protected Entities",
+    "where": [
+      "Security Events",
+      "Playbooks"
+    ],
+    "keywords": [
+      "protected users",
+      "protected hosts",
+      "containment exclusions",
+      "break-glass accounts"
+    ],
+    "path": "/dashboard/:projectId/security-events/protected-entities",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Security Events",
+      "AI"
+    ],
+    "keywords": [
+      "ai triage",
+      "triage new cases",
+      "oneuptime ai security",
+      "automatic triage"
+    ],
+    "path": "/dashboard/:projectId/security-events/ai/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "Security Events",
+      "Workspace"
+    ],
+    "keywords": [
+      "slack channel",
+      "slack notifications"
+    ],
+    "path": "/dashboard/:projectId/security-events/workspace-connection-slack",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "Security Events",
+      "Workspace"
+    ],
+    "keywords": [
+      "ms teams",
+      "teams channel",
+      "teams notifications"
+    ],
+    "path": "/dashboard/:projectId/security-events/workspace-connection-microsoft-teams",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "Security Events",
+      "Workspace"
+    ],
+    "keywords": [
+      "mattermost channel",
+      "mattermost notifications"
+    ],
+    "path": "/dashboard/:projectId/security-events/workspace-connection-mattermost",
+    "kind": "page"
+  },
+  {
+    "title": "Connections",
+    "where": [
+      "Security Events"
+    ],
+    "keywords": [
+      "security sources",
+      "connect a source",
+      "your logs",
+      "send to siem",
+      "google secops"
+    ],
+    "path": "/dashboard/:projectId/security-events/connections",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Guide",
+    "where": [
+      "Security Events",
+      "Connections"
+    ],
+    "keywords": [
+      "documentation",
+      "install",
+      "how to send data"
+    ],
+    "path": "/dashboard/:projectId/security-events/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Case Priorities",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "security case priority",
+      "case severity",
+      "p1",
+      "rename priorities"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/case-priorities",
+    "kind": "page"
+  },
+  {
+    "title": "Response Targets",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "sla",
+      "case sla",
+      "time to acknowledge",
+      "time to contain",
+      "breach"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/response-targets",
+    "kind": "page"
+  },
+  {
+    "title": "Case Statuses",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "security case status",
+      "case states",
+      "custom case status",
+      "case workflow"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/case-statuses",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "security case custom fields",
+      "case fields",
+      "case custom field",
+      "business unit"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Note Templates",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "security case note templates",
+      "case note template",
+      "triage template",
+      "containment checklist"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/note-templates",
+    "kind": "page"
+  },
+  {
+    "title": "Numbering",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "case number prefix",
+      "case-",
+      "next case number",
+      "case numbers"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/numbering",
+    "kind": "page"
+  },
+  {
+    "title": "Risk Scoring",
+    "where": [
+      "Security Events",
+      "Settings"
+    ],
+    "keywords": [
+      "risk threshold",
+      "entity criticality",
+      "asset criticality",
+      "risk cases"
+    ],
+    "path": "/dashboard/:projectId/security-events/settings/risk-scoring",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "dspm",
+      "data security posture",
+      "what to fix first",
+      "scan coverage"
+    ],
+    "path": "/dashboard/:projectId/data-security/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Data Stores",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "buckets",
+      "s3 buckets",
+      "storage accounts",
+      "data inventory",
+      "add database"
+    ],
+    "path": "/dashboard/:projectId/data-security/stores",
+    "kind": "page"
+  },
+  {
+    "title": "Issues",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "data security issues",
+      "public buckets",
+      "unencrypted",
+      "misconfigurations"
+    ],
+    "path": "/dashboard/:projectId/data-security/issues",
+    "kind": "page"
+  },
+  {
+    "title": "Sensitive Data",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "pii",
+      "personal data",
+      "credit card numbers",
+      "data classification"
+    ],
+    "path": "/dashboard/:projectId/data-security/sensitive-data",
+    "kind": "page"
+  },
+  {
+    "title": "In Your Telemetry",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "pii in logs",
+      "secrets in logs",
+      "sensitive data in traces",
+      "scrub"
+    ],
+    "path": "/dashboard/:projectId/data-security/telemetry",
+    "kind": "page"
+  },
+  {
+    "title": "Data Flows",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "data lineage",
+      "where data goes",
+      "ai providers"
+    ],
+    "path": "/dashboard/:projectId/data-security/flows",
+    "kind": "page"
+  },
+  {
+    "title": "Access",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "who can reach",
+      "external access",
+      "public access",
+      "permissions"
+    ],
+    "path": "/dashboard/:projectId/data-security/access",
+    "kind": "page"
+  },
+  {
+    "title": "Compliance",
+    "where": [
+      "Data Security"
+    ],
+    "keywords": [
+      "gdpr",
+      "pci dss",
+      "hipaa",
+      "soc 2",
+      "record of processing"
+    ],
+    "path": "/dashboard/:projectId/data-security/compliance",
+    "kind": "page"
+  },
+  {
+    "title": "Data Types",
+    "where": [
+      "Data Security",
+      "Settings"
+    ],
+    "keywords": [
+      "custom data types",
+      "classifiers",
+      "detectors"
+    ],
+    "path": "/dashboard/:projectId/data-security/settings/data-types",
+    "kind": "page"
+  },
+  {
+    "title": "Checks",
+    "where": [
+      "Data Security",
+      "Settings"
+    ],
+    "keywords": [
+      "data security checks",
+      "turn off a check",
+      "severity"
+    ],
+    "path": "/dashboard/:projectId/data-security/settings/checks",
+    "kind": "page"
+  },
+  {
+    "title": "Residency Rules",
+    "where": [
+      "Data Security",
+      "Settings"
+    ],
+    "keywords": [
+      "data residency",
+      "allowed regions",
+      "data location"
+    ],
+    "path": "/dashboard/:projectId/data-security/settings/residency",
+    "kind": "page"
+  },
+  {
+    "title": "Scan Settings",
+    "where": [
+      "Data Security",
+      "Settings"
+    ],
+    "keywords": [
+      "scan schedule",
+      "scanning",
+      "sampling"
+    ],
+    "path": "/dashboard/:projectId/data-security/settings/scanning",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Data Security",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/data-security/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Data Security",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/data-security/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Data Security",
+      "Help"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/data-security/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Scans",
+    "where": [
+      "Data Security",
+      "Advanced"
+    ],
+    "keywords": [
+      "scan history",
+      "content scans",
+      "what was read"
+    ],
+    "path": "/dashboard/:projectId/data-security/scans",
+    "kind": "page"
+  },
+  {
+    "title": "Archived Stores",
+    "where": [
+      "Data Security",
+      "Advanced"
+    ],
+    "keywords": [
+      "deleted stores",
+      "gone stores"
+    ],
+    "path": "/dashboard/:projectId/data-security/stores/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "data health",
+      "needs attention",
+      "late tables",
+      "failing checks",
+      "stale data"
+    ],
+    "path": "/dashboard/:projectId/data-observability/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Tables",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "data catalog",
+      "row counts",
+      "table sizes",
+      "freshness"
+    ],
+    "path": "/dashboard/:projectId/data-observability/tables",
+    "kind": "page"
+  },
+  {
+    "title": "Pipelines",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "openlineage",
+      "airflow",
+      "etl jobs"
+    ],
+    "path": "/dashboard/:projectId/data-observability/pipelines",
+    "kind": "page"
+  },
+  {
+    "title": "Schema Changes",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "columns added",
+      "columns removed",
+      "schema drift"
+    ],
+    "path": "/dashboard/:projectId/data-observability/schema-changes",
+    "kind": "page"
+  },
+  {
+    "title": "Databases",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "connect a database",
+      "collect now",
+      "recommended alerts"
+    ],
+    "path": "/dashboard/:projectId/data-observability/stores",
+    "kind": "page"
+  },
+  {
+    "title": "Storage Paths",
+    "where": [
+      "Data Observability"
+    ],
+    "keywords": [
+      "s3",
+      "gcs",
+      "azure blob",
+      "bucket",
+      "partition"
+    ],
+    "path": "/dashboard/:projectId/data-observability/storage-paths",
+    "kind": "page"
+  },
+  {
+    "title": "Checks",
+    "where": [
+      "Data Observability",
+      "Quality"
+    ],
+    "keywords": [
+      "data quality",
+      "data tests",
+      "dbt tests"
+    ],
+    "path": "/dashboard/:projectId/data-observability/checks",
+    "kind": "page"
+  },
+  {
+    "title": "Reconciliations",
+    "where": [
+      "Data Observability",
+      "Quality"
+    ],
+    "keywords": [
+      "compare two tables",
+      "data parity",
+      "source and copy"
+    ],
+    "path": "/dashboard/:projectId/data-observability/reconciliations",
+    "kind": "page"
+  },
+  {
+    "title": "Data Products",
+    "where": [
+      "Data Observability",
+      "Usage"
+    ],
+    "keywords": [
+      "freshness sla",
+      "data consumers",
+      "data as of badge"
+    ],
+    "path": "/dashboard/:projectId/data-observability/data-products",
+    "kind": "page"
+  },
+  {
+    "title": "BI Dashboards",
+    "where": [
+      "Data Observability",
+      "Usage"
+    ],
+    "keywords": [
+      "metabase",
+      "tableau",
+      "looker",
+      "power bi",
+      "superset"
+    ],
+    "path": "/dashboard/:projectId/data-observability/bi-dashboards",
+    "kind": "page"
+  },
+  {
+    "title": "Warehouse Spend",
+    "where": [
+      "Data Observability",
+      "Usage"
+    ],
+    "keywords": [
+      "snowflake credits",
+      "bigquery bytes billed",
+      "query costs"
+    ],
+    "path": "/dashboard/:projectId/data-observability/spend",
+    "kind": "page"
+  },
+  {
+    "title": "Unused Tables",
+    "where": [
+      "Data Observability",
+      "Usage"
+    ],
+    "keywords": [
+      "unread tables",
+      "never read",
+      "wasted storage"
+    ],
+    "path": "/dashboard/:projectId/data-observability/tables/unused",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Data Observability",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/data-observability/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Data Observability",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/data-observability/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Data Observability",
+      "Help"
+    ],
+    "keywords": [
+      "read-only login",
+      "probe",
+      "metrics"
+    ],
+    "path": "/dashboard/:projectId/data-observability/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Data Observability",
+      "Advanced"
+    ],
+    "keywords": [
+      "keep failing rows",
+      "most a check may read",
+      "wait when a database is busy"
+    ],
+    "path": "/dashboard/:projectId/data-observability/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Dropped Tables",
+    "where": [
+      "Data Observability",
+      "Advanced"
+    ],
+    "keywords": [
+      "deleted tables",
+      "gone tables"
+    ],
+    "path": "/dashboard/:projectId/data-observability/tables/dropped",
+    "kind": "page"
+  },
+  {
+    "title": "Insights",
+    "where": [
+      "Insights",
+      "Overview"
+    ],
+    "path": "/dashboard/:projectId/ai/insights",
+    "kind": "page"
+  },
+  {
+    "title": "Settings",
+    "where": [
+      "Insights",
+      "Overview"
+    ],
+    "keywords": [
+      "insight settings"
+    ],
+    "path": "/dashboard/:projectId/ai/insights/settings",
+    "kind": "page"
+  },
+  {
+    "title": "Tasks",
+    "where": [
+      "Code"
+    ],
+    "keywords": [
+      "ask ai",
+      "what should ai do",
+      "code tasks",
+      "ai agent tasks",
+      "pull requests",
+      "fixes"
+    ],
+    "path": "/dashboard/:projectId/code",
+    "kind": "page"
+  },
+  {
+    "title": "Repositories",
+    "where": [
+      "Code"
+    ],
+    "keywords": [
+      "code repositories",
+      "repository",
+      "connect repository",
+      "github"
+    ],
+    "path": "/dashboard/:projectId/code/repositories",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Code",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/code/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Code",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/code/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Code",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/code/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Code",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/code/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "Inventory"
+    ],
+    "path": "/dashboard/:projectId/inventory/overview",
+    "kind": "page"
+  },
+  {
+    "title": "All Items",
+    "where": [
+      "Inventory"
+    ],
+    "path": "/dashboard/:projectId/inventory/items",
+    "kind": "page"
+  },
+  {
+    "title": "Topology Map",
+    "where": [
+      "Inventory"
+    ],
+    "keywords": [
+      "dependency map",
+      "service map"
+    ],
+    "path": "/dashboard/:projectId/topology/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Gone Quiet",
+    "where": [
+      "Inventory"
+    ],
+    "keywords": [
+      "stale",
+      "no recent telemetry"
+    ],
+    "path": "/dashboard/:projectId/inventory/items?source=discovered&stale=true",
+    "kind": "page"
+  },
+  {
+    "title": "Discovered",
+    "where": [
+      "Inventory",
+      "By Source"
+    ],
+    "path": "/dashboard/:projectId/inventory/items?source=discovered",
+    "kind": "page"
+  },
+  {
+    "title": "Mirrored",
+    "where": [
+      "Inventory",
+      "By Source"
+    ],
+    "path": "/dashboard/:projectId/inventory/items?source=inventory",
+    "kind": "page"
+  },
+  {
+    "title": "Added by You",
+    "where": [
+      "Inventory",
+      "By Source"
+    ],
+    "keywords": [
+      "manual items"
+    ],
+    "path": "/dashboard/:projectId/inventory/items?source=manual",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Inventory",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/inventory/settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Inventory",
+      "Help"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/inventory/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Inventory",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/inventory/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Inventory",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/inventory/items/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Inventory",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/inventory/items/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Inventory",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/inventory/items/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Inventory",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/inventory/items/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Services",
+    "where": [
+      "Services"
+    ],
+    "path": "/dashboard/:projectId/service",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Services",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/service/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Services",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/service/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Services",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/service/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Services",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/service/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Services",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/service/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Services",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/service/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Services",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/service/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Databases",
+    "where": [
+      "Databases"
+    ],
+    "path": "/dashboard/:projectId/databases",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Databases"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/databases/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Databases",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/databases/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Databases",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/databases/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Databases",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/databases/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Databases",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/databases/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Databases",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/databases/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Databases",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/databases/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Databases",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/databases/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Queues",
+    "where": [
+      "Queues"
+    ],
+    "path": "/dashboard/:projectId/queues",
+    "kind": "page"
+  },
+  {
+    "title": "Topology",
+    "where": [
+      "Queues"
+    ],
+    "keywords": [
+      "message flow",
+      "producers",
+      "consumers",
+      "publishers",
+      "subscribers",
+      "queue map",
+      "data flow"
+    ],
+    "path": "/dashboard/:projectId/queues/topology",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Queues"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/queues/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Queues",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/queues/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Queues",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/queues/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Queues",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/queues/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Queues",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/queues/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Queues",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/queues/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Queues",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/queues/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Queues",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/queues/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Applications",
+    "where": [
+      "Real User Monitoring"
+    ],
+    "path": "/dashboard/:projectId/rum",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Real User Monitoring",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/rum/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Real User Monitoring",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/rum/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Session Replay",
+    "where": [
+      "Real User Monitoring",
+      "Settings"
+    ],
+    "keywords": [
+      "session recording",
+      "replay retention"
+    ],
+    "path": "/dashboard/:projectId/rum/settings/session-replay",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Real User Monitoring",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/rum/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Real User Monitoring",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/rum/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Real User Monitoring",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/rum/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Real User Monitoring",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/rum/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Real User Monitoring",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/rum/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Hosts",
+    "where": [
+      "Hosts"
+    ],
+    "path": "/dashboard/:projectId/host",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Hosts"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/host/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Collector Configs",
+    "where": [
+      "Hosts",
+      "Configuration"
+    ],
+    "keywords": [
+      "config.yaml",
+      "opentelemetry collector config",
+      "fleet config",
+      "opamp",
+      "default config"
+    ],
+    "path": "/dashboard/:projectId/host/collector-configs",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Hosts",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/host/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Hosts",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/host/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Hosts",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/host/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Hosts",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/host/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Hosts",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/host/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Hosts",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/host/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Hosts",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/host/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Clusters",
+    "where": [
+      "Kubernetes"
+    ],
+    "path": "/dashboard/:projectId/kubernetes",
+    "kind": "page"
+  },
+  {
+    "title": "Costs",
+    "where": [
+      "Kubernetes"
+    ],
+    "keywords": [
+      "kubernetes cost",
+      "spend"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/costs",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Kubernetes"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Kubernetes",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Kubernetes",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Kubernetes",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Kubernetes",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Kubernetes",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Kubernetes",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Kubernetes",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/kubernetes/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Hosts",
+    "where": [
+      "Docker"
+    ],
+    "path": "/dashboard/:projectId/docker",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Docker"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/docker/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Docker",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/docker/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Docker",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/docker/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Docker",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/docker/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Docker",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/docker/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Docker",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/docker/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Docker",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/docker/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Docker",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/docker/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Clusters",
+    "where": [
+      "Docker Swarm"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Docker Swarm"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Docker Swarm",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Docker Swarm",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Docker Swarm",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Docker Swarm",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Docker Swarm",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Docker Swarm",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Docker Swarm",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/docker-swarm/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Hosts",
+    "where": [
+      "Podman"
+    ],
+    "path": "/dashboard/:projectId/podman",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Podman"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/podman/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Podman",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/podman/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Podman",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/podman/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Podman",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/podman/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Podman",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/podman/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Podman",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/podman/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Podman",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/podman/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Podman",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/podman/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Functions",
+    "where": [
+      "Serverless"
+    ],
+    "path": "/dashboard/:projectId/serverless",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Serverless",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/serverless/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Serverless",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/serverless/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Serverless",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/serverless/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Serverless",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/serverless/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Serverless",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/serverless/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Serverless",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/serverless/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Serverless",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/serverless/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "App Platforms"
+    ],
+    "keywords": [
+      "paas",
+      "platform as a service",
+      "app platforms"
+    ],
+    "path": "/dashboard/:projectId/app-platforms",
+    "kind": "page"
+  },
+  {
+    "title": "All Apps",
+    "where": [
+      "App Platforms"
+    ],
+    "keywords": [
+      "apps",
+      "services",
+      "ecs services",
+      "cloud run services",
+      "container apps",
+      "web apps",
+      "deploys",
+      "deployments",
+      "revisions",
+      "releases"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/apps",
+    "kind": "page"
+  },
+  {
+    "title": "All Environments",
+    "where": [
+      "App Platforms"
+    ],
+    "keywords": [
+      "cloud environments",
+      "ecs",
+      "fargate",
+      "elastic beanstalk",
+      "cloud run",
+      "app engine",
+      "container apps",
+      "container instances",
+      "app service"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/environments",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "App Platforms",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "App Platforms",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "App Platforms",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "App Platforms",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/environments/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "App Platforms",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/environments/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "App Platforms",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/environments/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "App Platforms",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/app-platforms/environments/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "Cloud"
+    ],
+    "keywords": [
+      "cloud overview",
+      "cloud health",
+      "needs attention",
+      "unhealthy resources",
+      "cloud spend"
+    ],
+    "path": "/dashboard/:projectId/cloud",
+    "kind": "page"
+  },
+  {
+    "title": "Accounts",
+    "where": [
+      "Cloud"
+    ],
+    "keywords": [
+      "cloud accounts",
+      "aws accounts",
+      "azure subscriptions",
+      "google cloud projects",
+      "gcp projects",
+      "cloud inventory",
+      "cloudtrail",
+      "activity log"
+    ],
+    "path": "/dashboard/:projectId/cloud/accounts",
+    "kind": "page"
+  },
+  {
+    "title": "All Resources",
+    "where": [
+      "Cloud"
+    ],
+    "keywords": [
+      "iaas",
+      "virtual machines",
+      "load balancers",
+      "buckets",
+      "managed databases",
+      "azure monitor",
+      "cloudwatch",
+      "cloud monitoring"
+    ],
+    "path": "/dashboard/:projectId/cloud/resources",
+    "kind": "page"
+  },
+  {
+    "title": "Connect",
+    "where": [
+      "Cloud"
+    ],
+    "keywords": [
+      "connect aws",
+      "connect azure",
+      "connect google cloud",
+      "gcp",
+      "cloud account",
+      "cloudwatch",
+      "azure monitor",
+      "cloud monitoring"
+    ],
+    "path": "/dashboard/:projectId/cloud/connect",
+    "kind": "page"
+  },
+  {
+    "title": "Costs",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cloud costs",
+      "cloud spend",
+      "cloud bill",
+      "billing",
+      "aws cost explorer",
+      "azure cost management",
+      "gcp billing export",
+      "finops"
+    ],
+    "path": "/dashboard/:projectId/cloud/costs",
+    "kind": "page"
+  },
+  {
+    "title": "Savings",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "right-sizing",
+      "rightsizing",
+      "cost optimization",
+      "idle resources",
+      "savings plans",
+      "reserved instances",
+      "azure advisor",
+      "cost optimization hub",
+      "recommender"
+    ],
+    "path": "/dashboard/:projectId/cloud/savings",
+    "kind": "page"
+  },
+  {
+    "title": "Budgets",
+    "where": [
+      "Cloud",
+      "Spend"
+    ],
+    "keywords": [
+      "cloud budgets",
+      "spend alerts",
+      "budget alerts",
+      "spend controls",
+      "cost alerts"
+    ],
+    "path": "/dashboard/:projectId/cloud/budgets",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Cloud",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/cloud/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Cloud",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/cloud/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Cloud",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/cloud/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Cloud",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/cloud/resources/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Cloud",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/cloud/resources/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Cloud",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/cloud/resources/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Cloud",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/cloud/resources/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Clusters",
+    "where": [
+      "Proxmox"
+    ],
+    "path": "/dashboard/:projectId/proxmox",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Proxmox"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/proxmox/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Proxmox",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/proxmox/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Proxmox",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/proxmox/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Proxmox",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/proxmox/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Proxmox",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/proxmox/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Proxmox",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/proxmox/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Proxmox",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/proxmox/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Proxmox",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/proxmox/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Clouds",
+    "where": [
+      "OpenStack"
+    ],
+    "path": "/dashboard/:projectId/openstack",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "OpenStack"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/openstack/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "OpenStack",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/openstack/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "OpenStack",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/openstack/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "OpenStack",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/openstack/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "OpenStack",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/openstack/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "OpenStack",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/openstack/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "OpenStack",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/openstack/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "OpenStack",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/openstack/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All vCenters",
+    "where": [
+      "VMware"
+    ],
+    "path": "/dashboard/:projectId/vmware",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "VMware"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/vmware/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "VMware",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "VMware",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/vmware/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "VMware",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/vmware/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "VMware",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/vmware/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "VMware",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/vmware/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "VMware",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/vmware/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "VMware",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/vmware/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Clusters",
+    "where": [
+      "Ceph"
+    ],
+    "path": "/dashboard/:projectId/ceph",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Ceph"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/ceph/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Ceph",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/ceph/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Ceph",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/ceph/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Ceph",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/ceph/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Ceph",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/ceph/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Ceph",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/ceph/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Ceph",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/ceph/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Ceph",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/ceph/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Storage Arrays",
+    "where": [
+      "Storage Arrays"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "Storage Arrays"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Storage Arrays",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Storage Arrays",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Storage Arrays",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Storage Arrays",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Storage Arrays",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Storage Arrays",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Storage Arrays",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/storage-arrays/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "Network"
+    ],
+    "keywords": [
+      "network health",
+      "network status"
+    ],
+    "path": "/dashboard/:projectId/network-devices/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Devices",
+    "where": [
+      "Network"
+    ],
+    "keywords": [
+      "network devices",
+      "routers",
+      "switches",
+      "firewalls",
+      "snmp",
+      "add device"
+    ],
+    "path": "/dashboard/:projectId/network-devices",
+    "kind": "page"
+  },
+  {
+    "title": "Sites",
+    "where": [
+      "Network"
+    ],
+    "keywords": [
+      "network sites",
+      "locations",
+      "offices"
+    ],
+    "path": "/dashboard/:projectId/network-sites",
+    "kind": "page"
+  },
+  {
+    "title": "Map",
+    "where": [
+      "Network"
+    ],
+    "keywords": [
+      "network map",
+      "site map",
+      "geo map"
+    ],
+    "path": "/dashboard/:projectId/network-sites/map?site=",
+    "kind": "page"
+  },
+  {
+    "title": "Traffic",
+    "where": [
+      "Network"
+    ],
+    "keywords": [
+      "netflow",
+      "ipfix",
+      "sflow",
+      "flows",
+      "top talkers",
+      "bandwidth",
+      "network traffic"
+    ],
+    "path": "/dashboard/:projectId/network-devices/traffic",
+    "kind": "page"
+  },
+  {
+    "title": "Events",
+    "where": [
+      "Network"
+    ],
+    "keywords": [
+      "syslog",
+      "network events",
+      "snmp traps",
+      "link down",
+      "interface down",
+      "vpn tunnel",
+      "failover",
+      "device logs"
+    ],
+    "path": "/dashboard/:projectId/network-devices/events",
+    "kind": "page"
+  },
+  {
+    "title": "Discovery",
+    "where": [
+      "Network"
+    ],
+    "keywords": [
+      "discovery scans",
+      "scan network",
+      "find devices",
+      "discover devices",
+      "subnet scan"
+    ],
+    "path": "/dashboard/:projectId/network-devices/discovery",
+    "kind": "page"
+  },
+  {
+    "title": "Device Topology",
+    "where": [
+      "Network",
+      "Topology"
+    ],
+    "keywords": [
+      "lldp",
+      "cdp",
+      "neighbors"
+    ],
+    "path": "/dashboard/:projectId/network-devices/topology",
+    "kind": "page"
+  },
+  {
+    "title": "Discovered Devices",
+    "where": [
+      "Network",
+      "Topology"
+    ],
+    "keywords": [
+      "endpoints",
+      "arp",
+      "mac addresses",
+      "ip addresses",
+      "hostnames",
+      "connected devices",
+      "add to monitoring",
+      "hide from map",
+      "stale devices",
+      "remove old devices"
+    ],
+    "path": "/dashboard/:projectId/network-devices/endpoints",
+    "kind": "page"
+  },
+  {
+    "title": "Unseen Devices",
+    "where": [
+      "Network",
+      "Topology",
+      "Discovered Devices"
+    ],
+    "path": "/dashboard/:projectId/network-devices/endpoints#unseen-devices",
+    "kind": "setting"
+  },
+  {
+    "title": "Latency Matrix",
+    "where": [
+      "Network",
+      "Topology"
+    ],
+    "path": "/dashboard/:projectId/network-devices/latency-matrix",
+    "kind": "page"
+  },
+  {
+    "title": "Site Links",
+    "where": [
+      "Network",
+      "Topology"
+    ],
+    "keywords": [
+      "wan links"
+    ],
+    "path": "/dashboard/:projectId/network-sites/links",
+    "kind": "page"
+  },
+  {
+    "title": "Device Links",
+    "where": [
+      "Network",
+      "Topology"
+    ],
+    "keywords": [
+      "cables"
+    ],
+    "path": "/dashboard/:projectId/network-devices/device-links",
+    "kind": "page"
+  },
+  {
+    "title": "Auto Import Rules",
+    "where": [
+      "Network",
+      "Rules"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/auto-import-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Site Assignment Rules",
+    "where": [
+      "Network",
+      "Rules"
+    ],
+    "path": "/dashboard/:projectId/network-sites/assignment-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Naming Rules",
+    "where": [
+      "Network",
+      "Rules"
+    ],
+    "keywords": [
+      "naming convention",
+      "device names",
+      "rename devices",
+      "hostname"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/naming-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Network",
+      "Rules"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Network",
+      "Rules"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Link Rules",
+    "where": [
+      "Network",
+      "Rules"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/link-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Alert Policies",
+    "where": [
+      "Network",
+      "Settings"
+    ],
+    "keywords": [
+      "network alerts",
+      "device alerts"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/alert-policies",
+    "kind": "page"
+  },
+  {
+    "title": "SNMP Credentials",
+    "where": [
+      "Network",
+      "Settings"
+    ],
+    "keywords": [
+      "community string",
+      "snmp v3"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/snmp-credential-profiles",
+    "kind": "page"
+  },
+  {
+    "title": "Device Roles",
+    "where": [
+      "Network",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/device-roles",
+    "kind": "page"
+  },
+  {
+    "title": "Site Types",
+    "where": [
+      "Network",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/network-sites/settings/site-types",
+    "kind": "page"
+  },
+  {
+    "title": "Address Names",
+    "where": [
+      "Network",
+      "Settings"
+    ],
+    "keywords": [
+      "ip names",
+      "subnet names",
+      "hostnames",
+      "traffic names"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/address-names",
+    "kind": "page"
+  },
+  {
+    "title": "OID Collection Templates",
+    "where": [
+      "Network",
+      "Settings"
+    ],
+    "keywords": [
+      "snmp oids"
+    ],
+    "path": "/dashboard/:projectId/network-devices/settings/oid-collection-templates",
+    "kind": "page"
+  },
+  {
+    "title": "SNMP Walk",
+    "where": [
+      "Network",
+      "Advanced"
+    ],
+    "keywords": [
+      "snmpwalk",
+      "walk many devices",
+      "oid",
+      "compare devices",
+      "collect oid"
+    ],
+    "path": "/dashboard/:projectId/network-devices/snmp-walk",
+    "kind": "page"
+  },
+  {
+    "title": "Archived Devices",
+    "where": [
+      "Network",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/network-devices/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Network",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/network-devices/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Network",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/network-devices/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Network",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/network-devices/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Network",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/network-devices/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Fleets",
+    "where": [
+      "IoT"
+    ],
+    "path": "/dashboard/:projectId/iot",
+    "kind": "page"
+  },
+  {
+    "title": "Documentation",
+    "where": [
+      "IoT"
+    ],
+    "keywords": [
+      "setup guide",
+      "install",
+      "how to connect"
+    ],
+    "path": "/dashboard/:projectId/iot/documentation",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "IoT",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/iot/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "IoT",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/iot/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "IoT",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/iot/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "IoT",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/iot/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "IoT",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/iot/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "IoT",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/iot/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "IoT",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/iot/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Dashboards",
+    "where": [
+      "Dashboards"
+    ],
+    "path": "/dashboard/:projectId/dashboards",
+    "kind": "page"
+  },
+  {
+    "title": "Playlists",
+    "where": [
+      "Dashboards"
+    ],
+    "keywords": [
+      "noc",
+      "wallboard",
+      "tv",
+      "rotate",
+      "slideshow",
+      "kiosk"
+    ],
+    "path": "/dashboard/:projectId/dashboards/playlists",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Dashboards",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/dashboards/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Dashboards",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/dashboards/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Data Sources",
+    "where": [
+      "Dashboards",
+      "Settings"
+    ],
+    "keywords": [
+      "prometheus",
+      "external data"
+    ],
+    "path": "/dashboard/:projectId/dashboards/settings/data-sources",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Dashboards",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/dashboards/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Dashboards",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/dashboards/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Dashboards",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/dashboards/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Dashboards",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/dashboards/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Dashboards",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/dashboards/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Workflows",
+    "where": [
+      "Workflows"
+    ],
+    "keywords": [
+      "integrations",
+      "huntress"
+    ],
+    "path": "/dashboard/:projectId/workflows",
+    "kind": "page"
+  },
+  {
+    "title": "Global Variables",
+    "where": [
+      "Workflows"
+    ],
+    "keywords": [
+      "workflow variables",
+      "secrets"
+    ],
+    "path": "/dashboard/:projectId/workflows/variables",
+    "kind": "page"
+  },
+  {
+    "title": "Runs",
+    "where": [
+      "Workflows",
+      "Logs"
+    ],
+    "keywords": [
+      "workflow runs",
+      "workflow logs",
+      "executions"
+    ],
+    "path": "/dashboard/:projectId/workflows/logs",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Workflows",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/workflows/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Workflows",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/workflows/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Archived",
+    "where": [
+      "Workflows",
+      "Advanced"
+    ],
+    "path": "/dashboard/:projectId/workflows/archived",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Workflows",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/workflows/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Workflows",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/workflows/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Workflows",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/workflows/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Workflows",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/workflows/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Runbooks",
+    "where": [
+      "Runbooks"
+    ],
+    "path": "/dashboard/:projectId/runbooks",
+    "kind": "page"
+  },
+  {
+    "title": "Executions",
+    "where": [
+      "Runbooks"
+    ],
+    "keywords": [
+      "runbook runs"
+    ],
+    "path": "/dashboard/:projectId/runbooks/executions",
+    "kind": "page"
+  },
+  {
+    "title": "Runners",
+    "where": [
+      "Runbooks"
+    ],
+    "keywords": [
+      "runbook runners",
+      "agents"
+    ],
+    "path": "/dashboard/:projectId/runbooks/runners",
+    "kind": "page"
+  },
+  {
+    "title": "Global Variables",
+    "where": [
+      "Runbooks",
+      "Settings"
+    ],
+    "keywords": [
+      "runbook variables",
+      "runbook secrets",
+      "ssh keys",
+      "kubeconfig"
+    ],
+    "path": "/dashboard/:projectId/runbooks/settings/variables",
+    "kind": "page"
+  },
+  {
+    "title": "Owner Rules",
+    "where": [
+      "Runbooks",
+      "Settings"
+    ],
+    "keywords": [
+      "assign owners automatically",
+      "default owners"
+    ],
+    "path": "/dashboard/:projectId/runbooks/settings/owner-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Label Rules",
+    "where": [
+      "Runbooks",
+      "Settings"
+    ],
+    "keywords": [
+      "add labels automatically",
+      "auto label"
+    ],
+    "path": "/dashboard/:projectId/runbooks/settings/label-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Runbooks",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/runbooks/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Runbooks",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/runbooks/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Runbooks",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/runbooks/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Runbooks",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/runbooks/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Forms",
+    "where": [
+      "Forms"
+    ],
+    "path": "/dashboard/:projectId/forms",
+    "kind": "page"
+  },
+  {
+    "title": "Submissions",
+    "where": [
+      "Forms"
+    ],
+    "keywords": [
+      "form submissions",
+      "responses"
+    ],
+    "path": "/dashboard/:projectId/forms/submissions",
+    "kind": "page"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Forms",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/forms/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Forms",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/forms/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Forms",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/forms/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Forms",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/forms/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "All Users",
+    "where": [
+      "Users"
+    ],
+    "keywords": [
+      "invite user",
+      "members",
+      "team members",
+      "people"
+    ],
+    "path": "/dashboard/:projectId/users",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Users",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/users/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Team Member Custom Fields",
+    "where": [
+      "Users",
+      "Settings",
+      "Custom Fields"
+    ],
+    "path": "/dashboard/:projectId/users/custom-fields",
+    "kind": "setting"
+  },
+  {
+    "title": "All Teams",
+    "where": [
+      "Teams"
+    ],
+    "keywords": [
+      "create team",
+      "groups",
+      "permissions",
+      "roles"
+    ],
+    "path": "/dashboard/:projectId/teams",
+    "kind": "page"
+  },
+  {
+    "title": "Roles",
+    "where": [
+      "Teams",
+      "Settings"
+    ],
+    "keywords": [
+      "custom roles",
+      "custom role",
+      "create role",
+      "built-in roles",
+      "rbac",
+      "permission sets",
+      "permissions"
+    ],
+    "path": "/dashboard/:projectId/teams/roles",
+    "kind": "page"
+  },
+  {
+    "title": "Custom Roles",
+    "where": [
+      "Teams",
+      "Settings",
+      "Roles"
+    ],
+    "path": "/dashboard/:projectId/teams/roles",
+    "kind": "setting"
+  },
+  {
+    "title": "Built-in Roles",
+    "where": [
+      "Teams",
+      "Settings",
+      "Roles"
+    ],
+    "path": "/dashboard/:projectId/teams/roles",
+    "kind": "setting"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "Teams",
+      "Settings"
+    ],
+    "path": "/dashboard/:projectId/teams/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "Team Custom Fields",
+    "where": [
+      "Teams",
+      "Settings",
+      "Custom Fields"
+    ],
+    "path": "/dashboard/:projectId/teams/custom-fields",
+    "kind": "setting"
+  },
+  {
+    "title": "Terraform",
+    "where": [
+      "Teams",
+      "Developer"
+    ],
+    "keywords": [
+      "terraform provider",
+      "infrastructure as code",
+      "iac"
+    ],
+    "path": "/dashboard/:projectId/teams/developer/terraform",
+    "kind": "page"
+  },
+  {
+    "title": "API",
+    "where": [
+      "Teams",
+      "Developer"
+    ],
+    "keywords": [
+      "rest api",
+      "api reference",
+      "curl"
+    ],
+    "path": "/dashboard/:projectId/teams/developer/api",
+    "kind": "page"
+  },
+  {
+    "title": "CLI",
+    "where": [
+      "Teams",
+      "Developer"
+    ],
+    "keywords": [
+      "command line",
+      "terminal",
+      "bash",
+      "script"
+    ],
+    "path": "/dashboard/:projectId/teams/developer/cli",
+    "kind": "page"
+  },
+  {
+    "title": "AI Assistants",
+    "where": [
+      "Teams",
+      "Developer"
+    ],
+    "keywords": [
+      "mcp",
+      "claude",
+      "cursor"
+    ],
+    "path": "/dashboard/:projectId/teams/developer/ai-assistants",
+    "kind": "page"
+  },
+  {
+    "title": "Setup Checklist",
+    "where": [
+      "User Settings",
+      "Get Started"
+    ],
+    "keywords": [
+      "get started",
+      "onboarding"
+    ],
+    "path": "/dashboard/:projectId/user-settings/setup",
+    "kind": "page"
+  },
+  {
+    "title": "Your setup checklist",
+    "where": [
+      "User Settings",
+      "Get Started",
+      "Setup Checklist"
+    ],
+    "path": "/dashboard/:projectId/user-settings/setup",
+    "kind": "setting"
+  },
+  {
+    "title": "Notification Methods",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications"
+    ],
+    "keywords": [
+      "add phone number",
+      "sms",
+      "email",
+      "push",
+      "contact methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "page"
+  },
+  {
+    "title": "Send me a test page",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "keywords": [
+      "test page",
+      "test notification",
+      "test my phone",
+      "fire drill",
+      "will it wake me"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "action"
+  },
+  {
+    "title": "Test your pages",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "Emails for Notifications",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "Phone Numbers for SMS Notifications",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "Phone Numbers for Call Notifications",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "WhatsApp Numbers for Notifications",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "Telegram Accounts for Notifications",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "Push Notifications",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "Webhooks",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Notification Methods"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-methods",
+    "kind": "setting"
+  },
+  {
+    "title": "On-Call Rules",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications"
+    ],
+    "keywords": [
+      "how i get paged",
+      "my notification rules"
+    ],
+    "path": "/dashboard/:projectId/user-settings/on-call-rules",
+    "kind": "page"
+  },
+  {
+    "title": "Notification Settings",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications"
+    ],
+    "keywords": [
+      "my notifications",
+      "notification preferences"
+    ],
+    "path": "/dashboard/:projectId/user-settings/notification-settings",
+    "kind": "page"
+  },
+  {
+    "title": "Email Preferences",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications"
+    ],
+    "keywords": [
+      "unsubscribe",
+      "email digest"
+    ],
+    "path": "/dashboard/:projectId/user-settings/email-preferences",
+    "kind": "page"
+  },
+  {
+    "title": "Fewer routine emails",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Email Preferences"
+    ],
+    "path": "/dashboard/:projectId/user-settings/email-preferences",
+    "kind": "setting"
+  },
+  {
+    "title": "Email Rollup",
+    "where": [
+      "User Settings",
+      "Alerts & Notifications",
+      "Email Preferences"
+    ],
+    "path": "/dashboard/:projectId/user-settings/email-preferences",
+    "kind": "setting"
+  },
+  {
+    "title": "On-Call Logs",
+    "where": [
+      "User Settings"
+    ],
+    "keywords": [
+      "my pages",
+      "paging history"
+    ],
+    "path": "/dashboard/:projectId/user-settings/on-call-logs",
+    "kind": "page"
+  },
+  {
+    "title": "Incoming Phone Numbers",
+    "where": [
+      "User Settings",
+      "Incoming Call Policy"
+    ],
+    "path": "/dashboard/:projectId/user-settings/incoming-call-phone-numbers",
+    "kind": "page"
+  },
+  {
+    "title": "Phone Numbers for Incoming Call Routing",
+    "where": [
+      "User Settings",
+      "Incoming Call Policy",
+      "Incoming Phone Numbers"
+    ],
+    "path": "/dashboard/:projectId/user-settings/incoming-call-phone-numbers",
+    "kind": "setting"
+  },
+  {
+    "title": "Calendar Feed",
+    "where": [
+      "User Settings",
+      "Calendar"
+    ],
+    "keywords": [
+      "ical",
+      "ics",
+      "my on-call calendar"
+    ],
+    "path": "/dashboard/:projectId/user-settings/calendar-feed",
+    "kind": "page"
+  },
+  {
+    "title": "Subscribe to your on-call shifts",
+    "where": [
+      "User Settings",
+      "Calendar",
+      "Calendar Feed"
+    ],
+    "path": "/dashboard/:projectId/user-settings/calendar-feed",
+    "kind": "setting"
+  },
+  {
+    "title": "Upcoming shifts",
+    "where": [
+      "User Settings",
+      "Calendar",
+      "Calendar Feed"
+    ],
+    "path": "/dashboard/:projectId/user-settings/calendar-feed",
+    "kind": "setting"
+  },
+  {
+    "title": "Remind me before shifts",
+    "where": [
+      "User Settings",
+      "Calendar",
+      "Calendar Feed"
+    ],
+    "path": "/dashboard/:projectId/user-settings/calendar-feed",
+    "kind": "setting"
+  },
+  {
+    "title": "Custom Fields",
+    "where": [
+      "User Settings",
+      "Profile"
+    ],
+    "path": "/dashboard/:projectId/user-settings/custom-fields",
+    "kind": "page"
+  },
+  {
+    "title": "My Custom Fields",
+    "where": [
+      "User Settings",
+      "Profile",
+      "Custom Fields"
+    ],
+    "path": "/dashboard/:projectId/user-settings/custom-fields",
+    "kind": "setting"
+  },
+  {
+    "title": "Slack",
+    "where": [
+      "User Settings",
+      "Workspace"
+    ],
+    "keywords": [
+      "link my slack account"
+    ],
+    "path": "/dashboard/:projectId/user-settings/slack-integration",
+    "kind": "page"
+  },
+  {
+    "title": "Microsoft Teams",
+    "where": [
+      "User Settings",
+      "Workspace"
+    ],
+    "keywords": [
+      "link my microsoft teams account"
+    ],
+    "path": "/dashboard/:projectId/user-settings/microsoft-teams-integration",
+    "kind": "page"
+  },
+  {
+    "title": "Mattermost",
+    "where": [
+      "User Settings",
+      "Workspace"
+    ],
+    "keywords": [
+      "link my mattermost account"
+    ],
+    "path": "/dashboard/:projectId/user-settings/mattermost-integration",
+    "kind": "page"
+  },
+  {
+    "title": "Overview",
+    "where": [
+      "User Profile",
+      "Basic"
+    ],
+    "keywords": [
+      "my profile",
+      "profile",
+      "my name",
+      "my email"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "page"
+  },
+  {
+    "title": "Basic Info",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Full Name",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Timezone",
+    "where": [
+      "User Profile",
+      "Basic",
+      "Overview"
+    ],
+    "path": "/dashboard/user-profile/overview",
+    "kind": "setting"
+  },
+  {
+    "title": "Profile Picture",
+    "where": [
+      "User Profile",
+      "Basic"
+    ],
+    "keywords": [
+      "avatar",
+      "photo"
+    ],
+    "path": "/dashboard/user-profile/profile-picture",
+    "kind": "page"
+  },
+  {
+    "title": "Password Management",
+    "where": [
+      "User Profile",
+      "Security"
+    ],
+    "keywords": [
+      "change password",
+      "reset password",
+      "update password"
+    ],
+    "path": "/dashboard/user-profile/password-management",
+    "kind": "page"
+  },
+  {
+    "title": "Update Password",
+    "where": [
+      "User Profile",
+      "Security",
+      "Password Management"
+    ],
+    "path": "/dashboard/user-profile/password-management",
+    "kind": "setting"
+  },
+  {
+    "title": "Passkeys",
+    "where": [
+      "User Profile",
+      "Security"
+    ],
+    "keywords": [
+      "security key",
+      "webauthn",
+      "touch id",
+      "face id"
+    ],
+    "path": "/dashboard/user-profile/passkeys",
+    "kind": "page"
+  },
+  {
+    "title": "Two-factor authentication",
+    "where": [
+      "User Profile",
+      "Security"
+    ],
+    "keywords": [
+      "2fa",
+      "mfa",
+      "authenticator app",
+      "otp"
+    ],
+    "path": "/dashboard/user-profile/two-factor-auth",
+    "kind": "page"
+  },
+  {
+    "title": "Security keys",
+    "where": [
+      "User Profile",
+      "Security",
+      "Two-factor authentication"
+    ],
+    "path": "/dashboard/user-profile/two-factor-auth",
+    "kind": "setting"
+  },
+  {
+    "title": "Authenticator apps",
+    "where": [
+      "User Profile",
+      "Security",
+      "Two-factor authentication"
+    ],
+    "path": "/dashboard/user-profile/two-factor-auth",
+    "kind": "setting"
+  },
+  {
+    "title": "Backup codes",
+    "where": [
+      "User Profile",
+      "Security",
+      "Two-factor authentication"
+    ],
+    "path": "/dashboard/user-profile/two-factor-auth",
+    "kind": "setting"
+  },
+  {
+    "title": "Delete Account",
+    "where": [
+      "User Profile",
+      "Danger Zone"
+    ],
+    "keywords": [
+      "close my account",
+      "remove my account"
+    ],
+    "path": "/dashboard/user-profile/delete-account",
+    "kind": "page"
+  }
+]

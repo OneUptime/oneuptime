@@ -75,6 +75,7 @@ import {
   CodeTaskContextInput,
   CodeTaskContextInputUtil,
   CodeTaskContextItem,
+  CodeTaskConversationJSON,
   CodeTaskListCountsJSON,
   CodeTaskListFilter,
   CodeTaskListKind,
@@ -82,7 +83,6 @@ import {
   MAX_CODE_TASKS_PER_REQUEST,
   CodeTaskRepositoryJSON,
   CodeTaskSummaryJSON,
-  CodeTaskTurnJSON,
   CodeTaskTurnProgressJSON,
 } from "../../Types/AI/CodeTask";
 import DatabaseCommonInteractionProps from "../../Types/BaseDatabase/DatabaseCommonInteractionProps";
@@ -108,7 +108,9 @@ import { CodeHost } from "../../Types/CodeRepository/CodeHost";
  *                                         or every task the caller may read)
  *   POST /code-task/branches/:id          a repository's branches, for the
  *                                         branch a task starts from
- *   POST /code-task/get/:taskId           a task's conversation
+ *   POST /code-task/get/:taskId           a task's conversation: its first
+ *                                         turn and its newest, and how many
+ *                                         between them are not shown
  *   POST /code-task/progress/:taskId      how a turn AI is working on stands,
  *                                         and the steps it took since the
  *                                         page last read it
@@ -864,7 +866,7 @@ export default class CodeTaskAPI {
       : false;
 
     const [conversation, blocker, connections]: [
-      { task: CodeTaskSummaryJSON; turns: Array<CodeTaskTurnJSON> },
+      CodeTaskConversationJSON,
       CodeTaskBlocker | null,
       Map<string, CodeHostConnectionSummary>,
     ] = await Promise.all([
@@ -892,6 +894,15 @@ export default class CodeTaskAPI {
     return {
       task: conversation.task as unknown as JSONObject,
       turns: conversation.turns as unknown as Array<JSONObject>,
+      /*
+       * A task with more turns than its conversation shows: how many are not
+       * shown, between its first turn and the newest.
+       */
+      ...(conversation.turnsNotShown
+        ? {
+            turnsNotShown: conversation.turnsNotShown as unknown as JSONObject,
+          }
+        : {}),
       repository: repository
         ? (CodeTaskAPI.toRepositoryJSON(
             repository,
