@@ -93,6 +93,10 @@ Die Checkliste verschwindet für alle, sobald jeder Schritt erledigt ist. Um sie
 
 **Erfordert Aufmerksamkeit** führt mit Namen auf, was die Zahlen zählen: die offenen Vorfälle, die offenen Warnungen, die nicht betriebsbereiten Monitore, die gefährdeten SLOs und die laufenden Wartungen, das Dringendste zuerst. Jede Zeile zeigt ihren Schweregrad oder Status, sagt, wann ein Vorfall oder eine Warnung begonnen hat und wann eine Wartung endet, und öffnet den Eintrag. Von jeder Art erscheinen bis zu fünf, mit **Alle anzeigen** für den Rest: Es öffnet dieselbe Liste wie die Zahl dieser Art. Wenn nichts offen ist, steht dort **Nichts erfordert Ihre Aufmerksamkeit**.
 
+### Einrichtungsstatus
+
+Wenn etwas in der Einrichtung des Projekts verhindern würde, dass die richtigen Leute Bescheid bekommen, endet **Erfordert Aufmerksamkeit** mit **Einrichtung**: wie viele Dinge einen Blick brauchen. Die Zeile öffnet **Einrichtungsstatus**, eine Liste dessen, was falsch eingerichtet ist, das Schlimmste zuerst, unter **Alarmierungen kommen nicht an**, **Sollte behoben werden** und **Vorschläge**: ein Monitor, der niemanden alarmiert, eine Bereitschaftsrichtlinie, die nie ausgelöst wird, eine Person, die nicht alarmiert werden kann, ausgeschaltete SMS, ein Bereitschaftszeitplan, in dem niemand Dienst hat, eine Statusseite, die keinen Monitor zeigt. Jeder Befund sagt in einem Satz, was nicht stimmt, mit der Schaltfläche, die die Behebung öffnet, und die Befunde eines Monitors sind die Lücken, die seine Karte **Wenn das ausfällt** nennt. Einen Befund, den Ihr Team absichtlich so lässt, können Sie mit einer Begründung für alle ausblenden und unter **Verworfen** wiederherstellen. Die Suche findet die Seite als **Einrichtungsstatus**, und KI fragen beantwortet „Ist meine Einrichtung in Ordnung?“ anhand dieser Seite.
+
 ### Ihr Projekt
 
 **Ihr Projekt** zählt die **Monitore**, **Statusseiten**, **Bereitschaftsrichtlinien**, **SLOs**, **Dienste**, **Dashboards** und **Arbeitsabläufe** des Projekts, ohne die archivierten. Jede Zeile öffnet ihre Liste. Hat das Projekt von einer Art noch nichts, steht dort statt einer Zahl **Einrichten**.

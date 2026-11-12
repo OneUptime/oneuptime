@@ -1565,6 +1565,68 @@ describe("Home Page & Shortcuts", () => {
     );
   });
 
+  /*
+   * Setup health (#6812): the Setup section that ends Needs attention, and
+   * the page it opens, named as Home, the page, its levels, the monitor's
+   * card and Search draw them.
+   */
+  it("names Setup health's line, page, levels and Dismissed as the product draws them", () => {
+    const section: string = sectionOf(HOME, "### Setup health");
+    const homeWords: string = dashboard(
+      "Components/SetupHealth/SetupHealthHomeWords.ts",
+    );
+    const pageWords: string = dashboard(
+      "Components/SetupHealth/SetupHealthWords.ts",
+    );
+    const attention: string = oneLine(ATTENTION_SOURCE);
+    const levelTitles: Array<string> = Array.from(
+      blockFrom(pageWords, "export const LEVEL_WORDS", "\n};").matchAll(
+        /title: translationKey\("([^"]+)"\)/g,
+      ),
+    ).map((match: RegExpMatchArray): string => {
+      return match[1] as string;
+    });
+
+    // The Setup section is the last one Needs attention draws, after the kinds.
+    expect(homeWords).toContain('group: translationKey("Setup"),');
+    expect(
+      attention.indexOf(
+        "{setupCount > 0 ? renderSetupSection(setupCount) : <></>}",
+      ),
+    ).toBeGreaterThan(attention.indexOf("{group.rows.map("));
+    expect(attention.indexOf("{group.rows.map(")).toBeGreaterThan(-1);
+    expect(section).toContain("**Needs attention** ends with **Setup**");
+
+    // The page, by the title it shows and the name Search finds it by.
+    expect(pageWords).toContain('title: translationKey("Setup Health"),');
+    expect(dashboard("Pages/Home/SetupHealth.tsx")).toContain(
+      '<Page title="Setup Health"',
+    );
+    expect(
+      oneLine(dashboard("Components/CommandPalette/PageSearchIndex.ts")),
+    ).toContain('page: PageMap.HOME_SETUP_HEALTH, title: "Setup Health"');
+    expect(section).toContain("It opens **Setup Health**");
+    expect(section).toContain("Search finds the page as **Setup Health**");
+
+    // Its levels, worst first, as the page's cards title them.
+    expect(levelTitles).toEqual([
+      "Pages Will Not Arrive",
+      "Worth Fixing",
+      "Suggestions",
+    ]);
+    expect(section).toContain(
+      `worst first, under **${levelTitles[0]}**, **${levelTitles[1]}** and **${levelTitles[2]}**`,
+    );
+
+    // A monitor's findings are its own card's breaks; dismissed ones fold away.
+    expect(
+      dashboard("Components/Monitor/Overview/MonitorWhoIsToldCard.tsx"),
+    ).toContain('title="When this goes down"');
+    expect(section).toContain("**When this goes down** card");
+    expect(pageWords).toContain('dismissed: translationKey("Dismissed"),');
+    expect(section).toContain("restored from **Dismissed**");
+  });
+
   it("names Your project's resources in the card's order, and when Upcoming maintenance shows", () => {
     const section: string = sectionOf(HOME, "### Your project");
     const titles: Array<string> = Array.from(

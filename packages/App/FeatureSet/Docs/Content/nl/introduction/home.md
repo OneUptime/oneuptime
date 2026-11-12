@@ -93,6 +93,10 @@ De checklist verdwijnt voor iedereen zodra elke stap klaar is. Om hem eerder te 
 
 **Vraagt aandacht** toont bij naam wat de getallen tellen: de open incidenten, de open waarschuwingen, de monitoren die niet operationeel zijn, de SLO's in gevaar en het lopende onderhoud, het dringendste eerst. Elke rij toont de ernst of status, zegt wanneer een incident of waarschuwing begon en wanneer het onderhoud eindigt, en opent het item. Van elke soort staan er hooguit vijf, met **Alle tonen** voor de rest, dat dezelfde lijst opent als het getal ervan. Als er niets openstaat, staat er **Niets vraagt je aandacht**.
 
+### Inrichtingsstatus
+
+Als iets in de inrichting van het project zou verhinderen dat mensen een melding krijgen, eindigt **Vraagt aandacht** met **Instellen**: hoeveel dingen een blik nodig hebben. Die regel opent **Inrichtingsstatus**, met wat er verkeerd is ingericht, het ergste eerst, onder **Oproepen komen niet aan**, **Het oplossen waard** en **Suggesties**: een monitor die niemand oproept, een bereikbaarheidsbeleid dat door niets wordt uitgevoerd, iemand die niet kan worden opgeroepen, sms uitgeschakeld, een bereikbaarheidsschema zonder iemand van dienst, een statuspagina die geen monitor toont. Elke bevinding zegt in één zin wat er mis is, met de knop die de oplossing opent, en de bevindingen van een monitor zijn de onderbrekingen die zijn kaart **Als dit uitvalt** noemt. Een bevinding die je team bewust zo laat, kun je met een reden voor iedereen verbergen en terugzetten vanuit **Genegeerd**. Zoeken vindt de pagina als **Inrichtingsstatus**, en AI vragen beantwoordt "is mijn inrichting in orde?" op basis ervan.
+
 ### Je project
 
 **Je project** telt de **Monitoren**, **Statuspagina's**, **Bereikbaarheidsbeleid**, **SLOs**, **Services**, **Dashboards** en **Workflows** van het project, zonder de gearchiveerde. Elke rij opent de bijbehorende lijst. Een soort waarvan het project er nog geen heeft, toont **Instellen** in plaats van een getal.

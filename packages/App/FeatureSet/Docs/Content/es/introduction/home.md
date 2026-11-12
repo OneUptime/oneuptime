@@ -93,6 +93,10 @@ La lista desaparece para todos cuando todos los pasos están hechos. Para oculta
 
 **Requiere atención** lista, por su nombre, lo que cuentan los números: los incidentes abiertos, las alertas abiertas, los monitores no operativos, los SLO en riesgo y los mantenimientos en curso, primero lo más urgente. Cada fila muestra su gravedad o su estado, dice cuándo empezó un incidente o una alerta y cuándo termina un mantenimiento, y abre el elemento. De cada tipo se muestran hasta cinco, con **Ver todo** para el resto, que abre la misma lista que su número. Cuando no hay nada abierto, dice **Nada requiere tu atención**.
 
+### Salud de la configuración
+
+Cuando algo en la configuración del proyecto impediría avisar a las personas, **Requiere atención** termina con **Configuración**: cuántas cosas conviene revisar. Abre **Salud de la configuración**, que lista lo que está mal configurado, lo más grave primero, bajo **Los avisos no llegarán**, **Conviene corregir** y **Sugerencias**: un monitor que no avisa a nadie, una política de guardia que nada ejecuta, una persona a la que no se puede avisar, los SMS desactivados, una programación de guardia sin nadie de guardia, una página de estado que no muestra ningún monitor. Cada hallazgo dice en una frase qué está mal, con el botón que abre su corrección, y los hallazgos de un monitor son los cortes que nombra su tarjeta **Cuando falla**. Un hallazgo que tu equipo deja así a propósito se puede descartar con un motivo, para todos, y restaurar desde **Descartado**. La búsqueda encuentra la página como **Salud de la configuración**, y Preguntar a la IA responde a "¿está bien mi configuración?" a partir de ella.
+
 ### Tu proyecto
 
 **Tu proyecto** cuenta los **Monitores**, las **Páginas de estado**, las **Políticas de guardia**, los **SLO**, los **Servicios**, los **Paneles** y los **Flujos de trabajo** del proyecto, sin contar los archivados. Cada fila abre su lista. Un tipo del que el proyecto no tiene ninguno muestra **Configurar** en lugar de un número.
