@@ -421,7 +421,9 @@ describe("getErrorReader: the page's reader", () => {
   test("before the page says who reads it, the reader is a member of a server somebody runs", () => {
     jest.isolateModules(() => {
       const fresh: typeof import("../../../UI/Utils/ErrorInSentence") =
-        jest.requireActual("../../../UI/Utils/ErrorInSentence");
+        jest.requireActual(
+          "../../../UI/Utils/ErrorInSentence",
+        ) as typeof import("../../../UI/Utils/ErrorInSentence");
 
       expect(fresh.getPageErrorReader()).toEqual({
         isCloud: false,
