@@ -317,7 +317,10 @@ export function getWhoIsToldPersonReach(data: {
   verifiedChannels: ReadonlyArray<OnCallPageChannel>;
   isFallbackEnabled: boolean;
   channelsOff: ReadonlyArray<OnCallPageChannel>;
-}): Pick<WhoIsToldPerson, "channels" | "isFallback" | "isReachable" | "problem"> {
+}): Pick<
+  WhoIsToldPerson,
+  "channels" | "isFallback" | "isReachable" | "problem"
+> {
   if (data.hasNoRule && data.isOptedOut) {
     return {
       channels: [],
@@ -427,7 +430,9 @@ export function getWhoIsToldBreakMessage(
       return `${policy} reaches nobody right now: its first escalation rule has nobody on call. Add people to it, or put someone on its schedule.`;
     case WhoIsToldBreakKind.PersonUnreachable:
       return `${brk.userName || "Someone this policy pages"} ${
-        PERSON_PROBLEM_CLAUSES[brk.problem || WhoIsToldPersonProblem.NoVerifiedMethod]
+        PERSON_PROBLEM_CLAUSES[
+          brk.problem || WhoIsToldPersonProblem.NoVerifiedMethod
+        ]
       }, so a page won't reach them.`;
     case WhoIsToldBreakKind.ChannelOff:
       return `${brk.channel ? getOnCallPageChannelName(brk.channel as OnCallPageChannel) : "A channel"} is off in this project, so pages that use it are not sent. A project owner or admin turns it on in Notification Settings.`;
@@ -776,9 +781,11 @@ export function redactWhoIsTold(data: {
           return brk;
         }
 
-        const { message: _message, policyName: _policyName, ...rest } = brk;
-
-        return makeWhoIsToldBreak(rest);
+        return makeWhoIsToldBreak({
+          ...brk,
+          message: undefined,
+          policyName: undefined,
+        } as Omit<WhoIsToldBreak, "message">);
       }),
   };
 }

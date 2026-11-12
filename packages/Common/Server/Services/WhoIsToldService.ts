@@ -179,7 +179,10 @@ function idText(id: ObjectID | string | null | undefined): string {
  */
 export function pickSeverity<
   T extends { id?: ObjectID | null; isArchived?: boolean | undefined },
->(severities: ReadonlyArray<T>, wantedId: ObjectID | string | undefined): T | null {
+>(
+  severities: ReadonlyArray<T>,
+  wantedId: ObjectID | string | undefined,
+): T | null {
   const wanted: string = idText(wantedId);
 
   if (wanted) {
@@ -303,7 +306,9 @@ export class WhoIsToldService {
 
     const readablePolicyIds: Set<string> = await this.readableIds({
       ids: policyIds,
-      read: async (query: Array<ObjectID>): Promise<Array<{ id?: ObjectID | null }>> => {
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await OnCallDutyPolicyService.findBy({
           query: { _id: QueryHelper.any(query), projectId: data.projectId },
           select: { _id: true },
@@ -316,7 +321,9 @@ export class WhoIsToldService {
 
     const readableIncidentRules: Set<string> = await this.readableIds({
       ids: incidentRuleIds,
-      read: async (query: Array<ObjectID>): Promise<Array<{ id?: ObjectID | null }>> => {
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await IncidentOnCallRuleService.findBy({
           query: { _id: QueryHelper.any(query), projectId: data.projectId },
           select: { _id: true },
@@ -329,7 +336,9 @@ export class WhoIsToldService {
 
     const readableAlertRules: Set<string> = await this.readableIds({
       ids: alertRuleIds,
-      read: async (query: Array<ObjectID>): Promise<Array<{ id?: ObjectID | null }>> => {
+      read: async (
+        query: Array<ObjectID>,
+      ): Promise<Array<{ id?: ObjectID | null }>> => {
         return await AlertOnCallRuleService.findBy({
           query: { _id: QueryHelper.any(query), projectId: data.projectId },
           select: { _id: true },
@@ -803,11 +812,9 @@ export class WhoIsToldService {
     if (level.levelCount > 0) {
       await this.readVerifiedChannels({
         context: data.context,
-        userIds: level.targets.map(
-          (target: { userId: ObjectID }): ObjectID => {
-            return target.userId;
-          },
-        ),
+        userIds: level.targets.map((target: { userId: ObjectID }): ObjectID => {
+          return target.userId;
+        }),
       });
 
       for (const target of level.targets) {

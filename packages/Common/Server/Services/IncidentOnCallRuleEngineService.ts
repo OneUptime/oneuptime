@@ -85,7 +85,8 @@ class IncidentOnCallRuleEngineServiceClass {
        * this goes down" (WhoIsToldService) reads too, so what it shows a
        * monitor's incidents would page is what they page.
        */
-      const rules: Array<IncidentOnCallRule> = await this.getMatchingRules(incident);
+      const rules: Array<IncidentOnCallRule> =
+        await this.getMatchingRules(incident);
 
       if (rules.length === 0) {
         return noHolds;
@@ -354,7 +355,9 @@ class IncidentOnCallRuleEngineServiceClass {
    */
   @CaptureSpan()
   @RuleEvaluation()
-  public async getMatchingRules(incident: Incident): Promise<Array<IncidentOnCallRule>> {
+  public async getMatchingRules(
+    incident: Incident,
+  ): Promise<Array<IncidentOnCallRule>> {
     if (!incident.projectId) {
       return [];
     }
