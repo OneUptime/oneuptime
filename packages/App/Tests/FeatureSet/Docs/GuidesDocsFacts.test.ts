@@ -193,13 +193,19 @@ describe("Get Paged by Phone, SMS or Push, against the product", () => {
       `**Minutes to wait** at \`${DEFAULT_ESCALATE_AFTER_IN_MINUTES}\``,
     );
     expect(PAGING).toContain(`**Times to page again** at \`${repeat}\``);
+    // The setup's policy is the website setup's, which is the guided setups' one name.
     expect(ON_CALL_SETUP).toContain(
       "export const ON_CALL_POLICY_NAME: string = WEBSITE_DOWN_POLICY_NAME;",
     );
     expect(
       dashboardFile("Components/GuidedSetup/WebsiteDown/WebsiteDownSetup.ts"),
     ).toContain(
-      'export const WEBSITE_DOWN_POLICY_NAME: string = "Default on-call policy";',
+      "export const WEBSITE_DOWN_POLICY_NAME: string = GUIDED_SETUP_POLICY_NAME;",
+    );
+    expect(
+      repoFile("packages/Common/Utils/GuidedSetup/OnCallPolicyRecords.ts"),
+    ).toContain(
+      'export const GUIDED_SETUP_POLICY_NAME: string = "Default on-call policy";',
     );
     expect(PAGING).toContain("`Default on-call policy`");
     expect(copyValue(ON_CALL_SETUP, "whoPeopleLabel")).toBe("Paged first");
