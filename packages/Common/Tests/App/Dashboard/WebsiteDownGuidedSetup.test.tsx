@@ -1139,6 +1139,13 @@ interface StorageReplacements {
   removeItem: () => void;
 }
 
+/*
+ * Storage's prototype seen without its string index signature, which makes
+ * @jest/globals type spyOn(Storage.prototype, ...) as never.
+ */
+const storagePrototype: Pick<Storage, "getItem" | "setItem" | "removeItem"> =
+  Storage.prototype;
+
 const storageOff: () => never = (): never => {
   throw new Error("storage is off");
 };
@@ -1302,13 +1309,13 @@ describe("a run the browser lost (#7059)", () => {
     async (browser: StorageReplacements) => {
       api["loadWhoIsToldFacts"]!.mockResolvedValue(PROJECT_PAGES_PEOPLE);
       jest
-        .spyOn(Storage.prototype, "getItem")
+        .spyOn(storagePrototype, "getItem")
         .mockImplementation(browser.getItem);
       jest
-        .spyOn(Storage.prototype, "setItem")
+        .spyOn(storagePrototype, "setItem")
         .mockImplementation(browser.setItem);
       jest
-        .spyOn(Storage.prototype, "removeItem")
+        .spyOn(storagePrototype, "removeItem")
         .mockImplementation(browser.removeItem);
 
       const first: { unmount: () => void } = await renderSetup();

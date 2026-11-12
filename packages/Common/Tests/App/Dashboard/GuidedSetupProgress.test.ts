@@ -46,6 +46,12 @@ const steps: (...done: Array<boolean>) => Array<GuidedSetupStepProgress> = (
  */
 type StorageMethods = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
+/*
+ * Storage's prototype seen without its string index signature, which makes
+ * @jest/globals type spyOn(Storage.prototype, ...) as never.
+ */
+const storagePrototype: StorageMethods = Storage.prototype;
+
 const failing: () => never = (): never => {
   throw new Error("storage is off");
 };
@@ -61,19 +67,19 @@ const withStorage: (
 ) => void = (replacements: Partial<StorageMethods>, work: () => void): void => {
   if (replacements.getItem) {
     jest
-      .spyOn(Storage.prototype, "getItem")
+      .spyOn(storagePrototype, "getItem")
       .mockImplementation(replacements.getItem);
   }
 
   if (replacements.setItem) {
     jest
-      .spyOn(Storage.prototype, "setItem")
+      .spyOn(storagePrototype, "setItem")
       .mockImplementation(replacements.setItem);
   }
 
   if (replacements.removeItem) {
     jest
-      .spyOn(Storage.prototype, "removeItem")
+      .spyOn(storagePrototype, "removeItem")
       .mockImplementation(replacements.removeItem);
   }
 

@@ -396,7 +396,7 @@ export const isSameWebsiteAddress: (left: string, right: string) => boolean = (
 
 // What the setup reads of a monitor this person made, to know if it is theirs for an address.
 export interface OwnMonitorFacts {
-  monitorSteps: MonitorSteps | undefined | null;
+  monitorSteps?: MonitorSteps | undefined | null;
   isArchived?: boolean | undefined;
   disableActiveMonitoring?: boolean | undefined;
 }
