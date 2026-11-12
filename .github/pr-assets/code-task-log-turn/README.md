@@ -17,7 +17,10 @@ are not shown, Turn 9. Before, the page showed Turn 1 and said nothing.
 
 - `linked-turn-picker-1280-light-en.png`: English, the picker open.
 - `linked-turn-picker-1280-dark-de.png`: German, dark.
-- `linked-turn-picker-390-light-ar.png`: Arabic, on a phone.
+- `linked-turn-picker-390-light-ar.png`: Arabic, on a phone. What was asked under each turn is
+  English, as its person wrote it, and reads left to right at the page's start: "Now the orders
+  handler." keeps its full stop at its end, and a long request ends its line with "…" on the right.
+  (The UI review's shot: before it, these lines were laid out right to left with the page.)
 
 ## A link to a run of another task
 
@@ -29,3 +32,11 @@ showed that other task's record under this task's name.
 - `not-of-task-1280-dark-de.png`: German, dark.
 - `not-of-task-1280-dark-ar.png`: Arabic, dark.
 - `not-of-task-390-light-en.png`: English, on a phone.
+
+## A link cut short
+
+The address's `turn` is no run's id at all - Turn 5's id with its last part lost when it was
+pasted. Before the UI review this opened Turn 1 and said nothing; it now says the same as a link to
+another task's run, at once, with no turn asked of the server.
+
+- `broken-link-390-dark-ar.png`: Arabic, dark, on a phone.
