@@ -68,6 +68,35 @@ export default class InvestigationEligibility {
       details?.cooldownWindowMinutes !== undefined
         ? `${details.cooldownWindowMinutes}-minute`
         : "configured";
+    /*
+     * The settings and pages a reason names, by the names the Dashboard
+     * draws (issue #6738): the record's AI card words every code itself
+     * (InvestigationNotStartedWords) and links to the page, while API
+     * readers and older Dashboards read the English below, which has no
+     * link - so it names the page's path, and the setting as that page
+     * titles it. InvestigationReasonCardParity holds the two to the same
+     * setting and page for every code, kind and source.
+     */
+    const aiSettingsPage: string =
+      kind === "alert" ? "Alerts → AI → Settings" : "Incidents → AI → Settings";
+    const moreSettings: string = `${aiSettingsPage} → More settings`;
+    // What OneUptime AI did for the record's kind, beside its settings.
+    const aiLogsPage: string =
+      kind === "alert" ? "Alerts → AI → Logs" : "Incidents → AI → Logs";
+    // The record's own switch, as its AI settings page titles it.
+    const investigateSwitch: string = `Investigate new ${kind}s`;
+    // Its daily token limit, under that page's More settings.
+    const tokenLimitName: string = `Daily ${kind === "alert" ? "Alert" : "Incident"} AI Token Limit`;
+    // A limit of 0 or below pauses the work (getAutonomousDailyBudgetStatus).
+    const limitInTokens: number | null =
+      typeof budget?.limitInTokens === "number" &&
+      Number.isFinite(budget.limitInTokens)
+        ? budget.limitInTokens
+        : null;
+    const isPaused: boolean = limitInTokens !== null && limitInTokens <= 0;
+    const checkedWhen: string = isAfterWait
+      ? "as its wait ended"
+      : "at creation";
     const reasons: Record<
       InvestigationNotStartedCode,
       { title: string; description: string; nextStep: string }
@@ -80,8 +109,8 @@ export default class InvestigationEligibility {
           ? `AI was disabled for this project ${whenDecided}, so its automatic investigation did not start.`
           : "AI is currently disabled for this project, so new automatic investigations cannot start.",
         nextStep: recorded
-          ? "Review project AI settings (Project Settings → AI → AI Features) for new records. Existing records are not automatically retried when AI is enabled."
-          : "Turn on Enable AI (Project Settings → AI → AI Features) and automatic investigations to investigate new records. Existing records are not automatically retried.",
+          ? "Review the Enable AI switch under Project Settings → AI → AI Features for new records. Existing records are not automatically retried when AI is enabled."
+          : "Turn on Enable AI under Project Settings → AI → AI Features to investigate new records. Existing records are not automatically retried.",
       },
       automatic_investigation_disabled: {
         title: recorded
@@ -89,19 +118,23 @@ export default class InvestigationEligibility {
           : `Automatic ${kind} investigation is currently turned off`,
         description: `${recorded ? `Automatic investigation was not enabled for ${kind}s ${whenDecided}.` : `Automatic investigation is not currently enabled for ${kind}s.`} Alerts and incidents have separate investigation settings.`,
         nextStep: recorded
-          ? `Review automatic ${kind} investigation settings for new ${kind}s. Enabling investigation later does not automatically retry this ${kind}.`
-          : `Enable automatic ${kind} investigation for new ${kind}s. Existing records are not automatically retried.`,
+          ? `Review the ${investigateSwitch} switch under ${aiSettingsPage} for new ${kind}s. Turning it on later does not automatically retry this ${kind}.`
+          : `Turn on ${investigateSwitch} under ${aiSettingsPage} for new ${kind}s. Existing records are not automatically retried.`,
       },
+      /*
+       * The page is LLM Providers, where the card's "Set up an LLM provider"
+       * link goes: never "AI provider", a setting with no such name.
+       */
       provider_missing: {
         title: recorded
-          ? `No AI provider was available ${atDecision}`
-          : "No AI provider is currently available",
+          ? `No LLM provider was available ${atDecision}`
+          : "No LLM provider is currently available",
         description: recorded
-          ? `Automatic investigation was enabled ${whenDecided}, but no configured AI provider was available to run it.`
-          : "Automatic investigation is currently enabled, but this project has no configured AI provider available to run new investigations.",
+          ? `Automatic investigation was enabled ${whenDecided}, but the project had no LLM provider OneUptime AI could use to run it.`
+          : "Automatic investigation is currently enabled, but this project has no LLM provider OneUptime AI can use to run new investigations.",
         nextStep: recorded
-          ? "Review the AI provider configuration for new investigations. Configuring a provider later does not automatically retry existing records."
-          : "Configure an AI provider in project settings. New eligible records can then be investigated; existing records are not automatically retried.",
+          ? "Review the project's LLM providers under Project Settings → AI → LLM Providers for new investigations. Setting one up later does not automatically retry existing records."
+          : "Set up an LLM provider for the project under Project Settings → AI → LLM Providers. New eligible records can then be investigated; existing records are not automatically retried.",
       },
       insufficient_ai_balance: {
         title: recorded
@@ -138,23 +171,23 @@ export default class InvestigationEligibility {
           ? `OneUptime AI investigates this ${kind} after the limit resets at midnight UTC, if it is still open then, or as soon as the limit is raised or removed under Project Settings → AI → AI Features → More settings.`
           : "Raise or remove the limit under Project Settings → AI → AI Features → More settings, or wait for midnight UTC, when usage resets. Existing records are not automatically retried.",
       },
+      // The setting is the minimum severity for AI investigation.
       severity_below_threshold: {
         title: recorded
-          ? `Severity was below the investigation threshold ${atDecision}`
-          : "Severity is below the current investigation threshold",
-        description: `${recorded ? `${whenDecidedAtStart}, its` : `This ${kind}'s`}${details?.severityName ? ` ${details.severityName}` : ""} severity ${recorded ? "did not meet" : "does not meet"} ${details?.minimumSeverityName ? `the minimum ${details.minimumSeverityName} investigation severity` : "the configured investigation threshold"}.`,
-        nextStep:
-          "Review the minimum investigation severity in AI settings. Changes apply to new records and do not retry this record.",
+          ? `Severity was below the minimum for AI investigation ${atDecision}`
+          : "Severity is currently below the minimum for AI investigation",
+        description: `${recorded ? `${whenDecidedAtStart}, its` : `This ${kind}'s`}${details?.severityName ? ` ${details.severityName}` : ""} severity ${recorded ? "did not meet" : "does not meet"} the minimum severity for AI investigation${details?.minimumSeverityName ? ` (${details.minimumSeverityName})` : ""}.`,
+        nextStep: `Review the minimum severity for AI investigation under ${moreSettings}. Changes apply to new records and do not retry this record.`,
       },
+      // The setting is the re-investigation cooldown.
       monitor_cooldown: {
         title: recorded
-          ? "Skipped during the monitor cooldown"
-          : "A monitor is currently within its investigation cooldown",
+          ? "Skipped during the re-investigation cooldown"
+          : "A monitor is currently within its re-investigation cooldown",
         description: recorded
-          ? `Another ${kind} investigation was already queued or started for an affected monitor within the ${cooldownWindow} investigation cooldown window. This repeat ${kind} did not start another investigation.`
-          : `An investigation for an affected monitor was queued or started within the current ${cooldownWindow} cooldown window, which prevents another automatic ${kind} investigation right now.`,
-        nextStep:
-          "Review recent investigations for the affected monitor, or adjust the investigation cooldown for new records. An earlier run may still be queued, running, or may have failed.",
+          ? `Another ${kind} investigation was already queued or started for an affected monitor within the ${cooldownWindow} re-investigation cooldown. This repeat ${kind} did not start another investigation.`
+          : `An investigation for an affected monitor was queued or started within the current ${cooldownWindow} re-investigation cooldown, which prevents another automatic ${kind} investigation right now.`,
+        nextStep: `Review recent investigations for the affected monitor, or shorten or clear the re-investigation cooldown under ${moreSettings} for new records. An earlier run may still be queued, running, or may have failed.`,
       },
       /*
        * The AI rules that investigate (Types/AI/AiRule): the code kept the
@@ -173,8 +206,8 @@ export default class InvestigationEligibility {
           ? `An AI rule made OneUptime AI wait${waitDuration} before investigating this ${kind}, and when the wait ended it matched none of ${details?.rulesChecked ? `the ${details.rulesChecked} AI ${details.rulesChecked === 1 ? "rule that investigates" : "rules that investigate"}` : "the AI rules that investigate"} any more: the ${kind} or the rules had changed. Only the ${kind}s that match one are investigated automatically.`
           : `${recorded ? `When this ${kind} was created, AI rules that investigate were set up for ${kind}s, and it` : `AI rules that investigate are set up for ${kind}s, and this ${kind}`} ${recorded ? "matched" : "matches"} none of ${details?.rulesChecked ? `the ${details.rulesChecked} ${details.rulesChecked === 1 ? "rule" : "rules"}` : "them"}. Only the ${kind}s that match one are investigated automatically.`,
         nextStep: recorded
-          ? `Review the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`
-          : `Review the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings. Existing records are not automatically retried.`,
+          ? `Review the AI rules under ${moreSettings}. Changing them does not retry this ${kind}; to look into it anyway, ask OneUptime AI below.`
+          : `Review the AI rules under ${moreSettings}. Existing records are not automatically retried.`,
       },
       created_resolved: {
         title: `This ${kind} was created already resolved`,
@@ -191,30 +224,41 @@ export default class InvestigationEligibility {
       resolved_before_investigation: {
         title: "Resolved before the investigation started",
         description: `An AI rule made OneUptime AI wait${waitDuration} to see whether this ${kind} would still be open. It was resolved first, so it was not investigated.`,
-        nextStep: `To look into it anyway, ask OneUptime AI below. The wait is set on the AI rules under ${kind === "alert" ? "Alerts" : "Incidents"} → AI → Settings → More settings.`,
+        nextStep: `To look into it anyway, ask OneUptime AI below. The wait is set on the AI rules under ${moreSettings}.`,
       },
+      /*
+       * The record's own daily token limit, under its AI settings' More
+       * settings. A limit of 0 pauses the work instead, and waiting for
+       * midnight does not lift it.
+       */
       daily_budget_exhausted: {
-        title:
-          budget?.limitInTokens === 0
+        title: isPaused
+          ? recorded
+            ? "Automatic investigation was paused by its token limit"
+            : "Automatic investigation is currently paused by its token limit"
+          : recorded
+            ? "The daily AI token limit had been reached"
+            : "The daily AI token limit is currently reached",
+        description:
+          isPaused && budget
             ? recorded
-              ? "Automatic investigation was paused by its token limit"
-              : "Automatic investigation is currently paused by its token limit"
-            : recorded
-              ? "Daily AI token budget had been reached"
-              : "Daily AI token budget is currently exhausted",
-        description: budget
-          ? `AI work for ${kind}s ${recorded ? "had used" : "has used"} ${budget.usedTokensToday.toLocaleString("en-US")} of its ${budget.limitInTokens?.toLocaleString("en-US")} token daily allowance ${recorded ? `when checked ${isAfterWait ? "as its wait ended" : "at creation"}. No investigation was queued.` : "today. The current allowance does not permit a new investigation."}`
-          : `The daily autonomous token allowance for ${kind}s ${recorded ? `had been reached ${isAfterWait ? "when this record's wait ended" : "when this record was created"}, so no investigation was queued.` : "is currently exhausted, so new investigations cannot start."}`,
-        nextStep:
-          "Review the daily token limit in AI settings. Usage resets at midnight UTC; skipped records are not automatically retried after the reset.",
+              ? `The ${tokenLimitName} was set to 0 when checked ${checkedWhen}, which pauses automatic AI work for ${kind}s. No investigation was queued.`
+              : `The ${tokenLimitName} is set to 0, which pauses automatic AI work for ${kind}s, so new investigations cannot start.`
+            : budget && limitInTokens !== null
+              ? `AI work for ${kind}s ${recorded ? "had used" : "has used"} ${budget.usedTokensToday.toLocaleString("en-US")} tokens of its ${tokenLimitName} of ${limitInTokens.toLocaleString("en-US")} ${recorded ? `when checked ${checkedWhen}. No investigation was queued.` : "today. The current limit does not permit a new investigation."}`
+              : `The ${tokenLimitName} ${recorded ? `had been reached ${isAfterWait ? "when this record's wait ended" : "when this record was created"}, so no investigation was queued.` : "is currently reached, so new investigations cannot start."}`,
+        nextStep: isPaused
+          ? `Raise the ${tokenLimitName} above 0 under ${moreSettings}, or clear it. Records skipped meanwhile are not automatically retried.`
+          : `Review the ${tokenLimitName} under ${moreSettings}. Usage resets at midnight UTC; skipped records are not automatically retried after the reset.`,
       },
+      // Only ever recorded when reading the daily token limit fails.
       budget_check_failed: {
         title: recorded
-          ? "The AI budget could not be checked"
-          : "The current AI budget cannot be checked",
+          ? "The daily AI token limit could not be checked"
+          : "The daily AI token limit cannot currently be checked",
         description: recorded
-          ? "The system could not verify the available AI budget. It did not queue an investigation to avoid exceeding the configured spending limit."
-          : "The available AI budget cannot currently be verified, so eligibility for a new investigation cannot be confirmed.",
+          ? "The system could not check the daily AI token limit, so it did not queue an investigation that might go over it."
+          : "The daily AI token limit cannot currently be checked, so eligibility for a new investigation cannot be confirmed.",
         nextStep:
           "Ask a project administrator to check service health and AI settings. This record was not queued for automatic retry.",
       },
@@ -238,11 +282,14 @@ export default class InvestigationEligibility {
         nextStep:
           "Ask a project administrator to check service health and AI settings. No automatic retry is scheduled for this record.",
       },
+      /*
+       * The card links to the record's AI settings here, and its step names
+       * the AI Logs: the English writes out both pages' paths.
+       */
       no_run_recorded: {
         title: "No investigation was recorded",
         description: `This ${kind} passes the current automatic investigation checks, but no investigation or original skip decision was found. Settings may have changed since it was created, or automatic investigation may not have started when this record was created.`,
-        nextStep:
-          "Automatic investigations are triggered when a record is created. Enabling investigation later does not backfill existing records; check the AI logs and service health if new eligible records are also missing investigations.",
+        nextStep: `Automatic investigations are triggered when a record is created, so enabling investigation later under ${aiSettingsPage} does not backfill existing records. Check the AI Logs under ${aiLogsPage} and service health if new eligible records are also missing investigations.`,
       },
     };
     const facts: InvestigationNotStartedFacts | null = this.getFacts(
