@@ -66,9 +66,10 @@ export interface ProductOnboarding {
   docsRoute: Route;
   /*
    * The start-to-finish guide to the job people come to this product for
-   * (/docs/guides/..., #6821), where the docs have one: linked first, as
-   * "Step-by-step guide", beside the documentation. The empty list and
-   * "How it works" both draw it, so the guide is where the job starts.
+   * (a page of the docs' Guides group, #6821), where the docs have one:
+   * linked first, as "Step-by-step guide", beside the documentation. The
+   * empty list and "How it works" both draw it, so the guide is where the
+   * job starts.
    */
   guideRoute?: Route | undefined;
 }

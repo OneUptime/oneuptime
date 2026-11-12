@@ -84,7 +84,8 @@ export interface ComponentProps {
 // The step key the events name while the summary is shown.
 export const SUMMARY_STEP_KEY: string = "summary";
 
-export const GUIDED_SETUP_GUIDE_LINK_TEST_ID: string = "guided-setup-guide-link";
+export const GUIDED_SETUP_GUIDE_LINK_TEST_ID: string =
+  "guided-setup-guide-link";
 
 // The same words as a product's showcase link to its guide.
 export const GUIDED_SETUP_GUIDE_TEXT: string =

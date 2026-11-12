@@ -579,7 +579,10 @@ describe("each explanation is complete", () => {
    * its documentation link opens.
    */
   test("a product's guide is a guide of the docs, besides its documentation", () => {
-    const nav: string = fs.readFileSync(path.join(DOCS, "Utils/Nav.ts"), "utf8");
+    const nav: string = fs.readFileSync(
+      path.join(DOCS, "Utils/Nav.ts"),
+      "utf8",
+    );
     const guided: Array<string> = [];
 
     for (const [product, onboarding] of ONBOARDINGS) {
@@ -595,7 +598,11 @@ describe("each explanation is complete", () => {
       expect(nav).toContain(`url: "${guidePath}",\n        isGuide: true,`);
       expect(
         fs.existsSync(
-          path.join(DOCS, "Content/en", `${guidePath.replace("/docs/", "")}.md`),
+          path.join(
+            DOCS,
+            "Content/en",
+            `${guidePath.replace("/docs/", "")}.md`,
+          ),
         ),
       ).toBe(true);
     }

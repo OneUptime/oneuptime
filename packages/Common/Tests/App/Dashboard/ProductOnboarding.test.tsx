@@ -371,7 +371,9 @@ describe("the showcase, as a product draws it", () => {
     expect(
       screen.getByTestId(RESOURCE_SHOWCASE_GUIDE_LINK_TEST_ID),
     ).toHaveAttribute("href", "/docs/guides/status-page");
-    expect(screen.queryByTestId(RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID)).toBeNull();
+    expect(
+      screen.queryByTestId(RESOURCE_SHOWCASE_DOCS_LINK_TEST_ID),
+    ).toBeNull();
   });
 
   test("its example is labelled as one, with the product's own state and sentence", async () => {
