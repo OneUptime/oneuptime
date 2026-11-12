@@ -160,6 +160,8 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "the person's light, dark or system theme, on every page and in every project",
   "oneuptime-navbar-product-categories":
     "which categories of the products menu the person folded",
+  "oneuptime-side-menu-folds":
+    "which side menu sections the person folded or opened by hand, per menu with record and project ids taken out, so the same in every project (SideMenuSectionState)",
   "oneuptime-navbar-recent-products":
     "the products the person visited: their addresses name the project, so each project's row lists its own (NavBarRecentProducts)",
   "oneuptime-command-palette-recents":
@@ -183,9 +185,6 @@ const KEPT_FOR_THE_PERSON: Record<string, string> = {
     "the way the person last picked on Connect an AI tool",
   "oneuptime.scheduled-maintenance-view":
     "only read once and removed: where the old List | Calendar switch kept the person's pick",
-  // The instance's own, on the Admin Dashboard.
-  "admin-dashboard-server-setup-hidden":
-    "whether the master admin put the setup checklist away - the instance's, not a project's",
 };
 
 /*

@@ -600,6 +600,52 @@ describe("the mobile app and the test page", () => {
     ).toBeNull();
   });
 
+  test("the codes are left out on a phone without the bare hidden class, and each store link stays", async () => {
+    await renderHome();
+    await press("member-first-steps-mobile_app");
+
+    const panel: HTMLElement = screen.getByTestId(
+      "member-first-steps-mobile-app-panel",
+    );
+    const codes: Array<HTMLElement> = within(panel).getAllByTestId("qr-code");
+
+    expect(codes).toHaveLength(2);
+
+    for (const code of codes) {
+      const wrapper: HTMLElement = code.parentElement as HTMLElement;
+      const classes: Array<string> = wrapper.className.split(/\s+/);
+
+      /*
+       * Hidden below sm and a block from sm up, as before, but never by
+       * the bare hidden class: a foreign .hidden{display:none !important}
+       * rule (Bootstrap 3, HTML5 Boilerplate, extensions) would keep the
+       * code hidden on a big screen too.
+       */
+      expect(classes).toEqual(
+        expect.arrayContaining(["max-sm:hidden", "sm:block"]),
+      );
+      expect(classes).not.toContain("hidden");
+
+      // The store's name is a link next to the code, shown at every width.
+      const link: HTMLElement = within(
+        wrapper.parentElement as HTMLElement,
+      ).getByRole("link");
+
+      expect(link.className.split(/\s+/)).not.toContain("hidden");
+      expect(link.className).not.toMatch(/(^|\s)max-sm:hidden(\s|$)/);
+    }
+
+    expect(
+      within(panel)
+        .getAllByRole("link")
+        .map((link: HTMLElement): string | null => {
+          return link.getAttribute("href");
+        }),
+    ).toEqual(
+      expect.arrayContaining([MOBILE_APP_IOS_URL, MOBILE_APP_ANDROID_URL]),
+    );
+  });
+
   test("a push device ticks the mobile app", async () => {
     checklistMock.mockReturnValue(
       checklistState(

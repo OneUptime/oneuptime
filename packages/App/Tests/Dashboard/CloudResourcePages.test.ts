@@ -281,6 +281,22 @@ describe("Cloud Environment telemetry scope", () => {
 describe("Cloud Environment overview", () => {
   const code: string = readCode("Pages/AppPlatforms/View/Overview.tsx");
 
+  // The Instances tile, up to the tile after it.
+  const instancesTile: () => string = (): string => {
+    return between(code, 'title: "Instances"', 'title: "Requests"');
+  };
+
+  // A trace tile - Requests, Error rate or p95 latency - up to the next tile.
+  const traceTile: (title: string) => string = (title: string): string => {
+    const next: Record<string, string> = {
+      Requests: 'title: "Error rate"',
+      "Error rate": 'title: "p95 latency"',
+      "p95 latency": "];",
+    };
+
+    return between(code, `title: "${title}"`, next[title] as string);
+  };
+
   test("scopes span and metric fetches through the helper", () => {
     expect(code).toContain(SCOPE_IMPORT);
     expect(code).toContain("getCloudResourceAttributeFilters(item)");
@@ -311,33 +327,127 @@ describe("Cloud Environment overview", () => {
     expect(code).toContain("CLOUD_INSTANCE_LIVE_WINDOW_MINUTES");
     expect(code).toContain("isCloudInstanceLive(i.lastSeenAt, now)");
 
-    const tile: string = between(
-      code,
-      'title: "Instances"',
-      'title: "Requests"',
-    );
+    const tile: string = instancesTile();
 
     expect(tile).toContain("formatCompact(liveInstances.length)");
+    // The window under the count, unless the tile's note takes its place.
     expect(tile).toContain(
-      'sublabel: translator.translateTemplate( "live in the last {{minutes}} min", { minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES }, ),',
+      "sublabel: instancesNote ? undefined : translator.translateTemplate(",
     );
+    expect(tile).toContain('"live in the last {{minutes}} min"');
+    expect(tile).toContain("minutes: CLOUD_INSTANCE_LIVE_WINDOW_MINUTES");
   });
 
   test("adds error rate and p95 latency tiles from the span metrics", () => {
-    const errorTile: string = between(
-      code,
-      'title: "Error rate"',
-      'title: "p95 latency"',
-    );
+    const errorTile: string = traceTile("Error rate");
 
     expect(errorTile).toContain("formatPercent(m.errorRatePercent)");
-    expect(errorTile).toContain("percent: m ? m.errorRatePercent : null");
+    // No meter for a rate the note says was never measured.
+    expect(errorTile).toContain(
+      "percent: m && !traceNote ? m.errorRatePercent : null",
+    );
     expect(errorTile).toContain("higherIsBetter: false");
     expect(errorTile).toContain("thresholds: { warn: 1, danger: 5 }");
 
-    const p95Tile: string = between(code, 'title: "p95 latency"', "];");
+    expect(traceTile("p95 latency")).toContain(
+      "formatDurationMs(m.p95DurationMs)",
+    );
+  });
 
-    expect(p95Tile).toContain("formatDurationMs(m.p95DurationMs)");
+  /*
+   * Issue #6840: the overview says why a number is empty (PR #6792). An
+   * environment that runs but never named an instance reads "Not reported"
+   * on its Instances tile, not a 0 that reads as nothing running; one that
+   * is not running reads its 0. The helper's answers are held in Common's
+   * Tests/App/Dashboard/CloudAppTelemetrySetup, and the page as drawn in
+   * Common's Tests/App/Dashboard/CloudEnvironmentOverviewNotes; these hold
+   * the page's code to asking it, with what it asks, and to drawing what it
+   * answers.
+   */
+  test("the Instances tile says Not reported in place of a count no instance gave", () => {
+    expect(code).toContain("getCloudAppInstancesTileNote");
+
+    // Asked only once the instances are read: a dash while they load.
+    const note: string = between(
+      code,
+      "const instancesNote: string | undefined",
+      ";",
+    );
+
+    expect(note).toContain("instancesLoaded ? getCloudAppInstancesTileNote({");
+    expect(note).toContain("isRunning: isEnvironmentLive");
+    expect(note).toContain("hasReportedInstances: instances.length > 0");
+    expect(note).toContain(": undefined");
+    // Running means the environment itself was seen in the live window.
+    expect(code).toContain(
+      "const isEnvironmentLive: boolean = isCloudInstanceLive(r.lastSeenAt, now)",
+    );
+
+    const tile: string = instancesTile();
+
+    expect(tile).toContain("valueNote: instancesNote");
+    expect(tile).toContain("sublabel: instancesNote ? undefined :");
+  });
+
+  /*
+   * The same for the trace tiles: an environment that served nothing in
+   * the range and none of whose apps ever sent a trace reads "No traces
+   * received" on Requests, Error rate and p95 latency, and in its Requests
+   * chart, instead of zeros it never measured. A failed span read is not
+   * a note: the tiles read "could not load" and the chart that it failed.
+   */
+  test("the trace tiles and the Requests chart say No traces received when no app has sent one", () => {
+    expect(code).toContain("getCloudEnvironmentTraceTileNote");
+
+    const note: string = between(
+      code,
+      "const traceNote: string | undefined",
+      ";",
+    );
+
+    expect(note).toContain("getCloudEnvironmentTraceTileNote({");
+    expect(note).toContain("appsWithTraces");
+    expect(note).toContain("metrics");
+    // The apps that sent a trace are counted, and unknown until read.
+    expect(code).toContain(
+      "const [appsWithTraces, setAppsWithTraces] = useState<number | null>(null);",
+    );
+
+    for (const title of ["Requests", "Error rate", "p95 latency"]) {
+      const tile: string = traceTile(title);
+
+      expect({ title, notes: tile.includes("valueNote: traceNote") }).toEqual({
+        title,
+        notes: true,
+      });
+      // A failed read says so first; the note then takes the sublabel's place.
+      expect({
+        title,
+        failedFirst: tile.includes(
+          "sublabel: spanReadFailed ? CLOUD_APP_LOAD_FAILED_SUBLABEL :",
+        ),
+      }).toEqual({ title, failedFirst: true });
+    }
+
+    expect(traceTile("Requests")).toContain(
+      'traceNote ? undefined : "selected range"',
+    );
+    expect(traceTile("p95 latency")).toContain(
+      'traceNote ? undefined : "selected range"',
+    );
+    expect(traceTile("Error rate")).toContain(
+      "m && !traceNote ? translator.translateTemplate(",
+    );
+
+    const requestsChart: string = between(
+      code,
+      '<ChartCard title="Requests"',
+      "/>",
+    );
+
+    expect(requestsChart).toContain(
+      "emptyMessage={ spanReadFailed ? CLOUD_APP_CHART_LOAD_FAILED : traceNote }",
+    );
   });
 
   test("names the platform and provider by their labels, raw key in details", () => {

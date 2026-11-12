@@ -90,7 +90,7 @@ Daaronder, van boven naar beneden:
 
 - **ID**, **Invoer** en **Outputs**, naast elkaar — de identifier van het blok, vanwaar het wordt bereikt en wat erna draait.
 - **Returns** — de gegevens die dit blok aan latere stappen doorgeeft. Elke waarde toont de exacte verwijzing die haar leest, met een knop om die te kopiëren.
-- **How to use** — wat het blok doet in één zin, de stappen om het in te stellen, een voorbeeld om te kopiëren en de fouten die vaak worden gemaakt. Het voorbeeld is opgebouwd uit jouw workflow: het gebruikt de ID van dit blok, en de waarden van de trigger waar het gegevens in een bericht zet. **Learn more** opent de langere uitleg, en de links gaan naar de volledige gids. Elk blok heeft er een, en de knop **How to use** bovenaan het dialoogvenster springt er direct naartoe.
+- **How to use** — wat het blok doet in één zin, de stappen om het in te stellen, een voorbeeld om te kopiëren en de fouten die vaak worden gemaakt. Het voorbeeld is opgebouwd uit jouw workflow: het gebruikt de ID van dit blok, en de waarden van de trigger waar het gegevens in een bericht zet. **Meer informatie** opent de langere uitleg, en de links gaan naar de volledige gids. Elk blok heeft er een, en de knop **How to use** bovenaan het dialoogvenster springt er direct naartoe.
 
 De voettekst bevat:
 

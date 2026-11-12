@@ -742,7 +742,26 @@ describe("Inviting People", () => {
       expect(users).toContain(title);
     }
 
-    expect(users).toContain('<Pill text="Invitation Sent" color={Yellow} />');
+    /*
+     * Someone who has not accepted yet is Invitation Sent, or Invited on a
+     * server that cannot send email, where no invitation email went out
+     * (#6877).
+     */
+    const pending: string = between(
+      users,
+      "if (!item.hasAcceptedInvitation) {",
+      "color={Yellow}",
+    ).replace(/\s+/g, " ");
+
+    expect(pending).toContain(
+      'text={ cannotSendEmail(serverEmail) ? SERVER_EMAIL_COPY.invitedPill : "Invitation Sent" }',
+    );
+    expect(readDashboardSource("Utils/ServerEmail.ts")).toContain(
+      "invitedPill: INVITATION_LINK_COPY.invitedPill,",
+    );
+    expect(
+      readCommonSource("UI/Components/InvitationLink/InvitationLinkModal.tsx"),
+    ).toContain('invitedPill: translationKey("Invited"),');
     expect(users).toContain('<Pill text="Member" color={Green} />');
     expect(users).toContain('other: "{{count}} Invitations Pending"');
 
@@ -751,12 +770,22 @@ describe("Inviting People", () => {
     }
 
     const list: string = section(page, "## See who is in the project");
+    const columns: Array<Array<string>> = tableRows(list, "Column");
 
     expect(
-      tableRows(list, "Column").map((row: Array<string>): string => {
+      columns.map((row: Array<string>): string => {
         return row[0] as string;
       }),
     ).toEqual(["**User**", "**Teams**", "**Status**"]);
+    // The Status column's three pills, and when a pending person is Invited.
+    expect(boldNames(columns[2]?.[1] as string)).toEqual([
+      "Member",
+      "Invitation Sent",
+      "Invited",
+    ]);
+    expect(columns[2]?.[1]).toContain(
+      "On a self-hosted server that cannot send email yet, **Invited** instead: the invitation is created, but no email goes out.",
+    );
     expect(list).toContain(
       "Filter the list by **User**, **Status** or **Team**.",
     );

@@ -187,13 +187,34 @@ describe("Create monitor from where the data is", () => {
     );
   });
 
-  test("an exception's page offers it beside its triage actions", () => {
+  test("an exception's page offers it beside its triage actions, in its more menu", () => {
     const source: string = readSquashed(
       "Components/Exceptions/ExceptionExplorer.tsx",
     );
 
-    expect(source).toContain('dataTestId="exception-create-monitor"');
-    expect(source).toContain("{canCreateMonitor ? ( <Button");
+    /*
+     * Since the exceptions overhaul (#6923) the page's header has two
+     * buttons, and Create monitor sits in its more menu with the triage
+     * actions (ExceptionMoreActions), only for a reader who may create a
+     * monitor.
+     */
+    expect(source).toContain(
+      "const canCreateMonitor: boolean = PermissionGate.check( new Monitor(), ModelAction.Create, ).isAllowed;",
+    );
+    expect(source).toContain("<ExceptionMoreActions");
+    expect(source).toContain(
+      "onCreateMonitor={ canCreateMonitor ? navigateToCreateMonitor : undefined }",
+    );
+
+    const menu: string = readSquashed(
+      "Components/Exceptions/ExceptionMoreActions.tsx",
+    );
+
+    expect(menu).toContain('createMonitor: "exception-create-monitor",');
+    expect(menu).toContain("if (props.onCreateMonitor) {");
+    expect(menu).toContain(
+      "dataTestId={EXCEPTION_MORE_ACTIONS_TEST_IDS.createMonitor} onClick={onCreateMonitor}",
+    );
   });
 });
 

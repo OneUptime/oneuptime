@@ -606,7 +606,26 @@ describe("the chip other products render for the databaseServers relation", () =
 
     expect(chip).toContain("RouteMap[PageMap.DATABASE_SERVER_VIEW] as Route");
     expect(chip).toContain("props.databaseServer._id");
-    expect(chip).toContain("icon={IconProp.Database}");
+    /*
+     * The name reads its own way in a right-to-left page (RecordLinkName,
+     * #6849), with the database's icon where the view asks for one: the
+     * affected resources cell draws each kind's icon, and a table's cell
+     * draws the name alone, as for every other kind.
+     */
+    expect(chip).toContain(
+      "<RecordLinkName name={props.databaseServer.name} icon={props.showIcon ? IconProp.Database : undefined} />",
+    );
+    expect(
+      squash(
+        readSource(
+          "Components",
+          "AffectedResources",
+          "AffectedResourcesCell.tsx",
+        ),
+      ),
+    ).toContain(
+      "<DatabaseServerElement databaseServer={item.model} showIcon={true}",
+    );
     expect(chip).toContain("export default DatabaseServerElement");
   });
 

@@ -76,7 +76,7 @@ Accettando entra subito nel progetto, con le autorizzazioni del suo team e la co
 | --- | --- |
 | **Utente** | Il suo nome e il suo indirizzo email. |
 | **Team** | Ogni team del progetto di cui fa parte, o in cui è invitata. |
-| **Stato** | **Membro** una volta entrata, con il numero degli inviti ad altri team che non ha ancora accettato. **Invito inviato** fino ad allora. |
+| **Stato** | **Membro** una volta entrata, con il numero degli inviti ad altri team che non ha ancora accettato. **Invito inviato** fino ad allora. Su un server self-hosted che non può ancora inviare email, invece **Invitato**: l'invito viene creato, ma non parte nessuna email. |
 
 Filtra l'elenco per **Utente**, **Stato** o **Team**. Fai clic su una riga per aprire la pagina della persona:
 

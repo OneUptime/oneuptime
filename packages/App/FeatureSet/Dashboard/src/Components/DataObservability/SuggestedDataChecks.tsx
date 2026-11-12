@@ -302,7 +302,7 @@ const SuggestedDataChecks: FunctionComponent<ComponentProps> = (
         },
       ]}
     >
-      <div className="px-6 pb-6">
+      <div>
         {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : <></>}
         <ul className="divide-y divide-gray-100">
           {suggestions.map((suggestion: DataCheckSuggestion): ReactElement => {

@@ -86,7 +86,7 @@ const DataObservabilityStoragePathsPage: FunctionComponent<
         title="Storage Paths"
         description="Name the paths of a bucket that matter, and each is watched like a table: late, shrinking or empty, it alerts. Only names, sizes and times are read, never an object."
       >
-        <div className="space-y-4 px-6 pb-6">
+        <div className="space-y-4">
           <WatchedTablesCost />
           {stores.length === 0 ? (
             <p className="text-sm text-gray-500">

@@ -88,9 +88,7 @@ const TableLineageDiagram: FunctionComponent<ComponentProps> = (
       description="Where this table's data comes from and where it goes, a few steps each way, with how each table and pipeline is now. Open a table to center the diagram on it."
       rightElement={<LineageStepSwitch depth={depth} onChange={setDepth} />}
     >
-      <div className="px-6 pb-6" data-testid="table-lineage-diagram">
-        {body}
-      </div>
+      <div data-testid="table-lineage-diagram">{body}</div>
     </Card>
   );
 };

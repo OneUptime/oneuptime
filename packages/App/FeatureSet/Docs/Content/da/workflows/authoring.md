@@ -90,7 +90,7 @@ Derunder, oppefra og ned:
 
 - **ID**, **Input** og **Outputs**, side om side — blokkens identifier, hvorfra den nås, og hvad der kører efter den.
 - **Returns** — de data, denne blok giver videre til senere trin. Hver værdi viser den præcise reference, der læser den, med en knap til at kopiere den.
-- **How to use** — hvad blokken gør i én sætning, trinnene til at konfigurere den, et eksempel til at kopiere og de fejl, folk ofte laver. Eksemplet er bygget ud fra dit workflow: det bruger denne bloks ID og triggerens værdier, hvor det sætter data ind i en besked. **Learn more** åbner den længere forklaring, og linkene går til den fulde vejledning. Hver blok har en, og knappen **How to use** øverst i dialogen hopper direkte dertil.
+- **How to use** — hvad blokken gør i én sætning, trinnene til at konfigurere den, et eksempel til at kopiere og de fejl, folk ofte laver. Eksemplet er bygget ud fra dit workflow: det bruger denne bloks ID og triggerens værdier, hvor det sætter data ind i en besked. **Få mere at vide** åbner den længere forklaring, og linkene går til den fulde vejledning. Hver blok har en, og knappen **How to use** øverst i dialogen hopper direkte dertil.
 
 Bunden indeholder:
 

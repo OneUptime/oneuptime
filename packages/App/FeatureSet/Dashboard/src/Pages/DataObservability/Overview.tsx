@@ -301,11 +301,11 @@ const DataObservabilityOverviewPage: FunctionComponent<
           ]}
         >
           {overview.recentChanges.length === 0 ? (
-            <p className="px-6 pb-6 text-sm text-gray-500">
+            <p className="text-sm text-gray-500">
               {translator.translateText("No schema changes yet.")}
             </p>
           ) : (
-            <ul className="divide-y divide-gray-100 px-6 pb-4">
+            <ul className="divide-y divide-gray-100">
               {overview.recentChanges.map(
                 (change: DataObservabilityOverviewChange): ReactElement => {
                   return (
@@ -362,7 +362,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
            * a narrow one (a phone, or beside the side menu) - keyed to the
            * card's width, not the window's.
            */}
-          <ul className="divide-y divide-gray-100 px-6 pb-4 [container-type:inline-size]">
+          <ul className="divide-y divide-gray-100 [container-type:inline-size]">
             {overview.stores.map(
               (store: DataObservabilityStoreSummary): ReactElement => {
                 return (
@@ -428,7 +428,7 @@ const DataObservabilityOverviewPage: FunctionComponent<
           title="Unused Tables"
           description="Tables nobody has read for 90 days: candidates to archive or drop."
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 px-6 pb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-gray-700">
               {translator.translatePlural(
                 {

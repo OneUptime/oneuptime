@@ -444,6 +444,42 @@ describe("in the list's empty state", () => {
     ).toEqual(["guide", TOOL_IMPORT_OFFER_TEST_ID]);
   });
 
+  test("carries the facet chips' state through, as the list handed it over", () => {
+    /*
+     * The lists that offer the importer pass the facet bar's empty state
+     * (useResourceOwners) through it, so a chip that matches nothing still
+     * says so, with its Clear filters, and the chips still step aside while
+     * the list has nothing at all (TableEmptyStateWiring).
+     */
+    const onClearFilters: () => void = (): void => {};
+
+    for (const offer of [
+      MONITORS_IMPORT_OFFER,
+      ON_CALL_POLICIES_IMPORT_OFFER,
+      ON_CALL_SCHEDULES_IMPORT_OFFER,
+      STATUS_PAGES_IMPORT_OFFER,
+    ]) {
+      const emptyState: EmptyStateOptions = withToolImportOffer({
+        emptyState: {
+          isFiltered: true,
+          onClearFilters: onClearFilters,
+          hideTopContentWhileEmpty: true,
+        },
+        offer: offer,
+        translator: ENGLISH,
+      });
+
+      expect(emptyState.isFiltered).toBe(true);
+      expect(emptyState.onClearFilters).toBe(onClearFilters);
+      expect(emptyState.hideTopContentWhileEmpty).toBe(true);
+      expect(
+        (emptyState.actions || []).map((action: TableEmptyStateAction) => {
+          return action.dataTestId;
+        }),
+      ).toEqual([TOOL_IMPORT_OFFER_TEST_ID]);
+    }
+  });
+
   test("for someone who may not import, the empty state is left exactly as it was", () => {
     permissionsForTest = [Permission.Viewer];
     const given: EmptyStateOptions = { isFiltered: false, actions: help };

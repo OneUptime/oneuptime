@@ -76,7 +76,7 @@ L'acceptation la place aussitôt dans le projet, avec les autorisations de son �
 | --- | --- |
 | **Utilisateur** | Son nom et son adresse e-mail. |
 | **Équipes** | Chaque équipe du projet dont elle fait partie, ou à laquelle elle est invitée. |
-| **Statut** | **Membre** une fois qu'elle a rejoint le projet, avec le nombre d'invitations vers d'autres équipes qu'elle n'a pas encore acceptées. **Invitation envoyée** jusque-là. |
+| **Statut** | **Membre** une fois qu'elle a rejoint le projet, avec le nombre d'invitations vers d'autres équipes qu'elle n'a pas encore acceptées. **Invitation envoyée** jusque-là. Sur un serveur auto-hébergé qui ne peut pas encore envoyer d'e-mails, **Invité** à la place : l'invitation est créée, mais aucun e-mail ne part. |
 
 Filtrez la liste par **Utilisateur**, **Statut** ou **Équipe**. Cliquez sur une ligne pour ouvrir la page de la personne :
 

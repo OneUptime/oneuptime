@@ -11,6 +11,7 @@ import {
   jest,
   test,
 } from "@jest/globals";
+import type { Mock } from "jest-mock";
 
 jest.mock("../../../../Server/Utils/Logger");
 
@@ -91,7 +92,7 @@ describe("StatusPageOverviewCache.getOrBuildUptimeHistory", () => {
 
   test("builds a zone's history once, and keeps it on the overview", async () => {
     const base: StatusPageOverviewBase = overview();
-    const build: jest.Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
+    const build: Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
       jest.fn(async () => {
         return history("Asia/Shanghai", "shanghai");
       });
@@ -118,7 +119,7 @@ describe("StatusPageOverviewCache.getOrBuildUptimeHistory", () => {
     const gate: Promise<void> = new Promise<void>((resolve: () => void) => {
       release = resolve;
     });
-    const build: jest.Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
+    const build: Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
       jest.fn(async () => {
         await gate;
         return history("Europe/Berlin", "berlin");
@@ -136,7 +137,7 @@ describe("StatusPageOverviewCache.getOrBuildUptimeHistory", () => {
 
   test("a zone of the same clock is served the same history, labelled with its own zone", async () => {
     const base: StatusPageOverviewBase = overview();
-    const build: jest.Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
+    const build: Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
       jest.fn(async () => {
         return history("Asia/Shanghai", "shanghai");
       });
@@ -168,7 +169,7 @@ describe("StatusPageOverviewCache.getOrBuildUptimeHistory", () => {
 
   test("a zone of another clock gets a history of its own", async () => {
     const base: StatusPageOverviewBase = overview();
-    const build: jest.Mock<
+    const build: Mock<
       (timezone: string) => Promise<{ json: JSONObject; cutIn: string }>
     > = jest.fn(async (timezone: string) => {
       return history(timezone, timezone);
@@ -242,7 +243,7 @@ describe("StatusPageOverviewCache.getOrBuildUptimeHistory", () => {
   });
 
   test("goes with the overview: a new overview builds its own history", async () => {
-    const build: jest.Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
+    const build: Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
       jest.fn(async () => {
         return history("Asia/Kolkata", "kolkata");
       });
@@ -263,7 +264,7 @@ describe("StatusPageOverviewCache.getOrBuildUptimeHistory", () => {
 
   test("clear() forgets every history", async () => {
     const base: StatusPageOverviewBase = overview();
-    const build: jest.Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
+    const build: Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
       jest.fn(async () => {
         return history("UTC", "utc");
       });
@@ -283,7 +284,7 @@ describe("StatusPageOverviewCache.getOrBuildOverviewInZone", () => {
 
   test("is the shared overview with the visitor's history, and the very same object when they ask again", async () => {
     const base: StatusPageOverviewBase = overview();
-    const build: jest.Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
+    const build: Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
       jest.fn(async () => {
         return history("Asia/Shanghai", "shanghai");
       });
@@ -311,7 +312,7 @@ describe("StatusPageOverviewCache.getOrBuildOverviewInZone", () => {
 
   test("each zone gets its own response, sharing one build per clock", async () => {
     const base: StatusPageOverviewBase = overview();
-    const build: jest.Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
+    const build: Mock<() => Promise<{ json: JSONObject; cutIn: string }>> =
       jest.fn(async () => {
         return history("Asia/Shanghai", "shanghai");
       });

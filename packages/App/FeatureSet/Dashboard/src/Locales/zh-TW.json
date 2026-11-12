@@ -50475,7 +50475,7 @@
   "Requests to {{name}} reach OneUptime.": "送往 {{name}} 的請求能到達 OneUptime。",
   "See global probes": "查看全域探針",
   "Send them their invitation link": "傳送邀請連結",
-  "Server Sending Health": "伺服器傳送狀態",
+  "Server Sending Health": "伺服器傳送健康狀況",
   "Set up email": "設定電子郵件",
   "Shows this project owns {{domain}}. You add it once, for every address on {{domain}}.": "證明此專案擁有 {{domain}}。只需新增一次，即可用於 {{domain}} 上的所有位址。",
   "The address people will open. Next, we show the DNS records to add: a CNAME record for this address, and a TXT record for its domain if this project has not verified it yet.": "訪客將開啟的位址。接下來，我們會顯示要新增的 DNS 記錄：此位址的 CNAME 記錄，以及在此專案尚未驗證其網域時，該網域的 TXT 記錄。",

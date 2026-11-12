@@ -50475,7 +50475,7 @@
   "Requests to {{name}} reach OneUptime.": "{{name}} へのリクエストは OneUptime に届いています。",
   "See global probes": "グローバルプローブを表示",
   "Send them their invitation link": "招待リンクを送ってください",
-  "Server Sending Health": "サーバーの送信状態",
+  "Server Sending Health": "サーバー送信のヘルス",
   "Set up email": "メールを設定",
   "Shows this project owns {{domain}}. You add it once, for every address on {{domain}}.": "このプロジェクトが {{domain}} を所有していることを示します。追加は 1 回だけで、{{domain}} 上のすべてのアドレスに有効です。",
   "The address people will open. Next, we show the DNS records to add: a CNAME record for this address, and a TXT record for its domain if this project has not verified it yet.": "利用者が開くアドレスです。次に、追加する DNS レコードを表示します。このアドレス用の CNAME レコードと、このプロジェクトがまだそのドメインを確認していない場合は、ドメイン用の TXT レコードです。",

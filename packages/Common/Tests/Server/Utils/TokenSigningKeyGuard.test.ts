@@ -79,6 +79,8 @@ const TOKEN_SIGNERS: Array<string> = [
   "packages/Common/Server/Utils/Mcp/McpOAuthSignedToken.ts",
   "packages/App/FeatureSet/Identity/Utils/VerificationEmailResendToken.ts",
   "packages/App/FeatureSet/Identity/Utils/ProjectSsoSignInConfirmation.ts",
+  // The proof a custom domain's readiness check sends to its CNAME target.
+  "packages/Common/Server/Utils/CustomDomain/CustomDomainServerReadiness.ts",
   /*
    * The cluster key an installation whose ONEUPTIME_SECRET is a shipped
    * value presents between its own services is derived from it.

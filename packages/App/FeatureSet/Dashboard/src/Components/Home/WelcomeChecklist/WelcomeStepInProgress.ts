@@ -9,6 +9,7 @@ import {
   isWelcomeStep,
 } from "Common/Types/WelcomeChecklist/WelcomeChecklist";
 import SessionStorage from "Common/UI/Utils/SessionStorage";
+import { escapeRegExp } from "Common/Utils/RegExpEscape";
 
 /*
  * CARRYING THE NEXT STEP WITH THE PERSON (issue #6803).
@@ -116,8 +117,6 @@ export const readWelcomeStepInProgress: (
   };
 };
 
-const ESCAPE: RegExp = /[.*+?^${}()|[\]\\]/g;
-
 // A record's id in an address: an ObjectID, which is a UUID.
 const RECORD_ID_PATTERN: string =
   "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}";
@@ -142,14 +141,14 @@ export const isPathOnRoute: (data: {
     .split("/")
     .map((segment: string): string => {
       if (segment === ":projectId") {
-        return data.projectId.replace(ESCAPE, "\\$&");
+        return escapeRegExp(data.projectId);
       }
 
       if (segment.startsWith(":")) {
         return RECORD_ID_PATTERN;
       }
 
-      return segment.replace(ESCAPE, "\\$&");
+      return escapeRegExp(segment);
     })
     .join("/");
 
