@@ -455,6 +455,14 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             },
             title: "Health",
             type: FieldType.JSON,
+            /*
+             * The one word each row is read for, never cut short: a
+             * language whose states run long ("Расписание
+             * приостановлено") wraps one onto a second line, between its
+             * words, where the table has not the room for it on one. Cut
+             * to the 8rem a value gives way to, the Russian ones read
+             * "Последний о..." and "Расписание п..." at 1280 (#6891).
+             */
             getElement: (item: SecurityEventConnection): ReactElement => {
               const health: string = connectorHealth(item);
               return (
@@ -462,6 +470,8 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
                   color={connectorHealthPillColor(health)}
                   text={health}
                   tooltip={connectorHealthTooltip(health)}
+                  isWrapping={true}
+                  isKeepingWordsWhole={true}
                 />
               );
             },
@@ -489,6 +499,17 @@ const SecurityEventConnectionsTable: FunctionComponent = (): ReactElement => {
             title: "Last Polled",
             type: FieldType.DateTime,
             noValueMessage: "Never",
+            /*
+             * Under Last Event Imported, with its name before it, where the
+             * rows do not fit the card (TableFit): in Russian at 1280px,
+             * beside the side menu, the row's "Проверить подключение" left
+             * the table 83px wider than its card, and its last time ran
+             * under the sticky buttons ("3 мин", "Никог"). Health already
+             * says how the polls go; this is the one that gives way.
+             */
+            hideBelowLargeScreen: true,
+            foldInto: "lastEventIngestedAt",
+            showTitleWhenFolded: true,
             getElement: (item: SecurityEventConnection): ReactElement => {
               return <RelativeTimeCell date={item.lastPolledAt} />;
             },

@@ -54,7 +54,7 @@ Cliquez sur **Tester ces paramètres** sous **Tester avant d'enregistrer**. Le t
 | Réglage | Ce qu'il faut saisir |
 | --- | --- |
 | **URL de gestion de Splunk** | L'API REST du search head, par exemple `https://splunk.example.com:8089`. Elle doit utiliser `https`, sans chaîne de requête. Un chemin est conservé, pour un proxy inverse qui sert l'API sous un chemin. |
-| **Rechercher** | La recherche qui choisit ce qu'il faut importer, `index=notable` tant que vous ne la changez pas. Restreignez-la, par exemple avec `index=notable urgency IN (high, critical)`. OneUptime ajoute lui-même la plage de temps : la recherche ne peut donc fixer ni `earliest` ni `latest`, ni commencer par un pipe. Un `search` en tête est retiré. |
+| **Requête de recherche** | La recherche qui choisit ce qu'il faut importer, `index=notable` tant que vous ne la changez pas. Restreignez-la, par exemple avec `index=notable urgency IN (high, critical)`. OneUptime ajoute lui-même la plage de temps : la recherche ne peut donc fixer ni `earliest` ni `latest`, ni commencer par un pipe. Un `search` en tête est retiré. |
 | **Nom d'utilisateur** | Le nom de l'utilisateur Splunk, seulement s'il s'authentifie avec un mot de passe. |
 | **Jeton d'authentification** | Le jeton de la première étape. Quand un jeton est enregistré, c'est lui qui est utilisé, et pas le nom d'utilisateur ni le mot de passe. |
 | **Mot de passe** | Le mot de passe de l'utilisateur Splunk, seulement quand aucun jeton n'est utilisé. |
@@ -114,7 +114,7 @@ Une interrogation lit au plus 10 000 lignes. Quand une fenêtre en contient dava
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-La recherche trie la fenêtre par `_time`, les plus anciennes d'abord, si bien que OneUptime place le curseur sur l'heure de création de la dernière ligne lue, et l'interrogation suivante commence là, avec la même longueur de fenêtre. Un search head chargé rattrape 10 000 lignes par interrogation, au lieu de relire les mêmes. Les lignes créées au même instant sont lues deux fois, et la vérification des doublons écarte la seconde copie. Splunk trie toute la fenêtre avant de renvoyer une ligne : une recherche dans **Rechercher** qui trouve bien plus que nécessaire ralentit donc chaque interrogation. Gardez-la ciblée.
+La recherche trie la fenêtre par `_time`, les plus anciennes d'abord, si bien que OneUptime place le curseur sur l'heure de création de la dernière ligne lue, et l'interrogation suivante commence là, avec la même longueur de fenêtre. Un search head chargé rattrape 10 000 lignes par interrogation, au lieu de relire les mêmes. Les lignes créées au même instant sont lues deux fois, et la vérification des doublons écarte la seconde copie. Splunk trie toute la fenêtre avant de renvoyer une ligne : une **Requête de recherche** qui trouve bien plus que nécessaire ralentit donc chaque interrogation. Gardez-la ciblée.
 
 Quand une exécution ne parvient pas du tout à dépasser le curseur enregistré, OneUptime raccourcit plutôt la fenêtre :
 
@@ -141,8 +141,8 @@ Cliquez sur **Diagnostics** sur une connexion pour voir ses exécutions récente
 | --- | --- |
 | **Configuration** | Chaque réglage est présent et bien formé. Rien n'est contacté quand cela échoue. |
 | **Authenticate with Splunk** | Splunk accepte le jeton, ou le nom d'utilisateur et le mot de passe, et nomme l'utilisateur et ses rôles, pour que vous les compariez avec le rôle que vous vouliez accorder. |
-| **Run the search on Splunk** | La recherche de **Rechercher** s'exécute sur les dernières 24 heures, pour une ligne, et indique quel point de terminaison d'export a répondu. |
-| **Notable events available to import** | Combien de lignes la recherche de **Rechercher** trouve dans les dernières 24 heures et les 7 derniers jours. Aucune en 7 jours est un avertissement, pas un échec. |
+| **Run the search on Splunk** | Votre **Requête de recherche** s'exécute sur les dernières 24 heures, pour une ligne, et indique quel point de terminaison d'export a répondu. |
+| **Notable events available to import** | Combien de lignes votre **Requête de recherche** trouve dans les dernières 24 heures et les 7 derniers jours. Aucune en 7 jours est un avertissement, pas un échec. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | Le côté de OneUptime lui-même : un processus prend les tâches de la file Worker, la tâche d'interrogation s'exécute chaque minute, et le stockage des événements de sécurité répond. |
 | **Interrogation planifiée** | Pour une connexion enregistrée : l'interrogation est activée, aucune exécution n'est bloquée en attente d'un worker, et les interrogations s'exécutent à l'heure. |
 
@@ -183,7 +183,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 
 :::details Dernière erreur commence par `Splunk Enterprise Security search export` ou `Splunk Enterprise Security count search`
 - `Splunk Enterprise Security search export failed (HTTP ...)` : Splunk a refusé d'exécuter la recherche.
-  - `HTTP 400` : Splunk ne peut pas analyser la recherche. Exécutez la recherche de **Rechercher** dans Splunk Web pour lire son erreur.
+  - `HTTP 400` : Splunk ne peut pas analyser la recherche. Exécutez votre **Requête de recherche** dans Splunk Web pour lire son erreur.
   - `HTTP 403` : il manque au rôle de l'utilisateur la capacité `search`, ou il ne peut pas lire l'index. Ajoutez `notable`, ou votre index, aux index que le rôle peut rechercher.
   - `HTTP 404` : aucun des deux points de terminaison d'export n'existe à cette URL, ce n'est donc pas le port de gestion d'un search head.
   - `HTTP 429` ou `HTTP 5xx` : Splunk limite l'utilisateur, est surchargé, ou la recherche a atteint l'une de ses limites. L'interrogation suivante réessaie.
@@ -193,7 +193,7 @@ La **Dernière erreur** de la connexion conserve le message d'erreur complet, id
 :::
 
 :::details Dernière erreur se termine par `did not complete`
-`Splunk Enterprise Security search export did not complete`, et de même pour les autres étapes, signifie que la requête n'a pas reçu de réponse : un délai dépassé, un nom qui ne se résout pas, un certificat auquel OneUptime ne fait pas confiance, ou une adresse privée refusée. Vérifiez que l'application OneUptime et les workers peuvent ouvrir une connexion HTTPS vers le port de gestion. Un search head qui répond aux autres requêtes mais dépasse le délai sur la recherche trie trop : l'interrogation suivante lit une fenêtre deux fois plus courte, et une recherche plus étroite dans **Rechercher** règle le problème pour de bon.
+`Splunk Enterprise Security search export did not complete`, et de même pour les autres étapes, signifie que la requête n'a pas reçu de réponse : un délai dépassé, un nom qui ne se résout pas, un certificat auquel OneUptime ne fait pas confiance, ou une adresse privée refusée. Vérifiez que l'application OneUptime et les workers peuvent ouvrir une connexion HTTPS vers le port de gestion. Un search head qui répond aux autres requêtes mais dépasse le délai sur la recherche trie trop : l'interrogation suivante lit une fenêtre deux fois plus courte, et une **Requête de recherche** plus étroite règle le problème pour de bon.
 :::
 
 :::details Dernière interrogation vaut Never et Dernière erreur est vide
@@ -201,12 +201,12 @@ Aucune interrogation ne s'est terminée pour cette connexion. Lancez **Tester la
 :::
 
 :::details Une exécution est Partial
-- `Stopped after collecting 10000 records; the window holds more` : la fenêtre contenait plus que les 10 000 lignes qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après la dernière ligne lue. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, la recherche de **Rechercher** trouve plus de 10 000 lignes par intervalle d'interrogation : restreignez-la, ou raccourcissez le **Intervalle d'interrogation (minutes)**.
+- `Stopped after collecting 10000 records; the window holds more` : la fenêtre contenait plus que les 10 000 lignes qu'une exécution lit. Rien n'est perdu : l'interrogation suivante commence après la dernière ligne lue. Une connexion qui reste **Partiel** d'interrogation en interrogation rattrape un retard, et ses valeurs **Dernière interrogation** et **Dernier événement importé** continuent d'avancer. Si elle ne rattrape jamais, votre **Requête de recherche** trouve plus de 10 000 lignes par intervalle d'interrogation : restreignez-la, ou raccourcissez le **Intervalle d'interrogation (minutes)**.
 - `More records were created in the one minute from ... than one poll can read` : l'interrogation est passée au-delà de cette minute. Importez-la avec **Importer cette plage de temps** dans **Diagnostics**. Une importation lit autant qu'une interrogation.
 :::
 
 :::details Le test réussit, mais rien n'est importé
-Lisez **Notable events available to import** dans le rapport du test. `0` sur les 7 derniers jours signifie que la recherche de **Rechercher** n'a rien trouvé dans Splunk : vérifiez dans Incident Review que les recherches de corrélation sont activées et créent des notable events, et que la recherche de **Rechercher** n'est pas plus étroite que voulu.
+Lisez **Notable events available to import** dans le rapport du test. `0` sur les 7 derniers jours signifie que votre **Requête de recherche** n'a rien trouvé dans Splunk : vérifiez dans Incident Review que les recherches de corrélation sont activées et créent des notable events, et que la **Requête de recherche** n'est pas plus étroite que voulu.
 :::
 
 ## Ce que vous obtenez

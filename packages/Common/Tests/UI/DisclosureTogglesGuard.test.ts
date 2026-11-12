@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#folds
 import {
   listScanRoots,
   listSourceFiles,
