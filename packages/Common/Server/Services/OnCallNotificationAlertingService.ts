@@ -510,7 +510,7 @@ export class OnCallNotificationAlertingService extends BaseService {
     }
 
     lines.push(
-      `Ask them to add a rule for ${severity} ${eventLabel} in User Settings &gt; On-Call Rules, or remove them from the escalation level if they are not meant to be paged for it.`,
+      `Ask them to add a rule for ${severity} ${eventLabel} in User Settings &gt; How to Reach Me, or remove them from the escalation level if they are not meant to be paged for it.`,
     );
 
     return lines.join("<br/><br/>");

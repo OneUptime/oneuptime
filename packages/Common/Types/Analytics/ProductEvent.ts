@@ -101,6 +101,9 @@ export enum ProductEventName {
   SetupHealthFixOpened = "setup_health/fix_opened",
   SetupHealthFindingDismissed = "setup_health/finding_dismissed",
   SetupHealthFindingRestored = "setup_health/finding_restored",
+  // How to reach me (#6820): a paging ladder saved, and the grid opened.
+  PagingLadderSaved = "paging_ladder/saved",
+  PagingLadderGridOpened = "paging_ladder/grid_opened",
 }
 
 // The words of a search that found nothing, at most this long (Cloud only).
@@ -377,6 +380,22 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     name: ProductEventName.SetupHealthFindingRestored,
     description: "A dismissed Setup health finding was restored.",
     properties: [token("check")],
+  },
+  {
+    name: ProductEventName.PagingLadderSaved,
+    description:
+      "A paging ladder was saved on How to Reach Me: by the person or for a member, how many steps, and how many cards that differed it replaced.",
+    properties: [
+      { name: "is_own" },
+      { name: "step_count" },
+      { name: "replaced_card_count" },
+    ],
+  },
+  {
+    name: ProductEventName.PagingLadderGridOpened,
+    description:
+      "The per-severity grid behind a paging ladder was opened on How to Reach Me, and how many cards differed from the ladder then.",
+    properties: [{ name: "is_own" }, { name: "differing_card_count" }],
   },
 ];
 

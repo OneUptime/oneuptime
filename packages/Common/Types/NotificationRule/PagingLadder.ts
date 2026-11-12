@@ -58,6 +58,10 @@ import {
  * anything else that sets up paging - Ask AI's set_up_paging - can too.
  */
 
+// Where the Dashboard saves a ladder (Server/API/PagingLadderAPI).
+export const PAGING_LADDER_API_PATH: string = "/paging-ladder";
+export const PAGING_LADDER_APPLY_ROUTE: string = `${PAGING_LADDER_API_PATH}/apply`;
+
 // A rule's notification method column: userEmailId, userSmsId and the rest.
 export type PagingMethodColumn = keyof OnCallPageNotificationMethods;
 

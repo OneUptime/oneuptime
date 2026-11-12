@@ -2086,6 +2086,7 @@ import MetricType from "Common/Models/DatabaseModels/MetricType";
 import OnCallDutyPolicyAPI from "Common/Server/API/OnCallDutyPolicyAPI";
 import OnCallReadinessAPI from "Common/Server/API/OnCallReadinessAPI";
 import OnCallTestPageAPI from "Common/Server/API/OnCallTestPageAPI";
+import PagingLadderAPI from "Common/Server/API/PagingLadderAPI";
 import WhoIsToldAPI from "Common/Server/API/WhoIsToldAPI";
 import SetupHealthAPI from "Common/Server/API/SetupHealthAPI";
 import WelcomeChecklistAPI from "Common/Server/API/WelcomeChecklistAPI";
@@ -6578,6 +6579,13 @@ const BaseAPIFeatureSet: FeatureSet = {
      * it after. A bare router for the same reason as OnCallReadinessAPI.
      */
     app.use(`/${APP_NAME.toLocaleLowerCase()}`, OnCallTestPageAPI);
+
+    /*
+     * How to reach me (PagingLadderAPI, #6820): save a paging ladder as a
+     * person's on-call rules, in every card of the grid, in one request. A
+     * bare router for the same reason as OnCallReadinessAPI.
+     */
+    app.use(`/${APP_NAME.toLocaleLowerCase()}`, PagingLadderAPI);
 
     /*
      * Who is told when a monitor goes down (WhoIsToldAPI): the chain from a
