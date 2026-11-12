@@ -3,6 +3,7 @@ import ObjectID from "Common/Types/ObjectID";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import { OpenStackCountRow } from "Common/Types/OpenStack/OpenStackCounts";
 import Card from "Common/UI/Components/Card/Card";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -77,9 +78,17 @@ const OpenStackCloudVolumes: FunctionComponent<
                         type.count,
                       )}
                     </span>
-                    <span className="text-gray-500">
-                      {formatOpenStackBytes(type.sizeBytes)}
-                    </span>
+                    {/*
+                     * A size reads its own way: "۶٫۰ TiB", its number first
+                     * on a page read from the right (issue #7191).
+                     */}
+                    <IsolatedText
+                      text={formatOpenStackBytes(type.sizeBytes, {
+                        language: translator.language,
+                      })}
+                      className="text-gray-500"
+                      dataTestId="openstack-volume-type-size"
+                    />
                   </span>
                 );
               })}

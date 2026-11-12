@@ -14,6 +14,7 @@ import useOpenStackRead, { OpenStackRead } from "./UseOpenStackRead";
  * that fails leaves the tiles out, and the rest of the page says what it can.
  */
 
+// "۱٫۲ MiB/s": a rate in the reader's digits, read as a value of its own.
 export function formatOpenStackRate(value: number | null): string {
   return value === null ? "—" : `${formatOpenStackBytes(value)}/s`;
 }
@@ -71,10 +72,15 @@ const OpenStackHostThroughput: FunctionComponent<{
                   read: formatOpenStackRate(diskReadBytesPerSecond),
                   written: formatOpenStackRate(diskWriteBytesPerSecond),
                 },
+                /*
+                 * A sentence, read the page's way, each rate set apart: a
+                 * Persian tile reads "۱٫۲ MiB/s خوانده" from the right, its
+                 * number before its unit (issue #7191).
+                 */
+                { setsValuesApart: true },
               )
             : "Not reported"
         }
-        isSublabelAsWritten={hasDisk}
         description="What this machine's whole disks are reading and writing, from OneUptime's agent on it. Partitions and volumes on top of a disk aren't added in again."
       />
       <GoldenMetricTile
@@ -97,10 +103,10 @@ const OpenStackHostThroughput: FunctionComponent<{
                     networkTransmitBytesPerSecond,
                   ),
                 },
+                { setsValuesApart: true },
               )
             : "Not reported"
         }
-        isSublabelAsWritten={hasNetwork}
         description="What this machine's interfaces are moving, from OneUptime's agent on it. Bridges and instances' tap devices aren't added in again, since the same bytes pass through them."
       />
     </div>
