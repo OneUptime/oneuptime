@@ -108,6 +108,9 @@ export enum ProductEventName {
   SetupHealthFixOpened = "setup_health/fix_opened",
   SetupHealthFindingDismissed = "setup_health/finding_dismissed",
   SetupHealthFindingRestored = "setup_health/finding_restored",
+
+  // "Used by" (#6813): the full list of what refers to a record was opened.
+  UsedByListOpened = "used_by/list_opened",
 }
 
 // The words of a search that found nothing, at most this long (Cloud only).
@@ -404,6 +407,12 @@ export const PRODUCT_EVENTS: ReadonlyArray<ProductEventDefinition> = [
     name: ProductEventName.SetupHealthFindingRestored,
     description: "A dismissed Setup health finding was restored.",
     properties: [token("check")],
+  },
+  {
+    name: ProductEventName.UsedByListOpened,
+    description:
+      'The full list of what refers to a record was opened: a relation\'s "See all" on a record\'s Used by card (relation), or a label\'s Used by (relation "all").',
+    properties: [token("record_kind"), token("relation")],
   },
 ];
 
