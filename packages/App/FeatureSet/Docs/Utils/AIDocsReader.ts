@@ -51,6 +51,8 @@ export interface AIDocsIndexedPage {
   summaryTerms: Set<string>;
   headingTerms: Set<string>;
   bodyTerms: Map<string, number>;
+  // How many words its body holds.
+  bodyLength: number;
   sections: Array<AIDocsIndexedSection>;
 }
 
@@ -58,6 +60,8 @@ interface AIDocsLanguageIndex {
   pages: Array<AIDocsIndexedPage>;
   // How many pages hold each word.
   documentFrequency: Map<string, number>;
+  // How many words a page's body holds, on average.
+  averageBodyLength: number;
 }
 
 const TTL_MS: number = 10 * 60 * 1000;
@@ -114,22 +118,74 @@ const cache: Map<string, { index: AIDocsLanguageIndex; at: number }> =
   new Map();
 
 /*
- * A word as both a question and a page are compared by: lowercase, and an
- * English word without its plural or verb ending, so "monitors" finds
- * "monitor" and "paging" finds "paged".
+ * A word as both a question and a page are compared by: lowercase, a
+ * Latin-script word without its accents and without one plural or verb
+ * ending, so "monitors" finds "monitor", "paging" finds "paged", and
+ * "Bereitschaftsplan" finds "Bereitschaftspläne". Other scripts are
+ * compared as written: their marks are part of their letters (Devanagari's
+ * vowel signs).
  */
-const stem: (word: string) => string = (word: string): string => {
-  if (!/^[a-z]+$/.test(word)) {
+const LATIN_WORD: RegExp = /^[\p{Script=Latin}\p{M}\p{N}]+$/u;
+const WORD_ENDINGS: ReadonlyArray<string> = [
+  "ing",
+  "ers",
+  "ed",
+  "es",
+  "en",
+  "er",
+  "s",
+  "e",
+];
+
+export const stemDocsWord: (word: string) => string = (
+  word: string,
+): string => {
+  if (!LATIN_WORD.test(word)) {
     return word;
   }
 
-  for (const ending of ["ing", "ed", "es", "s"]) {
-    if (word.endsWith(ending) && word.length - ending.length >= 3) {
-      return word.slice(0, word.length - ending.length);
+  const folded: string = word.normalize("NFKD").replace(/\p{M}/gu, "");
+
+  for (const ending of WORD_ENDINGS) {
+    if (folded.endsWith(ending) && folded.length - ending.length >= 3) {
+      return folded.slice(0, folded.length - ending.length);
     }
   }
 
-  return word;
+  return folded;
+};
+
+/*
+ * Words a newcomer asks with that the docs say otherwise: "a text when my
+ * site is down" is an SMS. Read into a question only, never into a page.
+ */
+const OTHER_WORDS: ReadonlyMap<string, ReadonlyArray<string>> = new Map<
+  string,
+  ReadonlyArray<string>
+>([
+  ["text", ["sms"]],
+  ["texts", ["sms"]],
+  ["2fa", ["two", "factor"]],
+]);
+
+export const tokenizeQueryForDocs: (query: string) => Array<string> = (
+  query: string,
+): Array<string> => {
+  const words: Array<string> = query.normalize("NFKC").toLowerCase().split(
+    /[^\p{L}\p{M}\p{N}]+/u,
+  );
+  const otherWords: Array<string> = words.flatMap(
+    (word: string): ReadonlyArray<string> => {
+      return OTHER_WORDS.get(word) || [];
+    },
+  );
+
+  return Array.from(
+    new Set<string>([
+      ...tokenizeForDocs(query),
+      ...tokenizeForDocs(otherWords.join(" ")),
+    ]),
+  );
 };
 
 export const tokenizeForDocs: (text: string) => Array<string> = (
@@ -138,7 +194,7 @@ export const tokenizeForDocs: (text: string) => Array<string> = (
   const words: Array<string> = text
     .normalize("NFKC")
     .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
+    .split(/[^\p{L}\p{M}\p{N}]+/u)
     .filter((word: string): boolean => {
       return word.length > 0;
     });
@@ -164,7 +220,7 @@ export const tokenizeForDocs: (text: string) => Array<string> = (
       continue;
     }
 
-    terms.push(stem(word));
+    terms.push(stemDocsWord(word));
   }
 
   return terms;
@@ -358,6 +414,7 @@ export default class DocsAIReader implements AIDocsReader {
             .join(" "),
         ),
         bodyTerms: countTerms(body),
+        bodyLength: tokenizeForDocs(body).length,
         sections: splitDocsSections(body).map(
           (section: {
             title: string;
@@ -388,7 +445,12 @@ export default class DocsAIReader implements AIDocsReader {
       pages.push(indexed);
     }
 
-    return { pages, documentFrequency };
+    const averageBodyLength: number =
+      pages.reduce((total: number, page: AIDocsIndexedPage): number => {
+        return total + page.bodyLength;
+      }, 0) / Math.max(1, pages.length);
+
+    return { pages, documentFrequency, averageBodyLength };
   }
 
   /*
@@ -401,7 +463,7 @@ export default class DocsAIReader implements AIDocsReader {
     limit: number,
   ): Array<AIDocsSearchHit> {
     const queryTerms: Array<string> = Array.from(
-      new Set<string>(tokenizeForDocs(query)),
+      new Set<string>(tokenizeQueryForDocs(query)),
     );
 
     if (queryTerms.length === 0) {
@@ -409,6 +471,24 @@ export default class DocsAIReader implements AIDocsReader {
     }
 
     const pageCount: number = index.pages.length;
+    /*
+     * How much a word's count in a page's body says (BM25): each more
+     * time says less, and a long page - the upgrade notes - holding it a
+     * few times says less than a short one about it.
+     */
+    const bodyWeight: (count: number, length: number) => number = (
+      count: number,
+      length: number,
+    ): number => {
+      if (count === 0) {
+        return 0;
+      }
+      const lengthRatio: number =
+        length / Math.max(1, index.averageBodyLength);
+      return (
+        (2 * (count * 2.2)) / (count + 1.2 * (0.25 + 0.75 * lengthRatio))
+      );
+    };
     const weight: (term: string) => number = (term: string): number => {
       return Math.log(
         1 + pageCount / (1 + (index.documentFrequency.get(term) || 0)),
@@ -427,8 +507,8 @@ export default class DocsAIReader implements AIDocsReader {
           (page.titleTerms.has(term) ? 6 : 0) +
           (page.headingTerms.has(term) ? 3 : 0) +
           (page.summaryTerms.has(term) ? 2 : 0) +
-          (page.groupTerms.has(term) ? 1 : 0) +
-          Math.log2(1 + bodyCount);
+          (page.groupTerms.has(term) ? 2 : 0) +
+          bodyWeight(bodyCount, page.bodyLength);
 
         if (termScore > 0) {
           matched++;
