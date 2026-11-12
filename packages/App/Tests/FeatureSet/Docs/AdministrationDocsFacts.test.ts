@@ -897,9 +897,7 @@ describe("Inviting People", () => {
       expect(invitationLink).toContain(
         "<CopyTextButton textToBeCopied={invitation.link}",
       );
-      expect(invitationLink).toContain(
-        "Copy this link and send it to them yourself.",
-      );
+      expect(invitationLink).toContain("Copy this link and send it yourself.");
 
       expect(NO_EMAIL_STEP).toContain(
         "A master admin sees **Send them their invitation link** first: copy the link, send it to them yourself, then click **Done**.",
@@ -911,7 +909,7 @@ describe("Inviting People", () => {
         'description: cannotSendEmail(serverEmail) ? serverEmail.isMasterAdmin ? SERVER_EMAIL_COPY.inviteEmailDescriptionForAdmin : SERVER_EMAIL_COPY.inviteEmailDescription : "We email them an invitation to the team you pick.",',
       );
       expect(serverEmail).toContain(
-        "inviteEmailDescription: translationKey( \"This server cannot send email yet, so they will not get an invitation email. The invitation is still created: ask your server's admin to set up email,",
+        "inviteEmailDescription: translationKey( \"This server cannot send email yet, so they get no invitation email. The invitation is still created: ask your server's admin to set up email.",
       );
       expect(NO_EMAIL_STEP).toContain(
         `Anyone else asks the server's admin to [set up email](${SMTP_FORM_LINK}).`,

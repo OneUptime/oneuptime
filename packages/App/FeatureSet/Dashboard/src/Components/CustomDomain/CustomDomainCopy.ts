@@ -394,7 +394,7 @@ export const CustomDomainCopy: {
   addTitle: translationKey("Add Custom Domain"),
   addAddressTitle: translationKey("Domain"),
   addAddressDescription: translationKey(
-    "The address people will open. Next, we show the DNS records to add: a CNAME record for this address, and a TXT record for its domain if this project has not verified it yet.",
+    "The address people will open. Next, we show the DNS records to add: a CNAME record for it, and a TXT record if its domain is not verified yet.",
   ),
   addSubmit: translationKey("Continue"),
   addNeedsDomainPermission: translationKey(
