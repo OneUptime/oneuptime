@@ -345,7 +345,11 @@ const Settings: FunctionComponent = (): ReactElement => {
                 twilioSmsPhoneNumbers: true,
               },
               title: "Twilio SMS Phone Numbers",
-              fieldType: FieldType.LongText,
+              /*
+               * Each number of the list read +447700900123 in every
+               * language, separated the reader's way (Detail's Phone).
+               */
+              fieldType: FieldType.Phone,
               // Without them, SMS go out from the numbers calls do.
               placeholder: t("pages.settings.callSms.smsSameAsCalls"),
               // An account used for calls only sends no SMS, from any number.
@@ -358,7 +362,7 @@ const Settings: FunctionComponent = (): ReactElement => {
                 twilioSecondaryPhoneNumbers: true,
               },
               title: "Twilio Secondary Phone Numbers",
-              fieldType: FieldType.LongText,
+              fieldType: FieldType.Phone,
               placeholder: t("common.none"),
               showIf: (item: GlobalConfig): boolean => {
                 return TwilioConfigUses.makesCalls(item.twilioUsedFor);
