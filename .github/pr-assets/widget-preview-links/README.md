@@ -28,3 +28,19 @@ link in the preview logged none.
 
 - `1280-text-preview-hover.png`: the preview, with the pointer on "checkout runbook": the links are drawn as links
   look (blue, underlined, the same weight), with no hover colour and nothing to click.
+
+## UI review
+
+Taken the same way, at 1x, as each dialog opens. `before` is this PR's head before the review, `after` is the
+review's commits.
+
+- `review-1280-chart-dialog-before.png`: a Chart widget's settings opened 486px down. The folded Display Options'
+  Title focused itself as it drew and the dialog scrolled to it, past the Live Preview.
+- `review-1280-chart-dialog-after.png`: the dialog opens on the preview. The chart also fills its box now: it was
+  drawn 32px narrower, with a 48px gap after it and 16px before it.
+- `review-390-chart-dialog-before.png` and `review-390-chart-dialog-after.png`: the same at phone width. The chart's
+  preview is now 400px tall, as a phone's board draws a chart; at 240px its plot was a line.
+- `review-1280-datasource-dialog-before.png` and `review-1280-datasource-dialog-after.png`: a Data Source Value
+  widget opened 917px down, at its Display Options' Title below the query. It opens on the preview now.
+- `review-1024-de-dark-funnel-dialog-after.png`: a Funnel widget in German, in the dark theme. It used to open 195px
+  down, at the Title of its second, open, section.
