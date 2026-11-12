@@ -19,7 +19,11 @@ import React, { FunctionComponent, ReactElement } from "react";
  * In a tile's large figure, the figure's own size in the code font, as a
  * line of its own (block): set inline beside the figure's font, the code
  * font's taller letters made the line 3px taller, and the tile's sublabel
- * stood lower than the sublabels of the tiles beside it.
+ * stood lower than the sublabels of the tiles beside it. The block is as
+ * wide as the kind (w-fit), so it sits where the tile's other figures
+ * start: a code element reads left to right on every page, and a full-width
+ * block of it put `mount` at the left of a Persian tile whose title, and
+ * whose neighbours' figures, start at the right.
  */
 
 export const SYSTEMD_UNIT_KIND_TEST_ID: string = "systemd-unit-kind";
@@ -27,7 +31,8 @@ export const SYSTEMD_UNIT_KIND_TEST_ID: string = "systemd-unit-kind";
 export const SYSTEMD_UNIT_KIND_CLASS_NAME: string =
   "rounded bg-gray-100 px-1.5 py-0.5 font-mono text-xs leading-6 text-gray-700";
 
-export const SYSTEMD_UNIT_KIND_FIGURE_CLASS_NAME: string = "block font-mono";
+export const SYSTEMD_UNIT_KIND_FIGURE_CLASS_NAME: string =
+  "block w-fit font-mono";
 
 export interface ComponentProps {
   // The kind as unitTypeOf reads it from the unit's name: "service".

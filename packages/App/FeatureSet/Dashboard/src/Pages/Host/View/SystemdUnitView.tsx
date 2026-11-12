@@ -671,7 +671,11 @@ const HostSystemdUnitView: FunctionComponent<
                     other: "active in {{active}} of {{count}} samples (capped)",
                   },
                   availability.totalSampleCount,
-                  { active: availability.activeSampleCount },
+                  {
+                    active: translator.formatNumber(
+                      availability.activeSampleCount,
+                    ),
+                  },
                 )
               : translator.translatePlural(
                   {
@@ -679,7 +683,11 @@ const HostSystemdUnitView: FunctionComponent<
                     other: "active in {{active}} of {{count}} samples",
                   },
                   availability.totalSampleCount,
-                  { active: availability.activeSampleCount },
+                  {
+                    active: translator.formatNumber(
+                      availability.activeSampleCount,
+                    ),
+                  },
                 )
           }
           percent={availability.percent}
@@ -806,7 +814,7 @@ const HostSystemdUnitView: FunctionComponent<
             {truncatedFrom
               ? translator.translateTemplate(
                   "Worst observed state per interval, from the most recent {{limit}} samples. Exact changes are listed under State Changes.",
-                  { limit: SAMPLE_FETCH_LIMIT },
+                  { limit: translator.formatNumber(SAMPLE_FETCH_LIMIT) },
                 )
               : translator.translateText(
                   "Worst observed state per interval over the selected time range. Exact changes are listed under State Changes.",
@@ -850,11 +858,12 @@ const HostSystemdUnitView: FunctionComponent<
       ? OneUptimeDate.getDateAsLocalFormattedString(truncatedFrom)
       : "";
     const isListCapped: boolean = transitions.length > MAX_TRANSITIONS_SHOWN;
+    // Every number in the reader's digits, as {{count}} is: "۲٬۰۰۰" in Persian.
     const listValues: TemplateValues = {
       date: cappedSince,
-      limit: SAMPLE_FETCH_LIMIT,
-      shown: MAX_TRANSITIONS_SHOWN,
-      total: transitions.length,
+      limit: translator.formatNumber(SAMPLE_FETCH_LIMIT),
+      shown: translator.formatNumber(MAX_TRANSITIONS_SHOWN),
+      total: translator.formatNumber(transitions.length),
     };
     let transitionsDescription: string = "";
 

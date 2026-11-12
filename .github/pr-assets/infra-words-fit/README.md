@@ -23,13 +23,18 @@ image is the same page with main's files (379fe9d52f) built in, rendered the sam
   القيمة المستهدفة (a target value) and نقطة التحميل beside Path, Socket and Timer. After:
   the kinds as written, the same chip on an Arabic page.
 - `after-systemd-units-fa-dark.png`: Persian, dark theme.
-- `after-systemd-type-filter-de.png`: the Type filter offers the kinds as the column shows them.
+- `after-systemd-type-filter-de.png`: the Type filter offers the kinds as the column shows them,
+  each with "1 Einheit" under it, and the bar reads "Einheiten durchsuchen..." and "12
+  Einheiten" (English in 14 languages before the review).
 - `before-systemd-unit-fa.png` / `after-systemd-unit-fa.png`: a .mount unit's page in Persian.
   Before, the Unit Type tile read اتصال (a connection) and the chip under the name "Type:
-  Mount" in English. After: `mount` in the tile and "نوع: mount" in the chip.
+  Mount" in English. After: `mount` in the tile, at the tile's right like the figures beside
+  it, "نوع: mount" and "آخرین نمونه: اکنون" in the chips, and "فعال در ۳۹ از ۴۰ نمونه" under
+  Availability, in Persian digits.
 - `before-systemd-unit-de.png` / `after-systemd-unit-de.png`: a .target unit's page in German.
   Before: Ziel in the tile and "Type: Target", in English, in the chip. After: `target` in the
-  tile and "Typ: target" in the chip.
+  tile, "Typ: target" and "Letzte Messung jetzt" in the chips, "aktiv in 39 von 40 Messungen"
+  under Availability.
 
 ## Last seen on two lines (#6693)
 
