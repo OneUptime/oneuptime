@@ -6,7 +6,7 @@ export interface ComponentProps {
   children: ReactElement | Array<ReactElement>;
   onFilter: (value: string) => void;
   /*
-   * Wider than the picker on a small screen, and kept inside the window
+   * 20rem wide when the picker is narrower, and kept inside the window
    * (getProjectPickerMenuPlacement); as wide as the picker without it.
    */
   placement?: ProjectPickerMenuPlacement | null | undefined;

@@ -16,8 +16,11 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * room on the name: at 320, 375 and 390px, in English, German and Arabic,
  * light and dark, the name shows at least its first word, on one 64px row
  * with the logo, the bell and the profile button, all inside the window.
- * The picker's list opens as wide as the phone allows, inside the window,
- * with the whole name. From 640px the header is as it was.
+ * The picker's list opens 20rem wide (as wide as the phone allows on a
+ * phone), inside the window, with the whole name and Create New Project on
+ * one line: on a phone, and on a tablet and a wide screen too, where the
+ * list was as narrow as the picker and cut both. From 640px the header
+ * itself is as it was.
  *
  * The fixture's ?header=true page (HeaderFixture.js) is the top of every
  * Dashboard page: the production header and nav bar, in a project named
@@ -381,8 +384,12 @@ test.describe("the header on a phone", () => {
     ["en", 320],
     ["en", 390],
     ["ar", 375],
+    // A tablet, where the picker is squeezed beside Search and Help.
+    ["de", 768],
+    ["ar", 768],
+    ["en", 1280],
   ] as Array<[Language, number]>) {
-    test(`in ${lang} at ${width}px the picker's list opens as wide as the phone allows, inside the window, with the whole name`, async ({
+    test(`in ${lang} at ${width}px the picker's list opens 20rem wide or as wide as the phone allows, inside the window, with the whole name`, async ({
       page,
     }: {
       page: Page;

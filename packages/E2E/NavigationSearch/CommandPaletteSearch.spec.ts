@@ -1,4 +1,5 @@
 import { expect, Locator, Page, Route, test } from "@playwright/test";
+import { boxesInOneFrame } from "../SuiteHelpers/Frames";
 import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
 
 /*
@@ -258,6 +259,74 @@ test("a breadcrumb stays inside the panel, without a sideways scroll", async ({
     expect(crumb).not.toBeNull();
     expect(crumb!.x + crumb!.width).toBeLessThanOrEqual(
       box!.x + box!.width + 1,
+    );
+  }
+
+  await expectNoSidewaysScroll(page);
+});
+
+/*
+ * The footer's key hints on a phone, in a language that words them at about
+ * twice the English length: German at 320px has no room for all three on
+ * one line. Each hint stays one piece (its key and its words, never its
+ * words broken under the key) and the row wraps between hints.
+ */
+test("on a 320px phone in German, each key hint stays one piece and the row wraps between them", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto(`${projectPath}/home?palette=true&lang=de`);
+  await expect(page.getByTestId("current-route")).toHaveText(
+    `${projectPath}/home`,
+  );
+  await page.keyboard.press("ControlOrMeta+k");
+
+  const footer: Locator = page.getByTestId("command-palette-footer");
+  await expect(footer).toBeVisible();
+  await expect(footer).toContainText("zum Navigieren");
+
+  const hints: Locator = footer.locator(":scope > span");
+  await expect(hints).toHaveCount(3);
+
+  // The lines each hint's words take, read from the words' own text.
+  const linesPerHint: Array<number> = await hints.evaluateAll(
+    (spans: Array<Element>): Array<number> => {
+      return spans.map((span: Element): number => {
+        const words: ChildNode | undefined = Array.from(span.childNodes)
+          .filter((node: ChildNode): boolean => {
+            return (
+              node.nodeType === Node.TEXT_NODE &&
+              Boolean(node.textContent?.trim())
+            );
+          })
+          .pop();
+
+        if (!words) {
+          return 0;
+        }
+
+        const range: Range = document.createRange();
+        range.selectNodeContents(words);
+        return range.getClientRects().length;
+      });
+    },
+  );
+  expect(linesPerHint).toEqual([1, 1, 1]);
+
+  // Every hint inside the footer, none cut at its edge.
+  const [footerBox, ...hintBoxes] = await boxesInOneFrame([
+    footer,
+    hints.nth(0),
+    hints.nth(1),
+    hints.nth(2),
+  ]);
+
+  for (const hint of hintBoxes) {
+    expect(hint.x).toBeGreaterThanOrEqual(footerBox!.x);
+    expect(hint.x + hint.width).toBeLessThanOrEqual(
+      footerBox!.x + footerBox!.width + 1,
     );
   }
 

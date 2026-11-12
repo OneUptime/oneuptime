@@ -77,8 +77,9 @@ const ProjectPicker: FunctionComponent<ComponentProps> = (
 
   /*
    * Where the list opens, read from the picker as it opens (before it is
-   * drawn) and again whenever the window is resized while it is open: wider
-   * than the picker on a phone, inside the window (#7236).
+   * drawn) and again whenever the window is resized while it is open: 20rem
+   * wide when the picker is narrower (on a phone, a tablet, a header with
+   * every button), inside the window (#7236).
    */
   useLayoutEffect(() => {
     if (!isComponentVisible) {

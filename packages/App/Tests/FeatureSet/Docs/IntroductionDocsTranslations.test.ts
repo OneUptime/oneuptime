@@ -947,6 +947,31 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       }).toEqual({ language: language, quoted: quoted });
     });
 
+    /*
+     * The section that row leads to is named as the row and the dialog are:
+     * a reader who chose "鍵盤快速鍵" in Help finds a section of that name, not
+     * "鍵盤快捷鍵" (Traditional Chinese, until the UI review of #7235).
+     */
+    it("names its Keyboard shortcuts section as this language's dialog is titled", () => {
+      const headingLine: string = sectionAt(
+        translated,
+        englishSectionIndex(HOME, "Keyboard shortcuts"),
+      ).split("\n")[0] as string;
+
+      expect(headingLine.startsWith("## ")).toBe(true);
+
+      const heading: string = headingLine.slice("## ".length).trim();
+
+      expect({ language: language, heading: heading }).toEqual({
+        language: language,
+        heading: drawnNavbarText(
+          language,
+          ["keyboardShortcuts", "title"],
+          "Keyboard shortcuts",
+        ),
+      });
+    });
+
     it("names the page each welcome checklist step opens, in the English order, as this language's Dashboard draws it", () => {
       const englishRows: Array<string> = welcomeChecklistRows(
         englishPage(HOME),

@@ -20,7 +20,6 @@ import {
   getProjectPickerMenuPlacement,
   PROJECT_PICKER_MENU_GUTTER_IN_PX,
   PROJECT_PICKER_MENU_MAX_WIDTH_IN_PX,
-  PROJECT_PICKER_WIDE_MENU_BELOW_WIDTH_IN_PX,
   ProjectPickerMenuPlacement,
   ProjectPickerMenuPlacementInput,
 } from "../../../UI/Components/Header/ProjectPicker/ProjectPickerMenuPlacement";
@@ -28,7 +27,6 @@ import getJestMockFunction from "../../MockType";
 import {
   describeVisibility,
   isVisibleAtWidth,
-  TAILWIND_BREAKPOINTS_IN_PX,
 } from "../../ResponsiveVisibility";
 
 /*
@@ -38,10 +36,11 @@ import {
  * tight, and on a 390px phone it gave the project's name 17px: "A." for
  * "Acme Production", so someone with several projects could not tell which
  * one they were in. Below sm it now spends nothing on decoration - no
- * folder icon, the arrows' room only - and its list, which was as narrow as
- * the picker (names cut, Create New Project on two lines), opens as wide as
- * the phone allows, inside the window, on either reading direction. From sm
- * the picker and its list are as they were.
+ * folder icon, the arrows' room only. Its list was as narrow as the picker
+ * (names cut, Create New Project on two lines, on a phone and on a 768px
+ * tablet alike): it opens 20rem wide at every width, or as wide as a phone
+ * allows, inside the window, on either reading direction. From sm the
+ * picker itself is as it was.
  *
  * The widths the browser gives are measured by the offline header suite
  * (E2E NavigationSearch HeaderOnPhones.spec.ts); this pins the rules.
@@ -136,7 +135,7 @@ afterEach(() => {
   HTMLElement.prototype.getBoundingClientRect = ORIGINAL_BOUNDING_RECT;
 });
 
-describe("where the list opens on a small screen", () => {
+describe("where the list opens", () => {
   function place(
     input: ProjectPickerMenuPlacementInput,
   ): ProjectPickerMenuPlacement | null {
@@ -157,10 +156,7 @@ describe("where the list opens on a small screen", () => {
     return { left: right - placement.widthInPx, right: right };
   }
 
-  test("the small screen ends where Tailwind's sm begins, as the header's classes do", () => {
-    expect(PROJECT_PICKER_WIDE_MENU_BELOW_WIDTH_IN_PX).toBe(
-      TAILWIND_BREAKPOINTS_IN_PX["sm"],
-    );
+  test("the list is 20rem wide, with a 1rem gutter from each edge of the window", () => {
     expect(PROJECT_PICKER_MENU_MAX_WIDTH_IN_PX).toBe(320);
     expect(PROJECT_PICKER_MENU_GUTTER_IN_PX).toBe(16);
   });
@@ -172,8 +168,14 @@ describe("where the list opens on a small screen", () => {
     [390, 60, 237, -6, 320],
     [480, 60, 316, 0, 320],
     [639, 60, 316, 0, 320],
+    // A tablet: the picker squeezed beside Search and Help.
+    [768, 172, 378, 0, 320],
+    // A laptop: beside Search, Ask AI and Help.
+    [1024, 172, 400, 0, 320],
+    // A wide screen: the picker at its full 16rem.
+    [1280, 172, 428, 0, 320],
   ])(
-    "at %ipx, left to right, the list is as wide as the phone allows and starts as far left as it must",
+    "at %ipx, left to right, the list is 20rem or as wide as the phone allows, and starts as far left as it must",
     (
       windowWidth: number,
       buttonLeft: number,
@@ -204,7 +206,7 @@ describe("where the list opens on a small screen", () => {
     },
   );
 
-  test.each([320, 375, 390, 480, 639])(
+  test.each([320, 375, 390, 480, 639, 768, 1024, 1280])(
     "at %ipx, right to left, the list mirrors the left-to-right one",
     (windowWidth: number) => {
       // The picker beside the logo on the right: the left-to-right one, mirrored.
@@ -239,7 +241,7 @@ describe("where the list opens on a small screen", () => {
   );
 
   test.each([640, 768, 1024, 1280])(
-    "from sm (%ipx) the list is as wide as the picker, as it always was",
+    "at %ipx, a picker narrower than 20rem gets the wider list too, never only below sm",
     (windowWidth: number) => {
       expect(
         place({
@@ -248,7 +250,7 @@ describe("where the list opens on a small screen", () => {
           windowWidth: windowWidth,
           isRightToLeft: false,
         }),
-      ).toBeNull();
+      ).toEqual({ widthInPx: 320, side: "left", offsetInPx: 0 });
       expect(
         place({
           buttonLeft: windowWidth - 456,
@@ -256,9 +258,44 @@ describe("where the list opens on a small screen", () => {
           windowWidth: windowWidth,
           isRightToLeft: true,
         }),
-      ).toBeNull();
+      ).toEqual({ widthInPx: 320, side: "right", offsetInPx: 0 });
     },
   );
+
+  test.each([640, 768, 1024, 1280])(
+    "at %ipx, a picker 20rem wide or wider keeps a list as wide as itself",
+    (windowWidth: number) => {
+      for (const isRightToLeft of [false, true]) {
+        expect(
+          place({
+            buttonLeft: 200,
+            buttonRight: 520,
+            windowWidth: windowWidth,
+            isRightToLeft: isRightToLeft,
+          }),
+        ).toBeNull();
+      }
+    },
+  );
+
+  test("near the window's far edge on a wide screen, the list moves back inside it", () => {
+    expect(
+      place({
+        buttonLeft: 1100,
+        buttonRight: 1260,
+        windowWidth: 1280,
+        isRightToLeft: false,
+      }),
+    ).toEqual({ widthInPx: 320, side: "left", offsetInPx: -156 });
+    expect(
+      place({
+        buttonLeft: 20,
+        buttonRight: 180,
+        windowWidth: 1280,
+        isRightToLeft: true,
+      }),
+    ).toEqual({ widthInPx: 320, side: "right", offsetInPx: -156 });
+  });
 
   test("a picker already as wide as the list would be keeps its own list", () => {
     expect(
@@ -282,8 +319,11 @@ describe("where the list opens on a small screen", () => {
     ).toEqual({ widthInPx: 320, side: "left", offsetInPx: -21 });
   });
 
-  test("at every small width and wherever the picker is, the list stays inside the window", () => {
-    for (let windowWidth: number = 280; windowWidth < 640; windowWidth += 7) {
+  test("at every width and wherever the picker is, the list stays inside the window", () => {
+    const outside: Array<ProjectPickerMenuPlacementInput> = [];
+    const unplaced: Array<ProjectPickerMenuPlacementInput> = [];
+
+    for (let windowWidth: number = 280; windowWidth <= 1440; windowWidth += 7) {
       for (
         let buttonLeft: number = 0;
         buttonLeft < windowWidth;
@@ -298,23 +338,27 @@ describe("where the list opens on a small screen", () => {
           };
           const placement: ProjectPickerMenuPlacement | null = place(input);
 
-          expect(placement).not.toBeNull();
+          if (!placement) {
+            unplaced.push(input);
+            continue;
+          }
 
-          const { left, right } = edges(input, placement!);
-          expect({
-            input: input,
-            inside: left >= 15.5 && right <= windowWidth - 15.5,
-          }).toEqual({
-            input: input,
-            inside: true,
-          });
+          const { left, right } = edges(input, placement);
+
+          if (left < 15.5 || right > windowWidth - 15.5) {
+            outside.push(input);
+          }
         }
       }
     }
+
+    // A 120px picker always gets the wider list, and it is always inside.
+    expect(unplaced).toEqual([]);
+    expect(outside).toEqual([]);
   });
 });
 
-describe("the picker's list on a phone and from sm", () => {
+describe("the picker's list on a phone, a tablet and a wide screen", () => {
   test("on a 375px phone it opens 320px wide, moved back inside the window", () => {
     setWindowWidth(375);
     placeButtons(60, 222);
@@ -342,16 +386,27 @@ describe("the picker's list on a phone and from sm", () => {
     expect(menu().style.left).toBe("");
   });
 
-  test("from sm it is as wide as the picker, with no width or offset of its own", () => {
+  test("on a 768px tablet, where the picker is squeezed beside Search and Help, it opens 20rem wide from the picker's start", () => {
     setWindowWidth(768);
-    placeButtons(200, 456);
+    placeButtons(172, 378);
+
+    fireEvent.click(renderPicker());
+
+    expect(menu().style.width).toBe("320px");
+    expect(menu().style.left).toBe("0px");
+    expect(menu().style.right).toBe("");
+  });
+
+  test("a picker 20rem wide or wider keeps a list as wide as itself, with no width or offset of its own", () => {
+    setWindowWidth(1280);
+    placeButtons(200, 530);
 
     fireEvent.click(renderPicker());
 
     expectListAsWideAsThePicker();
   });
 
-  test("a phone turned to a tablet's width while it is open: the list takes the picker's width again, and back", () => {
+  test("a phone turned to a tablet's width while it is open: the list is placed again, and back", () => {
     setWindowWidth(390);
     placeButtons(60, 237);
 
@@ -363,7 +418,9 @@ describe("the picker's list on a phone and from sm", () => {
       setWindowWidth(800);
       window.dispatchEvent(new Event("resize"));
     });
-    expectListAsWideAsThePicker();
+    // Room for the whole list from the picker's start: no offset now.
+    expect(menu().style.width).toBe("320px");
+    expect(menu().style.left).toBe("0px");
 
     act(() => {
       setWindowWidth(320);
@@ -384,7 +441,7 @@ describe("the picker's list on a phone and from sm", () => {
     expect(screen.queryByTestId("project-picker-menu")).toBeNull();
 
     setWindowWidth(1024);
-    placeButtons(200, 456);
+    placeButtons(200, 530);
     fireEvent.click(picker);
     expectListAsWideAsThePicker();
   });
