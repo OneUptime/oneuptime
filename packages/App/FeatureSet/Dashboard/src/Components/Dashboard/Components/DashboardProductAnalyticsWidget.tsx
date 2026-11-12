@@ -28,6 +28,7 @@ import AppLink from "../../AppLink/AppLink";
 import DashboardResourceList from "../Utils/DashboardResourceList";
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import WidgetPlaceholder from "./WidgetPlaceholder";
+import DashboardWidgetLine from "./DashboardWidgetLine";
 
 /*
  * What the Funnel and Retention widgets share (issue #6630): each shows a
@@ -373,13 +374,12 @@ export function ProductAnalyticsWidgetFrame<
     <div className="flex h-full w-full flex-col" data-testid={props.dataTestId}>
       {title || isLinked ? (
         <div className="mb-1 flex min-w-0 items-center justify-between gap-2 px-1">
-          <div
+          <DashboardWidgetLine
+            text={title}
             className="min-w-0 truncate text-sm font-medium text-gray-700"
             title={title}
-            data-testid={`${props.dataTestId}-title`}
-          >
-            {title}
-          </div>
+            dataTestId={`${props.dataTestId}-title`}
+          />
           {isLinked && view ? (
             /*
              * As the Chart widget's Open in Metric Explorer: an icon at the

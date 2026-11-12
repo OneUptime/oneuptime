@@ -219,6 +219,7 @@ describe("a status page shows every scheduled maintenance event in progress as o
         timezone: "UTC",
       },
       monitorGroupCurrentStatuses: {},
+      notMonitoredResourceIds: [],
       statusPageGroups: [],
       statusPage: statusPage,
       monitorsOnStatusPage: [],

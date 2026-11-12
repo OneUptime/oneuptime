@@ -10,6 +10,7 @@ import DashboardMonitorListComponent from "Common/Types/Dashboard/DashboardCompo
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
@@ -223,6 +224,9 @@ const DashboardMonitorListComponentElement: FunctionComponent<
         : status.text;
       const statusColor: Color | null = status.color;
       const monitorType: string = (monitor.monitorType as string) || "—";
+      const name: string =
+        (monitor.name as string) ||
+        (translator.translateText("Unnamed") as string);
 
       const detailRoute: Route = RouteUtil.populateRouteParams(
         RouteMap[PageMap.MONITOR_VIEW] as Route,
@@ -234,15 +238,17 @@ const DashboardMonitorListComponentElement: FunctionComponent<
           key={monitorId}
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 truncate">
+          <ResourceListNameCell
+            name={name}
+            className="px-3 py-2 text-xs text-gray-700 truncate"
+          >
             <AppLink
               to={detailRoute}
               className="hover:underline text-gray-700 group-hover:text-blue-600"
             >
-              {(monitor.name as string) ||
-                (translator.translateText("Unnamed") as string)}
+              {name}
             </AppLink>
-          </td>
+          </ResourceListNameCell>
           <td className="px-3 py-2">
             <span
               className="inline-flex items-center gap-1.5 text-xs font-medium"

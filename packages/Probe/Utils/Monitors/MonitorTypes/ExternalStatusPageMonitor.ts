@@ -43,7 +43,10 @@ import ExternalStatusPageComponentNames from "Common/Utils/Monitor/ExternalStatu
  * A OneUptime page's component's description when the page does not show
  * its status (read in ExternalStatusPageReading).
  */
-export { EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN } from "Common/Utils/Monitor/ExternalStatusPageReading";
+export {
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_NOT_MONITORED,
+  EXTERNAL_STATUS_PAGE_ONEUPTIME_STATUS_NOT_SHOWN,
+} from "Common/Utils/Monitor/ExternalStatusPageReading";
 
 /*
  * Retries when neither the caller nor the step config sets one: three
@@ -803,8 +806,10 @@ export default class ExternalStatusPageMonitorUtil {
    * status is the value the page's status stands for
    * (ExternalStatusPageComponentStatusUtil) - under maintenance while a
    * scheduled maintenance event in progress affects it, whatever its
-   * monitors' status. The summary holds only what the page shows anyone it
-   * lets in, and nothing is asked of the page's project.
+   * monitors' status, and unknown while the page shows it as not monitored
+   * (its monitoring is off), when it decides no overall status. The summary
+   * holds only what the page shows anyone it lets in, and nothing is asked
+   * of the page's project.
    *
    * A page that does not let this probe in - a private page (sign-in or
    * password), or one whose IP allowlist leaves the probe out - says so.

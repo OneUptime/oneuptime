@@ -27,6 +27,7 @@ import {
   resolveReplayTabsSessionDurationMs,
   selectVisibleReplayTabs,
   summarizeReplayTabs,
+  describeReplayTabGroupHeading,
 } from "../../FeatureSet/Dashboard/src/Components/SessionReplay/ReplayTabs";
 
 /*
@@ -548,7 +549,7 @@ describe("orderReplayTabsForDisplay", () => {
 });
 
 describe("groupReplayTabs", () => {
-  test("a live session groups Open (open and unknown), Closed and No footage", () => {
+  test("a live session groups the still open (open and unknown), the closed and the tabs without footage", () => {
     const groups: Array<ReplayTabGroup> = groupReplayTabs([
       summary({ label: "Tab 1", status: "closed" }),
       summary({ label: "Tab 2", status: "open" }),
@@ -559,13 +560,35 @@ describe("groupReplayTabs", () => {
 
     expect(
       groups.map((group: ReplayTabGroup): [string, string, Array<string>] => {
-        return [group.id, group.title, labelsOf(group.tabs)];
+        return [
+          group.id,
+          describeReplayTabGroupHeading(group),
+          labelsOf(group.tabs),
+        ];
       }),
     ).toEqual([
-      ["open", "Open", ["Tab 2", "Tab 3"]],
-      ["closed", "Closed", ["Tab 1", "Tab 5"]],
-      ["empty", "No footage", ["Tab 4"]],
+      ["open", "2 still open", ["Tab 2", "Tab 3"]],
+      ["closed", "2 closed", ["Tab 1", "Tab 5"]],
+      ["empty", "1 without footage", ["Tab 4"]],
     ]);
+  });
+
+  test("a heading is the summary line's own count of its group", () => {
+    const tabs: Array<ReplayTabSummary> = [
+      summary({ label: "Tab 1", status: "open" }),
+      summary({ label: "Tab 2", status: "closed" }),
+      summary({ label: "Tab 3", status: "empty", hasFootage: false }),
+    ];
+    const headings: Array<string> = groupReplayTabs(tabs).map(
+      (group: ReplayTabGroup): string => {
+        return describeReplayTabGroupHeading(group);
+      },
+    );
+
+    expect(headings).toEqual(["1 still open", "1 closed", "1 without footage"]);
+    expect(describeReplayTabCounts(tabs)).toBe(
+      ["3 tabs", ...headings].join(" · "),
+    );
   });
 
   test("empty groups are never returned", () => {
@@ -581,7 +604,7 @@ describe("groupReplayTabs", () => {
     ).toEqual(["open"]);
   });
 
-  test("a finished session is one 'all' group titled Tabs", () => {
+  test("a finished session is one 'all' group of every tab", () => {
     const groups: Array<ReplayTabGroup> = groupReplayTabs([
       summary({ label: "Tab 1", status: "closed" }),
       summary({ label: "Tab 2", status: "closed" }),
@@ -589,7 +612,9 @@ describe("groupReplayTabs", () => {
 
     expect(groups).toHaveLength(1);
     expect(groups[0]?.id).toBe("all");
-    expect(groups[0]?.title).toBe("Tabs");
+    expect(describeReplayTabGroupHeading(groups[0] as ReplayTabGroup)).toBe(
+      "2 tabs",
+    );
     expect(labelsOf(groups[0]?.tabs ?? [])).toEqual(["Tab 1", "Tab 2"]);
   });
 
@@ -701,14 +726,14 @@ describe("countReplayTabs and describeReplayTabCounts", () => {
     ).toEqual({ total: 2, open: 0, closed: 0, unknown: 1, empty: 1 });
   });
 
-  test("a live session reads '3 tabs · 1 open · 2 closed'", () => {
+  test("a live session reads '3 tabs · 1 still open · 2 closed'", () => {
     expect(
       describeReplayTabCounts([
         summary({ label: "Tab 1", status: "open" }),
         summary({ label: "Tab 2", status: "closed" }),
         summary({ label: "Tab 3", status: "closed" }),
       ]),
-    ).toBe("3 tabs · 1 open · 2 closed");
+    ).toBe("3 tabs · 1 still open · 2 closed");
   });
 
   test("zero parts are omitted", () => {
@@ -717,23 +742,26 @@ describe("countReplayTabs and describeReplayTabCounts", () => {
         summary({ label: "Tab 1", status: "open" }),
         summary({ label: "Tab 2", status: "open" }),
       ]),
-    ).toBe("2 tabs · 2 open");
+    ).toBe("2 tabs · 2 still open");
   });
 
   test("tabs without footage are counted as 'without footage'", () => {
     expect(describeReplayTabCounts(mixed)).toBe(
-      "5 tabs · 2 open · 2 closed · 1 without footage",
+      "5 tabs · 2 still open · 2 closed · 1 without footage",
     );
   });
 
-  test("the open part matches the picker's Open group, which holds the unknown tabs too", () => {
+  test("the open part matches the picker's still-open group, which holds the unknown tabs too", () => {
     const tabs: Array<ReplayTabSummary> = [
       summary({ label: "Tab 1", status: "open" }),
       summary({ label: "Tab 2", status: "unknown" }),
     ];
 
-    expect(describeReplayTabCounts(tabs)).toBe("2 tabs · 2 open");
+    expect(describeReplayTabCounts(tabs)).toBe("2 tabs · 2 still open");
     expect(groupReplayTabs(tabs)[0]?.tabs).toHaveLength(2);
+    expect(
+      describeReplayTabGroupHeading(groupReplayTabs(tabs)[0] as ReplayTabGroup),
+    ).toBe("2 still open");
   });
 
   test("a finished session just says how many tabs there were", () => {
@@ -749,7 +777,7 @@ describe("countReplayTabs and describeReplayTabCounts", () => {
   test("one tab is singular, and no tabs reads '0 tabs'", () => {
     expect(
       describeReplayTabCounts([summary({ label: "Tab 1", status: "open" })]),
-    ).toBe("1 tab · 1 open");
+    ).toBe("1 tab · 1 still open");
     expect(
       describeReplayTabCounts([summary({ label: "Tab 1", status: "closed" })]),
     ).toBe("1 tab");

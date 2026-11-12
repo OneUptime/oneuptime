@@ -10,6 +10,7 @@ import DashboardIncidentListComponent from "Common/Types/Dashboard/DashboardComp
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
@@ -325,6 +326,9 @@ const DashboardIncidentListComponentElement: FunctionComponent<
       const declared: DashboardDateTime = getDashboardDateTime(
         incident.createdAt as unknown as string | undefined,
       );
+      const title: string =
+        (incident.title as string) ||
+        (translator.translateText("Untitled") as string);
 
       const detailRoute: Route = RouteUtil.populateRouteParams(
         RouteMap[PageMap.INCIDENT_VIEW] as Route,
@@ -336,15 +340,17 @@ const DashboardIncidentListComponentElement: FunctionComponent<
           key={incidentId}
           className="hover:bg-gray-50/50 transition-colors duration-100 group"
         >
-          <td className="px-3 py-2 text-xs text-gray-700 truncate">
+          <ResourceListNameCell
+            name={title}
+            className="px-3 py-2 text-xs text-gray-700 truncate"
+          >
             <AppLink
               to={detailRoute}
               className="hover:underline text-gray-700 group-hover:text-blue-600"
             >
-              {(incident.title as string) ||
-                (translator.translateText("Untitled") as string)}
+              {title}
             </AppLink>
-          </td>
+          </ResourceListNameCell>
           <td className="px-3 py-2">
             <span
               className="inline-flex items-center gap-1.5 text-xs font-medium"

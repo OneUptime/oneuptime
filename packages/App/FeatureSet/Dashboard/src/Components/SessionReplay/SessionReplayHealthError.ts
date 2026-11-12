@@ -3,6 +3,8 @@ import {
   DEFAULT_LANGUAGE,
   Translator,
 } from "Common/Types/Translator";
+import Permission from "Common/Types/Permission";
+import { getSessionReplayPermissionTitle } from "./SessionReplayPermissionTitle";
 
 /*
  * The recording-health failure vocabulary, split out of
@@ -55,10 +57,20 @@ export function describeHealthError(
   };
 
   if (error.kind === "permission") {
+    /*
+     * The health route asks for the list permission
+     * (SESSION_REPLAY_LIST_PERMISSIONS in TelemetryAPI), named as the
+     * roles screen names it.
+     */
     return {
       title: translateLine("You cannot see recording health"),
-      detail: translateLine(
-        "Reading recording health needs the Read Session Replay permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.",
+      detail: translator.translateTemplate(
+        'Reading recording health needs the "{{permission}}" permission (project owners, admins and telemetry admins have it). Ask a project admin to grant it, or to run this check for you.',
+        {
+          permission: getSessionReplayPermissionTitle(
+            Permission.ReadRumSessionReplay,
+          ),
+        },
       ),
     };
   }

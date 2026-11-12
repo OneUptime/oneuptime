@@ -43,14 +43,17 @@
   "overview": {
     "uptimeSuffix": "% 稼働率",
     "operational": "稼働中",
+    "notMonitored": "未監視",
     "noResourcesInGroup": "このグループにリソースが追加されていません。",
     "activeIncidents": "進行中のインシデント",
     "scheduledMaintenanceEvents": "予定されたメンテナンスイベント",
     "allClearTitle": "すべて順調です",
     "allClearDescription": "このステータスページにはまだリソースが追加されていません。ダッシュボードからリソースを追加してください。",
     "allResourcesAre": "すべてのリソースは {{status}} です",
+    "allMonitoredResourcesAre": "監視中のすべてのリソースは {{status}} です",
     "someResourcesAre": "一部のリソースは {{status}} です",
     "someResourcesAreUnder": "一部のリソースは {{status}} 中です",
+    "noResourcesAreMonitored": "現在監視されているリソースはありません",
     "oneSubGroup": "1 グループ",
     "subGroupCount": "{{total}} グループ"
   },

@@ -27,8 +27,9 @@ flowchart TB
 ```
 
 - **Arkiverade monitorer räknas inte.** En arkiverad monitor kontrolleras inte, så dess status är fryst; gruppen utelämnar den.
+- **Monitorer med avstängd övervakning räknas inte.** Ingenting kontrollerar en monitor vars övervakning är avstängd, så dess status är bara vad dess senaste kontroll såg. Gruppen utelämnar den ur sin status och på instrumentpanelen även ur sin drifttid och sin **Drifttidsgraf**: en monitor som stod på **Offline** när dess övervakning stängdes av gör inte gruppen **Offline**.
 - **En tom grupp fungerar.** En grupp utan monitorer, eller bara med arkiverade, visar din fungerande status. Tills du lägger till en monitor visar instrumentpanelen **Inga monitorer ännu** i stället för gruppens status.
-- **Avstängd övervakning visar Inaktiverad.** När övervakningen är avstängd för alla monitorer i en grupp kontrollerar ingenting dem, så instrumentpanelen visar **Inaktiverad** i stället för gruppens status.
+- **Avstängd övervakning visar Inaktiverad.** När övervakningen är avstängd för alla monitorer i en grupp kontrollerar ingenting dem, så instrumentpanelen visar **Inaktiverad** i stället för gruppens status, och ingen drifttidsprocent bredvid dess **Drifttidsgraf**. En statussida visar gruppen som **Inte övervakad**.
 - **Ordningen är din.** Vilken status som är värst följer ordningen under **Övervakare → Inställningar → Monitorstatus**. Se [Monitorstatusar](/docs/monitor/criteria-and-statuses#monitorstatusar).
 
 En monitorgrupp är inte en statussidegrupp. En statussidegrupp är en rubrik på en statussida som rymmer rader. En monitorgrupp är en rad som står för flera monitorer, och vilken statussida som helst kan visa den.
@@ -124,7 +125,7 @@ Välj gruppen. **Visningsnamn**, namnet som besökare läser, tar gruppens namn 
 
 På statussidan står raden för varje monitor i gruppen:
 
-- **Dess status.** Det är gruppens: den värsta bland dess monitorer.
+- **Dess status.** Det är gruppens: den värsta bland dess monitorer med påslagen övervakning. När övervakningen är avstängd för alla visar raden **Inte övervakad** och räknas varken in i rubriken ovanför den eller i sidans samlade status.
 - **Dess incidenter.** En incident på någon monitor i gruppen visas på sidan, med gruppen nämnd bland de berörda resurserna.
 - **Dess prenumeranter.** En prenumerant som väljer gruppen får höra om varje monitor i den. Se [Låt prenumeranter välja resurser och händelsetyper](/docs/status-pages/subscribers#låta-prenumeranter-välja-resurser-och-händelsetyper).
 

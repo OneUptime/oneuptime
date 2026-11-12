@@ -2852,7 +2852,117 @@ describe("the Public API page", () => {
       "The overall status is the worst current status of the monitors and monitor groups on the page, the one with the highest priority.",
     );
     expect(page).toContain(
-      "| `overallStatus` | The page's overall status, a monitor status as above. A page with nothing on it gets the project's lowest-priority status. |",
+      "| `overallStatus` | The page's overall status, a monitor status as above. A page with nothing on it gets the project's lowest-priority status, and a page whose resources are all **Not monitored** gets `null`. |",
+    );
+  });
+
+  /*
+   * Issue #6478: a resource nothing checks - its monitor's monitoring is
+   * off, or every monitor of its monitor group has it off - stays on the
+   * page as Not monitored, and decides no status.
+   */
+  it("leaves the resources the page shows as Not monitored out of the overall status, and gives null when nothing else is on it (#6478)", () => {
+    const operational: MonitorStatus = new MonitorStatus();
+    operational._id = ObjectID.generate().toString();
+    operational.priority = 1;
+    const offline: MonitorStatus = new MonitorStatus();
+    offline._id = ObjectID.generate().toString();
+    offline.priority = 3;
+    const monitorStatuses: Array<MonitorStatus> = [operational, offline];
+
+    const resourceIn: (
+      status: MonitorStatus,
+      isMonitoringOff: boolean,
+    ) => StatusPageResource = (
+      status: MonitorStatus,
+      isMonitoringOff: boolean,
+    ): StatusPageResource => {
+      const resource: StatusPageResource = new StatusPageResource();
+      resource._id = ObjectID.generate().toString();
+      resource.monitor = new Monitor();
+      resource.monitor.currentMonitorStatusId = new ObjectID(
+        status._id as string,
+      );
+      resource.monitor.disableActiveMonitoring = isMonitoringOff;
+      return resource;
+    };
+
+    // Left Offline when its monitoring was turned off: it decides nothing.
+    expect(
+      StatusPageService.getOverallMonitorStatus({
+        statusPageResources: [
+          resourceIn(offline, true),
+          resourceIn(operational, false),
+        ],
+        monitorStatuses,
+        monitorGroupCurrentStatuses: {},
+      }),
+    ).toBe(operational);
+
+    // A monitor group whose monitors all have it off, by its row's id.
+    const groupRow: StatusPageResource = new StatusPageResource();
+    groupRow._id = ObjectID.generate().toString();
+    groupRow.monitorGroupId = ObjectID.generate();
+
+    expect(
+      StatusPageService.getOverallMonitorStatus({
+        statusPageResources: [resourceIn(offline, true), groupRow],
+        monitorStatuses,
+        monitorGroupCurrentStatuses: {},
+        notMonitoredResourceIds: [groupRow._id as string],
+      }),
+    ).toBeNull();
+
+    // The overview names them, in a key of its own.
+    expect(responseKeysOf("buildOverviewBase")).toContain(
+      "notMonitoredResourceIds",
+    );
+
+    const page: string = englishPage(PUBLIC_API);
+
+    expect(page).toContain(
+      "Resources the page shows as **Not monitored**, listed in `notMonitoredResourceIds`, are left out of it.",
+    );
+    expect(page).toContain(
+      "| `notMonitoredResourceIds` | The IDs of the resources the page shows as **Not monitored**: a monitor whose monitoring is off, or a monitor group whose monitors all have it off. They decide no status, and such a group has no entry in `monitorGroupCurrentStatuses`. |",
+    );
+  });
+
+  it("says of each resource of the summary and the uptime response whether it is monitored (#6478)", () => {
+    const shown: StatusPageSummary | null = StatusPageSummaryUtil.fromJSON({
+      overallStatus: null,
+      resources: [
+        {
+          id: "cfffa3c3-fdf3-4cd7-9585-d6d408a14663",
+          name: "Checkout API",
+          groupName: null,
+          currentStatus: null,
+          isMonitored: false,
+          isUnderMaintenance: false,
+        },
+      ],
+      activeIncidents: [],
+      ongoingScheduledMaintenance: [],
+      upcomingScheduledMaintenance: [],
+    });
+
+    expect(shown?.resources[0]?.isMonitored).toBe(false);
+    expect(shown?.overallStatus).toBeNull();
+
+    const page: string = englishPage(PUBLIC_API);
+
+    expect(page).toContain(
+      "| `overallStatus` | The page's overall status, as its banner shows it: `name`, `color` and `isOperational`. `null` when every resource on the page is **Not monitored**. |",
+    );
+    expect(page).toContain(
+      "A resource's `currentStatus` is `null` when the page does not show it, and when `isMonitored` is `false`: nothing checks the resource, because its monitor's monitoring is off or every monitor of its monitor group has it off, so the page shows it as **Not monitored**.",
+    );
+    expect(page).toContain(
+      "| `isMonitored` | `false` when the page shows the resource as **Not monitored**, and for a group when every resource beneath it is. Its `currentStatus` is then `null`. |",
+    );
+    // The uptime endpoint leaves a resource nothing checks without a status.
+    expect(oneLine(STATUS_PAGE_API_SOURCE)).toContain(
+      "if (!resourceUptime.isMonitored) { resourceUptime.currentStatus = null; }",
     );
   });
 
@@ -2959,6 +3069,7 @@ describe("the Public API page", () => {
       "groupUptimes",
       "uptimePercent",
       "currentStatus",
+      "isMonitored",
     ]) {
       expect(englishPage(PUBLIC_API)).toContain(`| \`${key}\` |`);
     }

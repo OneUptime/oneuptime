@@ -10,6 +10,7 @@ import DashboardDockerVolumeListComponent from "Common/Types/Dashboard/Dashboard
 import { DashboardBaseComponentProps } from "./DashboardBaseComponent";
 import DashboardResourceListBase, {
   ResourceListColumn,
+  ResourceListNameCell,
   ResourceListViewMode,
 } from "./DashboardResourceListBase";
 import { HoneycombTile } from "./DashboardResourceHoneycomb";
@@ -178,13 +179,18 @@ const DashboardDockerVolumeListComponentElement: FunctionComponent<
         key={id}
         className="hover:bg-gray-50/50 transition-colors duration-100 group"
       >
-        <td className="px-3 py-2 text-xs text-gray-700 truncate font-mono">
-          {name}
-        </td>
-        <td className="px-3 py-2 text-xs text-gray-500 truncate font-mono">
-          {driverScope}
-        </td>
-        <td className="px-3 py-2 text-xs text-gray-500 truncate">{hostName}</td>
+        <ResourceListNameCell
+          name={name}
+          className="px-3 py-2 text-xs text-gray-700 truncate font-mono"
+        />
+        <ResourceListNameCell
+          name={driverScope}
+          className="px-3 py-2 text-xs text-gray-500 truncate font-mono"
+        />
+        <ResourceListNameCell
+          name={hostName}
+          className="px-3 py-2 text-xs text-gray-500 truncate"
+        />
       </tr>
     );
   });

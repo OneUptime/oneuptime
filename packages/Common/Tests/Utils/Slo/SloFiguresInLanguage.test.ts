@@ -28,6 +28,7 @@ import {
   getSloMetricLabel,
   getSloWidgetTileDisplay,
   getSloWidgetTitle,
+  getSloWidgetTitleSentence,
   SLI_DECIMALS,
   SLO_NOT_EVALUATED_TEXT,
   SLO_TARGET_SUBLINE_TEMPLATE,
@@ -469,6 +470,24 @@ describe("the widget's title, metric label and not-evaluated value", () => {
     expect(withoutIsolateMarks(title)).toBe(
       `Checkout API • ${readDashboardLocale("fa")["Burn Rate"]}`,
     );
+  });
+
+  /*
+   * In pieces, for a widget that draws the name in a box of its own
+   * (#6858): the same words, the name as written.
+   */
+  test("Arabic, in pieces: the metric's label is Arabic, the name as written", () => {
+    expect(
+      getSloWidgetTitleSentence({
+        sloName: "Checkout API",
+        sloMetric: SloWidgetMetric.ErrorBudgetRemaining,
+        translator: ARABIC,
+      }),
+    ).toEqual({
+      template: "{{name}} · {{metric}}",
+      name: "Checkout API",
+      values: { metric: AR["Error Budget Remaining"] },
+    });
   });
 
   test("the not-evaluated value is the reader's, and the English constant is kept for callers without one", () => {

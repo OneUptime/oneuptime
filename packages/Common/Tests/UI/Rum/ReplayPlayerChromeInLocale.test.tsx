@@ -827,13 +827,13 @@ describe("ReplayTabSwitcher in the reader's language", () => {
     );
 
     expect(screen.getByTestId("replay-tab-summary")).toHaveTextContent(
-      "⟦8 tabs⟧ · ⟦2 open⟧ · ⟦6 closed⟧",
+      "⟦8 tabs⟧ · ⟦2 still open⟧ · ⟦6 closed⟧",
     );
     expect(
       screen.getByRole("tablist", { name: "⟦Browser tabs in this recording⟧" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("replay-tab-strip-divider")).toHaveTextContent(
-      "⟦Closed⟧",
+      "⟦Closed tabs⟧",
     );
 
     const watched: HTMLElement = screen
@@ -846,7 +846,7 @@ describe("ReplayTabSwitcher in the reader's language", () => {
     expect(watched).toHaveTextContent(`⟦Tab 3⟧ · /page-3 · ${thirtySeconds}`);
     expect(watched).toHaveAttribute(
       "title",
-      `⟦⟦Tab 3⟧ · ⟦Closed⟧ · /page-3 · ⟦opened 0:40⟧ · ${thirtySeconds} — switch to this tab; the playhead stays where it is⟧`,
+      `⟦⟦⟦Tab 3⟧ (closed)⟧ · /page-3 · ⟦opened 0:40⟧ · ${thirtySeconds} — switch to this tab; the playhead stays where it is⟧`,
     );
 
     expect(screen.getByTestId("replay-tab-picker-button")).toHaveTextContent(
@@ -866,7 +866,7 @@ describe("ReplayTabSwitcher in the reader's language", () => {
       screen.getAllByTestId("replay-tab-group").map((group: HTMLElement) => {
         return group.textContent;
       }),
-    ).toEqual(["⟦Open⟧ · 2", "⟦Closed⟧ · 6"]);
+    ).toEqual(["⟦2 still open⟧", "⟦6 closed⟧"]);
 
     const options: Array<HTMLElement> =
       screen.getAllByTestId("replay-tab-option");

@@ -502,9 +502,17 @@ describe("the security events table", () => {
     );
   });
 
-  test("cuts the class, the message and the host short, whole on hover", () => {
+  test("cuts the class, the message and the host short, whole on hover, each read its own way", () => {
+    /*
+     * A list's cell that holds a name (ResourceListNameCell): an English
+     * host on an Arabic board is cut at its own end, not its start.
+     */
     for (const value of ["className", "message", "host"]) {
-      expect(code).toContain(`title={${value}} > {${value} || "—"}`);
+      expect(code).toMatch(
+        new RegExp(
+          `<ResourceListNameCell name=\\{${value} \\|\\| "—"\\} className="max-w-0 truncate px-3 py-1\\.5 text-xs text-gray-\\d00" title=\\{${value}\\} />`,
+        ),
+      );
     }
 
     expect(code.split("max-w-0 truncate px-3 py-1.5").length - 1).toBe(3);

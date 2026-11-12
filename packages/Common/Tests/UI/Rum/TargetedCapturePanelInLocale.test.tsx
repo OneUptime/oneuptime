@@ -228,7 +228,7 @@ describe("TargetedCapturePanel in the reader's language", () => {
     expect(
       screen.getByTestId("targeted-capture-no-permission"),
     ).toHaveTextContent(
-      "⟦Arming a recording of a named person is a capture-policy change, so it needs the Edit RUM Application permission",
+      '⟦Arming a recording of a named person is a capture-policy change, so it needs the "Edit RUM Application" permission',
     );
   });
 
