@@ -77,6 +77,55 @@ jest.mock(
   },
 );
 
+/*
+ * Since the guided setups (#6804, #6805, #6806) took the monitor, on-call,
+ * telemetry and status page steps over, no step of the catalog lands on a
+ * record's page of its own any more. The line is kept for the next step
+ * that does, and is held here to what it did for the on-call step before
+ * its guided setup: Create On-Call Policy, landing on the policy's
+ * Escalation Rules.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog",
+  () => {
+    type Entry = {
+      step: string;
+      guidedSetupPage?: unknown;
+      landing?: { pageMap: string; doneText: string } | undefined;
+    };
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog",
+    ) as Record<string, unknown>;
+    const withLanding: (entry: Entry) => Entry = (entry: Entry): Entry => {
+      return entry.step === "on_call"
+        ? {
+            ...entry,
+            guidedSetupPage: undefined,
+            landing: {
+              pageMap: "ON_CALL_DUTY_POLICY_VIEW_ESCALATION",
+              doneText:
+                "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
+            },
+          }
+        : entry;
+    };
+    const steps: Array<Entry> = (actual["WELCOME_STEPS"] as Array<Entry>).map(
+      withLanding,
+    );
+
+    return {
+      __esModule: true,
+      ...actual,
+      WELCOME_STEPS: steps,
+      getWelcomeStepEntry: (step: string): Entry => {
+        return steps.find((entry: Entry): boolean => {
+          return entry.step === step;
+        })!;
+      },
+    };
+  },
+);
+
 import WelcomeNextStep from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeNextStep";
 import {
   STEP_IN_PROGRESS_KEY,

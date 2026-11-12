@@ -36,6 +36,7 @@ import {
   useProductAnalyticsWidgetPeriod,
   useProductAnalyticsWidgetSavedView,
 } from "./DashboardProductAnalyticsWidget";
+import { useIsDashboardWidgetPreview } from "./DashboardWidgetPreview";
 
 /*
  * The Retention widget (issue #6630): a retention table saved on a RUM
@@ -118,10 +119,12 @@ const DashboardProductAnalyticsRetentionComponentElement: FunctionComponent<
       ? saved.view?.definition || null
       : null;
   const rumApplicationId: string = saved.view?.rumApplicationId || "";
+  const isPreview: boolean = useIsDashboardWidgetPreview();
   const isLinked: boolean = isProductAnalyticsWidgetLinked({
     state: saved.state,
     hasView: Boolean(saved.view),
     isEditMode: props.isEditMode,
+    isPreview: isPreview,
     isPlayback: Boolean(props.isPlayback),
   });
   const timeZone: string = getProductAnalyticsTimeZone(
@@ -215,8 +218,9 @@ const DashboardProductAnalyticsRetentionComponentElement: FunctionComponent<
 
             /*
              * At the table's end, where its periods stop: a link where the
-             * corner's is (never while the board is edited or on a
-             * playlist's screen), the same words in grey there. It keeps
+             * corner's is (never while the board is edited, in the
+             * settings' live preview or on a playlist's screen), the same
+             * words in grey there. It keeps
              * to the widget's foot while more cohorts than the widget is
              * tall scroll under it, so it is read without a scroll.
              */

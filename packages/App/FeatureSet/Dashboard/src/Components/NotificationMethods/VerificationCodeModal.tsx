@@ -33,6 +33,7 @@ import {
   VerificationCodeChannelDefinition,
   VerificationCodeCopy,
 } from "./VerificationCodeChannels";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 
 /*
  * THE ONE PLACE A PERSON VERIFIES A NUMBER OR AN ADDRESS.
@@ -95,6 +96,17 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
     getVerificationCodeChannel(props.channel);
   const codeInputId: string = useId();
 
+  /*
+   * Where the code goes, as the dialog's sentences name it: a phone number
+   * reads +447700900123 in a Persian or Arabic sentence too (printed as it
+   * is, its "+" stood after its digits: phoneNumberInLine). An email
+   * address is named as it is.
+   */
+  const destination: string =
+    props.channel === VerificationCodeChannel.Email
+      ? props.destination
+      : phoneNumberInLine(props.destination, translator.language);
+
   const [status, setStatus] = useState<VerificationCodeStatus | null>(null);
   const [isLoadingStatus, setIsLoadingStatus] = useState<boolean>(true);
   const [hasStatusFailed, setHasStatusFailed] = useState<boolean>(false);
@@ -149,7 +161,7 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
       // Verified some other way (by SMS, for a call number): the list catches up.
       setVerifiedMessage(
         translator.translateTemplate(VerificationCodeCopy.alreadyVerified, {
-          destination: props.destination,
+          destination: destination,
         }),
       );
       props.onVerified({});
@@ -268,7 +280,7 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
         setVerifiedMessage(
           translator.translateTemplate(
             VerificationCodeCopy.alsoVerifiedForCalls,
-            { destination: props.destination },
+            { destination: destination },
           ),
         );
         return;
@@ -340,7 +352,7 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
       const sentence: string = translator.translateTemplate(
         definition.codeSentSentence,
         {
-          destination: props.destination,
+          destination: destination,
           sentAt: status.codeSentAt ? formatTime(status.codeSentAt) : "",
         },
       );
@@ -379,7 +391,7 @@ const VerificationCodeModal: FunctionComponent<ComponentProps> = (
       status.codeState === VerificationCodeState.Expired
         ? definition.codeExpiredSentence
         : definition.noCodeSentence,
-      { destination: props.destination },
+      { destination: destination },
     );
 
     return (
