@@ -51238,5 +51238,8 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "لمعرفة ما فشل، شغّل npm run doctor -- --logs في مجلد oneuptime على الخادم.",
   "Try again in a moment.": "حاول مرة أخرى بعد قليل.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "حاول مرة أخرى. إذا استمر الفشل، فتواصل مع دعم OneUptime وأعطهم هذا المرجع:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "حاول مرة أخرى. إذا استمر الفشل، فأعطِ هذا المرجع لمن يدير خادم OneUptime لديكم:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "حاول مرة أخرى. إذا استمر الفشل، فأعطِ هذا المرجع لمن يدير خادم OneUptime لديكم:",
+  "A status page you can't see": "صفحة حالة لا يمكنك رؤيتها",
+  "It emails the owners added by owner rules ({{names}}).": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين ({{names}}).",
+  "It emails the owners added by owner rules.": "ترسل بريدًا إلكترونيًا إلى المالكين الذين تضيفهم قواعد المالكين."
 }

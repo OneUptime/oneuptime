@@ -50884,7 +50884,7 @@
   "It pages the people on call through an on-call policy you can't see.": "Die Bereitschaft wird über eine Bereitschaftsrichtlinie alarmiert, die Sie nicht sehen können.",
   "It pages {{count}} people through {{policies}}.": "{{count}} Personen werden über {{policies}} alarmiert.",
   "It pages {{count}} people through {{policies}}._one": "{{count}} Person wird über {{policies}} alarmiert.",
-  "It pages {{people}} through {{policies}}.": "{{people}} wird über {{policies}} alarmiert.",
+  "It pages {{people}} through {{policies}}.": "OneUptime alarmiert {{people}} über {{policies}}.",
   "Its on-call policies reach nobody who can be paged right now.": "Ihre Bereitschaftsrichtlinien erreichen gerade niemanden, der alarmiert werden kann.",
   "Loading who is told": "Wird geladen, wer benachrichtigt wird",
   "No criteria of this monitor changes its status or opens an incident or an alert, so nobody is told when it goes down.": "Kein Kriterium dieser Überwachung ändert ihren Status oder öffnet einen Vorfall oder eine Warnung, daher wird bei einem Ausfall niemand benachrichtigt.",
@@ -51238,5 +51238,8 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Um zu sehen, was fehlgeschlagen ist, führen Sie npm run doctor -- --logs im oneuptime-Ordner des Servers aus.",
   "Try again in a moment.": "Versuchen Sie es gleich noch einmal.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, wenden Sie sich an den OneUptime-Support und geben Sie diese Referenz an:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, geben Sie diese Referenz an die Person weiter, die Ihren OneUptime-Server betreibt:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, geben Sie diese Referenz an die Person weiter, die Ihren OneUptime-Server betreibt:",
+  "A status page you can't see": "Eine Statusseite, die Sie nicht sehen können",
+  "It emails the owners added by owner rules ({{names}}).": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt ({{names}}).",
+  "It emails the owners added by owner rules.": "Die von den Eigentümerregeln hinzugefügten Eigentümer werden per E-Mail benachrichtigt."
 }
