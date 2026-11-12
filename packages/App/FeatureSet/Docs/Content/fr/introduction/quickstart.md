@@ -59,6 +59,8 @@ Gardez les **Sondes** sélectionnées et l'**Intervalle de surveillance** **Tout
 
 Pour essayer la vérification avant d'enregistrer, cliquez sur **Tester le moniteur** à la deuxième étape. Tous les autres types de moniteurs sont décrits dans [Créer un moniteur](/docs/monitor/create-monitor).
 
+Pour vérifier aussi une API, choisir qui est prévenu et envoyer un appel de test qui prouve que le message vous parvient, suivez [Savoir quand votre site web ou votre API tombe](/docs/guides/website-down).
+
 ## Être alerté en cas de panne
 
 En l'état, un incident sans propriétaire est envoyé par e-mail aux propriétaires du projet, dont vous faites partie. Pour être alerté jusqu'à ce que quelqu'un réponde, créez une politique d'astreinte : la première d'un projet se déclenche pour chaque nouvel incident et chaque nouvelle alerte.

@@ -6,8 +6,9 @@
  *
  * A new guide is one entry here, its page in Content/<language>/guides/ in
  * all 17 languages, its link in Utils/Nav.ts's Guides group (with isGuide),
- * its job's card on Getting Started (GETTING_STARTED_JOBS), and a "New
- * here?" line on the reference pages it replaces for a newcomer.
+ * its job's card on Getting Started (GETTING_STARTED_JOBS), a "New here?"
+ * line on the reference pages it replaces for a newcomer, and its link on
+ * the README's "Step-by-step guides" line (and its 16 translations).
  */
 
 export interface DocsGuide {
