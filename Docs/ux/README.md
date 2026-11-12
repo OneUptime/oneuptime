@@ -329,6 +329,11 @@ work out, starts from a default for everything else, and folds what most people 
 - **A dialog is for a short job that returns the person where they were.** Creating a record from a
   list, a confirmation, a quick edit. Something people read, compare or come back to is a page. Not
   enforced: use judgement.
+- **A preview in a dialog never leaves the page.** It draws a thing as its reader will see it, over
+  work the dialog has not saved yet, so a click in it must not open another page and drop that work.
+  In a dashboard widget's Live Preview a link is its words, and a tile, a map's site, an incident's
+  marker or an exemplar opens nothing (#6859). Enforced by
+  [DashboardWidgetPreviewGuard](../../packages/Common/Tests/App/Dashboard/DashboardWidgetPreviewGuard.test.tsx).
 - **Confirm only what cannot be undone.** A switch that can be flipped back saves without asking.
   Not enforced: use judgement.
 

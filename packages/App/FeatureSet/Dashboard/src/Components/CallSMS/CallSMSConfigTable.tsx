@@ -54,6 +54,7 @@ import TwilioConfigUses, {
 import { getPhoneNumberListError } from "Common/UI/Utils/PhoneNumberListError";
 import { PHONE_NUMBER_LIST_EXAMPLE } from "Common/Types/CallAndSMS/TwilioPhoneNumbers";
 import TwilioConfigPhoneNumbers from "./TwilioConfigPhoneNumbers";
+import { phoneNumberInLine } from "Common/Types/PhoneNumberDirection";
 import TwilioTestSendCopy, {
   getTestSendFromPhoneNumber,
   getTestSentMessage,
@@ -325,7 +326,11 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
 
   const translator: Translator = useTranslator();
 
-  // What the dialog after a test says went out, and from which number.
+  /*
+   * What the dialog after a test says went out, and from which number - a
+   * number that reads +447700900123 in a Persian or Arabic sentence too
+   * (phoneNumberInLine).
+   */
   const getTestSentDescription: (kind: TwilioTestSendKind) => string = (
     kind: TwilioTestSendKind,
   ): string => {
@@ -335,7 +340,7 @@ const CustomCallSMSTable: FunctionComponent<ComponentProps> = (
     });
 
     return translator.translateTemplate(message.template, {
-      phoneNumber: message.phoneNumber,
+      phoneNumber: phoneNumberInLine(message.phoneNumber, translator.language),
     });
   };
 

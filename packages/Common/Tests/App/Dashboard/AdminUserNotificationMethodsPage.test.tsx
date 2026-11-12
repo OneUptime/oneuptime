@@ -2878,3 +2878,68 @@ describe("a project with channels switched off", () => {
     });
   });
 });
+
+/*
+ * Issue #6605: a masked phone number, "+1 ••• ••• 4821", printed as it was,
+ * read "4821 ••• ••• 1+" on an Arabic page - a number has no letter to say
+ * which way it reads, so it took the page's way. The identifier of an SMS,
+ * call or WhatsApp method is now an isolate that reads left to right
+ * (PhoneNumberText); any other identifier reads the way its letters do
+ * (IsolatedText).
+ */
+describe("a method's identifier reads the way it is written", () => {
+  const identifierOf: (row: HTMLElement) => HTMLElement = (
+    row: HTMLElement,
+  ): HTMLElement => {
+    return within(row).getByTestId("admin-notification-method-identifier");
+  };
+
+  test("a phone number is an isolate that reads left to right, in the grey it was", async () => {
+    await renderPage();
+
+    const identifier: HTMLElement = identifierOf(rowFor(MASKED_PHONE));
+
+    expect(identifier.tagName).toBe("BDI");
+    expect(identifier).toHaveAttribute("dir", "ltr");
+    expect(identifier.textContent).toBe(MASKED_PHONE);
+    expect(identifier).toHaveClass("text-gray-500");
+  });
+
+  test("an email address and a webhook's name are isolates that read as their letters do", async () => {
+    await renderPage();
+
+    for (const masked of [MASKED_EMAIL, MASKED_WEBHOOK]) {
+      const identifier: HTMLElement = identifierOf(rowFor(masked));
+
+      expect(identifier.tagName).toBe("BDI");
+      expect(identifier.textContent).toBe(masked);
+      expect(identifier).toHaveAttribute("dir", "ltr");
+    }
+  });
+
+  test("the removal confirmation names a phone number left to right too", async () => {
+    await renderPage();
+
+    chooseFromRowMenu(rowFor(MASKED_PHONE), "Remove");
+
+    const named: HTMLElement = within(modal()).getByTestId(
+      "admin-notification-method-identifier",
+    );
+
+    expect(named.tagName).toBe("BDI");
+    expect(named).toHaveAttribute("dir", "ltr");
+    expect(named.textContent).toBe(MASKED_PHONE);
+    expect(named).toHaveClass("font-medium", "text-gray-900");
+  });
+
+  test("on an English page the resend sentence names the number as it always did, with no mark", async () => {
+    await renderPage();
+
+    clickButton(rowFor(MASKED_PHONE), "Resend code");
+
+    const text: string = modal().textContent || "";
+
+    expect(text).toContain(`to ${MASKED_PHONE}.`);
+    expect(text).not.toMatch(/[\u2066-\u2069]/);
+  });
+});

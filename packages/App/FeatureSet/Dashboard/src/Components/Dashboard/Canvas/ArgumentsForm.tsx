@@ -559,8 +559,12 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
     return undefined;
   };
 
-  const renderSectionForm: (sectionGroup: SectionGroup) => ReactElement = (
+  const renderSectionForm: (
     sectionGroup: SectionGroup,
+    isFirstFieldOfSettings: boolean,
+  ) => ReactElement = (
+    sectionGroup: SectionGroup,
+    isFirstFieldOfSettings: boolean,
   ): ReactElement => {
     const sectionKey: string = sectionGroup.section.name;
 
@@ -575,6 +579,16 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
          * never appear in the inputs.
          */
         key={`${component.componentId.toString()}-${sectionKey}`}
+        /*
+         * A form puts the focus in its first field as it draws, and the
+         * browser scrolls the dialog to that field. Only the first field of
+         * the settings may take it: the Live Preview sits above them. Every
+         * section's form took it, so a later section's field - the Title of
+         * a folded Display Options, or of a second open section - opened
+         * the dialog 200 to 900 pixels down, past the preview. Folded, the
+         * field then turned invisible and the focus fell out of the dialog.
+         */
+        disableAutofocus={!isFirstFieldOfSettings}
         hideSubmitButton={true}
         /*
          * A widget's settings apply as they are typed, and no press checks
@@ -1388,6 +1402,15 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
       );
     };
 
+  /*
+   * A table's Data (columns) or a Data Source widget's query is drawn above
+   * the sections, and is the first thing to fill in: the first section's
+   * field does not take the focus from it. The dialog's own first focus,
+   * which never scrolls, starts there.
+   */
+  const isEditorAboveSections: boolean =
+    isDataSourceWidget || hasTableColumnsArg || hasTableGroupByArg;
+
   return (
     <div className="mb-3 mt-1">
       {componentArguments && componentArguments.length === 0 && (
@@ -1422,7 +1445,10 @@ const ArgumentsForm: FunctionComponent<ComponentProps> = (
               defaultCollapsed={shouldCollapse}
             >
               <div>
-                {renderSectionForm(sectionGroup)}
+                {renderSectionForm(
+                  sectionGroup,
+                  isFirstSection && !isEditorAboveSections,
+                )}
                 {/* Render multi-query and multi-formula UI inside Data Source */}
                 {sectionGroup.section.name === "Data Source" && (
                   <>
