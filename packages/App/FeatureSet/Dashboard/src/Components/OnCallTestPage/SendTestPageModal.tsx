@@ -7,18 +7,28 @@ import {
   fromSeverityOptionValue,
   loadSeverityOptions,
 } from "./OnCallTestPageSeverities";
-import { CHANNEL_NAMES } from "./OnCallTestPageWords";
+import {
+  CHANNEL_NAMES,
+  COST_SENTENCES,
+  WALK_UNREACHED_LEVELS,
+  getNotPagedLines,
+  getPersonWarnings,
+  getReachedThroughWords,
+  getWalkLevelHeading,
+} from "./OnCallTestPageWords";
 import TestPageResult from "./TestPageResult";
 import {
   ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES,
   ON_CALL_TEST_PAGE_ESCALATION_WAIT_IN_MINUTES,
   OnCallTestPageCost,
   OnCallTestPagePreview,
+  OnCallTestPagePreviewLevel,
   OnCallTestPagePreviewMethod,
   OnCallTestPagePreviewPerson,
   OnCallTestPageRecordKind,
   OnCallTestPageResult,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import { getInlineSeparator } from "Common/Types/Translator";
 import Alert, { AlertType } from "Common/UI/Components/Alerts/Alert";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import CheckboxElement from "Common/UI/Components/Checkbox/Checkbox";
@@ -133,14 +143,22 @@ export function describePreviewMethod(
   return name;
 }
 
-// What a test costs, in a sentence, or empty when it costs nothing.
+/*
+ * What a test costs, in a sentence, or empty when it costs nothing: the
+ * first level's, or - for a test that walks every level - the most the
+ * walk costs, nobody acknowledging it (#7016).
+ */
 export function describeTestPageCost(
   translator: Translator,
   cost: OnCallTestPageCost,
+  options?: { isWalk?: boolean | undefined } | undefined,
 ): string {
   if (!cost.isPaid) {
     return "";
   }
+
+  const sentences: { withAmount: string; withoutAmount: string } =
+    options?.isWalk ? COST_SENTENCES.walk : COST_SENTENCES.firstLevel;
 
   const items: Array<string> = [];
 
@@ -189,18 +207,41 @@ export function describeTestPageCost(
   const list: string = items.join(", ");
 
   if (typeof cost.estimatedCostInUSDCents === "number") {
-    return translator.translateTemplate(
-      "This test sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
-      {
-        items: list,
-        amount: `$${(cost.estimatedCostInUSDCents / 100).toFixed(2)}`,
-      },
-    );
+    return translator.translateTemplate(sentences.withAmount, {
+      items: list,
+      amount: `$${(cost.estimatedCostInUSDCents / 100).toFixed(2)}`,
+    });
   }
 
-  return translator.translateTemplate(
-    "This test sends {{items}}, paid from this project's SMS and call balance.",
-    { items: list },
+  return translator.translateTemplate(sentences.withoutAmount, {
+    items: list,
+  });
+}
+
+/*
+ * Whether the test pages anybody: its first level - or, walking every
+ * level, any level it reaches (a run moves past a level that pages nobody
+ * at once).
+ */
+export function doesTestPageAnybody(
+  preview: OnCallTestPagePreview | null,
+  walksEscalation: boolean,
+): boolean {
+  if (!preview) {
+    return false;
+  }
+
+  if (preview.people.length > 0) {
+    return true;
+  }
+
+  return (
+    walksEscalation &&
+    (preview.walkLevels || []).some(
+      (level: OnCallTestPagePreviewLevel): boolean => {
+        return level.people.length > 0;
+      },
+    )
   );
 }
 
@@ -213,16 +254,20 @@ const PreviewPerson: FunctionComponent<{
 }): ReactElement => {
   const translator: Translator = useTranslator();
   const person: OnCallTestPagePreviewPerson = props.person;
+  const reachedThrough: string = getReachedThroughWords(translator, person);
 
   return (
     <li className="py-2" data-testid="test-page-preview-person">
       {props.showName ? (
-        <p className="text-sm font-medium text-gray-900">
+        <p className="text-sm font-medium text-gray-900 break-words">
           {person.userName}
-          {person.reachedThrough ? (
-            <span className="font-normal text-gray-500">
-              {" · "}
-              {person.reachedThrough}
+          {reachedThrough ? (
+            <span
+              className="font-normal text-gray-500"
+              data-testid="test-page-preview-reached-through"
+            >
+              {getInlineSeparator(translator.language)}
+              {reachedThrough}
             </span>
           ) : (
             <></>
@@ -250,18 +295,138 @@ const PreviewPerson: FunctionComponent<{
       ) : (
         <></>
       )}
-      {person.warnings.map((warning: string, index: number) => {
+      {getPersonWarnings(translator, person).map(
+        (warning: string, index: number) => {
+          return (
+            <p
+              key={`warning-${index}`}
+              className="mt-1 text-sm text-amber-700"
+              data-testid="test-page-preview-warning"
+            >
+              {warning}
+            </p>
+          );
+        },
+      )}
+    </li>
+  );
+};
+
+// The targets of a level that reach nobody, and why.
+const NotPagedLines: FunctionComponent<{
+  level: {
+    notPaged: Array<string>;
+    notPagedCodes?: OnCallTestPagePreview["notPagedCodes"];
+  };
+}> = (props: {
+  level: {
+    notPaged: Array<string>;
+    notPagedCodes?: OnCallTestPagePreview["notPagedCodes"];
+  };
+}): ReactElement => {
+  const translator: Translator = useTranslator();
+
+  return (
+    <>
+      {getNotPagedLines(translator, props.level).map(
+        (line: string, index: number) => {
+          return (
+            <p
+              key={`not-paged-${index}`}
+              className="text-sm text-amber-700"
+              data-testid="test-page-preview-not-paged"
+            >
+              {line}
+            </p>
+          );
+        },
+      )}
+    </>
+  );
+};
+
+// The people of one level, each with how the test reaches them.
+const PreviewPeople: FunctionComponent<{
+  people: Array<OnCallTestPagePreviewPerson>;
+  showNames: boolean;
+  dataTestId?: string | undefined;
+}> = (props: {
+  people: Array<OnCallTestPagePreviewPerson>;
+  showNames: boolean;
+  dataTestId?: string | undefined;
+}): ReactElement => {
+  return (
+    <ul className="divide-y divide-gray-100" data-testid={props.dataTestId}>
+      {props.people.map((person: OnCallTestPagePreviewPerson) => {
         return (
-          <p
-            key={`warning-${index}`}
-            className="mt-1 text-sm text-amber-700"
-            data-testid="test-page-preview-warning"
-          >
-            {warning}
-          </p>
+          <PreviewPerson
+            key={person.userId}
+            person={person}
+            showName={props.showNames}
+          />
         );
       })}
-    </li>
+    </ul>
+  );
+};
+
+/*
+ * A test that walks every level (#7016): each level it reaches before it
+ * ends, in turn, under when it is paged - and how many it never reaches.
+ */
+const WalkPreview: FunctionComponent<{
+  preview: OnCallTestPagePreview;
+}> = (props: { preview: OnCallTestPagePreview }): ReactElement => {
+  const translator: Translator = useTranslator();
+  const preview: OnCallTestPagePreview = props.preview;
+  const levels: Array<
+    Omit<OnCallTestPagePreviewLevel, "notPagedCodes"> & {
+      notPagedCodes?: OnCallTestPagePreview["notPagedCodes"];
+    }
+  > = [
+    {
+      order: 1,
+      startsAfterMinutes: 0,
+      people: preview.people,
+      notPaged: preview.notPaged,
+      notPagedCodes: preview.notPagedCodes,
+    },
+    ...(preview.walkLevels || []),
+  ];
+  const unreached: number = preview.walkUnreachedLevelCount || 0;
+
+  return (
+    <div className="flex flex-col gap-3" data-testid="test-page-walk">
+      {levels.map((level: (typeof levels)[number]) => {
+        return (
+          <section
+            key={level.order}
+            className="flex flex-col gap-1"
+            data-testid="test-page-walk-level"
+          >
+            <p className="text-xs font-semibold text-gray-500">
+              {getWalkLevelHeading(translator, level)}
+            </p>
+            <PreviewPeople
+              people={level.people}
+              showNames={true}
+              dataTestId={level.order === 1 ? "test-page-preview" : undefined}
+            />
+            <NotPagedLines level={level} />
+          </section>
+        );
+      })}
+      {unreached > 0 ? (
+        <p
+          className="text-sm text-gray-600"
+          data-testid="test-page-walk-unreached"
+        >
+          {translator.translatePlural(WALK_UNREACHED_LEVELS, unreached)}
+        </p>
+      ) : (
+        <></>
+      )}
+    </div>
   );
 };
 
@@ -429,12 +594,26 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
       );
     });
 
+  /*
+   * A policy's test that walks every level: shown level by level, and
+   * priced as the walk, once the server says what the walk reaches.
+   */
+  const showsWalk: boolean = Boolean(
+    props.target.kind === "policy" &&
+      walksEscalation &&
+      preview &&
+      Array.isArray(preview.walkLevels),
+  );
+
   const costSentence: string = preview
-    ? describeTestPageCost(translator, preview.cost)
+    ? showsWalk && preview.walkCost
+      ? describeTestPageCost(translator, preview.walkCost, { isWalk: true })
+      : describeTestPageCost(translator, preview.cost)
     : "";
 
-  const hasAnybodyToPage: boolean = Boolean(
-    preview && preview.people.length > 0,
+  const hasAnybodyToPage: boolean = doesTestPageAnybody(
+    preview,
+    props.target.kind === "policy" && walksEscalation,
   );
 
   const send: () => Promise<void> = async (): Promise<void> => {
@@ -542,33 +721,16 @@ const SendTestPageModal: FunctionComponent<ComponentProps> = (
           </p>
           {isLoadingPreview ? (
             <InlineLoadingLine text="Reading what it will send..." />
+          ) : preview && showsWalk ? (
+            <WalkPreview preview={preview} />
           ) : preview ? (
             <>
-              <ul
-                className="divide-y divide-gray-100"
-                data-testid="test-page-preview"
-              >
-                {preview.people.map((person: OnCallTestPagePreviewPerson) => {
-                  return (
-                    <PreviewPerson
-                      key={person.userId}
-                      person={person}
-                      showName={props.target.kind === "policy"}
-                    />
-                  );
-                })}
-              </ul>
-              {preview.notPaged.map((line: string, index: number) => {
-                return (
-                  <p
-                    key={`not-paged-${index}`}
-                    className="text-sm text-amber-700"
-                    data-testid="test-page-preview-not-paged"
-                  >
-                    {line}
-                  </p>
-                );
-              })}
+              <PreviewPeople
+                people={preview.people}
+                showNames={props.target.kind === "policy"}
+                dataTestId="test-page-preview"
+              />
+              <NotPagedLines level={preview} />
             </>
           ) : (
             <></>

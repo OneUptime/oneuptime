@@ -633,12 +633,97 @@ export interface OnCallTestPagePreviewMethod {
   canAcknowledge: boolean;
 }
 
+/*
+ * WHAT A PREVIEW SAYS, AS CODES (#7015). Every warning, every target that
+ * reaches nobody and every "why them" comes with a code and the values it
+ * names, so the Dashboard words it in the reader's language. Each carries
+ * its English sentence too (`message`), and the preview keeps the English
+ * lists it always had (`warnings`, `notPaged`, `reachedThrough`): for other
+ * readers of the API, and for a Dashboard that does not know a code yet.
+ */
+
+// Why a policy's test pages a person.
+export enum OnCallTestPageReachedThroughCode {
+  // A member of a team the level names: "Team Platform".
+  Team = "Team",
+  // On call in a schedule the level names: "Schedule Primary".
+  Schedule = "Schedule",
+  // Next in the rotation of a schedule the level pages that way.
+  ScheduleNextInRotation = "ScheduleNextInRotation",
+  // Covering for somebody the level names who is away: "Covering for Ana".
+  CoveringFor = "CoveringFor",
+}
+
+export interface OnCallTestPageReachedThrough {
+  code: OnCallTestPageReachedThroughCode;
+  // The team's or the schedule's name, or the name of who they cover for.
+  name: string;
+}
+
+// What a preview warns about one person before anything is sent.
+export enum OnCallTestPageWarningCode {
+  // They opted out of pages of this severity: the test sends them nothing.
+  OptedOut = "OptedOut",
+  // No rule covers the severity, and the project does not fall back.
+  NoRuleNoFallback = "NoRuleNoFallback",
+  // No rule covers the severity: the test goes to every verified method.
+  NoRuleFallsBack = "NoRuleFallsBack",
+  // A channel a rule of theirs uses is switched off in the project.
+  ChannelOff = "ChannelOff",
+  // A method a rule of theirs uses is not verified (a custom channel: off).
+  MethodNotVerified = "MethodNotVerified",
+}
+
+export interface OnCallTestPageWarning {
+  code: OnCallTestPageWarningCode;
+  // The channel it is about: ChannelOff and MethodNotVerified.
+  channel?: OnCallPageChannel | undefined;
+  // The sentence, in English.
+  message: string;
+}
+
+// Why a target of a policy's level reaches nobody.
+export enum OnCallTestPageNotPagedCode {
+  // The policy has no escalation levels.
+  PolicyHasNoLevels = "PolicyHasNoLevels",
+  // The level names no team, person or schedule.
+  LevelNamesNobody = "LevelNamesNobody",
+  // A team it names has no members.
+  TeamHasNoMembers = "TeamHasNoMembers",
+  // A schedule it pages by rotation has nobody next.
+  NobodyNextInRotation = "NobodyNextInRotation",
+  // A schedule it names has nobody on call now.
+  NobodyOnCall = "NobodyOnCall",
+  // Somebody it names is away, and nobody covers for them.
+  AwayWithNobodyCovering = "AwayWithNobodyCovering",
+  // Somebody it names is not a member of the project.
+  NotProjectMember = "NotProjectMember",
+}
+
+export interface OnCallTestPageNotPaged {
+  code: OnCallTestPageNotPagedCode;
+  // The level it is about (LevelNamesNobody): 1 for the first.
+  levelOrder?: number | undefined;
+  // TeamHasNoMembers.
+  teamName?: string | undefined;
+  // NobodyNextInRotation, NobodyOnCall.
+  scheduleName?: string | undefined;
+  // AwayWithNobodyCovering, NotProjectMember.
+  userName?: string | undefined;
+  // AwayWithNobodyCovering: when they are back, as an ISO date.
+  awayUntil?: string | undefined;
+  // The sentence, in English.
+  message: string;
+}
+
 // One person a test will page.
 export interface OnCallTestPagePreviewPerson {
   userId: string;
   userName: string;
   // Why them, for a policy's test: "Team Platform", "Schedule Primary".
   reachedThrough?: string | undefined;
+  // The same, as a code (#7015). Absent from an older server's preview.
+  reachedThroughCode?: OnCallTestPageReachedThrough | undefined;
   methods: Array<OnCallTestPagePreviewMethod>;
   /*
    * No rule of theirs covers the test's severity: a real page - and so the
@@ -649,6 +734,8 @@ export interface OnCallTestPagePreviewPerson {
   isOptedOut: boolean;
   // A channel switched off in the project, and the like: said before sending.
   warnings: Array<string>;
+  // The same, as codes, one for each (#7015). Absent from an older server's preview.
+  warningCodes?: Array<OnCallTestPageWarning> | undefined;
 }
 
 // What a test costs on OneUptime Cloud, from the project's balance.
@@ -663,14 +750,76 @@ export interface OnCallTestPageCost {
   estimatedCostInUSDCents?: number | undefined;
 }
 
+/*
+ * One level after the first that a policy's test reaches when it walks
+ * every level and nobody acknowledges it (#7016).
+ */
+export interface OnCallTestPagePreviewLevel {
+  // Its order in the policy: 2 for the second level.
+  order: number;
+  // When the walk pages it at the earliest, in minutes after the test is sent.
+  startsAfterMinutes: number;
+  people: Array<OnCallTestPagePreviewPerson>;
+  notPaged: Array<string>;
+  notPagedCodes: Array<OnCallTestPageNotPaged>;
+}
+
 export interface OnCallTestPagePreview {
   kind: OnCallTestPageKind;
   people: Array<OnCallTestPagePreviewPerson>;
   // Targets of a policy's first level that will reach nobody, and why.
   notPaged: Array<string>;
+  // The same, as codes, one for each (#7015). Absent from an older server's preview.
+  notPagedCodes?: Array<OnCallTestPageNotPaged> | undefined;
   // How many escalation levels the policy has.
   levelCount?: number | undefined;
+  // What a test of the first level only costs: a test of people, or a policy's.
   cost: OnCallTestPageCost;
+  /*
+   * A policy's test that walks every level (#7016): the levels after the
+   * first it reaches before it ends, nobody acknowledging it
+   * (getOnCallTestPageWalkStart), and how many it never reaches.
+   */
+  walkLevels?: Array<OnCallTestPagePreviewLevel> | undefined;
+  walkUnreachedLevelCount?: number | undefined;
+  /*
+   * What a test that walks every level costs at most: the first level and
+   * every level in walkLevels. Absent from an older server's preview.
+   */
+  walkCost?: OnCallTestPageCost | undefined;
+}
+
+/*
+ * WHEN A TEST THAT WALKS EVERY LEVEL PAGES THE NEXT ONE (#7016), nobody
+ * acknowledging it: the level before it started `previousStartsAfterMinutes`
+ * after the test was sent, and waits its own wait cut to a test's short one
+ * (getOnCallTestPageEscalationWaitInMinutes) - none when it pages nobody, as
+ * a run moves past such a level at once (OnCallEscalationAdvance). The worker
+ * moves a run on at its first tick once a wait is over, so a level starts
+ * then or a little later, never sooner.
+ */
+export function getOnCallTestPageWalkStart(data: {
+  previousStartsAfterMinutes: number;
+  previousWaitInMinutes: number | null | undefined;
+  previousPagesAnybody: boolean;
+}): number {
+  return (
+    data.previousStartsAfterMinutes +
+    (data.previousPagesAnybody
+      ? getOnCallTestPageEscalationWaitInMinutes(data.previousWaitInMinutes)
+      : 0)
+  );
+}
+
+/*
+ * Whether a level a walk would page `startsAfterMinutes` after the test was
+ * sent is paged at all: the test ends ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN
+ * _MINUTES after it started, before it moves on again.
+ */
+export function isOnCallTestPageWalkLevelReached(
+  startsAfterMinutes: number,
+): boolean {
+  return startsAfterMinutes < ON_CALL_TEST_PAGE_ANSWER_WINDOW_IN_MINUTES;
 }
 
 /*

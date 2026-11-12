@@ -1,4 +1,8 @@
 import PageMap from "../../Utils/PageMap";
+import {
+  ChannelGatedMethodList,
+  getChannelGatedMethodList,
+} from "../NotificationMethods/ProjectNotificationChannelsCopy";
 import Color from "Common/Types/Color";
 import {
   Blue500,
@@ -7,14 +11,28 @@ import {
   Red500,
   Yellow500,
 } from "Common/Types/BrandColors";
+import OneUptimeDate from "Common/Types/Date";
 import { OnCallPageChannel } from "Common/Types/OnCallDutyPolicy/OnCallPageChannel";
 import {
   OnCallTestPageDeliveryStatus,
   OnCallTestPageFix,
+  OnCallTestPageNotPaged,
+  OnCallTestPageNotPagedCode,
+  OnCallTestPagePreviewPerson,
+  OnCallTestPageReachedThrough,
+  OnCallTestPageReachedThroughCode,
   OnCallTestPageStatus,
   OnCallTestPageStepStatus,
+  OnCallTestPageWarning,
+  OnCallTestPageWarningCode,
 } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
-import { translationKey } from "Common/UI/Utils/TranslateTemplate";
+import {
+  PluralTemplate,
+  TemplateValue,
+  translatableTerm,
+  translationKey,
+  Translator,
+} from "Common/UI/Utils/TranslateTemplate";
 
 /*
  * THE WORDS A TEST PAGE'S DIALOG AND RESULT USE (OnCallTestPage), each a
@@ -210,4 +228,357 @@ export function getFixLink(data: {
   }
 
   return FIX_LINKS[data.fix];
+}
+
+/*
+ * WHAT A PREVIEW SAYS, IN THE READER'S WORDS (#7015). The server sends each
+ * warning, each target that reaches nobody and each "why them" as a code
+ * with its values (Types/OnCallDutyPolicy/OnCallTestPage), and each is one
+ * whole sentence here. A code this Dashboard does not know - or a preview
+ * from a server that sent none - shows the server's English.
+ */
+
+// Why a policy's test pages a person: "Team Platform", "Schedule Primary".
+export const REACHED_THROUGH_WORDS: Readonly<
+  Record<OnCallTestPageReachedThroughCode, string>
+> = {
+  [OnCallTestPageReachedThroughCode.Team]: translationKey("Team {{name}}"),
+  [OnCallTestPageReachedThroughCode.Schedule]:
+    translationKey("Schedule {{name}}"),
+  [OnCallTestPageReachedThroughCode.ScheduleNextInRotation]: translationKey(
+    "Schedule {{name}} (next in rotation)",
+  ),
+  [OnCallTestPageReachedThroughCode.CoveringFor]: translationKey(
+    "Covering for {{name}}",
+  ),
+};
+
+// What a preview warns about a person, the ones that name no channel.
+export const WARNING_SENTENCES: Readonly<
+  Record<
+    | OnCallTestPageWarningCode.OptedOut
+    | OnCallTestPageWarningCode.NoRuleNoFallback
+    | OnCallTestPageWarningCode.NoRuleFallsBack,
+    string
+  >
+> = {
+  [OnCallTestPageWarningCode.OptedOut]: translationKey(
+    "Opted out of pages of this severity, so the test sends nothing.",
+  ),
+  [OnCallTestPageWarningCode.NoRuleNoFallback]: translationKey(
+    "No on-call rule covers this severity, and this project does not fall back to verified methods: the test sends nothing.",
+  ),
+  [OnCallTestPageWarningCode.NoRuleFallsBack]: translationKey(
+    "No on-call rule covers this severity: like a real page, the test goes to every verified method instead.",
+  ),
+};
+
+// A method a rule uses that is not verified, by its channel.
+export const METHOD_NOT_VERIFIED_SENTENCES: Readonly<
+  Record<OnCallPageChannel, string>
+> = {
+  [OnCallPageChannel.Call]: translationKey(
+    "This phone call method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.SMS]: translationKey(
+    "This SMS method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.WhatsApp]: translationKey(
+    "This WhatsApp method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.Telegram]: translationKey(
+    "This Telegram method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.Push]: translationKey(
+    "This push notification method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.Email]: translationKey(
+    "This email method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.Slack]: translationKey(
+    "This Slack method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.MicrosoftTeams]: translationKey(
+    "This Microsoft Teams method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.Mattermost]: translationKey(
+    "This Mattermost method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.Webhook]: translationKey(
+    "This webhook method is not verified, so the test can't use it.",
+  ),
+  [OnCallPageChannel.CustomChannel]: translationKey(
+    "This custom channel is turned off, so the test can't use it.",
+  ),
+};
+
+/*
+ * A channel switched off in the project: what Notification Methods says of
+ * it, who can turn it on and where (ProjectNotificationChannelsCopy).
+ */
+const CHANNEL_OFF_LISTS: Readonly<
+  Partial<Record<OnCallPageChannel, ChannelGatedMethodList>>
+> = {
+  [OnCallPageChannel.SMS]: ChannelGatedMethodList.SMS,
+  [OnCallPageChannel.Call]: ChannelGatedMethodList.Call,
+  [OnCallPageChannel.WhatsApp]: ChannelGatedMethodList.WhatsApp,
+  [OnCallPageChannel.Telegram]: ChannelGatedMethodList.Telegram,
+};
+
+// Why a target of a policy's level reaches nobody.
+export const NOT_PAGED_SENTENCES: Readonly<{
+  policyHasNoLevels: string;
+  firstLevelNamesNobody: string;
+  levelNamesNobody: string;
+  teamHasNoMembers: string;
+  nobodyNextInRotation: string;
+  nobodyOnCall: string;
+  awayWithNobodyCovering: string;
+  notProjectMember: string;
+}> = {
+  policyHasNoLevels: translationKey(
+    "This policy has no escalation rules yet, so a test pages nobody.",
+  ),
+  firstLevelNamesNobody: translationKey(
+    "The first escalation rule pages nobody yet. Add people, a team or a schedule to it.",
+  ),
+  levelNamesNobody: translationKey(
+    "Escalation rule {{order}} pages nobody yet. Add people, a team or a schedule to it.",
+  ),
+  teamHasNoMembers: translationKey("Team {{name}} has no members."),
+  nobodyNextInRotation: translationKey(
+    "Nobody is next in the rotation of schedule {{name}}.",
+  ),
+  nobodyOnCall: translationKey("Nobody is on call in schedule {{name}} now."),
+  awayWithNobodyCovering: translationKey(
+    "{{name}} is away until {{time}}, with nobody covering.",
+  ),
+  notProjectMember: translationKey("{{name}} is not a member of this project."),
+};
+
+/*
+ * THE WALK (#7016): a policy's test that walks every level pages each in
+ * turn until somebody acknowledges it - each level's heading, the levels it
+ * never reaches, and what it costs at most.
+ */
+export const WALK_LEVEL_RIGHT_AWAY: string = translationKey(
+  "Level {{order}}, right away",
+);
+
+export const WALK_LEVEL_AFTER: PluralTemplate = {
+  one: "Level {{order}}, after {{count}} minute",
+  other: "Level {{order}}, after {{count}} minutes",
+};
+
+export const WALK_UNREACHED_LEVELS: PluralTemplate = {
+  one: "The test ends before it reaches {{count}} more level.",
+  other: "The test ends before it reaches {{count}} more levels.",
+};
+
+// What a test costs, in a sentence: the first level's, or a walk's at most.
+export const COST_SENTENCES: Readonly<{
+  firstLevel: { withAmount: string; withoutAmount: string };
+  walk: { withAmount: string; withoutAmount: string };
+}> = {
+  firstLevel: {
+    withAmount: translationKey(
+      "This test sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+    ),
+    withoutAmount: translationKey(
+      "This test sends {{items}}, paid from this project's SMS and call balance.",
+    ),
+  },
+  walk: {
+    withAmount: translationKey(
+      "If nobody acknowledges it, walking every level sends up to {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+    ),
+    withoutAmount: translationKey(
+      "If nobody acknowledges it, walking every level sends up to {{items}}, paid from this project's SMS and call balance.",
+    ),
+  },
+};
+
+// A name in a sentence, or "Someone" when the server had none.
+function nameOr(name: string | undefined): TemplateValue {
+  return name || translatableTerm("Someone");
+}
+
+// Why a policy's test pages this person, in the reader's words.
+export function getReachedThroughWords(
+  translator: Translator,
+  person: Pick<
+    OnCallTestPagePreviewPerson,
+    "reachedThrough" | "reachedThroughCode"
+  >,
+): string {
+  const code: OnCallTestPageReachedThrough | undefined =
+    person.reachedThroughCode;
+  const template: string | undefined = code
+    ? REACHED_THROUGH_WORDS[code.code]
+    : undefined;
+
+  if (!code || !template) {
+    return person.reachedThrough || "";
+  }
+
+  return translator.translateTemplate(
+    template,
+    { name: code.name },
+    { setsValuesApart: true },
+  );
+}
+
+// One warning about a person, in the reader's words.
+export function getWarningSentence(
+  translator: Translator,
+  warning: OnCallTestPageWarning,
+): string {
+  switch (warning.code) {
+    case OnCallTestPageWarningCode.OptedOut:
+    case OnCallTestPageWarningCode.NoRuleNoFallback:
+    case OnCallTestPageWarningCode.NoRuleFallsBack:
+      return translator.translateTemplate(WARNING_SENTENCES[warning.code]);
+    case OnCallTestPageWarningCode.ChannelOff: {
+      const list: ChannelGatedMethodList | undefined = warning.channel
+        ? CHANNEL_OFF_LISTS[warning.channel]
+        : undefined;
+
+      return list
+        ? translator.translateTemplate(
+            getChannelGatedMethodList(list).offSentence,
+          )
+        : warning.message;
+    }
+    case OnCallTestPageWarningCode.MethodNotVerified: {
+      const sentence: string | undefined = warning.channel
+        ? METHOD_NOT_VERIFIED_SENTENCES[warning.channel]
+        : undefined;
+
+      return sentence
+        ? translator.translateTemplate(sentence)
+        : warning.message;
+    }
+  }
+
+  return warning.message;
+}
+
+/*
+ * A person's warnings, in the reader's words: from their codes, or the
+ * server's English when it sent none.
+ */
+export function getPersonWarnings(
+  translator: Translator,
+  person: Pick<OnCallTestPagePreviewPerson, "warnings" | "warningCodes">,
+): Array<string> {
+  if (!Array.isArray(person.warningCodes)) {
+    return person.warnings;
+  }
+
+  return person.warningCodes.map((warning: OnCallTestPageWarning): string => {
+    return getWarningSentence(translator, warning);
+  });
+}
+
+// Why one target of a level reaches nobody, in the reader's words.
+export function getNotPagedSentence(
+  translator: Translator,
+  notPaged: OnCallTestPageNotPaged,
+): string {
+  switch (notPaged.code) {
+    case OnCallTestPageNotPagedCode.PolicyHasNoLevels:
+      return translator.translateTemplate(
+        NOT_PAGED_SENTENCES.policyHasNoLevels,
+      );
+    case OnCallTestPageNotPagedCode.LevelNamesNobody:
+      return notPaged.levelOrder && notPaged.levelOrder > 1
+        ? translator.translateTemplate(NOT_PAGED_SENTENCES.levelNamesNobody, {
+            order: translator.formatNumber(notPaged.levelOrder),
+          })
+        : translator.translateTemplate(
+            NOT_PAGED_SENTENCES.firstLevelNamesNobody,
+          );
+    case OnCallTestPageNotPagedCode.TeamHasNoMembers:
+      return translator.translateTemplate(
+        NOT_PAGED_SENTENCES.teamHasNoMembers,
+        { name: notPaged.teamName || "" },
+        { setsValuesApart: true },
+      );
+    case OnCallTestPageNotPagedCode.NobodyNextInRotation:
+      return translator.translateTemplate(
+        NOT_PAGED_SENTENCES.nobodyNextInRotation,
+        { name: notPaged.scheduleName || "" },
+        { setsValuesApart: true },
+      );
+    case OnCallTestPageNotPagedCode.NobodyOnCall:
+      return translator.translateTemplate(
+        NOT_PAGED_SENTENCES.nobodyOnCall,
+        { name: notPaged.scheduleName || "" },
+        { setsValuesApart: true },
+      );
+    case OnCallTestPageNotPagedCode.AwayWithNobodyCovering:
+      return notPaged.awayUntil
+        ? translator.translateTemplate(
+            NOT_PAGED_SENTENCES.awayWithNobodyCovering,
+            {
+              name: nameOr(notPaged.userName),
+              time: OneUptimeDate.getDateAsUserFriendlyFormattedString(
+                OneUptimeDate.fromString(notPaged.awayUntil),
+              ),
+            },
+            { setsValuesApart: true },
+          )
+        : notPaged.message;
+    case OnCallTestPageNotPagedCode.NotProjectMember:
+      return translator.translateTemplate(
+        NOT_PAGED_SENTENCES.notProjectMember,
+        { name: nameOr(notPaged.userName) },
+        { setsValuesApart: true },
+      );
+  }
+
+  return notPaged.message;
+}
+
+/*
+ * The targets of a level that reach nobody, in the reader's words: from
+ * their codes, or the server's English when it sent none.
+ */
+export function getNotPagedLines(
+  translator: Translator,
+  level: {
+    notPaged: Array<string>;
+    notPagedCodes?: Array<OnCallTestPageNotPaged> | undefined;
+  },
+): Array<string> {
+  if (!Array.isArray(level.notPagedCodes)) {
+    return level.notPaged;
+  }
+
+  return level.notPagedCodes.map((notPaged: OnCallTestPageNotPaged): string => {
+    return getNotPagedSentence(translator, notPaged);
+  });
+}
+
+/*
+ * A walked level's heading: "Level 2, after 2 minutes". Its number is
+ * written in the reader's digits, as the minutes are.
+ */
+export function getWalkLevelHeading(
+  translator: Translator,
+  level: { order: number; startsAfterMinutes: number },
+): string {
+  const order: string = translator.formatNumber(level.order);
+
+  if (level.startsAfterMinutes <= 0) {
+    return translator.translateTemplate(WALK_LEVEL_RIGHT_AWAY, {
+      order: order,
+    });
+  }
+
+  return translator.translatePlural(
+    WALK_LEVEL_AFTER,
+    level.startsAfterMinutes,
+    { order: order },
+  );
 }

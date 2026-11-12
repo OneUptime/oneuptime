@@ -24,6 +24,12 @@ import { expectNoSidewaysScroll } from "../SuiteHelpers/PageFit";
  * At 1280 and 390 pixels, with nothing to scroll sideways, in dark mode and
  * in German. The fixture records every request, so the tests check what was
  * sent as well as what was drawn.
+ *
+ * And since #7015 and #7016: the preview's warnings, its "why them" and who
+ * it can't reach are worded in the reader's language from the codes the
+ * server sends (the server's English for a server that sends none), and a
+ * policy's test that walks every level shows each level it reaches, when,
+ * and what the walk costs at most.
  */
 
 const PROJECT_ID: string = "10000000-0000-4000-8000-0000000000e1";
@@ -48,6 +54,39 @@ const GERMAN: Record<string, string> = JSON.parse(
     "utf8",
   ),
 ) as Record<string, string>;
+
+// The Dashboard's Arabic words, as the fixture draws them with ?lang=ar.
+const ARABIC: Record<string, string> = JSON.parse(
+  fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../App/FeatureSet/Dashboard/src/Locales/ar.json",
+    ),
+    "utf8",
+  ),
+) as Record<string, string>;
+
+// A sentence of a locale, with its values in.
+function worded(
+  locale: Record<string, string>,
+  key: string,
+  values: Record<string, string> = {},
+): string {
+  let sentence: string = locale[key]!;
+
+  expect(sentence).toBeTruthy();
+
+  for (const [name, value] of Object.entries(values)) {
+    sentence = sentence.replace(`{{${name}}}`, value);
+  }
+
+  return sentence;
+}
+
+// What an element reads, without the marks that set its values apart.
+async function wordsOf(locator: Locator): Promise<string> {
+  return ((await locator.textContent()) || "").replace(/[\u2066-\u2069]/g, "");
+}
 
 interface RecordedRequest {
   url: string;
@@ -256,9 +295,9 @@ test("Test this policy: who its first level pages, how, and who it can't reach a
 
   await expect(people).toHaveCount(2);
   await expect(people.nth(0)).toContainText("Dana Kim");
-  await expect(people.nth(0)).toContainText("Schedule Payments primary");
+  expect(await wordsOf(people.nth(0))).toContain("Schedule Payments primary");
   await expect(people.nth(0)).toContainText(
-    "This Email method is not verified, so the test can't use it.",
+    "This email method is not verified, so the test can't use it.",
   );
   await expect(people.nth(1)).toContainText("Sam Rivera");
   await expect(people.nth(1)).toContainText(
@@ -270,6 +309,82 @@ test("Test this policy: who its first level pages, how, and who it can't reach a
 
   await expectNoSidewaysScroll(page);
   await screenshot(page, "policy-dialog-1280");
+});
+
+test("walking every level: each level it reaches, when, who it pages, and what the walk costs at most", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page, "?view=policy&cost=1");
+  await openDialog(page, "Test Payments primary");
+
+  // Off: the first level, and what it costs.
+  const cost: Locator = dialog(page).getByTestId("test-page-cost");
+
+  await expect(cost).toContainText(
+    "This test sends 1 SMS, paid from this project's SMS and call balance: about $0.10.",
+  );
+  await expect(dialog(page).getByTestId("test-page-walk")).toHaveCount(0);
+
+  await dialog(page).getByText("Walk every escalation level").click();
+
+  const levels: Locator = dialog(page).getByTestId("test-page-walk-level");
+
+  await expect(levels).toHaveCount(3);
+  await expect(levels.nth(0)).toContainText("Level 1, right away");
+  await expect(levels.nth(0)).toContainText("Dana Kim");
+  await expect(levels.nth(0)).toContainText("Lee Park is away until");
+  await expect(levels.nth(1)).toContainText("Level 2, after 2 minutes");
+  await expect(levels.nth(1)).toContainText("Ravi Shah");
+  expect(await wordsOf(levels.nth(1))).toContain("Team Database");
+  await expect(levels.nth(2)).toContainText("Level 3, after 4 minutes");
+  await expect(levels.nth(2)).toContainText(
+    "Escalation rule 3 pages nobody yet.",
+  );
+  await expect(cost).toContainText(
+    "If nobody acknowledges it, walking every level sends up to 1 SMS, 1 phone call, paid from this project's SMS and call balance: about $0.35.",
+  );
+
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "policy-walk-1280");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "policy-walk-390");
+
+  // Off again: the first level's cost.
+  await dialog(page).getByText("Walk every escalation level").click();
+  await expect(dialog(page).getByTestId("test-page-walk")).toHaveCount(0);
+  await expect(cost).toContainText("about $0.10.");
+});
+
+test("a server from before the codes and the walk: its English, and a walk priced as before", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page, "?view=policy&cost=1&old=1&lang=de");
+  await page.getByTestId("send-test-page").click();
+  await expect(dialog(page).getByTestId("test-page-preview")).toBeVisible();
+
+  await expect(
+    dialog(page).getByTestId("test-page-preview-warning").first(),
+  ).toHaveText("This Email method is not verified, so the test can't use it.");
+  await expect(
+    dialog(page).getByTestId("test-page-preview-not-paged"),
+  ).toHaveText("Lee Park is away until Nov 14, 2026, with nobody covering.");
+
+  await dialog(page).getByText(GERMAN["Walk every escalation level"]!).click();
+
+  await expect(dialog(page).getByTestId("test-page-walk")).toHaveCount(0);
+  await expect(dialog(page).getByTestId("test-page-cost")).toContainText(
+    worded(
+      GERMAN,
+      "This test sends {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+      { items: "1 SMS", amount: "$0.10" },
+    ),
+  );
 });
 
 test("a policy's test walks every level only when asked to, and names the policy and severity it tests", async ({
@@ -355,6 +470,113 @@ test("in German, the dialog and its result are worded in German", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await expectNoSidewaysScroll(page);
   await screenshot(page, "self-dialog-de-390");
+});
+
+test("in German, the policy's preview, its levels and the walk's cost are worded in German", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await openPage(page, "?view=policy&cost=1&lang=de");
+  await page.getByTestId("send-test-page").click();
+  await expect(dialog(page).getByTestId("test-page-preview")).toBeVisible();
+
+  const people: Locator = dialog(page).getByTestId("test-page-preview-person");
+
+  expect(await wordsOf(people.nth(0))).toContain(
+    worded(GERMAN, "Schedule {{name}}", { name: "Payments primary" }),
+  );
+  await expect(
+    dialog(page).getByTestId("test-page-preview-warning").first(),
+  ).toHaveText(
+    worded(
+      GERMAN,
+      "This email method is not verified, so the test can't use it.",
+    ),
+  );
+  expect(
+    await wordsOf(dialog(page).getByTestId("test-page-preview-not-paged")),
+  ).toMatch(/^Lee Park ist bis .+, ohne Vertretung\.$/);
+
+  await dialog(page).getByText(GERMAN["Walk every escalation level"]!).click();
+
+  const levels: Locator = dialog(page).getByTestId("test-page-walk-level");
+
+  await expect(levels).toHaveCount(3);
+  await expect(levels.nth(1)).toContainText("Stufe 2, nach 2 Minuten");
+  expect(await wordsOf(levels.nth(2))).toContain(
+    worded(
+      GERMAN,
+      "Escalation rule {{order}} pages nobody yet. Add people, a team or a schedule to it.",
+      { order: "3" },
+    ),
+  );
+  await expect(dialog(page).getByTestId("test-page-cost")).toContainText(
+    worded(
+      GERMAN,
+      "If nobody acknowledges it, walking every level sends up to {{items}}, paid from this project's SMS and call balance: about {{amount}}.",
+      {
+        items: [
+          worded(GERMAN, "{{count}} SMS_one", { count: "1" }),
+          worded(GERMAN, "{{count}} phone calls_one", { count: "1" }),
+        ].join(", "),
+        amount: "$0.35",
+      },
+    ),
+  );
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "policy-walk-de-390");
+});
+
+test("in Arabic, the policy's levels read from the right", async ({
+  page,
+}: {
+  page: Page;
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openPage(page, "?view=policy&cost=1&lang=ar");
+
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await page.getByTestId("send-test-page").click();
+  await expect(dialog(page).getByTestId("test-page-preview")).toBeVisible();
+  await dialog(page).getByText(ARABIC["Walk every escalation level"]!).click();
+
+  const levels: Locator = dialog(page).getByTestId("test-page-walk-level");
+
+  await expect(levels).toHaveCount(3);
+  expect(await wordsOf(levels.nth(0).locator("p").first())).toBe(
+    worded(ARABIC, "Level {{order}}, right away", { order: "1" }),
+  );
+  expect(await wordsOf(levels.nth(1).locator("p").first())).toBe(
+    worded(ARABIC, "Level {{order}}, after {{count}} minutes", {
+      order: "2",
+      count: "2",
+    }),
+  );
+  await expect(
+    dialog(page).getByTestId("test-page-preview-warning").first(),
+  ).toHaveText(
+    worded(
+      ARABIC,
+      "This email method is not verified, so the test can't use it.",
+    ),
+  );
+
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "policy-walk-ar-390");
+});
+
+test("walking every level, in dark mode", async ({ page }: { page: Page }) => {
+  await openPage(page, "?theme=dark&view=policy&cost=1");
+  await openDialog(page, "Test Payments primary");
+  await dialog(page).getByText("Walk every escalation level").click();
+  await expect(dialog(page).getByTestId("test-page-walk-level")).toHaveCount(3);
+
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await expectNoSidewaysScroll(page);
+  await screenshot(page, "policy-walk-dark-1280");
 });
 
 test("in Persian, the dialog and its result read from the right", async ({
