@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "Выберите SLO в настройках ниже.",
   "Write a query in the settings below.": "Напишите запрос в настройках ниже.",
   "Not checked until its monitor is unarchived": "Не проверяется, пока его монитор не извлекут из архива",
-  "Not checked until monitoring is back on": "Не проверяется, пока мониторинг снова не включат"
+  "Not checked until monitoring is back on": "Не проверяется, пока мониторинг снова не включат",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "У вас уже есть страница статуса «{{name}}», поэтому новая страница статуса не создана. На ней показаны выбранные вами мониторы."
 }

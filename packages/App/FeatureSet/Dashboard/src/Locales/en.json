@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "Pick an SLO in the settings below.",
   "Write a query in the settings below.": "Write a query in the settings below.",
   "Not checked until its monitor is unarchived": "Not checked until its monitor is unarchived",
-  "Not checked until monitoring is back on": "Not checked until monitoring is back on"
+  "Not checked until monitoring is back on": "Not checked until monitoring is back on",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked."
 }

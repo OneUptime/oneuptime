@@ -255,6 +255,13 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   });
   const [peopleError, setPeopleError] = useState<string>("");
   const [chosenPolicyId, setChosenPolicyId] = useState<string>("");
+  /*
+   * Save and continue found a policy another tab or device made since the
+   * step opened, and made none (#7252): said first in the step, for this
+   * page's run.
+   */
+  const [isPolicyMadeElsewhere, setIsPolicyMadeElsewhere] =
+    useState<boolean>(false);
   const [reminders, setReminders] = useState<SetupReminderStatuses>({});
 
   // Step 3.
@@ -1016,10 +1023,40 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
           [OnCallRunValue.PolicyIsExisting]: true,
         });
       } else {
+        /*
+         * Asked again just before the policy is made: another tab or device
+         * may have made the project's first one since this page read it (the
+         * website-down setup's step 2, say). Then the step turns to the
+         * project's policies, says why, and makes nothing - no second policy,
+         * and no second pair of on-call rules paging for every new incident
+         * and alert (#7252). Choices that cannot be read make nothing on a
+         * guess: the step stays as it is, to try again.
+         */
+        const latest: PolicyChoiceFacts | null =
+          await OnCallSetupApi.loadPolicyChoices().catch(() => {
+            return null;
+          });
+
+        if (!latest) {
+          setSaveError(
+            translator.translateText(ON_CALL_SETUP_COPY.couldNotSave) || "",
+          );
+          setIsSaving(false);
+          return;
+        }
+
+        if (latest.policies.length > 0 || !latest.mayCreatePolicy) {
+          setChoices(latest);
+          setChosenPolicyId(latest.policies[0]?.id || "");
+          setIsPolicyMadeElsewhere(latest.policies.length > 0);
+          setIsSaving(false);
+          return;
+        }
+
         policyId = await OnCallSetupApi.createPolicy({
           userIds: userIds,
           teamIds: teamIds,
-          addRules: mayAddRules,
+          addRules: latest.mayAddRules,
         });
         saveRun({ [OnCallRunValue.PolicyId]: policyId });
       }
@@ -1052,12 +1089,26 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
       setIsSaving(true);
 
       try {
-        await OnCallSetupApi.addEveryNewEventRules({
-          policyId: policy.id,
-          policyName: policy.name,
-          incident: missingRules.incident,
-          alert: missingRules.alert,
-        });
+        /*
+         * The policy's rules are read again just before they are added:
+         * another tab or device may have added them since, and a second
+         * pair would run the policy twice for every new incident and alert
+         * (#7252). Only the kinds still missing are added.
+         */
+        const latest: OnCallPolicyRecord | null =
+          await OnCallSetupApi.loadPolicy(policy.id);
+        const stillMissing: { incident: boolean; alert: boolean } | null =
+          latest ? getMissingRuleKinds(latest) : null;
+
+        if (stillMissing && (stillMissing.incident || stillMissing.alert)) {
+          await OnCallSetupApi.addEveryNewEventRules({
+            policyId: policy.id,
+            policyName: policy.name,
+            incident: stillMissing.incident,
+            alert: stillMissing.alert,
+          });
+        }
+
         await readPolicy(policy.id, false);
       } catch (err) {
         setSaveError(API.getFriendlyMessage(err));
@@ -1233,6 +1284,17 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
   } else {
     whoContent = (
       <div className="space-y-4">
+        {/* Why the step turned to the project's policies, said first. */}
+        {isPolicyMadeElsewhere && isExistingMode ? (
+          <p
+            className="text-sm text-gray-700"
+            data-testid="on-call-setup-policy-made-elsewhere"
+          >
+            {translator.translateText(ON_CALL_SETUP_COPY.policyMadeElsewhere)}
+          </p>
+        ) : (
+          <></>
+        )}
         <p className="text-sm text-gray-500">
           {isExistingMode
             ? translator.translateText(ON_CALL_SETUP_COPY.whoExistingHelp)
@@ -1864,6 +1926,7 @@ const OnCallGuidedSetup: FunctionComponent = (): ReactElement => {
             store.forget();
             setRun(store.save({ [OnCallRunValue.ReachConfirmed]: true }));
             setPolicy(null);
+            setIsPolicyMadeElsewhere(false);
             setResponders([]);
             setTestResult(null);
             setReminders({});

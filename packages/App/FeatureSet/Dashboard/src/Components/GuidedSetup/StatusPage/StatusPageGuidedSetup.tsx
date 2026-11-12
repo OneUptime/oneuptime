@@ -16,6 +16,7 @@ import {
   getDefaultStatusPageName,
   getPickDoneLine,
   getPickedMonitors,
+  getStartOverStatusPageName,
   getStatusPageSetupProgress,
   isStatusPageNameValid,
   isStatusPageSetupFinished,
@@ -135,6 +136,11 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
   const [pickError, setPickError] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveError, setSaveError] = useState<string>("");
+  /*
+   * Step 1 went on with a page this person already had (#7252): said once,
+   * first in step 2, for this page's run; a reload or a new run drops it.
+   */
+  const [isFoundStatusPage, setIsFoundStatusPage] = useState<boolean>(false);
 
   const facts: StatusPageSetupProgressFacts = {
     hasStatusPage: Boolean(statusPage),
@@ -276,19 +282,45 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
 
     try {
       let page: StatusPageSetupRecord | null = statusPage;
+      let foundPage: StatusPageSetupRecord | null = null;
 
       if (!page) {
-        const statusPageId: string =
-          await StatusPageSetupApi.createStatusPage(name);
-        saveRun({ [StatusPageSetupRunValue.StatusPageId]: statusPageId });
-        page = { id: statusPageId, name: name.trim() };
-        setStatusPage(page);
+        /*
+         * A page this person already made with this name is this run's: a
+         * run the browser lost (a private window, another device, storage
+         * cleared) or a second tab makes no second page with the same name
+         * (#7252). A look-up that fails throws, and nothing is made.
+         */
+        foundPage = await StatusPageSetupApi.findOwnStatusPage({
+          name: name,
+          userId: userId,
+        });
+
+        if (foundPage) {
+          page = foundPage;
+        } else {
+          const statusPageId: string =
+            await StatusPageSetupApi.createStatusPage(name);
+          saveRun({ [StatusPageSetupRunValue.StatusPageId]: statusPageId });
+          page = { id: statusPageId, name: name.trim() };
+          setStatusPage(page);
+        }
       }
 
       await StatusPageSetupApi.addMonitors({
         statusPageId: page.id,
         monitors: pickedMonitors,
       });
+
+      /*
+       * The page found is the run's once it shows what was picked: a failed
+       * add leaves the step as it was, and the next try looks again.
+       */
+      if (foundPage) {
+        saveRun({ [StatusPageSetupRunValue.StatusPageId]: foundPage.id });
+        setStatusPage(foundPage);
+        setIsFoundStatusPage(true);
+      }
 
       const nextShown: ShownMonitors =
         await StatusPageSetupApi.loadShownMonitors(page.id).catch(() => {
@@ -562,6 +594,20 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
 
   const reviewContent: ReactElement = (
     <div className="space-y-4">
+      {/* Why no new page appeared, before what the page shows. */}
+      {isFoundStatusPage && statusPage ? (
+        <p
+          className="break-words text-sm text-gray-700"
+          data-testid="guided-setup-existing-status-page"
+        >
+          {translator.translateTemplate(
+            STATUS_PAGE_SETUP_COPY.existingStatusPage,
+            { name: statusPage.name },
+          )}
+        </p>
+      ) : (
+        <></>
+      )}
       <p className="text-sm text-gray-500">
         {translator.translateText(STATUS_PAGE_SETUP_COPY.reviewHelp)}
       </p>
@@ -801,9 +847,18 @@ const StatusPageGuidedSetup: FunctionComponent<ComponentProps> = (
             store.forget();
             setRun({});
             setStatusPage(null);
+            setIsFoundStatusPage(false);
             setShown({ count: 0, names: [] });
             setPicked([]);
-            setName(defaultName);
+            // Another page needs a name of its own (#7252).
+            setName(
+              getStartOverStatusPageName({
+                defaultName: defaultName,
+                finishedName: statusPage?.name,
+              }),
+            );
+            setNameError("");
+            setPickError("");
             setSaveError("");
             setOpenStepKey(StatusPageSetupStep.Pick);
           }}

@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "请在下方的设置中选择一个 SLO。",
   "Write a query in the settings below.": "请在下方的设置中编写查询。",
   "Not checked until its monitor is unarchived": "在其监视器取消归档之前不会检查",
-  "Not checked until monitoring is back on": "在监控重新打开之前不会检查"
+  "Not checked until monitoring is back on": "在监控重新打开之前不会检查",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "你已有名为“{{name}}”的状态页，因此没有创建新的状态页。它会显示你选择的监视器。"
 }

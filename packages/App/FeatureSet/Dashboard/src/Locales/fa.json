@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "در تنظیمات زیر یک SLO انتخاب کنید.",
   "Write a query in the settings below.": "در تنظیمات زیر یک کوئری بنویسید.",
   "Not checked until its monitor is unarchived": "تا خارج شدن مانیتور آن از بایگانی بررسی نمی‌شود",
-  "Not checked until monitoring is back on": "تا روشن شدن دوباره پایش بررسی نمی‌شود"
+  "Not checked until monitoring is back on": "تا روشن شدن دوباره پایش بررسی نمی‌شود",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "شما از قبل یک صفحه وضعیت با نام «{{name}}» دارید، بنابراین صفحه وضعیت جدیدی ساخته نشد. این صفحه مانیتورهایی را که انتخاب کردید نمایش می‌دهد."
 }

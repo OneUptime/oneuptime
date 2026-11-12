@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "請在下方的設定中選擇一個 SLO。",
   "Write a query in the settings below.": "請在下方的設定中撰寫查詢。",
   "Not checked until its monitor is unarchived": "在其監測器取消封存之前不會檢查",
-  "Not checked until monitoring is back on": "在監測重新開啟之前不會檢查"
+  "Not checked until monitoring is back on": "在監測重新開啟之前不會檢查",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "你已有名為「{{name}}」的狀態頁面，因此沒有建立新的狀態頁面。它會顯示你選擇的監測器。"
 }

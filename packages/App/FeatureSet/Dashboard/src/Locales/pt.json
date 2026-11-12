@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "Escolha um SLO nas configurações abaixo.",
   "Write a query in the settings below.": "Escreva uma consulta nas configurações abaixo.",
   "Not checked until its monitor is unarchived": "Não verificado até que o monitor dele seja desarquivado",
-  "Not checked until monitoring is back on": "Não verificado até que o monitoramento seja ligado novamente"
+  "Not checked until monitoring is back on": "Não verificado até que o monitoramento seja ligado novamente",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "Você já tem uma página de status chamada \"{{name}}\", então nenhuma página de status nova foi criada. Ela mostra os monitores que você escolheu."
 }

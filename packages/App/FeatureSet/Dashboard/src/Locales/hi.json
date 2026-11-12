@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "नीचे दी गई सेटिंग में कोई SLO चुनें।",
   "Write a query in the settings below.": "नीचे दी गई सेटिंग में कोई क्वेरी लिखें।",
   "Not checked until its monitor is unarchived": "इसके मॉनिटर के अनसंग्रहीत होने तक जाँचा नहीं जाएगा",
-  "Not checked until monitoring is back on": "निगरानी फिर से चालू होने तक जाँचा नहीं जाएगा"
+  "Not checked until monitoring is back on": "निगरानी फिर से चालू होने तक जाँचा नहीं जाएगा",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "आपके पास पहले से \"{{name}}\" नाम का एक स्थिति पृष्ठ है, इसलिए कोई नया स्थिति पृष्ठ नहीं बनाया गया। इस पर आपके चुने हुए मॉनिटर दिखते हैं।"
 }

@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "اختر SLO في الإعدادات أدناه.",
   "Write a query in the settings below.": "اكتب استعلامًا في الإعدادات أدناه.",
   "Not checked until its monitor is unarchived": "لا يُتحقق منه حتى تُلغى أرشفة مراقبته",
-  "Not checked until monitoring is back on": "لا يُتحقق منه حتى يُعاد تفعيل المراقبة"
+  "Not checked until monitoring is back on": "لا يُتحقق منه حتى يُعاد تفعيل المراقبة",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "لديك بالفعل صفحة حالة باسم «{{name}}»، لذا لم تُنشأ صفحة حالة جديدة. وهي تعرض المراقبات التي اخترتها."
 }

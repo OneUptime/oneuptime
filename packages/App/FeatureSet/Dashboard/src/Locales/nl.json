@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "Kies een SLO in de instellingen hieronder.",
   "Write a query in the settings below.": "Schrijf een query in de instellingen hieronder.",
   "Not checked until its monitor is unarchived": "Niet gecontroleerd tot zijn monitor uit het archief is gehaald",
-  "Not checked until monitoring is back on": "Niet gecontroleerd tot de bewaking weer aanstaat"
+  "Not checked until monitoring is back on": "Niet gecontroleerd tot de bewaking weer aanstaat",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "Je hebt al een statuspagina met de naam \"{{name}}\", dus er is geen nieuwe statuspagina aangemaakt. Deze toont de monitoren die je hebt gekozen."
 }

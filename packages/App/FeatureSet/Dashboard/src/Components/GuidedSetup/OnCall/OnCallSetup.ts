@@ -41,7 +41,10 @@ import { getChannelName } from "../../Monitor/Overview/WhoIsToldWords";
  *      run it for every new incident and alert (#5359). A project with
  *      policies starts from one of them: the people picked join its first
  *      level, and a missing rule is added. Each person says whether a page
- *      reaches them (On-Call Readiness), with "Send setup reminder".
+ *      reaches them (On-Call Readiness), with "Send setup reminder". The
+ *      project's policies, and the policy's rules, are read again just
+ *      before either is made, so a policy or a rule another tab or device
+ *      made meanwhile is never made twice (#7252).
  *   3. What if nobody answers? Someone else after a wait, or the page
  *      again. Cloud's Free plan allows one escalation rule per policy, so
  *      there it repeats.
@@ -118,6 +121,8 @@ export const ON_CALL_SETUP_COPY: {
   whoAddToLevel: string;
   whoAddRules: string;
   whoCannotCreate: string;
+  policyMadeElsewhere: string;
+  couldNotSave: string;
   whoReadinessTitle: string;
   sendReminder: string;
   reminderSent: string;
@@ -218,6 +223,14 @@ export const ON_CALL_SETUP_COPY: {
   whoCannotCreate: translationKey(
     "Setting up an on-call policy needs permission you do not have in this project. Ask a project owner or admin to set it up; your own notification methods are ready above.",
   ),
+  /*
+   * Said when Save and continue finds a policy another tab or device made
+   * since the step opened: the step turns to the project's policies, and
+   * nothing was made twice (#7252). The website-down setup's words.
+   */
+  policyMadeElsewhere: WEBSITE_DOWN_COPY.policyMadeElsewhere,
+  // The project's policies could not be read just before: nothing is made.
+  couldNotSave: WEBSITE_DOWN_COPY.couldNotSave,
   whoReadinessTitle: translationKey("Can a page reach them?"),
   sendReminder: translationKey("Send setup reminder"),
   reminderSent: translationKey("Reminder sent"),

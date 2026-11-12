@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "아래 설정에서 SLO를 선택하세요.",
   "Write a query in the settings below.": "아래 설정에서 쿼리를 작성하세요.",
   "Not checked until its monitor is unarchived": "모니터의 보관이 취소될 때까지 확인되지 않습니다",
-  "Not checked until monitoring is back on": "모니터링이 다시 켜질 때까지 확인되지 않습니다"
+  "Not checked until monitoring is back on": "모니터링이 다시 켜질 때까지 확인되지 않습니다",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "이미 \"{{name}}\" 상태 페이지가 있으므로 새 상태 페이지를 만들지 않았습니다. 선택한 모니터가 이 페이지에 표시됩니다."
 }

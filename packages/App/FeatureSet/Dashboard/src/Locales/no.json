@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "Velg en SLO i innstillingene nedenfor.",
   "Write a query in the settings below.": "Skriv en spørring i innstillingene nedenfor.",
   "Not checked until its monitor is unarchived": "Ikke kontrollert før overvåkingen er fjernet fra arkivet",
-  "Not checked until monitoring is back on": "Ikke kontrollert før overvåkingen er slått på igjen"
+  "Not checked until monitoring is back on": "Ikke kontrollert før overvåkingen er slått på igjen",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "Du har allerede en statusside med navnet «{{name}}», så ingen ny statusside ble opprettet. Den viser monitorene du valgte."
 }

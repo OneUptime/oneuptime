@@ -51262,5 +51262,6 @@
   "Pick an SLO in the settings below.": "下の設定で SLO を選択してください。",
   "Write a query in the settings below.": "下の設定でクエリを記述してください。",
   "Not checked until its monitor is unarchived": "モニターのアーカイブが解除されるまでチェックされません",
-  "Not checked until monitoring is back on": "監視が再びオンになるまでチェックされません"
+  "Not checked until monitoring is back on": "監視が再びオンになるまでチェックされません",
+  "You already have a status page named \"{{name}}\", so no new status page was made. It shows the monitors you picked.": "すでに「{{name}}」という名前のステータスページがあるため、新しいステータスページは作成されませんでした。選択したモニターはこのページに表示されます。"
 }
