@@ -1,8 +1,8 @@
-import { Page } from "@playwright/test";
+import { Locator, Page } from "@playwright/test";
 import fs from "fs";
 import path from "path";
 import { CARD_FIT_WIDTHS, expectCardsFit } from "../SuiteHelpers/CardBodyFit";
-import { CLOUD_PATH, openCloudPage, partPath, test } from "./Helpers";
+import { CLOUD_PATH, expect, openCloudPage, partPath, test } from "./Helpers";
 
 /*
  * WHAT AN OPENSTACK CARD HOLDS LINES UP WITH ITS TITLE (#6956).
@@ -118,6 +118,47 @@ test.describe("OpenStack cards line up with their titles", () => {
       page.getByTestId("openstack-control-plane-map"),
       page.getByTestId("openstack-traces-status"),
     ]);
+
+    /*
+     * The map's line above it ("Click a service or a call...") padded
+     * itself 4px in (px-1), off its card's title and its own map once the
+     * card stopped padding it again. Its words start where the title's do
+     * and where the map's box does, at each width - read in one frame, from
+     * the words themselves, since padding sits inside an element's box.
+     */
+    const map: Locator = page.getByTestId("openstack-control-plane-map");
+
+    for (const size of CARD_FIT_WIDTHS) {
+      await page.setViewportSize(size);
+
+      const starts: { title: number; caption: number; map: number } =
+        await map.evaluate(
+          (body: Element): { title: number; caption: number; map: number } => {
+            // Where an element's words start: the left of their first line.
+            const wordsStart: (element: Element) => number = (
+              element: Element,
+            ): number => {
+              const words: Range = document.createRange();
+              words.selectNodeContents(element);
+
+              return words.getClientRects()[0]!.left;
+            };
+            const card: Element = body.closest('[data-testid="card"]')!;
+            const drawn: Element = body.querySelector(".trace-service-map")!;
+
+            return {
+              title: wordsStart(
+                card.querySelector('[data-testid="card-header"] h2')!,
+              ),
+              caption: wordsStart(drawn.children[0]!),
+              map: drawn.children[1]!.getBoundingClientRect().left,
+            };
+          },
+        );
+
+      expect(Math.abs(starts.caption - starts.title)).toBeLessThanOrEqual(0.5);
+      expect(Math.abs(starts.caption - starts.map)).toBeLessThanOrEqual(0.5);
+    }
 
     await atLaptopWidth(page);
     await openCloudPage(page, "traces", "");
