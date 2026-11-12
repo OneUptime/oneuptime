@@ -639,6 +639,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
           <ExploreSampleProject
             className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4"
             from={SampleProjectEntryPoint.Goals}
+            isOffered={answer.canExploreSampleProject}
             buttonStyle={ButtonStyleType.PRIMARY}
           />
         ) : (
@@ -777,6 +778,7 @@ const GettingStarted: FunctionComponent<ComponentProps> = (
           <ExploreSampleProject
             className="mt-6 border-t border-gray-100 pt-4"
             from={SampleProjectEntryPoint.Home}
+            isOffered={answer.canExploreSampleProject}
             buttonSize={ButtonSize.Small}
           />
         ) : (

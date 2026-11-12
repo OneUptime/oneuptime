@@ -11,19 +11,10 @@ import Button, {
   ButtonSize,
   ButtonStyleType,
 } from "Common/UI/Components/Button/Button";
-import GlobalConfigUtil, {
-  GlobalConfigVars,
-} from "Common/UI/Utils/GlobalConfig";
 import ProductEvents from "Common/UI/Utils/ProductEvents";
-import UserUtil from "Common/UI/Utils/User";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import useTranslator from "Common/UI/Utils/UseTranslator";
-import React, {
-  FunctionComponent,
-  ReactElement,
-  useEffect,
-  useState,
-} from "react";
+import React, { FunctionComponent, ReactElement, useState } from "react";
 
 /*
  * "Explore Sample Project" (issue #6808): one click makes the person's
@@ -37,29 +28,15 @@ import React, {
  * Not offered where the person may not make a project: a server whose
  * admin keeps project creation to admins makes no sample for anyone else
  * (SampleProjectService), so the button is left out rather than refused.
+ * The page that offers it says whether it may (isOffered), from what it
+ * already read: the "No projects" page from the server's settings, Home
+ * from its Welcome checklist answer - so offering it costs no request.
  */
-
-/*
- * Whether this person may have a sample made here: a master admin always,
- * anyone else unless the server keeps project creation to admins. Read as
- * yes when the server's answer cannot be had: the server still decides.
- */
-export const canExploreSampleProject: (data: {
-  isMasterAdmin: boolean;
-  vars: Pick<GlobalConfigVars, "disableUserProjectCreation"> | null;
-}) => boolean = (data: {
-  isMasterAdmin: boolean;
-  vars: Pick<GlobalConfigVars, "disableUserProjectCreation"> | null;
-}): boolean => {
-  if (data.isMasterAdmin) {
-    return true;
-  }
-
-  return !data.vars?.disableUserProjectCreation;
-};
 
 export interface ComponentProps {
   from: SampleProjectEntryPoint;
+  // Whether this person may have a sample made here (canExploreSampleProject).
+  isOffered: boolean;
   buttonStyle?: ButtonStyleType | undefined;
   buttonSize?: ButtonSize | undefined;
   // The line that says what the sample is. Shown unless the page says it already.
@@ -73,32 +50,6 @@ const ExploreSampleProject: FunctionComponent<ComponentProps> = (
   const translator: Translator = useTranslator();
   const [isOpening, setIsOpening] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [isOffered, setIsOffered] = useState<boolean>(false);
-
-  useEffect(() => {
-    let isCurrent: boolean = true;
-    const isMasterAdmin: boolean = Boolean(UserUtil.isMasterAdmin());
-
-    GlobalConfigUtil.fetchVars()
-      .then((vars: GlobalConfigVars) => {
-        if (isCurrent) {
-          setIsOffered(
-            canExploreSampleProject({ isMasterAdmin: isMasterAdmin, vars: vars }),
-          );
-        }
-      })
-      .catch(() => {
-        if (isCurrent) {
-          setIsOffered(
-            canExploreSampleProject({ isMasterAdmin: isMasterAdmin, vars: null }),
-          );
-        }
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, []);
 
   const explore: () => Promise<void> = async (): Promise<void> => {
     setIsOpening(true);
@@ -121,7 +72,7 @@ const ExploreSampleProject: FunctionComponent<ComponentProps> = (
     openProjectHome(new ObjectID(result.value.projectId));
   };
 
-  if (!isOffered) {
+  if (!props.isOffered) {
     return <></>;
   }
 

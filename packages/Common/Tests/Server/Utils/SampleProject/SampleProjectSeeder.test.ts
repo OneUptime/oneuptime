@@ -147,6 +147,8 @@ const SERVICES: Record<string, unknown> = {
   StatusPageResourceService,
   StatusPageService,
   TeamMemberService,
+  UserOnCallLogService,
+  UserOnCallLogTimelineService,
   UserService,
 };
 
@@ -350,7 +352,10 @@ describe("it never does what a real record does", () => {
           });
         }
 
-        if (/^subscriberNotificationStatus/.test(key)) {
+        if (
+          /^subscriberNotificationStatus(On[A-Za-z]+)?$/.test(key) &&
+          value !== undefined
+        ) {
           expect({ service: call.service, key, value }).toEqual({
             service: call.service,
             key,
@@ -358,6 +363,22 @@ describe("it never does what a real record does", () => {
           });
         }
       }
+    }
+
+    // A new incident and a new event tell no subscriber.
+    for (const incident of rowsOf("IncidentService")) {
+      expect(incident["subscriberNotificationStatusOnIncidentCreated"]).toBe(
+        StatusPageSubscriberNotificationStatus.Skipped,
+      );
+      expect(
+        incident["shouldStatusPageSubscribersBeNotifiedOnIncidentCreated"],
+      ).toBe(false);
+    }
+
+    for (const maintenance of rowsOf("ScheduledMaintenanceService")) {
+      expect(maintenance["subscriberNotificationStatusOnEventScheduled"]).toBe(
+        StatusPageSubscriberNotificationStatus.Skipped,
+      );
     }
 
     // The records a job would notify for carry the flags at all.

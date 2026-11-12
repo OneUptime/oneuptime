@@ -971,6 +971,8 @@ import { AddUserOnCallLogTimelineSendingIndex1809120200000 } from "./18091202000
 import { AddMonitorStatusTimelineIsMonitoringOff1809122600000 } from "./1809122600000-AddMonitorStatusTimelineIsMonitoringOff";
 import { AddProjectProductsAndPins1809122700000 } from "./1809122700000-AddProjectProductsAndPins";
 import { AddProductFeedback1809123000000 } from "./1809123000000-AddProductFeedback";
+import { AddSampleProject1809123500000 } from "./1809123500000-AddSampleProject";
+import { AddSampleProjectUserIndex1809123500001 } from "./1809123500001-AddSampleProjectUserIndex";
 
 export default [
   InitialMigration,
@@ -1946,4 +1948,6 @@ export default [
   AddMonitorStatusTimelineIsMonitoringOff1809122600000,
   AddProjectProductsAndPins1809122700000,
   AddProductFeedback1809123000000,
+  AddSampleProject1809123500000,
+  AddSampleProjectUserIndex1809123500001,
 ];

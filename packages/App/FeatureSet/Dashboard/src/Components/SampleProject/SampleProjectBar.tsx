@@ -89,11 +89,9 @@ const SampleProjectBar: FunctionComponent<ComponentProps> = (
       days_kept: props.project.createdAt
         ? Math.max(
             0,
-            Math.floor(
-              OneUptimeDate.getDifferenceInDays(
-                OneUptimeDate.getCurrentDate(),
-                props.project.createdAt,
-              ),
+            OneUptimeDate.getDaysBetweenTwoDates(
+              props.project.createdAt,
+              OneUptimeDate.getCurrentDate(),
             ),
           )
         : 0,

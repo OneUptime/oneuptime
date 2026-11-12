@@ -385,6 +385,7 @@ describe("nothing leaves a sample, and nobody joins it", () => {
 
     const samplePerson: User = new User();
     samplePerson.sampleProjectId = SAMPLE_ID;
+    jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(UserService, "findOneById").mockResolvedValue(samplePerson);
 
     await expect(
@@ -398,6 +399,7 @@ describe("nothing leaves a sample, and nobody joins it", () => {
   });
 
   test("a real invitation goes ahead, and OneUptime writes the sample's own members", async () => {
+    jest.spyOn(PostgresAppInstance, "isConnected").mockReturnValue(true);
     jest.spyOn(UserService, "findOneById").mockResolvedValue(new User());
 
     await expect(

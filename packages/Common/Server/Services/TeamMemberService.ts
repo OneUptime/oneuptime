@@ -15,6 +15,7 @@ import UpdateBy from "../Types/Database/UpdateBy";
 import EditionEnforcement from "../Utils/EditionEnforcement";
 import Errors from "../Utils/Errors";
 import logger, { LogAttributes } from "../Utils/Logger";
+import PostgresAppInstance from "../Infrastructure/PostgresDatabase";
 import ProductAnalytics from "../Utils/ProductAnalytics";
 import UserRegistrationToken from "../Utils/UserRegistrationToken";
 import PublicMessageRateLimit, {
@@ -221,7 +222,8 @@ export class TeamMemberService extends ProjectReferencesService<TeamMember> {
       throw new BadDataException(SAMPLE_PROJECT_REFUSALS.samplePersonElsewhere);
     }
 
-    if (data.namedUserId) {
+    // Read only with a database to read from (a unit test has none).
+    if (data.namedUserId && PostgresAppInstance.isConnected()) {
       const namedUser: User | null = await UserService.findOneById({
         id: data.namedUserId,
         select: {

@@ -804,15 +804,16 @@ describe("the verifier's follow-up rounds obey Enable AI", () => {
       },
     );
 
-    it("reads the project once, as root, selecting Enable AI and nothing else", async () => {
+    it("reads the project once, as root, selecting Enable AI and whether it is a sample, and nothing else", async () => {
       const spies: EngineSpies = mockFollowUps(projectRow(true));
 
       await followUp();
 
       expect(spies.findProject).toHaveBeenCalledTimes(1);
+      // A sample project uses no AI (#6808): read with the switch, on the same row.
       expect(spies.findProject.mock.calls[0]![0]).toEqual({
         id: PROJECT_ID,
-        select: { enableAi: true },
+        select: { enableAi: true, isSampleProject: true },
         props: { isRoot: true },
       });
     });

@@ -10,6 +10,7 @@ import ProjectMilestoneService, {
 } from "./ProjectMilestoneService";
 import ProjectProductsService from "./ProjectProductsService";
 import ProjectService from "./ProjectService";
+import SampleProjectService from "./SampleProjectService";
 import StatusPageService from "./StatusPageService";
 import TeamMemberService from "./TeamMemberService";
 import ToolImportRunService from "./ToolImportRunService";
@@ -238,6 +239,12 @@ export default class WelcomeChecklistService {
     });
 
     answer.canSendEmail = serverCanSendEmail;
+    /*
+     * Whether the card may offer a sample project (#6808): to someone who
+     * set the project up, on a server that lets them make projects.
+     */
+    answer.canExploreSampleProject =
+      isSetUpCaller && (await this.canExploreSampleProject(caller));
     answer.steps = checklist.steps;
     answer.doneCount = checklist.doneCount;
     answer.totalCount = checklist.totalCount;
@@ -271,6 +278,27 @@ export default class WelcomeChecklistService {
     });
 
     return answer;
+  }
+
+  /*
+   * Whether this server lets the caller make a sample project (#6808). The
+   * card offers none when that cannot be told: the offer is a help, and
+   * the route that makes one asks again.
+   */
+  private static async canExploreSampleProject(
+    caller: WelcomeChecklistCaller,
+  ): Promise<boolean> {
+    try {
+      return await SampleProjectService.canCreateFor({
+        isMasterAdmin: Boolean(caller.props.isMasterAdmin),
+      });
+    } catch (err) {
+      logger.debug(
+        `Could not tell whether a sample project may be made for project ${caller.projectId.toString()}; it is not offered.`,
+      );
+      logger.debug(err);
+      return false;
+    }
   }
 
   /*

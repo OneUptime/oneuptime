@@ -192,6 +192,7 @@ const Welcome: FunctionComponent<ComponentProps> = (
               <ExploreSampleProject
                 className="max-w-md text-center"
                 from={SampleProjectEntryPoint.Welcome}
+                isOffered={canCreateProject}
               />
             </div>
           }

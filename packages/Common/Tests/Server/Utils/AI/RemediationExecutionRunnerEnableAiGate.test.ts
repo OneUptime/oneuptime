@@ -429,9 +429,10 @@ describe("RemediationExecutionRunner — Enable AI is the one project gate for e
        * which are no switch.
        */
       expect(projectRead).toHaveBeenCalledTimes(2);
+      // With the switch, whether it is a sample project, which uses no AI (#6808).
       expect(projectRead).toHaveBeenNthCalledWith(1, {
         id: PROJECT_ID,
-        select: { enableAi: true },
+        select: { enableAi: true, isSampleProject: true },
         props: { isRoot: true },
       });
       expect(

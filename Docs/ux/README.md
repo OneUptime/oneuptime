@@ -391,6 +391,13 @@ work out, starts from a default for everything else, and folds what most people 
   [MonitorSummaryViewsLayoutGuard](../../packages/App/Tests/Dashboard/MonitorSummaryViewsLayoutGuard.test.ts).
 - **Banners are for exceptions the person must act on,** never for the default state. Enforced by
   [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
+- **A sample project says what it is on every page.** It is the one bar a project shows on every
+  page, because there the project itself is the exception: nobody may take its made-up incidents
+  for their own (#6808). One dark bar at the top says "This is a sample project. Nothing here is
+  real, and nobody is notified.", with the ways out (back to their own project, Delete Sample
+  Project) and How OneUptime works, and it is drawn for a sample alone. Enforced by
+  [SampleProjectBar](../../packages/Common/Tests/App/Dashboard/SampleProjectBar.test.tsx) and
+  [NoAlwaysOnInfoBannersGuard](../../packages/App/Tests/Dashboard/NoAlwaysOnInfoBannersGuard.test.ts).
 - **A button that cannot be pressed looks it,** the same way everywhere: faded, with the not-allowed
   cursor. Enforced by
   [HandDrawnButtonLockedLookGuard](../../packages/Common/Tests/UI/HandDrawnButtonLockedLookGuard.test.ts).
