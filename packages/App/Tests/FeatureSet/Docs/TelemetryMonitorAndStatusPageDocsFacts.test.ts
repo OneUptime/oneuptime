@@ -3311,7 +3311,8 @@ describe("status page branding", () => {
       customCode: dashboardSource("Pages/StatusPages/View/CustomHtmlCss.tsx"),
       domains:
         dashboardSource("Components/CustomDomain/CustomDomainCopy.ts") +
-        dashboardSource("Components/CustomDomain/CustomDomainsTable.tsx"),
+        dashboardSource("Components/CustomDomain/CustomDomainsTable.tsx") +
+        dashboardSource("Components/CustomDomain/AddCustomDomainModal.tsx"),
     };
 
     for (const [where, placeholders] of [
@@ -3337,7 +3338,8 @@ describe("status page branding", () => {
           "Insert Custom JavaScript here.",
         ],
       ],
-      ["domains", ["status (leave blank for root)", "Select domain"]],
+      // Add Custom Domain asks for the address: one field.
+      ["domains", ["status.example.com"]],
     ] as Array<[string, Array<string>]>) {
       for (const placeholder of placeholders) {
         expect({
@@ -3363,7 +3365,7 @@ describe("custom domain timings", () => {
       '"StatusPageCerts:VerifyCnameWhoseCnameisNotVerified", { schedule: IsDevelopment ? EVERY_FIFTEEN_MINUTE : EVERY_FIFTEEN_MINUTE,',
     );
     expect(BRANDING).toContain(
-      "OneUptime checks every unverified domain every 15 minutes",
+      "OneUptime checks the CNAME record of every unverified domain every 15 minutes",
     );
   });
 

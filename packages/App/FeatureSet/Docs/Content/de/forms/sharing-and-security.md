@@ -55,27 +55,26 @@ Standardmäßig wird ein Formular unter seinem Link ausgeliefert, auf der eigene
 
 Das Formular auf Ihre eigene Domain zu bringen dauert drei Schritte, und nur die ersten beiden sind Ihre:
 
-1. **Die Domain hinzufügen**: eine Subdomain und eine Ihrer verifizierten Domains.
-2. **Ihren CNAME-Eintrag hinzufügen** bei Ihrem DNS-Anbieter. Der Dialog **DNS-Einrichtung** öffnet sich mit dem Eintrag, sobald Sie die Domain hinzufügen.
+1. **Die Domain hinzufügen**: Geben Sie die Adresse ein, die Leute öffnen werden, etwa `report.acme.com`.
+2. **Ihre DNS-Einträge hinzufügen** bei Ihrem DNS-Anbieter. Der Dialog **DNS-Einrichtung** zeigt sie: einen CNAME-Eintrag für die Adresse und, wenn das Projekt eine Domain zum ersten Mal verwendet, einen TXT-Eintrag, der zeigt, dass die Domain dem Projekt gehört.
 3. **Das kostenlose SSL-Zertifikat wird automatisch ausgestellt**, sobald der Eintrag gefunden ist. Es gibt keine Schaltfläche dafür.
 
 Sobald die Domain live ist, listet die Karte **Link zum Teilen** sie über dem Link des Formulars. Beide öffnen dasselbe Formular.
 
 ### Eine Domain hinzufügen
 
-Klicken Sie auf **Formular-Domain erstellen**. Der Dialog ist eine Seite:
+Klicken Sie auf **Benutzerdefinierte Domain hinzufügen**. Der Dialog fragt nach einer einzigen Sache:
 
-- **Subdomain**: nur die Bezeichnung, Platzhalter `report (leave blank for root)`. Geben Sie nur `report` ein, nicht den ganzen Hostnamen. Lassen Sie das Feld leer oder geben Sie `@` ein, um die Stammdomain zu verwenden.
-- **Domäne**: eine der Domains, die unter **Projekteinstellungen** > **Erweitert** > **Domänen** verifiziert sind, wo Sie mit einem TXT-Eintrag nachweisen, dass Ihnen eine Domain gehört. Der Link **Domain hinzufügen** neben dem Feld öffnet diese Seite in einem neuen Tab.
+- **Domäne**: die ganze Adresse, die Leute öffnen werden, Platzhalter `report.example.com`. Ein eingefügter Link funktioniert auch: Nur sein Hostname wird übernommen. Um die Stammdomain zu verwenden, geben Sie die Domain selbst ein.
 - **Weitere Felder**: eingeklappt. Öffnen Sie es nur, um ein eigenes Zertifikat zu verwenden: Schalten Sie **Benutzerdefiniertes Zertifikat hochladen** ein und fügen Sie das **Zertifikat** und seinen **Privater Schlüssel des Zertifikats** ein.
 
-Klicken Sie erneut auf **Formular-Domain erstellen**, um sie hinzuzufügen. Der Dialog schließt sich, und die **DNS-Einrichtung** der neuen Domain öffnet sich. Name und Formular einer Domain stehen fest, sobald sie hinzugefügt ist, daher ändert **Bearbeiten** nur ihr Zertifikat: Um eines davon zu ändern, fügen Sie die neue Domain hinzu und löschen die alte.
+Klicken Sie auf **Weiter**. Hat das Projekt die Domain, auf der die Adresse liegt, unter **Projekteinstellungen** > **Erweitert** > **Domänen** verifiziert, wird die Domain hinzugefügt und ihre **DNS-Einrichtung** öffnet sich. Wenn nicht, fügt OneUptime diese Domain zum Projekt hinzu, und die **DNS-Einrichtung** öffnet sich auch mit ihrem TXT-Eintrag, sodass Sie sie direkt dort verifizieren. Name und Formular einer Domain stehen fest, sobald sie hinzugefügt ist, daher ändert **Bearbeiten** nur ihr Zertifikat: Um eines davon zu ändern, fügen Sie die neue Domain hinzu und löschen die alte.
 
 Eine Domain zeigt eine Statusseite, ein Dashboard oder ein Formular, daher wird ein Name abgelehnt, den eines davon schon hat, in welchem Projekt auch immer: "report.acme.com is already in use: a domain can show only one status page, dashboard or form. Choose another subdomain, or remove report.acme.com where it is used first."
 
 ### DNS-Einrichtung und Jetzt prüfen
 
-Der Dialog **DNS-Einrichtung** zeigt den Eintrag, den Sie bei Ihrem DNS-Anbieter anlegen, jedes Feld mit einer Kopierschaltfläche: **Typ** `CNAME`, **Name** die vollständige Domain, die Sie hinzugefügt haben, und **Wert** der CNAME-Eintrag Ihrer Installation. Für eine Stammdomain erlauben viele DNS-Anbieter keinen CNAME-Eintrag: Verwenden Sie stattdessen den ALIAS-, ANAME- oder CNAME-Flattening-Eintrag Ihres Anbieters mit demselben Wert.
+Der Dialog **DNS-Einrichtung** zeigt jeden Eintrag, den Sie bei Ihrem DNS-Anbieter anlegen, jedes Feld mit einer Kopierschaltfläche: **Typ** `CNAME`, **Name** die vollständige Domain, die Sie hinzugefügt haben, und **Wert** der CNAME-Eintrag Ihrer Installation, nach dem TXT-Eintrag der Domain, solange das Projekt sie nicht verifiziert hat. Unter jedem Eintrag sagt **Jetzt prüfen**, was OneUptime nachgeschlagen hat und was zurückkam. Für eine Stammdomain erlauben viele DNS-Anbieter keinen CNAME-Eintrag: Verwenden Sie stattdessen den ALIAS-, ANAME- oder CNAME-Flattening-Eintrag Ihres Anbieters mit demselben Wert.
 
 OneUptime prüft jede nicht verifizierte Domain alle 15 Minuten, und wenn es den Eintrag findet, bestellt es in derselben Prüfung das kostenlose Let's-Encrypt-Zertifikat der Domain. Um sofort zu prüfen, klicken Sie auf **Jetzt prüfen**. Bis eine Domain live ist, hat ihre Zeile eine Aktion **DNS-Einrichtung**, die denselben Dialog öffnet; dort bestellt **Jetzt prüfen** auch ein fehlgeschlagenes oder abgelaufenes Zertifikat neu, höchstens einmal pro Domain alle 15 Minuten. Die Verlängerung geschieht automatisch, lange bevor das Zertifikat abläuft.
 

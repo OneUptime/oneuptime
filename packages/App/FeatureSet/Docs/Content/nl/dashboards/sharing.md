@@ -86,29 +86,28 @@ De kaart heet **Aangepaste domeinen** en zegt wat je moet doen: laat het CNAME-r
 
 Het dashboard op je eigen domein zetten kost drie stappen, en alleen de eerste twee zijn voor jou:
 
-1. **Voeg het domein toe**: een subdomein en een van je geverifieerde domeinen.
-2. **Voeg het CNAME-record ervan toe** bij je DNS-provider. Het dialoogvenster **DNS-instelling** opent met het record zodra je het domein toevoegt.
+1. **Voeg het domein toe**: typ het adres dat mensen gaan openen, zoals `dashboard.acme.com`.
+2. **Voeg de DNS-records ervan toe** bij je DNS-provider. Het dialoogvenster **DNS-instelling** toont ze: een CNAME-record voor het adres en, de eerste keer dat het project een domein gebruikt, een TXT-record dat laat zien dat het domein van het project is.
 3. **Het gratis SSL-certificaat wordt automatisch uitgegeven** zodra het record is gevonden. Er is geen knop om op te drukken.
 
 Na verificatie is het dashboard bereikbaar op zowel je aangepaste domein als de oorspronkelijke URL.
 
 ### Het domein toevoegen
 
-Klik op **Dashboarddomein aanmaken**. Het dialoogvenster is één pagina:
+Klik op **Aangepast domein toevoegen**. Het dialoogvenster vraagt om één ding:
 
-- **Subdomein**: alleen het label, met de plaatsaanduiding `dashboard (leave blank for root)`. Voer alleen `dashboard` in, niet de hele hostnaam. Laat het leeg of voer `@` in om het hoofddomein (apex) te gebruiken.
-- **Domein**: de domeinen die zijn geverifieerd onder **Projectinstellingen → Geavanceerd → Domeinen**, waar je met een TXT-record bewijst dat een domein van jou is. Een domein dat je niet hebt geverifieerd, staat er niet tussen, omdat het zou worden geweigerd. De link **Domein toevoegen** naast het veld opent die pagina in een nieuw tabblad.
+- **Domein**: het volledige adres dat mensen gaan openen, met de plaatsaanduiding `dashboard.example.com`. Een geplakte link werkt ook: alleen de hostnaam ervan wordt bewaard. Om het hoofddomein te gebruiken, typ je gewoon het domein zelf.
 - **Meer velden**: ingeklapt. Zolang het is ingeklapt, zegt de kop welk certificaat het domein zal gebruiken: "We geven een gratis SSL-certificaat uit voor dit domein en verlengen het automatisch." Open het alleen om een eigen certificaat te gebruiken (zie hieronder).
 
-Klik op **Dashboarddomein aanmaken**. Het dialoogvenster sluit en de **DNS-instelling** van het nieuwe domein opent. De volledige naam van een domein ligt vast zodra je het toevoegt, dus **Bewerken** wijzigt alleen het certificaat. Om een ander subdomein te gebruiken, voeg je dat domein toe en verwijder je het oude.
+Klik op **Doorgaan**. Als het project het domein waarop het adres staat heeft geverifieerd, onder **Projectinstellingen → Geavanceerd → Domeinen**, wordt het domein toegevoegd en opent de **DNS-instelling** ervan. Zo niet, dan voegt OneUptime dat domein toe aan het project en opent de **DNS-instelling** ook met het TXT-record ervan, zodat je het meteen daar verifieert. De volledige naam van een domein ligt vast zodra je het toevoegt, dus **Bewerken** wijzigt alleen het certificaat. Om een ander adres te gebruiken, voeg je dat toe en verwijder je het oude.
 
 ### DNS-instelling en Nu controleren
 
-Het dialoogvenster **DNS-instelling** toont het record dat je bij je DNS-provider moet toevoegen, één veld per rij, elk met een kopieerknop: **Type** `CNAME`, **Naam** het volledige domein dat je hebt toegevoegd, en **Waarde** het dashboard-CNAME-record van je installatie. Voor een hoofddomein, zonder subdomein, voegt het dialoogvenster een opmerking toe: veel DNS-providers staan daar geen CNAME-record toe, dus gebruik in plaats daarvan het ALIAS-, ANAME- of CNAME-flattening-record van je provider, met dezelfde waarde.
+Het dialoogvenster **DNS-instelling** toont elk record dat je bij je DNS-provider moet toevoegen, één veld per rij, elk met een kopieerknop: **Type** `CNAME`, **Naam** het volledige domein dat je hebt toegevoegd, en **Waarde** het dashboard-CNAME-record van je installatie, na het TXT-record van het domein zolang het project dat niet heeft geverifieerd. Voor een hoofddomein, zonder subdomein, voegt het dialoogvenster een opmerking toe: veel DNS-providers staan daar geen CNAME-record toe, dus gebruik in plaats daarvan het ALIAS-, ANAME- of CNAME-flattening-record van je provider, met dezelfde waarde.
 
 OneUptime controleert elk ongeverifieerd domein elke 15 minuten, en wanneer de controle het record vindt, bestelt het in dezelfde controle het gratis Let's Encrypt-certificaat van het domein, of je nu terugkomt of niet. Om meteen te controleren, klik je op **Nu controleren**:
 
-- **Het record is nog niet gevonden.** Het dialoogvenster blijft open en zegt naar welk record het heeft gezocht. Een nieuw DNS-record kan even duren voordat het verschijnt. Klik later opnieuw op **Nu controleren**, of laat het over aan de controle elke 15 minuten.
+- **Het record is nog niet gevonden.** Het dialoogvenster blijft open en zegt onder elk record wat OneUptime heeft opgezocht en wat er terugkwam: niets, een andere waarde, of een adres waar een CNAME-record werd verwacht. Een nieuw DNS-record kan even duren voordat het verschijnt. Klik later opnieuw op **Nu controleren**, of laat het over aan de controle elke 15 minuten.
 - **Het record is gevonden.** Het dialoogvenster zegt "Uw CNAME-record is geverifieerd." en wat er daarna met het certificaat gebeurt. Het gratis certificaat wordt op dat moment besteld, en is meestal binnen 15 minuten actief.
 
 Totdat een domein is geverifieerd en het certificaat op zijn plek staat, heeft de rij een actie **DNS-instelling** die hetzelfde dialoogvenster opent. Op een geverifieerd domein waarvan de certificaatbestelling blijft mislukken, of waarvan het certificaat is verlopen, bestelt **Nu controleren** daar opnieuw en toont het waarom de laatste bestelling mislukte. Het bestelt hoogstens één keer per domein per 15 minuten; daartussen blijft OneUptime het zelf opnieuw proberen, en wacht het na elke opeenvolgende mislukking iets langer. Verlengen gaat automatisch, ruim voordat het certificaat verloopt, en een mislukte DNS-controle verwijdert nooit een certificaat dat nog geldig is.

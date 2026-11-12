@@ -23,7 +23,7 @@ check, from what the fixture's server kept, that the job was really done.
 | Publish a status page that shows the monitor | Home, with the website monitor | the status page shows the monitor |
 | Send first telemetry and get an alert on it | Home, in a new project | the first logs are in and a Logs monitor alerts on them |
 | As an invited member, make myself reachable | Home, as a member, SMS on for the project | my phone number is verified for SMS |
-| As a self-hosted admin, make the server able to send email | Admin Dashboard > Users | the SMTP server is saved and a test email has gone out |
+| As a self-hosted admin, make the server able to send email | Admin Dashboard, where the first admin lands (Server setup) | the SMTP server is saved and a test email has gone out |
 
 Their budgets, and today's numbers, are in `Tests/Ops/JourneyBudgets.json`. The steps
 are in `Journeys.spec.ts`, one `journey("<id>", ...)` each.

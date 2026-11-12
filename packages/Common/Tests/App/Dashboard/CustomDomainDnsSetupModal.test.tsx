@@ -31,8 +31,9 @@ import * as React from "react";
  *   - show the record the way DNS providers ask for it - type, name, value
  *     - each with a copy button;
  *   - Check now verifies the record at once, through the kind's own
- *     verify-cname;
- *   - a record that is not found keeps the dialog open with the reason;
+ *     check-dns;
+ *   - a record that is not found keeps the dialog open, with the record's
+ *     status and what was looked up and what came back;
  *   - a record that is found says what happens to the certificate next:
  *     issued within 15 minutes, already there, the uploaded one, or - when
  *     the order failed - why, and that it is tried again on its own;
@@ -47,6 +48,7 @@ import * as React from "react";
 let mockCnameRecord: string = "statuspage.oneuptime.com";
 // Whether the installation issues free certificates: yes unless a test says.
 let mockIssuesFreeCertificates: boolean = true;
+let mockBillingEnabled: boolean = true;
 
 /*
  * Getters defined on the copy, not in an object literal: the compiled
@@ -70,6 +72,15 @@ jest.mock("../../../UI/Config", () => {
   Object.defineProperty(mocked, "CUSTOM_DOMAIN_FREE_CERTIFICATES", {
     get: (): boolean => {
       return mockIssuesFreeCertificates;
+    },
+  });
+  /*
+   * OneUptime Cloud unless a test says: a self-hosted server's readiness
+   * is read when the dialog opens (CustomDomainServerReadinessNotice).
+   */
+  Object.defineProperty(mocked, "BILLING_ENABLED", {
+    get: (): boolean => {
+      return mockBillingEnabled;
     },
   });
 
@@ -138,7 +149,7 @@ const KINDS: Array<KindCase> = [
     kind: STATUS_PAGE_CUSTOM_DOMAINS,
     cnameRecord: "statuspage.oneuptime.com",
     pointsTo: "your status page",
-    verifyRoute: "/status-page-domain/verify-cname/",
+    verifyRoute: "/status-page-domain/check-dns/",
     variable: "STATUS_PAGE_CNAME_RECORD",
     helmValue: "statusPage.cnameRecord",
   },
@@ -147,7 +158,7 @@ const KINDS: Array<KindCase> = [
     kind: DASHBOARD_CUSTOM_DOMAINS,
     cnameRecord: "dashboards.oneuptime.com",
     pointsTo: "your dashboard",
-    verifyRoute: "/dashboard-domain/verify-cname/",
+    verifyRoute: "/dashboard-domain/check-dns/",
     variable: "DASHBOARD_CNAME_RECORD",
     helmValue: "dashboard.cnameRecord",
   },
@@ -160,24 +171,41 @@ const KINDS: Array<KindCase> = [
     kind: FORM_CUSTOM_DOMAINS,
     cnameRecord: "forms.oneuptime.com",
     pointsTo: "your form",
-    verifyRoute: "/form-domain/verify-cname/",
+    verifyRoute: "/form-domain/check-dns/",
     variable: "STATUS_PAGE_CNAME_RECORD",
     helmValue: "statusPage.cnameRecord",
   },
 ];
 
-// What verify-cname answers for a found record.
-function found(body: Record<string, unknown>): unknown {
+// What check-dns answers for a found record: and what happens next.
+function found(certificate: Record<string, unknown>): unknown {
   return {
     isFailure: (): boolean => {
       return false;
     },
-    data: body,
+    data: {
+      isVerified: true,
+      records: [],
+      certificate: certificate,
+    },
   };
 }
 
-// What it answers for a record that is not found yet.
-function notFound(message: string): unknown {
+// What it answers for a record that is not found yet: what it looked up.
+function notFound(record: Record<string, unknown>): unknown {
+  return {
+    isFailure: (): boolean => {
+      return false;
+    },
+    data: {
+      isVerified: false,
+      records: [record],
+    },
+  };
+}
+
+// What it answers when the request itself fails.
+function refused(message: string): unknown {
   return {
     isFailure: (): boolean => {
       return true;
@@ -252,6 +280,7 @@ describe.each(KINDS)(
     beforeEach(() => {
       mockCnameRecord = kindCase.cnameRecord;
       mockIssuesFreeCertificates = true;
+      mockBillingEnabled = true;
       mockApiGetCalls.length = 0;
       mockApiGet = async (): Promise<unknown> => {
         return found({
@@ -465,7 +494,7 @@ describe.each(KINDS)(
       ).toBeNull();
     });
 
-    test("Check now asks this kind's verify-cname about this domain", async () => {
+    test("Check now asks this kind's check-dns about this domain", async () => {
       renderDialog();
 
       await clickCheckNow();
@@ -476,10 +505,45 @@ describe.each(KINDS)(
       );
     });
 
-    test("a record that is not found keeps the dialog open with the reason, and Check now can be tried again", async () => {
+    test("a record that is not found keeps the dialog open, says what was looked up and what came back, and Check now can be tried again", async () => {
       mockApiGet = async (): Promise<unknown> => {
-        return notFound(
-          `We could not find a CNAME record for status.acme.com that points to ${kindCase.cnameRecord} yet.`,
+        return notFound({
+          type: "CNAME",
+          name: "status.acme.com",
+          expectedValue: kindCase.cnameRecord,
+          foundValues: ["other.example.net"],
+          outcome: "WrongValue",
+          checkedAt: "2026-11-11T10:00:00.000Z",
+        });
+      };
+
+      const rendered: Rendered = renderDialog();
+
+      await clickCheckNow();
+
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.cnameStatus),
+      ).toHaveTextContent("Wrong value");
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.cnameLookedUp),
+      ).toHaveTextContent(
+        `We looked up the CNAME record of status.acme.com and got other.example.net, but expected ${kindCase.cnameRecord}. Change the record's value to ${kindCase.cnameRecord}.`,
+      );
+      // When it looked, in the reader's own time.
+      expect(
+        screen.getByTestId(DNS_SETUP_TEST_IDS.cnameLookedUp),
+      ).toHaveTextContent("Checked at");
+      expect(screen.getByTestId(DNS_SETUP_TEST_IDS.record)).toBeInTheDocument();
+      expect(rendered.onVerified).not.toHaveBeenCalled();
+      expect(
+        within(dialog()).getByRole("button", { name: "Check now" }),
+      ).toBeEnabled();
+    });
+
+    test("a check that could not be made at all says why, over the record, which stays", async () => {
+      mockApiGet = async (): Promise<unknown> => {
+        return refused(
+          "We could not reach OneUptime. Check your connection and try again.",
         );
       };
 
@@ -487,14 +551,91 @@ describe.each(KINDS)(
 
       await clickCheckNow();
 
-      expect(dialog()).toHaveTextContent(
-        "We could not find a CNAME record for status.acme.com",
-      );
+      expect(dialog()).toHaveTextContent("We could not reach OneUptime.");
       expect(screen.getByTestId(DNS_SETUP_TEST_IDS.record)).toBeInTheDocument();
+      expect(screen.queryByTestId(DNS_SETUP_TEST_IDS.cnameStatus)).toBeNull();
       expect(rendered.onVerified).not.toHaveBeenCalled();
+    });
+
+    test("a CNAME that is right but whose requests do not reach OneUptime is verified, with a warning (#1521)", async () => {
+      mockApiGet = async (): Promise<unknown> => {
+        return {
+          isFailure: (): boolean => {
+            return false;
+          },
+          data: {
+            isVerified: true,
+            records: [
+              {
+                type: "CNAME",
+                name: "status.acme.com",
+                expectedValue: kindCase.cnameRecord,
+                foundValues: [kindCase.cnameRecord],
+                outcome: "Found",
+                reachedOneUptime: false,
+                httpStatus: 404,
+              },
+            ],
+            certificate: {
+              certificateStatus: CustomDomainCertificateStatus.Issuing,
+            },
+          },
+        };
+      };
+
+      renderDialog();
+      await clickCheckNow();
+
+      await waitFor(() => {
+        expect(screen.getByTestId(DNS_SETUP_TEST_IDS.verified)).toBeVisible();
+      });
+
       expect(
-        within(dialog()).getByRole("button", { name: "Check now" }),
-      ).toBeEnabled();
+        screen.getByTestId(DNS_SETUP_TEST_IDS.cnameLookedUp),
+      ).toHaveTextContent(
+        "But a request to status.acme.com did not reach OneUptime: it answered with HTTP 404.",
+      );
+    });
+
+    test("on a self-hosted server, what it still needs is said above the record", async () => {
+      mockBillingEnabled = false;
+      mockApiGet = async (call: ApiGetCall): Promise<unknown> => {
+        if (call.url.toString().includes("/server-readiness")) {
+          return {
+            isFailure: (): boolean => {
+              return false;
+            },
+            data: {
+              target: kindCase.cnameRecord,
+              checks: [
+                {
+                  id: "TargetResolves",
+                  outcome: "Fail",
+                  values: { target: kindCase.cnameRecord },
+                },
+              ],
+            },
+          };
+        }
+
+        return found({
+          certificateStatus: CustomDomainCertificateStatus.Issuing,
+        });
+      };
+
+      renderDialog();
+
+      const notice: HTMLElement = await screen.findByTestId(
+        "custom-domain-server-readiness",
+      );
+
+      expect(notice).toHaveTextContent(
+        `${kindCase.cnameRecord} does not resolve in DNS. Add an A record for it that points to this server's public IP address.`,
+      );
+      expect(mockApiGetCalls[0]!.url.toString()).toContain(
+        kindCase.verifyRoute.replace("check-dns/", "server-readiness"),
+      );
+      mockBillingEnabled = true;
     });
 
     test("a found record: the certificate is being issued, live within 15 minutes", async () => {
@@ -634,7 +775,7 @@ describe.each(KINDS)(
       await clickCheckNow();
 
       expect(mockApiGetCalls[0]!.url.toString()).toContain(
-        `/verify-cname/${row._id}`,
+        `/check-dns/${row._id}`,
       );
     });
 

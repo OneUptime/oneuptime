@@ -172,15 +172,33 @@ describe("fetchMonitors", () => {
     expect(requestHeaders()["is-multi-tenant-query"]).toBeUndefined();
   });
 
-  test("sends an empty query so disabled monitors are listed too", async () => {
+  test("leaves archived monitors out and keeps disabled ones in", async () => {
     /*
-     * The list is meant to be everything in the project. Disabled monitors are
+     * The list is every monitor of the project but the archived ones, which
+     * have left every monitor list on the web too. Disabled monitors are
      * fetched and badged rather than filtered out server-side - a responder
-     * needs to see that a monitor is not being checked at all.
+     * needs to see that a monitor is not being checked at all - so the query
+     * says nothing about disableActiveMonitoring.
+     *
+     * Before issue #6475 the query was empty, so an archived monitor whose
+     * last status was Offline sat under Issues while Home's Monitor issues
+     * count, which leaves archived monitors out, did not count it.
      */
     await fetchMonitors(PROJECT_ID);
 
-    expect(requestQuery()).toEqual({});
+    expect(requestQuery()).toEqual({ isArchived: false });
+  });
+
+  test("sends a fresh query each time, so one request cannot change the next", async () => {
+    await fetchMonitors(PROJECT_ID);
+    const first: Record<string, unknown> = requestQuery();
+    first["name"] = "changed by someone";
+
+    await fetchMonitors(PROJECT_ID);
+
+    expect(
+      (postMock.mock.calls[1]![1] as Record<string, unknown>)["query"],
+    ).toEqual({ isArchived: false });
   });
 
   test("sorts the newest monitor first", async () => {
@@ -705,10 +723,15 @@ describe("fetchMonitorCount", () => {
     expect(requestSelect()).toEqual({ _id: true });
   });
 
-  test("counts every monitor in the project", async () => {
+  test("counts every monitor the Monitors screen lists: all but the archived ones", async () => {
+    /*
+     * The All monitors row opens the Monitors screen, which lists no archived
+     * monitor (fetchMonitors), so the row counts none either. Disabled ones
+     * are listed, and counted.
+     */
     await fetchMonitorCount(PROJECT_ID);
 
-    expect(requestQuery()).toEqual({});
+    expect(requestQuery()).toEqual({ isArchived: false });
   });
 
   test("returns the envelope, so the count survives the one-row limit", async () => {
@@ -752,7 +775,21 @@ describe("fetchDisabledMonitorCount", () => {
      */
     await fetchDisabledMonitorCount(PROJECT_ID);
 
-    expect(requestQuery()).toEqual({ disableActiveMonitoring: true });
+    expect(requestQuery()).toEqual({
+      isArchived: false,
+      disableActiveMonitoring: true,
+    });
+  });
+
+  test("leaves archived monitors out, as the web's Disabled count does", async () => {
+    /*
+     * An archived monitor that was also turned off is listed nowhere: not on
+     * the Monitors screen, and not under the web's Monitors > Disabled, whose
+     * badge counts { isArchived: false, disableActiveMonitoring: true }.
+     */
+    await fetchDisabledMonitorCount(PROJECT_ID);
+
+    expect(requestQuery()["isArchived"]).toBe(false);
   });
 
   test("asks for a single row and selects the id alone", async () => {
@@ -791,19 +828,38 @@ describe("fetchInoperationalMonitorCount", () => {
     respondWith(makeListResponse([{ _id: MONITOR_ID }], { count: 2 }));
   });
 
-  test("counts the monitors whose current status is not an operational one", async () => {
+  test("counts the checked monitors whose current status is not an operational one", async () => {
     /*
      * Filtered on the status's isOperationalState flag rather than on a status
      * name or id, because every project names and ids its own statuses. This
      * tile is the one a responder glances at to decide whether anything is
      * broken, so a query that matched on a name would read as "nothing is
      * down" for every project that renamed its states.
+     *
+     * Only among the monitors that are checked (issue #6475): an archived
+     * monitor, or one whose monitoring is turned off, holds only the status
+     * its last check saw. These are the web's three conditions
+     * (Common/Utils/Monitor/NotOperationalMonitorQuery), word for word.
      */
     await fetchInoperationalMonitorCount(PROJECT_ID);
 
     expect(requestQuery()).toEqual({
+      isArchived: false,
+      disableActiveMonitoring: false,
       currentMonitorStatus: { isOperationalState: false },
     });
+  });
+
+  test("leaves out a monitor whose monitoring is off, whatever its last status was", async () => {
+    await fetchInoperationalMonitorCount(PROJECT_ID);
+
+    expect(requestQuery()["disableActiveMonitoring"]).toBe(false);
+  });
+
+  test("leaves out an archived monitor", async () => {
+    await fetchInoperationalMonitorCount(PROJECT_ID);
+
+    expect(requestQuery()["isArchived"]).toBe(false);
   });
 
   test("asks for a single row and selects the id alone", async () => {

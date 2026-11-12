@@ -928,13 +928,26 @@ export const filterPaletteCommands: (
     });
 
     if (match) {
-      matches.push({ match, index });
+      const penalty: number = command.searchPenalty || 0;
+
+      matches.push({
+        match: penalty ? { ...match, score: match.score - penalty } : match,
+        index,
+      });
     }
   });
 
+  /*
+   * A command that gives way (searchPenalty) never pushes another's
+   * fallback out: "ak" still finds API Keys by its initials although
+   * "Import from StatusCake" holds the letters.
+   */
   const hasBetterMatches: boolean = matches.some(
     (entry: IndexedMatch): boolean => {
-      return !FALLBACK_RANKS.has(entry.match.rank);
+      return (
+        !FALLBACK_RANKS.has(entry.match.rank) &&
+        !entry.match.command.searchPenalty
+      );
     },
   );
 

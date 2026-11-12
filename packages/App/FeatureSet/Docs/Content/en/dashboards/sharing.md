@@ -86,29 +86,28 @@ The card is titled **Custom Domains** and says what to do: point each domain's C
 
 Putting the dashboard on your own domain takes three steps, and only the first two are yours:
 
-1. **Add the domain**: a subdomain and one of your verified domains.
-2. **Add its CNAME record** at your DNS provider. The **DNS Setup** dialog opens with the record as soon as you add the domain.
+1. **Add the domain**: type the address people will open, such as `dashboard.acme.com`.
+2. **Add its DNS records** at your DNS provider. The **DNS Setup** dialog shows them: a CNAME record for the address and, the first time the project uses a domain, a TXT record that shows the project owns it.
 3. **The free SSL certificate is issued automatically** once the record is found. There is no button to press.
 
 Once verified, the dashboard is reachable on both your custom domain and the original URL.
 
 ### Adding the domain
 
-Click **Create Dashboard Domain**. The dialog is one page:
+Click **Add Custom Domain**. The dialog asks for one thing:
 
-- **Subdomain**: the label only, placeholder `dashboard (leave blank for root)`. Enter just `dashboard`, not the whole hostname. Leave it blank or enter `@` to use the root/apex domain.
-- **Domain**: the domains verified under **Project Settings → Advanced → Domains**, where you prove you own a domain with a TXT record. A domain you have not verified is not listed, because it would be refused. The **Add a domain** link beside the field opens that page in a new tab.
+- **Domain**: the whole address people will open, placeholder `dashboard.example.com`. A pasted link works too: only its hostname is kept. To use the root of a domain, type the domain itself.
 - **More fields**: folded. While folded, its header says which certificate the domain will use: "We issue a free SSL certificate for this domain and renew it automatically." Open it only to use a certificate of your own (see below).
 
-Click **Create Dashboard Domain**. The dialog closes and the new domain's **DNS Setup** opens. A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different subdomain, add that domain and delete the old one.
+Click **Continue**. If the project has verified the domain the address is on, under **Project Settings → Advanced → Domains**, the domain is added and its **DNS Setup** opens. If it has not, OneUptime adds that domain to the project and **DNS Setup** opens with its TXT record too, so you verify it right there. A domain's full name is fixed when you add it, so **Edit** changes only its certificate. To use a different address, add that one and delete the old one.
 
 ### DNS Setup and Check now
 
-The **DNS Setup** dialog shows the record to add at your DNS provider, one field per row, each with a copy button: **Type** `CNAME`, **Name** the full domain you added, and **Value** your installation's dashboard CNAME record. For a root domain, one without a subdomain, the dialog adds a note: many DNS providers do not allow a CNAME record there, so use your provider's ALIAS, ANAME or CNAME flattening record with the same value instead.
+The **DNS Setup** dialog shows each record to add at your DNS provider, one field per row, each with a copy button: **Type** `CNAME`, **Name** the full domain you added, and **Value** your installation's dashboard CNAME record, after the domain's TXT record while the project has not verified it. For a root domain, one without a subdomain, the dialog adds a note: many DNS providers do not allow a CNAME record there, so use your provider's ALIAS, ANAME or CNAME flattening record with the same value instead.
 
 OneUptime checks every unverified domain every 15 minutes, and when the check finds the record it orders the domain's free Let's Encrypt certificate in the same check, whether or not you come back. To check right away, click **Check now**:
 
-- **The record is not found yet.** The dialog stays open and says which record it looked for. A new DNS record can take a while to show up. Click **Check now** again later, or leave it to the 15-minute check.
+- **The record is not found yet.** The dialog stays open, and under each record says what OneUptime looked up and what came back: nothing, another value, or an address where a CNAME record was expected. A new DNS record can take a while to show up. Click **Check now** again later, or leave it to the 15-minute check.
 - **The record is found.** The dialog says "Your CNAME record is verified." and what happens to the certificate next. The free certificate is ordered at that moment, and is usually live within 15 minutes.
 
 Until a domain is verified and its certificate is in place, its row has a **DNS Setup** action that opens the same dialog. On a verified domain whose certificate order keeps failing, or whose certificate has expired, **Check now** there orders again and shows why the last order failed. It orders at most once per domain every 15 minutes; between those, OneUptime keeps retrying on its own, waiting a little longer after each failure in a row. Renewal is automatic, well before the certificate expires, and a failed DNS check never removes a certificate that is still valid.

@@ -77,20 +77,21 @@ describe("Dashboard custom domains (English docs)", () => {
     ).toEqual(new Set(["15 minutes", "15 minute"]));
   });
 
-  it("describes adding a domain as one page, from verified domains, with the certificate under More fields", () => {
+  it("describes Add Custom Domain: one field, the domain verified in place, the certificate under More fields", () => {
     const adding: string = section(
       "### Adding the domain",
       "### DNS Setup and Check now",
     );
 
-    expect(adding).toContain("Click **Create Dashboard Domain**.");
-    expect(adding).toContain("The dialog is one page");
+    expect(adding).toContain(`Click **${CustomDomainCopy.addTitle}**.`);
+    expect(adding).toContain("The dialog asks for one thing");
     expect(adding).not.toMatch(/two steps|\*\*Basic\*\*|\*\*More\*\*/);
     expect(adding).toContain(
-      `placeholder \`${DASHBOARD_CUSTOM_DOMAIN_COPY.subdomainPlaceholder}\``,
+      `placeholder \`${DASHBOARD_CUSTOM_DOMAIN_COPY.addressPlaceholder}\``,
     );
     expect(adding).toContain("**Project Settings → Advanced → Domains**");
-    expect(adding).toContain(`**${CustomDomainCopy.domainFieldSideLink}**`);
+    expect(adding).toContain(`**${CustomDomainCopy.addSubmit}**`);
+    expect(adding).toContain("its TXT record too");
     expect(adding).toContain("**More fields**");
     expect(adding).toContain(CustomDomainCopy.advancedSummaryFreeCertificate);
     expect(adding).toContain("**DNS Setup** opens");
