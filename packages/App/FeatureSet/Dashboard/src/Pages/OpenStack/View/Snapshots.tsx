@@ -177,9 +177,14 @@ const OpenStackCloudSnapshots: FunctionComponent<
           }
           sublabel={
             backupBytes !== null
-              ? translator.translateTemplate("{{size}}, listed by a probe", {
-                  size: formatOpenStackBytes(backupBytes),
-                })
+              ? translator.translateTemplate(
+                  "{{size}}, listed by a probe",
+                  {
+                    size: formatOpenStackBytes(backupBytes),
+                  },
+                  // "۶٫۰ TiB" reads with its number first in a Persian sentence.
+                  { setsValuesApart: true },
+                )
               : "Only a probe reports backups"
           }
           description="How many volume backups this cloud has, and what they add up to. Only a probe reports these: the agent's exporter has no backups."
