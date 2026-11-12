@@ -431,10 +431,10 @@ describe("on a Persian page, the dialog reads in Persian (#7181)", () => {
       "تأیید شماره تلفن",
     );
     expect(screen.getByText("کد تأیید")).toBeInTheDocument();
-    expect(screen.getByText("به دستتان نرسید؟")).toBeVisible();
+    expect(screen.getByText("دریافت نکردید؟")).toBeVisible();
     expect(
       screen.getByTestId("verification-code-send-button"),
-    ).toHaveTextContent("فرستادن کد تازه");
+    ).toHaveTextContent("ارسال کد جدید");
     expect(
       screen.getByText(/^رسیدن پیامک ممکن است یک دقیقه طول بکشد\. /),
     ).toBeVisible();
@@ -460,7 +460,7 @@ describe("on a Persian page, the dialog reads in Persian (#7181)", () => {
 
   test.each([
     ["expired", "کدی که به NUMBER فرستادیم منقضی شده است."],
-    ["none", "هیچ کدی برای NUMBER در انتظار نیست."],
+    ["none", "هیچ کدی در انتظار NUMBER نیست."],
   ] as Array<["expired" | "none", string]>)(
     "with the code %s, the sentence and what to do next are Persian",
     async (codeState: "expired" | "none", sentence: string) => {
@@ -470,7 +470,7 @@ describe("on a Persian page, the dialog reads in Persian (#7181)", () => {
 
       // The sentence, then "Send a new code to verify this number."
       expect(statusText()).toBe(
-        `${sentence.replace("NUMBER", `${LRI}${NUMBER}${PDI}`)} برای تأیید این شماره، کد تازه‌ای بفرستید.`,
+        `${sentence.replace("NUMBER", `${LRI}${NUMBER}${PDI}`)} برای تأیید این شماره، کد جدیدی بفرستید.`,
       );
       expect(latinWords(dialogText())).toEqual([]);
     },
