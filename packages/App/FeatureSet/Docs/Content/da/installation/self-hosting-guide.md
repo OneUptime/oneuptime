@@ -3,9 +3,9 @@
 Følg denne side fra top til bund for at komme fra en tom server til din egen OneUptime, der kører over HTTPS, har sendt dig en test-e-mail og kan sende dig alarmer. Hvert trin slutter med, hvordan du ser, at det virkede, og henviser til de længere sider for detaljerne.
 
 :::cards
-- [Installér OneUptime](#install-oneuptime): Docker Compose på én server eller Helm-chartet på Kubernetes.
-- [Gør opsætningen af serveren færdig](#finish-setting-up-the-server): E-mail, derefter sms og opkald, hver med en test.
-- [Tjek din installation](#check-your-installation): Én kommando, der siger, hvad der er galt.
+- [Installér OneUptime](#installér-oneuptime): Docker Compose på én server eller Helm-chartet på Kubernetes.
+- [Gør opsætningen af serveren færdig](#gør-opsætningen-af-serveren-færdig): E-mail, derefter sms og opkald, hver med en test.
+- [Tjek din installation](#tjek-din-installation): Én kommando, der siger, hvad der er galt.
 - [Hurtigstart](/docs/introduction/quickstart): Din første monitor, din første vagtpolitik og din første statusside.
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-Kører du allerede en reverse proxy, som Caddy, Nginx eller en load balancer? Behold `PROVISION_SSL=false`, sæt `HTTP_PROTOCOL=https` og `TRUSTED_PROXY_HOPS=2`, og se [Brug din egen reverse proxy](/docs/installation/docker-compose#use-your-own-reverse-proxy).
+Kører du allerede en reverse proxy, som Caddy, Nginx eller en load balancer? Behold `PROVISION_SSL=false`, sæt `HTTP_PROTOCOL=https` og `TRUSTED_PROXY_HOPS=2`, og se [Brug din egen reverse proxy](/docs/installation/docker-compose#brug-din-egen-reverse-proxy).
 @tab Kubernetes
 Sæt disse værdier i `values.yaml`, og anvend dem derefter:
 
@@ -110,7 +110,7 @@ Siden **Serveropsætning** i Admin Dashboard, på `/admin/setup`, viser, hvad en
 
 Klik på **Opsæt e-mail**. Det åbner **Indstillinger > Notifikationer > E-mails**, hvor du angiver din mailserver (de fleste bruger port `587`) eller din e-mailudbyder og adressen, e-mails kommer fra. Gem, klik derefter på **Send test-e-mail**, og send en til dig selv.
 
-**Det virkede, når** e-mailen kommer frem, og tjeklisten markerer E-mail som færdig. Når testen fejler, viser den, hvad mailserveren svarede: se [SMTP](/docs/emails/smtp#troubleshooting).
+**Det virkede, når** e-mailen kommer frem, og tjeklisten markerer E-mail som færdig. Når testen fejler, viser den, hvad mailserveren svarede: se [SMTP](/docs/emails/smtp#fejlfinding).
 
 ### Vælg, hvem der kan tilmelde sig
 
@@ -125,7 +125,7 @@ For at få alarmer via sms og telefonopkald skal du klikke på **Opsæt sms og o
 **Det virkede, når** sms'en kommer frem, og din telefon ringer, eller tjeklisten viser dit valg.
 :::
 
-HTTPS-punktet er færdigt, så snart [Slå HTTPS til](#turn-on-https) virker, og hvert anbefalet punkt siger, hvad du skal gøre.
+HTTPS-punktet er færdigt, så snart [Slå HTTPS til](#slå-https-til) virker, og hvert anbefalet punkt siger, hvad du skal gøre.
 
 ## Tjek din installation
 
@@ -137,7 +137,7 @@ Kør doctor i mappen `oneuptime`:
 npm run doctor
 ```
 
-Den tjekker hver container, `config.env`, at `HOST` når denne server, certifikatet og ledig diskplads, og spørger OneUptime, hvad det ser af sig selv, som e-mail og probes. Hvert problem kommer med sin løsning: se [Tjek din installation](/docs/installation/docker-compose#check-your-installation).
+Den tjekker hver container, `config.env`, at `HOST` når denne server, certifikatet og ledig diskplads, og spørger OneUptime, hvad det ser af sig selv, som e-mail og probes. Hvert problem kommer med sin løsning: se [Tjek din installation](/docs/installation/docker-compose#tjek-din-installation).
 @tab Kubernetes
 Hent chartets diagnosescript, og kør det mod din klynge. Det læser kun og slutter med et resumé af, hvad det fandt, det værste først:
 
@@ -161,7 +161,7 @@ Din server kan nu sende e-mails og alarmere folk. [Hurtigstart](/docs/introducti
 :::
 
 :::details Test-e-mailen fejler
-Beskeden under knappen er det, mailserveren svarede. Tjek værtsnavnet, porten, brugernavnet og adgangskoden, og at mailserveren lader dig sende fra adressen, e-mails kommer fra. Se [SMTP](/docs/emails/smtp#troubleshooting).
+Beskeden under knappen er det, mailserveren svarede. Tjek værtsnavnet, porten, brugernavnet og adgangskoden, og at mailserveren lader dig sende fra adressen, e-mails kommer fra. Se [SMTP](/docs/emails/smtp#fejlfinding).
 :::
 
 :::details Browseren advarer om certifikatet

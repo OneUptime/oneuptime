@@ -3,9 +3,9 @@
 從上到下照著這個頁面操作，就能從一台空的伺服器走到你自己的 OneUptime：它在 HTTPS 上執行，已經寄給你一封測試郵件，並且能向你傳送告警。每一步都以如何確認它已生效作結，細節則連結到更長的頁面。
 
 :::cards
-- [安裝 OneUptime](#install-oneuptime): 在一台伺服器上用 Docker Compose，或在 Kubernetes 上用 Helm chart。
-- [完成伺服器設定](#finish-setting-up-the-server): 先是電子郵件，然後是簡訊和電話，每一項都附測試。
-- [檢查你的安裝](#check-your-installation): 一個指令，指出哪裡有問題。
+- [安裝 OneUptime](#安裝-oneuptime): 在一台伺服器上用 Docker Compose，或在 Kubernetes 上用 Helm chart。
+- [完成伺服器設定](#完成伺服器設定): 先是電子郵件，然後是簡訊和電話，每一項都附測試。
+- [檢查你的安裝](#檢查你的安裝): 一個指令，指出哪裡有問題。
 - [快速開始](/docs/introduction/quickstart): 你的第一個監控器、第一個值班政策和第一個狀態頁面。
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-已經在用反向代理，例如 Caddy、Nginx 或負載平衡器？維持 `PROVISION_SSL=false`，設定 `HTTP_PROTOCOL=https` 和 `TRUSTED_PROXY_HOPS=2`，並參閱[使用你自己的反向代理](/docs/installation/docker-compose#use-your-own-reverse-proxy)。
+已經在用反向代理，例如 Caddy、Nginx 或負載平衡器？維持 `PROVISION_SSL=false`，設定 `HTTP_PROTOCOL=https` 和 `TRUSTED_PROXY_HOPS=2`，並參閱[使用你自己的反向代理](/docs/installation/docker-compose#使用你自己的反向代理)。
 @tab Kubernetes
 在 `values.yaml` 中設定這些值，然後套用它們：
 
@@ -110,7 +110,7 @@ Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要�
 
 點擊 **設定電子郵件**。它會開啟 **設定 > 通知 > 電子郵件**，在那裡填寫你的郵件伺服器（大多使用連接埠 `587`）或電子郵件服務商，以及寄件位址。儲存後，點擊 **寄送測試郵件**，寄一封給自己。
 
-**已生效的標誌：** 郵件送達，而且清單把電子郵件標示為已完成。測試失敗時，它會顯示郵件伺服器的回應：請參閱 [SMTP](/docs/emails/smtp#troubleshooting)。
+**已生效的標誌：** 郵件送達，而且清單把電子郵件標示為已完成。測試失敗時，它會顯示郵件伺服器的回應：請參閱 [SMTP](/docs/emails/smtp#疑難排解)。
 
 ### 選擇誰可以註冊
 
@@ -125,7 +125,7 @@ Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要�
 **已生效的標誌：** 簡訊送達、電話響起，或者清單顯示了你的選擇。
 :::
 
-[開啟 HTTPS](#turn-on-https) 生效後，HTTPS 一項就完成了，而每個建議項目都會說明要做什麼。
+[開啟 HTTPS](#開啟-https) 生效後，HTTPS 一項就完成了，而每個建議項目都會說明要做什麼。
 
 ## 檢查你的安裝
 
@@ -137,7 +137,7 @@ Admin Dashboard 的 **伺服器設定** 頁面位於 `/admin/setup`，依重要�
 npm run doctor
 ```
 
-它會檢查每個容器、`config.env`、`HOST` 能否連到這台伺服器、憑證和剩餘磁碟，並詢問 OneUptime 它看到的自身狀態，例如電子郵件和探針。每個問題都附帶修正方法：請參閱[檢查你的安裝](/docs/installation/docker-compose#check-your-installation)。
+它會檢查每個容器、`config.env`、`HOST` 能否連到這台伺服器、憑證和剩餘磁碟，並詢問 OneUptime 它看到的自身狀態，例如電子郵件和探針。每個問題都附帶修正方法：請參閱[檢查你的安裝](/docs/installation/docker-compose#檢查你的安裝)。
 @tab Kubernetes
 下載 chart 的診斷指令碼，並針對你的叢集執行它。它只讀取，最後依嚴重程度列出它發現的問題摘要：
 
@@ -161,7 +161,7 @@ chmod +x diagnose.sh
 :::
 
 :::details 測試郵件失敗
-按鈕下方的訊息就是郵件伺服器的回應。檢查主機名稱、連接埠、使用者名稱和密碼，以及郵件伺服器是否允許你從寄件位址寄送。請參閱 [SMTP](/docs/emails/smtp#troubleshooting)。
+按鈕下方的訊息就是郵件伺服器的回應。檢查主機名稱、連接埠、使用者名稱和密碼，以及郵件伺服器是否允許你從寄件位址寄送。請參閱 [SMTP](/docs/emails/smtp#疑難排解)。
 :::
 
 :::details 瀏覽器對憑證發出警告

@@ -3,9 +3,9 @@
 이 페이지를 위에서 아래로 따라가면 빈 서버에서 시작해, HTTPS로 실행되고 테스트 이메일을 보냈으며 여러분에게 알림을 보낼 수 있는 자신만의 OneUptime에 도달합니다. 각 단계는 제대로 되었는지 확인하는 방법으로 끝나며, 자세한 내용은 더 긴 페이지로 연결됩니다.
 
 :::cards
-- [OneUptime 설치](#install-oneuptime): 서버 한 대에서 Docker Compose, 또는 Kubernetes에서 Helm 차트.
-- [서버 설정 마치기](#finish-setting-up-the-server): 이메일, 그다음 SMS와 전화, 각각 테스트와 함께.
-- [설치 확인하기](#check-your-installation): 무엇이 잘못되었는지 알려 주는 명령 하나.
+- [OneUptime 설치](#oneuptime-설치): 서버 한 대에서 Docker Compose, 또는 Kubernetes에서 Helm 차트.
+- [서버 설정 마치기](#서버-설정-마치기): 이메일, 그다음 SMS와 전화, 각각 테스트와 함께.
+- [설치 확인하기](#설치-확인하기): 무엇이 잘못되었는지 알려 주는 명령 하나.
 - [빠른 시작](/docs/introduction/quickstart): 첫 모니터, 첫 온콜 정책, 첫 상태 페이지.
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-Caddy, Nginx, 로드 밸런서 같은 리버스 프록시를 이미 쓰고 있나요? `PROVISION_SSL=false`를 그대로 두고, `HTTP_PROTOCOL=https`와 `TRUSTED_PROXY_HOPS=2`를 설정한 뒤 [직접 운영하는 리버스 프록시 사용](/docs/installation/docker-compose#use-your-own-reverse-proxy)을 참고하세요.
+Caddy, Nginx, 로드 밸런서 같은 리버스 프록시를 이미 쓰고 있나요? `PROVISION_SSL=false`를 그대로 두고, `HTTP_PROTOCOL=https`와 `TRUSTED_PROXY_HOPS=2`를 설정한 뒤 [직접 운영하는 리버스 프록시 사용](/docs/installation/docker-compose#직접-운영하는-리버스-프록시-사용)을 참고하세요.
 @tab Kubernetes
 `values.yaml`에 다음 값을 설정한 뒤 적용합니다:
 
@@ -110,7 +110,7 @@ Admin Dashboard의 **서버 설정** 페이지(`/admin/setup`)는 새 서버에 
 
 **이메일 설정**을 클릭합니다. **설정 > 알림 > 이메일**이 열리면 메일 서버(대부분 포트 `587` 사용)나 이메일 제공업체, 그리고 이메일을 보낼 주소를 입력합니다. 저장한 뒤 **테스트 이메일 보내기**를 클릭해 자신에게 한 통 보냅니다.
 
-**제대로 되었다면** 이메일이 도착하고 체크리스트에서 이메일이 완료로 표시됩니다. 테스트가 실패하면 메일 서버가 응답한 내용을 보여 줍니다: [SMTP](/docs/emails/smtp#troubleshooting)를 참고하세요.
+**제대로 되었다면** 이메일이 도착하고 체크리스트에서 이메일이 완료로 표시됩니다. 테스트가 실패하면 메일 서버가 응답한 내용을 보여 줍니다: [SMTP](/docs/emails/smtp#문제-해결)를 참고하세요.
 
 ### 가입할 수 있는 사람 선택
 
@@ -125,7 +125,7 @@ SMS와 전화로 알림을 받으려면 **SMS와 전화 설정**을 클릭하고
 **제대로 되었다면** SMS가 도착하고 전화가 울리거나, 체크리스트에 여러분의 선택이 표시됩니다.
 :::
 
-HTTPS 항목은 [HTTPS 켜기](#turn-on-https)가 동작하면 완료되고, 권장 항목마다 무엇을 해야 하는지 안내합니다.
+HTTPS 항목은 [HTTPS 켜기](#https-켜기)가 동작하면 완료되고, 권장 항목마다 무엇을 해야 하는지 안내합니다.
 
 ## 설치 확인하기
 
@@ -137,7 +137,7 @@ HTTPS 항목은 [HTTPS 켜기](#turn-on-https)가 동작하면 완료되고, 권
 npm run doctor
 ```
 
-모든 컨테이너, `config.env`, `HOST`가 이 서버에 도달하는지, 인증서와 남은 디스크를 확인하고, 이메일과 프로브처럼 OneUptime이 스스로 보는 상태를 묻습니다. 문제마다 해결 방법이 함께 나옵니다: [설치 확인하기](/docs/installation/docker-compose#check-your-installation)를 참고하세요.
+모든 컨테이너, `config.env`, `HOST`가 이 서버에 도달하는지, 인증서와 남은 디스크를 확인하고, 이메일과 프로브처럼 OneUptime이 스스로 보는 상태를 묻습니다. 문제마다 해결 방법이 함께 나옵니다: [설치 확인하기](/docs/installation/docker-compose#설치-확인하기)를 참고하세요.
 @tab Kubernetes
 차트의 진단 스크립트를 내려받아 클러스터에 대해 실행합니다. 읽기만 하며, 찾은 내용을 심각한 순서로 요약하며 끝납니다:
 
@@ -161,7 +161,7 @@ chmod +x diagnose.sh
 :::
 
 :::details 테스트 이메일이 실패함
-버튼 아래의 메시지는 메일 서버의 응답입니다. 호스트 이름, 포트, 사용자 이름, 비밀번호를 확인하고, 메일 서버가 이메일을 보내는 주소로 발송을 허용하는지 확인하세요. [SMTP](/docs/emails/smtp#troubleshooting)를 참고하세요.
+버튼 아래의 메시지는 메일 서버의 응답입니다. 호스트 이름, 포트, 사용자 이름, 비밀번호를 확인하고, 메일 서버가 이메일을 보내는 주소로 발송을 허용하는지 확인하세요. [SMTP](/docs/emails/smtp#문제-해결)를 참고하세요.
 :::
 
 :::details 브라우저가 인증서에 대해 경고함

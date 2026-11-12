@@ -3,9 +3,9 @@
 Sigue esta página de arriba abajo para pasar de un servidor vacío a tu propio OneUptime, que funciona con HTTPS, te ha enviado un correo de prueba y puede avisarte. Cada paso termina con cómo saber que ha funcionado, y enlaza a las páginas más largas para los detalles.
 
 :::cards
-- [Instalar OneUptime](#install-oneuptime): Docker Compose en un servidor, o el chart de Helm en Kubernetes.
-- [Terminar de configurar el servidor](#finish-setting-up-the-server): El correo, luego los SMS y las llamadas, cada uno con una prueba.
-- [Comprobar tu instalación](#check-your-installation): Un comando que nombra lo que está mal.
+- [Instalar OneUptime](#instalar-oneuptime): Docker Compose en un servidor, o el chart de Helm en Kubernetes.
+- [Terminar de configurar el servidor](#terminar-de-configurar-el-servidor): El correo, luego los SMS y las llamadas, cada uno con una prueba.
+- [Comprobar tu instalación](#comprobar-tu-instalación): Un comando que nombra lo que está mal.
 - [Inicio rápido](/docs/introduction/quickstart): Tu primer monitor, tu primera política de guardia y tu primera página de estado.
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-¿Ya tienes un proxy inverso, como Caddy, Nginx o un balanceador de carga? Mantén `PROVISION_SSL=false`, define `HTTP_PROTOCOL=https` y `TRUSTED_PROXY_HOPS=2`, y consulta [Usar tu propio proxy inverso](/docs/installation/docker-compose#use-your-own-reverse-proxy).
+¿Ya tienes un proxy inverso, como Caddy, Nginx o un balanceador de carga? Mantén `PROVISION_SSL=false`, define `HTTP_PROTOCOL=https` y `TRUSTED_PROXY_HOPS=2`, y consulta [Usar tu propio proxy inverso](/docs/installation/docker-compose#usar-tu-propio-proxy-inverso).
 @tab Kubernetes
 Define estos valores en `values.yaml` y aplícalos:
 
@@ -110,7 +110,7 @@ La página **Configuración del servidor** del Admin Dashboard, en `/admin/setup
 
 Haz clic en **Configurar el correo electrónico**. Abre **Ajustes > Notificaciones > Correos**, donde introduces tu servidor de correo (la mayoría usa el puerto `587`) o tu proveedor de correo, y la dirección desde la que salen los correos. Guarda, haz clic en **Enviar correo de prueba** y envíate uno.
 
-**Ha funcionado cuando** llega el correo y la lista marca el correo como hecho. Si la prueba falla, muestra lo que respondió el servidor de correo: consulta [SMTP](/docs/emails/smtp#troubleshooting).
+**Ha funcionado cuando** llega el correo y la lista marca el correo como hecho. Si la prueba falla, muestra lo que respondió el servidor de correo: consulta [SMTP](/docs/emails/smtp#solución-de-problemas).
 
 ### Elegir quién puede registrarse
 
@@ -125,7 +125,7 @@ Para recibir avisos por SMS y llamada telefónica, haz clic en **Configurar SMS 
 **Ha funcionado cuando** llega el SMS y suena tu teléfono, o la lista muestra tu elección.
 :::
 
-El elemento de HTTPS queda hecho cuando [Activar HTTPS](#turn-on-https) funciona, y cada elemento recomendado dice qué hacer.
+El elemento de HTTPS queda hecho cuando [Activar HTTPS](#activar-https) funciona, y cada elemento recomendado dice qué hacer.
 
 ## Comprobar tu instalación
 
@@ -137,7 +137,7 @@ En la carpeta `oneuptime`, ejecuta el doctor:
 npm run doctor
 ```
 
-Comprueba cada contenedor, `config.env`, que `HOST` llegue a este servidor, el certificado y el disco libre, y pregunta a OneUptime qué ve de sí mismo, como el correo y las sondas. Cada problema viene con su solución: consulta [Comprobar tu instalación](/docs/installation/docker-compose#check-your-installation).
+Comprueba cada contenedor, `config.env`, que `HOST` llegue a este servidor, el certificado y el disco libre, y pregunta a OneUptime qué ve de sí mismo, como el correo y las sondas. Cada problema viene con su solución: consulta [Comprobar tu instalación](/docs/installation/docker-compose#comprobar-tu-instalación).
 @tab Kubernetes
 Descarga el script de diagnóstico del chart y ejecútalo contra tu clúster. Solo lee, y termina con un resumen de lo que encontró, lo peor primero:
 
@@ -161,7 +161,7 @@ Tu servidor ya puede enviar correos y avisar a las personas. El [Inicio rápido]
 :::
 
 :::details El correo de prueba falla
-El mensaje bajo el botón es lo que respondió el servidor de correo. Revisa el nombre del host, el puerto, el usuario y la contraseña, y que el servidor de correo te deje enviar desde la dirección de la que salen los correos. Consulta [SMTP](/docs/emails/smtp#troubleshooting).
+El mensaje bajo el botón es lo que respondió el servidor de correo. Revisa el nombre del host, el puerto, el usuario y la contraseña, y que el servidor de correo te deje enviar desde la dirección de la que salen los correos. Consulta [SMTP](/docs/emails/smtp#solución-de-problemas).
 :::
 
 :::details El navegador avisa sobre el certificado

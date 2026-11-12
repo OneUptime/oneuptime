@@ -3,9 +3,9 @@
 Volg deze pagina van boven naar beneden om van een lege server naar uw eigen OneUptime te gaan, dat via HTTPS draait, u een testmail heeft gestuurd en u kan alarmeren. Elke stap eindigt met hoe u ziet dat het gelukt is, en verwijst voor de details naar de langere pagina's.
 
 :::cards
-- [OneUptime installeren](#install-oneuptime): Docker Compose op één server, of de Helm-chart op Kubernetes.
-- [De server afmaken](#finish-setting-up-the-server): E-mail, dan sms en oproepen, elk met een test.
-- [Uw installatie controleren](#check-your-installation): Eén opdracht die zegt wat er mis is.
+- [OneUptime installeren](#oneuptime-installeren): Docker Compose op één server, of de Helm-chart op Kubernetes.
+- [De server afmaken](#de-server-afmaken): E-mail, dan sms en oproepen, elk met een test.
+- [Uw installatie controleren](#uw-installatie-controleren): Eén opdracht die zegt wat er mis is.
 - [Snelstart](/docs/introduction/quickstart): Uw eerste monitor, uw eerste dienstbeleid en uw eerste statuspagina.
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-Draait u al een reverse proxy, zoals Caddy, Nginx of een load balancer? Houd `PROVISION_SSL=false`, zet `HTTP_PROTOCOL=https` en `TRUSTED_PROXY_HOPS=2`, en lees [Uw eigen reverse proxy gebruiken](/docs/installation/docker-compose#use-your-own-reverse-proxy).
+Draait u al een reverse proxy, zoals Caddy, Nginx of een load balancer? Houd `PROVISION_SSL=false`, zet `HTTP_PROTOCOL=https` en `TRUSTED_PROXY_HOPS=2`, en lees [Uw eigen reverse proxy gebruiken](/docs/installation/docker-compose#uw-eigen-reverse-proxy-gebruiken).
 @tab Kubernetes
 Zet deze waarden in `values.yaml` en pas ze daarna toe:
 
@@ -110,7 +110,7 @@ De pagina **Serverinstelling** van het Admin Dashboard, op `/admin/setup`, somt 
 
 Klik op **E-mail instellen**. Het opent **Instellingen > Meldingen > E-mails**, waar u uw mailserver (de meeste gebruiken poort `587`) of uw e-mailprovider invult, en het adres waar e-mails vandaan komen. Sla op, klik dan op **Testmail versturen** en stuur er een naar uzelf.
 
-**Het is gelukt als** de e-mail aankomt en de checklist E-mail als klaar markeert. Mislukt de test, dan toont hij wat de mailserver antwoordde: zie [SMTP](/docs/emails/smtp#troubleshooting).
+**Het is gelukt als** de e-mail aankomt en de checklist E-mail als klaar markeert. Mislukt de test, dan toont hij wat de mailserver antwoordde: zie [SMTP](/docs/emails/smtp#problemen-oplossen).
 
 ### Kiezen wie zich kan registreren
 
@@ -125,7 +125,7 @@ Om per sms en telefoonoproep gealarmeerd te worden, klikt u op **Sms en oproepen
 **Het is gelukt als** de sms aankomt en uw telefoon overgaat, of de checklist uw keuze toont.
 :::
 
-Het HTTPS-punt is klaar zodra [HTTPS inschakelen](#turn-on-https) werkt, en elk aanbevolen punt zegt wat u moet doen.
+Het HTTPS-punt is klaar zodra [HTTPS inschakelen](#https-inschakelen) werkt, en elk aanbevolen punt zegt wat u moet doen.
 
 ## Uw installatie controleren
 
@@ -137,7 +137,7 @@ Voer in de map `oneuptime` de doctor uit:
 npm run doctor
 ```
 
-Hij controleert elke container, `config.env`, of `HOST` deze server bereikt, het certificaat en de vrije schijfruimte, en vraagt OneUptime wat het van zichzelf ziet, zoals e-mail en probes. Bij elk probleem hoort de oplossing: zie [Uw installatie controleren](/docs/installation/docker-compose#check-your-installation).
+Hij controleert elke container, `config.env`, of `HOST` deze server bereikt, het certificaat en de vrije schijfruimte, en vraagt OneUptime wat het van zichzelf ziet, zoals e-mail en probes. Bij elk probleem hoort de oplossing: zie [Uw installatie controleren](/docs/installation/docker-compose#uw-installatie-controleren).
 @tab Kubernetes
 Download het diagnosescript van de chart en voer het uit tegen uw cluster. Het leest alleen, en eindigt met een samenvatting van wat het vond, het ergste eerst:
 
@@ -161,7 +161,7 @@ Uw server kan nu e-mails versturen en mensen alarmeren. De [Snelstart](/docs/int
 :::
 
 :::details De testmail mislukt
-De melding onder de knop is wat de mailserver antwoordde. Controleer de hostnaam, de poort, de gebruikersnaam en het wachtwoord, en of de mailserver u laat versturen vanaf het adres waar e-mails vandaan komen. Zie [SMTP](/docs/emails/smtp#troubleshooting).
+De melding onder de knop is wat de mailserver antwoordde. Controleer de hostnaam, de poort, de gebruikersnaam en het wachtwoord, en of de mailserver u laat versturen vanaf het adres waar e-mails vandaan komen. Zie [SMTP](/docs/emails/smtp#problemen-oplossen).
 :::
 
 :::details De browser waarschuwt voor het certificaat

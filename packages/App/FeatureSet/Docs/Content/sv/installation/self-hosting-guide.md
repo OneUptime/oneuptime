@@ -3,9 +3,9 @@
 Följ den här sidan uppifrån och ned för att gå från en tom server till din egen OneUptime, som körs över HTTPS, har skickat ett testmejl till dig och kan larma dig. Varje steg slutar med hur du ser att det fungerade, och hänvisar till de längre sidorna för detaljerna.
 
 :::cards
-- [Installera OneUptime](#install-oneuptime): Docker Compose på en server, eller Helm-diagrammet på Kubernetes.
-- [Gör klart servern](#finish-setting-up-the-server): E-post, sedan sms och samtal, var och en med ett test.
-- [Kontrollera din installation](#check-your-installation): Ett kommando som säger vad som är fel.
+- [Installera OneUptime](#installera-oneuptime): Docker Compose på en server, eller Helm-diagrammet på Kubernetes.
+- [Gör klart servern](#gör-klart-servern): E-post, sedan sms och samtal, var och en med ett test.
+- [Kontrollera din installation](#kontrollera-din-installation): Ett kommando som säger vad som är fel.
 - [Snabbstart](/docs/introduction/quickstart): Din första monitor, din första jourpolicy och din första statussida.
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-Kör du redan en omvänd proxy, som Caddy, Nginx eller en lastbalanserare? Behåll `PROVISION_SSL=false`, sätt `HTTP_PROTOCOL=https` och `TRUSTED_PROXY_HOPS=2`, och läs [Använd din egen omvända proxy](/docs/installation/docker-compose#use-your-own-reverse-proxy).
+Kör du redan en omvänd proxy, som Caddy, Nginx eller en lastbalanserare? Behåll `PROVISION_SSL=false`, sätt `HTTP_PROTOCOL=https` och `TRUSTED_PROXY_HOPS=2`, och läs [Använd din egen omvända proxy](/docs/installation/docker-compose#använd-din-egen-omvända-proxy).
 @tab Kubernetes
 Sätt de här värdena i `values.yaml` och tillämpa dem sedan:
 
@@ -110,7 +110,7 @@ Sidan **Serverkonfiguration** i Admin Dashboard, på `/admin/setup`, listar vad 
 
 Klicka på **Ställ in e-post**. Den öppnar **Inställningar > Aviseringar > E-postmeddelanden**, där du anger din e-postserver (de flesta använder port `587`) eller din e-postleverantör, och adressen som e-post kommer från. Spara, klicka sedan på **Skicka testmejl** och skicka ett till dig själv.
 
-**Det fungerade när** mejlet kommer fram och checklistan markerar E-post som klar. När testet misslyckas visar det vad e-postservern svarade: se [SMTP](/docs/emails/smtp#troubleshooting).
+**Det fungerade när** mejlet kommer fram och checklistan markerar E-post som klar. När testet misslyckas visar det vad e-postservern svarade: se [SMTP](/docs/emails/smtp#felsökning).
 
 ### Välj vem som kan registrera sig
 
@@ -125,7 +125,7 @@ För att larmas via sms och telefonsamtal klickar du på **Konfigurera sms och s
 **Det fungerade när** sms:et kommer fram och telefonen ringer, eller checklistan visar ditt val.
 :::
 
-HTTPS-punkten är klar så snart [Slå på HTTPS](#turn-on-https) fungerar, och varje rekommenderad punkt säger vad du ska göra.
+HTTPS-punkten är klar så snart [Slå på HTTPS](#slå-på-https) fungerar, och varje rekommenderad punkt säger vad du ska göra.
 
 ## Kontrollera din installation
 
@@ -137,7 +137,7 @@ Kör doctor i mappen `oneuptime`:
 npm run doctor
 ```
 
-Den kontrollerar varje container, `config.env`, att `HOST` når den här servern, certifikatet och ledigt diskutrymme, och frågar OneUptime vad det ser av sig självt, som e-post och prober. Varje problem kommer med sin lösning: se [Kontrollera din installation](/docs/installation/docker-compose#check-your-installation).
+Den kontrollerar varje container, `config.env`, att `HOST` når den här servern, certifikatet och ledigt diskutrymme, och frågar OneUptime vad det ser av sig självt, som e-post och prober. Varje problem kommer med sin lösning: se [Kontrollera din installation](/docs/installation/docker-compose#kontrollera-din-installation).
 @tab Kubernetes
 Ladda ned diagrammets diagnosskript och kör det mot ditt kluster. Det läser bara, och slutar med en sammanfattning av vad det hittade, det värsta först:
 
@@ -161,7 +161,7 @@ Din server kan nu skicka e-post och larma folk. [Snabbstart](/docs/introduction/
 :::
 
 :::details Testmejlet misslyckas
-Meddelandet under knappen är vad e-postservern svarade. Kontrollera värdnamnet, porten, användarnamnet och lösenordet, och att e-postservern låter dig skicka från adressen som e-post kommer från. Se [SMTP](/docs/emails/smtp#troubleshooting).
+Meddelandet under knappen är vad e-postservern svarade. Kontrollera värdnamnet, porten, användarnamnet och lösenordet, och att e-postservern låter dig skicka från adressen som e-post kommer från. Se [SMTP](/docs/emails/smtp#felsökning).
 :::
 
 :::details Webbläsaren varnar för certifikatet

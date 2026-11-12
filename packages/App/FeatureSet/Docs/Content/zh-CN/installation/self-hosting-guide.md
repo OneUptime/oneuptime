@@ -3,9 +3,9 @@
 从上到下按这个页面操作，就能从一台空服务器走到你自己的 OneUptime：它运行在 HTTPS 上，已经给你发过一封测试邮件，并且能向你发送告警。每一步都以如何确认它已生效结尾，细节则链接到更长的页面。
 
 :::cards
-- [安装 OneUptime](#install-oneuptime): 在一台服务器上用 Docker Compose，或在 Kubernetes 上用 Helm chart。
-- [完成服务器设置](#finish-setting-up-the-server): 先是邮件，然后是短信和电话，每一项都带测试。
-- [检查你的安装](#check-your-installation): 一条命令，指出哪里有问题。
+- [安装 OneUptime](#安装-oneuptime): 在一台服务器上用 Docker Compose，或在 Kubernetes 上用 Helm chart。
+- [完成服务器设置](#完成服务器设置): 先是邮件，然后是短信和电话，每一项都带测试。
+- [检查你的安装](#检查你的安装): 一条命令，指出哪里有问题。
 - [快速开始](/docs/introduction/quickstart): 你的第一个监控器、第一个值班策略和第一个状态页。
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-已经在用反向代理，例如 Caddy、Nginx 或负载均衡器？保持 `PROVISION_SSL=false`，设置 `HTTP_PROTOCOL=https` 和 `TRUSTED_PROXY_HOPS=2`，并参见[使用你自己的反向代理](/docs/installation/docker-compose#use-your-own-reverse-proxy)。
+已经在用反向代理，例如 Caddy、Nginx 或负载均衡器？保持 `PROVISION_SSL=false`，设置 `HTTP_PROTOCOL=https` 和 `TRUSTED_PROXY_HOPS=2`，并参见[使用你自己的反向代理](/docs/installation/docker-compose#使用你自己的反向代理)。
 @tab Kubernetes
 在 `values.yaml` 中设置这些值，然后应用它们：
 
@@ -110,7 +110,7 @@ Admin Dashboard 的 **服务器设置** 页面位于 `/admin/setup`，按重要�
 
 点击 **设置电子邮件**。它会打开 **设置 > 通知 > 邮件**，在那里填写你的邮件服务器（大多使用端口 `587`）或邮件服务商，以及发信地址。保存后，点击 **发送测试邮件**，给自己发一封。
 
-**已生效的标志：** 邮件送达，并且清单把邮件标记为已完成。测试失败时，它会显示邮件服务器的回应：参见 [SMTP](/docs/emails/smtp#troubleshooting)。
+**已生效的标志：** 邮件送达，并且清单把邮件标记为已完成。测试失败时，它会显示邮件服务器的回应：参见 [SMTP](/docs/emails/smtp#故障排查)。
 
 ### 选择谁可以注册
 
@@ -125,7 +125,7 @@ Admin Dashboard 的 **服务器设置** 页面位于 `/admin/setup`，按重要�
 **已生效的标志：** 短信送达、电话响起，或者清单显示了你的选择。
 :::
 
-[开启 HTTPS](#turn-on-https) 生效后，HTTPS 一项就完成了，而每个推荐项都会说明要做什么。
+[开启 HTTPS](#开启-https) 生效后，HTTPS 一项就完成了，而每个推荐项都会说明要做什么。
 
 ## 检查你的安装
 
@@ -137,7 +137,7 @@ Admin Dashboard 的 **服务器设置** 页面位于 `/admin/setup`，按重要�
 npm run doctor
 ```
 
-它会检查每个容器、`config.env`、`HOST` 能否到达这台服务器、证书和剩余磁盘，并询问 OneUptime 它看到的自身状态，例如邮件和探针。每个问题都附带修复方法：参见[检查你的安装](/docs/installation/docker-compose#check-your-installation)。
+它会检查每个容器、`config.env`、`HOST` 能否到达这台服务器、证书和剩余磁盘，并询问 OneUptime 它看到的自身状态，例如邮件和探针。每个问题都附带修复方法：参见[检查你的安装](/docs/installation/docker-compose#检查你的安装)。
 @tab Kubernetes
 下载 chart 的诊断脚本，并针对你的集群运行它。它只读取，最后按严重程度给出它发现的问题摘要：
 
@@ -161,7 +161,7 @@ chmod +x diagnose.sh
 :::
 
 :::details 测试邮件失败
-按钮下方的消息就是邮件服务器的回应。检查主机名、端口、用户名和密码，以及邮件服务器是否允许你从发信地址发送。参见 [SMTP](/docs/emails/smtp#troubleshooting)。
+按钮下方的消息就是邮件服务器的回应。检查主机名、端口、用户名和密码，以及邮件服务器是否允许你从发信地址发送。参见 [SMTP](/docs/emails/smtp#故障排查)。
 :::
 
 :::details 浏览器对证书发出警告

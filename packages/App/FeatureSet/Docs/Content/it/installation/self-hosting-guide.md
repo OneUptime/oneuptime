@@ -3,9 +3,9 @@
 Segui questa pagina dall'alto in basso per passare da un server vuoto al tuo OneUptime, che funziona in HTTPS, ti ha inviato un'email di prova e può avvisarti. Ogni passaggio finisce con il modo per capire che ha funzionato, e rimanda alle pagine più lunghe per i dettagli.
 
 :::cards
-- [Installare OneUptime](#install-oneuptime): Docker Compose su un server, oppure il chart Helm su Kubernetes.
-- [Completare la configurazione del server](#finish-setting-up-the-server): L'email, poi SMS e chiamate, ciascuno con una prova.
-- [Controllare l'installazione](#check-your-installation): Un comando che dice cosa non va.
+- [Installare OneUptime](#installare-oneuptime): Docker Compose su un server, oppure il chart Helm su Kubernetes.
+- [Completare la configurazione del server](#completare-la-configurazione-del-server): L'email, poi SMS e chiamate, ciascuno con una prova.
+- [Controllare l'installazione](#controllare-linstallazione): Un comando che dice cosa non va.
 - [Guida rapida](/docs/introduction/quickstart): Il tuo primo monitor, la prima policy di reperibilità e la prima pagina di stato.
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-Hai già un reverse proxy, come Caddy, Nginx o un bilanciatore di carico? Lascia `PROVISION_SSL=false`, imposta `HTTP_PROTOCOL=https` e `TRUSTED_PROXY_HOPS=2`, e leggi [Usare il tuo reverse proxy](/docs/installation/docker-compose#use-your-own-reverse-proxy).
+Hai già un reverse proxy, come Caddy, Nginx o un bilanciatore di carico? Lascia `PROVISION_SSL=false`, imposta `HTTP_PROTOCOL=https` e `TRUSTED_PROXY_HOPS=2`, e leggi [Usare il tuo reverse proxy](/docs/installation/docker-compose#usare-il-tuo-reverse-proxy).
 @tab Kubernetes
 Imposta questi valori in `values.yaml`, poi applicali:
 
@@ -110,7 +110,7 @@ La pagina **Configurazione del server** dell'Admin Dashboard, su `/admin/setup`,
 
 Fai clic su **Configura l'email**. Apre **Impostazioni > Notifiche > Email**, dove inserisci il tuo server di posta (la maggior parte usa la porta `587`) o il tuo provider di email, e l'indirizzo da cui partono le email. Salva, poi fai clic su **Invia email di prova** e mandane una a te stesso.
 
-**Ha funzionato quando** l'email arriva e la checklist segna l'email come fatta. Se la prova non riesce, mostra cosa ha risposto il server di posta: vedi [SMTP](/docs/emails/smtp#troubleshooting).
+**Ha funzionato quando** l'email arriva e la checklist segna l'email come fatta. Se la prova non riesce, mostra cosa ha risposto il server di posta: vedi [SMTP](/docs/emails/smtp#risoluzione-dei-problemi).
 
 ### Scegliere chi può registrarsi
 
@@ -125,7 +125,7 @@ Per essere avvisato via SMS e telefonata, fai clic su **Configura SMS e chiamate
 **Ha funzionato quando** l'SMS arriva e il telefono squilla, oppure la checklist mostra la tua scelta.
 :::
 
-La voce HTTPS è fatta appena [Attivare HTTPS](#turn-on-https) funziona, e ogni voce consigliata dice cosa fare.
+La voce HTTPS è fatta appena [Attivare HTTPS](#attivare-https) funziona, e ogni voce consigliata dice cosa fare.
 
 ## Controllare l'installazione
 
@@ -137,7 +137,7 @@ Nella cartella `oneuptime`, esegui il doctor:
 npm run doctor
 ```
 
-Controlla ogni container, `config.env`, che `HOST` raggiunga questo server, il certificato e lo spazio libero su disco, e chiede a OneUptime cosa vede di sé, come l'email e le sonde. Ogni problema arriva con la sua soluzione: vedi [Controllare l'installazione](/docs/installation/docker-compose#check-your-installation).
+Controlla ogni container, `config.env`, che `HOST` raggiunga questo server, il certificato e lo spazio libero su disco, e chiede a OneUptime cosa vede di sé, come l'email e le sonde. Ogni problema arriva con la sua soluzione: vedi [Controllare l'installazione](/docs/installation/docker-compose#controllare-linstallazione).
 @tab Kubernetes
 Scarica lo script di diagnostica del chart ed eseguilo sul tuo cluster. Legge soltanto, e termina con un riepilogo di ciò che ha trovato, prima il più grave:
 
@@ -161,7 +161,7 @@ Il tuo server ora può inviare email e avvisare le persone. La [Guida rapida](/d
 :::
 
 :::details L'email di prova non riesce
-Il messaggio sotto il pulsante è ciò che ha risposto il server di posta. Controlla il nome host, la porta, il nome utente e la password, e che il server di posta ti lasci inviare dall'indirizzo da cui partono le email. Vedi [SMTP](/docs/emails/smtp#troubleshooting).
+Il messaggio sotto il pulsante è ciò che ha risposto il server di posta. Controlla il nome host, la porta, il nome utente e la password, e che il server di posta ti lasci inviare dall'indirizzo da cui partono le email. Vedi [SMTP](/docs/emails/smtp#risoluzione-dei-problemi).
 :::
 
 :::details Il browser avvisa sul certificato

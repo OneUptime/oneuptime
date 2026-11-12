@@ -3,9 +3,9 @@
 Suivez cette page de haut en bas pour passer d'un serveur vide à votre propre OneUptime, qui tourne en HTTPS, vous a envoyé un e-mail de test et peut vous alerter. Chaque étape se termine par la façon de savoir qu'elle a fonctionné, et renvoie aux pages plus longues pour le détail.
 
 :::cards
-- [Installer OneUptime](#install-oneuptime): Docker Compose sur un serveur, ou le chart Helm sur Kubernetes.
-- [Terminer la configuration du serveur](#finish-setting-up-the-server): L'e-mail, puis les SMS et les appels, chacun avec un test.
-- [Vérifier votre installation](#check-your-installation): Une commande qui nomme ce qui ne va pas.
+- [Installer OneUptime](#installer-oneuptime): Docker Compose sur un serveur, ou le chart Helm sur Kubernetes.
+- [Terminer la configuration du serveur](#terminer-la-configuration-du-serveur): L'e-mail, puis les SMS et les appels, chacun avec un test.
+- [Vérifier votre installation](#vérifier-votre-installation): Une commande qui nomme ce qui ne va pas.
 - [Démarrage rapide](/docs/introduction/quickstart): Votre premier moniteur, votre première politique d'astreinte et votre première page de statut.
 :::
 
@@ -75,7 +75,7 @@ PROVISION_SSL=true
 HTTP_PROTOCOL=https
 ```
 
-Vous avez déjà un reverse proxy, comme Caddy, Nginx ou un répartiteur de charge ? Gardez `PROVISION_SSL=false`, réglez `HTTP_PROTOCOL=https` et `TRUSTED_PROXY_HOPS=2`, et lisez [Utiliser votre propre reverse proxy](/docs/installation/docker-compose#use-your-own-reverse-proxy).
+Vous avez déjà un reverse proxy, comme Caddy, Nginx ou un répartiteur de charge ? Gardez `PROVISION_SSL=false`, réglez `HTTP_PROTOCOL=https` et `TRUSTED_PROXY_HOPS=2`, et lisez [Utiliser votre propre reverse proxy](/docs/installation/docker-compose#utiliser-votre-propre-reverse-proxy).
 @tab Kubernetes
 Réglez ces valeurs dans `values.yaml`, puis appliquez-les :
 
@@ -110,7 +110,7 @@ La page **Configuration du serveur** de l'Admin Dashboard, à `/admin/setup`, li
 
 Cliquez sur **Configurer l'e-mail**. Il ouvre **Paramètres > Notifications > E-mails**, où vous saisissez votre serveur de messagerie (la plupart utilisent le port `587`) ou votre fournisseur d'e-mail, et l'adresse d'où partent les e-mails. Enregistrez, puis cliquez sur **Envoyer un e-mail de test** et envoyez-en un à vous-même.
 
-**Cela a fonctionné quand** l'e-mail arrive et que la liste marque l'e-mail comme fait. Si le test échoue, il montre ce que le serveur de messagerie a répondu : voir [SMTP](/docs/emails/smtp#troubleshooting).
+**Cela a fonctionné quand** l'e-mail arrive et que la liste marque l'e-mail comme fait. Si le test échoue, il montre ce que le serveur de messagerie a répondu : voir [SMTP](/docs/emails/smtp#dépannage).
 
 ### Choisir qui peut s'inscrire
 
@@ -125,7 +125,7 @@ Pour être alerté par SMS et par appel téléphonique, cliquez sur **Configurer
 **Cela a fonctionné quand** le SMS arrive et que votre téléphone sonne, ou que la liste montre votre choix.
 :::
 
-L'élément HTTPS est fait dès que [Activer HTTPS](#turn-on-https) fonctionne, et chaque élément recommandé dit quoi faire.
+L'élément HTTPS est fait dès que [Activer HTTPS](#activer-https) fonctionne, et chaque élément recommandé dit quoi faire.
 
 ## Vérifier votre installation
 
@@ -137,7 +137,7 @@ Dans le dossier `oneuptime`, lancez le doctor :
 npm run doctor
 ```
 
-Il vérifie chaque conteneur, `config.env`, que `HOST` atteint ce serveur, le certificat et l'espace disque libre, et demande à OneUptime ce qu'il voit de lui-même, comme l'e-mail et les sondes. Chaque problème vient avec sa solution : voir [Vérifier votre installation](/docs/installation/docker-compose#check-your-installation).
+Il vérifie chaque conteneur, `config.env`, que `HOST` atteint ce serveur, le certificat et l'espace disque libre, et demande à OneUptime ce qu'il voit de lui-même, comme l'e-mail et les sondes. Chaque problème vient avec sa solution : voir [Vérifier votre installation](/docs/installation/docker-compose#vérifier-votre-installation).
 @tab Kubernetes
 Téléchargez le script de diagnostic du chart et lancez-le contre votre cluster. Il ne fait que lire, et se termine par un résumé de ce qu'il a trouvé, le plus grave d'abord :
 
@@ -161,7 +161,7 @@ Votre serveur peut maintenant envoyer des e-mails et alerter des personnes. Le [
 :::
 
 :::details L'e-mail de test échoue
-Le message sous le bouton est ce que le serveur de messagerie a répondu. Vérifiez le nom d'hôte, le port, le nom d'utilisateur et le mot de passe, et que le serveur de messagerie vous laisse envoyer depuis l'adresse d'où partent les e-mails. Voir [SMTP](/docs/emails/smtp#troubleshooting).
+Le message sous le bouton est ce que le serveur de messagerie a répondu. Vérifiez le nom d'hôte, le port, le nom d'utilisateur et le mot de passe, et que le serveur de messagerie vous laisse envoyer depuis l'adresse d'où partent les e-mails. Voir [SMTP](/docs/emails/smtp#dépannage).
 :::
 
 :::details Le navigateur avertit au sujet du certificat

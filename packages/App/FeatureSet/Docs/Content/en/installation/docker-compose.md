@@ -568,7 +568,7 @@ The Admin Dashboard lists the probe under **Settings > Monitoring > Global Probe
 ## Next steps
 
 :::cards
-- [Finish setting up the server](/docs/installation/self-hosting-guide#finish-setting-up-the-server): Email, then SMS and calls, each with a test, at `/admin/setup`.
+- [Finish setting up the server](/docs/installation/self-hosting-guide#finish-setting-up-the-server): Email, then SMS and calls, each with a test.
 - [Quickstart](/docs/introduction/quickstart): Your first monitor, on-call policy and status page.
 - [Upgrading OneUptime](/docs/installation/upgrading): What each major version needs from you.
 - [Self-Hosted Architecture](/docs/self-hosted/architecture): How the components fit together.
