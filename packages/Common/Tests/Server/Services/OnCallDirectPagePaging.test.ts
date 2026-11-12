@@ -877,7 +877,7 @@ describe("a direct page pages its targets", () => {
         }),
       ).rejects.toThrow(
         new BadDataException(
-          "triggeredByIncidentId is required when userNotificationEventType is IncidentCreated",
+          "An on-call policy run for a new incident must name the incident.",
         ),
       );
 

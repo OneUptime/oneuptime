@@ -62,6 +62,7 @@ export const FIRST_HOUR_FILES: ReadonlyArray<string> = [
   "packages/Common/Server/API/UserSmsAPI.ts",
   "packages/Common/Server/API/UserCallAPI.ts",
   "packages/Common/Server/API/UserIncomingCallNumberAPI.ts",
+  "packages/Common/Server/API/UserWhatsAppAPI.ts",
   "packages/Common/Server/Services/UserEmailService.ts",
   "packages/Common/Server/Services/UserSmsService.ts",
   "packages/Common/Server/Services/UserCallService.ts",
