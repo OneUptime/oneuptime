@@ -90,7 +90,7 @@ Under det, uppifrån och ned:
 
 - **ID**, **Indata** och **Outputs**, sida vid sida — blockets identifierare, varifrån det nås och vad som körs efter det.
 - **Returns** — data som det här blocket lämnar vidare till senare steg. Varje värde visar den exakta referens som läser det, med en knapp för att kopiera den.
-- **How to use** — vad blocket gör i en mening, stegen för att konfigurera det, ett exempel att kopiera och de misstag folk ofta gör. Exemplet är byggt utifrån ditt arbetsflöde: det använder det här blockets ID och utlösarens värden där det infogar data i ett meddelande. **Learn more** öppnar den längre förklaringen, och länkarna går till den fullständiga guiden. Varje block har en, och knappen **How to use** högst upp i dialogrutan hoppar direkt dit.
+- **How to use** — vad blocket gör i en mening, stegen för att konfigurera det, ett exempel att kopiera och de misstag folk ofta gör. Exemplet är byggt utifrån ditt arbetsflöde: det använder det här blockets ID och utlösarens värden där det infogar data i ett meddelande. **Läs mer** öppnar den längre förklaringen, och länkarna går till den fullständiga guiden. Varje block har en, och knappen **How to use** högst upp i dialogrutan hoppar direkt dit.
 
 Längst ned finns:
 
