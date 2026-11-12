@@ -177,7 +177,7 @@ const gridGroup = Object.assign(new StatusPageGroup(), {
   rowAxisLabel: "Service",
   columnAxisLabel: "Region",
   rowAxisValues: "API, Dashboard",
-  columnAxisValues: "US, EU",
+  columnAxisValues: "US, EU, Asia Pacific",
   order: 2,
 });
 
@@ -212,10 +212,22 @@ const GRID_RESOURCES = [
   { name: "API in US", row: "API", column: "US", statusNow: OPERATIONAL },
   { name: "API in EU", row: "API", column: "EU", statusNow: DEGRADED },
   {
+    name: "API in Asia Pacific",
+    row: "API",
+    column: "Asia Pacific",
+    statusNow: OPERATIONAL,
+  },
+  {
     name: "Dashboard in US",
     row: "Dashboard",
     column: "US",
     statusNow: OPERATIONAL,
+  },
+  {
+    name: "Dashboard in Asia Pacific",
+    row: "Dashboard",
+    column: "Asia Pacific",
+    statusNow: OFFLINE,
   },
 ];
 
