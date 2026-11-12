@@ -256,6 +256,109 @@ describe("the description under the Evaluate dropdown names them as the dropdown
   });
 });
 
+/*
+ * All Values and Any Value are named inside a sentence ("All Values needs
+ * every check to ..."), so in a translation they are set apart the way that
+ * language quotes a label - „Alle Werte“, «Alle verdier», ”Alla värden”,
+ * 「すべての値」 - or a reader takes "Alle verdier krever ..." for "all
+ * values require ...". English writes them in Title Case instead. Norwegian
+ * and Swedish named them bare until the UI review of #6993.
+ */
+const OPENING_QUOTES: string = "«»„“”\"'‘「『";
+const CLOSING_QUOTES: string = "»«“”\"'’」』";
+const SPACES_BESIDE_QUOTES: string = " \u00a0\u202f";
+
+// Each place a text names `label` without quotes around it.
+function bareNamings(text: string, label: string): Array<number> {
+  const bare: Array<number> = [];
+  let from: number = 0;
+
+  for (;;) {
+    const at: number = text.indexOf(label, from);
+
+    if (at < 0) {
+      return bare;
+    }
+
+    let before: number = at - 1;
+
+    while (before >= 0 && SPACES_BESIDE_QUOTES.includes(text[before]!)) {
+      before--;
+    }
+
+    let after: number = at + label.length;
+
+    while (
+      after < text.length &&
+      SPACES_BESIDE_QUOTES.includes(text[after]!)
+    ) {
+      after++;
+    }
+
+    const isQuoted: boolean =
+      before >= 0 &&
+      OPENING_QUOTES.includes(text[before]!) &&
+      after < text.length &&
+      CLOSING_QUOTES.includes(text[after]!);
+
+    if (!isQuoted) {
+      bare.push(at);
+    }
+
+    from = at + label.length;
+  }
+}
+
+describe("the descriptions set All Values and Any Value apart in quotes", () => {
+  test.each(
+    DASHBOARD_LANGUAGES.filter((language: string): boolean => {
+      return language !== "en";
+    }),
+  )("%s", (language: string) => {
+    const locale: Record<string, string> = readDashboardLocale(language);
+
+    for (const description of DESCRIPTIONS) {
+      const worded: string = locale[description.key] as string;
+
+      for (const type of CHECK_BY_CHECK) {
+        expect({
+          language,
+          description: description.name,
+          type,
+          bare: bareNamings(worded, drawn(language, type)),
+        }).toEqual({
+          language,
+          description: description.name,
+          type,
+          bare: [],
+        });
+      }
+    }
+  });
+
+  test("a bare name is caught (the control)", () => {
+    // The Norwegian description as it read before the review.
+    expect(
+      bareNamings(
+        "Gjennomsnitt, Sum, Maksimumsverdi og Minimumsverdi sammenligner ett tall for hele vinduet. Alle verdier krever at hver kontroll oppfyller betingelsen, Minst én verdi bare én.",
+        "Minst én verdi",
+      ),
+    ).toHaveLength(1);
+    expect(bareNamings("«Minst én verdi» bare én.", "Minst én verdi")).toEqual(
+      [],
+    );
+    // French sets its guillemets a space apart.
+    expect(
+      bareNamings(
+        "« Au moins une valeur » une seule.",
+        "Au moins une valeur",
+      ),
+    ).toEqual([]);
+    // Quoted on one side only is not quoted.
+    expect(bareNamings("„Alle Werte verlangt", "Alle Werte")).toHaveLength(1);
+  });
+});
+
 interface Rendered {
   emitted: Array<CriteriaFilter>;
 }

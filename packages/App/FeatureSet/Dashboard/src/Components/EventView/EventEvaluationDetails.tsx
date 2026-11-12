@@ -42,6 +42,7 @@ import {
   isFilterValueOnItsOwnLine,
   showsResponseContent,
 } from "./EventEvaluationDetailsCopy";
+import { wordEvaluationText } from "../../Utils/EvaluationText";
 
 /*
  * EVALUATION DETAILS: WHY THE MONITOR OPENED THIS INCIDENT OR ALERT.
@@ -610,13 +611,22 @@ const FilterRow: FunctionComponent<{
           <></>
         )}
 
+        {/*
+         * The filter's finding in the reader's language, from the sentence
+         * the engine stored with it, as the root cause above and the
+         * monitor's evaluation log word it; as stored when it has none.
+         */}
         {isFilterSentenceShown(filter, props.isOpen) ? (
           <p
             dir="auto"
             data-testid="evaluation-filter-message"
             className="break-words text-xs text-gray-500"
           >
-            {filter.message}
+            {wordEvaluationText(
+              translator,
+              filter.message,
+              filter.messageSentence,
+            )}
           </p>
         ) : (
           <></>
