@@ -50931,5 +50931,7 @@
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "El estado de este grupo en los últimos 90 días, una barra por día. Cada monitor solo cuenta mientras su monitoreo está activado.",
   "leaves out time with monitoring off": "excluye el tiempo con el monitoreo desactivado",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, monitoreo desactivado, desde {{start}}, {{duration}} hasta ahora. Activo actualmente.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoreo desactivado, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, monitoreo desactivado, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} turnos anteriores no se muestran",
+  "{{count}} earlier turns are not shown_one": "{{count}} turno anterior no se muestra"
 }

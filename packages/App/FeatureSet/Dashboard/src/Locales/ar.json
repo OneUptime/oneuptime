@@ -50931,5 +50931,7 @@
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "حالة هذه المجموعة خلال آخر 90 يومًا، شريط لكل يوم. لا تُحتسب كل مراقبة إلا ما دامت مراقبتها مفعّلة.",
   "leaves out time with monitoring off": "يستثني الوقت الذي كانت فيه المراقبة متوقفة",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}، المراقبة متوقفة، منذ {{start}}، {{duration}} حتى الآن. نشط حاليًا.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}، المراقبة متوقفة، {{start}} – {{end}}، {{duration}}",
+  "{{count}} earlier turns are not shown": "جولات سابقة غير معروضة: {{count}}",
+  "{{count}} earlier turns are not shown_one": "{{count}} جولة سابقة غير معروضة"
 }

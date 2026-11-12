@@ -50931,5 +50931,7 @@
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "De status van deze groep in de afgelopen 90 dagen, één balk per dag. Elke monitor telt alleen mee zolang de bewaking ervan aan staat.",
   "leaves out time with monitoring off": "zonder tijd waarin bewaking uit stond",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, bewaking uit, sinds {{start}}, tot nu toe {{duration}}. Momenteel actief.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, bewaking uit, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, bewaking uit, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} eerdere beurten worden niet getoond",
+  "{{count}} earlier turns are not shown_one": "{{count}} eerdere beurt wordt niet getoond"
 }

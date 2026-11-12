@@ -38,6 +38,8 @@ import { JSONObject } from "../../../Types/JSON";
 import API from "../../../UI/Utils/API/API";
 import Navigation from "../../../UI/Utils/Navigation";
 import englishLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/en.json";
+import germanLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/de.json";
+import persianLocale from "../../../../App/FeatureSet/Dashboard/src/Locales/fa.json";
 import getJestMockFunction, { MockFunction } from "../../MockType";
 import { goTo, PROJECT_ID } from "./SideMenuHarness";
 
@@ -76,6 +78,7 @@ jest.mock(
 
 import CodeTaskLog, {
   CODE_TASK_LOG_TURN_PICKER_TEST_ID,
+  CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE,
 } from "../../../../App/FeatureSet/Dashboard/src/Pages/Code/Task/Log";
 import {
   CODE_TASK_LOG_TASK_RECORD_COPY,
@@ -249,7 +252,11 @@ beforeAll(async () => {
   await translation.use(initReactI18next).init({
     lng: "en",
     fallbackLng: "en",
-    resources: { en: { translation: englishLocale } },
+    resources: {
+      en: { translation: englishLocale },
+      de: { translation: germanLocale },
+      fa: { translation: persianLocale },
+    },
     interpolation: { escapeValue: false },
   });
 });
@@ -261,10 +268,11 @@ beforeEach(() => {
     .mockImplementation((() => {}) as never);
 });
 
-afterEach(() => {
+afterEach(async () => {
   cleanup();
   jest.restoreAllMocks();
   goTo("/");
+  await translation.changeLanguage("en");
 });
 
 describe("a task's turns, as the Log page lists them", () => {
@@ -311,6 +319,39 @@ describe("a task's turns, as the Log page lists them", () => {
     expect(started!.summary).toBe("Fix Exception");
     // The recipe's name is the product's words, looked up as such.
     expect(started!.isSummaryTranslated).toBe(true);
+  });
+
+  /*
+   * A long task's page holds its first turn and its newest (issue #6529):
+   * the turns not shown between them still count, so each newer turn keeps
+   * its place in the conversation.
+   */
+  test("a long task's newer turns keep their places past the turns not shown", () => {
+    const turns: Array<CodeTaskLogTurn> = getCodeTaskLogTurns(THREE_TURNS, 5);
+
+    expect(
+      turns.map((each: CodeTaskLogTurn): number => {
+        return each.number;
+      }),
+    ).toEqual([1, 7, 8]);
+    // Only the numbers move: each turn is still itself.
+    expect(
+      turns.map((each: CodeTaskLogTurn): string => {
+        return each.runId;
+      }),
+    ).toEqual([TASK_ID, SECOND_RUN_ID, THIRD_RUN_ID]);
+  });
+
+  test("none not shown, or nonsense, numbers every turn in order", () => {
+    for (const notShown of [undefined, 0, -3, 2.5, Number.NaN]) {
+      expect(
+        getCodeTaskLogTurns(THREE_TURNS, notShown as never).map(
+          (each: CodeTaskLogTurn): number => {
+            return each.number;
+          },
+        ),
+      ).toEqual([1, 2, 3]);
+    }
   });
 
   test("a long first line is cut to fit, with an ellipsis", () => {
@@ -552,6 +593,135 @@ describe("the Log page's turn picker", () => {
     );
     expect(options[1]).toHaveTextContent("Add a test for it");
     expect(options[1]).not.toHaveTextContent("behind a flag");
+  });
+
+  test("a long task's picker numbers its newer turns past the ones its page does not show", async () => {
+    getTaskMock.mockResolvedValue({
+      ...taskAnswer(THREE_TURNS),
+      turnsNotShown: { count: 197, workMilliseconds: 0 },
+    } as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    drawLog(`?turn=${THIRD_RUN_ID}`);
+
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 200 · Working…");
+    });
+
+    /*
+     * Between the first turn and the newest, the conversation's own words
+     * for the turns it does not show: Turn 1, then Turn 199, reads as the
+     * task's numbering, not as turns gone missing.
+     */
+    expect(
+      openPicker().map((option: HTMLElement): string => {
+        return option.textContent || "";
+      }),
+    ).toEqual([
+      expect.stringContaining("Turn 1 · Done"),
+      "197 earlier turns are not shown",
+      expect.stringContaining("Turn 199 · Failed"),
+      expect.stringContaining("Turn 200 · Working…"),
+    ]);
+  });
+
+  test("the line where turns are not shown is never picked: it reads as unavailable, and clicking it goes nowhere", async () => {
+    getTaskMock.mockResolvedValue({
+      ...taskAnswer(THREE_TURNS),
+      turnsNotShown: { count: 1, workMilliseconds: 0 },
+    } as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    drawLog();
+
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 1 · Done");
+    });
+
+    const line: HTMLElement = openPicker()[1]!;
+
+    // One turn not shown is said as one.
+    expect(line).toHaveTextContent(/^1 earlier turn is not shown$/);
+    expect(line).toHaveAttribute("aria-disabled", "true");
+
+    fireEvent.click(line);
+
+    expect(navigateMock).not.toHaveBeenCalled();
+    expect(shownTurn()).toBe("Turn 1 · Done");
+    // Never a turn: its value is no run's.
+    expect(CODE_TASK_LOG_TURNS_NOT_SHOWN_VALUE).not.toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-/,
+    );
+  });
+
+  test("negative control: a task listed whole has no such line", async () => {
+    getTaskMock.mockResolvedValue(taskAnswer(THREE_TURNS) as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    drawLog();
+
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Turn 1 · Done");
+    });
+
+    const options: Array<HTMLElement> = openPicker();
+
+    expect(options).toHaveLength(3);
+    for (const option of options) {
+      expect(option).not.toHaveTextContent("not shown");
+      expect(option).not.toHaveAttribute("aria-disabled", "true");
+    }
+  });
+
+  test("the line in German, and in Persian the page's way, as the conversation says it", async () => {
+    getTaskMock.mockResolvedValue({
+      ...taskAnswer(THREE_TURNS),
+      turnsNotShown: { count: 197, workMilliseconds: 0 },
+    } as never);
+    jest
+      .spyOn(API, "post")
+      .mockResolvedValue(logAnswer("read src/checkout.ts") as never);
+
+    await act(async () => {
+      await translation.changeLanguage("de");
+    });
+
+    const { unmount }: RenderResult = drawLog();
+
+    await waitFor(() => {
+      expect(shownTurn()).toBe("Durchgang 1 · Fertig");
+    });
+
+    expect(openPicker()[1]).toHaveTextContent(
+      /^197 frühere Durchgänge werden nicht angezeigt$/,
+    );
+
+    unmount();
+
+    await act(async () => {
+      await translation.changeLanguage("fa");
+    });
+
+    drawLog();
+
+    await waitFor(() => {
+      expect(shownTurn()).toMatch(/^نوبت ۱ · /);
+    });
+
+    const line: HTMLElement = openPicker()[1]!;
+    const words: HTMLElement = within(line).getByTestId(
+      "dropdown-option-label",
+    );
+
+    expect(words).toHaveTextContent(/^۱۹۷ نوبت قبلی نمایش داده نمی/);
+    // The product's own words: no direction of their own, the page's.
+    expect(words).not.toHaveAttribute("dir");
   });
 
   test("picking another turn opens the page at it", async () => {

@@ -50931,5 +50931,7 @@
   "This group's status over the last 90 days, one bar per day. Each monitor counts only while its monitoring is on.": "Denne gruppes status de seneste 90 dage, én bjælke pr. dag. Hver monitor tæller kun med, mens dens overvågning er slået til.",
   "leaves out time with monitoring off": "udelader tid med overvågning slået fra",
   "{{status}}, monitoring off, since {{start}}, {{duration}} so far. Currently Active.": "{{status}}, overvågning slået fra, siden {{start}}, {{duration}} indtil nu. Aktiv nu.",
-  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvågning slået fra, {{start}} – {{end}}, {{duration}}"
+  "{{status}}, monitoring off, {{start}} – {{end}}, {{duration}}": "{{status}}, overvågning slået fra, {{start}} – {{end}}, {{duration}}",
+  "{{count}} earlier turns are not shown": "{{count}} tidligere ture vises ikke",
+  "{{count}} earlier turns are not shown_one": "{{count}} tidligere tur vises ikke"
 }

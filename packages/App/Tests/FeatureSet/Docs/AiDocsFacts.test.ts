@@ -758,6 +758,57 @@ describe("Code", () => {
     );
   });
 
+  // Issue #6529: a task kept open past what one read of its turns takes.
+  it("says a long task's page shows its first turn and its newest, with a line for the turns between, and counts every turn", () => {
+    const thread: string = flat(
+      readRepoFile("Common/Server/Utils/AI/CodeTask/CodeTaskThread.ts"),
+    );
+    const presenter: string = flat(
+      readRepoFile("Common/Server/Utils/AI/CodeTask/CodeTaskPresenter.ts"),
+    );
+    const conversation: string = flat(
+      dashboardSource("Pages/Code/Task/Conversation.tsx"),
+    );
+    const notShown: string = flat(
+      dashboardSource("Components/Code/CodeTaskTurnsNotShown.tsx"),
+    );
+
+    // A conversation reads its first turn and its newest replies, at most MAX_TURNS_PER_TASK in all.
+    const declaration: string = "export const MAX_TURNS_PER_TASK: number = ";
+    const declaredAt: number = thread.indexOf(declaration);
+    expect(declaredAt).toBeGreaterThanOrEqual(0);
+    const maxTurns: number = parseInt(
+      thread.substring(declaredAt + declaration.length),
+      10,
+    );
+    expect(maxTurns).toBeGreaterThan(1);
+    expect(thread).toContain(
+      "sort: { createdAt: SortOrder.Descending }, limit: MAX_TURNS_PER_TASK - 1,",
+    );
+
+    // Between the first turn and the newest, a line says how many are not shown.
+    expect(notShown).toContain(
+      'other: "{{count}} earlier turns are not shown",',
+    );
+    expect(conversation).toContain(
+      "{index === 0 && data.turnsNotShown ? ( <CodeTaskTurnsNotShown turnsNotShown={data.turnsNotShown} />",
+    );
+
+    // The top of the page counts every turn: the ones not shown too.
+    expect(presenter).toContain(
+      "summary.turnCount = turns.length + read.olderTurnsLeftOut;",
+    );
+    expect(conversation).toContain(
+      "notShownMilliseconds={data.turnsNotShown?.workMilliseconds}",
+    );
+
+    expect(
+      flat(englishSection(CODE_PAGE, "## A task's conversation")),
+    ).toContain(
+      `A task with more than ${maxTurns} turns shows its first turn and its newest ${maxTurns - 1}, with a line between them that says how many earlier turns are not shown. The top of the page still counts every turn.`,
+    );
+  });
+
   it("asks AI with the words Code's pages draw: the question, the pickers, the examples", () => {
     const home: string = dashboardSource("Pages/Code/Code.tsx");
     const askBox: string = dashboardSource("Components/Code/CodeAskBox.tsx");
