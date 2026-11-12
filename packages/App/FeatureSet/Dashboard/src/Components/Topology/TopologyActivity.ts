@@ -109,6 +109,18 @@ function getLastSeenAge(
   return { unit: "day", count: Math.round(hours / 24) };
 }
 
+/*
+ * Whether there is a time to tell how long ago a resource last reported:
+ * a manual or inventory row may have none, and Last seen then says only
+ * whether it is active.
+ */
+export function isLastSeenKnown(
+  lastSeenAt: Date | undefined,
+  now: Date = new Date(),
+): boolean {
+  return getLastSeenAge(lastSeenAt, now) !== null;
+}
+
 /** "just now", "12 min ago", "5 h ago", "3 days ago". */
 export function formatLastSeen(
   lastSeenAt: Date | undefined,

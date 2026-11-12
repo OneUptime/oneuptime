@@ -686,9 +686,12 @@ describe("installing with Docker Compose", () => {
   test("npm start ends with the status check, which says OneUptime is up only once the backend holds ready", () => {
     const statusCheck = read("Tests/Scripts/status-check.sh");
 
-    expect(packageJson.scripts.start.endsWith("&& npm run status-check")).toBe(
-      true,
-    );
+    // Then only the doctor's quiet run, which says what needs attention (#6826).
+    expect(
+      packageJson.scripts.start.endsWith(
+        "&& npm run status-check && node ./Scripts/Install/Doctor.js --after-start",
+      ),
+    ).toBe(true);
     expect(packageJson.scripts["status-check"]).toContain(
       "bash ./Tests/Scripts/status-check.sh",
     );

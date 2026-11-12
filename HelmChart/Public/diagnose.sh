@@ -5,6 +5,13 @@
 # Read-only script that inspects an OneUptime deployment on Kubernetes,
 # flags performance issues, and prints a ranked summary of action steps.
 #
+# It also prints what OneUptime says is wrong with itself - the same checks
+# as `npm run doctor` on Docker Compose and the "What needs attention" card
+# of Admin > OneUptime Health - asked from inside the app pod. What the
+# doctor checks from a Docker Compose host and this script does not: the
+# address people open from outside the cluster and its certificate, which
+# your ingress controller and cert-manager serve.
+#
 # Usage:
 #   ./diagnose.sh                                # auto-detect namespace
 #   ./diagnose.sh -n my-namespace                # specify namespace
@@ -29,7 +36,7 @@ REPORT_FILE=""
 LOG_LOOKBACK_LINES=500
 
 usage() {
-  sed -n '2,16p' "$0"
+  sed -n '2,23p' "$0"
   exit 0
 }
 
@@ -811,6 +818,108 @@ check_ingress() {
 }
 
 # ---------------------------------------------------------------------------
+# 10. What OneUptime says is wrong with itself
+#
+# The same checks as `npm run doctor` on Docker Compose and the "What needs
+# attention" card of Admin > OneUptime Health (GET /api/admin/health/doctor,
+# Common/Types/InstallationHealth): PostgreSQL, ClickHouse and Valkey answer,
+# the migrations, ClickHouse's disks, the queues, the version, and the server
+# setup checklist (email, HTTPS, sign-ups, SMS and calls, probes, backups,
+# update checks). Asked from inside the app pod, with the cluster key the pod
+# already holds, so the key never leaves the pod: only the findings do.
+# ---------------------------------------------------------------------------
+
+# Run with node inside the app pod. Prints one line a finding,
+# LEVEL|TITLE|WHAT IS WRONG|FIX, then VERSION|<version>; ERROR|<why> when the
+# app does not answer.
+SERVER_FINDINGS_SCRIPT='
+const port = process.env.PORT || "3002";
+const clean = (text) => String(text || "").replace(/[|\s]+/g, " ").trim();
+fetch("http://127.0.0.1:" + port + "/api/admin/health/doctor", {
+  headers: { clusterkey: process.env.ONEUPTIME_SECRET || "" },
+})
+  .then(async (response) => {
+    if (response.status !== 200) {
+      console.log("ERROR|the app answered HTTP " + response.status);
+      return;
+    }
+    const answer = await response.json();
+    for (const finding of answer.findings || []) {
+      if (finding.level !== "fix" && finding.level !== "warn") {
+        continue;
+      }
+      console.log([finding.level, clean(finding.title), clean(finding.sentence), clean(finding.fixSentence)].join("|"));
+    }
+    console.log("VERSION|" + clean(answer.version && answer.version.current));
+  })
+  .catch((error) => {
+    console.log("ERROR|" + clean(error && error.message));
+  });
+'
+
+# Turns the script's lines into findings: fix is CRIT, warn is WARN.
+report_server_findings() {
+  local output="$1"
+  local line level title sentence fix found=0
+
+  while IFS= read -r line; do
+    case "$line" in
+      fix\|*|warn\|*)
+        level="${line%%|*}"; line="${line#*|}"
+        title="${line%%|*}"; line="${line#*|}"
+        sentence="${line%%|*}"
+        fix="${line#*|}"
+        found=$((found+1))
+        if [ "$level" = "fix" ]; then
+          crit "$title: $sentence"
+          add_finding "CRIT" "$title" "$sentence" "${fix:-See Admin > OneUptime Health.}"
+        else
+          warn "$title: $sentence"
+          add_finding "WARN" "$title" "$sentence" "${fix:-See Admin > OneUptime Health.}"
+        fi
+        ;;
+      VERSION\|*)
+        [ -n "${line#VERSION|}" ] && info "OneUptime ${line#VERSION|}"
+        ;;
+      ERROR\|*)
+        warn "OneUptime could not say how it is: ${line#ERROR|}"
+        add_finding "WARN" "app" "OneUptime could not say how its databases, migrations and setup are (${line#ERROR|})" \
+          "Read the app pod's log: kubectl -n $NAMESPACE logs deploy/${RELEASE}-app --tail=200"
+        return
+        ;;
+    esac
+  done <<EOF
+$output
+EOF
+
+  if [ "$found" -eq 0 ]; then
+    ok "PostgreSQL, ClickHouse and Valkey answer, migrations are complete, the queues are moving and the server is set up"
+  fi
+}
+
+check_server_findings() {
+  section "OneUptime's own checks"
+  local pod
+  pod=$(first_ready_pod "app=${RELEASE}-app")
+  if [ -z "$pod" ]; then
+    crit "No running app pod, so OneUptime cannot say how it is."
+    add_finding "CRIT" "app" "No app pod is running" \
+      "kubectl -n $NAMESPACE describe pod -l app=${RELEASE}-app, and read its events and logs."
+    return
+  fi
+  step "pod: $pod"
+
+  local output
+  output=$(kc_exec "$pod" node -e "$SERVER_FINDINGS_SCRIPT")
+  if [ -z "$output" ]; then
+    info "Could not run node in $pod; skipping OneUptime's own checks."
+    return
+  fi
+
+  report_server_findings "$output"
+}
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 
@@ -893,8 +1002,14 @@ print_summary() {
 # Main
 # ---------------------------------------------------------------------------
 
+# Sourced by its tests (Tests/Ops/DiagnoseServerFindings.test.js): the functions only.
+if [ "${DIAGNOSE_SOURCE_ONLY:-}" = "1" ]; then
+  return 0 2>/dev/null || exit 0
+fi
+
 discover
 check_pod_health
+check_server_findings
 check_resources
 check_postgres
 check_clickhouse

@@ -21797,7 +21797,6 @@
   "Columns: {{columns}}. siteType must be one of this project's configured site types ({{siteTypes}}). parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "الأعمدة: {{columns}}. يجب أن تكون قيمة siteType أحد أنواع المواقع المضبوطة في هذا المشروع ({{siteTypes}}). وparentName اختياري لكل نوع: اتركه فارغًا لموقع في المستوى الأعلى، أو اذكر أي موقع لا يقع تحت هذا الموقع في التسلسل الهرمي لأنواع المواقع لديك. تُستورد أولًا الصفوف التي يكون parentName فيها فارغًا أو موجودًا بالفعل، ثم أبناؤها — ويمكن أن يكون الآباء والأبناء في الملف نفسه. وتُتخطّى الصفوف ذات الأصل الذي يتعذّر تحديده ويُبلغ عنها.",
   "Columns: {{columns}}. siteType must be one of this project's configured site types. parentName is optional for every type: leave it empty for a top-level site, or name any site that is not below this one in your site type hierarchy. Rows whose parentName is empty or already exists import first, then their children — parents and children can live in the same file. Rows with an unresolvable parent are skipped and reported.": "الأعمدة: {{columns}}. يجب أن تكون قيمة siteType أحد أنواع المواقع المضبوطة في هذا المشروع. وparentName اختياري لكل نوع: اتركه فارغًا لموقع في المستوى الأعلى، أو اذكر أي موقع لا يقع تحت هذا الموقع في التسلسل الهرمي لأنواع المواقع لديك. تُستورد أولًا الصفوف التي يكون parentName فيها فارغًا أو موجودًا بالفعل، ثم أبناؤها — ويمكن أن يكون الآباء والأبناء في الملف نفسه. وتُتخطّى الصفوف ذات الأصل الذي يتعذّر تحديده ويُبلغ عنها.",
   "Come back here and click Refresh Chats — then pick the chat in any notification rule.": "عد إلى هنا وانقر «تحديث المحادثات» — ثم اختر المحادثة في أي قاعدة إشعارات.",
-  "Complete when the number of ready pods matches the desired count and none are unavailable; In Progress otherwise, such as during a rollout or scale-up or while pods fail health checks. The bar shows ready pods out of desired.": "«مكتمل» عندما يطابق عدد الـ pods الجاهزة العدد المطلوب ولا يكون أي منها غير متاح؛ و«قيد التنفيذ» فيما عدا ذلك، كما أثناء الطرح أو التوسيع أو بينما تفشل الـ pods في فحوصات السلامة. ويُظهر الشريط الـ pods الجاهزة من أصل المطلوبة.",
   "Completed Go garbage-collection cycles in each interval. Worked out from the highest running counter when several instances report, so it is approximate; as a tile it shows the total for the selected range.": "دورات جمع البيانات المهملة المكتملة في Go في كل فترة. محسوبة من أعلى عدّاد تراكمي عندما تُبلغ عدة مثيلات، لذا فهي تقريبية؛ وكمربع يُظهر الإجمالي للنطاق المحدد.",
   "Condition: {{condition}}": "الشرط: {{condition}}",
   "Conditions: {{conditions}}": "الشروط: {{conditions}}",
@@ -22585,7 +22584,6 @@
   "The highest share of the probe's regular pings that went unanswered in any one minute of the past hour. 0% means every ping in the hour got a reply.": "أعلى نسبة من طلبات ping المنتظمة من المسبار بقيت بلا رد في أي دقيقة واحدة من الساعة الماضية. وتعني 0% أن كل ping خلال الساعة تلقّى ردًا.",
   "The install command contains this monitor's secret key, so only people who can edit monitors can see it. Ask one of them to set it up.": "يحتوي أمر التثبيت على المفتاح السري لهذه المراقبة، لذا لا يراه إلا من يستطيع تعديل المراقبات. اطلب من أحدهم إعداده.",
   "The key the {{collectorName}} already uses.": "المفتاح الذي يستخدمه {{collectorName}} بالفعل.",
-  "The kind of systemd unit, read from the end of its name: Service (a background program), Socket, Timer, Mount, Target and so on.": "نوع وحدة systemd، مقروءًا من نهاية اسمها: «الخدمة» (برنامج يعمل في الخلفية)، و«Socket»، و«Timer»، و«نقطة التحميل» (Mount)، و«القيمة المستهدفة» (Target)، وغيرها.",
   "The language this service runs on, from the telemetry.sdk.language attribute your OpenTelemetry SDK sends, else the runtime name or the tech stack you set. Shown here because no runtime metrics (CPU, memory, heap) arrived in the selected range.": "اللغة التي تعمل بها هذه الخدمة، من السمة telemetry.sdk.language التي ترسلها OpenTelemetry SDK لديك، وإلا فاسم بيئة التشغيل أو حزمة التقنيات التي ضبطتها. وتظهر هنا لأنه لم تصل أي مقاييس لبيئة التشغيل (CPU، الذاكرة، الكومة) في النطاق المحدد.",
   "The last poll could not reach this device — neither ping nor SNMP answered.": "لم يتمكن آخر استطلاع من الوصول إلى هذا الجهاز — لم يستجب ping ولا SNMP.",
   "The last poll reached this device (ping or SNMP).": "وصل آخر استطلاع إلى هذا الجهاز (ping أو SNMP).",
@@ -22771,7 +22769,6 @@
   "We could not read who is in {{group}}, so nobody on that team has been checked.": "لم نتمكن من قراءة أعضاء {{group}}، لذا لم يُتحقق من أي شخص في ذلك الفريق.",
   "We couldn't load profile attributes. {{error}}": "تعذّر علينا تحميل سمات ملفات التعريف. {{error}}",
   "We couldn't load telemetry services. {{error}}": "تعذّر علينا تحميل خدمات القياس عن بُعد. {{error}}",
-  "What kind of unit this is, taken from the end of its name, for example Service for a background program or Timer for a scheduled job.": "نوع هذه الوحدة، مأخوذًا من نهاية اسمها، مثل «الخدمة» لبرنامج يعمل في الخلفية أو «Timer» لمهمة مجدولة.",
   "What the broker reports about this queue: backlog, consumer lag, dead letters and message age.": "ما يُبلغ عنه الوسيط بشأن قائمة الانتظار هذه: التراكم، وتأخر المستهلك، والرسائل الميتة، وعمر الرسائل.",
   "What this autoscaler watches and the level it aims for. For example, cpu (Utilization: 70) keeps average CPU near 70% of the pods' CPU requests; custom, external and per-container targets show only their type name.": "ما تراقبه أداة التوسع التلقائي هذه والمستوى الذي تستهدفه. فمثلًا، يُبقي cpu (Utilization: 70) متوسط CPU قرب 70% من طلبات CPU للـ pods؛ أما الأهداف المخصّصة والخارجية والخاصة بكل حاوية فلا يظهر منها إلا اسم نوعها.",
   "What this cluster spent in the selected range on node capacity that no workload requested or used.": "ما أنفقه هذا العنقود في النطاق المحدد على سعة العقد التي لم يطلبها أو يستخدمها أي حمل عمل.",
@@ -50770,6 +50767,9 @@
   "{{tab}} (closed)": "{{tab}} (مغلقة)",
   "{{tab}} (still open)": "{{tab}} (لا تزال مفتوحة)",
   "Closed tabs": "علامات التبويب المغلقة",
+  "Available when every pod it is set to run is available; Progressing while only some are, as during a rollout or scale-up; Unavailable when none are; Scaled to zero when it is set to run none; Paused while its rollouts are paused. Beside it, how many of those pods are ready.": "«متاح» عندما تكون كل الـ pods التي يجب أن يشغّلها متاحة؛ و«قيد التقدم» ما دام بعضها فقط متاحًا، كما أثناء الطرح أو التوسيع؛ و«غير متاح» عندما لا يكون أي منها متاحًا؛ و«مقلّص إلى صفر» عندما يكون مضبوطًا على ألا يشغّل أيًّا منها؛ و«متوقف مؤقتًا» ما دامت عمليات الطرح فيه متوقفة مؤقتًا. وبجانبه عدد الجاهز من هذه الـ pods.",
+  "The kind of systemd unit, as systemd writes it at the end of the unit's name: service (a background program), socket, timer, mount, target and so on.": "نوع وحدة systemd كما يكتبه systemd في نهاية اسم الوحدة: «service» (برنامج يعمل في الخلفية)، و«socket»، و«timer»، و«mount»، و«target»، وغيرها.",
+  "What kind of unit this is, as systemd writes it at the end of the unit's name: for example service for a background program or timer for a scheduled job.": "نوع هذه الوحدة كما يكتبه systemd في نهاية اسم الوحدة، مثل «service» لبرنامج يعمل في الخلفية أو «timer» لمهمة مجدولة.",
   "less than {{percent}}": "أقل من {{percent}}",
   "{{count}} metrics": "المقاييس: {{count}}",
   "{{count}} metrics_one": "{{count}} مقياس",
@@ -50854,5 +50854,6 @@
   "{{host}} did not answer from {{count}} locations: {{reason}}_one": "لم يُجب {{host}} من {{count}} موقع: {{reason}}",
   "{{interval}}, from {{count}} locations.": "{{interval}}، من مواقع عددها {{count}}.",
   "{{interval}}, from {{count}} locations._one": "{{interval}}، من {{count}} موقع.",
-  "{{name}} is set up": "تم إعداد {{name}}"
+  "{{name}} is set up": "تم إعداد {{name}}",
+  "Search query": "استعلام البحث"
 }

@@ -54,7 +54,7 @@ Click **Test these settings** under **Test before saving**. The test signs in an
 | Setting | What to enter |
 | --- | --- |
 | **Splunk management URL** | The search head's REST API, such as `https://splunk.example.com:8089`. It must use `https`, with no query string. A path is kept, for a reverse proxy that serves the API under one. |
-| **Search** | The search that selects what to import, `index=notable` unless you change it. Narrow it, such as `index=notable urgency IN (high, critical)`. OneUptime adds the time range itself, so the search cannot set `earliest` or `latest`, and it cannot start with a pipe. A leading `search` is dropped. |
+| **Search query** | The search that selects what to import, `index=notable` unless you change it. Narrow it, such as `index=notable urgency IN (high, critical)`. OneUptime adds the time range itself, so the search cannot set `earliest` or `latest`, and it cannot start with a pipe. A leading `search` is dropped. |
 | **Username** | The Splunk user's name, only when it signs in with a password. |
 | **Authentication token** | The token from the first step. When a token is stored, it is used, and the username and password are not. |
 | **Password** | The Splunk user's password, only when no token is used. |
@@ -114,7 +114,7 @@ A poll reads at most 10,000 rows. When a window holds more, the run is **Partial
 Stopped after collecting 10000 records; the window holds more. Records are read oldest first, and the last one read was created at 2026-09-14T08:12:44.000Z, where the next poll can resume.
 ```
 
-The search sorts the window by `_time`, oldest first, so OneUptime moves the cursor to the creation time of the last row it read, and the next poll starts there with the same window length. A busy search head catches up 10,000 rows a poll, instead of reading the same ones again. The rows created at that same instant are read twice, and the duplicate check drops the second copy. Splunk sorts the whole window before it returns a row, so a **Search** that matches far more than you need makes every poll slower: keep it selective.
+The search sorts the window by `_time`, oldest first, so OneUptime moves the cursor to the creation time of the last row it read, and the next poll starts there with the same window length. A busy search head catches up 10,000 rows a poll, instead of reading the same ones again. The rows created at that same instant are read twice, and the duplicate check drops the second copy. Splunk sorts the whole window before it returns a row, so a **Search query** that matches far more than you need makes every poll slower: keep it selective.
 
 When a run cannot get past the saved cursor at all, OneUptime shortens the window instead:
 
@@ -141,8 +141,8 @@ Click **Diagnostics** on a connection to see its recent runs and to work with it
 | --- | --- |
 | **Configuration** | Every setting is present and well formed. Nothing is contacted when this fails. |
 | **Authenticate with Splunk** | Splunk accepts the token, or the username and password, and names the user and its roles, for you to compare with the role you meant to grant. |
-| **Run the search on Splunk** | Your **Search** runs over the last 24 hours, for one row, and says which export endpoint answered. |
-| **Notable events available to import** | How many rows your **Search** matches in the last 24 hours and the last 7 days. None in 7 days is a warning, not a failure. |
+| **Run the search on Splunk** | Your **Search query** runs over the last 24 hours, for one row, and says which export endpoint answered. |
+| **Notable events available to import** | How many rows your **Search query** matches in the last 24 hours and the last 7 days. None in 7 days is a warning, not a failure. |
 | **Background workers**, **Poll scheduler**, **Security event storage** | OneUptime's own side: a process takes the Worker queue's jobs, the poll job runs every minute, and the store of security events answers. |
 | **Scheduled polling** | For a saved connection: polling is on, no run is stuck waiting for a worker, and polls run on time. |
 
@@ -183,7 +183,7 @@ The connection's **Last Error** keeps the complete error message, with credentia
 
 :::details Last Error starts with `Splunk Enterprise Security search export` or `Splunk Enterprise Security count search`
 - `Splunk Enterprise Security search export failed (HTTP ...)`: Splunk refused to run the search.
-  - `HTTP 400`: Splunk cannot parse the search. Run your **Search** in Splunk Web to read its error.
+  - `HTTP 400`: Splunk cannot parse the search. Run your **Search query** in Splunk Web to read its error.
   - `HTTP 403`: the user's role lacks the `search` capability, or cannot read the index. Add `notable`, or your index, to the indexes the role may search.
   - `HTTP 404`: neither export endpoint exists at that URL, so it is not a search head's management port.
   - `HTTP 429` or `HTTP 5xx`: Splunk is throttling the user, busy, or the search hit one of its limits. The next poll tries again.
@@ -193,7 +193,7 @@ The connection's **Last Error** keeps the complete error message, with credentia
 :::
 
 :::details Last Error ends with `did not complete`
-`Splunk Enterprise Security search export did not complete`, and the same for the other steps, means the request got no answer: a timeout, a name that does not resolve, a certificate OneUptime does not trust, or a private address refused. Check that the OneUptime app and workers can open an HTTPS connection to the management port. A search head that answers other requests but times out on the search is sorting too much: the next poll reads a window half as long, and a narrower **Search** fixes it for good.
+`Splunk Enterprise Security search export did not complete`, and the same for the other steps, means the request got no answer: a timeout, a name that does not resolve, a certificate OneUptime does not trust, or a private address refused. Check that the OneUptime app and workers can open an HTTPS connection to the management port. A search head that answers other requests but times out on the search is sorting too much: the next poll reads a window half as long, and a narrower **Search query** fixes it for good.
 :::
 
 :::details Last Polled is Never and Last Error is empty
@@ -201,12 +201,12 @@ No poll has finished for this connection. Run **Test connection**: its **Backgro
 :::
 
 :::details A run is Partial
-- `Stopped after collecting 10000 records; the window holds more`: the window held more than the 10,000 rows one run reads. Nothing is lost: the next poll starts after the last row read. A connection that stays **Partial** poll after poll is catching up on a backlog, and its **Last Polled** and **Last Event Imported** keep moving. If it never catches up, your **Search** matches more than 10,000 rows per poll interval: narrow it, or shorten the **Poll Interval (Minutes)**.
+- `Stopped after collecting 10000 records; the window holds more`: the window held more than the 10,000 rows one run reads. Nothing is lost: the next poll starts after the last row read. A connection that stays **Partial** poll after poll is catching up on a backlog, and its **Last Polled** and **Last Event Imported** keep moving. If it never catches up, your **Search query** matches more than 10,000 rows per poll interval: narrow it, or shorten the **Poll Interval (Minutes)**.
 - `More records were created in the one minute from ... than one poll can read`: polling moved past that minute. Import it with **Import this time range** in **Diagnostics**. An import reads as much as one poll.
 :::
 
 :::details The test passes, but nothing is imported
-Read **Notable events available to import** in the test's report. `0` in the last 7 days means your **Search** matched nothing in Splunk: check in Incident Review that the correlation searches are enabled and create notable events, and that the **Search** is not narrower than you meant.
+Read **Notable events available to import** in the test's report. `0` in the last 7 days means your **Search query** matched nothing in Splunk: check in Incident Review that the correlation searches are enabled and create notable events, and that the **Search query** is not narrower than you meant.
 :::
 
 ## What you get

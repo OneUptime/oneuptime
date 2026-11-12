@@ -8,6 +8,8 @@ Do not worry about circular dependencies. All the import should be on the top of
 
 OneUptime should be as simple as possible to use. Every UI change must be easy for people to understand and must look great. Show what most people need first, with sensible defaults, and hide advanced settings away - for example in a folded Advanced section - so nobody faces decision paralysis (choice paralysis) when they set something up.
 
+Before you build or change a page, a form, a dialog, a menu or the words on one, read the UX rulebook, [Docs/ux/README.md](Docs/ux/README.md): every rule, with the guard test that enforces it. A new UX guard starts with `// UX rule: Docs/ux/README.md#<section>` and its rule goes in that section (`UxRulebookInStep` fails otherwise).
+
 ### Migrations
 
 #### Postgres
