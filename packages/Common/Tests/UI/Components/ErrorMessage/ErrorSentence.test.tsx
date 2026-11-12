@@ -393,7 +393,10 @@ describe("the sentence around the error", () => {
           <ErrorInSentence message={WITH_REFERENCE} showWhereToLook={true} />
         </p>
         <p data-testid="explained">
-          <ErrorInSentence message="Monitor not found." showWhereToLook={true} />
+          <ErrorInSentence
+            message="Monitor not found."
+            showWhereToLook={true}
+          />
         </p>
       </div>,
     );

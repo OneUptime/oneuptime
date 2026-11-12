@@ -198,18 +198,14 @@ describe("a sentence the reader's language has no wording of", () => {
 
     const english: HTMLElement = result.getByTestId("english");
 
-    expect(
-      within(english).getByTestId("error-where-to-look").textContent,
-    ).toBe(
+    expect(within(english).getByTestId("error-where-to-look").textContent).toBe(
       `${UnexplainedErrorWords.adminWhereToLookWithReference} ${UnexplainedErrorWords.openHealth}`,
     );
     expect(english.textContent).toContain(UnexplainedErrorWords.serverWhy);
 
     const german: HTMLElement = result.getByTestId("german");
 
-    expect(
-      within(german).getByTestId("error-where-to-look").textContent,
-    ).toBe(
+    expect(within(german).getByTestId("error-where-to-look").textContent).toBe(
       `${locale[UnexplainedErrorWords.adminWhereToLookWithReference]!} ${locale[UnexplainedErrorWords.openHealth]!}`,
     );
 

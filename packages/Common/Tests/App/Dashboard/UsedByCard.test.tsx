@@ -581,9 +581,8 @@ describe("the card", () => {
     renderCard();
 
     const failed: HTMLElement = await screen.findByTestId("used-by-error");
-    const reference: HTMLElement = within(failed).getByTestId(
-      "error-reference",
-    );
+    const reference: HTMLElement =
+      within(failed).getByTestId("error-reference");
 
     expect(failed).toHaveTextContent(UnexplainedErrorWords.serverWhy);
     expect(within(reference).getByText("1f0c9a2b").tagName).toBe("CODE");
