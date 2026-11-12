@@ -127,8 +127,8 @@ Votre abonnement à la place de marché est votre licence. Chaque rapport accept
 | Ce qui se passe | Ce qu'affiche le libellé d'édition |
 | --- | --- |
 | La place de marché accepte les rapports horaires | L'Enterprise Edition, sous licence via votre place de marché. |
-| Aucun rapport n'a été accepté depuis 72 heures | **Enterprise Edition (Marketplace Reports Failing)** : chaque fonction Enterprise continue de fonctionner pendant un délai de grâce de 30 jours. |
-| La place de marché indique que l'installation n'est pas abonnée, ou le délai de grâce prend fin | **Enterprise Edition (Marketplace Subscription Ended)** : les fonctions Enterprise s'arrêtent, comme lorsqu'une [licence expire](/docs/self-hosted/enterprise#quand-une-licence-expire-ou-manque). |
+| Aucun rapport n'a été accepté depuis 72 heures | **Enterprise Edition (rapports à la place de marché en échec)** : chaque fonction Enterprise continue de fonctionner pendant un délai de grâce de 30 jours. |
+| La place de marché indique que l'installation n'est pas abonnée, ou le délai de grâce prend fin | **Enterprise Edition (abonnement à la place de marché terminé)** : les fonctions Enterprise s'arrêtent, comme lorsqu'une [licence expire](/docs/self-hosted/enterprise#quand-une-licence-expire-ou-manque). |
 
 Ce que la place de marché refuse, c'est un abonnement résilié ou suspendu, ou une installation qui n'est pas celle que vous avez achetée. La supervision, les alertes, les incidents, l'astreinte et les pages de statut continuent de fonctionner dans tous les cas, et rien n'est supprimé. Abonnez-vous de nouveau, et le prochain rapport accepté rétablit la licence de l'Enterprise Edition, sans redémarrage.
 
@@ -162,7 +162,7 @@ La facturation ne dépend pas du nombre de réplicas en cours d'exécution : une
 
 ## Dépannage
 
-:::details Le libellé d'édition affiche Enterprise Edition (Marketplace Reports Failing)
+:::details Le libellé d'édition affiche Enterprise Edition (rapports à la place de marché en échec)
 OneUptime ne parvient pas à transmettre ses rapports à la place de marché. Chaque ligne qu'il journalise à ce sujet commence par `OneUptime Enterprise marketplace billing` ; une ligne indiquant que l'utilisation « cannot be reported » nomme ce qui manque. Les causes habituelles :
 
 - **AWS :** le compte de service `oneuptime` n'a pas de rôle IAM, ou le rôle n'a pas la politique `AWSMarketplaceMeteringFullAccess` (`AWSMarketplaceMeteringRegisterUsage` ne suffit pas). Associez la politique au rôle, ou créez le rôle avec la commande `eksctl` de la section [AWS Marketplace](#aws-marketplace), puis redémarrez les pods de OneUptime avec `kubectl rollout restart deployment --namespace oneuptime`.
@@ -173,7 +173,7 @@ OneUptime ne parvient pas à transmettre ses rapports à la place de marché. Ch
 L'utilisation est conservée pendant que vous corrigez le problème, et facturée dès que OneUptime peut de nouveau envoyer ses rapports. L'utilisation de plus de 30 jours n'est pas facturée.
 :::
 
-:::details Le libellé d'édition affiche Enterprise Edition (Marketplace Subscription Ended)
+:::details Le libellé d'édition affiche Enterprise Edition (abonnement à la place de marché terminé)
 La place de marché a refusé l'installation : l'abonnement a été résilié ou suspendu, ou l'installation n'est pas celle achetée sur la place de marché. Vérifiez l'abonnement sur la place de marché et abonnez-vous de nouveau ; le prochain rapport accepté rétablit la licence de l'Enterprise Edition. Le même libellé s'affiche quand les rapports ont échoué pendant tout le délai de grâce.
 :::
 

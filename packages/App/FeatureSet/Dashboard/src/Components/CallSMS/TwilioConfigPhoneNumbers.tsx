@@ -1,5 +1,7 @@
 import IconProp from "Common/Types/Icon/IconProp";
 import Icon, { SizeProp } from "Common/UI/Components/Icon/Icon";
+import PhoneNumberText from "Common/UI/Components/PhoneNumber/PhoneNumberText";
+import { phoneNumberListInLine } from "Common/Types/PhoneNumberDirection";
 import useTranslator from "Common/UI/Utils/UseTranslator";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
 import TwilioConfigNumbersCopy, {
@@ -31,6 +33,13 @@ export interface ComponentProps {
  * of its own under it instead (TWILIO_CONFIG_NUMBER_LINE_CLASS_NAME), so
  * the column needs no more than one number's width - in German the Twilio
  * Config table ran 51px past its card at 1280px beside the side menu.
+ *
+ * A number reads +447700900123 in every language (PhoneNumberText): on a
+ * Persian or Arabic page, printed as it was, its "+" stood at the end of
+ * its digits. The icon stays at the start of the line - the right edge of
+ * a page read from the right - with the number beside it, and the numbers
+ * "+2 more" lists on hover read the same way, separated the reader's way
+ * (phoneNumberListInLine).
  */
 /*
  * A line of the cell: the icon and the number, which stay together and
@@ -68,9 +77,11 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
           : null;
 
         const number: ReactElement = (
-          <span className="whitespace-nowrap text-gray-900">
-            {line.phoneNumber}
-          </span>
+          <PhoneNumberText
+            phoneNumber={line.phoneNumber}
+            className="whitespace-nowrap text-gray-900"
+            dataTestId="twilio-config-phone-number"
+          />
         );
 
         return (
@@ -103,7 +114,10 @@ const TwilioConfigPhoneNumbers: FunctionComponent<ComponentProps> = (
             {line.otherPhoneNumbers.length > 0 ? (
               <span
                 className="whitespace-nowrap text-gray-500"
-                title={line.otherPhoneNumbers.join(", ")}
+                title={phoneNumberListInLine(
+                  line.otherPhoneNumbers,
+                  translator.language,
+                )}
                 data-testid="twilio-config-more-phone-numbers"
               >
                 {translator.translatePlural(

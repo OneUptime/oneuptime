@@ -77,6 +77,55 @@ jest.mock(
   },
 );
 
+/*
+ * Since the guided setups (#6804, #6805, #6806) took the monitor, on-call,
+ * telemetry and status page steps over, no step of the catalog lands on a
+ * record's page of its own any more. The line is kept for the next step
+ * that does, and is held here to what it did for the on-call step before
+ * its guided setup: Create On-Call Policy, landing on the policy's
+ * Escalation Rules.
+ */
+jest.mock(
+  "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog",
+  () => {
+    type Entry = {
+      step: string;
+      guidedSetupPage?: unknown;
+      landing?: { pageMap: string; doneText: string } | undefined;
+    };
+    const actual: Record<string, unknown> = jest.requireActual(
+      "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeChecklistCatalog",
+    ) as Record<string, unknown>;
+    const withLanding: (entry: Entry) => Entry = (entry: Entry): Entry => {
+      return entry.step === "on_call"
+        ? {
+            ...entry,
+            guidedSetupPage: undefined,
+            landing: {
+              pageMap: "ON_CALL_DUTY_POLICY_VIEW_ESCALATION",
+              doneText:
+                "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
+            },
+          }
+        : entry;
+    };
+    const steps: Array<Entry> = (actual["WELCOME_STEPS"] as Array<Entry>).map(
+      withLanding,
+    );
+
+    return {
+      __esModule: true,
+      ...actual,
+      WELCOME_STEPS: steps,
+      getWelcomeStepEntry: (step: string): Entry => {
+        return steps.find((entry: Entry): boolean => {
+          return entry.step === step;
+        })!;
+      },
+    };
+  },
+);
+
 import WelcomeNextStep from "../../../../App/FeatureSet/Dashboard/src/Components/Home/WelcomeChecklist/WelcomeNextStep";
 import {
   STEP_IN_PROGRESS_KEY,
@@ -269,8 +318,26 @@ describe("what is carried", () => {
     ).toBeNull();
   });
 
+  /*
+   * The status page step opens its guided setup (#6806), which says what
+   * is next itself: a status page it lands on carries no line.
+   */
+  test("a status page started from the checklist carries no line: its guided setup says what is next", () => {
+    expect(
+      getWelcomeNextStepLine({
+        inProgress: {
+          projectId: PROJECT_ID,
+          step: WelcomeStep.StatusPage,
+          nextStep: WelcomeStep.Team,
+          startedAt: Date.now(),
+        },
+        path: pathOf(PageMap.STATUS_PAGE_VIEW),
+        projectId: PROJECT_ID,
+      }),
+    ).toBeNull();
+  });
+
   test.each([
-    [WelcomeStep.StatusPage, PageMap.STATUS_PAGE_VIEW],
     [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION],
   ])("%s lands on %s", (step: WelcomeStep, pageMap: PageMap) => {
     expect(
@@ -337,17 +404,17 @@ describe("the line", () => {
   test("says so when that was the last step", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       render(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Status page created. Add a monitor to it to tick the step off.",
+      "On-call policy created.",
     );
     expect(screen.getByTestId("welcome-next-step-next")).toHaveTextContent(
       "That was the last step.",
@@ -431,17 +498,17 @@ describe("the line", () => {
 
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.StatusPage,
+      step: WelcomeStep.OnCall,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
+    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
 
     await act(async () => {
       rerender(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "Status page created.",
+      "On-call policy created.",
     );
   });
 });

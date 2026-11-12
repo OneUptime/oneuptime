@@ -19,13 +19,13 @@ total budget = (100% − target) × window length
 
 | Mål | Vindu på 7 dager | Vindu på 28 dager | Vindu på 30 dager | Vindu på 90 dager |
 | --- | --- | --- | --- | --- |
-| 99% | 1h 40m 48s | 6h 43m 12s | 7h 12m | 21h 36m |
-| 99.5% | 50m 24s | 3h 21m 36s | 3h 36m | 10h 48m |
-| 99.9% | 10m 5s | 40m 19s | 43m 12s | 2h 9m 36s |
-| 99.95% | 5m 2s | 20m 10s | 21m 36s | 1h 4m 48s |
-| 99.99% | 1m 0s | 4m 2s | 4m 19s | 12m 58s |
+| 99 % | 1 t, 40 min, 48 sek | 6 t, 43 min, 12 sek | 7 t, 12 min | 21 t, 36 min |
+| 99,5 % | 50 min, 24 sek | 3 t, 21 min, 36 sek | 3 t, 36 min | 10 t, 48 min |
+| 99,9 % | 10 min, 5 sek | 40 min, 19 sek | 43 min, 12 sek | 2 t, 9 min, 36 sek |
+| 99,95 % | 5 min, 2 sek | 20 min, 10 sek | 21 min, 36 sek | 1 t, 4 min, 48 sek |
+| 99,99 % | 1 min, 0 sek | 4 min, 2 sek | 4 min, 19 sek | 12 min, 58 sek |
 
-Siden **Innstillinger** til SLO-et viser budsjettet målet tillater ved siden av målet, for eksempel «43m 12s nedetid per vindu på 30 dager».
+Siden **Innstillinger** til SLO-et viser budsjettet målet tillater ved siden av målet, for eksempel «43 min, 12 sek nedetid per vindu på 30 dager».
 
 ### Budsjettet til et SLO med flere monitorer
 
@@ -35,7 +35,7 @@ I modusen **Gjennomsnitt av monitorsekunder** telles budsjettet i monitorsekunde
 
 ### Budsjettet for en kalendermåned
 
-Et SLO med kalendermåned har hele månedens budsjett fra første dag: et SLO på 99,9 % i en måned med 31 dager har alle sine 44m 38s den 1. Budsjettet beregnes ikke forholdsmessig etter hvor mye av måneden som har gått, så et brudd på ett minutt om morgenen den 1. bruker ett minutt av månedens budsjett.
+Et SLO med kalendermåned har hele månedens budsjett fra første dag: et SLO på 99,9 % i en måned med 31 dager har alle sine 44 min, 38 sek den 1. Budsjettet beregnes ikke forholdsmessig etter hvor mye av måneden som har gått, så et brudd på ett minutt om morgenen den 1. bruker ett minutt av månedens budsjett.
 
 ## Gjenværende budsjett
 

@@ -21,10 +21,11 @@ import {
  * shows a definition's screenshot rather than its base64 (getEmailTextHtml).
  *
  * Read with loops and indexOf, never a regular expression over the text: a
- * definition's address can be megabytes of base64 on one line (AGENTS.md,
- * "Megabyte-long values"). Every definition of a text is found in time
- * linear in its length, whatever its shape: what is looked for ahead of a
- * line - a title's closing quote - is remembered, not looked for again.
+ * definition's address can be megabytes of base64 on one line
+ * (Docs/notifications/README.md, "Megabyte-long values"). Every definition
+ * of a text is found in time linear in its length, whatever its shape: what
+ * is looked for ahead of a line - a title's closing quote - is remembered,
+ * not looked for again.
  *
  * A definition, as marked 12 reads one (its block "def" rule, once line
  * breaks are "\n" and the tabs that start a line are spaces):

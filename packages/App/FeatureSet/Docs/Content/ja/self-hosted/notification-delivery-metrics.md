@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 これらを `config.env` に設定してから、`npm start` を実行します。`DISABLE_TELEMETRY_FOR_APP` は既定で `true` で、その場合は何も送信されません。
 :::
 
-OneUptime にはエンドポイントとヘッダーの両方が必要です。ヘッダーがないと何も送信しません。複数のヘッダーは `;` で区切ります。OneUptime はエンドポイントに `/v1/metrics` を自分で付け加え、同じ設定で自身のトレースとログも送信します。各メトリクスは、OneUptime が最初に記録した時点で現れます。`notification.send.count` なら最初のメッセージを送信した時点です。
+OneUptime にはエンドポイントとヘッダーの両方が必要です。ヘッダーがないと何も送信しません。各ヘッダーは `name=value` の形で書き、複数のヘッダーは `;` で区切ります。値に `=` が含まれていてもかまいません。OneUptime はエンドポイントに `/v1/metrics` を自分で付け加え、同じ設定で自身のトレースとログも送信します。各メトリクスは、OneUptime が最初に記録した時点で現れます。`notification.send.count` なら最初のメッセージを送信した時点です。
 
 ### OneUptime プロジェクトにデルタを送信する
 
@@ -246,7 +246,7 @@ services:
 ## トラブルシューティング
 
 :::details 通知のメトリクスが届かない
-`OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` と `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` の両方が設定されていること、Docker Compose では `DISABLE_TELEMETRY_FOR_APP` が `false` であることを確認してから、OneUptime を再起動します。メトリクスは何かが記録されて初めて現れるので、まず通知を送信してください。
+`OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` と `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` の両方が設定されていること、Docker Compose では `DISABLE_TELEMETRY_FOR_APP` が `false` であることを確認してから、OneUptime を再起動します。OneUptime は起動時に、読み取れないヘッダーがあるときや何も送信しないときに、警告をログに出力します。メトリクスは何かが記録されて初めて現れるので、まず通知を送信してください。
 :::
 
 :::details 件数が増え続けるだけ、またはパーセンタイルがほとんど動かない

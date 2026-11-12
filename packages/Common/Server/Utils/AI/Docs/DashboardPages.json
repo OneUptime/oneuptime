@@ -2389,6 +2389,24 @@
     "kind": "page"
   },
   {
+    "title": "Page the right person when something breaks",
+    "where": [
+      "On-Call Duty",
+      "Policies"
+    ],
+    "keywords": [
+      "guided setup",
+      "get paged",
+      "page me by phone",
+      "sms",
+      "phone call",
+      "escalate",
+      "set up on-call"
+    ],
+    "path": "/dashboard/:projectId/on-call-duty/setup",
+    "kind": "page"
+  },
+  {
     "title": "Readiness",
     "where": [
       "On-Call Duty",
@@ -2655,6 +2673,21 @@
       "public status page"
     ],
     "path": "/dashboard/:projectId/status-pages",
+    "kind": "page"
+  },
+  {
+    "title": "Publish a status page",
+    "where": [
+      "Status Pages"
+    ],
+    "keywords": [
+      "guided setup",
+      "get started",
+      "status page setup",
+      "show uptime to customers",
+      "public status"
+    ],
+    "path": "/dashboard/:projectId/status-pages/setup",
     "kind": "page"
   },
   {
@@ -5116,6 +5149,24 @@
       "Services"
     ],
     "path": "/dashboard/:projectId/service",
+    "kind": "page"
+  },
+  {
+    "title": "Send logs, metrics and traces, then get alerted",
+    "where": [
+      "Services"
+    ],
+    "keywords": [
+      "guided setup",
+      "get started",
+      "opentelemetry",
+      "send telemetry",
+      "send logs",
+      "send traces",
+      "send metrics",
+      "telemetry alert"
+    ],
+    "path": "/dashboard/:projectId/service/setup",
     "kind": "page"
   },
   {
