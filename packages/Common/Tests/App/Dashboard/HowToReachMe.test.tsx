@@ -444,10 +444,11 @@ describe("which view it opens on", () => {
     givenRules(ONE_LADDER);
     renderPage();
 
+    // The grid is drawn at once; the ladder above it follows the read.
     await screen.findByTestId("on-call-rules-tabs-stub");
     expect(pageView()).toBe("grid");
     expect(
-      screen.getByText(
+      await screen.findByText(
         "Every card below uses your ladder. Change a card to make it different.",
       ),
     ).toBeInTheDocument();

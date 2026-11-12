@@ -298,6 +298,8 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
                 })}
                 ariaLabel={translator.translateText(PAGING_LADDER_COPY.waitLabel)}
                 dataTestId="paging-ladder-step-wait"
+                /* A step always has a wait: removing it is the step's own ×. */
+                isClearable={false}
                 onChange={(
                   value: DropdownValue | Array<DropdownValue> | null,
                 ): void => {

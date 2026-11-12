@@ -112,6 +112,15 @@ const VERIFY_CHANNEL_BY_COLUMN: Partial<
   userWhatsAppId: VerificationCodeChannel.WhatsApp,
 };
 
+// Whether an address asks for the grid: it names a tab, known or not.
+export const isGridRequested: (typeParam: string | null | undefined) => boolean =
+  (typeParam: string | null | undefined): boolean => {
+    return (
+      Boolean(readOnCallRuleKind(typeParam)) ||
+      (typeof typeParam === "string" && typeParam.trim().length > 0)
+    );
+  };
+
 // The view a page opens on: the grid for a link to one kind's rules, or for rules that differ.
 export const getInitialView: (data: {
   requestsKind: boolean;
@@ -141,10 +150,13 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     ? props.person.firstName
     : undefined;
 
-  const requestsKind: boolean = Boolean(
-    readOnCallRuleKind(
-      Navigation.getQueryStringByName(ON_CALL_RULE_KIND_QUERY_PARAM),
-    ),
+  /*
+   * A link that names a tab (?type=alerts) is about that kind's cards, so it
+   * opens the grid - one naming a kind this build does not know too, which
+   * opens the grid's first tab, as such a link always did.
+   */
+  const requestsKind: boolean = isGridRequested(
+    Navigation.getQueryStringByName(ON_CALL_RULE_KIND_QUERY_PARAM),
   );
 
   const [data, setData] = useState<PagingLadderData | null>(null);
@@ -160,9 +172,11 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     ? ownMethods
     : getMemberMethodChoices(props.notificationMethods || []);
 
-  const load: (options?: { quietly?: boolean }) => Promise<void> = async (
-    options?: { quietly?: boolean },
-  ): Promise<void> => {
+  const load: (options?: {
+    quietly?: boolean;
+  }) => Promise<void> = async (options?: {
+    quietly?: boolean;
+  }): Promise<void> => {
     if (!targetUserId) {
       return;
     }
@@ -207,12 +221,13 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     });
   }, [targetUserId?.toString()]);
 
-  if (isLoading && !data) {
-    return <PageLoader isVisible={true} />;
-  }
+  const reading: PagingLadderReading | null = data
+    ? readPagingLadder(data)
+    : null;
+  const differences: Array<PagingLadderDifference> = reading?.differences || [];
 
-  if (error && !data) {
-    return (
+  const loadFailure: ReactElement | null =
+    error && !data ? (
       <ErrorMessage
         message={error}
         onRefreshClick={() => {
@@ -221,14 +236,21 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
           });
         }}
       />
-    );
-  }
+    ) : null;
 
-  if (!data) {
-    return <></>;
-  }
+  /*
+   * The ladder waits for the rules. A link to one kind's tab opens the
+   * grid at once instead, and the ladder above it follows.
+   */
+  if (view !== HowToReachMeView.Grid) {
+    if (loadFailure) {
+      return loadFailure;
+    }
 
-  const reading: PagingLadderReading = readPagingLadder(data);
+    if (!data || !reading) {
+      return <PageLoader isVisible={true} />;
+    }
+  }
 
   const title: string = memberName
     ? translator.translateTemplate(PAGING_LADDER_COPY.memberTitle, {
@@ -243,7 +265,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     : translator.translateTemplate(PAGING_LADDER_COPY.ownDescription);
 
   const differingCellKeys: Set<string> = new Set<string>(
-    reading.differences.map((difference: PagingLadderDifference): string => {
+    differences.map((difference: PagingLadderDifference): string => {
       return getPagingLadderCellKey(difference.cell);
     }),
   );
@@ -254,7 +276,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     if (next === HowToReachMeView.Grid) {
       ProductEvents.send(ProductEventName.PagingLadderGridOpened, {
         is_own: isOwn,
-        differing_card_count: reading.differences.length,
+        differing_card_count: differences.length,
       });
     } else {
       // The tab in the address is the grid's; the ladder has none.
@@ -275,7 +297,7 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     ProductEvents.send(ProductEventName.PagingLadderSaved, {
       is_own: isOwn,
       step_count: steps.length,
-      replaced_card_count: reading.differences.length,
+      replaced_card_count: differences.length,
     });
 
     await load({ quietly: true });
@@ -283,7 +305,10 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
 
   const notVerified: Array<PagingMethodChoice> = isOwn
     ? methods.filter((choice: PagingMethodChoice): boolean => {
-        return !choice.isVerified && Boolean(VERIFY_CHANNEL_BY_COLUMN[choice.methodColumn]);
+        return (
+          !choice.isVerified &&
+          Boolean(VERIFY_CHANNEL_BY_COLUMN[choice.methodColumn])
+        );
       })
     : [];
 
@@ -301,7 +326,10 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
   const footer: ReactElement = (
     <div className="flex flex-col gap-3" data-testid="paging-ladder-footer">
       {!hasVerifiedMethod ? (
-        <p className="text-sm text-gray-600" data-testid="paging-ladder-no-methods">
+        <p
+          className="text-sm text-gray-600"
+          data-testid="paging-ladder-no-methods"
+        >
           {memberName
             ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoMethods, {
                 name: memberName,
@@ -387,21 +415,23 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
           <Card
             title={title}
             description={
-              reading.isOneLadder
-                ? memberName
-                  ? translator.translateTemplate(
-                      PAGING_LADDER_COPY.memberGridSame,
-                      { name: memberName },
+              !reading
+                ? undefined
+                : reading.isOneLadder
+                  ? memberName
+                    ? translator.translateTemplate(
+                        PAGING_LADDER_COPY.memberGridSame,
+                        { name: memberName },
+                      )
+                    : translator.translateText(PAGING_LADDER_COPY.ownGridSame)
+                  : translator.translatePlural(
+                      CARDS_DIFFER,
+                      reading.differences.length,
                     )
-                  : translator.translateText(PAGING_LADDER_COPY.ownGridSame)
-                : translator.translatePlural(
-                    CARDS_DIFFER,
-                    reading.differences.length,
-                  )
             }
             buttons={[
               {
-                title: reading.isOneLadder
+                title: reading?.isOneLadder
                   ? PAGING_LADDER_COPY.backToLadder
                   : PAGING_LADDER_COPY.useOneLadder,
                 buttonStyle: ButtonStyleType.NORMAL,
@@ -412,37 +442,44 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
               },
             ]}
           >
-            <div className="flex flex-col gap-3" data-testid="paging-ladder-summary">
-              {reading.steps.length > 0 ? (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  {reading.steps.map((step: PagingLadderStep) => {
-                    return (
-                      <StepChip
-                        key={getPagingLadderStepKey(step)}
-                        step={step}
-                        methods={methods}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <></>
-              )}
-              {reading.differences.length > 0 ? (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    {translator.translateText(PAGING_LADDER_COPY.gridIntro)}
-                  </p>
-                  <DifferencesList
-                    differences={reading.differences}
-                    methods={methods}
-                    severityColors={data.severityColors}
-                  />
-                </div>
-              ) : (
-                <></>
-              )}
-            </div>
+            {!reading ? (
+              loadFailure || <PageLoader isVisible={true} />
+            ) : (
+              <div
+                className="flex flex-col gap-3"
+                data-testid="paging-ladder-summary"
+              >
+                {reading.steps.length > 0 ? (
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {reading.steps.map((step: PagingLadderStep) => {
+                      return (
+                        <StepChip
+                          key={getPagingLadderStepKey(step)}
+                          step={step}
+                          methods={methods}
+                        />
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <></>
+                )}
+                {reading.differences.length > 0 ? (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      {translator.translateText(PAGING_LADDER_COPY.gridIntro)}
+                    </p>
+                    <DifferencesList
+                      differences={reading.differences}
+                      methods={methods}
+                      severityColors={data?.severityColors || {}}
+                    />
+                  </div>
+                ) : (
+                  <></>
+                )}
+              </div>
+            )}
           </Card>
           <OnCallRulesTabs
             userId={props.userId}
@@ -471,12 +508,12 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
         <PagingLadderEditor
           title={title}
           description={description}
-          savedSteps={reading.steps}
+          savedSteps={reading!.steps}
           methods={methods}
           isEditable={isEditable}
           isPushTurnedOff={isPushTurnedOff}
-          differences={reading.differences}
-          severityColors={data.severityColors}
+          differences={differences}
+          severityColors={data!.severityColors}
           memberName={memberName}
           headerButtons={[
             {
