@@ -167,9 +167,11 @@ describe("Sorting lists and tables, against the header and the registry", () => 
     const fieldOf: (
       type: DashboardComponentType,
       key: string,
+      index?: number,
     ) => { path: string; worstFirst: unknown } = (
       type: DashboardComponentType,
       key: string,
+      index: number = 0,
     ): { path: string; worstFirst: unknown } => {
       const column: DashboardWidgetListSortColumn | undefined =
         getDashboardWidgetSortColumns(type).find(
@@ -179,13 +181,22 @@ describe("Sorting lists and tables, against the header and the registry", () => 
         );
 
       return {
-        path: column!.fields![0]!.path,
-        worstFirst: column!.fields![0]!.whenDescending,
+        path: column!.fields![index]!.path,
+        worstFirst: column!.fields![index]!.whenDescending,
       };
     };
 
-    // Higher priority is worse; a lower place in the project's list is.
+    /*
+     * Higher priority is worse; a lower place in the project's list is. A
+     * monitor whose monitoring is off comes after every monitor that is
+     * checked, its frozen status ranked only among those that are off
+     * (#6476).
+     */
     expect(fieldOf(DashboardComponentType.MonitorList, "status")).toEqual({
+      path: "disableActiveMonitoring",
+      worstFirst: SortOrder.Ascending,
+    });
+    expect(fieldOf(DashboardComponentType.MonitorList, "status", 1)).toEqual({
       path: "currentMonitorStatus.priority",
       worstFirst: SortOrder.Descending,
     });

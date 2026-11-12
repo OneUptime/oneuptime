@@ -32,6 +32,7 @@ import {
   routeFor,
   setViewportWidth,
 } from "./SideMenuHarness";
+import { PHONE_MENU_HELP_TEST_ID } from "../../../../App/FeatureSet/Dashboard/src/Components/NavBar/PhoneMenuEntries";
 
 /*
  * On a phone the Dashboard has no products dialog: the menu toggle lists
@@ -94,11 +95,19 @@ function linkTitles(menu: HTMLElement): Array<string> {
     });
 }
 
+/*
+ * The rows that fold a category of products. Help, at the bottom of the
+ * phone's menu, folds too, but holds no products: it is pinned in
+ * DashboardPhoneMenuSearchAndHelp (#6816).
+ */
 function sectionToggles(menu: HTMLElement): Array<HTMLElement> {
   return within(menu)
     .queryAllByRole("button")
     .filter((button: HTMLElement): boolean => {
-      return button.hasAttribute("aria-expanded");
+      return (
+        button.hasAttribute("aria-expanded") &&
+        !button.closest(`[data-testid="${PHONE_MENU_HELP_TEST_ID}"]`)
+      );
     });
 }
 

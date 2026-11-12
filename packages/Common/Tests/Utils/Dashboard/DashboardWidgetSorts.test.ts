@@ -512,6 +512,7 @@ describe("status and severity sort by what they mean, worst first", () => {
         choice("status", DESC),
       ),
     ).toEqual({
+      disableActiveMonitoring: SortOrder.Ascending,
       currentMonitorStatus: { priority: DESC_NULLS_LAST },
       name: SortOrder.Ascending,
     });
@@ -522,9 +523,48 @@ describe("status and severity sort by what they mean, worst first", () => {
         choice("status", ASC),
       ),
     ).toEqual({
+      disableActiveMonitoring: SortOrder.Ascending,
       currentMonitorStatus: { priority: SortOrder.Ascending },
       name: SortOrder.Ascending,
     });
+  });
+
+  /*
+   * A monitor whose monitoring is off is not checked: its status is frozen
+   * at what its last check saw, and the row says Disabled (issue #6476). By
+   * status it comes after every monitor that is checked, both ways - first
+   * in the order, so the database places it before reading the priority.
+   */
+  test.each([DESC, ASC])(
+    "a monitor whose monitoring is off sorts after every checked one, %s too",
+    (direction: DashboardWidgetSortDirection) => {
+      const sort: JSONObject = getDashboardWidgetListSort(
+        DashboardComponentType.MonitorList,
+        choice("status", direction),
+      );
+
+      expect(Object.keys(sort)).toEqual([
+        "disableActiveMonitoring",
+        "currentMonitorStatus",
+        "name",
+      ]);
+      expect(sort["disableActiveMonitoring"]).toBe(SortOrder.Ascending);
+    },
+  );
+
+  test("the monitoring flag orders nothing but the status column", () => {
+    for (const column of ["name", "type"]) {
+      for (const direction of [DESC, ASC]) {
+        expect(
+          Object.keys(
+            getDashboardWidgetListSort(
+              DashboardComponentType.MonitorList,
+              choice(column, direction),
+            ),
+          ),
+        ).not.toContain("disableActiveMonitoring");
+      }
+    }
   });
 
   test.each([

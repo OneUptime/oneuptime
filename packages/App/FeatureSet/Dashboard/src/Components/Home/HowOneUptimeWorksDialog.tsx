@@ -34,6 +34,10 @@ import React, {
 export enum HowOneUptimeWorksOpenedFrom {
   Help = "help",
   Home = "home",
+  // Help in the phone's menu, where the header has no Help (#6816).
+  PhoneMenu = "phone-menu",
+  // Search (Cmd/Ctrl+K): "how it works", "overview" (#6936).
+  CommandPalette = "command-palette",
 }
 
 /*
