@@ -1026,7 +1026,7 @@ describe("who else is on call", () => {
       screen.getByTestId("on-call-setup-policy-break-OnlyIncidentsHaveRules"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("on-call-setup-who-continue")).toHaveTextContent(
-      "Page it for every new incident and alert",
+      "Page this policy for every new incident and alert",
     );
 
     api["loadPolicy"]!.mockResolvedValue(policyRecord());

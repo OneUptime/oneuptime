@@ -50965,7 +50965,6 @@
   "Not tested yet. Test the policy to be sure a page reaches someone.": "아직 테스트하지 않았습니다. 호출이 누군가에게 닿는지 확인하려면 정책을 테스트하세요.",
   "Nothing can reach you yet. Verify at least one way to be reached to continue.": "아직 연락할 방법이 없습니다. 계속하려면 연락 방법을 하나 이상 확인하세요.",
   "Open the on-call policy": "온콜 정책 열기",
-  "Page it for every new incident and alert": "새 인시던트와 경고마다 실행",
   "Page only in working hours for less urgent incidents": "덜 긴급한 인시던트는 근무 시간에만 호출",
   "Page someone else": "다른 사람 호출",
   "Page the same people again": "같은 사람을 다시 호출",

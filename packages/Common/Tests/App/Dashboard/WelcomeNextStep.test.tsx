@@ -180,15 +180,15 @@ describe("what is carried", () => {
   test("a started step, with the one after it, for an hour", () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
-      nextStep: WelcomeStep.StatusPage,
+      step: WelcomeStep.StatusPage,
+      nextStep: WelcomeStep.Team,
       now: 1_000,
     });
 
     expect(readWelcomeStepInProgress(1_000 + 60_000)).toEqual({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
-      nextStep: WelcomeStep.StatusPage,
+      step: WelcomeStep.StatusPage,
+      nextStep: WelcomeStep.Team,
       startedAt: 1_000,
     });
     expect(
@@ -242,6 +242,39 @@ describe("what is carried", () => {
    * what is next itself: nothing is carried, and the monitor's page shows
    * no line.
    */
+  test.each([
+    [WelcomeStep.Monitor, PageMap.MONITOR_VIEW],
+    [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION],
+  ])(
+    "%s opens a guided setup (#6804, #6805) and carries nothing",
+    (step: WelcomeStep, pageMap: PageMap) => {
+      rememberWelcomeStepStarted({
+        projectId: PROJECT_ID,
+        step: WelcomeStep.StatusPage,
+        nextStep: null,
+      });
+      rememberWelcomeStepStarted({
+        projectId: PROJECT_ID,
+        step: step,
+        nextStep: WelcomeStep.Team,
+      });
+
+      expect(readWelcomeStepInProgress()).toBeNull();
+      expect(
+        getWelcomeNextStepLine({
+          inProgress: {
+            projectId: PROJECT_ID,
+            step: step,
+            nextStep: WelcomeStep.Team,
+            startedAt: Date.now(),
+          },
+          path: pathOf(pageMap),
+          projectId: PROJECT_ID,
+        }),
+      ).toBeNull();
+    },
+  );
+
   test("a step that opens a guided setup carries nothing", () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
@@ -271,7 +304,6 @@ describe("what is carried", () => {
 
   test.each([
     [WelcomeStep.StatusPage, PageMap.STATUS_PAGE_VIEW],
-    [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION],
   ])("%s lands on %s", (step: WelcomeStep, pageMap: PageMap) => {
     expect(
       getWelcomeNextStepLine({
@@ -292,11 +324,11 @@ describe("what is carried", () => {
       getWelcomeNextStepLine({
         inProgress: {
           projectId: OTHER_PROJECT_ID,
-          step: WelcomeStep.OnCall,
+          step: WelcomeStep.StatusPage,
           nextStep: null,
           startedAt: Date.now(),
         },
-        path: pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION),
+        path: pathOf(PageMap.STATUS_PAGE_VIEW),
         projectId: PROJECT_ID,
       }),
     ).toBeNull();
@@ -304,23 +336,23 @@ describe("what is carried", () => {
 });
 
 describe("the line", () => {
-  test("on the policy's page: what was done, what is next, and the way back to Home", async () => {
+  test("on the status page's page: what was done, what is next, and the way back to Home", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
-      nextStep: WelcomeStep.StatusPage,
+      step: WelcomeStep.StatusPage,
+      nextStep: WelcomeStep.Team,
     });
-    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
+    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
 
     await act(async () => {
       render(<WelcomeNextStep />);
     });
 
     expect(screen.getByTestId("welcome-next-step-done")).toHaveTextContent(
-      "On-call policy created. The step ticks off once an on-call rule runs it and it reaches someone.",
+      "Status page created. Add a monitor to it to tick the step off.",
     );
     expect(screen.getByTestId("welcome-next-step-next")).toHaveTextContent(
-      "Next: Publish a status page.",
+      "Next: Invite your team.",
     );
     expect(
       screen.getByTestId("welcome-next-step-back").closest("a"),
@@ -355,7 +387,7 @@ describe("the line", () => {
   });
 
   test("is nowhere else: not on the list, not with nothing started", async () => {
-    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
+    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -365,10 +397,10 @@ describe("the line", () => {
     cleanup();
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
+      step: WelcomeStep.StatusPage,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICIES);
+    currentPath = pathOf(PageMap.STATUS_PAGES);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -379,10 +411,10 @@ describe("the line", () => {
   test("closing it forgets the step", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
+      step: WelcomeStep.StatusPage,
       nextStep: null,
     });
-    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
+    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -397,10 +429,10 @@ describe("the line", () => {
   test("Back to setup forgets it too", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
-      nextStep: WelcomeStep.StatusPage,
+      step: WelcomeStep.StatusPage,
+      nextStep: WelcomeStep.Team,
     });
-    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
+    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
 
     await act(async () => {
       render(<WelcomeNextStep />);
@@ -415,11 +447,11 @@ describe("the line", () => {
   test("a step started after one was closed gets its own line", async () => {
     rememberWelcomeStepStarted({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
+      step: WelcomeStep.StatusPage,
       nextStep: null,
       now: Date.now() - 10_000,
     });
-    currentPath = pathOf(PageMap.ON_CALL_DUTY_POLICY_VIEW_ESCALATION);
+    currentPath = pathOf(PageMap.STATUS_PAGE_VIEW);
 
     let rerender: (ui: React.ReactElement) => void = () => {};
 

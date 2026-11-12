@@ -50965,7 +50965,6 @@
   "Not tested yet. Test the policy to be sure a page reaches someone.": "尚未測試。請測試此策略，確保呼叫能聯絡到某人。",
   "Nothing can reach you yet. Verify at least one way to be reached to continue.": "目前還無法聯絡到你。請至少驗證一種聯絡方式後繼續。",
   "Open the on-call policy": "開啟待命策略",
-  "Page it for every new incident and alert": "每個新事件和警示都執行它",
   "Page only in working hours for less urgent incidents": "較不緊急的事件只在工作時間呼叫",
   "Page someone else": "呼叫其他人",
   "Page the same people again": "再次呼叫同一批人",

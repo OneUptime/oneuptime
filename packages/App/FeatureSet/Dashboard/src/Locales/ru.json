@@ -50965,7 +50965,6 @@
   "Not tested yet. Test the policy to be sure a page reaches someone.": "Ещё не проверено. Проверьте политику, чтобы убедиться, что вызов до кого-то дойдёт.",
   "Nothing can reach you yet. Verify at least one way to be reached to continue.": "С вами пока нельзя связаться. Подтвердите хотя бы один способ связи, чтобы продолжить.",
   "Open the on-call policy": "Открыть политику дежурства",
-  "Page it for every new incident and alert": "Запускать её при каждом новом инциденте и оповещении",
   "Page only in working hours for less urgent incidents": "Вызывать только в рабочее время для менее срочных инцидентов",
   "Page someone else": "Вызвать другого человека",
   "Page the same people again": "Снова вызвать тех же людей",

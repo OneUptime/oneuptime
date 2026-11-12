@@ -50965,7 +50965,6 @@
   "Not tested yet. Test the policy to be sure a page reaches someone.": "لم يُختبر بعد. اختبر السياسة لتتأكد من أن الاستدعاء يصل إلى أحد.",
   "Nothing can reach you yet. Verify at least one way to be reached to continue.": "لا شيء يمكنه الوصول إليك بعد. تحقق من طريقة واحدة على الأقل للمتابعة.",
   "Open the on-call policy": "فتح سياسة المناوبة",
-  "Page it for every new incident and alert": "تشغيلها مع كل حادثة وتنبيه جديد",
   "Page only in working hours for less urgent incidents": "الاستدعاء في ساعات العمل فقط للحوادث الأقل إلحاحًا",
   "Page someone else": "استدعاء شخص آخر",
   "Page the same people again": "استدعاء الأشخاص أنفسهم مجددًا",

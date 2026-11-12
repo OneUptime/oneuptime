@@ -50965,7 +50965,6 @@
   "Not tested yet. Test the policy to be sure a page reaches someone.": "Ikke testet ennå. Test policyen for å være sikker på at et tilkall når noen.",
   "Nothing can reach you yet. Verify at least one way to be reached to continue.": "Ingenting kan nå deg ennå. Bekreft minst én måte å bli nådd på for å fortsette.",
   "Open the on-call policy": "Åpne vaktpolicyen",
-  "Page it for every new incident and alert": "Kjør den for hver nye hendelse og hvert nye varsel",
   "Page only in working hours for less urgent incidents": "Tilkall bare i arbeidstiden for mindre hastende hendelser",
   "Page someone else": "Tilkall noen andre",
   "Page the same people again": "Tilkall de samme personene igjen",

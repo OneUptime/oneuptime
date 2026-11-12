@@ -50965,7 +50965,6 @@
   "Not tested yet. Test the policy to be sure a page reaches someone.": "Aún no se ha probado. Prueba la política para asegurarte de que un aviso llega a alguien.",
   "Nothing can reach you yet. Verify at least one way to be reached to continue.": "Todavía nada puede localizarte. Verifica al menos una forma de contacto para continuar.",
   "Open the on-call policy": "Abrir la política de guardia",
-  "Page it for every new incident and alert": "Ejecutarla para cada incidente y alerta nueva",
   "Page only in working hours for less urgent incidents": "Avisar solo en horario laboral para incidentes menos urgentes",
   "Page someone else": "Avisar a otra persona",
   "Page the same people again": "Volver a avisar a las mismas personas",

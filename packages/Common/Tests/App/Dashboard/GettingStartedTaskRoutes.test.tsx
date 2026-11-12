@@ -334,9 +334,32 @@ describe("Create your first monitor", () => {
   });
 });
 
+describe("Set up an on-call policy", () => {
+  /*
+   * The guided setup (#6805) takes the step over: how you are reached, who
+   * else is on call, what if nobody answers and a test page, on one page.
+   * It is for everyone: its first step is the person's own methods, and it
+   * says itself what a member who may not make a policy can do.
+   */
+  test("opens the guided setup, whoever clicks it", async () => {
+    mayCreate = false;
+    await renderGettingStarted();
+    click(WelcomeStep.OnCall);
+
+    expect(navigatedTo()).toBe(routeOf(PageMap.ON_CALL_DUTY_GUIDED_SETUP));
+    expect(navigatedTo()).not.toBe(routeOf(PageMap.ON_CALL_DUTY));
+  });
+
+  test("carries nothing: the setup says what is next", async () => {
+    await renderGettingStarted();
+    click(WelcomeStep.OnCall);
+
+    expect(window.sessionStorage.getItem(STEP_IN_PROGRESS_KEY)).toBeNull();
+  });
+});
+
 describe("every other step opens today's page for its job", () => {
   test.each([
-    [WelcomeStep.OnCall, PageMap.ON_CALL_DUTY],
     [WelcomeStep.StatusPage, PageMap.STATUS_PAGES],
     [WelcomeStep.Telemetry, PageMap.LOGS],
     [WelcomeStep.Infrastructure, PageMap.HOSTS],
@@ -385,12 +408,12 @@ describe("what a click records", () => {
 
   test("a step whose record lands on a plain page is carried there, with the step after it", async () => {
     await renderGettingStarted();
-    click(WelcomeStep.OnCall);
+    click(WelcomeStep.StatusPage);
 
     expect(readWelcomeStepInProgress()).toMatchObject({
       projectId: PROJECT_ID,
-      step: WelcomeStep.OnCall,
-      nextStep: WelcomeStep.StatusPage,
+      step: WelcomeStep.StatusPage,
+      nextStep: WelcomeStep.Team,
     });
   });
 

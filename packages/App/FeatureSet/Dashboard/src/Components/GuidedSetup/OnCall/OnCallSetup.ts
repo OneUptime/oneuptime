@@ -211,7 +211,7 @@ export const ON_CALL_SETUP_COPY: {
   whoAddPeople: WEBSITE_DOWN_COPY.whoAddPeople,
   whoNobodyPicked: WEBSITE_DOWN_COPY.whoNobodyPicked,
   whoAddToLevel: translationKey("Add to the first escalation rule"),
-  whoAddRules: translationKey("Page it for every new incident and alert"),
+  whoAddRules: translationKey("Page this policy for every new incident and alert"),
   whoCannotCreate: translationKey(
     "Setting up an on-call policy needs permission you do not have in this project. Ask a project owner or admin to set it up; your own notification methods are ready above.",
   ),
