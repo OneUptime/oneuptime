@@ -252,6 +252,8 @@ describe("Write the Check", () => {
       TABLE,
     );
     expect(suggestCheckMock.mock.calls[0]![1]).toBe(SENTENCE);
+    // An English page asks for English words.
+    expect(suggestCheckMock.mock.calls[0]![2]).toBe("en");
   });
 });
 
@@ -637,4 +639,29 @@ describe("the suggestion's name and explanation", () => {
     expect(explanation).not.toHaveAttribute("dir");
     expect(name).not.toHaveClass("w-fit");
   });
+});
+
+/*
+ * THE CHECK'S WORDS, ASKED FOR IN THE READER'S LANGUAGE (#7220).
+ *
+ * OneUptime AI wrote the check's name and explanation in English on every
+ * page. Write the Check now sends the language the page is read in with
+ * the rule, so the server asks for the name and explanation in it; the
+ * server keeps only a language the Dashboard is read in
+ * (DataCheckSuggestLanguage).
+ */
+describe("Write the Check, in the reader's language", () => {
+  test.each(["de", "ja", "ar", "fa"])(
+    "on a %s page, asks for the check's name and explanation in that language",
+    async (language: string) => {
+      await suggestionIn(language, DataCheckAlertCondition.Above, 0);
+
+      expect(suggestCheckMock).toHaveBeenCalledTimes(1);
+      expect((suggestCheckMock.mock.calls[0]![0] as ObjectID).toString()).toBe(
+        TABLE,
+      );
+      expect(suggestCheckMock.mock.calls[0]![1]).toBe(SENTENCE);
+      expect(suggestCheckMock.mock.calls[0]![2]).toBe(language);
+    },
+  );
 });

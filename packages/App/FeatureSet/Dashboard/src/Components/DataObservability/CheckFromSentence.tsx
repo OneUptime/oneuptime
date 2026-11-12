@@ -64,8 +64,13 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
     setIsWorking(true);
 
     try {
+      // The check's name and explanation come back in the reader's language (#7220).
       setSuggestion(
-        await DataObservabilityApi.suggestCheck(props.dataAssetId, sentence),
+        await DataObservabilityApi.suggestCheck(
+          props.dataAssetId,
+          sentence,
+          translator.language,
+        ),
       );
     } catch (err) {
       setError(API.getFriendlyMessage(err));
@@ -170,9 +175,10 @@ const CheckFromSentence: FunctionComponent<ComponentProps> = (
           <div className="space-y-2 rounded-md border border-gray-200 p-4">
             {/*
              * The check's name and what it counts are OneUptime AI's words,
-             * in whatever language they came back in: each line reads the
-             * way it is written, so an English explanation on an Arabic
-             * page keeps its full stop at its end.
+             * asked for in the reader's language but read in whatever
+             * language they came back in: each line reads the way it is
+             * written, so an English explanation on an Arabic page keeps
+             * its full stop at its end.
              */}
             <IsolatedLine
               as="p"
