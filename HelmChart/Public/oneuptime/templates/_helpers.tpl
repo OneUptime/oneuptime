@@ -377,7 +377,7 @@ here would override the image's own marker.
       name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
       key: {{ $.Values.microsoftTeamsApp.existingSecret.clientIdKey | quote }}
   {{- else }}
-  value: {{ $.Values.microsoftTeamsApp.clientId }}
+  value: {{ $.Values.microsoftTeamsApp.clientId | quote }}
   {{- end }}
 - name: MICROSOFT_TEAMS_APP_TENANT_ID
   {{- if $.Values.microsoftTeamsApp.existingSecret }}
@@ -386,7 +386,7 @@ here would override the image's own marker.
       name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
       key: {{ $.Values.microsoftTeamsApp.existingSecret.tenantIdKey | quote }}
   {{- else }}
-  value: {{ $.Values.microsoftTeamsApp.tenantId }}
+  value: {{ $.Values.microsoftTeamsApp.tenantId | quote }}
   {{- end }}
 {{- /*
 The Microsoft cloud the server's Microsoft Teams runs in, for the Teams bot and
@@ -398,11 +398,11 @@ or dod. Not a secret: the Dashboard reads it too, for its links to Teams.
 
 {{- if $.Values.openTelemetryExporter.endpoint }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.openTelemetryExporter.endpoint }}
+  value: {{ $.Values.openTelemetryExporter.endpoint | quote }}
 {{- end }}
 {{- if $.Values.openTelemetryExporter.headers }}
 - name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS
-  value: {{ $.Values.openTelemetryExporter.headers }}
+  value: {{ $.Values.openTelemetryExporter.headers | quote }}
 {{- end }}
 {{- if $.Values.openTelemetryExporter.captureAiMessageContent }}
 - name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
@@ -410,11 +410,11 @@ or dod. Not a secret: the Dashboard reads it too, for its links to Teams.
 {{- end }}
 {{- if $.Values.browserOpenTelemetryExporter.endpoint }}
 - name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT
-  value: {{ $.Values.browserOpenTelemetryExporter.endpoint }}
+  value: {{ $.Values.browserOpenTelemetryExporter.endpoint | quote }}
 {{- end }}
 {{- if $.Values.browserOpenTelemetryExporter.browserIngestionKey }}
 - name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY
-  value: {{ $.Values.browserOpenTelemetryExporter.browserIngestionKey }}
+  value: {{ $.Values.browserOpenTelemetryExporter.browserIngestionKey | quote }}
 {{- end }}
 - name: SLACK_APP_CLIENT_ID
   {{- if $.Values.slackApp.existingSecret }}
@@ -490,13 +490,13 @@ the button when it is set; the secret is in oneuptime.env.runtime.
 - name: GITHUB_APP_CLIENT_ID
   value: {{ $.Values.gitHubApp.clientId | quote }}
 - name: HOST
-  value: {{ $.Values.host }}
+  value: {{ $.Values.host | quote }}
 - name: PROVISION_SSL
   value: {{ ternary "true" "false" $provisionSSL | quote }}
 - name: STATUS_PAGE_CNAME_RECORD
-  value: {{ $.Values.statusPage.cnameRecord }}
+  value: {{ $.Values.statusPage.cnameRecord | quote }}
 - name: DASHBOARD_CNAME_RECORD
-  value: {{ $.Values.dashboard.cnameRecord | default "" }}
+  value: {{ $.Values.dashboard.cnameRecord | default "" | quote }}
 - name: ALLOWED_ACTIVE_MONITOR_COUNT_IN_FREE_PLAN
   value: {{ $.Values.billing.allowedActiveMonitorCountInFreePlan | quote }}
 - name: WATCHED_TABLES_INCLUDED_PER_PROJECT
@@ -510,11 +510,11 @@ the button when it is set; the secret is in oneuptime.env.runtime.
 - name: WATCHED_TABLE_STRIPE_PRICE_ID
   value: {{ $.Values.billing.watchedTables.stripePriceId | default "" | quote }}
 - name: LOG_LEVEL
-  value: {{ $.Values.logLevel }}
+  value: {{ $.Values.logLevel | quote }}
 - name: HTTP_PROTOCOL
-  value: {{ $.Values.httpProtocol }}
+  value: {{ $.Values.httpProtocol | quote }}
 - name: NODE_ENV
-  value: {{ $.Values.nodeEnvironment }}
+  value: {{ $.Values.nodeEnvironment | quote }}
 {{- if $.Values.ssl.skipVerification }}
 - name: NODE_TLS_REJECT_UNAUTHORIZED
   value: "0"
@@ -522,19 +522,19 @@ the button when it is set; the secret is in oneuptime.env.runtime.
 - name: BILLING_ENABLED
   value: {{ $.Values.billing.enabled | squote }}
 - name: BILLING_PUBLIC_KEY
-  value: {{ $.Values.billing.publicKey }}
+  value: {{ $.Values.billing.publicKey | quote }}
 - name: SUBSCRIPTION_PLAN_BASIC
-  value: {{ $.Values.subscriptionPlan.basic }}
+  value: {{ $.Values.subscriptionPlan.basic | quote }}
 - name: SUBSCRIPTION_PLAN_GROWTH
-  value: {{ $.Values.subscriptionPlan.growth }}
+  value: {{ $.Values.subscriptionPlan.growth | quote }}
 - name: SUBSCRIPTION_PLAN_SCALE
-  value: {{ $.Values.subscriptionPlan.scale }}
+  value: {{ $.Values.subscriptionPlan.scale | quote }}
 - name: SUBSCRIPTION_PLAN_ENTERPRISE
-  value: {{ $.Values.subscriptionPlan.enterprise }}
+  value: {{ $.Values.subscriptionPlan.enterprise | quote }}
 - name: ANALYTICS_KEY
-  value: {{ $.Values.analytics.key }}
+  value: {{ $.Values.analytics.key | quote }}
 - name: ANALYTICS_HOST
-  value: {{ $.Values.analytics.host }}
+  value: {{ $.Values.analytics.host | quote }}
 - name: MARKETING_WEBHOOK_URL
   value: {{ default "" ((($.Values.marketing).webhook).url) | quote }}
 - name: MARKETING_WEBHOOK_SECRET
@@ -560,9 +560,9 @@ the button when it is set; the secret is in oneuptime.env.runtime.
 - name: DATA_SOURCE_BLOCK_PRIVATE_ADDRESSES
   value: {{ ternary "true" "false" (default false (($.Values.outboundConnections).blockPrivateNetwork)) | quote }}
 - name: VAPID_PUBLIC_KEY
-  value: {{ $.Values.vapid.publicKey }}
+  value: {{ $.Values.vapid.publicKey | quote }}
 - name: VAPID_SUBJECT
-  value: {{ $.Values.vapid.subject }}
+  value: {{ $.Values.vapid.subject | quote }}
 - name: INBOUND_EMAIL_PROVIDER
   value: {{ default "SendGrid" $.Values.inboundEmail.provider | quote }}
 - name: INBOUND_EMAIL_DOMAIN
@@ -677,7 +677,7 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 {{- define "oneuptime.env.oneuptimeSecret" }}
 - name: ONEUPTIME_SECRET
   {{- if $.Values.oneuptimeSecret }}
-  value: {{ $.Values.oneuptimeSecret }}
+  value: {{ $.Values.oneuptimeSecret | quote }}
   {{- else }}
   {{- if ((($.Values.externalSecrets).oneuptimeSecret).existingSecret).name }}
   valueFrom:
@@ -696,7 +696,7 @@ GLOBAL_LLM_PROVIDER_API_KEY is rendered only when an API key is configured.
 {{- define "oneuptime.env.registerProbeKey" }}
 - name: REGISTER_PROBE_KEY
   {{- if $.Values.registerProbeKey }}
-  value: {{ $.Values.registerProbeKey }}
+  value: {{ $.Values.registerProbeKey | quote }}
   {{- else }}
   {{- if ((($.Values.externalSecrets).registerProbeKey).existingSecret).name }}
   valueFrom:
@@ -755,7 +755,7 @@ that is empty.
       name: {{ $vapidPrivateKeySecret | quote }}
       key: {{ include "oneuptime.vapid.privateKeyKey" $ | quote }}
   {{- else }}
-  value: {{ $.Values.vapid.privateKey }}
+  value: {{ $.Values.vapid.privateKey | quote }}
   {{- end }}
 
 - name: EXPO_ACCESS_TOKEN
@@ -779,7 +779,7 @@ to `default`, and would render as unset - a relay again where billing is on.
       name: {{ $.Values.slackApp.existingSecret.name }}
       key: {{ $.Values.slackApp.existingSecret.clientSecretKey }}
   {{- else }}
-  value: {{ $.Values.slackApp.clientSecret }}
+  value: {{ $.Values.slackApp.clientSecret | quote }}
   {{- end }}
 
 - name: SLACK_APP_SIGNING_SECRET
@@ -799,7 +799,7 @@ to `default`, and would render as unset - a relay again where billing is on.
       name: {{ $.Values.microsoftTeamsApp.existingSecret.name | quote }}
       key: {{ $.Values.microsoftTeamsApp.existingSecret.clientSecretKey | quote }}
   {{- else }}
-  value: {{ $.Values.microsoftTeamsApp.clientSecret }}
+  value: {{ $.Values.microsoftTeamsApp.clientSecret | quote }}
   {{- end }}
 
 - name: ZOOM_APP_CLIENT_SECRET
@@ -886,13 +886,13 @@ empty and AWS accounts connect with an access key instead.
   {{- end }}
 
 - name: GITHUB_APP_CLIENT_SECRET
-  value: {{ $.Values.gitHubApp.clientSecret }}
+  value: {{ $.Values.gitHubApp.clientSecret | quote }}
 
 - name: GITHUB_APP_PRIVATE_KEY
   value: {{ $.Values.gitHubApp.privateKey | quote }}
 
 - name: GITHUB_APP_WEBHOOK_SECRET
-  value: {{ $.Values.gitHubApp.webhookSecret }}
+  value: {{ $.Values.gitHubApp.webhookSecret | quote }}
 
 - name: MICROSOFT_SIGN_IN_CLIENT_SECRET
   {{- if ($.Values.microsoftSignInApp).existingSecret }}
@@ -994,29 +994,29 @@ values are set. Secrets can come from an existing Kubernetes secret.
   value: {{ default "" $.Values.openSourceDeployment.webhookUrl | quote }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_USER
-  value: {{ $.Values.notifications.webhooks.slack.onCreateUser }}
+  value: {{ $.Values.notifications.webhooks.slack.onCreateUser | quote }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_CREATED_PROJECT
-  value: {{ $.Values.notifications.webhooks.slack.onCreateProject }}
+  value: {{ $.Values.notifications.webhooks.slack.onCreateProject | quote }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_DELETED_PROJECT
-  value: {{ $.Values.notifications.webhooks.slack.onDeleteProject }}
+  value: {{ $.Values.notifications.webhooks.slack.onDeleteProject | quote }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_SUBSCRIPTION_UPDATE
-  value: {{ $.Values.notifications.webhooks.slack.onSubscriptionUpdate }}
+  value: {{ $.Values.notifications.webhooks.slack.onSubscriptionUpdate | quote }}
 
 - name: NOTIFICATION_SLACK_WEBHOOK_ON_AI_FEEDBACK
-  value: {{ $.Values.notifications.webhooks.slack.onAiFeedback }}
+  value: {{ $.Values.notifications.webhooks.slack.onAiFeedback | quote }}
 
 - name: LETS_ENCRYPT_NOTIFICATION_EMAIL
-  value: {{ $.Values.letsEncrypt.email }}
+  value: {{ $.Values.letsEncrypt.email | quote }}
 
 - name: LETS_ENCRYPT_ACCOUNT_KEY
-  value: {{ $.Values.letsEncrypt.accountKey }}
+  value: {{ $.Values.letsEncrypt.accountKey | quote }}
 
 - name: ENCRYPTION_SECRET
   {{- if $.Values.encryptionSecret }}
-  value: {{ $.Values.encryptionSecret }}
+  value: {{ $.Values.encryptionSecret | quote }}
   {{- else }}
   {{- if ((($.Values.externalSecrets).encryptionSecret).existingSecret).name }}
   valueFrom:
@@ -1034,11 +1034,11 @@ values are set. Secrets can come from an existing Kubernetes secret.
 {{- $chAltinity := $.Values.clickhouseOperator.altinity }}
 - name: CLICKHOUSE_USER
   {{- if $chAltinity.enabled }}
-  value: {{ $chAltinity.auth.username | default "oneuptime" }}
+  value: {{ $chAltinity.auth.username | default "oneuptime" | quote }}
   {{- else if $.Values.clickhouse.enabled }}
-  value: {{ $.Values.clickhouse.auth.username }}
+  value: {{ $.Values.clickhouse.auth.username | quote }}
   {{- else }}
-  value: {{ $.Values.externalClickhouse.username }}
+  value: {{ $.Values.externalClickhouse.username | quote }}
   {{- end }}
 
 - name: CLICKHOUSE_IS_HOST_HTTPS
@@ -1083,7 +1083,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
   {{- else if $.Values.clickhouse.enabled }}
   value: {{ $.Release.Name }}-clickhouse.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else }}
-  value: {{ $.Values.externalClickhouse.host }}
+  value: {{ $.Values.externalClickhouse.host | quote }}
   {{- end }}
 - name: CLICKHOUSE_PORT
   {{- if $chAltinity.enabled }}
@@ -1099,7 +1099,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
   {{- else if $.Values.clickhouse.enabled }}
   value: {{ printf "oneuptime" | squote}}
   {{- else }}
-  value: {{ $.Values.externalClickhouse.database }}
+  value: {{ $.Values.externalClickhouse.database | quote }}
   {{- end }}
 # Cluster name. OneUptime's analytics schema ALWAYS runs as a sharded +
 # replicated cluster (Distributed over local ReplicatedMergeTree, ON CLUSTER).
@@ -1262,7 +1262,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
   {{- else if $.Values.postgresql.enabled }}
   value: {{ $.Release.Name }}-postgresql.{{ $.Release.Namespace }}.svc.{{ $.Values.global.clusterDomain }}
   {{- else }}
-  value: {{ $.Values.externalPostgres.host }}
+  value: {{ $.Values.externalPostgres.host | quote }}
   {{- end }}
 - name: DATABASE_PORT
   {{- if and $.Values.pgbouncer.enabled (not $.DirectPostgres) }}
@@ -1278,7 +1278,7 @@ values are set. Secrets can come from an existing Kubernetes secret.
   {{- if or $cnpg.enabled $.Values.postgresql.enabled }}
   value: postgres
   {{- else }}
-  value: {{ $.Values.externalPostgres.username }}
+  value: {{ $.Values.externalPostgres.username | quote }}
   {{- end }}
 - name: DATABASE_PASSWORD
   {{- if $cnpg.enabled }}
@@ -1307,11 +1307,11 @@ values are set. Secrets can come from an existing Kubernetes secret.
   {{- end }}
 - name: DATABASE_NAME
   {{- if $cnpg.enabled }}
-  value: {{ $cnpg.database | default "oneuptimedb" }}
+  value: {{ $cnpg.database | default "oneuptimedb" | quote }}
   {{- else if $.Values.postgresql.enabled }}
-  value: {{ $.Values.postgresql.auth.database }}
+  value: {{ $.Values.postgresql.auth.database | quote }}
   {{- else }}
-  value: {{ $.Values.externalPostgres.database }}
+  value: {{ $.Values.externalPostgres.database | quote }}
   {{- end }}
 {{- if .DatabaseMaxOpenConnections }}
 # Per-pod node-postgres pool ceiling. Resolved per service at the call site
@@ -1384,10 +1384,10 @@ values are set. Secrets can come from an existing Kubernetes secret.
 ## DATABASE SSL ENDS HERE
 
 - name: BILLING_PRIVATE_KEY
-  value: {{ $.Values.billing.privateKey }}
+  value: {{ $.Values.billing.privateKey | quote }}
 
 - name: BILLING_WEBHOOK_SECRET
-  value: {{ $.Values.billing.webhookSecret }}
+  value: {{ $.Values.billing.webhookSecret | quote }}
 
 - name: DISABLE_AUTOMATIC_INCIDENT_CREATION
   value: {{ $.Values.incidents.disableAutomaticCreation | squote }}

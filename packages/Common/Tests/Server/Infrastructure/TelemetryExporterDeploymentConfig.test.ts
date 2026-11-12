@@ -119,13 +119,13 @@ describe("telemetry exporter deployment configuration isolation", () => {
 
     expect(source).toContain("- name: OPENTELEMETRY_EXPORTER_OTLP_HEADERS");
     expect(source).toContain(
-      "value: {{ $.Values.openTelemetryExporter.headers }}",
+      "value: {{ $.Values.openTelemetryExporter.headers | quote }}",
     );
     expect(source).toContain(
       "- name: PUBLIC_OPENTELEMETRY_EXPORTER_OTLP_BROWSER_INGESTION_KEY",
     );
     expect(source).toContain(
-      "value: {{ $.Values.browserOpenTelemetryExporter.browserIngestionKey }}",
+      "value: {{ $.Values.browserOpenTelemetryExporter.browserIngestionKey | quote }}",
     );
   });
 });
