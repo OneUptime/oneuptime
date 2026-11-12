@@ -376,10 +376,14 @@ work out, starts from a default for everything else, and folds what most people 
   [CardHeaderActionsGuard](../../packages/Common/Tests/UI/Components/CardHeaderActionsGuard.test.tsx).
 - **A card's description sits right under its title,** with no gap. Enforced by
   [CardDescriptionUnderTitleGuard](../../packages/Common/Tests/UI/Components/CardDescriptionUnderTitleGuard.test.tsx).
-- **What a card holds lines up with its title.** Enforced by
-  [DataObservabilityCardPaddingGuard](../../packages/Common/Tests/App/Dashboard/DataObservabilityCardPaddingGuard.test.ts).
+- **What a card holds lines up with its title,** in every product: the card pads its body, and the
+  body does not pad it again. Enforced by
+  [CardBodyPaddingGuard](../../packages/Common/Tests/App/Dashboard/CardBodyPaddingGuard.test.ts).
 - **A row of cards ends on one line.** Enforced by
   [CardRowsGuard](../../packages/Common/Tests/UI/Components/CardRowsGuard.test.ts).
+- **A chart's legend names its series in the order the page gives them,** not alphabetically, so it reads
+  the same in every language: every recharts `Legend` passes an `itemSorter` (never `itemSorter={null}`). Enforced by
+  [ChartLegendOrderGuard](../../packages/Common/Tests/UI/ChartLegendOrderGuard.test.ts).
 - **A details card lays its fields out by its own width,** not by a share of the page's. Enforced by
   [DetailCardsSourceGuard](../../packages/Common/Tests/UI/Components/Detail/DetailCardsSourceGuard.test.ts)
   and
@@ -443,6 +447,9 @@ work out, starts from a default for everything else, and folds what most people 
 - **A date is written by `OneUptimeDate` in the reader's language,** never put into an English
   template literal. Enforced by
   [DatesInEnglishTextGuard](../../packages/App/Tests/Dashboard/DatesInEnglishTextGuard.test.ts).
+- **A chart of one point a day labels its axis by the day** (`xAxisPrecision={XAxisPrecision.EVERY_DAY}`),
+  never by an hour or a step guessed from the window's length. Enforced by
+  [ProductAnalyticsDayAxisGuard](../../packages/Common/Tests/App/Dashboard/ProductAnalyticsDayAxisGuard.test.ts).
 - **A whole sentence is translated, never a word at a time.** Word by word, German read "Nein monitors
   yet". Use `TranslatedSentence` for a sentence with values in it. Not enforced: use judgement.
 
@@ -461,6 +468,9 @@ then `npm run i18n:validate` from the root.
   [DashboardSloTopologyWorkspaceHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardSloTopologyWorkspaceHardcodedGuard.test.ts)
   and
   [DashboardTraceViewHardcodedGuard](../../packages/App/Tests/Dashboard/DashboardTraceViewHardcodedGuard.test.ts).
+- **A phone number is never printed as it is.** On a page that reads right to left its "+" would go after
+  its digits; print it so it keeps its own direction. Enforced by
+  [PhoneNumberTextGuard](../../packages/Common/Tests/UI/PhoneNumberTextGuard.test.ts).
 - **A right-to-left page reads right to left.** Use start and end, never an inline left or right; a
   canvas's panels are mirrored once, by the page; a name in a table reads the way its words do; a
   sentence in a flex row is one item of it. Enforced by

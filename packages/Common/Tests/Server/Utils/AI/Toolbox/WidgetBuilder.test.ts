@@ -2,13 +2,26 @@ import WidgetBuilder from "../../../../../Server/Utils/AI/Toolbox/WidgetBuilder"
 import { JSONObject } from "../../../../../Types/JSON";
 import {
   AIChatCitationTarget,
+  AIChatResourceCardOrigin,
   AIChatWidget,
   AIChatWidgetColumn,
+  AIChatWidgetData,
   AIChatWidgetSeries,
   AIChatWidgetSpan,
   AIChatWidgetStat,
   AIChatWidgetType,
+  getAIChatResourceCardStatusColor,
+  isAIChatReadResourceCard,
 } from "../../../../../Types/AI/AIChatTypes";
+import {
+  AI_ACTION_CARD_FACTS,
+  AI_ACTION_CARD_KINDS,
+  AI_ACTION_CARD_LINES,
+  AIActionCardWords,
+  aiActionCardFact,
+  aiActionSentence,
+  aiActionTerm,
+} from "../../../../../Types/AI/AIActionWords";
 
 /*
  * WidgetBuilder is the factory the AI toolbox uses to attach inline widgets to
@@ -222,6 +235,201 @@ describe("WidgetBuilder", () => {
 
     for (const widget of widgets) {
       expect(widget.id).toBe("");
+    }
+  });
+});
+
+/*
+ * WHICH KIND OF TOOL LEFT A CARD (issue #6968).
+ *
+ * A read's card and a write's were one card, drawn as a write's: green,
+ * with a check. A monitor looked up while it was Offline - or whose
+ * monitoring was off - had a green check beside it, as if something had
+ * been done well. Each card now says which kind of tool left it, and the
+ * Dashboard draws a read's plain; a card saved before cards said which is
+ * drawn as a write's, as it was then. A read's card may carry its status's
+ * own colour, which the card draws as a dot beside the line that names it.
+ */
+describe("which kind of tool left a card (#6968)", () => {
+  const ALERT_WORDS: AIActionCardWords = {
+    kind: aiActionTerm(AI_ACTION_CARD_KINDS.alert),
+    line: [
+      aiActionSentence(AI_ACTION_CARD_LINES.severity, { severity: "High" }),
+    ],
+    facts: [aiActionCardFact(AI_ACTION_CARD_FACTS.description, "Disk full.")],
+  };
+
+  // A monitor read by id, as query_monitors leaves it.
+  function monitorCard(params: {
+    subheading?: string | undefined;
+    statusColor?: string | undefined;
+  }): AIChatWidget {
+    return WidgetBuilder.resourceCard({
+      title: "Monitor Checkout API",
+      resourceType: "Monitor",
+      heading: "Checkout API",
+      subheading: params.subheading,
+      statusColor: params.statusColor,
+      fields: [{ label: "Type", value: "Website" }],
+      link,
+    });
+  }
+
+  test("resourceCard() leaves a read's card", () => {
+    const widget: AIChatWidget = monitorCard({ subheading: "Offline" });
+
+    expect(widget.type).toBe(AIChatWidgetType.ResourceCard);
+    expect(widget.data.origin).toBe(AIChatResourceCardOrigin.Read);
+    expect(widget.data.origin).toBe("Read");
+    expect(isAIChatReadResourceCard(widget.data)).toBe(true);
+    // A read's card has no words: the read tools' cards are English still.
+    expect(Object.keys(widget.data)).not.toContain("words");
+  });
+
+  test("actionCard() leaves a write's card, with its words, and never a status colour", () => {
+    const widget: AIChatWidget = WidgetBuilder.actionCard({
+      title: "Alert created",
+      heading: "ALT-12 · Disk on payments-db filling up",
+      words: ALERT_WORDS,
+      link,
+    });
+
+    expect(widget.type).toBe(AIChatWidgetType.ResourceCard);
+    expect(widget.data.origin).toBe(AIChatResourceCardOrigin.Write);
+    expect(widget.data.origin).toBe("Write");
+    expect(isAIChatReadResourceCard(widget.data)).toBe(false);
+    expect(widget.data.words).toBe(ALERT_WORDS);
+    expect(Object.keys(widget.data)).not.toContain("statusColor");
+  });
+
+  test("the two cards are the same card otherwise: its kind, heading, line, facts and link", () => {
+    const write: AIChatWidget = WidgetBuilder.actionCard({
+      title: "Alert created",
+      heading: "ALT-12 · Disk on payments-db filling up",
+      words: ALERT_WORDS,
+      link,
+    });
+    const read: AIChatWidget = WidgetBuilder.resourceCard({
+      title: "Alert created",
+      resourceType: write.data.resourceType!,
+      heading: write.data.heading!,
+      subheading: write.data.subheading,
+      fields: write.data.fields!,
+      link,
+    });
+
+    const withoutOrigin: (data: AIChatWidgetData) => AIChatWidgetData = (
+      data: AIChatWidgetData,
+    ): AIChatWidgetData => {
+      const rest: AIChatWidgetData = { ...data };
+      delete rest.origin;
+      delete rest.words;
+      return rest;
+    };
+
+    expect(withoutOrigin(read.data)).toEqual(withoutOrigin(write.data));
+    expect(read.title).toBe(write.title);
+    expect(read.data.origin).not.toBe(write.data.origin);
+  });
+
+  test("a card saved before cards said which is a write's, as it was drawn then", () => {
+    // As an older conversation stores one: no origin at all.
+    const saved: AIChatWidgetData = {
+      resourceType: "Alert",
+      heading: "ALT-12 · High memory usage on test01",
+      subheading: "Severity: High",
+      fields: [{ label: "State", value: "Created" }],
+    };
+
+    expect(isAIChatReadResourceCard(saved)).toBe(false);
+    expect(isAIChatReadResourceCard({})).toBe(false);
+  });
+
+  test("an origin the Dashboard does not know is drawn as a write's: only Read is drawn plain", () => {
+    for (const origin of ["read", "READ", "Write", "", "Deleted", " Read"]) {
+      expect(
+        isAIChatReadResourceCard({
+          origin: origin as AIChatResourceCardOrigin,
+        }),
+      ).toBe(false);
+    }
+
+    expect(
+      isAIChatReadResourceCard({ origin: AIChatResourceCardOrigin.Read }),
+    ).toBe(true);
+  });
+
+  test("a read's status colour is kept as it is", () => {
+    for (const color of ["#fd625e", "#FD625E", "#ef4444", "#f00", "#6b7280"]) {
+      expect(
+        monitorCard({ subheading: "Offline", statusColor: color }).data
+          .statusColor,
+      ).toBe(color);
+    }
+  });
+
+  test("anything but a colour is dropped: the card then draws no dot", () => {
+    for (const value of [
+      "red",
+      "fd625e",
+      "#fd625",
+      "#fd625e0",
+      "#fd625eff",
+      "#ggg",
+      "#fd625e; background-image: url(https://example.com/x.png)",
+      "url(https://example.com/x.png)",
+      "rgb(253, 98, 94)",
+      "var(--ou-text)",
+      " #fd625e",
+      "#fd625e ",
+      "#fd625e\n",
+      "",
+    ]) {
+      const widget: AIChatWidget = monitorCard({
+        subheading: "Offline",
+        statusColor: value,
+      });
+
+      expect({ value, keys: Object.keys(widget.data) }).toEqual({
+        value,
+        keys: expect.not.arrayContaining(["statusColor"]),
+      });
+    }
+  });
+
+  test("no line, no colour: the dot belongs to the status the line names", () => {
+    for (const subheading of [undefined, ""]) {
+      expect(
+        Object.keys(monitorCard({ subheading, statusColor: "#fd625e" }).data),
+      ).not.toContain("statusColor");
+    }
+  });
+
+  test("no colour asked for, none saved", () => {
+    expect(
+      Object.keys(monitorCard({ subheading: "Offline" }).data),
+    ).not.toContain("statusColor");
+  });
+
+  test("a stored card's colour is read as untrusted: only #rgb or #rrggbb", () => {
+    expect(getAIChatResourceCardStatusColor("#fd625e")).toBe("#fd625e");
+    expect(getAIChatResourceCardStatusColor("#ABC")).toBe("#ABC");
+
+    for (const value of [
+      undefined,
+      null,
+      42,
+      true,
+      {},
+      ["#fd625e"],
+      { color: "#fd625e" },
+      "#fd625e\n",
+      "\n#fd625e",
+      "#fd625e;",
+      "javascript:alert(1)",
+      "expression(alert(1))",
+    ]) {
+      expect(getAIChatResourceCardStatusColor(value)).toBeNull();
     }
   });
 });
