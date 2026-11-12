@@ -1312,16 +1312,18 @@ describe("status pages", () => {
     );
   });
 
-  test("a status page that shows something is no finding", () => {
-    expect(
-      getSetupHealthFindings(
-        facts({
-          statusPages: [
-            { id: STATUS_PAGE, name: "Acme Status", resourceCount: 2 },
-          ],
-        }),
-      ),
-    ).toEqual([]);
+  test("a status page that shows something is no finding, from one monitor or group up", () => {
+    for (const resourceCount of [1, 2, 40]) {
+      expect(
+        getSetupHealthFindings(
+          facts({
+            statusPages: [
+              { id: STATUS_PAGE, name: "Acme Status", resourceCount: resourceCount },
+            ],
+          }),
+        ),
+      ).toEqual([]);
+    }
   });
 
   const domain: (
@@ -1516,6 +1518,41 @@ describe("the list", () => {
       `${SetupHealthLevel.WorthFixing}/${SetupHealthCheck.MonitorPagesNobody}`,
       `${SetupHealthLevel.WorthFixing}/${SetupHealthCheck.PolicyNotRun}`,
       `${SetupHealthLevel.Suggestion}/${SetupHealthCheck.OneOwner}`,
+    ]);
+  });
+
+  test("the level comes before the check: a monitor that pages nobody is a suggestion before any policy, after an unchecked monitor", () => {
+    const findings: Array<SetupHealthFinding> = getSetupHealthFindings(
+      facts({
+        chains: [
+          chain({
+            breaks: [
+              brk({
+                kind: WhoIsToldBreakKind.NobodyPaged,
+                recordKind: OnCallTestPageRecordKind.Incident,
+              }),
+            ],
+          }),
+        ],
+        monitors: [
+          monitorFact({ id: BILLING, name: "Billing API", hasNoProbeOn: true }),
+        ],
+      }),
+    );
+
+    // By check alone, "pages nobody" would come first.
+    expect(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.MonitorPagesNobody),
+    ).toBeLessThan(
+      SETUP_HEALTH_CHECK_ORDER.indexOf(SetupHealthCheck.MonitorNotChecked),
+    );
+    expect(
+      findings.map((finding: SetupHealthFinding): string => {
+        return `${finding.level}/${finding.check}`;
+      }),
+    ).toEqual([
+      `${SetupHealthLevel.WorthFixing}/${SetupHealthCheck.MonitorNotChecked}`,
+      `${SetupHealthLevel.Suggestion}/${SetupHealthCheck.MonitorPagesNobody}`,
     ]);
   });
 

@@ -1349,7 +1349,8 @@ export function compareSetupHealthFindings(
  * EVERY FINDING OF A PROJECT, each once, worst first. A finding several
  * rules or monitors make (a policy many monitors run, the server's email)
  * is said once, with every record it concerns; a responder found by both
- * Readiness and a chain keeps the worst reason, and the worse level.
+ * Readiness and a chain keeps the worst reason. One key is one check, so
+ * the findings it merges are of one level.
  */
 export function getSetupHealthFindings(
   facts: SetupHealthFacts,
@@ -1375,10 +1376,6 @@ export function getSetupHealthFindings(
         reasonRank(finding) < reasonRank(known)
           ? { ...finding, related: [...known.related] }
           : known;
-
-      if (levelRank(finding.level) < levelRank(kept.level)) {
-        kept.level = finding.level;
-      }
 
       addRelated(kept.related, finding.related);
       byKey.set(finding.key, kept);
