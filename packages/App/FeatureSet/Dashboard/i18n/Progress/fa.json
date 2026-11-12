@@ -1,7 +1,7 @@
 {
   "baseline": {
     "keys": 51086,
-    "untranslated": 7633
+    "untranslated": 7373
   },
   "sameAsEnglish": [
     "\"Error\"",
@@ -19,6 +19,7 @@
     "4xx",
     "5xx",
     "A-Z",
+    "AES",
     "Active + Clean",
     "Add custom connector",
     "Aggregate",
@@ -30,6 +31,7 @@
     "Application credential",
     "Application credential {{id}}",
     "Atmosphere",
+    "Auth, Priv",
     "Availability Zone",
     "Azure",
     "Bare Metal",
@@ -138,6 +140,7 @@
     "Project view",
     "Provision State",
     "Provisioning Status",
+    "RTT",
     "RabbitMQ",
     "Re-encrypt",
     "Red Hat OpenShift",
@@ -157,9 +160,12 @@
     "SHA256",
     "SLI %",
     "SLOs",
+    "SNMP Community String",
     "SNMP trap",
+    "SNMP:",
     "SQL Server",
     "SSH",
+    "SSID",
     "ScheduledMaintenance",
     "Service Mesh",
     "Slug",
@@ -171,11 +177,13 @@
     "TX",
     "Top P",
     "Trace ID: 4e3e0ec6-2938-40b1-8504-09eb1d4b0dee",
+    "Traceroute",
     "UID",
     "USD",
     "UTC",
     "Up + In",
     "Up + Out",
+    "V2c",
     "VIP",
     "VLAN",
     "VLAN {{vlanId}}",
@@ -212,6 +220,7 @@
     "govc",
     "history {{kind}}",
     "host:port",
+    "ifIndex {{index}}",
     "internal-service",
     "ip",
     "kubectl set image deployment/web * -n web",
@@ -265,6 +274,7 @@
     "{{count}} CPU",
     "{{count}} DNS zone",
     "{{count}} Kubernetes",
+    "{{count}} OID",
     "{{count}} VM",
     "{{count}} datastore",
     "{{count}} load balancer",
@@ -272,6 +282,7 @@
     "{{count}} share",
     "{{count}} vCPU",
     "{{gigabytes}} GB",
+    "{{inRate}} / {{outRate}} Mbps",
     "{{in}} in",
     "{{value}} ms"
   ]
