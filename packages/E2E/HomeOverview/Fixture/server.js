@@ -37,6 +37,15 @@ const tailwind = path.join(
   repository,
   "packages/Common/Server/Static/Vendor/tailwind/tailwind-3.4.5.js",
 );
+/*
+ * What the dashboard's index.ejs loads right after the runtime: left and
+ * right follow the page's reading direction, so Home in Persian (dir="rtl",
+ * set by PageLanguage) is laid out as production lays it out.
+ */
+const readingDirection = path.join(
+  repository,
+  "packages/Common/UI/Styles/TailwindReadingDirection.js",
+);
 // Production imports Theme.css from src/Index.tsx; serve the same file.
 const theme = path.join(repository, "packages/Common/UI/Styles/Theme.css");
 /*
@@ -50,7 +59,7 @@ const tailwindConfig = `tailwind.config={darkMode:"class",theme:{extend:{fontFam
  * boundary is stubbed in the page and the spec aborts any request that
  * leaves this server.
  */
-const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Home preview</title><script>window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
+const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Home preview</title><script>window.process={env:{HOST:"oneuptime.acme-commerce.example",HTTP_PROTOCOL:"https",BILLING_ENABLED:"false",VERSION:"1.0.0",NODE_ENV:"development"}};window.global=window;if(new URLSearchParams(location.search).get("theme")==="dark"){document.documentElement.classList.add("dark")}</script><script src="/tailwind.js"></script><script src="/tailwind-reading-direction.js"></script><script>${tailwindConfig}</script><style>body{margin:0;background:#f9fafb;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}</style><link rel="stylesheet" href="/theme.css"></head><body><div id="root"></div><script type="module" src="/dist/Fixture.js"></script></body></html>`;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true });
@@ -76,6 +85,11 @@ async function main() {
     if (url.pathname === "/tailwind.js") {
       response.setHeader("Content-Type", "application/javascript");
       fs.createReadStream(tailwind).pipe(response);
+      return;
+    }
+    if (url.pathname === "/tailwind-reading-direction.js") {
+      response.setHeader("Content-Type", "application/javascript");
+      fs.createReadStream(readingDirection).pipe(response);
       return;
     }
     if (url.pathname === "/theme.css") {

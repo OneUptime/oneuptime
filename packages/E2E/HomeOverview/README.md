@@ -8,7 +8,8 @@ An offline harness for the real dashboard Home page:
 | Home's old lists | `MOVED_HOME_LISTS_ROOT` `/dashboard/:projectId/home/*` | `Routes/MovedHomeRoutes`: the addresses of the lists Home used to hold forward to the products' own lists, as `App.tsx` mounts it                                                                                                                                  |
 
 `Fixture/server.js` bundles the production layout and page with esbuild, serves them with the
-same Tailwind build, `tailwind.config` and `Theme.css` production uses, and listens on
+same Tailwind build, reading-direction script (left and right follow a Persian page's
+direction), `tailwind.config` and `Theme.css` production uses, and listens on
 `127.0.0.1:4224` (`HOME_OVERVIEW_FIXTURE_PORT`). No Docker, no database, no sign-in. Only the
 `ModelAPI` / `API` data boundary and the signed-in user are replaced. The locale files are the
 real `en.json` and `de.json`.
