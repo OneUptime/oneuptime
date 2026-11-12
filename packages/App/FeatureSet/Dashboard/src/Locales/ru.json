@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "Администратор сервера может снова запустить его: установите DISABLE_TELEMETRY_INGESTION в false и перезапустите OneUptime.",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "Администратор сервера отключил это для всех проектов. Он может включить это в разделе «Панель администратора > Настройки > Продукты».",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "Администратор сервера отключил продукт «{{product}}» для всех проектов на этом сервере. Ничего не удалено: когда продукт снова включат, всё вернётся как было.",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Попросите администратора сервера включить его в разделе «Панель администратора > Настройки > Продукты».",
+  "Go to Home": "На главную",
+  "Off: telemetry ingestion is stopped": "Выключено: приём телеметрии остановлен",
+  "Open Settings > Products": "Открыть «Настройки > Продукты»",
+  "Server Products": "Продукты сервера",
+  "Switched off on this server": "Отключено на этом сервере",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "Приём телеметрии на этом сервере остановлен (DISABLE_TELEMETRY_INGESTION), поэтому ничего нового не поступает.",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "Приём телеметрии на этом сервере остановлен, поэтому новые журналы, метрики, трассировки и профили не поступают. Ничего не удалено.",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "Эта страница также использует продукт «{{product}}», который администратор сервера отключил для всех проектов на этом сервере. Ничего не удалено.",
+  "not done — this product is switched off on this server": "не выполнено — этот продукт отключён на этом сервере",
+  "{{product}} is off on this server": "Продукт «{{product}}» выключен на этом сервере",
+  "{{product}} is switched off on this server": "Продукт «{{product}}» отключён на этом сервере"
 }

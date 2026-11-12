@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "En serveradministratör kan starta den igen: ställ in DISABLE_TELEMETRY_INGESTION på false och starta om OneUptime.",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "En serveradministratör har stängt av detta för alla projekt. Administratören kan slå på det under Admin-instrumentpanel > Inställningar > Produkter.",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "En serveradministratör har stängt av produkten {{product}} för alla projekt på den här servern. Inget har tagits bort: den kommer tillbaka som den var när den slås på igen.",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Be en serveradministratör att slå på den under Admin-instrumentpanel > Inställningar > Produkter.",
+  "Go to Home": "Gå till Hem",
+  "Off: telemetry ingestion is stopped": "Av: telemetriinmatningen är stoppad",
+  "Open Settings > Products": "Öppna Inställningar > Produkter",
+  "Server Products": "Serverprodukter",
+  "Switched off on this server": "Avstängd på den här servern",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "Telemetriinmatningen är stoppad på den här servern (DISABLE_TELEMETRY_INGESTION), så inget nytt kommer in.",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "Telemetriinmatningen är stoppad på den här servern, så inga nya loggar, mätvärden, spår eller profiler kommer in. Inget har tagits bort.",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "Den här sidan använder också produkten {{product}}, som en serveradministratör har stängt av för alla projekt på den här servern. Inget har tagits bort.",
+  "not done — this product is switched off on this server": "inte utförd — den här produkten är avstängd på den här servern",
+  "{{product}} is off on this server": "Produkten {{product}} är inte aktiv på den här servern",
+  "{{product}} is switched off on this server": "Produkten {{product}} är avstängd på den här servern"
 }

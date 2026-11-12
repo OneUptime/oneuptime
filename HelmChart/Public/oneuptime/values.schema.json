@@ -2162,6 +2162,15 @@
             },
             "additionalProperties": false
         },
+        "products": {
+            "type": "object",
+            "properties": {
+                "onThisServer": {
+                    "type": "string"
+                }
+            },
+            "additionalProperties": false
+        },
         "sourceMaps": {
             "type": "object",
             "properties": {

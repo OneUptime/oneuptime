@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "サーバー管理者は、DISABLE_TELEMETRY_INGESTION を false に設定して OneUptime を再起動すると、取り込みを再開できます。",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "サーバー管理者がすべてのプロジェクトでこれをオフにしました。サーバー管理者は「管理ダッシュボード > 設定 > 製品」でオンにできます。",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "サーバー管理者が、このサーバーのすべてのプロジェクトで {{product}} をオフにしました。削除されたものはありません。再びオンにすると、元どおりに戻ります。",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "「管理ダッシュボード > 設定 > 製品」でオンにするよう、サーバー管理者に依頼してください。",
+  "Go to Home": "ホームへ移動",
+  "Off: telemetry ingestion is stopped": "オフ: テレメトリの取り込みが停止しています",
+  "Open Settings > Products": "「設定 > 製品」を開く",
+  "Server Products": "サーバーの製品",
+  "Switched off on this server": "このサーバーでオフになっています",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "このサーバーではテレメトリの取り込みが停止している (DISABLE_TELEMETRY_INGESTION) ため、新しいデータは届きません。",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "このサーバーではテレメトリの取り込みが停止しているため、新しいログ、メトリクス、トレース、プロファイルは届きません。削除されたものはありません。",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "このページでは {{product}} も使用していますが、サーバー管理者がこのサーバーのすべてのプロジェクトでオフにしています。削除されたものはありません。",
+  "not done — this product is switched off on this server": "実行されませんでした — この製品はこのサーバーでオフになっています",
+  "{{product}} is off on this server": "{{product}} はこのサーバーでオフです",
+  "{{product}} is switched off on this server": "{{product}} はこのサーバーでオフになっています"
 }

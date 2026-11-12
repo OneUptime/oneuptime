@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "서버 관리자는 DISABLE_TELEMETRY_INGESTION을 false로 설정하고 OneUptime을 재시작해 수집을 재개할 수 있습니다.",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "서버 관리자가 모든 프로젝트에서 이 제품을 껐습니다. 서버 관리자는 관리자 대시보드 > 설정 > 제품에서 켤 수 있습니다.",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "서버 관리자가 이 서버의 모든 프로젝트에서 {{product}}을(를) 껐습니다. 삭제된 것은 없습니다. 다시 켜면 이전 상태 그대로 돌아옵니다.",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "서버 관리자에게 관리자 대시보드 > 설정 > 제품에서 켜 달라고 요청하세요.",
+  "Go to Home": "홈으로 이동",
+  "Off: telemetry ingestion is stopped": "꺼짐: 텔레메트리 수집이 중지됨",
+  "Open Settings > Products": "설정 > 제품 열기",
+  "Server Products": "서버 제품",
+  "Switched off on this server": "이 서버에서 꺼짐",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "이 서버에서 텔레메트리 수집이 중지되어(DISABLE_TELEMETRY_INGESTION) 새 데이터가 들어오지 않습니다.",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "이 서버에서 텔레메트리 수집이 중지되어 새 로그, 메트릭, 트레이스, 프로필이 들어오지 않습니다. 삭제된 것은 없습니다.",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "이 페이지는 {{product}}도 사용하지만, 서버 관리자가 이 서버의 모든 프로젝트에서 이 제품을 껐습니다. 삭제된 것은 없습니다.",
+  "not done — this product is switched off on this server": "수행되지 않음 — 이 제품은 이 서버에서 꺼져 있습니다",
+  "{{product}} is off on this server": "{{product}}이(가) 이 서버에서 꺼져 있습니다",
+  "{{product}} is switched off on this server": "{{product}}이(가) 이 서버에서 꺼졌습니다"
 }

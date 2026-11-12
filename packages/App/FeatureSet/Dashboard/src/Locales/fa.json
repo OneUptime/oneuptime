@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "مدیر سرور می‌تواند با تنظیم DISABLE_TELEMETRY_INGESTION روی false و راه‌اندازی دوبارهٔ OneUptime، آن را دوباره به کار بیندازد.",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "یک مدیر سرور این را برای همهٔ پروژه‌ها خاموش کرده است. او می‌تواند آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "یک مدیر سرور {{product}} را برای همهٔ پروژه‌های این سرور خاموش کرده است. چیزی حذف نشده است: وقتی دوباره روشن شود، همان‌طور که بود برمی‌گردد.",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "از یک مدیر سرور بخواهید آن را در داشبورد مدیریت > تنظیمات > محصولات روشن کند.",
+  "Go to Home": "رفتن به خانه",
+  "Off: telemetry ingestion is stopped": "خاموش: دریافت تله‌متری متوقف شده است",
+  "Open Settings > Products": "باز کردن تنظیمات > محصولات",
+  "Server Products": "محصولات سرور",
+  "Switched off on this server": "در این سرور خاموش است",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "دریافت تله‌متری در این سرور متوقف شده است (DISABLE_TELEMETRY_INGESTION)، پس چیز تازه‌ای به آن نمی‌رسد.",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "دریافت تله‌متری در این سرور متوقف شده است، پس هیچ لاگ، متریک، ترِیس یا پروفایل تازه‌ای نمی‌رسد. چیزی حذف نشده است.",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "این صفحه از {{product}} هم استفاده می‌کند که یک مدیر سرور آن را برای همهٔ پروژه‌های این سرور خاموش کرده است. چیزی حذف نشده است.",
+  "not done — this product is switched off on this server": "انجام نشد — این محصول در این سرور خاموش است",
+  "{{product}} is off on this server": "{{product}} در این سرور خاموش است",
+  "{{product}} is switched off on this server": "{{product}} در این سرور خاموش شده است"
 }

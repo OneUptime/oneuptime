@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "Ein Server-Administrator kann sie wieder starten, indem er DISABLE_TELEMETRY_INGESTION auf false setzt und OneUptime neu startet.",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "Ein Server-Administrator hat dies für alle Projekte ausgeschaltet und kann es unter Admin-Dashboard > Einstellungen > Produkte einschalten.",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "Ein Server-Administrator hat das Produkt {{product}} für alle Projekte auf diesem Server ausgeschaltet. Es wurde nichts gelöscht: Sobald es wieder eingeschaltet wird, ist alles wie zuvor.",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Bitten Sie einen Server-Administrator, es unter Admin-Dashboard > Einstellungen > Produkte einzuschalten.",
+  "Go to Home": "Zur Startseite",
+  "Off: telemetry ingestion is stopped": "Aus: Die Telemetrie-Aufnahme ist gestoppt",
+  "Open Settings > Products": "Einstellungen > Produkte öffnen",
+  "Server Products": "Server-Produkte",
+  "Switched off on this server": "Auf diesem Server ausgeschaltet",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "Die Telemetrie-Aufnahme ist auf diesem Server gestoppt (DISABLE_TELEMETRY_INGESTION), daher kommt nichts Neues mehr an.",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "Die Telemetrie-Aufnahme ist auf diesem Server gestoppt, daher kommen keine neuen Protokolle, Metriken, Traces oder Profile an. Es wurde nichts gelöscht.",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "Diese Seite verwendet auch das Produkt {{product}}, das ein Server-Administrator für alle Projekte auf diesem Server ausgeschaltet hat. Es wurde nichts gelöscht.",
+  "not done — this product is switched off on this server": "nicht ausgeführt — dieses Produkt ist auf diesem Server ausgeschaltet",
+  "{{product}} is off on this server": "Das Produkt {{product}} ist auf diesem Server aus",
+  "{{product}} is switched off on this server": "Das Produkt {{product}} ist auf diesem Server ausgeschaltet"
 }

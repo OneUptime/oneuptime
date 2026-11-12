@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "सर्वर एडमिन DISABLE_TELEMETRY_INGESTION को false पर सेट करके और OneUptime को रीस्टार्ट करके इसे फिर से शुरू कर सकता है।",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "एक सर्वर एडमिन ने इसे हर प्रोजेक्ट के लिए बंद कर दिया है। वे इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू कर सकते हैं।",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "एक सर्वर एडमिन ने इस सर्वर के हर प्रोजेक्ट के लिए {{product}} बंद कर दिया है। कुछ भी हटाया नहीं गया है: फिर से चालू करने पर यह पहले जैसा ही वापस आ जाता है।",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "किसी सर्वर एडमिन से इसे व्यवस्थापक डैशबोर्ड > सेटिंग्स > उत्पाद में चालू करने को कहें।",
+  "Go to Home": "मुख्य पृष्ठ पर जाएँ",
+  "Off: telemetry ingestion is stopped": "बंद: टेलीमेट्री इंजेशन रुका हुआ है",
+  "Open Settings > Products": "सेटिंग्स > उत्पाद खोलें",
+  "Server Products": "सर्वर उत्पाद",
+  "Switched off on this server": "इस सर्वर पर बंद है",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "इस सर्वर पर टेलीमेट्री इंजेशन रुका हुआ है (DISABLE_TELEMETRY_INGESTION), इसलिए इसमें कुछ भी नया नहीं आता।",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "इस सर्वर पर टेलीमेट्री इंजेशन रुका हुआ है, इसलिए कोई नया लॉग, मेट्रिक, ट्रेस या प्रोफ़ाइल नहीं आता। कुछ भी हटाया नहीं गया है।",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "यह पेज {{product}} का भी उपयोग करता है, जिसे एक सर्वर एडमिन ने इस सर्वर के हर प्रोजेक्ट के लिए बंद कर दिया है। कुछ भी हटाया नहीं गया है।",
+  "not done — this product is switched off on this server": "नहीं किया गया — यह उत्पाद इस सर्वर पर बंद है",
+  "{{product}} is off on this server": "{{product}} इस सर्वर पर बंद है",
+  "{{product}} is switched off on this server": "{{product}} इस सर्वर पर बंद कर दिया गया है"
 }

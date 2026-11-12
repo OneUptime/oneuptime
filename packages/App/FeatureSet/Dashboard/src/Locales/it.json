@@ -51458,5 +51458,20 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "A server admin can start it again: set DISABLE_TELEMETRY_INGESTION to false and restart OneUptime.": "Un amministratore del server può riavviarla: basta impostare DISABLE_TELEMETRY_INGESTION su false e riavviare OneUptime.",
+  "A server admin switched this off for every project. They can switch it on in Admin Dashboard > Settings > Products.": "Un amministratore del server l'ha disattivato per tutti i progetti. Può attivarlo in Dashboard amministratore > Impostazioni > Prodotti.",
+  "A server admin switched {{product}} off for every project on this server. Nothing was deleted: it comes back as it was when it is switched on again.": "Un amministratore del server ha disattivato il prodotto {{product}} per tutti i progetti di questo server. Non è stato eliminato nulla: torna com'era quando viene riattivato.",
+  "Ask a server admin to switch it on in Admin Dashboard > Settings > Products.": "Chiedi a un amministratore del server di attivarlo in Dashboard amministratore > Impostazioni > Prodotti.",
+  "Go to Home": "Vai alla Home",
+  "Off: telemetry ingestion is stopped": "Disattivato: l'ingestione della telemetria è ferma",
+  "Open Settings > Products": "Apri Impostazioni > Prodotti",
+  "Server Products": "Prodotti del server",
+  "Switched off on this server": "Disattivato su questo server",
+  "Telemetry ingestion is stopped on this server (DISABLE_TELEMETRY_INGESTION), so nothing new reaches it.": "L'ingestione della telemetria è ferma su questo server (DISABLE_TELEMETRY_INGESTION), quindi non arriva nulla di nuovo.",
+  "Telemetry ingestion is stopped on this server, so no new logs, metrics, traces or profiles arrive. Nothing was deleted.": "L'ingestione della telemetria è ferma su questo server, quindi non arrivano nuovi registri, metriche, tracce o profili. Non è stato eliminato nulla.",
+  "This page also uses {{product}}, which a server admin switched off for every project on this server. Nothing was deleted.": "Questa pagina usa anche il prodotto {{product}}, che un amministratore del server ha disattivato per tutti i progetti di questo server. Non è stato eliminato nulla.",
+  "not done — this product is switched off on this server": "non eseguita — questo prodotto è disattivato su questo server",
+  "{{product}} is off on this server": "Il prodotto {{product}} è inattivo su questo server",
+  "{{product}} is switched off on this server": "Il prodotto {{product}} è disattivato su questo server"
 }
