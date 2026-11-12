@@ -234,13 +234,13 @@ const HowToReachMe: FunctionComponent<ComponentProps> = (
     ? translator.translateTemplate(PAGING_LADDER_COPY.memberTitle, {
         name: memberName,
       })
-    : translator.translateText(PAGING_LADDER_COPY.ownTitle);
+    : translator.translateTemplate(PAGING_LADDER_COPY.ownTitle);
 
   const description: string = memberName
     ? translator.translateTemplate(PAGING_LADDER_COPY.memberDescription, {
         name: memberName,
       })
-    : translator.translateText(PAGING_LADDER_COPY.ownDescription);
+    : translator.translateTemplate(PAGING_LADDER_COPY.ownDescription);
 
   const differingCellKeys: Set<string> = new Set<string>(
     reading.differences.map((difference: PagingLadderDifference): string => {

@@ -89,7 +89,7 @@ Le résumé en haut de la page **Règles d'escalade** montre toute l'échelle : 
 
 ### Comment chaque personne est jointe
 
-Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Règles d'astreinte**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Règles d'astreinte**. Voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules).
+Chaque personne alertée par un niveau est jointe selon ses propres règles d'astreinte : **Paramètres utilisateur** > **Comment me joindre**, avec un onglet pour les incidents, les épisodes d'incident, les alertes et les épisodes d'alerte, et une carte par gravité qui indique quelle méthode de notification est utilisée et après combien de temps. Un administrateur du projet peut consulter et modifier les règles d'un membre dans **Utilisateurs** > le membre > **Comment me joindre**. Voir [Règles d'astreinte personnelles](/docs/notifications/on-call-rules).
 
 ```mermaid title="Qui un niveau alerte, et comment chaque personne est jointe"
 flowchart TB

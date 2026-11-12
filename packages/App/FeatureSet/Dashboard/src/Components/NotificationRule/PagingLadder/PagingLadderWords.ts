@@ -152,7 +152,7 @@ export const describeWait: (
   notifyAfterMinutes: number,
 ) => string = (translator: Translator, notifyAfterMinutes: number): string => {
   if (!notifyAfterMinutes) {
-    return translator.translateText(AT_ONCE);
+    return translator.translateTemplate(AT_ONCE);
   }
 
   return translator.translatePlural(AFTER_MINUTES, notifyAfterMinutes);
@@ -168,7 +168,7 @@ export const describePushSettings: (
   }
 
   const parts: Array<string> = [
-    translator.translateText(
+    translator.translateTemplate(
       PUSH_LEVEL_WORDS[step.pushNotificationLevel || PushNotificationLevel.Critical],
     ),
   ];
@@ -188,5 +188,7 @@ export const describeCardKind: (
   translator: Translator,
   cell: PagingLadderCell,
 ) => string = (translator: Translator, cell: PagingLadderCell): string => {
-  return translator.translateText(getOnCallRuleKindDefinition(cell.kind).tabName);
+  return translator.translateTemplate(
+    getOnCallRuleKindDefinition(cell.kind).tabName,
+  );
 };

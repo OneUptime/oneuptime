@@ -89,7 +89,7 @@ Oversikten øverst på siden **Eskaleringsregler** viser hele stigen: når hvert
 
 ### Slik nås hver person
 
-Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Vaktregler**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Vaktregler**. Se [Personlige vaktregler](/docs/notifications/on-call-rules).
+Hver person et nivå varsler, nås slik personens egne vaktregler sier: **Brukerinnstillinger** > **Slik når man meg**, med en fane for hendelser, hendelsesepisoder, varsler og varselepisoder, og et kort per alvorlighetsgrad som viser hvilken varselmetode som prøves og etter hvor lang tid. En prosjektadministrator kan se og endre reglene til et medlem under **Brukere** > medlemmet > **Slik når man meg**. Se [Personlige vaktregler](/docs/notifications/on-call-rules).
 
 ```mermaid title="Hvem et nivå varsler, og hvordan hver person nås"
 flowchart TB

@@ -100,7 +100,7 @@ For at blive tilkaldt via direkte besked, når du har vagt, tilføjer du Matterm
 3. Klik på **Send Test Message** i dens række. Beskeden ankommer som en direkte besked fra projektets bot.
 :::
 
-At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Mattermost fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Vagtregler**. Hvert tilkald har et link til at bekræfte det og et til at eskalere det. Hvis du afbryder forbindelsen til din Mattermost-konto, fjernes denne metode og de vagtregler, der bruger den.
+At tilføje den sætter den straks ind i dine vagtregler, så tilkald når dig i Mattermost fra da af. Ændr, hvilke tilkald den får, under **Brugerindstillinger** > **Sådan når man mig**. Hvert tilkald har et link til at bekræfte det og et til at eskalere det. Hvis du afbryder forbindelsen til din Mattermost-konto, fjernes denne metode og de vagtregler, der bruger den.
 
 ## Notifikationsregler
 

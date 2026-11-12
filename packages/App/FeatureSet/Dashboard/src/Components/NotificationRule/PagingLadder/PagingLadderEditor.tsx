@@ -332,13 +332,13 @@ const PagingLadderEditor: FunctionComponent<ComponentProps> = (
     ? translator.translateTemplate(PAGING_LADDER_COPY.memberAddPlaceholder, {
         name: props.memberName,
       })
-    : translator.translateText(PAGING_LADDER_COPY.ownAddPlaceholder);
+    : translator.translateTemplate(PAGING_LADDER_COPY.ownAddPlaceholder);
 
   const noStepsText: string = props.memberName
     ? translator.translateTemplate(PAGING_LADDER_COPY.memberNoSteps, {
         name: props.memberName,
       })
-    : translator.translateText(PAGING_LADDER_COPY.ownNoSteps);
+    : translator.translateTemplate(PAGING_LADDER_COPY.ownNoSteps);
 
   return (
     <div data-testid="paging-ladder">

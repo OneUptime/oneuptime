@@ -150,7 +150,7 @@ For å bli tilkalt med direktemelding når du har vakt, legger du til Microsoft 
 3. Klikk på **Send Test Message** i raden. Meldingen kommer i chattene dine i Microsoft Teams.
 :::
 
-Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Microsoft Teams fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Vaktregler**.
+Å legge den til setter den straks inn i vaktreglene dine, så tilkallinger når deg i Microsoft Teams fra da av. Endre hvilke tilkallinger den får, under **Brukerinnstillinger** > **Slik når man meg**.
 
 ## Lagre meldinger som notater
 
