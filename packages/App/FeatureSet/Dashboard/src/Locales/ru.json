@@ -50773,7 +50773,7 @@
   "Ask AI read these {{count}} files earlier in this answer and no longer has their text, and its versions replace all of them: {{files}}._one": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}.",
   "Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: {{files}}.": "ИИ прочитал этот файл раньше в этом же ответе и больше не видит его текста, а версия ИИ заменяет его целиком: {{files}}.",
   "A recording of this error may exist, but your role cannot list session replays. Ask a project admin for the \"{{permission}}\" permission.": "Запись этой ошибки может существовать, но ваша роль не может просматривать список воспроизведений сеансов. Попросите администратора проекта выдать разрешение «{{permission}}».",
-  "Also: {{facts}}.": "Кроме того: {{facts}}.",
+  "Also: {{facts}}.": "Кроме того, {{facts}}.",
   "Arming a recording of a named person is a capture-policy change, so it needs the \"{{permission}}\" permission (project owners, admins and telemetry admins have it). Ask a project admin to arm the target for you.": "Задание записи конкретного человека — это изменение политики записи, поэтому для него нужно разрешение «{{permission}}» (оно есть у владельцев проекта, администраторов и администраторов телеметрии). Попросите администратора проекта задать цель за вас.",
   "CSV line": "Строка CSV",
   "Monitoring is off for every monitor in this group, so it has no uptime to show.": "Мониторинг выключен для всех мониторов этой группы, поэтому данных о доступности нет.",
@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Ваша роль не может просматривать личность конечных пользователей, поэтому сервер игнорирует этот фильтр. Попросите администратора проекта выдать разрешение «{{permission}}».",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "У вашей роли нет разрешения «{{permission}}». Попросите его у администратора проекта.",
   "{{tab}} (closed)": "{{tab}} (закрыта)",
-  "{{tab}} (still open)": "{{tab}} (ещё открыта)"
+  "{{tab}} (still open)": "{{tab}} (ещё открыта)",
+  "Closed tabs": "Закрытые вкладки"
 }

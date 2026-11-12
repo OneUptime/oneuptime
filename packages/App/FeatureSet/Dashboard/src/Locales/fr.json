@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Votre rôle ne peut pas lire l'identité de l'utilisateur final : ce filtre est donc ignoré par le serveur. Demandez à un administrateur du projet l'autorisation « {{permission}} ».",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Votre rôle ne dispose pas de l'autorisation « {{permission}} ». Demandez-la à un administrateur du projet.",
   "{{tab}} (closed)": "{{tab}} (fermé)",
-  "{{tab}} (still open)": "{{tab}} (encore ouvert)"
+  "{{tab}} (still open)": "{{tab}} (encore ouvert)",
+  "Closed tabs": "Onglets fermés"
 }

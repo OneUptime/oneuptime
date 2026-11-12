@@ -833,7 +833,7 @@ describe("ReplayTabSwitcher in the reader's language", () => {
       screen.getByRole("tablist", { name: "⟦Browser tabs in this recording⟧" }),
     ).toBeInTheDocument();
     expect(screen.getByTestId("replay-tab-strip-divider")).toHaveTextContent(
-      "⟦Closed⟧",
+      "⟦Closed tabs⟧",
     );
 
     const watched: HTMLElement = screen

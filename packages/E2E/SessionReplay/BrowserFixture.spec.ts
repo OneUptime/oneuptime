@@ -1972,7 +1972,7 @@ test("the tab strip leads with the tabs that are still open", async ({
   expect(statuses.length).toBeLessThanOrEqual(6);
   expect(statuses).toEqual(["open", "open", "closed"]);
   await expect(page.getByTestId("replay-tab-strip-divider")).toHaveText(
-    "Closed",
+    "Closed tabs",
   );
 
   /* Each pill says which page its tab was on. */

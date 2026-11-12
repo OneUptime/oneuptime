@@ -164,6 +164,15 @@ describe("one meaning per key", () => {
       "Components/SessionReplay/ReplayTabSwitcher.tsx",
     ]);
   });
+
+  test("the tab strip's divider says Closed tabs, never a case's bare Closed", () => {
+    expect(filesLookingUp("Closed tabs")).toEqual([
+      "Components/SessionReplay/ReplayTabSwitcher.tsx",
+    ]);
+    expect(filesLookingUp("Closed")).not.toContain(
+      "Components/SessionReplay/ReplayTabSwitcher.tsx",
+    );
+  });
 });
 
 describe("the locales word each meaning as its own", () => {
@@ -176,6 +185,7 @@ describe("the locales word each meaning as its own", () => {
       "{{tab}} (still open)",
       "{{tab}} (closed)",
       "Open connections",
+      "Closed tabs",
     ];
 
     for (const language of LANGUAGES) {

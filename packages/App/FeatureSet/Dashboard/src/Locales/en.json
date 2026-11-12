@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.",
   "{{tab}} (closed)": "{{tab}} (closed)",
-  "{{tab}} (still open)": "{{tab}} (still open)"
+  "{{tab}} (still open)": "{{tab}} (still open)",
+  "Closed tabs": "Closed tabs"
 }

@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "현재 역할로는 최종 사용자 신원을 읽을 수 없어 서버가 이 필터를 무시합니다. 프로젝트 관리자에게 \"{{permission}}\" 권한을 요청하세요.",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "현재 역할에는 \"{{permission}}\" 권한이 없습니다. 프로젝트 관리자에게 요청하세요.",
   "{{tab}} (closed)": "{{tab}} (닫힘)",
-  "{{tab}} (still open)": "{{tab}} (아직 열림)"
+  "{{tab}} (still open)": "{{tab}} (아직 열림)",
+  "Closed tabs": "닫힌 탭"
 }

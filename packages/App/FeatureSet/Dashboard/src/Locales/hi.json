@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "आपकी भूमिका अंतिम उपयोगकर्ता की पहचान नहीं पढ़ सकती, इसलिए सर्वर इस फ़िल्टर को अनदेखा करता है। किसी प्रोजेक्ट एडमिन से \"{{permission}}\" अनुमति माँगें।",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "आपकी भूमिका के पास \"{{permission}}\" अनुमति नहीं है। किसी प्रोजेक्ट एडमिन से यह अनुमति माँगें।",
   "{{tab}} (closed)": "{{tab}} (बंद)",
-  "{{tab}} (still open)": "{{tab}} (अब भी खुला)"
+  "{{tab}} (still open)": "{{tab}} (अब भी खुला)",
+  "Closed tabs": "बंद टैब"
 }

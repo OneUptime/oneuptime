@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "你的角色無法讀取終端使用者身分，因此伺服器會忽略此篩選條件。請向專案管理員申請「{{permission}}」權限。",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "你的角色缺少「{{permission}}」權限。請向專案管理員申請。",
   "{{tab}} (closed)": "{{tab}}（已關閉）",
-  "{{tab}} (still open)": "{{tab}}（未關閉）"
+  "{{tab}} (still open)": "{{tab}}（未關閉）",
+  "Closed tabs": "已關閉的分頁"
 }

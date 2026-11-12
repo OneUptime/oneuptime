@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Uw rol kan de identiteit van eindgebruikers niet lezen, dus de server negeert dit filter. Vraag een projectbeheerder om de machtiging \"{{permission}}\".",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Uw rol mist de machtiging \"{{permission}}\". Vraag die aan een projectbeheerder.",
   "{{tab}} (closed)": "{{tab}} (gesloten)",
-  "{{tab}} (still open)": "{{tab}} (nog open)"
+  "{{tab}} (still open)": "{{tab}} (nog open)",
+  "Closed tabs": "Gesloten tabbladen"
 }

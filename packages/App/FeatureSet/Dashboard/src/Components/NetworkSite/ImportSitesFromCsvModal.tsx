@@ -23,6 +23,7 @@ import { PromiseVoidFunction, VoidFunction } from "Common/Types/FunctionTypes";
 import ObjectID from "Common/Types/ObjectID";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
 import Button, { ButtonStyleType } from "Common/UI/Components/Button/Button";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Modal, { ModalWidth } from "Common/UI/Components/Modal/Modal";
 import ProgressBar, {
   ProgressBarSize,
@@ -546,24 +547,45 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                   {rows.map((row: ParsedSiteRow): ReactElement => {
                     return (
                       <tr key={row.line}>
-                        <td className="px-3 py-2 text-gray-500">{row.line}</td>
+                        {/*
+                         * The file's line in the reader's digits; what the
+                         * file says read the way it is written, so "1 Main
+                         * Street" keeps its number in front on an Arabic
+                         * page, and a point reads "42.36, -71.06" with its
+                         * minus sign where it was typed.
+                         */}
+                        <td className="px-3 py-2 text-gray-500">
+                          {translator.formatNumber(row.line)}
+                        </td>
                         <td className="px-3 py-2 font-medium text-gray-900">
-                          {row.name}
+                          <IsolatedText text={row.name} />
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.siteType}
+                          <IsolatedText text={row.siteType} />
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.parentName || "—"}
+                          {row.parentName ? (
+                            <IsolatedText text={row.parentName} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {row.address || "—"}
+                          {row.address ? (
+                            <IsolatedText text={row.address} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
                           {row.latitude !== undefined &&
-                          row.longitude !== undefined
-                            ? `${row.latitude}, ${row.longitude}`
-                            : "—"}
+                          row.longitude !== undefined ? (
+                            <bdi dir="ltr" data-testid="site-csv-coordinates">
+                              {`${row.latitude}, ${row.longitude}`}
+                            </bdi>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     );
@@ -604,10 +626,10 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                     return (
                       <tr key={index}>
                         <td className="px-3 py-2 text-gray-500">
-                          {result.line}
+                          {translator.formatNumber(result.line)}
                         </td>
                         <td className="px-3 py-2 font-medium text-gray-900">
-                          {result.name}
+                          <IsolatedText text={result.name} />
                         </td>
                         <td className="px-3 py-2">
                           {result.status === "created" && (
@@ -627,7 +649,16 @@ const ImportSitesFromCsvModal: FunctionComponent<ComponentProps> = (
                           )}
                         </td>
                         <td className="px-3 py-2 text-gray-600">
-                          {result.message || "—"}
+                          {/*
+                           * What went wrong, as the server said it: read the
+                           * way it is written, its full stop at its end on a
+                           * Persian page.
+                           */}
+                          {result.message ? (
+                            <IsolatedText text={result.message} />
+                          ) : (
+                            "—"
+                          )}
                         </td>
                       </tr>
                     );

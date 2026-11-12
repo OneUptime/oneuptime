@@ -22,7 +22,9 @@ import path from "path";
 import * as React from "react";
 import ImportGroupsFromCsvModal from "../../../../App/FeatureSet/Dashboard/src/Components/StatusPage/ImportGroupsFromCsvModal";
 import ImportSitesFromCsvModal from "../../../../App/FeatureSet/Dashboard/src/Components/NetworkSite/ImportSitesFromCsvModal";
+import NetworkSite from "../../../Models/DatabaseModels/NetworkSite";
 import NetworkSiteType from "../../../Models/DatabaseModels/NetworkSiteType";
+import HTTPResponse from "../../../Types/API/HTTPResponse";
 import ObjectID from "../../../Types/ObjectID";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 
@@ -55,7 +57,14 @@ function readLocale(language: string): Record<string, string> {
   ) as Record<string, string>;
 }
 
-const LANGUAGES: ReadonlyArray<string> = ["en", "de", "ja", "zh-CN", "ar"];
+const LANGUAGES: ReadonlyArray<string> = [
+  "en",
+  "de",
+  "ja",
+  "zh-CN",
+  "ar",
+  "fa",
+];
 
 const LOCALES: Record<string, Record<string, string>> = {};
 
@@ -246,4 +255,169 @@ describe("the CSV line column, in the reader's language", () => {
       expect(screen.getAllByRole("row")).toHaveLength(3);
     },
   );
+});
+
+/*
+ * The column's numbers and the file's own words, on a page read from the
+ * right. The line numbers are drawn in the reader's digits, as the parse
+ * errors above the table already name them ("خط ۳: ..."), not as Latin
+ * digits under a Persian heading. What the file says is read the way it
+ * is written: an address that starts with its house number kept it in
+ * front ("1 Main Street", not "Main Street ... 1"), a point kept its minus
+ * sign before the longitude, and an English description its full stop at
+ * its end.
+ */
+const SITES_WITH_PLACES_CSV: string =
+  "name,siteType,parentName,address,latitude,longitude\nAcme Account,Account Type,,,,\nEast Region,Region,Acme Account,1 Main Street Boston MA 02108,42.3601,-71.0589\n";
+
+const GROUPS_WITH_SENTENCE_CSV: string =
+  "name,parentName,description,viewMode\nCore Services,,The services everything else runs on.,List\n";
+
+function lineCells(): Array<string> {
+  return screen
+    .getAllByRole("row")
+    .slice(1)
+    .map((row: HTMLElement): string => {
+      return row.querySelector("td")?.textContent || "";
+    });
+}
+
+describe("the CSV line column and the file's words, on a right-to-left page", () => {
+  test("Persian: the group import numbers its lines in Persian digits", async () => {
+    await readIn("fa");
+
+    render(
+      <ImportGroupsFromCsvModal
+        statusPageId={new ObjectID("5f8b7c1e2d3a4b5c6d7e8f91")}
+        projectId={new ObjectID("5f8b7c1e2d3a4b5c6d7e8f92")}
+        onClose={() => {}}
+        onImportComplete={() => {}}
+      />,
+    );
+    await preview("fa", GROUPS_CSV);
+
+    expect(headings()[0]).toHaveTextContent(word("fa", "CSV line"));
+    expect(lineCells()).toEqual(["۲", "۳"]);
+  });
+
+  test("Persian: the site import numbers its lines in Persian digits", async () => {
+    await readIn("fa");
+
+    render(
+      <ImportSitesFromCsvModal
+        onClose={() => {}}
+        onImportComplete={() => {}}
+      />,
+    );
+    await preview("fa", SITES_CSV);
+
+    expect(lineCells()).toEqual(["۲", "۳"]);
+  });
+
+  test("English: the lines are the file's own numbers", async () => {
+    render(
+      <ImportSitesFromCsvModal
+        onClose={() => {}}
+        onImportComplete={() => {}}
+      />,
+    );
+    await preview("en", SITES_CSV);
+
+    expect(lineCells()).toEqual(["2", "3"]);
+  });
+
+  test("Arabic: an address and a point read as they were typed", async () => {
+    await readIn("ar");
+
+    render(
+      <ImportSitesFromCsvModal
+        onClose={() => {}}
+        onImportComplete={() => {}}
+      />,
+    );
+    await preview("ar", SITES_WITH_PLACES_CSV);
+
+    const address: HTMLElement = screen.getByText(
+      "1 Main Street Boston MA 02108",
+    );
+
+    expect(address.tagName).toBe("BDI");
+    expect(address).toHaveAttribute("dir", "ltr");
+    // Still a line of its cell, starting where the column's heading does.
+    expect(address.closest("td")).not.toHaveAttribute("dir");
+
+    const point: HTMLElement = screen.getByTestId("site-csv-coordinates");
+
+    expect(point.tagName).toBe("BDI");
+    expect(point).toHaveAttribute("dir", "ltr");
+    expect(point).toHaveTextContent("42.3601, -71.0589");
+
+    // The names the file gives are isolates too.
+    expect(screen.getByText("East Region").tagName).toBe("BDI");
+    expect(screen.getAllByText("Acme Account")[0]?.tagName).toBe("BDI");
+  });
+
+  test("Persian: the results count lines in Persian digits, and the server's English keeps its full stop at its end", async () => {
+    const created: NetworkSite = new NetworkSite();
+
+    created._id = "5f8b7c1e2d3a4b5c6d7e8f31";
+
+    jest
+      .spyOn(ModelAPI, "create")
+      .mockResolvedValueOnce(new HTTPResponse(200, created as never, {}))
+      .mockRejectedValueOnce(
+        new Error("A site with this name already exists."),
+      );
+
+    await readIn("fa");
+
+    render(
+      <ImportSitesFromCsvModal
+        onClose={() => {}}
+        onImportComplete={() => {}}
+      />,
+    );
+    await preview("fa", SITES_CSV);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("modal-footer-submit-button"));
+    });
+
+    expect(
+      await screen.findByText(word("fa", "Import results")),
+    ).toBeInTheDocument();
+    expect(headings()[0]).toHaveTextContent(word("fa", "CSV line"));
+    expect(lineCells()).toEqual(["۲", "۳"]);
+
+    const refusal: HTMLElement = screen.getByText(
+      "A site with this name already exists.",
+    );
+
+    expect(refusal.tagName).toBe("BDI");
+    expect(refusal).toHaveAttribute("dir", "ltr");
+  });
+
+  test("Arabic: an English description keeps its full stop at its end", async () => {
+    await readIn("ar");
+
+    render(
+      <ImportGroupsFromCsvModal
+        statusPageId={new ObjectID("5f8b7c1e2d3a4b5c6d7e8f91")}
+        projectId={new ObjectID("5f8b7c1e2d3a4b5c6d7e8f92")}
+        onClose={() => {}}
+        onImportComplete={() => {}}
+      />,
+    );
+    await preview("ar", GROUPS_WITH_SENTENCE_CSV);
+
+    const description: HTMLElement = screen.getByText(
+      "The services everything else runs on.",
+    );
+
+    expect(description.tagName).toBe("BDI");
+    expect(description).toHaveAttribute("dir", "ltr");
+    expect(screen.getByText("Core Services").tagName).toBe("BDI");
+    // A group with no parent is the reader's own words, not an isolate.
+    expect(screen.getByText(word("ar", "Top level")).tagName).toBe("TD");
+  });
 });

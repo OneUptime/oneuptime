@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "Din roll kan inte läsa slutanvändaridentitet, så servern ignorerar det här filtret. Be en projektadministratör om behörigheten ”{{permission}}”.",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "Din roll saknar behörigheten ”{{permission}}”. Be en projektadministratör om den.",
   "{{tab}} (closed)": "{{tab}} (stängd)",
-  "{{tab}} (still open)": "{{tab}} (fortfarande öppen)"
+  "{{tab}} (still open)": "{{tab}} (fortfarande öppen)",
+  "Closed tabs": "Stängda flikar"
 }

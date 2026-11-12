@@ -50783,5 +50783,6 @@
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "你的角色无法读取最终用户身份，因此服务器会忽略此筛选条件。请向项目管理员申请“{{permission}}”权限。",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "你的角色缺少“{{permission}}”权限。请向项目管理员申请。",
   "{{tab}} (closed)": "{{tab}}（已关闭）",
-  "{{tab}} (still open)": "{{tab}}（未关闭）"
+  "{{tab}} (still open)": "{{tab}}（未关闭）",
+  "Closed tabs": "已关闭的标签页"
 }

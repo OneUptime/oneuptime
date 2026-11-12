@@ -23069,8 +23069,8 @@
   "{{count}} sources_one": "{{count}} 件のソース",
   "{{count}} steps": "{{count}} ステップ",
   "{{count}} steps_one": "{{count}} ステップ",
-  "{{count}} still open": "オープン中 {{count}} 個",
-  "{{count}} still open_one": "オープン中 {{count}} 個",
+  "{{count}} still open": "開いたまま {{count}} 個",
+  "{{count}} still open_one": "開いたまま {{count}} 個",
   "{{count}} teams": "{{count}} チーム",
   "{{count}} teams_one": "{{count}} 件のチーム",
   "{{count}} telemetry queries": "{{count}} 件のテレメトリクエリ",
@@ -48377,7 +48377,7 @@
   "{{count}} chunks of footage never arrived (about {{seconds}}s). The player skips the gaps and marks them on the timeline._one": "{{count}} chunk of footage never arrived (about {{seconds}}s). The player skips the gaps and marks them on the timeline.",
   "{{count}} clicks": "クリック {{count}} 回",
   "{{count}} clicks_one": "{{count}} click",
-  "{{count}} closed": "クローズ済み {{count}} 個",
+  "{{count}} closed": "閉じた {{count}} 個",
   "{{count}} closed_one": "{{count}} closed",
   "{{count}} codes newer than this dashboard: {{codes}}. The docs link above lists every code.": "このダッシュボードより新しいコード {{count}} 件: {{codes}}。上のドキュメントのリンクにすべてのコードが記載されています。",
   "{{count}} codes newer than this dashboard: {{codes}}. The docs link above lists every code._one": "{{count}} code newer than this dashboard: {{codes}}. The docs link above lists every code.",
@@ -50782,6 +50782,7 @@
   "Your role cannot read end-user identity, so the server dropped the user filter \"{{user}}\" and this list is NOT narrowed to that user. Ask a project admin for the \"{{permission}}\" permission, or filter by URL, tag or device instead.": "あなたのロールではエンドユーザーの身元を読み取れないため、サーバーはユーザーフィルター \"{{user}}\" を除外しました。この一覧はそのユーザーに絞り込まれていません。プロジェクト管理者に「{{permission}}」権限を依頼するか、代わりに URL、タグ、デバイスで絞り込んでください。",
   "Your role cannot read end-user identity, so this filter is ignored by the server. Ask a project admin for the \"{{permission}}\" permission.": "あなたのロールではエンドユーザーの身元を読み取れないため、このフィルターはサーバーで無視されます。プロジェクト管理者に「{{permission}}」権限を依頼してください。",
   "Your role lacks the \"{{permission}}\" permission. Ask a project admin for it.": "あなたのロールには「{{permission}}」権限がありません。プロジェクト管理者に依頼してください。",
-  "{{tab}} (closed)": "{{tab}} (クローズ済み)",
-  "{{tab}} (still open)": "{{tab}} (オープン中)"
+  "{{tab}} (closed)": "{{tab}}（閉じた）",
+  "{{tab}} (still open)": "{{tab}}（開いたまま）",
+  "Closed tabs": "閉じたタブ"
 }

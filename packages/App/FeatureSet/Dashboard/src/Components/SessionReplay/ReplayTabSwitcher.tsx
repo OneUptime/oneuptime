@@ -608,9 +608,12 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
     const status: ReplayTabStatus = getReplayTabStatus(tab);
 
     /*
-     * One word where the open run ends. Without it the strip reads as one
+     * A word where the open run ends. Without it the strip reads as one
      * undifferentiated row and the dots alone have to carry "these three
-     * are still going, those two are done".
+     * are still going, those two are done". "Closed tabs", never the bare
+     * "Closed" that cases and pull requests use: a language words it for
+     * tabs, in their gender, as the summary beside it does (Spanish
+     * "Pestañas cerradas" next to "5 cerradas", not "Cerrado").
      */
     if (status === "closed" && hasDrawnOpenPill && !hasDrawnClosedDivider) {
       hasDrawnClosedDivider = true;
@@ -621,7 +624,7 @@ const ReplayTabSwitcher: FunctionComponent<ReplayTabSwitcherProps> = (
           data-testid="replay-tab-strip-divider"
           className="shrink-0 px-1 text-[11px] font-medium uppercase tracking-wide text-gray-400"
         >
-          {translator.translateText("Closed")}
+          {translator.translateText("Closed tabs")}
         </span>,
       );
     }

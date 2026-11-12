@@ -193,7 +193,7 @@ function pickerHeadings(): Array<string | null> {
 describe("a session's tabs, counted in the tabs' own words", () => {
   test.each([
     ["Spanish", "es", "8 pestañas · 2 siguen abiertas · 6 cerradas"],
-    ["Japanese", "ja", "タブ 8 個 · オープン中 2 個 · クローズ済み 6 個"],
+    ["Japanese", "ja", "タブ 8 個 · 開いたまま 2 個 · 閉じた 6 個"],
     ["German", "de", "8 Tabs · 2 noch offen · 6 geschlossen"],
     ["English", "en", "8 tabs · 2 still open · 6 closed"],
   ])(
@@ -233,7 +233,7 @@ describe("a session's tabs, counted in the tabs' own words", () => {
 
   test.each([
     ["Spanish", "es", ["2 siguen abiertas", "6 cerradas"]],
-    ["Japanese", "ja", ["オープン中 2 個", "クローズ済み 6 個"]],
+    ["Japanese", "ja", ["開いたまま 2 個", "閉じた 6 個"]],
     ["Arabic", "ar", ["لا تزال مفتوحة: 2", "المغلقة: 6"]],
     ["English", "en", ["2 still open", "6 closed"]],
   ])(
@@ -247,11 +247,60 @@ describe("a session's tabs, counted in the tabs' own words", () => {
   );
 });
 
+describe("the strip's divider names the closed tabs in the tabs' own words", () => {
+  test.each([
+    ["Spanish", "es", "Pestañas cerradas"],
+    ["German", "de", "Geschlossene Tabs"],
+    ["Japanese", "ja", "閉じたタブ"],
+    ["Arabic", "ar", "علامات التبويب المغلقة"],
+    ["English", "en", "Closed tabs"],
+  ])("%s", async (_name: string, language: string, divider: string) => {
+    await readIn(language);
+    renderSwitcher(threeTabs());
+
+    const drawn: string =
+      screen.getByTestId("replay-tab-strip-divider").textContent || "";
+
+    expect(drawn).toBe(divider);
+    /*
+     * Never the bare "Closed" a security case or a pull request reads:
+     * Spanish "Cerrado", masculine, beside the summary's "1 cerrada".
+     */
+    expect({ language, same: drawn === worded(language, "Closed") }).toEqual({
+      language,
+      same: false,
+    });
+  });
+
+  test("Japanese words a tab's state as a browser does, not a ticket's", async () => {
+    await readIn("ja");
+    renderSwitcher(eightTabs());
+
+    const summary: string =
+      screen.getByTestId("replay-tab-summary").textContent || "";
+    const headings: string = pickerHeadings().join(" ");
+
+    // オープン中 / クローズ済み are an incident's or a case's states.
+    for (const ticketWord of [
+      worded("ja", "Closed"),
+      worded("ja", "Open (status)"),
+    ]) {
+      expect({ ticketWord, inSummary: summary.includes(ticketWord) }).toEqual({
+        ticketWord,
+        inSummary: false,
+      });
+      expect({ ticketWord, inHeadings: headings.includes(ticketWord) }).toEqual(
+        { ticketWord, inHeadings: false },
+      );
+    }
+  });
+});
+
 describe("a tab's tooltip says what it is, never the Open button's verb", () => {
   test.each([
     ["German", "de", "Tab 2 (noch offen)", "Tab 3 (geschlossen)"],
     ["Spanish", "es", "Pestaña 2 (sigue abierta)", "Pestaña 3 (cerrada)"],
-    ["Japanese", "ja", "タブ 2 (オープン中)", "タブ 3 (クローズ済み)"],
+    ["Japanese", "ja", "タブ 2（開いたまま）", "タブ 3（閉じた）"],
     ["Chinese", "zh-CN", "标签页 2（未关闭）", "标签页 3（已关闭）"],
     [
       "Arabic",

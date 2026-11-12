@@ -488,7 +488,7 @@ describe("ReplayTabSwitcher strip", () => {
 
     const divider: HTMLElement = screen.getByTestId("replay-tab-strip-divider");
 
-    expect(divider).toHaveTextContent("Closed");
+    expect(divider).toHaveTextContent("Closed tabs");
     expect(divider).toHaveAttribute("aria-hidden", "true");
 
     /* Every tab still open: nothing to divide. */
