@@ -47,6 +47,8 @@ import {
   getOnCallPolicyRepeatRefusal,
   getOnCallPolicyRepeatsAllowed,
 } from "Common/Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";
+import { isOnCallTestPage } from "Common/Types/OnCallDutyPolicy/OnCallTestPage";
+import UserNotificationEventType from "Common/Types/UserNotification/UserNotificationEventType";
 import {
   DEFAULT_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
   MAX_ON_CALL_ACKNOWLEDGEMENT_TIMEOUT_IN_MINUTES,
@@ -1028,9 +1030,47 @@ describe("repeating a policy", () => {
         "OnCallDutyPolicyExecutionLog/ExecutePendingExecutions.ts",
       ),
     ).toContain("OnCallEscalationAdvance");
+    const advance: string = readCommonSource(
+      "Server/Utils/OnCall/OnCallEscalationAdvance.ts",
+    );
+
+    expect(advance).toMatch(
+      /repeatCount\s*<=\s*this\.getRepeatsAllowed\(run\)/,
+    );
+
+    /*
+     * The run's repeats (#6946) are the policy's, read as above - and none
+     * for a test page, which walks the levels once. A page from an incident
+     * or alert is never a test page, so it repeats as the policy says.
+     */
+    const repeatsAllowed: string =
+      advance
+        .split("public static getRepeatsAllowed(")[1]
+        ?.split(/\n {2}\}\n/)[0] || "";
+
+    expect(repeatsAllowed).toMatch(
+      /if \(isOnCallTestPage\(run\)\) \{\s*return 0;\s*\}\s*return getOnCallPolicyRepeatsAllowed\(run\.onCallDutyPolicy\);\s*$/,
+    );
+    expect(advance).toContain(
+      'import { getOnCallPolicyRepeatsAllowed } from "../../../Types/OnCallDutyPolicy/OnCallDutyPolicyRepeat";',
+    );
+
+    for (const eventType of [
+      UserNotificationEventType.IncidentCreated,
+      UserNotificationEventType.AlertCreated,
+      UserNotificationEventType.IncidentEpisodeCreated,
+      UserNotificationEventType.AlertEpisodeCreated,
+    ]) {
+      expect(isOnCallTestPage({ userNotificationEventType: eventType })).toBe(
+        false,
+      );
+    }
+
     expect(
-      readCommonSource("Server/Utils/OnCall/OnCallEscalationAdvance.ts"),
-    ).toMatch(/<=\s*getOnCallPolicyRepeatsAllowed\(run\.onCallDutyPolicy\)/);
+      isOnCallTestPage({
+        userNotificationEventType: UserNotificationEventType.TestPage,
+      }),
+    ).toBe(true);
     // The switch on with 0 more times never repeats: the card reads it as Stop.
     expect(
       getOnCallPolicyRepeatsAllowed({
