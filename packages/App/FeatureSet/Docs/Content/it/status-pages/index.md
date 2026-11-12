@@ -168,7 +168,7 @@ Ciò che vedono i visitatori si imposta in un'unica scheda: **Cosa mostra la tua
 
 Se la pagina mostra una voce **Iscriviti** (**Mostra pagina iscritti**, `showSubscriberPageOnStatusPage`, attivo per impostazione predefinita) e su quali canali i visitatori possono iscriversi non si imposta in questa schermata: entrambe le cose sono nella scheda **Canali** di **Iscritti → Impostazioni iscritti** (vedete [Canali di iscrizione](/docs/status-pages/subscribers#canali-di-iscrizione)).
 
-Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le impostazioni proprie della pagina di stato in un file che potete importare di nuovo, e **Archive status page** (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)). La percentuale di uptime complessiva e gli stati di inattività erano prima due schede a sé qui, ciascuna dietro un pulsante **Modifica**; ora sono righe della scheda.
+Sotto la scheda ci sono **Esporta come JSON: Pagina di stato**, che scarica le impostazioni proprie della pagina di stato in un file che potete importare di nuovo, e **Archivia: pagina di stato** (vedete [Archiviare una pagina di stato](#archiviare-una-pagina-di-stato)). La percentuale di uptime complessiva e gli stati di inattività erano prima due schede a sé qui, ciascuna dietro un pulsante **Modifica**; ora sono righe della scheda.
 
 **Dove sono i colori.** I colori delle barre di uptime non sono qui: il **Colore predefinito della barra** e le regole di colore delle barre si trovano in **Altre impostazioni** in **Pagine di stato → la vostra pagina → Branding → Branding**. Il **Tema** della pagina (chiaro, scuro o come è impostato il dispositivo di ogni visitatore) è una scheda in alto nella stessa pagina. Non esiste alcuna impostazione di colore del marchio; tutto ciò che va oltre quei controlli si fa con il **CSS personalizzato**.
 
@@ -241,7 +241,7 @@ Archiviate una pagina di stato per metterla offline senza eliminarla. Una pagina
 - **Esce dall'elenco delle pagine di stato.** La trovate in **Pagine di stato → Avanzato → Archiviato**.
 - **Conserva tutto.** Le sue risorse, i gruppi, il branding, i domini, gli utenti privati e gli iscritti vengono conservati, quindi annullare l'archiviazione rimette la pagina online esattamente com'era.
 
-Per archiviare una pagina di stato, apritela e andate in **Avanzato → Impostazioni avanzate → Archive status page**. Per archiviarne diverse, selezionatele nell'elenco **Pagine di stato** e scegliete **Archivia**. Per recuperarne una, aprite **Pagine di stato → Avanzato → Archiviato**, selezionatela e scegliete **Annulla archiviazione**, oppure apritela e fate clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
+Per archiviare una pagina di stato, apritela e andate in **Avanzato → Impostazioni avanzate → Archivia: pagina di stato**. Per archiviarne diverse, selezionatele nell'elenco **Pagine di stato** e scegliete **Archivia**. Per recuperarne una, aprite **Pagine di stato → Avanzato → Archiviato**, selezionatela e scegliete **Annulla archiviazione**, oppure apritela e fate clic su **Annulla archiviazione** nel banner in cima alle sue pagine.
 
 ## Prossimi passi
 

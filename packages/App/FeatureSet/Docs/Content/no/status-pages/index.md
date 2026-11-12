@@ -168,7 +168,7 @@ Hva de besøkende ser, angis på ett kort: **Hva statussiden din viser**, under 
 
 Om siden viser et element **Abonner** (**Vis abonnentside**, `showSubscriberPageOnStatusPage`, på som standard), og hvilke kanaler besøkende kan abonnere på, angis ikke på denne skjermen: begge deler står på kortet **Kanaler** under **Abonnenter → Abonnentsinnstillinger** (se [Abonnementskanaler](/docs/status-pages/subscribers#abonnementskanaler)).
 
-Under kortet står **Eksporter Statusside som JSON**, som laster ned statussidens egne innstillinger til en fil du kan importere igjen, og **Archive status page** (se [Arkiver en statusside](#å-arkivere-en-statusside)). Den samlede oppetidsprosenten og nedetidsstatusene var tidligere to egne kort her, hver bak en knapp **Rediger**; nå er de rader på kortet.
+Under kortet står **Eksporter Statusside som JSON**, som laster ned statussidens egne innstillinger til en fil du kan importere igjen, og **Arkiver statusside** (se [Arkiver en statusside](#å-arkivere-en-statusside)). Den samlede oppetidsprosenten og nedetidsstatusene var tidligere to egne kort her, hver bak en knapp **Rediger**; nå er de rader på kortet.
 
 **Hvor fargene er.** Fargene på oppetidsstolpene er ikke her: **Standard stolpefarge** og fargereglene for stolpene ligger under **Flere innstillinger** i **Statussider → siden din → Merkevare → Merkevare**. Sidens **Tema** (lyst, mørkt eller slik hver besøkendes enhet er innstilt) er et kort øverst på den samme siden. Det finnes ingen innstilling for merkevarefarge; alt utover disse kontrollene gjør du med **Egendefinert CSS**.
 
@@ -241,7 +241,7 @@ Arkiver en statusside for å ta den offline uten å slette den. En arkivert stat
 - **Forsvinner fra listen over statussider.** Du finner den under **Statussider → Avansert → Arkivert**.
 - **Beholder alt.** Ressursene, gruppene, merkevaren, domenene, de private brukerne og abonnentene beholdes, så når du fjerner den fra arkivet, kommer siden tilbake online akkurat slik den var.
 
-For å arkivere en statusside åpner du den og går til **Avansert → Avanserte innstillinger → Archive status page**. For å arkivere flere velger du dem i listen **Statussider** og velger **Arkiver**. For å hente tilbake en åpner du **Statussider → Avansert → Arkivert**, velger den og velger **Fjern fra arkiv**, eller du åpner den og klikker på **Fjern fra arkiv** i banneret øverst på sidene dens.
+For å arkivere en statusside åpner du den og går til **Avansert → Avanserte innstillinger → Arkiver statusside**. For å arkivere flere velger du dem i listen **Statussider** og velger **Arkiver**. For å hente tilbake en åpner du **Statussider → Avansert → Arkivert**, velger den og velger **Fjern fra arkiv**, eller du åpner den og klikker på **Fjern fra arkiv** i banneret øverst på sidene dens.
 
 ## Neste steg
 
