@@ -25,9 +25,9 @@ export const HEADER_LOGO_CLASS_NAME: string =
   "oneuptime-dashboard-logo block h-6 w-auto max-w-[5rem] object-contain hover:opacity-80 transition-opacity sm:h-8 sm:max-w-[12rem]";
 
 /*
- * The name an installation goes by, drawn when it has no logo: as tall as
- * the logo, 6rem at most below sm (its first word, at least, beside the
- * project's), 12rem from sm.
+ * The installation's own name, drawn in place of a logo when it has none:
+ * one line as tall as the logo, at most 6rem wide below sm (room for its
+ * first word and, beside it, the project's name) and 12rem from sm.
  */
 export const HEADER_PRODUCT_NAME_CLASS_NAME: string =
   "block max-w-[6rem] truncate text-base font-semibold leading-6 tracking-tight text-gray-900 hover:opacity-80 transition-opacity sm:max-w-[12rem] sm:text-lg sm:leading-8";

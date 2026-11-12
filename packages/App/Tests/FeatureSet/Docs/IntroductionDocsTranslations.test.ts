@@ -924,6 +924,29 @@ describe.each(LANGUAGES)("%s", (language: string) => {
       );
     });
 
+    /*
+     * Help's row and the dialog it opens are titled keyboardShortcuts.title.
+     * Until #7235, eleven languages drew it in English and their pages
+     * quoted the English; a page that quotes it once in its own words and
+     * once in English would still pass the check of every label above.
+     */
+    it("quotes Help's Keyboard shortcuts row wherever the English page does, as this language's Help and dialog title it", () => {
+      const quoted: number =
+        englishPage(HOME).split("**Keyboard shortcuts**").length - 1;
+      const title: string = drawnNavbarText(
+        language,
+        ["keyboardShortcuts", "title"],
+        "Keyboard shortcuts",
+      );
+
+      // The Help paragraph, and the shortcuts section's own line.
+      expect(quoted).toBe(2);
+      expect({
+        language: language,
+        quoted: translated.split(`**${title}**`).length - 1,
+      }).toEqual({ language: language, quoted: quoted });
+    });
+
     it("names the page each welcome checklist step opens, in the English order, as this language's Dashboard draws it", () => {
       const englishRows: Array<string> = welcomeChecklistRows(
         englishPage(HOME),
