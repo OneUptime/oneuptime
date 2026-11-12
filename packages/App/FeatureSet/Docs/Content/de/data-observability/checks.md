@@ -37,7 +37,7 @@ Jede Prüfung läuft alle 15 Minuten, stündlich, alle 6 Stunden oder täglich, 
 
 Setzen Sie **Warnen, wenn**, um bei einer Prüfung zu warnen:
 
-- **Unusually High** oder **Unusually Low** vergleicht jeden Wert mit seiner eigenen gelernten Baseline für diese Stunde der Woche.
+- **Ungewöhnlich hoch** oder **Ungewöhnlich niedrig** vergleicht jeden Wert mit seiner eigenen gelernten Baseline für diese Stunde der Woche.
 - **Über** oder **Unter** vergleicht ihn mit einem Schwellenwert.
 
 Beim Speichern der Prüfung entsteht ein Metrik-Monitor für sie, in Ihrem Namen und mit Ihren Berechtigungen. Wenn Sie die Bedingung leeren, wird der Monitor entfernt.

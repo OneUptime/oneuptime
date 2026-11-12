@@ -275,6 +275,9 @@ const proposedOnOf: (
 
 const LEFT_OUT_CHARGE: string = `Ask AI read this file earlier in this answer and no longer has its text, and its version replaces all of it: ${CHARGE}.`;
 
+// Read all of it, in two halves, and the first left out since (issue #6984).
+const PART_NO_LONGER_IN_HAND_CHARGE: string = `Ask AI read this file and no longer has part of its text, and its version replaces all of it: ${CHARGE}.`;
+
 const ON_BRANCH: string = shortLines(300);
 
 // What Ask AI writes from memory: its own idea of the file, one line changed.
@@ -431,10 +434,11 @@ describe("the issue's case: read whole early in a long answer, left out, committ
 });
 
 describe("what a left-out read still counts for, and what it does not", () => {
-  test("two halves, the first left out: read in part, never both - the lines left out are not in hand", async () => {
-    serveOnGitHub(
-      makeRepository({ files: { "fix/login": { [CHARGE]: shortLines(800) } } }),
-    );
+  test("two halves, the first left out (#6984): read all of it, and no longer has the first - never said as not read", async () => {
+    const repository: FakeGitRepository = makeRepository({
+      files: { "fix/login": { [CHARGE]: shortLines(800) } },
+    });
+    serveOnGitHub(repository);
     const answer: LongAnswer = new LongAnswer(GITHUB_CONTEXT);
 
     await answer.read(CHARGE, { branchName: "fix/login" });
@@ -446,6 +450,86 @@ describe("what a left-out read still counts for, and what it does not", () => {
       commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
     );
 
+    // The card: read, and part of it no longer in hand - not "read only part of".
+    expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
+      PART_NO_LONGER_IN_HAND_CHARGE,
+    );
+    expect(templatesOf(prepared)).toEqual([
+      AI_ACTION_PLURAL_LINES.codeFilesPartNoLongerInHand.other,
+    ]);
+    expect(
+      isKnownAIActionWords({
+        title: CommitCodeToBranchTool.buildActionTitle!(prepared.arguments),
+        description: prepared.description,
+      }),
+    ).toBe(true);
+    expect(proposedOnOf(prepared)!.unseen).toEqual([
+      {
+        filePath: CHARGE,
+        unseen: CodeFileUnseen.PartNoLongerInHand,
+        lineCount: 800,
+        linesNoLongerInHand: [{ first: 1, last: 400 }],
+      },
+    ]);
+    // The model: it read those lines, and no longer has them - and reads them again before it writes.
+    expect(prepared.notRunWithoutApproval).toEqual({
+      toldModel: [
+        "Not done: nothing was committed to fix/login, because you read these files before and no longer have all of their text:",
+        `- ${CHARGE} has 800 lines on fix/login, and you read lines 1-400 earlier and no longer have them.`,
+        'Read the lines you no longer have again now, on fix/login with read_code_file, branchName "fix/login", startLine and endLine, and write each file whole right after you read them: a commit replaces each file whole, and you no longer have the text you read of those lines before.',
+      ].join("\n"),
+      summary:
+        "Not committed: Ask AI had read a file the commit replaces whole, and no longer had part of its text.",
+    });
+    expect(prepared.notRunWithoutApproval!.toldModel).not.toContain(
+      "have not read",
+    );
+    expect(repository.commits).toEqual([]);
+  });
+
+  test("two halves, the first left out, then read again: all of it in hand, nothing to say", async () => {
+    serveOnGitHub(
+      makeRepository({ files: { "fix/login": { [CHARGE]: shortLines(800) } } }),
+    );
+    const answer: LongAnswer = new LongAnswer(GITHUB_CONTEXT);
+
+    await answer.read(CHARGE, { branchName: "fix/login" });
+    await answer.read(CHARGE, { startLine: 401, branchName: "fix/login" });
+    answer.leaveOut(0);
+    await answer.read(CHARGE, {
+      startLine: 1,
+      endLine: 400,
+      branchName: "fix/login",
+    });
+
+    expectNothingToSay(
+      await answer.propose(
+        CommitCodeToBranchTool,
+        commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
+      ),
+    );
+  });
+
+  test("a part left out, a part in hand and a part never read (#6984): read only part of it, and each run said as what it is", async () => {
+    serveOnGitHub(
+      makeRepository({ files: { "fix/login": { [CHARGE]: shortLines(800) } } }),
+    );
+    const answer: LongAnswer = new LongAnswer(GITHUB_CONTEXT);
+
+    await answer.read(CHARGE, { branchName: "fix/login" });
+    await answer.read(CHARGE, {
+      startLine: 401,
+      endLine: 600,
+      branchName: "fix/login",
+    });
+    answer.leaveOut(0);
+
+    const prepared: PreparedMutation = await answer.propose(
+      CommitCodeToBranchTool,
+      commit("fix/login", [{ filePath: CHARGE, content: FROM_MEMORY }]),
+    );
+
+    // Lines 601-800 it never read: read only part of it is true.
     expect(cardOf(CommitCodeToBranchTool, prepared).line).toBe(
       `Ask AI read only part of this file, and its version replaces all of it: ${CHARGE}.`,
     );
@@ -454,12 +538,20 @@ describe("what a left-out read still counts for, and what it does not", () => {
         filePath: CHARGE,
         unseen: CodeFileUnseen.ReadInPart,
         lineCount: 800,
-        linesNotRead: [{ first: 1, last: 400 }],
+        linesNotRead: [{ first: 601, last: 800 }],
+        linesNoLongerInHand: [{ first: 1, last: 400 }],
       },
     ]);
-    expect(prepared.notRunWithoutApproval!.toldModel).toContain(
-      `- ${CHARGE} has 800 lines on fix/login, and you have not read lines 1-400 of it.`,
-    );
+    expect(prepared.notRunWithoutApproval).toEqual({
+      toldModel: [
+        "Not done: nothing was committed to fix/login, because writing these files whole would undo or replace what you have not read there, or no longer have:",
+        `- ${CHARGE} has 800 lines on fix/login, and you have not read lines 601-800 of it; you read lines 1-400 earlier and no longer have them.`,
+        'Read the lines you have not read of each file you read only part of, on fix/login with read_code_file, branchName "fix/login", startLine and endLine, and only then write the whole file: a commit replaces each file whole, so a line you have not read would be dropped from it.',
+        'Read the lines you no longer have again now, on fix/login with read_code_file, branchName "fix/login", startLine and endLine, and write each file whole right after you read them: a commit replaces each file whole, and you no longer have the text you read of those lines before.',
+      ].join("\n"),
+      summary:
+        "Not committed: Ask AI had read only part of a file the commit replaces whole.",
+    });
   });
 
   test("both halves left out: none of it in hand, so read earlier in this answer", async () => {
@@ -484,7 +576,7 @@ describe("what a left-out read still counts for, and what it does not", () => {
     ]);
   });
 
-  test("a short read still whole, a later whole read of the same version left out: the short read's lines are in hand", async () => {
+  test("a short read still whole, a later whole read of the same version left out: the short read's lines are in hand, and the rest were read (#6984)", async () => {
     serveOnGitHub(repositoryWithCharge());
     const answer: LongAnswer = new LongAnswer(GITHUB_CONTEXT);
 
@@ -506,9 +598,9 @@ describe("what a left-out read still counts for, and what it does not", () => {
     ).toEqual([
       {
         filePath: CHARGE,
-        unseen: CodeFileUnseen.ReadInPart,
+        unseen: CodeFileUnseen.PartNoLongerInHand,
         lineCount: 300,
-        linesNotRead: [{ first: 101, last: 300 }],
+        linesNoLongerInHand: [{ first: 101, last: 300 }],
       },
     ]);
   });
@@ -731,15 +823,38 @@ describe("what a left-out read still counts for, and what it does not", () => {
   });
 });
 
-const REVIEWER_NOTE: string = [
+const NOTE_OPENING: Array<string> = [
   "The charge was off by one.",
   "",
   "---",
   "_Proposed by OneUptime AI from a chat conversation. Review carefully before merging: this change was written by an agent that reads production telemetry._",
   "",
-  "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read:",
+  // AI read these files: what it no longer had, never only what it did not read (issue #6984).
+  "**Check these files' diffs.** Before this was approved, OneUptime said AI's versions of them may undo or replace what it did not read, or no longer had:",
+];
+
+const REVIEWER_NOTE: string = [
+  ...NOTE_OPENING,
   `- \`${CHARGE}\`: AI read it earlier in the same answer and no longer had its text when it wrote the whole file.`,
 ].join("\n");
+
+// Two halves of an 800-line file read, the first left out since (issue #6984).
+const REVIEWER_NOTE_TWO_HALVES: string = [
+  ...NOTE_OPENING,
+  `- \`${CHARGE}\`: AI read lines 1-400 of its 800 lines earlier and no longer had them when it wrote the whole file.`,
+].join("\n");
+
+// Lines 1-400 read and left out, 401-600 in hand, 601-800 never read.
+const REVIEWER_NOTE_THREE_PARTS: string = [
+  ...NOTE_OPENING,
+  `- \`${CHARGE}\`: AI did not read lines 601-800 of its 800 lines before writing the whole file, and it read lines 1-400 earlier and no longer had them.`,
+].join("\n");
+
+// An 800-line charge.ts on the default branch, read in two halves.
+const repositoryWithLongCharge: () => FakeGitRepository =
+  (): FakeGitRepository => {
+    return makeRepository({ files: { main: { [CHARGE]: shortLines(800) } } });
+  };
 
 describe("open_code_pull_request, from a left-out read of the default branch", () => {
   test("the card names it; Auto-run does not open it; approved anyway, its reviewer is told", async () => {
@@ -775,6 +890,63 @@ describe("open_code_pull_request, from a left-out read of the default branch", (
     await answer.run(OpenCodePullRequestTool, prepared);
 
     expect(repository.pullRequests[0]!.body).toBe(REVIEWER_NOTE);
+  });
+
+  test("two halves, the first left out (#6984): the card and the model say it was read, and the reviewer is told which lines AI no longer had", async () => {
+    const repository: FakeGitRepository = repositoryWithLongCharge();
+    serveOnGitHub(repository);
+    const answer: LongAnswer = new LongAnswer(GITHUB_CONTEXT);
+
+    await answer.read(CHARGE);
+    await answer.read(CHARGE, { startLine: 401 });
+    answer.leaveOut(0);
+
+    const prepared: PreparedMutation = await answer.propose(
+      OpenCodePullRequestTool,
+      pullRequest([{ filePath: CHARGE, content: FROM_MEMORY }]),
+    );
+
+    expect(cardOf(OpenCodePullRequestTool, prepared)).toEqual({
+      title: "Open pull request: Fix charge",
+      line: PART_NO_LONGER_IN_HAND_CHARGE,
+    });
+    expect(prepared.notRunWithoutApproval).toEqual({
+      toldModel: [
+        "Not done: no pull request was opened, because you read these files before and no longer have all of their text:",
+        `- ${CHARGE} has 800 lines on main, and you read lines 1-400 earlier and no longer have them.`,
+        'Read the lines you no longer have again now, on main with read_code_file, branchName "main", startLine and endLine, and write each file whole right after you read them: a pull request replaces each file whole, and you no longer have the text you read of those lines before.',
+      ].join("\n"),
+      summary:
+        "Not opened: Ask AI had read a file the pull request replaces whole, and no longer had part of its text.",
+    });
+    expect(repository.pullRequests).toEqual([]);
+
+    await answer.run(OpenCodePullRequestTool, prepared);
+
+    expect(repository.pullRequests[0]!.body).toBe(REVIEWER_NOTE_TWO_HALVES);
+    expect(repository.pullRequests[0]!.body).not.toContain(
+      "did not read lines",
+    );
+  });
+
+  test("a part left out, a part never read: the reviewer is told each, in their own words", async () => {
+    const repository: FakeGitRepository = repositoryWithLongCharge();
+    serveOnGitHub(repository);
+    const answer: LongAnswer = new LongAnswer(GITHUB_CONTEXT);
+
+    await answer.read(CHARGE);
+    await answer.read(CHARGE, { startLine: 401, endLine: 600 });
+    answer.leaveOut(0);
+
+    await answer.run(
+      OpenCodePullRequestTool,
+      await answer.propose(
+        OpenCodePullRequestTool,
+        pullRequest([{ filePath: CHARGE, content: FROM_MEMORY }]),
+      ),
+    );
+
+    expect(repository.pullRequests[0]!.body).toBe(REVIEWER_NOTE_THREE_PARTS);
   });
 });
 
@@ -850,6 +1022,38 @@ describe("beyond GitHub", () => {
       expect(gitlabOrForgejo.pullRequests[0]!.body).toBe(REVIEWER_NOTE);
     },
   );
+
+  test.each<[string, () => void]>(HOSTS)(
+    "%s: two halves, the first left out (#6984) - the card says so, and the reviewer is told which lines AI no longer had",
+    async (_host: string, serve: () => void) => {
+      gitlabOrForgejo = repositoryWithLongCharge();
+      serve();
+      const answer: LongAnswer = new LongAnswer(CONNECTED_CONTEXT);
+
+      await answer.read(CHARGE);
+      await answer.read(CHARGE, { startLine: 401 });
+      answer.leaveOut(0);
+
+      const prepared: PreparedMutation = await answer.propose(
+        OpenCodePullRequestTool,
+        pullRequest([{ filePath: CHARGE, content: FROM_MEMORY }]),
+      );
+
+      expect(cardOf(OpenCodePullRequestTool, prepared).line).toBe(
+        PART_NO_LONGER_IN_HAND_CHARGE,
+      );
+      expect(prepared.notRunWithoutApproval!.toldModel).toContain(
+        `- ${CHARGE} has 800 lines on main, and you read lines 1-400 earlier and no longer have them.`,
+      );
+
+      await answer.run(OpenCodePullRequestTool, prepared);
+
+      expect(gitlabOrForgejo.pullRequests).toHaveLength(1);
+      expect(gitlabOrForgejo.pullRequests[0]!.body).toBe(
+        REVIEWER_NOTE_TWO_HALVES,
+      );
+    },
+  );
 });
 
 describe("what an answer hands on, and what it stores", () => {
@@ -871,6 +1075,89 @@ describe("what an answer hands on, and what it stores", () => {
       "fromLeftOutResult",
     );
     expect(JSON.stringify(answer.results)).not.toContain("fromLeftOutResult");
+  });
+
+  test("a finding of a file read all of and part of it no longer in hand is read back as stored, its lines too (#6984)", () => {
+    const partNoLongerInHand: CodeFileUnseenFinding = {
+      filePath: CHARGE,
+      unseen: CodeFileUnseen.PartNoLongerInHand,
+      lineCount: 800,
+      linesNoLongerInHand: [{ first: 1, last: 400 }],
+    };
+    const readInPart: CodeFileUnseenFinding = {
+      filePath: "src/billing/refund.ts",
+      unseen: CodeFileUnseen.ReadInPart,
+      lineCount: 800,
+      linesNotRead: [{ first: 601, last: 800 }],
+      linesNoLongerInHand: [{ first: 1, last: 400 }],
+    };
+
+    expect(
+      readCodeChangeProposedOn({
+        branchName: "fix/login",
+        files: [{ filePath: CHARGE, fingerprint: "f1" }],
+        unseen: [partNoLongerInHand, readInPart],
+      })!.unseen,
+    ).toEqual([partNoLongerInHand, readInPart]);
+  });
+
+  test.each<[string, unknown]>([
+    ["past the file's end", [{ first: 1, last: 801 }]],
+    ["backwards", [{ first: 400, last: 1 }]],
+    ["not a list", "1-400"],
+    ["none", []],
+  ])(
+    "a finding whose lines no longer in hand are damaged (%s) is kept, without them",
+    (_how: string, damaged: unknown) => {
+      expect(
+        readCodeChangeProposedOn({
+          branchName: "fix/login",
+          files: [{ filePath: CHARGE, fingerprint: "f1" }],
+          unseen: [
+            {
+              filePath: CHARGE,
+              unseen: CodeFileUnseen.PartNoLongerInHand,
+              lineCount: 800,
+              linesNoLongerInHand: damaged,
+            },
+            {
+              filePath: "src/billing/refund.ts",
+              unseen: CodeFileUnseen.ReadInPart,
+              lineCount: 800,
+              linesNotRead: [{ first: 601, last: 800 }],
+              linesNoLongerInHand: damaged,
+            },
+          ],
+        })!.unseen,
+      ).toEqual([
+        { filePath: CHARGE, unseen: CodeFileUnseen.PartNoLongerInHand },
+        {
+          filePath: "src/billing/refund.ts",
+          unseen: CodeFileUnseen.ReadInPart,
+          lineCount: 800,
+          linesNotRead: [{ first: 601, last: 800 }],
+        },
+      ]);
+    },
+  );
+
+  test("lines no longer in hand are read only of the two findings that have them", () => {
+    expect(
+      readCodeChangeProposedOn({
+        branchName: "fix/login",
+        files: [{ filePath: CHARGE, fingerprint: "f1" }],
+        unseen: [
+          {
+            filePath: CHARGE,
+            unseen: CodeFileUnseen.ReadEarlierInThisAnswer,
+            lineCount: 800,
+            linesNoLongerInHand: [{ first: 1, last: 400 }],
+          },
+        ],
+      })!.unseen,
+    ).toEqual([
+      { filePath: CHARGE, unseen: CodeFileUnseen.ReadEarlierInThisAnswer },
+    ]);
   });
 
   test("a finding of a file read earlier in this answer is read back as stored", () => {

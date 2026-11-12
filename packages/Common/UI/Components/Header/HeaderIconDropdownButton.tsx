@@ -9,11 +9,15 @@ import {
   KeyboardKeyUtil,
   KeyboardShortcutKey,
 } from "../KeyboardShortcut/KeyboardKey";
+import { HeaderMenuButtonIdContext } from "./HeaderMenuContext";
 import IconProp from "../../../Types/Icon/IconProp";
 import React, {
   FunctionComponent,
   ReactElement,
+  RefObject,
   useEffect,
+  useId,
+  useRef,
   useState,
 } from "react";
 
@@ -57,6 +61,52 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
   const hasShortcut: boolean = Boolean(props.shortcut?.length);
 
   /*
+   * An id of this button's own, which its menu is named by (see
+   * HeaderMenuContext): Help and the profile button sit side by side.
+   */
+  const buttonId: string = `header-menu-button-${useId()}`;
+  const buttonRef: RefObject<HTMLButtonElement> =
+    useRef<HTMLButtonElement>(null);
+
+  /*
+   * Escape puts an open menu away, as it does every other menu and dialog
+   * in the product, and hands the focus back to the button when it was in
+   * the menu or on the button, so a keyboard goes on from where it was.
+   */
+  useEffect(() => {
+    if (!hasDropdown || !isComponentVisible) {
+      return;
+    }
+
+    const closeOnEscape: (event: KeyboardEvent) => void = (
+      event: KeyboardEvent,
+    ): void => {
+      if (event.key !== "Escape" || event.defaultPrevented) {
+        return;
+      }
+
+      const active: Element | null = document.activeElement;
+      const wasFocusHere: boolean = Boolean(
+        active &&
+          (buttonRef.current?.contains(active) ||
+            (ref.current as HTMLElement | null)?.contains(active)),
+      );
+
+      setIsComponentVisible(false);
+
+      if (wasFocusHere) {
+        buttonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [hasDropdown, isComponentVisible]);
+
+  /*
    * The keycaps are hidden below the sm breakpoint, so the tighter right
    * padding they need comes in at the same breakpoint they do.
    */
@@ -78,6 +128,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
     <div className="relative ml-2 flex-shrink-0">
       <div>
         <button
+          ref={buttonRef}
           type="button"
           title={tooltip}
           className={`flex items-center rounded-lg border hover:bg-white hover:border-gray-300 hover:shadow-sm active:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1 transition-all duration-150 ${
@@ -85,7 +136,7 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
               ? "border-indigo-200 bg-indigo-50"
               : "border-gray-200 bg-gray-50"
           } ${sizeClassName}`}
-          id={hasDropdown ? "user-menu-button" : undefined}
+          id={hasDropdown ? buttonId : undefined}
           aria-expanded={hasDropdown ? isDropdownVisible : undefined}
           aria-haspopup={hasDropdown ? "true" : undefined}
           aria-pressed={props.isPressed}
@@ -143,7 +194,11 @@ const HeaderIconDropdownButton: FunctionComponent<ComponentProps> = (
         )}
       </div>
 
-      <div ref={ref}>{isComponentVisible && props.children}</div>
+      <div ref={ref}>
+        <HeaderMenuButtonIdContext.Provider value={buttonId}>
+          {isComponentVisible && props.children}
+        </HeaderMenuButtonIdContext.Provider>
+      </div>
     </div>
   );
 };
