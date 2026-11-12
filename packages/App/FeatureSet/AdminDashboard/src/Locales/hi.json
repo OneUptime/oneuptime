@@ -519,7 +519,7 @@
         "pillNoFromEmail": "सक्षम नहीं। कृपया From ईमेल जोड़ें।",
         "pillNoFromName": "सक्षम नहीं। कृपया From नाम जोड़ें।",
         "amazonSesCardTitle": "Amazon SES सेटिंग्स",
-        "amazonSesCardDescription": "आपकी Amazon SES एक्सेस कुंजी और क्षेत्र, और ईमेल किसकी ओर से आते हैं।",
+        "amazonSesCardDescription": "यह सर्वर Amazon SES में कैसे साइन इन करता है, इसका क्षेत्र, और ईमेल किसकी ओर से आते हैं।",
         "amazonSesEditButton": "Amazon SES संपादित करें",
         "mailgunCardTitle": "Mailgun सेटिंग्स",
         "mailgunCardDescription": "आपकी Mailgun API कुंजी और भेजने वाला डोमेन, और ईमेल किसकी ओर से आते हैं।",
@@ -2409,5 +2409,11 @@
   "Give the workers more memory and CPU, and read the app's log for jobs that keep failing.": "वर्कर को ज़्यादा मेमोरी और CPU दें, और ऐप के लॉग में बार-बार विफल होने वाले जॉब देखें।",
   "This server runs OneUptime {{current}}. {{latest}} is out.": "यह सर्वर OneUptime {{current}} चला रहा है। {{latest}} आ चुका है।",
   "Back up, then update: npm run update on Docker Compose, helm upgrade on Kubernetes.": "पहले बैकअप लें, फिर अपडेट करें: Docker Compose पर npm run update, Kubernetes पर helm upgrade।",
-  "Finish it on the Server setup page.": "इसे सर्वर सेटअप पेज पर पूरा करें।"
+  "Finish it on the Server setup page.": "इसे सर्वर सेटअप पेज पर पूरा करें।",
+  "How OneUptime signs in to Amazon SES.": "OneUptime Amazon SES में कैसे साइन इन करता है।",
+  "Access Key": "एक्सेस कुंजी",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "किसी IAM उपयोगकर्ता की एक्सेस कुंजी ID और सीक्रेट एक्सेस कुंजी, एन्क्रिप्ट करके संग्रहीत।",
+  "This Server's IAM Role": "इस सर्वर की IAM भूमिका",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "वह भूमिका जो AWS इस सर्वर को Amazon EKS, ECS या EC2 पर देता है। कोई कुंजी संग्रहीत नहीं होती, और इसके क्रेडेंशियल अपने आप नवीनीकृत होते हैं।",
+  "Send through Amazon SES with an access key or this server's IAM role.": "एक्सेस कुंजी या इस सर्वर की IAM भूमिका के साथ Amazon SES से भेजें।"
 }
