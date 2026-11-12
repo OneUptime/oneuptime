@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "起動中か再起動中の可能性があります。数分後にもう一度お試しください。",
   "Its monitor is archived": "モニターはアーカイブされています",
   "Monitor archived": "モニターはアーカイブ済み",
-  "Monitoring is off for its monitor": "モニターの監視がオフです",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "このデバイスに紐付けられたモニターの監視がオフのため、何もチェックしていません: デバイスにはステータスがなく、サイトもこのデバイスを除外します。再び報告させるには、モニターの監視をオンに戻してください。",
   "Monitoring off": "監視オフ",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "まだ判定はありません — 一度もポーリングされていないか、プローブが割り当てられていないか、モニターが紐付けられていないか、紐付けられたモニターの監視がオフかアーカイブ済みです",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "何が失敗したかを確認するには、サーバーの oneuptime フォルダーで npm run doctor -- --logs を実行してください。",
   "Try again in a moment.": "少し待ってから、もう一度お試しください。",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "もう一度お試しください。それでも失敗する場合は、OneUptime サポートに連絡し、この参照番号を伝えてください:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "もう一度お試しください。それでも失敗する場合は、OneUptime サーバーを運用している担当者にこの参照番号を伝えてください:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "もう一度お試しください。それでも失敗する場合は、OneUptime サーバーを運用している担当者にこの参照番号を伝えてください:",
+  "Not checked until its monitor is unarchived": "モニターのアーカイブが解除されるまでチェックされません",
+  "Not checked until monitoring is back on": "監視が再びオンになるまでチェックされません"
 }

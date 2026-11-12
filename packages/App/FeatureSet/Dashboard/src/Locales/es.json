@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Puede que se esté iniciando o reiniciando. Vuelva a intentarlo en unos minutos.",
   "Its monitor is archived": "Su monitor está archivado",
   "Monitor archived": "Monitor archivado",
-  "Monitoring is off for its monitor": "El monitoreo está desactivado para su monitor",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "El monitoreo está desactivado para el monitor vinculado a este dispositivo, así que nada lo comprueba: el dispositivo no tiene estado y su sitio lo deja fuera. Vuelve a activar el monitoreo del monitor para que vuelva a informar.",
   "Monitoring off": "Monitoreo desactivado",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Aún no hay veredicto: nunca se sondeó, no hay sonda asignada, no hay monitor vinculado, o el monitor vinculado está desactivado o archivado",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Para ver qué falló, ejecute npm run doctor -- --logs en la carpeta oneuptime del servidor.",
   "Try again in a moment.": "Vuelva a intentarlo en un momento.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Vuelva a intentarlo. Si sigue fallando, contacte con el soporte de OneUptime y facilite esta referencia:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Vuelva a intentarlo. Si sigue fallando, facilite esta referencia a quien administre su servidor de OneUptime:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Vuelva a intentarlo. Si sigue fallando, facilite esta referencia a quien administre su servidor de OneUptime:",
+  "Not checked until its monitor is unarchived": "No se comprueba hasta que su monitor se desarchive",
+  "Not checked until monitoring is back on": "No se comprueba hasta que el monitoreo vuelva a estar activado"
 }

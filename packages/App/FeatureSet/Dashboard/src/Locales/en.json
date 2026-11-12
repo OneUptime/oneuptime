@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "It may be starting or restarting. Try again in a few minutes.",
   "Its monitor is archived": "Its monitor is archived",
   "Monitor archived": "Monitor archived",
-  "Monitoring is off for its monitor": "Monitoring is off for its monitor",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.",
   "Monitoring off": "Monitoring off",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.",
   "Try again in a moment.": "Try again in a moment.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Try again. If it keeps failing, contact OneUptime support and give them this reference:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:",
+  "Not checked until its monitor is unarchived": "Not checked until its monitor is unarchived",
+  "Not checked until monitoring is back on": "Not checked until monitoring is back on"
 }

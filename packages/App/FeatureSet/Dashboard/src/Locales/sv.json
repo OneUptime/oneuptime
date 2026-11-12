@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Den kanske startar eller startar om. Försök igen om några minuter.",
   "Its monitor is archived": "Dess övervakning är arkiverad",
   "Monitor archived": "Övervakning arkiverad",
-  "Monitoring is off for its monitor": "Dess övervakning är avstängd",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Övervakningen som är kopplad till den här enheten är avstängd, så inget kontrollerar den: enheten har ingen status och dess plats räknar inte med den. Slå på övervakningen igen för att den ska rapportera igen.",
   "Monitoring off": "Övervakning avstängd",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Inget utslag än — aldrig avsökt, ingen sond tilldelad, ingen monitor bunden, eller så är den bundna monitorn avstängd eller arkiverad",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Kör npm run doctor -- --logs i serverns oneuptime-mapp för att se vad som misslyckades.",
   "Try again in a moment.": "Försök igen om en liten stund.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Försök igen. Om det fortsätter att misslyckas, kontakta OneUptime-support och ge dem den här referensen:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Försök igen. Om det fortsätter att misslyckas, ge den här referensen till den som driver er OneUptime-server:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Försök igen. Om det fortsätter att misslyckas, ge den här referensen till den som driver er OneUptime-server:",
+  "Not checked until its monitor is unarchived": "Kontrolleras inte förrän dess övervakning har avarkiverats",
+  "Not checked until monitoring is back on": "Kontrolleras inte förrän övervakningen är påslagen igen"
 }

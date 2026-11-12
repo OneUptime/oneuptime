@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Hij start misschien op of start opnieuw. Probeer het over een paar minuten opnieuw.",
   "Its monitor is archived": "Zijn monitor is gearchiveerd",
   "Monitor archived": "Monitor gearchiveerd",
-  "Monitoring is off for its monitor": "Bewaking staat uit voor zijn monitor",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Bewaking staat uit voor de monitor die aan dit apparaat is gekoppeld, dus niets controleert het: het apparaat heeft geen status en zijn locatie laat het buiten beschouwing. Zet de bewaking voor de monitor weer aan om het weer te laten rapporteren.",
   "Monitoring off": "Bewaking uit",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Nog geen oordeel — nooit gepolld, geen sonde toegewezen, geen monitor gekoppeld, of de gekoppelde monitor staat uit of is gearchiveerd",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Om te zien wat er misging, voer je npm run doctor -- --logs uit in de map oneuptime van de server.",
   "Try again in a moment.": "Probeer het zo meteen opnieuw.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Probeer het opnieuw. Blijft het mislukken, neem dan contact op met OneUptime-support en geef deze referentie door:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Probeer het opnieuw. Blijft het mislukken, geef deze referentie dan aan degene die je OneUptime-server beheert:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Probeer het opnieuw. Blijft het mislukken, geef deze referentie dan aan degene die je OneUptime-server beheert:",
+  "Not checked until its monitor is unarchived": "Niet gecontroleerd tot zijn monitor uit het archief is gehaald",
+  "Not checked until monitoring is back on": "Niet gecontroleerd tot de bewaking weer aanstaat"
 }

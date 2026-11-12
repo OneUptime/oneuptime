@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Den er måske ved at starte eller genstarte. Prøv igen om et par minutter.",
   "Its monitor is archived": "Dens overvågning er arkiveret",
   "Monitor archived": "Overvågning arkiveret",
-  "Monitoring is off for its monitor": "Dens overvågning er slået fra",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Overvågningen, der er bundet til denne enhed, er slået fra, så intet kontrollerer den: enheden har ingen status, og dens lokation ser bort fra den. Slå overvågningen til igen for at få den til at rapportere igen.",
   "Monitoring off": "Overvågning slået fra",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Endnu ingen afgørelse — aldrig pollet, ingen sonde tildelt, ingen monitor bundet, eller den bundne monitor er slået fra eller arkiveret",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Kør npm run doctor -- --logs i serverens oneuptime-mappe for at se, hvad der fejlede.",
   "Try again in a moment.": "Prøv igen om et øjeblik.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Prøv igen. Hvis det bliver ved med at fejle, så kontakt OneUptime-support, og giv dem denne reference:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Prøv igen. Hvis det bliver ved med at fejle, så giv denne reference til den, der driver jeres OneUptime-server:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Prøv igen. Hvis det bliver ved med at fejle, så giv denne reference til den, der driver jeres OneUptime-server:",
+  "Not checked until its monitor is unarchived": "Ikke kontrolleret, før dens overvågning er fjernet fra arkivet",
+  "Not checked until monitoring is back on": "Ikke kontrolleret, før overvågningen er slået til igen"
 }

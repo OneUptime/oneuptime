@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Возможно, он запускается или перезапускается. Повторите попытку через несколько минут.",
   "Its monitor is archived": "Его монитор в архиве",
   "Monitor archived": "Монитор в архиве",
-  "Monitoring is off for its monitor": "Мониторинг его монитора выключен",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Мониторинг монитора, привязанного к этому устройству, выключен, поэтому его ничто не проверяет: у устройства нет статуса, и его площадка его не учитывает. Снова включите мониторинг монитора, чтобы он снова сообщал о нём.",
   "Monitoring off": "Мониторинг выключен",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Вердикта пока нет — ни разу не опрашивалось, зонд не назначен, монитор не привязан, или у привязанного монитора выключен мониторинг либо он в архиве",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Чтобы узнать, что не сработало, выполните npm run doctor -- --logs в папке oneuptime на сервере.",
   "Try again in a moment.": "Повторите попытку чуть позже.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Повторите попытку. Если ошибка повторится, обратитесь в поддержку OneUptime и сообщите этот код:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Повторите попытку. Если ошибка повторится, сообщите этот код тому, кто управляет вашим сервером OneUptime:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Повторите попытку. Если ошибка повторится, сообщите этот код тому, кто управляет вашим сервером OneUptime:",
+  "Not checked until its monitor is unarchived": "Не проверяется, пока его монитор не извлекут из архива",
+  "Not checked until monitoring is back on": "Не проверяется, пока мониторинг снова не включат"
 }

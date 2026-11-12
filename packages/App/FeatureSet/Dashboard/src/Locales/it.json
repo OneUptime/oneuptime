@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Potrebbe essere in fase di avvio o di riavvio. Riprova tra qualche minuto.",
   "Its monitor is archived": "Il suo monitor è archiviato",
   "Monitor archived": "Monitor archiviato",
-  "Monitoring is off for its monitor": "Il monitoraggio è disattivato per il suo monitor",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Il monitoraggio è disattivato per il monitor associato a questo dispositivo, quindi nulla lo controlla: il dispositivo non ha uno stato e il suo sito lo esclude. Riattiva il monitoraggio del monitor perché torni a segnalarlo.",
   "Monitoring off": "Monitoraggio disattivato",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Ancora nessun verdetto — mai interrogato, nessuna sonda assegnata, nessun monitor associato, oppure il monitor associato è disattivato o archiviato",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Per vedere cosa non ha funzionato, esegui npm run doctor -- --logs nella cartella oneuptime del server.",
   "Try again in a moment.": "Riprova tra un momento.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Riprova. Se continua a non riuscire, contatta il supporto OneUptime e comunica questo riferimento:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Riprova. Se continua a non riuscire, comunica questo riferimento a chi gestisce il tuo server OneUptime:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Riprova. Se continua a non riuscire, comunica questo riferimento a chi gestisce il tuo server OneUptime:",
+  "Not checked until its monitor is unarchived": "Non verificato finché il suo monitor non viene rimosso dall'archivio",
+  "Not checked until monitoring is back on": "Non verificato finché il monitoraggio non viene riattivato"
 }

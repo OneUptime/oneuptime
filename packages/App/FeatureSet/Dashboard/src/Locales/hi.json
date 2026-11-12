@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "हो सकता है वह शुरू हो रहा हो या दोबारा शुरू हो रहा हो। कुछ मिनट बाद फिर कोशिश करें।",
   "Its monitor is archived": "इसका मॉनिटर संग्रहीत है",
   "Monitor archived": "मॉनिटर संग्रहीत",
-  "Monitoring is off for its monitor": "इसके मॉनिटर की निगरानी बंद है",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "इस डिवाइस से जुड़े मॉनिटर की निगरानी बंद है, इसलिए कुछ भी इसकी जाँच नहीं करता: डिवाइस की कोई स्थिति नहीं है, और इसकी साइट इसे शामिल नहीं करती। इसे फिर से रिपोर्ट करवाने के लिए मॉनिटर की निगरानी फिर से चालू करें।",
   "Monitoring off": "निगरानी बंद",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "अभी कोई फ़ैसला नहीं — कभी पोल नहीं हुआ, कोई प्रोब असाइन नहीं है, कोई मॉनिटर बाउंड नहीं है, या बाउंड मॉनिटर की निगरानी बंद है या वह संग्रहीत है",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "क्या विफल हुआ यह देखने के लिए, सर्वर के oneuptime फ़ोल्डर में npm run doctor -- --logs चलाएँ।",
   "Try again in a moment.": "थोड़ी देर बाद फिर कोशिश करें।",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "दोबारा कोशिश करें। अगर फिर भी न हो, तो OneUptime सपोर्ट से संपर्क करें और उन्हें यह संदर्भ दें:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "दोबारा कोशिश करें। अगर फिर भी न हो, तो यह संदर्भ उस व्यक्ति को दें जो आपका OneUptime सर्वर चलाता है:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "दोबारा कोशिश करें। अगर फिर भी न हो, तो यह संदर्भ उस व्यक्ति को दें जो आपका OneUptime सर्वर चलाता है:",
+  "Not checked until its monitor is unarchived": "इसके मॉनिटर के अनसंग्रहीत होने तक जाँचा नहीं जाएगा",
+  "Not checked until monitoring is back on": "निगरानी फिर से चालू होने तक जाँचा नहीं जाएगा"
 }

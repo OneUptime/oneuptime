@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "它可能正在啟動或重新啟動。請幾分鐘後再試一次。",
   "Its monitor is archived": "其監測器已封存",
   "Monitor archived": "監測器已封存",
-  "Monitoring is off for its monitor": "其監測器的監測已關閉",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "綁定到此裝置的監測器已關閉監測，因此沒有任何檢查：裝置沒有狀態，其站點也不計入它。為該監測器重新開啟監測，使其再次回報。",
   "Monitoring off": "監測已關閉",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "尚無判定 — 從未輪詢過、未指派探測器、未綁定監測器，或綁定的監測器已關閉監測或已封存",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "要查看失敗原因，請在伺服器的 oneuptime 資料夾中執行 npm run doctor -- --logs。",
   "Try again in a moment.": "請稍後再試一次。",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "請再試一次。如果仍然失敗，請聯絡 OneUptime 支援團隊並提供這個參考編號：",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "請再試一次。如果仍然失敗，請把這個參考編號提供給負責執行您的 OneUptime 伺服器的人："
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "請再試一次。如果仍然失敗，請把這個參考編號提供給負責執行您的 OneUptime 伺服器的人：",
+  "Not checked until its monitor is unarchived": "在其監測器取消封存之前不會檢查",
+  "Not checked until monitoring is back on": "在監測重新開啟之前不會檢查"
 }

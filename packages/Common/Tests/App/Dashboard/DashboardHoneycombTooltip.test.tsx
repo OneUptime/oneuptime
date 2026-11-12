@@ -28,12 +28,16 @@ import DashboardMonitorListComponentElement, {
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardMonitorListComponent";
 import DashboardResourceHoneycomb, {
   getHoneycombTooltipContainer,
+  HONEYCOMB_FOCUS_RING,
+  HONEYCOMB_FOCUS_RING_TEST_ID,
   HONEYCOMB_TILE_TEST_ID,
   HONEYCOMB_TOOLTIP_TEST_ID,
   HoneycombTile,
+  getHoneycombFocusRingPoints,
 } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardResourceHoneycomb";
 import { DashboardBaseComponentProps } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Components/DashboardBaseComponent";
 import { setPublicDashboardContext } from "../../../../App/FeatureSet/Dashboard/src/Components/Dashboard/Utils/PublicDashboardContext";
+import Route from "../../../Types/API/Route";
 import Monitor from "../../../Models/DatabaseModels/Monitor";
 import MonitorStatus from "../../../Models/DatabaseModels/MonitorStatus";
 import { Gray500 } from "../../../Types/BrandColors";
@@ -302,6 +306,29 @@ function openTooltip(): HTMLElement {
 function valueBeside(tooltip: HTMLElement, label: string): string {
   const labelElement: HTMLElement = within(tooltip).getByText(label);
   return labelElement.nextElementSibling?.textContent || "";
+}
+
+// The [x, y] corners an SVG points attribute lists.
+function pointsOf(points: string): Array<[number, number]> {
+  return points
+    .trim()
+    .split(/\s+/)
+    .map((pair: string): [number, number] => {
+      const [x, y] = pair.split(",");
+      return [Number(x), Number(y)];
+    });
+}
+
+// How far a point is from the line through two others.
+function distanceToLine(
+  point: [number, number],
+  from: [number, number],
+  to: [number, number],
+): number {
+  const dx: number = to[0] - from[0];
+  const dy: number = to[1] - from[1];
+  const cross: number = dx * (point[1] - from[1]) - dy * (point[0] - from[0]);
+  return Math.abs(cross) / Math.hypot(dx, dy);
 }
 
 function toRgb(hex: string): string {
@@ -671,6 +698,393 @@ describe("while the board is in full screen", () => {
       addSpy.mockRestore();
       removeSpy.mockRestore();
     }
+  });
+});
+
+/*
+ * A TILE REACHED WITH THE KEYBOARD. A tile that opens a page is a button in
+ * the Tab order, and a keyboard reader moving through the tiles got no
+ * tooltip - it opened under the pointer only - and no sign of where the
+ * focus was: the tile is clipped to its hexagon, which clips any outline
+ * drawn on it too. A row of colors said nothing of which monitor was
+ * which, nor that gray is Disabled. Now the tooltip opens on focus and
+ * describes the tile, a ring is drawn round it, and Escape puts the tooltip
+ * away (WCAG 1.4.13), whether the focus or the pointer opened it.
+ */
+describe("a tile reached with the keyboard", () => {
+  function focusRings(): Array<SVGElement> {
+    return Array.from(
+      document.querySelectorAll<SVGElement>(
+        `[data-testid="${HONEYCOMB_FOCUS_RING_TEST_ID}"]`,
+      ),
+    );
+  }
+
+  /*
+   * jsdom matches :focus-visible only on an autofocus element, so a tile
+   * focused here reads as one a click focused. A browser matches it on a
+   * tile reached with Tab, which this says of the tile.
+   */
+  function focusWithKeyboard(tile: HTMLElement): void {
+    jest
+      .spyOn(tile, "matches")
+      .mockImplementation((selector: string): boolean => {
+        return selector === ":focus-visible"
+          ? tile === document.activeElement
+          : Element.prototype.matches.call(tile, selector);
+      });
+
+    act(() => {
+      tile.focus();
+    });
+  }
+
+  function focusWithClick(tile: HTMLElement): void {
+    act(() => {
+      tile.focus();
+    });
+  }
+
+  function blur(tile: HTMLElement): void {
+    act(() => {
+      tile.blur();
+    });
+  }
+
+  test("Tab to the gray tile opens its tooltip, as pointing at it does; Tab on opens the next one's, and leaving closes it", async () => {
+    await drawBoard();
+
+    const gray: HTMLElement = tiles()[0]!;
+    focusWithKeyboard(gray);
+
+    expect(document.activeElement).toBe(gray);
+    let tooltip: HTMLElement = openTooltip();
+    expect(within(tooltip).getByText("checkout")).toBeInTheDocument();
+    expect(valueBeside(tooltip, "Status")).toBe("Disabled");
+    // Outside the card, as the pointer's is.
+    expect(tooltip.parentElement).toBe(document.body);
+
+    focusWithKeyboard(tiles()[1]!);
+    tooltip = openTooltip();
+    expect(within(tooltip).getByText("search")).toBeInTheDocument();
+    expect(valueBeside(tooltip, "Status")).toBe("Offline");
+
+    blur(tiles()[1]!);
+    expect(openTooltips()).toHaveLength(0);
+  });
+
+  test("a tile that opens a page is a button named for what it stands for, and its open tooltip describes it", async () => {
+    await drawBoard();
+
+    const gray: HTMLElement = tiles()[0]!;
+    expect(gray).toHaveAttribute("role", "button");
+    expect(gray).toHaveAttribute("tabindex", "0");
+    expect(gray).toHaveAccessibleName("checkout");
+    expect(gray).not.toHaveAttribute("aria-describedby");
+
+    focusWithKeyboard(gray);
+
+    const tooltip: HTMLElement = openTooltip();
+    expect(tooltip.id).not.toBe("");
+    expect(gray).toHaveAttribute("aria-describedby", tooltip.id);
+    expect(document.getElementById(tooltip.id)).toBe(tooltip);
+    expect(gray).toHaveAccessibleDescription(
+      expect.stringContaining("Disabled"),
+    );
+    // Only the tile it is open for.
+    expect(tiles()[1]).not.toHaveAttribute("aria-describedby");
+
+    blur(gray);
+    expect(gray).not.toHaveAttribute("aria-describedby");
+  });
+
+  test("two honeycombs on a page describe their tiles with tooltips of their own", () => {
+    const tile: (id: string, title: string) => HoneycombTile = (
+      id: string,
+      title: string,
+    ): HoneycombTile => {
+      return {
+        id: id,
+        status: "Running",
+        color: GREEN,
+        route: new Route(`/dashboard/pods/${id}`),
+        tooltip: { title: title },
+      };
+    };
+
+    render(
+      <>
+        <DashboardResourceHoneycomb tiles={[tile("a", "checkout-api")]} />
+        <DashboardResourceHoneycomb tiles={[tile("b", "search-api")]} />
+      </>,
+    );
+
+    focusWithKeyboard(tiles()[0]!);
+    const first: string = openTooltip().id;
+    focusWithKeyboard(tiles()[1]!);
+    const second: string = openTooltip().id;
+
+    expect(first).not.toBe("");
+    expect(second).not.toBe("");
+    expect(first).not.toBe(second);
+    expect(tiles()[1]).toHaveAccessibleDescription(
+      expect.stringContaining("search-api"),
+    );
+  });
+
+  test("a tile that opens nothing is no button: not named as one, not a stop for Tab", () => {
+    render(
+      <DashboardResourceHoneycomb
+        tiles={[
+          {
+            id: "pod-1",
+            status: "Running",
+            color: GREEN,
+            tooltip: { title: "checkout-api-7d9f8b6c4-x2x9z" },
+          },
+        ]}
+      />,
+    );
+
+    const tile: HTMLElement = tiles()[0]!;
+    expect(tile).not.toHaveAttribute("role");
+    expect(tile).not.toHaveAttribute("tabindex");
+    expect(tile).not.toHaveAttribute("aria-label");
+    expect(tile).not.toHaveAttribute("aria-describedby");
+  });
+
+  test("Escape puts the tooltip away and leaves the focus, and its ring, on the tile", async () => {
+    await drawBoard();
+
+    const gray: HTMLElement = tiles()[0]!;
+    focusWithKeyboard(gray);
+    expect(openTooltips()).toHaveLength(1);
+
+    fireEvent.keyDown(gray, { key: "Escape" });
+
+    expect(openTooltips()).toHaveLength(0);
+    expect(document.activeElement).toBe(gray);
+    expect(focusRings()).toHaveLength(1);
+    expect(gray).not.toHaveAttribute("aria-describedby");
+
+    // Moving on opens the next tile's.
+    focusWithKeyboard(tiles()[1]!);
+    expect(within(openTooltip()).getByText("search")).toBeInTheDocument();
+  });
+
+  test("Escape puts away a tooltip the pointer opened too, other keys leave it, and the next hover opens it again", async () => {
+    await drawBoard();
+
+    fireEvent.mouseEnter(tiles()[2]!);
+    fireEvent.keyDown(document.body, { key: "Shift" });
+    expect(openTooltips()).toHaveLength(1);
+
+    fireEvent.keyDown(document.body, { key: "Escape" });
+    expect(openTooltips()).toHaveLength(0);
+
+    fireEvent.mouseLeave(tiles()[2]!);
+    fireEvent.mouseEnter(tiles()[2]!);
+    expect(within(openTooltip()).getByText("api")).toBeInTheDocument();
+  });
+
+  test("only an open tooltip listens for Escape, and it stops when it closes", async () => {
+    const addSpy: jest.SpiedFunction<typeof document.addEventListener> =
+      jest.spyOn(document, "addEventListener");
+    const removeSpy: jest.SpiedFunction<typeof document.removeEventListener> =
+      jest.spyOn(document, "removeEventListener");
+
+    function keyListeners(
+      spy:
+        | jest.SpiedFunction<typeof document.addEventListener>
+        | jest.SpiedFunction<typeof document.removeEventListener>,
+    ): Array<unknown> {
+      return spy.mock.calls
+        .filter((call: Array<unknown>): boolean => {
+          return call[0] === "keydown";
+        })
+        .map((call: Array<unknown>): unknown => {
+          return call[1];
+        });
+    }
+
+    try {
+      await drawBoard();
+      expect(keyListeners(addSpy)).toHaveLength(0);
+
+      fireEvent.mouseEnter(tiles()[0]!);
+      expect(keyListeners(addSpy)).toHaveLength(1);
+      // Another tile's tooltip: the same listener goes on listening.
+      fireEvent.mouseEnter(tiles()[1]!);
+      expect(keyListeners(addSpy)).toHaveLength(1);
+
+      fireEvent.mouseLeave(tiles()[1]!);
+      expect(keyListeners(removeSpy)).toEqual(keyListeners(addSpy));
+    } finally {
+      addSpy.mockRestore();
+      removeSpy.mockRestore();
+    }
+  });
+
+  test("a tile with the keyboard's focus is ringed: a hexagon round it, outside its clip, in the theme's focus color, over the tiles beside it", async () => {
+    await drawBoard();
+
+    const gray: HTMLElement = tiles()[0]!;
+    const box: HTMLElement = gray.parentElement as HTMLElement;
+    expect(focusRings()).toHaveLength(0);
+    expect(box.style.position).toBe("");
+    expect(box.style.zIndex).toBe("");
+
+    focusWithKeyboard(gray);
+
+    expect(focusRings()).toHaveLength(1);
+    const ring: SVGElement = focusRings()[0]!;
+    // Beside the tile, not in it: the tile's clip-path would cut it away.
+    expect(gray.style.clipPath).toContain("polygon(");
+    expect(gray.contains(ring)).toBe(false);
+    expect(ring.parentElement).toBe(box);
+    expect(ring).toHaveAttribute("aria-hidden", "true");
+    expect(ring).toHaveClass("pointer-events-none", "absolute");
+    // The theme's focus color, which the dark theme sets lighter.
+    const polygon: SVGPolygonElement = ring.querySelector(
+      "polygon",
+    ) as SVGPolygonElement;
+    expect(polygon.style.stroke).toBe("var(--ou-chart-focus-ring, #4f46e5)");
+    expect(polygon).toHaveAttribute("fill", "none");
+    // Over the tiles beside it while it shows, and placed only then.
+    expect(box.style.position).toBe("relative");
+    expect(box.style.zIndex).toBe("1");
+
+    blur(gray);
+
+    expect(focusRings()).toHaveLength(0);
+    expect(box.style.position).toBe("");
+    expect(box.style.zIndex).toBe("");
+  });
+
+  test("a tile a click focuses opens its tooltip and draws no ring, and a pointer over it draws none either", async () => {
+    await drawBoard();
+
+    const gray: HTMLElement = tiles()[0]!;
+    fireEvent.mouseEnter(gray);
+    expect(focusRings()).toHaveLength(0);
+
+    focusWithClick(gray);
+
+    expect(openTooltips()).toHaveLength(1);
+    expect(focusRings()).toHaveLength(0);
+  });
+
+  test("a browser that does not know :focus-visible rings every focus rather than none", async () => {
+    await drawBoard();
+
+    const gray: HTMLElement = tiles()[0]!;
+    jest
+      .spyOn(gray, "matches")
+      .mockImplementation((selector: string): boolean => {
+        if (selector === ":focus-visible") {
+          throw new SyntaxError(`'${selector}' is not a valid selector`);
+        }
+        return Element.prototype.matches.call(gray, selector);
+      });
+
+    focusWithClick(gray);
+
+    expect(focusRings()).toHaveLength(1);
+  });
+
+  /*
+   * The ring is the tile's own hexagon grown evenly: every side the same
+   * distance outside the tile's side across from it, and the whole line,
+   * its half width included, inside the box it is drawn in.
+   */
+  test.each([28, 40, 56])(
+    "round a %ipx tile, the ring's every side runs the same distance outside the tile's",
+    (width: number) => {
+      const height: number = width * 1.1547;
+      const room: number = HONEYCOMB_FOCUS_RING.room;
+
+      render(
+        <svg>
+          <polygon
+            data-testid="ring-points"
+            points={getHoneycombFocusRingPoints(width, height)}
+          />
+        </svg>,
+      );
+
+      const ring: Array<[number, number]> = pointsOf(
+        document
+          .querySelector('[data-testid="ring-points"]')!
+          .getAttribute("points") || "",
+      );
+      // The tile's corners as its clip-path draws them, in the ring's box.
+      const tile: Array<[number, number]> = [
+        [room + width / 2, room],
+        [room + width, room + height / 4],
+        [room + width, room + (height * 3) / 4],
+        [room + width / 2, room + height],
+        [room, room + (height * 3) / 4],
+        [room, room + height / 4],
+      ];
+
+      expect(ring).toHaveLength(6);
+
+      for (let i: number = 0; i < 6; i++) {
+        const from: [number, number] = ring[i]!;
+        const to: [number, number] = ring[(i + 1) % 6]!;
+
+        for (const corner of [tile[i]!, tile[(i + 1) % 6]!]) {
+          expect(distanceToLine(corner, from, to)).toBeCloseTo(
+            HONEYCOMB_FOCUS_RING.offset,
+            1,
+          );
+        }
+      }
+
+      const half: number = HONEYCOMB_FOCUS_RING.width / 2;
+      for (const [x, y] of ring) {
+        expect(x).toBeGreaterThanOrEqual(half);
+        expect(y).toBeGreaterThanOrEqual(half);
+        expect(x).toBeLessThanOrEqual(width + room * 2 - half);
+        expect(y).toBeLessThanOrEqual(height + room * 2 - half);
+      }
+    },
+  );
+
+  test("the ring drawn round a focused tile is that ring, in a box the tile's size plus its room", async () => {
+    render(
+      <DashboardResourceHoneycomb
+        tiles={[
+          {
+            id: "pod-1",
+            status: "Running",
+            color: GREEN,
+            route: new Route("/dashboard/pods/pod-1"),
+            tooltip: { title: "checkout-api" },
+          },
+        ]}
+      />,
+    );
+
+    const tile: HTMLElement = tiles()[0]!;
+    focusWithKeyboard(tile);
+
+    const ring: SVGElement = focusRings()[0]!;
+    const width: number = parseFloat(tile.style.width);
+    const height: number = parseFloat(tile.style.height);
+    const room: number = HONEYCOMB_FOCUS_RING.room;
+
+    expect(Number(ring.getAttribute("width"))).toBeCloseTo(width + room * 2);
+    expect(Number(ring.getAttribute("height"))).toBeCloseTo(height + room * 2);
+    expect(ring.style.left).toBe(`-${room}px`);
+    expect(ring.style.top).toBe(`-${room}px`);
+    expect(ring.querySelector("polygon")!.getAttribute("points")).toBe(
+      getHoneycombFocusRingPoints(width, height),
+    );
+    expect(ring.querySelector("polygon")).toHaveAttribute(
+      "stroke-width",
+      String(HONEYCOMB_FOCUS_RING.width),
+    );
   });
 });
 

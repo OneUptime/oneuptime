@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "شاید در حال راه‌اندازی یا راه‌اندازی دوباره باشد. چند دقیقهٔ دیگر دوباره امتحان کنید.",
   "Its monitor is archived": "مانیتور آن بایگانی شده است",
   "Monitor archived": "مانیتور بایگانی‌شده",
-  "Monitoring is off for its monitor": "پایش برای مانیتور آن خاموش است",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "پایش برای مانیتوری که به این دستگاه متصل است خاموش است، پس چیزی آن را بررسی نمی‌کند: دستگاه وضعیتی ندارد و سایت آن، آن را به حساب نمی‌آورد. پایش را برای مانیتور دوباره روشن کنید تا دوباره گزارش دهد.",
   "Monitoring off": "پایش خاموش",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "هنوز حکمی نیست — هرگز سرکشی نشده، پرابی تخصیص نیافته، مانیتوری مقید نشده، یا پایش مانیتور مقید خاموش است یا آن مانیتور بایگانی شده است",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "برای دیدن اینکه چه چیزی شکست خورد، npm run doctor -- --logs را در پوشهٔ oneuptime سرور اجرا کنید.",
   "Try again in a moment.": "کمی بعد دوباره امتحان کنید.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "دوباره امتحان کنید. اگر باز هم نشد، با پشتیبانی OneUptime تماس بگیرید و این شناسه را به آن‌ها بدهید:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "دوباره امتحان کنید. اگر باز هم نشد، این شناسه را به کسی بدهید که سرور OneUptime شما را اداره می‌کند:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "دوباره امتحان کنید. اگر باز هم نشد، این شناسه را به کسی بدهید که سرور OneUptime شما را اداره می‌کند:",
+  "Not checked until its monitor is unarchived": "تا خارج شدن مانیتور آن از بایگانی بررسی نمی‌شود",
+  "Not checked until monitoring is back on": "تا روشن شدن دوباره پایش بررسی نمی‌شود"
 }

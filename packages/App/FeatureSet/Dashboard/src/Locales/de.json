@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Möglicherweise startet er gerade oder wird neu gestartet. Versuchen Sie es in ein paar Minuten erneut.",
   "Its monitor is archived": "Sein Monitor ist archiviert",
   "Monitor archived": "Monitor archiviert",
-  "Monitoring is off for its monitor": "Für seinen Monitor ist die Überwachung aus",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "Für den an dieses Gerät gebundenen Monitor ist die Überwachung ausgeschaltet, daher prüft ihn nichts: Das Gerät hat keinen Status, und sein Standort lässt es außen vor. Schalten Sie die Überwachung für den Monitor wieder ein, damit er wieder meldet.",
   "Monitoring off": "Überwachung aus",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Noch kein Ergebnis — nie abgefragt, keine Sonde zugewiesen, kein Monitor gebunden, oder der gebundene Monitor ist ausgeschaltet oder archiviert",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Um zu sehen, was fehlgeschlagen ist, führen Sie npm run doctor -- --logs im oneuptime-Ordner des Servers aus.",
   "Try again in a moment.": "Versuchen Sie es gleich noch einmal.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, wenden Sie sich an den OneUptime-Support und geben Sie diese Referenz an:",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, geben Sie diese Referenz an die Person weiter, die Ihren OneUptime-Server betreibt:"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Versuchen Sie es erneut. Wenn es weiter fehlschlägt, geben Sie diese Referenz an die Person weiter, die Ihren OneUptime-Server betreibt:",
+  "Not checked until its monitor is unarchived": "Nicht geprüft, bis sein Monitor aus dem Archiv entfernt ist",
+  "Not checked until monitoring is back on": "Nicht geprüft, bis die Überwachung wieder eingeschaltet ist"
 }

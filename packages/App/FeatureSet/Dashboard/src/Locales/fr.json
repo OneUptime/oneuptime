@@ -51188,7 +51188,6 @@
   "It may be starting or restarting. Try again in a few minutes.": "Il est peut-être en train de démarrer ou de redémarrer. Réessayez dans quelques minutes.",
   "Its monitor is archived": "Son moniteur est archivé",
   "Monitor archived": "Moniteur archivé",
-  "Monitoring is off for its monitor": "La surveillance est désactivée pour son moniteur",
   "Monitoring is turned off for the monitor bound to this device, so nothing checks it: the device has no status, and its site leaves it out. Turn monitoring back on for the monitor to have it report again.": "La surveillance est désactivée pour le moniteur lié à cet appareil, donc rien ne le vérifie : l'appareil n'a pas de statut, et son site ne le prend pas en compte. Réactivez la surveillance du moniteur pour qu'il rende compte à nouveau.",
   "Monitoring off": "Surveillance désactivée",
   "No verdict yet — never polled, no probe assigned, no monitor bound, or the bound monitor is turned off or archived": "Pas encore de verdict — jamais interrogé, aucune sonde attribuée, aucun moniteur lié, ou le moniteur lié est désactivé ou archivé",
@@ -51216,5 +51215,7 @@
   "To see what failed, run npm run doctor -- --logs in the server's oneuptime folder.": "Pour voir ce qui a échoué, lancez npm run doctor -- --logs dans le dossier oneuptime du serveur.",
   "Try again in a moment.": "Réessayez dans un instant.",
   "Try again. If it keeps failing, contact OneUptime support and give them this reference:": "Réessayez. Si l'échec persiste, contactez le support OneUptime et donnez-lui cette référence :",
-  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Réessayez. Si l'échec persiste, transmettez cette référence à la personne qui administre votre serveur OneUptime :"
+  "Try again. If it keeps failing, give this reference to whoever runs your OneUptime server:": "Réessayez. Si l'échec persiste, transmettez cette référence à la personne qui administre votre serveur OneUptime :",
+  "Not checked until its monitor is unarchived": "Non vérifié tant que son moniteur n'est pas désarchivé",
+  "Not checked until monitoring is back on": "Non vérifié tant que la surveillance n'est pas réactivée"
 }
