@@ -51110,7 +51110,7 @@
   "A hidden product is not switched off: it moves under More products at the foot of the menu, Search still finds it, its pages keep working and its data keeps arriving.": "Скрытый продукт не отключён: он переносится в «Другие продукты» внизу меню, поиск по-прежнему находит его, его страницы работают, а данные продолжают поступать.",
   "A site cannot be its own parent.": "Площадка не может быть родительской для самой себя.",
   "A site named \"{{name}}\" already exists in this project.": "Площадка с именем \"{{name}}\" уже есть в этом проекте.",
-  "Add Notification Rule": "Добавить правило уведомлений",
+  "Add Notification Rule": "Добавить: Правило уведомлений",
   "Always shown": "Показывается всегда",
   "Ask your server's admin to set it up in the Admin Dashboard.": "Попросите администратора вашего сервера настроить это в панели администратора.",
   "Choose products": "Выбрать продукты",

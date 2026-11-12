@@ -51110,7 +51110,7 @@
   "A hidden product is not switched off: it moves under More products at the foot of the menu, Search still finds it, its pages keep working and its data keeps arriving.": "Et skjult produkt er ikke slået fra: det flytter ned under »Flere produkter« nederst i menuen, Søg finder det stadig, dets sider virker fortsat, og dets data bliver ved med at komme.",
   "A site cannot be its own parent.": "En lokation kan ikke være sin egen overordnede lokation.",
   "A site named \"{{name}}\" already exists in this project.": "Der findes allerede en lokation med navnet \"{{name}}\" i dette projekt.",
-  "Add Notification Rule": "Tilføj notifikationsregel",
+  "Add Notification Rule": "Tilføj Meddelelse Regel",
   "Always shown": "Vises altid",
   "Ask your server's admin to set it up in the Admin Dashboard.": "Bed din servers administrator om at sætte det op i administrations-dashboardet.",
   "Choose products": "Vælg produkter",

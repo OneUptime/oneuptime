@@ -51110,7 +51110,7 @@
   "A hidden product is not switched off: it moves under More products at the foot of the menu, Search still finds it, its pages keep working and its data keeps arriving.": "المنتج المخفي ليس متوقفًا: ينتقل إلى «منتجات أخرى» في أسفل القائمة، ويظل البحث يجده، وتعمل صفحاته، وتستمر بياناته في الوصول.",
   "A site cannot be its own parent.": "لا يمكن أن يكون الموقع أصلًا لنفسه.",
   "A site named \"{{name}}\" already exists in this project.": "يوجد بالفعل موقع باسم «{{name}}» في هذا المشروع.",
-  "Add Notification Rule": "إضافة قاعدة إشعار",
+  "Add Notification Rule": "إضافة قاعدة الإشعارات",
   "Always shown": "معروض دائمًا",
   "Ask your server's admin to set it up in the Admin Dashboard.": "اطلب من مسؤول الخادم إعداده في لوحة الإدارة.",
   "Choose products": "اختيار المنتجات",
