@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#cards-and-the-look-of-a-page
 import { describe, expect, test } from "@jest/globals";
 import fs from "fs";
 import path from "path";

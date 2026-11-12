@@ -50793,5 +50793,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} {{values}} است که کوچک‌تر از {{threshold}} است.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} برابر نیست.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} {{values}} است که با {{threshold}} شروع می‌شود.",
-  "{{subject}} is {{values}}.": "{{subject}} {{values}} است."
+  "{{subject}} is {{values}}.": "{{subject}} {{values}} است.",
+  "Search query": "عبارت جستجو"
 }

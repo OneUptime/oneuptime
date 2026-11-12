@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#cards-and-the-look-of-a-page
 import { ButtonStyleType } from "../../../UI/Components/Button/Button";
 import Card, {
   CARD_HEADER_ACTIONS_CLASS_NAME,

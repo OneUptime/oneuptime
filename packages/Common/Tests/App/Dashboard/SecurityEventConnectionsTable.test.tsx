@@ -62,9 +62,24 @@ import SecurityEventConnectorProvider from "../../../Types/SecurityEvent/Connect
 import { CardButtonSchema } from "../../../UI/Components/Card/Card";
 import ModelColumn from "../../../UI/Components/ModelTable/Column";
 import { ComponentProps as ModelTableProps } from "../../../UI/Components/ModelTable/ModelTable";
+import Pill, {
+  WHOLE_WORDS_PILL_TEXT_CLASS_NAME,
+} from "../../../UI/Components/Pill/Pill";
 import TableRow from "../../../UI/Components/Table/TableRow";
+import {
+  DrawnTableColumns,
+  getColumnsFoldedInto,
+  getDrawnTableColumns,
+} from "../../../UI/Components/Table/FoldedColumns";
+import {
+  TABLE_SHRINKABLE_ATTRIBUTE,
+  TABLE_VALUE_ATTRIBUTE,
+} from "../../../UI/Components/Table/TableLayout";
+import { getValueGiveKind } from "../../../UI/Components/Table/useTableScrollState";
+import { Green } from "../../../Types/BrandColors";
 import TableColumn from "../../../UI/Components/Table/Types/Column";
 import FieldType from "../../../UI/Components/Types/FieldType";
+import { RELATIVE_TIME_CELL_CLASS_NAME } from "../../../../App/FeatureSet/Dashboard/src/Components/SecurityEvents/RelativeTimeCell";
 import API from "../../../UI/Utils/API/API";
 import ModelAPI from "../../../UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate from "../../../UI/Utils/PermissionGate";
@@ -621,7 +636,175 @@ describe("SecurityEventConnectionsTable", () => {
 
     for (const cell of cells) {
       expect(cell.getAttribute("title")).toBeTruthy();
+      // One time is one unit: never "2" on one line and "minutes ago" on the next.
+      expect(classesOf(cell)).toContain(RELATIVE_TIME_CELL_CLASS_NAME);
     }
+    expect(RELATIVE_TIME_CELL_CLASS_NAME).toBe("whitespace-nowrap");
+  });
+
+  /*
+   * In Russian at 1280px, beside the side menu, the row's
+   * "Проверить подключение" left the table 83px wider than its card, and
+   * its last column ran under the sticky buttons ("3 мин", "Никог"). Where
+   * the rows do not fit (TableFit), Last Polled gives way: it is drawn
+   * under Last Event Imported, with its name before it ("Last Polled
+   * 2 minutes ago"), and comes back as a column where there is room. Health
+   * already says how the polls go; when the last event came in is what a
+   * security tool is read for.
+   */
+  test("where its rows do not fit, Last Polled is drawn under Last Event Imported with its name, and comes back where there is room", (): void => {
+    renderTable([]);
+
+    const columns: Array<TableColumn<BaseModel>> = tableProps()
+      .columns.filter((column: ModelColumn<BaseModel>): boolean => {
+        return !column.isHiddenByDefault;
+      })
+      .map((column: ModelColumn<BaseModel>): TableColumn<BaseModel> => {
+        return {
+          title: column.title,
+          type: column.type,
+          key: Object.keys(column.field)[0] as keyof BaseModel,
+          hideBelowLargeScreen: column.hideBelowLargeScreen,
+          foldInto: column.foldInto,
+          showTitleWhenFolded: column.showTitleWhenFolded,
+        };
+      });
+    const titles: (list: Array<TableColumn<BaseModel>>) => Array<string> = (
+      list: Array<TableColumn<BaseModel>>,
+    ): Array<string> => {
+      return list.map((column: TableColumn<BaseModel>): string => {
+        return column.title;
+      });
+    };
+
+    // Only Last Polled gives way, named before its time.
+    expect(
+      titles(
+        columns.filter((column: TableColumn<BaseModel>): boolean => {
+          return Boolean(column.hideBelowLargeScreen);
+        }),
+      ),
+    ).toEqual(["Last Polled"]);
+    const lastPolled: TableColumn<BaseModel> = columns.find(
+      (column: TableColumn<BaseModel>): boolean => {
+        return column.title === "Last Polled";
+      },
+    ) as TableColumn<BaseModel>;
+    expect(lastPolled.foldInto).toBe("lastEventIngestedAt");
+    expect(lastPolled.showTitleWhenFolded).toBe(true);
+
+    // Where the rows fit, every column is drawn as it is.
+    expect(titles(getDrawnTableColumns(columns, false).columns)).toEqual([
+      "Name",
+      "Health",
+      "Last Polled",
+      "Last Event Imported",
+    ]);
+
+    // Where they do not, Last Polled is under Last Event Imported.
+    const folded: DrawnTableColumns<BaseModel> = getDrawnTableColumns(
+      columns,
+      true,
+    );
+    expect(folded.areColumnsFolded).toBe(true);
+    expect(titles(folded.columns)).toEqual([
+      "Name",
+      "Health",
+      "Last Event Imported",
+    ]);
+    expect(
+      folded.columns.map((column: TableColumn<BaseModel>): Array<string> => {
+        return titles(
+          getColumnsFoldedInto({
+            column,
+            drawnColumns: folded.columns,
+            foldedColumns: folded.foldedColumns,
+          }),
+        );
+      }),
+    ).toEqual([[], [], ["Last Polled"]]);
+
+    // A phone's card has the room: Last Polled is a field of it again.
+    expect(titles(getDrawnTableColumns(columns, true, true).columns)).toEqual([
+      "Name",
+      "Health",
+      "Last Polled",
+      "Last Event Imported",
+    ]);
+  });
+
+  /*
+   * The one word each row is read for is never cut short (#6891). In
+   * Russian at 1280 the table's give-way cut every Health pill to 8rem -
+   * "Последний о...", "Расписание п..." - because a pill says its words
+   * end in "..." where its box ends. Health's pill wraps instead, between
+   * its words, so the table finds nothing in it to cut, and a column held
+   * at 8rem never breaks a word ("приостановле / но").
+   */
+  test("Health is never cut short: its pill wraps between its words instead", (): void => {
+    renderTable([
+      connection({ lastEventIngestedAt: new Date(NOW - 3 * 60_000) }),
+    ]);
+
+    const words: HTMLElement = within(row("Acme Okta")).getByText(
+      "Last poll succeeded",
+    );
+    const pill: HTMLElement = words.closest(
+      "[data-testid=pill]",
+    ) as HTMLElement;
+
+    expect(words).toHaveAttribute("data-testid", "pill-text");
+    expect(pill).not.toHaveAttribute(TABLE_SHRINKABLE_ATTRIBUTE);
+    expect(words.className).toBe(WHOLE_WORDS_PILL_TEXT_CLASS_NAME);
+    expect(classesOf(words)).toEqual(
+      expect.arrayContaining([
+        "whitespace-normal",
+        "[overflow-wrap:break-word]",
+      ]),
+    );
+    expect(classesOf(words)).not.toContain("truncate");
+    expect(classesOf(words)).not.toContain("[overflow-wrap:anywhere]");
+
+    /*
+     * However wide it is, the table's give-way has nothing of it to cut.
+     * The pill drawn as its classes draw it (jsdom has no stylesheet): a
+     * box of its own, inline-flex.
+     */
+    const asDrawn: (value: HTMLElement) => HTMLElement = (
+      value: HTMLElement,
+    ): HTMLElement => {
+      const drawn: HTMLElement = value.querySelector(
+        "[data-testid=pill]",
+      ) as HTMLElement;
+
+      expect(classesOf(drawn)).toContain("inline-flex");
+      drawn.style.display = "inline-flex";
+      Object.defineProperty(value, "scrollWidth", {
+        configurable: true,
+        value: 240,
+      });
+
+      return value;
+    };
+
+    const value: HTMLElement = pill.closest(
+      `[${TABLE_VALUE_ATTRIBUTE}]`,
+    ) as HTMLElement;
+
+    expect(value).toContainElement(pill);
+    expect(getValueGiveKind(asDrawn(value))).toBeNull();
+
+    // A pill that may be cut short, in the same place, would be cut.
+    cleanup();
+    render(
+      <div {...{ [TABLE_VALUE_ATTRIBUTE]: "" }} data-testid="cut-value">
+        <Pill color={Green} text="Last poll succeeded" />
+      </div>,
+    );
+
+    expect(getValueGiveKind(asDrawn(screen.getByTestId("cut-value")))).toBe(
+      "box",
+    );
   });
 
   /*

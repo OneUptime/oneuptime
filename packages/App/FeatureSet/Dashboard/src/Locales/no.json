@@ -50793,5 +50793,6 @@
   "{{subject}} is {{values}}, which is less than {{threshold}}.": "{{subject}} er {{values}}, som er mindre enn {{threshold}}.",
   "{{subject}} is {{values}}, which is not equal to {{threshold}}.": "{{subject}} er {{values}}, som ikke er lik {{threshold}}.",
   "{{subject}} is {{values}}, which starts with {{threshold}}.": "{{subject}} er {{values}}, som starter med {{threshold}}.",
-  "{{subject}} is {{values}}.": "{{subject}} er {{values}}."
+  "{{subject}} is {{values}}.": "{{subject}} er {{values}}.",
+  "Search query": "Søkespørring"
 }

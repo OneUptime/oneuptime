@@ -62,6 +62,8 @@ Query parameters, parsed once per page load:
 | `?role=`       | `owner` (default) or `viewer`: Security Viewer only, so it can read connections but not create them. Both Add connection buttons are disabled, the reason is written out under the hero button and the tiles become a static "Supported products" list.                                                                                                                                                                                                                                                |
 | `?theme=`      | `dark` adds `html.dark` (done in `server.js`, before the bundle runs)                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `?latest=`     | Once its time window comes back empty, the Security Events page looks up the project's newest event (one row, no time window) to tell "nothing ever arrived" from "nothing in this window". `none` (default): there is no event at all, so the page shows its empty state. `pending`: the lookup does not answer until the spec calls `window.__securityEventsEmptyStatesFixture.resolveLatestEvent()`. `old`: the newest event arrived at `2026-09-01T09:30:00Z`, outside the default one-day window. |
+| `?tools=`      | `rows`: three security tools in Your security tools - polling well, its last poll failed, turned off. `states`: those three and seven more, a row in each state Health can say (partial import, no events imported yet, overdue, catching up, waiting for its first poll, no records returned, details unavailable). Without it the table is empty.                                                                                                                                                    |
+| `?lang=`       | `de`, `ru`, `hi`, `ar` or `fa`: the Dashboard's German, Russian, Hindi, Arabic or Persian locale, loaded only when named and switched to, dates and times with it; Arabic and Persian lay the page out right to left, as production does. Without it the page is in English.                                                                                                                                                                                                                           |
 | `?siem=`       | `rows`: three SIEMs in the Send to your SIEM table - sending, failing (with its last error) and not sent yet. Without it the table is empty.                                                                                                                                                                                                                                                                                                                                                           |
 | `?logs=`       | `on`: the project's Your logs is on, checked two minutes before the pinned clock, nothing found yet, so the Events page's Your logs card says On and Open Your logs. `check-failed`: on, and that last check failed, which the card says under its status line. `fail`: reading Your logs fails (a 500), on the Events page and on Connections. Without it, Your logs is off (no record yet).                                                                                                          |
 | `?cloud=`      | `connected`: one cloud account is connected under Cloud, so Cloud audit logs has something to read. Without it there is none, and its row says so, with a link to Connect a Cloud Account.                                                                                                                                                                                                                                                                                                             |
@@ -81,7 +83,7 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
 
 ## What the spec covers
 
-`SecurityEventsEmptyStates.spec.ts` (44 tests):
+`SecurityEventsEmptyStates.spec.ts` (82 tests):
 
 - **Connections, top to bottom**: Your logs, Your OneUptime data, Your security tools, Send to
   your SIEM; the Your logs switch turns the logs on in one press and says when the first
@@ -98,7 +100,10 @@ is listed in `unhandled`; the spec's `afterEach` fails when that list is not emp
   More fields (none for Google SecOps), its test event waiting for the settings; with SIEMs
   (`?siem=rows`) each row says what it is
   sent under its name and how sending goes, and the table fits its card at 1280 and 1440,
-  its status never under the sticky actions; dark theme and a phone.
+  its status never under the sticky actions; dark theme and a phone. Your security tools
+  (`?tools=states`) says every Health state whole in Russian, German and Hindi at 1280 and
+  1440 (`?lang=`): never cut short, wrapping onto a next line between its words, never
+  inside one (#6891).
 
 - **Connections empty state**: rendered by the table as its no-items message, inside the
   table card above its Refresh? link and the pagination; header (badge, heading,
@@ -178,29 +183,30 @@ checkout might be running, stop it first or run with `CI=1`.
 Screenshots (2x) land in `output/playwright/security-events-empty-states-ui/`, named
 `*-synthetic.png` because everything in them is fabricated:
 
-| Screenshot                        | What it shows                                                                     |
-| --------------------------------- | --------------------------------------------------------------------------------- |
-| `connections-cards-desktop`       | Connections at 1440, full page: Your logs, Your security tools, Send to your SIEM |
-| `connections-cards-dark`          | The same in the dark theme                                                        |
-| `connections-cards-phone`         | The same at 390                                                                   |
-| `connections-siem-picker-desktop` | Send to your SIEM, the form's first step: the four SIEMs                          |
-| `connections-siem-form-desktop`   | Send to your SIEM, Splunk's Connection step                                       |
-| `connections-siem-rows-desktop`   | Send to your SIEM with three SIEMs, at 1440                                       |
-| `connections-desktop`             | Connections at 1440                                                               |
-| `connections-tablet`              | Connections at 768                                                                |
-| `connections-mobile`              | Connections at 390, full page                                                     |
-| `connections-dark`                | Connections in the dark theme                                                     |
-| `connections-viewer`              | Connections for a Security Viewer                                                 |
-| `connections-preselected-modal`   | Add connection after clicking the CrowdStrike Falcon tile                         |
-| `connections-tile-hover`          | The tiles with the pointer on CrowdStrike Falcon                                  |
-| `connections-tile-focus`          | The tiles with keyboard focus on CrowdStrike Falcon                               |
-| `events-desktop`                  | Security Events at 1440                                                           |
-| `events-dark`                     | Security Events in the dark theme                                                 |
-| `events-mobile`                   | Security Events at 390, full page                                                 |
-| `events-connected-tab-1280`       | An event's drawer on its Connected tab, at 1280                                   |
-| `events-connected-tab-1280-dark`  | The same in the dark theme                                                        |
-| `events-connected-tab-390`        | The same at 390                                                                   |
-| `events-connected-tab-390-dark`   | The same at 390, dark                                                             |
+| Screenshot                                | What it shows                                                                           |
+| ----------------------------------------- | --------------------------------------------------------------------------------------- |
+| `connections-cards-desktop`               | Connections at 1440, full page: Your logs, Your security tools, Send to your SIEM       |
+| `connections-cards-dark`                  | The same in the dark theme                                                              |
+| `connections-cards-phone`                 | The same at 390                                                                         |
+| `connections-siem-picker-desktop`         | Send to your SIEM, the form's first step: the four SIEMs                                |
+| `connections-siem-form-desktop`           | Send to your SIEM, Splunk's Connection step                                             |
+| `connections-siem-rows-desktop`           | Send to your SIEM with three SIEMs, at 1440                                             |
+| `connections-tools-health-<lang>-<width>` | Your security tools in every Health state, in Russian, German or Hindi, at 1280 or 1440 |
+| `connections-desktop`                     | Connections at 1440                                                                     |
+| `connections-tablet`                      | Connections at 768                                                                      |
+| `connections-mobile`                      | Connections at 390, full page                                                           |
+| `connections-dark`                        | Connections in the dark theme                                                           |
+| `connections-viewer`                      | Connections for a Security Viewer                                                       |
+| `connections-preselected-modal`           | Add connection after clicking the CrowdStrike Falcon tile                               |
+| `connections-tile-hover`                  | The tiles with the pointer on CrowdStrike Falcon                                        |
+| `connections-tile-focus`                  | The tiles with keyboard focus on CrowdStrike Falcon                                     |
+| `events-desktop`                          | Security Events at 1440                                                                 |
+| `events-dark`                             | Security Events in the dark theme                                                       |
+| `events-mobile`                           | Security Events at 390, full page                                                       |
+| `events-connected-tab-1280`               | An event's drawer on its Connected tab, at 1280                                         |
+| `events-connected-tab-1280-dark`          | The same in the dark theme                                                              |
+| `events-connected-tab-390`                | The same at 390                                                                         |
+| `events-connected-tab-390-dark`           | The same at 390, dark                                                                   |
 
 ## Poke at it by hand
 

@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#ask-only-what-you-cannot-work-out
 import { describe, expect, test } from "@jest/globals";
 import path from "path";
 import { listScanRoots, listSourceFiles } from "../../ForeignHiddenRuleGuard";

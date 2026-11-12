@@ -1,3 +1,4 @@
+// UX rule: Docs/ux/README.md#help-text
 import { describe, expect, test } from "@jest/globals";
 import { FoundDescription, scanProductDescriptions } from "./DescriptionScan";
 
