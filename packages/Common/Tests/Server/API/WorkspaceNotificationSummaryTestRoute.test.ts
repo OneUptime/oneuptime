@@ -207,7 +207,7 @@ describe("Send Test Now's answer", () => {
 
   test("a refusal that is not about channels - a summary with none - goes to the error handler, as before: its message alone", async () => {
     const noChannels: BadDataException = new BadDataException(
-      "No channel names configured for summary",
+      "The summary has no channel to post in.",
     );
     testSummary.mockRejectedValue(noChannels);
 

@@ -55,7 +55,7 @@ Ga naar **Incidenten** > **Werkruimte** > **Slack**. De sectie **Werkruimte** to
 
 ### De regel testen
 
-Klik op **Testregel** in de rij van de regel. Er komt een testbericht aan in de kanalen die de regel noemt. Zie [Een regel testen](#een-regel-testen).
+Klik op **Regel testen** in de rij van de regel. Er komt een testbericht aan in de kanalen die de regel noemt. Zie [Een regel testen](#een-regel-testen).
 :::
 
 ## Slack Enterprise-organisaties
@@ -67,7 +67,7 @@ Met Slack Enterprise Grid kan één project werken in meerdere workspaces van je
 3. De kaart **Slack-werkruimtes** toont die workspaces. Klik op **Vernieuwen** nadat OneUptime aan een andere workspace is toegevoegd.
 
 - **Welke workspace een regel gebruikt.** Meldingsregels kiezen de **Slack-werkruimte** waarin hun kanalen staan. Blijft het veld leeg, dan gebruikt een regel de standaardworkspace en zoekt ze de kanalen die ze noemt daar eerst. **Als standaard instellen** op de kaart wijzigt de standaard. Wordt OneUptime uit de standaardworkspace verwijderd, dan wordt de alfabetisch eerste van de overgebleven workspaces de standaard. Die blijft de standaard wanneer OneUptime opnieuw aan de oude workspace wordt toegevoegd.
-- **Een workspace waaruit OneUptime is verwijderd.** Een regel die hem kiest, post niet in plaats daarvan in een andere workspace: de kaart van de regel, **Testregel** en de meldingslogboeken zeggen dat OneUptime er niet meer aan is toegevoegd. De kaart **Slack-kanaal** zegt dat ook als het kanaal in die workspace staat. Voeg OneUptime opnieuw toe aan die workspace in de organisatie-instellingen van Slack, of kies een andere workspace in de regel.
+- **Een workspace waaruit OneUptime is verwijderd.** Een regel die hem kiest, post niet in plaats daarvan in een andere workspace: de kaart van de regel, **Regel testen** en de meldingslogboeken zeggen dat OneUptime er niet meer aan is toegevoegd. De kaart **Slack-kanaal** zegt dat ook als het kanaal in die workspace staat. Voeg OneUptime opnieuw toe aan die workspace in de organisatie-instellingen van Slack, of kies een andere workspace in de regel.
 - **Waar OneUptime werkt.** Knoppen, opdrachten, het tabblad Home en OneUptime AI werken in elk van die workspaces, en leden koppelen hun eigen Slack-account vanuit elk ervan.
 - **Een project dat met één workspace is gekoppeld.** Hoort die workspace bij de organisatie, dan behoudt het project zijn regels, kanalen en gekoppelde accounts wanneer het met **Installeren voor de organisatie** op dezelfde pagina voor de hele organisatie wordt geïnstalleerd. Die workspace wordt de standaard.
 - **Op een zelfgehoste server** staat een Slack-app die is gemaakt met het manifest van OneUptime dit al toe: het manifest zet `org_deploy_enabled`.
@@ -138,9 +138,9 @@ De app van OneUptime voegt ze toe, zoals hij de mensen van het kanaal van een re
 
 ## Een regel testen
 
-**Testregel** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zodat je het ziet aankomen. Als de regel voor elke gebeurtenis een kanaal aanmaakt, maakt de test er ook een aan en nodigt de mensen van de regel uit.
+**Regel testen** in de rij van een regel plaatst een testbericht voor die regel in de kanalen die hij noemt, zodat je het ziet aankomen. Als de regel voor elke gebeurtenis een kanaal aanmaakt, maakt de test er ook een aan en nodigt de mensen van de regel uit.
 
-Net als **Test verzenden** naast een kanaal in **Projectinstellingen** > **Werkruimte** > **Slack** vereist het rechten om meldingsregels aan te maken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder**, **Instellingenlid**, of **Create Workspace Notification Rule** en **Read Workspace Notification Rule** in een aangepaste rol. Voor iemand die de regels alleen mag bekijken, zoals een **Kijker**, is **Testregel** vergrendeld, en de tooltip zegt wat er nodig is; de API weigert diens test met "You do not have permission to send test notifications in this project." Op OneUptime Cloud vereist het testen van een regel het **Growth**-abonnement, net als het toevoegen ervan.
+Net als **Test verzenden** naast een kanaal in **Projectinstellingen** > **Werkruimte** > **Slack** vereist het rechten om meldingsregels aan te maken: **Projecteigenaar**, **Projectbeheerder**, **Projectlid**, **Instellingenbeheerder**, **Instellingenlid**, of **Create Workspace Notification Rule** en **Read Workspace Notification Rule** in een aangepaste rol. Voor iemand die de regels alleen mag bekijken, zoals een **Kijker**, is **Regel testen** vergrendeld, en de tooltip zegt wat er nodig is; de API weigert diens test met "You do not have permission to send test notifications in this project." Op OneUptime Cloud vereist het testen van een regel het **Growth**-abonnement, net als het toevoegen ervan.
 
 Op OneUptime Cloud vereist **Test verzenden** naast een kanaal ook het **Growth**-abonnement, omdat in een kanaal plaatsen is wat regels en samenvattingen doen. **Test nu verzenden** bij een samenvatting vereist rechten om samenvattingen aan te maken (**Create Workspace Notification Summary** en **Read Workspace Notification Summary** in een aangepaste rol) en, op OneUptime Cloud, het **Growth**-abonnement; voor ieder ander is het vergrendeld, en de tooltip zegt wat er nodig is. Een MCP-client die met alleen-lezen toegang is gekoppeld, kan geen enkele test versturen.
 
@@ -333,7 +333,7 @@ Wat OneUptime ervan bewaart — de naam van de werkruimte, de kanalen, de Slack-
 ## Problemen oplossen
 
 :::details Een regel plaatst niets
-Controleer de voorwaarden van de regel met **Testregel**: komt de test aan, dan klopten de voorwaarden van de regel niet voor de gebeurtenis. Komt hij niet aan, dan zegt de Slack-pagina waarom. Nodig voor een privékanaal eerst de app van OneUptime uit in Slack. Elk bericht dat OneUptime plaatst, en elk bericht dat Slack weigerde, staat in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**.
+Controleer de voorwaarden van de regel met **Regel testen**: komt de test aan, dan klopten de voorwaarden van de regel niet voor de gebeurtenis. Komt hij niet aan, dan zegt de Slack-pagina waarom. Nodig voor een privékanaal eerst de app van OneUptime uit in Slack. Elk bericht dat OneUptime plaatst, en elk bericht dat Slack weigerde, staat in **Projectinstellingen** > **Meldingen** > **Meldingslogboeken**, op het tabblad **Werkruimte**.
 :::
 
 :::details Iemand ontbreekt in het kanaal van een regel

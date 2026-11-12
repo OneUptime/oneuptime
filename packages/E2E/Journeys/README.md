@@ -157,4 +157,8 @@ CI=1 npm run test-journeys-ui
 The table of every journey is written to
 `output/playwright/journeys-ui/journey-report.md`, ready to paste into a pull request,
 and printed at the end of the run. `Journeys/JourneyCounter.spec.ts`, in the same
-suite, holds the counter and the driver to synthetic pages.
+suite, holds the counter and the driver to synthetic pages, and
+`Journeys/GuidedSetupRun.spec.ts` holds the website-down guided setup's run to what the
+fixture's server kept, uncounted: a reload goes back to the step it was on, a run
+the browser lost makes no second monitor for the same address (#7059), and on a phone
+the step's note and first check wrap a long address inside the step.
