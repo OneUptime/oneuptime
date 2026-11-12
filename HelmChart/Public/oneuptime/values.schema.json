@@ -2773,7 +2773,8 @@
                     "type": [
                         "string",
                         "null"
-                    ]
+                    ],
+                    "description": "Headers OneUptime's own telemetry is exported with: name=value, several separated by ';'. A value may hold '='."
                 },
                 "kubernetesClusterName": {
                     "type": [

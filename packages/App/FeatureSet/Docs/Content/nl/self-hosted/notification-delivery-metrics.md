@@ -48,7 +48,7 @@ DISABLE_TELEMETRY_FOR_APP=false
 Stel ze in `config.env` in en voer daarna `npm start` uit. `DISABLE_TELEMETRY_FOR_APP` is standaard `true`, en dan wordt er niets verstuurd.
 :::
 
-OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Scheid meerdere headers met `;`. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
+OneUptime heeft zowel het endpoint als de headers nodig: zonder header verstuurt het niets. Schrijf elke header als `name=value` en scheid meerdere met `;`. Een waarde mag `=` bevatten. OneUptime voegt zelf `/v1/metrics` aan het endpoint toe, en dezelfde instellingen versturen ook de eigen traces en logs. Elke metric verschijnt zodra OneUptime hem voor het eerst vastlegt: `notification.send.count` bij het eerste verstuurde bericht.
 
 ### Delta's naar een OneUptime-project sturen
 
@@ -246,7 +246,7 @@ De formule `$b / $a * 100` is het aandeel dat niet werd bezorgd. Providers en ui
 ## Problemen oplossen
 
 :::details Er komen geen metrics van meldingen binnen
-Controleer of `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` en `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` allebei zijn ingesteld, en in Docker Compose of `DISABLE_TELEMETRY_FOR_APP` op `false` staat, en start OneUptime daarna opnieuw. Een metric verschijnt pas als er iets is vastgelegd, dus verstuur eerst een melding.
+Controleer of `OPENTELEMETRY_EXPORTER_OTLP_ENDPOINT` en `OPENTELEMETRY_EXPORTER_OTLP_HEADERS` allebei zijn ingesteld, en in Docker Compose of `DISABLE_TELEMETRY_FOR_APP` op `false` staat, en start OneUptime daarna opnieuw. Bij het starten logt OneUptime een waarschuwing als het een header niet kan lezen, of als het niets verstuurt. Een metric verschijnt pas als er iets is vastgelegd, dus verstuur eerst een melding.
 :::
 
 :::details Een aantal groeit alleen maar, of een percentiel beweegt nauwelijks
