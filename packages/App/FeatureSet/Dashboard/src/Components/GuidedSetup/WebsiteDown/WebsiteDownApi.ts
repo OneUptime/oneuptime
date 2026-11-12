@@ -7,6 +7,14 @@ import {
   buildWebsiteMonitor,
   readFirstCheckAnswers,
 } from "./WebsiteDownSetup";
+import {
+  FirstOnCallPolicyCreate,
+  buildFirstOnCallPolicy,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  WEBSITE_MONITOR_SEEDS_MISSING,
+  pickWebsiteMonitorSeeds,
+} from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
 import { mayAddEveryNewEventRules } from "../../OnCallPolicy/UseEveryNewEventRulesOffer";
 import { LIMIT_PER_PROJECT } from "Common/Types/Database/LimitMax";
 import AlertOnCallRule from "Common/Models/DatabaseModels/AlertOnCallRule";
@@ -23,9 +31,7 @@ import OnCallDutyPolicyEscalationRuleTeam from "Common/Models/DatabaseModels/OnC
 import OnCallDutyPolicyEscalationRuleUser from "Common/Models/DatabaseModels/OnCallDutyPolicyEscalationRuleUser";
 import HTTPResponse from "Common/Types/API/HTTPResponse";
 import SortOrder from "Common/Types/BaseDatabase/SortOrder";
-import { JSONObject } from "Common/Types/JSON";
 import ObjectID from "Common/Types/ObjectID";
-import { PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY } from "Common/Types/OnCallDutyPolicy/EveryNewEventRules";
 import ModelAPI, { ListResult } from "Common/UI/Utils/ModelAPI/ModelAPI";
 import PermissionGate, { ModelAction } from "Common/UI/Utils/PermissionGate";
 import { Translator } from "Common/UI/Utils/TranslateTemplate";
@@ -99,43 +105,18 @@ export default class WebsiteDownApi {
       }),
     ]);
 
-    const operational: MonitorStatus | undefined = statuses.data.find(
-      (status: MonitorStatus): boolean => {
-        return Boolean(status.isOperationalState);
-      },
-    );
-    const offline: MonitorStatus | undefined = statuses.data.find(
-      (status: MonitorStatus): boolean => {
-        return Boolean(status.isOfflineState);
-      },
-    );
-    const incidentSeverity: IncidentSeverity | undefined =
-      incidentSeverities.data.find((severity: IncidentSeverity): boolean => {
-        return !severity.isArchived;
-      });
-    const alertSeverity: AlertSeverity | undefined = alertSeverities.data.find(
-      (severity: AlertSeverity): boolean => {
-        return !severity.isArchived;
-      },
-    );
+    // Picked as Ask AI's set_up_website_monitoring picks them (Common).
+    const seeds: WebsiteMonitorSeeds | null = pickWebsiteMonitorSeeds({
+      statuses: statuses.data,
+      incidentSeverities: incidentSeverities.data,
+      alertSeverities: alertSeverities.data,
+    });
 
-    if (
-      !operational?.id ||
-      !offline?.id ||
-      !incidentSeverity?.id ||
-      !alertSeverity?.id
-    ) {
-      throw new Error(
-        "This project is missing its monitor statuses or severities, so a monitor can't be made here. Create one from Create Monitor instead.",
-      );
+    if (!seeds) {
+      throw new Error(WEBSITE_MONITOR_SEEDS_MISSING);
     }
 
-    return {
-      operationalStatusId: operational.id,
-      offlineStatusId: offline.id,
-      incidentSeverityId: incidentSeverity.id,
-      alertSeverityId: alertSeverity.id,
-    };
+    return seeds;
   }
 
   // Makes the monitor. Returns its id.
@@ -276,20 +257,17 @@ export default class WebsiteDownApi {
     userIds: Array<string>;
     teamIds: Array<string>;
   }): Promise<string> {
-    const policy: OnCallDutyPolicy = new OnCallDutyPolicy();
-    policy.name = WEBSITE_DOWN_POLICY_NAME;
-
-    const miscDataProps: JSONObject = {
-      users: data.userIds,
-      teams: data.teamIds,
-      [PAGE_FOR_EVERY_NEW_INCIDENT_AND_ALERT_KEY]: true,
-    };
+    // Built as Ask AI's set_up_paging builds it (Common).
+    const create: FirstOnCallPolicyCreate = buildFirstOnCallPolicy({
+      userIds: data.userIds,
+      teamIds: data.teamIds,
+    });
 
     const response: HTTPResponse<OnCallDutyPolicy> =
       (await ModelAPI.create<OnCallDutyPolicy>({
-        model: policy,
+        model: create.policy,
         modelType: OnCallDutyPolicy,
-        miscDataProps: miscDataProps,
+        miscDataProps: create.miscDataProps,
       })) as HTTPResponse<OnCallDutyPolicy>;
 
     const id: string | undefined = response.data?.id?.toString();

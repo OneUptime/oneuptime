@@ -1,13 +1,24 @@
 import { DEFAULT_MONITORING_INTERVAL } from "../../../Utils/Form/Monitor/MonitoringIntervalDefault";
 import { GuidedSetupStepProgress } from "../GuidedSetupProgress";
-import URL from "Common/Types/API/URL";
 import Monitor from "Common/Models/DatabaseModels/Monitor";
 import { MonitorStepProbeResponse } from "Common/Models/DatabaseModels/MonitorProbe";
 import MonitorCriteriaInstance from "Common/Types/Monitor/MonitorCriteriaInstance";
 import MonitorStep from "Common/Types/Monitor/MonitorStep";
 import MonitorSteps from "Common/Types/Monitor/MonitorSteps";
-import MonitorType from "Common/Types/Monitor/MonitorType";
 import ObjectID from "Common/Types/ObjectID";
+import {
+  GUIDED_SETUP_POLICY_NAME,
+  WhoIsToldFacts,
+  WhoIsToldMode,
+  getWhoIsToldMode,
+} from "Common/Utils/GuidedSetup/OnCallPolicyRecords";
+import {
+  MONITOR_NAME_MAX_LENGTH,
+  WebsiteAddress,
+  WebsiteMonitorSeeds,
+  buildWebsiteMonitor as buildGuidedWebsiteMonitor,
+  parseWebsiteAddress,
+} from "Common/Utils/GuidedSetup/WebsiteMonitorRecords";
 import {
   OnCallTestPageResult,
   OnCallTestPageStatus,
@@ -56,8 +67,24 @@ export const WEBSITE_DOWN_STEPS: ReadonlyArray<WebsiteDownStep> = [
   WebsiteDownStep.Test,
 ];
 
-// The name of the policy the setup makes when the project has none.
-export const WEBSITE_DOWN_POLICY_NAME: string = "Default on-call policy";
+/*
+ * The name of the policy the setup makes when the project has none: the
+ * one Ask AI's set_up_paging makes too (Common/Utils/GuidedSetup).
+ */
+export const WEBSITE_DOWN_POLICY_NAME: string = GUIDED_SETUP_POLICY_NAME;
+
+/*
+ * The address, the monitor and who is told are built in Common, where Ask
+ * AI's setup actions (#6829) build them too, so for the same answers both
+ * make the same records.
+ */
+export {
+  MONITOR_NAME_MAX_LENGTH,
+  WhoIsToldMode,
+  getWhoIsToldMode,
+  parseWebsiteAddress,
+};
+export type { WebsiteAddress, WebsiteMonitorSeeds, WhoIsToldFacts };
 
 export const WEBSITE_DOWN_COPY: {
   pageTitle: string;
@@ -178,94 +205,11 @@ export const WEBSITE_DOWN_COPY: {
 };
 
 /*
- * THE ADDRESS. A person types "example.com" as often as a whole URL:
- * without a scheme it is https. Only http and https are checked by a
- * Website or API monitor.
- */
-export interface WebsiteAddress {
-  url: string;
-  host: string;
-  // What the monitor is called: the host, and the path when there is one.
-  monitorName: string;
-}
-
-const SCHEME: RegExp = /^[a-z][a-z0-9+.-]*:\/\//i;
-const WHITESPACE: RegExp = /\s/;
-export const MONITOR_NAME_MAX_LENGTH: number = 100;
-
-export const parseWebsiteAddress: (input: string) => WebsiteAddress | null = (
-  input: string,
-): WebsiteAddress | null => {
-  const text: string = (input || "").trim();
-
-  if (!text || WHITESPACE.test(text)) {
-    return null;
-  }
-
-  const withScheme: string = SCHEME.test(text) ? text : `https://${text}`;
-
-  let parsed: globalThis.URL;
-
-  try {
-    parsed = new globalThis.URL(withScheme);
-  } catch {
-    return null;
-  }
-
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-    return null;
-  }
-
-  /*
-   * No user or password in it: "mailto:ana@example.com" given https:// in
-   * front reads as one, and a password must not become a monitor's name.
-   */
-  if (parsed.username || parsed.password) {
-    return null;
-  }
-
-  const host: string = parsed.hostname.toLowerCase();
-
-  // A host is a name with a dot in it, localhost, or an IP address.
-  if (
-    !host ||
-    (!host.includes(".") && !host.includes(":") && host !== "localhost")
-  ) {
-    return null;
-  }
-
-  try {
-    URL.fromString(withScheme);
-  } catch {
-    return null;
-  }
-
-  const path: string = parsed.pathname.replace(/\/+$/, "");
-  const name: string = `${host.replace(/^www\./, "")}${parsed.port ? `:${parsed.port}` : ""}${path}`;
-
-  return {
-    url: withScheme,
-    host: host,
-    monitorName:
-      name.length > MONITOR_NAME_MAX_LENGTH
-        ? name.slice(0, MONITOR_NAME_MAX_LENGTH)
-        : name,
-  };
-};
-
-// What a new monitor's default criteria are made with: the project's own.
-export interface WebsiteMonitorSeeds {
-  operationalStatusId: ObjectID;
-  offlineStatusId: ObjectID;
-  incidentSeverityId: ObjectID;
-  alertSeverityId: ObjectID;
-}
-
-/*
  * The monitor Create Monitor would make for this address with every
  * default kept: the type's criteria, in the reader's language, and five
- * minutes. The probes are left to the server, which adds the ones a new
- * monitor starts with when the create names none.
+ * minutes (Common/Utils/GuidedSetup/WebsiteMonitorRecords). The probes are
+ * left to the server, which adds the ones a new monitor starts with when
+ * the create names none.
  */
 export const buildWebsiteMonitor: (data: {
   address: WebsiteAddress;
@@ -278,32 +222,13 @@ export const buildWebsiteMonitor: (data: {
   seeds: WebsiteMonitorSeeds;
   translator?: Translator | undefined;
 }): Monitor => {
-  const monitorType: MonitorType = data.isApi
-    ? MonitorType.API
-    : MonitorType.Website;
-
-  const monitorSteps: MonitorSteps = MonitorSteps.getDefaultMonitorSteps({
-    defaultMonitorStatusId: data.seeds.operationalStatusId,
-    monitorType: monitorType,
-    monitorName: data.address.monitorName,
-    onlineMonitorStatusId: data.seeds.operationalStatusId,
-    offlineMonitorStatusId: data.seeds.offlineStatusId,
-    defaultIncidentSeverityId: data.seeds.incidentSeverityId,
-    defaultAlertSeverityId: data.seeds.alertSeverityId,
+  return buildGuidedWebsiteMonitor({
+    address: data.address,
+    isApi: data.isApi,
+    seeds: data.seeds,
+    monitoringInterval: DEFAULT_MONITORING_INTERVAL,
     translator: data.translator,
   });
-
-  monitorSteps.data?.monitorStepsInstanceArray[0]?.setMonitorDestination(
-    URL.fromString(data.address.url),
-  );
-
-  const monitor: Monitor = new Monitor();
-  monitor.name = data.address.monitorName;
-  monitor.monitorType = monitorType;
-  monitor.monitorSteps = monitorSteps;
-  monitor.monitoringInterval = DEFAULT_MONITORING_INTERVAL;
-
-  return monitor;
 };
 
 // The address a monitor checks, as its first step names it.
@@ -533,56 +458,10 @@ export const describeFirstCheck: (data: {
 };
 
 /*
- * WHO IS TOLD, and how the step decides it.
+ * WHO IS TOLD, and how the step decides it: WhoIsToldMode and
+ * getWhoIsToldMode, re-exported above from Common/Utils/GuidedSetup, where
+ * Ask AI's set_up_paging decides it the same way.
  */
-export enum WhoIsToldMode {
-  // No on-call policy or rule yet: the setup makes one, paging who is picked.
-  CreatePolicy = "create_policy",
-  // The project pages people already: its own policies and rules decide.
-  ExistingPolicy = "existing_policy",
-  // Paging cannot be set up by this person: told as the monitor's owner.
-  OwnerEmailOnly = "owner_email_only",
-}
-
-export interface WhoIsToldFacts {
-  // Counts of the project's on-call policies and rules; null when unknown.
-  policyCount: number | null;
-  incidentRuleCount: number | null;
-  alertRuleCount: number | null;
-  mayCreatePolicy: boolean;
-  mayAddEscalationRules: boolean;
-  mayAddRules: boolean;
-}
-
-export const getWhoIsToldMode: (facts: WhoIsToldFacts) => WhoIsToldMode = (
-  facts: WhoIsToldFacts,
-): WhoIsToldMode => {
-  if (
-    facts.policyCount === null ||
-    facts.incidentRuleCount === null ||
-    facts.alertRuleCount === null
-  ) {
-    return WhoIsToldMode.OwnerEmailOnly;
-  }
-
-  if (
-    facts.policyCount > 0 ||
-    facts.incidentRuleCount > 0 ||
-    facts.alertRuleCount > 0
-  ) {
-    return WhoIsToldMode.ExistingPolicy;
-  }
-
-  if (
-    facts.mayCreatePolicy &&
-    facts.mayAddEscalationRules &&
-    facts.mayAddRules
-  ) {
-    return WhoIsToldMode.CreatePolicy;
-  }
-
-  return WhoIsToldMode.OwnerEmailOnly;
-};
 
 /*
  * THE RUN: what this pass through the setup made, as GuidedSetupRunStore

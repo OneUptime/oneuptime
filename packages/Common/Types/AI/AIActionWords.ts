@@ -149,6 +149,12 @@ export const AI_ACTION_TITLES: {
   createWorkflow: string;
   updateWorkflow: string;
   updateWorkflowUnnamed: string;
+  setUpWebsiteMonitoring: string;
+  setUpWebsiteMonitoringUnnamed: string;
+  createOnCallPolicy: string;
+  publishStatusPage: string;
+  addMonitorsToStatusPage: string;
+  addMonitorsToStatusPageUnnamed: string;
 } = {
   createIncident: translationKey("Create incident: {{title}}"),
   acknowledgeIncident: translationKey("Acknowledge incident {{incident}}"),
@@ -219,6 +225,22 @@ export const AI_ACTION_TITLES: {
   createWorkflow: translationKey("Create workflow: {{name}}"),
   updateWorkflow: translationKey("Update workflow {{workflow}}"),
   updateWorkflowUnnamed: translationKey("Update workflow"),
+  /*
+   * Ask AI's setup actions (#6829): what each part of a plan makes, by
+   * the address, the name or the status page the person knows it by.
+   */
+  setUpWebsiteMonitoring: translationKey("Set up monitoring for {{address}}"),
+  setUpWebsiteMonitoringUnnamed: translationKey(
+    "Set up monitoring for a website",
+  ),
+  createOnCallPolicy: translationKey("Create on-call policy {{policy}}"),
+  publishStatusPage: translationKey("Publish status page {{name}}"),
+  addMonitorsToStatusPage: translationKey(
+    "Add monitors to status page {{statusPage}}",
+  ),
+  addMonitorsToStatusPageUnnamed: translationKey(
+    "Add monitors to a status page",
+  ),
 };
 
 export const AI_ACTION_PLURAL_TITLES: {
@@ -254,6 +276,22 @@ export const AI_ACTION_LINES: {
   workflowUndoesSavedSince: string;
   workflowNotRead: string;
   workflowIsOn: string;
+  monitorOpensIncident: string;
+  monitorGoesOffline: string;
+  monitorOwnerEmailed: string;
+  monitorNoLocations: string;
+  pagesYouForEveryNewEvent: string;
+  pagesYouAndOthersForEveryNewEvent: string;
+  pagesOthersForEveryNewEvent: string;
+  respondersNotFound: string;
+  noVerifiedPhoneForSms: string;
+  noVerifiedPhoneForCalls: string;
+  noMobileApp: string;
+  nothingReachesYou: string;
+  statusPageIsPublic: string;
+  statusPageShows: string;
+  monitorsNotFound: string;
+  alreadyOnStatusPage: string;
 } = {
   // A new incident's or alert's resources: "Linked to host "test01"."
   linkedTo: translationKey("Linked to {{resources}}."),
@@ -298,6 +336,72 @@ export const AI_ACTION_LINES: {
   workflowIsOn: translationKey(
     "This workflow is on, so its next run uses the change.",
   ),
+  /*
+   * set_up_website_monitoring (#6829): what the monitor does when the
+   * address goes down - the words of the website guided setup's summary
+   * (#6804), so the setup and Ask AI say it alike - and who is emailed.
+   */
+  monitorOpensIncident: translationKey(
+    "If it does not answer, or answers with an error, OneUptime opens an incident ({{severity}}).",
+  ),
+  monitorGoesOffline: translationKey(
+    "If it does not answer, or answers with an error, its status changes to Offline.",
+  ),
+  monitorOwnerEmailed: translationKey(
+    "You own this monitor, so you are emailed when its status changes.",
+  ),
+  // The project adds no probe to a new monitor: nothing would check it.
+  monitorNoLocations: translationKey(
+    "No location checks {{host}} yet. Probes are added under Monitors > Settings > Probes.",
+  ),
+  /*
+   * set_up_paging (#6829): who the project's first on-call policy pages,
+   * by name ({{others}} and {{responders}}: lists of AI_ACTION_NAME and
+   * AI_ACTION_TEAM), with the two catch-all rules that run it.
+   */
+  pagesYouForEveryNewEvent: translationKey(
+    "Pages you for every new incident and alert.",
+  ),
+  pagesYouAndOthersForEveryNewEvent: translationKey(
+    "Pages you and {{others}} for every new incident and alert.",
+  ),
+  pagesOthersForEveryNewEvent: translationKey(
+    "Pages {{responders}} for every new incident and alert.",
+  ),
+  respondersNotFound: translationKey(
+    "Not in this project, so not paged: {{names}}.",
+  ),
+  /*
+   * What the person asked to be reached by and cannot be yet: Ask AI
+   * never adds a phone number or the app - the person verifies them -
+   * so the card says what is missing and where it is added.
+   */
+  noVerifiedPhoneForSms: translationKey(
+    "You have no verified phone number for texts yet. Add one in Notification Methods, and pages reach you by SMS too.",
+  ),
+  noVerifiedPhoneForCalls: translationKey(
+    "You have no verified phone number for calls yet. Add one in Notification Methods, and pages can call you too.",
+  ),
+  noMobileApp: translationKey(
+    "The mobile app is not set up for you yet. Set it up from Notification Methods to get push notifications.",
+  ),
+  nothingReachesYou: translationKey(
+    "Nothing reaches you yet. Add a notification method in Notification Methods.",
+  ),
+  /*
+   * publish_status_page and add_monitors_to_status_page (#6829): a page
+   * is public from the moment it exists, so the card says so before it
+   * is approved, and what it shows ({{monitors}}: AI_ACTION_NAME and
+   * AI_ACTION_NEW_MONITOR).
+   */
+  statusPageIsPublic: translationKey(
+    "It is public as soon as it is created: anyone with its link sees the status of the monitors it shows.",
+  ),
+  statusPageShows: translationKey("It shows {{monitors}}."),
+  monitorsNotFound: translationKey(
+    "Not in this project, so not shown: {{names}}.",
+  ),
+  alreadyOnStatusPage: translationKey("Already on it: {{monitors}}."),
 };
 
 /*
@@ -323,6 +427,10 @@ export const AI_ACTION_PLURAL_LINES: {
   codeFilesNotChecked: PluralTemplate;
   codeFilesValuesHidden: PluralTemplate;
   moreFiles: PluralTemplate;
+  websiteMonitorChecks: PluralTemplate;
+  apiMonitorChecks: PluralTemplate;
+  checkedFromLocations: PluralTemplate;
+  checkedEveryMinutes: PluralTemplate;
 } = {
   // Pushed to, deleted or renamed away on the branch after Ask AI read it there.
   codeFilesChangedSinceRead: {
@@ -424,6 +532,31 @@ export const AI_ACTION_PLURAL_LINES: {
     one: translationKey("{{count}} more file"),
     other: translationKey("{{count}} more files"),
   },
+  /*
+   * set_up_website_monitoring (#6829): what is checked and how often, in
+   * minutes ({{count}}), and from how many of the project's locations.
+   */
+  websiteMonitorChecks: {
+    one: translationKey("A website monitor checks {{url}} every minute."),
+    other: translationKey(
+      "A website monitor checks {{url}} every {{count}} minutes.",
+    ),
+  },
+  apiMonitorChecks: {
+    one: translationKey("An API monitor checks {{url}} every minute."),
+    other: translationKey(
+      "An API monitor checks {{url}} every {{count}} minutes.",
+    ),
+  },
+  checkedFromLocations: {
+    one: translationKey("It is checked from {{count}} location."),
+    other: translationKey("It is checked from {{count}} locations."),
+  },
+  // The line of the card a new monitor leaves: how often it is checked.
+  checkedEveryMinutes: {
+    one: translationKey("Checked every minute"),
+    other: translationKey("Checked every {{count}} minutes"),
+  },
 };
 
 /*
@@ -457,6 +590,22 @@ export const AI_ACTION_CODE_FILE: string = "{{file}}";
  * the kind in every language.
  */
 export const AI_ACTION_RESOURCE_BY_NAME: string = "{{kind}} {{name}}";
+
+/*
+ * One name in a list, as written: a person a policy pages, a monitor a
+ * status page shows (in quotes, written as a JSON string, as a resource's
+ * name is). No words of its own: the name is data, in every language.
+ */
+export const AI_ACTION_NAME: string = "{{name}}";
+
+// A team a policy pages, by its name.
+export const AI_ACTION_TEAM: string = translationKey("the {{name}} team");
+
+/*
+ * A monitor a status page will show that the same plan sets up first: it
+ * does not exist until the plan is approved.
+ */
+export const AI_ACTION_NEW_MONITOR: string = translationKey("{{name}} (new)");
 
 /*
  * ---------------------------------------------------------------------------
@@ -503,6 +652,8 @@ export const AI_ACTION_CARD_KINDS: {
   runbook: string;
   securityCase: string;
   workflow: string;
+  monitor: string;
+  statusPage: string;
 } = {
   incident: translationKey("Incident"),
   alert: translationKey("Alert"),
@@ -510,6 +661,8 @@ export const AI_ACTION_CARD_KINDS: {
   runbook: translationKey("Runbook"),
   securityCase: translationKey("Security case"),
   workflow: translationKey("Workflow"),
+  monitor: translationKey("Monitor"),
+  statusPage: translationKey("Status page"),
 };
 
 // The line under a card's heading: what happened to the record.
@@ -535,6 +688,11 @@ export const AI_ACTION_CARD_LINES: {
   workflowTurnedOff: string;
   workflowOnNextRun: string;
   workflowSavedSinceKept: string;
+  pagesYouForEveryNewEvent: string;
+  pagesYouAndOthersForEveryNewEvent: string;
+  pagesOthersForEveryNewEvent: string;
+  statusPagePublished: string;
+  monitorsAdded: string;
 } = {
   // The severity a new record took, or the one it was changed to.
   severity: translationKey("Severity: {{severity}}"),
@@ -586,6 +744,18 @@ export const AI_ACTION_CARD_LINES: {
   workflowSavedSinceKept: translationKey(
     "Changes saved after this was proposed were kept",
   ),
+  // What a setup action made (#6829): who a new policy pages, no full stop.
+  pagesYouForEveryNewEvent: translationKey(
+    "Pages you for every new incident and alert",
+  ),
+  pagesYouAndOthersForEveryNewEvent: translationKey(
+    "Pages you and {{others}} for every new incident and alert",
+  ),
+  pagesOthersForEveryNewEvent: translationKey(
+    "Pages {{responders}} for every new incident and alert",
+  ),
+  statusPagePublished: translationKey("Published, public at its link"),
+  monitorsAdded: translationKey("Added {{monitors}}"),
 };
 
 // The names of a card's facts.
@@ -597,6 +767,10 @@ export const AI_ACTION_CARD_FACTS: {
   statusUpdate: string;
   workflowSteps: string;
   toFillIn: string;
+  address: string;
+  publicLink: string;
+  shows: string;
+  notAdded: string;
 } = {
   affectedResources: translationKey("Affected resources"),
   alreadyLinked: translationKey("Already linked"),
@@ -606,6 +780,11 @@ export const AI_ACTION_CARD_FACTS: {
   // Which steps a workflow has, by name: never how many (a count says little).
   workflowSteps: translationKey("Workflow steps"),
   toFillIn: translationKey("Still to fill in"),
+  // What a setup action made (#6829): a monitor's address, a page's link.
+  address: translationKey("Address"),
+  publicLink: translationKey("Public link"),
+  shows: translationKey("It shows"),
+  notAdded: translationKey("Not added"),
 };
 
 /*
@@ -643,6 +822,9 @@ export const AI_ACTION_SENTENCES: ReadonlyArray<string> = [
   ...Object.values(AI_ACTION_CARD_LINES),
   AI_ACTION_RESOURCE_BY_NAME,
   AI_ACTION_CODE_FILE,
+  AI_ACTION_NAME,
+  AI_ACTION_TEAM,
+  AI_ACTION_NEW_MONITOR,
 ];
 
 export const AI_ACTION_PLURAL_SENTENCES: ReadonlyArray<PluralTemplate> = [
