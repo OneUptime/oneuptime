@@ -6636,7 +6636,11 @@ test.describe("dark mode and other languages", () => {
     await expect(page.getByTestId("code-task-steps-toggle").first()).toHaveText(
       "7 Schritte · 2 Dateien gelesen · 2 Dateien bearbeitet · 1 Befehl ausgeführt",
     );
-    // A summary that wraps on a phone reads on from the left, not centred.
+    /*
+     * A summary that wraps on a phone reads on from the left, not centred:
+     * text-left, which the reading-direction script (loaded as production
+     * loads it) makes the line's start - the left, on a German page.
+     */
     expect(
       await page
         .getByTestId("code-task-steps-toggle")
@@ -6644,7 +6648,7 @@ test.describe("dark mode and other languages", () => {
         .evaluate((element: Element): string => {
           return window.getComputedStyle(element).textAlign;
         }),
-    ).toBe("left");
+    ).toBe("start");
     await expect(
       page.getByTestId("code-turn-pull-request").first(),
     ).toContainText("Pull Request #418 geöffnet");
