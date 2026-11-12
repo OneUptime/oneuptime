@@ -277,16 +277,20 @@ const drawGrid: (data: {
   language: string;
   resources: Array<StatusPageResource>;
   isMonitorGroupsFeatureEnabled?: boolean | undefined;
+  rowLabel?: string | undefined;
+  columnLabel?: string | undefined;
 }) => void = (data: {
   language: string;
   resources: Array<StatusPageResource>;
   isMonitorGroupsFeatureEnabled?: boolean | undefined;
+  rowLabel?: string | undefined;
+  columnLabel?: string | undefined;
 }): void => {
   render(
     <I18nextProvider i18n={instances[data.language]!}>
       <ResourceGrid
-        rowLabel="Region"
-        columnLabel="Service"
+        rowLabel={data.rowLabel || "Region"}
+        columnLabel={data.columnLabel || "Service"}
         rowValues={["EU"]}
         columnValues={["API"]}
         statusPageResources={data.resources}
@@ -1024,6 +1028,142 @@ describe("a grid's chip: its name ends in '...' at its own end", () => {
       expect(nameLineIn(holder)).toHaveAttribute("dir", "ltr");
       expect(reachedIn(holder, RESOURCE_CHIP_NAME_CLASS_NAME)).toHaveLength(1);
       expect(screen.queryByTestId(GRID_NAME_TEST_ID)).toBeNull();
+    },
+  );
+});
+
+/*
+ * A RESOURCE OFF THE GRID SAYS WHERE IT IS: "Region: Mars · Service: API"
+ * (#7087). That line was the page's: on an Arabic or Persian page an
+ * English one too long for its chip was cut where the page's lines end,
+ * its start - "...acific · Service: Search". Now it is a line of its own
+ * that reads the way its words are written (IsolatedLine), each name and
+ * value read its own way in it (IsolatedText), and the whole of it shows
+ * on hover.
+ */
+describe("a resource off the grid: the line that says where it is", () => {
+  const AXES_TEST_ID: string = "status-page-resource-grid-orphan-axes";
+  const LONG_ROW: string = "europe-west1-legacy-datacenter";
+  const LONG_COLUMN: string = "Background workers (legacy queue)";
+
+  // Each name and value on the line: its words and the way it reads.
+  const partsOf: (
+    line: HTMLElement,
+  ) => Array<{ text: string; dir: string | null }> = (
+    line: HTMLElement,
+  ): Array<{ text: string; dir: string | null }> => {
+    return Array.from(line.children).map(
+      (part: Element): { text: string; dir: string | null } => {
+        expect(part.tagName).toBe("BDI");
+        return { text: part.textContent || "", dir: part.getAttribute("dir") };
+      },
+    );
+  };
+
+  test.each(RIGHT_TO_LEFT_LANGUAGES)(
+    "on an %s page an English line reads left to right, from its own start, and ends in '...' at its own end",
+    (language: string) => {
+      drawGrid({
+        language: language,
+        resources: [
+          monitorResource({
+            name: ENGLISH_MONITOR,
+            rowAxisValue: LONG_ROW,
+            columnAxisValue: LONG_COLUMN,
+          }),
+        ],
+      });
+
+      const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+      const whole: string = `Region: ${LONG_ROW} · Service: ${LONG_COLUMN}`;
+
+      expect(line).toHaveAttribute("dir", "ltr");
+      expect(line.getAttribute("class")).toBe(
+        `truncate text-gray-500 ${LINE_ALIGNED_AS_THE_PAGE_CLASS_NAME}`,
+      );
+      expect(line.textContent).toBe(whole);
+      expect(line).toHaveAttribute("title", whole);
+      expect(partsOf(line)).toEqual([
+        { text: "Region", dir: "ltr" },
+        { text: LONG_ROW, dir: "ltr" },
+        { text: "Service", dir: "ltr" },
+        { text: LONG_COLUMN, dir: "ltr" },
+      ]);
+
+      // Under the resource's name, in the box that gives way to its buttons.
+      expect(line.previousElementSibling).toBe(
+        screen.getByTestId(GRID_ORPHAN_NAME_TEST_ID),
+      );
+      expect(line.parentElement).toHaveClass("min-w-0", "flex-1");
+    },
+  );
+
+  test.each(RIGHT_TO_LEFT_LANGUAGES)(
+    "on an %s page a line in the page's letters reads the page's way, and an English value in it reads its own",
+    (language: string) => {
+      drawGrid({
+        language: language,
+        rowLabel: "المنطقة",
+        columnLabel: "الخدمة",
+        resources: [
+          monitorResource({
+            name: ENGLISH_MONITOR,
+            rowAxisValue: "القاهرة الجديدة",
+            columnAxisValue: "API",
+          }),
+        ],
+      });
+
+      const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+
+      expect(line).not.toHaveAttribute("dir");
+      expect(line.getAttribute("class")).toBe("truncate text-gray-500");
+      expect(partsOf(line)).toEqual([
+        { text: "المنطقة", dir: "rtl" },
+        { text: "القاهرة الجديدة", dir: "rtl" },
+        { text: "الخدمة", dir: "rtl" },
+        { text: "API", dir: "ltr" },
+      ]);
+    },
+  );
+
+  test("on an English page the line is drawn as it was: no dir, its classes, its words", () => {
+    drawGrid({
+      language: "en",
+      resources: [
+        monitorResource({
+          name: ENGLISH_MONITOR,
+          rowAxisValue: "Mars",
+          columnAxisValue: "API",
+        }),
+      ],
+    });
+
+    const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+
+    expect(line.tagName).toBe("DIV");
+    expect(line).not.toHaveAttribute("dir");
+    expect(line.getAttribute("class")).toBe("truncate text-gray-500");
+    expect(line.textContent).toBe("Region: Mars · Service: API");
+  });
+
+  test.each(["en", ...RIGHT_TO_LEFT_LANGUAGES])(
+    "on an %s page a value the resource lacks is a dash, which reads either way",
+    (language: string) => {
+      drawGrid({
+        language: language,
+        resources: [
+          monitorResource({
+            name: ENGLISH_MONITOR,
+            rowAxisValue: "Mars",
+          }),
+        ],
+      });
+
+      const line: HTMLElement = screen.getByTestId(AXES_TEST_ID);
+
+      expect(line.textContent).toBe("Region: Mars · Service: —");
+      expect(partsOf(line)[3]).toEqual({ text: "—", dir: null });
     },
   );
 });

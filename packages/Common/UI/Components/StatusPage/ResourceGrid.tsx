@@ -9,10 +9,22 @@ import Icon, { ThickProp } from "../Icon/Icon";
 import MoreMenu from "../MoreMenu/MoreMenu";
 import MoreMenuItem from "../MoreMenu/MoreMenuItem";
 import IsolatedLine from "../IsolatedText/IsolatedLine";
+import IsolatedText from "../IsolatedText/IsolatedText";
 import {
   RESOURCE_CHIP_NAME_CLASS_NAME,
   RESOURCE_CHIP_TEXT_CLASS_NAME,
 } from "./ResourceNameClassNames";
+import {
+  RESOURCE_GRID_BODY_CLASS_NAME,
+  RESOURCE_GRID_CELL_CLASS_NAME,
+  RESOURCE_GRID_CELL_LABEL_CLASS_NAME,
+  RESOURCE_GRID_CHIP_ACTIONS_CLASS_NAME,
+  RESOURCE_GRID_CLASS_NAME,
+  RESOURCE_GRID_HEAD_CLASS_NAME,
+  RESOURCE_GRID_ROW_CLASS_NAME,
+  RESOURCE_GRID_ROW_HEADING_CLASS_NAME,
+  RESOURCE_GRID_TABLE_CLASS_NAME,
+} from "./ResourceGridLayout";
 import React, { FunctionComponent, ReactElement, useMemo } from "react";
 import {
   translatableTerm,
@@ -57,17 +69,6 @@ export interface ComponentProps {
    */
   onShowId: (statusPageResource: StatusPageResource) => void;
 }
-
-/*
- * The chip's actions fade in on hover and on keyboard focus, so a cell full of
- * monitors reads as names rather than as a column of icons. Neither of those
- * holds while the ⋯ menu is open, though: the menu is drawn in the body, so the
- * pointer leaves the chip to reach it and focus moves into it - and the trigger
- * the menu hangs from would fade out from under it. The trigger says it is
- * expanded for as long as the menu is open, so that is what keeps it shown.
- */
-const CHIP_ACTIONS_CLASS_NAME: string =
-  "flex flex-shrink-0 items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 has-[[aria-expanded=true]]:opacity-100";
 
 /* A stranded resource needs fixing, so its actions are not held back. */
 const ORPHAN_ACTIONS_CLASS_NAME: string =
@@ -318,7 +319,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
         {renderActions({
           statusPageResource,
           editTooltip: translationKey("Edit this resource"),
-          className: CHIP_ACTIONS_CLASS_NAME,
+          className: RESOURCE_GRID_CHIP_ACTIONS_CLASS_NAME,
         })}
       </div>
     );
@@ -340,6 +341,17 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
 
     return (
       <div className="flex min-h-[3.25rem] flex-col gap-1.5">
+        {/*
+         * The cell's column, over its chips when the grid is a stack and
+         * its column heading is not drawn (RESOURCE_GRID_CELL_LABEL_CLASS_NAME).
+         */}
+        <div
+          className={RESOURCE_GRID_CELL_LABEL_CLASS_NAME}
+          data-testid="status-page-resource-grid-cell-label"
+        >
+          {columnValue}
+        </div>
+
         {cell.map((statusPageResource: StatusPageResource) => {
           return renderResourceChip(statusPageResource);
         })}
@@ -375,6 +387,46 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
     );
   };
 
+  type RenderAxisLineFunction = (
+    statusPageResource: StatusPageResource,
+  ) => ReactElement;
+
+  /*
+   * Where a stranded resource says it is: "Region: Mars · Service: API",
+   * names and values as the group and the resource were given them. A line
+   * of its own that reads the way its words are written (IsolatedLine), and
+   * each name and value read its own way in it (IsolatedText): on an Arabic
+   * or Persian page an English line too long for its chip was cut where
+   * the page's lines end, its start - "...acific · Service: Search" (#7087).
+   * Now it starts at its own start and ends in "..." at its own end, the
+   * whole of it on hover. On a page read the line's way it has no dir, and
+   * the classes it had.
+   */
+  const renderAxisLine: RenderAxisLineFunction = (
+    statusPageResource: StatusPageResource,
+  ): ReactElement => {
+    const rowValue: string = statusPageResource.rowAxisValue || "—";
+    const columnValue: string = statusPageResource.columnAxisValue || "—";
+    const line: string = `${props.rowLabel}: ${rowValue} · ${props.columnLabel}: ${columnValue}`;
+
+    return (
+      <IsolatedLine
+        text={line}
+        className="truncate text-gray-500"
+        title={line}
+        dataTestId="status-page-resource-grid-orphan-axes"
+      >
+        <IsolatedText text={props.rowLabel} />
+        {": "}
+        <IsolatedText text={rowValue} />
+        {" · "}
+        <IsolatedText text={props.columnLabel} />
+        {": "}
+        <IsolatedText text={columnValue} />
+      </IsolatedLine>
+    );
+  };
+
   /*
    * A grid with no axes has no cells to draw, and nothing useful to say that
    * the caller has not already said: the pane that mounts this owns the "this
@@ -387,10 +439,13 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
   }
 
   return (
-    <div data-testid="status-page-resource-grid">
+    <div
+      className={RESOURCE_GRID_CLASS_NAME}
+      data-testid="status-page-resource-grid"
+    >
       <div className="overflow-x-auto">
-        <table className="min-w-full border-separate border-spacing-0">
-          <thead>
+        <table className={RESOURCE_GRID_TABLE_CLASS_NAME}>
+          <thead className={RESOURCE_GRID_HEAD_CLASS_NAME}>
             <tr>
               <th className="sticky left-0 z-10 rounded-tl-lg border-b border-r border-gray-200 bg-gray-50 px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 {props.rowLabel}
@@ -407,18 +462,18 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
               })}
             </tr>
           </thead>
-          <tbody>
+          <tbody className={RESOURCE_GRID_BODY_CLASS_NAME}>
             {props.rowValues.map((rowValue: string) => {
               return (
-                <tr key={rowValue}>
-                  <th className="sticky left-0 z-10 border-b border-r border-gray-200 bg-white px-3 py-3 text-left align-top text-xs font-semibold text-gray-800">
+                <tr key={rowValue} className={RESOURCE_GRID_ROW_CLASS_NAME}>
+                  <th className={RESOURCE_GRID_ROW_HEADING_CLASS_NAME}>
                     {rowValue}
                   </th>
                   {props.columnValues.map((columnValue: string) => {
                     return (
                       <td
                         key={columnValue}
-                        className="border-b border-gray-200 px-2 py-2 align-top"
+                        className={RESOURCE_GRID_CELL_CLASS_NAME}
                       >
                         {renderCell(rowValue, columnValue)}
                       </td>
@@ -483,12 +538,7 @@ const ResourceGrid: FunctionComponent<ComponentProps> = (
                       >
                         {props.getResourceElement(statusPageResource)}
                       </div>
-                      <div className="truncate text-gray-500">
-                        {props.rowLabel}:{" "}
-                        {statusPageResource.rowAxisValue || "—"} ·{" "}
-                        {props.columnLabel}:{" "}
-                        {statusPageResource.columnAxisValue || "—"}
-                      </div>
+                      {renderAxisLine(statusPageResource)}
                     </div>
 
                     {renderActions({
