@@ -17,7 +17,10 @@ import React, { FunctionComponent, ReactElement } from "react";
 import GoldenMetricTile from "../../../Components/Infrastructure/GoldenMetricTile";
 import ResourceMetricsTab from "../../../Components/Infrastructure/ResourceMetricsTab";
 import { OpenStackVolumeList } from "../../../Components/OpenStack/OpenStackLists";
-import { formatOpenStackBytes } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  formatOpenStackBytes,
+  formatOpenStackPercent,
+} from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackBlastRadiusCard from "../../../Components/OpenStack/Part/OpenStackBlastRadiusCard";
 import OpenStackStoragePoolCephCard from "../../../Components/OpenStack/Part/OpenStackStoragePoolCephCard";
 import OpenStackForecastTile from "../../../Components/OpenStack/Part/OpenStackForecastTile";
@@ -144,14 +147,25 @@ const StoragePoolOverview: FunctionComponent<{
           title="Used"
           icon={IconProp.Database}
           iconColor="amber"
-          value={percent === null ? "—" : `${Math.round(percent)}%`}
+          value={
+            percent === null
+              ? "—"
+              : formatOpenStackPercent(percent, {
+                  language: translator.language,
+                })
+          }
           sublabel={
             percent === null
               ? "Not reported"
-              : translator.translateTemplate("{{used}} of {{total}}", {
-                  used: formatOpenStackBytes(row.diskAllocatedBytes || 0),
-                  total: formatOpenStackBytes(row.diskCapacityBytes || 0),
-                })
+              : translator.translateTemplate(
+                  "{{used}} of {{total}}",
+                  {
+                    used: formatOpenStackBytes(row.diskAllocatedBytes || 0),
+                    total: formatOpenStackBytes(row.diskCapacityBytes || 0),
+                  },
+                  // "۴۸۰ GiB" reads with its number first in a Persian sentence.
+                  { setsValuesApart: true },
+                )
           }
           percent={percent}
           thresholds={{
@@ -167,9 +181,13 @@ const StoragePoolOverview: FunctionComponent<{
           value={free === null ? "—" : formatOpenStackBytes(free)}
           sublabel={
             row.diskCapacityBytes
-              ? translator.translateTemplate("of {{total}}", {
-                  total: formatOpenStackBytes(row.diskCapacityBytes),
-                })
+              ? translator.translateTemplate(
+                  "of {{total}}",
+                  {
+                    total: formatOpenStackBytes(row.diskCapacityBytes),
+                  },
+                  { setsValuesApart: true },
+                )
               : undefined
           }
           description="How much of this pool is free, as the pool reports it."

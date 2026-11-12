@@ -53,8 +53,9 @@ export const SETUP_HEALTH_FIX_PAGES: Readonly<Record<SetupHealthFix, string>> =
     [SetupHealthFix.OnCallSchedule]: "the on-call schedule's page",
     [SetupHealthFix.OnCallReadiness]: "On-Call Duty > Readiness",
     [SetupHealthFix.ProjectNotificationSettings]:
-      "Project Settings > Notification Settings",
-    [SetupHealthFix.ProjectBilling]: "Project Settings > Billing",
+      "Project Settings > Notifications > Notification Settings",
+    [SetupHealthFix.ProjectBilling]:
+      "Project Settings > Billing and Invoices > Billing",
     [SetupHealthFix.ServerSettings]:
       "the server's Admin Dashboard (Server setup), which only its admins can open",
     [SetupHealthFix.StatusPageResources]: "the status page's Resources page",

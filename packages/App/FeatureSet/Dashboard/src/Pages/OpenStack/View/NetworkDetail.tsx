@@ -21,7 +21,10 @@ import {
   OpenStackSubnetList,
   getOpenStackAddressesText,
 } from "../../../Components/OpenStack/OpenStackLists";
-import { formatOpenStackCount } from "../../../Components/OpenStack/OpenStackResourceList";
+import {
+  formatOpenStackCount,
+  formatOpenStackPercent,
+} from "../../../Components/OpenStack/OpenStackResourceList";
 import OpenStackForecastTile from "../../../Components/OpenStack/Part/OpenStackForecastTile";
 import { getOpenStackMetricQuery } from "../../../Components/OpenStack/Part/OpenStackMetricQueries";
 import {
@@ -213,7 +216,7 @@ const NetworkOverview: FunctionComponent<{
           title="Addresses used"
           icon={IconProp.Globe}
           iconColor="blue"
-          value={percent === null ? "—" : `${Math.round(percent)}%`}
+          value={percent === null ? "—" : formatOpenStackPercent(percent)}
           sublabel={
             percent === null ? "Not reported" : getOpenStackAddressesText(row)
           }
@@ -276,7 +279,7 @@ const NetworkOverview: FunctionComponent<{
                             {
                               used: formatOpenStackCount(subnet.used || 0),
                               total: formatOpenStackCount(subnet.total || 0),
-                              percent: `${Math.round(subnet.percent)}%`,
+                              percent: formatOpenStackPercent(subnet.percent),
                             },
                           )}
                     </span>

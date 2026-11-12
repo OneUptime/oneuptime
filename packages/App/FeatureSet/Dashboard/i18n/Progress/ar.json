@@ -409,7 +409,6 @@
     "{{latency}} ms",
     "{{time}} (UTC)",
     "{{value}} Mbps",
-    "{{value}} ms",
     "μs",
     "≤ 1000 ms",
     "≤ 150 ms",
