@@ -314,7 +314,13 @@ describe("the preview of a file question", () => {
     expect(await screen.findByText("outage.png")).toBeInTheDocument();
     // Kept, not uploaded: a picker of one lists its file with no heading.
     expect(screen.queryByText("Uploaded files")).not.toBeInTheDocument();
-    expect(screen.getByText("PNG • 8 B")).toBeInTheDocument();
+    expect(
+      screen
+        .getAllByTestId("file-picker-file-facts")
+        .map((element: HTMLElement): string => {
+          return element.textContent || "";
+        }),
+    ).toEqual(["PNG · 8 B"]);
     expect(createMock).not.toHaveBeenCalled();
 
     await act(async () => {

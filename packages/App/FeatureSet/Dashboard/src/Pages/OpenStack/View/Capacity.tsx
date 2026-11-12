@@ -25,6 +25,7 @@ import {
 } from "Common/Types/OpenStack/OpenStackCapacitySnapshot";
 import { ButtonStyleType } from "Common/UI/Components/Button/Button";
 import Card from "Common/UI/Components/Card/Card";
+import IsolatedText from "Common/UI/Components/IsolatedText/IsolatedText";
 import Link from "Common/UI/Components/Link/Link";
 import PageLoader from "Common/UI/Components/Loader/PageLoader";
 import Navigation from "Common/UI/Utils/Navigation";
@@ -59,12 +60,18 @@ import {
   getOpenStackCapacityResourceTitle,
   getOpenStackCapacityView,
 } from "../Utils/OpenStackCapacityView";
+import { formatOpenStackPercent } from "../Utils/OpenStackFigures";
 import { getOpenStackHostGroupId } from "../Utils/OpenStackPartFacts";
 import { OpenStackResourceKind } from "Common/Types/OpenStack/OpenStackResourceKind";
 import Route from "Common/Types/API/Route";
 import URL from "Common/Types/API/URL";
 import { joinList } from "Common/UI/Utils/ListSeparator";
 import { getReaderNumberLocale } from "Common/Types/DateLanguage";
+import {
+  ReadingDirection,
+  getReadingDirection,
+  setApartInSentence,
+} from "Common/Types/ReadingDirection";
 
 /*
  * CAN WE FIT THIS?
@@ -121,6 +128,23 @@ function zoneTitle(name: string, translator: Translator): string {
   return name || translator.translateText(ZONE_NO_NAME) || ZONE_NO_NAME;
 }
 
+/*
+ * "۴۸۰ GiB / ۱٫۰ TiB": each amount reads its own way, so a size keeps its
+ * number before its unit on a page read from the right, and the pair reads
+ * the page's way, what is used first (issue #7191).
+ */
+export function formatOpenStackCapacityPair(data: {
+  used: string;
+  total: string;
+  language: string;
+}): string {
+  const direction: ReadingDirection = getReadingDirection(data.language);
+  return `${setApartInSentence(data.used, direction)} / ${setApartInSentence(
+    data.total,
+    direction,
+  )}`;
+}
+
 function AllocatedCell(props: {
   resource: OpenStackCapacityResource | null;
 }): ReactElement {
@@ -130,19 +154,32 @@ function AllocatedCell(props: {
     return <span className="text-gray-400">-</span>;
   }
 
+  /*
+   * Each amount reads its own way ("۶٫۰ TiB", its number first on a page
+   * read from the right) and the cell the page's way (issue #7191).
+   */
   return (
-    <span>
-      {formatOpenStackCapacityAmount(resource.resourceClass, resource.used)}{" "}
+    <span data-testid="openstack-capacity-allocated">
+      <IsolatedText
+        text={formatOpenStackCapacityAmount(
+          resource.resourceClass,
+          resource.used,
+        )}
+        dataTestId="openstack-capacity-allocated-used"
+      />{" "}
       <span className="text-gray-400">
         /{" "}
-        {formatOpenStackCapacityAmount(
-          resource.resourceClass,
-          resource.capacity,
-        )}
+        <IsolatedText
+          text={formatOpenStackCapacityAmount(
+            resource.resourceClass,
+            resource.capacity,
+          )}
+          dataTestId="openstack-capacity-allocated-total"
+        />
       </span>
       {resource.percent !== null ? (
         <span className="ms-1 text-gray-500">
-          ({Math.round(resource.percent)}%)
+          ({formatOpenStackPercent(resource.percent)})
         </span>
       ) : (
         <></>
@@ -179,7 +216,7 @@ const ShortageRow: FunctionComponent<{
         (shortage.fitsIfOnePool || 0) > 0
           ? translator.translateTemplate(
               "No host has room for one, though {{count}} would fit if what is free were on one host. What is free is too spread out.",
-              { count: String(shortage.fitsIfOnePool) },
+              { count: translator.formatNumber(shortage.fitsIfOnePool || 0) },
             )
           : translator.translateTemplate(
               "No host has room for one, and {{resource}} is what ran out.",
@@ -190,6 +227,7 @@ const ShortageRow: FunctionComponent<{
       route = routes.getZoneRoute(
         getOpenStackHostGroupId(shortage.regionName, shortage.name),
       );
+      // Each value set apart: "۶۴ GiB" reads with its number first in a Persian sentence.
       sentence = translator.translateTemplate(
         "Couldn't lose its largest host and still fit what runs on it: {{amount}} short of {{resource}}.",
         {
@@ -199,6 +237,7 @@ const ShortageRow: FunctionComponent<{
           ),
           resource: resource || "-",
         },
+        { setsValuesApart: true },
       );
       break;
     case "full":
@@ -222,12 +261,13 @@ const ShortageRow: FunctionComponent<{
       sentence = translator.translateTemplate(
         "Placement holds {{vcpus}} vCPUs and {{memory}} more than its instances explain.",
         {
-          vcpus: String(Math.max(0, shortage.vcpuExcess || 0)),
+          vcpus: translator.formatNumber(Math.max(0, shortage.vcpuExcess || 0)),
           memory: formatOpenStackCapacityAmount(
             "MEMORY_MB",
             Math.max(0, shortage.memoryMbExcess || 0),
           ),
         },
+        { setsValuesApart: true },
       );
       break;
   }
@@ -1115,8 +1155,14 @@ const OpenStackCloudCapacity: FunctionComponent<
                 title={TILE_TITLES[name] || name}
                 icon={IconProp.ChartBar}
                 iconColor="blue"
-                value={`${Math.round(resource.percent ?? 0)}%`}
-                sublabel={`${formatOpenStackCapacityAmount(name, resource.used)} / ${formatOpenStackCapacityAmount(name, resource.capacity)}`}
+                value={formatOpenStackPercent(resource.percent ?? 0, {
+                  language: translator.language,
+                })}
+                sublabel={formatOpenStackCapacityPair({
+                  used: formatOpenStackCapacityAmount(name, resource.used),
+                  total: formatOpenStackCapacityAmount(name, resource.capacity),
+                  language: translator.language,
+                })}
                 percent={resource.percent}
                 description={translator.translateText(
                   "What Placement has promised, of what it will promise on hosts that can take instances: (total - reserved) x allocation ratio. This is allocation, not load: an idle instance holds all of it.",
@@ -1351,13 +1397,16 @@ const OpenStackCloudCapacity: FunctionComponent<
                         {translator.translateTemplate(
                           "{{vcpus}} vCPUs and {{memory}} more than its {{count}} instances explain",
                           {
-                            vcpus: String(Math.max(0, row.vcpuExcess)),
+                            vcpus: translator.formatNumber(
+                              Math.max(0, row.vcpuExcess),
+                            ),
                             memory: formatOpenStackCapacityAmount(
                               "MEMORY_MB",
                               Math.max(0, row.memoryMbExcess),
                             ),
-                            count: String(row.instanceCount),
+                            count: translator.formatNumber(row.instanceCount),
                           },
+                          { setsValuesApart: true },
                         )}
                       </span>
                     </li>

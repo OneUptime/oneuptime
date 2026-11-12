@@ -470,7 +470,7 @@ test.describe("a record's file custom fields: Edit", () => {
      * card says it - though the File the dialog is handed holds no bytes.
      */
     await expect(
-      picker(page, FILE_FIELD).locator("xpath=..").getByText("PDF • 47 KB", {
+      picker(page, FILE_FIELD).locator("xpath=..").getByText("PDF · 47 KB", {
         exact: true,
       }),
     ).toBeVisible();
@@ -485,7 +485,7 @@ test.describe("a record's file custom fields: Edit", () => {
       "gateway-errors.csv",
       "capture-eu-west-1.pcap",
     ]);
-    for (const metadata of ["PNG • 240 KB", "CSV • 18 KB", "PCAP • 2.4 MB"]) {
+    for (const metadata of ["PNG · 240 KB", "CSV · 18 KB", "PCAP · 2.4 MB"]) {
       await expect(
         picker(page, FILES_FIELD)
           .locator("xpath=..")
@@ -586,7 +586,7 @@ test.describe("a record's file custom fields: Edit", () => {
     await expect(
       picker(page, FILES_FIELD)
         .locator("xpath=..")
-        .getByText(`PNG • ${PNG_BYTES.length} B`, { exact: true }),
+        .getByText(`PNG · ${PNG_BYTES.length} B`, { exact: true }),
     ).toBeVisible();
 
     const uploads: Array<Upload> = (await dashboardFixture(page)).uploads;
@@ -748,7 +748,7 @@ test.describe("a record's file custom fields: Edit", () => {
     );
 
     await expect(picker(page, FILES_FIELD)).toContainText(
-      '"full-capture.pdf" exceeds the 10MB limit.',
+      '"full-capture.pdf" exceeds the 10 MB limit.',
     );
     expect((await dashboardFixture(page)).uploads).toEqual([]);
   });
@@ -1001,7 +1001,7 @@ test.describe("a public form's file questions", () => {
     await expect(
       formPicker(page, "screenshot")
         .locator("xpath=..")
-        .getByText(`PNG • ${PNG_BYTES.length} B`, { exact: true }),
+        .getByText(`PNG · ${PNG_BYTES.length} B`, { exact: true }),
     ).toBeVisible();
     await expect(
       formPicker(page, "evidence")
