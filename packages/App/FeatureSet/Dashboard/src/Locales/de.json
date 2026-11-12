@@ -51500,5 +51500,11 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Amazon SES-Authentifizierungstyp",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "Zugriffsschlüssel-ID und geheimer Zugriffsschlüssel eines IAM-Benutzers, verschlüsselt gespeichert.",
+  "How OneUptime signs in to Amazon SES.": "Wie sich OneUptime bei Amazon SES anmeldet.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "Über Amazon SES mit einem Zugriffsschlüssel oder der IAM-Rolle dieses Servers senden.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Die Rolle, die AWS diesem Server auf Amazon EKS, ECS oder EC2 gibt. Es wird kein Schlüssel gespeichert, und die Anmeldedaten erneuern sich von selbst.",
+  "This Server's IAM Role": "IAM-Rolle dieses Servers"
 }

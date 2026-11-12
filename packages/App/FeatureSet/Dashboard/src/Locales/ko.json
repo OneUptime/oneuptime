@@ -51500,5 +51500,11 @@
   "Response headers": "Response headers",
   "Show request and response": "Show request and response",
   "What was sent to your provider and what came back. API keys and cookies are masked.": "What was sent to your provider and what came back. API keys and cookies are masked.",
-  "{{count}} ms_one": "{{count}} ms"
+  "{{count}} ms_one": "{{count}} ms",
+  "Amazon SES Authentication Type": "Amazon SES 인증 유형",
+  "An IAM user's access key ID and secret access key, stored encrypted.": "IAM 사용자의 액세스 키 ID와 비밀 액세스 키이며, 암호화되어 저장됩니다.",
+  "How OneUptime signs in to Amazon SES.": "OneUptime이 Amazon SES에 로그인하는 방식입니다.",
+  "Send through Amazon SES with an access key or this server's IAM role.": "액세스 키 또는 이 서버의 IAM 역할로 Amazon SES를 통해 보냅니다.",
+  "The role AWS gives this server on Amazon EKS, ECS or EC2. No key is stored, and its credentials renew on their own.": "Amazon EKS, ECS 또는 EC2에서 AWS가 이 서버에 부여하는 역할입니다. 키는 저장되지 않으며, 자격 증명은 자동으로 갱신됩니다.",
+  "This Server's IAM Role": "이 서버의 IAM 역할"
 }
